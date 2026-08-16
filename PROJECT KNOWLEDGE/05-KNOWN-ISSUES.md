@@ -2213,6 +2213,75 @@ teach flow. **Not yet fixed and not yet proven to be that path** — it needs it
 `CantForgetHM` and assert the re-pick runs) and an A/B, which is the honest next step rather than
 assuming the connection.
 
+### ‼‼ RECON 2026-08-16 — THE ENTRY WAS RIGHT BUT INCOMPLETE ON TWO COUNTS. Read this before fixing.
+
+⛔ **(A) THERE ARE *TWO* LIVE UNBOUND READS, NOT ONE — AND THE ONE THIS ENTRY NEVER MENTIONED IS THE
+MORE DAMAGING.** Besides `:280` (the re-pick), **`:397` — the HM VETO — reads `party_index` too**,
+inside a `try` whose handler is a bare **`except Exception: pass`**. That is the loudest possible
+silence: it leaves `move_to_forget` unchanged with no message and no flag, and is **completely
+indistinguishable from the success case** "the chosen slot is not an HM, so the veto correctly did
+nothing". ‼ The veto's own comment names the exact case it fails to cover — *"the `except` fallback
+right above which blindly picks slot 0 without consulting any policy at all"* — and that fallback
+(`:377-381`) **is precisely the path that leaves `party_index` unbound.** The last line of defence
+is structurally unable to defend against the one case it was written for.
+
+⛔ **(B) FIXING `:280` ALONE DOES NOT FIX THE BUG — the loop is driven from somewhere else.** The
+precondition for `:280` to raise is a FOUR-STEP CONJUNCTION, and step 2 *causes* steps 3-4:
+  1. `_read_offered_move` raises ⇒ `party_index` unbound **and** `move_to_forget = 0` (`:381`);
+  2. the HM veto at `:397` silently no-ops on the same unbound name (`:433` `pass`) ⇒ a doomed
+     HM pick survives that would otherwise have been re-picked away;
+  3. branch (1) confirms slot 0 with A ⇒ `last_confirmed_slot = 0` (`:339`);
+  4. the game refuses ⇒ `CantForgetHM` ⇒ `:273` true ⇒ `:280` `UnboundLocalError` ⇒ decline.
+Then it **PING-PONGS**: `last_offered_move_name` is only set at `:376` *after* the failing call, so
+branch (2) re-enters the same `try` forever, and `:380-381` **re-arms `move_to_forget = 0`** every
+cycle. ⇒ `frames_in_dialogue > 6000`, `_STALLED_EXITS` increments, the caller re-invokes fresh, and
+the third strike raises `BotModeError`. ‼ **That is the `#24-teachmsgstall` / `#24-movelearn-recovery`
+signature** — a mechanically complete path, and **still a HYPOTHESIS until the injected repro runs.**
+
+⛔ **(C) THE CAPTURED SAVES ARE A FIXTURE, NOT A REPRO.** `saves/movelearn_hmwedge_{quickattack,slash}.ss1`
+DO enter `CantForgetHM` on frame 0 (`repro_movelearn_hm_wedge.py`) — but on a fresh generator
+`last_confirmed_slot is None`, so `:273` is FALSE and **`:280` never executes**. Both arms already
+report `VERDICT = RESOLVED`, `moveset changed = False`. ‼ **So an A/B whose discriminator is
+"moveset unchanged" is VACUOUS — that is today's GREEN result.** The discriminator must be that the
+**re-pick actually RAN**: a non-empty `hm_blocked` plus a `context.message` containing
+`"Replacing slot"`. Today an `UnboundLocalError` there prints *"Nothing else can be given up —
+declining the new move"* **with full confidence**, which is a lie the user can read.
+
+✅ **THE FAULT INJECTION POINT IS IDENTIFIED AND NEEDS NO PRODUCTION EDIT.** `battle_move_replacing.py`
+has **no `POKEBOT_*` hook anywhere** (checked: zero `os.environ` references). `:371` calls
+`_read_offered_move` by bare name, so rebinding `bmr.get_battle_state` (or `bmr._read_offered_move`)
+on the imported module object takes effect immediately — the same mechanism
+`repro_hm_replace_valve_forced.py:170-188` already uses to latch `get_learn_move_state`.
+‼ **Fault the CAUSE, not the function:** the most plausible real raiser is
+`map_battle_party_index` → `RuntimeError` (`battle_state.py:354`), fed by a RAW byte
+`read_symbol("gBattleStruct", 16, 1)[0]` read on an arbitrary frame while the UI animates — needs no
+exotic conditions. Both halves are required: the fault ALONE does not reach `:280` (see (C)).
+
+⛔ **DANGERS, measured, that a naive fix walks into:**
+* **`move_to_forget = 4` is OVERLOADED** — "decline" to branch (2), but a **cursor ROW** to branch
+  (1) (`:328-335`). ⚠ **Branch (1) has NO `try`**, so a `None` sentinel leaking into its
+  `cursor < move_to_forget` comparison raises `TypeError` into nothing at all.
+* **Three callers, two of them not the battle handler:** `battle_evolution_scene.py:49` and
+  `modes/util/items.py:349` (**Rare Candy from the bag**, a `while True:` whose only exit is the bag
+  menu). Any change to `_read_offered_move`'s CONTRACT hits both.
+* **Per-invocation vs module-level memory:** `hm_blocked`/`last_confirmed_slot` die on every return
+  while `_STALLED_EXITS` deliberately does not, so a re-invoked generator **loses the refusal
+  knowledge but keeps the strike count**. Promoting state to module level would need resetting at
+  `:256`/`:451` or it leaks across battles — a bug already fixed once for the strike counter.
+* ⚠ `get_party_menu_cursor_pos` does **not** raise on a bad cursor: it calls `set_manual_mode()` and
+  returns `slot_id = -1`, and `get_party()[-1]` is the LAST party member. That failure mode is a
+  **wrong mon, not an exception** — a second, separate silent-wrong-answer path.
+
+✅ **THE FIX, SPECIFIED IN THREE PARTS** (⛔ not applied — this entry's own deferral stands, and
+changing the teach flow without the repro is how `#24-teachmsgstall` earned its "no production
+effect" verdict): (1) `party_index: int | None = None` beside `:177`, matching
+`last_confirmed_slot: int | None = None`'s style; (2) EXPLICIT `if party_index is None:` guards at
+`:280` and `:397` that say loudly they cannot act, instead of letting `except` swallow an
+`UnboundLocalError` indistinguishably from success; (3) set `last_offered_move_name` (or an
+equivalent "we already failed to read this offer" latch) in the `:377` handler — **without (3) the
+ping-pong in (B) survives the fix.**
+⚠ **`custom-pokebot`'s copy is BYTE-IDENTICAL**, so whatever lands here has a promotion twin.
+
 **Severity:** MEDIUM, order-dependent (on iterations where line 371 already ran, the name is bound
 and the branch works), which is also why it has survived unnoticed.
 
@@ -2662,99 +2731,21 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
 
 ---
 
-## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED: `len(get_party())` wearing an identity's clothes (2026-08-15, code-verified while driving (P4) Stage 2 — ✅✅ **FIXED, FAULT-PROVEN, AND PROMOTED TO BOTH FORKS 2026-08-15, user-approved — ⚠ CLOSED *FOR THE MESSAGE*, WITH ONE RESIDUAL: NO CALLER ACTS ON THE VERDICT.** `withdraw_from_box` still returns nothing and still never raises, so production can now TELL the truth about a failed withdraw and still cannot REACT to one — tracked as an open thread in `03-PUNCH-LIST.md`, because a residual filed under a header reading only "CLOSED" is a residual nobody finds)
+## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED (2026-08-15, ✅ FIXED, FAULT-PROVEN and PROMOTED TO BOTH FORKS — ⚠ ONE RESIDUAL, see below) — FULL ENTRY in `31-KNOWN-ISSUES-ARCHIVE.md`
 
-- **The line.** `modules/story/pc_trip.py:472-474`, the tail of `withdraw_from_box()`:
-  ```
-  after = len(get_party())
-  console.print(f"[green]Story: PC — {name} is in the party; party is now {after}.[/]")
-  context.message = f"Story: withdrew {name} — party {after}."
-  ```
-  It reads a **COUNT** and announces an **IDENTITY**. Nothing between the `interact_with_pc(actions)`
-  call and this print asks whether `name` actually arrived.
-- **Why it can lie, concretely.** The whole body is wrapped in a blanket
-  `except Exception: ... "could not withdraw {name} ... it stays in the box"` (`:475-478`), so the
-  function **never raises**. But a PC interaction that silently completes the WRONG action — or
-  completes the make-room deposit and then fails the withdraw — leaves the count **exactly the
-  same** (the deposit cancels the withdraw), takes no exception path, and prints the green
-  success line. ‼ **MEASURED, not theorised:** on a genuinely SUCCESSFUL withdraw this project
-  records `party_before=6 party_after=6 box_before=2 box_after=2` — every count unchanged. A
-  metric that is invariant across success is invariant across failure too.
-- **Why it matters beyond cosmetics.** This is the project's #1 recurring bug shape
-  (`CLAUDE.md` SESSION DISCIPLINE rule 3: *assert IDENTITY, never position or count*; the same
-  shape produced `catch_confirmed()`'s party-COUNT delta that a Shedinja spawn could fake, fixed
-  under (P1)). It is **live in production**, on the PC path, in the middle of the arc whose whole
-  purpose is PC/party robustness. And a future driver or log-scraper that greps for
-  `"is in the party"` would inherit the lie — `--driver boxcounter2` deliberately does NOT.
-- **How it was found.** Not by a test — by reading `withdraw_from_box` end-to-end while building
-  (P4) Stage 2's acceptance chain, precisely because the design note required every claim to be an
-  identity. The happy path prints the same line whether or not it is true, so **no green run could
-  ever have surfaced it.**
-- **NOT OBSERVED FAILING.** Every (P4) Stage 2 drive so far shows the line printing truthfully
-  (ARM B: `moved=True`, verified independently by PID+species and by `contains_pokemon`). This is
-  a structural finding from reading the code, not a reproduction. ‼ Report it as *"cannot be
-  trusted"*, never as *"is wrong"*.
-- ✅ **FIXED 2026-08-15 (sandbox), exactly as scoped below.** After the PC interaction the
-  function now yields two frames (party AND storage are cached per frame, so a same-frame read
-  sees the PRE-withdraw state and the verification would become the new false negative), then
-  resolves the target BY IDENTITY: a party member matching `(personality_value, species.name)`
-  **and** `contains_pokemon(target)` now False. Both halves are required — in-party-only could be
-  a copy, gone-from-box-only could be a release. On success it prints the same green line; on
-  failure it prints a loud named `‼ THE WITHDRAW DID NOT LAND … in_party=… still_boxed=…` and
-  ⛔ **still does not raise**, because the original contract stands: a PC hiccup must not destroy
-  a heal that already succeeded. What changed is that the caller is no longer LIED TO.
-  ⛔ It is NOT fixed by asserting the count changed: on the make-room path it correctly does not.
-- ‼ **PROVEN BY FAULT INJECTION, because a green run cannot exercise an error path.** New
-  permanent hook **`POKEBOT_PCWITHDRAW_FAULT=1`** (registered in `29-DISABLED-FEATURES-REGISTRY.md`)
-  skips the PC interaction so the withdraw provably does not happen. Measured, both arms, live:
-  * **FAULTED** → `Story: PC — ‼ THE WITHDRAW DID NOT LAND. Slugma in_party=False
-    still_boxed=True`, and `--driver boxcounter2` reported `moved=False knows_rock_throw=False
-    lead_is_counter=False noop_attributed=False` → **`ACCEPTANCE: FAIL`**. ‼ It ran to COMPLETION
-    and reported — it did not throw, which is itself worth knowing.
-  * **UNFAULTED** → `Story: PC — Slugma is in the party; party is now 6.` (now identity-verified)
-    → **`ACCEPTANCE: PASS`**, no regression.
-  ⇒ The old code printed the SAME green line in BOTH of those runs. That is the defect, shown.
-  ⇒ Bonus: this also FAULT-TESTS the Stage 2 driver — all four of its graded claims flip to False
-  when the thing they check is sabotaged, so it is not rubber-stamping.
-- 📁 **THE RAW TRANSCRIPTS ARE COMMITTED, BY NAME** — `tools/story-dev/evidence/2026-08-15-ki79-armB-UNFAULTED.stdout.txt` and `…-FAULTED.stdout.txt` (plus their `.driver.txt` twins).
-  ‼ **They exist because a Tier 1 reviewer could not verify this entry and said so.** The harness
-  USED TO WRITE `harness_<build>.log` — **one fixed filename per build, overwritten by the very next
-  run** — so the unfaulted PASS transcript had already been destroyed by the faulted run that
-  followed it, and all that remained on disk was a FAIL. ✅ **That collision is FIXED as of
-  2026-08-16** (`#24-orphans` (4)): default log names are unique per run. ‼ **Committing the raw
-  transcripts is STILL right** — a gitignored log is not evidence, and stdout (production's
-  `console.print`) is not in the harness log at all. The claim was true and *unverifiable*,
-  which for this project's purposes is the same as unproven. ⇒ **A/B runs must be captured with
-  distinct `--log` names, and stdout redirected too** (the driver's own log does NOT contain
-  `console.print` output — the `‼ THE WITHDRAW DID NOT LAND` and green-success lines live in
-  stdout). The faulted stdout also carries `POKEBOT_PCWITHDRAW_FAULT=1, SKIPPING the PC
-  interaction`, which is what proves the fault was actually armed for that run.
-- ✅✅ **PROMOTED TO BOTH FORKS 2026-08-15 (user-approved); this file is in both.** *(⚠ The
-  repo-wide drift figure is no longer 0 — one UNRELATED comment-only `story_mode.py` fix awaits
-  the user's promotion call. It does not touch this item.)* Restore point
-  `restore/2026-08-15-pre-promotion-ki79-pctrip`.
-  ‼‼ **VERIFIED BY A THREE-POINT A/B, NOT BY A BYTE-COMPARE — and the distinction is the whole
-  point for a BEHAVIOUR change.** `promote.py` reporting "1/1 byte-identical" only proves the file
-  was COPIED; it cannot prove the new branch is what EXECUTES. The fault hook can:
-  | # | run (`--driver boxcounter2 --build custom`) | result | proves |
-  |---|---|---|---|
-  | 1 | **BEFORE** promotion, `POKEBOT_PCWITHDRAW_FAULT=1` | `Slugma is in the party` → **PASS** | the hook is ABSENT in custom — the variable is INERT |
-  | 2 | **AFTER** promotion, same command | `‼ THE WITHDRAW DID NOT LAND` → **FAIL** | ⇒ **the new code is LIVE in custom** |
-  | 3 | **AFTER** promotion, unfaulted | green line → **PASS** | no regression on the happy path |
-  ‼ Run 1 is capturable ONLY before the copy and is therefore committed. ⛔ **Run 1 does NOT prove the variable was 'inert' — a run of code that never READS a variable cannot show anything about it, and its output is indistinguishable from an unfaulted run.** (A Tier 1 reviewer caught exactly that overclaim.) What run 1 DOES prove is that the identical command PASSED before the promotion. The *absence of the hook* is proven from git instead, which is stronger and re-runnable by anyone: `git show restore/2026-08-15-pre-promotion-ki79-pctrip:custom-pokebot/modules/story/pc_trip.py | grep -c POKEBOT_PCWITHDRAW_FAULT` → **0** (sandbox at the same tag → **3**; custom now → **3**).
-  Transcripts:
-  `tools/story-dev/evidence/2026-08-15-ki79-promotion-{BEFORE-custom-faultvar-set,AFTER-custom-FAULTED,AFTER-custom-UNFAULTED}.stdout.txt`.
-  Also green on custom: `boxcounter2 --build custom` **ARM A** → `ACCEPTANCE: PASS` (transcript: `tools/story-dev/evidence/2026-08-15-ki79-promotion-AFTER-custom-ARMA.stdout.txt`, which logs `ARM=A (POKEBOT_BOXCOUNTER_TYPEONLY_A='1')` so the arm is self-evidencing), and four `--build custom` gates that each ASSERT which fork they imported.
-- ⚠ **WHAT IS STILL TRUE AFTER THE FIX:** the message is now trustworthy, but **no CALLER acts on
-  it.** `withdraw_from_box` still returns nothing and still never raises, so a caller that needs to
-  KNOW whether the counter arrived must check identity itself — which `--driver boxcounter2` does
-  and production does not. That is a deliberate scope line, not an oversight.
-- **Related:** KI-78 (identity is `(personality, species)`, because a Shedinja shares its
-  Ninjask's PID — so even a PID-only check is not enough here), and the (P4) Stage 2 driver, whose
-  `party_map()` is keyed on that pair for exactly this reason after a PID-keyed first draft
-  reported a full party of 6 as 5.
-
----
+Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans on:**
+- **The defect:** `pc_trip.py:472-473` printed *"{name} is in the party"* after reading only
+  `len(get_party())` — **a COUNT wearing an IDENTITY's clothes.** It now verifies
+  `(personality_value, species)` **and** `contains_pokemon`, after a 2-frame yield, and prints a
+  loud named failure instead of a green lie. Permanent fault hook `POKEBOT_PCWITHDRAW_FAULT`.
+- ‼ **The method rule, which is the reusable part:** a byte-compare was NOT accepted as proof for a
+  BEHAVIOUR promotion — a **THREE-POINT A/B** was (PASS before → FAIL after faulted → PASS after
+  unfaulted), and run 1 is unrepeatable once the copy happens, so it runs and commits FIRST.
+- ⛔⛔ **THE RESIDUAL, AND IT IS LIVE: NO CALLER ACTS ON THE VERDICT.** The message is honest now;
+  production still cannot REACT — `withdraw_from_box` returns nothing and never raises, so a failed
+  withdraw is *reported* and silently tolerated. Its ONE caller is
+  `higher_level_actions.py:344`, which discards the value. **Tracked as `#24-orphans` item (1)**;
+  its instrumentation half is specified, but *how* production should react needs the USER's ruling.
 
 ## KI-80 — `grass_is_fodder` CONFLATED "no training patch configured" with "the patch is too weak", and it CO-GATED the counter-ladder (with `boss_teaches`, inside `losses >= 2`) — so giving a boss a training area silently disabled its KI-23 machinery. ✅ DECOUPLED AND PROMOTED TO BOTH FORKS 2026-08-16 (2026-08-16, ✅ **REPRODUCED AND DRIVEN** — `--driver ki80ladder` is COMPLETE and PASSING: **4 arms**, both forks, mirror-regression guard fault-tested against the real naive edit. ✅ **AND THE DECOUPLING IS NOW BUILT, DRIVEN AND REVIEWED** — `:1901` is `if boss_teaches:`, `boss_mode` sits behind its own `if grass_is_fodder:`; `repro_boss_grass_gate.py` has SELF-RETIRED. ✅ **AND PROMOTED TO BOTH FORKS 2026-08-16 (user-approved), proven by a THREE-POINT A/B against `--build custom` — drift is 0.** ⛔ **THIS KI STAYS OPEN ONLY FOR ITS TRACKED RESIDUAL** `#24-zerokocounter`: should `boss_teaches` come off the gate too? Not shipped because no arm can discriminate it, and an audit derived that it would need TWO new arms plus a frequency measurement first)
 

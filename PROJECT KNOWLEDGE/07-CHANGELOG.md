@@ -15192,3 +15192,54 @@ append-only file, never glob gitignored transcripts).
 `build`/`mode`/`state`, so it only collides when the SAME arm is repeated — but that is exactly the
 before/after case. ⛔ **Filed rather than fixed in this commit** so each can be run-verified, the way
 the harness fix was, instead of swept in unverified.
+
+## 2026-08-16 — recon: `#24-orphans` (2) / KI-65 — the entry was right but INCOMPLETE on three counts, and the obvious fix would not have fixed it (punch-list #24-orphans)
+
+**No code changed.** This is the repro-first groundwork KI-65's own entry demands, and it moved the
+item from *"code-verified, needs a repro"* to *"fully mapped, fault-injection point identified, fix
+specified in three parts"* — while correcting the entry on three things that would each have wasted
+the round.
+
+**⛔ (A) THERE ARE TWO LIVE UNBOUND READS, NOT ONE — and the one the entry never mentioned is the
+more damaging.** Besides `:280` (the re-pick), **`:397` — the HM VETO — reads `party_index` too**,
+behind a bare **`except Exception: pass`**: no message, no flag, `move_to_forget` unchanged, and
+**completely indistinguishable from "the slot isn't an HM, so the veto correctly did nothing"**.
+‼ The veto's own comment names the case it fails to cover — *"the `except` fallback right above
+which blindly picks slot 0"* — and that fallback IS the path leaving `party_index` unbound. **The
+last line of defence cannot defend against the one case it was written for.**
+
+**⛔ (B) FIXING THE FLAGGED LINE ALONE DOES NOT FIX THE BUG.** The precondition is a four-step
+conjunction in which the veto's silent failure (step 2) *creates* the doomed pick that later trips
+`:280` (step 4). Then it PING-PONGS: `last_offered_move_name` is set only AFTER the failing call, so
+branch (2) re-enters the same `try` forever while `:380-381` **re-arms `move_to_forget = 0`** each
+cycle — until the 6000-frame valve, three strikes, and `BotModeError`. ‼ **That is the
+`#24-teachmsgstall` signature**, mechanically complete — and **still a HYPOTHESIS until the injected
+repro runs.** Reported as such, not as a finding.
+
+**⛔ (C) THE CAPTURED SAVES ARE A FIXTURE, NOT A REPRO — and the obvious discriminator is VACUOUS.**
+`movelearn_hmwedge_*.ss1` do enter `CantForgetHM` on frame 0, but on a fresh generator
+`last_confirmed_slot is None`, so the crash line is SKIPPED; both arms already report
+`VERDICT = RESOLVED`, `moveset changed = False`. **"Moveset unchanged" is today's GREEN result**, so
+an A/B on it proves nothing. The discriminator must be that the re-pick RAN (non-empty `hm_blocked`
++ a `"Replacing slot"` message). Today the failure prints *"Nothing else can be given up"* **with
+full confidence** — a lie the user can read.
+
+**✅ Fault injection needs NO production edit.** The module has zero `POKEBOT_*` hooks; `:371` calls
+`_read_offered_move` by bare name, so rebinding on the imported module object works — the mechanism
+`repro_hm_replace_valve_forced.py` already uses. ‼ Fault the CAUSE: `map_battle_party_index` →
+`RuntimeError`, fed by a RAW byte read on an arbitrary frame, is the most plausible real raiser.
+
+**Dangers recorded so a fix does not walk into them:** `move_to_forget = 4` is overloaded (decline
+vs cursor ROW) and **branch (1) has NO `try`**, so a `None` sentinel there raises `TypeError` into
+nothing; three callers including **Rare Candy from the bag**; per-invocation state dies while
+`_STALLED_EXITS` deliberately survives; and `get_party_menu_cursor_pos` returns `slot_id = -1`
+rather than raising, so `get_party()[-1]` silently reads the LAST party member — a second,
+separate silent-wrong-answer path.
+
+⛔ **The fix is SPECIFIED BUT NOT APPLIED**, honouring this entry's own deferral: changing the teach
+flow without the repro is exactly how `#24-teachmsgstall` earned its *"the fix had no production
+effect"* verdict. ⚠ `custom-pokebot`'s copy is byte-identical — the fix will have a promotion twin.
+
+**Budget housekeeping:** `05-KNOWN-ISSUES.md` had **20 lines** of headroom, so KI-79's full entry
+(closed, fixed, promoted) was archived verbatim to `31-KNOWN-ISSUES-ARCHIVE.md`, leaving a summary
+that keeps its method rule and its LIVE residual (no caller acts on the verdict = `#24-orphans` (1)).

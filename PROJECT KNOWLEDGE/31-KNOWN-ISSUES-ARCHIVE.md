@@ -2195,3 +2195,105 @@ must not ship without a batch; (c) a catch/keep policy so passengers never enter
 (d) park roster work and do the STATUS response instead, which needs no box and has a
 deterministic fixture (`magma_door_losing.ss1`).
 
+
+
+## 2026-08-16 — archived from `05-KNOWN-ISSUES.md`: the FULL KI-79 entry, verbatim
+
+KI-79 is FIXED, fault-proven and promoted to both forks. Moved on the 3000-line budget to make
+room for KI-65's recon. ⛔ Its ONE LIVE RESIDUAL — no caller acts on the verdict — stays in
+`05-KNOWN-ISSUES.md` and is tracked as `#24-orphans` item (1).
+
+## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED: `len(get_party())` wearing an identity's clothes (2026-08-15, code-verified while driving (P4) Stage 2 — ✅✅ **FIXED, FAULT-PROVEN, AND PROMOTED TO BOTH FORKS 2026-08-15, user-approved — ⚠ CLOSED *FOR THE MESSAGE*, WITH ONE RESIDUAL: NO CALLER ACTS ON THE VERDICT.** `withdraw_from_box` still returns nothing and still never raises, so production can now TELL the truth about a failed withdraw and still cannot REACT to one — tracked as an open thread in `03-PUNCH-LIST.md`, because a residual filed under a header reading only "CLOSED" is a residual nobody finds)
+
+- **The line.** `modules/story/pc_trip.py:472-474`, the tail of `withdraw_from_box()`:
+  ```
+  after = len(get_party())
+  console.print(f"[green]Story: PC — {name} is in the party; party is now {after}.[/]")
+  context.message = f"Story: withdrew {name} — party {after}."
+  ```
+  It reads a **COUNT** and announces an **IDENTITY**. Nothing between the `interact_with_pc(actions)`
+  call and this print asks whether `name` actually arrived.
+- **Why it can lie, concretely.** The whole body is wrapped in a blanket
+  `except Exception: ... "could not withdraw {name} ... it stays in the box"` (`:475-478`), so the
+  function **never raises**. But a PC interaction that silently completes the WRONG action — or
+  completes the make-room deposit and then fails the withdraw — leaves the count **exactly the
+  same** (the deposit cancels the withdraw), takes no exception path, and prints the green
+  success line. ‼ **MEASURED, not theorised:** on a genuinely SUCCESSFUL withdraw this project
+  records `party_before=6 party_after=6 box_before=2 box_after=2` — every count unchanged. A
+  metric that is invariant across success is invariant across failure too.
+- **Why it matters beyond cosmetics.** This is the project's #1 recurring bug shape
+  (`CLAUDE.md` SESSION DISCIPLINE rule 3: *assert IDENTITY, never position or count*; the same
+  shape produced `catch_confirmed()`'s party-COUNT delta that a Shedinja spawn could fake, fixed
+  under (P1)). It is **live in production**, on the PC path, in the middle of the arc whose whole
+  purpose is PC/party robustness. And a future driver or log-scraper that greps for
+  `"is in the party"` would inherit the lie — `--driver boxcounter2` deliberately does NOT.
+- **How it was found.** Not by a test — by reading `withdraw_from_box` end-to-end while building
+  (P4) Stage 2's acceptance chain, precisely because the design note required every claim to be an
+  identity. The happy path prints the same line whether or not it is true, so **no green run could
+  ever have surfaced it.**
+- **NOT OBSERVED FAILING.** Every (P4) Stage 2 drive so far shows the line printing truthfully
+  (ARM B: `moved=True`, verified independently by PID+species and by `contains_pokemon`). This is
+  a structural finding from reading the code, not a reproduction. ‼ Report it as *"cannot be
+  trusted"*, never as *"is wrong"*.
+- ✅ **FIXED 2026-08-15 (sandbox), exactly as scoped below.** After the PC interaction the
+  function now yields two frames (party AND storage are cached per frame, so a same-frame read
+  sees the PRE-withdraw state and the verification would become the new false negative), then
+  resolves the target BY IDENTITY: a party member matching `(personality_value, species.name)`
+  **and** `contains_pokemon(target)` now False. Both halves are required — in-party-only could be
+  a copy, gone-from-box-only could be a release. On success it prints the same green line; on
+  failure it prints a loud named `‼ THE WITHDRAW DID NOT LAND … in_party=… still_boxed=…` and
+  ⛔ **still does not raise**, because the original contract stands: a PC hiccup must not destroy
+  a heal that already succeeded. What changed is that the caller is no longer LIED TO.
+  ⛔ It is NOT fixed by asserting the count changed: on the make-room path it correctly does not.
+- ‼ **PROVEN BY FAULT INJECTION, because a green run cannot exercise an error path.** New
+  permanent hook **`POKEBOT_PCWITHDRAW_FAULT=1`** (registered in `29-DISABLED-FEATURES-REGISTRY.md`)
+  skips the PC interaction so the withdraw provably does not happen. Measured, both arms, live:
+  * **FAULTED** → `Story: PC — ‼ THE WITHDRAW DID NOT LAND. Slugma in_party=False
+    still_boxed=True`, and `--driver boxcounter2` reported `moved=False knows_rock_throw=False
+    lead_is_counter=False noop_attributed=False` → **`ACCEPTANCE: FAIL`**. ‼ It ran to COMPLETION
+    and reported — it did not throw, which is itself worth knowing.
+  * **UNFAULTED** → `Story: PC — Slugma is in the party; party is now 6.` (now identity-verified)
+    → **`ACCEPTANCE: PASS`**, no regression.
+  ⇒ The old code printed the SAME green line in BOTH of those runs. That is the defect, shown.
+  ⇒ Bonus: this also FAULT-TESTS the Stage 2 driver — all four of its graded claims flip to False
+  when the thing they check is sabotaged, so it is not rubber-stamping.
+- 📁 **THE RAW TRANSCRIPTS ARE COMMITTED, BY NAME** — `tools/story-dev/evidence/2026-08-15-ki79-armB-UNFAULTED.stdout.txt` and `…-FAULTED.stdout.txt` (plus their `.driver.txt` twins).
+  ‼ **They exist because a Tier 1 reviewer could not verify this entry and said so.** The harness
+  USED TO WRITE `harness_<build>.log` — **one fixed filename per build, overwritten by the very next
+  run** — so the unfaulted PASS transcript had already been destroyed by the faulted run that
+  followed it, and all that remained on disk was a FAIL. ✅ **That collision is FIXED as of
+  2026-08-16** (`#24-orphans` (4)): default log names are unique per run. ‼ **Committing the raw
+  transcripts is STILL right** — a gitignored log is not evidence, and stdout (production's
+  `console.print`) is not in the harness log at all. The claim was true and *unverifiable*,
+  which for this project's purposes is the same as unproven. ⇒ **A/B runs must be captured with
+  distinct `--log` names, and stdout redirected too** (the driver's own log does NOT contain
+  `console.print` output — the `‼ THE WITHDRAW DID NOT LAND` and green-success lines live in
+  stdout). The faulted stdout also carries `POKEBOT_PCWITHDRAW_FAULT=1, SKIPPING the PC
+  interaction`, which is what proves the fault was actually armed for that run.
+- ✅✅ **PROMOTED TO BOTH FORKS 2026-08-15 (user-approved); this file is in both.** *(⚠ The
+  repo-wide drift figure is no longer 0 — one UNRELATED comment-only `story_mode.py` fix awaits
+  the user's promotion call. It does not touch this item.)* Restore point
+  `restore/2026-08-15-pre-promotion-ki79-pctrip`.
+  ‼‼ **VERIFIED BY A THREE-POINT A/B, NOT BY A BYTE-COMPARE — and the distinction is the whole
+  point for a BEHAVIOUR change.** `promote.py` reporting "1/1 byte-identical" only proves the file
+  was COPIED; it cannot prove the new branch is what EXECUTES. The fault hook can:
+  | # | run (`--driver boxcounter2 --build custom`) | result | proves |
+  |---|---|---|---|
+  | 1 | **BEFORE** promotion, `POKEBOT_PCWITHDRAW_FAULT=1` | `Slugma is in the party` → **PASS** | the hook is ABSENT in custom — the variable is INERT |
+  | 2 | **AFTER** promotion, same command | `‼ THE WITHDRAW DID NOT LAND` → **FAIL** | ⇒ **the new code is LIVE in custom** |
+  | 3 | **AFTER** promotion, unfaulted | green line → **PASS** | no regression on the happy path |
+  ‼ Run 1 is capturable ONLY before the copy and is therefore committed. ⛔ **Run 1 does NOT prove the variable was 'inert' — a run of code that never READS a variable cannot show anything about it, and its output is indistinguishable from an unfaulted run.** (A Tier 1 reviewer caught exactly that overclaim.) What run 1 DOES prove is that the identical command PASSED before the promotion. The *absence of the hook* is proven from git instead, which is stronger and re-runnable by anyone: `git show restore/2026-08-15-pre-promotion-ki79-pctrip:custom-pokebot/modules/story/pc_trip.py | grep -c POKEBOT_PCWITHDRAW_FAULT` → **0** (sandbox at the same tag → **3**; custom now → **3**).
+  Transcripts:
+  `tools/story-dev/evidence/2026-08-15-ki79-promotion-{BEFORE-custom-faultvar-set,AFTER-custom-FAULTED,AFTER-custom-UNFAULTED}.stdout.txt`.
+  Also green on custom: `boxcounter2 --build custom` **ARM A** → `ACCEPTANCE: PASS` (transcript: `tools/story-dev/evidence/2026-08-15-ki79-promotion-AFTER-custom-ARMA.stdout.txt`, which logs `ARM=A (POKEBOT_BOXCOUNTER_TYPEONLY_A='1')` so the arm is self-evidencing), and four `--build custom` gates that each ASSERT which fork they imported.
+- ⚠ **WHAT IS STILL TRUE AFTER THE FIX:** the message is now trustworthy, but **no CALLER acts on
+  it.** `withdraw_from_box` still returns nothing and still never raises, so a caller that needs to
+  KNOW whether the counter arrived must check identity itself — which `--driver boxcounter2` does
+  and production does not. That is a deliberate scope line, not an oversight.
+- **Related:** KI-78 (identity is `(personality, species)`, because a Shedinja shares its
+  Ninjask's PID — so even a PID-only check is not enough here), and the (P4) Stage 2 driver, whose
+  `party_map()` is keyed on that pair for exactly this reason after a PID-keyed first draft
+  reported a full party of 6 as 5.
+
+---
+

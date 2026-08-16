@@ -1825,10 +1825,21 @@ level-matched encounters maintenance needs. Done together they are one activity,
       still silently tolerated. ⛔ It was filed in the body of a KI whose header read only
       "CLOSED" — any session scanning for open issues skips it. (KI-79's header now carries the
       caveat.) The next Slugma-class derail is still invisible to callers.
-- [ ] **(2) KI-65 — `battle_move_replacing.py:280`: `party_index` is unbound on the HM-refusal
-      re-pick, so that path has NEVER executed.** OPEN and code-verified since 2026-08-12, absent
-      from this list and from NEXT ACTIONS. ‼ It is also the standing candidate cause for the
+- [ ] **(2) KI-65 — `battle_move_replacing.py`: `party_index` unbound reads raise into SILENT
+      excepts.** OPEN and code-verified since 2026-08-12. ‼ Standing candidate cause for the
       REOPENED `#24-teachmsgstall`, so orphaning it broke a live investigation's only lead.
+      ✅ **RECON DONE 2026-08-16 — read KI-65's "RECON" block BEFORE writing a line.** It corrected
+      this item on three counts: **there are TWO unbound reads, not one** (`:397`, the HM veto, is
+      the more damaging and hides behind `except: pass`); **the captured `movelearn_hmwedge_*.ss1`
+      saves are a FIXTURE, not a repro** (`last_confirmed_slot is None` on a fresh generator, so the
+      crash line is skipped — and "moveset unchanged" is today's GREEN result, so an A/B on it is
+      VACUOUS); and **fixing the flagged line alone leaves the ping-pong intact**, because
+      `:380-381` re-arms the doomed pick every cycle while `last_offered_move_name` is never set.
+      ✅ Fault-injection point identified, no production edit needed (rebind `bmr.get_battle_state`
+      so `map_battle_party_index` raises — the most plausible REAL raiser). Fix specified in three
+      parts. ⛔ **STILL DEFERRED BY THIS ENTRY'S OWN RULE: repro FIRST.** Changing the teach flow
+      without one is how `#24-teachmsgstall` earned its "the fix had no production effect" verdict.
+      ⚠ `custom-pokebot`'s copy is byte-identical — whatever lands has a promotion twin.
 - [ ] **(3) KI-66 — the multi-battle hazard is BROADER than the faint chooser:** four more
       full-party scans are unguarded, one feeding an UNBOUNDED `while … press A`. OPEN,
       code-verified, never live-run, and untracked until now.
