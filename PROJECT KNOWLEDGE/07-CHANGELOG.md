@@ -14854,3 +14854,45 @@ acts on**, and a claim that `00-README` sends readers there FIRST when it lists 
 
 **Transcripts:** `evidence/2026-08-16-ki80ladder-ARM4-mirror-regression-PASS.stdout.txt` and
 `…-ARM4-FAULT-noanswer-save-FAIL.stdout.txt`. Flag `POKEBOT_KI80_ARM4` registered in `29-`.
+
+## 2026-08-16 — the arm-4 guard is now FAULT-TESTED AGAINST THE REAL NAIVE EDIT, and it proves the three-arm test alone would have blessed the regression (punch-list #24-counters)
+
+A third cold-start audit — told only to *try to BEGIN the next item* — returned six findings. The
+sharpest was that **arm 4's headline assertion had never been observed firing**: its committed fault
+test exercised CONTROL-A (wrong-fixture refusal), not the mirror-regression detector, while
+`04-HANDOFF.md` asserted *"it prints `BOSS_TRAINING_MODE` and fails BY NAME if the naive edit
+lands"* — **a prediction stated as a measurement.**
+
+**✅ SO IT WAS MEASURED.** `:1901` was temporarily changed to `if boss_teaches:` (the naive fix),
+both suites run, and the edit reverted (`git checkout --`, re-verified: arm 4 back to
+`ACCEPTANCE: PASS`). Result:
+
+| run, under the NAIVE edit | result |
+|---|---|
+| arms 1-3, `POKEBOT_KI80_DECOUPLED=1` | ⛔ **`ACCEPTANCE: PASS`** — all three reach the ladder |
+| **arm 4**, `POKEBOT_KI80_ARM4=1` | ✅ **`ACCEPTANCE: FAIL`**, `ARM4 OUTCOME=BOSS_TRAINING_MODE` |
+
+⇒ **THE THREE-ARM TEST ALONE WOULD HAVE SHIPPED KI-23's MIRROR REGRESSION UNDER A GREEN VERDICT.**
+Arm 4 is the only thing that catches it. ‼ *A gate that has never failed may simply not be looking.*
+Transcripts: `evidence/2026-08-16-ki80ladder-FAULT-naive-edit-{DECOUPLED-PASSES,ARM4-CATCHES-IT}`.
+
+**⛔ AND THE FIX LANDED IN ONE HALF AGAIN — the fourth occurrence of this exact shape.**
+`03-PUNCH-LIST.md` (a current-state file, #4 in the README's reading order) still said
+*"NEXT: decouple … then flip `POKEBOT_KI80_DECOUPLED=1` FAIL → PASS"* with **zero** mentions of
+arm 4 — and the commit that BUILT arm 4 touched that file. An agent orienting from the punch list
+would have made the naive edit, seen green, and shipped the regression. Now corrected, with the
+measured evidence inline. ⇒ *when a warning is added to the handoff, grep every OTHER current-state
+file for the instruction it supersedes — "I updated the handoff" is not "I updated the docs".*
+
+**Also fixed:** *"`grass_is_fodder` is the **SOLE gate**"* was loose in two files — the code is
+`if grass_is_fodder and boss_teaches:` **inside** `if losses >= 2:`, i.e. a co-gate with two
+conjuncts, and `:1907`/`:1914` are the only CALL SITES. That looseness matters, because whether
+`boss_teaches` also comes off the gate is an **open** part of the fix's spec that no arm can detect
+(every arm seeds `kos = 1`). The handoff's `Last updated` and banner still said 2026-08-15 after a
+past-midnight commit. And a genuine cold-start trap is now documented in `14-AGENT-PLAYBOOK.md §2b`:
+**every driver run appends to the TRACKED `party_accounting_ledger.jsonl`**, so `preflight.py` warns
+`1 uncommitted file(s)` after any drive — expected, not damage, and it must be committed rather than
+reverted, because those rows are a measurement record.
+
+**Daily upstream check (2026-08-16):** `upstream-pokebot/main` still `5dd898f8`, unchanged; nothing
+pulled, `40cakes repo/UPDATE-LOG.md`'s last-check date advanced per the standing directive.

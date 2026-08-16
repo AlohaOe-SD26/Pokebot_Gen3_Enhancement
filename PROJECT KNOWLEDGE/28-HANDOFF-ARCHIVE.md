@@ -4501,3 +4501,21 @@ Both DRIVEN AND PASSING; ⛔ do not rebuild. ‼ **Keep only:** *copy upstream's
 CONTROL FLOW* (our pushes go through the bounded `strength_push`, verified by `local_id`), and
 **`FLAG_SYS_USE_STRENGTH` is cleared on EVERY WARP** — the code was always safe, the COMMENTS
 were wrong. KI-77's despawn window is derived (20x17) and has since predicted a live dump exactly.
+
+
+## 2026-08-16 — archived from `04-HANDOFF.md`: the PATHFINDER + §Ch20 SCOPING BACKGROUND section in full
+
+## PATHFINDER + §Ch20 SCOPING BACKGROUND — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-15)
+
+Moved on the R3 line budget when (P4) Stage 2 landed. ‼ **Keep only these, which later work
+leans on:** (1) **KI-59** (the pathfinder's inverted `Impassable *` handling) is **FIXED, PROVEN
+and GATED** (`repro_impassable_dirs.py`) — and its headline was wrong in FOUR documents: it is
+**NOT** armed in the Seafloor Cavern (all 115 cavern tiles are `collision=1`, so ZERO reach the
+handler); game-wide **401 of 2,658 such tiles are live**, chiefly the Regi tombs (144), Shoal
+Cave (98) and Victory Road (58). (2) §Ch20's spec corrected our own docs: **ROCK SMASH is
+mandatory**, the trigger tile is **`(17,42)` not `(16,42)`**, and the chapter grades on
+**`VAR_ROUTE128_STATE == 2`**, never the Kyogre flag (which is set BEFORE a forced warp).
+(3) **KI-74/75/76** were filed there; KI-76's safety half is fixed and fault-tested, its
+**correctness half is OPEN**.
+⇒ ✅ **ALL NINE ROOMS ARE DRIVEN — the cavern is END TO END (2026-08-14). ⛔ DO NOT REBUILD ANY.**
+

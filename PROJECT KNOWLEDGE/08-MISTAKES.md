@@ -7232,3 +7232,33 @@ numbers, not assert that they hold.*
 **Found by:** a Tier 2 re-run given one job — *"check WHERE the fix landed, not merely THAT it
 landed."* It found the fix had landed in both correct places and was still wrong. ⇒ *placement and
 correctness are separate audits; passing the first says nothing about the second.*
+
+## 2026-08-16 — I SHIPPED A GUARD AND ASSERTED WHAT IT WOULD DO, WITHOUT EVER MAKING IT DO IT
+
+**Symptom.** Arm 4 was built to catch KI-23's mirror regression, and `04-HANDOFF.md` said *"it
+prints `BOSS_TRAINING_MODE` and fails BY NAME if the naive edit lands."* Nothing had ever seen that
+happen. The committed "fault test" exercised a different branch entirely — CONTROL-A's refusal of a
+wrong FIXTURE — so what was proven was that the guard rejects bad inputs, not that it detects the
+defect it exists for.
+
+**Root cause.** Fault-testing a control is easy (feed it a bad fixture); fault-testing the DETECTOR
+requires breaking the subject on purpose. I did the cheap half and let the expensive half stand as
+prose, then wrote that prose in the imperative voice, which reads as measurement.
+
+**The fix that worked.** Temporarily applied the naive edit (`:1901` → `if boss_teaches:`), ran both
+suites, reverted, and re-verified the revert. It produced the most useful result of the round:
+**arms 1-3 under `POKEBOT_KI80_DECOUPLED=1` went `ACCEPTANCE: PASS`** while **arm 4 went
+`ACCEPTANCE: FAIL` with `BOSS_TRAINING_MODE`** — proof that the three-arm suite alone would have
+blessed the regression under a green verdict.
+
+**Prevention rule.** *To fault-test a DETECTOR you must break the SUBJECT, not feed the detector a
+bad input. Breaking the input tests the control; only breaking the subject tests the detector.*
+
+**Second prevention rule.** *Never write a gate's failure behaviour in the indicative ("it prints X
+and fails") until it has printed X. Until then it is a prediction, and it must be worded as one.*
+
+**Third, from the same audit — the FOURTH occurrence of one shape.** `03-PUNCH-LIST.md` still
+prescribed the naive edit with no mention of arm 4, in a commit that *touched that file*. ⇒ *when a
+warning is added to the handoff, grep every OTHER current-state file for the instruction it
+supersedes. "I updated the handoff" is not "I updated the docs" — and the punch list is what an
+agent orienting by queue actually reads.*

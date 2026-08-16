@@ -392,7 +392,17 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       three arms return `LADDER`; and `POKEBOT_KI80_DECOUPLED=1` FAILS today, which is what makes
       the same driver the AFTER run. ‼ **Exits 0 even on FAIL — grade the `ACCEPTANCE:` line.**
       ➡ **NEXT: decouple `_counter_ladder` from `grass_is_fodder` (`story_mode.py:1899-1901`)**,
-      then flip `POKEBOT_KI80_DECOUPLED=1` FAIL → PASS. The BEFORE run is committed FIRST because
+      then flip `POKEBOT_KI80_DECOUPLED=1` FAIL → PASS.
+      ⛔⛔ **BUT NOT THE NAIVE EDIT, AND `POKEBOT_KI80_DECOUPLED` ALONE WILL BLESS IT.** MEASURED
+      2026-08-16: with `grass_is_fodder` simply deleted from the `:1901` gate, the three-arm run
+      goes **`ACCEPTANCE: PASS`** — all three arms reach the ladder — while KI-23's **mirror
+      regression has silently landed**. ⇒ **ALSO RUN ARM 4, BEFORE AND AFTER:**
+      `POKEBOT_KI80_ARM4=1 … story_harness.py fortree_gym_wedge.ss1 --driver ki80ladder`.
+      It PASSes today and, against that same naive edit, printed
+      `ARM4 OUTCOME=BOSS_TRAINING_MODE` and `ACCEPTANCE: FAIL` — *"a boss with a STRONG patch AND a
+      credible answer entered BOSS-TRAINING MODE, so `:1937`'s plain grass escalation is
+      SUPPRESSED."* Keep `boss_mode = True` (`:1925`) behind `grass_is_fodder`.
+      Transcripts: `evidence/2026-08-16-ki80ladder-FAULT-naive-edit-*`. The BEFORE run is committed FIRST because
       it is unrepeatable afterwards. `repro_boss_grass_gate.py` SELF-RETIRES on the fix — designed.
       ✅ **BOTH PROMOTIONS ARE DONE (user-approved 2026-08-15).** *(⚠ Drift is 1 today for an UNRELATED comment-only `story_mode.py` fix, NOT promoted — the user's call.)* The KI-79 fix `pc_trip.py` (a BEHAVIOUR change) was proven by a THREE-POINT A/B showing the new branch actually RUNS in custom, not merely that the file copied. And `counter_hunt.py`
       (comment-only, the Electric correction) promoted with restore point

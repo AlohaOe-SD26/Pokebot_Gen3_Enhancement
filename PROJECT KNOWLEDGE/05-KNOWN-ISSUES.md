@@ -2846,8 +2846,21 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   `POKEBOT_KI80_ARM4=1 … story_harness.py fortree_gym_wedge.ss1 --driver ki80ladder --frames 2000`
   → **`ACCEPTANCE: PASS`**, `OUTCOME=PLAIN_ESCALATION`, `INVARIANCE drift=none`.
   ‼ **Its assertion is FIX-SHAPE-AGNOSTIC and identical before and after:** a boss with a strong
-  patch AND a credible answer must keep its plain grass escalation. If the naive edit lands, the arm
-  prints `BOSS_TRAINING_MODE` and FAILS by name.
+  patch AND a credible answer must keep its plain grass escalation.
+  ✅✅ **AND THE DETECTOR ITSELF IS NOW FAULT-TESTED AGAINST THE REAL NAIVE EDIT (2026-08-16) —
+  THIS WAS A PREDICTION UNTIL AN AUDIT POINTED OUT THAT NOTHING HAD EVER SEEN IT FIRE.**
+  `:1901` was temporarily changed to `if boss_teaches:` (the naive fix), both suites were run, and
+  the edit reverted. The result is the strongest single argument for arm 4's existence:
+  | run, under the NAIVE edit | result |
+  |---|---|
+  | arms 1-3, `POKEBOT_KI80_DECOUPLED=1` | ⛔ **`ACCEPTANCE: PASS`** — all three reach the ladder |
+  | **arm 4**, `POKEBOT_KI80_ARM4=1` | ✅ **`ACCEPTANCE: FAIL`**, `ARM4 OUTCOME=BOSS_TRAINING_MODE` |
+  ⇒ **THE THREE-ARM TEST ALONE WOULD HAVE BLESSED THE REGRESSION.** Arm 4 is the only thing that
+  catches it, and it names it: *"a boss with a STRONG patch AND a credible answer entered
+  BOSS-TRAINING MODE, so `:1937`'s plain grass escalation is SUPPRESSED."*
+  ⇒ ‼ **THE FIX MUST KEEP `boss_mode = True` (`:1925`) BEHIND `grass_is_fodder`.**
+  Transcripts: `evidence/2026-08-16-ki80ladder-FAULT-naive-edit-*`. ⚠ *A gate that has never failed
+  may simply not be looking — this one has now failed on purpose.*
   ⛔⛔ **AND THE FIXTURE THIS ENTRY FIRST PRESCRIBED FOR ARM 4 WAS VACUOUS — THE SAME TRAP, THE SAME
   NUMBER, THE THIRD TIME.** It said *"`fortree_gym_wedge.ss1` … is exactly right for it"* with a
   **Route 119** patch. `fortree_gym_wedge` IS correctly HAS_ANSWER (Castform's Powder Snow scores

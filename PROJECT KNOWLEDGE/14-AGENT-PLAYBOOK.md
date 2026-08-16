@@ -229,6 +229,22 @@ done
 
 ---
 
+## 2b. ‼ RUNNING ANY DRIVER DIRTIES A TRACKED FILE — expected, not damage (added 2026-08-16)
+
+Every `story_harness.py` run appends to **`tools/story-dev/party_accounting_ledger.jsonl`**, which is
+**TRACKED, not gitignored** (it is the (P3b) observer ledger — the thing that finally produced
+`CRITERION (b) MET`). So after any drive:
+
+* `git status` shows `M tools/story-dev/party_accounting_ledger.jsonl`, and
+* `preflight.py` reports **`WARN 1 uncommitted file(s). Review with the user before pulling`**.
+
+⇒ **That WARN is EXPECTED after a drive and is not a broken tree.** ⛔ But do not reflexively
+`git checkout --` it either: those rows are a real measurement record. **Commit it with the work
+that produced it** (name it in the commit message, as with any staged file).
+‼ This is a genuine trap for a cold start: `04-HANDOFF.md`'s STATE row promises a clean tree, and
+the session-start ritual runs `preflight.py` — so an agent that drives *before* reading this
+concludes the tree is dirty and stops. Flagged by a cold-start agent that hit exactly that.
+
 ## 2c. Reviewing an x4 log bundle (this is now a recurring job — reuse this, don't reinvent)
 
 The user runs `ENDLESS LOOP ×4` batches and hands over `P1 - P4 x4 LOGs <date>-<time>.zip`.

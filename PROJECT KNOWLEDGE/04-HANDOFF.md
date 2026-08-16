@@ -3,11 +3,11 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-15 — start at the single orientation block immediately below.
+**Last updated:** 2026-08-16 — start at the single orientation block immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE (2026-08-15, SESSION END) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC, AND IT IS AT A CLEAN BOUNDARY **AS OF THE COMMIT CARRYING THIS LINE** (a cold-start audit correctly flagged the earlier absolute wording: a banner cannot truthfully say "everything is pushed" while it is itself the uncommitted edit — so read this as *"true at this commit"*, and trust `git status` over any prose). ⚠ Drift is 1 — ONE comment-only file (`story_mode.py`), NOT promoted, awaiting the user's call; see the STATE table.** ✅ **(P4) IS DRIVEN THROUGH STAGE 2** — the real heal COLLECTS the boxed counter and leads with it (ARM B), and ARM A leaves it boxed, reproducing the user's derail ORGANICALLY; matrix {ARM A, ARM B} x {sandbox, custom} = **4/4 ACCEPTANCE: PASS**. ✅ **BOTH PROMOTIONS ARE DONE (user-approved): `counter_hunt.py` (comment-only) and `pc_trip.py` (KI-79, a BEHAVIOUR change proven by a three-point A/B).** ⛔ **(P6) WAS INVESTIGATED AND REFUTED — its "obvious" fix is a REGRESSION; see KI-80, now GATED (suite #24).** ✅✅ **KI-80'S REPRO DRIVER IS BUILT, DRIVEN AND FAULT-TESTED — `--driver ki80ladder`, 3 arms, `ACCEPTANCE: PASS` in BOTH forks, and KI-80 is REPRODUCED (Winona's real Route 119 patch DELETES her counter ladder). ⛔ DO NOT REBUILD IT.** ➡ **NEXT ACTION: DECOUPLE the counter-ladder from `grass_is_fodder` (KI-80's fix) — ⛔ BUT THE NAIVE EDIT CAUSES KI-23's MIRROR REGRESSION, so run `POKEBOT_KI80_ARM4=1` (the guard, PASS today) BEFORE and AFTER as well as `POKEBOT_KI80_DECOUPLED=1` (FAIL today, must go PASS). The BEFORE runs are already committed — the half that cannot be redone later.** §Ch20's chapter assembly stays **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
+# ‼ YOU ARE HERE (2026-08-16, SESSION END) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC, AND IT IS AT A CLEAN BOUNDARY **AS OF THE COMMIT CARRYING THIS LINE** (a cold-start audit correctly flagged the earlier absolute wording: a banner cannot truthfully say "everything is pushed" while it is itself the uncommitted edit — so read this as *"true at this commit"*, and trust `git status` over any prose). ⚠ Drift is 1 — ONE comment-only file (`story_mode.py`), NOT promoted, awaiting the user's call; see the STATE table.** ✅ **(P4) IS DRIVEN THROUGH STAGE 2** — the real heal COLLECTS the boxed counter and leads with it (ARM B), and ARM A leaves it boxed, reproducing the user's derail ORGANICALLY; matrix {ARM A, ARM B} x {sandbox, custom} = **4/4 ACCEPTANCE: PASS**. ✅ **BOTH PROMOTIONS ARE DONE (user-approved): `counter_hunt.py` (comment-only) and `pc_trip.py` (KI-79, a BEHAVIOUR change proven by a three-point A/B).** ⛔ **(P6) WAS INVESTIGATED AND REFUTED — its "obvious" fix is a REGRESSION; see KI-80, now GATED (suite #24).** ✅✅ **KI-80'S REPRO DRIVER IS BUILT, DRIVEN AND FAULT-TESTED — `--driver ki80ladder`, 3 arms, `ACCEPTANCE: PASS` in BOTH forks, and KI-80 is REPRODUCED (Winona's real Route 119 patch DELETES her counter ladder). ⛔ DO NOT REBUILD IT.** ➡ **NEXT ACTION: DECOUPLE the counter-ladder from `grass_is_fodder` (KI-80's fix) — ⛔ BUT THE NAIVE EDIT CAUSES KI-23's MIRROR REGRESSION, so run `POKEBOT_KI80_ARM4=1` (the guard, PASS today) BEFORE and AFTER as well as `POKEBOT_KI80_DECOUPLED=1` (FAIL today, must go PASS). The BEFORE runs are already committed — the half that cannot be redone later.** §Ch20's chapter assembly stays **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
 
 > ⛔ **ORDER, EXPLICITLY (a Tier 2 cold-start audit could not tell which of these came first):
 > (1) RUN THE RITUAL BELOW — it is cheap and it tells you whether the tree is sane; (2) READ
@@ -89,20 +89,17 @@ never its CONTROL FLOW* (Rooms 1/2 — pushes go through the bounded `strength_p
 **`FLAG_SYS_USE_STRENGTH` is cleared on EVERY WARP** — the code was safe, the COMMENTS were wrong.
 ⚠ Room 6's arrow-warp derived-direction branch is still UNEXECUTED; KI-77's despawn window (20x17)
 has since predicted a live dump exactly.
-## PATHFINDER + §Ch20 SCOPING BACKGROUND — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-15)
+## PATHFINDER + §Ch20 SCOPING BACKGROUND — in `28-HANDOFF-ARCHIVE.md`
 
-Moved on the R3 line budget when (P4) Stage 2 landed. ‼ **Keep only these, which later work
-leans on:** (1) **KI-59** (the pathfinder's inverted `Impassable *` handling) is **FIXED, PROVEN
-and GATED** (`repro_impassable_dirs.py`) — and its headline was wrong in FOUR documents: it is
-**NOT** armed in the Seafloor Cavern (all 115 cavern tiles are `collision=1`, so ZERO reach the
-handler); game-wide **401 of 2,658 such tiles are live**, chiefly the Regi tombs (144), Shoal
-Cave (98) and Victory Road (58). (2) §Ch20's spec corrected our own docs: **ROCK SMASH is
-mandatory**, the trigger tile is **`(17,42)` not `(16,42)`**, and the chapter grades on
-**`VAR_ROUTE128_STATE == 2`**, never the Kyogre flag (which is set BEFORE a forced warp).
-(3) **KI-74/75/76** were filed there; KI-76's safety half is fixed and fault-tested, its
-**correctness half is OPEN**.
+‼ **Keep only what later work leans on:** (1) **KI-59** (the pathfinder's inverted `Impassable *`
+handling) is **FIXED, PROVEN and GATED** (`repro_impassable_dirs.py`) — its headline was wrong in
+FOUR documents: it is **NOT** armed in the Seafloor Cavern (all 115 tiles are `collision=1`);
+game-wide **401 of 2,658** such tiles are live, chiefly the Regi tombs (144), Shoal Cave (98) and
+Victory Road (58). (2) §Ch20's spec corrected our own docs: **ROCK SMASH is mandatory**, the trigger
+tile is **`(17,42)` not `(16,42)`**, and the chapter grades on **`VAR_ROUTE128_STATE == 2`**, never
+the Kyogre flag (set BEFORE a forced warp). (3) **KI-74/75/76** were filed there; KI-76's safety
+half is fixed and fault-tested, its **correctness half is OPEN**.
 ⇒ ✅ **ALL NINE ROOMS ARE DRIVEN — the cavern is END TO END (2026-08-14). ⛔ DO NOT REBUILD ANY.**
-
 ## ⛔ NAMING CORRECTION — "§Ch21" IN OLDER TEXT MEANS **CHAPTER 20**. Read before acting.
 
 The Seafloor Cavern / Kyogre beat is **Chapter 20** (`modules/story/chapters.py:233`); the genuine
@@ -386,7 +383,10 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    escalation for every boss that has a strong patch AND an answer. Arms 1-3 return at `:1924`
 >    and never reach `:1925`. ✅ **ARM 4 IS ALREADY BUILT FOR EXACTLY THIS — RUN IT BEFORE AND
 >    AFTER:** `POKEBOT_KI80_ARM4=1 … story_harness.py fortree_gym_wedge.ss1 --driver ki80ladder`
->    (PASS today; it prints `BOSS_TRAINING_MODE` and fails BY NAME if the naive edit lands).
+>    (PASS today; and ⛔ **MEASURED 2026-08-16, not predicted:** against the actual naive edit it
+>    printed `ARM4 OUTCOME=BOSS_TRAINING_MODE` + `ACCEPTANCE: FAIL` **while the three-arm run under
+>    `POKEBOT_KI80_DECOUPLED=1` went `ACCEPTANCE: PASS`** — i.e. the 3-arm test alone WOULD HAVE
+>    BLESSED THE REGRESSION. ‼ Keep `boss_mode = True` (`:1925`) behind `grass_is_fodder`).
 >    ⛔ Its grass map is **VICTORY_ROAD_1F**, not Route 119 — Route 119's `wild_max` 27 cannot flip
 >    `grass_is_fodder` at that save's `team_max` 39, which made the first prescription VACUOUS.
 >    ⚠ KI-23's own entry warns about the mirror regression.
@@ -416,7 +416,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    * ⛔ **"Winona has no patch configured, so the relocation machinery is skipped for her"** — the
 >      skip is REAL but giving her one is a **REGRESSION**. `grass_is_fodder`
 >      (`story_mode.py:1899`) is `("grass" not in cfg) or (wild_max + 8 < team_max)`, and `:1901`
->      makes it the **SOLE gate** on `_boss_plan_is_hopeless` **and** `_counter_ladder`. Her
+>      makes it a **co-gate** (precisely: `if grass_is_fodder and boss_teaches:` inside `if losses >= 2:`) on `_boss_plan_is_hopeless` **and** `_counter_ladder`, which are its ONLY call sites. Her
 >      missing key is the only reason KI-23's counter machinery can fire for her. Add the Route 119
 >      patch (band 24-27) and for any team at **L30-35** — her own band is (29,33) — `27+8=35` is
 >      NOT `< team_max`, so the counter ladder is **SKIPPED**, silently, behind a healthy-looking
