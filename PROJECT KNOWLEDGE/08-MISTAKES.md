@@ -7464,3 +7464,34 @@ file. Pipelines are for browsing output you have already decided is not evidence
 produced a plausible, confidently-wrong reading — "the sweep is clean", "the gate exits 0", "both
 arms fail" — and none of them looked like a tooling error until the result was checked against
 something else.
+
+## 2026-08-16 — THE GATE FOR STALE DRIFT FIGURES DID NOT MATCH THE FORMAT THE TOOL ACTUALLY PRINTS
+
+**Symptom.** A stale `0 differing, 0 orphaned` sat in `04-HANDOFF.md` through a 13-site hand sweep
+AND a green `audit_doc_consistency` run. An adversarial reviewer found it by reading. Adding one
+pattern to the gate then immediately surfaced **three more** the same sweep had missed.
+
+**Root cause.** The gate's drift check had five patterns — `drift is N`, `DRIFT IS N`,
+`EXPECT EXACTLY N`, `drift at N`, `N drifted files` — every one of them a phrasing an *author*
+might choose. **None matched `N differing`, which is what `promote.py --check` PRINTS**, and which
+is therefore the phrasing the docs quote most, because people paste the tool's output.
+⇒ *The check was written from how the fact gets WRITTEN, not from how the tool REPORTS it. When a
+gate polices a number that a tool emits, the tool's own output format is the first pattern it needs
+— not an afterthought.*
+
+**The compounding detail.** One survivor read `promote.py --check` **expects** `0 differing`, sitting
+a few words from a near-identical phrase I HAD already fixed in the same table cell. Two phrasings
+of one fact; I fixed one and called the sweep complete.
+
+**The fix that worked.** Added the tool's output format to the pattern, scoped to an EXPECTATION
+(`expect`/`expects`/`expected` within ~70 chars) so historical measurements stay quiet, and
+fault-tested all three directions — including explicitly proving it does NOT fire on a historical
+measurement, because that false positive is what would get the gate bypassed.
+
+**Prevention rule.** *When a gate checks a number that a TOOL produces, make the tool's own output
+string the first pattern you match. Authors quote tools verbatim far more often than they paraphrase
+them.*
+
+**Second prevention rule.** *A gate's quiet cases deserve as much fault-testing as its loud one.* A
+gate that fires wrongly gets bypassed, and a bypassed gate is strictly worse than no gate — so
+"proves it stays quiet on X" belongs in the self-test beside "proves it fires on Y".

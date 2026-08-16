@@ -15410,3 +15410,39 @@ each flip costing ~13 hand edits, and **twice a survivor was missed** (once a ca
 past a lowercase grep; once hidden because the sweep was piped through `cut`). The docs assert the
 absolute number in ~10 places while also saying *"MEASURE, don't trust this row"*. ⇒ assert it in
 ONE place and point the rest at the command.
+
+## 2026-08-16 — feat: the drift gate now watches `promote.py`'s OWN OUTPUT FORMAT — the blind spot that let four stale claims through (punch-list #24-driftassertions)
+
+**Why.** A stale `0 differing` survived a 13-site hand sweep **and** `audit_doc_consistency`, and an
+adversarial review had to find it. Root cause: the gate's drift check matched `drift is N`,
+`DRIFT IS N`, `EXPECT EXACTLY N`, `N drifted files` — but **not `N differing`, which is the format
+`promote.py --check` actually prints**, and therefore the phrasing the docs quote most.
+
+**✅ The rule was added, and it paid for itself immediately: it surfaced THREE MORE stale
+expectations** the same hand sweep had missed — all buried in very long STATE-table rows, which is
+exactly where a truncated `grep` had hidden survivors earlier the same day. One of them
+(`promote.py --check` **expects** `0 differing`) sat a few words from a near-identical phrase I HAD
+fixed. ‼ *Two phrasings of one fact; fixing one and declaring the sweep done is the same "fix landed
+in one half" shape, this time inside a single table cell.*
+
+**⛔ SCOPED TO AN *EXPECTATION*, DELIBERATELY.** The rule requires `expect`/`expects`/`expected`
+within ~70 characters. A bare `N differing` also appears in **historical measurements** (*"Every
+`.py` compared afterwards: 0 differing, 0 missing"* — `02-ARCHITECTURE.md`, a correct record of a
+2026-08-13 promotion), and flagging those would make the gate noisy. **An EXPECTATION is a claim
+about NOW; a measurement is a claim about THEN** — only the first can go stale.
+
+**✅ FAULT-TESTED IN ALL THREE DIRECTIONS** (`--self-test`, and D8 is the one that matters):
+`D6` a stale `N differing` expectation → **fires**; `D7` a correct one → **quiet**;
+`D8` a historical measurement with no `expect` → **quiet**. *A gate that false-positives gets
+bypassed, which is strictly worse than no gate — so the quiet cases are tested as hard as the loud
+one.* Suite stays at **24**: this extended an existing gate rather than adding one.
+
+**Four stale claims fixed** in the same commit (the one the review found, plus the three the new
+rule surfaced). ⛔ One of my own repairs then tripped the rule by **reprinting** the superseded
+figure — so it is now DESCRIBED instead, applying this project's existing rule that
+`audit_doc_consistency` cannot tell a quotation from a claim. An untruncated re-sweep finds **4
+expectations, 0 stale**.
+
+⇒ `#24-driftassertions` is **half done**: the *gate* half is complete, so a stale drift figure can no
+longer pass silently. The *reduction* half — assert the number in one place and point the rest at
+the command — remains, but is now churn-reduction rather than a correctness risk.

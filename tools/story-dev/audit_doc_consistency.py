@@ -294,7 +294,19 @@ def check_drift(files: dict[str, str]) -> list[str]:
         rf"|\bexpect(?:ed)?\s+(?:as of [^:]{{0,24}}:\s*)?exactly\s+({_NUM})\b"
         rf"|\bdrift\s+(?:unchanged\s+|measured\s+)?at\s+(?:exactly\s+)?({_NUM})\b"
         rf"|\bDRIFT\s+IS\s+({_NUM})\b"
-        rf"|\b({_NUM})\s+drifted\s+files?\b", re.I)
+        rf"|\b({_NUM})\s+drifted\s+files?\b"
+        # ‼‼ THE TOOL'S OWN OUTPUT FORMAT, ADDED 2026-08-16 — AND IT WAS THIS CHECK'S BLIND SPOT.
+        # `promote.py --check` prints "N differing, M orphaned", so the docs quote THAT phrasing far
+        # more often than "drift is N" — and none of the patterns above matched it. A stale
+        # `0 differing` survived a 13-site hand sweep AND this gate, and an adversarial review had to
+        # find it. Adding this rule then immediately surfaced THREE MORE the same sweep had missed,
+        # all buried in very long STATE-table rows.
+        # ⛔ SCOPED TO AN *EXPECTATION* ON PURPOSE (`expect`/`expects`/`expected` within ~70 chars).
+        # A bare "N differing" also appears in HISTORICAL measurements ("compared afterwards: 0
+        # differing, 0 missing" — 02-ARCHITECTURE), which are CORRECT and must stay quiet; flagging
+        # those would make this gate noisy, and a noisy gate gets bypassed. **An EXPECTATION is a
+        # claim about NOW; a measurement is a claim about THEN.** D8 below fault-tests exactly that.
+        rf"|\bexpect(?:ed|s)?\b[^.\n]{{0,70}}?({_NUM})\s+differing\b", re.I)
     out = []
     for name, text in files.items():
         units = _units(text)
@@ -669,6 +681,17 @@ def self_test() -> int:
     measured, _ = real_drift()
     expect("D3 wrong drift", check_drift({"T": f"drift is exactly {measured + 1}\n"}), True)
     expect("D4 right drift", check_drift({"T": f"drift is exactly {measured}\n"}), False)
+    # ‼ THE "N differing" FORM (2026-08-16). D6/D7 prove it FIRES on a stale expectation and stays
+    # quiet on a correct one. ⛔ D8 is the one that matters most: it proves the rule does NOT fire on
+    # a HISTORICAL measurement, because that false positive is what would make this gate noisy
+    # enough to be ignored — and a bypassed gate is strictly worse than no gate.
+    expect("D6 stale `N differing` EXPECTATION -> fires",
+           check_drift({"T": f"Expect {measured + 1} differing, 0 orphaned\n"}), True)
+    expect("D7 correct `N differing` expectation -> quiet",
+           check_drift({"T": f"Expect {measured} differing, 0 orphaned\n"}), False)
+    expect("D8 HISTORICAL measurement (no `expect`) -> quiet",
+           check_drift({"T": f"Every .py compared afterwards: {measured + 1} differing, 0 missing\n"}),
+           False)
     expect("D5 stale ladder", check_ladder({"T": "ladder runs 19 of 24 beats\nnow 20 of 24 beats\n"}), True)
     # E: fabricated driver cited as runnable must fire; marked-to-build must not.
     expect("E1 phantom driver", check_artifacts({"T": "run `--driver nosuchthing` now\n"}), True)

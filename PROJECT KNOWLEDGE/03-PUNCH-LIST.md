@@ -522,8 +522,17 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       the authority"* and then print the number ten more times anyway. Keep the STATE table row (it
       is where a cold start looks) and the HOW TO RUN `Expect:` line (it is a grading claim);
       everywhere else should say *"run `promote.py --check`"* with no digit.
-      ✅ **`audit_doc_consistency` already computes the real figure**, so once the sites are reduced
-      it can enforce "the STATE row matches reality" instead of catching 3 of 7 stragglers.
+      ✅✅ **HALF DONE 2026-08-16 — THE GATE HALF.** `audit_doc_consistency`'s drift check now also
+      matches **`promote.py --check`'s OWN OUTPUT FORMAT** (`N differing`), which was its blind
+      spot: a stale `0 differing` had survived a 13-site hand sweep AND the gate. ‼ Adding the
+      rule **immediately surfaced THREE MORE stale expectations** the same sweep had missed, all
+      buried in very long STATE-table rows. ⛔ Scoped to an EXPECTATION (`expect`/`expects`/
+      `expected` within ~70 chars) so a HISTORICAL measurement stays quiet — fault-tested in all
+      three directions (D6 fires, D7 quiet, D8 quiet-on-history).
+      🔜 **STILL TO DO — the REDUCTION half:** the number is still asserted in several places.
+      Keep the STATE row and the HOW TO RUN `Expect:` line; make the rest say *"run
+      `promote.py --check`"* with no digit. The gate now catches a stale one, so this is a
+      churn-reduction, no longer a correctness risk.
       ⚠ Do this at a QUIET moment, not mid-arc: it touches the same lines every in-flight change
       touches, and a merge conflict here is a stale drift figure by another route.
 
