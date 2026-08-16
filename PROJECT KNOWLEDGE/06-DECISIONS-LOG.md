@@ -2586,3 +2586,34 @@ so the change reads as deliberate rather than as drift.
 ‼ **Generalised rule worth reusing:** *when a gate's guard condition is derived at runtime, retiring
 it means letting it go quiet — never deleting it. Delete only gates whose arming condition is
 hardcoded and therefore cannot come back.*
+
+## 2026-08-16 — unique harness log names: unbounded (gitignored) growth accepted over ANY retention cap
+
+**Decision.** `story_harness.py`'s default log becomes
+`harness_<build>_<driver>_<timestamp>_<pid>.log`, one file per run, **with no rotation, no cleanup
+and no cap.** Raised by an adversarial reviewer as an unnamed tradeoff, and it is one: the OLD
+scheme self-capped at **two** files per build precisely BECAUSE it overwrote them.
+
+*Rationale, with the numbers measured rather than guessed:* `tools/story-dev/` already holds **229
+`.log` files totalling 26 MB** — an average of ~113 KB, and the two `ki80ladder` transcripts this
+change produced are **6.2 KB and 5.3 KB**. `*.log` is gitignored (`tools/story-dev/.gitignore:2`),
+so nothing reaches the repository. Months of work have produced 26 MB. That is not a cost worth
+engineering against.
+
+*Rejected — and this is the substantive half: an age-based retention sweep* ("delete logs older
+than N days"). ⛔ **Auto-deleting transcripts is the SAME defect this change exists to fix, only
+slower.** The bug was an instrument silently destroying evidence; a cleanup job is an instrument
+silently destroying evidence on a timer. The 2026-08-15 Tier 1 kick-back happened because a
+transcript that proved a TRUE claim no longer existed — a retention policy would reproduce that
+outcome and be harder to notice, because nothing would be overwritten in front of you.
+‼ If disk ever genuinely matters, the correct move is a MANUAL, reviewed sweep — never an automatic
+one. Deleting evidence should require a human deciding to delete evidence.
+
+*Rejected also:* keeping a stable `harness_<build>-latest.log` alongside the unique file, as a
+convenience for the "tail the flushed log while it hangs" workflow. It reintroduces a fixed name
+that two concurrent runs would fight over, and it is unnecessary: **the run prints its own path as
+its first line**, which serves that workflow exactly and cannot go stale.
+
+⇒ **Anything you intend to CITE belongs in `evidence/`, committed.** A gitignored log is a working
+artifact, not evidence — that rule predates this change and is why it is safe to be relaxed about
+the logs themselves.

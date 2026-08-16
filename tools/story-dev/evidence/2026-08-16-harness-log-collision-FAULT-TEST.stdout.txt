@@ -1,0 +1,26 @@
+### FAULT TEST — reproduce the OLD default's destruction, on purpose (2026-08-16)
+###  (4). Forcing BOTH A/B arms onto ONE path with --log is exactly what the
+### old default 'harness_<build>.log' did to every A/B automatically.
+
+--- ARM 1: coupled expectation, --log /tmp/collide.log ---
+    exit=0
+    file now holds : EXPECTATION = COUPLED  /  ACCEPTANCE: FAIL
+    bytes          : 6196
+
+--- ARM 2: DECOUPLED=1, SAME --log path ---
+    exit=0
+    file now holds : EXPECTATION = DECOUPLED  /  ACCEPTANCE: PASS
+    bytes          : 5264
+    COUPLED still present? 0 occurrence(s)
+
+⇒ ARM 1's transcript is GONE. One file, one arm, no warning. That is the defect.
+
+--- CONTROL: the SAME two arms on the NEW default (no --log) ---
+    transcripts on disk: 2
+      harness_sandbox_ki80ladder_20260816-103348_43324.log  ->  EXPECTATION = COUPLED  /  ACCEPTANCE: FAIL
+      harness_sandbox_ki80ladder_20260816-103423_30428.log  ->  EXPECTATION = DECOUPLED  /  ACCEPTANCE: PASS
+⇒ BOTH arms survive, with different content. The collision is gone.
+
+### NOTE (appended, not edited): the header line above lost the token "#24-orphans" to shell
+### backtick substitution when this transcript was captured. No measurement is affected — the
+### mangled text is a title. The data lines are untouched.

@@ -15134,3 +15134,61 @@ replaces the exit code you are trying to read — the same class of error as tru
 The existing `--self-test` (the cp1252 mojibake half) still passes. Suite stays at **24 gates** —
 this widened an existing gate rather than adding one. Evidence:
 `evidence/2026-08-16-audit-encoding-py-bom-FAULT-TEST.stdout.txt`.
+
+## 2026-08-16 — fix: `#24-orphans` (4) — the harness no longer eats the first arm of every A/B (punch-list #24-orphans)
+
+**The defect.** `story_harness.py` wrote `harness_<build>.log` — **one fixed name per build, opened
+`"w"`** — so running the SECOND ARM of an A/B **silently destroyed the first arm's transcript.**
+‼ That is an instrument that eats evidence, and it had already cost a **Tier 1 kick-back on
+2026-08-15**, when arm 2 overwrote arm 1 and left a TRUE claim unverifiable.
+⛔ **The countermeasure that shipped that day was a PROSE HABIT** — *"give each arm a distinct
+`--log`"* — which a fresh session has no reason to know. A default that cannot collide is the fix.
+
+**What shipped.** The default is now
+`harness_<build>_<driver>_<YYYYmmdd-HHMMSS>_<pid>.log`, and the run **PRINTS its path as its first
+line** (`[setup] LOG -> …`) so the "tail the flushed log while it hangs" workflow still works —
+that workflow is why a bare timestamp was not enough. `--log` still pins a path EXACTLY.
+
+**✅ REGRESSION-TESTED, not merely changed.** Two arms of a real A/B run back to back now leave
+**two** transcripts with different content (`EXPECTATION = COUPLED` / `= DECOUPLED`, and
+`ACCEPTANCE: FAIL` / `PASS`). **Fault test:** forcing both arms onto one path with `--log`
+reproduces the old destruction — after arm 2, arm 1's transcript is gone. That is what the default
+used to do to every A/B.
+
+**⛔⛔ AND THE TEST ITSELF FAILED FIRST, FOR THE THIRD TIME TODAY, THE SAME WAY.** My first
+regression run piped the harness through `| head -2` to read the new path — which **closed stdout
+and killed the process under test**, producing `UNEXPECTED_OSError` in both arms and a FAIL that had
+nothing to do with the change. Re-run without the pipeline: correct results.
+‼ **That is now three for three in one session** — `cut` truncated a sweep and hid two stale claims;
+`tail` replaced a gate's exit code with its own so a FAILING run reported `exit=0`; `head` killed
+the process being measured. **One rule, written to `08-MISTAKES.md`: never pipe the thing you are
+measuring. Redirect to a file and read the file.**
+
+**Docs moved with it:** `04-HANDOFF`, `14-AGENT-PLAYBOOK` and `05-KNOWN-ISSUES` all named
+`harness_sandbox.log` as *the file to read*; they now say the path is printed by the run. The
+append-only logs keep their historical wording. The stale in-code comment at `story_harness.py`'s
+party-accounting ledger is rewritten to explain why the LEDGER still exists after the collision fix
+(unique logs make history *recoverable*, not *aggregated*; a criterion over many drives must read one
+append-only file, never glob gitignored transcripts).
+
+**Kicked back once by an adversarial review, and all three findings are fixed here:**
+* ⛔ **A FOURTH current-state doc still documented the old default** — `tools/story-dev/README.md:38`
+  said *"default `harness_<build>.log` here"*. My sweep covered `PROJECT KNOWLEDGE/` and code and
+  never looked in the tool directory's own README. **Fifth appearance this session of "the fix
+  landed in one half".**
+* ⛔ **No decision-log entry for the real tradeoff.** The old scheme self-capped at TWO files per
+  build *because* it overwrote them; the new one leaves a file per run forever. Now recorded in
+  `06-DECISIONS-LOG.md` with measured numbers (229 logs / 26 MB accumulated; 5-6 KB per run;
+  `*.log` gitignored) — and, more importantly, with the rejection of an age-based cleanup:
+  **auto-deleting transcripts is the same defect on a timer.**
+* ⚠ **The fault test was asserted, not evidenced.** Now captured:
+  `evidence/2026-08-16-harness-log-collision-FAULT-TEST.stdout.txt` shows arm 2 overwriting arm 1 on
+  a shared `--log` (`COUPLED still present? 0 occurrence(s)`, 6196 bytes → 5264), and the same two
+  arms on the new default leaving **two** transcripts with different verdicts.
+
+**🆕 Filed, not swept: `#24-logcollision-siblings`.** Four repro scripts carry the same pattern
+(`repro_hm_move_replace_loop.py:82`, `repro_hm_replace_valve_forced.py:54`,
+`repro_movelearn_fault_recovery.py:73`, `repro_movelearn_hm_wedge.py:65`). Milder — each varies by
+`build`/`mode`/`state`, so it only collides when the SAME arm is repeated — but that is exactly the
+before/after case. ⛔ **Filed rather than fixed in this commit** so each can be run-verified, the way
+the harness fix was, instead of swept in unverified.

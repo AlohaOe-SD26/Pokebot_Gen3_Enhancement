@@ -35,8 +35,14 @@ PYTHONUTF8=1 py story_harness.py <state|fresh> --driver <name> [--frames N] [--v
   **Add your own** driver class + a dispatch line for whatever you're isolating.
 - `--video` enables the BG/OBJ renderer — **required to drive app UIs** (PokéNav etc.); their
   looped tasks stall headless. Slower; use only when needed.
-- Logs go to `--log` (default `harness_<build>.log` here). New states written by drivers land in
-  `saves/`.
+- Logs go to `--log`, or by default to `harness_<build>_<driver>_<timestamp>_<pid>.log` here —
+  **unique per run, so an A/B cannot eat its own first arm.** ‼ **The run PRINTS its log path as
+  its FIRST line** (`[setup] LOG -> …`); that is how you find it, since there is no fixed name any
+  more. Afterwards: `ls -t tools/story-dev/harness_*.log | head -1`.
+  ⛔ *This line said "default `harness_<build>.log`" until 2026-08-16. That WAS the default, and it
+  was a defect (`#24-orphans` (4)): one fixed name per build opened `"w"`, so the second arm of an
+  A/B silently DESTROYED the first arm's transcript.* `*.log` is gitignored — commit anything you
+  intend to cite as evidence into `evidence/`. New states written by drivers land in `saves/`.
 - **`SAVE_POST_RIVAL=1`** env gates the post-rival checkpoint auto-save (off by default so it
   never clobbers `saves/post_rival.ss1` during unrelated tests).
 

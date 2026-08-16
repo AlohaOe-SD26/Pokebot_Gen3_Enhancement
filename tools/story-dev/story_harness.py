@@ -11,6 +11,8 @@ Usage:
 """
 
 import argparse
+import datetime as _dt
+import os as _os
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -51,7 +53,20 @@ BUILD = _REPO / f"{args.build}-pokebot"
 sys.path.insert(0, str(BUILD))
 SCRATCH = Path(__file__).parent            # tools/story-dev/  (logs + newly-written states land here)
 SAVES = SCRATCH / "saves"                  # committed checkpoint saves (load these by basename)
-LOG = Path(args.log) if args.log else SCRATCH / f"harness_{args.build}.log"
+# ⛔⛔ THE DEFAULT LOG NAME MUST NOT COLLIDE — `#24-orphans` item (4), fixed 2026-08-16.
+# It used to be `harness_{build}.log`: ONE fixed name per build, opened `"w"`. So running the
+# SECOND ARM of an A/B **destroyed the first arm's transcript**, and the destruction was silent.
+# ‼ That is an instrument that eats evidence, and it had already cost a Tier 1 kick-back on
+# 2026-08-15 when arm 2 overwrote arm 1 and left a TRUE claim unverifiable.
+# ⛔ The countermeasure shipped that day was a PROSE HABIT ("give each arm a distinct --log"),
+# which a fresh session has no reason to know. A default that CANNOT collide is the real fix:
+# build + driver + timestamp + PID, so even two runs starting in the same second differ.
+# ⚠ `--log` still wins and is still honoured EXACTLY — scripts that pin a path keep working.
+if args.log:
+    LOG = Path(args.log)
+else:
+    _stamp = _dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+    LOG = SCRATCH / f"harness_{args.build}_{args.driver}_{_stamp}_{_os.getpid()}.log"
 
 FRESH = args.state.lower() == "fresh"
 state_path = None
@@ -75,6 +90,15 @@ def log(msg):
     logf.flush()
     print(msg)
 
+
+# ‼ ANNOUNCE THE LOG PATH FIRST, BEFORE ANYTHING CAN FAIL. The names are unique now (see above),
+# so "read `harness_<build>.log`" is no longer an instruction anyone can follow — the path has to
+# come from the run itself. `log()` writes it to BOTH the file and stdout, and it is the first line
+# of each, so a hung run can still be diagnosed by tailing the path printed here.
+# ⇒ to find the newest afterwards:  ls -t tools/story-dev/harness_*.log | head -1
+log(f"[setup] LOG -> {LOG}")
+if not args.log:
+    log("[setup] (unique per run by design — #24-orphans (4); pass --log to pin a path)")
 
 # ---- bootstrap headless (mirrors modules/gui/headless.py) --------------------
 from modules.context import context
@@ -9535,10 +9559,15 @@ except Exception as e:
     log(f"[PARTY-ACCT] err {e} — treat this run as UNMEASURED for party accounting, not as clean")
 
 # ‼‼ AND APPEND IT TO A DURABLE LEDGER, because THE LOG IS NOT ONE.
-# `LOG` is `harness_<build>.log` and is opened `"w"` — **every drive TRUNCATES the previous one**.
-# So (P3b)'s criterion ("≥5 drives across ≥3 drivers") was UNREACHABLE by log-scanning: the
-# collector could only ever see the most recent run. Found 2026-08-15 by asking whether the tool
-# shipped the day before could actually produce the reading it demands. It could not.
+# ⛔ HISTORICAL, AND STILL THE REASON THIS LEDGER EXISTS: `LOG` used to be `harness_<build>.log` —
+# one fixed name per build, opened `"w"` — so **every drive TRUNCATED the previous one**, and
+# (P3b)'s criterion ("≥5 drives across ≥3 drivers") was UNREACHABLE by log-scanning: the collector
+# could only ever see the most recent run. Found 2026-08-15 by asking whether the tool shipped the
+# day before could actually produce the reading it demands. It could not.
+# ✅ The collision is FIXED as of 2026-08-16 (`#24-orphans` (4)) — log names are now unique per run.
+# ‼ THE LEDGER STAYS ANYWAY, and not out of inertia: unique logs make the history *recoverable*,
+# not *aggregated*. A criterion over many drives should read one append-only file, never glob a
+# directory of transcripts whose retention nobody guarantees (`*.log` is gitignored).
 # ⇒ The measurement now accumulates in its OWN append-only file, independent of the harness log.
 # ‼ APPEND MODE ONLY — `open(..., "a")` never reads the existing bytes, so this cannot round-trip-
 # corrupt the ledger the way a read-modify-write would (`08-MISTAKES.md`, twice).

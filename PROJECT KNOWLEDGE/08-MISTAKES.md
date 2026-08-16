@@ -7424,3 +7424,43 @@ does not exist.
 
 **Worth building:** widen `audit_encoding.py` beyond `PROJECT KNOWLEDGE/` to cover `tools/story-dev/`
 and the two forks, so a BOM cannot be introduced into a script unnoticed again.
+
+## 2026-08-16 — THREE TIMES IN ONE SESSION, A SHELL PIPELINE CORRUPTED THE MEASUREMENT I WAS TAKING
+
+**Symptom, three variants of one bug:**
+1. **`| cut -c1-100`** on a sweep for stale doc claims — matches lived at the far end of very long
+   table rows, so `grep` found them and `cut` **threw the evidence away before I read it**. I
+   reported the sweep clean; two stale claims survived and a gate then failed on one.
+2. **`| tail -N`** on a gate's output while reading `$?` — the exit code I got was **tail's**, not
+   the gate's, so a **FAILING** fault test reported `gate exit=0`. I nearly recorded a gate as
+   fault-tested on the strength of the wrong number.
+3. **`| head -2`** on the harness while checking its new log path — `head` closed stdout, the
+   driver's `print()` raised, and **the process under test died mid-run** with
+   `UNEXPECTED_OSError`. Both A/B arms "failed" for a reason that had nothing to do with the change.
+
+**Root cause, shared.** In each case I attached a pipeline **for my own reading comfort** to the
+command whose output *was the measurement*. A pipeline is not a viewer: it truncates (1), it
+replaces the exit status (2), and it can terminate the producer (3). ⇒ *I optimised the ergonomics
+of the observation and changed the thing observed.*
+
+**The fix that worked, and it is the same one every time.** Redirect to a file, then read the file:
+```
+cmd > /tmp/out.txt 2>&1 ; echo "exit=$?"      # exit code is the COMMAND's
+grep -o 'PATTERN' /tmp/out.txt                # print the MATCH, untruncated
+```
+
+**Prevention rule.** *Never pipe the thing you are measuring.* Redirect it to a file and read the
+file. Pipelines are for browsing output you have already decided is not evidence.
+
+**Corollaries, each of which cost a real error today:**
+* *Print the MATCH, not the line* (`grep -o`), and never truncate a sweep — a sweep whose output you
+  truncate is not a sweep.
+* *`$?` after a pipeline is the LAST command's status.* If you need the producer's exit code,
+  do not pipe it (or use `PIPESTATUS`/`set -o pipefail`, but redirecting is simpler and safer).
+* *A consumer that exits early can kill the producer.* `head` on a long-running process is a SIGPIPE
+  waiting to happen — and the failure looks like a bug in the subject.
+
+‼ **Why this belongs in this file rather than being obvious:** all three passed silently. Each
+produced a plausible, confidently-wrong reading — "the sweep is clean", "the gate exits 0", "both
+arms fail" — and none of them looked like a tooling error until the result was checked against
+something else.

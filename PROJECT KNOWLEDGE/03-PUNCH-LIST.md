@@ -494,6 +494,18 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       its three constraints are recorded in `04-HANDOFF.md`'s queue item P4 (no save holds a
       Nincada; KI-71 means a derailed arm prints NO RESULT; do not depend on a stochastic catch).
 
+- [ ] `#24-logcollision-siblings` — **NEW 2026-08-16, found while fixing `#24-orphans` (4).** Four
+      more repro scripts carry the SAME evidence-destroying pattern `story_harness.py` just shed —
+      a fixed default log name opened `"w"`, so re-running the same arm silently eats the previous
+      transcript: `repro_hm_move_replace_loop.py:82`, `repro_hm_replace_valve_forced.py:54`,
+      `repro_movelearn_fault_recovery.py:73`, `repro_movelearn_hm_wedge.py:65`. ⚠ **Milder than the
+      harness's was** — each varies by `build`/`mode`/`state`, so it only collides when the SAME
+      arm is repeated (still exactly the before/after case). ⇒ apply the same one-line fix
+      (`_<timestamp>_<pid>`, print the path first). **Filed rather than done** so the change can be
+      run-verified per script instead of swept in unverified — the harness fix was proven by an
+      actual A/B, and these deserve the same.
+
+
 - [ ] `#24-zerokocounter` — **NEW 2026-08-16, from the KI-80 decoupling. Should `boss_teaches` ALSO
       come off the counter-ladder's gate?** `story_mode.py:1901` is now `if boss_teaches:`. KI-80's
       wording ("gated on *is this fight hopeless*, which `_boss_plan_is_hopeless` answers alone")
@@ -1820,12 +1832,17 @@ level-matched encounters maintenance needs. Done together they are one activity,
 - [ ] **(3) KI-66 — the multi-battle hazard is BROADER than the faint chooser:** four more
       full-party scans are unguarded, one feeding an UNBOUNDED `while … press A`. OPEN,
       code-verified, never live-run, and untracked until now.
-- [ ] **(4) `story_harness.py` OVERWRITES `harness_<build>.log` every run** — one fixed name per
-      build — so running the second arm of an A/B DESTROYS the first arm's transcript. ‼ This is an
-      instrument that silently eats evidence: it already forced a Tier 1 kick-back on 2026-08-15.
-      The countermeasure shipped as a PROSE HABIT only ("give each arm a distinct `--log`"), which
-      a fresh session has no reason to know. ⇒ the real fix is a default that cannot collide
-      (timestamped or driver-named), not a rule.
+- [x] **(4) ✅ DONE 2026-08-16 — `story_harness.py` no longer overwrites its log.** The default is
+      now `harness_<build>_<driver>_<timestamp>_<pid>.log`, which **cannot collide**, and the run
+      PRINTS its path as its first line (`[setup] LOG -> …`) so the "read the flushed log while it
+      hangs" workflow still works. `--log` still pins a path exactly.
+      ✅ **REGRESSION-TESTED, not just changed:** both arms of a real A/B run back to back now leave
+      TWO transcripts with different content (`EXPECTATION = COUPLED` / `= DECOUPLED`); forcing both
+      arms onto one path with `--log` reproduces the OLD destruction (arm 1's transcript gone),
+      which is the fault test. ‼ The old fix had shipped as a PROSE HABIT ("give each arm a distinct
+      `--log`") that a fresh session had no reason to know — this is the same rule as a GATE.
+      ⚠ Docs that named `harness_sandbox.log` as the file to read are updated (`04-HANDOFF`,
+      `14-AGENT-PLAYBOOK`, `05-KNOWN-ISSUES`); the append-only logs keep their historical wording.
 - [ ] **(5) `compare_runs.py` pairing for the (P4) matrix — never built.** Blocks nothing today; it
       lives only in `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md`, and a research
       note is explicitly "a NOTE, never a source of truth" — nobody mines those for backlog.

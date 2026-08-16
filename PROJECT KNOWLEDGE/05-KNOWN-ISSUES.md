@@ -2711,9 +2711,12 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   when the thing they check is sabotaged, so it is not rubber-stamping.
 - 📁 **THE RAW TRANSCRIPTS ARE COMMITTED, BY NAME** — `tools/story-dev/evidence/2026-08-15-ki79-armB-UNFAULTED.stdout.txt` and `…-FAULTED.stdout.txt` (plus their `.driver.txt` twins).
   ‼ **They exist because a Tier 1 reviewer could not verify this entry and said so.** The harness
-  writes `harness_<build>.log` — **one fixed filename per build, overwritten by the very next
+  USED TO WRITE `harness_<build>.log` — **one fixed filename per build, overwritten by the very next
   run** — so the unfaulted PASS transcript had already been destroyed by the faulted run that
-  followed it, and all that remained on disk was a FAIL. The claim was true and *unverifiable*,
+  followed it, and all that remained on disk was a FAIL. ✅ **That collision is FIXED as of
+  2026-08-16** (`#24-orphans` (4)): default log names are unique per run. ‼ **Committing the raw
+  transcripts is STILL right** — a gitignored log is not evidence, and stdout (production's
+  `console.print`) is not in the harness log at all. The claim was true and *unverifiable*,
   which for this project's purposes is the same as unproven. ⇒ **A/B runs must be captured with
   distinct `--log` names, and stdout redirected too** (the driver's own log does NOT contain
   `console.print` output — the `‼ THE WITHDRAW DID NOT LAND` and green-success lines live in

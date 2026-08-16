@@ -879,7 +879,9 @@ PYTHONUTF8=1 py -3.12 repro_box_counter_move_test.py --build custom  #   the oth
 ‼ **A driver keeps running after it prints ACCEPTANCE** — it drops to Manual and the harness only
 exits on its own 20,000-idle-frame detector, logging **"HANG CONFIRMED"** on a run that SUCCEEDED.
 **Read the `ACCEPTANCE:` line, not the last line.** Full transcripts land in
-`tools/story-dev/harness_sandbox.log`.
+the harness log — ⛔ **whose path the run PRINTS as its first line** (`[setup] LOG -> …`),
+because names are unique per run since 2026-08-16; `ls -t tools/story-dev/harness_*.log | head -1`
+finds the newest afterwards.
 
 ‼ **VERIFY THE SANDBOX↔CUSTOM DRIFT ROW RATHER THAN TRUSTING IT** — `promote.py --check` is in the block above and measures it BOTH ways in seconds. ✅ **Expected as of 2026-08-16 (LATEST): 0 differing, 0 orphaned** — everything is promoted, the KI-80 decoupling included. *(This line said "0 differing, 0 orphaned" until a Tier 2 cold-start audit found it, along with the sibling line in the command block above, still claiming 0 after three other places in this file had been corrected to 1. ALL drift statements in this file move together or not at all — ⛔ a COUNT here has been wrong twice ('three' vs 'five'; the real sweep found THIRTEEN across five files). GREP, case-insensitively, print the MATCH not the line, and require zero.)* Superseded: *"the PowerShell loop is in `28-HANDOFF-ARCHIVE.md`'s copy of this section"*, together with an older expected-count naming `modules/map_path.py`, `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — all PROMOTED now and not part of the current drift set. ‼ **The old FIGURE is deliberately not reprinted**: `audit_doc_consistency` cannot tell a quotation from a claim, so quoting a stale count turns this line red (it did). ‼ `tools/story-dev/` is sandbox-only and is **not** part of that comparison, so the `ch20*` drivers, `probe_route128_landing.py` and `repro_party_accounting.py` do not change the count.
 
