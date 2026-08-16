@@ -6919,14 +6919,26 @@ on a correctly-encoded `⏱` and on the em dashes, `20×17`, `§Ch20`, `‼`/`�
   partial sweep is the real hazard, and an atomic one fails loud. It aborted twice on my own bad
   assumptions (a missing `**`, a different dash) and, because it is all-or-nothing, left the file
   untouched both times. (2) The offending line now states the expectation in digits.
-- ⛔ **HONESTY CORRECTION, forced by a Tier 1 reviewer (and it was right to force it): that script
-  is NOT COMMITTED and NO GATE ENFORCES ANY OF THIS.** An earlier draft of this very entry said
-  "the drift sweep is now a SCRIPT", which reads as *structurally fixed* — describing a fix that
-  does not exist is worse than describing no fix, because it stops the next agent from building
-  one. The durable output of this incident is a PREVENTION RULE in `14-AGENT-PLAYBOOK.md` and
-  nothing more. ‼ **The real structural fix is still unbuilt**: teach `audit_doc_consistency.py`
-  the WORD forms of a count, so the numeral-only blind spot closes for good. Until then this rule
-  is prose, and prose has already failed here three times in one day.
+- ⛔ **TWO HONESTY CORRECTIONS, and the second one reverses the lesson.**
+  **(a)** An earlier draft said "the drift sweep is now a SCRIPT", which reads as *structurally
+  fixed*. That script is a THROWAWAY and is NOT committed. Describing a fix that does not exist is
+  worse than describing none, because it stops the next agent from building one.
+  **(b)** ‼‼ **That same draft then claimed the real fix was "unbuilt — teach
+  `audit_doc_consistency.py` the WORD forms". THAT IS FALSE, AND I VERIFIED IT RATHER THAN
+  SHIPPING IT.** The gate has known word-numbers since the spelled-out "THREE" incident
+  (`_WORD_NUMBERS`, `_NUM`), and it fires correctly today: `check_drift` on `'drift is one'` and on
+  `'EXPECT EXACTLY ONE FILE'` both return a violation. **The gate caught this line ALL THREE
+  TIMES, before every commit. Nothing stale ever shipped.**
+- ‼ **SO THE REAL LESSON IS THE OPPOSITE OF THE ONE I FIRST WROTE.** The enforcement worked; what
+  failed three times was **my manual sweep** — I edited the figure where I happened to be looking
+  and grepped for the NUMERAL to find the rest. ⇒ **Do not hand-sweep a count at all: change it,
+  then RUN THE GATE AND FIX EXACTLY WHAT IT NAMES, repeating until it is silent.** The gate is the
+  enumeration; grep is not. ⚠ And note its two documented limits, both hit today: it cannot tell a
+  QUOTATION or a NEGATION from a claim, so describe superseded wording instead of reproducing it.
+- ⚠ **Meta-lesson, and the reason this bullet exists at all:** I wrote a confident claim about a
+  missing safety net *in the very entry correcting a confident claim about a missing fix*. Both
+  were plausible, neither was checked, and one grep would have settled either. **Before writing
+  "X is unbuilt" about our own tooling, run X.**
 - ‼ **Prevention rule.** *A drift/gate/count figure is a MULTI-FILE, MULTI-SPELLING fact. When you
   change one, grep the WORD forms too — `ONE`, `zero`, "everything is promoted", "that one file" —
   not just the numeral, and never edit it only in the place you happen to be looking.*
