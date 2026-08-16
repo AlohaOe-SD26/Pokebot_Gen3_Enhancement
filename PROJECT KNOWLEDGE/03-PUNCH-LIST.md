@@ -436,7 +436,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       SUPPRESSED."* Keep `boss_mode = True` (`:1925`) behind `grass_is_fodder`.
       Transcripts: `evidence/2026-08-16-ki80ladder-FAULT-naive-edit-*`. The BEFORE run is committed FIRST because
       it is unrepeatable afterwards. `repro_boss_grass_gate.py` SELF-RETIRES on the fix — designed.
-      ✅ **BOTH PROMOTIONS ARE DONE (user-approved 2026-08-15).** *(✅ The comment-only `story_mode.py` fix was PROMOTED 2026-08-16, user-approved. ⚠ Drift is 1 again for the KI-80 DECOUPLING in the same file — a BEHAVIOUR change, sandbox-only, awaiting its own approval.)* The KI-79 fix `pc_trip.py` (a BEHAVIOUR change) was proven by a THREE-POINT A/B showing the new branch actually RUNS in custom, not merely that the file copied. And `counter_hunt.py`
+      ✅ **BOTH PROMOTIONS ARE DONE (user-approved 2026-08-15).** *(✅ The comment-only `story_mode.py` fix was PROMOTED 2026-08-16, user-approved. ✅ And the KI-80 DECOUPLING in the same file — a BEHAVIOUR change — was PROMOTED 2026-08-16 too, by a THREE-POINT A/B against `--build custom`. Drift is 0.)* The KI-79 fix `pc_trip.py` (a BEHAVIOUR change) was proven by a THREE-POINT A/B showing the new branch actually RUNS in custom, not merely that the file copied. And `counter_hunt.py`
       (comment-only, the Electric correction) promoted with restore point
       `restore/2026-08-15-pre-promotion-counterhunt-comment`: 1/1 byte-identical, and VERIFIED BY
       DRIVING — `--driver boxcounter2 --build custom` ARM A and ARM B both `ACCEPTANCE: PASS`,
@@ -1824,7 +1824,7 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
 > machinery silently for any team at L30-35. **KI-80 decoupled it:** `:1901` is now
 > `if boss_teaches:` and `boss_mode` sits behind its own `if grass_is_fodder:`.
 > ⚠ **The warning below still stands for the OTHER two reasons**, which the decoupling does NOT
-> address, and it is NOT PROMOTED (`custom-pokebot` still has the coupling). Norman's L3-5 patch is the DELIBERATE fodder trigger for the only relocation
+> address. ✅ The decoupling was PROMOTED 2026-08-16, so BOTH forks now have it. Norman's L3-5 patch is the DELIBERATE fodder trigger for the only relocation
 > this bot has ever performed (70-83% measured). And a new `TRAINING_GRASS` row re-ranks ONE
 > GLOBAL table for every caller, including the counter picker for every other boss.
 > ✅ **ENFORCED, not requested:** `repro_boss_grass_gate.py` (suite #24) fails the build if an

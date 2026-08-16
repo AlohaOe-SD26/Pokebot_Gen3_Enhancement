@@ -1898,12 +1898,11 @@ class StoryMode(BotMode):
             # grass exists) counts as fodder too: grass can't teach us either way.
             grass_is_fodder = ("grass" not in cfg) or (wild_max is not None and wild_max + 8 < team_max)
             boss_teaches = bool(recent_kos) and any(k >= 1 for k in recent_kos)
-            if grass_is_fodder and boss_teaches:
-                # KI-23 (Winona): a strong mon can KO 1-2 of the boss's mons EVERY
-                # attempt and still lose forever if nothing in the party is
-                # super-effective against it — the ZERO-KO guard above never fires
-                # there, and boss-training mode would keep "teaching" us nothing
-                # useful, run after run. Check BEFORE committing to another attempt.
+            if boss_teaches:  # ⛔ KI-80: NOT `grass_is_fodder and ...` — see `boss_mode` below
+                # KI-23 (Winona): a strong mon can KO 1-2 of the boss's mons EVERY attempt and
+                # still lose forever if nothing in the party is super-effective against it — the
+                # ZERO-KO guard never fires there, and boss-training mode would keep "teaching" us
+                # nothing, run after run. Check BEFORE committing to another attempt.
                 hopeless, needed = self._boss_plan_is_hopeless(cfg)
                 if hopeless:
                     from modules.modes import BotModeError
@@ -1922,13 +1921,14 @@ class StoryMode(BotMode):
                     # taken into account by the sufficiency/boss-mode logic rather than
                     # by this stale pass — the party is not what it was when we entered.
                     return
-                boss_mode = True
-                target = team_max + 1  # light top-up only — the boss battle is the trainer
-                console.print(
-                    f"[bold cyan]Story: boss-training mode — local wilds (max L{wild_max}) are far "
-                    f"below the team (L{team_max}); re-attempting the boss is the real training "
-                    f"(recent attempts KO'd {recent_kos} of theirs). Light top-up to L{target} only.[/]"
-                )
+                if grass_is_fodder:  # ⛔⛔ KI-80: boss_mode STAYS behind the patch test. Removing
+                    boss_mode = True  # this guard is KI-23's MIRROR regression (arm 4 catches it).
+                    target = team_max + 1  # light top-up — the boss battle is the trainer
+                    console.print(
+                        f"[bold cyan]Story: boss-training mode — local wilds (max L{wild_max}) are "
+                        f"far below the team (L{team_max}); re-attempting the boss is the real "
+                        f"training (KO'd {recent_kos} of theirs). Light top-up to L{target} only.[/]"
+                    )
             elif grass_is_fodder and recent_kos and not boss_teaches:
                 console.print(
                     f"[yellow]Story: last {len(recent_kos)} boss attempts KO'd nothing — "

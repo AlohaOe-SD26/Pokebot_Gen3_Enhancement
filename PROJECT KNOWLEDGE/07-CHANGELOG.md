@@ -15022,3 +15022,36 @@ against its 3600 budget, so the next commit touching it would have failed the ga
 `#24-teachmsgstall` entry — **344 lines** of investigation for an item that shipped, was kept, and
 was reopened for lack of measurable effect — is archived VERBATIM to `28-HANDOFF-ARCHIVE.md`,
 leaving an 11-line summary that keeps its live status. Headroom is now 322 lines. ⛔ Nothing deleted.
+
+## 2026-08-16 — chore: KI-80's DECOUPLING PROMOTED to both forks (user-approved), proven by a THREE-POINT A/B (punch-list #24-counters)
+
+**The user ruled: promote.** `plugins/custom_modes/story_mode.py` copied sandbox → custom. Restore
+point **`restore/2026-08-16-pre-promotion-ki80-decoupling`** (annotated, pushed, verified on origin
+by the tool before it copied). **0 differing, 0 orphaned, 1/1 byte-identical.**
+
+**‼ THE THREE-POINT A/B, because a byte-compare only proves a COPY** — identical commands,
+`--build custom`, before and after:
+
+| point | BEFORE | AFTER |
+|---|---|---|
+| `POKEBOT_KI80_DECOUPLED=1` | ⛔ **FAIL** | ✅ **PASS** |
+| bare command (the OLD coupled expectation) | ✅ **PASS** | ⛔ **FAIL** |
+| `POKEBOT_KI80_ARM4=1` (mirror-regression guard) | ✅ **PASS** | ✅ **PASS** |
+
+⇒ **the two flipping points moved in OPPOSITE directions while the invariant one stayed put.** The
+third row is the load-bearing one: arm 4 being green *on both sides* is what shows KI-23's mirror
+regression did not travel with the fix. ⛔ The BEFORE half is unrepeatable once the copy lands, so
+it was run and **committed first** (`1c11927e`) — the rule KI-79 established.
+Also green: four `--build custom` gates that each assert which fork they imported, and
+`repro_boss_grass_gate.py` **SELF-RETIRED** as designed (⚠ it is sandbox-scoped — no `--build` flag).
+
+**⛔ THE DRIFT SWEEP TOOK FOUR PASSES, AND THE LAST TWO SURVIVORS WERE HIDDEN BY MY OWN COMMAND.**
+Flipping the figure back to 0 touched **13 claims across 5 files**. `audit_doc_consistency` caught
+only some; a case-sensitive grep missed a capital `Drift is 1`; and **two survivors were invisible
+because I piped the sweep through `cut -c1-100`, which truncated the matches off the right-hand end
+of long table rows.** The authoritative sweep is `grep -o` (or a Python `finditer`) printing the
+MATCH, never the line — and never truncated. ‼ **New rule: a sweep whose output you truncate is not
+a sweep. Print the match, count it, and require the count to be zero.**
+
+⇒ `04-HANDOFF.md`'s `if stopped mid-task` row is back to **"NO PROMOTION DECISION IS OWED"**, and it
+is true: nothing is awaiting a user ruling. Everything in both forks is identical.

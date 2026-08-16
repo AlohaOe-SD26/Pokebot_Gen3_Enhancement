@@ -188,8 +188,14 @@ def check(src: str) -> list[str]:
               "(the coupling this gate guards is GONE).")
         print("  => giving a boss a `grass` key no longer disables its counter machinery, so this "
               "gate now enforces nothing.")
-        print("  ‼ RETIRE THIS GATE and KI-80 together, and record the decoupling in "
-              "06-DECISIONS-LOG.md.")
+        print("  ‼ DO NOT DELETE THIS GATE — ruling 2026-08-16, when the decoupling was promoted.")
+        print("     It is inert TODAY, but it is SELF-ARMING: the check above re-derives the")
+        print("     coupling from the live AST every run, so if anyone ever re-introduces it (by")
+        print("     revert, by merge, or by 'simplifying' the split back into one boolean) this")
+        print("     gate starts enforcing again on its own, for free, in 0.1s. Deleting it buys")
+        print("     nothing and removes that net. ⇒ a self-retiring gate should be LEFT retired,")
+        print("     not removed. (Superseded advice, from this same line: 'RETIRE THIS GATE and")
+        print("     KI-80 together'.) The decoupling is recorded in 06-DECISIONS-LOG.md.")
         return []
 
     print("  coupling CONFIRMED (this is why the rule below applies):")

@@ -7359,3 +7359,68 @@ than as a memory before them, and re-run to zero.
 fact restated in the handoff, the punch list, the KI and the changelog — are good for cold starts
 and terrible for corrections: every restatement is another place for the old version to survive.
 ⇒ the cost of redundancy is paid at CORRECTION time, and the only affordable payment is a grep.
+
+## 2026-08-16 — MY OWN VERIFICATION COMMAND HID TWO OF THE THINGS IT WAS VERIFYING
+
+**Symptom.** After promoting the KI-80 decoupling I swept the docs for stale "drift is 1" claims and
+declared them clean. Two remained — in `04-HANDOFF.md`'s widest table rows — plus a third with a
+capital `D`. The `audit_doc_consistency` gate then failed on one of them, after I had reported the
+sweep as complete.
+
+**Root cause, and it is embarrassing precisely because it is mechanical.** I piped every sweep
+through `| cut -c1-100` to keep the output readable. The stale claims live in table rows **hundreds
+of characters long**, so `grep -n` matched them correctly and `cut` then **threw the matched text
+away before I saw it** — the line was reported, the reason was not, and I read the truncated output
+as noise. A separate pass used a case-sensitive pattern and walked past `Drift is 1`.
+⇒ *I optimised the output for MY reading comfort and destroyed the evidence in the process.*
+
+**The fix that worked.** Sweep with `grep -o` (or Python `re.finditer`) so the tool prints **the
+match, not the line**, never truncate it, and end with a COUNT that must be zero:
+`-> 0 stale drift claim(s) remaining`. Case-insensitive always.
+
+**Prevention rule.** *A sweep whose output you truncate is not a sweep. Print the MATCH, not the
+line; count the matches; require zero. `cut`/`head` belong on browsing commands, never on the
+command that decides whether you are done.*
+
+**Second prevention rule.** *Grep for a claim case-insensitively.* `drift is 1` and `Drift is 1` are
+the same claim to a reader and different strings to `grep` — this file already carries a
+"digits, not words" rule for the same reason, and case is the same class of blind spot.
+
+**Why it kept mattering here.** This project deliberately restates key facts across the handoff, the
+punch list, the KI and the changelog so a cold start cannot miss them. That redundancy is paid for
+at CORRECTION time, and the only affordable payment is an exhaustive, untruncated sweep. Four passes
+were needed for one number; one correct command would have done it in the first.
+
+## 2026-08-16 — I ADDED A BOM TO A FILE THAT NEVER HAD ONE, BECAUSE I READ WITH `utf-8-sig` AND WROTE THE BOM BACK UNCONDITIONALLY
+
+**Symptom.** Editing `tools/story-dev/repro_boss_grass_gate.py`, I read it with `encoding="utf-8-sig"`
+and wrote it back as `p.write_text("\ufeff" + new, encoding="utf-8")`. The file had **no** BOM
+(`git show HEAD:… | head -c 3` → `"""`), so I *added* three bytes nobody asked for. Caught by a
+Tier 1 reviewer diffing the working tree, not by any gate.
+
+**Root cause.** `utf-8-sig` on read is *conditional* — it strips a BOM if present and is a no-op if
+not — so it is safe to use everywhere. Prepending `"\ufeff"` on write is **unconditional**. I had
+adopted the read/write pair as a unit because `story_harness.py` genuinely *does* start with a BOM,
+and then applied the same pair to a file that does not. ⇒ *a matched read/write idiom is only
+matched for the file it was derived from.*
+
+**Why no gate caught it.** `audit_encoding.py` polices BOMs and mojibake across **`PROJECT
+KNOWLEDGE/` only** — 34 files. `tools/story-dev/*.py` is outside its scope, so a BOM introduced into
+a gate script is invisible to the gate suite. (CPython tolerates a source BOM, so nothing broke;
+that is exactly what makes it easy to leave behind.)
+
+**The fix that worked.** `raw = p.read_bytes(); p.write_bytes(raw[3:])` after asserting the BOM was
+there, then re-running the gate and its `--self-test` to prove nothing else moved. The resulting
+diff is message-only, `8 insertions / 2 deletions`.
+
+**Prevention rule.** *Preserve a file's BOM, never assert it. Read the first three bytes, and write
+back exactly what was there* — or edit with a tool that does not re-encode the file at all.
+
+**Second prevention rule, and the more useful one.** *Check the working tree against the diff you
+handed to review.* The reviewer found this because it compared `git status` to the diff it was
+given, and found two files I had changed AFTER generating that diff. ⇒ **generate the review diff
+LAST, or re-generate it after any further edit** — a review of a stale diff certifies a tree that
+does not exist.
+
+**Worth building:** widen `audit_encoding.py` beyond `PROJECT KNOWLEDGE/` to cover `tools/story-dev/`
+and the two forks, so a BOM cannot be introduced into a script unnoticed again.

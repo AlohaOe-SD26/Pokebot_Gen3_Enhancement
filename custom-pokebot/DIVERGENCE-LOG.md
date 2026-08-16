@@ -1733,3 +1733,55 @@ command can go PASS→FAIL→PASS across it. The AST equality above is the *stro
 class of change, and the drives exist to show the file still loads and behaves in custom — not to
 show a new branch running. ⛔ Do not cite these drives as evidence that "the fix is live"; cite the
 AST identity and the byte-compare (`1/1 byte-identical`, drift 0 both directions) for that.
+
+---
+
+## 2026-08-16 — `plugins/custom_modes/story_mode.py`: KI-80's DECOUPLING (a BEHAVIOUR change, user-approved)
+
+**Promoted:** `plugins/custom_modes/story_mode.py`, sandbox → custom. **User-approved 2026-08-16.**
+Restore point **`restore/2026-08-16-pre-promotion-ki80-decoupling`** (annotated, pushed, verified on
+origin by `promote.py` before it copied). Result: **0 differing, 0 orphaned, 1/1 byte-identical.**
+
+**What changed.** `:1901` `if grass_is_fodder and boss_teaches:` → **`if boss_teaches:`**, and
+`:1925`'s `boss_mode = True` (with its target bump and message) moved behind a fresh
+**`if grass_is_fodder:`**. One boolean had been answering two unrelated questions and gating KI-23's
+counter-catch machinery on the wrong one ⇒ **giving a boss a training area silently deleted its
+counter machinery**, behind a healthy-looking `"training harder before re-attempting"` line.
+
+### ‼‼ PROVEN BY A THREE-POINT A/B AGAINST `--build custom` — a byte-compare only proves a COPY
+
+| point (identical commands, `--build custom`) | BEFORE | AFTER |
+|---|---|---|
+| `POKEBOT_KI80_DECOUPLED=1` | ⛔ **FAIL** — `GRASS_STRONG -> PLAIN_ESCALATION (expected LADDER)` | ✅ **PASS** — all three arms `-> LADDER` |
+| bare command (the OLD coupled expectation) | ✅ **PASS** | ⛔ **FAIL** — `GRASS_STRONG -> LADDER (expected PLAIN_ESCALATION)` |
+| `POKEBOT_KI80_ARM4=1` (mirror-regression guard) | ✅ **PASS** | ✅ **PASS** — `OUTCOME=PLAIN_ESCALATION`, `drift=none` |
+
+⇒ **the two flipping points moved in OPPOSITE directions and the invariant one did not move.** That
+is what a byte-compare cannot tell you: the new branch is what RUNS in custom, and KI-23's mirror
+regression did **not** come with it.
+⛔ **The BEFORE half is unrepeatable once the copy happens, so it was run and COMMITTED FIRST** — in
+`1c11927e`, one commit before the restore tag. That ordering is the KI-79 rule.
+
+**Also green on custom:** four `--build custom` gates, each of which ASSERTS which fork it imported
+(`repro_box_counter_move_test`, `repro_pid_identity_key`, `repro_party_accounting`,
+`repro_heal_piggyback_reporting`) — all exit 0. And `repro_boss_grass_gate.py` (suite #24)
+**SELF-RETIRED**: it now reports *"the counter-ladder is no longer gated on `grass_is_fodder` (the
+coupling this gate guards is GONE)"* and exits 0. That is its designed end state, not a failure.
+⚠ That gate is **sandbox-scoped** (it has no `--build` flag), so it speaks for sandbox only.
+
+**BLAST RADIUS — arithmetic MEASURED, behaviour INFERRED.** Only bosses with BOTH a `grass` key and
+`ace_types` can change: **Brawly** gains the machinery across his whole band (GRANITE_CAVE_1F
+`wild_max` 10 vs band 14-16), **Roxanne** at `team_max` 13-16, **Wattson** at 20-22. **Norman is
+unchanged** (ROUTE102 `wild_max` 4 — always fodder already, *by design*); the **Rustboro rival is
+unaffected** (no `ace_types`). ‼ **No Brawly/Roxanne/Wattson run exists** — only Winona's fixtures
+were driven; the rest is inference from shared code paths, and is labelled as such everywhere.
+
+⚠ **A REAL CONSEQUENCE, STATED NOT BURIED:** at those three bosses a hopeless diagnosis can now end
+a run with KI-23's honest `BotModeError` where it previously ground on. Intended (KI-23 measured the
+grinding path at 198 attempts / 41 losses / 41 whiteouts without converging) and safe — the raise is
+caught at `:4080-4081`, sets `outcome = "derailed"`, and does not crash a batch.
+
+**OPEN AND TRACKED:** `#24-zerokocounter` — should `boss_teaches` come off the gate too? Not shipped
+because **no arm can discriminate it** (all four seed `kos = 1`), and an audit derived that it would
+need TWO new arms plus a frequency measurement first.
+📁 Transcripts: `tools/story-dev/evidence/2026-08-16-ki80-PROMOTION-{BEFORE,AFTER}-custom-*`.

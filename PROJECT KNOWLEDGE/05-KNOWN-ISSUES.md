@@ -2746,7 +2746,7 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
 
 ---
 
-## KI-80 — `grass_is_fodder` CONFLATED "no training patch configured" with "the patch is too weak", and it CO-GATED the counter-ladder (with `boss_teaches`, inside `losses >= 2`) — so giving a boss a training area silently disabled its KI-23 machinery. ✅ DECOUPLED 2026-08-16 (sandbox) (2026-08-16, ✅ **REPRODUCED AND DRIVEN** — `--driver ki80ladder` is COMPLETE and PASSING: **4 arms**, both forks, mirror-regression guard fault-tested against the real naive edit. ✅ **AND THE DECOUPLING IS NOW BUILT, DRIVEN AND REVIEWED** — `:1901` is `if boss_teaches:`, `boss_mode` sits behind its own `if grass_is_fodder:`; `repro_boss_grass_gate.py` has SELF-RETIRED. ⛔ **THIS KI STAYS OPEN ONLY UNTIL THE USER APPROVES PROMOTING IT** — the fix is sandbox-only, drift is 1)
+## KI-80 — `grass_is_fodder` CONFLATED "no training patch configured" with "the patch is too weak", and it CO-GATED the counter-ladder (with `boss_teaches`, inside `losses >= 2`) — so giving a boss a training area silently disabled its KI-23 machinery. ✅ DECOUPLED AND PROMOTED TO BOTH FORKS 2026-08-16 (2026-08-16, ✅ **REPRODUCED AND DRIVEN** — `--driver ki80ladder` is COMPLETE and PASSING: **4 arms**, both forks, mirror-regression guard fault-tested against the real naive edit. ✅ **AND THE DECOUPLING IS NOW BUILT, DRIVEN AND REVIEWED** — `:1901` is `if boss_teaches:`, `boss_mode` sits behind its own `if grass_is_fodder:`; `repro_boss_grass_gate.py` has SELF-RETIRED. ✅ **AND PROMOTED TO BOTH FORKS 2026-08-16 (user-approved), proven by a THREE-POINT A/B against `--build custom` — drift is 0.** ⛔ **THIS KI STAYS OPEN ONLY FOR ITS TRACKED RESIDUAL** `#24-zerokocounter`: should `boss_teaches` come off the gate too? Not shipped because no arm can discriminate it, and an audit derived that it would need TWO new arms plus a frequency measurement first)
 
 - **The line.** `plugins/custom_modes/story_mode.py:1899`:
   ```
@@ -2834,7 +2834,9 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   `:4080-4081` (`outcome = "derailed"`) rather than crashing a batch.
   ⚠ **Blast radius: arithmetic MEASURED, behaviour INFERRED** — Brawly/Roxanne/Wattson gain the
   machinery; **no run against those three exists**, only Winona's fixtures were driven.
-  ⛔ **NOT PROMOTED** — a behaviour change needs its own approval.
+  ✅ **PROMOTED 2026-08-16, user-approved, by a THREE-POINT A/B against `--build custom`** (not a
+  byte-compare): `POKEBOT_KI80_DECOUPLED=1` **FAIL → PASS**, the coupled expectation **PASS → FAIL**,
+  and **arm 4 PASS on both sides** — the invariance proving the mirror regression did not land.
   *(Superseded: the line below said the decoupling was merely unblocked.)* The AFTER run is the same command with
   `POKEBOT_KI80_DECOUPLED=1`, which must go from FAIL (today, measured) to PASS.
   ⛔ **The BEFORE run is unrepeatable once the fix lands — it was run and committed FIRST**, the
@@ -2893,7 +2895,7 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   fix could not be promoted separately from an unapproved comment-only edit sitting in the SAME
   file (`plugins/custom_modes/story_mode.py`). **The user ruled, the comment-only correction was
   promoted** — so the KI-80 fix, when approved, promotes cleanly on its own.
-  ⚠ The KI-80 decoupling now IS that one drifted file, and it awaits its own approval.
+  ✅ The KI-80 decoupling was itself promoted 2026-08-16 on that same rule; drift is 0.
   *(⚠ The superseded wording is DESCRIBED rather than reprinted: `audit_doc_consistency` matches
   literal strings and cannot tell a quotation from a claim — it red-flagged the first draft of this
   very bullet for reciting the old figure.)*

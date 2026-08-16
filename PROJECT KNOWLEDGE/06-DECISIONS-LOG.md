@@ -2561,3 +2561,28 @@ conjunct — redundancy that documents the reachable state is cheaper than a beh
 2026-08-16 "promote" ruling covered the comment-only correction, which is done; a behaviour change
 needs its own approval, and when it comes it needs a **three-point A/B against `--build custom`**
 (`POKEBOT_KI80_DECOUPLED=1` must go FAIL→PASS there), because a byte-compare only proves a copy.
+
+## 2026-08-16 — a SELF-RETIRED gate is LEFT retired, not deleted
+
+**Decision.** `repro_boss_grass_gate.py` (suite #24) detected that the coupling it guarded is gone
+and printed *"this gate now enforces nothing … RETIRE THIS GATE."* **It stays in the suite, and its
+own message has been rewritten to say why.**
+
+*Rationale:* the gate re-derives the coupling **from the live AST on every run**. It is inert today,
+but it is **self-ARMING as well as self-retiring** — if anyone ever re-introduces the coupling by a
+revert, a bad merge, or by "simplifying" the two-level split back into one boolean, the gate starts
+enforcing again **on its own, for free, in 0.1s**. Deleting it buys nothing (0.1s of suite time) and
+removes exactly the net that would catch a regression of the defect we just spent a session fixing.
+
+*Rejected:* following the gate's own advice and removing it, plus dropping the suite to 23. That
+advice was written when the coupling still stood, and it assumed a retired gate is dead weight. A
+gate whose ARMING CONDITION is computed rather than hardcoded is not dead weight — it is a latch.
+
+*Rejected also:* leaving the "RETIRE THIS GATE" line in place and merely noting the ruling in the
+docs. The next agent reads the GATE'S OUTPUT, not this log, at the moment they are deciding — so the
+superseded advice had to be replaced at the point of use, with the old wording quoted as superseded
+so the change reads as deliberate rather than as drift.
+
+‼ **Generalised rule worth reusing:** *when a gate's guard condition is derived at runtime, retiring
+it means letting it go quiet — never deleting it. Delete only gates whose arming condition is
+hardcoded and therefore cannot come back.*
