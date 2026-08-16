@@ -377,6 +377,21 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       🔜 **WHAT (P4) STILL DOES NOT COVER:** everything UPSTREAM of registration — a real `hunt()`
       catch feeding `story_mode.py:1750`. The Slugma is INJECTED and the PID published by the
       driver. Also still unbuilt: the natural-vs-injected byte-equivalence control.
+      🆕 **RESIDUAL `#24-zerokocounter` (filed 2026-08-16, from the KI-80 decoupling):
+      SHOULD `boss_teaches` ALSO COME OFF THE COUNTER-LADDER'S GATE?** The KI-80 fix removed
+      `grass_is_fodder` from `story_mode.py:1901` and KEPT `boss_teaches`. KI-80's own wording
+      ("gated on *is this fight hopeless*, which `_boss_plan_is_hopeless` already answers alone")
+      can be read as removing BOTH conjuncts. ‼ **The argument for removing it is strong:** a party
+      that KOs **nothing** and has no type answer is the MOST hopeless case, yet it currently gets
+      the `:1932` "the boss can't teach us" message and plain grass escalation rather than a counter
+      hunt. ⛔ **It was NOT shipped because NO TEST CAN SEE IT:** all four `ki80ladder` arms seed
+      `kos = 1`, so `boss_teaches` is True in every arm we have. Shipping it would be changing
+      behaviour we cannot observe — the thing this project keeps being burned by.
+      ⇒ **To pick this up: add a FIFTH arm that seeds a flat `kos = 0` history** (which also makes
+      `boss_teaches` False and routes through `:1932`), confirm it currently reaches plain
+      escalation, then decide. ⚠ Check the interaction with the `:1932` message first — it exists
+      precisely to explain the zero-KO fallback, so removing the gate makes that message
+      unreachable in the hopeless case.
       🆕 **RESIDUAL (filed 2026-08-15, found by a Tier 2 cold-start): `04-HANDOFF.md`'s
       `NEXT ACTIONS` numbering RESTARTS.** It runs 1, 2, 2c, 3, 3b, 4, 5 and then begins again at
       2b, 3, 4, 5, so a cross-reference to "NEXT ACTIONS item 3" resolves to TWO different items.
@@ -404,7 +419,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       SUPPRESSED."* Keep `boss_mode = True` (`:1925`) behind `grass_is_fodder`.
       Transcripts: `evidence/2026-08-16-ki80ladder-FAULT-naive-edit-*`. The BEFORE run is committed FIRST because
       it is unrepeatable afterwards. `repro_boss_grass_gate.py` SELF-RETIRES on the fix — designed.
-      ✅ **BOTH PROMOTIONS ARE DONE (user-approved 2026-08-15).** *(✅ And the comment-only `story_mode.py` fix was PROMOTED 2026-08-16, user-approved — drift is 0.)* The KI-79 fix `pc_trip.py` (a BEHAVIOUR change) was proven by a THREE-POINT A/B showing the new branch actually RUNS in custom, not merely that the file copied. And `counter_hunt.py`
+      ✅ **BOTH PROMOTIONS ARE DONE (user-approved 2026-08-15).** *(✅ The comment-only `story_mode.py` fix was PROMOTED 2026-08-16, user-approved. ⚠ Drift is 1 again for the KI-80 DECOUPLING in the same file — a BEHAVIOUR change, sandbox-only, awaiting its own approval.)* The KI-79 fix `pc_trip.py` (a BEHAVIOUR change) was proven by a THREE-POINT A/B showing the new branch actually RUNS in custom, not merely that the file copied. And `counter_hunt.py`
       (comment-only, the Electric correction) promoted with restore point
       `restore/2026-08-15-pre-promotion-counterhunt-comment`: 1/1 byte-identical, and VERIFIED BY
       DRIVING — `--driver boxcounter2 --build custom` ARM A and ARM B both `ACCEPTANCE: PASS`,

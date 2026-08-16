@@ -1,0 +1,9 @@
+============================================================================================
+GATE — a boss cfg may not gain a `grass` key while that disables its counter-ladder
+============================================================================================
+  NOTE: the counter-ladder is no longer gated on `grass_is_fodder` (the coupling this gate guards is GONE).
+  => giving a boss a `grass` key no longer disables its counter machinery, so this gate now enforces nothing.
+  ‼ RETIRE THIS GATE and KI-80 together, and record the decoupling in 06-DECISIONS-LOG.md.
+--------------------------------------------------------------------------------------------
+  OK — no at-risk fight has a `grass` key while the coupling stands.
+============================================================================================

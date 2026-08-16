@@ -2746,7 +2746,7 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
 
 ---
 
-## KI-80 — `grass_is_fodder` CONFLATES "no training patch configured" with "the patch is too weak", and it is the SOLE gate on the counter-ladder — so giving a boss a training area silently disables its KI-23 machinery (2026-08-16, ✅ **REPRODUCED AND DRIVEN** — `--driver ki80ladder` is COMPLETE and PASSING: **4 arms**, both forks, mirror-regression guard fault-tested against the real naive edit. ⛔ **THIS KI REMAINS OPEN BECAUSE THE DECOUPLING ITSELF HAS NOT SHIPPED** — the defect is reproduced, not repaired; GATED; promotion no longer entangled)
+## KI-80 — `grass_is_fodder` CONFLATES "no training patch configured" with "the patch is too weak", and it is the SOLE gate on the counter-ladder — so giving a boss a training area silently disables its KI-23 machinery (2026-08-16, ✅ **REPRODUCED AND DRIVEN** — `--driver ki80ladder` is COMPLETE and PASSING: **4 arms**, both forks, mirror-regression guard fault-tested against the real naive edit. ✅ **AND THE DECOUPLING IS NOW BUILT, DRIVEN AND REVIEWED** — `:1901` is `if boss_teaches:`, `boss_mode` sits behind its own `if grass_is_fodder:`; `repro_boss_grass_gate.py` has SELF-RETIRED. ⛔ **THIS KI STAYS OPEN ONLY UNTIL THE USER APPROVES PROMOTING IT** — the fix is sandbox-only, drift is 1)
 
 - **The line.** `plugins/custom_modes/story_mode.py:1899`:
   ```
@@ -2825,8 +2825,17 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   not on whether a patch happens to be configured. ⛔ **The change may not ship on reading alone:**
   it needs the KI-23 repro conditions DRIVEN, both before and after, confirming `_counter_ladder`
   still fires rather than falling through to the plain escalation.
-  ✅✅ **THE "BEFORE" HALF OF THAT PRECONDITION IS NOW MET AND COMMITTED** (`--driver ki80ladder`,
-  above). ⇒ **the decoupling is UNBLOCKED.** The AFTER run is the same command with
+  ✅✅✅ **BOTH HALVES ARE NOW MET — THE DECOUPLING SHIPPED (sandbox) 2026-08-16.**
+  AFTER: `POKEBOT_KI80_DECOUPLED=1` **FAIL → PASS**; arm 4 **still PASS** (no mirror regression);
+  the coupled expectation now **FAILS**, proving the behaviour changed; `repro_boss_grass_gate.py`
+  **SELF-RETIRED** and still exits 0. An adversarial diff review attacked six angles and all six
+  SURVIVED — including that the `:1932` elif's firing condition is algebraically unchanged, that
+  `_boss_plan_is_hopeless` is read-only and fails safe, and that the new `BotModeError` is caught at
+  `:4080-4081` (`outcome = "derailed"`) rather than crashing a batch.
+  ⚠ **Blast radius: arithmetic MEASURED, behaviour INFERRED** — Brawly/Roxanne/Wattson gain the
+  machinery; **no run against those three exists**, only Winona's fixtures were driven.
+  ⛔ **NOT PROMOTED** — a behaviour change needs its own approval.
+  *(Superseded: the line below said the decoupling was merely unblocked.)* The AFTER run is the same command with
   `POKEBOT_KI80_DECOUPLED=1`, which must go from FAIL (today, measured) to PASS.
   ⛔ **The BEFORE run is unrepeatable once the fix lands — it was run and committed FIRST**, the
   rule KI-79's three-point A/B established.
@@ -2883,7 +2892,8 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
 - ✅ **THE PROMOTION ENTANGLEMENT IS RESOLVED (2026-08-16).** This bullet used to warn that a KI-80
   fix could not be promoted separately from an unapproved comment-only edit sitting in the SAME
   file (`plugins/custom_modes/story_mode.py`). **The user ruled, the comment-only correction was
-  promoted, and drift is 0** — so a future KI-80 fix promotes cleanly on its own.
+  promoted** — so the KI-80 fix, when approved, promotes cleanly on its own.
+  ⚠ The KI-80 decoupling now IS that one drifted file, and it awaits its own approval.
   *(⚠ The superseded wording is DESCRIBED rather than reprinted: `audit_doc_consistency` matches
   literal strings and cannot tell a quotation from a claim — it red-flagged the first draft of this
   very bullet for reciting the old figure.)*

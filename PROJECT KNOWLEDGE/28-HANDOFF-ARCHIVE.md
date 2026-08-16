@@ -4519,3 +4519,33 @@ mandatory**, the trigger tile is **`(17,42)` not `(16,42)`**, and the chapter gr
 **correctness half is OPEN**.
 ⇒ ✅ **ALL NINE ROOMS ARE DRIVEN — the cavern is END TO END (2026-08-14). ⛔ DO NOT REBUILD ANY.**
 
+
+
+## 2026-08-16 — archived from `04-HANDOFF.md`: the KI-80 decoupling HOW-TO, in full (the work is now DONE)
+
+Kept verbatim because it contains the measured proof that the three-arm suite alone would have
+blessed the naive edit, and the arm-4 fixture arithmetic that took three attempts to get right.
+
+>    *(Superseded instruction, kept so nobody re-does it:)*
+>    `story_mode.py:1899-1901` — split the two meanings so the ladder is gated on *"is this fight
+>    hopeless"* (which `_boss_plan_is_hopeless` already answers alone), not on whether a patch
+>    happens to be configured. ⛔ **Before touching it, run the BEFORE command below and confirm it
+>    still PASSes**; then make the change; then run the SAME command with `POKEBOT_KI80_DECOUPLED=1`
+>    and require it to go **FAIL → PASS**. ⛔ `repro_boss_grass_gate.py` (suite #24) is DESIGNED to
+>    SELF-RETIRE when the coupling goes — it stops enforcing and says so. That is success, not a
+>    regression. ⛔⛔ **AND READ KI-80's "TWO THINGS THE REPRO DRIVER CANNOT SEE" BULLET FIRST —
+>    THE NAIVE EDIT CAUSES KI-23's MIRROR REGRESSION AND `ki80ladder` WOULD STILL GO GREEN.**
+>    `grass_is_fodder` has a SECOND use site (`:1932`), and `:1925 boss_mode = True` sits on the
+>    NOT-hopeless path where `:1937` reads it — so the naive edit silently disables grass
+>    escalation for every boss that has a strong patch AND an answer. Arms 1-3 return at `:1924`
+>    and never reach `:1925`. ✅ **ARM 4 IS ALREADY BUILT FOR EXACTLY THIS — RUN IT BEFORE AND
+>    AFTER:** `POKEBOT_KI80_ARM4=1 … story_harness.py fortree_gym_wedge.ss1 --driver ki80ladder`
+>    (PASS today; and ⛔ **MEASURED 2026-08-16, not predicted:** against the actual naive edit it
+>    printed `ARM4 OUTCOME=BOSS_TRAINING_MODE` + `ACCEPTANCE: FAIL` **while the three-arm run under
+>    `POKEBOT_KI80_DECOUPLED=1` went `ACCEPTANCE: PASS`** — i.e. the 3-arm test alone WOULD HAVE
+>    BLESSED THE REGRESSION. ‼ Keep `boss_mode = True` (`:1925`) behind `grass_is_fodder`).
+>    ⛔ Its grass map is **VICTORY_ROAD_1F**, not Route 119 — Route 119's `wild_max` 27 cannot flip
+>    `grass_is_fodder` at that save's `team_max` 39, which made the first prescription VACUOUS.
+>    ⚠ KI-23's own entry warns about the mirror regression.
+>    ⛔ The existing `repro_boss_grass_gate.py` is the STRUCTURAL AST gate and is NOT this driver —
+>    it forbids the edit; the driver proves the branch. Both are needed.

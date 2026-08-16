@@ -2496,3 +2496,68 @@ prescribed in the first place.
 both the BEFORE and the AFTER.** *Rationale:* KI-80 requires the repro driven before AND after, and
 two separate drivers would drift apart. *Rejected:* a second driver written after the fix — it could
 not be run against the pre-fix code at all, which is the half that cannot be redone later.
+
+## 2026-08-16 — KI-80's decoupling: the MINIMAL split, and the two things deliberately NOT done
+
+**Decision 1 — remove `grass_is_fodder` from the ladder's gate, and put `boss_mode` behind its own
+`if grass_is_fodder:`.** `story_mode.py:1901` becomes `if boss_teaches:`, and `:1925`'s
+`boss_mode = True` (plus its target bump and message) is nested under a fresh `grass_is_fodder`
+test. *Rationale:* the two halves of the old boolean answer different questions — *"is this fight
+hopeless"* (the ladder's business) and *"is the local patch too weak to train on"* (boss-training
+mode's business). *Rejected:* the one-line version that simply deletes `grass_is_fodder and` from
+`:1901`. **MEASURED, not feared:** that version makes the three-arm suite report
+`ACCEPTANCE: PASS` while KI-23's mirror regression lands — arm 4 catches it with
+`OUTCOME=BOSS_TRAINING_MODE`.
+
+**⛔ THE EDIT WAS MADE NET-ZERO ON LINE COUNT** (13 lines changed, 13 added) by tightening an
+adjacent comment block to pay for the new `if`. Verified after: `grass_is_fodder` still `:1899`,
+the `elif` still `:1932`, `not boss_mode` still `:1937`, the escalation message still `:1949`,
+`winona_fight` still `:3532`. *Rationale:* `06`/`07`/`08` are append-only and full of
+`story_mode.py:NNNN` citations that may not be rewritten to follow a shift.
+
+**BLAST RADIUS — the ARITHMETIC is measured; the resulting BEHAVIOUR is INFERRED. Read the
+distinction, because it is the honest limit of this table.** Every `wild_max` below was read
+from the live ROM and every band from the cfg, so which side of `wild_max + 8 < team_max` each
+boss falls on is **measured**. That those bosses then behave differently is **inferred from
+shared code paths** — only Winona's fixtures were actually DRIVEN. ‼ No Brawly/Roxanne/Wattson
+run exists. The inference is strong (`_boss_plan_is_hopeless` and `_counter_ladder` are the
+same code for every boss, and are driven for Winona) but it is not a measurement, and an
+adversarial reviewer was right to flag it. Only bosses with BOTH a `grass` key and
+`ace_types` can change behaviour (no `ace_types` short-circuits `_boss_plan_is_hopeless` to
+*not hopeless*, so the ladder can never fire):
+
+| boss | grass map | `wild_max` | band | effect of this fix |
+|---|---|---|---|---|
+| **Brawly** | GRANITE_CAVE_1F | 10 | (14,16) | ⚠ **FULLY changed** — never fodder, so he had NO counter machinery at any level in his band |
+| **Roxanne** | ROUTE116 | 8 | (13,17) | ⚠ changed at `team_max` **13-16** |
+| **Wattson** | ROUTE117 | 14 | (20,24) | ⚠ changed at `team_max` **20-22** |
+| Norman | ROUTE102 | 4 | (27,31) | ✅ unchanged — always fodder already (his patch is the FODDER TRIGGER *by design*) |
+| Rival (Rustboro) | ROUTE116 | 8 | (16,19) | ✅ unaffected — **no `ace_types`**, so the ladder can never fire for it |
+| Winona / Flannery / Rival110 | *(none)* | — | — | ✅ unchanged — no `grass` key, so already on the ladder path |
+
+⇒ **the fix gives Brawly, Roxanne and Wattson the counter machinery they silently lacked**, which is
+exactly KI-80. ‼ It also means a hopeless diagnosis at those three can now end a run with KI-23's
+honest `BotModeError` instead of grinding — **that is the intended behaviour** (KI-23 measured the
+grinding path at 198 attempts / 41 losses / 41 whiteouts without converging), but it is a real
+expansion of where that stop can occur and is recorded here so it is not a surprise later.
+
+**Decision 2 — `boss_teaches` STAYS on the gate, and that is deliberate.** KI-80's text ("gated on
+*is this fight hopeless*, which `_boss_plan_is_hopeless` already answers alone") can be read as
+removing both conjuncts. *Rejected for now, on evidence grounds:* **no arm can discriminate it** —
+all four seed `kos = 1`, so `boss_teaches` is True in every test we have. Shipping it would be
+changing behaviour we cannot observe. ‼ The open question is real and worth answering: a party that
+KOs **nothing** and has no type answer is the *most* hopeless case, and it currently gets the
+"boss can't teach us" message and plain escalation rather than a counter hunt. **Filed as a tracked
+residual, not silently dropped.**
+
+**Decision 3 — the `elif` at `:1932` is left untouched.** *Rationale:* its firing condition is
+provably unchanged. It reads `grass_is_fodder and recent_kos and not boss_teaches`; previously it
+was reached when `not (grass_is_fodder and boss_teaches)`, now when `not boss_teaches` — and in both
+cases the guard's own `not boss_teaches` plus `grass_is_fodder` select the identical set of states.
+Its body is `console.print` only. *Rejected:* "tidying" the now-redundant `not boss_teaches`
+conjunct — redundancy that documents the reachable state is cheaper than a behaviour question.
+
+**Not promoted.** This is a BEHAVIOUR change and it lands in `sandbox-pokebot` only. The user's
+2026-08-16 "promote" ruling covered the comment-only correction, which is done; a behaviour change
+needs its own approval, and when it comes it needs a **three-point A/B against `--build custom`**
+(`POKEBOT_KI80_DECOUPLED=1` must go FAIL→PASS there), because a byte-compare only proves a copy.

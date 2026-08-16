@@ -7262,3 +7262,43 @@ prescribed the naive edit with no mention of arm 4, in a commit that *touched th
 warning is added to the handoff, grep every OTHER current-state file for the instruction it
 supersedes. "I updated the handoff" is not "I updated the docs" — and the punch list is what an
 agent orienting by queue actually reads.*
+
+## 2026-08-16 — ONE BOOLEAN ANSWERED TWO DIFFERENT QUESTIONS, AND IT SPENT MONTHS GATING THE WRONG ONE
+
+*(This entry is about the CODE DEFECT itself — KI-80. The two 2026-08-15 entries above cover errors
+made while specifying its repro, which is a different thing and was noted by an adversarial
+reviewer as a gap.)*
+
+**Symptom.** `story_mode.py:1899` computed
+`grass_is_fodder = ("grass" not in cfg) or (wild_max + 8 < team_max)` and `:1901` used it to gate
+**`_boss_plan_is_hopeless` and `_counter_ladder`** — KI-23's entire "this fight is unwinnable, go
+catch a counter" machinery. ⇒ **giving any boss a training area silently deleted its counter
+machinery**, behind a healthy-looking `"training harder before re-attempting"` line. Nothing
+errored. The only symptom was the ABSENCE of a message. Measured effect: **Brawly had no counter
+machinery at any level in his band; Roxanne lost it at `team_max` 13-16; Wattson at 20-22.**
+
+**Root cause.** The boolean is a fair answer to *"is the local grass too weak to train on?"* — which
+is boss-training mode's question, and both of its disjuncts genuinely bear on it. It was then reused
+for a **second, unrelated** question: *"should we check whether this fight is hopeless?"* Nothing
+about "this boss has no patch configured" says anything about whether the party has a TYPE ANSWER.
+The two questions happened to want the same value for the one boss the code was written against
+(Winona, who has no `grass` key), so the conflation was invisible at the site where it was made.
+
+**The fix that worked.** Split them: the ladder is gated on `boss_teaches` alone, and
+`boss_mode = True` moved behind its own `if grass_is_fodder:`. ‼ **The obvious one-line version —
+just deleting `grass_is_fodder and` — causes KI-23's MIRROR regression**, handing boss-training mode
+to bosses with a strong patch AND a real answer and suppressing their grass escalation. Measured:
+against that edit the three-arm suite went **PASS** while arm 4 went **FAIL**. *Both halves of a
+conflated boolean have to be re-homed; moving one and dropping the other is a new bug.*
+
+**Prevention rule.** *A boolean that answers two different questions will eventually gate the wrong
+one. When a flag's NAME describes one thing and a use site needs another, split it at the use site —
+the day both questions still want the same value is the only day the split is cheap.*
+
+**Second prevention rule, earned twice on this item.** *When you remove a condition from a gate, ask
+what ELSE that condition was protecting downstream.* Here `grass_is_fodder` was silently protecting
+`boss_mode` seven lines below the gate it appeared in.
+
+**Why it was invisible for so long.** The defect's only signature is a message that does NOT appear.
+This project has now been caught by absence-as-signal repeatedly, which is why the fix shipped with
+a driver whose arms assert **which branch printed**, not merely that nothing crashed.

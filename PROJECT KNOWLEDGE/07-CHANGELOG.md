@@ -14926,3 +14926,52 @@ as "0 as of".
 
 ⇒ **`04-HANDOFF.md`'s `if stopped mid-task` row is back to "NO PROMOTION DECISION IS OWED"**, and it
 is true this time: nothing is awaiting a user ruling.
+
+## 2026-08-16 — feat: KI-80 DECOUPLED — the counter-ladder no longer depends on whether a boss has a training patch (punch-list #24-counters)
+
+**What shipped** (`sandbox-pokebot/plugins/custom_modes/story_mode.py`, sandbox only):
+`:1901` `if grass_is_fodder and boss_teaches:` → **`if boss_teaches:`**, and `:1925`'s
+`boss_mode = True` (with its target bump and message) moved behind a fresh **`if grass_is_fodder:`**.
+⇒ **a boss can now be given a training area without silently losing its KI-23 counter machinery**,
+which is the whole of KI-80.
+
+**⛔ THE ONE-LINE VERSION WOULD HAVE SHIPPED A REGRESSION, AND THAT IS MEASURED.** Simply deleting
+`grass_is_fodder and` from `:1901` hands `boss_mode = True` to every boss with a strong patch AND a
+credible answer, suppressing `:1937`'s plain grass escalation — KI-23's mirror regression. Against
+that exact edit: the three-arm suite reported **`ACCEPTANCE: PASS`** while **arm 4 reported
+`ACCEPTANCE: FAIL`, `OUTCOME=BOSS_TRAINING_MODE`.** Arm 4 is the only reason this landed correctly.
+
+**ACCEPTANCE — four results, all committed as raw stdout:**
+| run | before the fix | after |
+|---|---|---|
+| `POKEBOT_KI80_DECOUPLED=1` (arms 1-3) | FAIL | ✅ **PASS** — all three reach the ladder |
+| `POKEBOT_KI80_ARM4=1` (the mirror guard) | PASS | ✅ **PASS** — no regression |
+| default/coupled expectation | PASS | ✅ **FAIL** — proves the behaviour actually changed |
+| `repro_boss_grass_gate.py` (suite #24) | enforcing | ✅ **SELF-RETIRED**, exit 0, says so |
+
+**BLAST RADIUS — arithmetic measured, behaviour inferred** (the distinction matters and an
+adversarial reviewer was right to ask for it): **Brawly** gains the counter machinery across his
+whole band (GRANITE_CAVE_1F `wild_max` 10 vs band 14-16 — never fodder), **Roxanne** at `team_max`
+13-16, **Wattson** at 20-22. **Norman is unchanged** (ROUTE102 `wild_max` 4 — always fodder already,
+*by design*), and the **Rustboro rival is unaffected** because it has no `ace_types`, which
+short-circuits `_boss_plan_is_hopeless` before the ladder. ⚠ **No Brawly/Roxanne/Wattson run
+exists** — only Winona's fixtures were driven; the rest is inference from shared code paths.
+
+⚠ **A REAL CONSEQUENCE, STATED RATHER THAN BURIED:** at those three bosses a hopeless diagnosis can
+now end a run with KI-23's honest `BotModeError` where it previously ground on. That is intended —
+KI-23 measured the grinding path at **198 attempts / 41 losses / 41 whiteouts** without converging —
+and it is **safe**: the raise is caught at `:4080-4081`, sets `outcome = "derailed"`, and does not
+crash a batch (verified by reading the caller AND in the committed transcript, which shows the
+ladder reaching *"no counter destination worked — stopping honestly"*).
+
+**⛔ NET-ZERO ON LINE COUNT** (13 changed, 13 added) by tightening an adjacent comment to pay for the
+new `if`. Verified after: `grass_is_fodder` still `:1899`, the `elif` `:1932`, `not boss_mode`
+`:1937`, the escalation message `:1949`, `winona_fight` `:3532`. `06`/`07`/`08` are append-only and
+full of such citations; a shift would have invalidated history that may not be rewritten.
+
+**NOT PROMOTED.** A behaviour change needs its own user approval — the 2026-08-16 "promote" ruling
+covered the comment-only correction. Drift is 1, expected and explained. When approved it needs a
+**three-point A/B against `--build custom`**, because a byte-compare only proves a copy.
+**Open, tracked, not dropped:** `#24-zerokocounter` — whether `boss_teaches` should come off the
+gate too. Not shipped because **no arm can discriminate it** (all four seed `kos = 1`).
+Transcripts: `evidence/2026-08-16-ki80-FIX-AFTER-*`. Rationale: `06-DECISIONS-LOG.md`.
