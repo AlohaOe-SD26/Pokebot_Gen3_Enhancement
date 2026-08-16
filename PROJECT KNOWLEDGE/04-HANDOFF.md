@@ -406,31 +406,21 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    `#24-organicteam`. ⛔ The RARE leg is blocked on `#24-rarepredicate`, whose fix is now
 >    specified (HM-gating + location count, NOT warp depth — the user's Bagon/Feebas reasoning).
 >    Trade evolutions are a SANCTIONED non-faithful deviation with four conditions attached.
->    ⛔⛔ **(P6) TRAINING-AREA MAPS — ‼ THIS ITEM WAS WRONG ON BOTH ITS EXAMPLES. DO NOT ACT ON
->    THE OLD WORDING; READ KI-80 FIRST.** Investigated 2026-08-15; the investigation is the
->    deliverable, and it is now GATED (`repro_boss_grass_gate.py`, suite #24).
->    * ⛔ **"Winona has no patch configured, so the relocation machinery is skipped for her"** — the
->      skip is REAL but giving her one is a **REGRESSION**. `grass_is_fodder`
->      (`story_mode.py:1899`) is `("grass" not in cfg) or (wild_max + 8 < team_max)`, and `:1901`
->      makes it a **co-gate** (precisely: `if grass_is_fodder and boss_teaches:` inside `if losses >= 2:`) on `_boss_plan_is_hopeless` **and** `_counter_ladder`, which are its ONLY call sites. Her
->      missing key is the only reason KI-23's counter machinery can fire for her. Add the Route 119
->      patch (band 24-27) and for any team at **L30-35** — her own band is (29,33) — `27+8=35` is
->      NOT `< team_max`, so the counter ladder is **SKIPPED**, silently, behind a healthy-looking
->      `"training harder before re-attempting"` line. That is the path KI-23 measured failing
->      **198 attempts / 41 losses / 41 whiteouts**.
->    * ⛔ **"Norman's patch is L3-5 against a band of L27-31"** — TRUE, and **DELIBERATE**.
->      `story_mode.py:1981-1991` names Norman as the pathological case *by design*: the local patch
->      is the FODDER TRIGGER that fires the relocation, and `training_areas.py` records that
->      ROUTE111 is **the only training relocation this bot has ever performed**, at a measured
->      70-83% Balance→Feather success. "Correcting" his patch would DISABLE that.
->    * ⛔ **Do NOT add a row to `TRAINING_GRASS`** either: `best_training_area` ranks ONE GLOBAL
->      table by `(abs(hi - team_level), -hi)`, so a new row near L29-33 changes the pick for every
->      other caller too, including `counter_hunt.py:647`'s candidate picker for EVERY boss. That is
->      the measured Shoal Cave incident (`08-MISTAKES.md`), restated.
->    ✅ **WHAT IS ACTUALLY LEFT HERE** is KI-80: decouple the counter-ladder from `grass_is_fodder`
->    so the two meanings stop sharing a boolean — and it may NOT ship on reading alone; it needs the
->    KI-23 repro DRIVEN before and after. ✅ **THE REPRO IS NOW FULLY SPECIFIED AND ITS FIXTURE IS
->    IDENTIFIED (2026-08-15) — read KI-80's condition table before building it.**
+>    ⛔ **(P6) TRAINING-AREA MAPS — CLOSED. Its investigation became KI-80, which is now FIXED AND
+>    PROMOTED TO BOTH FORKS. ⛔ DO NOT REOPEN OR REBUILD IT.** Full history in
+>    `28-HANDOFF-ARCHIVE.md`. ‼ **THREE RULES SURVIVE AND ARE STILL LIVE:** (1) ⛔ **do NOT add a row
+>    to `TRAINING_GRASS`** — `best_training_area` ranks ONE GLOBAL table, so a new row near L29-33
+>    changes the pick for every other caller including `counter_hunt.py:647`'s candidate picker for
+>    EVERY boss (the measured Shoal Cave incident, `08-MISTAKES.md`); (2) **Norman's L3-5 patch
+>    against a L27-31 band is DELIBERATE** — it is the FODDER TRIGGER for the only training
+>    relocation this bot has ever performed (70-83% measured); "correcting" it would disable that;
+>    (3) giving a boss a patch is now SAFE for the counter machinery (that was KI-80) but still
+>    interacts with (1) and (2).
+>    ✅✅ **NOTHING IS LEFT HERE — KI-80's decoupling is BUILT, DRIVEN, REVIEWED AND PROMOTED TO
+>    BOTH FORKS (2026-08-16). ⛔ DO NOT REBUILD IT.** *(This block commanded it as live work for
+>    hours after it shipped, 58 lines below a banner marking it DONE — a cold-start audit caught it
+>    and called it the most expensive defect in the file, because NEXT ACTIONS is what an agent
+>    EXECUTES from.)* The residual is `#24-zerokocounter`, tracked in `03-PUNCH-LIST.md`.
 >    ⛔ **DO NOT BUILD THE REPRO FROM THIS HISTORICAL BLOCK.** Its conditions and its fixture were
 >    both superseded on 2026-08-15. **The authoritative version is the queue head above** (and
 >    KI-80's 9-condition table). In one line: `losses` must be **6-11**, and the fixture must pass
@@ -470,7 +460,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    corrected a wrong type-set comment in that file. A Tier 1 audit caught that the drift figure had
 >    been updated in the STATE row and the banner but NOT here, fifteen lines away — so a cold agent
 >    running `promote.py --check`, getting one file back, would have read an EXPECTED result as an
->    alarm. The three drift statements in this file move together or not at all.)*
+>    alarm. ALL drift statements in this file move together or not at all — ⛔ do NOT trust a COUNT here (this line said 'three' while another said 'five'; the true figure reached THIRTEEN across five files). GREP, case-insensitively, and require zero.)*
 >    ⛔ Do not restate the figure here; it has been wrong at 2, 3 and 3 again. `promote.py --check`
 >    is the authority. (Earlier EXPECT-2 / EXPECT-3 trails moved to `28-HANDOFF-ARCHIVE.md`.)
 >
@@ -587,7 +577,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    exact-tile executor; and **no chapter entry at all**), behind a hard 9-step serial prefix.
 >
 > 4. ⛔ **NOT NEXT — OLDER FRAMING; a Tier 2 audit flagged that a skimmer could start the Regi arc
->    from here. The live queue is item 0 and its head is (P4). Background only.**
+>    from here. The live queue is item 0 and its head is **(P4c) `#24-orphans`**. Background only.**
 >    **The REGI arc (user-requested) — read KI-69 ‼ AND ITS NEW STUB MARKER.**
 >    ⛔ **REGICE IS NOT A TIMED WAIT** — R/S's wait function is an empty stub; Emerald wants a
 >    **36-tile perimeter lap in ONE visit** ending exactly on `(8,21)`, reset by any map transition
@@ -866,11 +856,14 @@ PYTHONUTF8=1 py -3.12 promote.py --check            # measures drift BOTH ways, 
 #   PROSE mentions elsewhere in this file, which omit the prefix. ⇒ copy the line above, not
 #   the prose. (The failure is loud, so it misleads nobody — it just wastes a minute.)
 #   Expect as of 2026-08-16 (LATEST): 0 differing, 0 orphaned — everything is promoted, including
-#   the KI-80 decoupling. ANY file listed is unexplained drift. (Superseded the same day: "0 differing, 0 orphaned"; a Tier 2
-#   cold-start caught that TWO lines in this command block still said 0 after the STATE row,
-#   the banner and NEXT ACTIONS item 1 had all been moved to 1.)
-#   ‼ DIGITS, NOT WORDS: a spelled-out "THREE" here went stale for a day and no gate could see it.
-#     (Superseded: "0 differing, 0 orphaned. Everything has been PROMOTED.")
+#   the KI-80 decoupling. ANY file listed is unexplained drift.
+#   ‼ THE FIGURE ABOVE HAS BEEN 0 -> 1 -> 0 -> 1 -> 0 IN TWO DAYS, once per promotion, so DO NOT
+#     pattern-match it — RUN the command. ⛔ Earlier retractions here quoted the OLD figure
+#     VERBATIM, which made the retraction byte-identical to the claim it followed and unreadable;
+#     superseded figures are now DESCRIBED, never reprinted. (`audit_doc_consistency` also cannot
+#     tell a quotation from a claim, so reprinting one turns this line red.)
+#   ‼ DIGITS, NOT WORDS, AND CASE-INSENSITIVELY: a spelled-out "THREE" went stale here for a day,
+#     and a capital "Drift is 1" survived a lowercase sweep on 2026-08-16.
 #   To PROMOTE (the USER's call, never assume it): create + PUSH an annotated restore tag,
 #   then `promote.py --restore-point <tag> --go`. It REFUSES on a dirty tree, a missing or
 #   UNPUSHED tag, a diverged remote, or a no-op — and it cannot drive, so a copy is NOT
@@ -888,7 +881,7 @@ exits on its own 20,000-idle-frame detector, logging **"HANG CONFIRMED"** on a r
 **Read the `ACCEPTANCE:` line, not the last line.** Full transcripts land in
 `tools/story-dev/harness_sandbox.log`.
 
-‼ **VERIFY THE SANDBOX↔CUSTOM DRIFT ROW RATHER THAN TRUSTING IT** — `promote.py --check` is in the block above and measures it BOTH ways in seconds. ✅ **Expected as of 2026-08-16 (LATEST): 0 differing, 0 orphaned** — everything is promoted, the KI-80 decoupling included. *(This line said "0 differing, 0 orphaned" until a Tier 2 cold-start audit found it, along with the sibling line in the command block above, still claiming 0 after three other places in this file had been corrected to 1. All five drift statements in this file move together or not at all.)* Superseded: *"the PowerShell loop is in `28-HANDOFF-ARCHIVE.md`'s copy of this section"*, together with an older expected-count naming `modules/map_path.py`, `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — all PROMOTED now and not part of the current drift set. ‼ **The old FIGURE is deliberately not reprinted**: `audit_doc_consistency` cannot tell a quotation from a claim, so quoting a stale count turns this line red (it did). ‼ `tools/story-dev/` is sandbox-only and is **not** part of that comparison, so the `ch20*` drivers, `probe_route128_landing.py` and `repro_party_accounting.py` do not change the count.
+‼ **VERIFY THE SANDBOX↔CUSTOM DRIFT ROW RATHER THAN TRUSTING IT** — `promote.py --check` is in the block above and measures it BOTH ways in seconds. ✅ **Expected as of 2026-08-16 (LATEST): 0 differing, 0 orphaned** — everything is promoted, the KI-80 decoupling included. *(This line said "0 differing, 0 orphaned" until a Tier 2 cold-start audit found it, along with the sibling line in the command block above, still claiming 0 after three other places in this file had been corrected to 1. ALL drift statements in this file move together or not at all — ⛔ a COUNT here has been wrong twice ('three' vs 'five'; the real sweep found THIRTEEN across five files). GREP, case-insensitively, print the MATCH not the line, and require zero.)* Superseded: *"the PowerShell loop is in `28-HANDOFF-ARCHIVE.md`'s copy of this section"*, together with an older expected-count naming `modules/map_path.py`, `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — all PROMOTED now and not part of the current drift set. ‼ **The old FIGURE is deliberately not reprinted**: `audit_doc_consistency` cannot tell a quotation from a claim, so quoting a stale count turns this line red (it did). ‼ `tools/story-dev/` is sandbox-only and is **not** part of that comparison, so the `ch20*` drivers, `probe_route128_landing.py` and `repro_party_accounting.py` do not change the count.
 
 ---
 

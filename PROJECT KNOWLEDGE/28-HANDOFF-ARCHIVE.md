@@ -4902,3 +4902,34 @@ the A/B that proved the fix, and the batch statistics that reopened it.
       **Inject a party that wins the fight, or capture a save at the moment Norman faints.**
       Everything downstream of that is already wired.
 
+
+
+## 2026-08-16 — archived from `04-HANDOFF.md`: the FULL (P6) TRAINING-AREA MAPS block, verbatim
+
+(P6) is CLOSED: its investigation became KI-80, which was fixed and promoted to both forks on
+2026-08-16. Archived because the block had begun COMMANDING the decoupling as live work 58 lines
+below a banner marking it done — a cold-start audit called that the most expensive defect in the
+file, since NEXT ACTIONS is the block an agent executes from. Its three still-live rules were
+kept in place; everything else is here.
+
+>    ⛔⛔ **(P6) TRAINING-AREA MAPS — ‼ THIS ITEM WAS WRONG ON BOTH ITS EXAMPLES. DO NOT ACT ON
+>    THE OLD WORDING; READ KI-80 FIRST.** Investigated 2026-08-15; the investigation is the
+>    deliverable, and it is now GATED (`repro_boss_grass_gate.py`, suite #24).
+>    * ⛔ **"Winona has no patch configured, so the relocation machinery is skipped for her"** — the
+>      skip is REAL but giving her one is a **REGRESSION**. `grass_is_fodder`
+>      (`story_mode.py:1899`) is `("grass" not in cfg) or (wild_max + 8 < team_max)`, and `:1901`
+>      makes it a **co-gate** (precisely: `if grass_is_fodder and boss_teaches:` inside `if losses >= 2:`) on `_boss_plan_is_hopeless` **and** `_counter_ladder`, which are its ONLY call sites. Her
+>      missing key is the only reason KI-23's counter machinery can fire for her. Add the Route 119
+>      patch (band 24-27) and for any team at **L30-35** — her own band is (29,33) — `27+8=35` is
+>      NOT `< team_max`, so the counter ladder is **SKIPPED**, silently, behind a healthy-looking
+>      `"training harder before re-attempting"` line. That is the path KI-23 measured failing
+>      **198 attempts / 41 losses / 41 whiteouts**.
+>    * ⛔ **"Norman's patch is L3-5 against a band of L27-31"** — TRUE, and **DELIBERATE**.
+>      `story_mode.py:1981-1991` names Norman as the pathological case *by design*: the local patch
+>      is the FODDER TRIGGER that fires the relocation, and `training_areas.py` records that
+>      ROUTE111 is **the only training relocation this bot has ever performed**, at a measured
+>      70-83% Balance→Feather success. "Correcting" his patch would DISABLE that.
+>    * ⛔ **Do NOT add a row to `TRAINING_GRASS`** either: `best_training_area` ranks ONE GLOBAL
+>      table by `(abs(hi - team_level), -hi)`, so a new row near L29-33 changes the pick for every
+>      other caller too, including `counter_hunt.py:647`'s candidate picker for EVERY boss. That is
+>      the measured Shoal Cave incident (`08-MISTAKES.md`), restated.

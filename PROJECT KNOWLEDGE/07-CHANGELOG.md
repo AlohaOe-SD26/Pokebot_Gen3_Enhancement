@@ -15055,3 +15055,47 @@ a sweep. Print the match, count it, and require the count to be zero.**
 
 ⇒ `04-HANDOFF.md`'s `if stopped mid-task` row is back to **"NO PROMOTION DECISION IS OWED"**, and it
 is true: nothing is awaiting a user ruling. Everything in both forks is identical.
+
+## 2026-08-16 — docs: the session-end audit found the queue still COMMANDING the work it also marks DONE — five of its eight findings were the same shape (punch-list #24-counters)
+
+The session-end Tier 2 cold-start audit RAN every command the handoff gives (`preflight`,
+`run_gates`, `promote.py --check`, all four `ki80ladder` variants, four repro gates,
+`collect_party_accounting`, and `git for-each-ref` against BOTH the STATE row and the restore
+inventory) and found **the entire mechanical layer correct** — 24/24, drift 0, every `Expect:` line
+matching reality, the restore-point row agreeing with git. **Every defect it found was semantic, and
+five of eight were one shape: a correction that landed in one half of a pair.**
+
+**1. ⛔⛔ THE MOST EXPENSIVE ONE — the queue commanded work the same file marks DONE.**
+`04-HANDOFF.md`'s (P6) block still read *"✅ **WHAT IS ACTUALLY LEFT HERE** is KI-80: decouple the
+counter-ladder from `grass_is_fodder` … it needs the KI-23 repro DRIVEN before and after"* — **58
+lines below** *"✅✅ **DONE 2026-08-16 … ⛔ DO NOT REBUILD IT.**"*, and the twin sat in
+`03-PUNCH-LIST.md`. ‼ **That block is inside NEXT ACTIONS, which is what a cold agent EXECUTES
+from**, so it would have sent a session to rebuild a promoted behaviour change. (P6) is now CLOSED
+and archived verbatim, with its **three still-live rules kept in place**: do not add a
+`TRAINING_GRASS` row (one global table, every caller); Norman's L3-5 patch is the DELIBERATE fodder
+trigger for the only relocation this bot has performed; and giving a boss a patch is now safe for
+the counter machinery but still interacts with the other two.
+
+**2. ⛔ `00-README.md` described the archive BACKWARDS.** It called `28-HANDOFF-ARCHIVE.md`
+*"newest first"*; the file's own header says **APPEND-ONLY**, and its newest section is at the
+bottom. A reader taking the README at its word read the OLDEST content believing it was the newest —
+and the README misdirects **every** cold start, not one.
+
+**3. ⛔ The file could not agree how many drift statements it has** — *"The **three** drift
+statements in this file move together"* vs *"All **five** drift statements…"*. Both are wrong: the
+real sweep found **thirteen across five files**. A rule that says "these move together" is
+unexecutable when the count is fiction. Replaced with *grep, case-insensitively, print the MATCH,
+require zero* — and the retraction prose that quoted the old figure **verbatim** (making the
+retraction byte-identical to the claim it followed) now DESCRIBES superseded figures instead.
+
+**4. ⚠ `#24-zerokocounter` was itself an orphan — the SEVENTH.** It was filed as a nested bullet
+inside `#24-roster`'s body, reachable only from inside another item, one day after `#24-orphans` was
+created to stop exactly that. It is now a **top-level punch-list item** carrying its computed
+discriminator, both derived hazards and the arm-6 requirement. *(`#24-orphans` says SIX.)*
+
+Also fixed: a `(sandbox)` headline over a body saying `BOTH forks`, and a stale
+*"its head is (P4)"* pointer in the older-framing block.
+
+‼ **The reusable lesson, and it is the fifth time this shape has appeared in two days:** *a "DONE"
+banner does not disarm the instructions below it.* When an item closes, the block that USED to
+command it must be closed in the same commit — or archived, which is what finally happened here.

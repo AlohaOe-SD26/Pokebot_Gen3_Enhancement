@@ -494,6 +494,32 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       its three constraints are recorded in `04-HANDOFF.md`'s queue item P4 (no save holds a
       Nincada; KI-71 means a derailed arm prints NO RESULT; do not depend on a stochastic catch).
 
+- [ ] `#24-zerokocounter` — **NEW 2026-08-16, from the KI-80 decoupling. Should `boss_teaches` ALSO
+      come off the counter-ladder's gate?** `story_mode.py:1901` is now `if boss_teaches:`. KI-80's
+      wording ("gated on *is this fight hopeless*, which `_boss_plan_is_hopeless` answers alone")
+      can be read as removing BOTH conjuncts. ‼ **The case FOR is strong:** a party that KOs
+      **nothing** and has no type answer is the MOST hopeless case, yet today it gets the `:1932`
+      "the boss can't teach us" message and plain grass escalation instead of a counter hunt.
+      ⛔ **NOT SHIPPED BECAUSE NO TEST CAN SEE IT** — all four `ki80ladder` arms seed `kos = 1`.
+      ✅ **DISCRIMINATOR COMPUTED** (arm 5: flat `kos = 0` on `batch2_run04_wedge.ss1`, NOGRASS):
+      today → `PLAIN_ESCALATION`; after → `LADDER`. Non-vacuous.
+      ⛔⛔ **BUT ARM 5 IS NOT ENOUGH — TWO HAZARDS, derived by a Tier 2 audit:** (a) removing
+      `boss_teaches` makes `:1901` unconditional, so the `elif` at `:1932` is **structurally DEAD in
+      every case**; (b) the not-hopeless path becomes reachable by a zero-KO party, so a boss with a
+      **fodder patch AND a credible answer** would set `boss_mode = True`, print *"re-attempting the
+      boss is the real training (KO'd [0, 0] of theirs)"* and **SUPPRESS `:1937`'s grass
+      escalation** — KI-23's mirror regression again. **⇒ an ARM 6 is required too** (HAS_ANSWER +
+      `kos = 0` + fodder patch). Same lesson as arms 1-3 vs arm 4.
+      ⚠ **AND MEASURE FIRST:** nobody has checked how often a flat zero-KO loss series occurs in
+      production. `analyse_defeat_loops.py` measured *"53 sequences with >=3 defeats — flat in 37"*
+      but never broke out zero-KO series. ⛔ Do not change behaviour of unknown frequency.
+      ‼ **PROMOTED TO A TOP-LEVEL ITEM 2026-08-16** because a Tier 2 audit pointed out the irony: it
+      was filed as a nested bullet inside `#24-roster`'s body — reachable only from inside another
+      item — which is precisely the defect `#24-orphans` exists to stop. `#24-orphans` says SIX;
+      this was the seventh. *(The full derivation stays in that nested bullet; this is the tracked
+      entry point.)*
+
+
 - [ ] `#24-rarepredicate` — ‼ **NOT READY TO BUILD. 2026-08-07: the dataset does not reproduce,
       and as computed it FAILS the user's own named example.**
       `tools/story-dev/rare_species_dataset.py` (new) is the **first script in this repo that
@@ -1818,7 +1844,7 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
 > ⛔⛔ **BEFORE YOU TOUCH ANY BOSS `cfg["grass"]` OR `TRAINING_GRASS`, READ KI-80 (2026-08-15).**
 > The handoff's (P6) framing of this — *"Norman's patch is L3-5 against a band of L27-31, and
 > Winona has no patch at all"* — is **WRONG ON BOTH EXAMPLES**, and acting on it regresses the
-> bot. ✅ **UPDATED 2026-08-16 — THE COUPLING IS GONE (sandbox).** `grass_is_fodder`
+> bot. ✅ **UPDATED 2026-08-16 — THE COUPLING IS GONE FROM BOTH FORKS (promoted).** `grass_is_fodder`
 > (`story_mode.py:1899`) USED TO CO-GATE KI-23's `_boss_plan_is_hopeless`/`_counter_ladder`
 > (with `boss_teaches`, inside `losses >= 2`), so giving Winona a `grass` key SKIPPED her counter
 > machinery silently for any team at L30-35. **KI-80 decoupled it:** `:1901` is now
@@ -1830,8 +1856,9 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
 > ✅ **ENFORCED, not requested:** `repro_boss_grass_gate.py` (suite #24) fails the build if an
 > at-risk fight gains a `grass` key while the coupling stands. It is AST-based (a comment cannot
 > trip it) and SELF-RETIRING (it stops enforcing once the ladder is decoupled).
-> ‼ **The real work here is KI-80's decoupling, and it may not ship on reading alone** — it needs
-> the KI-23 repro DRIVEN. ⛔ **READ KI-80's CONDITION TABLE FIRST.** This line used to say
+> ✅✅ **DONE — KI-80's decoupling is BUILT, DRIVEN, REVIEWED AND PROMOTED TO BOTH FORKS
+> (2026-08-16). ⛔ DO NOT REBUILD IT.** *(This line commanded it as live work after it shipped.)*
+> It did NOT ship on reading alone: the KI-23 repro was driven before AND after. ⛔ **READ KI-80's CONDITION TABLE FIRST.** This line used to say
 > *"at `losses >= 2` with `kos >= 1` and no type answer"* — that is **REFUTED and would build a
 > VACUOUS test**: below `losses >= 6` the ladder cannot fire at all, at 12+ `hard_plateau`
 > passes it for the WRONG reason, and the fixture must ALSO satisfy `team_max <= wild_max + 8`
