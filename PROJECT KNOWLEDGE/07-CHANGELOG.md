@@ -15099,3 +15099,38 @@ Also fixed: a `(sandbox)` headline over a body saying `BOTH forks`, and a stale
 ‼ **The reusable lesson, and it is the fifth time this shape has appeared in two days:** *a "DONE"
 banner does not disarm the instructions below it.* When an item closes, the block that USED to
 command it must be closed in the same commit — or archived, which is what finally happened here.
+
+## 2026-08-16 — feat: `audit_encoding.py` now watches `.py` files too — the gate blind spot that let me add a BOM to a gate script (punch-list #24-counters)
+
+**Why.** Earlier today I introduced a UTF-8 BOM into `repro_boss_grass_gate.py` — a file that never
+had one — by reading with `encoding="utf-8-sig"` (which strips a BOM *if present*) and writing back
+`"\ufeff" + text` (which adds one *unconditionally*). ⛔ **No gate saw it.** `audit_encoding.py`
+scanned `PROJECT KNOWLEDGE/*.md` only, so a BOM landing in a **gate script** was invisible to the
+gate suite. CPython tolerates a source BOM, so nothing broke — which is exactly what makes it easy
+to leave behind. A Tier 1 reviewer caught it by diffing the working tree against the diff it had
+been handed.
+
+**What shipped.** The gate now also scans `tools/story-dev/`, `sandbox-pokebot/` and
+`custom-pokebot/` for `.py` files carrying a BOM — **677 files**, skipping `profiles/`,
+`__pycache__`, `venv` and `roms`.
+
+**‼ THE RULE IS "NO *NEW* BOMs", NOT "NO BOMs".** Exactly two files legitimately carry one today
+(`tools/story-dev/livetest.py` and `story_harness.py`), and rewriting them is a bigger change than
+this gate should force. So the baseline is **PINNED in `_BOM_ALLOWED`** and anything outside it that
+gains a BOM fails. Adding a file to that set has to be a deliberate act, which is the point.
+⚠ It stays quiet when explicit file arguments are passed, so `audit_encoding.py <file>` keeps
+working as a targeted tool.
+
+**✅ FAULT-TESTED, and the fault test caught a flaw in my own testing.** Injecting a BOM into a real
+gate script (`repro_no_silent_except.py`) makes it **FAIL by name** with the offending path and the
+one-line fix; stripping it makes it quiet again; the two pinned files still carry BOMs and do not
+fire; and the file was restored **byte-perfect** (`git status` clean).
+⛔ **My first fault test reported `gate exit=0` on the FAILING run** — because I had piped through
+`tail`, so `$?` was *tail's* exit code, not the gate's. Re-tested with the pipeline removed:
+**exit 1 faulted, exit 0 clean**, and `run_gates.py` grades it `PASS exit=0`. ‼ *A pipeline
+replaces the exit code you are trying to read — the same class of error as truncating a sweep with
+`cut`, which hid two stale claims earlier the same day.*
+
+The existing `--self-test` (the cp1252 mojibake half) still passes. Suite stays at **24 gates** —
+this widened an existing gate rather than adding one. Evidence:
+`evidence/2026-08-16-audit-encoding-py-bom-FAULT-TEST.stdout.txt`.

@@ -1,0 +1,16 @@
+### FAULT TEST of the NEW .py-BOM check in audit_encoding.py (2026-08-16) ###
+--- 1. inject a BOM into a real gate script ---
+  FAIL  1 .py file(s) gained a UTF-8 BOM (not in the pinned baseline):
+          tools/story-dev/repro_no_silent_except.py
+        ⛔ Strip it: raw = p.read_bytes(); p.write_bytes(raw[3:])
+        ‼ CAUSE: reading with encoding='utf-8-sig' (conditional) and writing
+          back a BOM UNCONDITIONALLY. Preserve a BOM; never assert one.
+   gate exit=1 (expected 1)
+--- 2. strip it again ---
+  all 34 file(s) clean — no mojibake, no BOM, and no NEW BOM in any scanned .py (baseline: 2 pinned)
+============================================================================================
+   gate exit=0 (expected 0)
+--- 3. the two PINNED files still carry BOMs and must NOT fire ---
+   livetest.py          first3=efbbbf
+   story_harness.py     first3=efbbbf
+   (gate is quiet above, so the pinned baseline works)
