@@ -1819,8 +1819,18 @@ level-matched encounters maintenance needs. Done together they are one activity,
 > archived handoff section, a research note). That is the P2 header-vs-body failure applied to
 > TRACKING rather than to STATUS, and prose alone did not catch it — the question did.
 
-- [ ] **(1) ‼ HIGHEST COST — `withdraw_from_box` has NO CALLER THAT CHECKS ITS VERDICT.** KI-79 made
-      the *message* honest (identity-verified, loud on failure) but production still cannot REACT:
+- [ ] **(1) ‼ HIGHEST COST — `withdraw_from_box` has NO CALLER THAT CHECKS ITS VERDICT.**
+      ✅✅ **UNBLOCKED 2026-08-16 — THE USER RULED** (`06-DECISIONS-LOG.md`): *"reattempt but after
+      intelligently processing the data (text boxes it reads to determine why it failed)"*.
+      ‼ **That is TWO requirements and the second is load-bearing:** reattempt, but **NOT blindly** —
+      the retry must be informed by a DIAGNOSIS read from the on-screen TEXT. ⛔ A retry that repeats
+      the same failing action without knowing why is the PING-PONG this project has been burned by
+      twice (`#24-movelearn-recovery`; KI-65's recon). ⛔ **Bound it**, ⛔ **an UNKNOWN reason must
+      NOT retry** (stop loudly instead), and ⛔ **the reason must be READ, not inferred from internal
+      state** — inferring it is the same class of error as the original bug, which announced an
+      identity derived from a COUNT. Taxonomy, bound and retryability follow from MEASUREMENT.
+      KI-79 made the *message* honest (identity-verified, loud on failure) but production still
+      cannot REACT:
       the function returns nothing and never raises, so a failed withdraw is now *reported* and
       still silently tolerated. ⛔ It was filed in the body of a KI whose header read only
       "CLOSED" — any session scanning for open issues skips it. (KI-79's header now carries the

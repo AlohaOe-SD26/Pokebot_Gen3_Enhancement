@@ -2617,3 +2617,40 @@ its first line**, which serves that workflow exactly and cannot go stale.
 ⇒ **Anything you intend to CITE belongs in `evidence/`, committed.** A gitignored log is a working
 artifact, not evidence — that rule predates this change and is why it is safe to be relaxed about
 the logs themselves.
+
+## 2026-08-16 — USER RULING: how production reacts to a failed PC withdraw
+
+**The ruling, in the user's words (2026-08-16):** *"how to react to a failed pc withdraw: reattempt
+but after intelligently processing the data (text boxes it reads to determine why it failed)"*.
+
+**What it settles.** `#24-orphans` item (1) — the highest-cost residual of KI-79 — was blocked
+because *"react HOW?"* was undefined everywhere in the docs, and inventing a policy would have been
+building behaviour unilaterally. It is no longer blocked. The instrumentation half was already
+specified; this supplies the missing half.
+
+**What it requires, read carefully — it is TWO things, and the second is the load-bearing one:**
+1. **Reattempt** rather than tolerate the failure silently (today's behaviour: the message is
+   honest, and nothing acts on it).
+2. ⛔ **But NOT a blind retry.** The reattempt must be *informed by a DIAGNOSIS read from the
+   on-screen text*. ‼ **A retry that repeats the same failing action without knowing why is the
+   PING-PONG pattern this project has already been burned by twice** — `#24-movelearn-recovery`'s
+   8-frame A/B ping-pong, and the loop traced in KI-65's recon. The ruling's *"after intelligently
+   processing"* is precisely what separates a fix from that failure.
+
+**Constraints this project's own rules impose on any implementation, recorded now so they are not
+re-litigated later:**
+* ⛔ **BOUND THE RETRY.** "Never hang / never silently derail" is a standing directive. An
+  unbounded reattempt is worse than the current silent tolerance, because it converts a visible
+  wrong outcome into a stall.
+* ⛔ **AN UNKNOWN REASON MUST NOT RETRY.** If the text does not match a known cause, the honest
+  action is to stop loudly, not to guess. *Absence of a recognised reason is not evidence that a
+  retry will help* — and this project has been caught by absence-as-signal repeatedly.
+* ⛔ **THE REASON MUST BE READ, NOT ASSUMED.** The ruling says *text boxes it reads*. A reason
+  inferred from internal state rather than from what the game SHOWED is the same class of error as
+  `pc_trip.py`'s original bug — announcing an identity derived from a COUNT.
+* ‼ **Different reasons imply different actions**, and some imply NOT retrying at all (a genuinely
+  empty box, or a Pokémon that is not there, cannot be fixed by trying again).
+
+**Not yet decided, and deliberately left open:** the reason taxonomy itself, the retry bound, and
+which reasons are retryable. Those follow from measurement — what the game actually prints — not
+from preference. Recon is in flight; the design will be recorded here before any code lands.
