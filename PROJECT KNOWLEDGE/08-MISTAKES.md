@@ -7302,3 +7302,36 @@ what ELSE that condition was protecting downstream.* Here `grass_is_fodder` was 
 **Why it was invisible for so long.** The defect's only signature is a message that does NOT appear.
 This project has now been caught by absence-as-signal repeatedly, which is why the fix shipped with
 a driver whose arms assert **which branch printed**, not merely that nothing crashed.
+
+## 2026-08-16 — THE FIX INVERTED ITS OWN "EXPECT:" LINES, SO THE DOCS NOW TOLD A COLD AGENT THAT A HEALTHY TREE WAS BROKEN
+
+**Symptom.** Minutes after the KI-80 decoupling shipped, `04-HANDOFF.md`'s HOW TO RUN block still
+said the bare `ki80ladder` command should print `ACCEPTANCE: PASS` (it now prints **FAIL**), and
+that `POKEBOT_KI80_DECOUPLED=1` should print **FAIL** (it now prints **PASS**). Both statements were
+true when written and were falsified by the very commit they were supposed to document. The same
+text was duplicated in `story_harness.py`'s docstring.
+
+**Root cause.** I treated `Expect:` lines as documentation of a COMMAND. They are not — they are
+**assertions about the CODE's current behaviour**, and a behaviour change invalidates them exactly
+as it would invalidate a test's expected output. I updated the banner, the queue head, the KI entry,
+the decisions log and the changelog in that commit, and never thought of the run-book, because the
+run-book's *commands* had not changed. Only their *answers* had.
+
+**Why it was worse than a stale line.** The two errors are mirror images, and the second is the
+dangerous one: an agent that sees **PASS where the docs promise FAIL** does not conclude "the docs
+are stale" — it concludes **"the discriminator has stopped discriminating"** and distrusts the
+instrument. A stale expectation can destroy confidence in a working test.
+
+**The fix that worked.** Both lines rewritten to explain WHY each answer is now the healthy one —
+the bare command's FAIL *is* the proof the decoupling changed behaviour; the decoupled command's
+PASS is the fix working — with the inversion and its date recorded inline so the change reads as
+deliberate rather than as rot.
+
+**Prevention rule.** *An `Expect:` line is a claim about the code, not about the command. When a
+change alters what a documented command prints, the `Expect:` line moves IN THE SAME COMMIT — and
+that includes the copies living in docstrings, which no doc gate can see.*
+
+**Recurrence note.** This is the second time `Expect:` lines in this file have been caught wrong; an
+earlier audit found them attached to the wrong commands entirely. Two independent failures of the
+same artefact is the signal for a gate, not another prose rule — ⇒ **worth building: a check that
+every `Expect:`/`ACCEPTANCE:` claim in HOW TO RUN names a command that still produces it.**

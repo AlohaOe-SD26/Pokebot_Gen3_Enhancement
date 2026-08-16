@@ -75,3 +75,8 @@
 {"when": "2026-08-16T07:01:45", "driver": "ki80ladder", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-16T07:02:20", "driver": "ki80ladder", "build": "sandbox", "state": "fortree_gym_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-16T07:02:56", "driver": "ki80ladder", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-16T07:28:43", "driver": "ki80ladder", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-16T07:29:18", "driver": "ki80ladder", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-16T07:29:54", "driver": "ki80ladder", "build": "sandbox", "state": "fortree_gym_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-16T07:42:13", "driver": "ki80ladder", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-16T07:42:49", "driver": "ki80ladder", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}

@@ -14975,3 +14975,50 @@ covered the comment-only correction. Drift is 1, expected and explained. When ap
 **Open, tracked, not dropped:** `#24-zerokocounter` — whether `boss_teaches` should come off the
 gate too. Not shipped because **no arm can discriminate it** (all four seed `kos = 1`).
 Transcripts: `evidence/2026-08-16-ki80-FIX-AFTER-*`. Rationale: `06-DECISIONS-LOG.md`.
+
+## 2026-08-16 — docs: the fix inverted its own `Expect:` lines, and a session-end audit caught them grading a healthy tree as broken (punch-list #24-counters)
+
+The session-end Tier 2 cold-start audit ran every command the handoff gives and compared the
+results against the handoff's own promises. **Two were FALSE as of HEAD, both inverted by the KI-80
+decoupling that shipped minutes earlier:**
+
+* `04-HANDOFF.md` HOW TO RUN promised the bare `ki80ladder` command *"Expect (TODAY, coupled): …
+  `ACCEPTANCE: PASS`"*. It now returns **FAIL** — correctly, because that command grades the OLD
+  coupled expectation and its FAIL is the proof the behaviour changed. A cold agent would have
+  debugged a healthy build.
+* The mirror: `POKEBOT_KI80_DECOUPLED=1` was documented as *"Expect FAIL TODAY … and PASS once the
+  ladder is decoupled"*. The ladder **is** decoupled; it returns **PASS**. ⚠ The audit named the
+  worse failure mode precisely: *seeing PASS where the docs promise FAIL reads as "the
+  discriminator has stopped discriminating."*
+* The same stale expectations were duplicated in `story_harness.py`'s own docstring and are fixed
+  there too — docstrings sit outside every doc gate's reach.
+
+‼ **New prevention rule:** *an `Expect:` line is a CLAIM ABOUT THE CODE. It goes stale the moment
+the code it describes changes — move it in the same commit as the fix.* This is the second time
+`Expect:` lines in this file have been caught wrong (an earlier audit found them attached to the
+wrong commands entirely).
+
+**Also fixed:** KI-80's HEADER still called `grass_is_fodder` the *"SOLE gate"* — the phrase the
+previous commit's changelog declared corrected *"in two files"*. The KI header was not one of them
+(**fifth occurrence of the fix-landed-in-one-half shape**); it now says CO-GATED and records that
+the decoupling shipped. And the STATE row's upstream date lagged `UPDATE-LOG.md` by a day, firing
+its own "the daily check is DUE" rule spuriously.
+
+**⛔ AND THE AUDIT DERIVED A HAZARD THAT WOULD HAVE CAUSED THE NEXT REGRESSION.**
+`#24-zerokocounter` (should `boss_teaches` come off the gate too?) described the `:1932` problem as
+a lost MESSAGE. It is worse, twice over: **(a)** removing `boss_teaches` makes `:1901`
+unconditional, so the `elif` at `:1932` is **structurally DEAD in every case** — an `elif` on an
+always-true `if` never runs; and **(b)** the not-hopeless path becomes reachable by a zero-KO party,
+so a boss with a **fodder patch AND a credible answer** whose party KOs nothing would set
+`boss_mode = True`, print *"re-attempting the boss is the real training (KO'd [0, 0] of theirs)"* —
+absurd on its face — and **suppress `:1937`'s grass escalation**. ‼ **That is KI-23's mirror
+regression again, and the arm 5 the entry prescribed CANNOT SEE IT** (a NO_ANSWER save returns at
+`:1923`). ⇒ **an ARM 6 is required: HAS_ANSWER + `kos = 0` + a fodder patch** — the identical lesson
+arms 1-3 vs arm 4 already taught. The entry now carries the computed discriminator, both hazards,
+and a demand to MEASURE how often flat zero-KO series even occur before changing behaviour.
+
+**Housekeeping the same audit made unavoidable:** `03-PUNCH-LIST.md` had **6 lines** of headroom
+against its 3600 budget, so the next commit touching it would have failed the gate. The closed
+`#24-teachmsgstall` entry — **344 lines** of investigation for an item that shipped, was kept, and
+was reopened for lack of measurable effect — is archived VERBATIM to `28-HANDOFF-ARCHIVE.md`,
+leaving an 11-line summary that keeps its live status. Headroom is now 322 lines. ⛔ Nothing deleted.

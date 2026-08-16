@@ -4549,3 +4549,356 @@ blessed the naive edit, and the arm-4 fixture arithmetic that took three attempt
 >    ⚠ KI-23's own entry warns about the mirror regression.
 >    ⛔ The existing `repro_boss_grass_gate.py` is the STRUCTURAL AST gate and is NOT this driver —
 >    it forbids the edit; the driver proves the branch. Both are needed.
+
+
+## 2026-08-16 — archived from `03-PUNCH-LIST.md`: the FULL `#24-teachmsgstall` entry (344 lines), verbatim
+
+Moved on the 3600-line budget, which the file had reached. ⛔ NOTHING WAS DELETED — the item's
+live status (shipped, kept, reopened for lack of measurable effect) stays in the punch list; this
+is the investigation behind it: the decomp trace of the one-frame `Task_ReplaceMoveYesNo` window,
+the A/B that proved the fix, and the batch statistics that reopened it.
+
+- [x] `#24-teachmsgstall` — ⚠ **FIX SHIPPED 2026-08-11 AND KEPT — BUT REOPENED THE SAME DAY: the batch showed NO production effect** (success 80.9% vs 90.5% pre-fix; the new exit fired ZERO times in 85 teaches — another path to `exhausted` exists; see the REOPENED entry at the top of this file). The fix closes a real one-frame hole and costs nothing, so it stays. Headline was ✅ **DONE … GATE GREEN** — corrected 2026-08-13: the headline carries the caveat.
+
+      **THE CAUSE — a ONE-FRAME detector window.** The post-select loop waited on
+      `"Task_ReplaceMoveYesNo" in t and "Task_PrintAndWaitForText" not in t`. Frame trace
+      (`TEACH_TRACE=1`, `magma_door.ss1`, HM02 → Swellow):
+      ```
+      f3232735  tasks=['Task_ReplaceMoveYesNo']              <- the ONLY frame it is visible
+      f3232736  tasks=['Task_HandleReplaceMoveYesNoInput']   <- gone, and it never comes back
+      ```
+      `pret/pokeemerald src/party_menu.c` — the task **retires itself on the frame it becomes
+      answerable**, which is the same frame the condition first became true:
+      `Task_ReplaceMoveYesNo` → `PartyMenuDisplayYesNoMenu(); func = Task_HandleReplaceMoveYesNoInput;`
+
+      **WHY MISSING IT LOST THE TEACH.** The loop kept mashing A every 12 frames, and
+      `Task_HandleStopLearningMoveYesNoInput` reads **A as YES = ABANDON** (decomp case 0 →
+      "did not learn X" → `Task_ClosePartyMenuAfterText`). ‼ **The three "different" failure
+      points are three phases of that one road** — summary handoff
+      (`Task_ClosePartyMenuAndSetCB2`), "did not learn FLY" (`Task_ClosePartyMenuAfterText` +
+      `Task_PrintAndWaitForText`), back in the bag (`Task_BagMenu_HandleInput`). The standing
+      note "one broken menu step cannot move like that" was right — it was never one step.
+
+      ‼ **AND WHY IT WAS DETERMINISTIC *AND* INTERMITTENT** (the property that made it
+      unfalsifiable for four rounds): a `.ss1` replays identical frame timing, so a save that
+      misses the window misses it every replay (0/3); live runs land on a random phase (38/42).
+
+      **THE FIX** (`modules/story/early_game.py`): match BOTH task spellings (`_PROMPT_TASKS`,
+      `_STOP_TASKS`); add an `already-advanced` exit that picks the flow up past the prompt
+      (non-fatal, `_wait_for(..., required=False)`); press **B** at the stop-learning prompt
+      *before* the blind-A fallback. The ride ladder had the identical exposure and is fixed
+      the same way.
+
+      **THE PROOF — live A/B, same save, same item, same target, one env var apart:**
+      | arm | env | exit | result |
+      |---|---|---|---|
+      | OLD | `POKEBOT_TEACHWINDOW_A=1 TEACH_CANCEL_FORGET=1` | `ride:hard-cap stall_peak=61 frame=8999` | **`learned=False`** |
+      | NEW | `TEACH_CANCEL_FORGET=1` | `ride:learned stall_peak=250 frame=896` | **`learned=True`** |
+      The OLD arm's record is structurally identical to the 2026-08-10 production failure.
+
+      ‼ **THE OLD "CHEAP REPRO" IS DEAD — do not chase it.** `saves/magma_door.ss1` is
+      re-captured by `--driver magmatravel` on every success, and a chapter run at 22:05 on
+      2026-08-10 overwrote the save the 21:27/21:34 failures were measured on. Both documented
+      arms now PASS on it. Use the injections instead.
+
+      **New test:** `repro_teach_prompt_window.py` (26 checks, no emulator; fault-injected to
+      3 red, restored green). Gate: **12 of 12 PASS**.
+
+      ✅ **PROMOTED 2026-08-11, user-approved.** Verified DRIVEN in `custom-pokebot` as the
+      same fault-injected A/B (OLD `ride:hard-cap f8999 learned=False` / NEW `ride:learned f896
+      learned=True`) — **frame-for-frame identical to the sandbox arms**. Source drift: **ZERO**.
+      `repro_teach_prompt_window.py` also passes with `REPRO_BUILD=custom`. See
+      `custom-pokebot/DIVERGENCE-LOG.md` for what is still outstanding (no production batch has
+      run with this fix in, so do NOT quote an outcome number for it yet).
+
+      HISTORY — **PRIORITY RAISED 2026-08-10: THIS IS NOW THE PROJECT'S TOP
+      BLOCKER.** It stops `#24-strength`, which stops `#24-magmahideout` increment 3, which is
+      all of the new story content. Its old note ("LOW priority — zero run-ending events") was
+      true when the only teaches were opportunistic; it is false now that a chapter REQUIRES one.
+
+      ✅ **A MUCH CHEAPER REPRO THAN THE 19,000-FRAME FIXTURE — use this one:**
+      ```
+      cd tools/story-dev
+      PYTHONUTF8=1 TEACH_ITEM=HM04 py -3.12 story_harness.py magma_door.ss1 --driver teachfull --frames 400000 --profile tf-hm04
+      PYTHONUTF8=1 TEACH_ITEM=HM02 py -3.12 story_harness.py magma_door.ss1 --driver teachfull --frames 400000 --profile tf-hm02
+      ```
+      Both fail deterministically from a committed save, ~3,000 frames of setup.
+
+      ‼ **THREE NEW FACTS from a discriminating test (2026-08-10).** HM02/Fly to Swellow fails
+      *identically* to HM04/Strength to Mightyena — same three `TEACH EXIT` records. So the wedge
+      is **not item-specific**, **not target-specific** (slot 0 vs slot 2) and **not
+      replace-slot-specific** (1 vs 0).
+      ‼‼ **And the point of failure MOVES**: HM04 exhausts its 900-frame post-select window still
+      in `Task_BagMenu_HandleInput`; HM02 in `['Task_ClosePartyMenuAfterText',
+      'Task_PrintAndWaitForText']`. **A single broken menu step cannot do that.** That is evidence
+      against the standing framing ("the replace prompt never appears" — one step too late) and
+      for something generic starving the flow upstream. Start there, not at the replace prompt.
+
+      HISTORY — **REPRODUCED 2026-08-09, LOCALLY, IN ~19,000 FRAMES. Fix not yet
+      written.** Nine fixtures in, the failure is now a command anyone can run:
+      ```
+      cd tools/story-dev
+      PYTHONUTF8=1 TEACH_ITEM=HM03 TEACH_INJECT=marshtomp TEACH_AFTER_TRAINER=1 \
+        py -3.12 story_harness.py journey_r116_wedge.ss1 --driver teachfull \
+        --frames 600000 --profile tf-trainer1
+      ```
+      **It is the production failure, not a lookalike.** Side by side with the batch:
+      | | batch `20260807-160545` | this fixture |
+      |---|---|---|
+      | exit 1 | `reason=post-select-900-exhausted move=Surf replace_slot=1 frame=900` | **identical** |
+      | exit 2 | `reason=ride:hard-cap stall_peak=82 post_select=exhausted frame=8999` | **identical** |
+      | exit 3 | `reason=not-learned-after-ride:hard-cap stall_peak=82 frame=8999` | **identical** |
+      | tasks | `['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']` | **identical** |
+      Only `slot` differs (2 here vs 4 there) — the target's party position, which is incidental.
+      Live symptom: `state=BAG_MENU` frozen ~9,000 frames at `teach_hm_move @ early_game.py:4732`,
+      `instr=BattleScript_PayDayMoneyAndPickUpItems`, ending in
+      `BotModeError: Teach flow finished but Marshtomp does not know Surf`.
+
+      ‼ **THE CONDITION IS "TEACH RIGHT AFTER A **WON** BATTLE", AND IT IS NOT ABOUT TRAINERS.**
+      The fixture is named `AFTER_TRAINER` because it was built to test the trainer-tail
+      hypothesis — and it reproduced the bug with **`trainers=0`**. Its guard said so out loud
+      (*"NO TRAINER ENGAGED — this run is NOT evidence"*), which is the only reason the
+      reproduction was not misattributed to trainers. What the patrol actually produced was **9
+      won WILD battles**, and the tail on screen was `'STALLME gained a boosted 109 EXP.
+      Points!'` — the post-battle EXP/money message chain.
+      That fits every prior fixture exactly:
+      | fixture | battle outcome before the teach | tail | result |
+      |---|---|---|---|
+      | 6 | **fled** (`'Got away safely'`) | no EXP/money chain | ✅ taught |
+      | 7 | caught -> box | `BattleScript_SuccessBallThrowEnd` | ✅ taught |
+      | 8 | caught -> party | `'Give a nickname to the captured NINCADA?'` | ✅ taught |
+      | 9 | **won** | `BattleScript_PayDayMoneyAndPickUpItems` + `Task_ContinueTaskAfterMessagePrints` | ❌ **STALLS** |
+      ⇒ **ROOT CAUSE LOCATED IN CODE (read 2026-08-09; fix NOT written, see why below).**
+      `teach_hm_move` hands off through `normalize_to_overworld()` (`early_game.py:4466`), which
+      declares the field settled when it is OVERWORLD + controllable + no script + **no menu
+      task** — and "menu task" is this list (`early_game.py:452`):
+      ```python
+      _MENU_TASK_MARKERS = ("Task_ShowStartMenu", "ListMenuDummyTask", "Task_HandleChooseMonInput")
+      ```
+      **`Task_ContinueTaskAfterMessagePrints` is not in it.** So a post-battle message chain
+      that is still printing does not block the hand-off; the teach then opens the BAG on top of
+      it, `ListMenuDummyTask` joins the still-running message task — which is *exactly* the
+      recorded signature `['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']` — the bag
+      list never advances, `post_select` exhausts at 900, the ride hard-caps at 8,999.
+      **PROPOSED FIX (2026-08-09, morning):** treat "a message is still printing" as not-settled
+      in `normalize_to_overworld`, so the existing B-cadence rides the chain out before anything
+      opens the bag.
+      ‼‼ **AND THAT FIX WAS REFUTED THE SAME DAY, BEFORE IT WAS WRITTEN.** A `HANDOFF-STATE` line
+      was added to `--driver teachfull` to print the exact state at the instant the teach takes
+      over, and run on a FAILING and a PASSING fixture:
+      | field | FAILING (won battle) | PASSING (catch) |
+      |---|---|---|
+      | `controllable` | True | True |
+      | `cb` | `ReturnFromBattleToOverworld` | `ReturnFromBattleToOverworld` |
+      | tasks | `['Task_MuddySlope','Task_RunPerStepCallback','Task_RunTimeBasedEvents','Task_WeatherMain']` | **identical** |
+      | `message_task_active` | **False** | **False** |
+      | `instr` | **`BattleScript_PayDayMoneyAndPickUpItems`** | `BattleScript_SuccessBallThrowEnd` |
+      **`Task_ContinueTaskAfterMessagePrints` is NOT running at hand-off** — it only appears
+      AFTER the bag opens. Gating `normalize_to_overworld` on it would have been **INERT.** A
+      `repro_teach_message_gate.py` asserting that gate was written, committed RED, and then
+      **deleted**, because a committed test for a refuted design misleads the next agent more
+      than no test at all.
+      ⇒ At first reading, the only field that differed was `instr` — so the next candidate gate was
+      "wait for the parked battle script". ‼ **THAT IS REFUTED TOO, measured the same hour:** load
+      six perfectly ordinary controllable overworld saves nowhere near a teach
+      (`post_winona`, `norman_done`, `lavaridge`, `mauville_prewattson`, `rocksmash_taught`,
+      `slateport`), run 120 frames, and **6 of 6** report
+      `cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems`. `instr` is
+      **residue of the last battle script**, not "currently executing". Gating on it would block
+      every teach forever.
+      ⇒ **SO THE HAND-OFF STATE DOES NOT DISTINGUISH THE TWO RUNS AT ALL.** Nor do the teach's own
+      parameters: failing and passing runs share `move=Surf slot=2 replace_slot=1` and the same
+      target with the same four moves.
+
+      ‼ **WHERE THE DIFFERENCE ACTUALLY SHOWS UP — start here next time.** It is downstream of the
+      bag, in the `TEACH EXIT` records themselves:
+      | | FAILING (`tf-premise`) | PASSING (`tf-premise-pass`) |
+      |---|---|---|
+      | `post_select` | **`exhausted`** — the 900-frame window expires without the replace prompt ever appearing | **`replace-prompt`** |
+      | `stall_peak` | **82** | 171 |
+      | outcome | `ride:hard-cap` at 8,999 | `ride:learned` at **463** |
+      `stall_peak=82` against a 900 threshold means the failing run is **CYCLING, not frozen** —
+      something is changing every ~82 frames while the flow never reaches the replace prompt.
+      **NEXT STEP: diff the two runs frame-by-frame from the moment the bag opens.** Both logs are
+      on disk (`profiles/tf-premise*/debug-logs/`), the fixtures are ~19,000 frames, and the two
+      differ in exactly one input — how the previous battle ended.
+      ‼ **Two things flagged when the (now refuted) fix was proposed, kept because risk (2)
+      still applies to ANY fix here:**
+      (1) whether `Task_ContinueTaskAfterMessagePrints` is ever *permanently* resident — if so
+      `normalize_to_overworld` would burn its 3,600-frame bound on every call (bounded, so a
+      delay rather than a hang, but a real cost); (2) that the settle still fires promptly on the
+      paths that work today — fixtures 6/7/8 are the controls and all three must stay green.
+      ✅ **RISK (1) MEASURED 2026-08-09 — moot for the refuted fix, kept as data.** Across **386** captured states
+      (every `saves/*.ss1` plus every `saves/stalls/*.ss1`, each run 30 frames after load) the
+      task is resident in **5**, and in **0 of them** is the game a settled controllable
+      overworld. All five are teach-stall captures — `hmteach-new-f17130`, `repro-teach2-f2706`,
+      `repro-teachab1-f2706`, `tf-trainer1-f19130`, `tf-trainer2-f19130` — i.e. it shows up in
+      exactly this bug and nowhere else in the corpus.
+      ‼ Caveat, so this is not over-read: those are captured SNAPSHOTS (anchors and stall
+      captures), not a uniform sample of gameplay frames, so this bounds residency in the states
+      we keep, not in all play. Risk (2) is untouched by it and still needs the three controls.
+      ‼ Incidentally: `tf-trainer2` stalled at the **same frame (f19130)** as `tf-trainer1` — the
+      reproduction is not merely repeatable, it is frame-identical.
+      ‼ **Not verified, and NOT written today on purpose:** a batch was mid-flight and restarted
+      lanes re-import `sandbox-pokebot/` from disk, so touching production mid-batch would have
+      corrupted the measurement. Prove it with a fault-inject A/B against the fixture above,
+      which now costs ~19,000 frames.
+      ‼ A stall state was auto-saved at the wedge: **`saves/stalls/tf-trainer1-f19130.ss1`** —
+      the first HM-bearing one, and (per the `.ss1` finding below) it should reload wedged.
+
+      HISTORY — **2026-08-09: FOUR hypotheses eliminated, and ONE RECORDED RESULT WAS WRONG.**
+
+      ‼‼ **CORRECTION — attempt 6 was NOT "a broken probe with no evidence".** It was recorded
+      as *"the spin produced no encounter (`battle_seen=False`), fix the spin"*. Its own log
+      (`tools/story-dev/harness_afterbattle.log`) says otherwise: **197
+      `CONTROLLER -> BattleListener.fight` transitions**, Marshtomp's EXP climbing 21760 ->
+      24240. Encounters were never missing. **The DETECTOR was blind:** the stop-condition
+      polled `battle_is_active()` from inside `_story_spin`, and the mode's generator is not
+      pumped while `BattleListener` owns the controller stack — so the callback only ran on
+      ~2,466 of ~44,000 frames, every one of them a frame with no battle active. It could not
+      have returned True. **FIXED:** count in `on_battle_started` (the framework calls it on the
+      mode instance while the generator is suspended). A/B on the identical fixture:
+      **old `battle_seen=False` after 2,466 pumps -> new `battles=1` after 7 pumps.**
+      And attempt 6's real result, read correctly, is a **negative for the hypothesis**: it
+      taught SUCCESSFULLY (`learned=True`) with a battle tail resident
+      (`cb=ReturnFromBattleToOverworld`, `bt='Got away safely'`).
+
+      | # | hypothesis / fixture | result |
+      |---|---|---|
+      | 6 | teach with a **wild BATTLE tail** resident | ❌ **RULED OUT** — succeeds, twice (attempt 6 re-read, plus the fixed-detector rerun) |
+      | 7 | teach with a **CATCH tail** resident (`TEACH_AFTER_CATCH=1`, new) | ❌ **RULED OUT for the box-transfer tail** — `instr=BattleScript_SuccessBallThrowEnd`, `cb=ReturnFromBattleToOverworld`, `bt='TAILLOW was transferred to SOMEONE'S PC'`, `Task_HandleReplaceMoveYesNoInput` — teach SUCCEEDS |
+
+      ‼‼ **FIXTURE 8 — THE EXACT PRODUCTION SHAPE — ALSO SUCCEEDS. The leading hypothesis is
+      DEAD.** Fixture 7's catch went to the BOX (party was already 6), so it only tested the
+      PC-transfer tail. Fixture 8 fixed that (arm catching only AFTER the walk — a wild caught
+      in transit was filling the party) and produced a **PARTY catch, 5 -> 6**, teaching 8 pumps
+      later with the production dialogue verbatim on screen:
+      ```
+      f9242 st=PARTY_MENU  instr=BattleScript_SuccessBallThrowEnd cb=ReturnFromBattleToOverworld
+            ml=AskWhetherToLearn tasks=['Task_HandleReplaceMoveYesNoInput']
+            bt='Give a nickname to the captured NINCADA?'
+      f9435 st=POKEMON_SUMMARY_SCREEN ... tasks=['Task_HandleReplaceMoveInput']
+            bt='Give a nickname to the captured NINCADA?'
+      ```
+      `learned=True`, Mud Shot replaced by Surf. **So "the teach runs while the post-catch
+      nickname prompt is still resident" — the hypothesis this item has rested on since
+      2026-08-08 — does NOT reproduce the stall.** Five hypotheses are now eliminated.
+
+      ‼‼ **THE PRODUCTION CONTEXT, READ FROM THE BATCH'S OWN DEBUG LOGS 2026-08-09 — and it is
+      a tail NO fixture has used.** (`x4-runs/20260807-160545`, 33 logs / 309,276 lines searched;
+      positive control: `TEACH EXIT` x63 and `TEACH OK` x38 are visible in that sweep.) A
+      failing teach dumps this:
+      ```
+      message='Story: teaching Surf to Swampert...'   controllable=False
+      battle: active=False  callback=ReturnFromBattleToOverworld
+              instr=BattleScript_PayDayMoneyAndPickUpItems
+      battle_text='H2 got $3100 for winning!'   learn_state=LearnMoveState.DialogueNotActive
+      tasks=['Task_ContinueTaskAfterMessagePrints', 'ListMenuDummyTask']
+      TEACH EXIT reason=post-select-900-exhausted ... frame=900   (then ride:hard-cap at 8999)
+      ```
+      **`'... got $3100 for winning!'` is a TRAINER prize-money message.** Every fixture so far
+      (6, 7, 8) used **WILD** battles, whose tails complete — fixture 6's read `'Got away
+      safely'`, fixture 8's `'Give a nickname to the captured NINCADA?'`, and both taught fine.
+      ‼ That single difference plausibly explains all five dead hypotheses at once: the variable
+      was never the party, the item, the moveset or the catch — it is **which battle tail**.
+      ‼ **Independent corroboration from today's UNRELATED runs:** `--driver anchorcapture` and
+      `--driver groundsweep` both logged the same stuck signature after trainer fights —
+      `STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems
+      bt='NICK got $468 for winning!'` — with no teach anywhere in sight. So this tail appears to
+      linger **generally**, not only under the teach. That makes it a candidate cause for
+      unrelated travel failures too (see KI-48).
+      **NEXT FIXTURE (spec):** teach immediately after a **TRAINER** battle. ‼ Attempts 3-5 had
+      the right instinct here and failed on execution — they tried to win a GYM first and wedged
+      three times; **any trainer battle is enough, do not return to the gym route.**
+      ‼‼ **AN ASSUMPTION THIS ITEM WAS BUILT ON IS FALSE — MEASURED 2026-08-09.** The item
+      records that *"a tail is RUNTIME state and cannot be loaded from a save"*, and that is why
+      attempts 3-5 went down the fight-Norman-first road that wedged in the gym three times.
+      True of a `.sav`; **FALSE of a `.ss1`, which is a full machine snapshot.** All **six**
+      stall states in `saves/stalls/` reload — after 66 frames of running — with the tail intact:
+      ```
+      anchorcap-f1004.ss1  cb=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+      anchorcap-f2421.ss1  cb=ReturnFromBattleToOverworld  instr=BattleScript_PayDayMoneyAndPickUpItems
+      ... 6 of 6 identical
+      ```
+      ⇒ **The fixture does not have to fight anything.** Recipe: run any driver from a
+      **badge-5+** save (so the bag holds HM03) through a TRAINER fight; the harness auto-saves
+      `saves/stalls/<profile>-f<frame>.ss1` at the stall; then run `--driver teachfull` FROM that
+      state. The tail is already resident on load, so the teach starts in the exact production
+      condition in seconds. ‼ The six states available today are early-game (badges 1-2, **no HMs
+      in the bag**), so they cannot drive a Surf teach — one HM-bearing stall state is all this
+      item still needs.
+
+      ‼ **The task sets independently say the stall is EARLIER than anyone has been probing.** Compare the failing batch signature with what every successful fixture shows:
+      | | tasks on screen |
+      |---|---|
+      | batch failures (9 of 9, `20260807-160545`) | `['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']` |
+      | every successful fixture, incl. 8 | `['Task_HandleReplaceMoveYesNoInput']` -> `['Task_HandleReplaceMoveInput']` |
+      `ListMenuDummyTask` is a **LIST MENU** — the BAG — plus an unfinished message. The
+      successful runs are stuck-free at the *replace prompt*, which is **after** item selection.
+      ⇒ **The failure is very likely in the BAG/item-selection step, before the party menu is
+      ever reached**, not in the replace dialogue the last three fixtures have been recreating.
+      ‼ This is an inference from task NAMES and is not yet verified — treat it as the next
+      thing to measure, not as a finding.
+
+      ‼ **A fixture guard earned its keep immediately.** Run 1 of `TEACH_AFTER_CATCH` spun
+      through **125 battles and caught nothing** because `boxwithdraw.ss1`'s bag holds **zero
+      Poké Balls** (measured). The `caught=False` guard reported *"this run is NOT evidence"*
+      instead of producing a fourth confident non-result. Ball supply is now checked up front.
+
+      ‼ **Cross-map fixture travel failed FOUR times today** (Slateport->Mauville, ROUTE116
+      intra-map, Fortree->ROUTE119, Mt. Pyre->ROUTE119). Prefer a save that is ALREADY on a map
+      with grass — `journey_r116_wedge.ss1` + `TEACH_GRASS=ROUTE116:11,7` works and is what
+      produced fixture 7. See KI-48/KI-49.
+
+      HISTORY — **2026-08-08: TWO HYPOTHESES ELIMINATED by direct repro.**
+      New fixture: `--driver teachfull TEACH_INJECT=marshtomp [TEACH_INJECT_SLOT=n]` writes the
+      batch's exact failing party shape into a live save.
+      | hypothesis | result |
+      |---|---|
+      | the MOVESET (`Take Down/Mud Shot/Rock Smash/Muddy Water`, an HM in the set) | ❌ **RULED OUT** — teach SUCCEEDS, 457 frames, replaced Mud Shot |
+      | a FULL party with the target at **slot 4** (most batch records read `slot=4`) | ❌ **RULED OUT** — succeeds, 463 frames |
+      | HM03/Surf specifically | ❌ ruled out by both runs above |
+      ‼ **So it is not the party and not the item — it is the CALLER CONTEXT.** In production the
+      teach runs immediately after `ensure_hm_learner`, which the function's own header warns
+      *"returns the instant the catch registers while 'Give a nickname to the captured X?' is
+      still on screen"*. `normalize_to_overworld()` is supposed to absorb that. The stuck task
+      set — `['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']` — is a LIST MENU plus
+      an unfinished message, which fits a lingering post-catch dialogue far better than anything
+      about the moveset.
+      ‼‼ **THE CALLER CONTEXT IS IDENTIFIED: THE NORMAN BATTLE TAIL.** Segment 12c runs
+      `do_petalburg_gym()` and then IMMEDIATELY `ensure_hm_learner(HM03)` → `teach_hm_move`
+      (`story_mode.py:3137-3163`). `teach_hm_move`'s own comment already recorded this and I
+      under-weighted it: *"all 7 start with the NORMAN BATTLE TAIL still resident
+      (`callback=ReturnFromBattleToOverworld`), which stretches the dialogue chain past 3,000
+      frames."* The two eliminations above converge on it by exclusion.
+      ‼ **A battle tail is RUNTIME state — it cannot be loaded from a save.** The fight must
+      actually happen inside the probe, which is why every clean-overworld repro succeeds.
+
+      ‼‼ **FIVE FIXTURE ATTEMPTS, NONE REPRODUCED. Read this before trying a sixth.**
+      Every attempt so far has failed to even REACH the teach with a battle tail resident:
+      | # | fixture | outcome |
+      |---|---|---|
+      | 1 | clean overworld, failing moveset | teach SUCCEEDS 457f — moveset ruled out |
+      | 2 | clean overworld, full party, target at slot 4 | SUCCEEDS 463f — slot ruled out |
+      | 3 | `TEACH_AFTER_GYM` on `prenorman_fodder_grind` | died to a trainer HP refusal (driver fixed) |
+      | 4 | same, healed party | wedged IN the gym at f61848 — teach never reached |
+      | 5 | same, Marshtomp L45 injected to win | wedged at f56868 — teach never reached |
+      | 6 | `TEACH_AFTER_BATTLE=1` (any battle, not the gym) | `battle_seen=False` at 2,466f — **the spin never triggered a battle**, so the probe is broken, NOT evidence |
+      ‼ **Attempt 6 is the right IDEA and the cheapest path** — the hypothesis is only that a
+      battle tail (`ReturnFromBattleToOverworld`) is resident, which needs ANY battle, not
+      Norman's. It failed because `_story_spin` returned without producing an encounter from
+      `boxwithdraw.ss1`. **Fix the spin (verified grass tile + a longer budget, the way
+      `--driver boxcatch` does it) and attempt 6 should reproduce in minutes.**
+      ‼ Do NOT go back to the gym route — three attempts, zero teaches reached.
+
+      **PROBE SCAFFOLD (all wired, only the spin is wrong):** `--driver teachfull TEACH_AFTER_GYM=petalburg
+      TEACH_ITEM=HM03` on `prenorman_fodder_grind.ss1` fights Norman, then teaches with no settle.
+      HM03 is GIVEN for beating Norman, so the bag control doubles as proof the gym leg completed.
+      ‼ **WHAT IT STILL NEEDS: a party that can actually BEAT Norman.**
+      That save is a grind save (Whismur L18 / Ninjask L27 / Shedinja L25 / Mightyena L30 /
+      Combusken L36 against Norman's L27-31); run 1 died to a trainer-battle HP refusal (fixed —
+      the driver now uses `LevelUpTravelBattleStrategy` for trainers, as `boxwithdraw` already
+      did) and run 2 wedged inside the gym at f61848 without ever reaching the teach.
+      **Inject a party that wins the fight, or capture a save at the moment Norman faints.**
+      Everything downstream of that is already wired.
+

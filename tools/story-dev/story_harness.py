@@ -5450,10 +5450,17 @@ class Ki80LadderMode(BotMode):
 
     Run:  PYTHONUTF8=1 py -3.12 story_harness.py batch2_run04_wedge.ss1 \\
               --driver ki80ladder --frames 2000
-    Expect (coupled, i.e. TODAY): NOGRASS -> LADDER, GRASS_FODDER -> LADDER,
-                                  GRASS_STRONG -> PLAIN_ESCALATION, ACCEPTANCE: PASS
-    After decoupling KI-80, re-run with POKEBOT_KI80_DECOUPLED=1 — all three must reach the LADDER.
-    ⛔ The BEFORE run is unrepeatable once the fix lands. RUN AND COMMIT IT FIRST.
+    ⛔⛔ KI-80 WAS DECOUPLED 2026-08-16, SO THE EXPECTATIONS BELOW ARE INVERTED FROM THEIR
+    ORIGINAL FORM. Read them in that order or you will grade a healthy tree as broken:
+      * bare command (the OLD, COUPLED expectation) -> ACCEPTANCE: **FAIL**, GRASS_STRONG reads
+        `-> LADDER expected PLAIN_ESCALATION`. That FAIL is the PROOF the decoupling changed
+        behaviour; it is the healthy answer.
+      * POKEBOT_KI80_DECOUPLED=1 -> ACCEPTANCE: **PASS**, all three arms reach the LADDER.
+      * POKEBOT_KI80_ARM4=1 (needs `fortree_gym_wedge.ss1`) -> PASS, OUTCOME=PLAIN_ESCALATION.
+        Unchanged by the fix BY DESIGN — that invariance is the mirror-regression guard.
+    ‼ Until 2026-08-16 these lines read "Expect (coupled, i.e. TODAY) ... ACCEPTANCE: PASS", which
+    the fix falsified. A cold-start audit caught it. ⇒ **an `Expect:` line is a CLAIM about the
+    code, and it goes stale the moment the code it describes changes — move it with the fix.**
     """
 
     @staticmethod

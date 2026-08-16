@@ -2746,7 +2746,7 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
 
 ---
 
-## KI-80 — `grass_is_fodder` CONFLATES "no training patch configured" with "the patch is too weak", and it is the SOLE gate on the counter-ladder — so giving a boss a training area silently disables its KI-23 machinery (2026-08-16, ✅ **REPRODUCED AND DRIVEN** — `--driver ki80ladder` is COMPLETE and PASSING: **4 arms**, both forks, mirror-regression guard fault-tested against the real naive edit. ✅ **AND THE DECOUPLING IS NOW BUILT, DRIVEN AND REVIEWED** — `:1901` is `if boss_teaches:`, `boss_mode` sits behind its own `if grass_is_fodder:`; `repro_boss_grass_gate.py` has SELF-RETIRED. ⛔ **THIS KI STAYS OPEN ONLY UNTIL THE USER APPROVES PROMOTING IT** — the fix is sandbox-only, drift is 1)
+## KI-80 — `grass_is_fodder` CONFLATED "no training patch configured" with "the patch is too weak", and it CO-GATED the counter-ladder (with `boss_teaches`, inside `losses >= 2`) — so giving a boss a training area silently disabled its KI-23 machinery. ✅ DECOUPLED 2026-08-16 (sandbox) (2026-08-16, ✅ **REPRODUCED AND DRIVEN** — `--driver ki80ladder` is COMPLETE and PASSING: **4 arms**, both forks, mirror-regression guard fault-tested against the real naive edit. ✅ **AND THE DECOUPLING IS NOW BUILT, DRIVEN AND REVIEWED** — `:1901` is `if boss_teaches:`, `boss_mode` sits behind its own `if grass_is_fodder:`; `repro_boss_grass_gate.py` has SELF-RETIRED. ⛔ **THIS KI STAYS OPEN ONLY UNTIL THE USER APPROVES PROMOTING IT** — the fix is sandbox-only, drift is 1)
 
 - **The line.** `plugins/custom_modes/story_mode.py:1899`:
   ```
