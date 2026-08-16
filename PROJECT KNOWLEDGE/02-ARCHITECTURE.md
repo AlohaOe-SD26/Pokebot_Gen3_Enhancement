@@ -40,7 +40,7 @@ Pokebot_Gen3_Enhancement/
 ├── tools/story-dev/               # ★ the Story-bot test harness, drivers, recon scripts, repro suite
 │   ├── story_harness.py           # replicates main.py's loop exactly (see 14-AGENT-PLAYBOOK §2)
 │   ├── livetest.py                # headless batch runner
-│   ├── repro_*.py                 # 84 regression reproducers — THE verification bar (§2b)
+│   ├── repro_*.py                 # 101 regression reproducers — THE verification bar (§2b)
 │   ├── audit_flag_names.py        # proves a flag/var NAME is real before code depends on it
 │   └── saves/                     # committed checkpoint .ss1 progression sampler
 ├── 40cakes repo/                  # ★ everything about the ORIGINAL program
@@ -239,7 +239,10 @@ the last line.
 
 *(the older sweep description follows, kept because the scripts still exist and still run)*
 
-`tools/story-dev/repro_*.py` is **52 scripts**, most needing **no emulator**. Run the whole
+`tools/story-dev/repro_*.py` is **101 scripts** (plus 71 `probe_*.py` and 3 `audit_*.py`), most
+needing **no emulator**. ‼ **COUNTED, not recalled** — these figures said 84 and 52 from 2026-08-10
+until a 2026-08-15 audit measured the directory. They are prose, not a gate: `ls` is the authority.
+Run the whole
 sweep after any change; a fix that satisfies its own new repro can still break an older
 one's contract (this happened twice on 2026-07-27).
 
@@ -258,8 +261,12 @@ done
   lane processes** — skip it unless you mean it.
 - Use a **~90s per-script timeout**; 25s misreports slow-but-healthy scripts as errors.
 - The faithful end-to-end harness is `tools/story-dev/story_harness.py` (needs a real mgba).
-  Its `--driver` list is the project's main debugging surface; the ones added since this file was
-  last revised (2026-08-08) are **capability tests**, each answering one binary question in
+  Its `--driver` list is the project's main debugging surface. ⚠ **The enumeration below is
+  WATERMARKED 2026-08-08 and is NOT exhaustive** — later drivers (e.g. `boxcounter`, `boxcounter2`,
+  the `ch20room*` family, `boxwrite`, `partypids`) are documented in `03-PUNCH-LIST.md` and
+  `04-HANDOFF.md`'s HOW TO RUN / TEST instead. ⛔ **For the live list, read `--driver`'s `choices=`
+  in `story_harness.py`, never this paragraph.** The ones added by 2026-08-08 are **capability
+  tests**, each answering one binary question in
   minutes rather than a 3-hour batch:
   `boxcatch` (full-party catch overflows to the PC box), `boxwithdraw` (the mon comes back out at
   a Poké Centre, driving the real heal-piggyback), `teachfull` (HM teach down the REPLACE path,

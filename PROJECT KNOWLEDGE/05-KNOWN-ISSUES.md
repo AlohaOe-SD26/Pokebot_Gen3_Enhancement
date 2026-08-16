@@ -2790,6 +2790,28 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   | 6 | ‼ NOT improving: `max(kos of last 3) <= max(kos of previous 3)` | `:1514-1517` |
   | 7 | ‼ **no battler has a credible answer**: some move with `eff >= 2.0` **and** `base_power * eff * stab >= 75` | `:1573-1596`, `:1087` |
   | 8 | `"ace_types" in cfg` — absent short-circuits to `(False, [])` before the answer test | `:1557` |
+  | **9** | ⛔⛔ **`team_max <= wild_max + 8` — THE ARMS MUST ACTUALLY DIFFER** | `:1899` |
+  ⛔⛔ **CONDITION 9 WAS MISSING UNTIL A COLD-START AUDIT FOUND IT (2026-08-15), AND WITHOUT IT THIS
+  ENTRY PRESCRIBED A VACUOUS TEST — the exact failure it was written to prevent, one condition
+  over.** `grass_is_fodder` is `("grass" not in cfg) or (wild_max + 8 < team_max)`. The A/B only
+  MEANS anything if adding the `grass` key FLIPS it to False, which needs
+  `wild_max + 8 >= team_max`. For a **Route 119** patch `wild_max = 27`, so the fixture's
+  **`team_max` must be <= 35**.
+  ⇒ ⛔ **`ch13_fortree_door.ss1` — which THIS ENTRY PREVIOUSLY NAMED AS THE FIXTURE — FAILS IT.**
+  Its **Blaziken L39** gives `team_max = 39`, and `27 + 8 = 35 < 39` is TRUE, so `grass_is_fodder`
+  is True **in BOTH arms**, both take the same branch, and the run would show NO DIFFERENCE — which
+  reads as a refutation of a true finding. It satisfies condition 7 (NO_ANSWER) and fails
+  condition 2; the earlier check verified 7 and never 2.
+  ✅ **VERIFIED CANDIDATES that satisfy BOTH** (`probe_credible_answer.py`, run 2026-08-15 —
+  all NO_ANSWER, `team_max` in brackets): `batch3_run03_wedge.ss1` [35, OVERWORLD, MAUVILLE_CITY],
+  `batch2_run04_wedge.ss1` [28, OVERWORLD, ROUTE111], `batch3_run05_end.ss1` [34, ⚠ **in BATTLE**],
+  `ch13_r119_wedge.ss1` [33, ⚠ **in BATTLE**, and ROUTE119 is a KI-24 wall map].
+  ‼ **None is Winona-era** (badges 123/1234, not 12345) — which does NOT block a DECISION-level
+  A/B (`_prepare_for_fight` reads party levels/moves, the grass map's `wild_max`, and the seeded
+  loss history — never a badge), but it DOES mean the run is not a faithful Winona scenario and
+  must not be reported as one. ⚠ `batch3_run03_wedge` sits exactly ON the boundary (`35 < 35` is
+  false by one level), so a single level-up during the run would silently flip it — **prefer margin,
+  and ASSERT the measured `team_max` and `wild_max` at run start rather than trusting this table.**
   ‼ A flat series of six losses each with `kos = 1` satisfies 3-6 at once.
   ⛔⛔ **AND A CEILING NOBODY WOULD GUESS: KEEP `losses` UNDER 12.** At
   `losses >= HARD_PLATEAU_LOSS_THRESHOLD` (**12**) with `len(history) >= 12` and a flat 12-series,

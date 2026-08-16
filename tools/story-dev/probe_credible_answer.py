@@ -156,6 +156,17 @@ def check_save(save_path: pathlib.Path) -> int:
 
 def main() -> int:
     argv = sys.argv[1:]
+    # ‼ `--help` used to be treated as a SAVE NAME and exit 2 with
+    # "FILE NOT FOUND: .../saves/--help" — found by a cold-start agent that tried to
+    # discover the invocation the way a new user would. A tool whose only usage hint is
+    # its docstring is a tool that gets invoked wrongly.
+    if any(a in ("--help", "-h", "/?") for a in argv):
+        print(__doc__)
+        print("USAGE: PYTHONUTF8=1 py -3.12 probe_credible_answer.py [save.ss1 ...]")
+        print("       (defaults to ch13_fortree_door.ss1; pass several to compare)")
+        print("EXIT:  0 = every save read OK (read the per-save VERDICT lines); 2 = a save "
+              "could not be found or read.")
+        return 0
     save_names = argv if argv else ["ch13_fortree_door.ss1"]
     rc = 0
     for name in save_names:

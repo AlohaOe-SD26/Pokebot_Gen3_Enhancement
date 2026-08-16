@@ -7006,3 +7006,30 @@ on a correctly-encoded `⏱` and on the em dashes, `20×17`, `§Ch20`, `‼`/`�
   `eff < 2.0` branch `continue`s before the score is ever compared. A check written as "score >= 75"
   would have called every qualifying save unqualified. ⇒ *when you copy a predicate, copy its GATE
   ORDER, not just its constants.*
+
+## 2026-08-15 — I VERIFIED THE FIXTURE AGAINST CONDITION 7 AND NEVER AGAINST CONDITION 2, SO THE SPEC I WROTE TO PREVENT A VACUOUS TEST PRESCRIBED ONE
+
+- **Symptom.** KI-80's repro spec named `ch13_fortree_door.ss1` as the fixture, having *measured*
+  that its party is NO_ANSWER (condition 7). A cold-start agent trying to START the task found that
+  the A/B built from that spec **cannot distinguish its arms**.
+- **Root cause.** `grass_is_fodder = ("grass" not in cfg) or (wild_max + 8 < team_max)`. The test
+  only means anything if adding the `grass` key FLIPS it, which needs `wild_max + 8 >= team_max`.
+  Route 119's `wild_max` is 27, so the fixture needs `team_max <= 35`. That save holds
+  **Blaziken L39** ⇒ `35 < 39` is TRUE ⇒ `grass_is_fodder` is True in BOTH arms ⇒ both take the
+  same branch ⇒ **no difference, which reads as a refutation of a true finding.**
+- ‼ **The bitter part: this is the SAME error the same entry was written to prevent**, one condition
+  over. Hours earlier I corrected that spec because it said `losses >= 2` when the ladder needs 6 —
+  and then verified the new fixture against the condition I had just been thinking about (7) and
+  not against the one that makes the arms differ (2).
+- **The fix that worked.** Add the flip requirement as an explicit numbered condition (**9**), state
+  the arithmetic (`team_max <= wild_max + 8`), retract the named fixture in the same edit, and list
+  candidates that satisfy BOTH — with their measured `team_max`, their era, and whether they are
+  mid-BATTLE, so the next session can judge rather than trust.
+- ‼ **Prevention rule.** *A fixture must be checked against EVERY condition, not against the one you
+  just added. And for an A/B specifically: before naming a fixture, compute the DISCRIMINATOR on it
+  — show that the two arms actually take different branches — because "the fixture satisfies the
+  preconditions" is not the same claim as "the test can tell the arms apart."*
+- ‼ **Second rule, about how it was caught.** No reviewer reading the diff found this; it was found
+  by an agent told to **TRY TO BEGIN THE TASK** from the docs alone and report where it got stuck.
+  ⇒ *The strongest audit of a spec is not "is it consistent?" but "can someone start from it?"*
+  Add that pass whenever a session ends by handing off a specified-but-unbuilt item.

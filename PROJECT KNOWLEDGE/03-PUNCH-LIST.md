@@ -2061,8 +2061,11 @@ level-matched encounters maintenance needs. Done together they are one activity,
 > at-risk fight gains a `grass` key while the coupling stands. It is AST-based (a comment cannot
 > trip it) and SELF-RETIRING (it stops enforcing once the ladder is decoupled).
 > ‼ **The real work here is KI-80's decoupling, and it may not ship on reading alone** — it needs
-> the KI-23 repro DRIVEN at `losses >= 2` with `kos >= 1` and no type answer. A test at
-> `losses < 2` is vacuously green.
+> the KI-23 repro DRIVEN. ⛔ **READ KI-80's CONDITION TABLE FIRST.** This line used to say
+> *"at `losses >= 2` with `kos >= 1` and no type answer"* — that is **REFUTED and would build a
+> VACUOUS test**: below `losses >= 6` the ladder cannot fire at all, at 12+ `hard_plateau`
+> passes it for the WRONG reason, and the fixture must ALSO satisfy `team_max <= wild_max + 8`
+> or `grass_is_fodder` never flips and BOTH arms take the same branch.
 
 **User directive 2026-07-29.** The bot trains in whatever grass is next to the objective,
 often below L5, so XP is near worthless — and Norman is the 5th gym but sits in the STARTING

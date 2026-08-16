@@ -211,8 +211,13 @@ def check(src: str) -> list[str]:
                 f"is still gated on `grass_is_fodder`. That flips `grass_is_fodder` to False for a "
                 f"team above the patch's band + 8, which SKIPS `_boss_plan_is_hopeless` and the "
                 f"counter ladder — silently, with a healthy-looking log line. WHY IT MATTERS HERE: "
-                f"{why} => Decouple the counter-ladder FIRST and drive the KI-23 repro "
-                f"(losses>=2, kos>=1, no type answer), then add the patch. See KI-80."
+                f"{why} => Decouple the counter-ladder FIRST and drive the KI-23 repro, then add "
+                f"the patch. ⛔ READ KI-80's CONDITION TABLE IN 05-KNOWN-ISSUES.md BEFORE "
+                f"BUILDING THAT REPRO — 'losses>=2, kos>=1, no type answer' is the REFUTED early "
+                f"wording and a test built to it is VACUOUS: the ladder cannot fire below "
+                f"losses>=6, at 12+ hard_plateau passes it for the WRONG reason, and the fixture "
+                f"must ALSO satisfy team_max <= wild_max + 8 or grass_is_fodder never flips and "
+                f"BOTH arms take the same branch."
             )
     return problems
 
