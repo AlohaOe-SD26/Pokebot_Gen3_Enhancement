@@ -506,6 +506,26 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       actual A/B, and these deserve the same.
 
 
+- [ ] `#24-abortswallow` — **NEW 2026-08-16 (KI-81), MEASURED. KI-67's fix was applied to TWO
+      chapters; the CLASS was never swept.** `StoryAbort` is a `BotModeError` is an `Exception`, so
+      **every** broad `except` catches a whiteout. `probe_abort_swallowing.py` (NEW, fault-tested)
+      reports **53 candidate sites**: `early_game.py` 44, `higher_level_actions.py` 4, `pc_trip.py`
+      3, `counter_hunt.py` 1, `mossdeep_gym.py` 1.
+      ‼ **THREE HAND-VERIFIED AS THE BAD SHAPE**, not false positives: `early_game.py:1625`
+      swallows into a **12-press retry**; `:267` and `:3241` catch `BotModeError` inside retry loops
+      — **KI-67's failure verbatim**; and **all three `heal_in_pokemon_center` piggybacks**
+      (`:297`, `:316`, `:345`) are unguarded, so **a whiteout during a heal is swallowed TODAY**.
+      ⚠ **CANDIDATE ≠ DOES.** The probe cannot prove a `_check_abort()` is reachable through a given
+      `yield from`; it narrows 500+ handlers to a triageable list. ⛔ **Triage before fixing.**
+      ⇒ **START TRIAGE AT `mossdeep_gym.py`**: KI-67 fixed that file, yet it still shows 1 — so that
+      one site tells you whether the probe over-flags or whether the sweep was incomplete. That
+      answer sizes the whole item.
+      ⛔ **NOT a gate yet, deliberately** — a gate red on arrival on pre-existing debt teaches people
+      to ignore gates. Fix the sites, then promote it, the path `repro_no_silent_except.py` took.
+      ‼ This is a PREREQUISITE for `#24-orphans` (1): P4 there is a special case of this, and
+      fixing P4 in `withdraw_from_box` ALONE does nothing, because the caller's own blanket
+      `except Exception` at `higher_level_actions.py:345` re-swallows it.
+
 - [ ] `#24-zerokocounter` — **NEW 2026-08-16, from the KI-80 decoupling. Should `boss_teaches` ALSO
       come off the counter-ladder's gate?** `story_mode.py:1901` is now `if boss_teaches:`. KI-80's
       wording ("gated on *is this fight hopeless*, which `_boss_plan_is_hopeless` answers alone")

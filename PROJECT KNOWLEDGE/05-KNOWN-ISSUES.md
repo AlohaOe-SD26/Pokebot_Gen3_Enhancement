@@ -1687,30 +1687,9 @@ Full write-ups moved to **`31-KNOWN-ISSUES-ARCHIVE.md`** to keep this file insid
 * **KI-57** — beating Maxie parked Capt. Stern on the tile §Ch16 needed; he was not an obstacle
   but the door — talking to him warps the player in.
 
-## KI-58 — the Mossdeep Gym statue puzzle (2026-08-12, ✅ RESOLVED — detail ARCHIVED)
+## KI-58 — ✅ RESOLVED/FIXED; FULL ENTRY in `31-KNOWN-ISSUES-ARCHIVE.md` (stub compacted 2026-08-16 on the 3000-line budget)
 
-The gym is a **ROTATING-TILE STATUE PUZZLE**, not a maze: nine floor switches call
-`moverotatingtileobjects`, moving every object on a matching coloured arrow — **including nine
-of the trainers**. Four independent instruments all concluded it had no route to its own leaders
-because none of them modelled that third movement primitive.
-
-Full detail (the encoding derived from the ROM dump, the validated simulator, the per-press
-object counts, and the list of things that bite) moved to **`31-KNOWN-ISSUES-ARCHIVE.md`** on
-2026-08-12 to keep this file inside its R3 budget. ‼ Keep only this here: the method that cracked
-it is written up in `14-AGENT-PLAYBOOK.md §4b` — *simulate the mechanic, then make the GAME grade
-your simulator* — and it is the reusable part.
-
-## KI-61 — the chapter DETECTOR named the wrong beat after badge 7 (2026-08-12, ✅ FIXED — ARCHIVED)
-
-`chapters.py` listed the Space Center BEFORE the Mossdeep gym, so `_compute_badges_before()`
-put chapter 19 in the SIX-badge bracket and `current_chapter()` skipped two whole beats the
-moment the seventh badge landed. A/B proven; the design doc's "order confirmed" was wrong.
-
-Full detail moved to **`31-KNOWN-ISSUES-ARCHIVE.md`** on 2026-08-12 for the R3 budget.
-‼ Keep only this here: it is guarded by `probe_chapter_order.py`, which now takes `--build` and
-passes on BOTH forks — it used to hard-code the sandbox path and so could never test the build
-the user runs. **ORDER in a list that more than one consumer reads is a silent logic bug, not
-cosmetics.**
+## KI-61 — ✅ RESOLVED/FIXED; FULL ENTRY in `31-KNOWN-ISSUES-ARCHIVE.md` (stub compacted 2026-08-16 on the 3000-line budget)
 
 ## KI-62 — the detector still names "To Lilycove" on a save long past Lilycove (2026-08-12, OPEN, LOW)
 
@@ -2746,6 +2725,38 @@ Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans 
   withdraw is *reported* and silently tolerated. Its ONE caller is
   `higher_level_actions.py:344`, which discards the value. **Tracked as `#24-orphans` item (1)**;
   its instrumentation half is specified, but *how* production should react needs the USER's ruling.
+
+## KI-81 — KI-67's fix was applied to TWO chapters but the CLASS was never swept: ~53 more places can swallow a whiteout (2026-08-16, MEASURED by probe, 3 hand-verified, OPEN)
+
+`StoryAbort` is a `BotModeError`, which is an `Exception` (`_interface.py:229`) ⇒ **every**
+`except Exception:` and `except BotModeError:` catches a whiteout. KI-67 found this and fixed the
+two CHAPTER retry loops that had been *observed* failing (`space_center.py:962-977`,
+`mossdeep_gym.py:534-551`) with two guards — `except StoryAbort: raise` **plus**
+`reraise_if_aborting(error)`. ⛔ **The class was never swept.**
+
+**MEASURED:** `tools/story-dev/probe_abort_swallowing.py` (NEW, `--self-test` proves it fires when
+the guard is missing and stays quiet both when guarded and when the `try` drives no generator) —
+**53 candidate sites**: `early_game.py` 44, `higher_level_actions.py` 4, `pc_trip.py` 3,
+`counter_hunt.py` 1, `mossdeep_gym.py` 1.
+⚠ **CANDIDATE means "could swallow", not "does".** The probe cannot prove a `_check_abort()` is
+reachable through a given `yield from`; it narrows 500+ handlers to a triageable list.
+
+**THREE HAND-VERIFIED, and they are the bad shape, not false positives:**
+- `early_game.py:1625` — `except Exception: ok = False` around `yield from _yield_bounded(...)`,
+  then **presses B twelve times and RETRIES**. An abort here is swallowed into a retry on a dead run.
+- `early_game.py:267` and `:3241` — `except BotModeError as e:` inside retry loops. ‼ This is
+  **KI-67's failure verbatim**: *"a chapter that caught the abort and retried IN PLACE ran straight
+  into the next `_check_abort()`"* — burning the budget in a few frames and reporting invented
+  failures.
+- ‼ **All three of `heal_in_pokemon_center`'s piggybacks** (`:297`, `:316`, `:345`) catch `Exception`
+  with no guard, so **a whiteout during a heal is swallowed today** and the bot walks on.
+
+⛔ **NOT FIXED, DELIBERATELY.** 53 sites is not a tail-of-session sweep, and abort handling is the
+highest-stakes path there is (KI-67 exists because it is subtle). ⇒ **triage, fix, THEN promote the
+probe to a gate** — it is a PROBE precisely because a gate red on arrival on pre-existing debt
+teaches everyone to ignore gates. `repro_no_silent_except.py` took this exact path.
+‼ **`mossdeep_gym.py` still shows 1** even though KI-67 fixed it — either a second `try` in that
+file or a false positive. **Triage starts there**, because it tells you which the probe is.
 
 ## KI-80 — `grass_is_fodder` CONFLATED "no training patch configured" with "the patch is too weak", and it CO-GATED the counter-ladder (with `boss_teaches`, inside `losses >= 2`) — so giving a boss a training area silently disabled its KI-23 machinery. ✅ DECOUPLED AND PROMOTED TO BOTH FORKS 2026-08-16 (2026-08-16, ✅ **REPRODUCED AND DRIVEN** — `--driver ki80ladder` is COMPLETE and PASSING: **4 arms**, both forks, mirror-regression guard fault-tested against the real naive edit. ✅ **AND THE DECOUPLING IS NOW BUILT, DRIVEN AND REVIEWED** — `:1901` is `if boss_teaches:`, `boss_mode` sits behind its own `if grass_is_fodder:`; `repro_boss_grass_gate.py` has SELF-RETIRED. ✅ **AND PROMOTED TO BOTH FORKS 2026-08-16 (user-approved), proven by a THREE-POINT A/B against `--build custom` — drift is 0.** ⛔ **THIS KI STAYS OPEN ONLY FOR ITS TRACKED RESIDUAL** `#24-zerokocounter`: should `boss_teaches` come off the gate too? Not shipped because no arm can discriminate it, and an audit derived that it would need TWO new arms plus a frequency measurement first)
 

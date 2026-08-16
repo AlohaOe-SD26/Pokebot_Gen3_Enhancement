@@ -2297,3 +2297,36 @@ room for KI-65's recon. ⛔ Its ONE LIVE RESIDUAL — no caller acts on the verd
 
 ---
 
+
+
+## 2026-08-16 — archived from `05-KNOWN-ISSUES.md`: the KI-61 stub, verbatim (compacted on the 3000-line budget)
+
+## KI-61 — the chapter DETECTOR named the wrong beat after badge 7 (2026-08-12, ✅ FIXED — ARCHIVED)
+
+`chapters.py` listed the Space Center BEFORE the Mossdeep gym, so `_compute_badges_before()`
+put chapter 19 in the SIX-badge bracket and `current_chapter()` skipped two whole beats the
+moment the seventh badge landed. A/B proven; the design doc's "order confirmed" was wrong.
+
+Full detail moved to **`31-KNOWN-ISSUES-ARCHIVE.md`** on 2026-08-12 for the R3 budget.
+‼ Keep only this here: it is guarded by `probe_chapter_order.py`, which now takes `--build` and
+passes on BOTH forks — it used to hard-code the sandbox path and so could never test the build
+the user runs. **ORDER in a list that more than one consumer reads is a silent logic bug, not
+cosmetics.**
+
+
+
+## 2026-08-16 — archived from `05-KNOWN-ISSUES.md`: the KI-58 stub, verbatim (compacted on the 3000-line budget)
+
+## KI-58 — the Mossdeep Gym statue puzzle (2026-08-12, ✅ RESOLVED — detail ARCHIVED)
+
+The gym is a **ROTATING-TILE STATUE PUZZLE**, not a maze: nine floor switches call
+`moverotatingtileobjects`, moving every object on a matching coloured arrow — **including nine
+of the trainers**. Four independent instruments all concluded it had no route to its own leaders
+because none of them modelled that third movement primitive.
+
+Full detail (the encoding derived from the ROM dump, the validated simulator, the per-press
+object counts, and the list of things that bite) moved to **`31-KNOWN-ISSUES-ARCHIVE.md`** on
+2026-08-12 to keep this file inside its R3 budget. ‼ Keep only this here: the method that cracked
+it is written up in `14-AGENT-PLAYBOOK.md §4b` — *simulate the mechanic, then make the GAME grade
+your simulator* — and it is the reusable part.
+

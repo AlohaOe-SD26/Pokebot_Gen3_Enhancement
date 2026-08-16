@@ -15294,3 +15294,48 @@ storage are cached PER FRAME); and keep the budget small (14,400 frames of retry
 ⛔ **Deliberately NOT implemented.** Four prerequisites, an unmeasured memory offset, and five
 unbounded loops in the code a retry would wrap is not something to start late in a long session —
 and shipping the retry first would amplify P1–P4 rather than fix (1). Handed off fully specified.
+
+## 2026-08-16 — MEASURED: KI-67's whiteout fix was applied to TWO chapters and the CLASS was never swept — ~53 more places can swallow an abort (punch-list #24-abortswallow, KI-81)
+
+**Found while doing `#24-orphans` (1)'s prerequisite P4**, and it turned out to be far larger than
+P4. `StoryAbort` is a `BotModeError` is an `Exception` (`_interface.py:229`) ⇒ **every**
+`except Exception:` and `except BotModeError:` in the story path catches a whiteout. KI-67
+identified exactly this and fixed the two CHAPTER retry loops that had been *observed* failing,
+with two guards (`except StoryAbort: raise` **plus** `reraise_if_aborting(error)`). ⛔ **The class
+was never swept.**
+
+**✅ NEW: `tools/story-dev/probe_abort_swallowing.py`** — an AST probe, fault-tested in all three
+directions (`--self-test`: fires when the guard is missing; quiet when guarded; quiet when the `try`
+drives no generator, so ordinary telemetry handlers are not flagged). **53 candidate sites:**
+`early_game.py` 44, `higher_level_actions.py` 4, `pc_trip.py` 3, `counter_hunt.py` 1,
+`mossdeep_gym.py` 1.
+
+**‼ THREE HAND-VERIFIED — the bad shape, not false positives:**
+* `early_game.py:1625` — `except Exception: ok = False` around a `yield from`, then **presses B
+  twelve times and RETRIES**. An abort is swallowed into a retry on a dead run.
+* `early_game.py:267` and `:3241` — `except BotModeError as e:` inside retry loops. **KI-67's
+  failure verbatim:** *"a chapter that caught the abort and retried IN PLACE ran straight into the
+  next `_check_abort()`"*, burning its budget in a few frames and reporting invented failures.
+* **All three `heal_in_pokemon_center` piggybacks** (`:297`, `:316`, `:345`) are unguarded ⇒ **a
+  whiteout during a heal is swallowed today** and the bot walks to the exit on a dead run.
+
+**⛔ AND IT KILLED THE OBVIOUS VERSION OF P4.** Fixing `withdraw_from_box`'s handler ALONE would do
+**nothing**, because its caller's own blanket `except Exception` at `higher_level_actions.py:345`
+re-swallows the re-raised abort. ‼ *A guard is only as good as the outermost handler above it* —
+the same "fix landed in one half" shape, in exception handling rather than in docs.
+
+**⛔ DELIBERATELY NOT FIXED, and the restraint is the point.** 53 sites is not a tail-of-session
+sweep, abort handling is the highest-stakes path there is (KI-67 exists because it is subtle), and
+**CANDIDATE ≠ DOES** — the probe cannot prove a `_check_abort()` is reachable through a given
+`yield from`. Bulk-fixing on a static signal is the mistake I avoided with the log-collision
+siblings and would be far worse here.
+⇒ **Triage starts at `mossdeep_gym.py`**: KI-67 fixed that file and it *still shows 1*, so that one
+site reveals whether the probe over-flags or the original sweep was incomplete — and that answer
+sizes the entire item.
+⇒ **It is a PROBE, not a gate, on purpose.** A gate red on arrival on pre-existing debt teaches
+everyone to ignore gates; `repro_no_silent_except.py` took exactly this path (measure, record the
+pre-existing count, fix, then enforce).
+
+**Budget housekeeping:** `05-KNOWN-ISSUES.md` hit its 3000-line ceiling, so the KI-58 and KI-61
+stubs (both already RESOLVED with their detail archived) were compacted to one-line pointers and
+their text moved verbatim to `31-KNOWN-ISSUES-ARCHIVE.md`. Nothing deleted.
