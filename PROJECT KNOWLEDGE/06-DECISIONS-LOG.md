@@ -2654,3 +2654,90 @@ re-litigated later:**
 **Not yet decided, and deliberately left open:** the reason taxonomy itself, the retry bound, and
 which reasons are retryable. Those follow from measurement — what the game actually prints — not
 from preference. Recon is in flight; the design will be recorded here before any code lands.
+
+## 2026-08-16 — DESIGN for the failed-PC-withdraw reaction: FOUR PREREQUISITES BEFORE ANY RETRY
+
+Follows the user ruling above. Recon (2026-08-16) changed the shape of this work substantially, so
+the design is recorded before code, and it is **phased** — because a retry added today would
+amplify four existing defects rather than fix one.
+
+### ⛔⛔ THE BLOCKER: THE TEXT THE RULING DEPENDS ON IS NOT WHERE ANY EXISTING READER LOOKS
+
+The ruling says *"text boxes it reads"*. ‼ **The Storage System does NOT use `gStringVar4` or
+`gDisplayedStringBattle`** — every text reader in this repo reads one of those. PC messages go to
+`sStorage->messageText` (`u8 messageText[40]` inside a **heap-allocated** struct;
+`pokemon_storage_system.c:4273-4312`, struct at `:403/:540`). Our symbol table has only the POINTER
+(`sStorage` at `02039d08`). ⇒ **the offset of `messageText` within that struct is not known anywhere
+in this repo and MUST BE MEASURED.** The technique is established — `pc_interaction.py:135-182`
+already reads other fields of that same struct by hand-derived offsets (`+0xC74`, `+0x6FA`,
+`+0x20A0`) — but ⛔ **the number must not be guessed.** A robust alternative needing no offset:
+dump a window of the struct and `bytes.find()` the canonical ROM bytes inside it.
+
+**⇒ Until that offset is measured, every failure classifies as UNKNOWN, and UNKNOWN must not retry.
+The feature would ship INERT.** Measuring it is therefore prerequisite 0, not an optimisation.
+
+### ✅ AND THE STRINGS ARE ALREADY VERIFIED — DO NOT HARDCODE ENGLISH
+
+The refusal strings were cross-checked against **our own committed symbol table's byte sizes**, and
+every one matches `len(text)+1`: `gText_YourPartysFull` `"Your party's full!"` (0x13),
+`gText_BoxIsFull2` `"The BOX is full."` (0x11), `gText_ThatsYourLastPkmn`
+`"That's your last POKéMON!"` (0x1a), `gText_YouCantReleaseAnEgg` (0x1a), `gText_PartyFull` (0x14).
+⇒ compare **ROM bytes vs the live buffer**, exactly as `menu_parsers.py:357` does
+(`read_symbol("sText_UseNextPkmn") in read_symbol("gDisplayedStringBattle")`). That is
+language-independent and cannot drift from the ROM.
+❌ **Correction to a Gemini research note in this repo:** *"There's only one POKéMON with you!"*
+**does not exist in Emerald.** The real refusal is `gText_ThatsYourLastPkmn`. (Which is the standing
+rule about those notes, demonstrated again.)
+
+### ⛔ FOUR PREREQUISITES — a retry added before these AMPLIFIES them
+
+1. **`withdraw_from_box:432-433` counts `alive` EXCLUDING EGGS, and that is a live latent bug.**
+   Its own sibling `deposit_one_dead_weight._occupied` (`pc_trip.py:248-263`) documents this exact
+   exclusion as *"a REAL bug (found by adversarial review, 2026-08-13)"* — **an egg occupies a
+   physical party slot** — and was fixed. `withdraw_from_box` never got that fix. On **5 mons + 1
+   egg**: `len(alive) == 5`, the make-room block is SKIPPED, and `pc_interaction.py:418` (which
+   counts the egg) then raises. ‼ **A retry over this ping-pongs forever** — precisely what the
+   ruling forbids.
+2. **`interact_with_pc` contains UNBOUNDED `while … press A` loops** (`pc_interaction.py:424-433`,
+   and four more at `:466-492`, `:332-344`, `:363-376`). Per the decomp, `Task_WithdrawMon` on a
+   full party sets `state = 1` and **never reaches the state 4 that loop waits for**
+   (`pokemon_storage_system.c:2798-2818`). ⇒ **wrapping a retry around an unbounded wait multiplies
+   a hang; it does not recover from one.** *(The loop's behaviour under repeated A is INFERENCE from
+   the decomp, not observed — but "no bound + a state the game may never reach" is enough.)*
+3. **The capacity guard uses the wrong quantity.** `pc_interaction.py:418` tests `get_party_size()`
+   = **B**, while the game uses **A** (`CalculatePlayerPartyCount()`), and `pokemon_party.py:184-193`
+   says outright that capacity questions must use A. With a **HOLE** (A=6, B=5 — the divergence
+   `collect_party_accounting.py` has already OBSERVED, 30x in `boxcounter2`) the bot proceeds and the
+   GAME refuses. ‼ **This is the case that proves the ruling's second clause: the diagnosis must
+   change the ACTION (deposit), not repeat it.**
+4. **`withdraw_from_box`'s blanket `except Exception` has no `StoryAbort` guard**, so **a whiteout
+   during a PC visit is being LAUNDERED today.** Both retry precedents in this codebase guard it
+   explicitly (`space_center.py:962-977`, `mossdeep_gym.py:534-551`: `except StoryAbort: raise` PLUS
+   `reraise_if_aborting(error)`). A retry loop without that would hammer a dead run.
+
+### THE DESIGN (to build once the prerequisites are done)
+
+* **A pure classifier, OUTSIDE the generator:** `classify_withdraw_failure(buf) -> (CODE, retryable,
+  detail)`. House precedent is explicit — `counter_withdraw_outcome`'s docstring says *"logic that
+  decides an outcome must be reachable by a test"*. Codes in `party_accounting.py`'s register (SHORT
+  ALL-CAPS, one per decomp message): `PARTY_FULL`, `BOX_FULL`, `LAST_POKEMON`, `CANT_RELEASE_EGG`,
+  `MAIL_HELD`, `HOLDING_MON`, `UNKNOWN`.
+* **`withdraw_from_box` returns a verdict** `(ok, CODE, detail)` instead of `None`. Its ONE caller is
+  `higher_level_actions.py:344`, which discards it today.
+* **Retry policy — bounded, reason-driven, and NOT uniform:** `PARTY_FULL` ⇒ **deposit, then retry**
+  (the action differs); `BOX_FULL`/`LAST_POKEMON`/`CANT_RELEASE_EGG`/`MAIL_HELD` ⇒ **do NOT retry**,
+  report; `UNKNOWN` ⇒ **do NOT retry**, report loudly. House idiom: `for attempt in range(1, 4)`,
+  accumulate `attempts: list[str]`, re-read reality every pass, and report exhaustion with **every**
+  reason joined by `" | "` — never a bare count (`space_center.py:953-989`, `roster.py:169-249`).
+* ⛔ **Make room AT MOST ONCE across all attempts.** Re-running the make-room deposit each pass
+  thins the team, which is the measured `#24-pc` regression (~1 mon/run, ~19 funnel points).
+* ⛔ **Yield before re-reading.** Party and storage are cached PER FRAME (`pc_trip.py:499-501`), so a
+  same-frame retry re-reads pre-withdraw state and the verification becomes the new false negative.
+* ✅ **A retry after the honest-failure path is CHEAP:** `interact_with_pc` ends with
+  `_close_pc_menu` + `wait_for_player_avatar_to_be_controllable`, so the avatar is already on the PC
+  tile facing Up and controllable. After an EXCEPTION path it may be mid-menu — so a retry must
+  first do `roster.py:239-248`'s cleanup (press B ~12x, ride out the scene, re-plan from reality).
+* ⛔ **Retries live INSIDE the existing `try` at `higher_level_actions.py:332` and BEFORE the exit
+  walk at `:350`** — after that the bot has left the PC. And the budget must stay small: the heal is
+  a piggyback, and `early_game.py:320-325` records 14,400 frames of retry churn letting the 18k
+  global watchdog kill two otherwise-healthy runs.

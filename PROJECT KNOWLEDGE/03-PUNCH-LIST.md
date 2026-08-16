@@ -1829,6 +1829,37 @@ level-matched encounters maintenance needs. Done together they are one activity,
       NOT retry** (stop loudly instead), and ⛔ **the reason must be READ, not inferred from internal
       state** — inferring it is the same class of error as the original bug, which announced an
       identity derived from a COUNT. Taxonomy, bound and retryability follow from MEASUREMENT.
+      ✅✅ **RECON DONE 2026-08-16 — READ `06-DECISIONS-LOG.md`'s DESIGN ENTRY BEFORE CODING.**
+      It found a BLOCKER and FOUR PREREQUISITES, each of which a naive retry would AMPLIFY:
+      ⛔ **BLOCKER — the text the ruling depends on is not where any existing reader looks.** PC
+      messages go to `sStorage->messageText` (heap-allocated); every text reader in this repo reads
+      `gStringVar4` or `gDisplayedStringBattle`. **The struct offset is unknown here and MUST BE
+      MEASURED** (the technique is established — `pc_interaction.py:135-182` reads that same struct
+      at `+0xC74`/`+0x6FA`/`+0x20A0` — but ⛔ do NOT guess the number). Until then every failure is
+      `UNKNOWN`, and UNKNOWN must not retry ⇒ **the feature would ship INERT.** Measure first.
+      ✅ The refusal STRINGS are already verified against our own symbol table's byte sizes
+      (`gText_YourPartysFull` 0x13, `gText_BoxIsFull2` 0x11, `gText_ThatsYourLastPkmn` 0x1a …) ⇒
+      compare **ROM bytes vs the live buffer** like `menu_parsers.py:357`; ⛔ never hardcode English.
+      **PREREQUISITES (each is its own defect, and each is now tracked here rather than orphaned):**
+      **P1 ⛔ `withdraw_from_box:432-433` counts `alive` EXCLUDING EGGS — a live latent bug.** Its
+      own sibling `deposit_one_dead_weight._occupied` (`pc_trip.py:248-263`) documents that exact
+      exclusion as *"a REAL bug (found by adversarial review 2026-08-13)"* and was fixed; this
+      function never got the fix. On **5 mons + 1 egg** the make-room block is SKIPPED and
+      `pc_interaction.py:418` then raises. ‼ **A retry over this ping-pongs forever.**
+      **P2 ⛔ `interact_with_pc` has UNBOUNDED `while … press A` loops** (`pc_interaction.py:424-433`
+      plus `:466-492`, `:332-344`, `:363-376`). Per decomp, `Task_WithdrawMon` on a full party sets
+      `state = 1` and **never reaches the state 4 that loop waits for**. Wrapping a retry around an
+      unbounded wait MULTIPLIES a hang. *(Loop behaviour under repeated A is decomp INFERENCE, not
+      observed — but "no bound + a state that may never arrive" is enough to bound it first.)*
+      **P3 ⛔ the capacity guard uses the WRONG QUANTITY** — `pc_interaction.py:418` tests
+      `get_party_size()` (**B**) while the game uses **A**; `pokemon_party.py:184-193` says capacity
+      questions must use A. With a **HOLE** (A=6,B=5 — already OBSERVED 30x in `boxcounter2`) the
+      bot proceeds and the GAME refuses. ‼ This is the case proving the ruling's second clause: the
+      diagnosis must change the **ACTION** (deposit), not repeat it.
+      **P4 ⛔ the blanket `except` has NO `StoryAbort` guard, so a WHITEOUT during a PC visit is
+      being LAUNDERED TODAY.** Both retry precedents guard it explicitly (`space_center.py:962-977`,
+      `mossdeep_gym.py:534-551`). A retry loop without it would hammer a dead run.
+      ‼ **P1 and P4 are worth fixing on their own merits even if the retry never ships.**
       KI-79 made the *message* honest (identity-verified, loud on failure) but production still
       cannot REACT:
       the function returns nothing and never raises, so a failed withdraw is now *reported* and

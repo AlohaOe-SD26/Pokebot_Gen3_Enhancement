@@ -15243,3 +15243,54 @@ effect"* verdict. ⚠ `custom-pokebot`'s copy is byte-identical — the fix will
 **Budget housekeeping:** `05-KNOWN-ISSUES.md` had **20 lines** of headroom, so KI-79's full entry
 (closed, fixed, promoted) was archived verbatim to `31-KNOWN-ISSUES-ARCHIVE.md`, leaving a summary
 that keeps its method rule and its LIVE residual (no caller acts on the verdict = `#24-orphans` (1)).
+
+## 2026-08-16 — recon + design: the user's failed-withdraw ruling is UNBLOCKED, and it needs FOUR PREREQUISITES a naive retry would have amplified (punch-list #24-orphans)
+
+**No code changed.** The user ruled *"reattempt but after intelligently processing the data (text
+boxes it reads to determine why it failed)"*; this is the measurement that turns that into a
+buildable design — and it changed the shape of the work substantially.
+
+**⛔⛔ THE BLOCKER: the text the ruling depends on is not where any existing reader looks.** Every
+text reader in this repo reads `gStringVar4` or `gDisplayedStringBattle`. **The Storage System uses
+neither** — PC messages go to `sStorage->messageText`, inside a **heap-allocated** struct whose
+offset is **not known anywhere in this repo**. The technique is established (`pc_interaction.py`
+already reads that same struct at `+0xC74`/`+0x6FA`/`+0x20A0`) but ⛔ **the number must be MEASURED,
+not guessed.** ‼ Until it is, every failure classifies as `UNKNOWN`, and UNKNOWN must not retry —
+**so the feature would ship INERT.** That makes the measurement prerequisite 0, not an optimisation.
+
+**✅ The refusal strings, by contrast, are already verified** — cross-checked against our own
+committed symbol table's byte sizes, every one matching `len(text)+1`: `gText_YourPartysFull`
+`"Your party's full!"` (0x13), `gText_BoxIsFull2` (0x11), `gText_ThatsYourLastPkmn` (0x1a),
+`gText_YouCantReleaseAnEgg` (0x1a). ⇒ compare **ROM bytes vs the live buffer** as
+`menu_parsers.py:357` already does; never hardcode English. ❌ And a Gemini note in this repo
+claiming *"There's only one POKéMON with you!"* is **wrong** — that string does not exist in
+Emerald. The standing rule about those notes, demonstrated again.
+
+**⛔ FOUR PREREQUISITES, each now TRACKED rather than orphaned — two are live bugs on their own:**
+* **P1 — `withdraw_from_box` counts party occupancy EXCLUDING EGGS.** Its own sibling
+  `deposit_one_dead_weight._occupied` documents that exact exclusion as *"a REAL bug (found by
+  adversarial review, 2026-08-13)"* and was fixed; **this function never got the fix.** On 5 mons +
+  1 egg the make-room block is skipped and `pc_interaction.py:418` then raises. ‼ **A retry over
+  this ping-pongs forever** — exactly what the ruling forbids.
+* **P2 — `interact_with_pc` contains FIVE unbounded `while … press A` loops**, and per the decomp
+  `Task_WithdrawMon` on a full party never reaches the state one of them waits for. **Wrapping a
+  retry around an unbounded wait multiplies a hang.**
+* **P3 — the capacity guard uses quantity B where the game uses A.** With a HOLE (A=6, B=5 — already
+  OBSERVED 30x in `boxcounter2`) the bot proceeds and the GAME refuses. ‼ This is the case that
+  proves the ruling's second clause: **the diagnosis must change the ACTION, not repeat it.**
+* **P4 — the blanket `except` has no `StoryAbort` guard, so a WHITEOUT during a PC visit is being
+  LAUNDERED TODAY.** Both retry precedents in this codebase guard it explicitly.
+
+**The design is recorded in full** (`06-DECISIONS-LOG.md`): a PURE `classify_withdraw_failure()`
+outside the generator (house rule: *"logic that decides an outcome must be reachable by a test"*),
+ALL-CAPS codes matching `party_accounting.py`'s register, a verdict returned from
+`withdraw_from_box`, and a **bounded, non-uniform** policy — `PARTY_FULL` ⇒ deposit **then** retry;
+`BOX_FULL`/`LAST_POKEMON`/`CANT_RELEASE_EGG`/`MAIL_HELD`/`UNKNOWN` ⇒ report, do **not** retry. Plus
+three hazards with citations: make room **at most once** across all attempts (re-depositing thins
+the team — the measured `#24-pc` regression, ~1 mon/run); **yield before re-reading** (party and
+storage are cached PER FRAME); and keep the budget small (14,400 frames of retry churn once let the
+18k watchdog kill two healthy runs).
+
+⛔ **Deliberately NOT implemented.** Four prerequisites, an unmeasured memory offset, and five
+unbounded loops in the code a retry would wrap is not something to start late in a long session —
+and shipping the retry first would amplify P1–P4 rather than fix (1). Handed off fully specified.
