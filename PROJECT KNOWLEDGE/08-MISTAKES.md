@@ -7059,3 +7059,64 @@ on a correctly-encoded `⏱` and on the em dashes, `20×17`, `§Ch20`, `‼`/`�
   the documentation rules told me to write it. Completeness was satisfied; REACHABILITY was not.
   The same distinction the DOC CONSISTENCY LAYER was born from — *completeness was checked,
   consistency was not* — one level further out.
+
+## 2026-08-15 — WE CORRECTED FOUR COPIES OF AN ERROR BY GREPPING FOR A TYPE LIST, AND THE FIFTH COPY WAS A SENTENCE
+
+**Symptom.** `story_mode.py:1083` still claimed *"Thunderbolt vs Winona (270)"* as a worked example
+of an answer the `CREDIBLE_ANSWER_POWER = 75` threshold preserves — a day after a dedicated round
+declared the "Electric answers Winona" error corrected in *"four copies of one another"*.
+
+**Root cause.** The sweep searched for the wrong **artefact shape**: the four fixed copies were all
+`{Rock, Ice, Dragon, Electric}`-style **type lists**, so a grep for the type set found them all and
+felt complete. The fifth copy names no type set at all — it is prose about a *threshold*, and the
+word "Electric" never appears in it. The sweep's own success criterion ("all four corrected") was
+defined by what the grep returned, so it could not see what the grep could not match.
+
+**The fix that worked.** Replaced the example with a real one — Ice Beam into Altaria
+(`95 x 4.0 = 380`; Ice is `2.0x` into *both* halves of Dragon/Flying) — and left an inline
+`⛔ NOT Thunderbolt` marker so the false example cannot come back quietly.
+
+**Prevention rule.** *When you correct N copies of a fact, re-sweep for the CLAIM, not for the
+STRING you fixed — a fact rephrased as prose matches no grep for the data that carried it.*
+
+**Second, independent prevention rule earned by the same edit.** The first draft of the correction
+was a 12-line explanation, which would have shifted every `story_mode.py:NNNN` citation below
+line 1083 — including citations in `06`, `07` and `08`, which are **append-only and may not be
+rewritten to follow**. ⇒ *An explanatory comment added to a heavily-cited file must be NET-ZERO on
+line count; the long version goes in the changelog.* Verified by re-grepping two known anchors
+(`grass_is_fodder` still `:1899`, `winona_fight` still `:3532`) AFTER the edit rather than assuming.
+
+**Found by:** an adversarial subagent that was asked to verify a fixture's `hopeless` predicate and
+flagged this unprompted — the recurring lesson that adversarial passes return information the
+question did not ask for.
+
+## 2026-08-15 — THE DRIVER'S OWN DOCSTRING NAMED THE WRONG ANCHOR AND EXPLICITLY FORBADE THE RIGHT ONE, WITH A READY-TO-PASTE COMMAND THAT FAILS ON LEG 1
+
+**Symptom.** `BoxCounter2Mode`'s docstring in `tools/story-dev/story_harness.py` said *"‼ ANCHOR:
+`saves/ch13_fortree_door.ss1` … ⛔ NOT `fortree_gym_wedge.ss1` — measured to sit INSIDE the gym,
+which adds a gym-exit leg of pure risk"*, and its `Run:` line handed the reader that same wrong
+save. Both halves were backwards, and had been for a day.
+
+**Root cause.** The anchor was swapped **because of a measurement** — `ch13_fortree_door.ss1` is on
+ROUTE120 and the run died on leg 1 with `Cannot reach FORTREE_CITY: it is not walkable from
+ROUTE120` (KI-24, `region_reach.py:7-11`) — and the swap was written into `04-HANDOFF.md` but **not
+into the code**. Docstrings sit outside every doc gate's reach: `lint_docs.py` and
+`audit_doc_consistency.py` only read `PROJECT KNOWLEDGE/`, so nothing could see the contradiction.
+It is the P2 *header-vs-body* failure applied to a docstring — and the docstring is the half a
+reader sees at the moment they are about to RUN the thing.
+
+**The fix that worked.** All six stale references corrected across five edit sites, each keeping its
+RULE and changing only its ATTRIBUTION — the three notes citing `ch13_fortree_door`'s properties (the
+Castform `6ADF9056` sole-candidate control, the `Shedinja+Ninjask 42207D6F` collision, and the
+`(personality, species)` key it justifies) now say that save was the anchor *at the time*, and flag
+that the CURRENT anchor does not exercise them, so they are guards rather than demonstrations.
+
+**Prevention rule.** *When a fixture is swapped, the code that names it is a SECOND half of the
+pair — update the docstring in the same commit as the handoff, because no gate covers docstrings.*
+
+**Second rule, from the same pass.** *A rule and the fixture that motivated it are two different
+facts.* Swapping the fixture must keep the rule and re-attribute it; deleting the rule with the
+fixture is KI-39's archive-move-done-backwards, and keeping the old attribution silently is this one.
+
+**Found by:** reading `BoxCounter2Mode` as a template for a NEW driver — i.e. by USING the doc, not
+by auditing it. ⇒ the cheapest doc audit is a reader who intends to act on the text.

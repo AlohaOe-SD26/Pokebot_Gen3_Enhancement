@@ -4894,7 +4894,9 @@ class BoxCounterMode(BotMode):
 
     ⛔⛔ THE SOLE-CANDIDATE CONTROL IS NOT "THE BOX IS EMPTY" (corrected 2026-08-15, by measurement).
     It used to assert `occupants == [pid]`, which passes only because `post_dive.ss1`'s 14 boxes are
-    ALL EMPTY (measured, `probe_box_contents.py`). Stage 2's anchor `ch13_fortree_door.ss1` holds
+    ALL EMPTY (measured, `probe_box_contents.py`). `ch13_fortree_door.ss1` — Stage 2's anchor when
+    this control was written, since replaced by `fortree_gym_wedge.ss1`, whose boxes are ALSO empty,
+    so ⚠ **this control is correct but is no longer EXERCISED by Stage 2's current anchor** — holds
     **Castform L25 `pid=6ADF9056`** at box0.slot0 — pure Normal, so no TYPE match, but it knows
     **Powder Snow (Ice, damaging)**, so it qualifies on the MOVE branch and sits AHEAD of anything
     injected. The old control would have ABORTED there. ‼ Production is not fooled — the Castform
@@ -5050,8 +5052,10 @@ class BoxCounterMode(BotMode):
         # is None`) and only re-rolls it if nature/gender/shiny disagree — it does NOT guarantee
         # a PID nothing else already owns. If the party already held this PID, Stage 2's "the
         # Slugma reached the party" check would read TRUE before the heal ever ran. ⛔ And this
-        # anchor is exactly where that matters: `ch13_fortree_door.ss1` already contains a REAL
-        # PID collision (Shedinja+Ninjask both `42207D6F`).
+        # check matters somewhere real: `ch13_fortree_door.ss1` already contains a REAL PID
+        # collision (Shedinja+Ninjask both `42207D6F`). ⚠ Stage 2's CURRENT anchor
+        # (`fortree_gym_wedge.ss1`) has no such twins, so this check is a guard rather than a
+        # demonstration there — keep it: the collision save is still used by collision tests.
         party_pids = {m.personality_value for m in get_party() if m is not None}
         not_in_party = pid not in party_pids
         log(f"[{tag}] FIXTURE at box{where} pid={pid:08X} species="
@@ -5137,13 +5141,20 @@ class BoxCounter2Mode(BoxCounterMode):
     ends in `set_manual_mode()`, and inheriting that would drop the bot to Manual before Stage 2's
     first line — silently, since KI-71 means an abandoned generator raises nothing at all.
 
-    ‼ ANCHOR: `saves/ch13_fortree_door.ss1` (ROUTE120, badges 12345, Winona UNBEATEN, party FULL
-    at 6 so the make-room deposit path is exercised). ⛔ NOT `post_dive.ss1` — that save is
-    POST-Winona, so the counter rung cannot fire. ⛔ NOT `fortree_gym_wedge.ss1` — measured to sit
-    INSIDE the gym, which adds a gym-exit leg of pure risk to a test about the PC.
-    ⚠ Its box already holds Castform `6ADF9056`, which qualifies on the MOVE branch (Powder Snow)
-    and sits AHEAD of the fixture — harmless, because it is in `before_box_pids` and therefore
-    excluded, and the sole-candidate control proves that rather than assuming it.
+    ‼‼ ANCHOR: `saves/fortree_gym_wedge.ss1` (badges 12345, Winona UNBEATEN, party FULL at 6 so
+    the make-room deposit path is exercised). ⛔ NOT `post_dive.ss1` — that save is POST-Winona, so
+    the counter rung cannot fire.
+    ⛔⛔ AND **NOT** `ch13_fortree_door.ss1`, THOUGH THIS DOCSTRING NAMED IT FOR A DAY. That save is
+    on **ROUTE120**, and the run died on its FIRST leg: `Cannot reach FORTREE_CITY: it is not
+    walkable from ROUTE120`. That is **KI-24**, documented in our own `region_reach.py:7-11` —
+    Routes 118/119/120 are dual-elevation-bridge maps `calculate_path` reads as WALLS. Every
+    Winona-era anchor we own is on ROUTE119/120 EXCEPT this wedge. The feared gym-exit leg (the
+    reason the swap was resisted) cost nothing when measured.
+    ⚠ WHAT THE WEDGE GIVES UP: it has NO Shedinja/Ninjask twins and its **boxes are EMPTY**
+    (measured: `before_box_pids=0 entries ([])`), so Stage 2 no longer runs over a live KI-78 PID
+    collision, and the sole-candidate control below is no longer EXERCISED by this anchor even
+    though it is still correct. `ch13_fortree_door.ss1` stays the anchor for any test whose SUBJECT
+    is that collision.
 
     ⛔ EVERY CLAIM IS AN IDENTITY. `withdraw_from_box` NEVER RAISES (`pc_trip.py:475-478`), so "no
     exception" is not evidence; and `pc_trip.py:472-473` PRINTS "{name} is in the party" after
@@ -5156,7 +5167,7 @@ class BoxCounter2Mode(BoxCounterMode):
         "1"   = ARM A — the counter stays boxed. THE USER'S BUG, END TO END.
     Both arms PASS when the code is correct; each grades its OWN expectation.
 
-    Run:  PYTHONUTF8=1 py -3.12 story_harness.py ch13_fortree_door.ss1 \\
+    Run:  PYTHONUTF8=1 py -3.12 story_harness.py fortree_gym_wedge.ss1 \\
               --driver boxcounter2 --frames 400000
     Expect ARM B: STEPS 5,6,7 all -> True, ACCEPTANCE: PASS
     Expect ARM A: hunted_counter_pids=set(), still_boxed=True, in_party=False, ACCEPTANCE: PASS
@@ -5190,9 +5201,11 @@ class BoxCounter2Mode(BoxCounterMode):
             """{(pid, species): "Species L<n>"} — the KI-78 identity, never index, never bare PID.
 
             ⛔⛔ KEYED ON `(personality_value, species.name)`, AND THAT IS NOT PEDANTRY. Keyed on
-            PID alone this dict SILENTLY LOSES A POKÉMON on this very anchor: `ch13_fortree_door`
-            holds a real Shedinja+Ninjask pair BOTH with `pid=42207D6F` (a Shedinja inherits its
-            Ninjask's PID), so a PID-keyed map reported a FULL PARTY OF 6 AS 5 on the first drive.
+            PID alone this dict SILENTLY LOSES A POKÉMON: `ch13_fortree_door` — this driver's
+            anchor on its FIRST drive, since replaced by `fortree_gym_wedge.ss1` — holds a real
+            Shedinja+Ninjask pair BOTH with `pid=42207D6F` (a Shedinja inherits its Ninjask's PID),
+            so a PID-keyed map reported a FULL PARTY OF 6 AS 5 on that drive. ⚠ The current anchor
+            has no twins, so the key is a GUARD here, not a demonstration — do not "simplify" it.
             That is exactly the collision KI-78 was filed for, and the identity fix it shipped is
             `(personality, species)` — the same key used here.
             """

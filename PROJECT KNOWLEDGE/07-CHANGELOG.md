@@ -14615,3 +14615,69 @@ wrong. RUN IT — that is why the file says "RUN THE COMMAND rather than trustin
 **How it was found:** by the upgraded **Tier 2** standard added hours earlier — a cold-start agent
 told to *try to BEGIN the next item* ran the collector as part of orienting, rather than reading
 about it. The consistency checks had passed over this three times.
+
+## 2026-08-15 — fix: `--driver boxcounter2`'s OWN DOCSTRING NAMED THE WRONG ANCHOR AND FORBADE THE RIGHT ONE — six stale references (one of them a copy-pasteable `Run:` line) across five edit sites (punch-list #24-counters)
+
+**The defect.** `story_harness.py`'s `BoxCounter2Mode` docstring said *"‼ ANCHOR:
+`saves/ch13_fortree_door.ss1` … ⛔ NOT `fortree_gym_wedge.ss1` — measured to sit INSIDE the gym,
+which adds a gym-exit leg of pure risk"*, and its `Run:` line handed the reader that save as a
+ready-to-paste command. **Both halves are backwards.** The driver was actually driven — every time,
+in both forks — on `fortree_gym_wedge.ss1`; the evidence transcripts open with
+`[setup] loaded save state fortree_gym_wedge.ss1` (`evidence/2026-08-15-ki79-armB-UNFAULTED.driver.txt`,
+`…-promotion-AFTER-custom-ARMA.driver.txt`). `ch13_fortree_door.ss1` is on **ROUTE120** and the run
+died on its first leg — `Cannot reach FORTREE_CITY: it is not walkable from ROUTE120` — which is
+**KI-24**, documented in our own `region_reach.py:7-11`. The feared gym-exit leg cost nothing.
+
+**Why it mattered more than a typo.** `04-HANDOFF.md` recorded the reversal correctly; the DOCSTRING
+did not. A next agent reading the code — the thing you read when you are about to run it — would
+have copied a command that **fails on leg 1**. This is the P2 *header-vs-body* failure shape applied
+to a docstring, and docstrings are outside every doc gate's reach.
+
+**Fixed, all six references across five edit sites, each keeping its RULE and correcting only its ATTRIBUTION:** the anchor
+block and the `Run:` line now name the wedge and explain KI-24; the three notes that cite
+`ch13_fortree_door`'s properties (the Castform `6ADF9056` sole-candidate control, the
+`Shedinja+Ninjask 42207D6F` PID collision, and the `(personality, species)` key it justifies) now say
+that save was the anchor **at the time**, and flag that the current anchor **does not exercise them**
+— they are guards there, not demonstrations. ⚠ Newly recorded: the wedge's boxes are **EMPTY**
+(measured, `before_box_pids=0 entries ([])`), so the corrected sole-candidate control is currently
+unexercised. ⛔ Do not "simplify" either guard on the strength of the anchor that no longer trips it.
+
+**Prevention rule:** *a rule and the fixture that motivated it are two different facts — when the
+fixture is swapped, the rule stays and its ATTRIBUTION changes.* An archive/rename pass that keeps
+the citation and drops the correction (KI-39) is the same bug in the other direction.
+
+## 2026-08-15 — fix: a FIFTH copy of "Electric answers Winona" survived the round that corrected the other four — and it was sitting on the constant this week's work depends on (punch-list #24-counters)
+
+**The defect.** `story_mode.py:1083`, the explanatory comment on `CREDIBLE_ANSWER_POWER = 75`,
+justified the threshold by saying it *"still keeps ordinary answers — … **Thunderbolt vs Winona
+(270)**"*. That matchup **does not exist**: Winona's ace is Altaria, **Dragon/Flying**, and Electric
+is `0.5x` into Dragon `x 2.0x` into Flying = **1.0, NEUTRAL**. Production agrees — it derives
+`needed = ['Rock', 'Ice', 'Dragon']`, with no Electric, and the `boxcounter2` driver's `needed_ok`
+control is what originally caught the error.
+
+**Why a fifth copy existed.** The 2026-08-15 round corrected four (`counter_hunt.py:250`, the P4
+design note, `04-HANDOFF.md`, the driver) by grepping for the wrong **type list**. This copy is
+**prose about a threshold**, names no type set, and so matched nothing. ‼ *A fact can hide from a
+grep by being phrased as a sentence.*
+
+**Why it mattered rather than being cosmetic.** It is the ONLY worked example on the constant that
+`_boss_plan_is_hopeless` uses to decide whether a party has an answer — the exact predicate KI-80's
+repro is built around. Anyone re-tuning `CREDIBLE_ANSWER_POWER` from its own comment would have
+been calibrating against a matchup that cannot occur. Replaced with a real one: **Ice Beam into
+Altaria (95 x 4.0 = 380)** — Ice is `2.0x` into *both* halves of Dragon/Flying.
+
+**⛔ THE EDIT WAS DELIBERATELY MADE NET-ZERO ON LINE COUNT (2 lines replaced by 2).** The first
+draft was a 12-line explanation, which would have shifted **every `story_mode.py:NNNN` citation
+below line 1083** — including many in `06`, `07` and `08`, which are **APPEND-ONLY and may not be
+rewritten to follow.** Verified after the edit: `grass_is_fodder` is still `:1899` and
+`winona_fight` still `:3532`. ‼ **New standing rule: an explanatory comment inserted into a
+heavily-cited file must be net-zero on lines, or it silently invalidates history you are forbidden
+to correct.** The long version of the story belongs here, in the changelog — not inline.
+
+**⚠ THIS CREATES COMMENT-ONLY SANDBOX→CUSTOM DRIFT (1 file), AND IT IS NOT PROMOTED.** Both forks
+carried the wrong comment; only `sandbox-pokebot` is fixed. Promotion is the USER's call, exactly as
+the earlier comment-only `counter_hunt.py` correction was. `promote.py --check` will now report
+**1 differing** — that is this, and it is expected rather than unexplained.
+
+**How it was found:** an adversarial subagent verifying the KI-80 fixture's `hopeless` predicate
+flagged it unprompted while reading the constant. It was not what the agent was asked to check.

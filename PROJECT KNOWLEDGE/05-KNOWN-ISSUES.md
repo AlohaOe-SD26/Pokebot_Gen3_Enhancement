@@ -2699,7 +2699,9 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   `console.print` output — the `‼ THE WITHDRAW DID NOT LAND` and green-success lines live in
   stdout). The faulted stdout also carries `POKEBOT_PCWITHDRAW_FAULT=1, SKIPPING the PC
   interaction`, which is what proves the fault was actually armed for that run.
-- ✅✅ **PROMOTED TO BOTH FORKS 2026-08-15 (user-approved); drift is 0.** Restore point
+- ✅✅ **PROMOTED TO BOTH FORKS 2026-08-15 (user-approved); this file is in both.** *(⚠ The
+  repo-wide drift figure is no longer 0 — one UNRELATED comment-only `story_mode.py` fix awaits
+  the user's promotion call. It does not touch this item.)* Restore point
   `restore/2026-08-15-pre-promotion-ki79-pctrip`.
   ‼‼ **VERIFIED BY A THREE-POINT A/B, NOT BY A BYTE-COMPARE — and the distinction is the whole
   point for a BEHAVIOUR change.** `promote.py` reporting "1/1 byte-identical" only proves the file

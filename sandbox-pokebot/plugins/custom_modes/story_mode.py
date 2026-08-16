@@ -1079,8 +1079,8 @@ class StoryMode(BotMode):
     #: exists to prevent, arriving through STAB instead of raw power.
     #: The two measured points bracket it: 60 (Combusken + Rock Smash) demonstrably does
     #: NOT beat Norman; 90 (Combusken + Double Kick) demonstrably does. 75 sits between
-    #: them and still keeps ordinary answers — a plain 40-power super-effective move
-    #: (80), Surf off a Water mon (95 x 2.0 x 1.5 = 285), Thunderbolt vs Winona (270).
+    #: them and still keeps ordinary answers — a plain 40-power super-effective move (80),
+    #: Surf (285), Ice Beam into Altaria (380). ⛔ NOT Thunderbolt — Electric is NEUTRAL vs her ace.
     #: ‼ Do NOT "fix" this by excluding HM moves categorically: Surf/Strength/Waterfall
     #: are real attacking moves and are often the bot's best answer. Only Rock Smash and
     #: Cut are weak enough to be the problem, and the power floor already handles them.

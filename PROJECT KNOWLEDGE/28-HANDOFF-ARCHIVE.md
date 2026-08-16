@@ -4402,3 +4402,26 @@ planning-only, which was true for a few hours on 2026-08-13 and is not true now:
   adopted"** ruling.
 * **Run `preflight.py` first.** Then the gate list in "HOW TO RUN / TEST".
 
+
+
+## 2026-08-15 — archived from `04-HANDOFF.md`: the drift-count line's staleness history (moved on the 900-line budget)
+
+The handoff's sandbox→custom drift statement went stale **four times in two days**, and the
+commentary tracking that lived inline until the file hit its line budget. Preserved here in full:
+
+> ⛔⛔ *(THIS ONE LINE HAS NOW GONE STALE THREE TIMES IN A SINGLE DAY, and every time for the same
+> reason: it spelled the count as an ENGLISH WORD naming a specific file, so a sweep for the
+> NUMERAL walked straight past it. **Digits, not words** — the rule that also caught a spelled-out
+> "THREE" sitting here for a day. ‼ When you change a drift count, grep the word forms too, not
+> just the numeral. ⚠ And note `audit_doc_consistency` cannot tell a QUOTATION from a claim: it
+> red-flagged an earlier draft of this very parenthetical for merely reciting the stale wording,
+> which is why the wording is described here rather than reproduced.)*
+
+**Fourth incident, 2026-08-15 (the one that produced this archive move).** A deliberate
+comment-only `story_mode.py` fix took drift 0 → 1. `audit_doc_consistency` flagged **3** stale
+claims (`04-HANDOFF.md:29`, `:158`, `05-KNOWN-ISSUES.md:2702`) out of **7** that existed. The four
+it could NOT see: `04-HANDOFF.md:10` (banner), `:24` (spelled **"zero"**), `:195` (phrased
+*"0 as of 2026-08-15"* inside a table cell), and `03-PUNCH-LIST.md:380`. Plus five further
+`0 differing, 0 orphaned` instructions the drift check does not model at all.
+⇒ **The gate is a floor, not a sweep.** After changing a drift figure, grep manually for:
+`drift is 0` · `drift is ZERO` · `drift.*zero` · `figure is zero` · `0 as of` · `0 differing`.

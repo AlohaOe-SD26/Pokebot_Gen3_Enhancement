@@ -377,7 +377,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       🔜 **WHAT (P4) STILL DOES NOT COVER:** everything UPSTREAM of registration — a real `hunt()`
       catch feeding `story_mode.py:1750`. The Slugma is INJECTED and the PID published by the
       driver. Also still unbuilt: the natural-vs-injected byte-equivalence control.
-      ✅ **BOTH PROMOTIONS ARE DONE (user-approved 2026-08-15) — drift is 0.** The KI-79 fix `pc_trip.py` (a BEHAVIOUR change) was proven by a THREE-POINT A/B showing the new branch actually RUNS in custom, not merely that the file copied. And `counter_hunt.py`
+      ✅ **BOTH PROMOTIONS ARE DONE (user-approved 2026-08-15).** *(⚠ Drift is 1 today for an UNRELATED comment-only `story_mode.py` fix, NOT promoted — the user's call.)* The KI-79 fix `pc_trip.py` (a BEHAVIOUR change) was proven by a THREE-POINT A/B showing the new branch actually RUNS in custom, not merely that the file copied. And `counter_hunt.py`
       (comment-only, the Electric correction) promoted with restore point
       `restore/2026-08-15-pre-promotion-counterhunt-comment`: 1/1 byte-identical, and VERIFIED BY
       DRIVING — `--driver boxcounter2 --build custom` ARM A and ARM B both `ACCEPTANCE: PASS`,
