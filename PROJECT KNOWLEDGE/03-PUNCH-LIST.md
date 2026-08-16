@@ -1818,10 +1818,13 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
 > ⛔⛔ **BEFORE YOU TOUCH ANY BOSS `cfg["grass"]` OR `TRAINING_GRASS`, READ KI-80 (2026-08-15).**
 > The handoff's (P6) framing of this — *"Norman's patch is L3-5 against a band of L27-31, and
 > Winona has no patch at all"* — is **WRONG ON BOTH EXAMPLES**, and acting on it regresses the
-> bot. In one line: `grass_is_fodder` (`story_mode.py:1899`) is the SOLE gate on KI-23's
-> `_boss_plan_is_hopeless`/`_counter_ladder`, and it is TRUE for Winona *only because she has no
-> `grass` key* — so giving her one SKIPS her counter machinery for any team at L30-35 (her own
-> band), silently. Norman's L3-5 patch is the DELIBERATE fodder trigger for the only relocation
+> bot. ✅ **UPDATED 2026-08-16 — THE COUPLING IS GONE (sandbox).** `grass_is_fodder`
+> (`story_mode.py:1899`) USED TO CO-GATE KI-23's `_boss_plan_is_hopeless`/`_counter_ladder`
+> (with `boss_teaches`, inside `losses >= 2`), so giving Winona a `grass` key SKIPPED her counter
+> machinery silently for any team at L30-35. **KI-80 decoupled it:** `:1901` is now
+> `if boss_teaches:` and `boss_mode` sits behind its own `if grass_is_fodder:`.
+> ⚠ **The warning below still stands for the OTHER two reasons**, which the decoupling does NOT
+> address, and it is NOT PROMOTED (`custom-pokebot` still has the coupling). Norman's L3-5 patch is the DELIBERATE fodder trigger for the only relocation
 > this bot has ever performed (70-83% measured). And a new `TRAINING_GRASS` row re-ranks ONE
 > GLOBAL table for every caller, including the counter picker for every other boss.
 > ✅ **ENFORCED, not requested:** `repro_boss_grass_gate.py` (suite #24) fails the build if an

@@ -7335,3 +7335,27 @@ that includes the copies living in docstrings, which no doc gate can see.*
 earlier audit found them attached to the wrong commands entirely. Two independent failures of the
 same artefact is the signal for a gate, not another prose rule — ⇒ **worth building: a check that
 every `Expect:`/`ACCEPTANCE:` claim in HOW TO RUN names a command that still produces it.**
+
+## 2026-08-16 — "CORRECTED IN TWO FILES" WAS WRONG THREE TIMES RUNNING FOR THE SAME PHRASE
+
+**Symptom.** The phrase *"`grass_is_fodder` is the SOLE gate on the counter-ladder"* is inaccurate
+(the code is `if grass_is_fodder and boss_teaches:` inside `if losses >= 2:` — a co-gate), and after
+the decoupling it is simply false. It was declared *"fixed in two files"*. A cold-start audit then
+found a **third** copy in KI-80's own header. After fixing that, my own mechanical re-sweep found a
+**fourth** in `03-PUNCH-LIST.md`.
+
+**Root cause.** Each pass fixed the copies it happened to be looking at — the ones in the file I was
+editing at the time — and then reported a COUNT ("two files") as if it were a sweep. **A count is
+not a search.** Nobody ran `grep "SOLE gate"` across the current-state docs until the third pass,
+and it took under a second.
+
+**The fix that worked.** `grep -rn "SOLE gate" 0[1-5]*.md`, run as a check AFTER the edits rather
+than as a memory before them, and re-run to zero.
+
+**Prevention rule.** *After correcting a phrase, RE-GREP FOR THE PHRASE and paste the empty result.
+"I fixed it in N files" is a claim about your attention; an empty grep is a claim about the repo.*
+
+**Why this keeps happening here specifically.** Long documents with deliberate redundancy — the same
+fact restated in the handoff, the punch list, the KI and the changelog — are good for cold starts
+and terrible for corrections: every restatement is another place for the old version to survive.
+⇒ the cost of redundancy is paid at CORRECTION time, and the only affordable payment is a grep.
