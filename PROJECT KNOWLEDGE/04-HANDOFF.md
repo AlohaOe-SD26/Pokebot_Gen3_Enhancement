@@ -7,7 +7,7 @@
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE (2026-08-15, SESSION END) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC, AND IT IS AT A CLEAN BOUNDARY **AS OF THE COMMIT CARRYING THIS LINE** (a cold-start audit correctly flagged the earlier absolute wording: a banner cannot truthfully say "everything is pushed" while it is itself the uncommitted edit — so read this as *"true at this commit"*, and trust `git status` over any prose). Drift is 0.** ✅ **(P4) IS DRIVEN THROUGH STAGE 2** — the real heal COLLECTS the boxed counter and leads with it (ARM B), and ARM A leaves it boxed, reproducing the user's derail ORGANICALLY; matrix {ARM A, ARM B} x {sandbox, custom} = **4/4 ACCEPTANCE: PASS**. ✅ **BOTH PROMOTIONS ARE DONE (user-approved): `counter_hunt.py` (comment-only) and `pc_trip.py` (KI-79, a BEHAVIOUR change proven by a three-point A/B).** ⛔ **(P6) WAS INVESTIGATED AND REFUTED — its "obvious" fix is a REGRESSION; see KI-80, now GATED (suite #24).** ➡ **NEXT ACTION: build KI-80's repro driver. It is fully specified and its fixture is identified — read KI-80's 9-condition table FIRST (⛔ `losses` 6-11, NEVER 12+, and NOT the `fortree_gym_wedge` save).** §Ch20's chapter assembly stays **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
+# ‼ YOU ARE HERE (2026-08-15, SESSION END) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC, AND IT IS AT A CLEAN BOUNDARY **AS OF THE COMMIT CARRYING THIS LINE** (a cold-start audit correctly flagged the earlier absolute wording: a banner cannot truthfully say "everything is pushed" while it is itself the uncommitted edit — so read this as *"true at this commit"*, and trust `git status` over any prose). Drift is 0.** ✅ **(P4) IS DRIVEN THROUGH STAGE 2** — the real heal COLLECTS the boxed counter and leads with it (ARM B), and ARM A leaves it boxed, reproducing the user's derail ORGANICALLY; matrix {ARM A, ARM B} x {sandbox, custom} = **4/4 ACCEPTANCE: PASS**. ✅ **BOTH PROMOTIONS ARE DONE (user-approved): `counter_hunt.py` (comment-only) and `pc_trip.py` (KI-79, a BEHAVIOUR change proven by a three-point A/B).** ⛔ **(P6) WAS INVESTIGATED AND REFUTED — its "obvious" fix is a REGRESSION; see KI-80, now GATED (suite #24).** ➡ **NEXT ACTION: build KI-80's repro driver. It is fully specified and its fixture is identified — read KI-80's 9-condition table FIRST (⛔ `losses` 6-11, NEVER 12+, and NEITHER `fortree_gym_wedge` NOR `ch13_fortree_door` as the fixture — they fail conditions 7 and 9 respectively).** §Ch20's chapter assembly stays **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
 
 > ⛔ **ORDER, EXPLICITLY (a Tier 2 cold-start audit could not tell which of these came first):
 > (1) RUN THE RITUAL BELOW — it is cheap and it tells you whether the tree is sane; (2) READ
@@ -390,9 +390,20 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    KI-80's 9-condition table in `05-KNOWN-ISSUES.md` BEFORE writing a line.** The three things
 >    that will otherwise waste the round: (a) `losses` must be **6-11** — at 2-5 the ladder
 >    cannot fire at all, and at **12+** `hard_plateau` returns hopeless for the WRONG reason;
->    (b) the fixture must be a **NO_ANSWER** save — ⛔ NOT `fortree_gym_wedge.ss1`, whose
->    Castform scores 160 vs a threshold of 75; **`ch13_fortree_door.ss1` qualifies**, checkable
->    in seconds with `probe_credible_answer.py`; (c) the A/B is on the **cfg shape** (with vs
+>    (b) ⛔⛔ **THE FIXTURE MUST SATISFY *TWO* THINGS, AND BOTH NAMED SAVES FAIL ONE OF THEM.**
+>    It must be **NO_ANSWER** (condition 7) **AND** have `team_max <= wild_max + 8` (condition 9)
+>    or `grass_is_fodder` never flips and BOTH ARMS TAKE THE SAME BRANCH.
+>    ⛔ NOT `fortree_gym_wedge.ss1` — its Castform scores 160 vs a threshold of 75 (fails 7).
+>    ⛔ NOT `ch13_fortree_door.ss1` either — **its Blaziken L39 makes `27+8=35 < 39` TRUE, so the
+>    A/B is VACUOUS** (fails 9). *This line named it as the fixture until a cold-start agent
+>    tried to START from it and computed the discriminator.*
+>    ✅ **VERIFIED CANDIDATES** (all NO_ANSWER; `team_max` in brackets; Route 119 ⇒ needs <= 35):
+>    `batch2_run04_wedge.ss1` [28, OVERWORLD] · `batch3_run03_wedge.ss1` [35, OVERWORLD, ⚠ exactly
+>    ON the boundary] · `batch3_run05_end.ss1` [34, ⚠ in BATTLE] · `ch13_r119_wedge.ss1` [33,
+>    ⚠ in BATTLE, KI-24 wall map]. ‼ **None is Winona-era** — fine for a DECISION-level A/B
+>    (nothing in the path reads a badge), but do NOT report the run as a faithful Winona
+>    scenario. ⛔ **ASSERT the measured `team_max` and `wild_max` at run start** rather than
+>    trusting any of these numbers. Check any save in seconds with `probe_credible_answer.py`; (c) the A/B is on the **cfg shape** (with vs
 >    without a `grass` key), and the observable is WHICH branch prints.
 >    *(The two closed items are kept below for their evidence.)*
 >    **(i) ✅ `counter_hunt.py` PROMOTED** (comment-only; the Electric correction), restore point
@@ -442,20 +453,11 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    so the two meanings stop sharing a boolean — and it may NOT ship on reading alone; it needs the
 >    KI-23 repro DRIVEN before and after. ✅ **THE REPRO IS NOW FULLY SPECIFIED AND ITS FIXTURE IS
 >    IDENTIFIED (2026-08-15) — read KI-80's condition table before building it.**
->    ⛔ **`losses >= 2` IS NOT ENOUGH** — that was this file's earlier wording and a test built to
->    it is **VACUOUS**: `_boss_plan_is_hopeless` short-circuits below **`losses >= 6`**
->    (`PLATEAU_LOSS_THRESHOLD`), so at 2-5 the ladder cannot fire *whatever* the grass key is, and
->    the A/B would show no difference — reading as a REFUTATION of a true finding. **NINE** conditions must hold together (the table grew: an 8th was found by a Tier 1 pass and a
->    **9th — `team_max <= wild_max + 8`, without which BOTH ARMS TAKE THE SAME BRANCH — by a
->    cold-start audit**); a flat run of **six** losses each with `kos = 1` satisfies four of them.
->    ⛔ **The fixture is NOT `ch13_fortree_door.ss1`** — its Blaziken L39 fails condition 9.
->    ⛔ **AND THE OBVIOUS FIXTURE FAILS.** `fortree_gym_wedge.ss1` — the (P4) Stage 2 anchor — has a
->    **credible answer**: its Castform knows **Powder Snow** (Ice 40 BP), `40 x (2.0 x 2.0) = 160`
->    against Altaria's Dragon/Flying, vs a threshold of **75**. ✅ **9 of 10 Winona-era saves DO
->    qualify, including `ch13_fortree_door.ss1`** — measured live by the NEW
->    `tools/story-dev/probe_credible_answer.py`. ‼ The discriminator is the GATE ORDER, not the
->    score: those saves hold moves scoring 97.5 and 90.0 that never count, because `eff` is 1.0 and
->    the `eff < 2.0` branch fires first.
+>    ⛔ **DO NOT BUILD THE REPRO FROM THIS HISTORICAL BLOCK.** Its conditions and its fixture were
+>    both superseded on 2026-08-15. **The authoritative version is the queue head above** (and
+>    KI-80's 9-condition table). In one line: `losses` must be **6-11**, and the fixture must pass
+>    **BOTH** condition 7 (NO_ANSWER) **and** condition 9 (`team_max <= wild_max + 8`) — which
+>    `ch13_fortree_door.ss1` does NOT, despite passing 7.
 >
 >    **(PARKED, NOT CANCELLED) ASSEMBLE §Ch20 AS A CHAPTER** — a module in `modules/story/`,
 >    wired as Segment 20 in `story_mode.py`, built from the driven ingredients (`_ingress`, the

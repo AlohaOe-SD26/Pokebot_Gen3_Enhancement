@@ -2801,7 +2801,8 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   Its **Blaziken L39** gives `team_max = 39`, and `27 + 8 = 35 < 39` is TRUE, so `grass_is_fodder`
   is True **in BOTH arms**, both take the same branch, and the run would show NO DIFFERENCE — which
   reads as a refutation of a true finding. It satisfies condition 7 (NO_ANSWER) and fails
-  condition 2; the earlier check verified 7 and never 2.
+  **condition 9** (which is condition 2's requirement stated as a checkable arithmetic test); the
+  earlier check verified 7 and never the flip.
   ✅ **VERIFIED CANDIDATES that satisfy BOTH** (`probe_credible_answer.py`, run 2026-08-15 —
   all NO_ANSWER, `team_max` in brackets): `batch3_run03_wedge.ss1` [35, OVERWORLD, MAUVILLE_CITY],
   `batch2_run04_wedge.ss1` [28, OVERWORLD, ROUTE111], `batch3_run05_end.ss1` [34, ⚠ **in BATTLE**],
@@ -2825,8 +2826,9 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   anchor (P4) Stage 2 uses) **FAILS condition 7**: its **Castform L25 knows Powder Snow** (Ice,
   base_power 40), and vs Altaria (Dragon/Flying) that is `40 x (2.0 x 2.0) x 1.0 = **160** >= 75` —
   a credible answer, so `_boss_plan_is_hopeless` returns **not hopeless** and the ladder can never
-  fire from that save. ✅ **9 of 10 Winona-era saves DO qualify**, including
-  **`ch13_fortree_door.ss1`** — verified live with `tools/story-dev/probe_credible_answer.py`
+  fire from that save. ✅ **9 of 10 Winona-era saves pass CONDITION 7 (NO_ANSWER)**, including
+  **`ch13_fortree_door.ss1`** — ⛔ **but passing 7 is NOT "qualifying": that save FAILS condition 9
+  and is unusable as the fixture (see above)** — verified live with `tools/story-dev/probe_credible_answer.py`
   (NEW), which drives production's own type chart and `_battler_slots()`.
   ‼ **The discriminator is the GATE ORDER, not the score:** those 9 saves hold moves scoring
   **97.5** (Loudred/Stomp) and **90.0** (Mightyena/Bite) — both above 75 — that never count,

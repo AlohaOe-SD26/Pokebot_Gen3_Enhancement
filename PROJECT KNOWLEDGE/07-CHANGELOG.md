@@ -14505,3 +14505,46 @@ confidently, silently wrong.
 
 **Housekeeping:** KI-54 (218 lines, severity *informational*, subject RETRACTED) moved to
 `31-KNOWN-ISSUES-ARCHIVE.md` to bring `05-KNOWN-ISSUES.md` back under its 3000-line budget.
+
+## 2026-08-15 — WRAP-UP PASSES 2 AND 3: the KI-80 fixture I prescribed made the A/B VACUOUS, and the first fix for it was HALF-APPLIED (punch-list #24-trainmap)
+
+⚠ **This entry supersedes the two claims the previous entry ended on.** That entry said *"the full
+seven-condition table"* (it is **nine**) and *"9 of 10 Winona-era saves DO qualify, including
+`ch13_fortree_door.ss1`"* (it passes condition 7 and **FAILS condition 9** — it is unusable).
+
+**PASS 2 — THE DEFECT.** `grass_is_fodder` is `("grass" not in cfg) or (wild_max + 8 < team_max)`,
+so the A/B only means anything if adding the `grass` key FLIPS it — which needs
+`wild_max + 8 >= team_max`. Route 119's `wild_max` is 27, so the fixture needs `team_max <= 35`.
+`ch13_fortree_door.ss1` holds **Blaziken L39** ⇒ `35 < 39` is TRUE ⇒ `grass_is_fodder` is True in
+**BOTH arms** ⇒ both take the same branch ⇒ **no difference**, which reads as a refutation of a true
+finding. ‼ I verified that fixture against condition **7** and never against the flip — the same
+class of error the entry was written to prevent, one condition over.
+⇒ Added **condition 9** with its arithmetic, retracted the fixture, and listed four candidates
+verified NO_ANSWER with their measured `team_max`, era, and BATTLE state
+(`batch2_run04_wedge` [28] · `batch3_run03_wedge` [35, on the boundary] · `batch3_run05_end` [34,
+in battle] · `ch13_r119_wedge` [33, in battle]). ‼ None is Winona-era — fine for a DECISION-level
+A/B, but it must not be reported as a faithful Winona run.
+
+**PASS 3 — THE FIX WAS HALF-APPLIED, which is the more useful lesson.** A confirmation agent found
+the retraction had landed in the HISTORICAL (P6) block while the **queue head — the thing a cold
+agent acts from — still named the vacuous save**, 57 lines above it. Textbook P1: the corrected
+half went where nobody acts, the stale half stayed where they do. Also fixed in this pass:
+* the banner warned against only ONE of the two disqualified saves;
+* the handoff named **no working fixture at all** (the candidates existed only in `05`);
+* `repro_boss_grass_gate.py`'s **module docstring** still prescribed the refuted `losses>=2`
+  conditions, 170 lines above the failure message that had already been corrected — a reader who
+  OPENS the file gets the wrong instruction before the one that trips;
+* KI-80 named two different numbers ("fails condition 2" / "fails condition 9") for one failure;
+* this changelog had **no entry for the correction commit at all** (DoD step 3 skipped) — which is
+  why this entry exists and opens by superseding its predecessor.
+
+**Also refreshed** (pre-existing drift, found by the doc sweep): `02-ARCHITECTURE.md`'s tool counts
+(**84 → 101** repro scripts, **52 → 101**, measured with `ls`, plus 71 `probe_*` and 3 `audit_*`),
+and its `--driver` enumeration is now marked explicitly NON-EXHAUSTIVE and watermarked, pointing at
+`--driver`'s `choices=` as the live list. And `probe_credible_answer.py --help` no longer exits 2
+treating `--help` as a save name.
+
+‼ **The method that found all of this is worth reusing:** none of it came from reviewing a diff.
+It came from agents told to **TRY TO BEGIN THE TASK** from the docs alone and report where they got
+stuck. ⇒ *The strongest audit of a handoff is not "is it consistent?" but "can someone start from
+it?"* — see `08-MISTAKES.md`.

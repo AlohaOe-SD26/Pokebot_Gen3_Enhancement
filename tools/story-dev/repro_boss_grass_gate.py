@@ -43,9 +43,12 @@ ever made sense as a consequence of the coupling. A rule that outlives its cause
 
 ⛔ WHAT THIS GATE IS *NOT*. It is not an argument that Winona should never train. It is the
 statement that **giving her a patch and keeping her counter-ladder are currently mutually
-exclusive**, so the two must be done together, with the KI-23 repro conditions driven
-(a Winona attempt at losses>=2 with kos>=1 and no type answer in the party) — not by editing a
-dict. See KI-80.
+exclusive**, so the two must be done together, with the KI-23 repro conditions driven — not by
+editing a dict. ⛔ **READ KI-80's CONDITION TABLE FOR THOSE CONDITIONS.** An earlier version of
+this docstring said "losses>=2 with kos>=1 and no type answer"; that is REFUTED and would build a
+VACUOUS test (the ladder cannot fire below losses>=6; at 12+ `hard_plateau` passes it for the
+wrong reason; and the fixture must also satisfy `team_max <= wild_max + 8` or both arms take the
+same branch). See KI-80.
 
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 repro_boss_grass_gate.py
       PYTHONUTF8=1 py -3.12 repro_boss_grass_gate.py --self-test   # fault-tests the gate itself
