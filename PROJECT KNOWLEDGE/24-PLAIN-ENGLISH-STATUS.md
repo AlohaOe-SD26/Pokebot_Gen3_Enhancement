@@ -4,9 +4,11 @@
 > code terms. No jargon, no statistics. Every technical claim here has a precise version
 > elsewhere: `07-CHANGELOG.md` (what changed), `08-MISTAKES.md` (what went wrong),
 > `03-PUNCH-LIST.md` (the queue), `04-HANDOFF.md` (resume point).
-> **Last updated: 2026-08-13.** ‼ **This file was THREE DAYS AND FIVE CHAPTERS STALE** until a
-> cold-start audit caught it — and `00-README.md` sends new readers HERE FIRST, so it was the very
-> first thing a fresh session read and the most wrong. The "Where it gets to today" and "Where it
+> **Last updated: 2026-08-15.** ‼ **This file was THREE DAYS AND FIVE CHAPTERS STALE** until a
+> cold-start audit caught it. *(This line used to claim `00-README.md` "sends new readers HERE
+> FIRST". It does not — the README lists this file under **"Read WHEN RELEVANT — not part of the
+> start-of-session ritual"**, while calling it "START HERE FOR A HUMAN ANSWER". Overstating its own
+> position to dramatise its staleness is the same species of error as the staleness.)* The "Where it gets to today" and "Where it
 > stands now" sections are corrected below. **The day-by-day narrative in between is HISTORY from
 > 2026-08-10 and is left as written.**
 
@@ -31,6 +33,40 @@ day after that stopped being true.)*
 ‼ **An honest caveat, because it matters:** that cavern run is a **test harness**, not part of the
 real playthrough yet. It is driven room by room from a saved game, and the Dive move is handed to
 it rather than earned. Wiring it into the actual story run is still to do.
+
+## ⛔ BUT THAT IS NOT WHAT WE ARE WORKING ON (changed 2026-08-14 — read this before the day-by-day below)
+
+**The cavern work is PARKED — finished and set aside, not cancelled.** On 2026-08-14 you watched a
+real run do something worse than crash, and we changed priorities to it. What happened, in game
+terms:
+
+The bot was losing to **Winona**, the Fortree gym leader. It correctly worked out *why* — nothing on
+its team hurt her Altaria — and went off and **caught a Slugma** to fix it. Good so far. Then it
+went to the Pokémon Center to heal, **the Slugma got left in the PC box**, the run dropped to manual
+control, and when it picked up again **it walked back into the gym without the counter it had just
+gone and caught.** All that work, thrown away silently. Nothing errored. Nothing said a word.
+
+**So the live job is: make the bot use the Pokémon PC robustly.** Where that stands:
+
+* ✅ **The Slugma bug is found, fixed, and reproducible on demand** — we can make the bot fail that
+  exact way and then show the fix stops it. Fixed in both copies of the code.
+  ⚠ **Honest limit:** the test hands the bot the Slugma rather than making it go and catch one, so
+  the *catching* half of your original run is still not covered end to end. The part that went
+  wrong — losing the Pokémon at the Center — is.
+* ✅ **The bot no longer LIES about the PC.** It used to announce "Slugma is in the party" after
+  merely counting how many Pokémon it had. Now it checks *that specific Pokémon by identity*, and
+  says so loudly when the withdrawal did not happen.
+  ⚠ **But it still only SAYS it.** Nothing yet reacts to that message — the bot reports the failure
+  and then carries on regardless. Making it act on its own warning is still open work.
+* ✅ **A second, unrelated trap was found and reproduced (2026-08-15).** If you ever give a gym
+  leader a designated **training patch of grass**, the bot **silently loses its ability to work out
+  that a fight is hopeless and go catch a counter** — the exact machinery above. It keeps printing a
+  cheerful "training harder before re-attempting" and grinding levels that cannot help. We proved
+  this by running the real code three ways and watching which path it took.
+  ⛔ **The practical warning: do not "helpfully" give a boss a training area.** For Winona, the fact
+  that she has *no* training patch is the only reason her counter-catching works at all.
+* 🔜 **Next:** untangle those two ideas in the code, so a boss can have a training area *and* still
+  be able to go catch a counter.
 
 ---
 
@@ -157,14 +193,18 @@ result, prove the tool can find something you already know is there.
 2026-08-10, the day this section was written.)*
 
 * Everything is saved and backed up. ⚠ **The working copy does NOT match the shipped copy** —
-  **three files differ on purpose**, holding fixes that have been proven but not yet approved for
-  the shipped build. That approval is a decision for the project's owner, not something the bot
-  should do on its own.
+  **1 file differs on purpose** (measured 2026-08-16), holding a correction that has been made but
+  not yet approved for the shipped build. That approval is a decision for the project's owner, not
+  something the bot should do on its own. *(This line said "three files" for days; the count was
+  spelled as a WORD, which is invisible to the automatic check that polices that number.)*
 * **The next room is mapped in detail**, including the one mistake that cannot be undone: there is
   a spot where pushing a boulder the wrong way **permanently blocks the only exit**. The plan
   avoids it, and if it ever happened the fix is to walk out of the room and back in, which resets
   every boulder.
-* **What is genuinely still unknown:** how the bot handles the fight with the Aqua leader at the
-  end, and the escape afterwards — the game drops the player on a **sandbar surrounded by
-  water**, and swimming the obvious direction leads into a **dead-end pool with no way out**. That
-  has been measured and the safe direction is known; it has not been driven yet.
+* ⛔ **SUPERSEDED — this bullet said the Aqua-leader fight and the escape "have not been driven
+  yet". They were driven on 2026-08-14** (and the top of this file has said so since). Both now
+  work: the bot beats the leader, wakes the legendary, and takes the escape route. ⚠ **One honest
+  caveat that is NOT superseded:** the leader fight was won **2 times out of 3** — it is the one
+  genuinely unreliable step, because the team arrives worn down and there is nowhere to heal
+  inside. The sandbar hazard is real and handled: swimming the obvious direction leads to a
+  **dead-end pool**, so the bot steps south first.

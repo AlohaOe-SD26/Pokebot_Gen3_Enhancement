@@ -5481,6 +5481,13 @@ class Ki80LadderMode(BotMode):
         FODDER_GAP = 8        # the `+ 8` in `:1899`, restated so the assertions below are readable
 
         decoupled = _os.environ.get("POKEBOT_KI80_DECOUPLED") == "1"
+        # ⛔ ARM 4 IS A SEPARATE RUN ON A DIFFERENT SAVE, so arms 1-3's anti-vacuity check does not
+        # apply to it — that check asks whether ROUTE119 flips `grass_is_fodder` for a NO_ANSWER
+        # party, a question arm 4 never poses. It has its OWN two controls instead (A: the party
+        # really HAS an answer; B: condition 9 INVERTED against VICTORY_ROAD_1F). Left ungated,
+        # arm 4 fails on a check about arms it does not run — a FAIL that means nothing, which is
+        # exactly how a reader learns to ignore a verdict.
+        arm4 = _os.environ.get("POKEBOT_KI80_ARM4") == "1"
         fails: list[str] = []
 
         def bad(msg: str) -> None:
@@ -5491,7 +5498,7 @@ class Ki80LadderMode(BotMode):
         _random.seed(SEED)
         log(f"[{TAG}] seeded random with {SEED} (production `:1819`/`:1941` are unseeded; the "
             f"branch is unaffected but how far an arm WOULD run is not)")
-        log(f"[{TAG}] EXPECTATION = {'DECOUPLED (all three -> LADDER)' if decoupled else 'COUPLED (today: GRASS_STRONG -> ESCALATION)'} "
+        log(f"[{TAG}] EXPECTATION = {'ARM 4 (PLAIN_ESCALATION, before AND after the fix)' if arm4 else ('DECOUPLED (all three -> LADDER)' if decoupled else 'COUPLED (today: GRASS_STRONG -> ESCALATION)')} "
             f"(POKEBOT_KI80_DECOUPLED={_os.environ.get('POKEBOT_KI80_DECOUPLED', '<unset>')!r})")
 
         # ---- 1. MEASURE THE FIXTURE LIVE. Never trust the table in the docs. --------------------
@@ -5533,13 +5540,17 @@ class Ki80LadderMode(BotMode):
                 f"vs team_max={team_max} -> grass_is_fodder flips to False? {strong_flips}")
             log(f"[{TAG}] DISCRIMINATOR ROUTE102: {wild_fodder}+{FODDER_GAP}={wild_fodder + FODDER_GAP} "
                 f"vs team_max={team_max} -> stays fodder? {fodder_keeps}")
-            if not strong_flips:
-                bad(f"THE A/B WOULD BE VACUOUS: ROUTE119 does not flip `grass_is_fodder` at "
-                    f"team_max={team_max} (need team_max <= {wild_strong + FODDER_GAP}). "
-                    f"This is KI-80 condition 9 — pick a fixture with a LOWER team_max.")
-            if not fodder_keeps:
-                bad(f"THE CONTROL IS DEAD: ROUTE102 does not stay fodder at team_max={team_max} "
-                    f"(need team_max > {wild_fodder + FODDER_GAP})")
+            if arm4:
+                log(f"[{TAG}] (arms 1-3 anti-vacuity NOT graded — this is an ARM 4 run; arm 4 has "
+                    f"its own CONTROL-A/CONTROL-B below)")
+            else:
+                if not strong_flips:
+                    bad(f"THE A/B WOULD BE VACUOUS: ROUTE119 does not flip `grass_is_fodder` at "
+                        f"team_max={team_max} (need team_max <= {wild_strong + FODDER_GAP}). "
+                        f"This is KI-80 condition 9 — pick a fixture with a LOWER team_max.")
+                if not fodder_keeps:
+                    bad(f"THE CONTROL IS DEAD: ROUTE102 does not stay fodder at team_max={team_max} "
+                        f"(need team_max > {wild_fodder + FODDER_GAP})")
 
         # ---- 3. THE cfg, CROSS-CHECKED AGAINST THE REAL LITERAL IN THE SOURCE AST. --------------
         # `winona_fight` is METHOD-LOCAL (`story_mode.py:3532`) and cannot be imported, so it is
@@ -5645,6 +5656,105 @@ class Ki80LadderMode(BotMode):
                 "message": getattr(_ctx, "message", None),
                 "unreachable": sorted(str(x) for x in getattr(mode, "_training_unreachable", ()) or ()),
             }
+
+        # ---- 3b. ARM 4 — THE MIRROR-REGRESSION ARM. Separate run: it needs a DIFFERENT save. ----
+        # ⛔⛔ WHY THIS EXISTS. The naive KI-80 fix ("delete `grass_is_fodder and` from `:1901`")
+        # hands `boss_mode = True` (`:1925`, the NOT-hopeless path) to every boss with a STRONG
+        # patch AND a credible answer, and `:1937`'s `not boss_mode` then SUPPRESSES their plain
+        # grass escalation. That is KI-23's mirror regression arriving through KI-80's fix.
+        # ‼ ARMS 1-3 CANNOT SEE IT: they all use a NO_ANSWER party, so `hopeless` is True, the
+        # ladder fires and `_prepare_for_fight` RETURNS at `:1924` — `:1925` is never reached.
+        # ⛔ AND THE OBVIOUS FIXTURE IS VACUOUS — the third time this exact trap has been walked
+        # into. `fortree_gym_wedge.ss1` is HAS_ANSWER (condition 7's inverse, which is what arm 4
+        # wants) but its `team_max` is 39, and against ROUTE119's `wild_max` 27,
+        # `27 + 8 = 35 < 39` is TRUE ⇒ `grass_is_fodder` is True ANYWAY and the "strong patch"
+        # arm is silently a FODDER arm. ⇒ arm 4 needs a map whose land `wild_max >= team_max - 8`.
+        # ✅ MEASURED 2026-08-16 across every `TRAINING_GRASS` map plus 9 candidates: the ONLY one
+        # that clears 31 is VICTORY_ROAD_1F at 40 (Routes 121/123 peak at 28, ROUTE119 at 27).
+        # ⚠ It is not a PLAUSIBLE training area for Winona — arm 4 is a DECISION-level test of the
+        # branch, exactly as arms 1-3 are not a faithful Winona scenario. Say so; do not dress it up.
+        if arm4:
+            log(f"[{TAG}] ══ ARM 4 ONLY — the MIRROR-REGRESSION arm (POKEBOT_KI80_ARM4=1) ══")
+            log(f"[{TAG}] ⛔ This arm needs a HAS_ANSWER save (e.g. fortree_gym_wedge.ss1), NOT the "
+                f"NO_ANSWER anchor arms 1-3 use. Both controls below are measured, not assumed.")
+            mode4 = _sm.StoryMode()
+            key4 = MapRSE.FORTREE_CITY_GYM.value
+            mode4._defeat_counts[key4] = LOSSES
+            mode4._loss_ko_history[key4] = [(i, 1) for i in range(1, LOSSES + 1)]
+
+            # CONTROL A — the party must genuinely HAVE an answer, or this arm tests nothing.
+            # Calls the REAL predicate; no observer, no substitution.
+            hopeless4, needed4 = mode4._boss_plan_is_hopeless(base_cfg)
+            log(f"[{TAG}] ARM4 CONTROL-A `_boss_plan_is_hopeless` -> hopeless={hopeless4} "
+                f"needed={needed4} (must be hopeless=False: arm 4 is the HAS-ANSWER case)")
+            if hopeless4:
+                bad("ARM4: this save is NO_ANSWER (hopeless=True), so it cannot exercise the "
+                    "`:1925 boss_mode` path at all — use a HAS_ANSWER save such as "
+                    "fortree_gym_wedge.ss1")
+
+            # CONTROL B — condition 9, INVERTED, measured live. Without this the arm is vacuous.
+            wild4 = wild_land_max(MapRSE.VICTORY_ROAD_1F)
+            log(f"[{TAG}] ARM4 CONTROL-B VICTORY_ROAD_1F wild_max={wild4} vs team_max={team_max} "
+                f"-> grass_is_fodder False? {wild4 is not None and not (wild4 + FODDER_GAP < team_max)}")
+            if wild4 is None or (wild4 + FODDER_GAP < team_max):
+                bad(f"ARM4 IS VACUOUS: VICTORY_ROAD_1F wild_max={wild4} does not make "
+                    f"`grass_is_fodder` False at team_max={team_max} (need wild_max >= "
+                    f"{team_max - FODDER_GAP}). ⛔ This is condition 9 again — pick a HIGHER map "
+                    f"or a LOWER-level HAS_ANSWER save.")
+
+            # ⚠ Only `cfg["grass"][0]` is read before the tripwire fires (`:1887`); the coordinate
+            # pair is never touched on this path, so it is a placeholder AND IS LABELLED ONE.
+            cfg4 = {**base_cfg, "grass": (MapRSE.VICTORY_ROAD_1F, (0, 0))}
+            mode4._counter_ladder = ladder_spy
+            ladder_calls.clear()
+            sink4: list[str] = []
+            before4 = snapshot(mode4)
+            outcome4, detail4 = "UNSET", ""
+            gen4 = mode4._prepare_for_fight(cfg4)
+            _sm.console = _Proxy(real_console, sink4)
+            try:
+                next(gen4)
+                outcome4 = "YIELDED_WITHOUT_DISCRIMINATING"
+            except _Ki80Discriminated as trip:
+                outcome4 = str(trip)
+            except BotModeError as error:
+                outcome4, detail4 = "LADDER", str(error)
+            except StopIteration:
+                outcome4 = "RETURNED_WITHOUT_DISCRIMINATING"
+            except Exception as error:  # noqa: BLE001
+                outcome4, detail4 = f"UNEXPECTED_{type(error).__name__}", str(error)
+            finally:
+                try:
+                    gen4.close()
+                except Exception as error:  # noqa: BLE001
+                    log(f"[{TAG}] ARM4 gen.close() raised {type(error).__name__}: {error}")
+                _sm.console = real_console
+            drift4 = {k: (before4[k], snapshot(mode4)[k]) for k in before4
+                      if before4[k] != snapshot(mode4)[k]}
+            log(f"[{TAG}] ARM4 OUTCOME={outcome4} ladder_entered={bool(ladder_calls)} "
+                f"INVARIANCE drift={drift4 if drift4 else 'none'}")
+
+            # ‼ THE ASSERTION IS FIX-SHAPE-AGNOSTIC AND IS THE SAME BEFORE AND AFTER THE FIX.
+            # A boss with a strong patch and a real answer must keep its plain grass escalation,
+            # whatever shape the decoupling takes. That is the ONLY thing arm 4 grades.
+            if outcome4 == "BOSS_TRAINING_MODE":
+                bad("⛔⛔ ARM4: KI-23's MIRROR REGRESSION HAS LANDED — a boss with a STRONG patch "
+                    "AND a credible answer entered BOSS-TRAINING MODE, so `:1937`'s plain grass "
+                    "escalation is SUPPRESSED. This is exactly what decoupling `:1901` naively "
+                    "does. The KI-80 fix must not set `boss_mode` from the not-hopeless path when "
+                    "`grass_is_fodder` is False.")
+            elif outcome4 != "PLAIN_ESCALATION":
+                bad(f"ARM4: expected 'PLAIN_ESCALATION' (before AND after the fix), got "
+                    f"{outcome4!r}")
+            if ladder_calls:
+                bad("ARM4: the counter ladder was entered, but this party HAS an answer — the "
+                    "hopeless predicate is wrong or the seed is")
+            if drift4:
+                bad(f"ARM4: STATE CHANGED across the arm — {drift4}")
+            log(f"[{TAG}] ACCEPTANCE: {'PASS' if not fails else 'FAIL'}"
+                + ("" if not fails else f" — {len(fails)} problem(s): " + " | ".join(fails)))
+            _ctx.set_manual_mode()
+            return
 
         results = []
         for arm_name, cfg, expected in arms:

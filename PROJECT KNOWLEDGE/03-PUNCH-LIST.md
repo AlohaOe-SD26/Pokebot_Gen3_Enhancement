@@ -377,6 +377,12 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       🔜 **WHAT (P4) STILL DOES NOT COVER:** everything UPSTREAM of registration — a real `hunt()`
       catch feeding `story_mode.py:1750`. The Slugma is INJECTED and the PID published by the
       driver. Also still unbuilt: the natural-vs-injected byte-equivalence control.
+      🆕 **RESIDUAL (filed 2026-08-15, found by a Tier 2 cold-start): `04-HANDOFF.md`'s
+      `NEXT ACTIONS` numbering RESTARTS.** It runs 1, 2, 2c, 3, 3b, 4, 5 and then begins again at
+      2b, 3, 4, 5, so a cross-reference to "NEXT ACTIONS item 3" resolves to TWO different items.
+      Not misleading about STATE — item 0 is unambiguous and is what a cold start acts on — but any
+      citation to items 1-5 is unresolvable. ⇒ when the "older framing" block is next touched,
+      archive it wholesale rather than renumbering in place.
       ✅✅ **KI-80'S REPRO IS BUILT, DRIVEN AND FAULT-TESTED (2026-08-15) — `--driver ki80ladder`.**
       THREE arms on `saves/batch2_run04_wedge.ss1` (`team_max` 28, 8 seeded losses): `NOGRASS` →
       ladder · `GRASS_FODDER` (Route 102, `wild_max` 4) → ladder · ⛔ `GRASS_STRONG` (Route 119 —

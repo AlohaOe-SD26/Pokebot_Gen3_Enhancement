@@ -1,7 +1,9 @@
 # 25 — BACKUPS & RESTORE POINTS
 
-> **Current-state file.** Edit in place; keep the inventory below complete. Every restore point
-> ever created must appear here, with what it captured and why it exists.
+> **Current-state file, but an INDEX — NOT the record.** ⛔ **`git for-each-ref --sort=creatordate
+> refs/tags/restore/` IS THE AUTHORITY** (ruling 2026-08-15, see §6); this file carries the WHY and
+> will always lag the WHAT — it was **6 tags stale** when an audit caught it. Keep the inventory
+> below complete anyway, **oldest first**, with what each captured and why it exists.
 
 ## 0. TL;DR — how to get back to a known-good version
 
@@ -149,6 +151,16 @@ project's git conduct rule requires asking the user before any of them.** Never 
 | 2026-08-04 | `restore/pre-bisect-20260804` | ✅ | before bisecting the batch8→11/12 decline (52.8%→37.0%). Suite 77/77 |
 | 2026-08-05 | `restore/session-end-20260805` | ✅ | regression closed (52.0%), three harmful features flagged off, counter chain end-to-end. Suite 78/78 |
 | **2026-08-11** | **`restore/2026-08-11-all-promoted`** | ✅ | **zero drift sandbox↔custom; `#24-teachmsgstall` + KI-51 + KI-52 + status telemetry all promoted; gate 14/14; all PINNED fixtures verified; §Ch16 anchor `post_maxie.ss1` (md5 `19399688e730`) era-verified.** Taken before boss-response / roster work |
+| **2026-08-12** | **`restore/2026-08-12-pre-ch1819-promotion`** | ✅ | before the §Ch18/§Ch19 promotion |
+| **2026-08-13** | **`restore/2026-08-13-pre-roster-promotion`** | ✅ | before the roster promotion |
+| **2026-08-13** | **`restore/2026-08-13-pre-ki63-promotion`** | ✅ | before the KI-63 promotion |
+| **2026-08-13** | **`restore/2026-08-13-session-end-ch20room3`** | ✅ | session end, §Ch20 Room 3 driven |
+| **2026-08-14** | **`restore/2026-08-14-pre-promotion-5files`** | ✅ | before the 5-file promotion (`map_path.py`, `early_game.py`, `story_mode.py`, `counter_hunt.py`, `pokemon_party.py`) |
+| **2026-08-14** | **`restore/2026-08-14-pre-promotion-ki78`** | ✅ | before KI-78 Stage 1 (the `(personality, species)` identity fix); first promotion executed by `promote.py` |
+| **2026-08-15** | **`restore/2026-08-15-pre-promotion-stage0-p4`** | ✅ | before the party-accounting Stage 0 + (P4) promotion (5 files) |
+| **2026-08-15** | **`restore/2026-08-15-pre-promotion-boxwrite-docstring`** | ✅ | before the `boxwrite` docstring promotion |
+| **2026-08-15** | **`restore/2026-08-15-pre-promotion-counterhunt-comment`** | ✅ | before the comment-only `counter_hunt.py` Electric correction |
+| **2026-08-15** | **`restore/2026-08-15-pre-promotion-ki79-pctrip`** | ✅ | taken before the KI-79 `pc_trip.py` promotion (a BEHAVIOUR change, proven by a THREE-POINT A/B) |
 
 ‼ **KNOWN WART on `restore/2026-08-11-all-promoted`:** its tag message points at
 `PROJECT KNOWLEDGE/15-BACKUPS-AND-RESTORE.md`, which was renumbered to **`25-`** minutes later
@@ -156,14 +168,23 @@ because `15-` was already taken by `15-ESCALATION-RESEARCH.md`. **The tag was NO
 it.** Deleting and re-pushing a published ref to correct a typo is exactly the mutable-reference
 habit that has cost this project real results, and the rule against rewriting published history
 does not get an exception for cosmetics. The tag's *content* is correct; only that one path in its
-message is stale. This file is the authority.
+message is stale.
+⛔⛔ **AUTHORITY, RESOLVED 2026-08-15 (this file and `04-HANDOFF.md` each used to claim it):**
+**`git for-each-ref --sort=creatordate refs/tags/restore/` IS THE AUTHORITY.** This file is a
+human-readable INDEX of it, and an index can only ever be stale — it was 6 tags behind when a
+Tier 2 cold-start audit caught it. ‼ Run the command; use this table for the WHY, never the WHAT.
 
 **Verification of the newest point** (do this for every new one):
 ```
-remote ref present : refs/tags/restore/2026-08-11-all-promoted -> 1195e857  ✅
-points at HEAD     : 1195e8570508 == 1195e8570508                          ✅
-tree contains      : 67 .ss1 fixtures, 2 ROM files                          ✅
+remote ref present : refs/tags/restore/<tag> -> <sha>                       ✅
+points at HEAD     : <sha> == <HEAD sha>   (ONLY true on the day it is cut)  ✅
+tree contains      : N .ss1 fixtures, 2 ROM files                           ✅
 ```
+⛔⛔ **THIS BLOCK USED TO HARD-CODE `restore/2026-08-11-all-promoted -> 1195e857` AND ASSERT
+`points at HEAD ✅`. THAT WENT FALSE THE NEXT TIME ANYONE COMMITTED**, and it then sat here through
+six further restore points, still claiming ✅ — a green tick on an assertion that could not be true.
+‼ *"Points at HEAD" is only ever true for the newest tag on the day it is cut; templating it is the
+fix, because a hard-coded sha in a "do this every time" block is a lie with a timer on it.*
 
 ---
 

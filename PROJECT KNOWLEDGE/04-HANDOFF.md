@@ -7,7 +7,7 @@
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE (2026-08-15, SESSION END) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC, AND IT IS AT A CLEAN BOUNDARY **AS OF THE COMMIT CARRYING THIS LINE** (a cold-start audit correctly flagged the earlier absolute wording: a banner cannot truthfully say "everything is pushed" while it is itself the uncommitted edit — so read this as *"true at this commit"*, and trust `git status` over any prose). ⚠ Drift is 1 — ONE comment-only file (`story_mode.py`), NOT promoted, awaiting the user's call; see the STATE table.** ✅ **(P4) IS DRIVEN THROUGH STAGE 2** — the real heal COLLECTS the boxed counter and leads with it (ARM B), and ARM A leaves it boxed, reproducing the user's derail ORGANICALLY; matrix {ARM A, ARM B} x {sandbox, custom} = **4/4 ACCEPTANCE: PASS**. ✅ **BOTH PROMOTIONS ARE DONE (user-approved): `counter_hunt.py` (comment-only) and `pc_trip.py` (KI-79, a BEHAVIOUR change proven by a three-point A/B).** ⛔ **(P6) WAS INVESTIGATED AND REFUTED — its "obvious" fix is a REGRESSION; see KI-80, now GATED (suite #24).** ✅✅ **KI-80'S REPRO DRIVER IS BUILT, DRIVEN AND FAULT-TESTED — `--driver ki80ladder`, 3 arms, `ACCEPTANCE: PASS` in BOTH forks, and KI-80 is REPRODUCED (Winona's real Route 119 patch DELETES her counter ladder). ⛔ DO NOT REBUILD IT.** ➡ **NEXT ACTION: DECOUPLE the counter-ladder from `grass_is_fodder` (KI-80's fix), then re-run the SAME driver with `POKEBOT_KI80_DECOUPLED=1` — it FAILS today (measured) and must go PASS. The BEFORE run is already committed, which is the half that cannot be redone later.** §Ch20's chapter assembly stays **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
+# ‼ YOU ARE HERE (2026-08-15, SESSION END) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC, AND IT IS AT A CLEAN BOUNDARY **AS OF THE COMMIT CARRYING THIS LINE** (a cold-start audit correctly flagged the earlier absolute wording: a banner cannot truthfully say "everything is pushed" while it is itself the uncommitted edit — so read this as *"true at this commit"*, and trust `git status` over any prose). ⚠ Drift is 1 — ONE comment-only file (`story_mode.py`), NOT promoted, awaiting the user's call; see the STATE table.** ✅ **(P4) IS DRIVEN THROUGH STAGE 2** — the real heal COLLECTS the boxed counter and leads with it (ARM B), and ARM A leaves it boxed, reproducing the user's derail ORGANICALLY; matrix {ARM A, ARM B} x {sandbox, custom} = **4/4 ACCEPTANCE: PASS**. ✅ **BOTH PROMOTIONS ARE DONE (user-approved): `counter_hunt.py` (comment-only) and `pc_trip.py` (KI-79, a BEHAVIOUR change proven by a three-point A/B).** ⛔ **(P6) WAS INVESTIGATED AND REFUTED — its "obvious" fix is a REGRESSION; see KI-80, now GATED (suite #24).** ✅✅ **KI-80'S REPRO DRIVER IS BUILT, DRIVEN AND FAULT-TESTED — `--driver ki80ladder`, 3 arms, `ACCEPTANCE: PASS` in BOTH forks, and KI-80 is REPRODUCED (Winona's real Route 119 patch DELETES her counter ladder). ⛔ DO NOT REBUILD IT.** ➡ **NEXT ACTION: DECOUPLE the counter-ladder from `grass_is_fodder` (KI-80's fix) — ⛔ BUT THE NAIVE EDIT CAUSES KI-23's MIRROR REGRESSION, so run `POKEBOT_KI80_ARM4=1` (the guard, PASS today) BEFORE and AFTER as well as `POKEBOT_KI80_DECOUPLED=1` (FAIL today, must go PASS). The BEFORE runs are already committed — the half that cannot be redone later.** §Ch20's chapter assembly stays **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
 
 > ⛔ **ORDER, EXPLICITLY (a Tier 2 cold-start audit could not tell which of these came first):
 > (1) RUN THE RITUAL BELOW — it is cheap and it tells you whether the tree is sane; (2) READ
@@ -47,26 +47,20 @@ Every banner further down is HISTORY, newest first.
 > again 2026-08-15: the gate flagged 3 of 7 stale claims; the 4 it missed were spelled "zero",
 > sat in a table cell, or read "0 as of". Full history of this line's four staleness incidents:
 > `28-HANDOFF-ARCHIVE.md`.)*
-> **Every room of the Seafloor Cavern is DRIVEN and PASSING** — `ch20dive` → rooms 1, 2, 6, 3,
-> 8, and now **9** (Archie fought, Kyogre awakened, `VAR_ROUTE128_STATE == 2`, the measured
-> atoll escape executed). **What remains of §Ch20 is the CHAPTER ASSEMBLY**, not exploration.
+> **Every room of the Seafloor Cavern is DRIVEN and PASSING** — `ch20dive` → rooms 1, 2, 6, 3, 8, 9
+> (Kyogre awakened, `VAR_ROUTE128_STATE == 2`). **What remains of §Ch20 is CHAPTER ASSEMBLY.**
 
-## ✅ ROOM 9 — ARCHIE, KYOGRE, THE ATOLL ESCAPE (driven 2026-08-14) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md`
+## ✅ ROOM 9 — ARCHIE, KYOGRE, THE ATOLL ESCAPE (driven 2026-08-14) — DETAIL in `28-HANDOFF-ARCHIVE.md`
 
-Moved for the R3 budget once the live queue became the PC/PARTY arc. ‼ **Keep only what later
-work leans on:** `--driver ch20room9` PASSED twice of three runs — the cavern is driven END TO END,
-Kyogre awakened, graded on **`VAR_ROUTE128_STATE == 2`** (never the Kyogre flag, which is set
-BEFORE the forced warp), and the atoll escape executed (**south to `(38,23)`, Surf onto
-`(38,24)`** — the landing tile has ZERO surfable neighbours, so a naive Surf reads as a HUNG LEG).
-⚠ **The Archie fight is the chain's one stochastic element — 2W/1L measured**, and a LOST run prints
-**no RESULT and cannot** (the whiteout drops to Manual and the generator is abandoned), which is why
-the driver logs a `PRE-ARCHIE PARTY` HP line as the loss's attribution record. ⇒ the chapter must
-carry a **whiteout-retry policy** and **pre-boss readiness**. ✅ The previously decomp-only claim
-that the cutscene releases the player facing north is now **MEASURED (`'Up'`, twice)**.
-‼ Two design rules from this room, both reusable: **release is gated on a VAR, never on "looks
-controllable"** (the first `releaseall` fires while a second cutscene is still queued), and the
-scene-riding loop presses **A only when a text printer is waiting, B otherwise** — A beside an NPC
-STARTS a conversation (`08-MISTAKES.md`, the museum-greeter rule).
+‼ **Keep only what later work leans on:** `--driver ch20room9` PASSED 2 of 3 — the cavern is driven
+END TO END, graded on **`VAR_ROUTE128_STATE == 2`** (never the Kyogre flag, set BEFORE the forced
+warp); the atoll escape is **south to `(38,23)`, then Surf onto `(38,24)`** (the landing tile has
+ZERO surfable neighbours, so a naive Surf reads as a HUNG LEG). ⚠ **The Archie fight is the chain's
+one stochastic element — 2W/1L**, and a LOST run prints nothing (whiteout → Manual → KI-71 abandons
+the generator) ⇒ the chapter needs a **whiteout-retry policy** and **pre-boss readiness**.
+‼ Two reusable rules: **release is gated on a VAR, never on "looks controllable"**; and press
+**A only when a text printer is waiting, B otherwise** (A beside an NPC starts a conversation —
+the museum-greeter rule, `08-MISTAKES.md`).
 ## ✅ ROOM 8 (driven 2026-08-14) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (same day, when the PC/PARTY queue replaced the Ch20 queue)
 
 Moved for the R3 budget. ‼ **Keep only what later work leans on:** `--driver ch20room8` PASSED
@@ -80,27 +74,21 @@ the live tile. ⇒ *the happy path cannot exercise an error path — fault-injec
 ## 🛡 THE DOC CONSISTENCY LAYER (2026-08-14) — the DIRECTIVE now lives in `CLAUDE.md`; read it before editing any doc
 
 **Gate suite: `run_gates.py` PRINTS the count and is authoritative — this prose is not.**
-`audit_doc_consistency.py` mechanically forbids the docs contradicting themselves or the code;
-`CLAUDE.md` carries pairs **P1-P4** (banner↔queue, KI header↔body, STATE↔changelog, README↔files),
-**Tier 1** (one independent agent per completed item's doc diff) and **Tier 2** (a cold-start agent
-at session end). ‼ **Born from measurement:** two audits found ~26 instances of
-stale-text-beside-correct-text. ⚠ **And the gate is a FLOOR, not a sweep** — on 2026-08-15 it saw
-only 3 of 7 stale drift claims. Full origin detail: `28-HANDOFF-ARCHIVE.md`.
+`audit_doc_consistency.py` forbids the docs contradicting themselves or the code; `CLAUDE.md`
+carries pairs **P1-P4** (banner↔queue, KI header↔body, STATE↔changelog, README↔files), **Tier 1**
+(an independent agent per completed item's doc diff) and **Tier 2** (a cold-start agent at session
+end). ⚠ **The gate is a FLOOR, not a sweep** — on 2026-08-15 it saw only 3 of 7 stale drift claims.
+Origin detail: `28-HANDOFF-ARCHIVE.md`.
 
-## ✅ ROOMS 6 AND 3 (driven 2026-08-13) — BANNERS MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-15)
+## ✅ ROOMS 1, 2, 6 AND 3 (driven 2026-08-13) — BANNERS in `28-HANDOFF-ARCHIVE.md`
 
-Both DRIVEN AND PASSING; ⛔ **do not rebuild them.** Moved on the line budget when (P4) Stage 1
-landed. ‼ **Keep only the two reusable rules:** Room 6 — *assert the OUTCOME, not the position you
-expected* (a strict positional assert would have FAILED a perfect crossing); Room 3 — *the
-instrument was wrong, not the claim* (a discriminator counted battles RUN-WIDE and printed a false
-REFUTED over data that CONFIRMED the single-DOUBLE-battle claim). ⚠ Room 6's arrow-warp
-derived-direction branch is still UNEXECUTED.
-## ✅ ROOMS 1 AND 2 (driven 2026-08-13) — BANNER MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-15)
-
-Both DRIVEN AND PASSING; ⛔ do not rebuild. ‼ **Keep only:** *copy upstream's ROUTE, never its
-CONTROL FLOW* (our pushes go through the bounded `strength_push`, verified by `local_id`), and
-**`FLAG_SYS_USE_STRENGTH` is cleared on EVERY WARP** — the code was always safe, the COMMENTS
-were wrong. KI-77's despawn window is derived (20x17) and has since predicted a live dump exactly.
+All DRIVEN AND PASSING; ⛔ do not rebuild. ‼ **Four reusable rules:** *assert the OUTCOME, not the position
+you expected* (Room 6); *the instrument was wrong, not the claim* (Room 3 — a discriminator counted
+battles RUN-WIDE and printed a false REFUTED over data that CONFIRMED it); *copy upstream's ROUTE,
+never its CONTROL FLOW* (Rooms 1/2 — pushes go through the bounded `strength_push`); and
+**`FLAG_SYS_USE_STRENGTH` is cleared on EVERY WARP** — the code was safe, the COMMENTS were wrong.
+⚠ Room 6's arrow-warp derived-direction branch is still UNEXECUTED; KI-77's despawn window (20x17)
+has since predicted a live dump exactly.
 ## PATHFINDER + §Ch20 SCOPING BACKGROUND — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-15)
 
 Moved on the R3 line budget when (P4) Stage 2 landed. ‼ **Keep only these, which later work
@@ -184,7 +172,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | upstream | checked **2026-08-15**, still `5dd898f8` — no change (re-fetched this session; `40cakes repo/UPDATE-LOG.md` already recorded the same date, and THAT file is the authority — this row only mirrors it). ‼ This row goes stale on a CALENDAR DAY, not on an event: if today's date is later than the one shown, **the daily check is DUE** (`git fetch upstream-pokebot`, compare against `40cakes repo/UPDATE-LOG.md`). Do not read it as satisfied. |
 | restore point | **NEWEST: `restore/2026-08-15-pre-promotion-ki79-pctrip`** (the KI-79 BEHAVIOUR promotion — roll back HERE to undo it). ⛔ *This row named `…-counterhunt-comment` as newest until a 2026-08-15 cold-start audit checked the tag DATES: `ki79-pctrip` is 18:00, `counterhunt-comment` is 16:30. A rollback taken from the row as written would have reverted to the WRONG point.* ‼ **`git for-each-ref --sort=creatordate refs/tags/restore/` is the authority, not this row.** Also today, oldest-first: `…-stage0-p4`, `…-boxwrite-docstring`, `restore/2026-08-15-pre-promotion-counterhunt-comment` (annotated, pushed, and verified on origin by `promote.py` BEFORE it copied) — taken immediately before the user-approved comment-only `counter_hunt.py` promotion, and therefore the rollback point for it. ⛔ *The promotion HAS been taken; the older row below still called it "the promotion decision below" as if pending.* Older: **`restore/2026-08-13-session-end-ch20room3`** (annotated, pushed) — taken at the END of the §Ch20 cavern session, immediately before Room 8, which is the riskiest room in the dungeon (a boulder pushed onto `(5,3)` **permanently seals the exit**). ‼ It is also the natural rollback point if the **promotion decision** below is taken. Older: **`restore/2026-08-13-pre-ki63-promotion`** (annotated, pushed) — taken immediately BEFORE promoting KI-63's fix. Older: `restore/2026-08-13-pre-roster-promotion`, `restore/2026-08-12-pre-ch1819-promotion`. |
 | sandbox ↔ custom drift | ⚠ **1 as of 2026-08-15 (LATEST), AND IT IS EXPECTED, NOT UNEXPLAINED.** The one differing file is `plugins/custom_modes/story_mode.py`, a **COMMENT-ONLY** correction: the `CREDIBLE_ANSWER_POWER` docstring justified the threshold with *"Thunderbolt vs Winona"*, which is FALSE — Electric is `0.5x` Dragon `x 2.0x` Flying = **NEUTRAL** into Altaria. It is the FIFTH copy of an error whose other four were corrected the same day. ⛔ **NOT PROMOTED — promotion is the USER's call**, as it was for the earlier comment-only `counter_hunt.py` fix. ⛔ The edit was made **net-zero on line count** so it did not shift the `story_mode.py:NNNN` citations that fill the append-only logs (verified after: `grass_is_fodder` still `:1899`, `winona_fight` still `:3532`). ‼ **Expect `1 differing, 0 orphaned`; anything ELSE is unexplained drift and is worth stopping for.** **The rest of this cell is HISTORY, kept for its promotion evidence.** ✅ **0 as of 2026-08-15 (the promotion round) — BOTH promotions were DONE, USER-APPROVED, and VERIFIED BY DRIVING.** (1) `modules/story/pc_trip.py` — the KI-79 fix, a **BEHAVIOUR** change, restore point `restore/2026-08-15-pre-promotion-ki79-pctrip`. ‼ **Proven by a THREE-POINT A/B, because 1/1 byte-identical only proves a file was COPIED, never that its new branch is what RUNS:** with `POKEBOT_PCWITHDRAW_FAULT=1` against `--build custom`, the IDENTICAL command went **PASS (hook absent, inert) BEFORE → FAIL (`‼ THE WITHDRAW DID NOT LAND`) AFTER**, and an unfaulted AFTER run still PASSed. Transcripts committed under `tools/story-dev/evidence/`. (2) `modules/story/counter_hunt.py` — the comment-only Electric correction, restore point `restore/2026-08-15-pre-promotion-counterhunt-comment`. Both are also green on four `--build custom` gates that each ASSERT which fork they imported, and on `boxcounter2 --build custom` ARM A. ‼ **MEASURE, don't trust this row** — `promote.py --check` is the authority; expect **0 differing, 0 orphaned**. ⛔ Digits, not words. **The rest of this cell is the PREVIOUS state, kept for its promotion evidence — read "0"/"ZERO" below as *"zero at that moment"*, not as today's figure.** ✅ **0 as of 2026-08-15 (earlier) — every drifted file was PROMOTED, user-approved, and VERIFIED BY DRIVING.** Promoted: `modules/party_accounting.py` (new), `modules/pokemon_party.py`, `modules/modes/util/higher_level_actions.py`, `modules/debug_utilities.py`, `modules/story/counter_hunt.py`. **Evidence:** tool-side drift 0 both directions + 5/5 byte-identical; **`--driver ch20dive --build custom` → `legs=6/6 … ACCEPTANCE: PASS`**, matching sandbox; and FOUR `--build custom` gates (`repro_party_accounting` 33, `repro_heal_piggyback_reporting` 20, `repro_box_counter_move_test`, `repro_pid_identity_key`) each ASSERTING which fork it imported. Restore point **`restore/2026-08-15-pre-promotion-stage0-p4`** (annotated, pushed, verified on origin by the tool before it copied). ⛔ **Digits, not words** — this cell read a spelled-out "THREE" for a day, invisible to `audit_doc_consistency`'s drift check, and it survived two doc passes. ⛔ **What promotion does NOT mean:** party accounting is still STAGE 0 (it observes and decides nothing), `debug_write_box_slot` is PROVEN LIVE (`--driver boxwrite` → PASS, 2026-08-15), and (P4) is driven through **STAGE 2** (`--driver boxcounter2`, 4/4 across both forks, 2026-08-15) — ⛔ *this sentence read "STAGE 2 … is NOT built" until Stage 2 landed the same day; the drift figures around it are historical, this clause is CURRENT.* ‼ **Anything else appearing in `promote.py --check` is unexplained drift and is worth stopping for.** ⛔ The rest of this cell is the PREVIOUS state and is kept for its promotion evidence — read "ZERO" below as *"zero at that moment"*, not as today's figure: ✅ **ZERO as of 2026-08-14 (earlier) — KI-78 STAGE 1 WAS PROMOTED, user-approved, and it is the first promotion executed by `tools/story-dev/promote.py` rather than by hand.** The tool refuses on a dirty tree, a missing or UNPUSHED restore point, a diverged remote, or a no-op, and it re-measures drift in BOTH directions plus byte-equality per file — it also refuses to claim the driven verification it cannot perform. Restore point **`restore/2026-08-14-pre-promotion-ki78`**. **Evidence:** drift 0 both directions, 3/3 byte-identical; **`repro_pid_identity_key.py --build custom` exit 0** and **`repro_box_counter_move_test.py --build custom` exit 0** (both ASSERT which fork they imported before testing); plus a live drive against custom. ⛔ **KI-78 is still not fully closed** — its residual cases (R2 debug-fabricated pairs, R3 corrupt box slots, R5 Frontier rentals, R6 evolved-since-capture) stay open. ‼ **MEASURE, don't trust this row** — `promote.py --check` (in HOW TO RUN / TEST) reports it BOTH ways in seconds — ⛔ **this historical sentence expected 0 because that was true on 2026-08-14; it is 0 again TODAY after the counter_hunt.py promotion — but do not act on a historical sentence, run the command.** 📚 Every earlier drift state — including the 2026-08-13/14 rounds where `map_path.py`, `early_game.py`, `story_mode.py`, `counter_hunt.py` and `pokemon_party.py` were awaiting promotion — moved to `28-HANDOFF-ARCHIVE.md` on 2026-08-14, because stacking four supersessions in one cell made a promoted file read as still pending. |
-| **if stopped mid-task** | **NO UNCOMMITTED WORK IS PARKED, AND NO PROMOTION DECISION IS OWED.** ⚠ *That is a statement about SHIPPED WORK, not a claim that the user owes nothing anywhere:* the **boss/status battle-policy change remains the USER's call and must not be built unilaterally** (see the §Ch18/§Ch19 decisions block below), and **KI-80's decoupling** needs a driven KI-23 repro before it can ship. Neither blocks a next session from starting. *(A Tier 2 cold-start read the old absolute phrasing as contradicting that policy line — correctly.)* Everything is committed and pushed; BOTH 2026-08-15 promotions (`counter_hunt.py`, `pc_trip.py`) are DONE and user-approved, so `promote.py --check` should report **1 differing, 0 orphaned** — the one differing file is the comment-only `story_mode.py` correction awaiting the user's promotion call; anything ELSE it lists is unexplained drift and is worth stopping for. *(§Ch20's chapter assembly is deliberately PARKED as a work item, which is a different thing again.)* Start at "NEXT ACTIONS". |
+| **if stopped mid-task** | **NO UNCOMMITTED WORK IS PARKED. ⚠ BUT ONE PROMOTION DECISION *IS* OWED TO THE USER (new 2026-08-15):** `plugins/custom_modes/story_mode.py` carries a **comment-only** correction in sandbox only — the `CREDIBLE_ANSWER_POWER` docstring's *"Thunderbolt vs Winona"* example is FALSE (Electric is NEUTRAL into Dragon/Flying). ⛔ **Do NOT promote it unilaterally**; `promote.py --check` expects `1 differing, 0 orphaned` until the user rules. ✅ **And KI-80's "needs a driven repro first" precondition is now MET** — `--driver ki80ladder` is built, driven in both forks and committed, so the decoupling is UNBLOCKED. ⚠ *That is a statement about SHIPPED WORK, not a claim that the user owes nothing anywhere:* the **boss/status battle-policy change remains the USER's call and must not be built unilaterally** (see the §Ch18/§Ch19 decisions block below), and **KI-80's decoupling** — whose driven-repro precondition is now SATISFIED (see above) — is a production BEHAVIOUR change and lands in sandbox only. Neither blocks a next session from starting. *(A Tier 2 cold-start read the old absolute phrasing as contradicting that policy line — correctly.)* Everything is committed and pushed; BOTH 2026-08-15 promotions (`counter_hunt.py`, `pc_trip.py`) are DONE and user-approved, so `promote.py --check` should report **1 differing, 0 orphaned** — the one differing file is the comment-only `story_mode.py` correction awaiting the user's promotion call; anything ELSE it lists is unexplained drift and is worth stopping for. *(§Ch20's chapter assembly is deliberately PARKED as a work item, which is a different thing again.)* Start at "NEXT ACTIONS". |
 | ‼ **`git stash` — KEPT ON PURPOSE (USER RULING 2026-08-13)** | **`stash@{0}` EXISTS, IS NOT YOURS, AND IS KEPT AS A RECORD. ⛔ DO NOT DROP IT.** `WIP on main: e0f723e4` (2026-07-24) — a 14-line Fortree Gym "only ride out a scene that exists" guard. Its substance is ALREADY in today's `early_game.py` (reimplemented during the rotating-gate rewrite), so it is functionally superseded — **and the user ruled that a superseded stash is still a RECORD and dropping it is a destructive act that buys nothing** (`06-DECISIONS-LOG.md`). ⛔ **Standing rule: never `git stash drop` / `clear` / `pop` in this repo.** `pop` is separately banned because it mutates a GLOBAL stack — that is how this stash was disturbed in the first place (`08-MISTAKES.md`). To read it: `git stash show -p "stash@{0}"`, and apply by hand if ever needed. ‼ A stash is invisible to `git status` and to the kit's sync check, which is how it sat unnoticed for three weeks — so `git stash list` belongs in the session-start ritual, to SEE it, not to clear it. |
 
 ## ✅ WHAT SHIPPED IN THE §Ch19 + PROMOTION + ROSTER SESSION (2026-08-12) — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
@@ -391,7 +379,17 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    still PASSes**; then make the change; then run the SAME command with `POKEBOT_KI80_DECOUPLED=1`
 >    and require it to go **FAIL → PASS**. ⛔ `repro_boss_grass_gate.py` (suite #24) is DESIGNED to
 >    SELF-RETIRE when the coupling goes — it stops enforcing and says so. That is success, not a
->    regression. ⚠ KI-23's own entry warns about the MIRROR regression; read it first.
+>    regression. ⛔⛔ **AND READ KI-80's "TWO THINGS THE REPRO DRIVER CANNOT SEE" BULLET FIRST —
+>    THE NAIVE EDIT CAUSES KI-23's MIRROR REGRESSION AND `ki80ladder` WOULD STILL GO GREEN.**
+>    `grass_is_fodder` has a SECOND use site (`:1932`), and `:1925 boss_mode = True` sits on the
+>    NOT-hopeless path where `:1937` reads it — so the naive edit silently disables grass
+>    escalation for every boss that has a strong patch AND an answer. Arms 1-3 return at `:1924`
+>    and never reach `:1925`. ✅ **ARM 4 IS ALREADY BUILT FOR EXACTLY THIS — RUN IT BEFORE AND
+>    AFTER:** `POKEBOT_KI80_ARM4=1 … story_harness.py fortree_gym_wedge.ss1 --driver ki80ladder`
+>    (PASS today; it prints `BOSS_TRAINING_MODE` and fails BY NAME if the naive edit lands).
+>    ⛔ Its grass map is **VICTORY_ROAD_1F**, not Route 119 — Route 119's `wild_max` 27 cannot flip
+>    `grass_is_fodder` at that save's `team_max` 39, which made the first prescription VACUOUS.
+>    ⚠ KI-23's own entry warns about the mirror regression.
 >    ⛔ The existing `repro_boss_grass_gate.py` is the STRUCTURAL AST gate and is NOT this driver —
 >    it forbids the edit; the driver proves the branch. Both are needed.
 >    ✅ **(i) `counter_hunt.py` and (ii) KI-79 `pc_trip.py` are BOTH CLOSED AND PROMOTED** —
@@ -707,7 +705,6 @@ flag, which the Rayquaza PokeNav call clears again), and Steven must be talked t
 
 ---
 
-
 # HOW TO RUN / TEST
 
 ‼ **RESTORED 2026-08-13.** This file referenced a "HOW TO RUN / TEST" section in four places while
@@ -808,6 +805,10 @@ PYTHONUTF8=1 py -3.12 story_harness.py batch2_run04_wedge.ss1 --driver ki80ladde
 #          other fork (both pass as of 2026-08-15).
 #   ‼ THE DRIVER EXITS 0 EVEN ON FAIL — it is a harness driver, not a gate. GRADE THE
 #     `ACCEPTANCE:` LINE, never `$?`. Grep with `grep "ki80ladder]"`.
+POKEBOT_KI80_ARM4=1 PYTHONUTF8=1 py -3.12 story_harness.py fortree_gym_wedge.ss1 --driver ki80ladder --frames 2000
+#   ⛔ ARM 4 — THE MIRROR-REGRESSION GUARD. Run BEFORE and AFTER the decoupling; must PASS both
+#     times (OUTCOME=PLAIN_ESCALATION). Needs THIS save (HAS_ANSWER); the driver FAILS by name
+#     on the wrong one, because arms 1-3's save cannot reach the `:1925` line it watches.
 POKEBOT_KI80_DECOUPLED=1 PYTHONUTF8=1 py -3.12 story_harness.py batch2_run04_wedge.ss1 --driver ki80ladder --frames 2000
 #   The AFTER run for KI-80's fix. Expect FAIL TODAY (GRASS_STRONG still escalates) and PASS once
 #   the ladder is decoupled from `grass_is_fodder`. ⛔ That FAIL is the proof the check discriminates.

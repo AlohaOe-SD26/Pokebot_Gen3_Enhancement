@@ -287,7 +287,22 @@ economics as Norman (KI: 35 whiteouts) but worse, because Flying resists the com
    the boss's surviving mons means the plan is wrong, not under-levelled. Cheap signal: KOs
    scored per attempt is flat/zero.
 2. **Then change the PLAN, not the level** — identify a type the boss is weak to, and go CATCH
-   one. Against Winona: any Electric (Route 110 Voltorb/Magnemite, Mauville area) or an Ice move.
+   one. Against Winona: an **Ice** move (4x into Altaria), or **Rock**/**Dragon**.
+   ⛔⛔ **CORRECTED 2026-08-15 — this line said "any Electric (Route 110 Voltorb/Magnemite,
+   Mauville area)", and that is the SIXTH copy of one error.** ‼ The nuance matters, so read it
+   rather than just deleting the word: **Electric is 2x-or-better against THREE of her five** —
+   **Swablu 2.0, Pelipper 4.0, Skarmory 2.0** — **but it is exactly NEUTRAL against the ACE,
+   Altaria** (Dragon/Flying: `0.5x` Dragon `x 2.0x` Flying = **1.0**), *and* neutral against
+   **Tropius** (Grass/Flying: `0.5x x 2.0x` = 1.0).
+   ⚠ *These five numbers were COMPUTED from `modules/data/types.json`, not recalled — a first draft
+   of this very correction said "FOUR of her five" and was wrong about Tropius. Seven copies deep
+   into one error, do not trust the type chart in your head.*
+   ‼ For contrast, the types production actually names: **Ice** is 4.0 into BOTH Altaria and Tropius;
+   **Rock** is 2.0 into four of the five but only 1.0 into Skarmory (Steel resists it). ⇒ **the prose is reasonable about her TEAM and wrong about what the CODE
+   DOES**, because `_boss_plan_is_hopeless` derives `needed` from the **ACE ALONE**
+   (`cfg["ace_types"]`). MEASURED: production returns `needed = ['Rock', 'Ice', 'Dragon']`, with
+   no Electric, on every arm of `--driver ki80ladder`. A planner asked for an Electric here would
+   be answering a question production never asks.
    `training_areas.py` already knows where species live; the missing piece is
    "what type do I need and where do I get it".
 3. Keep the existing escalation for the case where the team DOES have an answer and is merely
@@ -302,10 +317,15 @@ IS the dominant cost of the current strategy.
 2. **Change the PLAN, not the level** — `counter_plan` names the target (phase 1) and
    `counter_hunt` + `StoryMode._counter_ladder` now TRAVEL, CATCH and TRAIN it (phase 2,
    2026-07-30). `repro_counter_hunt.py`, 15 checks, ALL PASS.
-   ‼ The note above says "any Electric (Route 110 Voltorb/Magnemite, Mauville area)". The
-   planner's own answer from the real Winona-era save is **Electrike @ ROUTE118 (29,15),
-   L24-26, 30%** — a verified spin tile. Trust the planner's measured output over this
-   prose; it reads the ROM's encounter tables and prices the grind.
+   ⛔⛔ **SUPERSEDED 2026-08-15 — DO NOT ACT ON THE ELECTRIKE LINE.** This bullet used to say the
+   planner's own answer was *"Electrike @ ROUTE118 (29,15), L24-26, 30%"*. That output predates the
+   ace-only derivation of `needed`: **Electric is NEUTRAL into Altaria** (see the correction above),
+   so the planner does **not** propose an Electric today. MEASURED 2026-08-15 on
+   `batch2_run04_wedge.ss1`, `--driver ki80ladder`, production's own message: *"Need one of: Rock,
+   Ice, Dragon … Nearest reachable counters: **Slugma (Fire) on Fiery Path** (tile (18,19), L15-15,
+   10% rate) — reachable; **Geodude (Ground/Rock) on Magma Hideout (1F)**"*.
+   ‼ **The standing rule survives and is the point:** trust the planner's MEASURED output over any
+   prose in this file — including this sentence. Run it; do not quote it.
 3. **Keep the existing escalation** where the team DOES have an answer — untouched; the
    ladder only runs once `_boss_plan_is_hopeless` is already True.
 
@@ -2809,7 +2829,50 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   above). ⇒ **the decoupling is UNBLOCKED.** The AFTER run is the same command with
   `POKEBOT_KI80_DECOUPLED=1`, which must go from FAIL (today, measured) to PASS.
   ⛔ **The BEFORE run is unrepeatable once the fix lands — it was run and committed FIRST**, the
-  rule KI-79's three-point A/B established. ⛔ And when the fix ships, `repro_boss_grass_gate.py`
+  rule KI-79's three-point A/B established.
+- ⛔⛔ **BEFORE YOU DECOUPLE — TWO THINGS THE REPRO DRIVER CANNOT SEE (found by a Tier 2 cold-start
+  agent that tried to BEGIN this item, 2026-08-15).** The naive edit is "delete `grass_is_fodder and`
+  from `:1901`". ‼ **That is not sufficient, and its damage is invisible to `--driver ki80ladder`.**
+  1. **`grass_is_fodder` HAS A SECOND USE SITE:** `:1932`, `elif grass_is_fodder and recent_kos and
+     not boss_teaches:`. Decoupling `:1901` without deciding `:1932` leaves one boolean half-split.
+  2. ⛔ **`:1925 boss_mode = True` IS ON THE *NOT-HOPELESS* PATH, AND `:1937` READS IT**
+     (`if losses >= 2 and not boss_mode:`). So moving the hopeless check out from behind
+     `grass_is_fodder` hands `boss_mode = True` to every boss that has a **strong patch AND a
+     credible answer** — silently disabling their grass escalation. **That is precisely KI-23's
+     mirror regression**, arriving through the edit meant to fix KI-80.
+  ‼‼ **AND ARMS 1-3 CANNOT SEE IT.** All three use a NO_ANSWER party, so `hopeless` is True, the
+  ladder fires, and `_prepare_for_fight` RETURNS at `:1924` — **`:1925` is never reached in any arm.**
+- ✅✅ **SO ARM 4 IS NOW BUILT AND MEASURED — `POKEBOT_KI80_ARM4=1` (2026-08-16).**
+  `POKEBOT_KI80_ARM4=1 … story_harness.py fortree_gym_wedge.ss1 --driver ki80ladder --frames 2000`
+  → **`ACCEPTANCE: PASS`**, `OUTCOME=PLAIN_ESCALATION`, `INVARIANCE drift=none`.
+  ‼ **Its assertion is FIX-SHAPE-AGNOSTIC and identical before and after:** a boss with a strong
+  patch AND a credible answer must keep its plain grass escalation. If the naive edit lands, the arm
+  prints `BOSS_TRAINING_MODE` and FAILS by name.
+  ⛔⛔ **AND THE FIXTURE THIS ENTRY FIRST PRESCRIBED FOR ARM 4 WAS VACUOUS — THE SAME TRAP, THE SAME
+  NUMBER, THE THIRD TIME.** It said *"`fortree_gym_wedge.ss1` … is exactly right for it"* with a
+  **Route 119** patch. `fortree_gym_wedge` IS correctly HAS_ANSWER (Castform's Powder Snow scores
+  **160 >= 75**) — but its **`team_max` is 39**, and `27 + 8 = 35 < 39` is TRUE, so `grass_is_fodder`
+  is **True anyway** and the "strong patch" arm is silently a FODDER arm. *The check verified the
+  INVERSE of condition 7 and once again never verified condition 9 — exactly how
+  `ch13_fortree_door.ss1` (also `team_max` 39) survived an earlier audit.*
+  ✅ **THE FIX, MEASURED 2026-08-16 across every `TRAINING_GRASS` map plus 9 candidates:** arm 4 needs
+  a map with land `wild_max >= team_max - 8 = 31`, and **the ONLY one that clears it is
+  `VICTORY_ROAD_1F` at 40** (Routes 121/123 peak at 28; ROUTE119 and ROUTE118/120 at 27;
+  MT_PYRE_EXTERIOR 29). So arm 4 pairs `fortree_gym_wedge.ss1` with a **VICTORY_ROAD_1F** grass key:
+  `40 + 8 = 48 >= 39` ⇒ `grass_is_fodder` is genuinely **False**.
+  ⚠ **Victory Road is NOT a plausible training area for Winona, and the arm does not pretend it is** —
+  arm 4 is a DECISION-level test of the branch, exactly as arms 1-3 are not a faithful Winona run.
+  ✅ **Both of arm 4's controls are MEASURED, and the first is FAULT-TESTED:** CONTROL-A calls the
+  REAL `_boss_plan_is_hopeless` and requires **not** hopeless — run against a NO_ANSWER save it FAILS
+  with *"this save is NO_ANSWER (hopeless=True), so it cannot exercise the `:1925 boss_mode` path at
+  all"*; CONTROL-B re-derives condition 9 INVERTED from the live ROM. Transcripts:
+  `evidence/2026-08-16-ki80ladder-ARM4-*`.
+- ⚠ **PROMOTION IS ENTANGLED, and this is the USER's call, not a technical one.**
+  `plugins/custom_modes/story_mode.py` is **the one file currently drifted** (the comment-only
+  `CREDIBLE_ANSWER_POWER` correction, NOT promoted). A KI-80 behaviour fix lands in **that same
+  file**, so `promote.py` cannot separate them — promoting the fix would carry the undecided
+  comment edit with it. ⇒ **ask the user to rule on the comment-only promotion BEFORE promoting any
+  KI-80 fix.** It does not block BUILDING the fix in sandbox. ⛔ And when the fix ships, `repro_boss_grass_gate.py`
   (suite #24) **SELF-RETIRES** — it stops enforcing and says so; that is designed, not a failure.
 - ⛔⛔ **THE REPRO CONDITIONS, READ FROM THE SOURCE 2026-08-15 (a static code read, not a live
   measurement — every row carries its file:line so it is checkable) — AND THEY ARE NOT WHAT THIS

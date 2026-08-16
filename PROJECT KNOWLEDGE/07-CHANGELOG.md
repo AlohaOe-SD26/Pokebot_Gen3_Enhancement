@@ -14752,3 +14752,105 @@ noise — which is the only thing that makes them usable as BEFORE evidence.
 `…-FAULT-vacuous-fixture-FAIL`, `…-FAULT-decoupled-expectation-FAIL`.
 **⇒ KI-80's decoupling is UNBLOCKED.** The BEFORE run is committed FIRST, because it is
 unrepeatable once the fix lands.
+
+## 2026-08-15 — docs: the Tier 2 cold-start audit found a SIXTH copy of the Electric error, two stale current-state files, and a regression my own repro driver cannot see (punch-list #24-counters)
+
+A Tier 2 cold-start agent, given only `04-HANDOFF.md` + `00-README.md` and told to **try to BEGIN
+the next item**, returned five findings. All five are fixed. The two that matter most:
+
+**1. ⛔⛔ THE DECOUPLING'S NAIVE FIX CAUSES KI-23's MIRROR REGRESSION — AND `--driver ki80ladder`
+WOULD STILL GO GREEN.** This is the single most valuable thing the audit produced, because it is a
+hole in the instrument shipped hours earlier. `grass_is_fodder` has a **second use site**
+(`story_mode.py:1932`), and `:1925 boss_mode = True` sits on the **not-hopeless** path where
+`:1937` reads it — so deleting `grass_is_fodder and` from `:1901` silently disables grass escalation
+for every boss that has a strong patch **and** a credible answer. ‼ **All three of the driver's arms
+use a NO_ANSWER party, so `hopeless` is True, the ladder fires, and `_prepare_for_fight` RETURNS at
+`:1924` — `:1925` is never reached in any arm.** ⇒ a **FOURTH ARM** is required before the fix
+ships, and a fixture for it already exists and is measured: `saves/fortree_gym_wedge.ss1`, whose
+Castform scores 160 >= 75 — the exact property that made it useless for arms 1-3. Recorded in
+**KI-80 and in the handoff's QUEUE HEAD** (the place a next session acts from), not only in history.
+
+**2. A SIXTH copy of "Electric answers Winona" — in the file the queue head tells you to read
+FIRST.** `05-KNOWN-ISSUES.md` KI-23 still advised *"Against Winona: any Electric (Route 110
+Voltorb/Magnemite)"* and *"Electrike @ ROUTE118"*. ‼ **The nuance is worth more than the deletion:**
+the prose is defensible about her TEAM and wrong about what the CODE DOES — `_boss_plan_is_hopeless`
+derives `needed` from the **ACE ALONE**, and Electric is exactly NEUTRAL into Altaria.
+⛔ **AND MY FIRST CORRECTION WAS ITSELF WRONG.** It claimed Electric is 2x-or-better against "FOUR
+of her five"; **computed from `modules/data/types.json`, it is THREE** (Swablu 2.0, Pelipper 4.0,
+Skarmory 2.0) — **Tropius is Grass/Flying, so Electric is 1.0 there too.** Fixed before commit.
+⇒ *seven copies deep into one error, the type chart in your head is not evidence — compute it.*
+
+**Also fixed:** the `if stopped mid-task` row contradicted itself (opened "NO PROMOTION DECISION IS
+OWED", closed by naming one that is); `25-BACKUPS-AND-RESTORE.md` was **6 restore tags stale**, its
+"do this for every new one" verification block hard-coded a sha and asserted `points at HEAD ✅`
+which went false the next time anyone committed, and it claimed authority that `04-HANDOFF.md` also
+claimed — **resolved in favour of `git for-each-ref`, with this file demoted to a human-readable
+index**; and `24-PLAIN-ENGLISH-STATUS.md` (which `00-README` sends cold readers to FIRST) had been
+stale since 2026-08-13 with **zero** mention of the live PC/PARTY arc — it now tells that story in
+game terms, including the practical warning *"do not give a boss a training area"*.
+
+**Filed, not fixed:** `04-HANDOFF.md`'s `NEXT ACTIONS` numbering restarts (1,2,2c,3,3b,4,5 then
+2b,3,4,5), so a citation to "item 3" is unresolvable. Item 0 is unambiguous, so state is not at
+risk; tracked in `03-PUNCH-LIST.md`.
+
+‼ **Method note, because it is the reusable part:** the audit's value came almost entirely from
+clause (4) of the Tier 2 standard — *"try to BEGIN the next item and report where you get stuck"*.
+The consistency checks passed; it was the attempt to ACT that surfaced a live regression risk.
+
+## 2026-08-16 — feat: ARM 4, the mirror-regression guard — built because the fixture I PRESCRIBED for it was vacuous, for the third time at the same number (punch-list #24-counters)
+
+**What shipped.** `--driver ki80ladder` gains `POKEBOT_KI80_ARM4=1`: a fourth arm, run separately
+because it needs a **HAS_ANSWER** save. It guards the decoupling against **KI-23's mirror
+regression** — the naive KI-80 fix hands `boss_mode = True` (`story_mode.py:1925`, the NOT-hopeless
+path) to every boss with a strong patch AND a credible answer, and `:1937`'s `not boss_mode` then
+**suppresses their plain grass escalation**. ‼ **Arms 1-3 structurally cannot see it:** their
+NO_ANSWER party makes `hopeless` True, so the ladder fires and `_prepare_for_fight` RETURNS at
+`:1924` — `:1925` is never reached.
+
+**MEASURED 2026-08-16:** `POKEBOT_KI80_ARM4=1 … fortree_gym_wedge.ss1 --driver ki80ladder` →
+`ACCEPTANCE: PASS`, `OUTCOME=PLAIN_ESCALATION`, `INVARIANCE drift=none`. Its assertion is
+**fix-shape-agnostic and identical before and after**: a boss with a strong patch and a real answer
+keeps its plain escalation. If the naive edit lands, the arm prints `BOSS_TRAINING_MODE` and fails
+**by name**.
+
+**⛔⛔ WHY IT WAS BUILT RATHER THAN PRESCRIBED — THE THIRD VACUOUS FIXTURE, AT THE SAME NUMBER.**
+Hours earlier this project's docs told the next session to use `fortree_gym_wedge.ss1` with a
+**Route 119** patch, calling it *"exactly right for it"*. It is correctly HAS_ANSWER — but its
+**`team_max` is 39**, and `27 + 8 = 35 < 39` is TRUE, so `grass_is_fodder` is True **anyway** and the
+"strong patch" arm was silently a FODDER arm: **both sides of the A/B identical, and its
+"escalation suppressed" reading indistinguishable from the regression it exists to detect.**
+‼ The check verified the *inverse of condition 7* and, once again, **never condition 9** — the exact
+half-check that let `ch13_fortree_door.ss1` (**also `team_max` 39**) survive an earlier audit.
+Caught by a Tier 2 re-run whose only job was to check WHERE the previous fixes landed.
+
+**✅ THE FIX IS A MEASUREMENT, NOT A GUESS.** Arm 4 needs a map with land
+`wild_max >= team_max - 8 = 31`. Probed every `TRAINING_GRASS` map plus 9 candidates:
+**`VICTORY_ROAD_1F` at 40 is the ONLY one that clears it** (Routes 121/123 peak at 28; 118/119/120
+at 27; MT_PYRE_EXTERIOR 29). So arm 4 pairs `fortree_gym_wedge.ss1` with a **VICTORY_ROAD_1F** grass
+key: `40 + 8 = 48 >= 39`. ⚠ Victory Road is **not** a plausible training area for Winona and the arm
+does not pretend it is — like arms 1-3, it is a DECISION-level test of the branch.
+
+**✅ AND THE PRESCRIPTION IS NOW STRUCTURAL RATHER THAN PROSE.** Arm 4 carries **two controls, both
+measured live, the first fault-tested**: CONTROL-A calls the REAL `_boss_plan_is_hopeless` and
+requires **not** hopeless — against a NO_ANSWER save it FAILS with *"this save is NO_ANSWER
+(hopeless=True), so it cannot exercise the `:1925 boss_mode` path at all"*; CONTROL-B re-derives
+**condition 9 INVERTED** from the live ROM. ⇒ *the driver now refuses a wrong fixture instead of a
+document warning about one.* Arms 1-3's anti-vacuity check is deliberately **not graded** under
+arm 4 — it asks a question arm 4 never poses, and a FAIL that means nothing teaches readers to
+ignore verdicts.
+
+**Also fixed, all from the same Tier 2 re-run:** `25-BACKUPS-AND-RESTORE.md`'s inventory was
+**sorted newest-first inside an "oldest first" table**, so scanning to the bottom for "the newest"
+returned the OLDEST of the new block — the precise failure `04-HANDOFF.md` already records having
+been burned by ("*a rollback taken from the row as written would have reverted to the WRONG
+point*"). Reordered to match `git for-each-ref --sort=creatordate` exactly, and its banner demoted
+from "the record" to "an INDEX — git is the authority". `24-PLAIN-ENGLISH-STATUS.md` had **five**
+false or overstated claims: a drift count of "three files" (measured: **1**, and spelled as a WORD
+so the gate could not see it), a bullet still calling the Aqua-leader fight and escape "not driven
+yet" (driven 2026-08-14) while the top of the same file said otherwise, "found, fixed and **proven**"
+for a scenario whose catching half is still uncovered, "says so loudly" for a warning **no caller
+acts on**, and a claim that `00-README` sends readers there FIRST when it lists the file under
+*"Read WHEN RELEVANT — not part of the start-of-session ritual"*.
+
+**Transcripts:** `evidence/2026-08-16-ki80ladder-ARM4-mirror-regression-PASS.stdout.txt` and
+`…-ARM4-FAULT-noanswer-save-FAIL.stdout.txt`. Flag `POKEBOT_KI80_ARM4` registered in `29-`.

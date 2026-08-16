@@ -7161,3 +7161,74 @@ sweep what two of my own passes did not.
 **Third, on method.** The refutation was requested BEFORE any code was written, on a design note
 written to be attacked. That ordering is why this cost one document revision instead of a debugging
 session over a driver that silently pressed Start.
+
+## 2026-08-15 — THE PREVENTION RULE I WROTE FOR THE FIFTH COPY DID NOT STOP THE SIXTH, AND MY FIX FOR THE SIXTH INTRODUCED A SEVENTH ERROR
+
+**Symptom.** Hours after logging *"when you correct N copies of a fact, re-sweep for the CLAIM, not
+the STRING you fixed"*, a Tier 2 audit found a **sixth** copy of "Electric answers Winona" — in
+KI-23, the entry the queue head instructs the next agent to read FIRST. Then my correction to it
+asserted Electric is 2x-or-better against "FOUR of her five". **Computed from
+`modules/data/types.json`: it is THREE.** Tropius is Grass/Flying (`0.5 x 2.0 = 1.0`).
+
+**Root cause, part 1 (why the rule failed).** The rule was right and I did not EXECUTE it. I swept
+the files I had touched, not the files that make the CLAIM. KI-23 is the entry the whole
+counter-ladder feature descends from, so it was the single most likely place for the claim to live —
+and I never opened it, because my correction had started from a different file.
+⇒ *A prevention rule you wrote is not a control. The sweep it demands still has to be RUN, and the
+place to start is the ORIGIN entry, not the file where you happened to notice the error.*
+
+**Root cause, part 2 (why the fix was wrong).** I wrote the effectiveness numbers from memory
+because they felt like arithmetic I could do in my head — Flying doubles Electric, so "all her
+part-Flying mons" seemed to follow. It does not: Grass RESISTS Electric, and Tropius cancels out.
+⇒ *A type chart is DATA, not arithmetic. Compute it from `modules/data/types.json` and paste the
+numbers, especially when correcting somebody else's type error.*
+
+**The fix that worked.** Both KI-23 sites rewritten to say what the CODE does (`needed` is derived
+from the **ACE ALONE**, so production returns `['Rock','Ice','Dragon']` and never proposes Electric),
+with the per-mon numbers computed and the note that a draft of the correction was itself wrong.
+
+**Prevention rule.** *When correcting a recurring factual error, open the ORIGIN entry first — the
+KI or design doc the feature descends from — because that is where the claim was born and where it
+will still be sitting after every other copy is fixed.*
+
+**Second prevention rule.** *Never hand-derive a number you can compute from committed data in one
+command — and when the whole point of the edit is that somebody else got a fact wrong, computing it
+is not optional.*
+
+## 2026-08-16 — I PRESCRIBED A THIRD VACUOUS FIXTURE, AT THE SAME `team_max = 39`, WHILE WRITING THE WARNING ABOUT VACUOUS FIXTURES
+
+**Symptom.** Having just built a driver whose headline feature is an anti-vacuity check, and having
+just written the warning *"both named saves fail one of the two conditions"*, I prescribed
+`fortree_gym_wedge.ss1` + a **Route 119** patch for a new fourth arm and called it *"exactly right
+for it"*. It is not: `team_max = 39` against Route 119's `wild_max = 27` gives `27 + 8 = 35 < 39`,
+so `grass_is_fodder` stays **True** and the "strong patch" arm is a **fodder** arm. Both sides
+identical. Worse than useless — its reading would be indistinguishable from the regression it
+exists to detect.
+
+**Root cause.** Arm 4 inverts one condition (it wants HAS_ANSWER, the inverse of condition 7) and
+**leaves condition 9 unchanged**. I checked the condition I had just inverted, felt the fixture
+"flip" in my head, and never re-ran the arithmetic on the condition that did not change.
+‼ **This is the third occurrence and the second at the identical number:** `ch13_fortree_door.ss1`
+(`team_max` 39) was retracted for exactly this, and its retraction note says *"the earlier check
+verified 7 and never the flip."* I then verified the inverse of 7 and never the flip.
+⇒ *When you invert one condition of a multi-condition fixture, the conditions you did NOT touch are
+the ones that will kill you — they are the ones nobody re-checks.*
+
+**The fix that worked — structural, not prose.** Arm 4 was **built** rather than described, and it
+computes its own admissibility from the running game: **CONTROL-A** calls the REAL
+`_boss_plan_is_hopeless` and refuses a NO_ANSWER save; **CONTROL-B** re-derives condition 9
+**inverted** from the live ROM and refuses a map that cannot flip the boolean. The map itself was
+then found by MEASUREMENT — probing every `TRAINING_GRASS` map plus 9 candidates showed
+`VICTORY_ROAD_1F` (land `wild_max` 40) is the only one that clears the required 31.
+
+**Prevention rule.** *A fixture named in prose is a liability; a fixture the driver ADMITS or
+REFUSES is a control. If a document has to warn "check condition N before using this save", that
+check belongs in the code that consumes the save.*
+
+**Second prevention rule.** *Every prescription of a fixture must state the arithmetic for ALL its
+conditions, including the ones the current change did not touch — and must show the computed
+numbers, not assert that they hold.*
+
+**Found by:** a Tier 2 re-run given one job — *"check WHERE the fix landed, not merely THAT it
+landed."* It found the fix had landed in both correct places and was still wrong. ⇒ *placement and
+correctness are separate audits; passing the first says nothing about the second.*

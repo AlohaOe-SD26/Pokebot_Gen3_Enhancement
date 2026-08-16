@@ -4463,3 +4463,41 @@ archive move done BACKWARDS (the refuted text stayed, the correction left — KI
 lines attached to the wrong commands in THIS file, and an R6 flag gate that could not see FIVE of
 the sixteen flags it existed to police (all registered now, 16/16).
 
+
+
+## 2026-08-15 — archived from `04-HANDOFF.md`: the ROOM 9 summary in full (compressed in place on the 900-line budget)
+
+## ✅ ROOM 9 — ARCHIE, KYOGRE, THE ATOLL ESCAPE (driven 2026-08-14) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md`
+
+Moved for the R3 budget once the live queue became the PC/PARTY arc. ‼ **Keep only what later
+work leans on:** `--driver ch20room9` PASSED twice of three runs — the cavern is driven END TO END,
+Kyogre awakened, graded on **`VAR_ROUTE128_STATE == 2`** (never the Kyogre flag, which is set
+BEFORE the forced warp), and the atoll escape executed (**south to `(38,23)`, Surf onto
+`(38,24)`** — the landing tile has ZERO surfable neighbours, so a naive Surf reads as a HUNG LEG).
+⚠ **The Archie fight is the chain's one stochastic element — 2W/1L measured**, and a LOST run prints
+**no RESULT and cannot** (the whiteout drops to Manual and the generator is abandoned), which is why
+the driver logs a `PRE-ARCHIE PARTY` HP line as the loss's attribution record. ⇒ the chapter must
+carry a **whiteout-retry policy** and **pre-boss readiness**. ✅ The previously decomp-only claim
+that the cutscene releases the player facing north is now **MEASURED (`'Up'`, twice)**.
+‼ Two design rules from this room, both reusable: **release is gated on a VAR, never on "looks
+controllable"** (the first `releaseall` fires while a second cutscene is still queued), and the
+scene-riding loop presses **A only when a text printer is waiting, B otherwise** — A beside an NPC
+STARTS a conversation (`08-MISTAKES.md`, the museum-greeter rule).
+
+
+## 2026-08-16 — archived from `04-HANDOFF.md`: the ROOMS 6/3 and ROOMS 1/2 summaries, merged in place on the 900-line budget
+
+## ✅ ROOMS 6 AND 3 (driven 2026-08-13) — BANNERS MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-15)
+
+Both DRIVEN AND PASSING; ⛔ **do not rebuild them.** Moved on the line budget when (P4) Stage 1
+landed. ‼ **Keep only the two reusable rules:** Room 6 — *assert the OUTCOME, not the position you
+expected* (a strict positional assert would have FAILED a perfect crossing); Room 3 — *the
+instrument was wrong, not the claim* (a discriminator counted battles RUN-WIDE and printed a false
+REFUTED over data that CONFIRMED the single-DOUBLE-battle claim). ⚠ Room 6's arrow-warp
+derived-direction branch is still UNEXECUTED.
+## ✅ ROOMS 1 AND 2 (driven 2026-08-13) — BANNER MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-15)
+
+Both DRIVEN AND PASSING; ⛔ do not rebuild. ‼ **Keep only:** *copy upstream's ROUTE, never its
+CONTROL FLOW* (our pushes go through the bounded `strength_push`, verified by `local_id`), and
+**`FLAG_SYS_USE_STRENGTH` is cleared on EVERY WARP** — the code was always safe, the COMMENTS
+were wrong. KI-77's despawn window is derived (20x17) and has since predicted a live dump exactly.

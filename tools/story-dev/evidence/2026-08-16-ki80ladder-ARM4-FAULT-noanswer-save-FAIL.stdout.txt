@@ -1,0 +1,40 @@
+Running mGBA 0.10.2
+[setup] loaded save state batch2_run04_wedge.ss1; build=sandbox
+[run] starting faithful loop for up to 2000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ki80LadderMode.run   (state=OVERWORLD)
+[ki80ladder] seeded random with 80 (production `:1819`/`:1941` are unseeded; the branch is unaffected but how far an arm WOULD run is not)
+[ki80ladder] EXPECTATION = ARM 4 (PLAIN_ESCALATION, before AND after the fix) (POKEBOT_KI80_DECOUPLED='<unset>')
+[ki80ladder] FIXTURE map=(0, 26) pos=(18, 99) party=[('Marshtomp', 28), ('Swellow', 28), ('Mightyena', 28), ('Nincada', 10)] team_max=28
+[ki80ladder] MEASURED wild_max: ROUTE119=27 ROUTE102=4 (both read through production's `get_wild_encounters_for_map`)
+[ki80ladder] DISCRIMINATOR ROUTE119: 27+8=35 vs team_max=28 -> grass_is_fodder flips to False? True
+[ki80ladder] DISCRIMINATOR ROUTE102: 4+8=12 vs team_max=28 -> stays fodder? True
+[ki80ladder] (arms 1-3 anti-vacuity NOT graded — this is an ARM 4 run; arm 4 has its own CONTROL-A/CONTROL-B below)
+[ki80ladder] AST CROSS-CHECK ok — replica matches `winona_fight` at story_mode.py (keys=['ace_level', 'ace_types', 'band', 'heal', 'keys', 'name'], no `grass` key)
+[ki80ladder] ══ ARM 4 ONLY — the MIRROR-REGRESSION arm (POKEBOT_KI80_ARM4=1) ══
+[ki80ladder] ⛔ This arm needs a HAS_ANSWER save (e.g. fortree_gym_wedge.ss1), NOT the NO_ANSWER anchor arms 1-3 use. Both controls below are measured, not assumed.
+[ki80ladder] ARM4 CONTROL-A `_boss_plan_is_hopeless` -> hopeless=True needed=['Rock', 'Ice', 'Dragon'] (must be hopeless=False: arm 4 is the HAS-ANSWER case)
+[ki80ladder] ‼ ARM4: this save is NO_ANSWER (hopeless=True), so it cannot exercise the `:1925 boss_mode` path at all — use a HAS_ANSWER save such as fortree_gym_wedge.ss1
+[ki80ladder] ARM4 CONTROL-B VICTORY_ROAD_1F wild_max=40 vs team_max=28 -> grass_is_fodder False? True
+Story: lost here 8× — training harder before re-attempting (target Lv 31, 
+plus5_avg).
+[ki80ladder] ARM4 OUTCOME=PLAIN_ESCALATION ladder_entered=False INVARIANCE drift=none
+[ki80ladder] ACCEPTANCE: FAIL — 1 problem(s): ARM4: this save is NO_ANSWER (hopeless=True), so it cannot exercise the `:1925 boss_mode` path at all — use a HAS_ANSWER save such as fortree_gym_wedge.ss1
+f11: CONTROLLER -> <none>   (state=OVERWORLD)
+f911: SAVED stall state #1 to stalls/repro-ml-f911.ss1 (bt='SWELLOW gained 98 EXP. Points!')
+f1211: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Marshtomp:L28:exp19102|Swellow:L28:exp18320|Mightyena:L28:exp22005|Nincada:L10:exp2249', (18, 99)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=['EventScript_SmashRock'] bt='SWELLOW gained 98 EXP. Points!' bot_mode=Manual
+f1211:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[done] ran 2000 frames; final mode=Manual party=[Marshtomp:L28:exp19102|Swellow:L28:exp18320|Mightyena:L28:exp22005|Nincada:L10:exp2249]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Marshtomp L28: Tackle, Rock Smash, Mud-slap, Water Gun
+[moveset] Swellow L28: Peck, Double Team, Focus Energy, Quick Attack
+[moveset] Mightyena L28: Tackle, Swagger, Sand-attack, Bite
+[moveset] Nincada L10: Scratch, Harden, Leech Life, Sand-attack
+[PARTY-ACCT] STAGE 0 SUMMARY — 2001 get_party() recomputes, 7 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ki80ladder 2001 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-08-16_00-11-25.ss1 created!
+Updated `current_state.ss1`!
