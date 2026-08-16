@@ -15339,3 +15339,74 @@ pre-existing count, fix, then enforce).
 **Budget housekeeping:** `05-KNOWN-ISSUES.md` hit its 3000-line ceiling, so the KI-58 and KI-61
 stubs (both already RESOLVED with their detail archived) were compacted to one-line pointers and
 their text moved verbatim to `31-KNOWN-ISSUES-ARCHIVE.md`. Nothing deleted.
+
+## 2026-08-16 — fix: 8 whiteout-swallowing handlers guarded — the PC/heal path and the site that PROVED KI-67's sweep was incomplete (punch-list #24-abortswallow, KI-81)
+
+**Triage answered the question KI-81 said would size the item, and the answer was the bad one.**
+`mossdeep_gym.py:465` is a **true positive**: it is a *different* `try` from the one KI-67 fixed
+(`:534`) — the gym-exit door loop — and `StoryAbort` is a `BotModeError`. After a whiteout it caught
+the abort, tried the **second door on a dead run**, then raised *"won the badge but could not get
+out of the gym"* — **a fabricated diagnosis naming doors while the player stands outside a Pokémon
+Center.** ⇒ **the probe does not over-flag; KI-67's sweep was incomplete.**
+
+**FIXED — 8 handlers, every one HAND-VERIFIED first, no bulk edit on a static signal:**
+`higher_level_actions.py` `:297`/`:316`/`:345` (all three heal piggybacks — so **a whiteout during a
+heal was swallowed and the bot walked to the exit on a dead run**) and `:746` (a bare
+`except (PathFindingError, BotModeError): pass` — the loudest possible silence); `pc_trip.py` `:202`
+(rotation deposit), `:305` (`deposit_one_dead_weight`), `:529` (`withdraw_from_box` — this is
+`#24-orphans` **P4**); and `mossdeep_gym.py:465`.
+
+**The guard is `reraise_if_aborting(error)` as the FIRST statement**, per its own docstring. ‼ It is
+**LATCH-keyed, not type-keyed**, which is the whole point: a retry loop that catches an error and
+raises a fresh one destroys `StoryAbort`'s identity, and only the latch survives that conversion.
+⚠ Imports are function-local **by necessity** — `early_game` imports `higher_level_actions` at module
+level, so a top-level import would be circular.
+
+**⛔ `withdraw_from_box`'s "Never raises" CONTRACT CHANGED, and the docstring moved in the same
+edit.** It is now *"never raises for a PC problem"*. A whiteout is not a hiccup: the player has
+respawned elsewhere, there is no heal left to protect, and the latch is cleared ONLY by
+`StoryMode.run`, so continuing cannot recover — it only launders the cause.
+
+**PROVEN THREE WAYS, none needing an emulator** (`evidence/2026-08-16-ki81-abort-guard-PROOF`):
+1. **Mechanism** — latch CLEAR → does **not** re-raise (a genuine PC hiccup is still swallowed, so
+   the piggyback contract survives); latch SET → re-raises.
+2. **Laundered abort** — a plain `BotModeError("could not get out of the gym")` raised *after* the
+   whiteout is **still** re-raised. A type-keyed guard would have missed exactly this.
+3. **Position** — an AST check proves the guard is effectively first in **all 9** guarded handlers
+   (nothing but its own import precedes it). *Presence is not enough; a guard after the body is no
+   guard, and the probe only checks presence.*
+✅ **Measured delta: the probe fell 53 → 45**, and `higher_level_actions.py`, `pc_trip.py` and
+`mossdeep_gym.py` are now **entirely clean**. All 24 gates pass — including
+`repro_whiteout_abort.py` and `repro_gym_whiteout_guard.py`, the two most relevant.
+
+⛔ **45 sites remain (44 in `early_game.py`, 1 in `counter_hunt.py`) and are NOT swept.** Same
+reasoning as before: CANDIDATE ≠ DOES, and `early_game.py` is the largest, most timing-sensitive
+file in the project. The probe stays a PROBE until they are triaged.
+⚠ **Drift is 3 and awaits the user's ruling** — this is a BEHAVIOUR change on the whiteout path.
+
+**⛔⛔ ADVERSARIAL REVIEW: KICK-BACK — IT FOUND A REAL DEFECT I HAD INTRODUCED. Both blockers fixed.**
+1. **The `talk_to_npc` guard could have leaked a stuck global latch.** Its handler catches
+   `(PathFindingError, BotModeError)`, and **`PathFindingError` is a `RuntimeError`, NOT a
+   `BotModeError`** (`map_path.py:611`). `reraise_if_aborting` re-raises the object it was GIVEN,
+   and `StoryMode.run()`'s recovery catches **only** `except BotModeError` (`story_mode.py:2505`).
+   ⇒ a re-raised `PathFindingError` would have **escaped whiteout recovery entirely**, so
+   `set_story_abort(False)` would never run and the module-global latch would be left **stuck
+   TRUE** — after which `ev_train.py:191` and `pokecenter_loop.py:102` (non-Story modes with NO
+   handling around `heal_in_pokemon_center`) would re-raise a **perfectly benign** PC hiccup, in a
+   different mode, with no visible connection to the original whiteout.
+   ‼ **A guard that can leak a global is worse than the silence it replaced.** Fixed by SPLITTING
+   the handler: `except PathFindingError: pass` (never routed through the guard) and
+   `except BotModeError as error:` (guarded). Verified by AST — see proof section (4).
+2. **A stale `0 differing` survived at `04-HANDOFF.md:891`** — and `audit_doc_consistency` PASSED
+   over it. ‼ **That is the exact failure `#24-driftassertions` was filed for, occurring inside the
+   very commit that filed it**: a 13-site hand sweep missed one AND the gate could not see it.
+   Fixed, and the line now records that it was the survivor.
+⚠ **And the first evidence capture was TRUNCATED** after its own section-(3) header, so it did not
+contain the AST proof the changelog cited it for. Regenerated with all five sections printing real
+output. *A citation to evidence that does not contain the claim is a claim with no evidence.*
+
+**🆕 Filed: `#24-driftassertions`.** The drift figure went **0 → 1 → 0 → 1 → 0 → 3** in one session,
+each flip costing ~13 hand edits, and **twice a survivor was missed** (once a capital `Drift is 1`
+past a lowercase grep; once hidden because the sweep was piped through `cut`). The docs assert the
+absolute number in ~10 places while also saying *"MEASURE, don't trust this row"*. ⇒ assert it in
+ONE place and point the rest at the command.

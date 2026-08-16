@@ -200,6 +200,14 @@ def deposit_dead_weight_if_worth_it() -> Generator:
         console.print(f"[green]Story: PC rotation done — party is now {after}.[/]")
         context.message = f"Story: deposited {len(targets)} — party {after}."
     except Exception as error:  # noqa: BLE001
+        # ⛔⛔ KI-81 — A WHITEOUT IS NOT "A PC FAILURE". `StoryAbort` is a `BotModeError` is an
+        # `Exception`, so this handler used to swallow one and let the run walk on DEAD. The latch
+        # is cleared ONLY by `StoryMode.run`, so continuing here cannot recover — it just launders
+        # the cause. ‼ MUST BE THE FIRST STATEMENT (its own docstring says so) and it is LATCH-keyed,
+        # not type-keyed, so it also catches an abort whose identity an inner loop already destroyed.
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
         # A PC failure must never destroy a successful heal. The caller re-checks the party
         # either way and the counter chain's own resource gate still reports honestly.
         console.print(
@@ -303,6 +311,11 @@ def deposit_one_dead_weight() -> Generator:
         # one, which is the classic way this kind of code boxes the wrong Pokémon.
         yield from interact_with_pc([PCAction.deposit_pokemon_to_box(victim)])
     except Exception as error:  # noqa: BLE001 - report, do not wedge
+        # ⛔ KI-81 — but a WHITEOUT is not a wedge to report, it is a dead run. See the rotation
+        # handler above; the latch is cleared only by `StoryMode.run`.
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
         console.print(f"[yellow]Story: PC — the deposit failed ({error!r}).[/]")
 
     # ‼ VERIFY BY RE-READING THE PARTY. `interact_with_pc` returning is not proof.
@@ -409,8 +422,16 @@ def withdraw_from_box(pids) -> Generator:
     worse than the old refusal, so the two changes must ship together.
 
     Assumes we are INSIDE a Poké Centre and healed (same piggyback contract as
-    `deposit_dead_weight_if_worth_it`). Never raises: a PC hiccup must not destroy a heal that
-    already succeeded.
+    `deposit_dead_weight_if_worth_it`). Never raises **for a PC hiccup**: that must not destroy a
+    heal that already succeeded.
+
+    ⛔ **ONE EXCEPTION, ADDED 2026-08-16 (KI-81 / `#24-orphans` P4): A WHITEOUT PROPAGATES.**
+    `StoryAbort` is a `BotModeError` is an `Exception`, so the blanket handler below used to
+    swallow one and the run walked on DEAD. A whiteout is not a hiccup — the player has respawned
+    elsewhere, there is no heal left to protect, and the abort latch is cleared ONLY by
+    `StoryMode.run`, so continuing here cannot recover; it only launders the cause into a
+    confident, plausible, wrong one. ‼ The contract is therefore *"never raises for a PC problem"*,
+    not *"never raises"*, and this docstring moved in the same edit as the code.
     """
     from modules.console import console
     from modules.context import context
@@ -527,6 +548,14 @@ def withdraw_from_box(pids) -> Generator:
             )
             context.message = f"Story: withdraw of {name} FAILED — it is still boxed."
     except Exception as error:  # noqa: BLE001
+        # ⛔⛔ KI-81 / `#24-orphans` P4 — THE ONE EXCEPTION TO "NEVER RAISES", AND IT IS NOT A
+        # HICCUP. A whiteout means the run is over and the player has respawned elsewhere; there is
+        # no heal left to protect, and swallowing it lets the bot keep driving a PC menu that is no
+        # longer on screen. Latch-keyed, so it also catches an abort already laundered into a plain
+        # `BotModeError` by an inner loop.
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
         console.print(
             f"[yellow]Story: could not withdraw {name} ({error!r}) — it stays in the box.[/]"
         )

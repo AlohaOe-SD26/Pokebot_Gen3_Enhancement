@@ -506,6 +506,27 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       actual A/B, and these deserve the same.
 
 
+- [ ] `#24-driftassertions` — **NEW 2026-08-16, from MEASURED churn: the docs assert the absolute
+      sandbox→custom drift NUMBER in ~10 places, so EVERY sandbox edit invalidates all of them.**
+      In this session alone the figure went **0 → 1 → 0 → 1 → 0 → 3**, and each flip cost ~13 hand
+      edits across 4-5 files. ‼ Twice a survivor was missed: once because the stale
+      figure was written with a CAPITAL initial and the sweep pattern was lower-case only, once
+      because the sweep was piped through `cut` and the match sat off the right-hand end of a long
+      table row. *(⚠ Both are DESCRIBED, not reprinted — `audit_doc_consistency` matches literal
+      strings and cannot tell a quotation from a claim. It red-flagged the first draft of THIS
+      BULLET, which is the failure mode demonstrating itself.)* **The cost is not the typing — it is that a
+      13-site hand sweep RELIABLY misses one, and a stale drift figure sends a rollback to the wrong
+      commit.**
+      ⇒ **THE FIX IS STRUCTURAL: assert the number in ONE place and make every other site point at
+      the command.** The docs already say *"MEASURE, don't trust this row — `promote.py --check` is
+      the authority"* and then print the number ten more times anyway. Keep the STATE table row (it
+      is where a cold start looks) and the HOW TO RUN `Expect:` line (it is a grading claim);
+      everywhere else should say *"run `promote.py --check`"* with no digit.
+      ✅ **`audit_doc_consistency` already computes the real figure**, so once the sites are reduced
+      it can enforce "the STATE row matches reality" instead of catching 3 of 7 stragglers.
+      ⚠ Do this at a QUIET moment, not mid-arc: it touches the same lines every in-flight change
+      touches, and a merge conflict here is a stale drift figure by another route.
+
 - [ ] `#24-abortswallow` — **NEW 2026-08-16 (KI-81), MEASURED. KI-67's fix was applied to TWO
       chapters; the CLASS was never swept.** `StoryAbort` is a `BotModeError` is an `Exception`, so
       **every** broad `except` catches a whiteout. `probe_abort_swallowing.py` (NEW, fault-tested)

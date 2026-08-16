@@ -1,0 +1,37 @@
+### KI-81 PROOF — the abort guard is PRESENT, FIRST, and FUNCTIONS (2026-08-16, REGENERATED)
+### Regenerated after an adversarial review found the first capture TRUNCATED after the
+### section-(3) header, so it did not contain the proof the changelog cited it for.
+
+--- (1) MECHANISM: latch clear must NOT re-raise; latch set MUST re-raise ---
+    latch CLEAR : no re-raise -> correct (a real PC hiccup is still swallowed)
+    latch SET   : RE-RAISED Marker -> correct
+
+--- (2) A LAUNDERED abort (plain BotModeError after the whiteout) is STILL caught ---
+    laundered   : RE-RAISED -> correct; latch-keyed beats type-keyed
+
+--- (3) POSITION: the guard must be the FIRST executable statement of every handler ---
+    ok  modules/story/pc_trip.py:202   guard at stmt #1, 1 before it (imports only=True)
+    ok  modules/story/pc_trip.py:313   guard at stmt #1, 1 before it (imports only=True)
+    ok  modules/story/pc_trip.py:550   guard at stmt #1, 1 before it (imports only=True)
+    ok  modules/story/mossdeep_gym.py:471   guard at stmt #1, 1 before it (imports only=True)
+    ok  modules/story/mossdeep_gym.py:554   guard at stmt #0, 0 before it (imports only=True)
+    ok  modules/modes/util/higher_level_actions.py:297   guard at stmt #1, 1 before it (imports only=True)
+    ok  modules/modes/util/higher_level_actions.py:322   guard at stmt #1, 1 before it (imports only=True)
+    ok  modules/modes/util/higher_level_actions.py:357   guard at stmt #1, 1 before it (imports only=True)
+    ok  modules/modes/util/higher_level_actions.py:781   guard at stmt #1, 1 before it (imports only=True)
+    -> 9 guarded handlers, 0 where the guard is NOT effectively first (must be 0)
+
+--- (4) THE SPLIT: PathFindingError must NOT be routed through the guard ---
+    (a RuntimeError re-raised here would escape StoryMode.run's 'except BotModeError' and
+     leave the global abort latch stuck True — caught by adversarial review)
+    PathFindingError   line 767   routed-through-guard = False
+    BotModeError       line 781   routed-through-guard = True
+    PathFindingError   line 753   routed-through-guard = False
+
+--- (5) PROBE DELTA ---
+   44  modules/story/early_game.py
+    1  modules/story/counter_hunt.py
+  CANDIDATE sites: 45
+    if no `_check_abort()` is reachable through its `yield from`. This probe narrows the
+    list for a human; it does not prove reachability. Triage before fixing.
+    (was 53 before this change; the three touched files are now absent from the list)
