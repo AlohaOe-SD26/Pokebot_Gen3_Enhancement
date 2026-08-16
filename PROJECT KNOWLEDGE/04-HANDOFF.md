@@ -7,7 +7,7 @@
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE (2026-08-15, latest) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC. (P4) IS NOW DRIVEN THROUGH STAGE 2: the real heal COLLECTS the boxed counter and leads with it (ARM B), and ARM A leaves it boxed — the user's derail reproduced ORGANICALLY. Matrix {ARM A, ARM B} x {sandbox, custom} = 4/4 ACCEPTANCE: PASS.** ✅ **`counter_hunt.py` PROMOTED (user-approved, verified by driving) AND KI-79 IS FIXED AND FAULT-PROVEN. ⛔ KI-79 IS FIXED, FAULT-PROVEN, AND NOW PROMOTED (user-approved) — drift is 0 and BOTH forks carry it, proven by a THREE-POINT A/B rather than by a byte-compare.** (P3) Stage 0 and (P3b) are DONE. §Ch20 is driven END TO END and its chapter assembly is **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
+# ‼ YOU ARE HERE (2026-08-15, SESSION END) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC, AND IT IS AT A CLEAN BOUNDARY **AS OF THE COMMIT CARRYING THIS LINE** (a cold-start audit correctly flagged the earlier absolute wording: a banner cannot truthfully say "everything is pushed" while it is itself the uncommitted edit — so read this as *"true at this commit"*, and trust `git status` over any prose). Drift is 0.** ✅ **(P4) IS DRIVEN THROUGH STAGE 2** — the real heal COLLECTS the boxed counter and leads with it (ARM B), and ARM A leaves it boxed, reproducing the user's derail ORGANICALLY; matrix {ARM A, ARM B} x {sandbox, custom} = **4/4 ACCEPTANCE: PASS**. ✅ **BOTH PROMOTIONS ARE DONE (user-approved): `counter_hunt.py` (comment-only) and `pc_trip.py` (KI-79, a BEHAVIOUR change proven by a three-point A/B).** ⛔ **(P6) WAS INVESTIGATED AND REFUTED — its "obvious" fix is a REGRESSION; see KI-80, now GATED (suite #24).** ➡ **NEXT ACTION: build KI-80's repro driver. It is fully specified and its fixture is identified — read KI-80's 8-condition table FIRST (⛔ `losses` 6-11, NEVER 12+, and NOT the `fortree_gym_wedge` save).** §Ch20's chapter assembly stays **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
 
 > ⛔ **ORDER, EXPLICITLY (a Tier 2 cold-start audit could not tell which of these came first):
 > (1) RUN THE RITUAL BELOW — it is cheap and it tells you whether the tree is sane; (2) READ
@@ -381,38 +381,32 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ‼ **STILL NOT PROVEN BY STAGE 2 — the honest gap:** everything UPSTREAM of registration. The
 >    Slugma is INJECTED and the PID is published by the driver, so the real `hunt()` →
 >    `story_mode.py:1750` wiring remains untested end-to-end.
->    ‼‼ **(P4b) THE HEAD OF THE QUEUE NOW — TWO THINGS, NEITHER OF WHICH IS MORE DRIVING.**
->    **(i) ✅ THE PROMOTION IS DONE (user-approved 2026-08-15) — DRIFT IS 0 AGAIN.**
->    `modules/story/counter_hunt.py` (comment-only, the Electric correction) was promoted via
->    `promote.py --restore-point restore/2026-08-15-pre-promotion-counterhunt-comment --go`:
->    1/1 byte-identical, drift 0 both directions, and **VERIFIED BY DRIVING** — ARM A and ARM B
->    of `--driver boxcounter2 --build custom` both `ACCEPTANCE: PASS`, plus four `--build custom`
->    gates. Logged in `custom-pokebot/DIVERGENCE-LOG.md`. ‼ Run `promote.py --check` anyway —
->    expect **0 differing, 0 orphaned**; anything listed is unexplained drift and is worth
->    stopping for.
->    **(ii) ✅✅ KI-79 IS FIXED, FAULT-PROVEN, AND PROMOTED TO BOTH FORKS (user-approved
->    2026-08-15). CLOSED — nothing is owed on it.** `withdraw_from_box` used to do `after = len(get_party())` and then announce
->    *"{name} is in the party"* — a COUNT wearing an IDENTITY's clothes, live in production, on
->    the PC path, inside the arc whose whole subject is PC robustness. It now verifies by
->    `(personality_value, species)` **plus** `contains_pokemon(target)` being False (both halves —
->    in-party-only could be a copy, gone-from-box-only could be a release), after a 2-frame yield
->    because party and storage are cached per frame. On failure it prints a loud named
->    `‼ THE WITHDRAW DID NOT LAND …` and ⛔ **still does not raise** — the original contract
->    (a PC hiccup must not destroy a heal that already succeeded) is preserved.
->    ‼ **PROVEN BY FAULT INJECTION** (`POKEBOT_PCWITHDRAW_FAULT=1`, registered): faulted →
->    `‼ THE WITHDRAW DID NOT LAND. Slugma in_party=False still_boxed=True` and
->    `--driver boxcounter2` → **`ACCEPTANCE: FAIL`** on all four graded claims, having run to
->    COMPLETION rather than thrown; unfaulted → green line and **`ACCEPTANCE: PASS`**.
->    **The old code printed the same green line in BOTH runs — that is the defect, shown.**
->    ✅ **PROMOTED 2026-08-15 (user-approved). Restore point
->    `restore/2026-08-15-pre-promotion-ki79-pctrip`; drift 0.** ‼ Because it CHANGES BEHAVIOUR,
->    a byte-compare was not accepted as proof: with `POKEBOT_PCWITHDRAW_FAULT=1` against
->    `--build custom` the IDENTICAL command went **PASS BEFORE → FAIL AFTER**, with an unfaulted
->    AFTER run still PASSing. ⛔ **And the "hook was absent BEFORE" half is proven from git, not
->    from a transcript** — a pre-promotion run CANNOT show an env var it never reads:
->    `git show restore/2026-08-15-pre-promotion-ki79-pctrip:custom-pokebot/modules/story/pc_trip.py
->    | grep -c POKEBOT_PCWITHDRAW_FAULT` → **0** (sandbox at the same tag → 3; custom now → 3).
->    Transcripts under `tools/story-dev/evidence/2026-08-15-ki79-promotion-*`.
+>    ✅✅ **(P4b) IS CLOSED — BOTH of its things are DONE (2026-08-15, user-approved).**
+>    ➡➡ **THE HEAD OF THE QUEUE IS NOW: BUILD KI-80's REPRO DRIVER** — suggested name
+>    `tools/story-dev/story_harness.py` `--driver ki80ladder` (a NEW driver; ⛔ the existing
+>    `repro_boss_grass_gate.py` is the STRUCTURAL AST gate, NOT this — it forbids the edit, it
+>    does not prove the branch). It is the prerequisite for
+>    decoupling the counter-ladder from `grass_is_fodder`, and it is FULLY SPECIFIED — ⛔ **read
+>    KI-80's 8-condition table in `05-KNOWN-ISSUES.md` BEFORE writing a line.** The three things
+>    that will otherwise waste the round: (a) `losses` must be **6-11** — at 2-5 the ladder
+>    cannot fire at all, and at **12+** `hard_plateau` returns hopeless for the WRONG reason;
+>    (b) the fixture must be a **NO_ANSWER** save — ⛔ NOT `fortree_gym_wedge.ss1`, whose
+>    Castform scores 160 vs a threshold of 75; **`ch13_fortree_door.ss1` qualifies**, checkable
+>    in seconds with `probe_credible_answer.py`; (c) the A/B is on the **cfg shape** (with vs
+>    without a `grass` key), and the observable is WHICH branch prints.
+>    *(The two closed items are kept below for their evidence.)*
+>    **(i) ✅ `counter_hunt.py` PROMOTED** (comment-only; the Electric correction), restore point
+>    `restore/2026-08-15-pre-promotion-counterhunt-comment`, verified by driving `--build custom`.
+>    **(ii) ✅✅ KI-79 FIXED, FAULT-PROVEN, AND PROMOTED** — `withdraw_from_box` no longer announces
+>    an IDENTITY from `len(get_party())`; it verifies `(personality_value, species)` **and**
+>    `contains_pokemon`, after a 2-frame yield, and prints a loud named failure instead of a green
+>    lie. Permanent hook `POKEBOT_PCWITHDRAW_FAULT`. Restore point
+>    `restore/2026-08-15-pre-promotion-ki79-pctrip`. ‼ **A byte-compare was NOT accepted as proof
+>    for a BEHAVIOUR promotion** — a three-point A/B was: same command, **PASS before (hook
+>    absent) → FAIL after (`‼ THE WITHDRAW DID NOT LAND`) → PASS after unfaulted**. Run 1 is
+>    unrepeatable once the copy happens, so it was run and committed FIRST. Transcripts:
+>    `tools/story-dev/evidence/2026-08-15-ki79-*`. Full detail: KI-79, `07-CHANGELOG.md`,
+>    `custom-pokebot/DIVERGENCE-LOG.md`, and `06-DECISIONS-LOG.md` for the rulings.
 >    **What (P4) still does NOT cover, if you want to extend it rather than promote:** everything
 >    upstream of registration — a real `hunt()` catch feeding `story_mode.py:1750`. ⚠ `hunt()`
 >    snapshots its OWN `before_box_pids` AFTER travel, so an injected fixture is excluded a second

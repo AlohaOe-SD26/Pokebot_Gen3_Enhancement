@@ -2416,3 +2416,41 @@ hand-write a row). *A conservative check with an obvious repair is fine; one wit
 **What is NOT in the ledger, on purpose.** No timestamps beyond the local wall clock, no machine
 identity, no save hash. If cross-machine attribution ever matters, add it then — the file is
 append-only and a new key is backward-compatible, whereas a schema nobody needed is dead weight.
+
+## 2026-08-15 — USER APPROVED TWO PROMOTIONS, and the second established the evidence bar for a BEHAVIOUR promotion
+
+**The rulings.** The user said "promote" twice this session, in response to two separate asks:
+1. **`modules/story/counter_hunt.py`** — a COMMENT-ONLY correction (the "Winona needs …/Electric"
+   error). Restore point `restore/2026-08-15-pre-promotion-counterhunt-comment`.
+2. **`modules/story/pc_trip.py`** — the **KI-79 fix, a BEHAVIOUR change**: the PC withdraw stops
+   announcing an identity from `len(get_party())` and verifies `(personality_value, species)` plus
+   `contains_pokemon`. Restore point `restore/2026-08-15-pre-promotion-ki79-pctrip`.
+
+**Why they were asked separately, and why that stands as the rule.** The standing directive is that
+promotion is the USER's call. A comment-only change and a behaviour change are not the same ask:
+the first cannot alter what the bot does, the second can. The second approval was therefore
+requested explicitly rather than inferred from the first — even in a session where the user had
+twice said "proceed autonomously". ⇒ **Blanket autonomy does not extend to promoting a behaviour
+change; ask again.**
+
+**‼ THE METHODOLOGY DECISION THIS FORCED — the one worth keeping.** For the behaviour promotion,
+`promote.py`'s "1/1 byte-identical, drift 0" was **explicitly rejected as sufficient evidence**,
+because a byte-compare proves a file was COPIED and says nothing about which branch EXECUTES.
+The accepted standard is a **THREE-POINT A/B using the feature's own fault hook**:
+
+| # | run | result | proves |
+|---|---|---|---|
+| 1 | **BEFORE** the copy, fault var set | PASS (inert) | the hook is ABSENT in custom |
+| 2 | **AFTER**, identical command | FAIL (`‼ THE WITHDRAW DID NOT LAND`) | **the new code is LIVE in custom** |
+| 3 | **AFTER**, unfaulted | PASS | no regression on the happy path |
+
+‼ **Run 1 is unrepeatable** — it exists only before the copy — so it must be run and COMMITTED
+first. Transcripts live under `tools/story-dev/evidence/`.
+⚠ **Alternatives rejected:** (a) byte-compare alone — see above; (b) a diff review — reads intent,
+not execution; (c) trusting the earlier comment-only precedent, which had SKIPPED the drive on the
+reasoning that a comment cannot change behaviour. That reasoning is sound for comments and does not
+generalise, so it was not reused.
+
+**Also ruled, implicitly, by the same round:** `promote.py` REFUSING a dirty tree is the tool
+working, not an obstacle. The baseline evidence was committed first and the promotion re-run from
+clean, rather than routing around the refusal (e.g. with an escape hatch).
