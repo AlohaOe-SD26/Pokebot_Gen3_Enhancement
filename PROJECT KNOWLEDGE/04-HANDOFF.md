@@ -7,7 +7,7 @@
 Every banner further down is HISTORY, newest first.
 
 ---
-# ‼ YOU ARE HERE (2026-08-15, SESSION END) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC, AND IT IS AT A CLEAN BOUNDARY **AS OF THE COMMIT CARRYING THIS LINE** (a cold-start audit correctly flagged the earlier absolute wording: a banner cannot truthfully say "everything is pushed" while it is itself the uncommitted edit — so read this as *"true at this commit"*, and trust `git status` over any prose). ⚠ Drift is 1 — ONE comment-only file (`story_mode.py`), NOT promoted, awaiting the user's call; see the STATE table.** ✅ **(P4) IS DRIVEN THROUGH STAGE 2** — the real heal COLLECTS the boxed counter and leads with it (ARM B), and ARM A leaves it boxed, reproducing the user's derail ORGANICALLY; matrix {ARM A, ARM B} x {sandbox, custom} = **4/4 ACCEPTANCE: PASS**. ✅ **BOTH PROMOTIONS ARE DONE (user-approved): `counter_hunt.py` (comment-only) and `pc_trip.py` (KI-79, a BEHAVIOUR change proven by a three-point A/B).** ⛔ **(P6) WAS INVESTIGATED AND REFUTED — its "obvious" fix is a REGRESSION; see KI-80, now GATED (suite #24).** ➡ **NEXT ACTION: build KI-80's repro driver. It is fully specified and its fixture is identified — read KI-80's 9-condition table FIRST (⛔ `losses` 6-11, NEVER 12+, and NEITHER `fortree_gym_wedge` NOR `ch13_fortree_door` as the fixture — they fail conditions 7 and 9 respectively).** §Ch20's chapter assembly stays **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
+# ‼ YOU ARE HERE (2026-08-15, SESSION END) — **THE LIVE WORK IS THE PC / PARTY ROBUSTNESS ARC, AND IT IS AT A CLEAN BOUNDARY **AS OF THE COMMIT CARRYING THIS LINE** (a cold-start audit correctly flagged the earlier absolute wording: a banner cannot truthfully say "everything is pushed" while it is itself the uncommitted edit — so read this as *"true at this commit"*, and trust `git status` over any prose). ⚠ Drift is 1 — ONE comment-only file (`story_mode.py`), NOT promoted, awaiting the user's call; see the STATE table.** ✅ **(P4) IS DRIVEN THROUGH STAGE 2** — the real heal COLLECTS the boxed counter and leads with it (ARM B), and ARM A leaves it boxed, reproducing the user's derail ORGANICALLY; matrix {ARM A, ARM B} x {sandbox, custom} = **4/4 ACCEPTANCE: PASS**. ✅ **BOTH PROMOTIONS ARE DONE (user-approved): `counter_hunt.py` (comment-only) and `pc_trip.py` (KI-79, a BEHAVIOUR change proven by a three-point A/B).** ⛔ **(P6) WAS INVESTIGATED AND REFUTED — its "obvious" fix is a REGRESSION; see KI-80, now GATED (suite #24).** ✅✅ **KI-80'S REPRO DRIVER IS BUILT, DRIVEN AND FAULT-TESTED — `--driver ki80ladder`, 3 arms, `ACCEPTANCE: PASS` in BOTH forks, and KI-80 is REPRODUCED (Winona's real Route 119 patch DELETES her counter ladder). ⛔ DO NOT REBUILD IT.** ➡ **NEXT ACTION: DECOUPLE the counter-ladder from `grass_is_fodder` (KI-80's fix), then re-run the SAME driver with `POKEBOT_KI80_DECOUPLED=1` — it FAILS today (measured) and must go PASS. The BEFORE run is already committed, which is the half that cannot be redone later.** §Ch20's chapter assembly stays **PARKED, NOT CANCELLED**. Read this, then `14-AGENT-PLAYBOOK.md`, then NEXT ACTIONS item 0.
 
 > ⛔ **ORDER, EXPLICITLY (a Tier 2 cold-start audit could not tell which of these came first):
 > (1) RUN THE RITUAL BELOW — it is cheap and it tells you whether the tree is sane; (2) READ
@@ -77,19 +77,15 @@ passes preceded the drive and BOTH changed something: an offline refutation of t
 prediction *"8 of 12 boulders visible at arrival"*, which the live run matched exactly; and a diff
 review caught the recovery handler HARDCODING an arrow-warp direction instead of deriving it from
 the live tile. ⇒ *the happy path cannot exercise an error path — fault-inject it on purpose.*
-## 🛡 NEW SINCE THEN (2026-08-14): THE DOC CONSISTENCY LAYER — read `CLAUDE.md`'s new directive before editing any doc
+## 🛡 THE DOC CONSISTENCY LAYER (2026-08-14) — the DIRECTIVE now lives in `CLAUDE.md`; read it before editing any doc
 
-**The suite is 24 gates today** (this line said 18 when `audit_doc_consistency.py` was new, then 21; `repro_box_counter_move_test.py`, `repro_pid_identity_key.py`, `audit_encoding.py` and `repro_party_accounting.py` all joined on 2026-08-14 — ‼ **`run_gates.py` is authoritative and PRINTS the count, this prose is not**). **`audit_doc_consistency.py` is NEW** — it mechanically forbids the docs
-contradicting themselves or the code (gate/drift/ladder counts, queue-vs-headline driver
-contradictions, cited-artifact existence; `--self-test` proves it fires). **`CLAUDE.md` now carries
-the DOC CONSISTENCY LAYER directive**: pairs P1-P4 that must move together in the same commit
-(banner↔queue, KI header↔body, STATE↔changelog, README↔files), Tier 1 = one independent agent per
-completed item's doc diff, Tier 2 = a cold-start agent at session end — both wired into `/wrapup`
-and `/checkpoint`. ‼ **Born from measurement, not caution:** two audits found ~26 instances of
-stale-text-beside-correct-text, including a TRIAGE INDEX blessing a five-chapters-stale entry, an
-archive move done BACKWARDS (the refuted text stayed, the correction left — KI-39), `Expect:`
-lines attached to the wrong commands in THIS file, and an R6 flag gate that could not see FIVE of
-the sixteen flags it existed to police (all registered now, 16/16).
+**Gate suite: `run_gates.py` PRINTS the count and is authoritative — this prose is not.**
+`audit_doc_consistency.py` mechanically forbids the docs contradicting themselves or the code;
+`CLAUDE.md` carries pairs **P1-P4** (banner↔queue, KI header↔body, STATE↔changelog, README↔files),
+**Tier 1** (one independent agent per completed item's doc diff) and **Tier 2** (a cold-start agent
+at session end). ‼ **Born from measurement:** two audits found ~26 instances of
+stale-text-beside-correct-text. ⚠ **And the gate is a FLOOR, not a sweep** — on 2026-08-15 it saw
+only 3 of 7 stale drift claims. Full origin detail: `28-HANDOFF-ARCHIVE.md`.
 
 ## ✅ ROOMS 6 AND 3 (driven 2026-08-13) — BANNERS MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-15)
 
@@ -105,10 +101,6 @@ Both DRIVEN AND PASSING; ⛔ do not rebuild. ‼ **Keep only:** *copy upstream's
 CONTROL FLOW* (our pushes go through the bounded `strength_push`, verified by `local_id`), and
 **`FLAG_SYS_USE_STRENGTH` is cleared on EVERY WARP** — the code was always safe, the COMMENTS
 were wrong. KI-77's despawn window is derived (20x17) and has since predicted a live dump exactly.
-## ✅ THE ATOLL EXIT — DRIVEN; banner moved to `28-HANDOFF-ARCHIVE.md` (2026-08-15)
-
-‼ **Keep the rule:** the §Ch20 exit's landing tile has **ZERO surfable neighbours**, so a naive
-Surf reads as a HUNG LEG, not a failure. ⇒ **step SOUTH to `(38,23)`, then Surf onto `(38,24)`.**
 ## PATHFINDER + §Ch20 SCOPING BACKGROUND — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-15)
 
 Moved on the R3 line budget when (P4) Stage 2 landed. ‼ **Keep only these, which later work
@@ -123,13 +115,12 @@ mandatory**, the trigger tile is **`(17,42)` not `(16,42)`**, and the chapter gr
 **correctness half is OPEN**.
 ⇒ ✅ **ALL NINE ROOMS ARE DRIVEN — the cavern is END TO END (2026-08-14). ⛔ DO NOT REBUILD ANY.**
 
-
 ## ⛔ NAMING CORRECTION — "§Ch21" IN OLDER TEXT MEANS **CHAPTER 20**. Read before acting.
 
 The Seafloor Cavern / Kyogre beat is **Chapter 20** (`modules/story/chapters.py:233`); the genuine
-**Chapter 21 is Sootopolis / Rayquaza** and has not been touched. ✅ **The rename is DONE**
-(2026-08-13, `#24-ch20rename`, verified by re-running): the artefacts are `--driver ch20dive`
-(`Ch20DiveMode`), `probe_ch20_topology.py`, and `2026-08-13-ch20-dive-leg-predictions.md`.
+**Chapter 21 is Sootopolis / Rayquaza** and has not been touched. ✅ **Rename DONE** (2026-08-13,
+`#24-ch20rename`): `--driver ch20dive` (`Ch20DiveMode`), `probe_ch20_topology.py`, and
+`2026-08-13-ch20-dive-leg-predictions.md`.
 ‼ **The old `ch21*` names SURVIVE ON PURPOSE in `06`/`07`/`08`** — those are append-only history
 and are never rewritten, so entries dated on or before 2026-08-13 still say `ch21dive`. They mean
 the Chapter 20 artefacts; both renamed files carry a provenance header saying so.
@@ -371,52 +362,43 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ⛔ **`needed` IS `{Rock, Ice, Dragon}` — NOT `{...Electric}`.** Corrected by the driver's new
 >    `needed_ok` control on its FIRST run: production derives `needed` from the ACE alone, the ace
 >    is Altaria (Dragon/Flying), and Electric is 0.5× into Dragon × 2.0× into Flying = **1.0,
->    NEUTRAL**. The four-type set was in `counter_hunt.py:250`, the design note, THIS file and the
->    driver — four copies of one another. All corrected.
+>    NEUTRAL**. Four copies (`counter_hunt.py:250`, the design note, THIS file, the driver) were
+>    corrected — ⛔ **and a FIFTH was found 2026-08-15**, prose on `CREDIBLE_ANSWER_POWER`
+>    (`story_mode.py:1083`) that named no type list, so the grep for the type set walked past it.
 >    ‼ **STILL NOT PROVEN BY STAGE 2 — the honest gap:** everything UPSTREAM of registration. The
 >    Slugma is INJECTED and the PID is published by the driver, so the real `hunt()` →
->    `story_mode.py:1750` wiring remains untested end-to-end.
+>    `story_mode.py:1750` wiring remains untested end-to-end. ⚠ And `hunt()` snapshots its OWN
+>    `before_box_pids` AFTER travel, so an injected fixture is excluded a second time — that leg
+>    needs a REAL CATCH, not an injection.
 >    ✅✅ **(P4b) IS CLOSED — BOTH of its things are DONE (2026-08-15, user-approved).**
->    ➡➡ **THE HEAD OF THE QUEUE IS NOW: BUILD KI-80's REPRO DRIVER** — suggested name
->    `tools/story-dev/story_harness.py` `--driver ki80ladder` (a NEW driver; ⛔ the existing
->    `repro_boss_grass_gate.py` is the STRUCTURAL AST gate, NOT this — it forbids the edit, it
->    does not prove the branch). It is the prerequisite for
->    decoupling the counter-ladder from `grass_is_fodder`, and it is FULLY SPECIFIED — ⛔ **read
->    KI-80's 9-condition table in `05-KNOWN-ISSUES.md` BEFORE writing a line.** The three things
->    that will otherwise waste the round: (a) `losses` must be **6-11** — at 2-5 the ladder
->    cannot fire at all, and at **12+** `hard_plateau` returns hopeless for the WRONG reason;
->    (b) ⛔⛔ **THE FIXTURE MUST SATISFY *TWO* THINGS, AND BOTH NAMED SAVES FAIL ONE OF THEM.**
->    It must be **NO_ANSWER** (condition 7) **AND** have `team_max <= wild_max + 8` (condition 9)
->    or `grass_is_fodder` never flips and BOTH ARMS TAKE THE SAME BRANCH.
->    ⛔ NOT `fortree_gym_wedge.ss1` — its Castform scores 160 vs a threshold of 75 (fails 7).
->    ⛔ NOT `ch13_fortree_door.ss1` either — **its Blaziken L39 makes `27+8=35 < 39` TRUE, so the
->    A/B is VACUOUS** (fails 9). *This line named it as the fixture until a cold-start agent
->    tried to START from it and computed the discriminator.*
->    ✅ **VERIFIED CANDIDATES** (all NO_ANSWER; `team_max` in brackets; Route 119 ⇒ needs <= 35):
->    `batch2_run04_wedge.ss1` [28, OVERWORLD] · `batch3_run03_wedge.ss1` [35, OVERWORLD, ⚠ exactly
->    ON the boundary] · `batch3_run05_end.ss1` [34, ⚠ in BATTLE] · `ch13_r119_wedge.ss1` [33,
->    ⚠ in BATTLE, KI-24 wall map]. ‼ **None is Winona-era** — fine for a DECISION-level A/B
->    (nothing in the path reads a badge), but do NOT report the run as a faithful Winona
->    scenario. ⛔ **ASSERT the measured `team_max` and `wild_max` at run start** rather than
->    trusting any of these numbers. Check any save in seconds with `probe_credible_answer.py`; (c) the A/B is on the **cfg shape** (with vs
->    without a `grass` key), and the observable is WHICH branch prints.
->    *(The two closed items are kept below for their evidence.)*
->    **(i) ✅ `counter_hunt.py` PROMOTED** (comment-only; the Electric correction), restore point
->    `restore/2026-08-15-pre-promotion-counterhunt-comment`, verified by driving `--build custom`.
->    **(ii) ✅✅ KI-79 FIXED, FAULT-PROVEN, AND PROMOTED** — `withdraw_from_box` no longer announces
->    an IDENTITY from `len(get_party())`; it verifies `(personality_value, species)` **and**
->    `contains_pokemon`, after a 2-frame yield, and prints a loud named failure instead of a green
->    lie. Permanent hook `POKEBOT_PCWITHDRAW_FAULT`. Restore point
->    `restore/2026-08-15-pre-promotion-ki79-pctrip`. ‼ **A byte-compare was NOT accepted as proof
->    for a BEHAVIOUR promotion** — a three-point A/B was: same command, **PASS before (hook
->    absent) → FAIL after (`‼ THE WITHDRAW DID NOT LAND`) → PASS after unfaulted**. Run 1 is
->    unrepeatable once the copy happens, so it was run and committed FIRST. Transcripts:
->    `tools/story-dev/evidence/2026-08-15-ki79-*`. Full detail: KI-79, `07-CHANGELOG.md`,
->    `custom-pokebot/DIVERGENCE-LOG.md`, and `06-DECISIONS-LOG.md` for the rulings.
->    **What (P4) still does NOT cover, if you want to extend it rather than promote:** everything
->    upstream of registration — a real `hunt()` catch feeding `story_mode.py:1750`. ⚠ `hunt()`
->    snapshots its OWN `before_box_pids` AFTER travel, so an injected fixture is excluded a second
->    time; that leg needs a real catch, not an injection.
+>    ✅✅ **KI-80's REPRO DRIVER IS BUILT, DRIVEN AND FAULT-TESTED (2026-08-15). ⛔ DO NOT REBUILD.**
+>    `story_harness.py --driver ki80ladder`, anchor `saves/batch2_run04_wedge.ss1`. **THREE arms on
+>    one fixture — same party, same 8 seeded losses, same boss; only the cfg's `grass` key differs:**
+>    `NOGRASS` → ladder · `GRASS_FODDER` (Route 102, `wild_max` 4) → ladder ·
+>    ⛔ `GRASS_STRONG` (Route 119, `wild_max` 27 — **the patch her own cfg comment names**,
+>    `story_mode.py:3531`; ⛔ she has NO `grass` key today, and that is the only reason her ladder works) → **plain escalation,
+>    ladder SKIPPED**. `ACCEPTANCE: PASS` on `--build sandbox` AND `--build custom`.
+>    ‼ **The driver EXITS 0 even on FAIL — grade the `ACCEPTANCE:` line, never the exit code.**
+>    Fault-tested twice: against `ch13_fortree_door.ss1` it FAILS with *"THE A/B WOULD BE VACUOUS"*
+>    and all three arms return `LADDER` — a live demonstration that the fixture this file once
+>    prescribed would have read as a REFUTATION of a true finding; and `POKEBOT_KI80_DECOUPLED=1`
+>    FAILS today, which is what makes it usable as the AFTER run.
+>
+>    ➡➡ **THE HEAD OF THE QUEUE IS NOW: DECOUPLE THE COUNTER-LADDER FROM `grass_is_fodder`.**
+>    `story_mode.py:1899-1901` — split the two meanings so the ladder is gated on *"is this fight
+>    hopeless"* (which `_boss_plan_is_hopeless` already answers alone), not on whether a patch
+>    happens to be configured. ⛔ **Before touching it, run the BEFORE command below and confirm it
+>    still PASSes**; then make the change; then run the SAME command with `POKEBOT_KI80_DECOUPLED=1`
+>    and require it to go **FAIL → PASS**. ⛔ `repro_boss_grass_gate.py` (suite #24) is DESIGNED to
+>    SELF-RETIRE when the coupling goes — it stops enforcing and says so. That is success, not a
+>    regression. ⚠ KI-23's own entry warns about the MIRROR regression; read it first.
+>    ⛔ The existing `repro_boss_grass_gate.py` is the STRUCTURAL AST gate and is NOT this driver —
+>    it forbids the edit; the driver proves the branch. Both are needed.
+>    ✅ **(i) `counter_hunt.py` and (ii) KI-79 `pc_trip.py` are BOTH CLOSED AND PROMOTED** —
+>    evidence moved to `28-HANDOFF-ARCHIVE.md` (2026-08-15, line budget). ‼ **Keep only the rule:**
+>    *a byte-compare is NOT proof for a BEHAVIOUR promotion — a three-point A/B is* (PASS before →
+>    FAIL after faulted → PASS after unfaulted), and run 1 is unrepeatable once the copy happens,
+>    so it runs and commits FIRST. Hook `POKEBOT_PCWITHDRAW_FAULT`; detail in KI-79 + `07`/`06`.
 >
 >    🆕 **(P4c) `#24-orphans` — SIX REAL RESIDUALS THAT WERE WRITTEN DOWN BUT NEVER TRACKED**
 >    (filed 2026-08-15, full list in `03-PUNCH-LIST.md`). ‼ **Four of the six were recorded inside
@@ -815,6 +797,24 @@ POKEBOT_BOXCOUNTER_TYPEONLY_A=1 PYTHONUTF8=1 py -3.12 story_harness.py fortree_g
 #   Add `--build custom` to either for the other fork (all four cells pass as of 2026-08-15).
 #   ‼ Stage 2 SUBCLASSES Stage 1, so each run re-proves Stage 1 first — read the STAGE-1 GATE line.
 #   ⛔ The gym leg is OFF by default and REPORTED-NOT-GRADED: POKEBOT_BOXCOUNTER2_GYM=1 enables it.
+
+# --- KI-80 — the counter-ladder gate, THREE arms in ONE run. ~40s. ⛔ ANCHOR MUST BE THIS SAVE:
+#     it is NO_ANSWER (condition 7) AND team_max 28 <= wild_max 27 + 8 (condition 9). Both named
+#     alternatives FAIL one of those: `fortree_gym_wedge` has a credible answer (Castform scores
+#     160 >= 75), and `ch13_fortree_door` has team_max 39, which makes the A/B VACUOUS.
+PYTHONUTF8=1 py -3.12 story_harness.py batch2_run04_wedge.ss1 --driver ki80ladder --frames 2000
+#   Expect (TODAY, coupled): NOGRASS -> LADDER, GRASS_FODDER -> LADDER,
+#          GRASS_STRONG -> PLAIN_ESCALATION, then `ACCEPTANCE: PASS`. Add `--build custom` for the
+#          other fork (both pass as of 2026-08-15).
+#   ‼ THE DRIVER EXITS 0 EVEN ON FAIL — it is a harness driver, not a gate. GRADE THE
+#     `ACCEPTANCE:` LINE, never `$?`. Grep with `grep "ki80ladder]"`.
+POKEBOT_KI80_DECOUPLED=1 PYTHONUTF8=1 py -3.12 story_harness.py batch2_run04_wedge.ss1 --driver ki80ladder --frames 2000
+#   The AFTER run for KI-80's fix. Expect FAIL TODAY (GRASS_STRONG still escalates) and PASS once
+#   the ladder is decoupled from `grass_is_fodder`. ⛔ That FAIL is the proof the check discriminates.
+#   Fault-test kept for reference — the VACUOUS fixture this file once prescribed:
+#     PYTHONUTF8=1 py -3.12 story_harness.py ch13_fortree_door.ss1 --driver ki80ladder --frames 2000
+#     -> `ACCEPTANCE: FAIL … THE A/B WOULD BE VACUOUS`, and ALL THREE arms come back LADDER.
+#   Transcripts: tools/story-dev/evidence/2026-08-15-ki80ladder-*.stdout.txt
 
 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver boxwrite --frames 200000
 PYTHONUTF8=1 py -3.12 probe_box_contents.py ch13_fortree_door.ss1

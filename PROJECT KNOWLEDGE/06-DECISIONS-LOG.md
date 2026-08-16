@@ -2454,3 +2454,45 @@ generalise, so it was not reused.
 **Also ruled, implicitly, by the same round:** `promote.py` REFUSING a dirty tree is the tool
 working, not an obstacle. The baseline evidence was committed first and the promotion re-run from
 clean, rather than routing around the refusal (e.g. with an escape hatch).
+
+## 2026-08-15 — KI-80's repro is THREE arms terminated by a tripwire, not a two-arm A/B run to completion
+
+**Decision 1 — THREE arms, not two.** `--driver ki80ladder` runs `NOGRASS`, `GRASS_FODDER`
+(Route 102, `wild_max` 4) and `GRASS_STRONG` (Route 119, `wild_max` 27) on one fixture.
+*Rationale:* `grass_is_fodder` is a DISJUNCTION — `("grass" not in cfg) or (wild_max + 8 < team_max)`
+— so a two-arm A/B cannot tell whether the ladder vanished because a key APPEARED or because the
+ARITHMETIC flipped. Only the second is the defect. `GRASS_FODDER` shows a patch that IS fodder keeps
+the machinery, which turns the finding from "adding a key breaks it" into the actual conflation.
+*Rejected:* the two-arm version — cheaper, and it would have supported a wrong causal story.
+
+**Decision 2 — terminate each arm AT its discriminator, from inside the console proxy.**
+*Rationale:* forced by measurement. The obvious design ("call `next()` once, read which line
+printed") was REFUTED: `story_mode.py:1949`'s print is not the end of the arm, and one `next()` runs
+on into `:2087 train_team(...)`, which calls `set_swap_train(True)` and `press_button("Start")`
+**before its first yield**. A tripwire that raises from the proxy unwinds `_prepare_for_fight` at
+`:1948`, so `train_team` is never reached. *Rejected:* (a) `gen.close()` alone — it runs too late,
+the button is already queued; (b) widening the invariance snapshot and tolerating the mutation —
+that detects the damage instead of preventing it, and the snapshot cannot see a module global or a
+pending input anyway. Both are kept as belt-and-braces, neither as the mechanism.
+*Cost accepted:* the arm proves the gate is REACHED and nothing about what the ladder then does.
+Stated as a scope limit everywhere it is reported, rather than left to be discovered.
+
+**Decision 3 — the ladder spy REPLACES the ladder body; the hopeless observer DELEGATES.**
+*Rationale:* the two have different jobs. `_counter_ladder` is downstream of the gate under test and
+travels, so substituting it removes risk without touching the subject. `_boss_plan_is_hopeless` is
+ON the path and its verdict is part of what we are measuring, so it must be the REAL predicate —
+the observer calls it and only records. *Rejected:* stubbing the predicate to force `hopeless=True`,
+which would have made the fixture's condition-7 property untested and the run meaningless.
+
+**Decision 4 — the anti-vacuity check is computed from the RUNNING game and BLOCKS the verdict.**
+*Rationale:* this project has twice specified an A/B whose arms were identical. The driver measures
+`team_max` and both maps' `wild_max` through production's own readers and refuses to grade unless
+`wild119 + 8 >= team_max` AND `wild102 + 8 < team_max`. *Proven, not asserted:* against
+`ch13_fortree_door.ss1` it FAILS with `THE A/B WOULD BE VACUOUS` and all three arms return `LADDER`.
+*Rejected:* trusting the `team_max` table in the docs — which is exactly how the vacuous fixture got
+prescribed in the first place.
+
+**Decision 5 — the fix's expectation flips by env var (`POKEBOT_KI80_DECOUPLED`), so ONE driver is
+both the BEFORE and the AFTER.** *Rationale:* KI-80 requires the repro driven before AND after, and
+two separate drivers would drift apart. *Rejected:* a second driver written after the fix — it could
+not be run against the pre-fix code at all, which is the half that cannot be redone later.

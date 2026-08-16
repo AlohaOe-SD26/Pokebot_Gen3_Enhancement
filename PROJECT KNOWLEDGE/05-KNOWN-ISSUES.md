@@ -2726,7 +2726,7 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
 
 ---
 
-## KI-80 — `grass_is_fodder` CONFLATES "no training patch configured" with "the patch is too weak", and it is the SOLE gate on the counter-ladder — so giving a boss a training area silently disables its KI-23 machinery (2026-08-15, code-verified, OPEN, GATED)
+## KI-80 — `grass_is_fodder` CONFLATES "no training patch configured" with "the patch is too weak", and it is the SOLE gate on the counter-ladder — so giving a boss a training area silently disables its KI-23 machinery (2026-08-15, ✅ **REPRODUCED AND DRIVEN** — `--driver ki80ladder`, 3 arms, both forks; OPEN, GATED)
 
 - **The line.** `plugins/custom_modes/story_mode.py:1899`:
   ```
@@ -2767,15 +2767,50 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   trigger it, and **SELF-RETIRING**: decouple the ladder and the gate stops enforcing and says so.
   `--self-test` proves all four directions (fires when broken; quiet when healthy; quiet when
   decoupled; quiet on comment-only mentions).
-- **NOT OBSERVED FAILING.** No run has been made with a `grass` key on an at-risk boss — the gate
-  exists so none is. This is a structural finding from reading the code plus arithmetic on the
-  real bands, not a reproduction. ‼ Report it as *"would fire"*, never *"has fired"*.
+- ✅✅ **SUPERSEDED 2026-08-15 — IT HAS NOW BEEN OBSERVED FAILING, ON DEMAND, IN BOTH FORKS.**
+  ⛔ This bullet previously read *"NOT OBSERVED FAILING … report it as 'would fire', never 'has
+  fired'."* That was correct when written and is **retracted now**: `--driver ki80ladder`
+  (`story_harness.py`) DRIVES production's own `_prepare_for_fight` three times on
+  `saves/batch2_run04_wedge.ss1` and watches which branch it takes. **Measured, `team_max = 28`:**
+
+  | arm | `cfg["grass"]` | `wild_max` | outcome |
+  |---|---|---|---|
+  | `NOGRASS` | absent | n/a | **`_counter_ladder` reached** |
+  | `GRASS_FODDER` | Route 102 | **4** | **`_counter_ladder` reached** |
+  | `GRASS_STRONG` | Route 119 — the patch her OWN cfg comment names (`story_mode.py:3531`: *"Route 119 is the Fortree-side band"*) — ⛔ she has NO `grass` key today, which is the only reason her ladder still works | **27** | ⛔ **plain escalation; ladder SKIPPED** |
+
+  Same party, same seeded losses (8), same boss — **the only difference is the `grass` key.**
+  `ACCEPTANCE: PASS` on `--build sandbox` AND `--build custom`. Production itself derived
+  `needed = ['Rock', 'Ice', 'Dragon']` and raised *"Winona: 8 losses with no super-effective
+  answer…"* on the two ladder arms, and printed *"lost here 8× — training harder before
+  re-attempting"* on the third. ⇒ **the regression is real, and it is exactly as silent as
+  predicted.** Transcripts: `tools/story-dev/evidence/2026-08-15-ki80ladder-*.stdout.txt`.
+  ‼ **The driver EXITS 0 even on FAIL** (it is a harness driver, not a gate) — **grade on the
+  `ACCEPTANCE:` line, never on the exit code.**
+- ✅ **AND THE DRIVER IS FAULT-TESTED, not merely green.** Two deliberate failure runs, both
+  committed as evidence: (1) against `ch13_fortree_door.ss1` — the fixture THIS ENTRY ONCE
+  PRESCRIBED — it prints `ACCEPTANCE: FAIL … THE A/B WOULD BE VACUOUS: ROUTE119 does not flip
+  `grass_is_fodder` at team_max=39`, **and all three arms come back `LADDER`**, demonstrating live
+  that the prescribed test would have shown NO DIFFERENCE and read as a REFUTATION of a true
+  finding; (2) with `POKEBOT_KI80_DECOUPLED=1` it FAILS today, which is what proves the same driver
+  can serve as the AFTER run once the fix lands.
+- ⛔ **WHAT THE DRIVER DOES NOT PROVE.** Its `_counter_ladder` spy replaces the ladder's BODY, and a
+  tripwire in a console proxy cuts every arm off AT its decision. It proves the gate is **REACHED**;
+  it proves nothing about what the hunt then does. Deliberate — the hunt travels, and travel is risk
+  this test does not need. Design and the refutation that reshaped it:
+  `ai-research-notes/2026-08-15-ki80-ladder-repro-design.md`.
 - **What a fix looks like** (NOT attempted — it changes boss prep for EVERY gym, and KI-23's own
   entry warns about the mirror regression): split the two meanings. The counter ladder should be
   gated on *"is this fight hopeless"* — which `_boss_plan_is_hopeless` already answers on its own —
   not on whether a patch happens to be configured. ⛔ **The change may not ship on reading alone:**
   it needs the KI-23 repro conditions DRIVEN, both before and after, confirming `_counter_ladder`
   still fires rather than falling through to the plain escalation.
+  ✅✅ **THE "BEFORE" HALF OF THAT PRECONDITION IS NOW MET AND COMMITTED** (`--driver ki80ladder`,
+  above). ⇒ **the decoupling is UNBLOCKED.** The AFTER run is the same command with
+  `POKEBOT_KI80_DECOUPLED=1`, which must go from FAIL (today, measured) to PASS.
+  ⛔ **The BEFORE run is unrepeatable once the fix lands — it was run and committed FIRST**, the
+  rule KI-79's three-point A/B established. ⛔ And when the fix ships, `repro_boss_grass_gate.py`
+  (suite #24) **SELF-RETIRES** — it stops enforcing and says so; that is designed, not a failure.
 - ⛔⛔ **THE REPRO CONDITIONS, READ FROM THE SOURCE 2026-08-15 (a static code read, not a live
   measurement — every row carries its file:line so it is checkable) — AND THEY ARE NOT WHAT THIS
   ENTRY FIRST SAID.** An earlier draft here said *"losses >= 2, kos >= 1, no type answer"*. That is

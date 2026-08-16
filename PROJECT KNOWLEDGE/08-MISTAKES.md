@@ -7120,3 +7120,44 @@ fixture is KI-39's archive-move-done-backwards, and keeping the old attribution 
 
 **Found by:** reading `BoxCounter2Mode` as a template for a NEW driver — i.e. by USING the doc, not
 by auditing it. ⇒ the cheapest doc audit is a reader who intends to act on the text.
+
+## 2026-08-15 — MY REPRO DESIGN'S SAFETY CLAIM AND ITS CHEAPNESS CLAIM WERE THE SAME CLAIM, AND BOTH WERE FALSE ON THE ONE ARM THAT MATTERED
+
+**Symptom.** The v1 design for `--driver ki80ladder` stated three headline properties: *"the entire
+A/B is one `next()` call per arm and zero frames advanced"*, *"nothing on that path mutates
+emulator/game state"*, and *"no arm advances a frame or presses a button, so game state **cannot**
+change."* An adversarial refutation pass falsified all three — on `GRASS_STRONG`, the arm carrying
+the regression.
+
+**Root cause.** I reasoned "the discriminating `console.print` is the observation, therefore it is
+the end of the arm." A generator's `next()` does not stop at a print — it stops at the first
+`yield`. Control ran past `story_mode.py:1949` to `:2087 yield from train_team(...)`, which executes
+`early_game.py:2003 set_swap_train(True)` (a module global undone only by a `finally` that had not
+run) and, via `_rotate_lead_safely` → `menuing.py:308`,
+`context.emulator.press_button("Start")` — **both before `train_team`'s first yield.**
+⇒ *I confused where I was LOOKING with where the code STOPS.*
+
+**The compounding error, which is the more useful half.** My safety net was an invariance snapshot
+of `(map, position, party pids, team_max)`. Not one of those four can observe a module global, a
+queued button, `context.message`, or a party REORDER (a set of PIDs is blind to ordering). So the
+design's proof-of-safety was structurally incapable of detecting the design's own unsafety —
+**a witness that cannot observe what it claims**, which is a failure shape already written down in
+this very file. I wrote the check to match the danger I had imagined, not the danger that existed.
+
+**The fix that worked.** A tripwire inside the console proxy RAISES the instant a terminal branch
+signature prints, unwinding `_prepare_for_fight` at `:1948` — before `:1961`, so `train_team` is
+never entered. Verified, not assumed: `INVARIANCE drift=none` on all three arms across all four
+committed runs. `gen.close()` and the widened snapshot are kept as belt-and-braces, not as the
+mechanism — `close()` fires too late to un-press a button.
+
+**Prevention rule.** *A generator stops at its next `yield`, NOT at the line you are reading — before
+claiming a driven arm is bounded, find the first `yield` on the path and name it.*
+
+**Second prevention rule.** *Do not let the same reasoning produce both a claim and its check.* The
+invariance snapshot was designed from my own model of what could go wrong, so it could only ever
+confirm that model. An INDEPENDENT adversarial pass, told to refute rather than review, found in one
+sweep what two of my own passes did not.
+
+**Third, on method.** The refutation was requested BEFORE any code was written, on a design note
+written to be attacked. That ordering is why this cost one document revision instead of a debugging
+session over a driver that silently pressed Start.

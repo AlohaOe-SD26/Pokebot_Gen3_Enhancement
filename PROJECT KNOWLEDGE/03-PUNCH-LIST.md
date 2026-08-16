@@ -377,6 +377,17 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       🔜 **WHAT (P4) STILL DOES NOT COVER:** everything UPSTREAM of registration — a real `hunt()`
       catch feeding `story_mode.py:1750`. The Slugma is INJECTED and the PID published by the
       driver. Also still unbuilt: the natural-vs-injected byte-equivalence control.
+      ✅✅ **KI-80'S REPRO IS BUILT, DRIVEN AND FAULT-TESTED (2026-08-15) — `--driver ki80ladder`.**
+      THREE arms on `saves/batch2_run04_wedge.ss1` (`team_max` 28, 8 seeded losses): `NOGRASS` →
+      ladder · `GRASS_FODDER` (Route 102, `wild_max` 4) → ladder · ⛔ `GRASS_STRONG` (Route 119 —
+      **the patch her own cfg comment names**, `story_mode.py:3531`; ⛔ she has NO `grass` key today, `wild_max` 27) → **plain escalation, ladder SKIPPED.** Only the
+      `grass` key differs. `ACCEPTANCE: PASS` in BOTH forks. Fault-tested twice: the fixture KI-80
+      itself once prescribed (`ch13_fortree_door`) FAILS with *"THE A/B WOULD BE VACUOUS"* and all
+      three arms return `LADDER`; and `POKEBOT_KI80_DECOUPLED=1` FAILS today, which is what makes
+      the same driver the AFTER run. ‼ **Exits 0 even on FAIL — grade the `ACCEPTANCE:` line.**
+      ➡ **NEXT: decouple `_counter_ladder` from `grass_is_fodder` (`story_mode.py:1899-1901`)**,
+      then flip `POKEBOT_KI80_DECOUPLED=1` FAIL → PASS. The BEFORE run is committed FIRST because
+      it is unrepeatable afterwards. `repro_boss_grass_gate.py` SELF-RETIRES on the fix — designed.
       ✅ **BOTH PROMOTIONS ARE DONE (user-approved 2026-08-15).** *(⚠ Drift is 1 today for an UNRELATED comment-only `story_mode.py` fix, NOT promoted — the user's call.)* The KI-79 fix `pc_trip.py` (a BEHAVIOUR change) was proven by a THREE-POINT A/B showing the new branch actually RUNS in custom, not merely that the file copied. And `counter_hunt.py`
       (comment-only, the Electric correction) promoted with restore point
       `restore/2026-08-15-pre-promotion-counterhunt-comment`: 1/1 byte-identical, and VERIFIED BY

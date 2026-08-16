@@ -32,7 +32,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -5364,6 +5364,405 @@ class BoxCounter2Mode(BoxCounterMode):
         return
 
 
+class _Ki80Discriminated(Exception):
+    """Raised FROM INSIDE the console proxy the instant a TERMINAL branch signature prints.
+
+    ‼ THIS IS THE WHOLE REASON THE DRIVER IS SAFE, and it exists because the obvious design was
+    REFUTED. `next(gen)` runs to the first `yield`, and `story_mode.py:1949`'s print is NOT the end
+    of the arm: control continues to `:2087 yield from train_team(...)`, which calls
+    `early_game.py:2003 set_swap_train(True)` and — via `_rotate_lead_safely` →
+    `menuing.py:308` — `context.emulator.press_button("Start")` **before its first yield**.
+    So "one next() per arm mutates nothing" was false on the ONE arm carrying the regression.
+    Raising here unwinds `_prepare_for_fight` at `:1948`, before `:1961`, so `train_team` is never
+    reached at all. ⛔ Do not "simplify" this into a plain flag — a flag cannot stop the generator.
+    """
+
+
+class Ki80LadderMode(BotMode):
+    """KI-80 — `grass_is_fodder` is the SOLE gate on the counter-ladder, PROVEN BY DRIVING.
+
+    ‼ WHAT IS UNDER TEST, EXACTLY. `story_mode.py:1899`:
+        `grass_is_fodder = ("grass" not in cfg) or (wild_max is not None and wild_max + 8 < team_max)`
+    and `:1901` makes that one boolean the sole gate on `_boss_plan_is_hopeless` (`:1907`) AND
+    `_counter_ladder` (`:1914`). One flag carries two unrelated meanings — *"this boss has no
+    patch"* and *"this boss's patch is far below the team"* — so **giving a boss a training area
+    silently deletes its KI-23 counter machinery**, behind a healthy-looking
+    `"training harder before re-attempting"` line. The SUBJECT is the GATE: which branch production
+    takes. Nothing else.
+
+    ⛔ THIS IS NOT `repro_boss_grass_gate.py` (suite #24). That gate is STRUCTURAL — it reads the
+    AST and FORBIDS a `grass` key on the at-risk bosses while the coupling stands. It proves the
+    edit is not made. This driver proves what would HAPPEN if it were. Both are needed; neither
+    replaces the other. ⇒ this driver builds its cfgs IN THE DRIVER and edits no production file,
+    so the two never fight.
+
+    ‼‼ THREE ARMS, NOT TWO — and the third is what makes the result mean anything.
+        NOGRASS       no `grass` key            -> grass_is_fodder TRUE  (1st disjunct) -> LADDER
+        GRASS_FODDER  Route 102, wild_max 4     -> grass_is_fodder TRUE  (2nd disjunct) -> LADDER
+        GRASS_STRONG  Route 119, wild_max 27    -> grass_is_fodder FALSE                -> ESCALATION
+    A two-arm A/B would only show "a `grass` key removes the ladder" and could not distinguish the
+    key's PRESENCE from the level ARITHMETIC. GRASS_FODDER shows a patch that IS fodder KEEPS the
+    machinery — so the discriminator is the arithmetic, which is the actual defect.
+    ‼ ARMS 1 AND 2 ARE OBSERVATIONALLY IDENTICAL BY DESIGN. That sameness IS the finding. It also
+    means the driver cannot OBSERVE that arm 2 carried a key — it asserts the cfg it passed, and
+    says so rather than implying more.
+
+    ⛔⛔ THE FIXTURE, AND WHY BOTH PREVIOUSLY-NAMED SAVES ARE UNUSABLE.
+    ANCHOR: `saves/batch2_run04_wedge.ss1` — measured NO_ANSWER, `team_max = 28`
+    (Marshtomp/Swellow/Mightyena L28, Nincada L10).
+      ⛔ NOT `fortree_gym_wedge.ss1` — its Castform's Powder Snow scores 160 >= 75, so
+         `_boss_plan_is_hopeless` returns NOT hopeless (condition 7 fails) and the ladder can never
+         fire from it.
+      ⛔ NOT `ch13_fortree_door.ss1` — Blaziken L39 makes `27 + 8 = 35 < 39` TRUE, so
+         `grass_is_fodder` is TRUE IN BOTH ARMS: the A/B is VACUOUS and would read as a REFUTATION
+         of a true finding. (KI-80's condition 9. This save was NAMED as the fixture until a
+         cold-start agent computed the discriminator on it.)
+      ⚠ NOT `batch3_run03_wedge.ss1` — NO_ANSWER but `team_max = 35`, exactly ON the boundary
+         (`35 < 35` false by one level). One level-up flips the experiment silently.
+    ‼ NOT WINONA-ERA (badges 123). Fine for a DECISION-level A/B — the branch reads party levels,
+    party moves, the grass map's encounter table and the seeded loss history, never a badge — but
+    ⛔ DO NOT REPORT THIS AS A FAITHFUL WINONA SCENARIO. (And note `_counter_catch_message` ->
+    `_counter_area_allowed` -> `is_map_reachable` DOES read badge flags, so W3's candidate list is
+    badge-dependent even though the branch decision is not.)
+
+    ⛔ `losses` IS SEEDED AT 8 — INSIDE 6..11, AND THAT BAND IS LOAD-BEARING AT BOTH ENDS.
+    At 2-5 the ladder cannot fire whatever the grass key is (`PLATEAU_LOSS_THRESHOLD = 6`), so the
+    A/B would show no difference. At 12+ `hard_plateau` goes True and `:1573` iterates an EMPTY
+    TUPLE, so `hopeless` is True REGARDLESS OF THE PARTY — the right answer for a completely
+    different reason, and the run would go green proving nothing about the no-answer path.
+
+    WITNESSES — they must AGREE; disagreement is a FAIL, never a tie-break:
+      W1 console proxy   — records every print reached through the module global, and TRIPS.
+                           ⚠ NOT "every print": `_counter_area_allowed:902` and
+                           `_log_story_event:3742` re-import `console` function-locally.
+      W2 `_counter_ladder` spy — records ENTRY, returns False without hunting. ⛔ MUST be a
+                           GENERATOR function: `:1914` is `yield from`, and a plain `def` returning
+                           False raises TypeError, which reads as "the run errored".
+      W3 the `BotModeError` — its message embeds the `losses` PRODUCTION used, so the seed is
+                           checked against production's arithmetic, not the driver's belief.
+      W4 delegating observer on `_boss_plan_is_hopeless` — calls the REAL method, records the
+                           verdict, substitutes nothing. ⛔ Captures the bound method BEFORE
+                           rebinding, or it recurses for ever.
+
+    ⛔ STATED SCOPE LIMIT. W2 replaces the ladder's BODY, and every arm is cut off at its decision.
+    This proves the gate is REACHED. It proves nothing about what the hunt then does — deliberately,
+    because the hunt travels, and travel is risk this test does not need.
+
+    Run:  PYTHONUTF8=1 py -3.12 story_harness.py batch2_run04_wedge.ss1 \\
+              --driver ki80ladder --frames 2000
+    Expect (coupled, i.e. TODAY): NOGRASS -> LADDER, GRASS_FODDER -> LADDER,
+                                  GRASS_STRONG -> PLAIN_ESCALATION, ACCEPTANCE: PASS
+    After decoupling KI-80, re-run with POKEBOT_KI80_DECOUPLED=1 — all three must reach the LADDER.
+    ⛔ The BEFORE run is unrepeatable once the fix lands. RUN AND COMMIT IT FIRST.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ki80Ladder"
+
+    def run(self):
+        import ast as _ast
+        import os as _os
+        import pathlib as _pathlib
+        import random as _random
+
+        from modules.context import context as _ctx
+        from modules.map import get_wild_encounters_for_map
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.modes.util import wait_for_n_frames
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story import early_game as _eg
+        from plugins.custom_modes import story_mode as _sm
+
+        TAG = "ki80ladder"
+        LOSSES = 8            # inside 6..11 — see the class docstring, BOTH ends matter
+        SEED = 80             # `:1819` randint and `:1941` choice are unseeded in production
+        FODDER_GAP = 8        # the `+ 8` in `:1899`, restated so the assertions below are readable
+
+        decoupled = _os.environ.get("POKEBOT_KI80_DECOUPLED") == "1"
+        fails: list[str] = []
+
+        def bad(msg: str) -> None:
+            fails.append(msg)
+            log(f"[{TAG}] ‼ {msg}")
+
+        yield from wait_for_n_frames(10)   # let the loaded state settle before reading party memory
+        _random.seed(SEED)
+        log(f"[{TAG}] seeded random with {SEED} (production `:1819`/`:1941` are unseeded; the "
+            f"branch is unaffected but how far an arm WOULD run is not)")
+        log(f"[{TAG}] EXPECTATION = {'DECOUPLED (all three -> LADDER)' if decoupled else 'COUPLED (today: GRASS_STRONG -> ESCALATION)'} "
+            f"(POKEBOT_KI80_DECOUPLED={_os.environ.get('POKEBOT_KI80_DECOUPLED', '<unset>')!r})")
+
+        # ---- 1. MEASURE THE FIXTURE LIVE. Never trust the table in the docs. --------------------
+        avatar = get_player_avatar()
+        party = [m for m in get_party() if m is not None]
+        team_max = max((m.level for m in party if not m.is_egg), default=0)
+        log(f"[{TAG}] FIXTURE map={tuple(avatar.map_group_and_number)} "
+            f"pos={tuple(avatar.local_coordinates)} party="
+            f"{[(m.species.name, m.level) for m in party]} team_max={team_max}")
+
+        def wild_land_max(map_enum):
+            """Production's own reader, called exactly as `:1886-1890` calls it."""
+            enc = get_wild_encounters_for_map(*map_enum.value)
+            if enc is None or not enc.land_encounters:
+                return None
+            return max(e.max_level for e in enc.land_encounters)
+
+        # ⛔ ROUTE119 is the patch winona_fight's OWN comment names (`story_mode.py:3531`:
+        # "Route 119 is the Fortree-side band"). She has NO `grass` key today — that absence is
+        # the ONLY reason her counter ladder still fires, which is the whole of KI-80.
+        wild_strong = wild_land_max(MapRSE.ROUTE119)
+        wild_fodder = wild_land_max(MapRSE.ROUTE102)   # a genuinely weak patch
+        log(f"[{TAG}] MEASURED wild_max: ROUTE119={wild_strong} ROUTE102={wild_fodder} "
+            f"(both read through production's `get_wild_encounters_for_map`)")
+
+        # ---- 2. ANTI-VACUITY. ⛔ THE ARMS MUST PROVABLY DIFFER, COMPUTED HERE, NOT ASSUMED. ------
+        # This block exists because this project has twice specified an A/B whose arms were
+        # IDENTICAL, which would have read as a refutation of a true finding.
+        if wild_strong is None or wild_fodder is None:
+            # ⛔ NOT a pedantic None-check: `:1891` swallows this with a bare `except: pass`, leaving
+            # wild_max None, which makes grass_is_fodder FALSE — so a missing table would turn
+            # GRASS_FODDER silently into a SECOND GRASS_STRONG and the control would vanish.
+            bad(f"a land-encounter table did not read (ROUTE119={wild_strong} ROUTE102={wild_fodder}) "
+                f"— `:1891`'s bare except would leave wild_max None and COLLAPSE the arms")
+        else:
+            strong_flips = not (wild_strong + FODDER_GAP < team_max)   # grass_is_fodder -> False
+            fodder_keeps = (wild_fodder + FODDER_GAP < team_max)       # grass_is_fodder -> True
+            log(f"[{TAG}] DISCRIMINATOR ROUTE119: {wild_strong}+{FODDER_GAP}={wild_strong + FODDER_GAP} "
+                f"vs team_max={team_max} -> grass_is_fodder flips to False? {strong_flips}")
+            log(f"[{TAG}] DISCRIMINATOR ROUTE102: {wild_fodder}+{FODDER_GAP}={wild_fodder + FODDER_GAP} "
+                f"vs team_max={team_max} -> stays fodder? {fodder_keeps}")
+            if not strong_flips:
+                bad(f"THE A/B WOULD BE VACUOUS: ROUTE119 does not flip `grass_is_fodder` at "
+                    f"team_max={team_max} (need team_max <= {wild_strong + FODDER_GAP}). "
+                    f"This is KI-80 condition 9 — pick a fixture with a LOWER team_max.")
+            if not fodder_keeps:
+                bad(f"THE CONTROL IS DEAD: ROUTE102 does not stay fodder at team_max={team_max} "
+                    f"(need team_max > {wild_fodder + FODDER_GAP})")
+
+        # ---- 3. THE cfg, CROSS-CHECKED AGAINST THE REAL LITERAL IN THE SOURCE AST. --------------
+        # `winona_fight` is METHOD-LOCAL (`story_mode.py:3532`) and cannot be imported, so it is
+        # replicated. ⛔ A replica that silently rots is worse than no replica — hence the check.
+        base_cfg = {
+            "name": "Winona",
+            "keys": [MapRSE.FORTREE_CITY_GYM.value, MapRSE.FORTREE_CITY.value],
+            "band": (29, 33),
+            "ace_types": ("Dragon", "Flying"),
+            "ace_level": 33,
+            "heal": PokemonCenter.FortreeCity,   # `:1993` reads this on the GRASS_STRONG path
+        }
+        try:
+            src = _pathlib.Path(_sm.__file__).read_text(encoding="utf-8-sig")
+            literal = None
+            for node in _ast.walk(_ast.parse(src)):
+                if (isinstance(node, _ast.Assign) and len(node.targets) == 1
+                        and isinstance(node.targets[0], _ast.Name)
+                        and node.targets[0].id == "winona_fight"
+                        and isinstance(node.value, _ast.Dict)):
+                    literal = node.value
+                    break
+            if literal is None:
+                bad("could not find the `winona_fight` literal in the source AST — the replica is "
+                    "UNVERIFIED, so this run's cfg may not be production's")
+            else:
+                ast_keys = {k.value for k in literal.keys if isinstance(k, _ast.Constant)}
+                unparsed = _ast.unparse(literal)
+                if ast_keys != set(base_cfg):
+                    bad(f"REPLICA DRIFT: winona_fight keys {sorted(ast_keys)} != replica "
+                        f"{sorted(base_cfg)}")
+                for needle in ("'band': (29, 33)", "'ace_types': ('Dragon', 'Flying')",
+                               "'ace_level': 33"):
+                    if needle not in unparsed:
+                        bad(f"REPLICA DRIFT: {needle!r} not in the real literal")
+                if "'grass'" in unparsed:
+                    bad("winona_fight HAS a `grass` key in source — the regression this driver "
+                        "measures has SHIPPED; `repro_boss_grass_gate.py` should have caught it")
+                log(f"[{TAG}] AST CROSS-CHECK ok — replica matches `winona_fight` at "
+                    f"{_pathlib.Path(_sm.__file__).name} (keys={sorted(ast_keys)}, no `grass` key)")
+        except Exception as error:  # noqa: BLE001 — a failed cross-check must FAIL, never pass quietly
+            bad(f"AST cross-check raised {type(error).__name__}: {error}")
+
+        arms = [
+            ("NOGRASS", dict(base_cfg), "LADDER"),
+            ("GRASS_FODDER", {**base_cfg, "grass": (MapRSE.ROUTE102, (9, 2))}, "LADDER"),
+            # ⛔ GRASS_STRONG RUNS LAST ON PURPOSE: it is the only arm that could leak state past
+            # its decision if the tripwire ever missed, so it cannot contaminate the others.
+            ("GRASS_STRONG", {**base_cfg, "grass": (MapRSE.ROUTE119, (21, 109))},
+             "LADDER" if decoupled else "PLAIN_ESCALATION"),
+        ]
+
+        # ---- 4. THE WITNESSES. ------------------------------------------------------------------
+        real_console = _sm.console
+        ladder_calls: list[dict] = []
+        hopeless_calls: list[dict] = []
+
+        TRIPWIRES = (
+            ("PLAIN_ESCALATION", "training harder before"),      # `:1949` — THE REGRESSION
+            ("BOSS_TRAINING_MODE", "boss-training mode"),        # `:1927` — hopeless came back False
+            ("ZERO_KO_FALLBACK", "boss attempts KO'd nothing"),  # `:1932` — the seed is wrong
+        )
+
+        class _Proxy:
+            """Records, FORWARDS, then trips. Forwarding first keeps the line in the real log."""
+
+            def __init__(self, real, sink):
+                self._real, self._sink = real, sink
+
+            def print(self, *a, **kw):
+                text = " ".join(str(x) for x in a)
+                self._sink.append(text)
+                self._real.print(*a, **kw)
+                for name, needle in TRIPWIRES:
+                    if needle in text:
+                        raise _Ki80Discriminated(name)
+
+            def __getattr__(self, item):   # anything that is not `print` behaves as the real console
+                return getattr(self._real, item)
+
+        def ladder_spy(cfg, losses, needed):
+            """⛔ A GENERATOR FUNCTION — `:1914` is `yield from`. The unreachable yield is what
+            makes it one; without it `yield from False` raises TypeError."""
+            ladder_calls.append({
+                "losses": losses,
+                "needed": list(needed),
+                "cfg_has_grass": "grass" in cfg,
+            })
+            return False
+            yield  # noqa: unreachable — REQUIRED. Do not delete.
+
+        # ---- 5. DRIVE EACH ARM. -----------------------------------------------------------------
+        def snapshot(mode):
+            av = get_player_avatar()
+            return {
+                "map": tuple(av.map_group_and_number),
+                "pos": tuple(av.local_coordinates),
+                # ORDERED, and keyed on (pid, species) — a lead rotation reorders slots, and a
+                # SET of pids is blind to that. KI-78: a Shedinja shares its Ninjask's PID.
+                "party": [(m.personality_value, m.species.name, m.level)
+                          for m in get_party() if m is not None],
+                "swap_train": _eg.swap_train_active(),
+                "message": getattr(_ctx, "message", None),
+                "unreachable": sorted(str(x) for x in getattr(mode, "_training_unreachable", ()) or ()),
+            }
+
+        results = []
+        for arm_name, cfg, expected in arms:
+            mode = _sm.StoryMode()
+            key = MapRSE.FORTREE_CITY_GYM.value
+            mode._defeat_counts[key] = LOSSES
+            mode._loss_ko_history[key] = [(i, 1) for i in range(1, LOSSES + 1)]
+
+            real_hopeless = mode._boss_plan_is_hopeless      # ⛔ BOUND, captured BEFORE rebinding
+
+            def hopeless_observer(cfg_arg, _real=real_hopeless):
+                verdict = _real(cfg_arg)          # the REAL predicate decides; this only watches
+                hopeless_calls.append({"hopeless": bool(verdict[0]), "needed": list(verdict[1])})
+                return verdict
+
+            mode._boss_plan_is_hopeless = hopeless_observer
+            mode._counter_ladder = ladder_spy
+
+            ladder_calls.clear()
+            hopeless_calls.clear()
+            sink: list[str] = []
+            before = snapshot(mode)
+
+            outcome, detail = "UNSET", ""
+            gen = mode._prepare_for_fight(cfg)
+            _sm.console = _Proxy(real_console, sink)
+            try:
+                next(gen)
+                outcome = "YIELDED_WITHOUT_DISCRIMINATING"
+            except _Ki80Discriminated as trip:
+                outcome = str(trip)
+            except BotModeError as error:
+                outcome, detail = "LADDER", str(error)
+            except StopIteration:
+                outcome = "RETURNED_WITHOUT_DISCRIMINATING"
+            except Exception as error:  # noqa: BLE001 — reported as its own outcome, never as PASS
+                outcome, detail = f"UNEXPECTED_{type(error).__name__}", str(error)
+            finally:
+                # ⛔ BOTH of these, always. close() runs train_team's `finally: set_swap_train(False)`
+                # if the tripwire were ever missed; restoring console must not depend on it.
+                try:
+                    gen.close()
+                except Exception as error:  # noqa: BLE001
+                    log(f"[{TAG}] {arm_name}: gen.close() raised {type(error).__name__}: {error}")
+                _sm.console = real_console
+
+            after = snapshot(mode)
+            drifted = {k: (before[k], after[k]) for k in before if before[k] != after[k]}
+            reached_ladder = bool(ladder_calls)
+            results.append({
+                "arm": arm_name, "outcome": outcome, "expected": expected,
+                "ladder": reached_ladder, "hopeless": list(hopeless_calls),
+                "drift": drifted, "detail": detail, "prints": len(sink),
+            })
+
+            log(f"[{TAG}] ── ARM {arm_name} (cfg keys={sorted(cfg)}) ──")
+            log(f"[{TAG}]    OUTCOME={outcome} expected={expected}")
+            log(f"[{TAG}]    W2 ladder_entered={reached_ladder} calls={ladder_calls}")
+            log(f"[{TAG}]    W4 hopeless={hopeless_calls}")
+            if detail:
+                log(f"[{TAG}]    W3 raise={detail[:300]}")
+            log(f"[{TAG}]    INVARIANCE drift={drifted if drifted else 'none'}")
+
+            # --- per-arm grading: every witness must agree with every other one ---
+            if expected == "LADDER":
+                if outcome != "LADDER":
+                    bad(f"{arm_name}: expected the counter-ladder branch, got {outcome!r}")
+                if not reached_ladder:
+                    bad(f"{arm_name}: W2 never saw `_counter_ladder` entered")
+                if not hopeless_calls:
+                    bad(f"{arm_name}: W4 never saw `_boss_plan_is_hopeless` called — the gate "
+                        f"short-circuited before it")
+                elif not hopeless_calls[-1]["hopeless"]:
+                    bad(f"{arm_name}: `_boss_plan_is_hopeless` returned NOT hopeless — the fixture "
+                        f"has a credible answer (condition 7), so the ladder cannot fire")
+                if detail and f"{LOSSES} losses" not in detail:
+                    # W3: production's OWN arithmetic, not the driver's belief about the seed.
+                    bad(f"{arm_name}: the raise does not report {LOSSES} losses — production "
+                        f"computed a different count from the seeded history: {detail[:200]!r}")
+            else:
+                if outcome != expected:
+                    bad(f"{arm_name}: expected {expected!r}, got {outcome!r}")
+                if reached_ladder:
+                    bad(f"{arm_name}: W2 saw the ladder entered, but this arm must NOT reach it")
+                if hopeless_calls:
+                    bad(f"{arm_name}: W4 saw `_boss_plan_is_hopeless` called, but `grass_is_fodder` "
+                        f"should have short-circuited before it")
+            if drifted:
+                bad(f"{arm_name}: STATE CHANGED across the arm — {drifted}. The tripwire should "
+                    f"have stopped it before `train_team`.")
+
+        # ---- 6. THE FINDING, STATED AS A COMPARISON. --------------------------------------------
+        by_arm = {r["arm"]: r for r in results}
+        nograss, fodder, strong = by_arm["NOGRASS"], by_arm["GRASS_FODDER"], by_arm["GRASS_STRONG"]
+        log(f"[{TAG}] ══ MATRIX ══")
+        for r in results:
+            log(f"[{TAG}]   {r['arm']:<13} -> {r['outcome']:<22} ladder={r['ladder']} "
+                f"(expected {r['expected']})")
+
+        if not decoupled:
+            # The defect, stated as the comparison that shows it. Both halves must hold: identical
+            # parties, identical loss history, identical boss — ONLY the cfg's grass key differs.
+            if nograss["ladder"] and fodder["ladder"] and not strong["ladder"]:
+                log(f"[{TAG}] ✅ KI-80 REPRODUCED: same party, same seeded losses, same boss — the "
+                    f"ONLY difference is the cfg's `grass` key. A FODDER patch KEEPS the counter "
+                    f"machinery; the patch her own cfg comment names (Route 119, `story_mode.py:3531`, "
+                    f"wild_max={wild_strong}) DELETES "
+                    f"it, silently, behind `training harder before re-attempting`.")
+            else:
+                bad("KI-80 was NOT reproduced by the matrix above — read the per-arm lines before "
+                    "touching `story_mode.py`; the CHECK is wrong at least as often as the subject")
+
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if not fails else 'FAIL'}"
+            + ("" if not fails else f" — {len(fails)} problem(s): " + " | ".join(fails)))
+        _ctx.set_manual_mode()
+        return
+
+
 class Ch20DiveMode(BotMode):
     """‼ THE FIRST DRIVEN DIVE IN THIS PROJECT — KI-68 step 1, Mossdeep → SEAFLOOR_CAVERN_ENTRANCE.
 
@@ -8566,6 +8965,8 @@ for step in range(args.frames):
             context.bot_mode_instance = BoxCounter2Mode()
         elif args.driver == "boxwrite":
             context.bot_mode_instance = BoxWriteMode()
+        elif args.driver == "ki80ladder":
+            context.bot_mode_instance = Ki80LadderMode()
         elif args.driver == "ch20dive":
             context.bot_mode_instance = Ch20DiveMode()
         elif args.driver == "ch20room1":

@@ -1,0 +1,139 @@
+Running mGBA 0.10.2
+[setup] loaded save state batch2_run04_wedge.ss1; build=sandbox
+[run] starting faithful loop for up to 2000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ki80LadderMode.run   (state=OVERWORLD)
+[ki80ladder] seeded random with 80 (production `:1819`/`:1941` are unseeded; the branch is unaffected but how far an arm WOULD run is not)
+[ki80ladder] EXPECTATION = DECOUPLED (all three -> LADDER) (POKEBOT_KI80_DECOUPLED='1')
+[ki80ladder] FIXTURE map=(0, 26) pos=(18, 99) party=[('Marshtomp', 28), ('Swellow', 28), ('Mightyena', 28), ('Nincada', 10)] team_max=28
+[ki80ladder] MEASURED wild_max: ROUTE119=27 ROUTE102=4 (both read through production's `get_wild_encounters_for_map`)
+[ki80ladder] DISCRIMINATOR ROUTE119: 27+8=35 vs team_max=28 -> grass_is_fodder flips to False? True
+[ki80ladder] DISCRIMINATOR ROUTE102: 4+8=12 vs team_max=28 -> stays fodder? True
+[ki80ladder] AST CROSS-CHECK ok — replica matches `winona_fight` at story_mode.py (keys=['ace_level', 'ace_types', 'band', 'heal', 'keys', 'name'], no `grass` key)
+counter gate: GRANITE_CAVE_1F rejected — reachable but 9 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 10 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 11 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: VICTORY_ROAD_1F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: VICTORY_ROAD_B1F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: VICTORY_ROAD_B2F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: VICTORY_ROAD_1F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 9 hops away (limit
+8)
+counter gate: SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM rejected — reachable but 9 hops
+away (limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_INNER_ROOM rejected — reachable but 10 hops 
+away (limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_LOWER_ROOM rejected — reachable but 11 hops 
+away (limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM rejected — reachable but 11 hops 
+away (limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 12 hops 
+away (limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 12 hops 
+away (limit 8)
+counter gate: SKY_PILLAR_1F rejected — reachable but 11 hops away (limit 8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 13 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 15 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 15 hops away (limit 8)
+Story: counter-catch candidates for Winona (Dragon/Flying):
+Slugma (Fire) on Fiery Path (tile (18, 19), L15-15, 10% rate) — reachable
+Geodude (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, 
+L27-30, 55% rate) — reachable
+Geodude (Ground/Rock) on Magma Hideout (2F) 1R (tile unmapped, NOT HUNTABLE, 
+L27-30, 55% rate) — reachable
+Geodude (Ground/Rock) on Magma Hideout (2F) 2R (tile unmapped, NOT HUNTABLE, 
+L27-30, 55% rate) — reachable
+Geodude (Ground/Rock) on Magma Hideout (2F) 3R (tile unmapped, NOT HUNTABLE, 
+L27-30, 55% rate) — reachable
+[ki80ladder] ── ARM NOGRASS (cfg keys=['ace_level', 'ace_types', 'band', 'heal', 'keys', 'name']) ──
+[ki80ladder]    OUTCOME=LADDER expected=LADDER
+[ki80ladder]    W2 ladder_entered=True calls=[{'losses': 8, 'needed': ['Rock', 'Ice', 'Dragon'], 'cfg_has_grass': False}]
+[ki80ladder]    W4 hopeless=[{'hopeless': True, 'needed': ['Rock', 'Ice', 'Dragon']}]
+[ki80ladder]    W3 raise=Winona: 8 losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest reachable counters: Slugma (Fire) on Fiery Path (tile (18, 19), L15-15, 10% rate) — reachable; Geodude (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT 
+[ki80ladder]    INVARIANCE drift=none
+counter gate: GRANITE_CAVE_1F rejected — reachable but 9 hops away (limit 8)
+counter gate: GRANITE_CAVE_B1F rejected — reachable but 10 hops away (limit 8)
+counter gate: GRANITE_CAVE_B2F rejected — reachable but 11 hops away (limit 8)
+counter gate: GRANITE_CAVE_STEVENS_ROOM rejected — reachable but 10 hops away 
+(limit 8)
+counter gate: VICTORY_ROAD_1F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: VICTORY_ROAD_B1F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: VICTORY_ROAD_B2F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: VICTORY_ROAD_1F rejected — needs Waterfall at 
+EVER_GRANDE_CITY<->VICTORY_ROAD_1F
+counter gate: SAFARI_ZONE_NORTHWEST rejected — reachable but 9 hops away (limit
+8)
+counter gate: SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM rejected — reachable but 9 hops
+away (limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_INNER_ROOM rejected — reachable but 10 hops 
+away (limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_LOWER_ROOM rejected — reachable but 11 hops 
+away (limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_STAIRS_ROOM rejected — reachable but 11 hops 
+away (limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 12 hops 
+away (limit 8)
+counter gate: SHOAL_CAVE_LOW_TIDE_ICE_ROOM rejected — reachable but 12 hops 
+away (limit 8)
+counter gate: SKY_PILLAR_1F rejected — reachable but 11 hops away (limit 8)
+counter gate: SKY_PILLAR_3F rejected — reachable but 13 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 15 hops away (limit 8)
+counter gate: SKY_PILLAR_5F rejected — reachable but 15 hops away (limit 8)
+Story: counter-catch candidates for Winona (Dragon/Flying):
+Slugma (Fire) on Fiery Path (tile (18, 19), L15-15, 10% rate) — reachable
+Geodude (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, 
+L27-30, 55% rate) — reachable
+Geodude (Ground/Rock) on Magma Hideout (2F) 1R (tile unmapped, NOT HUNTABLE, 
+L27-30, 55% rate) — reachable
+Geodude (Ground/Rock) on Magma Hideout (2F) 2R (tile unmapped, NOT HUNTABLE, 
+L27-30, 55% rate) — reachable
+Geodude (Ground/Rock) on Magma Hideout (2F) 3R (tile unmapped, NOT HUNTABLE, 
+L27-30, 55% rate) — reachable
+[ki80ladder] ── ARM GRASS_FODDER (cfg keys=['ace_level', 'ace_types', 'band', 'grass', 'heal', 'keys', 'name']) ──
+[ki80ladder]    OUTCOME=LADDER expected=LADDER
+[ki80ladder]    W2 ladder_entered=True calls=[{'losses': 8, 'needed': ['Rock', 'Ice', 'Dragon'], 'cfg_has_grass': True}]
+[ki80ladder]    W4 hopeless=[{'hopeless': True, 'needed': ['Rock', 'Ice', 'Dragon']}]
+[ki80ladder]    W3 raise=Winona: 8 losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest reachable counters: Slugma (Fire) on Fiery Path (tile (18, 19), L15-15, 10% rate) — reachable; Geodude (Ground/Rock) on Magma Hideout (1F) (tile unmapped, NOT 
+[ki80ladder]    INVARIANCE drift=none
+Story: lost here 8× — training harder before re-attempting (target Lv 47, 
+escalate_band).
+[ki80ladder] ── ARM GRASS_STRONG (cfg keys=['ace_level', 'ace_types', 'band', 'grass', 'heal', 'keys', 'name']) ──
+[ki80ladder]    OUTCOME=PLAIN_ESCALATION expected=LADDER
+[ki80ladder]    W2 ladder_entered=False calls=[]
+[ki80ladder]    W4 hopeless=[]
+[ki80ladder]    INVARIANCE drift=none
+[ki80ladder] ‼ GRASS_STRONG: expected the counter-ladder branch, got 'PLAIN_ESCALATION'
+[ki80ladder] ‼ GRASS_STRONG: W2 never saw `_counter_ladder` entered
+[ki80ladder] ‼ GRASS_STRONG: W4 never saw `_boss_plan_is_hopeless` called — the gate short-circuited before it
+[ki80ladder] ══ MATRIX ══
+[ki80ladder]   NOGRASS       -> LADDER                 ladder=True (expected LADDER)
+[ki80ladder]   GRASS_FODDER  -> LADDER                 ladder=True (expected LADDER)
+[ki80ladder]   GRASS_STRONG  -> PLAIN_ESCALATION       ladder=False (expected LADDER)
+[ki80ladder] ACCEPTANCE: FAIL — 3 problem(s): GRASS_STRONG: expected the counter-ladder branch, got 'PLAIN_ESCALATION' | GRASS_STRONG: W2 never saw `_counter_ladder` entered | GRASS_STRONG: W4 never saw `_boss_plan_is_hopeless` called — the gate short-circuited before it
+f11: CONTROLLER -> <none>   (state=OVERWORLD)
+f911: SAVED stall state #1 to stalls/repro-ml-f911.ss1 (bt='SWELLOW gained 98 EXP. Points!')
+f1211: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Marshtomp:L28:exp19102|Swellow:L28:exp18320|Mightyena:L28:exp22005|Nincada:L10:exp2249', (18, 99)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=['EventScript_SmashRock'] bt='SWELLOW gained 98 EXP. Points!' bot_mode=Manual
+f1211:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[done] ran 2000 frames; final mode=Manual party=[Marshtomp:L28:exp19102|Swellow:L28:exp18320|Mightyena:L28:exp22005|Nincada:L10:exp2249]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Marshtomp L28: Tackle, Rock Smash, Mud-slap, Water Gun
+[moveset] Swellow L28: Peck, Double Team, Focus Energy, Quick Attack
+[moveset] Mightyena L28: Tackle, Swagger, Sand-attack, Bite
+[moveset] Nincada L10: Scratch, Harden, Leech Life, Sand-attack
+[PARTY-ACCT] STAGE 0 SUMMARY — 2001 get_party() recomputes, 7 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ki80ladder 2001 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-08-15_23-37-35.ss1 created!
+Updated `current_state.ss1`!

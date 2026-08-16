@@ -4425,3 +4425,41 @@ it could NOT see: `04-HANDOFF.md:10` (banner), `:24` (spelled **"zero"**), `:195
 `0 differing, 0 orphaned` instructions the drift check does not model at all.
 ⇒ **The gate is a floor, not a sweep.** After changing a drift figure, grep manually for:
 `drift is 0` · `drift is ZERO` · `drift.*zero` · `figure is zero` · `0 as of` · `0 differing`.
+
+
+## 2026-08-15 — archived from `04-HANDOFF.md`: the (i)/(ii) closed-promotion evidence (moved on the 900-line budget when `--driver ki80ladder` landed)
+
+Both items are CLOSED and PROMOTED. Preserved verbatim:
+
+>    **(i) ✅ `counter_hunt.py` PROMOTED** (comment-only; the Electric correction), restore point
+>    `restore/2026-08-15-pre-promotion-counterhunt-comment`, verified by driving `--build custom`.
+>    **(ii) ✅✅ KI-79 FIXED, FAULT-PROVEN, AND PROMOTED** — `withdraw_from_box` no longer announces
+>    an IDENTITY from `len(get_party())`; it verifies `(personality_value, species)` **and**
+>    `contains_pokemon`, after a 2-frame yield, and prints a loud named failure instead of a green
+>    lie. Permanent hook `POKEBOT_PCWITHDRAW_FAULT`. Restore point
+>    `restore/2026-08-15-pre-promotion-ki79-pctrip`. ‼ **A byte-compare was NOT accepted as proof
+>    for a BEHAVIOUR promotion** — a three-point A/B was: same command, **PASS before (hook
+>    absent) → FAIL after (`‼ THE WITHDRAW DID NOT LAND`) → PASS after unfaulted**. Run 1 is
+>    unrepeatable once the copy happens, so it was run and committed FIRST. Transcripts:
+>    `tools/story-dev/evidence/2026-08-15-ki79-*`. Full detail: KI-79, `07-CHANGELOG.md`,
+>    `custom-pokebot/DIVERGENCE-LOG.md`, and `06-DECISIONS-LOG.md` for the rulings.
+
+
+## 2026-08-15 — archived from `04-HANDOFF.md`: the DOC CONSISTENCY LAYER origin section (moved on the 900-line budget)
+
+The directive itself lives in `CLAUDE.md`; this was the handoff's narrative copy of it.
+
+## 🛡 NEW SINCE THEN (2026-08-14): THE DOC CONSISTENCY LAYER — read `CLAUDE.md`'s new directive before editing any doc
+
+**The suite is 24 gates today** (this line said 18 when `audit_doc_consistency.py` was new, then 21; `repro_box_counter_move_test.py`, `repro_pid_identity_key.py`, `audit_encoding.py` and `repro_party_accounting.py` all joined on 2026-08-14 — ‼ **`run_gates.py` is authoritative and PRINTS the count, this prose is not**). **`audit_doc_consistency.py` is NEW** — it mechanically forbids the docs
+contradicting themselves or the code (gate/drift/ladder counts, queue-vs-headline driver
+contradictions, cited-artifact existence; `--self-test` proves it fires). **`CLAUDE.md` now carries
+the DOC CONSISTENCY LAYER directive**: pairs P1-P4 that must move together in the same commit
+(banner↔queue, KI header↔body, STATE↔changelog, README↔files), Tier 1 = one independent agent per
+completed item's doc diff, Tier 2 = a cold-start agent at session end — both wired into `/wrapup`
+and `/checkpoint`. ‼ **Born from measurement, not caution:** two audits found ~26 instances of
+stale-text-beside-correct-text, including a TRIAGE INDEX blessing a five-chapters-stale entry, an
+archive move done BACKWARDS (the refuted text stayed, the correction left — KI-39), `Expect:`
+lines attached to the wrong commands in THIS file, and an R6 flag gate that could not see FIVE of
+the sixteen flags it existed to police (all registered now, 16/16).
+

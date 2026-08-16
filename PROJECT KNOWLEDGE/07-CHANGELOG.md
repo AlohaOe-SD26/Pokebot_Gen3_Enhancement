@@ -14681,3 +14681,74 @@ the earlier comment-only `counter_hunt.py` correction was. `promote.py --check` 
 
 **How it was found:** an adversarial subagent verifying the KI-80 fixture's `hopeless` predicate
 flagged it unprompted while reading the constant. It was not what the agent was asked to check.
+
+## 2026-08-15 — feat: `--driver ki80ladder` — KI-80 REPRODUCED. Winona's real training patch DELETES her counter ladder, measured in both forks (punch-list #24-counters)
+
+**What shipped.** `tools/story-dev/story_harness.py` `--driver ki80ladder` (`Ki80LadderMode`) DRIVES
+production's own `_prepare_for_fight` three times on one fixture and records WHICH BRANCH it takes.
+This is the "before" half of the precondition KI-80's fix carries: *"it may NOT ship on reading
+alone — it needs the KI-23 repro conditions DRIVEN, both before and after."*
+
+**THE RESULT — `saves/batch2_run04_wedge.ss1`, `team_max = 28`, 8 seeded losses, all measured live:**
+
+| arm | `cfg["grass"]` | `wild_max` | outcome |
+|---|---|---|---|
+| `NOGRASS` | absent | n/a | `_counter_ladder` reached |
+| `GRASS_FODDER` | Route 102 | **4** | `_counter_ladder` reached |
+| `GRASS_STRONG` | **Route 119** — the patch her OWN cfg comment names (`story_mode.py:3531`: *"Route 119 is the Fortree-side band"*) — ⛔ she has NO `grass` key today, which is the only reason her ladder still works | **27** | ⛔ **plain escalation; ladder SKIPPED** |
+
+Same party, same losses, same boss — **the only difference is the `grass` key.** `ACCEPTANCE: PASS`
+on `--build sandbox` AND `--build custom`. Production derived `needed = ['Rock','Ice','Dragon']`
+itself and raised *"Winona: 8 losses with no super-effective answer…"* on the two ladder arms.
+
+**‼ THREE ARMS, BECAUSE TWO WOULD NOT HAVE MEANT ANYTHING.** A two-arm A/B shows only *"a `grass`
+key removes the ladder"* and cannot separate the key's PRESENCE from the level ARITHMETIC.
+`GRASS_FODDER` is the control: a patch that IS fodder KEEPS the machinery. That is the conflation
+KI-80 describes, stated as an experiment rather than as prose.
+
+**‼‼ THE DESIGN WAS REFUTED BEFORE IT WAS BUILT, AND THE REFUTATION IS THE REASON IT IS SAFE.**
+v1 claimed *"one `next()` per arm, zero frames advanced, nothing mutates game state."* An
+adversarial pass proved that FALSE **on the one arm carrying the regression**: `:1949`'s print is
+not the end of the arm — control runs on to `:2087 yield from train_team(...)`, which executes
+`early_game.py:2003 set_swap_train(True)` and, via `menuing.py:308`,
+`context.emulator.press_button("Start")` **before its first yield**. v1's invariance snapshot could
+not have seen any of it. ⇒ **the fix: a tripwire inside the console proxy raises the instant a
+terminal branch signature prints**, unwinding `_prepare_for_fight` at `:1948`, before `:1961`, so
+`train_team` is never reached. Measured: `INVARIANCE drift=none` on all three arms, all four runs.
+
+**FOUR WITNESSES, required to AGREE** (disagreement is a FAIL, never a tie-break): the console
+proxy; a `_counter_ladder` spy (⛔ **a GENERATOR function** — `:1914` is `yield from`, and a plain
+`def` returning False raises `TypeError` that would read as "the run errored"); the `BotModeError`,
+whose message embeds the `losses` **production** computed; and a DELEGATING observer on
+`_boss_plan_is_hopeless` that calls the real method and substitutes nothing.
+
+**✅ FAULT-TESTED, not merely green — two deliberate failure runs, both committed:**
+1. Against **`ch13_fortree_door.ss1`** — the fixture KI-80 itself prescribed for a day — it prints
+   `ACCEPTANCE: FAIL … THE A/B WOULD BE VACUOUS`, **and all three arms come back `LADDER`.** That is
+   a live demonstration that the prescribed test would have shown NO DIFFERENCE and read as a
+   REFUTATION of a true finding. The anti-vacuity check is computed from the RUNNING game
+   (`team_max`, and `wild_max` for both maps via production's own reader), never from the table.
+2. With **`POKEBOT_KI80_DECOUPLED=1`** it FAILS today — which is what makes the same driver usable
+   as the AFTER run once the decoupling lands.
+
+**⛔ STATED SCOPE LIMITS.** The spy replaces the ladder's BODY and the tripwire cuts every arm off
+at its decision, so this proves the gate is **REACHED** and nothing about what the hunt then does —
+deliberate, because the hunt travels. The fixture is **not Winona-era** (badges 123): fine for a
+DECISION-level A/B, but it must not be reported as a faithful Winona scenario. ‼ **The driver EXITS
+0 even on FAIL** (it is a harness driver, not a gate) — **grade the `ACCEPTANCE:` line, never `$?`.**
+
+**Also:** `winona_fight` is method-local (`story_mode.py:3532`) and cannot be imported, so the
+driver replicates it and **cross-checks the replica against the real literal parsed from the source
+AST** — and asserts the real cfg has **no** `grass` key, so it agrees with `repro_boss_grass_gate.py`
+(suite #24) instead of fighting it. New flag `POKEBOT_KI80_DECOUPLED` registered in `29-`.
+
+**✅ AND IT IS DETERMINISTIC — verified, not assumed.** A fresh re-run of the sandbox command is
+**byte-identical on every `[ki80ladder]` line** to the committed transcript. That matters because
+`:1819 random.randint` and `:1941 random.choice` are unseeded in production; the driver seeds
+`random` and reports the seed. ⇒ a future disagreement with these transcripts is a real change, not
+noise — which is the only thing that makes them usable as BEFORE evidence.
+
+**Transcripts:** `tools/story-dev/evidence/2026-08-15-ki80ladder-{sandbox,custom}-COUPLED-PASS`,
+`…-FAULT-vacuous-fixture-FAIL`, `…-FAULT-decoupled-expectation-FAIL`.
+**⇒ KI-80's decoupling is UNBLOCKED.** The BEFORE run is committed FIRST, because it is
+unrepeatable once the fix lands.
