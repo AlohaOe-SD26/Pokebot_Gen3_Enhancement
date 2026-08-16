@@ -837,6 +837,11 @@ PYTHONUTF8=1 py -3.12 audit_encoding.py             # mojibake + BOM; --repair f
 
 # --- THE SANDBOX <-> CUSTOM DRIFT CHECK (was only in the ARCHIVE; it belongs here) ---
 PYTHONUTF8=1 py -3.12 promote.py --check            # measures drift BOTH ways, changes nothing
+#   ‼ THE `PYTHONUTF8=1` PREFIX IS LOAD-BEARING, NOT DECORATION. Without it this crashes with
+#   `UnicodeEncodeError: '→'` before printing the figure — it prints a `sandbox → custom`
+#   arrow. A 2026-08-15 cold-start audit hit exactly that by copying the bare command out of the
+#   PROSE mentions elsewhere in this file, which omit the prefix. ⇒ copy the line above, not
+#   the prose. (The failure is loud, so it misleads nobody — it just wastes a minute.)
 #   Expect as of 2026-08-15 (LATEST, after BOTH promotions): 0 differing, 0 orphaned.
 #   ANY file listed is unexplained drift. (Superseded the same day: "0 differing, 0 orphaned"; a Tier 2
 #   cold-start caught that TWO lines in this command block still said 0 after the STATE row,
