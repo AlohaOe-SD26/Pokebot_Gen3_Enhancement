@@ -2252,6 +2252,28 @@ instead of 486. Those are NOT apples-to-apples and neither is a controlled measu
 establishes, on every faint observed, before and after. The 1263-frame pathology did not recur.
 ⚠ The remaining faint resolved in ~89 frames (f7908→f7997).
 
+✅✅ **SINGLE-BATTLE REGRESSION CONTROL — THE ONE THE GATES DID NOT COVER (2026-08-17).**
+This filter runs in EVERY battle, and `map_battle_party_index` does **NOT** return its input
+unchanged in a single battle (`battle_state.py:332-354` searches `_battler_party_order` and can
+permute or raise). No gate drives a real faint in an ordinary battle, so a targeted A/B was run:
+`--driver faintrepro --inject-shedinja-faint` on `route116team.ss1`, 120k frames, BEFORE vs AFTER.
+**RESULT: IDENTICAL through the whiteout** — `STUCK-OW f6482`, `SAVED stall f7409`,
+`NO-PROGRESS x1200 f7709`, `x3000 f9509` in BOTH arms; the sole diff is one extra idle-watchdog
+line afterwards while both sit in Manual. ⇒ **the change is INERT in single battles**, which is the
+regression that mattered. Transcripts: `evidence/2026-08-17-singlebattle-faint-{BEFORE-baseline,
+AFTER-onfield-fix}.stdout.txt`.
+⚠ A batch would NOT have answered this well: §0c records ~30 runs per 3-hour batch and that four
+batches resolved nothing about run-level outcomes. This took minutes and is decisive.
+
+⚠⚠ **OPEN QUESTION RAISED BY THE FIX — A POSSIBLE *FOURTH* INDEX SPACE, NOT ACTED ON.** With
+`_on_field` corrected, the restored diagnostic reads
+`alive_slots=[2,3,4,5](party-order) -> [1,3,4,5](menu-order)  [orders DIVERGE]` — so
+`_to_menu_order` maps slot 2 to 1, and the sweep's candidate set no longer contains slot **2**,
+which is the slot the strategy actually chose (`CHOSEN new_lead_index=2`). That mapping is
+PRE-EXISTING KI-34 machinery, not introduced here, and the run still resolved (~89 frames, battle
+WON). ⛔ **Deliberately NOT changed** — it needs its own probe and its own discriminator, exactly
+as the owner filter does. Tracked so it does not orphan.
+
 ✅ **SAFETY:** all 24 code gates PASS, including `repro_multi_battle_partner.py`,
 `repro_whiteout_abort.py` and the 114s `repro_gym_whiteout_guard.py` — this filter runs in EVERY
 battle, not only multi battles, so those were the ones that mattered.

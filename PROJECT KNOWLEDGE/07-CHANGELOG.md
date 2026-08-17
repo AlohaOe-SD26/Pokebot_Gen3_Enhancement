@@ -15877,3 +15877,35 @@ reports 1 differing file (`modules/battle_handler.py`).
 ⛔ **STILL OPEN:** the owner filter (`alive_slots` has no OT check) is UNFIXED and proved INERT on
 this fixture — it needs its own discriminator. `:541-545` and `_util.py:522-587` are untouched.
 Transcripts: `evidence/2026-08-17-ki66faint-RUN{4-onfield-probe,5-AFTER-onfield-fix}.stdout.txt`.
+
+## 2026-08-17 — the single-battle regression control for KI-66's `_on_field` fix, and a fourth index space filed
+
+**The gap the gates did not cover.** `_on_field` runs in EVERY battle, and `map_battle_party_index`
+does NOT return its input unchanged in a single battle — it searches `_battler_party_order` and can
+permute or raise (`battle_state.py:332-354`). No gate drives a real faint in an ordinary battle, so
+the fix shipped on one multi-battle trajectory alone. Closed now with a targeted A/B:
+`--driver faintrepro --inject-shedinja-faint` on `route116team.ss1`, 120k frames, BEFORE vs AFTER.
+
+**RESULT: IDENTICAL through the whiteout** — `STUCK-OW f6482`, `SAVED stall f7409`,
+`NO-PROGRESS x1200 f7709`, `x3000 f9509` in BOTH arms; the only difference is one extra
+idle-watchdog line afterwards while both sit in Manual. ⇒ **the change is INERT in single battles.**
+Transcripts: `evidence/2026-08-17-singlebattle-faint-{BEFORE-baseline,AFTER-onfield-fix}.stdout.txt`.
+
+‼ **WHY NOT A BATCH.** §0c records ~30 runs per 3-hour batch, that finish rate needs ~300 runs to
+move 10 points, and that four batches resolved nothing. The open question here was a REGRESSION in a
+specific code path, not a run-level outcome — so the targeted driver answered in minutes what a
+batch would have answered slowly and ambiguously. Batches remain the right instrument for the
+FREQUENCY questions still open (how often these error paths fire in real play), which is a separate
+decision with its own pre-registered questions.
+
+**FILED: `#24-faintchooser-fourthspace`** — with `_on_field` corrected, the restored diagnostic shows
+`alive_slots=[2,3,4,5](party-order) -> [1,3,4,5](menu-order) [orders DIVERGE]`, so the sweep's
+candidate set excludes slot 2 — the slot the strategy actually chose. `party_in_menu` is read while
+the menu is open (already permuted), so mapping it again may be a second conversion of an
+already-converted value. ⛔ NOT changed: pre-existing KI-34 machinery, one trajectory of evidence,
+and index-space reasoning in this function has been wrong three times. First deliverable is an
+observe-only probe — the pattern that settled KI-66's direction in a single run.
+
+Also: the driver was logging only one of production's two `[FAINT-CHOOSER]` event types after the
+double-count fix, which silently removed the `[orders DIVERGE]` diagnostic from the post-fix
+transcript. It now LOGS both and COUNTS one.

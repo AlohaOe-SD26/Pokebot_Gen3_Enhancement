@@ -1,0 +1,70 @@
+﻿[setup] LOG -> C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\harness_sandbox_faintrepro_20260817-074921_48712.log
+[setup] (unique per run by design — #24-orphans (4); pass --log to pin a path)
+[setup] created profile ki66single
+Running mGBA 0.10.2
+[setup] loaded save state route116team.ss1; build=sandbox
+[run] starting faithful loop for up to 120000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> FaintReproMode.run   (state=OVERWORLD)
+[inject] all-BURNED 1-HP Growl-only party (Shedinja lead + bench) — rapid in-battle faints; KI-15
+f9: PARTY CHANGE [Mudkip:L13:exp1569|Poochyena:L4:exp119|Nincada:L6:exp406|Whismur:L6:exp179] -> [Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f159: battle_is_active -> True  party=[Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f160: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+┌───────────────────── Whismur♀ encountered at Route 116 ─────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 2F404C32        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 6               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 14  │  7  │  6  │ 26  │ 21 │ 17  │ 91 │ │
+│ │       Nature │ Serious         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Soundproof      │                                          │
+│ │ Hidden Power │ Grass (44)      │Moves: Pound, Uproar                      │
+│ │  Shiny Value │ 58,079          │EV Yield: 1 HP                            │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Whism… │  91 /  │  58,079 /   │     1 │ 100.0… │     0 │      1 │   N/A │ │
+│ │        │   91   │   58,079    │       │        │       │        │       │ │
+│ │ Total  │  91 /  │  58,079 /   │     1 │   100% │     0 │      1 │   N/A │ │
+│ │        │   91   │   58,079    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+f1700: PARTY CHANGE [Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798] -> [Zigzagoon:L18:exp5832|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Shedinja:L22:exp16610|Whismur:L18:exp3798]
+f1722: PARTY CHANGE [Zigzagoon:L18:exp5832|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Shedinja:L22:exp16610|Whismur:L18:exp3798] -> [Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f2000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f2684: PARTY CHANGE [Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798] -> [Zigzagoon:L18:exp5832|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Shedinja:L22:exp16610|Whismur:L18:exp3798]
+f2749: PARTY CHANGE [Zigzagoon:L18:exp5832|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Shedinja:L22:exp16610|Whismur:L18:exp3798] -> [Whismur:L18:exp3798|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832]
+f2771: PARTY CHANGE [Whismur:L18:exp3798|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832] -> [Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f3491: PARTY CHANGE [Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798] -> [Whismur:L18:exp3798|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832]
+f3552: PARTY CHANGE [Whismur:L18:exp3798|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832] -> [Lombre:L20:exp5460|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Whismur:L18:exp3798|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832]
+f3574: PARTY CHANGE [Lombre:L20:exp5460|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Whismur:L18:exp3798|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832] -> [Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+[backup] backed up 'ki66single' (3 files, 1 KB, reason: auto)
+f4000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f4420: PARTY CHANGE [Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798] -> [Lombre:L20:exp5460|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Whismur:L18:exp3798|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832]
+f4477: PARTY CHANGE [Lombre:L20:exp5460|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Whismur:L18:exp3798|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832] -> [Swellow:L22:exp7577|Lombre:L20:exp5460|Marshtomp:L22:exp7577|Whismur:L18:exp3798|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832]
+f4499: PARTY CHANGE [Swellow:L22:exp7577|Lombre:L20:exp5460|Marshtomp:L22:exp7577|Whismur:L18:exp3798|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832] -> [Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f5194: PARTY CHANGE [Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798] -> [Swellow:L22:exp7577|Lombre:L20:exp5460|Marshtomp:L22:exp7577|Whismur:L18:exp3798|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832]
+f5252: PARTY CHANGE [Swellow:L22:exp7577|Lombre:L20:exp5460|Marshtomp:L22:exp7577|Whismur:L18:exp3798|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832] -> [Marshtomp:L22:exp7577|Lombre:L20:exp5460|Swellow:L22:exp7577|Whismur:L18:exp3798|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832]
+f5274: PARTY CHANGE [Marshtomp:L22:exp7577|Lombre:L20:exp5460|Swellow:L22:exp7577|Whismur:L18:exp3798|Shedinja:L22:exp16610|Zigzagoon:L18:exp5832] -> [Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f6000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f6353: battle_is_active -> False  outcome=BattleOutcome.Lost  party=[Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f6354: CONTROLLER -> WhiteoutListener.handle_whiteout_dialogue   (state=WHITEOUT)
+f6482: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_LocalBattleLostEnd textprinter=<err cannot import name 'get_text_printer' from 'modules.game' (C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\modules\game.py)> tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonDoor'] ctrl=WhiteoutListener.handle_whiteout_dialogue bt='NICK whited out!' scripts=[] party=[Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f6508: CONTROLLER -> plugin_battle_ended   (state=OVERWORLD)
+f6509: CONTROLLER -> <none>   (state=OVERWORLD)
+f7409: SAVED stall state #1 to stalls/ki66single-f7409.ss1 (bt='NICK whited out!')
+f7709: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798', (20, 17)) instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK whited out!' bot_mode=Manual
+f7709:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f9509: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798', (20, 17)) instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK whited out!' bot_mode=Manual
+f9509:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798]
+f14509: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Shedinja:L22:exp16610|Swellow:L22:exp7577|Marshtomp:L22:exp7577|Lombre:L20:exp5460|Zigzagoon:L18:exp5832|Whismur:L18:exp3798', (20, 17)) instr=BattleScript_LocalBattleLostEnd cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK whited out!' bot_mode=Manual

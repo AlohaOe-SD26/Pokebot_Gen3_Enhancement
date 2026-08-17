@@ -3401,6 +3401,12 @@ class Ki66FaintMode(SpaceCenter2Mode):
             # first cut of this driver counted both and reported "ALLY slots on 4 occasion(s)" for
             # what were TWO faints — a 2x overcount, caught by an adversarial review of the run.
             # Only the `alive_slots=` line starts a new faint record.
+            # ‼ LOG BOTH EVENT TYPES, COUNT ONLY ONE. The `index spaces:` line carries the
+            # `[orders DIVERGE]` / `[orders agree]` diagnostic, which is how a FOURTH index-space
+            # problem would show itself. An earlier cut of this filter suppressed the LINE as well
+            # as the COUNT, and the diagnostic silently vanished from the post-fix transcript.
+            if "[FAINT-CHOOSER]" in text and "index spaces:" in text:
+                log(f"[ki66] FAINT-CHOOSER (index spaces) :: {text}")
             if "[FAINT-CHOOSER]" in text and "index spaces:" not in text:
                 try:
                     from modules.battle_state import get_battle_state

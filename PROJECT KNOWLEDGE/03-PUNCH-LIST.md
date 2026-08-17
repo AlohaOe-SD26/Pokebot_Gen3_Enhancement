@@ -3483,3 +3483,24 @@ failsafes that an in-process mode cannot have, and remains the right tool for a 
       **Do:** rename driver + class + probe + note, update `04-HANDOFF.md`'s naming-correction
       block and every reference, then run `run_gates.py`. **Do NOT** rewrite git history or the
       append-only logs — correct forward and leave the old names in the changelog where they are.
+
+### `#24-faintchooser-fourthspace` — a POSSIBLE FOURTH INDEX SPACE in the faint chooser (filed 2026-08-17)
+
+- [ ] **Not a confirmed bug — a MEASURED ANOMALY that needs its own probe.** After KI-66's
+      `_on_field` fix, the chooser's own diagnostic reads:
+      `alive_slots=[2,3,4,5](party-order) -> [1,3,4,5](menu-order)  [orders DIVERGE]`
+      i.e. `_to_menu_order` maps slot **2 → 1**, so the cursor sweep's candidate set
+      (`alive_slots_menu`) does **not** contain slot 2 — **the very slot the strategy chose**
+      (`CHOSEN new_lead_index=2`). The run still resolved (~89 frames, battle WON), so this is not
+      currently costing a wedge.
+      ‼ **WHY IT IS SUSPICIOUS:** `party_in_menu = get_party()` is read while the party menu is
+      OPEN, i.e. after `UpdatePartyToBattleOrder` has permuted `gPlayerParty`. If those indices are
+      already in battle order, then mapping them AGAIN through `map_battle_party_index` (which
+      expects an *outside-battle* index, `battle_state.py:343`) is a second conversion of an
+      already-converted value. That is the same shape as KI-18, KI-34 and KI-66.
+      ⛔ **DELIBERATELY NOT CHANGED.** This is PRE-EXISTING KI-34 machinery that has been shipping,
+      the evidence is one trajectory, and reasoning about index spaces in this function has been
+      wrong three times already. ⇒ **First deliverable is an OBSERVE-ONLY probe** (the pattern that
+      settled KI-66's direction in one run): log cursor, `alive_slots`, `alive_slots_menu` and the
+      chosen slot together, on a faint, and establish ground truth from the party dump.
+      ⚠ Do NOT "fix" it from the docstring — that docstring has now produced three bugs.
