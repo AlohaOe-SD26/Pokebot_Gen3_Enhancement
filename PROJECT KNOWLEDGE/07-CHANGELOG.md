@@ -15446,3 +15446,38 @@ expectations, 0 stale**.
 ⇒ `#24-driftassertions` is **half done**: the *gate* half is complete, so a stale drift figure can no
 longer pass silently. The *reduction* half — assert the number in one place and point the rest at
 the command — remains, but is now churn-reduction rather than a correctness risk.
+
+## 2026-08-16 — chore: the KI-81 WHITEOUT GUARD promoted to both forks (user-approved) — proven by a MEASURED before/after, not a byte-compare (punch-list #24-abortswallow)
+
+**The user ruled: promote.** Three files copied sandbox → custom via
+`promote.py --restore-point restore/2026-08-16-pre-promotion-ki81-abort-guard --go`.
+**0 differing, 0 orphaned, 3/3 byte-identical.** Tag annotated, pushed, and verified on origin by
+the tool *before* it copied.
+
+**‼ THE DISCRIMINATOR IS A NEW ONE, AND IT EXISTS BECAUSE A BYTE-COMPARE CANNOT ANSWER THIS.**
+KI-79 established that "1/1 byte-identical" only proves a file was COPIED. For a guard, the question
+is whether **the fork's own handlers now call it** — so `probe_abort_swallowing.py` gained
+`--build custom`, and the promotion was measured with it:
+
+| point (`--build custom`) | BEFORE | AFTER |
+|---|---|---|
+| probe candidate sites | **53** | ✅ **45** |
+| guarded handlers, `pc_trip.py` | **0** | ✅ **3** |
+| guarded handlers, `higher_level_actions.py` | **0** | ✅ **4** |
+| guarded handlers, `mossdeep_gym.py` | **1** (KI-67's) | ✅ **2** |
+| `PathFindingError` routed through the guard | — | ✅ **False** — the split survived the copy |
+| mechanism, imported from **custom** | — | ✅ latch clear → swallows; latch set → re-raises |
+
+⛔ The BEFORE half is unrepeatable once the copy lands, so it was run and **committed first**
+(`6de47264`). Also green: four `--build custom` gates that each assert which fork they imported.
+
+**⚠ THE DRIFT SWEEP TOOK ONE PASS THIS TIME, AND THAT IS THE POINT.** The gate rule added an hour
+earlier — matching `promote.py`'s own `N differing` output format — **caught every stale claim on the
+first run**, including the `expects \`N differing\`` and `Expected as of …: N differing` forms that a
+13-site hand sweep had missed twice that day. ‼ *Four flips of this figure cost ~13 hand edits each
+and missed a survivor twice; the fifth cost one pass and missed none.* That is what a gate is for,
+and it is the concrete argument for finishing `#24-driftassertions`.
+
+⚠ **45 candidate sites remain in BOTH forks** (44 `early_game.py`, 1 `counter_hunt.py`) and are
+deliberately not swept — CANDIDATE ≠ DOES, and `early_game.py` is the largest and most
+timing-sensitive file here. The probe stays a PROBE until they are triaged.

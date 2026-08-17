@@ -1,0 +1,29 @@
+### KI-81 PROMOTION — the AFTER half, measured against custom-pokebot (2026-08-16)
+### The BEFORE reading is in 2026-08-16-ki81-PROMOTION-BEFORE-custom.stdout.txt (commit 6de47264).
+
+--- AFTER-1: the discriminator — custom must fall 53 -> 45 ---
+PROBE [custom-pokebot] — broad `except` around a `yield from` NOT guarding StoryAbort
+   44  modules/story/early_game.py
+    1  modules/story/counter_hunt.py
+  CANDIDATE sites: 45
+    if no `_check_abort()` is reachable through its `yield from`. This probe narrows the
+    list for a human; it does not prove reachability. Triage before fixing.
+
+--- AFTER-2: AST — custom's guarded handler counts must move 0->3, 0->4, 1->2 ---
+    ok  custom/modules/story/pc_trip.py                           guarded = 3 (expected 3)
+    ok  custom/modules/modes/util/higher_level_actions.py         guarded = 4 (expected 4)
+    ok  custom/modules/story/mossdeep_gym.py                      guarded = 2 (expected 2)
+
+--- AFTER-3: the SPLIT survived the copy — PathFindingError must NOT be routed through the guard ---
+    PathFindingError   line 767   routed-through-guard = False
+    BotModeError       line 781   routed-through-guard = True
+    PathFindingError   line 753   routed-through-guard = False
+
+--- AFTER-4: the MECHANISM works when imported from CUSTOM (not sandbox) ---
+    imported from : \custom-pokebot\modules\story\early_game.py
+    latch CLEAR : no re-raise -> correct
+    latch SET   : RE-RAISED -> correct
+
+--- AFTER-5: promote.py --check ---
+  drift (sandbox → custom): 0 file(s)
+  orphaned (in custom only): 0 file(s)

@@ -471,6 +471,15 @@ def leave_the_gym() -> Generator:
         except BotModeError as error:  # noqa: BLE001 — NOT swallowed: two doors lead outside, so one
             # failing is an expected outcome of trying both. The reason is kept and raised below if
             # neither works.
+            # ⛔⛔ KI-81 — THE SITE THAT PROVED THE CLASS WAS NEVER SWEPT. KI-67 guarded this file's
+            # CHAPTER retry loop (`:534`) but not this INNER door loop, and `StoryAbort` is a
+            # `BotModeError`. After a whiteout this used to try the second door on a dead run and
+            # then raise "won the badge but could not get out of the gym" — a FABRICATED diagnosis
+            # naming doors, when the player is standing outside a Pokémon Center. That is exactly
+            # the laundering `reraise_if_aborting` exists to stop.
+            from modules.story.early_game import reraise_if_aborting
+
+            reraise_if_aborting(error)
             last_error = f"{door}: {str(error)[:120]}"
 
     raise BotModeError(

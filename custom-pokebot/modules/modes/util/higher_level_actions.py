@@ -297,6 +297,12 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
         except Exception as error:  # noqa: BLE001 - the heal must survive a PC hiccup, but it may
             # not survive it SILENTLY: `_piggyback_report` announces the failure and the heal
             # then continues exactly as before. See that function for why this matters here.
+            # ⛔ KI-81 — a WHITEOUT is not a "PC hiccup": the run is over and the player has
+            # respawned elsewhere, so continuing the heal drives menus that are no longer on screen.
+            # Latch-keyed, so it also catches an abort already laundered into a plain BotModeError.
+            from modules.story.early_game import reraise_if_aborting  # local: early_game imports THIS module
+
+            reraise_if_aborting(error)
             _piggyback_report("the rotation deposit", f"FAILED ({error!r})")
 
         # ‼ KI-63 — FREE ONE PARTY SLOT SO AN HM LEARNER CAN BE CAUGHT.
@@ -315,6 +321,12 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
                 yield from deposit_one_dead_weight()
         except Exception as error:  # noqa: BLE001 - same contract as the block above: the heal
             # survives, but the failure is announced rather than swallowed.
+            # ⛔ KI-81 — a WHITEOUT is not a "PC hiccup": the run is over and the player has
+            # respawned elsewhere, so continuing the heal drives menus that are no longer on screen.
+            # Latch-keyed, so it also catches an abort already laundered into a plain BotModeError.
+            from modules.story.early_game import reraise_if_aborting  # local: early_game imports THIS module
+
+            reraise_if_aborting(error)
             _piggyback_report("the KI-63 slot-freeing deposit", f"FAILED ({error!r})")
 
         # ‼ #24-pcoverflow — COLLECT A COUNTER THAT LANDED IN THE BOX.
@@ -344,6 +356,12 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
                 yield from withdraw_from_box(_pids)
         except Exception as error:  # noqa: BLE001 - the heal must survive a PC hiccup, but a
             # swallowed failure here reproduces the user's symptom with no diagnostic at all.
+            # ⛔ KI-81 — a WHITEOUT is not a "PC hiccup": the run is over and the player has
+            # respawned elsewhere, so continuing the heal drives menus that are no longer on screen.
+            # Latch-keyed, so it also catches an abort already laundered into a plain BotModeError.
+            from modules.story.early_game import reraise_if_aborting  # local: early_game imports THIS module
+
+            reraise_if_aborting(error)
             _piggyback_report("counter withdraw", f"FAILED ({error!r}) — the counter is STILL "
                                                   f"BOXED and the run will fight without it")
 
@@ -746,8 +764,27 @@ def talk_to_npc(local_object_id: int):
         try:
             yield from navigate_to(*nearest_tile, final_facing_direction=Direction.from_string(nearest_tile_facing))
             yield from ensure_facing_direction(nearest_tile_facing)
-        except (PathFindingError, BotModeError):
+        except PathFindingError:
+            # ⛔⛔ DELIBERATELY *NOT* ROUTED THROUGH `reraise_if_aborting` — and the split is the
+            # whole point (adversarial review, 2026-08-16, caught this as a REAL defect in the first
+            # cut of the KI-81 guard). `PathFindingError` is a **`RuntimeError`**
+            # (`map_path.py:611`), NOT a `BotModeError`, and `reraise_if_aborting` re-raises the
+            # object it was GIVEN. `StoryMode.run()`'s recovery catches only `except BotModeError`
+            # (`story_mode.py:2505`) ⇒ a re-raised `PathFindingError` would ESCAPE whiteout recovery
+            # entirely, so `set_story_abort(False)` would never run and the module-global latch would
+            # be left stuck TRUE. Every later `heal_in_pokemon_center` — including
+            # `ev_train.py:191` and `pokecenter_loop.py:102`, non-Story modes with NO handling around
+            # it — would then re-raise a perfectly benign PC hiccup, in a different mode, with no
+            # visible connection to the whiteout. ‼ A guard that can leak a global is worse than the
+            # silence it replaced.
             pass
+        except BotModeError as error:
+            # ⛔ KI-81 — a whiteout arrives here as a `BotModeError` (`StoryAbort` is one), which
+            # `StoryMode.run()` DOES catch, so re-raising is safe and correct. Latch-keyed, so it
+            # also catches an abort already laundered into a plain `BotModeError` by an inner loop.
+            from modules.story.early_game import reraise_if_aborting  # local: early_game imports THIS module
+
+            reraise_if_aborting(error)
         yield
 
 

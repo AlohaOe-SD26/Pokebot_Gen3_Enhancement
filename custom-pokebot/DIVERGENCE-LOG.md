@@ -1785,3 +1785,62 @@ caught at `:4080-4081`, sets `outcome = "derailed"`, and does not crash a batch.
 because **no arm can discriminate it** (all four seed `kos = 1`), and an audit derived that it would
 need TWO new arms plus a frequency measurement first.
 📁 Transcripts: `tools/story-dev/evidence/2026-08-16-ki80-PROMOTION-{BEFORE,AFTER}-custom-*`.
+
+---
+
+## 2026-08-16 — the KI-81 WHITEOUT GUARD: 8 handlers that silently swallowed an abort (BEHAVIOUR change, user-approved)
+
+**Promoted:** `modules/modes/util/higher_level_actions.py`, `modules/story/pc_trip.py`,
+`modules/story/mossdeep_gym.py`. **User-approved 2026-08-16.** Restore point
+**`restore/2026-08-16-pre-promotion-ki81-abort-guard`** (annotated, pushed, verified on origin by
+`promote.py` before it copied). Result: **0 differing, 0 orphaned, 3/3 byte-identical.**
+
+**What it fixes.** `StoryAbort` is a `BotModeError` is an `Exception`, so **every** broad handler in
+the story path catches a whiteout. KI-67 identified this and fixed the two CHAPTER retry loops that
+had been *observed* failing — **the class was never swept.** Triage proved the probe does not
+over-flag: `mossdeep_gym.py:465` is a *different* `try` from KI-67's, and after a whiteout it tried
+the **second gym door on a dead run**, then raised *"won the badge but could not get out of the
+gym"* — a **fabricated diagnosis naming doors** while the player stands outside a Pokémon Center.
+
+### ‼‼ PROVEN BY A MEASURED BEFORE/AFTER, NOT A BYTE-COMPARE
+
+| point (`--build custom`) | BEFORE | AFTER |
+|---|---|---|
+| `probe_abort_swallowing.py --build custom` | **53** candidates | ✅ **45** |
+| guarded handlers, `pc_trip.py` | **0** | ✅ **3** |
+| guarded handlers, `higher_level_actions.py` | **0** | ✅ **4** |
+| guarded handlers, `mossdeep_gym.py` | **1** (KI-67's) | ✅ **2** |
+| `PathFindingError` routed through the guard | n/a | ✅ **False** (the split survived the copy) |
+| mechanism, imported from **custom** | n/a | ✅ latch clear → swallows; latch set → re-raises |
+
+⛔ **The BEFORE half is unrepeatable once the copy happens, so it was run and COMMITTED FIRST**, in
+`6de47264`. ‼ `probe_abort_swallowing.py` gained `--build` **for exactly this reason**: a
+byte-compare proves a file was COPIED; only running the instrument against the fork proves the
+fork's **own handlers** gained the guard.
+
+**The guard** is `reraise_if_aborting(error)` as the **first** statement of each handler. It is
+**LATCH-keyed, not type-keyed** — the point, because a retry loop that catches an error and raises a
+fresh one destroys `StoryAbort`'s identity, and only the latch survives that conversion. Imports are
+function-local **by necessity**: `early_game` imports `higher_level_actions` at module level.
+
+⛔ **`withdraw_from_box`'s "Never raises" CONTRACT CHANGED** to *"never raises for a PC problem"*,
+and its docstring moved in the same edit. A whiteout is not a hiccup: the player has respawned,
+there is no heal left to protect, and the latch is cleared only by `StoryMode.run`.
+
+⛔⛔ **AN ADVERSARIAL REVIEW CAUGHT A REAL DEFECT IN THE FIRST CUT, and it is worth knowing here.**
+`talk_to_npc`'s handler also catches `PathFindingError`, which is a **`RuntimeError`, NOT a
+`BotModeError`**. `StoryMode.run()` catches only `BotModeError`, so a re-raised `PathFindingError`
+would have **escaped whiteout recovery entirely**, leaving the module-global abort latch **stuck
+TRUE** — after which `ev_train.py` and `pokecenter_loop.py` (non-Story modes with no handling around
+`heal_in_pokemon_center`) would re-raise a **benign** PC hiccup with no visible link to the
+whiteout. **A guard that can leak a global is worse than the silence it replaced.** Fixed by
+splitting the handler; AST-verified before AND after the copy.
+
+**Also green on custom:** four `--build custom` gates that each assert which fork they imported
+(`repro_box_counter_move_test`, `repro_pid_identity_key`, `repro_party_accounting`,
+`repro_heal_piggyback_reporting`) — all exit 0.
+
+⚠ **45 candidate sites REMAIN in both forks** (44 `early_game.py`, 1 `counter_hunt.py`) and are
+deliberately **not** swept: CANDIDATE ≠ DOES, and `early_game.py` is the largest and most
+timing-sensitive file here. Tracked as `#24-abortswallow`.
+📁 Transcripts: `tools/story-dev/evidence/2026-08-16-ki81-PROMOTION-{BEFORE,AFTER}-custom.stdout.txt`.
