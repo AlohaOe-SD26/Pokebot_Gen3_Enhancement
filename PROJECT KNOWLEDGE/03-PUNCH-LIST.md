@@ -1966,6 +1966,29 @@ level-matched encounters maintenance needs. Done together they are one activity,
 - [ ] **(3) KI-66 — the multi-battle hazard is BROADER than the faint chooser:** four more
       full-party scans are unguarded, one feeding an UNBOUNDED `while … press A`. OPEN,
       code-verified, never live-run, and untracked until now.
+      ⛔⛔ **RECON IS STARTABLE; THE BUILD IS NOT — established 2026-08-16 by a cold-start agent
+      that TRIED to begin it.** Same correction item (1) already carries. What it confirmed by
+      reading: all four sites are live (`battle_handler.py:541-545`, `:588-598`, `:630-636`,
+      `_util.py:522-587`), and the choke point `ally_party_indices()` EXISTS
+      (`battle_strategies/default.py:12`), called from `default.py:189` / `level_up.py:53` /
+      `story_mode.py:171` — and from **none** of the four. What BLOCKS the build:
+      **(i) no anchor save is named anywhere that reaches a partner double battle, and
+      (ii) no fault hook forces the PLAYER FAINT that is the sole trigger for all four sites.**
+      ‼ **Without both, the obvious before/after A/B IS VACUOUS** — the entry's own words are
+      *"none has ever run live (every §Ch19 drive had zero faints)"*, so both arms are
+      byte-identical and read as *"the fix is unnecessary"*. ⇒ **first deliverable is a FIXTURE +
+      a faint hook, not a patch.** *(Undocumented candidates a future session may evaluate — found
+      by listing directories, NOT cited by any doc, so verify before trusting:
+      `saves/at_steven_2f.ss1`, `saves/post_space_center.ss1`, drivers `spacecenter1/2`,
+      `faintrepro`.)*
+      ⛔ **AND ONE POLICY QUESTION FOR THE USER, not for an agent:** when only ALLY mons are
+      alive, ARM B's correct behaviour is *"ride out the loss"* — but that contradicts
+      `ally_party_indices`'s own documented fail-closed rationale (`default.py:31-34`, which
+      fails closed to an empty set precisely to avoid pushing the caller into the full-party
+      fallback). Deliberately losing a battle is a behaviour choice.
+      ‼ **The `IndexError`-on-turn-1 sub-claim is REFUTED (2026-08-12), not pending.** Do not
+      re-check it; `05-KNOWN-ISSUES.md` cites the driven run (`ch19d.log` f23255, six-entry party,
+      multi battle WON).
 - [x] **(4) ✅ DONE 2026-08-16 — `story_harness.py` no longer overwrites its log.** The default is
       now `harness_<build>_<driver>_<timestamp>_<pid>.log`, which **cannot collide**, and the run
       PRINTS its path as its first line (`[setup] LOG -> …`) so the "read the flushed log while it

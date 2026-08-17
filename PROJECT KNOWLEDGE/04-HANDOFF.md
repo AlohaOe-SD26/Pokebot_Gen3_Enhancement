@@ -113,7 +113,7 @@ the Chapter 20 artefacts; both renamed files carry a provenance header saying so
   `POKEBOT_PCWITHDRAW_FAULT` hook makes the sabotaged case print `‼ THE WITHDRAW DID NOT LAND`
   where the old code printed green success. ✅ **AND IT IS PROMOTED** (user-approved) — proven by
   a three-point A/B that the new branch actually RUNS in custom, not merely that the file copied.
-  **Both forks carry both fixes.** *(✅ And the KI-80 decoupling too, promoted 2026-08-16 — drift 0.)*
+  **Both forks carry both fixes.** *(✅ And the KI-80 decoupling too, promoted 2026-08-16 — which took drift to zero AT THAT MOMENT. ⛔ It is **1** now: the KI-65 fix is sandbox-only and a promotion ruling is owed.)*
 * **What (P4) still does NOT prove:** anything UPSTREAM of registration. The Slugma is INJECTED and
   its PID published by the driver, so the real `hunt()` → `story_mode.py:1750` wiring is untested.
 * **§Ch20 (Seafloor Cavern) is DRIVEN END TO END** — all nine rooms, `ACCEPTANCE: PASS`. Its
@@ -209,9 +209,12 @@ Moved for the R3 budget. ‼ **Keep this:** `audit_flag_names.py` was checking *
 
 Moved for the R3 budget. ‼ **Keep the two prevention rules, both re-learned since:** (1) **print the MRO before "fixing" a strategy method** — the first fix guarded the base class and was DEAD CODE on the story path; (2) **never identify a Pokémon by party INDEX across a battle-menu boundary** — opening the battle party menu runs `UpdatePartyToBattleOrder`, which PHYSICALLY PERMUTES `gPlayerParty`, so the `index >= 3` cut offered the ALLY's Pokémon and hid one of ours. Key on **original trainer ID**. ‼ And the meta-lesson: **my fault-injected A/B passed it anyway**, because all three arms modelled the un-permuted order — *a control arm does not save you if every arm measures the wrong thing.*
 
-## ‼ THE §Ch19-ERA ISSUES (KI-64 … KI-67) — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13)
+## ‼‼ §Ch19-ERA ISSUES — **MIXED: KI-64/65/67 CLOSED, `KI-66` IS LIVE AND IS QUEUE ITEM (3)**
+*(the CLOSED detail moved to `28-HANDOFF-ARCHIVE.md` 2026-08-13; ⛔ the heading used to read just
+"MOVED to the archive", which buried the next work item's ONLY description inside a section a
+reader skips — a cold-start audit caught it 2026-08-16, and it is the exact `#24-orphans` shape.)*
 
-Moved for the R3 budget; all four are in `05-KNOWN-ISSUES.md` or its archive with full detail. ‼ **Keep only what is still live:** ✅✅ **KI-65 is NO LONGER LIVE — REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25) ON 2026-08-16; ⛔ DO NOT REBUILD OR REOPEN IT** (sandbox only, a promotion ruling is owed). *(It was: `battle_move_replacing.py:280` binds `party_index` on a path a silent `except` can skip, so a later `CantForgetHM` raised `UnboundLocalError` into a SECOND silent `except` that declined — two invisible failures compounding. Both reads now carry explicit `is None` guards.)* **KI-66 (OPEN, unverified)** — the multi-battle hazard is broader than the faint chooser: four more full-party scans on the same paths, and a claimed `IndexError` in `decide_turn_in_double_battle` from `gPlayerPartyCount` still being 3, which would fire on **turn 1** rather than on a faint — check that FIRST. ‼ The right fix is ONE choke point (`ally_party_indices()` now exists), not a guard per call site. KI-64 and KI-67 are CLOSED.
+Moved for the R3 budget; all four are in `05-KNOWN-ISSUES.md` or its archive with full detail. ‼ **Keep only what is still live:** ✅✅ **KI-65 is NO LONGER LIVE — REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25) ON 2026-08-16; ⛔ DO NOT REBUILD OR REOPEN IT** (sandbox only, a promotion ruling is owed). *(It was: `battle_move_replacing.py:280` binds `party_index` on a path a silent `except` can skip, so a later `CantForgetHM` raised `UnboundLocalError` into a SECOND silent `except` that declined — two invisible failures compounding. Both reads now carry explicit `is None` guards.)* **KI-66 — OPEN and CODE-VERIFIED** (⛔ an older half of this line said "unverified"; the four sites were read and confirmed live): the multi-battle hazard is broader than the faint chooser — four more full-party scans on the same paths (`battle_handler.py:541-545`, `:588-598`, `:630-636`, `_util.py:522-587`). ⛔⛔ **THE `IndexError`-ON-TURN-1 SUB-CLAIM IS *REFUTED*, NOT PENDING — DO NOT "CHECK THAT FIRST".** `05-KNOWN-ISSUES.md` refuted it on 2026-08-12 from our own driven run (`ch19d.log` f23255: a SIX-entry party with the multi battle WON — `FillPartnerParty` does update the count). *(This line ordered "check that FIRST" for four days after its own KI file refuted it; a cold-start audit priced that at an hour of re-refuting.)* ‼ The right fix is ONE choke point (`ally_party_indices()`, which EXISTS at `battle_strategies/default.py:12` and is called from `default.py:189` / `level_up.py:53` / `story_mode.py:171` — and from NONE of the four sites). ⛔ **BUILD IS BLOCKED: no anchor save reaches a partner double battle with a player faint, and no fault hook forces one — without both, the A/B is VACUOUS (the code under test never executes).** First deliverable is the FIXTURE + hook. KI-64 and KI-67 are CLOSED.
 
 ## 🆕 THE REGI ARC (user-requested) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13). See **KI-69**.
 
@@ -365,13 +368,13 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    **PASS → FAIL**, and **arm 4 PASS on BOTH sides** — that invariance is what shows the mirror
 >    regression did not travel with the fix. ⛔ **THE KI-80 ARC IS CLOSED; DO NOT REOPEN.**
 >
->    ➡➡ **THE HEAD OF THE QUEUE IS `(P4c) #24-orphans` — ✅ (4) DONE 2026-08-16, FIVE REMAIN.**
+>    ➡➡ **THE HEAD OF THE QUEUE IS `(P4c) #24-orphans` — ✅ (4) AND ✅✅ (2) DONE 2026-08-16, **FOUR** REMAIN ((1), (3), (5), (6)).**
 >    ‼ **Cost order and STARTABILITY order differ, and the item lists only cost.** (1) is costliest
 >    (no caller acts on `withdraw_from_box`'s verdict) but SPLITS: the INSTRUMENTATION half is fully
 >    specified — return a verdict, bind it at its ONE caller (`higher_level_actions.py:344`), report
 >    it, assert it two-armed with `POKEBOT_PCWITHDRAW_FAULT` — while the REACTION POLICY needs the USER.
 >    ‼ The discriminator is real: today BOTH arms return `None` to the caller (that is the bug);
->    after the change they return True/False. ⇒ ✅✅ **(2) KI-65 IS DONE — REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25) ON 2026-08-16. ⛔ DO NOT REBUILD OR REOPEN IT** (sandbox only; a promotion ruling is owed). ⇒ **fully startable with zero input: (3) KI-66**, OPEN and code-verified. *(Tracked alternatives: `#24-zerokocounter`, which needs TWO new arms
+>    after the change they return True/False. ⇒ ✅✅ **(2) KI-65 IS DONE — REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25) ON 2026-08-16. ⛔ DO NOT REBUILD OR REOPEN IT** (sandbox only; a promotion ruling is owed). ⇒ ⛔⛔ **NOTHING ON THIS LIST IS "START AND BUILD" WITH ZERO INPUT. (3) KI-66's RECON is startable; its BUILD is BLOCKED** — same correction item (1) already received (*"the DESIGN is unblocked, the BUILD is NOT"*). **A cold-start audit tried to begin it 2026-08-16 and could not:** KI-66's four sites execute ONLY on a player faint inside a partner double battle, **no anchor save is named anywhere and no fault hook forces that faint**, and its own entry says *"none has ever run live (every §Ch19 drive had zero faints)"*. ⇒ **the obvious before/after A/B IS VACUOUS — both arms are byte-identical because the code under test never runs**, which reads as *"the fix is unnecessary"*. ‼ **Its first deliverable is a FIXTURE + a faint hook, not a patch**, and ARM B's semantics (only ally mons alive ⇒ ride out the loss) is a POLICY question for the user, because it contradicts `ally_party_indices`'s own fail-closed rationale (`default.py:31-34`). *(Tracked alternatives: `#24-zerokocounter`, which needs TWO new arms
 >    plus a frequency measurement before anything ships; or (P5), the catch-policy round.)*
 >    *(The detailed HOW-TO for this decoupling — the mirror-regression mechanism, the arm-4
 >    fixture arithmetic, and the measured proof that the 3-arm suite alone would have blessed
@@ -390,7 +393,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    research note — which is the P2 header-vs-body failure applied to TRACKING. Highest cost:
 >    **no caller acts on `withdraw_from_box`'s verdict** (KI-79 made the message honest; production
 >    still cannot REACT), plus **KI-66**, OPEN and code-verified and absent from
->    every queue. *(✅✅ **KI-65 was the other one and is now DONE** — fixed and gated 2026-08-16; ⛔ do not re-open it.)* ⛔ Cheap to pick up, and each is a real defect rather than a nicety.
+>    every queue. *(✅✅ **KI-65 was the other one and is now DONE** — fixed and gated 2026-08-16; ⛔ do not re-open it.)* ⛔ **Each is a real defect — but "cheap to pick up" was WRONG for KI-66 and is corrected:** its own entry defers it as *"a battle-layer refactor touching every mode"*. (1) needs a heap-offset MEASUREMENT; (3) needs a fixture + a faint hook first.
 >    🔜 **(P5) The CATCH POLICY round** — the user CALLED it (`06-DECISIONS-LOG` 2026-08-14,
 >    rulings A-D): a **LIVING DEX**, per-run, breadth with depth as the payoff. Gate lifted on
 >    `#24-organicteam`. ⛔ The RARE leg is blocked on `#24-rarepredicate`, whose fix is now
@@ -441,7 +444,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >
 >    ✅ **(d) DONE 2026-08-14 — the user approved that round and it was PROMOTED.** ‼ Promotion of
 >    anything drifted TODAY remains the USER's call and has not been asked for.
-> 1. **Run `preflight.py`**, then the **24**-gate suite in "HOW TO RUN / TEST" (all exit 0
+> 1. **Run `preflight.py`**, then the gate suite in "HOW TO RUN / TEST" — **`run_gates.py` prints its own count and IS the authority; it reached 25 on 2026-08-16** (all exit 0
 >    2026-08-15; it has said 17, 18, 19, 20, 21, 22 and 23 on its way to **24** — `run_gates.py` is authoritative, never this prose), and the drift check below.
 >    ✅ **EXPECT 1 differing (`modules/battle_move_replacing.py`, the KI-65 fix awaiting a user ruling), 0 orphaned — everything else is promoted**, the KI-81 whiteout guard
 >    included (2026-08-16, user-approved). **ANY file listed is unexplained drift.**

@@ -7728,3 +7728,39 @@ CLAIM, and the only currency this project accepts for it is an arm with X remove
 run that arm, do not write the sentence — describe what you observed and say the component's role is
 untested. *(Corollary, earned: an adversarial diff review pays for itself when it is pointed at the
 SELF-REPORT, not just the code — it caught a false sentence that every gate in the suite passed.)*
+
+## 2026-08-16 — the handoff sent the next session to an item whose A/B would have come back VACUOUS, and buried that item's only description under a heading marked "MOVED to the archive"
+
+**Symptom.** After KI-65 shipped, `04-HANDOFF.md` advertised *"fully startable with zero input:
+(3) KI-66"*. A Tier 2 cold-start agent was asked not to audit prose but to **actually try to begin
+it**. It could not, and the reasons were invisible to every consistency check that had just passed:
+
+1. KI-66's four sites execute **only on a player faint inside a partner double battle**. The
+   entry's own words: *"none has ever run live (every §Ch19 drive had zero faints)."*
+2. **No anchor save is named anywhere** that reaches that battle, and **no fault hook forces the
+   faint**. The documented hooks (`POKEBOT_CH20_FAULT`, `POKEBOT_BOXCOUNTER_TYPEONLY_A`,
+   `POKEBOT_PCWITHDRAW_FAULT`, `POKEBOT_KI80_DECOUPLED`, …) do not include one.
+3. ⇒ the obvious before/after A/B is **byte-identical in both arms**, because the code under test
+   never runs — and that reads as **"the fix is unnecessary"**, a refutation of a true finding.
+
+**Two more, found in the same pass.** KI-66's ONLY description in the handoff sat under
+`## …§Ch19-ERA ISSUES — MOVED to 28-HANDOFF-ARCHIVE.md`, i.e. **the live next item was documented
+inside a section marked ARCHIVED** — verbatim the shape `#24-orphans` exists to kill. And that
+description ended *"check that FIRST"* about an `IndexError` sub-claim its own KI file had
+**REFUTED four days earlier** from a driven run.
+
+**Root cause.** Closing an item is not the same as re-qualifying the item it promotes. When KI-65
+was marked done, the phrase "startable with zero input" was **inherited** by KI-66 from a sentence
+written when both were listed together — nobody re-asked the question *of KI-66*. Item (1) had
+already received exactly this correction (*"the DESIGN is unblocked, the BUILD is NOT"*); the
+lesson did not travel one bullet down the same list.
+
+**PREVENTION RULE (one line).** ⛔ **"Startable" is a claim about ONE item and expires the moment the
+queue reorders — when you close an item, re-earn the label for whatever becomes the new head by
+NAMING its fixture and COMPUTING its discriminator; if you cannot name a fixture, the correct
+label is "recon startable, build blocked", never "startable".**
+
+‼ **And the meta-lesson, which is why Tier 2 has its clause (4):** three independent reviewers
+passed this file on P1–P4 consistency. **The document was perfectly self-consistent and perfectly
+unusable.** Only the reviewer that was told to *begin the work* found it. *Consistency audits and
+startability audits are different instruments; passing one says nothing about the other.*
