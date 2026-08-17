@@ -16366,3 +16366,43 @@ kicked the round back on two things I had ASSERTED rather than measured:
 MOVED is not evidence that YOUR change moved it.** Both claims were plausible, both were written
 while looking at the right output, and neither was ever run against an arm with the change removed.
 *"Without X the count is higher" is a CLAIM; the only currency is an arm with X removed.*
+
+### 2026-08-17 (same item, Tier 2 cold-start audit) — the audit IMPLEMENTED the next item's spec and refuted it
+
+The cold-start agent did more than check consistency: it implemented the queue head's own refinement
+spec read-only and MEASURED it. Two of its findings change what the next session should build.
+
+⛔⛔ **THE SPEC I WROTE WOULD HAVE DELETED TRUE POSITIVES.** Queue item 0 said refinement (2) should
+"require the try body to reach a callee that TRANSITIVELY contains `_check_abort()`". Measured, that
+rule makes **`early_game.py:4475` INVISIBLE — one of the four heal stops fixed in this very round** —
+together with **all eight round-1 sites** (`pc_trip` ×3, `higher_level_actions` ×4,
+`mossdeep_gym:465`). **Why: `heal_in_pokemon_center` contains ZERO `_check_abort()`** — I verified
+this myself — **it re-raises on the LATCH via `reraise_if_aborting`.** ⇒ the callee test must accept a
+latch re-raise as an abort source, not only a literal `_check_abort()`. The spec now says so.
+‼ **And the predicted number was wrong:** the docs said the two refinements "cut 45 → ~16"; measured
+from today's 37 they give **8**. That figure was estimated, never measured, and being twice as
+aggressive as advertised is the direction that silently deletes true positives.
+*(Also unstated and worth a cycle: the hand-guard `if story_should_abort(): raise` lives in the
+HANDLER, not the try BODY — searching only the body removes zero sites.)*
+
+⛔ **THREE PLACES STILL COMMANDED PROMOTING THE PROBE TO A GATE**, contradicting the queue head's
+"DO NOT PROMOTE AS-IS": the punch-list item's own "Next concrete step" (round 2's plan, 21 lines
+below the paragraph saying round 2 shipped), KI-81's LAST line (last-word-wins on a skim), and — the
+worst-placed — **the probe's own printed footer**, which an agent reads at the exact moment it is
+deciding what to do. All three now carry the current plan; the probe's docstring stopped quoting a
+count at all (it said ~53 while the real figure was 37).
+
+**Six more stale numbers**, all fixed: a drift expectation in the orientation block that a cold reader
+meets BEFORE the STATE table; `drift is 2` inside NEXT ACTIONS; the `#24-abortswallow` headline saying
+45 while its own body said 37 (the P2 shape `#24-probecountgate` was filed over, in the same file);
+lint's `I1` figure quoted in the very line that boasts of quoting none; and an item tally whose own
+caveat — *"this prose goes stale every session"* — had not stopped it being believed.
+
+⇒ **The pattern is now conclusive and the response is structural, not editorial: where a number can
+be measured, the docs stop quoting it and name the command instead.** A warning attached to a stale
+number does not work; only removing the number works. Applied here to the item tally, the `I1`
+figure, the drift expectation and the probe's docstring.
+
+⚠ **Also noted, filed rather than fixed:** `24-PLAIN-ENGLISH-STATUS.md` is two days behind (a
+completeness gap, no wrong numbers), and `00-README` / `31-KNOWN-ISSUES-ARCHIVE.md` / `05` disagree
+three ways about whether KI-59 is open — `05` is the correct one.

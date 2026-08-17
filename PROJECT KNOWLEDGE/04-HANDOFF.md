@@ -24,7 +24,7 @@ Every banner further down is HISTORY, newest first.
 > cannot survive its own file being edited. ✅ **38 lines were recovered on 2026-08-17 (net)** by
 > merging ten already-archived `##` stubs into one (`#24-handoffbudget`); nothing was deleted.
 > ‼ If you approach either limit,
-> the relief valve is lint's own `I1` line (92 completed items still sitting in a current-state
+> the relief valve is lint's own `I1` line (⛔ RUN IT — the count is deliberately not quoted here, and was wrong twice when it was; completed `[x]` items still sitting in a current-state
 > file) — archive CLOSED items behind a stub BEFORE adding text, never trim live content to fit.
 >
 > ‼ **STEP 0 — SYNC BEFORE ANYTHING ELSE** (`CLAUDE.md` requires it; a cold-start audit found this
@@ -40,7 +40,9 @@ Every banner further down is HISTORY, newest first.
 >
 > ‼ **THEN, ALWAYS:** `cd tools/story-dev` **from the repo root** (the folder holding `sandbox-pokebot/`, `custom-pokebot/` and `40cakes repo/`), then
 > `PYTHONUTF8=1 py -3.12 preflight.py` and `PYTHONUTF8=1 py -3.12 run_gates.py`
-> — **both must exit 0; the suite is 26 gates** (it prints its own count — believe that, not this
+> — **both must exit 0; the suite is 26 gates** ⚠ *(ONE EXPECTED EXCEPTION: if a session deliberately
+> holds a commit for a Tier 2 audit, `preflight.py` exits 1 on "git is AHEAD of the remote". That is
+> the ritual working, not a broken tree — report it and push, per `CLAUDE.md`.)* (it prints its own count — believe that, not this
 > line, which has been wrong at 17, 18, 19, 20, 21 and 25 on the way here). ‼ **The 25 was found by a Tier 1 reviewer, FOUR LINES above a correct `26/26`** — the gate could not see this phrasing until the same commit taught it to. That ritual survived the 2026-08-14
 > priority redirect and is NOT part of the superseded "older framing".
 
@@ -83,8 +85,9 @@ Every banner further down is HISTORY, newest first.
 > `--build custom` gates. Restore point `restore/2026-08-15-pre-promotion-counterhunt-comment`.
 > Everything else was PROMOTED 2026-08-15, user-approved and VERIFIED BY DRIVING
 > (`--driver ch20dive --build custom` → `ACCEPTANCE: PASS`, plus four `--build custom` gates that
-> each assert which fork they imported). ‼ **`promote.py --check` is the authority — expect
-> `0 differing, 0 orphaned`; ANY file it lists is a reason to stop.**
+> each assert which fork they imported). ‼ **`promote.py --check` IS the authority — ⛔ and this line no longer quotes a digit, per
+> `#24-driftreduction`: read the STATE table's drift row for today's figure and the sanctioned file
+> list. A file it lists that the STATE row does NOT name is unexplained drift and a reason to stop.**
 > ⛔⛔ **DIGITS, NOT WORDS — when you change a drift count, grep the WORD forms too.** *(Confirmed
 > again 2026-08-15: the gate flagged 3 of 7 stale claims; the 4 it missed were spelled "zero",
 > sat in a table cell, or read "0 as of". Full history of this line's four staleness incidents:
@@ -382,7 +385,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ARM A `POKEBOT_PCWITHDRAW_FAULT=1` → `verdict landed=False code=did_not_land`, fault provably
 >    armed, `ACCEPTANCE: FAIL` — the registry's DOCUMENTED expectation for a faulted arm, not a
 >    regression.** Gate #26 `repro_withdraw_verdict.py` FAILS against the unpromoted `custom` tree,
->    so it is fault-tested against REALITY. ⚠ **SANDBOX-ONLY: drift is 2 and promoting is the USER's
+>    so it is fault-tested against REALITY. ⚠ **SANDBOX-ONLY: drift is 4 and promoting is the USER's
 >    call.** ⛔ **ITS REACTION HALF REMAINS OPEN** — what production should DO about a failed withdraw
 >    is the USER's ruling AND is blocked on the unmeasured `sStorage->messageText` offset; read
 >    `06-DECISIONS-LOG.md` before touching it.
@@ -409,11 +412,24 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    `:2305` already guards by hand with `if story_should_abort(): raise`, a shape the probe cannot
 >    see. ⛔ **DO NOT PROMOTE THE PROBE TO A GATE AS-IS** — it would be red on arrival for reasons
 >    that are correct as written, which is the fastest way to teach everyone to ignore gates.
->    ✅ **TWO CHEAP REFINEMENTS CUT 45 → ~16:** (1) recognise `if story_should_abort(): raise` as a
->    guard; (2) require the try body to reach a callee that TRANSITIVELY contains `_check_abort()` —
->    a ~40-line AST call graph. ‼ **The discriminator is live and non-vacuous:** the probe reports
->    **37** today, and a correct refinement must cut that number while STILL flagging all eight sites
->    just fixed if their guards were removed — fault-test it in that direction, not only downward.
+>    ⛔⛔ **THE REFINEMENT SPEC WAS WRONG IN TWO WAYS AND A COLD-START AUDIT MEASURED BOTH — READ
+>    THIS BEFORE WRITING A LINE.** It implemented both rules read-only over the real corpus:
+>    **(1) alone gives 37 → 36** (it removes exactly `:2305`, as documented) — ‼ but the hand-guard
+>    `if story_should_abort(): raise` lives in the HANDLER, not the try BODY, so searching only the
+>    body removes ZERO. **(1)+(2) gives 37 → 8, NOT the "~16" this line used to predict** — that
+>    figure was estimated, never measured, and the rule is twice as aggressive as advertised, which
+>    is the direction that silently deletes TRUE positives.
+>    ⛔ **AND IT DOES DELETE THEM: refinement (2) as specified makes `early_game.py:4475` INVISIBLE**
+>    — one of the FOUR HEAL STOPS FIXED IN ROUND 2 — together with all EIGHT round-1 sites
+>    (`pc_trip` ×3, `higher_level_actions` ×4, `mossdeep_gym:465`). **Why: `heal_in_pokemon_center`
+>    contains ZERO `_check_abort()` (verified) — it re-raises on the LATCH via
+>    `reraise_if_aborting`.** ⇒ **the callee test MUST accept a latch re-raise
+>    (`reraise_if_aborting` / `story_should_abort`) as an abort source, not only a literal
+>    `_check_abort()`.** ‼ **The discriminator is live and non-vacuous (37 today), and the UPWARD
+>    fault-test is the one that matters:** a correct refinement must still flag all SIXTEEN sites
+>    fixed to date if their guards were removed. ⚠ Also unstated and it costs a cycle: the call
+>    graph must decide whether it may leave the scan corpus — `navigate_to` et al. live in
+>    `modules/modes/util/walking.py`, OUTSIDE it, and truncating there is why so much gets pruned.
 >    ⚠ **A SEPARATE FAMILY IS FILED, DO NOT CONFLATE IT:** `#24-loopheadabort` — 13 retry loops whose
 >    fix is a `_check_abort()` at the LOOP HEAD, not a handler guard, because no abort object ever
 >    reaches those handlers.

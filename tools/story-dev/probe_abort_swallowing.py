@@ -16,7 +16,8 @@ Why it matters, in KI-67's own words: the abort latch is cleared ONLY by `StoryM
 that catches the abort and retries IN PLACE runs straight into the next `_check_abort()` — burning
 its whole retry budget in a handful of frames and reporting failures that never happened.
 
-⛔⛔ THIS IS A PROBE, NOT A GATE, AND THAT IS DELIBERATE. It currently reports ~53 candidate sites.
+⛔⛔ THIS IS A PROBE, NOT A GATE, AND THAT IS DELIBERATE. ⛔ NO COUNT IS QUOTED IN THIS DOCSTRING —
+it said ~53 for a day after the real figure was 37, and a cold-start audit caught it. RUN THE PROBE.
 Adding it to `run_gates.py` today would make the suite red on pre-existing debt, and a gate that is
 red on arrival teaches everyone to ignore it. ⇒ **triage the sites, fix them, THEN promote this to a
 gate** (the same path `repro_no_silent_except.py` took, which records its own pre-existing count and
@@ -199,7 +200,16 @@ def main() -> int:
     print("  ‼ CANDIDATE means 'could swallow a whiteout', NOT 'does'. A site is a false positive")
     print("    if no `_check_abort()` is reachable through its `yield from`. This probe narrows the")
     print("    list for a human; it does not prove reachability. Triage before fixing.")
-    print("  ⛔ NOT a gate yet — a gate red on arrival gets ignored. Fix the sites, then promote it.")
+    # ‼ THIS FOOTER IS WHAT AN AGENT READS AT THE MOMENT IT DECIDES WHAT TO DO, so it must carry the
+    # CURRENT plan. It used to say "fix the sites, then promote it" — the superseded round-2 plan —
+    # and a cold-start audit flagged it as the worst-placed of three such instructions.
+    print("  ⛔ NOT a gate yet, and ⛔ DO NOT PROMOTE IT AS-IS: the 2026-08-17 triage MEASURED that")
+    print("     ~64% of its candidates are NOT this defect — they wrap navigation primitives with no")
+    print("     `_check_abort()`, so no StoryAbort can arrive. REFINE THE RULE FIRST (`#24-abortswallow`")
+    print("     round 3); a gate red on arrival over correct-as-written code teaches people to ignore")
+    print("     gates. ‼ And the refined callee test must accept a LATCH re-raise (`reraise_if_aborting`)")
+    print("     as an abort source, not only a literal `_check_abort()` — otherwise it prunes the heal")
+    print("     sites already fixed, which was measured.")
     print("=" * 92)
     return 0
 

@@ -74,7 +74,10 @@ worth more than the tidiness.
 | organic team building | **`#24-organicteam`** | ⛔ **CORRECTED 2026-08-14** — this cell used to read *"it carries the user's 2026-08-05 DEFERRAL, i.e. the live instruction"*, which was **already false when written on 2026-08-10**: the user reversed that deferral on 2026-08-06 (`06-DECISIONS-LOG.md` RULING 1) and re-confirmed the lift on 2026-08-14. The entry is canonical because it is the concept's home, NOT because it carries a deferral. **The gate is LIFTED.** |
 ‼ **`#24-pc` (Surf resource walls) REMAINS OPEN and was not touched** — it is a derail class, a
 different thing from the PC/box *feature* that shares its id.
-Counts after consolidation: **95 open / 21 partial / 103 done (re-measured 2026-08-16; ‼ `lint_docs.py`'s I1/I2 lines are the authority — this prose goes stale every session)** (was 91/22/93).
+Counts: ⛔ **DELIBERATELY NOT QUOTED — run `lint_docs.py`; its `I1`/`I2` lines ARE the authority.**
+*(This line used to carry three figures and a cold-start audit measured TWO of them wrong within
+a day — and the caveat it ALREADY carried, "this prose goes stale every session", did not stop anyone
+believing the digits. ⇒ the only fix that works is to remove the number, not to warn about it.)*
 
 HISTORY — originally flagged as: duplicate / overlapping ids, not merged
 * **`#24` appears three times** as the umbrella (L≈1828 "STORY AUTO-PLAYER", L≈2040 "STORY-MODE
@@ -601,8 +604,9 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       touches the lines every in-flight change touches, and it must not run while a Tier 2 audit is
       reading the file. ‼ Re-run Tier 0 AND a fresh cold-start read afterwards: these stubs are what
       a cold agent skims, so a bad merge costs more than the lines it saves.
-      ⚠ Related but SEPARATE: lint's `I1` reports **92** completed `[x]` items sitting in
-      `03-PUNCH-LIST.md` (3560/3600). That is this file's relief valve, not the handoff's.
+      ⚠ Related but SEPARATE: lint's `I1` line reports the completed `[x]` items still sitting in
+      `03-PUNCH-LIST.md` — ⛔ RUN IT rather than quoting it; that figure and the line budget beside
+      it were BOTH stale within a day of being written. That is this file's relief valve, not the handoff's.
 
 - [ ] `#24-loopheadabort` — **NEW 2026-08-17, found while triaging `#24-abortswallow`. A DIFFERENT
       DEFECT FROM THAT ITEM — do not conflate them.** 13 bounded retry loops in
@@ -620,6 +624,28 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ⚠ **MEASURE BEFORE BUILDING:** 20 of the 44 already have a head check, so the pattern is
       established — copy an existing one rather than inventing it. And prove the arms differ: with
       the latch SET the loop must exit immediately instead of consuming its budget.
+
+- [ ] `#24-ki59archiveheader` — **NEW 2026-08-17, from a cold-start audit. THREE FILES DISAGREE ABOUT
+      WHETHER KI-59 IS OPEN, and the one a cold reader meets first is wrong.**
+      `00-README.md` describes `31-KNOWN-ISSUES-ARCHIVE.md` as *"Resolved/superseded known issues …
+      Not current state"*; that file's OWN header says two **OPEN, unfixed** pathfinder bugs live in
+      it (KI-59, KI-60); and `05-KNOWN-ISSUES.md` — **the correct one** — says *"KI-59 ITSELF IS
+      FIXED, A/B-PROVEN, GATED (#17) AND PROMOTED TO BOTH FORKS"*, with only a NARROWER residual plus
+      KI-60 still open. `04-HANDOFF.md` agrees with `05`.
+      ⇒ **Fix `31`'s header to name the residual rather than the whole KI, and make `00-README`'s row
+      say the file may contain open residuals.** ⛔ Do not "fix" it by marking KI-59 open — that would
+      re-open work that is fixed, gated and promoted, which is this project's most expensive mistake.
+      ⚠ Cheap, but it misdirects EVERY cold start that follows the reading order.
+
+- [ ] `#24-plainenglishstale` — **NEW 2026-08-17. `24-PLAIN-ENGLISH-STATUS.md` is the file
+      `00-README` sends a HUMAN to FIRST, and it is two days behind (last updated 2026-08-15).**
+      Missing: the `#24-orphans` (1) verdict instrumentation, the KI-66 `_on_field` fix, and both
+      `#24-abortswallow` rounds. ‼ **It carries NO stale number** — a cold-start audit grepped it and
+      it quotes no gate/drift/probe/budget figure — so this is a COMPLETENESS gap, not a wrong claim,
+      which is why no gate catches it. ⇒ Bring it current in plain English; ⛔ keep it number-free,
+      because that property is exactly why it has never gone stale in the way the other files do.
+      *(Precedent: this file was FIVE chapters stale on 2026-08-13 and that is what motivated the
+      whole DOC CONSISTENCY LAYER.)*
 
 - [ ] `#24-probecountgate` — **NEW 2026-08-17. Teach `audit_doc_consistency.py` to grade PROBE
       COUNTS the way it already grades gate counts and the drift figure.**
@@ -661,7 +687,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       very corpus the false-positive controls were tuned against.
 
 - [ ] `#24-abortswallow` — **KI-81. ✅ 8 SITES FIXED AND PROMOTED TO BOTH FORKS 2026-08-16;
-      ⛔ 45 CANDIDATES REMAIN, deliberately unswept.** `StoryAbort` is a `BotModeError` is an
+      ⛔ 37 CANDIDATES REMAIN (ALL `early_game.py`), deliberately unswept — 8 MORE were fixed 2026-08-17.** `StoryAbort` is a `BotModeError` is an
       `Exception`, so every broad `except` in the story path catches a whiteout. KI-67 fixed the two
       chapters it had OBSERVED failing; the CLASS was never swept.
       ✅ **THE TRIAGE QUESTION THIS ITEM POSED IS ANSWERED.** It said to start at `mossdeep_gym.py`
@@ -713,7 +739,10 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ⛔ **CANDIDATE ≠ DOES:** the probe cannot prove a `_check_abort()` is reachable through a given
       `yield from`, so **triage before fixing** — bulk-editing 44 sites in the largest, most
       timing-sensitive file here on a static signal is exactly the mistake this item avoided once.
-      ⇒ **Next concrete step:** hand-verify a handful of `early_game.py` sites the way the first
+      ⛔ **SUPERSEDED 2026-08-17 — ROUND 2 DID THIS; the live spec is the ROUND 3 refinement above.**
+      ‼ A cold-start audit found this paragraph still commanding round 2 from inside the very item
+      the handoff calls "the spec", 21 lines under the paragraph saying round 2 shipped.
+      *(superseded text:)* ⇒ **Next concrete step:** hand-verify a handful of `early_game.py` sites the way the first
       three were (read the enclosing retry loop; ask whether an abort can actually arrive), fix
       those, and only THEN promote the probe from a PROBE to a gate — a gate red on arrival on
       pre-existing debt teaches everyone to ignore gates.

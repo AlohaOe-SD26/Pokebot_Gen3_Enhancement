@@ -2894,7 +2894,10 @@ the probe cannot see. ⛔ **DO NOT PROMOTE THE PROBE TO A GATE AS-IS** — it wo
 arrival for reasons that are correct as written. Two refinements cut 45 → ~16. *(A separate
 family — 13 retry loops needing a LOOP-HEAD check, not a handler guard — is `#24-loopheadabort`.)* 44 sites in the largest and most timing-sensitive file here is not a
 tail-of-session sweep, and **CANDIDATE ≠ DOES** — the probe cannot prove a `_check_abort()` is
-reachable through a given `yield from`. ⇒ **triage, fix, THEN promote the probe to a gate**; it is a
+reachable through a given `yield from`. ⇒ **triage, fix, THEN promote the probe to a gate** — ⛔ **SUPERSEDED 2026-08-17: NOT AS-IS.** The
+triage MEASURED that ~64% of the candidates are not this defect, so the probe must be REFINED first;
+see the paragraph above and `#24-abortswallow` round 3. *(This line was the last thing in the KI, so
+a skimmer read it as the instruction — a cold-start audit caught exactly that.)*; it is a
 PROBE precisely because a gate red on arrival on pre-existing debt teaches everyone to ignore gates
 (`repro_no_silent_except.py` took this exact path). Tracked as `#24-abortswallow`.
 
