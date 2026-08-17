@@ -2815,3 +2815,31 @@ of the gate proves normal operation is untouched.
 
 **Scope note.** The fix does NOT claim to explain the reopened `#24-teachmsgstall`. KI-65 remains a
 *candidate* cause; proving that connection needs its own repro.
+
+## 2026-08-17 — MEASURE an index-space conversion's DIRECTION before applying it (KI-66)
+
+**Decision.** Before changing `_on_field` to map through `BattleState.map_battle_party_index`, run an
+OBSERVE-ONLY probe that logs the raw and mapped values side by side and compare both against a
+ground truth derived independently (the party dump: which mon has 0 HP, and which is the ally).
+Only then apply the conversion.
+
+**Why.** The filter runs in EVERY battle, not just the multi battle under test. The two index spaces
+(`gBattlerPartyIndexes` field order vs a `get_party()` that `UpdatePartyToBattleOrder` has permuted)
+are easy to state and easy to get backwards, and a backwards conversion would have been *worse than
+the bug*: it would corrupt the on-field exclusion in ordinary single battles, where the existing
+behaviour is correct. Reasoning about which direction `map_battle_party_index` converts, from its
+docstring, was available and was NOT trusted — the same function's docstring had already been the
+source of two prior index-space bugs (KI-18, KI-34).
+
+**Alternative rejected.** "Apply the mapping and see if the gates stay green." Rejected because the
+gates would not have caught a wrong direction here: the multi-battle gate is a logic repro, and no
+gate drives a real faint inside a partner double battle — that is precisely the gap `ki66faint` was
+built to fill, and it did not exist until this session.
+
+**Cost.** One extra ~3-minute driver run. **Result:** the probe showed `mapped` matching ground truth
+on both faints and `raw` wrong on both, so the direction was settled by measurement rather than by
+argument, and the change went in once.
+
+**Generalisation.** ⇒ *When a fix is a COORDINATE CONVERSION, the cheapest correct step is a run that
+prints both coordinates beside the ground truth. Never reason it out from a docstring — this codebase
+has now had three index-space bugs in one function.*

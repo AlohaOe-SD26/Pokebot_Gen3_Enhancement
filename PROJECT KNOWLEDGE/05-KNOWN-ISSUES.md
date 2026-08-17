@@ -2227,7 +2227,41 @@ only fires after 6000 frames, so *which* layer absorbed the cost (KI-38's refusa
 PASSED — true for THIS configuration and under-measured as a general property (1263 frames is 21% of
 the 6000-frame per-invocation bound, with only two refusable slots to burn through).
 
-✅ **NEXT, IN ORDER:** (a) fix `_on_field`'s index space — map through
+### ✅✅ FIXED 2026-08-17 (SANDBOX ONLY — ⛔ PROMOTION IS THE USER'S CALL, NOT YET ASKED FOR)
+
+`_on_field` now maps through `BattleState.map_battle_party_index` before being compared against
+`party_in_menu`, mirroring what `alive_slots` three blocks below has done since KI-34.
+
+‼ **THE DIRECTION WAS MEASURED, NOT GUESSED.** Getting it backwards would have degraded EVERY
+battle, so an OBSERVE-ONLY probe ran first (`--driver ki66faint`, RUN4) logging raw AND mapped side
+by side, and the party dump independently established the truth:
+
+| faint | raw (used then) | mapped | truth from the party dump |
+|---|---|---|---|
+| 1 | `[0,3]` | `[0,1]` | Sceptile(0) fainted + Metang(1) ally active ⇒ **{0,1}** |
+| 2 | `[1,3]` | `[0,1]` | Mightyena(0) fainted + Metang(1) ally active ⇒ **{0,1}** |
+
+⇒ `mapped` is right on BOTH faints and `raw` wrongly grabbed Swellow(3) on both.
+
+**AFTER (RUN5):** `on_field=[0,1]` — correct — and `alive_slots=[2,3,4,5]`, which now CONTAINS our
+bench mons instead of excluding them. Battle **Won**, `whiteouts=0`, chapter `ACCEPTANCE: PASS`.
+⚠⚠ **HONEST LIMIT — THE AFTER RUN IS A DIFFERENT TRAJECTORY, SO DO NOT QUOTE A SPEEDUP.** Press
+timing feeds battle RNG, so the run diverged: **one** faint instead of two, 361 party-menu presses
+instead of 486. Those are NOT apples-to-apples and neither is a controlled measurement.
+✅ **What IS controlled** is the correctness claim: `_on_field` now equals the truth the party dump
+establishes, on every faint observed, before and after. The 1263-frame pathology did not recur.
+⚠ The remaining faint resolved in ~89 frames (f7908→f7997).
+
+✅ **SAFETY:** all 24 code gates PASS, including `repro_multi_battle_partner.py`,
+`repro_whiteout_abort.py` and the 114s `repro_gym_whiteout_guard.py` — this filter runs in EVERY
+battle, not only multi battles, so those were the ones that mattered.
+⛔ **STILL OPEN:** the owner filter itself (`alive_slots` has no OT check) is UNFIXED and remains
+inert on this fixture — it needs its OWN discriminator, not this one. Sites `:541-545` (the `None`
+fallback, no owner AND no on-field filter) and `_util.py:522-587` are also untouched.
+Transcripts: `evidence/2026-08-17-ki66faint-RUN4-onfield-probe.stdout.txt` (before, with the probe)
+and `...-RUN5-AFTER-onfield-fix.stdout.txt` (after).
+
+✅ **NEXT, IN ORDER:** (a) ✅ DONE — fix `_on_field`'s index space — map through
 `BattleState.map_battle_party_index` before comparing, exactly as `:659-680` already does for
 `alive_slots`; (b) re-run this driver and require faint 2's frame cost to collapse toward faint 1's;
 (c) only then consider the owner filter, and **give it its own discriminator**, because this fixture
@@ -2264,7 +2298,7 @@ number in prose** — it is the only thing that counts them.
 ## KI-65 — ✅✅✅ **CLOSED 2026-08-16: REPRODUCED, FIXED, A/B-PROVEN, GATED (#25) AND PROMOTED TO BOTH FORKS (user-approved).** Was: the HM-refusal re-pick raises `UnboundLocalError` into a silent `except` **WHEN `_read_offered_move` HAS ALREADY FAILED**, so two invisible failures compound into a silent decline (filed 2026-08-12, code-verified)
 
 > ⛔ **STATUS IN ONE LINE:** the bug is FIXED in `sandbox-pokebot` and guarded by gate #25
-> (`repro_ki65_unbound_party_index.py`). ✅ **PROMOTED 2026-08-16, USER-APPROVED — DRIFT IS 0.** The KI-65 fix is in BOTH forks, proven by a THREE-POINT A/B against `--build custom`: BEFORE `fault_fired=159, lie_msg=1` → `ACCEPTANCE: FAIL`; AFTER `fault_fired=87, lie_msg=0, honest_msg=1` → `ACCEPTANCE: PASS`; and `--build sandbox` still PASS. Restore point `restore/2026-08-16-pre-promotion-ki65`. ‼ Everything below the "RECON" heading is the
+> (`repro_ki65_unbound_party_index.py`). ✅ **PROMOTED 2026-08-16, USER-APPROVED — drift was 0 at that point. ⚠ **NOT ZERO as of 2026-08-17** — the KI-66 `_on_field` fix is sandbox-only and a ruling is owed.** The KI-65 fix is in BOTH forks, proven by a THREE-POINT A/B against `--build custom`: BEFORE `fault_fired=159, lie_msg=1` → `ACCEPTANCE: FAIL`; AFTER `fault_fired=87, lie_msg=0, honest_msg=1` → `ACCEPTANCE: PASS`; and `--build sandbox` still PASS. Restore point `restore/2026-08-16-pre-promotion-ki65`. ‼ Everything below the "RECON" heading is the
 > PRE-FIX investigation, kept because three of its load-bearing claims were WRONG and a future
 > session must not re-derive them. **Read the FIX block immediately below first.**
 

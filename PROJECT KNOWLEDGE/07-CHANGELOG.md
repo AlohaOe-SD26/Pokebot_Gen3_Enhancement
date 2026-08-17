@@ -15842,3 +15842,38 @@ Both fixed; the driver now counts faints and logs the slot actually requested.
 Also: `05-KNOWN-ISSUES.md` went over its 3,000-line R3 budget, so **KI-80's full entry** (CLOSED,
 fixed, gated and promoted to both forks) plus KI-66's superseded recon and site table moved verbatim
 to `31-KNOWN-ISSUES-ARCHIVE.md` behind stubs. Nothing deleted. 2831 lines.
+
+## 2026-08-17 — KI-66: `_on_field`'s index space FIXED (sandbox only) — the third such bug in one function
+
+`modules/battle_handler.py` — `_on_field` is built from `battler.party_index`
+(`gBattlerPartyIndexes`, FIELD order) and was compared RAW against `party_in_menu = get_party()`,
+which is read after `UpdatePartyToBattleOrder` has permuted it into BATTLE-SLOT order. It now maps
+through `BattleState.map_battle_party_index` first, mirroring what `alive_slots` three blocks below
+has done since KI-34. **This is the THIRD index-space bug in this one function** (KI-18, KI-34, now
+this) — same shape every time.
+
+‼ **THE DIRECTION WAS MEASURED, NOT GUESSED.** This filter runs in EVERY battle, so getting it
+backwards would have degraded all of them. An OBSERVE-ONLY probe ran first (RUN4), logging raw and
+mapped side by side, with the party dump independently establishing the truth:
+  faint 1: raw `[0,3]` → mapped `[0,1]`; truth = Sceptile(0) fainted + Metang(1) ally ⇒ {0,1}
+  faint 2: raw `[1,3]` → mapped `[0,1]`; truth = Mightyena(0) fainted + Metang(1) ally ⇒ {0,1}
+`mapped` is right on both; `raw` wrongly grabbed Swellow(3) — a BENCH mon — on both.
+
+**AFTER (RUN5):** `on_field=[0,1]`, and `alive_slots=[2,3,4,5]` now contains our bench mons instead
+of excluding them. Battle Won, whiteouts=0, chapter `ACCEPTANCE: PASS`.
+
+⚠⚠ **HONEST LIMIT — DO NOT QUOTE A SPEEDUP.** Press timing feeds battle RNG, so the after-run is a
+DIFFERENT TRAJECTORY: one faint instead of two, 361 party-menu presses instead of 486. Those are not
+apples-to-apples and neither is a controlled measurement. What IS controlled is the correctness
+claim — `_on_field` equals the measured truth on every faint observed, before and after — and the
+1263-frame pathology did not recur (the remaining faint resolved in ~89 frames).
+
+✅ **SAFETY:** all 24 code gates PASS, including `repro_multi_battle_partner.py`,
+`repro_whiteout_abort.py` and the 114s `repro_gym_whiteout_guard.py`. Only the doc gate failed, and
+only because drift is now 1 — which is correct and expected.
+
+⛔ **SANDBOX ONLY — promotion is the USER'S CALL and has not been asked for.** `promote.py --check`
+reports 1 differing file (`modules/battle_handler.py`).
+⛔ **STILL OPEN:** the owner filter (`alive_slots` has no OT check) is UNFIXED and proved INERT on
+this fixture — it needs its own discriminator. `:541-545` and `_util.py:522-587` are untouched.
+Transcripts: `evidence/2026-08-17-ki66faint-RUN{4-onfield-probe,5-AFTER-onfield-fix}.stdout.txt`.

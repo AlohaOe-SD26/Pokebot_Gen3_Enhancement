@@ -3411,6 +3411,29 @@ class Ki66FaintMode(SpaceCenter2Mode):
                     allies = f"<unreadable: {type(error).__name__}>"
                 chooser.append((text, allies))
                 log(f"[ki66] FAINT-CHOOSER #{len(chooser)} ally_party_indices={allies} :: {text}")
+                # ‼ OBSERVE-ONLY PROBE (changes nothing). `_on_field` is built from
+                # `battler.party_index` and compared RAW against a `get_party()` that
+                # `UpdatePartyToBattleOrder` has already permuted. Before changing that
+                # comparison we must know WHICH DIRECTION the mapping goes — guessing would
+                # affect every battle, not just multi battles. Log raw AND mapped and let the
+                # run say which one matches the mon that actually fainted.
+                try:
+                    from modules.battle_state import get_battle_state as _gbs
+
+                    _bs = _gbs()
+                    _raw, _mapped = [], []
+                    for _side in (_bs.own_side.left_battler, _bs.own_side.right_battler):
+                        if _side is not None and getattr(_side, "party_index", None) is not None:
+                            _raw.append(_side.party_index)
+                    for _r in _raw:
+                        try:
+                            _mapped.append(_bs.map_battle_party_index(_r))
+                        except Exception:  # noqa: BLE001
+                            _mapped.append(None)
+                    log(f"[ki66] ONFIELD-PROBE raw={_raw} mapped={_mapped} "
+                        f"(production currently uses RAW)")
+                except Exception as _err:  # noqa: BLE001
+                    log(f"[ki66] ONFIELD-PROBE unreadable: {type(_err).__name__}")
             return _orig_event(text, category=category)
 
         debug_logger.event = _recording_event
