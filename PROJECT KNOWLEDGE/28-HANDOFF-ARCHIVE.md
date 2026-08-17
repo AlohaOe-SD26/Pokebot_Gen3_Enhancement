@@ -5105,3 +5105,62 @@ verbatim, unedited.
       duplicate-withdraw loop is the regression shape a fires-every-heal piggyback invites.
       ‼ Graded with a capability test, NOT a batch — four batches on 2026-08-06 produced zero
       statistically resolvable finish-rate differences; this took ~45,000 frames.
+
+
+---
+
+# ARCHIVED 2026-08-17 — the 8 oldest CLOSED items from `03-PUNCH-LIST.md`'s "## Done"
+
+Moved on the R3 3,600-line budget. Every one was already `[x]`. Verbatim, unedited.
+
+- [x] **#24-movelearn-recovery — DONE 2026-07-25. The #1 open item; killed 2 of 5
+      cold-start runs (~f1.55M each).** ‼ The filed diagnosis ("the recovery scope is
+      the bug, not the move-learn logic") was only the LAST of four links — fixing just
+      it would have produced a dead run with a nicer log line. Real chain, from the
+      captures `saves/movelearn_hmwedge_{quickattack,slash}.ss1`: Combusken carries
+      Rock Smash (an HM **and** its weakest move); a stray A from the "unrecognised
+      text" branch answered YES to a prompt the bot had decided to DECLINE; a cursor
+      read while the summary screen was still animating in was stale, so A landed on the
+      HM slot; the game replied with `Task_HandleInputCantForgetHMsMoves`, **a symbol
+      nothing in the codebase referenced**, misreported as the Yes/No; and the handler
+      then sat in an UNBOUNDED "screen still opening" branch pressing **nothing for
+      6,000 frames**. Fixed: `LearnMoveState.CantForgetHM` checked first; a branch that
+      dismisses the refusal AND strikes the refused slot off; no A on an untrusted
+      cursor; the wait bounded; and `modules/battle_fault.py` — an OPT-IN channel
+      (`handles_battle_faults`) that carries a battle fault to the mode instead of
+      raising across the controller stack, so it costs one DERAIL. A/B: WEDGED at
+      f23,400 → RESOLVED at f258 / f224, movesets correctly unchanged; stock modes
+      verified unchanged. Repros: `repro_movelearn_hm_wedge.py`,
+      `repro_movelearn_fault_recovery.py` (3 arms).
+- [x] **#24-fortreebadge — SATISFIED 2026-07-25: BADGE 6 WON from a cold start.** Filed
+      2026-07-24 when the isolated Fortree drive lost to Winona and whited out — it called
+      `do_fortree_gym()` directly with whatever party the save carried, and battle prep
+      (lead selection + heal) is the CALLER's job. Confirmed the right way, by a full
+      run rather than a gate fix: a fresh title-screen run reached the **Feather Badge =
+      end of built content** (38 maps, ~2.48M frames, 0 derails).
+- [x] **#24-fortreegates — DONE 2026-07-24: the Fortree Gym rotating-gate puzzle is
+      solved LIVE.** `modules/story/fortree_gates.py` is a port of the decomp's
+      `src/rotating_gate.c`, validated **4/4** against the emulator. Includes the
+      parked-trainer escape: a trainer standing on the path is cleared by RESETTING the
+      room (exit + re-enter forces the documented gate reset), not by waiting.
+- [x] **#24-harness-savepath — DONE 2026-07-25: stall snapshots are per-run AND
+      per-stall.** Two defects in one line. (a) The no-progress auto-save wrote a single
+      shared `saves/midstuck.ss1`, so concurrent runs overwrote each other and the
+      artifact belonged to no particular failure — that is precisely why the move-learn
+      stall had no clean repro, and why one earlier investigation burned effort on a
+      `midstuck.ss1` that was a whiteout state from a different map. (b) It fired ONCE
+      per run, but a run usually stalls several times and the first stall is typically a
+      recoverable hiccup — the interesting capture was the one never taken. Snapshots now
+      land in `tools/story-dev/saves/stalls/`, which unblocked `#24-movelearn-recovery`.
+- [x] **#24-harness-finish — DONE 2026-07-25: a SUCCESSFUL run no longer reports as a
+      hang.** The first cold-start Badge 6 run reached the end of built content at
+      f2,483,319, printed "end of built content — handing to manual", and then correctly
+      stopped doing anything — so the harness's frame-based no-progress detector fired
+      20,000 frames later and the log ended `HANG CONFIRMED`. `compare_runs.py` inherited
+      the false signal and classified it `no-path` (a transient, recovered "Could not find
+      a path" earlier in the log). The one run that worked looked like the worst kind of
+      failure. Both tools now check the bot's own end-of-content message before calling a
+      stop a hang.
+- [x] #1 — Vendor upstream 40Cakes/pokebot-gen3 (subtree @ 5dd898f8) (2026-07-17).
+- [x] #2 — Deep documentation pass + Pokemon_Emerald_AI_Notes.md (2026-07-17).
+- [x] #4 — install.py V2 (setup/update/heal + ROM handling) — "worked!" (2026-07-18).

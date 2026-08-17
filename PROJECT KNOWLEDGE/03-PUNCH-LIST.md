@@ -402,10 +402,13 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **the patch her own cfg comment names**, `story_mode.py:3531`; ⛔ she has NO `grass` key today, `wild_max` 27) → **plain escalation, ladder SKIPPED.** Only the
       `grass` key differs. `ACCEPTANCE: PASS` in BOTH forks. Fault-tested twice: the fixture KI-80
       itself once prescribed (`ch13_fortree_door`) FAILS with *"THE A/B WOULD BE VACUOUS"* and all
-      three arms return `LADDER`; and `POKEBOT_KI80_DECOUPLED=1` FAILS today, which is what makes
-      the same driver the AFTER run. ‼ **Exits 0 even on FAIL — grade the `ACCEPTANCE:` line.**
-      ➡ **NEXT: decouple `_counter_ladder` from `grass_is_fodder` (`story_mode.py:1899-1901`)**,
-      then flip `POKEBOT_KI80_DECOUPLED=1` FAIL → PASS.
+      three arms return `LADDER`. ‼ **Exits 0 even on FAIL — grade the `ACCEPTANCE:` line.**
+      ✅✅ **DONE AND PROMOTED 2026-08-16 — ⛔ DO NOT REDO THIS.** *(This block used to end with
+      ➡ "NEXT: decouple `_counter_ladder` from `grass_is_fodder`" and "`POKEBOT_KI80_DECOUPLED=1`
+      FAILS today". BOTH became false on 2026-08-16 and stood until an adversarial audit caught
+      them on 2026-08-17 — an arrow commanding work that had shipped to BOTH forks.)*
+      **MEASURED NOW:** `story_mode.py:1901` is `if boss_teaches:` in sandbox AND custom, and the
+      driver's expectations are inverted so `POKEBOT_KI80_DECOUPLED=1` **PASSES**.
       ⛔⛔ **BUT NOT THE NAIVE EDIT, AND `POKEBOT_KI80_DECOUPLED` ALONE WILL BLESS IT.** MEASURED
       2026-08-16: with `grass_is_fodder` simply deleted from the `:1901` gate, the three-arm run
       goes **`ACCEPTANCE: PASS`** — all three arms reach the ladder — while KI-23's **mirror
@@ -492,8 +495,13 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **THREE separate stale drift claims survived my own sweeps** and had to be caught by three
       different audit agents — one of them sat in THE 60-SECOND VERSION, the block written for a
       reader who reads nothing else, telling the next session to ask the user for a ruling already
-      given and executed. ‼ **`audit_doc_consistency.py` exits 0 over ALL of them**: it matches digit
-      forms like `drift is 0` and walks past `0 as of`, `NOT ZERO`, `zero`, and `1 differing`.
+      given and executed. ‼ **`audit_doc_consistency.py` exits 0 over ALL of them.**
+      ⛔ **BUT BE PRECISE ABOUT WHY — corrected 2026-08-17 after an audit read the gate's source:**
+      **WORD FORMS ARE ALREADY HANDLED** (`_WORD_NUMBERS` includes `zero`; `_NUM` interpolates it
+      into all seven drift patterns, `re.I`). What is genuinely open is **CLAIM-SHAPE** detection:
+      the rule is scoped to an EXPECTATION, so `0 as of <date>` and `NOT ZERO` — assertions with no
+      `expect` nearby — slip through. ‼ Do NOT re-implement word forms; you would be rebuilding
+      working code, which is the defect this very item exists to prevent.
       ✅ **THE DELIVERABLE IS A GATE EXTENSION, and it is cheap:** teach `audit_doc_consistency.py`
       to (a) find EVERY sentence asserting a drift figure, WORD FORMS INCLUDED, and (b) compare each
       against the MEASURED figure from `promote.py`'s own logic. ⛔ **FAULT-TEST IT BOTH WAYS** — prove
@@ -3318,57 +3326,11 @@ region, where "train near the gym" is actively wrong.
       no pre-Surf save can path a water route. Route 119 (21,109) reached NO Poké Center.
 
 ## Done
-- [x] **#24-movelearn-recovery — DONE 2026-07-25. The #1 open item; killed 2 of 5
-      cold-start runs (~f1.55M each).** ‼ The filed diagnosis ("the recovery scope is
-      the bug, not the move-learn logic") was only the LAST of four links — fixing just
-      it would have produced a dead run with a nicer log line. Real chain, from the
-      captures `saves/movelearn_hmwedge_{quickattack,slash}.ss1`: Combusken carries
-      Rock Smash (an HM **and** its weakest move); a stray A from the "unrecognised
-      text" branch answered YES to a prompt the bot had decided to DECLINE; a cursor
-      read while the summary screen was still animating in was stale, so A landed on the
-      HM slot; the game replied with `Task_HandleInputCantForgetHMsMoves`, **a symbol
-      nothing in the codebase referenced**, misreported as the Yes/No; and the handler
-      then sat in an UNBOUNDED "screen still opening" branch pressing **nothing for
-      6,000 frames**. Fixed: `LearnMoveState.CantForgetHM` checked first; a branch that
-      dismisses the refusal AND strikes the refused slot off; no A on an untrusted
-      cursor; the wait bounded; and `modules/battle_fault.py` — an OPT-IN channel
-      (`handles_battle_faults`) that carries a battle fault to the mode instead of
-      raising across the controller stack, so it costs one DERAIL. A/B: WEDGED at
-      f23,400 → RESOLVED at f258 / f224, movesets correctly unchanged; stock modes
-      verified unchanged. Repros: `repro_movelearn_hm_wedge.py`,
-      `repro_movelearn_fault_recovery.py` (3 arms).
-- [x] **#24-fortreebadge — SATISFIED 2026-07-25: BADGE 6 WON from a cold start.** Filed
-      2026-07-24 when the isolated Fortree drive lost to Winona and whited out — it called
-      `do_fortree_gym()` directly with whatever party the save carried, and battle prep
-      (lead selection + heal) is the CALLER's job. Confirmed the right way, by a full
-      run rather than a gate fix: a fresh title-screen run reached the **Feather Badge =
-      end of built content** (38 maps, ~2.48M frames, 0 derails).
-- [x] **#24-fortreegates — DONE 2026-07-24: the Fortree Gym rotating-gate puzzle is
-      solved LIVE.** `modules/story/fortree_gates.py` is a port of the decomp's
-      `src/rotating_gate.c`, validated **4/4** against the emulator. Includes the
-      parked-trainer escape: a trainer standing on the path is cleared by RESETTING the
-      room (exit + re-enter forces the documented gate reset), not by waiting.
-- [x] **#24-harness-savepath — DONE 2026-07-25: stall snapshots are per-run AND
-      per-stall.** Two defects in one line. (a) The no-progress auto-save wrote a single
-      shared `saves/midstuck.ss1`, so concurrent runs overwrote each other and the
-      artifact belonged to no particular failure — that is precisely why the move-learn
-      stall had no clean repro, and why one earlier investigation burned effort on a
-      `midstuck.ss1` that was a whiteout state from a different map. (b) It fired ONCE
-      per run, but a run usually stalls several times and the first stall is typically a
-      recoverable hiccup — the interesting capture was the one never taken. Snapshots now
-      land in `tools/story-dev/saves/stalls/`, which unblocked `#24-movelearn-recovery`.
-- [x] **#24-harness-finish — DONE 2026-07-25: a SUCCESSFUL run no longer reports as a
-      hang.** The first cold-start Badge 6 run reached the end of built content at
-      f2,483,319, printed "end of built content — handing to manual", and then correctly
-      stopped doing anything — so the harness's frame-based no-progress detector fired
-      20,000 frames later and the log ended `HANG CONFIRMED`. `compare_runs.py` inherited
-      the false signal and classified it `no-path` (a transient, recovered "Could not find
-      a path" earlier in the log). The one run that worked looked like the worst kind of
-      failure. Both tools now check the bot's own end-of-content message before calling a
-      stop a hang.
-- [x] #1 — Vendor upstream 40Cakes/pokebot-gen3 (subtree @ 5dd898f8) (2026-07-17).
-- [x] #2 — Deep documentation pass + Pokemon_Emerald_AI_Notes.md (2026-07-17).
-- [x] #4 — install.py V2 (setup/update/heal + ROM handling) — "worked!" (2026-07-18).
+> ⛔ **THE 8 OLDEST CLOSED ITEMS OF THIS SECTION MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-17)**
+> on the R3 3,600-line budget. All were `[x]` and long closed; nothing was deleted. The relief
+> valve is deliberate — `lint_docs` has been reporting ~105 completed items sitting in a
+> CURRENT-STATE file, and this is the first draw on it.
+
 - [x] #5 — Native dashboard GUI + handheld mode — "worked!" (2026-07-18).
 - [~] #24-textread — DIALOGUE AWARENESS: read on-screen text to drive interactions
       (user 2026-07-20; design §DA). FEASIBILITY CONFIRMED (decode_string of
@@ -3590,3 +3552,42 @@ failsafes that an in-process mode cannot have, and remains the right tool for a 
       (c) any NEW derail class that did not exist before these two fixes?
       ⚠ Blocks nothing today. It is worth doing once several changes have accumulated, so the three
       hours buy more than one answer.
+
+### `#24-stalestatusclaims` — an ADVERSARIAL AUDIT FOUND 13 TRACKING CLAIMS THAT ARE FALSE OF THE CODE (filed 2026-08-17)
+
+- [ ] ⛔ **These are DOC defects, not code defects — the code is fine. Each was verified against the
+      repo by an agent that ran greps and tools rather than reading prose.** ‼ **Two were fixed on
+      sight because they would MISDIRECT the next session** (see below); the rest are filed here so
+      they are not re-discovered one painful item at a time.
+      ✅ **FIXED 2026-08-17, on sight:**
+      * an `➡ NEXT: decouple _counter_ladder from grass_is_fodder` arrow commanding work that had
+        **shipped to BOTH forks** on 2026-08-16 (`story_mode.py:1901` is `if boss_teaches:`);
+      * this file's own `#24-driftassertions` deliverable claimed the gate "walks past `zero`" and
+        made WORD FORMS the job — **`_WORD_NUMBERS` already includes `zero`** and `_NUM` interpolates
+        it into all seven drift patterns (`re.I`). Only CLAIM-SHAPE detection is open.
+      🔜 **STILL TO SWEEP (each has both halves quoted in the audit; re-verify before editing):**
+      1. `#24-leadpolicy` tracked TWICE with conflicting states (`[x] A+C BUILT` vs an `[ ]` bullet)
+         and **no supersede marker**, unlike this file's other duplicate IDs. Code: `early_game.py:1755`.
+      2. **KI-25** still says *"needs a user ruling"*; the ruling shipped.
+      3. **KI-43** header says *"FIX NOT YET APPLIED"*; `_TRANSIENT_WAIT_FRAMES = 600` is live in BOTH forks.
+      4. **KI-26** says *"exactly SIX sites"* → there are **eight**; its "biggest lever" already exists.
+      5. `#24-counters` *"Phase 2 NOT STARTED / the executor itself"* → `counter_hunt.py` IS the
+         executor (`def hunt` `:426`, wired `story_mode.py:1702`), and `:2267` already says BUILT.
+      6. `#24-items` *"walks past every item ball"* → `collect_item_ball()` is live (`early_game.py:8059`).
+      7. `#24-postwinona-save` body says *"No save exists past Winona"* → `saves/post_winona.ss1` exists.
+      8. `#24-slugmaspin` *"production runs this regression WITHOUT its fix"* → forks are identical.
+      9. `CREDIBLE_ANSWER_POWER` written as `(60)` in the present tense → it is **75** in both forks
+         (and this file says 75 elsewhere).
+      10. Marker/count drift: the marker table says `80/17/37` → measured **96/21/105**; *"all 8
+          handlers"* → **9**; *"24 checks"* → **21**; *"KNOWN_GATES holds ONE entry"* → **3**.
+      11. `05-KNOWN-ISSUES.md`'s own header says *"23 distinct IDs … KI-15 appears twice"* → **64**
+          distinct IDs, and `KI-15` appears exactly once — inside that sentence.
+      12. `cache/warp_graph_BPEE0.json` is called *"committed"* but is **git-ignored and untracked**,
+          while `rare_species_dataset.py:61` reads it ⇒ that dataset cannot be rebuilt from a clean
+          clone. ‼ This one is arguably a REAL defect, not just a doc defect — triage it first.
+      ⛔⛔ **THE GATES CANNOT SEE ANY OF THIS.** `lint_docs` and `audit_doc_consistency` exit 0 over all
+      13. ‼ **And `probe_stale_citations.py` EXISTS but is NOT REGISTERED in `run_gates.py`** — a gate
+      that might catch this class is sitting unused. **Registering it (after fault-testing) is
+      probably the cheapest first move on this item.**
+      ⚠ The audit also relayed ~9 further suspected items it did NOT personally re-verify. Treat
+      those as UNCONFIRMED and re-check before acting.
