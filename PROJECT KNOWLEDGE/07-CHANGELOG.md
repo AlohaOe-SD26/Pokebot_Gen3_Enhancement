@@ -15712,3 +15712,35 @@ plus a 30-line superseded subsection moved out for the R3 budget),
 `31-KNOWN-ISSUES-ARCHIVE.md` (receives it verbatim), `14-AGENT-PLAYBOOK.md` (new §3b),
 `03-PUNCH-LIST.md` (`#24-orphans` heading + item 2), `04-HANDOFF.md`, `02-ARCHITECTURE.md`,
 `06-DECISIONS-LOG.md`, `08-MISTAKES.md`.
+
+## 2026-08-16 — KI-65 PROMOTED to both forks (user-approved) — `#24-orphans` (2)
+
+**User approved promotion.** `modules/battle_move_replacing.py` copied sandbox → custom via
+`promote.py --restore-point restore/2026-08-16-pre-promotion-ki65 --go`. Drift 1 → **0**,
+orphaned 0, byte-identical 1/1.
+
+‼ **PROVEN BY DRIVING, NOT BY COPYING — a THREE-POINT A/B against `--build custom`:**
+
+| point | build | fault_fired | lie_msg | honest_msg | gate |
+|---|---|---|---|---|---|
+| BEFORE | custom | 159 | **1** | 0 | **ACCEPTANCE: FAIL** |
+| AFTER | custom | 87 | 0 | **1** | **ACCEPTANCE: PASS** |
+| control | sandbox | 87 | 0 | 1 | **ACCEPTANCE: PASS** |
+
+The BEFORE arm was captured and written into KI-65 **before** the copy, because this project's own
+rule is that run 1 is unrepeatable once the copy happens and the gate's logs are gitignored.
+‼ **`fault_fired` falling 159 → 87 on custom, to exactly the sandbox figure, is independent
+evidence the new branch RUNS there** — a byte-identical copy proves only that a file moved.
+
+📁 Transcripts (COMMITTED, because paraphrased numbers are not proof): `tools/story-dev/evidence/2026-08-16-ki65-PROMOTION-{BEFORE,AFTER}-custom.stdout.txt` and `...-CONTROL-sandbox.stdout.txt`. ‼ A Tier 1 review kicked this back for citing numbers with no committed
+raw output — every sibling promotion this day cites transcripts and this one did not. The BEFORE arm
+was therefore RE-RUN against a reconstruction of the pre-fix file from the restore tag, and
+reproduced `fault_fired=159, lie_msg=1, ACCEPTANCE: FAIL` exactly.
+
+Also: `custom-pokebot/DIVERGENCE-LOG.md` records the behaviour divergence from upstream (upstream
+blindly confirms slot 0 on that path; we decline), with the measured lie, the promotion table, the
+removed third part, and the `party_index == -1` residual.
+25/25 gates PASS. `promote.py --check`: 0 differing, 0 orphaned.
+
+**Files:** `custom-pokebot/modules/battle_move_replacing.py`, `custom-pokebot/DIVERGENCE-LOG.md`,
+`PROJECT KNOWLEDGE/04-HANDOFF.md`, `03-PUNCH-LIST.md`, `05-KNOWN-ISSUES.md`, `07-CHANGELOG.md`.

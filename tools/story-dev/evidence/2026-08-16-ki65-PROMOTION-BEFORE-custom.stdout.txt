@@ -1,0 +1,128 @@
+﻿
+======================================================================================
+[orchestrator] ARM A
+======================================================================================
+│ │        Level │ 6               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 13  │ 19↑ │ 8↓  │ 24  │ 8  │ 24  │ 96 │ │
+│ │       Nature │ Lonely          │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Compoundeyes    │                                          │
+│ │ Hidden Power │ Fighting (31)   │Moves: Scratch, Harden, Leech Life        │
+│ │  Shiny Value │ 31,653          │EV Yield: 1 Defence                       │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Ninca… │  96 /  │  31,653 /   │     5 │ 100.0… │     0 │      5 │   N/A │ │
+│ │        │   96   │   31,653    │       │        │       │        │       │ │
+│ │ Total  │  96 /  │  31,653 /   │     5 │   100% │     0 │      5 │   N/A │ │
+│ │        │   96   │   31,653    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+f2328: === MOVE-LEARN WINDOW OPEN === moveset=Rock Smash,Water Gun,Mud Shot,Bide bt='MARSHTOMP grew to LV. 31!'
+f2923: === window closed === moveset=Rock Smash,Water Gun,Mud Shot,Bide
+
+==============================================================================
+[result] ARM A  VERDICT = RESOLVED
+[result] offer at f2328, dialogue closed at f2923
+[result] fault installed=1 fired=159
+[result] derailed_to_manual = False
+[result] moveset BEFORE = Rock Smash,Water Gun,Mud Shot,Bide
+[result] moveset AFTER  = Rock Smash,Water Gun,Mud Shot,Bide
+[result] buttons pressed = {'Up': 96, 'Down': 104, 'Left': 96, 'Right': 87, 'B': 1915, 'A': 533}
+[result] messages (2):
+[result]   - f692: Encountered Nincada ♀. /  / Nature: Lonely | Ability: Compoundeyes | Item: - | IV sum: 96 | SV: 31,653
+[result]   - f2663: The game refused that slot (HM). Nothing else can be given up — declining the new move.
+[result] printed the LIE ('Nothing else can be given up') = True
+[result] printed an HONEST message ('cannot verify') = False
+==============================================================================
+RESULT arm=a build=custom slot0_hm=1 forgettable=3 offer_seen=1 fault_installed=1 fault_fired=159 verdict=RESOLVED derailed=0 moveset_changed=0 lie_msg=1 honest_msg=0
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\custom-pokebot\profiles\repro-ki65-custom\sta
+tes\2026-08-16_21-36-19.ss1 created!
+Updated `current_state.ss1`!
+
+======================================================================================
+[orchestrator] ARM B
+======================================================================================
+│ │          PID │ 6F2F9527        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 6               ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 13  │ 19↑ │ 8↓  │ 24  │ 8  │ 24  │ 96 │ │
+│ │       Nature │ Lonely          │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Compoundeyes    │                                          │
+│ │ Hidden Power │ Fighting (31)   │Moves: Scratch, Harden, Leech Life        │
+│ │  Shiny Value │ 31,653          │EV Yield: 1 Defence                       │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Ninca… │  96 /  │  31,653 /   │     6 │ 100.0… │     0 │      6 │   N/A │ │
+│ │        │   96   │   31,653    │       │        │       │        │       │ │
+│ │ Total  │  96 /  │  31,653 /   │     6 │   100% │     0 │      6 │   N/A │ │
+│ │        │   96   │   31,653    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+f2328: === MOVE-LEARN WINDOW OPEN === moveset=Rock Smash,Water Gun,Mud Shot,Bide bt='MARSHTOMP grew to LV. 31!'
+f2744: === window closed === moveset=Rock Smash,Water Gun,Mud Shot,Take Down
+
+==============================================================================
+[result] ARM B  VERDICT = RESOLVED
+[result] offer at f2328, dialogue closed at f2744
+[result] fault installed=0 fired=0
+[result] derailed_to_manual = False
+[result] moveset BEFORE = Rock Smash,Water Gun,Mud Shot,Bide
+[result] moveset AFTER  = Rock Smash,Water Gun,Mud Shot,Take Down
+[result] buttons pressed = {'Up': 96, 'Down': 112, 'Left': 96, 'Right': 87, 'B': 1915, 'A': 347}
+[result] messages (1):
+[result]   - f692: Encountered Nincada ♀. /  / Nature: Lonely | Ability: Compoundeyes | Item: - | IV sum: 96 | SV: 31,653
+[result] printed the LIE ('Nothing else can be given up') = False
+[result] printed an HONEST message ('cannot verify') = False
+==============================================================================
+RESULT arm=b build=custom slot0_hm=1 forgettable=3 offer_seen=1 fault_installed=0 fault_fired=0 verdict=RESOLVED derailed=0 moveset_changed=1 lie_msg=0 honest_msg=0
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\custom-pokebot\profiles\repro-ki65-custom\sta
+tes\2026-08-16_21-36-22.ss1 created!
+Updated `current_state.ss1`!
+
+======================================================================================
+[orchestrator] ADJUDICATION
+======================================================================================
+  ARM A: arm=a  build=custom  slot0_hm=1  forgettable=3  offer_seen=1  fault_installed=1  fault_fired=159  verdict=RESOLVED  derailed=0  moveset_changed=0  lie_msg=1  honest_msg=0
+  ARM B: arm=b  build=custom  slot0_hm=1  forgettable=3  offer_seen=1  fault_installed=0  fault_fired=0  verdict=RESOLVED  derailed=0  moveset_changed=1  lie_msg=0  honest_msg=0
+  [PASS] A: fixture built -- slot 0 IS an HM   (observed: 1)
+  [PASS] A: fixture has forgettable moves   (observed: 3)
+  [PASS] A: the move-learn offer was REACHED   (observed: 1)
+  [PASS] B: fixture built -- slot 0 IS an HM   (observed: 1)
+  [PASS] B: fixture has forgettable moves   (observed: 3)
+  [PASS] B: the move-learn offer was REACHED   (observed: 1)
+  [PASS] B: fault was never installed   (observed: 0)
+  [PASS] B: fault never fired   (observed: 0)
+  [PASS] B: dialogue RESOLVED   (observed: RESOLVED)
+  [PASS] B: never printed the lie   (observed: 0)
+  [PASS] A: fault was installed   (observed: 1)
+  [PASS] A: fault ACTUALLY FIRED (>=1 raise)   (observed: 159)
+  [PASS] A: dialogue RESOLVED (no wedge)   (observed: RESOLVED)
+  [PASS] A: run did NOT derail to Manual   (observed: 0)
+  [FAIL] A: did NOT print the lie ('Nothing else can be given up')   (observed: 1)
+  [FAIL] A: printed an honest message ('cannot verify')   (observed: 0)
+======================================================================================
+ACCEPTANCE: FAIL
+======================================================================================
+
+That is KI-65 REPRODUCED: `_read_offered_move` failed, the HM veto could not
+read the party and swallowed the UnboundLocalError, the bot confirmed the HM in
+slot 0, the game refused it, and `:280` raised into the `except` that prints
+'Nothing else can be given up' -- while three forgettable moves existed.

@@ -2172,11 +2172,10 @@ rather than by prose**. ‼ **The count is `44`, MEASURED** (`probe_abort_swallo
 beside the measured 44 with nothing saying which was which.* **Re-run the probe; do not trust either
 number in prose** — it is the only thing that counts them.
 
-## KI-65 — ✅✅ **REPRODUCED, FIXED, A/B-PROVEN AND GATED 2026-08-16 (SANDBOX ONLY — ⛔ PROMOTION IS THE USER'S CALL, NOT YET ASKED FOR).** Was: the HM-refusal re-pick raises `UnboundLocalError` into a silent `except` **WHEN `_read_offered_move` HAS ALREADY FAILED**, so two invisible failures compound into a silent decline (filed 2026-08-12, code-verified)
+## KI-65 — ✅✅✅ **CLOSED 2026-08-16: REPRODUCED, FIXED, A/B-PROVEN, GATED (#25) AND PROMOTED TO BOTH FORKS (user-approved).** Was: the HM-refusal re-pick raises `UnboundLocalError` into a silent `except` **WHEN `_read_offered_move` HAS ALREADY FAILED**, so two invisible failures compound into a silent decline (filed 2026-08-12, code-verified)
 
 > ⛔ **STATUS IN ONE LINE:** the bug is FIXED in `sandbox-pokebot` and guarded by gate #25
-> (`repro_ki65_unbound_party_index.py`). **`custom-pokebot` still has the BUG** — drift is 1 file
-> and clearing it requires user approval. ‼ Everything below the "RECON" heading is the
+> (`repro_ki65_unbound_party_index.py`). ✅ **PROMOTED 2026-08-16, USER-APPROVED — DRIFT IS 0.** The KI-65 fix is in BOTH forks, proven by a THREE-POINT A/B against `--build custom`: BEFORE `fault_fired=159, lie_msg=1` → `ACCEPTANCE: FAIL`; AFTER `fault_fired=87, lie_msg=0, honest_msg=1` → `ACCEPTANCE: PASS`; and `--build sandbox` still PASS. Restore point `restore/2026-08-16-pre-promotion-ki65`. ‼ Everything below the "RECON" heading is the
 > PRE-FIX investigation, kept because three of its load-bearing claims were WRONG and a future
 > session must not re-derive them. **Read the FIX block immediately below first.**
 
@@ -2239,25 +2238,31 @@ this bug at all**, for three independent reasons:
    binds `party_index`, and a bound function-local **stays bound for the rest of the generator's
    life**, so every later raise is inert. Measured: 51 fires, zero behavioural difference.
 
-### ‼ THE PROMOTION "BEFORE" ARM IS ALREADY MEASURED — AND IT IS UNREPEATABLE AFTER A COPY
+### ✅ THE COMPLETED THREE-POINT PROMOTION A/B (promotion DONE 2026-08-16, user-approved)
 
-⛔ **Record, do not re-derive.** This project's own rule is that run 1 of a three-point A/B *"is
-unrepeatable once the copy happens, so it runs and commits FIRST"* — and the gate's log files are
-**gitignored**, so these numbers exist only here.
+⛔ **Record, do not re-derive.** The BEFORE arm was captured and written down **before the copy**, because this project's rule is that run 1 *"is unrepeatable once the copy happens, so it runs and commits FIRST"* — and the gate's logs are **gitignored**, so these numbers exist only here.
 
-**MEASURED 2026-08-16, `--build custom` (i.e. the fork WITHOUT the fix), gate `ACCEPTANCE: FAIL`:**
+**POINT 1 — BEFORE. `--build custom` (the fork WITHOUT the fix), gate `ACCEPTANCE: FAIL`:**
 
 | arm | build | fault_fired | verdict | moveset_changed | **lie_msg** | **honest_msg** |
 |---|---|---|---|---|---|---|
 | A | custom | 159 | RESOLVED | 0 | **1** ⛔ | **0** |
 | B | custom | 0 | RESOLVED | 1 | 0 | 0 |
 
-⇒ **`custom-pokebot` REPRODUCES THE LIE LIVE.** The drift is not bookkeeping; the shipped fork
-still prints *"Nothing else can be given up"* with three forgettable moves in hand.
-✅ **If the user approves promotion, the three-point A/B is already two-thirds specified:** this is
-the BEFORE (FAIL); the AFTER must be the same command returning `ACCEPTANCE: PASS` on `--build
-custom`; and the third point is a `--build sandbox` run still passing, proving nothing regressed.
-‼ A byte-compare is NOT proof for a behaviour promotion — drive it.
+⇒ **`custom-pokebot` REPRODUCED THE LIE LIVE** — it printed *"Nothing else can be given up"* with three forgettable moves in hand. That is what made the promotion worth doing.
+
+**POINTS 2 AND 3 — AFTER the copy (2026-08-16, user-approved):**
+
+| point | build | fault_fired | **lie_msg** | **honest_msg** | gate |
+|---|---|---|---|---|---|
+| 2 AFTER | custom | 87 | 0 | **1** | ✅ **ACCEPTANCE: PASS** |
+| 3 control | sandbox | 87 | 0 | 1 | ✅ **ACCEPTANCE: PASS** |
+
+‼ **`fault_fired` fell 159 → 87 on custom, to EXACTLY the sandbox figure** — independent evidence that the new branch RUNS there, which a byte-identical copy can never show. **A byte-compare is NOT proof for a behaviour promotion.** Restore point `restore/2026-08-16-pre-promotion-ki65`.
+📁 Transcripts (COMMITTED, because paraphrased numbers are not proof): `tools/story-dev/evidence/2026-08-16-ki65-PROMOTION-{BEFORE,AFTER}-custom.stdout.txt` and `...-CONTROL-sandbox.stdout.txt`. ‼ The BEFORE arm was RE-RUN after the promotion by reconstructing the pre-fix file from the restore
+tag (`git show restore/2026-08-16-pre-promotion-ki65:custom-pokebot/...`), so the committed transcript
+is a real run and not a transcription of remembered numbers — it reproduced `fault_fired=159,
+lie_msg=1, ACCEPTANCE: FAIL` exactly.
 
 ### ⚠ RESIDUAL LEFT OPEN BY THIS FIX — TRACKED HERE ON PURPOSE (do not let it orphan)
 
@@ -2382,8 +2387,8 @@ named the latch as the loop-preventer when the veto guard is:
 equivalent "we already failed to read this offer" latch) in the `:377` handler — **without (3) the
 ping-pong in (B) survives the fix.**
 ⛔ **`custom-pokebot`'s copy WAS byte-identical and IS NO LONGER** — the fix landed in sandbox on
-2026-08-16, so `promote.py --check` now reports **1 differing file**
-(`modules/battle_move_replacing.py`). **That is EXPECTED drift awaiting a user ruling, not damage.**
+2026-08-16 and was PROMOTED the same day (user-approved), so `promote.py --check` reports
+**0 differing** again. Both forks carry the fix.
 
 **Severity:** MEDIUM, order-dependent (on iterations where line 371 already ran, the name is bound
 and the branch works), which is also why it has survived unnoticed.
@@ -2911,7 +2916,7 @@ PROBE precisely because a gate red on arrival on pre-existing debt teaches every
   fix could not be promoted separately from an unapproved comment-only edit sitting in the SAME
   file (`plugins/custom_modes/story_mode.py`). **The user ruled, the comment-only correction was
   promoted** — so the KI-80 fix, when approved, promotes cleanly on its own.
-  ✅ The KI-80 decoupling was itself promoted 2026-08-16 on that same rule. *(✅ The KI-81 whiteout guard was promoted 2026-08-16 too, which returned the figure to zero at that moment. ⛔ It is NOT zero now: the KI-65 fix landed in sandbox later the same day, so `promote.py --check` reports **1 differing file** awaiting a user ruling. Run the tool; never quote a drift figure from prose.)*
+  ✅ The KI-80 decoupling was itself promoted 2026-08-16 on that same rule. *(✅ The KI-81 whiteout guard was promoted 2026-08-16 too, which returned the figure to zero at that moment. It then went to **1** later the same day when the KI-65 fix landed in sandbox, and back to **0** when KI-65 was PROMOTED — see KI-65's header. ‼ This parenthetical asserted "NOT zero" for a while after that stopped being true, which is why the rule below exists: run the tool; never quote a drift figure from prose.)*
   *(⚠ The superseded wording is DESCRIBED rather than reprinted: `audit_doc_consistency` matches
   literal strings and cannot tell a quotation from a claim — it red-flagged the first draft of this
   very bullet for reciting the old figure.)*

@@ -1934,8 +1934,9 @@ level-matched encounters maintenance needs. Done together they are one activity,
       "CLOSED" — any session scanning for open issues skips it. (KI-79's header now carries the
       caveat.) The next Slugma-class derail is still invisible to callers.
 - [x] **(2) ✅✅ DONE 2026-08-16 — KI-65 is REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25).**
-      ⛔ **SANDBOX ONLY — promotion to `custom-pokebot` is the USER'S CALL and has not been asked
-      for; `promote.py --check` reports 1 differing file, which is EXPECTED.**
+      ✅ **PROMOTED TO BOTH FORKS 2026-08-16, USER-APPROVED** — by a THREE-POINT A/B against
+      `--build custom` (BEFORE `lie_msg=1` → FAIL; AFTER `lie_msg=0, honest_msg=1` → PASS; sandbox
+      still PASS), never a byte-compare. Drift is 0. Restore `restore/2026-08-16-pre-promotion-ki65`.
       The repro (`repro_ki65_unbound_party_index.py`) drives the real bot from `route116team.ss1`
       with an INJECTED Marshtomp whose **slot 0 is deliberately Rock Smash (HM06)**; pre-fix ARM A
       printed *"Nothing else can be given up — declining the new move."* **while three forgettable

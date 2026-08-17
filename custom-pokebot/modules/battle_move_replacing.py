@@ -183,6 +183,12 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
     # so when it refuses, believe it and never offer that slot again this dialogue.
     hm_blocked: set[int] = set()
     last_confirmed_slot: int | None = None
+    # ‼ KI-65 (2026-08-16). `party_index` used to be assigned ONLY at line 371, inside a
+    # `try`. When `_read_offered_move` raised, the name stayed UNBOUND, and the two later
+    # reads of it (the HM veto below, and the CantForgetHM re-pick) each raised
+    # `UnboundLocalError` into a swallowing `except` — indistinguishable from success.
+    # Binding it here turns "unbound" into an explicit `None` that can be TESTED.
+    party_index: int | None = None
     # Consecutive frames parked on the summary screen with no recognised sub-state.
     summary_wait = 0
 
@@ -276,27 +282,41 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
                 # Re-pick among slots the game has NOT refused, keeping the existing
                 # expendability ranking (a dead 0-power move first, else the weakest).
                 # If nothing is left to give up, declining is the only legal answer.
-                try:
-                    _mv = get_party()[party_index].moves
-                    _elig = [
-                        i for i in range(len(_mv)) if _mv[i] is not None and i not in hm_blocked
-                    ]
-                    _zero = [i for i in _elig if _mv[i].move.base_power == 0]
-                    move_to_forget = (
-                        _zero[0]
-                        if _zero
-                        else (min(_elig, key=lambda i: _mv[i].move.base_power) if _elig else 4)
+                if party_index is None:
+                    # ‼ KI-65: we never learned WHICH party slot is learning, so there is
+                    # nothing to re-pick FROM. The old code read the unbound name here and
+                    # let `except` turn the crash into `move_to_forget = 4`, then printed
+                    # "Nothing else can be given up" — a PROVABLE LIE whenever forgettable
+                    # moves existed (reproduced with three of them). Decline for the honest
+                    # reason instead, and SAY so.
+                    move_to_forget = 4
+                    context.message = (
+                        "The game refused that slot (HM), but the move offer could not be "
+                        "read, so I cannot verify which moves remain — declining rather "
+                        "than guessing."
                     )
-                except Exception:
-                    move_to_forget = 4  # can't read the party → decline, never loop
-                context.message = (
-                    "The game refused that slot (HM). "
-                    + (
-                        f"Replacing slot {move_to_forget} instead."
-                        if move_to_forget != 4
-                        else "Nothing else can be given up — declining the new move."
+                else:
+                    try:
+                        _mv = get_party()[party_index].moves
+                        _elig = [
+                            i for i in range(len(_mv)) if _mv[i] is not None and i not in hm_blocked
+                        ]
+                        _zero = [i for i in _elig if _mv[i].move.base_power == 0]
+                        move_to_forget = (
+                            _zero[0]
+                            if _zero
+                            else (min(_elig, key=lambda i: _mv[i].move.base_power) if _elig else 4)
+                        )
+                    except Exception:
+                        move_to_forget = 4  # can't read the party → decline, never loop
+                    context.message = (
+                        "The game refused that slot (HM). "
+                        + (
+                            f"Replacing slot {move_to_forget} instead."
+                            if move_to_forget != 4
+                            else "Nothing else can be given up — declining the new move."
+                        )
                     )
-                )
             # Dismiss with A, then let the window actually close before acting again.
             # Pressing every frame would re-confirm the HM the moment the move list
             # comes back (the valve's bug); a press + short settle cannot.
@@ -377,6 +397,15 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
             except Exception:
                 # If the read fails for any reason, still ANSWER (default: learn) so
                 # we never stall on the prompt. Learning is the safe default.
+                # ‼ KI-65 (2026-08-16) — this re-arms slot 0 on EVERY failing cycle, which
+                # LOOKS like an infinite ping-pong and was written up as one. It is NOT,
+                # and the difference matters: the HM VETO immediately below runs in the
+                # SAME iteration, and when `party_index is None` it forces
+                # `move_to_forget = 4` again BEFORE any button is pressed. ⛔ So the veto's
+                # `is None` guard is what prevents the loop — do NOT "simplify" it away on
+                # the assumption that something here covers it. MEASURED: a latch was added
+                # here and then REMOVED after an isolated A/B showed the gate passes
+                # identically without it (`fault_fired=87, lie_msg=0, honest_msg=1`).
                 if move_to_forget == 4:
                     move_to_forget = 0
             # ‼ HM VETO — THE LAST LINE OF DEFENCE (2026-07-24, user run 15:13).
@@ -393,45 +422,64 @@ def handle_move_replacement_dialogue(strategy: BattleStrategy) -> Generator:
             # the chosen slot holds an HM, decline instead. Declining resolves
             # cleanly (~430 frames, proven).
             if move_to_forget in (0, 1, 2, 3):
-                try:
-                    _mv = get_party()[party_index].moves
+                if party_index is None:
+                    # ‼ KI-65 (2026-08-16) — A VETO THAT CANNOT EVALUATE MUST FAIL CLOSED.
+                    # This read used to raise `UnboundLocalError` straight into the bare
+                    # `except: pass` below, which is the LOUDEST POSSIBLE SILENCE: it is
+                    # indistinguishable from "the slot is not an HM, so the veto correctly
+                    # did nothing". The path that leaves `party_index` unbound is the very
+                    # `except` fallback named in the comment above — the one that "blindly
+                    # picks slot 0 without consulting any policy at all" — so the last line
+                    # of defence was structurally unable to defend against the one case it
+                    # was written for. Confirming an unverifiable slot is exactly the
+                    # infinite AskWhetherToLearn -> SelectMoveToReplace loop this block
+                    # exists to prevent; declining resolves cleanly (~430 frames, proven).
+                    context.message = (
+                        "The move offer could not be read, so I cannot verify that the "
+                        "slot I would give up is not an HM — declining rather than risking "
+                        "the HM refusal loop."
+                    )
+                    move_to_forget = 4
+                else:
+                    try:
+                        _mv = get_party()[party_index].moves
 
-                    def _is_hm(_i):
-                        _s = _mv[_i]
-                        _m = _s.move if _s is not None else None
-                        return _m is not None and _m.tm_hm is not None and _m.tm_hm.name.startswith("HM")
+                        def _is_hm(_i):
+                            _s = _mv[_i]
+                            _m = _s.move if _s is not None else None
+                            return _m is not None and _m.tm_hm is not None and _m.tm_hm.name.startswith("HM")
 
-                    if _is_hm(move_to_forget):
-                        # ‼ RE-PICK, DON'T JUST DECLINE (2026-07-24, user's design). The
-                        # first cut of this veto turned an HM pick into DECLINE, which is
-                        # safe but stunts the team — the mon keeps a weak move forever. HM
-                        # slots are simply INELIGIBLE; among what remains, apply the same
-                        # expendability ranking used by `teach_hm_move` (a zero-power move
-                        # first, else the weakest) so the mon still gives up its least
-                        # useful REAL move. Only when every slot is an HM is declining the
-                        # correct — and only possible — answer.
-                        _elig = [i for i in range(len(_mv)) if _mv[i] is not None and not _is_hm(i)]
-                        _zero = [i for i in _elig if _mv[i].move.base_power == 0]
-                        _pick = (
-                            _zero[0]
-                            if _zero
-                            else (min(_elig, key=lambda i: _mv[i].move.base_power) if _elig else 4)
-                        )
-                        _hm_name = _mv[move_to_forget].move.name
-                        if _pick == 4:
-                            context.message = (
-                                f"Every move is an HM — declining {move_to_learn.name}."
-                                if move_to_learn is not None
-                                else "Every move is an HM — declining the new move."
+                        if _is_hm(move_to_forget):
+                            # ‼ RE-PICK, DON'T JUST DECLINE (2026-07-24, user's design). The
+                            # first cut of this veto turned an HM pick into DECLINE, which is
+                            # safe but stunts the team — the mon keeps a weak move forever. HM
+                            # slots are simply INELIGIBLE; among what remains, apply the same
+                            # expendability ranking used by `teach_hm_move` (a zero-power move
+                            # first, else the weakest) so the mon still gives up its least
+                            # useful REAL move. Only when every slot is an HM is declining the
+                            # correct — and only possible — answer.
+                            _elig = [i for i in range(len(_mv)) if _mv[i] is not None and not _is_hm(i)]
+                            _zero = [i for i in _elig if _mv[i].move.base_power == 0]
+                            _pick = (
+                                _zero[0]
+                                if _zero
+                                else (min(_elig, key=lambda i: _mv[i].move.base_power) if _elig else 4)
                             )
-                        else:
-                            context.message = (
-                                f"{_hm_name} is an HM and cannot be forgotten — "
-                                f"replacing {_mv[_pick].move.name} instead."
-                            )
-                        move_to_forget = _pick
-                except Exception:
-                    pass  # can't read the slots — fall through to the normal answer
+                            _hm_name = _mv[move_to_forget].move.name
+                            if _pick == 4:
+                                context.message = (
+                                    f"Every move is an HM — declining {move_to_learn.name}."
+                                    if move_to_learn is not None
+                                    else "Every move is an HM — declining the new move."
+                                )
+                            else:
+                                context.message = (
+                                    f"{_hm_name} is an HM and cannot be forgotten — "
+                                    f"replacing {_mv[_pick].move.name} instead."
+                                )
+                            move_to_forget = _pick
+                    except Exception:
+                        pass  # can't read the slots — fall through to the normal answer
             # YES (A) to open the move-select and learn; NO (B) to decline. The
             # cursor defaults to Yes. Pressing every frame is safe: extra A presses
             # during the open animation are ignored until branch (1) takes over.

@@ -1844,3 +1844,67 @@ splitting the handler; AST-verified before AND after the copy.
 deliberately **not** swept: CANDIDATE ≠ DOES, and `early_game.py` is the largest and most
 timing-sensitive file here. Tracked as `#24-abortswallow`.
 📁 Transcripts: `tools/story-dev/evidence/2026-08-16-ki81-PROMOTION-{BEFORE,AFTER}-custom.stdout.txt`.
+
+---
+
+## 2026-08-16 — KI-65: a safety veto that could not evaluate now FAILS CLOSED (`modules/battle_move_replacing.py`)
+
+**Divergence from upstream 40Cakes/pokebot-gen3.** Upstream's
+`handle_move_replacement_dialogue` assigns `party_index` at exactly ONE place (`:371`) inside a
+`try`. When `_read_offered_move` raises, the name is **never bound**, and two later reads of it
+each sit inside a swallowing `except`:
+
+* the **HM VETO** (`:397`, `except Exception: pass`) — the loudest possible silence, because a
+  swallowed `UnboundLocalError` is indistinguishable from "the slot is not an HM, so the veto
+  correctly did nothing";
+* the **CantForgetHM re-pick** (`:280`, `except` → decline).
+
+The veto's own comment calls it *"THE LAST LINE OF DEFENCE"* and names the exact path it must
+cover — *"the `except` fallback right above which blindly picks slot 0 without consulting any
+policy at all"*. **That fallback is precisely the path that leaves `party_index` unbound**, so the
+last line of defence was structurally unable to defend against the one case it was written for.
+
+**OUR CHANGE (two parts).** (1) declare `party_index: int | None = None` up front, turning
+"unbound" into a value that can be TESTED; (2) explicit `if party_index is None:` guards at BOTH
+read sites, which emit a message saying what could not be done and **DECLINE**.
+
+⛔ **THIS IS A BEHAVIOUR DIVERGENCE, NOT A TIDY-UP.** Upstream, on that path, blindly confirms
+slot 0. We decline. Rationale in `PROJECT KNOWLEDGE/06-DECISIONS-LOG.md` (2026-08-16): declining
+is still an ANSWER, so the "never stall on the prompt" property is preserved, and it resolves
+cleanly in ~430 frames; whereas confirming an unverifiable slot is the infinite
+`AskWhetherToLearn → SelectMoveToReplace` loop that historically killed 2 of 5 overnight runs.
+⚠ The cost is bounded and real: on a transient read failure the mon keeps its moves and is
+re-offered on its next level-up.
+
+**WHY IT MATTERS (measured, not argued).** With an injected MARSHTOMP whose **slot 0 is Rock Smash
+(HM06)** and three forgettable moves, upstream's logic prints:
+`"The game refused that slot (HM). Nothing else can be given up — declining the new move."`
+**while Water Gun, Mud Shot and Bide are all forgettable — a provable lie the user can read.**
+
+**PROMOTION EVIDENCE — a THREE-POINT A/B against `--build custom`, never a byte-compare:**
+
+| point | build | fault_fired | lie_msg | honest_msg | gate |
+|---|---|---|---|---|---|
+| BEFORE | custom | 159 | **1** | 0 | **ACCEPTANCE: FAIL** |
+| AFTER | custom | 87 | 0 | **1** | **ACCEPTANCE: PASS** |
+| control | sandbox | 87 | 0 | 1 | **ACCEPTANCE: PASS** |
+
+‼ `fault_fired` falling 159 → 87 on custom, to exactly the sandbox figure, is independent evidence
+the new branch RUNS here rather than the file merely having been copied.
+Restore point `restore/2026-08-16-pre-promotion-ki65`. Gate: `repro_ki65_unbound_party_index.py`
+(#25 of 25), which drives the emulator and is fault-tested (reverting the file makes it FAIL).
+
+⛔ **A THIRD PART WAS BUILT AND THEN REMOVED.** An `offer_read_failed` latch was added and written
+up as preventing the ping-pong. An adversarial review refused the unmeasured claim, and the
+isolated A/B proved it redundant — the veto guard forces `move_to_forget = 4` in the SAME iteration,
+before any button is pressed. **Part (2)'s guard is the loop-preventer**; a comment at `:397` says
+so, because a maintainer trusting the latch might otherwise "simplify" away the guard that works.
+
+📁 Transcripts: `tools/story-dev/evidence/2026-08-16-ki65-PROMOTION-{BEFORE,AFTER}-custom.stdout.txt`
+and `...-CONTROL-sandbox.stdout.txt` — all three COMMITTED. ‼ The BEFORE arm was re-run against a
+reconstruction of the pre-fix file from the restore tag, so it is a real transcript rather than
+remembered numbers; it reproduced `fault_fired=159, lie_msg=1, ACCEPTANCE: FAIL` exactly.
+
+⚠ **RESIDUAL, NOT CLOSED BY THIS:** a *bound but wrong* `party_index` of `-1` (from
+`get_party_menu_cursor_pos`'s `set_manual_mode()` fallback) still flows past both guards —
+`get_party()[-1]` is the LAST party member. A wrong-mon, not an exception. Tracked in KI-65.
