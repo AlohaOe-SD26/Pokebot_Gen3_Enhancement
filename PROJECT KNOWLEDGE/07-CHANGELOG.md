@@ -15909,3 +15909,29 @@ observe-only probe — the pattern that settled KI-66's direction in a single ru
 Also: the driver was logging only one of production's two `[FAINT-CHOOSER]` event types after the
 double-count fix, which silently removed the `[orders DIVERGE]` diagnostic from the post-fix
 transcript. It now LOGS both and COUNTS one.
+
+## 2026-08-17 — KI-66's `_on_field` fix PROMOTED to both forks (user-approved)
+
+`modules/battle_handler.py` copied sandbox → custom via
+`promote.py --restore-point restore/2026-08-17-pre-promotion-ki66-onfield --go`.
+Drift 1 → **0**, orphaned 0, byte-identical 1/1. 25/25 gates PASS.
+
+‼ **PROVEN BY DRIVING — a THREE-POINT A/B against `--build custom`:**
+
+| point | build | `_on_field` | faints | party-menu presses |
+|---|---|---|---|---|
+| BEFORE | custom | `[0,3]` then `[1,3]` ⛔ | 2 | 486 |
+| AFTER | custom | `[0,1]` ✅ | 1 | 361 |
+| control | sandbox | `[0,1]` ✅ | 1 | 361 |
+
+The BEFORE arm was driven and **committed before the copy**, because run 1 is unrepeatable once the
+copy happens and the harness logs are gitignored. `promote.py` refused to run against a dirty tree —
+a guardrail working as designed — which is why that capture landed as its own commit first.
+
+⚠⚠ **NO SPEEDUP IS CLAIMED.** Press timing feeds battle RNG, so the after runs are a different
+trajectory (one faint rather than two). What is controlled is CORRECTNESS: `_on_field` equals the
+truth the party dump establishes, on every faint observed, before and after.
+
+✅ Recorded in `custom-pokebot/DIVERGENCE-LOG.md` with the full measurement, the single-battle
+regression control, and an explicit list of what this does NOT close (the owner filter, `:541-545`,
+`_util.py:522-587`, and the filed `#24-faintchooser-fourthspace`).

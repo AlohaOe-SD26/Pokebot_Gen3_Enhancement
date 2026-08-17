@@ -627,7 +627,24 @@ def handle_fainted_pokemon(strategy: BattleStrategy):
         _bs = get_battle_state()
         for _side in (_bs.own_side.left_battler, _bs.own_side.right_battler):
             if _side is not None and getattr(_side, "party_index", None) is not None:
-                _on_field.add(_side.party_index)
+                # ‼ TRANSLATE INTO THE SAME INDEX SPACE AS `party_in_menu` (KI-66, 2026-08-17).
+                # THE THIRD index-space bug in this one function, after KI-18 and KI-34, and the
+                # same shape both times: `party_index` comes from `gBattlerPartyIndexes`, which is
+                # in FIELD order, while `party_in_menu = get_party()` is read AFTER the menu opened
+                # and `UpdatePartyToBattleOrder` has permuted it into BATTLE-SLOT order. Comparing
+                # them raw excluded the WRONG slot.
+                # MEASURED in the Steven multi battle (`--driver ki66faint`), both faints:
+                #   faint 1  raw=[0,3] -> mapped=[0,1]   truth = Sceptile(0) fainted + Metang(1)
+                #   faint 2  raw=[1,3] -> mapped=[0,1]   truth = Mightyena(0) fainted + Metang(1)
+                # i.e. RAW excluded Swellow, which was on the BENCH (proven by its send-out at
+                # f21009) and was the only legal replacement — so the sweep's candidate set held
+                # only slots the ROM refuses, costing 1263 frames against 59 on a clean faint.
+                # ‼ `alive_slots` three blocks below ALREADY maps for exactly this reason
+                # (`_to_menu_order`); this filter simply never mirrored it.
+                try:
+                    _on_field.add(_bs.map_battle_party_index(_side.party_index))
+                except Exception:  # noqa: BLE001 - mapping absent: the raw index is the best hint
+                    _on_field.add(_side.party_index)
     except Exception:
         _on_field = set()  # can't read it — fall back to the old, looser filter
     alive_slots = [

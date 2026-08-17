@@ -2227,7 +2227,9 @@ only fires after 6000 frames, so *which* layer absorbed the cost (KI-38's refusa
 PASSED — true for THIS configuration and under-measured as a general property (1263 frames is 21% of
 the 6000-frame per-invocation bound, with only two refusable slots to burn through).
 
-### ✅✅ FIXED 2026-08-17 (SANDBOX ONLY — ⛔ PROMOTION IS THE USER'S CALL, NOT YET ASKED FOR)
+### ✅✅✅ FIXED AND PROMOTED TO BOTH FORKS 2026-08-17 (user-approved)
+
+✅ **PROMOTED TO BOTH FORKS 2026-08-17, USER-APPROVED — DRIFT IS 0.** Proven by a THREE-POINT A/B against `--build custom`: BEFORE `on_field=[0,3]`/`[1,3]`, 2 faints, 486 presses → AFTER `on_field=[0,1]`, 1 faint, 361 presses → sandbox control IDENTICAL to AFTER. Restore point `restore/2026-08-17-pre-promotion-ki66-onfield`.
 
 `_on_field` now maps through `BattleState.map_battle_party_index` before being compared against
 `party_in_menu`, mirroring what `alive_slots` three blocks below has done since KI-34.

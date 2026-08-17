@@ -1908,3 +1908,56 @@ remembered numbers; it reproduced `fault_fired=159, lie_msg=1, ACCEPTANCE: FAIL`
 ⚠ **RESIDUAL, NOT CLOSED BY THIS:** a *bound but wrong* `party_index` of `-1` (from
 `get_party_menu_cursor_pos`'s `set_manual_mode()` fallback) still flows past both guards —
 `get_party()[-1]` is the LAST party member. A wrong-mon, not an exception. Tracked in KI-65.
+
+---
+
+## 2026-08-17 — KI-66: the faint chooser's on-field filter was comparing two different index spaces (`modules/battle_handler.py`)
+
+**Divergence from upstream 40Cakes/pokebot-gen3.** In `handle_fainted_pokemon`, the set of
+"Pokémon already on the field" (excluded from replacement candidates) is built from
+`battler.party_index` — i.e. `gBattlerPartyIndexes`, which is in **field order** — and was compared
+RAW against `party_in_menu = get_party()`. But `get_party()` is read *while the party menu is open*,
+after `UpdatePartyToBattleOrder` has physically permuted `gPlayerParty` into **battle-slot order**.
+The two spaces diverge, so the filter excluded the wrong slot.
+
+**OUR CHANGE.** Map through `BattleState.map_battle_party_index` before adding to `_on_field`,
+mirroring what `alive_slots` three blocks below has done since KI-34 — this filter simply never
+copied it. On any mapping failure it falls back to the raw index, so the worst case is upstream's
+behaviour rather than something new.
+
+⛔ **THIS IS THE THIRD INDEX-SPACE BUG IN THIS ONE FUNCTION** (KI-18, KI-34, now KI-66), all the
+same shape. A fourth is FILED but deliberately NOT changed (`#24-faintchooser-fourthspace`).
+
+**WHY IT MATTERS (measured, in the Mossdeep Space Center multi battle alongside Steven).** The
+filter excluded **Swellow while Swellow was on the BENCH** — proven by its send-out at `f21009` —
+and failed to exclude the ally that WAS active. The replacement sweep was therefore left with a
+candidate set containing only slots the ROM refuses unconditionally (`TrySwitchInPokemon` rejects
+the partner's slots in any multi battle), costing **1263 frames against 59** on a clean faint and
+tripping the harness's own `NO-PROGRESS x1200` watchdog.
+
+**PROMOTION EVIDENCE — a THREE-POINT A/B against `--build custom`, never a byte-compare:**
+
+| point | build | `_on_field` | faints | party-menu presses |
+|---|---|---|---|---|
+| BEFORE | custom | `[0,3]` then `[1,3]` ⛔ | 2 | 486 |
+| AFTER | custom | `[0,1]` ✅ | 1 | 361 |
+| control | sandbox | `[0,1]` ✅ | 1 | 361 |
+
+Restore point `restore/2026-08-17-pre-promotion-ki66-onfield`. Driver: `--driver ki66faint`.
+📁 Transcripts: `tools/story-dev/evidence/2026-08-17-ki66-PROMOTION-{BEFORE,AFTER}-custom.stdout.txt`
+and `...-CONTROL-sandbox.stdout.txt` — all committed.
+
+⚠⚠ **DO NOT READ THE PRESS/FAINT COUNTS AS A SPEEDUP.** Press timing feeds battle RNG, so the after
+runs are a DIFFERENT TRAJECTORY (one faint rather than two). What is controlled is CORRECTNESS:
+`_on_field` equals the truth the party dump establishes, on every faint observed, before and after.
+
+✅ **SINGLE-BATTLE REGRESSION CONTROL.** This filter runs in EVERY battle, and
+`map_battle_party_index` does not return its input unchanged in a single battle. A separate A/B
+(`--driver faintrepro --inject-shedinja-faint`, `route116team.ss1`, 120k frames) was **IDENTICAL**
+across pre-fix and fixed builds through the whiteout — `STUCK-OW f6482`, `SAVED stall f7409`,
+`NO-PROGRESS x1200 f7709`, `x3000 f9509` — so the change is **inert outside multi battles**.
+📁 `evidence/2026-08-17-singlebattle-faint-{BEFORE-baseline,AFTER-onfield-fix}.stdout.txt`.
+
+⛔ **NOT CLOSED BY THIS:** the OWNER filter (`alive_slots` has no original-trainer check) is
+unfixed and proved INERT on this fixture — it needs its own discriminator. `:541-545` (the `None`
+fallback, which has neither an owner nor an on-field filter) and `_util.py:522-587` are untouched.
