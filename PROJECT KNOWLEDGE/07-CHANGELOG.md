@@ -15633,3 +15633,29 @@ paragraphs must not fuse into a phantom pair). (2) It compared against the `def`
 a **BODY citation** — a statement 130 lines inside a function, the most useful kind of citation
 there is. Now span-based. Self-tests: **7/7**, including both false-positive guards.
 ⇒ *An instrument that reports 0 because it cannot SEE is worse than one that reports honestly.*
+
+### PASS 6's RE-VERIFICATION EARNED ITS KEEP — the fix had landed in ONE of two copies AGAIN (2026-08-16)
+
+CLAUDE.md's rule — *"when a Tier 2 finding is fixed, re-run Tier 2 and check WHERE the fix landed,
+not merely THAT it landed"* — was applied to pass 6's own fixes. **It found three things.** ‼ This is
+the SIXTH one-half fix of the session; the rule paid for itself the first time it was used.
+
+1. ⛔ **The slide-destination citation was corrected in `04-HANDOFF.md` and NOT in
+   `05-KNOWN-ISSUES.md`** — the handoff said `:1013`, the KI kept `:957-966`. And the KI is the copy
+   that carries the actual defect DESCRIPTION, i.e. the one someone fixing it would read. Fixed.
+2. ⛔ **KI-34's HEADER carried NO status word while its body says "FIXED 2026-07-30"** — textbook P2,
+   sitting undetected in a KI whose fix an adversarial agent had just confirmed live in the code.
+   Header now states it, and names where the fix lives today (`_to_menu_order()` at `:676-680`,
+   `alive_slots_menu` at `:683`).
+3. ⛔ **KI-34's diagnosis table was written in the PRESENT TENSE about code that has since been
+   fixed** — *"`handle_fainted_pokemon` uses BOTH SPACES AND COMPARES THEM DIRECTLY"*. The mapping
+   has existed since 2026-07-30. A reader checking that table against today's source would find the
+   claim false and have no way to tell whether the KI was wrong or the code had moved. Re-cast as
+   the PRE-FIX picture, with today's line numbers and the mixed-space row marked *was → now MAPPED*.
+
+‼ **All three are the same shape and none were catchable by a gate:** stale *tense* and a *missing*
+status word are invisible to a checker that counts things. What caught them was an agent asked
+"where did the fix land?" rather than "is the document consistent?" — the document was perfectly
+consistent both times. ⇒ **Keep re-running the verification pass on the FIXES, not only on the
+originals.** *(And note the probe could not catch #1: a bare `file.py:NNN` with no adjacent symbol
+has nothing to verify against — exactly the limit its own docstring states.)*

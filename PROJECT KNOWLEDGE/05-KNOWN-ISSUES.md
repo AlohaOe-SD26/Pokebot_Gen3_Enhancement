@@ -720,7 +720,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 - **Bounded, not fixed:** the per-run frame budget would have ended this run at 3.5M frames
   (it was at 2.78M when stopped), and KI-32 now makes it *diagnosable*. Neither prevents it.
 
-## KI-34 — the after-faint chooser LIVELOCKS when its candidate filter and the game disagree (opened 2026-07-29, severity: HIGH)
+## KI-34 — the after-faint chooser LIVELOCKS when its candidate filter and the game disagree (opened 2026-07-29, severity: HIGH — ✅ **FIXED 2026-07-30, and the index-space mapping is IN THE CODE TODAY**: `battle_handler.py:676-680` defines `_to_menu_order()` and `:683` builds `alive_slots_menu`. ⚠ **The diagnosis tables below are the PRE-FIX picture, kept for the reasoning** — read them as history, not as today's code)
 - **User report:** *"noticed an error with I think p2 or p3 where they were training with a
   skitty and an Abra in the team in a double battle but had issues selecting the Abra."*
   Confirmed in P2 of bundle `20260729-172342`, and **this is the first production catch by the
@@ -796,13 +796,16 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
     *"the order in the party menu might be different from what `get_party()` returns so we'd
     have to scroll to a different index."*
 
-  `handle_fainted_pokemon` uses BOTH SPACES AND COMPARES THEM DIRECTLY:
+  ⛔ **PRE-FIX PICTURE (2026-07-29). `handle_fainted_pokemon` *USED* BOTH SPACES AND COMPARED THEM
+  DIRECTLY.** ✅ It no longer does: `:676-680` `_to_menu_order()` and `:683` `alive_slots_menu`
+  now convert party-order → menu-order before any comparison. Line numbers below are TODAY's
+  homes for those values, re-derived 2026-08-16; the *mixed-space* row is what got fixed:
   | line | value | space |
   |---|---|---|
   | `battle_handler.py:610` | `party_in_menu = get_party()` | **regular** |
   | `battle_handler.py:633` | `alive_slots` built by enumerating that party | **regular** |
   | `battle_handler.py:724` | `cursor = get_party_menu_cursor_pos(...)["slot_id"]` (reads `gPartyMenu.slotId`) | **in-battle menu** |
-  | `battle_handler.py:667`/`:683` | `cursor in alive_slots` / `cursor not in alive_slots` | **‼ mixed** |
+  | `battle_handler.py:667` (comment) / `:683` (the fix) | *was* `cursor in alive_slots` raw; **now** `alive_slots_menu = {_to_menu_order(i) for i in alive_slots}` | ✅ **was ‼ mixed — now MAPPED** |
 
   ‼ **The same function already knows better**: its PRIMARY path maps correctly at
   `battle_handler.py:443-444` (`if index_needs_mapping: new_lead_index =
@@ -1839,7 +1842,7 @@ subsequent planned step from there is wrong.
 
 ### ‼ Defect 2 — a slide can end ON A WARP, and the warp penalty is computed ONE BRANCH TOO EARLY
 **The precise mechanism** (audited 2026-08-13): `map_path.py:972` applies the `cost = 1000000`
-warp-avoidance penalty to the neighbour **before** `:957-966` substitutes the slide destination for
+warp-avoidance penalty to the neighbour **before** `:1013-1022` substitutes the slide destination for
 that neighbour. So the DESTINATION's `warps_to` is never inspected, never penalised, and never
 marked `is_warp` on the emitted `Waypoint`.
 ⚠ **And A\* is actively BIASED TOWARD long slides.** Under `avoid_encounters=True` (the

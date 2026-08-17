@@ -7617,3 +7617,42 @@ citation because it compared against the `def` line); now span-based, with its o
 about the subject — fault-test it by feeding it a known-bad case in the REAL format** (wrapped, in
 context), not just a synthetic one-liner. ‼ *An instrument that reports 0 because it cannot see is
 worse than one that reports honestly* — it converts ignorance into false confidence.
+
+## 2026-08-16 — a FIXED bug's diagnosis was left in the PRESENT TENSE, and its header never got the status word
+
+**Symptom.** KI-34 (the after-faint chooser livelock) has said *"FIXED 2026-07-30"* in its body since
+July, and the fix is demonstrably in the code (`_to_menu_order()` maps party-order → menu-order
+before any comparison). But its **header carried no status marker at all**, and its diagnosis table
+still read *"`handle_fainted_pokemon` **uses** BOTH SPACES AND COMPARES THEM DIRECTLY"* — present
+tense, about code that stopped doing that seventeen days earlier.
+
+**Root cause.** Two different halves of the same rot. The header was never revisited when the fix
+landed (P2, unenforced for a header that simply OMITS a status rather than stating a wrong one — a
+missing word is invisible to every gate we have). The table was a *diagnosis*, and diagnoses are
+written in the present tense; nobody re-reads a diagnosis after the fix, because it feels like
+history that cannot go stale. It can: it goes stale the moment the code it describes changes.
+
+**Why it matters.** A reader checking that table against today's source finds it FALSE, and has no
+way to tell whether the KI is wrong or the code moved — which is the worst possible state for a
+document, strictly worse than saying nothing.
+
+**Prevention rule.** ⛔ **When you fix a bug, re-read its DIAGNOSIS and re-cast it in the past tense
+("*used* to", "PRE-FIX PICTURE"), and put the status word in the HEADER.** ‼ A header that omits a
+status is not neutral — it reads as "still open" to a skimmer.
+
+## 2026-08-16 — the SIXTH one-half fix, found by the rule written after the fifth
+
+**Symptom.** A citation corrected in `04-HANDOFF.md` (`:1013`) was left stale in `05-KNOWN-ISSUES.md`
+(`:957-966`) — and the KI is the copy carrying the actual defect description, i.e. the one someone
+fixing that defect would read.
+
+**Root cause.** Same as the previous five: I searched the place I remembered, not the claim.
+
+**What actually caught it.** CLAUDE.md's rule *"re-run Tier 2 and check WHERE the fix landed, not
+merely THAT it landed"* — applied to my own fixes, by a fresh agent, immediately after applying them.
+‼ Both this and the KI-34 findings were invisible to every gate: a *missing* status word and a stale
+*tense* are not countable. The documents were perfectly self-consistent.
+
+**Prevention rule.** ⛔ **Run the verification pass on the FIXES, not only on the originals** — and
+ask "where did it land?", never "is it consistent?". *The strongest audit of a document is not
+whether it agrees with itself.*
