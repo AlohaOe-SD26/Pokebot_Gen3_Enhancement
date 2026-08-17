@@ -1,0 +1,34 @@
+### KI-81 PROMOTION — the BEFORE half, measured against custom-pokebot (2026-08-16)
+### ⛔ UNREPEATABLE once promote.py copies the files. Committed FIRST, per the KI-79 rule:
+###    a byte-compare only proves a file was COPIED, never that its new branch is what RUNS.
+
+--- BEFORE-1: does custom's OWN code guard the abort? (the discriminator) ---
+PROBE [custom-pokebot] — broad `except` around a `yield from` NOT guarding StoryAbort
+   44  modules/story/early_game.py
+    4  modules/modes/util/higher_level_actions.py
+    3  modules/story/pc_trip.py
+    1  modules/story/mossdeep_gym.py
+    1  modules/story/counter_hunt.py
+  CANDIDATE sites: 53
+    if no `_check_abort()` is reachable through its `yield from`. This probe narrows the
+    list for a human; it does not prove reachability. Triage before fixing.
+
+--- BEFORE-2: sandbox, for contrast (the fix is here) ---
+PROBE [sandbox-pokebot] — broad `except` around a `yield from` NOT guarding StoryAbort
+   44  modules/story/early_game.py
+    1  modules/story/counter_hunt.py
+  CANDIDATE sites: 45
+    if no `_check_abort()` is reachable through its `yield from`. This probe narrows the
+    list for a human; it does not prove reachability. Triage before fixing.
+
+--- BEFORE-3: AST — do custom's 8 target handlers call the guard? (must be NO) ---
+    custom/modules/story/pc_trip.py                             guarded handlers = 0
+    custom/modules/story/mossdeep_gym.py                        guarded handlers = 1
+    custom/modules/modes/util/higher_level_actions.py           guarded handlers = 0
+
+--- BEFORE-4: promote.py --check ---
+  drift (sandbox → custom): 3 file(s)
+      modules/modes/util/higher_level_actions.py
+      modules/story/mossdeep_gym.py
+      modules/story/pc_trip.py
+  orphaned (in custom only): 0 file(s)

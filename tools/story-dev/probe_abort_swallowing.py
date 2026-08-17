@@ -36,6 +36,10 @@ THE RULE, AND ITS LIMITS — read before believing a number:
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_abort_swallowing.py
       PYTHONUTF8=1 py -3.12 probe_abort_swallowing.py --list        # every site, file:line
       PYTHONUTF8=1 py -3.12 probe_abort_swallowing.py --self-test   # prove the rule fires + is quiet
+      PYTHONUTF8=1 py -3.12 probe_abort_swallowing.py --build custom  # measure the OTHER fork
+‼ `--build custom` is what makes a PROMOTION MEASURABLE instead of assumed: a byte-compare only ever
+proves a file was COPIED, never that the fork's OWN handlers gained the guard. Run it before and
+after the copy and the number must MOVE. (2026-08-16: custom read 53 before, 45 after.)
 Exit codes: 0 always (it is a PROBE — it measures, it does not fail the build).
 """
 
@@ -46,7 +50,12 @@ import pathlib
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-BUILD = REPO / "sandbox-pokebot"
+
+#: ‼ `--build custom` EXISTS SO A PROMOTION CAN BE MEASURED, NOT ASSUMED. A byte-compare only proves
+#: a file was COPIED; running THIS probe against `custom-pokebot` before and after proves the fork's
+#: OWN handlers gained the guard. That is the discriminator for promoting a KI-81 fix.
+_BUILD = "custom" if "--build" in sys.argv and sys.argv[sys.argv.index("--build") + 1] == "custom" else "sandbox"
+BUILD = REPO / f"{_BUILD}-pokebot"
 
 #: Deliberately narrow: the story path and the heal helper, i.e. the code that runs while a
 #: whiteout can happen. Upstream mirror code is never scanned (project directive).
@@ -167,7 +176,7 @@ def main() -> int:
             files += sorted(target.rglob("*.py"))
 
     print("=" * 92)
-    print("PROBE — broad `except` around a `yield from` that does NOT guard StoryAbort (a WHITEOUT)")
+    print(f"PROBE [{_BUILD}-pokebot] — broad `except` around a `yield from` NOT guarding StoryAbort")
     print("=" * 92)
     total = 0
     per_file: list[tuple[int, str, list[tuple[int, str]]]] = []
