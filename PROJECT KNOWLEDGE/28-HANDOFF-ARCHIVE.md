@@ -5164,3 +5164,123 @@ Moved on the R3 3,600-line budget. Every one was already `[x]`. Verbatim, unedit
 - [x] #1 — Vendor upstream 40Cakes/pokebot-gen3 (subtree @ 5dd898f8) (2026-07-17).
 - [x] #2 — Deep documentation pass + Pokemon_Emerald_AI_Notes.md (2026-07-17).
 - [x] #4 — install.py V2 (setup/update/heal + ROM handling) — "worked!" (2026-07-18).
+
+---
+
+# ARCHIVED 2026-08-17 (second draw) - 6 more CLOSED items from 03-PUNCH-LIST's "## Done"
+
+Moved to give the NEXT session working headroom: queue item 0's first act edits that file, and it
+was ~6 lines from a hard R3 failure that would have blocked its Tier 0 commit. All were [x].
+Verbatim, unedited.
+
+- [x] #5 — Native dashboard GUI + handheld mode — "worked!" (2026-07-18).
+- [~] #24-textread — DIALOGUE AWARENESS: read on-screen text to drive interactions
+      (user 2026-07-20; design §DA). FEASIBILITY CONFIRMED (decode_string of
+      gDisplayedStringBattle / gStringVar4 reads exact text). STARTED: move-learn
+      now uses text-driven detection (both builds) — UNIVERSAL (matches generic
+      phrases + reads the offered move dynamically, not hardcoded to any move).
+      â˜… ROOT CAUSE of the Lv16 hang FOUND & FIXED (ML-13): the Emerald battle Yes/No
+      has no task and was detected only by a fragile script-offset; when it stayed
+      `Unknown` the old code pressed nothing (is_waiting_for_input gate) → froze.
+      `handle_move_replacement_dialogue` rewritten fully text/task-driven;
+      `handle_evolution_scene` hand-off hardened. PROVEN by fault-injection A/B on
+      both builds (old stalls ~10.6k frames & fails to learn; fix resolves in 394 &
+      learns Pursuit + evolves). Faithful repro harness: scratchpad/repro_movelearn.py.
+      Still want the user's real-32× confirmation. FULL SYSTEM (next big build):
+      Reader (normalized current text + menu/cursor) -> Classifier (text -> interaction
+      type) -> Responder (type + story progress + config -> answer; multi-valid
+      decisions like fossil/starter = random). Gather conversation dumps {exact text,
+      speaker, valid answers, how to answer} from runtime logging + pokeemerald script
+      data; build a response table. Subsumes fragile scripted-scene ride-outs; robust
+      + deterministic vs flaky task-state. Backstops: no-progress watchdog + advance-
+      plain-text-with-A so nothing hard-freezes.
+
+- [x] #24-evo-trainstall (FIXED 2026-07-22: interrupt-safe _rotate_lead_safely + _yield_bounded; proven on evostall.ss1; same fix covers the user's 110k-frame Joey stall) — `train_team`/`_story_spin` can hang right AFTER a
+      trainee EVOLVES mid-training (batch run02 2026-07-22: Grovyle evolved +
+      learned Fury Cutter on Route 116, then the spin never resumed → 20k-frame
+      HANG). Repro save: tools/story-dev/saves/evostall.ss1. Likely the
+      post-evolution return-to-overworld transition isn''t ridden out before the
+      next spin action (cf. the move-learn / dock-arrival family). Prove + fix.
+- [x] #24-pokenav-faithful — ‼ SUPERSEDED: recurred 2026-07-26, see the OPEN entry above. (RESOLVED 2026-07-22: the user ran VIDEO OFF — the renderer-gated fallback fired exactly as designed; keep video off on the weaker test PC, the fallback covers it) — WATCH ITEM (user fresh-run log 2026-07-22 13:24): the
+      PokéNav Match-Call tutorial took the STATE-WRITE FALLBACK on a real-GUI run
+      (video on) — the faithful play-through previously worked on this hardware.
+      By design the fallback is legal (never hang), but check why the faithful
+      path didn''t engage (timing? renderer-gate read?) next time it recurs.
+- [x] #24-wattson-strength — DONE 2026-07-22 (KI-13 resolved): 0-power move-learn
+      guard + Segment 9c prep (Route 117 (31,16) band 20-24) + aftermath-quiet
+      riding → run 14 beat Wattson end-to-end; `wattson_done.ss1` verified.
+      Residual (folded into #24-movelock): audit the evolution-scene learn flow
+      that dropped Marshtomp''s Mud Shot at L16 (moot for Wattson, still a
+      move-quality gap).
+
+
+- [x] #24-hm-learner — HM TEACH VALIDATION + LEARNER ACQUISITION (user report
+      2026-07-23, DONE same day): Segment 10b used to teach the HIGHEST-LEVEL mon,
+      which loops in the party menu (NOT ABLE) whenever that mon can't learn the
+      HM. Now: `hm_learner_slot(item)` picks the best COMPATIBLE party mon;
+      `ensure_hm_learner(item)` hunts + catches an accessible learner species when
+      the party has none (grounds derived live from ROM encounter tables ×
+      TM/HM learnsets — nothing hardcoded, works for every future HM);
+      `teach_hm_move` hard-fails truthfully on an incompatible target. A/B-proven
+      (repro_hm_learner.py + the hmtest harness driver: fault-injected
+      "nobody compatible" → hunted Route 117 → caught Poochyena → taught it).
+      Feeds directly into #24-hm-slaves (the acquisition half now exists).
+
+### #24-endlessruns — ENDLESS DEBUG-RESET RUNS (user request, 2026-07-25)
+
+**CLI form: DONE** — `tools/story-dev/endless_runs.py`, smoke-tested.
+```
+py -3.12 tools/story-dev/endless_runs.py                 # 10 runs, treecko
+py -3.12 tools/story-dev/endless_runs.py --count 0       # INFINITE (Ctrl-C)
+py -3.12 tools/story-dev/endless_runs.py --count 25 --starters all
+```
+Back-to-back FRESH runs, unthrottled, debug logging on, appending one row per run to
+`tools/story-dev/endless-runs/LEDGER.md` (depth reached · outcome · frames · wall-clock · log).
+
+**Failsafes — each exists because of a failure actually observed 2026-07-24/25:**
+* `--run-timeout` (wall clock, default 5400s): the harness's watchdogs are FRAME-based, so a
+  wedged emulator process advances no counter and fires nothing. Only an external wall-clock
+  bound catches that.
+* `--stall-timeout` (default 600s): kills a run whose LOG STOPS GROWING. A run can burn frames
+  forever while making zero progress — the 2,000,000-frame fodder grind looked alive throughout.
+* **A fresh profile per run, metadata COPIED from a template.** "FRESH boot from title" still
+  loads the profile's battery save, which once produced three worthless runs that reported as
+  fresh while starting in Fortree with a L39 party. ‼ metadata.yml must be COPIED, not
+  synthesised — it carries the ROM reference, and a hand-written one makes every run die
+  instantly with "Could not find ROM ``".
+* **One bad run never aborts the batch** — every outcome is recorded and the loop continues.
+* **Zero frames is never reported as success.** The first cut scraped a 5-second ROM-not-found
+  death as `clean-finish`; an overnight batch of those would have read as green.
+
+**`#24-endlessruns-gui` — DONE 2026-07-25, and it shipped as something better than the plan
+above.** The plan was a menu item that shells out to this CLI module. That was built first and
+FAILED in the user's hands: the dialogs appeared and nothing happened, because "endless debug
+reset runs" means *this emulator*, not a separate headless harness.
+
+So it shipped instead as **a real in-process bot mode: `Story (ENDLESS RESET)`**
+(`StoryEndlessResetMode`, `plugins/custom_modes/story_mode.py`) — it simply loops
+`Story (DEBUG - RESET)`'s `run()`, so every iteration is a hard reset → forced NEW GAME → play,
+back to back in the running emulator. In BOTH builds. Count comes from the GUI's
+"Endless Debug-Reset Runs…" item (`ENDLESS_RESET_TARGET`, default 10, `0` = forever).
+
+In-process failsafes beyond the CLI's: a `BotModeError` in run 3 is SWALLOWED so runs 4..N still
+happen; a hard 3.5M-frame-per-run cap (StoryMode's own watchdog can't catch a wedged watchdog);
+the bot mode is re-asserted after every run because a derail can call `set_manual_mode()`; and
+the batch's emulation speed + video settings are captured once and restored each run — the first
+cut restored `bot_mode` but not the speed, so run 1 ran unthrottled and every run after it
+crawled at 1× (user-reported, fixed in `aadad944`).
+
+The CLI form above is NOT superseded — it keeps the fresh-profile-per-run and wall-clock/log-growth
+failsafes that an in-process mode cannot have, and remains the right tool for a scripted batch.
+
+- [x] `#24-ch20rename` — ✅ **DONE 2026-08-13.** Renamed and VERIFIED BY RE-RUNNING BOTH, not by a
+      diff: `--driver ch21dive` → **`ch20dive`** (class `Ch21DiveMode` → **`Ch20DiveMode`**, all 33
+      log tags), `probe_ch21_topology.py` → **`probe_ch20_topology.py`**, and
+      `ai-research-notes/2026-08-13-ch21-dive-leg-predictions.md` → **`...-ch20-...`**. Also the
+      three `§Ch21` prose occurrences inside `story_harness.py`, each checked individually to be
+      about the cavern. **Proof:** `probe_ch20_topology.py` exit 0; `--driver ch20dive` →
+      `[ch20dive] ACCEPTANCE: PASS legs=6/6 at_entrance=True got_out=True can_continue=True`.
+      Current-state docs `03`/`04`/`05` updated (0 residual old names). ‼ **`06`/`07`/`08` were
+      deliberately NOT touched** — append-only history is not rewritten, so 7 references to the old
+      names remain there on purpose; **both renamed files carry a provenance header** saying those
+      entries mean the new artefacts. 17/17 gates PASS, `lint_docs` PASS. Original item follows.
