@@ -15503,3 +15503,85 @@ Session wrap-up. Three corrections found by checking the docs the two audits wer
   reader can see the figure is maintained rather than guessed. *(That file is well built for this:
   it explicitly defers to `run_gates.py`'s table and `--driver`'s `choices=` for live lists, so a
   new driver and a new probe needed no other edit.)*
+
+## 2026-08-16 — WRAP-UP PASS 5: `preflight` NAMES its dirty files; four doc pairs reconciled; the two DoD entries that were owed
+
+- **`preflight.py` now LISTS the uncommitted files, not just a count**, and annotates
+  `party_accounting_ledger.jsonl` as EXPECTED-after-a-driver-run with *"COMMIT it, never
+  `git checkout --` it"*. ‼ **Why this is a fix and not polish:** a cold-start agent hit a bare
+  `WARN 7 uncommitted file(s) — review with the user before pulling` against a handoff STATE row
+  promising a clean tree, and had **no way to tell expected dirt from an abandoned edit**. A count
+  cannot answer that question; a list can. *(Same family as "assert IDENTITY, never count".)*
+- **`03-PUNCH-LIST.md` `#24-orphans` (1): header/body contradiction fixed (P2).** The header read
+  `✅✅ UNBLOCKED` while the body's first bullet read `⛔ BLOCKER — … MUST BE MEASURED`. Now the
+  header states both halves in one line: **design unblocked, build NOT — next action is a live probe
+  for one heap offset**, so nobody opens the item expecting to write mode code.
+- **Same item, P4 was STALE:** it still said a whiteout during a PC visit *"is being LAUNDERED
+  TODAY"* — that hazard was fixed and promoted earlier the same day (KI-81, 8 handlers, probe
+  53→45). Rewritten as FIXED, keeping the part that still binds: a retry loop added by this item
+  must keep the guard as its handler's first statement.
+- **`06-DECISIONS-LOG.md` ×2 (were owed by DoD step 3):** the `withdraw_from_box` contract narrowing
+  ("never raises" → "never raises **for a PC problem**"), with why latch-keyed beats type-keyed and
+  why `PathFindingError` is excluded; and why the abort probe stays a PROBE while 45 sites remain,
+  plus `--build` being what made the promotion measurable where a byte-compare could not.
+- **`08-MISTAKES.md` ×2 (were owed):** the `PathFindingError` guard leak I introduced while fixing
+  KI-81 — *read every member of an exception TUPLE against what the top loop catches* — and the
+  truncated evidence file — *print a file's last line and headings before citing it*.
+- **`04-HANDOFF.md` 905 → 876 lines** (budget 900): the nine per-room §Ch20 summaries merged into one
+  stub that keeps only the rules later work leans on (`VAR_ROUTE128_STATE == 2`, the `(38,23)`→Surf
+  atoll escape, Archie being the chain's one stochastic element, `FLAG_SYS_USE_STRENGTH` cleared on
+  every warp); the detail moved verbatim to `28-HANDOFF-ARCHIVE.md`.
+- **Two `talk_to_npc` citations corrected.** The new mistakes entry filed the `PathFindingError`
+  split under `pc_trip.py`; it is **`modules/modes/util/higher_level_actions.py:718`**, split at
+  **`:767`**. `12-STORYMODE-DESIGN.md`'s capability table also still pointed at `:513`. ‼ Found by
+  re-proving the guard's SHAPE from **custom's own bytes** with an AST check (`reraise_if_aborting`
+  must be the handler's first statement after any local import): **9 guarded handlers, 0 not-first**
+  — 8 added plus KI-67's pre-existing one — and the `PathFindingError` arm confirmed NOT routed
+  through the guard. *The check that verified the fix is what caught the doc naming the wrong file.*
+
+### TIER 1 KICKED THIS BACK — FAIL, two findings, both real (2026-08-16)
+
+**F1 — the fix landed in ONE of its TWO occurrences, in the SAME FILE.** I corrected the NEXT
+ACTIONS blockquote's *"nothing is parked"* (line ~220) and left the identical unqualified claim at
+**`04-HANDOFF.md:23`** — *"nothing parked, nothing running"* — which sits **one line above** text this
+same diff edited, and which a cold start reads ~200 lines EARLIER. Now qualified there too.
+‼‼ **This is the fifth time this session that a fix landed in one half of a pair.** The pattern is
+not "I forgot a file" — every time, it was *the same claim repeated in the same file*, and the
+half I edited was the half I was already looking at. ⇒ **RULE: when you correct a claim, GREP THE
+CLAIM, not the location** — the duplicate is usually above you, not elsewhere.
+
+**F2 — six of the eight hand-typed line citations in KI-81's `Guarded:` list were WRONG.** Actual,
+re-derived by walking every `ExceptHandler` containing a `reraise_if_aborting` call:
+`higher_level_actions.py` `:297`/`:322`/`:357`/`:781` (I wrote `:316`/`:345`/`:746`);
+`pc_trip.py` `:202`/`:313`/`:550` (I wrote `:305`/`:529`); `mossdeep_gym.py` `:471` + KI-67's `:554`.
+⚠ **And a UNIT ERROR underneath the number errors:** `mossdeep_gym.py:465` was a **TRY** line sitting
+in a list of **HANDLER** lines, so it read as wrong when it was merely inconsistent. KI-67's own
+citations were stale too (`space_center.py:962-977` / `mossdeep_gym.py:534-551` → the trys are `:955`
+and `:540`). All corrected in `05` and `03`; ⛔ `06`'s copy is append-only and stays, dated.
+⇒ **RULE: NEVER re-type a citation — re-derive it** (`ast.walk` for the property, print the lines),
+and **say which unit you are quoting.** The durable claim is the SHAPE — *guard first, latch-keyed,
+`PathFindingError` split out* — because line numbers drift on every edit above them.
+
+### F1 IS NOW A GATE, NOT A PROMISE — `check_qualified_claims` (2026-08-16)
+
+CLAUDE.md rule 6: *"anything enforceable belongs in a GATE, not in prose"*, and *"a rule already
+broken twice is evidence that prose failed."* The one-half fix has now happened **five times in one
+session**, so the prose rule is retired in favour of a check.
+
+**What it does.** A table of **known-false ABSOLUTES** paired with the qualifier that rescues each,
+enforced **per LINE, on EVERY occurrence** — because a qualifier 200 lines below does not help a cold
+start that stops at the first copy. Seeded with two: *"nothing (is) parked"* (needs `MID-TASK` —
+§Ch20 assembly IS parked) and *"all work / everything is pushed"* (needs *"as of the commit carrying
+this line"* / *"trust `git status`"* — a doc cannot assert its own pushed-ness, since the sentence is
+itself the uncommitted edit). Extending it is two regexes.
+
+**‼ IT FOUND A THIRD LIVE OCCURRENCE ON ITS FIRST RUN** — `04-HANDOFF.md:153`, in the STATE table's
+`if stopped mid-task` row, unqualified. That is a line a cold start reads when deciding whether it is
+safe to pull. Now qualified.
+
+**‼‼ AND IT PRODUCED A REAL FALSE POSITIVE, WHICH IS THE MORE USEFUL RESULT.** It fired twice on the
+prose written to CORRECT the claim (*"That is NOT the same as 'nothing is parked'"*). ⛔ **A gate that
+punishes the correction is one everybody learns to bypass** — strictly worse than no gate. Fixed with
+a deliberately NARROW refutation escape (`does NOT mean` / `NOT the same as` / `is FALSE` / …), and
+**Q7 fault-tests that narrowness**: a stray *"not"* elsewhere in the sentence does NOT excuse a
+genuine assertion. Self-tests **Q1-Q7 all pass**; suite still **ALL 24 GATES PASS (127.6s)**.

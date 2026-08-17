@@ -7495,3 +7495,88 @@ them.*
 **Second prevention rule.** *A gate's quiet cases deserve as much fault-testing as its loud one.* A
 gate that fires wrongly gets bypassed, and a bypassed gate is strictly worse than no gate — so
 "proves it stays quiet on X" belongs in the self-test beside "proves it fires on Y".
+
+## 2026-08-16 — I introduced a REAL defect while fixing a real defect: the guard caught `PathFindingError` (adversarial review)
+
+**Symptom (never shipped — caught before the promotion).** My KI-81 sweep added
+`reraise_if_aborting(error)` as the first statement of every broad handler. In `talk_to_npc`
+(**`modules/modes/util/higher_level_actions.py:718`**, split at **`:767`** — ⚠ *not* `pc_trip.py`;
+I misfiled it as `pc_trip.py` in this very entry and an AST re-check of the promoted fork caught it)
+the recovery handler was `except (BotModeError, PathFindingError) as error:` — so my "first
+statement" now ran on a `PathFindingError` too.
+
+**Root cause.** `PathFindingError` is a **`RuntimeError`**, not a `BotModeError`, and
+`StoryMode.run` catches only `except BotModeError` (`story_mode.py:2505`). And the guard is
+**LATCH-keyed**: `if _STORY_ABORT: raise error`. So a mid-run pathfinding failure that happened to
+occur while the latch was set would re-raise a `RuntimeError` straight past `StoryMode.run` — which
+is the ONLY thing that clears `_STORY_ABORT`. The latch would stay **stuck True for the process**,
+and every later `reraise_if_aborting` in `ev_train.py:191` / `pokecenter_loop.py:102` would fire on
+an abort that ended long ago. **A fix for laundering that manufactures a worse laundering.**
+
+**The fix that worked — SPLIT the handler, never widen the guard:**
+```python
+except PathFindingError:
+    pass          # NEVER routed through the guard — a RuntimeError would escape recovery
+except BotModeError as error:
+    reraise_if_aborting(error)
+```
+
+**Prevention rule.** ⛔ **Before adding a guard to a handler, read the EXCEPTION TUPLE and check
+every member's base class against what the top-level loop actually catches.** A sweep that treats
+`except (A, B)` as "a handler" is applying a same-shape edit to two different types.
+
+**Second prevention rule, from the same review.** The defect was found by an **adversarial** reviewer
+reading only the diff — not by me, not by the gates, not by the byte-compare. ‼ *A mechanical sweep
+is exactly the change most worth reviewing adversarially*, because its uniformity is what hides the
+one site where the shape does not hold.
+
+## 2026-08-16 — the evidence file I cited was TRUNCATED after the header of the section that held the proof
+
+**Symptom.** I wrote the promotion's evidence file, cited "section (3)" for the measured before/after,
+and moved on. The file ended a few bytes past `### (3)`'s heading — the proof was not in it.
+
+**Root cause.** I generated the file with a heredoc and then kept appending in later steps; one
+append replaced rather than extended. Nothing checks that a document I *cite* contains what I say it
+contains, because it is not a doc the gates own.
+
+**Fix.** Regenerated with all five sections and re-read the file end-to-end before citing it.
+
+**Prevention rule.** ⛔ **After writing any evidence file, print its LAST line and its section
+headings before citing it.** A citation to a file you have not read to its end is the same failure as
+the "read X to its LAST statement" rule in CLAUDE.md — applied to your own output. *(Related, same
+day: never pipe the thing you are measuring — `tail`/`head`/`cut` have each corrupted a reading here,
+one of them replacing a FAILING gate's exit code with `0`.)*
+
+## 2026-08-16 — the FIFTH one-half fix of the session, and it was a duplicate of the claim IN THE SAME FILE
+
+**Symptom.** I corrected `04-HANDOFF.md`'s NEXT ACTIONS blockquote (*"nothing is parked"* → *"nothing
+parked MID-TASK; §Ch20 IS parked"*), logged it as done, and a Tier 1 reviewer found the identical
+unqualified claim still at **`04-HANDOFF.md:23`** — one line above other text the same diff edited,
+and the copy a cold start reads FIRST.
+
+**Root cause.** I searched for the *place I remembered the problem being*, not for the *claim*. Every
+one-half fix this session had that shape: the duplicate was in the file I already had open, usually
+ABOVE the line I was editing, so "I just read this file" felt like coverage and wasn't.
+
+**Prevention rule.** ⛔ **When you correct a claim, `grep` the CLAIM across the docs before you call
+it fixed — the phrase, not the filename.** *(And Tier 2's re-check rule already learned the sibling
+lesson: verify WHERE a fix landed, not merely THAT it landed.)*
+
+## 2026-08-16 — six of eight line citations I hand-typed into a KI entry were wrong, plus a unit error
+
+**Symptom.** KI-81's `Guarded:` list named 8 handler lines. Re-derivation showed `:316`, `:345`,
+`:746`, `:305`, `:529` and `:465` were all wrong; only `:297` and `:202` were right. Separately,
+`mossdeep_gym.py:465` was a **TRY** line listed among **HANDLER** lines — right number, wrong unit,
+which made a correct citation look incorrect. KI-67's older citations had drifted the same way.
+
+**Root cause.** I typed the numbers from what I had read minutes earlier instead of asking the file.
+Line numbers are the least stable fact in a repo — every edit above them invalidates them — and this
+project treats citations as load-bearing, so a stale one sends the next agent to the wrong code.
+
+**Fix.** Re-derived all of them by walking the AST for every `ExceptHandler` containing a
+`reraise_if_aborting` call and printing `handler.lineno`; recorded the derivation command in the
+entry so the next reader re-derives instead of trusting.
+
+**Prevention rule.** ⛔ **Never re-type a citation — re-derive it, and state the UNIT** (try line vs
+handler line vs def line). ‼ **State the SHAPE as the durable claim** (*"guard first, latch-keyed,
+`PathFindingError` split out"*); a shape survives edits, a line number does not.

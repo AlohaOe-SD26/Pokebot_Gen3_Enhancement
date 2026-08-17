@@ -2741,3 +2741,48 @@ rule about those notes, demonstrated again.)
   walk at `:350`** — after that the bot has left the PC. And the budget must stay small: the heal is
   a piggyback, and `early_game.py:320-325` records 14,400 frames of retry churn letting the 18k
   global watchdog kill two otherwise-healthy runs.
+
+## 2026-08-16 — `withdraw_from_box`'s "Never raises" contract is narrowed, not abandoned (KI-81)
+
+**Decision.** `withdraw_from_box`'s documented contract changes from *"Never raises: a PC hiccup
+must not destroy a heal that already succeeded"* to **"never raises FOR A PC PROBLEM"** — a
+`StoryAbort` (a whiteout) now propagates. The docstring moved in the same edit as the code.
+
+*Rationale:* the contract's PURPOSE is to protect a heal that already succeeded. After a whiteout
+**there is no heal left to protect** — the player has respawned elsewhere, and the abort latch is
+cleared ONLY by `StoryMode.run`, so continuing cannot recover. Swallowing it means the bot keeps
+driving a PC menu that is no longer on screen, and then **launders** the cause into a confident,
+plausible, wrong one.
+
+*Rejected:* keeping the absolute contract and letting `StoryMode.run` notice later. It cannot — the
+whole point of the latch is that nothing downstream clears it, so every subsequent operation fails
+for reasons that name the wrong thing.
+
+*Rejected also:* using `except StoryAbort: raise` alone. **Latch-keyed beats type-keyed**: a retry
+loop that catches an error and raises a fresh one destroys `StoryAbort`'s identity, and only the
+latch survives that conversion. `reraise_if_aborting` reads the latch, so it catches the laundered
+case too — which is the case that actually bites.
+
+⛔ **THIS ENTRY SUPERSEDES ONE LINE OF THE PC-RETRY DESIGN ENTRY EARLIER IN THIS FILE** (search
+*"is being LAUNDERED today"*, ~line 2714). That was TRUE when written and was FIXED later the same
+day. This file is append-only, so the earlier line stays — ‼ **read it as dated, not as current.**
+
+‼ **The same narrowing applies to the two deposit helpers and the three heal piggybacks**, which
+carried the same absolute wording. It does NOT apply to `PathFindingError` — see the mistakes entry;
+routing a `RuntimeError` through the guard would have leaked a stuck global latch.
+
+## 2026-08-16 — the abort probe stays a PROBE, and `--build` is what makes a promotion measurable
+
+**Decision 1 — `probe_abort_swallowing.py` is NOT added to `run_gates.py`** while 45 candidate sites
+remain. *Rationale:* a gate that is red on arrival over pre-existing debt teaches everyone to ignore
+gates, and an ignored gate is strictly worse than no gate. `repro_no_silent_except.py` took exactly
+this path — measure, record the pre-existing count, fix, then enforce. *Rejected:* adding it with a
+"no worse than N" threshold now; that bakes 45 known-bad sites into the definition of green.
+
+**Decision 2 — the probe gained `--build`, and that is how the KI-81 promotion was proven.**
+*Rationale:* KI-79 established that `1/1 byte-identical` proves a file was COPIED, never that its new
+branch RUNS — and its answer, a three-point fault-hook A/B, **does not apply to a guard**, which has
+no branch to flip. The question for a guard is whether the FORK'S OWN handlers now have the
+property, so the instrument must be able to look at the other fork. Measured: **53 → 45**, with
+per-file guarded-handler counts moving **0→3 / 0→4 / 1→2**. *Rejected:* accepting the byte-compare
+because "it is only a guard" — that is precisely the reasoning KI-79 exists to forbid.

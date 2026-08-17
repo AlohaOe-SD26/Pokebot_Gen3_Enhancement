@@ -359,6 +359,53 @@ def check_queue_vs_headline(files: dict[str, str]) -> list[str]:
     return out
 
 
+#: ‼‼ ABSOLUTE CLAIMS THAT ARE KNOWN-FALSE UNLESS QUALIFIED, and the qualifier that rescues each.
+#: WHY THIS EXISTS (2026-08-16): FIVE times in one session a correction landed in ONE of a claim's
+#: TWO occurrences — and every time the survivor was in the SAME FILE, usually ABOVE the edited
+#: line, so "I just read this file" felt like coverage. Prose could not catch that (the file is
+#: perfectly self-consistent to a reader who stops at the first copy); a grep for the CLAIM can.
+#: ⇒ To add one: put the absolute phrasing in `bad`, and a substring that makes it honest in `fix`.
+QUALIFIED_CLAIMS = [
+    # "nothing is parked" is FALSE — §Ch20 chapter assembly is deliberately parked, finished and
+    # waiting. Only the MID-TASK reading is true (no half-edited work, no /checkpoint debt).
+    {"bad": re.compile(r"nothing (?:is )?parked", re.I), "fix": re.compile(r"MID-TASK", re.I),
+     "why": "'nothing parked' is FALSE — §Ch20 chapter assembly IS parked (deliberately). "
+            "Say 'nothing parked MID-TASK', or name what is parked."},
+    # A doc can never truthfully assert its own pushed-ness: the sentence IS the uncommitted edit.
+    {"bad": re.compile(r"(?:all work|everything) is (?:committed and )?pushed", re.I),
+     "fix": re.compile(r"as of the commit carrying this line|trust `?git status`?", re.I),
+     "why": "a doc cannot assert its own pushed-ness — the sentence is itself the uncommitted "
+            "edit. Qualify with 'as of the commit carrying this line' / 'trust git status'."},
+]
+
+
+#: ⛔ A line that REFUTES the absolute is not ASSERTING it. Without this the gate fires on the very
+#: prose written to correct the claim — and it DID, on its first run against the real docs, twice.
+#: A gate with false positives teaches the reader to bypass it, which is worse than no gate
+#: (CLAUDE.md rule 6). ‼ Deliberately narrow: only explicit refutation phrasings, so a genuine
+#: assertion cannot hide behind a stray "not" elsewhere in the sentence.
+_REFUTES_RE = re.compile(
+    r"(?:does\s+)?\*{0,2}NOT\*{0,2}\s+(?:mean|the same as)|is\s+FALSE|read (?:it|this) as|"
+    r"⛔\s*(?:was|were):|UNQUALIFIED ABSOLUTE",
+    re.I,
+)
+
+
+def check_qualified_claims(files: dict[str, str]) -> list[str]:
+    """‼ EVERY occurrence of a known-false absolute must carry its qualifier — not just the one
+    someone remembered to fix. Scoped to the SAME LINE, deliberately: a qualifier 200 lines away
+    does not help a cold start that stops reading at the first copy."""
+    out = []
+    for name, text in files.items():
+        for i, line in enumerate(text.split("\n"), 1):
+            if _REFUTES_RE.search(line):
+                continue  # the line exists to DENY the claim; flagging it is a false positive
+            for claim in QUALIFIED_CLAIMS:
+                if claim["bad"].search(line) and not claim["fix"].search(line):
+                    out.append(f"{name}:{i}: UNQUALIFIED ABSOLUTE — {claim['why']}")
+    return out
+
+
 def check_ladder(files: dict[str, str]) -> list[str]:
     claims = re.compile(r"(\d{1,2})\s+of\s+(\d{1,2})\s+beats?\b", re.I)
     found: list[tuple[str, int, int, int]] = []
@@ -692,6 +739,28 @@ def self_test() -> int:
     expect("D8 HISTORICAL measurement (no `expect`) -> quiet",
            check_drift({"T": f"Every .py compared afterwards: {measured + 1} differing, 0 missing\n"}),
            False)
+    # Q: known-false ABSOLUTES must carry their qualifier on the SAME LINE, in EVERY occurrence.
+    # ‼ Q3/Q4 are the false-positive tests that decide whether this gate is usable: a gate that
+    # fires on a doc DISCUSSING the phrase teaches everyone to bypass it.
+    expect("Q1 bare 'nothing is parked' -> fires",
+           check_qualified_claims({"T": "State: main, nothing parked, nothing running.\n"}), True)
+    expect("Q2 qualified 'nothing parked MID-TASK' -> quiet",
+           check_qualified_claims({"T": "State: main, nothing parked MID-TASK; Ch20 IS parked.\n"}), False)
+    expect("Q3 two occurrences, only ONE qualified -> fires (the whole point)",
+           check_qualified_claims({"T": "nothing parked MID-TASK, fine.\nlater: nothing is parked.\n"}), True)
+    expect("Q4 'all work is pushed' WITH the git-status caveat -> quiet",
+           check_qualified_claims({"T": "All work is pushed as of the commit carrying this line.\n"}),
+           False)
+    expect("Q5 bare 'everything is pushed' -> fires",
+           check_qualified_claims({"T": "Everything is pushed and the tree is clean.\n"}), True)
+    # ‼ Q6/Q7 are the fix for a REAL false positive this gate produced on its first live run: it
+    # fired on the prose written to CORRECT the claim. A gate that punishes the correction is one
+    # everybody learns to bypass.
+    expect("Q6 a line REFUTING the absolute -> quiet (it denies, it does not assert)",
+           check_qualified_claims({"T": 'That is NOT the same as "nothing is parked": Ch20 IS parked.\n'}),
+           False)
+    expect("Q7 refutation escape is NARROW — a stray 'not' does NOT excuse an assertion",
+           check_qualified_claims({"T": "The box is not running and nothing is parked.\n"}), True)
     expect("D5 stale ladder", check_ladder({"T": "ladder runs 19 of 24 beats\nnow 20 of 24 beats\n"}), True)
     # E: fabricated driver cited as runnable must fire; marked-to-build must not.
     expect("E1 phantom driver", check_artifacts({"T": "run `--driver nosuchthing` now\n"}), True)
@@ -747,6 +816,7 @@ def main() -> int:
     failures += check_gate_count_in_commands(raw_files)
     failures += check_drift(files)
     failures += check_queue_vs_headline(files)
+    failures += check_qualified_claims(files)
     failures += check_ladder(files)
     failures += check_artifacts(files)
     failures += check_touched_ki_pairs(files)

@@ -1695,7 +1695,7 @@ Honest COVERED / PARTIAL / NEW per needed ability.
 | **GENDER selection (intro)** | **NEW** | no gender code anywhere in repo (confirmed) |
 | **New-Game / title-menu driver + Birch speech + clock set** | **NEW** | no New-Game menu handler, no Birch-speech handler, no intro-clock setter |
 | **Choose starter from Birch's bag** | **COVERED** | `starters.py:80-144` (RSE Hoenn selection) |
-| **Talk to NPC / interact** | **COVERED** | `talk_to_npc` `higher_level_actions.py:513` |
+| **Talk to NPC / interact** | **COVERED** | `talk_to_npc` `higher_level_actions.py:718` |
 | **Field-move EXECUTION (Cut/Strength/Flash/Rock Smash/Surf/Dig/Fly)** | **COVERED** | `use_field_move` `menuing.py:804` (badge-checked); wrappers `use_strength`/`use_rock_smash` `puzzle_solver.py:52,61`; Surf/Waterfall/Dive auto via pathfinder |
 | **Field-move ROUTING to a specific story tree/boulder + detection** | **NEW (partial)** | only end-game puzzle maps are authored (`puzzle_solver.py:107`); critical-path Cut trees / Strength boulders / Rock Smash rocks on routes are **not** authored |
 | **Teach HM/TM to party** | **COVERED** | `teach_hm_or_tm` `items.py:160` (validates learnability, protects HMs) |

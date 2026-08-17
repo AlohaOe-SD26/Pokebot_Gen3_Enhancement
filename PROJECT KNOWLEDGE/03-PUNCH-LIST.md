@@ -536,25 +536,29 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ⚠ Do this at a QUIET moment, not mid-arc: it touches the same lines every in-flight change
       touches, and a merge conflict here is a stale drift figure by another route.
 
-- [ ] `#24-abortswallow` — **NEW 2026-08-16 (KI-81), MEASURED. KI-67's fix was applied to TWO
-      chapters; the CLASS was never swept.** `StoryAbort` is a `BotModeError` is an `Exception`, so
-      **every** broad `except` catches a whiteout. `probe_abort_swallowing.py` (NEW, fault-tested)
-      reports **53 candidate sites**: `early_game.py` 44, `higher_level_actions.py` 4, `pc_trip.py`
-      3, `counter_hunt.py` 1, `mossdeep_gym.py` 1.
-      ‼ **THREE HAND-VERIFIED AS THE BAD SHAPE**, not false positives: `early_game.py:1625`
-      swallows into a **12-press retry**; `:267` and `:3241` catch `BotModeError` inside retry loops
-      — **KI-67's failure verbatim**; and **all three `heal_in_pokemon_center` piggybacks**
-      (`:297`, `:316`, `:345`) are unguarded, so **a whiteout during a heal is swallowed TODAY**.
-      ⚠ **CANDIDATE ≠ DOES.** The probe cannot prove a `_check_abort()` is reachable through a given
-      `yield from`; it narrows 500+ handlers to a triageable list. ⛔ **Triage before fixing.**
-      ⇒ **START TRIAGE AT `mossdeep_gym.py`**: KI-67 fixed that file, yet it still shows 1 — so that
-      one site tells you whether the probe over-flags or whether the sweep was incomplete. That
-      answer sizes the whole item.
-      ⛔ **NOT a gate yet, deliberately** — a gate red on arrival on pre-existing debt teaches people
-      to ignore gates. Fix the sites, then promote it, the path `repro_no_silent_except.py` took.
-      ‼ This is a PREREQUISITE for `#24-orphans` (1): P4 there is a special case of this, and
-      fixing P4 in `withdraw_from_box` ALONE does nothing, because the caller's own blanket
-      `except Exception` at `higher_level_actions.py:345` re-swallows it.
+- [ ] `#24-abortswallow` — **KI-81. ✅ 8 SITES FIXED AND PROMOTED TO BOTH FORKS 2026-08-16;
+      ⛔ 45 CANDIDATES REMAIN, deliberately unswept.** `StoryAbort` is a `BotModeError` is an
+      `Exception`, so every broad `except` in the story path catches a whiteout. KI-67 fixed the two
+      chapters it had OBSERVED failing; the CLASS was never swept.
+      ✅ **THE TRIAGE QUESTION THIS ITEM POSED IS ANSWERED.** It said to start at `mossdeep_gym.py`
+      because that one site would reveal whether the probe over-flags. **It is a TRUE POSITIVE** —
+      `:465` is a DIFFERENT `try` from KI-67's `:534`, and after a whiteout it tried the second gym
+      door ON A DEAD RUN and raised a FABRICATED *"could not get out of the gym"*. ⇒ **the probe
+      does not over-flag; the sweep was incomplete.**
+      ✅ **FIXED + PROMOTED:** `higher_level_actions.py` `:297`/`:316`/`:345` (all three heal
+      piggybacks — a whiteout during a heal WAS swallowed) and `:746`; `pc_trip.py`
+      `:202`/`:305`/`:529`; `mossdeep_gym.py:465`. Proven by a MEASURED before/after, not a
+      byte-compare: `probe_abort_swallowing.py --build custom` fell **53 → 45**.
+      🔜 **WHAT REMAINS: 45 candidates — 44 in `early_game.py`, 1 in `counter_hunt.py`.**
+      ⛔ **CANDIDATE ≠ DOES:** the probe cannot prove a `_check_abort()` is reachable through a given
+      `yield from`, so **triage before fixing** — bulk-editing 44 sites in the largest, most
+      timing-sensitive file here on a static signal is exactly the mistake this item avoided once.
+      ⇒ **Next concrete step:** hand-verify a handful of `early_game.py` sites the way the first
+      three were (read the enclosing retry loop; ask whether an abort can actually arrive), fix
+      those, and only THEN promote the probe from a PROBE to a gate — a gate red on arrival on
+      pre-existing debt teaches everyone to ignore gates.
+      ⚠ Also still true: `probe_abort_swallowing.py --self-test` fault-tests the rule in three
+      directions, and `--build custom` is what makes a promotion measurable rather than assumed.
 
 - [ ] `#24-zerokocounter` — **NEW 2026-08-16, from the KI-80 decoupling. Should `boss_teaches` ALSO
       come off the counter-ladder's gate?** `story_mode.py:1901` is now `if boss_teaches:`. KI-80's
@@ -1870,7 +1874,11 @@ level-matched encounters maintenance needs. Done together they are one activity,
 > TRACKING rather than to STATUS, and prose alone did not catch it — the question did.
 
 - [ ] **(1) ‼ HIGHEST COST — `withdraw_from_box` has NO CALLER THAT CHECKS ITS VERDICT.**
-      ✅✅ **UNBLOCKED 2026-08-16 — THE USER RULED** (`06-DECISIONS-LOG.md`): *"reattempt but after
+      ⛔ **STATUS IN ONE LINE: the DESIGN is unblocked, the BUILD is NOT.** The user's ruling settled
+      *what to build*; the recon below then found the *first step is a MEASUREMENT nobody has taken*.
+      ⇒ **Do not open this item expecting to write mode code.** Its next action is a live probe for
+      one heap offset. ‼ Header and body disagreeing on that was itself a P2 finding (2026-08-16).
+      ✅ **DESIGN RULED 2026-08-16 — THE USER RULED** (`06-DECISIONS-LOG.md`): *"reattempt but after
       intelligently processing the data (text boxes it reads to determine why it failed)"*.
       ‼ **That is TWO requirements and the second is load-bearing:** reattempt, but **NOT blindly** —
       the retry must be informed by a DIAGNOSIS read from the on-screen TEXT. ⛔ A retry that repeats
@@ -1906,9 +1914,15 @@ level-matched encounters maintenance needs. Done together they are one activity,
       questions must use A. With a **HOLE** (A=6,B=5 — already OBSERVED 30x in `boxcounter2`) the
       bot proceeds and the GAME refuses. ‼ This is the case proving the ruling's second clause: the
       diagnosis must change the **ACTION** (deposit), not repeat it.
-      **P4 ⛔ the blanket `except` has NO `StoryAbort` guard, so a WHITEOUT during a PC visit is
-      being LAUNDERED TODAY.** Both retry precedents guard it explicitly (`space_center.py:962-977`,
-      `mossdeep_gym.py:534-551`). A retry loop without it would hammer a dead run.
+      **P4 ✅ FIXED AND PROMOTED 2026-08-16 (KI-81) — was: the blanket `except` had no `StoryAbort`
+      guard, so a WHITEOUT during a PC visit was laundered.** `reraise_if_aborting(error)` is now the
+      FIRST statement of all 8 handlers in `pc_trip.py` / `mossdeep_gym.py` / `higher_level_actions.py`
+      in **both** forks; probe reads **53 → 45** on custom. ⚠ **This removes a hazard, it does not
+      supply the retry** — a retry loop still must not re-enter a dead run, so keep the guard the
+      first statement of any new handler this item adds. Precedents (TRY lines, re-derived from source
+      2026-08-16 — ⛔ re-derive, never re-type; six of eight hand-copied citations in the KI-81 entry
+      were wrong): `space_center.py:955` (handlers `:962`/`:971`), `mossdeep_gym.py:540` (handlers
+      `:543`/`:554`).
       ‼ **P1 and P4 are worth fixing on their own merits even if the retry never ships.**
       KI-79 made the *message* honest (identity-verified, loud on failure) but production still
       cannot REACT:

@@ -4933,3 +4933,46 @@ kept in place; everything else is here.
 >      table by `(abs(hi - team_level), -hi)`, so a new row near L29-33 changes the pick for every
 >      other caller too, including `counter_hunt.py:647`'s candidate picker for EVERY boss. That is
 >      the measured Shoal Cave incident (`08-MISTAKES.md`), restated.
+
+
+## 2026-08-16 — archived from `04-HANDOFF.md`: the ROOM 9 and ROOMS 1/2/6/3 summaries, merged in place on the 900-line budget
+
+## ✅ ROOM 9 — ARCHIE, KYOGRE, THE ATOLL ESCAPE (driven 2026-08-14) — DETAIL in `28-HANDOFF-ARCHIVE.md`
+
+‼ **Keep only what later work leans on:** `--driver ch20room9` PASSED 2 of 3 — the cavern is driven
+END TO END, graded on **`VAR_ROUTE128_STATE == 2`** (never the Kyogre flag, set BEFORE the forced
+warp); the atoll escape is **south to `(38,23)`, then Surf onto `(38,24)`** (the landing tile has
+ZERO surfable neighbours, so a naive Surf reads as a HUNG LEG). ⚠ **The Archie fight is the chain's
+one stochastic element — 2W/1L**, and a LOST run prints nothing (whiteout → Manual → KI-71 abandons
+the generator) ⇒ the chapter needs a **whiteout-retry policy** and **pre-boss readiness**.
+‼ Two reusable rules: **release is gated on a VAR, never on "looks controllable"**; and press
+**A only when a text printer is waiting, B otherwise** (A beside an NPC starts a conversation —
+the museum-greeter rule, `08-MISTAKES.md`).
+## ✅ ROOM 8 (driven 2026-08-14) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (same day, when the PC/PARTY queue replaced the Ch20 queue)
+
+Moved for the R3 budget. ‼ **Keep only what later work leans on:** `--driver ch20room8` PASSED
+twice (clean 9/9, plus a FAULT run that EXERCISED the jam-recovery handler — `recovered=True`),
+and ⛔ **step 9 faces LEFT, never UP** (`(5,3)` permanently seals the exit). Two adversarial
+passes preceded the drive and BOTH changed something: an offline refutation of the 9-push table
+(verdict SURVIVES) supplied the template data that turned KI-77's window into the exact
+prediction *"8 of 12 boulders visible at arrival"*, which the live run matched exactly; and a diff
+review caught the recovery handler HARDCODING an arrow-warp direction instead of deriving it from
+the live tile. ⇒ *the happy path cannot exercise an error path — fault-inject it on purpose.*
+## 🛡 THE DOC CONSISTENCY LAYER (2026-08-14) — the DIRECTIVE now lives in `CLAUDE.md`; read it before editing any doc
+
+**Gate suite: `run_gates.py` PRINTS the count and is authoritative — this prose is not.**
+`audit_doc_consistency.py` forbids the docs contradicting themselves or the code; `CLAUDE.md`
+carries pairs **P1-P4** (banner↔queue, KI header↔body, STATE↔changelog, README↔files), **Tier 1**
+(an independent agent per completed item's doc diff) and **Tier 2** (a cold-start agent at session
+end). ⚠ **The gate is a FLOOR, not a sweep** — on 2026-08-15 it saw only 3 of 7 stale drift claims.
+Origin detail: `28-HANDOFF-ARCHIVE.md`.
+
+## ✅ ROOMS 1, 2, 6 AND 3 (driven 2026-08-13) — BANNERS in `28-HANDOFF-ARCHIVE.md`
+
+All DRIVEN AND PASSING; ⛔ do not rebuild. ‼ **Four reusable rules:** *assert the OUTCOME, not the position
+you expected* (Room 6); *the instrument was wrong, not the claim* (Room 3 — a discriminator counted
+battles RUN-WIDE and printed a false REFUTED over data that CONFIRMED it); *copy upstream's ROUTE,
+never its CONTROL FLOW* (Rooms 1/2 — pushes go through the bounded `strength_push`); and
+**`FLAG_SYS_USE_STRENGTH` is cleared on EVERY WARP** — the code was safe, the COMMENTS were wrong.
+⚠ Room 6's arrow-warp derived-direction branch is still UNEXECUTED; KI-77's despawn window (20x17)
+has since predicted a live dump exactly.

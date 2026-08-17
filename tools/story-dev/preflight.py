@@ -73,7 +73,19 @@ else:
     behind = "behind" in branch_line
     if not QUIET:
         print(f"  {branch_line.strip()}")
+        # ‼ NAME THEM, DO NOT JUST COUNT THEM (2026-08-16). A bare count cannot tell a cold start
+        # whether the dirt is EXPECTED — `party_accounting_ledger.jsonl` is TRACKED and every
+        # `story_harness.py` drive appends to it — or something nobody meant to leave behind. A
+        # Tier 2 agent hit exactly that: a WARN telling it to "review with the user before pulling",
+        # against a handoff STATE row promising a clean tree, and no way to reconcile the two.
         print(f"  uncommitted files: {len(dirty)}")
+        for entry in dirty[:10]:
+            note = ""
+            if "party_accounting_ledger" in entry:
+                note = "   <- EXPECTED after any driver run; COMMIT it, never `git checkout --` it"
+            print(f"      {entry.strip()}{note}")
+        if len(dirty) > 10:
+            print(f"      ... and {len(dirty) - 10} more")
     if behind and ahead:
         hard_failures.append(
             "git is DIVERGED from the remote. ‼ CLAUDE.md: STOP and report to the user — this "
