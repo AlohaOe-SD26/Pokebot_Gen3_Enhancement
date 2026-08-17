@@ -268,6 +268,11 @@ def check_gate_counts(files: dict[str, str]) -> list[str]:
     claims = re.compile(
         r"(\d{1,2})\s*/\s*(\d{1,2})\s+gates?\b"
         r"|\bsuite\s+is\s+now\s+(\d{1,2})\b"
+        # ‼ ADDED 2026-08-17 — THE SAME CLAIM-SHAPE BLIND SPOT THE DRIFT RULE HAD, in the check
+        # right next to it. The rule above demands the word "now", so `the suite is 25 gates`
+        # sailed straight through; a Tier 1 reviewer found it FOUR LINES above a correct
+        # `26/26 gates PASS` in the same file. ⇒ A count claim does not need "now" to be a claim.
+        r"|\bsuite\s+is\s+(\d{1,2})\s+gates?\b"
         r"|\bALL\s+(\d{1,2})\s+GATES\b"
         r"|\b(\d{1,2})[- ]gate\s+suite\b"
         r"|STANDING\s+SUITE\s*[—-]+\s*(?:all\s+)?(\d{1,2})\s+gates?"
@@ -897,6 +902,12 @@ def self_test() -> int:
     expect("D1o a command whose comment states NO count claims nothing and stays quiet",
            check_gate_count_in_commands(
                {"T": "py -3.12 run_gates.py --list    # what is in the suite\n"}), False)
+    # ‼ D2b/D2c — `the suite is N gates` WITHOUT the word "now". This phrasing was invisible until
+    # 2026-08-17, when a Tier 1 reviewer found a stale `25` four lines above a correct `26/26`.
+    expect("D2b `the suite is <wrong> gates` (no `now`) -> fires",
+           check_gate_counts({"T": f"both must exit 0; the suite is {total + 1} gates\n"}), True)
+    expect("D2c the same phrasing with the RIGHT count -> quiet",
+           check_gate_counts({"T": f"both must exit 0; the suite is {total} gates\n"}), False)
     measured, _ = real_drift()
     expect("D3 wrong drift", check_drift({"T": f"drift is exactly {measured + 1}\n"}), True)
     expect("D4 right drift", check_drift({"T": f"drift is exactly {measured}\n"}), False)

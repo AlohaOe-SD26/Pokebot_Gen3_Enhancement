@@ -2233,7 +2233,7 @@ the 6000-frame per-invocation bound, with only two refusable slots to burn throu
 
 ### ✅✅✅ FIXED AND PROMOTED TO BOTH FORKS 2026-08-17 (user-approved)
 
-✅ **PROMOTED TO BOTH FORKS 2026-08-17, USER-APPROVED — DRIFT IS 0.** Proven by a THREE-POINT A/B against `--build custom`: BEFORE `on_field=[0,3]`/`[1,3]`, 2 faints, 486 presses → AFTER `on_field=[0,1]`, 1 faint, 361 presses → sandbox control IDENTICAL to AFTER. Restore point `restore/2026-08-17-pre-promotion-ki66-onfield`.
+✅ **PROMOTED TO BOTH FORKS 2026-08-17, USER-APPROVED — drift was 0 at that point.** *(⚠ It is 2 today for the UNRELATED `#24-orphans` (1) files; this KI is still promoted. MEASURE with `promote.py --check`.)* Proven by a THREE-POINT A/B against `--build custom`: BEFORE `on_field=[0,3]`/`[1,3]`, 2 faints, 486 presses → AFTER `on_field=[0,1]`, 1 faint, 361 presses → sandbox control IDENTICAL to AFTER. Restore point `restore/2026-08-17-pre-promotion-ki66-onfield`.
 
 `_on_field` now maps through `BattleState.map_battle_party_index` before being compared against
 `party_in_menu`, mirroring what `alive_slots` three blocks below has done since KI-34.
@@ -2338,7 +2338,7 @@ number in prose** — it is the only thing that counts them.
 ## KI-65 — ✅✅✅ **CLOSED 2026-08-16: REPRODUCED, FIXED, A/B-PROVEN, GATED (#25) AND PROMOTED TO BOTH FORKS (user-approved).** Was: the HM-refusal re-pick raises `UnboundLocalError` into a silent `except` **WHEN `_read_offered_move` HAS ALREADY FAILED**, so two invisible failures compound into a silent decline (filed 2026-08-12, code-verified)
 
 > ⛔ **STATUS IN ONE LINE:** the bug is FIXED in `sandbox-pokebot` and guarded by gate #25
-> (`repro_ki65_unbound_party_index.py`). ✅ **PROMOTED 2026-08-16, USER-APPROVED — drift was 0 at that point. ✅ **AND IT IS ZERO AGAIN as of 2026-08-17** — the KI-66 `_on_field` fix was PROMOTED the same day (user-approved). *(This clause briefly read "NOT ZERO … a ruling is owed", which was true for about an hour and then was not; it is the reason rule 8 below exists. MEASURE with `promote.py --check`.)*** The KI-65 fix is in BOTH forks, proven by a THREE-POINT A/B against `--build custom`: BEFORE `fault_fired=159, lie_msg=1` → `ACCEPTANCE: FAIL`; AFTER `fault_fired=87, lie_msg=0, honest_msg=1` → `ACCEPTANCE: PASS`; and `--build sandbox` still PASS. Restore point `restore/2026-08-16-pre-promotion-ki65`. ‼ Everything below the "RECON" heading is the
+> (`repro_ki65_unbound_party_index.py`). ✅ **PROMOTED 2026-08-16, USER-APPROVED — drift was 0 at that point. ✅ **AND IT WAS ZERO AGAIN as of 2026-08-17** — the KI-66 `_on_field` fix was PROMOTED the same day (user-approved). *(This clause briefly read "NOT ZERO … a ruling is owed", which was true for about an hour and then was not; it is the reason rule 8 below exists. MEASURE with `promote.py --check`.)*** The KI-65 fix is in BOTH forks, proven by a THREE-POINT A/B against `--build custom`: BEFORE `fault_fired=159, lie_msg=1` → `ACCEPTANCE: FAIL`; AFTER `fault_fired=87, lie_msg=0, honest_msg=1` → `ACCEPTANCE: PASS`; and `--build sandbox` still PASS. Restore point `restore/2026-08-16-pre-promotion-ki65`. ‼ Everything below the "RECON" heading is the
 > PRE-FIX investigation, kept because three of its load-bearing claims were WRONG and a future
 > session must not re-derive them. **Read the FIX block immediately below first.**
 
@@ -2808,7 +2808,7 @@ Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans 
 
 ---
 
-## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED (2026-08-15, ✅ FIXED, FAULT-PROVEN and PROMOTED TO BOTH FORKS — ⚠ ONE RESIDUAL, see below) — FULL ENTRY in `31-KNOWN-ISSUES-ARCHIVE.md`
+## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED (2026-08-15, ✅ FIXED, FAULT-PROVEN and PROMOTED TO BOTH FORKS — ✅ ITS RESIDUAL'S INSTRUMENTATION HALF IS DONE 2026-08-17, SANDBOX-ONLY; ⚠ THE REACTION HALF IS STILL OPEN, see below) — FULL ENTRY in `31-KNOWN-ISSUES-ARCHIVE.md`
 
 Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans on:**
 - **The defect:** `pc_trip.py:472-473` printed *"{name} is in the party"* after reading only
@@ -2818,9 +2818,14 @@ Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans 
 - ‼ **The method rule, which is the reusable part:** a byte-compare was NOT accepted as proof for a
   BEHAVIOUR promotion — a **THREE-POINT A/B** was (PASS before → FAIL after faulted → PASS after
   unfaulted), and run 1 is unrepeatable once the copy happens, so it runs and commits FIRST.
-- ⛔⛔ **THE RESIDUAL, AND IT IS LIVE: NO CALLER ACTS ON THE VERDICT.** The message is honest now;
-  production still cannot REACT — `withdraw_from_box` returns nothing and never raises, so a failed
-  withdraw is *reported* and silently tolerated. Its ONE caller is the
+- ⚠ **THE RESIDUAL — HALF CLOSED 2026-08-17.** ✅ **The verdict now REACHES the caller:** all five
+  exits return `(landed, code, detail)`, the ONE caller BINDS it, and a pure `withdraw_verdict_report`
+  reports it — proven by a live two-armed A/B (`landed=True code=landed` unfaulted vs
+  `landed=False code=did_not_land` faulted) and by gate #26 `repro_withdraw_verdict.py`, which FAILS
+  against the unpromoted `custom` tree. ⚠ SANDBOX-ONLY; a promotion is the USER's call.
+  ⛔ **STILL OPEN: production READS the verdict but does not ACT on it** — what it should DO is the
+  USER's ruling and is blocked on an unmeasured `sStorage->messageText` offset. `withdraw_from_box`
+  still never raises for a PC problem, which is deliberate and unchanged. Its ONE caller is the
   `yield from` at `higher_level_actions.py:356` (inside the `try:` that opens at `:344`), which
   discards the value. **Tracked as `#24-orphans` item (1)**;
   its instrumentation half is specified, but *how* production should react needs the USER's ruling.

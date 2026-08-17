@@ -1,0 +1,88 @@
+[setup] LOG -> wv-armB
+[setup] loaded save state fortree_gym_wedge.ss1; build=sandbox
+[run] starting faithful loop for up to 400000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f0: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=<err cannot import name 'get_text_printer' from 'modules.game' (C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\modules\game.py)> tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=<none> bt='Got away safely!' scripts=[] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f1: CONTROLLER -> BoxCounter2Mode.run   (state=OVERWORLD)
+[boxcounter2] ARM=B (POKEBOT_BOXCOUNTER_TYPEONLY_A='<unset>') needed=['Dragon', 'Ice', 'Rock']
+[boxcounter2] NEEDED-DERIVATION ace_types=('Dragon', 'Flying') -> derived=['Dragon', 'Ice', 'Rock'] ; expected=['Dragon', 'Ice', 'Rock'] ; needed_ok=True
+[boxcounter2] SNAPSHOT before_box_pids=0 entries ([]) — taken BEFORE injection, exactly as hunt() does at counter_hunt.py:491
+[boxcounter2] FIXTURE at box(0, 0) pid=B7FFF8CC species=Slugma level=15 rock_throw=True types=['Fire']
+[boxcounter2] CONTROLS fixture_ok=True disjoint_from_needed=True not_in_before_box_pids=True not_in_party=True needed_ok=True
+[boxcounter2] SOLE-CANDIDATE box_counter_pid(needed, exclude=before|{fixture}) -> None ; sole=True
+[boxcounter2] BYSTANDERS (diagnosis only, never the verdict): (none)
+[boxcounter2] CALL box_counter_pid(needed, exclude_pids=before) -> B7FFF8CC ; ARM B expected B7FFF8CC ; match=True
+[boxcounter2] RESULT arm=B fixture_ok=True disjoint=True not_excluded=True not_in_party=True needed_ok=True sole=True pid_match=True
+[boxcounter2] STAGE-1 GATE -> PASS
+[boxcounter2] PUBLISHED _hunted_counter_pids=['B7FFF8CC'] (from box_counter_pid's return value ONLY — never hand-set from the fixture)
+[boxcounter2] PRE-RISK arm=B map=(12, 1) pos=(4, 19) fixture_pid=B7FFF8CC boxed_before=True party_before={(1553394331, 'Mightyena'): 'Mightyena L38', (2252015895, 'Sceptile'): 'Sceptile L39', (187737927, 'Swellow'): 'Swellow L33', (1556928702, 'Skitty'): 'Skitty L17', (868971715, 'Zigzagoon'): 'Zigzagoon L3', (3380138318, 'Castform'): 'Castform L25'}
+[boxcounter2] STEP 5/8 — the REAL heal — heal_in_pokemon_center(FortreeCity), with its PC piggybacks
+f377: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=<err cannot import name 'get_text_printer' from 'modules.game' (C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\modules\game.py)> tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitDoor'] ctrl=BoxCounter2Mode.run bt='Got away safely!' scripts=[] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f2000: heartbeat mode=Story ctrl=BoxCounter2Mode.run state=OVERWORLD party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f2002: SAVED stall state #1 to stalls/repro-ml-f2002.ss1 (bt='Got away safely!')
+f2302: !!! NO-PROGRESS x1200 sig=('BoxCounter2Mode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523', (7, 4)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['FortreeCity_PokemonCenter_1F_EventScript_Nurse'] bt='Got away safely!' bot_mode=Story
+f2302:     gen -> BoxCounter2Mode.run  @ story_harness.py:5676
+f2302:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2302:     gen -> heal_in_pokemon_center  @ higher_level_actions.py:337
+f2302:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2302:     gen -> wait_for_no_script_to_run  @ tasks_scripts.py:155
+f2802: PARTY CHANGE [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Skitty:L17:exp4598|Zigzagoon:L3:exp27|Castform:L25:exp16523] -> [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f2804: PARTY CHANGE [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Zigzagoon:L3:exp27|Castform:L25:exp16523] -> [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f2851: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=<err cannot import name 'get_text_printer' from 'modules.game' (C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\modules\game.py)> tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_PCMainMenu'] ctrl=BoxCounter2Mode.run bt='Got away safely!' scripts=['EventScript_AccessPokemonStorage'] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523]
+f3086: PARTY CHANGE [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523] -> [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Slugma:L15:exp3375]
+f3102: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=<err cannot import name 'get_text_printer' from 'modules.game' (C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\modules\game.py)> tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_PCMainMenu'] ctrl=BoxCounter2Mode.run bt='Got away safely!' scripts=['EventScript_AccessPokemonStorage'] party=[Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Slugma:L15:exp3375]
+[boxcounter2] AFTER-HEAL in_party=True still_boxed=False moved=True
+[boxcounter2] DEPOSITED-TO-MAKE-ROOM ['Skitty L17'] (pids ['5CCCD8BE']) — REPORTED, not graded. ‼ `find_dead_weight` picks this, and nothing stops it choosing a twin.
+[boxcounter2] PARTY-COUNT before=6 after=6 — ⛔ REPORTED ONLY: a successful withdraw leaves every count unchanged, because the make-room deposit cancels it. A count cannot tell success from doing nothing.
+[boxcounter2] STEP 6/8 — the withdrawn Slugma must still know Rock Throw
+[boxcounter2] MOVESET-SURVIVED knows_rock_throw=True
+[boxcounter2] STEP 7a/8 — lead selection — WITH a hunted_pids=None control, so the step CAN fail
+f3700: PARTY CHANGE [Mightyena:L38:exp57208|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Slugma:L15:exp3375] -> [Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+f3781: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=<err cannot import name 'get_text_printer' from 'modules.game' (C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\modules\game.py)> tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeShowStartMenu'] ctrl=BoxCounter2Mode.run bt='Got away safely!' scripts=[] party=[Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+[boxcounter2] LEAD control(hunted=None)=5C96EA9B (Mightyena L38) ; real(hunted={fixture})=B7FFF8CC (Slugma L15) ; lead_is_counter=True
+[boxcounter2] LEAD-MECHANISM-DECISIVE=True — REPORTED. False means the Slugma would have led anyway, so this run does not attribute slot 0 to hunted_pids.
+[boxcounter2] STEP 7b/8 — a SECOND full heal — the withdraw must NO-OP, and for the RIGHT reason
+f4000: heartbeat mode=Story ctrl=BoxCounter2Mode.run state=OVERWORLD party=[Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+f4933: SAVED stall state #2 to stalls/repro-ml-f4933.ss1 (bt='Got away safely!')
+f5233: !!! NO-PROGRESS x1200 sig=('BoxCounter2Mode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208', (7, 4)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['FortreeCity_PokemonCenter_1F_EventScript_Nurse'] bt='Got away safely!' bot_mode=Story
+f5233:     gen -> BoxCounter2Mode.run  @ story_harness.py:5747
+f5233:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f5233:     gen -> heal_in_pokemon_center  @ higher_level_actions.py:337
+f5233:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f5233:     gen -> wait_for_no_script_to_run  @ tasks_scripts.py:155
+[boxcounter2] SECOND-HEAL party_unchanged=True still_in_party=True find_in_box=None noop_attributed=True
+[boxcounter2] RESULT arm=B moved=True knows_rock_throw=True lead_is_counter=True noop_attributed=True (reported: lead_decisive=True)
+[boxcounter2] ACCEPTANCE: PASS
+[boxcounter2] STEP 8/8 — gym leg SKIPPED (set POKEBOT_BOXCOUNTER2_GYM=1 to run it). It is reported-not-graded by design.
+f5491: CONTROLLER -> <none>   (state=OVERWORLD)
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+f6391: SAVED stall state #3 to stalls/repro-ml-f6391.ss1 (bt='Got away safely!')
+f6691: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208', (5, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f6691:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+f8491: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208', (5, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f8491:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+f13491: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208', (5, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f13491:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+f20000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+f20491: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208', (5, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f20491:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f22000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+f24000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+f25491: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 25492 frames; final mode=Manual party=[Slugma:L15:exp3375|Sceptile:L39:exp52361|Swellow:L33:exp32896|Zigzagoon:L3:exp27|Castform:L25:exp16523|Mightyena:L38:exp57208]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Slugma L15: Yawn, Smog, Ember, Rock Throw
+[moveset] Sceptile L39: Rock Smash, Pursuit, Leaf Blade, Quick Attack
+[moveset] Swellow L33: Peck, Wing Attack, Double Team, Quick Attack
+[moveset] Zigzagoon L3: Tackle, Growl, Surf
+[moveset] Castform L25: Powder Snow, Rain Dance, Sunny Day, Hail
+[moveset] Mightyena L38: Tackle, Swagger, Take Down, Bite
+[PARTY-ACCT] STAGE 0 SUMMARY — 25492 get_party() recomputes, 85 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT]   HOLE:slot 5 of gPlayerPartyCount=6: counted by the game but (near-)all zero, so it is skipped — B is now < A and every later Pokémon's list position no longer equals its physical slot  x30
+[PARTY-ACCT] ledger += boxcounter2 25492 recomputes (party_accounting_ledger.jsonl)

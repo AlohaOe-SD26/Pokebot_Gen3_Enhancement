@@ -92,6 +92,14 @@ GATES: list[tuple[str, bool]] = [
     # the lie + honest-message checks. It DRIVES the emulator, so a mention in a comment cannot
     # trigger it.
     ("repro_ki65_unbound_party_index.py", True),
+    # `#24-orphans` (1), 2026-08-17. KI-79 made `withdraw_from_box` SAY the truth; every exit still
+    # returned `None`, so the caller could not READ it and a failed withdraw was reported and then
+    # silently tolerated. This asserts the verdict REACHES the caller — AST-structural, so a new
+    # early `return` added later cannot quietly reintroduce the bug — plus the pure report mapping.
+    # ⛔ It does NOT assert the withdraw works: that is the live two-armed `boxcounter2` A/B.
+    # Fault-tested against REALITY, not only synthetics: `--build custom` (the unpromoted tree) FAILS
+    # on exactly the bare returns and the discarded result. Self-test: `--self-test` (7 cases).
+    ("repro_withdraw_verdict.py", False),
 ]
 
 

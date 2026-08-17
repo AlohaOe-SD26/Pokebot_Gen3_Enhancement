@@ -7938,3 +7938,27 @@ the fix did not just disable exemption altogether.
 marker to precede what it excuses and to stop at a sentence boundary — and fault-test every
 exemption with a LOOKALIKE (innocuous text containing the marker vocabulary), never only with the
 real thing it was written for.*
+
+## 2026-08-17 — my unit test passed while the line it asserted never reached the transcript (`rich` ate it)
+
+**Symptom.** The new withdraw-verdict report ended with a machine-readable tail,
+`[landed=True code=landed]`, and the pure unit test asserted that tail and PASSED. The first live
+run showed the transcript line ending at `— Slugma`, with **no tail at all**. The two-armed A/B was
+about to be graded on a substring that does not exist in any log.
+
+**Root cause.** `_piggyback_report` prints through `rich`, which parses `[...]` as a STYLE TAG and
+silently swallows it. The unit test asserted the value the function RETURNS; the proof depends on
+the value the run EMITS. Those are different objects, and only one of them is evidence.
+
+**The fix that worked.** Delimiter changed to `:: verdict landed=<b> code=<c>` — no brackets — and
+the gate now asserts *both* that the tail is present AND that the line contains no square bracket
+at all, so the bug cannot return by a different route. The A/B was restarted rather than graded on
+mixed formats: half-old, half-new evidence is not evidence.
+
+**Prevention rule.** ⇒ *When a proof greps a log, assert the substring in the LOG, not in the
+function's return value — and remember that any console layer between them (here `rich` markup) can
+transform or delete it. Read the first live line before spending the run.*
+
+**Why this one is worth reading twice.** It is `CLAUDE.md` §7 in miniature — *instrument the action,
+not the input to the action* — committed by a session that had spent the day enforcing that exact
+rule on someone else's code. The unit test was not wrong; it was measuring the wrong object.

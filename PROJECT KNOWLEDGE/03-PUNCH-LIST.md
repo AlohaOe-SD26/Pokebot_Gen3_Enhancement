@@ -1941,10 +1941,32 @@ level-matched encounters maintenance needs. Done together they are one activity,
 > archived handoff section, a research note). That is the P2 header-vs-body failure applied to
 > TRACKING rather than to STATUS, and prose alone did not catch it — the question did.
 
-- [ ] **(1) ‼ HIGHEST COST — `withdraw_from_box` has NO CALLER THAT CHECKS ITS VERDICT.**
-      ⛔ **STATUS IN ONE LINE: the DESIGN is unblocked, the BUILD is NOT.** The user's ruling settled
-      *what to build*; the recon below then found the *first step is a MEASUREMENT nobody has taken*.
-      ⇒ **Do not open this item expecting to write mode code.** Its next action is a live probe for
+- [~] **(1) `withdraw_from_box`'s VERDICT — ✅ INSTRUMENTATION HALF DONE 2026-08-17 (returned,
+      BOUND, reported, gated, two-armed A/B). ⛔ REMAINING: the REACTION POLICY — still blocked on
+      an UNMEASURED heap offset, and it needs the USER.**
+      ⛔ **STATUS IN ONE LINE: production can now READ the verdict; it still does not ACT on it.**
+      That split is deliberate and is the whole shape of this item.
+      ✅✅ **WHAT SHIPPED (sandbox only — ⚠ drift is 2, awaiting a user-approved promotion):**
+      all five exits of `withdraw_from_box` return `(landed, code, detail)` — the shape the recorded
+      design asked for — its ONE caller (`modules/modes/util/higher_level_actions.py:356`) BINDS the
+      result, and a new PURE function `withdraw_verdict_report` turns it into a reported line.
+      ‼ **The codes distinguish ATTEMPTED-AND-FAILED from NEVER-ATTEMPTED** (`landed`, `not_in_box`,
+      `party_full_no_deposit`, `did_not_land`, `error`). ⛔ Collapsing the no-attempt cases into a
+      failure would manufacture one out of the commonest case — the same shape as the count-based
+      lie KI-79 removed. ⛔ An UNRECOGNISED code and a MISSING verdict both read as FAILED.
+      ✅ **PROVEN TWO WAYS, both MEASURED:**
+      (a) **LIVE TWO-ARMED A/B**, `--driver boxcounter2` on `fortree_gym_wedge.ss1`:
+          ARM B unfaulted → `verdict landed=True code=landed`, `ACCEPTANCE: PASS`, 0 fault lines;
+          ARM A `POKEBOT_PCWITHDRAW_FAULT=1` → `verdict landed=False code=did_not_land` (×2), fault
+          provably armed (2 `SKIPPING the PC interaction` lines), `ACCEPTANCE: FAIL` — which is the
+          REGISTRY'S DOCUMENTED EXPECTATION for the faulted arm, not a regression.
+          Transcripts: `evidence/2026-08-17-withdrawverdict-ARM{A,B}-*.stdout.txt`.
+      (b) **THE GATE FIRES ON THE REAL BEFORE-CODE, not a synthetic one:**
+          `repro_withdraw_verdict.py --build custom` (the unpromoted tree) FAILS on exactly the bare
+          returns and the discarded result; the same gate passes on sandbox. Gate #26, 7 self-tests.
+      ⛔ **DO NOT REBUILD ANY OF THAT.**
+      🔜 **WHAT REMAINS — the REACTION half, and every constraint below still applies to it.**
+      ⛔ **Do not open THAT half expecting to write mode code.** Its next action is a live probe for
       one heap offset. ‼ Header and body disagreeing on that was itself a P2 finding (2026-08-16).
       ✅ **DESIGN RULED 2026-08-16 — THE USER RULED** (`06-DECISIONS-LOG.md`): *"reattempt but after
       intelligently processing the data (text boxes it reads to determine why it failed)"*.

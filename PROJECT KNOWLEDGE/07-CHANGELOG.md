@@ -16085,3 +16085,84 @@ corrections came out of it:
   toward faint 1's"* — RETIRED as unrunnable: the AFTER run has **1 faint, not 2**, so it has no
   referent. ⇒ *a follow-up step written against the BEFORE trajectory can be made meaningless by
   the very fix it follows; re-read it against the AFTER run before leaving it queued.*
+
+## 2026-08-17 — `withdraw_from_box`'s verdict REACHES its caller (`#24-orphans` (1), instrumentation half)
+
+**The defect.** KI-79 made this function *say* the truth on the console — identity-verified, loud on
+failure. Every exit still returned `None`, so "the counter is in the party", "there was nothing to
+collect" and "the withdraw was tried and did not land" were the SAME value to `yield from`. A failed
+withdraw was reported and then silently tolerated, and production could not react to it at all.
+
+**What changed (sandbox only — drift is 2; promoting is the USER's call).**
+* `pc_trip.py::withdraw_from_box` returns `(landed, code, detail)` on all five exits — the shape the
+  recorded design asked for (`06-DECISIONS-LOG.md`: *"returns a verdict `(ok, CODE, detail)`"*), so
+  the classifier can fill `detail` later without changing this contract a second time.
+* ‼ **The codes separate ATTEMPTED-AND-FAILED from NEVER-ATTEMPTED** — `landed`, `not_in_box`,
+  `party_full_no_deposit`, `did_not_land`, `error`. ⛔ Collapsing the no-attempt cases into a failure
+  would manufacture one out of the commonest case (most heals have nothing to collect, and a full
+  party declining to thin itself is CORRECT behaviour) — the same shape as the count-based lie KI-79
+  removed from the console.
+* `higher_level_actions.py:356` now BINDS the result and reports it through a new PURE, GATED
+  `withdraw_verdict_report`. ⛔ An UNRECOGNISED code and a MISSING verdict both read as FAILED,
+  because those two silences are the original bug wearing a new hat.
+* ⛔ **A whiteout still propagates and yields NO verdict** — inventing a `False` there would let a
+  caller "handle" a dead run (KI-81).
+* ⛔ **NO REACTION POLICY WAS ADDED.** What production should DO about a failure is the USER's ruling
+  and is blocked on the unmeasured `sStorage->messageText` offset. This ships the READ, not the ACT.
+
+**Evidence — measured both ways.**
+* **LIVE TWO-ARMED A/B**, `--driver boxcounter2` on `fortree_gym_wedge.ss1`:
+  ARM B unfaulted → `verdict landed=True code=landed`, `ACCEPTANCE: PASS`, **0** fault lines.
+  ARM A `POKEBOT_PCWITHDRAW_FAULT=1` → `verdict landed=False code=did_not_land` (×2), **2**
+  `SKIPPING the PC interaction` lines proving the fault was armed, `ACCEPTANCE: FAIL` — the
+  registry's DOCUMENTED expectation for a faulted arm, not a regression. Each arm's stdout captured
+  separately under `evidence/2026-08-17-withdrawverdict-ARM{A,B}-*` (the verdict lines are
+  `console.print` output and are NOT in the harness log — KI-79's evidence rule).
+* **The BEFORE arm is proven structurally, not recalled:** new gate #26 `repro_withdraw_verdict.py`
+  run with `--build custom` (the unpromoted tree, i.e. the real pre-change code) FAILS on exactly
+  the bare returns, the discarded result and the missing reporter; the same gate passes on sandbox.
+* Gate #26 is AST-structural, so a new early `return` added later cannot quietly reintroduce the
+  bug. 7 self-tests, fault-tested in both directions. `--quick` is now 18 gates, the suite 26.
+
+**And the new gate immediately paid for the one built earlier today:** editing two sandbox files took
+drift 0 → 2, and `audit_doc_consistency.py`'s new claim-shape rules flagged **13** stale drift and
+gate-count claims across three files — including the STATE cell and the fenced HOW TO RUN line that
+were invisible to it this morning. The last of the 13 was found only by the gate, which is exactly
+the "a 13-site hand sweep reliably misses one" failure `#24-driftassertions` was built to end.
+
+### 2026-08-17 (same item, after adversarial review) — two flagged risks closed
+
+The review APPROVED with no blockers, having re-run every claim itself rather than accepting the
+self-report (it re-ran the gate on both forks, the 18-gate quick suite, and read both A/B
+transcripts). Two non-blocking risks it raised were fixed rather than accepted:
+* ⛔ **`detail` is the one FREE-TEXT field** — the `error` code carries `repr(error)`, so an
+  exception message containing `[` would have been eaten by `rich` exactly like the first-draft tail.
+  It is now sanitised at the single choke point every code passes through, and the gate FUZZES that
+  field (`RuntimeError("PC said [BOX FULL] at [10,1]")`) instead of testing three fixed samples.
+  ‼ *A prevention rule written the same hour did not stop the same bug in the adjacent field —
+  the fix belongs at the choke point, not in the reader's memory.*
+* The gate's `_falls_off_end` AST check ignored a `try/except/ELSE`'s `else` clause. Only ever a
+  FALSE FAILURE, but a gate that cries wolf gets bypassed. Rewritten so the success path is
+  "body terminates, or body falls into an `else` that terminates", with a terminating `finally`
+  ending the statement outright. **W8/W9 are the two new cases, and W9 caught a SECOND error in my
+  first rewrite** — which is the argument for always writing the quiet-direction test.
+Self-test is now 9 cases; the gate still passes on sandbox and still FAILS on the unpromoted
+`custom` tree.
+
+### 2026-08-17 (same item, after Tier 1) — the GATE-COUNT check had the same claim-shape blind spot
+
+A Tier 1 reviewer, measuring the counts itself instead of reading them, found
+`04-HANDOFF.md:39` still saying *"the suite is 25 gates"* — **four lines above** a correct
+`26/26 gates PASS`, in the same file, in the same section. ‼ `audit_doc_consistency.py` exited 0
+over it, because `check_gate_counts`' rule was `\bsuite\s+is\s+now\s+(\d{1,2})\b` and this phrasing
+has no *"now"*.
+
+⇒ **The identical CLAIM-SHAPE defect this morning's `#24-driftassertions` work removed from the
+drift rule was still sitting in the gate-count rule right next to it.** A count claim does not need
+"now" to be a claim. Pattern added, fault-tested both directions (`--self-test` D2b/D2c), and the
+stale line corrected — its own "this number has been wrong at 17, 18, 19, 20 and 21" list now
+records the 25 too.
+
+**The generalisable bit:** when a gate is taught a new CLAIM SHAPE, check whether its sibling checks
+in the same file share the old blind spot. Fixing one rule and leaving its neighbour is the
+half-of-a-pair defect this project keeps re-deriving — and here the neighbour was six lines away.
