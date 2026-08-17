@@ -16063,3 +16063,25 @@ value-dependent false positive; `--self-test` PASS; ALL 25 GATES PASS (134s).
 **One doc line re-dated, not silenced:** `05-KNOWN-ISSUES.md` read *"drift **is** ZERO again"* about
 2026-08-14 — a dated fact in the present tense inside a current-state file, which the new rule
 correctly questioned. The TENSE was corrected; the number was not touched.
+
+### 2026-08-17 (same item, after the Tier 2 cold-start audit) — four doc corrections
+
+The cold-start agent was given only `04-HANDOFF.md` + `00-README.md`, ran the ritual, and tried to
+BEGIN the next item. It confirmed the queue head is genuinely startable — it independently
+re-derived the discriminator from the source (every `return` in `withdraw_from_box` is bare, so the
+caller binds `None` in BOTH arms today; True/False after) rather than believing the handoff. Four
+corrections came out of it:
+* ⛔ **The line-budget note I had just written was STALE — the exact defect this item exists to
+  prevent, committed by the pass that fixed it.** I measured `~3,330 / ~270 free` BEFORE my own
+  later edits and never re-measured; the true figures are `03-PUNCH-LIST.md` **3538/3600 (62 free)**
+  and `04-HANDOFF.md` **883/900 (17 free)**. Both files are near the wall. The note now says
+  `lint_docs.py` IS the authority and must be run, not quoted.
+* `higher_level_actions.py:344` → **`modules/modes/util/higher_level_actions.py:356`** at 3 sites;
+  `:344` is the enclosing `try:`, not the call. Verified in the source.
+* `05-KNOWN-ISSUES.md` was still commissioning the fourth-index-space probe ("it needs its own
+  probe") that ran and was committed as `684d83a7` and that `03`/`04` both mark `[x]`. The ANSWER
+  and its tag are now recorded there.
+* `05-KNOWN-ISSUES.md`'s "NEXT, IN ORDER" step (b) — *"require faint 2's frame cost to collapse
+  toward faint 1's"* — RETIRED as unrunnable: the AFTER run has **1 faint, not 2**, so it has no
+  referent. ⇒ *a follow-up step written against the BEFORE trajectory can be made meaningless by
+  the very fix it follows; re-read it against the AFTER run before leaving it queued.*

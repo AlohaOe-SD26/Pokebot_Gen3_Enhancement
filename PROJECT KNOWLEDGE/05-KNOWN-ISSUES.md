@@ -2277,8 +2277,17 @@ batches resolved nothing about run-level outcomes. This took minutes and is deci
 `_to_menu_order` maps slot 2 to 1, and the sweep's candidate set no longer contains slot **2**,
 which is the slot the strategy actually chose (`CHOSEN new_lead_index=2`). That mapping is
 PRE-EXISTING KI-34 machinery, not introduced here, and the run still resolved (~89 frames, battle
-WON). ⛔ **Deliberately NOT changed** — it needs its own probe and its own discriminator, exactly
-as the owner filter does. Tracked so it does not orphan.
+WON). ⛔ **Deliberately NOT changed** — it needed its own probe and its own discriminator, exactly
+as the owner filter does. Tracked so it does not orphan, as `#24-faintchooser-fourthspace`.
+✅✅ **AND THAT PROBE RAN — ANSWERED 2026-08-17, `#24-faintchooser-fourthspace` IS CLOSED.
+NO FOURTH INDEX SPACE IS DEMONSTRATED: the last cursor the sweep read before the menu closed
+(**3**) IS in `alive_slots_menu` (**[1,3,4,5]**). The anomaly is REAL IN THE LOG and INERT IN
+BEHAVIOUR. ⛔ DO NOT "FIX" IT, and ⛔ do not re-commission the probe — it exists and it ran
+(commit `684d83a7`; the positive control on the pre-fix build, `cursor_reads=66, A-presses=239`,
+is what makes that zero trustworthy). ⚠ Limits: refusal count APPROXIMATE, n=1 diverging faint.**
+*(‖ This block read "it needs its own probe" for a day AFTER that probe had run and been
+committed — a cold-start audit found `05` still commissioning finished work that `03` and `04`
+both marked `[x]`. Corrected 2026-08-17.)*
 
 ✅ **SAFETY:** all **25** gates PASS (measured), including `repro_multi_battle_partner.py`,
 `repro_whiteout_abort.py` and the 114s `repro_gym_whiteout_guard.py` — this filter runs in EVERY
@@ -2291,7 +2300,10 @@ and `...-RUN5-AFTER-onfield-fix.stdout.txt` (after).
 
 ✅ **NEXT, IN ORDER:** (a) ✅ DONE — fix `_on_field`'s index space — map through
 `BattleState.map_battle_party_index` before comparing, exactly as `:659-680` already does for
-`alive_slots`; (b) re-run this driver and require faint 2's frame cost to collapse toward faint 1's;
+`alive_slots`; (b) ⛔ **RETIRED 2026-08-17 AS UNRUNNABLE — it has no referent.** It asked to
+"require faint 2's frame cost to collapse toward faint 1's", but the AFTER run the fix produced
+has **1 faint, not 2** (`on_field=[0,1]`, 361 presses), so there is no faint 2 to measure. The
+acceptance it was reaching for was already met by the THREE-POINT A/B recorded above;
 (c) only then consider the owner filter, and **give it its own discriminator**, because this fixture
 proves it is inert on its own.
 
