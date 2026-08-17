@@ -222,7 +222,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 > `/checkpoint` debt). ⚠ That is NOT the same as "nothing is parked": **§Ch20 chapter assembly IS
 > parked** — deliberately, by the user on 2026-08-14, finished and waiting, not abandoned (item 0).
 >
-> 0. ‼ **THE LIVE QUEUE (updated 2026-08-14) — DO THESE FIRST; items 1-5 below are older framing.**
+> 0. ‼ **THE LIVE QUEUE (updated 2026-08-14) — DO THESE FIRST; items 2-4 below are older framing (item 1 is the ritual and is NOT older framing; item 5 was archived 2026-08-17).**
 >    ‼ NEW STANDING RULE FOR EVERY ITEM BELOW: doc edits run Tier 0 (`lint_docs` +
 >    `audit_doc_consistency`, both exit 0) before their commit, and a completed item gets a
 >    Tier 1 independent review of its doc diff — see `CLAUDE.md`'s DOC CONSISTENCY LAYER.
@@ -379,7 +379,8 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    **INCONCLUSIVE, never support for H0**; take up to 3 runs (RNG moved it between 2 faints and 1).
 >    ⛔ **DO NOT PATCH HERE** — index-space reasoning in this function has been wrong three times.
 >
->    ➡➡ **THEN: `(P4c) #24-orphans
+>    ➡➡ **THEN: `(P4c) #24-orphans` — ✅ (4) AND ✅✅ (2) DONE; (3) KI-66 PARTLY DONE (`_on_field`
+>    half FIXED+PROMOTED, OWNER-filter half OPEN); (1), (5), (6) OPEN.**
 >    ‼ **Cost order and STARTABILITY order differ, and the item lists only cost.** (1) is costliest
 >    (no caller acts on `withdraw_from_box`'s verdict) but SPLITS: the INSTRUMENTATION half is fully
 >    specified — return a verdict, bind it at its ONE caller (`higher_level_actions.py:344`), report
@@ -818,7 +819,7 @@ the harness log — ⛔ **whose path the run PRINTS as its first line** (`[setup
 because names are unique per run since 2026-08-16; `ls -t tools/story-dev/harness_*.log | head -1`
 finds the newest afterwards.
 
-‼ **VERIFY THE SANDBOX↔CUSTOM DRIFT ROW RATHER THAN TRUSTING IT** — `promote.py --check` is in the block above and measures it BOTH ways in seconds. ✅ **Expected as of 2026-08-17 (LATEST): 0 differing, 0 orphaned** — everything is promoted, the KI-81 whiteout guard included. ⛔ ANY file listed is unexplained. *(This line was the SURVIVOR an adversarial review caught on 2026-08-16 — a 13-site hand sweep missed it AND `audit_doc_consistency` passed over it, which is the false negative `#24-driftassertions` exists to remove.)* *(This line said "0 differing, 0 orphaned" until a Tier 2 cold-start audit found it, along with the sibling line in the command block above, still claiming 0 after three other places in this file had been corrected to 1. ALL drift statements in this file move together or not at all — ⛔ a COUNT here has been wrong twice ('three' vs 'five'; the real sweep found THIRTEEN across five files). GREP, case-insensitively, print the MATCH not the line, and require zero.)* Superseded: *"the PowerShell loop is in `28-HANDOFF-ARCHIVE.md`'s copy of this section"*, together with an older expected-count naming `modules/map_path.py`, `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — all PROMOTED now and not part of the current drift set. ‼ **The old FIGURE is deliberately not reprinted**: `audit_doc_consistency` cannot tell a quotation from a claim, so quoting a stale count turns this line red (it did). ‼ `tools/story-dev/` is sandbox-only and is **not** part of that comparison, so the `ch20*` drivers, `probe_route128_landing.py` and `repro_party_accounting.py` do not change the count.
+‼ **VERIFY THE SANDBOX↔CUSTOM DRIFT ROW RATHER THAN TRUSTING IT** — `promote.py --check` is in the block above and measures it BOTH ways in seconds. ✅ **Expected as of 2026-08-17 (LATEST): 0 differing, 0 orphaned** — everything is promoted: the KI-66 `_on_field` fix (2026-08-17), the KI-65 fix (2026-08-16), and the KI-81 whiteout guard before them. ⛔ ANY file listed is unexplained. *(This line was the SURVIVOR an adversarial review caught on 2026-08-16 — a 13-site hand sweep missed it AND `audit_doc_consistency` passed over it, which is the false negative `#24-driftassertions` exists to remove.)* *(This line said "0 differing, 0 orphaned" until a Tier 2 cold-start audit found it, along with the sibling line in the command block above, still claiming 0 after three other places in this file had been corrected to 1. ALL drift statements in this file move together or not at all — ⛔ a COUNT here has been wrong twice ('three' vs 'five'; the real sweep found THIRTEEN across five files). GREP, case-insensitively, print the MATCH not the line, and require zero.)* Superseded: *"the PowerShell loop is in `28-HANDOFF-ARCHIVE.md`'s copy of this section"*, together with an older expected-count naming `modules/map_path.py`, `modules/story/early_game.py` and `plugins/custom_modes/story_mode.py` — all PROMOTED now and not part of the current drift set. ‼ **The old FIGURE is deliberately not reprinted**: `audit_doc_consistency` cannot tell a quotation from a claim, so quoting a stale count turns this line red (it did). ‼ `tools/story-dev/` is sandbox-only and is **not** part of that comparison, so the `ch20*` drivers, `probe_route128_landing.py` and `repro_party_accounting.py` do not change the count.
 
 ---
 

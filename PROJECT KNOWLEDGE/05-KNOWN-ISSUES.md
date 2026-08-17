@@ -2291,7 +2291,7 @@ and `...-RUN5-AFTER-onfield-fix.stdout.txt` (after).
 (c) only then consider the owner filter, and **give it its own discriminator**, because this fixture
 proves it is inert on its own.
 
-⚠ **NOT YET BUILT — no driver was written and nothing here has been driven live.** This is recon.
+⛔ *(SUPERSEDED 2026-08-17 — this line read "**NOT YET BUILT** — no driver was written and nothing here has been driven live". It was true when the recon above was written and is FALSE now: `--driver ki66faint` is BUILT, DRIVEN five times, and the `_on_field` defect it found is FIXED AND PROMOTED. ‼ It sat 64 lines under a heading saying FIXED AND PROMOTED — the exact "rebuild finished work" trap this layer exists to stop, and a third audit is what caught it.)*
 
 **The right shape of the fix** is one choke point — `ally_party_indices()` already exists — rather
 than a guard per call site. That is a battle-layer refactor touching every mode, so it is filed
