@@ -2655,3 +2655,276 @@ on the imported module object takes effect immediately — the same mechanism
 `map_battle_party_index` → `RuntimeError` (`battle_state.py:354`), fed by a RAW byte
 `read_symbol("gBattleStruct", 16, 1)[0]` read on an arbitrary frame while the UI animates — needs no
 exotic conditions. Both halves are required: the fault ALONE does not reach `:280` (see (C)).
+
+
+---
+
+# ARCHIVED 2026-08-17 — KI-66 RECON (1) THE FIXTURE and (2) THE FAINT MECHANISM
+
+Moved out of `05-KNOWN-ISSUES.md` on the R3 3,000-line budget once the driver was BUILT and
+DRIVEN (`--driver ki66faint`), which embodies both. Verbatim. ⚠ Note that the SAME recon's
+part (3) — a "narrowing" claiming the ally-only state coincides with the game's loss
+condition — was REFUTED by the first live run; see KI-66.
+
+**(1) THE FIXTURE EXISTS — it was never missing, only undocumented.**
+`--driver spacecenter2`, anchor **`saves/at_steven_2f.ss1`** (SPACE_CENTER_2F (13,2),
+`MOSSDEEP_SPACE_CENTER_STATE = 2`), drives `ChooseHalfPartyForBattle` and the real six-mon multi
+battle alongside Steven. It is documented in `story_harness.py` and in NO PROJECT KNOWLEDGE file,
+which is why the audit could not find it. *(Also present: `at_mossdeep_leaders.ss1`,
+`post_space_center.ss1`; drivers `spacecenter1`, `spacecenter`, `faintrepro`.)*
+
+**(2) THERE IS NO FAINT MECHANISM, AND THE FAITHFUL ONE IS NOT A MEMORY WRITE.**
+MEASURED: **none** of the 16 `POKEBOT_*` hooks can faint a mon or set HP, and `debug_write_party`
+writes `gPlayerParty` (out-of-battle) — **not** `gBattleMons`. ✅ **So do NOT add a `gBattleMons` HP
+writer.** Pre-stage the party BEFORE the battle with one mon at **1 HP**; it then faints in real
+combat. That is faithful gameplay, and it keeps this out of "documented last-resort state-write"
+territory entirely. ‼ 1 HP, not 0: `GetBattleEntryEligibility` rejects a 0-HP mon, and
+`battle_party_slots` (`space_center.py:503`) only offers eligible ones — a fainted mon would never
+be SELECTED, so it could never faint on the field.
+
+
+---
+
+# ARCHIVED 2026-08-17 — KI-66's original 2026-08-12 site table
+
+Moved out of `05-KNOWN-ISSUES.md` on the R3 budget once KI-66 was DRIVEN. Verbatim. ⚠ Its per-site
+severity guesses are superseded by measurement: the ally inclusion at `:630-636` proved INERT
+on the driven trajectory, while the on-field exclusion's index space proved to be the real
+defect. See KI-66's DRIVEN block.
+
+| site | what it does wrong |
+|---|---|
+| `battle_handler.py:541-545` | the `new_lead_index is None` fallback scans the FULL party — and KI-64's guard makes `None` *more* likely, so it feeds this |
+| `battle_handler.py:588-598` | full-party revalidation that writes a **party-order** index into a variable used as a **menu-order** index at `:600` (the KI-34 shape) |
+| `battle_handler.py:630-636` | `alive_slots` excludes only the on-field pair, so the ally's benched mons are A-press candidates; each refusal round-trips `Task_ReturnToChooseMonAfterText` — three of six slots are guaranteed-refused in this fight |
+| `_util.py:522-587` `get_potential_rotation_targets` / `select_rotation_target` | full-party, called live here from `default.py`; the result reaches `battle_action_selection.py:288`, an **unbounded** `while get_game_state() == PARTY_MENU: press A` |
+
+
+---
+
+# ARCHIVED 2026-08-17 — KI-80 (full entry)
+
+Moved out of `05-KNOWN-ISSUES.md` on the R3 3,000-line budget. The arc is CLOSED, FIXED, GATED and PROMOTED TO BOTH FORKS
+(2026-08-16, user-approved). Verbatim, unedited. Header reproduced first.
+
+## KI-80 — `grass_is_fodder` CONFLATED "no training patch configured" with "the patch is too weak", and it CO-GATED the counter-ladder (with `boss_teaches`, inside `losses >= 2`) — so giving a boss a training area silently disabled its KI-23 machinery. ✅ DECOUPLED AND PROMOTED TO BOTH FORKS 2026-08-16 (this KI's own file is in both forks) (2026-08-16, ✅ **REPRODUCED AND DRIVEN** — `--driver ki80ladder` is COMPLETE and PASSING: **4 arms**, both forks, mirror-regression guard fault-tested against the real naive edit. ✅ **AND THE DECOUPLING IS NOW BUILT, DRIVEN AND REVIEWED** — `:1901` is `if boss_teaches:`, `boss_mode` sits behind its own `if grass_is_fodder:`; `repro_boss_grass_gate.py` has SELF-RETIRED. ✅ **AND PROMOTED TO BOTH FORKS 2026-08-16 (user-approved), proven by a THREE-POINT A/B against `--build custom`; that file is in BOTH forks.** ⛔ **THIS KI STAYS OPEN ONLY FOR ITS TRACKED RESIDUAL** `#24-zerokocounter`: should `boss_teaches` come off the gate too? Not shipped because no arm can discriminate it, and an audit derived that it would need TWO new arms plus a frequency measurement first)
+
+- **The line.** `plugins/custom_modes/story_mode.py:1899`:
+  ```
+  grass_is_fodder = ("grass" not in cfg) or (wild_max is not None and wild_max + 8 < team_max)
+  ```
+  and `:1901`:
+  ```
+  if grass_is_fodder and boss_teaches:
+      hopeless, needed = self._boss_plan_is_hopeless(cfg)     # the ONLY call site
+      if hopeless:
+          acted = yield from self._counter_ladder(cfg, losses, needed)   # ditto
+  ```
+- **The defect.** One boolean carries two unrelated meanings — *"this boss has no patch"* and
+  *"this boss's patch is far below the team"* — and it gates **KI-23's** hopeless-detector and
+  counter-catch ladder. The two facts justify boss-training mode for the same reason, but they say
+  nothing in common about whether the party has a TYPE ANSWER, which is what the counter ladder is
+  for. ⇒ **A boss cannot be given a training patch without losing its counter machinery.**
+- **‼ DERIVED CONSEQUENCE — ARITHMETIC ON MEASURED BANDS, *NOT* A REPRODUCTION** (see "NOT OBSERVED FAILING" below; the 198/41/41 figures ARE measured, but they are KI-23's history, not this scenario). On the exact boss KI-23 was filed for: `wild_max` is read from the
+  ROM's LAND table for `cfg["grass"][0]` (`:1886-1890`). Winona's band is **(29,33)**; the patch
+  the adjacent code comment suggests is **Route 119, band 24-27**. For any team at **L30-35** —
+  i.e. her own band — `27 + 8 = 35 < team_max` is **FALSE**, so `grass_is_fodder` flips to False
+  and the counter ladder is SKIPPED. Control falls to the plain
+  `plus5_max`/`plus5_avg`/`escalate_band` escalation at `:1937-1951` — **the path KI-23 measured
+  failing 198 attempts / 41 losses / 41 whiteouts, never converging**, because it does not
+  converge when the party has no super-effective answer.
+- ⛔ **AND IT IS INVISIBLE.** The regression prints a healthy-looking
+  `"Story: lost here N× — training harder before re-attempting (target Lv X, plus5_max)"`.
+  Nothing errors, nothing derails. The only symptom is the ABSENCE of the counter-catch message —
+  and this project has been caught by absence-as-signal repeatedly.
+- **How it was found.** An adversarial pass over `03-PUNCH-LIST`'s **(P6)** item, which asked for
+  *"TRAINING-AREA MAPS per gym AND per boss"* and cited as its hole: *"Winona has no patch
+  configured at all, so the whole relocation machinery is skipped for her."* ‼ **Acting on that
+  sentence would have caused this regression.** Both of (P6)'s stated examples turned out to be
+  wrong — see the (P6) entry in `03-PUNCH-LIST.md`, now corrected.
+- ✅ **GATED — `tools/story-dev/repro_boss_grass_gate.py` (suite #24).** It re-derives the coupling
+  from the live AST and then forbids a `"grass"` key on `winona_fight`, `flannery_fight` and
+  `rival110_fight` while it stands. **AST-based**, so a mention in a comment or docstring cannot
+  trigger it, and **SELF-RETIRING**: decouple the ladder and the gate stops enforcing and says so.
+  `--self-test` proves all four directions (fires when broken; quiet when healthy; quiet when
+  decoupled; quiet on comment-only mentions).
+- ✅✅ **SUPERSEDED 2026-08-15 — IT HAS NOW BEEN OBSERVED FAILING, ON DEMAND, IN BOTH FORKS.**
+  ⛔ This bullet previously read *"NOT OBSERVED FAILING … report it as 'would fire', never 'has
+  fired'."* That was correct when written and is **retracted now**: `--driver ki80ladder`
+  (`story_harness.py`) DRIVES production's own `_prepare_for_fight` three times on
+  `saves/batch2_run04_wedge.ss1` and watches which branch it takes. **Measured, `team_max = 28`:**
+
+  | arm | `cfg["grass"]` | `wild_max` | outcome |
+  |---|---|---|---|
+  | `NOGRASS` | absent | n/a | **`_counter_ladder` reached** |
+  | `GRASS_FODDER` | Route 102 | **4** | **`_counter_ladder` reached** |
+  | `GRASS_STRONG` | Route 119 — the patch her OWN cfg comment names (`story_mode.py:3531`: *"Route 119 is the Fortree-side band"*) — ⛔ she has NO `grass` key today, which is the only reason her ladder still works | **27** | ⛔ **plain escalation; ladder SKIPPED** |
+
+  Same party, same seeded losses (8), same boss — **the only difference is the `grass` key.**
+  `ACCEPTANCE: PASS` on `--build sandbox` AND `--build custom`. Production itself derived
+  `needed = ['Rock', 'Ice', 'Dragon']` and raised *"Winona: 8 losses with no super-effective
+  answer…"* on the two ladder arms, and printed *"lost here 8× — training harder before
+  re-attempting"* on the third. ⇒ **the regression is real, and it is exactly as silent as
+  predicted.** Transcripts: `tools/story-dev/evidence/2026-08-15-ki80ladder-*.stdout.txt`.
+  ‼ **The driver EXITS 0 even on FAIL** (it is a harness driver, not a gate) — **grade on the
+  `ACCEPTANCE:` line, never on the exit code.**
+- ✅ **AND THE DRIVER IS FAULT-TESTED, not merely green.** Two deliberate failure runs, both
+  committed as evidence: (1) against `ch13_fortree_door.ss1` — the fixture THIS ENTRY ONCE
+  PRESCRIBED — it prints `ACCEPTANCE: FAIL … THE A/B WOULD BE VACUOUS: ROUTE119 does not flip
+  `grass_is_fodder` at team_max=39`, **and all three arms come back `LADDER`**, demonstrating live
+  that the prescribed test would have shown NO DIFFERENCE and read as a REFUTATION of a true
+  finding; (2) with `POKEBOT_KI80_DECOUPLED=1` it FAILS today, which is what proves the same driver
+  can serve as the AFTER run once the fix lands.
+- ⛔ **WHAT THE DRIVER DOES NOT PROVE.** Its `_counter_ladder` spy replaces the ladder's BODY, and a
+  tripwire in a console proxy cuts every arm off AT its decision. It proves the gate is **REACHED**;
+  it proves nothing about what the hunt then does. Deliberate — the hunt travels, and travel is risk
+  this test does not need. Design and the refutation that reshaped it:
+  `ai-research-notes/2026-08-15-ki80-ladder-repro-design.md`.
+- **What a fix looks like** (NOT attempted — it changes boss prep for EVERY gym, and KI-23's own
+  entry warns about the mirror regression): split the two meanings. The counter ladder should be
+  gated on *"is this fight hopeless"* — which `_boss_plan_is_hopeless` already answers on its own —
+  not on whether a patch happens to be configured. ⛔ **The change may not ship on reading alone:**
+  it needs the KI-23 repro conditions DRIVEN, both before and after, confirming `_counter_ladder`
+  still fires rather than falling through to the plain escalation.
+  ✅✅✅ **BOTH HALVES ARE NOW MET — THE DECOUPLING SHIPPED (sandbox) 2026-08-16.**
+  AFTER: `POKEBOT_KI80_DECOUPLED=1` **FAIL → PASS**; arm 4 **still PASS** (no mirror regression);
+  the coupled expectation now **FAILS**, proving the behaviour changed; `repro_boss_grass_gate.py`
+  **SELF-RETIRED** and still exits 0. An adversarial diff review attacked six angles and all six
+  SURVIVED — including that the `:1932` elif's firing condition is algebraically unchanged, that
+  `_boss_plan_is_hopeless` is read-only and fails safe, and that the new `BotModeError` is caught at
+  `:4080-4081` (`outcome = "derailed"`) rather than crashing a batch.
+  ⚠ **Blast radius: arithmetic MEASURED, behaviour INFERRED** — Brawly/Roxanne/Wattson gain the
+  machinery; **no run against those three exists**, only Winona's fixtures were driven.
+  ✅ **PROMOTED 2026-08-16, user-approved, by a THREE-POINT A/B against `--build custom`** (not a
+  byte-compare): `POKEBOT_KI80_DECOUPLED=1` **FAIL → PASS**, the coupled expectation **PASS → FAIL**,
+  and **arm 4 PASS on both sides** — the invariance proving the mirror regression did not land.
+  *(Superseded: the line below said the decoupling was merely unblocked.)* The AFTER run is the same command with
+  `POKEBOT_KI80_DECOUPLED=1`, which must go from FAIL (today, measured) to PASS.
+  ⛔ **The BEFORE run is unrepeatable once the fix lands — it was run and committed FIRST**, the
+  rule KI-79's three-point A/B established.
+- ⛔⛔ **BEFORE YOU DECOUPLE — TWO THINGS THE REPRO DRIVER CANNOT SEE (found by a Tier 2 cold-start
+  agent that tried to BEGIN this item, 2026-08-15).** The naive edit is "delete `grass_is_fodder and`
+  from `:1901`". ‼ **That is not sufficient, and its damage is invisible to `--driver ki80ladder`.**
+  1. **`grass_is_fodder` HAS A SECOND USE SITE:** `:1932`, `elif grass_is_fodder and recent_kos and
+     not boss_teaches:`. Decoupling `:1901` without deciding `:1932` leaves one boolean half-split.
+  2. ⛔ **`:1925 boss_mode = True` IS ON THE *NOT-HOPELESS* PATH, AND `:1937` READS IT**
+     (`if losses >= 2 and not boss_mode:`). So moving the hopeless check out from behind
+     `grass_is_fodder` hands `boss_mode = True` to every boss that has a **strong patch AND a
+     credible answer** — silently disabling their grass escalation. **That is precisely KI-23's
+     mirror regression**, arriving through the edit meant to fix KI-80.
+  ‼‼ **AND ARMS 1-3 CANNOT SEE IT.** All three use a NO_ANSWER party, so `hopeless` is True, the
+  ladder fires, and `_prepare_for_fight` RETURNS at `:1924` — **`:1925` is never reached in any arm.**
+- ✅✅ **SO ARM 4 IS NOW BUILT AND MEASURED — `POKEBOT_KI80_ARM4=1` (2026-08-16).**
+  `POKEBOT_KI80_ARM4=1 … story_harness.py fortree_gym_wedge.ss1 --driver ki80ladder --frames 2000`
+  → **`ACCEPTANCE: PASS`**, `OUTCOME=PLAIN_ESCALATION`, `INVARIANCE drift=none`.
+  ‼ **Its assertion is FIX-SHAPE-AGNOSTIC and identical before and after:** a boss with a strong
+  patch AND a credible answer must keep its plain grass escalation.
+  ✅✅ **AND THE DETECTOR ITSELF IS NOW FAULT-TESTED AGAINST THE REAL NAIVE EDIT (2026-08-16) —
+  THIS WAS A PREDICTION UNTIL AN AUDIT POINTED OUT THAT NOTHING HAD EVER SEEN IT FIRE.**
+  `:1901` was temporarily changed to `if boss_teaches:` (the naive fix), both suites were run, and
+  the edit reverted. The result is the strongest single argument for arm 4's existence:
+  | run, under the NAIVE edit | result |
+  |---|---|
+  | arms 1-3, `POKEBOT_KI80_DECOUPLED=1` | ⛔ **`ACCEPTANCE: PASS`** — all three reach the ladder |
+  | **arm 4**, `POKEBOT_KI80_ARM4=1` | ✅ **`ACCEPTANCE: FAIL`**, `ARM4 OUTCOME=BOSS_TRAINING_MODE` |
+  ⇒ **THE THREE-ARM TEST ALONE WOULD HAVE BLESSED THE REGRESSION.** Arm 4 is the only thing that
+  catches it, and it names it: *"a boss with a STRONG patch AND a credible answer entered
+  BOSS-TRAINING MODE, so `:1937`'s plain grass escalation is SUPPRESSED."*
+  ⇒ ‼ **THE FIX MUST KEEP `boss_mode = True` (`:1925`) BEHIND `grass_is_fodder`.**
+  Transcripts: `evidence/2026-08-16-ki80ladder-FAULT-naive-edit-*`. ⚠ *A gate that has never failed
+  may simply not be looking — this one has now failed on purpose.*
+  ⛔⛔ **AND THE FIXTURE THIS ENTRY FIRST PRESCRIBED FOR ARM 4 WAS VACUOUS — THE SAME TRAP, THE SAME
+  NUMBER, THE THIRD TIME.** It said *"`fortree_gym_wedge.ss1` … is exactly right for it"* with a
+  **Route 119** patch. `fortree_gym_wedge` IS correctly HAS_ANSWER (Castform's Powder Snow scores
+  **160 >= 75**) — but its **`team_max` is 39**, and `27 + 8 = 35 < 39` is TRUE, so `grass_is_fodder`
+  is **True anyway** and the "strong patch" arm is silently a FODDER arm. *The check verified the
+  INVERSE of condition 7 and once again never verified condition 9 — exactly how
+  `ch13_fortree_door.ss1` (also `team_max` 39) survived an earlier audit.*
+  ✅ **THE FIX, MEASURED 2026-08-16 across every `TRAINING_GRASS` map plus 9 candidates:** arm 4 needs
+  a map with land `wild_max >= team_max - 8 = 31`, and **the ONLY one that clears it is
+  `VICTORY_ROAD_1F` at 40** (Routes 121/123 peak at 28; ROUTE119 and ROUTE118/120 at 27;
+  MT_PYRE_EXTERIOR 29). So arm 4 pairs `fortree_gym_wedge.ss1` with a **VICTORY_ROAD_1F** grass key:
+  `40 + 8 = 48 >= 39` ⇒ `grass_is_fodder` is genuinely **False**.
+  ⚠ **Victory Road is NOT a plausible training area for Winona, and the arm does not pretend it is** —
+  arm 4 is a DECISION-level test of the branch, exactly as arms 1-3 are not a faithful Winona run.
+  ✅ **Both of arm 4's controls are MEASURED, and the first is FAULT-TESTED:** CONTROL-A calls the
+  REAL `_boss_plan_is_hopeless` and requires **not** hopeless — run against a NO_ANSWER save it FAILS
+  with *"this save is NO_ANSWER (hopeless=True), so it cannot exercise the `:1925 boss_mode` path at
+  all"*; CONTROL-B re-derives condition 9 INVERTED from the live ROM. Transcripts:
+  `evidence/2026-08-16-ki80ladder-ARM4-*`.
+- ✅ **THE PROMOTION ENTANGLEMENT IS RESOLVED (2026-08-16).** This bullet used to warn that a KI-80
+  fix could not be promoted separately from an unapproved comment-only edit sitting in the SAME
+  file (`plugins/custom_modes/story_mode.py`). **The user ruled, the comment-only correction was
+  promoted** — so the KI-80 fix, when approved, promotes cleanly on its own.
+  ✅ The KI-80 decoupling was itself promoted 2026-08-16 on that same rule. *(✅ The KI-81 whiteout guard was promoted 2026-08-16 too, which returned the figure to zero at that moment. It then went to **1** later the same day when the KI-65 fix landed in sandbox, and back to **0** when KI-65 was PROMOTED — see KI-65's header. ‼ This parenthetical asserted "NOT zero" for a while after that stopped being true, which is why the rule below exists: run the tool; never quote a drift figure from prose.)*
+  *(⚠ The superseded wording is DESCRIBED rather than reprinted: `audit_doc_consistency` matches
+  literal strings and cannot tell a quotation from a claim — it red-flagged the first draft of this
+  very bullet for reciting the old figure.)*
+  ‼ **Keep the general rule, which is what actually matters:** *`promote.py` moves whole FILES, so
+  two unrelated edits to one file cannot be promoted separately.* Land an approved edit before
+  starting an unapproved one in the same file, or they become a single decision. ⛔ And when the fix ships, `repro_boss_grass_gate.py`
+  (suite #24) **SELF-RETIRES** — it stops enforcing and says so; that is designed, not a failure.
+- ⛔⛔ **THE REPRO CONDITIONS, READ FROM THE SOURCE 2026-08-15 (a static code read, not a live
+  measurement — every row carries its file:line so it is checkable) — AND THEY ARE NOT WHAT THIS
+  ENTRY FIRST SAID.** An earlier draft here said *"losses >= 2, kos >= 1, no type answer"*. That is
+  **INCOMPLETE, and a test built to it would be VACUOUS**: at `losses` 2-5 the ladder cannot fire
+  *whatever* the grass key is, so the A/B would show NO DIFFERENCE and would look like a refutation
+  of a true finding. All of these must hold together:
+  | # | condition | where |
+  |---|---|---|
+  | 1 | `losses >= 2` — the outer boss-training block | `story_mode.py:1877` |
+  | 2 | `grass_is_fodder` — TRUE today for Winona only because she has no `grass` key | `:1899` |
+  | 3 | `boss_teaches` — at least one of the **LAST TWO** losses has `kos >= 1` | `:1893-1900` |
+  | 4 | ‼ `losses >= PLATEAU_LOSS_THRESHOLD` = **6** | `:1507`, `:1046` |
+  | 5 | ‼ `len(_loss_ko_history) >= 6` | `:1512` |
+  | 6 | ‼ NOT improving: `max(kos of last 3) <= max(kos of previous 3)` | `:1514-1517` |
+  | 7 | ‼ **no battler has a credible answer**: some move with `eff >= 2.0` **and** `base_power * eff * stab >= 75` | `:1573-1596`, `:1087` |
+  | 8 | `"ace_types" in cfg` — absent short-circuits to `(False, [])` before the answer test | `:1557` |
+  | **9** | ⛔⛔ **`team_max <= wild_max + 8` — THE ARMS MUST ACTUALLY DIFFER** | `:1899` |
+  ⛔⛔ **CONDITION 9 WAS MISSING UNTIL A COLD-START AUDIT FOUND IT (2026-08-15), AND WITHOUT IT THIS
+  ENTRY PRESCRIBED A VACUOUS TEST — the exact failure it was written to prevent, one condition
+  over.** `grass_is_fodder` is `("grass" not in cfg) or (wild_max + 8 < team_max)`. The A/B only
+  MEANS anything if adding the `grass` key FLIPS it to False, which needs
+  `wild_max + 8 >= team_max`. For a **Route 119** patch `wild_max = 27`, so the fixture's
+  **`team_max` must be <= 35**.
+  ⇒ ⛔ **`ch13_fortree_door.ss1` — which THIS ENTRY PREVIOUSLY NAMED AS THE FIXTURE — FAILS IT.**
+  Its **Blaziken L39** gives `team_max = 39`, and `27 + 8 = 35 < 39` is TRUE, so `grass_is_fodder`
+  is True **in BOTH arms**, both take the same branch, and the run would show NO DIFFERENCE — which
+  reads as a refutation of a true finding. It satisfies condition 7 (NO_ANSWER) and fails
+  **condition 9** (which is condition 2's requirement stated as a checkable arithmetic test); the
+  earlier check verified 7 and never the flip.
+  ✅ **VERIFIED CANDIDATES that satisfy BOTH** (`probe_credible_answer.py`, run 2026-08-15 —
+  all NO_ANSWER, `team_max` in brackets): `batch3_run03_wedge.ss1` [35, OVERWORLD, MAUVILLE_CITY],
+  `batch2_run04_wedge.ss1` [28, OVERWORLD, ROUTE111], `batch3_run05_end.ss1` [34, ⚠ **in BATTLE**],
+  `ch13_r119_wedge.ss1` [33, ⚠ **in BATTLE**, and ROUTE119 is a KI-24 wall map].
+  ‼ **None is Winona-era** (badges 123/1234, not 12345) — which does NOT block a DECISION-level
+  A/B (`_prepare_for_fight` reads party levels/moves, the grass map's `wild_max`, and the seeded
+  loss history — never a badge), but it DOES mean the run is not a faithful Winona scenario and
+  must not be reported as one. ⚠ `batch3_run03_wedge` sits exactly ON the boundary (`35 < 35` is
+  false by one level), so a single level-up during the run would silently flip it — **prefer margin,
+  and ASSERT the measured `team_max` and `wild_max` at run start rather than trusting this table.**
+  ‼ A flat series of six losses each with `kos = 1` satisfies 3-6 at once.
+  ⛔⛔ **AND A CEILING NOBODY WOULD GUESS: KEEP `losses` UNDER 12.** At
+  `losses >= HARD_PLATEAU_LOSS_THRESHOLD` (**12**) with `len(history) >= 12` and a flat 12-series,
+  `hard_plateau` becomes True (`:1541-1544`) and the answer loop runs as
+  **`for i in (battlers if not hard_plateau else ()):`** (`:1573`) — i.e. over an **EMPTY tuple**.
+  ⇒ `hopeless` comes back **True regardless of the party**, for a completely different reason than
+  the one under test. An A/B that drifts past 12 losses would therefore go GREEN *without* proving
+  anything about the no-answer path. **Seed 6-11 losses, never 12+**, and assert the count you
+  seeded. *(Caught by a Tier 1 reviewer against an earlier draft of this table.)*
+- ⛔ **AND THE OBVIOUS FIXTURE DOES NOT WORK — MEASURED LIVE.** `fortree_gym_wedge.ss1` (the
+  anchor (P4) Stage 2 uses) **FAILS condition 7**: its **Castform L25 knows Powder Snow** (Ice,
+  base_power 40), and vs Altaria (Dragon/Flying) that is `40 x (2.0 x 2.0) x 1.0 = **160** >= 75` —
+  a credible answer, so `_boss_plan_is_hopeless` returns **not hopeless** and the ladder can never
+  fire from that save. ✅ **9 of 10 Winona-era saves pass CONDITION 7 (NO_ANSWER)**, including
+  **`ch13_fortree_door.ss1`** — ⛔ **but passing 7 is NOT "qualifying": that save FAILS condition 9
+  and is unusable as the fixture (see above)** — verified live with `tools/story-dev/probe_credible_answer.py`
+  (NEW), which drives production's own type chart and `_battler_slots()`.
+  ‼ **The discriminator is the GATE ORDER, not the score:** those 9 saves hold moves scoring
+  **97.5** (Loudred/Stomp) and **90.0** (Mightyena/Bite) — both above 75 — that never count,
+  because `eff` is 1.0 and the `eff < 2.0` branch `continue`s first. A check written as
+  "score >= 75" alone would call every one of them HAS_ANSWER and be confidently wrong.
+- **Related:** **KI-23** (explicitly NOT closed; its own watch-item is the mirror of this),
+  **KI-31** (the fodder rule as a pure function), and the `xp_rate`-vs-`legacy` `FODDER_RULE` flag,
+  whose repro `repro_fodder_grass.py` *"still has not been run, on any machine"* — a separate,
+  already-tracked axis that must not be conflated with this one.

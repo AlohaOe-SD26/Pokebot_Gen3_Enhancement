@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner", "ki66faint"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -3307,6 +3307,256 @@ class SpaceCenter2Mode(StoryWhiteoutRecoveryMixin, BotMode):
             log(f"[ch19b] captured anchor -> {out}")
 
         context.set_manual_mode()
+        return
+
+
+class Ki66FaintMode(SpaceCenter2Mode):
+    """KI-66 INSTRUMENT - the REAL Steven multi battle, with one of OUR OWN picks entered at 1 HP
+    so it FAINTS and the after-faint replacement chooser ACTUALLY RUNS.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py at_steven_2f.ss1 --driver ki66faint \
+            --frames 600000 --profile ki66
+
+    ‼ WHY THIS EXISTS. KI-66's four unguarded full-party scans (`battle_handler.py:541-545`,
+    `:588-598`, `:630-636`, `_util.py:522-587`) execute ONLY when one of the player's Pokemon
+    faints inside a partner double battle. KI-66's own entry says *"none has ever run live (every
+    §Ch19 drive had zero faints)"*, so the obvious before/after A/B on this item is VACUOUS: both
+    arms are identical because the code under test never executes, which reads as "the fix is
+    unnecessary" - a refutation of a true finding. This driver is what makes the code RUN.
+
+    ‼ IT SUBCLASSES `SpaceCenter2Mode` (the `boxcounter2` inherit-and-re-prove pattern), so every
+    run re-proves the whole party-selection + multi-battle beat before it proves anything new.
+
+    HOW THE FAINT IS PRODUCED - FAITHFULLY, NOT BY POKING A BATTLE.
+      MEASURED 2026-08-16: none of the 16 `POKEBOT_*` hooks can faint a mon or set HP, and
+      `debug_write_party` writes `gPlayerParty` (out of battle), never `gBattleMons`. ⛔ So do NOT
+      add a `gBattleMons` HP writer. Instead we set ONE of our own picks to 1 HP *before the battle
+      starts* and let it faint in real combat. Nothing is written mid-battle.
+      ‼ 1 HP, NOT 0. `GetBattleEntryEligibility` rejects a 0-HP mon and `battle_party_slots`
+      (`space_center.py:503`) only offers eligible ones, so a fainted mon would never be SELECTED
+      and therefore could never faint on the field.
+      ‼ EXACTLY TWO BYTES CHANGE. `current_hp` is `data[86:88]` (`pokemon.py:1259-1263`), in the
+      UNENCRYPTED party-stats region, so the mon stays byte-identical otherwise - including its
+      ORIGINAL TRAINER ID, which is the field `ally_party_indices` keys on. Rebuilding the mon via
+      `debug_create_pokemon` would have been the obvious route and is WORSE here: it would rewrite
+      the very field the code under test reads.
+
+    THE DISCRIMINATOR, AND WHY IT IS NOT THE HEADLINE.
+      ⛔ KI-66's headline - "it may send out an ALLY's mon" - needs all three of OUR picks down,
+      which is EXACTLY `Cmd_checkteamslost`'s LOSS condition for `TRAINER_STEVEN_PARTNER` (it sums
+      HP over `gPlayerParty[0..2]`, our picks only). A repro aimed at the headline would WHITEOUT
+      instead of demonstrating it. So we faint ONE mon, leave the other two healthy, and grade on
+      what `:630-636` does while the battle CONTINUES:
+        ⇒ does `alive_slots` contain any index belonging to STEVEN?
+      That set is read from production's OWN telemetry (`[FAINT-CHOOSER]`, `battle_handler.py:651`)
+      rather than from anything this driver re-derives, and the ally indices come from the real
+      `ally_party_indices()` choke point.
+
+    ‼ WHAT A PASS MEANS. PASS = THE INSTRUMENT WORKS (fixture staged, picks stable, and the faint
+    chooser genuinely RAN). The BUG FINDING is reported separately as `KI66-FINDING`. A run that
+    passes with `chooser_events=0` is impossible by construction - that is graded as FAIL, because
+    a chooser that never ran cannot support any claim about it.
+
+    ⛔⛔ SAFETY - THIS RUN INJECTS, SO IT MUST NEVER CAPTURE AN ANCHOR. `SpaceCenter2Mode` writes
+    `saves/post_space_center.ss1` on a PASS. That file is NOT pinned in `preflight.py` or
+    `FIXTURES.md5`, so an overwrite would be SILENT and permanent. We disable capture via
+    `CH19B_CAPTURE=0` AND verify the file's sha256 is unchanged at the end - the guard is PROVEN,
+    not asserted.
+    """
+
+    tag = "ki66"
+
+    @staticmethod
+    def name():
+        return "Ki66Faint"
+
+    def run(self):
+        import hashlib
+        import os
+        import re
+
+        from modules.memory import read_symbol, write_symbol
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.space_center import battle_party_slots
+
+        # ---- SAFETY 1: an injected run may never overwrite a committed fixture ----------
+        os.environ["CH19B_CAPTURE"] = "0"
+        anchor = SAVES / "post_space_center.ss1"
+        anchor_before = hashlib.sha256(anchor.read_bytes()).hexdigest() if anchor.is_file() else None
+        log(f"[ki66] SAFETY anchor=post_space_center.ss1 sha256[:12]="
+            f"{(anchor_before or '<absent>')[:12]} — capture DISABLED (CH19B_CAPTURE=0) because "
+            f"this run INJECTS; re-hashed at the end so the guard is proven, not claimed.")
+
+        # ---- capture PRODUCTION's own faint-chooser telemetry ---------------------------
+        from modules import debug_logger
+
+        _orig_event = debug_logger.event
+        chooser: list[tuple[str, object]] = []
+
+        def _recording_event(message, *, category="STORY"):
+            text = str(message)
+            # ‼ COUNT FAINTS, NOT EVENTS. Production emits TWO `[FAINT-CHOOSER]` events per faint
+            # (`battle_handler.py:651` the alive_slots line and `:687` the index-spaces line). The
+            # first cut of this driver counted both and reported "ALLY slots on 4 occasion(s)" for
+            # what were TWO faints — a 2x overcount, caught by an adversarial review of the run.
+            # Only the `alive_slots=` line starts a new faint record.
+            if "[FAINT-CHOOSER]" in text and "index spaces:" not in text:
+                try:
+                    from modules.battle_state import get_battle_state
+                    from modules.battle_strategies.default import ally_party_indices
+
+                    allies = sorted(ally_party_indices(get_battle_state()))
+                except Exception as error:  # noqa: BLE001 - instrumentation must never break a run
+                    allies = f"<unreadable: {type(error).__name__}>"
+                chooser.append((text, allies))
+                log(f"[ki66] FAINT-CHOOSER #{len(chooser)} ally_party_indices={allies} :: {text}")
+            return _orig_event(text, category=category)
+
+        debug_logger.event = _recording_event
+
+        # ‼ THE DATUM THE FIRST RUN LACKED: which slot the chooser ACTUALLY asked for.
+        # `new_lead_index` is a local in `handle_fainted_pokemon`, so it appears in no log — and
+        # without it the A/B has no discriminator, because `alive_slots` containing ally indices
+        # is NOT the same as the bot ATTEMPTING one (measured: on faint #1 three ally slots sat in
+        # `alive_slots` and cost 59 frames — free). `:600` calls `scroll_to_party_menu_index` by
+        # BARE NAME, so rebinding the module global captures the request with NO production edit.
+        import modules.battle_handler as _bh
+
+        _orig_scroll = _bh.scroll_to_party_menu_index
+        scrolls: list[tuple] = []
+
+        def _recording_scroll(index, *a, **kw):
+            try:
+                from modules.battle_state import get_battle_state
+                from modules.battle_strategies.default import ally_party_indices
+
+                allies = sorted(ally_party_indices(get_battle_state()))
+            except Exception:  # noqa: BLE001
+                allies = []
+            is_ally = index in allies
+            scrolls.append((context.emulator.get_frame_count(), index, tuple(allies), is_ally))
+            log(f"[ki66] CHOSEN new_lead_index={index} allies={allies} "
+                f"IS_ALLY={is_ally}{'  ‼ the ROM refuses slots 1/4/5 in a multi battle' if is_ally else ''}")
+            yield from _orig_scroll(index, *a, **kw)
+
+        _bh.scroll_to_party_menu_index = _recording_scroll
+
+        # Presses spent INSIDE the party menu — the cost the give-up dump only reports after 6000
+        # frames, i.e. never on a run that recovers. Without this "absorbed by the refusal layer"
+        # is an unmeasured claim.
+        menu_presses = {"n": 0}
+        _orig_press = context.emulator.press_button
+
+        def _counting_press(button):
+            try:
+                from modules.memory import GameState, get_game_state
+
+                if get_game_state() == GameState.PARTY_MENU:
+                    menu_presses["n"] += 1
+            except Exception:  # noqa: BLE001
+                pass
+            return _orig_press(button)
+
+        context.emulator.press_button = _counting_press
+
+        yield from wait_until_truly_controllable()
+
+        # ---- stage the fixture: our LEAD pick enters at 1 HP ----------------------------
+        picks_before = []
+        target = None
+        staged_hp = None
+        try:
+            picks_before = battle_party_slots()
+            target = picks_before[0] if picks_before else None
+        except Exception as error:  # noqa: BLE001
+            log(f"[ki66] STAGE could not read battle_party_slots: {type(error).__name__}: {error}")
+
+        if target is not None:
+            before = get_party()[target]
+            raw = bytearray(read_symbol("gPlayerParty"))
+            off = target * 100
+            raw[off + 86 : off + 88] = (1).to_bytes(2, "little")
+            write_symbol("gPlayerParty", bytes(raw))
+            # ‼ INVALIDATE THE CACHE BEFORE READING BACK. `get_party()` is served from
+            # `state_cache`, so the first version of this control read the PRE-WRITE value (133)
+            # and reported `fixture_ok=False` while `[ch19b] PARTY` printed `1/133` three lines
+            # later. The subject was correct and the CHECK was wrong — the exact failure this
+            # project has logged repeatedly. Reset, then read through the production reader.
+            from modules.state_cache import state_cache
+
+            state_cache.reset()
+            after = get_party()[target]
+            staged_hp = after.current_hp if after is not None else None
+            log(f"[ki66] STAGE slot {target} {before.species.name}:L{before.level} "
+                f"HP {before.current_hp}/{before.total_hp} -> {staged_hp}/{after.total_hp} "
+                f"(2 bytes at data[86:88]; everything else byte-identical)")
+
+        # CONTROL: read the fixture BACK through the production reader, and confirm the staged
+        # mon is STILL the lead pick — if the 1 HP demoted it, it never enters and never faints.
+        picks_after = []
+        try:
+            picks_after = battle_party_slots()
+        except Exception as error:  # noqa: BLE001
+            log(f"[ki66] CONTROL picks unreadable: {type(error).__name__}")
+        fixture_ok = staged_hp == 1 and bool(picks_after) and picks_after[0] == target
+        log(f"[ki66] CONTROL picks {picks_before} -> {picks_after}  staged_hp={staged_hp}  "
+            f"fixture_ok={fixture_ok}"
+            + ("" if fixture_ok else "  ‼ the staged mon is NOT the lead pick — it cannot faint"))
+
+        # ---- drive the REAL beat (re-proves party selection + the multi battle) ---------
+        yield from SpaceCenter2Mode.run(self)
+
+        # ---- report --------------------------------------------------------------------
+        ally_hits: list[str] = []
+        for text, allies in chooser:
+            match = re.search(r"alive_slots=\[([^\]]*)\]", text)
+            slots = (
+                [int(part) for part in match.group(1).split(",") if part.strip()]
+                if match
+                else []
+            )
+            if isinstance(allies, list):
+                overlap = sorted(set(slots) & set(allies))
+                if overlap:
+                    ally_hits.append(f"alive_slots={slots} allies={allies} OVERLAP={overlap}")
+
+        anchor_after = hashlib.sha256(anchor.read_bytes()).hexdigest() if anchor.is_file() else None
+        anchor_intact = anchor_after == anchor_before
+
+        log("")
+        log(f"[ki66] faints={len(chooser)}  (LIVENESS: 0 means the faint chooser never ran and this "
+            f"run proves NOTHING about KI-66)")
+        log(f"[ki66] party-menu presses={menu_presses['n']}  scroll requests={len(scrolls)}")
+        for frame, index, allies, is_ally in scrolls:
+            log(f"[ki66]   f{frame} asked for slot {index} (allies={list(allies)}) "
+                f"{'‼ ALLY — the ROM refuses it' if is_ally else 'own mon'}")
+        ally_asks = [s for s in scrolls if s[3]]
+        if ally_asks:
+            log(f"[ki66] ‼‼ KI66-ATTEMPT: the chooser ASKED FOR an ally slot {len(ally_asks)} time(s) "
+                f"— that is an attempt the ROM refuses unconditionally, not merely a candidate list.")
+        elif scrolls:
+            log("[ki66] ✅ KI66-ATTEMPT: every slot the chooser ASKED FOR was one of our own. "
+                "⛔ So ally slots sitting in `alive_slots` cost NOTHING on this trajectory — do not "
+                "'fix' the ally filter on the strength of this run.")
+        log(f"[ki66] SAFETY anchor intact = {anchor_intact} "
+            f"(before={(anchor_before or '<absent>')[:12]} after={(anchor_after or '<absent>')[:12]})")
+        if ally_hits:
+            log(f"[ki66] KI66-CANDIDATES: ally slots sat in `alive_slots` on {len(ally_hits)} of "
+                f"{len(chooser)} faint(s). ⚠ A CANDIDATE IS NOT AN ATTEMPT — see KI66-ATTEMPT above:")
+            for hit in ally_hits:
+                log(f"[ki66]     {hit}")
+        elif chooser:
+            log("[ki66] ✅ KI66-FINDING: NO ally slot appeared in `alive_slots` on any faint. "
+                "⛔ On THIS fixture the hazard did not materialise — do NOT 'fix' it on the "
+                "strength of this run; the A/B would be vacuous. RE-DERIVE the discriminator.")
+        else:
+            log("[ki66] ⛔ KI66-FINDING: NOT MEASURED — the chooser never ran.")
+
+        ok = bool(fixture_ok and chooser and anchor_intact)
+        log(f"[ki66] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (INSTRUMENT health only — needs "
+            f"fixture_ok AND chooser_events>=1 AND anchor intact. The BUG verdict is KI66-FINDING "
+            f"above, and is deliberately NOT part of this line.)")
         return
 
 
@@ -9148,6 +9398,8 @@ for step in range(args.frames):
             context.bot_mode_instance = SpaceCenter1Mode()
         elif args.driver == "spacecenter2":
             context.bot_mode_instance = SpaceCenter2Mode()
+        elif args.driver == "ki66faint":
+            context.bot_mode_instance = Ki66FaintMode()
         elif args.driver == "spacecenter":
             context.bot_mode_instance = SpaceCenterMode()
         elif args.driver == "slateporttheft":

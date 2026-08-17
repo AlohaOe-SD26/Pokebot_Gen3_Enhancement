@@ -7764,3 +7764,39 @@ label is "recon startable, build blocked", never "startable".**
 passed this file on P1–P4 consistency. **The document was perfectly self-consistent and perfectly
 unusable.** Only the reviewer that was told to *begin the work* found it. *Consistency audits and
 startability audits are different instruments; passing one says nothing about the other.*
+
+## 2026-08-17 — I reported a bug's HEADLINE as reproduced when what I had measured was only its PRECONDITION
+
+**Symptom.** The KI-66 driver ran, and its own report said *"‼‼ KI66-FINDING: the chooser considered
+ALLY slots on 4 occasion(s) — KI-66 IS REPRODUCED."* I wrote that up as the headline confirmed. An
+adversarial review of the transcript dismantled it in three places:
+
+1. **"4 occasions" was 2.** Production emits **two** `[FAINT-CHOOSER]` events per faint
+   (`battle_handler.py:651` and `:687`); the driver counted events, not faints. A 2× overcount in
+   the instrument I had just built to be precise.
+2. **A CANDIDATE IS NOT AN ATTEMPT.** Ally slots being in `alive_slots` says nothing about whether
+   the bot ever *asked* for one. It did not: it asked for slots 2 then 3, both ours, because
+   `choose_new_lead_after_faint` already filters allies. The datum that settles it —
+   `new_lead_index` — is a local variable and appeared in NO log, so the first run could not have
+   answered the question it claimed to answer.
+3. **"Measured twice, deterministically" was one trajectory replayed.** RUN1 and RUN2 are
+   byte-identical, including frame counts. That confirms determinism and adds zero confirmation.
+
+**And the diagnosis was wrong.** The ally-only candidate set was manufactured by a *different* bug —
+`_on_field` compares field-order `gBattlerPartyIndexes` against a party `UpdatePartyToBattleOrder`
+has already permuted — which excluded a mon that was on the BENCH. Faint 1 is the control: three
+ally slots present, resolved in 59 frames, zero cost. **Fixing the thing I named would have changed
+nothing here and could have made it worse.**
+
+**PREVENTION RULE (one line).** ⛔ **Instrument the ACTION, not the INPUT to the action.** A
+candidate list, a flag, an eligible set — none of them prove behaviour; log the value the code
+actually acts on (here: the argument passed to the function that moves the cursor), and if that value
+lives in a local, rebind the callee to capture it before you claim anything about it.
+
+‼ **Corollary, and it is the second time in two days:** *my report's own PASS line was not the
+finding.* I built the driver to separate instrument-health from bug-verdict — and then read the
+verdict off the wrong line anyway. **When a tool prints two verdicts, say out loud which one your
+claim rests on.**
+
+⚠ **Also re-learned:** identical output across runs is a DETERMINISM check, never a replication.
+Say "one trajectory, replayed" — never "measured twice".

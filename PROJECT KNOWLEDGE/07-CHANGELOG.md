@@ -15787,3 +15787,58 @@ Also: `05-KNOWN-ISSUES.md` was over its 3,000-line R3 budget, so four superseded
 sections (recon A/B, the fault-injection seam, the DANGERS list, the three-part fix spec) moved
 verbatim to `31-KNOWN-ISSUES-ARCHIVE.md` behind stubs. Nothing deleted; KI-65 is closed and
 promoted, so its pre-fix investigation is history.
+
+## 2026-08-17 — KI-66 is DRIVEN, and the measurement REFUTED its headline (and my own recon)
+
+**New driver `--driver ki66faint`** (`Ki66FaintMode`, subclasses `SpaceCenter2Mode` so every run
+re-proves the party-selection + multi battle first). It stages ONE of our own picks at **1 HP**
+before the battle — exactly two bytes, `data[86:88]`, the unencrypted party-stats region, so the mon
+stays byte-identical otherwise **including its original trainer ID**, which is the field
+`ally_party_indices` keys on. Rebuilding via `debug_create_pokemon` would have rewritten the very
+field under test. Nothing is written mid-battle; the faint happens in real combat.
+Anchor `saves/at_steven_2f.ss1`. Transcripts:
+`tools/story-dev/evidence/2026-08-17-ki66faint-RUN{1,2,3-instrumented}.stdout.txt`.
+
+⛔ **SAFETY, and it was necessary:** `SpaceCenter2Mode` CAPTURES `saves/post_space_center.ss1` on a
+PASS, and that fixture is **not pinned** in `preflight.py` or `FIXTURES.md5` — an injected run
+overwriting it would have been silent and permanent. The driver disables capture AND re-hashes the
+file afterwards; the hash was recorded out-of-band first, so the guard is PROVEN, not asserted.
+
+**MEASURED (one deterministic trajectory — RUN1 and RUN2 are BYTE-IDENTICAL, which confirms
+determinism and adds NO independent confirmation; 2 faints):**
+
+| | faint 1 | faint 2 |
+|---|---|---|
+| `alive_slots` | `[1,2,4,5]` | `[4,5]` |
+| ally indices | `[1,4,5]` | `[1,4,5]` |
+| slot actually ASKED FOR | **2 (ours)** | **3 (ours)** |
+| menu-open → send-out | **59 frames** | **1263 frames** |
+
+✅ **CONFIRMED:** `alive_slots` is built with no owner filter and does drive A-vs-Down. Offering
+slots 1/4/5 is objectively wrong — the decomp refuses them unconditionally in a multi battle.
+
+⛔⛔ **REFUTED — the headline does not fire.** The bot **never attempted an ally slot**:
+`choose_new_lead_after_faint` already filters allies and its pick is what `scroll_to_party_menu_index`
+receives. **A CANDIDATE IS NOT AN ATTEMPT.** ⇒ an A/B fixing only the owner filter shows **no
+difference** on this fixture, and could make it worse (removing 1/4/5 at faint 2 empties
+`alive_slots`, tripping a FALSE "no eligible replacement" while Swellow sat on the bench).
+
+‼‼ **THE REAL DEFECT THIS EXPOSED — `_on_field` IS IN THE WRONG INDEX SPACE** (a third instance in
+this one function, after KI-18 and KI-34): built from field-order `gBattlerPartyIndexes`, compared
+against a `get_party()` that `UpdatePartyToBattleOrder` has already permuted. It excluded **Swellow
+while Swellow was on the BENCH** (proven by its send-out at `f21009`) and failed to exclude the ally
+that WAS active — manufacturing the ally-only candidate set and costing **1263 frames vs 59** (21×),
+tripping `NO-PROGRESS x1200` at `f20970` with `Task_ReturnToChooseMonAfterText`.
+
+⚠ **HONEST LIMITS:** 486 party-menu presses total, but *which* layer absorbed the cost (KI-38's
+refusal learning vs `scroll_to_party_menu_index`'s own bounded walk) is **NOT determined**. No hang,
+no whiteout, chapter PASSED — true for this configuration, under-measured as a general property.
+
+**Two defects in my own first cut, both caught by an adversarial review of the run:** the driver
+counted production's TWO events per faint as two findings (reported "4 occasions" for 2 faints), and
+the first write-up claimed a cost "absorbed by KI-38" that no counter in the transcript supported.
+Both fixed; the driver now counts faints and logs the slot actually requested.
+
+Also: `05-KNOWN-ISSUES.md` went over its 3,000-line R3 budget, so **KI-80's full entry** (CLOSED,
+fixed, gated and promoted to both forks) plus KI-66's superseded recon and site table moved verbatim
+to `31-KNOWN-ISSUES-ARCHIVE.md` behind stubs. Nothing deleted. 2831 lines.
