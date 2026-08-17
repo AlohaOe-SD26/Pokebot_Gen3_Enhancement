@@ -15481,3 +15481,25 @@ and it is the concrete argument for finishing `#24-driftassertions`.
 ⚠ **45 candidate sites remain in BOTH forks** (44 `early_game.py`, 1 `counter_hunt.py`) and are
 deliberately not swept — CANDIDATE ≠ DOES, and `early_game.py` is the largest and most
 timing-sensitive file here. The probe stays a PROBE until they are triaged.
+
+## 2026-08-16 — wrap-up pass 1: the playbook overstated a gate that had just failed, and 02's probe count was stale (punch-list #24-counters)
+
+Session wrap-up. Three corrections found by checking the docs the two audits were NOT assigned:
+
+* ⛔ **`14-AGENT-PLAYBOOK.md` claimed `audit_doc_consistency` "caught the offending line all three
+  times, before every commit."** That is now FALSE and was falsified the same day: its patterns
+  matched only phrasings an AUTHOR picks (`drift is N`, `EXPECT EXACTLY N`) and **not `N differing`,
+  the format `promote.py --check` PRINTS** — so a stale claim survived both a 13-site hand sweep and
+  the gate. Rewritten to say the gate is a **FLOOR, not a sweep**, to record the miss and the fix,
+  and to carry the rule: *when a gate polices a number a TOOL emits, the tool's own output string is
+  the FIRST pattern it needs.* ‼ A playbook that overstates a guard is worse than one that omits it.
+* ✅ **The playbook's PROMOTION row only covered changes that HAVE a fault hook.** A guard has no
+  branch to flip, so that shape does not apply — and this session needed a new one. Added: *when
+  there is no hook, measure the property with a `--build`-aware instrument; the number must MOVE
+  across the copy* (KI-81: 53 → 45, per-file guarded counts 0→3 / 0→4 / 1→2). The BEFORE-first rule
+  is unchanged.
+* `02-ARCHITECTURE.md`'s script census said **71** `probe_*.py`; it is **72** since
+  `probe_abort_swallowing.py` landed. Corrected, with the reason for the move recorded so the next
+  reader can see the figure is maintained rather than guessed. *(That file is well built for this:
+  it explicitly defers to `run_gates.py`'s table and `--driver`'s `choices=` for live lists, so a
+  new driver and a new probe needed no other edit.)*
