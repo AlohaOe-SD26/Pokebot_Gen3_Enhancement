@@ -256,29 +256,10 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ‼ The box-transfer message does NOT need dismissing — the existing battle handler already
       rides it out. I "confirmed" that wedge twice and both were my probe idling (`08-MISTAKES`).
 
-- [x] `#24-pcwithdraw-proof` — **PROVEN 2026-08-07. The withdraw half executes end to end.**
-      New harness driver `--driver boxwithdraw` + fixture save `saves/boxwithdraw.ss1` (the end
-      state of the proven box-catch run: party 6, box 2). Three consecutive runs, identical:
-      ```
-      Story: PC — depositing Skitty L17 to make room for Poochyena.
-      Story: PC — withdrawing Poochyena from the box.
-      Story: PC — Poochyena is in the party; party is now 6.
-      [boxwithdraw] RESULT withdrew=True target=Poochyena party_before=6 party_after=6
-                    box_before=2 box_after=2 deposited=True map=(0, 5)
-      [boxwithdraw] AFTER usable=True second_heal_ok=True still_has_target=True party=6 box=2
-      ```
-      ‼ **It drives the PRODUCTION call site**, not `withdraw_from_box` directly: the probe sets
-      `self._hunted_counter_pids` and calls `heal_in_pokemon_center`, which is the attribute and
-      the piggyback the story bot actually uses (`higher_level_actions.py:218-232`). Calling the
-      function directly would have proven the function works and NOT that the piggyback fires —
-      and the piggyback is the half that was dead.
-      ‼ **The no-op assertion matters as much as the positive one.** A second heal at the same
-      Centre produced **exactly one** `withdrawing` line in total: with the PID now in the party
-      `find_in_box` returns None and the piggyback returns without touching the PC. A
-      duplicate-withdraw loop is the regression shape a fires-every-heal piggyback invites.
-      ‼ Graded with a capability test, NOT a batch — four batches on 2026-08-06 produced zero
-      statistically resolvable finish-rate differences; this took ~45,000 frames.
-
+- [x] `#24-pcwithdraw-proof` — **PROVEN 2026-08-07. FULL ENTRY MOVED to
+      `28-HANDOFF-ARCHIVE.md` (2026-08-17)** on the R3 3,600-line budget. Closed, and its
+      successor work (KI-79's identity-verified withdraw, and `#24-orphans` (1)) is tracked
+      separately. Nothing deleted.
 - [ ] `#24-roster` — **APPROVED 2026-08-06, gate LIFTED. The PC-roster feature.**
       Catch overflow into the box + withdraw on demand, so the bot can field type counters and HM
       carriers it could not otherwise hold. **Rulings + rationale: `06-DECISIONS-LOG.md` 2026-08-06.**
@@ -543,10 +524,22 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       buried in very long STATE-table rows. ⛔ Scoped to an EXPECTATION (`expect`/`expects`/
       `expected` within ~70 chars) so a HISTORICAL measurement stays quiet — fault-tested in all
       three directions (D6 fires, D7 quiet, D8 quiet-on-history).
-      🔜 **STILL TO DO — the REDUCTION half:** the number is still asserted in several places.
-      Keep the STATE row and the HOW TO RUN `Expect:` line; make the rest say *"run
-      `promote.py --check`"* with no digit. The gate now catches a stale one, so this is a
-      churn-reduction, no longer a correctness risk.
+      ⛔⛔ **REFUTED 2026-08-17 — "no longer a correctness risk" IS FALSE.** The figure flipped
+      0→1→0→1→0 and **THREE stale claims survived hand sweeps AND the gate**, each caught by a
+      different audit agent. ‼ **STRUCTURAL, not random:** the 2026-08-16 rule is scoped to an
+      EXPECTATION (`expect`/`expects`/`expected` within ~70 chars) and all three were **CLAIMS** —
+      `0 as of 2026-08-16 (LATEST)` (STATE cell), `NOT ZERO … a ruling is owed` (a NEGATION), and
+      `it is **1** again as of 2026-08-17`. ⇒ **THE REMAINING GATE WORK IS CLAIM-FORM DETECTION**
+      (word forms, capitals, long table-row tails), compared against `real_drift()`.
+      ⛔⛔ **RULE THE NEGATION QUESTION FIRST — THE DOCS POINT BOTH WAYS.** `04-HANDOFF` calls
+      `NOT ZERO` a MISS to fix; its STATE table records the gate FIRING on that phrasing as a FALSE
+      POSITIVE. Likely answer: *PARSE the negation and evaluate it as a claim (`drift ≠ 0`), never
+      pattern-match the token* — but that is a RULING: put it in `06-DECISIONS-LOG.md` before coding.
+      ‼ **FAULT-TEST THE RECURSION HAZARD:** the gate red-flagged the original draft of this very
+      bullet, and this file is now full of *descriptions* of stale figures. A gate that cannot stay
+      quiet on prose ABOUT the problem gets bypassed within a day.
+      🔜 **THE REDUCTION half is SEPARATE and NOT this item's deliverable:** keep the STATE row and
+      the HOW TO RUN `Expect:` line; make the rest say *"run `promote.py --check`"* with no digit.
       ⚠ Do this at a QUIET moment, not mid-arc: it touches the same lines every in-flight change
       touches, and a merge conflict here is a stale drift figure by another route.
 

@@ -5074,3 +5074,34 @@ these "older framing"; by 2026-08-17 every one was DONE or RETRACTED. Verbatim, 
    `leave_the_gym()` — driven, now ends in `MOSSDEEP_CITY (38,10)` — and **the acceptance test now
    requires being out of the gym**, so the stranded version would fail. *This is KI-56's rule
    violated a second time in the session in which I re-read it.*
+
+
+---
+
+# ARCHIVED 2026-08-17 — punch-list item `#24-pcwithdraw-proof` (CLOSED 2026-08-07)
+
+Moved out of `03-PUNCH-LIST.md` on the R3 3,600-line budget. Closed long before the move;
+verbatim, unedited.
+
+- [x] `#24-pcwithdraw-proof` — **PROVEN 2026-08-07. The withdraw half executes end to end.**
+      New harness driver `--driver boxwithdraw` + fixture save `saves/boxwithdraw.ss1` (the end
+      state of the proven box-catch run: party 6, box 2). Three consecutive runs, identical:
+      ```
+      Story: PC — depositing Skitty L17 to make room for Poochyena.
+      Story: PC — withdrawing Poochyena from the box.
+      Story: PC — Poochyena is in the party; party is now 6.
+      [boxwithdraw] RESULT withdrew=True target=Poochyena party_before=6 party_after=6
+                    box_before=2 box_after=2 deposited=True map=(0, 5)
+      [boxwithdraw] AFTER usable=True second_heal_ok=True still_has_target=True party=6 box=2
+      ```
+      ‼ **It drives the PRODUCTION call site**, not `withdraw_from_box` directly: the probe sets
+      `self._hunted_counter_pids` and calls `heal_in_pokemon_center`, which is the attribute and
+      the piggyback the story bot actually uses (`higher_level_actions.py:218-232`). Calling the
+      function directly would have proven the function works and NOT that the piggyback fires —
+      and the piggyback is the half that was dead.
+      ‼ **The no-op assertion matters as much as the positive one.** A second heal at the same
+      Centre produced **exactly one** `withdrawing` line in total: with the PID now in the party
+      `find_in_box` returns None and the piggyback returns without touching the PC. A
+      duplicate-withdraw loop is the regression shape a fires-every-heal piggyback invites.
+      ‼ Graded with a capability test, NOT a batch — four batches on 2026-08-06 produced zero
+      statistically resolvable finish-rate differences; this took ~45,000 frames.
