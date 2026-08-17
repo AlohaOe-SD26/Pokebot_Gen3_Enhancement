@@ -7656,3 +7656,75 @@ merely THAT it landed"* — applied to my own fixes, by a fresh agent, immediate
 **Prevention rule.** ⛔ **Run the verification pass on the FIXES, not only on the originals** — and
 ask "where did it land?", never "is it consistent?". *The strongest audit of a document is not
 whether it agrees with itself.*
+
+## 2026-08-16 — a fixture was prescribed for a bug it is STRUCTURALLY INCAPABLE of exercising, and the spec was corrected TWICE without anyone re-deriving it against the fixture
+
+**Symptom.** KI-65's RECON block named `saves/movelearn_hmwedge_quickattack.ss1` and a discriminator
+("line 280 raises, printing *Nothing else can be given up* while three forgettable moves exist").
+Building the A/B on that fixture produced **byte-identical arms** — fault-ON and fault-OFF pressed
+the same buttons in the same frames (`f0 A, f2 Down x5, f12 A x224`). An agent grading the
+prescribed string would have seen it in NEITHER arm and reported **"no difference" — reading as a
+REFUTATION of a bug that is entirely real.**
+
+**Root cause — three independent blockers, none visible from reading the entry:**
+1. With `party_index` unbound, `move_to_forget` can only ever be **0 or 4** (enumerate every
+   assignment). That save's slot 0 is Scratch, not an HM, so the game ACCEPTS it and the refusal
+   window never re-fires ⇒ `:280` is **unreachable**. Reaching it needs **slot 0 to hold an HM**.
+2. The save is parked INSIDE the `CantForgetHM` window, so branch (1) resolves the dialogue at
+   **f12** using the INITIAL `move_to_forget = 4`. Policy is first consulted at **f37**. The
+   outcome is decided before the code under test can matter.
+3. Faulting the "most plausible real cause" (`map_battle_party_index`) is **rescued**:
+   `_read_offered_move` has two paths and the task-backed one binds `party_index` successfully.
+   51 fires, zero behavioural difference.
+
+**What worked.** Abandon the capture; INJECT the fixture (`debug_write_party`) so slot 0 is
+deliberately the HM, drive `route116team.ss1` to a natural level-up, and fault the READ itself. The
+lie then printed on cue at f2663 and the fix flipped it.
+
+**Why this recurred.** The entry had ALREADY been corrected once — it says so itself: *"the fixture
+was corrected once; the DISCRIMINATOR was never re-derived against it."* The second correction
+repeated the same omission at one level down: the discriminator was re-derived, but **never against
+the fixture's ENTRY STATE**. Each pass fixed the half it was looking at.
+
+**PREVENTION RULE (one line).** ⛔ **A discriminator is not derived until you have traced it from the
+fixture's ACTUAL ENTRY STATE to the assertion — and the cheapest proof that you have is to RUN BOTH
+ARMS AND SHOW THEY DIFFER *BEFORE* WRITING ANY FIX.** Identical arms are a fixture bug, never a
+result. *(This is the `04-HANDOFF` Tier-2 rule "COMPUTE THE DISCRIMINATOR on the named fixture" —
+strengthened, because computing it on paper is exactly what failed here twice.)*
+
+**Secondary lesson, cheap and recurring.** An agent reported that nothing overrides
+`which_move_should_be_replaced` "anywhere in `modules/`" — true, and misleading: the override that
+matters lives in `plugins/custom_modes/story_mode.py`. **A negative result is only as wide as the
+tree that was searched; make the agent state its search root, and check the root covers the claim.**
+
+## 2026-08-16 — I shipped a fix component whose JUSTIFICATION was an argument, not a measurement — in the same session whose whole lesson was "measure the discriminator"
+
+**Symptom.** The KI-65 fix landed in three parts. Part (3), an `offer_read_failed` latch, was
+written up in `07-CHANGELOG.md` and `05-KNOWN-ISSUES.md` as load-bearing, verbatim: *"Without (3)
+the ping-pong survives the fix."* An adversarial review of the diff traced the control flow and
+refused the claim, asking for the one experiment nobody had run.
+
+**Root cause.** The A/B I ran proved the **combined** fix works (ARM A: lie → honest message). It
+never isolated part (3). I reasoned that re-arming `move_to_forget = 0` every cycle must cause a
+loop — which is true of the OLD code — and carried that reasoning across the fix without re-tracing
+it. **The veto guard added in part (2) runs in the SAME iteration and forces `move_to_forget = 4`
+before any button is pressed**, so the re-arm never reaches a press.
+
+**The experiment that settled it (60 seconds).** Revert ONLY the latch, keep the `is None` guards,
+run the gate: `ACCEPTANCE: PASS`, with byte-identical numbers
+(`fault_fired=87, lie_msg=0, honest_msg=1`). Part (3) was redundant.
+
+**The fix that worked.** Delete the latch. ⛔ **Not** keep it as "defence in depth" — the reviewer
+named the real hazard precisely: a maintainer who believes the latch prevents the loop may later
+"simplify" away the `is None` guard that actually does, silently restoring the bug. The `:397`
+comment now records which guard is load-bearing and that the latch was measured out.
+
+**Why this is worth a whole entry.** It happened in the session whose OWN headline lesson was *"run
+both arms before you write the fix"* — and the rule was applied to the BUG and not to the FIX. A
+combined A/B proves a bundle; it says nothing about any component inside it.
+
+**PREVENTION RULE (one line).** ⛔ **Every clause of the form "without X the bug survives" is a
+CLAIM, and the only currency this project accepts for it is an arm with X removed.** If you will not
+run that arm, do not write the sentence — describe what you observed and say the component's role is
+untested. *(Corollary, earned: an adversarial diff review pays for itself when it is pointed at the
+SELF-REPORT, not just the code — it caught a false sentence that every gate in the suite passed.)*

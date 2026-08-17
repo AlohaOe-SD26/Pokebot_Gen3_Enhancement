@@ -335,6 +335,37 @@ method below found four harness bugs; the traps below each cost real time when f
    and `.../src/*.c`. This tells you the EXACT flags/vars/multichoice a scene needs
    (how we found `VAR_RUSTBORO_CITY_STATE`, the Match-Call tutorial flow, Briney's sail).
 
+### 3b. ‼‼ RUN BOTH ARMS **BEFORE** YOU WRITE THE FIX (added 2026-08-16, KI-65)
+
+**The rule:** the first thing you build is not the fix and not even the assertion — it is the two
+arms, run back to back, **showing they already differ**. If fault-ON and fault-OFF behave
+identically, you have a FIXTURE BUG, not a result, and every assertion you layer on top is
+measuring nothing.
+
+**Why this is now a step and not advice.** KI-65's spec was corrected TWICE and was still
+unusable both times. Its prescribed fixture could not exercise the bug for **three independent**
+reasons, none visible from reading the entry: the target line was unreachable on that party's slot
+order; the save entered the dialogue at a point where an earlier branch decided the outcome **25
+frames before the code under test ran**; and the "most plausible real cause" fault was silently
+rescued by a second code path inside the same function. Measured proof it was vacuous: both arms
+pressed **the same buttons on the same frames** (`f0 A, f2 Down x5, f12 A x224`).
+
+**Three habits that catch this cheaply:**
+* **Trace from the fixture's ENTRY STATE, not from the function's top.** A save parked mid-dialogue
+  can have the answer already decided. Ask *"which branch runs FIRST from here?"* before *"which
+  branch has the bug?"*
+* **Instrument the DECISION, not only the outcome.** Log what policy returned and on which frame.
+  `which_move_should_be_replaced(...) -> 1 @f37` versus a cursor confirmed `@f12` is what exposed
+  the ordering; a bare pass/fail never would.
+* **Prefer an INJECTED fixture to a captured one when the bug needs a specific shape.**
+  `debug_write_party` / `debug_create_pokemon` let you put the HM in **slot 0** on purpose. A
+  capture gives you whatever the run happened to have — and a capture that *looks* topical is the
+  most expensive kind of wrong, because it is trusted. ⛔ Always read the injected fixture BACK
+  through the production reader and assert the shape (playbook 0b Q6).
+
+⇒ **`ACCEPTANCE: FAIL` on the unfixed code is a DELIVERABLE.** Record it. A gate that was never
+seen red is a gate nobody has tested.
+
 ---
 
 ## 4. Story-mapping method (how to build a new chapter)

@@ -2478,3 +2478,42 @@ SHOULD inherit its sibling's protection — widening is the safe direction, narr
   one line, and it is worth logging LOUD when it fires, because every PID-keyed decision taken
   while it holds is suspect.
 
+
+
+---
+
+# ARCHIVED 2026-08-16 — KI-65's 2026-08-12 SELF-CORRECTION
+
+Moved out of `05-KNOWN-ISSUES.md` on the R3 3,000-line budget when KI-65 was FIXED and GATED.
+Verbatim, unedited. Context: KI-65 is now closed in sandbox (gate #25); this is the pre-fix
+narrowing of the original filing.
+
+## ‼ KI-65 CORRECTED 2026-08-12 (same day) — my first description OVERSTATED it
+
+I originally wrote that the re-pick *"has quite possibly never executed"*. **That is too strong, and
+an inaccurate issue is worse than none.** Reading the control flow properly:
+
+`party_index` is assigned at line 371 inside branch **(2) `AskWhetherToLearn`** — the "Delete a move
+to make room for X?" prompt — which in the normal sequence runs BEFORE a slot is confirmed and
+therefore before the game can refuse with `CantForgetHM`. So on an ordinary teach the name IS bound
+and the re-pick DOES run.
+
+**The real, narrower bug:** line 371 sits inside a `try:` whose `except Exception:` (line 377-381)
+silently defaults `move_to_forget` when `_read_offered_move` fails. On that path `party_index` is
+**never bound**, so a later `CantForgetHM` raises `UnboundLocalError` into the *second* silent
+`except`, which declines. ⇒ The two failures COMPOUND: the read failed invisibly, and then the
+recovery from the refusal failed invisibly too. Both look like decisions.
+
+**Why it still matters and is still filed:** it is a real latent `UnboundLocalError` on a real path,
+it is exactly the "fail-safe `except` that returns the SUCCESS value" pattern, and it is the reason
+the pyflakes gate cannot yet be widened past the story surface. **Fix deliberately deferred** to a
+focused pass with its own repro (force `_read_offered_move` to fail, then force `CantForgetHM`, and
+assert the re-pick either runs or says loudly that it cannot) — changing the teach flow without that
+repro is how `#24-teachmsgstall` got its current "the fix had no production effect" verdict.
+
+‼ **Method note for the next agent:** this correction came from reading the ENCLOSING control flow
+rather than the flagged line. A linter tells you a name is not provably bound; it does not tell you
+how often that happens. Do not convert a static warning into a severity claim without tracing who
+assigns it first.
+
+---

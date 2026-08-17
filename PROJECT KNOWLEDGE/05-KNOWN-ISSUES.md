@@ -2172,7 +2172,90 @@ rather than by prose**. ‼ **The count is `44`, MEASURED** (`probe_abort_swallo
 beside the measured 44 with nothing saying which was which.* **Re-run the probe; do not trust either
 number in prose** — it is the only thing that counts them.
 
-## KI-65 — the HM-refusal re-pick raises `UnboundLocalError` into a silent `except` **WHEN `_read_offered_move` HAS ALREADY FAILED**, so two invisible failures compound into a silent decline (2026-08-12, code-verified, OPEN)
+## KI-65 — ✅✅ **REPRODUCED, FIXED, A/B-PROVEN AND GATED 2026-08-16 (SANDBOX ONLY — ⛔ PROMOTION IS THE USER'S CALL, NOT YET ASKED FOR).** Was: the HM-refusal re-pick raises `UnboundLocalError` into a silent `except` **WHEN `_read_offered_move` HAS ALREADY FAILED**, so two invisible failures compound into a silent decline (filed 2026-08-12, code-verified)
+
+> ⛔ **STATUS IN ONE LINE:** the bug is FIXED in `sandbox-pokebot` and guarded by gate #25
+> (`repro_ki65_unbound_party_index.py`). **`custom-pokebot` still has the BUG** — drift is 1 file
+> and clearing it requires user approval. ‼ Everything below the "RECON" heading is the
+> PRE-FIX investigation, kept because three of its load-bearing claims were WRONG and a future
+> session must not re-derive them. **Read the FIX block immediately below first.**
+
+### ✅✅ THE FIX, AND WHAT IT COST TO GET THERE (2026-08-16)
+
+**REPRODUCED FIRST, as this entry's own rule demanded.** `repro_ki65_unbound_party_index.py`
+drives the REAL bot from `saves/route116team.ss1` with an INJECTED learner —
+**MARSHTOMP L30 (1 exp short of L31), slots `0 = Rock Smash (HM06)`, 1 = Water Gun, 2 = Mud Shot,
+3 = Bide** — and levels it naturally in a wild battle. **ARM A** rebinds `bmr._read_offered_move`
+to raise (`:371` calls it by bare name, so the module global is the seam; no production edit).
+
+**Measured, pre-fix (ARM A, fault fired 159x):**
+`f2663: The game refused that slot (HM). Nothing else can be given up — declining the new move.`
+— printed **while Water Gun, Mud Shot AND Bide were all forgettable. The message is a PROVABLE LIE**,
+and it is the full four-step chain: read fails → `party_index` unbound → veto at `:397` raises into
+`pass` → slot 0 (the HM) confirmed → game refuses → `:280` raises → `:291` sets 4 → `:297` lies.
+**ARM B** (no fault) printed no lie and correctly replaced a non-HM slot.
+
+**THE FIX IS TWO OF THE THREE PARTS THIS ENTRY SPECIFIED. ‼ THE THIRD WAS BUILT, MEASURED, AND
+REMOVED — see the note under (3):**
+1. `party_index: int | None = None` declared beside `last_confirmed_slot` — turns "unbound" into a
+   value that can be **TESTED** instead of a crash that gets swallowed.
+2. Explicit `if party_index is None:` guards at BOTH `:280` and `:397`, each setting a message that
+   says what it could not do. ‼ **The veto now FAILS CLOSED** (declines) rather than confirming an
+   unverifiable slot — see `06-DECISIONS-LOG.md`, 2026-08-16, for why that is the right trade.
+3. ⛔ **AN `offer_read_failed` LATCH IN THE `:377` HANDLER — BUILT, THEN REMOVED AS REDUNDANT.**
+   This entry predicted *"without (3) the ping-pong survives the fix"*, and an adversarial review
+   of the diff refused to take that on trust. **The isolated A/B settled it: with the latch
+   reverted and ONLY the `is None` guards kept, the gate passes IDENTICALLY**
+   (`fault_fired=87, lie_msg=0, honest_msg=1`). Reason: the veto runs in the SAME iteration as the
+   `except`, so whenever the handler re-arms `move_to_forget = 0`, the veto's `is None` guard forces
+   it back to `4` **before any button is pressed**. ‼ **So part (2) is what prevents the loop — a
+   comment at `:397` now says so, because a maintainer who believed the latch covered it might
+   "simplify" away the guard that is actually load-bearing.**
+
+**PROVEN BY A/B, both directions:** after the fix ARM A goes `lie_msg=1, honest_msg=0` →
+`lie_msg=0, honest_msg=1`, still `RESOLVED`, still no derail; **ARM B is unchanged in both runs**
+(`moveset_changed=1`, no lie) — that invariance is what shows the fix did not cost normal operation.
+**FAULT-TESTED:** reverting the file to `HEAD` made the gate FAIL on exactly the two checks that
+matter, and ARM B stayed green.
+
+### ⛔⛔ THREE THINGS THE RECON BELOW GOT WRONG — MEASURED, DO NOT RE-DERIVE THEM
+
+The RECON block prescribed `saves/movelearn_hmwedge_quickattack.ss1`. **That fixture cannot test
+this bug at all**, for three independent reasons:
+1. **`:280` IS UNREACHABLE THERE.** With `party_index` unbound, enumerate every assignment of
+   `move_to_forget`: `:176` (4), `:285-289` (needs `party_index`, raises first), `:291` (4), `:373`
+   (unreachable, `:371` raised), `:381` (0), `:432` (dead, `:397` raised first). **Only 0 and 4 are
+   reachable.** That save's slot 0 is Scratch, not an HM, so the game ACCEPTS it and `CantForgetHM`
+   never re-fires. ⇒ **`:280` requires a fixture whose SLOT 0 ITSELF HOLDS AN HM** — which is why
+   the repro injects one rather than using a capture.
+2. **THE OUTCOME IS DECIDED BEFORE THE BUG CAN MATTER.** That save is parked INSIDE the
+   `CantForgetHM` window, so branch (1) runs at f2 with the INITIAL `move_to_forget = 4`, walks the
+   cursor to the cancel row and backs out at **f12**. Policy is first consulted at **f37** — 25
+   frames too late. Fault-ON and fault-OFF button traces are **BYTE-IDENTICAL**:
+   `f0 A, f2 Down x5, f12 A x224`.
+3. **FAULTING THE "MOST PLAUSIBLE REAL CAUSE" IS RESCUED.** `_read_offered_move` has TWO paths —
+   `:135-138` task-backed via `get_party_menu_cursor_pos`, and `:140-149` via `gBattleStruct` +
+   `map_battle_party_index`. Only the second can raise. On that save the task-backed path succeeds,
+   binds `party_index`, and a bound function-local **stays bound for the rest of the generator's
+   life**, so every later raise is inert. Measured: 51 fires, zero behavioural difference.
+
+### ⚠ RESIDUAL LEFT OPEN BY THIS FIX — TRACKED HERE ON PURPOSE (do not let it orphan)
+
+The guards test `party_index is None`, which covers **unbound**. They do **NOT** cover a
+*legitimately bound but WRONG* index: `get_party_menu_cursor_pos` does not raise on a bad cursor —
+it calls `set_manual_mode()` and returns **`slot_id = -1`**, and `get_party()[-1]` is the LAST party
+member. That is a **wrong-mon, not an exception**, so it flows straight past both new guards exactly
+as it did before. ⛔ **This fix does not claim to address it**, and it is a genuinely different shape
+(silent wrong answer vs. silent crash). ‼ It is the same class as `#24-orphans` item (3) KI-66's
+"index from the wrong space" hazard. Filed here rather than in a research note so a future session
+can FIND it. **Not yet observed live; unquantified.**
+
+‼ **ALSO CORRECTED:** `LevelUpTravelBattleStrategy.which_move_should_be_replaced` was measured
+returning **slot 1 = Rock Smash, an HM**, for Quick Attack. The HM veto is what catches that, so the
+veto is load-bearing in NORMAL operation, not just on the error path. *(An agent reported that no
+strategy overrides `which_move_should_be_replaced` "anywhere in `modules/`" — true and misleading:
+the override lives in `plugins/custom_modes/story_mode.py`, outside that tree.)*
+
 
 > ⛔ **HEADER CORRECTED 2026-08-16 (P2).** It read *"the HM-refusal re-pick has NEVER executed"* —
 > which **this entry's own CORRECTION section, written the same day it was filed, calls too strong**
@@ -2283,48 +2366,31 @@ exotic conditions. Both halves are required: the fault ALONE does not reach `:28
   returns `slot_id = -1`, and `get_party()[-1]` is the LAST party member. That failure mode is a
   **wrong mon, not an exception** — a second, separate silent-wrong-answer path.
 
-✅ **THE FIX, SPECIFIED IN THREE PARTS** (⛔ not applied — this entry's own deferral stands, and
-changing the teach flow without the repro is how `#24-teachmsgstall` earned its "no production
-effect" verdict): (1) `party_index: int | None = None` beside `:185`, matching
+✅✅ **THE FIX, SPECIFIED IN THREE PARTS — ⛔ SUPERSEDED: PARTS (1) AND (2) ARE APPLIED IN SANDBOX;
+PART (3) WAS BUILT AND THEN REMOVED AS MEASURABLY REDUNDANT
+(2026-08-16), AFTER the repro this block demanded was built. See the FIX block at the top of this
+entry. The deferral below is HISTORY and is satisfied; do not read it as an instruction to hold
+off.** The specification is kept because its part (3) turned out to be WRONG in an instructive way — it
+named the latch as the loop-preventer when the veto guard is:
+(1) `party_index: int | None = None` beside `:185`, matching
 `last_confirmed_slot: int | None = None`'s style (⚠ this said `:177` — that is `last_offered_move_name`); (2) EXPLICIT `if party_index is None:` guards at
 `:280` and `:397` that say loudly they cannot act, instead of letting `except` swallow an
 `UnboundLocalError` indistinguishably from success; (3) set `last_offered_move_name` (or an
 equivalent "we already failed to read this offer" latch) in the `:377` handler — **without (3) the
 ping-pong in (B) survives the fix.**
-⚠ **`custom-pokebot`'s copy is BYTE-IDENTICAL**, so whatever lands here has a promotion twin.
+⛔ **`custom-pokebot`'s copy WAS byte-identical and IS NO LONGER** — the fix landed in sandbox on
+2026-08-16, so `promote.py --check` now reports **1 differing file**
+(`modules/battle_move_replacing.py`). **That is EXPECTED drift awaiting a user ruling, not damage.**
 
 **Severity:** MEDIUM, order-dependent (on iterations where line 371 already ran, the name is bound
 and the branch works), which is also why it has survived unnoticed.
 
-## ‼ KI-65 CORRECTED 2026-08-12 (same day) — my first description OVERSTATED it
+## ‼ KI-65's 2026-08-12 SELF-CORRECTION — MOVED to `31-KNOWN-ISSUES-ARCHIVE.md` (2026-08-16)
 
-I originally wrote that the re-pick *"has quite possibly never executed"*. **That is too strong, and
-an inaccurate issue is worse than none.** Reading the control flow properly:
-
-`party_index` is assigned at line 371 inside branch **(2) `AskWhetherToLearn`** — the "Delete a move
-to make room for X?" prompt — which in the normal sequence runs BEFORE a slot is confirmed and
-therefore before the game can refuse with `CantForgetHM`. So on an ordinary teach the name IS bound
-and the re-pick DOES run.
-
-**The real, narrower bug:** line 371 sits inside a `try:` whose `except Exception:` (line 377-381)
-silently defaults `move_to_forget` when `_read_offered_move` fails. On that path `party_index` is
-**never bound**, so a later `CantForgetHM` raises `UnboundLocalError` into the *second* silent
-`except`, which declines. ⇒ The two failures COMPOUND: the read failed invisibly, and then the
-recovery from the refusal failed invisibly too. Both look like decisions.
-
-**Why it still matters and is still filed:** it is a real latent `UnboundLocalError` on a real path,
-it is exactly the "fail-safe `except` that returns the SUCCESS value" pattern, and it is the reason
-the pyflakes gate cannot yet be widened past the story surface. **Fix deliberately deferred** to a
-focused pass with its own repro (force `_read_offered_move` to fail, then force `CantForgetHM`, and
-assert the re-pick either runs or says loudly that it cannot) — changing the teach flow without that
-repro is how `#24-teachmsgstall` got its current "the fix had no production effect" verdict.
-
-‼ **Method note for the next agent:** this correction came from reading the ENCLOSING control flow
-rather than the flagged line. A linter tells you a name is not provably bound; it does not tell you
-how often that happens. Do not convert a static warning into a severity claim without tracing who
-assigns it first.
-
----
+Moved on the R3 3,000-line budget when the KI-65 FIX block was written. KI-65 is CLOSED (sandbox);
+that section was the *pre-fix* narrowing of the original filing and is fully superseded by the FIX
+block above. ‼ **Keep only its rule, which outlived it:** *an entry that corrects itself in the BODY
+must correct its TITLE in the same edit* — that header outlived its own retraction by four days.
 
 ## KI-70 — `_rotate_lead_safely` returns an avatar that may not be controllable yet; its callers walk immediately (2026-08-13, MEASURED n=1, severity: LOW-but-hot-path, OPEN, deliberately NOT fixed)
 
@@ -2842,7 +2908,7 @@ PROBE precisely because a gate red on arrival on pre-existing debt teaches every
   fix could not be promoted separately from an unapproved comment-only edit sitting in the SAME
   file (`plugins/custom_modes/story_mode.py`). **The user ruled, the comment-only correction was
   promoted** — so the KI-80 fix, when approved, promotes cleanly on its own.
-  ✅ The KI-80 decoupling was itself promoted 2026-08-16 on that same rule. *(✅ The KI-81 whiteout guard was itself promoted 2026-08-16, so drift is 0 again.)*
+  ✅ The KI-80 decoupling was itself promoted 2026-08-16 on that same rule. *(✅ The KI-81 whiteout guard was promoted 2026-08-16 too, which returned the figure to zero at that moment. ⛔ It is NOT zero now: the KI-65 fix landed in sandbox later the same day, so `promote.py --check` reports **1 differing file** awaiting a user ruling. Run the tool; never quote a drift figure from prose.)*
   *(⚠ The superseded wording is DESCRIBED rather than reprinted: `audit_doc_consistency` matches
   literal strings and cannot tell a quotation from a claim — it red-flagged the first draft of this
   very bullet for reciting the old figure.)*

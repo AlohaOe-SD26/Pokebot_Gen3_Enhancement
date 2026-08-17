@@ -1864,7 +1864,10 @@ criterion**, and the honest way to test the pair against each other.
 **Interacts with `#24-dexhunt` above:** hunting for new species generates exactly the
 level-matched encounters maintenance needs. Done together they are one activity, not two.
 
-### ‼‼ `#24-orphans` — SIX REAL RESIDUALS THAT WERE WRITTEN DOWN BUT NEVER TRACKED (filed 2026-08-15)
+### ‼‼ `#24-orphans` — SIX REAL RESIDUALS THAT WERE WRITTEN DOWN BUT NEVER TRACKED — **MIXED STATUS: 2 DONE ((2) KI-65, (4) log collision), 4 OPEN ((1), (3), (5), (6))** (filed 2026-08-15; last updated 2026-08-16)
+
+> ⛔ **THE HEADING IS A CLAIM ABOUT EVERY BULLET BENEATH IT (P2).** These six do NOT share a status —
+> read each bullet's own marker. Two are closed; four are live.
 
 > ⛔ **WHY THIS ITEM EXISTS.** An audit asked a question nobody had asked: *for every "still open /
 > still owed / not built" sentence written this session, would a future session ever FIND it?* Six
@@ -1930,9 +1933,24 @@ level-matched encounters maintenance needs. Done together they are one activity,
       still silently tolerated. ⛔ It was filed in the body of a KI whose header read only
       "CLOSED" — any session scanning for open issues skips it. (KI-79's header now carries the
       caveat.) The next Slugma-class derail is still invisible to callers.
-- [ ] **(2) KI-65 — `battle_move_replacing.py`: `party_index` unbound reads raise into SILENT
-      excepts.** OPEN and code-verified since 2026-08-12. ‼ Standing candidate cause for the
-      REOPENED `#24-teachmsgstall`, so orphaning it broke a live investigation's only lead.
+- [x] **(2) ✅✅ DONE 2026-08-16 — KI-65 is REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25).**
+      ⛔ **SANDBOX ONLY — promotion to `custom-pokebot` is the USER'S CALL and has not been asked
+      for; `promote.py --check` reports 1 differing file, which is EXPECTED.**
+      The repro (`repro_ki65_unbound_party_index.py`) drives the real bot from `route116team.ss1`
+      with an INJECTED Marshtomp whose **slot 0 is deliberately Rock Smash (HM06)**; pre-fix ARM A
+      printed *"Nothing else can be given up — declining the new move."* **while three forgettable
+      moves existed** — a provable lie. **TWO of the three specified fix parts landed.** ‼ Part (3) (an
+      `offer_read_failed` latch) was built, then **REMOVED after an isolated A/B showed the gate
+      passes identically without it** — the entry's claim that the ping-pong survives without it was
+      wrong; the veto's `is None` guard forces `move_to_forget = 4` in the same iteration. Caught by
+      an adversarial review that refused to accept an unmeasured claim.
+      ‼ **THREE CLAIMS IN THE ITEM'S OWN RECON WERE REFUTED BY MEASUREMENT** — the prescribed
+      `movelearn_hmwedge_*.ss1` fixture cannot test this bug at all (`:280` unreachable there; the
+      outcome is decided at f12, 25 frames before policy runs; and faulting the "most plausible
+      cause" is rescued by `_read_offered_move`'s task-backed path). Details in KI-65 and
+      `08-MISTAKES.md`. ⛔ Do not retry that fixture.
+      ‼ It remains a standing candidate cause for the REOPENED `#24-teachmsgstall` — **the fix is
+      proven to remove the silent decline, NOT yet proven to be that stall's cause.**
       ✅ **RECON DONE 2026-08-16 — read KI-65's "RECON" block BEFORE writing a line.** It corrected
       this item on three counts: **there are TWO unbound reads, not one** (`:397`, the HM veto, is
       the more damaging and hides behind `except: pass`); **the captured `movelearn_hmwedge_*.ss1`

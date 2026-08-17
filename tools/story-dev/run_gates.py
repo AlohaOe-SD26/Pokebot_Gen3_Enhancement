@@ -81,6 +81,17 @@ GATES: list[tuple[str, bool]] = [
     # rather than recomputing, because the probe that DID recompute (`probe_shoal_tide.py`)
     # reproduced the bug exactly and so could never have caught it.
     ("repro_impassable_dirs.py", True),
+    # ‼ KI-65. `party_index` is assigned at ONE place inside a `try`; when the offer read fails the
+    # name stays unbound and TWO later reads raise `UnboundLocalError` into swallowing `except`s —
+    # so the HM veto (the "last line of defence") fails OPEN on the exact path it was written for,
+    # and the CantForgetHM re-pick prints "Nothing else can be given up" while forgettable moves
+    # exist. Two arms on an INJECTED fixture whose slot 0 is deliberately an HM (the only shape
+    # that makes `:280` reachable — the two captured `movelearn_hmwedge_*.ss1` saves CANNOT test
+    # this, measured, see the script docstring). ARM A must decline HONESTLY; ARM B is the control
+    # the fix may not touch. Fault-tested 2026-08-16: reverted to HEAD, the gate FAILED on exactly
+    # the lie + honest-message checks. It DRIVES the emulator, so a mention in a comment cannot
+    # trigger it.
+    ("repro_ki65_unbound_party_index.py", True),
 ]
 
 

@@ -2786,3 +2786,32 @@ no branch to flip. The question for a guard is whether the FORK'S OWN handlers n
 property, so the instrument must be able to look at the other fork. Measured: **53 → 45**, with
 per-file guarded-handler counts moving **0→3 / 0→4 / 1→2**. *Rejected:* accepting the byte-compare
 because "it is only a guard" — that is precisely the reasoning KI-79 exists to forbid.
+
+## 2026-08-16 — A SAFETY VETO THAT CANNOT EVALUATE MUST FAIL **CLOSED** (KI-65)
+
+**Decision.** When the HM veto in `handle_move_replacement_dialogue` (`battle_move_replacing.py`)
+cannot determine which party slot is learning the move — i.e. `party_index is None` because
+`_read_offered_move` raised — it now **DECLINES the offer** and says so, instead of letting the
+read crash into `except: pass` and confirming whatever slot the fallback picked.
+
+**Why this and not the alternatives.**
+* *Alternative A — keep "learning is the safe default" and confirm slot 0 anyway.* Rejected. That
+  is the shipped bug. The `except` fallback at `:377-381` hardcodes slot 0, so the confirmed slot
+  has had **no policy applied at all**; when slot 0 holds an HM the game refuses it and the
+  dialogue ping-pongs until the 3-strike valve kills the run. **REPRODUCED**, not theorised.
+* *Alternative B — guard the read but leave the action unchanged (report, don't decline).* Rejected
+  as half a fix. It makes the failure visible while still confirming an unverified slot, so the
+  wedge remains reachable. The veto's entire purpose is that "nothing can route around it".
+* *Chosen — fail closed.* Declining is an ANSWER, so the "never stall on the prompt" property that
+  motivated the original default is preserved, and declining is **measured to resolve cleanly in
+  ~430 frames**. The cost is bounded and small: on a transient read failure the mon keeps its
+  current moves and is offered the move again on its next level-up.
+
+**The trade, stated honestly.** This makes the bot slightly more conservative on an error path: a
+move that could have been learned safely is sometimes declined. That is deliberate — an un-learned
+move costs one level-up, whereas confirming an HM slot historically cost **2 of 5 overnight runs**
+(`#24-movelearn-recovery`). ⚠ It changes behaviour ONLY when the offer read fails; the control arm
+of the gate proves normal operation is untouched.
+
+**Scope note.** The fix does NOT claim to explain the reopened `#24-teachmsgstall`. KI-65 remains a
+*candidate* cause; proving that connection needs its own repro.

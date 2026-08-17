@@ -15659,3 +15659,56 @@ status word are invisible to a checker that counts things. What caught them was 
 consistent both times. ⇒ **Keep re-running the verification pass on the FIXES, not only on the
 originals.** *(And note the probe could not catch #1: a bare `file.py:NNN` with no adjacent symbol
 has nothing to verify against — exactly the limit its own docstring states.)*
+
+## 2026-08-16 — KI-65 REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25) — `#24-orphans` (2)
+
+**What shipped (sandbox only — ⛔ promotion to `custom-pokebot` is the USER'S CALL and has not been
+asked for; `promote.py --check` reports 1 differing file, which is EXPECTED, not damage).**
+
+`modules/battle_move_replacing.py` — `party_index` was assigned at exactly ONE place (`:371`)
+inside a `try`. When `_read_offered_move` raised, the name stayed UNBOUND and two later reads of it
+each raised `UnboundLocalError` into a swallowing `except`: the HM veto (`:397`, `except: pass`) and
+the CantForgetHM re-pick (`:280`, `except` → decline). So the veto — whose own comment calls it
+"THE LAST LINE OF DEFENCE" and names the `except` fallback that "blindly picks slot 0 without
+consulting any policy at all" — **failed OPEN on the exact path it was written for.**
+
+**Two-part fix (a third part was built, measured and removed — see below):**
+1. `party_index: int | None = None` declared beside `last_confirmed_slot`, so "unbound" becomes a
+   value that can be TESTED rather than a crash that gets swallowed.
+2. Explicit `if party_index is None:` guards at `:280` and `:397`, each emitting a message that says
+   what it could not do. The veto now **FAILS CLOSED** (declines) — see `06-DECISIONS-LOG.md`.
+3. ⛔ **REMOVED BEFORE COMMIT.** An `offer_read_failed` latch was added to the `:377` handler and
+   written up here as load-bearing (*"without (3) the ping-pong survives"*). **An adversarial diff
+   review refused that unmeasured claim, and the isolated A/B proved it FALSE:** with the latch
+   reverted and only the `is None` guards kept, the gate passes identically
+   (`fault_fired=87, lie_msg=0, honest_msg=1`). The veto runs in the SAME iteration and forces
+   `move_to_forget = 4` before any button is pressed, so **part (2) prevents the loop.** The latch
+   was deleted rather than kept as "defence in depth" — dead code behind a false rationale is how a
+   future maintainer talks themselves into removing the guard that actually works. A comment at
+   `:397` now records this.
+
+**New gate #25 `tools/story-dev/repro_ki65_unbound_party_index.py`** (suite 24 → 25). Two arms on
+`saves/route116team.ss1` with an INJECTED Marshtomp L30 whose **slot 0 is deliberately Rock Smash
+(HM06)** — the only shape that makes `:280` reachable. It drives the real bot to a natural level-up.
+
+**MEASURED, pre-fix (ARM A, fault fired 159x):**
+`The game refused that slot (HM). Nothing else can be given up — declining the new move.`
+printed **while Water Gun, Mud Shot and Bide were all forgettable — a provable lie.**
+**Post-fix:** ARM A `lie_msg=1,honest_msg=0` → `lie_msg=0,honest_msg=1`, still RESOLVED, no derail;
+**ARM B unchanged in both runs** (`moveset_changed=1`, no lie). **Fault-tested:** reverting the file
+to `HEAD` made the gate FAIL on exactly those two checks while ARM B stayed green.
+
+**Also corrected in the docs (all three refuted BY MEASUREMENT, not by argument):** KI-65's own
+RECON prescribed `movelearn_hmwedge_quickattack.ss1`, which **cannot test this bug at all** —
+`:280` is unreachable there; the outcome is decided at f12 (25 frames before policy is first
+consulted at f37, arms byte-identical at `f0 A, f2 Down x5, f12 A x224`); and faulting the "most
+plausible real cause" (`map_battle_party_index`) is rescued by `_read_offered_move`'s task-backed
+path (51 fires, zero effect).
+
+**FILES TOUCHED (complete):** `sandbox-pokebot/modules/battle_move_replacing.py` (the fix),
+**NEW** `tools/story-dev/repro_ki65_unbound_party_index.py` (gate #25),
+`tools/story-dev/run_gates.py` (registers it, 24 -> 25), `05-KNOWN-ISSUES.md` (KI-65 header AND body,
+plus a 30-line superseded subsection moved out for the R3 budget),
+`31-KNOWN-ISSUES-ARCHIVE.md` (receives it verbatim), `14-AGENT-PLAYBOOK.md` (new §3b),
+`03-PUNCH-LIST.md` (`#24-orphans` heading + item 2), `04-HANDOFF.md`, `02-ARCHITECTURE.md`,
+`06-DECISIONS-LOG.md`, `08-MISTAKES.md`.
