@@ -88,16 +88,19 @@ def _drives_generator(try_node: ast.Try) -> bool:
     return False
 
 
+#: Calls that make a handler abort-AWARE. `reraise_if_aborting` is the house idiom; `story_should_abort`
+#: is the hand-written equivalent (`early_game.py:2305` reads `if story_should_abort(): raise`).
+#: ‼ REFINEMENT (1), 2026-08-17 — and note WHERE it has to look. The hand guard lives in the HANDLER,
+#: not the try BODY; a cold-start audit measured that searching the body removes ZERO sites.
+_GUARD_CALLS = {"reraise_if_aborting", "story_should_abort"}
+
+
 def _guards_abort(try_node: ast.Try) -> bool:
     for h in try_node.handlers:
         if "StoryAbort" in _handler_names(h):
             return True
         for n in ast.walk(h):
-            if (
-                isinstance(n, ast.Call)
-                and isinstance(n.func, ast.Name)
-                and n.func.id == "reraise_if_aborting"
-            ):
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in _GUARD_CALLS:
                 return True
     return False
 
@@ -138,6 +141,30 @@ def f():
     except Exception as error:
         report(error)
 """
+#: ‼ REFINEMENT (1), 2026-08-17: the HAND-WRITTEN guard. `early_game.py:2305` reads
+#: `if story_should_abort(): raise` — semantically identical to `reraise_if_aborting`, and the probe
+#: could not see it. ⛔ Note WHERE it sits: in the HANDLER. A cold-start audit measured that searching
+#: the try BODY for this shape removes ZERO sites, which is why that mistake is cheap to repeat.
+_HAND_GUARD = """
+def f():
+    try:
+        yield from thing()
+    except BotModeError as error:
+        if story_should_abort():
+            raise
+        report(error)
+"""
+#: The control for it: the same shape WITHOUT the guard must still fire, so the new rule cannot be
+#: passing everything that merely mentions the word.
+_HAND_GUARD_ABSENT = """
+def f():
+    try:
+        yield from thing()
+    except BotModeError as error:
+        if some_other_condition():
+            raise
+        report(error)
+"""
 
 
 def self_test() -> int:
@@ -148,6 +175,8 @@ def self_test() -> int:
         ("guarded (StoryAbort + reraise_if_aborting) -> quiet", _GOOD, 0),
         ("unguarded broad except around `yield from` -> FIRES", _BAD, 1),
         ("broad except with NO `yield from` -> quiet (not our business)", _NO_YIELD, 0),
+        ("HAND-WRITTEN guard `if story_should_abort(): raise` -> quiet", _HAND_GUARD, 0),
+        ("the same shape with an UNRELATED condition -> still FIRES", _HAND_GUARD_ABSENT, 1),
     ]
     bad = 0
     print("=" * 92)
@@ -162,6 +191,18 @@ def self_test() -> int:
     print(f"SELF-TEST {'PASS' if not bad else 'FAIL'} ({bad} deviation(s))")
     print("=" * 92)
     return 1 if bad else 0
+
+
+#: ⛔⛔ A RATCHET, NOT A THRESHOLD — and this is what finally made this probe GATEABLE.
+#: The 2026-08-17 triage measured that ~64% of the candidates are NOT this defect, so a gate that
+#: demanded ZERO would be red on arrival over code that is correct as written — the fastest way to
+#: teach everyone to ignore gates. And the "obvious" fix (prune by reachability) was REFUTED: see
+#: the note above `_guards_abort`. So the gate asserts the only thing that is both true and useful —
+#: **the number must never grow**. Same shape as `repro_no_silent_except.py`'s baseline, which is the
+#: house pattern for exactly this situation: real debt, no clean zero, but no new debt either.
+#: ‼ LOWER IT whenever sites are fixed (that is the ratchet turning); NEVER raise it. A raise means
+#: someone added a new unguarded broad `except` around a `yield from` in the story path.
+BASELINE = 36  # measured 2026-08-17, after 8 sites were fixed and refinement (1) landed.
 
 
 def main() -> int:
@@ -197,19 +238,30 @@ def main() -> int:
     print("-" * 92)
     print(f"  files scanned : {len(files)}")
     print(f"  CANDIDATE sites: {total}")
-    print("  ‼ CANDIDATE means 'could swallow a whiteout', NOT 'does'. A site is a false positive")
-    print("    if no `_check_abort()` is reachable through its `yield from`. This probe narrows the")
-    print("    list for a human; it does not prove reachability. Triage before fixing.")
-    # ‼ THIS FOOTER IS WHAT AN AGENT READS AT THE MOMENT IT DECIDES WHAT TO DO, so it must carry the
-    # CURRENT plan. It used to say "fix the sites, then promote it" — the superseded round-2 plan —
-    # and a cold-start audit flagged it as the worst-placed of three such instructions.
-    print("  ⛔ NOT a gate yet, and ⛔ DO NOT PROMOTE IT AS-IS: the 2026-08-17 triage MEASURED that")
-    print("     ~64% of its candidates are NOT this defect — they wrap navigation primitives with no")
-    print("     `_check_abort()`, so no StoryAbort can arrive. REFINE THE RULE FIRST (`#24-abortswallow`")
-    print("     round 3); a gate red on arrival over correct-as-written code teaches people to ignore")
-    print("     gates. ‼ And the refined callee test must accept a LATCH re-raise (`reraise_if_aborting`)")
-    print("     as an abort source, not only a literal `_check_abort()` — otherwise it prunes the heal")
-    print("     sites already fixed, which was measured.")
+    print("  ‼ CANDIDATE means 'could swallow a whiteout', NOT 'does'. Triage before fixing —")
+    print("    ~64% were MEASURED (2026-08-17) not to be this defect. This narrows the list; it does")
+    print("    not prove anything about a single site.")
+    # ‼ THIS FOOTER IS WHAT AN AGENT READS AT THE MOMENT IT DECIDES WHAT TO DO, so it carries the
+    # CURRENT plan — it twice carried a superseded one, and a cold-start audit flagged that as the
+    # worst-placed of three such instructions.
+    print("  ⛔ DO NOT try to drive this to ZERO, and ⛔ do not 'fix' a site because it is listed.")
+    print("     It is a RATCHET: the number must never GROW. Lower BASELINE when sites are fixed.")
+    if total > BASELINE:
+        print("-" * 92)
+        print(f"  ‼ FAIL — {total} candidate sites, ABOVE the baseline of {BASELINE}.")
+        print("     A new broad `except` now wraps a `yield from` in the story path with no")
+        print("     `StoryAbort` / `reraise_if_aborting` guard. Add the guard, or — if an abort")
+        print("     genuinely cannot arrive there — say so IN THE HANDLER and raise BASELINE only")
+        print("     with that reasoning written down.")
+        print("=" * 92)
+        return 1
+    if total < BASELINE:
+        print(f"  ✅ IMPROVED — {total} sites, below the baseline of {BASELINE}.")
+        print(f"     ‼ LOWER `BASELINE` to {total} in this file to lock the gain in; a ratchet only")
+        print("     ratchets if you turn it. ⛔ And do NOT claim the drop was caused by your change")
+        print("     without an arm that removes it — that exact misattribution happened 2026-08-17.")
+    else:
+        print(f"  ✅ PASS — {total} sites, exactly at the baseline. No new debt.")
     print("=" * 92)
     return 0
 

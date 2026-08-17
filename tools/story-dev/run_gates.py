@@ -100,6 +100,15 @@ GATES: list[tuple[str, bool]] = [
     # Fault-tested against REALITY, not only synthetics: `--build custom` (the unpromoted tree) FAILS
     # on exactly the bare returns and the discarded result. Self-test: `--self-test` (7 cases).
     ("repro_withdraw_verdict.py", False),
+    # `#24-abortswallow` round 3, 2026-08-17. A broad `except` around a `yield from` in the story
+    # path can swallow a whiteout; 16 such sites have been fixed, 36 candidates remain.
+    # ⛔ IT IS A RATCHET, NOT A ZERO-THRESHOLD, and that is what made it gateable at all: the triage
+    # MEASURED that ~64% of the candidates are not this defect, so demanding zero would be red on
+    # arrival over correct-as-written code. ⛔ The "obvious" alternative — prune by whether an abort
+    # SOURCE is reachable — was REFUTED by an observed failure (`mossdeep_gym.py:465` fabricated
+    # "could not get out of the gym" on a dead run, and its body wraps only navigation primitives).
+    # Fault-tested both ways: injecting ONE unguarded site takes it 36 -> 37 and exits 1.
+    ("probe_abort_swallowing.py", False),
 ]
 
 

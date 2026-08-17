@@ -718,7 +718,45 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       proving the narrowing cannot leak the global. ⚠ The first cut referenced `BotModeError`
       without importing it — a NameError on the abort path itself — and `repro_undefined_names.py`
       caught it on the first run. `repro_no_silent_except.py`'s baseline was ratcheted 149 → 148.
-      🔜 **WHAT REMAINS: 37 candidates, ALL in `early_game.py`.**
+      ✅✅ **ROUND 3 DONE 2026-08-17 — AND IT CLOSED THIS ITEM'S GATING QUESTION.**
+      **(1) SHIPPED, 37 → 36:** the probe now recognises the HAND-WRITTEN guard
+      `if story_should_abort(): raise` (`early_game.py:2305`). ‼ It sits in the HANDLER — searching
+      the try BODY removes ZERO sites (measured). Two self-tests: the guard shape is quiet, the same
+      shape with an UNRELATED condition still fires.
+      ⛔⛔ **(2) REFUTED — DO NOT BUILD IT.** I built it (whole-package call graph, 2,208 functions,
+      120 abort-capable) and it works as designed: with the latch correction `heal_in_pokemon_center`
+      is abort-capable and `navigate_to` is not, and it cuts 36 → 8. **The UPWARD fault test killed
+      it:** against the ALREADY-FIXED sites it makes FIVE invisible — `pc_trip.py:181/:303/:474`,
+      `mossdeep_gym.py:465`, `higher_level_actions.py:839`.
+      **`mossdeep_gym.py:465` settles it because it is an OBSERVED failure recorded in this very
+      item** (*"after a whiteout it tried the second gym door ON A DEAD RUN and raised a FABRICATED
+      'could not get out of the gym'"*), and its body wraps only a navigation primitive with no abort
+      source beneath it. ⇒ **the predicate is wrong:** the defect is also *"the whiteout already
+      happened, so an ORDINARY operation fails for an ordinary reason and the handler fabricates a
+      diagnosis"*. Nothing abort-shaped is raised there — the latch is the only evidence, which is
+      why `reraise_if_aborting` is LATCH-keyed, not type-keyed. A reachability filter contradicts the
+      design of the guard it filters for.
+      ✅ **CROSS-CHECKED BY A SECOND, INDEPENDENT IMPLEMENTATION** (import-aware resolution vs my
+      bare-name graph): SAME five casualties; its 9/28 reconciles with my 8/28 (the extra is
+      `:2305`, which refinement (1) now guards). ⛔ **And it found a property that condemns the
+      approach outright — NON-MONOTONICITY:** because `reraise_if_aborting` in a handler makes
+      the ENCLOSING function abort-capable, the capable-set depends on WHICH GUARDS ALREADY
+      EXIST — `higher_level_actions.py:352/:375/:403` are REACHABLE only because
+      `pc_trip.py:181/:303/:474` are guarded. A filter whose output depends on the history of
+      fixes rather than on the code's behaviour must not be a gate.
+      ‼ **If anyone revisits call-graph work here: naive global name-matching is worthless** —
+      everything comes out REACHABLE, because the method name `run` collides
+      (`subprocess.run` vs `PokecenterLoopController.run`, which calls `heal_in_pokemon_center`).
+      Import-aware resolution is mandatory; 37/0/0 is the symptom of getting this wrong.
+      ✅✅ **SO THE PROBE IS NOW A GATE (#27) — AS A RATCHET, NOT A ZERO-THRESHOLD.** The count must
+      never GROW; baseline **36**. That is the only assertion here that is both true and useful:
+      real debt, no clean zero, no new debt. House pattern (`repro_no_silent_except.py`).
+      **Fault-tested both ways:** at 36 it PASSes (exit 0); inject ONE unguarded broad `except` around
+      a `yield from` → 37 and it FAILs (exit 1); restored → passes.
+      🔜 **WHAT REMAINS: 36 candidates, ALL in `early_game.py`** — ⛔ and *"remaining" is not a to-do
+      list*: ~64% are not this defect. Fix them the way round 2 did — hand-verify, then lower the
+      baseline — or leave them. ⛔ **Do NOT drive this number to zero**, and ⛔ do not claim a drop was
+      caused by your change without an arm that removes it.
       ⛔⛔ **AND THE TRIAGE FOUND THE PROBE OVER-FLAGS BADLY — ~64% of the original 45 are NOT the
       defect it names.** 25 sites wrap navigation primitives only (`navigate_to`,
       `navigate_to_anywhere`, `_enter_warp_by_navigation`), none of which contains `_check_abort()`,

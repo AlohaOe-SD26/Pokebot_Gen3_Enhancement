@@ -223,7 +223,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 26 gates, ~135s, non-zero on any failure
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 27 gates, ~135s, non-zero on any failure
 #  ‼ It PRINTS its own count. Believe that, not this comment: it has read 17, 18, 21 and 22, and a
 #  stale count here is invisible to every gate — three separate copies of it existed on 2026-08-14.
 ```

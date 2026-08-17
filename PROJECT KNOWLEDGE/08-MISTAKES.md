@@ -8010,3 +8010,36 @@ worse than none: the next person cleaning up local imports would have trusted it
 **Prevention rule.** ⇒ *A comment explaining WHY code is shaped a certain way is a factual claim
 about the codebase — verify the edge (`grep` the import, or hoist it and load the module) before
 writing it, or write only what you checked.*
+
+## 2026-08-17 — I specified a filter that contradicted the design of the thing it was filtering for
+
+**Symptom.** `#24-abortswallow`'s round-3 spec — which I wrote — said to prune the probe's candidates
+down to those whose `yield from` can transitively reach an abort SOURCE (`_check_abort()`, later
+corrected to include a latch re-raise). It is a clean, plausible rule; it cuts 36 → 8; and it is
+wrong. Run against the sites already FIXED, it makes five of them invisible, including
+`mossdeep_gym.py:465` — a site whose failure this project **observed and recorded**.
+
+**Root cause.** I modelled the defect as *"an abort object arrives and is swallowed"*. That is only
+half of it. The other half is *"the whiteout already happened, so an ordinary operation now fails for
+an ordinary reason, and the handler fabricates a diagnosis"* — the dead team cannot reach the gym
+door, `navigate_to` raises an honest `BotModeError`, and the handler says *"could not get out of the
+gym"*. **Nothing abort-shaped is raised beneath that `yield from` at all.** The latch is the only
+evidence there is — which is exactly why `reraise_if_aborting` is latch-keyed and not type-keyed, and
+its docstring says so in terms: *"reading the latch survives every conversion, because the latch is
+the fact."* ⇒ **My filter contradicted the design of the guard it was filtering for, and I had read
+that docstring twice this session.**
+
+**The fix that worked.** Build the rejected rule anyway, then run the UPWARD fault test — *would this
+still flag what we already know is real?* — which is the test the spec itself demanded and which I
+would have skipped if I had only watched the number fall. It named the five casualties immediately.
+The probe was then gated a different way, as a RATCHET (the count must never grow), which asserts
+only what is true.
+
+**Prevention rule.** ⇒ *Before filtering a signal, ask what the guard you are filtering for keys on.
+If the guard reads GLOBAL STATE (a latch, a flag) rather than the exception's type or origin, then
+reachability of a source is the wrong predicate — the harm can arrive through code that raises
+nothing unusual at all.*
+
+**And the cheaper, more general one:** ⇒ *a refinement that only makes a number SMALLER is trivially
+achievable and proves nothing. The test that has content is the one that asks whether it still sees
+the cases you already know are real — run that one before you believe the reduction.*

@@ -16406,3 +16406,72 @@ figure, the drift expectation and the probe's docstring.
 ⚠ **Also noted, filed rather than fixed:** `24-PLAIN-ENGLISH-STATUS.md` is two days behind (a
 completeness gap, no wrong numbers), and `00-README` / `31-KNOWN-ISSUES-ARCHIVE.md` / `05` disagree
 three ways about whether KI-59 is open — `05` is the correct one.
+
+## 2026-08-17 — `#24-abortswallow` round 3: refinement (1) shipped, refinement (2) REFUTED, and the probe became a GATE as a RATCHET
+
+**The item asked for two refinements to `probe_abort_swallowing.py` so it could become a gate without
+being red on arrival. One is now shipped. The other is wrong, and the evidence that kills it was
+already in our own docs.**
+
+✅ **REFINEMENT (1) SHIPPED — 37 → 36.** The probe now recognises the HAND-WRITTEN guard
+`if story_should_abort(): raise` (`early_game.py:2305`), which is semantically identical to
+`reraise_if_aborting` and was invisible to it. ‼ Note WHERE it had to look: the guard sits in the
+HANDLER, and a cold-start audit had already measured that searching the try BODY removes ZERO sites.
+Two self-test cases added — the guard shape stays quiet, and the *same shape with an unrelated
+condition* still fires, so the rule cannot be passing anything that merely mentions the word.
+
+⛔⛔ **REFINEMENT (2) IS REFUTED. DO NOT BUILD IT.** The spec said to keep a site only if its try body
+reaches a callee that transitively contains an abort source. I built it (whole-package call graph,
+2,208 functions, 120 abort-capable) and it does work as designed — with the latch correction,
+`heal_in_pokemon_center` is correctly abort-capable and `navigate_to` correctly is not, and it cuts
+36 → 8. **Then the UPWARD fault test killed it:** run against the sites we have ALREADY FIXED, it
+makes **five of them invisible** — `pc_trip.py:181/:303/:474`, `mossdeep_gym.py:465`, and
+`higher_level_actions.py:839`.
+
+**`mossdeep_gym.py:465` is the one that settles it, because it is an OBSERVED failure, not a theory.**
+Our own punch list records it: *"after a whiteout it tried the second gym door ON A DEAD RUN and
+raised a FABRICATED 'could not get out of the gym'"*. Its try body wraps `_enter_warp_by_navigation`
+— a pure navigation primitive with no abort source anywhere beneath it.
+
+⇒ **THE PREDICATE IS WRONG, and the reason is worth keeping.** The defect is not only *"an abort
+object arrives and is swallowed"*. It is also *"the whiteout already happened, so an ORDINARY
+operation now fails for an ordinary reason, and the handler fabricates a diagnosis."* In that second
+case nothing beneath the `yield from` raises anything abort-shaped — the latch is the only evidence,
+which is exactly why `reraise_if_aborting` is **latch-keyed and not type-keyed**. Its own docstring
+says so: *"reading the latch survives every conversion, because the latch is the fact."* A
+reachability filter contradicts the design of the guard it is filtering for.
+
+✅ **SO THE PROBE BECAME A GATE A DIFFERENT WAY — A RATCHET (#27).** The number must never GROW;
+36 is the baseline. That is the only assertion that is both true and useful here: real debt, no
+clean zero, but no new debt either. It is the house pattern (`repro_no_silent_except.py`), which is
+precisely why it was the right answer once the clever one failed.
+**Fault-tested both directions:** at 36 it PASSes (exit 0); injecting ONE unguarded broad `except`
+around a `yield from` takes it to 37 and it FAILs (exit 1); restored, it passes again.
+
+⚠ **What this does NOT do:** it does not tell you a listed site is a defect — ~64% are not — and it
+does not drive toward zero. Its footer now says both, because that footer is what an agent reads at
+the moment it decides what to do.
+
+### 2026-08-17 (same item) — the refutation was CROSS-CHECKED by a second, independent implementation
+
+⛔ A refutation is a claim too, so it was not left resting on my one prototype. A second agent derived
+the same thing from scratch with a **different resolution strategy** — import-aware binding tables,
+star-re-export flattening, method over-approximation — against my bare-name graph. **Both name the
+SAME five casualties**: `pc_trip.py:181/:303/:474`, `mossdeep_gym.py:465`,
+`higher_level_actions.py:839`. Its counts (9 REACHABLE / 28 PRUNED) reconcile exactly with mine
+(8/28): the extra one is `:2305`, which refinement (1) now guards. ⇒ two implementations, one verdict.
+
+**And it found a property that condemns the approach further — NON-MONOTONICITY.** Because
+`reraise_if_aborting` inside a handler makes the ENCLOSING function abort-capable, the capable-set
+depends on **which guards already exist**. `higher_level_actions.py:352/:375/:403` are REACHABLE only
+*because* `pc_trip.py:181/:303/:474` are guarded. So acting on a PRUNED verdict by stripping a guard
+can remove the justification for other sites on the next run. ⇒ **the filter's output depends on the
+history of fixes rather than on the code's behaviour** — a property no gate should have. (Simulated:
+it does not cascade destructively today, because `heal_in_pokemon_center`'s other handlers keep it
+capable. That is luck, not design.)
+
+‼ **One methodological warning worth keeping**, from the cross-check: naive global name-matching
+makes the whole analysis worthless — every site comes out REACHABLE — because the method name `run`
+collides (`subprocess.run` vs `PokecenterLoopController.run`, which calls `heal_in_pokemon_center`).
+Anyone revisiting call-graph work in this repo needs import-aware resolution or they will get 37/0/0
+and believe the filter does nothing.
