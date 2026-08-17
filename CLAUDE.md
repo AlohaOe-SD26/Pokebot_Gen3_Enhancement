@@ -325,6 +325,29 @@ as "the lesson from bug X" does not fire when you are building Y.
    fails when the thing it guards is broken, and prove it does NOT fire on mere mentions in
    comments or docstrings. A gate with false positives teaches the reader to bypass it, which is
    strictly worse than no gate.
+7. **INSTRUMENT THE ACTION, NOT THE INPUT TO THE ACTION** (added 2026-08-17). A candidate list, an
+   eligible set, a flag — none of them prove behaviour. ⛔ **A CANDIDATE IS NOT AN ATTEMPT.** Log the
+   value the code actually ACTS on; if it lives in a local, rebind the callee to capture it. *Cost of
+   learning this: a driver reported "KI-66 IS REPRODUCED" on a candidate list while the bot had, in
+   fact, chosen correctly every time — the headline was refuted only when the requested slot was
+   logged.* ‼ And when a tool prints two verdicts, **say out loud which one your claim rests on**.
+8. **IDENTICAL OUTPUT ACROSS RUNS IS A DETERMINISM CHECK, NEVER A REPLICATION** (added 2026-08-17).
+   Say *"one trajectory, replayed"* — never *"measured twice"*. ‼ Corollary, earned the same day:
+   **a claim of the form "without X the bug survives" is a CLAIM**, and the only currency this
+   project accepts for it is *an arm with X removed*. A latch shipped as load-bearing was measured
+   REDUNDANT and deleted; had it stayed, a maintainer trusting it could have removed the guard that
+   actually works. If you will not run that arm, do not write the sentence.
+9. **CHOOSE THE INSTRUMENT BY THE QUESTION** (added 2026-08-17, and it is in §0c of the playbook).
+   **Drivers answer CORRECTNESS questions; batches answer FREQUENCY questions.** A 3-hour batch is
+   ~30 runs and has resolved nothing four times running, so reaching for one to check whether a code
+   path REGRESSED is slower *and* less conclusive than a targeted A/B. ‼ When a change touches a
+   shared path (e.g. every battle), the cheap decisive test is an A/B on the *ordinary* case, not
+   more samples of the exotic one.
+10. ⛔ **WHEN A FIX IS A COORDINATE CONVERSION, MEASURE ITS DIRECTION FIRST** (added 2026-08-17).
+   Run an OBSERVE-ONLY probe printing both coordinates beside a ground truth derived independently,
+   *then* apply it. Never reason it out from a docstring: `handle_fainted_pokemon` has now had
+   **three** index-space bugs (KI-18, KI-34, KI-66) and a fourth is filed
+   (`#24-faintchooser-fourthspace`). A backwards conversion is worse than the bug it replaces.
 
 
 ### ‼‼ DOC CONSISTENCY LAYER — independent eyes on documentation (user directive, 2026-08-13)

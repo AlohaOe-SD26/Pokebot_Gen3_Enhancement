@@ -1864,7 +1864,7 @@ criterion**, and the honest way to test the pair against each other.
 **Interacts with `#24-dexhunt` above:** hunting for new species generates exactly the
 level-matched encounters maintenance needs. Done together they are one activity, not two.
 
-### ‼‼ `#24-orphans` — SIX REAL RESIDUALS THAT WERE WRITTEN DOWN BUT NEVER TRACKED — **MIXED STATUS: 2 DONE ((2) KI-65, (4) log collision), 4 OPEN ((1), (3), (5), (6))** (filed 2026-08-15; last updated 2026-08-16)
+### ‼‼ `#24-orphans` — SIX REAL RESIDUALS THAT WERE WRITTEN DOWN BUT NEVER TRACKED — **MIXED STATUS (2026-08-17): 2 DONE ((2) KI-65, (4) log collision), 1 PARTLY DONE ((3) KI-66 — `_on_field` half FIXED+PROMOTED, OWNER-filter half OPEN), 3 OPEN ((1), (5), (6))** (filed 2026-08-15; last updated 2026-08-17)
 
 > ⛔ **THE HEADING IS A CLAIM ABOUT EVERY BULLET BENEATH IT (P2).** These six do NOT share a status —
 > read each bullet's own marker. Two are closed; four are live.
@@ -1936,7 +1936,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
 - [x] **(2) ✅✅ DONE 2026-08-16 — KI-65 is REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25).**
       ✅ **PROMOTED TO BOTH FORKS 2026-08-16, USER-APPROVED** — by a THREE-POINT A/B against
       `--build custom` (BEFORE `lie_msg=1` → FAIL; AFTER `lie_msg=0, honest_msg=1` → PASS; sandbox
-      still PASS), never a byte-compare. Drift was 0 after this promotion; it is **1** again as of 2026-08-17 (the KI-66 `_on_field` fix, sandbox-only, ruling owed). Restore `restore/2026-08-16-pre-promotion-ki65`.
+      still PASS), never a byte-compare. Drift is **0** — the KI-66 `_on_field` fix was also promoted (2026-08-17, user-approved). *(This line read "1 again … ruling owed" for about an hour between the two promotions; MEASURE with `promote.py --check`, never read a drift figure from prose.)* Restore `restore/2026-08-16-pre-promotion-ki65`.
       The repro (`repro_ki65_unbound_party_index.py`) drives the real bot from `route116team.ss1`
       with an INJECTED Marshtomp whose **slot 0 is deliberately Rock Smash (HM06)**; pre-fix ARM A
       printed *"Nothing else can be given up — declining the new move."* **while three forgettable
@@ -1967,7 +1967,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
 - [ ] **(3) KI-66 — the multi-battle hazard is BROADER than the faint chooser:** four more
       full-party scans are unguarded, one feeding an UNBOUNDED `while … press A`. OPEN,
       code-verified, never live-run, and untracked until now.
-      ✅✅ **DRIVEN 2026-08-17 — `--driver ki66faint` IS BUILT AND WORKS. ⛔ DO NOT REBUILD IT.** It subclasses `SpaceCenter2Mode`, stages one of our own picks at 1 HP (two bytes, `data[86:88]`) so it faints in real combat, and carries a PROVEN guard against overwriting the unpinned fixture `post_space_center.ss1`. ⛔⛔ **AND THE HEADLINE IS REFUTED: the bot NEVER ATTEMPTED an ally slot.** Ally slots sat in `alive_slots` on both faints, but the chooser ASKED FOR slots 2 then 3 — both ours — because `choose_new_lead_after_faint` already filters allies. ‼ **A CANDIDATE IS NOT AN ATTEMPT**, so an A/B fixing only the owner filter shows NO DIFFERENCE here and could make it WORSE (it empties `alive_slots` and trips a FALSE 'no eligible replacement'). ‼‼ **THE REAL DEFECT IS `_on_field`'S INDEX SPACE** — field-order `gBattlerPartyIndexes` compared against a party `UpdatePartyToBattleOrder` has already permuted; it excluded Swellow while Swellow was on the BENCH (proven by its send-out at `f21009`), costing **1263 frames vs 59** on a clean faint. ⇒ **✅✅ **`_on_field`'s INDEX SPACE IS FIXED AND PROMOTED TO BOTH FORKS (2026-08-17, user-approved). ⛔ DO NOT REDO IT.** Direction MEASURED first by an observe-only probe, then applied; all 24 code gates PASS. ➡ **NEXT: the OWNER filter is still unfixed and proved INERT on this fixture — it needs its OWN discriminator, not this one. `:541-545` and `_util.py:522-587` are also untouched.** Read KI-66's DRIVEN block first.
+      ✅✅ **DRIVEN 2026-08-17 — `--driver ki66faint` IS BUILT AND WORKS. ⛔ DO NOT REBUILD IT.** It subclasses `SpaceCenter2Mode`, stages one of our own picks at 1 HP (two bytes, `data[86:88]`) so it faints in real combat, and carries a PROVEN guard against overwriting the unpinned fixture `post_space_center.ss1`. ⛔⛔ **AND THE HEADLINE IS REFUTED: the bot NEVER ATTEMPTED an ally slot.** Ally slots sat in `alive_slots` on both faints, but the chooser ASKED FOR slots 2 then 3 — both ours — because `choose_new_lead_after_faint` already filters allies. ‼ **A CANDIDATE IS NOT AN ATTEMPT**, so an A/B fixing only the owner filter shows NO DIFFERENCE here and could make it WORSE (it empties `alive_slots` and trips a FALSE 'no eligible replacement'). ‼‼ **THE REAL DEFECT IS `_on_field`'S INDEX SPACE** — field-order `gBattlerPartyIndexes` compared against a party `UpdatePartyToBattleOrder` has already permuted; it excluded Swellow while Swellow was on the BENCH (proven by its send-out at `f21009`), costing **1263 frames vs 59** on a clean faint. ⇒ **✅✅ **`_on_field`'s INDEX SPACE IS FIXED AND PROMOTED TO BOTH FORKS (2026-08-17, user-approved). ⛔ DO NOT REDO IT.** Direction MEASURED first by an observe-only probe, then applied; all 24 CODE gates PASS (suite is 25; the 25th is the doc gate). ➡ **NEXT: the OWNER filter is still unfixed and proved INERT on this fixture — it needs its OWN discriminator, not this one. `:541-545` and `_util.py:522-587` are also untouched.** Read KI-66's DRIVEN block first.
       ✅✅ *(superseded: "BUILD-READY" — the driver now EXISTS.)* Earlier: both blockers CLOSED by recon (a cold-start agent first found them
       by TRYING to begin it, then a follow-up recon closed them).
       ✅✅ **BUILD-READY AS OF 2026-08-16 — the two blockers are CLOSED by recon; read KI-66's `RECON 2026-08-16` block FIRST.** The FIXTURE existed all along and was merely undocumented: **`--driver spacecenter2`, anchor `saves/at_steven_2f.ss1`**, drives the real six-mon multi battle. The FAINT needs no new capability and no `gBattleMons` writer: **pre-stage one selected mon at 1 HP before the battle** (1, not 0 — a 0-HP mon is never SELECTED) and it faints in real combat. ⛔⛔ **REFUTED 2026-08-17 BY THE LIVE RUN — this block used to claim the ally case "needs all three of ours down = the LOSS condition". BOTH HALVES ARE FALSE:** only TWO of ours were down (Swellow was alive on the BENCH, sent out at `f21009`), and in a multi battle the side is `gPlayerParty[0..5]` — ours AND Steven's — so that is not the loss condition at all. The run WON, `whiteouts=0`. See KI-66's DRIVEN block. ✅ **Grade instead on the ATTEMPTED SLOT INDICES + refusal count on a SINGLE faint**, which `:630-636` reaches while two of ours are still alive. ⚠ ARM B's behaviour when only ally mons remain is a USER POLICY call.
@@ -3504,3 +3504,33 @@ failsafes that an in-process mode cannot have, and remains the right tool for a 
       settled KI-66's direction in one run): log cursor, `alive_slots`, `alive_slots_menu` and the
       chosen slot together, on a faint, and establish ground truth from the party dump.
       ⚠ Do NOT "fix" it from the docstring — that docstring has now produced three bugs.
+
+### `#24-partyindex-minus-one` — a BOUND-BUT-WRONG `party_index` of `-1` slips past KI-65's guards (filed 2026-08-17)
+
+- [ ] **Found by an orphan audit, not by a bug report.** KI-65's fix guards
+      `battle_move_replacing.py:285` and `:425` with `if party_index is None:`, which covers
+      **unbound**. It does NOT cover *bound but wrong*: `get_party_menu_cursor_pos` does not raise on
+      a bad cursor — it calls `set_manual_mode()` and returns **`slot_id = -1`**
+      (`battle_move_replacing.py:138` assigns it straight through), and `get_party()[-1]` is the
+      **LAST party member**. That is a WRONG MON, not an exception, so both guards pass it.
+      ‼ **Why it was nearly orphaned:** it was written only inside KI-65's body — under a header that
+      reads **CLOSED** — which is exactly the shape `#24-orphans` exists to stop. Now tracked here.
+      ⚠ **NOT observed live and unquantified.** ⛔ Do not "fix" it blind: first measure whether
+      `slot_id = -1` ever reaches that line (an observe-only probe, per the rule that settled KI-66),
+      because `set_manual_mode()` has already fired by then and the run may be derailing anyway.
+
+### `#24-errorpath-frequency` — the fixes are proven CORRECT but their real-world FREQUENCY is unmeasured (filed 2026-08-17)
+
+- [ ] **Both 2026-08-17 fixes are error-path fixes whose rate in real play is unknown**, and this was
+      stated honestly in the changelog and then tracked nowhere:
+      * **KI-65** reproduces what happens WHEN `_read_offered_move` fails — never how OFTEN it does.
+      * **KI-66** was driven on one fixture; the pathological faint cost 1263 frames vs 59, but how
+        often a real run hits it is unmeasured.
+      ‼ **This is the one question a BATCH is actually the right instrument for** — §0c: battle-level
+      metrics get ~800 samples per 3-hour batch and CAN resolve, whereas finish rate cannot.
+      ⛔ **Pre-register the questions BEFORE running**, or the result gets rationalised afterwards:
+      (a) how many times does KI-65's "cannot verify" message fire? (b) how many faints occur inside
+      a partner double battle, and what is the menu-open→send-out frame cost distribution?
+      (c) any NEW derail class that did not exist before these two fixes?
+      ⚠ Blocks nothing today. It is worth doing once several changes have accumulated, so the three
+      hours buy more than one answer.

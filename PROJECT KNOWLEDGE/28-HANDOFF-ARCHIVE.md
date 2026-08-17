@@ -4976,3 +4976,101 @@ never its CONTROL FLOW* (Rooms 1/2 — pushes go through the bounded `strength_p
 **`FLAG_SYS_USE_STRENGTH` is cleared on EVERY WARP** — the code was safe, the COMMENTS were wrong.
 ⚠ Room 6's arrow-warp derived-direction branch is still UNEXECUTED; KI-77's despawn window (20x17)
 has since predicted a live dump exactly.
+
+
+---
+
+# ARCHIVED 2026-08-17 — 04-HANDOFF NEXT ACTIONS items 2b-5 ("older framing")
+
+Moved out of `04-HANDOFF.md` on the R3 900-line budget. The queue header had already labelled
+these "older framing"; by 2026-08-17 every one was DONE or RETRACTED. Verbatim, unedited.
+
+> 2b. **‼ THE NEXT BUILD IS NO LONGER BLOCKED THE WAY THE DOCS SAID.** §Ch20/§Ch21 need **Dive
+>    USED**, and KI-63 is real (no party member learns it, party 6/6). But the thing four documents
+>    called the gate — `POKEBOT_BOX_OVERFLOW_CATCH` being off and "one unhandled text box" away —
+>    **is false and has been since 2026-08-07.** It defaults to ON; the text box needs no handling.
+>    **Verify it yourself at `story_mode.py:2241-2243` before believing either version.**
+>    **THE PLAN (measured against `modules/data`, detail in KI-54's new section):**
+>    * **Spheal**, ~50% of the `SHOAL_CAVE_LOW_TIDE_ENTRANCE_ROOM` LAND table at L26-32, catch rate
+>      255, learns **Surf AND Dive**. Mossdeep → Route 125 → the entrance room is **one warp**.
+>      ⚠ TIDE is the one risk: the high-tide maps have **no encounter header at all**, and which RTC
+>      hours give low tide is **UNVERIFIED**. Tide-free fallback: **Marill on Route 120** (15%, L25-27).
+>    * ⛔ **RETRACTED 2026-08-13 — THE DEPOSIT PATH NAMED BELOW CANNOT DO THIS JOB.** Superseded by
+>      `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md`. Verified directly:
+>      `withdraw_from_box` opens with `target = find_in_box(pids); if target is None: return`
+>      (`modules/story/pc_trip.py:420-421`), so with nothing yet boxed **it returns having done nothing** — its
+>      deposit block is only reachable as a side effect of withdrawing an already-boxed PID. And
+>      `deposit_dead_weight_if_worth_it` **is** a standalone one-deposit primitive but is a **silent
+>      no-op** behind `POKEBOT_PC_ROTATION` (`pc_trip.py:83`). ⇒ **A new narrow, ungated,
+>      one-deposit function must be written.** ‼ Also: **deposit-first is the wrong ORDER** —
+>      `ensure_hm_learner` checks for an existing learner *before* the party-full check, so try it
+>      first and deposit only on that specific failure. (Still true from the old text: the victim is
+>      **Skitty L17**, and Zigzagoon L15 is EXEMPT as sole Surf carrier — re-measured 2026-08-13.)
+>      Superseded text: Freeing one slot reuses `withdraw_from_box`'s deposit block (~`modules/story/pc_trip.py:437-461`), which is live-proven and deposits exactly ONE mon.
+>    * ⛔ **Do NOT fetch the Super Rod first** — Sharpedo/Wailmer are real, but it needs three missing
+>      subsystems (no rod chapter, no fishing capability at all, and `_hm_hunting_grounds` reads
+>      land encounters only) against one `TRAINING_GRASS` row.
+>    * ✅ **THE TIDE IS NOT A BLOCKER (measured 2026-08-12).** The high-tide "maps" have no encounter
+>      header and no warps — they only own a LAYOUT that gets borrowed onto map (24,46), and the
+>      encounter table keys off map number, not layout. **The Spheal 50% table is live at BOTH
+>      tides** (65 walkable encounter tiles at high, 332 at low). No tide handling needed.
+>      **Surf is the only gate** and we have it: `MOSSDEEP_CITY → ROUTE125` routes in 119 waypoints,
+>      Zigzagoon L15 knows Surf, and Route 125 → the entrance room is one warp.
+>    * ‼ **BUT THE REAL GATE IS STILL THE FULL PARTY** — `ensure_hm_learner` raises when the party is
+>      ≥6 **before** it ever looks for a hunting ground. Free the slot first; the ground is
+>      necessary, not sufficient.
+>    * ⚠ Two hazards recorded in KI-54 before anyone codes in that room: `MapLocation` always
+>      resolves the **low-tide** layout for (24,46), so in-room planning at high tide plans against
+>      the wrong map; and (20,30) counts as a south-arrow warp, so never spin on or below it.
+> 3. ✅ **DONE 2026-08-13 — KI-59 IS FIXED (both halves) AND GATED as `repro_impassable_dirs.py`.**
+>    A/B on `VICTORY_ROAD_1F`: exit 1 → exit 0, 29/29 mismatches → 0/29, and `calculate_path` went
+>    from NO-PATH-from-every-direction to `OK len=1` on the legal approaches. `MOSSDEEP_CITY`
+>    collateral control byte-identical. ✅ **PROMOTED 2026-08-14 — nothing is left on this item, and drift is ZERO.**
+>    ⛔ **The next sentence is STALE** (it asked for a promotion that has since happened; its drift figure is
+>    not restated because the doc gate scans for one and cannot tell a quotation from a claim):
+>    *(stale)* The only thing left on this item is PROMOTION, which is the USER's call. The retraction that reprioritised it follows.
+>    ⛔ **RETRACTED 2026-08-13, MEASURED — "Fix KI-59 before the cavern exists" was WRONG.** The 115
+>    `Impassable *` tiles in the cavern are real, but **every one has `collision=1`** and
+>    `map_path.py:128` is the **`elif` of `if tile.collision != 0:` (`:118`)** — so **none of them
+>    reach the buggy branch**, and the prescribed A/B on `SEAFLOOR_CAVERN_ROOM1` would have measured
+>    a **zero delta**. KI-59 does **not** gate §Ch20/§Ch21. It is REAL and live on **401 of 2,658**
+>    such tiles game-wide (15.1%), chiefly the **REGI TOMBS (144)**, **SHOAL CAVE (98)** and
+>    **VICTORY ROAD (58)** ⇒ it is a prerequisite of the **REGI ARC (item 4)**, not of the cavern.
+>    Measured by `probe_impassable_dirs.py` (NEW), with a fresh-process reverse-order control against
+>    KI-73 cache poisoning. Fix specified + hazards pre-checked in `#24-impassabledirs`.
+>    Superseded text: Fix KI-59 before the cavern exists — it is armed there (115 `Impassable *` tiles across Rooms 1-9). A/B on `SEAFLOOR_CAVERN_ROOM1`.
+> 4. ✅ **THE PROMOTION ALREADY HAPPENED** (2026-08-12, user-approved, driven on `--build custom`).
+>    Do NOT ask for it again. The line below is superseded; only the battle-policy half is still
+>    the user's call. Superseded text: Two things remain the USER's call: **promoting §Ch18 + §Ch19 to `custom-pokebot/`**, and the
+>    **boss/status battle-policy** decision further down.
+> 5. Before building anything, skim `08-MISTAKES.md`'s last entries — five were written today and
+>    three of them are about tests or gates that were green while something was broken.
+
+1. **✅ §Ch18 IS DONE (2026-08-12) — the Mind Badge is won and Segment 18 is wired into the ladder.**
+   The ladder reached **19/24** with this item (current: **20 of 24 beats**, since §Ch19). Three drivers, all PASS:
+   * `--driver mossdeeptravel` → Surf Lilycove → Mossdeep, enter the gym. Anchor
+     `saves/in_mossdeep_gym.ss1`.
+   * `--driver mossdeepgym` → solve the statue puzzle. `at_leaders=True at=(23,8) whiteouts=0`,
+     117 steps in a single plan. Anchor `saves/at_mossdeep_leaders.ss1`.
+   * `--driver mossdeepbadge` → the whole chapter. `badge=True at=(23,8) controllable=True
+     whiteouts=0`, `BADGE07_GET` after 754 frames. Anchor **`saves/post_mossdeep_gym.ss1`**.
+
+   ‼ **TWO PATHS REMAIN UNEXERCISED, and neither should be described as tested.** (a) The
+   executor's own `_ride_out_interruption` branch logged **zero** times — the trainer battles that
+   fired were handled by the standard `TrainerApproachListener` / `BattleListener`. (b) The **real
+   whiteout path**: both runs had `whiteouts=0`, so the recovery is proven only by fault injection
+   (`repro_gym_whiteout_guard.py`), never by a live loss.
+
+   ‼ **WHAT ADVERSARIAL REVIEW CAUGHT THAT THE PASSING RUN COULD NOT.** `walk_to_the_leaders`
+   checked the gym map only at entry and then reasoned in gym-local coordinates forever — a
+   whiteout would have had it planning gym routes from Pokémon Center coordinates — and it raised
+   `RuntimeError` where the chapter catches `BotModeError`, so the re-enter-and-re-solve recovery
+   **could never have fired**. Both fixed. *A green happy-path run says nothing about error paths.*
+
+   ‼ **AND §Ch18 WAS STRANDING THE RUN** — found later the same day, by the adversarial pass for
+   §Ch19, *after* §Ch18 had been driven twice, committed and reported complete. It ended on
+   `(23,8)`, part of an **eleven-tile island**; `calculate_path((23,8) → (7,35))` raises, and the
+   only exit is the `(21,6)` **coord event** (invisible to any warp-graph solver). Fixed with
+   `leave_the_gym()` — driven, now ends in `MOSSDEEP_CITY (38,10)` — and **the acceptance test now
+   requires being out of the gym**, so the stranded version would fail. *This is KI-56's rule
+   violated a second time in the session in which I re-read it.*
