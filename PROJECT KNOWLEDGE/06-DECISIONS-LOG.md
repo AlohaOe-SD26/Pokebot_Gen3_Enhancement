@@ -2843,3 +2843,60 @@ argument, and the change went in once.
 **Generalisation.** ⇒ *When a fix is a COORDINATE CONVERSION, the cheapest correct step is a run that
 prints both coordinates beside the ground truth. Never reason it out from a docstring — this codebase
 has now had three index-space bugs in one function.*
+
+## 2026-08-17 — Drift claims are PARSED AS CLAIMS (polarity + currency marker), not pattern-matched as tokens (`#24-driftassertions`)
+
+**The question this settles.** `03-PUNCH-LIST.md`'s `#24-driftassertions` demanded a ruling before
+any code: should `audit_doc_consistency.py::check_drift` treat a NEGATED drift figure
+(*"NOT ZERO"*) as a claim to evaluate, or keep pattern-matching the number token? The docs pointed
+both ways — `04-HANDOFF.md` listed `NOT ZERO` among the MISSES the gate should have caught, while
+its own STATE row recorded the gate FIRING on that phrasing as a FALSE POSITIVE to be written
+around ("phrase any future caveat here carefully").
+
+**Both could not be true, so it was MEASURED, not argued** (scratch probes, `real_drift` stubbed so
+the ground truth was controlled rather than trusted). The six VERBATIM historical strings — recovered
+from the commits that introduced and corrected them (`938c4a43` → `535e88e2`) — were run through the
+SHIPPED gate at drift **0 and 1**:
+
+| phrasing (verbatim) | drift=0 | drift=1 |
+|---|---|---|
+| `⚠ **NOT ZERO as of 2026-08-17** — … a ruling is owed` | quiet | quiet |
+| `it is **1** again as of 2026-08-17` | quiet | quiet |
+| `✅ **0 as of 2026-08-16 (LATEST) — EVERYTHING IS PROMOTED**` | quiet | quiet |
+| `…drift figure is NOT 0 / NOT ZERO — a ruling is owed` | quiet | quiet |
+
+⇒ **The FALSE-POSITIVE record is FALSE OF THE CODE.** Every `check_*` function in the file was then
+run against those strings at both drift values; **none fired**. `check_drift` cannot fire on a
+negation, because `NOT` sits between `drift is` and the number and no pattern admits it. The
+negation is a **FALSE NEGATIVE in both directions** — and the STATE row's advice to "phrase the
+caveat carefully" was steering authors *toward* the blind spot, not away from a noisy gate.
+
+**Decision.** Parse the negation and EVALUATE it as a claim; never pattern-match the token.
+A drift assertion is stale iff its truth value is false:
+* plain (`drift is N`) → stale iff `N != measured`
+* negated (`NOT N`, `no longer N`) → stale iff `N == measured`
+
+**And the companion ruling — WHICH claims get evaluated at all.** Scoping by the `expect` vocabulary
+was the original blind spot, but scoping by *nothing* is worse: the corpus carries **67** windows
+mentioning a drift figure, and most are deliberately-preserved history that MUST stay quiet.
+The rule is therefore **marker attachment**: a figure is a claim about NOW only when a CURRENCY
+MARKER is attached to the number itself — `(LATEST)`, or `is/it is <N> AGAIN` — or when it is
+negated, or when it is an `expect`ation (the 2026-08-16 rule). A bare figure in prose asserts
+nothing about today and is left alone.
+
+**Alternatives rejected.**
+* *Check every number near the word "drift".* Rejected on MEASUREMENT: 67 candidate windows, the
+  overwhelming majority historical ("took drift to 0 AT THAT MOMENT", "0 as of 2026-08-15
+  (earlier)"). A gate that red-flags the docs' own history gets bypassed within a day — this
+  project's own rule 6.
+* *Anchor on LOCATION — "everything in the STATE table's drift row is current".* Rejected on
+  measurement too: that row is a single ~10-line cell that deliberately carries several dated
+  HISTORICAL figures inline. Location does not separate claim from history here; marker attachment
+  does.
+* *Exempt a whole UNIT that contains a quotation.* Rejected: the 60-second bullet carries a CURRENT
+  claim and a QUOTED past one in the same unit, so unit-level exemption would blind the gate to the
+  half that matters. Quotation exemption is **span-based**, by match position.
+
+**Why this is worth code at all.** The figure flipped `0→1→0→1→0` in one session; three stale
+claims survived hand sweeps AND the gate, each caught by a different audit agent. A stale drift
+figure sends a rollback to the wrong commit.

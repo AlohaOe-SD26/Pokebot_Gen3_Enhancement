@@ -1958,7 +1958,11 @@ section headings.)*
   **gate #17**. ‼ `probe_shoal_tide.py` corrected in lockstep; its numbers re-derived on the fixed
   model are **unchanged (LOW 278 / HIGH 0)**. ✅ **PROMOTED 2026-08-14 — that promotion took drift
   to ZERO** (it had reached 5; `counter_hunt.py` and `pokemon_party.py` joined that day and went
-  over with the rest, verified by driving `--build custom`). ✅ **drift is ZERO again — KI-78 Stage 1 was PROMOTED later the same day** (superseded: *drift is now 3 again*) —
+  over with the rest, verified by driving `--build custom`). ✅ **drift was ZERO again as of 2026-08-14 — KI-78 Stage 1 was PROMOTED later the same day** (superseded: *drift is now 3 again*) —
+  *(⚠ 2026-08-17: re-dated from "drift **is** ZERO again". It was a statement about 2026-08-14 written
+  in the PRESENT tense inside a current-state file, so it read as a claim about today and the new
+  claim-shape rule in `audit_doc_consistency.py` correctly asked about it. ⛔ The number was not
+  changed — only the tense, to say what it always meant. MEASURE with `promote.py --check`.)* —
   KI-78 **Stage 1** (`pokemon.py`, `pokemon_party.py`, `pokemon_storage.py`) landed in sandbox
   AFTER that promotion and has NOT been promoted; promotion is the USER's call.
   Historical note, superseded: *"Sandbox only — promotion is the

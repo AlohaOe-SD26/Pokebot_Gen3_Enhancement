@@ -7866,3 +7866,75 @@ now recorded:** the strongest before/after comparison available (refusals **5 �
 `[2,4,5,0,1,3]` → `[3]`) went unmentioned, and so did a pre-fix data point reading
 `accepted_in_menu_order=False`. ⇒ *report the data point that argues AGAINST you before someone
 finds it in your own evidence.*
+
+## 2026-08-17 — A doc note told me the gate had a FALSE POSITIVE; measurement showed it had a FALSE NEGATIVE, in both directions
+
+**Symptom.** `#24-driftassertions` could not be started as written: it said *"RULE THE NEGATION
+QUESTION FIRST — THE DOCS POINT BOTH WAYS"*, because `04-HANDOFF.md` listed `NOT ZERO` among the
+stale claims the gate MISSED, while a note in the same file said the gate had *red-flagged* that
+phrasing and that authors should *"phrase any future caveat here carefully"*.
+
+**Root cause.** The note was a TRACKING CLAIM that was FALSE OF THE CODE. `check_drift`'s patterns
+all require the number to follow `drift is` / `expect …`; `NOT` sits between them, so no pattern
+could ever match a negation. Nobody had run it — the note was written from recollection of a
+review finding and then believed for a day, and it inverted the defect: the gate was BLIND where
+the doc said it was NOISY.
+
+**The fix that worked — settle it with an instrument, not an argument.** The six verbatim
+historical phrasings were recovered from the commits that introduced and corrected them
+(`938c4a43` → `535e88e2`) and run through the SHIPPED gate with `real_drift` **stubbed to both 0
+and 1** (a figure of 0 cannot discriminate "checked and agreed" from "never looked"), then through
+**every** `check_*` in the file. Silent in all twelve cells. The negation is now PARSED and
+evaluated as a claim with inverted polarity, fault-tested both ways (D13/D13b).
+
+**Prevention rule.** ⇒ *A doc's claim about what a GATE does is a claim about code: run the gate
+before believing it — and stub its ground truth to a value that can FAIL, because a check that
+agrees with today's number tells you nothing about whether it looked.*
+
+## 2026-08-17 — I nearly shipped an exemption that would have blinded the new gate to the exact site it was built for
+
+**Symptom.** My first draft of the claim-shape rules reused the existing per-UNIT supersession
+exemption — the same one every other check in the file uses correctly. An independent agent
+inventorying the doc corpus reported that `04-HANDOFF.md`'s STATE drift cell would therefore never
+be checked.
+
+**Root cause.** A markdown TABLE ROW is one "unit". That cell is **7,916 characters** long and
+carries a `*(Superseded …)*` parenthetical **283 chars** from its live `0 as of … (LATEST)` claim,
+so one retraction anywhere in the row exempted the entire row — including the single most
+authoritative drift statement in the tree, and `:168`'s live figure (marker 1,440 chars away).
+The new rules would have passed every synthetic self-test and been useless on the real document.
+
+**The fix that worked.** Verified the agent's claim myself first (measured both unit lengths and
+marker distances — their output is a note, never truth), then made the exemption **SPAN-scoped**:
+quoted spans, innermost retraction parentheticals, or a supersede marker within 120 chars.
+`--self-test` D17 now fails if anyone reverts it to unit scope.
+
+**Prevention rule.** ⇒ *A doc gate's exemption must be scoped to the SPAN that carries the
+retraction, never to a structural "unit" — this project's units include 8,000-char table rows, so
+unit scope silences a whole page over one parenthetical. Measure the unit length before trusting
+unit scope.*
+
+## 2026-08-17 — I bound a gate's exemptions to the NEIGHBOURHOOD of a claim instead of to the claim
+
+**Symptom.** The first draft of the claim-shape drift rules passed 13 self-tests, produced zero
+false positives over the whole live corpus, and was still trivially bypassable. An adversarial
+reviewer produced two two-line inputs that silenced it.
+
+**Root cause.** Every exemption I wrote asked *"is there retraction language NEARBY?"* rather than
+*"is THIS figure retracted?"*: (1) any parenthetical containing the ordinary words `read` or
+`until` exempted figures inside it — including figures written BEFORE those words; (2) a
+supersede marker within 120 characters exempted a live claim even when the marker retracted a
+different, earlier number in the same sentence (`Drift was 5 (superseded), then corrected; … is 3
+again`). Proximity is not reference. My own self-tests could not see it because I only wrote the
+cases my design already handled — the genuine retraction, never the innocuous lookalike.
+
+**The fix that worked.** Reproduce both bypasses first (they did reproduce; the controls stayed
+quiet, which is what made the diagnosis trustworthy), then make both exemptions claim-bound: a
+marker must PRECEDE the figure it retracts, and outside a parenthetical it governs only to the end
+of its own SENTENCE. `--self-test` D20/D21 are the two bypasses, D15/D22 the controls that prove
+the fix did not just disable exemption altogether.
+
+**Prevention rule.** ⇒ *An exemption is a claim about REFERENCE, not about DISTANCE: require the
+marker to precede what it excuses and to stop at a sentence boundary — and fault-test every
+exemption with a LOOKALIKE (innocuous text containing the marker vocabulary), never only with the
+real thing it was written for.*

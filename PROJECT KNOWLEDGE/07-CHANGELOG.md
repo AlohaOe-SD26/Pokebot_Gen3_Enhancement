@@ -15992,3 +15992,74 @@ The harness's own log does, and both are now committed:
 `evidence/2026-08-17-fourthspace-{POSITIVE-CONTROL-prefix,DECISIVE-fixed}.harnesslog.txt`
 (stdout copies kept alongside as `.stdout.txt`). ‼ This session's own rule — *read the tool's own log
 before believing the pipe* — must govern what gets CITED, not only what gets read while debugging.
+
+## 2026-08-17 — `check_drift` learns CLAIM SHAPE: currency markers, negation polarity, span-scoped exemption (`#24-driftassertions`)
+
+**What changed.** `tools/story-dev/audit_doc_consistency.py::check_drift` previously only graded
+drift figures written as an EXPECTATION (`expect`/`expects`/`expected` within ~70 chars). Three
+stale claims slipped past it on 2026-08-16/17 — all ASSERTIONS. It now also detects:
+* **CURRENCY-MARKED claims** (`_CURRENCY`) — `N … (LATEST)`, `(LATEST): N`, `is <N> again`,
+  `should report N differing`. The rule is **marker attachment**: a figure is a claim about TODAY
+  only when the marker is attached to the NUMBER itself.
+* **NEGATIONS** (`_NEGATED`) — `not N` / `no longer N`, evaluated with **inverted polarity**
+  (stale iff `N == measured`). Ruling: `06-DECISIONS-LOG.md`, 2026-08-17.
+* Both are gated on a drift SUBJECT within 90 chars and exempted **by SPAN** — quoted spans,
+  retraction parentheticals, or a supersede marker within 120 chars.
+* **Pass 2 reads RAW text** (fences intact); pass 1 keeps the fence-stripped text and its unit-scoped
+  exemption, unchanged.
+`main()` now calls `check_drift(files, raw_files)`.
+
+**Evidence — measured, not asserted.**
+* **A/B against the COMMITTED gate** (`git show HEAD:` as the BEFORE arm), same corpus, ground truth
+  stubbed identically: **4 sites caught BEFORE → 9 AFTER, 0 lost.** Newly caught:
+  `04-HANDOFF:130`, `:167` (the STATE cell a cold start reads), `:168`, `:824` (inside a fence),
+  `05-KNOWN-ISSUES:2325`.
+* **Two-arm corpus test.** Ground truth stubbed TRUE → **0 findings** across all 7 current-state
+  docs (no false positive on a corpus containing 67 drift-figure windows, mostly history);
+  stubbed TRUE+1 → 11 findings.
+* **13 new fault tests, D9–D18b**, `--self-test` PASS: firing tests, both polarity directions, and
+  false-positive controls for the recursion hazard, retraction parentheticals and English `not one`.
+* `audit_doc_consistency.py` exit 0, `lint_docs.py` exit 0, full gate suite exit 0.
+
+**Three things measurement overturned mid-build**, each of which would have shipped a broken gate:
+1. The negation "false positive" the docs warned about **does not exist** — the shipped gate was
+   silent on all six verbatim phrasings at BOTH ground-truth values, and so was every other
+   `check_*`. It was a FALSE NEGATIVE in both directions. `04-HANDOFF.md`'s note saying otherwise
+   was corrected in place; it had been steering authors INTO the blind spot.
+2. **Unit-scoped exemption would have left the gate blind to the most authoritative site in the
+   tree.** `04-HANDOFF`'s STATE drift cell is ONE table row of 7,916 chars carrying a
+   `*(Superseded …)*` 283 chars from its live claim, so the whole row was exempt. Caught by an
+   independent agent reviewing the draft; guarded now by `--self-test` D17.
+3. The authoritative `Expect …: N differing` line lives INSIDE a fence and `_read()` blanks fences —
+   the gate could not see the one line the spec says must carry a digit.
+
+**Docs.** `03-PUNCH-LIST.md` item closed; its separate REDUCTION half split out as
+`#24-driftreduction` so it cannot orphan. `04-HANDOFF.md` banner + queue item 0 moved to
+`(P4c) #24-orphans` (1) instrumentation half.
+
+### 2026-08-17 (same item, after review) — two exemption BYPASSES fixed, found by adversarial review
+
+An adversarial review of the first draft found two ways the new rules could be silenced, both
+REPRODUCED before fixing and both reopening the exact failure the item exists to close:
+* an ordinary aside containing the common words `read`/`until` exempted a live wrong figure sitting
+  BEFORE them — `(as of …, the figure is 3 again — you can read the drift log until …)`;
+* the 120-char proximity window exempted a live claim because a marker retracting a DIFFERENT,
+  EARLIER number sat nearby — `Drift was 5 (superseded), then corrected; … is 3 again`.
+⇒ Both exemptions were binding to the NEIGHBOURHOOD; they now bind to the CLAIM. A retraction
+marker must PRECEDE the figure it retracts, and outside a parenthetical it governs only to the end
+of its SENTENCE (`|` counts as a break — a STATE table row is one line of many statements).
+`_RETRACT_PAREN` also learned this project's `*( … )*` aside idiom, which NESTS and which the
+innermost-only pattern had been missing entirely. Guarded by `--self-test` D20/D21/D22.
+
+Also from that review: **cross-pass dedup**. `Expected as of <date> (LATEST): 0 differing` matches a
+legacy rule AND a currency rule and was reported twice for one edit site; one claim now yields one
+finding. And **D19**: the gate grades against `real_drift()` while the docs quote `promote.py
+--check`, so the self-test now asserts via AST that both measure the same trees.
+
+**Re-measured after the fixes.** ARM A (ground truth TRUE) 0 findings; ARM B (TRUE+1) 9 findings,
+one per distinct site; A/B vs committed 4 → 9, 0 lost; ground truth swept 0–10 with no
+value-dependent false positive; `--self-test` PASS; ALL 25 GATES PASS (134s).
+
+**One doc line re-dated, not silenced:** `05-KNOWN-ISSUES.md` read *"drift **is** ZERO again"* about
+2026-08-14 — a dated fact in the present tense inside a current-state file, which the new rule
+correctly questioned. The TENSE was corrected; the number was not touched.

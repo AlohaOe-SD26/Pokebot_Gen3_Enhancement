@@ -18,7 +18,12 @@ two REAL rot instances on its first sweep — "DRIFT IS ZERO" in 02, and two sta
       holds a multi-line comment.
   C2  DRIFT-COUNT claims match the MEASURED sandbox<->custom drift (byte-compare of ~200 .py
       files, ~0.06s — measuring is CHEAPER than the doc scan, so the gate never trusts the docs'
-      own agreement).
+      own agreement). ‼ TWO PASSES, and the split is deliberate (2026-08-17, `#24-driftassertions`):
+      pass 1 grades EXPECTATIONS on fence-stripped text; pass 2 grades CLAIM SHAPE on RAW text —
+      currency-marked figures (`N … (LATEST)`, `is <N> again`, `should report N differing`) and
+      NEGATIONS evaluated with INVERTED polarity (`not N` is stale precisely when drift IS N).
+      ⛔ Pass 2's exemption is SPAN-scoped, never unit-scoped: a STATE table row here runs to
+      ~8,000 chars, so one `*(Superseded …)*` would silence the whole page. See `_RETRACT_PAREN`.
   C3  ‼ THE HEADLINE CHECK: no `--driver X` may be queued as WORK-TO-DO in one place and reported
       COMPLETE/PASSING in another, within the same current-state file — unless the stale half is
       explicitly marked superseded. This is the exact defect the audit found.
@@ -51,6 +56,11 @@ FAULT TESTS (CLAUDE.md rule 6 — a gate must prove it fires AND prove it stays 
      -> MUST fail.  B: the same text marked superseded -> MUST stay quiet.  C: the same text
      inside a code fence -> MUST stay quiet.  D: a wrong gate count / drift count / ladder count
      injected -> MUST fail.  E: a fabricated driver cited as runnable -> MUST fail.
+     D9-D18b: the CLAIM-SHAPE rules. ‼ Half of them are FALSE-POSITIVE controls, because this
+     corpus carries 67 windows mentioning a drift figure and most are deliberately-preserved
+     history — a stale figure QUOTED in prose about the problem (D14), a retraction parenthetical
+     (D15) and ordinary English "not one" (D16) must all stay quiet, while D17 proves the
+     exemption did NOT regress to unit scope.
 
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 audit_doc_consistency.py
 Exit: 0 clean, 1 on any FAIL (warnings never fail the run).
@@ -140,10 +150,25 @@ def real_driver_choices() -> set[str]:
     return set(ast.literal_eval(m.group(1)))
 
 
+def promote_trees() -> tuple[str, ...]:
+    """`promote.py`'s TREES tuple, via AST. ‼ The docs quote `promote.py --check`'s OUTPUT, so this
+    gate must grade the SAME file set the tool reports. Two hand-maintained tuples that happen to
+    agree today is not a guarantee — `D19` in `--self-test` fails if they ever diverge."""
+    tree = ast.parse((REPO / "tools" / "story-dev" / "promote.py").read_text(encoding="utf-8-sig"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and any(getattr(t, "id", "") == "TREES" for t in node.targets):
+            return tuple(ast.literal_eval(node.value))
+    raise RuntimeError("TREES not found in promote.py")
+
+
+#: ⛔ KEEP IN STEP WITH `promote.py`'s TREES — asserted by `--self-test` D19, not by hope.
+_DRIFT_TREES = ("modules", "plugins")
+
+
 def real_drift() -> tuple[int, list[str]]:
     """MEASURED sandbox<->custom drift. ~0.06s for ~200 files — cheaper than trusting the docs."""
     differing = []
-    for sub in ("modules", "plugins"):
+    for sub in _DRIFT_TREES:
         base = REPO / "sandbox-pokebot" / sub
         for p in base.rglob("*.py"):
             rel = p.relative_to(REPO / "sandbox-pokebot")
@@ -285,8 +310,106 @@ _WORD_NUMBERS = {"zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5
                  "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10}
 _NUM = r"\d{1,2}|" + "|".join(_WORD_NUMBERS)
 
+#: ‼ NOT part of a longer token. Without these lookarounds the `(LATEST)` rule below captured the
+#: `17` out of `as of 2026-08-17 (LATEST)` and reported a claim of "drift=17".
+_N = rf"(?<![\w\-.])({_NUM})(?![\w\-.])"
 
-def check_drift(files: dict[str, str]) -> list[str]:
+#: ⛔⛔ CLAIM-SHAPE DETECTION (2026-08-17, `#24-driftassertions`; ruling in `06-DECISIONS-LOG.md`).
+#: THREE stale drift claims survived hand sweeps AND this gate, each caught by a different audit
+#: agent, because the 2026-08-16 rule is scoped to the `expect` vocabulary and all three were
+#: ASSERTIONS. ‼ The fix is NOT "check every number near the word drift": that was MEASURED over the
+#: live corpus at **67** candidate windows, and the overwhelming majority are deliberately-preserved
+#: history ("took drift to 0 AT THAT MOMENT", "0 as of 2026-08-15 (earlier)"). A gate that
+#: red-flags the docs' own history is bypassed within a day — this project's rule 6.
+#:
+#: ⇒ THE RULE IS **MARKER ATTACHMENT**: a figure asserts something about TODAY only when a currency
+#: marker is attached to the NUMBER ITSELF. Anchoring on LOCATION was rejected for the same reason
+#: (the STATE table's drift cell deliberately carries several dated historical figures inline).
+_CURRENCY = re.compile(
+    # `✅ **0 as of 2026-08-16 (LATEST) — EVERYTHING IS PROMOTED**` — the STATE-cell idiom. VERBATIM
+    # the claim that went stale unseen on 2026-08-16 while three other sites had been corrected.
+    rf"{_N}[^\n]{{0,40}}?\(LATEST\)"
+    # …and the same marker written the other way round, which is how the HOW TO RUN block spells it:
+    # `# Expect as of 2026-08-17 (LATEST): 0 differing, 0 orphaned`.
+    rf"|\(LATEST\)[^\n]{{0,24}}?{_N}"
+    # `✅ **AND IT IS ZERO AGAIN as of 2026-08-17**` / `it is **1** again as of 2026-08-17` — the
+    # 60-second-version and punch-list idioms. Both went stale unseen the same day. `again` is the
+    # currency marker: it asserts a RETURN to a value, which is a statement about now.
+    rf"|\bis\s*[*_]{{0,2}}\s*({_NUM})[*_]{{0,2}}\s+again\b"
+    # `so promote.py --check should report **0 differing, 0 orphaned**` — 04-HANDOFF's second STATE
+    # row states its live figure this way, which carries no `expect` token and no `(LATEST)`.
+    # ⛔ PRESENT TENSE ONLY: `reported N differing` is a past measurement and must stay quiet.
+    rf"|\b(?:should\s+report|reports)\s+[*_]{{0,2}}({_NUM})\s*[*_]{{0,2}}\s*differing\b", re.I)
+
+#: ⛔ EVALUATED WITH INVERTED POLARITY — `drift is NOT n` is stale precisely when drift IS n.
+#: MEASURED 2026-08-17: the shipped gate was blind to EVERY negation phrasing at BOTH drift values
+#: (0 and 1), and so was every other `check_*` in this file — so the STATE row's record of a "false
+#: positive on NOT ZERO" was false of the code, and its advice to "phrase the caveat carefully" was
+#: steering authors INTO the blind spot. Never pattern-match the token; evaluate the claim.
+_NEGATED = re.compile(rf"\bno(?:t|\s+longer)\s*[*_]{{0,2}}\s*{_N}", re.I)
+
+#: The thing a figure can be a figure OF. ‼ Required within `_SUBJECT_WINDOW` chars of the match —
+#: PROXIMITY, not "somewhere in the unit". MEASURED: unit scope produced two false positives on
+#: ordinary English immediately, `"there are TWO unbound reads, not one"` and a bare `not 0`, in
+#: units that merely mentioned drift elsewhere. Every real claim keeps its subject close: the
+#: STATE cell writes `| sandbox ↔ custom drift | ✅ **0 as of …`, and the 60-second version wrote
+#: `took drift to 0 AT THAT MOMENT. ⚠ **NOT ZERO as of 2026-08-17**`.
+_DRIFT_SUBJECT = re.compile(r"\bdrift\b|\bdiffering\b|promote\.py\s+--check", re.I)
+_SUBJECT_WINDOW = 90
+
+#: Spans that QUOTE a figure rather than assert it — this file is now full of prose ABOUT stale
+#: figures, and the gate red-flagged the original draft of the punch-list bullet describing them.
+#: ‼ SPAN-based, never unit-based: the 60-second bullet carries a CURRENT claim and a QUOTED stale
+#: one in the SAME unit, so exempting the unit would blind the gate to the half that matters.
+#: ⛔ Applied to the TWO NEW RULES ONLY. The `expect` rule must keep seeing backticked figures —
+#: the live HOW TO RUN line writes its expectation as `` `0 differing, 0 orphaned` ``.
+_QUOTED = re.compile(r'"[^"\n]{0,300}"|“[^”\n]{0,300}”|`[^`\n]{0,300}`')
+
+#: ⛔⛔ WHY THE NEW RULES DO **NOT** USE THE UNIT-LEVEL SUPERSEDE EXEMPTION — MEASURED 2026-08-17.
+#: `04-HANDOFF.md`'s STATE drift cell is ONE markdown table row of **7,916 characters**, and it
+#: carries a `*(Superseded …)*` parenthetical **283 chars** from its live `0 as of … (LATEST)`
+#: claim. Unit-scoped exemption therefore silences the single most authoritative site in the tree —
+#: the cell a cold start reads — along with `:168`'s live `0 differing, 0 orphaned` (marker 1,440
+#: chars away). ⇒ ⛔ **THE EXEMPTION MUST BE SPAN-SCOPED, NOT UNIT-SCOPED**, or the gate is blind
+#: exactly where it is needed. The three spans below are how this project actually writes a
+#: withdrawn figure; `_near_marker` keeps the `Superseded text: **DRIFT IS ZERO AGAIN…**` prefix
+#: idiom working without reaching across a 7,916-char row.
+#: ‼ INNERMOST parentheticals only (`[^()\n]`): the live "AND IT IS ZERO AGAIN" claim sits inside an
+#: OUTER `*( … )*` that also encloses a retraction, so an outermost match would exempt it too.
+#: ‼ `*( … )*` FIRST — this project's own aside idiom, and it is the form that nests. Matching only
+#: innermost `( … )` missed `*(Superseded: this cell read **N as of … (LATEST)** until …)*` entirely,
+#: because `(LATEST)` sits inside it. Both forms are line-bounded and non-greedy: no backtracking.
+_RETRACT_PAREN = re.compile(r"\*\([^\n]{0,800}?\)\*|\([^()\n]{0,600}\)")
+
+#: Reported speech — "this line READ X UNTIL …", "BRIEFLY read", "SURVIVED a sweep". Applied ONLY
+#: inside a parenthetical, which is where this project keeps its withdrawn figures visible.
+_REPORTED = re.compile(
+    r"\bread\b|\bsaid\b|\bclaim(?:ed|s|ing)?\b|\bbriefly\b|\buntil\b|\bpreviously\b|\bsurvived\b"
+    r"|\bstale\b|\bwas true\b|\bhistorical\b|\bat that (?:moment|time)\b|\bformerly\b", re.I)
+
+#: ⛔⛔ A RETRACTION MARKER GOVERNS TO THE END OF ITS SENTENCE — NOT A RADIUS. Both replaced rules
+#: were BYPASSES found by an adversarial review and REPRODUCED before fixing:
+#:   * a plain aside containing the ordinary words "read"/"until" exempted a live wrong figure
+#:     sitting BEFORE them — `(as of …, the figure is 3 again — you can read the drift log until …)`;
+#:   * a 120-char proximity window exempted a live claim because a marker retracting a DIFFERENT,
+#:     EARLIER number sat nearby — `Drift was 5 (superseded), then corrected; … is 3 again`.
+#: ⇒ Two rules, both claim-bound rather than neighbourhood-bound: the marker must PRECEDE the figure
+#: it retracts, and outside a parenthetical it stops at the sentence break. Guarded by D20/D21.
+#: ‼ `|` counts as a break: a STATE table row is one line, and each cell is its own statement.
+_SENTENCE_BREAK = re.compile(r"[;!?\n|]|\.\s")
+_SENTENCE_LOOKBACK = 400
+
+
+def check_drift(files: dict[str, str], raw: dict[str, str] | None = None) -> list[str]:
+    """`files` is fence-STRIPPED (legacy rules); `raw` keeps fences (the CLAIM-SHAPE rules).
+
+    ‼ THE SPLIT IS DELIBERATE AND MEASURED. `_read()` blanks fenced blocks, and the HOW TO RUN
+    block — one of only two sites `#24-driftassertions` says MAY carry a digit — states its figure
+    INSIDE a fence (`# Expect as of <date> (LATEST): 0 differing, 0 orphaned`). The gate could not
+    see the very line it is supposed to police. The legacy rules stay on stripped text because
+    their phrasings recur in example commands; the new rules need the fences and pay for it with
+    the quotation exemption (a fenced comment quotes `"Drift is 1"` as a past incident).
+    """
     measured, _ = real_drift()
     claims = re.compile(
         rf"\bdrift\s+is\s+(?:now\s+|still\s+)?(?:exactly\s+)?({_NUM})\b"
@@ -307,20 +430,69 @@ def check_drift(files: dict[str, str]) -> list[str]:
         # those would make this gate noisy, and a noisy gate gets bypassed. **An EXPECTATION is a
         # claim about NOW; a measurement is a claim about THEN.** D8 below fault-tests exactly that.
         rf"|\bexpect(?:ed|s)?\b[^.\n]{{0,70}}?({_NUM})\s+differing\b", re.I)
-    out = []
+    out: list[str] = []
+
+    def value(m: re.Match) -> int:
+        tok = next(g for g in m.groups() if g)
+        return _WORD_NUMBERS[tok.lower()] if tok.lower() in _WORD_NUMBERS else int(tok)
+
+    # ‼ CROSS-PASS DEDUP. The two passes read DIFFERENT texts (stripped vs raw), so their offsets
+    # are not comparable — line numbers are. Measured: the project's own HOW TO RUN idiom,
+    # `Expected as of <date> (LATEST): 0 differing`, matches a legacy rule AND a currency rule, and
+    # was reported twice for one edit site. One claim, one finding; a gate that inflates its own
+    # FAIL count trains the reader to skim it.
+    seen: set[tuple[str, int, int]] = set()
+
+    def report(name: str, text: str, m: re.Match, n: int, how: str) -> None:
+        key = (name, _line(text, m.start()), n)
+        if key in seen:
+            return
+        seen.add(key)
+        out.append(f"{name}:{key[1]} {how} drift={n}; MEASURED drift is "
+                   f"{measured}: {m.group(0)!r}")
+
+    # ---- PASS 1: the legacy rules, on fence-stripped text, unit-scoped exemption. Unchanged.
     for name, text in files.items():
         units = _units(text)
         for m in claims.finditer(text):
-            raw = next(g for g in m.groups() if g)
-            n = _WORD_NUMBERS.get(raw.lower(), None)
-            if n is None:
-                n = int(raw)
-            if n != measured:
-                a, b = next(((a, b) for a, b in units if a <= m.start() < b), (0, len(text)))
-                if SUPERSEDE_RE.search(text[a:b]):
+            n = value(m)
+            unit = next(((a, b) for a, b in units if a <= m.start() < b), (0, len(text)))
+            if n != measured and not SUPERSEDE_RE.search(text[slice(*unit)]):
+                report(name, text, m, n, "claims")
+
+    # ---- PASS 2: the CLAIM-SHAPE rules (2026-08-17). Raw text so fenced figures are visible;
+    # gated on a drift SUBJECT in the unit; exempted by SPAN, never by unit — see `_RETRACT_PAREN`.
+    for name, text in (raw if raw is not None else files).items():
+        units = _units(text)
+        quoted = [(q.start(), q.end()) for q in _QUOTED.finditer(text)]
+        # (start, end, offset of the FIRST retraction word) — a marker only retracts what FOLLOWS it.
+        retracted = []
+        for p in _RETRACT_PAREN.finditer(text):
+            mk = SUPERSEDE_RE.search(p.group(0)) or _REPORTED.search(p.group(0))
+            if mk:
+                retracted.append((p.start(), p.end(), p.start() + mk.start()))
+
+        def exempt_span(i: int, text: str = text) -> bool:
+            if any(a <= i < b for a, b in quoted):
+                return True
+            if any(a <= i < b and mk < i for a, b, mk in retracted):
+                return True
+            # Outside a parenthetical, a marker governs only to the end of ITS sentence.
+            lo = max(0, i - _SENTENCE_LOOKBACK)
+            breaks = list(_SENTENCE_BREAK.finditer(text, lo, i))
+            start = breaks[-1].end() if breaks else lo
+            return bool(SUPERSEDE_RE.search(text[start:i]))
+
+        for rx, negated in ((_CURRENCY, False), (_NEGATED, True)):
+            for m in rx.finditer(text):
+                near = text[max(0, m.start() - _SUBJECT_WINDOW):m.end() + _SUBJECT_WINDOW]
+                if not _DRIFT_SUBJECT.search(near) or exempt_span(m.start()):
                     continue
-                out.append(f"{name}:{_line(text, m.start())} claims drift={n}; MEASURED drift is "
-                           f"{measured}: {m.group(0)!r}")
+                n = value(m)
+                # ‼ POLARITY. A plain claim is stale when it DISAGREES with the measurement; a
+                # NEGATION is stale when it AGREES with it ("NOT ZERO" while the figure is zero).
+                if (n == measured) if negated else (n != measured):
+                    report(name, text, m, n, "denies" if negated else "claims")
     return out
 
 
@@ -739,6 +911,78 @@ def self_test() -> int:
     expect("D8 HISTORICAL measurement (no `expect`) -> quiet",
            check_drift({"T": f"Every .py compared afterwards: {measured + 1} differing, 0 missing\n"}),
            False)
+    # ‼‼ D9-D18 — CLAIM-SHAPE DETECTION (2026-08-17, `#24-driftassertions`). Every case below is a
+    # VERBATIM shape from the tree, not an invented one: three stale claims survived hand sweeps AND
+    # this gate on 2026-08-16/17 because it was scoped to the `expect` vocabulary and all three were
+    # ASSERTIONS. ⛔ The false-positive controls (D14-D16) matter as much as the firing tests: the
+    # corpus carries 67 windows mentioning a drift figure and most are deliberately-preserved
+    # history, so a rule that red-flags the docs' own past gets bypassed within a day (rule 6).
+    W = measured + 1                                     # a WRONG figure, whatever today's truth is
+    _WORD = {v: k for k, v in _WORD_NUMBERS.items()}
+    now, wrong = _WORD.get(measured, str(measured)), _WORD.get(W, str(W))
+    expect("D9 stale STATE cell `N as of <date> (LATEST)` -> fires",
+           check_drift({"T": f"| sandbox drift | **{W} as of 2026-08-17 (LATEST)** |\n"}), True)
+    expect("D10 the same cell carrying TODAY's figure -> quiet",
+           check_drift({"T": f"| sandbox drift | **{measured} as of 2026-08-17 (LATEST)** |\n"}), False)
+    # The HOW TO RUN block writes the marker FIRST and lives inside a fence — `_read()` blanks
+    # fences, so this shape was invisible until `check_drift` was given the raw text too.
+    expect("D11 stale `(LATEST): N differing` (the fenced HOW TO RUN shape) -> fires",
+           check_drift({"T": f"#   drift, expected as of 2026-08-17 (LATEST): {W} differing\n"}), True)
+    expect("D12 stale `IT IS <N> AGAIN` (the 60-second idiom) -> fires",
+           check_drift({"T": f"which took drift to 0 then. AND IT IS {wrong.upper()} AGAIN as of 2026-08-17.\n"}),
+           True)
+    expect("D12b the same idiom carrying TODAY's figure -> quiet",
+           check_drift({"T": f"which took drift to 0 then. AND IT IS {now.upper()} AGAIN as of 2026-08-17.\n"}),
+           False)
+    # ⛔⛔ POLARITY, BOTH DIRECTIONS — the ruling in `06-DECISIONS-LOG.md`. A negation is stale
+    # precisely when it AGREES with the measurement. MEASURED 2026-08-17: the shipped gate was blind
+    # to every negation phrasing at BOTH drift values, so this pair is the whole point of the rule.
+    expect("D13 negation that is FALSE (`drift is NOT <today's figure>`) -> fires",
+           check_drift({"T": f"The sandbox->custom drift figure is NOT {now} — a ruling is owed.\n"}), True)
+    expect("D13b negation that is TRUE (`drift is NOT <some other figure>`) -> quiet",
+           check_drift({"T": f"The sandbox->custom drift figure is NOT {wrong} today.\n"}), False)
+    # ‼ THE RECURSION HAZARD, and it is not hypothetical: this gate red-flagged the ORIGINAL draft of
+    # the punch-list bullet commissioning this very rule. The docs QUOTE stale figures on purpose.
+    expect("D14 a stale figure QUOTED inside prose about the problem -> quiet",
+           check_drift({"T": f'The drift clause briefly read "NOT {now} … a ruling is owed", which was '
+                             f'true for about an hour.\n'}), False)
+    expect("D15 a withdrawn figure inside a RETRACTION parenthetical -> quiet",
+           check_drift({"T": f"drift row *(Superseded: this cell read **{W} as of 2026-08-17 (LATEST)** "
+                             f"until the promotion landed.)*\n"}), False)
+    expect("D16 ordinary English `not one` near unrelated prose -> quiet (a MEASURED false positive)",
+           check_drift({"T": "The drift discussion is elsewhere." + " padding." * 20 +
+                             f" There are TWO unbound reads, not {now}.\n"}), False)
+    # ⛔⛔ THE REGRESSION GUARD FOR THE TRAP THIS RULE NEARLY SHIPPED WITH. `04-HANDOFF.md`'s STATE
+    # drift cell is ONE table row of 7,916 chars carrying a `*(Superseded …)*` 283 chars from its
+    # LIVE claim. Unit-scoped exemption — which every OTHER check here uses correctly — silences the
+    # single most authoritative site in the tree. If someone "tidies" this back to unit scope, D17
+    # is what fails.
+    expect("D17 a live claim far from a supersede marker in the SAME unit -> STILL fires",
+           check_drift({"T": f"| sandbox drift | **{W} as of 2026-08-17 (LATEST)** |" + " x" * 120 +
+                             " *(Superseded: an earlier round read three differing here.)*\n"}), True)
+    expect("D18 stale `should report N differing` -> fires",
+           check_drift({"T": f"so promote.py --check should report **{W} differing, 0 orphaned**\n"}), True)
+    expect("D18b PAST tense `reported N differing` is a measurement -> quiet",
+           check_drift({"T": f"promote.py --check reported {W} differing, 0 orphaned that day\n"}), False)
+    # ⛔⛔ D20/D21 — TWO BYPASSES FOUND BY AN ADVERSARIAL REVIEW OF THE FIRST DRAFT AND REPRODUCED
+    # BEFORE FIXING. Both were exemptions binding to the NEIGHBOURHOOD instead of to the CLAIM, and
+    # both silently reopened exactly the failure this item exists to close. Their controls are D15
+    # (a genuine retraction, marker FIRST) and D22 (the `Superseded text:` prefix idiom).
+    expect("D20 an innocuous aside containing `read`/`until` AFTER the figure -> still fires",
+           check_drift({"T": f"(as of 2026-08-17, the drift figure is {W} again — you can read the "
+                             f"log until it is rotated out.)\n"}), True)
+    expect("D21 a marker retracting a DIFFERENT, EARLIER number nearby -> still fires",
+           check_drift({"T": f"Drift was 5 (superseded), then corrected; the sandbox drift is {W} "
+                             f"again as of 2026-08-17.\n"}), True)
+    expect("D22 the `Superseded text:` prefix idiom (marker FIRST, same sentence) -> quiet",
+           check_drift({"T": f"Superseded text: **DRIFT IS {wrong.upper()} AGAIN AS OF 2026-08-13.**\n"}),
+           False)
+    # ⛔ D19 — the gate grades the docs against `real_drift()`, but the DOCS quote `promote.py
+    # --check`'s output. If the two ever measure different file sets, this gate starts failing
+    # correct documentation, which is the fastest way to teach everyone to bypass it.
+    expect("D19 this gate measures the SAME trees `promote.py` does",
+           [] if promote_trees() == _DRIFT_TREES else
+           [f"promote.py TREES={promote_trees()} but this gate scans {_DRIFT_TREES}"], False)
     # Q: known-false ABSOLUTES must carry their qualifier on the SAME LINE, in EVERY occurrence.
     # ‼ Q3/Q4 are the false-positive tests that decide whether this gate is usable: a gate that
     # fires on a doc DISCUSSING the phrase teaches everyone to bypass it.
@@ -814,7 +1058,9 @@ def main() -> int:
     raw_files = {name: (DOCS / name).read_text(encoding="utf-8", errors="replace")
                  for name in CURRENT_STATE if (DOCS / name).exists()}
     failures += check_gate_count_in_commands(raw_files)
-    failures += check_drift(files)
+    # ‼ BOTH texts: the legacy rules need fences STRIPPED, the claim-shape rules need them KEPT.
+    # See check_drift's docstring — the authoritative `Expect …: 0 differing` line lives in a fence.
+    failures += check_drift(files, raw_files)
     failures += check_queue_vs_headline(files)
     failures += check_qualified_claims(files)
     failures += check_ladder(files)
