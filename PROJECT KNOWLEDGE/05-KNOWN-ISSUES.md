@@ -569,8 +569,10 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 - **Symptom:** bundle `20260727-063751`, P3 run 1: `state=3 controllable=False`, position
   frozen at **ROUTE 119(32,1) (10,10)**, for **27 million frames / ~6.5 h** — and **not one
   STUCK dump fired in that entire stretch**, so the no-progress watchdog never saw it.
-- **Last known stack:** `do_weather_institute` → `_ride_out_all_scenes`
-  (`modules/story/early_game.py:5548`).
+- **Last known stack:** `do_weather_institute` (`early_game.py:6253`) → `_ride_out_all_scenes`
+  (defined `early_game.py:436`; the TWO call sites inside that function are `:6309` and `:6327`).
+  ‼ *Re-derived from source 2026-08-16 — it read `:5548`, which is unrelated prose in another
+  function. ⛔ NOTE THE UNIT: a stack line wants the CALL SITE, not the def.*
 - **Partially mitigated 2026-07-27:** `_run_with_frame_budget()` now bounds the *run*
   (`story_mode.py:2866`), so the lane derails and the batch continues. **This truncates the
   symptom; it does not fix the hang, and it does not explain why the watchdog was silent.**
@@ -686,7 +688,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
   measurement.
   ‼ Travel cost remains **unmeasured** — `story_mode.py:576` says so explicitly — which is why
   the proposal is deliberately conservative and only fires on large wins.
-- **Related:** `train_team` (`early_game.py:1738`) never consults `best_training_area` at all;
+- **Related:** `train_team` (`early_game.py:1975`) never consults `best_training_area` at all;
   its `grass` is a caller-supplied constant. Both belong to `#24-trainmap+`.
 
 > 📦 **KI-32 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — ✅ FIXED 2026-07-29.
@@ -797,10 +799,10 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
   `handle_fainted_pokemon` uses BOTH SPACES AND COMPARES THEM DIRECTLY:
   | line | value | space |
   |---|---|---|
-  | `battle_handler.py:474` | `party_in_menu = get_party()` | **regular** |
-  | `battle_handler.py:~504` | `alive_slots` built by enumerating that party | **regular** |
-  | `battle_handler.py:530` | `cursor = get_party_menu_cursor_pos(...)["slot_id"]` (reads `gPartyMenu.slotId`) | **in-battle menu** |
-  | `battle_handler.py:548-549` | `cursor in alive_slots` / `cursor not in alive_slots` | **‼ mixed** |
+  | `battle_handler.py:610` | `party_in_menu = get_party()` | **regular** |
+  | `battle_handler.py:633` | `alive_slots` built by enumerating that party | **regular** |
+  | `battle_handler.py:724` | `cursor = get_party_menu_cursor_pos(...)["slot_id"]` (reads `gPartyMenu.slotId`) | **in-battle menu** |
+  | `battle_handler.py:667`/`:683` | `cursor in alive_slots` / `cursor not in alive_slots` | **‼ mixed** |
 
   ‼ **The same function already knows better**: its PRIMARY path maps correctly at
   `battle_handler.py:443-444` (`if index_needs_mapping: new_lead_index =
@@ -1051,8 +1053,8 @@ while get_game_state() is not GameState.OVERWORLD or not player_avatar_is_contro
 ```
 
 ```
-_MAX_NON_OVERWORLD_FRAMES = 60 * 60 * 5   = 18,000    (global_navigation.py:90)
-StoryMode global watchdog: _stall_frames >= 18,000     (story_mode.py:2002)
+_MAX_NON_OVERWORLD_FRAMES = 60 * 60 * 5   = 18,000    (global_navigation.py:224)
+StoryMode global watchdog: _stall_frames >= 18,000     (story_mode.py:2493)
 ```
 
 **The same number.** The wrapper presses no buttons and changes no state, so map, coords,
@@ -1772,7 +1774,7 @@ Fixed, driven and gated (`repro_multi_battle_partner.py`, in the standing suite)
   `calculate_path` are blind to **every runtime tile patch, on every map**.
 - **This is not theoretical — it has already been paid for once.** The Mauville Gym barriers wedged
   runs 6-9 for exactly this reason; the fix was a LOCAL live-grid reader,
-  `early_game.py:3971 _live_passable()` (`read_symbol("gBackupMapLayout")`), whose own comment says
+  `early_game.py:3972 _live_passable()` (`read_symbol("gBackupMapLayout")`), whose own comment says
   the static layout is "blind to every toggle — a 'pathable' static plan walks the player into a
   live beam and bumps forever". ⇒ **The solution pattern exists in-tree; it is just not shared.**
 - **‼ WHERE IT IS ARMED NEXT — the REGI ARC, at the DOOR.** `Route111_OnLoad`, `Route105_OnLoad` and
@@ -1818,7 +1820,7 @@ from it was too strong.** Both defects below are corroborated by OUR OWN measure
 the agent that reported them.
 
 ### Defect 1 — the slide stops one tile early, and leaves the avatar notionally still surfing
-`modules/map_path.py:283-288`:
+`modules/map_path.py:340-353`:
 ```python
 next_tile = get_map_data(current_map, (x, y))
 if next_tile.elevation == 1 and not next_tile.collision:
@@ -1836,7 +1838,7 @@ would plan a rest at `(3,18)`, still surfing; the game puts the avatar on foot a
 subsequent planned step from there is wrong.
 
 ### ‼ Defect 2 — a slide can end ON A WARP, and the warp penalty is computed ONE BRANCH TOO EARLY
-**The precise mechanism** (audited 2026-08-13): `map_path.py:915` applies the `cost = 1000000`
+**The precise mechanism** (audited 2026-08-13): `map_path.py:972` applies the `cost = 1000000`
 warp-avoidance penalty to the neighbour **before** `:957-966` substitutes the slide destination for
 that neighbour. So the DESTINATION's `warps_to` is never inspected, never penalised, and never
 marked `is_warp` on the emitted `Waypoint`.
@@ -1927,11 +1929,22 @@ analysis. Both are cheap to confirm on hardware (surf onto Room 7 `(5,8)`; surf 
 ---
 
 
-## ‼ OPEN ISSUES THAT LIVE IN THE ARCHIVE — do not conclude they are fixed
+## ‼ ARCHIVED ISSUES WORTH RE-READING — ⛔ MIXED STATUS: SOME ARE FIXED, SOME ARE NOT
 
-Two **OPEN, code-verified, unfixed** bugs were moved to `31-KNOWN-ISSUES-ARCHIVE.md` for the R3
-line budget, not because they were resolved. A cold read of that file's header says "issues that
-are now resolved live here", so they are listed here to stay findable:
+⛔⛔ **READ EACH BULLET'S OWN MARKER. DO NOT ACT ON THIS HEADING.** These entries were moved to
+`31-KNOWN-ISSUES-ARCHIVE.md` for the R3 line budget, **not** because they were all resolved — and
+that file's header says *"issues that are now resolved live here"*, which is why they are re-listed
+here to stay findable. ‼ **KI-59 ITSELF IS FIXED, A/B-PROVEN, GATED (#17) AND PROMOTED TO BOTH
+FORKS** — what remains open is a NARROWER residual under it, plus KI-60.
+
+‼‼ **THIS HEADING PREVIOUSLY READ *"OPEN ISSUES … do not conclude they are fixed"* AND OPENED WITH
+*"Two OPEN, code-verified, unfixed bugs"* — directly above a bullet reading *"✅✅ KI-59 — FIXED …
+GATED."*** An adversarial cold-start audit (2026-08-16) named it **the single most dangerous
+inaccuracy in the docs**: a session that skimmed the heading would have re-run the full-ROM 518-map
+sweep, rebuilt the entry-vector correction, re-added `PathTile.blocked_exit_directions` and re-proven
+it on `VICTORY_ROAD_1F` — ~a day, for a bug that no longer exists. *(P2, the header-vs-body pair,
+applied to a SECTION heading rather than a KI heading — the pair check had never been pointed at
+section headings.)*
 
 * **✅✅ KI-59 — FIXED 2026-08-13, BOTH HALVES, A/B PROVEN, GATED.** Entry vector corrected (all-True,
   clear `[opposite(D)]`) **and** a new `PathTile.blocked_exit_directions` added for the decomp's exit
@@ -1949,7 +1962,7 @@ are now resolved live here", so they are listed here to stay findable:
   USER's call.** The original diagnosis and the retraction that reprioritised it are kept below.
 * **KI-59 (original entry)** — `map_path` **INVERTS `Impassable *` directions**. ✅ **REAL** (decomp-verified).
   ⛔ **BUT ITS "ARMED IN THE SEAFLOOR CAVERN" HEADLINE IS RETRACTED, 2026-08-13, MEASURED.**
-  The handler at `map_path.py:128` is the **`elif` of `if tile.collision != 0:`** (`:118`), so a
+  The handler at `map_path.py:147` is the **`elif` of `if tile.collision != 0:`** (`:137`), so a
   collision≠0 tile never reaches it. **All 115 cavern tiles have `collision=1` ⇒ ZERO are live**, and
   the prescribed A/B on `SEAFLOOR_CAVERN_ROOM1` would have measured a **zero delta**. KI-59 does
   **not** gate §Ch20/§Ch21. Swept over all 518 maps by `tools/story-dev/probe_impassable_dirs.py`:
@@ -2149,9 +2162,12 @@ Moved on the R3 line budget when KI-79/KI-80 were filed; it is CLOSED and was 77
 CURRENT-STATE file. ‼ **Keep only what later work leans on:** the proof was the **FRAME DELTA**
 (+7,789 / +7,087), **not** a count — a whiteout recovery that changes no count still moves the
 clock; and the archived text's real value is its harness DESIGN NOTES (the four parts a driver
-must mirror, and **why half a mirror is worse than none**). ⚠ Still open there: ~48 swallow sites
+must mirror, and **why half a mirror is worse than none**). ⚠ Still open there: swallow sites
 in `early_game.py` that should get the same one-line abort-aware guard, **enforced by an assert
-rather than by prose**.
+rather than by prose**. ‼ **The count is `44`, MEASURED** (`probe_abort_swallowing.py --list`,
+2026-08-16, KI-81) — ⛔ *this line read "~48", an ESTIMATE from before the probe existed, and it sat
+beside the measured 44 with nothing saying which was which.* **Re-run the probe; do not trust either
+number in prose** — it is the only thing that counts them.
 
 ## KI-65 — the HM-refusal re-pick raises `UnboundLocalError` into a silent `except` **WHEN `_read_offered_move` HAS ALREADY FAILED**, so two invisible failures compound into a silent decline (2026-08-12, code-verified, OPEN)
 
@@ -2381,19 +2397,19 @@ assigns it first.
   grep -rn "Underwater Blocked Above|Seaweed No Surfacing" modules/ --include=*.py
     modules/map.py:103                              -> "Underwater Blocked Above"
     modules/map.py:131                              -> "Seaweed No Surfacing"
-    modules/modes/util/higher_level_actions.py:718  -> the ONLY consumer
+    modules/modes/util/higher_level_actions.py:858  -> the ONLY consumer (surface_from_dive)
   grep -n "Underwater Blocked Above|Seaweed No Surfacing" modules/map_path.py
     (nothing)
   ```
   The tile reader emits both names; **`surface_from_dive()` is the only code in the tree that
   looks at them**; and `map_path.py` — the pathfinder — has never heard of either.
-- **Consequence.** `map_path.py:279-280`'s generic fallback marks any tile_type it does not
+- **Consequence.** `map_path.py:352`'s generic fallback marks any tile_type it does not
   special-case as `accessible_from_direction = [True, True, True, True]`, at ordinary cost. So an
   underwater tile you can never surface from is, to the planner, plain open water — a perfectly
   good place to end a route.
 - **The failure.** A chapter navigates underwater to a planner-chosen destination, calls
   `surface_from_dive()`, and gets
-  `BotModeError: This tile does not allow surfacing from a dive.` (`higher_level_actions.py:718-719`).
+  `BotModeError: This tile does not allow surfacing from a dive.` (`higher_level_actions.py:872`, inside `surface_from_dive` at `:858`).
   ‼ It fails **loudly**, which is the good news. The bad news is the retry shape: re-running the
   same `navigate_to` re-derives the same destination, so a naive retry loop cannot converge — the
   KI-67 shape (signal something, retry without changing state).

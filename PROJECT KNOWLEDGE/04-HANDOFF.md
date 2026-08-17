@@ -333,7 +333,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    is Altaria (Dragon/Flying), and Electric is 0.5× into Dragon × 2.0× into Flying = **1.0,
 >    NEUTRAL**. Four copies (`counter_hunt.py:250`, the design note, THIS file, the driver) were
 >    corrected — ⛔ **and a FIFTH was found 2026-08-15**, prose on `CREDIBLE_ANSWER_POWER`
->    (`story_mode.py:1083`) that named no type list, so the grep for the type set walked past it.
+>    (`story_mode.py:1087`) that named no type list, so the grep for the type set walked past it.
 >    ‼ **STILL NOT PROVEN BY STAGE 2 — the honest gap:** everything UPSTREAM of registration. The
 >    Slugma is INJECTED and the PID is published by the driver, so the real `hunt()` →
 >    `story_mode.py:1750` wiring remains untested end-to-end. ⚠ And `hunt()` snapshots its OWN
@@ -345,7 +345,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    one fixture — same party, same 8 seeded losses, same boss; only the cfg's `grass` key differs:**
 >    `NOGRASS` → ladder · `GRASS_FODDER` (Route 102, `wild_max` 4) → ladder ·
 >    ⛔ `GRASS_STRONG` (Route 119, `wild_max` 27 — **the patch her own cfg comment names**,
->    `story_mode.py:3531`; ⛔ she has NO `grass` key today, and that is the only reason her ladder works) → **plain escalation,
+>    `story_mode.py:3532`; ⛔ she has NO `grass` key today, and that is the only reason her ladder works) → **plain escalation,
 >    ladder SKIPPED**. `ACCEPTANCE: PASS` on `--build sandbox` AND `--build custom`.
 >    ‼ **The driver EXITS 0 even on FAIL — grade the `ACCEPTANCE:` line, never the exit code.**
 >    Fault-tested twice: against `ch13_fortree_door.ss1` it FAILS with *"THE A/B WOULD BE VACUOUS"*
@@ -534,7 +534,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    are UNMEASURED for cycles** — and they are the route to the **Sealed Chamber (Regi arc)** and
 >    **Ever Grande (§Ch23)**, so that is where these defects are really armed.
 >    ‼ **KI-76's CORRECTNESS HALF IS STILL OPEN:** a slide that ENDS ON A WARP is never penalised
->    (`map_path.py:915`'s warp cost is applied one branch BEFORE `:957` substitutes the slide
+>    (`map_path.py:972`'s warp cost is applied one branch BEFORE `:1013` substitutes the slide
 >    destination), and A* is **actively biased toward long slides** (~9x cheaper than walking under
 >    `avoid_encounters`). `ROOM6 (14,8)` is a water-level door and **9 of its 108 chains end on it**.
 >    ✅ Measured: the four routes we actually plan spring **0** traps — `probe_ch20_currents.py`
@@ -696,6 +696,13 @@ PYTHONUTF8=1 py -3.12 run_gates.py        # THE STANDING SUITE — all 24, exits
 PYTHONUTF8=1 py -3.12 run_gates.py --quick   # the 17 needing no ROM (was 10, 14, 15, 16; MEASURE)
 PYTHONUTF8=1 py -3.12 run_gates.py --list    # what is in the suite
 PYTHONUTF8=1 py -3.12 probe_chapter_order.py --build custom   # ‼ also check the OTHER fork
+PYTHONUTF8=1 py -3.12 probe_stale_citations.py   # ‼ RUN THIS BEFORE TRUSTING ANY `file.py:NNN`
+                                          #   IN THE DOCS. 22 were stale on 2026-08-16; it took
+                                          #   them to 0. NOT a gate (years of citations would
+                                          #   make it red on arrival). Rule: RE-DERIVE, NEVER
+                                          #   RE-TYPE — and the durable claim is the SHAPE,
+                                          #   not the line, because lines drift on every edit.
+PYTHONUTF8=1 py -3.12 probe_abort_swallowing.py --build custom  # KI-81: 45 candidates remain
 
 # --- §Ch20, the live drives (SEVEN of them; each ~4-25 min). All PASS as of 2026-08-14,
 #     EXCEPT ch20room9, which is 2W/1L — the Archie fight is stochastic, see its note. ---

@@ -74,7 +74,7 @@ worth more than the tidiness.
 | organic team building | **`#24-organicteam`** | ⛔ **CORRECTED 2026-08-14** — this cell used to read *"it carries the user's 2026-08-05 DEFERRAL, i.e. the live instruction"*, which was **already false when written on 2026-08-10**: the user reversed that deferral on 2026-08-06 (`06-DECISIONS-LOG.md` RULING 1) and re-confirmed the lift on 2026-08-14. The entry is canonical because it is the concept's home, NOT because it carries a deferral. **The gate is LIFTED.** |
 ‼ **`#24-pc` (Surf resource walls) REMAINS OPEN and was not touched** — it is a derail class, a
 different thing from the PC/box *feature* that shares its id.
-Counts after consolidation: **86 open / 21 partial / 102 done (measured 2026-08-15; ‼ `lint_docs.py`'s I1/I2 lines are the authority — this prose goes stale every session)** (was 91/22/93).
+Counts after consolidation: **95 open / 21 partial / 103 done (re-measured 2026-08-16; ‼ `lint_docs.py`'s I1/I2 lines are the authority — this prose goes stale every session)** (was 91/22/93).
 
 HISTORY — originally flagged as: duplicate / overlapping ids, not merged
 * **`#24` appears three times** as the umbrella (L≈1828 "STORY AUTO-PLAYER", L≈2040 "STORY-MODE
@@ -1699,7 +1699,7 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
       2048 yields from inside the run, re-basing when the frame counter goes backwards at
       the mid-run hard reset. REPRO: `tools/story-dev/repro_endless_frame_budget.py`.
 - [ ] `#24-weatherinstitute-hang` — the specific hang P3 hit: `do_weather_institute` →
-      `_ride_out_all_scenes` (`early_game.py:5548`), then `state=3 controllable=False` for
+      `_ride_out_all_scenes` (`early_game.py:436`), then `state=3 controllable=False` for
       27M frames. The frame budget now BOUNDS it (the run derails and the batch continues),
       but the underlying scene wait is still wrong. Needs the first post-fix batch to see
       whether it recurs and how often before spending time on it.
@@ -1750,7 +1750,7 @@ cost so much as add yield to a cost already being paid.
 | `modules/encounter_index.py` | whole-game reverse index: species → [{map, method, rate%, level range}] |
 | `plugins/custom_modes/hunt_mode.py` | "travel to a target species' best wild spot, then hunt it" |
 | `plugins/custom_modes/living_dex_mode.py` | "work through a list of target species autonomously" (#23) |
-| `StoryShinyCatchStrategy` (`story_mode.py:84`) | already always-catches shinies, **even with a full party** (goes to the PC) |
+| `StoryShinyCatchStrategy` (`story_mode.py:78`) | already always-catches shinies, **even with a full party** (goes to the PC) |
 | `21-TEAM-POLICY-DESIGN.md` §1 | already specifies *"Drop the `BADGE01_GET` gate. Raise `_catch_team_target` 4 → 6, allow overflow to the box."* |
 
 **Exactly two gates block it today**, both in `_should_catch` (`story_mode.py`):
@@ -1899,7 +1899,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
       (`gText_YourPartysFull` 0x13, `gText_BoxIsFull2` 0x11, `gText_ThatsYourLastPkmn` 0x1a …) ⇒
       compare **ROM bytes vs the live buffer** like `menu_parsers.py:357`; ⛔ never hardcode English.
       **PREREQUISITES (each is its own defect, and each is now tracked here rather than orphaned):**
-      **P1 ⛔ `withdraw_from_box:432-433` counts `alive` EXCLUDING EGGS — a live latent bug.** Its
+      **P1 ⛔ `withdraw_from_box` (`pc_trip.py:453-454`) counts `alive` EXCLUDING EGGS — a live latent bug.** Its
       own sibling `deposit_one_dead_weight._occupied` (`pc_trip.py:248-263`) documents that exact
       exclusion as *"a REAL bug (found by adversarial review 2026-08-13)"* and was fixed; this
       function never got the fix. On **5 mons + 1 egg** the make-room block is SKIPPED and
@@ -2010,7 +2010,7 @@ region, where "train near the gym" is actively wrong.
 - `modules/story/counter_plan.py` — already ranks reachable, cost-priced counter encounters.
 
 **The three concrete gaps:**
-- [ ] **(1) `train_team` never picks an area.** `early_game.py:1738` —
+- [ ] **(1) `train_team` never picks an area.** `early_game.py:1975` —
       `grass: tuple = RUSTBORO_TRAINING_GRASS` is a caller-supplied constant; it never calls
       `best_training_area`. Its own docstring admits this. **Wire it.**
 - [~] **(2) `FODDER_LEVEL_GAP = 12` compares the WRONG QUANTITIES — ANALYSED 2026-07-29,
@@ -2207,7 +2207,7 @@ region, where "train near the gym" is actively wrong.
 ### ‼ #1 EXECUTION PRIORITY — the counter chain is now 72% of all derails
 - [x] **`#24-counters` phase 2 — ✅ BUILT 2026-07-30, and LIVE-VALIDATED many times since;
       the "awaiting validation" header was 8 days stale (closed by triage 2026-08-10).**
-      Evidence: `best_huntable` (`counter_plan.py:435`) and `hunt` (`counter_hunt.py:327`) are
+      Evidence: `best_huntable` (`counter_plan.py:435`) and `hunt` (`counter_hunt.py:426`) are
       live; batch `20260808-131334` measured conversion 15% → 45% (z = +2.39 on REAL catches),
       and `20260809-081643` restored `CAUGHT Machop` 0/7 → 6/7 (z = +3.24) with FALSE catches
       10 → 0. ‼ Its open FOLLOW-UPS live in newer items, not here — see `#24-battleitems`
@@ -2307,7 +2307,7 @@ region, where "train near the gym" is actively wrong.
 
 **STILL OPEN from the same review — design calls, NOT yet built (need the user's ruling):**
 - [ ] `#24-leadpolicy` — **the matchup lead is purely defensive and benches the winner.**
-      `_lead_best_matchup` (`early_game.py:1587`) picks `min(incoming_multiplier, -level)` —
+      `_lead_best_matchup` (`early_game.py:1655`) picks `min(incoming_multiplier, -level)` —
       it models only the foe ace's STAB types, and ignores whether the chosen lead can deal
       damage or survive a level gap. Verified to reproduce every observed lead exactly:
       P2 led **Whismur L15** into the Route 110 rival **13 times** while **Marshtomp L24**
@@ -3111,7 +3111,7 @@ region, where "train near the gym" is actively wrong.
 - [ ] #24-grasswander - ORGANIC MOVEMENT WHILE TRAINING (user request 2026-07-26).
       Today the bot trains by SPINNING IN PLACE - `spin()`
       (`modules/modes/util/higher_level_actions.py:158`) turns on the spot, wrapped by
-      `_story_spin` (`early_game.py:124`) for the whiteout-abort and no-progress watchdog.
+      `_story_spin` (`early_game.py:171`) for the whiteout-abort and no-progress watchdog.
       The user wants it to WANDER the grass with human-like movement, mixing in occasional
       spins, so training looks organic instead of robotic.
       !! THIS IS THE SAFE PLACE TO PUT RANDOM MOVEMENT, and the risk profile is INVERTED

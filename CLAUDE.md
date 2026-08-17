@@ -345,6 +345,13 @@ the other, IN THE SAME COMMIT. These are the named cross-checks, not "review the
       what it reads first.
   P2  every touched `05-KNOWN-ISSUES` KI HEADER (title + status words)  ↔  that KI's newest
       dated body line. The header is the half that gets skimmed — the headline carries the caveat.
+      ‼‼ **AND EVERY SECTION HEADING (`##`) ↔ THE STATUS OF *EVERY* BULLET UNDER IT** — added
+      2026-08-15 because P2 was pointed only at KI headers and missed the single most expensive doc
+      bug in the tree: a section headed *"OPEN ISSUES … do not conclude they are fixed"* whose FIRST
+      bullet read *"✅✅ KI-59 — FIXED, A/B PROVEN, GATED"*. An adversarial cold-start priced that at
+      ~a day of re-doing finished, gated, promoted work. ⛔ **A heading is a claim about every bullet
+      beneath it**; if their statuses differ the heading must say MIXED and each bullet must carry
+      its own marker.
   P3  `04-HANDOFF` STATE table + HOW TO RUN / TEST  ↔  this session's newest `07-CHANGELOG`
       entries. What shipped must be startable from the handoff alone.
   P4  `00-README` reading-order descriptions  ↔  the current top of each file this session

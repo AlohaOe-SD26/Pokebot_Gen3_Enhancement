@@ -239,10 +239,10 @@ the last line.
 
 *(the older sweep description follows, kept because the scripts still exist and still run)*
 
-`tools/story-dev/repro_*.py` is **101 scripts** (plus **72** `probe_*.py` and 3 `audit_*.py`), most
+`tools/story-dev/repro_*.py` is **101 scripts** (plus **73** `probe_*.py` and 3 `audit_*.py`), most
 needing **no emulator**. ‼ **COUNTED, not recalled** — these figures said 84 and 52 from 2026-08-10
-until a 2026-08-15 audit measured the directory; the probe count went 71 → 72 on 2026-08-16 when
-`probe_abort_swallowing.py` was added. They are prose, not a gate: `ls` is the authority.
+until a 2026-08-15 audit measured the directory; the probe count went 71 → 72 → **73** on 2026-08-16
+as `probe_abort_swallowing.py` and then `probe_stale_citations.py` were added. They are prose, not a gate: `ls` is the authority.
 Run the whole
 sweep after any change; a fix that satisfies its own new repro can still break an older
 one's contract (this happened twice on 2026-07-27).

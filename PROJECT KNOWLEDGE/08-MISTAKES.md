@@ -7580,3 +7580,40 @@ entry so the next reader re-derives instead of trusting.
 **Prevention rule.** ⛔ **Never re-type a citation — re-derive it, and state the UNIT** (try line vs
 handler line vs def line). ‼ **State the SHAPE as the durable claim** (*"guard first, latch-keyed,
 `PathFindingError` split out"*); a shape survives edits, a line number does not.
+
+## 2026-08-16 — a SECTION heading said "unfixed" directly above "✅✅ FIXED … GATED", and it was the most expensive doc bug in the tree
+
+**Symptom.** `05-KNOWN-ISSUES.md`'s archive-pointer section was headed *"‼ OPEN ISSUES THAT LIVE IN
+THE ARCHIVE — do not conclude they are fixed"* and opened *"Two **OPEN, code-verified, unfixed**
+bugs…"*. Its FIRST bullet was *"✅✅ KI-59 — FIXED 2026-08-13, BOTH HALVES, A/B PROVEN, GATED."*
+
+**Root cause.** The "two" meant the OTHER two bullets. A careful reader resolves it; a skimming agent
+acts on the heading. ‼ **P2 (header ↔ body) existed and would have caught this — but P2 had only ever
+been pointed at KI headers, never at SECTION headings**, and no gate looks at heading text at all.
+
+**Cost if believed.** Re-running the full-ROM 518-map sweep, rebuilding the entry-vector correction,
+re-adding `PathTile.blocked_exit_directions`, re-proving on `VICTORY_ROAD_1F` — about a day, for a
+bug that is gated (#17), passing, and promoted to both forks at zero drift.
+
+**Prevention rule.** ⛔ **A heading is a claim about EVERY bullet under it.** If the bullets have
+mixed status, the heading must say "MIXED" and each bullet must carry its own marker. **Extend P2 to
+section headings, not just KI headings.**
+
+## 2026-08-16 — my brand-new citation probe reported a comforting 0 because it could not SEE
+
+**Symptom.** `probe_stale_citations.py` reported `STALE: 0` right after a fix round. A hand check
+found a stale citation within a minute — `_ride_out_all_scenes` cited 5,112 lines from its real home.
+
+**Root cause.** It scanned LINE BY LINE, and this project's docs wrap at ~100 chars, so a citation
+whose symbol ends one line and whose `file:line` begins the next was **invisible to it**. The 0 was
+not a measurement, it was a blind spot wearing a measurement's clothes.
+
+**Fix.** Match within a blank-line-separated PARAGRAPH. ⛔ Not the whole file — that would fuse a
+symbol at the end of one bullet with an unrelated `file:line` in the next and manufacture findings.
+Self-tests pin both directions. A second false positive followed (it flagged a legitimate BODY
+citation because it compared against the `def` line); now span-based, with its own self-test.
+
+**Prevention rule.** ⛔ **A new instrument's first clean run is a claim about the INSTRUMENT, not
+about the subject — fault-test it by feeding it a known-bad case in the REAL format** (wrapped, in
+context), not just a synthetic one-liner. ‼ *An instrument that reports 0 because it cannot see is
+worse than one that reports honestly* — it converts ignorance into false confidence.

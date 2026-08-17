@@ -15585,3 +15585,51 @@ punishes the correction is one everybody learns to bypass** — strictly worse t
 a deliberately NARROW refutation escape (`does NOT mean` / `NOT the same as` / `is FALSE` / …), and
 **Q7 fault-tests that narrowness**: a stray *"not"* elsewhere in the sentence does NOT excuse a
 genuine assertion. Self-tests **Q1-Q7 all pass**; suite still **ALL 24 GATES PASS (127.6s)**.
+
+## 2026-08-16 — WRAP-UP PASS 6 (the second pass, as asked): TWO cold-start agents, 22 stale citations, and the one that would have cost a day
+
+Two fresh agents, **no chat context**, on DIFFERENT angles — the project's own rule, since asking two
+agents the same question buys a second guess while asking one to REFUTE buys information.
+
+**AGENT 1 (canonical Tier 2, incl. "try to BEGIN the next item"): verdict YES — a cold session can
+start.** It did not take the handoff's word for anything: it RAN `preflight.py`, `run_gates.py`
+(24/24, 127.8s) and `promote.py --check` (0/0) itself, and confirmed P1-P4 with both halves quoted.
+On the hard clause it got as far as the boundary and stopped honestly: it drove the **existing**
+`repro_movelearn_hm_wedge.py --state quickattack` and reproduced **ARM B** (`VERDICT = RESOLVED`,
+`moveset changed = False`) — independently confirming this entry's own claim that *"moveset
+unchanged" is today's GREEN result and therefore VACUOUS as a discriminator*. ⛔ It could not compute
+ARM A, and said exactly why: **the fault hook does not exist yet**, and writing it is implementation,
+not preparation. ‼ That is the RIGHT answer — and note it is the same vacuous-discriminator trap that
+bit this project twice before, now caught by a cold reader instead of after a wasted drive.
+
+**AGENT 2 (adversarial, "find the lie a session would ACT on"): it found one, and it was expensive.**
+> `05-KNOWN-ISSUES.md` section heading: *"‼ OPEN ISSUES THAT LIVE IN THE ARCHIVE — do not conclude
+> they are fixed"* / *"Two **OPEN, code-verified, unfixed** bugs…"*
+> the very next line: *"✅✅ **KI-59 — FIXED 2026-08-13, BOTH HALVES, A/B PROVEN, GATED.**"*
+A session that skimmed the heading would have re-run the full-ROM 518-map sweep, rebuilt the entry
+vector, re-added `PathTile.blocked_exit_directions` and re-proven it on `VICTORY_ROAD_1F` — **~a day,
+for a bug that no longer exists** (gate #17 passes; drift 0; promoted to both forks). Heading
+rewritten to state the mixed status up front. ‼ **P2 is the header-vs-body pair — but it had only
+ever been pointed at KI headers, never at SECTION headings.** That gap is now named in the entry.
+
+**22 STALE CITATIONS FOUND AND RE-DERIVED** (9 by the adversarial agent, 11 by a new probe, 2 more
+by hand). Worst offenders: `_ride_out_all_scenes` cited **5,112 lines** from its real home;
+`higher_level_actions.py:718` cited as KI-72's "ONLY consumer" when `:718` is `talk_to_npc` and the
+real consumer `surface_from_dive` is at `:858`; `train_team` off by 237 in TWO files;
+`FODDER_LEVEL_GAP`, `_MAX_NON_OVERWORLD_FRAMES`, the KI-43 watchdog, KI-59's collision branches, and
+all four rows of KI-66's `battle_handler.py` table. Punch-list counts re-measured **102 → 103 done,
+86 → 95 open** (the linter's independent count agrees).
+
+**‼ NEW INSTRUMENT — `probe_stale_citations.py`.** Docs say *"re-derive, never re-type"*; this makes
+re-deriving cheap enough to actually do. It pairs a `` `symbol` `` with a `` `file.py:NNN` `` in the
+same PARAGRAPH and re-derives the symbol's real span by AST. **7 → 0 stale on the current-state
+docs.** ⛔ A PROBE, not a gate — the docs carry years of citations, and a gate red on arrival gets
+ignored (same call `probe_abort_swallowing.py` makes).
+‼‼ **IT PRODUCED TWO FALSE POSITIVES AND BOTH TAUGHT IT SOMETHING**, which is the point of
+fault-testing an instrument rather than trusting it: (1) it first read LINE BY LINE and so **missed
+every SOFT-WRAPPED citation** — reporting a comforting 0 while a hand check found one immediately;
+paragraph-joined now, and a self-test pins the wrapped case *and* the opposite error (two unrelated
+paragraphs must not fuse into a phantom pair). (2) It compared against the `def` line, so it flagged
+a **BODY citation** — a statement 130 lines inside a function, the most useful kind of citation
+there is. Now span-based. Self-tests: **7/7**, including both false-positive guards.
+⇒ *An instrument that reports 0 because it cannot SEE is worse than one that reports honestly.*
