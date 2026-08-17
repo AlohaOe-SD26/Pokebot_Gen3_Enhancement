@@ -16166,3 +16166,71 @@ records the 25 too.
 **The generalisable bit:** when a gate is taught a new CLAIM SHAPE, check whether its sibling checks
 in the same file share the old blind spot. Fixing one rule and leaving its neighbour is the
 half-of-a-pair defect this project keeps re-deriving — and here the neighbour was six lines away.
+
+### 2026-08-17 (same item, after the Tier 2 cold-start audit) — the claim-shape rules did NOT cover their own corpus
+
+A cold-start agent, given only `04-HANDOFF.md` + `00-README.md` and told to MEASURE every number it
+read, found **three live stale drift claims that `audit_doc_consistency.py` exited 0 over** — hours
+after this morning's claim-shape work shipped. Two of them sat inside the orientation block a cold
+reader is *ordered* to read FIRST, and they said **no promotion decision was owed while one was**.
+That is the expensive failure: a promotion is the one thing here that requires a human.
+
+**The three shapes, and why each was invisible:**
+1. `the sandbox→custom drift FIGURE is 0` — the rule required `drift` and `is` to be ADJACENT. A
+   noun between them defeated it. Now `drift (figure|count|number)? is N`.
+2. `AND IT IS ZERO AGAIN as of 2026-08-17` — ⛔ **the subtle one.** It matched the currency rule and
+   was then EXEMPTED: it shares a parenthetical with a historical clause, and the soft marker
+   `AT THAT MOMENT` sat **20 characters** earlier. My own "a marker exempts what follows it" fix —
+   written that morning to close an adversarial reviewer's bypass — silenced a live claim.
+   ⇒ **An explicit CURRENCY marker now outranks soft history vocabulary; only an explicit
+   retraction (`Superseded`, `RETRACTED`) can silence a currency-marked figure.** The soft
+   `_REPORTED` list keeps its power over NEGATIONS, which really are usually quoted prose.
+3. `on its way to **25**` (gate count) — a claim about the CURRENT total dressed as a history.
+Plus a self-contradicting STATE cell that opened *"NO PROMOTION DECISION IS OWED"* and said
+*"2 differing … awaiting promotion"* fourteen clauses later, a heading calling a PARTLY-FIXED KI
+"LIVE", and the line-budget row stale for the second time in one day.
+
+**All fixed, and the rules were fault-tested against REALITY before the docs were touched:** the new
+patterns were added FIRST and made to FIRE on the live stale lines, then the lines were corrected and
+the gate went quiet. Six new self-test cases (D2d/D2e, D23/D23b, D24/D25), both directions each.
+
+‼ **And the recursion hazard bit immediately:** the note I wrote explaining the fix REPRINTED the
+stale phrase, and the legacy rule flagged my own correction. Reworded per this file's own standing
+convention — **describe a withdrawn figure, never reprint it** — because the gate matches literal
+strings and cannot tell a quotation from a claim.
+
+⇒ **The lesson, and it is the general one: shipping a rule is not the same as covering the corpus.**
+An A/B that measures 4→9 sites caught proves the rule WORKS; it says nothing about the shapes it has
+never seen. The only way that gap gets closed is an independent reader who MEASURES what it reads.
+
+### 2026-08-17 (same item, Tier 2 re-check) — the fixes landed correctly; FIVE more stale sites survived elsewhere
+
+The re-check confirmed all seven earlier defects were fixed **in the live text, in place** — not in a
+history note, which is the failure mode it was pointed at. It then found five surviving classes, and
+one of them is a gate blind spot worth more than the edits:
+
+* ⛔ **`all **25** gates PASS` was invisible to `check_gate_counts`** because MARKDOWN EMPHASIS sits
+  between the word and the number: `\ball\s+(\d{1,2})` cannot match `all **25**`. Four sites carried
+  it, one in the first paragraph of the orientation block — in a file that four lines lower records
+  "25" as an already-caught defect. **Every number in that check now tolerates `**`/`__`**, and
+  adding the rule immediately surfaced a FIFTH site in `05-KNOWN-ISSUES.md` that the audit had not
+  listed. All corrected to say what the count was AT THAT TIME and to point at `run_gates.py`.
+* `04-HANDOFF.md` said **"everything is promoted"** twenty words after **"2 differing"**, twice, in
+  the two lines a cold agent copies commands from → "everything ELSE".
+* ⚠ **A fix that landed on ONE HALF OF A PAIR:** `05-KNOWN-ISSUES.md`'s KI-65 entry was tense-shifted
+  to *"WAS ZERO AGAIN as of 2026-08-17"* — but today IS 2026-08-17, so a same-day past tense still
+  reads as today's figure. Its neighbour KI-66 had the *"it is 2 today"* caveat; KI-65 now carries
+  the same one. ‼ Tense alone is not a caveat when the date is today.
+* The STATE `branch / HEAD` cell asserted **"clean, 0 unpushed"** with no caveat, four lines under a
+  banner that carries one. A cell cannot truthfully assert its own push — it now says to trust
+  `git status`.
+
+⛔ **NOT changed, and deliberately: `03-PUNCH-LIST.md`'s present-tense "drift is 0" lines.** The
+audit flagged them, but that file opens with an explicit standing convention — *"a drift figure
+quoted inside an ITEM is a dated claim about THAT ITEM'S files, never the repo's current number"* —
+and the gate already respects it. Fighting a documented convention would have been the wrong fix.
+
+⇒ **The recurring lesson, now three rounds deep in one session:** every one of these was a CLAIM
+SHAPE the rules had never seen — a noun in the middle, a soft history marker nearby, markdown bold
+between the word and the digits. Rules cover shapes, not corpora; only an independent reader that
+MEASURES what it reads finds the next shape.

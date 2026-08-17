@@ -265,18 +265,28 @@ def check_gate_count_in_commands(files: dict[str, str]) -> list[str]:
 
 def check_gate_counts(files: dict[str, str]) -> list[str]:
     total, fast = real_gate_counts()
+    # ‼‼ MARKDOWN EMPHASIS BETWEEN THE WORD AND THE NUMBER, ADDED 2026-08-17. `all **25** gates PASS`
+    # was invisible to `\ball\s+(\d{1,2})\s+gates?` because `**` sits between `all ` and the digits —
+    # and a Tier 2 cold-start audit found THREE such sites, one of them in the first paragraph of the
+    # orientation block, in a file that four lines lower records "25" as an already-caught defect.
+    # ⇒ Every number in this check now tolerates the `**`/`__` the docs bold their figures with.
+    B = r"[*_]{0,2}"
     claims = re.compile(
-        r"(\d{1,2})\s*/\s*(\d{1,2})\s+gates?\b"
+        rf"{B}(\d{{1,2}}){B}\s*/\s*{B}(\d{{1,2}}){B}\s+gates?\b"
         r"|\bsuite\s+is\s+now\s+(\d{1,2})\b"
         # ‼ ADDED 2026-08-17 — THE SAME CLAIM-SHAPE BLIND SPOT THE DRIFT RULE HAD, in the check
         # right next to it. The rule above demands the word "now", so `the suite is 25 gates`
         # sailed straight through; a Tier 1 reviewer found it FOUR LINES above a correct
         # `26/26 gates PASS` in the same file. ⇒ A count claim does not need "now" to be a claim.
-        r"|\bsuite\s+is\s+(\d{1,2})\s+gates?\b"
-        r"|\bALL\s+(\d{1,2})\s+GATES\b"
-        r"|\b(\d{1,2})[- ]gate\s+suite\b"
+        rf"|\bsuite\s+is\s+{B}(\d{{1,2}}){B}\s+gates?\b"
+        # `it has said 17, 18 … on its way to **25**` — a claim about the CURRENT total dressed up
+        # as a history. The trailing figure is the one actually being asserted, and it went stale
+        # while the very same file carried a correct `26/26` 480 lines away.
+        r"|\bon its way to\s+\*{0,2}(\d{1,2})\b"
+        rf"|\bALL\s+{B}(\d{{1,2}}){B}\s+GATES\b"
+        rf"|\b{B}(\d{{1,2}}){B}[- ]gate\s+suite\b"
         r"|STANDING\s+SUITE\s*[—-]+\s*(?:all\s+)?(\d{1,2})\s+gates?"
-        r"|\ball\s+(\d{1,2})\s+gates?\s+PASS\b", re.I)
+        rf"|\ball\s+{B}(\d{{1,2}}){B}\s+gates?\s+PASS\b", re.I)
     fastc = re.compile(r"\bthe\s+(\d{1,2})\s+needing\s+no\s+ROM\b", re.I)
     gated = re.compile(r"(?:gated\s+by|GATED\s+as|new\s+gate)\s+`?([a-z0-9_]+\.py)`?", re.I)
     out = []
@@ -417,7 +427,11 @@ def check_drift(files: dict[str, str], raw: dict[str, str] | None = None) -> lis
     """
     measured, _ = real_drift()
     claims = re.compile(
-        rf"\bdrift\s+is\s+(?:now\s+|still\s+)?(?:exactly\s+)?({_NUM})\b"
+        # ‼ THE OPTIONAL NOUN, ADDED 2026-08-17. `The sandbox→custom drift FIGURE is 0` slipped past
+        # for a day — the old rule demanded `drift` and `is` be ADJACENT — and a Tier 2 audit found
+        # that phrasing sitting in the orientation block a cold reader is ORDERED to read first,
+        # telling it nothing awaited a promotion while a promotion decision was in fact owed.
+        rf"\bdrift\s+(?:figure\s+|count\s+|number\s+)?is\s+(?:now\s+|still\s+)?(?:exactly\s+)?({_NUM})\b"
         rf"|\bEXPECT\s+EXACTLY\s+({_NUM})\b"
         rf"|\bexpect(?:ed)?\s+(?:as of [^:]{{0,24}}:\s*)?exactly\s+({_NUM})\b"
         rf"|\bdrift\s+(?:unchanged\s+|measured\s+)?at\s+(?:exactly\s+)?({_NUM})\b"
@@ -477,11 +491,28 @@ def check_drift(files: dict[str, str], raw: dict[str, str] | None = None) -> lis
             if mk:
                 retracted.append((p.start(), p.end(), p.start() + mk.start()))
 
-        def exempt_span(i: int, text: str = text) -> bool:
+        def exempt_span(i: int, soft: bool = True, text: str = text) -> bool:
+            """`soft=False` ⇒ only an EXPLICIT retraction silences this claim.
+
+            ⛔⛔ WHY THE SOFT/HARD SPLIT (2026-08-17, found by a Tier 2 cold-start audit that
+            MEASURED the figures instead of reading them). A single parenthetical here routinely
+            carries a HISTORICAL clause and a CURRENT one:
+                `… which took drift to 0 AT THAT MOMENT. ✅ AND IT IS ZERO AGAIN as of 2026-08-17`
+            The soft marker `AT THAT MOMENT` sat **20 characters** before the live claim, so
+            "a marker exempts what follows it" silenced the half that was actually asserting
+            something about today — and that claim then went stale unseen, which is the FOURTH
+            staleness incident on this exact line.
+            ⇒ **An explicit CURRENCY marker outranks soft history vocabulary.** Only SUPERSEDE_RE —
+            "Superseded", "RETRACTED", an explicit withdrawal — can silence a currency-marked claim.
+            The soft `_REPORTED` list keeps its power over NEGATIONS, which really are usually
+            quoted prose about the problem.
+            """
             if any(a <= i < b for a, b in quoted):
                 return True
-            if any(a <= i < b and mk < i for a, b, mk in retracted):
-                return True
+            for a, b, mk in retracted:
+                if a <= i < b and mk < i:
+                    if soft or SUPERSEDE_RE.search(text[a:b]):
+                        return True
             # Outside a parenthetical, a marker governs only to the end of ITS sentence.
             lo = max(0, i - _SENTENCE_LOOKBACK)
             breaks = list(_SENTENCE_BREAK.finditer(text, lo, i))
@@ -491,7 +522,9 @@ def check_drift(files: dict[str, str], raw: dict[str, str] | None = None) -> lis
         for rx, negated in ((_CURRENCY, False), (_NEGATED, True)):
             for m in rx.finditer(text):
                 near = text[max(0, m.start() - _SUBJECT_WINDOW):m.end() + _SUBJECT_WINDOW]
-                if not _DRIFT_SUBJECT.search(near) or exempt_span(m.start()):
+                # ‼ `soft=negated`: a CURRENCY-marked figure is only silenced by an EXPLICIT
+                # retraction; a negation may also be silenced by reported-speech vocabulary.
+                if not _DRIFT_SUBJECT.search(near) or exempt_span(m.start(), soft=negated):
                     continue
                 n = value(m)
                 # ‼ POLARITY. A plain claim is stale when it DISAGREES with the measurement; a
@@ -908,6 +941,10 @@ def self_test() -> int:
            check_gate_counts({"T": f"both must exit 0; the suite is {total + 1} gates\n"}), True)
     expect("D2c the same phrasing with the RIGHT count -> quiet",
            check_gate_counts({"T": f"both must exit 0; the suite is {total} gates\n"}), False)
+    expect("D2d `on its way to <wrong>` -> fires (a CURRENT total dressed as a history)",
+           check_gate_counts({"T": f"it has said 17, 18 on its way to **{total + 1}**\n"}), True)
+    expect("D2e `on its way to <right>` -> quiet",
+           check_gate_counts({"T": f"it has said 17, 18 on its way to **{total}**\n"}), False)
     measured, _ = real_drift()
     expect("D3 wrong drift", check_drift({"T": f"drift is exactly {measured + 1}\n"}), True)
     expect("D4 right drift", check_drift({"T": f"drift is exactly {measured}\n"}), False)
@@ -991,6 +1028,23 @@ def self_test() -> int:
     # ⛔ D19 — the gate grades the docs against `real_drift()`, but the DOCS quote `promote.py
     # --check`'s output. If the two ever measure different file sets, this gate starts failing
     # correct documentation, which is the fastest way to teach everyone to bypass it.
+    # ‼‼ D23-D25 — THE THREE SHAPES A TIER 2 COLD-START AUDIT FOUND STILL LIVE ON 2026-08-17, hours
+    # after the claim-shape rules shipped. All three were in `04-HANDOFF.md`, two of them inside the
+    # orientation block a cold reader is ORDERED to read FIRST, telling it no promotion decision was
+    # owed while one was. ⇒ Shipping a rule is not the same as covering the corpus.
+    expect("D23 `drift FIGURE is <wrong>` — a NOUN between `drift` and `is` -> fires",
+           check_drift({"T": f"The sandbox->custom drift figure is {W} — everything is promoted\n"}), True)
+    expect("D23b the same phrasing with TODAY's figure -> quiet",
+           check_drift({"T": f"The sandbox->custom drift figure is {measured} today\n"}), False)
+    # ⛔ D24 IS THE SUBTLE ONE. A parenthetical here routinely carries a HISTORICAL clause AND a
+    # CURRENT one; the soft marker `AT THAT MOMENT` sat 20 chars before a live claim and silenced it.
+    # An explicit CURRENCY marker must outrank soft history vocabulary.
+    expect("D24 a CURRENT claim sharing a parenthetical with soft history -> still fires",
+           check_drift({"T": f"*(the KI-65 fix took drift to 0 AT THAT MOMENT. AND IT IS {wrong.upper()} "
+                             f"AGAIN as of 2026-08-17)*\n"}), True)
+    expect("D25 …but an EXPLICIT retraction still silences it -> quiet",
+           check_drift({"T": f"*(Superseded: this read AND IT IS {wrong.upper()} AGAIN as of "
+                             f"2026-08-17)*\n"}), False)
     expect("D19 this gate measures the SAME trees `promote.py` does",
            [] if promote_trees() == _DRIFT_TREES else
            [f"promote.py TREES={promote_trees()} but this gate scans {_DRIFT_TREES}"], False)

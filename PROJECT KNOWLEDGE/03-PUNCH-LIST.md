@@ -585,6 +585,26 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       `#24-driftreduction` on 2026-08-17 so it cannot orphan (the `#24-orphans` lesson).
 
 
+- [ ] `#24-handoffbudget` — **NEW 2026-08-17: `04-HANDOFF.md` is at 893/900 lines (7 FREE) and that
+      BLOCKS the next item's own Definition of Done.** A Tier 2 cold-start audit measured it: a few
+      added lines turn `lint_docs.py` RED, and step 2 of the DoD (update the docs) then cannot be
+      committed. ⛔ **MEASURE with `lint_docs.py`; do not quote this line** — the budget row in the
+      handoff has itself gone stale twice in one day.
+      ✅ **THE WORK IS CONSOLIDATION, NOT DELETION, and the candidates are already identified:**
+      `04-HANDOFF.md:179-233` is ten `## … MOVED to 28-HANDOFF-ARCHIVE.md` stub sections. They are
+      NOT empty pointers — each keeps a distilled LESSON — but several keep the SAME one. *"A
+      chapter's acceptance test must include **and the bot can continue**"* is restated at `:196`,
+      `:209-212` and `:224-225`; the §Ch18 *"N of your own instruments agreeing on something
+      impossible share a missing primitive"* lesson is at both `:185-189` and `:192`.
+      ⇒ Merge the duplicates into ONE block per lesson, keep every DISTINCT lesson verbatim, and
+      leave the archive untouched (it already holds the detail). Expected saving ~15-25 lines.
+      ⛔ **DO IT AT A QUIET MOMENT, NOT MID-ARC** — same reasoning as `#24-driftreduction`: it
+      touches the lines every in-flight change touches, and it must not run while a Tier 2 audit is
+      reading the file. ‼ Re-run Tier 0 AND a fresh cold-start read afterwards: these stubs are what
+      a cold agent skims, so a bad merge costs more than the lines it saves.
+      ⚠ Related but SEPARATE: lint's `I1` reports **92** completed `[x]` items sitting in
+      `03-PUNCH-LIST.md` (3560/3600). That is this file's relief valve, not the handoff's.
+
 - [ ] `#24-driftreduction` — **NEW 2026-08-17, split out of `#24-driftassertions` (which shipped the
       GATE half). Assert the drift number in ONE place; every other site points at the command.**
       Keep the STATE table row (it is where a cold start looks) and the HOW TO RUN `Expect:` line
@@ -2054,7 +2074,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
 - [ ] **(3) KI-66 — the multi-battle hazard is BROADER than the faint chooser:** four more
       full-party scans are unguarded, one feeding an UNBOUNDED `while … press A`. OPEN,
       code-verified, never live-run, and untracked until now.
-      ✅✅ **DRIVEN 2026-08-17 — `--driver ki66faint` IS BUILT AND WORKS. ⛔ DO NOT REBUILD IT.** It subclasses `SpaceCenter2Mode`, stages one of our own picks at 1 HP (two bytes, `data[86:88]`) so it faints in real combat, and carries a PROVEN guard against overwriting the unpinned fixture `post_space_center.ss1`. ⛔⛔ **AND THE HEADLINE IS REFUTED: the bot NEVER ATTEMPTED an ally slot.** Ally slots sat in `alive_slots` on both faints, but the chooser ASKED FOR slots 2 then 3 — both ours — because `choose_new_lead_after_faint` already filters allies. ‼ **A CANDIDATE IS NOT AN ATTEMPT**, so an A/B fixing only the owner filter shows NO DIFFERENCE here and could make it WORSE (it empties `alive_slots` and trips a FALSE 'no eligible replacement'). ‼‼ **THE REAL DEFECT IS `_on_field`'S INDEX SPACE** — field-order `gBattlerPartyIndexes` compared against a party `UpdatePartyToBattleOrder` has already permuted; it excluded Swellow while Swellow was on the BENCH (proven by its send-out at `f21009`), costing **1263 frames vs 59** on a clean faint. ⇒ **✅✅ **`_on_field`'s INDEX SPACE IS FIXED AND PROMOTED TO BOTH FORKS (2026-08-17, user-approved). ⛔ DO NOT REDO IT.** Direction MEASURED first by an observe-only probe, then applied; all **25** gates PASS (measured). ➡ **NEXT: the OWNER filter is still unfixed and proved INERT on this fixture — it needs its OWN discriminator, not this one. `:541-545` and `_util.py:522-587` are also untouched.** Read KI-66's DRIVEN block first.
+      ✅✅ **DRIVEN 2026-08-17 — `--driver ki66faint` IS BUILT AND WORKS. ⛔ DO NOT REBUILD IT.** It subclasses `SpaceCenter2Mode`, stages one of our own picks at 1 HP (two bytes, `data[86:88]`) so it faints in real combat, and carries a PROVEN guard against overwriting the unpinned fixture `post_space_center.ss1`. ⛔⛔ **AND THE HEADLINE IS REFUTED: the bot NEVER ATTEMPTED an ally slot.** Ally slots sat in `alive_slots` on both faints, but the chooser ASKED FOR slots 2 then 3 — both ours — because `choose_new_lead_after_faint` already filters allies. ‼ **A CANDIDATE IS NOT AN ATTEMPT**, so an A/B fixing only the owner filter shows NO DIFFERENCE here and could make it WORSE (it empties `alive_slots` and trips a FALSE 'no eligible replacement'). ‼‼ **THE REAL DEFECT IS `_on_field`'S INDEX SPACE** — field-order `gBattlerPartyIndexes` compared against a party `UpdatePartyToBattleOrder` has already permuted; it excluded Swellow while Swellow was on the BENCH (proven by its send-out at `f21009`), costing **1263 frames vs 59** on a clean faint. ⇒ **✅✅ **`_on_field`'s INDEX SPACE IS FIXED AND PROMOTED TO BOTH FORKS (2026-08-17, user-approved). ⛔ DO NOT REDO IT.** Direction MEASURED first by an observe-only probe, then applied; all gates PASSED when that landed (**25** at the time; the suite is **26** now — `run_gates.py` IS the authority) (measured). ➡ **NEXT: the OWNER filter is still unfixed and proved INERT on this fixture — it needs its OWN discriminator, not this one. `:541-545` and `_util.py:522-587` are also untouched.** Read KI-66's DRIVEN block first.
       ✅✅ *(superseded: "BUILD-READY" — the driver now EXISTS.)* Earlier: both blockers CLOSED by recon (a cold-start agent first found them
       by TRYING to begin it, then a follow-up recon closed them).
       ✅✅ **BUILD-READY AS OF 2026-08-16 — the two blockers are CLOSED by recon; read KI-66's `RECON 2026-08-16` block FIRST.** The FIXTURE existed all along and was merely undocumented: **`--driver spacecenter2`, anchor `saves/at_steven_2f.ss1`**, drives the real six-mon multi battle. The FAINT needs no new capability and no `gBattleMons` writer: **pre-stage one selected mon at 1 HP before the battle** (1, not 0 — a 0-HP mon is never SELECTED) and it faints in real combat. ⛔⛔ **REFUTED 2026-08-17 BY THE LIVE RUN — this block used to claim the ally case "needs all three of ours down = the LOSS condition". BOTH HALVES ARE FALSE:** only TWO of ours were down (Swellow was alive on the BENCH, sent out at `f21009`), and in a multi battle the side is `gPlayerParty[0..5]` — ours AND Steven's — so that is not the loss condition at all. The run WON, `whiteouts=0`. See KI-66's DRIVEN block. ✅ **Grade instead on the ATTEMPTED SLOT INDICES + refusal count on a SINGLE faint**, which `:630-636` reaches while two of ours are still alive. ⚠ ARM B's behaviour when only ally mons remain is a USER POLICY call.
