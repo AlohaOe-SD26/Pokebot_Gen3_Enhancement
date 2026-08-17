@@ -16234,3 +16234,53 @@ and the gate already respects it. Fighting a documented convention would have be
 SHAPE the rules had never seen — a noun in the middle, a soft history marker nearby, markdown bold
 between the word and the digits. Rules cover shapes, not corpora; only an independent reader that
 MEASURES what it reads finds the next shape.
+
+## 2026-08-17 — `04-HANDOFF.md` was 7 lines from the wall; 43 recovered by DE-DUPLICATION (`#24-handoffbudget`)
+
+`lint_docs.py` rule R3 caps this file at 900 lines and turns RED — **blocking the Tier 0 commit** —
+when it is passed. A Tier 2 cold-start audit measured 893/900 and correctly called it a blocker on
+the NEXT item's Definition of Done: the item could be started but not documented.
+
+**What was done.** Ten `##` stub sections (`:179-233`) whose DETAIL has lived in
+`28-HANDOFF-ARCHIVE.md` since 2026-08-13 were merged into a single archived-sessions section.
+‼ **Almost all of the saving came from DE-DUPLICATION, not from cutting content:** the rule *"a
+chapter's acceptance test must include AND THE BOT CAN CONTINUE"* was written out in THREE separate
+sections, and *"when N of your own instruments agree on something impossible, they share a missing
+primitive"* in TWO. Each is now stated ONCE, at the top, in the loudest form it has ever had.
+⚠ **And that claim was WRONG until the check corrected it** — see below: every LESSON survived the merge, but SIX CITATIONS did not.
+
+⚠ **MY FIRST ATTEMPT MADE THE FILE LONGER — 893 → 905, R3 RED.** Merging ten headings frees ten
+headings; it does not shrink a file if the replacement prose is more verbose than what it replaced.
+Reverted with `git checkout --` (the file was clean at HEAD, so this was safe) and rewritten tight.
+⇒ *A consolidation is not a saving until `lint_docs.py` says so — measure the result, do not assume
+that "fewer sections" means "fewer lines".*
+
+⛔ **The merge was NOT trusted to my own reading of it.** An independent agent was given the BEFORE
+text and the AFTER text and asked to enumerate every claim, lesson, number, file path, symbol and
+flag in BEFORE and check each against AFTER — adversarially, assuming something was lost — plus to
+flag anything I had INVENTED in the rewrite and verify every path and symbol still exists.
+
+**And the row that tracks this budget stopped quoting a number at all.** It had gone stale three
+times in one day — the last time by ONE line, from an edit twelve lines below it. ⇒ **a
+self-referential count cannot survive its own file being edited.** The row now states only the FIXED
+limits (900 / 3,600) and points at `lint_docs.py`; the punch-list entry does the same. That is the
+same structural fix `#24-driftreduction` prescribes for the drift figure: *assert the number in one
+place, and make every other site point at the command.*
+
+**⛔ THE INDEPENDENT CHECK EARNED ITS KEEP — I claimed nothing was lost and six things were.** The
+agent was given the BEFORE and AFTER text, told to ASSUME something was lost, and asked to enumerate
+every claim, lesson, number, path, symbol and flag in BEFORE and check each against AFTER. Verdict:
+*RESTORE SOMETHING*. All lessons and all four §Ch19 gotchas survived, nothing was invented, and every
+path/symbol still resolves — but six MED citations were gone with no anchor left: the **Segment
+18/19** numbering and the **19 → 20 of 24** ladder step; **`badge + controllable`**, the flag pair
+that falsely passed while the bot stood stranded (that pair IS the false-pass mechanism, so losing it
+guts the rule above it); the **`#24-teachmsgstall`** tag; *"the status tax now has a resolved rate
+behind it"*; **KI-56's resolution date, 2026-08-11** — one day before §Ch18 violated its rule, which
+is what makes "violated again the next day" checkable; and the pointer to
+**`31-KNOWN-ISSUES-ARCHIVE.md`**, a second archive the merge never mentioned. All six restored in one
+line; net saving 38 lines, not 43.
+
+⇒ **The generalisable bit: a consolidation loses CITATIONS long before it loses LESSONS.** Prose gets
+rewritten faithfully because it is what you are thinking about; the tags, dates, segment numbers and
+second-archive pointers are what you were reading THROUGH. ‼ An author cannot audit their own merge
+for these — I read the AFTER text twice and saw nothing missing, because I already knew what it meant.
