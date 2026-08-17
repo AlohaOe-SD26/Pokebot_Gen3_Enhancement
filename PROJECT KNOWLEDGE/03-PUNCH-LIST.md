@@ -604,6 +604,46 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ⚠ Related but SEPARATE: lint's `I1` reports **92** completed `[x]` items sitting in
       `03-PUNCH-LIST.md` (3560/3600). That is this file's relief valve, not the handoff's.
 
+- [ ] `#24-loopheadabort` — **NEW 2026-08-17, found while triaging `#24-abortswallow`. A DIFFERENT
+      DEFECT FROM THAT ITEM — do not conflate them.** 13 bounded retry loops in
+      `sandbox-pokebot/modules/story/early_game.py` wrap navigation primitives and have **no
+      loop-head `_check_abort()`**: `1259, 1305, 1518, 1567, 2404, 2420, 2433, 3112, 3135, 3241,
+      3551, 3702, 3712` (line numbers as of 2026-08-17 — ⛔ RE-DERIVE, they drift).
+      **Why it is not the same bug:** none of the guarded callees (`navigate_to`,
+      `navigate_to_anywhere`, `_enter_warp_by_navigation`) contains `_check_abort()`, so no
+      `StoryAbort` object ever arrives — a handler guard there is INERT. What happens instead is
+      that after a whiteout the loop keeps re-navigating a DEAD TEAM from the respawn Pokémon
+      Centre, burns its whole retry budget (`_navigate_through_scripts` up to `max_rounds=25`,
+      `recover_devon_goods` up to 20) and then raises a FABRICATED cause — *"Could not reach X (too
+      many scripted interruptions)"*. ⇒ **the fix is a `_check_abort()` at the LOOP HEAD**, outside
+      the `try`, so the abort ends the loop instead of being retried through.
+      ⚠ **MEASURE BEFORE BUILDING:** 20 of the 44 already have a head check, so the pattern is
+      established — copy an existing one rather than inventing it. And prove the arms differ: with
+      the latch SET the loop must exit immediately instead of consuming its budget.
+
+- [ ] `#24-probecountgate` — **NEW 2026-08-17. Teach `audit_doc_consistency.py` to grade PROBE
+      COUNTS the way it already grades gate counts and the drift figure.**
+      ‼ **FILED FROM EVIDENCE, NOT A HUNCH: this is the THIRD un-gated number class to go stale in a
+      SINGLE SESSION.** Drift claim-shapes went first (`#24-driftassertions`), then gate counts
+      — ⚠ DESCRIBED, NOT REPRINTED (this gate matches literal strings and fired on this bullet's first draft): one phrasing put a NOUN between subject and verb, another wrapped the digits in markdown BOLD. And now
+      `probe_abort_swallowing.py`'s candidate count: after round 2 took it 45 → 37, **three** sites
+      still said 45, including **KI-81's HEADER AND BODY** — a P2 pair that went stale together — and
+      a runnable command's trailing comment. A Tier 1 reviewer found them by RUNNING the probe.
+      ⇒ **The pattern is now unambiguous: any number a doc quotes and a tool can measure WILL go
+      stale, and prose discipline has never once caught it here.**
+      **THE DELIVERABLE:** a rule that finds claims of the shape `N candidates`, `N candidate sites`,
+      `N remain`, `45 → 37` near `probe_abort_swallowing` and compares them against the MEASURED
+      count. ⛔ **FAULT-TEST BOTH WAYS** — it must fire on a stale count AND stay quiet on a clearly
+      HISTORICAL one (`03-PUNCH-LIST.md` deliberately preserves *"Original remaining count when this
+      item was filed: 45"*, and `07-CHANGELOG.md` is append-only history that must never be graded).
+      ‼ Reuse the machinery that already exists rather than inventing a fourth dialect: `_CURRENCY`
+      marker attachment, the span-scoped retraction exemption, and the `[*_]{0,2}` markdown
+      tolerance are all in that file and were each earned by a real miss.
+      ⚠ **COST NOTE:** the probe is a static AST scan over ~20 files, so measuring is cheap — but
+      confirm it before wiring it in, because `audit_doc_consistency.py` runs in every Tier 0 check.
+      ⚠ **AND SCOPE IT:** grade only CURRENT-STATE files (00-05, 24). `07`/`08`/`28`/`31` are
+      append-only history where a stale count is CORRECT.
+
 - [ ] `#24-driftreduction` — **NEW 2026-08-17, split out of `#24-driftassertions` (which shipped the
       GATE half). Assert the drift number in ONE place; every other site points at the command.**
       Keep the STATE table row (it is where a cold start looks) and the HOW TO RUN `Expect:` line
@@ -633,7 +673,43 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       piggybacks — a whiteout during a heal WAS swallowed) and `:746`; `pc_trip.py`
       `:202`/`:305`/`:529`; `mossdeep_gym.py:465`. Proven by a MEASURED before/after, not a
       byte-compare: `probe_abort_swallowing.py --build custom` fell **53 → 45**.
-      🔜 **WHAT REMAINS: 45 candidates — 44 in `early_game.py`, 1 in `counter_hunt.py`.**
+      ✅✅ **A SECOND ROUND SHIPPED 2026-08-17 (sandbox only): 8 MORE SITES FIXED, probe 45 → 37,
+      MEASURED.** All eight were hand-verified to reach `_check_abort()` before being touched — the
+      triage, not the probe, decided what to fix. ‼ **7 of the 8 take a DIRECT `StoryAbort`; the Strength teach takes only a LAUNDERED one** — neither `ensure_strength_learner` nor `teach_hm_move` contains a `_check_abort()`, so no abort OBJECT reaches it and the guard fires only on the latch. Weaker, still worth it (it stops one whiteout printing two fabricated lines), and stated rather than counted as an equal. `counter_hunt.py`'s training handler (the whole
+      file's only candidate, now gone); `early_game.py`'s Mt. Chimney meteorite, the Rusturf wall
+      smash, the Strength teach, and the FOUR heal stops (Lavaridge / Lilycove / en-route / harbor).
+      ‼ **THE FOUR HEAL HANDLERS WERE UNDOING THE 2026-08-16 GUARD ONE FRAME AFTER IT FIRED** —
+      `heal_in_pokemon_center` deliberately re-raises on the latch and they caught it.
+      ⛔ **`counter_hunt.py` NEEDED A DIFFERENT SHAPE and it is the interesting one.** It catches
+      `Exception`, so a bare `reraise_if_aborting(error)` could re-raise a `PathFindingError` — a
+      `RuntimeError`, NOT a `BotModeError` — past `StoryMode.run`'s `except BotModeError`, leaving
+      the global abort latch STUCK TRUE for every later mode. It re-raises only BotModeError-family
+      objects. *(That hazard is documented at `higher_level_actions.py:842`, from an adversarial
+      review on 2026-08-16; I followed the house ruling rather than inventing a shape.)*
+      ✅ **FAULT-TESTED BOTH DIRECTIONS, no emulator needed:** latch CLEAR → the handler still
+      swallows (normal operation untouched); latch SET → a `StoryAbort` AND a laundered
+      `BotModeError` both propagate; and with the latch SET a `PathFindingError` is still swallowed,
+      proving the narrowing cannot leak the global. ⚠ The first cut referenced `BotModeError`
+      without importing it — a NameError on the abort path itself — and `repro_undefined_names.py`
+      caught it on the first run. `repro_no_silent_except.py`'s baseline was ratcheted 149 → 148.
+      🔜 **WHAT REMAINS: 37 candidates, ALL in `early_game.py`.**
+      ⛔⛔ **AND THE TRIAGE FOUND THE PROBE OVER-FLAGS BADLY — ~64% of the original 45 are NOT the
+      defect it names.** 25 sites wrap navigation primitives only (`navigate_to`,
+      `navigate_to_anywhere`, `_enter_warp_by_navigation`), none of which contains `_check_abort()`,
+      so no `StoryAbort` can arrive; `:376` is the whiteout-RECOVERY path itself, called after
+      `set_story_abort(False)`; `:2305` already guards by hand with `if story_should_abort(): raise`,
+      a shape the probe cannot see. ⇒ **DO NOT PROMOTE THIS PROBE TO A GATE AS-IS** — it would be red
+      on arrival for reasons that are correct as written, which is the fastest way to teach everyone
+      to ignore gates. **Two cheap refinements would cut 45 → ~16:** recognise the
+      `if story_should_abort(): raise` shape, and require the try body to reach a callee that
+      TRANSITIVELY contains `_check_abort()` (a ~40-line AST call graph).
+      ‼ **A SEPARATE DEFECT FAMILY, FOUND WHILE TRIAGING — DO NOT CONFLATE IT WITH THIS ITEM:** 13
+      of those navigation sites are bounded retry loops with **no loop-head `_check_abort()`**
+      (`_navigate_through_scripts` retries up to `max_rounds=25`, `recover_devon_goods` up to 20).
+      After a whiteout they keep re-navigating a dead team from the respawn Centre and then raise a
+      fabricated *"Could not reach X (too many scripted interruptions)"*. **The fix there is a
+      loop-head check, not a handler guard.** Filed as `#24-loopheadabort`.
+      *(Original remaining count when this item was filed:)* **45 candidates — 44 in `early_game.py`, 1 in `counter_hunt.py`.**
       ⛔ **CANDIDATE ≠ DOES:** the probe cannot prove a `_check_abort()` is reachable through a given
       `yield from`, so **triage before fixing** — bulk-editing 44 sites in the largest, most
       timing-sensitive file here on a static signal is exactly the mistake this item avoided once.
@@ -1400,170 +1476,9 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       from a run that already beat her (52% of batch runs do). Once it exists, commit it to
       `tools/story-dev/saves/` as `post_winona.ss1` — every Ch14 probe will want it.
 
-- [x] `#24-magmahideout` — ✅ **DONE 2026-08-10. `GROUDON_AWAKENED_MAGMA_HIDEOUT` is SET, and
-      `do_magma_hideout_chapter()` is wired into `story_mode.py` as Segment 15.**
-      ```
-      [magmahideout] RESULT groudon=True map=MAGMA_HIDEOUT_4F at=(15, 21)
-        floors=['MAGMA_HIDEOUT_1F','MAGMA_HIDEOUT_2F_1R','MAGMA_HIDEOUT_3F_1R','MAGMA_HIDEOUT_4F']
-        whiteouts=0
-      ```
-      Binary acceptance, no batch. Full chain driven: Mt. Pyre → Lilycove heal → Mauville heal
-      **+ teach Strength** → R111/112 (Rock Smash rock cleared) → cable car → Mt. Chimney →
-      Jagged Pass → coord trigger → two Strength pushes → 1F→2F_1R→3F_1R→4F → Maxie.
-      ‼ **Maxie is approached ADAPTIVELY** — all four neighbours are tried at runtime, because the
-      static read said `(17,21)` and the live arrival said `(15,21)`. The winning run used
-      `(15,21)`. Every static claim about this dungeon has been wrong at least once.
-      HISTORY — **IN PROGRESS 2026-08-10 (evening). Increments 1-3 WRITTEN;
-      increment 1 driven-tested and iterating. Entry model CORRECTED twice today.**
+- [x] `#24-magmahideout` — ✅ **DONE, CLOSED. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (`#24-handoffbudget`'s relief valve: this file hit its 3,600-line R3 limit). ⛔ Nothing here is outstanding; read the archive only if you need the history.
 
-      ‼‼ **THE ENTRY IS A STEP TRIGGER, NOT A WALK.** The door `JAGGED_PASS (16,18)` is covered
-      by `METATILE_Lavaridge_RockWall` at runtime (`JaggedPass_OnLoad` →
-      `..._ConcealHideoutEntrance`) while `VAR_JAGGED_PASS_STATE <= 1`. A coord_event on one of
-      **(21,15) (22,20) (21,20) (14,15) (13,15)** runs `JaggedPass_EventScript_OpenMagmaHideout`,
-      which opens the metatiles and sets the var to **2**. The var reaches 1 by itself
-      (`JaggedPass_OnResume` checks for the Magma Emblem). **Use `(13,15)`** — 8-10 waypoints
-      from the descent's arrival tiles vs 15-23 for the (21,*)/(22,*) trio.
-      ‼ `calculate_path` said "(16,20) → (16,18), 2 waypoints" for that sealed tile, because it
-      reads the ROM LAYOUT and cannot see a `setmetatile`. **A static PASS is not evidence on a
-      map whose scripts rewrite metatiles** (`08-MISTAKES` 2026-08-10). This is the third wrong
-      answer about this one door; the other two were "one-way ledges" and "a real south-facing
-      ledge", both the same wall.
-
-      **BUILT (in `modules/story/early_game.py`, all compile-clean):**
-      `travel_to_magma_hideout_door()` · `open_magma_hideout_entrance()` ·
-      `enter_magma_hideout()` · `do_magma_hideout()` · `do_magma_hideout_chapter()`.
-      Driver `--driver magmatravel`; probes `probe_magma_anchor.py` (era gate, 4 controls),
-      `probe_ch15_travel.py` (route), `probe_ch15_interior.py` (interior).
-      ‼ **NOT yet wired into `story_mode.py`** — waiting on a green increment-1 run.
-
-      **MEASURED THIS SESSION:**
-      * anchor `post_mtpyre.ss1` VERIFIED READY (guard flag True, `MT_PYRE_STATE`=1, Emblem in
-        bag; era control passes against `jagged_descent.ss1`).
-      * ‼ **Ch14 hands over a WRECKED party** — 3 of 6 fainted, survivors at 21/117 and 18/109,
-        lead's best move at 0 PP, **one Hyper Potion and no Revives**, and the nearest Pokémon
-        Center is 276+ waypoints away (Mauville 276 / Fortree 432 / Lilycove 883). It dies ~61
-        waypoints in, on ROUTE123. **The whiteout is the game's own recovery and StoryMode
-        already handles it** (`on_whiteout` → True); the travel leg now heals at Lilycove and
-        Mauville en route and survives.
-      * the overland haul WORKS: run 3 reached **ROUTE112 (28,28)**, the cable-car station
-        approach, after one whiteout.
-      * ‼ **Lavaridge is NOT reachable from ROUTE112 by the live navigator** ("it is not
-        walkable from ROUTE112", 3/3) although `calculate_path` scores it 66 waypoints. The
-        staging heal there is now best-effort.
-
-      ‼‼ **INCREMENT 3 IS BLOCKED ON `#24-strength` — MEASURED, NOT SUSPECTED.** The driven run
-      entered 1F cleanly and stopped dead: `groudon=False map=MAGMA_HIDEOUT_1F at=(10,34)
-      floors=['MAGMA_HIDEOUT_1F'] whiteouts=0`. A plain COLLISION flood (no elevation, no
-      pathfinder — an independent instrument) shows 1F has **three components**: #0 **299 tiles**
-      with the entrance (10,34) and `(25,34)→2F_1R`; #1 **70** with `(31,3)→2F_2R`; #2 **NINE**
-      with `(20,22)→2F_3R`. `calculate_path` reaches **44** of #0's 299, and the boundary is
-      **exactly three edges, all into Strength boulders** — `(7,23)→(7,22)`, `(7,23)→(6,23)`,
-      `(8,22)→(7,22)`. The boulders ARE the gate.
-      ‼ **The §Ch15 "shortest route" was WRONG and is corrected**: `(20,22)` is on that nine-tile
-      island, i.e. an EXIT from 2F_3R, never an entrance. Real route (all legs verified connected
-      to their arrival tiles — 2F_1R 383, 3F_1R 154, 4F 293):
-      `1F (25,34) → 2F_1R → (17,33) → 3F_1R → (7,21) → 4F`, then stand `(17,21)` facing Left and
-      TALK to Maxie at `(16,21)`. **Everything past 1F is already proven connected.**
-
-- [x] `#24-strength` — ✅ **DONE 2026-08-10.** `ensure_strength_learner()` +
-      `strength_push()` + `open_magma_hideout_1f()` in `modules/story/early_game.py`, proven by
-      the chapter completing. Kept OUT of `obstacle_clearing` on purpose: that framework's success
-      test is "the object is GONE", and a boulder is PUSHED — so the test here is **the boulder
-      MOVED**, tracked by `local_id` (the player ends up standing on its old tile).
-      ‼ Three bugs found only by driving it, all logged in `08-MISTAKES`: a one-frame press is not
-      a walk; `walk_one_tile` leaves the D-pad HELD if abandoned early; and **a flag set by a
-      script is not the end of that script** (the avatar was still `lockall`ed — that one cost two
-      runs). The teach is done at a HEAL STOP to dodge `#24-teachmsgstall`.
-      HISTORY — **NEW 2026-08-10. The blocker on `#24-magmahideout` increment 3, and the
-      first hard dependency the story bot has had on an unsupported field move.**
-      `obstacle_clearing.KNOWN_BUT_UNSUPPORTED` excludes `EventScript_StrengthBoulder` on purpose:
-      *"a boulder is PUSHED, not removed; the success test cannot see it"* — i.e. the existing
-      obstacle framework's success test ("is the obstacle gone?") cannot express this move. Two
-      pieces are needed and they are independent:
-      1. **A party member that knows Strength.** ✅ **CHEAPER THAN EXPECTED — measured
-         2026-08-10 on both `post_mtpyre.ss1` and `magma_door.ss1`:**
-         * **`HM04` is ALREADY IN THE BAG** (alongside HM02/HM03/HM06) — no Rusturf Tunnel trip.
-         * **Badges 1-6 are held**, and field Strength is gated on the **Heat Badge (BADGE04)**,
-           which is one of them.
-         * ‼ **CORRECTION (measured minutes later, and it reverses the easy part).** I first
-           wrote that `Zigzagoon L3` would carry it — it has a free fourth slot and is already
-           the Surf slave. **`can_learn_tm_hm(HM04)` is FALSE for Zigzagoon.** Only **two** party
-           members can learn Strength at all, and **both have four moves**:
-           | slot | mon | moves | can learn HM04 |
-           |---|---|---|---|
-           | 0 | Mightyena L43 | Tackle / Taunt / Take Down / Bite | **True** |
-           | 4 | Sceptile L43 | Rock Smash / Pursuit / Leaf Blade / Slam | **True** |
-           | 1,2,3,5 | Zigzagoon, Swellow, Skitty, Castform | — | False |
-           ⇒ the teach **costs a move slot on a fighter**. `hm_learner_slot()` picks the
-           highest-level compatible mon and breaks the L43 tie toward slot 0, i.e. **Mightyena**;
-           `teach_hm_move(replace_slot=None)` then takes the most expendable slot, which is
-           **Taunt** (base power 0) — a status move, so the damaging-move count does not drop.
-           That is the good outcome and it should be asserted, not assumed.
-           ‼ Sceptile is the WORSE carrier: its only 0-power-ish slot is protected (Rock Smash is
-           an HM) so the picker would eat a damaging move.
-         ⇒ still one `teach_hm_move()` call with existing machinery, but **verify the mon that
-         ends up knowing Strength and which move it lost**. ‼ Do the teach at a heal stop, the way
-         `#24-pc` piggybacks — not as a detour.
-      2. **A success test that works for a PUSH.** The obstacle is not removed, it MOVES, so the
-         test must be "did the boulder's tile change / is the target tile now walkable", not
-         "did the object disappear". ‼ Do NOT reuse the Rock Smash path unmodified — its test is
-         exactly the one that cannot see this.
-      ‼ Bound any push loop: a boulder that will not move (pushed against a wall) must fail
-      loudly rather than retry, and Rock-Smash rocks respawning on map reload already turned one
-      retry loop into 23.9M wasted frames (KI-34).
-
-      HISTORY — ✅ **NOT BLOCKED. READY TO BUILD (2026-08-10). The three-week-old
-      deferral was right by accident and wrong in its reason.**
-      The door at JAGGED_PASS (16,18) is guarded by a **Team Magma NPC standing on (16,19)**,
-      the column's only entry — `OBJ_EVENT_GFX_MAGMA_MEMBER_M`, hidden by flag **847**
-      `HIDE_JAGGED_PASS_MAGMA_GUARD` (decomp `JaggedPass/map.json`). Measured:
-      | save | guard hidden | `(16,20)→door` |
-      |---|---|---|
-      | `jagged_descent.ss1` (badges 1-3) | False | FAIL |
-      | `post_mtpyre.ss1` (badges 1-6) | **True** | **OK, 2 waypoints** |
-      ⇒ **No ledge problem, no KI-24 blind spot, no scripted movement needed** — the planner
-      was correctly modelling the guard. In the right era the door is 2 waypoints from a
-      tile the bot already reaches, and the chapter runs after Mt. Pyre so the flag is set
-      by the time it matters.
-      **BUILD ANCHOR: `saves/post_mtpyre.ss1`.** ‼ Do NOT develop this from a pre-Emblem
-      save — that error cost seven probes and two wrong conclusions (`08-MISTAKES` 2026-08-10).
-      HISTORY — status conflict flagged by triage: THIS entry says **DEFERRED** (the JAGGED_PASS (16,18) door is unreachable from
-      the ROUTE112 side), while `04-HANDOFF.md` lists it as the **next story content and the
-      largest untouched lever**. Both are current-state files and they disagree, which is
-      exactly the case `CLAUDE.md` says to raise rather than resolve unilaterally.
-      ‼ **THE TECHNICAL OBJECTION IS NOW CORROBORATED, AND IT IS THE ONLY THING BETWEEN THE BOT
-      AND NEW CONTENT** — measured 2026-08-10 (static, with a PASSING control):
-      | from | to `MAGMA_HIDEOUT_1F` door (16,18) |
-      |---|---|
-      | MT_CHIMNEY entry (13,5) | **FAIL** |
-      | MT_CHIMNEY entry (14,5) | **FAIL** |
-      | door → ROUTE112 exit (14,40) | **FAIL** |
-      | CONTROL: entry (13,5) → ROUTE112 exit (14,40) | **OK, 39 waypoints** |
-      Warps confirmed from the decomp: JaggedPass exits are (14,40)/(15,40)→ROUTE112,
-      (13,5)/(14,5)→MT_CHIMNEY, and **(16,18)→MAGMA_HIDEOUT_1F**. The door tile IS walkable;
-      it simply sits in a pocket the descent cannot enter. So `do_jagged_descent()` already
-      walking this map does NOT get us the door.
-      ‼ **BUT A STATIC FAIL IS 'UNPROVEN', NOT 'IMPOSSIBLE'** — `calculate_path` reads
-      dual-elevation terrain and ledges as walls and has called a reachable place
-      unreachable before (KI-24). **The deciding test is a DRIVEN one**, and the anchor
-      tooling to run it did not exist when this was deferred on 2026-07-26:
-      capture a MT_CHIMNEY/JAGGED_PASS anchor with `--driver anchorstory`, then drive
-      `--driver groundsweep SWEEP_GROUND=JAGGED_PASS:16,18`. ~20 minutes, and it converts a
-      three-week-old deferral into a measured yes/no. **DO THAT BEFORE WRITING THE CHAPTER.**
-      ✅ **RE-TESTED PROPERLY 2026-08-10 (two DRIVEN attempts + a purpose-captured anchor):
-      the blocker is REAL, and the chapter is BUILDABLE with scripted movement.**
-      From the bot's OWN in-descent position `JAGGED_PASS (14,9)` the door and both its
-      neighbours are unreachable while the control (continue to the ROUTE112 exit) succeeds
-      in 34 waypoints. A walkable flood fill shows the door is in the SAME 238-tile region as
-      every warp, so it is **ledge-isolated, not walled off** — `(15,18)`/`(17,18)` are solid
-      and the nearest reachable tile is `(14,18)`, two away.
-      ⇒ **Do not try to fix generic navigation for this. Write the approach as EXPLICIT
-      SCRIPTED MOVEMENT**, which is already this item's own instruction and the project's
-      pattern for ledge terrain. Anchors to develop against now exist:
-      `saves/jagged_descent.ss1` (JAGGED_PASS (14,9)) and `saves/mt_chimney_top.ss1`.
-      HISTORY — **DEFERRED.** Door at JAGGED_PASS (16,18) is unreachable from the
-      ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only
-      approach is ROUTE112 → cable car → MT_CHIMNEY → descend ⇒ ~8 warps + a scripted ride.
+- [x] `#24-strength` — ✅ **DONE, CLOSED. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (`#24-handoffbudget`'s relief valve: this file hit its 3,600-line R3 limit). ⛔ Nothing here is outstanding; read the archive only if you need the history.
 
 ### ‼ THREE FLAGS THAT MUST STAY `0` (each hides a MEASURED regression)
 `POKEBOT_LEAD_DEMOTE_WONDER_GUARD` (~20 pts) · `POKEBOT_AREA_ITEM_GATE` (~7 pts) ·
@@ -1965,7 +1880,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
       an UNMEASURED heap offset, and it needs the USER.**
       ⛔ **STATUS IN ONE LINE: production can now READ the verdict; it still does not ACT on it.**
       That split is deliberate and is the whole shape of this item.
-      ✅✅ **WHAT SHIPPED (sandbox only — ⚠ drift is 2, awaiting a user-approved promotion):**
+      ✅✅ **WHAT SHIPPED (sandbox only — ⚠ drift is 4, awaiting a user-approved promotion):**
       all five exits of `withdraw_from_box` return `(landed, code, detail)` — the shape the recorded
       design asked for — its ONE caller (`modules/modes/util/higher_level_actions.py:356`) BINDS the
       result, and a new PURE function `withdraw_verdict_report` turns it into a reported line.

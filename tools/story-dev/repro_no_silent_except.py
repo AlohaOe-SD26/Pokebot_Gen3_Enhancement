@@ -162,7 +162,18 @@ if offenders and SHOW:
 # So the contract is **"no new debt"**: the count may never RISE. Lowering `BASELINE` is a
 # deliberate, reviewable one-line diff that records real cleanup. That makes this family strictly
 # non-worsening TODAY, rather than theoretically fixed some day.
-BASELINE = 149   # measured 2026-08-14. LOWER when handlers are cleaned up; never raise.
+BASELINE = 148   # re-measured 2026-08-17 (was 149, STALE). LOWER when handlers are cleaned up; never raise.
+#: ⛔⛔ 149 -> 148 IS A CORRECTION OF A STALE RATCHET, **NOT** A GAIN FROM `#24-abortswallow`.
+#: The first version of this comment claimed `counter_hunt.py`'s training handler "stopped being
+#: silent when it grew a latch-keyed re-raise". ‼ THAT WAS FABRICATED, and an adversarial review
+#: disproved it with the one thing that settles a causal claim — A CONTROL ARM. Reverting BOTH
+#: edited story files and re-running yields **148 either way**; the handler in question already
+#: had a `console.print` and was never in the silent list. The count had been 148 since some
+#: earlier, undocumented cleanup, and the label simply lagged.
+#: ⇒ The 8-site abort-guard fix is proven by `probe_abort_swallowing.py` (45 -> 37). It is NOT
+#: proven by this gate, and the two must not be conflated.
+#: ‼ A ratchet only ratchets if you turn it — an un-lowered baseline silently re-permits debt —
+#: but turning it is not evidence that YOUR change earned the notch.
 
 # ‼‼ THE BASELINE ROSE 140 → 149 ON 2026-08-14, AND THAT IS A SCOPE EXTENSION, NOT NEW DEBT.
 # `modules/modes/util/` was added to SCAN (see the note there) and brought 9 PRE-EXISTING silent

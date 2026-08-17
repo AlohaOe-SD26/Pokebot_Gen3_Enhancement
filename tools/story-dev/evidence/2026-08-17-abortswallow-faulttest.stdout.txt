@@ -1,0 +1,12 @@
+StoryAbort is a BotModeError : True
+PathFindingError is a BotModeError: False  (must be False)
+
+--- early_game handler shape (except BotModeError):
+  [ok ] CONTROL  ordinary BotModeError, latch CLEAR -> SWALLOWED   (want SWALLOWED)
+  [ok ] FIX      StoryAbort,           latch SET   -> PROPAGATED  (want PROPAGATED)
+  [ok ] FIX      LAUNDERED BotModeError, latch SET -> PROPAGATED  (want PROPAGATED)
+
+--- counter_hunt shape (except Exception + isinstance narrowing):
+  [ok ] CONTROL  ordinary BotModeError, latch CLEAR -> SWALLOWED   (want SWALLOWED)
+  [ok ] FIX      StoryAbort,            latch SET   -> PROPAGATED  (want PROPAGATED)
+  [ok ] ⛔ LEAK  PathFindingError,      latch SET   -> SWALLOWED   (want SWALLOWED)

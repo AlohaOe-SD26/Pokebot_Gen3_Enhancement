@@ -2830,7 +2830,7 @@ Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans 
   discards the value. **Tracked as `#24-orphans` item (1)**;
   its instrumentation half is specified, but *how* production should react needs the USER's ruling.
 
-## KI-81 — KI-67's fix was applied to TWO chapters and the CLASS was never swept (2026-08-16, MEASURED by probe). ✅ **8 SITES FIXED AND PROMOTED TO BOTH FORKS** — the PC/heal path and the site that proved the sweep was incomplete. ⛔ **STILL OPEN: 45 candidates remain** (44 `early_game.py`, 1 `counter_hunt.py`), deliberately unswept
+## KI-81 — KI-67's fix was applied to TWO chapters and the CLASS was never swept (2026-08-16, MEASURED by probe). ✅ **8 SITES FIXED AND PROMOTED TO BOTH FORKS** — the PC/heal path and the site that proved the sweep was incomplete. ⛔ **STILL OPEN: 37 candidates remain** (ALL in `early_game.py`; `counter_hunt.py`'s only one was fixed 2026-08-17), 8 more swept that day — ‼ and ~64% of the ORIGINAL 45 were MEASURED to be false positives for this defect, so the probe is NOT gate-ready
 
 `StoryAbort` is a `BotModeError`, which is an `Exception` (`_interface.py:229`) ⇒ **every**
 `except Exception:` and `except BotModeError:` catches a whiteout. KI-67 found this and fixed the
@@ -2885,8 +2885,14 @@ is worse than the silence it replaced.*
 ✅ **Promotion proven by a MEASURED before/after, not a byte-compare:** `--build custom` fell
 **53 → 45**, guarded counts moved **0→3 / 0→4 / 1→2**, and the split survived the copy.
 
-⛔ **STILL OPEN — 45 CANDIDATES REMAIN, DELIBERATELY UNSWEPT** (44 `early_game.py`, 1
-`counter_hunt.py`). 44 sites in the largest and most timing-sensitive file here is not a
+⛔ **STILL OPEN — 37 CANDIDATES REMAIN** (ALL `early_game.py`; `counter_hunt.py`'s single
+candidate was fixed 2026-08-17, when 8 sites were swept and the probe fell 45 → 37, MEASURED).
+‼‼ **AND THE TRIAGE MEASURED THAT THE PROBE OVER-FLAGS: ~64% of the original 45 are NOT this
+defect** — 25 wrap navigation primitives containing no `_check_abort()`, so no `StoryAbort`
+can arrive; `:376` IS the whiteout-recovery path; `:2305` already guards by hand in a shape
+the probe cannot see. ⛔ **DO NOT PROMOTE THE PROBE TO A GATE AS-IS** — it would be red on
+arrival for reasons that are correct as written. Two refinements cut 45 → ~16. *(A separate
+family — 13 retry loops needing a LOOP-HEAD check, not a handler guard — is `#24-loopheadabort`.)* 44 sites in the largest and most timing-sensitive file here is not a
 tail-of-session sweep, and **CANDIDATE ≠ DOES** — the probe cannot prove a `_check_abort()` is
 reachable through a given `yield from`. ⇒ **triage, fix, THEN promote the probe to a gate**; it is a
 PROBE precisely because a gate red on arrival on pre-existing debt teaches everyone to ignore gates

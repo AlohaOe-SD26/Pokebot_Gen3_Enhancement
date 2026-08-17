@@ -5284,3 +5284,179 @@ failsafes that an in-process mode cannot have, and remains the right tool for a 
       deliberately NOT touched** — append-only history is not rewritten, so 7 references to the old
       names remain there on purpose; **both renamed files carry a provenance header** saying those
       entries mean the new artefacts. 17/17 gates PASS, `lint_docs` PASS. Original item follows.
+
+## 2026-08-17 — CLOSED punch-list items archived verbatim (`#24-handoffbudget` relief valve)
+
+‼ These are **CLOSED** (`[x]`) items moved out of `03-PUNCH-LIST.md` when it reached its
+3,600-line R3 limit, which BLOCKS the Tier 0 commit. Nothing was edited — the text below is
+verbatim. A one-line stub carrying the same tag remains in the punch list, so any
+cross-reference still resolves. ⛔ None of this is outstanding work.
+
+### #24-magmahideout (archived 2026-08-17)
+
+- [x] `#24-magmahideout` — ✅ **DONE 2026-08-10. `GROUDON_AWAKENED_MAGMA_HIDEOUT` is SET, and
+      `do_magma_hideout_chapter()` is wired into `story_mode.py` as Segment 15.**
+      ```
+      [magmahideout] RESULT groudon=True map=MAGMA_HIDEOUT_4F at=(15, 21)
+        floors=['MAGMA_HIDEOUT_1F','MAGMA_HIDEOUT_2F_1R','MAGMA_HIDEOUT_3F_1R','MAGMA_HIDEOUT_4F']
+        whiteouts=0
+      ```
+      Binary acceptance, no batch. Full chain driven: Mt. Pyre → Lilycove heal → Mauville heal
+      **+ teach Strength** → R111/112 (Rock Smash rock cleared) → cable car → Mt. Chimney →
+      Jagged Pass → coord trigger → two Strength pushes → 1F→2F_1R→3F_1R→4F → Maxie.
+      ‼ **Maxie is approached ADAPTIVELY** — all four neighbours are tried at runtime, because the
+      static read said `(17,21)` and the live arrival said `(15,21)`. The winning run used
+      `(15,21)`. Every static claim about this dungeon has been wrong at least once.
+      HISTORY — **IN PROGRESS 2026-08-10 (evening). Increments 1-3 WRITTEN;
+      increment 1 driven-tested and iterating. Entry model CORRECTED twice today.**
+
+      ‼‼ **THE ENTRY IS A STEP TRIGGER, NOT A WALK.** The door `JAGGED_PASS (16,18)` is covered
+      by `METATILE_Lavaridge_RockWall` at runtime (`JaggedPass_OnLoad` →
+      `..._ConcealHideoutEntrance`) while `VAR_JAGGED_PASS_STATE <= 1`. A coord_event on one of
+      **(21,15) (22,20) (21,20) (14,15) (13,15)** runs `JaggedPass_EventScript_OpenMagmaHideout`,
+      which opens the metatiles and sets the var to **2**. The var reaches 1 by itself
+      (`JaggedPass_OnResume` checks for the Magma Emblem). **Use `(13,15)`** — 8-10 waypoints
+      from the descent's arrival tiles vs 15-23 for the (21,*)/(22,*) trio.
+      ‼ `calculate_path` said "(16,20) → (16,18), 2 waypoints" for that sealed tile, because it
+      reads the ROM LAYOUT and cannot see a `setmetatile`. **A static PASS is not evidence on a
+      map whose scripts rewrite metatiles** (`08-MISTAKES` 2026-08-10). This is the third wrong
+      answer about this one door; the other two were "one-way ledges" and "a real south-facing
+      ledge", both the same wall.
+
+      **BUILT (in `modules/story/early_game.py`, all compile-clean):**
+      `travel_to_magma_hideout_door()` · `open_magma_hideout_entrance()` ·
+      `enter_magma_hideout()` · `do_magma_hideout()` · `do_magma_hideout_chapter()`.
+      Driver `--driver magmatravel`; probes `probe_magma_anchor.py` (era gate, 4 controls),
+      `probe_ch15_travel.py` (route), `probe_ch15_interior.py` (interior).
+      ‼ **NOT yet wired into `story_mode.py`** — waiting on a green increment-1 run.
+
+      **MEASURED THIS SESSION:**
+      * anchor `post_mtpyre.ss1` VERIFIED READY (guard flag True, `MT_PYRE_STATE`=1, Emblem in
+        bag; era control passes against `jagged_descent.ss1`).
+      * ‼ **Ch14 hands over a WRECKED party** — 3 of 6 fainted, survivors at 21/117 and 18/109,
+        lead's best move at 0 PP, **one Hyper Potion and no Revives**, and the nearest Pokémon
+        Center is 276+ waypoints away (Mauville 276 / Fortree 432 / Lilycove 883). It dies ~61
+        waypoints in, on ROUTE123. **The whiteout is the game's own recovery and StoryMode
+        already handles it** (`on_whiteout` → True); the travel leg now heals at Lilycove and
+        Mauville en route and survives.
+      * the overland haul WORKS: run 3 reached **ROUTE112 (28,28)**, the cable-car station
+        approach, after one whiteout.
+      * ‼ **Lavaridge is NOT reachable from ROUTE112 by the live navigator** ("it is not
+        walkable from ROUTE112", 3/3) although `calculate_path` scores it 66 waypoints. The
+        staging heal there is now best-effort.
+
+      ‼‼ **INCREMENT 3 IS BLOCKED ON `#24-strength` — MEASURED, NOT SUSPECTED.** The driven run
+      entered 1F cleanly and stopped dead: `groudon=False map=MAGMA_HIDEOUT_1F at=(10,34)
+      floors=['MAGMA_HIDEOUT_1F'] whiteouts=0`. A plain COLLISION flood (no elevation, no
+      pathfinder — an independent instrument) shows 1F has **three components**: #0 **299 tiles**
+      with the entrance (10,34) and `(25,34)→2F_1R`; #1 **70** with `(31,3)→2F_2R`; #2 **NINE**
+      with `(20,22)→2F_3R`. `calculate_path` reaches **44** of #0's 299, and the boundary is
+      **exactly three edges, all into Strength boulders** — `(7,23)→(7,22)`, `(7,23)→(6,23)`,
+      `(8,22)→(7,22)`. The boulders ARE the gate.
+      ‼ **The §Ch15 "shortest route" was WRONG and is corrected**: `(20,22)` is on that nine-tile
+      island, i.e. an EXIT from 2F_3R, never an entrance. Real route (all legs verified connected
+      to their arrival tiles — 2F_1R 383, 3F_1R 154, 4F 293):
+      `1F (25,34) → 2F_1R → (17,33) → 3F_1R → (7,21) → 4F`, then stand `(17,21)` facing Left and
+      TALK to Maxie at `(16,21)`. **Everything past 1F is already proven connected.**
+
+### #24-strength (archived 2026-08-17)
+
+- [x] `#24-strength` — ✅ **DONE 2026-08-10.** `ensure_strength_learner()` +
+      `strength_push()` + `open_magma_hideout_1f()` in `modules/story/early_game.py`, proven by
+      the chapter completing. Kept OUT of `obstacle_clearing` on purpose: that framework's success
+      test is "the object is GONE", and a boulder is PUSHED — so the test here is **the boulder
+      MOVED**, tracked by `local_id` (the player ends up standing on its old tile).
+      ‼ Three bugs found only by driving it, all logged in `08-MISTAKES`: a one-frame press is not
+      a walk; `walk_one_tile` leaves the D-pad HELD if abandoned early; and **a flag set by a
+      script is not the end of that script** (the avatar was still `lockall`ed — that one cost two
+      runs). The teach is done at a HEAL STOP to dodge `#24-teachmsgstall`.
+      HISTORY — **NEW 2026-08-10. The blocker on `#24-magmahideout` increment 3, and the
+      first hard dependency the story bot has had on an unsupported field move.**
+      `obstacle_clearing.KNOWN_BUT_UNSUPPORTED` excludes `EventScript_StrengthBoulder` on purpose:
+      *"a boulder is PUSHED, not removed; the success test cannot see it"* — i.e. the existing
+      obstacle framework's success test ("is the obstacle gone?") cannot express this move. Two
+      pieces are needed and they are independent:
+      1. **A party member that knows Strength.** ✅ **CHEAPER THAN EXPECTED — measured
+         2026-08-10 on both `post_mtpyre.ss1` and `magma_door.ss1`:**
+         * **`HM04` is ALREADY IN THE BAG** (alongside HM02/HM03/HM06) — no Rusturf Tunnel trip.
+         * **Badges 1-6 are held**, and field Strength is gated on the **Heat Badge (BADGE04)**,
+           which is one of them.
+         * ‼ **CORRECTION (measured minutes later, and it reverses the easy part).** I first
+           wrote that `Zigzagoon L3` would carry it — it has a free fourth slot and is already
+           the Surf slave. **`can_learn_tm_hm(HM04)` is FALSE for Zigzagoon.** Only **two** party
+           members can learn Strength at all, and **both have four moves**:
+           | slot | mon | moves | can learn HM04 |
+           |---|---|---|---|
+           | 0 | Mightyena L43 | Tackle / Taunt / Take Down / Bite | **True** |
+           | 4 | Sceptile L43 | Rock Smash / Pursuit / Leaf Blade / Slam | **True** |
+           | 1,2,3,5 | Zigzagoon, Swellow, Skitty, Castform | — | False |
+           ⇒ the teach **costs a move slot on a fighter**. `hm_learner_slot()` picks the
+           highest-level compatible mon and breaks the L43 tie toward slot 0, i.e. **Mightyena**;
+           `teach_hm_move(replace_slot=None)` then takes the most expendable slot, which is
+           **Taunt** (base power 0) — a status move, so the damaging-move count does not drop.
+           That is the good outcome and it should be asserted, not assumed.
+           ‼ Sceptile is the WORSE carrier: its only 0-power-ish slot is protected (Rock Smash is
+           an HM) so the picker would eat a damaging move.
+         ⇒ still one `teach_hm_move()` call with existing machinery, but **verify the mon that
+         ends up knowing Strength and which move it lost**. ‼ Do the teach at a heal stop, the way
+         `#24-pc` piggybacks — not as a detour.
+      2. **A success test that works for a PUSH.** The obstacle is not removed, it MOVES, so the
+         test must be "did the boulder's tile change / is the target tile now walkable", not
+         "did the object disappear". ‼ Do NOT reuse the Rock Smash path unmodified — its test is
+         exactly the one that cannot see this.
+      ‼ Bound any push loop: a boulder that will not move (pushed against a wall) must fail
+      loudly rather than retry, and Rock-Smash rocks respawning on map reload already turned one
+      retry loop into 23.9M wasted frames (KI-34).
+
+      HISTORY — ✅ **NOT BLOCKED. READY TO BUILD (2026-08-10). The three-week-old
+      deferral was right by accident and wrong in its reason.**
+      The door at JAGGED_PASS (16,18) is guarded by a **Team Magma NPC standing on (16,19)**,
+      the column's only entry — `OBJ_EVENT_GFX_MAGMA_MEMBER_M`, hidden by flag **847**
+      `HIDE_JAGGED_PASS_MAGMA_GUARD` (decomp `JaggedPass/map.json`). Measured:
+      | save | guard hidden | `(16,20)→door` |
+      |---|---|---|
+      | `jagged_descent.ss1` (badges 1-3) | False | FAIL |
+      | `post_mtpyre.ss1` (badges 1-6) | **True** | **OK, 2 waypoints** |
+      ⇒ **No ledge problem, no KI-24 blind spot, no scripted movement needed** — the planner
+      was correctly modelling the guard. In the right era the door is 2 waypoints from a
+      tile the bot already reaches, and the chapter runs after Mt. Pyre so the flag is set
+      by the time it matters.
+      **BUILD ANCHOR: `saves/post_mtpyre.ss1`.** ‼ Do NOT develop this from a pre-Emblem
+      save — that error cost seven probes and two wrong conclusions (`08-MISTAKES` 2026-08-10).
+      HISTORY — status conflict flagged by triage: THIS entry says **DEFERRED** (the JAGGED_PASS (16,18) door is unreachable from
+      the ROUTE112 side), while `04-HANDOFF.md` lists it as the **next story content and the
+      largest untouched lever**. Both are current-state files and they disagree, which is
+      exactly the case `CLAUDE.md` says to raise rather than resolve unilaterally.
+      ‼ **THE TECHNICAL OBJECTION IS NOW CORROBORATED, AND IT IS THE ONLY THING BETWEEN THE BOT
+      AND NEW CONTENT** — measured 2026-08-10 (static, with a PASSING control):
+      | from | to `MAGMA_HIDEOUT_1F` door (16,18) |
+      |---|---|
+      | MT_CHIMNEY entry (13,5) | **FAIL** |
+      | MT_CHIMNEY entry (14,5) | **FAIL** |
+      | door → ROUTE112 exit (14,40) | **FAIL** |
+      | CONTROL: entry (13,5) → ROUTE112 exit (14,40) | **OK, 39 waypoints** |
+      Warps confirmed from the decomp: JaggedPass exits are (14,40)/(15,40)→ROUTE112,
+      (13,5)/(14,5)→MT_CHIMNEY, and **(16,18)→MAGMA_HIDEOUT_1F**. The door tile IS walkable;
+      it simply sits in a pocket the descent cannot enter. So `do_jagged_descent()` already
+      walking this map does NOT get us the door.
+      ‼ **BUT A STATIC FAIL IS 'UNPROVEN', NOT 'IMPOSSIBLE'** — `calculate_path` reads
+      dual-elevation terrain and ledges as walls and has called a reachable place
+      unreachable before (KI-24). **The deciding test is a DRIVEN one**, and the anchor
+      tooling to run it did not exist when this was deferred on 2026-07-26:
+      capture a MT_CHIMNEY/JAGGED_PASS anchor with `--driver anchorstory`, then drive
+      `--driver groundsweep SWEEP_GROUND=JAGGED_PASS:16,18`. ~20 minutes, and it converts a
+      three-week-old deferral into a measured yes/no. **DO THAT BEFORE WRITING THE CHAPTER.**
+      ✅ **RE-TESTED PROPERLY 2026-08-10 (two DRIVEN attempts + a purpose-captured anchor):
+      the blocker is REAL, and the chapter is BUILDABLE with scripted movement.**
+      From the bot's OWN in-descent position `JAGGED_PASS (14,9)` the door and both its
+      neighbours are unreachable while the control (continue to the ROUTE112 exit) succeeds
+      in 34 waypoints. A walkable flood fill shows the door is in the SAME 238-tile region as
+      every warp, so it is **ledge-isolated, not walled off** — `(15,18)`/`(17,18)` are solid
+      and the nearest reachable tile is `(14,18)`, two away.
+      ⇒ **Do not try to fix generic navigation for this. Write the approach as EXPLICIT
+      SCRIPTED MOVEMENT**, which is already this item's own instruction and the project's
+      pattern for ledge terrain. Anchors to develop against now exist:
+      `saves/jagged_descent.ss1` (JAGGED_PASS (14,9)) and `saves/mt_chimney_top.ss1`.
+      HISTORY — **DEFERRED.** Door at JAGGED_PASS (16,18) is unreachable from the
+      ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only
+      approach is ROUTE112 → cable car → MT_CHIMNEY → descend ⇒ ~8 warps + a scripted ride.

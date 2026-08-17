@@ -7962,3 +7962,51 @@ transform or delete it. Read the first live line before spending the run.*
 **Why this one is worth reading twice.** It is `CLAUDE.md` §7 in miniature — *instrument the action,
 not the input to the action* — committed by a session that had spent the day enforcing that exact
 rule on someone else's code. The unit test was not wrong; it was measuring the wrong object.
+
+## 2026-08-17 — I attributed a number's movement to my own change without ever running an arm without it
+
+**Symptom.** `repro_no_silent_except.py` printed *"IMPROVED — 148 silent handlers, below the baseline
+of 149. Lower BASELINE to 148 to lock the gain in."* I lowered it and wrote — in the gate's own
+comment AND in the changelog — that `counter_hunt.py`'s handler had "stopped being silent when it
+grew a latch-keyed re-raise". An adversarial review kicked it back.
+
+**Root cause.** The number really had moved, and I really had just edited that file, so the causal
+story wrote itself. **I never ran the arm with my change removed.** The control arm — revert both
+edited files, re-run — gives **148 either way**. The handler already had a `console.print` and was
+never in the silent list; the count had been 148 since some earlier undocumented cleanup, and only
+the label lagged. Lowering the ratchet was right; the *reason* I recorded was invented.
+
+**The fix that worked.** Re-run it myself as a two-arm measurement and save the raw output as
+evidence (`evidence/2026-08-17-abortswallow-ratchet-controlarm.txt`, both arms in one file), then
+rewrite the gate comment and the changelog to say the truth: it is a CORRECTION of a stale ratchet,
+not a gain, and the real proof of the fix is `probe_abort_swallowing.py` 45 → 37.
+
+**Prevention rule.** ⇒ *A number that MOVED is not evidence that YOUR change moved it. Before
+attributing any metric to your work, run the arm with the work removed — and if you will not run
+that arm, do not write the causal sentence.*
+
+**‼ Why this one stings:** the project already has this rule, in `CLAUDE.md` session-discipline
+rule 8 — *"a claim of the form 'without X the bug survives' is a CLAIM, and the only currency this
+project accepts is an arm with X removed"* — and I had spent the same session enforcing it on other
+people's evidence. The rule did not fire because I was not thinking of the ratchet as a *claim*; I
+was thinking of it as housekeeping.
+
+## 2026-08-17 — I wrote a confident architectural justification into a code comment and it was false
+
+**Symptom.** Justifying two local imports in `counter_hunt.py`, I wrote *"`early_game` imports THIS
+module, so a top-level import would be circular."* The reviewer disproved it mechanically:
+`early_game.py` contains **zero** references to `counter_hunt` (`grep -c` → 0), and a copy of the
+module with both imports hoisted loads cleanly.
+
+**Root cause.** The file genuinely uses local imports, and there genuinely IS a cycle in this
+package — but it runs the other way (`early_game` → `higher_level_actions` → `early_game`). I
+generalised a true pattern ("this area uses local imports because of cycles") into a specific claim
+about two modules I never checked the edges between.
+
+**The fix that worked.** Correct the comment to state the real reason (consistency with the file's
+existing idiom, zero import-time cost) and to name where the actual cycle is. A false comment is
+worse than none: the next person cleaning up local imports would have trusted it and stopped.
+
+**Prevention rule.** ⇒ *A comment explaining WHY code is shaped a certain way is a factual claim
+about the codebase — verify the edge (`grep` the import, or hoist it and load the module) before
+writing it, or write only what you checked.*

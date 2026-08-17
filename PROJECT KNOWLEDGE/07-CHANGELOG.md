@@ -16284,3 +16284,85 @@ line; net saving 38 lines, not 43.
 rewritten faithfully because it is what you are thinking about; the tags, dates, segment numbers and
 second-archive pointers are what you were reading THROUGH. ‼ An author cannot audit their own merge
 for these — I read the AFTER text twice and saw nothing missing, because I already knew what it meant.
+
+## 2026-08-17 — 8 abort-swallowing sites fixed, probe 45 → 37 — and the probe itself was measured to over-flag by ~64% (`#24-abortswallow`)
+
+**The defect.** `StoryAbort` is a `BotModeError` is an `Exception`, so a broad `except` around a
+`yield from` in the story path can swallow a whiteout; the run then keeps driving menus on a dead
+team and raises a *fabricated, confident, wrong* cause. 8 sites were fixed on 2026-08-16; 45
+candidates remained.
+
+**What shipped (sandbox only — drift is 4; promoting is the USER's call).** 8 more sites, each
+HAND-VERIFIED to actually reach `_check_abort()` before being touched:
+* `counter_hunt.py`'s training handler — the file's only candidate. Training is the most
+  whiteout-prone thing this bot does, and the handler reported *"counter training failed"*, returned
+  `False`, and walked into the boss fight on a dead run.
+* `early_game.py`: the Mt. Chimney meteorite (`pass  # the meteorite is a bonus` — swallowing made
+  `do_mt_chimney` RETURN AS IF IT SUCCEEDED); the Rusturf wall smash (whose handler INTERPRETED any
+  failure as *"the rock is gone"* — the textbook laundered diagnosis); the Strength teach; and the
+  FOUR heal stops (Lavaridge, Lilycove, en-route, harbor).
+* ‼ **The four heal handlers were UNDOING THE 2026-08-16 GUARD one frame after it fired.**
+  `heal_in_pokemon_center` deliberately re-raises on the latch (`:364/:388/:437`) and these caught it.
+
+**⛔ `counter_hunt.py` needed a DIFFERENT shape, and it is the interesting part.** It catches
+`Exception`, so a bare `reraise_if_aborting(error)` could re-raise a `PathFindingError` — a
+`RuntimeError`, NOT a `BotModeError` — past `StoryMode.run`'s `except BotModeError`, so
+`set_story_abort(False)` would never run and the module-global latch would be left **stuck TRUE for
+every later mode**. It re-raises only BotModeError-family objects. *That hazard is documented at
+`higher_level_actions.py:842` from an adversarial review on 2026-08-16; the house ruling was followed
+rather than a new shape invented.*
+
+**Fault-tested both directions, no emulator required** — the guard is latch-keyed, so it is testable
+in isolation: latch CLEAR → the handler still swallows (normal operation untouched, the control arm);
+latch SET → a `StoryAbort` **and** a laundered plain `BotModeError` both propagate; latch SET with a
+`PathFindingError` → still swallowed, proving the narrowing cannot leak the global.
+
+⚠ **The first cut referenced `BotModeError` without importing it** — a `NameError` on the abort path
+itself, i.e. exactly the branch the guard exists to serve, invisible to every green test.
+`repro_undefined_names.py` caught it on the first run. ⇒ *that gate exists because a NameError on a
+rarely-taken branch cannot be found by running the happy path.* `repro_no_silent_except.py`'s ratchet was lowered 149 → 148 — ⛔ **but see the correction
+below: that was NOT a gain from this work.**
+
+**⛔⛔ AND THE FINDING THAT CHANGED THE PLAN: the probe over-flags by ~64%.** Of the original 45,
+25 wrap navigation primitives only (`navigate_to`, `navigate_to_anywhere`,
+`_enter_warp_by_navigation`) — none contains `_check_abort()`, so **no `StoryAbort` object can ever
+arrive there**; `:376` IS the whiteout-recovery path, called immediately after
+`set_story_abort(False)`; `:2305` already guards by hand with `if story_should_abort(): raise`, a
+shape the probe cannot see. ⇒ **the probe must NOT be promoted to a gate as-is** — it would be red on
+arrival for reasons that are correct as written. Two refinements cut 45 → ~16: recognise the
+hand-written guard shape, and require the try body to reach a callee that TRANSITIVELY contains
+`_check_abort()`.
+
+‼ **A SEPARATE DEFECT FAMILY was found while triaging and filed as `#24-loopheadabort`, deliberately
+NOT fixed here:** 13 of those navigation sites are bounded retry loops with no loop-head
+`_check_abort()`. After a whiteout they re-navigate a dead team from the respawn Centre, burn the
+whole retry budget, then raise a fabricated *"Could not reach X"*. **The fix there is a loop-head
+check, not a handler guard** — a handler guard would be INERT, because no abort object arrives.
+⇒ *"a candidate is not a defect" cuts both ways: the same static signal covered two different bugs
+with two different fixes, and only reading the call graph separated them.*
+
+### 2026-08-17 (same item, after adversarial review) — two claims of mine were FALSE; a control arm killed one
+
+The review verified the substance (probe 45 → 37, the reachability of every guarded site, that
+`except BotModeError:` → `except BotModeError as error:` is semantically inert, and that
+`reraise_if_aborting` is a pure no-op with the latch clear, so the normal path is untouched). It then
+kicked the round back on two things I had ASSERTED rather than measured:
+
+* ⛔⛔ **"the ratchet went 149 → 148 because `counter_hunt.py`'s handler stopped being silent" — FABRICATED.**
+  The reviewer ran the one thing that settles a causal claim: **a control arm.** Reverting BOTH edited
+  story files and re-running gives **148 either way**; the handler already had a `console.print` and
+  was never in the silent list. The count had been 148 since some earlier undocumented cleanup and
+  the label simply lagged. **I re-ran the control myself and reproduced it: 148 with the guards, 148
+  without.** Lowering the baseline is still correct — a stale ratchet silently re-permits debt — but
+  it is a CORRECTION, not a gain, and the 8-site fix is proven by `probe_abort_swallowing.py`
+  (45 → 37), never by this gate. Both the changelog and the in-file comment now say so.
+* ⛔ **"a top-level import would be circular" — FALSE, and disproved mechanically.** `early_game.py`
+  contains **zero** references to `counter_hunt` (I confirmed: `grep -c` → 0), and a copy of the
+  module with both imports hoisted loads cleanly. The real cycle runs the other way
+  (`early_game` → `higher_level_actions` → `early_game`). The imports stay local for consistency,
+  not from necessity, and the comment now says that instead.
+
+⇒ **The generalisable rule, and it is the same one this project keeps paying for: a number that
+MOVED is not evidence that YOUR change moved it.** Both claims were plausible, both were written
+while looking at the right output, and neither was ever run against an arm with the change removed.
+*"Without X the count is higher" is a CLAIM; the only currency is an arm with X removed.*
