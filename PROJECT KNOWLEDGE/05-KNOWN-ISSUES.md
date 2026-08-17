@@ -2146,6 +2146,57 @@ multi battle was won. `FillPartnerParty` does update the count in practice, so t
 rather than merely on an error path — and it is the reason to check a "would fire immediately" claim
 against an existing log before scheduling work for it.
 
+### ✅✅ RECON 2026-08-16 — THE ITEM IS NOW BUILD-READY, AND ONE OF ITS SUB-CLAIMS IS NARROWED
+
+⛔ **Read this before writing a line.** A Tier 2 cold-start agent tried to BEGIN this item and
+could not: the handoff called it *"fully startable with zero input"* while naming no fixture and no
+way to trigger the code. Both gaps are now closed by recon, and a third finding NARROWS the item.
+
+**(1) THE FIXTURE EXISTS — it was never missing, only undocumented.**
+`--driver spacecenter2`, anchor **`saves/at_steven_2f.ss1`** (SPACE_CENTER_2F (13,2),
+`MOSSDEEP_SPACE_CENTER_STATE = 2`), drives `ChooseHalfPartyForBattle` and the real six-mon multi
+battle alongside Steven. It is documented in `story_harness.py` and in NO PROJECT KNOWLEDGE file,
+which is why the audit could not find it. *(Also present: `at_mossdeep_leaders.ss1`,
+`post_space_center.ss1`; drivers `spacecenter1`, `spacecenter`, `faintrepro`.)*
+
+**(2) THERE IS NO FAINT MECHANISM, AND THE FAITHFUL ONE IS NOT A MEMORY WRITE.**
+MEASURED: **none** of the 16 `POKEBOT_*` hooks can faint a mon or set HP, and `debug_write_party`
+writes `gPlayerParty` (out-of-battle) — **not** `gBattleMons`. ✅ **So do NOT add a `gBattleMons` HP
+writer.** Pre-stage the party BEFORE the battle with one mon at **1 HP**; it then faints in real
+combat. That is faithful gameplay, and it keeps this out of "documented last-resort state-write"
+territory entirely. ‼ 1 HP, not 0: `GetBattleEntryEligibility` rejects a 0-HP mon, and
+`battle_party_slots` (`space_center.py:503`) only offers eligible ones — a fainted mon would never
+be SELECTED, so it could never faint on the field.
+
+**(3) ⛔⛔ THE "PICKS AN ALLY'S MON" SCENARIO IS LARGELY SELF-CANCELLING — THIS NARROWS THE ITEM.**
+`battle_party_slots`'s own docstring cites `Cmd_checkteamslost`: for `TRAINER_STEVEN_PARTNER` the
+game sums HP over **`gPlayerParty[0..2]` ONLY — the player's own picks** — and declares the battle
+**LOST** the moment that total hits zero. ⇒ the state in which the full-party scan at `:541-545`
+would actually *reach* an ally's slot (all three of ours down) is **the same instant the battle
+ends**. ‼ **So the headline "it will send out an ally's mon" is NOT straightforwardly reachable**,
+and a repro built to show it would likely whiteout instead — another vacuous-A/B trap.
+
+✅ **WHAT *IS* REACHABLE ON A SINGLE FAINT, and is therefore the discriminator to build:**
+`:630-636`'s `alive_slots` excludes only the ON-FIELD pair, so **the ally's BENCHED mons remain
+A-press candidates** — the entry's own words, *"three of six slots are guaranteed-refused in this
+fight"*, and each refusal round-trips `Task_ReturnToChooseMonAfterText`. That fires on ANY faint
+while two of ours are still alive, so the battle continues and nothing whites out.
+⇒ **ARM A (today):** the replacement flow attempts ally slots → refusals + extra round-trips.
+⇒ **ARM B (choked through `ally_party_indices()`):** only our slots are attempted.
+**Grade on the ATTEMPTED SLOT INDICES and the refusal count — never on "did the battle end well",
+which is identical in both arms.** Same class of error as `:588-598`, which writes a party-order
+index into a menu-order variable (the KI-34 shape) and needs no ally pick at all to be wrong.
+
+**BUILD ORDER (each step is a deliverable):** (a) a `ki66faint` driver SUBCLASSING
+`SpaceCenter2Mode` — the `boxcounter2` pattern, so every run re-proves the multi battle first — that
+pre-stages the highest-level selected mon at 1 HP; (b) instrument the ATTEMPTED slot indices;
+(c) confirm ARM A attempts ≥ 1 ally slot, or the A/B is vacuous and must be re-derived BEFORE any
+fix; (d) only then wire the four sites through `ally_party_indices()`.
+⚠ **STILL A USER DECISION:** what ARM B should do when only ally mons remain — `ally_party_indices`
+deliberately FAILS CLOSED to an empty set (`default.py:31-34`) precisely to avoid the full-party
+fallback, so "ride out the loss" is a POLICY choice, not a mechanical consequence.
+⚠ **NOT YET BUILT — no driver was written and nothing here has been driven live.** This is recon.
+
 **The right shape of the fix** is one choke point — `ally_party_indices()` already exists — rather
 than a guard per call site. That is a battle-layer refactor touching every mode, so it is filed
 rather than done.
@@ -2321,74 +2372,31 @@ assuming the connection.
 
 ### ‼‼ RECON 2026-08-16 — THE ENTRY WAS RIGHT BUT INCOMPLETE ON TWO COUNTS. Read this before fixing.
 
-⛔ **(A) THERE ARE *TWO* LIVE UNBOUND READS, NOT ONE — AND THE ONE THIS ENTRY NEVER MENTIONED IS THE
-MORE DAMAGING.** Besides `:280` (the re-pick), **`:397` — the HM VETO — reads `party_index` too**,
-inside a `try` whose handler is a bare **`except Exception: pass`**. That is the loudest possible
-silence: it leaves `move_to_forget` unchanged with no message and no flag, and is **completely
-indistinguishable from the success case** "the chosen slot is not an HM, so the veto correctly did
-nothing". ‼ The veto's own comment names the exact case it fails to cover — *"the `except` fallback
-right above which blindly picks slot 0 without consulting any policy at all"* — and that fallback
-(`:377-381`) **is precisely the path that leaves `party_index` unbound.** The last line of defence
-is structurally unable to defend against the one case it was written for.
+⛔ **(A) AND (B) — THE PRE-FIX ANALYSIS OF THE TWO UNBOUND READS AND THE PING-PONG CHAIN: MOVED to
+`31-KNOWN-ISSUES-ARCHIVE.md` (2026-08-16), because KI-65 is CLOSED AND PROMOTED and the FIX block at
+the top of this entry supersedes both.** ‼ **Keep only the two facts later work leans on:** there are
+**TWO** unbound reads (`:280` the re-pick, `:397` the HM veto — the veto is the damaging one, because
+its `except Exception: pass` is indistinguishable from "the slot is not an HM"); and the chain that
+makes them compound is a FOUR-STEP CONJUNCTION in which the failed read *causes* the later steps.
+⚠ (B) also predicted the latch as the loop-preventer — **MEASURED WRONG**; see the FIX block.
 
-⛔ **(B) FIXING `:280` ALONE DOES NOT FIX THE BUG — the loop is driven from somewhere else.** The
-precondition for `:280` to raise is a FOUR-STEP CONJUNCTION, and step 2 *causes* steps 3-4:
-  1. `_read_offered_move` raises ⇒ `party_index` unbound **and** `move_to_forget = 0` (`:381`);
-  2. the HM veto at `:397` silently no-ops on the same unbound name (`except` `:433`, `pass` `:434`) ⇒ a doomed
-     HM pick survives that would otherwise have been re-picked away;
-  3. branch (1) confirms slot 0 with A ⇒ `last_confirmed_slot = 0` (`:339`);
-  4. the game refuses ⇒ `CantForgetHM` ⇒ `:273` true ⇒ `:280` `UnboundLocalError` ⇒ decline.
-Then it **PING-PONGS**: `last_offered_move_name` is only set at `:376` *after* the failing call, so
-branch (2) re-enters the same `try` forever, and `:380-381` **re-arms `move_to_forget = 0`** every
-cycle. ⇒ `frames_in_dialogue > 6000`, `_STALLED_EXITS` increments, the caller re-invokes fresh, and
-the third strike raises `BotModeError`. ‼ **That is the `#24-teachmsgstall` / `#24-movelearn-recovery`
-signature** — a mechanically complete path, and **still a HYPOTHESIS until the injected repro runs.**
+✅ **THE FAULT-INJECTION SEAM: MOVED to `31-KNOWN-ISSUES-ARCHIVE.md` (2026-08-16)** — superseded by
+the built gate, whose docstring documents the seam it actually uses (`bmr._read_offered_move`,
+rebindable because `:371` calls it by BARE NAME, so no production edit is needed).
 
-⛔ **(C) — THE PRE-FIX ARGUMENT ABOUT THE CAPTURED SAVES: MOVED to `31-KNOWN-ISSUES-ARCHIVE.md`
-(2026-08-16).** It reasoned its way to *"the captured saves are a FIXTURE, not a repro"* and then
-prescribed a discriminator that was ALSO vacuous. ✅ **Superseded by MEASUREMENT** — see "THREE THINGS
-THE RECON GOT WRONG" at the top of this entry, which shows those saves cannot exercise the bug at all.
+⛔ **DANGERS a naive edit walks into — FULL LIST MOVED to `31-KNOWN-ISSUES-ARCHIVE.md` (2026-08-16).**
+‼ **Keep the two that still bite anyone touching this function:** (1) **`move_to_forget = 4` is
+OVERLOADED** — "decline" to branch (2) but a CURSOR ROW to branch (1), which has NO `try`, so a
+`None` sentinel leaking in raises `TypeError` into nothing at all; (2) **`get_party_menu_cursor_pos`
+does NOT raise on a bad cursor** — it calls `set_manual_mode()` and returns `slot_id = -1`, and
+`get_party()[-1]` is the LAST party member, i.e. a WRONG MON rather than an exception. *(That second
+one is the residual this fix does not close — see the RESIDUAL block above.)*
 
-✅ **THE FAULT INJECTION POINT IS IDENTIFIED AND NEEDS NO PRODUCTION EDIT.** `battle_move_replacing.py`
-has **no `POKEBOT_*` hook anywhere** (checked: zero `os.environ` references). `:371` calls
-`_read_offered_move` by bare name, so rebinding `bmr.get_battle_state` (or `bmr._read_offered_move`)
-on the imported module object takes effect immediately — the same mechanism
-`repro_hm_replace_valve_forced.py:170-188` already uses to latch `get_learn_move_state`.
-‼ **Fault the CAUSE, not the function:** the most plausible real raiser is
-`map_battle_party_index` → `RuntimeError` (`battle_state.py:354`), fed by a RAW byte
-`read_symbol("gBattleStruct", 16, 1)[0]` read on an arbitrary frame while the UI animates — needs no
-exotic conditions. Both halves are required: the fault ALONE does not reach `:280` (see (C)).
-
-⛔ **DANGERS, measured, that a naive fix walks into:**
-* **`move_to_forget = 4` is OVERLOADED** — "decline" to branch (2), but a **cursor ROW** to branch
-  (1) (`:328-335`). ⚠ **Branch (1) has NO `try`**, so a `None` sentinel leaking into its
-  `cursor < move_to_forget` comparison raises `TypeError` into nothing at all.
-* **Three callers, two of them not the battle handler:** `battle_evolution_scene.py:49` and
-  `modes/util/items.py:349` (**Rare Candy from the bag**, a `while True:` whose only exit is the bag
-  menu). Any change to `_read_offered_move`'s CONTRACT hits both.
-* **Per-invocation vs module-level memory:** `hm_blocked`/`last_confirmed_slot` die on every return
-  while `_STALLED_EXITS` deliberately does not, so a re-invoked generator **loses the refusal
-  knowledge but keeps the strike count**. Promoting state to module level would need resetting at
-  `:256`/`:451` or it leaks across battles — a bug already fixed once for the strike counter.
-* ⚠ `get_party_menu_cursor_pos` does **not** raise on a bad cursor: it calls `set_manual_mode()` and
-  returns `slot_id = -1`, and `get_party()[-1]` is the LAST party member. That failure mode is a
-  **wrong mon, not an exception** — a second, separate silent-wrong-answer path.
-
-✅✅ **THE FIX, SPECIFIED IN THREE PARTS — ⛔ SUPERSEDED: PARTS (1) AND (2) ARE APPLIED IN SANDBOX;
-PART (3) WAS BUILT AND THEN REMOVED AS MEASURABLY REDUNDANT
-(2026-08-16), AFTER the repro this block demanded was built. See the FIX block at the top of this
-entry. The deferral below is HISTORY and is satisfied; do not read it as an instruction to hold
-off.** The specification is kept because its part (3) turned out to be WRONG in an instructive way — it
-named the latch as the loop-preventer when the veto guard is:
-(1) `party_index: int | None = None` beside `:185`, matching
-`last_confirmed_slot: int | None = None`'s style (⚠ this said `:177` — that is `last_offered_move_name`); (2) EXPLICIT `if party_index is None:` guards at
-`:280` and `:397` that say loudly they cannot act, instead of letting `except` swallow an
-`UnboundLocalError` indistinguishably from success; (3) set `last_offered_move_name` (or an
-equivalent "we already failed to read this offer" latch) in the `:377` handler — **without (3) the
-ping-pong in (B) survives the fix.**
-⛔ **`custom-pokebot`'s copy WAS byte-identical and IS NO LONGER** — the fix landed in sandbox on
-2026-08-16 and was PROMOTED the same day (user-approved), so `promote.py --check` reports
-**0 differing** again. Both forks carry the fix.
+✅✅ **THE PRE-FIX FIX-SPECIFICATION ("in three parts"): MOVED to `31-KNOWN-ISSUES-ARCHIVE.md`
+(2026-08-16).** Superseded by the FIX block at the top of this entry, which records what ACTUALLY
+shipped: **two** parts, because the third was built, measured redundant, and removed.
+‼ **Keep only this:** the spec's own part (3) is a worked example of a plausible mechanism claim
+that survived review until someone ran the arm without it.
 
 **Severity:** MEDIUM, order-dependent (on iterations where line 371 already ran, the name is bound
 and the branch works), which is also why it has survived unnoticed.

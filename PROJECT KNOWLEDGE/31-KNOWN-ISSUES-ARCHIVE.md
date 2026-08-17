@@ -2549,3 +2549,109 @@ PROVABLE LIE, and the contradiction is the assertion.** **ARM B (fault OFF)** �
 lowercase text (`:428-431`) or none. ⛔ `moveset changed` stays `False` in BOTH arms — never grade
 on it. Today an `UnboundLocalError` there prints *"Nothing else can be given up —
 declining the new move"* **with full confidence**, which is a lie the user can read.
+
+
+---
+
+# ARCHIVED 2026-08-16 — KI-65 RECON SECTIONS (A) AND (B), the pre-fix analysis
+
+Moved out of `05-KNOWN-ISSUES.md` on the R3 3,000-line budget once KI-65 was FIXED, GATED and
+PROMOTED to both forks. Verbatim, unedited. ⚠ (B)'s closing prediction — that the ping-pong needs
+a latch in the `:377` handler — was MEASURED FALSE: the HM veto's `is None` guard forces
+`move_to_forget = 4` in the same iteration. Kept because the four-step conjunction it traces is
+correct and is what made the repro constructible.
+
+⛔ **(A) THERE ARE *TWO* LIVE UNBOUND READS, NOT ONE — AND THE ONE THIS ENTRY NEVER MENTIONED IS THE
+MORE DAMAGING.** Besides `:280` (the re-pick), **`:397` — the HM VETO — reads `party_index` too**,
+inside a `try` whose handler is a bare **`except Exception: pass`**. That is the loudest possible
+silence: it leaves `move_to_forget` unchanged with no message and no flag, and is **completely
+indistinguishable from the success case** "the chosen slot is not an HM, so the veto correctly did
+nothing". ‼ The veto's own comment names the exact case it fails to cover — *"the `except` fallback
+right above which blindly picks slot 0 without consulting any policy at all"* — and that fallback
+(`:377-381`) **is precisely the path that leaves `party_index` unbound.** The last line of defence
+is structurally unable to defend against the one case it was written for.
+
+⛔ **(B) FIXING `:280` ALONE DOES NOT FIX THE BUG — the loop is driven from somewhere else.** The
+precondition for `:280` to raise is a FOUR-STEP CONJUNCTION, and step 2 *causes* steps 3-4:
+  1. `_read_offered_move` raises ⇒ `party_index` unbound **and** `move_to_forget = 0` (`:381`);
+  2. the HM veto at `:397` silently no-ops on the same unbound name (`except` `:433`, `pass` `:434`) ⇒ a doomed
+     HM pick survives that would otherwise have been re-picked away;
+  3. branch (1) confirms slot 0 with A ⇒ `last_confirmed_slot = 0` (`:339`);
+  4. the game refuses ⇒ `CantForgetHM` ⇒ `:273` true ⇒ `:280` `UnboundLocalError` ⇒ decline.
+Then it **PING-PONGS**: `last_offered_move_name` is only set at `:376` *after* the failing call, so
+branch (2) re-enters the same `try` forever, and `:380-381` **re-arms `move_to_forget = 0`** every
+cycle. ⇒ `frames_in_dialogue > 6000`, `_STALLED_EXITS` increments, the caller re-invokes fresh, and
+the third strike raises `BotModeError`. ‼ **That is the `#24-teachmsgstall` / `#24-movelearn-recovery`
+signature** — a mechanically complete path, and **still a HYPOTHESIS until the injected repro runs.**
+
+⛔ **(C) — THE PRE-FIX ARGUMENT ABOUT THE CAPTURED SAVES: MOVED to `31-KNOWN-ISSUES-ARCHIVE.md`
+(2026-08-16).** It reasoned its way to *"the captured saves are a FIXTURE, not a repro"* and then
+prescribed a discriminator that was ALSO vacuous. ✅ **Superseded by MEASUREMENT** — see "THREE THINGS
+THE RECON GOT WRONG" at the top of this entry, which shows those saves cannot exercise the bug at all.
+
+
+---
+
+# ARCHIVED 2026-08-16 — KI-65's pre-fix FIX SPECIFICATION ("in three parts")
+
+Moved out of `05-KNOWN-ISSUES.md` on the R3 3,000-line budget. ‼ Its part (3) — the
+`offer_read_failed` latch, asserted as the thing without which the ping-pong survives — was
+MEASURED FALSE and the latch was removed before commit. Kept verbatim as the worked example.
+
+✅✅ **THE FIX, SPECIFIED IN THREE PARTS — ⛔ SUPERSEDED: PARTS (1) AND (2) ARE APPLIED IN SANDBOX;
+PART (3) WAS BUILT AND THEN REMOVED AS MEASURABLY REDUNDANT
+(2026-08-16), AFTER the repro this block demanded was built. See the FIX block at the top of this
+entry. The deferral below is HISTORY and is satisfied; do not read it as an instruction to hold
+off.** The specification is kept because its part (3) turned out to be WRONG in an instructive way — it
+named the latch as the loop-preventer when the veto guard is:
+(1) `party_index: int | None = None` beside `:185`, matching
+`last_confirmed_slot: int | None = None`'s style (⚠ this said `:177` — that is `last_offered_move_name`); (2) EXPLICIT `if party_index is None:` guards at
+`:280` and `:397` that say loudly they cannot act, instead of letting `except` swallow an
+`UnboundLocalError` indistinguishably from success; (3) set `last_offered_move_name` (or an
+equivalent "we already failed to read this offer" latch) in the `:377` handler — **without (3) the
+ping-pong in (B) survives the fix.**
+⛔ **`custom-pokebot`'s copy WAS byte-identical and IS NO LONGER** — the fix landed in sandbox on
+2026-08-16 and was PROMOTED the same day (user-approved), so `promote.py --check` reports
+**0 differing** again. Both forks carry the fix.
+
+
+---
+
+# ARCHIVED 2026-08-16 — KI-65's "DANGERS" list (pre-fix)
+
+Moved out of `05-KNOWN-ISSUES.md` on the R3 3,000-line budget once KI-65 was closed and promoted. Verbatim.
+The two entries that still bite were kept inline in KI-65 rather than archived.
+
+⛔ **DANGERS, measured, that a naive fix walks into:**
+* **`move_to_forget = 4` is OVERLOADED** — "decline" to branch (2), but a **cursor ROW** to branch
+  (1) (`:328-335`). ⚠ **Branch (1) has NO `try`**, so a `None` sentinel leaking into its
+  `cursor < move_to_forget` comparison raises `TypeError` into nothing at all.
+* **Three callers, two of them not the battle handler:** `battle_evolution_scene.py:49` and
+  `modes/util/items.py:349` (**Rare Candy from the bag**, a `while True:` whose only exit is the bag
+  menu). Any change to `_read_offered_move`'s CONTRACT hits both.
+* **Per-invocation vs module-level memory:** `hm_blocked`/`last_confirmed_slot` die on every return
+  while `_STALLED_EXITS` deliberately does not, so a re-invoked generator **loses the refusal
+  knowledge but keeps the strike count**. Promoting state to module level would need resetting at
+  `:256`/`:451` or it leaks across battles — a bug already fixed once for the strike counter.
+* ⚠ `get_party_menu_cursor_pos` does **not** raise on a bad cursor: it calls `set_manual_mode()` and
+  returns `slot_id = -1`, and `get_party()[-1]` is the LAST party member. That failure mode is a
+  **wrong mon, not an exception** — a second, separate silent-wrong-answer path.
+
+
+---
+
+# ARCHIVED 2026-08-16 — KI-65's fault-injection-seam analysis (pre-fix)
+
+Moved out of `05-KNOWN-ISSUES.md` on the R3 budget. ⚠ It recommended faulting `map_battle_party_index` as the
+"most plausible real raiser" — MEASURED INSUFFICIENT: `_read_offered_move`'s task-backed path
+bypasses it entirely and binds `party_index` anyway (51 fires, zero effect). Verbatim.
+
+✅ **THE FAULT INJECTION POINT IS IDENTIFIED AND NEEDS NO PRODUCTION EDIT.** `battle_move_replacing.py`
+has **no `POKEBOT_*` hook anywhere** (checked: zero `os.environ` references). `:371` calls
+`_read_offered_move` by bare name, so rebinding `bmr.get_battle_state` (or `bmr._read_offered_move`)
+on the imported module object takes effect immediately — the same mechanism
+`repro_hm_replace_valve_forced.py:170-188` already uses to latch `get_learn_move_state`.
+‼ **Fault the CAUSE, not the function:** the most plausible real raiser is
+`map_battle_party_index` → `RuntimeError` (`battle_state.py:354`), fed by a RAW byte
+`read_symbol("gBattleStruct", 16, 1)[0]` read on an arbitrary frame while the UI animates — needs no
+exotic conditions. Both halves are required: the fault ALONE does not reach `:280` (see (C)).

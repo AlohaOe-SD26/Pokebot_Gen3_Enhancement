@@ -1967,8 +1967,10 @@ level-matched encounters maintenance needs. Done together they are one activity,
 - [ ] **(3) KI-66 — the multi-battle hazard is BROADER than the faint chooser:** four more
       full-party scans are unguarded, one feeding an UNBOUNDED `while … press A`. OPEN,
       code-verified, never live-run, and untracked until now.
-      ⛔⛔ **RECON IS STARTABLE; THE BUILD IS NOT — established 2026-08-16 by a cold-start agent
-      that TRIED to begin it.** Same correction item (1) already carries. What it confirmed by
+      ✅✅ **BUILD-READY 2026-08-16 — both blockers CLOSED by recon** (a cold-start agent first found them
+      by TRYING to begin it, then a follow-up recon closed them).
+      ✅✅ **BUILD-READY AS OF 2026-08-16 — the two blockers are CLOSED by recon; read KI-66's `RECON 2026-08-16` block FIRST.** The FIXTURE existed all along and was merely undocumented: **`--driver spacecenter2`, anchor `saves/at_steven_2f.ss1`**, drives the real six-mon multi battle. The FAINT needs no new capability and no `gBattleMons` writer: **pre-stage one selected mon at 1 HP before the battle** (1, not 0 — a 0-HP mon is never SELECTED) and it faints in real combat. ⛔⛔ **AND THE ITEM IS NARROWER THAN ITS HEADLINE:** the "it sends out an ALLY's mon" case needs all three of ours down, which is *exactly* `Cmd_checkteamslost`'s LOSS condition (it sums HP over `gPlayerParty[0..2]` — our picks only), so a repro aimed at it would WHITEOUT instead — another vacuous-A/B trap. ✅ **Grade instead on the ATTEMPTED SLOT INDICES + refusal count on a SINGLE faint**, which `:630-636` reaches while two of ours are still alive. ⚠ ARM B's behaviour when only ally mons remain is a USER POLICY call.
+      *(Superseded: "RECON IS STARTABLE; THE BUILD IS NOT".)* Same correction item (1) already carries. What it confirmed by
       reading: all four sites are live (`battle_handler.py:541-545`, `:588-598`, `:630-636`,
       `_util.py:522-587`), and the choke point `ally_party_indices()` EXISTS
       (`battle_strategies/default.py:12`), called from `default.py:189` / `level_up.py:53` /

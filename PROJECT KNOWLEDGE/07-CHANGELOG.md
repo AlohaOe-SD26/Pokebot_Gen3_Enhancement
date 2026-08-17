@@ -15744,3 +15744,46 @@ removed third part, and the `party_index == -1` residual.
 
 **Files:** `custom-pokebot/modules/battle_move_replacing.py`, `custom-pokebot/DIVERGENCE-LOG.md`,
 `PROJECT KNOWLEDGE/04-HANDOFF.md`, `03-PUNCH-LIST.md`, `05-KNOWN-ISSUES.md`, `07-CHANGELOG.md`.
+
+## 2026-08-16 — KI-66 turned from "build blocked" into BUILD-READY, and its headline was NARROWED
+
+**No code changed.** This is the recon the Tier 2 cold-start audit proved was missing, plus one
+finding that changes what the item should even try to prove.
+
+**Blocker 1 CLOSED — the fixture existed and was only undocumented.** `--driver spacecenter2`,
+anchor `saves/at_steven_2f.ss1`, drives `ChooseHalfPartyForBattle` and the real six-mon multi
+battle alongside Steven. It is described in `story_harness.py` and in **no** PROJECT KNOWLEDGE
+file, which is exactly why a cold agent reading only the docs concluded none existed.
+
+**Blocker 2 CLOSED — and the faithful answer is NOT a new capability.** MEASURED: none of the 16
+`POKEBOT_*` hooks can faint a mon or set HP, and `debug_write_party` writes `gPlayerParty`, not
+`gBattleMons`. ⛔ So do **not** add a `gBattleMons` HP writer. Pre-stage one selected mon at
+**1 HP** before the battle and it faints in real combat — faithful gameplay, no state-write.
+‼ 1 HP and not 0: `GetBattleEntryEligibility` rejects a 0-HP mon and `battle_party_slots`
+(`space_center.py:503`) only offers eligible ones, so a fainted mon would never be SELECTED and
+therefore could never faint on the field.
+
+**⛔⛔ THE NARROWING, and it would have cost a repro.** KI-66's headline is that the chooser may
+send out an ALLY's mon. Reaching that needs all three of ours down — which is **precisely
+`Cmd_checkteamslost`'s LOSS condition** for `TRAINER_STEVEN_PARTNER`: it sums HP over
+`gPlayerParty[0..2]`, the player's own picks only, and ends the battle the instant that hits zero.
+⇒ a repro built to demonstrate the headline would **whiteout instead of demonstrating it** — a
+second vacuous-A/B trap on the same item.
+✅ **What IS reachable on a single faint, and is therefore the discriminator:** `:630-636`'s
+`alive_slots` excludes only the ON-FIELD pair, so the ally's BENCHED mons stay A-press candidates
+("three of six slots are guaranteed-refused in this fight"), each refusal round-tripping
+`Task_ReturnToChooseMonAfterText`. That fires while two of ours are still alive, so the battle
+continues. **Grade on ATTEMPTED SLOT INDICES + refusal count — never on the battle's outcome,
+which is identical in both arms.**
+
+Build order recorded in KI-66: (a) a `ki66faint` driver SUBCLASSING `SpaceCenter2Mode` (the
+`boxcounter2` inherit-and-re-prove pattern); (b) instrument attempted slot indices; (c) confirm
+ARM A attempts ≥1 ally slot or re-derive BEFORE fixing; (d) only then wire the four sites through
+`ally_party_indices()`. ⚠ ARM B's behaviour when only ally mons remain stays a USER decision —
+`ally_party_indices` deliberately fails closed (`default.py:31-34`).
+
+⚠ **NOT BUILT. Nothing here has been driven live.** The four sites remain code-verified only.
+Also: `05-KNOWN-ISSUES.md` was over its 3,000-line R3 budget, so four superseded KI-65 pre-fix
+sections (recon A/B, the fault-injection seam, the DANGERS list, the three-part fix spec) moved
+verbatim to `31-KNOWN-ISSUES-ARCHIVE.md` behind stubs. Nothing deleted; KI-65 is closed and
+promoted, so its pre-fix investigation is history.
