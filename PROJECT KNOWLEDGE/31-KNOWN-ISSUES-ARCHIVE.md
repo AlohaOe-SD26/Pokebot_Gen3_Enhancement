@@ -2517,3 +2517,35 @@ how often that happens. Do not convert a static warning into a severity claim wi
 assigns it first.
 
 ---
+
+
+---
+
+# ARCHIVED 2026-08-16 — KI-65 RECON SECTION (C), the pre-fix fixture argument
+
+Moved out of `05-KNOWN-ISSUES.md` on the R3 3,000-line budget. ‼ Kept because it is a WORKED
+EXAMPLE of the failure this project cares about: careful reasoning that correctly rejected one
+discriminator and then proposed a second one that was equally vacuous, because it was never run.
+Verbatim, unedited.
+
+⛔ **(C) THE CAPTURED SAVES ARE A FIXTURE, NOT A REPRO.** `saves/movelearn_hmwedge_{quickattack,slash}.ss1`
+DO enter `CantForgetHM` on frame 0 (`repro_movelearn_hm_wedge.py`) — but on a fresh generator
+`last_confirmed_slot is None`, so `:273` is FALSE and **`:280` never executes**. Both arms already
+report `VERDICT = RESOLVED`, `moveset changed = False`. ‼ **So an A/B whose discriminator is
+"moveset unchanged" is VACUOUS — that is today's GREEN result.** ⛔⛔ **AND THE DISCRIMINATOR THIS ENTRY FIRST
+PRESCRIBED WAS ITSELF VACUOUS — corrected 2026-08-16 by a cold-start agent that COMPUTED it.** It
+said *"a non-empty `hm_blocked` plus a `context.message` containing `Replacing slot`"*. Traced:
+`hm_blocked.add(...)` is `:274`, **BEFORE** the `try:` at `:279`, so it is set whether or not `:280`
+raises — it proves *a slot was refused*, never *the re-pick ran*. And `"Replacing slot"` (`:295`) is
+**FALSE IN BOTH ARMS**: reaching it needs `party_index` BOUND, which is exactly when the `:395` HM
+veto works, and a working veto re-picks away from the HM so the game never refuses. ⇒ the
+conjunction is FALSE in both arms and would read as **NO DIFFERENCE — a refutation of a true
+finding.** ‼ *The fixture was corrected once; the DISCRIMINATOR was never re-derived against it.*
+✅ **THE DISCRIMINATOR THAT WORKS** (on `movelearn_hmwedge_quickattack.ss1` — COMBUSKEN L32:
+Scratch, **Rock Smash HM06**, Double Kick, Ember): **ARM A (fault ON)** → `:280` raises →
+`move_to_forget = 4` → the message *"Nothing else can be given up — declining the new move"* is
+printed **while THREE forgettable moves exist** (Scratch, Double Kick, Ember). **That message is a
+PROVABLE LIE, and the contradiction is the assertion.** **ARM B (fault OFF)** → the veto's own
+lowercase text (`:428-431`) or none. ⛔ `moveset changed` stays `False` in BOTH arms — never grade
+on it. Today an `UnboundLocalError` there prints *"Nothing else can be given up —
+declining the new move"* **with full confidence**, which is a lie the user can read.
