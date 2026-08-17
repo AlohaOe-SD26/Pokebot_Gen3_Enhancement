@@ -15935,3 +15935,60 @@ truth the party dump establishes, on every faint observed, before and after.
 ✅ Recorded in `custom-pokebot/DIVERGENCE-LOG.md` with the full measurement, the single-battle
 regression control, and an explicit list of what this does NOT close (the owner filter, `:541-545`,
 `_util.py:522-587`, and the filed `#24-faintchooser-fourthspace`).
+
+## 2026-08-17 — `#24-faintchooser-fourthspace` PROBED: no fourth index space; the anomaly is INERT
+
+**Deliverable: an OBSERVE-ONLY probe, and it changed no production code.** `--driver ki66faint`
+gained instrumentation captured entirely by rebinding module globals that `battle_handler` looks up
+at call time (`get_party_menu_cursor_pos` at `:741`, `press_button`), so the faint chooser's own
+cursor sequence and press stream are visible without editing a hot path.
+
+**RESULT — H0 on the pre-registered ACCEPTANCE clause.** On the one diverging faint the fixture
+produces: `menu_order=[1,3,4,5]  diverge=True  accepted=3  accepted_in_menu_order=True`. The last
+cursor the sweep read before the menu closed IS in `alive_slots_menu`, so the suspected double
+conversion does not manifest. ⇒ **Same shape as the owner filter: real in the log, inert in
+behaviour. ⛔ Do not "fix" it.**
+
+✅ **POSITIVE CONTROL, and it is the reason this result is trustworthy.** Against the PRE-FIX build
+the same probe recorded `cursor_reads=66, A-presses=239 (select=152 dismiss=87)`. It was run because
+the first fixed-code result was `cursor_reads=0, A-presses=0` — which was **an instrument bug, not a
+finding**: `_frame_now` was used but never defined in this driver, inside `except: pass`. Two
+comforting zeros. See `08-MISTAKES.md`.
+
+⚠ **STATED LIMITS, so nobody grades on more than was measured:**
+* The **refusal count is APPROXIMATE** — presses are counted at the emulator, which sees every press
+  while the menu is up, including `scroll_to_party_menu_index`'s (menuing.py, unwrapped). 129
+  "select" presses against 5 sweep cursor reads. **Only the acceptance clause is graded.**
+* **n = 1 diverging faint, one deterministic trajectory.** Repeat runs are byte-identical, so that
+  is a determinism check, NOT replication.
+* **RESIDUAL, UNPROVEN:** the strategy nominated party index 2 (Mightyena); the mon sent out was
+  Swellow (cursor 3). Legal and sensible, but not the nominated mon. Recorded, not investigated.
+
+**A second instrument bug fixed in the same probe:** the report ran after `yield from super().run()`,
+but `SpaceCenter2Mode.run()` ends with `set_manual_mode()`, after which the harness destroys the
+generator — a race that printed the report on one run and lost it on the next. Now inside a
+`finally:`, which runs on `GeneratorExit` too.
+
+⛔⛔ **DISCLOSURE — THE ACCEPTANCE CRITERION WAS RELAXED MID-INVESTIGATION.** H0 first required
+`in_set AND refusals == 0`; it was relaxed to `in_set` alone after the press data showed the refusal
+count is unusable (129 "select" presses against 5 sweep cursor reads ⇒ most come from
+`scroll_to_party_menu_index`, unwrapped). The reason is sound and the change was still made AFTER
+seeing the control's output, so it is disclosed rather than buried — an adversarial review caught it.
+✅ **THE VERDICT IS INVARIANT TO IT:** the decisive faint is `in_set=True, refusals=0` → **H0 under
+BOTH rules**. The relaxation only re-labels the PRE-FIX CONTROL arm (H1→H0), which is a control.
+
+✅ **THE STRONGEST BEFORE/AFTER, omitted from the first write-up:** on the SAME diverging faint,
+**refusals 5 → 0** and **attempted `[2,4,5,0,1,3]` → `[3]`** between pre-fix and fixed. One attempt
+instead of six — a better argument for the `_on_field` fix than the liveness counters.
+⚠ **Also omitted, now recorded:** the pre-fix control's SECOND faint reads
+`menu_order=[4,5] diverge=False accepted=3 accepted_in_menu_order=False`. That `False` is the shape
+this item worries about, but it is on the NON-diverging faint of the BUGGY build, where `alive_slots`
+is wrong for the unrelated `_on_field` reason and production's fallback (`:757-758`) widened the set.
+INCONCLUSIVE by the pre-registered rule — recorded so nobody finds it in a raw log and thinks it was hidden.
+
+‼ **EVIDENCE POINTERS — CITE THE HARNESS LOG, NOT STDOUT.** `...POSITIVE-CONTROL-prefix.stdout.txt`
+is TRUNCATED on the abrupt exit and does NOT contain the `cursor_reads=66` line the argument rests on.
+The harness's own log does, and both are now committed:
+`evidence/2026-08-17-fourthspace-{POSITIVE-CONTROL-prefix,DECISIVE-fixed}.harnesslog.txt`
+(stdout copies kept alongside as `.stdout.txt`). ‼ This session's own rule — *read the tool's own log
+before believing the pipe* — must govern what gets CITED, not only what gets read while debugging.

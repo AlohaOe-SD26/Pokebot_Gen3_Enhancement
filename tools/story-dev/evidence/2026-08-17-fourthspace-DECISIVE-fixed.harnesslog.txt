@@ -1,0 +1,120 @@
+[setup] LOG -> C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\harness_sandbox_ki66faint_20260817-095616_50532.log
+[setup] (unique per run by design — #24-orphans (4); pass --log to pin a path)
+[setup] loaded save state at_steven_2f.ss1; build=sandbox
+[run] starting faithful loop for up to 600000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ki66] SAFETY anchor=post_space_center.ss1 sha256[:12]=3e6899098c2f — capture DISABLED (CH19B_CAPTURE=0) because this run INJECTS; re-hashed at the end so the guard is proven, not claimed.
+f1: CONTROLLER -> Ki66FaintMode.run   (state=OVERWORLD)
+[ki66] STAGE slot 0 Sceptile:L48 HP 133/133 -> 1/133 (2 bytes at data[86:88]; everything else byte-identical)
+[ki66] CONTROL picks [0, 4, 2] -> [0, 4, 2]  staged_hp=1  fixture_ok=True
+[ch19b] START MOSSDEEP_CITY_SPACE_CENTER_2F(13, 2) MOSSDEEP_SPACE_CENTER_STATE=2 INTERACTED_WITH_STEVEN_SPACE_CENTER=False
+[ch19b] PARTY Sceptile:L48:1/133 Zigzagoon:L15:40/40 Swellow:L40:112/112 Skitty:L17:45/45 Mightyena:L44:130/130 Castform:L36:103/103
+[ch19b] INTENDED-PICKS slots=[0, 4, 2] (strongest first, max 3)
+f1257: SAVED stall state #1 to stalls/ki66-f1257.ss1 (bt='NICK got $640 for winning!')
+f1557: !!! NO-PROGRESS x1200 sig=('Ki66FaintMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L48:exp109132|Zigzagoon:L15:exp3733|Swellow:L40:exp59042|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020', (1, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] scripts=['MossdeepCity_SpaceCenter_2F_EventScript_Steven', 'Std_MsgboxDefault'] bt='NICK got $640 for winning!' bot_mode=Story
+f1557:     gen -> Ki66FaintMode.run  @ story_harness.py:3707
+f1557:     gen -> SpaceCenter2Mode.run  @ story_harness.py:3266
+f1557:     gen -> StoryWhiteoutRecoveryMixin.drive_with_recovery  @ story_harness.py:2967
+f1557:     gen -> fight_alongside_steven  @ space_center.py:705
+f1557:     gen -> _ride_out_all_scenes  @ early_game.py:474
+f1890: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=<err cannot import name 'get_text_printer' from 'modules.game' (C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\modules\game.py)> tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=Ki66FaintMode.run bt='NICK got $640 for winning!' scripts=[] party=[Sceptile:L48:exp109132|Zigzagoon:L15:exp3733|Swellow:L40:exp59042|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f2000: heartbeat mode=Story ctrl=Ki66FaintMode.run state=OVERWORLD party=[Sceptile:L48:exp109132|Zigzagoon:L15:exp3733|Swellow:L40:exp59042|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f3164: PARTY CHANGE [Sceptile:L48:exp109132|Zigzagoon:L15:exp3733|Swellow:L40:exp59042|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020] -> [Sceptile:L48:exp109132|Mightyena:L44:exp86121|Swellow:L40:exp59042]
+f3164: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=<err cannot import name 'get_text_printer' from 'modules.game' (C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\modules\game.py)> tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=Ki66FaintMode.run bt='NICK got $640 for winning!' scripts=['MossdeepCity_SpaceCenter_2F_EventScript_DoStevenMultiBattle'] party=[Sceptile:L48:exp109132|Mightyena:L44:exp86121|Swellow:L40:exp59042]
+f3396: PARTY CHANGE [Sceptile:L48:exp109132|Mightyena:L44:exp86121|Swellow:L40:exp59042] -> [Sceptile:L48:exp109132|Mightyena:L44:exp86121|Swellow:L40:exp59042|Metang:L42:exp92610|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f3823: battle_is_active -> True  party=[Sceptile:L48:exp109132|Mightyena:L44:exp86121|Swellow:L40:exp59042|Metang:L42:exp92610|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f3824: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f4000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L48:exp109132|Mightyena:L44:exp86121|Swellow:L40:exp59042|Metang:L42:exp92610|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f4724: SAVED stall state #2 to stalls/ki66-f4724.ss1 (bt='METANG')
+f6000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L48:exp109132|Mightyena:L44:exp86121|Swellow:L40:exp59042|Metang:L42:exp92610|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f6022: PARTY CHANGE [Sceptile:L48:exp109132|Mightyena:L44:exp86121|Swellow:L40:exp59042|Metang:L42:exp92610|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59042|Metang:L42:exp92610|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f6094: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59042|Metang:L42:exp92610|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59042|Metang:L42:exp93186|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f7908: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59042|Metang:L42:exp93186|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Metang:L42:exp93186|Mightyena:L44:exp86121|Swellow:L40:exp59042|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+[ki66] CHOSEN new_lead_index=2 allies=[1, 4, 5] IS_ALLY=False
+[ki66] FAINT-CHOOSER #1 ally_party_indices=[1, 4, 5] :: [FAINT-CHOOSER] alive_slots=[2, 3, 4, 5] on_field=[0, 1] party=[(0, 'Sceptile', 0), (1, 'Metang', 110), (2, 'Mightyena', 130), (3, 'Swellow', 112), (4, 'Skarmory', 149), (5, 'Aggron', 129)]
+[ki66] ONFIELD-PROBE raw=[0, 3] mapped=[0, 1] (production currently uses RAW)
+[ki66] FAINT-CHOOSER (index spaces) :: [FAINT-CHOOSER] index spaces: alive_slots=[2, 3, 4, 5](party-order) -> [1, 3, 4, 5](menu-order) on_field=[0, 1](party-order)  [orders DIVERGE]
+f7975: PARTY CHANGE [Sceptile:L48:exp109708|Metang:L42:exp93186|Mightyena:L44:exp86121|Swellow:L40:exp59042|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Swellow:L40:exp59042|Metang:L42:exp93186|Mightyena:L44:exp86121|Sceptile:L48:exp109708|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f7997: PARTY CHANGE [Swellow:L40:exp59042|Metang:L42:exp93186|Mightyena:L44:exp86121|Sceptile:L48:exp109708|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59042|Metang:L42:exp93186|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f8000: heartbeat mode=Story ctrl=BattleListener.fight state=UNKNOWN party=[Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59042|Metang:L42:exp93186|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f10000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59042|Metang:L42:exp93186|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f10531: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59042|Metang:L42:exp93186|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59981|Metang:L42:exp93186|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f10599: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59981|Metang:L42:exp93186|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59981|Metang:L42:exp94125|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f12000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59981|Metang:L42:exp94125|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f14000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59981|Metang:L42:exp94125|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f14133: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp59981|Metang:L42:exp94125|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp60806|Metang:L42:exp94125|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f14201: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp60806|Metang:L42:exp94125|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp60806|Metang:L42:exp94950|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f16000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp60806|Metang:L42:exp94950|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f16854: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp60806|Metang:L42:exp94950|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp61450|Metang:L42:exp94950|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f16855: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L40:exp61450|Metang:L42:exp94950|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp61450|Metang:L42:exp94950|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f16993: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp61450|Metang:L42:exp94950|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp61481|Metang:L42:exp94950|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f17060: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp61481|Metang:L42:exp94950|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp61481|Metang:L42:exp95625|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f18000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp61481|Metang:L42:exp95625|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f19131: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp61481|Metang:L42:exp95625|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp62001|Metang:L42:exp95625|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f19199: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp62001|Metang:L42:exp95625|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp62001|Metang:L42:exp96145|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f20000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp62001|Metang:L42:exp96145|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f21689: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp62001|Metang:L42:exp96145|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp62733|Metang:L42:exp96145|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f21757: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp62733|Metang:L42:exp96145|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp62733|Metang:L42:exp96877|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f22000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp62733|Metang:L42:exp96877|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f22352: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp62733|Metang:L42:exp96877|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f22364: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=<err cannot import name 'get_text_printer' from 'modules.game' (C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\modules\game.py)> tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeAndEnableScriptCtx'] ctrl=BattleListener.fight bt='NICK got $5120 for winning!' scripts=['MossdeepCity_SpaceCenter_2F_EventScript_DoStevenMultiBattle'] party=[Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp62733|Metang:L42:exp96877|Skarmory:L43:exp99383|Aggron:L44:exp106480]
+f22389: PARTY CHANGE [Sceptile:L48:exp109708|Mightyena:L44:exp86121|Swellow:L41:exp62733|Metang:L42:exp96877|Skarmory:L43:exp99383|Aggron:L44:exp106480] -> [Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f22389: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=<err cannot import name 'get_text_printer' from 'modules.game' (C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\modules\game.py)> tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] ctrl=BattleListener.fight bt='NICK got $5120 for winning!' scripts=['MossdeepCity_SpaceCenter_2F_EventScript_DefeatedMaxieTabitha', 'Std_MsgboxDefault'] party=[Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f23289: SAVED stall state #3 to stalls/ki66-f23289.ss1 (bt='NICK got $5120 for winning!')
+f23589: !!! NO-PROGRESS x1200 sig=('BattleListener.fight', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020', (1, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['MossdeepCity_SpaceCenter_2F_EventScript_DefeatedMaxieTabitha', 'Std_MsgboxDefault'] bt='NICK got $5120 for winning!' bot_mode=Story
+f23589:     gen -> isolate_inputs.<locals>.wrapper_function  @ _util_helper.py:10
+f23589:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f23589:     gen -> BattleListener.fight  @ _listeners.py:220
+f23589:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f23589:     gen -> BattleListener._wait_until_battle_is_over  @ _listeners.py:212
+f23841: CONTROLLER -> Ki66FaintMode.run   (state=OVERWORLD)
+f24000: heartbeat mode=Story ctrl=Ki66FaintMode.run state=OVERWORLD party=[Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+[ch19b] SELECTED gSelectedOrderFromParty=[1, 5, 3, 0] (stored as slot+1; 0 = empty)
+[ch19b] RESULT MOSSDEEP_SPACE_CENTER_STATE=3 map=MOSSDEEP_CITY_SPACE_CENTER_2F at=(1, 7) controllable=True whiteouts=0 recoveries=0 frames=3551087
+[ch19b] ACCEPTANCE: PASS (needs MOSSDEEP_SPACE_CENTER_STATE>=3 AND controllable)
+
+[ki66] faints=1  (LIVENESS: 0 means the faint chooser never ran and this run proves NOTHING about KI-66)
+[ki66] party-menu presses=361  scroll requests=1
+[ki66]   f3534547 asked for slot 2 (allies=[1, 4, 5]) own mon
+[ki66] ✅ KI66-ATTEMPT: every slot the chooser ASKED FOR was one of our own. ⛔ So ally slots sitting in `alive_slots` cost NOTHING on this trajectory — do not 'fix' the ally filter on the strength of this run.
+[ki66] SAFETY anchor intact = True (before=3e6899098c2f after=3e6899098c2f)
+[ki66] KI66-CANDIDATES: ally slots sat in `alive_slots` on 1 of 1 faint(s). ⚠ A CANDIDATE IS NOT AN ATTEMPT — see KI66-ATTEMPT above:
+[ki66]     alive_slots=[2, 3, 4, 5] allies=[1, 4, 5] OVERLAP=[4, 5]
+
+[ki66] PROBE cursor_reads=5 A-presses=129 (select=129 dismiss=0)
+[ki66] PROBE f3534574 menu_order=[1, 3, 4, 5] diverge=True attempted=[3] accepted=3 refusals=0 accepted_in_menu_order=True
+[ki66]   → **H0 on the ACCEPTANCE clause**: the last cursor the SWEEP read before the menu closed IS in `alive_slots_menu`. No fourth index space is demonstrated on this faint.
+[ki66]   (refusals=0 is APPROXIMATE - press attribution includes scroll_to_party_menu_index; grade only the ACCEPTANCE clause above)
+[ki66] ACCEPTANCE: PASS (INSTRUMENT health only — needs fixture_ok AND chooser_events>=1 AND anchor intact. The BUG verdict is KI66-FINDING above, and is deliberately NOT part of this line.)
+f24472: CONTROLLER -> <none>   (state=OVERWORLD)
+f25372: SAVED stall state #4 to stalls/ki66-f25372.ss1 (bt='NICK got $5120 for winning!')
+f25672: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020', (1, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects'] scripts=[] bt='NICK got $5120 for winning!' bot_mode=Manual
+f25672:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f26000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f27472: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020', (1, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects'] scripts=[] bt='NICK got $5120 for winning!' bot_mode=Manual
+f27472:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f28000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f30000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f32000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f32472: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020', (1, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects'] scripts=[] bt='NICK got $5120 for winning!' bot_mode=Manual
+f32472:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f34000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f36000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f38000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f39472: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020', (1, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects'] scripts=[] bt='NICK got $5120 for winning!' bot_mode=Manual
+f39472:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f40000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f42000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f44000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+f44472: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 44473 frames; final mode=Manual party=[Sceptile:L48:exp109708|Zigzagoon:L15:exp3733|Swellow:L41:exp62733|Skitty:L17:exp4598|Mightyena:L44:exp86121|Castform:L36:exp47020]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L48: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Zigzagoon L15: Tackle, Growl, Surf, Headbutt
+[moveset] Swellow L41: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Skitty L17: Sing, Tackle, Tail Whip, Attract
+[moveset] Mightyena L44: Tackle, Taunt, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 44474 get_party() recomputes, 149 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT]   STALE:slots [3, 4, 5] hold data past gPlayerPartyCount=3; the game does NOT count them as party members, so a naive 'count the filled slots' reader would over-count here  x1
+[PARTY-ACCT] ledger += ki66faint 44474 recomputes (party_accounting_ledger.jsonl)

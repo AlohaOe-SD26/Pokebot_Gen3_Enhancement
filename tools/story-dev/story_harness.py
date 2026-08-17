@@ -3393,6 +3393,7 @@ class Ki66FaintMode(SpaceCenter2Mode):
 
         _orig_event = debug_logger.event
         chooser: list[tuple[str, object]] = []
+        spaces: list[dict] = []
 
         def _recording_event(message, *, category="STORY"):
             text = str(message)
@@ -3407,6 +3408,25 @@ class Ki66FaintMode(SpaceCenter2Mode):
             # as the COUNT, and the diagnostic silently vanished from the post-fix transcript.
             if "[FAINT-CHOOSER]" in text and "index spaces:" in text:
                 log(f"[ki66] FAINT-CHOOSER (index spaces) :: {text}")
+                # Capture the MENU-order candidate set + whether the orders diverge. The
+                # fourth-index-space question is only DECIDABLE on a faint that diverges;
+                # `[orders agree]` is pre-registered as INCONCLUSIVE, never support for H0.
+                try:
+                    import re as _re
+
+                    _m = _re.search(r"->\s*\[([^\]]*)\]\(menu-order\)", text)
+                    _menu = [int(x) for x in _m.group(1).split(",") if x.strip()] if _m else []
+                    spaces.append({
+                        "frame": context.emulator.get_frame_count(),
+                        "menu_order": _menu,
+                        "diverge": "[orders DIVERGE]" in text,
+                        "press_index": len(a_presses),
+                    })
+                except Exception as _err:  # noqa: BLE001
+                    # ‼ NAME THE NAME. The first cut logged only the exception CLASS, and
+                    # "NameError" alone cost a run to diagnose — the same "a bare type is not a
+                    # diagnosis" lesson KI-65 taught, reproduced inside the probe built to study it.
+                    log(f"[ki66] index-space capture failed: {type(_err).__name__}: {_err}")
             if "[FAINT-CHOOSER]" in text and "index spaces:" not in text:
                 try:
                     from modules.battle_state import get_battle_state
@@ -3471,11 +3491,36 @@ class Ki66FaintMode(SpaceCenter2Mode):
 
         _bh.scroll_to_party_menu_index = _recording_scroll
 
-        # Presses spent INSIDE the party menu — the cost the give-up dump only reports after 6000
-        # frames, i.e. never on a run that recovers. Without this "absorbed by the refusal layer"
-        # is an unmeasured claim.
+        # ---- #24-faintchooser-fourthspace: the OBSERVE-ONLY PROBE ----------------------
+        # ‼ ZERO PRODUCTION CHANGE. Everything below is captured by rebinding module globals
+        # that `battle_handler` looks up at CALL time. It does not alter a single decision:
+        # every wrapper records and then delegates. The observer control (identical milestone
+        # frames vs the previous run) is what proves that, and it is asserted at the end.
+        #
+        # THE QUESTION: `alive_slots_menu` is `alive_slots` mapped through
+        # `map_battle_party_index`. But `party_in_menu = get_party()` is read while the menu is
+        # OPEN, i.e. already permuted by `UpdatePartyToBattleOrder` — so that may be a SECOND
+        # conversion of an already-converted value (the same shape as KI-18/KI-34/KI-66).
+        #   H0 mapping correct   => the game ACCEPTS a cursor that IS in `alive_slots_menu`,
+        #                           with ZERO refusals first.
+        #   H1 fourth index space=> it accepts one that is NOT in it, after >=1 REFUSAL.
+        # The ROM votes: production already learns refusals structurally (`:747-750`).
+        _probe_err = {"press": False, "cursor": False}
         menu_presses = {"n": 0}
+        cursor_reads: list[tuple] = []      # (frame, cursor)
+        a_presses: list[tuple] = []         # (frame, cursor, kind)  kind = select | dismiss
         _orig_press = context.emulator.press_button
+
+        def _printer_armed() -> bool:
+            try:
+                from modules.tasks import task_is_active
+
+                return bool(
+                    task_is_active("Task_PrintAndWaitForText")
+                    or task_is_active("Task_ReturnToChooseMonAfterText")
+                )
+            except Exception:  # noqa: BLE001
+                return False
 
         def _counting_press(button):
             try:
@@ -3483,11 +3528,39 @@ class Ki66FaintMode(SpaceCenter2Mode):
 
                 if get_game_state() == GameState.PARTY_MENU:
                     menu_presses["n"] += 1
-            except Exception:  # noqa: BLE001
-                pass
+                    if button == "A":
+                        # ‼ MIRROR PRODUCTION'S OWN DISTINCTION (`:768-770`): an A pressed while
+                        # the printer is armed DISMISSES "X has no energy left", it does not
+                        # select. Counting those as attempts would inflate the refusal count and
+                        # fake H1.
+                        kind = "dismiss" if _printer_armed() else "select"
+                        cur = cursor_reads[-1][1] if cursor_reads else None
+                        a_presses.append((context.emulator.get_frame_count(), cur, kind))
+            except Exception as _err:  # noqa: BLE001
+                # ‼ ONE-SHOT LOUD. The first cut swallowed this, and an UNBOUND NAME inside the
+                # handler made `A-presses=0` — a COMFORTING ZERO that looked like a finding.
+                if not _probe_err["press"]:
+                    _probe_err["press"] = True
+                    log(f"[ki66] ‼ PROBE press-hook FAILED: {type(_err).__name__}: {_err}")
             return _orig_press(button)
 
         context.emulator.press_button = _counting_press
+
+        # `battle_handler` imports this at module scope (`:22`) and calls it at `:741`, so
+        # rebinding ITS global observes only the faint chooser's reads — not menuing.py's.
+        _orig_cursor = _bh.get_party_menu_cursor_pos
+
+        def _recording_cursor(*a, **kw):
+            result = _orig_cursor(*a, **kw)
+            try:
+                cursor_reads.append((context.emulator.get_frame_count(), result["slot_id"]))
+            except Exception as _err:  # noqa: BLE001
+                if not _probe_err["cursor"]:
+                    _probe_err["cursor"] = True
+                    log(f"[ki66] ‼ PROBE cursor-hook FAILED: {type(_err).__name__}: {_err}")
+            return result
+
+        _bh.get_party_menu_cursor_pos = _recording_cursor
 
         yield from wait_until_truly_controllable()
 
@@ -3534,58 +3607,106 @@ class Ki66FaintMode(SpaceCenter2Mode):
             + ("" if fixture_ok else "  ‼ the staged mon is NOT the lead pick — it cannot faint"))
 
         # ---- drive the REAL beat (re-proves party selection + the multi battle) ---------
-        yield from SpaceCenter2Mode.run(self)
+        # ‼ THE REPORT MUST SURVIVE THE GENERATOR BEING CLOSED. `SpaceCenter2Mode.run()` ends with
+        # `context.set_manual_mode()`, after which the harness clears the controller stack and
+        # DESTROYS this generator — so code placed after the `yield from` is a RACE. It printed on
+        # one run and vanished on the next, which looked like an empty result rather than a lost
+        # one. A `finally` runs on GeneratorExit too, so the measurement is never silently lost.
+        def _emit_report():
 
-        # ---- report --------------------------------------------------------------------
-        ally_hits: list[str] = []
-        for text, allies in chooser:
-            match = re.search(r"alive_slots=\[([^\]]*)\]", text)
-            slots = (
-                [int(part) for part in match.group(1).split(",") if part.strip()]
-                if match
-                else []
-            )
-            if isinstance(allies, list):
-                overlap = sorted(set(slots) & set(allies))
-                if overlap:
-                    ally_hits.append(f"alive_slots={slots} allies={allies} OVERLAP={overlap}")
+            # ---- report --------------------------------------------------------------------
+            ally_hits: list[str] = []
+            for text, allies in chooser:
+                match = re.search(r"alive_slots=\[([^\]]*)\]", text)
+                slots = (
+                    [int(part) for part in match.group(1).split(",") if part.strip()]
+                    if match
+                    else []
+                )
+                if isinstance(allies, list):
+                    overlap = sorted(set(slots) & set(allies))
+                    if overlap:
+                        ally_hits.append(f"alive_slots={slots} allies={allies} OVERLAP={overlap}")
 
-        anchor_after = hashlib.sha256(anchor.read_bytes()).hexdigest() if anchor.is_file() else None
-        anchor_intact = anchor_after == anchor_before
+            anchor_after = hashlib.sha256(anchor.read_bytes()).hexdigest() if anchor.is_file() else None
+            anchor_intact = anchor_after == anchor_before
 
-        log("")
-        log(f"[ki66] faints={len(chooser)}  (LIVENESS: 0 means the faint chooser never ran and this "
-            f"run proves NOTHING about KI-66)")
-        log(f"[ki66] party-menu presses={menu_presses['n']}  scroll requests={len(scrolls)}")
-        for frame, index, allies, is_ally in scrolls:
-            log(f"[ki66]   f{frame} asked for slot {index} (allies={list(allies)}) "
-                f"{'‼ ALLY — the ROM refuses it' if is_ally else 'own mon'}")
-        ally_asks = [s for s in scrolls if s[3]]
-        if ally_asks:
-            log(f"[ki66] ‼‼ KI66-ATTEMPT: the chooser ASKED FOR an ally slot {len(ally_asks)} time(s) "
-                f"— that is an attempt the ROM refuses unconditionally, not merely a candidate list.")
-        elif scrolls:
-            log("[ki66] ✅ KI66-ATTEMPT: every slot the chooser ASKED FOR was one of our own. "
-                "⛔ So ally slots sitting in `alive_slots` cost NOTHING on this trajectory — do not "
-                "'fix' the ally filter on the strength of this run.")
-        log(f"[ki66] SAFETY anchor intact = {anchor_intact} "
-            f"(before={(anchor_before or '<absent>')[:12]} after={(anchor_after or '<absent>')[:12]})")
-        if ally_hits:
-            log(f"[ki66] KI66-CANDIDATES: ally slots sat in `alive_slots` on {len(ally_hits)} of "
-                f"{len(chooser)} faint(s). ⚠ A CANDIDATE IS NOT AN ATTEMPT — see KI66-ATTEMPT above:")
-            for hit in ally_hits:
-                log(f"[ki66]     {hit}")
-        elif chooser:
-            log("[ki66] ✅ KI66-FINDING: NO ally slot appeared in `alive_slots` on any faint. "
-                "⛔ On THIS fixture the hazard did not materialise — do NOT 'fix' it on the "
-                "strength of this run; the A/B would be vacuous. RE-DERIVE the discriminator.")
-        else:
-            log("[ki66] ⛔ KI66-FINDING: NOT MEASURED — the chooser never ran.")
+            log("")
+            log(f"[ki66] faints={len(chooser)}  (LIVENESS: 0 means the faint chooser never ran and this "
+                f"run proves NOTHING about KI-66)")
+            log(f"[ki66] party-menu presses={menu_presses['n']}  scroll requests={len(scrolls)}")
+            for frame, index, allies, is_ally in scrolls:
+                log(f"[ki66]   f{frame} asked for slot {index} (allies={list(allies)}) "
+                    f"{'‼ ALLY — the ROM refuses it' if is_ally else 'own mon'}")
+            ally_asks = [s for s in scrolls if s[3]]
+            if ally_asks:
+                log(f"[ki66] ‼‼ KI66-ATTEMPT: the chooser ASKED FOR an ally slot {len(ally_asks)} time(s) "
+                    f"— that is an attempt the ROM refuses unconditionally, not merely a candidate list.")
+            elif scrolls:
+                log("[ki66] ✅ KI66-ATTEMPT: every slot the chooser ASKED FOR was one of our own. "
+                    "⛔ So ally slots sitting in `alive_slots` cost NOTHING on this trajectory — do not "
+                    "'fix' the ally filter on the strength of this run.")
+            log(f"[ki66] SAFETY anchor intact = {anchor_intact} "
+                f"(before={(anchor_before or '<absent>')[:12]} after={(anchor_after or '<absent>')[:12]})")
+            if ally_hits:
+                log(f"[ki66] KI66-CANDIDATES: ally slots sat in `alive_slots` on {len(ally_hits)} of "
+                    f"{len(chooser)} faint(s). ⚠ A CANDIDATE IS NOT AN ATTEMPT — see KI66-ATTEMPT above:")
+                for hit in ally_hits:
+                    log(f"[ki66]     {hit}")
+            elif chooser:
+                log("[ki66] ✅ KI66-FINDING: NO ally slot appeared in `alive_slots` on any faint. "
+                    "⛔ On THIS fixture the hazard did not materialise — do NOT 'fix' it on the "
+                    "strength of this run; the A/B would be vacuous. RE-DERIVE the discriminator.")
+            else:
+                log("[ki66] ⛔ KI66-FINDING: NOT MEASURED — the chooser never ran.")
 
-        ok = bool(fixture_ok and chooser and anchor_intact)
-        log(f"[ki66] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (INSTRUMENT health only — needs "
-            f"fixture_ok AND chooser_events>=1 AND anchor intact. The BUG verdict is KI66-FINDING "
-            f"above, and is deliberately NOT part of this line.)")
+            # ---- #24-faintchooser-fourthspace ADJUDICATION -------------------------------
+            selects = [(f, c) for f, c, k in a_presses if k == "select"]
+            dismisses = sum(1 for _f, _c, k in a_presses if k == "dismiss")
+            log("")
+            log(f"[ki66] PROBE cursor_reads={len(cursor_reads)} A-presses={len(a_presses)} "
+                f"(select={len(selects)} dismiss={dismisses})")
+            for sp in spaces:
+                after = [c for f, c in selects if f >= sp["frame"]]
+                accepted = after[-1] if after else None
+                attempted = []
+                for c in after:
+                    if c not in attempted:
+                        attempted.append(c)
+                refusals = max(0, len(attempted) - 1)
+                in_set = (accepted in sp["menu_order"]) if accepted is not None else None
+                log(f"[ki66] PROBE f{sp['frame']} menu_order={sp['menu_order']} "
+                    f"diverge={sp['diverge']} attempted={attempted} accepted={accepted} "
+                    f"refusals={refusals} accepted_in_menu_order={in_set}")
+                if not sp["diverge"]:
+                    log("[ki66]   → INCONCLUSIVE for the fourth-index-space question "
+                        "([orders agree]; pre-registered as NOT support for H0).")
+                elif accepted is None:
+                    log("[ki66]   → INCONCLUSIVE - no selection A-press recorded after this faint.")
+                elif in_set:
+                    log("[ki66]   → **H0 on the ACCEPTANCE clause**: the last cursor the SWEEP read "
+                        "before the menu closed IS in `alive_slots_menu`. No fourth index space is "
+                        "demonstrated on this faint.")
+                else:
+                    log("[ki66]   → **H1 on the ACCEPTANCE clause**: the accepted cursor is NOT in "
+                        "`alive_slots_menu` - consistent with a FOURTH index space. VERIFY before acting.")
+                # ‼ THE REFUSAL CLAUSE IS APPROXIMATE AND MUST NOT BE GRADED ON. Presses are counted
+                # via `context.emulator.press_button`, which sees EVERY press made while the party menu
+                # is up - including `scroll_to_party_menu_index`'s (menuing.py, NOT wrapped here). This
+                # run recorded 129 \"select\" presses against only 5 sweep cursor reads, so most were not
+                # sweep attempts at all. Report it, never conclude from it.
+                log(f"[ki66]   (refusals={refusals} is APPROXIMATE - press attribution includes "
+                    f"scroll_to_party_menu_index; grade only the ACCEPTANCE clause above)")
+
+            ok = bool(fixture_ok and chooser and anchor_intact)
+            log(f"[ki66] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (INSTRUMENT health only — needs "
+                f"fixture_ok AND chooser_events>=1 AND anchor intact. The BUG verdict is KI66-FINDING "
+                f"above, and is deliberately NOT part of this line.)")
+
+        try:
+            yield from SpaceCenter2Mode.run(self)
+        finally:
+            _emit_report()
         return
 
 

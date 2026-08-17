@@ -506,7 +506,21 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       actual A/B, and these deserve the same.
 
 
-- [ ] `#24-driftassertions` — **NEW 2026-08-16, from MEASURED churn: the docs assert the absolute
+- [ ] `#24-driftassertions` — ⬆ **PROMOTED TO NEXT ITEM 2026-08-17: THE EVIDENCE IS NOW OVERWHELMING
+      AND THE FIX IS A GATE, NOT A HABIT.** On 2026-08-17 the figure flipped 0→1→0→1→0 again, and
+      **THREE separate stale drift claims survived my own sweeps** and had to be caught by three
+      different audit agents — one of them sat in THE 60-SECOND VERSION, the block written for a
+      reader who reads nothing else, telling the next session to ask the user for a ruling already
+      given and executed. ‼ **`audit_doc_consistency.py` exits 0 over ALL of them**: it matches digit
+      forms like `drift is 0` and walks past `0 as of`, `NOT ZERO`, `zero`, and `1 differing`.
+      ✅ **THE DELIVERABLE IS A GATE EXTENSION, and it is cheap:** teach `audit_doc_consistency.py`
+      to (a) find EVERY sentence asserting a drift figure, WORD FORMS INCLUDED, and (b) compare each
+      against the MEASURED figure from `promote.py`'s own logic. ⛔ **FAULT-TEST IT BOTH WAYS** — prove
+      it fires on a stale claim AND that it does NOT fire on a clearly-marked historical one, because
+      this file is full of deliberately-preserved past figures and a gate with false positives would
+      be bypassed within a day (the project's own rule). ‼ Note the recursion hazard already
+      recorded below: the gate red-flagged the ORIGINAL draft of this very bullet.
+      *(Original filing:)* **NEW 2026-08-16, from MEASURED churn: the docs assert the absolute
       sandbox→custom drift NUMBER in ~10 places, so EVERY sandbox edit invalidates all of them.**
       In this session alone the figure went **0 → 1 → 0 → 1 → 0 → 3**, and each flip cost ~13 hand
       edits across 4-5 files. ‼ Twice a survivor was missed: once because the stale
@@ -3486,7 +3500,56 @@ failsafes that an in-process mode cannot have, and remains the right tool for a 
 
 ### `#24-faintchooser-fourthspace` — a POSSIBLE FOURTH INDEX SPACE in the faint chooser (filed 2026-08-17)
 
-- [ ] **Not a confirmed bug — a MEASURED ANOMALY that needs its own probe.** After KI-66's
+- [x] **✅ PROBED AND ANSWERED 2026-08-17 — NO FOURTH INDEX SPACE IS DEMONSTRATED. The anomaly is
+      INERT on the only trajectory we can produce. ⛔ DO NOT "FIX" IT.**
+      **The probe:** `--driver ki66faint` gained OBSERVE-ONLY instrumentation — **zero production
+      change**, everything captured by rebinding module globals `battle_handler` looks up at call
+      time (`get_party_menu_cursor_pos` at `:741`, plus `press_button`).
+      **RESULT (fixed code, the one diverging faint available):**
+      `menu_order=[1,3,4,5]  diverge=True  accepted=3  accepted_in_menu_order=True`
+      ⇒ **H0**: the last cursor the SWEEP read before the menu closed IS in `alive_slots_menu`.
+      The suspected double conversion does not manifest. Same shape as the OWNER filter: real in
+      the log, inert in behaviour.
+      ✅✅ **POSITIVE CONTROL — and it earned its keep.** Against the PRE-FIX build the same probe
+      recorded `cursor_reads=66, A-presses=239 (select=152 dismiss=87)`, proving the instrument CAN
+      see. ‼ **CITE THE `.harnesslog.txt`, NOT THE `.stdout.txt`** — stdout is TRUNCATED on the abrupt
+      exit and does not contain that line; the harness's own log does. ‼ It was run precisely because the first fixed-code result was `cursor_reads=0,
+      A-presses=0` — which turned out to be **an instrument bug, not a finding** (see below).
+      ⚠ **KNOWN LIMITATION, STATED SO NOBODY GRADES ON IT:** the refusal count is APPROXIMATE.
+      Presses are counted via `context.emulator.press_button`, which sees every press while the
+      party menu is up — including `scroll_to_party_menu_index`'s, in `menuing.py`, which is NOT
+      wrapped. The run recorded 129 "select" presses against only 5 sweep cursor reads, so most
+      were not sweep attempts. **Only the ACCEPTANCE clause is graded.**
+      ⚠ **n = 1 diverging faint, one deterministic trajectory** (repeat runs are byte-identical, so
+      that is a determinism check, NOT replication). The pre-registered rule was satisfied
+      (≥1 faint printing `[orders DIVERGE]`), but a second INDEPENDENT trajectory would strengthen it.
+      ⛔⛔ **DISCLOSURE — THE ACCEPTANCE CRITERION WAS RELAXED MID-INVESTIGATION, AFTER seeing the
+      control's output. Read this before trusting the verdict.** The probe first required
+      `in_set AND refusals == 0` for H0. It was relaxed to `in_set` alone once the press data showed
+      the refusal count is unusable (129 "select" presses against 5 sweep cursor reads ⇒ most presses
+      come from `scroll_to_party_menu_index`, which is not wrapped). ‼ **That is a legitimate reason
+      and it was still discovered AFTER the fact, so it is disclosed rather than buried.**
+      ✅ **THE VERDICT DOES NOT DEPEND ON IT.** The decisive faint reads `in_set=True, refusals=0`,
+      which is **H0 under BOTH the strict and the relaxed rule**. The relaxation only re-labels the
+      PRE-FIX CONTROL arm (`in_set=True, refusals=5`: H1 under the old rule, H0 under the new) — and
+      that arm is a control, not the result. *(An adversarial review caught the undisclosed change;
+      it was right to.)*
+      ✅ **THE STRONGEST BEFORE/AFTER, which the first write-up omitted:** on the SAME diverging faint,
+      **refusals fell 5 → 0 and attempted fell `[2,4,5,0,1,3]` → `[3]`** between the pre-fix and fixed
+      builds. One attempt instead of six. That is a better argument for the `_on_field` fix than the
+      instrument-liveness numbers, and it is now recorded rather than left in a raw log.
+      ⚠ **AND THE PRE-FIX CONTROL'S SECOND FAINT, also omitted at first:**
+      `menu_order=[4,5] diverge=False attempted=[4,5,0,1,2,3] accepted=3 accepted_in_menu_order=False`.
+      `accepted_in_menu_order=False` is exactly the shape this item worries about — but it is on the
+      NON-diverging faint of the BUGGY build, where `alive_slots` is wrong for the unrelated
+      `_on_field` reason, and production's own fallback (`:757-758`) is what widened the set. Marked
+      INCONCLUSIVE by the pre-registered rule. ‼ Recorded so nobody discovers it in a raw log and
+      thinks it was hidden.
+      ⚠ **RESIDUAL OBSERVATION, UNPROVEN:** the strategy nominated party index **2** (Mightyena) while
+      the mon actually sent out was **Swellow** (cursor 3). Legal, alive, and sensible — but not the
+      nominated mon. Not investigated; recorded so it is not lost.
+
+      *(Original filing, kept for the reasoning:)* **Not a confirmed bug — a MEASURED ANOMALY that needs its own probe.** After KI-66's
       `_on_field` fix, the chooser's own diagnostic reads:
       `alive_slots=[2,3,4,5](party-order) -> [1,3,4,5](menu-order)  [orders DIVERGE]`
       i.e. `_to_menu_order` maps slot **2 → 1**, so the cursor sweep's candidate set
