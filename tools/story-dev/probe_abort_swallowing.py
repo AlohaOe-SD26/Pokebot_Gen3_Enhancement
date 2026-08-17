@@ -202,7 +202,13 @@ def self_test() -> int:
 #: house pattern for exactly this situation: real debt, no clean zero, but no new debt either.
 #: ‼ LOWER IT whenever sites are fixed (that is the ratchet turning); NEVER raise it. A raise means
 #: someone added a new unguarded broad `except` around a `yield from` in the story path.
-BASELINE = 36  # measured 2026-08-17, after 8 sites were fixed and refinement (1) landed.
+#: ‼ PER BUILD, because the guards are SANDBOX-ONLY until a promotion the USER has to approve.
+#: A single number made the documented `--build custom` command exit 1 for a reason that is not a
+#: regression — a cold-start audit ran it, got a red FAIL, and had nothing telling it that custom is
+#: EXPECTED to be higher. ⛔ A gate that fails for an expected reason is one people learn to ignore.
+#: ⇒ when the `#24-abortswallow` guards are promoted, custom's figure becomes sandbox's; lower it then.
+_BASELINES = {"sandbox": 36, "custom": 44}  # measured 2026-08-17
+BASELINE = _BASELINES[_BUILD]
 
 
 def main() -> int:

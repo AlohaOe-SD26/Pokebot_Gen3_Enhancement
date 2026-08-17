@@ -16475,3 +16475,36 @@ makes the whole analysis worthless — every site comes out REACHABLE — becaus
 collides (`subprocess.run` vs `PokecenterLoopController.run`, which calls `heal_in_pokemon_center`).
 Anyone revisiting call-graph work in this repo needs import-aware resolution or they will get 37/0/0
 and believe the filter does nothing.
+
+### 2026-08-17 (same item, Tier 2) — two places still commissioned the REFUTED refinement, unmarked
+
+The cold-start audit's most expensive finding: **`03-PUNCH-LIST.md` and `05-KNOWN-ISSUES.md` both still
+carried the paragraph recommending refinement (2)** — *"two cheap refinements would cut 45 → ~16"* —
+with an effort estimate, presented as live advice, **eight lines below its own refutation**, and with
+no supersession marker. KI-81 also closed with *"triage, fix, THEN promote the probe to a gate"*, the
+last thing a skimmer reads. Acting on either rebuilds a day of refuted work and can ship a gate that
+HIDES real defects. Both are now marked SUPERSEDED with the reason attached.
+
+‼ **This is the same failure the session has now hit four times: the FIX was written where the work
+happened, and the ORIGINAL RECOMMENDATION was left standing somewhere else.** A refutation is not
+complete until every place that recommended the thing says so.
+
+**Also fixed from the same audit, all measured not read:**
+* KI-81's header said the probe is *"NOT gate-ready"* — it **is** gate #27 — and both header and body
+  said 37 candidates; measured **36**.
+* ⛔ **A RUNNABLE COMMAND in HOW TO RUN was annotated `# KI-81: 37 candidates remain` and its real
+  output was `FAIL — 44, ABOVE the baseline`.** The baseline was a single number while the guards are
+  SANDBOX-ONLY, so the documented `--build custom` invocation exited 1 for a reason that is not a
+  regression. ⇒ **the baseline is now PER BUILD** (`sandbox 36 / custom 44`); both exit 0, and custom's
+  figure becomes sandbox's when the guards are promoted. *A gate that fails for an expected reason is
+  one people learn to ignore.*
+* Four copies of one sentence said *"the suite is 26 now"* (measured 27) — it had already been stale at
+  25. All four now name `run_gates.py` instead of a digit.
+* Three present-tense drift claims said 0 or 2; measured **4**.
+* `00-README`'s row for `31-KNOWN-ISSUES-ARCHIVE.md` called it resolved-only while that file's own top
+  says two pathfinder bugs in it are OPEN — a **fourth** place disagreeing about KI-59.
+
+⚠ **And the finding that matters most for how much to trust Tier 0:** `audit_doc_consistency.py`
+exited **0** over every one of those stale numbers. **A green doc gate is not evidence the numbers are
+right** — it is evidence that the shapes it knows about are right. That is precisely what
+`#24-probecountgate` was filed to close, and this audit produced four fresh examples for it.

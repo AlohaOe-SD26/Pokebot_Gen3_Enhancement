@@ -2233,7 +2233,7 @@ the 6000-frame per-invocation bound, with only two refusable slots to burn throu
 
 ### ✅✅✅ FIXED AND PROMOTED TO BOTH FORKS 2026-08-17 (user-approved)
 
-✅ **PROMOTED TO BOTH FORKS 2026-08-17, USER-APPROVED — drift was 0 at that point.** *(⚠ It is 2 today for the UNRELATED `#24-orphans` (1) files; this KI is still promoted. MEASURE with `promote.py --check`.)* Proven by a THREE-POINT A/B against `--build custom`: BEFORE `on_field=[0,3]`/`[1,3]`, 2 faints, 486 presses → AFTER `on_field=[0,1]`, 1 faint, 361 presses → sandbox control IDENTICAL to AFTER. Restore point `restore/2026-08-17-pre-promotion-ki66-onfield`.
+✅ **PROMOTED TO BOTH FORKS 2026-08-17, USER-APPROVED — drift was 0 at that point.** *(⚠ It is **4** today for UNRELATED sandbox-only files; this KI is still promoted. MEASURE with `promote.py --check`.)* Proven by a THREE-POINT A/B against `--build custom`: BEFORE `on_field=[0,3]`/`[1,3]`, 2 faints, 486 presses → AFTER `on_field=[0,1]`, 1 faint, 361 presses → sandbox control IDENTICAL to AFTER. Restore point `restore/2026-08-17-pre-promotion-ki66-onfield`.
 
 `_on_field` now maps through `BattleState.map_battle_party_index` before being compared against
 `party_in_menu`, mirroring what `alive_slots` three blocks below has done since KI-34.
@@ -2289,7 +2289,7 @@ is what makes that zero trustworthy). ⚠ Limits: refusal count APPROXIMATE, n=1
 committed — a cold-start audit found `05` still commissioning finished work that `03` and `04`
 both marked `[x]`. Corrected 2026-08-17.)*
 
-✅ **SAFETY:** all gates PASSED when that landed (**25** at the time; the suite is **26** now — `run_gates.py` IS the authority) (measured), including `repro_multi_battle_partner.py`,
+✅ **SAFETY:** all gates PASSED when that landed (**25** at the time — ⛔ the CURRENT count is deliberately not repeated here; `run_gates.py` prints it and IS the authority. This sentence has now been stale at 25 AND at 26 — `run_gates.py` IS the authority) (measured), including `repro_multi_battle_partner.py`,
 `repro_whiteout_abort.py` and the 114s `repro_gym_whiteout_guard.py` — this filter runs in EVERY
 battle, not only multi battles, so those were the ones that mattered.
 ⛔ **STILL OPEN:** the owner filter itself (`alive_slots` has no OT check) is UNFIXED and remains
@@ -2338,7 +2338,7 @@ number in prose** — it is the only thing that counts them.
 ## KI-65 — ✅✅✅ **CLOSED 2026-08-16: REPRODUCED, FIXED, A/B-PROVEN, GATED (#25) AND PROMOTED TO BOTH FORKS (user-approved).** Was: the HM-refusal re-pick raises `UnboundLocalError` into a silent `except` **WHEN `_read_offered_move` HAS ALREADY FAILED**, so two invisible failures compound into a silent decline (filed 2026-08-12, code-verified)
 
 > ⛔ **STATUS IN ONE LINE:** the bug is FIXED in `sandbox-pokebot` and guarded by gate #25
-> (`repro_ki65_unbound_party_index.py`). ✅ **PROMOTED 2026-08-16, USER-APPROVED — drift was 0 at that point. ✅ **AND IT WAS ZERO AGAIN as of 2026-08-17** *(⚠ but it is **2 today** for the UNRELATED `#24-orphans` (1) files — this KI is still promoted. MEASURE with `promote.py --check`; a same-day past tense reads as today's figure, which is why this caveat matches KI-66's.)* — the KI-66 `_on_field` fix was PROMOTED the same day (user-approved). *(This clause briefly read "NOT ZERO … a ruling is owed", which was true for about an hour and then was not; it is the reason rule 8 below exists. MEASURE with `promote.py --check`.)*** The KI-65 fix is in BOTH forks, proven by a THREE-POINT A/B against `--build custom`: BEFORE `fault_fired=159, lie_msg=1` → `ACCEPTANCE: FAIL`; AFTER `fault_fired=87, lie_msg=0, honest_msg=1` → `ACCEPTANCE: PASS`; and `--build sandbox` still PASS. Restore point `restore/2026-08-16-pre-promotion-ki65`. ‼ Everything below the "RECON" heading is the
+> (`repro_ki65_unbound_party_index.py`). ✅ **PROMOTED 2026-08-16, USER-APPROVED — drift was 0 at that point. ✅ **AND IT WAS ZERO AGAIN as of 2026-08-17** *(⚠ but it is **4 today** for UNRELATED sandbox-only files — this KI is still promoted. MEASURE with `promote.py --check`; a same-day past tense reads as today's figure, which is why this caveat matches KI-66's.)* — the KI-66 `_on_field` fix was PROMOTED the same day (user-approved). *(This clause briefly read "NOT ZERO … a ruling is owed", which was true for about an hour and then was not; it is the reason rule 8 below exists. MEASURE with `promote.py --check`.)*** The KI-65 fix is in BOTH forks, proven by a THREE-POINT A/B against `--build custom`: BEFORE `fault_fired=159, lie_msg=1` → `ACCEPTANCE: FAIL`; AFTER `fault_fired=87, lie_msg=0, honest_msg=1` → `ACCEPTANCE: PASS`; and `--build sandbox` still PASS. Restore point `restore/2026-08-16-pre-promotion-ki65`. ‼ Everything below the "RECON" heading is the
 > PRE-FIX investigation, kept because three of its load-bearing claims were WRONG and a future
 > session must not re-derive them. **Read the FIX block immediately below first.**
 
@@ -2830,7 +2830,7 @@ Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans 
   discards the value. **Tracked as `#24-orphans` item (1)**;
   its instrumentation half is specified, but *how* production should react needs the USER's ruling.
 
-## KI-81 — KI-67's fix was applied to TWO chapters and the CLASS was never swept (2026-08-16, MEASURED by probe). ✅ **8 SITES FIXED AND PROMOTED TO BOTH FORKS** — the PC/heal path and the site that proved the sweep was incomplete. ⛔ **STILL OPEN: 37 candidates remain** (ALL in `early_game.py`; `counter_hunt.py`'s only one was fixed 2026-08-17), 8 more swept that day — ‼ and ~64% of the ORIGINAL 45 were MEASURED to be false positives for this defect, so the probe is NOT gate-ready
+## KI-81 — KI-67's fix was applied to TWO chapters and the CLASS was never swept (2026-08-16, MEASURED by probe). ✅ **8 SITES FIXED AND PROMOTED TO BOTH FORKS** — the PC/heal path and the site that proved the sweep was incomplete. ⛔ **STILL OPEN: 36 candidates remain** (ALL in `early_game.py`), and ✅ **THE PROBE IS NOW GATE #27 — a RATCHET at baseline 36 (sandbox) / 44 (custom, until the guards are promoted)**; ‼ ~64% of the original 45 were MEASURED not to be this defect, which is WHY it is a ratchet and not a zero-threshold
 
 `StoryAbort` is a `BotModeError`, which is an `Exception` (`_interface.py:229`) ⇒ **every**
 `except Exception:` and `except BotModeError:` catches a whiteout. KI-67 found this and fixed the
@@ -2885,16 +2885,16 @@ is worse than the silence it replaced.*
 ✅ **Promotion proven by a MEASURED before/after, not a byte-compare:** `--build custom` fell
 **53 → 45**, guarded counts moved **0→3 / 0→4 / 1→2**, and the split survived the copy.
 
-⛔ **STILL OPEN — 37 CANDIDATES REMAIN** (ALL `early_game.py`; `counter_hunt.py`'s single
+⛔ **STILL OPEN — 36 CANDIDATES REMAIN** (ALL `early_game.py`; `counter_hunt.py`'s single
 candidate was fixed 2026-08-17, when 8 sites were swept and the probe fell 45 → 37, MEASURED).
-‼‼ **AND THE TRIAGE MEASURED THAT THE PROBE OVER-FLAGS: ~64% of the original 45 are NOT this
+⛔⛔ **SUPERSEDED 2026-08-17 — REFINEMENT (2) IS REFUTED AND (1) IS SHIPPED. DO NOT BUILD EITHER FROM THIS PARAGRAPH.** It survived unmarked eight lines below its own refutation, and a cold-start audit called it the most expensive thing in the tree: acting on it rebuilds a day of refuted work and can ship a gate that HIDES real defects. *(superseded text:)* ‼‼ **AND THE TRIAGE MEASURED THAT THE PROBE OVER-FLAGS: ~64% of the original 45 are NOT this
 defect** — 25 wrap navigation primitives containing no `_check_abort()`, so no `StoryAbort`
 can arrive; `:376` IS the whiteout-recovery path; `:2305` already guards by hand in a shape
 the probe cannot see. ⛔ **DO NOT PROMOTE THE PROBE TO A GATE AS-IS** — it would be red on
 arrival for reasons that are correct as written. Two refinements cut 45 → ~16. *(A separate
 family — 13 retry loops needing a LOOP-HEAD check, not a handler guard — is `#24-loopheadabort`.)* 44 sites in the largest and most timing-sensitive file here is not a
 tail-of-session sweep, and **CANDIDATE ≠ DOES** — the probe cannot prove a `_check_abort()` is
-reachable through a given `yield from`. ⇒ **triage, fix, THEN promote the probe to a gate** — ⛔ **SUPERSEDED 2026-08-17: NOT AS-IS.** The
+reachable through a given `yield from`. ⇒ ⛔⛔ **SUPERSEDED 2026-08-17 — THIS IS DONE AND ITS ADVICE IS REFUTED. The probe IS gate #27, a RATCHET; refinement (2) would blind it to five already-fixed sites and must NOT be built.** *(superseded:)* triage, fix, THEN promote the probe to a gate — The
 triage MEASURED that ~64% of the candidates are not this defect, so the probe must be REFINED first;
 see the paragraph above and `#24-abortswallow` round 3. *(This line was the last thing in the KI, so
 a skimmer read it as the instruction — a cold-start audit caught exactly that.)*; it is a
