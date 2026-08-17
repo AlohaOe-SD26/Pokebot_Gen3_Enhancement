@@ -9,23 +9,23 @@ reads here FIRST. Created by the Claude Code Project Kit on 2026-07-17.
 | 1 | `04-HANDOFF.md` | Where we are RIGHT NOW + what's next | current-state |
 | 2 | `14-AGENT-PLAYBOOK.md` | **HOW to work on this excellently** — tools, debugging method, story-mapping method, faithfulness rules, bug patterns | reference |
 | 3 | `01-VISION-AND-DESIGN.md` | What this program is for; intent of each part | current-state |
-| 3 | `02-ARCHITECTURE.md` | How it's built; how to run it | current-state |
-| 4 | `03-PUNCH-LIST.md` | The work queue | current-state |
-| 5 | `05-KNOWN-ISSUES.md` | Open bugs and traps | current-state |
-| 6 | `08-MISTAKES.md` | Bugs/dead-ends already solved — don't repeat them | append-only |
-| 7 | `06-DECISIONS-LOG.md` | Why things are the way they are | append-only |
-| 8 | `07-CHANGELOG.md` | Everything that has ever changed | append-only |
-| 9 | `12-STORYMODE-DESIGN.md` | Story bot design: chapters, Area Atlas (§AA), resume/defeat/self-correct | reference |
-| 10 | `13-PLANNING-AND-RESILIENCE.md` | HOW the bot decides & stays robust: task model, resource ledger, contingency catalog, marts | reference |
-| 11 | `30-METRICS.md` | **Which instrument answers which question, and at what n.** Read BEFORE measuring anything. Includes why the finish rate can never resolve a change | current-state |
-| 11 | `27-INJECTION-SURFACE.md` | **How the bot OBSERVES and ACTS on the game** — the sensorimotor contract, every reader's silent failure mode, and the 8 timing traps. Written for the future self-training agent | reference |
-| 11 | `29-DISABLED-FEATURES-REGISTRY.md` | Every `POKEBOT_*` flag with the MEASUREMENT behind it. **Check before proposing a feature** — enforced by lint R6 | current-state |
-| 11 | `28-HANDOFF-ARCHIVE.md` | Superseded "you are here" snapshots, archived punch-list entries and completed build how-tos — **APPEND-ONLY, so OLDEST FIRST: the newest material is at the BOTTOM.** ⛔ *This row said "newest first" until 2026-08-16; it was backwards, so a reader taking it at its word read the OLDEST content believing it was the newest.* **Not current state** — read `04-HANDOFF.md` for the present | append-only |
-| 11 | `31-KNOWN-ISSUES-ARCHIVE.md` | Resolved/superseded known issues, moved verbatim from `05-KNOWN-ISSUES.md` — including KI-39's REFUTED original beside its correction, and resolved KI-68. **Not current state**; `04`/`05`/`07`/`08` point into it | append-only |
-| 11 | `26-REVIEW-AND-HARDENING-PLAN-2026-08-11.md` | **Point-in-time review**: progress, the 164-mistake taxonomy, why advisory rules do not prevent repeats, the hardening plan, doc-health findings and the future path | reference |
-| 11 | `25-BACKUPS-AND-RESTORE.md` | **Restore points: how to revert to a known-good version.** Naming, what a tag does/doesn't capture, restore recipes, and the full inventory | current-state |
-| 11 | `15-ESCALATION-RESEARCH.md` | Last-resort: hand a STUCK story sequence to an external research agent (Gemini) — the reusable primer + `/escalate-sequence` | reference |
-| 12 | `16-ORCHESTRATION-PLAYBOOK.md` | **HOW to run a session cheaply**: premium orchestrator + cheap sub-model workers + Gemini; tier table, delegation rule, review gate, metrics — `/orchestrate` | reference |
+| 4 | `02-ARCHITECTURE.md` | How it's built; how to run it | current-state |
+| 5 | `03-PUNCH-LIST.md` | The work queue | current-state |
+| 6 | `05-KNOWN-ISSUES.md` | Open bugs and traps | current-state |
+| 7 | `08-MISTAKES.md` | Bugs/dead-ends already solved — don't repeat them | append-only |
+| 8 | `06-DECISIONS-LOG.md` | Why things are the way they are | append-only |
+| 9 | `07-CHANGELOG.md` | Everything that has ever changed | append-only |
+| 10 | `12-STORYMODE-DESIGN.md` | Story bot design: chapters, Area Atlas (§AA), resume/defeat/self-correct | reference |
+| 11 | `13-PLANNING-AND-RESILIENCE.md` | HOW the bot decides & stays robust: task model, resource ledger, contingency catalog, marts | reference |
+| 12 | `30-METRICS.md` | **Which instrument answers which question, and at what n.** Read BEFORE measuring anything. Includes why the finish rate can never resolve a change | current-state |
+| 13 | `27-INJECTION-SURFACE.md` | **How the bot OBSERVES and ACTS on the game** — the sensorimotor contract, every reader's silent failure mode, and the 8 timing traps. Written for the future self-training agent | reference |
+| 14 | `29-DISABLED-FEATURES-REGISTRY.md` | Every `POKEBOT_*` flag with the MEASUREMENT behind it. **Check before proposing a feature** — enforced by lint R6 | current-state |
+| 15 | `28-HANDOFF-ARCHIVE.md` | Superseded "you are here" snapshots, archived punch-list entries and completed build how-tos — **APPEND-ONLY, so OLDEST FIRST: the newest material is at the BOTTOM.** ⛔ *This row said "newest first" until 2026-08-16; it was backwards, so a reader taking it at its word read the OLDEST content believing it was the newest.* **Not current state** — read `04-HANDOFF.md` for the present | append-only |
+| 16 | `31-KNOWN-ISSUES-ARCHIVE.md` | Resolved/superseded known issues, moved verbatim from `05-KNOWN-ISSUES.md` — including KI-39's REFUTED original beside its correction, and resolved KI-68. **Not current state**; `04`/`05`/`07`/`08` point into it | append-only |
+| 17 | `26-REVIEW-AND-HARDENING-PLAN-2026-08-11.md` | **Point-in-time review**: progress, the 164-mistake taxonomy, why advisory rules do not prevent repeats, the hardening plan, doc-health findings and the future path | reference |
+| 18 | `25-BACKUPS-AND-RESTORE.md` | **Restore points: how to revert to a known-good version.** Naming, what a tag does/doesn't capture, restore recipes, and the full inventory | current-state |
+| 19 | `15-ESCALATION-RESEARCH.md` | Last-resort: hand a STUCK story sequence to an external research agent (Gemini) — the reusable primer + `/escalate-sequence` | reference |
+| 20 | `16-ORCHESTRATION-PLAYBOOK.md` | **HOW to run a session cheaply**: premium orchestrator + cheap sub-model workers + Gemini; tier table, delegation rule, review gate, metrics — `/orchestrate` | reference |
 
 ### Read WHEN RELEVANT (not part of the start-of-session ritual)
 *Added to this index 2026-07-27 — docs 09–11 and 17–23 existed but were invisible to anyone

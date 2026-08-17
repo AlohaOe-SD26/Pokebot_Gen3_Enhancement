@@ -2276,7 +2276,7 @@ PRE-EXISTING KI-34 machinery, not introduced here, and the run still resolved (~
 WON). ⛔ **Deliberately NOT changed** — it needs its own probe and its own discriminator, exactly
 as the owner filter does. Tracked so it does not orphan.
 
-✅ **SAFETY:** all 24 CODE gates PASS (suite is 25; the 25th is the doc gate), including `repro_multi_battle_partner.py`,
+✅ **SAFETY:** all **25** gates PASS (measured), including `repro_multi_battle_partner.py`,
 `repro_whiteout_abort.py` and the 114s `repro_gym_whiteout_guard.py` — this filter runs in EVERY
 battle, not only multi battles, so those were the ones that mattered.
 ⛔ **STILL OPEN:** the owner filter itself (`alive_slots` has no OT check) is UNFIXED and remains
