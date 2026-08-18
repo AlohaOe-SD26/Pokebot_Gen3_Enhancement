@@ -16718,3 +16718,21 @@ trusted. A measurement that lives in `/tmp` is orphaned by definition — the ex
 The item now carries the fork point (`story_harness.py:7381`), the staging tile, the press
 direction, the frame budget, the anchor to drive (`post_dive_ki76.ss1`) and the guard to copy.
 `#24-r116sweep` was archived verbatim to `28-HANDOFF-ARCHIVE.md` for the R3 budget. 27/27 PASS.
+
+## 2026-08-17 — `check_promotion_prose` tightened: exempt on TENSE, not on proximity
+
+A Tier 2 cold-start audit found three lines asserting BOTH "drift is 0 / all promoted" AND
+"sandbox-only / awaiting a promotion" — including the STATE drift row, which the handoff names as
+its own authority. The gate added hours earlier was green over all three: its exemption was
+*"quiet if `PROMOTED` is within 240 chars"*, and on a self-contradictory line that word is the
+other half of the contradiction.
+
+Exemption is now TENSE-bound (`was` / `were` / `used to` / `formerly` / `no longer` / `previously` /
+`had been`, within 60 chars before the phrase), plus a second claim shape (`OWES A PROMOTION
+DECISION` — both word orders occur here). Replayed against the real pre-fix handoff it now finds
+**2 of 3**; the third is a bare "all sandbox-only", deliberately not matched and documented as such
+in the source, because matching it would make the gate noisy enough to be bypassed.
+
+Docs fixed at `04-HANDOFF.md:60/145/182`, plus `:693`'s HOW TO RUN line, which still predicted the
+abort probe would read `44 on custom` — it reads 36 on both forks since the guards were promoted.
+27/27 gates PASS; the audit's verdict was already "CAN A COLD SESSION START — YES".

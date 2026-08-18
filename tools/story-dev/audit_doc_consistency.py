@@ -566,9 +566,18 @@ _PROMO_PENDING = re.compile(
     r"SANDBOX[- ]ONLY\s*[;:,—-]?\s*(?:and\s+)?(?:a\s+)?promotion\s+is\s+the\s+USER'?s?\s+call"
     r"|awaiting\s+a\s+user[- ]approved\s+promotion"
     r"|a\s+PROMOTION\s+DECISION\s+IS\s+OWED"
+    # Both word orders occur in this tree; a Tier 2 audit found the second one live.
+    r"|OWES?\s+A\s+PROMOTION\s+DECISION"
     r"|until\s+the\s+\w+\s+are\s+promoted"
     r"|against\s+the\s+unpromoted\s+`?custom`?\s+tree",
     re.I)
+#: ⛔ WHAT THIS RULE DELIBERATELY DOES **NOT** MATCH, and why — say the limit rather than imply
+#: coverage. A bare `sandbox-only` is NOT a claim shape: it appears legitimately all over the
+#: history blocks ("promoted 2026-08-16; it was sandbox-only until then"), and matching it would
+#: make this gate noisy enough to be bypassed — which is the one failure mode worse than the bug.
+#: A Tier 2 audit found one such bare instance (`… COMMENT-ONLY cap correction), all sandbox-only.`)
+#: that this rule cannot see. ⇒ **Prose sweeps still need a human or an agent; this gate catches the
+#: FIVE unambiguous phrasings above, not every way English can say "not promoted yet".**
 
 
 def check_promotion_prose(files: dict[str, str]) -> list[str]:
@@ -610,10 +619,20 @@ def check_promotion_prose(files: dict[str, str]) -> list[str]:
             # exactly that in the first draft. Search BOTH ways, then enforce the ordering.
             if any(lo + mk.start() < m.start() for mk in SUPERSEDE_RE.finditer(window)):
                 continue
-            # Text that ALSO records the promotion is a corrected entry stating its own history.
-            near = text[max(0, m.start() - 240):m.end() + 240]
-            if re.search(r"\bPROMOTED\b|\bwas\s+promoted\b|\bnow\s+PASSES\b|\bHistorical note\b",
-                         near, re.I):
+            # ⛔⛔ THE EXEMPTION MUST BE PAST-TENSE, NOT MERELY NEIGHBOURING — TIGHTENED 2026-08-17
+            # after a Tier 2 cold-start audit found THREE self-contradictions this rule had walked
+            # straight past. The first draft exempted any match with `PROMOTED` within 240 chars,
+            # and the offending lines say BOTH things at once:
+            #     "✅ 0 as of 2026-08-17 — ALL FIVE PROMOTED … SANDBOX-ONLY, AWAITING A
+            #      USER-APPROVED PROMOTION — not unexplained drift."
+            # so the word that was supposed to prove the entry had been CORRECTED was in fact the
+            # other half of the contradiction. ‼ A neighbourhood is not an argument (the same
+            # lesson as `#24-driftassertions`' second bypass, re-earned on a different rule).
+            # ⇒ What actually distinguishes a corrected entry is TENSE: it says "WAS sandbox-only",
+            # "USED TO await", "NO LONGER". Require that cue immediately before the phrase.
+            cue = text[max(0, m.start() - 60):m.start()]
+            if re.search(r"\b(?:was|were|used\s+to|formerly|no\s+longer|previously|had\s+been)\b"
+                         r"|\bHistorical note\b", cue, re.I):
                 continue
             out.append(
                 f"{name}:{ln} says promotion is still PENDING ({m.group(0)[:52]!r}) but MEASURED "

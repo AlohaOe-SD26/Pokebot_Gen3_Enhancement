@@ -8264,3 +8264,39 @@ driver re-captures it, the correct fix is a COPY under a name nothing writes to,
 ‼ **Corollary:** ⛔ **a recommendation inherited from an audit is a HYPOTHESIS, not an instruction.**
 The audit's finding (unprotected) was correct; the fix it implied (pin it) was wrong. Verify the
 remedy separately from the diagnosis.
+
+## 2026-08-17 — my brand-new promotion gate walked past three contradictions, because its exemption was a NEIGHBOURHOOD
+
+**Symptom.** Hours after adding `check_promotion_prose` — the gate built precisely to stop docs
+saying "still awaiting promotion" once drift is 0 — a Tier 2 cold-start audit found **three lines
+saying both things in the same sentence**, and the gate had been green over all of them. The worst
+was the STATE drift row, the cell the handoff itself names as the authority:
+
+    ✅ 0 as of 2026-08-17 (LATEST) — ALL FIVE PROMOTED, USER-APPROVED: … 
+       **SANDBOX-ONLY, AWAITING A USER-APPROVED PROMOTION — not unexplained drift.**
+
+**Root cause.** My exemption was *"quiet if `PROMOTED` appears within 240 characters"* — meant to
+spare a corrected entry that records its own history. But on a self-contradictory line, **the word
+that was supposed to prove the entry had been corrected is the other half of the contradiction.**
+The exemption fired on exactly the text it most needed to catch.
+
+**Fix: exempt on TENSE, not on proximity.** A corrected entry says *"WAS sandbox-only"*, *"USED TO
+await"*, *"NO LONGER"*. Require that cue in the 60 characters immediately before the phrase. The
+rule then caught 2 of the 3 real lines when replayed against the pre-fix file, and is silent on the
+fixed one. *(The third is a bare "all sandbox-only", which is deliberately NOT matched and now says
+so in the source: it appears legitimately throughout the history blocks, and matching it would make
+the gate noisy enough to be bypassed.)*
+
+**‼ THIS IS THE SAME MISTAKE `#24-driftassertions` ALREADY LOGGED, ON A DIFFERENT RULE.** That one's
+second bypass was *"a 120-char proximity window exempted a live claim because a marker retracting a
+DIFFERENT, EARLIER number sat nearby"*, and its lesson was written down as *"claim-bound rather than
+neighbourhood-bound"*. I wrote a neighbourhood-bound exemption anyway, in a new rule, the same day.
+
+**PREVENTION RULE (one line).** ⛔ **An exemption must be bound to the CLAIM (its tense, its
+subject), never to what happens to sit near it — proximity exemptions fail hardest on exactly the
+self-contradictory text they most need to catch.**
+
+‼ **Corollary about my own fault tests:** P26a–P26e all passed while the rule was broken, because
+every one of them was a SYNTHETIC one-liner. **The rule was only shown to be wrong when it was
+replayed against the REAL file.** ⇒ *after fault-testing a doc rule on synthetic strings, replay it
+against the actual pre-fix document and confirm it fires there.*
