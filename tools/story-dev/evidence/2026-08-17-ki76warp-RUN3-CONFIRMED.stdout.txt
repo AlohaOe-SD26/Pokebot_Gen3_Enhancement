@@ -1,0 +1,152 @@
+[ki76] SAFETY anchor=post_dive_ki76.ss1 sha256[:12]=b89900084e7c — the PINNED copy (md5 a00378595409). CH19C_CAPTURE=0 so nothing can re-capture an anchor during this run.
+[ch20dive] FIXTURE: healed the party and replaced slot 3 (Skitty L17) with Wailmer L40 knowing Dive+Surf. ‼ This measures the ROUTE, not the acquisition of a Dive learner — KI-63 is still open.
+[ch20dive] LEG1 sailing ('MOSSDEEP_CITY', (19, 11)) -> ROUTE128 (38, 27)
+[ch20dive] LEG1 at=('ROUTE128', (38, 27)) tile_type='Deep Water' arrived=True
+[ch20dive] LEG2 dive() returned
+[ch20dive] LEG2 at=('UNDERWATER_ROUTE128', (38, 27)) underwater=True ok=True (‼ same (x,y) as the surface tile is the DECOMP-confirmed behaviour)
+[ch20dive] LEG3 at=('UNDERWATER_SEAFLOOR_CAVERN', (6, 7)) in_cavern=True
+[ch20dive] LEG4 at=('UNDERWATER_SEAFLOOR_CAVERN', (6, 6)) tile_type='Deep Water' surfaceable=True ok=True
+[ch20dive] LEG5 surface_from_dive() returned
+[ch20dive] LEG5 at=('SEAFLOOR_CAVERN_ENTRANCE', (10, 17)) underwater=False at_entrance=True (predicted (10,17) from the RUNTIME setdivewarp)
+[ch20room1] LEGA at=('SEAFLOOR_CAVERN_ROOM1', (5, 18)) in_room1=True (PREDICTED SEAFLOOR_CAVERN_ROOM1 (5,18))
+[ch20room1] BEFORE LIVE OBJECTS n=3 (counting only map=(24, 28))
+[ch20room1] BEFORE     local_id=255 gfx=0    at=(5, 18) initial=(5, 18) map=(24, 28) facing=Up
+[ch20room1] BEFORE   * local_id=1   gfx=87   at=(5, 11) initial=(5, 11) map=(24, 28) facing=Down
+[ch20room1] BEFORE   * local_id=2   gfx=87   at=(12, 11) initial=(12, 11) map=(24, 28) facing=Down
+[ch20room1] A/B BEFORE (5, 18) -> (11, 11): PathFindingError: Could not find a path from (5/18 @ SEAFLOOR_CAVERN_ROOM1) to (11/11 @ SEAFLOOR_CAVERN_ROOM1). (source collision=0)
+[ch20room1] A/B BEFORE path_exists=False (PREDICTED False - the corridor is sealed by rock (5,10) + boulder (5,11))
+[ch20room1] AFTER-SMASH LIVE OBJECTS n=4 (counting only map=(24, 28))
+[ch20room1] AFTER-SMASH     local_id=255 gfx=0    at=(4, 10) initial=(5, 18) map=(24, 28) facing=Right
+[ch20room1] AFTER-SMASH   * local_id=1   gfx=87   at=(5, 11) initial=(5, 11) map=(24, 28) facing=Left
+[ch20room1] AFTER-SMASH   * local_id=2   gfx=87   at=(12, 11) initial=(12, 11) map=(24, 28) facing=Left
+[ch20room1] AFTER-SMASH   * local_id=4   gfx=117  at=(8, 6) initial=(8, 6) map=(24, 28) facing=Right
+[ch20room1] SMASH ok=True rock local_id=3 present=False (PREDICTED absent)
+[ch20room1] AFTER-PUSH1 LIVE OBJECTS n=5 (counting only map=(24, 28))
+[ch20room1] AFTER-PUSH1     local_id=255 gfx=0    at=(5, 11) initial=(5, 18) map=(24, 28) facing=Down
+[ch20room1] AFTER-PUSH1   * local_id=1   gfx=87   at=(5, 12) initial=(5, 11) map=(24, 28) facing=Down
+[ch20room1] AFTER-PUSH1   * local_id=2   gfx=87   at=(12, 11) initial=(12, 11) map=(24, 28) facing=Down
+[ch20room1] AFTER-PUSH1   * local_id=5   gfx=117  at=(15, 10) initial=(15, 10) map=(24, 28) facing=Up
+[ch20room1] AFTER-PUSH1   * local_id=4   gfx=117  at=(8, 6) initial=(8, 6) map=(24, 28) facing=Right
+[ch20room1] PUSH1 ok=True boulder local_id=1 at=(5, 12) (PREDICTED (5,12))
+[ch20room1] A/B AFTER  (5, 11) -> (11, 11): OK len=6 (source collision=0)
+[ch20room1] A/B AFTER  path_exists=True (PREDICTED True)
+[ch20room1] AFTER-PUSH2 LIVE OBJECTS n=5 (counting only map=(24, 28))
+[ch20room1] AFTER-PUSH2     local_id=255 gfx=0    at=(12, 11) initial=(5, 18) map=(24, 28) facing=Right
+[ch20room1] AFTER-PUSH2   * local_id=1   gfx=87   at=(5, 12) initial=(5, 11) map=(24, 28) facing=Up
+[ch20room1] AFTER-PUSH2   * local_id=2   gfx=87   at=(13, 11) initial=(12, 11) map=(24, 28) facing=Right
+[ch20room1] AFTER-PUSH2   * local_id=5   gfx=117  at=(15, 10) initial=(15, 10) map=(24, 28) facing=Up
+[ch20room1] AFTER-PUSH2   * local_id=4   gfx=117  at=(8, 6) initial=(8, 6) map=(24, 28) facing=Up
+[ch20room1] PUSH2 ok=True boulder local_id=2 at=(13, 11) (PREDICTED (13,11))
+[ch20room1] LEGC at=('SEAFLOOR_CAVERN_ROOM2', (10, 7)) in_room2=True (PREDICTED SEAFLOOR_CAVERN_ROOM2 (10,7))
+[ch20room2] STRENGTH-FLAG after the ROOM1->ROOM2 warp: False (our early_game.py comment PREDICTS True = 'never cleared, once per SAVE'; the decomp pass PREDICTS False = cleared by ClearTempFieldEventData on every warp)
+[ch20room1] R2-ARRIVAL LIVE OBJECTS n=9 (counting only map=(24, 29))
+[ch20room1] R2-ARRIVAL     local_id=255 gfx=0    at=(10, 7) initial=(10, 7) map=(24, 29) facing=Up
+[ch20room1] R2-ARRIVAL   * local_id=1   gfx=87   at=(13, 3) initial=(13, 3) map=(24, 29) facing=Down
+[ch20room1] R2-ARRIVAL   * local_id=2   gfx=87   at=(10, 3) initial=(10, 3) map=(24, 29) facing=Down
+[ch20room1] R2-ARRIVAL   * local_id=3   gfx=87   at=(13, 5) initial=(13, 5) map=(24, 29) facing=Down
+[ch20room1] R2-ARRIVAL   * local_id=4   gfx=87   at=(4, 5) initial=(4, 5) map=(24, 29) facing=Down
+[ch20room1] R2-ARRIVAL   * local_id=5   gfx=87   at=(7, 4) initial=(7, 4) map=(24, 29) facing=Down
+[ch20room1] R2-ARRIVAL   * local_id=6   gfx=86   at=(8, 7) initial=(8, 7) map=(24, 29) facing=Down
+[ch20room1] R2-ARRIVAL   * local_id=7   gfx=86   at=(9, 3) initial=(9, 3) map=(24, 29) facing=Down
+[ch20room1] R2-ARRIVAL   * local_id=8   gfx=87   at=(4, 8) initial=(4, 8) map=(24, 29) facing=Down
+[ch20room2] M1 (10, 7) -> (6, 2): PathFindingError: Could not find a path from (10/7 @ SEAFLOOR_CAVERN_ROOM2) to (6/2 @ SEAFLOOR_CAVERN_ROOM2). (source collision=0)
+[ch20room2] M1 path_exists=False (PREDICTED False — rock (8,7) AND boulder (4,5))
+[ch20room1] R2-AFTER-SMASH LIVE OBJECTS n=8 (counting only map=(24, 29))
+[ch20room1] R2-AFTER-SMASH     local_id=255 gfx=0    at=(9, 7) initial=(10, 7) map=(24, 29) facing=Left
+[ch20room1] R2-AFTER-SMASH   * local_id=1   gfx=87   at=(13, 3) initial=(13, 3) map=(24, 29) facing=Down
+[ch20room1] R2-AFTER-SMASH   * local_id=2   gfx=87   at=(10, 3) initial=(10, 3) map=(24, 29) facing=Left
+[ch20room1] R2-AFTER-SMASH   * local_id=3   gfx=87   at=(13, 5) initial=(13, 5) map=(24, 29) facing=Down
+[ch20room1] R2-AFTER-SMASH   * local_id=4   gfx=87   at=(4, 5) initial=(4, 5) map=(24, 29) facing=Left
+[ch20room1] R2-AFTER-SMASH   * local_id=5   gfx=87   at=(7, 4) initial=(7, 4) map=(24, 29) facing=Up
+[ch20room1] R2-AFTER-SMASH   * local_id=7   gfx=86   at=(9, 3) initial=(9, 3) map=(24, 29) facing=Down
+[ch20room1] R2-AFTER-SMASH   * local_id=8   gfx=87   at=(4, 8) initial=(4, 8) map=(24, 29) facing=Left
+[ch20room2] SMASH ok=True rock local_id=6 present=False (PREDICTED absent)
+[ch20room2] M2 (4, 6) -> (6, 2): PathFindingError: Could not find a path from (4/6 @ SEAFLOOR_CAVERN_ROOM2) to (6/2 @ SEAFLOOR_CAVERN_ROOM2). (source collision=0)
+[ch20room2] M2 path_exists=False (PREDICTED False — ‼ this arm is what attributes the opening to the PUSHES rather than to the smash)
+[ch20room1] R2-AFTER-PUSH1 LIVE OBJECTS n=8 (counting only map=(24, 29))
+[ch20room1] R2-AFTER-PUSH1     local_id=255 gfx=0    at=(4, 5) initial=(10, 7) map=(24, 29) facing=Up
+[ch20room1] R2-AFTER-PUSH1   * local_id=1   gfx=87   at=(13, 3) initial=(13, 3) map=(24, 29) facing=Down
+[ch20room1] R2-AFTER-PUSH1   * local_id=2   gfx=87   at=(10, 3) initial=(10, 3) map=(24, 29) facing=Left
+[ch20room1] R2-AFTER-PUSH1   * local_id=3   gfx=87   at=(13, 5) initial=(13, 5) map=(24, 29) facing=Down
+[ch20room1] R2-AFTER-PUSH1   * local_id=4   gfx=87   at=(4, 4) initial=(4, 5) map=(24, 29) facing=Up
+[ch20room1] R2-AFTER-PUSH1   * local_id=5   gfx=87   at=(7, 4) initial=(7, 4) map=(24, 29) facing=Up
+[ch20room1] R2-AFTER-PUSH1   * local_id=7   gfx=86   at=(9, 3) initial=(9, 3) map=(24, 29) facing=Down
+[ch20room1] R2-AFTER-PUSH1   * local_id=8   gfx=87   at=(4, 8) initial=(4, 8) map=(24, 29) facing=Left
+[ch20room2] PUSH1 ok boulder local_id=4 at=(4, 4) (PREDICTED (4, 4))
+[ch20room1] R2-AFTER-PUSH2 LIVE OBJECTS n=8 (counting only map=(24, 29))
+[ch20room1] R2-AFTER-PUSH2     local_id=255 gfx=0    at=(4, 4) initial=(10, 7) map=(24, 29) facing=Up
+[ch20room1] R2-AFTER-PUSH2   * local_id=1   gfx=87   at=(13, 3) initial=(13, 3) map=(24, 29) facing=Down
+[ch20room1] R2-AFTER-PUSH2   * local_id=2   gfx=87   at=(10, 3) initial=(10, 3) map=(24, 29) facing=Right
+[ch20room1] R2-AFTER-PUSH2   * local_id=3   gfx=87   at=(13, 5) initial=(13, 5) map=(24, 29) facing=Left
+[ch20room1] R2-AFTER-PUSH2   * local_id=4   gfx=87   at=(4, 3) initial=(4, 5) map=(24, 29) facing=Up
+[ch20room1] R2-AFTER-PUSH2   * local_id=5   gfx=87   at=(7, 4) initial=(7, 4) map=(24, 29) facing=Up
+[ch20room1] R2-AFTER-PUSH2   * local_id=7   gfx=86   at=(9, 3) initial=(9, 3) map=(24, 29) facing=Down
+[ch20room1] R2-AFTER-PUSH2   * local_id=8   gfx=87   at=(4, 8) initial=(4, 8) map=(24, 29) facing=Down
+[ch20room2] PUSH2 ok boulder local_id=4 at=(4, 3) (PREDICTED (4, 3))
+[ch20room1] R2-AFTER-PUSH3 LIVE OBJECTS n=8 (counting only map=(24, 29))
+[ch20room1] R2-AFTER-PUSH3     local_id=255 gfx=0    at=(4, 3) initial=(10, 7) map=(24, 29) facing=Up
+[ch20room1] R2-AFTER-PUSH3   * local_id=1   gfx=87   at=(13, 3) initial=(13, 3) map=(24, 29) facing=Right
+[ch20room1] R2-AFTER-PUSH3   * local_id=2   gfx=87   at=(10, 3) initial=(10, 3) map=(24, 29) facing=Right
+[ch20room1] R2-AFTER-PUSH3   * local_id=3   gfx=87   at=(13, 5) initial=(13, 5) map=(24, 29) facing=Left
+[ch20room1] R2-AFTER-PUSH3   * local_id=4   gfx=87   at=(4, 2) initial=(4, 5) map=(24, 29) facing=Up
+[ch20room1] R2-AFTER-PUSH3   * local_id=5   gfx=87   at=(7, 4) initial=(7, 4) map=(24, 29) facing=Up
+[ch20room1] R2-AFTER-PUSH3   * local_id=7   gfx=86   at=(9, 3) initial=(9, 3) map=(24, 29) facing=Left
+[ch20room1] R2-AFTER-PUSH3   * local_id=8   gfx=87   at=(4, 8) initial=(4, 8) map=(24, 29) facing=Down
+[ch20room2] PUSH3 ok boulder local_id=4 at=(4, 2) (PREDICTED (4, 2))
+[ch20room2] PUSHES 3/3
+[ch20room2] STRENGTH-FLAG after the Room 2 pushes: True (it must be True here whichever source was right — `strength_push` re-activates)
+[ch20room2] M3 (4, 3) -> (6, 2): OK len=3 (source collision=0)
+[ch20room2] M3 path_exists=True (PREDICTED True)
+[ch20room2] LEG3 at=('SEAFLOOR_CAVERN_ROOM6', (11, 21)) in_room6=True (PREDICTED SEAFLOOR_CAVERN_ROOM6 (11,21))
+[ki76] ROOMS 1+2 re-solved (both reset on every map load)
+[ki76] ROOM6 arrival ('SEAFLOOR_CAVERN_ROOM6', (11, 21), False) (PREDICTED (11,21))
+[ki76] PLAN (11, 21) -> staging (8, 12): OK len=5 (source collision=0)
+[ki76] STAGED at=('SEAFLOOR_CAVERN_ROOM6', (8, 12), True) on_target=True tile_type='Ocean Water'
+[ki76] RIDE pressing Right (EAST) from (8, 12) onto (9, 12); production predicts the chain ends on (14, 8) after 9 steps.
+[ki76]   f+1 SEAFLOOR_CAVERN_ROOM6 (8, 12) surfing=True
+[ki76]   f+9 SEAFLOOR_CAVERN_ROOM6 (9, 12) surfing=True
+[ki76]   f+17 SEAFLOOR_CAVERN_ROOM6 (10, 12) surfing=True
+[ki76]   f+23 SEAFLOOR_CAVERN_ROOM6 (10, 11) surfing=True
+[ki76]   f+29 SEAFLOOR_CAVERN_ROOM6 (10, 10) surfing=True
+[ki76]   f+35 SEAFLOOR_CAVERN_ROOM6 (11, 10) surfing=True
+[ki76]   f+41 SEAFLOOR_CAVERN_ROOM6 (12, 10) surfing=True
+[ki76]   f+47 SEAFLOOR_CAVERN_ROOM6 (13, 10) surfing=True
+[ki76]   f+53 SEAFLOOR_CAVERN_ROOM6 (14, 10) surfing=True
+[ki76]   f+59 SEAFLOOR_CAVERN_ROOM6 (14, 9) surfing=True
+[ki76]   f+65 SEAFLOOR_CAVERN_ROOM6 (14, 8) surfing=True
+[ki76]   f+142 SEAFLOOR_CAVERN_ENTRANCE (10, 1) surfing=False
+[ki76]   settle+29 SEAFLOOR_CAVERN_ENTRANCE (10, 2) surfing=False
+[ki76] RIDE moved=True step_frames=142 settle_frames=210 distinct_positions=13
+[ki76] FINAL map=SEAFLOOR_CAVERN_ENTRANCE tile=(10, 2) surfing=False
+[ki76] ARM = R (the game WARPS — KI-76's ends-on-a-warp defect is CONFIRMED LIVE)
+[ki76] SAFETY anchor intact = True (before=b89900084e7c after=b89900084e7c)
+[ki76] DETAIL {'trail': [('SEAFLOOR_CAVERN_ROOM6', (8, 12), True), ('SEAFLOOR_CAVERN_ROOM6', (9, 12), True), ('SEAFLOOR_CAVERN_ROOM6', (10, 12), True), ('SEAFLOOR_CAVERN_ROOM6', (10, 11), True), ('SEAFLOOR_CAVERN_ROOM6', (10, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (11, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (12, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (13, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (14, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (14, 9), True), ('SEAFLOOR_CAVERN_ROOM6', (14, 8), True), ('SEAFLOOR_CAVERN_ENTRANCE', (10, 1), False), ('SEAFLOOR_CAVERN_ENTRANCE', (10, 2), False)]}
+[ki76] RESULT staged=True stepped=True anchor_intact=True arm=R
+[ki76] ACCEPTANCE: PASS (grades the INSTRUMENT: staged AND stepped AND anchor intact AND landed on one of the two predicted arms)
+
+=== WHAT THIS RUN ESTABLISHES (written after the run, from the trail above) ===
+
+⛔ ARM R. KI-76's "a slide can END ON A WARP" defect is CONFIRMED LIVE, not by inference.
+
+1. THE SLIDE PATH OUR MODEL PREDICTS IS EXACTLY RIGHT, TILE FOR TILE. Production's
+   `forced_movement_to` said the chain from (9,12) runs NINE steps to (14,8). The live trail is
+   (9,12) (10,12) (10,11) (10,10) (11,10) (12,10) (13,10) (14,10) (14,9) (14,8) — nine steps,
+   same tiles, same order. ⇒ the chain SIMULATION is not what is broken.
+
+2. THE WARP FIRES. At f+142 the avatar is on SEAFLOOR_CAVERN_ENTRANCE (10,1). Our planner would
+   have emitted (14,8) in SEAFLOOR_CAVERN_ROOM6 as a resting waypoint, unpenalised and not marked
+   `is_warp` (`map_path.py:972` charges the penalty against the NEIGHBOUR; `:1013` substitutes the
+   destination afterwards and never re-inspects it).
+
+3. ‼ AND A THIRD THING NOBODY ASKED FOR: `surfing=True` for every tile of the slide, then
+   `surfing=False` on arrival. THE AVATAR DISMOUNTS. That is KI-76's OTHER defect — the
+   "wrong movement mode" half — showing up at the warp exit. ⇒ a planner that believes it is
+   still on (14,8) in ROOM6 and still surfing is wrong on ALL THREE of map, tile and mode.
+
+⚠ HONEST LIMITS OF THIS RUN.
+* n=1 here (a second run follows; identical output across runs is a DETERMINISM check, never a
+  replication — the project's rule 8).
+* It confirms the ENDS-ON-A-WARP defect. It does NOT confirm the DISMOUNT defect in its own
+  right: defect 1 is about a slide ending beside walkable LAND, and what was observed here is a
+  dismount caused by a WARP transition. Related, suggestive, NOT the same measurement.
+* Nothing is fixed. `map_path.py` is untouched. This makes the fix's A/B possible; it is not it.

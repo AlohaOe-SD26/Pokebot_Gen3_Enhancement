@@ -1,0 +1,54 @@
+[ki76] SAFETY anchor=post_dive_ki76.ss1 sha256[:12]=b89900084e7c — the PINNED copy (md5 a00378595409). CH19C_CAPTURE=0 so nothing can re-capture an anchor during this run.
+[ki76] ROOMS 1+2 re-solved (both reset on every map load)
+[ki76] ROOM6 arrival ('SEAFLOOR_CAVERN_ROOM6', (11, 21), False) (PREDICTED (11,21))
+[ki76] PLAN (11, 21) -> staging (8, 12): OK len=5 (source collision=0)
+[ki76] STAGED at=('SEAFLOOR_CAVERN_ROOM6', (8, 12), True) on_target=True tile_type='Ocean Water'
+[ki76] RIDE pressing Right (EAST) from (8, 12) onto (9, 12); production predicts the chain ends on (14, 8) after 9 steps.
+[ki76] ARM-CONTROL KI76_RELEASE_EARLY=1 (button released as soon as we move)
+[ki76]   f+1 SEAFLOOR_CAVERN_ROOM6 (8, 12) surfing=True
+[ki76]   f+9 SEAFLOOR_CAVERN_ROOM6 (9, 12) surfing=True
+[ki76]   RELEASED at f+9 on first movement — the rest of this slide is UNASSISTED
+[ki76]   f+17 SEAFLOOR_CAVERN_ROOM6 (10, 12) surfing=True
+[ki76]   f+23 SEAFLOOR_CAVERN_ROOM6 (10, 11) surfing=True
+[ki76]   f+29 SEAFLOOR_CAVERN_ROOM6 (10, 10) surfing=True
+[ki76]   f+35 SEAFLOOR_CAVERN_ROOM6 (11, 10) surfing=True
+[ki76]   f+41 SEAFLOOR_CAVERN_ROOM6 (12, 10) surfing=True
+[ki76]   f+47 SEAFLOOR_CAVERN_ROOM6 (13, 10) surfing=True
+[ki76]   f+53 SEAFLOOR_CAVERN_ROOM6 (14, 10) surfing=True
+[ki76]   f+59 SEAFLOOR_CAVERN_ROOM6 (14, 9) surfing=True
+[ki76]   f+65 SEAFLOOR_CAVERN_ROOM6 (14, 8) surfing=True
+[ki76]   f+142 SEAFLOOR_CAVERN_ENTRANCE (10, 1) surfing=False
+[ki76]   settle+29 SEAFLOOR_CAVERN_ENTRANCE (10, 2) surfing=False
+[ki76] RIDE moved=True step_frames=142 settle_frames=210 distinct_positions=13
+[ki76] FINAL map=SEAFLOOR_CAVERN_ENTRANCE tile=(10, 2) surfing=False
+[ki76] ARM = R (the game WARPS — KI-76's ends-on-a-warp defect is CONFIRMED LIVE)
+[ki76] SAFETY anchor intact = True (before=b89900084e7c after=b89900084e7c)
+[ki76] DETAIL {'trail': [('SEAFLOOR_CAVERN_ROOM6', (8, 12), True), ('SEAFLOOR_CAVERN_ROOM6', (9, 12), True), ('SEAFLOOR_CAVERN_ROOM6', (10, 12), True), ('SEAFLOOR_CAVERN_ROOM6', (10, 11), True), ('SEAFLOOR_CAVERN_ROOM6', (10, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (11, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (12, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (13, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (14, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (14, 9), True), ('SEAFLOOR_CAVERN_ROOM6', (14, 8), True), ('SEAFLOOR_CAVERN_ENTRANCE', (10, 1), False), ('SEAFLOOR_CAVERN_ENTRANCE', (10, 2), False)]}
+[ki76] RESULT staged=True stepped=True anchor_intact=True arm=R
+[ki76] ACCEPTANCE: PASS (grades the INSTRUMENT: staged AND stepped AND anchor intact AND landed on one of the two predicted arms)
+
+=== WHY THIS ARM EXISTS, AND WHAT IT SETTLES ===
+
+THE OBJECTION (a good one, and it would have been raised): the default arm HOLDS the direction
+button for the whole ride, so "the warp fired" might mean "a held button kept pressing once the
+slide delivered us onto (14,8)" rather than "the current delivered us onto a warp and it fired".
+
+THE ARM: `KI76_RELEASE_EARLY=1` releases the button the INSTANT the avatar first moves. Above:
+    RELEASED at f+9 on first movement — the rest of this slide is UNASSISTED
+
+THE RESULT: byte-for-byte the same ride. (9,12) (10,12) (10,11) (10,10) (11,10) (12,10) (13,10)
+(14,10) (14,9) (14,8) at the same frames, then SEAFLOOR_CAVERN_ENTRANCE at f+142, surfing False,
+ARM R, ACCEPTANCE: PASS.
+
+⇒ THE BUTTON IS EXONERATED BY MEASUREMENT, not by argument. Nine of the ten tiles and the entire
+warp were traversed with NO input held. The current is the only remaining cause.
+
+‼ THE RULE THIS SATISFIES: "a claim of the form 'without X the bug survives' is a CLAIM, and the
+only currency this project accepts for it is an arm with X removed" (SESSION DISCIPLINE rule 8).
+The code-timing argument — release happens before any settle-loop frame — is TRUE and was
+independently verified by a reviewer, but an argument is not an arm.
+
+⚠ WHAT IT DOES NOT SETTLE: the auto-step from the warp-arrival tile (10,1) to the settled tile
+(10,2), ~29 frames after release. It is NOT the driver (no button is held by then, in either arm).
+It is most plausibly vanilla's own "step off the warp" on arrival — but that is UNATTRIBUTED here,
+and is flagged rather than asserted.

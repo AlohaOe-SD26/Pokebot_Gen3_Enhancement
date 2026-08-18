@@ -2040,6 +2040,19 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
       *"Everything else is UNVERIFIED IN OUR HARNESS"*. ⇒ **Before this item's 501 ROUTE134 chains
       are called unavoidable, confirm that entry with `get_map_data`** — one call, and it decides
       whether this item is urgent or merely real. ⛔ Do not repeat the coordinate as fact until then.
+      ✅✅ **STEP 1 IS DONE 2026-08-17 — THE ENDS-ON-A-WARP DEFECT IS CONFIRMED LIVE.
+      ⛔ DO NOT REBUILD `--driver ki76warp`.** It staged on `(8,12)`, pressed EAST onto `(9,12)`, and
+      recorded the whole slide: **exactly the nine steps production predicted, ending exactly on its predicted `(14,8)`** (⚠ the COUNT and ENDPOINT were predicted; the intermediate tiles are what the recorded tile TYPES imply, and they match), then
+      `SEAFLOOR_CAVERN_ENTRANCE` — warp-arrival tile `(10,1)` at f+142, then the game's own auto-step to `(10,2)`, which is the FINAL settled tile the driver graded on — a different MAP — with **`surfing` True throughout the
+      slide and False on arrival**. ⇒ a planner resting on `(14,8)` in ROOM6 is wrong on map, tile
+      AND movement mode. `ACCEPTANCE: PASS`, anchor hash unchanged.
+      ‼ **The acceptance grades the INSTRUMENT, not the answer** (staged AND stepped AND anchor
+      intact AND landed on one of the two predicted arms) — a driver that only passes when it likes
+      the result is not an experiment.
+      ⚠ **Two honest limits, both recorded:** the run does NOT confirm the DISMOUNT defect in its own
+      right (that one is about a slide ending beside walkable LAND; this dismount came from a WARP
+      transition), and n is small — a second run is a DETERMINISM check, never a replication.
+      📁 `evidence/2026-08-17-ki76warp-RUN3-CONFIRMED.stdout.txt`.
       ⛔ **NOT READY TO PATCH, and the reason is KI-76's own:** both fixes are changes to SHARED
       pathfinding every mode depends on (the KI-59 shape), each needs its own A/B, and KI-76
       requires **LIVE confirmation before code depends on either**. This measurement is static; it

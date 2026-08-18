@@ -1815,7 +1815,7 @@ Fixed, driven and gated (`repro_multi_battle_partner.py`, in the standing suite)
 
 ---
 
-## KI-76 — our CURRENT-SLIDE model ends the slide ONE TILE SHORT and in the WRONG MOVEMENT MODE, and it cannot see that a slide can END ON A WARP (2026-08-13 — ✅ SAFETY half FIXED, fault-tested, and its cap now PROVEN; ⚠ CORRECTNESS half OPEN and TRACKED as `#24-ki76correctness`; ‼ **MIXED ARMING — the two defects are armed in DIFFERENT PLACES, see the 2026-08-17 block**)
+## KI-76 — our CURRENT-SLIDE model ends the slide ONE TILE SHORT and in the WRONG MOVEMENT MODE, and it cannot see that a slide can END ON A WARP (2026-08-13 — ✅ SAFETY half FIXED, fault-tested, cap PROVEN; ⚠ CORRECTNESS half still UNFIXED and TRACKED as `#24-ki76correctness`, but ✅✅ **its ENDS-ON-A-WARP defect is CONFIRMED LIVE 2026-08-17** while the DISMOUNT defect remains analysis; ‼ **MIXED ARMING — the two defects are armed in DIFFERENT PLACES, see the 2026-08-17 blocks**)
 
 > ⛔⛔ **THIS HEADER USED TO END *"so it is ARMED chiefly on Routes 132-134"*, ONE claim covering
 > TWO defects. MEASURED 2026-08-17 (`probe_slide_endpoints.py`), that is half right and half
@@ -1943,6 +1943,41 @@ SURF STATE, not merely that it arrived somewhere.
 * **`MB_SLIDE_*` (0x44-0x47) is not modelled as forced movement at all.** Measured: **zero** in the
   Seafloor Cavern, so not armed here. (‼ "108/117 forced-slide tiles" is loose wording in our docs —
   they are all `*WARD_CURRENT`.)
+
+### ✅✅ CONFIRMED LIVE 2026-08-17 — THE ENDS-ON-A-WARP DEFECT IS NO LONGER STATIC ANALYSIS
+
+`--driver ki76warp` (NEW) staged the avatar on ROOM6 `(8,12)`, pressed EAST once onto `(9,12)`, and
+recorded every tile of the slide. ⛔ **Nothing is fixed — this makes the fix's A/B possible.**
+
+* **Our chain model is right — and here is the precise version of that claim.** Production
+  predicted a COUNT and an ENDPOINT (`steps=9`, terminus `(14,8)`); the live slide took **exactly
+  nine steps and ended exactly there**. ⚠ The intermediate tiles
+  `(9,12)→(10,12)→(10,11)→(10,10)→(11,10)→(12,10)→(13,10)→(14,10)→(14,9)→(14,8)` were **NOT
+  separately predicted** in the evidence — they are what the recorded tile TYPES imply, and the
+  live trail matches that derivation exactly. *(An earlier draft of this bullet said "EXACTLY
+  right, tile for tile", which credited the prediction with more than it made.)*
+  ⇒ **the slide SIMULATION is not what is broken.**
+* **The warp FIRES.** The avatar ends on `SEAFLOOR_CAVERN_ENTRANCE` — warp-arrival tile `(10,1)` at f+142, then the game's own auto-step to `(10,2)`, which is the FINAL settled tile the driver graded on — a different MAP. Our
+  planner would have emitted `(14,8)` in ROOM6 as an ordinary resting waypoint — unpenalised and
+  not marked `is_warp`.
+* ‼ **AND A THIRD THING NOBODY ASKED FOR: `surfing=True` throughout the slide, `surfing=False` on
+  arrival — THE AVATAR DISMOUNTS.** ⇒ a planner believing it is on `(14,8)` in ROOM6 and still
+  surfing is wrong on **all three** of map, tile and movement mode.
+* ✅✅ **AND THE OBVIOUS OBJECTION IS ANSWERED BY AN ARM, NOT BY AN ARGUMENT.** The default run
+  HOLDS the direction button through the ride, so "the warp fired" could have meant "a held button
+  kept pressing once we arrived". `KI76_RELEASE_EARLY=1` releases it the instant the avatar first
+  moves: **released at f+9, and the ride is byte-for-byte identical** — same ten tiles, same frames,
+  same warp, `ARM R`, `ACCEPTANCE: PASS`. Nine of the ten tiles and the entire warp happen with NO
+  input held. ⇒ the button is exonerated by MEASUREMENT.
+  📁 `evidence/2026-08-17-ki76warp-CONTROL-release-early.stdout.txt`.
+* ⚠ **One thing left UNATTRIBUTED rather than explained away:** the avatar auto-steps from the
+  warp-arrival tile `(10,1)` to the settled `(10,2)` ~29 frames after release. It is NOT the driver
+  (no button is held by then, in either arm); it is most plausibly vanilla's own "step off the warp".
+  ⛔ Not asserted — flagged.
+⚠ **HONEST LIMITS:** this confirms the ENDS-ON-A-WARP defect. It does **NOT** confirm the DISMOUNT
+defect in its own right — that one is about a slide ending beside walkable LAND, and what was seen
+here is a dismount caused by a WARP transition. Related, suggestive, **not the same measurement**.
+📁 `evidence/2026-08-17-ki76warp-RUN3-CONFIRMED.stdout.txt`.
 
 ### Not fixed, and why — ✅ NOW TRACKED as `#24-ki76correctness` (it had NO item until 2026-08-17)
 Fixing defect 1 means teaching `map_path` a "slide ends in a dismount" concept, and defect 2 a

@@ -8300,3 +8300,35 @@ self-contradictory text they most need to catch.**
 every one of them was a SYNTHETIC one-liner. **The rule was only shown to be wrong when it was
 replayed against the REAL file.** ⇒ *after fault-testing a doc rule on synthetic strings, replay it
 against the actual pre-fix document and confirm it fires there.*
+
+## 2026-08-17 — I forked a `run()` and copied its LOOP but not its PREAMBLE; the run stalled 20,000 frames
+
+**Symptom.** `--driver ki76warp` (a subclass of `Ch20Room6Mode`) sailed to ROUTE128, completed leg 1
+of the ingress, and then sat for 20,000 frames until the harness declared `HANG CONFIRMED`. No
+`[ki76]` line after the anchor guard, so the failure looked like it was in my new code.
+
+**Root cause: the parent's `run()` does two things BEFORE the loop I copied.**
+
+    yield from wait_until_truly_controllable()
+    yield from self._inject_dive_fixture()      # <- without this there is no leg 2
+    if not self.fixture_ok: bail
+
+I had started reading the parent at `yield from self._ingress()` — the first line I *cared* about —
+and reproduced everything from there down. **Without the injected Dive fixture the cavern is
+physically unreachable**, so the ingress could never surface and the mode waited forever.
+
+**A SECOND bug in the same driver, caught by a TOOL before it could mislead me.** The first run
+produced *no* `[ki76]` output at all. `pyflakes` said `undefined name 'os'` — my `run()` used
+`os.environ` without importing it, the `NameError` killed the generator on its first statement, and
+the harness dropped to Manual. ‼ **That empty output was indistinguishable from "the driver ran and
+found nothing"**, which is the same trap logged on 2026-08-17 (`a probe reported TWO comforting
+zeros`). Running `pyflakes` on the harness before believing a null result cost seconds.
+
+**PREVENTION RULE (one line).** ⛔ **When you fork a `run()`, diff it against the original from its
+FIRST STATEMENT, not from the step you care about** — the setup you skipped is invisible in the
+failure, because what breaks is the step AFTER it.
+
+‼ **Corollary, now earned twice in one session:** ⛔ **before diagnosing a null or empty result, run
+the linter on the file you just changed.** Both of this session's mystery nulls were undefined names,
+and both were free to find. *(The playbook's §0b Q4 already says "could my detector have returned
+POSITIVE at all?" — a `NameError` on line 1 is the most complete "no" there is.)*

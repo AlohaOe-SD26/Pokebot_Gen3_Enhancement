@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner", "ki66faint"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -7516,6 +7516,249 @@ class Ch20Room6Mode(Ch20Room2Mode):
         return
 
 
+class Ki76WarpMode(Ch20Room6Mode):
+    """`#24-ki76correctness` — DOES A CURRENT SLIDE REALLY END ON A WARP AND EJECT US FROM THE MAP?
+
+    ⛔ THIS IS A CONFIRMATION, NOT A FIX. KI-76's "ends-on-a-warp" defect is STATIC ANALYSIS: the
+    planner charges its 1,000,000 warp penalty against the NEIGHBOUR (`map_path.py:972`) and only
+    afterwards substitutes the slide DESTINATION for it (`:1013`), so a chain that terminates ON a
+    warp is never penalised and never marked `is_warp`. Nobody has watched it happen.
+
+    THE TWO ARMS, and they differ on MAP IDENTITY alone — the cheapest possible assertion:
+      ARM M (our model)  final map SEAFLOOR_CAVERN_ROOM6, tile (14,8), still Surfing
+      ARM R (the game)   final map SEAFLOOR_CAVERN_ENTRANCE (the (14,8) Non-Animated Door fires)
+
+    ‼ EVERY COORDINATE BELOW WAS MEASURED, NOT READ OFF A DOC — `probe_room6_warp_entries.py`,
+    evidence `evidence/2026-08-17-ki76-room6-warp-entries.stdout.txt`:
+      * nine chains end on (14,8); their entry tiles are enumerated there;
+      * ⛔ `(14,9)` — the tile KI-76 and the punch list both NAMED — is UNSTAGEABLE. Room 6 is
+        ONE-WAY, and 14 of the 15 candidate staging tiles have NO PATH from Room 6's entry. A
+        driver written from the docs would have failed at runtime after ~15 minutes of setup;
+      * EXACTLY ONE usable staging tile: (8,12), 5 waypoints, no waypoint on a current, none on
+        a warp. It steps EAST onto (9,12), an Eastward Current whose chain runs NINE steps.
+
+    ⛔ STAGE-AND-STEP, NEVER `navigate_to` AN ENTRY TILE. Asking the planner to path ONTO a current
+    tile is asking the very code under test to answer the question: `:1013` substitutes the slide
+    destination for it. So we path to plain water and press the button ourselves.
+
+    ‼ AND THE STEP IS OUR OWN, BOUNDED, INSTRUMENTED ONE — NOT `walk_one_tile`. That helper has two
+    unbounded `while` loops and its own docstring warns it "will create an endless loop if trying to
+    run into a wall". Riding a current into a map transition is exactly where a never-terminating
+    wait would hang the harness. This stepper is frame-capped, and it SAMPLES THE TRAJECTORY, so the
+    evidence is the slide itself rather than an endpoint we have to take on trust.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py post_dive_ki76.ss1 --driver ki76warp --frames 2500000
+
+    ⚠ Drive the PINNED `post_dive_ki76.ss1`, never `post_dive.ss1` — the latter is re-captured by
+    `--driver spacecenter` on every PASS and is listed VOLATILE.
+    """
+
+    STAGING = (8, 12)
+    ENTRY_TILE = (9, 12)
+    PRESS = "Right"                 # EAST, from (8,12) onto (9,12)
+    PRED_TERMINUS = (14, 8)         # what PRODUCTION says the chain ends on
+    STEP_CAP_FRAMES = 900           # ~15s; a 9-tile slide is far under this
+    SETTLE_CAP_FRAMES = 900
+
+    def _sample(self):
+        """(map_name, tile, surfing) — the three values the acceptance rests on."""
+        from modules.player import AvatarFlags, get_player_avatar
+
+        name, tile = self._where()
+        try:
+            surf = AvatarFlags.Surfing in get_player_avatar().flags
+        except Exception as error:  # noqa: BLE001 - a failure to read it IS the finding
+            surf = f"unreadable({type(error).__name__})"
+        return name, tile, surf
+
+    def _ride(self, notes: dict):
+        """Stage on (8,12), step EAST once, and RECORD THE WHOLE SLIDE."""
+        import os
+
+        from modules.context import context as _ctx
+        from modules.map_data import MapRSE
+        from modules.story.early_game import _navigate_riding_out
+
+        room6 = MapRSE.SEAFLOOR_CAVERN_ROOM6
+        self.staged = self.stepped = False
+        self.trail = []
+
+        start = self._sample()
+        log(f"[ki76] ROOM6 arrival {start} (PREDICTED (11,21))")
+
+        planned, detail = self._path_ok(room6, start[1], self.STAGING)
+        log(f"[ki76] PLAN {start[1]} -> staging {self.STAGING}: {detail}")
+        try:
+            yield from _navigate_riding_out(room6, self.STAGING)
+        except Exception as error:  # noqa: BLE001 - a failure here IS the finding
+            log(f"[ki76] STAGING raised {type(error).__name__}: {str(error)[:250]}")
+
+        here = self._sample()
+        # ‼‼ THE POSITIVE CONTROL, AND IT GATES EVERYTHING BELOW. If we never reached (8,12) then
+        # "we are still in ROOM6 at the end" is not a measurement of ARM M — it is a measurement of
+        # a run that never started. 08-MISTAKES 2026-08-17: a zero from an instrument that could not
+        # have produced a non-zero is not evidence. So this refuses rather than reporting a verdict.
+        self.staged = (here[0] == "SEAFLOOR_CAVERN_ROOM6" and tuple(here[1]) == self.STAGING)
+        log(f"[ki76] STAGED at={here} on_target={self.staged} tile_type={self._tile_type()!r}")
+        if not self.staged:
+            log("[ki76] ‼ NOT ON THE STAGING TILE — the ride is NOT attempted and NO verdict is "
+                "reported. A final position measured from the wrong start proves nothing about "
+                "either arm.")
+            return
+
+        before = self._sample()
+        log(f"[ki76] RIDE pressing {self.PRESS} (EAST) from {before[1]} onto {self.ENTRY_TILE}; "
+            f"production predicts the chain ends on {self.PRED_TERMINUS} after 9 steps.")
+
+        def _note(sample, tag):
+            key = (sample[0], tuple(sample[1]))
+            if not self.trail or key != (self.trail[-1][0], tuple(self.trail[-1][1])):
+                self.trail.append(sample)
+                log(f"[ki76]   {tag} {sample[0]} {tuple(sample[1])} surfing={sample[2]}")
+                return True
+            return False
+
+        # ---- our own BOUNDED, INSTRUMENTED step -------------------------------------------
+        # ‼‼ THE CONTROL ARM, AND IT EXISTS BECAUSE THE OBVIOUS OBJECTION IS A GOOD ONE.
+        # The default arm HOLDS the direction for the whole slide. A sceptic is entitled to ask
+        # whether the warp fired because the CURRENT delivered us onto (14,8), or because a held
+        # button kept pressing once we got there. `KI76_RELEASE_EARLY=1` releases the button the
+        # INSTANT the avatar first moves, so the rest of the ride is unassisted. If ARM R still
+        # results, the button is EXONERATED and the current is the only remaining cause.
+        # ⇒ "without X the effect survives" is a CLAIM until an arm with X removed is run
+        # (08-MISTAKES / SESSION DISCIPLINE rule 8). This is that arm.
+        release_early = os.environ.get("KI76_RELEASE_EARLY", "0") == "1"
+        log(f"[ki76] ARM-CONTROL KI76_RELEASE_EARLY={'1 (button released as soon as we move)' if release_early else '0 (button held through the slide)'}")
+        _ctx.emulator.hold_button(self.PRESS)
+        held = True
+        frames = 0
+        moved = False
+        while frames < self.STEP_CAP_FRAMES:
+            frames += 1
+            yield
+            s = self._sample()
+            _note(s, f"f+{frames}")
+            if (s[0], tuple(s[1])) != (before[0], tuple(before[1])):
+                if not moved and release_early and held:
+                    _ctx.emulator.release_button(self.PRESS)
+                    held = False
+                    log(f"[ki76]   RELEASED at f+{frames} on first movement — the rest of this "
+                        f"slide is UNASSISTED")
+                moved = True
+            if moved and s[0] != "SEAFLOOR_CAVERN_ROOM6":
+                break   # we left the map: that IS arm R, and there is nothing more to wait for
+        if held:
+            _ctx.emulator.release_button(self.PRESS)
+
+        # Let the slide finish. Bounded, and it stops early once the position has been stable.
+        settle = 0
+        stable = 0
+        while settle < self.SETTLE_CAP_FRAMES:
+            settle += 1
+            yield
+            s = self._sample()
+            stable = 0 if _note(s, f"settle+{settle}") else stable + 1
+            if stable > 180:
+                break
+
+        self.stepped = moved
+        notes["trail"] = [(t[0], tuple(t[1]), t[2]) for t in self.trail][:40]
+        log(f"[ki76] RIDE moved={moved} step_frames={frames} settle_frames={settle} "
+            f"distinct_positions={len(self.trail)}")
+
+    def run(self):
+        import hashlib
+        import os
+
+        from modules.context import context as _ctx
+
+        notes = {}
+
+        # ---- ANCHOR GUARD (copied from Ki66FaintMode, which PROVED it) --------------------
+        # ‼ Hash before AND after and LOG BOTH, so the guard is proven rather than claimed.
+        anchor = SAVES / "post_dive_ki76.ss1"
+        anchor_before = hashlib.sha256(anchor.read_bytes()).hexdigest() if anchor.is_file() else None
+        os.environ["CH19C_CAPTURE"] = "0"   # the var that lets `spacecenter` rewrite post_dive.ss1
+        log(f"[ki76] SAFETY anchor=post_dive_ki76.ss1 sha256[:12]="
+            f"{(anchor_before or '<absent>')[:12]} — the PINNED copy (md5 a00378595409). "
+            f"CH19C_CAPTURE=0 so nothing can re-capture an anchor during this run.")
+
+        def _bail(reason: str):
+            log(f"[ki76] BAIL {reason}")
+            log("[ki76] ACCEPTANCE: FAIL")
+            _ctx.set_manual_mode()
+
+        # ‼‼ THE PARENT DOES THESE TWO FIRST AND THEY ARE NOT OPTIONAL. Run 2 of this driver
+        # reached ROUTE128 and then stalled for 20,000 frames because I had reproduced the parent
+        # run()'s LOOP but not its PREAMBLE: without the injected Dive fixture there is no leg 2,
+        # so the ingress cannot surface in the cavern. ⛔ When you fork a run(), diff it against the
+        # original from its FIRST statement, not from the step you care about.
+        from modules.story.early_game import wait_until_truly_controllable
+
+        yield from wait_until_truly_controllable()
+        yield from self._inject_dive_fixture()
+        if not self.fixture_ok:
+            _bail("the Dive fixture failed, so the cavern is unreachable")
+            return
+        yield from self._ingress()
+        if not (self.leg1_ok and self.at_entrance):
+            _bail(f"the ingress did not surface in the cavern (legs={self.legs}/5)")
+            return
+        yield from self._enter_room1()
+        if not self.in_room1:
+            _bail("never reached ROOM1")
+            return
+        yield from self._solve_room1()
+        if not self.r1["in_room2"]:
+            _bail("Room 1 did not deliver us into ROOM2")
+            return
+        yield from self._solve_room2()
+        if not self.r2["in_room6"]:
+            _bail("Room 2 did not deliver us into ROOM6")
+            return
+        log("[ki76] ROOMS 1+2 re-solved (both reset on every map load)")
+
+        yield from self._ride(notes)
+
+        final = self._sample()
+        anchor_after = hashlib.sha256(anchor.read_bytes()).hexdigest() if anchor.is_file() else None
+        anchor_intact = anchor_after == anchor_before
+
+        # ---- THE VERDICT -------------------------------------------------------------------
+        # ⛔ GRADED ON MAP IDENTITY, the ONLY field the two arms are guaranteed to differ on. Tile
+        # and surf state are RECORDED for the write-up and never used to decide.
+        left_room6 = bool(self.staged and self.stepped and final[0] != "SEAFLOOR_CAVERN_ROOM6")
+        held_at_terminus = bool(self.staged and self.stepped
+                                and final[0] == "SEAFLOOR_CAVERN_ROOM6"
+                                and tuple(final[1]) == self.PRED_TERMINUS)
+        if left_room6:
+            arm = "R"
+            arm_text = "R (the game WARPS — KI-76's ends-on-a-warp defect is CONFIRMED LIVE)"
+        elif held_at_terminus:
+            arm = "M"
+            arm_text = "M (our model — the slide ENDED ON the warp tile without firing it)"
+        else:
+            arm = "?"
+            arm_text = "NEITHER — read the trail; do not report a verdict from this run"
+
+        log(f"[ki76] FINAL map={final[0]} tile={tuple(final[1])} surfing={final[2]}")
+        log(f"[ki76] ARM = {arm_text}")
+        log(f"[ki76] SAFETY anchor intact = {anchor_intact} "
+            f"(before={(anchor_before or '<absent>')[:12]} after={(anchor_after or '<absent>')[:12]})")
+        log(f"[ki76] DETAIL {notes}")
+
+        # ‼ ACCEPTANCE GRADES THE INSTRUMENT, NOT THE ANSWER. Either arm is a legitimate scientific
+        # result; what invalidates the RUN is failing to stage, failing to move, or touching the
+        # anchor. ⛔ A driver that only passes when it likes the answer is not an experiment.
+        passed = bool(self.staged and self.stepped and anchor_intact and arm in ("R", "M"))
+        log(f"[ki76] RESULT staged={self.staged} stepped={self.stepped} "
+            f"anchor_intact={anchor_intact} arm={arm}")
+        log(f"[ki76] ACCEPTANCE: {'PASS' if passed else 'FAIL'} (grades the INSTRUMENT: staged AND "
+            f"stepped AND anchor intact AND landed on one of the two predicted arms)")
+        _ctx.set_manual_mode()
+        return
+
+
 class Ch20Room3Mode(Ch20Room6Mode):
     """§Ch20 ROOM 3 — the WALK route, and the first live test of the DOUBLE-BATTLE claim.
 
@@ -9514,6 +9757,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch20Room1Mode()
         elif args.driver == "ch20room2":
             context.bot_mode_instance = Ch20Room2Mode()
+        elif args.driver == "ki76warp":
+            context.bot_mode_instance = Ki76WarpMode()
         elif args.driver == "ch20room6":
             context.bot_mode_instance = Ch20Room6Mode()
         elif args.driver == "ch20room3":

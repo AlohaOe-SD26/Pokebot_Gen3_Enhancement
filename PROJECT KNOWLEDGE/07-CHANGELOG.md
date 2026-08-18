@@ -16736,3 +16736,49 @@ in the source, because matching it would make the gate noisy enough to be bypass
 Docs fixed at `04-HANDOFF.md:60/145/182`, plus `:693`'s HOW TO RUN line, which still predicted the
 abort probe would read `44 on custom` — it reads 36 on both forks since the guards were promoted.
 27/27 gates PASS; the audit's verdict was already "CAN A COLD SESSION START — YES".
+
+## 2026-08-17 — KI-76's ENDS-ON-A-WARP defect is CONFIRMED LIVE (`--driver ki76warp`)
+
+The defect has been static analysis since 2026-08-13. It is now watched happening.
+
+`--driver ki76warp` (NEW, subclasses `Ch20Room6Mode`) stages the avatar on ROOM6 `(8,12)` — the only
+one of 15 candidate staging tiles that is reachable — presses **EAST once** onto `(9,12)`, and
+records every tile of the resulting slide.
+
+**RESULT — ARM R:**
+* **Our chain model is right — and here is the precise version of that claim.** Production
+  predicted a COUNT and an ENDPOINT (`steps=9`, terminus `(14,8)`); the live slide took **exactly
+  nine steps and ended exactly there**. ⚠ The intermediate tiles
+  `(9,12)→(10,12)→(10,11)→(10,10)→(11,10)→(12,10)→(13,10)→(14,10)→(14,9)→(14,8)` were **NOT
+  separately predicted** in the evidence — they are what the recorded tile TYPES imply, and the
+  live trail matches that derivation exactly. *(An earlier draft of this bullet said "EXACTLY
+  right, tile for tile", which credited the prediction with more than it made.)*
+  ⇒ **the slide SIMULATION is not what is broken.**
+* **The warp fires:** final map `SEAFLOOR_CAVERN_ENTRANCE` — warp-arrival tile `(10,1)` at f+142, then the game's own auto-step to `(10,2)`, which is the FINAL settled tile the driver graded on. Our planner would have emitted
+  `(14,8)` in ROOM6 as an ordinary resting waypoint, unpenalised and not marked `is_warp`.
+* ‼ **Unasked-for third finding: `surfing` is True for every tile of the slide and False on
+  arrival — the avatar DISMOUNTS.** A planner believing it is on `(14,8)` in ROOM6 and still surfing
+  is wrong on all three of map, tile and movement mode.
+
+**Design notes worth keeping.** Stage-and-step, never `navigate_to` an entry tile — asking the
+planner to path onto a current tile asks the code under test to answer the question. And the step is
+our own BOUNDED, instrumented one, not `walk_one_tile`, whose two unbounded `while` loops and
+"endless loop if trying to run into a wall" docstring are exactly wrong for riding a current into a
+map transition. ‼ **The acceptance grades the INSTRUMENT** (staged AND stepped AND anchor intact AND
+landed on one of the two predicted arms), because a driver that only passes when it likes the answer
+is not an experiment.
+
+✅✅ **THE HELD-BUTTON OBJECTION IS ANSWERED BY AN ARM.** `KI76_RELEASE_EARLY=1` releases the
+direction the instant the avatar first moves; released at f+9, the ride is **byte-for-byte
+identical** — same ten tiles, same frames, same warp, ARM R, PASS. Nine of ten tiles and the whole
+warp occur with no input held. ⇒ measured, not argued. And **three runs agree** (two default, one
+control) — ‼ which is a DETERMINISM check, never a replication.
+⚠ Left UNATTRIBUTED rather than explained away: the auto-step from warp-arrival `(10,1)` to the
+settled `(10,2)` ~29 frames after release. Not the driver (no button held by then, in either arm);
+most plausibly vanilla's own step-off-the-warp. Flagged, not asserted.
+
+⚠ **Honest limits, both in the evidence file:** this does NOT confirm the DISMOUNT defect in its own
+right (that is about a slide ending beside walkable LAND; this dismount came from a WARP
+transition), and identical output across runs is a determinism check, never a replication.
+⛔ **Nothing is fixed.** `map_path.py` is untouched; this makes the fix's A/B possible.
+27/27 gates PASS; anchor hash unchanged before/after.
