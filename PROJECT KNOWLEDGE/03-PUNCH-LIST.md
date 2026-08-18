@@ -1819,7 +1819,11 @@ criterion**, and the honest way to test the pair against each other.
 **Interacts with `#24-dexhunt` above:** hunting for new species generates exactly the
 level-matched encounters maintenance needs. Done together they are one activity, not two.
 
-### ‼‼ `#24-orphans` — SIX REAL RESIDUALS THAT WERE WRITTEN DOWN BUT NEVER TRACKED — **MIXED STATUS (2026-08-17, LATEST): 3 DONE `[x]` ((2) KI-65, (4) log collision, (5) compare_runs A/B axis), 2 PARTLY DONE `[~]` ((1) — instrumentation SHIPPED, REACTION half open; (3) KI-66 — `_on_field` half FIXED+PROMOTED, OWNER-filter half open), 1 OPEN `[ ]` ((6) KI-76's correctness half)** (filed 2026-08-15; last updated 2026-08-17)
+### ‼‼ `#24-orphans` — SIX REAL RESIDUALS THAT WERE WRITTEN DOWN BUT NEVER TRACKED — **MIXED STATUS (2026-08-17, LATEST): 4 DONE `[x]` ((2) KI-65, (4) log collision, (5) compare_runs A/B axis, (6) the KI-76 shelving), 2 PARTLY DONE `[~]` ((1) — instrumentation SHIPPED, REACTION half open; (3) KI-66 — `_on_field` half FIXED+PROMOTED, OWNER-filter half open), and ⛔ NOTHING plain OPEN `[ ]`** (filed 2026-08-15; last updated 2026-08-17)
+> ⛔ **(6) CLOSED THE ORPHANING, NOT THE DEFECTS** — KI-76's two defects are OPEN and live in
+> `#24-ki76correctness`. ‼ This heading said *"1 OPEN `[ ]` ((6) …)"* for one commit after (6)'s own
+> box became `[x]`; a Tier 2 cold-start audit counted the boxes and caught it. **Count the boxes,
+> do not re-type the tally.**
 > ⛔ **THE CHECKBOX AND THE HEADER MUST SAY THE SAME THING — corrected 2026-08-17 by a Tier 1
 > reviewer.** This header called (1) *OPEN* while its box was `[~]` and its body opened
 > *"✅ INSTRUMENTATION HALF DONE"*, and called (3) *PARTLY DONE* while its box was `[ ]`. Both are
@@ -2092,11 +2096,30 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
       pathfinding every mode depends on (the KI-59 shape), each needs its own A/B, and KI-76
       requires **LIVE confirmation before code depends on either**. This measurement is static; it
       does NOT discharge that.
-      ➡ **NEXT ACTION, startable with zero input — live-confirm (B), because the fixture EXISTS:**
-      `--driver ch20room6`, anchor `saves/post_dive.ss1` (both already used and passing). Surf onto
-      ROOM6 `(14,9)` and observe whether the current flushes north through the `(14,8)`
+      ➡ **NEXT ACTION — live-confirm the ends-on-warp defect. Startable with zero human input, but
+      ⛔ IT IS "WRITE A NEW DRIVER LEG", NOT "RUN AN EXISTING COMMAND".** Anchor
+      `saves/post_dive.ss1` and `--driver ch20room6` both exist and pass — but ‼ **that driver
+      provably does NOT go there**: its route is `ROOM6 (11,21) → (4,1)` and `05-KNOWN-ISSUES.md`
+      records its waypoints as `(14,16) (19,11) (8,12) (4,8)` — *"`(14,8)`, the trap, never appears."*
+      ⇒ **subclass it and fork before `_cross_room6`'s navigate.** *(An earlier draft of this line
+      said "the fixture EXISTS" full stop; a Tier 2 cold-start agent tried to begin from it and
+      found the scope understated. "The fixture exists" ≠ "the driver goes there".)*
+      Surf onto ROOM6 `(14,9)` and observe whether the current flushes north through the `(14,8)`
       Non-Animated Door and OUT OF THE MAP. ‼ Assert the avatar's FINAL MAP + TILE + SURF STATE
       (`AvatarFlags.Surfing in get_player_avatar().flags`), never "did it arrive".
+      ✅ **THE DISCRIMINATOR IS COMPUTED AND THE ARMS DIFFER — this item is NOT vacuous.** ARM M
+      (our model): final map `SEAFLOOR_CAVERN_ROOM6`, tile `(14,8)`, still surfing — because `:972`
+      charges the warp penalty against the NEIGHBOUR `(14,9)` (whose `warps_to` is `None`) and
+      `:1013` substitutes `(14,8)` afterwards without re-inspecting it. ARM R (the game):
+      final map `SEAFLOOR_CAVERN_ENTRANCE`. ⇒ **the arms differ on MAP IDENTITY alone**, which is
+      the cheapest possible assertion.
+      ⛔ **HAZARD, and no gate catches it: `post_dive.ss1` is NOT PINNED.** `verify_fixtures.py`
+      checks nine fixtures and this is not one of them, so a driver run can silently rewrite the
+      most-used anchor in the project — the same trap `--driver ki66faint` had to hand-guard.
+      **PIN IT (or drive a copy) BEFORE the first run.**
+      ‼ The nine entry tiles that funnel into `(14,8)` are NOT recorded anywhere — only the count
+      and the shared endpoint. Re-derive them with `probe_slide_endpoints.py` (observe-only); no
+      human input needed.
       ⛔ **BLOCKER on live-confirming (A), stated rather than hidden:** ROOM7 has **no driver**, and
       ROUTE132/133/134 are reachable by no built chapter (content ends at §Ch19/20). So (A)'s live
       confirmation needs a NEW fixture, and that is its first deliverable — not a patch.

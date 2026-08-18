@@ -8160,3 +8160,40 @@ nobody thought of.
 ‼ **Corollary for gate authors:** ⛔ **a subject-proximity check that is applied to only SOME passes
 is a blind spot with a false sense of coverage.** State in the rule itself which pass it lives in
 and whether the subject is checked — mine was not, and the first draft was silently unscoped.
+
+## 2026-08-17 — "the fixture exists" was true, and the next agent still could not run the command I implied
+
+**Symptom.** I closed `#24-orphans` (6) by filing `#24-ki76correctness` with what I believed was a
+zero-input next action: *"startable with zero input — live-confirm (B), because the fixture EXISTS:
+`--driver ch20room6`, anchor `saves/post_dive.ss1` (both already used and passing)."* A Tier 2
+cold-start agent then TRIED TO BEGIN from it and found the sentence understated the work.
+
+**Root cause: I checked that the driver EXISTS, not that it GOES THERE.** `ch20room6` navigates
+`ROOM6 (11,21) → (4,1)`, and `05-KNOWN-ISSUES.md` had already recorded that route's waypoints —
+`(14,16) (19,11) (8,12) (4,8)` — with the explicit note *"`(14,8)`, the trap, never appears."* **The
+document I was citing for the fixture also said the fixture avoids the target.** The real task is
+"subclass the driver and fork before its navigate", which is a different size of job from "run this".
+
+**A second thing the same agent found that I had not looked for:** `post_dive.ss1`, the anchor I
+named, is **not pinned** — `verify_fixtures.py` checks nine fixtures and this is not one of them
+(verified independently: zero mentions). A driver run can silently rewrite the most-used anchor in
+the project and no gate would notice. I named it as a strength without checking what protects it.
+
+**And a third, from the same audit: a heading tally I re-typed instead of counting.** The
+`#24-orphans` heading said *"1 OPEN `[ ]` ((6) …)"* while (6)'s own checkbox was already `[x]`,
+because I edited the bullet and then re-stated the tally from memory rather than counting boxes.
+Two more copies of the same stale count sat in `04-HANDOFF.md`, one of them inside NEXT ACTIONS —
+the block a cold agent ACTS from.
+
+**PREVENTION RULE (one line).** ⛔ **"The fixture exists" is not a claim about reachability — before
+writing "startable", check that the named driver's ROUTE actually reaches the tile under test, and
+say whether the anchor it uses is PINNED.** Existence, reachability and protection are three
+questions, and only the first is answered by `ls`.
+
+‼ **Corollary:** ⛔ **never re-type a tally; COUNT the markers.** A heading is a claim about every
+bullet beneath it (P2), so its arithmetic must be derived from the boxes each time one changes —
+this is the second tally in two commits that drifted from its own checkboxes.
+‼ **And the practice that caught all three: the Tier 2 rule that the audit agent must TRY TO BEGIN
+the next item, not merely check the docs for consistency.** All three findings were invisible to a
+consistency read — the documents agreed with each other perfectly. ⇒ *the strongest audit of a
+handoff is not "is it consistent?" but "can someone START from it?"*
