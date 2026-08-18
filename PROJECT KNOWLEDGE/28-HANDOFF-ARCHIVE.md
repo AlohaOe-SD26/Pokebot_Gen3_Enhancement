@@ -5708,3 +5708,106 @@ cross-reference still resolves. ⛔ None of this is outstanding work.
 >    ‼ **"Stage 1" is OVERLOADED in this file:** *KI-78* Stage 1 is the identity fix and is **DONE
 >    and PROMOTED**; *party-accounting* Stage 1 is this one and is now **UNBLOCKED, not forbidden**.
 >    Never read one for the other.
+
+## `#24-driftassertions` — ARCHIVED VERBATIM from `03-PUNCH-LIST.md` on 2026-08-18
+
+> Moved under the R3 line budget at wrap-up. ⛔ NOTHING HERE IS OUTSTANDING — DONE 2026-08-17:
+> the drift-statement sweep IS a gate (`audit_doc_consistency.check_drift`), A/B-measured 4->9
+> sites caught with none lost, 17 fault tests. ‼ Its SEPARATE reduction half is tracked as
+> `#24-driftreduction`, which is still OPEN and stays in the punch list.
+
+- [x] `#24-driftassertions` — ✅✅ **DONE 2026-08-17 — THE GATE DELIVERABLE IS BUILT, MEASURED AND
+      FAULT-TESTED BOTH WAYS.** `audit_doc_consistency.py::check_drift` now detects CLAIM SHAPE, not
+      just the `expect` vocabulary. **A/B against the COMMITTED gate (`git show HEAD:`), same corpus,
+      ground truth stubbed identically: 4 sites caught BEFORE → 9 AFTER, none lost.** The five newly
+      caught are exactly the ones that had gone stale unseen — `04-HANDOFF:167` (the STATE cell a
+      cold start reads), `:168`, `:824` (inside a fence), `:130` and `05-KNOWN-ISSUES:2325`.
+      **THE RULE IS MARKER ATTACHMENT** — a figure asserts something about TODAY only when a
+      currency marker is attached to the NUMBER (`(LATEST)`, `is <N> again`, `should report N
+      differing`), or it is negated, or it is an `expect`ation. ⛔ **NOT "check every number near
+      the word drift"**: that was MEASURED at **67** candidate windows, overwhelmingly
+      deliberately-preserved history, and would have red-flagged the docs' own past.
+      ‼ **THREE things measurement overturned, each of which would have shipped a broken gate:**
+      (1) the negation "false positive" this item told me to rule on **does not exist** — the gate
+      was silent on all six verbatim phrasings at BOTH ground-truth values, and so was every other
+      `check_*`; it was a FALSE NEGATIVE both ways, and the doc advice to "phrase the caveat
+      carefully" was steering authors INTO the blind spot (ruling: `06-DECISIONS-LOG.md`).
+      (2) ⛔ **UNIT-SCOPED EXEMPTION WOULD HAVE LEFT THE GATE BLIND TO THE MOST AUTHORITATIVE SITE
+      IN THE TREE** — `04-HANDOFF`'s STATE drift cell is ONE table row of 7,916 chars carrying a
+      `*(Superseded …)*` 283 chars from its live claim, so the whole row was exempt. An independent
+      agent caught this in my draft; the exemption is now SPAN-scoped, guarded by `--self-test` D17.
+      (3) the authoritative `Expect …: N differing` line lives INSIDE a fence, and `_read()` blanks
+      fences — the gate could not see the one line the spec says must carry a digit. Pass 2 now
+      reads raw text.
+      ✅ **17 fault tests shipped (D9–D22)**, firing tests AND false-positive controls: the
+      recursion hazard (a stale figure quoted in prose ABOUT the problem), retraction parentheticals,
+      and the measured English false positive (`"TWO unbound reads, not one"`).
+      ‼‼ **AN ADVERSARIAL REVIEW OF THE FIRST DRAFT FOUND TWO BYPASSES, BOTH REPRODUCED BEFORE
+      FIXING** — every exemption had bound to the NEIGHBOURHOOD of a figure instead of to the
+      figure itself, so an innocuous aside containing the words `read`/`until`, or a marker
+      retracting a DIFFERENT earlier number within 120 chars, silenced a live claim. Exemptions are
+      now claim-bound (marker must PRECEDE the figure; outside a parenthetical it stops at the
+      sentence break). D20/D21 are those bypasses, D15/D22 the controls. ⚠ Cross-pass dedup was
+      added too — one claim, one finding.
+      🔜 **The REDUCTION half was always separate and is now its own item — `#24-driftreduction`.**
+      *(Original filing and derivation follow.)*
+      ⬆ **PROMOTED TO NEXT ITEM 2026-08-17: THE EVIDENCE IS NOW OVERWHELMING
+      AND THE FIX IS A GATE, NOT A HABIT.** On 2026-08-17 the figure flipped 0→1→0→1→0 again, and
+      **THREE separate stale drift claims survived my own sweeps** and had to be caught by three
+      different audit agents — one of them sat in THE 60-SECOND VERSION, the block written for a
+      reader who reads nothing else, telling the next session to ask the user for a ruling already
+      given and executed. ‼ **`audit_doc_consistency.py` exits 0 over ALL of them.**
+      ⛔ **BUT BE PRECISE ABOUT WHY — corrected 2026-08-17 after an audit read the gate's source:**
+      **WORD FORMS ARE ALREADY HANDLED** (`_WORD_NUMBERS` includes `zero`; `_NUM` interpolates it
+      into all seven drift patterns, `re.I`). What is genuinely open is **CLAIM-SHAPE** detection:
+      the rule is scoped to an EXPECTATION, so `0 as of <date>` and `NOT ZERO` — assertions with no
+      `expect` nearby — slip through. ‼ Do NOT re-implement word forms; you would be rebuilding
+      working code, which is the defect this very item exists to prevent.
+      ✅ **THE DELIVERABLE IS A GATE EXTENSION, and it is cheap:** teach `audit_doc_consistency.py`
+      to (a) find EVERY sentence asserting a drift figure, WORD FORMS INCLUDED, and (b) compare each
+      against the MEASURED figure from `promote.py`'s own logic. ⛔ **FAULT-TEST IT BOTH WAYS** — prove
+      it fires on a stale claim AND that it does NOT fire on a clearly-marked historical one, because
+      this file is full of deliberately-preserved past figures and a gate with false positives would
+      be bypassed within a day (the project's own rule). ‼ Note the recursion hazard already
+      recorded below: the gate red-flagged the ORIGINAL draft of this very bullet.
+      *(Original filing:)* **NEW 2026-08-16, from MEASURED churn: the docs assert the absolute
+      sandbox→custom drift NUMBER in ~10 places, so EVERY sandbox edit invalidates all of them.**
+      In this session alone the figure went **0 → 1 → 0 → 1 → 0 → 3**, and each flip cost ~13 hand
+      edits across 4-5 files. ‼ Twice a survivor was missed: once because the stale
+      figure was written with a CAPITAL initial and the sweep pattern was lower-case only, once
+      because the sweep was piped through `cut` and the match sat off the right-hand end of a long
+      table row. *(⚠ Both are DESCRIBED, not reprinted — `audit_doc_consistency` matches literal
+      strings and cannot tell a quotation from a claim. It red-flagged the first draft of THIS
+      BULLET, which is the failure mode demonstrating itself.)* **The cost is not the typing — it is that a
+      13-site hand sweep RELIABLY misses one, and a stale drift figure sends a rollback to the wrong
+      commit.**
+      ⇒ **THE FIX IS STRUCTURAL: assert the number in ONE place and make every other site point at
+      the command.** The docs already say *"MEASURE, don't trust this row — `promote.py --check` is
+      the authority"* and then print the number ten more times anyway. Keep the STATE table row (it
+      is where a cold start looks) and the HOW TO RUN `Expect:` line (it is a grading claim);
+      everywhere else should say *"run `promote.py --check`"* with no digit.
+      ✅✅ **HALF DONE 2026-08-16 — THE GATE HALF.** `audit_doc_consistency`'s drift check now also
+      matches **`promote.py --check`'s OWN OUTPUT FORMAT** (`N differing`), which was its blind
+      spot: a stale `0 differing` had survived a 13-site hand sweep AND the gate. ‼ Adding the
+      rule **immediately surfaced THREE MORE stale expectations** the same sweep had missed, all
+      buried in very long STATE-table rows. ⛔ Scoped to an EXPECTATION (`expect`/`expects`/
+      `expected` within ~70 chars) so a HISTORICAL measurement stays quiet — fault-tested in all
+      three directions (D6 fires, D7 quiet, D8 quiet-on-history).
+      ⛔⛔ **REFUTED 2026-08-17 — "no longer a correctness risk" IS FALSE.** The figure flipped
+      0→1→0→1→0 and **THREE stale claims survived hand sweeps AND the gate**, each caught by a
+      different audit agent. ‼ **STRUCTURAL, not random:** the 2026-08-16 rule is scoped to an
+      EXPECTATION (`expect`/`expects`/`expected` within ~70 chars) and all three were **CLAIMS** —
+      `0 as of 2026-08-16 (LATEST)` (STATE cell), `NOT ZERO … a ruling is owed` (a NEGATION), and
+      `it is **1** again as of 2026-08-17`. ⇒ **THE REMAINING GATE WORK IS CLAIM-FORM DETECTION**
+      (word forms, capitals, long table-row tails), compared against `real_drift()`.
+      ⛔⛔ **RULE THE NEGATION QUESTION FIRST — THE DOCS POINT BOTH WAYS.** `04-HANDOFF` calls
+      `NOT ZERO` a MISS to fix; its STATE table records the gate FIRING on that phrasing as a FALSE
+      POSITIVE. Likely answer: *PARSE the negation and evaluate it as a claim (`drift ≠ 0`), never
+      pattern-match the token* — but that is a RULING: put it in `06-DECISIONS-LOG.md` before coding.
+      ‼ **FAULT-TEST THE RECURSION HAZARD:** the gate red-flagged the original draft of this very
+      bullet, and this file is now full of *descriptions* of stale figures. A gate that cannot stay
+      quiet on prose ABOUT the problem gets bypassed within a day.
+      🔜 **THE REDUCTION half is SEPARATE and NOT this item's deliverable** — split out below as
+      `#24-driftreduction` on 2026-08-17 so it cannot orphan (the `#24-orphans` lesson).
+
+

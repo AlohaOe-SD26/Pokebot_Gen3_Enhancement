@@ -16942,3 +16942,20 @@ archived block independently re-findable from a current-state file. **W1: a fres
 ‼ One agent finding was already stale when it arrived: it flagged the uncommitted disk correction,
 which had been committed as `15e34d9a` while it ran. **An agent's view of the tree is a snapshot —
 re-check before acting.**
+
+## 2026-08-18 — FINAL PASS on the settled tree: headroom, date, and a clean re-verify
+
+W4's sweep correctly noted it had run while commits were still landing, so everything was re-measured
+once the tree settled. All green: preflight PASS, **28/28 gates**, drift 0, all PINNED fixtures match,
+three `--self-test` suites PASS, working tree clean and in sync.
+
+Two last things fixed so the next session starts with room to work:
+* `03-PUNCH-LIST` had only **4 lines of headroom** — the next doc edit would have failed R3.
+  `#24-driftassertions` (95 lines, DONE) archived verbatim to `28-HANDOFF-ARCHIVE.md`; its stub keeps
+  the two rules later work leans on (**claim-bound, never neighbourhood-bound** exemptions; **a gate
+  cannot tell a quotation from a claim**) and points at its still-OPEN reduction half
+  `#24-driftreduction`. **3596 → 3503.**
+* `04-HANDOFF`'s "Last updated" said 2026-08-17 while its newest commit was 2026-08-18 — the doc gate's
+  own WARN. Refreshed; the audit now reports zero warnings.
+
+**Final headroom: `03` 3503/3600, `04` 883/900, `05` 2827/3000.**
