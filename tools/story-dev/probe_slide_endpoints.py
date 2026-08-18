@@ -62,7 +62,14 @@ set_rom(profile.rom)
 
 from modules.libmgba import LibmgbaEmulator
 
-context.emulator = LibmgbaEmulator(profile, lambda: None)
+context.emulator = LibmgbaEmulator(profile, lambda: None, is_test_run=True)
+# ‼‼ `is_test_run=True` IS LOAD-BEARING, NOT COSMETIC — added 2026-08-17 (deep sanity check, pass 2).
+# Without it `LibmgbaEmulator.__init__` registers an `atexit` shutdown that CREATES A SAVE STATE and
+# OVERWRITES `profiles/repro-ml/current_state.ss1` — the file the profile auto-loads next launch.
+# ⛔ This file's own docstring claimed "OBSERVE-ONLY ... nothing written", and that was FALSE: an
+# audit agent ran both probes and caught them mutating shared profile state. A probe that edits the
+# world it measures is the one thing a probe must never do, and the claim was in the docstring the
+# whole time.
 context.audio = False
 context.video = False
 
@@ -315,20 +322,31 @@ print("  ⛔ If this probe cannot reproduce BOTH, nothing else it prints may be 
 
 control_ok = True
 
+# ⛔⛔ THE CONTROL ASSERTS THE PUBLISHED BOOLEANS, NOT JUST THE COORDINATES — FIXED 2026-08-17
+# (deep sanity check, pass 2), and it was FIXED BECAUSE AN AGENT PROVED THE OLD ONE WORTHLESS.
+# The old control checked only `r["end"]`/`r["next"]` — raw coordinates — and never touched
+# `r["d1"]`/`r["d2"]`, which are the fields EVERY published total is computed from. The agent
+# inverted the D1 predicate in a scratch copy: the whole-ROM total moved **1852 -> 978** and BOTH
+# controls still printed PASS. ⇒ "the control passed, so the numbers are evidence" was FALSE as
+# this file stated it. A control must assert THE THING YOU PUBLISH, not a neighbour of it.
 r7 = results.get("SEAFLOOR_CAVERN_ROOM7", [])
 c7 = sum(1 for r in r7 if r["end"] == (3, 18) and r["next"] == (3, 19))
-ok7 = (len(r7) == 117 and c7 == 44)
+d1_7 = sum(1 for r in r7 if r["d1"])
+ok7 = (len(r7) == 117 and c7 == 44 and d1_7 == 44)
 control_ok &= ok7
-print(f"  ROOM7: chains={len(r7)} (expect 117), ending (3,18)->(3,19) = {c7} (expect 44)"
-      f"   {'PASS' if ok7 else '‼ FAIL'}")
+print(f"  ROOM7: chains={len(r7)} (expect 117), ending (3,18)->(3,19) = {c7} (expect 44), "
+      f"**D1-ARMED = {d1_7} (expect 44)**   {'PASS' if ok7 else '‼ FAIL'}")
 
 r6 = results.get("SEAFLOOR_CAVERN_ROOM6", [])
 c6 = sum(1 for r in r6 if r["end"] == (14, 8))
+d2_6 = sum(1 for r in r6 if r["d2"])
+d1_6 = sum(1 for r in r6 if r["d1"])
 warp6 = (14, 8) in _warps_cache.get(map_meta.get("SEAFLOOR_CAVERN_ROOM6", (0, 0)), set())
-ok6 = (len(r6) == 108 and c6 == 9 and warp6)
+ok6 = (len(r6) == 108 and c6 == 9 and warp6 and d2_6 == 9 and d1_6 == 0)
 control_ok &= ok6
 print(f"  ROOM6: chains={len(r6)} (expect 108), ending (14,8) = {c6} (expect 9), "
-      f"(14,8) is a warp = {warp6} (expect True)   {'PASS' if ok6 else '‼ FAIL'}")
+      f"(14,8) is a warp = {warp6} (expect True), **D2-ARMED = {d2_6} (expect 9), "
+      f"D1-ARMED = {d1_6} (expect 0)**   {'PASS' if ok6 else '‼ FAIL'}")
 
 head("3. ‼ THE UNMEASURED MAPS — ROUTE132 / ROUTE133 / ROUTE134 (the Regi arc and §Ch23 approach)")
 

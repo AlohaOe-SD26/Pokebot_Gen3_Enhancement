@@ -8396,3 +8396,46 @@ PROPERTY is wrong, not your threshold.**
 FALSE PREMISE — it asserted a filename was ambiguous across forks when the resolver deliberately
 searches sandbox only. The gate was right and the test was wrong. ⇒ *"the test failed" and "the
 gate is broken" are different claims; check which one you have before changing code.*
+
+## 2026-08-17 — a POSITIVE CONTROL that could not fail, guarding a number I had already published
+
+**Symptom.** `probe_slide_endpoints.py` shipped with a control I described as "the point, not a
+courtesy": it reproduced KI-76's independently-recorded cavern numbers (117/44, 108/9) and, on that
+basis, the file told readers *"the counts above are evidence"*. An audit agent fault-injected the
+probe — inverted the D1 predicate in a scratch copy — and the whole-ROM total moved **1852 → 978
+while BOTH controls still printed PASS**.
+
+**Root cause.** The control asserted `r["end"]` and `r["next"]` — raw coordinates produced by the
+replica — and never once read `r["d1"]` or `r["d2"]`, which are the fields EVERY published total is
+computed from. **It validated a neighbour of the claim instead of the claim.** So it could not fail
+for the failure that mattered, which is the definition of a control that is not one.
+
+**What makes this worse than an ordinary bug:** the numbers (1,852 armed; 9 all in ROOM6) had
+already been written into `05-KNOWN-ISSUES`, `03-PUNCH-LIST` and the changelog, and cited as the
+basis for a priority ruling. They happened to be right — re-measured green once the control asserted
+the booleans — but *nothing in the instrument had established that*, and I said it had.
+
+**PREVENTION RULE (one line).** ⛔ **A positive control must assert THE FIELD YOU PUBLISH. If your
+report quotes `X` and your control checks `Y`, you have tested that the probe runs, not that `X` is
+right — fault-inject the field itself and watch the control go red.**
+
+‼ **Corollary about how this was found:** I had ASKED an agent the exact question — *"could the
+control pass while the rest of the probe is broken? Be specific."* It answered by injecting a fault
+rather than reasoning about it. ⇒ *when you want a control audited, ask for a fault injection, not
+an opinion; the opinion is cheap and the injection is decisive.*
+
+## 2026-08-17 — my probes were WRITING while their docstrings said "nothing was changed"
+
+**Symptom.** Both KI-76 probes open with `⛔ OBSERVE-ONLY … nothing written` and end by printing
+`DONE — measurement only. Nothing was changed.` An audit agent ran them and caught both creating a
+save state and overwriting `profiles/repro-ml/current_state.ss1` — the file that profile auto-loads.
+
+**Root cause.** `LibmgbaEmulator.__init__` registers an `atexit` shutdown that captures state unless
+`is_test_run=True`. I had copied the boot block from an existing probe without reading what the
+constructor does, and I had SEEN the evidence — `Save state … created!` / `Updated current_state.ss1!`
+appeared in my own terminal on every run — and dismissed it as harmless teardown because the path is
+gitignored. **Gitignored is not the same as harmless: the next run of that profile loads it.**
+
+**PREVENTION RULE (one line).** ⛔ **Before a tool may claim "nothing was changed", diff the working
+tree AND the profile directory across a run — a claim of no side effects is a measurement, not an
+intention, and `atexit` handlers you inherited are exactly where the side effect hides.**

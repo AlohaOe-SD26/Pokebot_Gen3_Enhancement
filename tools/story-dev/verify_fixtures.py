@@ -29,6 +29,24 @@ import hashlib
 import pathlib
 import sys
 
+
+def _safe_print(text: str = "") -> None:
+    """Print that survives a cp1252 console — the wrapper `compare_runs.py` already carries.
+
+    ⛔⛔ WITHOUT THIS, A HARMLESS EVENT BECAME A FALSE FAILURE. This file prints `‼` glyphs; on a
+    cp1252 console with no `PYTHONUTF8=1`, a bare `print()` raises `UnicodeEncodeError` mid-report
+    and the process exits 1 — so a VOLATILE cache drifting (which this file's own docstring says
+    "never fails the run") read as a PINNED-FIXTURE FAILURE, and the `--assert` mismatch path
+    crashed while printing the very guidance it exists to give. Reproduced by an audit agent on
+    2026-08-17 through `run_gates.py`'s own subprocess pattern.
+    ‼ An instrument must never lose its verdict to the terminal it is printing to.
+    """
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        sys.stdout.buffer.write(text.encode("utf-8", errors="replace"))
+        sys.stdout.buffer.write(b"\n")
+
 HERE = pathlib.Path(__file__).resolve().parent
 SAVES = HERE / "saves"
 MANIFEST = SAVES / "FIXTURES.md5"
@@ -53,7 +71,7 @@ def parse() -> list[tuple[str, str, str, str]]:
         # md5 <2 spaces> name <2 spaces> kind <2 spaces> description
         parts = line.split("  ", 3)
         if len(parts) < 3:
-            print(f"  ‼ unparseable manifest line, ignored: {line[:70]}")
+            _safe_print(f"  ‼ unparseable manifest line, ignored: {line[:70]}")
             continue
         md5, name, kind = parts[0], parts[1], parts[2]
         note = parts[3] if len(parts) > 3 else ""
@@ -82,23 +100,23 @@ def assert_mode(args: list[str]) -> int:
     ok = True
     for spec in args:
         if "=" not in spec:
-            print(f"  ‼ bad --assert spec {spec!r}; expected name=md5prefix")
+            _safe_print(f"  ‼ bad --assert spec {spec!r}; expected name=md5prefix")
             ok = False
             continue
         name, want = spec.split("=", 1)
         path = SAVES / name.strip()
         if not path.is_file():
-            print(f"  ‼ MISSING   {name} — cannot assert bytes for a file that is not there")
+            _safe_print(f"  ‼ MISSING   {name} — cannot assert bytes for a file that is not there")
             ok = False
             continue
         got = md5_of(path)
         if got.startswith(want.strip().lower()):
-            print(f"  OK         {name} = {got[:12]}")
+            _safe_print(f"  OK         {name} = {got[:12]}")
         else:
-            print(f"  ‼ MISMATCH {name}: expected {want.strip()}…, got {got[:12]}")
-            print(f"             The save is NOT the one this measurement was defined against.")
-            print(f"             A driver or a background job probably rewrote it. Do NOT run the")
-            print(f"             measurement — recover the right bytes first.")
+            _safe_print(f"  ‼ MISMATCH {name}: expected {want.strip()}…, got {got[:12]}")
+            _safe_print(f"             The save is NOT the one this measurement was defined against.")
+            _safe_print(f"             A driver or a background job probably rewrote it. Do NOT run the")
+            _safe_print(f"             measurement — recover the right bytes first.")
             ok = False
     return 0 if ok else 1
 
@@ -109,7 +127,7 @@ def main() -> int:
         specs = [a for a in sys.argv[i + 1:] if not a.startswith("--")]
         if not specs:
             raise SystemExit("--assert needs at least one name=md5prefix")
-        print("FIXTURE ASSERTION")
+        _safe_print("FIXTURE ASSERTION")
         return assert_mode(specs)
 
     update = "--update" in sys.argv
@@ -140,11 +158,11 @@ def main() -> int:
             lines.append(f"  ‼ DRIFT   {name:<26} {short_got} (expected {short_want})  [PINNED]")
             failures.append(f"{name}: {short_got} != {short_want}")
 
-    print("=" * 88)
-    print("FIXTURE VERIFICATION")
-    print("=" * 88)
+    _safe_print("=" * 88)
+    _safe_print("FIXTURE VERIFICATION")
+    _safe_print("=" * 88)
     for line in lines:
-        print(line)
+        _safe_print(line)
 
     if update:
         # ‼ Rewrite ONLY the md5 column, in place, preserving every comment and description. An
@@ -155,24 +173,24 @@ def main() -> int:
             if path.is_file():
                 text = text.replace(f"{want}  {name}", f"{md5_of(path)}  {name}")
         MANIFEST.write_text(text, encoding="utf-8")
-        print("\n--update: manifest rewritten to the CURRENT bytes.")
-        print("‼ Only correct if you INTENDED these fixtures to change. If a PINNED fixture")
-        print("  drifted without you meaning it, a driver overwrote it — recover it, do not bless it.")
+        _safe_print("\n--update: manifest rewritten to the CURRENT bytes.")
+        _safe_print("‼ Only correct if you INTENDED these fixtures to change. If a PINNED fixture")
+        _safe_print("  drifted without you meaning it, a driver overwrote it — recover it, do not bless it.")
         return 0
 
-    print()
+    _safe_print()
     if drifted_volatile:
-        print(f"NOTE: {len(drifted_volatile)} volatile cache(s) changed: {', '.join(drifted_volatile)}")
-        print("      That is by design. ‼ But any measurement taken on the OLD bytes is now")
-        print("      unreproducible — copy a volatile save to a PINNED name BEFORE measuring on it.")
+        _safe_print(f"NOTE: {len(drifted_volatile)} volatile cache(s) changed: {', '.join(drifted_volatile)}")
+        _safe_print("      That is by design. ‼ But any measurement taken on the OLD bytes is now")
+        _safe_print("      unreproducible — copy a volatile save to a PINNED name BEFORE measuring on it.")
     if failures:
-        print(f"\n‼ FAILED — {len(failures)} PINNED fixture(s) are not what the manifest says:")
+        _safe_print(f"\n‼ FAILED — {len(failures)} PINNED fixture(s) are not what the manifest says:")
         for f in failures:
-            print(f"    - {f}")
-        print("\n  Do NOT trust any result resting on these until they are recovered or the change")
-        print("  is understood. `--update` blesses the current bytes; only use it deliberately.")
+            _safe_print(f"    - {f}")
+        _safe_print("\n  Do NOT trust any result resting on these until they are recovered or the change")
+        _safe_print("  is understood. `--update` blesses the current bytes; only use it deliberately.")
         return 1
-    print("ALL PINNED FIXTURES MATCH.")
+    _safe_print("ALL PINNED FIXTURES MATCH.")
     return 0
 
 

@@ -213,7 +213,7 @@ print(f"  histogram computed : {dict(sorted(hist.items()))}")
 print(f"  depth>=3  recorded : {RECORDED_DEPTH3}      computed : {sum(r['rare_by_depth'] for r in rows)}")
 print(f"  RARE total recorded: {RECORDED_RARE}      computed : {sum(r['rare'] for r in rows)}")
 print()
-print("  >> THE HEADLINE: Skitty REPRODUCES EXACTLY (rate 2%, depth 0 -> selected by the rate
+print("""  >> THE HEADLINE: Skitty REPRODUCES EXACTLY (rate 2%, depth 0 -> selected by the rate
      rule). BAGON DOES NOT: this derivation puts it at **depth 2**, one short of the `>=3`
      threshold that exists FOR ITS SAKE. So as computed here, the rule fails the very
      example the user named when giving the ruling.
@@ -225,7 +225,7 @@ print("  >> THE HEADLINE: Skitty REPRODUCES EXACTLY (rate 2%, depth 0 -> selecte
      Under this derivation that luck does not hold. Either the depth definition or the
      threshold needs to be decided deliberately, with the reasoning written down.
 
-  ‼ NO SCRIPT PRODUCING THE RECORDED FIGURES EXISTS IN THIS REPO. Before `#24-roster`")
+  ‼ NO SCRIPT PRODUCING THE RECORDED FIGURES EXISTS IN THIS REPO. Before `#24-roster`""")
 print("    depends on this dataset, ONE derivation has to be made authoritative — most likely")
 print("    by pinning the exact BFS definition (seed set, whether connection closure is")
 print("    transitive, warp directionality) rather than by re-running either from memory.")

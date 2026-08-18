@@ -7553,6 +7553,20 @@ class Ki76WarpMode(Ch20Room6Mode):
     `--driver spacecenter` on every PASS and is listed VOLATILE.
     """
 
+    # ‼‼ A WILD ENCOUNTER MID-SLIDE WOULD FAKE A VERDICT — guard added 2026-08-17 (pass 2 audit).
+    # `Ch20Room6Mode`'s own docstring warns this room HAS water encounters. If a battle fires during
+    # the ride, `local_coordinates` FREEZES; the settle loop's `stable > 180` then reads that as
+    # "the slide finished", and if the freeze happens to sit on (14,8) the run would report ARM M —
+    # a verdict for a slide that never resolved. ⇒ any battle during `_ride` forces arm "?" and
+    # ACCEPTANCE FAIL. ⛔ The RUN is what gets invalidated, never the finding.
+    _battled = False
+
+    def on_battle_started(self, *args, **kwargs):
+        Ki76WarpMode._battled = True
+        log("[ki76] ‼ BATTLE STARTED DURING THE RUN — this run can no longer grade the slide; "
+            "the position freeze during a battle is indistinguishable from a settled slide.")
+        return super().on_battle_started(*args, **kwargs)
+
     STAGING = (8, 12)
     ENTRY_TILE = (9, 12)
     PRESS = "Right"                 # EAST, from (8,12) onto (9,12)
@@ -7678,10 +7692,16 @@ class Ki76WarpMode(Ch20Room6Mode):
         # ‼ Hash before AND after and LOG BOTH, so the guard is proven rather than claimed.
         anchor = SAVES / "post_dive_ki76.ss1"
         anchor_before = hashlib.sha256(anchor.read_bytes()).hexdigest() if anchor.is_file() else None
-        os.environ["CH19C_CAPTURE"] = "0"   # the var that lets `spacecenter` rewrite post_dive.ss1
+        # ⛔ CH19C_CAPTURE=0 stops `spacecenter` re-capturing `post_dive.ss1` — a DIFFERENT file.
+        # It does NOT protect `post_dive_ki76.ss1`; nothing writes that, and the sha256 compare
+        # below is DETECTIVE, not preventive. ‼ This log used to say "so nothing can re-capture an
+        # anchor during this run", which claimed prevention it does not provide (found by an audit
+        # agent, 2026-08-17). A guard that overstates itself is worse than one that is merely weak.
+        os.environ["CH19C_CAPTURE"] = "0"
         log(f"[ki76] SAFETY anchor=post_dive_ki76.ss1 sha256[:12]="
             f"{(anchor_before or '<absent>')[:12]} — the PINNED copy (md5 a00378595409). "
-            f"CH19C_CAPTURE=0 so nothing can re-capture an anchor during this run.")
+            f"⚠ DETECTION, not prevention: the hash is re-read at the end and compared. "
+            f"(CH19C_CAPTURE=0 is set too, but that guards `post_dive.ss1`, not this file.)")
 
         def _bail(reason: str):
             log(f"[ki76] BAIL {reason}")

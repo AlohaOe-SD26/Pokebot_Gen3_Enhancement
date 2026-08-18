@@ -331,6 +331,25 @@ def main() -> None:
         # arm beside a `PASS` arm printed "✅ THE ARMS SEPARATE". That is an ABSENCE being read as
         # a value: the one thing this project has been burned by most often. An unmeasured arm
         # cannot separate from anything, and a green tick above the caveat is what a skimmer keeps.
+        # ⛔⛔ SET-EQUALITY CANNOT PAIR MULTI-FILE ARMS — found and REPRODUCED by an audit agent on
+        # 2026-08-17, on real committed evidence. Give `armA` the two BEFORE transcripts and `armB`
+        # the two AFTER ones and each label reduces to the SET {FAIL, PASS}; the sets match, so this
+        # printed "THE ARMS DO NOT SEPARATE" over the KI-80 promotion — where coupled flipped
+        # PASS->FAIL and decoupled flipped FAIL->PASS, the textbook crossing. ⇒ a verdict that
+        # discards per-file correspondence must not be emitted at all.
+        multi = {lab for lab in labels_present if sum(1 for r in rows if r["label"] == lab) > 1}
+        if multi:
+            _safe_print(f"\n   ⛔ CANNOT GRADE: {', '.join(sorted(multi))} carr{'y' if len(multi) > 1 else 'ies'} "
+                        f"MORE THAN ONE transcript, and this section compares the SET of verdicts per "
+                        f"label — which cannot tell 'both arms contain a PASS and a FAIL' from 'the "
+                        f"arms crossed'.")
+            _safe_print("     ➡ Re-run with ONE transcript per label (one label per scenario), e.g.")
+            _safe_print("       --label before-coupled a.log --label after-coupled b.log")
+            _safe_print("     ‼ The CLUSTERS above are still valid; only the A/B verdict is withheld.")
+            missing = [r["file"] for r in rows if not r["has_scripts_field"]]
+            if missing:
+                _safe_print(f"\nNOTE: {len(missing)} log(s) carry NO `scripts=` field.")
+            return
         graded_labels = sorted({r["label"] for r in rows if r["n_accept"] > 0})
         per_label_graded = {
             lab: sorted({r["accept"] for r in rows if r["label"] == lab and r["n_accept"] > 0})

@@ -36,7 +36,14 @@ set_rom(profile.rom)
 
 from modules.libmgba import LibmgbaEmulator
 
-context.emulator = LibmgbaEmulator(profile, lambda: None)
+context.emulator = LibmgbaEmulator(profile, lambda: None, is_test_run=True)
+# ‼‼ `is_test_run=True` IS LOAD-BEARING, NOT COSMETIC — added 2026-08-17 (deep sanity check, pass 2).
+# Without it `LibmgbaEmulator.__init__` registers an `atexit` shutdown that CREATES A SAVE STATE and
+# OVERWRITES `profiles/repro-ml/current_state.ss1` — the file the profile auto-loads next launch.
+# ⛔ This file's own docstring claimed "OBSERVE-ONLY ... nothing written", and that was FALSE: an
+# audit agent ran both probes and caught them mutating shared profile state. A probe that edits the
+# world it measures is the one thing a probe must never do, and the claim was in the docstring the
+# whole time.
 context.audio = False
 context.video = False
 

@@ -16814,3 +16814,38 @@ Reformulated as **CONTAINMENT** (a citation naming X must land inside X's body) 
 both signs. ⛔ Its docstring states what it does NOT cover: citations pointing inside a body are
 invisible to it. Suite is now **28**, and the gate-count gate immediately caught four docs still
 saying 27.
+
+## 2026-08-17 — DEEP SANITY CHECK, PASS 2 of 5 (CODE HEALTH) — 8 agents, 6 real defects fixed
+
+⛔ **The most valuable finding attacked a number I had already published.** P2g fault-injected
+`probe_slide_endpoints.py`: inverting the D1 predicate moved the whole-ROM total **1852 → 978 while
+BOTH positive controls still printed PASS.** The control asserted only `end`/`next` coordinates and
+never touched `d1`/`d2` — the fields every published total is computed from. ⇒ *"the control passed,
+so the numbers are evidence"* was **false as this project stated it**. The control now asserts the
+booleans (ROOM7 D1=44, ROOM6 D2=9, ROOM6 D1=0) and **1,852 / 9 re-measured green under it**, so the
+published figures stand — now on a control that can actually fail.
+
+**Also fixed, each reproduced by an agent before I touched it:**
+* ⛔ **Both KI-76 probes were WRITING.** They claimed "OBSERVE-ONLY … nothing written" while
+  `LibmgbaEmulator` without `is_test_run=True` registers an atexit that overwrites
+  `profiles/repro-ml/current_state.ss1` — shared profile state. Fixed and verified silent.
+* ⛔ **`tools/story-dev/rare_species_dataset.py` DID NOT COMPILE** — an unterminated string since
+  2026-08-07, undetected for 10 days. Fixed; all **217** tools and both forks now compile.
+* ⛔ **`compare_runs.py`'s A/B verdict could report false AGREEMENT.** With >1 transcript per label
+  it compares SETS, so `armA={FAIL,PASS}` vs `armB={FAIL,PASS}` printed "THE ARMS DO NOT SEPARATE"
+  over the KI-80 crossing. It now REFUSES to grade a multi-file arm instead of guessing.
+* ⛔ **`verify_fixtures.py` crashed on cp1252** (`UnicodeEncodeError` on `‼`), turning a benign
+  VOLATILE drift into exit 1 — a false "PINNED fixture drifted". Routed through `_safe_print`.
+* ⛔ **`audit_doc_consistency`'s KI-pair check could be SILENTLY SKIPPED** — a bare `except` around
+  `git diff` returned None, which the caller read as "no findings" and the suite as PASS. Narrowed
+  and made LOUD.
+* ⛔ **`check_promotion_prose` had a REPRODUCED BYPASS**: an unrelated "was" in a *previous
+  sentence* exempted a live PENDING claim. Now clause-bound. ‼ That is the neighbourhood-vs-claim
+  mistake `#24-driftassertions` already logged, and I made it TWICE in one day. Tightening it then
+  found a genuine stale claim (KI-78 Stage 1 "has NOT been promoted" — drift is 0).
+* **`Ki76WarpMode`** now fails the run if a wild encounter fires mid-slide (a battle freezes
+  position, which the settle loop would read as "slide finished"), and its anchor-guard log no
+  longer claims prevention it does not provide.
+
+‼ **Three agents independently confirmed the forks are byte-identical** and that the upstream mirror
+has only ever been touched by subtree merges.

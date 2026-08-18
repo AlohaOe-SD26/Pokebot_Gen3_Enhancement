@@ -2030,7 +2030,8 @@ section headings.)*
   claim-shape rule in `audit_doc_consistency.py` correctly asked about it. ⛔ The number was not
   changed — only the tense, to say what it always meant. MEASURE with `promote.py --check`.)* —
   KI-78 **Stage 1** (`pokemon.py`, `pokemon_party.py`, `pokemon_storage.py`) landed in sandbox
-  AFTER that promotion and has NOT been promoted; promotion is the USER's call.
+  AFTER that promotion and was NOT promoted AT THAT TIME. ✅ **It IS promoted now** (drift 0
+  since 2026-08-17); this line read "has NOT been promoted" until a pass-2 gate caught it.
   Historical note, superseded: *"Sandbox only — promotion is the
   USER's call.** The original diagnosis and the retraction that reprioritised it are kept below.
 * **KI-59 (original entry)** — `map_path` **INVERTS `Impassable *` directions**. ✅ **REAL** (decomp-verified).

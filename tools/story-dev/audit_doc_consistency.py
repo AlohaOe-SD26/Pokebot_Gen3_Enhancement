@@ -465,7 +465,15 @@ def check_drift(files: dict[str, str], raw: dict[str, str] | None = None) -> lis
         # period-excluding gap — the idiom every other rule here uses — matches neither of them.
         # ⛔ `\*{0,2}` because the figure is written both `**4** today` and `**4 today`.
         # Guarded by D26 / D26b / D26c / D26d, which test both signs.
-        rf"|\b(?:drift|differing)\b[^\n]{{0,200}}?\bit\s+(?:is|was)\s+\*{{0,2}}({_NUM})\*{{0,2}}\s+today\b",
+        # ⛔ TWO CORRECTIONS, 2026-08-17 pass 2, both REPRODUCED by an agent before being fixed:
+        #  (a) the subject was `(?:drift|differing)`, and the bare English word "differing" fired on
+        #      prose with nothing to do with fork sync ("The two approaches keep differing … It is 1
+        #      today by an unrelated clock"). This pass deliberately skips `_DRIFT_SUBJECT`, so the
+        #      subject has to be carried by the PATTERN — and only `drift` actually means it.
+        #  (b) the gap was `[^\n]` and so could not cross a line break, which hid the claim whenever
+        #      this project's prose wrapped — which it does constantly. `[\s\S]` crosses, still
+        #      bounded at 200 chars (~2 lines) so it cannot reach an unrelated paragraph.
+        rf"|\bdrift\b[\s\S]{{0,200}}?\bit\s+(?:is|was)\s+\*{{0,2}}({_NUM})\*{{0,2}}\s+today\b",
         re.I)
     out: list[str] = []
 
@@ -602,7 +610,14 @@ def check_promotion_prose(files: dict[str, str]) -> list[str]:
         # wording verbatim. **A gate that fires on the document DESCRIBING the problem teaches the
         # reader to bypass it, which is strictly worse than no gate** (CLAUDE.md, rule 6). Spans are
         # computed over the WHOLE text because this project's prose wraps mid-quote.
-        quoted = [mm.span() for mm in _QUOTED.finditer(text)]
+        # ⛔ A LOCAL quoted-span regex that CROSSES NEWLINES. The shared `_QUOTED` forbids `\n`
+        # inside a quote, which is right for the drift rules but wrong here: this project's prose
+        # wraps mid-quotation, and the tightened rule immediately false-fired on
+        # `Historical note, superseded: *"Sandbox only — promotion is the\n  USER's call.**` — a
+        # quotation of a withdrawn claim, i.e. exactly what an exemption is for. Bounded at 300
+        # chars so it cannot swallow the rest of the file.
+        _QUOTED_ML = re.compile(r'"[^"]{0,300}"|“[^”]{0,300}”|`[^`]{0,300}`')
+        quoted = [mm.span() for mm in _QUOTED_ML.finditer(text)]
         for m in _PROMO_PENDING.finditer(text):
             if any(a <= m.start() < b for a, b in quoted):
                 continue
@@ -630,9 +645,20 @@ def check_promotion_prose(files: dict[str, str]) -> list[str]:
             # lesson as `#24-driftassertions`' second bypass, re-earned on a different rule).
             # ⇒ What actually distinguishes a corrected entry is TENSE: it says "WAS sandbox-only",
             # "USED TO await", "NO LONGER". Require that cue immediately before the phrase.
-            cue = text[max(0, m.start() - 60):m.start()]
+            # ⛔⛔ THE CUE MUST LIVE IN THE CLAIM'S OWN CLAUSE — narrowed again 2026-08-17 (pass 2),
+            # after an audit agent REPRODUCED a bypass: "The changelog entry WAS reworded yesterday
+            # for clarity. SANDBOX-ONLY; a promotion is the USER's call." An unrelated `was` in the
+            # previous sentence exempted a live PENDING claim. ‼ That is the SAME neighbourhood-vs-
+            # claim mistake `#24-driftassertions` logged, and I made it twice in one day: first with
+            # a 240-char `PROMOTED` window, then with this 60-char tense window. ⇒ walk back only to
+            # the nearest sentence break, so the cue has to belong to the sentence it excuses.
+            lo = max(0, m.start() - 200)
+            clause = text[lo:m.start()]
+            brk = list(re.finditer(r"[.;:!?\n|]", clause))
+            if brk:
+                clause = clause[brk[-1].end():]
             if re.search(r"\b(?:was|were|used\s+to|formerly|no\s+longer|previously|had\s+been)\b"
-                         r"|\bHistorical note\b", cue, re.I):
+                         r"|\bHistorical note\b", clause, re.I):
                 continue
             out.append(
                 f"{name}:{ln} says promotion is still PENDING ({m.group(0)[:52]!r}) but MEASURED "
@@ -822,12 +848,23 @@ def _ki_diff_hunks() -> "dict[str, tuple[bool, list[str]]] | None":
     import subprocess
 
     rel = "PROJECT KNOWLEDGE/05-KNOWN-ISSUES.md"
+    # ⛔⛔ A SKIPPED CHECK MUST NOT LOOK LIKE A PASSED ONE — narrowed and made LOUD 2026-08-17
+    # (deep sanity check, pass 2). This used to be a bare `except Exception: return None`, and the
+    # caller turns `None` into "no findings", which the gate turns into exit 0. So a missing `git`,
+    # a 30-second timeout or a decode error would have SILENTLY disabled the whole KI header/body
+    # pair check while the suite still printed PASS — the gate's own version of the comforting-zero
+    # bug this project has logged twice. ‼ Now: only genuinely environmental failures are tolerated,
+    # and every one of them PRINTS, so a degraded run is distinguishable from a clean one.
     try:
         diff = subprocess.run(["git", "diff", "-U0", "HEAD", "--", rel],
                               cwd=REPO, capture_output=True, text=True, timeout=30)
         if diff.returncode != 0:
+            print(f"  WARN  KI-pair check SKIPPED — `git diff` exited {diff.returncode} "
+                  f"(offline/detached is fine; a non-zero here is not a doc defect)")
             return None
-    except Exception:  # noqa: BLE001
+    except (OSError, subprocess.SubprocessError, UnicodeDecodeError) as exc:
+        print(f"  WARN  KI-pair check SKIPPED — {type(exc).__name__}: {str(exc)[:90]}. "
+              f"⛔ This check did NOT run; a clean suite below does not cover it.")
         return None
 
     # ‼ ATTRIBUTE BY LINE NUMBER, NOT BY WHAT THE DIFF HAPPENS TO CONTAIN.
