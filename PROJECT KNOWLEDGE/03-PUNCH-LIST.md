@@ -1619,59 +1619,7 @@ justified by counting failures without counting successes. Do not re-enable with
 
 ### ‼ APPLIED 2026-08-01 AFTER BATCH `20260801-075805` LANDED
 
-- [x] `#24-relocfloor` — **DONE 2026-08-01.** Extracted as the pure
-      `training_areas.relocation_floor(local_max, trainee_levels, gap)` and wired into
-      `_prepare_for_fight`. Repro green, full suite 69/69. Original diagnosis below.
-
-      `#24-relocfloor` — **the training-relocation floor is keyed on the WRONG MON.**
-      Diagnosed + repro'd 2026-08-01; the code edit was deliberately held because
-      `x4_headless.py:843` relaunches a dead lane's process and a restarted lane would
-      re-import mid-batch, mixing two code versions into one measurement.
-
-      `story_mode.py` `_prepare_for_fight`:
-      ```python
-      floor = max(local_max, team_max_now - self.FODDER_LEVEL_GAP)
-      better = best_training_area(team_max_now, min_wild_max=floor, allow=_allow)
-      ```
-      `team_max_now` is the party's STRONGEST mon, but `need` (the mons being trained) is
-      the stragglers — a real batch4 Norman party is `Marshtomp L35 / Ninjask L30 /
-      Swellow L32 / Poochyena L12 / Shedinja L20`. Keying the floor to L35 demands wilds
-      above L23 and so rejects **ROUTE111 (L19-22)**, the one reachable area, though it is
-      near-ideal for a L20 trainee. Measured: `no better area is available` fired **167×**
-      in batch4, every one `local grass (max L4)` (ROUTE102), teams L32-41.
-
-      ‼ **ONLY THE FLOOR IS WRONG — do not "key it all to the trainee".** `train_team` runs
-      with SWAP-TRAIN on, so a STRONGER team-mate does the fighting; the winnability/scoring
-      argument (`best_training_area`'s first parameter) is correctly `team_max_now`.
-
-      **THE EXACT CHANGE:**
-      1. Add to `modules/story/training_areas.py`:
-         ```python
-         def relocation_floor(local_max: int, trainee_levels, fodder_gap: int) -> int:
-             """Minimum wild level worth relocating FOR, keyed to the mons being trained."""
-             if not trainee_levels:
-                 return local_max
-             return max(local_max, max(trainee_levels) - fodder_gap)
-         ```
-      2. In `story_mode.py` `_prepare_for_fight`, replace the `floor = …` line with
-         `floor = relocation_floor(local_max, [party[i].level for i in need], self.FODDER_LEVEL_GAP)`
-         (leave `best_training_area(team_max_now, …)` unchanged).
-      3. `repro_relocation_floor_wrong_mon.py` check 4 goes green. Re-run the full suite.
-
-      **Effect, measured with the real tables** (`allow` restricted to what is reachable
-      near Petalburg):
-      | party | floor now | pick now | trainee floor | pick |
-      |---|---|---|---|---|
-      | L35, stragglers L12/L20 | 23 | **None** | 8 | **ROUTE111 L19-22** |
-      | L36, straggler L12 | 24 | **None** | 4 | **ROUTE111 L19-22** |
-      | L33, stragglers L20/L27 | 21 | ROUTE111 | 15 | ROUTE111 |
-
-      ‼ **NECESSARY BUT PROBABLY NOT SUFFICIENT AT PETALBURG, and say so rather than
-      overclaim.** When every richer area is reachable both floors agree and the fix changes
-      nothing. From Petalburg even ROUTE111 is often unreachable — which is why some L32-34
-      runs refused too. Its real value is unlocking the agreed **pre-emptive training** plan
-      (train near Lavaridge, where ROUTE111/ROUTE117 demonstrably ARE reachable, before
-      travelling to Petalburg at all). Expect little from this fix alone in a batch.
+- [x] `#24-relocfloor` — ✅ **DONE 2026-08-01, CLOSED. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (the R3 relief valve: this file hit its 3,600-line limit). ⛔ Nothing here is outstanding; read the archive for the measured relocation-floor table and the "ONLY the floor is wrong — do not key it all to the trainee" rule, which later training work still leans on.
 
 ### ‼ BATCH 4 LANDED 2026-07-31 23:15 — the counter chain's blocker MOVED to KI-44
 
@@ -1930,10 +1878,15 @@ criterion**, and the honest way to test the pair against each other.
 **Interacts with `#24-dexhunt` above:** hunting for new species generates exactly the
 level-matched encounters maintenance needs. Done together they are one activity, not two.
 
-### ‼‼ `#24-orphans` — SIX REAL RESIDUALS THAT WERE WRITTEN DOWN BUT NEVER TRACKED — **MIXED STATUS (2026-08-17): 2 DONE ((2) KI-65, (4) log collision), 1 PARTLY DONE ((3) KI-66 — `_on_field` half FIXED+PROMOTED, OWNER-filter half OPEN), 3 OPEN ((1), (5), (6))** (filed 2026-08-15; last updated 2026-08-17)
+### ‼‼ `#24-orphans` — SIX REAL RESIDUALS THAT WERE WRITTEN DOWN BUT NEVER TRACKED — **MIXED STATUS (2026-08-17, LATEST): 3 DONE `[x]` ((2) KI-65, (4) log collision, (5) compare_runs A/B axis), 2 PARTLY DONE `[~]` ((1) — instrumentation SHIPPED, REACTION half open; (3) KI-66 — `_on_field` half FIXED+PROMOTED, OWNER-filter half open), 1 OPEN `[ ]` ((6) KI-76's correctness half)** (filed 2026-08-15; last updated 2026-08-17)
+> ⛔ **THE CHECKBOX AND THE HEADER MUST SAY THE SAME THING — corrected 2026-08-17 by a Tier 1
+> reviewer.** This header called (1) *OPEN* while its box was `[~]` and its body opened
+> *"✅ INSTRUMENTATION HALF DONE"*, and called (3) *PARTLY DONE* while its box was `[ ]`. Both are
+> now `[~]`, which is what a half-done item is. ‼ It is the P2 header-vs-body pair in miniature:
+> the marker is what gets skimmed, so a marker that disagrees with the prose IS the bug.
 
 > ⛔ **THE HEADING IS A CLAIM ABOUT EVERY BULLET BENEATH IT (P2).** These six do NOT share a status —
-> read each bullet's own marker. Two are closed; four are live.
+> read each bullet's own marker. Three are closed; three are live.
 
 > ⛔ **WHY THIS ITEM EXISTS.** An audit asked a question nobody had asked: *for every "still open /
 > still owed / not built" sentence written this session, would a future session ever FIND it?* Six
@@ -2052,7 +2005,9 @@ level-matched encounters maintenance needs. Done together they are one activity,
       parts. ⛔ **STILL DEFERRED BY THIS ENTRY'S OWN RULE: repro FIRST.** Changing the teach flow
       without one is how `#24-teachmsgstall` earned its "the fix had no production effect" verdict.
       ⚠ `custom-pokebot`'s copy is byte-identical — whatever lands has a promotion twin.
-- [ ] **(3) KI-66 — the multi-battle hazard is BROADER than the faint chooser:** four more
+- [~] **(3) KI-66 — PARTLY DONE: `_on_field`'s index space is FIXED AND PROMOTED; what REMAINS is
+      the OWNER filter (measured INERT on our one fixture) plus `:541-545` and `_util.py:522-587`.**
+      The multi-battle hazard is BROADER than the faint chooser: four more
       full-party scans are unguarded, one feeding an UNBOUNDED `while … press A`. OPEN,
       code-verified, never live-run, and untracked until now.
       ✅✅ **DRIVEN 2026-08-17 — `--driver ki66faint` IS BUILT AND WORKS. ⛔ DO NOT REBUILD IT.** It subclasses `SpaceCenter2Mode`, stages one of our own picks at 1 HP (two bytes, `data[86:88]`) so it faints in real combat, and carries a PROVEN guard against overwriting the unpinned fixture `post_space_center.ss1`. ⛔⛔ **AND THE HEADLINE IS REFUTED: the bot NEVER ATTEMPTED an ally slot.** Ally slots sat in `alive_slots` on both faints, but the chooser ASKED FOR slots 2 then 3 — both ours — because `choose_new_lead_after_faint` already filters allies. ‼ **A CANDIDATE IS NOT AN ATTEMPT**, so an A/B fixing only the owner filter shows NO DIFFERENCE here and could make it WORSE (it empties `alive_slots` and trips a FALSE 'no eligible replacement'). ‼‼ **THE REAL DEFECT IS `_on_field`'S INDEX SPACE** — field-order `gBattlerPartyIndexes` compared against a party `UpdatePartyToBattleOrder` has already permuted; it excluded Swellow while Swellow was on the BENCH (proven by its send-out at `f21009`), costing **1263 frames vs 59** on a clean faint. ⇒ **✅✅ **`_on_field`'s INDEX SPACE IS FIXED AND PROMOTED TO BOTH FORKS (2026-08-17, user-approved). ⛔ DO NOT REDO IT.** Direction MEASURED first by an observe-only probe, then applied; all gates PASSED when that landed (**25** at the time — ⛔ the CURRENT count is deliberately not repeated here; `run_gates.py` prints it and IS the authority. This sentence has now been stale at 25 AND at 26 — `run_gates.py` IS the authority) (measured). ➡ **NEXT: the OWNER filter is still unfixed and proved INERT on this fixture — it needs its OWN discriminator, not this one. `:541-545` and `_util.py:522-587` are also untouched.** Read KI-66's DRIVEN block first.
@@ -2092,9 +2047,48 @@ level-matched encounters maintenance needs. Done together they are one activity,
       `--log`") that a fresh session had no reason to know — this is the same rule as a GATE.
       ⚠ Docs that named `harness_sandbox.log` as the file to read are updated (`04-HANDOFF`,
       `14-AGENT-PLAYBOOK`, `05-KNOWN-ISSUES`); the append-only logs keep their historical wording.
-- [ ] **(5) `compare_runs.py` pairing for the (P4) matrix — never built.** Blocks nothing today; it
-      lives only in `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md`, and a research
-      note is explicitly "a NOTE, never a source of truth" — nobody mines those for backlog.
+- [x] **(5) ✅ DONE 2026-08-17 — and the item's own premise was REFUTED first. ⛔ DO NOT REBUILD IT.**
+      **The premise was "never built".** `compare_runs.py` **exists** (12.3 KB, 2026-07-25) and its
+      shipped CLI **already** accepts `--label <arm> <logs>` groups, so the requested "pairing"
+      needed no new plumbing at all. ‼ **But running it is what mattered, not reading it.**
+      ⛔⛔ **MEASURED REFUTATION — the pairing as specified would have LIED.** Fed the two committed
+      withdraw-verdict arms (`evidence/2026-08-17-withdrawverdict-ARM{A,B}-*.harnesslog.txt`,
+      which are `ACCEPTANCE: FAIL` and `ACCEPTANCE: PASS`), the shipped tool clustered them **2x on
+      ALL FOUR axes, every one tagged `<<< SPANS LABELS`** — the strongest *"these runs are the
+      same"* signal it can emit, over the exact pair that provably differs.
+      **ROOT CAUSE, and it is structural, not a typo:** every axis was FAILURE-shaped, because the
+      tool was built for cross-machine CRASH clustering where "did the arms differ?" never arises.
+      A focused driver's log **always** ends `HANG CONFIRMED` (the harness's own end-of-run marker)
+      and never reaches the `content-end`/`badge6` milestones that outrank it — so the failure axis
+      is **CONSTANT ACROSS ARMS BY CONSTRUCTION**, and `ACCEPTANCE:` — the house verdict token,
+      present in **53 of 65** committed evidence transcripts and only ever `PASS`/`FAIL` — was not
+      parsed at all. ⇒ **Delivering the wrapper the note asked for would have produced a report
+      reading "the arms agree" over a matrix whose entire purpose is to show they disagree.**
+      ✅ **WHAT SHIPPED INSTEAD — an AXIS, not a wrapper** (`tools/story-dev/compare_runs.py`):
+      `ACCEPTANCE:` is parsed (ALL verdicts, whole-file, so a multi-stage driver's Stage 1 is not
+      dropped by the tail window), shown as a matrix column, added as a fifth cluster axis, and a
+      new **`A/B DISCRIMINATION`** section states the arms-differ answer in words — **and NAMES the
+      axes that are blind to it**, so a `<<< SPANS LABELS` cluster can never again be misread as
+      agreement.
+      ✅ **FAULT-TESTED FOUR WAYS** (`evidence/2026-08-17-compareruns-abaxis-FAULT-TESTS.stdout.txt`):
+      (1) real A/B FAIL-vs-PASS → **SEPARATES**, and names `failure kind` / `dying function` /
+      `location` as blind; (2) arms that genuinely agree (KI-80's arm-4 invariance, PASS/PASS) →
+      **does NOT** claim separation; (3) neither transcript graded → **refuses to grade**;
+      (4) one arm graded, one not → **refuses**. ‼ **Test (4) caught a REAL defect in the first
+      draft of this very change**: `(no verdict)` beside `PASS` printed a green *"✅ THE ARMS
+      SEPARATE"* — an **ABSENCE read as a value**, above the caveat a skimmer never reaches.
+      Separation is now judged over **graded labels only**. ⇒ `08-MISTAKES.md` 2026-08-17.
+      ✅ **DEMONSTRATED ON A REAL 4-TRANSCRIPT MATRIX** (the deliverable the item wanted): KI-80's
+      promotion set, 2 builds x 2 expectations, where the new axis renders the three-point A/B's
+      **mirror** structure at a glance — `PASS = {before-coupled, after-decoupled}`,
+      `FAIL = {before-decoupled, after-coupled}` — while `location` and `failure+location` cluster
+      all four together and see nothing.
+      ⚠ **SCOPE — what this item did NOT cover.** The research note's line 166 names *two* unbuilt
+      things; the punch-list item named only this one. **The "natural-vs-injected byte-equivalence
+      control" is still unbuilt and still unspecified** — it is NOT closed by this entry. It is the
+      one that would shut the *"is an injected mon really like a caught one"* gap.
+      ⚠ **`tools/` is shared, not forked** — this change carries **no promotion twin** and does not
+      move the sandbox↔custom drift figure.
 - [ ] **(6) KI-76's CORRECTNESS half is OPEN and MIS-SHELVED.** Its only queue mention sits inside a
       block the handoff brackets as *"older framing … ⛔ also NOT next"*. ⚠ It is ARMED on Routes
       132/133/134 — the approach to the Regi arc and §Ch23 — so it will resurface as a "new" bug at

@@ -2900,3 +2900,36 @@ nothing about today and is left alone.
 **Why this is worth code at all.** The figure flipped `0→1→0→1→0` in one session; three stale
 claims survived hand sweeps AND the gate, each caught by a different audit agent. A stale drift
 figure sends a rollback to the wrong commit.
+
+## 2026-08-17 — `#24-orphans` (5): fix the AXIS, do not build the WRAPPER
+
+**The decision.** The item asked for *"`compare_runs.py` pairing for the (P4) matrix"*. We did
+**not** build a pairing wrapper. We added an **`ACCEPTANCE:` axis plus an `A/B DISCRIMINATION`
+section** to `compare_runs.py` itself.
+
+**Why.** The spec was one sentence in a research note — *"Still NOT built: `compare_runs.py`
+pairing … Neither blocks anything today"* — with no design, no consumer, and no acceptance
+criterion. Building from it would have been **inventing a spec**, which this project's own rule
+forbids. So the first move was to RUN the existing tool on a real A/B instead of reading it, and
+that produced the actual finding: fed two arms that differ (`ACCEPTANCE: FAIL` vs `PASS`), the tool
+clustered them as identical on all four axes with `<<< SPANS LABELS`. **The pairing was not missing
+plumbing; the instrument could not see the discriminator.** A wrapper would have shipped that
+blindness behind a convenience command and made it routine.
+
+**Alternatives rejected.**
+1. **Build the wrapper as written.** Rejected: it would emit "the arms agree" over a discriminating
+   matrix. A tool that is confidently wrong is worse than one that does not exist.
+2. **Close (5) as WON'T-BUILD ("blocks nothing today").** Rejected *after* the measurement — the
+   premise "never built" was false and the tool was actively misleading, so closing it unexamined
+   would have left a live trap filed as a non-issue. ‼ **The item was worth doing for a reason
+   nobody had written down.**
+3. **Re-engineer the failure taxonomy** so a finished driver run stops classifying as `hang`.
+   Rejected as out of scope and riskier than the problem: the `hang` classification is *correct*
+   (the marker really is in the log), it is simply CONSTANT across arms. Naming it blind is
+   honest and cheap; re-deriving the taxonomy would put every historical cross-machine cluster
+   this tool has ever produced back in question.
+
+**The general rule this leaves behind.** ⇒ **When a backlog item says a tool is "never built",
+RUN the nearest existing tool on a real case before writing any code.** Twice now the answer has
+not been "build it" but "the thing that exists is pointed the wrong way" — and only running it
+says which.

@@ -22,6 +22,22 @@ so the report says which fields were actually available per log rather than pret
     py -3.12 tools/story-dev/compare_runs.py tools/story-dev/night5/*.log
     py -3.12 tools/story-dev/compare_runs.py --label mine tools/story-dev/night5/*.log \
                                              --label user ~/Downloads/Story_DEBUG*.log
+
+‼ SECOND MODE, added 2026-08-17 — GRADING AN A/B MATRIX (`#24-orphans` (5)).
+Give each ARM its own `--label` and the report ends with an `A/B DISCRIMINATION` section that
+says, in as many words, whether the arms came out DIFFERENT:
+
+    py -3.12 compare_runs.py --label armA <faulted>.log --label armB <unfaulted>.log
+    py -3.12 compare_runs.py --label b-coup <...> --label b-deco <...> \
+                             --label a-coup <...> --label a-deco <...>     # the 2x2 matrix
+
+⛔ READ THE A/B SECTION, NOT THE CLUSTERS, WHEN YOU ARE GRADING ARMS. The clusters answer
+"did these runs die the same way?"; `<<< SPANS LABELS` is the strongest AGREEMENT signal this
+tool emits, which is the WRONG-SIGNED answer to "did my fix change anything?". Measured: the
+two committed withdraw-verdict arms (`ACCEPTANCE: FAIL` vs `PASS`) clustered together on all
+four original axes, because a focused driver's log always ends `HANG CONFIRMED` and never
+reaches the milestones that outrank it. Evidence + four fault tests:
+`evidence/2026-08-17-compareruns-abaxis-FAULT-TESTS.stdout.txt`.
 """
 
 import argparse
@@ -42,6 +58,33 @@ RE_SIGPOS = re.compile(r"sig=\([^)]*\((\d+),\s*(\d+)\)\)")
 RE_SCRIPTS = re.compile(r"scripts=(\[[^\]]*\])")
 RE_PARTY = re.compile(r"party=\[([^\]]*)\]")
 RE_MSG = re.compile(r"(?:message|msg)='([^']{0,90})")
+
+# ‼ THE A/B AXIS — added 2026-08-17 (`#24-orphans` (5)), and it was added because the tool was
+# MEASURED BLIND, not because it looked like a nice extra.
+#
+# `#24-orphans` (5) asked for "`compare_runs.py` pairing for the (P4) matrix" — feed the four
+# {ARM A, ARM B} x {sandbox, custom} transcripts through this tool. Doing exactly that on the two
+# committed withdraw-verdict arms produced a cluster of size 2 on ALL FOUR axes, every one tagged
+# `<<< SPANS LABELS`, i.e. the strongest "these runs are the same" signal this tool can emit.
+# The arms are NOT the same: one is `ACCEPTANCE: FAIL`, the other `ACCEPTANCE: PASS`.
+#
+# WHY it was blind: every axis here is FAILURE-shaped, and this tool was built for cross-machine
+# CRASH clustering, where the arms-differ question never arises. Both A/B arms legitimately end
+# with `HANG CONFIRMED` (the harness's own end-of-run marker — see the SUCCESS-outranks note in
+# `summarise`, which only exempts runs that reach `content-end`/`badge6`; a focused driver reaches
+# neither). So the failure axis is CONSTANT across arms by construction, and the one field that
+# actually separates them was not parsed at all.
+#
+# ⇒ Delivering the requested "pairing" without this axis would have produced a report reading
+# "the arms agree" over a matrix whose whole purpose is to show they disagree. That is this
+# project's most repeated failure shape (an instrument that cannot see what it is pointed at),
+# so the fix is an axis, not a wrapper script.
+#
+# `ACCEPTANCE: <VERDICT>` is the house verdict token: it appears in 53 of the 65 committed
+# evidence transcripts, only ever as PASS or FAIL. A run may print several (a multi-stage driver
+# grades each stage), so keep them ALL, in order — collapsing them to the last one would hide a
+# driver whose Stage 1 failed and whose Stage 2 passed.
+RE_ACCEPT = re.compile(r"ACCEPTANCE:\s*([A-Z]+)")
 
 FAIL_MARKERS = [
     ("movelearn-stall", "Move-learn dialogue could not be resolved"),
@@ -177,10 +220,17 @@ def summarise(path: pathlib.Path, label: str) -> dict:
     mg = RE_MSG.findall(tail)
     msg = mg[-1] if mg else ""
 
+    # ‼ Scan the WHOLE text, not the tail: a multi-stage driver grades Stage 1 thousands of lines
+    # before it grades Stage 2, and the tail window would silently drop the earlier verdicts.
+    # `(field absent)` is deliberately NOT spelled as a verdict — a log with no ACCEPTANCE line
+    # must never be comparable-equal to one that passed.
+    accepts = RE_ACCEPT.findall(text)
+    accept = ",".join(accepts) if accepts else "(no verdict)"
+
     return {
         "label": label, "file": path.name, "frames": frames, "fail": fail, "depth": depth,
         "where": where, "loc": loc, "scripts": scripts, "party": party, "msg": msg,
-        "stack": stack,
+        "stack": stack, "accept": accept, "n_accept": len(accepts),
         "whiteouts": text.count("whiteout") + text.count("Whiteout"),
         "derails": text.count("DERAIL") + text.count("BotModeError"),
         "has_scripts_field": "scripts=" in text,
@@ -215,11 +265,12 @@ def main() -> None:
     rows = [summarise(p, lab) for lab, ps in groups for p in ps]
 
     _safe_print("=" * 118)
-    _safe_print(f"{'label':6} {'log':26} {'frames':>10}  {'depth':12} {'failure':16} where / location")
+    _safe_print(f"{'label':6} {'log':26} {'frames':>10}  {'accept':12} {'failure':16} where / location")
     _safe_print("=" * 118)
     for r in sorted(rows, key=lambda r: -r["frames"]):
-        _safe_print(f"{r['label']:6} {r['file'][:26]:26} {r['frames']:>10,}  {r['depth']:12} "
+        _safe_print(f"{r['label']:6} {r['file'][:26]:26} {r['frames']:>10,}  {r['accept'][:12]:12} "
               f"{r['fail']:16} {r['where']}")
+        _safe_print(f"{'':6} {'':26} {'':>10}  depth={r['depth']}")
         _safe_print(f"{'':6} {'':26} {'':>10}  loc={r['loc']}  scripts={r['scripts'][:56]}")
         if r["msg"]:
             _safe_print(f"{'':6} {'':26} {'':>10}  msg={r['msg'][:88]}")
@@ -229,6 +280,7 @@ def main() -> None:
     _safe_print("CLUSTERS — a group of >= 2 spanning different labels/starters is the strongest signal")
     _safe_print("=" * 118)
     for keyname, keyfn in (
+        ("acceptance verdict", lambda r: r["accept"]),
         ("failure kind", lambda r: r["fail"]),
         ("dying function", lambda r: r["where"]),
         ("location", lambda r: r["loc"]),
@@ -247,6 +299,67 @@ def main() -> None:
             _safe_print(f"   {len(v)}x  {k}{cross}")
             for r in v:
                 _safe_print(f"        {r['label']}/{r['file'][:30]}  {r['frames']:,}f")
+
+    # --- A/B DISCRIMINATION ---------------------------------------------------------------
+    # ‼ The clustering above answers "did these runs die the same way?". An A/B matrix asks the
+    # OPPOSITE question — "did these arms come out DIFFERENT?" — and a cross-label cluster is the
+    # WRONG-SIGNED answer to it: `<<< SPANS LABELS` reads as agreement. This section states the
+    # A/B answer explicitly so nobody has to invert the report in their head.
+    labels_present = sorted({r["label"] for r in rows})
+    if len(labels_present) >= 2:
+        _safe_print("\n" + "=" * 118)
+        _safe_print("A/B DISCRIMINATION — do the LABELLED ARMS actually come out different?")
+        _safe_print("=" * 118)
+        per_label = {lab: sorted({r["accept"] for r in rows if r["label"] == lab}) for lab in labels_present}
+        for lab in labels_present:
+            _safe_print(f"   {lab:10} acceptance = {', '.join(per_label[lab])}")
+
+        graded = [r for r in rows if r["n_accept"] > 0]
+        if not graded:
+            # ⛔ Never print a verdict we cannot see. A tool that says "the arms agree" when it
+            # parsed nothing is worse than one that says nothing (08-MISTAKES 2026-08-17: a zero
+            # from an instrument that has never produced a non-zero is not a measurement).
+            _safe_print("\n   ‼ NO transcript carries an `ACCEPTANCE:` line — this tool CANNOT grade")
+            _safe_print("     this comparison. Do not read the clusters above as an A/B result.")
+        elif len(graded) < len(rows):
+            ungraded = [r["file"] for r in rows if r["n_accept"] == 0]
+            _safe_print(f"\n   ‼ {len(ungraded)} of {len(rows)} transcript(s) carry NO `ACCEPTANCE:` line, so the")
+            _safe_print(f"     comparison is PARTIAL: {', '.join(f[:34] for f in ungraded[:4])}")
+
+        # ⛔ SEPARATION IS JUDGED OVER GRADED LABELS ONLY — found by fault-testing this very
+        # block on 2026-08-17. The first draft compared the raw per-label sets, so a `(no verdict)`
+        # arm beside a `PASS` arm printed "✅ THE ARMS SEPARATE". That is an ABSENCE being read as
+        # a value: the one thing this project has been burned by most often. An unmeasured arm
+        # cannot separate from anything, and a green tick above the caveat is what a skimmer keeps.
+        graded_labels = sorted({r["label"] for r in rows if r["n_accept"] > 0})
+        per_label_graded = {
+            lab: sorted({r["accept"] for r in rows if r["label"] == lab and r["n_accept"] > 0})
+            for lab in graded_labels
+        }
+        distinct = {tuple(v) for v in per_label_graded.values()}
+        if len(graded) and len(graded_labels) < 2:
+            _safe_print(f"\n   ⛔ Only {len(graded_labels)} label carries a verdict — SEPARATION CANNOT BE JUDGED.")
+            _safe_print("      An unmeasured arm does not separate from anything. Re-run the missing arm.")
+        elif len(graded) and len(distinct) > 1:
+            _safe_print("\n   ✅ THE ARMS SEPARATE on acceptance — the matrix is discriminating.")
+            blind = []
+            for keyname, keyfn in (
+                ("failure kind", lambda r: r["fail"]),
+                ("dying function", lambda r: r["where"]),
+                ("location", lambda r: r["loc"]),
+            ):
+                if len({keyfn(r) for r in rows}) == 1:
+                    blind.append(f"{keyname} (all = {keyfn(rows[0])!r})")
+            if blind:
+                _safe_print("   ⛔ BUT these axes are BLIND to that difference — they are CONSTANT across")
+                _safe_print("      arms, so their `<<< SPANS LABELS` clusters above are artefacts, not agreement:")
+                for b in blind:
+                    _safe_print(f"        - {b}")
+        elif len(graded_labels) >= 2:
+            _safe_print("\n   ⛔ THE ARMS DO NOT SEPARATE on acceptance — every graded label came out the same.")
+            _safe_print("      For an A/B that is either a VACUOUS FIXTURE (playbook §3b: run both arms")
+            _safe_print("      BEFORE writing the fix and show they already differ) or a genuine")
+            _safe_print("      no-difference result. ⛔ It is never, on its own, proof that a fix works.")
 
     missing = [r["file"] for r in rows if not r["has_scripts_field"]]
     if missing:

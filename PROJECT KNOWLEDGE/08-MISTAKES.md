@@ -8043,3 +8043,46 @@ nothing unusual at all.*
 **And the cheaper, more general one:** ⇒ *a refinement that only makes a number SMALLER is trivially
 achievable and proves nothing. The test that has content is the one that asks whether it still sees
 the cases you already know are real — run that one before you believe the reduction.*
+
+## 2026-08-17 — my new A/B grader called an ABSENCE a difference, and only the fourth fault test asked
+
+**Symptom.** The `A/B DISCRIMINATION` section I had just added to `compare_runs.py` printed
+
+```
+   ‼ 1 of 2 transcript(s) carry NO `ACCEPTANCE:` line, so the comparison is PARTIAL: harness_teach1.log
+   ✅ THE ARMS SEPARATE on acceptance — the matrix is discriminating.
+```
+
+for a comparison between one arm graded `PASS` and one arm carrying **no verdict at all**.
+
+**Root cause.** I computed the separation verdict over the RAW per-label verdict sets, in which an
+ungraded arm appears as the string `"(no verdict)"`. `{"(no verdict)"} != {"PASS"}`, so the sets
+differed, so the tool announced a difference. **An unmeasured arm cannot separate from anything** —
+that is a missing measurement, not a result. Fixed by judging separation over **graded labels
+only**, and refusing outright when fewer than two labels carry a verdict.
+
+**Why it is worse than it looks.** I *had* printed the honest `‼ … PARTIAL` caveat — one line
+above the green tick. This project's own P2 rule says the headline carries the caveat and the
+skimmer keeps the marker, not the paragraph. **I put a ✅ on top of my own ⚠ and would have
+believed the ✅.** It is the same shape as the section heading that read "OPEN ISSUES" above
+"✅✅ FIXED", priced at ~a day on 2026-08-16.
+
+**Sharpest part: the bug was in the instrument built to stop exactly this.** The whole item existed
+because `compare_runs.py` was measured reporting *agreement* between two arms that differ. My fix
+for that then reported *difference* between an arm and a blank. **Both directions of the same
+error, in the same tool, in the same hour** — reading a field's value without first asking whether
+the field was populated.
+
+**What caught it: a fault test I nearly did not write.** Tests 1-3 (real A/B separates; equal arms
+do not; neither-graded refuses) all passed and felt like enough. Test 4 — the ASYMMETRIC case, one
+graded and one not — is the only one that failed, and I wrote it only because "prove it fails when
+it should AND does not fire when it should not" demands both signs.
+
+**PREVENTION RULE (one line).** ⛔ **When a report turns fields into a verdict, fault-test the
+ASYMMETRIC case — one side populated, the other empty — because a sentinel string like
+`"(no verdict)"` compares unequal to every real value and will be reported as a DIFFERENCE.**
+Absence must be tested as a THIRD state, never as another value.
+
+‼ **Corollary:** ⛔ **never print a green marker in the same block as a caveat that undercuts it.**
+If the data is partial, the partiality IS the verdict — suppress the ✅ rather than stacking it on
+top of a ⚠.

@@ -5460,3 +5460,65 @@ cross-reference still resolves. ⛔ None of this is outstanding work.
       HISTORY — **DEFERRED.** Door at JAGGED_PASS (16,18) is unreachable from the
       ROUTE112 side (one-way ledges; a 2026-07-26 probe already failed to path there). Only
       approach is ROUTE112 → cable car → MT_CHIMNEY → descend ⇒ ~8 warps + a scripted ride.
+
+## `#24-relocfloor` — ARCHIVED VERBATIM from `03-PUNCH-LIST.md` on 2026-08-17
+
+> Moved under the R3 line-budget relief valve (the punch list hit its 3,600-line limit while
+> `#24-orphans` (5) was being closed). ⛔ NOTHING HERE IS OUTSTANDING — the item was DONE on
+> 2026-08-01. Kept verbatim for its measured relocation-floor table and its "only the floor is
+> wrong" reasoning, which later training work still leans on.
+
+- [x] `#24-relocfloor` — **DONE 2026-08-01.** Extracted as the pure
+      `training_areas.relocation_floor(local_max, trainee_levels, gap)` and wired into
+      `_prepare_for_fight`. Repro green, full suite 69/69. Original diagnosis below.
+
+      `#24-relocfloor` — **the training-relocation floor is keyed on the WRONG MON.**
+      Diagnosed + repro'd 2026-08-01; the code edit was deliberately held because
+      `x4_headless.py:843` relaunches a dead lane's process and a restarted lane would
+      re-import mid-batch, mixing two code versions into one measurement.
+
+      `story_mode.py` `_prepare_for_fight`:
+      ```python
+      floor = max(local_max, team_max_now - self.FODDER_LEVEL_GAP)
+      better = best_training_area(team_max_now, min_wild_max=floor, allow=_allow)
+      ```
+      `team_max_now` is the party's STRONGEST mon, but `need` (the mons being trained) is
+      the stragglers — a real batch4 Norman party is `Marshtomp L35 / Ninjask L30 /
+      Swellow L32 / Poochyena L12 / Shedinja L20`. Keying the floor to L35 demands wilds
+      above L23 and so rejects **ROUTE111 (L19-22)**, the one reachable area, though it is
+      near-ideal for a L20 trainee. Measured: `no better area is available` fired **167×**
+      in batch4, every one `local grass (max L4)` (ROUTE102), teams L32-41.
+
+      ‼ **ONLY THE FLOOR IS WRONG — do not "key it all to the trainee".** `train_team` runs
+      with SWAP-TRAIN on, so a STRONGER team-mate does the fighting; the winnability/scoring
+      argument (`best_training_area`'s first parameter) is correctly `team_max_now`.
+
+      **THE EXACT CHANGE:**
+      1. Add to `modules/story/training_areas.py`:
+         ```python
+         def relocation_floor(local_max: int, trainee_levels, fodder_gap: int) -> int:
+             """Minimum wild level worth relocating FOR, keyed to the mons being trained."""
+             if not trainee_levels:
+                 return local_max
+             return max(local_max, max(trainee_levels) - fodder_gap)
+         ```
+      2. In `story_mode.py` `_prepare_for_fight`, replace the `floor = …` line with
+         `floor = relocation_floor(local_max, [party[i].level for i in need], self.FODDER_LEVEL_GAP)`
+         (leave `best_training_area(team_max_now, …)` unchanged).
+      3. `repro_relocation_floor_wrong_mon.py` check 4 goes green. Re-run the full suite.
+
+      **Effect, measured with the real tables** (`allow` restricted to what is reachable
+      near Petalburg):
+      | party | floor now | pick now | trainee floor | pick |
+      |---|---|---|---|---|
+      | L35, stragglers L12/L20 | 23 | **None** | 8 | **ROUTE111 L19-22** |
+      | L36, straggler L12 | 24 | **None** | 4 | **ROUTE111 L19-22** |
+      | L33, stragglers L20/L27 | 21 | ROUTE111 | 15 | ROUTE111 |
+
+      ‼ **NECESSARY BUT PROBABLY NOT SUFFICIENT AT PETALBURG, and say so rather than
+      overclaim.** When every richer area is reachable both floors agree and the fix changes
+      nothing. From Petalburg even ROUTE111 is often unreachable — which is why some L32-34
+      runs refused too. Its real value is unlocking the agreed **pre-emptive training** plan
+      (train near Lavaridge, where ROUTE111/ROUTE117 demonstrably ARE reachable, before
+      travelling to Petalburg at all). Expect little from this fix alone in a batch.
+

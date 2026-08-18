@@ -16508,3 +16508,44 @@ complete until every place that recommended the thing says so.
 exited **0** over every one of those stale numbers. **A green doc gate is not evidence the numbers are
 right** — it is evidence that the shapes it knows about are right. That is precisely what
 `#24-probecountgate` was filed to close, and this audit produced four fresh examples for it.
+
+## 2026-08-17 — `#24-orphans` (5): the requested "pairing" was REFUTED, and an A/B AXIS shipped instead
+
+**What the item asked for.** *"`compare_runs.py` pairing for the (P4) matrix — never built."* The
+premise had two halves and **both were wrong in the useful direction**: `compare_runs.py` exists
+(12.3 KB, 2026-07-25) and its shipped CLI already accepts `--label <arm> <logs>` groups, so no new
+plumbing was needed — **and running it on a real A/B showed the tool was BLIND to the very thing
+the pairing was for.**
+
+**The measurement.** Fed the two committed withdraw-verdict arms — `ACCEPTANCE: FAIL` (armA,
+faulted) and `ACCEPTANCE: PASS` (armB) — the shipped tool reported a cluster of size 2 on **all
+four axes, every one tagged `<<< SPANS LABELS`**: its strongest *"these runs are the same"* signal,
+emitted over the pair that provably differs.
+
+**Root cause (structural, not a typo).** Every axis was FAILURE-shaped, because the tool was built
+for cross-machine CRASH clustering, where "did the arms differ?" is never the question. A focused
+driver's log **always** ends `HANG CONFIRMED` — the harness's own end-of-run marker — and never
+reaches the `content-end`/`badge6` milestones that the tool's SUCCESS-outranks-everything rule uses
+to exempt it. So the failure axis is **constant across arms by construction**, while `ACCEPTANCE:`
+— the house verdict token, in **53 of 65** committed evidence transcripts, only ever `PASS`/`FAIL`
+— was not parsed at all.
+
+**Shipped: an AXIS, not a wrapper** (`tools/story-dev/compare_runs.py`). All `ACCEPTANCE:` verdicts
+parsed whole-file (not from the tail window, so a multi-stage driver's Stage 1 verdict survives);
+a matrix column; a fifth cluster axis; and a new **`A/B DISCRIMINATION`** section that states the
+arms-differ answer in words **and names the axes that are blind to it**, so a `<<< SPANS LABELS`
+cluster can never again be read as agreement.
+
+**Fault-tested four ways** (`evidence/2026-08-17-compareruns-abaxis-FAULT-TESTS.stdout.txt`):
+real A/B → SEPARATES + blind axes named; genuinely-equal arms (KI-80 arm-4 invariance, PASS/PASS)
+→ does NOT claim separation; neither transcript graded → refuses; one graded and one not →
+refuses. **Test 4 caught a real defect in the first draft of this change** (see `08-MISTAKES.md`).
+
+**Demonstrated on a real 4-transcript matrix** — KI-80's promotion set, 2 builds x 2 expectations —
+where the new axis renders the three-point A/B's **mirror** at a glance (`PASS = {before-coupled,
+after-decoupled}`, `FAIL = {before-decoupled, after-coupled}`) while `location` and
+`failure+location` cluster all four together and see nothing.
+
+⚠ **Not closed by this:** the research note's *other* unbuilt half, the natural-vs-injected
+byte-equivalence control, is still unbuilt and still unspecified.
+⚠ `tools/` is shared, not forked — **no promotion twin, no drift movement.** 27/27 gates PASS.

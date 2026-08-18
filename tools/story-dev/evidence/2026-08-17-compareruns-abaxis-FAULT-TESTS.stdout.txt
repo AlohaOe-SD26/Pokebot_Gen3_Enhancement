@@ -1,0 +1,106 @@
+=== #24-orphans (5): compare_runs.py A/B axis — REFUTATION + FIX + 4 FAULT TESTS (2026-08-17) ===
+
+### 0. THE REFUTATION (run BEFORE the change, reproduced here from the shipped report):
+    The two withdraw-verdict arms are ACCEPTANCE: FAIL (armA) and ACCEPTANCE: PASS (armB).
+    Pre-change, compare_runs.py clustered them 2x on ALL FOUR axes, every one '<<< SPANS LABELS'.
+    i.e. the requested 'pairing' would have reported AGREEMENT over a discriminating matrix.
+
+### 1. REAL A/B (armA FAIL vs armB PASS) — must SEPARATE and name its blind axes
+A/B DISCRIMINATION — do the LABELLED ARMS actually come out different?
+======================================================================================================================
+   armA       acceptance = FAIL
+   armB       acceptance = PASS
+
+   ✅ THE ARMS SEPARATE on acceptance — the matrix is discriminating.
+   ⛔ BUT these axes are BLIND to that difference — they are CONSTANT across
+      arms, so their `<<< SPANS LABELS` clusters above are artefacts, not agreement:
+        - failure kind (all = 'hang')
+        - dying function (all = 'wait_for_no_script_to_run @ tasks_scripts.py:155')
+        - location (all = '?(7,4)')
+
+attrition: armA/2026-08-17-withdra wo=0 derails=0, armB/2026-08-17-withdra wo=0 derails=0
+
+### 2. FAULT TEST — arms that GENUINELY AGREE (arm-4 invariance, PASS/PASS): must NOT claim separation
+A/B DISCRIMINATION — do the LABELLED ARMS actually come out different?
+======================================================================================================================
+   after      acceptance = PASS
+   before     acceptance = PASS
+
+   ⛔ THE ARMS DO NOT SEPARATE on acceptance — every graded label came out the same.
+      For an A/B that is either a VACUOUS FIXTURE (playbook §3b: run both arms
+      BEFORE writing the fix and show they already differ) or a genuine
+      no-difference result. ⛔ It is never, on its own, proof that a fix works.
+
+attrition: before/2026-08-16-ki80-PR wo=0 derails=0, after/2026-08-16-ki80-PR wo=0 derails=0
+
+### 3. FAULT TEST — NEITHER transcript graded: must REFUSE to grade
+A/B DISCRIMINATION — do the LABELLED ARMS actually come out different?
+======================================================================================================================
+   x          acceptance = (no verdict)
+   y          acceptance = (no verdict)
+
+   ‼ NO transcript carries an `ACCEPTANCE:` line — this tool CANNOT grade
+     this comparison. Do not read the clusters above as an A/B result.
+
+attrition: x/harness_teach1.log wo=0 derails=0, y/harness_stall1.log wo=0 derails=0
+
+### 4. FAULT TEST — ONE arm graded, one not: must refuse (this one caught a REAL defect in the
+    first draft, which printed a green 'ARMS SEPARATE' over an absence)
+A/B DISCRIMINATION — do the LABELLED ARMS actually come out different?
+======================================================================================================================
+   blank      acceptance = (no verdict)
+   graded     acceptance = PASS
+
+   ‼ 1 of 2 transcript(s) carry NO `ACCEPTANCE:` line, so the
+     comparison is PARTIAL: harness_teach1.log
+
+   ⛔ Only 1 label carries a verdict — SEPARATION CANNOT BE JUDGED.
+      An unmeasured arm does not separate from anything. Re-run the missing arm.
+
+attrition: graded/2026-08-17-withdra wo=0 derails=0, blank/harness_teach1.log wo=0 derails=0
+
+### 5. THE DELIVERABLE — a REAL 4-transcript matrix (KI-80 promotion, 2 builds x 2 expectations)
+by acceptance verdict:
+   2x  PASS  <<< SPANS LABELS
+        b-coup/2026-08-16-ki80-PROMOTION-BEFO  2,000f
+        a-deco/2026-08-16-ki80-PROMOTION-AFTE  2,000f
+   2x  FAIL  <<< SPANS LABELS
+        b-deco/2026-08-16-ki80-PROMOTION-BEFO  2,000f
+        a-coup/2026-08-16-ki80-PROMOTION-AFTE  2,000f
+
+by failure kind:
+   (no cluster — every run differs on this axis)
+
+by dying function:
+   (no cluster — every run differs on this axis)
+
+by location:
+   4x  ?(18,99)  <<< SPANS LABELS
+        b-coup/2026-08-16-ki80-PROMOTION-BEFO  2,000f
+        b-deco/2026-08-16-ki80-PROMOTION-BEFO  2,000f
+        a-coup/2026-08-16-ki80-PROMOTION-AFTE  2,000f
+        a-deco/2026-08-16-ki80-PROMOTION-AFTE  2,000f
+
+by failure+location:
+   4x  clean/unknown @ ?(18,99)  <<< SPANS LABELS
+        b-coup/2026-08-16-ki80-PROMOTION-BEFO  2,000f
+        b-deco/2026-08-16-ki80-PROMOTION-BEFO  2,000f
+        a-coup/2026-08-16-ki80-PROMOTION-AFTE  2,000f
+        a-deco/2026-08-16-ki80-PROMOTION-AFTE  2,000f
+
+======================================================================================================================
+A/B DISCRIMINATION — do the LABELLED ARMS actually come out different?
+======================================================================================================================
+   a-coup     acceptance = FAIL
+   a-deco     acceptance = PASS
+   b-coup     acceptance = PASS
+   b-deco     acceptance = FAIL
+
+   ✅ THE ARMS SEPARATE on acceptance — the matrix is discriminating.
+   ⛔ BUT these axes are BLIND to that difference — they are CONSTANT across
+      arms, so their `<<< SPANS LABELS` clusters above are artefacts, not agreement:
+        - failure kind (all = 'clean/unknown')
+        - dying function (all = '?')
+        - location (all = '?(18,99)')
+
+attrition: b-coup/2026-08-16-ki80-PR wo=0 derails=0, b-deco/2026-08-16-ki80-PR wo=0 derails=0, a-coup/2026-08-16-ki80-PR wo=0 derails=0, a-deco/2026-08-16-ki80-PR wo=0 derails=0
