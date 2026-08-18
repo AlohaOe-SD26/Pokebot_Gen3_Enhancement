@@ -8370,3 +8370,29 @@ defect is armed the planner is **ACCIDENTALLY SAFE — safe by INABILITY, not by
 the warp solely because it cannot route past it, and that protection evaporates on any map where the
 far side IS in the connected set. ⇒ *when you discover code is safe, ask WHY; "it cannot do the
 dangerous thing" and "it declines to" have very different futures.*
+
+## 2026-08-17 — I built a gate whose first rule was WRONG, and it told me so on its first live run
+
+**Symptom.** `audit_doc_citations.py` v1 demanded that a doc citing `identifier` + `file.py:LINE`
+have that identifier DEFINED at that line. Its first live run produced **9 findings — and most were
+correct citations.**
+
+**Root cause.** This project's normal idiom is to name a function and cite a line INSIDE it:
+*"`withdraw_from_box` (`pc_trip.py:481`) counts `alive` EXCLUDING EGGS"*. I had encoded "cites the
+definition" when the real convention is "cites something within the definition". ‼ **My own
+docstring said "a noisy gate gets bypassed — strictly worse than no gate", and I built the noisy
+version anyway.**
+
+**Fix: change the PROPERTY, not the threshold.** CONTAINMENT — a citation naming X must land inside
+X's body span. 9 findings → 4, of which 3 were real drift. The 4th was a different defect (regex
+mis-pairing across a 48-char window on the rare reverse word order), fixed by capping that side at
+12 chars, with the asymmetry explained in the source.
+
+**PREVENTION RULE (one line).** ⛔ **Before writing a doc gate, take five real examples of the thing
+you are about to forbid and check that all five are actually wrong — if any is correct usage, your
+PROPERTY is wrong, not your threshold.**
+
+‼ **Corollary, and it applies to the fault tests too:** one of my own self-tests (C5) encoded a
+FALSE PREMISE — it asserted a filename was ambiguous across forks when the resolver deliberately
+searches sandbox only. The gate was right and the test was wrong. ⇒ *"the test failed" and "the
+gate is broken" are different claims; check which one you have before changing code.*

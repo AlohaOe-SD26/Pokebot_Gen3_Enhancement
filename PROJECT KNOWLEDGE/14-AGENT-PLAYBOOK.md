@@ -209,7 +209,7 @@ what it believes; the probe reports what the file contains.
 
 ### 2b. The repro suite — the project's actual verification bar
 
-`tools/story-dev/repro_*.py` is ~81 scripts (count refreshed 2026-08-08; it was recorded as ~52 for weeks while the suite nearly doubled) and **most need no emulator**. Run the whole
+`tools/story-dev/repro_*.py` is **103** scripts and `probe_*.py` is **75** (measured 2026-08-17 — ⛔ these decay; run `ls tools/story-dev/repro_*.py | wc -l` rather than trusting this; it was recorded as ~52 for weeks while the suite nearly doubled) and **most need no emulator**. Run the whole
 sweep before claiming any fix is clean:
 
 ```bash

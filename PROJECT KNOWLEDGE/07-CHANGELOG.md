@@ -16782,3 +16782,35 @@ right (that is about a slide ending beside walkable LAND; this dismount came fro
 transition), and identical output across runs is a determinism check, never a replication.
 ⛔ **Nothing is fixed.** `map_path.py` is untouched; this makes the fix's A/B possible.
 27/27 gates PASS; anchor hash unchanged before/after.
+
+## 2026-08-17 — DEEP SANITY CHECK, PASS 1 of 5 (TRUTH: do the docs match reality?) — 8 agents
+
+Eight read-only agents, one angle each. **Three reported CLEAN** (named artefacts, cross-file
+consistency, evidence-backs-claims). The rest found real defects, every one verified by me before
+acting — two agent findings were FALSE POSITIVES and were discarded (KI-79's header does carry its
+caveat; KI-38's older entry is correctly marked SUPERSEDED).
+
+**Fixed:**
+* ⛔ **`01-VISION-AND-DESIGN.md` claimed the forks "genuinely diverged"** — naming ten modules as
+  sandbox-only and `story_mode.py` as "~400 lines ahead". **All ten exist in BOTH forks and
+  `story_mode.py` is 4,135 lines in BOTH.** Found independently by TWO agents. This is the file the
+  standing directives call the source of truth for intent.
+* **Citations:** `pc_trip.py:453-454`→`:481-482`, `higher_level_actions.py:356`→`:420`,
+  `early_game.py:1587`→`:1655`, `:6253`→`:6265`, `story_mode.py:899-937`→`:1297-1356`,
+  `early_game.py:3397-3412`→`:3596-3804`, `higher_level_actions.py:872`→`:947`.
+* **Stale counts:** `02-ARCHITECTURE` (story_mode 3,742→4,135; modules 83/74→84/84; imports
+  118/114→124/124; 101/73 scripts→103/75), `14-AGENT-PLAYBOOK` (~81→103), and
+  `03-PUNCH-LIST`'s marker tally (80/17/37 → **de-numeralised**; it was stale by +18/+5/+58).
+* **P2 headers:** KI-65 now names the residual its body documents; KI-67 attributes its
+  swallow-site residual to KI-81 and re-dates the count (44 custom → **36 on both** post-promotion).
+
+✅ **NEW GATE #28 — `audit_doc_citations.py`.** Citation drift has now bitten three times, so it is
+a gate rather than a rule. ‼ **Its FIRST formulation was wrong and I caught it before shipping:**
+demanding a citation point AT a function's `def` produced 9 findings of which most were CORRECT
+citations, because this project's normal idiom is to name a function and cite a line INSIDE it.
+Reformulated as **CONTAINMENT** (a citation naming X must land inside X's body) → 9 findings became
+4, of which 3 were real. A fourth was regex mis-pairing (`story_mode.py:1899` genuinely belongs to
+`grass_is_fodder`), fixed by tightening the reverse-order window to 12 chars. Fault-tested C1-C7,
+both signs. ⛔ Its docstring states what it does NOT cover: citations pointing inside a body are
+invisible to it. Suite is now **28**, and the gate-count gate immediately caught four docs still
+saying 27.

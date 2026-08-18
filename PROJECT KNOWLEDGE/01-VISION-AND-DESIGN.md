@@ -131,10 +131,11 @@ it.
   before anything moves to `custom-pokebot/`. After promotion the sandbox is re-based on
   the new custom.
 - **Constraints:** during a sandbox round, do NOT modify `custom-pokebot/` or the mirror.
-- **‼ It has genuinely diverged.** `sandbox-pokebot/` holds ten modules that do not exist
-  in `custom-pokebot/` at all (`endless_x4`, `tile_bridge`, `tile_mosaic`, `gui/tile_child`,
-  `x4_logs`, `remote_party`, `badge_log`, `badge_case`, `battle_fault`, `story_milestones`),
-  and its `story_mode.py` is ~400 lines ahead. **A path written without a copy prefix is
+- ⛔ **"IT HAS GENUINELY DIVERGED" IS FALSE AS OF 2026-08-17 — MEASURED, and the whole clause is
+  retracted.** It named ten modules as sandbox-only (`endless_x4`, `tile_bridge`, `tile_mosaic`,
+  `gui/tile_child`, `x4_logs`, `remote_party`, `badge_log`, `badge_case`, `battle_fault`,
+  `story_milestones`) and said `story_mode.py` was "~400 lines ahead". **All ten are in BOTH
+  forks and `story_mode.py` is 4,135 lines in BOTH.** `promote.py --check` = drift 0. **A path written without a copy prefix is
   ambiguous — always prefix.**
 - **‼ The bot the user actually runs is a DIFFERENT CHECKOUT on another machine.** Work
   committed here does not reach it until that machine pulls — see `04-HANDOFF.md §0a`.
@@ -167,7 +168,7 @@ it.
 
 ### Endless Loop ×4 (**`sandbox-pokebot/`** `modules/endless_x4.py`, `tile_bridge`,
 ###   `tile_mosaic`, `gui/tile_child`, `x4_logs`, `remote_party`)
-‼ These files exist in **`sandbox-pokebot/` ONLY** — none of them is in `custom-pokebot/`.
+⛔⛔ **THAT CLAIM WAS FALSE AND IS CORRECTED 2026-08-17 BY MEASUREMENT.** It read *"These files exist in `sandbox-pokebot/` ONLY — none of them is in `custom-pokebot/`"*. **All ten exist in BOTH forks**, checked file by file, and `promote.py --check` reports **drift 0**. ‼ Two independent audit agents found this the same day; it had survived every doc pass since it was written. ⛔ Do not reason about the fork layout from prose — run `promote.py --check`.
 - **Purpose:** a TEST INSTRUMENT, not a gameplay feature. It exists to raise the
   rate at which the Story bot produces reviewable failure data, and to guarantee
   that data covers all three starters instead of whatever the RNG happened to

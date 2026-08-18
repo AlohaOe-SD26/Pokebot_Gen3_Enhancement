@@ -39,6 +39,7 @@ GATES: list[tuple[str, bool]] = [
     # contradict themselves or the code. Exists because a handoff passed its own quality bar and
     # still sent the next session to REBUILD FINISHED WORK. Self-test: `--self-test` (10 checks).
     ("audit_doc_consistency.py", False),
+    ("audit_doc_citations.py", False),   # citation drift: identifier + file.py:LINE must still resolve
     ("verify_fixtures.py", False),
     ("audit_flag_names.py", False),
     ("repro_undefined_names.py", False),

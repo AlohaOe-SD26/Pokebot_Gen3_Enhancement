@@ -41,13 +41,13 @@ Every banner further down is HISTORY, newest first.
 >
 > ‼ **THEN, ALWAYS:** `cd tools/story-dev` **from the repo root** (the folder holding `sandbox-pokebot/`, `custom-pokebot/` and `40cakes repo/`), then
 > `PYTHONUTF8=1 py -3.12 preflight.py` and `PYTHONUTF8=1 py -3.12 run_gates.py`
-> — **both must exit 0; the suite is 27 gates** ⚠ *(ONE EXPECTED EXCEPTION: if a session deliberately
+> — **both must exit 0; the suite is 28 gates** ⚠ *(ONE EXPECTED EXCEPTION: if a session deliberately
 > holds a commit for a Tier 2 audit, `preflight.py` exits 1 on "git is AHEAD of the remote". That is
 > the ritual working, not a broken tree — report it and push, per `CLAUDE.md`.)* (it prints its own count — believe that, not this
 > line, which has been wrong at 17, 18, 19, 20, 21 and 25 on the way here). ‼ **The 25 was found by a Tier 1 reviewer, FOUR LINES above a correct `26/26`** — the gate could not see this phrasing until the same commit taught it to. That ritual survived the 2026-08-14
 > priority redirect and is NOT part of the superseded "older framing".
 
-> **State: `main`, 27/27 gates PASS, nothing parked MID-TASK, nothing running.** All work pushed
+> **State: `main`, 28/28 gates PASS, nothing parked MID-TASK, nothing running.** All work pushed
 > **as of the commit carrying this line** — trust `git status`. ⚠ *"Nothing parked mid-task"* means no
 > half-edited work and no `/checkpoint` debt; it does **NOT** mean nothing is parked — **§Ch20 chapter
 > assembly IS parked**, deliberately, finished and waiting (NEXT ACTIONS item 0).
@@ -455,7 +455,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    `#24-ki76correctness` and are the queue head above.**
 >    ‼ **Cost order and STARTABILITY order differ, and the item lists only cost.** (1) is costliest
 >    (no caller acts on `withdraw_from_box`'s verdict) but SPLITS: the INSTRUMENTATION half is fully
->    specified — return a verdict, bind it at its ONE caller (`modules/modes/util/higher_level_actions.py:356`), report
+>    specified — return a verdict, bind it at its ONE caller (`modules/modes/util/higher_level_actions.py:420`), report
 >    it, assert it two-armed with `POKEBOT_PCWITHDRAW_FAULT` — while the REACTION POLICY needs the USER.
 >    ‼ The discriminator is real: today BOTH arms return `None` to the caller (that is the bug);
 >    after the change they return True/False. ⇒ ✅✅ **(2) KI-65 IS DONE — REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25) ON 2026-08-16. ⛔ DO NOT REBUILD OR REOPEN IT** (and PROMOTED to both forks 2026-08-16, user-approved). ⇒ **(3) KI-66 — ✅✅ **DRIVEN 2026-08-17 — `--driver ki66faint` IS BUILT AND WORKS. ⛔ DO NOT REBUILD IT.** It subclasses `SpaceCenter2Mode`, stages one of our own picks at 1 HP (two bytes, `data[86:88]`) so it faints in real combat, and carries a PROVEN guard against overwriting the unpinned fixture `post_space_center.ss1`. ⛔⛔ **AND THE HEADLINE IS REFUTED: the bot NEVER ATTEMPTED an ally slot.** Ally slots sat in `alive_slots` on both faints, but the chooser ASKED FOR slots 2 then 3 — both ours — because `choose_new_lead_after_faint` already filters allies. ‼ **A CANDIDATE IS NOT AN ATTEMPT**, so an A/B fixing only the owner filter shows NO DIFFERENCE here and could make it WORSE (it empties `alive_slots` and trips a FALSE 'no eligible replacement'). ‼‼ **THE REAL DEFECT IS `_on_field`'S INDEX SPACE** — field-order `gBattlerPartyIndexes` compared against a party `UpdatePartyToBattleOrder` has already permuted; it excluded Swellow while Swellow was on the BENCH (proven by its send-out at `f21009`), costing **1263 frames vs 59** on a clean faint. ⇒ **✅✅ **`_on_field`'s INDEX SPACE IS FIXED AND PROMOTED TO BOTH FORKS (2026-08-17, user-approved). ⛔ DO NOT REDO IT.** Direction MEASURED first by an observe-only probe, then applied; all gates PASSED when that landed (**25** at the time — ⛔ the CURRENT count is deliberately not repeated here; `run_gates.py` prints it and IS the authority. This sentence has now been stale at 25 AND at 26 — ⛔ `run_gates.py` prints its own count and IS the authority, never this sentence). ➡ **NEXT: the OWNER filter is still unfixed and proved INERT on this fixture — it needs its OWN discriminator, not this one. `:541-545` and `_util.py:522-587` are also untouched.** Read KI-66's DRIVEN block first. *(superseded: "BUILD-READY" — it is now BUILT AND DRIVEN.)* Earlier recon, PARTLY SUPERSEDED — read the refutation above before acting on any of it:** ✅✅ **BUILD-READY AS OF 2026-08-16 — the two blockers are CLOSED by recon; read KI-66's `RECON 2026-08-16` block FIRST.** The FIXTURE existed all along and was merely undocumented: **`--driver spacecenter2`, anchor `saves/at_steven_2f.ss1`**, drives the real six-mon multi battle. The FAINT needs no new capability and no `gBattleMons` writer: **pre-stage one selected mon at 1 HP before the battle** (1, not 0 — a 0-HP mon is never SELECTED) and it faints in real combat. ⛔⛔ **REFUTED 2026-08-17 BY THE LIVE RUN — this block used to claim the ally case "needs all three of ours down = the LOSS condition". BOTH HALVES ARE FALSE:** only TWO of ours were down (Swellow was alive on the BENCH, sent out at `f21009`), and in a multi battle the side is `gPlayerParty[0..5]` — ours AND Steven's — so that is not the loss condition at all. The run WON, `whiteouts=0`. See KI-66's DRIVEN block. ✅ **Grade instead on the ATTEMPTED SLOT INDICES + refusal count on a SINGLE faint**, which `:630-636` reaches while two of ours are still alive. ⚠ ARM B's behaviour when only ally mons remain is a USER POLICY call. ✅✅ **THAT DRIVER EXISTS: `--driver ki66faint` was BUILT, DRIVEN and PROMOTED-ADJACENT on 2026-08-17 — ⛔ DO NOT REBUILD IT.** *(This clause used to read "Its first deliverable is a `ki66faint` driver … Nothing has been driven live yet", which was true when written and became the last thing a skimmer read on a line whose own headline says DRIVEN. A cold-start audit flagged it.)* What remains of KI-66 is the OWNER filter (measured INERT on our one fixture, so it needs its OWN discriminator), plus `:541-545` and `_util.py:522-587`. *(Tracked alternatives: `#24-zerokocounter`, which needs TWO new arms
@@ -529,7 +529,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ✅ **(d) DONE 2026-08-14 — the user approved that round and it was PROMOTED.** ‼ Promotion of
 >    anything drifted TODAY remains the USER's call and has not been asked for.
 > 1. **Run `preflight.py`**, then the gate suite in "HOW TO RUN / TEST" — **`run_gates.py` prints its own count and IS the authority; it reached 27 on 2026-08-17** (all exit 0
->    2026-08-15; it has said 17, 18, 19, 20, 21, 22 and 23 on its way to **27** — `run_gates.py` is authoritative, never this prose), and the drift check below.
+>    2026-08-15; it has said 17, 18, 19, 20, 21, 22 and 23 on its way to **28** — `run_gates.py` is authoritative, never this prose), and the drift check below.
 >    ✅ **EXPECT 0 differing, 0 orphaned — EVERYTHING IS PROMOTED as of the FIVE-FILE PROMOTION (2026-08-17, user-approved)**, the KI-66 `_on_field` fix included, the KI-81 whiteout guard
 >    included (2026-08-16, user-approved). **ANY file listed is unexplained drift.**
 >    *(This line read "EXPECT 0 — everything was PROMOTED 2026-08-15" until 2026-08-15, when Stage 2
@@ -683,11 +683,11 @@ handoff's own instruction found nothing. The archive copy is longer and still us
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py        # ‼ RUN THIS FIRST. git + fixtures + docs + freeze
-PYTHONUTF8=1 py -3.12 run_gates.py        # THE STANDING SUITE — all 27, exits non-zero on any
+PYTHONUTF8=1 py -3.12 run_gates.py        # THE STANDING SUITE — all 28, exits non-zero on any
                                           #   failure (~130s). ‼ The list lives in CODE, not prose — `run_gates.py` is the only
 #   authority on how many gates there are. Every prose count in this file has been
 #   wrong at some point.
-PYTHONUTF8=1 py -3.12 run_gates.py --quick   # the 19 needing no ROM (was 10, 14, 15, 16, 17, 18; MEASURE)
+PYTHONUTF8=1 py -3.12 run_gates.py --quick   # the 20 needing no ROM (was 10, 14, 15, 16, 17, 18; MEASURE)
 PYTHONUTF8=1 py -3.12 run_gates.py --list    # what is in the suite
 PYTHONUTF8=1 py -3.12 probe_chapter_order.py --build custom   # ‼ also check the OTHER fork
 PYTHONUTF8=1 py -3.12 probe_stale_citations.py   # ‼ RUN THIS BEFORE TRUSTING ANY `file.py:NNN`

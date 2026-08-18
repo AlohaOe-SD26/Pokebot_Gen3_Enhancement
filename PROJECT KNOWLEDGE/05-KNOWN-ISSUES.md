@@ -39,7 +39,7 @@ proposing work that is already shipped:
 | KI-17 | body said *"Workaround: none in-run yet"* + prescribed a decomp read that is done | `modules/battle_handler.py:508-528` (`post_gap=24`; never gamble an A) |
 | KI-16 | heading said FIXED, body still said *"use this repro for a focused fix"* | `modules/story/early_game.py:4434-4470` (`_rock_present()` world-judged) |
 | KI-24 | body read as an open architectural bug; KI-24b already declares it fixed | `story_mode.py:553` and `:606` both call `region_reach.is_map_reachable` |
-| KI-11 | body said `deliver_devon_goods_to_stern` stays **UNWIRED** — it is wired | `modules/story/early_game.py:3397-3412` (Shipyard → Dock leg) |
+| KI-11 | body said `deliver_devon_goods_to_stern` stays **UNWIRED** — it is wired | `modules/story/early_game.py:3596-3804` (Shipyard → Dock leg) |
 | KI-7 | a duplicate "(old text)" block restated the fixed bug as live | `modules/modes/util/higher_level_actions.py:59` (`BADGE06_GET`) |
 
 **✅ RESOLVED — USER RULING 2026-07-29 (`#doc-policy-05`, option A):** entries fixed in
@@ -471,7 +471,7 @@ reason about them.
   foe's STAB, regardless of whether it can deal damage. Measured in bundle
   `20260726-231412`: P2 led **Whismur L15** into the Route 110 rival **13 times in one run**
   while **Marshtomp L24** sat in slot 2. P3 led Zigzagoon L16 with Grovyle L22 benched.
-- **Cause (exact line):** `modules/story/early_game.py:1587`
+- **Cause (exact line):** `modules/story/early_game.py:1655`
   ```python
   best = min(slots, key=lambda i: (_incoming(party[i]), -party[i].level))
   ```
@@ -569,7 +569,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 - **Symptom:** bundle `20260727-063751`, P3 run 1: `state=3 controllable=False`, position
   frozen at **ROUTE 119(32,1) (10,10)**, for **27 million frames / ~6.5 h** — and **not one
   STUCK dump fired in that entire stretch**, so the no-progress watchdog never saw it.
-- **Last known stack:** `do_weather_institute` (`early_game.py:6253`) → `_ride_out_all_scenes`
+- **Last known stack:** `do_weather_institute` (`early_game.py:6265`) → `_ride_out_all_scenes`
   (defined `early_game.py:436`; the TWO call sites inside that function are `:6309` and `:6327`).
   ‼ *Re-derived from source 2026-08-16 — it read `:5548`, which is unrelated prose in another
   function. ⛔ NOTE THE UNIT: a stack line wants the CALL SITE, not the def.*
@@ -2388,7 +2388,7 @@ fresh error** — hence `StoryAbort` plus the latch-keyed `reraise_if_aborting`.
 
 ---
 
-## KI-67 — ✅✅ FULLY CLOSED 2026-08-12 (the FIRST DRIVEN WHITEOUT RECOVERY here) — FULL ENTRY MOVED to `31-KNOWN-ISSUES-ARCHIVE.md` (2026-08-15)
+## KI-67 — ✅✅ FULLY CLOSED 2026-08-12 (the FIRST DRIVEN WHITEOUT RECOVERY here) — FULL ENTRY MOVED to `31-KNOWN-ISSUES-ARCHIVE.md` (2026-08-15). ⚠ **KI-67 ITSELF IS CLOSED; the swallow-site residual its body mentions is NOT KI-67's — it is tracked under KI-81 / `#24-abortswallow`.**
 
 Moved on the R3 line budget when KI-79/KI-80 were filed; it is CLOSED and was 77 lines of a
 CURRENT-STATE file. ‼ **Keep only what later work leans on:** the proof was the **FRAME DELTA**
@@ -2396,12 +2396,11 @@ CURRENT-STATE file. ‼ **Keep only what later work leans on:** the proof was th
 clock; and the archived text's real value is its harness DESIGN NOTES (the four parts a driver
 must mirror, and **why half a mirror is worse than none**). ⚠ Still open there: swallow sites
 in `early_game.py` that should get the same one-line abort-aware guard, **enforced by an assert
-rather than by prose**. ‼ **The count is `44`, MEASURED** (`probe_abort_swallowing.py --list`,
-2026-08-16, KI-81) — ⛔ *this line read "~48", an ESTIMATE from before the probe existed, and it sat
+rather than by prose**. ‼ **The count was `44` on custom / `36` on sandbox when MEASURED 2026-08-16 (`probe_abort_swallowing.py`, KI-81); ⛔ SINCE THE 2026-08-17 PROMOTION IT IS `36` ON BOTH FORKS** — ⛔ do not quote a figure from here, run the probe — ⛔ *this line read "~48", an ESTIMATE from before the probe existed, and it sat
 beside the measured 44 with nothing saying which was which.* **Re-run the probe; do not trust either
 number in prose** — it is the only thing that counts them.
 
-## KI-65 — ✅✅✅ **CLOSED 2026-08-16: REPRODUCED, FIXED, A/B-PROVEN, GATED (#25) AND PROMOTED TO BOTH FORKS (user-approved).** Was: the HM-refusal re-pick raises `UnboundLocalError` into a silent `except` **WHEN `_read_offered_move` HAS ALREADY FAILED**, so two invisible failures compound into a silent decline (filed 2026-08-12, code-verified)
+## KI-65 — ✅✅✅ **CLOSED 2026-08-16: REPRODUCED, FIXED, A/B-PROVEN, GATED (#25) AND PROMOTED TO BOTH FORKS (user-approved) — ⚠ WITH ONE NAMED RESIDUAL THIS FIX DOES NOT ADDRESS: a *legitimately bound but WRONG* `party_index` (`slot_id = -1` → the LAST party member) flows past both new guards. See "RESIDUAL LEFT OPEN BY THIS FIX" below.** Was: the HM-refusal re-pick raises `UnboundLocalError` into a silent `except` **WHEN `_read_offered_move` HAS ALREADY FAILED**, so two invisible failures compound into a silent decline (filed 2026-08-12, code-verified)
 
 > ⛔ **STATUS IN ONE LINE:** the bug is FIXED in `sandbox-pokebot` and guarded by gate #25
 > (`repro_ki65_unbound_party_index.py`). ✅ **PROMOTED 2026-08-16, USER-APPROVED — drift was 0 at that point. ✅ **AND IT WAS ZERO AGAIN as of 2026-08-17** *(✅ and it is **0 today** — the five remaining sandbox-only files were promoted 2026-08-17; this KI was already promoted. MEASURE with `promote.py --check`; a same-day past tense reads as today's figure, which is why this caveat matches KI-66's.)* — the KI-66 `_on_field` fix was PROMOTED the same day (user-approved). *(This clause briefly read "NOT ZERO … a ruling is owed", which was true for about an hour and then was not; it is the reason rule 8 below exists. MEASURE with `promote.py --check`.)*** The KI-65 fix is in BOTH forks, proven by a THREE-POINT A/B against `--build custom`: BEFORE `fault_fired=159, lie_msg=1` → `ACCEPTANCE: FAIL`; AFTER `fault_fired=87, lie_msg=0, honest_msg=1` → `ACCEPTANCE: PASS`; and `--build sandbox` still PASS. Restore point `restore/2026-08-16-pre-promotion-ki65`. ‼ Everything below the "RECON" heading is the
@@ -2672,7 +2671,7 @@ must correct its TITLE in the same edit* — that header outlived its own retrac
   good place to end a route.
 - **The failure.** A chapter navigates underwater to a planner-chosen destination, calls
   `surface_from_dive()`, and gets
-  `BotModeError: This tile does not allow surfacing from a dive.` (`higher_level_actions.py:872`, inside `surface_from_dive` at `:858`).
+  `BotModeError: This tile does not allow surfacing from a dive.` (`higher_level_actions.py:947`, inside `surface_from_dive`, which spans `:933-953`).
   ‼ It fails **loudly**, which is the good news. The bad news is the retry shape: re-running the
   same `navigate_to` re-derives the same destination, so a naive retry loop cannot converge — the
   KI-67 shape (signal something, retry without changing state).
@@ -2901,7 +2900,7 @@ Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans 
   ⛔ **STILL OPEN: production READS the verdict but does not ACT on it** — what it should DO is the
   USER's ruling and is blocked on an unmeasured `sStorage->messageText` offset. `withdraw_from_box`
   still never raises for a PC problem, which is deliberate and unchanged. Its ONE caller is the
-  `yield from` at `higher_level_actions.py:356` (inside the `try:` that opens at `:344`), which
+  `yield from` at `higher_level_actions.py:420` (inside the `try:` that opens at `:403`), which
   discards the value. **Tracked as `#24-orphans` item (1)**;
   its instrumentation half is specified, but *how* production should react needs the USER's ruling.
 

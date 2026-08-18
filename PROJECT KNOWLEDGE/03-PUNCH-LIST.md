@@ -95,11 +95,18 @@ HISTORY — originally flagged as: duplicate / overlapping ids, not merged
   2026-08-02.
 
 ### Marker states (documented 2026-07-27 — the file uses THREE, not two)
-| marker | meaning | count |
-|---|---|---|
-| `- [ ]` | open — not started, or started and not landed | 80 |
-| `- [~]` | **partial** — built but not fully verified/promoted, or v1 done with follow-ups | 17 |
-| `- [x]` | done | 37 |
+| marker | meaning |
+|---|---|
+| `- [ ]` | open — not started, or started and not landed |
+| `- [~]` | **partial** — built but not fully verified/promoted, or v1 done with follow-ups |
+| `- [x]` | done |
+
+⛔ **NO COUNTS ARE QUOTED HERE ON PURPOSE — `lint_docs.py` prints them and IS the authority.**
+This table carried `80 / 17 / 37` from 2026-07-27 until a 2026-08-17 audit recounted the boxes and
+measured **98 / 22 / 95** — stale by +18 / +5 / +58, and it had survived every doc pass since.
+‼ A hand-typed tally in a file whose items change daily is stale the moment it is written; this is
+the same rule the handoff's LINE BUDGETS block already applies to its own limits. **Count the
+boxes** (`grep -c '^- \[x\]'`), never re-type a tally.
 
 ‼ `- [~]` is load-bearing and was previously undocumented: several `[~]` items read as
 "DONE" in their text (e.g. `#24-move`, `#24-resume`) while still carrying open follow-ups.
@@ -1794,7 +1801,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
       That split is deliberate and is the whole shape of this item.
       ✅✅ **WHAT SHIPPED (⚠ was sandbox-only; ✅ PROMOTED 2026-08-17, user-approved — drift is 0):**
       all five exits of `withdraw_from_box` return `(landed, code, detail)` — the shape the recorded
-      design asked for — its ONE caller (`modules/modes/util/higher_level_actions.py:356`) BINDS the
+      design asked for — its ONE caller (`modules/modes/util/higher_level_actions.py:420`) BINDS the
       result, and a new PURE function `withdraw_verdict_report` turns it into a reported line.
       ‼ **The codes distinguish ATTEMPTED-AND-FAILED from NEVER-ATTEMPTED** (`landed`, `not_in_box`,
       `party_full_no_deposit`, `did_not_land`, `error`). ⛔ Collapsing the no-attempt cases into a
@@ -1835,7 +1842,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
       (`gText_YourPartysFull` 0x13, `gText_BoxIsFull2` 0x11, `gText_ThatsYourLastPkmn` 0x1a …) ⇒
       compare **ROM bytes vs the live buffer** like `menu_parsers.py:357`; ⛔ never hardcode English.
       **PREREQUISITES (each is its own defect, and each is now tracked here rather than orphaned):**
-      **P1 ⛔ `withdraw_from_box` (`pc_trip.py:453-454`) counts `alive` EXCLUDING EGGS — a live latent bug.** Its
+      **P1 ⛔ `withdraw_from_box` (`pc_trip.py:481-482` (the gate is `:489`)) counts `alive` EXCLUDING EGGS — a live latent bug.** Its
       own sibling `deposit_one_dead_weight._occupied` (`pc_trip.py:248-263`) documents that exact
       exclusion as *"a REAL bug (found by adversarial review 2026-08-13)"* and was fixed; this
       function never got the fix. On **5 mons + 1 egg** the make-room block is SKIPPED and
@@ -2550,7 +2557,7 @@ region, where "train near the gym" is actively wrong.
       asked and the data is now free, but it is not where the failures are.
 - [ ] #24-partyvariety — **Fill the party and vary what is caught; PC deposit/withdraw.**
       ‼ **ROOT CAUSE FOUND (recon 2026-07-26) — it is not emergent, it is two conditions.**
-      `_should_catch` (`story_mode.py:899-937`) requires `not BADGE01_GET` AND
+      `_should_catch` (`story_mode.py:1297-1356`) requires `not BADGE01_GET` AND
       `len(party) < _catch_team_target` where **`_catch_team_target = 4`** (`:811`). So the
       bot catches FOUR mons before the Stone Badge and then never catches again for the
       rest of the run. Part 1 is nearly a one-line change.

@@ -55,7 +55,7 @@ Pokebot_Gen3_Enhancement/
 │   │   └── _history/              # versioned snapshots of superseded docs
 │   └── pokebot-gen3/              # PRISTINE upstream mirror (git subtree, commit 5dd898f8)
 │       ├── pokebot.py             # entry point + self-bootstrap
-│       ├── modules/               # 59 top-level modules (sandbox 83, custom 74)
+│       ├── modules/               # top-level modules: mirror 59, sandbox 84, custom 84 (2026-08-17; ⛔ MEASURE, do not trust)
 │       │   ├── modes/             # 23 bot automations + BotMode contract
 │       │   ├── battle_strategies/ # battle decision engine
 │       │   ├── gui/  web/  config/  data/  built_in_plugins/
@@ -97,7 +97,7 @@ promotion, and the risk turned out not to exist.
 | `sandbox-pokebot/` | **experimental — where enhancements are built and tested** | **YES, this is the default** |
 
 ‼ **THE FORKS ARE ALMOST IDENTICAL TODAY — corrected 2026-08-12.** This paragraph used to say they
-had "diverged", with `story_mode.py` at *"3,061 lines vs 2,636"*. **Measured: 3,742 in BOTH.** After
+had "diverged", with `story_mode.py` at *"3,061 lines vs 2,636"*. **Measured 4,135 in BOTH (2026-08-17; it read "3,742" from an earlier measurement — ⛔ a line count is a DECAYING number, run `wc -l`).** After
 the §Ch18/§Ch19 promotion the two trees were byte-identical across all 255 code/config files.
 
 ⛔ **DO NOT READ A DRIFT FIGURE OUT OF THIS FILE. Run `promote.py --check`** — it measures both
@@ -155,7 +155,7 @@ diagnosed; see `14-AGENT-PLAYBOOK.md` §2c.
 
 **One emulator per PROCESS — and that is load-bearing.** `context` is a module-level
 singleton (`modules/context.py:188` — the file's last line, verified in all three copies)
-imported by **118 files under `sandbox-pokebot/modules/`** (114 in `custom-pokebot`, 98 in
+imported by **124 files under `sandbox-pokebot/modules/`** (124 in `custom-pokebot` — the forks are byte-identical, so any asymmetry here is a STALE COUNT, not a fact; 98 in
 the mirror), with exactly one `context.emulator`; `modules/main.py` adds `work_queue:19`
 and `inputs_each_frame:24` as further process-globals.
 *(A "116 files" figure appears in an older comment in `modules/tile_bridge.py` and matched
@@ -223,7 +223,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 27 gates, ~135s, non-zero on any failure
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 28 gates, ~135s, non-zero on any failure
 #  ‼ It PRINTS its own count. Believe that, not this comment: it has read 17, 18, 21 and 22, and a
 #  stale count here is invisible to every gate — three separate copies of it existed on 2026-08-14.
 ```
@@ -239,7 +239,7 @@ the last line.
 
 *(the older sweep description follows, kept because the scripts still exist and still run)*
 
-`tools/story-dev/repro_*.py` is **101 scripts** (plus **73** `probe_*.py` and 3 `audit_*.py`), most
+`tools/story-dev/repro_*.py` is **103 scripts** (plus **75** `probe_*.py`) as of 2026-08-17 — ⛔ these grow weekly, so `ls tools/story-dev/repro_*.py | wc -l` is the authority, not this line; most
 needing **no emulator**. ‼ **COUNTED, not recalled** — these figures said 84 and 52 from 2026-08-10
 until a 2026-08-15 audit measured the directory; the probe count went 71 → 72 → **73** on 2026-08-16
 as `probe_abort_swallowing.py` and then `probe_stale_citations.py` were added. They are prose, not a gate: `ls` is the authority.
