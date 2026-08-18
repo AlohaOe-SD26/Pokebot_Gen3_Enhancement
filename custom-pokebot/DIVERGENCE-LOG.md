@@ -1961,3 +1961,46 @@ across pre-fix and fixed builds through the whiteout — `STUCK-OW f6482`, `SAVE
 ⛔ **NOT CLOSED BY THIS:** the OWNER filter (`alive_slots` has no original-trainer check) is
 unfixed and proved INERT on this fixture — it needs its own discriminator. `:541-545` (the `None`
 fallback, which has neither an owner nor an on-field filter) and `_util.py:522-587` are untouched.
+
+---
+
+## 2026-08-17 — FIVE FILES PROMOTED IN ONE ROUND (user-approved): the verdict change, the abort guards, and a comment-only correction
+
+**Files:** `modules/story/pc_trip.py`, `modules/modes/util/higher_level_actions.py`,
+`modules/story/early_game.py`, `modules/story/counter_hunt.py`, `modules/map_path.py`.
+**Restore point:** `restore/2026-08-17-pre-promotion-all5` (annotated, pushed, verified on origin by
+`promote.py` before it copied). Roll back HERE to undo all five.
+**Executed by** `tools/story-dev/promote.py --restore-point … --go` → `5/5 byte-identical,
+drift after 0, orphaned after 0`.
+
+⛔ **A COPY IS NOT EVIDENCE.** Three groups went over together, so each carries its OWN
+before/after discriminator rather than one shared "it copied":
+
+| group | files | discriminator | BEFORE | AFTER |
+|---|---|---|---|---|
+| **(A) the withdraw VERDICT** (`#24-orphans` (1)) | `pc_trip.py`, `higher_level_actions.py` | `repro_withdraw_verdict.py --build custom` | **exit 1**, six named FAIL sites, and `withdraw_verdict_report` could not even be IMPORTED from custom | **exit 0**, 0 FAIL lines |
+| **(B) the ABORT GUARDS** (`#24-abortswallow`) | `early_game.py`, `counter_hunt.py`, `higher_level_actions.py` | `probe_abort_swallowing.py --build custom` | **44 sites** | **36 sites** — the same number sandbox reads |
+| **(C) the CAP COMMENT** (`#24-ki76correctness`) | `map_path.py` | bytes + AST | bytes DIFFER, AST equal, custom still asserted all three refuted claims | bytes IDENTICAL, AST still equal, refuted claims gone |
+
+✅ **VERIFIED BY DRIVING THE REAL FORK, not by a diff:**
+`story_harness.py saves/fortree_gym_wedge.ss1 --driver boxcounter2 --build custom` →
+`verdict landed=True code=landed` and `[boxcounter2] ACCEPTANCE: PASS`.
+‼ **The verdict line is the proof, not the PASS.** It is emitted only by the promoted path
+(`withdraw_from_box`'s 3-tuple → the caller binding it → `withdraw_verdict_report`), and the BEFORE
+measurement records that custom could not import that function at all.
+Plus five `--build custom` gates that each ASSERT which fork they imported:
+`repro_withdraw_verdict`, `repro_box_counter_move_test`, `repro_pid_identity_key`,
+`repro_party_accounting`, `repro_heal_piggyback_reporting` — all exit 0.
+
+‼ **THE RATCHET WAS TURNED.** `probe_abort_swallowing.py`'s custom baseline was lowered **44 → 36**;
+otherwise the gain is unlocked and the ratchet goes slack. ⛔ **And the attribution is EARNED**: the
+probe's own warning is *"do NOT claim the drop was caused by your change without an arm that removes
+it"* — that arm exists and is committed, because the BEFORE half was captured and pushed in its own
+commit (`0b1d8480`) minutes before the copy, with nothing else changing.
+
+📁 **Transcripts, both committed:**
+`tools/story-dev/evidence/2026-08-17-PROMOTION-{BEFORE,AFTER}-custom-all5.stdout.txt`.
+
+⛔ **WHAT THIS DOES *NOT* MEAN.** (A) makes production able to READ a failed withdraw; it still does
+not REACT to one — that half needs a heap-offset measurement and a USER ruling (`#24-orphans` (1)).
+(C) changed a comment only: KI-76's two pathfinding defects are still OPEN (`#24-ki76correctness`).

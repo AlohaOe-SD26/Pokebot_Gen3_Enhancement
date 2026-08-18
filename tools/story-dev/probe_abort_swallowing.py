@@ -207,7 +207,13 @@ def self_test() -> int:
 #: regression — a cold-start audit ran it, got a red FAIL, and had nothing telling it that custom is
 #: EXPECTED to be higher. ⛔ A gate that fails for an expected reason is one people learn to ignore.
 #: ⇒ when the `#24-abortswallow` guards are promoted, custom's figure becomes sandbox's; lower it then.
-_BASELINES = {"sandbox": 36, "custom": 44}  # measured 2026-08-17
+_BASELINES = {"sandbox": 36, "custom": 36}  # measured 2026-08-17
+# ‼ custom went 44 -> 36 when the `#24-abortswallow` guards were PROMOTED (2026-08-17,
+# user-approved). ⛔ The attribution is not a guess: this probe's own warning is "do NOT claim the
+# drop was caused by your change without an arm that removes it", and that arm EXISTS and is
+# committed — `evidence/2026-08-17-PROMOTION-BEFORE-custom-all5.stdout.txt` measured 44 on custom
+# with the guards ABSENT, minutes before the copy, with nothing else changing. Baseline lowered to
+# lock the gain in; the two forks now sit at the same number, which is what promotion should mean.
 BASELINE = _BASELINES[_BUILD]
 
 

@@ -754,6 +754,40 @@ def train_counter(slot: int, cfg: dict) -> Generator:
         )
         return True
     except Exception as error:
+        # ⛔⛔ KI-81 / `#24-abortswallow` — A WHITEOUT IS NOT A "FAILURE TO TRAIN". Training is the
+        # most whiteout-prone thing this bot does (an under-levelled fresh catch grinding wild
+        # battles), and the abort genuinely arrives here: `train_team` calls `_check_abort()`
+        # directly and again via `_story_spin`. Without this guard the hunt reported
+        # "counter training failed", returned False, and walked into the boss fight on a DEAD RUN.
+        #
+        # ‼ THE `isinstance` NARROWING IS LOAD-BEARING — DO NOT REPLACE IT WITH A BARE
+        # `reraise_if_aborting(error)`. This handler catches `Exception`, so `error` may be a
+        # `PathFindingError`, which is a **`RuntimeError`** (`map_path.py:611`), NOT a
+        # `BotModeError`. `reraise_if_aborting` re-raises THE OBJECT IT WAS GIVEN, and
+        # `StoryMode.run` recovers only from `except BotModeError` (`story_mode.py:2505`) — so
+        # re-raising one would ESCAPE whiteout recovery, `set_story_abort(False)` would never run,
+        # and the module-global latch would be left stuck TRUE for every later mode. That exact
+        # defect was caught by adversarial review on 2026-08-16 and is documented at
+        # `higher_level_actions.py:842`. A guard that can leak a global is worse than the silence
+        # it replaces. ⇒ re-raise only what `StoryMode.run` can catch; a non-`BotModeError` failure
+        # still falls through to the honest message below, and the latch's next `_check_abort()`
+        # surfaces the abort anyway.
+        # ‼ LOCAL IMPORTS, matching this file's existing idiom (see the `train_team` import at the
+        # top of this function). ⛔ NOT because a top-level import would be circular — an
+        # adversarial review DISPROVED that claim mechanically: `early_game.py` contains ZERO
+        # references to `counter_hunt`, and a copy of this module with both imports hoisted to the
+        # top level loads cleanly. The real cycle in this package runs the other way
+        # (`early_game` -> `higher_level_actions` -> `early_game`), which is why THOSE two use local
+        # imports. Kept local for consistency and zero import-time cost, not from necessity.
+        # (The first cut referenced `BotModeError` without importing it at all — a NameError on the
+        # abort path, i.e. exactly the branch this guard exists to serve. `repro_undefined_names.py`
+        # caught it on the first run; that gate exists because a NameError on a rarely-taken branch
+        # is invisible to every green test.)
+        from modules.modes import BotModeError
+        from modules.story.early_game import reraise_if_aborting
+
+        if isinstance(error, BotModeError):
+            reraise_if_aborting(error)
         # A failure to TRAIN must never destroy a successful CATCH. The caller re-checks
         # the party either way, and the terminal raise is still there behind it.
         console.print(f"[yellow]Story: counter training failed ({error!r}) — continuing untrained.[/]")

@@ -89,6 +89,65 @@ def counter_withdraw_outcome(pids) -> "tuple[bool, str]":
     )
 
 
+#: `withdraw_from_box`'s verdict CODE -> the sentence the run log carries (`#24-orphans` (1)).
+#: ⛔ THE TWO "no attempt" CODES MUST NOT READ AS FAILURES. Most heals have nothing to collect, and
+#: a full party declining to thin itself is CORRECT behaviour (`#24-pc`'s regression) — wording
+#: either of them as a failure would recreate, in the report, exactly the lie KI-79 removed from
+#: the console. Only `did_not_land` and the error paths are failures.
+#: ‼ Kept as a pure table, deliberately: `_withdraw_verdict_sentence` is gated, so the wording of
+#: every branch is reachable by a test instead of only by a live PC trip.
+_WITHDRAW_VERDICT_SENTENCES = {
+    "landed": "landed — the counter is in the party and usable this fight",
+    "not_in_box": "no attempt — nothing matching the hunted PIDs was in the box",
+    "party_full_no_deposit": "no attempt — party full and nothing safe to deposit; it stays boxed",
+    "did_not_land": "FAILED — attempted, but the counter is STILL BOXED and unusable this fight",
+}
+
+
+def withdraw_verdict_report(verdict) -> "tuple[bool | None, str]":
+    """`withdraw_from_box`'s raw return -> `(landed, the line to report)`. PURE, and therefore GATED.
+
+    ‼ WHY THIS IS A FUNCTION AND NOT AN `if` AT THE CALL SITE — the same house rule
+    `counter_withdraw_outcome` was extracted under: *logic that decides an outcome must be reachable
+    by a test.* Inside the generator's caller, every branch below would need a live PC trip to reach,
+    which is exactly how the original defect survived: the decision was fine, but both answers looked
+    identical from outside.
+
+    ⛔ AN UNRECOGNISED OR MISSING VERDICT IS A FAILURE, NEVER A SHRUG. Two silences this refuses to
+    reproduce: a shape this function has not heard of means the verdict contract changed and the
+    reporting did not — the half-of-a-pair defect behind KI-79 and (P1) — and a bare `None` is the
+    ORIGINAL bug wearing a new hat. Both say FAILED, because `_piggyback_report` routes on that word
+    and these lines must reach the screen.
+
+    ⛔ IT REPORTS. IT DOES NOT REACT. Deciding what production DOES about a failed withdraw is the
+    USER's ruling and is blocked on an unmeasured heap offset (`06-DECISIONS-LOG.md`); returning a
+    verdict must not quietly become a retry.
+    """
+    if not isinstance(verdict, tuple) or len(verdict) != 3:
+        return None, ("FAILED — the withdraw returned NO usable verdict "
+                      f"({verdict!r}); this is an instrumentation bug in `withdraw_from_box`, "
+                      "not a PC failure")
+    landed, code, detail = verdict
+    if code in _WITHDRAW_VERDICT_SENTENCES:
+        sentence = _WITHDRAW_VERDICT_SENTENCES[code]
+    elif code == "error":
+        sentence = "FAILED — the withdraw errored and the counter stays boxed"
+    else:
+        sentence = f"FAILED — unrecognised withdraw verdict {code!r}; the reporting table is stale"
+    # ‼ The trailing `verdict:` clause is the MACHINE-READABLE half: it is what the two-armed A/B
+    # greps for, so the proof reads the value the caller actually BOUND rather than a paraphrase.
+    # ⛔⛔ NO SQUARE BRACKETS ANYWHERE IN THIS LINE. The first draft ended `[landed=True code=landed]`
+    # and the live run showed the tail MISSING from the transcript: `_piggyback_report` prints
+    # through `rich`, which parses `[...]` as a STYLE TAG and swallows it. The pure unit test passed
+    # the whole time — it asserted the returned STRING, while the thing that reaches the log is what
+    # a proof must read. (`CLAUDE.md` §7, in miniature: instrument what the run really emits.)
+    # ‼ `detail` is the ONLY free-text field — the `error` code carries `repr(error)`, and an
+    # exception message containing a bracket would reopen exactly that hole. Sanitised, not trusted;
+    # an adversarial review flagged it, so the fix is at the choke point every code passes through.
+    safe_detail = str(detail).replace("[", "(").replace("]", ")")
+    return landed, f"{sentence} — {safe_detail} :: verdict landed={landed} code={code}"
+
+
 def _piggyback_report(what: str, outcome: str, console_too: bool = False) -> None:
     """Announce the outcome of a PC action piggybacked onto a heal. NEVER raises.
 
@@ -353,7 +412,23 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
             # line that names the failure instantly.
             _piggyback_report("counter withdraw", _why, console_too=_should_withdraw)
             if _should_withdraw:
-                yield from withdraw_from_box(_pids)
+                # ⛔⛔ INSTRUMENT THE ACTION, NOT ITS INPUT (`CLAUDE.md` §7). `_should_withdraw`
+                # above is the INPUT — a candidate, not an attempt. THIS is the value the caller
+                # actually binds, and until 2026-08-17 it was `None` on EVERY path: success,
+                # "nothing in the box", and a withdraw that was tried and failed were the same
+                # value here, so nothing downstream could ever act on the difference.
+                _verdict = yield from withdraw_from_box(_pids)
+                # ‼ NORMALISED, NOT TRUSTED — and normalised by a PURE, GATED function, so every
+                # branch (including "an exit path forgot its verdict") is reachable by a test
+                # instead of only by a live PC trip.
+                _landed, _line = withdraw_verdict_report(_verdict)
+                _piggyback_report(
+                    "counter withdraw result", _line,
+                    # A real collection is worth the screen; the two NO-ATTEMPT codes are the
+                    # routine case and stay in the run log. Failures route themselves — the helper
+                    # sends anything containing "FAILED" to the console regardless of this flag.
+                    console_too=bool(_landed),
+                )
         except Exception as error:  # noqa: BLE001 - the heal must survive a PC hiccup, but a
             # swallowed failure here reproduces the user's symptom with no diagnostic at all.
             # ⛔ KI-81 — a WHITEOUT is not a "PC hiccup": the run is over and the player has

@@ -432,6 +432,32 @@ def withdraw_from_box(pids) -> Generator:
     `StoryMode.run`, so continuing here cannot recover; it only launders the cause into a
     confident, plausible, wrong one. ‼ The contract is therefore *"never raises for a PC problem"*,
     not *"never raises"*, and this docstring moved in the same edit as the code.
+
+    ⛔⛔ **RETURNS `(landed: bool, code: str)` — ADDED 2026-08-17 (`#24-orphans` (1)). BEFORE THIS,
+    EVERY EXIT RETURNED `None`.** KI-79 made this function *say* the truth on the console; the
+    caller still could not *read* it, so nothing downstream could ever act on a failed withdraw.
+    Every exit was bare, which means "the counter is in the party", "there was nothing to collect"
+    and "the withdraw did not land" were the SAME value to `yield from`.
+
+    ‼ **THE CODE DISTINGUISHES "ATTEMPTED AND FAILED" FROM "NEVER ATTEMPTED", and that distinction
+    is the point.** Collapsing the no-attempt cases into a plain failure would manufacture one out
+    of the commonest case — most heals have nothing to collect — which is the same shape as the
+    count-based lie KI-79 removed. `landed` answers ONLY *"is the counter usable this fight?"*:
+        `(True,  "landed", name)`                in the party AND gone from the box (both halves)
+        `(False, "not_in_box", detail)`          nothing matching the PIDs was there — NO attempt
+        `(False, "party_full_no_deposit", name)` declined: full party, nothing safe to deposit — NO attempt
+        `(False, "did_not_land", detail)`        ATTEMPTED and it failed; the counter is still boxed
+        `(False, "error", repr(error))`          ATTEMPTED and it threw a non-abort error
+    ‼ THE THIRD FIELD IS `detail`, AND IT IS THE SHAPE THE RECORDED DESIGN ASKS FOR
+    (`06-DECISIONS-LOG.md`: *"returns a verdict `(ok, CODE, detail)`"*). It is free text TODAY.
+    ⛔ It is NOT the failure taxonomy: `PARTY_FULL`/`BOX_FULL`/… must be READ from the PC message
+    buffer, whose offset is UNMEASURED, so classifying here would be inferring a reason from
+    internal state — the exact error class KI-79 removed. Shipping the third field now means the
+    classifier can fill it without changing this contract a second time.
+    ⛔ **A WHITEOUT STILL PROPAGATES AND YIELDS NO VERDICT AT ALL** — there is no run left to report
+    to, and inventing a `False` here would let a caller "handle" a dead run.
+    ⛔ **THIS FUNCTION DECIDES NOTHING NEW.** Reporting is the caller's job; REACTING is the USER's
+    call (`06-DECISIONS-LOG.md`), and a verdict must not quietly become a retry loop.
     """
     from modules.console import console
     from modules.context import context
@@ -440,7 +466,9 @@ def withdraw_from_box(pids) -> Generator:
 
     target = find_in_box(pids)
     if target is None:
-        return
+        # ⛔ NOT a failure: most heals have nothing to collect. The caller must be able to tell
+        # this from a withdraw that was tried and did not land — see the verdict table above.
+        return False, "not_in_box", f"{len(pids or ())} hunted PID(s), none of them in the box"
 
     name = getattr(getattr(target, "species", None), "name", "?")
     try:
@@ -477,7 +505,9 @@ def withdraw_from_box(pids) -> Generator:
                     f"[yellow]Story: {name} is in the PC but the party is full and nothing is "
                     f"safe to deposit — leaving it boxed.[/]"
                 )
-                return
+                # A DELIBERATE DECLINE, not a failed withdraw: thinning the team is what made
+                # `#24-pc` a regression, so refusing here is correct behaviour, not an error.
+                return False, "party_full_no_deposit", name
             console.print(
                 f"[cyan]Story: PC — depositing {getattr(worst.species, 'name', '?')} "
                 f"L{worst.level} to make room for {name}.[/]"
@@ -538,6 +568,7 @@ def withdraw_from_box(pids) -> Generator:
             # in-party-only could be a copy, gone-from-box-only could be a release.
             console.print(f"[green]Story: PC — {name} is in the party; party is now {after}.[/]")
             context.message = f"Story: withdrew {name} — party {after}."
+            return True, "landed", name
         else:
             # ‼ LOUD, NAMED, and it does NOT raise — the heal that already succeeded must survive
             # (same contract as before). What changes is that the caller is no longer LIED TO.
@@ -547,6 +578,9 @@ def withdraw_from_box(pids) -> Generator:
                 f"The counter is NOT usable this fight; this used to print as a SUCCESS.[/]"
             )
             context.message = f"Story: withdraw of {name} FAILED — it is still boxed."
+            # ‼ THE ONE THE CALLER COULD NOT SEE. KI-79 made this branch SAY the truth; this
+            # return is what finally lets something downstream READ it.
+            return False, "did_not_land", (f"{name} in_party={in_party_now} still_boxed={still_boxed}")
     except Exception as error:  # noqa: BLE001
         # ⛔⛔ KI-81 / `#24-orphans` P4 — THE ONE EXCEPTION TO "NEVER RAISES", AND IT IS NOT A
         # HICCUP. A whiteout means the run is over and the player has respawned elsewhere; there is
@@ -559,3 +593,6 @@ def withdraw_from_box(pids) -> Generator:
         console.print(
             f"[yellow]Story: could not withdraw {name} ({error!r}) — it stays in the box.[/]"
         )
+        # ⛔ Reached ONLY for a genuine PC hiccup: `reraise_if_aborting` above has already let a
+        # whiteout through, and a dead run gets no verdict at all (KI-81).
+        return False, "error", repr(error)

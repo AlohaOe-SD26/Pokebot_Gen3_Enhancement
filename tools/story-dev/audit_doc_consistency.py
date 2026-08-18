@@ -552,6 +552,75 @@ def check_drift(files: dict[str, str], raw: dict[str, str] | None = None) -> lis
     return out
 
 
+#: ‼‼ PROMOTION-STATE PROSE — ADDED 2026-08-17, AND IT IS A DIFFERENT BLIND SPOT FROM `check_drift`.
+#: `check_drift` grades FIGURES. It cannot see a sentence that says, in words, that work is still
+#: waiting to be promoted. On the day five files were promoted, `check_drift` went green over
+#: `05-KNOWN-ISSUES.md`'s KI-79 (*"⚠ SANDBOX-ONLY; a promotion is the USER's call"*, and *"gate #26
+#: … FAILS against the unpromoted `custom` tree"*) and KI-81 (*"a RATCHET at baseline 36 (sandbox) /
+#: 44 (custom, until the guards are promoted)"*) — all describing the work that had just gone over.
+#: A Tier 1 reviewer found them. ⇒ **A cold agent reading those would believe a promotion decision
+#: was still owed and re-litigate finished work** — the exact cost this layer exists to prevent.
+#: ⛔ SCOPED TO drift == 0. When something genuinely IS sandbox-only the phrase is CORRECT and must
+#: stay silent, so this rule only speaks when the tree says everything is promoted.
+_PROMO_PENDING = re.compile(
+    r"SANDBOX[- ]ONLY\s*[;:,—-]?\s*(?:and\s+)?(?:a\s+)?promotion\s+is\s+the\s+USER'?s?\s+call"
+    r"|awaiting\s+a\s+user[- ]approved\s+promotion"
+    r"|a\s+PROMOTION\s+DECISION\s+IS\s+OWED"
+    r"|until\s+the\s+\w+\s+are\s+promoted"
+    r"|against\s+the\s+unpromoted\s+`?custom`?\s+tree",
+    re.I)
+
+
+def check_promotion_prose(files: dict[str, str]) -> list[str]:
+    """When drift is 0, no current-state file may say work is still WAITING to be promoted.
+
+    ‼ This is the PROSE twin of `check_drift`, which only ever graded numbers. Both are needed:
+    the figure and the sentence go stale independently, and on 2026-08-17 the figure was swept
+    correctly to 0 while two KI entries kept telling readers a promotion was still owed.
+
+    ⛔ EXEMPTIONS, because a noisy gate gets bypassed: a quoted/retracted span (this file is full of
+    prose ABOUT stale claims), and any line that also carries an explicit PROMOTED marker — that is
+    how a corrected entry reads once it records its own history.
+    """
+    measured, _ = real_drift()
+    if measured != 0:
+        return []  # the phrase is TRUE when something really is unpromoted
+    out: list[str] = []
+    for name, text in files.items():
+        # ⛔⛔ QUOTED SPANS ARE EXEMPT — and this was NOT optional. The first draft of this rule
+        # fired on TWO of its own kind of text: a `Historical note, superseded: *"Sandbox only —
+        # promotion is the USER's call"*` and the retraction I had just written recording the old
+        # wording verbatim. **A gate that fires on the document DESCRIBING the problem teaches the
+        # reader to bypass it, which is strictly worse than no gate** (CLAUDE.md, rule 6). Spans are
+        # computed over the WHOLE text because this project's prose wraps mid-quote.
+        quoted = [mm.span() for mm in _QUOTED.finditer(text)]
+        for m in _PROMO_PENDING.finditer(text):
+            if any(a <= m.start() < b for a, b in quoted):
+                continue
+            ln = _line(text, m.start())
+            # ‼ LOOK BACK A WINDOW, NOT A LINE. The same first draft missed a `superseded:` marker
+            # that sat on the previous physical line because the sentence wrapped — line-scoped
+            # exemptions are wrong for wrapped prose, which is most of this tree.
+            lo = max(0, m.start() - 240)
+            window = text[lo:m.end() + 240]
+            # ⛔ The marker must START BEFORE the phrase it retracts (this project's ordering rule,
+            # D20/D21), but it may CLOSE after it: `SUPERSEDE_RE`'s main form is `\(supersed[^)]*\)`
+            # and the closing paren of `*(Superseded: this read SANDBOX-ONLY …)*` sits past the
+            # match. A backward-only window therefore never sees the marker at all — P26d caught
+            # exactly that in the first draft. Search BOTH ways, then enforce the ordering.
+            if any(lo + mk.start() < m.start() for mk in SUPERSEDE_RE.finditer(window)):
+                continue
+            # Text that ALSO records the promotion is a corrected entry stating its own history.
+            near = text[max(0, m.start() - 240):m.end() + 240]
+            if re.search(r"\bPROMOTED\b|\bwas\s+promoted\b|\bnow\s+PASSES\b|\bHistorical note\b",
+                         near, re.I):
+                continue
+            out.append(
+                f"{name}:{ln} says promotion is still PENDING ({m.group(0)[:52]!r}) but MEASURED "
+                f"drift is 0 — everything is promoted")
+    return out
+
+
 def check_queue_vs_headline(files: dict[str, str]) -> list[str]:
     """‼ THE HEADLINE CHECK — no driver both queued as to-do and reported passing."""
     out = []
@@ -1080,6 +1149,26 @@ def self_test() -> int:
            False)
     expect("D26d the shape with NO drift subject in range -> quiet (not every 'it is N today' is drift)",
            check_drift({"T": f"The batch finished; it is {W} today by the run counter.\n"}), False)
+    # ‼‼ P26 — THE PROSE TWIN OF THE DRIFT CHECK (added 2026-08-17). `check_drift` grades FIGURES
+    # and went green over two KI entries that said IN WORDS that the just-promoted work was still
+    # sandbox-only. ⛔ Scoped to drift == 0, so these only mean anything when nothing is pending;
+    # if the tree ever has real drift, P26a is EXPECTED to go quiet and that is correct, not a
+    # broken test — hence the guard below rather than a bare assertion.
+    _dr, _ = real_drift()
+    if _dr == 0:
+        expect("P26a `SANDBOX-ONLY; a promotion is the USER's call` while drift is 0 -> fires",
+               check_promotion_prose({"T": "the verdict reaches the caller. SANDBOX-ONLY; a promotion is the USER's call.\n"}),
+               True)
+        expect("P26b `against the unpromoted custom tree` while drift is 0 -> fires",
+               check_promotion_prose({"T": "gate #26 which FAILS against the unpromoted `custom` tree.\n"}), True)
+        expect("P26c the same line ALSO recording that it WAS promoted -> quiet (a corrected entry)",
+               check_promotion_prose({"T": "was SANDBOX-ONLY; a promotion is the USER's call — ✅ PROMOTED 2026-08-17.\n"}),
+               False)
+        expect("P26d an explicit RETRACTION -> quiet",
+               check_promotion_prose({"T": "*(Superseded: this read SANDBOX-ONLY; a promotion is the USER's call)*\n"}),
+               False)
+        expect("P26e ordinary prose with no promotion-pending claim -> quiet",
+               check_promotion_prose({"T": "The guards were swept and the probe is a ratchet at 36.\n"}), False)
     expect("D19 this gate measures the SAME trees `promote.py` does",
            [] if promote_trees() == _DRIFT_TREES else
            [f"promote.py TREES={promote_trees()} but this gate scans {_DRIFT_TREES}"], False)
@@ -1161,6 +1250,8 @@ def main() -> int:
     # ‼ BOTH texts: the legacy rules need fences STRIPPED, the claim-shape rules need them KEPT.
     # See check_drift's docstring — the authoritative `Expect …: 0 differing` line lives in a fence.
     failures += check_drift(files, raw_files)
+    # ‼ The PROSE twin of check_drift — figures and sentences go stale independently (2026-08-17).
+    failures += check_promotion_prose(files)
     failures += check_queue_vs_headline(files)
     failures += check_qualified_claims(files)
     failures += check_ladder(files)

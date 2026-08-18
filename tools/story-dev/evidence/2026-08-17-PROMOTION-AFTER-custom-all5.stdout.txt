@@ -1,0 +1,50 @@
+=== PROMOTION OF 5 FILES — *AFTER* EVIDENCE (2026-08-17, user-approved) ===
+Restore point: restore/2026-08-17-pre-promotion-all5 (annotated, pushed, verified by promote.py)
+BEFORE half:   evidence/2026-08-17-PROMOTION-BEFORE-custom-all5.stdout.txt (committed FIRST, 0b1d8480)
+
+--- promote.py result ---
+  5/5 byte-identical, drift after = 0, orphaned after = 0
+
+--- (A) THE VERDICT CHANGE — the discriminator FLIPPED ---
+  repro_withdraw_verdict.py --build custom : EXIT 1 -> 0   (6 named FAIL lines -> 0)
+  repro_withdraw_verdict.py --build sandbox: EXIT 0 -> 0   (control unchanged)
+
+--- (B) THE ABORT GUARDS — the count FELL ---
+  sandbox    ✅ PASS — 36 sites, exactly at the baseline. No new debt.
+  custom     ✅ PASS — 36 sites, exactly at the baseline. No new debt.
+  custom 44 -> 36; both forks now sit at the SAME number. Baseline lowered 44 -> 36.
+  ‼ ATTRIBUTION IS EARNED, NOT ASSUMED: the probe's own warning is 'do NOT claim the drop was
+    caused by your change without an arm that removes it'. That arm exists and is COMMITTED —
+    the BEFORE file measured 44 on custom with the guards ABSENT, minutes earlier.
+
+--- (C) THE COMMENT-ONLY map_path.py CORRECTION ---
+  bytes identical : True (was False)
+  AST identical   : True (was True; still True = still behaviour-neutral)
+  refuted claims gone from custom: True
+  corrected text present in custom: True
+
+--- ⛔ A COPY IS NOT EVIDENCE: VERIFIED BY DRIVING THE REAL FORK ---
+  story_harness.py saves/fortree_gym_wedge.ss1 --driver boxcounter2 --build custom
+usable this fight — Slugma :: verdict landed=True code=landed
+[boxcounter2] ACCEPTANCE: PASS
+  ‼ THE LINE THAT MATTERS IS THE VERDICT, NOT THE PASS: 'verdict landed=True code=landed' is
+    emitted by the PROMOTED code path (withdraw_from_box's 3-tuple + the caller binding it +
+    withdraw_verdict_report). Custom could not have printed it before — the same run's BEFORE
+    counterpart failed to even IMPORT withdraw_verdict_report from custom.
+
+--- build-aware gates against CUSTOM (each asserts which fork it imported) ---
+  repro_box_counter_move_test        exit=0 PASS
+  repro_pid_identity_key             exit=0 PASS
+  repro_party_accounting             exit=0 PASS
+  repro_heal_piggyback_reporting     exit=0 PASS
+  repro_withdraw_verdict             exit=0 PASS
+
+--- POST-PROMOTION SAFETY CHECKS ON THE CUSTOM FORK ---
+  py_compile on all five promoted files : all 5 compile OK
+  pyflakes, sandbox vs custom, same 5 files: OUTPUT IDENTICAL (11 findings each side)
+  ⇒ the promotion introduced NO new undefined names and NO new lint findings; the 11 are
+    pre-existing on BOTH sides (an unused `global _maps`, two unused locals in early_game).
+  ‼ WHY THIS CHECK: `repro_undefined_names.py` was added after pyflakes — never previously run —
+    found a real `NameError` on the Magma Hideout's SUCCESS path. A copy that parses is not a copy
+    that resolves its names, and the cheapest way to know is to diff the two forks' output rather
+    than read custom's in isolation.

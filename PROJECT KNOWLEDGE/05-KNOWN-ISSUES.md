@@ -2260,7 +2260,7 @@ the 6000-frame per-invocation bound, with only two refusable slots to burn throu
 
 ### ✅✅✅ FIXED AND PROMOTED TO BOTH FORKS 2026-08-17 (user-approved)
 
-✅ **PROMOTED TO BOTH FORKS 2026-08-17, USER-APPROVED — drift was 0 at that point.** *(⚠ It is **5** today for UNRELATED sandbox-only files; this KI is still promoted. MEASURE with `promote.py --check`.)* Proven by a THREE-POINT A/B against `--build custom`: BEFORE `on_field=[0,3]`/`[1,3]`, 2 faints, 486 presses → AFTER `on_field=[0,1]`, 1 faint, 361 presses → sandbox control IDENTICAL to AFTER. Restore point `restore/2026-08-17-pre-promotion-ki66-onfield`.
+✅ **PROMOTED TO BOTH FORKS 2026-08-17, USER-APPROVED — drift was 0 at that point.** *(✅ It is **0** today — the five sandbox-only files were promoted 2026-08-17; this KI was already promoted. MEASURE with `promote.py --check`.)* Proven by a THREE-POINT A/B against `--build custom`: BEFORE `on_field=[0,3]`/`[1,3]`, 2 faints, 486 presses → AFTER `on_field=[0,1]`, 1 faint, 361 presses → sandbox control IDENTICAL to AFTER. Restore point `restore/2026-08-17-pre-promotion-ki66-onfield`.
 
 `_on_field` now maps through `BattleState.map_battle_party_index` before being compared against
 `party_in_menu`, mirroring what `alive_slots` three blocks below has done since KI-34.
@@ -2365,7 +2365,7 @@ number in prose** — it is the only thing that counts them.
 ## KI-65 — ✅✅✅ **CLOSED 2026-08-16: REPRODUCED, FIXED, A/B-PROVEN, GATED (#25) AND PROMOTED TO BOTH FORKS (user-approved).** Was: the HM-refusal re-pick raises `UnboundLocalError` into a silent `except` **WHEN `_read_offered_move` HAS ALREADY FAILED**, so two invisible failures compound into a silent decline (filed 2026-08-12, code-verified)
 
 > ⛔ **STATUS IN ONE LINE:** the bug is FIXED in `sandbox-pokebot` and guarded by gate #25
-> (`repro_ki65_unbound_party_index.py`). ✅ **PROMOTED 2026-08-16, USER-APPROVED — drift was 0 at that point. ✅ **AND IT WAS ZERO AGAIN as of 2026-08-17** *(⚠ but it is **5 today** for UNRELATED sandbox-only files — this KI is still promoted. MEASURE with `promote.py --check`; a same-day past tense reads as today's figure, which is why this caveat matches KI-66's.)* — the KI-66 `_on_field` fix was PROMOTED the same day (user-approved). *(This clause briefly read "NOT ZERO … a ruling is owed", which was true for about an hour and then was not; it is the reason rule 8 below exists. MEASURE with `promote.py --check`.)*** The KI-65 fix is in BOTH forks, proven by a THREE-POINT A/B against `--build custom`: BEFORE `fault_fired=159, lie_msg=1` → `ACCEPTANCE: FAIL`; AFTER `fault_fired=87, lie_msg=0, honest_msg=1` → `ACCEPTANCE: PASS`; and `--build sandbox` still PASS. Restore point `restore/2026-08-16-pre-promotion-ki65`. ‼ Everything below the "RECON" heading is the
+> (`repro_ki65_unbound_party_index.py`). ✅ **PROMOTED 2026-08-16, USER-APPROVED — drift was 0 at that point. ✅ **AND IT WAS ZERO AGAIN as of 2026-08-17** *(✅ and it is **0 today** — the five remaining sandbox-only files were promoted 2026-08-17; this KI was already promoted. MEASURE with `promote.py --check`; a same-day past tense reads as today's figure, which is why this caveat matches KI-66's.)* — the KI-66 `_on_field` fix was PROMOTED the same day (user-approved). *(This clause briefly read "NOT ZERO … a ruling is owed", which was true for about an hour and then was not; it is the reason rule 8 below exists. MEASURE with `promote.py --check`.)*** The KI-65 fix is in BOTH forks, proven by a THREE-POINT A/B against `--build custom`: BEFORE `fault_fired=159, lie_msg=1` → `ACCEPTANCE: FAIL`; AFTER `fault_fired=87, lie_msg=0, honest_msg=1` → `ACCEPTANCE: PASS`; and `--build sandbox` still PASS. Restore point `restore/2026-08-16-pre-promotion-ki65`. ‼ Everything below the "RECON" heading is the
 > PRE-FIX investigation, kept because three of its load-bearing claims were WRONG and a future
 > session must not re-derive them. **Read the FIX block immediately below first.**
 
@@ -2835,7 +2835,7 @@ Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans 
 
 ---
 
-## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED (2026-08-15, ✅ FIXED, FAULT-PROVEN and PROMOTED TO BOTH FORKS — ✅ ITS RESIDUAL'S INSTRUMENTATION HALF IS DONE 2026-08-17, SANDBOX-ONLY; ⚠ THE REACTION HALF IS STILL OPEN, see below) — FULL ENTRY in `31-KNOWN-ISSUES-ARCHIVE.md`
+## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED (2026-08-15, ✅ FIXED, FAULT-PROVEN and PROMOTED TO BOTH FORKS — ✅ ITS RESIDUAL'S INSTRUMENTATION HALF IS DONE **AND PROMOTED TO BOTH FORKS 2026-08-17**; ⚠ THE REACTION HALF IS STILL OPEN, see below) — FULL ENTRY in `31-KNOWN-ISSUES-ARCHIVE.md`
 
 Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans on:**
 - **The defect:** `pc_trip.py:472-473` printed *"{name} is in the party"* after reading only
@@ -2848,8 +2848,17 @@ Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans 
 - ⚠ **THE RESIDUAL — HALF CLOSED 2026-08-17.** ✅ **The verdict now REACHES the caller:** all five
   exits return `(landed, code, detail)`, the ONE caller BINDS it, and a pure `withdraw_verdict_report`
   reports it — proven by a live two-armed A/B (`landed=True code=landed` unfaulted vs
-  `landed=False code=did_not_land` faulted) and by gate #26 `repro_withdraw_verdict.py`, which FAILS
-  against the unpromoted `custom` tree. ⚠ SANDBOX-ONLY; a promotion is the USER's call.
+  `landed=False code=did_not_land` faulted) and by gate #26 `repro_withdraw_verdict.py`, which
+  **FAILED against the then-unpromoted `custom` tree (exit 1, six named sites) and now PASSES it
+  (exit 0)** — that flip IS the promotion's proof.
+  ✅ **PROMOTED TO BOTH FORKS 2026-08-17, USER-APPROVED**, in the five-file round; restore point
+  `restore/2026-08-17-pre-promotion-all5`, drift 0, and verified by DRIVING custom
+  (`--driver boxcounter2 --build custom` printed `verdict landed=True code=landed`).
+  ⛔ **PROMOTION DID NOT CLOSE THE RESIDUAL:** production can now READ the verdict in BOTH forks and
+  still cannot REACT to it. That half needs the unmeasured `sStorage->messageText` heap offset AND
+  a USER ruling. *(This bullet read "⚠ SANDBOX-ONLY; a promotion is the USER's call" for one commit
+  after the promotion — a Tier 1 reviewer caught it; the drift gate cannot see PROSE about
+  promotion state, only figures.)*
   ⛔ **STILL OPEN: production READS the verdict but does not ACT on it** — what it should DO is the
   USER's ruling and is blocked on an unmeasured `sStorage->messageText` offset. `withdraw_from_box`
   still never raises for a PC problem, which is deliberate and unchanged. Its ONE caller is the
@@ -2857,7 +2866,7 @@ Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans 
   discards the value. **Tracked as `#24-orphans` item (1)**;
   its instrumentation half is specified, but *how* production should react needs the USER's ruling.
 
-## KI-81 — KI-67's fix was applied to TWO chapters and the CLASS was never swept (2026-08-16, MEASURED by probe). ✅ **8 SITES FIXED AND PROMOTED TO BOTH FORKS** — the PC/heal path and the site that proved the sweep was incomplete. ⛔ **STILL OPEN: 36 candidates remain** (ALL in `early_game.py`), and ✅ **THE PROBE IS NOW GATE #27 — a RATCHET at baseline 36 (sandbox) / 44 (custom, until the guards are promoted)**; ‼ ~64% of the original 45 were MEASURED not to be this defect, which is WHY it is a ratchet and not a zero-threshold
+## KI-81 — KI-67's fix was applied to TWO chapters and the CLASS was never swept (2026-08-16, MEASURED by probe). ✅ **8 SITES FIXED AND PROMOTED TO BOTH FORKS** — the PC/heal path and the site that proved the sweep was incomplete. ⛔ **STILL OPEN: 36 candidates remain** (ALL in `early_game.py`), and ✅ **THE PROBE IS NOW GATE #27 — a RATCHET at baseline **36 on BOTH forks** — custom went 44 -> 36 when the guards were PROMOTED 2026-08-17 (user-approved) and the baseline was lowered to lock the gain in**; ‼ ~64% of the original 45 were MEASURED not to be this defect, which is WHY it is a ratchet and not a zero-threshold
 
 `StoryAbort` is a `BotModeError`, which is an `Exception` (`_interface.py:229`) ⇒ **every**
 `except Exception:` and `except BotModeError:` catches a whiteout. KI-67 found this and fixed the

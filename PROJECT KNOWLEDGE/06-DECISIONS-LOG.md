@@ -2970,3 +2970,30 @@ append-only logs moved.
 **The rule this leaves behind.** ⇒ **A header that covers two defects must state each one's status
 separately.** P2 already says a heading is a claim about every bullet beneath it; this is the same
 rule applied to defects inside one issue, and it cost nothing to find once someone counted.
+
+## 2026-08-17 — promote all five in ONE round, but prove them in THREE groups
+
+**Decision.** The user approved promoting all five drifted files together. We did NOT treat that as
+one promotion with one proof. The five files implement three unrelated changes, so the round carries
+**three independent before/after discriminators** — a verdict gate that flips 1 → 0, an abort-site
+count that falls 44 → 36, and a byte/AST pair for the comment-only file.
+
+**Why.** A single shared proof ("promote.py reports 5/5 byte-identical") is exactly the evidence this
+project has ruled insufficient twice: *a copy is not evidence, and a byte-compare only proves a file
+was COPIED, never that its new branch is what RUNS*. With three changes in one round, one shared
+proof is worse still — it cannot distinguish "all three landed" from "one landed and two are inert".
+
+**Alternatives rejected.** (a) Promote in three separate rounds — safer in principle, but each round
+needs its own restore point and its own unrepeatable BEFORE capture, and the three changes do not
+interact (different files except `higher_level_actions.py`, which carries two of them and is covered
+by both discriminators). The extra ceremony would have bought nothing measurable. (b) Accept
+`promote.py`'s byte-equality as sufficient — rejected on the standing rule above.
+
+**The ordering rule this round re-earned.** ⛔ **The BEFORE half is unrepeatable and therefore gets
+its own commit, pushed, before `promote.py` runs.** It also became the *arm* that justified
+attributing the abort-count drop to the promotion rather than asserting it — the probe demands
+exactly that arm, and it existed only because the BEFORE capture was a deliberate first step.
+
+**One follow-up it created, recorded rather than left implicit.** A per-fork RATCHET must be
+re-based after a promotion: custom's baseline moved 44 → 36. ⇒ **promoting a fix that a ratchet
+counts is not finished until the ratchet is turned**, or the gain silently unlocks.

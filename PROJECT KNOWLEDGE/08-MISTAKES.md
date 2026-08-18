@@ -8197,3 +8197,40 @@ this is the second tally in two commits that drifted from its own checkboxes.
 the next item, not merely check the docs for consistency.** All three findings were invisible to a
 consistency read — the documents agreed with each other perfectly. ⇒ *the strongest audit of a
 handoff is not "is it consistent?" but "can someone START from it?"*
+
+## 2026-08-17 — the drift gate graded the NUMBERS and went green over prose saying the work was unpromoted
+
+**Symptom.** Five files were promoted; I swept every drift FIGURE from 5 to 0 across four files and
+`audit_doc_consistency.py` passed. A Tier 1 reviewer then found `05-KNOWN-ISSUES.md` still telling
+readers, in words, that the same work was pending: KI-79's *"⚠ SANDBOX-ONLY; a promotion is the
+USER's call"* and *"gate #26 … FAILS against the unpromoted `custom` tree"*, and KI-81's *"a RATCHET
+at baseline 36 (sandbox) / 44 (custom, **until the guards are promoted**)"* — guards that had just
+been promoted, by the very change that lowered that baseline to 36.
+
+**Root cause.** `check_drift` grades FIGURES — `drift is N`, `N differing`, `it is N today`. **A
+sentence can assert the same fact without containing a number at all.** The figure and the prose go
+stale independently, and only the figure had a gate. Cost if it had shipped: a cold agent reading
+KI-79 would believe a promotion decision was still owed and re-litigate finished work — the exact
+failure this doc layer exists to prevent.
+
+**Fixed in the GATE:** `check_promotion_prose`, the prose twin of `check_drift`, scoped to
+`drift == 0` (when something genuinely IS sandbox-only the phrase is CORRECT and must stay silent).
+Fault-tested P26a–P26e, and then against the REAL pre-fix file: **2 findings before, 0 after.**
+
+**‼ THE PART WORTH REMEMBERING: MY FIRST DRAFT OF THE GATE WAS NOISY, AND TWO OF ITS THREE LIVE
+HITS WERE FALSE POSITIVES.** It fired on a `Historical note, superseded: *"Sandbox only — promotion
+is the USER's call"*` and on **the retraction I had just written quoting the old wording verbatim**.
+A gate that fires on the document DESCRIBING the problem teaches everyone to bypass it — strictly
+worse than no gate. Two exemptions fixed it, and each was a lesson: quoted spans are computed over
+the WHOLE text (this project's prose wraps mid-quote), and the retraction marker must be searched
+in BOTH directions while still being required to START before the phrase — because
+`SUPERSEDE_RE`'s main form is `\(supersed[^)]*\)` and its closing paren sits *after* the phrase it
+retracts, so a backward-only window never sees it. **P26d caught that; I would not have.**
+
+**PREVENTION RULE (one line).** ⛔ **When you gate a FACT, gate the sentence as well as the number —
+ask "can this claim be made without a digit?", and if yes, that phrasing needs its own rule.**
+
+‼ **Corollary, and it is now twice in one day:** ⛔ **write the false-positive fault tests BEFORE
+trusting a new rule's live output.** Both new rules this session (D26 for drift, P26 for prose) had
+a real false-positive class in their first draft, and both were caught by the "quiet" half of the
+suite, never by the "fires" half.

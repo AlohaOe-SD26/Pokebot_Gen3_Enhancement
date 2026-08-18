@@ -640,7 +640,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       piggybacks — a whiteout during a heal WAS swallowed) and `:746`; `pc_trip.py`
       `:202`/`:305`/`:529`; `mossdeep_gym.py:465`. Proven by a MEASURED before/after, not a
       byte-compare: `probe_abort_swallowing.py --build custom` fell **53 → 45**.
-      ✅✅ **A SECOND ROUND SHIPPED 2026-08-17 (sandbox only): 8 MORE SITES FIXED, probe 45 → 37,
+      ✅✅ **A SECOND ROUND SHIPPED 2026-08-17 (sandbox at the time; ✅ PROMOTED TO BOTH FORKS later the same day — custom's probe went 44 → 36): 8 MORE SITES FIXED, probe 45 → 37,
       MEASURED.** All eight were hand-verified to reach `_check_abort()` before being touched — the
       triage, not the probe, decided what to fix. ‼ **7 of the 8 take a DIRECT `StoryAbort`; the Strength teach takes only a LAUNDERED one** — neither `ensure_strength_learner` nor `teach_hm_move` contains a `_check_abort()`, so no abort OBJECT reaches it and the guard fires only on the latch. Weaker, still worth it (it stops one whiteout printing two fabricated lines), and stated rather than counted as an equal. `counter_hunt.py`'s training handler (the whole
       file's only candidate, now gone); `early_game.py`'s Mt. Chimney meteorite, the Rusturf wall
@@ -1845,7 +1845,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
       an UNMEASURED heap offset, and it needs the USER.**
       ⛔ **STATUS IN ONE LINE: production can now READ the verdict; it still does not ACT on it.**
       That split is deliberate and is the whole shape of this item.
-      ✅✅ **WHAT SHIPPED (sandbox only — ⚠ drift is 5, awaiting a user-approved promotion):**
+      ✅✅ **WHAT SHIPPED (⚠ was sandbox-only; ✅ PROMOTED 2026-08-17, user-approved — drift is 0):**
       all five exits of `withdraw_from_box` return `(landed, code, detail)` — the shape the recorded
       design asked for — its ONE caller (`modules/modes/util/higher_level_actions.py:356`) BINDS the
       result, and a new PURE function `withdraw_verdict_report` turns it into a reported line.
@@ -1922,7 +1922,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
 - [x] **(2) ✅✅ DONE 2026-08-16 — KI-65 is REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25).**
       ✅ **PROMOTED TO BOTH FORKS 2026-08-16, USER-APPROVED** — by a THREE-POINT A/B against
       `--build custom` (BEFORE `lie_msg=1` → FAIL; AFTER `lie_msg=0, honest_msg=1` → PASS; sandbox
-      still PASS), never a byte-compare. Drift was **0** at that moment (2026-08-17, after the KI-66 `_on_field` promotion). ⚠ It is **5** today — MEASURE with `promote.py --check`. *(This line read "1 again … ruling owed" for about an hour between the two promotions; MEASURE with `promote.py --check`, never read a drift figure from prose.)* Restore `restore/2026-08-16-pre-promotion-ki65`.
+      still PASS), never a byte-compare. Drift was **0** at that moment (2026-08-17, after the KI-66 `_on_field` promotion). ✅ It is **0** today — everything is promoted. MEASURE with `promote.py --check`. *(This line read "1 again … ruling owed" for about an hour between the two promotions; MEASURE with `promote.py --check`, never read a drift figure from prose.)* Restore `restore/2026-08-16-pre-promotion-ki65`.
       The repro (`repro_ki65_unbound_party_index.py`) drives the real bot from `route116team.ss1`
       with an INJECTED Marshtomp whose **slot 0 is deliberately Rock Smash (HM06)**; pre-fix ARM A
       printed *"Nothing else can be given up — declining the new move."* **while three forgettable
@@ -2081,8 +2081,9 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
       longest chain in the ROM is **77** steps ⇒ margin **6.6x**. ⛔ `map_path.py`'s comment claimed
       "32 tiles / ~16x / ROUTE132-134 unmeasured" — all three were stale and are corrected in the
       code (comment-only, AST-proven, net-zero on line count so no `map_path.py:NNN` citation moved).
-      ⚠ **DRIFT: this took sandbox↔custom from 4 to 5** (`modules/map_path.py`) — comment-only, and
-      promotion is the USER's call like the other four.
+      ✅ **PROMOTED 2026-08-17, USER-APPROVED** (`modules/map_path.py`, comment-only) in the five-file
+      round — bytes now identical, AST still equal, and the three refuted claims are gone from custom.
+      Restore point `restore/2026-08-17-pre-promotion-all5`. **Drift is 0.**
       ⛔ **PRIORITY, and it is NOT what the docs said.** ‼ But §Ch23/Ever Grande is a **Fly
       destination** — VERIFIED IN OUR OWN FORK, `sandbox-pokebot/modules/region_map.py:54` — so the
       currents are BYPASSABLE there, and the handoff's "the route to … Ever Grande" OVERSTATES it.

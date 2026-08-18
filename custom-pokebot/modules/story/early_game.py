@@ -5490,7 +5490,13 @@ def do_mt_chimney() -> Generator:
         context.emulator.press_button("A")
         yield
         yield from _ride_out_scripted_scene("A", engage_timeout=180)
-    except BotModeError:
+    except BotModeError as error:
+        # ⛔ KI-81 / `#24-abortswallow`: a whiteout arrives here as a `BotModeError`
+        # (`StoryAbort` is one) through `_navigate_riding_out`'s `_check_abort()` (`:266`).
+        # Swallowing it makes `do_mt_chimney` RETURN AS IF IT SUCCEEDED, so the segment is
+        # marked complete on a run that whited out. Latch-keyed, so it also catches an abort
+        # already laundered into a plain `BotModeError` by an inner loop.
+        reraise_if_aborting(error)
         pass  # the meteorite is a bonus — never fail the chapter on it
     context.message = "Story: Maxie beaten at Mt. Chimney (and the meteorite is ours)!"
 
@@ -5968,7 +5974,13 @@ def travel_lavaridge_to_petalburg() -> Generator:
         yield from _ride_out_all_scenes(quiet_frames=300)  # the couple's reunion
         try:
             yield from _smash_rock(MapRSE.RUSTURF_TUNNEL, (24, 5), "Up")  # (24,4) from below
-        except BotModeError:
+        except BotModeError as error:
+            # ⛔⛔ KI-81 / `#24-abortswallow` — THE TEXTBOOK LAUNDERED DIAGNOSIS. This handler
+            # INTERPRETS any failure as "the rock is gone"; after a whiteout that reading is
+            # fabricated, and the run then walks into a still-sealed wall and raises "cannot
+            # reach Route 116" — a confident, plausible, WRONG cause. `_smash_rock` reaches
+            # `_check_abort()` via `_navigate_riding_out`, so the abort genuinely arrives here.
+            reraise_if_aborting(error)
             pass  # row 4 already open (scene cleared it / rock gone) — continue
         yield from _enter_warp_by_navigation(
             lambda: _map_group_number() == MapRSE.ROUTE116.value,
@@ -7298,12 +7310,25 @@ def travel_to_magma_hideout_door() -> Generator:
                 try:
                     yield from ensure_strength_learner()
                 except BotModeError as error:
+                    # ⛔ KI-81 / `#24-abortswallow`. ‼ WEAKER THAN THE OTHER SEVEN, AND SAY SO:
+                    # neither `ensure_strength_learner` nor `teach_hm_move` contains a
+                    # `_check_abort()`, so NO DIRECT `StoryAbort` object arrives here (verified,
+                    # after an adversarial review asked). What this catches is a LAUNDERED abort —
+                    # a plain `BotModeError` raised by the teach while the latch is set — which is
+                    # exactly what latch-keying exists for, and it still stops ONE whiteout from
+                    # printing TWO fabricated lines (this one, then the enclosing heal's "SKIPPED").
+                    reraise_if_aborting(error)
                     _ch14_say(f"Story: teaching Strength at {city.name} SKIPPED - {str(error)[:120]}")
             except BotModeError as error:
                 # ‼ BEST EFFORT, AND SAID OUT LOUD. These are opportunistic top-ups; failing
                 # one must not end a chapter that could still succeed. But a silently skipped
                 # heal is exactly how a later whiteout gets misattributed to the route, so it
                 # is never silent.
+                # ⛔⛔ KI-81 / `#24-abortswallow` — THIS HANDLER WAS UNDOING THE 2026-08-16 GUARD.
+                # `heal_in_pokemon_center` deliberately RE-RAISES on the latch
+                # (`higher_level_actions.py:364/388/437`); catching it here threw that away one
+                # frame later, and the chapter then continued on a dead run. Latch-keyed.
+                reraise_if_aborting(error)
                 _ch14_say(f"Story: en-route heal at {city.name} SKIPPED - {str(error)[:120]}")
 
     # --- Leg 3: up the cable car ----------------------------------------------------------
@@ -7323,6 +7348,11 @@ def travel_to_magma_hideout_door() -> Generator:
             yield from heal_in_pokemon_center(MAGMA_STAGING_CENTER)
             yield from wait_until_truly_controllable()
         except BotModeError as error:
+            # ⛔⛔ KI-81 / `#24-abortswallow` — THIS HANDLER WAS UNDOING THE 2026-08-16 GUARD.
+            # `heal_in_pokemon_center` deliberately RE-RAISES on the latch
+            # (`higher_level_actions.py:364/388/437`); catching it here threw that away one
+            # frame later, and the chapter then continued on a dead run. Latch-keyed.
+            reraise_if_aborting(error)
             _ch14_say(f"Story: Lavaridge staging heal SKIPPED - {str(error)[:120]}")
 
         _ch14_say("Story: riding the cable car up to Mt. Chimney...")
@@ -8490,6 +8520,11 @@ def do_slateport_harbor_theft() -> Generator:
                 yield from heal_in_pokemon_center(center)
                 yield from wait_until_truly_controllable()
             except BotModeError as error:
+                # ⛔⛔ KI-81 / `#24-abortswallow` — THIS HANDLER WAS UNDOING THE 2026-08-16 GUARD.
+                # `heal_in_pokemon_center` deliberately RE-RAISES on the latch
+                # (`higher_level_actions.py:364/388/437`); catching it here threw that away one
+                # frame later, and the chapter then continued on a dead run. Latch-keyed.
+                reraise_if_aborting(error)
                 _ch14_say(f"Story: heal stop at {city.name} SKIPPED - {str(error)[:120]}")
 
     if _city_state() < 2:
@@ -8790,6 +8825,11 @@ def do_aqua_hideout_chapter() -> Generator:
             yield from heal_in_pokemon_center(PokemonCenter.LilycoveCity)
             yield from wait_until_truly_controllable()
         except BotModeError as error:
+            # ⛔⛔ KI-81 / `#24-abortswallow` — THIS HANDLER WAS UNDOING THE 2026-08-16 GUARD.
+            # `heal_in_pokemon_center` deliberately RE-RAISES on the latch
+            # (`higher_level_actions.py:364/388/437`); catching it here threw that away one
+            # frame later, and the chapter then continued on a dead run. Latch-keyed.
+            reraise_if_aborting(error)
             _ch14_say(f"Story: Lilycove heal SKIPPED - {str(error)[:120]}")
 
         _ch14_say("Story: Ch17 - entering the Aqua Hideout...")

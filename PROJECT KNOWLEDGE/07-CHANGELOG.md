@@ -16621,3 +16621,54 @@ against the THREE REAL LINES reverted to 4: all three fire; all three are silent
 ‼ **D26d failed on the first draft** — an unscoped `it is N today` fired on any sentence in the tree.
 That is the false-positive class that trains readers to bypass a gate, and it was caught only
 because the fault test suite tests both signs. Docs corrected to 5; 27/27 gates PASS.
+
+## 2026-08-17 — FIVE FILES PROMOTED to `custom-pokebot` in one round (user-approved); drift 5 → 0
+
+The user approved promoting all five drifted files. Executed with
+`promote.py --restore-point restore/2026-08-17-pre-promotion-all5 --go` →
+**5/5 byte-identical, drift after 0, orphaned after 0.**
+
+‼ **THE BEFORE HALF WAS CAPTURED AND COMMITTED FIRST** (`0b1d8480`), in its own commit, because it
+is UNREPEATABLE once the copy happens. Three groups went over together, so each carries its own
+discriminator instead of one shared "the files copied":
+
+* **(A) the withdraw VERDICT** — `repro_withdraw_verdict.py --build custom` went **exit 1 → 0**
+  (six named FAIL sites → none). Before, custom could not even IMPORT `withdraw_verdict_report`.
+* **(B) the ABORT GUARDS** — `probe_abort_swallowing.py --build custom` went **44 → 36 sites**, the
+  same number sandbox reads. The ratchet's custom baseline was lowered 44 → 36 to lock the gain in.
+* **(C) the CAP COMMENT** (`map_path.py`) — bytes went DIFFER → IDENTICAL while the AST stayed
+  equal, and all three refuted claims ("longest real chain is 32", "~16x", "are unmeasured") are
+  gone from custom. ⛔ No three-point A/B, and the evidence says WHY rather than omitting one: a
+  comment has no branch to fault.
+
+✅ **VERIFIED BY DRIVING, not by a diff:** `--driver boxcounter2 --build custom` printed
+`verdict landed=True code=landed` and `ACCEPTANCE: PASS`. ‼ **The verdict line is the proof, not
+the PASS** — only the promoted path can emit it. Plus five `--build custom` gates that each assert
+which fork they imported.
+
+‼ **Attribution for (B) is earned, not assumed.** The probe itself warns *"do NOT claim the drop was
+caused by your change without an arm that removes it"* — that arm is the committed BEFORE
+measurement, taken minutes earlier with the guards absent and nothing else changing.
+
+⛔ **WHAT PROMOTION DOES NOT MEAN:** (A) lets production READ a failed withdraw; it still cannot
+REACT — that half needs a heap-offset measurement and a USER ruling. (C) was a comment: KI-76's two
+pathfinding defects remain OPEN in `#24-ki76correctness`.
+
+Docs swept 5 → 0 across `04-HANDOFF` (13 sites), `03-PUNCH-LIST` (2) and `05-KNOWN-ISSUES` (2);
+`custom-pokebot/DIVERGENCE-LOG.md` records the round. 27/27 gates PASS.
+
+## 2026-08-17 — `audit_doc_consistency.py`: `check_promotion_prose`, the PROSE twin of the drift check
+
+A Tier 1 reviewer found that the five-file promotion's doc sweep corrected every drift FIGURE while
+`05-KNOWN-ISSUES.md` still said in WORDS that the same work was unpromoted — KI-79's *"SANDBOX-ONLY;
+a promotion is the USER's call"* and *"FAILS against the unpromoted `custom` tree"*, and KI-81's
+*"44 (custom, until the guards are promoted)"*. `check_drift` grades numbers and cannot see any of
+that.
+
+New check, scoped to `drift == 0` so it stays silent whenever something genuinely IS sandbox-only.
+Fault-tested **P26a–P26e** and against the real pre-fix file (**2 findings before, 0 after**).
+‼ Its first draft was NOISY — two of three live hits were false positives, one of them the
+retraction quoting the old wording. Fixed with a whole-text quoted-span exemption and a
+bidirectional retraction-marker search that still requires the marker to PRECEDE the phrase (the
+`\(supersed[^)]*\)` idiom closes *after* what it retracts, so a backward-only window never saw it).
+Docs corrected in KI-79, KI-81, `03-PUNCH-LIST` and `04-HANDOFF`. 27/27 gates PASS.
