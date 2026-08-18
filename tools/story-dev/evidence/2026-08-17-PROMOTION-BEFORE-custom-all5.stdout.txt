@@ -1,0 +1,35 @@
+=== PROMOTION OF 5 FILES — *BEFORE* EVIDENCE (2026-08-17, user-approved) ===
+⛔ THIS HALF IS UNREPEATABLE ONCE THE COPY HAPPENS. Captured and committed FIRST.
+
+Three independent discriminators, one per change group:
+
+--- A) THE VERDICT CHANGE (pc_trip.py + higher_level_actions.py) — gate #26 ---
+  repro_withdraw_verdict.py --build custom  EXIT = 1   (FAIL: the unpromoted before-code)
+  repro_withdraw_verdict.py --build sandbox EXIT = 0   (PASS: the control)
+  ⇒ AFTER promotion, custom must go 1 -> 0. A gate that fires on the REAL before-code,
+    naming the exact defective lines, is the strongest form of this proof.
+  FAIL  pc_trip.py:443 `return` does not carry a 3-tuple verdict `(landed, code, detail)` — a bare return makes 'it worked', 'nothing to do' and 'it FAILED' the same value to the caller
+  FAIL  pc_trip.py:480 `return` does not carry a 3-tuple verdict `(landed, code, detail)` — a bare return makes 'it worked', 'nothing to do' and 'it FAILED' the same value to the caller
+  FAIL  pc_trip.py:416 withdraw_from_box can fall off its end without returning a verdict — that path yields `None` to the caller
+  FAIL  higher_level_actions.py: the call to withdraw_from_box does not BIND its result (`x = yield from ...`) — the verdict is computed and thrown away
+  FAIL  higher_level_actions.py: the bound verdict is never passed to `withdraw_verdict_report` — nothing reports what the caller actually saw
+  FAIL  could not import withdraw_verdict_report from custom-pokebot: ImportError("cannot import name 'withdraw_verdict_report' from 'modules.modes.util.higher_level_actions' (C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\custom-pokebot\\modules\\modes\\util\\higher_level_actions.py)")
+
+--- B) THE ABORT GUARDS (early_game.py, counter_hunt.py, higher_level_actions.py) ---
+  sandbox  36 sites
+  custom   44 sites
+  ⇒ AFTER promotion, custom's 44 must FALL toward sandbox's 36.
+  ‼ The probe is a PER-FORK RATCHET, so both read PASS today at their own baselines.
+    A DROP is the finding; custom's baseline must then be LOWERED or the ratchet goes slack.
+
+--- C) THE COMMENT-ONLY map_path.py CORRECTION ---
+  bytes identical : False  (False = the change is genuinely absent from custom)
+  AST identical   : True  (True = behaviour-neutral)
+  custom still asserts the REFUTED claims:  "longest real chain is 32"= True  "~16x"= True  "are unmeasured"= True
+
+  ‼ WHY NO THREE-POINT A/B FOR (C), STATED RATHER THAN SKIPPED: a comment has no branch to
+    flip, so there is nothing to fault. For a COMMENT-ONLY change, byte-equality IS the right
+    proof that the copy landed, and AST equality is the proof it changed no behaviour.
+    That is the same standard the 2026-08-15/16 comment-only promotions used.
+  ⛔ It is NOT the standard for (A) and (B), which are behaviour changes and carry their own
+    before/after discriminators above.
