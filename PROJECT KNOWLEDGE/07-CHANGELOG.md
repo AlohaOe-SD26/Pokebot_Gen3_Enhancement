@@ -16672,3 +16672,25 @@ retraction quoting the old wording. Fixed with a whole-text quoted-span exemptio
 bidirectional retraction-marker search that still requires the marker to PRECEDE the phrase (the
 `\(supersed[^)]*\)` idiom closes *after* what it retracts, so a backward-only window never saw it).
 Docs corrected in KI-79, KI-81, `03-PUNCH-LIST` and `04-HANDOFF`. 27/27 gates PASS.
+
+## 2026-08-17 — the most-used anchor in the project was UNLISTED; it is now VOLATILE + a PINNED copy
+
+`#24-ki76correctness`'s first step needs a stable anchor. A Tier 2 cold-start audit had reported
+`saves/post_dive.ss1` as "not pinned" — `verify_fixtures.py` checked nine fixtures and this was not
+one of them, despite 12+ probes and every `ch20*` driver defaulting to it.
+
+⛔ **The obvious fix was WRONG and one grep settled it.** `post_dive.ss1` is **re-captured by
+`--driver spacecenter` on every PASS** (`story_harness.py:3846-3849`, gated by `CH19C_CAPTURE`,
+default ON). By the manifest's own rule — *a save any DRIVER re-captures is a CACHE, not a fixture*
+— PINNING it would have made `verify_fixtures.py` **permanently red** the next time anyone drove
+§Ch19.
+
+✅ **Done instead, following the established `post_harbor`/`post_aqua` pattern:**
+`saves/post_dive_ki76.ss1` is a PINNED COPY (`a00378595409`), and `post_dive.ss1` is now listed
+VOLATILE **with its writer named**, so the next reader does not have to re-derive it.
+Fault-tested: `verify_fixtures.py --assert post_dive_ki76.ss1=a00378595409` passes on the right
+bytes and REFUSES wrong ones.
+
+‼ **A gate caught a citation error in this very change:** the punch list and the manifest first said
+`--driver ch19c`, which is a LOG TAG, not a driver — the real name is `spacecenter`.
+`audit_doc_consistency`'s phantom-driver rule failed the commit until it was corrected. 27/27 PASS.

@@ -2114,10 +2114,19 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
       `:1013` substitutes `(14,8)` afterwards without re-inspecting it. ARM R (the game):
       final map `SEAFLOOR_CAVERN_ENTRANCE`. ⇒ **the arms differ on MAP IDENTITY alone**, which is
       the cheapest possible assertion.
-      ⛔ **HAZARD, and no gate catches it: `post_dive.ss1` is NOT PINNED.** `verify_fixtures.py`
-      checks nine fixtures and this is not one of them, so a driver run can silently rewrite the
-      most-used anchor in the project — the same trap `--driver ki66faint` had to hand-guard.
-      **PIN IT (or drive a copy) BEFORE the first run.**
+      ✅ **THE ANCHOR HAZARD IS CLOSED 2026-08-17 — but NOT the way it was first written here.**
+      ⛔ **This entry used to say "PIN IT", and pinning would have been WRONG:** `post_dive.ss1` is
+      **re-captured by `--driver spacecenter` on every PASS** (`story_harness.py:3846-3849`, gated by
+      `CH19C_CAPTURE`, default ON), so by the manifest's own rule — *a save any DRIVER re-captures
+      is a CACHE, not a fixture* — pinning it would have turned `verify_fixtures.py` **permanently
+      red** the next time anyone drove §Ch19 (`--driver spacecenter`). *(A Tier 2 cold-start audit correctly reported it as
+      "not pinned"; the fix it implied was the wrong one, and one grep for the writer settled it.)*
+      ✅ **DONE INSTEAD, following the established `post_harbor`/`post_aqua` pattern:**
+      `saves/post_dive_ki76.ss1` is a **PINNED COPY** (`a00378595409`), and `post_dive.ss1` itself is
+      now listed **VOLATILE** with its writer named — it was the most-used anchor in the project
+      (12+ probes, every `ch20*` driver) and was **UNLISTED entirely**, so nothing noticed if it
+      moved. ➡ **Drive `post_dive_ki76.ss1`, and assert it first:**
+      `verify_fixtures.py --assert post_dive_ki76.ss1=a00378595409`.
       ‼ The nine entry tiles that funnel into `(14,8)` are NOT recorded anywhere — only the count
       and the shared endpoint. Re-derive them with `probe_slide_endpoints.py` (observe-only); no
       human input needed.

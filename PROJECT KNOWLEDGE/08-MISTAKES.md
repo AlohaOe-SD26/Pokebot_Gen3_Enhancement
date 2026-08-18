@@ -8234,3 +8234,33 @@ ask "can this claim be made without a digit?", and if yes, that phrasing needs i
 trusting a new rule's live output.** Both new rules this session (D26 for drift, P26 for prose) had
 a real false-positive class in their first draft, and both were caught by the "quiet" half of the
 suite, never by the "fires" half.
+
+## 2026-08-17 — I nearly PINNED a file that a driver rewrites, which would have made a gate permanently red
+
+**Symptom.** A Tier 2 audit reported that `saves/post_dive.ss1` — the most-used anchor in the
+project — was not covered by `verify_fixtures.py`. I wrote "PIN IT (or drive a copy)" into the
+punch list as the fix, and was one command from doing exactly that.
+
+**Root cause: I treated "unprotected" as implying "should be pinned", without asking who WRITES it.**
+`post_dive.ss1` is re-captured by `--driver spacecenter` on every PASS. The manifest states the rule
+in its own header — *a save that any DRIVER re-captures is a CACHE, not a fixture* — so pinning it
+would have turned `verify_fixtures.py` RED the next time anyone drove §Ch19, on a change that was
+supposed to ADD safety. A permanently-red gate is worse than an unlisted file: it trains everyone to
+ignore the gate.
+
+**What caught it:** reading the manifest's rule before editing it, then one `grep` for the writer.
+Cost: about two minutes. **Existence, reachability and mutability are three different questions**,
+and I had already been burned once this session by answering only the first (the "fixture exists"
+entry above).
+
+**A second, smaller error inside the same fix, caught by a GATE not by me:** I cited the writer as
+`--driver ch19c`. That is the LOG TAG; the driver is `spacecenter`. `audit_doc_consistency`'s
+phantom-driver rule failed the commit until it was fixed. ‼ **A log tag looks exactly like a driver
+name and this codebase has both** — resolve the class, then the dispatch, before citing either.
+
+**PREVENTION RULE (one line).** ⛔ **Before PINNING any fixture, grep for what WRITES it — if a
+driver re-captures it, the correct fix is a COPY under a name nothing writes to, never a pin.**
+
+‼ **Corollary:** ⛔ **a recommendation inherited from an audit is a HYPOTHESIS, not an instruction.**
+The audit's finding (unprotected) was correct; the fix it implied (pin it) was wrong. Verify the
+remedy separately from the diagnosis.
