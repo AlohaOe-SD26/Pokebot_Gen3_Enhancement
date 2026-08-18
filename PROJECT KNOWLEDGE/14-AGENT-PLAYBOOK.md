@@ -117,6 +117,7 @@ the byte count.
 | `--driver normancounter` | does a counter at level L beat Norman | ‼ has a CONTROL arm (`NORMAN_MACHOP_LEVEL=0`); natural moveset is the default because the explicit one is **known-broken** |
 | `--driver magmadoor` | can the bot reach/enter the Magma Hideout door | scripted movement; see §Ch15 |
 | `repro_battle_items.py` | the healing-item policy, exhaustively | 27 checks, **no emulator**, seconds |
+| `probe_slide_endpoints.py` | where every current slide in the ROM really ends, and how much of KI-76 is ARMED | ‼ **the pattern worth copying: PRODUCTION IS THE ORACLE.** It classifies on `PathTile.forced_movement_to` — the value `map_path.py` itself computes — and keeps its own replica only for the break REASON, reporting the AGREEMENT RATE (3,763/4,384). v1 replicated production instead and was blind past a map boundary; an adversarial review caught it. ⛔ **Before re-implementing production logic in a probe, check whether production already PUBLISHES the value** |
 | `compare_runs.py --label A a.log --label B b.log` | **did my A/B arms actually come out DIFFERENT?** | ⛔ read the **`A/B DISCRIMINATION`** section, NOT the clusters — a cluster tagged `<<< SPANS LABELS` means *the runs AGREE*, the wrong-signed answer to an A/B. It grades on `ACCEPTANCE:` and **names the axes blind to your difference** (added 2026-08-17 after it was measured calling a `FAIL`/`PASS` pair identical on all four original axes) |
 
 **Telemetry now in the bot itself:** `[TURN n]` (one line per battle decision — actor, HP, move,

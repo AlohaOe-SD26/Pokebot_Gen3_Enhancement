@@ -1,0 +1,132 @@
+Running mGBA 0.10.2
+Simulating EVERY current chain on EVERY map that has currents, and classifying its endpoint.
+‼ D1 ARMED = the chain stops because walkable LAND is ahead (the game dismounts you ONTO it).
+‼ D2 ARMED = the chain's endpoint tile IS a warp (the planner never penalises it).
+
+
+====================================================================================================
+1. EVERY MAP WITH CURRENTS — how many of its chains are ARMED for each defect
+====================================================================================================
+
+  map                               chains  D1 armed  D2 armed   both  cycles   edge
+  ROUTE133                            1552       765         0      0       0      0
+  ROUTE132                            1345       542         0      0       0      0
+  ROUTE134                            1262       501         0      0       0      0
+  SEAFLOOR_CAVERN_ROOM7                117        44         0      0       0      0
+  SEAFLOOR_CAVERN_ROOM6                108         0         9      0       0      0
+
+====================================================================================================
+2. POSITIVE CONTROL — reproduce KI-76's two INDEPENDENTLY-RECORDED cavern numbers
+====================================================================================================
+
+  KI-76 (2026-08-13, a different session, a different analysis) recorded:
+     ROOM7 — 44 of 117 chains funnel into (3,18) and push south onto (3,19)
+     ROOM6 —  9 of 108 chains terminate on (14,8), a Non-Animated Door warp
+  ⛔ If this probe cannot reproduce BOTH, nothing else it prints may be believed.
+
+  ROOM7: chains=117 (expect 117), ending (3,18)->(3,19) = 44 (expect 44)   PASS
+  ROOM6: chains=108 (expect 108), ending (14,8) = 9 (expect 9), (14,8) is a warp = True (expect True)   PASS
+
+====================================================================================================
+3. ‼ THE UNMEASURED MAPS — ROUTE132 / ROUTE133 / ROUTE134 (the Regi arc and §Ch23 approach)
+====================================================================================================
+
+  `map_path.py:258` says in as many words that these are unmeasured. They are the reason
+  the 512-step cap was added on faith. Here is what they actually contain.
+
+  ROUTE132: chains=1345  D1_armed=542  D2_armed=0  cycles=0  longest_chain=42 steps (from (53, 21))
+       D1:  109 chain(s) stop on (14, 10); the GAME dismounts onto (13, 10)
+       D1:  109 chain(s) stop on (51, 28); the GAME dismounts onto (50, 28)
+       D1:   77 chain(s) stop on (15, 17); the GAME dismounts onto (14, 17)
+       D1:   22 chain(s) stop on (0, 19); the GAME dismounts onto (68, 15)
+       D1:   20 chain(s) stop on (25, 34); the GAME dismounts onto (24, 34)
+       D1:   19 chain(s) stop on (25, 33); the GAME dismounts onto (24, 33)
+       ... and 34 more distinct D1 endpoints
+  ROUTE133: chains=1552  D1_armed=765  D2_armed=0  cycles=0  longest_chain=73 steps (from (79, 13))
+       D1:  172 chain(s) stop on (8, 16); the GAME dismounts onto (7, 16)
+       D1:  159 chain(s) stop on (1, 31); the GAME dismounts onto (0, 31)
+       D1:  114 chain(s) stop on (1, 30); the GAME dismounts onto (0, 30)
+       D1:   38 chain(s) stop on (69, 15); the GAME dismounts onto (68, 15)
+       D1:   26 chain(s) stop on (44, 33); the GAME dismounts onto (43, 33)
+       D1:   22 chain(s) stop on (0, 17); the GAME dismounts onto (63, 17)
+       ... and 40 more distinct D1 endpoints
+  ROUTE134: chains=1262  D1_armed=501  D2_armed=0  cycles=0  longest_chain=43 steps (from (68, 18))
+       D1:  165 chain(s) stop on (26, 17); the GAME dismounts onto (25, 17)
+       D1:   76 chain(s) stop on (32, 6); the GAME dismounts onto (31, 6)
+       D1:   20 chain(s) stop on (40, 12); the GAME dismounts onto (39, 12)
+       D1:   17 chain(s) stop on (43, 13); the GAME dismounts onto (42, 13)
+       D1:   16 chain(s) stop on (64, 17); the GAME dismounts onto (63, 17)
+       D1:   14 chain(s) stop on (66, 16); the GAME dismounts onto (65, 16)
+       ... and 36 more distinct D1 endpoints
+
+====================================================================================================
+4. WHOLE-ROM TOTALS
+====================================================================================================
+
+  maps with currents        : 5   (unreadable maps: 0)
+  current chains simulated  : 4384
+  D1 ARMED (wrong endpoint AND wrong movement mode): 1852
+  D2 ARMED (endpoint is an unpenalised warp)       : 9
+  cycles / cap hits                                : 0
+  chains stopping at a map EDGE (see simulate()'s stated simplification): 0
+
+  Endpoint reasons across the whole ROM:
+    blocked      2830
+    open_water   1530
+    noconn       24
+
+====================================================================================================
+4b. ‼ IS THE DISMOUNT PREMISE ACTUALLY TRUE? — elevation of every D1 tile the game would
+====================================================================================================
+
+  KI-76's mechanism is specific: the game dismounts you onto land at ELEVATION_DEFAULT (3).
+  If a D1-armed chain's next tile is NOT elevation 3, the dismount claim does not obviously
+  hold for it and it must not be counted as if it did. ⛔ Do not assume this — it is the
+  premise the whole defect rests on, and it costs one dict to check.
+
+    elevation 3     1852  <- ELEVATION_DEFAULT: the documented dismount case
+
+====================================================================================================
+4c. ‼‼ THE ORACLE — PRODUCTION'S OWN ENDPOINT vs THIS PROBE'S REPLICA
+====================================================================================================
+
+  v1 of this probe classified on its OWN re-implementation and therefore could not see past
+  a map boundary; an adversarial review kicked that back, correctly. Every count above is now
+  classified on `PathTile.forced_movement_to` — the value `map_path.py:260-350` ITSELF
+  computes, cross-map connection following and the shared 512-step budget included.
+  ⇒ There is no longer an `edge` blind spot: production followed those chains and this probe
+    read where they truly ended.
+
+    chains production answered for : 4384 of 4384
+    replica AGREED with production  : 3763
+    replica DISAGREED (production wins; these are the cross-map chains v1 could not see): 621
+      ROUTE132                          376 chain(s) where the replica stopped short of production
+      ROUTE133                          245 chain(s) where the replica stopped short of production
+
+  ‼ A DISAGREEMENT IS NOT A PROBE BUG: it is precisely the cross-map case, and production's
+    answer is the one used above. Agreement on the remaining chains is what shows the replica
+    was faithful everywhere it could see — which is why the break-REASON it supplies is safe.
+
+  ✅ THE 512-STEP CAP NEVER FIRED on any map with currents, with production following
+     every cross-map chain on ONE shared budget. ⇒ no current chain in this ROM cycles,
+     and the cap cannot truncate a healthy path. (This is the claim v1 could NOT make.)
+
+  Longest chain PRODUCTION computed (cross-map following included): 77 steps
+  ⇒ against the 512 cap at `map_path.py:260` that is a 6.6x margin, now PROVEN rather than assumed.
+
+  ⛔ THE ONE RESIDUAL, STATED RATHER THAN ROUNDED AWAY: 24 chain(s) (0.5%) end ON a map edge,
+     so the tile the game would dismount onto lies on the NEIGHBOURING map and this
+     classifier does not read across that boundary. They are counted as NOT D1-armed.
+  ⇒ ‼ THE D1 TOTAL IS THEREFORE A LOWER BOUND, UNDERSTATED BY AT MOST 24.
+     (D2 is unaffected: it is decided by the endpoint tile itself, which production gave us.)
+
+====================================================================================================
+DONE — measurement only. Nothing was changed.
+====================================================================================================
+
+✅ Positive control reproduced both recorded cavern numbers — the counts above are evidence.
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-08-17_17-30-35.ss1 created!
+Updated `current_state.ss1`!

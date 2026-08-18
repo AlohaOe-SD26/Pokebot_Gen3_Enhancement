@@ -1815,7 +1815,21 @@ Fixed, driven and gated (`repro_multi_battle_partner.py`, in the standing suite)
 
 ---
 
-## KI-76 — our CURRENT-SLIDE model ends the slide ONE TILE SHORT and in the WRONG MOVEMENT MODE, and it cannot see that a slide can END ON A WARP (2026-08-13 — ✅ SAFETY half FIXED and fault-tested; ⚠ CORRECTNESS half OPEN; the §Ch20 Room 6 route is driven and sprang no trap, so it is ARMED chiefly on Routes 132-134)
+## KI-76 — our CURRENT-SLIDE model ends the slide ONE TILE SHORT and in the WRONG MOVEMENT MODE, and it cannot see that a slide can END ON A WARP (2026-08-13 — ✅ SAFETY half FIXED, fault-tested, and its cap now PROVEN; ⚠ CORRECTNESS half OPEN and TRACKED as `#24-ki76correctness`; ‼ **MIXED ARMING — the two defects are armed in DIFFERENT PLACES, see the 2026-08-17 block**)
+
+> ⛔⛔ **THIS HEADER USED TO END *"so it is ARMED chiefly on Routes 132-134"*, ONE claim covering
+> TWO defects. MEASURED 2026-08-17 (`probe_slide_endpoints.py`), that is half right and half
+> BACKWARDS:** the **dismount** defect is armed **1,852** times ROM-wide and overwhelmingly on those
+> routes (765/542/501) — but the **ends-on-a-warp** defect is armed **9** times and **ALL NINE ARE
+> IN SEAFLOOR_CAVERN_ROOM6, ZERO on the routes.** A reader acting on the old header would have hunted
+> the warp defect on the routes, where it does not exist. ‼ **A header covering two defects must
+> state each one's status separately** — the P2 rule, applied to defects rather than to bullets.
+> ✅ **The 512-step cap is no longer taken on faith:** production followed every cross-map chain on
+> ONE shared budget, the cap NEVER fired, nothing cycles, and the longest chain is **77** steps
+> (margin **6.6x**). ⛔ The *"longest real chain is 32 / ~16x / Routes 132-134 are unmeasured"* line
+> below and in `map_path.py` was stale on all three counts and is corrected in both.
+> ➡ **Full measurement, the priority ruling and the startable next action live in
+> `03-PUNCH-LIST.md` under `#24-ki76correctness`. ⛔ The numbers are NOT repeated here — one copy.**
 
 Found by an adversarial audit of the KI-59-era claim *"our planner models the currents"*, which I had
 just committed off the back of a clean 4/4 prediction run. **The 4/4 stands; the conclusion drawn
@@ -1907,11 +1921,21 @@ SURF STATE, not merely that it arrived somewhere.
   `ROUTE134` 1262, `SEAFLOOR_CAVERN_ROOM7` 117, `ROOM6` 108 — and **0 tiles are ARMED** for the
   `None` unpack (an edge current pushing off-map with no connection that way).
   ‼ **No currently-driven map contains a single current tile**, so neither defect was ever live.
-  ‼ **BUT Routes 132/133/134 carry ~10x the cavern's currents and are UNMEASURED for cycles** — and
-  they are the route to the **Sealed Chamber (Regi arc)** and **Ever Grande (§Ch23)**. The cap is
-  ~16x the longest real chain (32), cannot alter any terminating chain (**A/B: probe output
-  byte-identical**), and was **fault-tested** by injecting `cap=3`, which raised with a diagnostic
-  naming the tile and map. `probe_current_edges.py` is the measurement.
+  ⛔ **SUPERSEDED 2026-08-17 — this paragraph asserted three things that are now MEASURED FALSE OR
+  DISCHARGED.** It read: *"Routes 132/133/134 carry ~10x the cavern's currents and are UNMEASURED
+  for cycles … The cap is ~16x the longest real chain (32)"*. **They are measured now**
+  (`probe_slide_endpoints.py`): **0 cycles** across all 4,384 chains with production following every
+  cross-map chain on ONE shared budget, longest chain **77** (not 32 — that 32 was the CAVERN's
+  longest, generalised), margin **6.6x** (not ~16x). ‼ And the *"route to … Ever Grande"* half is an
+  OVERSTATEMENT: Ever Grande is a **Fly destination** (`modules/region_map.py:54`, verified in our own
+  fork), so §Ch23 can bypass the currents entirely. ⚠ The Sealed Chamber / Regi arc *looks* like the
+  real forcing function, but ⛔ **that half is UNVERIFIED** — the ROUTE134 `(60,31)` dive entry comes
+  from a research NOTE that says so itself. Confirm it before calling anything unavoidable;
+  `#24-ki76correctness` carries the exact check.
+  ✅ What still stands: the cap **fails loud**, was **fault-tested** at `cap=3` (raised, naming the
+  tile and map), and cannot alter any terminating chain (**A/B: probe output byte-identical**).
+  `probe_current_edges.py` measured the `None`-unpack arming; `probe_slide_endpoints.py` measures
+  the endpoints. ➡ Counts and priority: `03-PUNCH-LIST.md` → `#24-ki76correctness`.
 * *(original wording)* **`_get_connection_for_direction()` can return `None`** (`map_path.py:435-439`) and is unpacked
   unguarded at `:258/264/272/278` ⇒ **`TypeError` inside `PathMap.tiles`** if a current ever sits on
   a map edge with no connection that way. Not reachable in Rooms 6/7 (interior currents);
@@ -1920,14 +1944,17 @@ SURF STATE, not merely that it arrived somewhere.
   Seafloor Cavern, so not armed here. (‼ "108/117 forced-slide tiles" is loose wording in our docs —
   they are all `*WARD_CURRENT`.)
 
-### Not fixed, and why
+### Not fixed, and why — ✅ NOW TRACKED as `#24-ki76correctness` (it had NO item until 2026-08-17)
 Fixing defect 1 means teaching `map_path` a "slide ends in a dismount" concept, and defect 2 a
 "slide ends in a warp" concept — both are changes to shared pathfinding that every mode depends on,
 i.e. the KI-59 shape, and both need their own A/B. **For §Ch20 the cheap answer is the KI-72 rule
 one level up: do not let the planner choose where a slide ends — pick the tiles explicitly and
-assert them.** ⚠ **UNVERIFIED LIVE:** the `(3,19)` dismount and the `(14,8)` flush are both static
-analysis. Both are cheap to confirm on hardware (surf onto Room 7 `(5,8)`; surf onto Room 6
-`(14,9)`) and should be, before code depends on either.
+assert them.** ⚠ **STILL UNVERIFIED LIVE, and the 2026-08-17 measurement does NOT change that** —
+it is static, it only says HOW MUCH is armed and WHERE. The `(3,19)` dismount and the `(14,8)` flush
+remain analysis. ➡ **Confirm `(14,8)` FIRST: its fixture already exists** (`--driver ch20room6`,
+anchor `saves/post_dive.ss1`) — surf onto Room 6 `(14,9)` and assert the final MAP + TILE + SURF
+STATE. ⛔ Room 7 `(5,8)` has **no driver and no anchor**, so confirming the dismount needs a NEW
+fixture first; that is a deliverable, not a patch. Both live in `#24-ki76correctness`.
 
 ---
 
@@ -2233,7 +2260,7 @@ the 6000-frame per-invocation bound, with only two refusable slots to burn throu
 
 ### ✅✅✅ FIXED AND PROMOTED TO BOTH FORKS 2026-08-17 (user-approved)
 
-✅ **PROMOTED TO BOTH FORKS 2026-08-17, USER-APPROVED — drift was 0 at that point.** *(⚠ It is **4** today for UNRELATED sandbox-only files; this KI is still promoted. MEASURE with `promote.py --check`.)* Proven by a THREE-POINT A/B against `--build custom`: BEFORE `on_field=[0,3]`/`[1,3]`, 2 faints, 486 presses → AFTER `on_field=[0,1]`, 1 faint, 361 presses → sandbox control IDENTICAL to AFTER. Restore point `restore/2026-08-17-pre-promotion-ki66-onfield`.
+✅ **PROMOTED TO BOTH FORKS 2026-08-17, USER-APPROVED — drift was 0 at that point.** *(⚠ It is **5** today for UNRELATED sandbox-only files; this KI is still promoted. MEASURE with `promote.py --check`.)* Proven by a THREE-POINT A/B against `--build custom`: BEFORE `on_field=[0,3]`/`[1,3]`, 2 faints, 486 presses → AFTER `on_field=[0,1]`, 1 faint, 361 presses → sandbox control IDENTICAL to AFTER. Restore point `restore/2026-08-17-pre-promotion-ki66-onfield`.
 
 `_on_field` now maps through `BattleState.map_battle_party_index` before being compared against
 `party_in_menu`, mirroring what `alive_slots` three blocks below has done since KI-34.
@@ -2338,7 +2365,7 @@ number in prose** — it is the only thing that counts them.
 ## KI-65 — ✅✅✅ **CLOSED 2026-08-16: REPRODUCED, FIXED, A/B-PROVEN, GATED (#25) AND PROMOTED TO BOTH FORKS (user-approved).** Was: the HM-refusal re-pick raises `UnboundLocalError` into a silent `except` **WHEN `_read_offered_move` HAS ALREADY FAILED**, so two invisible failures compound into a silent decline (filed 2026-08-12, code-verified)
 
 > ⛔ **STATUS IN ONE LINE:** the bug is FIXED in `sandbox-pokebot` and guarded by gate #25
-> (`repro_ki65_unbound_party_index.py`). ✅ **PROMOTED 2026-08-16, USER-APPROVED — drift was 0 at that point. ✅ **AND IT WAS ZERO AGAIN as of 2026-08-17** *(⚠ but it is **4 today** for UNRELATED sandbox-only files — this KI is still promoted. MEASURE with `promote.py --check`; a same-day past tense reads as today's figure, which is why this caveat matches KI-66's.)* — the KI-66 `_on_field` fix was PROMOTED the same day (user-approved). *(This clause briefly read "NOT ZERO … a ruling is owed", which was true for about an hour and then was not; it is the reason rule 8 below exists. MEASURE with `promote.py --check`.)*** The KI-65 fix is in BOTH forks, proven by a THREE-POINT A/B against `--build custom`: BEFORE `fault_fired=159, lie_msg=1` → `ACCEPTANCE: FAIL`; AFTER `fault_fired=87, lie_msg=0, honest_msg=1` → `ACCEPTANCE: PASS`; and `--build sandbox` still PASS. Restore point `restore/2026-08-16-pre-promotion-ki65`. ‼ Everything below the "RECON" heading is the
+> (`repro_ki65_unbound_party_index.py`). ✅ **PROMOTED 2026-08-16, USER-APPROVED — drift was 0 at that point. ✅ **AND IT WAS ZERO AGAIN as of 2026-08-17** *(⚠ but it is **5 today** for UNRELATED sandbox-only files — this KI is still promoted. MEASURE with `promote.py --check`; a same-day past tense reads as today's figure, which is why this caveat matches KI-66's.)* — the KI-66 `_on_field` fix was PROMOTED the same day (user-approved). *(This clause briefly read "NOT ZERO … a ruling is owed", which was true for about an hour and then was not; it is the reason rule 8 below exists. MEASURE with `promote.py --check`.)*** The KI-65 fix is in BOTH forks, proven by a THREE-POINT A/B against `--build custom`: BEFORE `fault_fired=159, lie_msg=1` → `ACCEPTANCE: FAIL`; AFTER `fault_fired=87, lie_msg=0, honest_msg=1` → `ACCEPTANCE: PASS`; and `--build sandbox` still PASS. Restore point `restore/2026-08-16-pre-promotion-ki65`. ‼ Everything below the "RECON" heading is the
 > PRE-FIX investigation, kept because three of its load-bearing claims were WRONG and a future
 > session must not re-derive them. **Read the FIX block immediately below first.**
 

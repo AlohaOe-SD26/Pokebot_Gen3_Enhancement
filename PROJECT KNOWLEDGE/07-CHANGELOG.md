@@ -16549,3 +16549,75 @@ after-decoupled}`, `FAIL = {before-decoupled, after-coupled}`) while `location` 
 ⚠ **Not closed by this:** the research note's *other* unbuilt half, the natural-vs-injected
 byte-equivalence control, is still unbuilt and still unspecified.
 ⚠ `tools/` is shared, not forked — **no promotion twin, no drift movement.** 27/27 gates PASS.
+
+## 2026-08-17 — `#24-orphans` (6): KI-76's correctness half is SHELVED and MEASURED (production as the oracle)
+
+**What (6) actually was.** *"KI-76's CORRECTNESS half is OPEN and MIS-SHELVED."* Verified before
+acting: KI-76 had **no punch-list entry of any kind** — its only appearances were this bullet, which
+said it was mis-shelved, and one buried line at `04-HANDOFF.md:610` inside a §Ch20-era block. It is
+now `#24-ki76correctness`. ⛔ **The DEFECTS are still OPEN; what closed is the orphaning.**
+
+**New instrument: `tools/story-dev/probe_slide_endpoints.py`.** It walks every current chain on
+every map in the ROM and classifies the endpoint for both defects.
+
+**‼ The build was KICKED BACK by an adversarial review, and the kick-back was right.** v1 classified
+on its own re-implementation of the slide loop, which stops at a map edge while production FOLLOWS
+the connection — leaving 645 of 4,384 chains (14.7%; 28.0% of ROUTE132) unmeasured, and spending
+production's single 512-step budget across a chain the probe never saw the end of. v2 therefore
+stopped arguing about the replica and made **production the oracle**: every count is now classified
+on `PathTile.forced_movement_to`, the endpoint `map_path.py:260-350` itself computes. The replica
+survives only to supply the break REASON and as a cross-check — it agreed with production on
+**3,763 of 4,384** chains, and all 621 disagreements are exactly the cross-map case.
+
+**MEASURED (evidence `evidence/2026-08-17-ki76-slide-endpoints-MEASURED.stdout.txt`):**
+* **Dismount defect — 1,852 armed chains** (lower bound, understated by at most 24): ROUTE133 765,
+  ROUTE132 542, ROUTE134 501, ROOM7 44, **ROOM6 0**.
+* **Ends-on-a-warp defect — 9 armed chains, ALL in SEAFLOOR_CAVERN_ROOM6, ZERO on the routes.**
+  ⇒ **KI-76's header was half backwards**: it said the issue is "ARMED chiefly on Routes 132-134" as
+  one claim over two defects. True of the dismount, false of the warp one.
+* **The premise checked, not assumed:** all 1,852 tiles the game would dismount onto are elevation 3
+  (`ELEVATION_DEFAULT`), so there is no quarantine class.
+* **The safety half's cap is now PROVEN:** production followed every cross-map chain on ONE shared
+  budget, the cap never fired, nothing cycles, longest chain **77** ⇒ margin **6.6x**.
+
+**Positive control, and it is why any of the above is evidence.** KI-76 recorded two numbers from an
+independent 2026-08-13 analysis: ROOM7 44 of 117 chains ending (3,18)->(3,19), and ROOM6 9 of 108
+ending on the (14,8) warp. The probe reproduces **both exactly**, and **exits 1 if it ever stops
+doing so** — so a green run on the routes means something.
+
+**Code corrected: `sandbox-pokebot/modules/map_path.py`.** Its cap comment asserted "longest real
+chain is 32 tiles / ~16x margin / ROUTE132-134 are unmeasured" — **all three now false** (the 32 was
+the cavern's longest, generalised to the ROM). ‼ Comment-only, proven by **AST equality** and the
+check was fault-tested; **net-zero on line count**, verified so that the cited `map_path.py:340`,
+`:344`, `:972` and `:1013` did not move. ⚠ **This takes sandbox↔custom drift from 4 to 5**;
+promotion is the USER's call, as with the other four.
+
+**Priority, corrected against the docs — and only HALF of it is verified.** Ever Grande is a **Fly
+destination** (`modules/region_map.py:54`, checked in our own fork, not the mirror), so §Ch23 can
+bypass the currents entirely — the "route to … Ever Grande" claim in the handoff and KI-76
+overstated it. ⚠ **The Regi-arc half is NOT verified and is recorded as such**: the Sealed Chamber's
+ROUTE134 `(60,31)` dive entry comes from a research note whose own header says everything in it is
+"UNVERIFIED IN OUR HARNESS". ‼ I first wrote it into the punch list as fact and corrected it in the
+same session on noticing the provenance — the item now carries the one-call check instead of the
+claim, because "the routes are unavoidable" is precisely the sentence that would set this item's
+priority.
+
+⛔ **Nothing was patched.** Both fixes touch shared pathfinding every mode depends on (the KI-59
+shape) and KI-76 requires live confirmation first; this measurement is static and does not discharge
+it. 27/27 gates PASS.
+
+## 2026-08-17 — `audit_doc_consistency.py`: a fourth drift-claim shape, found the hard way
+
+A Tier 1 reviewer found **three stale `drift = 4` claims** (`05-KNOWN-ISSUES.md` x2,
+`03-PUNCH-LIST.md` x1) that survived both my hand sweep and a 27/27-green gate run, because the
+figure hangs off a PRONOUN: *"drift was 0 at that point. *(⚠ It is **4** today …)*"*. Every existing
+claim-shape rule required the digit adjacent to `drift`/`differing`.
+
+Added that shape, **bound to the drift subject across a sentence break** (`[^\n]{0,200}`, because
+both real sites put a full stop between subject and pronoun — the period-excluding gap every other
+rule uses matches neither). Fault-tested four ways as `--self-test` **D26/D26b/D26c/D26d**, and then
+against the THREE REAL LINES reverted to 4: all three fire; all three are silent at 5.
+
+‼ **D26d failed on the first draft** — an unscoped `it is N today` fired on any sentence in the tree.
+That is the false-positive class that trains readers to bypass a gate, and it was caught only
+because the fault test suite tests both signs. Docs corrected to 5; 27/27 gates PASS.

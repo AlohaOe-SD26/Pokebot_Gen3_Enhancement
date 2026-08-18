@@ -8086,3 +8086,77 @@ Absence must be tested as a THIRD state, never as another value.
 ‼ **Corollary:** ⛔ **never print a green marker in the same block as a caveat that undercuts it.**
 If the data is partial, the partiality IS the verdict — suppress the ✅ rather than stacking it on
 top of a ⚠.
+
+## 2026-08-17 — I wrote a probe that RE-IMPLEMENTED production, when production was callable all along
+
+**Symptom.** `probe_slide_endpoints.py` v1 hand-replicated `map_path.py`'s current-slide loop to
+measure where slides end. It passed both positive controls, and I was ready to write its numbers
+into `05-KNOWN-ISSUES.md` as ROM-wide facts. An adversarial review kicked it back: the replica stops
+at a map edge, production FOLLOWS the connection, so **645 of 4,384 chains (14.7%, and 28.0% of
+ROUTE132) were never measured at all** — and production spends ONE 512-step budget across the whole
+cross-map chain, so my "no cycles / longest is 73 / the cap has 7x margin" claims were unproven
+exactly where the risk lives.
+
+**Root cause.** I reached for a replica because I wanted something production does not record — the
+REASON a chain stopped. That was a real need, and I let it decide the whole design. But the endpoint
+itself was available the entire time: `PathMap.tiles` runs the real loop and publishes the result as
+`PathTile.forced_movement_to`. **I re-implemented the thing I could have called.**
+
+**Why the positive control did not save me.** It genuinely validated everything it touched — and
+both control chains are INTERIOR to the Seafloor Cavern, so neither crosses a map boundary. **A
+control can only vouch for the code path it exercises**, and mine was structurally silent on the one
+path that mattered. That is not a weak control; it is a control being read as broader than it is.
+
+**The fix, which is also the better design.** Make production the ORACLE: classify on
+`forced_movement_to`, keep the replica only for the break reason and as a cross-check. It then
+agreed with production on 3,763 of 4,384 chains, and every one of the 621 disagreements is exactly
+the cross-map case. The gap closed, and the cap claim became provable rather than assumed (it never
+fires; longest chain 77; margin 6.6x). ‼ It also **shrank the residual to 24 chains**, which the
+probe now prints as an explicit "understated by at most 24" rather than rounding away.
+
+**PREVENTION RULE (one line).** ⛔ **Before re-implementing production logic in a probe, check
+whether production already PUBLISHES the value you want — and if you must replicate, make production
+the oracle and report the AGREEMENT RATE, so the replica's blind spots show up as disagreements
+instead of as silence.**
+
+‼ **Corollary about controls, earned here:** ⛔ **state which code paths your positive control does
+NOT exercise, in the probe itself.** "The control passed" is only as strong as the fraction of the
+population it could have failed on — mine covered 0% of the cross-map chains and said nothing about
+it until an outside reader asked.
+
+## 2026-08-17 — a stale drift figure hid behind a PRONOUN, past a 27/27-green gate and a hand sweep
+
+**Symptom.** Drift moved 4 → 5. I updated it everywhere I could find, and `audit_doc_consistency.py`
+(the gate built for exactly this, hardened twice already) passed. A Tier 1 reviewer then found
+**three sites still saying 4** — two in `05-KNOWN-ISSUES.md`, one in `03-PUNCH-LIST.md`.
+
+**Root cause: the digit hung off a PRONOUN.** The house idiom for pinning a historical promotion
+beside the current figure is
+
+    drift was 0 at that point. *(⚠ It is **4** today for UNRELATED sandbox-only files)*
+
+Every claim-shape rule in the gate wanted the number ADJACENT to its subject — `drift is N`,
+`N differing`, `DRIFT IS N`. Here the subject is in the previous sentence and the claim is carried by
+"It". ‼ And the `_DRIFT_SUBJECT` 90-char window that WOULD have caught it is applied only to the
+`_CURRENCY`/`_NEGATED` pass, not to the claim-shape pass — so nothing looked.
+
+**Why my own sweep missed it too.** I grepped for `drift is 4`, `4 differing`, `DRIFT IS 4` — the
+shapes I knew. **A grep written from the gate's vocabulary has the gate's blind spot.** That is the
+third distinct drift-claim shape to hide here (after the spelled-out "zero", and "0 as of").
+
+**Fixed in the GATE, not in prose** (this project's rule: a rule already broken twice becomes a
+gate). New claim shape, bound to the drift subject across a sentence break, fault-tested FOUR ways
+(D26 fires on stale / D26b quiet on correct / D26c quiet on an explicit retraction / D26d quiet when
+no drift subject is present). ‼ **D26d failed on my first draft** — the bare pattern fired on any
+"it is N today" in the tree — which is exactly the false-positive class that teaches people to
+bypass a gate. And the rule was then fault-tested against **the three real lines**, reverted to 4:
+all three fire, all three silent at 5.
+
+**PREVENTION RULE (one line).** ⛔ **When you change a tracked number, do not grep for the phrasings
+you remember — grep for the NUMBER, in the files that may assert it, and read every hit.** The
+shapes you can list are the ones already in the gate; the stale one is by definition the shape
+nobody thought of.
+
+‼ **Corollary for gate authors:** ⛔ **a subject-proximity check that is applied to only SOME passes
+is a blind spot with a false sense of coverage.** State in the rule itself which pass it lives in
+and whether the subject is checked — mine was not, and the first draft was silently unscoped.

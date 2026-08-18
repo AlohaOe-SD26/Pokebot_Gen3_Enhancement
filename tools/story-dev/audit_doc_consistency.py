@@ -448,7 +448,25 @@ def check_drift(files: dict[str, str], raw: dict[str, str] | None = None) -> lis
         # differing, 0 missing" — 02-ARCHITECTURE), which are CORRECT and must stay quiet; flagging
         # those would make this gate noisy, and a noisy gate gets bypassed. **An EXPECTATION is a
         # claim about NOW; a measurement is a claim about THEN.** D8 below fault-tests exactly that.
-        rf"|\bexpect(?:ed|s)?\b[^.\n]{{0,70}}?({_NUM})\s+differing\b", re.I)
+        rf"|\bexpect(?:ed|s)?\b[^.\n]{{0,70}}?({_NUM})\s+differing\b"
+        # ‼‼ `IT IS <N> TODAY` — ADDED 2026-08-17, AND IT HID A STALE FIGURE PAST A GREEN GATE.
+        # This project's idiom for pinning a HISTORICAL promotion beside the CURRENT figure is
+        # "drift was 0 at that point *(⚠ It is **4** today for UNRELATED sandbox-only files)*".
+        # The subject word `drift` is in the sentence, so the ~90-char subject window is satisfied —
+        # but no rule above matches "it is N today", because every one of them wanted the digit
+        # ADJACENT to `drift`/`differing`. THREE such sites (two in `05-KNOWN-ISSUES.md`, one in
+        # `03-PUNCH-LIST.md`) sat stale at 4 while the same session corrected every other site to 5,
+        # and `run_gates.py` reported 27/27 over them. An independent Tier 1 reviewer found them.
+        # ⇒ The pronoun carries the subject, so the RULE must carry it: unlike the `_CURRENCY` pass,
+        # this pass does NOT apply `_DRIFT_SUBJECT`, so a bare `it is N today` would fire on any
+        # sentence in the tree (D26d proved it — my first draft failed its own false-positive test).
+        # ⛔ The gap is `[^\n]{0,200}` and NOT `[^.\n]`: both real sites put a SENTENCE BREAK between
+        # the subject and the pronoun ("drift was 0 at that point.** *(⚠ It is **4** today …"), so a
+        # period-excluding gap — the idiom every other rule here uses — matches neither of them.
+        # ⛔ `\*{0,2}` because the figure is written both `**4** today` and `**4 today`.
+        # Guarded by D26 / D26b / D26c / D26d, which test both signs.
+        rf"|\b(?:drift|differing)\b[^\n]{{0,200}}?\bit\s+(?:is|was)\s+\*{{0,2}}({_NUM})\*{{0,2}}\s+today\b",
+        re.I)
     out: list[str] = []
 
     def value(m: re.Match) -> int:
@@ -1045,6 +1063,23 @@ def self_test() -> int:
     expect("D25 …but an EXPLICIT retraction still silences it -> quiet",
            check_drift({"T": f"*(Superseded: this read AND IT IS {wrong.upper()} AGAIN as of "
                              f"2026-08-17)*\n"}), False)
+    # ‼‼ D26 — THE SHAPE THAT HID A STALE FIGURE PAST 27/27 GREEN ON 2026-08-17. The subject word
+    # sits in the sentence but the digit hangs off a PRONOUN, so every earlier rule missed it.
+    # ⛔ D26c is the false-positive half and matters just as much: this file is full of prose ABOUT
+    # stale figures, and a gate that fires on a retraction gets bypassed.
+    expect("D26 `drift was 0 … It is <wrong> today` -> fires",
+           check_drift({"T": f"drift was 0 at that point *(It is **{W}** today for other files)*\n"}),
+           True)
+    expect("D26b the same shape carrying TODAY's figure -> quiet",
+           check_drift({"T": f"drift was 0 at that point *(It is **{measured}** today for other files)*\n"}),
+           False)
+    # ‼ D26c carries the word `drift` ON PURPOSE. Without it the rule cannot match at all, and the
+    # test would pass for the WRONG REASON — proving nothing about the retraction path it names.
+    expect("D26c an explicit RETRACTION of that shape -> quiet",
+           check_drift({"T": f"*(Superseded: the drift cell read It is **{W}** today until corrected)*\n"}),
+           False)
+    expect("D26d the shape with NO drift subject in range -> quiet (not every 'it is N today' is drift)",
+           check_drift({"T": f"The batch finished; it is {W} today by the run counter.\n"}), False)
     expect("D19 this gate measures the SAME trees `promote.py` does",
            [] if promote_trees() == _DRIFT_TREES else
            [f"promote.py TREES={promote_trees()} but this gate scans {_DRIFT_TREES}"], False)

@@ -2933,3 +2933,40 @@ blindness behind a convenience command and made it routine.
 RUN the nearest existing tool on a real case before writing any code.** Twice now the answer has
 not been "build it" but "the thing that exists is pointed the wrong way" — and only running it
 says which.
+
+## 2026-08-17 — `#24-ki76correctness`: MEASURE the arming before touching shared pathfinding, and let PRODUCTION be the oracle
+
+**Decision 1 — measure, do not patch.** KI-76's correctness half has been open since 2026-08-13 with
+a specified fix. We did NOT write it. Both defects change SHARED pathfinding that every mode depends
+on (the KI-59 shape), each needs its own A/B, and KI-76 itself requires live confirmation first. So
+the deliverable was a measurement plus a properly-shelved item, not a patch.
+
+**Why that is the right call and not timidity.** The measurement changed what the fix should
+prioritise. The docs treated KI-76 as one issue "armed chiefly on Routes 132-134"; measured, the two
+defects are armed in *different places* — the dismount defect 1,852 times, overwhelmingly on those
+routes, and the ends-on-a-warp defect **9 times, all inside Room 6 and zero on the routes**. A
+session that had started patching from the old header would have hunted the warp defect where it
+does not exist. ⇒ **The cheapest thing you can do to a long-open issue is find out how big it is.**
+
+**Decision 2 — production is the ORACLE; the replica reports agreement.** The first probe
+re-implemented `map_path.py`'s slide loop. That is the obvious design and it is wrong here: the
+replica could not follow a map connection, so 14.7% of chains were unmeasured and the cap-margin
+claim was unprovable exactly where the risk is. Rejected in favour of classifying on
+`PathTile.forced_movement_to` — the endpoint production itself computes — with the replica retained
+ONLY to supply the break reason production does not record, and its disagreement rate PRINTED.
+**Alternatives rejected:** (a) ship v1 with a caveat — rejected, a caveat that a reader must carry
+in their head is not a measurement; (b) build cross-map following into the replica — rejected, the
+positive control is two INTERIOR cavern chains and so could not validate that code, which would have
+shipped unvalidated logic to close a gap caused by unvalidated logic.
+
+**Decision 3 — correct the code comment even though it costs drift.** `map_path.py`'s cap comment
+asserted three things measurement refuted ("longest real chain is 32 / ~16x margin / Routes 132-134
+unmeasured"). Fixing it takes sandbox↔custom drift 4 → 5 while a promotion decision is already owed.
+Taken anyway: a false statement in production code is how the 32 — which was only ever the CAVERN's
+longest — became a ROM-wide claim in the first place. ‼ Proven comment-only by **AST equality**
+(fault-tested), and written **net-zero on line count** so no `map_path.py:NNN` citation in the
+append-only logs moved.
+
+**The rule this leaves behind.** ⇒ **A header that covers two defects must state each one's status
+separately.** P2 already says a heading is a claim about every bullet beneath it; this is the same
+rule applied to defects inside one issue, and it cost nothing to find once someone counted.

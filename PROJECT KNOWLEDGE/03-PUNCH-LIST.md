@@ -174,66 +174,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       collect it at the next heal. Frees exactly ONE slot, never deposits its own target.
       `repro_pc_overflow.py`. **NOT live-proven.**
 
-- [x] `#24-cavethread` — **‼ CLOSED 2026-08-05: IT WAS NEVER A BLOCKER. Multi-hop cave
-      threading ALREADY WORKS, in both directions, with no chain table.**
-      Measured (`--driver cavethread`, `reached_dest` = maps actually visited):
-      **IN** `DEWFORD_TOWN → ROUTE106 → GRANITE_CAVE_1F → B1F → B2F` (3 warps);
-      **OUT** `GRANITE_CAVE_B1F → GRANITE_CAVE_1F → ROUTE106 → DEWFORD_TOWN`.
-      MT_PYRE_SUMMIT is the same 3-warp shape ⇒ **`#24-mtpyre` is UNBLOCKED**, and Granite Cave
-      B1F/B2F can be unparked as training grounds.
-      ‼ **THE ONE REAL GOTCHA: never pass a WARP TILE (door/ladder/stairs) as a navigation
-      destination** — walking onto it FIRES it, so the trip ends one map PAST the target and
-      the navigator reports success. Both probe runs hit this and both first read as failures.
-      Only the stale `_CAVE_EXITS` comment was changed; the tables are kept (redundant, cheap,
-      harmless). Full detail: `07-CHANGELOG.md` + `08-MISTAKES.md` 2026-08-05.
-
-      <details><summary>superseded framing (kept for the reasoning trail)</summary>
-
-      ‼ **RE-SCOPED 2026-08-05 — DO NOT BUILD THE CHAIN TABLE YET. MEASURE FIRST.**
-
-      The item used to read "`_CAVE_EXITS`/`_CAVE_ENTRANCES` are SINGLE-HOP, therefore build a
-      multi-hop chain table". **The premise behind that conclusion is stale.** Those two tables
-      date from 2026-07-26 and their justifying comment says *"the global navigator can NOT
-      cross warp levels"* — which was true then and **was fixed on 2026-07-31 by `#24-journey`**.
-      `navigate_to_anywhere` is now a multi-hop, self-replanning, live-validated warp navigator,
-      and `_navigate_riding_out` (what the training/hunting paths already call) wraps it.
-
-      **STATIC RECON DONE (2026-08-05, no emulator** — replayed `WarpGraph.map_route` against
-      the committed ROM cache `cache/warp_graph_BPEE0.json`; script in the changelog entry):
-      the graph **already knows every route in question, in BOTH directions** —
-      | route | hops |
-      |---|---|
-      | `ROUTE106 -> GRANITE_CAVE_B2F` | 3 |
-      | `GRANITE_CAVE_B2F -> DEWFORD_TOWN` (the leg that dropped 2 real-HW runs) | 4 |
-      | `ROUTE122 -> MT_PYRE_SUMMIT` | 3 |
-      | `JAGGED_PASS -> MAGMA_HIDEOUT_4F` | 4 |
-
-      ‼ **WHAT THIS DOES AND DOES NOT PROVE.** It refutes "the route data is missing" — the
-      thing a hand-built chain table would supply. It does **NOT** prove the bot can WALK it:
-      `map_route`'s own docstring warns its connection edges can be **PHANTOMS** (the measured
-      Verdanturf->Route116 case). Route known ≠ route walkable. That is the same
-      one-measurement-fits-all error KI-39 already cost this project a day on.
-
-      **THE REAL RISK, NAMED:** `_walk_warp_chain` documents a **ONE-WAY LEDGE** on Granite Cave
-      1F — within-floor reachability is **DIRECTIONAL**, so the graph's single `GRANITE_CAVE_1F`
-      node is really two disjoint sections, which a MAP-granular planner cannot see. The generic
-      navigator's `used_warps` + revisit-deprioritisation is a *plausible but unproven* mitigation.
-
-      ⏭ **NEXT ACTION — run the probe, it is already written** (`--driver cavethread`, added to
-      `story_harness.py` 2026-08-05; destination tiles come from the warp graph's own ROM
-      `to_coords`, so nothing is guessed):
-      ```
-      cd tools/story-dev
-      PYTHONUTF8=1 py -3.12 story_harness.py saves/dewford.ss1 --driver cavethread \
-          --frames 600000 --profile repro-cave1
-      ```
-      **Granite Cave is the deliberate test case, not a convenience:** same 3-warp depth as Mt.
-      Pyre Summit, already parked for this, and it carries the hardest known hazard (the ledge).
-      If the generic navigator threads Granite Cave in AND back out, `#24-cavethread` collapses
-      from "build a chain system" to "delete the two stale tables" — and Mt. Pyre unblocks.
-      If it fails, the log names which leg and where, and THAT is the thing to fix.
-      ‼ Needs the box; do not run it while a batch is using the lanes.
-      </details>
+- [x] `#24-cavethread` — ✅ **CLOSED 2026-08-05 — IT WAS NEVER A BLOCKER. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (the R3 relief valve: this file hit its 3,600-line limit). ⛔ Nothing here is outstanding; read the archive only for the multi-hop cave reasoning.
 
 - [x] `#24-mtpyre` — **BUILT AND LIVE-PROVEN 2026-08-06.** `open_route121_aqua_gate()` +
       `do_mt_pyre_summit()`, Segment 14. From `post_winona.ss1` in 76,368 frames: Magma Emblem
@@ -1900,7 +1841,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
       an UNMEASURED heap offset, and it needs the USER.**
       ⛔ **STATUS IN ONE LINE: production can now READ the verdict; it still does not ACT on it.**
       That split is deliberate and is the whole shape of this item.
-      ✅✅ **WHAT SHIPPED (sandbox only — ⚠ drift is 4, awaiting a user-approved promotion):**
+      ✅✅ **WHAT SHIPPED (sandbox only — ⚠ drift is 5, awaiting a user-approved promotion):**
       all five exits of `withdraw_from_box` return `(landed, code, detail)` — the shape the recorded
       design asked for — its ONE caller (`modules/modes/util/higher_level_actions.py:356`) BINDS the
       result, and a new PURE function `withdraw_verdict_report` turns it into a reported line.
@@ -1977,7 +1918,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
 - [x] **(2) ✅✅ DONE 2026-08-16 — KI-65 is REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25).**
       ✅ **PROMOTED TO BOTH FORKS 2026-08-16, USER-APPROVED** — by a THREE-POINT A/B against
       `--build custom` (BEFORE `lie_msg=1` → FAIL; AFTER `lie_msg=0, honest_msg=1` → PASS; sandbox
-      still PASS), never a byte-compare. Drift was **0** at that moment (2026-08-17, after the KI-66 `_on_field` promotion). ⚠ It is **4** today — MEASURE with `promote.py --check`. *(This line read "1 again … ruling owed" for about an hour between the two promotions; MEASURE with `promote.py --check`, never read a drift figure from prose.)* Restore `restore/2026-08-16-pre-promotion-ki65`.
+      still PASS), never a byte-compare. Drift was **0** at that moment (2026-08-17, after the KI-66 `_on_field` promotion). ⚠ It is **5** today — MEASURE with `promote.py --check`. *(This line read "1 again … ruling owed" for about an hour between the two promotions; MEASURE with `promote.py --check`, never read a drift figure from prose.)* Restore `restore/2026-08-16-pre-promotion-ki65`.
       The repro (`repro_ki65_unbound_party_index.py`) drives the real bot from `route116team.ss1`
       with an INJECTED Marshtomp whose **slot 0 is deliberately Rock Smash (HM06)**; pre-fix ARM A
       printed *"Nothing else can be given up — declining the new move."* **while three forgettable
@@ -2089,15 +2030,80 @@ level-matched encounters maintenance needs. Done together they are one activity,
       one that would shut the *"is an injected mon really like a caught one"* gap.
       ⚠ **`tools/` is shared, not forked** — this change carries **no promotion twin** and does not
       move the sandbox↔custom drift figure.
-- [ ] **(6) KI-76's CORRECTNESS half is OPEN and MIS-SHELVED.** Its only queue mention sits inside a
-      block the handoff brackets as *"older framing … ⛔ also NOT next"*. ⚠ It is ARMED on Routes
-      132/133/134 — the approach to the Regi arc and §Ch23 — so it will resurface as a "new" bug at
-      the worst possible moment.
+- [x] **(6) ✅ DONE 2026-08-17 — SHELVED (it now has its own item, `#24-ki76correctness`) AND
+      MEASURED. ⛔ The DEFECTS remain open; what closed is the ORPHANING, which is what this bullet
+      was about.** *(Was: "KI-76's CORRECTNESS half is OPEN and MIS-SHELVED. Its only queue mention
+      sits inside a block the handoff brackets as 'older framing … ⛔ also NOT next'.")*
+      ‼ **Verified before acting:** KI-76 had **no punch-list entry of any kind** — its sole
+      appearance in this file was this bullet saying it was mis-shelved, and its sole handoff
+      appearance was buried at `04-HANDOFF.md:610` inside a §Ch20-era block. It is now a first-class
+      item with the measurement attached; the numbers live THERE, not here, so they cannot drift
+      into a second copy.
 
 ‼ **PREVENTION, and it is a question rather than a rule:** at wrap-up, for every *"still open /
 owed / not built / residual"* sentence written that session, ask **"where would a future session
 FIND this?"** If the only answer is an append-only log, a CLOSED KI's body, or a research note, it
 is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
+
+### ‼ `#24-ki76correctness` — KI-76's CORRECTNESS half: the slide model's ENDPOINT is wrong (filed 2026-08-17 from `#24-orphans` (6), which existed because this had NO item of its own)
+
+- [ ] **TWO OPEN DEFECTS IN `map_path.py`, and they have OPPOSITE arming profiles — ⛔ do not treat
+      them as one issue, which is exactly what KI-76's own header did until this measurement.**
+      **(A) THE DISMOUNT DEFECT** — `map_path.py:340-344` ends a slide on the LAST WATER TILE; the
+      game moves the player ONTO the walkable land tile ahead and DISMOUNTS
+      (`COLLISION_STOP_SURFING`). ⇒ wrong tile AND wrong movement mode; every planned step after it
+      is wrong.
+      **(B) THE ENDS-ON-A-WARP DEFECT** — `map_path.py:972` charges the 1,000,000 warp penalty
+      against the NEIGHBOUR, and `:1013` only afterwards substitutes the slide DESTINATION. So a
+      slide that ends on a warp is never penalised and never marked `is_warp`. ‼ And A* is *biased
+      toward* long slides (~9x cheaper than walking under `avoid_encounters`), i.e. toward exactly
+      the moves that spring it.
+      ✅✅ **MEASURED 2026-08-17 — `tools/story-dev/probe_slide_endpoints.py`, evidence
+      `evidence/2026-08-17-ki76-slide-endpoints-MEASURED.stdout.txt`. ⛔ DO NOT RE-DERIVE THESE.**
+      ‼ **PRODUCTION IS THE ORACLE**: every count is classified on `PathTile.forced_movement_to` —
+      the endpoint `map_path.py:260-350` ITSELF computes — not on a replica. (A replica was written
+      first, was kicked back by an adversarial review for being blind past a map boundary, and now
+      survives only to supply the break REASON and as a cross-check: it agreed with production on
+      **3,763 of 4,384** chains, and all 621 disagreements are the cross-map case.)
+      | | armed chains | where |
+      |---|---|---|
+      | **(A) dismount** | **1,852** *(lower bound, understated by ≤24)* | ROUTE133 765, ROUTE132 542, ROUTE134 501, ROOM7 44, **ROOM6 0** |
+      | **(B) ends-on-warp** | **9** | **ROOM6 only — ZERO on ROUTE132/133/134** |
+      ✅ **The dismount PREMISE holds with no exceptions:** all 1,852 tiles the game would dismount
+      onto are elevation 3 (`ELEVATION_DEFAULT`) — checked, not assumed, because that premise is
+      what the whole defect rests on.
+      ✅ **AND THE SAFETY HALF'S CAP IS NOW PROVEN, not assumed:** production followed every
+      cross-map chain on ONE shared 512-step budget and the cap **never fired**; nothing cycles; the
+      longest chain in the ROM is **77** steps ⇒ margin **6.6x**. ⛔ `map_path.py`'s comment claimed
+      "32 tiles / ~16x / ROUTE132-134 unmeasured" — all three were stale and are corrected in the
+      code (comment-only, AST-proven, net-zero on line count so no `map_path.py:NNN` citation moved).
+      ⚠ **DRIFT: this took sandbox↔custom from 4 to 5** (`modules/map_path.py`) — comment-only, and
+      promotion is the USER's call like the other four.
+      ⛔ **PRIORITY, and it is NOT what the docs said.** ‼ But §Ch23/Ever Grande is a **Fly
+      destination** — VERIFIED IN OUR OWN FORK, `sandbox-pokebot/modules/region_map.py:54` — so the
+      currents are BYPASSABLE there, and the handoff's "the route to … Ever Grande" OVERSTATES it.
+      ⚠ **The Regi arc looks like the real forcing function, but that half is NOT verified and must
+      not be treated as measured:** the Sealed Chamber's DIVE entry at ROUTE134 `(60,31)` comes from
+      `ai-research-notes/2026-08-13-regi-arc-decomp-ground-truth.md:67`, whose own header says
+      *"Everything else is UNVERIFIED IN OUR HARNESS"*. ⇒ **Before this item's 501 ROUTE134 chains
+      are called unavoidable, confirm that entry with `get_map_data`** — one call, and it decides
+      whether this item is urgent or merely real. ⛔ Do not repeat the coordinate as fact until then.
+      ⛔ **NOT READY TO PATCH, and the reason is KI-76's own:** both fixes are changes to SHARED
+      pathfinding every mode depends on (the KI-59 shape), each needs its own A/B, and KI-76
+      requires **LIVE confirmation before code depends on either**. This measurement is static; it
+      does NOT discharge that.
+      ➡ **NEXT ACTION, startable with zero input — live-confirm (B), because the fixture EXISTS:**
+      `--driver ch20room6`, anchor `saves/post_dive.ss1` (both already used and passing). Surf onto
+      ROOM6 `(14,9)` and observe whether the current flushes north through the `(14,8)`
+      Non-Animated Door and OUT OF THE MAP. ‼ Assert the avatar's FINAL MAP + TILE + SURF STATE
+      (`AvatarFlags.Surfing in get_player_avatar().flags`), never "did it arrive".
+      ⛔ **BLOCKER on live-confirming (A), stated rather than hidden:** ROOM7 has **no driver**, and
+      ROUTE132/133/134 are reachable by no built chapter (content ends at §Ch19/20). So (A)'s live
+      confirmation needs a NEW fixture, and that is its first deliverable — not a patch.
+      ⚠ **NAMING HAZARD:** the two defects are numbered inconsistently across three files —
+      `probe_ch20_currents.py:174` calls the WARP one "KI-76 / D1", `probe_current_edges.py:1` calls
+      the `None`-unpack "KI-76 / D5", and KI-76 itself calls the warp one "Defect 2". ⛔ Say
+      "dismount" and "ends-on-warp"; do not mint a fourth numbering.
 
 ### ‼‼ THE BIG ONE — `#24-trainmap+` : area-aware training, party>4, PC rotation
 

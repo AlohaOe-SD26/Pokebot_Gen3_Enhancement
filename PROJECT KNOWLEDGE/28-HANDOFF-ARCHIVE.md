@@ -5522,3 +5522,71 @@ cross-reference still resolves. ⛔ None of this is outstanding work.
       (train near Lavaridge, where ROUTE111/ROUTE117 demonstrably ARE reachable, before
       travelling to Petalburg at all). Expect little from this fix alone in a batch.
 
+## `#24-cavethread` — ARCHIVED VERBATIM from `03-PUNCH-LIST.md` on 2026-08-17
+
+> Moved under the R3 line-budget relief valve (the punch list hit its 3,600-line limit while
+> `#24-ki76correctness` was being filed). ⛔ NOTHING HERE IS OUTSTANDING — CLOSED 2026-08-05,
+> and its own headline says it was NEVER A BLOCKER. Kept verbatim for the multi-hop cave
+> reasoning, which later pathfinding work may still want.
+
+- [x] `#24-cavethread` — **‼ CLOSED 2026-08-05: IT WAS NEVER A BLOCKER. Multi-hop cave
+      threading ALREADY WORKS, in both directions, with no chain table.**
+      Measured (`--driver cavethread`, `reached_dest` = maps actually visited):
+      **IN** `DEWFORD_TOWN → ROUTE106 → GRANITE_CAVE_1F → B1F → B2F` (3 warps);
+      **OUT** `GRANITE_CAVE_B1F → GRANITE_CAVE_1F → ROUTE106 → DEWFORD_TOWN`.
+      MT_PYRE_SUMMIT is the same 3-warp shape ⇒ **`#24-mtpyre` is UNBLOCKED**, and Granite Cave
+      B1F/B2F can be unparked as training grounds.
+      ‼ **THE ONE REAL GOTCHA: never pass a WARP TILE (door/ladder/stairs) as a navigation
+      destination** — walking onto it FIRES it, so the trip ends one map PAST the target and
+      the navigator reports success. Both probe runs hit this and both first read as failures.
+      Only the stale `_CAVE_EXITS` comment was changed; the tables are kept (redundant, cheap,
+      harmless). Full detail: `07-CHANGELOG.md` + `08-MISTAKES.md` 2026-08-05.
+
+      <details><summary>superseded framing (kept for the reasoning trail)</summary>
+
+      ‼ **RE-SCOPED 2026-08-05 — DO NOT BUILD THE CHAIN TABLE YET. MEASURE FIRST.**
+
+      The item used to read "`_CAVE_EXITS`/`_CAVE_ENTRANCES` are SINGLE-HOP, therefore build a
+      multi-hop chain table". **The premise behind that conclusion is stale.** Those two tables
+      date from 2026-07-26 and their justifying comment says *"the global navigator can NOT
+      cross warp levels"* — which was true then and **was fixed on 2026-07-31 by `#24-journey`**.
+      `navigate_to_anywhere` is now a multi-hop, self-replanning, live-validated warp navigator,
+      and `_navigate_riding_out` (what the training/hunting paths already call) wraps it.
+
+      **STATIC RECON DONE (2026-08-05, no emulator** — replayed `WarpGraph.map_route` against
+      the committed ROM cache `cache/warp_graph_BPEE0.json`; script in the changelog entry):
+      the graph **already knows every route in question, in BOTH directions** —
+      | route | hops |
+      |---|---|
+      | `ROUTE106 -> GRANITE_CAVE_B2F` | 3 |
+      | `GRANITE_CAVE_B2F -> DEWFORD_TOWN` (the leg that dropped 2 real-HW runs) | 4 |
+      | `ROUTE122 -> MT_PYRE_SUMMIT` | 3 |
+      | `JAGGED_PASS -> MAGMA_HIDEOUT_4F` | 4 |
+
+      ‼ **WHAT THIS DOES AND DOES NOT PROVE.** It refutes "the route data is missing" — the
+      thing a hand-built chain table would supply. It does **NOT** prove the bot can WALK it:
+      `map_route`'s own docstring warns its connection edges can be **PHANTOMS** (the measured
+      Verdanturf->Route116 case). Route known ≠ route walkable. That is the same
+      one-measurement-fits-all error KI-39 already cost this project a day on.
+
+      **THE REAL RISK, NAMED:** `_walk_warp_chain` documents a **ONE-WAY LEDGE** on Granite Cave
+      1F — within-floor reachability is **DIRECTIONAL**, so the graph's single `GRANITE_CAVE_1F`
+      node is really two disjoint sections, which a MAP-granular planner cannot see. The generic
+      navigator's `used_warps` + revisit-deprioritisation is a *plausible but unproven* mitigation.
+
+      ⏭ **NEXT ACTION — run the probe, it is already written** (`--driver cavethread`, added to
+      `story_harness.py` 2026-08-05; destination tiles come from the warp graph's own ROM
+      `to_coords`, so nothing is guessed):
+      ```
+      cd tools/story-dev
+      PYTHONUTF8=1 py -3.12 story_harness.py saves/dewford.ss1 --driver cavethread \
+          --frames 600000 --profile repro-cave1
+      ```
+      **Granite Cave is the deliberate test case, not a convenience:** same 3-warp depth as Mt.
+      Pyre Summit, already parked for this, and it carries the hardest known hazard (the ledge).
+      If the generic navigator threads Granite Cave in AND back out, `#24-cavethread` collapses
+      from "build a chain system" to "delete the two stale tables" — and Mt. Pyre unblocks.
+      If it fails, the log names which leg and where, and THAT is the thing to fix.
+      ‼ Needs the box; do not run it while a batch is using the lanes.
+      </details>
+

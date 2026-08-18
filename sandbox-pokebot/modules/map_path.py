@@ -252,11 +252,11 @@ class PathMap:
                     # ‼ KI-76 / "never hang". This loop follows a current chain whose DIRECTION is
                     # re-read from each tile, so unlike the waterfall/ice/muddy-slope loops it can
                     # in principle cycle — and it had no bound at all, inside a `@property` that
-                    # `calculate_path` calls. Measured 2026-08-13: no cycles exist in this ROM and
-                    # the longest real chain is 32 tiles (SEAFLOOR_CAVERN_ROOM7), so this cap is
-                    # ~16x the worst real case and cannot alter any terminating chain. It exists for
-                    # the maps nobody has simulated: ROUTE132/133/134 carry 1345/1552/1262 current
-                    # tiles — an order of magnitude more than the cavern — and are unmeasured.
+                    # `calculate_path` calls. ‼ RE-MEASURED 2026-08-17 (`probe_slide_endpoints.py`),
+                    # CORRECTING this comment: ROUTE132/133/134 are no longer "unmeasured", and the
+                    # longest chain is 77 tiles, not the 32 once asserted here (that was the CAVERN's
+                    # longest, generalised to the ROM). Over all 4,384 chains, cross-map following on
+                    # ONE budget, nothing cycles and this cap has never fired — margin 6.6x, not 16x.
                     _slide_cap = 512
                     while destination.tile_type.endswith(" Current"):
                         _slide_cap -= 1
