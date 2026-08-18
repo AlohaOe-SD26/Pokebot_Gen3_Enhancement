@@ -16694,3 +16694,27 @@ bytes and REFUSES wrong ones.
 ‼ **A gate caught a citation error in this very change:** the punch list and the manifest first said
 `--driver ch19c`, which is a LOG TAG, not a driver — the real name is `spacecenter`.
 `audit_doc_consistency`'s phantom-driver rule failed the commit until it was corrected. 27/27 PASS.
+
+## 2026-08-17 — `#24-ki76correctness`: the live-confirmation driver is now SPECIFIED BY MEASUREMENT, and the docs' own tile was UNREACHABLE
+
+Before writing the driver, `probe_room6_warp_entries.py` (NEW, observe-only) settled every value the
+docs withheld. Two of the three answers contradicted the plan I had written from the docs:
+
+* ✅ **The nine entry tiles are enumerated** — `(9,12) (10,10) (10,11) (10,12) (11,10) (12,10)
+  (13,10) (14,9) (14,10)`. Count **9**, matching KI-76's independently recorded 9: a second positive
+  control on a number a different session wrote down.
+* ⛔ **`(14,9)` — the tile KI-76 and my own punch-list entry named — IS UNREACHABLE**, as are **14 of
+  15** candidate staging tiles. Room 6 is ONE-WAY, so `calculate_path` raises `PathFindingError` for
+  all of them. **A driver written from the docs would have failed at runtime after minutes of
+  setup**, which is precisely the class of waste the "try to begin it" rule exists to prevent.
+* ✅ **Exactly one usable staging tile: `(8,12)`** — 5 waypoints from Room 6's entry, no waypoint on
+  a current, none on a warp. It steps **EAST** onto `(9,12)`, whose chain runs **9 steps** to the
+  `(14,8)` warp — a longer and therefore better-evidenced ride than the 1-step `(14,9)`.
+
+‼ **The reachability check was moved OUT of a scratch script and INTO the probe** before it was
+trusted. A measurement that lives in `/tmp` is orphaned by definition — the exact shape
+`#24-orphans` exists to stop, and it would have been the third such lapse this session.
+
+The item now carries the fork point (`story_harness.py:7381`), the staging tile, the press
+direction, the frame budget, the anchor to drive (`post_dive_ki76.ss1`) and the guard to copy.
+`#24-r116sweep` was archived verbatim to `28-HANDOFF-ARCHIVE.md` for the R3 budget. 27/27 PASS.

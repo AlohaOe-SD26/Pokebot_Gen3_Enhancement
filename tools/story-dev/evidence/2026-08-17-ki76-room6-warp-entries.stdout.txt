@@ -1,0 +1,104 @@
+Running mGBA 0.10.2
+SEAFLOOR_CAVERN_ROOM6  size=24x23  warps=[(4, 1), (11, 21), (14, 8)]
+
+
+====================================================================================================
+1. EVERY TILE WHOSE SLIDE ENDS ON THE WARP (14, 8)
+====================================================================================================
+
+  count = 9   (KI-76 records 9 — a MISMATCH here means one of us is wrong)
+    (9, 12)    Eastward Current       steps=9
+    (10, 10)   Eastward Current       steps=6
+    (10, 11)   Northward Current      steps=7
+    (10, 12)   Northward Current      steps=8
+    (11, 10)   Eastward Current       steps=5
+    (12, 10)   Eastward Current       steps=4
+    (13, 10)   Eastward Current       steps=3
+    (14, 9)    Northward Current      steps=1
+    (14, 10)   Northward Current      steps=2
+
+====================================================================================================
+2. CAN A DRIVER STAND NEXT TO ONE? — neighbours that are NOT currents
+====================================================================================================
+
+  ✅ STAGING TILES FOUND — stand here, then press the direction shown to step onto the entry:
+  stand on   press   steps onto stand tile type         
+  (9, 11)    South   (9, 12)    Ocean Water             
+  (9, 13)    North   (9, 12)    Ocean Water             
+  (8, 12)    East    (9, 12)    Ocean Water             
+  (10, 9)    South   (10, 10)   Ocean Water             
+  (9, 10)    East    (10, 10)   Ocean Water             
+  (11, 11)   West    (10, 11)   Ocean Water             
+  (9, 11)    East    (10, 11)   Ocean Water             
+  (10, 13)   North   (10, 12)   Ocean Water             
+  (11, 9)    South   (11, 10)   Ocean Water             
+  (11, 11)   North   (11, 10)   Ocean Water             
+  (12, 9)    South   (12, 10)   Ocean Water             
+  (12, 11)   North   (12, 10)   Ocean Water             
+  (13, 9)    South   (13, 10)   Ocean Water             
+  (13, 11)   North   (13, 10)   Ocean Water             
+  (15, 9)    West    (14, 9)    Ocean Water             
+  (13, 9)    East    (14, 9)    Ocean Water             
+  (14, 11)   North   (14, 10)   Ocean Water             
+  (15, 10)   West    (14, 10)   Ocean Water             
+
+====================================================================================================
+3. THE NEIGHBOURHOOD OF THE FUNNEL TILE THE DOCS NAME — (14,9)
+====================================================================================================
+
+  y=7    .    .    #    #    #    #    #    #    #   
+  y=8    .    .    #    #    #    W*   #    #    #   
+  y=9    .    .    .    .    .    ~    .    .    .   
+  y=10   .    ~    ~    ~    ~    ~    .    .    .   
+  y=11   .    ~    .    .    .    .    .    ~    ~   
+  y=12   ~    ~    ~    ~    ~    ~    ~    ~    .   
+  y=13   .    .    ~    .    .    .    .    .    .   
+
+  x =       9    10   11   12   13   14   15   16   17  
+  legend: W=warp  #=collision  ~=current  .=plain water/floor  *=the target warp (14,8)
+
+====================================================================================================
+4. WHAT PRODUCTION SAYS HAPPENS FROM (14,9) SPECIFICALLY
+====================================================================================================
+
+  (14,9) tile_type = 'Northward Current'
+  production slides it to map=(24, 33) pos=(14, 8) in 1 steps
+  is that the warp (14, 8)? True
+
+====================================================================================================
+5. ‼‼ CAN THE DRIVER ACTUALLY GET TO A STAGING TILE? — REACHABILITY FROM ROOM 6's ENTRY
+====================================================================================================
+
+  ⛔ THIS SECTION IS THE POINT OF THE PROBE. Sections 2-4 answer 'which tile would work';
+  this one answers 'can we STAND there', and the two answers are very different — Room 6 is
+  ONE-WAY (KI-76: our entry mask forbids entering a current head-on against its flow).
+  A driver built on an unreachable staging tile fails at runtime after minutes of setup.
+
+  (8, 12)   PATH len=5   ends_on_target=True  via_currents=none  via_warps=none   <- ✅ USABLE
+  (9, 10)   NO PATH
+  (9, 11)   NO PATH
+  (9, 13)   NO PATH
+  (10, 9)   NO PATH
+  (10, 13)  NO PATH
+  (11, 9)   NO PATH
+  (11, 11)  NO PATH
+  (12, 9)   NO PATH
+  (12, 11)  NO PATH
+  (13, 9)   NO PATH
+  (13, 11)  NO PATH
+  (14, 11)  NO PATH
+  (15, 9)   NO PATH
+  (15, 10)  NO PATH
+
+  reachable: 1 of 15   USABLE (clean route): 1
+  ⇒ ✅ THE DRIVER'S STAGING TILE IS (8, 12) (5 waypoints), stepping onto [(9, 12)].
+
+====================================================================================================
+DONE — measurement only. Nothing was changed.
+====================================================================================================
+
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-08-17_19-33-23.ss1 created!
+Updated `current_state.ss1`!

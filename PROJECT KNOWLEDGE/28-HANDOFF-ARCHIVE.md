@@ -5590,3 +5590,65 @@ cross-reference still resolves. ⛔ None of this is outstanding work.
       ‼ Needs the box; do not run it while a batch is using the lanes.
       </details>
 
+## `#24-r116sweep` — ARCHIVED VERBATIM from `03-PUNCH-LIST.md` on 2026-08-17
+
+> Moved under the R3 line-budget relief valve (the punch list hit its 3,600-line limit while
+> `#24-ki76correctness`'s measured driver spec was being written). ⛔ NOTHING HERE IS
+> OUTSTANDING — ANSWERED 2026-08-09. Kept verbatim for the reachability method and the
+> "do NOT add ROUTE116 to HUNTING_GROUNDS" ruling, which later hunting work still leans on.
+
+- [x] `#24-r116sweep` — ‼ **ANSWERED 2026-08-09: DO NOT ADD ROUTE116 to `HUNTING_GROUNDS`.**
+      Driven sweep from the newly captured, verified anchor `saves/mauville_prewattson.ss1`
+      (MAUVILLE_CITY (19,15), **badge03=False**, party L16-L20):
+      ```
+      [sweep] RESULT ground=ROUTE116 arrived=False left=False badge03=False verdict=DO NOT ADD
+      ```
+      ‼ **READ THE FAILURE PRECISELY — it is not "Route 116 is unreachable".** The journey
+      SUCCEEDED: the bot reached ROUTE116 in ~32,000 frames and stood at **(65, 11)**. The
+      *intra-map* leg then failed — `Could not find a path from (65/11 @ ROUTE116) to
+      (11/7 @ ROUTE116)`. `(11, 7)` is `RUSTBORO_TRAINING_GRASS`, a tile chosen for the
+      **pre-Roxanne** era when the route is entered from the WEST; the counter hunt arrives
+      from the EAST. `probe_r116_east_grass.py` (2 positive controls, both PASS) measured the
+      split: from the east arrival **0 of 138** grass tiles are reachable (17 of 151 walkable,
+      a pocket at x 64-78); from the west **136 of 138** are. Logged as **KI-49**.
+      **CONSEQUENCE FOR WATTSON — this closes handoff concern #5.** His only legal pre-badge
+      counter (Nincada @ ROUTE116) is **not huntable from where the hunt fires**. Combined with
+      `#24-progressiongate` (his other option is behind him), **Wattson has no legal huntable
+      counter**, and the chain stopping honestly is the CORRECT behaviour, not a gap to fix.
+      Beat him with levels/lead. ‼ Do NOT relax the narrowing to manufacture a candidate —
+      permissiveness measured 28 wasted treks and 15% conversion; the narrowing took conversion
+      to 50% (z = +2.73).
+      ‼ **The one thing that could revisit this is KI-49, not the sweep**: if journey planning
+      learns to pick an entrance from which the tile is reachable, ROUTE116 becomes worth
+      re-sweeping. Until then the verdict stands on driven evidence.
+
+      HISTORY — **TOOL BUILT 2026-08-09, and the two anchors first tried were both invalid;
+      the probe itself is what proved it.**
+      New `--driver groundsweep` (`SWEEP_GROUND=MAP:x,y SWEEP_RETURN=MAP:x,y`) drives
+      `_navigate_riding_out` there and back and prints
+      `arrived=… left=… badge03=… verdict=ADD/DO NOT ADD`.
+      ‼ It reports `badge03` and the party ON PURPOSE, because that is what exposed both bad
+      anchors:
+      | save | what it actually is | verdict |
+      |---|---|---|
+      | `mauville_wedge.ss1` | badge03=False but starts INSIDE the gym at (10,0); leg 1 failed stuck at (4,13) | wrong position — prep runs from the CITY |
+      | `wally_done.ss1` | **lone Mudkip L14**, no Devon goods, no PokéNav, no Rustboro rival — the PETALBURG tutorial Wally, not the Mauville one | wrong ERA entirely |
+      ‼ **`probe_counter_reachability.py`'s own docstring already warned about this** — *"Anchors
+      are verified on load, never trusted by name — several saves in this directory have proven
+      misnamed"* — and I ran two before reading it. **Verify the anchor's era and position BEFORE
+      spending a run.**
+      ✅ **ANCHOR OBTAINED 2026-08-09 — the blocker is gone.** `probe_anchor_inventory.py` read
+      all 60 saves and answered the question properly for the first time: **none of them** stood
+      in MAUVILLE_CITY with badge03 unheld, so the anchor did not exist and no third guess would
+      have found it. It was then MADE with the new `--driver anchorstory` (the real story bot
+      plays until it stands on the wanted map, then snapshots; `CAPTURE_FORBID_FLAG=BADGE03_GET`
+      guarantees the era) and verified by the inventory probe as a separate instrument:
+      **`saves/mauville_prewattson.ss1` — MAUVILLE_CITY (19, 15), badges [1, 2], party L16-L20,
+      controllable**, captured in 13,666 frames.
+      Run the sweep with:
+      `SWEEP_GROUND=ROUTE116:11,7 SWEEP_RETURN=MAUVILLE_CITY:19,15 --driver groundsweep`
+      (return tile 19,15 — the anchor's own tile, which the bot provably stood on; 22,6 is
+      unverified and Mauville's walkability is exactly what KI-48 shows is not safe to assume).
+      ‼ Do not read the `wally_done` run as evidence: `arrived=True` there says Route 116 is
+      reachable from PETALBURG in the early game, which is not the question.
+

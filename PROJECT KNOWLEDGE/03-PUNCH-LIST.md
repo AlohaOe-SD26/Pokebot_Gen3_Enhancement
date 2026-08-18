@@ -1067,60 +1067,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       A/B: pre-Wattson **0 huntable** (was the circular Numel @ FIERY_PATH); post-Wattson 1.
       Norman control preserved. Suite 8/8.
 
-- [x] `#24-r116sweep` — ‼ **ANSWERED 2026-08-09: DO NOT ADD ROUTE116 to `HUNTING_GROUNDS`.**
-      Driven sweep from the newly captured, verified anchor `saves/mauville_prewattson.ss1`
-      (MAUVILLE_CITY (19,15), **badge03=False**, party L16-L20):
-      ```
-      [sweep] RESULT ground=ROUTE116 arrived=False left=False badge03=False verdict=DO NOT ADD
-      ```
-      ‼ **READ THE FAILURE PRECISELY — it is not "Route 116 is unreachable".** The journey
-      SUCCEEDED: the bot reached ROUTE116 in ~32,000 frames and stood at **(65, 11)**. The
-      *intra-map* leg then failed — `Could not find a path from (65/11 @ ROUTE116) to
-      (11/7 @ ROUTE116)`. `(11, 7)` is `RUSTBORO_TRAINING_GRASS`, a tile chosen for the
-      **pre-Roxanne** era when the route is entered from the WEST; the counter hunt arrives
-      from the EAST. `probe_r116_east_grass.py` (2 positive controls, both PASS) measured the
-      split: from the east arrival **0 of 138** grass tiles are reachable (17 of 151 walkable,
-      a pocket at x 64-78); from the west **136 of 138** are. Logged as **KI-49**.
-      **CONSEQUENCE FOR WATTSON — this closes handoff concern #5.** His only legal pre-badge
-      counter (Nincada @ ROUTE116) is **not huntable from where the hunt fires**. Combined with
-      `#24-progressiongate` (his other option is behind him), **Wattson has no legal huntable
-      counter**, and the chain stopping honestly is the CORRECT behaviour, not a gap to fix.
-      Beat him with levels/lead. ‼ Do NOT relax the narrowing to manufacture a candidate —
-      permissiveness measured 28 wasted treks and 15% conversion; the narrowing took conversion
-      to 50% (z = +2.73).
-      ‼ **The one thing that could revisit this is KI-49, not the sweep**: if journey planning
-      learns to pick an entrance from which the tile is reachable, ROUTE116 becomes worth
-      re-sweeping. Until then the verdict stands on driven evidence.
-
-      HISTORY — **TOOL BUILT 2026-08-09, and the two anchors first tried were both invalid;
-      the probe itself is what proved it.**
-      New `--driver groundsweep` (`SWEEP_GROUND=MAP:x,y SWEEP_RETURN=MAP:x,y`) drives
-      `_navigate_riding_out` there and back and prints
-      `arrived=… left=… badge03=… verdict=ADD/DO NOT ADD`.
-      ‼ It reports `badge03` and the party ON PURPOSE, because that is what exposed both bad
-      anchors:
-      | save | what it actually is | verdict |
-      |---|---|---|
-      | `mauville_wedge.ss1` | badge03=False but starts INSIDE the gym at (10,0); leg 1 failed stuck at (4,13) | wrong position — prep runs from the CITY |
-      | `wally_done.ss1` | **lone Mudkip L14**, no Devon goods, no PokéNav, no Rustboro rival — the PETALBURG tutorial Wally, not the Mauville one | wrong ERA entirely |
-      ‼ **`probe_counter_reachability.py`'s own docstring already warned about this** — *"Anchors
-      are verified on load, never trusted by name — several saves in this directory have proven
-      misnamed"* — and I ran two before reading it. **Verify the anchor's era and position BEFORE
-      spending a run.**
-      ✅ **ANCHOR OBTAINED 2026-08-09 — the blocker is gone.** `probe_anchor_inventory.py` read
-      all 60 saves and answered the question properly for the first time: **none of them** stood
-      in MAUVILLE_CITY with badge03 unheld, so the anchor did not exist and no third guess would
-      have found it. It was then MADE with the new `--driver anchorstory` (the real story bot
-      plays until it stands on the wanted map, then snapshots; `CAPTURE_FORBID_FLAG=BADGE03_GET`
-      guarantees the era) and verified by the inventory probe as a separate instrument:
-      **`saves/mauville_prewattson.ss1` — MAUVILLE_CITY (19, 15), badges [1, 2], party L16-L20,
-      controllable**, captured in 13,666 frames.
-      Run the sweep with:
-      `SWEEP_GROUND=ROUTE116:11,7 SWEEP_RETURN=MAUVILLE_CITY:19,15 --driver groundsweep`
-      (return tile 19,15 — the anchor's own tile, which the bot provably stood on; 22,6 is
-      unverified and Mauville's walkability is exactly what KI-48 shows is not safe to assume).
-      ‼ Do not read the `wally_done` run as evidence: `arrived=True` there says Route 116 is
-      reachable from PETALBURG in the early game, which is not the question.
+- [x] `#24-r116sweep` — ✅ **ANSWERED 2026-08-09, CLOSED: DO NOT ADD ROUTE116 to `HUNTING_GROUNDS`. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (the R3 relief valve: this file hit its 3,600-line limit). ⛔ Nothing here is outstanding; read the archive for the reachability method behind the ruling.
 
 - [x] `#24-battleitems` — ✅ **DONE, PROMOTED 2026-08-10 (user-approved), zero source drift.**
       Policy unit-proven (`repro_battle_items.py`, 27 checks, no emulator); a real
@@ -2105,9 +2052,29 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
       ⇒ **subclass it and fork before `_cross_room6`'s navigate.** *(An earlier draft of this line
       said "the fixture EXISTS" full stop; a Tier 2 cold-start agent tried to begin from it and
       found the scope understated. "The fixture exists" ≠ "the driver goes there".)*
-      Surf onto ROOM6 `(14,9)` and observe whether the current flushes north through the `(14,8)`
-      Non-Animated Door and OUT OF THE MAP. ‼ Assert the avatar's FINAL MAP + TILE + SURF STATE
-      (`AvatarFlags.Surfing in get_player_avatar().flags`), never "did it arrive".
+      ✅✅ **THE DESIGN IS NOW FULLY MEASURED — ⛔ DO NOT RE-DERIVE IT, AND DO NOT USE `(14,9)`.**
+      `probe_room6_warp_entries.py` (NEW, observe-only, evidence
+      `evidence/2026-08-17-ki76-room6-warp-entries.stdout.txt`) settled every value the docs
+      withheld:
+      * **The nine entry tiles are enumerated** — `(9,12) (10,10) (10,11) (10,12) (11,10) (12,10)
+        (13,10) (14,9) (14,10)` — count **9**, matching KI-76's independently recorded 9. *(A second
+        positive control, on a number a different session wrote down.)*
+      * ⛔ **`(14,9)` — the tile the docs name — IS UNREACHABLE, as are 14 of the 15 candidate
+        staging tiles.** Room 6 is ONE-WAY, so `calculate_path` raises `PathFindingError` for all of
+        them. **A driver written from the docs' `(14,9)` would have failed at runtime after minutes
+        of setup.**
+      * ✅ **EXACTLY ONE USABLE STAGING TILE: `(8,12)`** — 5 waypoints from Room 6's entry
+        `(11,21)`, **no waypoint on a current, none on a warp**, ending exactly on target.
+      ➡ **THE DRIVER, SPECIFIED:** subclass `Ch20Room6Mode` and fork at `story_harness.py:7381`
+      (`yield from _navigate_riding_out(room6, self.ROOM6_EXIT)` — replace the destination).
+      Navigate to **`(8,12)`**, then **press EAST once** to step onto `(9,12)` (Eastward Current);
+      the chain runs **9 steps** and production says it ends on the warp `(14,8)`.
+      ‼ **Stage-and-step, never `navigate_to` an entry tile** — `map_path.py:1013` substitutes the
+      slide destination for a current-tile neighbour, which is the defect itself.
+      ‼ Assert the avatar's FINAL MAP + TILE + SURF STATE (`AvatarFlags.Surfing in
+      get_player_avatar().flags`), never "did it arrive".
+      ⚠ Copy `ki66faint`'s anchor guard (hash the save before and after, and log both) and drive
+      **`saves/post_dive_ki76.ss1`**, asserting it first. Frames: `ch20room6` uses `2500000`.
       ✅ **THE DISCRIMINATOR IS COMPUTED AND THE ARMS DIFFER — this item is NOT vacuous.** ARM M
       (our model): final map `SEAFLOOR_CAVERN_ROOM6`, tile `(14,8)`, still surfing — because `:972`
       charges the warp penalty against the NEIGHBOUR `(14,9)` (whose `warps_to` is `None`) and
