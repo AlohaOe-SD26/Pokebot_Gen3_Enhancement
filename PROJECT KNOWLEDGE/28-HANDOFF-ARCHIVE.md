@@ -5652,3 +5652,59 @@ cross-reference still resolves. ⛔ None of this is outstanding work.
       ‼ Do not read the `wally_done` run as evidence: `arrived=True` there says Route 116 is
       reachable from PETALBURG in the early game, which is not the question.
 
+## (P1) + (P2) queue blocks — ARCHIVED VERBATIM from `04-HANDOFF.md` on 2026-08-18
+
+> Moved under the R3 line budget during the deep sanity check. ⛔ BOTH ARE DONE, PROMOTED AND
+> GATED; nothing here is outstanding. The one caveat that must stay visible is preserved in the
+> stub: **KI-78 is NOT fully closed** — its residual cases remain open.
+
+>    ✅ **(P1) The Slugma derail — FIXED, A/B PROVEN, GATED, PROMOTED.** `box_counter_pid` was
+>    TYPE-ONLY while its party twin had accepted MOVE answers since 2026-08-08 — a fix applied to
+>    one half of a documented pair. Gate `repro_box_counter_move_test.py` (#19) carries a PARITY
+>    check so they cannot drift again. Also fixed: `catch_confirmed()` replaced a party-COUNT
+>    delta (which a Shedinja spawn could fake) with an IDENTITY verdict.
+>    ✅ **(P2) KI-78 Stage 1 — FIXED, A/B PROVEN, GATED (#20), AND PROMOTED (2026-08-14).**
+>    Identity is now `(personality, species)`; a Shedinja shares its Ninjask's PID and the old
+>    first-match lookup would **RELEASE the wrong Pokémon (permanent)**. ✅ **drift was ZERO at that point (2026-08-14) and
+>    the fix is in BOTH forks — it still is**, verified by `--driver ch20dive --build custom` →
+>    `ACCEPTANCE: PASS` and by both `--build custom` gates. Superseded: *"drift is 3 —
+>    custom-pokebot has the WARNING but not the FIX."*
+>    ⛔ **KI-78 is NOT fully closed** — residual cases stay open (debug-fabricated identical
+>    pairs, corrupt box slots, Frontier rentals, and the evolved-since-capture path, which is
+>    handled but **unexercised by any live caller**). See its entry.
+
+## (P3) + (P3b) party-accounting blocks — ARCHIVED VERBATIM from `04-HANDOFF.md` on 2026-08-18
+
+> Moved under the R3 line budget during the deep sanity check. ⛔ Both are DONE: Stage 0 is BUILT,
+> GATED (#22) and DRIVEN, and (P3b) criterion (b) IS ANSWERED — a divergence WAS observed. The two
+> rules that later work leans on are preserved in the stub.
+
+>    ✅ **(P3) STAGE 0 — BUILT, GATED (#22), DRIVEN.** `modules/party_accounting.py` adds the
+>    readers (**A** `gPlayerPartyCount`, per-slot occupancy) and a divergence log: **HOLE** (empty
+>    slot below A — what makes B < A), **OVERFLOW**, **INVALID**, all EXACT from `get_party()`'s own
+>    branches, plus **STALE**, ⛔ SAMPLED 1-in-300 (read the scan count, never the bare zero).
+>    ✅ It wires NO call site and the gate ASSERTS that, with a byte-identical observer-on/off A/B
+>    and a fault-injected observer that must break the LOG and never the read.
+>    ✅✅✅ **(P3b) IS ANSWERED BY CRITERION (b) — A DIVERGENCE WAS OBSERVED (2026-08-15). ⛔ THIS
+>    SUPERSEDES THIS FILE'S EARLIER "CRITERION (a) MET … NO DIVERGENCE" — THAT CLAIM IS RETRACTED.**
+>    `collect_party_accounting.py` now reports **`✅ CRITERION (b) MET — A DIVERGENCE WAS OBSERVED`**:
+>    **`HOLE x30` in `boxcounter2`, in BOTH forks** — *slot 5 of `gPlayerPartyCount=6`: counted by
+>    the game but (near-)all zero*. Totals are now **967,970 recomputes · 39 drives · 12 drivers**
+>    (the earlier ">400k / 11 drivers" and "7 drives / 280,707" figures are both superseded and
+>    disagreed with each other).
+>    ‼ **THIS IS THE GOOD OUTCOME, AND IT IS EXACTLY WHAT (P3b) PREDICTED.** Its own caveat said the
+>    population lacked any PARTY-MUTATING drive, so the cases most likely to make A differ from B
+>    were never exercised. `--driver boxcounter2` (Stage 2) became the first such drive — a real PC
+>    deposit AND withdraw on a FULL party of 6 — and **the divergence appeared immediately, in both
+>    forks.** The make-room deposit is the moment A and B disagree.
+>    ⛔ **THE DATA SAT IN THE COMMITTED LEDGER FOR THREE COMMITS WHILE TWO WRAP-UP PASSES RE-ASSERTED
+>    "NO DIVERGENCE"** — nobody ran the command this file itself calls the authority. ⇒ *a figure
+>    quoted from memory is not a measurement; RUN `collect_party_accounting.py`.*
+>    ✅✅ **PARTY-ACCOUNTING STAGE 1 IS THEREFORE UNBLOCKED** (re-pointing the ~35 capacity-shaped
+>    call sites at A). It was gated on "the criterion above is met"; criterion (b) IS met, and the
+>    collector says what to do next: **reproduce the `HOLE` case, then design Stage 1 around it.**
+>    ⛔ Index/menu-cursor call sites STILL stay on B — if A > B an index from A is out of range for
+>    the list the bot holds, most likely MID-BATTLE.
+>    ‼ **"Stage 1" is OVERLOADED in this file:** *KI-78* Stage 1 is the identity fix and is **DONE
+>    and PROMOTED**; *party-accounting* Stage 1 is this one and is now **UNBLOCKED, not forbidden**.
+>    Never read one for the other.

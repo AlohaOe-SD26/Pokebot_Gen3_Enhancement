@@ -16886,3 +16886,23 @@ number, because "drift: 0" reads as "the forks are identical" and means "identic
 ‼ **Gate ordinals are append-only.** Inserting `audit_doc_citations.py` at position 4 silently
 renumbered SIX doc citations (`gate #22`…`gate #27`). Moved to the END, restoring every ordinal;
 the rule now lives in `run_gates.py` where the mistake gets made.
+
+## 2026-08-18 — WRAP-UP: line budgets reclaimed, handoff re-pointed for a fresh context
+
+Two current-state files were AT their R3 limits (`05-KNOWN-ISSUES` 3000/3000, `04-HANDOFF` 899/900),
+which would have failed the next session's FIRST doc commit. Reclaimed by archiving verbatim, never
+by deleting:
+* **KI-65** (185 lines) → `31-KNOWN-ISSUES-ARCHIVE.md`. ‼ Its stub deliberately KEEPS the named
+  residual visible (a *legitimately bound but WRONG* `party_index`: `slot_id = -1` → the LAST party
+  member, a wrong-mon rather than an exception) so it cannot orphan.
+* **(P1)+(P2)** and **(P3)+(P3b)** queue blocks (43 lines) → `28-HANDOFF-ARCHIVE.md`, each replaced
+  by a stub carrying the rules later work leans on (KI-78 is NOT fully closed; STALE is sampled
+  1-in-300 so read the scan count; index call sites stay on quantity B).
+⇒ `05` 3000→2827, `04` 899→877.
+
+The handoff banner and queue head now point at **passes 4-5 of the deep sanity check**, and both
+halves carry the method that made passes 1-3 work — *8 agents, one angle each, every one required to
+FAULT-INJECT or RE-DERIVE rather than reason* — plus the warning that **2 of ~40 findings were false
+positives, so verify every one.** ⚠ The STATE block now also records that **disk is at 100%**
+(2.6 GB free of 1.9 TB), because a full disk produces silent truncation, which this project reads as
+a short run.
