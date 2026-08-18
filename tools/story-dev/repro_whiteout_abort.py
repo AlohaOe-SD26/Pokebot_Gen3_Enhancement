@@ -220,21 +220,111 @@ print(f"\n{BAR}\n3 — STRUCTURAL: every chapter retry loop in the tree carries 
 STORY_DIR = BUILD / "modules" / "story"
 chapter_files = sorted(STORY_DIR.glob("*.py")) + [BUILD / "plugins/custom_modes/story_mode.py"]
 
-offenders, scanned = [], []
+# ⛔⛔ AST, NOT SUBSTRINGS — REWRITTEN 2026-08-17 BECAUSE THIS GATE COULD NOT FAIL.
+# An adversarial agent deleted BOTH real defenses from Ch18's retry loop in `mossdeep_gym.py` (the
+# `except StoryAbort: raise` clause AND the fallback `reraise_if_aborting(error)` call — precisely
+# the KI-67 regression this gate exists to prevent) and left a nearby COMMENT reading
+# "`except StoryAbort` above catches it…". The old `"except StoryAbort" in body` substring test
+# matched that PROSE, printed `OK mossdeep_gym.py`, and the suite went green over a live
+# whiteout-swallowing regression.
+# ‼ This is the project's own rule violated by its own gate: *"FAULT-TEST every gate: prove it
+# fails when the thing it guards is broken, and prove it does NOT fire on mere mentions in comments
+# or docstrings."* A comment is invisible to an AST, which is the whole point.
+# ⛔ A parse failure is a LOUD finding, never a silent skip — an unparseable chapter file must not
+# read as "no offenders".
+import ast  # noqa: E402
+
+
+def _guarded_retry_loops_src(source: str) -> tuple[list[bool], str | None]:
+    """(one bool per retry loop that catches BotModeError, parse_error_or_None). Takes TEXT.
+
+    ‼ Split from the path version ON PURPOSE so the fault tests below can feed it synthetic
+    snippets. A checker that can only be run against the real tree cannot be fault-tested cheaply,
+    and a gate nobody has seen refuse anything is a gate nobody knows is connected.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as exc:
+        return [], f"{type(exc).__name__}: {exc}"
+
+    def names(node) -> set[str]:
+        return {n.id for n in ast.walk(node) if isinstance(n, ast.Name)} | {
+            n.attr for n in ast.walk(node) if isinstance(n, ast.Attribute)}
+
+    out: list[bool] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.For):
+            continue
+        # a "chapter retry loop": `for attempt in range(...)`
+        if not (isinstance(node.target, ast.Name) and node.target.id == "attempt"):
+            continue
+        if not (isinstance(node.iter, ast.Call) and isinstance(node.iter.func, ast.Name)
+                and node.iter.func.id == "range"):
+            continue
+        handlers = [h for h in ast.walk(node) if isinstance(h, ast.ExceptHandler)]
+        catches_bme = any(h.type is not None and "BotModeError" in names(h.type) for h in handlers)
+        if not catches_bme:
+            continue
+        # A real guard is EITHER an `except StoryAbort` handler OR a `reraise_if_aborting(...)`
+        # CALL — both are live idioms in this tree, and both are invisible to a comment.
+        guards_abort = any(h.type is not None and "StoryAbort" in names(h.type) for h in handlers)
+        reraises = any(isinstance(c, ast.Call) and "reraise_if_aborting" in names(c.func)
+                       for c in ast.walk(node))
+        out.append(bool(guards_abort or reraises))
+    return out, None
+
+
+def _guarded_retry_loops(path: pathlib.Path) -> tuple[list[bool], str | None]:
+    return _guarded_retry_loops_src(path.read_text(encoding="utf-8"))
+
+
+# ⛔⛔ THE FAULT TESTS THAT THE SUBSTRING VERSION WOULD HAVE FAILED. Case 2 IS the attack an
+# adversarial agent used on 2026-08-17 to prove the old check could not fail: delete the real
+# handler, leave a COMMENT naming it. The old `"except StoryAbort" in body` test passed that; the
+# AST cannot see comments, so it reports the loop UNGUARDED.
+_FT = [
+    ("W1 guarded by `except StoryAbort: raise`",
+     "def f():\n    for attempt in range(3):\n        try:\n            go()\n"
+     "        except StoryAbort:\n            raise\n        except BotModeError:\n            pass\n", [True]),
+    ("W2 ‼ THE ATTACK: handler DELETED, only a COMMENT left naming it",
+     "def f():\n    for attempt in range(3):\n        try:\n            go()\n"
+     "        # the `except StoryAbort` clause above catches it while it is in flight\n"
+     "        except BotModeError:\n            pass\n", [False]),
+    ("W3 guarded by a `reraise_if_aborting(...)` CALL instead",
+     "def f():\n    for attempt in range(3):\n        try:\n            go()\n"
+     "        except BotModeError as e:\n            reraise_if_aborting(e)\n", [True]),
+    ("W4 a retry loop that does NOT catch BotModeError is not counted",
+     "def f():\n    for attempt in range(3):\n        try:\n            go()\n"
+     "        except ValueError:\n            pass\n", []),
+    ("W5 a docstring mentioning the handler does not count as one",
+     'def f():\n    """uses except StoryAbort to re-raise."""\n    for attempt in range(3):\n'
+     "        try:\n            go()\n        except BotModeError:\n            pass\n", [False]),
+]
+if "--self-test" in sys.argv:
+    ok = True
+    print(f"\n{BAR}\nFAULT TESTS for the AST retry-loop checker\n{BAR}\n")
+    for label, src, want in _FT:
+        got, err = _guarded_retry_loops_src(src)
+        good = (got == want) and err is None
+        ok &= good
+        print(f"  {'PASS' if good else '‼ FAIL'}  {label}: got {got} want {want}")
+    bad, err = _guarded_retry_loops_src("def f(:\n")
+    print(f"  {'PASS' if err else '‼ FAIL'}  W6 an UNPARSEABLE file reports an error, never a silent pass: {err!r}"[:150])
+    ok &= bool(err)
+    print(f"\nSELF-TEST {'PASS' if ok else 'FAIL'}")
+    raise SystemExit(0 if ok else 1)
+
+offenders, scanned, parse_errors = [], [], []
 for path in chapter_files:
-    text = path.read_text(encoding="utf-8")
-    # A "chapter retry loop" = a `for attempt in range(...)` whose body catches BotModeError.
-    for match in re.finditer(r"for attempt in range\([^)]*\):", text):
-        body = text[match.end(): match.end() + 4000]
-        # stop at the next top-level def so we do not read into the following function
-        cut = re.search(r"\ndef ", body)
-        if cut:
-            body = body[: cut.start()]
-        if "except BotModeError" in body:
-            has_guard = "except StoryAbort" in body
-            scanned.append((path.name, has_guard))
-            if not has_guard:
-                offenders.append(path.name)
+    flags, err = _guarded_retry_loops(path)
+    if err:
+        parse_errors.append((path.name, err))
+        offenders.append(f"{path.name} (UNPARSEABLE: {err[:60]})")
+        continue
+    for has_guard in flags:
+        scanned.append((path.name, has_guard))
+        if not has_guard:
+            offenders.append(path.name)
 
 for name, guarded in scanned:
     print(f"  {'OK  ' if guarded else '‼ NO'}  {name}  (retry loop catching BotModeError)")

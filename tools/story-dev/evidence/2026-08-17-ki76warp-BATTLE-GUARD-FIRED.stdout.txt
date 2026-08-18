@@ -1,0 +1,50 @@
+[ki76] SAFETY anchor=post_dive_ki76.ss1 sha256[:12]=b89900084e7c — the PINNED copy (md5 a00378595409). ⚠ DETECTION, not prevention: the hash is re-read at the end and compared. (CH19C_CAPTURE=0 is set too, but that guards `post_dive.ss1`, not this file.)
+[ki76] ‼ BATTLE STARTED — this run can no longer grade the slide; a battle FREEZES `local_coordinates`, which the settle loop cannot tell apart from a finished slide.
+[ki76] ‼ BATTLE STARTED — this run can no longer grade the slide; a battle FREEZES `local_coordinates`, which the settle loop cannot tell apart from a finished slide.
+[ki76] ‼ BATTLE STARTED — this run can no longer grade the slide; a battle FREEZES `local_coordinates`, which the settle loop cannot tell apart from a finished slide.
+[ki76] ROOMS 1+2 re-solved (both reset on every map load)
+[ki76] ROOM6 arrival ('SEAFLOOR_CAVERN_ROOM6', (11, 21), False) (PREDICTED (11,21))
+[ki76] PLAN (11, 21) -> staging (8, 12): OK len=5 (source collision=0)
+[ki76] STAGED at=('SEAFLOOR_CAVERN_ROOM6', (8, 12), True) on_target=True tile_type='Ocean Water'
+[ki76] RIDE pressing Right (EAST) from (8, 12) onto (9, 12); production predicts the chain ends on (14, 8) after 9 steps.
+[ki76] ARM-CONTROL KI76_RELEASE_EARLY=0 (button held through the slide)
+[ki76]   f+1 SEAFLOOR_CAVERN_ROOM6 (8, 12) surfing=True
+[ki76]   f+9 SEAFLOOR_CAVERN_ROOM6 (9, 12) surfing=True
+[ki76]   f+17 SEAFLOOR_CAVERN_ROOM6 (10, 12) surfing=True
+[ki76]   f+23 SEAFLOOR_CAVERN_ROOM6 (10, 11) surfing=True
+[ki76]   f+29 SEAFLOOR_CAVERN_ROOM6 (10, 10) surfing=True
+[ki76]   f+35 SEAFLOOR_CAVERN_ROOM6 (11, 10) surfing=True
+[ki76]   f+41 SEAFLOOR_CAVERN_ROOM6 (12, 10) surfing=True
+[ki76]   f+47 SEAFLOOR_CAVERN_ROOM6 (13, 10) surfing=True
+[ki76]   f+53 SEAFLOOR_CAVERN_ROOM6 (14, 10) surfing=True
+[ki76]   f+59 SEAFLOOR_CAVERN_ROOM6 (14, 9) surfing=True
+[ki76]   f+65 SEAFLOOR_CAVERN_ROOM6 (14, 8) surfing=True
+[ki76]   f+142 SEAFLOOR_CAVERN_ENTRANCE (10, 1) surfing=False
+[ki76]   settle+29 SEAFLOOR_CAVERN_ENTRANCE (10, 2) surfing=False
+[ki76] RIDE moved=True step_frames=142 settle_frames=210 distinct_positions=13
+[ki76] FINAL map=SEAFLOOR_CAVERN_ENTRANCE tile=(10, 2) surfing=False
+[ki76] ARM = NEITHER — read the trail; do not report a verdict from this run
+[ki76] SAFETY anchor intact = True (before=b89900084e7c after=b89900084e7c)
+[ki76] DETAIL {'trail': [('SEAFLOOR_CAVERN_ROOM6', (8, 12), True), ('SEAFLOOR_CAVERN_ROOM6', (9, 12), True), ('SEAFLOOR_CAVERN_ROOM6', (10, 12), True), ('SEAFLOOR_CAVERN_ROOM6', (10, 11), True), ('SEAFLOOR_CAVERN_ROOM6', (10, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (11, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (12, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (13, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (14, 10), True), ('SEAFLOOR_CAVERN_ROOM6', (14, 9), True), ('SEAFLOOR_CAVERN_ROOM6', (14, 8), True), ('SEAFLOOR_CAVERN_ENTRANCE', (10, 1), False), ('SEAFLOOR_CAVERN_ENTRANCE', (10, 2), False)]}
+[ki76] RESULT staged=True stepped=True anchor_intact=True battled=True arm=?
+[ki76] ACCEPTANCE: FAIL (grades the INSTRUMENT: staged AND stepped AND anchor intact AND landed on one of the two predicted arms)
+
+=== WHY THIS TRANSCRIPT IS KEPT: THE GUARD FIRED FOR REAL, ON THE VERY NEXT RUN ===
+
+An audit agent predicted this exact hazard: SEAFLOOR_CAVERN_ROOM6 has water encounters, a battle
+FREEZES `local_coordinates`, and the settle loop's `stable > 180` cannot tell a frozen avatar from
+a finished slide. I added `on_battle_started` -> `_battled` and — caught in the same hour — found I
+had SET the flag and never READ it. Wiring it into `gradeable`/`passed` was the fix.
+
+THE VERY NEXT RUN HIT A BATTLE:
+    [ki76] RESULT staged=True stepped=True anchor_intact=True battled=True arm=?
+    [ki76] ACCEPTANCE: FAIL
+
+⇒ Without the wiring this run would have reported `FINAL map=SEAFLOOR_CAVERN_ENTRANCE` -> ARM R ->
+PASS. The map happens to be right, which is precisely what makes it dangerous: a CORRECT-LOOKING
+verdict from an UNGRADEABLE run. The guard refused to grade it, which is the only honest outcome.
+
+‼ THE PUBLISHED CONFIRMATION IS UNAFFECTED. RUN3, RUN4 and the CONTROL all show `whiteouts=0`, no
+battle markers, and a continuous 142-frame trail — they were gradeable. This run is not evidence
+about the GAME; it is evidence about the INSTRUMENT, and it is the first time this driver's
+acceptance has been seen RED, which is a deliverable in its own right (playbook §3b).

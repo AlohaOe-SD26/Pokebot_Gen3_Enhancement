@@ -16849,3 +16849,40 @@ published figures stand — now on a control that can actually fail.
 
 ‼ **Three agents independently confirmed the forks are byte-identical** and that the upstream mirror
 has only ever been touched by subtree merges.
+
+## 2026-08-17/18 — DEEP SANITY CHECK, PASS 3 of 5 (ADVERSARIAL) — 8 agents, all required to INJECT not argue
+
+**Four claims SURVIVED attack, and the corroboration is stronger than the original evidence:**
+* **The five-file promotion.** An agent copied custom to scratch, reverted just the verdict change,
+  and `repro_withdraw_verdict.py` went red again with the same six FAIL lines; deleting ONE
+  `reraise_if_aborting` moved the abort probe by exactly +1; AST identity held both ways on the
+  comment-only file; and `grep` found exactly ONE producer of `verdict landed=` in the whole tree.
+* **KI-76's live confirmation.** Distinct map ids confirmed against `map_data.py`; the control
+  arm's button release provably precedes the remaining frames; no battle/whiteout markers in any
+  transcript; `surfing=False` persists 180+ frames, so not a transient read.
+* **The KI-76 numbers — INDEPENDENTLY RE-DERIVED** by an agent's own code, not this project's:
+  1,852 / 765 / 542 / 501 / 44 / 0, D2 = 9 all in ROOM6, all dismount tiles elevation 3, longest
+  chain 77, cap never fires, 4,384 chains. **Every figure matched.**
+* **Drift-zero**, verified by hand-diffing everything `promote.py` does NOT compare (root scripts,
+  `*.yml`, `tests/`, `utility/`, `tools/`) — all byte-identical — plus the upstream mirror proven
+  byte-identical to `upstream-pokebot/main`.
+
+⛔⛔ **AND ONE GATE WAS FOUND THAT COULD NOT FAIL — the most serious defect of the whole audit.**
+`repro_whiteout_abort.py` §3 tested `"except StoryAbort" in body` as a SUBSTRING. An agent deleted
+BOTH real defenses from Ch18's retry loop and left a COMMENT naming the handler; the gate printed
+`OK mossdeep_gym.py` and the suite went green over a live whiteout-swallowing regression — the exact
+KI-67 shape the gate exists to prevent. ‼ **That is this project's own rule broken by its own gate**
+(*"prove it does NOT fire on mere mentions in comments or docstrings"*). Now **AST-based**, with six
+permanent fault tests (`--self-test`) including **W2, the attack itself**; an unparseable file is now
+a LOUD finding rather than a silent pass.
+
+**Also fixed, each reproduced first:** `check_promotion_prose` false-fired on the canonical
+`Historical note: <claim>` idiom (a `:` was treated as a sentence break when it in fact INTRODUCES
+the cue); `verify_fixtures.py`'s cp1252 fallback printed lines OUT OF ORDER (buffered `print` vs
+direct `.buffer` write — now flushed both sides); and `promote.py` now PRINTS ITS SCOPE beside the
+number, because "drift: 0" reads as "the forks are identical" and means "identical in `modules/` and
+`plugins/`".
+
+‼ **Gate ordinals are append-only.** Inserting `audit_doc_citations.py` at position 4 silently
+renumbered SIX doc citations (`gate #22`…`gate #27`). Moved to the END, restoring every ordinal;
+the rule now lives in `run_gates.py` where the mistake gets made.

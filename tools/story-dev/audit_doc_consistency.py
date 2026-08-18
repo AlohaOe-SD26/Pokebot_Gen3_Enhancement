@@ -654,7 +654,13 @@ def check_promotion_prose(files: dict[str, str]) -> list[str]:
             # the nearest sentence break, so the cue has to belong to the sentence it excuses.
             lo = max(0, m.start() - 200)
             clause = text[lo:m.start()]
-            brk = list(re.finditer(r"[.;:!?\n|]", clause))
+            # ⛔ `:` IS NOT A SENTENCE BREAK HERE — it INTRODUCES the cue. Reproduced by an audit
+            # agent: this project's canonical idiom is `Historical note: <claim>`, and cutting at
+            # the colon stripped "Historical note" out of its own clause, so the withdrawn claim
+            # was flagged as live. (The real KI-78 line escaped only because it also happens to be
+            # inside quotes.) ‼ A break character that the idiom uses as a LEAD-IN cannot be used
+            # to decide where the idiom ends.
+            brk = list(re.finditer(r"[.;!?\n|]", clause))
             if brk:
                 clause = clause[brk[-1].end():]
             if re.search(r"\b(?:was|were|used\s+to|formerly|no\s+longer|previously|had\s+been)\b"

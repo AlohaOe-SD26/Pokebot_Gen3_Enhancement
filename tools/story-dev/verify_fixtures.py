@@ -44,8 +44,14 @@ def _safe_print(text: str = "") -> None:
     try:
         print(text)
     except UnicodeEncodeError:
+        # ⛔ FLUSH ON BOTH SIDES. The text-mode `print()` calls are BUFFERED; writing straight to
+        # `.buffer` jumps that queue, so a fallback line lands BEFORE lines printed earlier. An
+        # audit agent reproduced it: the `‼ MISMATCH` line appeared ABOVE the header it follows,
+        # which in a redirected log reads as a different (and wrong) sequence of events.
+        sys.stdout.flush()
         sys.stdout.buffer.write(text.encode("utf-8", errors="replace"))
         sys.stdout.buffer.write(b"\n")
+        sys.stdout.buffer.flush()
 
 HERE = pathlib.Path(__file__).resolve().parent
 SAVES = HERE / "saves"

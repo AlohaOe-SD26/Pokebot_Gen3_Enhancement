@@ -39,7 +39,6 @@ GATES: list[tuple[str, bool]] = [
     # contradict themselves or the code. Exists because a handoff passed its own quality bar and
     # still sent the next session to REBUILD FINISHED WORK. Self-test: `--self-test` (10 checks).
     ("audit_doc_consistency.py", False),
-    ("audit_doc_citations.py", False),   # citation drift: identifier + file.py:LINE must still resolve
     ("verify_fixtures.py", False),
     ("audit_flag_names.py", False),
     ("repro_undefined_names.py", False),
@@ -110,6 +109,11 @@ GATES: list[tuple[str, bool]] = [
     # "could not get out of the gym" on a dead run, and its body wraps only navigation primitives).
     # Fault-tested both ways: injecting ONE unguarded site takes it 36 -> 37 and exits 1.
     ("probe_abort_swallowing.py", False),
+    # ‼‼ APPEND NEW GATES, NEVER INSERT. Gates are cited BY ORDINAL across the docs
+    # ("gate #25", "suite #24", "gate #27"). This entry was first INSERTED at position 4
+    # on 2026-08-17 and silently renumbered SIX existing citations; an audit agent caught
+    # it. ⛔ Adding a gate anywhere but the END rewrites history that prose already quotes.
+    ("audit_doc_citations.py", False),   # #28 — citation drift: `ident` + file.py:LINE must resolve
 ]
 
 

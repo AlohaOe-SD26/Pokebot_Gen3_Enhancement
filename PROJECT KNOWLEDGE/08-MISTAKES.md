@@ -8439,3 +8439,56 @@ gitignored. **Gitignored is not the same as harmless: the next run of that profi
 **PREVENTION RULE (one line).** ⛔ **Before a tool may claim "nothing was changed", diff the working
 tree AND the profile directory across a run — a claim of no side effects is a measurement, not an
 intention, and `atexit` handlers you inherited are exactly where the side effect hides.**
+
+## 2026-08-17 — I wrote a guard, never wired it, and the hazard it guards fired on the very next run
+
+**Symptom.** An audit agent predicted that a wild encounter mid-slide would break `--driver
+ki76warp`: a battle FREEZES `local_coordinates`, and the settle loop's `stable > 180` cannot tell a
+frozen avatar from a finished slide. I added `on_battle_started` setting `self._battled = True`…
+**and no branch ever read it.** The guard was decorative. I found that myself an hour later, only
+because I went looking for what the next agent would find.
+
+**Then the hazard fired.** The re-verification run — the very next drive — hit a battle:
+
+    [ki76] RESULT staged=True stepped=True anchor_intact=True battled=True arm=?
+    [ki76] ACCEPTANCE: FAIL
+
+⇒ **Without the wiring that run would have printed `FINAL map=SEAFLOOR_CAVERN_ENTRANCE` → ARM R →
+PASS.** The map is even the RIGHT answer, which is exactly what makes it dangerous: a
+correct-looking verdict from an ungradeable run. Three earlier runs were clean (`whiteouts=0`,
+continuous 142-frame trails), so the published confirmation stands — but the fourth was one wiring
+line away from being indistinguishable from them.
+
+**Two root causes, and the second is the reusable one.**
+1. `_battled` was a CLASS attribute, so it would also have leaked across two runs in one process,
+   failing the SECOND run for the FIRST run's battle. Now instance-scoped and reset in `run()`.
+2. **I treated "the flag is set" as "the guard exists".** A guard is a flag PLUS a reader; the flag
+   alone is documentation that looks like code.
+
+**PREVENTION RULE (one line).** ⛔ **After adding any guard flag, grep for it and count the READS —
+if the only occurrences are the declaration and the assignment, you have written a comment, not a
+guard.**
+
+‼ **The happy corollary, and it is why this is worth writing down rather than being embarrassed
+about:** this is the first time this driver's acceptance has been seen RED, on a real cause, and
+that is a deliverable (playbook §3b: `ACCEPTANCE: FAIL` on the unfixed case is evidence). The
+transcript is kept at `evidence/2026-08-17-ki76warp-BATTLE-GUARD-FIRED.stdout.txt` precisely
+because a gate nobody has watched fail is a gate nobody has tested.
+
+## 2026-08-17 — I INSERTED a gate into the middle of the suite and silently renumbered six citations
+
+**Symptom.** Adding `audit_doc_citations.py` after `audit_doc_consistency.py` put it at position 4,
+which shifted every later gate by one. The docs cite gates BY ORDINAL — "gate #22", "suite #24",
+"gate #25", "gate #26", "gate #27" — so six existing citations became wrong the moment the suite
+went green. An audit agent caught it; `run_gates.py` was perfectly happy.
+
+**Root cause.** I thought of the suite as a set and the docs treat it as a numbered list. Nothing in
+the tooling links the two: `audit_doc_consistency`'s gate checks match `"N/N gates"` and `"suite is
+N"` phrasings, **not** the ordinal form `gate #N`.
+
+**Fix, chosen to avoid renumbering prose:** move the new gate to the END of `GATES`, restoring every
+existing ordinal, and put the rule in the file where the mistake is made — *append new gates, never
+insert.*
+
+**PREVENTION RULE (one line).** ⛔ **Anything cited by ORDINAL is an append-only list — adding in
+the middle rewrites history that prose already quotes, and no gate will tell you.**

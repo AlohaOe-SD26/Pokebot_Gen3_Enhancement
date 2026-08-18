@@ -36,7 +36,17 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parents[2]
 SANDBOX = REPO / "sandbox-pokebot"
 CUSTOM = REPO / "custom-pokebot"
+#: ⛔⛔ THE COMPARISON SET, AND ITS LIMITS — SAY THEM, DO NOT IMPLY COVERAGE (2026-08-17, pass 2+3).
+#: Two independent audit agents flagged the same thing: `drift: 0` reads like "the forks are
+#: identical" and it means "the forks are identical IN `modules/` AND `plugins/`, over `*.py`".
+#: It does NOT look at root scripts, `*.yml`, `profiles/`, `tests/`, `utility/` or `tools/`.
+#: ‼ Both agents then diffed ALL of those by hand and found them byte-identical TODAY — so this is
+#: a FALSE-CONFIDENCE risk, not a live gap. The fix is therefore honesty in the OUTPUT rather than a
+#: wider comparison: widening it would sweep in `profiles/` (gitignored runtime state that is
+#: SUPPOSED to differ) and start reporting drift that is not drift.
 TREES = ("modules", "plugins")
+SCOPE_NOTE = ("compared: modules/ + plugins/, *.py only  |  NOT compared: root scripts, *.yml, "
+              "profiles/ (runtime, expected to differ), tests/, utility/, tools/")
 BAR = "=" * 92
 
 
@@ -94,6 +104,9 @@ def main() -> int:
     print(BAR)
 
     differing, orphaned = measure()
+    # ‼ PRINT THE SCOPE BESIDE THE NUMBER. "drift: 0" reads as "the forks are identical"; it means
+    # "identical in what this tool looks at". Two audit agents had to derive that from the source.
+    print(f"  SCOPE: {SCOPE_NOTE}")
     print(f"  drift (sandbox → custom): {len(differing)} file(s)")
     for name in differing:
         print(f"      {name}")

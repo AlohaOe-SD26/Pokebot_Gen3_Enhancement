@@ -2076,8 +2076,23 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
       planner is **ACCIDENTALLY SAFE — safe by INABILITY, not by design.** It avoids the warp only
       because it cannot route past it, and that protection evaporates on any map where the far side
       IS in the connected set.
-      ➡ **WHAT IS ACTUALLY LEFT of the planner-side half, and it needs a NEW formulation nobody has
-      written:** the COST at `map_path.py:972` is charged against the NEIGHBOUR and never against
+      ✅✅ **VACUITY RE-CONFIRMED EXHAUSTIVELY 2026-08-17 (pass 3), and it now covers the COST
+      half too.** An adversarial agent swept **all 235 legal ROOM6 tiles x 235 destinations =
+      54,990 `calculate_path` calls**: `(14,8)` appears as a non-final waypoint in **0** of them.
+      The structural cause is topology, not tuning — `(14,8)`'s north/east/west neighbours are
+      collision walls and its south neighbour is the current that feeds it, so it is a DEAD END
+      A* can only reach as an explicitly requested destination. ⛔ **Therefore a COST-based test
+      is vacuous for the SAME structural reason**: there is no competing route to compare costs
+      against on this ROM. ⇒ **the planner-side half is vacuous IN ITS ENTIRETY here**, not just
+      its `is_warp` piece.
+      ‼ It also re-scanned every map with currents through the production oracle and reproduced
+      **9 D2-armed chains ROM-wide, all `(14,8)` in ROOM6, 0 elsewhere**, and found **0** D2
+      endpoints anywhere in the ROM with an escape route — so the dead-end is universal for this
+      data, not a ROOM6 quirk.
+      ➡ **WHAT IS ACTUALLY LEFT, restated after that sweep:** nothing on this ROM discriminates.
+      A real test needs a map where a slide destination is a warp AND the far side is on the
+      connected set — and **no such map exists here**. ⇒ this half is BLOCKED ON REALITY, not on
+      effort; treat it as such rather than hunting for a cleverer assertion. Formerly:** the COST at `map_path.py:972` is charged against the NEIGHBOUR and never against
       the substituted destination, so the planner may still PREFER a route it should avoid. That is
       a route-CHOICE comparison (does the emitted route change when the penalty is applied to the
       destination?), **not** an `is_warp` check. ⛔ Do not start it by re-deriving the vacuous one.

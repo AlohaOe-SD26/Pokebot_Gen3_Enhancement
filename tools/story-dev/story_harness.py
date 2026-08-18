@@ -7559,13 +7559,16 @@ class Ki76WarpMode(Ch20Room6Mode):
     # "the slide finished", and if the freeze happens to sit on (14,8) the run would report ARM M —
     # a verdict for a slide that never resolved. ⇒ any battle during `_ride` forces arm "?" and
     # ACCEPTANCE FAIL. ⛔ The RUN is what gets invalidated, never the finding.
+    # ⛔ INSTANCE attribute, reset in `run()`. A CLASS attribute would leak across two runs in one
+    # process and quietly fail the SECOND run for the FIRST run's battle.
     _battled = False
 
-    def on_battle_started(self, *args, **kwargs):
-        Ki76WarpMode._battled = True
-        log("[ki76] ‼ BATTLE STARTED DURING THE RUN — this run can no longer grade the slide; "
-            "the position freeze during a battle is indistinguishable from a settled slide.")
-        return super().on_battle_started(*args, **kwargs)
+    def on_battle_started(self, encounter=None):
+        """Any battle invalidates THE RUN — never the finding."""
+        self._battled = True
+        log("[ki76] ‼ BATTLE STARTED — this run can no longer grade the slide; a battle FREEZES "
+            "`local_coordinates`, which the settle loop cannot tell apart from a finished slide.")
+        return super().on_battle_started(encounter)
 
     STAGING = (8, 12)
     ENTRY_TILE = (9, 12)
@@ -7687,6 +7690,7 @@ class Ki76WarpMode(Ch20Room6Mode):
         from modules.context import context as _ctx
 
         notes = {}
+        self._battled = False   # ⛔ per-RUN, not per-process
 
         # ---- ANCHOR GUARD (copied from Ki66FaintMode, which PROVED it) --------------------
         # ‼ Hash before AND after and LOG BOTH, so the guard is proven rather than claimed.
@@ -7747,8 +7751,12 @@ class Ki76WarpMode(Ch20Room6Mode):
         # ---- THE VERDICT -------------------------------------------------------------------
         # ⛔ GRADED ON MAP IDENTITY, the ONLY field the two arms are guaranteed to differ on. Tile
         # and surf state are RECORDED for the write-up and never used to decide.
-        left_room6 = bool(self.staged and self.stepped and final[0] != "SEAFLOOR_CAVERN_ROOM6")
-        held_at_terminus = bool(self.staged and self.stepped
+        # ‼ `not self._battled` IS PART OF EVERY ARM, and it is here because the first draft of this
+        # guard SET the flag and never READ it — a decorative guard, caught in the same session that
+        # added it. ⛔ A flag that no branch consults protects nothing.
+        gradeable = bool(self.staged and self.stepped and not self._battled)
+        left_room6 = bool(gradeable and final[0] != "SEAFLOOR_CAVERN_ROOM6")
+        held_at_terminus = bool(gradeable
                                 and final[0] == "SEAFLOOR_CAVERN_ROOM6"
                                 and tuple(final[1]) == self.PRED_TERMINUS)
         if left_room6:
@@ -7770,9 +7778,10 @@ class Ki76WarpMode(Ch20Room6Mode):
         # ‼ ACCEPTANCE GRADES THE INSTRUMENT, NOT THE ANSWER. Either arm is a legitimate scientific
         # result; what invalidates the RUN is failing to stage, failing to move, or touching the
         # anchor. ⛔ A driver that only passes when it likes the answer is not an experiment.
-        passed = bool(self.staged and self.stepped and anchor_intact and arm in ("R", "M"))
+        passed = bool(self.staged and self.stepped and anchor_intact
+                      and not self._battled and arm in ("R", "M"))
         log(f"[ki76] RESULT staged={self.staged} stepped={self.stepped} "
-            f"anchor_intact={anchor_intact} arm={arm}")
+            f"anchor_intact={anchor_intact} battled={self._battled} arm={arm}")
         log(f"[ki76] ACCEPTANCE: {'PASS' if passed else 'FAIL'} (grades the INSTRUMENT: staged AND "
             f"stepped AND anchor intact AND landed on one of the two predicted arms)")
         _ctx.set_manual_mode()
