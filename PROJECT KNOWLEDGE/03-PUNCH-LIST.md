@@ -2003,6 +2003,35 @@ owed / not built / residual"* sentence written that session, ask **"where would 
 FIND this?"** If the only answer is an append-only log, a CLOSED KI's body, or a research note, it
 is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
 
+### ‼ `#24-sanitycheck` — the USER-REQUESTED 5-PASS DEEP AUDIT (filed 2026-08-18; **3 of 5 DONE**)
+
+- [~] **PASSES 1-3 ARE DONE AND COMMITTED; PASSES 4 (INFRASTRUCTURE) AND 5 (COLD-START/USABILITY)
+      REMAIN.** ⛔ Filed because a cold-start audit found the queue head pointing at work with **no
+      punch-list item at all** — the exact `#24-orphans` shape, and it also meant three commits went
+      in without a `(punch-list #N)` tag as DoD step 5 requires.
+      **DONE:** pass 1 TRUTH `045bdd1c`, pass 2 CODE HEALTH `e74d6e50`, pass 3 ADVERSARIAL `899f4ce7`.
+      ‼‼ **THE METHOD IS THE DELIVERABLE — copy it exactly, it is what made the passes work:**
+      **8 agents per pass, ONE ANGLE EACH, sent in ONE message so they run concurrently, and EVERY
+      agent required to FAULT-INJECT or RE-DERIVE, never to reason.** That single instruction is what
+      found a gate that could not fail and a control that could not fail; the earlier habit of asking
+      an agent to *assess* something produced opinions instead.
+      ⛔ **VERIFY EVERY FINDING YOURSELF BEFORE ACTING — 2 of ~40 were FALSE POSITIVES** (a truncated
+      quote; a correctly-superseded duplicate). An agent report is a NOTE, never truth.
+      ‼ **Output contract that kept them readable:** one verdict line, then `SEVERITY | what | what
+      you RAN | result | smallest fix`, max ~16 lines, and *anything not executed must be labelled
+      CANNOT-REPRODUCE*.
+      ➡ **PASS 4 HAS A LIVE LEAD ALREADY, measured by the cold-start agent:** of 11 gates sampled,
+      **9 have no self-fault-test** (`verify_fixtures`, `audit_flag_names`, `probe_chapter_order`,
+      `probe_dive_learner`, `probe_slot_free_plan`, `probe_regi_capabilities`, `probe_dive_routing`,
+      `repro_roster_reorder`, `preflight`) — i.e. no standing proof they can fail. That is exactly
+      the `repro_whiteout_abort.py` shape pass 3 found, and it is startable with zero input.
+      ⚠ **PASS 5 HAS NO SCOPE WRITTEN ANYWHERE beyond its title** — decide it deliberately rather
+      than assuming; suggested angles: cold-start from the handoff, from `00-README`, can each filed
+      "startable" item actually be started, playbook currency, known-issues navigability, punch-list
+      navigability, `24-PLAIN-ENGLISH-STATUS` accuracy, vision/architecture vs reality.
+      ⚠ Pass 1 agents were READ-ONLY; passes 2-3 executed and fault-injected in scratch. ⛔ Whichever
+      you choose, say so in the prompt — and ⛔ do NOT let an agent copy a whole fork to scratch.
+
 ### ‼ `#24-ki76correctness` — KI-76's CORRECTNESS half: the slide model's ENDPOINT is wrong (filed 2026-08-17 from `#24-orphans` (6), which existed because this had NO item of its own)
 
 - [ ] **TWO OPEN DEFECTS IN `map_path.py`, and they have OPPOSITE arming profiles — ⛔ do not treat

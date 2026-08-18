@@ -420,10 +420,11 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    (1) on an unmeasured heap offset AND the USER; (3) on needing its own discriminator).
 >    ‼ **READ `#24-ki76correctness` FIRST — this handoff deliberately does not restate its numbers**,
 >    because restating a spec is how the last three items acquired a second, drifting copy.
->    ⚠ **Its next step is startable with zero input** (`--driver ch20room6` + `saves/post_dive.ss1`
->    already exist and pass) — but only for ONE of its two defects; the other's fixture does not
->    exist yet and the item says so. ⛔ Do not invent one; that half's first deliverable IS the
->    fixture.
+>    ⛔ **REMOVED 2026-08-18 — this said the item's next step was "startable with zero input"
+>    using `--driver ch20room6` + `saves/post_dive.ss1`. BOTH HALVES ARE WRONG NOW:** that arm
+>    is the ROOM6 / ends-on-warp one, which is MEASURED VACUOUS, and `post_dive.ss1` is
+>    VOLATILE (the pinned copy is `post_dive_ki76.ss1`). A cold-start audit caught it pointing
+>    a next session at the vacuous arm.
 >    ⚠ **ALTERNATIVES, all filed and all startable with zero input:** `#24-probecountgate` (teach the
 >    doc gate to grade probe counts — the third un-gated number class to go stale in one session),
 >    `#24-loopheadabort` (13 retry loops needing a LOOP-HEAD `_check_abort()`, NOT a handler guard),

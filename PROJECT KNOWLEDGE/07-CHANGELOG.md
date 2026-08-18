@@ -16917,3 +16917,28 @@ not the environment. Corrected in place with its provenance, and the rule record
 record only the action it implies.** ⛔ The underlying caution is unchanged and still stands: do not
 copy a whole fork to scratch, prefer synthetic fixtures — a full disk truncates logs, and a
 truncated log reads here as a short run.
+
+## 2026-08-18 — WRAP-UP AUDIT: 4 agents; the queue head was ORPHANED, and a stale line pointed at the vacuous arm
+
+Four agents verified the wrap-up rather than trusting it. **W2: nothing orphaned** (every code change,
+gate, probe and fix is recorded in `07`/`08`). **W3: nothing lost** — all six archived blocks traced
+byte-verbatim into their archives, every archive append-only, and every OPEN residual inside an
+archived block independently re-findable from a current-state file. **W1: a fresh session CAN start.**
+
+**Fixed, all found by the cold-start agent:**
+* ⛔ **The queue head had NO PUNCH-LIST ITEM.** The 5-pass audit existed only in the handoff banner,
+  the queue line and three changelog entries — the exact `#24-orphans` shape, and it meant three
+  commits shipped without the `(punch-list #N)` tag DoD step 5 requires. Now filed as
+  **`#24-sanitycheck`**, carrying the METHOD (8 agents, one angle, FAULT-INJECT-or-RE-DERIVE, verify
+  every finding), the output contract, a measured pass-4 lead (**9 of 11 sampled gates have no
+  self-fault-test**), and an explicit note that **pass 5 has no scope written anywhere**.
+* ⛔ **A stale line pointed the next session at the MEASURED-VACUOUS arm** — `04-HANDOFF` still said
+  the KI-76 item was "startable with zero input (`--driver ch20room6` + `saves/post_dive.ss1`)".
+  That arm is the ends-on-warp one (vacuous), and that save is VOLATILE (the pinned copy is
+  `post_dive_ki76.ss1`). Replaced with the correction and its reason.
+* The **daily upstream check** was due (2026-08-17 → 2026-08-18); re-fetched, `5dd898f8` unchanged.
+* `00-README` now lists **KI-65** among `31-KNOWN-ISSUES-ARCHIVE`'s contents.
+
+‼ One agent finding was already stale when it arrived: it flagged the uncommitted disk correction,
+which had been committed as `15e34d9a` while it ran. **An agent's view of the tree is a snapshot —
+re-check before acting.**
