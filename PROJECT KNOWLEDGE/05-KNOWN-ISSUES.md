@@ -1984,12 +1984,16 @@ Fixing defect 1 means teaching `map_path` a "slide ends in a dismount" concept, 
 "slide ends in a warp" concept — both are changes to shared pathfinding that every mode depends on,
 i.e. the KI-59 shape, and both need their own A/B. **For §Ch20 the cheap answer is the KI-72 rule
 one level up: do not let the planner choose where a slide ends — pick the tiles explicitly and
-assert them.** ⚠ **STILL UNVERIFIED LIVE, and the 2026-08-17 measurement does NOT change that** —
-it is static, it only says HOW MUCH is armed and WHERE. The `(3,19)` dismount and the `(14,8)` flush
-remain analysis. ➡ **Confirm `(14,8)` FIRST: its fixture already exists** (`--driver ch20room6`,
-anchor `saves/post_dive.ss1`) — surf onto Room 6 `(14,9)` and assert the final MAP + TILE + SURF
-STATE. ⛔ Room 7 `(5,8)` has **no driver and no anchor**, so confirming the dismount needs a NEW
-fixture first; that is a deliverable, not a patch. Both live in `#24-ki76correctness`.
+assert them.** ⛔⛔ **SUPERSEDED 2026-08-17 — DO NOT ACT ON THE PARAGRAPH THIS REPLACES.** It said *"Confirm
+`(14,8)` FIRST: its fixture already exists (`--driver ch20room6`, anchor `saves/post_dive.ss1`) —
+surf onto Room 6 `(14,9)`"*. **Every operative noun in that sentence is now refuted:** `(14,9)` is
+UNSTAGEABLE (Room 6 is one-way; 14 of 15 candidate staging tiles have NO PATH), `ch20room6`'s route
+provably never visits `(14,8)`, and `post_dive.ss1` is VOLATILE. ✅ **The `(14,8)` flush was
+CONFIRMED LIVE anyway**, by `--driver ki76warp` from `(8,12)` on the PINNED `post_dive_ki76.ss1`.
+⚠ **What genuinely remains unverified is the `(3,19)` DISMOUNT** — Room 7 has no driver and no
+anchor, so that needs a NEW fixture first; that is a deliverable, not a patch.
+*(A Tier 2 cold-start audit found this block still commanding the finished work from the refuted
+spec — the exact "rebuild finished work" trap this layer exists to stop.)*
 
 ---
 

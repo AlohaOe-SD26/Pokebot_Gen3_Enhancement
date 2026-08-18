@@ -16771,8 +16771,8 @@ is not an experiment.
 ✅✅ **THE HELD-BUTTON OBJECTION IS ANSWERED BY AN ARM.** `KI76_RELEASE_EARLY=1` releases the
 direction the instant the avatar first moves; released at f+9, the ride is **byte-for-byte
 identical** — same ten tiles, same frames, same warp, ARM R, PASS. Nine of ten tiles and the whole
-warp occur with no input held. ⇒ measured, not argued. And **three runs agree** (two default, one
-control) — ‼ which is a DETERMINISM check, never a replication.
+warp occur with no input held. ⇒ measured, not argued. And **three runs agree** (two default, one control) — ‼ a DETERMINISM check, never a
+replication. All three transcripts are committed, so the claim is auditable.
 ⚠ Left UNATTRIBUTED rather than explained away: the auto-step from warp-arrival `(10,1)` to the
 settled `(10,2)` ~29 frames after release. Not the driver (no button held by then, in either arm);
 most plausibly vanilla's own step-off-the-warp. Flagged, not asserted.

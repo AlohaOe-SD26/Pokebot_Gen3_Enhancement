@@ -2053,66 +2053,37 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
       right (that one is about a slide ending beside walkable LAND; this dismount came from a WARP
       transition), and n is small — a second run is a DETERMINISM check, never a replication.
       📁 `evidence/2026-08-17-ki76warp-RUN3-CONFIRMED.stdout.txt`.
+      ⛔⛔ **AND THE PLANNER-SIDE ASSERTION IS *VACUOUS* — MEASURED 2026-08-17, NOT ARGUED.**
+      The obvious next step ("assert `calculate_path` PENALISES or MARKS a slide destination that is
+      a warp") **cannot fail on the only map where the defect is armed.** Two observe-only queries,
+      re-run by hand after a Tier 2 agent reported them (⛔ an agent's word is not enough on a
+      load-bearing point): asking for a path TO `(14,8)` returns ONE waypoint,
+      `coords=(10,1) is_warp=True` — the planner already resolves it THROUGH the warp and MARKS it
+      (`map_path.py:869` sets `is_warp` on the final node); and the real Room 6 crossing emits 13
+      waypoints, **none of them `(14,8)`**, because A* cannot expand past that tile — continuing
+      needs SEAFLOOR_CAVERN_ENTRANCE, which is not on ROOM6's connected set.
+      ⇒ **Both arms identical. Shipping that assertion would have printed "no difference", which
+      reads as a REFUTATION of a defect that is LIVE-CONFIRMED** — the worst available outcome.
+      📁 `evidence/2026-08-17-ki76-plannerside-VACUOUS.stdout.txt`.
+      ‼ **A subtler finding, worth more than the assertion would have been:** on that map the
+      planner is **ACCIDENTALLY SAFE — safe by INABILITY, not by design.** It avoids the warp only
+      because it cannot route past it, and that protection evaporates on any map where the far side
+      IS in the connected set.
+      ➡ **WHAT IS ACTUALLY LEFT of the planner-side half, and it needs a NEW formulation nobody has
+      written:** the COST at `map_path.py:972` is charged against the NEIGHBOUR and never against
+      the substituted destination, so the planner may still PREFER a route it should avoid. That is
+      a route-CHOICE comparison (does the emitted route change when the penalty is applied to the
+      destination?), **not** an `is_warp` check. ⛔ Do not start it by re-deriving the vacuous one.
       ⛔ **NOT READY TO PATCH, and the reason is KI-76's own:** both fixes are changes to SHARED
       pathfinding every mode depends on (the KI-59 shape), each needs its own A/B, and KI-76
       requires **LIVE confirmation before code depends on either**. This measurement is static; it
       does NOT discharge that.
-      ➡ **NEXT ACTION — live-confirm the ends-on-warp defect. Startable with zero human input, but
-      ⛔ IT IS "WRITE A NEW DRIVER LEG", NOT "RUN AN EXISTING COMMAND".** Anchor
-      `saves/post_dive.ss1` and `--driver ch20room6` both exist and pass — but ‼ **that driver
-      provably does NOT go there**: its route is `ROOM6 (11,21) → (4,1)` and `05-KNOWN-ISSUES.md`
-      records its waypoints as `(14,16) (19,11) (8,12) (4,8)` — *"`(14,8)`, the trap, never appears."*
-      ⇒ **subclass it and fork before `_cross_room6`'s navigate.** *(An earlier draft of this line
-      said "the fixture EXISTS" full stop; a Tier 2 cold-start agent tried to begin from it and
-      found the scope understated. "The fixture exists" ≠ "the driver goes there".)*
-      ✅✅ **THE DESIGN IS NOW FULLY MEASURED — ⛔ DO NOT RE-DERIVE IT, AND DO NOT USE `(14,9)`.**
-      `probe_room6_warp_entries.py` (NEW, observe-only, evidence
-      `evidence/2026-08-17-ki76-room6-warp-entries.stdout.txt`) settled every value the docs
-      withheld:
-      * **The nine entry tiles are enumerated** — `(9,12) (10,10) (10,11) (10,12) (11,10) (12,10)
-        (13,10) (14,9) (14,10)` — count **9**, matching KI-76's independently recorded 9. *(A second
-        positive control, on a number a different session wrote down.)*
-      * ⛔ **`(14,9)` — the tile the docs name — IS UNREACHABLE, as are 14 of the 15 candidate
-        staging tiles.** Room 6 is ONE-WAY, so `calculate_path` raises `PathFindingError` for all of
-        them. **A driver written from the docs' `(14,9)` would have failed at runtime after minutes
-        of setup.**
-      * ✅ **EXACTLY ONE USABLE STAGING TILE: `(8,12)`** — 5 waypoints from Room 6's entry
-        `(11,21)`, **no waypoint on a current, none on a warp**, ending exactly on target.
-      ➡ **THE DRIVER, SPECIFIED:** subclass `Ch20Room6Mode` and fork at `story_harness.py:7381`
-      (`yield from _navigate_riding_out(room6, self.ROOM6_EXIT)` — replace the destination).
-      Navigate to **`(8,12)`**, then **press EAST once** to step onto `(9,12)` (Eastward Current);
-      the chain runs **9 steps** and production says it ends on the warp `(14,8)`.
-      ‼ **Stage-and-step, never `navigate_to` an entry tile** — `map_path.py:1013` substitutes the
-      slide destination for a current-tile neighbour, which is the defect itself.
-      ‼ Assert the avatar's FINAL MAP + TILE + SURF STATE (`AvatarFlags.Surfing in
-      get_player_avatar().flags`), never "did it arrive".
-      ⚠ Copy `ki66faint`'s anchor guard (hash the save before and after, and log both) and drive
-      **`saves/post_dive_ki76.ss1`**, asserting it first. Frames: `ch20room6` uses `2500000`.
-      ✅ **THE DISCRIMINATOR IS COMPUTED AND THE ARMS DIFFER — this item is NOT vacuous.** ARM M
-      (our model): final map `SEAFLOOR_CAVERN_ROOM6`, tile `(14,8)`, still surfing — because `:972`
-      charges the warp penalty against the NEIGHBOUR `(14,9)` (whose `warps_to` is `None`) and
-      `:1013` substitutes `(14,8)` afterwards without re-inspecting it. ARM R (the game):
-      final map `SEAFLOOR_CAVERN_ENTRANCE`. ⇒ **the arms differ on MAP IDENTITY alone**, which is
-      the cheapest possible assertion.
-      ✅ **THE ANCHOR HAZARD IS CLOSED 2026-08-17 — but NOT the way it was first written here.**
-      ⛔ **This entry used to say "PIN IT", and pinning would have been WRONG:** `post_dive.ss1` is
-      **re-captured by `--driver spacecenter` on every PASS** (`story_harness.py:3846-3849`, gated by
-      `CH19C_CAPTURE`, default ON), so by the manifest's own rule — *a save any DRIVER re-captures
-      is a CACHE, not a fixture* — pinning it would have turned `verify_fixtures.py` **permanently
-      red** the next time anyone drove §Ch19 (`--driver spacecenter`). *(A Tier 2 cold-start audit correctly reported it as
-      "not pinned"; the fix it implied was the wrong one, and one grep for the writer settled it.)*
-      ✅ **DONE INSTEAD, following the established `post_harbor`/`post_aqua` pattern:**
-      `saves/post_dive_ki76.ss1` is a **PINNED COPY** (`a00378595409`), and `post_dive.ss1` itself is
-      now listed **VOLATILE** with its writer named — it was the most-used anchor in the project
-      (12+ probes, every `ch20*` driver) and was **UNLISTED entirely**, so nothing noticed if it
-      moved. ➡ **Drive `post_dive_ki76.ss1`, and assert it first:**
-      `verify_fixtures.py --assert post_dive_ki76.ss1=a00378595409`.
-      ‼ The nine entry tiles that funnel into `(14,8)` are NOT recorded anywhere — only the count
-      and the shared endpoint. Re-derive them with `probe_slide_endpoints.py` (observe-only); no
-      human input needed.
-      ⛔ **BLOCKER on live-confirming (A), stated rather than hidden:** ROOM7 has **no driver**, and
-      ROUTE132/133/134 are reachable by no built chapter (content ends at §Ch19/20). So (A)'s live
-      confirmation needs a NEW fixture, and that is its first deliverable — not a patch.
+      ⛔⛔ **SUPERSEDED 2026-08-17 — THE BUILD SPEC BELOW IS HISTORY. THE DRIVER EXISTS AND HAS RUN.**
+      Everything from here to the NAMING HAZARD note was the recipe for `--driver ki76warp`; it is
+      kept because its measurements (the staging tile, the nine entry tiles, the unreachability of
+      `(14,9)`) are still the reference. ⛔ **It is NOT a work instruction any more** — a Tier 2
+      cold-start audit found this `➡ NEXT ACTION` marker commanding a driver the same item declares
+      built, seventeen lines above.
       ⚠ **NAMING HAZARD:** the two defects are numbered inconsistently across three files —
       `probe_ch20_currents.py:174` calls the WARP one "KI-76 / D1", `probe_current_edges.py:1` calls
       the `None`-unpack "KI-76 / D5", and KI-76 itself calls the warp one "Defect 2". ⛔ Say

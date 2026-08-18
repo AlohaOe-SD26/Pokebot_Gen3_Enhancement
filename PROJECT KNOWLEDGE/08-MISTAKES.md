@@ -8332,3 +8332,41 @@ failure, because what breaks is the step AFTER it.
 the linter on the file you just changed.** Both of this session's mystery nulls were undefined names,
 and both were free to find. *(The playbook's §0b Q4 already says "could my detector have returned
 POSITIVE at all?" — a `NameError` on line 1 is the most complete "no" there is.)*
+
+## 2026-08-17 — the next action I specified was VACUOUS, and it is the SECOND one this session
+
+**Symptom.** After live-confirming KI-76's ends-on-a-warp defect I wrote the obvious next step into
+both halves of the handoff: *"assert that `calculate_path` PENALISES or MARKS a slide destination
+that is a warp, then fix `map_path.py:972/1013` behind that assertion."* A Tier 2 cold-start agent
+tried to BEGIN it, computed the discriminator, and found **both arms identical**. I re-ran the two
+queries by hand rather than take an agent's word on a load-bearing point, and it is right:
+
+* asking for a path TO the warp `(14,8)` returns ONE waypoint, `coords=(10,1) is_warp=True` — the
+  planner already resolves it THROUGH the warp and marks it (`map_path.py:869` sets `is_warp` on the
+  final node);
+* `(14,8)` never appears as an INTERMEDIATE waypoint, because A* cannot expand past it: continuing
+  needs `SEAFLOOR_CAVERN_ENTRANCE`, which is not on ROOM6's connected set.
+
+**Root cause.** I derived the next step from the DEFECT's mechanism (`:972` charges the neighbour,
+`:1013` substitutes afterwards) without asking whether the planner can ever be made to EXHIBIT it on
+the one map where it is armed. **A mechanism being real is not the same as a mechanism being
+reachable** — the same distinction that made KI-66's owner filter INERT and KI-59's cavern headline
+wrong.
+
+**Cost if it had shipped:** the assertion would have printed "no difference", which reads as a
+REFUTATION of a defect that had just been confirmed live. The worst available outcome.
+
+**‼ AND IT IS THE SECOND VACUOUS SPEC I WROTE TODAY.** The first named `(14,9)` as the tile to surf
+onto; measurement showed it unstageable. Both were caught by the same rule — Tier 2 must TRY TO
+BEGIN the next item and COMPUTE ITS DISCRIMINATOR — and neither was caught by me, by a consistency
+check, or by a gate.
+
+**PREVENTION RULE (one line).** ⛔ **Before writing a next action that asserts something about a
+planner/model, RUN THE QUERY THE ASSERTION WOULD MAKE and show the arms differ — a spec is not
+finished until its discriminator is measured, not merely reasoned.**
+
+‼ **The finding that outlived the assertion, and is worth more than it:** on the only map where the
+defect is armed the planner is **ACCIDENTALLY SAFE — safe by INABILITY, not by design.** It avoids
+the warp solely because it cannot route past it, and that protection evaporates on any map where the
+far side IS in the connected set. ⇒ *when you discover code is safe, ask WHY; "it cannot do the
+dangerous thing" and "it declines to" have very different futures.*

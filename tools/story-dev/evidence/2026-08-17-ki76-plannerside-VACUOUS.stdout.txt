@@ -1,0 +1,51 @@
+=== #24-ki76correctness — THE PLANNER-SIDE ASSERTION IS VACUOUS (MEASURED 2026-08-17) ===
+
+A Tier 2 cold-start agent tried to BEGIN the planner-side half and computed the discriminator.
+It found the arms identical. ⛔ I re-ran it myself rather than take an agent's word on a
+load-bearing point. Both queries below, observe-only, on the PINNED post_dive_ki76.ss1:
+
+Q1 — does the DESTINATION case already get is_warp=True? (8,12) -> (14,8)
+  dest-is-warp: len=1
+     [0] coords=(10, 1) is_warp=True map=None
+
+Q2 — can (14,8) ever appear as an INTERMEDIATE waypoint? the real room6 route:
+  room6 crossing: len=13
+     [0] coords=(11, 20) is_warp=False map=None
+     [1] coords=(11, 19) is_warp=False map=None
+     [2] coords=(14, 16) is_warp=False map=None
+     [3] coords=(19, 11) is_warp=False map=None
+     [4] coords=(8, 12) is_warp=False map=None
+     [5] coords=(4, 8) is_warp=False map=None
+     [6] coords=(4, 7) is_warp=False map=None
+     [7] coords=(4, 6) is_warp=False map=None
+     [8] coords=(4, 5) is_warp=False map=None
+     [9] coords=(4, 4) is_warp=False map=None
+     [10] coords=(4, 3) is_warp=False map=None
+     [11] coords=(4, 2) is_warp=False map=None
+     [12] coords=(4, 15) is_warp=True map=None
+
+=== WHAT THIS MEANS ===
+
+Q1 — THE DESTINATION CASE IS ALREADY HANDLED. Asking for a path TO the warp (14,8) returns ONE
+waypoint, `coords=(10,1) is_warp=True` — the planner resolves it THROUGH the warp and marks it.
+`map_path.py:869` sets `is_warp` when `len(result) == 0`, i.e. on the final node. So an assertion
+of the form "a warp-terminated slide is emitted UNMARKED" cannot fail here.
+
+Q2 — AND (14,8) NEVER APPEARS AS AN INTERMEDIATE WAYPOINT. The real Room 6 crossing emits 13
+waypoints and none is (14,8). A* cannot expand PAST that tile, because continuing requires
+SEAFLOOR_CAVERN_ENTRANCE, which is not on ROOM6's connected set for pathing. ⇒ the branch is a
+dead end and A* routes around it.
+
+⇒ ⛔ THE PLANNER-SIDE ASSERTION AS THE HANDOFF WORDED IT IS VACUOUS. Both arms are identical.
+Shipping it would have produced "no difference", which reads as a REFUTATION of a defect that is
+LIVE-CONFIRMED — the worst possible outcome, and the exact shape 08-MISTAKES warns about.
+
+‼ AND A SUBTLER FINDING, WORTH MORE THAN THE ASSERTION WOULD HAVE BEEN: on the ONLY map where the
+ends-on-a-warp defect is armed, the planner appears to be ACCIDENTALLY SAFE — not because it
+penalises the warp, but because it CANNOT EXPAND PAST IT. That is safety by inability, not by
+design, and it would evaporate on any map where the far side IS in the connected set.
+
+⚠ WHAT IS **NOT** MEASURED HERE, and is the only live remainder of the planner-side half: the COST
+at `map_path.py:972` is charged against the NEIGHBOUR, never against the substituted destination.
+That could still make the planner PREFER a route it should avoid, and it needs its OWN formulation
+— a route-CHOICE comparison, not an is_warp check. ⛔ No document contains such a formulation yet.
