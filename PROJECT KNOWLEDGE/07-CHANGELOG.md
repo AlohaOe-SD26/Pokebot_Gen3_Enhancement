@@ -16906,3 +16906,14 @@ FAULT-INJECT or RE-DERIVE rather than reason* — plus the warning that **2 of ~
 positives, so verify every one.** ⚠ The STATE block now also records that **disk is at 100%**
 (2.6 GB free of 1.9 TB), because a full disk produces silent truncation, which this project reads as
 a short run.
+
+## 2026-08-18 — a transient disk reading was corrected in the same wrap-up that wrote it
+
+The STATE block briefly recorded **"DISK IS AT 100% — 2.6 GB free"**. Re-measured at wrap-up:
+**87% used, 247 GB free.** The 100% reading was taken *during* the incident — audit agents were
+copying whole forks to scratch and one hit `No space left on device` — so it described the incident,
+not the environment. Corrected in place with its provenance, and the rule recorded in
+`08-MISTAKES.md`: **a resource reading is a measurement, not a property; re-take it at wrap-up or
+record only the action it implies.** ⛔ The underlying caution is unchanged and still stands: do not
+copy a whole fork to scratch, prefer synthetic fixtures — a full disk truncates logs, and a
+truncated log reads here as a short run.

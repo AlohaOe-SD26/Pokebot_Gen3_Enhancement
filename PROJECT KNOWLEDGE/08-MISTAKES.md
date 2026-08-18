@@ -8492,3 +8492,29 @@ insert.*
 
 **PREVENTION RULE (one line).** ⛔ **Anything cited by ORDINAL is an append-only list — adding in
 the middle rewrites history that prose already quotes, and no gate will tell you.**
+
+## 2026-08-18 — I recorded a TRANSIENT resource reading as a standing fact, in the file that warns about staleness
+
+**Symptom.** During the deep sanity check an audit agent copying a whole fork to scratch hit
+`No space left on device`. I ran `df -h`, saw `1.9T used / 2.5G free / 100%`, and wrote **"DISK IS
+AT 100% — 2.6 GB free"** into `04-HANDOFF.md`'s STATE block as a current-state fact. Re-measured at
+wrap-up less than an hour later: **87% used, 247 GB free.**
+
+**Root cause.** A disk figure is a MEASUREMENT of a moment, not a property of the project — and the
+moment I measured was the worst one, mid-copy, with several agents' scratch trees live. I treated a
+spike as a baseline. ‼ The irony is exact: I put it in the STATE block, four lines from the row that
+tells the reader to trust `git status` over prose, in a session whose entire subject was numbers
+that go stale.
+
+**What survives the correction, and why the caution still stands:** the agent's failure was REAL,
+and the underlying rule is not about the number at all — *a full disk truncates logs, and a
+truncated log reads here as a short run.* That is why the row now says "do not copy a whole fork to
+scratch; prefer synthetic fixtures" and gives the re-measured figure with its provenance.
+
+**PREVENTION RULE (one line).** ⛔ **A RESOURCE reading (disk, memory, free space, load) is never a
+current-state FACT — either re-take it at wrap-up and date it, or record only the ACTION it implies
+and drop the number.**
+
+‼ **Corollary:** ⛔ **the worst moment to measure is the moment something failed.** A reading taken
+during the incident describes the incident, not the environment; take it again once the incident is
+over, and if the two disagree, say both.

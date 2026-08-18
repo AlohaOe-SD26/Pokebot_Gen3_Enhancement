@@ -48,10 +48,15 @@ Every banner further down is HISTORY, newest first.
 > priority redirect and is NOT part of the superseded "older framing".
 
 > **State: `main`, 28/28 gates PASS, drift 0, nothing parked MID-TASK, nothing running.**
-> ⚠⚠ **DISK IS AT 100% — 2.6 GB free on a 1.9 TB volume (measured 2026-08-18).** ⛔ Do NOT copy a
-> whole fork to scratch (an audit agent did and hit `No space left on device` mid-run). A full disk
-> produces exactly the SILENT failures this project has been burned by — a truncated log reads like
-> a short run. Check `df -h` before any bulk operation, and prefer synthetic fixtures to tree copies.
+> ⚠ **DISK: 87% used, 247 GB free (RE-MEASURED 2026-08-18 at wrap-up).** ⛔ This row briefly read
+> *"100% — 2.6 GB free"*, which was a TRANSIENT reading taken while audit agents were copying whole
+> forks to scratch; one of them hit `No space left on device` mid-run, which is real and is why the
+> caution below stands. ‼ **I wrote that spike into a CURRENT-STATE file as a standing fact and it
+> was false within the hour** — the exact staleness shape this session fixed a dozen times, in the
+> file that warns about it. ⇒ **a resource reading is a MEASUREMENT, not a property: re-take it at
+> wrap-up or do not record it.** ⛔ Still true regardless: do NOT copy a whole fork to scratch —
+> prefer synthetic fixtures — because a full disk truncates logs, and a truncated log reads here as
+> a short run.
 > ✅ **THE DEEP SANITY CHECK (user-requested, 5 passes x 8 agents) IS 3/5 DONE**, each pass committed
 > separately: PASS 1 TRUTH (`045bdd1c`), PASS 2 CODE HEALTH (`e74d6e50`), PASS 3 ADVERSARIAL
 > (`899f4ce7`). ‼ **What it found is why passes 4-5 are worth running:** a GATE THAT COULD NOT FAIL
