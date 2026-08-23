@@ -17315,3 +17315,42 @@ view of the tree is a snapshot; re-check before acting.* Remaining LOW findings 
 files" figure matching no measurable set, three tracked areas missing from the folder map, `01`'s
 harness counts and its "Python 3.12" target, and four offline planner probes failing — one via its
 own positive control) are recorded here and in `#24-brokenrepros` rather than fixed blind.
+
+## 2026-08-23 — KI-82 CLOSED by a ruling that already existed: the tracked ROM stays, the DOCS were the defect
+
+**User ruling: *"leave as-is, fix the docs."*** Nothing in the repository was changed — no `git rm`,
+no history rewrite, no `.gitignore` edit. The tracked Emerald ROM stays exactly as it is.
+
+⛔ **AND THE REAL FINDING: THE QUESTION HAD ALREADY BEEN ANSWERED.** `06-DECISIONS-LOG.md` carries
+**2026-07-18 — "Emerald ROM stays tracked in the repo (user ruling)"**, in which the user was offered
+purge / untrack / keep and chose **keep**, and which ends *"Do not re-raise this for THIS file."*
+A PASS 4 audit surfaced the ROMs on 2026-08-22 and I filed KI-82 as "awaiting a user ruling"
+**without reading that log** — so the user was asked something they had settled five weeks earlier.
+‼ The audit was right to SURFACE it; the ESCALATION was the error. Logged in `08-MISTAKES.md`, and
+`CLAUDE.md` gains **session-discipline rule 11: before escalating anything to the user, `grep -i` the
+decisions log.** That file is written to constantly and is not in the session-start reading set,
+which is exactly how it became invisible.
+
+**What the round still produced — three corrections to the filing itself, all re-derived:**
+* ⛔ **"33 MB of a 146 MB `.git`" WAS WRONG.** `sandbox-pokebot/roms/…` and `custom-pokebot/roms/…`
+  resolve to the **SAME git blob `21bfd6e0`** — git deduplicates identical content, so the repository
+  stores **ONE copy, not two.** Two tree entries ≠ two objects.
+* ✅ **IDENTITY CONFIRMED:** SHA-1 `f3ae0881…`, present in the bot's OWN accepted-dump whitelist at
+  `sandbox-pokebot/modules/roms.py:50` — this is the dump the program is built to load.
+* ✅ **THE `.gitignore` "CONTRADICTION" IS NOT ONE**, and the 2026-07-18 entry already said so:
+  `roms/*` blocks accidental *local* commits, and ignore rules never apply to already-tracked paths.
+  ⇒ an audit reporting "ignored yet tracked" is reporting the INTENDED DESIGN.
+
+**Docs fixed, found by sweeping the slug rather than by memory** (the rule written earlier the same
+day — `grep -rn "<slug>" .` and re-read every hit — which found two references I would have missed):
+* `05-KNOWN-ISSUES.md` KI-82 → **CLOSED**, carrying both rulings, the corrected cost, and a ⛔
+  DO-NOT-RE-RAISE with the single condition that reopens it.
+* `25-BACKUPS-AND-RESTORE.md` §3 → the ROM line now says it is tracked **ON PURPOSE**, cites the
+  ruling, and states the consequence that makes it load-bearing: **untracking would silently break
+  the "a restore point is a runnable program" promise on every existing tag.**
+* `04-HANDOFF.md` banner + STATE → *"NOTHING AWAITS A USER RULING"*; `03-PUNCH-LIST.md` → KI-82 closed;
+  `24-PLAIN-ENGLISH-STATUS.md` → *"Nothing is waiting on you"*, kept number-free.
+
+⛔ **UNCHANGED AND STILL IN FORCE:** if this repository is ever made **PUBLIC**, the decision must be
+revisited FIRST — it is private today and the copyright exposure was explained and accepted on that
+basis. Agents must still never commit ADDITIONAL ROMs, saves or profiles.

@@ -2025,7 +2025,8 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
       UNDERSTATED: not "9 of 11 sampled" but **21 of 28 gates had no self-test**, and THREE of them
       (`probe_slot_free_plan`, `probe_regi_capabilities`, `probe_dive_routing`) had **zero assertions
       and could not fail at all**. Residuals filed as `#24-fixturecoverage`, `#24-gateselftests`,
-      `#24-testrunsweep`, `#24-p4residuals`, `#24-flagnamedocscan`; KI-82 awaits a USER ruling.
+      `#24-testrunsweep`, `#24-p4residuals`, `#24-flagnamedocscan`. ✅ KI-82 is CLOSED — it was already
+      ruled on 2026-07-18 and was re-affirmed 2026-08-23; ⛔ do not re-raise it.
       ✅ **PASS 5's SCOPE WAS DEFINED AND EXECUTED 2026-08-22/23 — it is on the record so the audit is
       REPRODUCIBLE.** It had none when filed. The eight angles run, one agent each: cold-start from
       the handoff; cold-start from `00-README`; can each filed "startable" item actually be started;

@@ -348,6 +348,17 @@ as "the lesson from bug X" does not fire when you are building Y.
    *then* apply it. Never reason it out from a docstring: `handle_fainted_pokemon` has now had
    **three** index-space bugs (KI-18, KI-34, KI-66) and a fourth is filed
    (`#24-faintchooser-fourthspace`). A backwards conversion is worse than the bug it replaces.
+11. ⛔ **BEFORE ESCALATING ANYTHING TO THE USER, `grep -i` `06-DECISIONS-LOG.md` FIRST** (added
+   2026-08-23). That file exists so a question never has to be asked TWICE, and it is NOT in the
+   session-start reading set — so it gets written to and never read from. *Cost of learning this: an
+   audit found two tracked commercial ROMs, I filed KI-82 as "AWAITING A USER RULING" and put a
+   careful two-sided tradeoff to the user — who had already ruled on it five weeks earlier, in an
+   entry ending **"Do not re-raise this for THIS file."*** ‼ **And when a finding's own evidence says
+   "this looks deliberate", that is a signal to go FIND THE DECISION, not a caveat to attach to an
+   escalation.** ⇒ **A settled decision is a claim with a DO-NOT-REOPEN, and it is exactly as
+   load-bearing as a deferral being a claim with an expiry date.** When a re-discovery turns out to
+   be already-ruled, the fix is to document WHY it is not a defect *at the place the auditor looks*,
+   so the next audit stops re-flagging it.
 
 
 ### ‼‼ DOC CONSISTENCY LAYER — independent eyes on documentation (user directive, 2026-08-13)

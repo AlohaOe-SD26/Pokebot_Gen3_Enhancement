@@ -73,7 +73,11 @@ Measured on 2026-08-11 against `restore/2026-08-11-all-promoted`:
 **CAPTURED** (inside the tagged tree):
 * all code — `sandbox-pokebot/`, `custom-pokebot/`, `40cakes repo/`, `tools/`
 * all `PROJECT KNOWLEDGE/` docs and the divergence/update logs
-* **the ROM** — 2 `.gba` files are tracked
+* **the ROM** — tracked ON PURPOSE (user ruling 2026-07-18, re-affirmed 2026-08-23; see
+  `06-DECISIONS-LOG.md` and KI-82). ⛔ **This is why a restore point is "a runnable program" —
+  untracking it would silently break that promise on every existing tag.** Two tree entries
+  (`sandbox-pokebot/roms/`, `custom-pokebot/roms/`) sharing ONE git blob, so the repo stores one
+  copy, not two. ⚠ Revisit ONLY if this repository is ever made public
 * **all save fixtures** — **78** tracked files under `tools/story-dev/saves/` (**76** of them
   `.ss1`), including the pinned anchors and `FIXTURES.md5`. *(Re-measured 2026-08-22; this read
   "69 / 67" and was stale — `git ls-files tools/story-dev/saves/` is the authority.)*

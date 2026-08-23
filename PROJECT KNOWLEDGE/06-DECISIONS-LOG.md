@@ -3115,3 +3115,40 @@ reported the standing suite RED on `audit_doc_citations.py`. True when it starte
 while it ran. This is the second recorded instance. ⇒ **verify a finding against the CURRENT tree,
 not against the agent's snapshot** — which is also why every finding in this audit was re-derived by
 the orchestrator before anything was changed.
+
+## 2026-08-23 — RE-AFFIRMED (not a new decision): the Emerald ROM stays tracked. ⛔ THIS IS THE SECOND RULING ON IT.
+
+**Decision:** unchanged — **keep the tracked ROM as is; fix the documentation instead.** The user's
+words: *"leave as-is, fix the docs."*
+
+⛔ **THIS ENTRY EXISTS TO STOP A THIRD ASKING.** The original ruling is
+**2026-07-18 — "Emerald ROM stays tracked in the repo (user ruling)"**, a few screens above, and it
+already ended with *"Do not re-raise this for THIS file."* A PASS 4 audit surfaced the tracked ROMs
+on 2026-08-22 and I filed **KI-82** as "awaiting a user ruling" **without checking this log** — so
+the user was asked a question they had already answered five weeks earlier. The cost was small; the
+process failure is the point, and it is recorded in `08-MISTAKES.md`.
+
+**What this entry ADDS to the 2026-07-18 one (it is not a pure duplicate):**
+* **SCOPE — the original names only `custom-pokebot/roms/`.** There are now **two tree entries**,
+  `sandbox-pokebot/roms/` and `custom-pokebot/roms/`, created when the sandbox fork was set up. The
+  ruling covers BOTH; they are the same dump.
+* **COST — corrected.** KI-82 as filed said *"33 MB of a 146 MB `.git`"*. Wrong: both paths resolve
+  to the **same git blob `21bfd6e0`**, so the repository stores **one copy, not two**. Git
+  deduplicates identical content; two tree entries do not mean two objects.
+* **IDENTITY — verified.** SHA-1 `f3ae0881…`, which is in the bot's own accepted-dump whitelist at
+  `sandbox-pokebot/modules/roms.py:50`. This is the dump the program is built to load.
+* **THE `.gitignore` "CONTRADICTION" IS NOT ONE, and the 2026-07-18 entry already said so** —
+  `roms/*` blocks accidental **local** commits; ignore rules never apply to already-tracked paths.
+  ⇒ any future audit that reports "ignored yet tracked" is reporting the intended design.
+
+**Alternatives rejected, again:**
+* *`git rm --cached` (untrack going forward).* ⛔ Rejected. It would make the next `git pull` on the
+  project's OTHER computer DELETE the ROM that machine runs from, and every existing `restore/*` tag
+  would stop being "a runnable program" — a promise `25-BACKUPS-AND-RESTORE.md` §3 makes explicitly.
+* *Purge from history.* ⛔ Rejected and never seriously on the table: it rewrites published history,
+  which this project's git-conduct rule forbids outright, and would invalidate all 19 pushed tags.
+
+**The single condition that reopens this — carried forward verbatim in force:**
+⛔ **If the repository is ever made PUBLIC, this decision MUST be revisited FIRST.** It is private
+today, and the copyright exposure was explained and accepted on that basis.
+⚠ Unchanged: agents must never commit ADDITIONAL ROMs, saves or profiles. The ruling covers THIS file.

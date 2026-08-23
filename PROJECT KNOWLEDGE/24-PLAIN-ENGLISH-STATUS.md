@@ -4,7 +4,7 @@
 > code terms. No jargon, no statistics. Every technical claim here has a precise version
 > elsewhere: `07-CHANGELOG.md` (what changed), `08-MISTAKES.md` (what went wrong),
 > `03-PUNCH-LIST.md` (the queue), `04-HANDOFF.md` (resume point).
-> **Last updated: 2026-08-22.** ‼ **This file was THREE DAYS AND FIVE CHAPTERS STALE** until a
+> **Last updated: 2026-08-23.** ‼ **This file was THREE DAYS AND FIVE CHAPTERS STALE** until a
 > cold-start audit caught it. *(This line used to claim `00-README.md` "sends new readers HERE
 > FIRST". It does not — the README lists this file under **"Read WHEN RELEVANT — not part of the
 > start-of-session ritual"**, while calling it "START HERE FOR A HUMAN ANSWER". Overstating its own
@@ -252,6 +252,7 @@ stale the way the others do.*
 * 🔧 **Behind the scenes**, a long check of our own safety nets found several that could not actually
   fail — they printed warnings and reported success anyway. Those are fixed, and the checks that
   guard the guards are now part of the standing set. None of it changes how the bot plays.
-* ⛔ **One thing is waiting on you:** the game file itself is stored inside the project's history,
-  which keeps every saved restore point playable but is not really where a commercial game should
-  live. Nothing has been changed — it is written up and waiting for your call.
+* ✅ **Nothing is waiting on you.** The game file is kept inside the project's history on purpose —
+  that is what makes every saved restore point instantly playable on any machine — and you had
+  already decided that once before. You confirmed it again; nothing was changed. The one thing that
+  would make us revisit it is the project ever being made public.
