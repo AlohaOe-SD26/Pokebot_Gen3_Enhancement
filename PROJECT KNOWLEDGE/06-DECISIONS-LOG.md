@@ -2997,3 +2997,48 @@ exactly that arm, and it existed only because the BEFORE capture was a deliberat
 **One follow-up it created, recorded rather than left implicit.** A per-fork RATCHET must be
 re-based after a promotion: custom's baseline moved 44 → 36. ⇒ **promoting a fix that a ratchet
 counts is not finished until the ratchet is turned**, or the gain silently unlocks.
+
+## 2026-08-22 — PASS 4 rulings: an ADVISORY gate tier, and three things deliberately NOT done
+
+**RULING — a probe that cannot fail becomes ADVISORY, it is not deleted and not forced to exit.**
+Pass 4 found three suite entries with zero assertions. Three dispositions were possible:
+* *Delete them from `GATES`.* **REJECTED** — gate ordinals are append-only here; removing #21-#23
+  would renumber every later citation, which is precisely the mistake logged on 2026-08-17 when
+  INSERTING one silently renumbered six.
+* *Give each an exit code.* **REJECTED for two of the three** — `probe_regi_capabilities.py` reports
+  a KNOWN-blocked arc (the Regi work is not started) and `probe_dive_routing.py` says of itself that
+  it "does NOT prove the route works". Gating either would red the suite permanently over a
+  documented, accepted state, and a gate that cries wolf is rated worse here than no gate at all.
+* **CHOSEN — a third tier.** They stay in `GATES`, they RUN, their output is kept, and they print
+  `ADVIS`. The closing banner now separates `27 ENFORCING` from `+2 ADVISORY`, so no reader can
+  mistake a measurement for enforcement.
+‼ **The exemption ships with a CONTROL**, because a mechanism that can swallow any failure is worse
+than the bug it hides: the identical failing stub, NOT marked advisory, still fails the suite. That
+control is a permanent part of the fault test.
+
+**RULING — gate on the invariant with a PROVEN red arm, never on the one that merely looks right.**
+`probe_slot_free_plan.py` publishes two booleans, `blocked` and `spared_ok`, both True today. It now
+exits on `spared_ok` **only**, because that is the one an agent actually drove to False. Gating on
+`blocked` as well would assert something never demonstrated to be able to fail — a CLAIM wearing a
+guard's clothes. *(Same rule the project already applies to "without X the bug survives" statements.)*
+
+**RULING — do NOT gate flag names in documentation. The obvious fix is refuted by measurement.**
+`audit_flag_names.py` never reads docs, and CLAUDE.md names docs as exactly where hallucinated flag
+names have landed — so extending it looked obviously right. Measured before building: **438
+unresolvable mentions across 49 files sit in `ai-research-notes/`**, which is explicitly "RECALL
+ONLY, never authoritative" and where unverified names are the entire point; and of the **15 in 7
+authoritative docs**, most are prose PLACEHOLDERS (`FLAG_NAME`, `FLAG_BADGE`, `VAR_TEMP`,
+`FLAG_MOSSDEEP_GYM_SWITCH_X`). A gate firing on those teaches the reader to bypass it.
+⇒ The residue is a small ADJUDICATION job (~8 names against the decomp), not a gate. `#24-flagnamedocscan`.
+
+**RULING — fix the 7 `is_test_run` sites inside the suite; do NOT sweep the other 98.**
+`is_test_run=True` stops the atexit that overwrites shared profile state — but it *also* suppresses
+LOADING `current_state.ss1` (`libmgba.py:144`), so it is a behaviour change, not a hygiene flag. The
+7 in the standing suite run on every commit and were verified individually (state count and mtime
+unchanged, all still exit 0). A blind mass-edit of 98 more could silently change what a probe boots
+from, and `story_harness.py` probably SHOULD keep profile state. Batched under `#24-testrunsweep`.
+
+**RULING — the fixture-coverage gap is REPORTED, not FAILED.** 66 of 77 fixtures have no manifest
+row. Failing on them would block every commit from the moment it shipped. The gate now prints the
+gap at every run so it cannot be missed, and the classification work is filed with an explicit
+warning not to PIN anything whose stability has not first been measured.

@@ -525,6 +525,97 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ⚠ **AND SCOPE IT:** grade only CURRENT-STATE files (00-05, 24). `07`/`08`/`28`/`31` are
       append-only history where a stale count is CORRECT.
 
+- [ ] `#24-fixturecoverage` — **NEW 2026-08-22 (deep sanity check PASS 4). ‼ REFERENCED FROM CODE
+      (`verify_fixtures.py`) — this item may not be deleted without editing that file.**
+      **`verify_fixtures.py` walks the MANIFEST, never the DIRECTORY**, so a save with no
+      `saves/FIXTURES.md5` row is not merely unprotected, it is INVISIBLE. **MEASURED: 11 rows
+      against 77 `.ss1` on disk ⇒ 66 fixtures neither PINNED nor declared VOLATILE.** Among them
+      **`at_steven_2f.ss1`** (the KI-66 driver's anchor) and **`ch13_fortree_door.ss1`** (KI-80's
+      condition table) — both cited in the docs as things evidence rests on.
+      ✅ The gate now PRINTS the gap at every run (advisory, 2026-08-22). ⛔ It deliberately does NOT
+      fail: 66 red files would block every commit, and a gate that cries wolf is worse than none.
+      **THE WORK:** decide PINNED vs VOLATILE per file and add rows. ⚠ **Pin nothing you have not
+      first measured as stable** — pinning a save a driver rewrites turns the suite permanently red,
+      and `verify_fixtures.py`'s own docstring records that "copy the file now" is NOT pinning.
+      ⚠ 1 of the 77 (`midstuck.ss1`) is deliberately gitignored — a demoted shared scratch path, not
+      a hole. Do not "fix" it.
+
+- [ ] `#24-gateselftests` — **NEW 2026-08-22 (PASS 4). Make PASS 4's fault-injections PERMANENT.**
+      **MEASURED, and worse than the lead said: 21 of 28 suite gates had NO `--self-test`** (the
+      earlier note said "9 of 11 sampled"). ‼ **"No self-test" is NOT "cannot fail"** — pass 4's
+      agents demonstrated by injection that most of the 21 DO fail correctly (all four static
+      scanners, all four behavioural repros, lint R1-R6, preflight's four sections,
+      `verify_fixtures`, `audit_flag_names`, `repro_party_accounting`, `repro_impassable_dirs`).
+      ⛔ **But those demonstrations lived in ephemeral scratch and are now GONE.** That is the whole
+      item: a gate proven to fail once, with no standing proof, decays to a gate nobody can trust.
+      ⇒ Port the injections into `--self-test` blocks, cheapest first. Precedent to copy exactly:
+      `selftest_git_add_hook.py` (2026-08-22) and `repro_whiteout_abort.py --self-test`.
+
+- [ ] `#24-testrunsweep` — **NEW 2026-08-22 (PASS 4). 98 more `LibmgbaEmulator(...)` sites still
+      lack `is_test_run=True`.** Without it the emulator registers an atexit that OVERWRITES shared
+      `profiles/<name>/current_state.ss1` and drops a `states/` snapshot — so an "observe-only"
+      probe mutates state the next run reads. **MEASURED: `profiles/repro-ml/states/` had reached
+      2,820 files / 160 MB.** ‼ **RE-DERIVE BOTH, do not trust these digits** (a Tier 1 reviewer
+      correctly flagged them as bare numbers): sites =
+      `grep -c "LibmgbaEmulator(" tools/story-dev/*.py | grep -v is_test_run`; accumulation =
+      `ls sandbox-pokebot/profiles/repro-ml/states/ | wc -l` and `du -sh` on the same path. Both
+      GROW with every run on every machine, so they are readings, not properties. ✅ Pass 2 fixed 2 (the KI-76 probes); **PASS 4 fixed the 7 that are in
+      the STANDING SUITE** and PROVED it (states count and `current_state.ss1` mtime byte-identical
+      across four probe runs). ⛔ **The remaining 98 were deliberately NOT swept**: `is_test_run`
+      also suppresses LOADING `current_state.ss1` (`libmgba.py:144`), so it is a BEHAVIOUR change,
+      and a blind mass-edit of 98 files could silently change what a probe boots from.
+      ⚠ `story_harness.py:122` is the real driver and probably SHOULD keep profile state — decide it
+      explicitly rather than sweeping it. ⇒ Do them in batches, running each after.
+
+- [ ] `#24-p4residuals` — **NEW 2026-08-22 (PASS 4). Six small, independent, verified defects.**
+      **(a)** `promote.py --check` — the doc-declared drift "authority" — **ALWAYS exits 0**
+      (`promote.py:117-120` returns 0 before any refusal), so it cannot be chained or gated.
+      VERIFIED FROM SOURCE, not from a passing run. ⇒ add `--strict`; ⛔ do NOT make plain `--check`
+      exit 1 on drift — drift is a normal state, not an error.
+      **(b)** lint R1/R2 fire on `# HISTORY` and banner text INSIDE fenced code blocks (latent
+      today). ⇒ strip ``` fences before scanning.
+      **(c)** lint R3 counts `text.count("
+")+1`, one MORE than `wc -l` (890 vs 889 on
+      `04-HANDOFF.md`). Harmless direction but the budget is off by one. ⇒ `len(text.splitlines())`.
+      **(d)** `repro_no_silent_except.py:107` justifies a silent handler on comment LENGTH
+      (`>= 12` chars), not relevance — any filler comment launders it.
+      **(e)** `repro_undefined_names.py`, `repro_no_silent_except.py`, `repro_roster_reorder.py`
+      hardcode `sandbox-pokebot` with no `--build` (only `repro_pid_identity_key.py` has one) ⇒ a
+      defect landing in the PROMOTED fork is invisible to all three.
+      **(f)** `repro_ki65_unbound_party_index.py` tests only the UNBOUND read; the documented KI-65
+      residual (a legitimately-bound `party_index = -1`, i.e. the LAST party member) is untested and
+      REPRODUCES THE LIE when injected (`lie_msg=1`, Loudred consulted instead of Marshtomp).
+      ⇒ add ARM C.
+      **(g)** ‼ **`audit_doc_consistency`'s supersede exemption is NEIGHBOURHOOD-BOUND, not
+      CLAIM-BOUND — the SAME bug shape already fixed in `check_promotion_prose` on 2026-08-17.**
+      MEASURED: `04-HANDOFF.md:51` ("the suite is 28 gates") went stale six lines above a correct
+      `29` and the gate stayed SILENT — because the claim falls inside a **3,975-character unit**
+      that contains the words *"older framing"* somewhere, and one supersede marker exempts the
+      WHOLE unit, live orientation instructions included. A **Tier 1 human-shaped reviewer** caught
+      it; the gate structurally could not. ⇒ scope the exemption to the SENTENCE/clause, as
+      `check_promotion_prose` now does. ⛔ **MEASURE THE BLAST RADIUS FIRST** — narrowing it will
+      un-exempt every number in every large annotated block, and a flood of false positives is worse
+      than the miss. *(A seventh phrasing was added to the claim regex the same day; it is correct
+      and matches this line in isolation — it simply never gets consulted here.)*
+
+- [ ] `#24-flagnamedocscan` — **NEW 2026-08-22 (PASS 4). ⛔ THE OBVIOUS FIX IS REFUTED BY
+      MEASUREMENT — do not build it.** `audit_flag_names.py` scans only story `*.py`; docs are never
+      checked, and CLAUDE.md names docs as exactly where hallucinated flag names land.
+      **But gating doc flag names WOULD BE NOISE:** measured 293 unresolvable names, of which
+      **438 mentions across 49 files are in `ai-research-notes/`** — explicitly "RECALL ONLY, never
+      authoritative", where unverified names are the POINT — and of the **15 in 7 authoritative
+      docs**, most are prose PLACEHOLDERS (`FLAG_NAME`, `FLAG_BADGE`, `VAR_TEMP`,
+      `FLAG_MOSSDEEP_GYM_SWITCH_X`). A gate firing on those trains the reader to bypass it.
+      ‼ **ALSO MEASURED AND NON-OBVIOUS:** the ground truth (`modules/data/event_flags/emerald.txt`)
+      stores **BARE** names (`BADGE07_GET`), while docs use the **decomp** prefix
+      (`FLAG_BADGE07_GET`) — a naive comparison reports 100% failure. *(My first probe did exactly
+      that and I nearly filed 652 phantom findings; the CHECK was wrong, not the docs.)*
+      ⇒ **THE REAL WORK IS SMALL:** adjudicate the ~8 non-placeholder names against the decomp via
+      `gh api repos/pret/pokeemerald/contents/...` — `FLAG_RECEIVED_HM03`,
+      `FLAG_DEFEATED_RIVAL_ROUTE119`, `FLAG_RECEIVED_ITEMFINDER`,
+      `FLAG_HIDE_AQUA_HIDEOUT_1F_GRUNT_1`, `FLAG_RECEIVED_MAGMA_EMBLEM`, `FLAG_DEFEATED_CHAMPION`,
+      `FLAG_RECEIVED_TM27`, `FLAG_GET_CAUGHT`. Fix any that are wrong; gate nothing.
+
 - [ ] `#24-driftreduction` — **NEW 2026-08-17, split out of `#24-driftassertions` (which shipped the
       GATE half). Assert the drift number in ONE place; every other site points at the command.**
       Keep the STATE table row (it is where a cold start looks) and the HOW TO RUN `Expect:` line

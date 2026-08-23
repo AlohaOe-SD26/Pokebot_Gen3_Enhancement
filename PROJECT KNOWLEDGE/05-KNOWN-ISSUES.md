@@ -93,6 +93,35 @@ sandbox-fixed case.
 > 📦 **KI-6 and KI-7 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — both resolved July
 > 2026. Moved verbatim, nothing deleted, to keep this file inside its 3,000-line budget (rule R3).
 
+## KI-82 — TWO 16 MB COMMERCIAL ROMS ARE TRACKED IN GIT, against both forks' own `.gitignore` (opened 2026-08-22, severity: **AWAITING A USER RULING — do not act unilaterally**)
+
+⛔ **THIS IS NOT A BUG TO FIX. It is a decision only the user can make, and it is recorded here so it
+cannot be quietly "tidied" by a future agent.** Found in deep sanity check PASS 4 and verified twice.
+
+**THE FACTS, re-derived:**
+* `git ls-tree -r -l HEAD` shows **`sandbox-pokebot/roms/Pokemon - Emerald Version (USA, Europe).gba`
+  and the identical file under `custom-pokebot/roms/`, 16,777,216 bytes each** — 33 MB of a 146 MB
+  `.git`. Header bytes confirm a genuine retail ROM. Added by commit `2e933129`.
+* **Each fork's own `.gitignore:17` says `roms/*`** (with `!roms/.gitkeep`), so the tracked state
+  contradicts the stated intent of the very repo that carries it.
+* ‼ **BUT `25-BACKUPS-AND-RESTORE.md` §3 lists "the ROM — 2 `.gba` files are tracked" under
+  CAPTURED**, i.e. this project has been *relying* on restore points containing a runnable ROM.
+  ⇒ **It is at least partly deliberate. Do not assume it is an accident.**
+
+**WHY IT MATTERS BOTH WAYS — the tradeoff is real and belongs to the user:**
+* Untracking (`git rm --cached`, the ignore rule already covers it) is the licensing-clean posture,
+  and shrinks every future clone. **But it means each machine must supply its own ROM**, and this
+  project is explicitly worked on from more than one computer — the next `git pull` elsewhere would
+  DELETE the ROM that machine is running from, and every restore point after that stops being
+  "a runnable program" as §3 promises.
+* ⛔ **Removing it from HISTORY is a different and much larger action** — it rewrites published
+  history, which this project's git-conduct rule forbids outright, and would invalidate all 19
+  pushed `restore/*` tags. **Nobody should do that without the user saying so explicitly.**
+
+⇒ **NEXT STEP IS A QUESTION, NOT A COMMIT.** Ask the user: leave as-is (and correct the forks'
+`.gitignore` comment so the contradiction stops confusing audits), or untrack going forward (and
+update `25-BACKUPS-AND-RESTORE.md` §3, which would no longer be true). ⛔ Until then, change nothing.
+
 ## KI-8 — Mid-battle rotation execution can stall the party-menu switch (opened 2026-07-21, severity: med)
 - **Symptom:** a mid-battle switch (`TurnAction.RotateLead`) into a weak/underlevelled bench
   hung the in-battle PARTY_MENU (Roxanne with Torchic vs Rock + an L6-7 bench → stuck, then

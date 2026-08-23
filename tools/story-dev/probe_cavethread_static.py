@@ -14,7 +14,10 @@ import json
 from collections import deque
 from pathlib import Path
 
-ROOT = Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot")
+# ‼ DERIVED, never hardcoded — see the note in `audit_flag_names.py` (fixed 2026-08-22, PASS 4).
+# An absolute checkout path breaks on the project's other computer, or silently reads a different
+# clone on this one.
+ROOT = Path(__file__).resolve().parents[2] / "sandbox-pokebot"
 
 # --- map name <-> (group, number), via AST so nothing executes -----------------
 NAMES: dict[str, tuple] = {}

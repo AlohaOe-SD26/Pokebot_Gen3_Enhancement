@@ -142,9 +142,17 @@ section_r6 = DOCS / "29-DISABLED-FEATURES-REGISTRY.md"
 # flag either way, and a phantom mention would surface as an undocumented "flag" worth deleting.
 flag_re = re.compile(r'["\'](POKEBOT_[A-Z0-9_]+)["\']')
 found: set[str] = set()
+# ‼ BOTH FORKS — widened 2026-08-22, deep sanity check PASS 4 (INFRASTRUCTURE).
+# R6 scanned ONLY `sandbox-pokebot`, so `custom-pokebot` — THE FORK THAT SHIPS — was invisible:
+# 234 .py files, none of them ever read by the registry guard. A kill-switch living only in the
+# promoted fork would have been documented nowhere and R6 would still have passed.
+# ⚠ MEASURED BEFORE WIDENING, so this is provably non-breaking: custom's flag set is a SUBSET of
+# sandbox's (17 ⊆ 21), i.e. the widened scan finds no new undocumented flag today. It is a guard
+# against tomorrow, not a repair of today — which is exactly when a scope gap is cheapest to close.
 bot_roots = [REPO / "sandbox-pokebot" / "modules", REPO / "sandbox-pokebot" / "plugins",
+             REPO / "custom-pokebot" / "modules", REPO / "custom-pokebot" / "plugins",
              REPO / "tools" / "story-dev"]
-_single_files = [REPO / "sandbox-pokebot" / "pokebot.py"]
+_single_files = [REPO / "sandbox-pokebot" / "pokebot.py", REPO / "custom-pokebot" / "pokebot.py"]
 for _f in _single_files:
     if _f.is_file():
         found |= set(flag_re.findall(_f.read_text(encoding="utf-8", errors="replace")))
@@ -152,6 +160,14 @@ for root in bot_roots:
     if not root.is_dir():
         continue
     for py in root.rglob("*.py"):
+        # ‼ `evidence/` IS NOT BOT CODE — excluded 2026-08-22 (deep sanity check PASS 4).
+        # Committed evidence includes fault-injection drivers that deliberately contain SYNTHETIC
+        # flag names (`POKEBOT_TOTALLY_UNDOCUMENTED_FLAG` and friends) to prove R6 can fire. R6
+        # scanned them and demanded registry rows for flags no bot will ever read — a gate firing
+        # on its own test fixtures, which is the false-positive shape this project rates as worse
+        # than no gate. Caught by running the suite BEFORE committing the evidence, not after.
+        if "evidence" in py.parts or "__pycache__" in py.parts:
+            continue
         try:
             found |= set(flag_re.findall(py.read_text(encoding="utf-8", errors="replace")))
         except Exception as error:  # noqa: BLE001 — an unreadable file is reported, never skipped
@@ -171,6 +187,20 @@ else:
     for f in missing:
         fail("R6", f"`{f}` is used in bot code but is NOT in the registry — a flag pinned off is "
                    f"usually a MEASUREMENT, and it must be findable before someone re-proposes it")
+
+    # ‼ THE REVERSE DIRECTION — added 2026-08-22, deep sanity check PASS 4.
+    # R6 only ever asked "is every flag in the code documented?". The opposite rot was unguarded:
+    # a registry row whose flag NO CODE READS ANY MORE. That row keeps warning future agents off
+    # work that has already been deleted, which is the same cost as a stale prevention rule — and
+    # `/reconcile`'s own charter says a rule whose hazard is gone must be retired, because leaving
+    # it active wastes the context of everyone who reads it.
+    # ⚠ MEASURED FIRST: zero orphans today (21 in code, 21 in the registry, both directions), so
+    # this ships green and is a guard against future rot, not a repair.
+    documented = set(re.findall(r"`(POKEBOT_[A-Z0-9_]+)`", registry))
+    orphaned = sorted(f for f in documented if f not in found)
+    for f in orphaned:
+        fail("R6", f"`{f}` has a registry row but NO code in either fork reads it — the feature is "
+                   f"gone and the row now misleads. Retire the row (or restore the reader).")
 
 # ---------- INFO ----------
 punch = DOCS / "03-PUNCH-LIST.md"

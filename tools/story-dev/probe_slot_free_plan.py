@@ -41,7 +41,11 @@ set_rom(profile.rom)
 
 from modules.libmgba import LibmgbaEmulator
 
-context.emulator = LibmgbaEmulator(profile, lambda: None)
+context.emulator = LibmgbaEmulator(profile, lambda: None, is_test_run=True)  # ‼ is_test_run: without it the
+    # emulator registers an atexit that OVERWRITES shared `profiles/<name>/current_state.ss1`
+    # and writes a states/ snapshot. Pass 2 fixed this for the two KI-76 probes; PASS 4
+    # (2026-08-22) found SEVEN MORE still writing — `profiles/repro-ml/states/` had reached
+    # 2,820 files / 160 MB. A probe that mutates shared state is not observe-only.
 context.audio = False
 context.video = False
 
@@ -193,3 +197,17 @@ print("  * whether freeing a slot is genuinely ONE-SHOT rather than per-heal (th
 print("    question about `ensure_hm_learner`'s callers, not a state question);")
 print("  * whether the Shoal Cave tile is reachable and productive — that needs a LIVE two-way sweep,")
 print("    not a static path (the Route 114 lesson).")
+
+# ‼ THE EXIT CODE — added 2026-08-22, deep sanity check PASS 4 (INFRASTRUCTURE).
+# This file sat in the STANDING GATE SUITE with **zero assertions and no exit call**: an agent
+# monkeypatched `team_policy.find_dead_weight` to return our ONLY Surf carrier, the probe printed
+# `[‼ DANGER] the deposit does NOT take a Surf carrier: False` and `‼‼ STOP.` — and still exited 0,
+# so `run_gates.py` reported PASS over it. That is the same defect pass 3 found in
+# `repro_whiteout_abort.py`, and three probes in this suite had it at once.
+#
+# ⛔ IT GATES ON `spared_ok` ONLY, DELIBERATELY. That is the invariant with a PROVEN RED ARM — the
+# injection above flips it to False. `blocked` is also True today, but nothing has ever demonstrated
+# its failing arm, and this project's rule is that an unproven arm is a CLAIM, not a guard: gating
+# on it would be asserting something I have not shown can fail.
+#   baseline MEASURED before wiring this up: blocked=True, spared_ok=True, victim=slot 3 (Skitty).
+raise SystemExit(0 if spared_ok else 1)

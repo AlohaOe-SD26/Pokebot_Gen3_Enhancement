@@ -74,8 +74,14 @@ Measured on 2026-08-11 against `restore/2026-08-11-all-promoted`:
 * all code — `sandbox-pokebot/`, `custom-pokebot/`, `40cakes repo/`, `tools/`
 * all `PROJECT KNOWLEDGE/` docs and the divergence/update logs
 * **the ROM** — 2 `.gba` files are tracked
-* **all save fixtures** — 69 tracked files under `tools/story-dev/saves/` (67 of them `.ss1`),
-  including the pinned anchors and `FIXTURES.md5`
+* **all save fixtures** — **78** tracked files under `tools/story-dev/saves/` (**76** of them
+  `.ss1`), including the pinned anchors and `FIXTURES.md5`. *(Re-measured 2026-08-22; this read
+  "69 / 67" and was stale — `git ls-files tools/story-dev/saves/` is the authority.)*
+  ⚠ **77 `.ss1` exist on disk; the one extra is `midstuck.ss1`, DELIBERATELY gitignored** — it was
+  a shared scratch path every concurrent run overwrote, so it was demoted on purpose. It is a
+  restore-point HOLE only in the sense that it was never meant to be one.
+  ⛔ **And only 11 of those have a `FIXTURES.md5` row at all** — see `#24-fixturecoverage`; the
+  other 66 are neither PINNED nor declared VOLATILE, so `verify_fixtures.py` cannot see them drift.
 
 **NOT CAPTURED** (git-ignored; a restore leaves these as they are on the machine):
 | not captured | how to get it back |
@@ -163,7 +169,10 @@ project's git conduct rule requires asking the user before any of them.** Never 
 | **2026-08-15** | **`restore/2026-08-15-pre-promotion-ki79-pctrip`** | ✅ | taken before the KI-79 `pc_trip.py` promotion (a BEHAVIOUR change, proven by a THREE-POINT A/B) |
 | **2026-08-16** | **`restore/2026-08-16-pre-promotion-credible-answer-comment`** | ✅ | before the COMMENT-ONLY `story_mode.py` `CREDIBLE_ANSWER_POWER` correction. ‼ Proved behaviour-neutral by **AST equality** (`ast.dump(parse(sandbox)) == ast.dump(parse(custom))`, 323,580 chars each) BEFORE copying — and that check was fault-tested by flipping `75→76`. Both forks 4135 lines, so no `story_mode.py:NNNN` citation shifted in either |
 | **2026-08-16** | **`restore/2026-08-16-pre-promotion-ki80-decoupling`** | ✅ | before the **KI-80 DECOUPLING**, a BEHAVIOUR change. ‼ Its BEFORE evidence is committed in `1c11927e`, ONE COMMIT BEFORE THIS TAG, because a three-point A/B's BEFORE half is unrepeatable once the copy happens. Promoted the same day: `DECOUPLED=1` FAIL→PASS, coupled PASS→FAIL, arm 4 PASS both sides |
+| **2026-08-16** | **`restore/2026-08-16-pre-promotion-ki65`** | ✅ | before the **KI-65** fix (`modules/battle_move_replacing.py`). At this tag custom still HAS the bug and reproduces it live (gate #25 `--build custom`: `fault_fired=159, lie_msg=1, ACCEPTANCE: FAIL`); sandbox has the two-part fix and PASSES. Drift = 1 |
 | **2026-08-16** | **`restore/2026-08-16-pre-promotion-ki81-abort-guard`** | ✅ | before the **KI-81 WHITEOUT GUARD** (8 handlers that silently swallowed an abort — a BEHAVIOUR change on the abort path). ‼ BEFORE evidence is one commit EARLIER, in `6de47264`. Proven by a MEASURED before/after rather than a byte-compare: `probe_abort_swallowing.py --build custom` fell **53 → 45** and custom's guarded-handler counts moved **0→3 / 0→4 / 1→2** |
+| **2026-08-17** | **`restore/2026-08-17-pre-promotion-ki66-onfield`** | ✅ | before the **KI-66 `_on_field` index-space fix** (`modules/battle_handler.py`). At this tag custom still reproduces it (`--driver ki66faint --build custom`: `on_field=[0,3]` then `[1,3]`, 2 faints, 486 party-menu presses) vs sandbox `on_field=[0,1]`. A single-battle control shows the fix is INERT outside multi battles. Drift = 1 |
+| **2026-08-17** | **`restore/2026-08-17-pre-promotion-all5`** | ✅ | ‼ **the CURRENT rollback target** — before the user-approved FIVE-FILE promotion: `pc_trip.py` + `higher_level_actions.py` (`#24-orphans` (1) verdict change), `early_game.py` + `counter_hunt.py` (`#24-abortswallow` guards), `map_path.py` (`#24-ki76correctness`, COMMENT-ONLY). Roll back HERE to undo all five. BEFORE evidence is committed in the same commit: `tools/story-dev/evidence/2026-08-17-PROMOTION-BEFORE-custom-all5.stdout.txt` |
 
 ‼ **KNOWN WART on `restore/2026-08-11-all-promoted`:** its tag message points at
 `PROJECT KNOWLEDGE/15-BACKUPS-AND-RESTORE.md`, which was renumbered to **`25-`** minutes later

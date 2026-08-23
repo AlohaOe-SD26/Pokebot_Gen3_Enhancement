@@ -16959,3 +16959,144 @@ Two last things fixed so the next session starts with room to work:
   own WARN. Refreshed; the audit now reports zero warnings.
 
 **Final headroom: `03` 3503/3600, `04` 883/900, `05` 2827/3000.**
+
+## 2026-08-22 — DEEP SANITY CHECK, PASS 4 of 5 (INFRASTRUCTURE) — 8 agents, and THREE GATES THAT COULD NOT FAIL
+
+Eight agents, one angle each, every one required to **FAULT-INJECT or RE-DERIVE, never to reason**.
+⛔ One deliberate change to the method: with 8 agents concurrent, **in-place injection into the
+shared tree was FORBIDDEN** — a transient injection makes another agent's gate run falsely red. They
+worked in scratch via import-and-override drivers, and anything needing in-place injection came back
+labelled `CANNOT-REPRODUCE` for me to run serially on a quiet tree. **The tripwire held: `git status`
+stayed empty for the whole round; every file changed at the end was mine.**
+
+### ⛔⛔ THE HEADLINE — THREE ENTRIES IN THE STANDING SUITE CONTAINED ZERO ASSERTIONS
+`probe_slot_free_plan.py`, `probe_regi_capabilities.py` and `probe_dive_routing.py` had **no
+`sys.exit`, no `SystemExit`, no `assert`** — verified by me, not taken on report. On the
+**unmodified** tree they print **4, 23 and 6** alarm lines respectively and exit 0;
+`probe_regi_capabilities.py` prints *"‼ MISSING (10) — each one stops the arc"* and the suite
+reported **ALL PASS** over it. Same class as pass 3's `repro_whiteout_abort.py` — three at once.
+⇒ **The suite's real enforcing size was 25, not 28.**
+
+They were **dispositioned individually, never swept**:
+* **`probe_slot_free_plan.py` — RESCUED into a real gate.** It already computed the safety invariant
+  (`spared_ok = victim is not None and victim not in surf_carriers`); only the exit code was missing.
+  ‼ **Gated on `spared_ok` ONLY** — that is the invariant with a PROVEN red arm. `blocked` is also
+  True today, but nothing has ever shown its failing arm, and an unproven arm is a CLAIM, not a
+  guard. **PROVED with the agent's own injection — same command, same harness: `PROBE EXIT CODE = 0`
+  before, `= 1` after.**
+* **`probe_regi_capabilities.py` → ADVISORY.** It reports a KNOWN-blocked arc (the Regi work is not
+  started). An exit code would red the suite permanently for a documented, accepted state.
+* **`probe_dive_routing.py` → ADVISORY.** Its own closing line says it is STATIC and *"does NOT prove
+  the route works"*. It was documentation wired into a gate list.
+⛔ **Both STAY IN `GATES`** — gate ordinals are append-only here, and deleting entries would renumber
+every citation after them (the exact mistake logged 2026-08-17). They run, and print `ADVIS`.
+✅ **CONTROL, because an exemption that swallows everything is worse than the bug:** the same failing
+stub NOT marked advisory still fails the suite (`FAILED: 1 of 2`, rc=1).
+
+### ‼ THE GATE RUNNER HAD NO TIME BOUND
+`run_gates.py`'s `subprocess.run` had **no `timeout=`, and the word appeared nowhere in the file** —
+so a HUNG gate was not a failure, it blocked the suite forever with no output and no exit code.
+**Eight gates boot a ROM/emulator**, the hang-prone shape, and this project's prime directive #3 is
+*"never hang, every loop needs a bound"*. The runner that enforces every other rule was the one place
+without one. ✅ Fixed: `TIMEOUT_FAST=300` / `TIMEOUT_SLOW=900` (slowest real gate 114.6s ⇒ ~8x
+margin); a timeout yields **rc=124**, which lands in `failed`. Fault-tested — a 30s stub against a 3s
+bound printed `FAIL g_hang.py exit=124`, rc=1.
+
+### ‼ SEVEN "OBSERVE-ONLY" GATES WERE WRITING SHARED PROFILE STATE
+Pass 2 fixed this for the two KI-76 probes; **seven more were never checked.** Without
+`is_test_run=True` the emulator registers an atexit that overwrites shared
+`profiles/<name>/current_state.ss1`. **`profiles/repro-ml/states/` had reached 2,820 files / 160 MB.**
+✅ Fixed for the seven inside the STANDING SUITE, and **PROVEN**: states count **2820 → 2820** and
+`current_state.ss1` mtime **unchanged** across four probe runs that previously wrote every time.
+⛔ **The other 98 sites were deliberately NOT swept** — `is_test_run` also suppresses *loading*
+`current_state.ss1` (`libmgba.py:144`), so a blind mass-edit could change what a probe boots from.
+Filed as `#24-testrunsweep`.
+
+### THE ENFORCEMENT HOOK NOBODY HAD EVER TESTED — 8 BYPASSES AND A FALSE POSITIVE
+`CLAUDE.md` calls `.claude/hooks/block-blind-git-add.ps1` **"ENFORCED, not requested"**, and
+`/wrapup` + `/checkpoint` both cite it — three documents leaning on a mechanism with no standing
+proof. **No agent was assigned it; I fault-tested it myself across 22 executed cases.** It blocked
+all 7 habitual forms and allowed every legitimate one — and then:
+* **EIGHT BYPASSES**, each checked against real git semantics: `-Av` (short-option bundling defeats
+  `-A\b`), `--al` (git accepts unambiguous long-option prefixes), `./`, `"."`, `-- .`, `*`, `:/`,
+  and ‼ **`git -C <path> add -A`** — global options between `git` and the subcommand. That last is
+  the worst, because this harness's own Bash tool steers agents toward `git -C` to avoid `cd`
+  permission prompts.
+* **ONE FALSE POSITIVE:** `|`, `;` and `&` were read as shell separators even inside QUOTED TEXT and
+  HEREDOC BODIES. ‼ *It blocked the very command I wrote to test it* — the same trap the original
+  hook's own comment records hitting on its first draft.
+✅ **Rewritten as a parser, not a regex:** a DATA MASK marks quote/heredoc spans, segments split only
+on unmasked separators, git global options are skipped, and whole-tree pathspecs are matched in every
+spelling. ✅ **31 permanent cases behind `-SelfTest`, wired as GATE #29** (`selftest_git_add_hook.py`,
+**appended at the END** — ordinals are append-only). **Fault-tested BOTH ways:** deleting the
+global-option skip → 3/31 FAIL; deleting the data mask → 1/31 FAIL (the false positive returns).
+
+### ALSO FIXED, each verified by me before acting
+* **`audit_flag_names.py` (gate #5) and `probe_cavethread_static.py` hardcoded an ABSOLUTE
+  `C:\Remote Projects\...` path**, in a project whose own CLAUDE.md says it is *"worked on from
+  multiple computers"*. On another machine the gate dies; on this one with a second clone it would
+  silently audit the WRONG TREE and report PASS. Now derived from `__file__`, proven to resolve to
+  the identical directory. **ORCHESTRATOR FINDING — no agent was looking for it.**
+* **lint R6 never scanned `custom-pokebot` — the fork that SHIPS** (234 `.py` files invisible), so a
+  kill-switch living only in the promoted fork was documented nowhere and R6 still passed. Widened.
+  ✅ **Non-breaking, MEASURED first** (custom's 17 flags ⊆ sandbox's 21). ✅ **Fault-tested with a
+  BEFORE/AFTER discriminator: the same planted file is invisible under the old roots and caught
+  under the new ones.**
+* **R6 was one-directional.** A registry row whose flag NO code reads any more kept warning agents
+  off already-deleted work. Reverse check added (0 orphans today); a ghost row now FAILS.
+* **`verify_fixtures.py` walks the MANIFEST, never the DIRECTORY** — measured **11 rows vs 77 `.ss1`
+  on disk ⇒ 66 fixtures invisible**, including `at_steven_2f.ss1` (KI-66's anchor) and
+  `ch13_fortree_door.ss1` (KI-80's condition fixture). It now prints the gap at every run.
+  ⛔ **Advisory on purpose** — 66 red files would block every commit, and a gate that cries wolf is
+  worse than none. Filed `#24-fixturecoverage`. ✅ A/B re-proved the gate still fails on real drift
+  (pristine → exit 0, one byte flipped → exit 1).
+* **`probe_dive_learner.py` printed "Either way this is NOT a pass" and exited 0** — in two separate
+  branches, one of them its own positive control. Both now `raise SystemExit(1)`.
+* **`25-BACKUPS-AND-RESTORE.md` was 3 restore points stale**, missing
+  `restore/2026-08-17-pre-promotion-all5` — **the current rollback target the handoff cites
+  everywhere**. All three added in chronological order, and its fixture count corrected (69/67 →
+  **78/76** tracked; `git ls-files` is the authority).
+* **`--quick`'s CLOSING banner** — the line people paste — read a flat `ALL n GATES PASS` with the
+  caveat only in the header, far above. It now reads `‼ --quick RAN n OF m — k ROM GATE(S) WERE NOT
+  RUN. THIS IS NOT A GREEN SUITE.` (It skips **8**, not 6.)
+* **The daily upstream check** was 4 calendar days overdue. Re-fetched: `5dd898f8` unchanged, and the
+  mirror **RE-DERIVED byte-identical by TREE HASH** (`fa3504a285eb62fa` on both sides) with exactly
+  one commit ever touching the prefix ⇒ no hand-edits, as the standing directive requires.
+  ⛔ Recorded WHY `git diff upstream-pokebot/main -- <prefix>` is meaningless for a `--squash`
+  subtree (it reports a bogus 4,290-file diff).
+
+### VERIFIED CLEAN (re-derived, not assumed)
+Drift 0 independently re-derived over **4,375** tracked files common to both forks, including the
+areas `promote.py` is structurally blind to. All **19** `restore/*` tags are annotated, resolve, are
+ancestors of `main`, and are pushed; **zero phantom restore names** in any doc. No secrets, no
+tracked `.env`; remotes are exactly `origin` + `upstream-pokebot`. Registry 21/21 both directions,
+every stated default matching code. The runner correctly fails on exit 1, a traceback, exit 2, a gate
+lying `ALL PASS` on stdout while exiting 1, and refuses the whole suite if a gate file is missing.
+
+⛔ **Two claims did not survive checking — one an agent's, one my own.** P4f reported "seven"
+`LibmgbaEmulator` sites lacking `is_test_run`; the repo-wide figure is **105** (it had reported only
+the suite's). And my OWN first doc-flag probe reported **652 phantom flag names** — the ground truth
+stores **BARE** names (`BADGE07_GET`) while docs use the decomp prefix (`FLAG_BADGE07_GET`), so
+**the CHECK was wrong, not the docs.** Both corrected before anything shipped.
+
+**Suite is now 29 gates — 27 ENFORCING + 2 ADVISORY — all green (149.7s).**
+
+**TIER 1 REVIEW CAUGHT WHAT THE GATE STRUCTURALLY COULD NOT.** One independent reviewer (no session
+context, given only the doc diff + a claim paragraph + the pair list) found `04-HANDOFF.md:51` still
+reading *"the suite is 28 gates"* **six lines above** a correctly-updated `29`. ‼ The doc gate was
+SILENT, and the reason is a real defect: `audit_doc_consistency`'s supersede exemption is
+**NEIGHBOURHOOD-BOUND, not CLAIM-BOUND** — the claim sits in a **3,975-character unit** containing
+the words *"older framing"*, and one marker exempts the entire block, live instructions included.
+⛔ **That is the SAME bug shape fixed in `check_promotion_prose` on 2026-08-17**, recurring in a
+different check. A seventh claim phrasing was added to the regex (correct, and it matches that line
+in isolation) but it is never consulted there. Narrowing the exemption needs a blast-radius
+measurement first, so it is filed as `#24-p4residuals` (g) rather than shipped blind.
+⇒ **The lesson is about the METHOD, not the line:** two clean automated passes did not substitute for
+one independent reader, which is exactly why the DOC CONSISTENCY LAYER requires both.
+
+‼ **And one self-inflicted false positive, caught before the commit rather than after.** Committing
+pass 4's fault-injection drivers under `evidence/` made lint R6 fail — those drivers deliberately
+contain synthetic flag names (`POKEBOT_TOTALLY_UNDOCUMENTED_FLAG`) and R6 scans `tools/story-dev`.
+A gate firing on its own test fixtures is the false-positive shape this project rates worse than no
+gate, so R6 now skips `evidence/` and `__pycache__` — with a CONTROL proving it still fires on a real
+`tools/story-dev` file outside those directories.

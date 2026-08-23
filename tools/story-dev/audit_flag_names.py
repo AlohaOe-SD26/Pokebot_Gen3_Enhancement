@@ -2,7 +2,13 @@
 Phantom names silently read False/0 forever — find them ALL at once."""
 import pathlib, re
 
-ROOT = pathlib.Path(r"C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot")
+# ‼ DERIVED FROM THIS FILE'S LOCATION, never hardcoded (fixed 2026-08-22, sanity check PASS 4).
+# This was an ABSOLUTE `C:\Remote Projects\...` path in a project whose own CLAUDE.md says it is
+# "worked on from multiple computers". On any machine with a different checkout path this standing
+# gate would have died on FileNotFoundError; worse, on a machine that HAS that path but is working
+# in a second clone it would have silently audited the WRONG TREE and reported PASS — a
+# right-answer-to-the-wrong-question, which this project has been bitten by before.
+ROOT = pathlib.Path(__file__).resolve().parents[2] / "sandbox-pokebot"
 flags = set()
 for line in (ROOT / "modules/data/event_flags/emerald.txt").read_text().splitlines():
     parts = line.split()

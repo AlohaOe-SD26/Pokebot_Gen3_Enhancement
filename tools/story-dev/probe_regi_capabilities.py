@@ -41,7 +41,11 @@ set_rom(profile.rom)
 
 from modules.libmgba import LibmgbaEmulator
 
-context.emulator = LibmgbaEmulator(profile, lambda: None)
+context.emulator = LibmgbaEmulator(profile, lambda: None, is_test_run=True)  # ‼ is_test_run: without it the
+    # emulator registers an atexit that OVERWRITES shared `profiles/<name>/current_state.ss1`
+    # and writes a states/ snapshot. Pass 2 fixed this for the two KI-76 probes; PASS 4
+    # (2026-08-22) found SEVEN MORE still writing — `profiles/repro-ml/states/` had reached
+    # 2,820 files / 160 MB. A probe that mutates shared state is not observe-only.
 context.audio = False
 context.video = False
 

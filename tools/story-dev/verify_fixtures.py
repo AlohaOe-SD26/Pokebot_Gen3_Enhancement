@@ -184,6 +184,30 @@ def main() -> int:
         _safe_print("  drifted without you meaning it, a driver overwrote it — recover it, do not bless it.")
         return 0
 
+    # ‼ UNLISTED FIXTURES — added 2026-08-22, deep sanity check PASS 4 (INFRASTRUCTURE).
+    # This gate walks the MANIFEST, never the DIRECTORY, so until now a save that was never given a
+    # manifest row was not "unprotected" — it was INVISIBLE. Measured on the day this was added:
+    # **11 manifest rows against 77 `.ss1` files on disk, i.e. 66 fixtures with no pin and no
+    # classification at all** — among them `at_steven_2f.ss1` (the KI-66 driver's anchor) and
+    # `ch13_fortree_door.ss1` (cited in KI-80's condition table). Both are named in the docs as
+    # things evidence rests on.
+    # ⛔ DELIBERATELY ADVISORY, NOT A FAILURE. Failing here would turn the suite red on 66 files at
+    # once and block every commit, and this project's own rule is that a gate which cries wolf
+    # teaches the reader to bypass it — strictly worse than no gate. What it does instead is make
+    # the blind spot IMPOSSIBLE TO MISS at every single gate run, which is what it was not before.
+    # ➡ Classifying them (and PINNING the doc-cited anchors) is filed as `#24-fixturecoverage`;
+    #   it needs a per-file judgement about which are stable, which is measurement, not typing.
+    listed = {name for _, name, _, _ in rows}
+    on_disk = sorted(p.name for p in SAVES.glob("*.ss1"))
+    unlisted = [n for n in on_disk if n not in listed]
+    if unlisted:
+        _safe_print()
+        _safe_print(f"  ⚠ UNLISTED: {len(unlisted)} of {len(on_disk)} .ss1 files on disk have NO manifest row,")
+        _safe_print("    so they are neither PINNED nor declared VOLATILE — this gate cannot see them drift.")
+        preview = ", ".join(unlisted[:6])
+        _safe_print(f"    e.g. {preview}{' …' if len(unlisted) > 6 else ''}")
+        _safe_print("    (advisory by design — see `#24-fixturecoverage`. Add a row before resting evidence on one.)")
+
     _safe_print()
     if drifted_volatile:
         _safe_print(f"NOTE: {len(drifted_volatile)} volatile cache(s) changed: {', '.join(drifted_volatile)}")

@@ -8518,3 +8518,64 @@ and drop the number.**
 ‼ **Corollary:** ⛔ **the worst moment to measure is the moment something failed.** A reading taken
 during the incident describes the incident, not the environment; take it again once the incident is
 over, and if the two disagree, say both.
+
+## 2026-08-22 — my probe reported 652 phantom flag names; the CHECK was wrong, not the docs
+
+**Symptom.** Measuring whether `audit_flag_names.py` should be extended to documentation, my scan
+reported **652 distinct unresolvable `FLAG_`/`VAR_` names across 86 files** — which would have meant
+the docs were saturated with hallucinated symbols.
+
+**What stopped it.** The sample list contained `FLAG_BADGE07_GET`, `FLAG_SYS_USE_STRENGTH`,
+`VAR_ROUTE128_STATE` — names this project uses correctly and the handoff cites. A result that
+indicts everything is not a finding, it is a broken instrument.
+
+**Root cause.** The ground truth (`modules/data/event_flags/emerald.txt`) stores **BARE** names —
+`1 TEMP_1`, `90 RECEIVED_BIKE`, `BADGE07_GET` — while documentation uses the **decomp** spelling with
+the `FLAG_`/`VAR_` prefix. I compared prefixed strings against an unprefixed set, so *every* name
+failed. Re-measured with the prefix reconciled: **293 unresolvable, 438 mentions of them confined to
+the explicitly non-authoritative `ai-research-notes/`, and only 15 in authoritative docs** — most of
+those prose placeholders. A completely different conclusion, and the opposite decision.
+
+**Prevention rule.** ⛔ **A near-total failure rate is a SYMPTOM OF THE INSTRUMENT until proven
+otherwise — read the ground-truth file's actual format before comparing against it.** This is the
+project's own rule ("a uniform FAIL is a symptom, not a cause"; "when a probe FAILS, read the failing
+line before touching the thing under test") and I broke it while running an audit whose entire
+premise is not trusting instruments.
+
+## 2026-08-22 — the hook that blocks `git add -A` blocked the command written to test it
+
+**Symptom.** My first fault-test of `.claude/hooks/block-blind-git-add.ps1` was itself DENIED. The
+command only WROTE a table of test cases; it never ran git.
+
+**Root cause.** The hook matched `git add -A` when preceded by `^` **or by `;` `|` `&`** — treating
+those as shell separators **anywhere in the string, including inside quoted text and heredoc
+bodies**. My case list contained the line `BLOCK|git add -A`, so the literal `|` in DATA read as a
+pipe and the phrase after it read as a command.
+
+**Why it matters more than it looks.** This project writes about `git add -A` constantly — CLAUDE.md,
+the punch list, the mistakes log, this very entry. A check that fires on the phrase makes documenting
+the rule harder than breaking it. The hook's own header comment records that its FIRST draft had
+exactly this defect and was narrowed to fix it; the narrowing was incomplete, and the second version
+survived nine days without anyone noticing, because nothing ever tested it.
+
+**The fix, and the second half of the lesson.** Rewritten as a parser with a DATA MASK over
+quote/heredoc spans. ‼ **The same 22-case measurement that found the false positive also found EIGHT
+BYPASSES** (`-Av`, `--al`, `./`, `"."`, `-- .`, `*`, `:/`, and `git -C <path> add -A`) — so the
+mechanism `CLAUDE.md` calls "ENFORCED, not requested" was simultaneously too loud and too quiet.
+
+**Prevention rule.** ⛔ **A CHECK THAT MATCHES COMMAND SYNTAX MUST MASK QUOTED AND HEREDOC SPANS
+BEFORE LOOKING FOR SEPARATORS** — otherwise it cannot tell a command from a sentence about a command.
+And: **an enforcement mechanism with no standing fault-test is an assumption.** This one is now gate
+#29 with 31 permanent cases, proven to fail in both directions.
+
+## 2026-08-22 — I appended three rows to a table whose header says "oldest first", out of order
+
+**Symptom.** Adding the three missing restore points to `25-BACKUPS-AND-RESTORE.md` §6, I inserted
+two **2026-08-17** rows above a **2026-08-16** one, in a table whose own header says *"oldest first"*.
+
+**Root cause.** I anchored the insertion on the row I had just read rather than on the chronology the
+table promises. Caught immediately by re-reading my own edit, and corrected before the commit.
+
+**Prevention rule.** **When a table declares its own ordering, the anchor for an insertion is that
+ordering — not whichever row you happened to be looking at.** Cheap here; the same habit is what puts
+a "done" line below a "to do" line in the handoff queue, which has cost this project real days.

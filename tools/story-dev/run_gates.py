@@ -31,6 +31,37 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
+#: Per-gate wall-clock bounds. The slowest real gate measured 114.6s, so these carry ~8x margin.
+#: ‼ These exist because there was NO bound at all until 2026-08-22 — see the note at the call.
+TIMEOUT_FAST = 300
+TIMEOUT_SLOW = 900
+
+#: ‼ PROBES THAT RUN BUT DO NOT GATE — introduced 2026-08-22, deep sanity check PASS 4.
+#: Deep sanity check PASS 4 measured THREE entries in this suite that contained **zero assertions
+#: and no exit call**, so they could not fail: `probe_slot_free_plan.py`, `probe_regi_capabilities.py`
+#: and `probe_dive_routing.py`. On the UNMODIFIED tree they printed 4, 23 and 6 alarm lines
+#: respectively — `probe_regi_capabilities.py` prints "‼ MISSING (10) — each one stops the arc" —
+#: and the suite reported ALL PASS over all three. Same defect class as `repro_whiteout_abort.py`
+#: in pass 3, three at once.
+#:
+#: They were dispositioned INDIVIDUALLY, not swept:
+#:   * `probe_slot_free_plan.py`  -> RESCUED into a real gate. It already computed the safety
+#:     invariant (`spared_ok`); only the exit code was missing. Proven with the agent's own
+#:     injection: the identical command went exit 0 -> exit 1.
+#:   * `probe_regi_capabilities.py` -> ADVISORY. It reports a KNOWN-blocked arc (the Regi work is
+#:     not started). Giving it an exit code would red the suite permanently for a documented,
+#:     accepted state — a gate that cries wolf, which this project rates worse than no gate.
+#:   * `probe_dive_routing.py`   -> ADVISORY. Its own closing line says it is STATIC and "does NOT
+#:     prove the route works". It is documentation that happened to be wired into the suite.
+#:
+#: ⛔ THEY STAY IN `GATES` ON PURPOSE. Gate ordinals are append-only here — deleting entries would
+#: renumber every citation after them, which is the exact mistake logged on 2026-08-17. They run,
+#: their output is kept, and they are labelled ADVIS so no reader mistakes them for enforcement.
+ADVISORY: frozenset[str] = frozenset({
+    "probe_regi_capabilities.py",
+    "probe_dive_routing.py",
+})
+
 #: The standing suite. `slow=True` means it boots a ROM/emulator and takes real time.
 GATES: list[tuple[str, bool]] = [
     ("preflight.py", False),
@@ -114,6 +145,12 @@ GATES: list[tuple[str, bool]] = [
     # on 2026-08-17 and silently renumbered SIX existing citations; an audit agent caught
     # it. ⛔ Adding a gate anywhere but the END rewrites history that prose already quotes.
     ("audit_doc_citations.py", False),   # #28 — citation drift: `ident` + file.py:LINE must resolve
+    # #29 — the `git add -A` hook. `CLAUDE.md` calls it "ENFORCED, not requested" and /wrapup +
+    # /checkpoint both cite it, but nothing had ever proven it fires. PASS 4 measured EIGHT
+    # BYPASSES and ONE FALSE POSITIVE in it. 31 permanent cases, fault-tested both directions.
+    # ‼ APPENDED AT THE END, never inserted — gate ordinals are append-only (2026-08-17: inserting
+    # one at position 4 silently renumbered SIX doc citations).
+    ("selftest_git_add_hook.py", False),
 ]
 
 
@@ -129,6 +166,8 @@ def main() -> int:
         return 0
 
     selected = [(n, s) for n, s in GATES if not (args.quick and s)]
+    total_in_suite = len(GATES)
+    skipped = total_in_suite - len(selected)
 
     # ‼ CONTROL: a gate that does not EXIST must fail loudly, not be silently skipped. A suite that
     # quietly runs 14 of 16 and reports ALL PASS is exactly the "blind gate" shape this project has
@@ -154,20 +193,55 @@ def main() -> int:
         started = time.monotonic()
         out = logs / f"{Path(name).stem}.txt"
         with out.open("w", encoding="utf-8", errors="replace") as handle:
-            proc = subprocess.run(
-                [sys.executable, name],
-                cwd=HERE, stdout=handle, stderr=subprocess.STDOUT,
-            )
+            # ‼ BOUNDED — added 2026-08-22, deep sanity check PASS 4 (INFRASTRUCTURE).
+            # This call had NO `timeout=` and the word appeared nowhere in the file, so a gate that
+            # HUNG was not a failure: it blocked the entire suite forever, with no output and no
+            # exit code. Eight of these gates boot a ROM/emulator — precisely the hang-prone shape —
+            # and this project's prime directive #3 is "never hang, every loop needs a bound". The
+            # runner that enforces every other rule was the one place without one.
+            # Slowest real gate measured 114.6s, so the fast/slow bounds carry ~8x margin.
+            try:
+                rc = subprocess.run(
+                    [sys.executable, name],
+                    cwd=HERE, stdout=handle, stderr=subprocess.STDOUT,
+                    timeout=TIMEOUT_SLOW if _slow else TIMEOUT_FAST,
+                ).returncode
+            except subprocess.TimeoutExpired:
+                rc = 124   # the conventional timeout code; must land in `failed`, never in PASS
+                handle.write(
+                    f"\n\n‼ TIMEOUT — killed after "
+                    f"{TIMEOUT_SLOW if _slow else TIMEOUT_FAST}s by run_gates.py.\n"
+                    "  A hung gate is a FAILED gate. If this is legitimate work, raise the bound\n"
+                    "  deliberately rather than removing it.\n"
+                )
         elapsed = time.monotonic() - started
-        results.append((name, proc.returncode, elapsed))
-        print(f"  {'PASS' if proc.returncode == 0 else 'FAIL'}  {name:<34} "
-              f"exit={proc.returncode}  {elapsed:6.1f}s")
+        results.append((name, rc, elapsed))
+        if name in ADVISORY:
+            label = "ADVIS"
+        else:
+            label = "PASS" if rc == 0 else "FAIL"
+        print(f"  {label:<5} {name:<34} exit={rc}  {elapsed:6.1f}s")
 
-    failed = [(n, rc) for n, rc, _ in results if rc != 0]
+    # ‼ An ADVISORY probe's exit code does not gate — see the ADVISORY note above.
+    failed = [(n, rc) for n, rc, _ in results if rc != 0 and n not in ADVISORY]
+    advisory_ran = [n for n, _, _ in results if n in ADVISORY]
     print("=" * 92)
     if not failed:
         total = sum(e for _, _, e in results)
-        print(f"ALL {len(results)} GATES PASS  ({total:.1f}s total)")
+        enforcing = len(results) - len(advisory_ran)
+        line = f"ALL {enforcing} ENFORCING GATES PASS  ({total:.1f}s total)"
+        if advisory_ran:
+            line += f"   [+{len(advisory_ran)} ADVISORY probe(s) — run, NOT gated]"
+        print(line)
+        # ‼ THE HEADLINE CARRIES THE CAVEAT — added 2026-08-22, deep sanity check PASS 4.
+        # `--quick` skips every ROM gate and the CLOSING line — the one people paste into a doc or
+        # a commit message — used to read a flat "ALL n GATES PASS" with the caveat only in the
+        # header, far above. This project's own P2 rule is that a title claiming more than the
+        # evidence makes the document wrong no matter how careful the body is.
+        if args.quick:
+            print(f"‼ --quick RAN {len(results)} OF {total_in_suite} — {skipped} ROM GATE(S) WERE "
+                  f"NOT RUN. THIS IS NOT A GREEN SUITE.")
+            print("  Run without --quick before any commit; a red ROM gate is invisible here.")
         print("=" * 92)
         return 0
 

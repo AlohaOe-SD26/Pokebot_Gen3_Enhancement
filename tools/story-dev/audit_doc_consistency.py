@@ -286,7 +286,15 @@ def check_gate_counts(files: dict[str, str]) -> list[str]:
         rf"|\bALL\s+{B}(\d{{1,2}}){B}\s+GATES\b"
         rf"|\b{B}(\d{{1,2}}){B}[- ]gate\s+suite\b"
         r"|STANDING\s+SUITE\s*[—-]+\s*(?:all\s+)?(\d{1,2})\s+gates?"
-        rf"|\ball\s+{B}(\d{{1,2}}){B}\s+gates?\s+PASS\b", re.I)
+        rf"|\ball\s+{B}(\d{{1,2}}){B}\s+gates?\s+PASS\b"
+        # ‼ ADDED 2026-08-22 — a SEVENTH phrasing, found by a Tier 1 reviewer, not by this gate.
+        # `04-HANDOFF.md:51` read "**both must exit 0; the suite is 28 gates**" and stayed stale
+        # while line 57 — SIX LINES BELOW IT — was correctly updated to 29 in the same commit. Every
+        # other phrasing in this file was added the same way: after it went stale undetected. ⇒ when
+        # you change a count, the honest assumption is that this regex does not yet know your
+        # sentence. *(Prior stale-phrasing incidents: a NOUN between subject and verb; digits
+        # wrapped in markdown bold; "0 as of"; the word "zero" spelled out.)*
+        rf"|\bthe\s+suite\s+is\s+{B}(\d{{1,2}}){B}\s+gates?\b", re.I)
     fastc = re.compile(r"\bthe\s+(\d{1,2})\s+needing\s+no\s+ROM\b", re.I)
     gated = re.compile(r"(?:gated\s+by|GATED\s+as|new\s+gate)\s+`?([a-z0-9_]+\.py)`?", re.I)
     out = []

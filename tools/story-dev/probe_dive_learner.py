@@ -156,6 +156,10 @@ _control = evolutions_of("Wartortle")
 print(f"  [control] Wartortle evolves into {_control} (expected ['Blastoise'])")
 if _control != ["Blastoise"]:
     print("  ‼ the evolution id→name mapping is WRONG; section 2 below cannot be believed.")
+    # ‼ ADDED 2026-08-22 (sanity check PASS 4). This printed "cannot be believed" and then CARRIED
+    # ON AND EXITED 0 — a positive control that announces its own failure and still reports PASS is
+    # not a control. Three of this suite's probes were found with the same shape on the same day.
+    raise SystemExit(1)
 
 
 escape = []
@@ -222,6 +226,10 @@ rows.sort(key=lambda r: -r[0])
 if not rows:
     print("‼ no LAND table in the index hosts a Dive learner — either the plan is wrong or the")
     print("  index shape changed. Either way this is NOT a pass.")
+    # ‼ ADDED 2026-08-22 (sanity check PASS 4). The probe SAID "NOT a pass" and exited 0 anyway.
+    # An agent fault-injected this branch (309 `grass` slots rewritten to `surf`) and the suite
+    # stayed green over it. The words were right; only the exit code was missing.
+    raise SystemExit(1)
 for rate, map_name, sp, lo, hi, also_surf in rows[:18]:
     surf_mark = "  +SURF (covers BOTH duties)" if also_surf else ""
     print(f"  {rate:>3}%  {map_name:<42} {sp:<12} L{lo}-{hi}{surf_mark}")
