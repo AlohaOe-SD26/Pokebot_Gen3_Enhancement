@@ -8709,3 +8709,146 @@ figure was WRONG (both paths share ONE git blob — git deduplicates, so the rep
 SHA-1 was confirmed against the bot's own whitelist, and the `.gitignore` "contradiction" is now
 documented as intended design so the NEXT audit stops re-flagging it. ⇒ **the fix for a recurring
 false alarm is to document why it is not one, at the place the auditor will look.**
+
+## 2026-08-23 — the punch-list item told me to break whiteout recovery, and the instructions were specific enough to follow blindly
+
+**Symptom (avoided, not suffered).** `#24-loopheadabort` listed the nav loops needing a head check by
+line number, including **376** and **1930**. Those are inside `exit_building_after_whiteout()` and
+`_exit_training_cave_if_inside()` — **the whiteout RECOVERY functions**, which run while the abort
+latch is still SET. Following the item as written would have made every recovery abort itself on its
+first iteration; `recoveries > 40` would then stop the run, and the symptom would have looked like
+"the bot can't recover from a whiteout any more" with no obvious link to a loop-head check.
+
+**Why it was so easy to walk into.** The item was *specific, measured and confident* — it named exact
+lines, gave a bound, quoted the fabricated error message, and had been re-derived by two separate
+cold-start audits which both confirmed its A/B discriminator was real. **Everything about it was
+correct except which loops to apply it to.** An audit that verifies a claim does not thereby verify
+its SCOPE.
+
+**What caught it.** Not the item, and not the two audits. Tracing the control flow myself, from
+`set_story_abort(True)` to `set_story_abort(False)`, and asking a question the item never asked:
+*"what runs while the latch is set?"* Three functions do — and two were on the fix list.
+
+**Prevention rule.** ⛔ **BEFORE ADDING A GUARD THAT RAISES, ENUMERATE WHAT RUNS WHILE ITS TRIGGER
+CONDITION IS TRUE.** A guard keyed on a latch is only safe where the latch means "stop"; on the
+recovery path the same latch means "you are already stopping" — and raising there aborts the
+recovery. ‼ Generalised: **a global flag has a REGION where it is set, and any guard on that flag
+must be checked against everything that executes inside that region**, not just against the code you
+meant to protect.
+✅ **And it is now a GATE, not a rule** (#30 §1): the recovery closure must contain zero
+`_check_abort()`. The corroborating fact is that the closure already had zero — the codebase
+maintained the invariant silently, and nothing protected it. **An undocumented invariant is one
+confident instruction away from being deleted.**
+
+⚠ **Second, smaller lesson from the same change:** inserting 14 lines shifted four function `def`
+lines and drifted **7** doc citations into the wrong functions. The citation gate caught all of them
+before the commit. ⇒ **a fix that ADDS lines moves every citation below it** — expect to re-point
+them, and confirm from `git show HEAD:<file>` what the old line actually was rather than assuming.
+
+## 2026-08-23 — ⛔ CORRECTION to the `#24-loopheadabort` entries above: "the latch is still set" was FALSE, and the 3 exclusions are REVERSED
+
+**What the entries above claim, and what is wrong with it.** The `#24-loopheadabort` changelog,
+decisions and mistakes entries appended earlier today all rest on one assertion: that
+`exit_building_after_whiteout()`, `_exit_training_cave_if_inside()` and `_enter_warp_by_navigation()`
+**run while `_STORY_ABORT` is still SET**, so a loop-head check in them would abort the whiteout
+recovery itself. On that basis 14 loops were patched and 3 deliberately excluded, and a gate was
+written to enforce the exclusion.
+
+⛔ **THAT ASSERTION IS FALSE.** An adversarial diff review refuted it and was right. Re-derived by
+AST, not by eye — the enclosing-block chain for each call in `StoryMode.run`:
+* `set_story_abort(False)`@2534 and the calls to `wait_until_truly_controllable`@2566,
+  `exit_building_after_whiteout`@2567 and `_exit_training_cave_if_inside`@2574 are **all inside
+  `If(not self._whiteout_pending)[THEN]@2508`** — the DERAIL branch — with the clear FIRST.
+* `set_story_abort(False)`@2606 sits directly in `except BotModeError@2505`, and the whiteout
+  branch's `exit_building_after_whiteout`@2616 sits in a LATER `Try@2612`.
+⇒ **In BOTH branches the latch is already CLEAR when those routines run.** The self-abort hazard
+does not exist, and the exclusion bought nothing while costing real coverage —
+`_enter_warp_by_navigation` alone has ~35 call sites, all of which were left unprotected.
+
+**HOW I GOT IT WRONG.** I grepped a LINE RANGE (2560-2596) between a `set_story_abort(True)` and a
+`set_story_abort(False)` and concluded everything in between ran with the latch set. I never checked
+which BRANCH those lines were in — and there are two clear sites, one per branch, so a line sitting
+"between" two of them says nothing about ordering. ‼ **A line range is not a control-flow path.**
+
+**WHAT CHANGED AS A RESULT:**
+* ✅ **All 17 loops are now patched** (14 + the 3 formerly excluded). The fix is complete.
+* ✅ **The gate's §1 was REPLACED with an invariant that is actually true and actually protects
+  something:** in `StoryMode.run`, every whiteout-recovery call must be preceded, in its own
+  handler, by `set_story_abort(False)`. ⛔ **The hazard I imagined is one reordering away from being
+  real** — move the clear below those calls and every recovery aborts itself, `recoveries > 40`
+  trips, and the run dies with a symptom that looks like anything except a moved statement. §1 now
+  gates exactly that, and its fault test injects the real hazard (a recovery call placed above the
+  clear). The old §2b, which required the 3 loops to STAY unguarded, is deleted.
+* ✅ **§2's population criterion was also sharpened** by a parallel recon agent's disagreement: a
+  direct-call match finds 26 nav loops, a naive transitive match finds 44, and NEITHER is right. A
+  loop is only exposed if it can reach a nav primitive **without passing through a helper that
+  already has a head check** (e.g. `buy_poke_balls_in_tens` → `buy_poke_balls` →
+  `_navigate_riding_out`, which is guarded, with no swallowing handler between — already safe).
+  By that criterion: **28 loops qualify, 28 guarded, 0 gap.**
+
+‼ **The two derivations disagreed for a DEFINITIONAL reason, not because either was sloppy** — the
+same pattern this log already records for the flag-name population. The resolution was to state the
+criterion precisely, not to pick a number.
+
+## 2026-08-23 — MISTAKE: I asserted a control-flow fact from a line range, and shipped a gate to enforce it
+
+**Symptom.** I excluded three loops from a fix, wrote the rationale into the changelog, the decisions
+log, the mistakes log, a punch-list item, the handoff AND a new standing gate — all asserting that
+those functions "run while the abort latch is still set". An adversarial reviewer read the actual
+control flow and refuted it in one pass.
+
+**Root cause.** I found `set_story_abort(True)`, found a `set_story_abort(False)`, and treated every
+line numerically between them as executing with the latch set. But the handler has TWO branches with
+a clear in each, and the calls I cared about sit AFTER the clear in both. **Line order is not
+execution order once there is a branch.** I had the AST tooling open — I used it to build the call
+closure, and then reverted to grep for the ordering question, which is the half that mattered.
+
+**Why it survived my own checks.** Every downstream check I ran was *consistent with* the false
+premise: the recovery closure really did contain zero `_check_abort()` (true, but it proved nothing
+about ordering), the 14 insertions really were correct, and the gate I wrote really did enforce what
+I told it to. ‼ **A gate that encodes a false premise reports PASS with total confidence** — it is
+the most expensive way to be wrong, because it converts an error into an enforced rule.
+
+**Prevention rule.** ⛔ **BEFORE ASSERTING "X RUNS WHILE Y IS SET", RESOLVE THE ENCLOSING BRANCH
+CHAIN WITH A PARSER, NOT A LINE RANGE.** Print the chain (`def → try → except → if[THEN/ELSE]`) for
+BOTH the flag-setting site and the call site, and show they share a path. ‼ And: **when a rationale
+is about to be written into a GATE, it deserves the same standard of proof as the code the gate
+guards** — the gate makes it permanent and self-confirming.
+✅ **What actually caught it: an adversarial reviewer given the diff and told to refute.** That is
+the second time in two sessions an independent reviewer caught what my own verification missed.
+
+## 2026-08-23 — I wrote a gate to prevent "a gate that cannot fail", and it could not fail
+
+**Symptom.** Pass 3 of this project's audit is famous internally for finding
+`repro_whiteout_abort.py` — a gate that matched a substring, so an agent deleted both real defenses,
+left a comment, and the suite went green over a live regression. Hours after documenting that, I
+wrote gate #30 §1 to enforce a recovery-ordering invariant. **An adversarial review injected the two
+faults my own docstring named — deleting the whiteout-branch latch clear, and moving it below its own
+recovery call — and §1 reported PASS on both.**
+
+**Root cause.** `first_clear = min(clears)` over the whole `except BotModeError` handler. That
+handler has TWO independent branches, each with its own clear. The DERAIL branch's clear sits earlier
+in the file, so a lexical minimum let it vouch for the WHITEOUT branch. ⇒ **I checked ORDER IN THE
+FILE where the property I needed was DOMINANCE IN THE CONTROL FLOW** — the same confusion that
+produced the original false claim this gate was written to replace, one layer down. Twice in one day,
+in the same area, in opposite directions.
+
+**Prevention rule.** ⛔ **A "must happen before" check between two statements is about DOMINANCE, not
+line numbers. Resolve the block chain; a statement in a sibling branch dominates nothing.** ‼ And the
+general form, which is the expensive one: **`min()`/`max()`/"first match" over a region that contains
+BRANCHES silently assumes the region is straight-line code.** If the region can fork, a lexical
+extremum is not the answer to any control-flow question.
+✅ **The fix ships with the reviewer's own two injections as PERMANENT fault tests** (F1a/F1b), plus
+four more (F2a-F2e) for a separate false-green the same review found in §2 — 12 in total, up from 5.
+
+‼ **AND THE PART WORTH KEEPING: two of the new fault tests FAILED ON FIRST RUN AND CAUGHT BUGS IN
+THEMSELVES** — one injected at a hard-coded indent and produced an `IndentationError` instead of a
+finding; the other located the wrong `set_story_abort(False)` (the one inside `if recoveries > 40:`,
+which dominates nothing). **A fault test that has never been run is worth about as much as the gate
+it is testing.** Run them, and read the failure before assuming the subject is broken.
+
+⛔ **Second lesson, cheap but nasty:** the gate still printed, ON FAILURE, the refuted remediation
+*"If §1 failed, a `_check_abort()` has been added to the whiteout-recovery path."* An agent obeying
+it would have deleted the three recovery head checks and restored the original bug. **A stale
+remediation string is worse than a stale comment — it is read exactly when someone is about to act.**
+⇒ when a premise is corrected, grep the whole file for text that ENCODES it, especially failure paths.

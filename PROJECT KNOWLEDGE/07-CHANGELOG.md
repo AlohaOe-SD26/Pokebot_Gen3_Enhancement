@@ -17354,3 +17354,198 @@ day — `grep -rn "<slug>" .` and re-read every hit — which found two referenc
 ⛔ **UNCHANGED AND STILL IN FORCE:** if this repository is ever made **PUBLIC**, the decision must be
 revisited FIRST — it is private today and the copyright exposure was explained and accepted on that
 basis. Agents must still never commit ADDITIONAL ROMs, saves or profiles.
+
+## 2026-08-23 — `#24-loopheadabort` BUILT: nav retry loops abort at the loop head — and the ITEM AS FILED would have broken whiteout recovery
+
+**THE DEFECT, restated from the code.** After a whiteout `StoryMode` sets the `_STORY_ABORT` latch so
+the running segment bails out and `run()` can re-orient from the respawn Poké Center. But the
+navigation primitives contain no `_check_abort()`, and `raise StoryAbort` exists at **exactly one
+site in the whole package** (inside `_check_abort`). So nothing ever raised inside the nav retry
+loops: the bot went on re-navigating a **DEAD TEAM** from the Poké Center, burned its whole retry
+budget, and then raised a **FABRICATED** cause — *"Could not reach X (too many scripted
+interruptions)"*. The real cause was a whiteout; the log blamed scripted interruptions.
+
+**THE FIX.** A bare `_check_abort()` as the FIRST statement of the loop body, **outside the `try`**,
+at **14** nav-primitive retry loops in `sandbox-pokebot/modules/story/early_game.py`. Copied, not
+invented: 73 of 73 existing head checks are a bare unguarded `_check_abort()` as the literal first
+statement, and the codebase self-cites `_navigate_riding_out` (`:266`) as its reference.
+‼ **Outside the `try` is the whole point** — `StoryAbort` subclasses `BotModeError` deliberately, so
+a check placed INSIDE the loop's try is swallowed by that loop's own `except BotModeError`.
+
+### ⛔⛔ THE ITEM AS FILED WOULD HAVE CAUSED A REGRESSION — THREE LOOPS WERE EXCLUDED
+`#24-loopheadabort` listed the sites to fix by line number, and **two of them are the whiteout
+RECOVERY functions themselves**: `exit_building_after_whiteout()` — whose entire job is stepping back
+out of the Poké Center, and whose docstring names the failure it prevents as *"the user-seen
+derail"* — and `_exit_training_cave_if_inside()`. A third, `_enter_warp_by_navigation()`, is a
+primitive the recovery calls.
+**Traced in `plugins/custom_modes/story_mode.py`:** the latch is SET at the whiteout and CLEARED
+only *after* the recovery navigation has run. Between those points, and therefore **with the latch
+still set**, the recovery runs `wait_until_truly_controllable()`, `exit_building_after_whiteout()`
+and `_exit_training_cave_if_inside()`. ⇒ a head check in any of them makes the recovery abort
+**itself** on iteration 1; every recovery then fails and the `recoveries > 40` guard kills the run.
+✅ **CORROBORATED BY AN INVARIANT THAT ALREADY EXISTED:** the recovery-reachable closure (11
+functions) contains **ZERO** `_check_abort()` calls today. That is not an accident — it is a property
+the codebase maintains, and the punch-list item would have destroyed it.
+⇒ **14 patched, 3 excluded, and the exclusion is now ENFORCED rather than remembered.**
+
+### ✅ NEW GATE #30 — `repro_loop_head_abort.py`
+* **§1 INVARIANT** — the recovery closure contains zero `_check_abort()`. ⛔ *This is the regression
+  guard, and it is the reason the gate exists at all.*
+* **§2 COVERAGE (ratchet)** — every nav retry loop OUTSIDE that closure has a head check (23/23);
+  **§2b** the three recovery loops must STAY unguarded.
+* **§3 BEHAVIOUR** — drives the REAL `_navigate_through_scripts` two-armed, no emulator:
+  **ARM A (latch clear): `nav_attempts=25`, raises `BotModeError: Could not reach 999999 (too many
+  scripted interruptions)`** — the defect's own fabricated cause, reproduced.
+  **ARM B (latch set): `nav_attempts=0`, raises `StoryAbort` on iteration 1.**
+  ‼ The arms differ on **two independent axes** — attempt count AND exception type.
+* ✅ **FAULT-TESTED BOTH WAYS, 5 cases:** planting a `_check_abort` in the recovery closure fires §1;
+  deleting a head check fires §2; **a `_check_abort` in a COMMENT does NOT satisfy §2** (no false
+  green); **a check INSIDE the `try` does NOT count** (it would be swallowed); and the unmodified
+  tree is green (no false red).
+
+### VERIFIED, NOT ASSUMED
+* **The fix is INERT NOWHERE.** For all 23 guarded loops, no outer `try` in the same function
+  swallows the new raise — checked by walking outward to the enclosing function: **0 swallowed**.
+* The population re-derived independently by AST — **26 nav loops, 9 already guarded, 17 without** —
+  which matches the figure the punch list carried.
+* ⚠ **The citation gate caught a real consequence:** inserting 14 lines shifted 4 function `def`
+  lines, drifting **7** doc citations into the wrong functions. Each was re-pointed after confirming
+  from `git show HEAD:` that the old line had been the `def`. *A fix that adds lines moves every
+  citation below it — this is why that gate exists.*
+
+⚠ **DRIFT IS NOW 1** — `modules/story/early_game.py`, sandbox only. ⛔ **A PROMOTION DECISION IS OWED
+AND IT IS THE USER'S CALL** — nothing was promoted. Every drift claim in the docs was corrected to
+say so.
+
+**Suite: 30 gates = 28 ENFORCING + 2 ADVISORY, all green.**
+
+## 2026-08-23 — ⛔ CORRECTION to the `#24-loopheadabort` entries above: "the latch is still set" was FALSE, and the 3 exclusions are REVERSED
+
+**What the entries above claim, and what is wrong with it.** The `#24-loopheadabort` changelog,
+decisions and mistakes entries appended earlier today all rest on one assertion: that
+`exit_building_after_whiteout()`, `_exit_training_cave_if_inside()` and `_enter_warp_by_navigation()`
+**run while `_STORY_ABORT` is still SET**, so a loop-head check in them would abort the whiteout
+recovery itself. On that basis 14 loops were patched and 3 deliberately excluded, and a gate was
+written to enforce the exclusion.
+
+⛔ **THAT ASSERTION IS FALSE.** An adversarial diff review refuted it and was right. Re-derived by
+AST, not by eye — the enclosing-block chain for each call in `StoryMode.run`:
+* `set_story_abort(False)`@2534 and the calls to `wait_until_truly_controllable`@2566,
+  `exit_building_after_whiteout`@2567 and `_exit_training_cave_if_inside`@2574 are **all inside
+  `If(not self._whiteout_pending)[THEN]@2508`** — the DERAIL branch — with the clear FIRST.
+* `set_story_abort(False)`@2606 sits directly in `except BotModeError@2505`, and the whiteout
+  branch's `exit_building_after_whiteout`@2616 sits in a LATER `Try@2612`.
+⇒ **In BOTH branches the latch is already CLEAR when those routines run.** The self-abort hazard
+does not exist, and the exclusion bought nothing while costing real coverage —
+`_enter_warp_by_navigation` alone has ~35 call sites, all of which were left unprotected.
+
+**HOW I GOT IT WRONG.** I grepped a LINE RANGE (2560-2596) between a `set_story_abort(True)` and a
+`set_story_abort(False)` and concluded everything in between ran with the latch set. I never checked
+which BRANCH those lines were in — and there are two clear sites, one per branch, so a line sitting
+"between" two of them says nothing about ordering. ‼ **A line range is not a control-flow path.**
+
+**WHAT CHANGED AS A RESULT:**
+* ✅ **All 17 loops are now patched** (14 + the 3 formerly excluded). The fix is complete.
+* ✅ **The gate's §1 was REPLACED with an invariant that is actually true and actually protects
+  something:** in `StoryMode.run`, every whiteout-recovery call must be preceded, in its own
+  handler, by `set_story_abort(False)`. ⛔ **The hazard I imagined is one reordering away from being
+  real** — move the clear below those calls and every recovery aborts itself, `recoveries > 40`
+  trips, and the run dies with a symptom that looks like anything except a moved statement. §1 now
+  gates exactly that, and its fault test injects the real hazard (a recovery call placed above the
+  clear). The old §2b, which required the 3 loops to STAY unguarded, is deleted.
+* ✅ **§2's population criterion was also sharpened** by a parallel recon agent's disagreement: a
+  direct-call match finds 26 nav loops, a naive transitive match finds 44, and NEITHER is right. A
+  loop is only exposed if it can reach a nav primitive **without passing through a helper that
+  already has a head check** (e.g. `buy_poke_balls_in_tens` → `buy_poke_balls` →
+  `_navigate_riding_out`, which is guarded, with no swallowing handler between — already safe).
+  By that criterion: **28 loops qualify, 28 guarded, 0 gap.**
+
+‼ **The two derivations disagreed for a DEFINITIONAL reason, not because either was sloppy** — the
+same pattern this log already records for the flag-name population. The resolution was to state the
+criterion precisely, not to pick a number.
+
+## 2026-08-23 — MISTAKE: I asserted a control-flow fact from a line range, and shipped a gate to enforce it
+
+**Symptom.** I excluded three loops from a fix, wrote the rationale into the changelog, the decisions
+log, the mistakes log, a punch-list item, the handoff AND a new standing gate — all asserting that
+those functions "run while the abort latch is still set". An adversarial reviewer read the actual
+control flow and refuted it in one pass.
+
+**Root cause.** I found `set_story_abort(True)`, found a `set_story_abort(False)`, and treated every
+line numerically between them as executing with the latch set. But the handler has TWO branches with
+a clear in each, and the calls I cared about sit AFTER the clear in both. **Line order is not
+execution order once there is a branch.** I had the AST tooling open — I used it to build the call
+closure, and then reverted to grep for the ordering question, which is the half that mattered.
+
+**Why it survived my own checks.** Every downstream check I ran was *consistent with* the false
+premise: the recovery closure really did contain zero `_check_abort()` (true, but it proved nothing
+about ordering), the 14 insertions really were correct, and the gate I wrote really did enforce what
+I told it to. ‼ **A gate that encodes a false premise reports PASS with total confidence** — it is
+the most expensive way to be wrong, because it converts an error into an enforced rule.
+
+**Prevention rule.** ⛔ **BEFORE ASSERTING "X RUNS WHILE Y IS SET", RESOLVE THE ENCLOSING BRANCH
+CHAIN WITH A PARSER, NOT A LINE RANGE.** Print the chain (`def → try → except → if[THEN/ELSE]`) for
+BOTH the flag-setting site and the call site, and show they share a path. ‼ And: **when a rationale
+is about to be written into a GATE, it deserves the same standard of proof as the code the gate
+guards** — the gate makes it permanent and self-confirming.
+✅ **What actually caught it: an adversarial reviewer given the diff and told to refute.** That is
+the second time in two sessions an independent reviewer caught what my own verification missed.
+
+## 2026-08-23 — A SECOND adversarial review found my new gate COULD NOT FAIL, and three more defects in it
+
+The `#24-loopheadabort` fix went through two adversarial reviews. The first refuted the exclusion
+rationale (recorded above). **The second attacked the gate I wrote to replace it, and found five
+things — three of them in the gate itself.**
+
+### ⛔⛔ §1 COULD NOT FAIL ON THE REGRESSION ITS OWN DOCSTRING SAYS IT EXISTS TO CATCH
+`check_recovery_ordering` took `first_clear = min(clears)` over the WHOLE `except BotModeError`
+handler. But that handler has **TWO independent branches** — a DERAIL branch that clears the latch
+and a WHITEOUT branch that clears it separately — so the derail clear, being earlier in the file,
+vouched for the whiteout branch too. The reviewer injected the two faults the docstring literally
+describes: **deleting the whiteout-branch clear**, and **moving it BELOW its own
+`exit_building_after_whiteout()`**. Both still returned `(True, '4 recovery call(s) checked; all
+preceded by the latch clear')`.
+‼ **That is the `repro_whiteout_abort.py` shape — a gate green over the regression it exists to
+catch — reproduced INSIDE A GATE WRITTEN TO PREVENT IT, on the same day, by the same author.**
+✅ **FIXED: §1 now requires DOMINANCE** — a clear in the call's own block or an ANCESTOR block,
+reached before the call — not a lexical minimum. A clear in a sibling branch, or one sitting under
+`if recoveries > 40:` immediately before a `raise`, dominates nothing and no longer counts.
+Verified: clean → PASS; clear deleted → FAIL; clear moved below → FAIL.
+
+### §2 REPORTED A FALSE GREEN FOUR DIFFERENT WAYS
+`_has_head_check` accepted "`_check_abort` appears anywhere in a top-level body statement before the
+first `try`". The reviewer satisfied it with `if rounds > 3: _check_abort()` (conditional — never
+fires on iteration 1), `for _z in (): _check_abort()` (never executes), `if False: _check_abort()`
+(dead code) and `self._check_abort()` (an `AttributeError` at runtime, not a check).
+✅ **FIXED: `loop.body[0]` must be EXACTLY a bare, unconditional `_check_abort()`** — the file's own
+canonical idiom, true of all 17 insertions and all 73 pre-existing checks. Being `body[0]` also makes
+"outside the `try`" automatic.
+
+### THE GATE STILL SHIPPED THE REFUTED CLAIM — INCLUDING AS FAILURE REMEDIATION
+Three texts survived the earlier correction, the worst printed **on failure**: *"If §1 failed, a
+`_check_abort()` has been added to the whiteout-recovery path."* ⇒ an agent obeying that text would
+**delete the three recovery head checks and restore the original bug.** Removed, along with a
+now-dead `violations` computation. ‼ *A stale remediation string is worse than a stale comment — it
+is read exactly when someone is about to act.*
+
+### ✅ THE FAULT TESTS NOW CARRY THE REVIEWER'S OWN INJECTIONS — 12, up from 5
+F1a/F1b are the two §1 faults above; F2a-F2e are the four false-green shapes plus a positive control.
+‼ **Two of them failed on first run and caught bugs in the TESTS**: F1's injection used a hard-coded
+indent (producing an `IndentationError` instead of a finding), and F1a/F1b initially located the
+wrong `set_story_abort(False)` — the one inside `if recoveries > 40:`, which dominates nothing. **The
+fault test caught a bug in the fault test**, which is the strongest argument for writing them.
+
+### TWO RESIDUALS FILED RATHER THAN SHIPPED — `#24-abortrecoveryresiduals`
+**(a)** A second whiteout landing mid-recovery is now FATAL: the whiteout branch's
+`except BotModeError: raise` propagates the new `StoryAbort` out of `run()`, where the derail branch
+would have swallowed and retried. ⛔ **NOT fixed blind** — it is a behaviour change to the whiteout
+RECOVERY path and cannot be proven without driving a double whiteout on the emulator. Reachability is
+low (the window is inside a Poké Center immediately after respawn, where no wild battle can start).
+**(b)** Five existing handlers became abort-swallowers now that `_enter_warp_by_navigation` can
+raise, and `probe_abort_swallowing.py` cannot see it — it counts SYNTACTIC sites and no `try/except`
+was added, so it still reports "36, exactly at the baseline". ⇒ **that ratchet measures shape, not
+reachability.** Impact is bounded (the aborts escape incidentally via `_navigate_riding_out`).
+
+⚠ **R3 went RED at 3,626/3,600 while filing those residuals.** Six closed blocks (214 lines) were
+archived VERBATIM — each script-verified to hold zero open markers first, each leaving a stub, and
+"nothing lost" confirmed by locating all six in the archive. ⇒ 3,433/3,600.

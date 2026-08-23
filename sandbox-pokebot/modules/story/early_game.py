@@ -371,6 +371,7 @@ def exit_building_after_whiteout() -> Generator:
     # fires from a fresh step (navigate_to alone can stop ON the warp without it
     # firing — ML-9). Try both exit columns (7 and 6).
     for above in ((7, 7), (6, 7)):
+        _check_abort()
         if _map_group_number() != cur:
             break
         try:
@@ -1253,6 +1254,7 @@ def _navigate_through_scripts(dest_map, coordinates, *, avoid_encounters: bool =
     dest = dest_map.value if hasattr(dest_map, "value") else dest_map
     rounds = 0
     while _map_group_number() != dest:
+        _check_abort()
         rounds += 1
         if rounds > max_rounds:
             raise BotModeError(f"Could not reach {dest} (too many scripted interruptions).")
@@ -1299,6 +1301,7 @@ def _navigate_leg(dest_map, coordinates, *, avoid_encounters: bool = True, max_r
     dest = dest_map.value if hasattr(dest_map, "value") else dest_map
     rounds = 0
     while _map_group_number() != dest:
+        _check_abort()
         rounds += 1
         if rounds > max_rounds:
             raise BotModeError(f"Stuck trying to reach {dest} (too many interruptions).")
@@ -1512,6 +1515,7 @@ def cross_petalburg_woods() -> Generator:
     woods = MapRSE.PETALBURG_WOODS.value
     rounds = 0
     while _map_group_number() == woods:
+        _check_abort()
         rounds += 1
         if rounds > 15:
             raise BotModeError("Stuck crossing Petalburg Woods (too many scene interruptions).")
@@ -1561,6 +1565,7 @@ def travel_route104_north_to_rustboro() -> Generator:
     rustboro = MapRSE.RUSTBORO_CITY.value
     rounds = 0
     while _map_group_number() != rustboro:
+        _check_abort()
         rounds += 1
         if rounds > 15:
             raise BotModeError("Stuck reaching Rustboro from Route 104 north.")
@@ -1928,6 +1933,7 @@ def _exit_training_cave_if_inside() -> Generator:
     with a hurt trainee). A cheap no-op anywhere that is not in `_CAVE_EXITS`."""
     here = _map_group_number()
     for cave_map, exit_tile in _CAVE_EXITS.items():
+        _check_abort()
         if here == cave_map.value:
             yield from _enter_warp_by_navigation(
                 lambda: _map_group_number() != cave_map.value,
@@ -2398,6 +2404,7 @@ def recover_devon_goods() -> Generator:
     context.message = "Story: leaving the gym — the Devon Goods get stolen…"
     rounds = 0
     while not get_event_flag("DEVON_GOODS_STOLEN"):
+        _check_abort()
         rounds += 1
         if rounds > 20:
             raise BotModeError("The Devon-Goods theft scene (DEVON_GOODS_STOLEN) never fired.")
@@ -2414,6 +2421,7 @@ def recover_devon_goods() -> Generator:
     context.message = "Story: chasing the thief east to Rusturf Tunnel…"
     rounds = 0
     while _map_group_number() != route116:
+        _check_abort()
         rounds += 1
         if rounds > 25:
             raise BotModeError("Could not reach Route 116 to chase the thief.")
@@ -2427,6 +2435,7 @@ def recover_devon_goods() -> Generator:
             yield from _ride_out_scripted_scene("B")
     rounds = 0
     while _map_group_number() == route116:
+        _check_abort()
         rounds += 1
         if rounds > 12:
             raise BotModeError("Could not cross Route 116 to the Rusturf Tunnel door.")
@@ -2601,6 +2610,7 @@ def handle_pokenav_match_call_tutorial() -> Generator:
 
     triggered = False
     for _ in range(10):
+        _check_abort()
         if _tut_active():
             triggered = True
             break
@@ -3106,6 +3116,7 @@ def sail_to_dewford() -> Generator:
     if _map_group_number() == WOODS:
         rounds = 0
         while _map_group_number() == WOODS:
+            _check_abort()
             rounds += 1
             if rounds > 15:
                 raise BotModeError("Sail: stuck crossing Petalburg Woods southbound.")
@@ -3130,6 +3141,7 @@ def sail_to_dewford() -> Generator:
     #     raise as the warp yanks the map out from under it, so success = the map changed. ---
     if _map_group_number() == ROUTE104:
         for _ in range(10):
+            _check_abort()
             if _map_group_number() != ROUTE104:
                 break
             try:
@@ -3215,6 +3227,7 @@ def _enter_warp_by_navigation(dest_reached, map_enum, door_tile, *, tries: int =
     sight-line, a scene) are ridden out between tries."""
     last_error: BotModeError | None = None
     for _ in range(tries):
+        _check_abort()
         if dest_reached():
             return
         # ‼ ALREADY STANDING ON THE DOOR TILE (ch12_run1, 2026-07-24): a warp fires on
@@ -3308,6 +3321,7 @@ def deliver_stevens_letter() -> Generator:
         both breaks that loop and takes the player's natural ledge-jump shortcut on the
         way out. Bounded."""
         for _hop in range(len(chain) + 4):
+            _check_abort()
             if done_check():
                 return
             cur = _map_group_number()
@@ -3545,6 +3559,7 @@ def sail_to_slateport() -> Generator:
     if _map_group_number() == ROUTE109:
         rounds = 0
         while _map_group_number() != SLATEPORT:
+            _check_abort()
             rounds += 1
             if rounds > 20:
                 raise BotModeError("Sail to Slateport: stuck crossing Route 109 into Slateport.")
@@ -3697,6 +3712,7 @@ def deliver_devon_goods_to_stern() -> Generator:
         if _map_group_number() == M1F:
             rounds = 0
             while _map_group_number() == M1F:
+                _check_abort()
                 rounds += 1
                 if rounds > 8:
                     try:
@@ -4252,6 +4268,7 @@ def _exit_small_interior() -> Generator:
         key=lambda t: -t[1],  # bottom-most first (interior exits sit on the south edge)
     )
     for wx, wy in warps:
+        _check_abort()
         if _map_group_number() != cur:
             return
         try:

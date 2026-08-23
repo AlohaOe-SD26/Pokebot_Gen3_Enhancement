@@ -6087,3 +6087,242 @@ reporting most runs as successes. Both root causes are fixed in sandbox with A/B
 >    (**already happened** 2026-08-12), and 5's "skim `08-MISTAKES.md`" (now a standing rule in
 >    `CLAUDE.md`, not a queue item). ‼ **Nothing was deleted** — read the archive if you need the
 >    measurements behind any of them.
+
+
+## ARCHIVED 2026-08-23 from `03-PUNCH-LIST.md` — `#24-sanitycheck`, the 5-PASS DEEP AUDIT (COMPLETE)
+> Moved VERBATIM for the R3 budget: the punch list hit 3,626 of 3,600 while filing
+> `#24-abortrecoveryresiduals`. The audit is COMPLETE (all five passes done and committed) and
+> nothing in it is a live instruction. ⛔ Nothing deleted or reworded; the stub keeps the METHOD,
+> which is the part later work reuses.
+
+### ✅✅ `#24-sanitycheck` — the USER-REQUESTED 5-PASS DEEP AUDIT — **COMPLETE, 5 of 5** (filed 2026-08-18, closed 2026-08-23)
+
+- [x] **✅✅ ALL FIVE PASSES ARE DONE AND COMMITTED. ⛔ DO NOT RE-RUN ANY OF THEM.**
+      ‼‼ **THIS LINE SAID "3 of 5" AND THEN "4 of 5" AFTER EACH PASS SHIPPED — THE SAME MISS, TWICE,
+      ON THE SAME ITEM, IN ONE SESSION.** Both times the handoff's two halves were updated correctly
+      and this third copy was not; the second time it was caught by the **P5 pair added to
+      `CLAUDE.md` because of the first**. ⇒ the pair works, and it is the reason this file is now
+      right. ⛔ **On finishing an item, `grep` the tree for its own slug and re-read EVERY hit.** ⛔ Filed because a cold-start audit found the queue head pointing at work with **no
+      punch-list item at all** — the exact `#24-orphans` shape, and it also meant three commits went
+      in without a `(punch-list #N)` tag as DoD step 5 requires.
+      **DONE:** pass 1 TRUTH `045bdd1c`, pass 2 CODE HEALTH `e74d6e50`, pass 3 ADVERSARIAL `899f4ce7`.
+      ‼‼ **THE METHOD IS THE DELIVERABLE — copy it exactly, it is what made the passes work:**
+      **8 agents per pass, ONE ANGLE EACH, sent in ONE message so they run concurrently, and EVERY
+      agent required to FAULT-INJECT or RE-DERIVE, never to reason.** That single instruction is what
+      found a gate that could not fail and a control that could not fail; the earlier habit of asking
+      an agent to *assess* something produced opinions instead.
+      ⛔ **VERIFY EVERY FINDING YOURSELF BEFORE ACTING — 2 of ~40 were FALSE POSITIVES** (a truncated
+      quote; a correctly-superseded duplicate). An agent report is a NOTE, never truth.
+      ‼ **Output contract that kept them readable:** one verdict line, then `SEVERITY | what | what
+      you RAN | result | smallest fix`, max ~16 lines, and *anything not executed must be labelled
+      CANNOT-REPRODUCE*.
+      ✅✅ **PASS 4 IS DONE 2026-08-22 (`42a2d844`) — ⛔ DO NOT RE-RUN IT.** Its lead was right and
+      UNDERSTATED: not "9 of 11 sampled" but **21 of 28 gates had no self-test**, and THREE of them
+      (`probe_slot_free_plan`, `probe_regi_capabilities`, `probe_dive_routing`) had **zero assertions
+      and could not fail at all**. Residuals filed as `#24-fixturecoverage`, `#24-gateselftests`,
+      `#24-testrunsweep`, `#24-p4residuals`, `#24-flagnamedocscan`. ✅ KI-82 is CLOSED — it was already
+      ruled on 2026-07-18 and was re-affirmed 2026-08-23; ⛔ do not re-raise it.
+      ✅ **PASS 5's SCOPE WAS DEFINED AND EXECUTED 2026-08-22/23 — it is on the record so the audit is
+      REPRODUCIBLE.** It had none when filed. The eight angles run, one agent each: cold-start from
+      the handoff; cold-start from `00-README`; can each filed "startable" item actually be started;
+      playbook currency; known-issues navigability; punch-list navigability;
+      `24-PLAIN-ENGLISH-STATUS` accuracy; vision/architecture vs reality.
+      ⛔ **EIGHT ANGLES, SEVEN AGENTS RETURNED** — the eighth died on an API session limit and was
+      RE-RUN the next day, where it produced 17 findings including six commands in
+      `02-ARCHITECTURE.md` that could not be run as written. ⇒ **report the angles that RETURNED,
+      never the number LAUNCHED.**
+      ⚠ Pass 1 agents were READ-ONLY; passes 2-3 executed and fault-injected in scratch. ⛔ Whichever
+      you choose, say so in the prompt — and ⛔ do NOT let an agent copy a whole fork to scratch.
+
+
+
+## ARCHIVED 2026-08-23 from `03-PUNCH-LIST.md` — five CLOSED items (R3 budget)
+> Moved VERBATIM after the punch list hit its 3,600-line limit. Each was script-verified to
+> contain ZERO open markers before the move, and each left a one-line stub in place.
+> ⛔ Nothing deleted or reworded.
+
+
+<!-- 38 lines, verbatim: - [x] HISTORY  `#24-rarepredicate` (original spec, 2026-08-06)  **the du -->
+- [x] HISTORY — `#24-rarepredicate` (original spec, 2026-08-06) — **the duplicate-catch exemption (`#24-roster` ruling 3). SOLVED — the
+      "pseudo-rare" axis is WARP DEPTH, and it needs no new recon.**
+      Three OR'd rules: shiny (already works) / rare gender variant / rare species.
+      **Rare species = `best_slot_rate <= 4%` OR `warp_depth >= 3`** — 26 of 132 wild species (19%).
+
+      **WARP DEPTH** = 0-1 BFS over the committed `cache/warp_graph_BPEE0.json`: seed every
+      non-underwater group-0 map at 0, connection edges cost 0, **warp edges cost 1**, take the MIN
+      over all of a species' locations. Histogram (independently reproduced 2026-08-06):
+      `d0=59 d1=21 d2=39 d3=7 d4+=3 d99=3` (d99 = no path = **Dive**-gated, deliberate — Dive edges
+      are excluded at `warp_graph.py:20`). **`depth>=3` = 13 species, ZERO false positives on
+      inspection.** Bagon = **d3** (METEOR_FALLS_B1F_2R, Surf+Waterfall); Skitty = d0 (rate rule
+      catches it at 2%).
+      **Threshold rationale: there is a CLIFF between 4% and 5%** — the 5% Safari slots add 18
+      species at once. 4% is the natural stop.
+
+      ‼ **REJECTED: the encounter-METHOD proxy** (a species available only via `surf_encounters` is
+      "Surf-gated"). Measured: 27/132 water-only species are the most UBIQUITOUS in Hoenn
+      (Magikarp 53 maps, Tentacool 38, Wailmer 33). Surf-gating is TEMPORAL, not rarity — and Bagon
+      is Grass-only anyway. Adding this axis takes the set from 26 to 61.
+      ‼ **REJECTED: `nmaps == 1`** — 62/132 (47%), half the dex.
+
+      ✅ **The field-move recon is NOT a prerequisite** — decisive. Warp depth is pure graph
+      topology off a cache the bot already loads (`get_warp_graph()`), and the predicate fires at
+      ENCOUNTER time, when the bot has by construction already cleared the gate. "Where is
+      Waterfall first required" is a routing question this filter never asks. (That recon is still
+      a real gap for `counter_plan` routing — just not for this.)
+
+      ‼ **KNOWN FALSE NEGATIVES, accepted:** **Feebas is not in the encounter index at all**
+      (`encounter_index.py:75-115` reads `gWildMonHeaders`; the 6-tile mechanic is not in that
+      table), so the most iconic pseudo-rare species can never fire this rule. Same for Beldum and
+      other gift/static/version-exclusives. Pure-sea endgame species (Luvdisc, Corsola, Staryu) are
+      structurally d0 and miss. ‼ And the cutoff is fragile at the boundary: Meteor Falls' d2 rooms
+      are ALSO Surf-gated in reality, so `>=3` earns some of its precision by luck of Bagon's room
+      being one warp deeper. Treat warp depth as a good INFERENCE, not proof of a required HM.
+      Traps found: `custom_catch_filters` runs **≥2× per encounter**, so the "do I own this species"
+      lookup must be cached, never a 420-slot box scan; and `is_repeat_encounter` is PID dedup, NOT
+      species dedup — do not reuse or name anything near it.
+
+
+<!-- 33 lines, verbatim: - [x] HISTORY  `#24-movepoolcounters` (original measurement)  **USER DIR -->
+- [x] HISTORY — `#24-movepoolcounters` (original measurement) — **USER DIRECTIVE 2026-08-07.**
+      > "some pokemon can learn moves of types that can be a counter so its not just the pokemon
+      > type, it can be the moves they learn… know the difference between damaging moves,
+      > passive/defensive/stat boosting/debuff moves and area/effect moves as well as status
+      > moves with no damage"
+
+      `counter_plan.py:155-157` today keeps a candidate only if
+      `{t.name for t in species.types} & needed` — pure species typing.
+      **Measured with `tools/story-dev/probe_movepool_counters.py` over all 11 huntable grounds:**
+      | gating | Winona | Norman | Wattson |
+      |---|---|---|---|
+      | by species TYPE (today) | 1 | 1 | 1 |
+      | + any learnable move of a needed type | +82 | +47 | — |
+      | **+ DAMAGING, LEVEL-UP only, power×2.0×STAB ≥ 75** | **+2** | **+0** | **+0** |
+      ‼ **The naive version is WORSE THAN TODAY.** Almost the entire raw gain is `TM13 Ice Beam` /
+      `TM14 Blizzard` (Gen 3 TMs are single-use and we almost certainly do not own them) and
+      `HM06 Rock Smash` at **20 power** — the exact case `CREDIBLE_ANSWER_POWER = 75` was
+      calibrated to reject ("a 20-power HM is 2.0x against Normal and still loses to Slaking 27
+      times running"). Unfiltered, every Zigzagoon becomes a Norman counter.
+      **THREE GATES ARE MANDATORY, in this order:**
+      1. **DAMAGING ONLY** — `move.base_power > 0`. Everything at 0 is status / stat-change /
+         field effect and cannot answer a type weakness: Toxic, Growl, Sunny Day.
+         ‼ **Smog is NOT in that group** — our data has it at **20 bp Poison, `effect=POISON_HIT`**.
+         Classify on `base_power`, never on the name or on the presence of a secondary effect.
+      2. **OBTAINABLE** — level-up moves within reach of the catch band, or a TM/HM **we own**.
+         Never "could learn if we had TM13".
+      3. **CREDIBLE POWER** — reuse the existing `power × effectiveness × STAB >= 75`.
+      **The whole actionable gain is 2 Winona candidates:** Baltoy learns **Rock Tomb** (L15,
+      50bp) on ROUTE111; Slugma learns **Rock Throw** (L15, 50bp) on FIERY_PATH.
+      ⇒ Worth building — it is the correct model and it widens a chain that is now **75% of all
+      non-finishes** — but it will NOT by itself fix Winona, and it must not be sold as the fix.
+      Do `#24-winonaground`'s real diagnosis first.
+
+
+<!-- 31 lines, verbatim: - [x] `#24-battleitems`   **DONE, PROMOTED 2026-08-10 (user-approved), z -->
+- [x] `#24-battleitems` — ✅ **DONE, PROMOTED 2026-08-10 (user-approved), zero source drift.**
+      Policy unit-proven (`repro_battle_items.py`, 27 checks, no emulator); a real
+      `battle_action_use_item` index-space bug found and fixed underneath it (5 requests → 1
+      potion consumed, became 3 → 3); index space proven CONDITIONAL and handled by a
+      self-correcting flip; validation batch `20260810-082509` passed its acceptance test
+      (flips **20 → 2**, both-spaces-failed **10 → 0**).
+      ‼ **OUTCOME UNPROVEN and that is on the record** — finish rate across the four item-era
+      batches reads 25.0 → 33.3 → 16.1 → 28.6% at n≈30, nothing resolvable. It was promoted
+      because the mechanism is proven and bounded, not because outcomes moved. **Any follow-up
+      must be graded on BATTLE-level metrics** (`probe_item_index_space.py`,
+      `probe_boss_healing.py`), never the finish rate.
+      HISTORY — **USER DIRECTIVE 2026-08-09: "use items intelligently and
+      strategically." BUILT, ROOT-CAUSED, FIXED — but its OUTCOME EFFECT IS UNMEASURED.**
+      Motivated by measurement: `Slaking` healed **27 times, median +81 HP** in batch
+      `20260809-155844` while the bot never used an item; 61.8% of boss-length battles show an
+      opponent heal; boss losses end ~88% of non-finishing runs.
+      * `modules/story/battle_items.py` — PURE policy (heal amounts from `items.json`, never
+        memory). Four rules: only below 35% HP; **cheapest sufficient** item; **never heal into a
+        losing race**; **bounded per battle** (the opponent heals too — unbounded is an infinite
+        battle, the KI-34 shape). `repro_battle_items.py`: **27 checks, ALL PASS**, no emulator.
+      * `StoryItemBattleStrategy` — TRAINER battles only, fails open, so wilds/training/catching
+        are bit-identical to before.
+      * ‼ **Found and fixed a real bug in `battle_action_use_item`**: it fed a BATTLE-order index
+        into a PARTY-MENU scroll, so item use silently did nothing whenever the active mon was not
+        at index 0 (5 requests → 1 consumed). After the fix: **3 requests → 3 consumed, Blaziken
+        `23/120` → `120/120`**. Ball throwing passes no target and never enters that branch.
+      * A **no-op guard** remains: if a request does not raise HP by the next decision, items are
+        disabled for that battle (bounds the cost to one turn if execution ever breaks again).
+      **NEXT: a batch.** Acceptance should be **boss-battle win rate**, not the finish rate. ‼ Do
+      NOT quote the fixture's `badge=True` as proof — it reproduced even when items did nothing.
+
+
+<!-- 33 lines, verbatim: - [x] `#24-progressiongate` (original finding)   **USER-IDENTIFIED 2026- -->
+- [x] `#24-progressiongate` (original finding) — ‼‼ **USER-IDENTIFIED 2026-08-08, VERIFIED. The counter planner has
+      NO progression model, and for Wattson it proposes a counter that is behind Wattson.**
+      > "I think Slugma is not available before Wattson… keep this sort of logic in mind (pokemon
+      > availability). In this instance Slugma is gated behind Rocksmash which you can only use
+      > after beating Wattson"
+
+      **Verified with the real `find_counter_candidates`** against a pre-Wattson team (L22):
+      ```
+      WATTSON needs Ground -> only huntable candidate: Numel @ FIERY_PATH (30%)
+      ```
+      **That is CIRCULAR.** Fiery Path's only two doors are on ROUTE112; the Mauville→Route 112
+      corridor is sealed by a Rock Smash rock at ROUTE111 (18,101) (measured, `#24-smashroute`);
+      and Rock Smash **field use requires BADGE03** — Wattson's own badge (`get_rock_smash_hm`
+      docstring). So every Fiery Path species — Numel, Slugma, Machop, Torkoal, Koffing — is
+      unobtainable until Wattson is already beaten.
+      **`FIERY_PATH` has NO entry in `AREA_PREREQ` or `AREA_ITEM_PREREQ`** — confirmed, both
+      return `None` — so the planner treats it as freely reachable at any story stage.
+      ‼ **`#24-huntreachproof` part 1 made this the ONLY option for Wattson.** Before the
+      narrowing he was also offered ROUTE111/ROUTE116 (unreachable in practice, but not
+      circular). Now the single surviving candidate is one he gates himself. That is a real
+      consequence of my change and it was invisible to every metric I was watching, because
+      conversion counts catches and this rung can never even start.
+      **FIX:** teach the gate about FIELD MOVES / BADGES. `AREA_PREREQ` already carries a
+      vocabulary (`"surf"`, `"region"`) and `_counter_area_allowed` already resolves `"surf"`
+      against the party — add `"rocksmash"` (badge-checked) and populate FIERY_PATH, plus any
+      other ground behind a field move.
+      ‼ **Every entry is a GAME FACT — verify each from the decomp or a live probe, never from
+      recall.** The three facts above are already measured and cited; anything added beyond them
+      needs the same treatment.
+      ‼ **The general rule the user is asking for, beyond this instance:** a counter/hunt target
+      is only valid if its LOCATION is reachable AT THAT POINT IN THE STORY. Availability is a
+      function of story progress, not just of the encounter table.
+
+
+<!-- 40 lines, verbatim: - [x] **`#24-counters` phase 2   BUILT 2026-07-30, and LIVE-VALIDATED ma -->
+- [x] **`#24-counters` phase 2 — ✅ BUILT 2026-07-30, and LIVE-VALIDATED many times since;
+      the "awaiting validation" header was 8 days stale (closed by triage 2026-08-10).**
+      Evidence: `best_huntable` (`counter_plan.py:435`) and `hunt` (`counter_hunt.py:426`) are
+      live; batch `20260808-131334` measured conversion 15% → 45% (z = +2.39 on REAL catches),
+      and `20260809-081643` restored `CAUGHT Machop` 0/7 → 6/7 (z = +3.24) with FALSE catches
+      10 → 0. ‼ Its open FOLLOW-UPS live in newer items, not here — see `#24-battleitems`
+      and the boss-healing work; the chain's DIAGNOSIS is sound and its premise is what is
+      now in question. HISTORY —
+      **STEP 1 — the hunting-ground gate** (`hunt_ground_tile` / `huntable` /
+      `best_huntable`; `repro_counter_huntable.py`, ALL PASS). Had to land first: the cost
+      ranking puts **Victory Road Hariyama at rank 1** for Norman, so an executor built on
+      `cands[0]` would have walked a mid-game team into the E4 approach.
+      Destinations: Norman → **Machop @ FIERY_PATH (18,19)**, Wattson →
+      **Sandshrew @ ROUTE111 (25,55)**, Winona → **Electrike @ ROUTE118 (29,15)**.
+      **STEP 2 — the executor.** `modules/story/counter_hunt.py` (arm → hunt → train),
+      `StoryMode._counter_ladder`, and a catch-on-sight branch in `on_battle_started`.
+      `repro_counter_hunt.py` — **15 checks, ALL PASS.**
+      ‼ **Bounded by PER-RUN STATE (`_counter_hunts`), one hunt per boss per run** — a
+      retry or frame budget CANNOT bound this, because `_prepare_for_fight` is re-entered
+      by the run loop after every lost attempt (the KI-34 shape). The attempt is recorded
+      BEFORE the hunt so a derailed hunt still consumes its chance.
+      ‼ **The terminal raise is untouched** — every failure path still stops honestly.
+      **STEP 2b — destination FALLBACK.** `probe_counter_reachability.py` drove the REAL
+      navigation and found the TOP destination UNREACHABLE for 2 of 3 bosses (ROUTE111 is
+      Fallarbor-side; ROUTE118 is the KI-24 bridge case) while Norman's FIERY_PATH (18,19)
+      **ARRIVED in 2,922 frames**. The ladder now walks the ranked huntable list up to
+      `COUNTER_HUNT_MAX_DESTINATIONS = 3`. ‼ Cheap failures cascade, expensive ones do not.
+      ⏭ **WHAT IS OWED: a LIVE run.** Nothing here proves the bot can walk to Fiery Path
+      from Petalburg, catch a Machop and beat Norman with it. Watch for: does the hunt
+      reach (18,19)? does the catch-on-sight branch fire? does `train_counter` accept or
+      decline the estimate? and — the regression to fear — does a boss that used to stop
+      honestly now loop? Grep new logs for `counter hunt` and `already hunted a counter`.
+      Of 36 derails in the newest bundle, **~26 are "boss: N losses with no super-effective
+      answer to X. Need one of: Y"** — the chain diagnoses correctly and then ENDS THE RUN.
+      Breakdown: Electric→needs Ground ×17, Normal→needs Fighting ×9, Winona ×3.
+      `counter_plan.find_counter_candidates` already names reachable species and tiles
+      (`story_mode.py:611`, raised at `:1347`); `story_mode.py:619` states plainly that it is
+      "PLANNING/LOGGING ONLY — this does not travel, catch, or train anything". Building the
+      travel-and-catch step converts ~72% of derails into continued runs. Nothing else on
+      this list is close in value.

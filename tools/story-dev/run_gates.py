@@ -151,6 +151,12 @@ GATES: list[tuple[str, bool]] = [
     # ‼ APPENDED AT THE END, never inserted — gate ordinals are append-only (2026-08-17: inserting
     # one at position 4 silently renumbered SIX doc citations).
     ("selftest_git_add_hook.py", False),
+    # #30 — `#24-loopheadabort`. Nav retry loops must `_check_abort()` at the LOOP HEAD (outside the
+    # try — `StoryAbort` subclasses `BotModeError`, so a check inside would be swallowed by the
+    # ⛔ §1 gates the ORDERING that makes those checks safe: `StoryMode.run` must clear the
+    # latch BEFORE calling any recovery routine. (An earlier draft claimed the recovery runs with
+    # the latch SET and must contain NO checks — REFUTED 2026-08-23; see the gate's docstring.)
+    ("repro_loop_head_abort.py", False),
 ]
 
 

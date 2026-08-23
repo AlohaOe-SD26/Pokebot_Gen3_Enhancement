@@ -44,7 +44,7 @@ proposing work that is already shipped:
 | KI-17 | body said *"Workaround: none in-run yet"* + prescribed a decomp read that is done | `modules/battle_handler.py:508-528` (`post_gap=24`; never gamble an A) |
 | KI-16 | heading said FIXED, body still said *"use this repro for a focused fix"* | `modules/story/early_game.py:4434-4470` (`_rock_present()` world-judged) |
 | KI-24 | body read as an open architectural bug; KI-24b already declares it fixed | `story_mode.py:553` and `:606` both call `region_reach.is_map_reachable` |
-| KI-11 | body said `deliver_devon_goods_to_stern` stays **UNWIRED** — it is wired | `modules/story/early_game.py:3596-3804` (Shipyard → Dock leg) |
+| KI-11 | body said `deliver_devon_goods_to_stern` stays **UNWIRED** — it is wired | `modules/story/early_game.py:3611-3804` (Shipyard → Dock leg) |
 | KI-7 | a duplicate "(old text)" block restated the fixed bug as live | `modules/modes/util/higher_level_actions.py:59` (`BADGE06_GET`) |
 
 **✅ RESOLVED — USER RULING 2026-07-29 (`#doc-policy-05`, option A):** entries fixed in
@@ -538,7 +538,7 @@ reason about them.
   foe's STAB, regardless of whether it can deal damage. Measured in bundle
   `20260726-231412`: P2 led **Whismur L15** into the Route 110 rival **13 times in one run**
   while **Marshtomp L24** sat in slot 2. P3 led Zigzagoon L16 with Grovyle L22 benched.
-- **Cause (exact line):** `modules/story/early_game.py:1655`
+- **Cause (exact line):** `modules/story/early_game.py:1659`
   ```python
   best = min(slots, key=lambda i: (_incoming(party[i]), -party[i].level))
   ```
@@ -636,7 +636,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 - **Symptom:** bundle `20260727-063751`, P3 run 1: `state=3 controllable=False`, position
   frozen at **ROUTE 119(32,1) (10,10)**, for **27 million frames / ~6.5 h** — and **not one
   STUCK dump fired in that entire stretch**, so the no-progress watchdog never saw it.
-- **Last known stack:** `do_weather_institute` (`early_game.py:6265`) → `_ride_out_all_scenes`
+- **Last known stack:** `do_weather_institute` (`early_game.py:6282`) → `_ride_out_all_scenes`
   (defined `early_game.py:436`; the TWO call sites inside that function are `:6309` and `:6327`).
   ‼ *Re-derived from source 2026-08-16 — it read `:5548`, which is unrelated prose in another
   function. ⛔ NOTE THE UNIT: a stack line wants the CALL SITE, not the def.*
@@ -755,7 +755,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
   measurement.
   ‼ Travel cost remains **unmeasured** — `story_mode.py:576` says so explicitly — which is why
   the proposal is deliberately conservative and only fires on large wins.
-- **Related:** `train_team` (`early_game.py:1975`) never consults `best_training_area` at all;
+- **Related:** `train_team` (`early_game.py:1979`) never consults `best_training_area` at all;
   its `grass` is a caller-supplied constant. Both belong to `#24-trainmap+`.
 
 > 📦 **KI-32 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — ✅ FIXED 2026-07-29.
@@ -2367,7 +2367,7 @@ the 6000-frame per-invocation bound, with only two refusable slots to burn throu
 
 ### ✅✅✅ FIXED AND PROMOTED TO BOTH FORKS 2026-08-17 (user-approved)
 
-✅ **PROMOTED TO BOTH FORKS 2026-08-17, USER-APPROVED — drift was 0 at that point.** *(✅ It is **0** today — the five sandbox-only files were promoted 2026-08-17; this KI was already promoted. MEASURE with `promote.py --check`.)* Proven by a THREE-POINT A/B against `--build custom`: BEFORE `on_field=[0,3]`/`[1,3]`, 2 faints, 486 presses → AFTER `on_field=[0,1]`, 1 faint, 361 presses → sandbox control IDENTICAL to AFTER. Restore point `restore/2026-08-17-pre-promotion-ki66-onfield`.
+✅ **PROMOTED TO BOTH FORKS 2026-08-17, USER-APPROVED — drift was 0 at that point.** *(⚠ It is **1** as of 2026-08-23 — `early_game.py`, `#24-loopheadabort`, sandbox-only. Formerly **0** — the five sandbox-only files were promoted 2026-08-17; this KI was already promoted. MEASURE with `promote.py --check`.)* Proven by a THREE-POINT A/B against `--build custom`: BEFORE `on_field=[0,3]`/`[1,3]`, 2 faints, 486 presses → AFTER `on_field=[0,1]`, 1 faint, 361 presses → sandbox control IDENTICAL to AFTER. Restore point `restore/2026-08-17-pre-promotion-ki66-onfield`.
 
 `_on_field` now maps through `BattleState.map_battle_party_index` before being compared against
 `party_in_menu`, mirroring what `alive_slots` three blocks below has done since KI-34.
@@ -2861,7 +2861,9 @@ defect** — 25 wrap navigation primitives containing no `_check_abort()`, so no
 can arrive; `:376` IS the whiteout-recovery path; `:2305` already guards by hand in a shape
 the probe cannot see. ⛔ **DO NOT PROMOTE THE PROBE TO A GATE AS-IS** — it would be red on
 arrival for reasons that are correct as written. Two refinements cut 45 → ~16. *(A separate
-family — 13 retry loops needing a LOOP-HEAD check, not a handler guard — is `#24-loopheadabort`.)* 44 sites in the largest and most timing-sensitive file here is not a
+family — retry loops needing a LOOP-HEAD check, not a handler guard — was `#24-loopheadabort`,
+✅ DONE 2026-08-23: all 17 patched, gate #30. ⛔ An earlier 3-loop exclusion rested on a FALSE
+claim that the recovery path runs with the abort latch set; it is withdrawn.)* 44 sites in the largest and most timing-sensitive file here is not a
 tail-of-session sweep, and **CANDIDATE ≠ DOES** — the probe cannot prove a `_check_abort()` is
 reachable through a given `yield from`. ⇒ ⛔⛔ **SUPERSEDED 2026-08-17 — THIS IS DONE AND ITS ADVICE IS REFUTED. The probe IS gate #27, a RATCHET; refinement (2) would blind it to five already-fixed sites and must NOT be built.** *(superseded:)* triage, fix, THEN promote the probe to a gate — The
 triage MEASURED that ~64% of the candidates are not this defect, so the probe must be REFINED first;

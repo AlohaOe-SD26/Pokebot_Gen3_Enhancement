@@ -3152,3 +3152,77 @@ process failure is the point, and it is recorded in `08-MISTAKES.md`.
 ⛔ **If the repository is ever made PUBLIC, this decision MUST be revisited FIRST.** It is private
 today, and the copyright exposure was explained and accepted on that basis.
 ⚠ Unchanged: agents must never commit ADDITIONAL ROMs, saves or profiles. The ruling covers THIS file.
+
+## 2026-08-23 — RULING: the whiteout-RECOVERY path is permanently exempt from `_check_abort()`
+
+**Decision.** `#24-loopheadabort`'s head checks were applied to **14** nav retry loops and
+**DELIBERATELY WITHHELD from 3**: `exit_building_after_whiteout` (loop 373),
+`_exit_training_cave_if_inside` (1934) and `_enter_warp_by_navigation` (3227).
+⇒ **INVARIANT: no function reachable from the whiteout-recovery entry points may contain a
+`_check_abort()`.** Enforced by gate #30 §1, not by memory.
+
+**Why — and this is not a judgement call, it is the control flow.** `StoryMode` sets `_STORY_ABORT`
+when the whiteout is detected and clears it only AFTER the recovery navigation has completed.
+Between those two points the recovery runs `wait_until_truly_controllable()`,
+`exit_building_after_whiteout()` and `_exit_training_cave_if_inside()` — **with the latch set**. A
+head check in any of them raises on iteration 1, so the recovery aborts ITSELF, every recovery
+fails, and `recoveries > 40` stops the run. `exit_building_after_whiteout`'s docstring names the
+exact user-visible failure it exists to prevent ("the user-seen derail").
+
+**The corroboration that made this a rule rather than an opinion:** the recovery-reachable closure
+(11 functions) contains **ZERO** `_check_abort()` calls today. The codebase already maintained this
+property; nothing documented it, so nothing protected it. ⛔ **The punch-list item explicitly listed
+two of those three functions among the sites to fix** — so the invariant was one careful reading away
+from being destroyed by an agent following the instructions.
+
+**Alternatives rejected:**
+* *Patch all 17 and "handle" recovery separately (e.g. clear the latch before recovering).* ⛔
+  Rejected: the latch is what MAKES the segment unwind; clearing it earlier re-opens KI-67, where a
+  chapter caught the abort and retried in place. The recovery must run WITH the latch set.
+* *Give the recovery functions a "recovering" flag to suppress the check.* ⛔ Rejected as a second
+  latch to keep in sync — a whole new class of stale-state bug, for zero gain over simply not
+  putting a check there.
+* *Trust prose ("do not add a check here").* ⛔ Rejected. This project's own record is that a rule
+  written down does not fire when you are building something else; that is why gate #30 §1 exists.
+
+**Consequence, stated plainly:** the three excluded loops keep the OLD behaviour — after a whiteout
+they may still burn their budget. That is the correct trade: they only run DURING recovery, where
+burning a bounded budget is survivable and aborting is not.
+
+## 2026-08-23 — RULING: this fix is NOT promoted. Drift is 1 and the decision is the user's.
+
+`modules/story/early_game.py` now differs between the forks. Per standing policy a production
+BEHAVIOUR change lands in `sandbox-pokebot` only and promotion is the USER's call. Every drift claim
+in the docs was corrected from 0 to 1 with the file named and the reason given, rather than left to
+be discovered. ⛔ Do not promote this without an explicit ruling, and when promoting, prove it with a
+THREE-POINT A/B against `--build custom` — never a byte-compare.
+
+## 2026-08-23 — ⛔ REVERSED, SAME DAY: the "recovery path is exempt from `_check_abort()`" ruling above is WITHDRAWN
+
+**The ruling above is wrong and is superseded by this one.** It exempted
+`exit_building_after_whiteout`, `_exit_training_cave_if_inside` and `_enter_warp_by_navigation` from
+loop-head abort checks, on the stated ground that they run while `_STORY_ABORT` is set. **They do
+not.** An adversarial review refuted it and an AST resolution of the enclosing branch chain in
+`StoryMode.run` confirmed the refutation: both the DERAIL branch (`if not self._whiteout_pending`)
+and the WHITEOUT branch call `set_story_abort(False)` BEFORE the recovery routines run.
+⇒ **DECISION: the exemption is withdrawn. All 17 loops carry a head check.**
+
+**What replaces it, and why it is worth keeping.** The hazard I described is real — it is simply not
+present *today*. It becomes real the moment someone moves the latch clear below the recovery calls.
+⇒ **NEW RULING: `StoryMode.run` must clear `_STORY_ABORT` BEFORE invoking any whiteout-recovery
+routine**, and that ordering is now gate #30 §1, with a fault test that injects the actual hazard.
+⛔ Do not "simplify" the handler by hoisting the recovery calls above the clear.
+
+**Alternatives reconsidered now that the premise is corrected:**
+* *Keep the exclusion anyway, defensively.* ⛔ Rejected. It protects against nothing that exists and
+  it costs coverage at ~35 `_enter_warp_by_navigation` call sites — a real, unguarded exposure
+  traded for an imagined one.
+* *Exclude by CALL SITE rather than by function* (the reviewer's suggested `check_abort=False`
+  parameter). ⛔ Rejected as unnecessary once the premise is corrected: with the latch clear during
+  recovery there is nothing to exclude, and a per-call-site opt-out would add a second thing to keep
+  in sync for no benefit. ‼ Worth revisiting ONLY if §1 ever has to be relaxed.
+
+**The general rule this cost me, recorded because it is not specific to this fix:**
+⛔ **A rationale that is about to be encoded in a GATE must be proven to the same standard as the
+code the gate guards.** A gate built on a false premise does not merely fail to help — it reports
+PASS with full confidence and makes the error permanent and self-confirming.

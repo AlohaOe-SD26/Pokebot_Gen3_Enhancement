@@ -1,0 +1,47 @@
+# BEFORE arm of a future #24-loopheadabort promotion — captured 2026-08-23
+# ‼ UNREPEATABLE ONCE THE COPY HAPPENS. This is the state of custom-pokebot BEFORE promotion.
+# sandbox = fixed, custom = still defective. Nothing was promoted; the decision is the USER's.
+
+$ PYTHONUTF8=1 py -3.12 repro_loop_head_abort.py --build sandbox
+================================================================================================
+LOOP-HEAD ABORT — `#24-loopheadabort`   BUILD UNDER TEST: sandbox-pokebot
+================================================================================================
+  PASS  §1 ORDERING: every whiteout-recovery call runs AFTER `set_story_abort(False)`
+          4 recovery call(s) checked; all preceded by the latch clear
+  PASS  §2 COVERAGE: every loop that can reach a nav primitive un-guarded HAS a head check
+          28/28 guarded
+  PASS  §3 ARM A (latch CLEAR): burns the budget, raises the FABRICATED cause
+          nav_attempts=25 raised=BotModeError: Could not reach 999999 (too many scripted interruptions).
+  PASS  §3 ARM B (latch SET): raises StoryAbort on iteration 1, navigating ZERO times
+          nav_attempts=0 raised=StoryAbort: Story: aborting the current step to recover from a whiteout.
+  PASS  §3 DISCRIMINATOR: the arms differ on BOTH axes (attempt count AND exception type)
+          attempts 25 vs 0; types BotModeError vs StoryAbort
+================================================================================================
+ALL 5 CHECKS PASS
+================================================================================================
+
+EXIT=0 (sandbox)
+
+========================================================================
+
+$ PYTHONUTF8=1 py -3.12 repro_loop_head_abort.py --build custom
+================================================================================================
+LOOP-HEAD ABORT — `#24-loopheadabort`   BUILD UNDER TEST: custom-pokebot
+================================================================================================
+  PASS  §1 ORDERING: every whiteout-recovery call runs AFTER `set_story_abort(False)`
+          4 recovery call(s) checked; all preceded by the latch clear
+  ‼ FAIL  §2 COVERAGE: every loop that can reach a nav primitive un-guarded HAS a head check
+          11/28 guarded; UNGUARDED: [('exit_building_after_whiteout', 373), ('_navigate_through_scripts', 1255), ('_navigate_leg', 1301), ('cross_petalburg_woods', 1514), ('travel_route104_north_to_rustboro', 1563), ('_exit_training_cave_if_inside', 1930), ('recover_devon_goods', 2400), ('recover_devon_goods', 2416), ('recover_devon_goods', 2429), ('handle_pokenav_match_call_tutorial', 2603), ('sail_to_dewford', 3108), ('sail_to_dewford', 3132), ('_enter_warp_by_navigation', 3217), ('_walk_warp_chain', 3310), ('sail_to_slateport', 3547), ('deliver_devon_goods_to_stern', 3699), ('_exit_small_interior', 4254)]
+  PASS  §3 ARM A (latch CLEAR): burns the budget, raises the FABRICATED cause
+          nav_attempts=25 raised=BotModeError: Could not reach 999999 (too many scripted interruptions).
+  ‼ FAIL  §3 ARM B (latch SET): raises StoryAbort on iteration 1, navigating ZERO times
+          nav_attempts=25 raised=BotModeError: Could not reach 999999 (too many scripted interruptions).
+  ‼ FAIL  §3 DISCRIMINATOR: the arms differ on BOTH axes (attempt count AND exception type)
+          attempts 25 vs 25; types BotModeError vs BotModeError
+================================================================================================
+FAILED — 3 of 5 checks
+  ⛔ If §1 failed, a `_check_abort()` has been added to the whiteout-recovery path.
+     That makes every recovery abort itself. Read this file's docstring before 'fixing' it.
+================================================================================================
+
+EXIT=1 (custom — the defect is still present, as expected)

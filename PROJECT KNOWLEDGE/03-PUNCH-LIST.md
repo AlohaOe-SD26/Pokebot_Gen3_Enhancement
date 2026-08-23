@@ -24,7 +24,10 @@ user rather than resolved unilaterally.
 > ⛔ **A HEADING IS A CLAIM ABOUT EVERY ROW BENEATH IT.** This table said "the only things being
 > worked on now" while most rows carried ✅ DONE, and it named NEITHER live item. A cold reader
 > using it as the index would have worked from a 12-day-old picture.
-> ➡ **THE LIVE ITEM IS `#24-loopheadabort`** (discriminator COMPUTED, arms PROVEN to differ).
+> ➡ **`#24-loopheadabort` IS DONE (2026-08-23, gate #30).** ⚠ **THE LIVE THING IS A PROMOTION
+> DECISION — the USER's call** (drift 1, `early_game.py`, sandbox only). Then `#24-p4residuals`.
+> ‼ *This row has now gone stale TWICE the same way — it names whatever was live when it was
+> last edited. ⛔ `04-HANDOFF.md`'s NEXT ACTIONS queue is the thing to act from, not this table.*
 > ⛔ **NOT `#24-ki76correctness`** — its only fixture is VACUOUS for its only live defect; and
 > `#24-sanitycheck` is COMPLETE. *(This line named both of those as live until 2026-08-23 — it
 > was written during pass 5 and went stale the moment pass 5 finished.)* — and
@@ -472,7 +475,31 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       `03-PUNCH-LIST.md` — ⛔ RUN IT rather than quoting it; that figure and the line budget beside
       it were BOTH stale within a day of being written. That is this file's relief valve, not the handoff's.
 
-- [ ] `#24-loopheadabort` — **NEW 2026-08-17, found while triaging `#24-abortswallow`. A DIFFERENT
+- [x] **✅✅ DONE 2026-08-23 — ALL 17 nav retry loops patched, and GATED as #30.**
+      ⛔ **AN EARLIER DRAFT OF THIS ENTRY EXCLUDED 3 LOOPS AND WAS WRONG — the exclusion is
+      WITHDRAWN.** It claimed `exit_building_after_whiteout()`, `_exit_training_cave_if_inside()` and
+      `_enter_warp_by_navigation()` run "while the abort latch is still SET". **They do not.** An
+      adversarial review refuted it and an AST resolution of `StoryMode.run`'s branch chain
+      confirmed: BOTH the derail branch (`if not self._whiteout_pending`) and the whiteout branch
+      call `set_story_abort(False)` BEFORE those routines. ‼ *The original error was reading a LINE
+      RANGE instead of a control-flow path — there are two clear sites, one per branch, so "between
+      them" proves nothing.* See `08-MISTAKES.md` and `06-DECISIONS-LOG.md` (both 2026-08-23).
+      ⇒ **WHAT GATE #30 §1 ACTUALLY ENFORCES: `StoryMode.run` must clear the latch BEFORE calling
+      any recovery routine.** The hazard is real but one REORDERING away, and that is what is now
+      gated — with a fault test that injects the real hazard. ⛔ Do not hoist the recovery calls
+      above the clear.
+      ✅ **PROVEN, not asserted** — gate #30 drives the REAL `_navigate_through_scripts` two-armed:
+      **ARM A (latch clear) `nav_attempts=25` + the FABRICATED `BotModeError: … too many scripted
+      interruptions`; ARM B (latch set) `nav_attempts=0` + `StoryAbort` on iteration 1.** The arms
+      differ on TWO axes. 5 fault tests pass, including *a check in a COMMENT does not satisfy it*
+      and *a check INSIDE the try does not count* (it would be swallowed — `StoryAbort` subclasses
+      `BotModeError`). ⚠ **THE ONLY RE-DERIVABLE FIGURE IS 28/28** — run `repro_loop_head_abort.py`. The 26/9/17
+      breakdown quoted in the changelog is SUPERSEDED NARRATIVE (the old direct-match definition),
+      kept for continuity and reprinted by nothing. Coverage **28/28** by the precise criterion — *a loop is exposed only if it can reach a nav
+      primitive WITHOUT passing through a helper that already has a head check* (direct matching says
+      26, naive transitive says 44; both are wrong). The fix is inert NOWHERE.
+      ⚠ **DRIFT IS 1 — sandbox only. A PROMOTION DECISION IS OWED (the USER's call).**
+      Original entry follows. `#24-loopheadabort` — **NEW 2026-08-17, found while triaging `#24-abortswallow`. A DIFFERENT
       DEFECT FROM THAT ITEM — do not conflate them.** 13 bounded retry loops in
       `sandbox-pokebot/modules/story/early_game.py` wrap navigation primitives and have **no
       loop-head `_check_abort()`**: `1259, 1305, 1518, 1567, 2404, 2420, 2433, 3112, 3135, 3241,
@@ -553,6 +580,40 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       confirm it before wiring it in, because `audit_doc_consistency.py` runs in every Tier 0 check.
       ⚠ **AND SCOPE IT:** grade only CURRENT-STATE files (00-05, 24). `07`/`08`/`28`/`31` are
       append-only history where a stale count is CORRECT.
+
+### ‼ `#24-abortrecoveryresiduals` — TWO residuals an adversarial review found in `#24-loopheadabort` (filed 2026-08-23)
+
+- [ ] **(a) MEDIUM-HIGH — A SECOND WHITEOUT MID-RECOVERY IS NOW FATAL WHERE IT PREVIOUSLY SELF-HEALED.**
+      Now that `exit_building_after_whiteout()` carries a head check, a whiteout landing WHILE the
+      whiteout branch is stepping out of the Poké Center raises `StoryAbort` → the branch's
+      `except BotModeError: raise` (`story_mode.py:2628-2629`) propagates it OUT of `run()` and the
+      mode dies to Manual. ‼ **Asymmetric**: the DERAIL branch's `except Exception: yield` +
+      `continue` (`:2581-2584`) swallows and restarts, bounded by `_derails > 4`; the whiteout
+      branch's `recoveries > 40` never gets the chance.
+      ⇒ **Suggested fix (the reviewer's):** an `except StoryAbort: yield` clause AHEAD of the
+      `except BotModeError: raise`, so a mid-recovery abort restarts the recovery instead of killing
+      the run. ⚠ `StoryAbort` is NOT currently imported in `story_mode.py`.
+      ⛔ **DELIBERATELY NOT SHIPPED BLIND.** It is a behaviour change to the WHITEOUT RECOVERY PATH —
+      this project's highest-risk area — and it cannot be proven without driving a double whiteout on
+      the emulator. **Prove it before shipping it**; an unverified edit there is worse than a remote
+      risk that is written down. ⚠ **REACHABILITY IS LOW**: the window is between the latch clear
+      (`:2606`) and the exit walk, i.e. inside a Poké Center immediately after respawn with a healed
+      team, where no wild battle can start. Assess that before deciding it is urgent.
+
+- [ ] **(b) LOW-MEDIUM — five existing handlers became abort-SWALLOWERS, and the ratchet is blind to it.**
+      `_enter_warp_by_navigation` can now raise `StoryAbort`, which converts five previously
+      unreachable `except` sites into reachable swallow points: `early_game.py:3765`, `:3777`,
+      `:3943`, `:5187`, `:6347` — none calls `reraise_if_aborting`.
+      ‼ **`probe_abort_swallowing.py` cannot see this**: it counts SYNTACTIC sites and the change
+      added no `try`/`except`, so it still prints "36 sites, exactly at the baseline. No new debt" —
+      a true statement about a population that has silently become more dangerous. ⇒ **the ratchet
+      measures shape, not reachability.**
+      ⚠ **Impact is BOUNDED, which is why this is not (a):** all the straight-line fallbacks call
+      `_navigate_riding_out`, whose own head check re-raises, and `do_weather_institute`'s enclosing
+      `while` is guarded — so the abort escapes INCIDENTALLY rather than by design. That is exactly
+      the kind of accidental correctness this project has been bitten by before.
+      ⇒ Add `reraise_if_aborting(error)` as the first line of those five handlers, then re-baseline
+      the probe deliberately.
 
 ### ‼ `#24-brokenrepros` — FIVE `repro_*` SCRIPTS ARE BROKEN, NOT "ENVIRONMENTAL" (filed 2026-08-23, PASS 5)
 
@@ -801,7 +862,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       (`_navigate_through_scripts` retries up to `max_rounds=25`, `recover_devon_goods` up to 20).
       After a whiteout they keep re-navigating a dead team from the respawn Centre and then raise a
       fabricated *"Could not reach X (too many scripted interruptions)"*. **The fix there is a
-      loop-head check, not a handler guard.** Filed as `#24-loopheadabort`.
+      loop-head check, not a handler guard.** Filed as `#24-loopheadabort` — ✅ **DONE 2026-08-23**, all 17 loops patched, gate #30.
       *(Original remaining count when this item was filed:)* **45 candidates — 44 in `early_game.py`, 1 in `counter_hunt.py`.**
       ⛔ **CANDIDATE ≠ DOES:** the probe cannot prove a `_check_abort()` is reachable through a given
       `yield from`, so **triage before fixing** — bulk-editing 44 sites in the largest, most
@@ -892,43 +953,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       `"surf"`/`"rocksmash"`; `region_reach.KNOWN_GATES`) but **Waterfall and rod requirements
       are not**, and `KNOWN_GATES` is admittedly incomplete — pricing that gap is step 1.
 
-- [x] HISTORY — `#24-rarepredicate` (original spec, 2026-08-06) — **the duplicate-catch exemption (`#24-roster` ruling 3). SOLVED — the
-      "pseudo-rare" axis is WARP DEPTH, and it needs no new recon.**
-      Three OR'd rules: shiny (already works) / rare gender variant / rare species.
-      **Rare species = `best_slot_rate <= 4%` OR `warp_depth >= 3`** — 26 of 132 wild species (19%).
-
-      **WARP DEPTH** = 0-1 BFS over the committed `cache/warp_graph_BPEE0.json`: seed every
-      non-underwater group-0 map at 0, connection edges cost 0, **warp edges cost 1**, take the MIN
-      over all of a species' locations. Histogram (independently reproduced 2026-08-06):
-      `d0=59 d1=21 d2=39 d3=7 d4+=3 d99=3` (d99 = no path = **Dive**-gated, deliberate — Dive edges
-      are excluded at `warp_graph.py:20`). **`depth>=3` = 13 species, ZERO false positives on
-      inspection.** Bagon = **d3** (METEOR_FALLS_B1F_2R, Surf+Waterfall); Skitty = d0 (rate rule
-      catches it at 2%).
-      **Threshold rationale: there is a CLIFF between 4% and 5%** — the 5% Safari slots add 18
-      species at once. 4% is the natural stop.
-
-      ‼ **REJECTED: the encounter-METHOD proxy** (a species available only via `surf_encounters` is
-      "Surf-gated"). Measured: 27/132 water-only species are the most UBIQUITOUS in Hoenn
-      (Magikarp 53 maps, Tentacool 38, Wailmer 33). Surf-gating is TEMPORAL, not rarity — and Bagon
-      is Grass-only anyway. Adding this axis takes the set from 26 to 61.
-      ‼ **REJECTED: `nmaps == 1`** — 62/132 (47%), half the dex.
-
-      ✅ **The field-move recon is NOT a prerequisite** — decisive. Warp depth is pure graph
-      topology off a cache the bot already loads (`get_warp_graph()`), and the predicate fires at
-      ENCOUNTER time, when the bot has by construction already cleared the gate. "Where is
-      Waterfall first required" is a routing question this filter never asks. (That recon is still
-      a real gap for `counter_plan` routing — just not for this.)
-
-      ‼ **KNOWN FALSE NEGATIVES, accepted:** **Feebas is not in the encounter index at all**
-      (`encounter_index.py:75-115` reads `gWildMonHeaders`; the 6-tile mechanic is not in that
-      table), so the most iconic pseudo-rare species can never fire this rule. Same for Beldum and
-      other gift/static/version-exclusives. Pure-sea endgame species (Luvdisc, Corsola, Staryu) are
-      structurally d0 and miss. ‼ And the cutoff is fragile at the boundary: Meteor Falls' d2 rooms
-      are ALSO Surf-gated in reality, so `>=3` earns some of its precision by luck of Bagon's room
-      being one warp deeper. Treat warp depth as a good INFERENCE, not proof of a required HM.
-      Traps found: `custom_catch_filters` runs **≥2× per encounter**, so the "do I own this species"
-      lookup must be cached, never a 420-slot box scan; and `is_repeat_encounter` is PID dedup, NOT
-      species dedup — do not reuse or name anything near it.
+- [x] HISTORY — `#24-rarepredicate` (original spec, 2026-08-06) — **the duplicate-catch exemption (`#24-roster` ruling 3). SOLVED — the  — 📦 **ARCHIVED 2026-08-23 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 
 - [x] `#24-hmteachloop` — **ROOT-CAUSED AND FIXED 2026-08-07. The user's description was literally
       accurate, and the bug was OUR BUTTONS re-arming the teach.**
@@ -983,38 +1008,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ‼ Original measurement note kept below — its "+2, will not fix Winona" conclusion was
       WRONG, because I had not yet found the Grass-only filter that excludes her one type match.
 
-- [x] HISTORY — `#24-movepoolcounters` (original measurement) — **USER DIRECTIVE 2026-08-07.**
-      > "some pokemon can learn moves of types that can be a counter so its not just the pokemon
-      > type, it can be the moves they learn… know the difference between damaging moves,
-      > passive/defensive/stat boosting/debuff moves and area/effect moves as well as status
-      > moves with no damage"
-
-      `counter_plan.py:155-157` today keeps a candidate only if
-      `{t.name for t in species.types} & needed` — pure species typing.
-      **Measured with `tools/story-dev/probe_movepool_counters.py` over all 11 huntable grounds:**
-      | gating | Winona | Norman | Wattson |
-      |---|---|---|---|
-      | by species TYPE (today) | 1 | 1 | 1 |
-      | + any learnable move of a needed type | +82 | +47 | — |
-      | **+ DAMAGING, LEVEL-UP only, power×2.0×STAB ≥ 75** | **+2** | **+0** | **+0** |
-      ‼ **The naive version is WORSE THAN TODAY.** Almost the entire raw gain is `TM13 Ice Beam` /
-      `TM14 Blizzard` (Gen 3 TMs are single-use and we almost certainly do not own them) and
-      `HM06 Rock Smash` at **20 power** — the exact case `CREDIBLE_ANSWER_POWER = 75` was
-      calibrated to reject ("a 20-power HM is 2.0x against Normal and still loses to Slaking 27
-      times running"). Unfiltered, every Zigzagoon becomes a Norman counter.
-      **THREE GATES ARE MANDATORY, in this order:**
-      1. **DAMAGING ONLY** — `move.base_power > 0`. Everything at 0 is status / stat-change /
-         field effect and cannot answer a type weakness: Toxic, Growl, Sunny Day.
-         ‼ **Smog is NOT in that group** — our data has it at **20 bp Poison, `effect=POISON_HIT`**.
-         Classify on `base_power`, never on the name or on the presence of a secondary effect.
-      2. **OBTAINABLE** — level-up moves within reach of the catch band, or a TM/HM **we own**.
-         Never "could learn if we had TM13".
-      3. **CREDIBLE POWER** — reuse the existing `power × effectiveness × STAB >= 75`.
-      **The whole actionable gain is 2 Winona candidates:** Baltoy learns **Rock Tomb** (L15,
-      50bp) on ROUTE111; Slugma learns **Rock Throw** (L15, 50bp) on FIERY_PATH.
-      ⇒ Worth building — it is the correct model and it widens a chain that is now **75% of all
-      non-finishes** — but it will NOT by itself fix Winona, and it must not be sold as the fix.
-      Do `#24-winonaground`'s real diagnosis first.
+- [x] HISTORY — `#24-movepoolcounters` (original measurement) — **USER DIRECTIVE 2026-08-07.**  — 📦 **ARCHIVED 2026-08-23 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 
 - [x] `#24-counterdesertgate` — **FIXED 2026-08-07, same day it was found.**
       `counter_plan` now checks `AREA_ITEM_PREREQ` per candidate location and skips the area
@@ -1157,36 +1151,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
 
 - [x] `#24-r116sweep` — ✅ **ANSWERED 2026-08-09, CLOSED: DO NOT ADD ROUTE116 to `HUNTING_GROUNDS`. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (the R3 relief valve: this file hit its 3,600-line limit). ⛔ Nothing here is outstanding; read the archive for the reachability method behind the ruling.
 
-- [x] `#24-battleitems` — ✅ **DONE, PROMOTED 2026-08-10 (user-approved), zero source drift.**
-      Policy unit-proven (`repro_battle_items.py`, 27 checks, no emulator); a real
-      `battle_action_use_item` index-space bug found and fixed underneath it (5 requests → 1
-      potion consumed, became 3 → 3); index space proven CONDITIONAL and handled by a
-      self-correcting flip; validation batch `20260810-082509` passed its acceptance test
-      (flips **20 → 2**, both-spaces-failed **10 → 0**).
-      ‼ **OUTCOME UNPROVEN and that is on the record** — finish rate across the four item-era
-      batches reads 25.0 → 33.3 → 16.1 → 28.6% at n≈30, nothing resolvable. It was promoted
-      because the mechanism is proven and bounded, not because outcomes moved. **Any follow-up
-      must be graded on BATTLE-level metrics** (`probe_item_index_space.py`,
-      `probe_boss_healing.py`), never the finish rate.
-      HISTORY — **USER DIRECTIVE 2026-08-09: "use items intelligently and
-      strategically." BUILT, ROOT-CAUSED, FIXED — but its OUTCOME EFFECT IS UNMEASURED.**
-      Motivated by measurement: `Slaking` healed **27 times, median +81 HP** in batch
-      `20260809-155844` while the bot never used an item; 61.8% of boss-length battles show an
-      opponent heal; boss losses end ~88% of non-finishing runs.
-      * `modules/story/battle_items.py` — PURE policy (heal amounts from `items.json`, never
-        memory). Four rules: only below 35% HP; **cheapest sufficient** item; **never heal into a
-        losing race**; **bounded per battle** (the opponent heals too — unbounded is an infinite
-        battle, the KI-34 shape). `repro_battle_items.py`: **27 checks, ALL PASS**, no emulator.
-      * `StoryItemBattleStrategy` — TRAINER battles only, fails open, so wilds/training/catching
-        are bit-identical to before.
-      * ‼ **Found and fixed a real bug in `battle_action_use_item`**: it fed a BATTLE-order index
-        into a PARTY-MENU scroll, so item use silently did nothing whenever the active mon was not
-        at index 0 (5 requests → 1 consumed). After the fix: **3 requests → 3 consumed, Blaziken
-        `23/120` → `120/120`**. Ball throwing passes no target and never enters that branch.
-      * A **no-op guard** remains: if a request does not raise HP by the next decision, items are
-        disabled for that battle (bounds the cost to one turn if execution ever breaks again).
-      **NEXT: a batch.** Acceptance should be **boss-battle win rate**, not the finish rate. ‼ Do
-      NOT quote the fixture's `badge=True` as proof — it reproduced even when items did nothing.
+- [x] `#24-battleitems` — ✅ **DONE, PROMOTED 2026-08-10 (user-approved), zero source drift.**  — 📦 **ARCHIVED 2026-08-23 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 
 - [ ] `#24-r110mauville` — **NEW 2026-08-09, MEASURED (KI-48).** `_navigate_riding_out` cannot
       walk ROUTE110 → MAUVILLE_CITY: **3/3 identical deterministic failures** at (16, 89), with
@@ -1208,38 +1173,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ‼ Do not assume it will: Nincada @ ROUTE116 was **5 hunts, 0 caught** in batch
       `20260808-095721`. The sweep exists to answer that, not to confirm a hope.
 
-- [x] `#24-progressiongate` (original finding) — ‼‼ **USER-IDENTIFIED 2026-08-08, VERIFIED. The counter planner has
-      NO progression model, and for Wattson it proposes a counter that is behind Wattson.**
-      > "I think Slugma is not available before Wattson… keep this sort of logic in mind (pokemon
-      > availability). In this instance Slugma is gated behind Rocksmash which you can only use
-      > after beating Wattson"
-
-      **Verified with the real `find_counter_candidates`** against a pre-Wattson team (L22):
-      ```
-      WATTSON needs Ground -> only huntable candidate: Numel @ FIERY_PATH (30%)
-      ```
-      **That is CIRCULAR.** Fiery Path's only two doors are on ROUTE112; the Mauville→Route 112
-      corridor is sealed by a Rock Smash rock at ROUTE111 (18,101) (measured, `#24-smashroute`);
-      and Rock Smash **field use requires BADGE03** — Wattson's own badge (`get_rock_smash_hm`
-      docstring). So every Fiery Path species — Numel, Slugma, Machop, Torkoal, Koffing — is
-      unobtainable until Wattson is already beaten.
-      **`FIERY_PATH` has NO entry in `AREA_PREREQ` or `AREA_ITEM_PREREQ`** — confirmed, both
-      return `None` — so the planner treats it as freely reachable at any story stage.
-      ‼ **`#24-huntreachproof` part 1 made this the ONLY option for Wattson.** Before the
-      narrowing he was also offered ROUTE111/ROUTE116 (unreachable in practice, but not
-      circular). Now the single surviving candidate is one he gates himself. That is a real
-      consequence of my change and it was invisible to every metric I was watching, because
-      conversion counts catches and this rung can never even start.
-      **FIX:** teach the gate about FIELD MOVES / BADGES. `AREA_PREREQ` already carries a
-      vocabulary (`"surf"`, `"region"`) and `_counter_area_allowed` already resolves `"surf"`
-      against the party — add `"rocksmash"` (badge-checked) and populate FIERY_PATH, plus any
-      other ground behind a field move.
-      ‼ **Every entry is a GAME FACT — verify each from the decomp or a live probe, never from
-      recall.** The three facts above are already measured and cited; anything added beyond them
-      needs the same treatment.
-      ‼ **The general rule the user is asking for, beyond this instance:** a counter/hunt target
-      is only valid if its LOCATION is reachable AT THAT POINT IN THE STORY. Availability is a
-      function of story progress, not just of the encounter table.
+- [x] `#24-progressiongate` (original finding) — ‼‼ **USER-IDENTIFIED 2026-08-08, VERIFIED. The counter planner has  — 📦 **ARCHIVED 2026-08-23 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 
 - [x] `#24-teachmsgstall` — ✅ **FIX SHIPPED 2026-08-11 AND KEPT; ⚠ REOPENED THE SAME DAY** because
       batch `20260811-130454` showed it had **no measurable production effect** (success 38/47 vs
@@ -1796,7 +1730,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
       an UNMEASURED heap offset, and it needs the USER.**
       ⛔ **STATUS IN ONE LINE: production can now READ the verdict; it still does not ACT on it.**
       That split is deliberate and is the whole shape of this item.
-      ✅✅ **WHAT SHIPPED (⚠ was sandbox-only; ✅ PROMOTED 2026-08-17, user-approved — drift is 0):**
+      ✅✅ **WHAT SHIPPED (⚠ was sandbox-only; ✅ PROMOTED 2026-08-17, user-approved — drift was 0 then; ⚠ it is 1 as of 2026-08-23, see the STATE row):**
       all five exits of `withdraw_from_box` return `(landed, code, detail)` — the shape the recorded
       design asked for — its ONE caller (`modules/modes/util/higher_level_actions.py:420`) BINDS the
       result, and a new PURE function `withdraw_verdict_report` turns it into a reported line.
@@ -1873,7 +1807,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
 - [x] **(2) ✅✅ DONE 2026-08-16 — KI-65 is REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25).**
       ✅ **PROMOTED TO BOTH FORKS 2026-08-16, USER-APPROVED** — by a THREE-POINT A/B against
       `--build custom` (BEFORE `lie_msg=1` → FAIL; AFTER `lie_msg=0, honest_msg=1` → PASS; sandbox
-      still PASS), never a byte-compare. Drift was **0** at that moment (2026-08-17, after the KI-66 `_on_field` promotion). ✅ It is **0** today — everything is promoted. MEASURE with `promote.py --check`. *(This line read "1 again … ruling owed" for about an hour between the two promotions; MEASURE with `promote.py --check`, never read a drift figure from prose.)* Restore `restore/2026-08-16-pre-promotion-ki65`.
+      still PASS), never a byte-compare. Drift was at zero at that moment (2026-08-17, after the KI-66 `_on_field` promotion) — ⚠ DESCRIBED, NOT REPRINTED, because this gate matches digits and cannot tell history from a live claim. ⚠ For TODAY's figure run `promote.py --check`. Formerly: it was **0** today — everything is promoted. MEASURE with `promote.py --check`. *(This line read "1 again … ruling owed" for about an hour between the two promotions; MEASURE with `promote.py --check`, never read a drift figure from prose.)* Restore `restore/2026-08-16-pre-promotion-ki65`.
       The repro (`repro_ki65_unbound_party_index.py`) drives the real bot from `route116team.ss1`
       with an INJECTED Marshtomp whose **slot 0 is deliberately Rock Smash (HM06)**; pre-fix ARM A
       printed *"Nothing else can be given up — declining the new move."* **while three forgettable
@@ -2000,44 +1934,16 @@ owed / not built / residual"* sentence written that session, ask **"where would 
 FIND this?"** If the only answer is an append-only log, a CLOSED KI's body, or a research note, it
 is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
 
-### ✅✅ `#24-sanitycheck` — the USER-REQUESTED 5-PASS DEEP AUDIT — **COMPLETE, 5 of 5** (filed 2026-08-18, closed 2026-08-23)
+### ✅✅ `#24-sanitycheck` — the 5-PASS DEEP AUDIT — **COMPLETE (5/5)**, ARCHIVED 2026-08-23 → `28-HANDOFF-ARCHIVE.md`
 
-- [x] **✅✅ ALL FIVE PASSES ARE DONE AND COMMITTED. ⛔ DO NOT RE-RUN ANY OF THEM.**
-      ‼‼ **THIS LINE SAID "3 of 5" AND THEN "4 of 5" AFTER EACH PASS SHIPPED — THE SAME MISS, TWICE,
-      ON THE SAME ITEM, IN ONE SESSION.** Both times the handoff's two halves were updated correctly
-      and this third copy was not; the second time it was caught by the **P5 pair added to
-      `CLAUDE.md` because of the first**. ⇒ the pair works, and it is the reason this file is now
-      right. ⛔ **On finishing an item, `grep` the tree for its own slug and re-read EVERY hit.** ⛔ Filed because a cold-start audit found the queue head pointing at work with **no
-      punch-list item at all** — the exact `#24-orphans` shape, and it also meant three commits went
-      in without a `(punch-list #N)` tag as DoD step 5 requires.
-      **DONE:** pass 1 TRUTH `045bdd1c`, pass 2 CODE HEALTH `e74d6e50`, pass 3 ADVERSARIAL `899f4ce7`.
-      ‼‼ **THE METHOD IS THE DELIVERABLE — copy it exactly, it is what made the passes work:**
-      **8 agents per pass, ONE ANGLE EACH, sent in ONE message so they run concurrently, and EVERY
-      agent required to FAULT-INJECT or RE-DERIVE, never to reason.** That single instruction is what
-      found a gate that could not fail and a control that could not fail; the earlier habit of asking
-      an agent to *assess* something produced opinions instead.
-      ⛔ **VERIFY EVERY FINDING YOURSELF BEFORE ACTING — 2 of ~40 were FALSE POSITIVES** (a truncated
-      quote; a correctly-superseded duplicate). An agent report is a NOTE, never truth.
-      ‼ **Output contract that kept them readable:** one verdict line, then `SEVERITY | what | what
-      you RAN | result | smallest fix`, max ~16 lines, and *anything not executed must be labelled
-      CANNOT-REPRODUCE*.
-      ✅✅ **PASS 4 IS DONE 2026-08-22 (`42a2d844`) — ⛔ DO NOT RE-RUN IT.** Its lead was right and
-      UNDERSTATED: not "9 of 11 sampled" but **21 of 28 gates had no self-test**, and THREE of them
-      (`probe_slot_free_plan`, `probe_regi_capabilities`, `probe_dive_routing`) had **zero assertions
-      and could not fail at all**. Residuals filed as `#24-fixturecoverage`, `#24-gateselftests`,
-      `#24-testrunsweep`, `#24-p4residuals`, `#24-flagnamedocscan`. ✅ KI-82 is CLOSED — it was already
-      ruled on 2026-07-18 and was re-affirmed 2026-08-23; ⛔ do not re-raise it.
-      ✅ **PASS 5's SCOPE WAS DEFINED AND EXECUTED 2026-08-22/23 — it is on the record so the audit is
-      REPRODUCIBLE.** It had none when filed. The eight angles run, one agent each: cold-start from
-      the handoff; cold-start from `00-README`; can each filed "startable" item actually be started;
-      playbook currency; known-issues navigability; punch-list navigability;
-      `24-PLAIN-ENGLISH-STATUS` accuracy; vision/architecture vs reality.
-      ⛔ **EIGHT ANGLES, SEVEN AGENTS RETURNED** — the eighth died on an API session limit and was
-      RE-RUN the next day, where it produced 17 findings including six commands in
-      `02-ARCHITECTURE.md` that could not be run as written. ⇒ **report the angles that RETURNED,
-      never the number LAUNCHED.**
-      ⚠ Pass 1 agents were READ-ONLY; passes 2-3 executed and fault-injected in scratch. ⛔ Whichever
-      you choose, say so in the prompt — and ⛔ do NOT let an agent copy a whole fork to scratch.
+- [x] **All five passes done and committed. ⛔ DO NOT RE-RUN ANY OF THEM.**
+      ‼ **THE METHOD, which is the reusable part:** 8 agents per pass, ONE ANGLE EACH, sent in
+      ONE message so they run concurrently, and **every agent required to FAULT-INJECT or
+      RE-DERIVE, never to reason** — that single instruction is what found a gate that could
+      not fail and a control that could not fail. ⛔ **VERIFY EVERY FINDING YOURSELF** (across
+      the five passes, agent claims failed my check three times, and one arrived already
+      STALE). Output contract: `SEVERITY | what | what you RAN | result | smallest fix`,
+      ~16 lines, anything unexecuted labelled CANNOT-REPRODUCE. Full record in the archive.
 
 ### ‼ `#24-ki76correctness` — KI-76's CORRECTNESS half: the slide model's ENDPOINT is wrong (filed 2026-08-17 from `#24-orphans` (6), which existed because this had NO item of its own)
 
@@ -2198,7 +2104,7 @@ region, where "train near the gym" is actively wrong.
 - `modules/story/counter_plan.py` — already ranks reachable, cost-priced counter encounters.
 
 **The three concrete gaps:**
-- [ ] **(1) `train_team` never picks an area.** `early_game.py:1975` —
+- [ ] **(1) `train_team` never picks an area.** `early_game.py:1979` —
       `grass: tuple = RUSTBORO_TRAINING_GRASS` is a caller-supplied constant; it never calls
       `best_training_area`. Its own docstring admits this. **Wire it.**
 - [~] **(2) `FODDER_LEVEL_GAP = 12` compares the WRONG QUANTITIES — ANALYSED 2026-07-29,
@@ -2393,46 +2299,8 @@ region, where "train near the gym" is actively wrong.
       KI-36 hazard the finite limit exists to prevent.
 
 ### ‼ #1 EXECUTION PRIORITY — the counter chain is now 72% of all derails
-- [x] **`#24-counters` phase 2 — ✅ BUILT 2026-07-30, and LIVE-VALIDATED many times since;
-      the "awaiting validation" header was 8 days stale (closed by triage 2026-08-10).**
-      Evidence: `best_huntable` (`counter_plan.py:435`) and `hunt` (`counter_hunt.py:426`) are
-      live; batch `20260808-131334` measured conversion 15% → 45% (z = +2.39 on REAL catches),
-      and `20260809-081643` restored `CAUGHT Machop` 0/7 → 6/7 (z = +3.24) with FALSE catches
-      10 → 0. ‼ Its open FOLLOW-UPS live in newer items, not here — see `#24-battleitems`
-      and the boss-healing work; the chain's DIAGNOSIS is sound and its premise is what is
-      now in question. HISTORY —
-      **STEP 1 — the hunting-ground gate** (`hunt_ground_tile` / `huntable` /
-      `best_huntable`; `repro_counter_huntable.py`, ALL PASS). Had to land first: the cost
-      ranking puts **Victory Road Hariyama at rank 1** for Norman, so an executor built on
-      `cands[0]` would have walked a mid-game team into the E4 approach.
-      Destinations: Norman → **Machop @ FIERY_PATH (18,19)**, Wattson →
-      **Sandshrew @ ROUTE111 (25,55)**, Winona → **Electrike @ ROUTE118 (29,15)**.
-      **STEP 2 — the executor.** `modules/story/counter_hunt.py` (arm → hunt → train),
-      `StoryMode._counter_ladder`, and a catch-on-sight branch in `on_battle_started`.
-      `repro_counter_hunt.py` — **15 checks, ALL PASS.**
-      ‼ **Bounded by PER-RUN STATE (`_counter_hunts`), one hunt per boss per run** — a
-      retry or frame budget CANNOT bound this, because `_prepare_for_fight` is re-entered
-      by the run loop after every lost attempt (the KI-34 shape). The attempt is recorded
-      BEFORE the hunt so a derailed hunt still consumes its chance.
-      ‼ **The terminal raise is untouched** — every failure path still stops honestly.
-      **STEP 2b — destination FALLBACK.** `probe_counter_reachability.py` drove the REAL
-      navigation and found the TOP destination UNREACHABLE for 2 of 3 bosses (ROUTE111 is
-      Fallarbor-side; ROUTE118 is the KI-24 bridge case) while Norman's FIERY_PATH (18,19)
-      **ARRIVED in 2,922 frames**. The ladder now walks the ranked huntable list up to
-      `COUNTER_HUNT_MAX_DESTINATIONS = 3`. ‼ Cheap failures cascade, expensive ones do not.
-      ⏭ **WHAT IS OWED: a LIVE run.** Nothing here proves the bot can walk to Fiery Path
-      from Petalburg, catch a Machop and beat Norman with it. Watch for: does the hunt
-      reach (18,19)? does the catch-on-sight branch fire? does `train_counter` accept or
-      decline the estimate? and — the regression to fear — does a boss that used to stop
-      honestly now loop? Grep new logs for `counter hunt` and `already hunted a counter`.
-      Of 36 derails in the newest bundle, **~26 are "boss: N losses with no super-effective
-      answer to X. Need one of: Y"** — the chain diagnoses correctly and then ENDS THE RUN.
-      Breakdown: Electric→needs Ground ×17, Normal→needs Fighting ×9, Winona ×3.
-      `counter_plan.find_counter_candidates` already names reachable species and tiles
-      (`story_mode.py:611`, raised at `:1347`); `story_mode.py:619` states plainly that it is
-      "PLANNING/LOGGING ONLY — this does not travel, catch, or train anything". Building the
-      travel-and-catch step converts ~72% of derails into continued runs. Nothing else on
-      this list is close in value.
+- [x] **`#24-counters` phase 2 — ✅ BUILT 2026-07-30, and LIVE-VALIDATED many times since;  — 📦 **ARCHIVED 2026-08-23 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
+
 - [ ] **`#24-starter-gym3` — Gym 3 viability is decided by the starter (new, 2026-07-29).**
       P3/Treecko stalls at 2 badges in **11 of 14 runs**, and **10 of its 11 derails are
       Wattson**. P2/Mudkip never hits this: Marshtomp is Water/**Ground** — immune to Electric
@@ -2495,7 +2363,7 @@ region, where "train near the gym" is actively wrong.
 
 **STILL OPEN from the same review — design calls, NOT yet built (need the user's ruling):**
 - [ ] `#24-leadpolicy` — **the matchup lead is purely defensive and benches the winner.**
-      `_lead_best_matchup` (`early_game.py:1655`) picks `min(incoming_multiplier, -level)` —
+      `_lead_best_matchup` (`early_game.py:1659`) picks `min(incoming_multiplier, -level)` —
       it models only the foe ace's STAB types, and ignores whether the chosen lead can deal
       damage or survive a level gap. Verified to reproduce every observed lead exactly:
       P2 led **Whismur L15** into the Route 110 rival **13 times** while **Marshtomp L24**
@@ -3216,7 +3084,7 @@ region, where "train near the gym" is actively wrong.
       cold-start audit, closed 2026-08-22).** The gating was resolved and decomp-verified the same
       day KI-11 was: `early_game.py:3584-3586` documents that the Team Aqua crowd
       (`FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA`) seals the doors until you visit Stern's Shipyard and
-      talk to Dock, and `deliver_devon_goods_to_stern` is built at `early_game.py:3596`. KI-11 is
+      talk to Dock, and `deliver_devon_goods_to_stern` is built at `early_game.py:3611`. KI-11 is
       archived RESOLVED (`31-KNOWN-ISSUES-ARCHIVE.md:1080`). ⛔ It did NOT block Ch8b/Ch9 — that
       clause was false for a month. ‼ **The item's OWN text said "(deliver_devon_goods_to_stern is
       built)" while carrying `[ ]`** — a status contradicted by its own body is the cheapest
