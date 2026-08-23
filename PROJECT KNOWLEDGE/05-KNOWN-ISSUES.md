@@ -24,8 +24,13 @@ is **`sandbox-pokebot/`** (not `custom-pokebot/`). KI-23/KI-24 concern
 `modules/story/region_reach.py` and `modules/story/counter_plan.py`, which are ours and
 have no upstream equivalent.
 
-**Numbering:** IDs are **not contiguous** — there is no KI-12 and no KI-13 in this file.
-23 distinct IDs across 25 headings (KI-1 and KI-15 each appear twice).
+**Numbering:** IDs are **not contiguous** — many early ones were archived to
+`31-KNOWN-ISSUES-ARCHIVE.md`. ⛔ **RE-DERIVE, DO NOT TRUST A QUOTED FIGURE HERE:**
+`grep -cE "^## KI-[0-9]+" 05-KNOWN-ISSUES.md` — **65 headings, 61 distinct IDs** as of
+2026-08-22. ‼ This line read *"23 distinct IDs across 25 headings … no KI-12 and no KI-13"* for a
+month while the file nearly tripled, and it named KI-15 as appearing twice when KI-15 has no entry
+at all — **the file's only navigation aid was wrong three ways at once**, which is worse than
+having none (PASS 5, 2026-08-22).
 
 **Status re-audit 2026-07-27.** Every entry was checked against `sandbox-pokebot/`.
 Entries proven fixed are now marked `✅ FIXED` in their heading with the fixing
@@ -493,7 +498,11 @@ reason about them.
 
 ---
 
-# Added 2026-07-27 — open issues found by a code audit, previously unlisted
+# ⚠ MIXED — entries added 2026-07-27 onward. ⛔ **READ EACH ENTRY'S OWN MARKER.**
+> Re-titled 2026-08-22 (PASS 5). This H1 read *"open issues found by a code audit"* and is
+> the LAST H1 in the file, so it scoped ~82% of it — while many entries beneath it carry their
+> own ✅ markers. ⛔ **A heading is a claim about every entry beneath it**;
+> that exact shape once cost about a day of re-doing finished, gated, promoted work.
 
 ## KI-25 — `_lead_best_matchup` is purely DEFENSIVE; it benches the only mon that can win (opened 2026-07-27, severity: HIGH)
 - **Symptom:** before a type-countered fight the bot leads a mon that merely *survives* the
@@ -918,7 +927,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
   Expect to raise it again as content grows; re-derive from the deepest COMPLETED run.
 
 
-## KI-37 — a listener above the mode can STARVE it, so a handed-over battle fault is never claimed (opened 2026-07-30, severity: HIGH — CAUSED BY THE KI-34 FIX)
+## KI-37 — a listener above the mode can STARVE it, so a handed-over battle fault is never claimed (opened 2026-07-30, severity: HIGH — CAUSED BY THE KI-34 FIX)  — ✅ **FIXED 2026-07-30** (see the ✅ bullet in this entry's body; header marker added 2026-08-22, PASS 5). ⚠ A follow-up remains open — read the body.
 - **Symptom:** user log `20260730-081347` (`Story (DEBUG - RESET)`, build `4f1e02f9`).
   `handle_fainted_pokemon` did its job — 3 give-ups, then a correct hand-over at f1,797,401:
   `[FAINT-CHOOSER] handing a recoverable derail to the mode`. **Nothing claimed it.** The run
@@ -985,7 +994,7 @@ deleted — the full correction and its diagnosis are in the archive.
 
 ---
 
-## KI-41 — The Mauville→Route 112 corridor is sealed by a ROCK SMASH rock the planner treats as permanent (2026-07-31)
+## KI-41 — The Mauville→Route 112 corridor is sealed by a ROCK SMASH rock the planner treats as permanent (2026-07-31)  — ✅ **FIXED 2026-07-31, same day** (`#24-smashroute`; see this entry's own `### ‼ KI-41 — FIXED` block. Header marker added 2026-08-22, PASS 5).
 
 **Measured** from `rocksmash_taught.ss1` (Mauville 32,15), `probe_journey_walls.py`:
 ROUTE111 column-by-column reachability, y from 139 (south, next to Mauville) northward —
@@ -1064,7 +1073,7 @@ thing that will waste the next debugging session.
 
 ---
 
-## KI-43 — `_navigate_when_ready`'s escape hatch is budgeted EXACTLY like the watchdog, so it is dead code (2026-07-31, severity: HIGH — ROOT CAUSE FOUND, FIX NOT YET APPLIED)
+## KI-43 — `_navigate_when_ready`'s escape hatch is budgeted EXACTLY like the watchdog, so it is dead code (2026-07-31, severity: HIGH — ✅ FIXED AND PROVEN 2026-07-31)  ⛔ **CORRECTED 2026-08-22 (PASS 5): this header said "FIX NOT YET APPLIED" for three weeks after it shipped.** PRODUCTION IS THE ORACLE — `global_navigation.py:244` defines `_TRANSIENT_WAIT_FRAMES = 600` and `_navigate_when_ready` uses it, not the 18,000-frame watchdog cap; the gate `repro_watchdog_budget_collision.py` exists and this file's own `:1209` already said *"KI-43 (fixed)"*.
 
 **This is the `global watchdog 9 → 143` caveat from the batch3 result, investigated.** The
 handoff's own hypothesis — *"runs travel much further now and long journeys trip the
@@ -1150,7 +1159,7 @@ debug logs and `BADGE:`/`losses` only in stdout, so those canaries are NOT infla
 `tools/story-dev/repro_watchdog_budget_collision.py` — no emulator, reads both constants from
 source. **RED on purpose** until the cap is lowered.
 
-### The fix, and why it is not applied yet
+### The fix, AS APPLIED (2026-07-31) — ⛔ this sub-heading read *"and why it is not applied yet"* until 2026-08-22
 
 Lower `_MAX_NON_OVERWORLD_FRAMES` for the wrapper to something sized for the transient it was
 built for (a battle transition clears in a few frames; ~600 frames / 10 s is generous), so
@@ -1167,7 +1176,7 @@ work). The `289d1710` baseline shows only 5 fires, so KI-40's regression is not 
 
 ---
 
-## KI-44 — Counter training cannot REACH its training grass: ROUTE102 is unwalkable from ROUTE103 (2026-07-31, severity: HIGH — this is now the counter chain's blocker)
+## KI-44 — Counter training cannot REACH its training grass: ROUTE102 is unwalkable from ROUTE103 (2026-07-31, severity: HIGH — this is now the counter chain's blocker)  — ✅ **ROOT CAUSE FOUND AND FIXED 2026-08-01** (see this entry's own `### KI-44 — ROOT CAUSE FOUND AND FIXED` block. Header marker added 2026-08-22, PASS 5).
 
 **Measured**, batch4 `x4-runs/20260731-201554` (commit `92d220d5`), 7 of 7 attempts:
 
@@ -1271,7 +1280,7 @@ lesson is that the mechanism firing is not the same as the funnel moving. Read
 
 ---
 
-## KI-45 — A battle MOVE-menu loop hangs a lane indefinitely, and neither guard can see it (2026-08-02, severity: HIGH)
+## KI-45 — A battle MOVE-menu loop hangs a lane indefinitely, and neither guard can see it (2026-08-02, severity: HIGH)  — ✅ **FIXED 2026-08-03** (bounded + reported through the recoverable channel; see this entry's own `### KI-45 — FIXED` block. Header marker added 2026-08-22, PASS 5).
 
 **Observed live**, batch6 lane H4 (`x4-runs/20260802-160603`): the lane produced **no stdout
 for 27 minutes** while the process stayed alive and burned CPU (8,874 s). Not a freeze — a

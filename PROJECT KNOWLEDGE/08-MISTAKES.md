@@ -8579,3 +8579,69 @@ table promises. Caught immediately by re-reading my own edit, and corrected befo
 **Prevention rule.** **When a table declares its own ordering, the anchor for an insertion is that
 ordering — not whichever row you happened to be looking at.** Cheap here; the same habit is what puts
 a "done" line below a "to do" line in the handoff queue, which has cost this project real days.
+
+## 2026-08-22 — I updated the pair the checklist NAMES and missed the one it does not
+
+**Symptom.** Hours after committing PASS 4, a zero-context cold-start agent found
+`03-PUNCH-LIST.md`'s `#24-sanitycheck` still reading **"3 of 5 DONE"** and *"PASSES 4 AND 5 REMAIN"*,
+followed by a build spec — **commanding a cold reader to build PASS 4, which had shipped in the
+immediately preceding commit.** `04-HANDOFF.md:67` said "3/5 DONE" too, 57 lines below my own banner
+saying pass 4 was done.
+
+**Root cause, and it is not carelessness.** The DOC CONSISTENCY LAYER's pair list names **P1 =
+handoff banner ↔ NEXT ACTIONS queue item 0**. I updated both halves of P1 faithfully, and a Tier 1
+reviewer confirmed they agreed. **Neither the pair list nor the reviewer covers the WORK ITEM'S OWN
+STATUS in `03-PUNCH-LIST.md`** — so a third copy of the same fact sat unguarded. The gates could not
+see it either: `audit_doc_consistency` grades numbers and KI header/body pairs, not "does the item
+claim its own work is unstarted".
+
+**Prevention rule.** ⛔ **A CHECKLIST PROTECTS EXACTLY WHAT IT ENUMERATES.** When a fact lives in
+THREE places, updating the two the checklist names is not "done" — it is the most dangerous possible
+state, because the pair check now returns PASS. ⇒ **When you finish a work item, grep the tree for
+its own slug and re-read every hit**, and treat any status sentence you find as a fourth half of the
+pair. *(Corollary earned the same day: two clean automated passes did not substitute for one
+independent reader — which is why the layer requires both, and why Tier 2 exists.)*
+
+## 2026-08-22 — the line that tells you where to put your findings was wrong by 91
+
+**Symptom.** `04-HANDOFF.md:31` — a block whose entire purpose is *"ARCHIVE FIRST, WRITE SECOND"* —
+said `03` had **~97 free lines** and `04` **~12**. Measured: `03` had **6** and `04` had **6**.
+
+**Why it mattered more than a typo.** That is the sentence a session reads before deciding whether it
+can afford to write its findings into a file. Acting on "~97 free" with 6 actually free turns R3 RED
+and blocks the Tier 0 commit **mid-wrap-up** — the exact failure the block exists to prevent. The
+warning was the thing that was broken.
+
+**Root cause.** A self-referential count, in the file it counts, written by hand. The file's own text
+already records this species: *"a self-referential number cannot survive its own file being edited"*,
+after the same row went stale three times in one day.
+
+**Prevention rule.** ⛔ **NEVER WRITE A LINE-BUDGET FIGURE INTO A FILE THAT THE FIGURE DESCRIBES.**
+It is now de-numeralised and points at `lint_docs.py`, whose budget table is the authority. ‼ More
+generally: **a caution containing a stale number is worse than no caution**, because it is trusted
+precisely at the moment it is acted on.
+
+## 2026-08-22 — I preserved evidence and it made a gate fail; the gate was right
+
+**Symptom.** Committing PASS 4's fault-injection drivers under `tools/story-dev/evidence/` turned
+lint R6 red: `POKEBOT_TOTALLY_UNDOCUMENTED_FLAG` "is used in bot code but is NOT in the registry".
+
+**Root cause.** Those drivers deliberately contain SYNTHETIC flag names — that is how they prove R6
+can fire — and R6's scan roots include `tools/story-dev`. **A gate firing on its own test fixtures.**
+
+**The fix, and why it is the right one.** R6 now skips `evidence/` and `__pycache__` — committed
+evidence is not bot code. Shipped with a **CONTROL**: a real flag planted in `tools/story-dev`
+proper still fires. ⛔ The tempting alternative — not committing the drivers — would have destroyed
+the most valuable thing pass 4 produced (the knowledge of how to fault each gate).
+
+**Prevention rule.** **When you commit test fixtures into a scanned tree, run the scanners BEFORE the
+commit, and fix the SCOPE rather than deleting the fixture.** Caught here only because the full suite
+is run pre-commit; a `--quick` run would have missed it entirely.
+
+## 2026-08-22 — my probe indicted 652 doc symbols; the probe was wrong (see also the PASS 4 entry)
+
+Recorded in full under the PASS 4 entries above; repeated here only for the rule, because a **second**
+measurement disagreement appeared in pass 5 and was handled correctly as a result: an agent counted
+71 distinct KI ids where my own grep gave 61, and its flag-name figures differed from pass 4's.
+⇒ **Where two honest measurements of a fuzzy population disagree, publish the COMMAND, not either
+number.** Both items now carry the re-derivation command instead of a digit.

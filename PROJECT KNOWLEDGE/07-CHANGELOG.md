@@ -17100,3 +17100,218 @@ contain synthetic flag names (`POKEBOT_TOTALLY_UNDOCUMENTED_FLAG`) and R6 scans 
 A gate firing on its own test fixtures is the false-positive shape this project rates worse than no
 gate, so R6 now skips `evidence/` and `__pycache__` — with a CONTROL proving it still fires on a real
 `tools/story-dev` file outside those directories.
+
+## 2026-08-22 — DEEP SANITY CHECK, PASS 5 of 5 (COLD-START / USABILITY) — 8 agents. THE FIVE-PASS AUDIT IS COMPLETE.
+
+Pass 5 had **no scope written anywhere beyond its title**, so it was defined deliberately from the
+eight angles `#24-sanitycheck` suggested: cold start from the handoff, cold start from `00-README`,
+can each filed "startable" item actually be started, playbook currency, known-issues navigability,
+punch-list navigability, plain-English accuracy, vision/architecture vs reality. All agents READ-ONLY;
+⛔ every one required to RE-DERIVE or RUN, never to reason. **`git status` confirmed no agent wrote
+into the repo.**
+
+### ⛔⛔ THE MOST EXPENSIVE FINDING: THE QUEUE HEAD'S ONLY FIXTURE CANNOT TEST ITS ONLY LIVE DEFECT
+`#24-ki76correctness` is the standing next item. Its pinned save is `post_dive_ki76.ss1` and
+`--driver ki76warp` stages in **SEAFLOOR_CAVERN_ROOM6** — and **the item's own table says ROOM6 has
+ZERO armed DISMOUNT chains.** ⇒ a dismount A/B on that fixture runs **both arms over 0 armed
+chains**, prints *"no difference"*, and would read as a **REFUTATION of a 1,852-chain defect that is
+real.** ‼ This is exactly the `team_max 39` vacuous-arm trap the standing directives were written
+about, sitting on the queue head — and **no consistency check can see it**, because the item is
+perfectly self-consistent and perfectly unusable. The item now carries a STOP block naming the fix
+(capture an anchor on ROUTE132/133/134 or ROOM7 with Surf) and the one sub-task that IS startable
+today with zero input (the single `get_map_data` check of ROUTE134 `(60,31)`).
+
+### ⛔ FOUR CONTRADICTIONS I HAD CREATED MYSELF, HOURS EARLIER, IN PASS 4
+The zero-context cold-start agent caught all four — none was visible to the automated gates:
+* `03-PUNCH-LIST.md`'s `#24-sanitycheck` still read **"3 of 5 DONE"** and *"PASSES 4 AND 5 REMAIN"*,
+  with a 9-gate build spec — **commanding a cold reader to BUILD PASS 4, which had shipped in the
+  immediately preceding commit.** I updated the handoff's two halves and never its own item.
+* `04-HANDOFF.md:67` still said the audit **"IS 3/5 DONE"**, 57 lines below a banner saying pass 4
+  was done.
+* `04-HANDOFF.md:31`'s line-budget figures — **the line that decides where a session sends its
+  findings** — said `03` ~97 free against an actual **6**, off by 91. ⇒ **de-numeralised**; it now
+  says to run `lint_docs.py`, whose budget table is the authority.
+* The STATE row's `upstream | checked 2026-08-18` while `UPDATE-LOG.md` said 2026-08-22.
+‼ **The lesson is structural: I updated the P1 pair (banner ↔ queue) that the pair list names, and
+missed the item's OWN status, which the pair list does not name.** A checklist protects exactly what
+it enumerates.
+
+### THE PUNCH LIST WAS NOT USABLE AS A QUEUE
+* **`#24-ch8b-museum` sat `[ ]` for 31 DAYS after its code shipped** — four times worse than the
+  8-day case that motivated the triage index. Its own text said *"(deliver_devon_goods_to_stern is
+  built)"* while carrying an open marker; KI-11 was archived RESOLVED 2026-07-22 and the gating is
+  decomp-verified at `early_game.py:3584-3586`. ✅ CLOSED, with the evidence.
+* **THREE OPEN `[ ]` ITEMS ARE FILED UNDER `## Done`** — `#24-partyindex-minus-one`,
+  `#24-errorpath-frequency`, `#24-stalestatusclaims` — and `04-HANDOFF.md` names the last as a
+  startable alternative, so the handoff points INTO a section marked Done. Heading now marked MIXED
+  and names all three.
+* **The file's only index was 12 days stale**: `### 1. ACTIVE — the only things being worked on now`
+  had **12 of 16 rows closed** and named NEITHER live item. Retitled MIXED, pointing at the handoff
+  queue as the thing to act from.
+* ✅ **NEW `#24-codeorphans`: SIX slugs cited from CODE with no item here** — `#24-fortreegates`
+  (whose acceptance check, `repro_fortree_gate_solver.py:1`, literally declares itself the check for
+  a nonexistent item), `#24-harness-finish`, `#24-boxmessage`, `#24-endlessruns-gui`,
+  `#24-bosstelemetry`, `#24-areaitemgate`. Plus five that exist only as rows of the stale index —
+  and **`#24-pathsourcecheck` was RE-DERIVED AS REAL AND OPEN** (`map_path.py:968` still tests the
+  NEIGHBOUR and never the SOURCE tile).
+* **R3 headroom was 7 lines** — the next doc edit would have failed Tier 0 mid-session. Reclaimed
+  **165 lines** by archiving FOUR fully-closed blocks verbatim (script-verified zero open markers
+  before each move), each leaving a stub.
+
+### HEADERS THAT COMMANDED FINISHED WORK
+* ⛔ **KI-43's header said "ROOT CAUSE FOUND, FIX NOT YET APPLIED" for three weeks after it shipped**,
+  and its body sub-heading read *"The fix, and why it is not applied yet"*. **PRODUCTION IS THE
+  ORACLE:** `global_navigation.py:244` defines `_TRANSIENT_WAIT_FRAMES = 600` and
+  `_navigate_when_ready` uses it, not the 18,000-frame watchdog cap; the gate exists; and this file's
+  own `:1209` already said *"KI-43 (fixed)"*. Both halves corrected.
+* **KI-37, KI-41, KI-44, KI-45 hid their FIXED verdict in a `###` sub-heading** while the skimmed
+  `##` header still read OPEN/HIGH. Markers promoted into the headers.
+* **The last H1 in the file scoped ~82% of it as *"open issues found by a code audit"*** while many
+  entries beneath carry ✅ markers. Retitled MIXED.
+* **The file's only navigation aid was wrong three ways at once** — *"23 distinct IDs across 25
+  headings … no KI-12 and no KI-13 … KI-15 appears twice"* against a re-derived **65 headings, 61
+  distinct**, and KI-15 has no entry at all. Replaced with the command that measures it.
+
+### THE PLAYBOOK — READ EVERY SESSION — NEVER MENTIONED THE GATE SUITE
+`grep -ciE "run_gates|gate suite|ADVISORY"` over `14-AGENT-PLAYBOOK.md` returned **0**, while §2b
+titled a hand-rolled `for f in repro_*.py` loop **"the project's actual verification bar"**. Rewritten:
+`run_gates.py` is the bar, `--quick` is explicitly not a green suite, and the ADVISORY tier is
+explained with a ⛔ against "fixing" the two advisory probes by giving them exit codes.
+Also removed a pinned expectation that was **arithmetically impossible** — *"47 pass, 0 fail, 5
+environmental"* over a suite the same section measures at 103 scripts.
+
+### THE COLD READER'S FIRST FILE WAS HIDING A DIRECTORY
+`PROJECT KNOWLEDGE/batch-evidence/` appeared in **neither** README table and is referenced from
+**nowhere** in the repo, while its own README says *"Every conclusion in `07-CHANGELOG.md` and
+`05-KNOWN-ISSUES.md` rests on it. Losing that directory would make the entire measured history
+unre-derivable."* Now listed, along with `tools/story-dev/evidence/`. The README's **File rules also
+contradicted its own tables** — they typed only `01`-`05` current-state and `06`-`08` append-only
+while the tables (and each target file's own header) type six more, so a reader following the bullets
+would have edited an append-only ARCHIVE in place. Corrected. The Tier-0 block now also names
+`run_gates.py`.
+
+### THE HUMAN-FACING FILE HAD WRONG CLAIMS, NOT JUST GAPS
+`24-PLAIN-ENGLISH-STATUS.md` was 7 days stale, and its filed item said this was *"a COMPLETENESS gap,
+not a wrong claim"* — **false**. It still carried *"Next: untangle those two ideas"* for work done on
+2026-08-16 (contradicting its own later section), still warned *"do not give a boss a training area"*
+after that coupling was removed, and still described *"the next room"* of a cavern that has been
+driven end to end since 2026-08-14. All corrected, and brought current with nine plain-English
+bullets — ⛔ **kept number-free on purpose**, since that property is precisely why this file has never
+gone stale the way the others do.
+
+⛔ **AGENT CLAIMS THAT DID NOT SURVIVE MY CHECK.** An agent counted 71 distinct KI ids and 73
+entries; my own `grep -cE "^## KI-[0-9]+"` gives **65 headings / 61 distinct**, and I used mine.
+Another's flag-name figures (281 unresolvable, 500 mentions) differ from pass 4's (293/438) — both
+are regex measurements of a fuzzy population, so the item now carries the COMMAND rather than either
+number. **Two independent estimates that disagree are a reason to publish the method, not to pick a
+side.**
+
+**Passes 1-5 are now COMPLETE.** Suite 29 = 27 ENFORCING + 2 ADVISORY, all green; Tier 0 green.
+
+## 2026-08-23 — WRAP-UP of the 5-pass audit: Tier 2, the pair list gained a P5, and 243 lines reclaimed
+
+⛔ **HONEST CORRECTION TO THE PASS 5 HEADING ABOVE: it ran EIGHT ANGLES BUT SEVEN AGENTS RETURNED.**
+The eighth (vision/architecture vs reality) **died on an API session limit**, not on a finding. That
+angle was RE-RUN on 2026-08-23 and its result is recorded below. ‼ *An audit that reports "8 agents"
+when one died is exactly the shape this project keeps catching — a headline that claims more than the
+evidence.* The pass is complete only because the angle was re-run, not because seven was enough.
+
+### TIER 2 RETURNED `CAN BEGIN` — AND PROVED IT RATHER THAN ASSERTING IT
+A fresh cold-start agent, given ONLY `04-HANDOFF.md` + `00-README.md` and forbidden the changelog and
+git log, **independently computed the next item's discriminator by exec'ing the real source of
+`_navigate_through_scripts` with the abort latch set:**
+```
+ARM A: nav_attempts=25   raised -> BotModeError: Could not reach 1 (too many scripted interruptions)
+ARM B: nav_attempts= 0   raised -> StoryAbort: abort
+```
+⇒ the arms differ on TWO independent axes (attempt count and *fabricated cause vs true cause*). It
+also re-derived the item's population claim — **nav-primitive loops 26, of which 9 have a head
+check** — matching the punch list verbatim, and it RAN every command in the HOW TO RUN block, finding
+every trailing count in agreement with the tool (`--list` 29, `--quick` 21 of 29, abort probe 36 at
+baseline, `promote.py --check` drift 0). ‼ **This is the strongest form of the Tier 2 check: not "is
+the handoff consistent?" but "can someone START from it?"**
+
+**Its findings, all fixed before the commit:**
+* ⛔ **`31-KNOWN-ISSUES-ARCHIVE.md`'s header was wrong in TWO ways** and is the first thing a reader of
+  that file meets. It called **KI-59 "OPEN, code-verified, unfixed"** when KI-59 is FIXED, A/B-proven,
+  GATED and PROMOTED (only a narrower residual is open), and it said both bugs were **"armed in the
+  Seafloor Cavern"** — which that same file REFUTES ~485 lines below (all 115 cavern tiles are
+  `collision=1`). KI-60 genuinely IS still open. Header corrected on all three points; `05` is named
+  as outranking it. ⇒ **`#24-ki59archiveheader` is now DONE** (its README half had been fixed earlier).
+* ✅ **`#24-plainenglishstale` CLOSED** — and it was worse than filed: the item said *"a COMPLETENESS
+  gap, not a wrong claim"*, but the file carried **four WRONG claims**.
+* A citation drifted: `early_game.py:2607` is the `try:`, not the loop head — the loop is
+  `for _ in range(10)` at `:2603`. Corrected, with the drift noted in place.
+
+### THE PAIR LIST GAINED **P5**, BECAUSE P1–P4 PASSED OVER MY OWN ERROR
+`CLAUDE.md`'s DOC CONSISTENCY LAYER now names a fifth pair: **the work item's own status in
+`03-PUNCH-LIST.md` ↔ the claim the handoff makes about it.** Added because, having shipped pass 4, I
+updated both halves of P1 faithfully — and a Tier 1 reviewer confirmed they agreed — while
+`#24-sanitycheck`'s own entry still read *"3 of 5 DONE"* and *"PASSES 4 AND 5 REMAIN"* followed by a
+build spec, **telling a cold reader to build work that had shipped in the previous commit.**
+⛔ **A CHECKLIST PROTECTS EXACTLY WHAT IT ENUMERATES.** When a fact lives in three places, updating
+the two that are named is the most dangerous state of all, because the pair check then returns PASS.
+Both the Tier 1 and Tier 2 instructions now hand reviewers **P1–P5**, so the new pair actually
+reaches the agents rather than sitting in prose they never see.
+
+### LINE BUDGETS: 243 LINES RECLAIMED, VERBATIM, NOTHING LOST
+`03-PUNCH-LIST.md` was at **3,593 of 3,600** and `04-HANDOFF.md` at **897 of 900** — the next doc edit
+in either would have failed Tier 0 and blocked a commit mid-session. Five fully-closed blocks were
+moved to `28-HANDOFF-ARCHIVE.md`, each **script-verified to contain ZERO open markers before the
+move**, each leaving a stub carrying the rule later work leans on:
+`#24-faintchooser-fourthspace` (70), the §Ch20 build-spec detail + "older framing" retractions (83),
+and three 2026-07/08 batch-review blocks (38 / 27 / 25).
+✅ **"Nothing lost" was VERIFIED, not assumed:** a distinctive marker from each of the five blocks was
+confirmed present in the archive, five stubs confirmed in place, and the git line counts reconcile
+(269 removed from `03`+`04` vs 276 added to the archive, the difference being the archive's own
+section headers). ⛔ Before the §Ch20 move, the three rules it carried (ROCK SMASH is mandatory; the
+trigger tile is `(17,42)`; grade on `VAR_ROUTE128_STATE == 2`) were each confirmed to survive
+ELSEWHERE in the handoff. ⇒ `03` **3,526 / 3,600**, `04` **822 / 900**.
+
+### ALSO
+* **Daily upstream check for 2026-08-23**: `5dd898f8` unchanged; mirror re-derived byte-identical by
+  TREE HASH (`fa3504a285eb62fa` both sides), exactly one commit ever touching the prefix.
+* Two more figures **de-numeralised** after a PASS 5 agent caught them already drifting — the R3
+  off-by-one example, and the flag-name population, where **two independent measurements disagree**
+  (293/438/49 vs 281/500/59) because the population is regex-defined. ⛔ The item now says to
+  re-derive and state your regex, rather than picking a side and creating a fourth number to go stale.
+* `#24-ch8b-museum` was **`[ ]` for 31 DAYS after its code shipped** — closed, with the evidence.
+
+### THE RE-RUN EIGHTH ANGLE (vision/architecture vs reality) — 17 FINDINGS, AND `02` WAS NOT COPY-PASTEABLE
+
+The angle that died on a session limit was re-run 2026-08-23 and was the most productive single angle
+of pass 5. **`02-ARCHITECTURE.md` is the file that tells a new machine how to RUN this project, and
+six of its commands could not be run as written:**
+* ⛔ **The whole "Running the bot" block said `python`** — and `python` on this box is **3.9.13**, so
+  `python pokebot.py --help` dies with `TypeError: unsupported operand type(s) for |` at
+  `pokebot.py:71`. The same file says `py -3.12` thirty lines below. All six corrected.
+* ⛔ **The documented repro sweep omitted `PYTHONUTF8=1`**, so ~37 healthy scripts die on a `‼` and
+  report as failures. **A/B measured: 59 PASS / 43 CHECK as written → 96 PASS / 6 CHECK with the env
+  var.** Its 90s cap also failed `repro_gym_whiteout_guard`, which needs ~122s and passes inside
+  `run_gates.py`. Both corrected (150s).
+* ⛔ **That stale expectation was HIDING FIVE GENUINELY BROKEN SCRIPTS** — and named the wrong five:
+  three of the five it called "environmental" now PASS. Filed as **`#24-brokenrepros`** with each
+  script's actual error (two stale `SimpleNamespace` stubs, a `ModuleNotFoundError`, a real assertion
+  failure). ⛔ None is in `run_gates.py`, so the standing suite is unaffected.
+* ⛔ **TWO FALSE "UNWIRED" LABELS in the module map.** `team_policy` is imported at
+  `early_game.py:1773` and `pc_trip.py:61/278/352/490` (and `pc_trip` is called from
+  `higher_level_actions.py`) — it is WIRED and OFF BY DEFAULT, which is a different thing.
+  `mossdeep_gym_puzzle` is imported at `mossdeep_gym.py:39` and its own file contradicted the label
+  270 lines below. Both corrected.
+* The **ADVISORY tier was documented nowhere** in `01`/`02`; the doc-set range still read "00–24"
+  when it is 00–31 (so a cold reader never learned `25`, `27`, `29`, `30`, `31` exist); the repro
+  count appeared twice with two different values; and `preflight.py` was annotated "Exits 1" when it
+  exits 0 on success. All corrected.
+
+✅ **AND A LARGE VERIFIED-CLEAN RESULT, re-derived rather than trusted:** the fork claim in BOTH files
+is now correct (`promote.py --check` drift 0 / orphaned 0; `story_mode.py` 4,135 lines in both; all
+ten formerly "sandbox-only" modules present in both; `diff -rq` over `modules/`+`plugins/` → zero
+differences), plus 28 of 34 checked numbers agreeing, all 24 named `--driver` values present, all 7
+named anchors present, and all 55 named files/dirs existing.
+
+⚠ **One of its findings was already STALE when it arrived** — it reported the standing suite RED on
+`audit_doc_citations.py`, which was true when it started and had been fixed while it ran. *An agent's
+view of the tree is a snapshot; re-check before acting.* Remaining LOW findings (a "255 code/config
+files" figure matching no measurable set, three tracked areas missing from the folder map, `01`'s
+harness counts and its "Python 3.12" target, and four offline planner probes failing — one via its
+own positive control) are recorded here and in `#24-brokenrepros` rather than fixed blind.

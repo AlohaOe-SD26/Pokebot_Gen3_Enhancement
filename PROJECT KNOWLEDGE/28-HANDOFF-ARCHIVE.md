@@ -5811,3 +5811,279 @@ cross-reference still resolves. ⛔ None of this is outstanding work.
       `#24-driftreduction` on 2026-08-17 so it cannot orphan (the `#24-orphans` lesson).
 
 
+
+
+## ARCHIVED 2026-08-22 from `03-PUNCH-LIST.md` — `#24-faintchooser-fourthspace` (CLOSED)
+> Moved VERBATIM for the R3 line budget during deep sanity check PASS 5, which measured the
+> punch list at 3,593 of 3,600 lines — 7 free, i.e. the next doc edit would have failed Tier 0
+> and blocked a commit mid-session. ⛔ Nothing was deleted or reworded. The item is CLOSED
+> (probed, answered, the anomaly is INERT); its stub in `03-PUNCH-LIST.md` keeps the one rule
+> later work leans on. Its own content begins immediately below.
+
+### `#24-faintchooser-fourthspace` — a POSSIBLE FOURTH INDEX SPACE in the faint chooser (filed 2026-08-17)
+
+- [x] **✅ PROBED AND ANSWERED 2026-08-17 — NO FOURTH INDEX SPACE IS DEMONSTRATED. The anomaly is
+      INERT on the only trajectory we can produce. ⛔ DO NOT "FIX" IT.**
+      **The probe:** `--driver ki66faint` gained OBSERVE-ONLY instrumentation — **zero production
+      change**, everything captured by rebinding module globals `battle_handler` looks up at call
+      time (`get_party_menu_cursor_pos` at `:741`, plus `press_button`).
+      **RESULT (fixed code, the one diverging faint available):**
+      `menu_order=[1,3,4,5]  diverge=True  accepted=3  accepted_in_menu_order=True`
+      ⇒ **H0**: the last cursor the SWEEP read before the menu closed IS in `alive_slots_menu`.
+      The suspected double conversion does not manifest. Same shape as the OWNER filter: real in
+      the log, inert in behaviour.
+      ✅✅ **POSITIVE CONTROL — and it earned its keep.** Against the PRE-FIX build the same probe
+      recorded `cursor_reads=66, A-presses=239 (select=152 dismiss=87)`, proving the instrument CAN
+      see. ‼ **CITE THE `.harnesslog.txt`, NOT THE `.stdout.txt`** — stdout is TRUNCATED on the abrupt
+      exit and does not contain that line; the harness's own log does. ‼ It was run precisely because the first fixed-code result was `cursor_reads=0,
+      A-presses=0` — which turned out to be **an instrument bug, not a finding** (see below).
+      ⚠ **KNOWN LIMITATION, STATED SO NOBODY GRADES ON IT:** the refusal count is APPROXIMATE.
+      Presses are counted via `context.emulator.press_button`, which sees every press while the
+      party menu is up — including `scroll_to_party_menu_index`'s, in `menuing.py`, which is NOT
+      wrapped. The run recorded 129 "select" presses against only 5 sweep cursor reads, so most
+      were not sweep attempts. **Only the ACCEPTANCE clause is graded.**
+      ⚠ **n = 1 diverging faint, one deterministic trajectory** (repeat runs are byte-identical, so
+      that is a determinism check, NOT replication). The pre-registered rule was satisfied
+      (≥1 faint printing `[orders DIVERGE]`), but a second INDEPENDENT trajectory would strengthen it.
+      ⛔⛔ **DISCLOSURE — THE ACCEPTANCE CRITERION WAS RELAXED MID-INVESTIGATION, AFTER seeing the
+      control's output. Read this before trusting the verdict.** The probe first required
+      `in_set AND refusals == 0` for H0. It was relaxed to `in_set` alone once the press data showed
+      the refusal count is unusable (129 "select" presses against 5 sweep cursor reads ⇒ most presses
+      come from `scroll_to_party_menu_index`, which is not wrapped). ‼ **That is a legitimate reason
+      and it was still discovered AFTER the fact, so it is disclosed rather than buried.**
+      ✅ **THE VERDICT DOES NOT DEPEND ON IT.** The decisive faint reads `in_set=True, refusals=0`,
+      which is **H0 under BOTH the strict and the relaxed rule**. The relaxation only re-labels the
+      PRE-FIX CONTROL arm (`in_set=True, refusals=5`: H1 under the old rule, H0 under the new) — and
+      that arm is a control, not the result. *(An adversarial review caught the undisclosed change;
+      it was right to.)*
+      ✅ **THE STRONGEST BEFORE/AFTER, which the first write-up omitted:** on the SAME diverging faint,
+      **refusals fell 5 → 0 and attempted fell `[2,4,5,0,1,3]` → `[3]`** between the pre-fix and fixed
+      builds. One attempt instead of six. That is a better argument for the `_on_field` fix than the
+      instrument-liveness numbers, and it is now recorded rather than left in a raw log.
+      ⚠ **AND THE PRE-FIX CONTROL'S SECOND FAINT, also omitted at first:**
+      `menu_order=[4,5] diverge=False attempted=[4,5,0,1,2,3] accepted=3 accepted_in_menu_order=False`.
+      `accepted_in_menu_order=False` is exactly the shape this item worries about — but it is on the
+      NON-diverging faint of the BUGGY build, where `alive_slots` is wrong for the unrelated
+      `_on_field` reason, and production's own fallback (`:757-758`) is what widened the set. Marked
+      INCONCLUSIVE by the pre-registered rule. ‼ Recorded so nobody discovers it in a raw log and
+      thinks it was hidden.
+      ⚠ **RESIDUAL OBSERVATION, UNPROVEN:** the strategy nominated party index **2** (Mightyena) while
+      the mon actually sent out was **Swellow** (cursor 3). Legal, alive, and sensible — but not the
+      nominated mon. Not investigated; recorded so it is not lost.
+
+      *(Original filing, kept for the reasoning:)* **Not a confirmed bug — a MEASURED ANOMALY that needs its own probe.** After KI-66's
+      `_on_field` fix, the chooser's own diagnostic reads:
+      `alive_slots=[2,3,4,5](party-order) -> [1,3,4,5](menu-order)  [orders DIVERGE]`
+      i.e. `_to_menu_order` maps slot **2 → 1**, so the cursor sweep's candidate set
+      (`alive_slots_menu`) does **not** contain slot 2 — **the very slot the strategy chose**
+      (`CHOSEN new_lead_index=2`). The run still resolved (~89 frames, battle WON), so this is not
+      currently costing a wedge.
+      ‼ **WHY IT IS SUSPICIOUS:** `party_in_menu = get_party()` is read while the party menu is
+      OPEN, i.e. after `UpdatePartyToBattleOrder` has permuted `gPlayerParty`. If those indices are
+      already in battle order, then mapping them AGAIN through `map_battle_party_index` (which
+      expects an *outside-battle* index, `battle_state.py:343`) is a second conversion of an
+      already-converted value. That is the same shape as KI-18, KI-34 and KI-66.
+      ⛔ **DELIBERATELY NOT CHANGED.** This is PRE-EXISTING KI-34 machinery that has been shipping,
+      the evidence is one trajectory, and reasoning about index spaces in this function has been
+      wrong three times already. ⇒ **First deliverable is an OBSERVE-ONLY probe** (the pattern that
+      settled KI-66's direction in one run): log cursor, `alive_slots`, `alive_slots_menu` and the
+      chosen slot together, on a faint, and establish ground truth from the party dump.
+      ⚠ Do NOT "fix" it from the docstring — that docstring has now produced three bugs.
+
+
+
+## ARCHIVED 2026-08-22 from `03-PUNCH-LIST.md` — three CLOSED historical blocks (PASS 5)
+> Moved VERBATIM for the R3 line budget. All three are fully closed (zero open markers,
+> verified by script before the move). ⛔ Nothing was deleted or reworded; each left a
+> one-line stub in place. They are batch-review history from 2026-07/08.
+
+
+<!-- 38 lines, verbatim -->
+### ~~READY TO APPLY THE MOMENT BATCH `20260802-160603` LANDS~~ — ✅ APPLIED; header stale
+> Closed by triage 2026-08-10. That batch landed on 2026-08-02 and the item below shipped;
+> the heading sat here for eight days implying pending work that did not exist.
+
+- [x] `#24-leadcounter` — ✅ **CLOSED 2026-08-10 by triage: it SHIPPED and this entry was stale.**
+      Verified in code: `team_policy.lead_rank_key(..., is_hunted_counter: bool = False)`
+      (`team_policy.py:263`) and `early_game.py:1712/1735` compute and pass it. It also has a
+      recorded post-ship bug (`08-MISTAKES` 2026-08-03 — it was silently dead for two batches),
+      which is further proof it was applied. HISTORY — **USER RULING 2026-08-02: super-effectiveness outranks raw level
+      ONLY for a mon the counter chain caught for THIS boss.** Not a general rule (that option
+      was offered and declined; so was the level-gap variant, which is option (b) of
+      `#24-leadpolicy` and was already ruled out). Rationale + rejected alternatives in
+      `06-DECISIONS-LOG.md` 2026-08-02.
+
+      **THE EXACT CHANGE:**
+      1. `team_policy.lead_rank_key()` gains an OPTIONAL `is_hunted_counter: bool = False`,
+         and the key becomes:
+         ```python
+         (glass_wonder_guard, not can_attack, incoming, not is_hunted_counter, -level)
+         ```
+         ‼ **AFTER `incoming`, BEFORE the level tie-break.** It promotes the counter over an
+         EQUALLY SAFE mon; it must never let a 4×-weak counter lead. Getting this backwards is
+         the plausible way the fix becomes a new bug — `repro_lead_hunted_counter.py` check 3
+         pins it.
+      2. `best_lead_index()` passes the candidate's `is_hunted_counter` through.
+      3. Record WHICH mon was hunted for this boss. `StoryMode._counter_hunts[key]` already
+         tracks the attempt; store the caught mon's **PID/personality value**, not its slot —
+         a party index goes stale the moment anything reorders or deposits (the same hazard
+         `pc_trip` guards against).
+      4. `early_game._lead_best_matchup()` takes an optional `hunted_pid=None` and sets the
+         term for the matching party mon; the Norman/Wattson/Winona prep passes it.
+      5. `repro_lead_hunted_counter.py` goes green (currently RED by design). Re-run the suite.
+
+      **Why it matters:** batch5 caught, travelled for and trained a counter to L29 and then
+      led **Marshtomp L35** instead, because Machoke and Marshtomp tie on every term the key
+      measures and level breaks it. The chain only fires after ~6 losses, so for that boss the
+      strongest mon is already PROVEN insufficient.
+
+
+<!-- 25 lines, verbatim -->
+### ‼ BATCH 5 LANDED — the blocker moved a THIRD time, to the LEAD
+
+- [x] `#24-leadpolicy` — **A+C BUILT 2026-08-01.** Pure `team_policy.lead_rank_key()` /
+      `best_lead_index()`; `_lead_best_matchup` defers to it. Sort terms not filters (a lone
+      Shedinja is still led); both predicates fail SAFE. Option (b) NOT ruled, NOT built —
+      `repro_lead_policy.py` check 4 pins the unchanged Whismur-over-Marshtomp behaviour.
+      ‼ **MEASURED LIMIT (check 5): this does NOT field the trained counter.** On batch5's
+      real party it stops the Shedinja lead and then picks **Marshtomp L35 over Machoke
+      L29**, because `can_attack` is binary and 2× STAB earns no credit. **OPEN DECISION —
+      should super-effectiveness outrank raw level? That is a NEW question outside A+C and
+      is the last link in the chain.** Original diagnosis below.
+
+      `#24-leadpolicy` — **the counter chain's blocker as of batch5. Ruling A+C.** Batch5 proved the chain works end to end — 7 of 9 counters trained,
+      `Machop L15 -> L29` evolving to **Machoke** — and then **MACHOKE WAS LED INTO NORMAN
+      ZERO TIMES**. Leads chosen: SHEDINJA ×9, MARSHTOMP ×4, SWAMPERT ×4, BLAZIKEN ×2.
+      `_lead_best_matchup(["Normal"])` scores `min(incoming_multiplier, -level)`, so Shedinja
+      (Bug/Ghost, Normal → 0×) always wins and the trained counter sits in the bag. The entry
+      below PREDICTED this exact batch. Catching and training a type counter and then not
+      fielding it is the cost of the whole chain with the benefit of none of it.
+      **Build (a) require the lead to also have a ≥neutral attacking option + (c) special-case
+      1-HP Wonder Guard mons.** ‼ Then size expectations before re-measuring: the chain fires
+      on only ~10 of 29 Heat-reaching runs, so even a perfect fix moves the overall
+      Heat→Balance rung 79% → ~93% AT BEST. Use the **counter-hunt-runs-only** conditional as
+      the instrument (batch4 5/9 → batch5 6/10, z=0.20 — the whole-batch rung dilutes it 3:1).
+
+
+<!-- 27 lines, verbatim -->
+### ‼ BATCH REVIEW 2026-07-26 (bundle `20260726-231412`) — two catastrophic bugs found & FIXED
+The x4 bundle showed the batch was **silently producing almost no usable data**, while
+reporting most runs as successes. Both root causes are fixed in sandbox with A/B repros.
+
+- [x] `#24-x4-staleslate` — **per-run state never reset between runs.** DONE 2026-07-26.
+      `StoryEndlessResetMode.run()` loops on the SAME mode object, so `StoryMode.__init__`
+      ran once per BATCH — under a comment asserting the opposite. Measured effects:
+      `_rival_attempts` (cap 3) tripped on run 4 in every lane, so **runs 4+ quit at the
+      Rustboro rival without fighting** (16/20 P1, 6/9 P2, 5/8 P3 — P1 run 8's log has ZERO
+      lost battles yet reports "couldn't beat the rival in 3 tries"); `_defeat_counts`
+      carried losses across runs (MT_CHIMNEY #7→#8, FORTREE #8→#9), so boss give-up
+      thresholds fired on borrowed defeats — P4 run 2 derailed as "6 losses" after 3.
+      FIX: `StoryMode.reset_per_run_state()`, called per run by the endless loop.
+      REPRO: `tools/story-dev/repro_endless_per_run_state.py` (A: FAIL on HEAD → B: PASS).
+- [x] `#24-x4-honestoutcome` — **failed runs reported as "finished".** DONE 2026-07-26.
+      `outcome` defaulted to `"finished"`; only a raised `BotModeError` changed it, but a
+      derail can instead call `set_manual_mode()` and return normally. All 16 P1 "finished"
+      runs were dead (several "finished (0 frames)"). A batch summary read ~80% success
+      against a true ~20%. FIX: a `try/except/else` that detects the hand-to-Manual exit and
+      reports `stopped:`. Covered by the same repro.
+- [x] `#24-x4-runindex` — **`run_index` still advanced by 2 per run.** DONE 2026-07-26.
+      The previous adjacency-based dedupe could never work: the mode signals BEFORE
+      `super().run()` while the hard reset happens INSIDE it, so thousands of polls separate
+      the two calls. FIX: ownership — `reset_for_new_run(..., authoritative=True)` makes
+      main.py's frame-counter fallback stand down.
+      REPRO: `tools/story-dev/repro_badgelog_run_index.py`.
+
+
+
+## ARCHIVED 2026-08-23 from `04-HANDOFF.md` NEXT ACTIONS — the §Ch20 build-spec detail and the
+## "older framing" retractions (CLOSED)
+> Moved VERBATIM for the R3 line budget at the end of the 5-pass deep sanity check: `04-HANDOFF.md`
+> stood at 897 of 900, i.e. the NEXT session's first doc edit would have failed Tier 0 and blocked a
+> commit mid-wrap-up. ⛔ Nothing deleted or reworded. **Verified before the move:** the three
+> load-bearing rules it carries (ROCK SMASH is mandatory; the trigger tile is `(17,42)` not
+> `(16,42)`; grade on `VAR_ROUTE128_STATE == 2`) each still appear ELSEWHERE in `04-HANDOFF.md`,
+> and the full spec lives in `ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md`.
+
+>    `ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md` — an 11-leg list, each with an
+>    assertable condition, from a decomp recon that ran an exhaustive Sokoban search over
+>    (player × boulder) states. ✅ It independently agrees with our own `probe_ch20_interior.py`.
+>    **Its three corrections to what we believed:**
+>    1. ‼ **ROCK SMASH IS MANDATORY, not just Strength** — a Strength-only party is *physically
+>       stuck in Room 1* (`(5,10)` is a breakable rock and the only way into the row-11 corridor).
+>       We have both on Sceptile; the chapter must ASSERT it in pre-flight.
+>    2. ⛔ **The trigger tile is `ROOM9 (17,42)`, not `(16,42)`** — corrected in this file and in
+>       `story_mode.py`. `(16,42)` is plain floor; upstream's solver stops one tile short of it.
+>    3. ⛔ **Grade the chapter on `VAR_ROUTE128_STATE == 2`, NOT on the Kyogre flag.** The flag is set
+>       BEFORE a forced `warp MAP_ROUTE128, 38, 22` that immediately starts a SECOND `lockall`
+>       cutscene — so a flag-graded chapter reports success while the bot is inside two nested
+>       scenes. ‼ And `(38,22)` is a shallow-water **SANDBAR**: the bot lands on an island and must
+>       **Surf** off it. Three chapters have shipped stranded; this one strands you by design.
+>    ✅ **THE BIGGEST UNKNOWN IS NOW ANSWERED AT THE PLANNING LEVEL (2026-08-13):**
+>    `probe_ch20_currents.py` (NEW) put **4 pre-registered predictions** to our REAL planner on the
+>    two current mazes and got **4/4, including the DISCRIMINATING one**: `ROOM6 (11,21)->(4,1)`
+>    routes, and **`ROOM6 (4,1)->(11,21)` correctly FAILS** — our planner reproduces the currents'
+>    ONE-WAY asymmetry independently of the decomp note. ⚠ **BUT AN AUDIT CORRECTED HOW MUCH THAT
+>    PROVES (KI-76):** our one-way result comes from an **INVENTED entry mask** (we forbid entering a
+>    current head-on against its flow) — the decomp imposes **no entry restriction on currents at
+>    all**. The mask is benign and reachability-equivalent here, so the CONCLUSION holds, but
+>    "independently reproduced the game's asymmetry" **overstated it**. ‼ **And the slide model is PROVEN in use, not assumed**: P1 emits 13
+>    waypoints for a 27-tile Manhattan trip and P4 emits 12 for 24 — impossible with 1-tile steps.
+>    ‼ **Measurable from outside the cavern ONLY because Rooms 6/7 have ZERO objects** (so the
+>    `active_objects` artifact that invalidated the boulder rooms cannot apply here).
+>    ⇒ **Rooms 6/7 can be driven with `navigate_to`; they do NOT need a §Ch18-style solver.**
+>    ✅ **KI-76's SAFETY HALF IS FIXED (2026-08-13) and its cap is now PROVEN (2026-08-17):** the
+>    512-step cap fails LOUD (fault-tested at cap=3), the four `None` unpacks are guarded, and
+>    production has since followed EVERY cross-map chain on ONE shared budget — cap never fired,
+>    nothing cycles, longest chain **77** (margin 6.6x). ⛔ The old "32 tiles / ~16x / Routes
+>    132-134 UNMEASURED" wording here was stale on all three counts.
+>    ‼ **KI-76's CORRECTNESS HALF IS STILL OPEN — and as of 2026-08-17 it finally has its OWN item,
+>    `#24-ki76correctness` (`03-PUNCH-LIST.md`). ⛔ ALL numbers, the priority ruling and the
+>    startable next action live THERE; they are deliberately not copied here.** Headline only: the
+>    two defects are armed in DIFFERENT places (dismount 1,852 chiefly on the routes; ends-on-warp
+>    **9, all in ROOM6, zero on the routes**), so KI-76's old single-claim header was half backwards.
+>    ✅ **SUPERSEDED 2026-08-13 — the executor HAS now crossed a current** (`--driver ch20room6`,
+>    `crossed=True`). Only the tile-by-tile slide model remains unverified.
+>    ℹ Upstream `puzzle_solver.py:405` DOES `navigate_to(ROOM6, (4,1))` and its wiki marks the
+>    Seafloor Cavern ✅ for Emerald — the strongest available signal that the executor can do it,
+>    and still a third-party claim, not evidence.
+>    Also: **puzzle state RESETS on every map re-entry** (`FLAG_TEMP_*`), so never cache "solved";
+>    `FLAG_SYS_USE_STRENGTH` by contrast persists. **Losing to Archie resets the whole dungeon.** It IS the ladder
+>    (`chapters.py:233`, graded `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`; `story_mode.py:3654` = END OF BUILT
+>    CONTENT — ✅ **that line was ALREADY FIXED** — it now reads "KI-63 IS RESOLVED"; the string "BLOCKED BY
+   KI-63" does not occur in that file. This instruction is retired, 2026-08-13). Uniquely
+>    de-risked: the dive leg is **driven 6/6**, KI-63 is wired in sandbox, and `puzzle_solver.py`
+>    hands you room coordinates free. Blast radius is **additive** — one module, one segment, no
+>    shared code. Two cheap traps: apply **KI-72** (hand-pick the surfacing tile, assert its
+>    `tile_type` — never let the planner choose), and ⛔ **THE TRIGGER TILE IS `ROOM9 (17,42)`, NOT
+>    `(16,42)`** — corrected 2026-08-13, `(16,42)` is plain floor and fires nothing. It is
+>    Archie's cutscene tile — the standing rule is *"and the bot can continue"*.
+>    **(iii) `#24-r110mauville` / KI-48** — the highest-frequency OBSERVED defect (72 events in one
+>    batch, 3/3 deterministic). Budget a MEASUREMENT; its root cause is still a hypothesis.
+>    **(iv) THEN the Regi arc.** ‼ Its real cost, measured: **10 missing gates and ~7 subsystems that
+>    do not exist** (fishing as a story capability — `fish()` has zero story callers and rod choice
+>    is a **human GUI prompt**; underwater encounters — `EncounterType` has no Underwater member; TM
+>    acquisition + `use_tm`; Flash acquisition; a no-KO/no-whiteout legendary policy; a **bounded**
+>    exact-tile executor; and **no chapter entry at all**), behind a hard 9-step serial prefix.
+>
+> 4. ⛔ **NOT NEXT — OLDER FRAMING; a Tier 2 audit flagged that a skimmer could start the Regi arc
+>    from here. The live queue is item 0 and its head is **(P4c) `#24-orphans`**. Background only.**
+>    **The REGI arc (user-requested) — read KI-69 ‼ AND ITS NEW STUB MARKER.**
+>    ⛔ **REGICE IS NOT A TIMED WAIT** — R/S's wait function is an empty stub; Emerald wants a
+>    **36-tile perimeter lap in ONE visit** ending exactly on `(8,21)`, reset by any map transition
+>    and by one wrong tile. Full ground truth:
+>    `ai-research-notes/2026-08-13-regi-arc-decomp-ground-truth.md`. ‼ **WAILORD first, RELICANTH last** (Emerald
+>    reversed it; the wrong order fails silently). ‼ **The Regi battle is UNRECOVERABLE** — a KO *or*
+>    a whiteout deletes the encounter; only fleeing is safe. Phase A is measured: we have Go-Goggles,
+>    HM08, Surf and Rock Smash; we have **no rod at all**, no TM28 Dig, and nobody knows Dive, Dig or
+>    Flash. **Relicanth is underwater-only, so Dive (item 3) is upstream of the whole arc.**
+>
+
+> ⛔ **THE "OLDER FRAMING" TAIL OF THIS QUEUE — MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-17).**
+>    *(Numbered 2b-5 inside its own block; ⚠ that numbering does NOT refer to the items 3/4 still
+>    visible ABOVE, which are LIVE.)* These were the
+>    "older framing" the queue header already flagged, and every one of them is now DONE or RETRACTED:
+>    2b's Dive/`POKEBOT_BOX_OVERFLOW_CATCH` gate (false since 2026-08-07, and §Ch20 is DRIVEN END TO
+>    END anyway), 3's KI-59 fix (**DONE and GATED** as `repro_impassable_dirs.py`), 4's promotion
+>    (**already happened** 2026-08-12), and 5's "skim `08-MISTAKES.md`" (now a standing rule in
+>    `CLAUDE.md`, not a queue item). ‼ **Nothing was deleted** — read the archive if you need the
+>    measurements behind any of them.

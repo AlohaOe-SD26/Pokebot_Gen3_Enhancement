@@ -2,12 +2,19 @@
 > APPEND-ONLY history. Superseded write-ups of issues that are now resolved live here, so
 > `05-KNOWN-ISSUES.md` can stay a CURRENT-STATE file within its line budget (CLAUDE.md rule R3).
 >
-> ‼‼ **NOT EVERYTHING IN HERE IS RESOLVED — CHECK EACH HEADING.** `KI-59` (`map_path` inverts
-> `Impassable *`) and `KI-60` (`calculate_path` never validates its SOURCE) are **OPEN,
-> code-verified, unfixed bugs in the SHARED pathfinder**. They were moved here for LENGTH, not
-> because they were fixed, and a cold read of this file's header would conclude the opposite —
-> which is exactly the wrong conclusion to reach about two live bugs that are armed in the
-> Seafloor Cavern. `05-KNOWN-ISSUES.md` carries a pointer to them for this reason.
+> ‼‼ **NOT EVERYTHING IN HERE IS RESOLVED — CHECK EACH HEADING.**
+> ⛔ **CORRECTED 2026-08-23 (`#24-ki59archiveheader`). This header was WRONG IN TWO WAYS and was the
+> single place a cold reader met first:**
+> * **`KI-59` ITSELF IS FIXED** — A/B-proven, GATED (`repro_impassable_dirs.py`) and PROMOTED to both
+>   forks. ⛔ Do NOT re-open it; `05-KNOWN-ISSUES.md` is the authority and says so. Only a NARROWER
+>   RESIDUAL under it remains open. This header called the whole KI open for weeks.
+> * **`KI-60` IS genuinely still open** — `calculate_path` never validates its SOURCE tile
+>   (`05-KNOWN-ISSUES.md`, and `map_path.py` still tests only the neighbour).
+> * ⛔ **"armed in the Seafloor Cavern" is FALSE** and this file refutes it ~485 lines below: all 115
+>   cavern tiles are `collision=1`, so none of them reach that branch. Game-wide the live tiles are
+>   chiefly the Regi tombs, Shoal Cave and Victory Road.
+> They were moved here for LENGTH, not because they were fixed. `05-KNOWN-ISSUES.md` carries the
+> live pointer, and it OUTRANKS this header on any disagreement.
 > Nothing here is deleted — a wrong cause that was expensive to disprove is evidence, and this
 > project treats negative results as its most valuable asset.
 

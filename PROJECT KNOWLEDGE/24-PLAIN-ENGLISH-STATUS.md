@@ -4,7 +4,7 @@
 > code terms. No jargon, no statistics. Every technical claim here has a precise version
 > elsewhere: `07-CHANGELOG.md` (what changed), `08-MISTAKES.md` (what went wrong),
 > `03-PUNCH-LIST.md` (the queue), `04-HANDOFF.md` (resume point).
-> **Last updated: 2026-08-15.** ‼ **This file was THREE DAYS AND FIVE CHAPTERS STALE** until a
+> **Last updated: 2026-08-22.** ‼ **This file was THREE DAYS AND FIVE CHAPTERS STALE** until a
 > cold-start audit caught it. *(This line used to claim `00-README.md` "sends new readers HERE
 > FIRST". It does not — the README lists this file under **"Read WHEN RELEVANT — not part of the
 > start-of-session ritual"**, while calling it "START HERE FOR A HUMAN ANSWER". Overstating its own
@@ -63,10 +63,12 @@ gone and caught.** All that work, thrown away silently. Nothing errored. Nothing
   that a fight is hopeless and go catch a counter** — the exact machinery above. It keeps printing a
   cheerful "training harder before re-attempting" and grinding levels that cannot help. We proved
   this by running the real code three ways and watching which path it took.
-  ⛔ **The practical warning: do not "helpfully" give a boss a training area.** For Winona, the fact
-  that she has *no* training patch is the only reason her counter-catching works at all.
-* 🔜 **Next:** untangle those two ideas in the code, so a boss can have a training area *and* still
-  be able to go catch a counter.
+  ⛔ *That warning has been LIFTED (2026-08-16).* Giving a boss a training area is safe now.
+  ⚠ One knock-on worth knowing: at a few of the early gyms the bot will now stop and say a fight is
+  hopeless rather than grinding away at it — that is deliberate, and it stops honestly.
+* ✅ **Done.** A boss can now be given a training area *and* still go and catch a counter — the two
+  ideas are untangled, in both copies of the program. The obvious one-line version of that fix was
+  caught red-handed breaking the opposite case before it ever shipped.
 
 ---
 
@@ -197,10 +199,10 @@ result, prove the tool can find something you already know is there.
   the owner and copied across, and it was checked by running the SAME command on both copies and
   watching the answer flip — not by comparing files, which would only prove the copy happened. *(This line said "three files" for days; the count was
   spelled as a WORD, which is invisible to the automatic check that polices that number.)*
-* **The next room is mapped in detail**, including the one mistake that cannot be undone: there is
-  a spot where pushing a boulder the wrong way **permanently blocks the only exit**. The plan
-  avoids it, and if it ever happened the fix is to walk out of the room and back in, which resets
-  every boulder.
+* **Every room is mapped and has been played through**, including the one mistake that cannot be
+  undone: there is a spot where pushing a boulder the wrong way **permanently blocks the only
+  exit**. The plan avoids it, and we deliberately jammed a room to prove the escape — walk out and
+  back in, and every boulder resets.
 * ⛔ **SUPERSEDED — this bullet said the Aqua-leader fight and the escape "have not been driven
   yet". They were driven on 2026-08-14** (and the top of this file has said so since). Both now
   work: the bot beats the leader, wakes the legendary, and takes the escape route. ⚠ **One honest
@@ -208,3 +210,48 @@ result, prove the tool can find something you already know is there.
   genuinely unreliable step, because the team arrives worn down and there is nowhere to heal
   inside. The sandbar hazard is real and handled: swimming the obvious direction leads to a
   **dead-end pool**, so the bot steps south first.
+
+---
+
+## What changed since (brought current 2026-08-22)
+
+*A week of work in plain English. ⛔ Deliberately number-free — that is why this file has never gone
+stale the way the others do.*
+
+* ✅ **The bot no longer plays on after it blacks out.** If the whole team fainted mid-errand — during
+  a heal, on its way out of a gym door, in the middle of a PC trip — it used to keep pressing buttons
+  on a fainted team and then blame something that never happened, like *"won the badge but could not
+  get out of the gym"*, while the player was standing in a Pokémon Center. It now stops and gives the
+  true reason.
+* ✅ **A second sweep found that same trap in more places** — counter training (the most blackout-prone
+  thing it does), the Mt. Chimney meteorite, the Rusturf tunnel wall, the Strength lesson, and the
+  heal stops along the way. In several of them the healing code's own new guard was being undone a
+  moment after it fired.
+* ✅ **A Pokémon can no longer be talked out of a move it could have learned.** On levelling up the bot
+  could announce that nothing could be given up and decline the new move, while several ordinary
+  moves sat there perfectly forgettable — and in the same moment the rule that stops it erasing an HM
+  was quietly failing open. Both hold now, and when it does decline it says honestly why.
+* ✅ **When one of its Pokémon faints in a fight alongside a partner, it picks the replacement properly
+  again.** It had been reading the bench against the wrong ordering, so it believed a healthy Pokémon
+  was already out on the field, left it sitting there, and spent an age scrolling the party menu
+  before sending anyone at all.
+* ‼ **And the thing we had blamed it for never happened.** We were sure it tried to send out the
+  *partner's* Pokémon; watching a real fight showed it never once asked for one. Our own headline was
+  wrong, and the real fault was the ordering above.
+* ‼ **Update to the PC warning:** the failure notice now travels back to the part of the bot that could
+  act on it, and it tells *"the withdrawal was tried and did not work"* apart from *"there was nothing
+  to fetch"* — telling those two apart is the whole difficulty. ⚠ Still nothing acts on it. You have
+  already said what it should do — read what the PC puts on screen, work out why, then try again
+  knowingly — but that needs a piece of the game's memory we have not located yet, and guessing there
+  would make it retry blindly.
+* ⚠ **New to the stuck pile: the bot's map does not know what the water currents do to it.** Ride one
+  to the end and the game can set it down on foot, off its surfing — or sweep it through a doorway
+  into a different room entirely — while its route plan still believes it is floating where the
+  current stopped. In the cavern we have now watched that happen instead of only arguing about it;
+  out on the open-water routes it is measured but not yet seen. Nothing is fixed.
+* 🔧 **Behind the scenes**, a long check of our own safety nets found several that could not actually
+  fail — they printed warnings and reported success anyway. Those are fixed, and the checks that
+  guard the guards are now part of the standing set. None of it changes how the bot plays.
+* ⛔ **One thing is waiting on you:** the game file itself is stored inside the project's history,
+  which keeps every saved restore point playable but is not really where a commercial game should
+  live. Nothing has been changed — it is written up and waiting for your call.

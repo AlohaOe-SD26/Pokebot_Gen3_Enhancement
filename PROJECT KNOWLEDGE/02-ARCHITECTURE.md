@@ -29,9 +29,10 @@ Pokebot_Gen3_Enhancement/
 ├── Pokemon_Emerald_AI_Notes.md    # Cross-project transfer notes (Emerald AI project)
 ├── install.py                     # installer/updater/healer for custom-pokebot
 ├── install_sandbox.py             # same, for sandbox-pokebot
-├── PROJECT KNOWLEDGE/             # ★ this documentation set (00–24 + playbooks)
+├── PROJECT KNOWLEDGE/             # ★ this documentation set (00–31 + playbooks + batch-evidence/)
 │   ├── 00–08 kit docs             # vision, architecture, punch list, handoff, logs
-│   ├── 09–24 design/recon docs    # storymode design, living dex, team policy, …
+│   ├── 09–31 design/recon docs    # storymode design, living dex, team policy, backups,
+│   │                              #   injection surface, disabled-features registry, metrics, archives
 │   ├── ai-research-notes/         # Gemini notes — RECALL ONLY, never authoritative
 │   └── REFERENCE-INSTALLER-PATTERN.md  # Nick's installer-as-codebase spec
 ├── PROJECT KIT/                   # portable bootstrap that makes the repo resumable anywhere
@@ -40,7 +41,8 @@ Pokebot_Gen3_Enhancement/
 ├── tools/story-dev/               # ★ the Story-bot test harness, drivers, recon scripts, repro suite
 │   ├── story_harness.py           # replicates main.py's loop exactly (see 14-AGENT-PLAYBOOK §2)
 │   ├── livetest.py                # headless batch runner
-│   ├── repro_*.py                 # 101 regression reproducers — THE verification bar (§2b)
+│   ├── repro_*.py                 # regression reproducers — ⛔ count lives in §Testing; `ls` is the
+│   │                              #   authority. THE bar is `run_gates.py`, not this directory
 │   ├── audit_flag_names.py        # proves a flag/var NAME is real before code depends on it
 │   └── saves/                     # committed checkpoint .ss1 progression sampler
 ├── 40cakes repo/                  # ★ everything about the ORIGINAL program
@@ -73,8 +75,10 @@ Pokebot_Gen3_Enhancement/
     ├── modules/story/             # 19 modules: early_game, chapters, region_reach,
     │                              #   counter_plan (plans) + counter_hunt (executes),
     │                              #   training_areas, fortree_gates, intro, progress,
-    │                              #   config, team_policy (built, UNWIRED),
-    │                              #   mossdeep_gym_puzzle (PURE model, UNWIRED),
+    │                              #   config, team_policy (WIRED: early_game.py:1773,
+    │                              #     pc_trip.py:61/278/352/490 — OFF BY DEFAULT, not unwired),
+    │                              #   mossdeep_gym_puzzle (PURE model, consumed by
+    │                              #     mossdeep_gym.py:39 — corrected 2026-08-23, was 'UNWIRED'),
     │                              #   mossdeep_gym (§Ch18 chapter + executor),
     │                              #   space_center (§Ch19 chapter — Space Center AND Dive),
     │                              #   roster (party REORDER by PID; planner + DRIVER proven,
@@ -206,13 +210,13 @@ run summary is printed by `story_harness.py` at the end of a drive. Nothing cons
 ```powershell
 cd sandbox-pokebot         # ★ the ACTIVE copy — use custom-pokebot for the promoted build,
                            #   or "40cakes repo/pokebot-gen3" for pristine upstream
-python pokebot.py                      # dashboard GUI (default); first run self-installs deps
-python pokebot.py <profile> -m Spin    # straight into a mode
-python pokebot.py <profile> --classic-gui   # upstream's original window (OpenGL/stepping)
-python pokebot.py --headless --no-video
-python -m unittest discover tests      # needs specific ROM dumps in roms/
-python ..\install_sandbox.py           # repo root: install/update/heal the SANDBOX copy
-python ..\install.py                   # same, for custom-pokebot
+py -3.12 pokebot.py                    # dashboard GUI (default); first run self-installs deps
+py -3.12 pokebot.py <profile> -m Spin    # straight into a mode
+py -3.12 pokebot.py <profile> --classic-gui   # upstream's original window (OpenGL/stepping)
+py -3.12 pokebot.py --headless --no-video
+py -3.12 -m unittest discover tests      # needs specific ROM dumps in roms/
+py -3.12 ..\install_sandbox.py           # repo root: install/update/heal the SANDBOX copy
+py -3.12 ..\install.py                   # same, for custom-pokebot
 ```
 
 ### ‼ Testing — the repro suite is the project's real verification bar
@@ -222,8 +226,10 @@ is told to run first:
 
 ```
 cd tools/story-dev
-PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 29 gates, ~150s, non-zero on any failure
+PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 29 entries = 27 ENFORCING + 2 ADVISORY
+#   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate), ~150s,
+#   non-zero on any ENFORCING failure. ⛔ `--quick` skips 8 ROM gates and is NOT a green suite.
 #  ‼ It PRINTS its own count. Believe that, not this comment: it has read 17, 18, 21 and 22, and a
 #  stale count here is invisible to every gate — three separate copies of it existed on 2026-08-14.
 ```
@@ -250,14 +256,21 @@ one's contract (this happened twice on 2026-07-27).
 ```bash
 # from the repo root. NOTE: `py -3.12`, NOT `python`.
 for f in tools/story-dev/repro_*.py; do
-  timeout 90 py -3.12 "$f" >/dev/null 2>&1 && echo "PASS $f" || echo "CHECK $f"
+  PYTHONUTF8=1 timeout 150 py -3.12 "$f" >/dev/null 2>&1 && echo "PASS $f" || echo "CHECK $f"
 done
 ```
 - **Interpreter:** `py -3.12`. Plain `python` on this dev box is **3.9** — unsupported by the
   project (3.11–3.13) and missing the deps. Install for 3.12 if absent:
   `py -3.12 -m pip install "confz==2.0.1" "ruamel.yaml~=0.18.2" "rich~=13.5.2" "numpy~=2.1.0"`.
-- **Expected as of 2026-07-27: 47 pass, 0 fail, 5 environmental.** The 5 need a real mgba or
-  have their own harness issues (`repro_boss_training`, `repro_double_faint`,
+- ⛔ **THE PINNED EXPECTATION HERE WAS STALE AND HID FIVE REAL BREAKAGES** (removed 2026-08-23).
+  It read *"47 pass, 0 fail, 5 environmental"* — arithmetically impossible against this section's own
+  103 scripts, and three of the five it named now PASS. ‼ **Two of its instructions were also wrong:**
+  without `PYTHONUTF8=1` about 37 healthy scripts die on a `‼` and read as CHECK (measured A/B:
+  59 PASS/43 CHECK → **96 PASS / 6 CHECK of 102**), and the 90s cap failed
+  `repro_gym_whiteout_guard`, which needs ~122s and PASSES inside `run_gates.py`.
+  ⇒ **grade on `run_gates.py`, never on a remembered tally.** The genuinely broken ones are filed as
+  `#24-brokenrepros`. *(Superseded text: the 5 were said to need a real mgba or have harness issues —
+  `repro_boss_training`, `repro_double_faint`,
   `repro_navigate_failfast`, `repro_sufficiency`), plus `repro_x4_lanes`, which **spawns real
   lane processes** — skip it unless you mean it.
 - Use a **~90s per-script timeout**; 25s misreports slow-but-healthy scripts as errors.

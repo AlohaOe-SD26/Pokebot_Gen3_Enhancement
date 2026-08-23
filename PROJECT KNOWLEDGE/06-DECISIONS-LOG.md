@@ -3042,3 +3042,76 @@ from, and `story_harness.py` probably SHOULD keep profile state. Batched under `
 row. Failing on them would block every commit from the moment it shipped. The gate now prints the
 gap at every run so it cannot be missed, and the classification work is filed with an explicit
 warning not to PIN anything whose stability has not first been measured.
+
+## 2026-08-22 — PASS 5 rulings: a scope that did not exist, and what NOT to fix
+
+**RULING — PASS 5's SCOPE IS NOW ON THE RECORD, because it had none.** `#24-sanitycheck` said
+outright that pass 5 had "no scope written anywhere beyond its title". It was defined as EIGHT
+angles, one per agent: cold start from the handoff; cold start from `00-README`; can each filed
+"startable" item actually be started; playbook currency; known-issues navigability; punch-list
+navigability; plain-English accuracy; vision/architecture vs reality. ⛔ Recorded so the audit is
+REPRODUCIBLE — an audit whose scope was improvised and never written down cannot be re-run or
+compared against.
+
+**RULING — the cold-start agent gets NO context, and that is the whole point.** It was given only
+`04-HANDOFF.md` and `00-README.md`, and forbidden from reading the changelog or git log to work out
+"what was really meant". It found FOUR contradictions the automated gates and a Tier 1 reviewer had
+both missed. ⇒ **Keep starving it. The moment it is told what you believe, it stops being able to
+find what the documents actually say.**
+
+**RULING — reclaim budget by ARCHIVING VERBATIM, never by trimming live content.** The punch list had
+7 free lines against its R3 limit. Four fully-closed blocks (165 lines) were moved to
+`28-HANDOFF-ARCHIVE.md`, each script-verified to contain ZERO open markers before the move and each
+leaving a stub carrying the rule later work leans on. ⛔ Rejected: deleting closed detail (it is the
+evidence trail) and raising the R3 limit (the limit is what forces this hygiene).
+
+**RULING — the three OPEN items filed under `## Done` were FLAGGED, not moved.** Marking the heading
+MIXED and naming all three is a one-line change with no risk of corrupting a 3,500-line file; moving
+three `###` blocks is a mechanical edit that can silently reorder or orphan content. ⚠ The move is
+the better end state and is written into the heading as the next step — but a doc edit that could
+lose content is not worth doing at the end of a long session.
+
+**RULING — `#24-ki76correctness` gets a STOP block, not a new fixture.** Its only save cannot arm the
+defect it tests. The fix is to CAPTURE an anchor on ROUTE132/133/134 or ROOM7 with Surf — that is
+emulator work with its own verification, not typing, and doing it hastily would produce a second
+unverified fixture. The item now names the requirement, names the one sub-task that IS startable with
+zero input today, and refuses to let a dismount A/B be planned on the vacuous save.
+
+**RULING — where two honest measurements disagree, publish the COMMAND, not either number.** An agent
+counted 71 distinct KI ids where my own grep gave 61; its flag-name figures differed from pass 4's.
+Both populations are regex-defined and therefore definition-sensitive. ⇒ the affected lines now carry
+the re-derivation command instead of a digit. ⛔ Picking a side would have created a fourth number to
+go stale.
+
+**RULING — fix the SCOPE, keep the fixture.** Committed fault-injection drivers made lint R6 fire on
+their synthetic flag names. R6 now skips `evidence/`, with a control proving it still fires on real
+code. ⛔ Rejected: not committing the drivers — they are the most reusable thing pass 4 produced.
+
+## 2026-08-23 — RULING: the pair list gains **P5**, and a dead agent means an UNCOVERED ANGLE
+
+**RULING — `CLAUDE.md`'s DOC CONSISTENCY LAYER now names a FIFTH pair: the work item's own status in
+`03-PUNCH-LIST.md` ↔ what the handoff claims about it.** This is a change to a standing directive and
+is recorded here so it never has to be re-argued. **Why:** having shipped pass 4 of the audit, I
+updated both halves of P1 faithfully and a Tier 1 reviewer confirmed they agreed — while
+`#24-sanitycheck`'s own entry still read *"3 of 5 DONE / PASSES 4 AND 5 REMAIN"* with a build spec,
+so a cold reader was commanded to build work that had shipped in the previous commit.
+⛔ **A checklist protects exactly what it enumerates.** Updating the two halves a checklist names,
+when a fact lives in three places, is the WORST state — the pair check then returns PASS and the
+third copy is invisible. ‼ **The reference in the Tier 1 AND Tier 2 instructions was updated to
+"P1–P5" in the same edit**, because a pair the reviewers are never handed is prose, not a check.
+⛔ Rejected: making it a GATE. A general "does an item claim its own work is unstarted" check is not
+tractable without heavy false positives, and this project rates a noisy gate as worse than none.
+
+**RULING — when an audit agent DIES, its angle is UNCOVERED, and the report must say so.** The eighth
+pass-5 agent was killed by an API session limit, not by a finding. ⇒ the pass was NOT complete at
+seven angles; the angle was RE-RUN the next day, and the changelog carries an explicit correction to
+its own "8 agents" heading. ‼ It turned out to be the most productive angle of the pass (17 findings,
+including six commands in `02-ARCHITECTURE.md` that could not be run as written) — **so "seven of
+eight is close enough" would have been expensively wrong.**
+⇒ **Standing rule: report the number of angles that RETURNED, never the number LAUNCHED.**
+
+**RULING — an agent's finding may be STALE ON ARRIVAL; re-check before acting.** The re-run angle
+reported the standing suite RED on `audit_doc_citations.py`. True when it started; already fixed
+while it ran. This is the second recorded instance. ⇒ **verify a finding against the CURRENT tree,
+not against the agent's snapshot** — which is also why every finding in this audit was re-derived by
+the orchestrator before anything was changed.

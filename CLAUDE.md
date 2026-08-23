@@ -379,6 +379,17 @@ the other, IN THE SAME COMMIT. These are the named cross-checks, not "review the
       entries. What shipped must be startable from the handoff alone.
   P4  `00-README` reading-order descriptions  ↔  the current top of each file this session
       touched. A stale pointer misdirects EVERY future cold start, not just one.
+  P5  ‼‼ **THE WORK ITEM'S OWN STATUS in `03-PUNCH-LIST.md`  ↔  the claim the handoff makes about
+      it.** ADDED 2026-08-23 BECAUSE P1–P4 PASSED OVER EXACTLY THIS. Having shipped pass 4 of an
+      audit, I updated the handoff banner AND the queue (P1 — both halves, and a Tier 1 reviewer
+      confirmed they agreed) while `#24-sanitycheck`'s own entry still read *"3 of 5 DONE"* and
+      *"PASSES 4 AND 5 REMAIN"*, followed by a build spec. ⇒ **a cold reader was being told to BUILD
+      work that had shipped in the immediately preceding commit.** ⛔ **A CHECKLIST PROTECTS EXACTLY
+      WHAT IT ENUMERATES** — when a fact lives in THREE places, updating the two that are named is
+      the most dangerous state of all, because the pair check then returns PASS. ⇒ **On finishing an
+      item, `grep` the tree for its own slug and re-read EVERY hit**; a status sentence anywhere is
+      another half of the pair. *(The same round also found a punch-list item marked `[ ]` for 31
+      days after its code shipped, whose own body said the function "is built".)*
   (Numeric counts — gates, drift, artifact existence — are `audit_doc_consistency.py`'s job.
   Never hand-check what a gate checks; never let a gate's PASS stand in for the semantic pairs.)
 
@@ -389,7 +400,8 @@ the other, IN THE SAME COMMIT. These are the named cross-checks, not "review the
 **TIER 1 — per COMPLETED WORK ITEM (not per commit): ONE cheap independent agent.**
   After the item's doc edits, BEFORE its commit: spawn ONE fresh subagent (reviewer-shape, cheap
   model, NOT a fork) with exactly three inputs — the doc DIFF, a one-paragraph claim of what the
-  item actually did, and the pair list P1–P4. Its only question: *"for each pair, QUOTE both
+  item actually did, and the pair list P1–P5 (⛔ **P5 included — it was added because P1–P4 alone
+  returned PASS over a punch-list item commanding work that had already shipped**). Its only question: *"for each pair, QUOTE both
   halves — do they agree, and does the queue reflect the claim?"* ‼ A finding without both quotes
   is DISCARDED — a noisy reviewer gets bypassed exactly like a noisy gate. Fix findings, re-run
   Tier 0, then commit. Routine doc touches that complete no item (typo, date bump) = Tier 0 only.
@@ -397,7 +409,7 @@ the other, IN THE SAME COMMIT. These are the named cross-checks, not "review the
 **TIER 2 — SESSION END (inside /wrapup, after doc edits, before the wrap-up commit):**
   Spawn ONE fresh cold-start agent given ONLY `04-HANDOFF.md` + `00-README.md` — no chat context,
   no claim paragraph, nothing you believe. It reports: (1) the exact FIRST ACTION a next session
-  should take and the line commanding it; (2) P1–P4 with both halves quoted; (3) any instruction
+  should take and the line commanding it; (2) P1–P5 with both halves quoted; (3) any instruction
   to do a thing the same file marks done. Compare (1) against what YOU know is true — a mismatch
   is a DOC bug; fix and re-run Tier 0 before committing. ‼ Two clean audits in a row do NOT
   retire this tier — agreement is not a confidence signal (measured; see the Gemini rules).

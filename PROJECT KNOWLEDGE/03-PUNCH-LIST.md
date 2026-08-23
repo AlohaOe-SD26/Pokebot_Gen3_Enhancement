@@ -20,7 +20,13 @@ found stale-open for **8 days** while their code had shipped, and one contradict
 Nothing below was deleted — items are closed only with evidence, and conflicts are flagged for the
 user rather than resolved unilaterally.
 
-### 1. ACTIVE — the only things being worked on now
+### 1. ⚠ MIXED — ⛔ NOT AN ACTIVE LIST. Re-titled 2026-08-22 (PASS 5): **12 of its 16 rows are CLOSED**
+> ⛔ **A HEADING IS A CLAIM ABOUT EVERY ROW BENEATH IT.** This table said "the only things being
+> worked on now" while most rows carried ✅ DONE, and it named NEITHER live item. A cold reader
+> using it as the index would have worked from a 12-day-old picture.
+> ➡ **THE LIVE ITEMS ARE `#24-sanitycheck` (pass 5 of 5) AND `#24-ki76correctness`** — and
+> `04-HANDOFF.md`'s NEXT ACTIONS queue, not this table, is what a session should act from.
+> ‼ Rows below are kept for their evidence; read each row's OWN marker.
 | item | state |
 |---|---|
 | `#24-battleitems` | ✅ **DONE & PROMOTED 2026-08-10.** Built, unit-proven (27 checks), live, self-correcting; validation batch `20260810-082509` passed (flips 20 → 2, both-failed 10 → 0). ‼ Outcome unproven — grade any follow-up on BATTLE-level metrics. |
@@ -476,11 +482,24 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       `recover_devon_goods` up to 20) and then raises a FABRICATED cause — *"Could not reach X (too
       many scripted interruptions)"*. ⇒ **the fix is a `_check_abort()` at the LOOP HEAD**, outside
       the `try`, so the abort ends the loop instead of being retried through.
-      ⚠ **MEASURE BEFORE BUILDING:** 20 of the 44 already have a head check, so the pattern is
-      established — copy an existing one rather than inventing it. And prove the arms differ: with
-      the latch SET the loop must exit immediately instead of consuming its budget.
+      ⛔ **CORRECTED 2026-08-22 (PASS 5) — "20 of the 44 already have a head check" WAS A BORROWED
+      NUMBER AND RE-DERIVES UNDER NO DEFINITION.** The 44 came from the abort-SWALLOW probe's
+      original count, which measures a different population. MEASURED by AST over `early_game.py`:
+      **nav-primitive loops 26, of which 9 have a head check** (bounded loops 93/40; yield-from
+      loops 79/46). ⇒ the pattern IS established — copy an existing one — but quote the 9-of-26.
+      ⚠ **AND THE LIST OF 13 IS INCOMPLETE.** Five more nav loops have no head check and no
+      reachable `_check_abort`: **376, 1930, 2607, 3310, 4257**. the site near `2603` is the item's exact shape —
+      a `for _ in range(10)` loop head at `early_game.py:2603` whose body wraps `navigate_to_anywhere`
+      in `except BotModeError: pass` (verified in code; ⚠ a cold-start audit corrected an earlier
+      draft that said `range(20)` at `:2607` — `:2607` is the `try:`, not the loop head). Treat the 13 as a FIRST BATCH, not the population.
+      ✅✅ **THE A/B IS NOT VACUOUS — the discriminator was COMPUTED 2026-08-22, so this is startable.**
+      `grep -c _check_abort` is **0** in both `global_navigation.py` and `walking.py`, and
+      `raise StoryAbort` occurs ONCE in `early_game.py:135` ⇒ **ARM A** (latch set, no head check):
+      nothing inside the loop reads the latch, so it burns the full budget (8-25 rounds) and then
+      raises a FABRICATED cause; **ARM B** (head check): raises on iteration 1. **The arms differ.**
 
-- [ ] `#24-ki59archiveheader` — **NEW 2026-08-17, from a cold-start audit. THREE FILES DISAGREE ABOUT
+- [x] **✅ DONE 2026-08-23 — both halves fixed** (`00-README`'s row was corrected earlier; `31`'s own header was corrected 2026-08-23 to say KI-59 is FIXED, KI-60 is open, and that "armed in the Seafloor Cavern" is refuted by that file's own correction). Original text follows.
+      `#24-ki59archiveheader` — **NEW 2026-08-17, from a cold-start audit. THREE FILES DISAGREE ABOUT
       WHETHER KI-59 IS OPEN, and the one a cold reader meets first is wrong.**
       `00-README.md` describes `31-KNOWN-ISSUES-ARCHIVE.md` as *"Resolved/superseded known issues …
       Not current state"*; that file's OWN header says two **OPEN, unfixed** pathfinder bugs live in
@@ -492,7 +511,8 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       re-open work that is fixed, gated and promoted, which is this project's most expensive mistake.
       ⚠ Cheap, but it misdirects EVERY cold start that follows the reading order.
 
-- [ ] `#24-plainenglishstale` — **NEW 2026-08-17. `24-PLAIN-ENGLISH-STATUS.md` is the file
+- [x] **✅ DONE 2026-08-22/23 — brought current, and it was WORSE than filed: not a pure completeness gap, it carried FOUR WRONG CLAIMS** (a "Next:" for work done 2026-08-16, a warning that had been lifted, and "the next room" of a cavern driven end to end). ⛔ Kept number-free — the added section contains no digits. Original text follows.
+      `#24-plainenglishstale` — **NEW 2026-08-17. `24-PLAIN-ENGLISH-STATUS.md` is the file
       `00-README` sends a HUMAN to FIRST, and it is two days behind (last updated 2026-08-15).**
       Missing: the `#24-orphans` (1) verdict instrumentation, the KI-66 `_on_field` fix, and both
       `#24-abortswallow` rounds. ‼ **It carries NO stale number** — a cold-start audit grepped it and
@@ -525,6 +545,49 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ⚠ **AND SCOPE IT:** grade only CURRENT-STATE files (00-05, 24). `07`/`08`/`28`/`31` are
       append-only history where a stale count is CORRECT.
 
+### ‼ `#24-brokenrepros` — FIVE `repro_*` SCRIPTS ARE BROKEN, NOT "ENVIRONMENTAL" (filed 2026-08-23, PASS 5)
+
+- [ ] **They were hidden behind a stale expectation line in `02-ARCHITECTURE.md` that said
+      *"47 pass, 0 fail, 5 environmental"* and NAMED THE WRONG FIVE.** ⛔ Three of the five it named
+      (`repro_boss_training`, `repro_navigate_failfast`, `repro_sufficiency`) now PASS. Measured with
+      the corrected sweep (`PYTHONUTF8=1`, 150s cap): **96 PASS / 6 CHECK of 102**.
+      | script | actual failure |
+      |---|---|
+      | `repro_double_battle_swap_loop` | `AttributeError: 'SimpleNamespace' has no attribute 'is_double_battle_with_partner'` — a stale test stub |
+      | `repro_faint_matchup` | same stale stub |
+      | `repro_counter_move_answer` | `ModuleNotFoundError: No module named 'modules'` — needs the fork on `sys.path` |
+      | `repro_survival_mode` | an assertion genuinely fails |
+      | `repro_gym_whiteout_guard` | ⚠ NOT broken — needs ~122s and the doc capped the sweep at 90s. It PASSES inside `run_gates.py` (gate #18). The CAP was the bug; already raised to 150s |
+      ‼ **Triage each before fixing** — a stale stub and a real assertion failure are different
+      problems, and this project has three cases of an item marked "ready to build" that had already
+      shipped. ⛔ None of these is in `run_gates.py`, so the standing suite is unaffected and green.
+      ⚠ **`PYTHONUTF8=1` is not optional in any sweep** — without it ~37 healthy scripts die on a `‼`
+      and read as failures, which is how these five stayed invisible.
+
+### ‼ `#24-codeorphans` — SIX SLUGS THAT CODE CITES AND THIS FILE NEVER DEFINED (filed 2026-08-22, PASS 5)
+
+- [ ] **⛔ THE `#24-orphans` SHAPE AGAIN, and this time the dangling pointers are IN THE CODE.**
+      Measured: each slug below has **0 mentions in this file** and is referenced from a script or
+      a KI. `repro_fortree_gate_solver.py:1` literally opens *"ACCEPTANCE CHECK for punch-list
+      #24-fortreegates"* — a gate declaring itself the acceptance check for an item that does not
+      exist. ⇒ **These are STUBS to make the pointers resolve, not a claim about their status;**
+      each needs triage against the code before anyone works it (this file's own history has THREE
+      items marked "ready to build" that had already shipped).
+      | slug | cited from | what the citation says it is |
+      |---|---|---|
+      | `#24-fortreegates` | `repro_fortree_gate_solver.py:1` | Fortree Gym rotating-gate solver; the script is its acceptance check |
+      | `#24-harness-finish` | `story_harness.py:10181`, `compare_runs.py:158` | distinguish a run that FINISHED from one that HUNG — a live grading question |
+      | `#24-boxmessage` | `story_harness.py:1653` | capability test: does a FULL-PARTY catch complete and exit cleanly |
+      | `#24-endlessruns-gui` | `endless_runs.py:9` | lands in the currently UNPROMOTED GUI bundle |
+      | `#24-bosstelemetry` | `probe_boss_healing.py:16,118` + 3 KI cites | per-turn opponent logging; `probe_boss_healing` reads what it writes |
+      | `#24-areaitemgate` | `05-KNOWN-ISSUES.md:1302` | touches the heal/item path alongside `#24-pc` |
+      ⚠ **SEPARATE, related defect:** five more slugs exist ONLY as rows of the (now re-titled)
+      MIXED index at the top of this file and have no `- [ ]` item anywhere — `#24-pathsourcecheck`,
+      `#24-npcgifts`, `#24-grounditems`, `#24-remainingarc`, `#24-shoalcave`. ‼ **`#24-pathsourcecheck`
+      was RE-DERIVED AS REAL AND OPEN:** `map_path.py:968` still passes only the
+      NEIGHBOUR tile to the accessibility predicate and never the SOURCE tile (the predicate is
+      `is_tile_accessible`, `map_path.py:829`), and KI-60 is still open in `05-KNOWN-ISSUES.md`.
+
 - [ ] `#24-fixturecoverage` — **NEW 2026-08-22 (deep sanity check PASS 4). ‼ REFERENCED FROM CODE
       (`verify_fixtures.py`) — this item may not be deleted without editing that file.**
       **`verify_fixtures.py` walks the MANIFEST, never the DIRECTORY**, so a save with no
@@ -541,7 +604,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       a hole. Do not "fix" it.
 
 - [ ] `#24-gateselftests` — **NEW 2026-08-22 (PASS 4). Make PASS 4's fault-injections PERMANENT.**
-      **MEASURED, and worse than the lead said: 21 of 28 suite gates had NO `--self-test`** (the
+      **MEASURED, and worse than the lead said: 21 of 28 suite gates had NO `--self-test`** (⚠ re-derive: the suite is **29** now and 7 carry one, so **22** lack it — `selftest_git_add_hook.py` is the 29th and is the precedent to copy) (the
       earlier note said "9 of 11 sampled"). ‼ **"No self-test" is NOT "cannot fail"** — pass 4's
       agents demonstrated by injection that most of the 21 DO fail correctly (all four static
       scanners, all four behavioural repros, lint R1-R6, preflight's four sections,
@@ -557,7 +620,9 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       probe mutates state the next run reads. **MEASURED: `profiles/repro-ml/states/` had reached
       2,820 files / 160 MB.** ‼ **RE-DERIVE BOTH, do not trust these digits** (a Tier 1 reviewer
       correctly flagged them as bare numbers): sites =
-      `grep -c "LibmgbaEmulator(" tools/story-dev/*.py | grep -v is_test_run`; accumulation =
+      `grep -rn "LibmgbaEmulator(" tools/story-dev/*.py | wc -l` minus `... | grep -c is_test_run`
+      (⛔ the `grep -c ... | grep -v` form I first wrote here is BROKEN — it emits per-file counts, so
+      the filter matches nothing; caught by a PASS 5 agent running it verbatim); accumulation =
       `ls sandbox-pokebot/profiles/repro-ml/states/ | wc -l` and `du -sh` on the same path. Both
       GROW with every run on every machine, so they are readings, not properties. ✅ Pass 2 fixed 2 (the KI-76 probes); **PASS 4 fixed the 7 that are in
       the STANDING SUITE** and PROVED it (states count and `current_state.ss1` mtime byte-identical
@@ -567,7 +632,8 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ⚠ `story_harness.py:122` is the real driver and probably SHOULD keep profile state — decide it
       explicitly rather than sweeping it. ⇒ Do them in batches, running each after.
 
-- [ ] `#24-p4residuals` — **NEW 2026-08-22 (PASS 4). Six small, independent, verified defects.**
+- [ ] `#24-p4residuals` — **NEW 2026-08-22 (PASS 4). SEVEN small, independent, verified defects (a)-(g).**
+      *(This header said "Six" while listing seven — caught by a PASS 5 agent the same day.)*
       **(a)** `promote.py --check` — the doc-declared drift "authority" — **ALWAYS exits 0**
       (`promote.py:117-120` returns 0 before any refusal), so it cannot be chained or gated.
       VERIFIED FROM SOURCE, not from a passing run. ⇒ add `--strict`; ⛔ do NOT make plain `--check`
@@ -575,8 +641,11 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **(b)** lint R1/R2 fire on `# HISTORY` and banner text INSIDE fenced code blocks (latent
       today). ⇒ strip ``` fences before scanning.
       **(c)** lint R3 counts `text.count("
-")+1`, one MORE than `wc -l` (890 vs 889 on
-      `04-HANDOFF.md`). Harmless direction but the budget is off by one. ⇒ `len(text.splitlines())`.
+")+1`, one MORE than `wc -l` for any file ending in a trailing newline.
+      ⛔ **NO EXAMPLE FIGURE IS QUOTED HERE — the first draft cited two line counts and both were
+      stale within a day.** Re-derive: `wc -l <file>` beside `lint_docs.py`'s budget table.
+      Harmless DIRECTION (it over-counts, so the effective limit is one stricter) but the budget
+      is off by one. ⇒ `len(text.splitlines())`.
       **(d)** `repro_no_silent_except.py:107` justifies a silent handler on comment LENGTH
       (`>= 12` chars), not relevance — any filler comment launders it.
       **(e)** `repro_undefined_names.py`, `repro_no_silent_except.py`, `repro_roster_reorder.py`
@@ -588,7 +657,9 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ⇒ add ARM C.
       **(g)** ‼ **`audit_doc_consistency`'s supersede exemption is NEIGHBOURHOOD-BOUND, not
       CLAIM-BOUND — the SAME bug shape already fixed in `check_promotion_prose` on 2026-08-17.**
-      MEASURED: `04-HANDOFF.md:51` ("the suite is 28 gates") went stale six lines above a correct
+      ⚠ **ITS EXAMPLE IS NOW UNREPRODUCIBLE — a starter must build a fresh one** (the stale line was
+      fixed the same day). The GATE DEFECT is still real: `audit_doc_consistency.py:513` still scopes
+      the exemption to the whole unit. As it was MEASURED: `04-HANDOFF.md:51` ("the suite is 28 gates") went stale six lines above a correct
       `29` and the gate stayed SILENT — because the claim falls inside a **3,975-character unit**
       that contains the words *"older framing"* somewhere, and one supersede marker exempts the
       WHOLE unit, live orientation instructions included. A **Tier 1 human-shaped reviewer** caught
@@ -601,8 +672,11 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
 - [ ] `#24-flagnamedocscan` — **NEW 2026-08-22 (PASS 4). ⛔ THE OBVIOUS FIX IS REFUTED BY
       MEASUREMENT — do not build it.** `audit_flag_names.py` scans only story `*.py`; docs are never
       checked, and CLAUDE.md names docs as exactly where hallucinated flag names land.
-      **But gating doc flag names WOULD BE NOISE:** measured 293 unresolvable names, of which
-      **438 mentions across 49 files are in `ai-research-notes/`** — explicitly "RECALL ONLY, never
+      **But gating doc flag names WOULD BE NOISE** — and ⚠ **TWO INDEPENDENT MEASUREMENTS OF THIS
+      POPULATION DISAGREE** (293 unresolvable / 438 mentions / 49 files vs a later 281 / 500 / 59),
+      because the population is REGEX-DEFINED and therefore definition-sensitive. ⛔ **Do not pick a
+      side — re-derive with your own scan and state your regex.** Both agree on the SHAPE, which is
+      what decides the ruling: the overwhelming majority of hits are in `ai-research-notes/` — explicitly "RECALL ONLY, never
       authoritative", where unverified names are the POINT — and of the **15 in 7 authoritative
       docs**, most are prose PLACEHOLDERS (`FLAG_NAME`, `FLAG_BADGE`, `VAR_TEMP`,
       `FLAG_MOSSDEEP_GYM_SWITCH_X`). A gate firing on those trains the reader to bypass it.
@@ -1447,68 +1521,9 @@ justified by counting failures without counting successes. Do not re-enable with
 
 
 
-### ~~READY TO APPLY THE MOMENT BATCH `20260802-160603` LANDS~~ — ✅ APPLIED; header stale
-> Closed by triage 2026-08-10. That batch landed on 2026-08-02 and the item below shipped;
-> the heading sat here for eight days implying pending work that did not exist.
+### ~~READY TO APPLY THE MOMENT BATCH `20260802-160603` LANDS~~ — ✅ APPLIED; header stale  — 📦 **ARCHIVED 2026-08-22 (PASS 5, R3 budget) → `28-HANDOFF-ARCHIVE.md`. CLOSED; moved verbatim, nothing deleted.**
 
-- [x] `#24-leadcounter` — ✅ **CLOSED 2026-08-10 by triage: it SHIPPED and this entry was stale.**
-      Verified in code: `team_policy.lead_rank_key(..., is_hunted_counter: bool = False)`
-      (`team_policy.py:263`) and `early_game.py:1712/1735` compute and pass it. It also has a
-      recorded post-ship bug (`08-MISTAKES` 2026-08-03 — it was silently dead for two batches),
-      which is further proof it was applied. HISTORY — **USER RULING 2026-08-02: super-effectiveness outranks raw level
-      ONLY for a mon the counter chain caught for THIS boss.** Not a general rule (that option
-      was offered and declined; so was the level-gap variant, which is option (b) of
-      `#24-leadpolicy` and was already ruled out). Rationale + rejected alternatives in
-      `06-DECISIONS-LOG.md` 2026-08-02.
-
-      **THE EXACT CHANGE:**
-      1. `team_policy.lead_rank_key()` gains an OPTIONAL `is_hunted_counter: bool = False`,
-         and the key becomes:
-         ```python
-         (glass_wonder_guard, not can_attack, incoming, not is_hunted_counter, -level)
-         ```
-         ‼ **AFTER `incoming`, BEFORE the level tie-break.** It promotes the counter over an
-         EQUALLY SAFE mon; it must never let a 4×-weak counter lead. Getting this backwards is
-         the plausible way the fix becomes a new bug — `repro_lead_hunted_counter.py` check 3
-         pins it.
-      2. `best_lead_index()` passes the candidate's `is_hunted_counter` through.
-      3. Record WHICH mon was hunted for this boss. `StoryMode._counter_hunts[key]` already
-         tracks the attempt; store the caught mon's **PID/personality value**, not its slot —
-         a party index goes stale the moment anything reorders or deposits (the same hazard
-         `pc_trip` guards against).
-      4. `early_game._lead_best_matchup()` takes an optional `hunted_pid=None` and sets the
-         term for the matching party mon; the Norman/Wattson/Winona prep passes it.
-      5. `repro_lead_hunted_counter.py` goes green (currently RED by design). Re-run the suite.
-
-      **Why it matters:** batch5 caught, travelled for and trained a counter to L29 and then
-      led **Marshtomp L35** instead, because Machoke and Marshtomp tie on every term the key
-      measures and level breaks it. The chain only fires after ~6 losses, so for that boss the
-      strongest mon is already PROVEN insufficient.
-
-### ‼ BATCH 5 LANDED — the blocker moved a THIRD time, to the LEAD
-
-- [x] `#24-leadpolicy` — **A+C BUILT 2026-08-01.** Pure `team_policy.lead_rank_key()` /
-      `best_lead_index()`; `_lead_best_matchup` defers to it. Sort terms not filters (a lone
-      Shedinja is still led); both predicates fail SAFE. Option (b) NOT ruled, NOT built —
-      `repro_lead_policy.py` check 4 pins the unchanged Whismur-over-Marshtomp behaviour.
-      ‼ **MEASURED LIMIT (check 5): this does NOT field the trained counter.** On batch5's
-      real party it stops the Shedinja lead and then picks **Marshtomp L35 over Machoke
-      L29**, because `can_attack` is binary and 2× STAB earns no credit. **OPEN DECISION —
-      should super-effectiveness outrank raw level? That is a NEW question outside A+C and
-      is the last link in the chain.** Original diagnosis below.
-
-      `#24-leadpolicy` — **the counter chain's blocker as of batch5. Ruling A+C.** Batch5 proved the chain works end to end — 7 of 9 counters trained,
-      `Machop L15 -> L29` evolving to **Machoke** — and then **MACHOKE WAS LED INTO NORMAN
-      ZERO TIMES**. Leads chosen: SHEDINJA ×9, MARSHTOMP ×4, SWAMPERT ×4, BLAZIKEN ×2.
-      `_lead_best_matchup(["Normal"])` scores `min(incoming_multiplier, -level)`, so Shedinja
-      (Bug/Ghost, Normal → 0×) always wins and the trained counter sits in the bag. The entry
-      below PREDICTED this exact batch. Catching and training a type counter and then not
-      fielding it is the cost of the whole chain with the benefit of none of it.
-      **Build (a) require the lead to also have a ≥neutral attacking option + (c) special-case
-      1-HP Wonder Guard mons.** ‼ Then size expectations before re-measuring: the chain fires
-      on only ~10 of 29 Heat-reaching runs, so even a perfect fix moves the overall
-      Heat→Balance rung 79% → ~93% AT BEST. Use the **counter-hunt-runs-only** conditional as
-      the instrument (batch4 5/9 → batch5 6/10, z=0.20 — the whole-batch rung dilutes it 3:1).
+### ‼ BATCH 5 LANDED — the blocker moved a THIRD time, to the LEAD  — 📦 **ARCHIVED 2026-08-22 (PASS 5, R3 budget) → `28-HANDOFF-ARCHIVE.md`. CLOSED; moved verbatim, nothing deleted.**
 
 ### ‼ APPLIED 2026-08-01 AFTER BATCH `20260801-075805` LANDED
 
@@ -1564,32 +1579,7 @@ justified by counting failures without counting successes. Do not re-enable with
       source, then `--resummarise` **all four** batches so they are read by one instrument.
       ‼ Specific to this canary — `GAVE UP` is debug-only, `BADGE:`/`losses` stdout-only.
 
-### ‼ BATCH REVIEW 2026-07-26 (bundle `20260726-231412`) — two catastrophic bugs found & FIXED
-The x4 bundle showed the batch was **silently producing almost no usable data**, while
-reporting most runs as successes. Both root causes are fixed in sandbox with A/B repros.
-
-- [x] `#24-x4-staleslate` — **per-run state never reset between runs.** DONE 2026-07-26.
-      `StoryEndlessResetMode.run()` loops on the SAME mode object, so `StoryMode.__init__`
-      ran once per BATCH — under a comment asserting the opposite. Measured effects:
-      `_rival_attempts` (cap 3) tripped on run 4 in every lane, so **runs 4+ quit at the
-      Rustboro rival without fighting** (16/20 P1, 6/9 P2, 5/8 P3 — P1 run 8's log has ZERO
-      lost battles yet reports "couldn't beat the rival in 3 tries"); `_defeat_counts`
-      carried losses across runs (MT_CHIMNEY #7→#8, FORTREE #8→#9), so boss give-up
-      thresholds fired on borrowed defeats — P4 run 2 derailed as "6 losses" after 3.
-      FIX: `StoryMode.reset_per_run_state()`, called per run by the endless loop.
-      REPRO: `tools/story-dev/repro_endless_per_run_state.py` (A: FAIL on HEAD → B: PASS).
-- [x] `#24-x4-honestoutcome` — **failed runs reported as "finished".** DONE 2026-07-26.
-      `outcome` defaulted to `"finished"`; only a raised `BotModeError` changed it, but a
-      derail can instead call `set_manual_mode()` and return normally. All 16 P1 "finished"
-      runs were dead (several "finished (0 frames)"). A batch summary read ~80% success
-      against a true ~20%. FIX: a `try/except/else` that detects the hand-to-Manual exit and
-      reports `stopped:`. Covered by the same repro.
-- [x] `#24-x4-runindex` — **`run_index` still advanced by 2 per run.** DONE 2026-07-26.
-      The previous adjacency-based dedupe could never work: the mode signals BEFORE
-      `super().run()` while the hard reset happens INSIDE it, so thousands of polls separate
-      the two calls. FIX: ownership — `reset_for_new_run(..., authoritative=True)` makes
-      main.py's frame-counter fallback stand down.
-      REPRO: `tools/story-dev/repro_badgelog_run_index.py`.
+### ‼ BATCH REVIEW 2026-07-26 (bundle `20260726-231412`) — two catastrophic bugs found & FIXED  — 📦 **ARCHIVED 2026-08-22 (PASS 5, R3 budget) → `28-HANDOFF-ARCHIVE.md`. CLOSED; moved verbatim, nothing deleted.**
 
 ### ‼ BATCH REVIEW 2026-07-27 (bundle `20260727-063751`) — PRE-FIX DATA + a new failsafe hole
 That batch launched before the fixes above existed, from a working copy that had not been
@@ -2001,10 +1991,9 @@ owed / not built / residual"* sentence written that session, ask **"where would 
 FIND this?"** If the only answer is an append-only log, a CLOSED KI's body, or a research note, it
 is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
 
-### ‼ `#24-sanitycheck` — the USER-REQUESTED 5-PASS DEEP AUDIT (filed 2026-08-18; **3 of 5 DONE**)
+### ‼ `#24-sanitycheck` — the USER-REQUESTED 5-PASS DEEP AUDIT (filed 2026-08-18; **4 of 5 DONE**)
 
-- [~] **PASSES 1-3 ARE DONE AND COMMITTED; PASSES 4 (INFRASTRUCTURE) AND 5 (COLD-START/USABILITY)
-      REMAIN.** ⛔ Filed because a cold-start audit found the queue head pointing at work with **no
+- [~] **PASSES 1-4 ARE DONE AND COMMITTED; ONLY PASS 5 (COLD-START/USABILITY) REMAINS.** ⛔ Filed because a cold-start audit found the queue head pointing at work with **no
       punch-list item at all** — the exact `#24-orphans` shape, and it also meant three commits went
       in without a `(punch-list #N)` tag as DoD step 5 requires.
       **DONE:** pass 1 TRUTH `045bdd1c`, pass 2 CODE HEALTH `e74d6e50`, pass 3 ADVERSARIAL `899f4ce7`.
@@ -2018,11 +2007,11 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
       ‼ **Output contract that kept them readable:** one verdict line, then `SEVERITY | what | what
       you RAN | result | smallest fix`, max ~16 lines, and *anything not executed must be labelled
       CANNOT-REPRODUCE*.
-      ➡ **PASS 4 HAS A LIVE LEAD ALREADY, measured by the cold-start agent:** of 11 gates sampled,
-      **9 have no self-fault-test** (`verify_fixtures`, `audit_flag_names`, `probe_chapter_order`,
-      `probe_dive_learner`, `probe_slot_free_plan`, `probe_regi_capabilities`, `probe_dive_routing`,
-      `repro_roster_reorder`, `preflight`) — i.e. no standing proof they can fail. That is exactly
-      the `repro_whiteout_abort.py` shape pass 3 found, and it is startable with zero input.
+      ✅✅ **PASS 4 IS DONE 2026-08-22 (`42a2d844`) — ⛔ DO NOT RE-RUN IT.** Its lead was right and
+      UNDERSTATED: not "9 of 11 sampled" but **21 of 28 gates had no self-test**, and THREE of them
+      (`probe_slot_free_plan`, `probe_regi_capabilities`, `probe_dive_routing`) had **zero assertions
+      and could not fail at all**. Residuals filed as `#24-fixturecoverage`, `#24-gateselftests`,
+      `#24-testrunsweep`, `#24-p4residuals`, `#24-flagnamedocscan`; KI-82 awaits a USER ruling.
       ⚠ **PASS 5 HAS NO SCOPE WRITTEN ANYWHERE beyond its title** — decide it deliberately rather
       than assuming; suggested angles: cold-start from the handoff, from `00-README`, can each filed
       "startable" item actually be started, playbook currency, known-issues navigability, punch-list
@@ -2043,6 +2032,19 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
       slide that ends on a warp is never penalised and never marked `is_warp`. ‼ And A* is *biased
       toward* long slides (~9x cheaper than walking under `avoid_encounters`), i.e. toward exactly
       the moves that spring it.
+      ⛔⛔ **STOP — THE ONLY FIXTURE THIS ITEM HAS CANNOT TEST ITS ONLY LIVE DEFECT (found 2026-08-22,
+      PASS 5). READ THIS BEFORE PLANNING AN A/B.** The pinned save is `post_dive_ki76.ss1` and
+      `--driver ki76warp` stages in **SEAFLOOR_CAVERN_ROOM6** — and this item's OWN table below says
+      ROOM6 has **ZERO** armed DISMOUNT chains. ⇒ a dismount A/B on that fixture runs **both arms
+      over 0 armed chains**, prints *"no difference"*, and would read as a **REFUTATION of a
+      1,852-chain defect that is real.** ‼ This is precisely the `team_max 39` vacuous-arm trap the
+      standing directives were written about, sitting on the queue head, and no consistency check
+      can see it — the item is perfectly self-consistent and perfectly unusable.
+      ➡ **BEFORE ANY DISMOUNT WORK: capture an anchor standing on ROUTE132/133/134 or
+      SEAFLOOR_CAVERN_ROOM7 with Surf** (those are where the 1,852 live), pin it, and name it here.
+      ✅ **ONE THING IS STARTABLE TODAY WITH ZERO INPUT:** the single `get_map_data` check of the
+      Sealed Chamber DIVE entry at ROUTE134 `(60,31)` — it decides whether this item is urgent or
+      merely real, and needs no fixture at all.
       ✅✅ **MEASURED 2026-08-17 — `tools/story-dev/probe_slide_endpoints.py`, evidence
       `evidence/2026-08-17-ki76-slide-endpoints-MEASURED.stdout.txt`. ⛔ DO NOT RE-DERIVE THESE.**
       ‼ **PRODUCTION IS THE ORACLE**: every count is classified on `PathTile.forced_movement_to` —
@@ -3190,9 +3192,15 @@ region, where "train near the gym" is actively wrong.
       Validate vs a Roxanne/Brawly-era Disable user (e.g. wild Whismur has none —
       find a story trainer with Disable/Encore, or fault-inject the volatile
       struct in the harness).
-- [ ] #24-ch8b-museum — Oceanic Museum entry gating (KI-11): resolve how the
-      Aqua crowd clears so Stern is reachable; then Devon Goods → Stern
-      (deliver_devon_goods_to_stern is built). BLOCKS Ch8b/Ch9.
+- [x] **✅ #24-ch8b-museum — DONE 2026-07-22; the marker was 31 DAYS STALE (found by a PASS 5
+      cold-start audit, closed 2026-08-22).** The gating was resolved and decomp-verified the same
+      day KI-11 was: `early_game.py:3584-3586` documents that the Team Aqua crowd
+      (`FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA`) seals the doors until you visit Stern's Shipyard and
+      talk to Dock, and `deliver_devon_goods_to_stern` is built at `early_game.py:3596`. KI-11 is
+      archived RESOLVED (`31-KNOWN-ISSUES-ARCHIVE.md:1080`). ⛔ It did NOT block Ch8b/Ch9 — that
+      clause was false for a month. ‼ **The item's OWN text said "(deliver_devon_goods_to_stern is
+      built)" while carrying `[ ]`** — a status contradicted by its own body is the cheapest
+      possible re-do trap, and this project's 8-day case is what created the triage index.
 - [ ] #24-freshbatch-rustboro — batch run03 (fresh game) 2026-07-22 played
       extensively but HUNG in Rustboro (11,3)=(5,3) area after ~450k frames
       (Torchic start, 4-mon team). Under-investigated; capture a repro from the
@@ -3431,7 +3439,12 @@ region, where "train near the gym" is actively wrong.
       from a POST-Surf checkpoint; repro_fodder_grass.py currently marks them PENDING because
       no pre-Surf save can path a water route. Route 119 (21,109) reached NO Poké Center.
 
-## Done
+## Done — ⚠ MIXED, and that is a defect being tracked, not a convention
+> ⛔ **THREE STILL-OPEN `[ ]` ITEMS ARE FILED UNDER THIS HEADING** and are therefore invisible to
+> anyone scanning for work: **`#24-partyindex-minus-one`**, **`#24-errorpath-frequency`**,
+> **`#24-stalestatusclaims`** (that last one is named in `04-HANDOFF.md` as a startable
+> alternative, so the handoff points INTO a section marked Done). Found by a PASS 5 audit
+> 2026-08-22. ⇒ Move the three blocks above this heading; until then, this warning is the pointer.
 > ⛔ **THE 8 OLDEST CLOSED ITEMS OF THIS SECTION MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-17)**
 > on the R3 3,600-line budget. All were `[x]` and long closed; nothing was deleted. The relief
 > valve is deliberate — `lint_docs` has been reporting ~105 completed items sitting in a
@@ -3448,75 +3461,13 @@ region, where "train near the gym" is actively wrong.
       block and every reference, then run `run_gates.py`. **Do NOT** rewrite git history or the
       append-only logs — correct forward and leave the old names in the changelog where they are.
 
-### `#24-faintchooser-fourthspace` — a POSSIBLE FOURTH INDEX SPACE in the faint chooser (filed 2026-08-17)
+### `#24-faintchooser-fourthspace` — ✅ CLOSED 2026-08-17, ARCHIVED 2026-08-22 → `28-HANDOFF-ARCHIVE.md`
 
-- [x] **✅ PROBED AND ANSWERED 2026-08-17 — NO FOURTH INDEX SPACE IS DEMONSTRATED. The anomaly is
-      INERT on the only trajectory we can produce. ⛔ DO NOT "FIX" IT.**
-      **The probe:** `--driver ki66faint` gained OBSERVE-ONLY instrumentation — **zero production
-      change**, everything captured by rebinding module globals `battle_handler` looks up at call
-      time (`get_party_menu_cursor_pos` at `:741`, plus `press_button`).
-      **RESULT (fixed code, the one diverging faint available):**
-      `menu_order=[1,3,4,5]  diverge=True  accepted=3  accepted_in_menu_order=True`
-      ⇒ **H0**: the last cursor the SWEEP read before the menu closed IS in `alive_slots_menu`.
-      The suspected double conversion does not manifest. Same shape as the OWNER filter: real in
-      the log, inert in behaviour.
-      ✅✅ **POSITIVE CONTROL — and it earned its keep.** Against the PRE-FIX build the same probe
-      recorded `cursor_reads=66, A-presses=239 (select=152 dismiss=87)`, proving the instrument CAN
-      see. ‼ **CITE THE `.harnesslog.txt`, NOT THE `.stdout.txt`** — stdout is TRUNCATED on the abrupt
-      exit and does not contain that line; the harness's own log does. ‼ It was run precisely because the first fixed-code result was `cursor_reads=0,
-      A-presses=0` — which turned out to be **an instrument bug, not a finding** (see below).
-      ⚠ **KNOWN LIMITATION, STATED SO NOBODY GRADES ON IT:** the refusal count is APPROXIMATE.
-      Presses are counted via `context.emulator.press_button`, which sees every press while the
-      party menu is up — including `scroll_to_party_menu_index`'s, in `menuing.py`, which is NOT
-      wrapped. The run recorded 129 "select" presses against only 5 sweep cursor reads, so most
-      were not sweep attempts. **Only the ACCEPTANCE clause is graded.**
-      ⚠ **n = 1 diverging faint, one deterministic trajectory** (repeat runs are byte-identical, so
-      that is a determinism check, NOT replication). The pre-registered rule was satisfied
-      (≥1 faint printing `[orders DIVERGE]`), but a second INDEPENDENT trajectory would strengthen it.
-      ⛔⛔ **DISCLOSURE — THE ACCEPTANCE CRITERION WAS RELAXED MID-INVESTIGATION, AFTER seeing the
-      control's output. Read this before trusting the verdict.** The probe first required
-      `in_set AND refusals == 0` for H0. It was relaxed to `in_set` alone once the press data showed
-      the refusal count is unusable (129 "select" presses against 5 sweep cursor reads ⇒ most presses
-      come from `scroll_to_party_menu_index`, which is not wrapped). ‼ **That is a legitimate reason
-      and it was still discovered AFTER the fact, so it is disclosed rather than buried.**
-      ✅ **THE VERDICT DOES NOT DEPEND ON IT.** The decisive faint reads `in_set=True, refusals=0`,
-      which is **H0 under BOTH the strict and the relaxed rule**. The relaxation only re-labels the
-      PRE-FIX CONTROL arm (`in_set=True, refusals=5`: H1 under the old rule, H0 under the new) — and
-      that arm is a control, not the result. *(An adversarial review caught the undisclosed change;
-      it was right to.)*
-      ✅ **THE STRONGEST BEFORE/AFTER, which the first write-up omitted:** on the SAME diverging faint,
-      **refusals fell 5 → 0 and attempted fell `[2,4,5,0,1,3]` → `[3]`** between the pre-fix and fixed
-      builds. One attempt instead of six. That is a better argument for the `_on_field` fix than the
-      instrument-liveness numbers, and it is now recorded rather than left in a raw log.
-      ⚠ **AND THE PRE-FIX CONTROL'S SECOND FAINT, also omitted at first:**
-      `menu_order=[4,5] diverge=False attempted=[4,5,0,1,2,3] accepted=3 accepted_in_menu_order=False`.
-      `accepted_in_menu_order=False` is exactly the shape this item worries about — but it is on the
-      NON-diverging faint of the BUGGY build, where `alive_slots` is wrong for the unrelated
-      `_on_field` reason, and production's own fallback (`:757-758`) is what widened the set. Marked
-      INCONCLUSIVE by the pre-registered rule. ‼ Recorded so nobody discovers it in a raw log and
-      thinks it was hidden.
-      ⚠ **RESIDUAL OBSERVATION, UNPROVEN:** the strategy nominated party index **2** (Mightyena) while
-      the mon actually sent out was **Swellow** (cursor 3). Legal, alive, and sensible — but not the
-      nominated mon. Not investigated; recorded so it is not lost.
-
-      *(Original filing, kept for the reasoning:)* **Not a confirmed bug — a MEASURED ANOMALY that needs its own probe.** After KI-66's
-      `_on_field` fix, the chooser's own diagnostic reads:
-      `alive_slots=[2,3,4,5](party-order) -> [1,3,4,5](menu-order)  [orders DIVERGE]`
-      i.e. `_to_menu_order` maps slot **2 → 1**, so the cursor sweep's candidate set
-      (`alive_slots_menu`) does **not** contain slot 2 — **the very slot the strategy chose**
-      (`CHOSEN new_lead_index=2`). The run still resolved (~89 frames, battle WON), so this is not
-      currently costing a wedge.
-      ‼ **WHY IT IS SUSPICIOUS:** `party_in_menu = get_party()` is read while the party menu is
-      OPEN, i.e. after `UpdatePartyToBattleOrder` has permuted `gPlayerParty`. If those indices are
-      already in battle order, then mapping them AGAIN through `map_battle_party_index` (which
-      expects an *outside-battle* index, `battle_state.py:343`) is a second conversion of an
-      already-converted value. That is the same shape as KI-18, KI-34 and KI-66.
-      ⛔ **DELIBERATELY NOT CHANGED.** This is PRE-EXISTING KI-34 machinery that has been shipping,
-      the evidence is one trajectory, and reasoning about index spaces in this function has been
-      wrong three times already. ⇒ **First deliverable is an OBSERVE-ONLY probe** (the pattern that
-      settled KI-66's direction in one run): log cursor, `alive_slots`, `alive_slots_menu` and the
-      chosen slot together, on a faint, and establish ground truth from the party dump.
-      ⚠ Do NOT "fix" it from the docstring — that docstring has now produced three bugs.
+- [x] **ANSWERED: no fourth index space is demonstrated; the anomaly is INERT. ⛔ DO NOT "FIX" IT.**
+      ‼ **The rule that survives:** `handle_fainted_pokemon` has had THREE index-space bugs
+      (KI-18, KI-34, KI-66) — ⛔ when a fix is a coordinate/index conversion, MEASURE ITS
+      DIRECTION with an observe-only probe FIRST; never reason it out from the docstring,
+      which has now produced three bugs. Full 70-line record in `28-HANDOFF-ARCHIVE.md`.
 
 ### `#24-partyindex-minus-one` — a BOUND-BUT-WRONG `party_index` of `-1` slips past KI-65's guards (filed 2026-08-17)
 

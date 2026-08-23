@@ -45,6 +45,8 @@ following the reading order above, which stopped at 16.*
 | `23-MEANDER-PATHING-DESIGN.md` | the travel-meandering verdict + algorithm (currently net-negative — read before building it) | reference |
 | `FABLE-5-KICKOFF.md` | onboarding brief written for a specific agent handover | reference |
 | `REFERENCE-INSTALLER-PATTERN.md` | Nick's installer-as-codebase spec | reference |
+| `batch-evidence/` | ⛔ **WAS INVISIBLE UNTIL 2026-08-22** — in neither table, and referenced from nowhere in the repo, while its own README says *"Every conclusion in `07-CHANGELOG.md` and `05-KNOWN-ISSUES.md` rests on it. Losing that directory would make the entire measured history unre-derivable."* The git-tracked analysis subset of the 2.2 GB gitignored batch runs | reference |
+| `tools/story-dev/evidence/` | committed run transcripts and fault-injection drivers that named claims rest on — including `2026-08-22-pass4-fault-drivers/`, the injections that proved which gates can fail | reference |
 | `ai-research-notes/` | **Gemini output — RECALL ONLY.** Never authoritative; the decomp/code wins on any conflict. Read `ai-research-notes/00-READ-THIS-FIRST.md` before trusting a single line of it. | reference |
 
 ## Story-mode working process (commands)
@@ -56,11 +58,14 @@ following the reading order above, which stopped at 16.*
 - `/livetest` — batch fresh-run sweeps → a Live Test report (see `04-HANDOFF.md`).
 
 ## File rules
-- **Current-state files (01–05):** edit in place. They must always describe
-  present reality — stale content gets removed, not preserved.
-- **Append-only files (06, 07, 08):** new dated entries go at the END. Past
-  entries are never rewritten, reordered, or deleted. `08-MISTAKES.md` is read
-  at session start so past errors aren't repeated.
+- **Current-state files — `01`-`05`, plus `24`, `25`, `29`, `30`:** edit in place. They must always
+  describe present reality — stale content gets removed, not preserved.
+- **Append-only files — `06`, `07`, `08`, plus the archives `28` and `31`:** new dated entries go at
+  the END. Past entries are never rewritten, reordered, or deleted. `08-MISTAKES.md` is read at
+  session start so past errors aren't repeated.
+  ⛔ *Corrected 2026-08-22 (PASS 5): these two bullets listed only `01`-`05` and `06`-`08` while the
+  tables above type SIX more files, and each of those files' own header agrees with the table. A
+  reader following the bullets alone would have edited an append-only archive in place.*
 
 ## Definition of Done (summary)
 Verified change → current-state docs updated → changelog/decisions appended
@@ -73,6 +78,7 @@ an unrun gate. From `tools/story-dev/`, all three must exit 0 before ANY commit
 touching `PROJECT KNOWLEDGE/`:
 
 ```
+PYTHONUTF8=1 py -3.12 run_gates.py              # THE STANDING SUITE — required before any CODE commit
 PYTHONUTF8=1 py -3.12 lint_docs.py              # line budgets, banners, flag registry
 PYTHONUTF8=1 py -3.12 audit_doc_consistency.py  # docs vs code vs each other
 PYTHONUTF8=1 py -3.12 audit_encoding.py         # mojibake + BOM (--repair fixes in place)

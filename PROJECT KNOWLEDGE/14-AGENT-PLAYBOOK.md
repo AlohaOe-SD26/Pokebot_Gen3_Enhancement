@@ -207,7 +207,28 @@ what it believes; the probe reports what the file contains.
 ‼ **Cross-map fixture travel is unreliable right now** — it failed four separate times on
 2026-08-09 (KI-48, KI-49). Prefer an anchor that already stands on the map you need.
 
-### 2b. The repro suite — the project's actual verification bar
+### 2b. ‼ THE STANDING GATE SUITE — `run_gates.py` IS the verification bar
+
+⛔ **CORRECTED 2026-08-22 (deep sanity check PASS 5). This section titled a hand-rolled `for f in
+repro_*.py` loop "the project's actual verification bar", and the whole playbook — the file every
+session is told to read second — did not mention `run_gates.py` ONCE.** The bar is:
+
+```bash
+cd tools/story-dev
+PYTHONUTF8=1 py -3.12 run_gates.py            # THE bar. Exits non-zero if any ENFORCING gate fails
+PYTHONUTF8=1 py -3.12 run_gates.py --list     # the names, and which are slow
+PYTHONUTF8=1 py -3.12 run_gates.py --quick    # skips every ROM gate — ⛔ NOT a green suite; never before a commit
+```
+‼ **`run_gates.py` prints its own gate count and IS the authority — never a number in prose.**
+⚠ **TWO ENTRIES ARE `ADVISORY`, NOT GATES** (`probe_regi_capabilities.py`, `probe_dive_routing.py`):
+they RUN and print `ADVIS`, and their exit code does not fail the suite, because they report a
+KNOWN-blocked arc and a self-declared static probe respectively. ⛔ **Do not "fix" them by giving
+them exit codes** — that reds the suite permanently over an accepted state. The reasoning and the
+control that keeps the exemption honest are in `06-DECISIONS-LOG.md` (2026-08-22).
+‼ Each gate is bounded (`TIMEOUT_FAST`/`TIMEOUT_SLOW`); a HUNG gate now FAILS with `exit=124`
+rather than blocking the suite forever — it had no bound at all until 2026-08-22.
+
+#### The wider `repro_*` sweep (still useful, but it is NOT the bar)
 
 `tools/story-dev/repro_*.py` is **103** scripts and `probe_*.py` is **75** (measured 2026-08-17 — ⛔ these decay; run `ls tools/story-dev/repro_*.py | wc -l` rather than trusting this; it was recorded as ~52 for weeks while the suite nearly doubled) and **most need no emulator**. Run the whole
 sweep before claiming any fix is clean:
@@ -220,8 +241,10 @@ done
 - **Use `py -3.12`.** Plain `python` on the dev box is 3.9 (unsupported, and the deps are
   not installed for it). Deps needed for the emulator-free ones: `confz==2.0.1`,
   `ruamel.yaml`, `rich`, `numpy`.
-- Expected state as of 2026-07-27: **47 pass, 0 fail, 5 environmental.** The 5 need a real
-  mgba or have their own harness issues (`repro_boss_training`, `repro_double_faint`,
+- ⛔ **A PINNED EXPECTATION USED TO SIT HERE AND IT WAS ARITHMETICALLY IMPOSSIBLE** — *"47 pass,
+  0 fail, 5 environmental"* over a suite this section's own next line measures at 103 scripts
+  (47+5=52). Removed 2026-08-22; **grade on `run_gates.py`, never on a remembered tally.** The
+  environmental ones need a real mgba or carry their own harness issues (`repro_boss_training`, `repro_double_faint`,
   `repro_navigate_failfast`, `repro_sufficiency`) — plus `repro_x4_lanes`, which **SPAWNS
   REAL LANE PROCESSES**; skip it unless you mean it.
 - Use a **per-script timeout of ~90s, not 25s** — a shorter one reports slow-but-healthy
