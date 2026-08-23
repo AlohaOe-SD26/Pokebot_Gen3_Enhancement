@@ -24,8 +24,10 @@ Every banner further down is HISTORY, newest first.
 > cannot survive its own file being edited. ✅ **38 lines were recovered on 2026-08-17 (net)** by
 > merging ten already-archived `##` stubs into one (`#24-handoffbudget`); nothing was deleted.
 > ⛔⛔ **ARCHIVE FIRST, WRITE SECOND — AN INSTRUCTION, NOT A CAUTION.** A cold-start audit named
-> this the likeliest way the next session does damage: **~12 free lines here vs a SIXTEEN-AGENT
-> finding generator** (`#24-sanitycheck` passes 4-5). R3 goes RED at 901 and blocks the Tier 0
+> this the likeliest way the next session does damage: **a nearly-full file vs a multi-agent finding
+> generator.** *(That was written when `#24-sanitycheck` passes 4-5 were still ahead; both have since
+> run, and between them they DID fill both files — 243 lines had to be archived at wrap-up to make
+> room. The warning was right.)* R3 goes RED at 901 and blocks the Tier 0
 > commit mid-wrap-up. ⛔ Do NOT trim live content, and do NOT append to banner line 10 (already
 > ~6,000 chars — this file's worst readability defect). ➡ Move one CLOSED block behind a stub
 > BEFORE the first agent returns. ‼ Room is NOT interchangeable — ⛔ NO FIGURE IS QUOTED HERE:
@@ -418,9 +420,11 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    armed dismount chains) and a run there would REFUTE a true finding. Read that item's STOP block
 >    before planning anything on it. *(Formerly: pass 4/5.)* (2026-08-22: three gates that
 >    could not fail, an unbounded runner, seven state-writing probes, and the `git add` hook's 8
->    bypasses — all fixed; see `07-CHANGELOG.md`). ‼ Pass 5 had NO scope written anywhere; suggested
->    angles are in `#24-sanitycheck`. ⛔ Its findings must be VERIFIED by you: across passes 1-4,
->    agent claims failed my check twice.** ‼ Method, and it is the whole reason they
+>    bypasses — all fixed; see `07-CHANGELOG.md`). ✅ **PASS 5 IS DONE TOO (2026-08-23) and its scope — which
+>    did not exist when filed — is now RECORDED in `#24-sanitycheck`, so the audit is reproducible.**
+>    ⛔ **The standing lesson: VERIFY EVERY AGENT FINDING YOURSELF.** Across all five passes, agent
+>    claims failed my check three times, and one finding was already STALE ON ARRIVAL (it reported a
+>    gate red that had been fixed while it ran).** ‼ Method, and it is the whole reason they
 >    worked: 8 agents per pass, ONE ANGLE EACH, every one required to **FAULT-INJECT or RE-DERIVE,
 >    never to reason**. ⛔ Verify every finding yourself — 2 of ~40 were false positives.
 >    ➡ **THEN the standing item is `#24-ki76correctness`** — ⛔ its planner-side half is VACUOUS ON

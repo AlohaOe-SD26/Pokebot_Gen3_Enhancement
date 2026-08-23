@@ -24,7 +24,10 @@ user rather than resolved unilaterally.
 > ⛔ **A HEADING IS A CLAIM ABOUT EVERY ROW BENEATH IT.** This table said "the only things being
 > worked on now" while most rows carried ✅ DONE, and it named NEITHER live item. A cold reader
 > using it as the index would have worked from a 12-day-old picture.
-> ➡ **THE LIVE ITEMS ARE `#24-sanitycheck` (pass 5 of 5) AND `#24-ki76correctness`** — and
+> ➡ **THE LIVE ITEM IS `#24-loopheadabort`** (discriminator COMPUTED, arms PROVEN to differ).
+> ⛔ **NOT `#24-ki76correctness`** — its only fixture is VACUOUS for its only live defect; and
+> `#24-sanitycheck` is COMPLETE. *(This line named both of those as live until 2026-08-23 — it
+> was written during pass 5 and went stale the moment pass 5 finished.)* — and
 > `04-HANDOFF.md`'s NEXT ACTIONS queue, not this table, is what a session should act from.
 > ‼ Rows below are kept for their evidence; read each row's OWN marker.
 | item | state |
@@ -488,7 +491,13 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       **nav-primitive loops 26, of which 9 have a head check** (bounded loops 93/40; yield-from
       loops 79/46). ⇒ the pattern IS established — copy an existing one — but quote the 9-of-26.
       ⚠ **AND THE LIST OF 13 IS INCOMPLETE.** Five more nav loops have no head check and no
-      reachable `_check_abort`: **376, 1930, 2607, 3310, 4257**. the site near `2603` is the item's exact shape —
+      reachable `_check_abort`: **376, 1930, 2607, 3310, 4257**.
+      ‼ **WHAT THOSE NUMBERS POINT AT, precisely (checked 2026-08-23):** they are the `try:` lines,
+      not the `for`/`while` heads — e.g. `:373` is `for above in ((7, 7), (6, 7)):` and `:376` is its
+      `try:`; `:4254` is `for wx, wy in warps:` and `:4257` its `try:`. ⛔ **That is the RIGHT
+      insertion point anyway** — immediately BEFORE the `try:` is inside the loop and outside the
+      handler, which is exactly where the check must go. Do not "correct" them to the `for` line
+      without re-reading: the point is to be inside the loop, outside the `try`. the site near `2603` is the item's exact shape —
       a `for _ in range(10)` loop head at `early_game.py:2603` whose body wraps `navigate_to_anywhere`
       in `except BotModeError: pass` (verified in code; ⚠ a cold-start audit corrected an earlier
       draft that said `range(20)` at `:2607` — `:2607` is the `try:`, not the loop head). Treat the 13 as a FIRST BATCH, not the population.
@@ -1991,9 +2000,14 @@ owed / not built / residual"* sentence written that session, ask **"where would 
 FIND this?"** If the only answer is an append-only log, a CLOSED KI's body, or a research note, it
 is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
 
-### ‼ `#24-sanitycheck` — the USER-REQUESTED 5-PASS DEEP AUDIT (filed 2026-08-18; **4 of 5 DONE**)
+### ✅✅ `#24-sanitycheck` — the USER-REQUESTED 5-PASS DEEP AUDIT — **COMPLETE, 5 of 5** (filed 2026-08-18, closed 2026-08-23)
 
-- [~] **PASSES 1-4 ARE DONE AND COMMITTED; ONLY PASS 5 (COLD-START/USABILITY) REMAINS.** ⛔ Filed because a cold-start audit found the queue head pointing at work with **no
+- [x] **✅✅ ALL FIVE PASSES ARE DONE AND COMMITTED. ⛔ DO NOT RE-RUN ANY OF THEM.**
+      ‼‼ **THIS LINE SAID "3 of 5" AND THEN "4 of 5" AFTER EACH PASS SHIPPED — THE SAME MISS, TWICE,
+      ON THE SAME ITEM, IN ONE SESSION.** Both times the handoff's two halves were updated correctly
+      and this third copy was not; the second time it was caught by the **P5 pair added to
+      `CLAUDE.md` because of the first**. ⇒ the pair works, and it is the reason this file is now
+      right. ⛔ **On finishing an item, `grep` the tree for its own slug and re-read EVERY hit.** ⛔ Filed because a cold-start audit found the queue head pointing at work with **no
       punch-list item at all** — the exact `#24-orphans` shape, and it also meant three commits went
       in without a `(punch-list #N)` tag as DoD step 5 requires.
       **DONE:** pass 1 TRUTH `045bdd1c`, pass 2 CODE HEALTH `e74d6e50`, pass 3 ADVERSARIAL `899f4ce7`.
@@ -2012,10 +2026,15 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
       (`probe_slot_free_plan`, `probe_regi_capabilities`, `probe_dive_routing`) had **zero assertions
       and could not fail at all**. Residuals filed as `#24-fixturecoverage`, `#24-gateselftests`,
       `#24-testrunsweep`, `#24-p4residuals`, `#24-flagnamedocscan`; KI-82 awaits a USER ruling.
-      ⚠ **PASS 5 HAS NO SCOPE WRITTEN ANYWHERE beyond its title** — decide it deliberately rather
-      than assuming; suggested angles: cold-start from the handoff, from `00-README`, can each filed
-      "startable" item actually be started, playbook currency, known-issues navigability, punch-list
-      navigability, `24-PLAIN-ENGLISH-STATUS` accuracy, vision/architecture vs reality.
+      ✅ **PASS 5's SCOPE WAS DEFINED AND EXECUTED 2026-08-22/23 — it is on the record so the audit is
+      REPRODUCIBLE.** It had none when filed. The eight angles run, one agent each: cold-start from
+      the handoff; cold-start from `00-README`; can each filed "startable" item actually be started;
+      playbook currency; known-issues navigability; punch-list navigability;
+      `24-PLAIN-ENGLISH-STATUS` accuracy; vision/architecture vs reality.
+      ⛔ **EIGHT ANGLES, SEVEN AGENTS RETURNED** — the eighth died on an API session limit and was
+      RE-RUN the next day, where it produced 17 findings including six commands in
+      `02-ARCHITECTURE.md` that could not be run as written. ⇒ **report the angles that RETURNED,
+      never the number LAUNCHED.**
       ⚠ Pass 1 agents were READ-ONLY; passes 2-3 executed and fault-injected in scratch. ⛔ Whichever
       you choose, say so in the prompt — and ⛔ do NOT let an agent copy a whole fork to scratch.
 

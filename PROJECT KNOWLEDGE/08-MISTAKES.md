@@ -8645,3 +8645,37 @@ measurement disagreement appeared in pass 5 and was handled correctly as a resul
 71 distinct KI ids where my own grep gave 61, and its flag-name figures differed from pass 4's.
 ⇒ **Where two honest measurements of a fuzzy population disagree, publish the COMMAND, not either
 number.** Both items now carry the re-derivation command instead of a digit.
+
+## 2026-08-23 — I made the SAME status-drift mistake TWICE, on the SAME item, in ONE session — and the rule I wrote after the first one caught the second
+
+**Symptom.** After shipping PASS 4, `#24-sanitycheck`'s own entry still read *"3 of 5 DONE / PASSES 4
+AND 5 REMAIN"* while the handoff said pass 4 was done. I fixed it to *"4 of 5"*, wrote the lesson up,
+and added a fifth pair (**P5**) to `CLAUDE.md`'s DOC CONSISTENCY LAYER: *the work item's own status ↔
+the claim the handoff makes about it*. **Then I finished PASS 5, updated the handoff's two halves —
+and left the item saying "4 of 5 DONE … ONLY PASS 5 REMAINS."** The identical miss, on the identical
+item, a few hours after writing the rule about it.
+
+**What caught it.** The Tier 2 ROUND-2 cold-start agent, handed the pair list **P1–P5** — i.e. the
+pair that existed only because of the first occurrence. P1–P4 passed clean; **P5 failed.** Without
+that addition this session would have committed the same defect it had just documented.
+
+**Root cause — and it is NOT "I forgot".** The handoff's two halves are what the ritual, the
+checklist and the reviewer all point at, so attention flows there. The third copy lives in a
+3,500-line file that nobody re-reads on the way out. ‼ **This project's own log records that ≥12 of
+164 mistakes are self-admitted repeats, several committed while the author knew the rule** — that
+is the pattern, and prose alone has never broken it here.
+
+**Prevention rule (STRENGTHENED, because the first version was not enough).**
+⛔ **When you finish a work item, `grep -rn "<its-slug>" .` and RE-READ EVERY HIT before committing.**
+Not "remember to update the punch list" — the mechanical sweep, because the failure mode is
+attention, not knowledge. ‼ **And the deeper rule, which generalises past this item:** a fact that
+lives in N places has N−1 chances to go stale, and updating only the ones a checklist names is the
+WORST state of all — the check then returns PASS and the survivors are invisible.
+✅ **What actually worked was making the checklist longer, not trying harder.** P5 is now handed to
+every Tier 1 and Tier 2 reviewer by name. ⇒ **when you catch yourself repeating a rule you already
+wrote, the fix is to move the rule into something that RUNS, not to re-commit to remembering it.**
+
+⚠ **Related, same round:** my own edit re-titling the punch list's stale index named
+*"THE LIVE ITEMS ARE `#24-sanitycheck` … AND `#24-ki76correctness`"* — both of which the handoff
+explicitly FORBIDS by the time pass 5 ended. **A correction written mid-task goes stale when the task
+finishes.** Re-read your own edits at wrap-up, not only the ones you inherited.
