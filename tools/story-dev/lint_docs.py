@@ -52,6 +52,38 @@ CURRENT_STATE = ("01-", "02-", "03-", "04-", "05-")
 # to police prose. 04-HANDOFF was 3,239 lines with only its first 163 current when this was written.
 LINE_BUDGET = {"01-": 700, "02-": 700, "03-": 3600, "04-": 900, "05-": 3000}
 
+def _blank_fenced(text: str) -> str:
+    """Return `text` with the CONTENTS of ``` fenced blocks blanked, line count preserved.
+
+    ‼ `#24-p4residuals` (b). R1 bans a `# HISTORY` heading in a current-state file and R2 allows at
+    most one START-HERE banner — but both matched inside FENCED CODE BLOCKS, where such text is an
+    EXAMPLE, not a heading. A doc that shows "what not to do" in a fence would trip its own rule, and
+    the natural way to make the gate green again is to delete the example — losing the explanation
+    to satisfy a false positive. Latent when found (no doc currently does it), which is the cheapest
+    possible moment to fix it.
+    ⚠ LINE COUNT IS PRESERVED on purpose: R3 counts lines and the `--show` reporter prints line
+    numbers, so blanking must not shift anything. Only the CONTENT is removed, never the newlines."""
+    out, fenced, marker = [], False, None
+    for line in text.split(chr(10)):
+        stripped = line.lstrip()
+        hit = next((f for f in ("```", "~~~") if stripped.startswith(f)), None)
+        if hit and (marker is None or hit == marker):
+            marker = None if fenced else hit      # a fence closes only with its OWN marker
+            fenced = not fenced
+            out.append("")           # the fence marker itself is never a heading
+            continue
+        out.append("" if fenced else line)
+    # ‼ FAIL TOWARD CATCHING. An UNCLOSED fence would otherwise blank everything after it, so a
+    # single stray ``` would silently switch R1/R2 off for the rest of the file — a blind spot
+    # introduced by the very fix meant to remove a false positive. Measured before shipping: a
+    # real `## HISTORY` after an unclosed fence went from FOUND to MISSED. If the fence never
+    # closes, the document is malformed and we scan it UNBLANKED: a gate may cry wolf, but it may
+    # never go quiet.
+    if fenced:
+        return text
+    return chr(10).join(out)
+
+
 BANNER_RE = re.compile(r"^#{1,3}\s.*\b(START HERE|YOU ARE HERE)\b", re.I | re.M)
 HISTORY_RE = re.compile(r"^#{1,2}\s+(?:‼\s*)?HISTORY\b", re.I | re.M)
 
@@ -90,10 +122,18 @@ for p in docs:
     if prefix not in CURRENT_STATE:
         continue
     text = p.read_text(encoding="utf-8", errors="replace")
-    lines = text.count("\n") + 1
+    # ‼ `len(splitlines())`, NOT `count("\n") + 1` — fixed 2026-08-23 (`#24-p4residuals` (c)).
+    # Every file here ends with a trailing newline (git enforces it), and `count("\n") + 1` counts a
+    # phantom final line for exactly those files: it reported 834 where `wc -l` said 833. That made
+    # R3's effective budget ONE STRICTER than the number it prints, and made every line-count claim
+    # in the docs disagree with the obvious way a reader checks it. Measured before/after on the
+    # five current-state files: each drops by exactly 1, and no file changes pass/fail state.
+    lines = len(text.splitlines())
     budget = LINE_BUDGET.get(prefix, 1500)
-    hist = HISTORY_RE.findall(text)
-    banners = BANNER_RE.findall(text)
+    # ‼ R1/R2 scan the FENCE-BLANKED text; R3 counts the REAL one (see `_blank_fenced`).
+    scannable = _blank_fenced(text)
+    hist = HISTORY_RE.findall(scannable)
+    banners = BANNER_RE.findall(scannable)
     flag = ""
     if hist:
         fail("R1", f"{p.name}: {len(hist)} `# HISTORY` block(s) inside a CURRENT-STATE file")
@@ -108,10 +148,10 @@ for p in docs:
         flag = " <-"
     print(f"  {p.name:<44}{lines:>7}{budget:>8}  {len(hist):>8}{len(banners):>9}{flag}")
     if show and (hist or len(banners) > 1):
-        for m in HISTORY_RE.finditer(text):
-            print(f"      HISTORY @ line {text[:m.start()].count(chr(10)) + 1}: {m.group(0)[:70]}")
-        for m in BANNER_RE.finditer(text):
-            print(f"      BANNER  @ line {text[:m.start()].count(chr(10)) + 1}: {m.group(0)[:70]}")
+        for m in HISTORY_RE.finditer(scannable):
+            print(f"      HISTORY @ line {scannable[:m.start()].count(chr(10)) + 1}: {m.group(0)[:70]}")
+        for m in BANNER_RE.finditer(scannable):
+            print(f"      BANNER  @ line {scannable[:m.start()].count(chr(10)) + 1}: {m.group(0)[:70]}")
 
 # ---------- R5: the reading order must point at real files ----------
 readme = DOCS / "00-README.md"

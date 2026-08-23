@@ -22,11 +22,25 @@ Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 repro_roster_reorder.py
 """
 
 import itertools
+import argparse
 import pathlib
 import sys
 
+# ‼ `--build` — added 2026-08-23 (`#24-p4residuals` (e)). This gate hardcoded
+# `sandbox-pokebot`, so the identical defect landing in `custom-pokebot` — THE FORK THAT
+# SHIPS — was invisible to it. Default stays `sandbox` so nothing about the standing suite
+# changes; `--build custom` is for verifying a promotion. Idiom copied from
+# `repro_pid_identity_key.py`, which already had it.
+_ap = argparse.ArgumentParser(add_help=True)
+_ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"],
+                 help="which fork to test (default sandbox; use custom to verify a promotion)")
+_ARGS, _ = _ap.parse_known_args()
+
 REPO = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "sandbox-pokebot"))
+_FORK = REPO / f"{_ARGS.build}-pokebot"
+if not _FORK.is_dir():
+    raise SystemExit(f"‼ no such fork: {_FORK} — refusing to report success")
+sys.path.insert(0, str(_FORK))
 
 from modules.story.roster import MAX_SWAPS, plan_last_slot, plan_reorder
 

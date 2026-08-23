@@ -116,6 +116,12 @@ SUPERSEDE_RE = re.compile(
 UNIT_RE = re.compile(r"^(?:#{1,6}\s|\s*>?\s*(?:[-*+]\s|\d+[a-z]?\.\s|\|)|\s*$)", re.M)
 MAXDIST = 250
 
+#: How close a supersede marker must sit to a GATE-COUNT claim to exempt it (`#24-p4residuals` (g)).
+#: ⛔ Deliberately NOT `MAXDIST`: the measured safe band is 40-250, and 250 leaves only an 8-char
+#: margin over the nearest false positive, while 120 sits centred. Full measurement — 143 historical
+#: commits, 4 true catches / 0 false positives — is in `check_gate_counts.exempt`'s docstring.
+GATE_COUNT_SUPERSEDE_MAXDIST = 120
+
 
 def _read(path: pathlib.Path) -> str:
     return FENCE_RE.sub(lambda m: "\n" * m.group(0).count("\n"), path.read_text(encoding="utf-8", errors="replace"))
@@ -301,9 +307,34 @@ def check_gate_counts(files: dict[str, str]) -> list[str]:
     for name, text in files.items():
         units = _units(text)
         def exempt(i):
+            """A supersede marker exempts a gate-count claim only if it is NEAR it.
+
+            ‼‼ `#24-p4residuals` (g). This used to accept a marker ANYWHERE IN THE UNIT, and units
+            here are big: measured across the 7 live docs, n=1543, median 216 chars, **max 30,945**,
+            and the 41 units that actually carry a marker have a median of 1,084. So one "older
+            framing" buried in a long annotated block exempted every number in it — including live
+            orientation instructions. MEASURED CONSEQUENCE: `04-HANDOFF.md:51` read "the suite is 28
+            gates" six lines above a correct 29 and this gate stayed SILENT. A human reviewer caught
+            it; the check structurally could not.
+
+            ⛔ THE OBVIOUS FIX WAS REFUTED BY MEASUREMENT. Porting the DRIFT check's span exemption
+            (`_RETRACT_PAREN`, median 15 chars) looks right and is wrong twice: spans are tiny, and
+            the drift port requires the marker to PRECEDE the claim — while this corpus writes
+            gate-count retractions AFTER the figure ("…17/17 gates PASS. Original item follows.").
+            Over 143 historical commits the span port produced a FALSE POSITIVE and failed 2 of 7
+            fault cases. "Same line only" was also measured: strictly worse, it loses a true catch.
+
+            ⇒ KEEP UNIT SCOPE, ADD DIRECTION-AGNOSTIC PROXIMITY. Measured over those 143 commits:
+            **4 TRUE-STALE caught, 0 FALSE POSITIVES, 0 findings lost, 0 on the live tree**, and the
+            reinjected `04-HANDOFF.md` defect is caught. The safe band is 40–250 (the nearest false
+            positive's marker sits +36; the tightest true catch's nearest marker +258); 120 is
+            centred, which is why it is not `MAXDIST`'s 250 — that leaves only an 8-char margin."""
             for a, b in units:
                 if a <= i < b:
-                    return bool(SUPERSEDE_RE.search(text[a:b]))
+                    for mk in SUPERSEDE_RE.finditer(text[a:b]):
+                        if abs((a + mk.start()) - i) <= GATE_COUNT_SUPERSEDE_MAXDIST:
+                            return True
+                    return False
             return False
         for m in claims.finditer(text):
             nums = [int(g) for g in m.groups() if g]

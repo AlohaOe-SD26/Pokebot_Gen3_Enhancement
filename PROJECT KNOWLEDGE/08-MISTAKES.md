@@ -8852,3 +8852,86 @@ it is testing.** Run them, and read the failure before assuming the subject is b
 it would have deleted the three recovery head checks and restored the original bug. **A stale
 remediation string is worse than a stale comment — it is read exactly when someone is about to act.**
 ⇒ when a premise is corrected, grep the whole file for text that ENCODES it, especially failure paths.
+
+## 2026-08-23 — a gate fix nearly shipped as a NO-OP because shell escaping ate its word boundaries
+
+**Symptom.** The new denylist for `repro_no_silent_except.py` looked correct in the diff:
+`r"\b(todo|fixme|xxx|hack|whatever|idk|shrug)\b"`. Running it showed it matched **only `???`** —
+every dismissive phrase it was written to catch sailed through.
+
+**Root cause.** The pattern was written into the file through a shell heredoc, and `\b` survived
+neither layer: in one attempt it became a literal **backspace byte (0x08)**, in another it vanished
+entirely. The file *rendered* fine in `sed` output; only `repr()` of the compiled pattern showed
+`'\x08(todo|...)'`. Three separate attempts (heredoc, `Edit`, line-index rewrite) each lost the
+escape a different way. The fix that finally held was building the backslash from `chr(92)`, which
+no layer can reinterpret.
+
+**Why it matters more than a typo.** The gate would have PASSED, the ratchet would have stayed at
+148, the diff would have read correctly in review, and the hole it was written to close would have
+stayed open — a change that is green, plausible, and inert. ‼ **This project already has a name for
+that shape: a gate that cannot fail.** It nearly arrived here by punctuation.
+
+**Prevention rule.** ⛔ **A PREDICATE IS NOT SHIPPED UNTIL YOU HAVE SEEN IT REJECT SOMETHING AND
+ACCEPT SOMETHING.** Never review a regex by reading the source — print the COMPILED pattern
+(`repr(rx.pattern)`) and run it against a must-reject list and a must-keep list. Both lists are now
+permanent in that file's `--self-test`.
+‼ And the mechanical corollary, earned three times in one session: **when writing regex or escapes
+into a file through a shell, build the backslashes with `chr(92)`** — heredocs, Python string
+literals and the edit tools each eat them differently, and the failure is silent.
+
+⚠ **Related near-miss the same round:** the proximity constant for `audit_doc_consistency` was
+referenced before it was defined. The gate still reported PASS, because the function that uses it is
+only reached when a claim MISMATCHES — and none did. ⇒ **a `NameError` on an un-taken branch is
+invisible to a green run.** Caught by grepping for the definition, not by running the gate.
+
+## 2026-08-23 — I fixed a false POSITIVE and shipped a false NEGATIVE in the same function
+
+**Symptom.** `#24-p4residuals` (b): lint's R1/R2 matched `# HISTORY` and banner text inside FENCED
+CODE BLOCKS, where such text is an example. I blanked fenced content before scanning, fault-tested
+it five ways, and it passed all five. Then I attacked it once more before committing and found:
+**an UNCLOSED fence blanked everything after it.** A single stray ``` anywhere in a document would
+silently switch R1/R2 OFF for the rest of the file — a real `## HISTORY` after one went from FOUND
+to MISSED.
+
+**Root cause.** The blanker was a simple toggle: every ``` flips `fenced`. With an odd number of
+markers the toggle never flips back, so the tail of the file is treated as code. My five fault tests
+all used WELL-FORMED documents, because I was testing the thing I had just built rather than the
+thing that could go wrong with it. ‼ **A false positive is loud and self-correcting; a false negative
+is silent and permanent** — so a fix that trades one for the other is a net loss even though the test
+suite goes green either way.
+
+**The fix, and the rule it encodes.** ⛔ **FAIL TOWARD CATCHING.** If the fence never closes, the
+document is malformed and the text is scanned UNBLANKED. A gate may cry wolf; it may never go quiet.
+Also added: `~~~` fences (previously an unhandled false positive) and per-marker closing, so `~~~`
+inside a ``` block does not end it. Re-tested on 5 edge cases including the malformed one.
+
+**Prevention rule.** ⛔ **WHEN A FIX SUPPRESSES SOMETHING, THE FAULT TESTS MUST INCLUDE MALFORMED
+INPUT — not just the well-formed case the fix was written for.** Ask directly: *"what input makes
+this suppress MORE than intended?"* and test that. ‼ And when a change makes a check quieter,
+default its failure mode to LOUD: the direction of the residual error is a design choice, and
+silence is the expensive one.
+*(Second occurrence in one session of "my fix introduced the opposite failure mode" — the other was
+gate #30's ordering check. Both were caught by attacking my own change, neither by reasoning.)*
+
+## 2026-08-23 — I asked a reviewer to certify a diff that was already out of date
+
+**Symptom.** I generated `fulldiff.txt`, spawned a Tier 1 reviewer against it, and then — while it
+ran — kept working: hardening `_blank_fenced` and appending a changelog addendum. The reviewer
+opened with a BLOCKER: the artifact it had been given no longer matched the working tree, and the
+version it was reviewing contained the very defect the task had asked it to hunt for.
+
+**Root cause.** A diff is a SNAPSHOT. I treated it as a live view of the tree because it had been
+current when I made it. The review and the edits then raced, and the reviewer lost.
+
+**Why it matters even though nothing broke.** The reviewer's own verification (`CHECKED-CLEAN`) was
+run against the LIVE files, so its substantive findings hold. But had it certified the artifact
+without noticing, I would have held a PASS for code that no longer existed — the strongest possible
+form of a false assurance, and one this project has hit from the other direction before ("an agent's
+view of the tree is a snapshot — re-check before acting").
+
+**Prevention rule.** ⛔ **FREEZE THE TREE FOR THE DURATION OF A REVIEW, OR REGENERATE AND RE-REVIEW.**
+Once a review artifact is handed out, either stop editing the files it covers, or treat any further
+edit as invalidating that review. ‼ **Never continue working on the reviewed files while the review
+is in flight** — the finding that comes back will be about code you have already replaced.
+✅ Cheap enforcement: have the reviewer state the `git diff` hash it reviewed, and compare before
+acting on its verdict.

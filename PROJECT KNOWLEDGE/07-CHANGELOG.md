@@ -17549,3 +17549,94 @@ reachability.** Impact is bounded (the aborts escape incidentally via `_navigate
 ⚠ **R3 went RED at 3,626/3,600 while filing those residuals.** Six closed blocks (214 lines) were
 archived VERBATIM — each script-verified to hold zero open markers first, each leaving a stub, and
 "nothing lost" confirmed by locating all six in the archive. ⇒ 3,433/3,600.
+
+## 2026-08-23 — `#24-p4residuals`: SIX of seven shipped, and TWO "obvious fixes" were REFUTED BY MEASUREMENT first
+
+Seven small tooling defects found by PASS 4. Six are fixed, each fault-tested both directions; the
+seventh needs an emulator drive and is filed rather than rushed. ⛔ **No production code was touched
+— this round is entirely gates and tooling, so drift is unchanged at 1.**
+
+### ⛔⛔ THE TWO THAT MATTER MOST ARE THE ONES WHERE THE OBVIOUS FIX WAS WRONG
+Both were measured by a dedicated agent BEFORE any code changed, and both measurements killed the
+plan the item itself proposed.
+
+**(d) The comment-justification escape.** `repro_no_silent_except.py` accepted ANY comment of 12+
+characters as a justification for a silent `except`, so *"# whatever man just move on"* laundered a
+genuinely silent handler. The item proposed requiring a RELEVANCE keyword.
+⛔ **REFUTED.** All **60** handlers currently justified by comment were read: **0 are filler, 60 are
+genuine** — because this codebase justifies in DOMAIN PROSE (*"an unreadable map must never end the
+fight"*), not keywords. An allowlist newly failed **43** of them, every one a false positive,
+including `early_game.py`'s KI-81 abort guard (**which literally re-raises**) and seven sites whose
+`reraise_if_aborting(error)` is a CONDITIONAL re-raise the AST cannot see. It broke the ratchet on
+**all four roots** (148 → 191). A permanently-red check gets switched off — the exact failure that
+file's own header was written to prevent.
+✅ **SHIPPED INSTEAD: a DENYLIST.** Keep the length floor; reject only DISMISSIVE comments
+(`todo|fixme|xxx|hack|whatever|idk|shrug|who cares|no idea|move along|don't care|just move on|???`),
+word-bounded so *"hackathon"* and *"shrugged off"* survive. **Measured: 0 of the 60 newly fail; the
+gate still reports exactly 148 with per-root counts unchanged (133/4/3/8).** New `--self-test`:
+10 reject-cases, 8 keep-cases, fault-tested three ways (neutered / too-greedy / boundaries removed).
+
+**(g) The supersede exemption.** `audit_doc_consistency`'s gate-count check exempted a claim if a
+supersede marker appeared ANYWHERE IN ITS UNIT — and units here are large (n=1543, median 216 chars,
+**max 30,945**; the 41 units carrying a marker have a median of 1,084). That is why
+`04-HANDOFF.md:51` read *"the suite is 28 gates"* six lines above a correct 29 and this gate stayed
+silent. The item proposed porting the DRIFT check's span-scoped exemption.
+⛔ **REFUTED, for a reason nobody had noticed:** the drift check requires the marker to **PRECEDE**
+the claim (`mk < i`), but this corpus retracts gate counts **AFTER** the figure (*"…17/17 gates PASS.
+Original item follows."*). Over **143 historical commits** the span port produced a FALSE POSITIVE
+and failed 2 of 7 fault cases. *"Same line only"* was measured too — strictly worse, it loses a true
+catch.
+✅ **SHIPPED INSTEAD: keep unit scope, add DIRECTION-AGNOSTIC PROXIMITY (±120 chars).** Measured over
+those 143 commits: **4 TRUE-STALE caught, 0 FALSE POSITIVES, 0 findings lost, 0 on the live tree.**
+The safe band is 40–250 (nearest false positive at +36; tightest true catch at +258), so 120 is
+centred — deliberately NOT the file's existing `MAXDIST = 250`, which leaves an 8-char margin.
+✅ **PROVED on the motivating case:** reinjecting *"the suite is 28 gates"* now yields
+`04-HANDOFF.md:53 claims 28 gates; run_gates.py has 30`, with no finding on the unmodified tree.
+
+### THE OTHER FOUR
+* **(a) `promote.py --check` ALWAYS exited 0** — four documents call it "THE authority" on fork
+  drift, yet the figure existed only as text a human had to read. ✅ Added **`--strict`**, proven on
+  all four arms: with real drift 1 → `--check` 0 / `--strict` 1; with `measure()` forced to zero →
+  both 0. ⛔ Deliberately a SEPARATE flag: drift is a NORMAL state (a sandbox-only fix awaiting a
+  ruling has drift ≥ 1 and nothing is wrong), so making `--check` fail would cry wolf.
+* **(c) lint R3 counted one line too many** — `text.count("\n") + 1` counts a phantom final line for
+  any file ending in a newline, so it reported 834 where `wc -l` said 833, making the budget one
+  stricter than the number it prints. ✅ `len(text.splitlines())`; all five current-state files drop
+  by exactly 1, none changes pass/fail, and the boundary still discriminates (900 quiet, 901 RED).
+* **(e) Three gates hardcoded `sandbox-pokebot`** so a defect in the fork that SHIPS was invisible.
+  ✅ `--build sandbox|custom` added to `repro_undefined_names`, `repro_no_silent_except`,
+  `repro_roster_reorder`. ‼ **Proved the switch is not a no-op**: `--build sandbox` reports 153
+  offender paths under `sandbox-pokebot` and 0 under custom; `--build custom` the exact mirror.
+  Two of them also stopped tracebacking on a missing fork and now REFUSE loudly.
+* **(b) lint R1/R2 fired inside FENCED CODE BLOCKS** — a doc showing "what not to do" in a fence
+  tripped its own rule, and the natural way to make it green is to delete the example. ✅ Fences are
+  blanked before R1/R2 scan, **line count preserved** so R3 and the `--show` line numbers are
+  unaffected. Fault-tested 5 ways: real `## HISTORY` fires, a fenced one does not; a real second
+  banner fires, a fenced one does not; a clean doc stays quiet.
+
+### FILED, NOT RUSHED
+**(f)** `repro_ki65_unbound_party_index.py` still tests only the UNBOUND read; KI-65's documented
+residual — a legitimately-bound `party_index = -1`, i.e. the LAST party member, a wrong-mon rather
+than an exception — is untested. ⛔ Not attempted here: that gate is 573 lines, boots a ROM, and
+orchestrates its arms as subprocesses, so ARM C is a real emulator drive with its own verification,
+not a quick addition. Rushing it at the end of a long session is how unverified changes ship.
+
+**Suite: 30 gates = 28 ENFORCING + 2 ADVISORY, all green. Drift unchanged at 1 (`early_game.py`,
+sandbox only) — the promotion decision is still the USER's and nothing was promoted.**
+
+### ‼ ADDENDUM, same day — (b)'s FIRST version introduced the blind spot it was removing
+
+Attacking my own fence-blanking before the review returned: **an UNCLOSED fence blanked everything
+after it**, so a single stray ``` would silently switch R1/R2 off for the rest of a document. A real
+`## HISTORY` heading placed after one went from FOUND to MISSED — i.e. the fix for a false positive
+had created a false NEGATIVE, which is strictly the worse direction for a gate.
+✅ **Hardened, and the rule it encodes is the general one: FAIL TOWARD CATCHING.** If the fence never
+closes the document is malformed, so the text is scanned UNBLANKED — a gate may cry wolf, but it may
+never go quiet. Also: `~~~` fences are now recognised (they previously left a false positive), and a
+fence closes only with its OWN marker, so `~~~` inside a ``` block does not end it.
+**Re-tested 5 edge cases, all correct, line count preserved throughout:** unclosed fence → real
+heading still found; tilde fence → its example hidden; closed fence → hidden; no fences → found;
+tilde inside a backtick fence → hidden.
+‼ *Worth naming: this is the second time in one session that a fix I wrote to remove one failure
+mode introduced the opposite one. Both were caught by attacking my own change before shipping it,
+not by reasoning about it.*

@@ -36,12 +36,26 @@ Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 repro_no_silent_except.py
 
 from __future__ import annotations
 
+import argparse
 import ast
 import pathlib
+import re
 import sys
 
+# ‼ `--build` — added 2026-08-23 (`#24-p4residuals` (e)). This gate hardcoded
+# `sandbox-pokebot`, so the identical defect landing in `custom-pokebot` — THE FORK THAT
+# SHIPS — was invisible to it. Default stays `sandbox` so nothing about the standing suite
+# changes; `--build custom` is for verifying a promotion. Idiom copied from
+# `repro_pid_identity_key.py`, which already had it.
+# ⚠ THE BASELINES BELOW WERE MEASURED AGAINST **sandbox**. `--build custom` will report
+# different counts and may go red — that is the point of looking, not a broken gate.
+_ap = argparse.ArgumentParser(add_help=True)
+_ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"],
+                 help="which fork to test (default sandbox; use custom to verify a promotion)")
+_ARGS, _ = _ap.parse_known_args()
+
 REPO = pathlib.Path(__file__).resolve().parents[2]
-BUILD = REPO / "sandbox-pokebot"
+BUILD = REPO / f"{_ARGS.build}-pokebot"
 
 SCAN = [
     BUILD / "modules" / "story",
@@ -104,9 +118,67 @@ def handler_is_loud(node: ast.ExceptHandler, src_lines: list[str]) -> tuple[bool
         for token in ("noqa:", "BLE001", "noqa"):
             prose = prose.replace(token, "")
         # require real prose, not a bare suppression code
-        if len(prose.strip()) >= 12:
+        if len(prose.strip()) >= 12 and not _DISMISSIVE_RE.search(prose):
             return True, "justified by comment"
     return False, "SILENT"
+
+
+#: ‼ A DENYLIST, NOT AN ALLOWLIST — and that choice is MEASURED, not stylistic.
+#: `#24-p4residuals` (d): the comment escape accepted ANY prose of 12+ characters, so
+#: `# whatever man just move on` laundered a genuinely silent handler.
+#: ⛔ THE OBVIOUS FIX — require a keyword like `expected`/`deliberate`/`report` — WAS REFUTED BY
+#: MEASUREMENT before it shipped. All 60 handlers currently justified by comment were read: **0 are
+#: filler, 60 are genuine**, because this codebase justifies in DOMAIN PROSE ("an unreadable map
+#: must never end the fight"), not in keywords. An allowlist newly failed 43 of them — every one a
+#: false positive — including `early_game.py`'s KI-81 abort guard, which literally re-raises, and
+#: seven sites whose `reraise_if_aborting(error)` is a CONDITIONAL re-raise the AST cannot see. It
+#: also broke the ratchet on all four roots (148 -> 191). A permanently-red check gets switched off,
+#: which is the exact failure this file's own header was written to avoid.
+#: ⇒ Invert it: keep the length test and reject only comments that are DISMISSIVE. Measured effect:
+#: **0 of the 60 newly fail**, the ratchet is unchanged, and the motivating hole is closed.
+_DISMISSIVE_RE = re.compile(
+    r"\b(todo|fixme|xxx|hack|whatever|idk|shrug)\b"
+    r"|\bwho\s+cares\b|\bno\s+idea\b|\bmove\s+along\b"
+    r"|\bdon'?t\s+care\b|\bjust\s+move\s+on\b|\?\?\?",
+    re.I,
+)
+
+
+if "--self-test" in sys.argv:
+    # ‼ PROVE THE COMMENT ESCAPE BOTH REJECTS AND ACCEPTS. Added 2026-08-23 with the denylist,
+    # because a gate never seen red is an assumption — and this one nearly shipped as a no-op: an
+    # earlier draft's `\b` word boundaries were eaten by shell escaping and became literal backspace
+    # bytes, so the pattern matched only `???`. It LOOKED correct in the diff. Only running it said
+    # otherwise. ⇒ every predicate ships with the two lists below.
+    _MUST_REJECT = ["# whatever man just move on", "# TODO fix this later", "# hack: ignore this",
+                    "# ???", "# idk why this fails", "# don't care about this one",
+                    "# fixme later", "# move along", "# XXX", "# who cares"]
+    _MUST_KEEP = ["# an unreadable map must never end the fight",
+                  "# Fail CLOSED: an unreadable table must never widen where the bot may walk",
+                  "# telemetry must never break the teach",
+                  "# a probe reports, it does not crash",
+                  "# An unknown/unreadable milestone must never crash detection",
+                  "# a scripted event (the tutorial) interrupted the walk — expected",
+                  # ‼ NEAR-MISSES: real words that CONTAIN a denylisted token. These are why the
+                  # pattern is word-bounded; without `\b` they would be rejected as dismissive.
+                  "# the hackathon build is unaffected",
+                  "# shrugged off by the caller downstream"]
+    _bad = 0
+    print("SELF-TEST — the comment justification escape, both directions")
+    for _s in _MUST_REJECT:
+        if not _DISMISSIVE_RE.search(_s):
+            print(f"  ‼ FAIL accepted a dismissive comment: {_s}")
+            _bad += 1
+    for _s in _MUST_KEEP:
+        if _DISMISSIVE_RE.search(_s):
+            print(f"  ‼ FAIL rejected a GENUINE justification: {_s}")
+            _bad += 1
+    # and the length floor must still reject a bare suppression code
+    if _DISMISSIVE_RE.search("# noqa: BLE001"):
+        print("  ‼ FAIL the denylist fired on a bare suppression code")
+        _bad += 1
+    print(f"  {len(_MUST_REJECT)} reject-cases, {len(_MUST_KEEP)} keep-cases, {_bad} failure(s)")
+    sys.exit(1 if _bad else 0)
 
 
 offenders: list[str] = []

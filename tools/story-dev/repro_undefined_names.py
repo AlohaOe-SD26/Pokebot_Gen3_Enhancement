@@ -27,13 +27,29 @@ has already documented for noisy gates. Our own code is held to ZERO.
 Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 repro_undefined_names.py
 """
 
+import argparse
 import pathlib
 import re
 import subprocess
 import sys
 
+# ‼ `--build` — added 2026-08-23 (`#24-p4residuals` (e)). This gate hardcoded
+# `sandbox-pokebot`, so the identical defect landing in `custom-pokebot` — THE FORK THAT
+# SHIPS — was invisible to it. Default stays `sandbox` so nothing about the standing suite
+# changes; `--build custom` is for verifying a promotion. Idiom copied from
+# `repro_pid_identity_key.py`, which already had it.
+_ap = argparse.ArgumentParser(add_help=True)
+_ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"],
+                 help="which fork to test (default sandbox; use custom to verify a promotion)")
+_ARGS, _ = _ap.parse_known_args()
+
 REPO = pathlib.Path(__file__).resolve().parents[2]
-BUILD = REPO / "sandbox-pokebot"
+BUILD = REPO / f"{_ARGS.build}-pokebot"
+# ‼ REFUSE LOUDLY when the target is absent. This used to hand the missing directory
+# straight to `subprocess` and die with a bare `NotADirectoryError` — failing for the wrong
+# stated reason. Its sibling `repro_no_silent_except.py` already refused explicitly.
+if not BUILD.is_dir():
+    raise SystemExit(f"‼ nothing to scan under {BUILD} — refusing to report success")
 
 #: Our code — the files this project writes. Held to ZERO undefined names.
 OWNED = [

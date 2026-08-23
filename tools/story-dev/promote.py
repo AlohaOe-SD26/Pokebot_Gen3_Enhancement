@@ -93,6 +93,15 @@ def _refuse(reason: str) -> int:
 def main() -> int:
     check_only = "--check" in sys.argv
     go = "--go" in sys.argv
+    # ‼ `--strict` — added 2026-08-23 (`#24-p4residuals` (a)). Four documents call this tool "THE
+    # authority" on fork drift, but `--check` ALWAYS returned 0 (the `check_only or not go` early
+    # return below runs before any refusal), so the drift figure existed only as text a human had to
+    # read. It could not be chained, put in a CI step, or made a gate.
+    # ⛔ DELIBERATELY A SEPARATE FLAG, NOT A CHANGE TO `--check`. Drift is a NORMAL state — a
+    # sandbox-only fix awaiting a promotion ruling has drift ≥ 1 and nothing is wrong. Making plain
+    # `--check` exit non-zero would turn "work is pending the user's decision" into "the build is
+    # broken", which is exactly the cry-wolf shape this project rates worse than no check at all.
+    strict = "--strict" in sys.argv
     tag = None
     if "--restore-point" in sys.argv:
         index = sys.argv.index("--restore-point")
@@ -116,6 +125,15 @@ def main() -> int:
 
     if check_only or not go:
         print("\n  (measure only — nothing was changed. Pass --restore-point <tag> --go to execute.)")
+        if strict:
+            n = len(differing) + len(orphaned)
+            if n:
+                print(f"  ⛔ --strict: {len(differing)} differing + {len(orphaned)} orphaned — exiting 1.")
+                print("     (Drift is not itself an error; --strict is for callers that need a")
+                print("      machine-readable 'the forks are identical' answer.)")
+                print(BAR)
+                return 1
+            print("  ✅ --strict: 0 differing, 0 orphaned.")
         print(BAR)
         return 0
 

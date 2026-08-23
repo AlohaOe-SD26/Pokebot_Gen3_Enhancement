@@ -702,30 +702,53 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ⚠ `story_harness.py:122` is the real driver and probably SHOULD keep profile state — decide it
       explicitly rather than sweeping it. ⇒ Do them in batches, running each after.
 
-- [ ] `#24-p4residuals` — **NEW 2026-08-22 (PASS 4). SEVEN small, independent, verified defects (a)-(g).**
-      *(This header said "Six" while listing seven — caught by a PASS 5 agent the same day.)*
-      **(a)** `promote.py --check` — the doc-declared drift "authority" — **ALWAYS exits 0**
+- [~] `#24-p4residuals` — **SIX OF SEVEN DONE 2026-08-23; only (f) remains.**
+      ✅ **(a) `--strict`, (b) fence-blanking, (c) `splitlines()`, (d) the DENYLIST, (e) `--build`
+      on three gates, (g) proximity-scoped supersede — all shipped, each fault-tested BOTH ways.**
+      ⛔⛔ **TWO OF THEM PROVE THE ITEM'S OWN PROPOSED FIX WAS WRONG, and both were refuted by
+      MEASUREMENT before any code changed:** (d)'s relevance-keyword allowlist would have newly
+      failed **43 genuine handlers** (all 60 comment justifications are real; this codebase justifies
+      in DOMAIN PROSE, not keywords) and broken the ratchet on all four roots; (g)'s span-port
+      inverts the corpus's direction (the drift check needs the marker BEFORE the claim; gate-count
+      retractions here come AFTER the figure) — 1 false positive over 143 commits. See
+      `06-DECISIONS-LOG.md` and `07-CHANGELOG.md`, both 2026-08-23.
+      ⚠ **NO PRODUCTION CODE WAS TOUCHED — drift is unchanged at 1.**
+      *(This header said "Six" while listing seven, then "SEVEN" — both caught by audits the same day.)*
+      ✅ **(a) DONE 2026-08-23 — `--strict` added, proven on all four arms (drift 1 → check 0 /
+      strict 1; forced drift 0 → both 0).** Original: `promote.py --check` — the drift "authority" — **ALWAYS exits 0**
       (`promote.py:117-120` returns 0 before any refusal), so it cannot be chained or gated.
       VERIFIED FROM SOURCE, not from a passing run. ⇒ add `--strict`; ⛔ do NOT make plain `--check`
       exit 1 on drift — drift is a normal state, not an error.
-      **(b)** lint R1/R2 fire on `# HISTORY` and banner text INSIDE fenced code blocks (latent
+      ✅ **(b) DONE 2026-08-23 — fences are blanked before R1/R2 scan, LINE COUNT PRESERVED so R3
+      and `--show` are unaffected; fault-tested 5 ways.** Original: lint R1/R2 fire on `# HISTORY` and banner text INSIDE fenced code blocks (latent
       today). ⇒ strip ``` fences before scanning.
-      **(c)** lint R3 counts `text.count("
+      ✅ **(c) DONE 2026-08-23 — `len(text.splitlines())`; all five files drop by exactly 1, none
+      changes pass/fail, boundary still discriminates (900 quiet / 901 RED).** Original: lint R3 counts `text.count("
 ")+1`, one MORE than `wc -l` for any file ending in a trailing newline.
       ⛔ **NO EXAMPLE FIGURE IS QUOTED HERE — the first draft cited two line counts and both were
       stale within a day.** Re-derive: `wc -l <file>` beside `lint_docs.py`'s budget table.
       Harmless DIRECTION (it over-counts, so the effective limit is one stricter) but the budget
       is off by one. ⇒ `len(text.splitlines())`.
-      **(d)** `repro_no_silent_except.py:107` justifies a silent handler on comment LENGTH
+      ✅ **(d) DONE 2026-08-23 — a DENYLIST, not the proposed allowlist (see the header). Gate still
+      reports exactly 148, per-root 133/4/3/8 unchanged; new `--self-test`, 10 reject + 8 keep
+      cases, fault-tested three ways.** Original: `repro_no_silent_except.py:107` justifies a silent handler on comment LENGTH
       (`>= 12` chars), not relevance — any filler comment launders it.
-      **(e)** `repro_undefined_names.py`, `repro_no_silent_except.py`, `repro_roster_reorder.py`
+      ✅ **(e) DONE 2026-08-23 — `--build sandbox|custom` on all three, PROVEN not a no-op (153
+      offender paths under the selected fork, 0 under the other); two now REFUSE loudly instead
+      of tracebacking on a missing fork.** Original: `repro_undefined_names.py`, `repro_no_silent_except.py`, `repro_roster_reorder.py`
       hardcode `sandbox-pokebot` with no `--build` (only `repro_pid_identity_key.py` has one) ⇒ a
       defect landing in the PROMOTED fork is invisible to all three.
+      ⛔ **(f) IS THE ONLY ONE LEFT — and it is deferred DELIBERATELY.** That gate is 573 lines,
+      boots a ROM and orchestrates its arms as SUBPROCESSES, so ARM C is a real emulator drive
+      with its own verification, not a quick addition. ‼ A gate change that cannot be proven in
+      the same sitting should not ship in that sitting. Evidence intact below.
       **(f)** `repro_ki65_unbound_party_index.py` tests only the UNBOUND read; the documented KI-65
       residual (a legitimately-bound `party_index = -1`, i.e. the LAST party member) is untested and
       REPRODUCES THE LIE when injected (`lie_msg=1`, Loudred consulted instead of Marshtomp).
       ⇒ add ARM C.
-      **(g)** ‼ **`audit_doc_consistency`'s supersede exemption is NEIGHBOURHOOD-BOUND, not
+      ✅ **(g) DONE 2026-08-23 — unit scope KEPT, direction-agnostic PROXIMITY of 120 chars added.
+      Measured over 143 historical commits: 4 TRUE-STALE, 0 FALSE POSITIVES, 0 findings lost, 0 on
+      the live tree; the reinjected `28 gates` defect is now CAUGHT.** Original: `audit_doc_consistency`'s supersede exemption is NEIGHBOURHOOD-BOUND, not
       CLAIM-BOUND — the SAME bug shape already fixed in `check_promotion_prose` on 2026-08-17.**
       ⚠ **ITS EXAMPLE IS NOW UNREPRODUCIBLE — a starter must build a fresh one** (the stale line was
       fixed the same day). The GATE DEFECT is still real: `audit_doc_consistency.py:513` still scopes

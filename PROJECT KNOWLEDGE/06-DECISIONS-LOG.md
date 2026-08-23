@@ -3226,3 +3226,36 @@ routine**, and that ordering is now gate #30 §1, with a fault test that injects
 ⛔ **A rationale that is about to be encoded in a GATE must be proven to the same standard as the
 code the gate guards.** A gate built on a false premise does not merely fail to help — it reports
 PASS with full confidence and makes the error permanent and self-confirming.
+
+## 2026-08-23 — RULINGS from `#24-p4residuals`: two obvious fixes refuted, and why a DENYLIST beat an allowlist
+
+**RULING — the silent-`except` justification test is a DENYLIST, not an allowlist.** The defect was
+real (any 12-character comment laundered a silent handler), but the natural fix — require a
+relevance KEYWORD — was measured first and rejected: all 60 comment-justified handlers are genuine,
+43 would have newly failed, and the ratchet would have broken on all four roots.
+⇒ **The reason is a property of this codebase, and it generalises:** justifications here are written
+as DOMAIN PROSE ("an unreadable map must never end the fight"), not as keywords. **An allowlist
+encodes a house style the house does not have.** A denylist encodes only what is definitely NOT a
+justification, which is a far smaller and far more stable set.
+⛔ Alternatives rejected: *allowlist of reporter-shaped words* (43 false positives); *drop the
+comment escape entirely* (would fail 60 genuine handlers and red the suite permanently).
+
+**RULING — the gate-count supersede exemption stays UNIT-SCOPED, with a proximity bound.** The item
+proposed porting the drift check's SPAN exemption. Measured over 143 historical commits, that port
+produces a false positive and fails 2 of 7 fault cases — **because the drift check requires the
+marker to PRECEDE the claim, and this corpus retracts gate counts AFTER the figure.**
+⇒ ‼ **A fix pattern that works elsewhere in the same file can still be wrong here, and the reason
+can be as invisible as directionality.** "Copy the existing pattern" is good advice that still needs
+measuring. ⇒ Shipped: unit scope + direction-agnostic proximity of **120 characters** (measured safe
+band 40-250; deliberately not the file's `MAXDIST = 250`, which leaves an 8-char margin).
+⛔ Alternatives rejected: *span port* (1 FP, 2 fault failures); *same-line only* (loses a true catch).
+
+**RULING — `promote.py` gets `--strict`; plain `--check` keeps exiting 0.** Drift is a NORMAL state.
+A sandbox-only fix awaiting a promotion ruling has drift ≥ 1 and nothing is wrong, so making
+`--check` non-zero would convert "a decision is pending" into "the build is broken" — the cry-wolf
+shape this project rates worse than no check. `--strict` serves callers that need a machine-readable
+"the forks are identical".
+
+**RULING — (f) is deferred deliberately, not forgotten.** Adding KI-65's ARM C means a real emulator
+drive inside a 573-line gate that orchestrates arms as subprocesses. ⇒ **A gate change that cannot be
+proven in the same sitting should not ship in that sitting.** Filed with its evidence intact.
