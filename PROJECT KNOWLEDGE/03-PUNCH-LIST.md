@@ -581,7 +581,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ⚠ **AND SCOPE IT:** grade only CURRENT-STATE files (00-05, 24). `07`/`08`/`28`/`31` are
       append-only history where a stale count is CORRECT.
 
-### ‼ `#24-abortrecoveryresiduals` — TWO residuals an adversarial review found in `#24-loopheadabort` (filed 2026-08-23)
+### ‼ `#24-abortrecoveryresiduals` — **MIXED: (a) OPEN · (b) ✅ DONE 2026-08-23 · (c) OPEN** — originally TWO residuals an adversarial review found in `#24-loopheadabort` (filed 2026-08-23); **(c) was added 2026-08-23** by this session's own re-derivation, NOT by that review
 
 - [ ] **(a) MEDIUM-HIGH — A SECOND WHITEOUT MID-RECOVERY IS NOW FATAL WHERE IT PREVIOUSLY SELF-HEALED.**
       Now that `exit_building_after_whiteout()` carries a head check, a whiteout landing WHILE the
@@ -600,7 +600,24 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       (`:2606`) and the exit walk, i.e. inside a Poké Center immediately after respawn with a healed
       team, where no wild battle can start. Assess that before deciding it is urgent.
 
-- [ ] **(b) LOW-MEDIUM — five existing handlers became abort-SWALLOWERS, and the ratchet is blind to it.**
+- [x] **✅ (b) DONE 2026-08-23 — the 5 sites I created are GUARDED; swallowing functions 11 → 7,
+      and the 7 that remain are byte-for-byte the PRE-EXISTING set (filed as (c) below).**
+      ‼ **RE-DERIVED FIRST, and the item's "five" was scope, not error:** a broad AST pass (handler
+      whose TRY BODY can transitively reach `_check_abort`, neither re-raising nor calling
+      `reraise_if_aborting`) finds **13 sites in 11 functions**. Re-running it against `823cfa46` —
+      the commit BEFORE `#24-loopheadabort` — gives **8 sites in 7 functions**. ‼ **STATE THE UNIT:**
+      an earlier draft of this line said only "gives 7", which reads as 13 → 7 (a drop of 6) when the
+      true drops are **13 → 8 SITES** and **11 → 7 FUNCTIONS**. ⇒ **4 functions / 5 sites are MINE**
+      (`deliver_devon_goods_to_stern` ×2, `do_mauville_gym`, `get_rock_smash_hm`,
+      `do_weather_institute`), exactly the five the review named; the other 7 predate me.
+      ✅ **FIX: `except BotModeError as error:` + `reraise_if_aborting(error)` first.** Safe by
+      construction — the guard is LATCH-KEYED. Proven two-armed on the real function: **latch CLEAR →
+      SWALLOWED (behaviour unchanged); latch SET → RE-RAISED.**
+      ✅ **RATCHET TURNED WITH THE CONTROL ARM IT DEMANDS:** `probe_abort_swallowing.py` fell 36 → 31;
+      stripping exactly those 5 guards restores **36**. Baseline is now `{"sandbox": 31,
+      "custom": 36}`. ⛔ **ON PROMOTION, LOWER custom TO 31 IN THE SAME COMMIT** or the ratchet
+      silently re-permits 5 sites of debt in the fork that ships.
+      Original text follows. **(b) LOW-MEDIUM — five existing handlers became abort-SWALLOWERS, and the ratchet is blind to it.**
       `_enter_warp_by_navigation` can now raise `StoryAbort`, which converts five previously
       unreachable `except` sites into reachable swallow points: `early_game.py:3765`, `:3777`,
       `:3943`, `:5187`, `:6347` — none calls `reraise_if_aborting`.
@@ -614,6 +631,18 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       the kind of accidental correctness this project has been bitten by before.
       ⇒ Add `reraise_if_aborting(error)` as the first line of those five handlers, then re-baseline
       the probe deliberately.
+
+- [ ] **(c) SEVEN PRE-EXISTING abort-swallowing handlers — NOT created by `#24-loopheadabort`.**
+      Measured 2026-08-23 by the same AST criterion as (b), against `823cfa46`: these were already
+      reachable by a `StoryAbort` before that fix, so they are inherited debt, not new.
+      `_talk_to_wandering_npc`, `sail_to_slateport`, `fight_route119_rival_and_get_fly`,
+      `get_devon_scope` (×2 handlers), `open_magma_hideout_entrance`, `do_magma_hideout`,
+      `_aqua_challenge_matt`.
+      ⇒ The fix is the same one-line guard as (b) and is SAFE BY CONSTRUCTION (`reraise_if_aborting`
+      is latch-keyed: with no whiteout pending it does nothing). ⚠ But do it as its OWN item with its
+      OWN control arm — folding it into (b) would have made the ratchet drop unattributable to any
+      single change, which is the misattribution this probe's own message warns about.
+      ⚠ **RE-DERIVE THE LIST BEFORE STARTING** — function names are stable, line numbers are not.
 
 ### ‼ `#24-brokenrepros` — FIVE `repro_*` SCRIPTS ARE BROKEN, NOT "ENVIRONMENTAL" (filed 2026-08-23, PASS 5)
 

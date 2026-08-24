@@ -1,0 +1,28 @@
+EVIDENCE — #24-abortrecoveryresiduals (b): the remaining swallowers ARE the pre-existing set
+Generated 2026-08-23. Criterion: handler catching BotModeError/Exception/bare, whose TRY BODY
+can TRANSITIVELY reach _check_abort, and which neither re-raises nor calls reraise_if_aborting.
+‼ Identity comparison, not a count comparison — a count that nets to zero reads TRUE when nothing
+  happened (session-discipline rule 3). Function NAMES match one-for-one below.
+
+############ BEFORE (823cfa46 = the commit before #24-loopheadabort) ############
+  SITES: 8   FUNCTIONS: 7
+     _aqua_challenge_matt  (lines 8904)
+     _talk_to_wandering_npc  (lines 2923)
+     do_magma_hideout  (lines 7562)
+     fight_route119_rival_and_get_fly  (lines 6432)
+     get_devon_scope  (lines 6563, 6514)
+     open_magma_hideout_entrance  (lines 7175)
+     sail_to_slateport  (lines 3487)
+
+############ AFTER (working tree, the 5 guards applied) ############
+  SITES: 8   FUNCTIONS: 7
+     _aqua_challenge_matt  (lines 8946)
+     _talk_to_wandering_npc  (lines 2933)
+     do_magma_hideout  (lines 7604)
+     fight_route119_rival_and_get_fly  (lines 6474)
+     get_devon_scope  (lines 6605, 6556)
+     open_magma_hideout_entrance  (lines 7217)
+     sail_to_slateport  (lines 3501)
+
+=> 8 sites / 7 functions BOTH SIDES, same names. The 5 sites I added are gone; I introduced NO
+   new swallower and REMOVED none of the pre-existing ones (they are filed as sub-item (c)).

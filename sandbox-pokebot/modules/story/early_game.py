@@ -3770,7 +3770,12 @@ def deliver_devon_goods_to_stern() -> Generator:
                 tries=3,
                 label="Museum 2F stairs down",
             )
-        except BotModeError:
+        except BotModeError as error:
+            # ‼ `#24-abortrecoveryresiduals` (b). This fallback used to swallow a whiteout unwind. It was
+            # correct only BY ACCIDENT — the call below happens to re-raise — and accidental correctness is
+            # what this project's KI-67/KI-81 family is made of. `reraise_if_aborting` is LATCH-keyed, so
+            # with no whiteout pending it changes nothing at all.
+            reraise_if_aborting(error)
             yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F, (6, 2))
             yield from _walk_through_warp("Up", M2F)
     if _map_group_number() == M1F:
@@ -3782,7 +3787,12 @@ def deliver_devon_goods_to_stern() -> Generator:
                 tries=3,
                 label="Museum exit",
             )
-        except BotModeError:
+        except BotModeError as error:
+            # ‼ `#24-abortrecoveryresiduals` (b). This fallback used to swallow a whiteout unwind. It was
+            # correct only BY ACCIDENT — the call below happens to re-raise — and accidental correctness is
+            # what this project's KI-67/KI-81 family is made of. `reraise_if_aborting` is LATCH-keyed, so
+            # with no whiteout pending it changes nothing at all.
+            reraise_if_aborting(error)
             yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F, (9, 7))
             yield from _walk_through_warp("Down", M1F)
     yield from wait_until_truly_controllable()
@@ -3945,7 +3955,12 @@ def do_mauville_gym() -> Generator:
                 lambda: _map_group_number() == GYM, MapRSE.MAUVILLE_CITY, MAUVILLE_GYM_DOOR_CITY,
                 tries=4, label="Mauville Gym door",
             )
-        except BotModeError:
+        except BotModeError as error:
+            # ‼ `#24-abortrecoveryresiduals` (b). This fallback used to swallow a whiteout unwind. It was
+            # correct only BY ACCIDENT — the call below happens to re-raise — and accidental correctness is
+            # what this project's KI-67/KI-81 family is made of. `reraise_if_aborting` is LATCH-keyed, so
+            # with no whiteout pending it changes nothing at all.
+            reraise_if_aborting(error)
             yield from _navigate_riding_out(MapRSE.MAUVILLE_CITY, (8, 6))
             yield from _walk_through_warp("Up", MapRSE.MAUVILLE_CITY.value)
         yield from wait_until_truly_controllable()
@@ -5190,7 +5205,12 @@ def get_rock_smash_hm() -> Generator:
                 MapRSE.MAUVILLE_CITY, MAUVILLE_ROCKSMASH_HOUSE_DOOR,
                 tries=4, label="Rock Smash house",
             )
-        except BotModeError:
+        except BotModeError as error:
+            # ‼ `#24-abortrecoveryresiduals` (b). This fallback used to swallow a whiteout unwind. It was
+            # correct only BY ACCIDENT — the call below happens to re-raise — and accidental correctness is
+            # what this project's KI-67/KI-81 family is made of. `reraise_if_aborting` is LATCH-keyed, so
+            # with no whiteout pending it changes nothing at all.
+            reraise_if_aborting(error)
             yield from _navigate_riding_out(MapRSE.MAUVILLE_CITY, (32, 15))
             yield from _walk_through_warp("Up", MapRSE.MAUVILLE_CITY.value)
         yield from wait_until_truly_controllable()
@@ -6345,7 +6365,12 @@ def do_weather_institute() -> Generator:
                     ),
                     MapRSE.ROUTE119, (6, 32), tries=6, label="Weather Institute door",
                 )
-        except BotModeError:
+        except BotModeError as error:
+            # ‼ `#24-abortrecoveryresiduals` (b). This fallback used to swallow a whiteout unwind. It was
+            # correct only BY ACCIDENT — the call below happens to re-raise — and accidental correctness is
+            # what this project's KI-67/KI-81 family is made of. `reraise_if_aborting` is LATCH-keyed, so
+            # with no whiteout pending it changes nothing at all.
+            reraise_if_aborting(error)
             yield from _ride_out_scripted_scene("B")
         frames += 200
         if frames > 80000:

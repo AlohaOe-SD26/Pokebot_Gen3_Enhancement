@@ -207,7 +207,15 @@ def self_test() -> int:
 #: regression — a cold-start audit ran it, got a red FAIL, and had nothing telling it that custom is
 #: EXPECTED to be higher. ⛔ A gate that fails for an expected reason is one people learn to ignore.
 #: ⇒ when the `#24-abortswallow` guards are promoted, custom's figure becomes sandbox's; lower it then.
-_BASELINES = {"sandbox": 36, "custom": 36}  # measured 2026-08-17
+#: ‼ THE FORKS NOW DIFFER ON PURPOSE, and that is why these are per-build.
+#: sandbox 36 -> 31 on 2026-08-23 (`#24-abortrecoveryresiduals` (b)): five handlers that the
+#: `#24-loopheadabort` fix had turned into reachable abort-swallowers were guarded with
+#: `reraise_if_aborting(error)`. custom stays 36 because that fix is NOT promoted — drift is 1 and
+#: the promotion decision is the USER's.
+#: ⛔ CAUSATION PROVEN WITH A CONTROL ARM, because this file's own message demands it (a
+#: misattribution on 2026-08-17 is why): stripping exactly those 5 guards and re-running gives
+#: **36**; with them, **31**. The drop is the guards, not an unrelated cleanup.
+_BASELINES = {"sandbox": 31, "custom": 36}  # sandbox re-measured 2026-08-23; custom 2026-08-17
 # ‼ custom went 44 -> 36 when the `#24-abortswallow` guards were PROMOTED (2026-08-17,
 # user-approved). ⛔ The attribution is not a guess: this probe's own warning is "do NOT claim the
 # drop was caused by your change without an arm that removes it", and that arm EXISTS and is

@@ -636,10 +636,18 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 - **Symptom:** bundle `20260727-063751`, P3 run 1: `state=3 controllable=False`, position
   frozen at **ROUTE 119(32,1) (10,10)**, for **27 million frames / ~6.5 h** — and **not one
   STUCK dump fired in that entire stretch**, so the no-progress watchdog never saw it.
-- **Last known stack:** `do_weather_institute` (`early_game.py:6282`) → `_ride_out_all_scenes`
-  (defined `early_game.py:436`; the TWO call sites inside that function are `:6309` and `:6327`).
+- **Last known stack:** `do_weather_institute` (`early_game.py:6302`) → its TWO calls to
+  `_ride_out_all_scenes` (`early_game.py:437`), which sit at `do_weather_institute`
+  `early_game.py:6358` and `early_game.py:6381`.
   ‼ *Re-derived from source 2026-08-16 — it read `:5548`, which is unrelated prose in another
   function. ⛔ NOTE THE UNIT: a stack line wants the CALL SITE, not the def.*
+  ⛔⛔ **AND ON 2026-08-23 A TIER 1 REVIEWER CAUGHT THIS LINE BREAKING ITS OWN RULE, ONE SENTENCE
+  LATER.** Three of its four numbers were wrong: `:6302` is the `def` line offered as a stack frame;
+  `:6309` is DOCSTRING PROSE; `:6327` is an unrelated `_enter_warp_by_navigation(...)`; and the def
+  was cited as `:436` when it is `:437`. Cause: the citation was "re-pointed" by bumping the outer
+  number for line drift **without re-deriving the inner ones** — which is not re-derivation, it is
+  a guess wearing its clothes. ⇒ **Re-point a citation by RE-PARSING for the symbol (AST), never by
+  offsetting the old number.** All four numbers above are now AST-derived.
 - **Partially mitigated 2026-07-27:** `_run_with_frame_budget()` now bounds the *run*
   (`story_mode.py:2866`), so the lane derails and the batch continues. **This truncates the
   symptom; it does not fix the hang, and it does not explain why the watchdog was silent.**
@@ -2464,7 +2472,7 @@ CURRENT-STATE file. ‼ **Keep only what later work leans on:** the proof was th
 clock; and the archived text's real value is its harness DESIGN NOTES (the four parts a driver
 must mirror, and **why half a mirror is worse than none**). ⚠ Still open there: swallow sites
 in `early_game.py` that should get the same one-line abort-aware guard, **enforced by an assert
-rather than by prose**. ‼ **The count was `44` on custom / `36` on sandbox when MEASURED 2026-08-16 (`probe_abort_swallowing.py`, KI-81); ⛔ SINCE THE 2026-08-17 PROMOTION IT IS `36` ON BOTH FORKS** — ⛔ do not quote a figure from here, run the probe — ⛔ *this line read "~48", an ESTIMATE from before the probe existed, and it sat
+rather than by prose**. ‼ **The count was `44` on custom / `36` on sandbox when MEASURED 2026-08-16 (`probe_abort_swallowing.py`, KI-81); ⛔ THE LIVE BASELINES ARE KI-81's TO STATE AND THEY NOW DIFFER PER FORK — see KI-81's header. This entry must not carry a live figure at all: its own header says the swallow residual `is NOT KI-67's`.** — ⛔ do not quote a figure from here, run the probe — ⛔ *this line read "~48", an ESTIMATE from before the probe existed, and it sat
 beside the measured 44 with nothing saying which was which.* **Re-run the probe; do not trust either
 number in prose** — it is the only thing that counts them.
 
@@ -2799,7 +2807,18 @@ Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans 
   discards the value. **Tracked as `#24-orphans` item (1)**;
   its instrumentation half is specified, but *how* production should react needs the USER's ruling.
 
-## KI-81 — KI-67's fix was applied to TWO chapters and the CLASS was never swept (2026-08-16, MEASURED by probe). ✅ **8 SITES FIXED AND PROMOTED TO BOTH FORKS** — the PC/heal path and the site that proved the sweep was incomplete. ⛔ **STILL OPEN: 36 candidates remain** (ALL in `early_game.py`), and ✅ **THE PROBE IS NOW GATE #27 — a RATCHET at baseline **36 on BOTH forks** — custom went 44 -> 36 when the guards were PROMOTED 2026-08-17 (user-approved) and the baseline was lowered to lock the gain in**; ‼ ~64% of the original 45 were MEASURED not to be this defect, which is WHY it is a ratchet and not a zero-threshold
+## KI-81 — KI-67's fix was applied to TWO chapters and the CLASS was never swept (2026-08-16, MEASURED by probe). ✅ **8 SITES FIXED AND PROMOTED TO BOTH FORKS** — the PC/heal path and the site that proved the sweep was incomplete. ⛔ **STILL OPEN: candidates remain (ALL in `early_game.py`) — and THE COUNT IS PER-FORK: `31` sandbox / `36` custom**, and ✅ **THE PROBE IS NOW GATE #27 — a RATCHET whose baselines ⛔ **DIFFER PER FORK SINCE 2026-08-23: `{sandbox: 31, custom: 36}`** (they were 36 on both between 2026-08-17 and 2026-08-23; custom had gone 44 -> 36 when the guards were PROMOTED 2026-08-17, user-approved, and the baseline was lowered to lock the gain in)**; ‼ ~64% of the original 45 were MEASURED not to be this defect, which is WHY it is a ratchet and not a zero-threshold
+
+**2026-08-23 — the baselines SPLIT (this entry's newest dated line; it is the body half of
+the per-fork clause in the header above).** `#24-abortrecoveryresiduals` (b) guarded the 5
+sandbox sites that `#24-loopheadabort` had newly exposed, so sandbox measures **31** and custom
+stays **36** because that fix is NOT promoted (drift 1). ⛔ **ON PROMOTION, LOWER custom
+36 -> 31 IN THE SAME COMMIT** — otherwise the ratchet silently re-permits 5 sites of debt in
+the fork that ships. ‼ Control-armed, not assumed: stripping exactly those 5 guards restores 36.
+⛔ **A TIER 1 REVIEWER CAUGHT THIS PARAGRAPH FILED UNDER KI-79** — it had been inserted directly
+ABOVE the `## KI-81` header, so by this file's own `##` convention it read as KI-79's trailing
+text and a reader opening KI-81 would never have seen it. ⇒ **Anchoring an insert on a header
+string puts it BEFORE that header. Verify WHERE a fix landed, not merely THAT it landed.**
 
 `StoryAbort` is a `BotModeError`, which is an `Exception` (`_interface.py:229`) ⇒ **every**
 `except Exception:` and `except BotModeError:` catches a whiteout. KI-67 found this and fixed the

@@ -3259,3 +3259,28 @@ shape this project rates worse than no check. `--strict` serves callers that nee
 **RULING — (f) is deferred deliberately, not forgotten.** Adding KI-65's ARM C means a real emulator
 drive inside a 573-line gate that orchestrates arms as subprocesses. ⇒ **A gate change that cannot be
 proven in the same sitting should not ship in that sitting.** Filed with its evidence intact.
+
+## 2026-08-23 — RULING: the abort-swallow ratchet now carries DIFFERENT baselines per fork
+
+`probe_abort_swallowing.py`'s baselines are `{"sandbox": 31, "custom": 36}`. They used to be equal.
+**Decision: let them diverge, and treat that divergence as information rather than as a defect.**
+The `#24-loopheadabort` fix and its (b) follow-up live in sandbox only, so sandbox genuinely has 5
+fewer swallowing sites. Forcing both to 36 would hide a real improvement; forcing both to 31 would
+red the suite against a fork that never received the fix.
+⇒ **When the forks legitimately differ, a per-fork baseline is the honest instrument.** ⛔ On
+promotion, custom's baseline must be lowered to 31 IN THE SAME COMMIT — otherwise the ratchet
+silently re-permits 5 sites of debt in the fork that ships.
+
+## 2026-08-23 — RULING: fix the debt you CREATED; file the debt you INHERITED
+
+Re-deriving (b)'s population found 13 swallowing sites where the item named 5. Rather than fix all
+13 or trust the 5, both populations were computed — against the commit before the loop-head fix —
+and separated: **4 functions created by that change, 7 pre-existing.**
+**Decision: fix the 4, file the 7 as (c).**
+⛔ Rejected — *fix all 13 while I am in the file*: it would misattribute 7 pre-existing defects to
+this change, inflate the commit, and (worse) make the ratchet drop unexplainable by any single arm.
+⛔ Rejected — *fix only the 5 the item named, without re-deriving*: right by luck, and it would have
+left me unable to say whether the number was complete.
+⇒ **A count is only comparable against the criterion that produced it.** Where a reported figure and
+a re-derived one differ, compute BOTH and report which is which — the gap is usually a scope
+difference, not an error, and the scope is the useful part.

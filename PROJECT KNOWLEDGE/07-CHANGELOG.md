@@ -17640,3 +17640,51 @@ tilde inside a backtick fence → hidden.
 ‼ *Worth naming: this is the second time in one session that a fix I wrote to remove one failure
 mode introduced the opposite one. Both were caught by attacking my own change before shipping it,
 not by reasoning about it.*
+
+## 2026-08-23 — `#24-abortrecoveryresiduals` (b): my own abort-swallowing debt cleared, 11 → 7, with a CONTROL ARM
+
+The `#24-loopheadabort` fix made `_enter_warp_by_navigation` (and 16 other loops) able to raise
+`StoryAbort`, which turned previously-unreachable `except BotModeError:` fallbacks into reachable
+**abort swallowers**. This closes the debt that change created — and only that debt.
+
+### ‼ THE ITEM SAID "FIVE SITES". RE-DERIVING FOUND 13 — AND THE DIFFERENCE MATTERS
+A fresh AST pass (a broad handler whose TRY BODY can transitively reach `_check_abort`, and which
+neither re-raises nor calls `reraise_if_aborting`) found **13 sites in 11 functions**, not 5. That is
+not a contradiction — it is a WIDER criterion. Separating the two populations by re-running the same
+analysis against `823cfa46`, the commit **before** the loop-head fix:
+* **BEFORE: 7 swallowing functions.  AFTER the loop-head fix: 11.**
+* ⇒ **4 functions (5 handler sites) are debt I CREATED** — `deliver_devon_goods_to_stern` (×2),
+  `do_mauville_gym`, `get_rock_smash_hm`, `do_weather_institute`. These are exactly the five the
+  adversarial review named; the re-derivation confirms it independently.
+* ⇒ **7 functions are PRE-EXISTING** and are not mine. Filed as (c) rather than swept in silently.
+‼ **A count is only comparable against the criterion that produced it.** Fixing "13" would have
+misattributed 7 pre-existing defects to this change; fixing "5" without checking would have been
+right by luck. The honest move was to compute both and say which is which.
+
+### THE FIX, AND WHY IT IS SAFE BY CONSTRUCTION
+`except BotModeError:` → `except BotModeError as error:` + `reraise_if_aborting(error)` as the first
+statement, at the five sites. ‼ **`reraise_if_aborting` is LATCH-KEYED**, so with no whiteout pending
+it does nothing at all. Proven two-armed on the real function:
+* **latch CLEAR (an ordinary nav failure): SWALLOWED → the fallback runs. Behaviour UNCHANGED.**
+* **latch SET (a whiteout unwind): RE-RAISED.**
+⇒ the only behaviour that changes is during a whiteout, which is precisely when it should.
+‼ Worth naming why these needed fixing at all: all five were correct **BY ACCIDENT** — each
+immediately calls `_navigate_riding_out`, whose own head check re-raises, so the abort escaped
+incidentally. **Accidental correctness is what the KI-67/KI-81 family is made of.**
+
+### ✅ RESULT, MEASURED
+Swallowing functions **11 → 7**, and the 7 remaining are **byte-for-byte the pre-loop-head-fix set**
+— i.e. my change now introduces **zero** abort-swallowing debt. Verified: `did I introduce any NEW
+swallower? none`.
+
+### ⛔ THE RATCHET WAS TURNED WITH THE CONTROL ARM IT DEMANDS
+`probe_abort_swallowing.py` fell 36 → 31 and printed its own warning: *"do NOT claim the drop was
+caused by your change without an arm that removes it — that exact misattribution happened
+2026-08-17."* So I built the arm: stripping exactly those 5 guards from a scratch copy and re-running
+gives **36**; with them, **31**. ⇒ the drop IS the guards.
+✅ Baseline lowered **for sandbox only: `{"sandbox": 31, "custom": 36}`.** custom stays 36 because the
+loop-head fix is NOT promoted — the per-build split now records the drift honestly instead of
+averaging it away.
+
+⚠ Drift remains **1 file** (`early_game.py`, sandbox only) — no new file diverged, and the promotion
+decision is still the USER's. One doc citation re-pointed after the inserted lines moved a `def`.

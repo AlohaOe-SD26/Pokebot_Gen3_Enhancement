@@ -8935,3 +8935,39 @@ edit as invalidating that review. ‼ **Never continue working on the reviewed f
 is in flight** — the finding that comes back will be about code you have already replaced.
 ✅ Cheap enforcement: have the reviewer state the `git diff` hash it reviewed, and compare before
 acting on its verdict.
+
+## 2026-08-23 — `#24-abortrecoveryresiduals` (b): THREE Tier 1 rounds on ONE item's docs, and the fix for round 1 was itself wrong TWICE
+
+**Symptom.** The code fix was right first time and never changed. Its *documentation* failed review
+twice, and the second failure was inside the fix for the first.
+
+**Root cause 1 — "re-pointing" a citation is not re-deriving it.** KI-27's stack line was updated for
+line drift by bumping the outer number `6282 -> 6302`. Three of its four numbers were then wrong:
+`:6302` is the `def` line offered as a stack frame, `:6309` is DOCSTRING PROSE, `:6327` is an
+unrelated call, and the def was cited `:436` when it is `:437` — all one sentence above that entry's
+own rule *"a stack line wants the CALL SITE, not the def."*
+✅ **Prevention: re-point a citation by RE-PARSING for the symbol (AST), never by offsetting the old
+number.** An offset assumes the only thing that changed is position; that is the assumption under test.
+
+**Root cause 2 — an insert anchored on a header string lands BEFORE that header.** The dated body line
+written for KI-81 was inserted by matching `"## KI-81 — ..."` and prepending. By this file's own `##`
+convention it then belonged to **KI-79**; a reader opening KI-81 would never have seen it. Tier 0
+passed (the text existed and was consistent). Round 1 never looked. **Round 2 caught it**, and its
+wording is the rule: *"the fix exists somewhere in the file is NOT a pass."*
+✅ **Prevention: after fixing a review finding, VERIFY WHERE IT LANDED — compute the section
+boundaries, do not eyeball proximity.** ‼ This rule ALREADY EXISTED in `CLAUDE.md`'s Tier 2 block from
+a 2026-08-15 incident of identical shape — filed as a lesson about HANDOFFS, so it did not fire while
+editing a KI entry. ⇒ **A rule filed under one artifact does not fire when you are editing another.
+That is the argument for a gate, and `#24-p2headergate` is that gate.**
+
+**Root cause 3 — a MEASURED NUMBER RESTATED IN PROSE IN N PLACES.** Lowering one ratchet
+(`36 -> {sandbox: 31, custom: 36}`) left FOUR stale copies of "36 on both forks", one of them in
+**KI-81's HEADER** — the entry that owns the ratchet, and the half that gets skimmed.
+✅ **Prevention: this is the same defect class `check_gate_counts` already polices for the gate-suite
+count, against a different number. Gate it the same way** (`#24-p2headergate` (B)).
+
+**⛔ THE FINDING THAT MATTERS MOST — NEITHER INSTRUMENT DOMINATES.** The reviewer found prose
+contradictions no gate can parse; the P2 GATE found the KI-81 header the reviewer had passed over.
+Round 3 passed clean only after both had run twice. ⇒ **Do not retire either tier because the other
+is green**, and do not read a clean round as evidence the next one is unnecessary — agreement is not
+a confidence signal, which this project has now measured in two independent domains.
