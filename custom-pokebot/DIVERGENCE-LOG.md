@@ -2004,3 +2004,50 @@ commit (`0b1d8480`) minutes before the copy, with nothing else changing.
 ⛔ **WHAT THIS DOES *NOT* MEAN.** (A) makes production able to READ a failed withdraw; it still does
 not REACT to one — that half needs a heap-offset measurement and a USER ruling (`#24-orphans` (1)).
 (C) changed a comment only: KI-76's two pathfinding defects are still OPEN (`#24-ki76correctness`).
+
+---
+
+## 2026-08-24 — PROMOTED: the whiteout/abort guards. `modules/story/early_game.py`. USER-APPROVED.
+
+**What moved.** One file, `modules/story/early_game.py`, carrying three sandbox rounds:
+* `#24-loopheadabort` — **17** loop-head `_check_abort()` calls, so a nav retry loop aborts at the
+  LOOP HEAD instead of grinding out its full retry budget after a whiteout.
+* `#24-abortrecoveryresiduals` **(b)** — the 5 handlers that fix newly exposed.
+* `#24-abortrecoveryresiduals` **(c)** — the **8** handlers (7 functions) that predate all of it.
+
+**WHY IT MATTERS HERE.** `StoryAbort` is a `BotModeError`, so a broad `except BotModeError:` absorbs
+a whiteout unwind and the bot keeps playing in a state it should have abandoned. Before this,
+**custom — the fork that actually ships — swallowed the unwind in all eight handlers.**
+
+✅ **VERIFIED BY THE THREE-POINT A/B THIS PROJECT REQUIRES, NOT A BYTE-COMPARE.** A byte-compare only
+proves a file was COPIED; these prove the FORK'S BEHAVIOUR moved:
+
+| measurement | custom BEFORE | custom AFTER |
+|---|---|---|
+| AST abort-swallowers (reaches `_check_abort`, neither re-raises nor guards) | **8 sites / 7 functions** | **0 / 0** |
+| `probe_abort_swallowing.py --build custom` | **36** | **23** |
+| guarded handlers / loop-head `_check_abort` | 9 / 67 | **22 / 84** |
+
+✅ **AND A BEHAVIOURAL ARM RUN AGAINST CUSTOM ITSELF** — the module imported explicitly from
+`custom-pokebot/`, not sandbox: latch **CLEAR → exception SWALLOWED, old body runs** (ordinary
+failures behave exactly as before); latch **SET → RE-RAISED** (the unwind escapes).
+✅ Build-aware gates against custom: `repro_undefined_names`, `repro_no_silent_except`,
+`repro_roster_reorder` (all `--build custom`), plus `repro_box_counter_move_test` and
+`repro_pid_identity_key` — all exit 0.
+
+‼ **THE RATCHET WAS TURNED IN THE SAME COMMIT.** `probe_abort_swallowing.py`'s custom baseline
+**36 → 23**; otherwise the gain is unlocked and the ratchet goes slack. The forks are EQUAL again and
+both now read ZERO AST swallowers. ⛔ **Attribution is EARNED, not assumed:** the BEFORE half was
+captured and pushed in its own commit (`8872d71e`) minutes before the copy, with nothing else
+changing — `promote.py` refuses a dirty tree precisely so the diff is the promotion and nothing else.
+
+🔖 **Rollback point:** tag `pre-promote-2026-08-24-abortguards` (pushed).
+📁 **Transcripts, both committed:**
+`tools/story-dev/evidence/2026-08-24-PROMOTION-{BEFORE,AFTER}-custom.stdout.txt`.
+
+⛔ **WHAT THIS DOES *NOT* MEAN.** It does not make a second whiteout *during recovery* survivable —
+that is `#24-abortrecoveryresiduals` (a), which was CLOSED BY ASSESSMENT (reachability VERY LOW; the
+recovery window is spent on maps whose land encounter rate is 0 and `on_whiteout()` cannot fire twice
+on Emerald) and deliberately NOT patched. See `06-DECISIONS-LOG.md` for that ruling and its re-open
+triggers. It also does not change what the bot does when no whiteout is pending: the guard is
+latch-keyed, and the CLEAR arm above is the proof.

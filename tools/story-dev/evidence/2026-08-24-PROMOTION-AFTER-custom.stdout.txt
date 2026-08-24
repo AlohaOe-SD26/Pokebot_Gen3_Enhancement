@@ -1,0 +1,13 @@
+EVIDENCE — AFTER promotion of modules/story/early_game.py (sandbox -> custom), 2026-08-24
+
+### 1. AST abort-swallowers
+   sandbox :   SITES: 0   FUNCTIONS: 0
+   custom  :   SITES: 0   FUNCTIONS: 0
+
+### 2. probe candidate sites
+   sandbox :   CANDIDATE sites: 23
+   custom  :   CANDIDATE sites: 23
+
+### 3. guards / loop-head checks
+   sandbox-pokebot  guards=22  loop-head _check_abort=84
+   custom-pokebot   guards=22  loop-head _check_abort=84

@@ -18018,3 +18018,42 @@ value for a week and then never is the signature of a real behavioural fix; `SUR
 THRESHOLD = 3` is the obvious candidate and is live. ⛔ **Stated as CORRELATION WITH A DATE, NOT
 ATTRIBUTION** — it is a max-across-lanes proxy over varying lane counts. Attributing it needs a
 threshold-disabled A/B on one fixture, which nobody has run.
+
+## 2026-08-24 — PROMOTED the whiteout/abort guards to `custom-pokebot` (USER-APPROVED). Drift 1 → 0.
+
+**The fork that actually ships was swallowing whiteout unwinds in all eight handlers.** `StoryAbort`
+is a `BotModeError`, so a broad `except BotModeError:` absorbs the unwind and the bot keeps playing
+in a state it should have abandoned. One file — `modules/story/early_game.py` — carried three
+sandbox rounds across: `#24-loopheadabort` (17 loop-head `_check_abort()` calls) and
+`#24-abortrecoveryresiduals` **(b)** and **(c)** (13 handlers guarded).
+
+✅ **THE THREE-POINT A/B, NOT A BYTE-COMPARE** — a byte-compare only proves a file was COPIED:
+
+| measurement on **custom** | BEFORE | AFTER |
+|---|---|---|
+| AST abort-swallowers | **8 sites / 7 functions** | **0 / 0** |
+| `probe_abort_swallowing.py --build custom` | **36** | **23** |
+| guarded handlers / loop-head `_check_abort` | 9 / 67 | **22 / 84** |
+
+✅ **Plus a BEHAVIOURAL arm run against custom itself** (module imported explicitly from
+`custom-pokebot/`, not sandbox): latch **CLEAR → swallowed, old body runs**; latch **SET →
+RE-RAISED**. Ordinary failures behave exactly as before; the unwind now escapes.
+✅ Build-aware gates against custom all exit 0, and the full suite is green.
+
+‼ **THE RATCHET WAS TURNED IN THE SAME COMMIT:** custom baseline **36 → 23**. Leaving it at 36 would
+have unlocked the gain and let the debt creep back invisibly.
+‼ **ATTRIBUTION IS EARNED, NOT ASSUMED.** `promote.py` refuses a dirty tree AND a tree that is ahead
+of origin AND a missing restore-point tag — so the BEFORE arm was captured and pushed in its own
+commit (`8872d71e`) with nothing else changing, and the promotion diff is exactly the promotion.
+🔖 Rollback: tag `pre-promote-2026-08-24-abortguards` (pushed).
+
+### ⛔ AND THE DOC GATE IMMEDIATELY CAUGHT TEN STALE DRIFT CLAIMS
+Promoting made `drift = 0`, and `audit_doc_consistency.py` failed with **10 findings** across
+`03-PUNCH-LIST.md` and `04-HANDOFF.md` still asserting `drift is 1` / *"A PROMOTION DECISION IS
+OWED"* — including three inside the handoff's single 14k-character banner line. All fixed, plus four
+now-SATISFIED standing instructions (*"ON PROMOTION, lower custom 36 → 23"*) retired in the same
+change, because an instruction that has already been carried out is worse than no instruction: it
+tells the next agent to redo it.
+⇒ **This is the "one measured number restated in prose in N places" pattern for the fourth time in
+two days.** The number here was `1`. Only the gate found all ten; a reviewer found none of them,
+because they read as ordinary prose.

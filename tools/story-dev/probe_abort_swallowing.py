@@ -215,13 +215,19 @@ def self_test() -> int:
 #: ⛔ CAUSATION PROVEN WITH A CONTROL ARM, because this file's own message demands it (a
 #: misattribution on 2026-08-17 is why): stripping exactly those 5 guards and re-running gives
 #: **36**; with them, **31**. The drop is the guards, not an unrelated cleanup.
-_BASELINES = {"sandbox": 23, "custom": 36}  # sandbox re-measured 2026-08-23 (c); custom 2026-08-17
+_BASELINES = {"sandbox": 23, "custom": 23}  # EQUAL AGAIN 2026-08-24: the guards were PROMOTED
+# ‼ 2026-08-24: custom went 36 -> 23 when `early_game.py` was PROMOTED (user-approved). The forks
+#   are EQUAL again, and both now carry ZERO AST abort-swallowers. Verified by the three-point
+#   A/B this project requires instead of a byte-compare: AST 8 -> 0, probe 36 -> 23, guards
+#   9 -> 22 / loop-head checks 67 -> 84, plus a two-arm latch test loaded from `custom-pokebot`
+#   itself (clear -> swallowed, set -> re-raised). Evidence:
+#   evidence/2026-08-24-PROMOTION-{BEFORE,AFTER}-custom.stdout.txt
 # ‼ sandbox went 31 -> 23 on 2026-08-23 when `#24-abortrecoveryresiduals` (c) guarded the EIGHT
 #   PRE-EXISTING swallow sites (7 functions) that predate `#24-loopheadabort`. CONTROL-ARMED, not
 #   assumed: with those guards removed the probe reads 31, with them present 23, so the drop is
 #   attributable to exactly this change. An AST pass over the file now finds ZERO handlers that
 #   can reach `_check_abort` without re-raising - the class is closed in sandbox.
-#   ⛔ ON PROMOTION, LOWER custom 36 -> 23 IN THE SAME COMMIT.
+#   ✅ DONE 2026-08-24: promoted (user-approved) and custom was lowered 36 -> 23 in the same commit.
 # ‼ custom went 44 -> 36 when the `#24-abortswallow` guards were PROMOTED (2026-08-17,
 # user-approved). ⛔ The attribution is not a guess: this probe's own warning is "do NOT claim the
 # drop was caused by your change without an arm that removes it", and that arm EXISTS and is

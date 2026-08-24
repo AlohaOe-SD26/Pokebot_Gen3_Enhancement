@@ -371,6 +371,7 @@ def exit_building_after_whiteout() -> Generator:
     # fires from a fresh step (navigate_to alone can stop ON the warp without it
     # firing — ML-9). Try both exit columns (7 and 6).
     for above in ((7, 7), (6, 7)):
+        _check_abort()
         if _map_group_number() != cur:
             break
         try:
@@ -1253,6 +1254,7 @@ def _navigate_through_scripts(dest_map, coordinates, *, avoid_encounters: bool =
     dest = dest_map.value if hasattr(dest_map, "value") else dest_map
     rounds = 0
     while _map_group_number() != dest:
+        _check_abort()
         rounds += 1
         if rounds > max_rounds:
             raise BotModeError(f"Could not reach {dest} (too many scripted interruptions).")
@@ -1299,6 +1301,7 @@ def _navigate_leg(dest_map, coordinates, *, avoid_encounters: bool = True, max_r
     dest = dest_map.value if hasattr(dest_map, "value") else dest_map
     rounds = 0
     while _map_group_number() != dest:
+        _check_abort()
         rounds += 1
         if rounds > max_rounds:
             raise BotModeError(f"Stuck trying to reach {dest} (too many interruptions).")
@@ -1512,6 +1515,7 @@ def cross_petalburg_woods() -> Generator:
     woods = MapRSE.PETALBURG_WOODS.value
     rounds = 0
     while _map_group_number() == woods:
+        _check_abort()
         rounds += 1
         if rounds > 15:
             raise BotModeError("Stuck crossing Petalburg Woods (too many scene interruptions).")
@@ -1561,6 +1565,7 @@ def travel_route104_north_to_rustboro() -> Generator:
     rustboro = MapRSE.RUSTBORO_CITY.value
     rounds = 0
     while _map_group_number() != rustboro:
+        _check_abort()
         rounds += 1
         if rounds > 15:
             raise BotModeError("Stuck reaching Rustboro from Route 104 north.")
@@ -1928,6 +1933,7 @@ def _exit_training_cave_if_inside() -> Generator:
     with a hurt trainee). A cheap no-op anywhere that is not in `_CAVE_EXITS`."""
     here = _map_group_number()
     for cave_map, exit_tile in _CAVE_EXITS.items():
+        _check_abort()
         if here == cave_map.value:
             yield from _enter_warp_by_navigation(
                 lambda: _map_group_number() != cave_map.value,
@@ -2398,6 +2404,7 @@ def recover_devon_goods() -> Generator:
     context.message = "Story: leaving the gym — the Devon Goods get stolen…"
     rounds = 0
     while not get_event_flag("DEVON_GOODS_STOLEN"):
+        _check_abort()
         rounds += 1
         if rounds > 20:
             raise BotModeError("The Devon-Goods theft scene (DEVON_GOODS_STOLEN) never fired.")
@@ -2414,6 +2421,7 @@ def recover_devon_goods() -> Generator:
     context.message = "Story: chasing the thief east to Rusturf Tunnel…"
     rounds = 0
     while _map_group_number() != route116:
+        _check_abort()
         rounds += 1
         if rounds > 25:
             raise BotModeError("Could not reach Route 116 to chase the thief.")
@@ -2427,6 +2435,7 @@ def recover_devon_goods() -> Generator:
             yield from _ride_out_scripted_scene("B")
     rounds = 0
     while _map_group_number() == route116:
+        _check_abort()
         rounds += 1
         if rounds > 12:
             raise BotModeError("Could not cross Route 116 to the Rusturf Tunnel door.")
@@ -2601,6 +2610,7 @@ def handle_pokenav_match_call_tutorial() -> Generator:
 
     triggered = False
     for _ in range(10):
+        _check_abort()
         if _tut_active():
             triggered = True
             break
@@ -2920,7 +2930,10 @@ def _talk_to_wandering_npc(
             # walkers make `calculate_path` report "no path" to plainly walkable tiles.
             try:
                 yield from _navigate_riding_out(map_enum, known_spot, tries=3)
-            except BotModeError:
+            except BotModeError as error:
+                reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+                # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+                # absorbed here. This handler predates `#24-loopheadabort`.
                 pass
             if tuple(get_player_avatar().local_coordinates) != tuple(known_spot):
                 yield from _step_to(known_spot)
@@ -3106,6 +3119,7 @@ def sail_to_dewford() -> Generator:
     if _map_group_number() == WOODS:
         rounds = 0
         while _map_group_number() == WOODS:
+            _check_abort()
             rounds += 1
             if rounds > 15:
                 raise BotModeError("Sail: stuck crossing Petalburg Woods southbound.")
@@ -3130,6 +3144,7 @@ def sail_to_dewford() -> Generator:
     #     raise as the warp yanks the map out from under it, so success = the map changed. ---
     if _map_group_number() == ROUTE104:
         for _ in range(10):
+            _check_abort()
             if _map_group_number() != ROUTE104:
                 break
             try:
@@ -3215,6 +3230,7 @@ def _enter_warp_by_navigation(dest_reached, map_enum, door_tile, *, tries: int =
     sight-line, a scene) are ridden out between tries."""
     last_error: BotModeError | None = None
     for _ in range(tries):
+        _check_abort()
         if dest_reached():
             return
         # ‼ ALREADY STANDING ON THE DOOR TILE (ch12_run1, 2026-07-24): a warp fires on
@@ -3308,6 +3324,7 @@ def deliver_stevens_letter() -> Generator:
         both breaks that loop and takes the player's natural ledge-jump shortcut on the
         way out. Bounded."""
         for _hop in range(len(chain) + 4):
+            _check_abort()
             if done_check():
                 return
             cur = _map_group_number()
@@ -3484,7 +3501,10 @@ def sail_to_slateport() -> Generator:
             _check_abort()
             try:
                 yield from _navigate_riding_out(MapRSE.DEWFORD_TOWN, DEWFORD_DOCK_TALK_TILE, tries=3)
-            except BotModeError:
+            except BotModeError as error:
+                reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+                # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+                # absorbed here. This handler predates `#24-loopheadabort`.
                 break
             if tuple(get_player_avatar().local_coordinates) != DEWFORD_DOCK_TALK_TILE:
                 continue
@@ -3545,6 +3565,7 @@ def sail_to_slateport() -> Generator:
     if _map_group_number() == ROUTE109:
         rounds = 0
         while _map_group_number() != SLATEPORT:
+            _check_abort()
             rounds += 1
             if rounds > 20:
                 raise BotModeError("Sail to Slateport: stuck crossing Route 109 into Slateport.")
@@ -3697,6 +3718,7 @@ def deliver_devon_goods_to_stern() -> Generator:
         if _map_group_number() == M1F:
             rounds = 0
             while _map_group_number() == M1F:
+                _check_abort()
                 rounds += 1
                 if rounds > 8:
                     try:
@@ -3754,7 +3776,12 @@ def deliver_devon_goods_to_stern() -> Generator:
                 tries=3,
                 label="Museum 2F stairs down",
             )
-        except BotModeError:
+        except BotModeError as error:
+            # ‼ `#24-abortrecoveryresiduals` (b). This fallback used to swallow a whiteout unwind. It was
+            # correct only BY ACCIDENT — the call below happens to re-raise — and accidental correctness is
+            # what this project's KI-67/KI-81 family is made of. `reraise_if_aborting` is LATCH-keyed, so
+            # with no whiteout pending it changes nothing at all.
+            reraise_if_aborting(error)
             yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_2F, (6, 2))
             yield from _walk_through_warp("Up", M2F)
     if _map_group_number() == M1F:
@@ -3766,7 +3793,12 @@ def deliver_devon_goods_to_stern() -> Generator:
                 tries=3,
                 label="Museum exit",
             )
-        except BotModeError:
+        except BotModeError as error:
+            # ‼ `#24-abortrecoveryresiduals` (b). This fallback used to swallow a whiteout unwind. It was
+            # correct only BY ACCIDENT — the call below happens to re-raise — and accidental correctness is
+            # what this project's KI-67/KI-81 family is made of. `reraise_if_aborting` is LATCH-keyed, so
+            # with no whiteout pending it changes nothing at all.
+            reraise_if_aborting(error)
             yield from _navigate_riding_out(MapRSE.SLATEPORT_CITY_OCEANIC_MUSEUM_1F, (9, 7))
             yield from _walk_through_warp("Down", M1F)
     yield from wait_until_truly_controllable()
@@ -3929,7 +3961,12 @@ def do_mauville_gym() -> Generator:
                 lambda: _map_group_number() == GYM, MapRSE.MAUVILLE_CITY, MAUVILLE_GYM_DOOR_CITY,
                 tries=4, label="Mauville Gym door",
             )
-        except BotModeError:
+        except BotModeError as error:
+            # ‼ `#24-abortrecoveryresiduals` (b). This fallback used to swallow a whiteout unwind. It was
+            # correct only BY ACCIDENT — the call below happens to re-raise — and accidental correctness is
+            # what this project's KI-67/KI-81 family is made of. `reraise_if_aborting` is LATCH-keyed, so
+            # with no whiteout pending it changes nothing at all.
+            reraise_if_aborting(error)
             yield from _navigate_riding_out(MapRSE.MAUVILLE_CITY, (8, 6))
             yield from _walk_through_warp("Up", MapRSE.MAUVILLE_CITY.value)
         yield from wait_until_truly_controllable()
@@ -4252,6 +4289,7 @@ def _exit_small_interior() -> Generator:
         key=lambda t: -t[1],  # bottom-most first (interior exits sit on the south edge)
     )
     for wx, wy in warps:
+        _check_abort()
         if _map_group_number() != cur:
             return
         try:
@@ -5173,7 +5211,12 @@ def get_rock_smash_hm() -> Generator:
                 MapRSE.MAUVILLE_CITY, MAUVILLE_ROCKSMASH_HOUSE_DOOR,
                 tries=4, label="Rock Smash house",
             )
-        except BotModeError:
+        except BotModeError as error:
+            # ‼ `#24-abortrecoveryresiduals` (b). This fallback used to swallow a whiteout unwind. It was
+            # correct only BY ACCIDENT — the call below happens to re-raise — and accidental correctness is
+            # what this project's KI-67/KI-81 family is made of. `reraise_if_aborting` is LATCH-keyed, so
+            # with no whiteout pending it changes nothing at all.
+            reraise_if_aborting(error)
             yield from _navigate_riding_out(MapRSE.MAUVILLE_CITY, (32, 15))
             yield from _walk_through_warp("Up", MapRSE.MAUVILLE_CITY.value)
         yield from wait_until_truly_controllable()
@@ -6328,7 +6371,12 @@ def do_weather_institute() -> Generator:
                     ),
                     MapRSE.ROUTE119, (6, 32), tries=6, label="Weather Institute door",
                 )
-        except BotModeError:
+        except BotModeError as error:
+            # ‼ `#24-abortrecoveryresiduals` (b). This fallback used to swallow a whiteout unwind. It was
+            # correct only BY ACCIDENT — the call below happens to re-raise — and accidental correctness is
+            # what this project's KI-67/KI-81 family is made of. `reraise_if_aborting` is LATCH-keyed, so
+            # with no whiteout pending it changes nothing at all.
+            reraise_if_aborting(error)
             yield from _ride_out_scripted_scene("B")
         frames += 200
         if frames > 80000:
@@ -6429,9 +6477,12 @@ def fight_route119_rival_and_get_fly() -> Generator:
                 ("Up", (25, 31)),   # ← the trigger row; the scene fires mid-hold
             ])
             yield from _ride_out_all_scenes(quiet_frames=300)
-        except BotModeError:
+        except BotModeError as error:
             # The trigger firing mid-step aborts navigation — that IS the encounter
             # starting; ride it.
+            reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+            # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+            # absorbed here. This handler predates `#24-loopheadabort`.
             yield from _ride_out_scripted_scene("B")
             yield from _ride_out_all_scenes(quiet_frames=300)
         frames += 200
@@ -6511,7 +6562,10 @@ def get_devon_scope() -> Generator:
                 # otherwise); raw-B riding declined it in a loop (run 9).
                 yield from _wait_until_cutscene_over("A")
                 yield from _ride_out_all_scenes(quiet_frames=300)
-            except BotModeError:
+            except BotModeError as error:
+                reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+                # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+                # absorbed here. This handler predates `#24-loopheadabort`.
                 yield from _ride_out_scripted_scene("B")
             frames += 300
             if frames > 40000:
@@ -6560,7 +6614,10 @@ def get_devon_scope() -> Generator:
             # the Scope prompt is a YES/NO — choice-aware ride (the run-9 lesson)
             yield from _wait_until_cutscene_over("A")
             yield from _ride_out_all_scenes(quiet_frames=300)
-        except BotModeError:
+        except BotModeError as error:
+            reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+            # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+            # absorbed here. This handler predates `#24-loopheadabort`.
             yield from _ride_out_scripted_scene("B")
         yield from wait_until_truly_controllable()
 
@@ -7173,6 +7230,9 @@ def open_magma_hideout_entrance() -> Generator:
         try:
             yield from _navigate_riding_out(MapRSE.JAGGED_PASS, trigger)
         except BotModeError as error:
+            reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+            # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+            # absorbed here. This handler predates `#24-loopheadabort`.
             tried.append(f"{trigger}: unreachable ({str(error)[:60]})")
             continue
         # The trigger fires ON the step, so control is taken immediately; ride the scene out.
@@ -7560,6 +7620,9 @@ def do_magma_hideout() -> Generator:
         try:
             yield from _navigate_riding_out(MapRSE.MAGMA_HIDEOUT_4F, candidate, tries=4)
         except BotModeError as error:
+            reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+            # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+            # absorbed here. This handler predates `#24-loopheadabort`.
             tried.append(f"{candidate}: {str(error)[:60]}")
             continue
         yield from wait_for_player_avatar_to_be_standing_still()
@@ -8904,6 +8967,9 @@ def _aqua_challenge_matt() -> Generator:
         except BotModeError as error:  # noqa: BLE001 — NOT swallowed: this loop is a deliberate
             # try-every-neighbour search, so one candidate failing is an EXPECTED outcome. Every
             # reason is accumulated into `tried` and raised together if all four fail.
+            reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+            # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+            # absorbed here. This handler predates `#24-loopheadabort`.
             tried.append(f"{candidate}: {str(error)[:60]}")
             continue
         yield from wait_for_player_avatar_to_be_standing_still()

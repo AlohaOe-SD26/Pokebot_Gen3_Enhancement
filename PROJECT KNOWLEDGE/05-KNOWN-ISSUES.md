@@ -2812,7 +2812,8 @@ Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans 
 **2026-08-23 — the baselines SPLIT (this entry's newest dated line; it is the body half of
 the per-fork clause in the header above).** `#24-abortrecoveryresiduals` (b) guarded the 5
 sandbox sites that `#24-loopheadabort` had newly exposed, so sandbox measures **31** and custom
-stays **36** because that fix is NOT promoted (drift 1). ⛔ **ON PROMOTION, LOWER custom
+was **36** until the fix was PROMOTED on 2026-08-24 (user-approved), when it became **23** — the
+forks are EQUAL again and both read ZERO AST abort-swallowers. *(Superseded instruction: ON PROMOTION, LOWER custom
 36 -> 31 IN THE SAME COMMIT** — otherwise the ratchet silently re-permits 5 sites of debt in
 the fork that ships. ‼ Control-armed, not assumed: stripping exactly those 5 guards restores 36.
 ⛔ **A TIER 1 REVIEWER CAUGHT THIS PARAGRAPH FILED UNDER KI-79** — it had been inserted directly

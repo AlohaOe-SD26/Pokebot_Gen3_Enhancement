@@ -498,7 +498,8 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       kept for continuity and reprinted by nothing. Coverage **28/28** by the precise criterion — *a loop is exposed only if it can reach a nav
       primitive WITHOUT passing through a helper that already has a head check* (direct matching says
       26, naive transitive says 44; both are wrong). The fix is inert NOWHERE.
-      ⚠ **DRIFT IS 1 — sandbox only. A PROMOTION DECISION IS OWED (the USER's call).**
+      ✅ **DRIFT IS 0 as of 2026-08-24 — PROMOTED (user-approved); nothing is owed.** custom went
+      8 AST swallowers → 0 and probe 36 → 23; see `custom-pokebot/DIVERGENCE-LOG.md`.
       Original entry follows. `#24-loopheadabort` — **NEW 2026-08-17, found while triaging `#24-abortswallow`. A DIFFERENT
       DEFECT FROM THAT ITEM — do not conflate them.** 13 bounded retry loops in
       `sandbox-pokebot/modules/story/early_game.py` wrap navigation primitives and have **no
@@ -589,8 +590,8 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       that predate it. An AST pass now finds **ZERO** swallowers; guarded handlers 14 → 22; the
       ratchet went 36 → 31 → 23, **control-armed at each step** (strip the guards and it reads back
       up). Two-arm behavioural proof: latch CLEAR → swallowed, unchanged; latch SET → re-raised.
-      ⛔ **ON PROMOTION, LOWER `probe_abort_swallowing.py`'s custom baseline 36 → 23 IN THE SAME
-      COMMIT.**
+      ✅ **DONE 2026-08-24: PROMOTED (user-approved) and the custom baseline WAS lowered 36 → 23 in
+      the same commit. Drift is 0; both forks now read ZERO AST abort-swallowers.**
 - [x] **(a): ASSESSED and CLOSED as VERY LOW — and the finding is that the code was NOT changed.**
       A second whiteout during recovery would be fatal, but it cannot realistically occur: the whole
       window is spent on maps whose land-encounter rate is **0** (all 17 towns + all 32 Poké Center
