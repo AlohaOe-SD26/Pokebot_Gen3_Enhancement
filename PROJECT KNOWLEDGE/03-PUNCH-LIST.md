@@ -632,7 +632,28 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ⇒ Add `reraise_if_aborting(error)` as the first line of those five handlers, then re-baseline
       the probe deliberately.
 
-- [ ] **(c) SEVEN PRE-EXISTING abort-swallowing handlers — NOT created by `#24-loopheadabort`.**
+- [x] **✅ (c) DONE 2026-08-23 — all EIGHT sites in 7 functions guarded; the class is CLOSED in
+      sandbox.** An AST pass over `early_game.py` now finds **ZERO** handlers that can reach
+      `_check_abort` without re-raising (was 8 sites / 7 functions). Guarded handlers 14 → 22.
+      ✅ **CONTROL-ARMED, not assumed:** `probe_abort_swallowing.py` reads **31 with the guards
+      removed and 23 with them present**, so the 8-site drop is attributable to exactly this change.
+      Baseline lowered 31 → 23 for sandbox. ⛔ **ON PROMOTION, LOWER custom 36 → 23 IN THE SAME
+      COMMIT.**
+      ✅ **BEHAVIOURAL TWO-ARM PROOF** on the exact handler shape now present at all 8 sites:
+      latch CLEAR → exception SWALLOWED and the old body runs (ordinary failures behave as before);
+      latch SET → **RE-RAISED**, so a whiteout unwind escapes instead of being absorbed.
+      ‼ **Three of the eight were the "accumulate into `tried` and `continue`" search loops**
+      (`open_magma_hideout_entrance`, `do_magma_hideout`, `_aqua_challenge_matt`). Those are a
+      deliberate try-every-neighbour pattern and were NOT wrong for ordinary failures — but a
+      whiteout was being deferred to "raise if all candidates fail" instead of unwinding at once.
+      ‼ **Five needed `as error` bound first.** Checked before editing that none of those functions
+      already used a variable named `error` — `except X as error:` UNBINDS the name at handler exit
+      and would have deleted it.
+      ⚠ **Accepted semantic change, stated plainly:** while the latch is SET, an unrelated
+      `BotModeError` in these handlers now also propagates instead of being handled. That is the
+      intended fail-safe direction (during a whiteout unwind, stop) and matches the 14 guards that
+      already shipped.
+      Original filing follows. **(c) SEVEN PRE-EXISTING abort-swallowing handlers — NOT created by `#24-loopheadabort`.**
       Measured 2026-08-23 by the same AST criterion as (b), against `823cfa46`: these were already
       reachable by a `StoryAbort` before that fix, so they are inherited debt, not new.
       `_talk_to_wandering_npc`, `sail_to_slateport`, `fight_route119_rival_and_get_fly`,
@@ -3203,7 +3224,7 @@ region, where "train near the gym" is actively wrong.
       cold-start audit, closed 2026-08-22).** The gating was resolved and decomp-verified the same
       day KI-11 was: `early_game.py:3584-3586` documents that the Team Aqua crowd
       (`FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA`) seals the doors until you visit Stern's Shipyard and
-      talk to Dock, and `deliver_devon_goods_to_stern` is built at `early_game.py:3611`. KI-11 is
+      talk to Dock, and `deliver_devon_goods_to_stern` is built at `early_game.py:3617`. KI-11 is
       archived RESOLVED (`31-KNOWN-ISSUES-ARCHIVE.md:1080`). ⛔ It did NOT block Ch8b/Ch9 — that
       clause was false for a month. ‼ **The item's OWN text said "(deliver_devon_goods_to_stern is
       built)" while carrying `[ ]`** — a status contradicted by its own body is the cheapest

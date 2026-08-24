@@ -2930,7 +2930,10 @@ def _talk_to_wandering_npc(
             # walkers make `calculate_path` report "no path" to plainly walkable tiles.
             try:
                 yield from _navigate_riding_out(map_enum, known_spot, tries=3)
-            except BotModeError:
+            except BotModeError as error:
+                reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+                # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+                # absorbed here. This handler predates `#24-loopheadabort`.
                 pass
             if tuple(get_player_avatar().local_coordinates) != tuple(known_spot):
                 yield from _step_to(known_spot)
@@ -3498,7 +3501,10 @@ def sail_to_slateport() -> Generator:
             _check_abort()
             try:
                 yield from _navigate_riding_out(MapRSE.DEWFORD_TOWN, DEWFORD_DOCK_TALK_TILE, tries=3)
-            except BotModeError:
+            except BotModeError as error:
+                reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+                # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+                # absorbed here. This handler predates `#24-loopheadabort`.
                 break
             if tuple(get_player_avatar().local_coordinates) != DEWFORD_DOCK_TALK_TILE:
                 continue
@@ -6471,9 +6477,12 @@ def fight_route119_rival_and_get_fly() -> Generator:
                 ("Up", (25, 31)),   # ← the trigger row; the scene fires mid-hold
             ])
             yield from _ride_out_all_scenes(quiet_frames=300)
-        except BotModeError:
+        except BotModeError as error:
             # The trigger firing mid-step aborts navigation — that IS the encounter
             # starting; ride it.
+            reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+            # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+            # absorbed here. This handler predates `#24-loopheadabort`.
             yield from _ride_out_scripted_scene("B")
             yield from _ride_out_all_scenes(quiet_frames=300)
         frames += 200
@@ -6553,7 +6562,10 @@ def get_devon_scope() -> Generator:
                 # otherwise); raw-B riding declined it in a loop (run 9).
                 yield from _wait_until_cutscene_over("A")
                 yield from _ride_out_all_scenes(quiet_frames=300)
-            except BotModeError:
+            except BotModeError as error:
+                reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+                # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+                # absorbed here. This handler predates `#24-loopheadabort`.
                 yield from _ride_out_scripted_scene("B")
             frames += 300
             if frames > 40000:
@@ -6602,7 +6614,10 @@ def get_devon_scope() -> Generator:
             # the Scope prompt is a YES/NO — choice-aware ride (the run-9 lesson)
             yield from _wait_until_cutscene_over("A")
             yield from _ride_out_all_scenes(quiet_frames=300)
-        except BotModeError:
+        except BotModeError as error:
+            reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+            # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+            # absorbed here. This handler predates `#24-loopheadabort`.
             yield from _ride_out_scripted_scene("B")
         yield from wait_until_truly_controllable()
 
@@ -7215,6 +7230,9 @@ def open_magma_hideout_entrance() -> Generator:
         try:
             yield from _navigate_riding_out(MapRSE.JAGGED_PASS, trigger)
         except BotModeError as error:
+            reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+            # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+            # absorbed here. This handler predates `#24-loopheadabort`.
             tried.append(f"{trigger}: unreachable ({str(error)[:60]})")
             continue
         # The trigger fires ON the step, so control is taken immediately; ride the scene out.
@@ -7602,6 +7620,9 @@ def do_magma_hideout() -> Generator:
         try:
             yield from _navigate_riding_out(MapRSE.MAGMA_HIDEOUT_4F, candidate, tries=4)
         except BotModeError as error:
+            reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+            # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+            # absorbed here. This handler predates `#24-loopheadabort`.
             tried.append(f"{candidate}: {str(error)[:60]}")
             continue
         yield from wait_for_player_avatar_to_be_standing_still()
@@ -8946,6 +8967,9 @@ def _aqua_challenge_matt() -> Generator:
         except BotModeError as error:  # noqa: BLE001 — NOT swallowed: this loop is a deliberate
             # try-every-neighbour search, so one candidate failing is an EXPECTED outcome. Every
             # reason is accumulated into `tried` and raised together if all four fail.
+            reraise_if_aborting(error)  # `#24-abortrecoveryresiduals` (c) — PRE-EXISTING swallower. Latch-keyed:
+            # with no whiteout pending it does nothing; with one, the unwind escapes instead of being
+            # absorbed here. This handler predates `#24-loopheadabort`.
             tried.append(f"{candidate}: {str(error)[:60]}")
             continue
         yield from wait_for_player_avatar_to_be_standing_still()

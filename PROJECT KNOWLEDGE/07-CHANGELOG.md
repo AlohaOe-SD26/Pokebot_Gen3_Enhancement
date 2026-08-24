@@ -17913,3 +17913,41 @@ the opposite. ✅ Rewritten to call the shipped scanner against a fixture placed
 (anywhere else and the scan skips it, which would be vacuous in a new way); both mutants now FAIL.
 ‼ **A test that does not call the thing it names is worse than no test**, because it also stops
 anyone looking.
+
+## 2026-08-23 — `#24-abortrecoveryresiduals` (c): the abort-swallow class is CLOSED in sandbox — 8 sites, 7 functions, ratchet 31 → 23
+
+**This is bot behaviour, not tooling.** A whiteout raises `StoryAbort`, which is a `BotModeError`, so
+every broad `except BotModeError:` in the story code can absorb the unwind and let the bot grind on
+in a state it should have abandoned. `#24-abortswallow` fixed the first batch, `(b)` fixed the five
+my own loop-head change had newly exposed, and **(c) closes the eight that predate all of it**.
+
+`_talk_to_wandering_npc`, `sail_to_slateport`, `fight_route119_rival_and_get_fly`, `get_devon_scope`
+(×2), `open_magma_hideout_entrance`, `do_magma_hideout`, `_aqua_challenge_matt`.
+
+**THE FIX** is the same one-line, latch-keyed guard: `reraise_if_aborting(error)` as the handler's
+first statement. Safe by construction — with no whiteout pending it does nothing at all.
+✅ **Measured, not asserted.** An AST pass (handler whose try-body can transitively reach
+`_check_abort`, neither re-raising nor calling `reraise_if_aborting`) went **8 sites / 7 functions →
+ZERO**. Guarded handlers 14 → 22, exactly +8.
+✅ **CONTROL-ARMED** as the probe's own message demands: with these guards removed it reads **31**,
+with them present **23**. The drop is attributable to this change and nothing else. Baseline lowered
+31 → 23. ⛔ **ON PROMOTION, LOWER custom 36 → 23 IN THE SAME COMMIT.**
+✅ **BEHAVIOURAL TWO-ARM PROOF** on the exact handler shape now at all eight sites: latch CLEAR →
+swallowed, old body runs (ordinary failures unchanged); latch SET → **re-raised**, the unwind escapes.
+
+### TWO THINGS WORTH KNOWING BEFORE TOUCHING THESE HANDLERS AGAIN
+* **Three of the eight are "accumulate into `tried`, then `continue`" search loops** — a deliberate
+  try-every-neighbour pattern that is CORRECT for ordinary failures. They were not swallowing by
+  sloppiness; they were DEFERRING a whiteout to "raise if all candidates fail", which is the wrong
+  latency for an unwind. The guard changes only the abort case.
+* **Five needed `as error` bound before the guard could be added, and that is not free.** Python
+  UNBINDS an `except X as name:` target at handler exit — if the function already used a variable
+  called `error`, binding it here would DELETE it. Checked all five by AST before editing; none did.
+
+⚠ **Accepted semantic change, stated plainly:** while the latch is SET, an unrelated `BotModeError`
+raised inside these handlers now also propagates rather than being handled locally. That is the
+intended fail-safe direction — during a whiteout unwind the right move is to stop — and it matches
+the 14 guards that already shipped.
+
+⚠ Line insertions shifted three doc citations; the citation gate caught all three and they were
+fixed by **re-parsing for the symbol**, not by offsetting the old numbers.

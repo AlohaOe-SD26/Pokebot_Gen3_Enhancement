@@ -9218,3 +9218,25 @@ that gutted the scanner passed green, and the comment beside the test asserted i
 opposite. ✅ Only MUTATION TESTING found this — running the suite against deliberately broken copies.
 ⇒ **For any test you are relying on, break the thing it guards and watch it fail. If you cannot be
 bothered, you do not have a test, you have a comment.**
+
+## 2026-08-23 — `except X as error:` DELETES a same-named variable at handler exit (trap AVOIDED, recorded so it stays avoided)
+
+**Not a bug that shipped — a bug that was one grep away from shipping.** `#24-abortrecoveryresiduals`
+(c) needed `reraise_if_aborting(error)` in eight handlers, and five of them were bare
+`except BotModeError:` with nothing bound. Adding `as error` looks free. It is not: **Python unbinds
+the exception target at handler exit**, so if the enclosing function already used a variable called
+`error`, the handler would silently DELETE it and any later read becomes `NameError` — on a path that
+only executes after a failure, which is exactly the path nobody exercises.
+
+✅ **Prevention: before adding `as <name>` to an existing handler, AST the enclosing function for
+that name** — both as a plain variable and as a read AFTER the handler. All five were clean here; the
+check cost one command and the failure it prevents would surface only during an actual error.
+‼ Generalises past this case: **binding a name is a WRITE to the enclosing scope, not a local
+annotation.** The same applies to walrus operators and comprehension targets in older idioms.
+
+**And the reason this class of guard keeps needing care at all:** `StoryAbort` is a `BotModeError`,
+so every broad `except BotModeError:` in the story code is a potential whiteout swallower. Three
+rounds have now swept it (`#24-abortswallow`, then (b) for the sites my own loop-head fix exposed,
+then (c) for the pre-existing ones). ⇒ **When you add a broad `except` to story code, add the guard
+in the same edit** — the AST probe will find it eventually, but "eventually" means after a run has
+already ground on through a whiteout it should have abandoned.
