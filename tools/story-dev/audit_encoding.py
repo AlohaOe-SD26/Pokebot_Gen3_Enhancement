@@ -140,6 +140,37 @@ def self_test() -> int:
         ("B5 box drawing", "┌───┬───┐ │ a │ b │ └───┴───┘"),
     ):
         expect(f"{label} stays quiet", repair_line(text) is None)
+    # C1-C5 -- the CONTROL-CHARACTER guard (#24-p2headergate (C), added 2026-08-23). A Tier 1
+    # reviewer noted it shipped wired into main() with NO automated coverage, so a later edit could
+    # remove it and --self-test would still print PASS.
+    expect("C1 backspace 0x08 is forbidden (the bug this exists for)", chr(8) in _CTRL_FORBIDDEN)
+    expect("C2 vertical tab 0x0b is forbidden", chr(11) in _CTRL_FORBIDDEN)
+    expect("C3 DEL 0x7f is forbidden", chr(127) in _CTRL_FORBIDDEN)
+    expect("C4 tab / newline / CR are ALLOWED (the false-positive control)",
+           not (_CTRL_FORBIDDEN & {chr(9), chr(10), chr(13)}))
+    # C5 CALLS THE SHIPPED SCANNER. The first version re-implemented the predicate inline and never
+    # called `scan_py_ctrl_chars` at all - so mutants that gutted the scanner body, or deleted the
+    # function and its wiring outright, BOTH survived with a green self-test. A six-angle review
+    # mutation-tested it and found that; the comment that used to sit here claimed the opposite.
+    # ‼ THE FIXTURE MUST LIVE UNDER ONE OF `_PY_ROOTS` or the scan skips it and the test is vacuous
+    # in a NEW way - which is why `REPO` is repointed rather than the fixture placed anywhere handy.
+    import tempfile
+    _saved_repo = REPO
+    try:
+        with tempfile.TemporaryDirectory() as _d:
+            _root = pathlib.Path(_d) / "tools" / "story-dev"
+            _root.mkdir(parents=True)
+            (_root / "dirty.py").write_text(
+                "x = 1" + chr(10) + "y = " + chr(8) + chr(10), encoding="utf-8")
+            (_root / "clean.py").write_text(
+                "x = 1" + chr(9) + chr(10) + "y = 2" + chr(13) + chr(10), encoding="utf-8")
+            globals()["REPO"] = pathlib.Path(_d)
+            _hits = scan_py_ctrl_chars()
+        expect("C5 the SHIPPED scanner flags the 0x08 file and ONLY that file",
+               _hits == ["tools/story-dev/dirty.py:2  0x08"])
+    finally:
+        globals()["REPO"] = _saved_repo
+
     print(f"\nSELF-TEST {'PASS' if fails == 0 else 'FAIL'} ({fails} deviation(s))")
     return 0 if fails == 0 else 1
 
@@ -190,6 +221,54 @@ def scan_py_boms() -> "list[str]":
     return sorted(offenders)
 
 
+#: CONTROL CHARACTERS IN SOURCE - added 2026-08-23 after \b compiled to a literal BACKSPACE
+#: (0x08) TWICE IN ONE DAY, and BOTH times the gate containing it still printed PASS.
+#: THE MECHANISM: \b is a REAL Python escape. \s, \d and \w are NOT valid escapes, so they
+#: survive a non-raw string with only a SyntaxWarning. That asymmetry is the whole trap - the
+#: neighbouring \s really is fine, the source LOOKS right, and only \b has been silently replaced
+#: by a control character. The pattern then matches nothing, and a gate that matches nothing
+#: reports PASS. A NO-OP WEARING A GREEN TICK IS WORSE THAN NO GATE: it also stops anyone looking.
+#: HARD ZERO, NOT A RATCHET: measured 2026-08-23 over 725 .py files -- the FULL _PY_ROOTS scope
+#: (tools/story-dev 259 + sandbox-pokebot 233 + custom-pokebot 233, minus _PY_SKIP) - ZERO hits.
+#: There is no legitimate baseline to preserve, so any hit is a defect.
+#: A Tier 1 reviewer caught the first draft of this comment claiming 631 - the count for a
+#: NARROWER scope (the two forks' modules/ only) than the code actually scans. The number was
+#: measured honestly and described the wrong thing. => STATE THE SCOPE WITH THE COUNT: a bare
+#: figure cannot be checked against the code it claims to describe.
+#: DELIBERATELY NOT A REGEX. A regex here would need the very escapes this check exists to police,
+#: and could fail the same silent way. An explicit code-point set cannot.
+#: ITS OWN WRITING PROVED THE POINT: the first attempt at this block was generated through a shell
+#: heredoc, which ate a backslash level and put a REAL TAB inside the string below. Every backslash
+#: here is now built with chr(92).
+_CTRL_ALLOWED = frozenset([chr(9), chr(10), chr(13)])   # tab, newline, carriage return
+_CTRL_FORBIDDEN = frozenset(
+    chr(c) for c in list(range(0x00, 0x20)) + [0x7f] if chr(c) not in _CTRL_ALLOWED
+)
+
+
+def scan_py_ctrl_chars() -> "list[str]":
+    """path:line and code point for every literal control character in scanned .py sources."""
+    offenders: list[str] = []
+    for root in _PY_ROOTS:
+        base = REPO / root
+        if not base.is_dir():
+            continue
+        for path in base.rglob("*.py"):
+            if _PY_SKIP & set(path.parts):
+                continue
+            try:
+                text = path.read_text(encoding="utf-8", errors="strict")
+            except (OSError, UnicodeDecodeError):
+                continue  # undecodable is the BOM/mojibake checks' problem, not this one's
+            if not _CTRL_FORBIDDEN.intersection(text):
+                continue  # fast path: almost every file
+            rel = path.relative_to(REPO).as_posix()
+            for index, char in enumerate(text):
+                if char in _CTRL_FORBIDDEN:
+                    line = text.count("\n", 0, index) + 1
+                    offenders.append(f"{rel}:{line}  0x{ord(char):02x}")
+    return sorted(offenders)
+
 def main() -> int:
     if "--self-test" in sys.argv:
         return self_test()
@@ -217,6 +296,19 @@ def main() -> int:
                 print(f"          line {number}: {line[:100]}")
             if len(hits) > 5:
                 print(f"          ... and {len(hits) - 5} more")
+    ctrl = [] if (do_repair or explicit) else scan_py_ctrl_chars()
+    if ctrl:
+        bad += len(ctrl)
+        print(f"  FAIL  {len(ctrl)} literal CONTROL CHARACTER(s) in .py source:")
+        for hit in ctrl[:10]:
+            print(f"          {hit}")
+        if len(ctrl) > 10:
+            print(f"          ... and {len(ctrl) - 10} more")
+        print("        Almost always a \\b that became a BACKSPACE (0x08) - a regex escape that")
+        print("          did not survive a non-raw string or a shell heredoc. The pattern then")
+        print("          matches NOTHING and its gate still prints PASS.")
+        print("        Build it: _WB = chr(92) + 'b'. And NEVER review a regex by reading it -")
+        print("          print the COMPILED .pattern and run a positive AND a negative list.")
     py_boms = [] if (do_repair or explicit) else scan_py_boms()
     if py_boms:
         bad += len(py_boms)

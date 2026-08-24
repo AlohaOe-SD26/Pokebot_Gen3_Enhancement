@@ -962,6 +962,33 @@ def _ki_diff_hunks() -> "dict[str, tuple[bool, list[str]]] | None":
     return touched
 
 
+#: ⛔⛔ A `check_ratchet_baseline_claims` USED TO LIVE HERE. IT WAS DELETED 2026-08-23, DELIBERATELY,
+#: AND THE REASON IS THE MOST USEFUL THING IN THIS FILE.
+#: It flagged prose asserting the abort-swallow ratchet was equal across forks when the probe's
+#: `_BASELINES` said otherwise. The idea was sound and the implementation never converged:
+#:   * its quoting exemption was written THREE times (mark parity -> pair containment -> proximity)
+#:     and broken THREE times by three independent reviewers. v2 was MEASURED IDENTICAL to v1
+#:     (0 mismatches / 2517 trials): a rewrite that changed the shape and not the truth table.
+#:   * removing the exemption exposed the next layer: the equality test missed 7 of 7 genuine
+#:     claims (a comma between the figure and the phrase defeated it) while firing on any nearby
+#:     digit - dates, commit SHAs, line numbers, version strings.
+#:   * its supersede/past-tense exemptions silenced ~5% of live lines via markers that were not
+#:     about the claim - a bypass this very file had already documented and fixed for a SIBLING
+#:     check, which the new one did not inherit.
+#: A six-angle adversarial review returned SEVEN blockers on it. The decisive question was not
+#: 'can I fix those?' but 'what does it protect?': it reads only CURRENT_STATE files, where the
+#: phrase occurs a handful of times, all in prose ABOUT this check, and the harm it prevents is a
+#: stale figure in a doc that already tells readers to run the probe instead.
+#: ⇒ **REVIEW DEPTH AND IMPLEMENTATION EFFORT MUST SCALE WITH BLAST RADIUS.** Six rounds on a
+#: documentation nicety is the wrong trade while a bot that plays Pokemon has open behavioural
+#: items. A defect here costs a stale sentence; a defect in `early_game.py` costs a wrecked run.
+#: ⇒ And the narrower engineering rule: **when a predicate needs a third exemption, the predicate
+#: is wrong.** Judging author INTENT from local punctuation is not a solvable problem at this cost.
+#: The stale-figure risk is now carried where it always actually was: the probe is the authority,
+#: KI-81's header states the per-fork figures, and reviewers catch drift - which is how all four
+#: original stale copies were found in the first place.
+
+
 def check_touched_ki_pairs(_files: dict[str, str] | None = None) -> list[str]:
     """‼ THE P2 PAIR, ENFORCED — but only on KI entries THIS CHANGE ACTUALLY TOUCHES.
 
@@ -1002,6 +1029,27 @@ def check_touched_ki_pairs(_files: dict[str, str] | None = None) -> list[str]:
             f"that rather than passing silently. Re-save the file with its original line endings."
         ]
     for name, (header_changed, added) in sorted(touched.items()):
+        # THE SYMMETRIC HALF, ADDED 2026-08-23 - and today's bug is its fault test.
+        # The rule below polices "body edited, header not". THIS one polices the reverse: a HEADER
+        # edited with NOTHING added inside that KI's OWN section. MEASURED CASE: the dated body line
+        # written for KI-81 was inserted by matching the header STRING and prepending, which places
+        # text ABOVE the header - so by this file's `##` convention it belonged to KI-79, and a
+        # reader opening KI-81 would never have seen it. Tier 0 passed (the text existed and was
+        # self-consistent) and a Tier 1 reviewer passed over it; the NEXT reviewer caught it, and its
+        # wording is the rule: "the fix exists somewhere in the file is NOT a pass."
+        # Attribution-driven, not string-driven: `_ki_diff_hunks` maps added lines onto section
+        # ranges BY LINE NUMBER, so a paragraph one line above the header is attributed to the
+        # PREVIOUS KI and this fires. That is the whole point.
+        if header_changed and not added:
+            out.append(
+                f"05-KNOWN-ISSUES.md {name}: this change edits {name}'s HEADER but adds NO line "
+                f"inside {name}'s OWN section (between its `##` header and the next one). P2 says "
+                f"both halves move together. If you did write a body line, CHECK WHERE IT LANDED "
+                f"- anchoring an insert on the header string puts it BEFORE the header, which "
+                f"files it under the PREVIOUS KI. Add a dated line inside {name}, or re-confirm "
+                f"the body in the same commit."
+            )
+            continue
         if header_changed or not added:
             continue
         claim = _CLOSED_CLAIM_RE.search("\n".join(added))
@@ -1051,6 +1099,9 @@ def self_test() -> int:
               f"{'fired' if fired else 'quiet'} (expected {'fire' if should_fire else 'quiet'})")
         if not ok:
             fails += 1
+
+    # (The R0-R24 block that used to sit here tested `check_ratchet_baseline_claims`, deleted
+    # 2026-08-23 - see the long note at its former site. F-tests below belong to the KI-pair check.)
 
     # A: the audit's exact bug — unmarked queue item for a passing driver.
     t = base["TEST.md"] + "\n> 1. **NEXT: BUILD `--driver testx`** — not yet written.\n"
@@ -1305,7 +1356,16 @@ def self_test() -> int:
     #    header still said ARMED). The real check reads `git diff`; here the parsing and the
     #    decision are exercised directly, because a self-test must not depend on the working tree.
     def _decide(header_changed, added, header_text):
-        """Mirror of the decision in `check_touched_ki_pairs`, over injected inputs."""
+        """Mirror of the decision in `check_touched_ki_pairs`, over injected inputs.
+
+        WARNING, AND IT IS THIS FILE'S OWN LOGGED LESSON: this is a MIRROR, so it can drift
+        from the real function and keep passing. It covers the DECISION only; the ATTRIBUTION
+        (which KI an added line belongs to, by line number) is what actually broke in the wild
+        and is only provable by a LIVE arm. F6/F7 below therefore lock in the decision, and the
+        three live arms recorded in `#24-p2headergate` lock in the parsing. Keep both.
+        """
+        if header_changed and not added:
+            return ["would fire: header edited, nothing added inside this KI"]
         if header_changed or not added:
             return []
         if not _CLOSED_CLAIM_RE.search("\n".join(added)):
@@ -1314,6 +1374,12 @@ def self_test() -> int:
             return []
         return ["would fire"]
 
+    # F6/F7 -- the SYMMETRIC branch added 2026-08-23 (#24-p2headergate). A Tier 1 reviewer noted
+    # the new branch shipped with NO automated coverage, so a later edit could delete it silently.
+    expect("F6 header edited with NO line added inside this KI -> fires",
+           _decide(True, [], " — (OPEN)"), True)
+    expect("F7 header edited WITH a line added inside this KI -> quiet",
+           _decide(True, ["- **2026-08-23** — re-measured; baseline lowered."], " — (OPEN)"), False)
     expect("F1 body claims FIXED, header untouched and plain OPEN",
            _decide(False, ["- ✅ **FIXED** by Stage 1, A/B proven."], " — (2026-08-14, OPEN, ARMED)"),
            True)

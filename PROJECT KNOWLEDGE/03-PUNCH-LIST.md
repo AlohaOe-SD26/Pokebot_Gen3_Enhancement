@@ -644,61 +644,68 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       single change, which is the misattribution this probe's own message warns about.
       ⚠ **RE-DERIVE THE LIST BEFORE STARTING** — function names are stable, line numbers are not.
 
-### ✅ `#24-brokenrepros` — DONE 2026-08-23. **The item said FIVE; the sweep found SIX**, and each had a DIFFERENT root cause (filed 2026-08-23, PASS 5)
+### ✅ `#24-brokenrepros` — DONE 2026-08-23 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)
 
-- [x] **✅ DONE 2026-08-23 — all six fixed, each fault-tested; the sweep is now `103 PASS / 0 CHECK
-      / 1 SKIP` of 104** (`repro_x4_lanes` is SKIPPED deliberately: it spawns real lane processes).
-      ‼ **THE ITEM'S OWN TABLE WAS INCOMPLETE.** It named five. A full 150s sweep of every
-      `repro_*.py` found a SIXTH — `repro_double_faint` — carrying the *same* stale-stub defect as
-      two of the named ones. It was invisible because `02-ARCHITECTURE.md` filed it under "needs a
-      real mgba", so nobody ran it. ⛔⛔ **AND THAT SCRIPT'S OWN COMMENT RECORDS THE IDENTICAL
-      MISFILING HAPPENING BEFORE** (2026-07-30: a stub missing `level`, *"recorded as environmental,
-      needs a real mgba, for days. It needs no emulator at all."*) ⇒ **the same script was written
-      off as environmental TWICE, for the same class of reason.**
-      | script | root cause (measured) | fix |
-      |---|---|---|
-      | `repro_survival_mode` | ⚠ **THE CHECK WAS WRONG, NOT THE CODE.** Cases 1/2/6 asserted `== "LevelUpTravelBattleStrategy"`; the code returns `StoryItemBattleStrategy`, which **SUBCLASSES** it (`story_mode.py:417` → `:118`). Behaviour never changed — only the leaf name did | assert the BASE CLASS |
-      | `repro_double_battle_swap_loop` | stale stub: sets `is_double_battle`, code reads `is_double_battle_with_partner` | add the attr |
-      | `repro_faint_matchup` | identical | add the attr |
-      | `repro_double_faint` | identical — **the one the table missed** | add the attr |
-      | `repro_counter_move_answer` | `REPO = Path.cwd().parents[1]` — CWD-DEPENDENT. Passed from `tools/story-dev`, died from the repo root. **Line ~78 of the same file already did it correctly** | `Path(__file__).resolve().parents[2]` |
-      | `repro_gym_whiteout_guard` | ⚠ never broken — needed ~122s under a 90s cap | cap raised to 150s |
-      ⛔ **THE OBVIOUS FIX WAS WRONG TWICE, AND BOTH WERE CAUGHT BY MEASURING FIRST:**
-      (1) `isinstance(x, LevelUpTravelBattleStrategy)` alone would have made cases 1/2/6 pass even if
-      the bot **swap-trained**, because `SwapTrainBattleStrategy` IS ALSO a subclass — measured, so
-      the property shipped as "a travel strategy that is NOT the swap-train one". Fault-armed: forcing
-      swap-train ON fails cases 1/2, which proves that clause is load-bearing.
-      (2) The stub value is `False`, not `True`: `is_double_battle_with_partner` is Double **AND
-      InGamePartner** (an NPC partner). ‼ **The reason is PER-SCRIPT:** `repro_double_battle_swap_loop` and `repro_double_faint` model the player's OWN two mons (no NPC partner), while **`repro_faint_matchup` is a SINGLE battle** (Wattson, solo Grovyle; `is_double_battle=False`) where `False` is correct trivially.
-      ‼ **AND THE LIMIT IS PER-SCRIPT, MEASURED ONE BY ONE — an earlier draft of this entry
-      generalised ONE measurement to all three and a Tier 1 reviewer caught it.** Flipping the value
-      to `True`: `repro_double_battle_swap_loop` still PASSES (it stubs `get_party`, so the run
-      reaches `get_player()` and takes the documented FAILS-CLOSED path to an empty set — identical
-      to `False`), while `repro_faint_matchup` and `repro_double_faint` **CRASH**
-      (`AttributeError: 'NoneType' has no attribute 'get_frame_count'` — they do not stub
-      `get_party`, so `ally_party_indices` reaches the real `state_cache.party` with no emulator).
-      ⇒ two of the three DO discriminate the value; one does not. ⛔ **And state even that exactly:**
-      a crash proves the value CHANGES THE PATH TAKEN, not that `False` is semantically right —
-      that comes from `battle_state.py:288` (Double AND InGamePartner).
-      ✅ Verified from TWO working directories (the cwd fix's actual discriminator) and the full gate
-      suite is green. Original text follows.
+- [x] **Six `repro_*.py` scripts fixed — the item was filed as FIVE.** A stale line in
+      `02-ARCHITECTURE.md` (*"47 pass, 0 fail, 5 environmental"*) named the wrong five and hid them.
+      Sweep after: **103 PASS / 0 CHECK / 1 SKIP of 104** (`repro_x4_lanes` skipped — real processes).
+      Root causes, one per script: a check asserting a LEAF CLASS NAME where the code had grown a
+      subclass; THREE stale `SimpleNamespace` stubs missing `is_double_battle_with_partner`; one
+      CWD-dependent repo path; and one that was never broken (122s under a 90s cap).
+      ⛔ **The sixth was invisible because a doc said not to run it** — and that same script had been
+      written off as "environmental" once before (2026-07-30), also for a stale stub.
+      ⇒ spawned **`#24-reprosweepratchet`** (below): none of the 104 is in `run_gates.py`.
+      ‼ RETIRED 2026-08-23 from ~56 lines to this summary because `03` hit its R3 line budget. The
+      narrative, the per-script measurements and the two refuted "obvious fixes" are preserved in
+      `07-CHANGELOG.md` and `08-MISTAKES.md`. ⛔ **Retire by SUMMARISING with a pointer, never by
+      deleting** — code and other docs cite these slugs (`audit_doc_citations.py` checks that).
 
-- [x] **They were hidden behind a stale expectation line in `02-ARCHITECTURE.md` that said
-      *"47 pass, 0 fail, 5 environmental"* and NAMED THE WRONG FIVE.** ⛔ Three of the five it named
-      (`repro_boss_training`, `repro_navigate_failfast`, `repro_sufficiency`) now PASS. Measured with
-      the corrected sweep (`PYTHONUTF8=1`, 150s cap): **96 PASS / 6 CHECK of 102**.
-      | script | actual failure |
-      |---|---|
-      | `repro_double_battle_swap_loop` | `AttributeError: 'SimpleNamespace' has no attribute 'is_double_battle_with_partner'` — a stale test stub |
-      | `repro_faint_matchup` | same stale stub |
-      | `repro_counter_move_answer` | `ModuleNotFoundError: No module named 'modules'` — needs the fork on `sys.path` |
-      | `repro_survival_mode` | an assertion genuinely fails |
-      | `repro_gym_whiteout_guard` | ⚠ NOT broken — needs ~122s and the doc capped the sweep at 90s. It PASSES inside `run_gates.py` (gate #18). The CAP was the bug; already raised to 150s |
-      ‼ **Triage each before fixing** — a stale stub and a real assertion failure are different
-      problems, and this project has three cases of an item marked "ready to build" that had already
-      shipped. ⛔ None of these is in `run_gates.py`, so the standing suite is unaffected and green.
-      ⚠ **`PYTHONUTF8=1` is not optional in any sweep** — without it ~37 healthy scripts die on a `‼`
-      and read as failures, which is how these five stayed invisible.
+### ✅ `#24-p2headergate` — TWO checks shipped, a THIRD deliberately DELETED (2026-08-23)
+
+- [x] **✅ DONE. Both live inside existing gate scripts, so the suite is unchanged at 30 = 28
+      ENFORCING + 2 ADVISORY.**
+      **(A) The symmetric half of the P2 KI-pair rule** (`audit_doc_consistency.py`): editing a
+      `## KI-N` HEADER while adding NO line inside KI-N's own section is now a finding. Its fault
+      test is the real bug — a dated body line anchored on the header STRING landed ABOVE it, so it
+      belonged to KI-79 and a reader opening KI-81 would never have seen it. LIVE 3-arm test:
+      header-only → FIRES; body-above-header → FIRES; body-inside → SILENT. F6/F7.
+      **(C) Control-character guard** (`audit_encoding.py`): a literal control char in `.py` source
+      is a hard failure — because `` compiled to a BACKSPACE twice in one day and both times the
+      containing gate still printed PASS. Zero threshold, measured 0 hits across 725 files. C1–C5.
+      ⛔ **C5 SHIPPED VACUOUS and a mutation review caught it** — it re-implemented the predicate
+      inline and never called `scan_py_ctrl_chars`, so mutants that gutted the scanner PASSED.
+      ✅ Rewritten to call the shipped scanner against a fixture under `_PY_ROOTS`; both mutants
+      (gutted body, backspace allowed) now FAIL. ‼ **A test that does not call the thing it names
+      is worse than no test** — and my own comment had claimed it did.
+      ⛔⛔ **(B) RATCHET-BASELINE CLAIMS WAS DELETED, NOT FIXED — this is the important entry.**
+      Its quoting exemption was written THREE times and broken THREE times (parity → pair
+      containment, *measured identical* to parity → proximity). Removing it exposed the next layer:
+      the equality test missed 7 of 7 genuine claims (a comma defeated it) while firing on any
+      nearby digit; its exemptions silenced ~5% of live lines via markers not about the claim.
+      A six-angle adversarial review returned **7 blockers**. ⇒ The decisive question was not *can
+      I fix those* but **what does it protect**: a stale figure in a doc that already says to run
+      the probe. **289 lines removed.**
+      ‼ **RULE ADOPTED: review depth and implementation effort scale with BLAST RADIUS.** Six rounds
+      on a documentation nicety is the wrong trade while the bot has open behavioural items. A
+      defect here costs a stale sentence; one in `early_game.py` costs a wrecked run.
+      ‼ **AND: when a predicate needs a THIRD exemption, the predicate is wrong.**
+      ⚠ FOLLOW-UP (not built): `run_gates.py` runs each gate but never its `--self-test`, which is
+      why a vacuous self-test survived. Covered by `#24-difftriggeredrules`'s spirit; file properly
+      if it bites again.
+
+### ‼ `#24-difftriggeredrules` — PROSE RULES ARE INDEXED BY STORY; MAKE THEM INDEXED BY ACTION (filed 2026-08-23)
+
+- [ ] **⛔ FOUR TIMES IN ONE SESSION a correct, written-down prevention rule failed to fire**, each
+      time because it was filed under the artifact where it was LEARNED rather than the ACTION it
+      applies to (the table is in `08-MISTAKES.md`, 2026-08-23 "digit-only numeric gate" entry).
+      ⇒ **BUILD `advise_on_diff.py`: read the working diff and print the rules that apply to WHAT
+      CHANGED.** Adds a `re.compile` → print the compiled-pattern rule and the control-char rule;
+      adds a numeric comparison → "accept the forms humans actually write"; edits a `## KI-` header
+      → the P1–P5 pair rules; adds an `except` → the abort-swallow guard.
+      ⛔ **ADVISORY, NEVER BLOCKING.** Its value is being unmissable at the moment of the edit; a
+      blocking version acquires false positives and gets bypassed, which this project rates as worse
+      than nothing. ⚠ Fault-test it the usual way: prove each trigger fires on a diff that contains
+      the shape, and prove it stays silent on a diff that merely MENTIONS it in a comment.
 
 ### ‼ `#24-reprosweepratchet` — WHAT THE STANDING SUITE DOES NOT RUN, ROTS (filed 2026-08-23)
 

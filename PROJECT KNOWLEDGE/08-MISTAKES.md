@@ -9018,3 +9018,203 @@ was added for: **a checklist protects exactly what it enumerates.**
 `02-ARCHITECTURE.md` as the single source instead of restating it. A second copy of an instruction
 is a second thing to keep true; the cheapest way to keep two copies consistent is to have one.
 ⇒ **When a correction lands, `grep` the tree for the OLD text — not just the file you were editing.**
+
+## 2026-08-23 — `\b` COMPILED TO A BACKSPACE BYTE, TWICE IN ONE DAY, AND BOTH TIMES THE GATE STILL SAID PASS
+
+**Symptom.** A newly written regex gate reported PASS on a tree that contained the exact defect it was
+written to catch. Twice: `repro_no_silent_except.py`'s dismissive-comment denylist in the morning,
+`audit_doc_consistency.py`'s `_BOTH_FORKS` word-boundary in the evening.
+
+**Root cause.** `\b` is a REAL Python escape — backspace, 0x08. `\s`, `\d`, `\w` are NOT valid escapes,
+so they survive a non-raw string with only a `SyntaxWarning`. That asymmetry is the trap: the pattern
+*looks* right in the source, the neighbouring `\s` really is right, and only `\b` has been silently
+replaced by a control character. The pattern then matches nothing — and a gate that matches nothing
+prints PASS. ⛔ **A NO-OP WEARING A GREEN TICK IS WORSE THAN NO GATE**, because it also stops anyone
+looking.
+
+**Why the first fix did not prevent the second.** The morning's prevention rule was written as
+"build backslashes from `chr(92)`" — filed against *that* file's denylist. In the evening I was
+writing a different check in a different file and did not connect it. ⇒ **a prevention rule attached
+to one artifact does not fire while you are editing another** (the same structural lesson as the
+KI-81 misplacement recorded above).
+
+✅ **Prevention (behavioural): NEVER REVIEW A REGEX BY READING IT.** Print the COMPILED `.pattern`
+and run a positive list AND a negative list. Both occurrences were found in seconds this way, and
+neither was visible in the source.
+✅ **Prevention (structural, and this is the one that will actually hold): a control character in a
+source file is essentially always a bug.** Gate it — ✅ **SHIPPED the same day as `#24-p2headergate` (C)**. A scan for literal
+0x00-0x08 / 0x0B / 0x0C / 0x0E-0x1F in `tools/story-dev/*.py` is ~10 lines and has no legitimate
+false positive in this tree.
+
+**Second, smaller mistake in the same build — an exemption keyed on a common word.** The new check
+exempted any claim within 120 chars of `historical` or `ARCHIVE`. Those words say WHERE AN ENTRY
+LIVES, not WHEN A CLAIM WAS TRUE, and they appear constantly here; a live fault injection was
+silently exempted because "ARCHIVE" happened to sit nearby.
+✅ **Prevention: an exemption must be keyed on the PROPERTY it means (here: past tense / date scope),
+never on a word that merely co-occurs with it.** An exemption keyed on a common word is a hole.
+
+## 2026-08-23 — AN EXEMPTION IS A HOLE UNTIL YOU HAVE TRIED TO WALK THROUGH IT
+
+**Symptom.** A newly shipped check silently stopped reporting a real defect class. The check itself
+was correct; the EXEMPTION added to stop a false positive was the hole.
+
+**Root cause.** `_is_mention` was meant to spare prose that QUOTES a false claim. v1 asked *"is the
+count of quote/backtick marks before the match odd, and does one appear after?"* — a condition a
+single **stray** backtick anywhere on the line satisfies. So a genuine `36 on BOTH forks` assertion
+went quiet because the same sentence happened to name a backticked filename. In a corpus saturated
+with backticked identifiers that is the COMMON case, not an edge case.
+⛔ **A FALSE NEGATIVE IS WORSE THAN THE FALSE POSITIVE IT REPLACED.** A false positive is loud and
+gets fixed; a false negative looks exactly like success.
+
+**‼ The part worth remembering: I had ALREADY SUSPECTED this exemption.** I wrote a note titled
+*"the USE-vs-MENTION exemption is probably TOO GENEROUS"* with a proposed tightening — and the real
+bypass was simpler and worse than the one I imagined. **Suspecting a hole is not the same as
+attacking it.** A written-down suspicion is not evidence; only an attempted bypass is.
+✅ **Prevention: when you add an exemption, immediately try to construct a REAL defect that it
+exempts — and ship that attempt as a test.** Here: R10/R11/R12.
+✅ **Prevention: prefer an exemption keyed on STRUCTURE over one keyed on VOCABULARY.** Span
+containment can be reasoned about exhaustively; a cue-word list can only be sampled, and rots the way
+the `historical|ARCHIVE` list did earlier the same day.
+
+**Second lesson from the same review: PROVEN-BUT-NOT-LOCKED-IN.** Checks (A) and (C) each had a real
+live fault test and NO self-test. The proof lived in a transcript; the suite could not see it, so a
+later edit could delete either branch and `--self-test` would still print PASS.
+✅ **Prevention: a fault test that is not in the suite is a story, not a guarantee.** Land it as a
+test in the same commit. ‼ And note the mirror hazard: `_decide()` DUPLICATES the real decision, so it
+can drift and keep passing — it covers the DECISION, while only a live arm covers the ATTRIBUTION,
+which is the half that actually broke.
+
+**Third: "MEASURED" IS NOT A SYNONYM FOR "CORRECT".** I documented *"0 hits across 631 .py files"*.
+The measurement was honest and the gate's real scope is **725** files — I had counted a narrower tree
+than the code scans.
+✅ **Prevention: STATE THE SCOPE WITH THE COUNT.** A bare figure cannot be checked against the code it
+claims to describe, and a number that describes the wrong population is wrong however carefully it
+was taken.
+
+## 2026-08-23 — A SUBAGENT CAN WRITE TO YOUR WORKING TREE
+
+**Symptom.** Mid-review, `git status` showed an unpushed commit nobody in the main thread had made:
+`1a2866df "baseline"`, sweeping up the very file that was under review. `preflight.py` went red.
+
+**Root cause.** A review subagent, building a live fixture, hit a silent `cd` failure (shell state
+does not persist between its tool calls) and its `git add`/`git commit` ran against the REAL
+repository instead of its scratch directory. Nothing was lost or altered — only the commit boundary
+moved, and it was never pushed — but the tree was no longer the state anyone believed it was in.
+
+✅ **Prevention: tell review agents explicitly NOT to run git write commands**, not merely that they
+are "read-only" — and give them a scratch path OUTSIDE the repo when they need to build fixtures.
+✅ **Prevention: re-verify `git status` after any review that built fixtures**, before staging.
+‼ **And this is a second, independent argument for staging EXPLICIT PATHS**: in that state a blind
+`git add -A` would have swept an unrelated agent's commit-in-progress into the item's commit. The
+hook that blocks blind adds earned its keep without firing.
+
+## 2026-08-23 — A REWRITE THAT CHANGES THE SHAPE AND NOT THE TRUTH TABLE IS NOT A FIX
+
+**Symptom.** A Tier 1 reviewer demonstrated a bypass in `_is_mention`. I rewrote it, added three
+tests, watched them pass, and shipped. The NEXT reviewer demonstrated **the same bypass, unchanged**.
+
+**Root cause — and it is worth stating precisely.** v1 asked *"is the count of quote marks before the
+match odd, and does one appear after?"*. v2 "paired the marks and required a pair to enclose the
+match" — which reads as a structural rewrite and is, for any match containing no mark character,
+**the identical function**: sequential pairing encloses the match IFF the count before is odd and one
+follows. Measured after the fact: **0 mismatches over 2517 random trials.** I changed the code's
+shape and not its truth table, then wrote tests that agreed with me.
+
+**Why the tests did not catch it.** All three new cases had an EVEN mark count before the match — the
+one condition that cannot reproduce the bypass. **They passed on the broken implementation too.**
+✅ **PREVENTION, AND IT IS MECHANICAL, NOT A HABIT: run the new tests against the OLD implementation.
+If they still pass, they do not discriminate and they prove nothing.** This is the same rule this
+project already states for latches — *"a claim of the form 'without X the bug survives' is a CLAIM,
+and the only currency is an arm with X removed"* — applied to a TEST rather than to a fix.
+⚠ **This was briefly shipped as a self-test that kept the broken v1 in the suite as a reference and
+failed if the bypass cases stopped distinguishing it. That test is GONE — it was deleted along with
+the heuristic it guarded**, when the exemption was removed entirely (see the entry above). Recorded
+here because a later reviewer found this paragraph describing that intermediate design as if it were
+the shipped state. ⇒ **an append-only history entry can go stale WITHIN THE SAME COMMIT that writes
+it**, if the design keeps moving; re-read the entries you wrote earlier in a session before shipping.
+✅ **The RULE survives even though that test did not:** run new tests against the OLD implementation;
+if they still pass they do not discriminate. What replaced R15 is stronger — with no inferred
+exemption left, R7–R10 assert that all four historical bypass strings now FIRE, so there is no
+heuristic left to be equivalent to.
+
+**And the design lesson under it — which took a THIRD failure to learn.** *"Prefer STRUCTURE over
+VOCABULARY"* was the right instinct and did not save me: **"structural" is not self-certifying.** v2
+was structural and wrong. v3 (proximity bounds) was structural, measured, and **also broken** — by a
+third reviewer, at a lead inside the band I had documented as safe.
+⛔ **The answer was not a fourth heuristic. It was to DELETE the heuristic.** The check reads only
+`CURRENT_STATE` files, and across all of them the phrase occurred exactly **ONCE**. Sixty lines of
+inference and three review rounds existed to exempt a SINGLE SENTENCE — fixed in the end by
+rewriting that sentence. The only exemption now is the project's explicit retraction marker, which
+every sibling check already honoured.
+✅ **Prevention: BEFORE BUILDING AN EXEMPTION, COUNT WHAT IT WOULD EXEMPT.** One occurrence does not
+justify an inference engine. ⇒ **I never counted.** I went straight from "this fires on something it
+shouldn't" to "write a rule that decides intent", three times, without once asking how many sentences
+were actually at stake.
+✅ **Prevention: PREFER A DECLARED EXEMPTION OVER AN INFERRED ONE.** An inferred exemption is a guess
+about intent that stray punctuation can trigger; a declared marker IS the intent and cannot be
+faked — and it puts the decision with the author, where it belongs.
+
+## 2026-08-23 — I WROTE A DIGIT-ONLY NUMERIC GATE, AGAINST A PREVENTION RULE THIS FILE ALREADY CONTAINED
+
+**Symptom.** Closing an over-eager-guard finding, I required a FIGURE before the phrase so innocent
+prose (*"the ratchet fix was verified on BOTH forks"*) would stop firing. It did — and
+`thirty-six on BOTH forks`, `the count is the same on BOTH forks` and `identical on BOTH forks` began
+passing **silently**. Fixing a false positive by opening a false-negative class.
+
+**Root cause.** I gated the NUMBER, not the CLAIM.
+✅ **Fix: `_asserts_equality` accepts three shapes** — a figure, a spelled-out figure (word-bounded,
+or `done`/`none` match `one`), or a sameness word — with false-positive controls (R21/R22) proving an
+ACTION on both forks stays quiet. Fault-proven: reverting to digit-only fails R17–R19.
+
+**⛔⛔ THE PART THAT MATTERS: THIS FILE ALREADY SAID SO.** Two entries above — *"A NUMERIC GATE MUST
+ACCEPT THE FORMS HUMANS ACTUALLY WRITE — digits, spelled-out words… its silence means 'I found no
+number in the form I know', which is NOT 'the number is right'"* and *"when you gate a FACT, gate the
+sentence as well as the number — ask 'can this claim be made without a digit?'"*. I had read neither
+while writing a numeric gate.
+
+**‼ THIS IS THE FOURTH INSTANCE OF ONE META-FAILURE IN A SINGLE SESSION.** Each time, a correct,
+written-down rule failed to fire because it was filed under the artifact where it was *learned*
+rather than the ACTION it applies to:
+| the rule | filed under | what I was doing when it did not fire |
+|---|---|---|
+| verify WHERE a fix landed | handoffs (Tier 2) | editing a KI entry |
+| build backslashes with `chr(92)` | one script's denylist | writing a regex in another script |
+| a numeric gate must accept human forms | an earlier numeric gate | writing a numeric gate |
+| a checklist protects only what it enumerates | pair P5 | a file outside the pair list |
+
+⇒ **PROSE RULES ARE INDEXED BY THE STORY THAT CREATED THEM, AND YOU RECALL BY STORY, NOT BY ACTION.**
+That is why every durable fix this session ended as a GATE or a SELF-TEST: those are indexed by the
+code they guard, so they fire when you touch it, not when you happen to remember them.
+✅ **Prevention (structural, filed as `#24-difftriggeredrules`): key the reminders to the DIFF.**
+A change that adds a `re.compile` should surface the compiled-pattern and control-character rules; a
+change that adds a numeric comparison should surface "accept the forms humans write"; a change that
+edits a `## KI-` header should surface the pair rules. ⛔ ADVISORY, never blocking — its value is
+being unmissable at the moment of the edit, and a blocking version would just be bypassed.
+
+## 2026-08-23 — SIX REVIEW ROUNDS ON A DOCUMENTATION NICETY WHILE THE BOT WAITED
+
+**Symptom.** `#24-p2headergate`'s ratchet-claim check went through six adversarial review rounds.
+Every round found something real, so no single round looked wasteful — and the total was absurd. The
+user asked, plainly, whether we were working on the project or on the documentation. Measured for the
+day: ~2,587 lines of documentation, 742 of tests, 260 of tooling — and **47 lines of bot code**.
+
+**Root cause.** I used "a reviewer found a real defect" as a sufficient condition to continue, and
+never weighed it against what the thing protects. Each round was locally justified; the sequence was
+not. ⛔ **A locally-correct decision repeated without a stopping rule is a failure mode**, and it is
+invisible from inside the loop because every step has evidence behind it.
+
+✅ **Prevention (now a standing rule in `06-DECISIONS-LOG.md`): REVIEW DEPTH SCALES WITH BLAST
+RADIUS.** Bot code that can wreck a run earns deep adversarial rounds. A gate earns one or two. A
+doc-consistency helper earns one. Before round N+1, ask what a defect here actually costs.
+✅ **Prevention: when a predicate needs a THIRD exemption, delete the predicate.** Three failed
+implementations is not bad luck, it is the problem telling you it is not solvable at this cost.
+✅ **Prevention: ask "what does this protect?" BEFORE "can I fix this?"** The delete was obvious the
+moment I counted the occurrences it could ever judge — four, all in prose about the check itself. I
+had never counted, through six rounds.
+
+**And a narrower one from the same review: A TEST THAT DOES NOT CALL THE THING IT NAMES IS WORSE THAN
+NO TEST.** `C5` re-implemented its predicate inline instead of calling `scan_py_ctrl_chars`; mutants
+that gutted the scanner passed green, and the comment beside the test asserted it was doing the
+opposite. ✅ Only MUTATION TESTING found this — running the suite against deliberately broken copies.
+⇒ **For any test you are relying on, break the thing it guards and watch it fail. If you cannot be
+bothered, you do not have a test, you have a comment.**

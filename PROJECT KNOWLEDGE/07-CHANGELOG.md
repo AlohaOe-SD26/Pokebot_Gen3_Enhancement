@@ -17744,3 +17744,172 @@ all 104 repros surfaced it. **And that script's own comment records the IDENTICA
 needs no emulator at all."* ⇒ **the same script was written off as environmental TWICE, for the same
 class of reason.** Filed as `#24-reprosweepratchet`: none of these scripts is in `run_gates.py`, and
 what the standing suite does not run, rots.
+
+## 2026-08-23 — `#24-p2headergate`: TWO new checks in `audit_doc_consistency.py`, each one's fault test being a bug that got past a reviewer TODAY
+
+Both are checks INSIDE an existing gate, so the standing suite is unchanged at **30 = 28 ENFORCING +
+2 ADVISORY**. ⛔ No production code touched; drift unchanged at 1.
+
+### (A) THE SYMMETRIC HALF OF THE P2 KI-PAIR RULE
+The gate already enforced ONE direction — *body edited to announce a status + header untouched*. The
+reverse was unguarded, and I walked into it the same day: I edited **KI-81's header** and wrote its
+dated body line by matching the header STRING and prepending — which places text **above** the
+header, so by this file's own `##` convention the paragraph belonged to **KI-79**. A reader opening
+KI-81 would never have seen it. Tier 0 passed (the text existed and was self-consistent); Tier 1
+round 1 passed over it; **Tier 1 round 2 caught it**, and its wording is now the rule: *"the fix
+exists somewhere in the file is NOT a pass."*
+✅ **RULE: a change that edits a `## KI-N` header must add or touch at least one line INSIDE KI-N's
+own section.** It reuses machinery already present — `_ki_diff_hunks` attributes added lines to
+sections BY LINE NUMBER, so a paragraph one line above the header is attributed to the PREVIOUS KI
+and this fires. That is the whole point.
+✅ **LIVE fault test, three arms** (not a unit test — this file's own history records a self-test that
+"passed because it exercised the DECISION while bypassing this PARSING"):
+header-only edit → FIRES; **today's exact bug, body line one line above the header → FIRES**;
+control, body line inside the section → SILENT. Tree restored clean after each arm.
+
+### (B) RATCHET-BASELINE CLAIMS — `check_gate_counts` again, against a different number
+Lowering one ratchet (`36` → `{"sandbox": 31, "custom": 36}`) left **four** stale prose copies of
+"36 on both forks" behind. A Tier 1 reviewer found three; the P2 gate found the fourth — in **KI-81's
+HEADER**, the entry that owns the ratchet. Nothing found them all.
+✅ **Ground truth is parsed with AST, not regex** — `probe_abort_swallowing.py` carries 44, 36, 53 and
+45 in the comments immediately around `_BASELINES`, and a regex picks one of those up.
+✅ **Reads RAW text on purpose.** The most dangerous copy was the comment beside the runnable
+`--build custom` command in the HOW TO RUN block — i.e. INSIDE A CODE FENCE, on the line a cold
+session copy-pastes. A fence-blanked scan is blind to exactly the copy that matters most.
+✅ **Keyed on the INVARIANT, not a banned phrase.** Four live arms: clean tree → silent; equality
+claim injected → FIRES; **the SAME text with `_BASELINES` forced equal → SILENT** (the decisive arm);
+a wrong `{sandbox: N, custom: M}` → FIRES.
+⛔⛔ **AND IT FIRED ON ME WITHIN MINUTES — ON THE PUNCH-LIST ENTRY DESCRIBING THE BUG.** The
+sentence was `lowering one ratchet left FOUR stale "36 on both forks" copies behind` — a QUOTATION of
+a false claim, not a false claim. ✅ Added a **USE vs MENTION** rule: a match enclosed in double
+quotes or backticks on its own line is a mention and is exempt. Apostrophes are deliberately NOT
+counted — English prose is full of them and they would make it unreliable in the noisy direction.
+‼ This is the standing rule *fault-test every gate in BOTH directions* paying for itself the same
+hour: **a gate with false positives teaches the reader to bypass it, which is strictly worse than
+no gate.** Locked in as self-tests R7 (quoted → quiet), R8 (backticked → quiet) and R9 (unquoted →
+still fires, so the exemption did not neuter the rule).
+
+### ⛔⛔ TWO MISTAKES MADE *WHILE BUILDING THESE*, BOTH CAUGHT BY MEASURING
+1. **The word-boundary was a NO-OP that still printed PASS.** `\b` is a REAL Python escape
+   (backspace, 0x08) — unlike `\s`, which merely warns and survives — so pushing it through a heredoc
+   compiled the pattern to `'\x08on...'`, matching nothing. **This is the SECOND time in one day**
+   (the first was `repro_no_silent_except.py`'s denylist). ✅ The backslash is now BUILT with
+   `chr(92)`, and the reason is written at the line. ‼ **Never review a regex by READING it — print
+   the COMPILED pattern and run both lists.**
+2. **The exemption list was a hole.** It exempted any claim within 120 chars of `historical` or
+   `ARCHIVE` — words that say WHERE AN ENTRY LIVES, not WHEN A CLAIM WAS TRUE, and which appear
+   constantly in this corpus. A live fault injection was silently exempted by a nearby "ARCHIVE".
+   ✅ Tightened to strictly temporal markers. ⇒ **an exemption keyed on a common word is a hole, not
+   a courtesy.**
+
+### ⛔ THE TIER 1 REVIEW OF THIS ITEM RETURNED FIVE FINDINGS — INCLUDING A BYPASS OF THE EXEMPTION I HAD JUST ADDED
+
+1. **The USE-vs-MENTION rule was a FALSE-NEGATIVE HOLE, demonstrated live.** v1 asked *"is the count
+   of marks before the match odd, and does one appear after?"* — which a single **stray** backtick
+   anywhere on the line satisfies. So a genuine `36 on BOTH forks` claim went SILENT because the same
+   sentence named a backticked filename. ‼ In a corpus saturated with backticked identifiers that is
+   not an edge case, it is the COMMON case — and a false negative defeats the check without anyone
+   noticing, which is worse than the false positive it was added to fix.
+   ⛔⛔ **AND MY FIRST FIX WAS THE SAME BUG IN DIFFERENT CLOTHES — CAUGHT BY THE NEXT REVIEWER.**
+   v2 "paired the marks and required a pair to enclose the match": structural-looking, and **provably
+   the identical function** for any match containing no mark (sequential pairing encloses IFF the
+   count before is odd and one follows). Measured afterwards: **0 mismatches over 2517 random
+   trials.** ‼ And my three new tests all used an EVEN count before the match, so **they passed on
+   the broken version too** — a suite that agrees with the implementation it was written to reject.
+   ⛔⛔ **AND v3 WAS BROKEN TOO — BY A THIRD REVIEWER, AT A LEAD I HAD DOCUMENTED AS SAFE.** Two
+   unrelated backticks sitting close enough still read as a "hug". Three heuristics, three
+   independent reviewers, three bypasses; each attempt narrowed the hole and none closed it.
+   ✅ **RESOLVED BY DELETING THE HEURISTIC ENTIRELY.** The decisive fact was SCOPE, not cleverness:
+   this check reads only `CURRENT_STATE` files, and across ALL of them the phrase occurred exactly
+   **ONCE** — my own sentence, written the same day. **Sixty lines of inference, three broken
+   implementations and three review rounds existed to exempt a SINGLE SENTENCE**, which was then
+   fixed by rewriting the sentence.
+   ✅ The only exemption now is **`SUPERSEDE_RE`**, the retraction marker every sibling check in that
+   file already honoured — and whose absence here was itself a review finding, so the check is now
+   consistent with its neighbours instead of special.
+   ⇒ **BEFORE BUILDING AN EXEMPTION, COUNT WHAT IT WOULD EXEMPT.** If the answer is "one", the
+   exemption is the wrong tool.
+   ⇒ **PREFER A DECLARED EXEMPTION OVER AN INFERRED ONE.** An inferred one is a guess about intent
+   that stray punctuation can trigger; a declared marker IS the intent and cannot be faked.
+   ⇒ And the rule that survives from the failed attempts: **run new tests against the OLD
+   implementation — if they still pass, they do not discriminate and they prove nothing.** That is
+   how v2 shipped: a rewrite that changed the SHAPE and not the TRUTH TABLE, with tests that agreed
+   with it.
+2. **(A) shipped with NO self-test.** Proven by three live arms, but the regression suite never
+   exercised the branch — a later edit could delete it and `--self-test` would still print PASS.
+   ✅ Added **F6/F7**. ‼ And documented the hazard at the mirror itself: `_decide()` duplicates the
+   decision, so it can drift from the real function and keep passing. It covers the DECISION; only a
+   LIVE arm covers the ATTRIBUTION, which is the half that actually broke. Keep both.
+3. **(C) shipped with NO self-test** either. ✅ Added **C1–C5**, where C5 deliberately exercises the
+   scanner's predicate on real files rather than only asserting set membership — a membership test
+   alone would still pass if the scanning loop were deleted.
+4. ⛔ **A "MEASURED" NUMBER THAT DESCRIBED THE WRONG THING.** I wrote *"0 hits across 631 .py files"*.
+   The measurement was honest, but the gate's `_PY_ROOTS` scans the **whole fork trees**, not the
+   `modules/` subdirectories I had counted: the real scope is **725** files (259 + 233 + 233), still
+   0 hits. ⇒ **STATE THE SCOPE WITH THE COUNT.** A bare figure cannot be checked against the code it
+   claims to describe, and "measured" is not a synonym for "correct".
+5. A stale line-count figure in the handoff, re-derived and corrected.
+
+‼ **AND AN OPERATIONAL INCIDENT WORTH RECORDING.** The reviewing agent, building a live fixture, hit
+a silent `cd` failure and ran `git commit` against the REAL repository, creating an unauthorised
+commit that swept up this item's in-review file. Nothing was lost or altered — only the commit
+boundary moved, and it was never pushed. ⇒ **A SUBAGENT CAN WRITE TO YOUR TREE.** Give review agents
+read-only instructions AND an explicit "do not run git write commands" line, and re-verify
+`git status` after any review that built fixtures. (This is also why the standing rule is to stage
+EXPLICIT PATHS: a blind `git add -A` in that state would have swept far more.)
+
+### ⛔ ROUND 5 OF THE SAME ITEM: THE EQUALITY TEST WAS DIGIT-ONLY, AND A RULE FOR THAT ALREADY EXISTED
+
+Closing the previous round's over-eager-guard finding, I required a FIGURE before the phrase so that
+*"the ratchet fix was verified on BOTH forks"* would stop firing. That fixed the false positive and
+opened a false-negative class: **`thirty-six on BOTH forks`, `the count is the same on BOTH forks`
+and `identical on BOTH forks` all passed silently.**
+
+‼ **THIS PROJECT HAD ALREADY WRITTEN THE PREVENTION RULE**, twice, in `08-MISTAKES.md`: *"A NUMERIC
+GATE MUST ACCEPT THE FORMS HUMANS ACTUALLY WRITE — digits, spelled-out words… its silence means 'I
+found no number in the form I know', which is NOT 'the number is right'"*, and *"when you gate a
+FACT, gate the sentence as well as the number — ask 'can this claim be made without a digit?'"*.
+I wrote a digit-only gate anyway. ⇒ **the recurring failure of this entire session: a rule filed
+under one artifact does not fire while you are editing another.** It is exactly why these rules keep
+being converted into gates and self-tests rather than left as prose.
+
+✅ **FIXED: `_asserts_equality` now recognises three shapes** — a figure (`36`, `**36**`), a
+spelled-out figure (`thirty-six`, word-bounded so `done`/`none` do not match `one`), or a sameness
+word (`same|equal|identical|unchanged|alike|matches`). Windows are 14/24/40 chars respectively.
+✅ **Both directions locked in:** R17–R20 assert each claim shape fires; R21/R22 assert an ACTION on
+both forks (`verified`, `promoted`, `passes`) and the `done`/`none` word-boundary case stay quiet.
+✅ **Fault-proven**: reverting `_asserts_equality` to digit-only fails R17, R18 and R19.
+✅ **R23/R24 close the last gap the reviewer named** — the "forks forced EQUAL → silent" arm was true
+but never locked into the suite. It now is, alongside R24 proving the same text fires again when the
+baselines really differ. That pair is what makes this an INVARIANT test rather than a banned phrase.
+
+### ⛔⛔ FINAL: THE RATCHET-CLAIM CHECK WAS DELETED, NOT FIXED — 289 LINES REMOVED
+
+A six-angle adversarial review (false negatives / false positives / exemptions / test vacuity / docs
+/ commit integrity, with a synthesizer that re-ran every claim) returned **7 blockers** on
+`check_ratchet_baseline_claims`. All reproduced. The three that mattered:
+* **it missed 7 of 7 genuine claims** — the figure had to be GLUED to the phrase, so a comma, a dash,
+  an extra word, a table pipe or a newline defeated it. An end-to-end injection of seven
+  present-tense equality claims into the live corpus produced **zero** findings.
+* **it fired on innocent prose** — any nearby digit did it: dates, commit SHAs, line numbers, version
+  strings. Following the gate's own remedy ("date-scope the sentence") *created* a violation.
+* **its exemptions silenced ~5% of live lines** via markers that were not about the claim — a bypass
+  this same file had already documented and fixed for a SIBLING check, which the new one did not
+  inherit.
+
+⇒ **The decisive question was not "can I fix those?" but "what does it protect?"** It reads only
+CURRENT_STATE files, where the phrase appears a handful of times — all in prose ABOUT this check —
+and the harm it prevents is a stale figure in a document that already tells readers to run the probe
+instead. Six review rounds had gone into a documentation nicety.
+✅ **DELETED**, with a long note at the former site so nobody rebuilds it. The stale-figure risk sits
+where it always actually sat: the probe is the authority, KI-81's header carries the per-fork
+figures, and reviewers catch drift — which is how all four original stale copies were found.
+
+### ✅ AND THE CONTROL-CHARACTER GUARD'S OWN TEST WAS VACUOUS
+The same review mutation-tested every self-test. `C5` re-implemented the predicate inline and **never
+called `scan_py_ctrl_chars`** — so a mutant that gutted the scanner body, and one that deleted the
+function and its wiring outright, BOTH passed with a green suite. My own comment beside it claimed
+the opposite. ✅ Rewritten to call the shipped scanner against a fixture placed under `_PY_ROOTS`
+(anywhere else and the scan skips it, which would be vacuous in a new way); both mutants now FAIL.
+‼ **A test that does not call the thing it names is worse than no test**, because it also stops
+anyone looking.

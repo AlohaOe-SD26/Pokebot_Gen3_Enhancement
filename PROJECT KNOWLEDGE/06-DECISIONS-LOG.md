@@ -3284,3 +3284,65 @@ left me unable to say whether the number was complete.
 ⇒ **A count is only comparable against the criterion that produced it.** Where a reported figure and
 a re-derived one differ, compute BOTH and report which is which — the gap is usually a scope
 difference, not an error, and the scope is the useful part.
+
+## 2026-08-23 — RULING: three design choices in `#24-p2headergate`, and why each alternative was rejected
+
+**1. The control-character guard is a HARD ZERO, not a ratchet.** Every other numeric gate here is a
+ratchet because its population is real debt that must shrink deliberately. This one measured **0 hits
+across 725 `.py` files**, so there is no legitimate baseline to preserve and any hit is a defect.
+*Rejected:* a ratchet at 0 — identical behaviour today, but it invites someone to "just raise the
+baseline" when it fires, which is exactly the wrong response to a control character in source.
+
+**2. The ratchet-claim check reads RAW text, not the fence-blanked text every other prose check uses.**
+*Rejected:* reusing the shared fence-blanked corpus, which would have been consistent with its
+neighbours and BLIND to the single most dangerous copy of the stale claim — the comment beside the
+runnable command in the handoff's HOW TO RUN block, i.e. the line a cold session copy-pastes. ⇒ when
+a check's target lives in fences, consistency with sibling checks is the wrong tiebreaker.
+
+**3. THE QUOTING HEURISTIC IS DELETED. THE ONLY EXEMPTION IS AN EXPLICIT, AUTHOR-DECLARED MARKER.**
+The check must not fire on prose that QUOTES the false claim rather than asserting it. Three
+inferred heuristics were written to decide that, and **all three were broken by independent
+reviewers**: *v1* mark parity (a stray backtick exempted a real claim); *v2* sequential pair
+containment, which looked structural and was **measured identical to v1** (0 mismatches / 2517
+trials); *v3* proximity bounds, defeated by two unrelated backticks that happened to sit close
+enough. Each narrowed the hole; none closed it.
+*Chosen:* **remove the heuristic entirely** and honour `SUPERSEDE_RE` — the retraction marker every
+other check in that file already honours, and whose absence here was itself a review finding.
+⇒ **PREFER AN EXPLICIT, AUTHOR-DECLARED EXEMPTION OVER AN INFERRED ONE.** An inferred exemption is a
+guess about intent and can be triggered by punctuation nobody meant; a declared one IS the intent,
+and no stray backtick can fake it.
+⛔ **What actually settled it was SCOPE, not cleverness.** The check reads only `CURRENT_STATE`
+files, and across all of them the phrase occurred exactly **ONCE**. Sixty lines of heuristic, three
+broken implementations and three review rounds existed to exempt **a single sentence** — which was
+then fixed by rewriting the sentence. ⇒ **BEFORE BUILDING AN EXEMPTION, COUNT WHAT IT WOULD EXEMPT.**
+If the answer is "one", the exemption is the wrong tool.
+*Also rejected:* keeping v3 with tighter bounds — it would have narrowed the hole a fourth time
+without changing the fact that "is this phrase quoted?" is not reliably answerable from local
+punctuation in a corpus saturated with backticked identifiers.
+## 2026-08-23 — RULING: delete `check_ratchet_baseline_claims` rather than fix its 7 blockers
+
+**Decision.** Remove the check entirely (289 lines incl. 17 self-tests) and keep the other two checks
+of `#24-p2headergate`.
+
+**Why, in the order the reasons actually weigh.**
+1. **Blast radius.** It guards a stale FIGURE in a current-state doc. The probe is the authority and
+   the docs say so. A defect here costs a stale sentence. Six adversarial review rounds had gone into
+   it while the bot itself had open behavioural items — that is the wrong allocation, and noticing it
+   required the user to ask what we were actually working on.
+2. **Non-convergence, measured.** Three exemption implementations, three independent reviewers, three
+   bypasses; v2 was *measured identical* to v1. Removing the exemption exposed a predicate that
+   missed 7 of 7 real claims while firing on any nearby digit. Every fix opened the next hole.
+3. **The general rule this yields:** ⇒ **when a predicate needs a THIRD exemption, the predicate is
+   wrong.** Judging author INTENT from local punctuation is not solvable at this cost.
+
+*Rejected:* fixing the 7 blockers — the synthesizer's own "smallest fix" for two of them required a
+predication parser, which is more machinery again for the same nicety.
+*Rejected:* keeping it as ADVISORY — an advisory that is wrong in both directions is noise, and noise
+teaches readers to skip the gate output that also carries the real findings.
+*Rejected:* keeping it and lowering the review bar — that is how an unmeasured gate ships, and this
+file's history is made of those.
+
+⇒ **STANDING RULE ADOPTED: review depth and implementation effort scale with BLAST RADIUS.**
+Production code that drives the bot earns deep adversarial rounds; a gate earns one or two; a
+doc-consistency helper earns one. "A reviewer found something" is a reason to fix it, not
+automatically a reason to keep going.
