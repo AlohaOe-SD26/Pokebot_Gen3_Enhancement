@@ -157,6 +157,16 @@ GATES: list[tuple[str, bool]] = [
     # latch BEFORE calling any recovery routine. (An earlier draft claimed the recovery runs with
     # the latch SET and must contain NO checks — REFUTED 2026-08-23; see the gate's docstring.)
     ("repro_loop_head_abort.py", False),
+    # #31 — §Ch20 CONSTANT PARITY. The production chapter's tiles and push tables must be
+    # character-identical to the DRIVEN harness constants. ‼ Written because a FABRICATED
+    # `ROOM8_PUSHES` was committed to `modules/story/seafloor_cavern.py` on 2026-08-24: invented
+    # from a spec that CITED the source line range without quoting it, right shape, **8 of 9 rows
+    # wrong**, and carrying a true-sounding "adjudicated against the decomp" provenance comment.
+    # Those nine pushes run in a room where a boulder on (5,3) PERMANENTLY seals the exit, and a
+    # wrong sequence fails ~25 minutes into a drive looking like a pathfinding bug.
+    # ⇒ A FILE:LINE CITATION IS A POINTER, NOT THE CONTENT.
+    # ‼ APPENDED AT THE END — gate ordinals are append-only.
+    ("repro_ch20_constants.py", False),
 ]
 
 

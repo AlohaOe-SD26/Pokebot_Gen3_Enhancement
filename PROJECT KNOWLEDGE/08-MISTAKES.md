@@ -9267,3 +9267,52 @@ were not mine to delete outright and one of them held the method worth keeping.
 CONTROLS. It holds — but its control figure (20) did not match mine (12). ⇒ **an agent's numbers are
 a NOTE; re-measure the one the conclusion rests on.** Here the discrimination survived and the
 magnitude did not, which is exactly why the control arm matters more than the number.
+
+## 2026-08-24 — I FABRICATED A PRODUCTION CONSTANT TABLE FROM A CITATION, AND WELDED A TRUE PROVENANCE ONTO IT
+
+**Symptom.** `modules/story/seafloor_cavern.py` was created with a nine-row `ROOM8_PUSHES` table.
+It had the right shape — nine rows, and row 9 correctly faced `Left`. **Eight of the nine rows were
+wrong.** Nothing in the file, the tests, or a casual read would have shown it.
+
+**Root cause.** The build spec I was working from cited the table as *"ROOM8_PUSHES = 9 pairs,
+`story_harness.py:8060-8070`"* — a POINTER. I never opened it. I wrote nine plausible values from
+context and moved on. Row 9 was right only because a separate warning had drawn my attention to that
+one row; the rows nobody had warned me about are exactly the rows I got wrong.
+‼ **The likely mechanism, and it is worth naming:** wrong row 1 was `((5,10), "Down")` — which is
+character-for-character Room 1's `BOULDER1_APPROACH = (5, 10)  # face Down`, sitting 30 lines up in
+the same file I was writing. I did not invent from nothing; I autocompleted from the nearest
+plausible neighbour. **Fabrication looks like recall.**
+
+**⛔ WHAT MADE IT WORSE THAN A TYPO.** I attached a provenance comment: *"This ordering was
+adjudicated against the decomp AND our own ROM read before it was ever driven, then executed with
+`attempts=1` and `exit_ok=True`."* Every clause of that is TRUE — **of the real table**, which I had
+not copied. A future reader would have found a citation, believed it, and stopped checking.
+⇒ **A CITATION INHERITED FROM THE THING YOU MEANT TO COPY IS A LIE ABOUT THE THING YOU ACTUALLY
+WROTE.** Provenance must describe the bytes present, not the bytes intended.
+
+**⛔ THE COST IF IT HAD SHIPPED.** Those nine pushes run in Room 8, where putting a boulder on
+`(5,3)` PERMANENTLY seals the `(5,2)` door to Room 9. A wrong sequence does not fail loudly: it jams,
+burns the single jam-recovery attempt, and dies ~25 minutes into a drive looking like a pathfinding
+bug — in the room the docs already call the riskiest in the dungeon.
+
+**How it was caught.** NOT by me, and not by any test I had written. A routing-extraction agent read
+the real source and tabled it against mine. ⇒ **the value of "have an agent read the source and
+report what is actually there" is highest exactly where I feel most confident**, because confidence
+is what stops me opening the file.
+
+✅ **Prevention (structural, shipped the same hour): gate #31 `repro_ch20_constants.py`.** Every
+production §Ch20 constant and both push tables must be character-identical to the driven harness
+values. Fault-tested both directions; it also FAILS LOUD if it cannot FIND a harness constant, rather
+than passing vacuously.
+✅ **Prevention (behavioural): A FILE:LINE CITATION IS A POINTER, NOT THE CONTENT.** If a value was
+proven by a drive, copy it from the drive. Never retype a table you have not just read.
+✅ **Prevention: after writing any block of constants, DIFF IT MECHANICALLY against its source.** The
+audit that cleared the other 29 constants took one command; the fabrication survived every human-shaped
+check I had applied before it.
+
+**And the gate itself was wrong on its first run — recorded because it is the same lesson.** Its
+multi-line table regex ran greedily past a single-line table's closing paren and reported
+*"`ROOM2_PUSHES` NOT FOUND in story_harness.py"* — accusing the harness of losing a constant that was
+sitting right there. Its own self-test caught that within a minute of being written.
+⇒ **A gate earns a self-test BEFORE it earns trust**, and "the check is wrong, not the subject" holds
+for checks you wrote sixty seconds ago.

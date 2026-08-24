@@ -1,0 +1,27 @@
+EVIDENCE — §Ch20 ingredients re-verified 2026-08-24, BEFORE chapter assembly
+
+WHY: the seven ch20 drivers were last proven 2026-08-14. Since then `early_game.py` gained 17
+loop-head `_check_abort()` calls (`#24-loopheadabort`) and 13 handler guards
+(`#24-abortrecoveryresiduals` (b)+(c)). Assembling a chapter on unverified ingredients builds on sand.
+
+### --driver ch20room1 (ingress + Room 1)
+[ch20room1] RESULT in_room1=True ab_before=False ab_after=True smashed=True pushed1=True pushed2=True in_room2=True can_continue=True
+[ch20room1] ACCEPTANCE: PASS
+
+### --driver ch20room9 (THE FULL CHAIN — it re-solves every room beneath it)
+[ch20room9] RESULT rooms_ok=True triggered=True battles_r9=1 kyogre_flag=True var2=True landed=True escaped=True ocean_path=True can_continue=True
+[ch20room9] ACCEPTANCE: PASS
+
+=> NO REGRESSION. Assembly may proceed.
+
+‼ AND THIS RUN'S OWN TELEMETRY CONFIRMS THE RESUME HAZARD IS WELL-POSED:
+   at the trigger : arm=0         SEAFLOOR_CAVERN_STATE == 0, so the (17,42) coord event is ARMED
+   mid-warp       : scs=1 r128=1  the trigger is now DISARMED while ROUTE128_STATE is still 1
+   => a crash in THAT WINDOW leaves the trigger dead and the chapter unfinishable by re-entry.
+      Whether Route 128's OnFrame scene re-fires at r128 == 1 is the ONE fact that decides whether
+      the state is recoverable. It is being checked against the pret decomp, NOT assumed.
+
+‼ Also measured this run: the Room 3 trainer battle IS a DOUBLE (is_double=True at (6,5)), Room 8
+  solved in attempts=1 with exit_ok=True, release facing 'Up', escape onto (38,24) with an ocean
+  path — i.e. NOT the 41-tile closed lagoon. Archie was WON (the chain's one stochastic element,
+  measured 2W/1L across prior runs).

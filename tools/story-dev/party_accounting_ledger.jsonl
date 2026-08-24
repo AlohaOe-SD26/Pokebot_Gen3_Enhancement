@@ -129,3 +129,5 @@
 {"when": "2026-08-17T20:50:38", "driver": "ki76warp", "build": "sandbox", "state": "post_dive_ki76.ss1", "frames_run": 32224, "recomputes": 32224, "scans": 108, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-17T20:58:04", "driver": "ki76warp", "build": "sandbox", "state": "post_dive_ki76.ss1", "frames_run": 32224, "recomputes": 32224, "scans": 108, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-17T23:57:40", "driver": "ki76warp", "build": "sandbox", "state": "post_dive_ki76.ss1", "frames_run": 32224, "recomputes": 32224, "scans": 108, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-24T08:38:44", "driver": "ch20room1", "build": "sandbox", "state": "post_dive.ss1", "frames_run": 28363, "recomputes": 28363, "scans": 95, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-24T08:46:03", "driver": "ch20room9", "build": "sandbox", "state": "post_dive.ss1", "frames_run": 74987, "recomputes": 74987, "scans": 250, "divergences": {}, "observer_broke": false}
