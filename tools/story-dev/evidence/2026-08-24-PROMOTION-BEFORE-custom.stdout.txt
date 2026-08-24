@@ -1,0 +1,15 @@
+EVIDENCE — BEFORE promotion of modules/story/early_game.py (sandbox -> custom), 2026-08-24
+Three-point A/B, as the project requires. A byte-compare only proves a file was COPIED;
+these three measurements prove the FORK'S BEHAVIOUR moved.
+
+### 1. AST abort-swallowers (handler reaching _check_abort, neither re-raising nor guarding)
+   sandbox :   SITES: 0   FUNCTIONS: 0
+   custom  :   SITES: 8   FUNCTIONS: 7
+
+### 2. probe_abort_swallowing candidate sites
+   sandbox :   CANDIDATE sites: 23
+   custom  :   CANDIDATE sites: 36
+
+### 3. guarded handlers / loop-head abort checks
+   sandbox-pokebot  guards=22  loop-head _check_abort=84
+   custom-pokebot   guards=9  loop-head _check_abort=67
