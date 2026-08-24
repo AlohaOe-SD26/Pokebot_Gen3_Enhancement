@@ -98,6 +98,32 @@ def flees(story, encounter):
     return isinstance(story.on_battle_started(encounter), RunAwayStrategy)
 
 
+def strategy_of(story, encounter):
+    """The strategy OBJECT, so a case can assert on its TYPE without calling
+    `on_battle_started` twice -- it prints, and a second call is a second decision."""
+    return story.on_battle_started(encounter)
+
+
+def fights_normally(strategy):
+    """The PROPERTY for the "survival mode did NOT engage" cases: the ordinary TRAVEL strategy.
+
+    ‼ `#24-brokenrepros`, 2026-08-23. CASES 1/2/6 used to read `== "LevelUpTravelBattleStrategy"`
+    and had been dead-failing: the code returns `StoryItemBattleStrategy`, which SUBCLASSES
+    `LevelUpTravelBattleStrategy` (`story_mode.py:417` -> `:118`). The behaviour never changed --
+    only the leaf class name did, when the item-using subclass shipped. ⛔ The CHECK was wrong, not
+    the subject. `flees()` two functions up had ALREADY learned this ("not a class name -- the
+    concrete class changed once already") and the lesson was never applied to the fight side.
+
+    ⛔⛔ AND THE OBVIOUS FIX IS WRONG TOO -- MEASURED BEFORE APPLYING IT:
+        issubclass(SwapTrainBattleStrategy, LevelUpTravelBattleStrategy) -> True
+    so a bare `isinstance(strategy, LevelUpTravelBattleStrategy)` would make CASES 1/2/6 pass even
+    if the code wrongly swap-trained, and would stop discriminating CASE 5's distinct outcome.
+    ⇒ the property is "a travel strategy that is NOT the swap-train one".
+    """
+    return (isinstance(strategy, sm.LevelUpTravelBattleStrategy)
+            and not isinstance(strategy, sm.SwapTrainBattleStrategy))
+
+
 # `swap_train_active` is module state inside early_game; drive it explicitly.
 def set_training(active: bool):
     early_game.set_swap_train(active)
@@ -108,17 +134,17 @@ set_training(False)
 print("=" * 78)
 print("CASE 1 -- fresh map, wild encounter -> normal fighting strategy")
 print("=" * 78)
-s = strategy_name(FakeStory({}), WILD)
-print(f"    -> {s}")
-check("unchanged default on a clean map", s == "LevelUpTravelBattleStrategy")
+st = strategy_of(FakeStory({}), WILD)
+print(f"    -> {type(st).__name__}")
+check("unchanged default on a clean map", fights_normally(st))
 
 print()
 print("=" * 78)
 print("CASE 2 -- BELOW threshold (2 defeats) -> still fights (no hair-trigger)")
 print("=" * 78)
-s = strategy_name(FakeStory({ROUTE110: 2}), WILD)
-print(f"    -> {s}")
-check("2 defeats is not enough to change behaviour", s == "LevelUpTravelBattleStrategy")
+st = strategy_of(FakeStory({ROUTE110: 2}), WILD)
+print(f"    -> {type(st).__name__}")
+check("2 defeats is not enough to change behaviour", fights_normally(st))
 
 print()
 print("=" * 78)
@@ -144,21 +170,23 @@ print("=" * 78)
 print("CASE 5 -- same 3 defeats, but train_team is RUNNING -> swap-train, not flee")
 print("=" * 78)
 set_training(True)
-s = strategy_name(FakeStory({ROUTE110: 3}), WILD)
+st = strategy_of(FakeStory({ROUTE110: 3}), WILD)
 set_training(False)
-print(f"    -> {s}")
+print(f"    -> {type(st).__name__}")
 check(
+    # Converted from a leaf-name compare in the SAME round, for the SAME reason: leaving a
+    # fragile name check beside the one that just broke is how the next one goes stale.
     "an active grind is not starved by survival mode",
-    s == "SwapTrainBattleStrategy",
+    isinstance(st, sm.SwapTrainBattleStrategy),
 )
 
 print()
 print("=" * 78)
 print("CASE 6 -- a DIFFERENT map with no defeats -> fights normally (per-map)")
 print("=" * 78)
-s = strategy_name(FakeStory({ROUTE110: 25}, here=ROUTE103), WILD)
-print(f"    -> {s}")
-check("the memory is per-map, not global", s == "LevelUpTravelBattleStrategy")
+st = strategy_of(FakeStory({ROUTE110: 25}, here=ROUTE103), WILD)
+print(f"    -> {type(st).__name__}")
+check("the memory is per-map, not global", fights_normally(st))
 
 print()
 print("=" * 78)

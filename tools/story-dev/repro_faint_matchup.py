@@ -55,6 +55,24 @@ PARTY = [
 battle_state = SimpleNamespace(
     is_trainer_battle=True,
     is_double_battle=False,
+    # ‼ `#24-brokenrepros` 2026-08-23. `default.py:36` reads `is_double_battle_with_partner`,
+    # not `is_double_battle`, so this stub AttributeError'd. ⛔ The value is `False`, NOT `True`:
+    # `battle_state.py:288` defines it as Double AND **InGamePartner** — an NPC partner (Steven),
+    # not any double battle. ⛔ NOTE THIS FILE IS THE ODD ONE OUT: it is a SINGLE battle (Wattson,
+    # solo Grovyle vs Magneton — see the docstring above; `is_double_battle=False`,
+    # `right_battler=None`). So `False` here is correct TRIVIALLY, because the scenario is not a
+    # double battle at all — NOT because it 'models the player's own two mons', which is its
+    # SIBLING `repro_double_battle_swap_loop`'s Mauville Gym scenario. *(That sentence was
+    # copy-pasted here on 2026-08-23 and a Tier 1 reviewer caught it contradicting this file's own
+    # docstring. ⇒ when you paste a rationale between sibling scripts, RE-READ THE SCENARIO.)*
+    # ‼ MEASURED (2026-08-23) — and UNLIKE `repro_double_battle_swap_loop`, THIS repro DOES
+    # discriminate the value: flipping it to `True` makes the run CRASH with
+    # `AttributeError: 'NoneType' object has no attribute 'get_frame_count'`, because this file
+    # does not stub `get_party` and `ally_party_indices` then reaches the real `state_cache.party`
+    # with no emulator attached. ⛔ STATE THE LIMIT EXACTLY: that proves the value CHANGES THE
+    # PATH TAKEN. It does NOT by itself prove `False` is semantically right — that comes from
+    # `battle_state.py:288` (Double AND InGamePartner).
+    is_double_battle_with_partner=False,
     own_side=SimpleNamespace(left_battler=SimpleNamespace(party_index=0), right_battler=None),
     opponent=SimpleNamespace(
         left_battler=SimpleNamespace(species=get_species_by_name("Magneton")),

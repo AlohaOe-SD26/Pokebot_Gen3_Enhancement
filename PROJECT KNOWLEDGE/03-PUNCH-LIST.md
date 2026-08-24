@@ -644,9 +644,46 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       single change, which is the misattribution this probe's own message warns about.
       ⚠ **RE-DERIVE THE LIST BEFORE STARTING** — function names are stable, line numbers are not.
 
-### ‼ `#24-brokenrepros` — FIVE `repro_*` SCRIPTS ARE BROKEN, NOT "ENVIRONMENTAL" (filed 2026-08-23, PASS 5)
+### ✅ `#24-brokenrepros` — DONE 2026-08-23. **The item said FIVE; the sweep found SIX**, and each had a DIFFERENT root cause (filed 2026-08-23, PASS 5)
 
-- [ ] **They were hidden behind a stale expectation line in `02-ARCHITECTURE.md` that said
+- [x] **✅ DONE 2026-08-23 — all six fixed, each fault-tested; the sweep is now `103 PASS / 0 CHECK
+      / 1 SKIP` of 104** (`repro_x4_lanes` is SKIPPED deliberately: it spawns real lane processes).
+      ‼ **THE ITEM'S OWN TABLE WAS INCOMPLETE.** It named five. A full 150s sweep of every
+      `repro_*.py` found a SIXTH — `repro_double_faint` — carrying the *same* stale-stub defect as
+      two of the named ones. It was invisible because `02-ARCHITECTURE.md` filed it under "needs a
+      real mgba", so nobody ran it. ⛔⛔ **AND THAT SCRIPT'S OWN COMMENT RECORDS THE IDENTICAL
+      MISFILING HAPPENING BEFORE** (2026-07-30: a stub missing `level`, *"recorded as environmental,
+      needs a real mgba, for days. It needs no emulator at all."*) ⇒ **the same script was written
+      off as environmental TWICE, for the same class of reason.**
+      | script | root cause (measured) | fix |
+      |---|---|---|
+      | `repro_survival_mode` | ⚠ **THE CHECK WAS WRONG, NOT THE CODE.** Cases 1/2/6 asserted `== "LevelUpTravelBattleStrategy"`; the code returns `StoryItemBattleStrategy`, which **SUBCLASSES** it (`story_mode.py:417` → `:118`). Behaviour never changed — only the leaf name did | assert the BASE CLASS |
+      | `repro_double_battle_swap_loop` | stale stub: sets `is_double_battle`, code reads `is_double_battle_with_partner` | add the attr |
+      | `repro_faint_matchup` | identical | add the attr |
+      | `repro_double_faint` | identical — **the one the table missed** | add the attr |
+      | `repro_counter_move_answer` | `REPO = Path.cwd().parents[1]` — CWD-DEPENDENT. Passed from `tools/story-dev`, died from the repo root. **Line ~78 of the same file already did it correctly** | `Path(__file__).resolve().parents[2]` |
+      | `repro_gym_whiteout_guard` | ⚠ never broken — needed ~122s under a 90s cap | cap raised to 150s |
+      ⛔ **THE OBVIOUS FIX WAS WRONG TWICE, AND BOTH WERE CAUGHT BY MEASURING FIRST:**
+      (1) `isinstance(x, LevelUpTravelBattleStrategy)` alone would have made cases 1/2/6 pass even if
+      the bot **swap-trained**, because `SwapTrainBattleStrategy` IS ALSO a subclass — measured, so
+      the property shipped as "a travel strategy that is NOT the swap-train one". Fault-armed: forcing
+      swap-train ON fails cases 1/2, which proves that clause is load-bearing.
+      (2) The stub value is `False`, not `True`: `is_double_battle_with_partner` is Double **AND
+      InGamePartner** (an NPC partner). ‼ **The reason is PER-SCRIPT:** `repro_double_battle_swap_loop` and `repro_double_faint` model the player's OWN two mons (no NPC partner), while **`repro_faint_matchup` is a SINGLE battle** (Wattson, solo Grovyle; `is_double_battle=False`) where `False` is correct trivially.
+      ‼ **AND THE LIMIT IS PER-SCRIPT, MEASURED ONE BY ONE — an earlier draft of this entry
+      generalised ONE measurement to all three and a Tier 1 reviewer caught it.** Flipping the value
+      to `True`: `repro_double_battle_swap_loop` still PASSES (it stubs `get_party`, so the run
+      reaches `get_player()` and takes the documented FAILS-CLOSED path to an empty set — identical
+      to `False`), while `repro_faint_matchup` and `repro_double_faint` **CRASH**
+      (`AttributeError: 'NoneType' has no attribute 'get_frame_count'` — they do not stub
+      `get_party`, so `ally_party_indices` reaches the real `state_cache.party` with no emulator).
+      ⇒ two of the three DO discriminate the value; one does not. ⛔ **And state even that exactly:**
+      a crash proves the value CHANGES THE PATH TAKEN, not that `False` is semantically right —
+      that comes from `battle_state.py:288` (Double AND InGamePartner).
+      ✅ Verified from TWO working directories (the cwd fix's actual discriminator) and the full gate
+      suite is green. Original text follows.
+
+- [x] **They were hidden behind a stale expectation line in `02-ARCHITECTURE.md` that said
       *"47 pass, 0 fail, 5 environmental"* and NAMED THE WRONG FIVE.** ⛔ Three of the five it named
       (`repro_boss_training`, `repro_navigate_failfast`, `repro_sufficiency`) now PASS. Measured with
       the corrected sweep (`PYTHONUTF8=1`, 150s cap): **96 PASS / 6 CHECK of 102**.
@@ -662,6 +699,29 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       shipped. ⛔ None of these is in `run_gates.py`, so the standing suite is unaffected and green.
       ⚠ **`PYTHONUTF8=1` is not optional in any sweep** — without it ~37 healthy scripts die on a `‼`
       and read as failures, which is how these five stayed invisible.
+
+### ‼ `#24-reprosweepratchet` — WHAT THE STANDING SUITE DOES NOT RUN, ROTS (filed 2026-08-23)
+
+- [ ] **⛔ MEASURED, not theorised: the SAME script was written off as "environmental" TWICE.**
+      `#24-brokenrepros` fixed six `repro_*.py` scripts. **None of the 104 repros is in
+      `run_gates.py`** — the suite covers 28 enforcing gates, and the rest are run only when somebody
+      remembers to. Consequences already paid, twice on one script:
+      * 2026-07-30 — `repro_double_faint`'s stub lost `level` when the KI-18 tiebreaker landed; its
+        own comment records it was *"recorded as environmental, needs a real mgba, for days. It needs
+        no emulator at all."*
+      * 2026-08-23 — the SAME script, the SAME misfiling, a different missing stub attribute
+        (`is_double_battle_with_partner`). It was not in the item's own table of five, and only a
+        full 150s sweep of all 104 surfaced it.
+      ⇒ **A doc line saying "environmental" is a CLAIM, and it is self-sealing: it tells the next
+      reader not to run the thing that would refute it.**
+      ‼ **DESIGN (do NOT just bolt 104 scripts onto `run_gates.py` — the suite is 158s and must stay
+      fast enough to run every commit):** a `repro_sweep_ratchet.py` that runs every `repro_*.py`
+      with the 150s cap and asserts the set of failing scripts is a SUBSET of a documented allowlist,
+      each entry carrying a REASON. Ratchet semantics, like every other gate here: the set may shrink
+      freely, may never grow. ⛔ Run it as an ADVISORY/slow tier or on a schedule, NOT in the hot
+      suite; and ⛔ `repro_x4_lanes` must stay excluded — it spawns real lane processes.
+      ⚠ **Fault-test both directions:** break a passing repro (must fire); add a listed one (must
+      stay silent); and prove the allowlist cannot silently absorb a NEW failure.
 
 ### ‼ `#24-codeorphans` — SIX SLUGS THAT CODE CITES AND THIS FILE NEVER DEFINED (filed 2026-08-22, PASS 5)
 

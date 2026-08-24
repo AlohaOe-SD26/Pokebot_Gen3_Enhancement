@@ -17688,3 +17688,59 @@ averaging it away.
 
 ⚠ Drift remains **1 file** (`early_game.py`, sandbox only) — no new file diverged, and the promotion
 decision is still the USER's. One doc citation re-pointed after the inserted lines moved a `def`.
+
+## 2026-08-23 — `#24-brokenrepros`: the item said FIVE, the sweep found SIX, and each had a DIFFERENT root cause
+
+Six `repro_*.py` scripts were failing while a stale line in `02-ARCHITECTURE.md` described the
+situation as *"47 pass, 0 fail, 5 environmental"* and **named the wrong five**. All six are fixed and
+fault-tested. Sweep is now **103 PASS / 0 CHECK / 1 SKIP of 104** (`repro_x4_lanes` is skipped deliberately — it spawns real
+lane processes). ⛔ No production code was touched; drift is unchanged at 1.
+
+### ⛔ THE ONE THAT MATTERS: THE CHECK WAS WRONG, NOT THE CODE
+`repro_survival_mode`'s cases 1/2/6 asserted `strategy == "LevelUpTravelBattleStrategy"`. The code
+returns `StoryItemBattleStrategy` — which **SUBCLASSES** it (`story_mode.py:417` → `:118`). The
+behaviour under test never changed; only the leaf class name did, when the item-using subclass
+shipped. ‼ **`flees()`, two functions above in the same file, had ALREADY learned this** — its
+docstring reads *"asserted via the flee-strategy base class, not a class name — the concrete class
+changed once already"*. The lesson was never applied to the fight side.
+
+⛔⛔ **AND THE OBVIOUS FIX WAS ALSO WRONG — MEASURED BEFORE APPLYING IT.**
+`issubclass(SwapTrainBattleStrategy, LevelUpTravelBattleStrategy)` is **True**, so a bare
+`isinstance(...)` would have made cases 1/2/6 pass *even if the bot swap-trained*, and would have
+stopped discriminating case 5's distinct outcome. ⇒ shipped as "a travel strategy that is NOT the
+swap-train one", with a two-arm fault test: forcing the threshold to 0 fails cases 1/2/6, and forcing
+swap-train ON fails cases 1/2 — **the second arm is what proves the extra clause is load-bearing.**
+
+### THE OTHER FIVE
+* **THREE stale stubs** (`repro_double_battle_swap_loop`, `repro_faint_matchup`, and
+  `repro_double_faint` — **the one the item's own table missed**): each sets `is_double_battle`, but
+  `default.py:36` reads `is_double_battle_with_partner` (`battle_state.py:288`).
+  ‼ **The value is `False`, not `True`** — that property is Double **AND InGamePartner** (an NPC
+  partner such as Steven). ‼ **THE REASON IS PER-SCRIPT, NOT SHARED** — a Tier 1 reviewer caught an
+  earlier draft asserting one reason for all three: `repro_double_battle_swap_loop` and `repro_double_faint` model the player's OWN two mons (no NPC partner), while **`repro_faint_matchup` is a SINGLE battle** (Wattson, solo Grovyle; `is_double_battle=False`) where `False` is correct trivially.
+  ‼ **AND THE LIMIT IS PER-SCRIPT, MEASURED ONE BY ONE — an earlier draft of this entry
+  generalised ONE measurement to all three and a Tier 1 reviewer caught it.** Flipping the value
+  to `True`: `repro_double_battle_swap_loop` still PASSES (it stubs `get_party`, so the run
+  reaches `get_player()` and takes the documented FAILS-CLOSED path to an empty set — identical
+  to `False`), while `repro_faint_matchup` and `repro_double_faint` **CRASH**
+  (`AttributeError: 'NoneType' has no attribute 'get_frame_count'` — they do not stub
+  `get_party`, so `ally_party_indices` reaches the real `state_cache.party` with no emulator).
+  ⇒ two of the three DO discriminate the value; one does not. ⛔ **And state even that exactly:**
+  a crash proves the value CHANGES THE PATH TAKEN, not that `False` is semantically right —
+  that comes from `battle_state.py:288` (Double AND InGamePartner).
+* **`repro_counter_move_answer` was CWD-DEPENDENT**, not "missing a path": `REPO =
+  Path.cwd().parents[1]`. It passed from `tools/story-dev` and died with `ModuleNotFoundError` from
+  the repo root — and **line ~78 of the same file already resolved the repo correctly**. Verified by
+  running all six from TWO working directories, which is the actual discriminator for this fix.
+* **`repro_gym_whiteout_guard` was never broken** — ~122s under a 90s cap. ‼ And the doc still said
+  *"use a ~90s per-script timeout"* **ten lines below** the entry recording that cap as the bug. The
+  correction had landed in the new prose while the old instruction — the line a reader COPIES — was
+  left alone. Fixed.
+
+### ⛔ THE SIXTH WAS INVISIBLE BECAUSE A DOC SAID NOT TO RUN IT
+`repro_double_faint` was filed under "needs a real mgba", so nobody ran it; only a full 150s sweep of
+all 104 repros surfaced it. **And that script's own comment records the IDENTICAL misfiling in
+2026-07-30** — a stub missing `level`, *"recorded as environmental, needs a real mgba, for days. It
+needs no emulator at all."* ⇒ **the same script was written off as environmental TWICE, for the same
+class of reason.** Filed as `#24-reprosweepratchet`: none of these scripts is in `run_gates.py`, and
+what the standing suite does not run, rots.

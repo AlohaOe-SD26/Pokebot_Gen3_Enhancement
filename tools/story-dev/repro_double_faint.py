@@ -30,6 +30,20 @@ def mon(hp, level=10):
 # Double battle; our two active battlers are party indices 0 and 1.
 battle_state = SimpleNamespace(
     is_double_battle=True,
+    # ‼ `#24-brokenrepros` 2026-08-23. THE THIRD instance of this stale stub — and the item's own
+    # table named only TWO. It was invisible because the doc filed this script under "needs a real
+    # mgba", so nobody ran it; only a full 150s sweep of all 104 repros surfaced it.
+    # `default.py:36` reads `is_double_battle_with_partner`, defined at `battle_state.py:288` as
+    # Double AND **InGamePartner** — an NPC partner (Steven), NOT any double battle. Both battlers
+    # here are the player's OWN (party_index 0 and 1), so `False` is the faithful value.
+    # ‼ MEASURED (2026-08-23) — and UNLIKE `repro_double_battle_swap_loop`, THIS repro DOES
+    # discriminate the value: flipping it to `True` makes the run CRASH with
+    # `AttributeError: 'NoneType' object has no attribute 'get_frame_count'`, because this file
+    # does not stub `get_party` and `ally_party_indices` then reaches the real `state_cache.party`
+    # with no emulator attached. ⛔ STATE THE LIMIT EXACTLY: that proves the value CHANGES THE
+    # PATH TAKEN. It does NOT by itself prove `False` is semantically right — that comes from
+    # `battle_state.py:288` (Double AND InGamePartner).
+    is_double_battle_with_partner=False,
     own_side=SimpleNamespace(
         left_battler=SimpleNamespace(party_index=0),
         right_battler=SimpleNamespace(party_index=1),

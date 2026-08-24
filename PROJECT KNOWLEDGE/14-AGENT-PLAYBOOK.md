@@ -235,19 +235,33 @@ sweep before claiming any fix is clean:
 
 ```bash
 for f in tools/story-dev/repro_*.py; do
-  timeout 90 py -3.12 "$f" >/dev/null 2>&1 && echo "PASS $f" || echo "CHECK $f"
+  PYTHONUTF8=1 timeout 150 py -3.12 "$f" >/dev/null 2>&1 && echo "PASS $f" || echo "CHECK $f"
 done
 ```
 - **Use `py -3.12`.** Plain `python` on the dev box is 3.9 (unsupported, and the deps are
   not installed for it). Deps needed for the emulator-free ones: `confz==2.0.1`,
   `ruamel.yaml`, `rich`, `numpy`.
 - ⛔ **A PINNED EXPECTATION USED TO SIT HERE AND IT WAS ARITHMETICALLY IMPOSSIBLE** — *"47 pass,
-  0 fail, 5 environmental"* over a suite this section's own next line measures at 103 scripts
+  0 fail, 5 environmental"* over a suite that measured 103 scripts then and **104 as of 2026-08-23**
   (47+5=52). Removed 2026-08-22; **grade on `run_gates.py`, never on a remembered tally.** The
-  environmental ones need a real mgba or carry their own harness issues (`repro_boss_training`, `repro_double_faint`,
-  `repro_navigate_failfast`, `repro_sufficiency`) — plus `repro_x4_lanes`, which **SPAWNS
-  REAL LANE PROCESSES**; skip it unless you mean it.
-- Use a **per-script timeout of ~90s, not 25s** — a shorter one reports slow-but-healthy
+  ⛔⛔ **THE "ENVIRONMENTAL" LIST THAT USED TO FOLLOW IS DELETED (2026-08-23).** It named
+  `repro_boss_training`, `repro_double_faint`, `repro_navigate_failfast`, `repro_sufficiency` —
+  **all four now PASS**, and `repro_double_faint` was broken by a STALE STUB, not by a missing
+  emulator. ‼ **"Environmental" is a CLAIM, and it is self-sealing:** it tells the next reader not to
+  run the very thing that would refute it. `repro_double_faint` was written off this way TWICE
+  (2026-07-30 and 2026-08-23) before a full sweep caught it. ⇒ **run it before you believe it.**
+  ⚠ `repro_x4_lanes` remains the ONE genuine exclusion — it **SPAWNS REAL LANE PROCESSES**; skip it
+  unless you mean it.
+- ⛔⛔ **THIS BLOCK IS A COPY. THE SINGLE SOURCE IS `02-ARCHITECTURE.md`'s sweep section — read it
+  there.** *(2026-08-23: this copy went stale while the original was corrected, and a Tier 1 reviewer
+  found it. It still said 90s — the cap that misreports `repro_gym_whiteout_guard` — and still listed
+  `repro_double_faint` as needing a real mgba, which is EXACTLY the self-sealing misfiling that let
+  six broken repros survive, twice. A mandatory-read file teaching the bug the item just fixed is the
+  worst possible place for a stale copy.)*
+- ✅ **MEASURED 2026-08-23 after `#24-brokenrepros`: `103 PASS / 0 CHECK / 1 SKIP of 104`.** The SKIP
+  is `repro_x4_lanes` (spawns real lane processes). ⛔ **`PYTHONUTF8=1` is not optional** — without it
+  ~37 healthy scripts die on a `‼`.
+- Use a **per-script timeout of 150s, not 90s and not 25s** — a shorter one reports slow-but-healthy
   scripts as errors (this cost a confusing "6 errors vs 5" diff on 2026-07-27).
 - ‼ **A fix that satisfies its own new repro can still break the contract an older one
   encodes.** Two separate 2026-07-27 changes did exactly that. Sweep, don't spot-check.

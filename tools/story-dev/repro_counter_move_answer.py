@@ -22,7 +22,11 @@ stat-change / field-effect / status move answers no type weakness (user directiv
 """
 import sys, pathlib
 from types import SimpleNamespace as NS
-REPO = pathlib.Path.cwd().parents[1]
+# ‼ `#24-brokenrepros` 2026-08-23: this was `pathlib.Path.cwd().parents[1]` — CWD-DEPENDENT, so
+# the script passed from `tools/story-dev` and died with `ModuleNotFoundError: modules` from the
+# repo root, which is why a doc-level sweep filed it as 'environmental'. ⛔ Line ~78 of THIS FILE
+# already resolved the repo the correct, cwd-independent way; only this line did not.
+REPO = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "sandbox-pokebot"))
 import modules.pokemon_party as pp
 from modules.pokemon import get_species_by_name, get_move_by_name

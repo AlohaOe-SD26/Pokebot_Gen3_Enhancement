@@ -245,7 +245,7 @@ the last line.
 
 *(the older sweep description follows, kept because the scripts still exist and still run)*
 
-`tools/story-dev/repro_*.py` is **103 scripts** (plus **75** `probe_*.py`) as of 2026-08-17 — ⛔ these grow weekly, so `ls tools/story-dev/repro_*.py | wc -l` is the authority, not this line; most
+`tools/story-dev/repro_*.py` is **104 scripts** (measured 2026-08-23; it read 103 as of 2026-08-17) (plus **75** `probe_*.py`) — ⛔ these grow weekly, so `ls tools/story-dev/repro_*.py | wc -l` is the authority, not this line; most
 needing **no emulator**. ‼ **COUNTED, not recalled** — these figures said 84 and 52 from 2026-08-10
 until a 2026-08-15 audit measured the directory; the probe count went 71 → 72 → **73** on 2026-08-16
 as `probe_abort_swallowing.py` and then `probe_stale_citations.py` were added. They are prose, not a gate: `ls` is the authority.
@@ -264,16 +264,28 @@ done
   `py -3.12 -m pip install "confz==2.0.1" "ruamel.yaml~=0.18.2" "rich~=13.5.2" "numpy~=2.1.0"`.
 - ⛔ **THE PINNED EXPECTATION HERE WAS STALE AND HID FIVE REAL BREAKAGES** (removed 2026-08-23).
   It read *"47 pass, 0 fail, 5 environmental"* — arithmetically impossible against this section's own
-  103 scripts, and three of the five it named now PASS. ‼ **Two of its instructions were also wrong:**
+  103 scripts AT THE TIME (104 as of 2026-08-23), and three of the five it named now PASS. ‼ **Two of its instructions were also wrong:**
   without `PYTHONUTF8=1` about 37 healthy scripts die on a `‼` and read as CHECK (measured A/B:
   59 PASS/43 CHECK → **96 PASS / 6 CHECK of 102**), and the 90s cap failed
   `repro_gym_whiteout_guard`, which needs ~122s and PASSES inside `run_gates.py`.
-  ⇒ **grade on `run_gates.py`, never on a remembered tally.** The genuinely broken ones are filed as
-  `#24-brokenrepros`. *(Superseded text: the 5 were said to need a real mgba or have harness issues —
+  ⇒ **grade on `run_gates.py`, never on a remembered tally.**
+  ✅ **ALL SIX ARE FIXED (2026-08-23, `#24-brokenrepros`). MEASURED SWEEP: 103 PASS / 0 CHECK / 1 SKIP of 104** — the one
+  SKIP is `repro_x4_lanes`, excluded deliberately because it spawns real lane processes.
+  ‼ **THE SKIP IS CONSERVATISM, NOT A KNOWN FAILURE:** an independent reviewer ran it on 2026-08-23
+  and it PASSED, cleaning up after itself via its own `finally: batch.stop()` (their sweep read
+  104/104). ⇒ do not record it as broken; the exclusion is about SIDE EFFECTS, not correctness.
+  ‼ The item was filed as FIVE; the sweep found a SIXTH (`repro_double_faint`) that was invisible
+  precisely because THIS FILE said it needed a real mgba. ⛔ **"Environmental" is a CLAIM — run it
+  before you believe it**, and note that a figure here tells readers what NOT to run, which is why
+  a stale one is self-sealing. ⚠ These scripts are NOT in `run_gates.py`; see
+  `#24-reprosweepratchet` for the structural fix. *(Superseded text: the 5 were said to need a real mgba or have harness issues —
   `repro_boss_training`, `repro_double_faint`,
   `repro_navigate_failfast`, `repro_sufficiency`), plus `repro_x4_lanes`, which **spawns real
   lane processes** — skip it unless you mean it.
-- Use a **~90s per-script timeout**; 25s misreports slow-but-healthy scripts as errors.
+- ⛔ **Use the 150s cap in the snippet above, NOT 90s.** *(This line read "~90s" until 2026-08-23 —
+  TEN LINES BELOW the entry recording the 90s cap as one of the bugs it caused. It is exactly the
+  half-updated pair P2 exists for: the correction landed in the new prose and the old instruction,
+  which is the one a reader COPIES, was left alone.)* 25s misreports slow-but-healthy scripts.
 - The faithful end-to-end harness is `tools/story-dev/story_harness.py` (needs a real mgba).
   Its `--driver` list is the project's main debugging surface. ⚠ **The enumeration below is
   WATERMARKED 2026-08-08 and is NOT exhaustive** — later drivers (e.g. `boxcounter`, `boxcounter2`,

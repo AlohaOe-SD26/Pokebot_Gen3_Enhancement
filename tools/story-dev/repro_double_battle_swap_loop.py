@@ -105,6 +105,17 @@ default_strategy.get_party = lambda: PARTY
 
 double_battle_state = SimpleNamespace(
     is_double_battle=True,
+    # ‼ `#24-brokenrepros` 2026-08-23. `default.py:36` reads `is_double_battle_with_partner`,
+    # not `is_double_battle`, so this stub AttributeError'd. ⛔ The value is `False`, NOT `True`:
+    # `battle_state.py:288` defines it as Double AND **InGamePartner** — an NPC partner (Steven),
+    # not any double battle. This models the player's OWN two mons (Mauville Gym, from the user
+    # log) — there is no NPC partner — so `False` is the FAITHFUL value.
+    # ‼ MEASURED (2026-08-23), so the claim is not overstated: THIS repro passes with EITHER value.
+    # It stubs `get_party`, so with `True` `ally_party_indices` runs on to `get_player()`, which is
+    # unreadable with no emulator, and its documented FAILS-CLOSED path returns an empty set — the
+    # same result as `False`. ⛔ So do NOT cite THIS repro as evidence for the value; it is chosen
+    # for semantic faithfulness. ‼ Its two siblings differ — see below.
+    is_double_battle_with_partner=False,
     is_trainer_battle=True,
     own_side=SimpleNamespace(
         left_battler=SimpleNamespace(party_index=0, current_hp=0),   # Grovyle, fainted
@@ -291,6 +302,17 @@ print("    PASS: steps off the refused slot and resolves, instead of pressing A 
 print("\n[C] CONTROL -- SINGLE battle: no second active-battler slot exists to land on")
 single_battle_state = SimpleNamespace(
     is_double_battle=False,
+    # ‼ `#24-brokenrepros` 2026-08-23. `default.py:36` reads `is_double_battle_with_partner`,
+    # not `is_double_battle`, so this stub AttributeError'd. ⛔ The value is `False`, NOT `True`:
+    # `battle_state.py:288` defines it as Double AND **InGamePartner** — an NPC partner (Steven),
+    # not any double battle. This models the player's OWN two mons (Mauville Gym, from the user
+    # log) — there is no NPC partner — so `False` is the FAITHFUL value.
+    # ‼ MEASURED, so the claim is not overstated: this repro passes with EITHER value. With
+    # `True`, `ally_party_indices` reaches `get_player()`, which is unreadable with no emulator,
+    # and its documented FAILS-CLOSED path returns an empty set — the same result as `False`.
+    # ⛔ So do NOT cite this repro as evidence for the value: it is chosen for semantic
+    # faithfulness, and it would start to matter the moment this runs against a live emulator.
+    is_double_battle_with_partner=False,
     is_trainer_battle=True,
     own_side=SimpleNamespace(
         left_battler=SimpleNamespace(party_index=0, current_hp=0),

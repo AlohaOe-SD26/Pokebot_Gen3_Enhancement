@@ -8971,3 +8971,50 @@ contradictions no gate can parse; the P2 GATE found the KI-81 header the reviewe
 Round 3 passed clean only after both had run twice. ⇒ **Do not retire either tier because the other
 is green**, and do not read a clean round as evidence the next one is unnecessary — agreement is not
 a confidence signal, which this project has now measured in two independent domains.
+
+## 2026-08-23 — `#24-brokenrepros`: "environmental" is where broken tests go to hide
+
+**Symptom.** Six `repro_*` scripts failed for a week+ while the architecture doc pinned an expectation
+of *"47 pass, 0 fail, 5 environmental"* — a figure that was arithmetically impossible against its own
+script count and that named the wrong five.
+
+**Root cause 1 — a hardcoded EXPECTED VALUE in a test, where the real property is an IS-A.**
+`repro_survival_mode` asserted a leaf class NAME. A subclass shipped; the behaviour never changed;
+three cases went red and read as a regression in the bot.
+✅ **Prevention: assert the PROPERTY (base class / behaviour), never the concrete name** — the file
+already did this for `flees()` and the lesson was not carried across. ⇒ **when you fix one half of a
+symmetric pair of checks, fix the other half in the same edit.**
+
+**Root cause 2 — a stub must track the attribute surface of what it stands in for.** Three stubs set
+`is_double_battle` while the code had moved to `is_double_battle_with_partner`.
+✅ **Prevention: a stub is a MIRROR — when a production read changes, grep the stubs.** ‼ And pick the
+faithful VALUE, not the convenient one: here `False` (Double **AND InGamePartner**).
+‼ **And check the reason PER SCRIPT.** A Tier 1 reviewer caught a draft of this very entry asserting
+one shared rationale across three scripts when one of them (`repro_faint_matchup`) is a SINGLE
+battle, where `False` is correct trivially. ⇒ **a rationale pasted between sibling scripts must be
+re-read against the scenario it lands in** — that comment contradicted its own file's docstring.
+
+**Root cause 3 — CWD-dependence misread as a missing dependency.** `Path.cwd().parents[1]` passed
+from one directory and raised `ModuleNotFoundError` from another, which reads as "needs the fork on
+`sys.path`" — a wrong diagnosis that survives because nobody re-runs from a second directory.
+✅ **Prevention: resolve paths from `__file__`, never `cwd()`; and run a path fix from TWO working
+directories, because cwd IS the discriminator.**
+
+**⛔ ROOT CAUSE 0 — THE ONE THAT MADE THE OTHER THREE SURVIVE.** A stale doc line told readers these
+scripts were environmental, so nobody ran them. `repro_double_faint`'s own comment records the SAME
+misfiling in 2026-07-30 — same script, same "needs a real mgba", same actual cause (a stale stub).
+✅ **Prevention: "environmental" is a CLAIM and needs evidence like any other. Run it before you
+believe it.** ⇒ and structurally: **what the standing suite does not run, rots** — filed as
+`#24-reprosweepratchet`.
+
+**⛔ ROOT CAUSE 4 — THE SAME STALE TEXT LIVED IN A SECOND FILE, AND THAT FILE IS A MANDATORY READ.**
+`14-AGENT-PLAYBOOK.md` (CLAUDE.md: *"read every session"*) carried its own COPY of the sweep
+instructions: still the 90s cap, still listing `repro_double_faint` as needing a real mgba. So after
+`02-ARCHITECTURE.md` was corrected, the mandatory-read file was still teaching the exact bug this
+item had just fixed. ‼ **The named pairs P1-P5 do not mention `14-AGENT-PLAYBOOK.md` at all** — a
+Tier 1 reviewer found this OUTSIDE its checklist, which is the second instance of the meta-rule P5
+was added for: **a checklist protects exactly what it enumerates.**
+✅ **Prevention — DE-DUPLICATE RATHER THAN POLICE.** The playbook block now POINTS at
+`02-ARCHITECTURE.md` as the single source instead of restating it. A second copy of an instruction
+is a second thing to keep true; the cheapest way to keep two copies consistent is to have one.
+⇒ **When a correction lands, `grep` the tree for the OLD text — not just the file you were editing.**
