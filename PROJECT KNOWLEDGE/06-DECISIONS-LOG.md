@@ -3346,3 +3346,45 @@ file's history is made of those.
 Production code that drives the bot earns deep adversarial rounds; a gate earns one or two; a
 doc-consistency helper earns one. "A reviewer found something" is a reason to fix it, not
 automatically a reason to keep going.
+
+## 2026-08-23 (logged 2026-08-24) — RULING: `#24-abortrecoveryresiduals` (a) — do NOT patch the whiteout-recovery path; close it on an ASSESSMENT
+
+**Decision.** A second whiteout arriving during whiteout recovery would propagate a `StoryAbort` out
+of `run()` and kill the mode (`story_mode.py:2628-2629`). **The fix was deliberately NOT made.** The
+item is closed on a reachability assessment, not on code.
+
+**Why.**
+1. **A battle cannot start in the window.** Verified with the project's own
+   `get_wild_encounters_for_map`, with POSITIVE CONTROLS so the reader is proven to work: **all 17
+   towns/cities and all 32 Poké Center maps read land encounter rate 0**, while Routes 101/102 and
+   Petalburg Woods read 12. Reproducible:
+   `tools/story-dev/evidence/2026-08-23-abortrecovery-a-verify-landrate.py` (52 assertions, 0 BAD).
+2. **`on_whiteout()` cannot fire twice on Emerald** — one dispatch site, gated behind a state
+   mutually exclusive with its own triggers; `set_story_abort(True)` exists in exactly one place.
+3. **Never observed** in 16,688 recorded recoveries across 1,049 logs (both counts re-derived by
+   grep; they cross-check as 16,688 − 1,049 = 15,639 consecutive pairs).
+4. **Blast radius of the FIX exceeds the blast radius of the BUG.** The whiteout-recovery path is
+   this project's highest-risk area, and the change could not be proven without driving a double
+   whiteout — which is hard to stage precisely because the scenario is so unreachable.
+
+*Rejected:* shipping the proposed `except StoryAbort: yield` ahead of the `except BotModeError:
+raise`. ‼ It is **correct in shape** — it would make the whiteout branch match the DERAIL branch,
+which already swallows-and-continues around the SAME `exit_building_after_whiteout()` call bounded by
+`_derails > 4`, and would hand control to the `recoveries > 40` bound that currently never gets used.
+It is rejected as UNPROVEN, not as wrong. `StoryAbort` is not imported in `story_mode.py`.
+*Rejected:* driving a double whiteout now to prove it — the setup cost is high and the assessment
+says the payoff is a defect that has never occurred and structurally cannot in this ROM.
+*Rejected:* leaving the item OPEN. An open item with no next action is a queue item that re-costs a
+future agent the same investigation. Closing it WITH the evidence and explicit re-open triggers is
+strictly better — which is the point of this log.
+
+⛔ **RE-OPEN THIS RULING IF** either premise breaks:
+* the bot is run on **FireRed/LeafGreen** — a live duplicate-callback path exists there (loop C can
+  clear before `Task_RushInjuredPokemonToCenter` is created, re-arming the listener); or
+* respawn ever moves to a map with a **non-zero land encounter rate** — re-run the evidence script.
+
+‼ **This entry exists because a Tier 1 reviewer noticed (b) and (c) each got a ruling and (a) — the
+bigger decision — did not.** SESSION DISCIPLINE rule 11 says a future agent greps THIS file before
+re-raising a question; a decision recorded only in the changelog is not findable that way.
+⇒ **The decision NOT to act is a decision, and it needs a ruling more than an action does** — an
+action leaves a diff behind as evidence, an inaction leaves nothing.

@@ -581,89 +581,25 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ⚠ **AND SCOPE IT:** grade only CURRENT-STATE files (00-05, 24). `07`/`08`/`28`/`31` are
       append-only history where a stale count is CORRECT.
 
-### ‼ `#24-abortrecoveryresiduals` — **MIXED: (a) OPEN · (b) ✅ DONE 2026-08-23 · (c) OPEN** — originally TWO residuals an adversarial review found in `#24-loopheadabort` (filed 2026-08-23); **(c) was added 2026-08-23** by this session's own re-derivation, NOT by that review
+### ✅ `#24-abortrecoveryresiduals` — ALL THREE RESOLVED 2026-08-23 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)
 
-- [ ] **(a) MEDIUM-HIGH — A SECOND WHITEOUT MID-RECOVERY IS NOW FATAL WHERE IT PREVIOUSLY SELF-HEALED.**
-      Now that `exit_building_after_whiteout()` carries a head check, a whiteout landing WHILE the
-      whiteout branch is stepping out of the Poké Center raises `StoryAbort` → the branch's
-      `except BotModeError: raise` (`story_mode.py:2628-2629`) propagates it OUT of `run()` and the
-      mode dies to Manual. ‼ **Asymmetric**: the DERAIL branch's `except Exception: yield` +
-      `continue` (`:2581-2584`) swallows and restarts, bounded by `_derails > 4`; the whiteout
-      branch's `recoveries > 40` never gets the chance.
-      ⇒ **Suggested fix (the reviewer's):** an `except StoryAbort: yield` clause AHEAD of the
-      `except BotModeError: raise`, so a mid-recovery abort restarts the recovery instead of killing
-      the run. ⚠ `StoryAbort` is NOT currently imported in `story_mode.py`.
-      ⛔ **DELIBERATELY NOT SHIPPED BLIND.** It is a behaviour change to the WHITEOUT RECOVERY PATH —
-      this project's highest-risk area — and it cannot be proven without driving a double whiteout on
-      the emulator. **Prove it before shipping it**; an unverified edit there is worse than a remote
-      risk that is written down. ⚠ **REACHABILITY IS LOW**: the window is between the latch clear
-      (`:2606`) and the exit walk, i.e. inside a Poké Center immediately after respawn with a healed
-      team, where no wild battle can start. Assess that before deciding it is urgent.
-
-- [x] **✅ (b) DONE 2026-08-23 — the 5 sites I created are GUARDED; swallowing functions 11 → 7,
-      and the 7 that remain are byte-for-byte the PRE-EXISTING set (filed as (c) below).**
-      ‼ **RE-DERIVED FIRST, and the item's "five" was scope, not error:** a broad AST pass (handler
-      whose TRY BODY can transitively reach `_check_abort`, neither re-raising nor calling
-      `reraise_if_aborting`) finds **13 sites in 11 functions**. Re-running it against `823cfa46` —
-      the commit BEFORE `#24-loopheadabort` — gives **8 sites in 7 functions**. ‼ **STATE THE UNIT:**
-      an earlier draft of this line said only "gives 7", which reads as 13 → 7 (a drop of 6) when the
-      true drops are **13 → 8 SITES** and **11 → 7 FUNCTIONS**. ⇒ **4 functions / 5 sites are MINE**
-      (`deliver_devon_goods_to_stern` ×2, `do_mauville_gym`, `get_rock_smash_hm`,
-      `do_weather_institute`), exactly the five the review named; the other 7 predate me.
-      ✅ **FIX: `except BotModeError as error:` + `reraise_if_aborting(error)` first.** Safe by
-      construction — the guard is LATCH-KEYED. Proven two-armed on the real function: **latch CLEAR →
-      SWALLOWED (behaviour unchanged); latch SET → RE-RAISED.**
-      ✅ **RATCHET TURNED WITH THE CONTROL ARM IT DEMANDS:** `probe_abort_swallowing.py` fell 36 → 31;
-      stripping exactly those 5 guards restores **36**. Baseline is now `{"sandbox": 31,
-      "custom": 36}`. ⛔ **ON PROMOTION, LOWER custom TO 31 IN THE SAME COMMIT** or the ratchet
-      silently re-permits 5 sites of debt in the fork that ships.
-      Original text follows. **(b) LOW-MEDIUM — five existing handlers became abort-SWALLOWERS, and the ratchet is blind to it.**
-      `_enter_warp_by_navigation` can now raise `StoryAbort`, which converts five previously
-      unreachable `except` sites into reachable swallow points: `early_game.py:3765`, `:3777`,
-      `:3943`, `:5187`, `:6347` — none calls `reraise_if_aborting`.
-      ‼ **`probe_abort_swallowing.py` cannot see this**: it counts SYNTACTIC sites and the change
-      added no `try`/`except`, so it still prints "36 sites, exactly at the baseline. No new debt" —
-      a true statement about a population that has silently become more dangerous. ⇒ **the ratchet
-      measures shape, not reachability.**
-      ⚠ **Impact is BOUNDED, which is why this is not (a):** all the straight-line fallbacks call
-      `_navigate_riding_out`, whose own head check re-raises, and `do_weather_institute`'s enclosing
-      `while` is guarded — so the abort escapes INCIDENTALLY rather than by design. That is exactly
-      the kind of accidental correctness this project has been bitten by before.
-      ⇒ Add `reraise_if_aborting(error)` as the first line of those five handlers, then re-baseline
-      the probe deliberately.
-
-- [x] **✅ (c) DONE 2026-08-23 — all EIGHT sites in 7 functions guarded; the class is CLOSED in
-      sandbox.** An AST pass over `early_game.py` now finds **ZERO** handlers that can reach
-      `_check_abort` without re-raising (was 8 sites / 7 functions). Guarded handlers 14 → 22.
-      ✅ **CONTROL-ARMED, not assumed:** `probe_abort_swallowing.py` reads **31 with the guards
-      removed and 23 with them present**, so the 8-site drop is attributable to exactly this change.
-      Baseline lowered 31 → 23 for sandbox. ⛔ **ON PROMOTION, LOWER custom 36 → 23 IN THE SAME
+- [x] **(b) and (c): the abort-swallow class is CLOSED in sandbox.** A whiteout raises `StoryAbort`,
+      a `BotModeError`, so any broad `except BotModeError:` in story code can absorb the unwind and
+      let the bot grind on. (b) guarded the 5 sites `#24-loopheadabort` newly exposed; (c) the 8
+      that predate it. An AST pass now finds **ZERO** swallowers; guarded handlers 14 → 22; the
+      ratchet went 36 → 31 → 23, **control-armed at each step** (strip the guards and it reads back
+      up). Two-arm behavioural proof: latch CLEAR → swallowed, unchanged; latch SET → re-raised.
+      ⛔ **ON PROMOTION, LOWER `probe_abort_swallowing.py`'s custom baseline 36 → 23 IN THE SAME
       COMMIT.**
-      ✅ **BEHAVIOURAL TWO-ARM PROOF** on the exact handler shape now present at all 8 sites:
-      latch CLEAR → exception SWALLOWED and the old body runs (ordinary failures behave as before);
-      latch SET → **RE-RAISED**, so a whiteout unwind escapes instead of being absorbed.
-      ‼ **Three of the eight were the "accumulate into `tried` and `continue`" search loops**
-      (`open_magma_hideout_entrance`, `do_magma_hideout`, `_aqua_challenge_matt`). Those are a
-      deliberate try-every-neighbour pattern and were NOT wrong for ordinary failures — but a
-      whiteout was being deferred to "raise if all candidates fail" instead of unwinding at once.
-      ‼ **Five needed `as error` bound first.** Checked before editing that none of those functions
-      already used a variable named `error` — `except X as error:` UNBINDS the name at handler exit
-      and would have deleted it.
-      ⚠ **Accepted semantic change, stated plainly:** while the latch is SET, an unrelated
-      `BotModeError` in these handlers now also propagates instead of being handled. That is the
-      intended fail-safe direction (during a whiteout unwind, stop) and matches the 14 guards that
-      already shipped.
-      Original filing follows. **(c) SEVEN PRE-EXISTING abort-swallowing handlers — NOT created by `#24-loopheadabort`.**
-      Measured 2026-08-23 by the same AST criterion as (b), against `823cfa46`: these were already
-      reachable by a `StoryAbort` before that fix, so they are inherited debt, not new.
-      `_talk_to_wandering_npc`, `sail_to_slateport`, `fight_route119_rival_and_get_fly`,
-      `get_devon_scope` (×2 handlers), `open_magma_hideout_entrance`, `do_magma_hideout`,
-      `_aqua_challenge_matt`.
-      ⇒ The fix is the same one-line guard as (b) and is SAFE BY CONSTRUCTION (`reraise_if_aborting`
-      is latch-keyed: with no whiteout pending it does nothing). ⚠ But do it as its OWN item with its
-      OWN control arm — folding it into (b) would have made the ratchet drop unattributable to any
-      single change, which is the misattribution this probe's own message warns about.
-      ⚠ **RE-DERIVE THE LIST BEFORE STARTING** — function names are stable, line numbers are not.
+- [x] **(a): ASSESSED and CLOSED as VERY LOW — and the finding is that the code was NOT changed.**
+      A second whiteout during recovery would be fatal, but it cannot realistically occur: the whole
+      window is spent on maps whose land-encounter rate is **0** (all 17 towns + all 32 Poké Center
+      maps, with routes as positive controls), `on_whiteout()` cannot fire
+      twice on Emerald, and across **16,688 recorded recoveries** it has never once happened.
+      ‼ The window is entered 23-36 times per run — this is closed on IMPOSSIBILITY, not rarity.
+      ⚠ **RE-OPEN for FireRed/LeafGreen** (a live duplicate-callback path exists there) or if
+      respawn moves to a map with a non-zero encounter rate. The proposed fix is recorded in the
+      changelog as correct-in-shape and UNPROVEN — **do not ship it without a driven double whiteout.**
 
 ### ✅ `#24-brokenrepros` — DONE 2026-08-23 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)
 
@@ -681,38 +617,46 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       `07-CHANGELOG.md` and `08-MISTAKES.md`. ⛔ **Retire by SUMMARISING with a pointer, never by
       deleting** — code and other docs cite these slugs (`audit_doc_citations.py` checks that).
 
-### ✅ `#24-p2headergate` — TWO checks shipped, a THIRD deliberately DELETED (2026-08-23)
+### ✅ `#24-p2headergate` — DONE 2026-08-23 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)
 
-- [x] **✅ DONE. Both live inside existing gate scripts, so the suite is unchanged at 30 = 28
-      ENFORCING + 2 ADVISORY.**
-      **(A) The symmetric half of the P2 KI-pair rule** (`audit_doc_consistency.py`): editing a
-      `## KI-N` HEADER while adding NO line inside KI-N's own section is now a finding. Its fault
-      test is the real bug — a dated body line anchored on the header STRING landed ABOVE it, so it
-      belonged to KI-79 and a reader opening KI-81 would never have seen it. LIVE 3-arm test:
-      header-only → FIRES; body-above-header → FIRES; body-inside → SILENT. F6/F7.
-      **(C) Control-character guard** (`audit_encoding.py`): a literal control char in `.py` source
-      is a hard failure — because `` compiled to a BACKSPACE twice in one day and both times the
-      containing gate still printed PASS. Zero threshold, measured 0 hits across 725 files. C1–C5.
-      ⛔ **C5 SHIPPED VACUOUS and a mutation review caught it** — it re-implemented the predicate
-      inline and never called `scan_py_ctrl_chars`, so mutants that gutted the scanner PASSED.
-      ✅ Rewritten to call the shipped scanner against a fixture under `_PY_ROOTS`; both mutants
-      (gutted body, backspace allowed) now FAIL. ‼ **A test that does not call the thing it names
-      is worse than no test** — and my own comment had claimed it did.
-      ⛔⛔ **(B) RATCHET-BASELINE CLAIMS WAS DELETED, NOT FIXED — this is the important entry.**
-      Its quoting exemption was written THREE times and broken THREE times (parity → pair
-      containment, *measured identical* to parity → proximity). Removing it exposed the next layer:
-      the equality test missed 7 of 7 genuine claims (a comma defeated it) while firing on any
-      nearby digit; its exemptions silenced ~5% of live lines via markers not about the claim.
-      A six-angle adversarial review returned **7 blockers**. ⇒ The decisive question was not *can
-      I fix those* but **what does it protect**: a stale figure in a doc that already says to run
-      the probe. **289 lines removed.**
-      ‼ **RULE ADOPTED: review depth and implementation effort scale with BLAST RADIUS.** Six rounds
-      on a documentation nicety is the wrong trade while the bot has open behavioural items. A
-      defect here costs a stale sentence; one in `early_game.py` costs a wrecked run.
-      ‼ **AND: when a predicate needs a THIRD exemption, the predicate is wrong.**
-      ⚠ FOLLOW-UP (not built): `run_gates.py` runs each gate but never its `--self-test`, which is
-      why a vacuous self-test survived. Covered by `#24-difftriggeredrules`'s spirit; file properly
-      if it bites again.
+- [x] **TWO checks shipped, a THIRD deliberately DELETED.** (A) editing a `## KI-N` header with no
+      line added inside that KI's own section is now a finding — its fault test is the real bug, a
+      body line anchored on the header STRING landing ABOVE it. (C) a literal control character in
+      `.py` source is a hard failure, because `` compiled to a BACKSPACE twice in one day and the
+      gate still printed PASS both times; its own test then shipped VACUOUS and mutation testing
+      caught that. ⛔ **(B) ratchet-baseline claims was DELETED after a six-angle review returned 7
+      blockers — 289 lines removed.** Its exemption was written and broken THREE times; the fix that
+      mattered was asking *what does it protect* (a stale figure in a doc that says to run the probe).
+      ‼ **Two standing rules came out of it: review depth scales with BLAST RADIUS, and when a
+      predicate needs a THIRD exemption the predicate is wrong.** Suite unchanged at 30.
+
+### ‼ `#24-pluginwhiteoutnoyield` — an UPSTREAM bug: the plugin whiteout hook has NEVER run (filed 2026-08-23)
+
+- [ ] **VERIFIED, not reported second-hand.** `modules/modes/_listeners.py:567` calls
+      `plugin_whiteout()` **bare** — no `yield from`. `plugin_whiteout` IS a generator function
+      (`modules/plugins.py`, `-> Generator`, contains `yield from`), so the generator object is
+      created and immediately discarded and **no plugin's `on_whiteout()` hook has ever executed**.
+      ⛔ **UPSTREAM, NOT OURS:** identical at `40cakes repo/pokebot-gen3/modules/modes/_listeners.py:536`,
+      so it must NOT be fixed in the mirror. Fixing it in our forks is a DIVERGENCE and needs a
+      DIVERGENCE-LOG entry.
+      ⚠ **Currently a NO-OP for us** — no plugin in our tree implements `on_whiteout`; StoryMode's
+      handling goes through `bot_mode.on_whiteout()` at `:566`, which does run. So this is latent,
+      not live. ‼ It becomes live the moment anyone writes a plugin whiteout hook and quietly gets
+      nothing. Scoped: exactly 1 bare call out of 10 generator functions in `plugins.py` — an
+      isolated slip, not a pattern.
+
+### ‼ `#24-harnesswhiteoutdrop` — 36 harness runs dropped to Manual on a whiteout (filed 2026-08-23)
+
+- [ ] **Found while assessing `#24-abortrecoveryresiduals` (a).** 36 genuine
+      `[MODE] Story -> Manual (message='Player whited out...')` transitions, ALL in story-dev harness
+      profiles (`repro-*`, `nc-*`, `nat-*`, `mt1/2`, `ki66single`, `hpstart`, `item-old`, `jp-post`)
+      and **never in the batch runs**. Diagnosis: `on_whiteout()` reached something that was not a
+      `StoryMode`, i.e. a harness pushing `run()` without setting `context.bot_mode_instance`, so the
+      custom handling never engaged and the listener fell through to `set_manual_mode()`.
+      ⇒ **This is a TEST-FIDELITY defect, not a bot defect:** any harness driver that whites out
+      silently stops behaving like the real mode from that point on, so whatever it was measuring
+      afterwards is suspect. ⚠ Diagnosed by profile pattern, NOT proven — confirm by checking whether
+      those drivers set `context.bot_mode_instance` before triaging any result that came from one.
 
 ### ‼ `#24-difftriggeredrules` — PROSE RULES ARE INDEXED BY STORY; MAKE THEM INDEXED BY ACTION (filed 2026-08-23)
 

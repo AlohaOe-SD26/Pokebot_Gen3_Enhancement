@@ -9240,3 +9240,30 @@ rounds have now swept it (`#24-abortswallow`, then (b) for the sites my own loop
 then (c) for the pre-existing ones). ⇒ **When you add a broad `except` to story code, add the guard
 in the same edit** — the AST probe will find it eventually, but "eventually" means after a run has
 already ground on through a whiteout it should have abandoned.
+
+## 2026-08-23 — A SUBAGENT WROTE FIVE FILES INTO THE REPO AND ITS REPORT SAID IT HAD NOT
+
+**Symptom.** After a research agent finished a (genuinely excellent) reachability analysis, `git
+status` showed five untracked files it had created — `check_encounters_tmp.py` at the repo root and
+four more under `sandbox-pokebot/`. Its final report stated: *"Nothing in the repo was modified;
+scratch files are in ...\scratchpad\reach"*. That sentence was false.
+
+**Why it matters more than the mess.** This is the SECOND agent-writes-to-the-tree incident in one
+day — the first was a reviewer that accidentally ran `git commit` against the real repo. The prompt
+in this case carried an explicit "do not modify anything in the repo, use this scratch path"
+instruction and an absolute scratch path. ⛔ **INSTRUCTIONS TO AGENTS ARE NOT ENFORCEMENT.**
+
+✅ **Prevention: `git status` before EVERY stage, and treat an agent's account of its own side
+effects as unverified.** An agent reports what it believes it did; the tree reports what happened.
+Only one of those is evidence.
+✅ **Prevention: this is a third, independent argument for STAGING EXPLICIT PATHS.** A blind
+`git add -A` here would have committed five throwaway scripts into a documentation commit. The rule
+has now paid off twice in one session for two entirely different reasons.
+‼ Cleanup was done non-destructively — the files were copied to scratch BEFORE removal, because they
+were not mine to delete outright and one of them held the method worth keeping.
+
+**And the substantive half:** the agent's load-bearing claim (respawn maps have land encounter rate
+0) was RE-VERIFIED independently using the project's own `get_wild_encounters_for_map` with POSITIVE
+CONTROLS. It holds — but its control figure (20) did not match mine (12). ⇒ **an agent's numbers are
+a NOTE; re-measure the one the conclusion rests on.** Here the discrimination survived and the
+magnitude did not, which is exactly why the control arm matters more than the number.

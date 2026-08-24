@@ -17951,3 +17951,70 @@ the 14 guards that already shipped.
 
 ⚠ Line insertions shifted three doc citations; the citation gate caught all three and they were
 fixed by **re-parsing for the symbol**, not by offsetting the old numbers.
+
+## 2026-08-23 — `#24-abortrecoveryresiduals` (a): ASSESSED, and the finding is THAT THE CODE WAS NOT CHANGED
+
+The item asked for a reachability assessment before deciding urgency, and warned that shipping blind
+into the whiteout-recovery path — this project's highest-risk area — is worse than a written-down
+remote risk. The assessment says: **do not touch it.**
+
+**What the failure requires.** The abort latch is set in exactly ONE place, `on_whiteout()`
+(`story_mode.py:1246`), the framework's whiteout callback. `run()` CLEARS the latch at `:2606` and
+then walks out of the Poké Center at `:2612-2627`. So the fatal path needs a SECOND genuine whiteout
+landing inside that walk.
+
+**Why that cannot realistically happen — measured, not argued:**
+* **No battle can start there.** `gWildMonHeaders` parsed directly out of the ROM: Poké Center
+  interiors carry no encounter header at all, and every respawn town has a land encounter rate of
+  **0**. ‼ **RE-VERIFIED INDEPENDENTLY** with the project's OWN `get_wild_encounters_for_map`
+  rather than a hand-rolled ROM parse, WITH POSITIVE CONTROLS to prove the reader works: **all 17
+  towns/cities and all 32 Poké Center maps** read **0**; Routes 101/102 and Petalburg Woods read
+  **12** (52 assertions, 0 BAD). *A reviewer caught the first version sampling 11 of 18 and 8 of 32
+  while the prose said "every" — the committed script now proves the sentence it is cited for.* (The research agent reported 20 for those controls — a different counting, slots
+  vs rate. ⇒ **the magnitude differs and the DISCRIMINATION does not**, which is the only thing
+  the conclusion rests on. The figure recorded here is the one I measured.) Reproducible:
+  `tools/story-dev/evidence/2026-08-23-abortrecovery-a-verify-landrate.py`.
+* **`on_whiteout()` cannot fire twice on Emerald.** A single dispatch site (`_listeners.py:566`),
+  gated behind `player_avatar_is_standing_still()`, which requires OVERWORLD — mutually exclusive
+  with both live triggers. Corroborated empirically: **0 of 15,639 consecutive recovery pairs**
+  lacked an intervening battle, i.e. not one spurious or duplicate recovery.
+* **Never observed.** Across **16,688 recorded recoveries in 1,049 logs** — ‼ *those two counts I
+  re-derived myself by grep, and they cross-check: 16,688 − 1,049 = 15,639, exactly the number of
+  consecutive recovery PAIRS cited above* — the fatal signature appears **0 times**.
+  ⚠ **NOT INDEPENDENTLY RE-DERIVED, and labelled so deliberately:** the finer frame statistics
+  (min inter-whiteout gap 7,782 frames vs a median window of 1,525; 0 of 4,453 windows containing
+  the next whiteout) come from the research agent's own parse, and neither I nor the reviewer
+  reproduced the frame-window computation or committed the script that made it. They are
+  SUPPORTING, not load-bearing — the conclusion rests on the land-encounter rate and the
+  single-dispatch guarantee, both of which WERE independently verified.
+
+‼ **And the window is NOT rare — it is entered 23-36 times in a normal run.** This is closed because
+the SECOND whiteout is impossible there, NOT because recovery is uncommon. That distinction is the
+whole assessment.
+
+⚠ **RE-OPEN IF** the bot is run on **FireRed/LeafGreen** — a live duplicate-callback path exists
+there (loop C can clear before `Task_RushInjuredPokemonToCenter` is created, re-arming the listener)
+— or if respawn ever moves to a map with a non-zero land encounter rate.
+⛔ The proposed fix stays recorded as correct-in-shape and UNPROVEN: `except StoryAbort: yield` ahead
+of the `except BotModeError: raise` would make the whiteout branch match the DERAIL branch, which
+already swallows-and-continues around the SAME `exit_building_after_whiteout()` call bounded by
+`_derails > 4`. **Do not ship it without a driven double whiteout.**
+
+### TWO GENUINELY NEW DEFECTS FELL OUT OF THE ASSESSMENT
+* **`#24-pluginwhiteoutnoyield` (UPSTREAM).** `_listeners.py:567` calls `plugin_whiteout()` bare, with
+  no `yield from`, and `plugin_whiteout` is a generator function — so the generator is created and
+  discarded and **no plugin `on_whiteout()` hook has ever executed**. Verified independently, and
+  present identically in the pristine mirror at `:536`, so it is upstream and must not be fixed
+  there. Currently a no-op for us (no plugin implements the hook) — latent, not live.
+* **`#24-harnesswhiteoutdrop`.** 36 real `Story -> Manual (whited out)` transitions, all in
+  story-dev harness profiles and never in batch runs — harnesses pushing `run()` without setting
+  `context.bot_mode_instance`, so the custom handling never engaged. A TEST-FIDELITY defect: any
+  harness driver that whites out stops behaving like the real mode from that point on.
+
+### AND A MEASURED TREND WORTH KEEPING
+Max `WHITEOUT recovery #N` per x4 batch: **41 (the `recoveries > 40` ceiling) in nearly every batch
+from 2026-07-31 to 2026-08-07, and never again after** (23-36 since). A wall at exactly the ceiling
+value for a week and then never is the signature of a real behavioural fix; `SURVIVAL_WHITEOUT_
+THRESHOLD = 3` is the obvious candidate and is live. ⛔ **Stated as CORRELATION WITH A DATE, NOT
+ATTRIBUTION** — it is a max-across-lanes proxy over varying lane counts. Attributing it needs a
+threshold-disabled A/B on one fixture, which nobody has run.
