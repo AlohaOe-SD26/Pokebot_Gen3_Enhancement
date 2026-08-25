@@ -36,6 +36,15 @@ ruled from recall. Line numbers are from the file as fetched on 2026-07-25 (poke
    `map_script_2 VAR_SKY_PILLAR_STATE, 0, …RayquazaFaceDown`). State only becomes 2 at
    `SootopolisCity/scripts.inc:559`, i.e. **after** the Rayquaza scene. Both generations imply the
    Mach Bike is needed for the mandatory climb; it is needed only for the post-crisis return trip.
+
+> CORRECTED 2026-08-24 -- "NO cracked floors" IS FALSE. `_Clean` is a PER-FLOOR fact: `2F_Clean` has 0 cracked
+> tiles but **`4F_Clean` has 5** (decoded from the shipped `SkyPillar_4F_Clean/map.bin`). The ascent
+> REQUIRES stepping on one: `4F (3,1)` and `3F (7,1)` are SEALED POCKETS, unreachable from the
+> `4F (11,1)` arrival even if every cracked tile is treated as passable. The only way in is a
+> deliberate fall through `4F (6,4)`/`(7,4)` -- NOT `(9,4)`, which lands in 3F's MAIN region and
+> wastes the climb. The "no Mach Bike" half of this claim SURVIVES. See the Ch21 ATLAS in
+> `12-STORYMODE-DESIGN.md`.
+
 5. **HM07 Waterfall needs you to talk to TWO NPCs nobody mentioned.** Wallace only gives it once
    `FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE` is set, and that flag is set by
    `SootopolisCity_EventScript_MaxieArchieLeave`, reachable only after **both**
@@ -76,6 +85,7 @@ ruled from recall. Line numbers are from the file as fetched on 2026-07-25 (poke
     Aqua Hideout *grunts* (at Badge 7), the Magma Hideout *grunts* (at the Groudon cutscene) and
     each *Trick House puzzle* the moment you clear it. Full table in §1/s8. Building interrupts for
     the imagined losses would have been pure wasted work.
+
 
 ---
 

@@ -1,0 +1,182 @@
+Running mGBA 0.10.2
+anchor: post_dive.ss1
+avatar: MOSSDEEP_CITY (19, 11)   (identity by ENUM, never the display label -- playbook 2b)
+
+====================================================================================================
+1 -- ROUTE126: which tiles are DIVE-CAPABLE?  (unknown #1: no coordinate exists in our tree)
+====================================================================================================
+
+  ROUTE126            size=(80, 80)
+  UNDERWATER_ROUTE126 size=(80, 80)
+  [PASS] unknown #2: ROUTE126 and UNDERWATER_ROUTE126 are the SAME SIZE (a dive lands on the same x,y)  -- (80, 80) vs (80, 80)
+
+  ROUTE126 tile-type histogram (6400 tiles):
+        3024  Ocean Water
+        1831  Normal
+        1349  Deep Water
+         188  Mountain Top
+           8  Shallow Water
+
+  DIVE-CAPABLE ROUTE126 tiles: 1349
+  [PASS] unknown #1: ROUTE126 has at least one dive-capable tile
+  the 12 dive tiles NEAREST the (45,65) warp column, by manhattan distance:
+      (45, 66)   dist=1
+      (44, 66)   dist=2
+      (46, 66)   dist=2
+      (45, 67)   dist=2
+      (43, 66)   dist=3
+      (47, 66)   dist=3
+      (44, 67)   dist=3
+      (46, 67)   dist=3
+      (45, 68)   dist=3
+      (42, 66)   dist=4
+      (48, 66)   dist=4
+      (43, 67)   dist=4
+
+====================================================================================================
+2 -- UNDERWATER_ROUTE126: does (45,65) really warp to Sootopolis?  (unknown #4)
+====================================================================================================
+
+      (45, 65) -> UNDERWATER_SOOTOPOLIS_CITY (warp_id=0)
+  [PASS] unknown #4: UNDERWATER_ROUTE126 has a warp AT (45,65)  -- [((45, 65), 'UNDERWATER_SOOTOPOLIS_CITY', 0)]
+  [PASS] unknown #4: ...and it leads to UNDERWATER_SOOTOPOLIS_CITY  -- UNDERWATER_SOOTOPOLIS_CITY
+
+====================================================================================================
+3 -- UNDERWATER_SOOTOPOLIS_CITY: WHERE CAN YOU SURFACE?  THE KI-72 TRAP (unknown #3)
+====================================================================================================
+
+  size=(20, 10)
+
+  tile-type histogram (200 tiles):
+         167  Normal
+          32  Deep Water
+           1  Water South Arrow Warp
+
+  warps:
+      (9, 8) -> UNDERWATER_ROUTE126 (warp_id=0)
+      (10, 8) -> UNDERWATER_ROUTE126 (warp_id=0)
+
+  => SURFACEABLE tiles (tile_type not blocked and collision==0): 33
+      (7, 5)
+      (8, 5)
+      (9, 5)
+      (10, 5)
+      (11, 5)
+      (5, 6)
+      (6, 6)
+      (7, 6)
+      (8, 6)
+      (9, 6)
+      (10, 6)
+      (11, 6)
+      (12, 6)
+      (13, 6)
+      (5, 7)
+      (6, 7)
+      (7, 7)
+      (8, 7)
+      (9, 7)
+      (10, 7)
+  [PASS] unknown #3: UNDERWATER_SOOTOPOLIS_CITY has at least one SURFACEABLE tile
+  (reported, not asserted) arrival tile (9,8) surfaceable = True
+
+====================================================================================================
+4 -- CONTROLS (so a null result above is attributable)
+====================================================================================================
+
+  POSITIVE control: 1-step path (24, 1) -> (25, 1)  ok=True
+  NEGATIVE control: path into blocked (0, 0) raised = True
+  [PASS] POSITIVE control: the pathfinder works on UNDERWATER_ROUTE126
+  [PASS] NEGATIVE control: pathing into a blocked tile RAISES
+
+====================================================================================================
+5 -- SOOTOPOLIS / CAVE OF ORIGIN / SKY PILLAR warps  (header data -- these do NOT swap)
+====================================================================================================
+
+  SOOTOPOLIS_CITY  size=(60, 60)
+      (43, 31) -> SOOTOPOLIS_CITY_POKEMON_CENTER_1F (warp_id=0)
+      (17, 29) -> SOOTOPOLIS_CITY_MART (warp_id=0)
+      (31, 32) -> SOOTOPOLIS_CITY_GYM_1F (warp_id=0)
+      (31, 16) -> CAVE_OF_ORIGIN_ENTRANCE (warp_id=0)
+      (9, 6) -> SOOTOPOLIS_CITY_HOUSE1 (warp_id=0)
+      (45, 6) -> SOOTOPOLIS_CITY_HOUSE2 (warp_id=0)
+      (9, 17) -> SOOTOPOLIS_CITY_HOUSE3 (warp_id=0)
+      (44, 17) -> SOOTOPOLIS_CITY_HOUSE4 (warp_id=0)
+      (9, 26) -> SOOTOPOLIS_CITY_HOUSE5 (warp_id=0)
+      (53, 28) -> SOOTOPOLIS_CITY_HOUSE6 (warp_id=0)
+      (8, 35) -> SOOTOPOLIS_CITY_HOUSE7 (warp_id=0)
+      (48, 25) -> SOOTOPOLIS_CITY_LOTAD_AND_SEEDOT_HOUSE (warp_id=0)
+      (51, 36) -> SOOTOPOLIS_CITY_MYSTERY_EVENTS_HOUSE_1F (warp_id=0)
+  CAVE_OF_ORIGIN_ENTRANCE  size=(19, 26)
+      (9, 20) -> SOOTOPOLIS_CITY (warp_id=3)
+      (9, 5) -> CAVE_OF_ORIGIN_1F (warp_id=0)
+  CAVE_OF_ORIGIN_1F  size=(23, 23)
+      (11, 17) -> CAVE_OF_ORIGIN_ENTRANCE (warp_id=1)
+      (14, 5) -> CAVE_OF_ORIGIN_B1F (warp_id=0)
+  CAVE_OF_ORIGIN_B1F  size=(19, 19)
+      (9, 3) -> CAVE_OF_ORIGIN_1F (warp_id=1)
+  ROUTE131  size=(60, 40)
+      (36, 6) -> SKY_PILLAR_ENTRANCE (warp_id=0)
+  SKY_PILLAR_ENTRANCE  size=(18, 18)
+      (6, 16) -> ROUTE131 (warp_id=0)
+      (14, 4) -> SKY_PILLAR_OUTSIDE (warp_id=0)
+  SKY_PILLAR_OUTSIDE  size=(28, 23)
+      (17, 13) -> SKY_PILLAR_ENTRANCE (warp_id=1)
+      (14, 5) -> SKY_PILLAR_1F (warp_id=0)
+  SKY_PILLAR_1F  size=(14, 14)
+      (6, 13) -> SKY_PILLAR_OUTSIDE (warp_id=1)
+      (7, 13) -> SKY_PILLAR_OUTSIDE (warp_id=1)
+      (10, 1) -> SKY_PILLAR_2F (warp_id=0)
+  SKY_PILLAR_2F  size=(14, 14)
+      (10, 1) -> SKY_PILLAR_1F (warp_id=2)
+      (3, 1) -> SKY_PILLAR_3F (warp_id=0)
+  SKY_PILLAR_3F  size=(14, 14)
+      (3, 1) -> SKY_PILLAR_2F (warp_id=1)
+      (11, 1) -> SKY_PILLAR_4F (warp_id=0)
+      (7, 1) -> SKY_PILLAR_4F (warp_id=1)
+  SKY_PILLAR_4F  size=(14, 14)
+      (11, 1) -> SKY_PILLAR_3F (warp_id=1)
+      (7, 1) -> SKY_PILLAR_3F (warp_id=2)
+      (3, 1) -> SKY_PILLAR_5F (warp_id=0)
+  SKY_PILLAR_5F  size=(14, 14)
+      (3, 1) -> SKY_PILLAR_4F (warp_id=2)
+      (10, 1) -> SKY_PILLAR_TOP (warp_id=0)
+  SKY_PILLAR_TOP  size=(27, 24)
+      (16, 14) -> SKY_PILLAR_5F (warp_id=1)
+  [PASS] the routing recon's SOOTOPOLIS_CITY (31,16) -> CAVE_OF_ORIGIN_ENTRANCE is real
+
+====================================================================================================
+6 -- SKY PILLAR INTERIOR: REPORTED AS A HAZARD, DELIBERATELY NOT ASSERTED
+====================================================================================================
+
+  The tiles below are the map header's DEFAULT layout -- the CRACKED, POST-GAME one.
+  The story climb runs on LAYOUT_SKY_PILLAR_*_CLEAN, applied at RUNTIME by
+  `setmaplayoutindex` in each floor's OnTransition, gated `VAR_SKY_PILLAR_STATE < 2`.
+  => ANY conclusion drawn from these numbers is about a map the story bot never sees.
+  Closing this needs a LIVE read while standing on the floor at state < 2.
+
+  SKY_PILLAR_2F: 196 tiles, 38 with a 'Crack*' tile_type (DEFAULT layout -- NOT the story layout)
+  SKY_PILLAR_4F: 196 tiles, 34 with a 'Crack*' tile_type (DEFAULT layout -- NOT the story layout)
+
+====================================================================================================
+VERDICT
+====================================================================================================
+
+  every assertion passed. The four routing unknowns are CLOSED except where marked.
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-08-24_18-52-35.ss1 created!
+Updated `current_state.ss1`!
+
+############ FAULT ARM: POKEBOT_CH21PROBE_FAULT=warpcoord (the assertion MUST bite) ############
+  FAULT: looking for the warp at (0, 0) instead -- this assertion MUST fail.
+  [FAIL] unknown #4: UNDERWATER_ROUTE126 has a warp AT (45,65)  -- []
+  [FAIL] unknown #4: ...and it leads to UNDERWATER_SOOTOPOLIS_CITY  -- n/a
+  The tiles below are the map header's DEFAULT layout -- the CRACKED, POST-GAME one.
+  SKY_PILLAR_2F: 196 tiles, 38 with a 'Crack*' tile_type (DEFAULT layout -- NOT the story layout)
+  SKY_PILLAR_4F: 196 tiles, 34 with a 'Crack*' tile_type (DEFAULT layout -- NOT the story layout)
+  2 ASSERTION(S) FAILED:
+      - unknown #4: UNDERWATER_ROUTE126 has a warp AT (45,65)
+      - unknown #4: ...and it leads to UNDERWATER_SOOTOPOLIS_CITY
+(exit 1 — the two assertions FAILED as required)

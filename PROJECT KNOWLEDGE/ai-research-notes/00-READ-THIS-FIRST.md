@@ -360,6 +360,15 @@ fabrications fast; agreement is **not** a confidence signal.
 * **The mandatory Sky Pillar climb has NO cracked floors and needs NO Mach Bike** — it runs on
   `LAYOUT_SKY_PILLAR_*_CLEAN` while `VAR_SKY_PILLAR_STATE < 2`. Cracked floors exist only on the
   optional post-crisis return trip, and only on **2F and 4F** (Mirage Tower: **2F and 3F**).
+
+> CORRECTED 2026-08-24 -- "NO cracked floors" IS FALSE. `_Clean` is a PER-FLOOR fact: `2F_Clean` has 0 cracked
+> tiles but **`4F_Clean` has 5** (decoded from the shipped `SkyPillar_4F_Clean/map.bin`). The ascent
+> REQUIRES stepping on one: `4F (3,1)` and `3F (7,1)` are SEALED POCKETS, unreachable from the
+> `4F (11,1)` arrival even if every cracked tile is treated as passable. The only way in is a
+> deliberate fall through `4F (6,4)`/`(7,4)` -- NOT `(9,4)`, which lands in 3F's MAIN region and
+> wastes the climb. The "no Mach Bike" half of this claim SURVIVES. See the Ch21 ATLAS in
+> `12-STORYMODE-DESIGN.md`.
+
 * **Cut, Fly and Flash are never hard blocks.** `requires_flash` only drives a scanline effect;
   there are zero cuttable trees on any critical-path map. v1's "Cut trees block the Aqua Hideout" is
   a fabrication — the entrance is a **Surf** warp at (70,5) elevation 1.
@@ -375,6 +384,7 @@ fabrications fast; agreement is **not** a confidence signal.
   (`MB_EASTWARD_CURRENT` &c. — **not** `MB_CURRENT_*`; **no whirlpools exist in Emerald**), and a
   full boulder/rock/tree census with coordinates for Victory Road, Seafloor Cavern, Magma Hideout,
   Granite Cave and the mainland routes.
+
 
 ---
 

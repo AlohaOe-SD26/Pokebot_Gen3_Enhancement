@@ -18127,3 +18127,199 @@ OWN copy of the escape walk, missing BOTH the surfing assert and the anti-lagoon
 so that recovery could have reported success while leaving the run in the 41-tile CLOSED LAGOON.
 ⇒ **A DUPLICATED LEG IS NOT JUST DRIFT RISK; THE COPY SILENTLY LOSES THE ASSERTIONS.** One copy now,
 four callers.
+
+## 2026-08-24 — §Ch21 RECON: the routing is CLOSED on paper, and the bike question is SETTLED (not built yet)
+
+**Five agents, one angle each, then every load-bearing claim re-verified by me.** The point was to
+stop guessing before writing a line of chapter code.
+
+**THE BIKE QUESTION IS DEAD, AND THE ANSWER WAS ALREADY IN OUR DOCS.** Sky Pillar's crumbling floors
+looked like a hard blocker: the bot has never owned a bicycle (`RECEIVED_BIKE` appears in exactly two
+data tables and NO code reads it). It is a non-issue — the story ascent runs at `SKY_PILLAR_STATE`
+0 then 1, both `< 2`, so all six floors swap to `LAYOUT_SKY_PILLAR_*_CLEAN`. Decomp-verified on every
+floor, not taken from the note that said so. ⛔ **DO NOT BUILD A BIKE SOLVER FOR THE STORY.**
+
+⛔ **BUT TWO ROWS IN `12-STORYMODE-DESIGN.md` STILL SAID THE OPPOSITE** — the Ch21 roadmap row and the
+key-items row, *the two tables an agent building Ch21 opens first*. And `20-POST-FORTREE-RECON.md`
+§4.2 asserted **"Two places in our own docs/code said otherwise and are now fixed."** That claim was
+FALSE OF THE TREE. Cost had it stood: an agent reads the table, concludes the chapter is blocked, and
+builds a bike solver nobody needs. ⇒ **A FIX-COUNT IS A CLAIM ABOUT THE WHOLE TREE; the honest form
+is the `grep` you actually ran.** All corrected, and the grep is now recorded.
+
+⛔ **AND ONE DEFECT WAS MINE, SHIPPED IN THE COMMIT AN HOUR EARLIER.** `story_mode.py`'s end-of-content
+message still read *"NEXT (WIP): the Seafloor Cavern (Ch20) … the cavern INTERIOR is not built yet"* —
+**thirty lines below Segment 20, which builds and drives exactly that.** Every operator reading a
+successful run log would be told the chapter they just completed is unbuilt. The comment block above it
+was updated for Ch20; the user-facing string was not. ⇒ **THE P1 BANNER/QUEUE FAILURE SHAPE HAPPENS IN
+CODE TOO — a `context.message` is a banner, and it needs the same pair check as a doc heading.**
+
+**NEW INSTRUMENT — `probe_ch21_topology.py`, gate-quality, fault-tested.** A routing recon established
+the Sky Pillar staircase and Cave of Origin warps from `cache/warp_graph_BPEE0.json`, leaving four
+unknowns no static table could answer. The probe closes all four from ROM map headers:
+  * ROUTE126 and UNDERWATER_ROUTE126 are BOTH (80,80) -> the same-(x,y) dive landing HOLDS (it was
+    measured for Route 128 and merely ASSUMED for 126)
+  * 1,349 dive-capable ROUTE126 tiles; `(45,66)` sits adjacent to the warp column
+  * `UNDERWATER_ROUTE126 (45,65)` -> `UNDERWATER_SOOTOPOLIS_CITY` is its ONLY warp
+  * ✅✅ `UNDERWATER_SOOTOPOLIS_CITY` has **ZERO** `Underwater Blocked Above` / `Seaweed No Surfacing`
+    tiles => **the KI-72 surfacing trap DOES NOT APPLY on that map** — measured, not assumed
+
+⛔ **THE PROBE'S FIRST DRAFT CONTAINED A VACUOUS ASSERTION AND I CAUGHT IT BY READING THE OUTPUT, NOT
+THE EXIT CODE.** `warps_of()` iterated TILES and read `tile.warps` — the MAP-level property reached
+through the tile — so all 6,400 tiles of UNDERWATER_ROUTE126 reported the SAME warp, and *"there is a
+warp at (45,65)"* passed merely because the TILE (45,65) exists. **It could not fail.** That is the
+pass-4 "gate with zero assertions" defect, rebuilt by hand, ten minutes after I cited it in the
+docstring. Fixed to read `map_data.warps` (each `MapWarp` has its OWN `.local_coordinates`), and a
+permanent `POKEBOT_CH21PROBE_FAULT=warpcoord` hook now PROVES it bites: off -> EXIT=0, on -> 2 FAIL +
+EXIT=1. ⇒ **A GREEN PROBE IS EVIDENCE ONLY IF ITS ASSERTION HAS BEEN SEEN TO FAIL.**
+
+⛔ **WHAT THE PROBE DELIBERATELY REFUSES TO ANSWER.** The Sky Pillar's interior tiles CANNOT be read
+statically: floors swap to their `_CLEAN` layout at RUNTIME via `setmaplayoutindex`, so `get_map_data`
+returns the DEFAULT — the cracked, post-game one. A static walkability check there would describe a map
+the story bot never sees, and would do it confidently. Reported as a labelled hazard, never asserted.
+⇒ **KNOWING WHICH QUESTION AN INSTRUMENT CANNOT ANSWER IS PART OF BUILDING THE INSTRUMENT.**
+
+**THE THREE THINGS THAT WOULD HANG OR STRAND THE BOT** (now in the §Ch21 ATLAS, `12-STORYMODE-DESIGN.md`):
+1. `CaveOfOrigin_B1F`'s multichoice — **only index 2 advances**; 0/1/3, the default AND a B-press all
+   `goto` back to the same prompt. No counter, no timeout, no escape. A blind A-press hangs forever.
+2. The Rayquaza awakening is a **COORD TILE**, not the sprite — the identical shape as the Route 128
+   trigger that already bit §Ch20.
+3. HM07 Waterfall needs **BOTH** Maxie AND Archie at state 5. Miss one NPC and the run is dead.
+
+**AND A STRUCTURAL FINDING:** ⛔ **Sootopolis is a TRUE ISLAND** — the only map in its region, zero map
+connections. **You cannot surf from Sootopolis to Route 131**, so the Sky Pillar leg is a real design
+choice: Fly to Pacifidlog (needs `VISITED_PACIFIDLOG_TOWN`, ❓ unknown) or swim the whole way back out.
+⛔ And upstream's Sky Pillar route must NOT be copied: it is the post-game route that *deliberately
+falls through 4F* and asserts a Mach Bike — on the clean story layout it stalls immediately.
+
+### ‼‼ AND THE ATLAS I HAD JUST WRITTEN WAS WRONG ABOUT THE SKY PILLAR — CORRECTED THE SAME HOUR
+
+Two more agents landed after the atlas was drafted, and between them they overturned its Sky Pillar
+section. **I verified the overturn MYSELF** by decoding the shipped
+`data/layouts/SkyPillar_*_Clean/map.bin` collision bits and running BFS — the numbers below are ours,
+not either agent's. Evidence: `tools/story-dev/evidence/2026-08-24-skypillar-clean-reachability.txt`.
+
+⛔ **ERROR 1 — "the `_CLEAN` layouts have no cracked floors."** `2F_Clean` has zero;
+**`4F_Clean` RETAINS FIVE**, at (0,3) (1,3) (6,4) (7,4) (9,4). "Clean" is a per-floor fact, not a
+global one. And `STEP_CB_CRACKED_FLOOR` is registered on 2F/4F from `ON_RESUME` with **no state
+guard** — the mechanic is ALWAYS armed; only the LAYOUT swaps.
+
+⛔⛔ **ERROR 2, AND IT WAS WRONG IN THE DANGEROUS DIRECTION — "upstream's Sky Pillar route stalls on
+4F because the fall never happens on the clean layout."** The opposite is true, and my own BFS proves
+it: **`4F (3,1)` (the 5F stairs) and `3F (7,1)` are SEALED 11-TILE POCKETS.** From the `4F (11,1)`
+arrival the 5F stairs are **unreachable — NO PATH, even allowing cracked tiles.** The only entrance is
+a **deliberate fall through the cracked `4F (6,4)`/`(7,4)`**, which `warphole` drops onto `3F (6,4)` —
+inside the pocket holding `3F (7,1)`. So **upstream's route SHAPE is correct and worth copying**
+(its comment literally reads `# after falling down to floor 3`); only its `assert_registered_item
+("Mach Bike")` and `mount_bike()` are wrong for a bikeless story bot.
+⇒ **I HAD TOLD A FUTURE AUTHOR TO THROW AWAY THE ONE ROUTE THAT WORKS.** The atlas now carries the
+measured staircase table instead.
+⇒ **AND THE PATHFINDER CANNOT EXPRESS THIS LEG AT ALL** — `map_path.py` does not model
+`"Cracked Floor"`, so it will never propose the fall and a `calculate_path` to `4F (3,1)` simply
+raises. The fall must be an EXPLICIT chapter step, exactly like `dive()`.
+
+‼ **THE METHOD LESSON, WHICH IS THE REUSABLE PART.** I had written "the CLEAN-layout interior needs a
+LIVE read" and filed it as open — correct about the live probe (`get_map_data` returns the map
+HEADER's default, i.e. the cracked layout) and **wrong about the question being unanswerable**. The
+decomp's `_Clean` binaries ARE the story layout. ⇒ **WHEN AN INSTRUMENT CANNOT SEE A MAP, ASK WHETHER
+THE SOURCE DATA CAN BE READ DIRECTLY BEFORE DECLARING THE QUESTION "NEEDS A LIVE RUN".** A live run
+was going to cost a 25-minute drive to answer what 392 bytes answered exactly.
+
+**ALSO FOUND, AND ADDED AS THE FOURTH HAZARD** *(the heading said THREE; a heading is a claim about
+every bullet under it, so the count moved with the list)*: ⛔ **the Cave of Origin entrance is
+BODY-BLOCKED BY AN NPC, not by a script.** `LOCALID_SOOTOPOLIS_EXPERT` stands on `(31,18)`, the sole
+one-tile passage, with `"flag": 0` — never hidden. Blocked at city state 0/1; blocked at 2/3 **until
+Steven's escort sets `FLAG_STEVEN_GUIDES_TO_CAVE_OF_ORIGIN`**; blocked again at 4/5/6. A bot that
+plans "walk into the Cave of Origin" paths into a body and stalls — and Steven does not merely
+unblock it, he **warps you in**.
+
+**AND A GRADING TRAP:** ⛔ **no value of `SOOTOPOLIS_CITY_STATE` means "the fight is over."** The city
+keeps its legendaries layout at state 5 while `SKY_PILLAR_STATE <= 1`; the real predicate is
+**`SKY_PILLAR_STATE >= 2`**, set in Sootopolis after the Rayquaza ARRIVAL scene — not when Rayquaza is
+woken. Grading Ch21 on the city var alone would call the crisis resolved while it still rages.
+
+Smaller facts now in the atlas: the **Acro Bike NEVER clears a cracked floor** (`PLAYER_SPEED_FASTER`
+!= `FASTEST`, so it is Mach-at-full-acceleration or nothing); **stopping on a cracked tile is fatal
+even at top speed** (rewritten to a hole 3 frames later); Sky Pillar wild encounters are 1F/3F/5F
+only, rate 10, **max level 39** (no level-60 ambush) and 2F/4F have none at all; `1F`'s exit is a
+`MB_SOUTH_ARROW_WARP` that needs the direction **HELD**, not tapped.
+
+### AND THE TIER 1 REVIEW CAUGHT ME REBUILDING THE DEFECT I HAD JUST FINISHED FIXING
+
+⛔⛔ **BLOCKER 1 WAS MINE, IN THE FILE I HAD JUST REPAIRED.** Earlier this session I corrected two rows
+of `12-STORYMODE-DESIGN.md` that wrongly demanded a Mach Bike. I replaced them with **"NO Mach Bike
+and NO cracked floors on the STORY ascent"** — and then, hours later, MEASURED that `4F_Clean` has
+five cracked tiles and that the ascent must fall through one. **I never went back to the row.** So the
+roadmap table — by the changelog's own phrase, *"the two tables an agent building Ch21 opens first"* —
+carried a FRESH false claim, planted by the fix for the old one. It also left a dangling `~~Mach
+Bike**` markdown fragment. `20-POST-FORTREE-RECON.md` §4.2's HEADING repeated it, one line above an
+edit I had made in that very file.
+⇒ **WHEN A FINDING CHANGES, RE-GREP FOR THE CLAIM YOU YOURSELF WROTE EARLIER IN THE SAME SESSION.** A
+correction is not finished when the wrong sentence is replaced; it is finished when the REPLACEMENT is
+still true at commit time. ‼ **The most dangerous stale claim in a tree is the one you wrote today.**
+
+⛔ **AND THE CORRECTION LANDED IN THE WRONG PLACE ON THE FIRST TRY.** Stamping the refutation into the
+two research notes, I anchored on `find("
+
+")` — which in a bullet list jumps past the WHOLE list,
+so the correction sat far below the claim it refutes, where a skimming reader never reaches it.
+Re-anchored to the end of the claim's own bullet (gaps now 3 and 7 lines). ⇒ **A CORRECTION IS ONLY A
+CORRECTION IF IT IS WHERE THE READER IS.** Same lesson as the P2 header rule, one layer down.
+
+**Other review findings, all fixed:** a heading reading `❓ STILL OPEN` over bullets marked `✅ CLOSED`
+(now `⚠ MIXED`, each bullet carrying its own marker); and the changelog omitted a real CODE change —
+`story_harness.py` gained the `CH20_CAPTURE` capture path. ‼ **And the review's process finding was
+correct and is the most reusable of them: I handed it a PATH-FILTERED diff** that excluded
+`04-HANDOFF.md`, `03-PUNCH-LIST.md` and `story_harness.py`, all modified the same day — **and both
+blockers were only findable in the files I left out.** ⇒ **TIER 1 GETS `git diff HEAD` WITH NO PATH
+FILTER, ALWAYS.** A hand-picked diff reviews the story you already believe.
+
+### `#24-ch21anchor` IS DONE — `saves/post_ch20.ss1` EXISTS
+
+`Ch20ChapterMode` gained an env-gated capture (`CH20_CAPTURE=<name>.ss1`). ⛔ **It writes ONLY on
+`passed`**, which already means arrived + controllable + surfing on the launch tile + a real
+`calculate_path` proving open ocean — the bar `AnchorCaptureMode` states for a usable anchor. ⇒ **the
+file's EXISTENCE is the acceptance record**, which is what saved the run when my own `| tail -14` on a
+25-minute drive discarded the `ACCEPTANCE` line.
+✅ Probe-verified (never the driver's log): `OVERWORLD ROUTE128 (38,24)`, badges 1-7,
+**`ROUTE128_STATE=2` AND `SOOTOPOLIS_CITY_STATE=1`** — Ch21's entry condition, MEASURED live, where it
+had been a decomp claim.
+⚠ **The probe also caught what the driver did not:** *"HP 548/687 (80%), 1 FAINTED — CANNOT SURVIVE A
+JOURNEY."* Faithful (it is the true post-cavern state) but a Ch21 leg from it can whiteout early —
+documented so nobody reads that as a Ch21 bug.
+‼ **The gate earned its keep first:** `repro_undefined_names.py` flagged `undefined name 'pathlib'` on
+the new branch **before** the 25-minute run — `story_harness.py` imports `os as _os` and never
+`pathlib`. That is the SAME bug class that burned a drive earlier today, and the fix that mattered was
+not the import: **it was running the gate before the drive.**
+⚠ Honest limit: the capture's `not passed` REFUSAL branch is **not** fault-tested. A 3,000-frame smoke
+run never reaches the acceptance block at all, so "no file written" there proves only that it does not
+write early — it does not exercise the refusal.
+
+
+### THE SECOND TIER 1 PASS ESCALATED, AND BOTH OF ITS BLOCKERS WERE RIGHT
+
+The first pass ran on a PATH-FILTERED diff and found three blockers, all fixed. Re-run on the FULL
+`git diff HEAD` — which is what its own process finding demanded — it found **two more**, and
+escalated rather than issue a third correction cycle. Both were valid.
+
+⛔ **BLOCKER 1 — the increment's CENTRAL claim had no re-runnable instrument.** The Sky Pillar
+staircase / sealed-pocket / deliberate-fall finding — the thing that makes §Ch21 buildable at all —
+rested on `evidence/2026-08-24-skypillar-clean-reachability.txt`, a hand-formatted summary produced by
+a script in a scratch directory. Every OTHER claim in the same increment had a committed, fault-tested
+tool behind it. The reviewer's phrasing was exactly right: the numbers were correct **and not
+re-runnable by anyone else**, which is the standard this project rejects everywhere else.
+✅ Fixed: `tools/story-dev/probe_skypillar_clean_layout.py` — 6 assertions, fault hook
+`POKEBOT_SKYPILLAR_FAULT=nofall` (asserts the OPPOSITE of the central finding, so it MUST fail),
+proven both ways: off → all PASS EXIT=0, on → 1 FAIL EXIT=1. ⛔ Deliberately NOT in `run_gates.py`: it
+fetches the decomp's layout binaries over the network, and a standing gate must not need the net.
+⇒ **A CORRECT NUMBER THAT NOBODY CAN RE-RUN IS NOT EVIDENCE HERE. Commit the instrument.**
+
+⛔ **BLOCKER 2 — a THIRD copy of the refuted claim, worded differently.** See `08-MISTAKES.md`: I
+grepped for my own phrasing (`"NO cracked floors"`) and missed `"HAS SOLID FLOORS"` in the same file.
+
+**And its four RISKS were all real, all fixed:** the STATE table's `§Ch20` row still read *"⛔ NOT a
+chapter … Ladder still 20 of 24"* (stale since the PREVIOUS commit); the drift cell led with **"✅ 0 as
+of 2026-08-24 — Nothing is owed"** while `promote.py --check` — which that cell itself names as the
+authority — reports **2**; an un-superseded `➡` pointer predating the atlas; and neither new probe was
+in HOW TO RUN. ‼ **Two of those were the handoff asserting a number its own text tells you not to
+trust.** ⇒ **WHEN A CELL SAYS "RUN THE TOOL, NEVER TRUST THIS NUMBER", THE NUMBER IN IT IS A LIABILITY
+— state the tool's answer or state nothing.**

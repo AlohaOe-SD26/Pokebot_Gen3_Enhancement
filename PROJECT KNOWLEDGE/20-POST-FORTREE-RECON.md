@@ -145,10 +145,23 @@ I wrote that a fall could leave a section **unsolvable**. It cannot.
 the already-opened stairs. All 64 tiles must be done in **one unbroken visit** — failure is
 expensive, never a wedge.
 
-### 4.2 ‼ Sky Pillar has NO cracked floors and NO Mach Bike in the story
+### 4.2 ‼ Sky Pillar needs NO Mach Bike in the story — ⛔ but it is NOT free of cracked floors
+⛔ **THIS HEADING READ "has NO cracked floors" UNTIL 2026-08-24 AND WAS FALSE.** `_Clean` is a
+PER-FLOOR fact: `2F_Clean` has **0** cracked tiles, **`4F_Clean` has 5** — measured by decoding the
+shipped `data/layouts/SkyPillar_4F_Clean/map.bin`. Worse, the ascent **REQUIRES stepping on one**:
+`4F (3,1)` (the 5F stairs) and `3F (7,1)` are SEALED POCKETS, and from the `4F (11,1)` arrival the
+5F stairs are unreachable **even if every cracked tile is treated as passable**. The only way in is
+a deliberate fall through `4F (6,4)`/`(7,4)` — ⛔ and **NOT `(9,4)`, which lands in 3F's MAIN region
+and wastes the climb.** See the §Ch21 ATLAS in `12-STORYMODE-DESIGN.md`; evidence in
+`tools/story-dev/evidence/2026-08-24-skypillar-clean-reachability.txt`.
 Every floor swaps to a `_Clean` layout below `VAR_SKY_PILLAR_STATE 2`
-(`SkyPillar_2F/scripts.inc:6-16`). The hazard run is the POST-GAME Rayquaza capture only.
-Two places in our own docs/code said otherwise and are now fixed.
+(`SkyPillar_2F/scripts.inc:6-16`). The Mach Bike is needed only for the POST-GAME Rayquaza capture.
+Two places in our own docs/code said otherwise and were fixed. ⛔ **BUT THE CLAIM "are now fixed" WAS NOT TRUE OF THE
+WHOLE TREE: on 2026-08-24 an independent audit found TWO MORE ROWS still asserting the Mach Bike —
+`12-STORYMODE-DESIGN.md`'s Ch21 roadmap row AND its key-items row, i.e. THE TWO TABLES AN AGENT BUILDING
+Ch21 OPENS FIRST.** Both are corrected now. ⇒ **A FIX-COUNT IS A CLAIM ABOUT THE WHOLE TREE; the honest
+form is the `grep` you actually ran.** (Cost had it stood: an agent reads the table, concludes the chapter
+is blocked, and builds a bike solver nobody needs.)
 
 ### 4.3 ‼ Ch21's completion milestone could never fire (FIXED)
 `chapters.py` used `flag("DEFEATED_RAYQUAZA")`, set only inside `TryShowRayquaza`, gated on

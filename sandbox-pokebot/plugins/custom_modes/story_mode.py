@@ -3732,9 +3732,9 @@ class StoryMode(BotMode):
         # (38,22) is a shallow-water SANDBAR — the bot must Surf off it. The standing rule is "and the bot
         # can continue", and three chapters have already shipped stranded.
         context.message = (
-            "Story: HM08 DIVE IS IN THE BAG - end of built content. "
-            "NEXT (WIP): the Seafloor Cavern (Ch20). The Dive blocker (KI-63) is RESOLVED and the "
-            "dive leg is driven; the cavern INTERIOR is not built yet. Handing to manual."
+            "Story: THE SEAFLOOR CAVERN IS DONE (Ch20) - Kyogre is awake and the run is off "
+            "the atoll in open ocean. End of built content. NEXT (WIP): Ch21, Sootopolis and "
+            "Rayquaza. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call

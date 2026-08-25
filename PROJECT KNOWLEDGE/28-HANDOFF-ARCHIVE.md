@@ -6509,3 +6509,32 @@ reporting most runs as successes. Both root causes are fixed in sandbox with A/B
       clause was false for a month. ‼ **The item's OWN text said "(deliver_devon_goods_to_stern is
       built)" while carrying `[ ]`** — a status contradicted by its own body is the cheapest
       possible re-do trap, and this project's 8-day case is what created the triage index.
+
+
+## 📦 ARCHIVED 2026-08-24 from `04-HANDOFF.md` NEXT ACTIONS (R3 budget: it hit 909/900)
+
+> (P4) Stage 1 + Stage 2 driven-evidence block. Moved VERBATIM, nothing deleted; a 6-line stub
+> remains in the handoff carrying the verdict and the DO-NOT-REBUILD marker.
+> ‼ The handoff's own banner says ARCHIVE FIRST, WRITE SECOND. I wrote first and R3 went RED —
+> the warning was right, and the cost was one extra edit cycle at the end of a long session.
+
+---
+
+>    ✅✅ **STAGE 1 IS DRIVEN (`--driver boxcounter`), BOTH ARMS PASS — the first time
+>    `box_counter_pid` ran against REAL `gPokemonStorage` memory rather than `FakeStorage`.**
+>    ARM B → the Slugma's PID (found by its MOVE); ARM A
+>    (`POKEBOT_BOXCOUNTER_TYPEONLY_A=1`) → `None`, **the user's bug reproduced on demand**.
+>    Four controls: `disjoint` (pure FIRE, so the type branch is provably inert), `fixture_ok`
+>    (read back through the PRODUCTION reader — mandatory, since a bad fixture is
+>    indistinguishable from ARM A's expected miss), `sole`, and `not_excluded`.
+>    ✅✅ **STAGE 2 IS DRIVEN (2026-08-15) — `--driver boxcounter2`, matrix {ARM A, ARM B} ×
+>    {sandbox, custom} = 4/4 `ACCEPTANCE: PASS`. ⛔ DO NOT REBUILD IT.**
+>    It SUBCLASSES `BoxCounterMode`, so every Stage 2 run re-proves Stage 1 first.
+>    **ARM B:** the real `heal_in_pokemon_center(FortreeCity)` collected the boxed Slugma —
+>    `moved=True` (in party AND gone from box), `knows_rock_throw=True`, `lead_is_counter=True`
+>    with a `hunted_pids=None` CONTROL proving the mechanism was decisive
+>    (`control=Mightyena L38` → `real=Slugma L15`), and a second heal that NO-OPed *for the
+>    attributed reason* (`find_in_box=None` AND still in party). Production made room itself
+>    (`depositing Skitty L17`). **ARM A:** `box_counter_pid` → `None` → `_hunted_counter_pids`
+>    published EMPTY → the withdraw piggyback did nothing → `still_boxed=True not_in_party=True`
+>    and **no deposit at all** — the user's derail, produced by production, not simulated.

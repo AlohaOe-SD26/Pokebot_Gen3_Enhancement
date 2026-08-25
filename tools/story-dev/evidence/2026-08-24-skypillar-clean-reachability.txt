@@ -1,0 +1,63 @@
+SKY PILLAR CLEAN-LAYOUT REACHABILITY — measured 2026-08-24
+======================================================================================
+
+METHOD: the DECOMP's own data/layouts/SkyPillar_*_Clean/map.bin fetched from
+raw.githubusercontent.com (NOT via 'gh api | base64 -d', which corrupts binaries —
+playbook section N), decoded with the pokeemerald block masks:
+    metatileId = v & 0x03FF   collision = (v >> 10) & 3   elevation = (v >> 12) & 0xF
+then BFS over collision==0. Cracked floor = metatile 0x236 (behaviour 0xD2 MB_CRACKED_FLOOR).
+
+WHY THIS IS LEGITIMATE WHERE probe_ch21_topology.py IS NOT: get_map_data() reads the map
+HEADER's default layout — the cracked, post-game one. The _Clean binaries ARE the story
+layout, so decoding them answers the question the live probe cannot.
+
+CRACKED-TILE CENSUS (metatile 0x236)
+  SkyPillar_2F          38
+  SkyPillar_2F_Clean     0
+  SkyPillar_4F          34
+  SkyPillar_4F_Clean     5   <-- (0,3) (1,3) (6,4) (7,4) (9,4)  ‼ CLEAN IS NOT CRACK-FREE
+
+STAIRCASE — each floor, arrival tile -> exit tile, on the CLEAN layout
+  SkyPillar_1F_Clean   (6, 13)  -> (10, 1) avoiding=17    any=17     OK
+  SkyPillar_1F_Clean   (7, 13)  -> (10, 1) avoiding=16    any=16     OK
+  SkyPillar_2F_Clean   (10, 1)  -> (3, 1)  avoiding=10    any=10     OK
+  SkyPillar_3F_Clean   (3, 1)   -> (7, 1)  avoiding=None  any=None   NO PATH
+  SkyPillar_4F_Clean   (7, 1)   -> (3, 1)  avoiding=7     any=7      OK
+  SkyPillar_4F_Clean   (11, 1)  -> (3, 1)  avoiding=None  any=None   NO PATH
+  SkyPillar_5F_Clean   (3, 1)   -> (10, 1) avoiding=34    any=34     OK
+
+THE DELIBERATE FALL — the only way into the sealed pockets
+  4F_Clean from (11,1): reaches the launch tile (5,4)? True ; reaches the 5F stairs (3,1)? False
+  (5,4) is adjacent to the CRACKED (6,4): True   -> step EAST to fall
+  warphole preserves (x,y) -> land 3F (6,4); that pocket is 11 tiles and contains 3F (7,1): True
+  pocket: [(5, 2), (6, 2), (6, 3), (6, 4), (7, 1), (7, 2), (7, 3), (7, 4), (8, 2), (8, 3), (9, 2)]
+  then 4F (7,1) -> 4F (3,1): 7 steps
+
+TOP (27x24): door (16,14) -> the Rayquaza coord trigger (14,9): 14 steps
+
+======================================================================================
+ADDENDUM — the SURF LEG's provenance (a Tier 1 reviewer asked where the ASCII route
+block's first line comes from, since probe_ch21_topology.py never touches these maps)
+======================================================================================
+Source: OUR OWN sandbox-pokebot/cache/warp_graph_BPEE0.json (v2, ROM-extracted from the
+game's map headers by modules/warp_graph.py), resolved through MapRSE.
+
+  ROUTE128          (0,43)  region=0   edges=[EVER_GRANDE_CITY, ROUTE127, ROUTE129]
+  ROUTE127          (0,42)  region=0   edges=[ROUTE126, ROUTE128, MOSSDEEP_CITY]
+  ROUTE126          (0,41)  region=0   edges=[ROUTE127, ROUTE124]
+  ROUTE129          (0,44)  region=0   edges=[ROUTE128, ROUTE130]
+  ROUTE130          (0,45)  region=0   edges=[ROUTE131, ROUTE129]
+  ROUTE131          (0,46)  region=0   edges=[PACIFIDLOG_TOWN, ROUTE130]
+  PACIFIDLOG_TOWN   (0,15)  region=0   edges=[ROUTE131, ROUTE132]
+  SOOTOPOLIS_CITY   (0, 7)  region=1   edges=[]        <-- ALONE IN ITS REGION
+
+ROUTE128 region == ROUTE126 region -> True (both 0). calculate_path spans only DIRECTLY
+CONNECTED maps, so the whole surf leg is ONE navigate_to.
+
+TWO CONSEQUENCES:
+  1. SOOTOPOLIS IS A TRUE ISLAND -- zero map connections, its own region of one. Entry and
+     exit are by Dive only. (And VISITED_SOOTOPOLIS_CITY is False, so Fly is not an option
+     either -- see 2026-08-24-ch21-prereq-flags.txt.)
+  2. ROUTE131 *IS* surf-reachable from ROUTE128 (128->129->130->131, all region 0). So the
+     "swim back out" Sky Pillar leg is confirmed viable: dive out of Sootopolis, surface on
+     ROUTE126, then surf 126->127->128->129->130->131. It is long, not blocked.

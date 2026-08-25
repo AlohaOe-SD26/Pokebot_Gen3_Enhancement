@@ -323,9 +323,12 @@ rotate statue walls) → Space Center double w/ Steven (‼ claim: needs ≥3 co
 — verify) → HM08 Dive → Rt 128 dive → **Seafloor Cavern** (Strength SOKOBAN — wrong
 push = exit/re-enter resets; current tiles force-slide) → Archie (Sharpedo L43) →
 Kyogre escapes (`VAR SHOULD_END_ABNORMAL_WEATHER` ✓ exists) → **Sootopolis** → Wallace
-→ ‼‼ **SKY PILLAR FIRST VISIT HAS SOLID FLOORS** (`SKY_PILLAR_STATE` ✓ exists — NO
-Mach Bike puzzle in the story visit; cracked floors are post-game only. Do NOT build a
-bike solver for Ch-story) → Rayquaza → HM07 Waterfall → **Juan** (ice floors =
+→ ‼‼ **SKY PILLAR FIRST VISIT NEEDS NO MACH BIKE — ⛔ BUT IT DOES *NOT* HAVE SOLID FLOORS**
+(`SKY_PILLAR_STATE` ✓ exists. ⛔ **THIS LINE READ "HAS SOLID FLOORS … cracked floors are post-game
+only" UNTIL 2026-08-24 AND WAS FALSE** — it was the THIRD copy of that claim in this file and it
+survived two sweeps because it is worded differently from the other two. **`4F_Clean` has FIVE
+cracked tiles and the ascent MUST fall through one** — see the §Ch21 ATLAS below and
+`probe_skypillar_clean_layout.py`. The "no bike solver" half is CORRECT and stands.) → Rayquaza → HM07 Waterfall → **Juan** (ice floors =
 HAMILTONIAN PATH per grid: every tile exactly once, fall = B1F + reset; Kingdra L46) →
 Victory Road (needs Surf/Waterfall/Strength/Rock Smash in party) → Wally VR (Gardevoir
 L45) → **E4**: Sidney/Phoebe/Glacia/Drake → Wallace (Milotic L58) → `SYS_GAME_CLEAR` ✓.
@@ -1326,7 +1329,7 @@ the Emerald event flag that proves completion (names from
 | 18 | **Gym 7 — Tate & Liza** | Mossdeep City | Tate & Liza (Psychic, **DOUBLE**) | **Mind** | **Dive usable** ✅ (`map_path.py:690` = `BADGE07_GET`) | `DEFEATED_MOSSDEEP_GYM` (1270), `BADGE07_GET` (2157) |
 | 19 | Mossdeep + Space Center | Rt 124/125 (Surf) / Mossdeep | Magma at Space Center; Steven tag (**DOUBLE**) | — | **Dive** (HM08) given in **Steven's house, Mossdeep** (`ITEM_MOSSDEEP_STEVENS_HOUSE_HM08` 1133) | `DEFEATED_MAGMA_SPACE_CENTER` (117), `RECEIVED_HM_DIVE` (123), `INTERACTED_WITH_STEVEN_SPACE_CENTER` (205) |  ‼ **ORDER CORRECTED 2026-08-12** — this beat REQUIRES Badge 7; its NPCs are hidden until then.
 | 20 | Seafloor Cavern (Kyogre) | Rt 128 (Dive) / Seafloor Cavern | Team Aqua; Archie; Kyogre wakes | — | **Dive** required to enter (`can_dive` gate) | `KYOGRE_ESCAPED_SEAFLOOR_CAVERN` (129) |
-| 21 | Sootopolis crisis & Rayquaza | Sootopolis (**Dive under Rt 126** to enter) / Cave of Origin / Sky Pillar | (Rayquaza quells legendaries) | — | Dive to enter Sootopolis; **Mach Bike** for Sky Pillar crumbling floor | `LEGENDARIES_IN_SOOTOPOLIS` (83), `STEVEN_GUIDES_TO_CAVE_OF_ORIGIN` (307), `DEFEATED_RAYQUAZA` (448), `RECEIVED_RED_OR_BLUE_ORB` (212), `WALLACE_GOES_TO_SKY_PILLAR` (311) |
+| 21 | Sootopolis crisis & Rayquaza | Sootopolis (**Dive under Rt 126** to enter) / Cave of Origin / Sky Pillar | (Rayquaza quells legendaries) | — | Dive to enter Sootopolis (⛔ **no Fly** — `VISITED_SOOTOPOLIS_CITY` is False, measured). ⛔ **NO MACH BIKE NEEDED — but the ascent DELIBERATELY FALLS through ONE cracked tile.** `_CLEAN` is per-floor, not global: `2F_Clean` has 0 cracked tiles, **`4F_Clean` has 5**, and `4F (3,1)` is a SEALED POCKET reachable ONLY by falling through `4F (6,4)`/`(7,4)` (⛔ NOT `(9,4)` — a decoy). ➡ **READ §Ch21 ATLAS in this file before building; a route that avoids all cracked tiles CANNOT reach the summit.** | `LEGENDARIES_IN_SOOTOPOLIS` (83), `STEVEN_GUIDES_TO_CAVE_OF_ORIGIN` (307), `DEFEATED_RAYQUAZA` (448), `RECEIVED_RED_OR_BLUE_ORB` (212), `WALLACE_GOES_TO_SKY_PILLAR` (311) |
 | 22 | **Gym 8 — JUAN** **[P2 FIX: not Wallace]** | Sootopolis City | **Juan** (Water) — `SootopolisCity_Gym_1F_EventScript_Juan` | **Rain** | **Waterfall** (HM07) given by **Wallace in Sootopolis** (around crisis resolution; *verify exact trigger live*) | `DEFEATED_SOOTOPOLIS_GYM` (1271), `BADGE08_GET` (2158), `RECEIVED_HM_WATERFALL` (312) |
 | 23 | Victory Road | Rt 128/132-134 (Surf/Dive/Waterfall) → Ever Grande | Rival Wally (Victory Road) | — | Surf+Waterfall+Dive to reach; **Strength**+Rock Smash+Flash inside | `DEFEATED_WALLY_VICTORY_ROAD` (126) |
 | 24 | **Elite Four + Champion** | Ever Grande / Pokémon League | Sidney→Phoebe→Glacia→Drake→Wallace | — | — | `DEFEATED_ELITE_4_SIDNEY/PHOEBE/GLACIA/DRAKE` (1275-1278), `IS_CHAMPION` (2175), `SYS_GAME_CLEAR` (2148) |
@@ -1402,7 +1405,7 @@ exact NPC/tile is marked *verify live*.
 | **Devon Scope** | **Steven, Route 120** (→ reveal Kecleon) | `RECEIVED_DEVON_SCOPE` (285) | **code-anchored** |
 | **Go-Goggles** | **Lavaridge Town** (Cozmo's wife), after Mt. Chimney — needed for Rt 111 desert sandstorm | `RECEIVED_GO_GOGGLES` (221) | established, *verify NPC live* |
 | **Wailmer Pail** | **Route 104** flower shop (Pretty Petal) — berries only | `RECEIVED_WAILMER_PAIL` (94) | established — **OPTIONAL** |
-| **Mach/Acro Bike** | **Rydel's Cycles, Mauville** (pick one; swappable) — **Mach Bike required for Sky Pillar** | `RECEIVED_BIKE` (90) | **code-anchored** |
+| **Mach/Acro Bike** | **Rydel's Cycles, Mauville** (pick one; swappable) — ⛔ ~~Mach Bike required for Sky Pillar~~ **FALSE — REFUTED 2026-08-24 against the decomp, all six floors.** The STORY ascent runs at `VAR_SKY_PILLAR_STATE` 0→1, both `< 2`, so every floor is `_CLEAN`. The bot has never owned a bike and does not need one. ⛔ **DO NOT BUILD A BIKE SOLVER FOR THE STORY** | `RECEIVED_BIKE` (90) | **code-anchored** |
 | **Meteorite** | Prof. Cozmo (Meteor Falls / post-Chimney) | `RECEIVED_METEORITE` (115) | established — **OPTIONAL** |
 | **Basement Key** | **Wattson**, after Gym 3 (opens New Mauville) | `GOT_BASEMENT_KEY_FROM_WATTSON` (208) | **code-anchored** — New Mauville is **OPTIONAL** |
 | **Room Keys 1/2/4/6** | Aqua Hideout interior (puzzle items) | `USED_ROOM_*_KEY` (240-243) | **code-anchored** |
@@ -3449,3 +3452,234 @@ the acceptance test, not just in the code.
 ### What "done" unlocks
 `FLAG_HIDE_AQUA_HIDEOUT_1F_GRUNT_1/2_BLOCKING_ENTRANCE` — the Lilycove Aqua Hideout (ladder row
 17). That is a much larger chapter: room keys, an Electrode puzzle, `TEAM_AQUA_ESCAPED_IN_SUBMARINE`.
+
+---
+
+## §Ch21 ATLAS — Sootopolis / Cave of Origin / Sky Pillar / Rayquaza (built 2026-08-24)
+
+**PROVENANCE, PER ROW.** ✅ **HARD** = read out of ROM map headers by `probe_ch21_topology.py`
+(evidence: `tools/story-dev/evidence/2026-08-24-ch21-topology-probe.stdout.txt`, every assertion
+PASS, fault-tested both ways). 📝 **NOTE** = decomp-cited research, authoritative-doc rules apply —
+it is a NOTE until verified here. ❓ **OPEN** = nobody knows; needs a live drive.
+⛔ **No coordinate below was recalled.** The ones we could not read are marked ❓, not filled in.
+
+### The spine: `SOOTOPOLIS_CITY_STATE` has SEVEN states (0-6), not five
+
+📝 (`ai-research-notes/CLAUDE-VALIDATED-story-round1.md` §3f — every setter located and read.)
+⛔ **Our API takes the BARE name `SOOTOPOLIS_CITY_STATE`; `VAR_SOOTOPOLIS_CITY_STATE` is the decomp
+spelling and returns −1 here.** (Playbook §4.2 — this is the default mistake, not an exotic one.)
+
+| state | meaning | set by | what it means for the bot |
+|---|---|---|---|
+| 1 | Kyogre awakened | `SeafloorCavern_Room9` — **the SAME block that sets `ROUTE128_STATE`** | ✅ §Ch20 leaves us here |
+| 2 | the Groudon-vs-Kyogre scene has played | `SootopolisCity/scripts.inc:243` (arrive via Poké Center) **or** `:342` (arrive via Dive) | two camera variants; ours is the DIVE one — budget for a locked scene |
+| 3 | Wallace met in the Cave of Origin, go to Sky Pillar | `CaveOfOrigin_B1F` | ⛔ gated behind the multichoice hang, below |
+| 4 | Wallace has opened the Sky Pillar door | `SkyPillar_Outside/scripts.inc:82` | the door is a metatile swap, not a warp |
+| 5 | **Rayquaza awakened** | `SkyPillar_Top/scripts.inc:126` | ‼ the ONLY window in which Maxie and Archie are talkable |
+| 6 | crisis over | `SootopolisCity_Gym_1F/scripts.inc:102` — i.e. **beating Juan** | that is §Ch22, not this chapter |
+
+⛔ **THERE IS NO VALUE OF THIS VAR THAT MEANS "THE FIGHT IS OVER".** The city keeps the legendaries layout at state 5 while `SKY_PILLAR_STATE <= 1`; **the fight-is-over predicate is `SKY_PILLAR_STATE >= 2`**, set in Sootopolis AFTER the Rayquaza arrival scene — not when you wake Rayquaza. Grading Ch21 on the city var alone would call the crisis resolved while it is still raging.
+
+### ⛔ THE FOUR THINGS THAT WILL HANG OR STRAND THE BOT
+
+*(It said THREE until the Cave-of-Origin body-block was found on 2026-08-24 — a heading is a claim about every bullet beneath it, so the count moves with the list.)*
+
+1. ⛔⛔ **`CaveOfOrigin_B1F`'s multichoice is an UNBOUNDED DERAIL — only index 2 ("Sky Pillar")
+   advances.** Indices 0/1/3, the switch default **and a B-press** all `goto` back to the same
+   prompt: **no counter, no timeout, no escape** (`05-KNOWN-ISSUES.md:256`). A blind A-press hangs
+   forever. Use `wait_for_multiple_choice_question(2)`. ‼ Three of the four mandatory critical-path
+   multichoice menus default to the WRONG option — the swept table of all 49 sites is §3i.
+2. ⛔ **The Rayquaza awakening is a COORD TILE, not the sprite.** 📝 `SKY_PILLAR_TOP (14,9)`, gated
+   `VAR_SKY_PILLAR_RAYQUAZA_CRY_DONE == 0`. A bot that climbs to the top and presses A at Rayquaza
+   waits forever — **the identical shape as the Route 128 trigger that already bit §Ch20.**
+   ⚠ (14,9) is UNVERIFIED here and DISAGREES with the two Rayquaza coordinates our code holds
+   (`static_soft_resets.py:55` `(14,6)`, `static_run_away.py:163` `(16,14)`/`(14,7)`) — but **both of
+   those are the POST-GAME catchable Rayquaza, a different event.** Verify live before building.
+3. ⛔⛔ **THE CAVE OF ORIGIN ENTRANCE IS BODY-BLOCKED BY AN NPC, NOT BY A SCRIPT — AND (31,18) IS
+   THE SOLE PASSAGE.** `LOCALID_SOOTOPOLIS_EXPERT` stands there with `"flag": 0` (never hidden), and
+   the approach is a one-tile corridor. The scripts shuffle who occupies it by city state: blocked at
+   0/1; **blocked at 2/3 UNTIL Steven's escort sets `FLAG_STEVEN_GUIDES_TO_CAVE_OF_ORIGIN`**; blocked
+   again at 4 (Wallace), 5 and 6 (the Expert). ⇒ **A bot that plans "walk into the Cave of Origin"
+   without first talking to Steven paths into a body and stalls.** Steven does not merely unblock it —
+   `SootopolisCity_EventScript_StevenLeadPlayerCaveOfOrigin` ends `warp MAP_CAVE_OF_ORIGIN_ENTRANCE,
+   9, 20`, i.e. **he WARPS you in.** *(The corridor geometry is agent inference from blockdata —
+   verify with a live `calculate_path` before building.)*
+4. ⛔ **HM07 Waterfall needs BOTH Maxie AND Archie talked to at state 5** — that sets
+   `FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE`, which also unlocks the Gym door and every house door.
+   **Miss one NPC and the run is dead.** `RECEIVED_HM_WATERFALL` is this chapter's grading flag.
+
+### ✅ HARD ROUTE — every warp below was read from ROM map headers, not from a note
+
+*(Provenance, since the two halves have DIFFERENT sources: the **warps** come from `probe_ch21_topology.py` reading ROM map headers; the **surf leg** `128→127→126` comes from our own ROM-extracted `cache/warp_graph_BPEE0.json` — Routes 126–131 and Pacifidlog are ALL region 0, so `calculate_path` spans the leg in ONE `navigate_to`, while `SOOTOPOLIS_CITY` is region 1 with ZERO edges. Both re-derived here 2026-08-24; see the ADDENDUM in `evidence/2026-08-24-skypillar-clean-reachability.txt`.)*
+
+```
+  ROUTE128 (38,24)  --surf-->  ROUTE127  -->  ROUTE126        [one region: ONE navigate_to]
+  ROUTE126 <a dive tile>  --dive-->  UNDERWATER_ROUTE126 (same x,y)
+      HARD: ROUTE126 and UNDERWATER_ROUTE126 are BOTH (80,80) -> the same-(x,y) landing HOLDS
+      HARD: 1,349 dive-capable tiles on ROUTE126; nearest the warp column: (45,66) dist=1
+  UNDERWATER_ROUTE126 (45,65)  --warp-->  UNDERWATER_SOOTOPOLIS_CITY (9,8)   [its ONLY warp]
+  STOP: (9,8) AND (10,8) WARP STRAIGHT BACK to Route 126 -- STEP OFF BEFORE SURFACING
+  UNDERWATER_SOOTOPOLIS_CITY  --surface-->  SOOTOPOLIS_CITY
+      HARD: map is (20,10); 33 tiles have collision==0
+      HARD: ZERO tiles are "Underwater Blocked Above" or "Seaweed No Surfacing"
+            => THE KI-72 SURFACING TRAP DOES NOT APPLY ON THIS MAP (measured, not assumed)
+  SOOTOPOLIS_CITY (60,60)   (31,16) --warp--> CAVE_OF_ORIGIN_ENTRANCE (9,20)
+  CAVE_OF_ORIGIN_ENTRANCE (9,5)  --> CAVE_OF_ORIGIN_1F (11,17)
+  CAVE_OF_ORIGIN_1F       (14,5) --> CAVE_OF_ORIGIN_B1F (9,3)      [dead end: Wallace]
+  ROUTE131 (36,6) --> SKY_PILLAR_ENTRANCE (6,16)
+  SKY_PILLAR_ENTRANCE (14,4) --> SKY_PILLAR_OUTSIDE (17,13)
+  SKY_PILLAR_OUTSIDE  (14,5) --> SKY_PILLAR_1F (6,13)
+  SKY_PILLAR_1F (10,1) --> 2F ; 2F (3,1) --> 3F ; 3F (11,1) --> 4F ; 4F (3,1) --> 5F
+  SKY_PILLAR_5F (10,1) --> SKY_PILLAR_TOP (16,14)
+```
+
+### ⛔ SOOTOPOLIS IS A TRUE ISLAND — and that decides the Sky Pillar leg
+
+✅ `SOOTOPOLIS_CITY` is **the only map in its region** and has **ZERO map connections**. The city's
+only non-Dive warps are its own buildings and the Cave of Origin.
+⇒ **YOU CANNOT SURF FROM SOOTOPOLIS TO ROUTE 131.** Two options, and this is a real design choice:
+
+* ⛔ **(a) FLY to Pacifidlog — RULED OUT 2026-08-24, MEASURED.** `VISITED_PACIFIDLOG_TOWN` is
+  **False** on `post_dive.ss1`, and §Ch20 never goes near Pacifidlog, so it is still False when Ch21
+  starts. `fly_to()` requires the destination's VISITED flag, so **this option silently is not one.**
+  *(Badges 1-7 are set and 8 is not, as expected; `BADGE06_GET` was never the binding constraint.)*
+  ‼ `VISITED_SOOTOPOLIS_CITY` is **False** too — so **Fly cannot shortcut INTO Sootopolis either.**
+  ⇒ **BOTH the entry and the exit are by water. There is no air option anywhere in this chapter.**
+* ✅ **(b) SWIM BACK OUT — THE ONLY OPTION, not a preference.** — dive out of Sootopolis (`Sootopolis Deep Water` is in `dive()`'s allowed
+  list), warp to `UNDERWATER_ROUTE126`, surface, then surf 126→127→128→129→130→131. Long, no Fly needed.
+  ⛔ There is **no `UNDERWATER_ROUTE130` or `UNDERWATER_ROUTE131`** — no diving shortcut near the pillar.
+
+### ⛔⛔ THE SKY PILLAR CLIMB REQUIRES A DELIBERATE FALL — MEASURED, AND IT CORRECTS THIS FILE
+
+⛔ **AN EARLIER DRAFT OF THIS ATLAS SAID UPSTREAM'S ROUTE "STALLS ON 4F BECAUSE THE FALL NEVER
+HAPPENS ON THE CLEAN LAYOUT". THAT WAS WRONG, AND IT WAS WRONG IN THE DANGEROUS DIRECTION** — it
+told a future author to throw away the one route that works. ‼ **`LAYOUT_SKY_PILLAR_4F_CLEAN` RETAINS
+FIVE CRACKED TILES** at `(0,3) (1,3) (6,4) (7,4) (9,4)` — the "clean" layouts are clean on **2F**,
+not everywhere. `2F_Clean` has 0; `4F_Clean` has 5.
+
+✅ **MEASURED HERE 2026-08-24** by decoding the shipped `data/layouts/SkyPillar_*_Clean/map.bin`
+collision bits (10-bit metatile / 2-bit collision / 4-bit elevation) and running BFS. Two independent
+agents reached the same structure; these numbers are OUR OWN, not either agent's:
+
+| leg (CLEAN layout) | result |
+|---|---|
+| `1F` (6,13)/(7,13) → (10,1) up | ✅ 17 / 16 steps |
+| `2F` (10,1) → (3,1) up | ✅ 10 steps, **0 cracked tiles on 2F_Clean** |
+| `3F` (3,1) → (7,1) | ⛔ **NO PATH** |
+| `4F` (11,1) → (3,1) | ⛔ **NO PATH** (even allowing cracked tiles) |
+| `4F` (7,1) → (3,1) | ✅ 7 steps, crossing 0 cracked tiles |
+| `5F` (3,1) → (10,1) | ✅ 34 steps |
+| `Top` (16,14) → the (14,9) trigger | ✅ 14 steps |
+
+⇒ **`4F (3,1)` (the 5F stairs) and `3F (7,1)` are SEALED 11-TILE POCKETS.** Their only entrance is a
+**fall through the cracked `4F (6,4)` or `(7,4)`** — `warphole` preserves (x,y), so you land on
+`3F (6,4)`, which our BFS confirms is inside the pocket holding `3F (7,1)`:
+`[(5,2) (6,2) (6,3) (6,4) (7,1) (7,2) (7,3) (7,4) (8,2) (8,3) (9,2)]`.
+
+**THE STORY ROUTE, THEREFORE:**
+```
+  1F (10,1) -> 2F ; 2F (3,1) -> 3F ; 3F (11,1) -> 4F (11,1)
+  cross 4F to (5,4)          [reachable from (11,1) without touching a crack -- MEASURED]
+  step EAST onto (6,4)       [CRACKED -> you FALL, on purpose]
+  !! NOT (9,4) -- IT IS A DECOY. All three of 4F's reachable cracked tiles drop you onto the
+  !! SAME (x,y) on 3F, but only (6,4)/(7,4) land INSIDE the sealed pocket. (9,4) lands in 3F's
+  !! MAIN region, which cannot reach 3F (7,1) -- so the whole climb is wasted and the bot loops.
+  !! MEASURED: 3F (6,4) in pocket=True, (7,4) in pocket=True, (9,4) in pocket=False.
+  land 3F (6,4) -> walk to 3F (7,1) -> 4F (7,1) -> west along row 2 -> 4F (3,1) -> 5F -> Top
+```
+⇒ **UPSTREAM'S ROUTE SHAPE IS CORRECT AND WORTH COPYING** (`puzzle_solver.py:144-168`, whose comment
+literally reads `# after falling down to floor 3`). ⛔ **What is wrong with it for the story is ONLY
+its `assert_registered_item("Mach Bike", ...)` and its `mount_bike()`** — those hard-fail on frame
+one for a bikeless bot. Take the waypoints, drop the bike.
+⛔ **AND THE PATHFINDER CANNOT EXPRESS THIS LEG.** `map_path.py` does not model `"Cracked Floor"` at
+all, so it will never propose the fall — the fall must be an EXPLICIT chapter step, exactly like
+`dive()`. A `calculate_path` to `4F (3,1)` will simply raise.
+
+*(The same file's Seafloor Cavern branch ends in `set_manual_mode()`; see the corrected note
+`2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md`.)*
+
+### ✅ THE MACH BIKE IS NOT NEEDED FOR THE STORY — but NOT for the reason first written
+
+The story ascent runs at `SKY_PILLAR_STATE` 0 then 1, **both `< 2`**, so every floor swaps to its
+`_CLEAN` layout — decomp-verified on all six floors. The bot has never owned a bicycle
+(`RECEIVED_BIKE` appears **only** in two data tables; no code reads it) and does not need one.
+⛔ **DO NOT BUILD A BIKE SOLVER FOR THE STORY.** *(Two rows in this very file said the opposite
+until 2026-08-24 — see the correction in `20-POST-FORTREE-RECON.md` §4.2.)*
+
+⛔ **BUT DO NOT ENCODE IT AS "THE FLOORS DO NOT COLLAPSE ON THE FIRST VISIT."** They do:
+`STEP_CB_CRACKED_FLOOR` and `setholewarp` are registered from `MAP_SCRIPT_ON_RESUME` on 2F and 4F
+with **no state guard at all** — the mechanic is ALWAYS armed. What changes is only the LAYOUT. The
+story visit works because `2F_Clean` has zero cracked tiles and because 4F's surviving five are ones
+you either avoid or *want* to fall through (above).
+
+⛔ **THE ACRO BIKE NEVER WORKS, EVEN POST-GAME.** `GetPlayerSpeed()` returns `PLAYER_SPEED_FASTER`
+for Acro and only `sMachBikeSpeeds[2] == PLAYER_SPEED_FASTEST` clears the check —
+`FASTER != FASTEST`. Walking and Dash are `NORMAL`/`FAST`; all fall.
+⛔ **STOPPING ON A CRACKED TILE IS FATAL EVEN AT TOP SPEED** — the tile is rewritten to a HOLE three
+frames later and the hole check runs every frame regardless of movement. A bot that pauses
+mid-crossing to think drops a floor.
+
+⚠ **The residue that IS real:** `map_path.py` does not model `"Cracked Floor"` (the behaviour is
+decoded in `map.py:391` and never consulted), so it plans straight across one. For the STORY that is
+survivable — the one crossing is the intended fall — but it gates the POST-GAME Rayquaza capture
+(2F needs 10 cracked tiles crossed at top speed), Mirage Tower and Granite Cave B1F.
+
+### ⛔ THREE OF THIS CHAPTER'S MAPS ARE LAYOUT-SWAPPED AT RUNTIME — a class, not a quirk
+
+Measured 2026-08-24. **A static tile read of any of these describes a map the bot never sees:**
+* **`SKY_PILLAR_1F..TOP`** → `LAYOUT_SKY_PILLAR_*_CLEAN` while `SKY_PILLAR_STATE < 2`.
+* **`ROUTE131`** → `LAYOUT_ROUTE131_SKY_PILLAR`, **unconditionally**, in `OnTransition`. The tower
+  door at `(36,6)` is **elevation 1 in the DEFAULT layout and elevation 3 in the swapped one** — a
+  statically-derived atlas shows **open water where the door is**.
+* **`SOOTOPOLIS_CITY`** → a crisis layout selected by `SOOTOPOLIS_CITY_STATE` (legendaries vs normal).
+
+⇒ **WARPS are map-header data and are safe to read statically. TILES ARE NOT.** That is exactly why
+`probe_ch21_topology.py` asserts only on warps, sizes and the two UNDERWATER maps (which do not swap).
+⇒ ‼ **AND THE FIX IS NOT ALWAYS "GO LIVE".** The decomp ships every swapped layout as
+`data/layouts/<NAME>/map.bin`; decoding those bytes answers the question exactly, and that is how the
+whole Sky Pillar staircase was settled without an emulator. ⛔ A 25-minute drive was queued to answer
+what **392 bytes** answered — ask whether the source data can be read directly BEFORE filing a
+question as "needs a live run".
+
+### ✅ THE FIXTURE EXISTS — `saves/post_ch20.ss1` (captured 2026-08-24)
+
+`--driver ch20chapter` with `CH20_CAPTURE=post_ch20.ss1` snapshots at `ACCEPTANCE: PASS`. ⛔ It writes
+**only** on `passed`, which already means arrived + controllable + surfing on the launch tile + a real
+`calculate_path` proving open ocean — so **the file's existence IS the acceptance record.**
+Verified with `probe_anchor_inventory.py` (never the driver's log — playbook §2b):
+
+```
+  post_ch20.ss1   badges=1234567   OVERWORLD   ROUTE128 (38,24)
+  ROUTE128_STATE=2   SOOTOPOLIS_CITY_STATE=1   SKY_PILLAR_STATE=0   RAYQUAZA_CRY_DONE=0
+```
+✅ **`SOOTOPOLIS_CITY_STATE == 1` MEASURED — this is Ch21's entry condition, live.** Room 9 really does
+set it in the same block as `ROUTE128_STATE`; that was a decomp claim until this anchor.
+⚠ **CAVEAT THE PROBE CAUGHT AND THE DRIVER DID NOT:** *"HP 548/687 (80%), 1 FAINTED — CANNOT SURVIVE A
+JOURNEY."* That is the bot's HONEST post-cavern state, so it is a faithful fixture, **but a Ch21 leg
+started from it can whiteout early.** ⛔ Do not read such a whiteout as a Ch21 bug — heal first, or
+treat the heal as leg 0.
+
+### ⚠ MIXED — what was CLOSED on 2026-08-24, and what is STILL OPEN
+
+*(A heading is a claim about every bullet beneath it. This one said "STILL OPEN" while two of its
+bullets had been CLOSED the same day — each bullet now carries its own marker.)*
+
+* ❓ **Which ROUTE126 tile to dive on.** 1,349 qualify; `(45,66)` is adjacent to the warp column and
+  is the obvious candidate, but ⛔ **KI-72 says never let the planner choose** — assert the tile type
+  before `dive()`.
+* ❓ **Where you EMERGE in Sootopolis.** Emerge keeps (x,y), but underwater is (20,10) and the city is
+  (60,60), so only the city's top-left 20x10 is reachable by surfacing. Which tile is water — and
+  whether the arrival scene fires from it — is unmeasured.
+* ✅ **CLOSED 2026-08-24 — the CLEAN-layout interior.** `probe_ch21_topology.py` still cannot answer
+  it (`get_map_data` returns the header's DEFAULT layout), but the DECOMP's own
+  `data/layouts/SkyPillar_*_Clean/map.bin` IS the story layout, so decoding those collision bits
+  answers it exactly. ⇒ **WHEN AN INSTRUMENT CANNOT SEE A MAP, CHECK WHETHER THE SOURCE DATA CAN BE
+  READ DIRECTLY BEFORE CALLING THE QUESTION "NEEDS A LIVE RUN".** Results in the staircase table above.
+* ❓ **The exact fall-launch approach on 4F.** We know `(5,4)` is reachable from `(11,1)` and is
+  adjacent to the cracked `(6,4)`; the step ordering and the ~80-frame fall script are unmeasured live.
+* ⚠ **`1F`'s exit to the Outside is a `MB_SOUTH_ARROW_WARP`** — `TryArrowWarp` requires the direction
+  to be **HELD**, so a single tap will NOT warp. Relevant on the way back down.
+* ✅ **CLOSED 2026-08-24: `VISITED_PACIFIDLOG_TOWN` is False** (and so is `VISITED_SOOTOPOLIS_CITY`).
+  The Fly-vs-swim choice is settled — **it is SWIM**, and it was settled by a 20-second flag read
+  rather than the live drive this line originally demanded.
+* ❓ Whether the Route 126 to Sootopolis warp is itself event-gated.

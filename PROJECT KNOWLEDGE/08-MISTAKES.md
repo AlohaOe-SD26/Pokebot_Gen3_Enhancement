@@ -9397,3 +9397,132 @@ never re-entered the cavern at all.
 ⇒ **WHEN A RUN'S OUTPUT IS FILTERED, THE FILTER IS PART OF THE INSTRUMENT.** Twice today a filtered
 background run hid the very line I needed — once a traceback body, once a recovery message. Filter to
 include what you are trying to OBSERVE, not only what you expect to SUCCEED.
+
+
+## 2026-08-24 — I PUBLISHED A SYNTHESIS FROM 2 OF 5 AGENTS, AND IT WAS WRONG IN THE DANGEROUS DIRECTION
+
+**Symptom.** I wrote the §Ch21 ATLAS into `12-STORYMODE-DESIGN.md` — a document explicitly aimed at
+"the next agent building Ch21" — after two of five research agents had reported. Its Sky Pillar
+section contained two false claims, and I committed nothing before the other three landed and
+overturned both:
+* *"every floor swaps to `_CLEAN`"* implied crack-free. **`SkyPillar_4F_Clean` retains FIVE cracked
+  tiles.** "Clean" is a per-floor fact.
+* *"DO NOT COPY UPSTREAM'S SKY PILLAR ROUTE — on the clean layout the fall never happens, so it
+  stalls on 4F."* **The exact opposite is true.** `4F (3,1)` and `3F (7,1)` are SEALED POCKETS; from
+  the `4F (11,1)` arrival the 5F stairs are unreachable — **NO PATH even with every cracked tile
+  treated as passable.** The climb REQUIRES a deliberate fall through `4F (6,4)`/`(7,4)`. Upstream's
+  route shape is correct; only its Mach Bike assertion is wrong for a bikeless bot.
+
+**Root cause.** Not the agents — the two that reported early were both right about what they were
+asked. I synthesised a CONFIDENT document from a PARTIAL fan-out, and the section I got wrong was
+precisely the one no returned agent had covered yet. The atlas's own provenance markers (✅ HARD /
+📝 NOTE / ❓ OPEN) made it *look* rigorous while the Sky Pillar rows rested on neither.
+
+**Why it was the dangerous direction.** A wrong "you must do X" costs one debugging session. My
+error was **"do NOT use the only route that works"** — it would have sent the next author to invent
+a route that does not exist, against a pathfinder that reports the summit unreachable, which reads
+as *"our tool is broken"*. This project has burned days on exactly that shape (KI-58).
+
+⇒ **PREVENTION RULE: DO NOT WRITE THE SYNTHESIS UNTIL THE FAN-OUT IS COMPLETE.** If a partial write
+is genuinely needed, every section that no returned agent covered gets a **PROVISIONAL** marker, and
+the document is not committed until they land. ‼ A provenance table is not a substitute for having
+the evidence — **an unmarked row in a table full of marked rows reads as verified.**
+
+## 2026-08-24 — I REBUILT THE "GATE THAT CANNOT FAIL" DEFECT BY HAND, TEN MINUTES AFTER CITING IT
+
+**Symptom.** `probe_ch21_topology.py` printed `[PASS] UNDERWATER_ROUTE126 has a warp AT (45,65)` and
+exited 0. Its docstring cited the pass-4 audit finding that `probe_dive_routing.py` shipped with ZERO
+assertions. The assertion was **vacuous**: `warps_of()` iterated `scan(map)` and read `tile.warps` —
+a MAP-level property reached through the tile — so all **6,400** tiles of UNDERWATER_ROUTE126
+reported the same warp, and *"there is a warp at (45,65)"* passed merely because the TILE (45,65)
+exists. It could not fail for any map.
+
+**Root cause.** I checked the exit code, not the output. The give-away was in plain sight — the probe
+printed the same warp line once per tile — and an exit code of 0 is what I looked at first.
+
+**The fix that worked.** Read `map_data.warps` (a list of `MapWarp`, each with its OWN
+`.local_coordinates`), plus a PERMANENT fault hook `POKEBOT_CH21PROBE_FAULT=warpcoord` that points
+the assertion at a coordinate the warp is not at. Proven both ways: off → EXIT=0, on → 2 FAIL + EXIT=1.
+
+⇒ **PREVENTION RULE: A GREEN ASSERTION IS EVIDENCE ONLY ONCE IT HAS BEEN SEEN TO FAIL.** Ship the
+fault hook in the same commit as the assertion, never later. ‼ And **read the probe's OUTPUT before
+its EXIT CODE** — a vacuous assertion is invisible in the exit code and obvious in the output.
+
+## 2026-08-24 — I FILED A QUESTION AS "NEEDS A LIVE RUN" THAT 392 BYTES ANSWERED EXACTLY
+
+**Symptom.** I correctly established that `get_map_data` returns the map HEADER's DEFAULT layout, so
+a live probe cannot see the Sky Pillar's `_CLEAN` floors — and then filed *"the CLEAN-layout interior
+needs a LIVE read at `SKY_PILLAR_STATE < 2`"* as open work. The queue head for it would have been a
+~25-minute drive.
+
+**Root cause.** I reasoned about the limits of MY INSTRUMENT and stopped there, instead of asking
+where the data lives. The decomp ships every swapped layout as `data/layouts/<NAME>/map.bin` — 392
+bytes per floor. Decoding those bits (metatile 10 / collision 2 / elevation 4) and running BFS
+settled the entire staircase, including the sealed pockets, in under a minute.
+
+⇒ **PREVENTION RULE: WHEN AN INSTRUMENT CANNOT SEE SOMETHING, ASK WHERE THE SOURCE DATA LIVES BEFORE
+DECLARING THE QUESTION "NEEDS A LIVE RUN".** "My tool cannot answer this" and "this is unanswerable
+statically" are different claims, and conflating them buys an emulator drive for a file read.
+‼ Generalised the same day: **THREE of Ch21's map regions are layout-swapped at runtime** (Sky Pillar
+floors, ROUTE131, SOOTOPOLIS_CITY), so this is a class, not a Sky Pillar quirk. Warps are header data
+and safe to read statically; TILES ARE NOT.
+
+## 2026-08-24 — "AND ARE NOW FIXED" WAS A CLAIM ABOUT THE WHOLE TREE, AND IT WAS FALSE
+
+**Symptom.** `20-POST-FORTREE-RECON.md` §4.2 stated *"Two places in our own docs/code said otherwise
+and are now fixed."* On audit, **two rows still asserted the Mach Bike was required for Sky Pillar** —
+`12-STORYMODE-DESIGN.md`'s Ch21 roadmap row and its key-items row, i.e. **the two tables an agent
+building Ch21 opens first.**
+
+**Cost had it stood.** An agent reads the chapter table, concludes Ch21 is blocked on a bike the bot
+has never owned, and builds a bike solver nobody needs — while the roadmap prose two files away says
+the opposite.
+
+⇒ **PREVENTION RULE: A FIX-COUNT IS A CLAIM ABOUT THE WHOLE TREE. The honest form is the `grep` you
+actually ran**, recorded next to the claim, so the next reader can re-run it instead of trusting a
+number. ‼ Same shape as the P1/P2 doc pairs: this is a HEADING claiming something about content it
+does not enumerate.
+
+
+## 2026-08-24 — I SWEPT FOR MY OWN WORDING, NOT FOR THE CLAIM, AND MISSED THE THIRD COPY
+
+**Symptom.** After measuring that `4F_Clean` has five cracked tiles, I corrected two places that said
+otherwise and ran `grep -rn "NO cracked floors"` to prove the tree was clean. It reported clean. A
+Tier 1 review then found a **THIRD** copy — `12-STORYMODE-DESIGN.md:326`, in the same file, inside the
+whole-game walkthrough:
+
+> `‼‼ **SKY PILLAR FIRST VISIT HAS SOLID FLOORS** ... cracked floors are post-game only`
+
+**Root cause.** It says **"SOLID FLOORS"**. My grep searched for the sentence *I* had written, so it
+could only ever find the copies phrased the way I phrase things. The claim and the wording are
+different objects, and I searched for the wrong one.
+
+**Why it mattered.** That line sits in the Ch9→E4 walkthrough — a *different* reader path from the
+Ch21 roadmap row. An agent following the walkthrough would pick up the retracted claim and never
+reach the atlas 2,000 lines below that refutes it.
+
+⇒ **PREVENTION RULE: SWEEP FOR THE CLAIM'S VARIANTS, NOT FOR THE SENTENCE YOU WROTE.** Before
+declaring a correction complete, list the ways the idea could be PHRASED — for a floor: "cracked",
+"solid", "crack-free", "intact", "post-game only", "no hazard" — and grep the union. ‼ And when a
+correction is the SECOND of its kind in one file, assume a THIRD: a claim that got duplicated twice
+was being copied, and copies drift in wording.
+
+## 2026-08-24 — "ARCHIVE FIRST, WRITE SECOND" IS AN INSTRUCTION, AND I WROTE FIRST
+
+**Symptom.** Fixing the last Tier 1 risks, I added a HOW TO RUN block and an expanded STATE cell to
+`04-HANDOFF.md`. `lint_docs.py` went **RED: 909/900 lines**, blocking the commit mid-wrap-up.
+
+**Root cause.** The handoff's own banner says, in bold: *"ARCHIVE FIRST, WRITE SECOND — AN
+INSTRUCTION, NOT A CAUTION … move one CLOSED block behind a stub BEFORE the first agent returns."* I
+had followed it EARLIER for `03-PUNCH-LIST.md` (137 lines recovered, deliberately, before the agents
+landed) — and then did the exact opposite for the handoff hours later, because the late edits felt
+small. Three of them were; together they were twelve lines over.
+
+**The fix that worked.** Archived the (P4) Stage 1/Stage 2 driven-evidence block verbatim to
+`28-HANDOFF-ARCHIVE.md` behind a 6-line stub carrying the verdict and the DO-NOT-REBUILD marker.
+909 → 897.
+
+⇒ **PREVENTION RULE: THE BUDGET CHECK BELONGS BEFORE THE EDIT, NOT AT THE COMMIT.** `lint_docs.py`
+takes seconds; run it BEFORE adding a section to a near-full file, not after. ‼ **A rule you followed
+this morning is not a rule you have internalised** — the punch-list archive and the handoff overflow
+happened in the same session, hours apart, under the same instruction.

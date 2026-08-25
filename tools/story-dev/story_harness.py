@@ -8810,6 +8810,41 @@ class Ch20ChapterMode(Ch20DiveMode):
         # stranded while passing their own tests; the ocean path off the launch tile is that check.
         passed = bool(done) and var2 == 2 and surfing and at == chapter.ESCAPE_WATER and ocean_path
         log(f"[ch20chapter] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        # ‼ `#24-ch21anchor` — OPTIONALLY SNAPSHOT A POST-Ch20 ANCHOR. There is no save anchor after
+        # the Seafloor Cavern (77 saves; the frontier stops at `post_dive.ss1`), so every §Ch21
+        # experiment otherwise replays a ~25-minute Ch20 drive before it starts.
+        #
+        # ⛔ IT WRITES ONLY ON `passed`, AND THAT IS THE WHOLE DESIGN. `passed` already means
+        # "arrived, controllable, surfing on the launch tile, AND a real `calculate_path` proves the
+        # open ocean" — i.e. exactly the bar `AnchorCaptureMode` states for a usable anchor ("an
+        # anchor captured mid-scene makes every later navigation leg fail for one harness reason
+        # instead of a map reason"). A FAIL run must never leave a file that a later session mistakes
+        # for a good fixture.
+        # ⛔ AND THE DISCRIMINATOR IS THE VAR, NOT THE MAP. ROUTE128 is stood on BOTH before the dive
+        # and after the escape, so a map-only capture target cannot tell the two apart; `var2 == 2`
+        # (i.e. `ROUTE128_STATE == 2`) is what makes this anchor POST-cavern.
+        # ‼ Verify the written file with `probe_anchor_inventory.py`, never with this log — the
+        # driver reports what it believes, the probe reports what the file contains (playbook §2b).
+        _cap = _os.environ.get("CH20_CAPTURE", "").strip()
+        if _cap:
+            # ‼ LOCAL import: this module imports `os as _os` but NOT `pathlib` at module level.
+            # `repro_undefined_names.py` caught exactly that here on 2026-08-24 — the SAME bug class
+            # (a name used on a branch no green run reaches) that burned a 25-minute drive earlier
+            # the same day. The fix that mattered was not the import, it was RUNNING THE GATE FIRST.
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if not passed:
+                log(f"[ch20chapter] CAPTURE SKIPPED — acceptance did not pass; refusing to write {_cap}")
+            elif _out.exists() and _os.environ.get("CAPTURE_FORCE", "") != "1":
+                log(f"[ch20chapter] CAPTURE REFUSED — {_cap} already exists (set CAPTURE_FORCE=1 to replace)")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[ch20chapter] CAPTURE WROTE {_out.name} ({_out.stat().st_size} bytes) "
+                    f"at {at} var2={var2} — ‼ verify with probe_anchor_inventory.py, not this line")
+
         context.set_manual_mode()
 
 

@@ -148,3 +148,6 @@
 {"when": "2026-08-24T18:24:32", "driver": "ch20chapter", "build": "sandbox", "state": "post_dive.ss1", "frames_run": 2500, "recomputes": 2501, "scans": 9, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-24T18:24:37", "driver": "ch20chapter", "build": "sandbox", "state": "post_dive.ss1", "frames_run": 2500, "recomputes": 2501, "scans": 9, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-24T18:31:02", "driver": "ch20chapter", "build": "sandbox", "state": "post_dive.ss1", "frames_run": 65805, "recomputes": 65805, "scans": 220, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-24T19:16:10", "driver": "ch20chapter", "build": "sandbox", "state": "post_dive.ss1", "frames_run": 2500, "recomputes": 2501, "scans": 9, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-24T19:16:41", "driver": "ch20chapter", "build": "sandbox", "state": "post_dive.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-24T19:23:21", "driver": "ch20chapter", "build": "sandbox", "state": "post_dive.ss1", "frames_run": 65805, "recomputes": 65805, "scans": 220, "divergences": {}, "observer_broke": false}

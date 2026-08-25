@@ -49,3 +49,4 @@ custom-pokebot/crash-*.log
 pokeemerald-master/
 pe.tar.gz
 pokeemerald-*/
+tools/story-dev/.layout-cache/

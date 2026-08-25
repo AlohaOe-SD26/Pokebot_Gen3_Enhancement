@@ -1,0 +1,40 @@
+Running mGBA 0.10.2
+Ch21 PREREQUISITE FLAGS -- the measurement behind "there is no air option"
+======================================================================================
+WHY: the atlas offered TWO routes to the Sky Pillar (Fly to Pacifidlog, or swim the whole way
+out). fly_to() requires the destination's VISITED flag, so ONE flag read decides it -- and
+this replaced a queued live drive. Read on BOTH anchors so the answer cannot be an artifact
+of the pre-Ch20 one.
+
+  post_dive.ss1 -> MOSSDEEP_CITY (19, 11)
+      VISITED_PACIFIDLOG_TOWN    False
+      VISITED_SOOTOPOLIS_CITY    False
+      VISITED_MOSSDEEP_CITY      True
+      VISITED_EVER_GRANDE_CITY   False
+      badges: 1,2,3,4,5,6,7
+      vars (BARE names -- the decomp's VAR_ prefix returns -1 here):
+          ROUTE128_STATE                 0
+          SOOTOPOLIS_CITY_STATE          0
+          SKY_PILLAR_STATE               0
+          SKY_PILLAR_RAYQUAZA_CRY_DONE   0
+
+  post_ch20.ss1 -> ROUTE128 (38, 24)
+      VISITED_PACIFIDLOG_TOWN    False
+      VISITED_SOOTOPOLIS_CITY    False
+      VISITED_MOSSDEEP_CITY      True
+      VISITED_EVER_GRANDE_CITY   False
+      badges: 1,2,3,4,5,6,7
+      vars (BARE names -- the decomp's VAR_ prefix returns -1 here):
+          ROUTE128_STATE                 2
+          SOOTOPOLIS_CITY_STATE          1
+          SKY_PILLAR_STATE               0
+          SKY_PILLAR_RAYQUAZA_CRY_DONE   0
+
+VERDICT: VISITED_PACIFIDLOG_TOWN False and VISITED_SOOTOPOLIS_CITY False on BOTH anchors
+      => fly_to() cannot reach either. Entry AND exit are by water. The Fly branch is DELETED,
+         not deprioritised.
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-08-24_19-25-53.ss1 created!
+Updated `current_state.ss1`!
