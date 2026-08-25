@@ -1536,26 +1536,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
 - [x] `#24-r121topology` — **ANSWERED 2026-08-05: it is a STORY GATE, not topology.** See
       `#24-r121gate`. Superseded text below kept for the reasoning trail.
 
-- [x] `#24-r121gate` — ✅ **CLOSED 2026-08-10: it is ALREADY BUILT. The "ready to build" header
-      was the THIRD stale item found this week** (after `#24-leadcounter` and `#24-counters`
-      phase 2), and it was caught only because the spec was verified before coding.
-      In code: `ROUTE121_AQUA_GATE_TRIGGER = (25, 5)` (`early_game.py:6534`), the guard
-      `get_event_var("ROUTE121_STATE") >= 1` (:6572), and `do_mt_pyre_summit()` (:6615),
-      which the story run calls at `story_mode.py:3504`.
-      ‼ The spec itself was re-verified against the decomp and is CORRECT: coord events at
-      **(25,5) (25,6) (25,7) (25,8)** gated on `VAR_ROUTE121_STATE == 0`, grunts at
-      (30,7)/(30,8)/(31,7), flag **914** `HIDE_ROUTE_121_TEAM_AQUA_GRUNTS`, and
-      `Route121_EventScript_AquaGruntsMoveOut` ends with `setvar VAR_ROUTE121_STATE, 1`.
-      ‼ Note the accessor names carry NO `FLAG_`/`VAR_` prefix — `get_event_var` returns −1
-      for an unknown name, so `VAR_ROUTE121_STATE` would fail silently.
-      HISTORY — **Fully specified, ready to build.**
-      Three Team Aqua grunts at (30,7)/(31,7)/(30,8) seal Route 121's only corridor south
-      (`FLAG_HIDE_ROUTE_121_TEAM_AQUA_GRUNTS` = 914, measured **False** = visible). Coord trigger
-      **(25,5)-(25,8)** at `VAR_ROUTE121_STATE == 0` runs `Route121_EventScript_AquaGruntsMoveOut`,
-      which removes them and sets the var to 1. Guard on `VAR_ROUTE121_STATE >= 1`.
-      Spec: `12-STORYMODE-DESIGN.md` §Ch14-PRE. ‼ Use explicit adjacent-map legs, not one generic
-      journey call — `calculate_path` spans only DIRECTLY CONNECTED maps.
-
+- [x] `#24-r121gate` — ✅ **CLOSED 2026-08-10: IT WAS ALREADY BUILT** — the THIRD stale "ready to build" header found that week, caught only because the spec was verified before coding. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted). ‼ **Its TWO REUSABLE RULES WERE PROMOTED to `14-AGENT-PLAYBOOK.md` §4 (items 2 and 6) on 2026-08-24** — *accessors take the BARE var name* and *`calculate_path` spans only DIRECTLY CONNECTED maps* — because a chapter author never looks inside a CLOSED punch-list item, and both had been costing real time.
 - [x] ~~`#24-r121topology`~~ (superseded) — **DO THIS BEFORE ANY MORE NAVIGATION WORK ON MT. PYRE.**
       From ROUTE121 (21,5) — where the ROUTE120 connection lands — `calculate_path` reaches
       neither Route 121's own south edge nor ANY Route 122 tile, **with surf allowed**
@@ -1634,26 +1615,7 @@ justified by counting failures without counting successes. Do not re-enable with
       path; suspect KI-24's `calculate_path` unsoundness, not a sealed route. Do NOT "fix" by
       raising retries — the error already reasons that retrying cannot help.
 
-- [x] `#24-navready-budget` (**KI-43**) — **DONE 2026-07-31.** Fixed via a dedicated
-      `_TRANSIENT_WAIT_FRAMES = 600`. Proven twice: `repro_watchdog_budget_collision.py` green
-      with a both-ways fault injection, and a live A/B (`gym1_done.ss1 --driver martbuy
-      BUYN=30`, 40k frames) — **OLD arm 0 purchases, NEW arm 3 purchases + 3 Premier Balls**,
-      money 8628 → 2628. Original diagnosis below.
-
-      **The original diagnosis, kept because it is the evidence:**
-      `#24-navready-budget` (**KI-43**) — **`_navigate_when_ready`'s escape hatch is budgeted
-      at EXACTLY the watchdog's 18,000 frames, so the `break` is dead code and the derail
-      always wins by one frame.** Diagnosed 2026-07-31 from stored logs: 35 of 72 watchdog
-      fires are inside `RUSTBORO_CITY_MART` right after `bought Poké Balls`, 31 in
-      `LAVARIDGE_TOWN` after the Heat Badge — stationary wedges, NOT the "long journeys"
-      the handoff assumed. The mart restock completes **0 of 36** times (baseline 33/33), so
-      every restock buys 10 balls instead of 30 and loses 2 free Premier Balls.
-      **Fix:** lower the wrapper's cap to ~600 frames (the battle transition it exists for
-      clears in a few), so `navigate_to` raises its honest error and `_navigate_riding_out`
-      spends a retry. **Prove with a live A/B** — the Rustboro restock is a cheap, 36/36
-      failing site today. `repro_watchdog_budget_collision.py` is RED until it is fixed.
-      *(That repro is now GREEN — see the DONE line above.)*
-
+- [x] `#24-navready-budget` (**KI-43**) — ✅ **DONE 2026-07-31** — fixed via a dedicated nav-ready budget. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 - [ ] `#24-wdcanary-dedupe` — `summarize_lane` counts `global watchdog` in stdout AND the
       debug log, so every reported figure is ~2× (`9 → 143` is really `5 → 72`). Dedupe the
       source, then `--resummarise` **all four** batches so they are read by one instrument.
@@ -1665,16 +1627,7 @@ justified by counting failures without counting successes. Do not re-enable with
 That batch launched before the fixes above existed, from a working copy that had not been
 pulled, so it re-confirms them rather than testing them. It did expose one NEW bug:
 
-- [x] `#24-x4-framebudget` — **the per-run frame cap could not stop a runaway run.** DONE
-      2026-07-27. `MAX_FRAMES_PER_RUN` was only checked AFTER `super().run()` returned, so a
-      run that never returns never reached it. Three of four lanes spent the night in ONE
-      run — P3 hung **27M frames / ~6.5 h** at the Weather Institute (`controllable=False`,
-      frozen position, and ZERO STUCK dumps, i.e. the global watchdog was itself what
-      wedged); P1 19.9M and P2 13.4M frames in grind loops that are genuinely BUSY, so no
-      progress detector can ever see them. ~16 of 29 lane-hours lost. P4 run 12 reported the
-      cap after burning 2x it. FIX: `_run_with_frame_budget()` enforces the budget every
-      2048 yields from inside the run, re-basing when the frame counter goes backwards at
-      the mid-run hard reset. REPRO: `tools/story-dev/repro_endless_frame_budget.py`.
+- [x] `#24-x4-framebudget` — ✅ **DONE** — the per-run frame cap could not stop a runaway run; now it can. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 - [ ] `#24-weatherinstitute-hang` — the specific hang P3 hit: `do_weather_institute` →
       `_ride_out_all_scenes` (`early_game.py:436`), then `state=3 controllable=False` for
       27M frames. The frame budget now BOUNDS it (the run derails and the batch continues),
@@ -2003,17 +1956,7 @@ level-matched encounters maintenance needs. Done together they are one activity,
       ‼ **The `IndexError`-on-turn-1 sub-claim is REFUTED (2026-08-12), not pending.** Do not
       re-check it; `05-KNOWN-ISSUES.md` cites the driven run (`ch19d.log` f23255, six-entry party,
       multi battle WON).
-- [x] **(4) ✅ DONE 2026-08-16 — `story_harness.py` no longer overwrites its log.** The default is
-      now `harness_<build>_<driver>_<timestamp>_<pid>.log`, which **cannot collide**, and the run
-      PRINTS its path as its first line (`[setup] LOG -> …`) so the "read the flushed log while it
-      hangs" workflow still works. `--log` still pins a path exactly.
-      ✅ **REGRESSION-TESTED, not just changed:** both arms of a real A/B run back to back now leave
-      TWO transcripts with different content (`EXPECTATION = COUPLED` / `= DECOUPLED`); forcing both
-      arms onto one path with `--log` reproduces the OLD destruction (arm 1's transcript gone),
-      which is the fault test. ‼ The old fix had shipped as a PROSE HABIT ("give each arm a distinct
-      `--log`") that a fresh session had no reason to know — this is the same rule as a GATE.
-      ⚠ Docs that named `harness_sandbox.log` as the file to read are updated (`04-HANDOFF`,
-      `14-AGENT-PLAYBOOK`, `05-KNOWN-ISSUES`); the append-only logs keep their historical wording.
+- [x] **(4) ✅ DONE 2026-08-16 — `story_harness.py` no longer overwrites its log.** — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 - [x] **(5) ✅ DONE 2026-08-17 — and the item's own premise was REFUTED first. ⛔ DO NOT REBUILD IT.**
       **The premise was "never built".** `compare_runs.py` **exists** (12.3 KB, 2026-07-25) and its
       shipped CLI **already** accepts `--label <arm> <logs>` groups, so the requested "pairing"
@@ -2277,54 +2220,9 @@ region, where "train near the gym" is actively wrong.
       So this is ASSEMBLY against an existing spec, not a new design. Re-read `21` first;
       only bring the user a question `21` does not already answer.
 
-- [x] **`#24-reprorot` — DONE 2026-07-30. The 4 "environmental / needs mgba" failures were
-      four DIFFERENT rots, and none needed an emulator it did not have.** All four launched
-      mGBA 0.10.2 fine; all four now pass. `repro_boss_training` (stub `self` missing
-      `_boss_plan_is_hopeless`), `repro_double_faint` (stub mon missing `.level`),
-      `repro_navigate_failfast` (asserted a STRING where the code correctly raises a
-      BotModeError SUBCLASS), `repro_sufficiency` (four compounding fixture faults —
-      no `grass` in the cfg, no `total_exp`, no `MAX_PREP_TRAINING_FRAMES`, and **no
-      emulator at all**, so the ROM encounter tables were unreadable).
-      **No production behaviour was wrong in any of them.**
-      ‼ **The lasting lesson is `repro_sufficiency`:** two of its four faults produced NO
-      crash, because the lookahead sits inside `except Exception: pass` — a missing stub
-      attribute became a silently WRONG VERDICT. That is a RECURRENCE of the exact failure
-      `_boss_plan_is_hopeless`' own comment warns about. Both stubs are now `_StoryModeStub`,
-      which HARVESTS every UPPERCASE constant instead of hand-listing them and raises a
-      self-explaining error when the code grows a new dependency. **Copy that pattern into
-      any new repro that stands in for `StoryMode`.**
-
-- [x] **`#24-menuorder` — DONE 2026-07-30. Story block + ×4 controls hoisted to the TOP of
-      the Bot-mode popup** (user request: *"I have to scroll around to activate them and
-      end/park them"*). `Park ×4` and `Stop Endless Loop ×4` used to be the LAST TWO entries,
-      below the greyed-out modes. New order: Manual → **STORY** (4 modes + Endless
-      Debug-Reset + Endless Loop ×4 + Park ×4) → OTHER MODES → disabled → Debug Logging.
-      Ordering extracted from the Tk callback into the pure
-      `dashboard_gui.build_mode_menu_plan()`; `repro_mode_menu_order.py` (14 checks, no Tk,
-      no emulator) asserts it so it cannot drift back.
-      ‼ Entries keep a FIXED position — a non-selectable Story mode is greyed IN PLACE
-      rather than dropping to the bottom, and `Park ×4` is always shown (greyed when idle).
-      Hiding it was the 2026-07-26 choice and it is what made the layout move.
-      Story modes matched by PREFIX, so a future `Story (…)` is hoisted automatically.
-
-- [x] **`#24-x4headless` — DONE 2026-07-31. Headless ENDLESS-RESET batch runner**
-      (`tools/story-dev/x4_headless.py`, repro `repro_x4_headless.py`, 55 checks, no emulator).
-      Runs N parallel lanes of the USER'S mode — `Story (ENDLESS RESET)`, headless — instead of
-      livetest's plain `Story`, so finish rates measured here are finally comparable to the
-      user's bundles (plain `Story` ENDS a run on a `BotModeError`; `ENDLESS RESET` swallows it
-      and starts a fresh run, so livetest has always been the harsher measurement).
-      `--lanes N` (default 4 = the dashboard's split; 8 = **2 per starter + 2 random**, which
-      doubles per-starter sample size — needed for starter-specific bugs like
-      `#24-starter-gym3`). Bounded by `--minutes` and/or `--runs` (refuses to run unbounded).
-      Output `x4-runs/<stamp>/` with `MANIFEST.txt`, `summary.json`, per-lane stdout + the
-      debug logs **from this window only**, plus root `INDEX.md`/`LATEST.txt` recording each
-      batch's **COMMIT HASH**.
-      ‼ **Emulation is ASSERTED, not re-set:** every run's RUN HEADER must read
-      `emulation: speed=0 video=True`, checked for the WHOLE batch (the historical bug is
-      "run 1 fine, run 2 at 1x"); a violation aborts loudly. Empirically confirmed on a 2-lane
-      smoke batch at **~1,211 fps/lane**. Shipped with a fix for `--endless-target`, which was
-      parsed and then discarded by every frontend except the tile lane.
-
+- [x] **`#24-reprorot` — DONE 2026-07-30.** The 4 "environmental / needs mgba" repro failures were real bugs. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted). ‼ **This exact misfiling recurred on 2026-08-23** (`#24-brokenrepros`) — see `#24-reprosweepratchet` for the structural cause.
+- [x] **`#24-menuorder` — DONE 2026-07-30.** Story block + ×4 controls hoisted to the TOP of the menu. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
+- [x] **`#24-x4headless` — DONE 2026-07-31.** Headless ENDLESS-RESET batch runner. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 - [x] **`#24-journey` — DONE 2026-07-31. Warp planning at MAP granularity.**
       ‼ **AND THE DIAGNOSIS BELOW IS WRONG — read `05-KNOWN-ISSUES.md` "KI-39 — CORRECTED"
       before believing any of it.** Measured live, `calculate_path` DOES span whole connected
@@ -2346,23 +2244,7 @@ region, where "train near the gym" is actively wrong.
       `arrived=False map=MAUVILLE_CITY`, NEW arm `arrived=True map=ROUTE116` in 33,725 frames.
       ‼ **It does NOT unblock `#24-counters`** — see the new `#24-smashroute` below.
 
-- [x] **`#24-smashroute` — DONE 2026-07-31. The bot clears a field-move obstacle that seals a
-      journey, and can now reach FIERY_PATH from Mauville.** Live A/B
-      (`story_harness.py --driver smashroute`, `rocksmash_taught.ss1`): OLD arm
-      `arrived=False map=MAUVILLE_CITY`; **NEW arm `arrived=True map=FIERY_PATH`, 45,305
-      frames.** `modules/story/obstacle_clearing.py` reads the ROM's own object events (no
-      coordinate table to rot — symbol names COUNTED off the ROM: StrengthBoulder 59,
-      RockSmash 44, CutTree 33), gates on move+badge+a reachable approach tile, derives the
-      stand tile and facing, and delegates to the already-hardened `_smash_rock`. Hooked into
-      `_navigate_riding_out` **before** its fail-fast guard — smashing the rock changes the
-      world, which is the premise that guard tests.
-      ‼ **Only Rock Smash is actionable.** Cut is known-but-never-validated; **Strength is
-      excluded deliberately** — a boulder is PUSHED, not removed, so the "object is gone"
-      success test can never fire. Both recorded in `KNOWN_BUT_UNSUPPORTED` with reasons.
-      ‼ **Shipped with a re-entrancy bug and the sweep caught it** — `clear_obstacle` →
-      `_smash_rock` → `_navigate_riding_out` runs through the hook itself. Guarded now; see
-      `08-MISTAKES` 2026-07-31. Repro: `repro_obstacle_clearing.py` (24 checks, no emulator).
-
+- [x] **`#24-smashroute` — DONE 2026-07-31.** The bot clears a field-move obstacle that seals a route. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 - [x] ~~**‼ `#24-smashroute` — clear a ROCK SMASH obstacle that seals a journey (new,
       2026-07-31; see KI-41). This, not route planning, is what gates the counter chain.**~~
       (original entry, kept for the measurement)
@@ -2811,18 +2693,7 @@ region, where "train near the gym" is actively wrong.
       accept/deny of a new move + deleting an old one to replace it (uses the
       stock evolve→learn path + `which_move_should_be_replaced`). "Random" mode =
       per-Pokémon coin-flip whether to evolve (organic team variety, ties #24-team).
-- [x] ~~`#24-team`~~ — ‼ **SUPERSEDED by `#24-organicteam`**, which is ✅ **APPROVED — GATE
-      LIFTED** (user 2026-08-06, re-confirmed 2026-08-14). ⛔ This pointer said the target
-      "carries the user's 2026-08-05 DEFERRAL — the live instruction" until 2026-08-14; that was
-      stale (the deferral was reversed on 2026-08-06). Consolidated 2026-08-10.
-      HISTORY — #24-team — ORGANIC TEAM-BUILDING / helper acquisition (user 2026-07-20;
-      design in 12-STORYMODE-DESIGN §TB). Bot builds a team to beat gyms/trainers
-      but decides to catch "helpers" ORGANICALLY: a rising "recruit urge" that
-      grows with failed/struggled battles (increasing re-rolls/odds), weighted by
-      real team gaps (type matchup vs the fight, team type-diversity, move
-      coverage), pulling candidates from the obtainability+reachability data
-      (#41/#42). Random/human-like, not a min-maxer. Needed for Torchic-vs-Roxanne
-      and later type-hard gyms; implement when a gym requires it.
+- [x] ~~`#24-team`~~ — ‼ **SUPERSEDED by `#24-organicteam`, which is ✅ APPROVED — GATE LIFTED** (user 2026-08-06, re-confirmed 2026-08-14). ⛔ Read `#24-organicteam`, not this. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 - [ ] #24-shops — MAP SHOPS AS REACHED (user 2026-07-21; planning doc §4). Each mart
       has its own layout AND stock/order; the buy code is already shop-agnostic
       (universal task-driven flow + `_mart_item_row` reads stock live). So map each
@@ -3217,15 +3088,7 @@ region, where "train near the gym" is actively wrong.
       Validate vs a Roxanne/Brawly-era Disable user (e.g. wild Whismur has none —
       find a story trainer with Disable/Encore, or fault-inject the volatile
       struct in the harness).
-- [x] **✅ #24-ch8b-museum — DONE 2026-07-22; the marker was 31 DAYS STALE (found by a PASS 5
-      cold-start audit, closed 2026-08-22).** The gating was resolved and decomp-verified the same
-      day KI-11 was: `early_game.py:3584-3586` documents that the Team Aqua crowd
-      (`FLAG_HIDE_SLATEPORT_CITY_TEAM_AQUA`) seals the doors until you visit Stern's Shipyard and
-      talk to Dock, and `deliver_devon_goods_to_stern` is built at `early_game.py:3617`. KI-11 is
-      archived RESOLVED (`31-KNOWN-ISSUES-ARCHIVE.md:1080`). ⛔ It did NOT block Ch8b/Ch9 — that
-      clause was false for a month. ‼ **The item's OWN text said "(deliver_devon_goods_to_stern is
-      built)" while carrying `[ ]`** — a status contradicted by its own body is the cheapest
-      possible re-do trap, and this project's 8-day case is what created the triage index.
+- [x] **✅ `#24-ch8b-museum` — DONE 2026-07-22; the marker was 31 DAYS STALE** (found by a PASS 5 audit). — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 - [ ] #24-freshbatch-rustboro — batch run03 (fresh game) 2026-07-22 played
       extensively but HUNG in Rustboro (11,3)=(5,3) area after ~450k frames
       (Torchic start, 4-mon team). Under-investigated; capture a repro from the

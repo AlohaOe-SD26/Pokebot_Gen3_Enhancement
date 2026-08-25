@@ -418,6 +418,12 @@ before mapping.)
 2. **Read the decomp scripts** (WebFetch) for every scripted beat: what flag/var gates it,
    what multichoice/yes-no it shows, where the trigger tile is, what the completion signal
    is. Anchor each segment on a **completion flag** (e.g. `DEFEATED_RIVAL_RUSTBORO`).
+   ⛔ **TRANSLATE THE NAME BEFORE YOU USE IT: our accessors take the BARE name — `ROUTE128_STATE`,
+   NOT the decomp's `VAR_ROUTE128_STATE`.** The decomp spelling is what you just read and what every
+   research note quotes, so this is the default mistake, not an exotic one. `get_event_var` returns
+   **−1** for an unknown name, so the prefixed spelling FAILS SILENTLY and reads as "not done yet";
+   `_done_var` is the safer door — it RAISES on a name it does not know. Bitten on §Ch20 (2026-08-24)
+   and previously on `#24-r121gate`.
 3. **Build a segment** in `early_game.py` as a generator. Reuse the helpers:
    `_navigate_through_scripts(map, tile)` (reach a MAP, riding out inter-map scenes) vs
    `_navigate_riding_out(map, tile)` (reach a TILE) — pick by intent, they differ.
@@ -431,9 +437,14 @@ before mapping.)
    idempotent — never assume you start fresh.
 5. **Validate** end-to-end in the harness (`--driver story`), ideally from a fresh run or a
    real checkpoint. Watch for hangs, derails, whiteouts. Fix, re-run, prove.
-6. **Navigation gotcha:** the global navigator can't always one-shot cross-map paths
-   (Rustboro→Route104, Route116 ledges). Go **leg-by-leg**: navigate to a staging tile,
-   then step across the map connection manually, then navigate on the next map.
+6. ⛔ **Navigation is LEG-BY-LEG BY RULE, not by luck: `calculate_path` spans only DIRECTLY
+   CONNECTED maps.** This is mechanical, not a "sometimes it struggles" heuristic — a generic
+   journey call across non-adjacent maps does not path, full stop. Navigate to a staging tile,
+   cross the connection, then navigate on the next map. *(Stated as a soft gotcha here for weeks
+   — "can't always one-shot" — which invites trying it and hoping; the hard form was buried in a
+   CLOSED punch-list item, `#24-r121gate`, where no chapter author would ever look. §Ch20's dive
+   leg obeys it — one `navigate_to` per map — but by IMITATION of the chapter before it, not
+   because the rule was written down. Examples: Rustboro→Route104, Route116 ledges.)*
 
 ### Area research template (fill one out per new area, into `12-STORYMODE-DESIGN.md`)
 Keep it accurate and honest — tag anything not yet run `⚠ VALIDATE LIVE`; tag decomp-read
