@@ -18364,3 +18364,33 @@ MEASURED AND PRINTED, just not graded, so the surprising fact stays in front of 
 ‼ **AND THE DRIFT GATE EARNED ITS KEEP.** Adding `sootopolis.py` moved drift **2 → 3**, and
 `check_drift` immediately found **SEVEN** stale "drift is 2" claims across two files (16 occurrences
 once fixed). Exactly what `#24-driftassertions` was built for.
+
+
+### §Ch21 LEG 2's BIGGEST UNKNOWN IS ANSWERED — Steven is at (20,36) and IS reachable
+
+`probe_ch21_npcs.py` (NEW, fault-tested). Read from the ROM's **object-event TEMPLATES**, which are
+range-free, rather than `get_map_objects()`, which is a camera-range window:
+
+| gfx | who | tile | approach from the leg-1 arrival |
+|---|---|---|---|
+| 134 | **STEVEN** | **(20,36)** | ✅ `(20,37)`, **27 waypoints** |
+| 21 / 133 | EXPERT_M **and** WALLACE | **both on (31,18)** | ⛔ none — the body-block is REAL |
+| 196 / 195 | MAXIE / ARCHIE | (29,33) / (31,33) | ✅ 19 / 21 waypoints — **leg 5 pre-verified** |
+| 222 / 221 / 207 | GROUDON / KYOGRE / RAYQUAZA | in the lake | — |
+
+⛔⛔ **AND IT CORRECTS TWO THINGS I HAD WRITTEN INTO THE QUEUE HEAD — the half a next session ACTS
+FROM.** I had told it *"an agent's `(20,36)` is UNVERIFIED and is itself unreachable"*. **Both halves
+were wrong**, and it would have sent the next session hunting for an NPC whose location we already
+had.
+* **The method error:** I ran `calculate_path` to each NPC's **OWN tile**. That ALWAYS fails — the
+  tile is occupied — so all 18 returned "refuses" and I read the uniformity as geography. Measured
+  ADJACENTLY, **15 of 18 are approachable.** ⇒ **A BOT STANDS BESIDE AN NPC, NEVER ON ONE.**
+* **The instrument error, already flagged by Tier 1 and now proven:** "ZERO NPCs loaded" was never
+  evidence — `get_map_objects()` returns only the player from `(29,53)`. The templates show
+  **EXPERT_M *and* WALLACE both stationed on `(31,18)`**, so the body-block our §Ch21 ATLAS named is
+  REAL. ⚠ Still true: the whole column `(31,16)..(31,22)` refuses, so the block is not the ONLY
+  reason — the ledge is unreachable from the water as well.
+
+‼ **THE UNIFORMITY WAS THE TELL.** Eighteen NPCs all returning the identical negative should have
+read as *"my question is malformed"*, not *"the map is sealed"*. ⇒ **WHEN EVERY MEMBER OF A SET
+ANSWERS THE SAME WAY, SUSPECT THE QUESTION BEFORE THE SET.**

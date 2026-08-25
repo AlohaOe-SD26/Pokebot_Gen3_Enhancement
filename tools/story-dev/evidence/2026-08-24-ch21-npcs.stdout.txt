@@ -1,0 +1,51 @@
+SOOTOPOLIS NPCs — from the ROM's object-event TEMPLATES (range-free), not get_map_objects()
+==================================================================================================
+  anchor : post_sootopolis_arrival.ss1
+  player : SOOTOPOLIS_CITY (29, 53)   SOOTOPOLIS_CITY_STATE=2   flags=['Surfing', 'Controllable']
+
+  18 object-event templates on this map
+
+   id  gfx  who            tile       nearest approach (waypoints)
+   ------------------------------------------------------------------------------
+     1   21  EXPERT_M       31,18      ⛔ NONE — unreachable
+     2   26  ?              47,33      (46, 33) in 39
+     3   10  ?              9,43       (9, 44) in 31
+     4    5  ?              51,14      (51, 15) in 68
+     5    7  ?              43,26      (44, 26) in 52
+     6   19  MAN_1          26,4       ⛔ NONE — unreachable
+     7  134  STEVEN         20,36      (20, 37) in 27
+     8   34  ?              49,34      (49, 33) in 44
+     9  222  GROUDON_SIDE   28,44      (28, 45) in 9
+    10  221  KYOGRE_SIDE    34,44      (34, 45) in 15
+    11  207  RAYQUAZA       31,41      (30, 41) in 13
+    12   39  ?              17,44      (17, 45) in 22
+    13   14  ?              14,42      (14, 43) in 27
+    14   44  ?              17,40      (17, 41) in 28
+    15    9  ?              19,37      (20, 37) in 27
+    16  196  MAXIE          29,33      (29, 34) in 19
+    17  195  ARCHIE         31,33      (31, 34) in 21
+    18  133  WALLACE        31,18      ⛔ NONE — unreachable
+
+  [PASS] the cast includes STEVEN (identified by graphics id, not by guessing)  -- [(7, (20, 36))]
+  [PASS] the cast includes WALLACE (identified by graphics id, not by guessing)  -- [(18, (31, 18))]
+  [PASS] the cast includes EXPERT_M (identified by graphics id, not by guessing)  -- [(1, (31, 18))]
+  [PASS] the cast includes MAXIE (identified by graphics id, not by guessing)  -- [(16, (29, 33))]
+  [PASS] the cast includes ARCHIE (identified by graphics id, not by guessing)  -- [(17, (31, 33))]
+  [PASS] ⛔ LEG 2 IS POSSIBLE: STEVEN is APPROACHABLE from the leg-1 arrival tile  -- nearest (20, 37) in 27 waypoints
+  [PASS] LEG 5 PRECONDITION: MAXIE is approachable (HM07 needs BOTH)  -- nearest (29, 34) in 19
+  [PASS] LEG 5 PRECONDITION: ARCHIE is approachable (HM07 needs BOTH)  -- nearest (31, 34) in 21
+
+  [PASS] ⛔ the Cave of Origin approach column is NOT walkable (so leg 2 MUST use Steven's escort)  -- walkable tiles found: none
+      ‼ (31,18) carries TWO templates — EXPERT_M and WALLACE — so the corridor is
+        body-blocked as our §Ch21 ATLAS says. ⚠ The whole column refuses, not just that tile,
+        so the block is not the ONLY reason; the ledge is unreachable from the water too.
+
+==================================================================================================
+  ✅ ALL PASS — leg 2's target is STEVEN at (20, 36), and he is reachable.
+
+############ FAULT ARM: POKEBOT_CH21NPC_FAULT=wrongtile (the assertion MUST bite) ############
+  FAULT: looking for Steven at (0, 0) instead -- assertion 2 MUST fail.
+  [FAIL] ⛔ LEG 2 IS POSSIBLE: STEVEN is APPROACHABLE from the leg-1 arrival tile  -- no adjacent tile reachable
+  1 ASSERTION(S) FAILED:
+      - ⛔ LEG 2 IS POSSIBLE: STEVEN is APPROACHABLE from the leg-1 arrival tile
+(exit 1 -- the assertion FAILED as required)

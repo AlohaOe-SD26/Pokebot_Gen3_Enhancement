@@ -392,12 +392,23 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    `SOOTOPOLIS_CITY_STATE=2`, SURFING, controllable. ⚠ **1 party member is FAINTED at 54% HP**,
 >    so leg 2 opens with a HEAL — the Poke Center at `(43,31)` is 38 waypoints away and that path
 >    is exactly what leg 1's acceptance proves.
->    ⛔ **LEG 2 IS *FIND STEVEN*, NOT *WALK TO THE CAVE OF ORIGIN*.** Measured: the whole column
->    `(31,16)..(31,22)` is unreachable on foot with ZERO NPCs loaded, and the decomp agrees —
+>    ⛔ **LEG 2 IS *FIND STEVEN*, NOT *WALK TO THE CAVE OF ORIGIN*.** The decomp settles it:
 >    `SootopolisCity_EventScript_StevenLeadPlayerCaveOfOrigin` ends `warp
->    MAP_CAVE_OF_ORIGIN_ENTRANCE, 9, 20`. Steven was NOT among the loaded objects at (29,53), so
->    the first job is to find where he actually stands — ⛔ an agent's `(20,36)` is UNVERIFIED and
->    is itself unreachable from the arrival point.
+>    MAP_CAVE_OF_ORIGIN_ENTRANCE, 9, 20` — the game WARPS you in; nobody walks to that door.
+>    ✅✅ **STEVEN IS AT `(20,36)` AND IS REACHABLE — 27 waypoints, MEASURED** by
+>    `probe_ch21_npcs.py` (fault-tested). He is `OBJ_EVENT_GFX_STEVEN` (134) in the ROM's
+>    object-event templates; approach him from `(20,37)`.
+>    ⛔ **AN EARLIER VERSION OF THIS LINE SAID `(20,36)` IS "UNVERIFIED AND ITSELF UNREACHABLE".
+>    BOTH HALVES WERE WRONG, AND IT WOULD HAVE SENT YOU DOWN A DEAD END.** Cause: I ran
+>    `calculate_path` to each NPC's OWN tile, which ALWAYS fails because the tile is occupied, and
+>    read the universal "refuses" as geography. ⇒ **A BOT STANDS BESIDE AN NPC, NEVER ON ONE — ask
+>    reachability of the NEIGHBOURS.** Re-measured adjacently: **15 of 18 Sootopolis NPCs are
+>    approachable**, Maxie `(29,33)` and Archie `(31,33)` among them (leg 5 needs BOTH).
+>    ⛔ The "ZERO NPCs loaded" half was invalid too: `get_map_objects()` is CAMERA-RANGE-limited and
+>    returns only the player from `(29,53)`. The ROM TEMPLATES are range-free and show **EXPERT_M(21)
+>    AND WALLACE(133) BOTH STATIONED ON `(31,18)`** — the body-block our ATLAS names is REAL.
+>    ⚠ Still true and still measured: the whole column `(31,16)..(31,22)` refuses, so the block is
+>    not the only reason — the ledge is unreachable from the water as well.
 >    *(superseded)* BUILD §Ch21 LEG 1 — ROUTE128 → SOOTOPOLIS (the dive-in).
 >    ✅ The fixture now EXISTS: **`saves/post_ch20.ss1`** (`#24-ch21anchor` DONE — ⛔ do not
 >    re-capture it). Probe-verified `OVERWORLD ROUTE128 (38,24)`, `ROUTE128_STATE=2`,

@@ -9588,3 +9588,29 @@ beat reachable only by `warp`/`warpwhitefade` must never appear in a pathfinding
 ⇒ **PREVENTION RULE 2: A NULL OBSERVATION IS ONLY EVIDENCE IF THE INSTRUMENT COULD HAVE SEEN THE
 THING.** "Nothing was loaded" means nothing at all when the loader is range-limited — state the
 instrument's range beside any absence-based claim, or do not make the claim.
+
+
+## 2026-08-24 — I ASKED A REACHABILITY QUESTION THAT COULD ONLY EVER ANSWER "NO"
+
+**Symptom.** Probing which Sootopolis NPCs the bot could reach, `calculate_path` refused for **all 18**.
+I concluded the north of the city was sealed and wrote into `04-HANDOFF.md`'s queue head that an
+earlier agent's "Steven is at (20,36)" was *"UNVERIFIED and itself unreachable"*.
+
+**Root cause.** I pathed to each NPC's **OWN tile**. A tile with an NPC on it is occupied, so
+`calculate_path` to it fails **by construction, for every NPC, on every map, always.** The question
+had no possible affirmative answer. Re-asked of the FOUR ADJACENT tiles — which is how a bot actually
+talks to someone — **15 of 18 are approachable**, and Steven is 27 waypoints away.
+
+**Cost had it stood.** The queue head is what a cold session ACTS from. It would have sent the next
+session hunting for an NPC whose position we already had, on the authority of a measurement that was
+incapable of finding him.
+
+⇒ **PREVENTION RULE 1: A BOT STANDS BESIDE AN NPC, NEVER ON ONE.** Any reachability question about an
+NPC must be asked of its NEIGHBOURS. The same applies to any occupied or blocking target.
+⇒ **PREVENTION RULE 2, AND IT GENERALISES: WHEN EVERY MEMBER OF A SET ANSWERS THE SAME WAY, SUSPECT
+THE QUESTION BEFORE THE SET.** A uniform negative across 18 independent subjects is far more likely to
+be a malformed predicate than a real property of all 18. ‼ I had the tell in front of me — *every*
+NPC refusing, including ones in plain open ground — and read it as a finding instead of a smell.
+*(Related, same day: "ZERO NPCs loaded" was also treated as evidence when the reader is range-limited.
+Both are the same failure — an instrument that CANNOT return the positive answer being read as
+returning the negative one.)*
