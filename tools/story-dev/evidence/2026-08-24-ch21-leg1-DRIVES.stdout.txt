@@ -1,0 +1,44 @@
+§Ch21 LEG 1 — THE DIVE INTO SOOTOPOLIS. THREE DRIVES, AND THE FIRST TWO FAILED USEFULLY.
+======================================================================================
+
+### DRIVE 1 — FAIL. The arrival cutscene was STILL RUNNING.
+[ch21dive] RESULT reached=True at=SOOTOPOLIS_CITY(29, 53) predicted=False cave_path=False state=1
+[ch21dive] CAVE-OF-ORIGIN PATH PathFindingError: Could not find a path from (29/53 @ SOOTOPOLIS_CITY) to (31/16 @ SOOTOPOLIS_CITY).
+[ch21dive] ACCEPTANCE: FAIL
+  harness log at f18014: scripts=['SootopolisCity_EventScript_LegendariesSceneFromDive']
+  => the scene fires from OnFrame with NO coordinate condition the instant the map loads,
+     warps the player, and sets the var to 2 only at its END (SootopolisCity/scripts.inc:243/:342).
+  ‼ AN ACCEPTANCE OF "are we in Sootopolis?" WOULD HAVE CALLED THIS A PASS.
+
+### DRIVE 2 — the cutscene fix WORKED (arrived=True, state=2); cave_path still FAILED.
+[ch21dive] RESULT reached=True at=SOOTOPOLIS_CITY(29, 53) arrived=True cave_path=False state=2
+[ch21dive] CAVE-OF-ORIGIN PATH PathFindingError: Could not find a path from (29/53 @ SOOTOPOLIS_CITY) to (31/16 @ SOOTOPOLIS_CITY).
+[ch21dive] ACCEPTANCE: FAIL
+
+### THE MEASUREMENT THAT SHOWED MY OWN CHECK WAS WRONG (from post_sootopolis_arrival.ss1)
+    flags       : ['Surfing', 'Controllable']      <- NOT dismounted, as I had reasoned
+    tile        : Deep Water
+    map objects : 1  -- local_id=255 at (29,53) = THE PLAYER. ZERO NPCs loaded.
+                       => this is NOT the documented Expert body-block at (31,18).
+    walk-to probe:
+        (31,16) cave door   BLOCKED      (31,19)            BLOCKED
+        (31,17)             BLOCKED      (31,20)            BLOCKED
+        (31,18) corridor    BLOCKED      (31,22)            BLOCKED
+        (20,36) 'Steven'    BLOCKED      (43,31) Poke Ctr   OK, 38 waypoints
+    => the ENTIRE cave column is unreachable FROM HERE, and every land target except the Poke
+       Center is too. ⚠ CORRECTED SAME DAY, BEFORE REVIEW: an earlier wording said the cave is
+       unreachable 'in ANY state'. THAT IS AN OVERCLAIM -- the door's land island is 52 tiles and
+       TOUCHES WATER in both layouts, so a surfer could in theory dismount onto it. The measured
+       fact is only that `calculate_path` REFUSES from this arrival point; why is undetermined.
+       That matches the decomp: SootopolisCity_EventScript_StevenLeadPlayerCaveOfOrigin ends
+       `warp MAP_CAVE_OF_ORIGIN_ENTRANCE, 9, 20` -- THE GAME WARPS YOU IN, IT NEVER WALKS YOU THERE.
+    ‼ So drives 1-2 graded the run against something Pokemon Emerald does not provide. The bar was
+      RE-POINTED, not lowered: the party arrives with a FAINTED member, so the Poke Center is the
+      bot's real next action -- and cave_path is still MEASURED AND PRINTED, just not graded.
+
+### DRIVE 3 — ACCEPTANCE: PASS
+[ch21dive] RESULT reached=True at=SOOTOPOLIS_CITY(29, 53) arrived=True center_path=True cave_path=False state=2
+[ch21dive] POKE-CENTER PATH OK (29, 53) -> (43, 31), 38 waypoints
+[ch21dive] CAVE-OF-ORIGIN PATH PathFindingError (EXPECTED -- Steven warps you in)
+[ch21dive] ‼ cave_path=False is EXPECTED and is NOT graded: the Cave of Origin is not walkable from the arrival point in ANY state -- Steven's escort warps you in.
+[ch21dive] ACCEPTANCE: PASS

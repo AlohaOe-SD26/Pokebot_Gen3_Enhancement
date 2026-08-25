@@ -6538,3 +6538,69 @@ reporting most runs as successes. Both root causes are fixed in sandbox with A/B
 >    (`depositing Skitty L17`). **ARM A:** `box_counter_pid` → `None` → `_hunted_counter_pids`
 >    published EMPTY → the withdraw piggyback did nothing → `still_boxed=True not_in_party=True`
 >    and **no deposit at all** — the user's derail, produced by production, not simulated.
+
+
+## 📦 ARCHIVED 2026-08-24 (2nd) from `04-HANDOFF.md` NEXT ACTIONS — R3 budget hit 909/900 AGAIN
+
+> `#24-driftassertions` history block. Moved VERBATIM, nothing deleted; a 6-line stub remains.
+> ‼ SECOND R3 OVERFLOW IN ONE SESSION, hours after logging the ARCHIVE-FIRST rule in
+> `08-MISTAKES.md`. The rule is not 'archive when you remember' — it is: run `lint_docs.py`
+> BEFORE adding a section to a near-full file, every time.
+
+---
+
+>    ✅✅ **PREVIOUS QUEUE ITEM 0 IS DONE (2026-08-17): `#24-driftassertions` — THE DRIFT-STATEMENT
+>    SWEEP IS NOW A GATE. ⛔ DO NOT REBUILD IT.** `audit_doc_consistency.py::check_drift` detects
+>    CLAIM SHAPE, not just the `expect` vocabulary. **A/B against the COMMITTED gate (`git show
+>    HEAD:`), same corpus, ground truth stubbed identically: 4 sites caught BEFORE → 9 AFTER, none
+>    lost.** The five newly caught are the ones that had gone stale unseen, including THIS FILE's
+>    `:167` STATE cell and the fenced HOW TO RUN line. **17** fault tests shipped (`--self-test`
+>    D9–D22), firing tests AND false-positive controls — including two exemption BYPASSES an
+>    adversarial review found in the FIRST DRAFT (D20/D21), each REPRODUCED before it was fixed.
+>    ‼ Both had bound the exemption to the NEIGHBOURHOOD of a figure rather than to the figure, so
+>    an innocuous aside containing `read`/`until` silenced a live claim. Detail in `03-PUNCH-LIST.md`; the
+>    negation ruling is in `06-DECISIONS-LOG.md`. ‼ **What it does NOT do:** the REDUCTION half
+>    (one figure, everywhere else points at the command) was always separate and is now its own
+>    item, `#24-driftreduction`.
+>
+
+
+## 📦 ARCHIVED 2026-08-24 (3rd) from `04-HANDOFF.md` NEXT ACTIONS — R3 headroom
+
+> Two CLOSED blocks, moved VERBATIM, nothing deleted; each left a stub with its verdict.
+> ‼ AN EARLIER ATTEMPT TODAY OVER-ARCHIVED BY 278 LINES and swallowed the `NEXT ACTIONS`
+> heading, because the anchor phrase ALSO appears inside the ~6,000-char banner on line 10,
+> so the scan started there and ran forward. Caught immediately, fully restored.
+> ⇒ SCOPE THE SEARCH TO THE SECTION, AND ASSERT THE BLOCK HOLDS NO LIVE MARKERS BEFORE
+> WRITING — that assertion then FIRED on the next candidate and refused a bad move.
+
+---
+
+>    ✅✅ **PREVIOUS QUEUE ITEM 0 IS HALF DONE (2026-08-17): `(P4c) #24-orphans` (1) — THE
+>    INSTRUMENTATION HALF IS BUILT, GATED AND A/B-PROVEN. ⛔ DO NOT REBUILD IT.** All five exits of
+>    `withdraw_from_box` return `(landed, code, detail)`; its ONE caller BINDS the result and reports
+>    it through the new PURE `withdraw_verdict_report`. **MEASURED, live, `--driver boxcounter2` on
+>    `fortree_gym_wedge.ss1`: ARM B unfaulted → `verdict landed=True code=landed`, `ACCEPTANCE: PASS`;
+>    ARM A `POKEBOT_PCWITHDRAW_FAULT=1` → `verdict landed=False code=did_not_land`, fault provably
+>    armed, `ACCEPTANCE: FAIL` — the registry's DOCUMENTED expectation for a faulted arm, not a
+>    regression.** Gate #26 `repro_withdraw_verdict.py` **FAILED against the then-unpromoted
+>    `custom` tree (exit 1, six named sites) and now PASSES it (exit 0)** — so it was fault-tested
+>    against REALITY, and that flip is the promotion's own proof. ✅ **PROMOTED 2026-08-17: drift is 3 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until driven) and nothing awaits the USER's
+>    call.** ⛔ **ITS REACTION HALF REMAINS OPEN** — what production should DO about a failed withdraw
+>    is the USER's ruling AND is blocked on the unmeasured `sStorage->messageText` offset; read
+>    `06-DECISIONS-LOG.md` before touching it.
+>
+
+---
+
+>    ✅✅ **PREVIOUS QUEUE ITEM 0 IS DONE (2026-08-17): `#24-abortswallow` ROUND 3. ⛔ DO NOT REDO IT.**
+>    **(1) SHIPPED, 37 → 36** — the probe recognises the hand-written guard
+>    `if story_should_abort(): raise`; it sits in the HANDLER, and searching the try BODY removes
+>    ZERO sites. ⛔⛔ **(2) REFUTED — DO NOT BUILD IT.** I built it (whole-package call graph, 2,208
+>    functions) and it cuts 36 → 8, but the UPWARD fault test makes FIVE ALREADY-FIXED sites
+>    invisible, including `mossdeep_gym.py:465` — an OBSERVED failure recorded in our own punch list.
+>    ⇒ **the predicate is wrong:** after a whiteout an ORDINARY operation fails for an ordinary
+>    reason and the handler fabricates a diagnosis; nothing abort-shaped is raised, so the latch is
+>    the only evidence — which is why `reraise_if_aborting` is LATCH-keyed. A reachability filter
+>    contradicts the design of the guard it filters for. Full reasoning in `03-PUNCH-LIST.md` and
+>    `08-MISTAKES.md`.

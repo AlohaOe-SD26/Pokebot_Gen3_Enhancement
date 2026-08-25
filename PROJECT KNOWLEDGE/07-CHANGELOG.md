@@ -18323,3 +18323,44 @@ authority — reports **2**; an un-superseded `➡` pointer predating the atlas;
 in HOW TO RUN. ‼ **Two of those were the handoff asserting a number its own text tells you not to
 trust.** ⇒ **WHEN A CELL SAYS "RUN THE TOOL, NEVER TRUST THIS NUMBER", THE NUMBER IN IT IS A LIABILITY
 — state the tool's answer or state nothing.**
+
+
+## §Ch21 LEG 1 IS BUILT AND DRIVEN — the bot dives from Route 128 into Sootopolis by itself
+
+`modules/story/sootopolis.py` + `--driver ch21dive`, `ACCEPTANCE: PASS` on drive 3. ⛔ **NOT wired
+into `_play()`** — legs 2-5 (Steven, Cave of Origin, Sky Pillar, HM07 from BOTH Maxie AND Archie) do
+not exist. Fixture: `saves/post_sootopolis_arrival.ss1`, PINNED.
+```
+RESULT reached=True at=SOOTOPOLIS_CITY(29,53) arrived=True center_path=True cave_path=False state=2
+```
+**THE FIRST TWO DRIVES FAILED, AND BOTH FAILURES WERE WORTH HAVING.**
+
+⛔ **DRIVE 1 — "ON THE MAP" IS NOT "ARRIVED".** `reached=True … state=1`, with the harness log showing
+`SootopolisCity_EventScript_LegendariesSceneFromDive` STILL RUNNING at f18014. The arrival scene fires
+from `OnFrame` with **no coordinate condition** the instant the map loads, warps the player, and sets
+the var to 2 only at its END. ‼ **An acceptance of "are we in Sootopolis?" would have called that a
+PASS** — and shipped a chapter that cannot continue. ⇒ **GRADE ON THE VAR, NEVER ON THE MAP.**
+
+⛔ **DRIVE 2 — MY OWN ACCEPTANCE CHECK DEMANDED SOMETHING EMERALD DOES NOT PROVIDE.** It required a
+walkable path to the Cave of Origin door `(31,16)`. Measured from the arrival anchor: the **entire
+column `(31,16)..(31,22)` is unreachable**, as is every land target except the Poké Center — with
+**ZERO NPCs loaded**, so it is *not* the documented Expert body-block. The decomp agrees:
+`SootopolisCity_EventScript_StevenLeadPlayerCaveOfOrigin` ends `warp MAP_CAVE_OF_ORIGIN_ENTRANCE,
+9, 20`. **The game WARPS you in.** ⇒ leg 2 is *find Steven*, never *walk to the cave*.
+‼ **THE BAR WAS RE-POINTED, NOT LOWERED,** and the distinction is the whole point: the party arrives
+with a FAINTED member, so the Poké Center IS the bot's real next action — and `cave_path` is still
+MEASURED AND PRINTED, just not graded, so the surprising fact stays in front of the next reader.
+
+✅ **TWO DESIGN CHOICES THAT PAID OFF IMMEDIATELY**
+* **The predicted constant was DELETED, not corrected.** An early draft had `CITY_ARRIVAL = (9,7)`
+  reasoning "Emerge preserves (x,y)" — true of the emerge, irrelevant to where the run RESTS, because
+  the cutscene relocates the player. ⇒ **THE GAME CHOOSES THAT TILE, SO WE MEASURE IT.** Replacing it
+  with `(29,53)` would have been a second guessed constant. (See `ROOM8_PUSHES`, 08-MISTAKES.)
+* **`CH21_CAPTURE` writes on `arrived`, not on `passed`** — unlike `CH20_CAPTURE`. That was decided
+  BEFORE the run and immediately proved right: the capture that produced the leg-2 fixture printed
+  `ACCEPTANCE: FAIL` on the check that was later shown to be wrong. ⇒ **DO NOT GATE A FIXTURE ON AN
+  UNRELATED ASSERTION** — it would have denied leg 2 its anchor for a defect in the grader.
+
+‼ **AND THE DRIFT GATE EARNED ITS KEEP.** Adding `sootopolis.py` moved drift **2 → 3**, and
+`check_drift` immediately found **SEVEN** stale "drift is 2" claims across two files (16 occurrences
+once fixed). Exactly what `#24-driftassertions` was built for.

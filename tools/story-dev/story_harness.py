@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -8624,6 +8624,138 @@ class Ch20Room9Mode(Ch20Room8Mode):
         return
 
 
+class Ch21DiveMode(BotMode):
+    """§Ch21 LEG 1 — the dive into Sootopolis. Drives the PRODUCTION entry point.
+
+    ‼ IT CALLS `modules.story.sootopolis.enter_sootopolis()`. Copying the leg's steps into this
+    driver would prove the COPY works and tell us nothing about what `_play()` will run — the rule
+    `boxwithdraw` earned and `ch20chapter` follows.
+
+    ⛔ ACCEPTANCE IS NOT "we are in Sootopolis". It is "we are in Sootopolis AND THE BOT CAN
+    CONTINUE" — three chapters in this project shipped stranded while passing their own tests.
+    ‼ The CONTINUATION target was WRONG for two drives and is now measured: it is the POKE CENTER,
+    not the Cave of Origin. The cave is unreachable on foot at every stage (Steven's escort warps you
+    in), so asserting a path there graded the run against something the game does not provide.
+
+    Anchor: `saves/post_ch20.ss1` (ROUTE128 (38,24), ROUTE128_STATE=2, SOOTOPOLIS_CITY_STATE=1).
+    ⚠ That anchor has 1 FAINTED party member at 80% HP — the honest post-cavern state. An early
+    whiteout here is the FIXTURE, not a leg-1 bug.
+
+    Emits: [ch21dive] RESULT reached=<b> at=<tile> arrived=<b> cave_path=<b> state=<n>
+        where `arrived` means SOOTOPOLIS_CITY_STATE >= 2 -- i.e. the arrival CUTSCENE finished, not
+        merely that the map loaded. Drive 1 failed exactly there.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch21Dive"
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.map_path import calculate_path
+        from modules.memory import get_event_var
+        from modules.player import get_player_avatar
+        from modules.story import sootopolis as ch21
+
+        reached = False
+        try:
+            yield from ch21.enter_sootopolis()
+            reached = True
+        except Exception as error:  # noqa: BLE001 - a failure is a RESULT here, not a crash
+            log(f"[ch21dive] LEG FAILED: {type(error).__name__}: {str(error)[:600]}")
+
+        avatar = get_player_avatar()
+        try:
+            here_map = MapRSE(tuple(avatar.map_group_and_number))
+            here_name = here_map.name
+        except Exception:
+            here_map, here_name = None, f"UNKNOWN{tuple(avatar.map_group_and_number)}"
+        at = tuple(avatar.local_coordinates)
+        in_city = here_map is MapRSE.SOOTOPOLIS_CITY
+        try:
+            state = get_event_var("SOOTOPOLIS_CITY_STATE")
+        except Exception:
+            state = "?"
+        # ⛔ GRADE ON THE VAR, NOT ON THE MAP, AND NOT ON A PREDICTED TILE.
+        # Drive 1 reported `reached=True at=SOOTOPOLIS_CITY(29,53) state=1` -- ON the map with the
+        # arrival cutscene still running (`SootopolisCity_EventScript_LegendariesSceneFromDive` was
+        # live at f18014). An acceptance of "are we in Sootopolis?" would have called that a PASS.
+        # The scene warps the player, so the resting tile is the GAME's choice: REPORT it, never
+        # assert a hard-coded prediction.
+        arrived = in_city and isinstance(state, int) and state >= 2
+
+        # ‼ "AND THE BOT CAN CONTINUE" -- AND THE FIRST VERSION OF THIS CHECK WAS WRONG.
+        # Drive 1 and 2 asserted a walkable path to the Cave of Origin door (31,16). MEASURED from
+        # `post_sootopolis_arrival.ss1`: the ENTIRE column (31,16)..(31,22) is unreachable, and so is
+        # every other land target except the Poke Center. ⛔ AN EARLIER VERSION OF THIS COMMENT SAID
+        # "ZERO NPCs loaded, so it is NOT the Expert body-block". THAT INFERENCE IS INVALID and a
+        # Tier 1 review caught it: `get_map_objects()` is a CAMERA-RANGE WINDOW, and (29,53) is 30+
+        # tiles from (31,18) -- an NPC there would not be loaded WHETHER OR NOT IT EXISTS. The
+        # observation is SILENT on the question it was used to answer, and it contradicted our own
+        # §Ch21 ATLAS, which names LOCALID_SOOTOPOLIS_EXPERT at that tile, blocking at exactly this
+        # state. ⇒ THE EXPERT BODY-BLOCK REMAINS THE LEADING EXPLANATION; it is simply not tested
+        # from here. ⚠ Nor is it geometric: the door's land island is
+        # 52 tiles and TOUCHES WATER in both the LegendsBattle and Normal layouts, so 'unreachable
+        # in principle' would be an OVERCLAIM -- why the planner refuses is undetermined (likely an
+        # elevation-transition rule on the dismount). What settles it is the decomp: Steven LEADS the player there
+        # and his script ends `warp MAP_CAVE_OF_ORIGIN_ENTRANCE, 9, 20`. ⇒ THE GAME NEVER WALKS YOU
+        # IN, so requiring a path there asserted something Pokemon Emerald does not provide.
+        # ⛔ The bar is not being lowered: it is being pointed at the REAL next action. The party
+        # arrives here with a FAINTED member (see this anchor's inventory row), so the bot's actual
+        # next move is the Poke Center -- and THAT path is what must exist.
+        center_path, center_detail = False, "not attempted (not in the city)"
+        cave_path, cave_detail = False, "not attempted (not in the city)"
+        if in_city:
+            try:
+                p_ = calculate_path((MapRSE.SOOTOPOLIS_CITY, at), (MapRSE.SOOTOPOLIS_CITY, (43, 31)))
+                center_path, center_detail = True, f"OK {at} -> (43, 31), {len(p_)} waypoints"
+            except Exception as perr:  # noqa: BLE001 - a failed probe is a RESULT
+                center_detail = f"{type(perr).__name__}: {str(perr)[:160]}"
+            try:
+                calculate_path((MapRSE.SOOTOPOLIS_CITY, at), (MapRSE.SOOTOPOLIS_CITY, (31, 16)))
+                cave_path, cave_detail = True, f"OK {at} -> (31, 16)"
+            except Exception as perr:  # noqa: BLE001 - REPORTED, not graded; False is EXPECTED here
+                cave_detail = f"{type(perr).__name__} (EXPECTED -- Steven warps you in)"
+
+        log(f"[ch21dive] RESULT reached={reached} at={here_name}{at} arrived={arrived} "
+            f"center_path={center_path} cave_path={cave_path} state={state}")
+        log(f"[ch21dive] POKE-CENTER PATH {center_detail}")
+        log(f"[ch21dive] CAVE-OF-ORIGIN PATH {cave_detail}")
+        log("[ch21dive] ‼ cave_path=False is EXPECTED and is NOT graded. ⚠ The honest claim is "
+            "narrow: `calculate_path` REFUSES from this arrival point (measured twice). It is NOT that "
+            "the door is unreachable in principle -- its land island is 52 tiles and DOES touch water "
+            "in BOTH layouts, so a surfer could in theory dismount onto it; WHY the planner refuses is "
+            "undetermined. What justifies not grading it is the DECOMP: Steven's escort ends "
+            "`warp MAP_CAVE_OF_ORIGIN_ENTRANCE, 9, 20`, so the bot is never required to walk there.")
+        passed = reached and arrived and center_path
+        log(f"[ch21dive] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        # ‼ CAPTURE ON `arrived`, NOT ON `passed` -- and the difference is deliberate.
+        # `CH20_CAPTURE` writes only on full acceptance because §Ch20's acceptance IS its end state.
+        # Here, `arrived` (in the city, SOOTOPOLIS_CITY_STATE >= 2, cutscene finished) is already a
+        # well-defined, controllable, reproducible state worth pinning -- while `cave_path` is a
+        # CONTINUATION check for a leg that is not built yet and whose premise is under review (the
+        # Cave of Origin entrance is NPC-body-blocked until Steven's escort, and Steven WARPS you in,
+        # so a walkable path to (31,16) may never be required at all).
+        # ⛔ Refusing to capture until an unrelated check passes would deny leg 2 its fixture.
+        _cap = _os.environ.get("CH21_CAPTURE", "").strip()
+        if _cap:
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if not arrived:
+                log(f"[ch21dive] CAPTURE SKIPPED -- not arrived (state={state}); refusing to write {_cap}")
+            elif _out.exists() and _os.environ.get("CAPTURE_FORCE", "") != "1":
+                log(f"[ch21dive] CAPTURE REFUSED -- {_cap} exists (set CAPTURE_FORCE=1 to replace)")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[ch21dive] CAPTURE WROTE {_out.name} ({_out.stat().st_size} bytes) at {at} "
+                    f"state={state} -- ‼ verify with probe_anchor_inventory.py, not this line")
+
+        context.set_manual_mode()
+
+
 class Ch20ChapterMode(Ch20DiveMode):
     """§Ch20 AS A CHAPTER — drives the PRODUCTION function, not a copy of it.
 
@@ -10022,6 +10154,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch20Room9Mode()
         elif args.driver == "ch20chapter":
             context.bot_mode_instance = Ch20ChapterMode()
+        elif args.driver == "ch21dive":
+            context.bot_mode_instance = Ch21DiveMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

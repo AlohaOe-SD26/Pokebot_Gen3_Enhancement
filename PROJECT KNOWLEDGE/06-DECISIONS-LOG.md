@@ -3388,3 +3388,33 @@ bigger decision — did not.** SESSION DISCIPLINE rule 11 says a future agent gr
 re-raising a question; a decision recorded only in the changelog is not findable that way.
 ⇒ **The decision NOT to act is a decision, and it needs a ruling more than an action does** — an
 action leaves a diff behind as evidence, an inaction leaves nothing.
+
+
+## 2026-08-24 — §Ch21 leg 1's acceptance was RE-POINTED from the Cave of Origin to the Poké Center
+
+**The choice.** `--driver ch21dive`'s "AND THE BOT CAN CONTINUE" check originally required a walkable
+`calculate_path` to the Cave of Origin door `SOOTOPOLIS_CITY (31,16)`. Drive 2 failed on it. It now
+requires a path to the **Poké Center `(43,31)`** instead, and `cave_path` is still measured and
+printed — just not graded.
+
+**Why, and why this is not lowering the bar.** The decisive fact is in the decomp and is independent
+of any reachability measurement: `SootopolisCity_EventScript_StevenLeadPlayerCaveOfOrigin` ends
+`warp MAP_CAVE_OF_ORIGIN_ENTRANCE, 9, 20`. ⇒ **the game WARPS the player in; a free walk to the cave
+is never required of anyone.** Grading leg 1 on it asserted something Pokémon Emerald does not
+provide. The replacement is the bot's REAL next action: the fixture's party arrives with a **fainted
+member at 54% HP** (the anchor inventory says so unprompted), so the Poké Center is where it must go.
+
+**The alternative considered and REJECTED: keep grading on `cave_path` and "fix" the navigation.**
+Rejected because there is nothing to fix — the requirement was invented by me, not by the game. Had
+it been kept, leg 2 would have been designed around walking to a door the story warps you through,
+and the failure would have been chased as a pathfinder bug. *(This project has burned days on exactly
+that shape: a hazard-avoiding planner reporting an unreachable destination reads as "our tool is
+broken".)*
+
+⚠ **What is NOT decided, and must not be asserted as answered:** WHY `calculate_path` refuses that
+column. Three candidate explanations survive — the `LOCALID_SOOTOPOLIS_EXPERT` body-block at
+`(31,18)` (named in the §Ch21 ATLAS, and the LEADING one), an elevation-transition rule on the
+dismount, or something else. ⛔ An earlier draft claimed "ZERO NPCs loaded, so it is NOT the Expert";
+**that inference is invalid** — `get_map_objects()` is a camera-range window and the probe stood 30+
+tiles away, so it is silent on the question. Settling it needs a live probe standing ADJACENT to
+`(31,18)`. ‼ It is not required to approve leg 1, and it must not be written up as resolved.

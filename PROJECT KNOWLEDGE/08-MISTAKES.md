@@ -9526,3 +9526,65 @@ small. Three of them were; together they were twelve lines over.
 takes seconds; run it BEFORE adding a section to a near-full file, not after. ‼ **A rule you followed
 this morning is not a rule you have internalised** — the punch-list archive and the handoff overflow
 happened in the same session, hours apart, under the same instruction.
+
+
+## 2026-08-24 — I BLEW THE HANDOFF LINE BUDGET A SECOND TIME, HOURS AFTER WRITING THE RULE
+
+**Symptom.** `lint_docs.py` R3 RED at **909/900** — the identical failure, in the identical file, in
+the same session, after I had already archived once for it AND written the prevention rule into
+`08-MISTAKES.md`.
+
+**Root cause.** The rule I wrote said "archive first". What I actually internalised was "archive when
+R3 goes red". Both times the edits felt individually small — a HOW TO RUN block, then a queue-head
+rewrite — and neither felt like "adding a section to a near-full file", which is what they were.
+
+⇒ **PREVENTION RULE, SHARPENED: `lint_docs.py` IS A PRE-EDIT CHECK, NOT A PRE-COMMIT CHECK.** Before
+adding ANY block to `04-HANDOFF.md` or `03-PUNCH-LIST.md`, run it and read the headroom number. ‼ A
+rule phrased as an ORDERING ("first/second") is weak because every edit feels like the exception; a
+rule phrased as a TRIGGER ("before touching this file, run this command") is not.
+‼ **Twice in one session is not bad luck — it is evidence the first fix was the wrong shape.**
+
+
+## 2026-08-24 — MY ACCEPTANCE CHECK GRADED "ARE WE ON THE MAP" AND WOULD HAVE PASSED A RUNNING CUTSCENE
+
+**Symptom.** §Ch21 leg 1, drive 1: `RESULT reached=True at=SOOTOPOLIS_CITY(29,53) state=1`. The bot
+was standing in Sootopolis with `SootopolisCity_EventScript_LegendariesSceneFromDive` **still
+executing** (harness log, f18014). The leg's own success test was `_on_map(SOOTOPOLIS_CITY)`.
+
+**Root cause.** `SootopolisCity_OnFrame` fires the arrival scene with **no coordinate condition** the
+instant the map loads; the scene warps the player around and sets `SOOTOPOLIS_CITY_STATE = 2` only at
+its END (`SootopolisCity/scripts.inc:243`/`:342`). So "the map is loaded" is true a long time before
+"we have arrived", and I graded the earlier event.
+
+**Why it nearly shipped.** The run REACHED Sootopolis — the navigation was perfect. Only the
+continuation half of acceptance (`cave_path`) failed, and had that check not existed, drive 1 would
+have printed PASS on a run that was mid-cutscene and could not continue.
+
+⇒ **PREVENTION RULE: GRADE ON THE COMPLETION VAR, NEVER ON MAP PRESENCE.** §Ch20 already earned the
+same rule for a different reason (`ROUTE128_STATE` over the Kyogre flag, because the flag fires
+BEFORE a forced warp). ‼ **Both instances are the same shape: the observable that is easiest to read
+fires EARLIER than the event you care about.** When a map has an `OnFrame`/`OnTransition` script,
+assume arrival is a PROCESS, not an instant.
+
+## 2026-08-24 — MY ACCEPTANCE CHECK DEMANDED SOMETHING THE GAME NEVER PROVIDES
+
+**Symptom.** §Ch21 leg 1, drive 2: `arrived=True state=2` (the cutscene fix worked) but
+`cave_path=False` → FAIL. The check required a walkable `calculate_path` to the Cave of Origin door.
+
+**Root cause.** I wrote the check from the *story* ("leg 2 goes to the Cave of Origin") without
+checking HOW the game gets you there. It doesn't walk you: Steven's escort ends
+`warp MAP_CAVE_OF_ORIGIN_ENTRANCE, 9, 20`. **No player, human or bot, ever walks to that door.** The
+check could only ever fail, and it failed for a reason that had nothing to do with the code under test.
+
+**The second error, on top of the first.** Explaining the failure I wrote *"ZERO NPCs loaded, so it is
+NOT the Expert body-block"* — an **invalid inference**, caught by Tier 1: `get_map_objects()` is a
+camera-range window and the probe stood 30+ tiles from `(31,18)`, so an NPC there would not load
+whether or not it exists. The observation was **silent on the question I used it to answer**, and it
+contradicted my own §Ch21 ATLAS written the same session. I also wrote "unreachable in ANY state",
+which I falsified myself before review (the door's land island is 52 tiles and touches water).
+
+⇒ **PREVENTION RULE 1: BEFORE ASSERTING A ROUTE EXISTS, CHECK WHETHER THE GAME USES A WARP.** A story
+beat reachable only by `warp`/`warpwhitefade` must never appear in a pathfinding acceptance check.
+⇒ **PREVENTION RULE 2: A NULL OBSERVATION IS ONLY EVIDENCE IF THE INSTRUMENT COULD HAVE SEEN THE
+THING.** "Nothing was loaded" means nothing at all when the loader is range-limited — state the
+instrument's range beside any absence-based claim, or do not make the claim.

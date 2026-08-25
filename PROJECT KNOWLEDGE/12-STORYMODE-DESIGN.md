@@ -3641,7 +3641,31 @@ whole Sky Pillar staircase was settled without an emulator. ⛔ A 25-minute driv
 what **392 bytes** answered — ask whether the source data can be read directly BEFORE filing a
 question as "needs a live run".
 
-### ✅ THE FIXTURE EXISTS — `saves/post_ch20.ss1` (captured 2026-08-24)
+### ✅✅ LEG 1 IS BUILT AND DRIVEN — `modules/story/sootopolis.py`, `--driver ch21dive` (2026-08-24)
+
+`ACCEPTANCE: PASS` on drive 3. ⛔ **The chapter is NOT wired into `_play()`** — legs 2-5 do not exist.
+```
+RESULT reached=True at=SOOTOPOLIS_CITY(29,53) arrived=True center_path=True cave_path=False state=2
+```
+**TWO ATLAS CLAIMS WERE CORRECTED BY THE DRIVES, both in the "I reasoned it out" direction:**
+* ⛔ **"Emerge preserves (x,y), so we come up at `(9,7)`."** True of the emerge and IRRELEVANT: the
+  ARRIVAL CUTSCENE then warps the player. The bot rests at **`(29,53)`**. ‼ The predicted constant was
+  DELETED rather than updated — the game chooses that tile, so it is MEASURED. (Hard-coding a guessed
+  coordinate is how `ROOM8_PUSHES` got fabricated.)
+* ⛔ **"the Cave of Origin door `(31,16)` is where leg 2 goes."** `calculate_path` **REFUSES to route there from the arrival point** — the
+  whole column `(31,16)..(31,22)`. ⛔ **An earlier version of this line said "ZERO NPCs loaded, so it is NOT the Expert body-block" — THAT INFERENCE IS INVALID.** `get_map_objects()` is a CAMERA-RANGE window and the probe stood 30+ tiles away, so an NPC at `(31,18)` would not load whether or not it is there. ⇒ **the Expert body-block named above remains the LEADING explanation** — it is simply untested from that vantage.
+  ⚠ **NOT "unreachable in principle" — that wording was CORRECTED the same day.** The door's land
+  island is **52 tiles and TOUCHES WATER** in both layouts, so a surfer could in theory dismount
+  onto it; why the planner refuses is UNDETERMINED (likely an elevation-transition rule).
+  It matches the decomp: Steven's escort ends `warp MAP_CAVE_OF_ORIGIN_ENTRANCE, 9, 20` — **the game
+  WARPS you in.** ⇒ leg 2 is *find and talk to Steven*, never *walk to the cave*.
+
+‼ **AND "ON THE MAP" IS NOT "ARRIVED".** `SootopolisCity_OnFrame` fires the arrival scene with NO
+coordinate condition the instant the map loads, and sets the var to 2 only at its END. Drive 1 reported
+`reached=True … state=1` mid-scene — **an acceptance of "are we in Sootopolis?" would have PASSED it.**
+⇒ **GRADE ON THE VAR, NEVER ON THE MAP.**
+
+### ✅ THE FIXTURES EXIST — `saves/post_ch20.ss1` and `saves/post_sootopolis_arrival.ss1` (2026-08-24)
 
 `--driver ch20chapter` with `CH20_CAPTURE=post_ch20.ss1` snapshots at `ACCEPTANCE: PASS`. ⛔ It writes
 **only** on `passed`, which already means arrived + controllable + surfing on the launch tile + a real
