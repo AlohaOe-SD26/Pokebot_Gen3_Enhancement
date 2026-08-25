@@ -9316,3 +9316,84 @@ multi-line table regex ran greedily past a single-line table's closing paren and
 sitting right there. Its own self-test caught that within a minute of being written.
 ⇒ **A gate earns a self-test BEFORE it earns trust**, and "the check is wrong, not the subject" holds
 for checks you wrote sixty seconds ago.
+
+## 2026-08-24 — I BURNED A 25-MINUTE DRIVE ON A `NameError` THAT A 3,000-FRAME SMOKE TEST CAUGHT IN SECONDS
+
+**Symptom.** A new harness driver (`--driver ch20chapter`) was launched straight into a full
+~25-minute background run. It died on **frame 1** with `NameError: name 'os' is not defined`. The
+grep filter on the run only matched result lines, so the output was a bare `Traceback (most recent
+call last):` with no body — the failure was invisible until the run was repeated at small scale.
+
+**Root cause, twice over.**
+1. `story_harness.py` imports `os as _os` (`:15`) and every existing fault hook uses `_os.environ`.
+   I wrote a bare `os`.
+2. After fixing that, the SAME shape reappeared: `wait_until_truly_controllable` is not a
+   module-scope name in that file — every driver imports `modules.*` helpers INSIDE its method,
+   because the harness is imported before a ROM is loaded and module-scope game imports break it.
+
+**⛔⛔ MY FIRST DIAGNOSIS OF THIS WAS FALSE, AND A TIER 1 REVIEWER REFUTED IT. The corrected root
+cause is far worse for me.** I wrote that `repro_undefined_names.py` "scans `modules/story/`, not
+`tools/story-dev/`" and was "structurally blind" to the harness. **That is not true.** The gate has
+carried `EXTRA_FILES = ["story_harness.py"]` since **2026-08-12** (`repro_undefined_names.py:66`),
+and a live run prints `scanned 27 file(s) under ['modules/story', 'plugins/custom_modes'] +
+['story_harness.py']`.
+
+‼‼ **AND THE GATE'S OWN COMMENT RECORDS THAT IT WAS ADDED FOR THIS EXACT BUG IN THIS EXACT FILE:**
+*"THE HARNESS EARNED ITS PLACE HERE THE FIRST TIME IT WAS SCANNED (2026-08-12)… it contained
+`os.environ.get(...)` in a method that never imported `os`"* (`repro_undefined_names.py:60-66`).
+⇒ **I re-committed a bug that this gate was BUILT to catch, in the file it was built for, twelve days
+later — and then blamed the gate.**
+
+**THE ACTUAL ROOT CAUSE: I DID NOT RUN THE GATE BEFORE THE LONG DRIVE.** It was there, it covered the
+file, it would have failed in seconds. The failure was not coverage; it was sequence — I launched a
+25-minute run before running a suite that takes 150.
+✅ **Prevention (the real one): RUN THE GATES BEFORE A LONG DRIVE, NOT ONLY BEFORE A COMMIT.** The
+suite is the cheap instrument; a drive is the expensive one. I had been treating gates as a
+pre-commit ritual rather than a pre-experiment one.
+⛔ **AND THE META-LESSON, WHICH IS THE POINT OF THIS ENTRY:** a mistakes entry that MISDIAGNOSES its
+own cause is worse than none — it manufactures a false prevention rule, sends the next agent to widen
+a gate that already covers the file, and leaves the real failure (not running it) unaddressed.
+⇒ **BEFORE BLAMING A TOOL FOR MISSING SOMETHING, RUN IT AND READ ITS SCOPE.** One command.
+
+✅ **Prevention (behavioural, and it is cheap): SMOKE-TEST A NEW DRIVER WITH A TINY `--frames`
+BEFORE COMMITTING TO A LONG RUN.** 3,000 frames proves the thing starts, imports resolve, and the
+entry point is reached. It cost ~30 seconds and would have saved 25 minutes twice.
+✅ **Prevention: when a long run dies, RE-RUN IT SMALL rather than re-reading the filter.** The
+filtered output hid the error body; the small run printed it immediately.
+✅ **Prevention (filed): widen `repro_undefined_names.py` to cover `tools/story-dev/*.py`** — see
+`#24-gatescopeharness`. ⚠ Not done in this commit: the harness is 9k lines and has never been
+linted, so the baseline is unknown and it needs its own ratchet rather than a blind switch-on.
+
+‼ **AND THE POSITIVE HALF, recorded because it is the reason the rule is affordable:** the smoke
+test also CONFIRMED the parts that matter — the driver reached the production chapter, preflight
+passed, and `prepare_for_the_cavern()` healed the party to 6 able to battle. That is the readiness
+gap that had a previous run entering the Archie fight with a fainted mon. A cheap test is not only
+cheaper than a slow failure; it is an earlier success signal.
+
+## 2026-08-24 — I DOCUMENTED A TEST HOOK THAT DID NOT EXIST, WHICH WOULD HAVE MANUFACTURED A FALSE PASS
+
+**Symptom.** The new `--driver ch20chapter` docstring advertised TWO fault hooks:
+`POKEBOT_CH20_FAULT=chapter_push` and `=chapter_resume`. Only the first was implemented. Running the
+second would have produced an ordinary **clean run** — which passes — and that PASS would have been
+read as "the Route 128 resume path is proven". It proves nothing; the path never executes.
+
+⇒ **A TEST HOOK THAT DOES NOT EXIST IS WORSE THAN NO TEST HOOK.** A missing test is an absence you
+can see. A documented-but-absent one manufactures evidence for a claim nobody checked.
+‼ This is the THIRD instance of the same shape in one day: a **vacuous C5 self-test** that never
+called the scanner it named, a **fabricated constant table** carrying a true-sounding provenance
+comment, and now a **hook that exists only in prose**. All three look like evidence and are not.
+✅ **Prevention: before quoting a fault run as proof, grep that the hook's NAME appears in CODE, not
+only in the docstring.** One command.
+
+**And the near-miss underneath it, which is the more useful half.** The FIRST push-fault run passed,
+and I nearly recorded that as proof the jam recovery works. It was only a CONTROL-FLOW INFERENCE: the
+run's own grep filter had dropped the chapter's jam/recovery messages, and the unfiltered output was
+gone. The inference happened to be sound — but "sound inference" is not this project's currency.
+✅ **Fix: INSTRUMENT THE ACTION.** The driver now WRAPS the real `_recover_room8_jam` and
+`_finish_on_route128` and reports `room8_recoveries=<n> route128_resumes=<n>` in its RESULT line. The
+re-run then showed `ROOM8 JAM RECOVERY FIRED (#1)` directly, and the resume arm showed
+`route128_resumes=1` with **`room8_recoveries=0`** — which is the discriminator proving attempt 2
+never re-entered the cavern at all.
+⇒ **WHEN A RUN'S OUTPUT IS FILTERED, THE FILTER IS PART OF THE INSTRUMENT.** Twice today a filtered
+background run hid the very line I needed — once a traceback body, once a recovery message. Filter to
+include what you are trying to OBSERVE, not only what you expect to SUCCEED.

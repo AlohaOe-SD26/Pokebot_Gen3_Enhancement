@@ -3651,7 +3651,70 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Mossdeep Space Center already done — skipping.[/]")
         _guard("Mossdeep Space Center + Dive (Ch19)", lambda: _done("RECEIVED_HM_DIVE"))
 
-        # END OF BUILT CONTENT. Next build: the SEAFLOOR CAVERN — which is **Chapter 20**
+        # --- Segment 19b: TEACH DIVE. HM08 is in the bag after Ch19, but at this point in a real
+        #     run the party is FULL and NOBODY can learn Dive (measured on `post_space_center.ss1`:
+        #     Sceptile/Zigzagoon/Swellow/Skitty/Mightyena/Castform, `hm_learner_slot(HM08)` -> None).
+        #     §Ch20 REFUSES to start without a Dive user, so this must be acquired by PLAYING.
+        #     ‼ The ch20 drivers cheat here — `_inject_dive_fixture` `debug_write_party`s a Wailmer
+        #     into slot 3. Production does NOT fabricate; it hunts, makes room, and teaches.
+        #     ⚠ Route 117 Marill (10%, L13, ~1055 waypoints) is what `_hm_hunting_grounds` picks
+        #     today. Route 120 Marill (15%, L25-27, ~379 waypoints) is measurably better on every
+        #     axis and is filed as `#24-divegroundroute120` — it needs ONE live sweep first, because
+        #     this project demotes statically-derived grounds (the Route 114 lesson).
+        #     ⛔ Shoal Cave is NOT an option and must not be re-proposed: ruled out 2026-08-13
+        #     (`06-DECISIONS-LOG.md`) because at HIGH TIDE its reachable on-foot encounter tiles drop
+        #     to ZERO, so the hunt would silently burn its whole budget and read as bad luck.
+        def _party_knows_dive() -> bool:
+            try:
+                from modules.pokemon_party import get_party as _gp
+
+                return any(
+                    learned is not None and learned.move.name == "Dive"
+                    for mon in _gp()
+                    if mon is not None and not mon.is_egg
+                    for learned in mon.moves
+                )
+            except Exception:
+                return False
+
+        if not _party_knows_dive():
+            from modules.items import get_item_by_name
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import ensure_hm_learner_making_room, teach_hm_move
+
+            _hm08 = get_item_by_name("HM08")
+            # ‼ `ensure_hm_learner_making_room` is safe with a full party: it deposits ONLY on the
+            # specific "party is full" failure, and `find_dead_weight` EXEMPTS the sole carrier of
+            # any HM — driven evidence on this exact party picks Skitty and spares the Zigzagoon
+            # carrying Surf, which the run needs to reach Route 128 at all.
+            _slot = yield from ensure_hm_learner_making_room(_hm08, (PokemonCenter.MossdeepCity,))
+            yield from teach_hm_move(_hm08, _slot)
+        else:
+            console.print("[dim]Story: someone already knows Dive — teach skipped.[/]")
+        _guard("Teach Dive (Ch19b)", _party_knows_dive)
+
+        # --- Segment 20: the SEAFLOOR CAVERN — dive in, nine rooms, Kyogre, off the atoll. ---
+        #     ⛔ GRADED ON `ROUTE128_STATE >= 2`, NEVER on `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`: that
+        #     flag is set at `Room9/scripts.inc:128`, BEFORE the warp at `:138` and before a SECOND
+        #     lock-all cutscene on Route 128 — so a flag-graded segment would report success from
+        #     inside two nested scenes, standing on a sandbar it cannot leave.
+        #     ‼ `_done_var` is used rather than a raw `get_event_var` because `get_event_var`
+        #     returns -1 for a phantom name and would compare False against every threshold forever.
+        #     The decomp spells it `VAR_ROUTE128_STATE`; our table's key is the bare `ROUTE128_STATE`.
+        from modules.story.seafloor_cavern import do_seafloor_cavern_chapter
+
+        if not _done_var("ROUTE128_STATE", 2):
+            yield from do_seafloor_cavern_chapter()
+        else:
+            console.print("[dim]Story: Seafloor Cavern already done — skipping.[/]")
+        _guard("Seafloor Cavern / Kyogre (Ch20)", lambda: _done_var("ROUTE128_STATE", 2))
+
+        # END OF BUILT CONTENT. Next build: SOOTOPOLIS / RAYQUAZA — **Chapter 21**.
+        # ✅ §Ch20 IS NOW WIRED (2026-08-24) — the text below is retained for its Ch21 leads and for
+        # the traps, which still apply. Sootopolis is driven by `VAR_SOOTOPOLIS_CITY_STATE == 1`,
+        # which Room 9 sets in the SAME block that sets `ROUTE128_STATE` — so Ch21 is enterable the
+        # moment Ch20 completes. (Superseded text follows.)
+        # OLD: END OF BUILT CONTENT. Next build: the SEAFLOOR CAVERN — which is **Chapter 20**
         # (`chapters.py:233`, graded on `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`). Chapter 21 is
         # Sootopolis/Rayquaza and has not been touched.
         # ✅ **KI-63 IS RESOLVED (2026-08-13) — this comment used to say the cavern was BLOCKED by

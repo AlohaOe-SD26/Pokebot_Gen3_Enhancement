@@ -18057,3 +18057,73 @@ tells the next agent to redo it.
 ⇒ **This is the "one measured number restated in prose in N places" pattern for the fourth time in
 two days.** The number here was `1`. Only the gate found all ten; a reviewer found none of them,
 because they read as ordinary prose.
+
+## 2026-08-24 — §Ch20 IS A CHAPTER: the bot plays the Seafloor Cavern by itself, and BOTH recovery paths are exercised
+
+**The story frontier moved.** The Seafloor Cavern's nine rooms had been DRIVEN since 2026-08-14 but
+were **not a chapter**: no module, nothing wired into `_play()`, and the drivers injected Dive with a
+debug write. That is now assembled, wired and driven.
+
+`modules/story/seafloor_cavern.py` (971 lines) — nine legs plus the orchestrator; wired as
+**Segment 19b** (teach Dive organically) and **Segment 20** (the cavern), graded on
+`_done_var("ROUTE128_STATE", 2)`.
+
+### FOUR DRIVES OF THE PRODUCTION ENTRY POINT — not of a copy of it
+| run | result |
+|---|---|
+| clean | `done=True var2=2 surfing=True at=(38,24) ocean_path=True` → **ACCEPTANCE: PASS** |
+| fault: Room 8 push fails | **PASS**, `room8_recoveries=1` — the in-room jam recovery fired and the chapter still finished |
+| fault: failure AFTER the Kyogre trigger | **PASS**, `route128_resumes=1` and **`room8_recoveries=0`** — attempt 2 never re-entered the cavern |
+
+‼ **`room8_recoveries=0` in run 3 is the whole point.** It proves attempt 2 recognised that the
+`(17,42)` trigger was disarmed PERMANENTLY and finished on Route 128 instead of re-diving ~25 minutes
+into a guaranteed-fail arm check.
+‼ **The acceptance includes "and the bot can continue"** — a real `calculate_path` from the launch
+tile to the dive tile, proving the 1,766-tile OPEN OCEAN rather than the 41-tile closed lagoon.
+§Ch15 ended four floors underground, §Ch18 on an eleven-tile island, §Ch19 in a living room, and ALL
+THREE PASSED THEIR OWN TESTS.
+
+### WHAT THE RESEARCH FOUND BEFORE ANY CODE WAS WRITTEN
+* **The decomp CORRECTED our own build spec.** It proposed a resume branch on *"the Kyogre flag is
+  set but the var is < 2"*. That cannot discriminate: `setvar VAR_ROUTE128_STATE, 1` is at
+  `Room9/scripts.inc:115`, **thirteen lines BEFORE** the flag at `:128`, in the same script — so no
+  reachable state has the flag set and the var at 0. The shipped condition is `ROUTE128_STATE == 1`.
+* **The grading name in every doc was wrong for our API.** `VAR_ROUTE128_STATE` is the decomp's
+  spelling; `_event_vars` has the bare `ROUTE128_STATE`, and `get_event_var` returns **-1** for an
+  unknown name. ⚠ Severity is lower than first claimed: `_done_var` RAISES on a phantom name, so
+  only a raw `get_event_var` call fails silently.
+* **Seven agents extracted the per-leg routing** rather than transcribing 800 lines of harness by
+  eye. The seam walk (each leg's postcondition vs the next's precondition) found a missing constant
+  and an inert recovery; the contradiction pass found the fabricated push table (below).
+
+### ⛔ AND THE REVIEW FOUND FOUR BLOCKERS, ALL IN THE ORCHESTRATION GLUE — THE UNDRIVEN PART
+1. **The Room 8 push loop had no per-push `try/except`,** so a jam propagated out and skipped the one
+   fault-proven recovery entirely — turning a cheap in-room retry into a ~25-minute re-dive. The
+   driven harness wraps EVERY push (`story_harness.py:8193-8200`); I transcribed only the happy path.
+2. **The resume check ran once before the retry loop, not per attempt** — so one timeout after the
+   trigger fired would burn attempts 2 and 3 on runs that could not possibly succeed.
+3. **The anti-lagoon `calculate_path` was unguarded.** `PathFindingError` is a `RuntimeError`, not a
+   `BotModeError`, so the assertion guarding the WORST outcome would have escaped the chapter's own
+   retry handler as a raw traceback.
+4. The outer retry loop was missing its loop-head `_check_abort()`.
+⇒ **A DRIVEN HARNESS'S PER-STEP `try/except` AROUND A RETRIABLE ACTION IS PART OF THE PROVEN
+BEHAVIOUR — TRANSCRIBE IT, NOT JUST THE STEPS.**
+
+### AND FIXING THOSE BROKE SOMETHING A DIFFERENT GATE CAUGHT
+`repro_undefined_names.py` found **three undefined names** (`StoryAbort`, `reraise_if_aborting`,
+`_check_abort`) — each a `NameError` sitting on exactly the branches just added, which only execute
+during a push failure or a whiteout. They would have surfaced as a crash *during* recovery.
+
+### AND A FIFTH DRIVE: the resume window the review raised as a RISK is now CLOSED and EXERCISED
+`escape_outstanding()` covers the window between `ROUTE128_STATE` reaching 2 and the atoll escape
+completing — where `seafloor_cavern_done()` is False (still on the landing tile) and
+`route128_scene_outstanding()` is False (the var is 2, not 1). Without it the retry loop would
+RE-DIVE ~25 minutes into a permanently-disarmed trigger, three times, then hard-fail.
+✅ `POKEBOT_CH20_FAULT=chapter_escape` → **ACCEPTANCE: PASS** with a THREE-WAY discrimination:
+`room8_recoveries=0` (never re-entered the cavern), `route128_resumes=0` (correctly not that branch),
+`escape_legs=1`. Three counters, exactly one fired.
+‼ **Extracting the shared escape leg exposed a second defect:** `_finish_on_route128()` carried its
+OWN copy of the escape walk, missing BOTH the surfing assert and the anti-lagoon `calculate_path` —
+so that recovery could have reported success while leaving the run in the 41-tile CLOSED LAGOON.
+⇒ **A DUPLICATED LEG IS NOT JUST DRIFT RISK; THE COPY SILENTLY LOSES THE ASSERTIONS.** One copy now,
+four callers.

@@ -1,0 +1,68 @@
+EVIDENCE — §Ch20 CHAPTER: four drives of the PRODUCTION entry point (2026-08-24)
+
+`--driver ch20chapter` calls `modules.story.seafloor_cavern.do_seafloor_cavern_chapter()` — the same
+function `_play()` runs as Segment 20 — NOT a copy of its steps.
+
+### 1. CLEAN RUN
+[ch20chapter] RESULT done=True var2=2 surfing=True at=(38, 24) ocean_path=True
+[ch20chapter] ACCEPTANCE: PASS
+
+### 2. FAULT: Room 8 push fails -> the in-room jam recovery must fire and the chapter still finish
+[ch20chapter] ‼ FAULT: failing the first Room 8 push on purpose — the jam-recovery path is the thing under test.
+[ch20chapter] ROOM8 JAM RECOVERY FIRED (#1)
+[ch20chapter] RESULT done=True var2=2 surfing=True at=(38, 24) ocean_path=True room8_recoveries=1
+[ch20chapter] ACCEPTANCE: PASS
+
+### 3. FAULT: failure AFTER the Kyogre trigger -> attempt 2 must NOT re-dive
+Story: Ch20 prepared — healed at Mossdeep, 6 able to battle.
+[ch20chapter] ‼ FAULT: raising AFTER the Room 9 trigger fired — attempt 2 must take the Route 128 recovery, NOT re-dive into a disarmed trigger.
+Story: Ch20 attempt 1 failed — fault-injected failure after the Kyogre trigger
+[ch20chapter] ROUTE128 RESUME RECOVERY FIRED (#1)
+Story: Ch20 — the cavern scene already ran; finishing on Route 128 rather than 
+Story: Ch20 complete — finished on Route 128 without re-diving.
+[ch20chapter] RESULT done=True var2=2 surfing=True at=(38, 24) ocean_path=True room8_recoveries=0 route128_resumes=1
+[ch20chapter] ACCEPTANCE: PASS
+
+‼ THE DISCRIMINATOR IN RUN 3 IS `room8_recoveries=0`. It proves attempt 2 never re-entered the
+cavern at all — it recognised that `SEAFLOOR_CAVERN_STATE` was already 1 (the (17,42) trigger
+disarmed PERMANENTLY, decomp-verified: nothing in the game ever resets it) and finished on Route
+128, whose ON_FRAME scene re-fires at `ROUTE128_STATE == 1`. Without that branch attempt 2 would
+have re-dived ~25 minutes into a guaranteed-fail arm check, then done it a third time.
+
+‼ BOTH RECOVERY PATHS WERE BLOCKERS FOUND BY ADVERSARIAL REVIEW, AND BOTH ARE NOW *EXERCISED*, NOT
+merely fixed. The first fault run PASSED but produced no observation of the recovery — the run's own
+grep filter had dropped it — so the driver was changed to WRAP the real recovery functions and
+report their firing counts. "A candidate is not an attempt": the RESULT line now states what
+actually ran.
+
+⚠ WHAT THESE RUNS DO *NOT* PROVE:
+  * Dive is still INJECTED by the driver fixture. Organic acquisition is separately proven
+    (`--driver divelearner`) and is now wired as Segment 19b, but it did NOT run here.
+    => these are ASSEMBLY tests, not end-to-end story tests.
+  * The Archie fight is stochastic (measured 2W/1L across earlier drives). All four runs here won it;
+    a LOSS takes the whiteout path, which `StoryMode.run` owns and which these arms do not cover.
+
+### 4. FAULT: failure INSIDE the atoll escape, var already at 2 -> the ESCAPE-ONLY resume
+Story: Ch20 prepared — healed at Mossdeep, 6 able to battle.
+[ch20chapter] ‼ FAULT: raising inside the atoll escape, with the var already at 2 — attempt 2 must take the ESCAPE-ONLY resume, not re-dive.
+Story: Ch20 attempt 1 failed — fault-injected failure during the atoll escape
+Story: Ch20 — scene already complete; only the atoll escape is left.
+[ch20chapter] ATOLL ESCAPE LEG RAN (#1)
+Story: Ch20 complete — escaped without re-diving.
+[ch20chapter] RESULT done=True var2=2 surfing=True at=(38, 24) ocean_path=True room8_recoveries=0 route128_resumes=0 escape_legs=1
+[ch20chapter] ACCEPTANCE: PASS
+
+‼ RUN 4 IS A THREE-WAY DISCRIMINATION, not merely a PASS. `room8_recoveries=0` (never re-entered the
+cavern), `route128_resumes=0` (correctly did NOT take that branch — the var is 2, not 1), and
+`escape_legs=1` (took the escape-only branch, once). Three counters, exactly one fired.
+
+‼ THIS WINDOW WAS A RISK RAISED BY ADVERSARIAL REVIEW, NOT SOMETHING A CLEAN RUN COULD FIND. Between
+ROUTE128_STATE reaching 2 and the escape walk completing, NEITHER other predicate helps:
+`seafloor_cavern_done()` is False (still on the landing tile) and `route128_scene_outstanding()` is
+False (the var is 2, not 1). Without `escape_outstanding()` the retry loop would have RE-DIVED ~25
+minutes into a permanently-disarmed trigger, three times, and then hard-failed.
+
+‼ AND EXTRACTING THE SHARED ESCAPE LEG EXPOSED A SECOND DEFECT: `_finish_on_route128()` had its OWN
+COPY of the escape walk, missing BOTH the surfing assert and the anti-lagoon `calculate_path` — so
+that recovery path could have reported success while leaving the run in the 41-tile CLOSED LAGOON.
+One copy now, four callers.

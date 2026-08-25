@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -8624,6 +8624,195 @@ class Ch20Room9Mode(Ch20Room8Mode):
         return
 
 
+class Ch20ChapterMode(Ch20DiveMode):
+    """§Ch20 AS A CHAPTER — drives the PRODUCTION function, not a copy of it.
+
+    ‼ THE POINT OF THIS DRIVER IS THE ASSEMBLY, NOT THE ROOMS. Every room was already proven by
+    `ch20dive/room1/room2/room6/room3/room8/room9`. What has NEVER been driven is
+    `modules.story.seafloor_cavern.do_seafloor_cavern_chapter()` — the orchestration glue: the
+    retry loop, the resume branch, the jam-recovery wiring and the preflight. An adversarial review
+    found FOUR blockers in exactly that glue, so it is the part that needs a drive.
+
+    ⛔ IT CALLS THE PRODUCTION ENTRY POINT. Copying the chapter's steps into this driver would
+    prove the copy works and tell us nothing about what `_play()` will run (`boxwithdraw`'s rule).
+
+    ⚠ DIVE IS STILL INJECTED HERE, DELIBERATELY AND NARROWLY. Organic acquisition is a SEPARATE
+    proven thing (`--driver divelearner`) and is now wired as Segment 19b; injecting it keeps this
+    drive pointed at the cavern instead of re-testing the hunt. ⛔ That makes this an ASSEMBLY test,
+    not an end-to-end story test — do not quote its PASS as proof the bot can reach the cavern by
+    playing.
+
+    FAULT HOOKS, to prove the two recovery paths a review found missing rather than assuming them:
+      POKEBOT_CH20_FAULT=chapter_push   force the FIRST Room 8 `strength_push` to raise, which must
+                                        drive `_recover_room8_jam()` and still finish.
+      POKEBOT_CH20_FAULT=chapter_escape force a failure INSIDE the atoll escape, with the var
+                                        already at 2 — attempt 2 must take the ESCAPE-ONLY
+                                        resume rather than re-dive.
+      POKEBOT_CH20_FAULT=chapter_resume force a `BotModeError` right after the Room 9 trigger fires,
+                                        which must make attempt 2 take the Route 128 recovery
+                                        INSTEAD of re-diving (the trigger is disarmed by then).
+
+    Run:  PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20chapter --frames 6000000
+    Emits: [ch20chapter] RESULT done=<b> var2=<b> surfing=<b> at=<tile> ocean_path=<b>
+    """
+
+    @staticmethod
+    def name():
+        return "Ch20Chapter"
+
+    def run(self):
+        # ‼ EVERYTHING IS IMPORTED LOCALLY, which is this file's convention for `modules.*` — the
+        # harness is imported before a ROM is loaded, so module-scope game imports break it.
+        from modules.map_data import MapRSE
+        from modules.modes import BotModeError
+        from modules.player import AvatarFlags, get_player_avatar
+        from modules.story import seafloor_cavern as chapter
+        from modules.story.early_game import wait_until_truly_controllable
+
+        # ‼ `_os`, not `os` — this module imports `os as _os` (:15). A bare `os` here cost a
+        # 25-minute background drive that died on frame 1 with a NameError.
+        # ⇒ SMOKE-TEST A NEW DRIVER WITH A TINY `--frames` BEFORE COMMITTING TO A LONG RUN. And note
+        # `repro_undefined_names.py` scans `modules/story/`, NOT `tools/story-dev/`, so this class
+        # of bug is NOT gated here.
+        fault = _os.environ.get("POKEBOT_CH20_FAULT", "")
+        yield from wait_until_truly_controllable()
+        yield from self._inject_dive_fixture()
+        if not self.fixture_ok:
+            log("[ch20chapter] RESULT done=False var2=False surfing=False at=? ocean_path=False")
+            log("[ch20chapter] ACCEPTANCE: FAIL — the Dive fixture failed; the cavern is unreachable")
+            context.set_manual_mode()
+            return
+
+        # ‼ INSTRUMENT THE ACTION, NOT THE OUTCOME. The first fault run PASSED, which implies the
+        # jam recovery ran — but only by control-flow inference, because the chapter reports a jam
+        # through `context.message` and the run's own grep filter dropped it. "A candidate is not an
+        # attempt": wrap the real recovery so the RESULT line can state whether it actually fired.
+        recovery = {"count": 0}
+        resume = {"count": 0}
+        _real_finish = chapter._finish_on_route128
+
+        def _counted_finish(*a, **kw):
+            resume["count"] += 1
+            log(f"[ch20chapter] ROUTE128 RESUME RECOVERY FIRED (#{resume['count']})")
+            return _real_finish(*a, **kw)
+
+        chapter._finish_on_route128 = _counted_finish
+        escapes = {"count": 0}
+        _real_escape_leg = chapter._escape_the_atoll
+
+        def _counted_escape(*a, **kw):
+            escapes["count"] += 1
+            log(f"[ch20chapter] ATOLL ESCAPE LEG RAN (#{escapes['count']})")
+            return _real_escape_leg(*a, **kw)
+
+        chapter._escape_the_atoll = _counted_escape
+        _real_recover = chapter._recover_room8_jam
+
+        def _counted_recover(*a, **kw):
+            recovery["count"] += 1
+            log(f"[ch20chapter] ROOM8 JAM RECOVERY FIRED (#{recovery['count']})")
+            return _real_recover(*a, **kw)
+
+        chapter._recover_room8_jam = _counted_recover
+
+        if fault == "chapter_escape":
+            # ⛔ THE THIRD WINDOW, and it is the one an adversarial review named as MISSING EVIDENCE.
+            # Fail INSIDE the atoll escape, i.e. AFTER `ROUTE128_STATE` has already reached 2. At
+            # that instant NEITHER other resume predicate helps: `seafloor_cavern_done()` is False
+            # (still on the landing tile) and `route128_scene_outstanding()` is False (the var is 2,
+            # not 1). Without `escape_outstanding()` the retry loop would RE-DIVE ~25 minutes into a
+            # permanently-disarmed trigger, up to three times, and then hard-fail.
+            _real_escape = chapter._escape_the_atoll
+            esc_state = {"fired": False}
+
+            def _faulty_escape(*a, **kw):
+                if not esc_state["fired"]:
+                    esc_state["fired"] = True
+                    log("[ch20chapter] ‼ FAULT: raising inside the atoll escape, with the var already "
+                        "at 2 — attempt 2 must take the ESCAPE-ONLY resume, not re-dive.")
+                    raise BotModeError("fault-injected failure during the atoll escape")
+                return _real_escape(*a, **kw)
+
+            chapter._escape_the_atoll = _faulty_escape
+
+        if fault == "chapter_resume":
+            # ⛔ THIS HOOK WAS DOCUMENTED BEFORE IT EXISTED. For one commit the docstring advertised
+            # `chapter_resume` and nothing implemented it — so running it would have produced an
+            # ordinary CLEAN run that silently READ AS PROOF of the resume path. A test hook that
+            # does not exist is worse than none: it manufactures a false PASS.
+            # Fail the SECOND milestone, i.e. AFTER the Room 9 trigger has fired and the forced warp
+            # has landed us on Route 128. At that instant SEAFLOOR_CAVERN_STATE is 1 (the trigger is
+            # disarmed FOREVER) and ROUTE128_STATE is 1 — precisely the state where re-diving can
+            # never work and `_finish_on_route128()` is the only route through.
+            _real_ride = chapter._ride_until
+            ride_state = {"fired": False}
+
+            def _faulty_ride(label, predicate, budget_frames):
+                if not ride_state["fired"] and "ROUTE128 scene" in label:
+                    ride_state["fired"] = True
+                    log("[ch20chapter] ‼ FAULT: raising AFTER the Room 9 trigger fired — attempt 2 "
+                        "must take the Route 128 recovery, NOT re-dive into a disarmed trigger.")
+                    raise BotModeError("fault-injected failure after the Kyogre trigger")
+                return _real_ride(label, predicate, budget_frames)
+
+            chapter._ride_until = _faulty_ride
+
+        if fault == "chapter_push":
+            # Wrap the REAL `strength_push` the chapter imports, and fail its first Room 8 call.
+            import modules.story.early_game as _eg
+
+            original = _eg.strength_push
+            state = {"fired": False}
+
+            def _faulty(map_enum, approach, face, **kwargs):
+                if not state["fired"] and approach == chapter.ROOM8_PUSHES[0][0]:
+                    state["fired"] = True
+                    log("[ch20chapter] ‼ FAULT: failing the first Room 8 push on purpose — the "
+                        "jam-recovery path is the thing under test.")
+                    raise BotModeError("fault-injected Room 8 push failure")
+                return original(map_enum, approach, face, **kwargs)
+
+            _eg.strength_push = _faulty
+
+        try:
+            yield from chapter.do_seafloor_cavern_chapter()
+        except Exception as error:  # noqa: BLE001 - the driver REPORTS; it never hides
+            log(f"[ch20chapter] CHAPTER RAISED {type(error).__name__}: {str(error)[:400]}")
+
+        done = chapter.seafloor_cavern_done()
+        var2 = chapter._var("ROUTE128_STATE")
+        try:
+            avatar = get_player_avatar()
+            surfing = AvatarFlags.Surfing in avatar.flags
+            at = tuple(avatar.local_coordinates)
+        except Exception:  # noqa: BLE001
+            surfing, at = False, None
+        # ‼ INLINED, not `self._path_ok(...)`: that helper lives on `Ch20Room1Mode`, not on the
+        # `Ch20DiveMode` base this class extends — calling it cost a full 25-minute drive whose
+        # CHAPTER SUCCEEDED but whose ACCEPTANCE line never printed. The reporting must never be
+        # able to fail after the thing under test has passed.
+        if at is None:
+            ocean_path, ocean_detail = False, "no position"
+        else:
+            try:
+                from modules.map_path import calculate_path as _cp
+
+                _cp((MapRSE.ROUTE128, at), (MapRSE.ROUTE128, chapter.OCEAN_PROBE))
+                ocean_path, ocean_detail = True, f"OK {at} -> {chapter.OCEAN_PROBE}"
+            except Exception as _perr:  # noqa: BLE001 - a failed probe is a RESULT, not a crash
+                ocean_path, ocean_detail = False, f"{type(_perr).__name__}: {str(_perr)[:160]}"
+
+        log(f"[ch20chapter] RESULT done={done} var2={var2} surfing={surfing} at={at} "
+            f"ocean_path={ocean_path} room8_recoveries={recovery['count']} "
+            f"route128_resumes={resume['count']} escape_legs={escapes['count']}")
+        log(f"[ch20chapter] OCEAN-PATH {ocean_detail}")
+        # ‼ ACCEPTANCE INCLUDES "AND THE BOT CAN CONTINUE". Three chapters in this project shipped
+        # stranded while passing their own tests; the ocean path off the launch tile is that check.
+        passed = bool(done) and var2 == 2 and surfing and at == chapter.ESCAPE_WATER and ocean_path
+        log(f"[ch20chapter] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
 class DiveLearnerMode(BotMode):
     """KI-63 — acquire a REAL Dive learner: free a slot, hunt, catch, teach, verify.
 
@@ -9796,6 +9985,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch20Room8Mode()
         elif args.driver == "ch20room9":
             context.bot_mode_instance = Ch20Room9Mode()
+        elif args.driver == "ch20chapter":
+            context.bot_mode_instance = Ch20ChapterMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

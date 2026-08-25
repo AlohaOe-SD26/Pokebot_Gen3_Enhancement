@@ -1,0 +1,39 @@
+EVIDENCE — §Ch20 AS A CHAPTER: the FIRST end-to-end drive of the production entry point
+
+WHAT THIS IS. `--driver ch20chapter` calls `modules.story.seafloor_cavern.do_seafloor_cavern_chapter()`
+— the PRODUCTION function that `_play()` now calls as Segment 20 — not a copy of its steps. Copying
+the steps into a driver would prove the copy works and say nothing about what the bot will run.
+
+WHAT IT PROVES. The bot dives from Route 128, solves Rooms 1/2/6/3/8 (including the nine boulder
+pushes where one wrong facing PERMANENTLY seals the exit), crosses the current maze, takes the
+unavoidable DOUBLE trainer battle in Room 3, beats Archie, rides two cutscenes, and surfaces into
+OPEN OCEAN — unattended.
+
+### RUN 1 — the chapter SUCCEEDED but the DRIVER's reporting crashed after the fact
+Story: Ch20 prepared — healed at Mossdeep, 6 able to battle.
+Story: Ch20 complete — Kyogre is awake, and the run is off the atoll in open 
+AttributeError: 'Ch20ChapterMode' object has no attribute '_path_ok'
+   (the chapter passed; the helper _path_ok lives on Ch20Room1Mode, not the base this driver extends.)
+   => THE REPORTING MUST NEVER BE ABLE TO FAIL AFTER THE THING UNDER TEST HAS PASSED. Inlined.
+
+### RUN 2 — the formal record, after the reporting fix
+Story: Ch20 prepared — healed at Mossdeep, 6 able to battle.
+Story: Ch20 complete — Kyogre is awake, and the run is off the atoll in open 
+[ch20chapter] RESULT done=True var2=2 surfing=True at=(38, 24) ocean_path=True
+[ch20chapter] OCEAN-PATH OK (38, 24) -> (38, 27)
+[ch20chapter] ACCEPTANCE: PASS
+
+‼ THE ACCEPTANCE INCLUDES "AND THE BOT CAN CONTINUE", DELIBERATELY. `ocean_path` is a real
+`calculate_path` from the launch tile (38,24) to the dive tile (38,27), proving the run is in the
+1,766-tile OPEN OCEAN and not the 41-tile CLOSED LAGOON north of the sandbar. §Ch15 ended four floors
+underground, §Ch18 on an eleven-tile island and §Ch19 in a living room — and ALL THREE PASSED THEIR
+OWN ACCEPTANCE TESTS. Reaching ROUTE128_STATE == 2 only means Kyogre woke; it says nothing about
+whether the bot can leave.
+
+⚠ WHAT THIS DOES *NOT* PROVE — stated so the PASS is not over-quoted:
+  * Dive is still INJECTED by the driver's fixture. Organic acquisition is separately proven
+    (`--driver divelearner`) and is now wired as Segment 19b, but this run did NOT exercise it.
+    ⇒ this is an ASSEMBLY test, not an end-to-end story test.
+  * The two RECOVERY paths an adversarial review found missing (Room 8 jam recovery; the Route 128
+    resume branch) did NOT execute on this run — a clean run cannot reach them. They are exercised
+    by `POKEBOT_CH20_FAULT=chapter_push` and `=chapter_resume`.
