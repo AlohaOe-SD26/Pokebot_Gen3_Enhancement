@@ -1,0 +1,39 @@
+THE SETTLED ARTIFACT for #26-gatestartupcontention — a complete, dated run_gates.py transcript
+(the Tier 1 review refused the previous evidence: an overwritten in-flight .gate-logs snapshot)
+======================================================================================
+============================================================================================
+============================================================================================
+  PASS  preflight.py                       exit=0     0.7s
+  PASS  lint_docs.py                       exit=0     0.3s
+  PASS  audit_doc_consistency.py           exit=0     0.8s
+  PASS  verify_fixtures.py                 exit=0     0.1s
+  PASS  audit_flag_names.py                exit=0     0.1s
+  PASS  repro_undefined_names.py           exit=0     1.1s
+  PASS  repro_no_silent_except.py          exit=0     0.3s
+  PASS  repro_roster_reorder.py            exit=0     0.1s
+  PASS  audit_encoding.py                  exit=0     1.0s
+  PASS  repro_box_counter_move_test.py     exit=0     0.4s
+  PASS  repro_pid_identity_key.py          exit=0     0.5s
+  PASS  repro_boss_grass_gate.py           exit=0     0.1s
+  PASS  repro_party_accounting.py          exit=0     0.7s
+  PASS  repro_heal_piggyback_reporting.py  exit=0     0.1s
+  PASS  repro_hm_slot_wiring.py            exit=0     0.3s
+  PASS  repro_multi_battle_partner.py      exit=0     0.5s
+  PASS  repro_whiteout_abort.py            exit=0     0.6s
+  FAIL  repro_gym_whiteout_guard.py        exit=124   900.0s
+  PASS  probe_chapter_order.py             exit=0     2.8s
+  PASS  probe_dive_learner.py              exit=0     0.1s
+  PASS  probe_slot_free_plan.py            exit=0     1.0s
+  PASS  repro_impassable_dirs.py           exit=0     1.0s
+  PASS  repro_ki65_unbound_party_index.py  exit=0     5.9s
+  PASS  repro_withdraw_verdict.py          exit=0     0.4s
+  PASS  probe_abort_swallowing.py          exit=0     0.2s
+  PASS  audit_doc_citations.py             exit=0    13.4s
+  PASS  selftest_git_add_hook.py           exit=0     1.3s
+  PASS  repro_loop_head_abort.py           exit=0     0.7s
+  PASS  repro_ch20_constants.py            exit=0     0.5s
+============================================================================================
+FAILED: 1 of 31
+    ‼ TIMEOUT — killed after 900s by run_gates.py.
+      A hung gate is a FAILED gate. If this is legitimate work, raise the bound
+============================================================================================

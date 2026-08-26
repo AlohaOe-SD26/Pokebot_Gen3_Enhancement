@@ -1,0 +1,39 @@
+THE WINONA SECOND WIND — `#26-manualderails`, the two-era arm (--driver secondwind)
+======================================================================================
+DESIGN RULE HONOURED: the arm was BUILT AND MEASURED ON UNMODIFIED CODE FIRST; the fix shipped
+only after ARM TODAY matched the hand-computed discriminator exactly. Anchor:
+batch2_run04_wedge.ss1 (measured NO_ANSWER). Seed: 8 flat losses at FORTREE_CITY_GYM + the
+counter ladder marked CONSUMED — the exact post-hunt regime the batches measure.
+
+### ARM TODAY (pre-fix, commit dabb8148 + driver only)
+  A1..A5: RAISE ("Winona: 8 losses with no super-effective answer ... Grinding lev...")
+          hunt_witness=True history_len=8         <- byte-identical x5: the derail budget burns
+  B-REARM: RAISE ("16 losses")                    <- the honest stop, working
+  RESULT phaseA=[RAISE x5] phaseB=RAISE era=TODAY  ACCEPTANCE: PASS
+
+### ARM AFTER (the second wind in story_mode.py)
+  A1: SECOND_WIND  hunt_witness=True history_len=0   <- graded on STATE: history emptied
+  A2..A5: PLAIN_ESCALATION                           <- ZERO raises; budget never burns
+  B-REARM: RAISE ("16 losses") history_len=8 fresh   <- ⛔ THE RULED HONEST STOP SURVIVES
+  RESULT phaseA=[SECOND_WIND, PLAIN_ESCALATION x4] phaseB=RAISE era=AFTER  ACCEPTANCE: PASS
+
+The derail retry now does what the user's manual flip does — once per boss per run.
+⚠ HONEST LIMIT: this arm drives `_prepare_for_fight` DIRECTLY (the decision layer), exactly as
+ki80ladder does. It proves the branch logic in both eras; it is NOT a live Winona-era drive
+through the real derail loop (`run()`'s catch → re-localise → re-enter). That end-to-end pass
+arrives free with the next post-fix batch: the discriminator there is Winona-era lanes reaching
+Manual WITHOUT the hopeless-gate message repeating five times.
+Bounds: the marker is checked-then-written (the `_counter_hunts` pattern); `_boss_plan_is_hopeless`'s
+own len(history)>=6 gate re-arms the raise after at most 6 fresh flat losses; a fresh instance and
+the per-run reset both re-arm the wind (the manual flip keeps working); the per-run-state gate now
+enforces `_second_winds` resets.
+
+### THE PREDICTED CASUALTY, CONFIRMED THEN FIXED
+The arm design predicted ki80ladder's LADDER expectations would read RETURNED_WITHOUT_DISCRIMINATING
+under the fix. Confirmed red, fixed by pre-consuming the wind in its arm seeding.
+‼ AND THAT RUN EXPOSED A PRE-EXISTING ROT, proven by a pristine-HEAD run (everything stashed):
+GRASS_STRONG was ALREADY red at dabb8148 — the driver keyed its era on POKEBOT_KI80_DECOUPLED,
+a flag with ZERO production hits since the 2026-08-16 promotion made decoupling unconditional.
+First run of this driver since that promotion: nothing in the standing suite runs it, so its
+Expect lines rotted exactly as #24-reprosweepratchet predicts. Fixed: decoupled = True (the
+shipped era), all three arms -> LADDER (expected LADDER), ACCEPTANCE: PASS.

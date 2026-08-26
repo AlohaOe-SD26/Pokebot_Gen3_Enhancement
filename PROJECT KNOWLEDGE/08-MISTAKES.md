@@ -9652,3 +9652,28 @@ first environment that ARMED one of the latent sites.
 IN THE SAME COMMIT.** A rule that only guards the site that taught it is a changelog entry, not a
 rule. (Candidate gate: an AST scan for `press_button("A")` inside loops lacking a gating conjunct —
 filed with `#26-surfteachchain`'s residuals.)
+
+
+## 2026-08-26 — A DRIVER'S EXPECT LINES ROTTED FOR TEN DAYS BECAUSE NOTHING RUNS IT
+
+**Symptom.** `ki80ladder` — the driver that PROVED the KI-80 decoupling — reported ACCEPTANCE: FAIL
+with `GRASS_STRONG: expected 'PLAIN_ESCALATION', got 'LADDER'` plus two witness trips. First
+suspicion fell on the same-day second-wind change; a pristine-HEAD run (everything stashed) proved
+**the redness pre-dates it entirely**.
+
+**Root cause.** The driver keyed its era expectation on `POKEBOT_KI80_DECOUPLED` — a flag with
+**zero production hits** since the 2026-08-16 promotion made decoupling unconditional. Unset flag →
+the driver asserted the COUPLED era forever. Its own docstring states the rule it violated: *"an
+`Expect:` line is a CLAIM about the code — move it with the fix."* The promotion commit moved the
+code and not the claim — and **nothing noticed for ten days because nothing runs this driver**: it
+is not in the standing suite, exactly the `#24-reprosweepratchet` prediction ("what the suite does
+not run, rots"), now with a second measured instance.
+
+**The fix that worked.** `decoupled = True` (the shipped era) with the full story at the site; all
+three arms → LADDER, ACCEPTANCE: PASS. Found only because the second-wind work re-ran the driver —
+its first run since the promotion.
+
+⇒ **PREVENTION RULE: A PROMOTION THAT CHANGES BEHAVIOUR MUST RE-RUN EVERY DRIVER WHOSE EXPECT LINES
+NAME THAT BEHAVIOUR, IN THE SAME SESSION.** The promotion checklist gains it. ‼ And it sharpens
+`#24-reprosweepratchet`'s case: era-keyed expectations (env flags, config defaults) are the fastest
+rotters, because the world changes under them without any diff touching the driver.

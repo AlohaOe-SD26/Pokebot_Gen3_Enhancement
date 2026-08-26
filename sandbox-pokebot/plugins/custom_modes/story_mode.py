@@ -1151,6 +1151,10 @@ class StoryMode(BotMode):
         self._defeat_counts: dict = {}
         self._loss_ko_history: dict = {}  # map key -> [(seq, opponent KOs) per lost attempt]
         self._loss_seq: int = 0
+        #: `#26-manualderails`: boss keys whose ONE "second wind" (below) has been consumed.
+        #: Per-instance and per-run BY DESIGN — a fresh instance (the user's manual flip) and the
+        #: endless loop's per-run reset both re-arm it, exactly like `_counter_hunts`.
+        self._second_winds: set = set()
         self._whiteout_pending = False
         self._last_defeat_key = None
         self._derails = 0  # consecutive non-whiteout derails (self-correct before Manual)
@@ -1912,6 +1916,33 @@ class StoryMode(BotMode):
                     # it falls through to the SAME raise below on every failure path.
                     acted = yield from self._counter_ladder(cfg, losses, needed)
                     if not acted:
+                        # ‼ `#26-manualderails` SECOND WIND (2026-08-26). Once the ladder's one
+                        # attempt has failed, every derail retry used to re-raise DETERMINISTICALLY
+                        # — same instance, same history, zero new information — burning the
+                        # 5-derail budget into Manual. MEASURED: the user's flip back to Story
+                        # (a fresh instance: losses reset, ladder re-armed) then often WINS —
+                        # batch 20260811/L01 lost twice and beat Winona with NO super-effective
+                        # answer, refuting this raise's own "grinding will not fix this" premise.
+                        # So grant ONE fresh boss-attempt cycle per boss per run: empty this
+                        # boss's loss history (the derail retry now does what the flip does) and
+                        # return. ⛔ ONCE — the marker below is checked-then-written exactly like
+                        # `_counter_ladder`'s consumed-gate, and `_boss_plan_is_hopeless`'s own
+                        # len(history) >= 6 gate means the honest stop re-arms after at most 6
+                        # fresh flat losses. The 2026-07-30 honest-stop ruling is COMPLIED WITH,
+                        # not reopened: the raise below is intact and fires on the next hopeless
+                        # cycle. ⚠ Marker + pops BEFORE the print, no yields between — a tripwire
+                        # or real derail mid-wind must not re-grant it (`:1655-1658`'s rule).
+                        wind_key = tuple(cfg["keys"])[0] if cfg.get("keys") else cfg.get("name", "boss")
+                        if wind_key not in self._second_winds:
+                            self._second_winds.add(wind_key)
+                            for k in cfg.get("keys", ()):
+                                self._loss_ko_history.pop(k, None)
+                            console.print(
+                                f"[bold yellow]Story: counter hunt failed for {cfg.get('name', 'this boss')} "
+                                f"— granting ONE second wind: loss history cleared, re-attempting the "
+                                f"boss fresh (the honest stop re-arms after 6 fresh flat losses).[/]"
+                            )
+                            return
                         # ‼ NEVER DELETE THIS RAISE. Silent non-progress is worse than an
                         # honest stop: before phase 1 existed this boss looped for ever,
                         # and the whole value of the diagnosis is that it ENDS the run

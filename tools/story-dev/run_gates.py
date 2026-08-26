@@ -34,6 +34,14 @@ HERE = Path(__file__).resolve().parent
 #: Per-gate wall-clock bounds. The slowest real gate measured 114.6s, so these carry ~8x margin.
 #: ‼ These exist because there was NO bound at all until 2026-08-22 — see the note at the call.
 TIMEOUT_FAST = 300
+# ⛔ A 900->2400 RAISE WAS APPLIED HERE FOR ~2 HOURS ON 2026-08-26 AND REVERTED THE SAME DAY,
+# because a Tier 1 review REFUTED its premise with a live observation: `repro_gym_whiteout_guard.py`
+# hangs IN-SUITE reproducibly (frozen just AFTER printing phase [1]'s header, audio-host errors,
+# on a QUIET machine, in this strictly SEQUENTIAL runner) while passing ALL 5 checks solo -- so the
+# hang is an in-suite environmental interaction (`#26-gatestartupcontention`), and MORE TIME CANNOT
+# FIX IT: at any bound it hangs and gets killed. Raising the bound only made a real hang cost 40
+# minutes to surface instead of 15 -- the exact "bound raised without a caller that recovers" shape
+# this project has been burned by. The bound stays 900; the item holds the evidence.
 TIMEOUT_SLOW = 900
 
 #: ‼ PROBES THAT RUN BUT DO NOT GATE — introduced 2026-08-22, deep sanity check PASS 4.

@@ -6759,3 +6759,32 @@ reporting most runs as successes. Both root causes are fixed in sandbox with A/B
       *(Precedent: this file was FIVE chapters stale on 2026-08-13 and that is what motivated the
       whole DOC CONSISTENCY LAYER.)*
 
+
+
+## 📦 ARCHIVED 2026-08-26 (2nd) from `04-HANDOFF.md` NEXT ACTIONS — R3 budget
+
+> Guarded method: section-scoped, live-marker assertion, bottom-up, boundary re-asserted.
+
+---
+
+>    ✅ **(i) `#24-ch20rename` and (ii) the §Ch20 AREA ATLAS ARE BOTH DONE, and all nine rooms are
+>    DRIVEN — do NOT re-measure or re-drive.** ‼ **Keep the two lessons:** §Ch20 is a
+>    **STRENGTH-BOULDER dungeon, not a route** (Rooms 6/7 are open water needing SURF, not
+>    Strength); and an atlas read REMOTELY is a **LOWER BOUND** — `is_tile_accessible` blocks every
+>    tile whose object is not in `active_objects`, so a remote read's NO-PATHs are an ARTIFACT, not
+>    a map fact (§Ch19 hit this too).
+>    **(ii-continued) THE BUILD SPEC IS WRITTEN:**
+>    📦 **The §Ch20 BUILD-SPEC DETAIL and the "older framing" retractions were ARCHIVED 2026-08-23
+>    → `28-HANDOFF-ARCHIVE.md`** (83 lines, verbatim, R3 budget — the file was at 897/900).
+
+---
+
+>    ✅ **(a) (b) (a2) (a3) (a4) ARE ALL DONE, AND (c) IS OBSOLETE — every §Ch20 room is DRIVEN
+>    AND PASSING. ⛔ DO NOT REBUILD ANY OF THEM.** `ch20room2/3/8/9` all reached
+>    `ACCEPTANCE: PASS` (Room 3 ×2 with the DOUBLE-battle claim confirmed live; Room 8 ×2 incl. a
+>    fault run proving jam recovery, `recovered=True attempts=2`; Room 9 ×2, the cavern END TO
+>    END). (c) died because KI-77's despawn window is **20x17** and Room 8 is **11x14**, smaller
+>    than it, so KI-77 cannot fire there — a repro is still worth having for the LARGE rooms but
+>    blocks nothing. ⚠ Room 9 run 2 LOST the Archie fight (**2W/1L measured** — the party arrives
+>    chipped and there is no heal in the cavern): that is CHAPTER-DESIGN input, not a driver
+>    defect, and it is why the chapter needs a whiteout-retry policy.

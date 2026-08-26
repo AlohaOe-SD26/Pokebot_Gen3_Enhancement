@@ -64,6 +64,9 @@ PER_RUN_STATE = {
     "_defeat_counts": {},
     "_loss_ko_history": {},
     "_loss_seq": 0,
+    "_second_winds": set(),  # `#26-manualderails` 2026-08-26: the one-per-boss second-wind marker
+                             # MUST reset per run, or a consumed wind would leak across runs and
+                             # silently disable the fix for every later run of the same process
     "_training_unreachable": set(),
     "_derails": 0,
     "_last_defeat_key": None,

@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -5911,7 +5911,17 @@ class Ki80LadderMode(BotMode):
         SEED = 80             # `:1819` randint and `:1941` choice are unseeded in production
         FODDER_GAP = 8        # the `+ 8` in `:1899`, restated so the assertions below are readable
 
-        decoupled = _os.environ.get("POKEBOT_KI80_DECOUPLED") == "1"
+        # ⛔ STALE-EXPECTATION FIX 2026-08-26: this line read the env flag — but the flag is RETIRED
+        # (zero hits in sandbox-pokebot/): the KI-80 decoupling was PROMOTED 2026-08-16 and is now
+        # UNCONDITIONAL in production, so keying the expectation on an unset flag asserted the
+        # COUPLED era forever. Found when the `#26` second-wind work re-ran this driver — its
+        # FIRST run since the promotion: nothing in the standing suite runs it, so its Expect
+        # lines rotted exactly as `#24-reprosweepratchet` predicts ("what the suite does not
+        # run, rots"). Its own docstring rule — "an Expect: line is a CLAIM about the code;
+        # move it with the fix" — was violated by the promotion commit. GRASS_STRONG's
+        # coupled-era witnesses (W2 "must NOT reach the ladder", W4 "should short-circuit")
+        # are era-gated below for the same reason.
+        decoupled = True  # the SHIPPED behaviour; verified: the flag has 0 production hits
         # ⛔ ARM 4 IS A SEPARATE RUN ON A DIFFERENT SAVE, so arms 1-3's anti-vacuity check does not
         # apply to it — that check asks whether ROUTE119 flips `grass_is_fodder` for a NO_ANSWER
         # party, a question arm 4 never poses. It has its OWN two controls instead (A: the party
@@ -6193,6 +6203,12 @@ class Ki80LadderMode(BotMode):
             key = MapRSE.FORTREE_CITY_GYM.value
             mode._defeat_counts[key] = LOSSES
             mode._loss_ko_history[key] = [(i, 1) for i in range(1, LOSSES + 1)]
+            # ⛔ PRE-CONSUME THE `#26-manualderails` SECOND WIND (2026-08-26). This driver's arms
+            # measure the POST-WIND raise regime; without this line the wind intercepts at the
+            # raise site and every LADDER expectation reads RETURNED_WITHOUT_DISCRIMINATING.
+            # ‼ Predicted BY THE ARM DESIGN before the fix shipped, then CONFIRMED red, then fixed
+            # — an `Expect:` line is a CLAIM about the code and moves WITH the code (:5886 rule).
+            mode._second_winds.add(key)
 
             real_hopeless = mode._boss_plan_is_hopeless      # ⛔ BOUND, captured BEFORE rebinding
 
@@ -8624,6 +8640,200 @@ class Ch20Room9Mode(Ch20Room8Mode):
         return
 
 
+class SecondWindMode(BotMode):
+    """`#26-manualderails` — the SECOND-WIND arm: does the Winona raise regime grant one fresh cycle?
+
+    ‼ BUILT BEFORE THE FIX, BY RULE. This arm's TODAY half must be measured on unmodified
+    production code first; the fix ships only if AFTER differs exactly as computed. Design +
+    hand-computed discriminator: the 2026-08-26 arm-design report (`#26-manualderails`).
+
+    THE SEEDED STATE (ki80ladder's house pattern, `batch2_run04_wedge.ss1` — measured NO_ANSWER):
+    8 flat losses at FORTREE_CITY_GYM + the counter ladder marked CONSUMED. That is the post-hunt
+    regime the batches measure: hopeless=True, ladder returns False at its consumed-gate.
+
+    PHASE A ("the burn"): `_prepare_for_fight(winona_fight)` FIVE times on the SAME instance —
+    production's derail-retry loop, minus the travel. Grades per cycle, ON STATE where possible:
+      RAISE            BotModeError; W3 requires production's own loss arithmetic in the message,
+                       and the sink must hold the ladder's "already hunted" line (the witness that
+                       the CONSUMED path ran — a missing witness on a RAISE cycle is a loud FAIL).
+      SECOND_WIND      StopIteration AND `_loss_ko_history[key]` emptied (graded on STATE).
+      PLAIN_ESCALATION / BOSS_TRAINING_MODE / ZERO_KO_FALLBACK — tripwires, as ki80ladder.
+    PHASE B ("the re-arm control"): 8 FRESH flat losses + defeat_counts=16, one more cycle.
+    ⛔ MUST RAISE IN BOTH ERAS — the 2026-07-30 honest-stop ruling surviving is part of the spec.
+
+    EXPECTED TODAY:  A = RAISE x5 (byte-identical), B = RAISE.
+    EXPECTED AFTER:  A = SECOND_WIND then PLAIN_ESCALATION x4 (zero raises), B = RAISE.
+    Anti-vacuity: W4 (a delegating observer on the REAL `_boss_plan_is_hopeless`) must report
+    hopeless=True on cycle 1, else the anchor/seed no longer produces the regime and everything
+    below is vacuous — FAIL loudly, do not grade.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py batch2_run04_wedge.ss1 --driver secondwind --frames 2000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "SecondWind"
+
+    def run(self):
+        import ast as _ast
+        import pathlib as _pathlib
+        import random as _random
+
+        import plugins.custom_modes.story_mode as _sm
+        from modules.context import context as _ctx
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.modes import BotModeError
+        from modules.pokemon_party import get_party
+
+        TAG = "secondwind"
+        fails: list[str] = []
+
+        def bad(msg: str) -> None:
+            fails.append(msg)
+            log(f"[{TAG}] ‼ {msg}")
+
+        base_cfg = {
+            "name": "Winona",
+            "keys": [MapRSE.FORTREE_CITY_GYM.value, MapRSE.FORTREE_CITY.value],
+            "band": (29, 33),
+            "ace_types": ("Dragon", "Flying"),
+            "ace_level": 33,
+            "heal": PokemonCenter.FortreeCity,
+        }
+        # AST cross-check: the replica must BE production literal (ki80ladder rule).
+        try:
+            src = _pathlib.Path(_sm.__file__).read_text(encoding="utf-8-sig")
+            literal = None
+            for node in _ast.walk(_ast.parse(src)):
+                if (isinstance(node, _ast.Assign) and len(node.targets) == 1
+                        and isinstance(node.targets[0], _ast.Name)
+                        and node.targets[0].id == "winona_fight"
+                        and isinstance(node.value, _ast.Dict)):
+                    literal = node.value
+                    break
+            if literal is None:
+                bad("could not find `winona_fight` in the source AST — the replica is UNVERIFIED")
+            else:
+                ast_keys = {k.value for k in literal.keys if isinstance(k, _ast.Constant)}
+                if ast_keys != set(base_cfg):
+                    bad("REPLICA DRIFT: winona_fight keys %s != %s"
+                        % (sorted(ast_keys), sorted(base_cfg)))
+        except Exception as error:  # noqa: BLE001
+            bad("AST cross-check raised %s: %s" % (type(error).__name__, error))
+
+        log(f"[{TAG}] party: {[(m.species.name, m.level) for m in get_party() if m is not None]}")
+
+        TRIPWIRES = (
+            ("PLAIN_ESCALATION", "training harder before"),
+            ("BOSS_TRAINING_MODE", "boss-training mode"),
+            ("ZERO_KO_FALLBACK", "boss attempts KO'd nothing"),
+        )
+
+        class _Tripped(Exception):
+            pass
+
+        real_console = _sm.console
+        sink: list[str] = []
+
+        class _Proxy:
+            def __init__(self, real, s):
+                self._real, self._sink = real, s
+
+            def print(self, *a, **kw):
+                text = " ".join(str(x) for x in a)
+                self._sink.append(text)
+                self._real.print(*a, **kw)
+                for name, needle in TRIPWIRES:
+                    if needle in text:
+                        raise _Tripped(name)
+
+        mode = _sm.StoryMode()
+        key = MapRSE.FORTREE_CITY_GYM.value
+        mode._defeat_counts[key] = 8
+        mode._loss_ko_history[key] = [(i, 1) for i in range(1, 9)]
+        mode._counter_hunts[key] = "seeded: consumed"
+
+        hopeless_calls: list[bool] = []
+        real_hopeless = mode._boss_plan_is_hopeless
+
+        def hopeless_observer(cfg_arg, _real=real_hopeless):
+            verdict = _real(cfg_arg)
+            hopeless_calls.append(bool(verdict[0]))
+            return verdict
+
+        mode._boss_plan_is_hopeless = hopeless_observer
+        _random.seed(2608)
+
+        def one_cycle(label: str) -> tuple[str, str]:
+            sink.clear()
+            gen = mode._prepare_for_fight(dict(base_cfg))
+            _sm.console = _Proxy(real_console, sink)
+            outcome, detail = "UNSET", ""
+            try:
+                next(gen)
+                outcome = "YIELDED_WITHOUT_DISCRIMINATING"
+            except _Tripped as trip:
+                outcome = str(trip)
+            except BotModeError as error:
+                outcome, detail = "RAISE", str(error)
+            except StopIteration:
+                emptied = not mode._loss_ko_history.get(key)
+                # ⛔ BOTH state facts, directly (a Tier 1 risk note: grading on `emptied` alone
+                # proved the marker only INDIRECTLY via B-REARM; assert it here too).
+                marked = key in getattr(mode, "_second_winds", set())
+                outcome = ("SECOND_WIND" if (emptied and marked)
+                           else "RETURNED_WITHOUT_DISCRIMINATING")
+                if emptied and not marked:
+                    bad(f"{label}: history emptied but the wind marker is ABSENT — the fix's "
+                        "check-then-write ordering is broken")
+            except Exception as error:  # noqa: BLE001
+                outcome, detail = "UNEXPECTED_%s" % type(error).__name__, str(error)
+            finally:
+                try:
+                    gen.close()
+                except Exception:  # noqa: BLE001 — closing must never mask the outcome
+                    pass
+                _sm.console = real_console
+            witness = any("already hunted a counter" in s for s in sink)
+            log(f"[{TAG}] {label}: {outcome}"
+                + (" (%s)" % detail[:110] if detail else "")
+                + f" hunt_witness={witness} history_len={len(mode._loss_ko_history.get(key) or [])}")
+            if outcome == "RAISE":
+                if "8 losses" not in detail and "16 losses" not in detail:
+                    bad("%s: RAISE without production loss arithmetic — got %s" % (label, detail[:90]))
+                if not witness:
+                    bad("%s: RAISE without the ladder consumed-gate witness — the seed did not "
+                        "take; the ladder may have actually hunted" % label)
+            return outcome, detail
+
+        # ---- PHASE A ----
+        outcomes = [one_cycle("A%d" % i)[0] for i in range(1, 6)]
+        if not hopeless_calls or not hopeless_calls[0]:
+            bad("ANTI-VACUITY: hopeless was not True on cycle 1 — the anchor/seed no longer "
+                "produces the raise regime; NOTHING below discriminates")
+
+        # ---- PHASE B ----
+        mode._loss_ko_history.setdefault(key, [])
+        mode._loss_ko_history[key] += [(i, 1) for i in range(9, 17)]
+        mode._defeat_counts[key] = 16
+        b_outcome, _ = one_cycle("B-REARM")
+
+        today = outcomes == ["RAISE"] * 5 and b_outcome == "RAISE"
+        after = (outcomes[0] == "SECOND_WIND"
+                 and outcomes[1:] == ["PLAIN_ESCALATION"] * 4
+                 and b_outcome == "RAISE")
+        log(f"[{TAG}] RESULT phaseA={outcomes} phaseB={b_outcome} "
+            f"era={'TODAY' if today else 'AFTER' if after else 'NEITHER'}")
+        if not (today or after):
+            bad("outcomes match NEITHER computed era — the discriminator hand-trace is wrong "
+                "or the code changed shape; investigate before any fix ships")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if not fails else 'FAIL'}"
+            + ("" if not fails else " — %d problem(s): " % len(fails) + " | ".join(fails)))
+        _ctx.set_manual_mode()
+        return
+        yield  # generator protocol
+
+
 class Ch21DiveMode(BotMode):
     """§Ch21 LEG 1 — the dive into Sootopolis. Drives the PRODUCTION entry point.
 
@@ -10136,6 +10346,8 @@ for step in range(args.frames):
             context.bot_mode_instance = BoxWriteMode()
         elif args.driver == "ki80ladder":
             context.bot_mode_instance = Ki80LadderMode()
+        elif args.driver == "secondwind":
+            context.bot_mode_instance = SecondWindMode()
         elif args.driver == "ch20dive":
             context.bot_mode_instance = Ch20DiveMode()
         elif args.driver == "ch20room1":

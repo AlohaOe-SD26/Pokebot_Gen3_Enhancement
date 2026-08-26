@@ -159,3 +159,13 @@
 {"when": "2026-08-26T06:45:25", "driver": "mossdeepgym", "build": "sandbox", "state": "in_mossdeep_gym.ss1", "frames_run": 81989, "recomputes": 81989, "scans": 274, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-26T06:51:21", "driver": "mossdeepgym", "build": "sandbox", "state": "in_mossdeep_gym.ss1", "frames_run": 40361, "recomputes": 40361, "scans": 135, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-26T06:55:38", "driver": "teachfull", "build": "sandbox", "state": "boxwithdraw.ss1", "frames_run": 21943, "recomputes": 21943, "scans": 74, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T11:46:25", "driver": "secondwind", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T11:47:41", "driver": "secondwind", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T11:48:33", "driver": "ki80ladder", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T11:49:48", "driver": "ki80ladder", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T11:50:59", "driver": "ki80ladder", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T11:52:28", "driver": "ki80ladder", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T11:55:24", "driver": "ki80ladder", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T12:07:55", "driver": "secondwind", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 300, "recomputes": 301, "scans": 2, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T12:08:10", "driver": "ki80ladder", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 300, "recomputes": 301, "scans": 2, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T12:17:29", "driver": "secondwind", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}

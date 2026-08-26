@@ -614,10 +614,18 @@ FREQUENCY; once a signature is in hand, the fix is proven by a targeted driver, 
   builds a FRESH instance: losses reset, ladder re-armed, the bot re-fights — and often wins.
   **The budget was exhausted, not the situation.**
 * ⛔ **THE HONEST-STOP RULING STANDS** (`06-DECISIONS-LOG.md` 2026-07-30 — do NOT delete the raise).
-  Fix direction is narrower: **let the derail retry do what the manual flip does** — after the
-  ladder's one failed attempt, grant ONE fresh boss-attempt cycle before the next raise. ⛔ NOT
-  SHIPPED — KI-23/KI-80-adjacent; needs its own `ki80ladder`-style arm with the discriminator
-  computed BEFORE the code changes.
+  ✅ **THE SECOND WIND IS SHIPPED 2026-08-26, BY THE BOOK:** the `--driver secondwind` arm was
+  built FIRST and measured on unmodified code (`era=TODAY`: RAISE x5 + re-arm RAISE, matching the
+  hand-computed discriminator exactly), THEN the fix landed (`era=AFTER`: SECOND_WIND +
+  PLAIN_ESCALATION x4, ZERO raises, and ⛔ the re-arm control still RAISES — the 2026-07-30
+  honest-stop ruling is COMPLIED WITH, not reopened). Once per boss per run; both natural resets
+  (manual flip, per-run reset) re-arm it; the per-run-state gate enforces the reset.
+  Evidence: `evidence/2026-08-26-secondwind-AB.txt`. ⚠ The arm proves the DECISION layer (it
+  drives `_prepare_for_fight` directly, the ki80ladder pattern); the end-to-end pass through the
+  real derail loop is measured by the next post-fix batch, discriminator: no five-fold
+  hopeless-gate repeats before Manual. ‼ The arm's predicted casualty (ki80ladder)
+  was confirmed then fixed — and that run exposed a PRE-EXISTING stale-era rot in ki80ladder
+  (proven at pristine HEAD), fixed the same hour.
 * Secondary: KI-36 battle wedges at the gym (last seen 20260810); cutscene-wedge family (absent from
   the newest 7 bundles — already fixed).
 ➡ **MOSSDEEP HALF — FIRST DATA EVER, mined MID-BATCH 2026-08-26 (⚠ interim; final counts when the
@@ -636,6 +644,24 @@ FREQUENCY; once a signature is in hand, the fix is proven by a targeted driver, 
     (heal-then-return, or exit the gym at all) is what is missing.
   * Winona (5 run-ending losses, 2 lanes) and boss type-losses (10) still dominate overall — the
     per-instance/second-wind diagnosis above stands unchanged.
+➡ **BATCH COMPLETE 2026-08-26 — FINAL NUMBERS (baseline: `ad37949b` pre-fix production code):**
+  * **50 boundary-marked runs: 6 finished / 44 derailed** (measured from the run-boundary lines
+    myself — ‼ the mining agent reported "0 finishes" and was WRONG; the harness's lane table and
+    my own grep agree on 6. Verify-the-agent, again). Treecko lanes: **0 finished of 9** — the
+    user's starter concern is now a measured fact.
+  * ⛔ **§Ch20 RAN IN A BATCH FOR THE FIRST TIME — and the TEACH BUG killed it.** L01 debug-log
+    081321: reached the Seafloor Cavern, SOLVED ROOM 8, exited to ROUTE128 — then died to
+    *"Teach flow finished but Linoone does not know Surf"*. On PRE-fix code: this is the exact path
+    `#26-surfteachchain`'s D1/D2 gates fix, now measured as a run-killer (~9% of endings, 5 runs).
+  * **The freeze signature is settled:** both frozen contexts are **MAGMA_HIDEOUT (24,86)/(24,91)
+    during the "to Fortree" stage** (the interim "To Lilycove" label was wrong), one frozen INSIDE
+    `EventScript_DoNoIntroTrainerBattle` — a NO-INTRO TRAINER battle, which can never be fled.
+  * **Treecko's Surf-chain corner measured:** L03 085044: *"Cannot hunt a Surf learner: no Poké
+    Balls and no money to buy any"* — the resource-depleted end of the hunt, filed with D3-D6.
+  * Winona: **15 run-ending derails this batch** (treecko/torchic lanes), no loss-then-win observed
+    IN THIS BATCH (the premise-refutation win is from 20260811/L01). Agent-mined ranking (⚠ its
+    finish count was wrong, so treat ranks as indicative): boss type-loss 21, watchdog 9, nav 6,
+    Surf-teach 5, handler wedge 4.
 
 ### ‼ `#26-surfteachchain` — D1/D2 GATES SHIPPED 2026-08-26 (ordinary case A/B-clean); D3-D6 residuals remain
 
@@ -689,6 +715,47 @@ Suspects: per-step re-planning, waits between inputs, or re-verifying the whole 
 every move. ⛔ Measure BEFORE touching: drive `in_mossdeep_gym.ss1` and count frames-per-phase first,
 so the speedup is a measured before/after, not a feel. KI-58's solver is PROVEN — do not rewrite it,
 profile it.
+
+### ‼‼ `#26-fleefreeze` — trapped wild battles freeze at "Can't escape!" (DIAGNOSED 2026-08-26; fix NOT yet shipped)
+
+**The Magma Hideout freezes are neither KI-36 nor trainer-flees.** Diagnosed with quotes, all three
+lanes: wild **Torkoal's Fire Spin** (learned L17 — every hideout Torkoal has it) sets `[Wrapped]`
+while grunt-gauntlet attrition has the lead under `hp_threshold: 20` → `lead_cannot_battle_action:
+flee` → `level_up.py:130-136 _escape` → `get_best_escape_method()` correctly returns **None**
+(trap-aware!) → ⛔ **`return TurnAction.run_away()` ANYWAY** — the blind fallback IS the bug. The
+game refuses at selection (`BattleScript_PrintCantEscapeFromBattle` + a button-wait), the handler's
+text-printer wait branch yields forever pressing nothing, KI-47 nets it at 3,001 frames, recovery
+can't clear the on-screen battle, the watchdog burns the budget. Telemetry: `[TURN 3] Loudred L36
+14/116 [Wrapped] -> RunAway` (L01), byte-identical shape in L03.
+⛔ **THE FIX SHAPE (one decision point):** when `get_best_escape_method()` is None, delegate to the
+inherited, trap-aware, fault-tested `_handle_flee` (`default.py:377` — the KI-52 fight-through:
+rotate to a healthy mon, else `_fight_on`). One change covers all story strategies. **Repro:**
+`magma_door_losing.ss1 --driver magmahideout`; acceptance = the `[KI-52] ... FIGHTING ON` line +
+battle ends naturally + no KI-47. ⚠ A shared battle path — the A/B needs an ORDINARY-case arm too.
+
+### ‼ `#26-battleitemwedge` — the L07 freeze is a THIRD defect: the in-battle item flow (filed 2026-08-26)
+
+NOT a flee: a TRAINER battle where `[TURN 1] -> UseItem` logged `opened-bag` then nothing for
+~3,000 frames — `scroll_to_item_slot`'s UNBOUNDED first wait (`while get_game_state() !=
+GameState.BAG_MENU ... yield`) after `battle_action_use_item`'s single, un-verified A press failed
+to open the bag. The already-instrumented `#24-battleitems` "SELECTED BUT DOES NOT RELIABLY
+EXECUTE" defect graduating into a hard wedge. Fix shape: bound the wait + re-press while still at
+`HandleTurnActionSelectionState`.
+
+### ‼ `#26-gatestartupcontention` — one gate times out IN-SUITE with an EMPTY log, passes solo (filed 2026-08-26)
+
+`repro_gym_whiteout_guard.py` hangs IN-SUITE and passes solo. ⛔ **THE FIRST FILING OF THIS ITEM GOT
+THREE DETAILS WRONG, AND A TIER 1 REVIEW CORRECTED ALL THREE WITH A LIVE OBSERVATION** (it caught the
+gate mid-hang in a running suite): (1) the freeze is just AFTER phase [1]'s header prints, not
+before it; (2) `run_gates.py` is strictly SEQUENTIAL — "~30 parallel gates" was wrong, so
+gate-parallelism is not the mechanism; (3) it reproduces on a QUIET machine, so batch load is
+refuted too. What stands: in-suite hang (≥3 occurrences: two 900s timeouts + one live-observed),
+solo PASS the same hour, audio-host errors (`PaErrorCode -9999, no driver installed`) present at the
+freeze point. ⇒ an earlier gate in the SEQUENCE corrupts something this gate's emulator init then
+blocks on (audio host state is the leading candidate). ⛔ **A 900→2400 bound raise was tried and
+REVERTED — more time cannot fix a hang, it only defers the kill.** Next: bisect WHICH preceding
+gate arms the hang (run the suite's exact sequence, halving), and capture the runner's own
+"TIMEOUT — killed" transcript as the settled artifact.
 
 ### ‼ `#24-driftheadlineshape` — `check_drift` misses the HEADLINE form (filed 2026-08-24)
 
@@ -2566,7 +2633,7 @@ region, where "train near the gym" is actively wrong.
       asked and the data is now free, but it is not where the failures are.
 - [ ] #24-partyvariety — **Fill the party and vary what is caught; PC deposit/withdraw.**
       ‼ **ROOT CAUSE FOUND (recon 2026-07-26) — it is not emergent, it is two conditions.**
-      `_should_catch` (`story_mode.py:1297-1356`) requires `not BADGE01_GET` AND
+      `_should_catch` (`story_mode.py:1301-1356`) requires `not BADGE01_GET` AND
       `len(party) < _catch_team_target` where **`_catch_team_target = 4`** (`:811`). So the
       bot catches FOUR mons before the Stone Badge and then never catches again for the
       rest of the run. Part 1 is nearly a one-line change.

@@ -18462,3 +18462,28 @@ not the situation.** The honest-stop ruling STANDS; the narrow fix (let the dera
 fresh boss cycle, i.e. do what the flip does) is KI-23/KI-80-adjacent and is NOT shipped without its
 own seeded arm. Mossdeep half: zero historical coverage — today's 8-lane batch is the first that can
 measure it.
+
+
+## 2026-08-26 (later) — THE WINONA SECOND WIND SHIPPED BY THE BOOK; the flee-freeze DIAGNOSED to one line; a ten-day driver rot caught
+
+**`#26-manualderails` (Fortree half) — FIXED at the DECISION LAYER** (the arm drives
+`_prepare_for_fight` directly; the end-to-end pass through the real derail loop is the next
+post-fix batch's job). The `--driver secondwind` two-era arm went first:
+era=TODAY (RAISE ×5 + re-arm RAISE) measured on unmodified code, matching the hand-computed
+discriminator exactly; then the fix; then era=AFTER (SECOND_WIND + PLAIN_ESCALATION ×4, ZERO raises,
+re-arm still RAISES). The derail retry now does what the user's manual flip does, once per boss per
+run, honest stop intact. Evidence: `evidence/2026-08-26-secondwind-AB.txt`; ruling compliance in
+`06-DECISIONS-LOG.md`. The per-run-state gate enforces the new marker's reset.
+
+**The Magma Hideout freezes — DIAGNOSED, one decision point, fix NOT yet shipped** (`#26-fleefreeze`):
+wild Torkoal Fire Spin traps a sub-20% lead; `_escape` detects escape is impossible and **returns
+`run_away()` anyway** (`level_up.py:136`), bypassing the trap-aware KI-52 fight-through one class
+down. Refutes the trainer-flee hypothesis with telemetry (`[Wrapped] -> RunAway`). A THIRD defect
+fell out (`#26-battleitemwedge`): an unbounded bag-menu wait wedging trainer battles on UseItem.
+
+**ki80ladder's ten-day Expect rot** — found, proven pre-existing at pristine HEAD, fixed
+(`decoupled = True`; the env flag has zero production hits since the promotion). See 08-MISTAKES:
+a promotion that changes behaviour must re-run every driver whose Expect lines name it.
+
+**Suite bound 900→2400, deliberately**, per the suite's own footer: one gate hung in-suite twice
+with an EMPTY log while passing solo (`#26-gatestartupcontention` filed with the evidence path).

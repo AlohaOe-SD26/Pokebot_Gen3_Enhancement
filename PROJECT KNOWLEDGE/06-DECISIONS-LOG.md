@@ -3418,3 +3418,29 @@ dismount, or something else. ⛔ An earlier draft claimed "ZERO NPCs loaded, so 
 **that inference is invalid** — `get_map_objects()` is a camera-range window and the probe stood 30+
 tiles away, so it is silent on the question. Settling it needs a live probe standing ADJACENT to
 `(31,18)`. ‼ It is not required to approve leg 1, and it must not be written up as resolved.
+
+
+## 2026-08-26 — The Winona SECOND WIND: one derail-retry may do what the manual flip does
+
+**The choice.** After the counter ladder's one failed attempt, `_prepare_for_fight` used to re-raise
+the hopeless-gate deterministically on every derail retry (same instance, same history), burning the
+5-derail budget into Manual. Now it grants **ONE second wind per boss per run**: empty that boss's
+`_loss_ko_history`, mark `_second_winds`, return — the retry re-attempts the boss fresh, exactly
+what the user's manual flip achieves. If the fresh cycle also plateaus hopeless (≥6 fresh flat
+losses re-satisfy `_boss_plan_is_hopeless`'s own gates), the raise fires as before.
+
+**⛔ THIS COMPLIES WITH THE 2026-07-30 HONEST-STOP RULING; IT DOES NOT REOPEN IT.** The raise is
+intact and measured firing (the arm's re-arm control RAISES in both eras). What changed is only how
+many fresh attempts precede it: one more cycle, bounded by a checked-then-written marker in the
+`_counter_hunts` pattern.
+
+**Why.** Measured: the gate's own premise ("grinding will not fix this") is wrong often enough to
+matter — batch 20260811/L01 beat Winona with NO super-effective answer right after losing twice;
+111 runs corpus-wide burned their budget on deterministic re-raises carrying zero new information.
+
+**Rejected: reset MORE state (defeat counts, the ladder) to mimic the flip fully.** Keeping
+`_defeat_counts` keeps the reactive losses≥2 path armed and the honest re-arm gated purely on 6
+fresh losses; NOT re-arming the ladder preserves its ruled one-per-run bound.
+**Rejected: shipping without the arm.** The `--driver secondwind` two-era arm was built and measured
+on unmodified code FIRST (era=TODAY matched the hand-trace exactly), per the standing rule that a
+behaviour change no arm can see must not ship.
