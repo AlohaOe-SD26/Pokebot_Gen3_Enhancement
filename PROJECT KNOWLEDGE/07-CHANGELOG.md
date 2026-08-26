@@ -18511,3 +18511,23 @@ return-and-re-decide on failure, every stage narrated by the existing `[ITEM-FLO
 ⚠ Limits stated in the item: the eaten-A is timing-stochastic (no deterministic repro; proof =
 structural boundedness + instrumentation; live arm = the NEXT batch — the one running now predates
 this fix), and item-consumption reliability remains `#24-battleitems`. Drift 7 (measured).
+
+## 2026-08-26 — `#24-difftriggeredrules`: prevention rules are now KEYED TO THE DIFF (tool + hook)
+
+**`tools/story-dev/advise_on_diff.py`** — reads the working diff (`git diff HEAD`, or
+`--diff-file`) and prints the prevention rules matching WHAT CHANGED: 9 rule families
+(regex-added → compiled-pattern/backslash/control-char rules; `\d`-added → "accept the forms
+humans write"; `except`-added → abort-swallow + `as error` unbinding; `while True` → bound every
+loop; ungated A-press → museum-greeter gate; `set_manual_mode` → never silently derail;
+pristine-mirror path → never edit; 05-KI-header → P2; 04/03 paths → P1/P5). ADVISORY by
+construction: exit 0 with or without findings. `--self-test` = 32 checks, every rule proven to
+fire on its shape AS CODE and stay silent on a `#`-comment mention; mutation-proven
+(evidence/2026-08-26-advise-on-diff-mutation-test.txt).
+**`.claude/hooks/advise-on-commit.ps1`** + settings wiring — PreToolUse on `git commit`: runs the
+advisor and injects its output as `additionalContext`; fail-open on EVERY path (any internal
+failure → silent exit 0); ⛔ emits NO `permissionDecision` (see 06-DECISIONS-LOG 2026-08-26).
+**Adversarial review kicked back v1 with two real majors, both fixed + regression-tested:** the
+two-line `if is_waiting_for_input(): press_button("A")` idiom false-fired (fix: ±2-added-line
+`unless` window; boundary itself tested), and pure RENAMES / BINARY diffs were invisible to path
+rules because git omits `---`/`+++` for both (fix: harvest `diff --git` + `rename from/to`
+headers; tested incl. a `git mv` into the mirror and the real unquoted-trailing-tab path shape).

@@ -9677,3 +9677,33 @@ its first run since the promotion.
 NAME THAT BEHAVIOUR, IN THE SAME SESSION.** The promotion checklist gains it. ‼ And it sharpens
 `#24-reprosweepratchet`'s case: era-keyed expectations (env flags, config defaults) are the fastest
 rotters, because the world changes under them without any diff touching the driver.
+
+## 2026-08-26 — MY RULE-REMINDER TOOL BROKE THE NO-FALSE-POSITIVE RULE IT QUOTES, AND ONLY AN INDEPENDENT REVIEW CAUGHT IT
+
+**Symptom.** v1 of `advise_on_diff.py` (`#24-difftriggeredrules`) shipped its R-APRESS rule with an
+`unless` gate checked ONLY against the matched line — so the STANDARD two-line idiom
+`if is_waiting_for_input():` / `press_button("A")` drew the "ungated A press" advisory on code
+that is correctly gated. The tool whose one design constraint was "a false positive teaches
+bypass, worse than nothing" carried a false positive on its most safety-critical rule. My
+self-test said PASS: its "gated" case only exercised the INLINE ternary shape I happened to write.
+
+**Second finding from the same review, the false-NEGATIVE twin.** Path rules harvested paths only
+from `---`/`+++` lines — which git OMITS for pure renames and binary diffs — so a `git mv` into
+the pristine mirror produced ZERO advisory from the rule that exists precisely to guard the
+mirror. Proven by the reviewer with constructed repos, not reasoned.
+
+**Root cause, both.** I fault-tested the shapes I had IMAGINED while writing, and the natural
+idiom / the header-less diff shapes were not among them. A self-test built from the author's own
+examples inherits the author's blind spots — the same reason the DOC CONSISTENCY LAYER forbids
+certifying text you wrote.
+
+**The fix that worked.** ±2-added-line `unless` window WITH a test on the boundary itself
+(a gate 3 lines away still fires, so the limit is enforced, not folklore); paths also harvested
+from `diff --git` + `rename from/to` headers, tested with a rename INTO the mirror, a binary
+diff, and the real trailing-tab shape this repo's git actually emits (which my synthetic
+quoted-path fixtures did not match — the reviewer measured real commits to find that out).
+
+⇒ **PREVENTION RULE: FAULT-TEST A MATCHER'S PRECISION ON THE *NATURAL* IDIOM AND ITS RECALL ON
+THE SHAPES THE INPUT FORMAT CAN OMIT — then have someone who did not write it try to break it.**
+For diffs specifically: pure renames and binary files have NO `---`/`+++` lines; any path logic
+that only reads those is blind to both.

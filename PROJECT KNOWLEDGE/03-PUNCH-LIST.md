@@ -679,7 +679,10 @@ incident: the SURF hunt sent to Surf-gated ROUTE119).
 the PC); sole-carrier protection holds; catch cap 4 keeps runway. Per-starter: Mudkip line
 self-learns; Treecko/Torchic hunt Zigzagoon/Lotad on R102, Petalburg's doorstep.
 **RESIDUALS:** D1b fault arm (above); D3 `_select_forget_slot` blind relative scroll assumes cursor
-slot 0 on RE-entry (the likeliest "wrong HM" appearance); D4 the A-cadence can race
+slot 0 on RE-entry — ‼ DECOMP RECON DONE 2026-08-26 (`ai-research-notes/2026-08-26-d3-forgetmenu-
+cursor-decomp.md`, NOTE not truth): cursor RESETS on re-entry (screen freed + AllocZeroed), but
+re-entry inserts an EXTRA "replace move?" YES/NO before the selector — the D3 hazard is FLOW
+desync, not cursor drift; needs a live probe before code changes; D4 the A-cadence can race
 `Task_HandleChooseMonInput`; D5 per-frame press cadences; D6 cheap hardening — step OUTSIDE Wally's
 house before teaching (mirrors Rock Smash's clean seam); the KI-63 making-room deposit path has ZERO
 recorded live firings; Wingull HM03 decomp cross-check. *(original filing:)*
@@ -901,19 +904,28 @@ own log** — the driver reports what it believes, the probe reports what the fi
       ‼ And the cheaper half needs no code at all: **run the gate suite BEFORE a long drive**, not
       only before a commit.
 
-### ‼ `#24-difftriggeredrules` — PROSE RULES ARE INDEXED BY STORY; MAKE THEM INDEXED BY ACTION (filed 2026-08-23)
+### ✅ `#24-difftriggeredrules` — DONE 2026-08-26: rules are now INDEXED BY THE DIFF (filed 2026-08-23)
 
-- [ ] **⛔ FOUR TIMES IN ONE SESSION a correct, written-down prevention rule failed to fire**, each
-      time because it was filed under the artifact where it was LEARNED rather than the ACTION it
-      applies to (the table is in `08-MISTAKES.md`, 2026-08-23 "digit-only numeric gate" entry).
-      ⇒ **BUILD `advise_on_diff.py`: read the working diff and print the rules that apply to WHAT
-      CHANGED.** Adds a `re.compile` → print the compiled-pattern rule and the control-char rule;
-      adds a numeric comparison → "accept the forms humans actually write"; edits a `## KI-` header
-      → the P1–P5 pair rules; adds an `except` → the abort-swallow guard.
-      ⛔ **ADVISORY, NEVER BLOCKING.** Its value is being unmissable at the moment of the edit; a
-      blocking version acquires false positives and gets bypassed, which this project rates as worse
-      than nothing. ⚠ Fault-test it the usual way: prove each trigger fires on a diff that contains
-      the shape, and prove it stays silent on a diff that merely MENTIONS it in a comment.
+- [x] **SHIPPED 2026-08-26 — ⛔ DO NOT REBUILD.** `tools/story-dev/advise_on_diff.py`: 9 diff-keyed
+      rule families (regex-added, digit-matching-added, `except`-added, `while True`-added,
+      ungated-A-press-added, `set_manual_mode`-added, pristine-mirror path, 05-KI-header line,
+      04/03 doc-pair paths), each firing on the SHAPE as code and silent on a `#`-comment mention.
+      ⛔ ADVISORY, NEVER BLOCKING, as specified: exit 0 with or without findings. Delivery =
+      `.claude/hooks/advise-on-commit.ps1` (PreToolUse on `git commit`): fail-open on every path,
+      injects `additionalContext` ONLY — ⛔ deliberately NO `permissionDecision`, because an
+      "allow" would auto-approve the commit past the user's permission prompt (a researcher agent
+      claimed "allow" was mandatory; refuted — see `06-DECISIONS-LOG.md` 2026-08-26).
+      **Proof:** 32-check `--self-test` (each rule both ways) + a mutation test (gutted
+      comment-stripper → FAIL, gutted parser → FAIL, restored → PASS; transcript at
+      `evidence/2026-08-26-advise-on-diff-mutation-test.txt`). An adversarial review KICKED BACK
+      v1 with two real majors, both fixed + regression-tested: the two-line
+      `if is_waiting_for_input(): press` idiom false-fired (now a ±2-added-line `unless` window,
+      boundary tested T11c) and PURE RENAMES / BINARY diffs were invisible to path rules (git
+      emits no `---`/`+++` for either; paths now also harvested from `diff --git` +
+      `rename from/to` headers, tested T26-T29 incl. the real trailing-tab shape).
+      ‼ Residual, deliberate: NOT in `run_gates.py` (the runner buries advisory output in
+      `.gate-logs/`, which defeats "unmissable"); the hook is the delivery. Rules are a table —
+      adding one = one entry + its two self-test arms (T25 enforces the pairing).
 
 ### ‼ `#24-reprosweepratchet` — WHAT THE STANDING SUITE DOES NOT RUN, ROTS (filed 2026-08-23)
 

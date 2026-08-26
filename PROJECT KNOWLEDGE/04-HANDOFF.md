@@ -3,7 +3,7 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-08-23 — start at the single orientation block immediately below.
+**Last updated:** 2026-08-26 — start at the single orientation block immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
@@ -439,17 +439,23 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    deliberately deleted (7 blockers, guarding a doc nicety). ⛔ do NOT re-do it, and ⛔ **do not
 >    resurrect the deleted check** — the long note at its former site in `audit_doc_consistency.py`
 >    explains why, and it cost six review rounds to learn.
->    ⚠ **`03-PUNCH-LIST.md` IS AT 3469 / 3600 LINES — 131 LEFT.** ‼ *(This figure is re-derived at commit time — an earlier one drifted by 4 lines because
+>    ⚠ **`03-PUNCH-LIST.md` IS AT 3593 / 3600 LINES — 7 LEFT. ‼ THE NEXT EDIT THAT GROWS IT MUST
+>    FIRST RETIRE A COMPLETED ITEM (⛔ not the ✅ `#26-*` entries until the validation batch is
+>    mined — their bodies carry the live discriminators).** ‼ *(This figure is re-derived at commit time — an earlier one drifted by 4 lines because
 >    it was measured BEFORE the last edits. Measure a line count LAST.)* It hit 3597 (3 left) on
 >    2026-08-23 and was brought back by RETIRING the just-completed `#24-brokenrepros` entry from
 >    ~56 lines to a 16-line summary. ⛔ **When it tightens again, retire another COMPLETED item the
 >    same way: SUMMARISE + POINT at `07-CHANGELOG.md`, never delete** — code and docs cite these
 >    slugs and `audit_doc_citations.py` will go red. `03` is a CURRENT-STATE file, so summarising
 >    finished work is maintenance, not loss: the narrative lives in the append-only history.
->    ⛔ **NEW AND HIGH VALUE: `#24-difftriggeredrules`** — four times in one session a correct,
->    written-down prevention rule failed to fire because it was filed under the artifact where it
->    was LEARNED, not the ACTION it applies to. The fix is an ADVISORY `advise_on_diff.py` that
->    prints the rules matching WHAT CHANGED. This is the highest-leverage item in the queue.
+>    ✅✅ **`#24-difftriggeredrules` IS DONE 2026-08-26 — ⛔ DO NOT REBUILD IT.** `advise_on_diff.py`
+>    (9 diff-keyed rule families, ADVISORY — exit 0 with or without findings) + a fail-open
+>    PreToolUse hook (`advise-on-commit.ps1`) that injects the advisory at `git commit` time
+>    WITHOUT touching the permission flow (⛔ deliberately NO `permissionDecision` — an "allow"
+>    would auto-approve past the user's prompt; see `06-DECISIONS-LOG.md`). 32-check self-test,
+>    mutation-proven (evidence/2026-08-26-advise-on-diff-mutation-test.txt); an adversarial
+>    review KICKED BACK the first version (two-line-gate false positive; renames/binary diffs
+>    invisible to path rules) and both are fixed and self-tested.
 >    ➡ Other candidates: `#24-reprosweepratchet`, or
 >    ✅✅✅ **§Ch20 SHIPPED AS A CHAPTER 2026-08-24 — 5/5 drives PASS, both recovery paths exercised.
 >    ⛔ DO NOT REBUILD IT.** The module, the Segment 19b/20 wiring and `--driver ch20chapter` all
@@ -463,9 +469,8 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    by ASSESSMENT (reachability VERY LOW, evidence in `07-CHANGELOG.md`); deliberately no code change
 >    to the whiteout-recovery path.
 >    ➡ **BEST NEXT ITEMS, in order:**
->    1. **`#24-difftriggeredrules`** — highest leverage. Four times in one session a written-down
->       prevention rule failed to fire because it was filed under the artifact where it was LEARNED,
->       not the ACTION it applies to. Build the ADVISORY `advise_on_diff.py`.
+>    1. ✅ **`#24-difftriggeredrules` — DONE 2026-08-26** (see the ✅✅ block above; ⛔ do not
+>       rebuild). The next-best list below moves up one.
 >    2. **`#24-harnesswhiteoutdrop`** — 36 harness runs silently stopped behaving like the real mode
 >       after a whiteout. Any result measured after that point is suspect, so this taints EVIDENCE.
 >    3. **`#24-reprosweepratchet`** — what the standing suite does not run, rots.

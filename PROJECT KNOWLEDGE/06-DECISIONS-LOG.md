@@ -3444,3 +3444,26 @@ fresh losses; NOT re-arming the ladder preserves its ruled one-per-run bound.
 **Rejected: shipping without the arm.** The `--driver secondwind` two-era arm was built and measured
 on unmodified code FIRST (era=TODAY matched the hand-trace exactly), per the standing rule that a
 behaviour change no arm can see must not ship.
+
+## 2026-08-26 — `#24-difftriggeredrules`: advisory-only, diff-indexed, and NO permissionDecision in the hook
+
+**Decision 1: the reminders are indexed by DIFF SHAPE, not by artifact.** Four recall failures in
+one session (08-MISTAKES 2026-08-23) proved prose rules filed under where they were LEARNED do not
+fire while editing something else. The rule table keys each rule to an added-line pattern or a
+touched path; adding a rule = one table entry + its two self-test arms (T25 enforces the pairing).
+**Decision 2: ADVISORY FOREVER — exit 0 with and without findings.** Per the item's own filing: a
+blocking version acquires false positives and gets bypassed, which this project rates worse than
+nothing. The two false-positive classes the adversarial review found in v1 (two-line gate idiom,
+see 07-CHANGELOG) are exactly why: had this been a blocking gate, it would have taught bypass on
+day one.
+**Decision 3: the PreToolUse hook emits `additionalContext` ONLY — ⛔ NO `permissionDecision`.**
+A claude-code-guide research agent asserted `permissionDecision: "allow"` was "mandatory" for the
+context to be injected. REFUTED by the safety analysis: an "allow" would AUTO-APPROVE the
+`git commit` past the user's permission prompt — an advisory has no business changing permission
+behavior. Worst case without it: on an older Claude Code the context is not injected and the
+advisory silently degrades — the cheap failure direction. (Also the measured Gemini rule, applied
+to Claude agents: grade an agent's NAMES highly and its ARCHITECTURE ADVICE not at all.)
+**Rejected: wiring the advisor into `run_gates.py` as an ADVISORY gate.** The runner captures
+gate output to `.gate-logs/<stem>.txt` and prints only a label line, so suite membership BURIES
+the advisory — the opposite of "unmissable at the moment of the edit". The hook is the delivery.
+**Rejected: hook exit 2 (stderr → model).** That is the BLOCKING channel; forbidden by Decision 2.

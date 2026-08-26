@@ -1,0 +1,37 @@
+=== MUTATION TEST of advise_on_diff.py --self-test (2026-08-26, post-review round) ===
+Invocation: py -3.12 -c <script below>; gutted functions are replaced with lambdas,
+then restored; expected rc sequence (1, 1, 0).
+--- MUTATION 1: _strip_comment gutted (lambda line: '') — every code rule blind ---
+SELF-TEST: FAIL (9)
+  ✗ T1 regex-as-code: R-REGEX did NOT fire (expected the opposite)
+  ✗ T4 numgate-as-code: R-NUMGATE did NOT fire (expected the opposite)
+  ✗ T4 numgate-as-code: R-REGEX did NOT fire (expected the opposite)
+  ✗ T6 except-as-code: R-EXCEPT did NOT fire (expected the opposite)
+  ✗ T8 loop-as-code: R-LOOP did NOT fire (expected the opposite)
+  ✗ T10 apress-ungated: R-APRESS did NOT fire (expected the opposite)
+  ✗ T11c apress-gate-out-of-window: R-APRESS did NOT fire (expected the opposite)
+  ✗ T13 manual-as-code: R-MANUAL did NOT fire (expected the opposite)
+  ✗ T30 except-star: R-EXCEPT did NOT fire (expected the opposite)
+--- MUTATION 2: parse_diff gutted (lambda text: (set(), {})) — everything blind ---
+SELF-TEST: FAIL (17)
+  ✗ T1 regex-as-code: R-REGEX did NOT fire (expected the opposite)
+  ✗ T4 numgate-as-code: R-NUMGATE did NOT fire (expected the opposite)
+  ✗ T4 numgate-as-code: R-REGEX did NOT fire (expected the opposite)
+  ✗ T6 except-as-code: R-EXCEPT did NOT fire (expected the opposite)
+  ✗ T8 loop-as-code: R-LOOP did NOT fire (expected the opposite)
+  ✗ T10 apress-ungated: R-APRESS did NOT fire (expected the opposite)
+  ✗ T11c apress-gate-out-of-window: R-APRESS did NOT fire (expected the opposite)
+  ✗ T13 manual-as-code: R-MANUAL did NOT fire (expected the opposite)
+  ✗ T15 mirror-edit: R-MIRROR did NOT fire (expected the opposite)
+  ✗ T16 mirror-deletion: R-MIRROR did NOT fire (expected the opposite)
+  ✗ T18 ki-header: R-KIHEADER did NOT fire (expected the opposite)
+  ✗ T21 handoff-touch: R-HANDOFF did NOT fire (expected the opposite)
+  ✗ T22 punchlist-touch: R-PUNCH did NOT fire (expected the opposite)
+  ✗ T26 pure-rename-into-mirror: R-MIRROR did NOT fire (expected the opposite)
+  ✗ T27 binary-in-mirror: R-MIRROR did NOT fire (expected the opposite)
+  ✗ T29 real-git-space-path-trailing-tab: R-MIRROR did NOT fire (expected the opposite)
+  ✗ T30 except-star: R-EXCEPT did NOT fire (expected the opposite)
+--- RESTORED ---
+SELF-TEST: PASS (32 checks — every rule fired on its shape and stayed silent on a comment mention / gated idiom / foreign path; renames, binary diffs and the real trailing-tab shape register; empty and unrelated diffs print nothing)
+rc sequence: (1, 1, 0)  — expected (1, 1, 0)
+MUTATION TEST: PASS
