@@ -18487,3 +18487,16 @@ a promotion that changes behaviour must re-run every driver whose Expect lines n
 
 **Suite bound 900→2400, deliberately**, per the suite's own footer: one gate hung in-suite twice
 with an EMPTY log while passing solo (`#26-gatestartupcontention` filed with the evidence path).
+
+
+## 2026-08-26 (later still) — `#26-fleefreeze` FIXED at the decision layer, gate #32; the suite is 32 gates now
+
+The one-line delegate shipped (`level_up.py` `_escape`: escape-impossible → the inherited KI-52
+`_handle_flee`, never a blind `run_away()`), with the mechanism, measurement and telemetry quoted at
+the site. Proven by `repro_flee_trap_delegate.py` — NEW gate #32, emulator-free, three arms, 7/7:
+the ordinary path byte-unchanged, the trapped path delegates, and ⛔ **the OLD behaviour is refuted
+BY CONSTRUCTION** (ARM C fails on exactly the value the bug returned). ⚠ Honest limits, stated in
+the gate's own docstring and the punch item: `_handle_flee`'s internals are KI-52's proof, not
+this gate's; and the LIVE trap did not fire in the repro drive (the one flee was the clean ordinary
+case at 10% HP) — the live arm rides the post-fix validation batch, where the baseline fired it in
+3 of 8 lanes. Suite: **32 gates = 30 ENFORCING + 2 ADVISORY.**

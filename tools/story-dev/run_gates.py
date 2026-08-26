@@ -175,6 +175,10 @@ GATES: list[tuple[str, bool]] = [
     # ⇒ A FILE:LINE CITATION IS A POINTER, NOT THE CONTENT.
     # ‼ APPENDED AT THE END — gate ordinals are append-only.
     ("repro_ch20_constants.py", False),
+    # #32 (2026-08-26): `#26-fleefreeze` — the trapped-flee DELEGATION. Emulator-free, 3 arms
+    # (ordinary unchanged / trapped delegates / old-behaviour refuted by construction). Guards the
+    # one-line fix for the freeze that killed 3 of 8 lanes in batch 20260826-063456.
+    ("repro_flee_trap_delegate.py", False),
 ]
 
 

@@ -169,3 +169,4 @@
 {"when": "2026-08-26T12:07:55", "driver": "secondwind", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 300, "recomputes": 301, "scans": 2, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-26T12:08:10", "driver": "ki80ladder", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 300, "recomputes": 301, "scans": 2, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-26T12:17:29", "driver": "secondwind", "build": "sandbox", "state": "batch2_run04_wedge.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T12:43:41", "driver": "magmahideout", "build": "sandbox", "state": "magma_door_losing.ss1", "frames_run": 83832, "recomputes": 83832, "scans": 280, "divergences": {}, "observer_broke": false}
