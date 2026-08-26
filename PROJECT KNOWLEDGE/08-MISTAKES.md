@@ -9707,3 +9707,27 @@ quoted-path fixtures did not match — the reviewer measured real commits to fin
 THE SHAPES THE INPUT FORMAT CAN OMIT — then have someone who did not write it try to break it.**
 For diffs specifically: pure renames and binary files have NO `---`/`+++` lines; any path logic
 that only reads those is blind to both.
+
+## 2026-08-26 — THE FIFTH BLIND SPOT IN THE SAME DRIFT GATE: NO RULE READ THE HEADLINE IDIOM THE CELL ACTUALLY USES
+
+**Symptom.** On 2026-08-24 the STATE-table drift cell listed THREE files while its opening figure
+still said 2 — and `check_drift`, which exists to catch stale drift figures and had just caught
+seven of them, said nothing. A Tier 1 reviewer found it; the gate's own history already records
+four prior blind spots of the same class ("N differing", "it is N today", the pronoun gap, the
+non-adjacent noun).
+
+**Root cause.** Every prior rule matched a VOCABULARY shape ("drift is N", "N differing" near an
+expectation) — and the cell's actual convention is none of them: a bare `**N as of <date>` at the
+TOP of the row. Each blind-spot fix added the shape that had just burned us; nobody asked what
+idiom the highest-traffic site itself uses.
+
+**The fix that worked (`#24-driftheadlineshape`).** PASS 3: compare the FIRST `N as of <date>` in
+any drift-labelled table row against `real_drift()`; everything after the first match is history,
+exempt BY POSITION — enforcing the cell's own documented "today's number is at the TOP" rule
+instead of guessing from nearby words. Proven by D28a-e both ways AND a live incident replay
+(headline 7→2 on the real file → red at `04-HANDOFF.md:209`; restored byte-identical).
+
+⇒ **PREVENTION RULE: WHEN A GATE GUARDS A SPECIFIC HIGH-TRAFFIC SITE, DERIVE A RULE FROM THAT
+SITE'S OWN IDIOM (read it and pattern-match what is actually written there), not only from the
+phrasing of the last incident.** A gate grown incident-by-incident converges on the shapes that
+already burned you and stays blind to the one the site uses every day.

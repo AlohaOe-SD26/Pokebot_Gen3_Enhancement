@@ -596,6 +596,32 @@ def check_drift(files: dict[str, str], raw: dict[str, str] | None = None) -> lis
                 # NEGATION is stale when it AGREES with it ("NOT ZERO" while the figure is zero).
                 if (n == measured) if negated else (n != measured):
                     report(name, text, m, n, "denies" if negated else "claims")
+
+    # ---- PASS 3: the STATE-table drift row's HEADLINE (`#24-driftheadlineshape`, 2026-08-26).
+    # WHY: on 2026-08-24 the drift cell listed THREE files while its headline still said 2 — the
+    # body was right, the half that gets SKIMMED was wrong, and no pattern above matches
+    # `**N as of <date>` (they want `drift is`, `differing` near an expectation, or `it is N
+    # today`). A Tier 1 reviewer caught it; this file's own blind spot, now closed.
+    # ‼ SCOPING IS POSITIONAL, NOT VOCABULARY. The cell's own documented convention is "today's
+    # number is at the TOP of this cell; everything after it is history" — so the rule reads ONLY
+    # THE FIRST `N as of <date>` in a drift-labelled table row and compares it to the measurement.
+    # Historical figures deeper in the cell (`Previously 0 as of…`, `ZERO as of…`) are exempt by
+    # POSITION — a DECLARED convention, not an inferred one (the 2026-08-23 lesson: an exemption
+    # keyed on co-occurring words like `historical` is a hole; a position rule cannot be faked).
+    # ⛔ Runs on the fence-STRIPPED text: a drift row quoted inside a fenced example must not fire
+    # (D28e), and the real row is never fenced.
+    drift_row = re.compile(r"^\|[^|\n]*\bdrift\b[^|\n]*\|(.*)$", re.I | re.M)
+    headline = re.compile(rf"\b({_NUM})\b\s+as\s+of\s+\d{{4}}-\d{{2}}-\d{{2}}", re.I)
+    for name, text in files.items():
+        for row in drift_row.finditer(text):
+            # pos/endpos so the match's offsets are ABSOLUTE in `text` — report() derives the
+            # line number and the dedup key from m.start(), which a group-relative search breaks.
+            m = headline.search(text, row.start(1), row.end(1))
+            if m is None:
+                continue
+            n = value(m)
+            if n != measured:
+                report(name, text, m, n, "drift-row HEADLINE (first `N as of <date>` in the cell)")
     return out
 
 
@@ -1301,6 +1327,27 @@ def self_test() -> int:
            False)
     expect("D26d the shape with NO drift subject in range -> quiet (not every 'it is N today' is drift)",
            check_drift({"T": f"The batch finished; it is {W} today by the run counter.\n"}), False)
+    # ‼‼ D28 — THE DRIFT-ROW HEADLINE (`#24-driftheadlineshape`, 2026-08-26). The 2026-08-24
+    # incident: the STATE-table cell listed three files while its FIRST figure — the half that
+    # gets skimmed — still said 2, and no earlier rule matches `**N as of <date>`.
+    # ⛔ D28b is the incident shape INVERTED (headline right, history wrong) and MUST stay quiet:
+    # history inside the cell is exempt BY POSITION (first-match-only), so the gate cannot go
+    # noisy over the cell's own archive tail.
+    _row = ("| sandbox <-> custom drift | ⚠ **{} as of 2026-08-26, MEASURED** — files. "
+            "✅ Previously **{} as of 2026-08-15** — promoted. |\n")
+    expect("D28a drift-row headline disagrees with the measurement -> fires",
+           check_drift({"T": _row.format(W, measured)}), True)
+    expect("D28b headline RIGHT while a HISTORICAL figure deeper in the cell differs -> quiet",
+           check_drift({"T": _row.format(measured, W)}), False)
+    _wword = ("one" if measured != 1 else "two").upper()
+    expect(f"D28c word-form headline (`{_wword} as of`) -> fires",
+           check_drift({"T": _row.format(_wword, measured)}), True)
+    expect("D28d a non-drift-labelled row with `N as of <date>` -> quiet",
+           check_drift({"T": f"| batch status | {W} as of 2026-08-26, still running |\n"}), False)
+    _fenced = "```\n" + _row.format(W, measured) + "```\n"
+    _fstripped = FENCE_RE.sub(lambda m: "\n" * m.group(0).count("\n"), _fenced)
+    expect("D28e the same row inside a code fence (stripped, as the gate calls it) -> quiet",
+           check_drift({"T": _fstripped}), False)
     # ‼‼ P26 — THE PROSE TWIN OF THE DRIFT CHECK (added 2026-08-17). `check_drift` grades FIGURES
     # and went green over two KI entries that said IN WORDS that the just-promoted work was still
     # sandbox-only. ⛔ Scoped to drift == 0, so these only mean anything when nothing is pending;

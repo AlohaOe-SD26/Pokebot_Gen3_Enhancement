@@ -332,7 +332,9 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ✅✅ **`#24-driftassertions` IS DONE (2026-08-17) — the drift sweep IS A GATE** (`check_drift`;
 >    reduction half `#24-driftreduction` open). ‼ Earned its keep again 2026-08-24: `sootopolis.py`
 >    moved the count and it found SEVEN stale claims — a Tier 1 review then found an EIGHTH, in this
->    file's STATE-table HEADLINE, a shape `check_drift` misses (`#24-driftheadlineshape`).
+>    file's STATE-table HEADLINE, a shape `check_drift` missed (`#24-driftheadlineshape` —
+>    ✅ CLOSED 2026-08-26: PASS 3 reads the row's FIRST `N as of <date>`, D28a-e + a live
+>    incident replay prove it both ways).
 >    📦 Detail ARCHIVED in `28-HANDOFF-ARCHIVE.md` (2026-08-24, R3 budget).
 >    ✅✅ **`(P4c) #24-orphans` (1) IS HALF DONE (2026-08-17): its INSTRUMENTATION half is BUILT,
 >    GATED (#26) and A/B-PROVEN (`withdraw_from_box` returns `(landed, code, detail)`; ARM B
@@ -439,9 +441,10 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    deliberately deleted (7 blockers, guarding a doc nicety). ⛔ do NOT re-do it, and ⛔ **do not
 >    resurrect the deleted check** — the long note at its former site in `audit_doc_consistency.py`
 >    explains why, and it cost six review rounds to learn.
->    ⚠ **`03-PUNCH-LIST.md` IS AT 3593 / 3600 LINES — 7 LEFT. ‼ THE NEXT EDIT THAT GROWS IT MUST
->    FIRST RETIRE A COMPLETED ITEM (⛔ not the ✅ `#26-*` entries until the validation batch is
->    mined — their bodies carry the live discriminators).** ‼ *(This figure is re-derived at commit time — an earlier one drifted by 4 lines because
+>    ⚠ **`03-PUNCH-LIST.md` IS AT 3588 / 3600 LINES — 12 LEFT (the `#24-driftheadlineshape`
+>    retirement bought 5 back). ‼ THE NEXT EDIT THAT GROWS IT MUST FIRST RETIRE A COMPLETED ITEM
+>    (⛔ not the ✅ `#26-*` entries until the validation batch is mined — their bodies carry the
+>    live discriminators).** ‼ *(This figure is re-derived at commit time — an earlier one drifted by 4 lines because
 >    it was measured BEFORE the last edits. Measure a line count LAST.)* It hit 3597 (3 left) on
 >    2026-08-23 and was brought back by RETIRING the just-completed `#24-brokenrepros` entry from
 >    ~56 lines to a 16-line summary. ⛔ **When it tightens again, retire another COMPLETED item the

@@ -3467,3 +3467,16 @@ to Claude agents: grade an agent's NAMES highly and its ARCHITECTURE ADVICE not 
 gate output to `.gate-logs/<stem>.txt` and prints only a label line, so suite membership BURIES
 the advisory — the opposite of "unmissable at the moment of the edit". The hook is the delivery.
 **Rejected: hook exit 2 (stderr → model).** That is the BLOCKING channel; forbidden by Decision 2.
+
+## 2026-08-26 — `#24-driftheadlineshape`: position-scoped exemption, not vocabulary
+
+The drift cell holds ONE live figure and a long archive of historical ones. **Decision: the gate
+reads only the FIRST `N as of <date>` per drift-labelled row** — enforcing the cell's own
+documented convention ("today's number is at the TOP") — rather than classifying each figure as
+live/historical by nearby words. **Rejected: vocabulary exemptions** (`Previously`, `historical`,
+`ARCHIVE` proximity) — the 2026-08-23 entry measured exactly that shape silently exempting a live
+fault injection because a common word co-occurred. **Rejected: the general "`<number> <noun>` vs
+list length" form** the item offered — counting files inside a 4,000-char prose cell is an
+inference engine (the "when a predicate needs a third exemption, delete the predicate" lesson,
+pre-empted); the headline-vs-measurement compare needs no list parsing because `real_drift()`
+already knows the truth.

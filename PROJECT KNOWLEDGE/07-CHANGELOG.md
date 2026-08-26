@@ -18531,3 +18531,23 @@ two-line `if is_waiting_for_input(): press_button("A")` idiom false-fired (fix: 
 `unless` window; boundary itself tested), and pure RENAMES / BINARY diffs were invisible to path
 rules because git omits `---`/`+++` for both (fix: harvest `diff --git` + `rename from/to`
 headers; tested incl. a `git mv` into the mirror and the real unquoted-trailing-tab path shape).
+
+## 2026-08-26 — `#24-driftheadlineshape`: the drift-row HEADLINE is gated (check_drift PASS 3)
+
+**`audit_doc_consistency.py` `check_drift` PASS 3** — reads the FIRST `N as of <date>` figure in
+any table row whose LABEL cell contains `drift` and compares it to `real_drift()`. History deeper
+in the cell is exempt BY POSITION (the cell's own "today's number is at the TOP" convention), so
+`Previously 0 as of…` / `ZERO as of…` archive tails stay quiet — a declared exemption, not
+vocabulary (the 2026-08-23 "exemption keyed on a common word is a hole" lesson applied). Runs on
+fence-stripped text. **Proof:** D28a-e (fires: wrong headline, word-form headline; quiet: right
+headline over wrong HISTORY — the 2026-08-24 incident inverted — non-drift rows, fenced quotes)
+plus a LIVE INCIDENT REPLAY: the real `04-HANDOFF.md` headline flipped 7→2 turned the gate red at
+`:209` naming both figures; the file restored byte-identical. The live tree stays green.
+
+## 2026-08-26 — `#24-harnesswhiteoutdrop` mechanism recon (item stays OPEN)
+
+The filed mechanism is REFUTED AS STATED —
+every driver branch sets `context.bot_mode_instance` (67 + else fallback) and the frame loop
+passes that instance to listeners; surviving candidates are a NON-Story mode's default
+`on_whiteout() -> False` and the stack-empty-only assignment window. Next step is log mining of
+the 36 incidents, recorded in the item.

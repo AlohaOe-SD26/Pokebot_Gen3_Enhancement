@@ -587,8 +587,14 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       custom handling never engaged and the listener fell through to `set_manual_mode()`.
       ⇒ **This is a TEST-FIDELITY defect, not a bot defect:** any harness driver that whites out
       silently stops behaving like the real mode from that point on, so whatever it was measuring
-      afterwards is suspect. ⚠ Diagnosed by profile pattern, NOT proven — confirm by checking whether
-      those drivers set `context.bot_mode_instance` before triaging any result that came from one.
+      afterwards is suspect. ➡ **RECON 2026-08-26 (static sweep, spot-verified): the filed
+      mechanism is REFUTED AS STATED** — all 67 driver branches (+ an else fallback,
+      `story_harness.py:10551`) DO set `context.bot_mode_instance`, and the frame loop passes that
+      instance to listeners (`:10620`). Two candidate mechanisms survive: (a) the mode those old
+      profiles ran was a NON-Story mode whose inherited `BotMode.on_whiteout()` returns False
+      (`_interface.py:191` — verified) → Manual by design; (b) assignment runs ONLY on
+      stack-empty frames (`:10286`), so a stale instance can persist. ⇒ next step is LOG mining:
+      which driver/mode was live at each of the 36 drops — not more code reading.
 
 ### ‼‼ `#26-manualderails` — PRODUCTION derails to MANUAL around Fortree and Mossdeep (USER REPORT 2026-08-26)
 
@@ -784,27 +790,16 @@ REVERTED — more time cannot fix a hang, it only defers the kill.** Next: bisec
 gate arms the hang (run the suite's exact sequence, halving), and capture the runner's own
 "TIMEOUT — killed" transcript as the settled artifact.
 
-### ‼ `#24-driftheadlineshape` — `check_drift` misses the HEADLINE form (filed 2026-08-24)
+### ✅ `#24-driftheadlineshape` — DONE 2026-08-26: `check_drift` PASS 3 reads the drift-row HEADLINE (filed 2026-08-24)
 
-`check_drift` caught **seven** stale claims of the OLD drift count the moment `sootopolis.py`
-moved it,
-and then a Tier 1 review found an **EIGHTH it does not match** — in the highest-traffic place of all,
-`04-HANDOFF.md`'s STATE-table drift cell, which opened:
-
-> `| sandbox ↔ custom drift | ⚠ **N as of <date>, MEASURED by promote.py --check: <files>`
-
-⛔ **The cell listed THREE files and said "went 2 → 3" two sentences later, while its HEADLINE still
-said 2.** The body was right and the half that gets skimmed was wrong — the exact P2 shape this
-project keeps paying for, this time inside a gate's own blind spot.
-
-**What to build:** teach `check_drift` the `N as of <date>` / `N differing` headline form, or more
-generally: **a claim of the form `<number> <noun>` in the same cell as a list of that noun should be
-checked against the list's LENGTH.** ‼ FAULT-TEST IT BOTH WAYS — prove it fires on a headline that
-disagrees with its own list, and prove it does NOT fire on a historical/quoted figure (the existing
-gate already documents that it "cannot tell a quotation from a claim", which is why the rule is
-DESCRIBE a stale figure, never reprint it).
-⚠ Until then, the manual check is: **when the drift count changes, re-read the STATE cell's first
-sentence, not just grep for the old number.**
+- [x] **SHIPPED 2026-08-26 — ⛔ do not rebuild.** `check_drift` PASS 3: the FIRST `N as of <date>`
+      in any drift-labelled table row is compared to `real_drift()`; history deeper in the cell is
+      exempt **BY POSITION** (the cell's own documented "today's number is at the TOP" convention —
+      a declared exemption, not vocabulary). Fault-tested BOTH ways (D28a-e: fires on a wrong
+      headline incl. word-form; quiet on right-headline-wrong-history — the inverted incident —
+      non-drift rows, and fenced quotes) **plus a live INCIDENT REPLAY**: the real cell's `7`
+      flipped to `2` turned the gate red at `04-HANDOFF.md:209` naming both figures, file restored
+      byte-identical. Narrative: `07-CHANGELOG.md` 2026-08-26.
 
 ### ‼ `#24-crackedfloorpathfinder` — the planner cannot see a hole in the floor (filed 2026-08-24)
 
