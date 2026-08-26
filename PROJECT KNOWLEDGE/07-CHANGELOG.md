@@ -18394,3 +18394,28 @@ had.
 ‼ **THE UNIFORMITY WAS THE TELL.** Eighteen NPCs all returning the identical negative should have
 read as *"my question is malformed"*, not *"the map is sealed"*. ⇒ **WHEN EVERY MEMBER OF A SET
 ANSWERS THE SAME WAY, SUSPECT THE QUESTION BEFORE THE SET.**
+
+
+## 2026-08-26 — USER REDIRECT: three PRODUCTION defects from real testing now outrank §Ch21
+
+The user ran the bot live (single instance, Mudkip starter) and reported three defects — the first
+real production feedback since the story arc resumed. **Real-use reports outrank new chapter work**,
+so §Ch21 leg 2 is PARKED, NOT CANCELLED — its build spec (produced by a 9-agent workflow: 4 recon
+angles, each adversarially verified, synthesised from survivors only) is saved verbatim at
+`ai-research-notes/2026-08-26-ch21-leg2-BUILD-SPEC.md`.
+
+**Filed, with the user's own observations quoted:**
+* `#26-manualderails` — reverts to MANUAL around **Fortree and Mossdeep**; ‼ flipping back to Story
+  mode continues normally, so a guard/retry hands off PREMATURELY — the navigation itself works.
+* `#26-surfteachchain` — the post-Norman HM03 sequence **A-spams**, re-talks the NPC after the menu
+  closes, re-attempts the teach, and **sometimes teaches the WRONG HM**. Plus the DESIGN GAP: a
+  non-Mudkip run may hold NO Surf-capable pokémon at that point — an organic surf-learner path is
+  needed (the Dive equivalent, `ensure_hm_learner_making_room` + `divelearner`, is the proven
+  pattern to reuse).
+* `#26-mossdeeppuzzlespeed` — solved correctly first time but far too slowly. ⛔ Speed it up while
+  KEEPING the stuck/incorrect detection, and MEASURE frames-per-phase before touching anything.
+
+**In flight:** an `--lanes 8` x4_headless batch (2× each starter + 2 random — the per-starter
+doubling matters because the Surf gap is starter-specific) accumulating derail and HM-teach
+evidence; four agents on distinct angles (old-log mining for derail signatures, the HM teach code
+path, the surf-learner gap, and Mossdeep puzzle profiling).

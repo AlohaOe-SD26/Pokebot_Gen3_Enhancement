@@ -6604,3 +6604,26 @@ reporting most runs as successes. Both root causes are fixed in sandbox with A/B
 >    the only evidence — which is why `reraise_if_aborting` is LATCH-keyed. A reachability filter
 >    contradicts the design of the guard it filters for. Full reasoning in `03-PUNCH-LIST.md` and
 >    `08-MISTAKES.md`.
+
+
+## 📦 ARCHIVED 2026-08-26 from `04-HANDOFF.md` NEXT ACTIONS (R3 budget, user-redirect edit)
+
+> Moved VERBATIM, nothing deleted; a 3-line stub remains. The guarded method (section-scoped
+> search + live-marker assertion) was used — the assertion is what prevented a repeat of the
+> 278-line over-archive of 2026-08-24.
+
+---
+
+>    ✅✅ **PREVIOUS QUEUE ITEM 0 IS PART DONE (2026-08-17): `#24-abortswallow` — 8 MORE SITES FIXED,
+>    probe **45 → 37**, MEASURED. ⛔ DO NOT REDO THOSE EIGHT.** All eight were hand-verified to reach
+>    `_check_abort()` BEFORE being touched — the triage decided what to fix, not the probe.
+>    `counter_hunt.py` (its only candidate, now gone) plus `early_game.py`'s meteorite, Rusturf
+>    smash, Strength teach and FOUR heal stops. ‼ **The four heal handlers were UNDOING the
+>    2026-08-16 guard one frame after it fired** — `heal_in_pokemon_center` re-raises on the latch
+>    and they caught it. ⛔ **`counter_hunt.py` needed a DIFFERENT shape**: it catches `Exception`, so
+>    it re-raises only BotModeError-family objects — a `PathFindingError` is a `RuntimeError` and
+>    re-raising one would escape `StoryMode.run` and leave the global latch STUCK TRUE
+>    (`higher_level_actions.py:842`). ✅ Fault-tested both ways with no emulator: latch CLEAR → still
+>    swallows (normal operation untouched); latch SET → `StoryAbort` and a laundered `BotModeError`
+>    both propagate; latch SET + `PathFindingError` → still swallowed, so the narrowing cannot leak.
+>

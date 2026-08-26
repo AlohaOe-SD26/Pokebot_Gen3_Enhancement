@@ -659,6 +659,42 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       afterwards is suspect. ⚠ Diagnosed by profile pattern, NOT proven — confirm by checking whether
       those drivers set `context.bot_mode_instance` before triaging any result that came from one.
 
+### ‼‼ `#26-manualderails` — PRODUCTION derails to MANUAL around Fortree and Mossdeep (USER REPORT 2026-08-26)
+
+**USER-OBSERVED, single live instance, Mudkip starter:** the bot *"works really well but has some
+derails where it reverts to MANUAL"*, clustered **around Fortree and Mossdeep** — and ‼ **when the
+user flips it back to Story mode it continues normally.** That recoverability is the diagnostic gold:
+whatever gives up is a GUARD or RETRY-EXHAUSTION handing off via `set_manual_mode()`, not a wedge —
+the underlying navigation still works on re-entry.
+**Plan (the user's own suggestion):** an `--lanes 8` batch, then read the debug logs for the derail
+signatures — WHICH `_guard()`/abort path fired, on which map, at what point. ⛔ Batches answer
+FREQUENCY; once a signature is in hand, the fix is proven by a targeted driver, not more batches.
+
+### ‼‼ `#26-surfteachchain` — the post-Norman HM03 Surf sequence A-spams, re-talks, and re-teaches (USER REPORT 2026-08-26)
+
+**USER-OBSERVED:** after beating Norman and getting HM03, the bot *"loops talking to the npc after it
+leaves the menu because its spamming A"* and *"loops a bunch attempting to teach the HM (sometimes
+the wrong HM)"*. Two known shapes apply: the museum-greeter bug (ungated A-mash across a scene seam
+re-opens the dialogue) and `#24-teachmsgstall`'s open residue (*"another path to `exhausted` remains
+unfound"* — this may BE that path). Review Rock Smash's teach for the same pattern (user: "may be ok").
+⛔ **HALF 2, THE DESIGN GAP:** the user's test bot was MUDKIP, which learns Surf itself. **A
+Treecko/Torchic run may hold NO Surf-capable pokémon at this point.** Required: an organic
+surf-learner path — capture a suitable pokémon, and if the party is full, ensure it ends up IN the
+party (PC trip), before the story needs Surf. ‼ The Dive equivalent already exists and is DONE
+(`ensure_hm_learner_making_room`; its driver is likewise complete — cited here as the PROVEN PATTERN
+to copy, ⛔ not as work to run) — establish whether Surf has an equivalent, and if not, build one
+shaped like the Dive one. Anchors: `norman_done.ss1`, `prenorman_fodder_grind.ss1`.
+
+### ‼ `#26-mossdeeppuzzlespeed` — the Mossdeep Gym puzzle is SOLVED CORRECTLY but takes far too long (USER REPORT 2026-08-26)
+
+**USER-OBSERVED:** solved right on the first attempt, but *"it took forever to navigate and solve"*.
+This is a PERFORMANCE item with a hard constraint: **keep the stuck/incorrect detection** (*"it
+should still be able to know if the puzzle is incomplete/not correct so it does not get stuck"*).
+Suspects: per-step re-planning, waits between inputs, or re-verifying the whole puzzle state after
+every move. ⛔ Measure BEFORE touching: drive `in_mossdeep_gym.ss1` and count frames-per-phase first,
+so the speedup is a measured before/after, not a feel. KI-58's solver is PROVEN — do not rewrite it,
+profile it.
+
 ### ‼ `#24-driftheadlineshape` — `check_drift` misses the HEADLINE form (filed 2026-08-24)
 
 `check_drift` caught **seven** stale claims of the OLD drift count the moment `sootopolis.py`
