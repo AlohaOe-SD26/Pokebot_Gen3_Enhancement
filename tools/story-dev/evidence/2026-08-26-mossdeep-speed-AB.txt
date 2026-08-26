@@ -1,0 +1,51 @@
+MOSSDEEP GYM PUZZLE SPEED — the A/B for #26-mossdeeppuzzlespeed (USER REPORT 2026-08-26)
+======================================================================================
+
+### BEFORE — the unmodified solver, driven from in_mossdeep_gym.ss1 (this log IS the baseline)
+log: harness_sandbox_mossdeepgym_20260826-063829_3336.log
+
+run-relative frame at acceptance: f60000
+  (NOT the file's last f-line, f81988 -- that includes POST-acceptance manual-mode heartbeats
+   from the run spinning until killed. The honest BEFORE is the last event line BEFORE the
+   ACCEPTANCE line. Same extraction must be used on the AFTER arm.)
+[ch18b] RESULT at_leaders=True map=MOSSDEEP_CITY_GYM at=(23, 8) controllable=True whiteouts=0 frames=3493635
+[ch18b] ACCEPTANCE: PASS (needs to be standing on [(23, 8), (24, 8)], controllable)
+
+the smoking-gun span the profiler found (event-free stepping):
+  f15251 -> f38329 = 23,078 frames with zero events, ~35 turns x ~600-frame stalls
+
+profiler's cost split (arithmetic closed against this log to within 1%):
+  turn-in-place stalls  ~36,000 frames  ~58%   <- Fix A targets exactly this
+  trainer battles        ~16,800        ~27%   inherent to the gym
+  post-battle quiet wait  ~3,600         ~6%   Fix B candidate (call-site arg)
+  per-step 20f settle     ~2,700         ~4%   Fix C candidate
+
+### THE FIX (A): a bounded pre-turn in _step_towards, mossdeep_gym.py
+  a 1-frame direction tap while facing another way is a TURN, which changes neither tile nor
+  script -- so attempt 1 waited out its whole 600-frame timeout after EVERY direction change.
+  The pre-turn (TURN_TIMEOUT_FRAMES=32, every main-loop guard kept verbatim inside it) makes
+  attempt 1 always a WALK. Main loop UNCHANGED. Safety net untouched: the per-step drift check,
+  landed-vs-planned replan, start-state control and no-route abort all still run per step.
+
+### AFTER — appended when the A/B arm lands
+
+### AFTER — Fix A only (the pre-turn), same anchor, same driver, same extraction
+log: harness_sandbox_mossdeepgym_20260826-064511_30476.log
+  last event f-line before ACCEPTANCE: f20000  (heartbeats are every 2,000 frames, so acceptance
+  lies in [20000, 22000] -- the BEFORE, by the same extraction, lies in [60000, 62000])
+  [ch18b] ACCEPTANCE: PASS (needs to be standing on [(23, 8), (24, 8)], controllable)
+  RESULT: at_leaders=True whiteouts=0, same final tile (23,8) as BEFORE.
+
+VERDICT: ~62,000 -> ~21,000 frames  ==  ~17.2 min -> ~5.8 min  ==  ~2.9x.
+  Walking overhead fell from ~45,200 to ~4-5,000 frames, matching the turn-stall arithmetic
+  (~60 turns x ~600 frames no longer paid). The safety net is UNTOUCHED in code on both arms.
+  WHAT THE RETAINED LOGS PROVE about it (a Tier 1 review made this distinction and it is right):
+    * the FATAL checks (statue-drift refusal, start-state control, no-route abort) provably did
+      NOT fire -- each raises BotModeError, which cannot coexist with ACCEPTANCE: PASS at the
+      expected tile. PASS on both arms IS the proof.
+    * the NON-FATAL replans (landed != planned -> re-solve) print via say()/console.print, which
+      the harness .log does NOT retain -- so "zero replans" is NOT claimed. The comparable-frames
+      + same-final-tile result BOUNDS their cost, but their count is unmeasured on both arms.
+FIXES B AND C (post-battle quiet window, per-step settle) are NOT taken: at ~21k frames the
+remaining cost is dominated by the six unavoidable trainer battles, and both candidates shave
+seconds while sitting closer to documented hazards. Diminishing returns -- deliberately stopped.

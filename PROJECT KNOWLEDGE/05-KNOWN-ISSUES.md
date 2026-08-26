@@ -636,7 +636,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 - **Symptom:** bundle `20260727-063751`, P3 run 1: `state=3 controllable=False`, position
   frozen at **ROUTE 119(32,1) (10,10)**, for **27 million frames / ~6.5 h** — and **not one
   STUCK dump fired in that entire stretch**, so the no-progress watchdog never saw it.
-- **Last known stack:** `do_weather_institute` (`early_game.py:6308`) → its TWO calls to
+- **Last known stack:** `do_weather_institute` (`early_game.py:6361`) → its TWO calls to
   `_ride_out_all_scenes` (`early_game.py:437`), which sit at `do_weather_institute`
   `early_game.py:6364` and `early_game.py:6387`.
   ‼ *Re-derived from source 2026-08-16 — it read `:5548`, which is unrelated prose in another

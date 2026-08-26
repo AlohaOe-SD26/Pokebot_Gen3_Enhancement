@@ -10497,7 +10497,13 @@ for step in range(args.frames):
             log(f"f{step}: save-on-stuck failed: {_e}")
     if sig[1] == "OVERWORLD" and not ba and _ctl is False:
         try:
-            from modules.game import get_text_printer as _gtp
+            # ‼ FIXED 2026-08-26: this imported from `modules.game`, where the function has never
+            # lived in this fork (`modules.text_printer:92`), so EVERY STUCK-OW line printed
+            # `textprinter=<err cannot import name ...>` and the field was a DEAD INSTRUMENT —
+            # found by the `#26-mossdeeppuzzlespeed` profiling pass reading a real run log. The
+            # try/except made it fail silent-but-visible, which is why it survived: a broken
+            # diagnostic that still prints SOMETHING never trips a gate.
+            from modules.text_printer import get_text_printer as _gtp
 
             _tp = _gtp()
             _tpstate = f"active={_tp.active} state={_tp.state}" if _tp else "None"

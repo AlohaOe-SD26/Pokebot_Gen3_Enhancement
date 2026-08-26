@@ -156,3 +156,6 @@
 {"when": "2026-08-24T20:12:28", "driver": "ch21dive", "build": "sandbox", "state": "post_ch20.ss1", "frames_run": 39072, "recomputes": 39072, "scans": 131, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-24T20:19:16", "driver": "ch21dive", "build": "sandbox", "state": "post_ch20.ss1", "frames_run": 39072, "recomputes": 39072, "scans": 131, "divergences": {}, "observer_broke": false}
 {"when": "2026-08-24T20:28:09", "driver": "ch21dive", "build": "sandbox", "state": "post_ch20.ss1", "frames_run": 39072, "recomputes": 39072, "scans": 131, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T06:45:25", "driver": "mossdeepgym", "build": "sandbox", "state": "in_mossdeep_gym.ss1", "frames_run": 81989, "recomputes": 81989, "scans": 274, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T06:51:21", "driver": "mossdeepgym", "build": "sandbox", "state": "in_mossdeep_gym.ss1", "frames_run": 40361, "recomputes": 40361, "scans": 135, "divergences": {}, "observer_broke": false}
+{"when": "2026-08-26T06:55:38", "driver": "teachfull", "build": "sandbox", "state": "boxwithdraw.ss1", "frames_run": 21943, "recomputes": 21943, "scans": 74, "divergences": {}, "observer_broke": false}

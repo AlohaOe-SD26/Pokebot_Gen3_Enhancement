@@ -117,9 +117,22 @@ def flaky_on_gym_map() -> bool:
     """True until the route is well under way, then False forever — a whiteout, in effect.
 
     The threshold is high enough that the puzzle has been built and several steps walked, so this
-    exercises the IN-LOOP guard rather than the cheap one at function entry."""
+    exercises the IN-LOOP guard rather than the cheap one at function entry.
+
+    ⛔ RECALIBRATED 400 → 80 ON 2026-08-26, AND THE REASON IS A LESSON ABOUT THIS FAULT'S UNITS.
+    The threshold counts CALLS, and calls-per-step is a property of the WALKER, not of the route:
+    under the old `_step_towards` a single direction change stalled ~600 frames with one
+    `_on_gym_map()` call per frame, so 400 calls landed INSIDE STEP ~1. The `#26-mossdeeppuzzlespeed`
+    pre-turn removed that stall (~24-45 calls/step now), silently moving the SAME threshold to step
+    ~9-16 — PAST THE FIRST TRAINER'S SIGHT LINE. A battle started, nothing here can win one (no
+    listeners), and `drive()` burned its full 400k-frame budget → TimeoutError instead of the
+    expected BotModeError → checks [1]+[2] failed and the gate hit the suite's 900s bound. The
+    PRODUCTION guard was fine the whole time; the REPRO'S calibration was coupled to the walker's
+    frame cost. 80 calls ≈ entry guard + puzzle build + ~2-3 steps under the new walker: "several
+    steps walked", still short of every trainer. ⇒ A FAULT KEYED TO A FRAME-DERIVED COUNT MUST BE
+    RE-EXAMINED WHENEVER THE THING IT INSTRUMENTS CHANGES SPEED."""
     calls["n"] += 1
-    return calls["n"] < 400
+    return calls["n"] < 80
 
 
 mossdeep_gym._on_gym_map = flaky_on_gym_map

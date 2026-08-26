@@ -6627,3 +6627,135 @@ reporting most runs as successes. Both root causes are fixed in sandbox with A/B
 >    swallows (normal operation untouched); latch SET → `StoryAbort` and a laundered `BotModeError`
 >    both propagate; latch SET + `PathFindingError` → still swallowed, so the narrowing cannot leak.
 >
+
+
+## 📦 ARCHIVED 2026-08-26 from `03-PUNCH-LIST.md` (R3 budget)
+
+> Moved VERBATIM, nothing deleted; one-line stubs remain. ‼ A FIRST attempt at this move
+> CORRUPTED the file: it replaced slices in SIZE order, so the 2nd/3rd replacements used
+> STALE indices and cut across wrong boundaries (5 diff hunks where 3 blocks were intended).
+> Caught by reading the diff's hunk structure BEFORE committing; recovered by git checkout +
+> re-apply. ⇒ CAPTURE ALL BLOCKS FROM THE PRISTINE LIST FIRST, REPLACE IN DESCENDING LINE
+> ORDER, AND ASSERT EACH BOUNDARY STILL MATCHES BEFORE WRITING.
+
+---
+
+- [x] **✅✅ DONE 2026-08-23 — ALL 17 nav retry loops patched, and GATED as #30.**
+      ⛔ **AN EARLIER DRAFT OF THIS ENTRY EXCLUDED 3 LOOPS AND WAS WRONG — the exclusion is
+      WITHDRAWN.** It claimed `exit_building_after_whiteout()`, `_exit_training_cave_if_inside()` and
+      `_enter_warp_by_navigation()` run "while the abort latch is still SET". **They do not.** An
+      adversarial review refuted it and an AST resolution of `StoryMode.run`'s branch chain
+      confirmed: BOTH the derail branch (`if not self._whiteout_pending`) and the whiteout branch
+      call `set_story_abort(False)` BEFORE those routines. ‼ *The original error was reading a LINE
+      RANGE instead of a control-flow path — there are two clear sites, one per branch, so "between
+      them" proves nothing.* See `08-MISTAKES.md` and `06-DECISIONS-LOG.md` (both 2026-08-23).
+      ⇒ **WHAT GATE #30 §1 ACTUALLY ENFORCES: `StoryMode.run` must clear the latch BEFORE calling
+      any recovery routine.** The hazard is real but one REORDERING away, and that is what is now
+      gated — with a fault test that injects the real hazard. ⛔ Do not hoist the recovery calls
+      above the clear.
+      ✅ **PROVEN, not asserted** — gate #30 drives the REAL `_navigate_through_scripts` two-armed:
+      **ARM A (latch clear) `nav_attempts=25` + the FABRICATED `BotModeError: … too many scripted
+      interruptions`; ARM B (latch set) `nav_attempts=0` + `StoryAbort` on iteration 1.** The arms
+      differ on TWO axes. 5 fault tests pass, including *a check in a COMMENT does not satisfy it*
+      and *a check INSIDE the try does not count* (it would be swallowed — `StoryAbort` subclasses
+      `BotModeError`). ⚠ **THE ONLY RE-DERIVABLE FIGURE IS 28/28** — run `repro_loop_head_abort.py`. The 26/9/17
+      breakdown quoted in the changelog is SUPERSEDED NARRATIVE (the old direct-match definition),
+      kept for continuity and reprinted by nothing. Coverage **28/28** by the precise criterion — *a loop is exposed only if it can reach a nav
+      primitive WITHOUT passing through a helper that already has a head check* (direct matching says
+      26, naive transitive says 44; both are wrong). The fix is inert NOWHERE.
+      ⚠ **drift is 3 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until the chapter is driven) — `modules/story/seafloor_cavern.py`, the §Ch20 chapter UNDER CONSTRUCTION, sandbox only. ⛔ NOT a promotion decision: it is incomplete (constants + predicates + preflight only, no legs yet) and must not be promoted until it is driven end to end.** *(the abort guards were promoted 2026-08-24 and that drift is 3 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until driven).)* custom went
+      8 AST swallowers → 0 and probe 36 → 23; see `custom-pokebot/DIVERGENCE-LOG.md`.
+      Original entry follows. `#24-loopheadabort` — **NEW 2026-08-17, found while triaging `#24-abortswallow`. A DIFFERENT
+      DEFECT FROM THAT ITEM — do not conflate them.** 13 bounded retry loops in
+      `sandbox-pokebot/modules/story/early_game.py` wrap navigation primitives and have **no
+      loop-head `_check_abort()`**: `1259, 1305, 1518, 1567, 2404, 2420, 2433, 3112, 3135, 3241,
+      3551, 3702, 3712` (line numbers as of 2026-08-17 — ⛔ RE-DERIVE, they drift).
+      **Why it is not the same bug:** none of the guarded callees (`navigate_to`,
+      `navigate_to_anywhere`, `_enter_warp_by_navigation`) contains `_check_abort()`, so no
+      `StoryAbort` object ever arrives — a handler guard there is INERT. What happens instead is
+      that after a whiteout the loop keeps re-navigating a DEAD TEAM from the respawn Pokémon
+      Centre, burns its whole retry budget (`_navigate_through_scripts` up to `max_rounds=25`,
+      `recover_devon_goods` up to 20) and then raises a FABRICATED cause — *"Could not reach X (too
+      many scripted interruptions)"*. ⇒ **the fix is a `_check_abort()` at the LOOP HEAD**, outside
+      the `try`, so the abort ends the loop instead of being retried through.
+      ⛔ **CORRECTED 2026-08-22 (PASS 5) — "20 of the 44 already have a head check" WAS A BORROWED
+      NUMBER AND RE-DERIVES UNDER NO DEFINITION.** The 44 came from the abort-SWALLOW probe's
+      original count, which measures a different population. MEASURED by AST over `early_game.py`:
+      **nav-primitive loops 26, of which 9 have a head check** (bounded loops 93/40; yield-from
+      loops 79/46). ⇒ the pattern IS established — copy an existing one — but quote the 9-of-26.
+      ⚠ **AND THE LIST OF 13 IS INCOMPLETE.** Five more nav loops have no head check and no
+      reachable `_check_abort`: **376, 1930, 2607, 3310, 4257**.
+      ‼ **WHAT THOSE NUMBERS POINT AT, precisely (checked 2026-08-23):** they are the `try:` lines,
+      not the `for`/`while` heads — e.g. `:373` is `for above in ((7, 7), (6, 7)):` and `:376` is its
+      `try:`; `:4254` is `for wx, wy in warps:` and `:4257` its `try:`. ⛔ **That is the RIGHT
+      insertion point anyway** — immediately BEFORE the `try:` is inside the loop and outside the
+      handler, which is exactly where the check must go. Do not "correct" them to the `for` line
+      without re-reading: the point is to be inside the loop, outside the `try`. the site near `2603` is the item's exact shape —
+      a `for _ in range(10)` loop head at `early_game.py:2603` whose body wraps `navigate_to_anywhere`
+      in `except BotModeError: pass` (verified in code; ⚠ a cold-start audit corrected an earlier
+      draft that said `range(20)` at `:2607` — `:2607` is the `try:`, not the loop head). Treat the 13 as a FIRST BATCH, not the population.
+      ✅✅ **THE A/B IS NOT VACUOUS — the discriminator was COMPUTED 2026-08-22, so this is startable.**
+      `grep -c _check_abort` is **0** in both `global_navigation.py` and `walking.py`, and
+      `raise StoryAbort` occurs ONCE in `early_game.py:135` ⇒ **ARM A** (latch set, no head check):
+      nothing inside the loop reads the latch, so it burns the full budget (8-25 rounds) and then
+      raises a FABRICATED cause; **ARM B** (head check): raises on iteration 1. **The arms differ.**
+
+
+---
+
+- [x] **(5) ✅ DONE 2026-08-17 — and the item's own premise was REFUTED first. ⛔ DO NOT REBUILD IT.**
+      **The premise was "never built".** `compare_runs.py` **exists** (12.3 KB, 2026-07-25) and its
+      shipped CLI **already** accepts `--label <arm> <logs>` groups, so the requested "pairing"
+      needed no new plumbing at all. ‼ **But running it is what mattered, not reading it.**
+      ⛔⛔ **MEASURED REFUTATION — the pairing as specified would have LIED.** Fed the two committed
+      withdraw-verdict arms (`evidence/2026-08-17-withdrawverdict-ARM{A,B}-*.harnesslog.txt`,
+      which are `ACCEPTANCE: FAIL` and `ACCEPTANCE: PASS`), the shipped tool clustered them **2x on
+      ALL FOUR axes, every one tagged `<<< SPANS LABELS`** — the strongest *"these runs are the
+      same"* signal it can emit, over the exact pair that provably differs.
+      **ROOT CAUSE, and it is structural, not a typo:** every axis was FAILURE-shaped, because the
+      tool was built for cross-machine CRASH clustering where "did the arms differ?" never arises.
+      A focused driver's log **always** ends `HANG CONFIRMED` (the harness's own end-of-run marker)
+      and never reaches the `content-end`/`badge6` milestones that outrank it — so the failure axis
+      is **CONSTANT ACROSS ARMS BY CONSTRUCTION**, and `ACCEPTANCE:` — the house verdict token,
+      present in **53 of 65** committed evidence transcripts and only ever `PASS`/`FAIL` — was not
+      parsed at all. ⇒ **Delivering the wrapper the note asked for would have produced a report
+      reading "the arms agree" over a matrix whose entire purpose is to show they disagree.**
+      ✅ **WHAT SHIPPED INSTEAD — an AXIS, not a wrapper** (`tools/story-dev/compare_runs.py`):
+      `ACCEPTANCE:` is parsed (ALL verdicts, whole-file, so a multi-stage driver's Stage 1 is not
+      dropped by the tail window), shown as a matrix column, added as a fifth cluster axis, and a
+      new **`A/B DISCRIMINATION`** section states the arms-differ answer in words — **and NAMES the
+      axes that are blind to it**, so a `<<< SPANS LABELS` cluster can never again be misread as
+      agreement.
+      ✅ **FAULT-TESTED FOUR WAYS** (`evidence/2026-08-17-compareruns-abaxis-FAULT-TESTS.stdout.txt`):
+      (1) real A/B FAIL-vs-PASS → **SEPARATES**, and names `failure kind` / `dying function` /
+      `location` as blind; (2) arms that genuinely agree (KI-80's arm-4 invariance, PASS/PASS) →
+      **does NOT** claim separation; (3) neither transcript graded → **refuses to grade**;
+      (4) one arm graded, one not → **refuses**. ‼ **Test (4) caught a REAL defect in the first
+      draft of this very change**: `(no verdict)` beside `PASS` printed a green *"✅ THE ARMS
+      SEPARATE"* — an **ABSENCE read as a value**, above the caveat a skimmer never reaches.
+      Separation is now judged over **graded labels only**. ⇒ `08-MISTAKES.md` 2026-08-17.
+      ✅ **DEMONSTRATED ON A REAL 4-TRANSCRIPT MATRIX** (the deliverable the item wanted): KI-80's
+      promotion set, 2 builds x 2 expectations, where the new axis renders the three-point A/B's
+      **mirror** structure at a glance — `PASS = {before-coupled, after-decoupled}`,
+      `FAIL = {before-decoupled, after-coupled}` — while `location` and `failure+location` cluster
+      all four together and see nothing.
+      ⚠ **SCOPE — what this item did NOT cover.** The research note's line 166 names *two* unbuilt
+      things; the punch-list item named only this one. **The "natural-vs-injected byte-equivalence
+      control" is still unbuilt and still unspecified** — it is NOT closed by this entry. It is the
+      one that would shut the *"is an injected mon really like a caught one"* gap.
+      ⚠ **`tools/` is shared, not forked** — this change carries **no promotion twin** and does not
+      move the sandbox↔custom drift figure.
+
+---
+
+- [x] **✅ DONE 2026-08-22/23 — brought current, and it was WORSE than filed: not a pure completeness gap, it carried FOUR WRONG CLAIMS** (a "Next:" for work done 2026-08-16, a warning that had been lifted, and "the next room" of a cavern driven end to end). ⛔ Kept number-free — the added section contains no digits. Original text follows.
+      `#24-plainenglishstale` — **NEW 2026-08-17. `24-PLAIN-ENGLISH-STATUS.md` is the file
+      `00-README` sends a HUMAN to FIRST, and it is two days behind (last updated 2026-08-15).**
+      Missing: the `#24-orphans` (1) verdict instrumentation, the KI-66 `_on_field` fix, and both
+      `#24-abortswallow` rounds. ‼ **It carries NO stale number** — a cold-start audit grepped it and
+      it quotes no gate/drift/probe/budget figure — so this is a COMPLETENESS gap, not a wrong claim,
+      which is why no gate catches it. ⇒ Bring it current in plain English; ⛔ keep it number-free,
+      because that property is exactly why it has never gone stale in the way the other files do.
+      *(Precedent: this file was FIVE chapters stale on 2026-08-13 and that is what motivated the
+      whole DOC CONSISTENCY LAYER.)*
+

@@ -9614,3 +9614,41 @@ NPC refusing, including ones in plain open ground — and read it as a finding i
 *(Related, same day: "ZERO NPCs loaded" was also treated as evidence when the reader is range-limited.
 Both are the same failure — an instrument that CANNOT return the positive answer being read as
 returning the negative one.)*
+
+
+## 2026-08-26 — MY ARCHIVE SCRIPT REPLACED SLICES IN SIZE ORDER AND CUT ACROSS WRONG BOUNDARIES
+
+**Symptom.** Archiving three closed punch-list blocks, the diff showed **5 removal hunks where 3
+blocks were intended**, including two 1-line hunks — content sliced mid-entry.
+
+**Root cause.** I captured (start, end) offsets for all three blocks, then replaced them sorted by
+SIZE. The first replacement shifted every later line number; replacements 2 and 3 used STALE offsets
+and cut wrong regions. ⚠ I even wrote a "process in descending order" comment in the script — and
+then didn't sort by line.
+
+**The fix that worked.** `git checkout` both files (losing three good edits, re-applied from
+context), then: capture ALL blocks from the PRISTINE list first, replace in DESCENDING LINE ORDER,
+and `assert lines[a] == block[0]` before each write. The redo produced exactly 3 clean hunks.
+
+⇒ **PREVENTION RULE: MULTI-SLICE EDITS GO BOTTOM-UP, AND EACH SLICE RE-ASSERTS ITS BOUNDARY BEFORE
+WRITING.** ‼ Caught by reading the DIFF'S HUNK STRUCTURE before committing — hunk count ≠ intended
+block count is a one-glance corruption tell. Same family as the 278-line over-archive two days ago:
+positional text surgery without a boundary assertion.
+
+## 2026-08-26 — A PREVENTION RULE EXISTED IN PROSE WHILE TWO VIOLATIONS OF IT SAT IN THE SAME FILE
+
+**Symptom.** The user reported the bot "loops talking to the npc … spamming A" after the HM03 teach.
+The review found the cause was the museum-greeter shape — **a rule this project already recorded**
+(08-MISTAKES: "any loop that presses buttons across scripted scenes MUST gate A on
+`is_waiting_for_input()`") — at TWO ungated sites in `early_game.py`, one of which (`_f % 3 → A`)
+sat a few lines below a 30-line comment about a DIFFERENT bug in the same loop.
+
+**Root cause.** The rule was written from one bug and applied to that bug's site. Nobody swept the
+tree for OTHER instances of the pattern, so the rule prevented recurrence at the fixed site and
+nothing anywhere else. The Surf seam (indoors, NPC-adjacent, battle tail resident) was simply the
+first environment that ARMED one of the latent sites.
+
+⇒ **PREVENTION RULE: WHEN A PREVENTION RULE IS WRITTEN, GREP FOR EXISTING INSTANCES OF THE PATTERN
+IN THE SAME COMMIT.** A rule that only guards the site that taught it is a changelog entry, not a
+rule. (Candidate gate: an AST scan for `press_button("A")` inside loops lacking a gating conjunct —
+filed with `#26-surfteachchain`'s residuals.)

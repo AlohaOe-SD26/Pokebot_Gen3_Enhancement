@@ -18419,3 +18419,46 @@ angles, each adversarially verified, synthesised from survivors only) is saved v
 doubling matters because the Surf gap is starter-specific) accumulating derail and HM-teach
 evidence; four agents on distinct angles (old-log mining for derail signatures, the HM teach code
 path, the surf-learner gap, and Mossdeep puzzle profiling).
+
+
+## 2026-08-26 — TWO OF THE USER'S THREE PRODUCTION DEFECTS FIXED AND A/B-PROVEN; THE THIRD DIAGNOSED TO ITS MECHANISM
+
+**`#26-mossdeeppuzzlespeed` — FIXED, ~2.9×.** The profiler's arithmetic closed against the user's own
+run log to within 1%: a direction tap only TURNS the avatar when it faces another way, and a turn
+changes neither tile nor script — so `_step_towards`' attempt 1 sat out its FULL 600-frame timeout
+after EVERY direction change: ~60 turns × ~600 ≈ 36,000 of the 62,000-frame solve (58%). Fix A: a
+bounded PRE-TURN (`TURN_TIMEOUT_FRAMES=32`, every main-loop guard kept verbatim inside it) so
+attempt 1 always WALKS. **A/B: ~62k → ~21k frames (~17.2 → ~5.8 min), PASS/PASS, whiteouts 0/0, same
+final tile, and the five-check safety net silent on both arms.** Fixes B/C deliberately not taken —
+the remainder is six unavoidable trainer battles. `evidence/2026-08-26-mossdeep-speed-AB.txt`.
+
+**`#26-surfteachchain` — D1/D2 SHIPPED.** The ride loop's blind `_f % 3 → A` (and the post-select
+loop's smaller twin) was the museum-greeter shape VERBATIM: a failed teach unwinds to the open
+overworld INSIDE WALLY'S HOUSE, and the blind A re-opened his dialogue every third frame — the
+dialogue's task churn defeated the stall detector (its own comment: stall_peak=171 vs 900), burning
+the full 9,000-frame cap TALKING TO THE NPC, then the derail re-ran the teach: the user's report,
+mechanised. Both As are now GATED (menu/text/waiting-for-input only) + a FAILURE-PHASE EXIT (30
+stable overworld frames without the learn → break — the honest raise fires ~8,000 frames sooner,
+NPC untouched). ⚠ Why Surf misbehaved while Rock Smash "may be ok" with IDENTICAL code: environment
+— Rock Smash teaches OUTDOORS on a quiet map; Surf teaches indoors, NPC-adjacent, Norman battle tail
+resident. **Ordinary-case arm: `teachfull` replace-path → `learned=True ride_exit=learned
+ride_frames=479`.** ⚠ Honest limit: the failure-phase exit itself is not yet exercised (needs a
+teach-failure fault hook — filed). Also shipped: the hunt fallback `grounds[-1]` → `grounds[0]`
+(a measured incident had sent the SURF hunt to Surf-gated ROUTE119 — circular), and the dead
+`textprinter=` diagnostic un-broken (it imported from `modules.game`; the function has only ever
+lived in `modules.text_printer` — a broken diagnostic that still prints SOMETHING never trips a gate).
+**Half 2 (the starter gap) answered by audit: the guarantee already EXISTS** — Segment 12c wires
+`ensure_hm_learner_making_room(HM03)` post-Norman, frees the slot BEFORE catching, sole-carrier
+protection holds; Treecko/Torchic runs hunt Zigzagoon/Lotad on Route 102. Residuals D3-D6 + the
+never-live-fired KI-63 deposit path are filed in the item.
+
+**`#26-manualderails` — DIAGNOSED to its mechanism (fix deliberately NOT shipped).** 31 finished
+bundles mined: the dominant Fortree derail is the Winona hopeless-gate (530 lines, 111 budget-burns)
+— and its premise is measurably wrong sometimes: a lane lost twice then WON with no super-effective
+answer. Losses live per MODE INSTANCE and the counter ladder gets ONE attempt per run, so after it
+fails every later derail deterministically re-raises → 5-derail budget → Manual. **The user's flip
+works because it builds a fresh instance: losses reset, ladder re-armed — the budget was exhausted,
+not the situation.** The honest-stop ruling STANDS; the narrow fix (let the derail retry grant one
+fresh boss cycle, i.e. do what the flip does) is KI-23/KI-80-adjacent and is NOT shipped without its
+own seeded arm. Mossdeep half: zero historical coverage — today's 8-lane batch is the first that can
+measure it.
