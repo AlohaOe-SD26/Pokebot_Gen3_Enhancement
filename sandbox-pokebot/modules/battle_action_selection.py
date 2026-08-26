@@ -360,8 +360,28 @@ def battle_action_use_item(battle_state: BattleState, item: Item, target_index: 
 
     _stage("enter")
     yield from scroll_to_battle_action(1)
-    context.emulator.press_button("A")
-    yield
+    # ⛔ `#26-battleitemwedge` (2026-08-26): this was ONE blind A + ONE yield, straight into
+    # `scroll_to_item_in_bag` — whose first wait (`while get_game_state() != BAG_MENU: yield`,
+    # menuing.py) is UNBOUNDED and presses NOTHING. A single eaten A froze batch lane L07 for
+    # 3,001 frames at `BattleScript_MoveEnd` ([ITEM-FLOW] logged `opened-bag` then silence) until
+    # KI-47 netted it and the derail cascade burned to Manual. Press, VERIFY the bag actually
+    # opened, re-press bounded; if it still does not open, log the stage and RETURN — the strategy
+    # re-decides next pass, and a re-decided turn beats a wedge. (The deeper item-flow
+    # reliability work stays `#24-battleitems`; this closes only the HANG.)
+    _bag_open = False
+    for _attempt in range(3):
+        context.emulator.press_button("A")
+        for _ in range(30):
+            yield
+            if get_game_state() == GameState.BAG_MENU:
+                _bag_open = True
+                break
+        if _bag_open:
+            break
+        _stage(f"bag-not-open-yet (attempt {_attempt + 1}/3)")
+    if not _bag_open:
+        _stage("bag-did-not-open after 3 bounded attempts — returning; the strategy will re-decide")
+        return
     _stage("opened-bag")
     yield from scroll_to_item_in_bag(item)
     _stage("scrolled-to-item")

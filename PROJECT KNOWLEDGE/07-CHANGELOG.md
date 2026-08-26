@@ -18500,3 +18500,14 @@ the gate's own docstring and the punch item: `_handle_flee`'s internals are KI-5
 this gate's; and the LIVE trap did not fire in the repro drive (the one flee was the clean ordinary
 case at 10% HP) — the live arm rides the post-fix validation batch, where the baseline fired it in
 3 of 8 lanes. Suite: **32 gates = 30 ENFORCING + 2 ADVISORY.**
+
+
+## 2026-08-26 (evening) — `#26-battleitemwedge`: the HANG closed, structurally
+
+The third Magma-era defect: `battle_action_use_item` pressed ONE blind A then entered
+`scroll_to_item_in_bag`'s UNBOUNDED press-nothing wait — one eaten A froze lane L07 for 3,001 frames
+until KI-47 netted it. Now: press → VERIFY `BAG_MENU` → re-press, 3 bounded attempts, honest
+return-and-re-decide on failure, every stage narrated by the existing `[ITEM-FLOW]` telemetry.
+⚠ Limits stated in the item: the eaten-A is timing-stochastic (no deterministic repro; proof =
+structural boundedness + instrumentation; live arm = the NEXT batch — the one running now predates
+this fix), and item-consumption reliability remains `#24-battleitems`. Drift 7 (measured).
