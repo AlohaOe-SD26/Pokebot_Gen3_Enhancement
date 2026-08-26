@@ -382,12 +382,17 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    the next post-fix batch (discriminator: no five-fold hopeless-gate repeats before Manual).
 >    ‼ ki80ladder's TEN-DAY Expect-rot found and fixed the same hour (its era flag has zero
 >    production hits since the 2026-08-16 promotion).
->    ➡➡➡ **NEXT: `#26-fleefreeze`** — diagnosed to ONE line (`level_up.py:136` returns
->    `run_away()` after correctly determining escape is impossible; delegate to the inherited
->    KI-52 `_handle_flee` instead). Repro `magma_door_losing.ss1 --driver magmahideout`;
->    acceptance = the `[KI-52] FIGHTING ON` line + no KI-47. ⚠ Shared battle path — an
->    ordinary-case arm too. Then `#26-battleitemwedge`, then the POST-FIX VALIDATION BATCH
->    (teach fix + puzzle speed + second wind, all at frequency).
+>    ✅ `#26-fleefreeze` SHIPPED 2026-08-26 (the one-line delegate; gate #32 proves it 3 ways,
+>    old behaviour refuted by construction; live-trap arm rides the batch below). ⛔ DO NOT REDO.
+>    ➡➡➡ **NEXT: (a) the POST-FIX VALIDATION BATCH IS RUNNING** (launched 2026-08-26 ~13:1x,
+>    8 lanes x 300 min, code `dce95b4a` — ALL FOUR fixes in). When it lands, grade FOUR
+>    pre-registered discriminators against the baseline (50 runs, 6 finished, Treecko 0/9):
+>    (1) finish rate; (2) ZERO "Teach flow finished but ... does not know Surf" run-enders;
+>    (3) `[KI-52]` fight-throughs where the baseline froze at CantEscape, zero KI-47 nets on that
+>    signature; (4) no five-fold hopeless-gate repeats before Manual. **(b) meanwhile:
+>    `#26-battleitemwedge`** (bound `scroll_to_item_slot`'s BAG_MENU wait + re-press at
+>    `HandleTurnActionSelectionState` — the L07 freeze), and the `#26-surfteachchain` D3-D6
+>    residuals if time allows.
 >    ⛔ Batches answer FREQUENCY, drivers answer CORRECTNESS — fixes get proven by targeted
 >    drivers, never by another batch.
 >    *(parked, was:)* BUILD §Ch21 LEG 2 — HEAL, THEN FIND STEVEN — spec at
