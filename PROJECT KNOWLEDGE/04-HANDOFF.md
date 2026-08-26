@@ -320,23 +320,13 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    prescribed would have read as a REFUTATION of a true finding; and `POKEBOT_KI80_DECOUPLED=1`
 >    FAILS today, which is what makes it usable as the AFTER run.
 >
->    ✅✅ **DONE 2026-08-16 — THE COUNTER-LADDER IS DECOUPLED FROM `grass_is_fodder`. ⛔ DO NOT
->    REBUILD IT.** `:1901` is now `if boss_teaches:` and `boss_mode = True` sits behind its own
->    `if grass_is_fodder:` — the one-line version would have shipped KI-23's mirror regression, and
->    arm 4 measured it doing exactly that. Blast radius (arithmetic measured, behaviour inferred):
->    **Brawly** gains the machinery across his band, **Roxanne** at `team_max` 13-16, **Wattson** at
->    20-22; Norman unchanged; the Rustboro rival unaffected (no `ace_types`).
+>    ✅ **✅✅ DONE 2026-08-16 — THE COUNTER-LADDER IS DECOUPLED FROM …** 📦 `28-HANDOFF-ARCHIVE.md` (2026-08-26, R3).
 >    ✅✅ **AND IT IS PROMOTED TO BOTH FORKS (2026-08-16, user-approved)** by a THREE-POINT A/B
 >    against `--build custom`: `POKEBOT_KI80_DECOUPLED=1` **FAIL → PASS**, the coupled expectation
 >    **PASS → FAIL**, and **arm 4 PASS on BOTH sides** — that invariance is what shows the mirror
 >    regression did not travel with the fix. ⛔ **THE KI-80 ARC IS CLOSED; DO NOT REOPEN.**
 >
->    ✅✅ **PREVIOUS QUEUE ITEM 0 IS ANSWERED (2026-08-17): `#24-faintchooser-fourthspace` — the
->    observe-only probe was BUILT (in `--driver ki66faint`, ZERO production change) and DRIVEN.
->    **NO fourth index space is demonstrated**: on the one diverging faint, the last cursor the
->    sweep read before the menu closed (**3**) IS in `alive_slots_menu` (**[1,3,4,5]**). ⛔ DO NOT
->    "FIX" IT — real in the log, INERT in behaviour, same as the owner filter. Positive control on
->    the pre-fix build (`cursor_reads=66, A-presses=239`) is what makes that zero trustworthy.
+>    ✅ **✅✅ PREVIOUS QUEUE ITEM 0 IS ANSWERED (2026-08-17): `#24-fa…** 📦 `28-HANDOFF-ARCHIVE.md` (2026-08-26, R3).
 >    ⚠ Limits recorded in the item: refusal count APPROXIMATE, n=1 diverging faint.
 >
 >    ✅✅ **`#24-driftassertions` IS DONE (2026-08-17) — the drift sweep IS A GATE** (`check_drift`;
@@ -384,15 +374,24 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    production hits since the 2026-08-16 promotion).
 >    ✅ `#26-fleefreeze` SHIPPED 2026-08-26 (the one-line delegate; gate #32 proves it 3 ways,
 >    old behaviour refuted by construction; live-trap arm rides the batch below). ⛔ DO NOT REDO.
->    ➡➡➡ **NEXT: (a) the POST-FIX VALIDATION BATCH IS RUNNING** (launched 2026-08-26 ~13:1x,
->    8 lanes x 300 min, code `dce95b4a` — ALL FOUR fixes in). When it lands, grade FOUR
->    pre-registered discriminators against the baseline (50 runs, 6 finished, Treecko 0/9):
->    (1) finish rate; (2) ZERO "Teach flow finished but ... does not know Surf" run-enders;
->    (3) `[KI-52]` fight-throughs where the baseline froze at CantEscape, zero KI-47 nets on that
->    signature; (4) no five-fold hopeless-gate repeats before Manual. **(b) meanwhile:
->    `#26-battleitemwedge`** (bound `scroll_to_item_slot`'s BAG_MENU wait + re-press at
->    `HandleTurnActionSelectionState` — the L07 freeze), and the `#26-surfteachchain` D3-D6
->    residuals if time allows.
+>    ➡➡➡ **NEXT ACTION (SESSION PARKED 2026-08-26 WITH A BATCH IN FLIGHT): MINE THE VALIDATION
+>    BATCH.** It is/was running at `tools/story-dev/x4-runs/20260826-130441/` — 8 lanes × 300 min,
+>    launched ~13:04, ends ~18:05, code `dce95b4a` (all four fixes EXCEPT `#26-battleitemwedge`,
+>    which landed after launch and rides the NEXT batch — its commit says so). ⛔ If it is still
+>    running when you arrive, DO NOT start CPU-heavy work; check progress with the lane grep in
+>    `#26-manualderails`. **GRADE THE FOUR PRE-REGISTERED DISCRIMINATORS** against the baseline
+>    (batch 20260826-063456: 50 runs, 6 finished, Treecko 0/9):
+>    (1) finish rate; (2) "Teach flow finished but ... does not know Surf" RUN-ENDERS vs the
+>    baseline's ~9% (⚠ mid-run occurrences are EXPECTED — the gates make failed teaches fail
+>    cleanly; D3-D6 teach-success residuals are open by design); (3) `[KI-52]` fight-throughs where
+>    the baseline froze at CantEscape + zero KI-47 nets on that signature (this is ALSO
+>    `#26-fleefreeze`'s LIVE arm); (4) no five-fold hopeless-gate repeats before Manual.
+>    ‼ INTERIM ~2h in (seen; do not re-derive): the SECOND WIND FIRED 8× ACROSS 6 LANES live —
+>    the end-to-end proof the arm could not give — L06 showed the full sequence (2 winds → the
+>    honest stop raising again); ki52=0 (stochastic, baseline 3/8 lanes); 2 mid-run teach msgs.
+>    **THEN:** the `#26-surfteachchain` D3-D6 residuals, `#26-gatestartupcontention`'s bisect, and
+>    a batch WITH `#26-battleitemwedge` in. §Ch21 leg 2 stays PARKED with its spec at
+>    `ai-research-notes/2026-08-26-ch21-leg2-BUILD-SPEC.md`.
 >    ⛔ Batches answer FREQUENCY, drivers answer CORRECTNESS — fixes get proven by targeted
 >    drivers, never by another batch.
 >    *(parked, was:)* BUILD §Ch21 LEG 2 — HEAL, THEN FIND STEVEN — spec at
@@ -523,13 +522,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    fixture arithmetic, and the measured proof that the 3-arm suite alone would have blessed
 >    the naive edit — is ARCHIVED in `28-HANDOFF-ARCHIVE.md`. The work is DONE; the reasoning
 >    survives in `06-DECISIONS-LOG.md` and KI-80.)*
->    ✅ **(i) `counter_hunt.py` and (ii) KI-79 `pc_trip.py` are BOTH CLOSED AND PROMOTED** —
->    evidence moved to `28-HANDOFF-ARCHIVE.md` (2026-08-15, line budget). ‼ **Keep only the rule:**
->    *a byte-compare is NOT proof for a BEHAVIOUR promotion — a three-point A/B is* (PASS before →
->    FAIL after faulted → PASS after unfaulted), and run 1 is unrepeatable once the copy happens,
->    so it runs and commits FIRST. Hook `POKEBOT_PCWITHDRAW_FAULT`; detail in KI-79 + `07`/`06`.
->
->    🆕 **(P4c) `#24-orphans` — SIX REAL RESIDUALS FILED 2026-08-15 — ⚠ MIXED STATUS NOW:
+>    ✅ **✅ (i) `counter_hunt.py` and (ii) KI-79 `pc_trip.py` are BOTH…** 📦 ARCHIVED VERBATIM `28-HANDOFF-ARCHIVE.md` (2026-08-26, R3).
 >    ✅ 4 DONE ((2) KI-65, fixed+gated 2026-08-16; (4) the log collision; (5) the `compare_runs.py` A/B axis, 2026-08-17 — its premise REFUTED first; (6) the KI-76 shelving, 2026-08-17), 2 PARTLY DONE `[~]` ((1) instrumentation shipped / REACTION half open; (3) KI-66 `_on_field` FIXED+PROMOTED / OWNER-filter half open), and ⛔ NOTHING plain OPEN. (6) closed the ORPHANING; KI-76 defects live in `#24-ki76correctness`.**
 >    ⛔ "SIX" is the FILING count, not the open count. (Full list in `03-PUNCH-LIST.md`.) ‼ **Four of the six were recorded inside
 >    a document half marked DONE or ARCHIVED** — a CLOSED KI's body, an "older framing" block, a

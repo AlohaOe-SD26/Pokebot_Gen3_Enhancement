@@ -6788,3 +6788,39 @@ reporting most runs as successes. Both root causes are fixed in sandbox with A/B
 >    blocks nothing. ⚠ Room 9 run 2 LOST the Archie fight (**2W/1L measured** — the party arrives
 >    chipped and there is no heal in the cavern): that is CHAPTER-DESIGN input, not a driver
 >    defect, and it is why the chapter needs a whiteout-retry policy.
+
+
+## 📦 ARCHIVED 2026-08-26 (3rd) from `04-HANDOFF.md` NEXT ACTIONS — R3, session park
+
+> Guarded method (section-scoped, live-marker assertion, bottom-up, boundary re-asserted).
+
+---
+
+>    ✅ **(i) `counter_hunt.py` and (ii) KI-79 `pc_trip.py` are BOTH CLOSED AND PROMOTED** —
+>    evidence moved to `28-HANDOFF-ARCHIVE.md` (2026-08-15, line budget). ‼ **Keep only the rule:**
+>    *a byte-compare is NOT proof for a BEHAVIOUR promotion — a three-point A/B is* (PASS before →
+>    FAIL after faulted → PASS after unfaulted), and run 1 is unrepeatable once the copy happens,
+>    so it runs and commits FIRST. Hook `POKEBOT_PCWITHDRAW_FAULT`; detail in KI-79 + `07`/`06`.
+>
+>    🆕 **(P4c) `#24-orphans` — SIX REAL RESIDUALS FILED 2026-08-15 — ⚠ MIXED STATUS NOW:
+
+
+---
+(from 04-HANDOFF NEXT ACTIONS, 2026-08-26 session park)
+
+>    ✅✅ **PREVIOUS QUEUE ITEM 0 IS ANSWERED (2026-08-17): `#24-faintchooser-fourthspace` — the
+>    observe-only probe was BUILT (in `--driver ki66faint`, ZERO production change) and DRIVEN.
+>    **NO fourth index space is demonstrated**: on the one diverging faint, the last cursor the
+>    sweep read before the menu closed (**3**) IS in `alive_slots_menu` (**[1,3,4,5]**). ⛔ DO NOT
+>    "FIX" IT — real in the log, INERT in behaviour, same as the owner filter. Positive control on
+>    the pre-fix build (`cursor_reads=66, A-presses=239`) is what makes that zero trustworthy.
+
+---
+(from 04-HANDOFF NEXT ACTIONS, 2026-08-26 session park)
+
+>    ✅✅ **DONE 2026-08-16 — THE COUNTER-LADDER IS DECOUPLED FROM `grass_is_fodder`. ⛔ DO NOT
+>    REBUILD IT.** `:1901` is now `if boss_teaches:` and `boss_mode = True` sits behind its own
+>    `if grass_is_fodder:` — the one-line version would have shipped KI-23's mirror regression, and
+>    arm 4 measured it doing exactly that. Blast radius (arithmetic measured, behaviour inferred):
+>    **Brawly** gains the machinery across his band, **Roxanne** at `team_max` 13-16, **Wattson** at
+>    20-22; Norman unchanged; the Rustboro rival unaffected (no `ace_types`).
