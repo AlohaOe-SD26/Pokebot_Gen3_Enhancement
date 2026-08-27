@@ -53,7 +53,7 @@
 # ESCAPE HATCH: set POKEBOT_ALLOW_BLIND_ADD=1 for one command if you genuinely mean it. Deliberate
 # and visible, which is the point — the failure was never a decision, it was an autopilot.
 #
-# FAULT-TESTED BOTH WAYS, PERMANENTLY: `-SelfTest` runs 30 cases (blocks, allows, every bypass
+# FAULT-TESTED BOTH WAYS, PERMANENTLY: `-SelfTest` runs its case table (blocks, allows, every bypass
 # above, and the false positive) and exits non-zero if any regresses. It is gate #29 in
 # `tools/story-dev/run_gates.py` via `selftest_git_add_hook.py`, because this project's rule is
 # that anything enforceable belongs in a gate, and a gate nobody can prove will fire is theatre.

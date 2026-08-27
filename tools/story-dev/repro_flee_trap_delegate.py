@@ -77,7 +77,13 @@ print("REPRO — #26-fleefreeze: the trapped-flee delegation, decision layer")
 print("=" * 90)
 
 # ---- ARM A: ORDINARY (escape possible) — the path must be BYTE-UNCHANGED ------------------------
-ESCAPABLE = (TurnAction.run_away()[0], None)  # a real escape method, as the util would return
+# ⛔ A DISTINGUISHABLE SENTINEL, NOT `TurnAction.run_away()` — corrected 2026-08-27 (deep sanity
+# check). This used to be `(TurnAction.run_away()[0], None)`, i.e. VALUE-EQUAL to `run_away()`, so
+# a regression that hardcoded `return TurnAction.run_away()` on the escapable branch — discarding
+# the util's chosen method — still satisfied ARM A: the arm could not fail for the shape it exists
+# to catch. `_escape` returns the util's value VERBATIM (`level_up.py:134-135`), so any object
+# round-trips; making it unmistakable is what gives the arm teeth. Fault-proven both ways.
+ESCAPABLE = ("SENTINEL_ESCAPE_METHOD", "SENTINEL_PAYLOAD")
 
 
 def gbem_escapable(self):

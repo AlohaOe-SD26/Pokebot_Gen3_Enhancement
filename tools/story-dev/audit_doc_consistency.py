@@ -475,6 +475,14 @@ def check_drift(files: dict[str, str], raw: dict[str, str] | None = None) -> lis
         rf"|\bexpect(?:ed)?\s+(?:as of [^:]{{0,24}}:\s*)?exactly\s+({_NUM})\b"
         rf"|\bdrift\s+(?:unchanged\s+|measured\s+)?at\s+(?:exactly\s+)?({_NUM})\b"
         rf"|\bDRIFT\s+IS\s+({_NUM})\b"
+        # ‼‼ THE NO-VERB, MARKUP-WRAPPED SHAPE — ADDED 2026-08-27 BY THE DEEP SANITY CHECK, WHICH
+        # FOUND A LIVE STALE INSTANCE THIS GATE WAS GREEN OVER. `04-HANDOFF.md`'s State banner read
+        # `drift **2** (...)` while the measurement was 8: every rule above demands a VERB or marker
+        # between `drift` and the figure (`is`, `at`, `EXPECT`, `differing`, `it is N today`), and a
+        # bare `drift **N**` matches none of them. ⛔ THE MARKUP IS REQUIRED, deliberately: a rule
+        # for bare `drift 2` would fire on ordinary prose ("drift 2 files were promoted"), while
+        # `drift **N**` is this project's own emphasis idiom for a CLAIM. Guarded by D29a-D29c.
+        rf"|\bdrift\s+[*_]{{1,2}}({_NUM})[*_]{{1,2}}"
         rf"|\b({_NUM})\s+drifted\s+files?\b"
         # ‼‼ THE TOOL'S OWN OUTPUT FORMAT, ADDED 2026-08-16 — AND IT WAS THIS CHECK'S BLIND SPOT.
         # `promote.py --check` prints "N differing, M orphaned", so the docs quote THAT phrasing far
@@ -535,13 +543,29 @@ def check_drift(files: dict[str, str], raw: dict[str, str] | None = None) -> lis
         out.append(f"{name}:{key[1]} {how} drift={n}; MEASURED drift is "
                    f"{measured}: {m.group(0)!r}")
 
-    # ---- PASS 1: the legacy rules, on fence-stripped text, unit-scoped exemption. Unchanged.
+    # ---- PASS 1: the legacy rules, on fence-stripped text.
+    # ⛔ THE EXEMPTION IS POSITIONAL AS OF 2026-08-27 (deep sanity check). It used to be
+    # UNIT-SCOPED: one `Superseded:` anywhere in a bullet silenced EVERY claim in it, including
+    # claims written AFTER the marker — and that is how a stale `drift **2**` sat green in
+    # `04-HANDOFF.md`'s State banner. Pass 2 already had the right rule ("a marker only retracts
+    # what FOLLOWS it", see `_RETRACT_PAREN`); pass 1 now matches it. Guarded by D30a/D30b.
     for name, text in files.items():
         units = _units(text)
         for m in claims.finditer(text):
             n = value(m)
             unit = next(((a, b) for a, b in units if a <= m.start() < b), (0, len(text)))
-            if n != measured and not SUPERSEDE_RE.search(text[slice(*unit)]):
+            # ⛔ A MARKER RETRACTS WHAT FOLLOWS ITS **START**, not what follows its end — and the
+            # difference is not academic: the tree's commonest retraction is a PARENTHETICAL that
+            # CONTAINS its claim, `(superseded: *drift is now 3 again*)`. Truncating the search at
+            # the claim cuts that parenthetical in half, `SUPERSEDE_RE` (which needs the closing
+            # paren) stops matching, and the retraction reads as a live claim — a false positive,
+            # which this project rates worse than no gate. Caught by measuring against the live
+            # tree before shipping this change; guarded permanently by D30b.
+            exempt = any(
+                unit[0] + mk.start() < m.start()
+                for mk in SUPERSEDE_RE.finditer(text[slice(*unit)])
+            )
+            if n != measured and not exempt:
                 report(name, text, m, n, "claims")
 
     # ---- PASS 2: the CLAIM-SHAPE rules (2026-08-17). Raw text so fenced figures are visible;
@@ -611,7 +635,12 @@ def check_drift(files: dict[str, str], raw: dict[str, str] | None = None) -> lis
     # ⛔ Runs on the fence-STRIPPED text: a drift row quoted inside a fenced example must not fire
     # (D28e), and the real row is never fenced.
     drift_row = re.compile(r"^\|[^|\n]*\bdrift\b[^|\n]*\|(.*)$", re.I | re.M)
-    headline = re.compile(rf"\b({_NUM})\b\s+as\s+of\s+\d{{4}}-\d{{2}}-\d{{2}}", re.I)
+    # ⛔ `[*_]{0,2}` AFTER THE FIGURE — added 2026-08-27 (deep sanity check, proven BOTH ways in
+    # process). Without it, an individually-bolded headline (`**9** as of <date>`) does not match,
+    # so a WRONG headline goes unseen AND the scan falls through to a HISTORY figure deeper in the
+    # cell and grades that instead — a false positive, which this project rates worse than no gate.
+    # The idiom is real here (`It is **4** today`). Guarded by D28f/D28g.
+    headline = re.compile(rf"\b({_NUM})\b[*_]{{0,2}}\s+as\s+of\s+\d{{4}}-\d{{2}}-\d{{2}}", re.I)
     for name, text in files.items():
         for row in drift_row.finditer(text):
             # pos/endpos so the match's offsets are ABSOLUTE in `text` — report() derives the
@@ -1344,6 +1373,32 @@ def self_test() -> int:
            check_drift({"T": _row.format(_wword, measured)}), True)
     expect("D28d a non-drift-labelled row with `N as of <date>` -> quiet",
            check_drift({"T": f"| batch status | {W} as of 2026-08-26, still running |\n"}), False)
+    # D28f/D28g — the markup-wrapped headline (both directions), and D29a-c — the no-verb
+    # `drift **N**` claim shape. Both families were added 2026-08-27 after the deep sanity check
+    # proved the gate blind to a LIVE stale figure in this very file.
+    _bold_row = ("| sandbox <-> custom drift | ⚠ **{}** as of 2026-08-26, MEASURED — files. "
+                 "✅ Previously **{}** as of 2026-08-15 — promoted. |\n")
+    expect("D28f bolded WRONG headline -> fires",
+           check_drift({"T": _bold_row.format(W, measured)}), True)
+    expect("D28g bolded RIGHT headline with a wrong HISTORY figure -> quiet",
+           check_drift({"T": _bold_row.format(measured, W)}), False)
+    expect("D29a no-verb `drift **N**` with a stale figure -> fires",
+           check_drift({"T": f"State: main, drift **{W}** (`a.py` + `b.py`), nothing parked.\n"}), True)
+    expect("D29b the same shape carrying TODAY's figure -> quiet",
+           check_drift({"T": f"State: main, drift **{measured}** (`a.py`), nothing parked.\n"}), False)
+    expect("D29c an UNMARKED-UP `drift N` in ordinary prose -> quiet (no false positive)",
+           check_drift({"T": f"the drift {W} files were promoted last week by hand.\n"}), False)
+
+    # D30a/D30b — PASS 1's exemption is POSITIONAL (2026-08-27). D30b is the one that matters:
+    # the tree's commonest retraction is a parenthetical CONTAINING its claim, and an
+    # end-truncated search would break it (measured against the live tree before shipping).
+    expect("D30a a supersede marker AFTER the stale claim -> still fires",
+           check_drift({"T": f"drift is {W} today. *(Superseded: an older note about something else.)*\n"}),
+           True)
+    expect("D30b a retraction parenthetical CONTAINING the claim -> quiet",
+           check_drift({"T": f"promoted that day (superseded: *drift is now {W} again*) — history.\n"}),
+           False)
+
     _fenced = "```\n" + _row.format(W, measured) + "```\n"
     _fstripped = FENCE_RE.sub(lambda m: "\n" * m.group(0).count("\n"), _fenced)
     expect("D28e the same row inside a code fence (stripped, as the gate calls it) -> quiet",

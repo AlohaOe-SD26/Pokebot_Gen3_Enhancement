@@ -2472,7 +2472,7 @@ CURRENT-STATE file. ‼ **Keep only what later work leans on:** the proof was th
 clock; and the archived text's real value is its harness DESIGN NOTES (the four parts a driver
 must mirror, and **why half a mirror is worse than none**). ⚠ Still open there: swallow sites
 in `early_game.py` that should get the same one-line abort-aware guard, **enforced by an assert
-rather than by prose**. ‼ **The count was `44` on custom / `36` on sandbox when MEASURED 2026-08-16 (`probe_abort_swallowing.py`, KI-81); ⛔ THE LIVE BASELINES ARE KI-81's TO STATE AND THEY NOW DIFFER PER FORK — see KI-81's header. This entry must not carry a live figure at all: its own header says the swallow residual `is NOT KI-67's`.** — ⛔ do not quote a figure from here, run the probe — ⛔ *this line read "~48", an ESTIMATE from before the probe existed, and it sat
+rather than by prose**. ‼ **The count was `44` on custom / `36` on sandbox when MEASURED 2026-08-16 (`probe_abort_swallowing.py`, KI-81); ⛔ THE LIVE BASELINES ARE KI-81's TO STATE — see KI-81 (equal again at 23/23 since 2026-08-24; the per-fork split is history). This entry must not carry a live figure at all: its own header says the swallow residual `is NOT KI-67's`.** — ⛔ do not quote a figure from here, run the probe — ⛔ *this line read "~48", an ESTIMATE from before the probe existed, and it sat
 beside the measured 44 with nothing saying which was which.* **Re-run the probe; do not trust either
 number in prose** — it is the only thing that counts them.
 
@@ -2807,7 +2807,12 @@ Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans 
   discards the value. **Tracked as `#24-orphans` item (1)**;
   its instrumentation half is specified, but *how* production should react needs the USER's ruling.
 
-## KI-81 — KI-67's fix was applied to TWO chapters and the CLASS was never swept (2026-08-16, MEASURED by probe). ✅ **8 SITES FIXED AND PROMOTED TO BOTH FORKS** — the PC/heal path and the site that proved the sweep was incomplete. ⛔ **STILL OPEN: candidates remain (ALL in `early_game.py`) — and THE COUNT IS PER-FORK: `31` sandbox / `36` custom**, and ✅ **THE PROBE IS NOW GATE #27 — a RATCHET whose baselines ⛔ **DIFFER PER FORK SINCE 2026-08-23: `{sandbox: 31, custom: 36}`** (they were 36 on both between 2026-08-17 and 2026-08-23; custom had gone 44 -> 36 when the guards were PROMOTED 2026-08-17, user-approved, and the baseline was lowered to lock the gain in)**; ‼ ~64% of the original 45 were MEASURED not to be this defect, which is WHY it is a ratchet and not a zero-threshold
+## KI-81 — KI-67's fix was applied to TWO chapters and the CLASS was never swept (2026-08-16, MEASURED by probe). ✅ **8 SITES FIXED AND PROMOTED TO BOTH FORKS** — the PC/heal path and the site that proved the sweep was incomplete. ⛔ **STILL OPEN: candidates remain (ALL in `early_game.py`)**, and ✅ **THE PROBE IS NOW GATE #27 — a RATCHET whose baselines ARE EQUAL AGAIN SINCE 2026-08-24: `{sandbox: 23, custom: 23}`** (`probe_abort_swallowing.py:218` is the authority; they DIFFERED `{31, 36}` between 2026-08-23 and the promotion, and were 36/36 before that — history, not today)**; ‼ ~64% of the original 45 were MEASURED not to be this defect, which is WHY it is a ratchet and not a zero-threshold
+
+**2026-08-27 (deep sanity check, PASS 2):** the header above claimed the ratchet baselines
+still `DIFFER PER FORK: {sandbox: 31, custom: 36}` — REFUTED by the shipped gate itself
+(`probe_abort_swallowing.py:218` reads `{"sandbox": 23, "custom": 23}` since the 2026-08-24
+promotion). Header corrected; the 31/36 and 36/36 figures are kept above as history.
 
 **2026-08-23 — the baselines SPLIT (this entry's newest dated line; it is the body half of
 the per-fork clause in the header above).** `#24-abortrecoveryresiduals` (b) guarded the 5

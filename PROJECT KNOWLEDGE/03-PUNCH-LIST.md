@@ -25,7 +25,7 @@ user rather than resolved unilaterally.
 > worked on now" while most rows carried ✅ DONE, and it named NEITHER live item. A cold reader
 > using it as the index would have worked from a 12-day-old picture.
 > ➡ **`#24-loopheadabort` IS DONE (2026-08-23, gate #30).** ⚠ **THE LIVE THING IS A PROMOTION
-> DECISION — the USER's call** (drift 1, `early_game.py`, sandbox only). Then `#24-p4residuals`.
+> DECISION — the USER's call** (drift: see the STATE row / `promote.py --check`). Then `#24-p4residuals`.
 > ‼ *This row has now gone stale TWICE the same way — it names whatever was live when it was
 > last edited. ⛔ `04-HANDOFF.md`'s NEXT ACTIONS queue is the thing to act from, not this table.*
 > ⛔ **NOT `#24-ki76correctness`** — its only fixture is VACUOUS for its only live defect; and
@@ -745,28 +745,17 @@ shaped like the Dive one. Anchors: `norman_done.ss1`, `prenorman_fodder_grind.ss
 
 ### ✅ `#26-mossdeeppuzzlespeed` — FIXED 2026-08-26, A/B-PROVEN ~2.9x: ~62k → ~21k frames (~17.2 → ~5.8 min)
 
-**The dominant sink (58% of the solve): a direction tap only TURNS the avatar when it faces another
-way — so `_step_towards`' attempt 1 waited out its FULL 600-frame timeout after EVERY direction
-change (~60 turns/solve).** Fix A: a bounded PRE-TURN (`TURN_TIMEOUT_FRAMES=32`, every main-loop
-guard kept verbatim inside it); all five safety checks untouched and silent on both arms. Evidence:
-`evidence/2026-08-26-mossdeep-speed-AB.txt`. ⛔ Fixes B/C deliberately NOT taken (documented
-hazards). 📦 Original filing (user quotes, profile-first constraint): `07-CHANGELOG.md` 2026-08-26
-+ git history of this entry.
+Bounded PRE-TURN (`TURN_TIMEOUT_FRAMES=32`) removed the 58% sink; all five safety checks kept and
+silent on both arms. Evidence `evidence/2026-08-26-mossdeep-speed-AB.txt`; narrative + original
+filing in `07-CHANGELOG.md` 2026-08-26. ⛔ Fixes B/C deliberately NOT taken.
 
 ### ✅ `#26-fleefreeze` — FIXED 2026-08-26, GATED as #32 — and the LIVE arm LANDED: confirmed in batch `20260826-130441`
 
-**The one-line fix shipped:** `_escape` now delegates to the inherited KI-52 `_handle_flee` on the
-escape-impossible branch instead of blindly returning `run_away()`. **Proven by
-`repro_flee_trap_delegate.py` (gate #32, emulator-free): 7/7 PASS** — ARM A the escape-possible path
-byte-unchanged; ARM B the delegate called with the real state and a trap-naming reason, return
-passed through; ARM C the OLD behaviour refuted by construction (a refactor restoring the blind
-fallback fails there). `_handle_flee`'s internals carry their own KI-52 history — not re-proven.
-✅ **THE LIVE ARM LANDED 2026-08-26 (batch `20260826-130441`):** `[KI-52] … -> FIGHTING ON` fired
-repeatedly on the exact partial-trap signature; **zero CantEscape freezes corpus-wide** (baseline:
-3 of 8 lanes frozen); zero KI-47 nets on that signature. The stochastic trap the repro drive could
-not summon, summoned by 40 lane-hours. **The arc is CLOSED.** 📦 Original diagnosis (Torkoal Fire
-Spin + the blind `run_away()` fallback, quotes and fix shape): `07-CHANGELOG.md` 2026-08-26
-(fleefreeze entry) + git history of this entry.
+`_escape` delegates to the inherited KI-52 `_handle_flee` on the escape-impossible branch instead
+of blindly returning `run_away()`. Gate #32 `repro_flee_trap_delegate.py` proves it 3 ways (⚠ its
+ARM A sentinel was strengthened 2026-08-27 — it had been value-equal to `run_away()`). LIVE ARM
+LANDED in BOTH post-fix batches: zero CantEscape freezes corpus-wide (baseline 3 of 8 lanes).
+**ARC CLOSED.** 📦 Diagnosis + evidence: `07-CHANGELOG.md` 2026-08-26/27 + git history.
 
 ### ✅ `#26-battleitemwedge` — HANG closed 2026-08-26 AND LIVE-VALIDATED 2026-08-27 (batch `20260826-185918`: its KI-47 family 2 → 0 over 572 item flows)
 
@@ -776,7 +765,7 @@ unbounded, press-nothing first wait. It now presses, VERIFIES `GameState.BAG_MEN
 re-decide: a re-decided turn beats a 3,001-frame KI-47 wedge + derail cascade. Every loop constant-
 bounded (verifiable by reading); `[ITEM-FLOW]` stages narrate each attempt.
 ⚠ HONEST LIMITS: (1) no deterministic repro exists for the eaten-A itself (timing-stochastic) — the
-proof is structural boundedness + the instrumented stages, and **the live arm is the NEXT batch**
+proof is structural boundedness + the instrumented stages, and **the live arm LANDED in batch `20260826-185918` (KI-47 family 2 → 0 over 572 item flows)**
 (the `20260826-130441` validation batch ran `dce95b4a`, BEFORE this fix — and its 3 KI-47 nets are
 all this family's action-selection signatures, so the next batch has something to measure);
 (2) items still failing to be CONSUMED is `#24-battleitems`' open work — this closes only the HANG.
@@ -934,6 +923,17 @@ own log** — the driver reports what it believes, the probe reports what the fi
       `.gate-logs/`, which defeats "unmissable"); the hook is the delivery. Rules are a table —
       adding one = one entry + its two self-test arms (T25 enforces the pairing).
 
+### ‼ `#24-sanitycheck2` — the deep sanity check is 2 passes of 5 (filed 2026-08-27)
+
+- [ ] **PASSES 1-2 RAN (20 fault-injecting agents) and paid for themselves** — 5 gate defects fixed,
+      13 stale-prose contradictions corrected (`07-CHANGELOG.md` 2026-08-27). ⛔ **PASSES 3-5 DID
+      NOT RUN** (account limit twice; the user ruled the 40-agent fan-out too expensive — do NOT
+      re-run it that way). **What is therefore UNAUDITED since 2026-08-22:** (3) story-code
+      re-verification (loop bounds + `_check_abort` placement since `dce95b4a`, A-press gating,
+      PID-identity, era-keyed Expect rot); (4) infrastructure (runner controls, fixture-coverage
+      delta, evidence orphans, shared-state growth, the contention gate's live status); (5)
+      cold-start startability. ⇒ **DO IT CHEAPLY — greppable/AST checks INLINE, or 2-3 agents per
+      pass; ⛔ never a 40-agent fan-out.** Angle list: the workflow script `deep-sanity-5x8-*.js`.
 ### ‼ `#24-reprosweepratchet` — WHAT THE STANDING SUITE DOES NOT RUN, ROTS (filed 2026-08-23)
 
 - [ ] **⛔ MEASURED, not theorised: the SAME script was written off as "environmental" TWICE.**
@@ -2240,7 +2240,7 @@ is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
       code (comment-only, AST-proven, net-zero on line count so no `map_path.py:NNN` citation moved).
       ✅ **PROMOTED 2026-08-17, USER-APPROVED** (`modules/map_path.py`, comment-only) in the five-file
       round — bytes now identical, AST still equal, and the three refuted claims are gone from custom.
-      Restore point `restore/2026-08-17-pre-promotion-all5`. **Drift is 7 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until driven).**
+      Restore point `restore/2026-08-17-pre-promotion-all5`. *(Superseded: this cell carried a drift figure; the STATE row and `promote.py --check` are the authority.)* **(`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until driven).**
       ⛔ **PRIORITY, and it is NOT what the docs said.** ‼ But §Ch23/Ever Grande is a **Fly
       destination** — VERIFIED IN OUR OWN FORK, `sandbox-pokebot/modules/region_map.py:54` — so the
       currents are BYPASSABLE there, and the handoff's "the route to … Ever Grande" OVERSTATES it.

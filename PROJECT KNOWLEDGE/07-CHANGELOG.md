@@ -18656,3 +18656,42 @@ see 08-MISTAKES same date); the check moved adjacent, and `advise_on_diff.py` ga
 `R-CAMWINDOW` (34-check self-test) so the shape now surfaces at edit time.
 **`saves/post_wallace.ss1` PINNED** (B1F (9,14), state 3, party 100%) — leg 3's fixture; leg 3
 OPENS with the pocket-exit probe (spec §3.4/§5), deliberately NOT built into 2b.
+
+## 2026-08-27 — DEEP SANITY CHECK (passes 1-2 of 5, 20 fault-injecting agents): 5 gate defects fixed, 13 stale-prose contradictions corrected
+
+⚠ **HONEST SCOPE: 2 of the 5 planned passes ran** (20 of 40 agents). The run hit an account limit
+twice and the user called the fan-out too expensive; passes 3-5 (story-code re-verification,
+infrastructure, cold-start startability) are NOT done and are filed as `#24-sanitycheck2` below.
+Every finding below was verified by ME before acting — the agents' evidence was re-executed, and
+one agent claim (a check_drift false positive) was REFUTED by measurement mid-fix.
+
+**GATE DEFECTS FIXED (all fault-proven both directions):**
+1. `repro_no_silent_except.py` ratchet carried **10 handlers of unlocked slack** (BASELINE 148 vs
+   live 138; per-root `modules/story` 133 vs 123, `modules/modes/util` 9 vs 8) — 10 new silent
+   handlers could have landed green. Turned to 138/123/8; fault-armed (one injected handler → red,
+   file restored byte-identical).
+2. `check_drift` was **blind to the no-verb `drift **N**` shape** — and a LIVE stale instance was
+   sitting in `04-HANDOFF.md`'s State banner (`drift **2**` while measured 8), green. New rule
+   (markup REQUIRED, so ordinary prose stays quiet) + D29a-c.
+3. PASS 3's drift-row headline regex **broke on an individually-bolded figure**, proven to produce
+   BOTH a false negative and a false positive (it graded a HISTORY figure as the headline). Widened
+   + D28f/D28g.
+4. PASS 1's supersede exemption was **UNIT-scoped**: one marker anywhere silenced every claim in the
+   bullet, including claims written after it — the mechanism that hid (2). Now POSITIONAL, matching
+   pass 2's documented rule. ‼ My first implementation introduced a FALSE POSITIVE (truncating the
+   search cut a retraction parenthetical in half); caught by measuring against the live tree before
+   shipping, fixed to "a marker retracts what follows its START", guarded by D30a/D30b.
+5. `repro_flee_trap_delegate.py` ARM A was **non-discriminating**: its ESCAPABLE sentinel was
+   value-equal to `TurnAction.run_away()`, so a regression hardcoding `run_away()` on the escapable
+   branch still passed. Now a distinguishable sentinel; fault-proven (injected regression → FAIL).
+
+**STALE PROSE CORRECTED (13 sites):** the drift figure was stated as 8, 2 AND 1 in one file;
+`03-PUNCH-LIST` carried a fourth ("drift 1"); the STATE row was one leg behind (sootopolis legs
+1+2a → 1+2a+2b); the banner still said `#26-battleitemwedge`'s "live arm = the NEXT batch",
+"25.8%", "Treecko 0/6", "leg 2 is PARKED" and "#26 NOW OUTRANK §Ch21" — all refuted by work
+committed hours earlier; line 59 claimed "NOTHING ELSE AWAITS A USER RULING" against three ripe
+decisions and printed a gate breakdown that did not add up; `#24-harnesswhiteoutdrop`'s queue
+description still carried its REFUTED filing; **KI-81's header claimed per-fork ratchet baselines
+`{31, 36}` that the shipped gate contradicts (`{23, 23}` since 2026-08-24)** and KI-67 deflected
+readers to that stale header in the present tense; `14-AGENT-PLAYBOOK` §2c pointed at a section
+archived out of `04` and its instrument table never listed `advise_on_diff.py`.

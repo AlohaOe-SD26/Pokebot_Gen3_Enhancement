@@ -105,6 +105,7 @@ the byte count.
 
 | tool | answers | note |
 |---|---|---|
+| `advise_on_diff.py` | which PREVENTION RULES match my current diff | ADVISORY, exit 0 either way; fires at `git commit` via a PreToolUse hook; `--self-test` fault-tests every rule BOTH ways |
 | `probe_anchor_inventory.py` | what era/map/party is in every save | reports the map as a **`MapRSE` enum** — `map_name` is a label and interiors carry their city's |
 | `--driver anchorcapture` | make an anchor by navigating there | refuses to overwrite, refuses non-controllable states |
 | `--driver anchorstory` | make an anchor by letting the REAL bot play to it | `CAPTURE_FORBID_FLAG` guards the ERA — **use it** |
@@ -316,7 +317,7 @@ method below found four harness bugs; the traps below each cost real time when f
   (KI-30). Anything else is real.
 
 **The five checks, in order:**
-1. **Is this even the current code?** See the pre-fix tells in `04-HANDOFF.md §0a`. Two
+1. **Is this even the current code?** See the pre-fix tells in `28-HANDOFF-ARCHIVE.md` §0a (archived 2026-08-26 — NOT in 04 any more). Two
    bundles were reviewed against code that was never running — the largest single waste in
    this project. Check FIRST, report it FIRST.
 2. **Do runs 4+ still play?** Count runs per lane, then read the **last non-`Encounter`

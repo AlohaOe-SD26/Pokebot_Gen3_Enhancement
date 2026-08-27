@@ -9803,3 +9803,30 @@ camera-window rule at edit time (self-tested both ways, T31/T32; T25 enforces th
 RANGE — CHECK FROM THE ADJACENT TILE, AND WHEN YOU MOVE A CHECK, RE-DERIVE WHAT IT MEASURES AT
 ITS NEW SITE** (hoisting a check changes its meaning; the smoke test is what kept this at
 minutes instead of a burned drive).
+
+## 2026-08-27 — A DAY'S WORTH OF SHIPPING LEFT THIRTEEN STALE CLAIMS BEHIND, AND FOUR GATES COULD NOT SEE THEM
+
+**Symptom.** A deep sanity check (2 passes, 20 fault-injecting agents) found the drift figure
+asserted as **8, 2 and 1 in the same file**, a banner still announcing work as pending that had
+shipped hours earlier, and a KI header contradicting its own shipped gate — all under a GREEN doc
+suite. Separately, four gates were measurably weaker than their docstrings claimed (a ratchet with
+10 unlocked slots; two blind spots and one false-positive shape in `check_drift`; an A/B arm whose
+sentinel could not distinguish the regression it existed for).
+
+**Root cause, and it is structural, not careless.** Every one of those prose sites was TRUE when
+written and was falsified by *later work in the same session*. The gates that exist to catch
+exactly that were each blind in a different way, and the blindness had one shape: **an exemption or
+a pattern written for the phrasing of the last incident**. Pass 1's supersede exemption was
+unit-scoped, so a single marker granted immunity to an entire bullet — including sentences added
+after it. That is not a typo; it is an exemption that grew a hole as the bullet grew.
+
+**The fix that worked.** All four gate defects closed with fault tests in BOTH directions
+(D28f/g, D29a-c, D30a/b, the turned ratchet, the sentinel). ‼ And the fix ITSELF nearly shipped a
+false positive: my first positional-exemption implementation truncated the marker search at the
+claim, cutting a retraction parenthetical in half. **Measuring the change against the live tree
+before shipping** is what caught it — the same discipline that produced the finding.
+
+⇒ **PREVENTION RULE: AN EXEMPTION MUST BE SCOPED BY POSITION, NEVER BY CONTAINER.** "Somewhere in
+this bullet there is a marker" is not a retraction of a sentence written later. And when you
+tighten a gate, RUN IT AGAINST THE LIVE TREE BEFORE COMMITTING: the finding count is the only
+honest measure of whether you added a hole or closed one.

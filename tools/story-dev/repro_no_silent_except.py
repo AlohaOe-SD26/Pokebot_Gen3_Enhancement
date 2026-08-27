@@ -234,7 +234,8 @@ if offenders and SHOW:
 # So the contract is **"no new debt"**: the count may never RISE. Lowering `BASELINE` is a
 # deliberate, reviewable one-line diff that records real cleanup. That makes this family strictly
 # non-worsening TODAY, rather than theoretically fixed some day.
-BASELINE = 148   # re-measured 2026-08-17 (was 149, STALE). LOWER when handlers are cleaned up; never raise.
+BASELINE = 138   # re-measured 2026-08-27 (was 148, 10 handlers of SLACK — the deep sanity check caught it).
+                 # LOWER when handlers are cleaned up; never raise.
 #: ⛔⛔ 149 -> 148 IS A CORRECTION OF A STALE RATCHET, **NOT** A GAIN FROM `#24-abortswallow`.
 #: The first version of this comment claimed `counter_hunt.py`'s training handler "stopped being
 #: silent when it grew a latch-keyed re-raise". ‼ THAT WAS FABRICATED, and an adversarial review
@@ -261,10 +262,10 @@ BASELINE = 148   # re-measured 2026-08-17 (was 149, STALE). LOWER when handlers 
 # every entry — caught only by measuring. A per-root budget nobody measured is worse than none,
 # because it looks rigorous. Re-measure with `--roots` after any cleanup.
 PER_ROOT_BASELINE = {
-    "modules/story": 133,
+    "modules/story": 123,          # re-measured 2026-08-27 (was 133, slack)
     "modules/battle_strategies": 4,
     "modules/battle_action_selection.py": 3,
-    "modules/modes/util": 9,          # inherited on 2026-08-14; every one predates the extension
+    "modules/modes/util": 8,          # inherited 2026-08-14; re-measured 2026-08-27 (was 9, slack)
 }
 
 by_file: dict[str, int] = {}
