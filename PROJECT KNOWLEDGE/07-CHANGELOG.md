@@ -18586,3 +18586,19 @@ Fix candidates recorded in the item (gate-level enforced no-audio/unthrottled; o
 in `libmgba.py` — production internals, careful). ‼ Also tonight: my first suite read piped
 through `tail` and reported TAIL's exit 0 — the runner's own docstring names this exact mistake;
 re-run properly before any conclusion was drawn.
+
+## 2026-08-27 — SECOND POST-FIX BATCH MINED: finish rate 37.5%, the wedge fix validated live, the FIRST TREECKO FINISH, and the Treecko wall named
+
+Batch `20260826-185918` (code `86eaf8f3`; the manifest's `-dirty` verified DOCS-ONLY — `bd0edaf3`
+touched only PROJECT KNOWLEDGE + evidence; 8×300 min, VERDICT OK). **Finish rate 12/32 = 37.5%**
+— the day's arc is 12.0% (baseline) → 25.8% (four fixes) → 37.5% (plus the wedge fix). **11 of 12
+Surf-teach-involved runs finished.** `#26-battleitemwedge` live arm VALIDATED: its KI-47
+action-selection family went **2 → 0** while `[ITEM-FLOW]` logged 572 complete item flows and 577
+`bag-not-open-yet` re-presses — the bounded press-verify-re-press visibly recovering eaten As in
+production. CantEscape freezes: zero again (fleefreeze holds). Second wind: 20 firings, 7
+post-wind repeat burns — same designed shape, user question stands. ‼ **FIRST TREECKO FINISH
+EVER** (L07 run 2; ⚠ frame count zeroed by a mid-run emulator reset — the finish itself is the
+genuine Ch20-done line). ‼ The Treecko wall now has a clean, named run-ender: *"No party mon can
+learn Surf and the party is full — needs PC box management (#24-pc) or a manual swap"* — the
+`#24-roster` withdraw half, measured in production's own words. Remaining KI-47 nets (2) are the
+`handle_fainted_pokemon`/FaintedMonTry family — filed as the next battle-wedge target.

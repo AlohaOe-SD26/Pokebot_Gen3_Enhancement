@@ -199,7 +199,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 | | |
 |---|---|
 | branch / HEAD | `main` — **⛔ TRUST `git status`, NOT THIS CELL.** It was clean and fully pushed at the commit carrying this line; a cell cannot truthfully assert its own push. |
-| box | ⚠ **BATCH IN FLIGHT: `20260826-185918`** (8 lanes × 300 min, launched 18:59 2026-08-26, ends ~23:59, code `86eaf8f3` — the `#26-battleitemwedge` live arm). Last MINED batch: `20260826-130441` (VERDICT OK — see NEXT ACTIONS). ⛔ No CPU-heavy work while it runs. |
+| box | **IDLE.** Nothing running. Last batch `20260826-185918` (VERDICT OK, 12/32 finished — MINED 2026-08-27, see NEXT ACTIONS; its predecessor `20260826-130441` also mined). |
 | story content | ✅ **§Ch19 COMPLETE 2026-08-12 — the MOSSDEEP SPACE CENTER is defended and HM08 DIVE is in the bag. 20 of 24 beats.** Littleroot → 6 badges → Mt. Pyre → Magma Hideout (and out) → Slateport submarine theft → the Lilycove AQUA HIDEOUT (with the MASTER BALL) → the MIND BADGE → **the Space Center multi battle + Dive**. (was 19 of 24 before Ch19.) |
 | ‼ **§Ch20 SEAFLOOR CAVERN** | ✅ **DRIVEN END TO END (2026-08-14) — Kyogre awakened, atoll escape executed.** Seven drivers, all `ACCEPTANCE: PASS`: `ch20dive` (6/6) → `ch20room1` → `ch20room2` → `ch20room6` → `ch20room3` → `ch20room8` (PASS ×2 incl. a FAULT run proving jam recovery) → **`ch20room9` (NEW, PASS ×2 — runs 1 & 3; ⚠ run 2 LOST the Archie fight, a MEASURED 2W/1L on the chain's one stochastic element)**. Each run re-solves every room beneath it (`FLAG_TEMP_*` respawn on map load) — counts now **R1 n=13, R2 n=10, R6 n=9, R3 n=8, R8 n=5, R9 scene n=3 (full chain n=2)**. The cutscene chain is deterministic (identical milestone frame counts across passing runs); release gated on `VAR_ROUTE128_STATE == 2`; facing on release MEASURED `'Up'` ×2. ✅ **IT IS A CHAPTER AS OF 2026-08-24** (`modules/story/seafloor_cavern.py`, wired as Segment 20, 5/5 drives PASS — commit `2680433f`). ⛔ *This row said "NOT a chapter" for one commit after it became one; a Tier 1 review caught it.* ‼ The ladder is **21 of 24** now, not the 20 quoted below. Superseded text: No module in `modules/story/`, nothing wired into `story_mode.py`, drivers **inject Dive with a debug write**. Ladder still **20 of 24**. **Remaining: CHAPTER ASSEMBLY** (organic Dive via KI-63 wiring, Repel policy, badge/move pre-flight, whiteout-retry for Archie, the atoll escape leg). |
 | ‼ is code frozen? | **No.** Nothing is running. |
@@ -376,24 +376,25 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    production hits since the 2026-08-16 promotion).
 >    ✅ `#26-fleefreeze` SHIPPED 2026-08-26 (the one-line delegate; gate #32 proves it 3 ways,
 >    old behaviour refuted by construction; live-trap arm rides the batch below). ⛔ DO NOT REDO.
->    ✅✅ **THE `20260826-130441` VALIDATION BATCH IS MINED (2026-08-26 evening) — ⛔ DO NOT
->    RE-MINE IT.** D1 finish rate **25.8% vs 12.0% PASS**; D2 Surf-teach **PASS** (7 of 10
->    teach-failure runs FINISHED); D3 flee-freeze **PASS decisive** (ZERO CantEscape freezes);
->    D4 **FAIL-as-registered / WORKING AS DESIGNED** (27 second winds; 10 runs burned post-wind
->    same-count repeats — an **OPEN USER QUESTION** in `#26-manualderails`, full numbers there).
->    ➡➡➡ **NEXT ACTION (BATCH IN FLIGHT AGAIN): MINE `tools/story-dev/x4-runs/20260826-185918/`**
->    — 8 lanes × 300 min, launched 18:59, ends **~23:59**, code **`86eaf8f3`** (= the mined batch's
->    code PLUS `#26-battleitemwedge`, whose live arm is THIS batch's headline question). ⛔ If it is
->    still running, NO CPU-heavy work. Grade: (1) the four discriminators above as REGRESSION
->    checks (same instruments — they are calibrated in `#26-manualderails`'s batch section);
->    (2) NEW: KI-47 nets on the action-selection/UseItem family — the mined batch had exactly 3,
->    all this family; the wedge fix should cut them, and `[ITEM-FLOW]` stage lines narrate each
->    attempt; (3) Treecko lanes — still expected ~0 finishes until D3-D6/roster work lands.
->    **THEN:** the `#26-surfteachchain` D3-D6 residuals (D3 recon NOTE:
->    `ai-research-notes/2026-08-26-d3-forgetmenu-cursor-decomp.md` — flow desync, needs a live
->    probe), and `#26-gatestartupcontention` — ⚠ its bisect is MOOT: the hang site is CAPTURED
->    (blocking `sounddevice.write` in `libmgba.py:621`; stack dump in evidence/, fix candidates in
->    the item; ‼ the suite ran 31/32 tonight with ONLY that gate red, solo-reproduced + diagnosed).
+>    ✅✅ **BATCH `20260826-130441` IS MINED — ⛔ DO NOT RE-MINE.** D1 25.8% vs 12.0% PASS; D2
+>    PASS (7/10 teach-failure runs finished); D3 PASS decisive (zero CantEscape); D4
+>    FAIL-as-registered/works-as-designed (numbers + the OPEN USER QUESTION: `#26-manualderails`).
+>    ✅✅ **BATCH `20260826-185918` IS ALSO MINED (2026-08-27, just after midnight) — ⛔ DO NOT
+>    RE-MINE. Finish rate 12/32 = 37.5%** (12.0 → 25.8 → 37.5 in one day); **wedge fix VALIDATED**
+>    (its KI-47 family 2 → 0 over 572 item flows); **FIRST TREECKO FINISH EVER**; and the Treecko
+>    wall is now a NAMED clean run-ender (*"No party mon can learn Surf and the party is full —
+>    needs PC box management (#24-pc)"*) — full numbers in `#26-manualderails`'s batch section.
+>    ➡➡➡ **NEXT: THREE USER DECISIONS ARE NOW RIPE, then build.** (1) ⛔ **the drift-7 promotion**
+>    — the `#26-*` fixes are now validated by TWO independent batches (this is the USER's call, and
+>    the evidence is as strong as it gets without promoting); (2) the POST-WIND repeat burn
+>    (`#26-manualderails` D4 open question); (3) recon-driver mixin adoption
+>    (`#24-harnesswhiteoutdrop`). **BUILD CANDIDATES, in measured-cost order:** (a) the
+>    `#24-roster` WITHDRAW half — the named Treecko run-ender IS its spec; (b) the
+>    `handle_fainted_pokemon`/FaintedMonTry KI-47 family (2 nets, both batches — KI-66 residual
+>    area); (c) `#26-surfteachchain` D3-D6 (D3 recon note ready); (d) `#26-gatestartupcontention`
+>    fix candidates (diagnosis complete); (e) the harness run-header `driver:` line (2 lines).
+>    *(D3's recon note: `ai-research-notes/2026-08-26-d3-forgetmenu-cursor-decomp.md`; the
+>    contention diagnosis + suite-31/32 story: `#26-gatestartupcontention` + changelog.)*
 >    §Ch21 leg 2 stays PARKED with its spec at `ai-research-notes/2026-08-26-ch21-leg2-BUILD-SPEC.md`.
 >    ⛔ Batches answer FREQUENCY, drivers answer CORRECTNESS — fixes get proven by targeted
 >    drivers, never by another batch.
@@ -442,10 +443,10 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    deliberately deleted (7 blockers, guarding a doc nicety). ⛔ do NOT re-do it, and ⛔ **do not
 >    resurrect the deleted check** — the long note at its former site in `audit_doc_consistency.py`
 >    explains why, and it cost six review rounds to learn.
->    ⚠ **`03-PUNCH-LIST.md` IS AT 3594 / 3600 LINES — 6 LEFT (three `#26-*` original-filing tails
->    were retired 2026-08-26 after their batch was mined). ‼ THE NEXT EDIT THAT GROWS IT MUST
->    FIRST RETIRE A COMPLETED ITEM (candidates: older ✅ `#24-*` blocks; the mined-batch `#26`
->    entries are now retirable too — their discriminators are recorded in the batch section).** ‼ *(This figure is re-derived at commit time — an earlier one drifted by 4 lines because
+>    ⚠ **`03-PUNCH-LIST.md` IS AT ITS 3600 CAP (measured at commit time — run `wc -l`, never trust
+>    this line). ‼ THE NEXT EDIT THAT GROWS IT MUST FIRST RETIRE A COMPLETED ITEM (candidates:
+>    older ✅ `#24-*` blocks; the mined `#26` entries are retirable — the batch section keeps
+>    their numbers).** ‼ *(This figure is re-derived at commit time — an earlier one drifted by 4 lines because
 >    it was measured BEFORE the last edits. Measure a line count LAST.)* It hit 3597 (3 left) on
 >    2026-08-23 and was brought back by RETIRING the just-completed `#24-brokenrepros` entry from
 >    ~56 lines to a 16-line summary. ⛔ **When it tightens again, retire another COMPLETED item the

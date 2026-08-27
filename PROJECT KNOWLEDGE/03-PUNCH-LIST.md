@@ -642,18 +642,14 @@ FREQUENCY; once a signature is in hand, the fix is proven by a targeted driver, 
   batch lands):**
   * ✅ **THE GYM ITSELF IS CLEAN: 5 of 5 lanes that reached it passed badge 7, ZERO derails inside.**
     The user's "around Mossdeep" is the era, not the gym.
-  * ⛔ **NEW SIGNATURE 1 — the unfleeable-battle freeze (3 lanes):** the battle handler froze at
-    `BattleScript_PrintCantEscapeFromBattle` (and once `BattleScript_MoveEnd`) in stage 16 ("To
-    Lilycove", maps (24,86)/(24,91)), then the global watchdog burned the derail budget. A flee
-    attempt against a battle that CANNOT be fled, with no fight-through fallback — a direct
-    violation of the standing craft rule *"un-fleeable battles must fight through"*.
+  * ⛔ **NEW SIGNATURE 1 — the unfleeable-battle freeze (3 lanes):** became `#26-fleefreeze`,
+    ✅ FIXED + LIVE-VALIDATED (zero freezes in both post-fix batches) — see its entry.
   * ⛔ **NEW SIGNATURE 2 — the degraded-party spiral (L08):** party fell to ONE viable mon; the
     Tate & Liza DOUBLE-battle preflight correctly REFUSED ("need 2 Pokemon able to fight; the party
     has 1") — and then recovery could not path out (`(23,8) -> (6,35) @ MOSSDEEP_CITY_GYM` refused;
     a MAUVILLE heal target refused too), burning 5 derails. The refusal was right; the RECOVERY
     (heal-then-return, or exit the gym at all) is what is missing.
-  * Winona (5 run-ending losses, 2 lanes) and boss type-losses (10) still dominate overall — the
-    per-instance/second-wind diagnosis above stands unchanged.
+  * *(interim Winona/type-loss tallies superseded by the final numbers below.)*
 ➡ **BATCH COMPLETE 2026-08-26 — FINAL NUMBERS (baseline: `ad37949b` pre-fix production code):**
   * **50 boundary-marked runs: 6 finished / 44 derailed** (measured from the run-boundary lines
     myself — ‼ the mining agent reported "0 finishes" and was WRONG; the harness's lane table and
@@ -695,6 +691,19 @@ FREQUENCY; once a signature is in hand, the fix is proven by a targeted driver, 
     once the wind is spent and a raise repeats with an UNCHANGED loss count, should the run go
     straight to Manual instead of burning ~4 more derail cycles?** (Saves dead time on genuinely
     hopeless runs; the honest stop itself stays.)
+➡➡ **SECOND POST-FIX BATCH MINED 2026-08-27 (`20260826-185918`, code `86eaf8f3`; the manifest's
+  `-dirty` was DOCS-ONLY, verified; 300 min, VERDICT OK):**
+  * **Finish rate 12/32 = 37.5%** (12.0% → 25.8% → 37.5% in one day); Mudkip lanes 8/10.
+    **11 of 12 Surf-teach-involved runs FINISHED.** D4 shape unchanged (20 winds, 7 burns).
+  * ‼ **FIRST TREECKO FINISH EVER** (L07 run 2 — the real Ch20-done line; ⚠ frame count zeroed
+    by a mid-run emulator reset).
+  * ‼ **THE TREECKO WALL, NAMED by a clean run-ender:** *"No party mon can learn Surf and the
+    party is full — needs PC box management (`#24-pc`) or a manual swap"* (L07 run 3, stage 14)
+    — the `#24-roster` WITHDRAW half measured as a run-ender in production's own words.
+  * **`#26-battleitemwedge` live arm: VALIDATED** — its KI-47 family **2 → 0** over 572 item
+    flows, 577 `bag-not-open-yet` re-presses recovering eaten As. The 2 remaining nets are the
+    `handle_fainted_pokemon`/FaintedMonTry family (KI-66 residual area) — the NEXT wedge target.
+    CantEscape freezes still ZERO.
 
 ### ‼ `#26-surfteachchain` — D1/D2 GATES SHIPPED 2026-08-26 (ordinary case A/B-clean); D3-D6 residuals remain
 
@@ -724,11 +733,8 @@ desync, not cursor drift; needs a live probe before code changes; D4 the A-caden
 house before teaching (mirrors Rock Smash's clean seam); the KI-63 making-room deposit path has ZERO
 recorded live firings; Wingull HM03 decomp cross-check. *(original filing:)*
 
-**USER-OBSERVED:** after beating Norman and getting HM03, the bot *"loops talking to the npc after it
-leaves the menu because its spamming A"* and *"loops a bunch attempting to teach the HM (sometimes
-the wrong HM)"*. Two known shapes apply: the museum-greeter bug (ungated A-mash across a scene seam
-re-opens the dialogue) and `#24-teachmsgstall`'s open residue (*"another path to `exhausted` remains
-unfound"* — this may BE that path). Review Rock Smash's teach for the same pattern (user: "may be ok").
+📦 *(original A-spam observation: fixed by the D1/D2 gates above; full quotes in
+`07-CHANGELOG.md` 2026-08-26 + git history of this entry.)*
 ⛔ **HALF 2, THE DESIGN GAP:** the user's test bot was MUDKIP, which learns Surf itself. **A
 Treecko/Torchic run may hold NO Surf-capable pokémon at this point.** Required: an organic
 surf-learner path — capture a suitable pokémon, and if the party is full, ensure it ends up IN the
@@ -762,7 +768,7 @@ not summon, summoned by 40 lane-hours. **The arc is CLOSED.** 📦 Original diag
 Spin + the blind `run_away()` fallback, quotes and fix shape): `07-CHANGELOG.md` 2026-08-26
 (fleefreeze entry) + git history of this entry.
 
-### ✅ `#26-battleitemwedge` — the HANG is closed 2026-08-26 (bounded press-verify-re-press); the RELIABILITY work stays `#24-battleitems`
+### ✅ `#26-battleitemwedge` — HANG closed 2026-08-26 AND LIVE-VALIDATED 2026-08-27 (batch `20260826-185918`: its KI-47 family 2 → 0 over 572 item flows)
 
 **Shipped:** `battle_action_use_item` no longer fires ONE blind A into `scroll_to_item_in_bag`'s
 unbounded, press-nothing first wait. It now presses, VERIFIES `GameState.BAG_MENU`, re-presses —
