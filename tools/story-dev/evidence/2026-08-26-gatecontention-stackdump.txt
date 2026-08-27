@@ -1,0 +1,10 @@
+Timeout (0:00:50)!
+Thread 0x00007fbc (most recent call first):
+  File "C:\Users\Ripto\AppData\Roaming\Python\Python312\site-packages\sounddevice.py", line 1335 in write
+  File "C:\Remote Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\modules\libmgba.py", line 621 in run_single_frame
+  File "repro_gym_whiteout_guard.py", line 90 in drive
+  File "repro_gym_whiteout_guard.py", line 140 in <module>
+  File "<frozen runpy>", line 88 in _run_code
+  File "<frozen runpy>", line 98 in _run_module_code
+  File "<frozen runpy>", line 286 in run_path
+  File "<string>", line 6 in <module>

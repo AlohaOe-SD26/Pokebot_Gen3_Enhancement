@@ -18551,3 +18551,38 @@ every driver branch sets `context.bot_mode_instance` (67 + else fallback) and th
 passes that instance to listeners; surviving candidates are a NON-Story mode's default
 `on_whiteout() -> False` and the stack-empty-only assignment window. Next step is log mining of
 the 36 incidents, recorded in the item.
+
+## 2026-08-26 — THE POST-FIX VALIDATION BATCH IS MINED: 3 of 4 discriminators PASS, the 4th fails-as-registered but works-as-designed
+
+Batch `20260826-130441` (code `dce95b4a`, 8 lanes × 300 min, VERDICT OK, 39/39 headers clean)
+vs baseline `20260826-063456`, graded on the FOUR PRE-REGISTERED discriminators (full numbers
+in `03-PUNCH-LIST.md` `#26-manualderails`): **(1) finish rate 8/31 = 25.8% vs 6/50 = 12.0%
+PASS** (same wall-clock, fewer+longer runs; Mudkip 5/10 with one lane 4/4; ⛔ Treecko 0/6 —
+the untouched design gap); **(2) Surf-teach PASS** — 7 of 10 teach-failure runs FINISHED
+(gates turned the killer into a stumble; the old "~9%" figure traced to the flagged-unreliable
+agent count and was corrected by symmetric instruments — calibrated FIRST against the baseline,
+which caught my boundary-grep reading 0 where truth was 5); **(3) flee-freeze live arm PASS,
+decisive** — repeated `[KI-52] -> FIGHTING ON` on the partial-trap signature, ZERO CantEscape
+freezes corpus-wide (baseline 3 lanes), zero KI-47 nets on that signature (the 3 nets present
+are the `#26-battleitemwedge` family — next batch's subject); **(4) ⛔ FAIL AS PRE-REGISTERED /
+working as designed** — 27 live second-wind firings end-to-end, 17 with no repeat cluster, but
+10 runs burned five same-count raises AFTER their one wind — the ruled once-per-boss shape; the
+post-wind repeat burn is filed as an OPEN QUESTION for the user in `#26-manualderails`.
+Punch-list maintenance in the same commit: `#26-fleefreeze` arc CLOSED (live arm landed);
+original-filing tails of the three closed `#26-*` entries retired to pointers (budget rule).
+
+## 2026-08-26 — `#26-gatestartupcontention` DIAGNOSED: the hang is a blocking audio write; the planned bisect is moot
+
+Tonight's full suite ran **31/32 enforcing PASS** with only `repro_gym_whiteout_guard` red (900s
+timeout, empty log — the filed signature). Then the "passes solo" half broke: the hang reproduced
+SOLO, twice, deterministically, 0 bytes of output. A faulthandler stack dump
+(`evidence/2026-08-26-gatecontention-stackdump.txt`) captured the site: **`sounddevice.write` ←
+`libmgba.py:621 run_single_frame`** — the FPS limiter is a blocking audio write with no bound; a
+wedged PortAudio host blocks it forever. "Empty log" and "frozen after the header" are the SAME
+hang (block-buffered stdout). Host-state-dependent (armed after 40 lane-hours; batch lanes are
+immune — audio=False speed=0 enforced and asserted 39/39). ⚠ The earlier "sibling gate passes
+solo" control was WEAK and is corrected in the item: `probe_chapter_order` never drives frames.
+Fix candidates recorded in the item (gate-level enforced no-audio/unthrottled; or bound the write
+in `libmgba.py` — production internals, careful). ‼ Also tonight: my first suite read piped
+through `tail` and reported TAIL's exit 0 — the runner's own docstring names this exact mistake;
+re-run properly before any conclusion was drawn.

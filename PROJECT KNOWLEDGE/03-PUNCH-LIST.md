@@ -593,8 +593,12 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       instance to listeners (`:10620`). Two candidate mechanisms survive: (a) the mode those old
       profiles ran was a NON-Story mode whose inherited `BotMode.on_whiteout()` returns False
       (`_interface.py:191` — verified) → Manual by design; (b) assignment runs ONLY on
-      stack-empty frames (`:10286`), so a stale instance can persist. ⇒ next step is LOG mining:
-      which driver/mode was live at each of the 36 drops — not more code reading.
+      stack-empty frames (`:10286`), so a stale instance can persist. ✅ **THE LOG MINING RAN the
+      same day** — corrected analysis in `ai-research-notes/2026-08-26-whiteoutdrop-log-tally.md`:
+      **26/36 ran named NON-story drivers (expected drops, not defects); the other 10 are
+      UNRESOLVABLE from the logs because the run header never records `--driver`.** ⇒ NEXT: add
+      `driver:` to the harness run header (2 lines + one proving boot); the mixin-adoption
+      question for recon drivers is the USER's call.
 
 ### ‼‼ `#26-manualderails` — PRODUCTION derails to MANUAL around Fortree and Mossdeep (USER REPORT 2026-08-26)
 
@@ -668,6 +672,29 @@ FREQUENCY; once a signature is in hand, the fix is proven by a targeted driver, 
     IN THIS BATCH (the premise-refutation win is from 20260811/L01). Agent-mined ranking (⚠ its
     finish count was wrong, so treat ranks as indicative): boss type-loss 21, watchdog 9, nav 6,
     Surf-teach 5, handler wedge 4.
+➡➡ **POST-FIX VALIDATION BATCH MINED 2026-08-26 (`20260826-130441`, code `dce95b4a`, 300 min,
+  VERDICT OK, headers 39/39 clean). The four PRE-REGISTERED discriminators, graded:**
+  * **(1) FINISH RATE: PASS — 8/31 completed (25.8%) vs baseline 6/50 (12.0%).** Same wall-clock,
+    fewer + LONGER runs (runs die deeper). Mudkip lanes 5/10 finished (L02 **4/4**); ⛔ Treecko
+    **0/6** — the design-gap half is untouched, as expected (D3-D6 + `#24-roster`).
+  * **(2) SURF-TEACH: PASS, instrument-honest.** At DOUBLE the exposure (10 involved runs vs 5),
+    **7/10 finished through the failure** (baseline 4/5 by the SAME stdout instrument);
+    surf-as-last-derail 2 vs 1. ⚠ The old "~9% of endings" figure came from the mining agent whose
+    totals this entry already flags as wrong — by symmetric instruments the teach failure is now
+    overwhelmingly non-fatal at higher exposure. D1b (failure-phase exit fault arm) is STILL unproven.
+  * **(3) FLEE-FREEZE LIVE ARM: PASS, decisive** — `[KI-52] … escape impossible (a partial-trapping
+    move …) -> FIGHTING ON` fired repeatedly on the exact Torkoal signature; **ZERO
+    `BattleScript_PrintCantEscapeFromBattle` freezes corpus-wide** (baseline: 3 lanes frozen); zero
+    KI-47 nets on that signature. The 3 KI-47 nets present are ALL the `#26-battleitemwedge` /
+    action-selection family — which is NOT in this batch's code and rides the NEXT one, as filed.
+  * **(4) HOPELESS REPEATS: ⛔ FAIL AS PRE-REGISTERED — WORKING AS DESIGNED.** 27 live SECOND-WIND
+    firings end-to-end (the proof the arm could not give); 17 resolved with NO repeat cluster. But
+    10 runs still burned **five same-count raises + boundary echo AFTER their one wind was spent**
+    (counts frozen: 12/12/12…, 25×5, etc. — deterministic, zero new information). That residue IS
+    the ruled once-per-boss design. ➡ **OPEN QUESTION FOR THE USER (do not build unilaterally):
+    once the wind is spent and a raise repeats with an UNCHANGED loss count, should the run go
+    straight to Manual instead of burning ~4 more derail cycles?** (Saves dead time on genuinely
+    hopeless runs; the honest stop itself stays.)
 
 ### ‼ `#26-surfteachchain` — D1/D2 GATES SHIPPED 2026-08-26 (ordinary case A/B-clean); D3-D6 residuals remain
 
@@ -680,6 +707,10 @@ quiet map). Ordinary-case arm: `--driver teachfull` replace-path → `learned=Tr
 ride_frames=479`. ⚠ HONEST LIMIT: the failure-phase exit is NOT yet exercised (needs a teach-failure
 fault hook). **Also shipped:** the hunt fallback flip `grounds[-1]` → `grounds[0]` (measured
 incident: the SURF hunt sent to Surf-gated ROUTE119).
+✅ **LIVE VALIDATION 2026-08-26 (batch `20260826-130441`):** at double the exposure, 7 of 10
+teach-failure runs FINISHED anyway — the gates convert the run-killer into a recovered stumble.
+Full discriminator-2 grading (and the ~9%-figure correction): `#26-manualderails`' batch section.
+⛔ Treecko lanes 0/6 — the design-gap half is measurably still the cost.
 **HALF 2 ANSWERED BY AUDIT:** the guarantee EXISTS — Segment 12c wires
 `ensure_hm_learner_making_room(HM03)` post-Norman; a slot is freed BEFORE the catch (never lands in
 the PC); sole-carrier protection holds; catch cap 4 keeps runway. Per-starter: Mudkip line
@@ -709,23 +740,14 @@ shaped like the Dive one. Anchors: `norman_done.ss1`, `prenorman_fodder_grind.ss
 ### ✅ `#26-mossdeeppuzzlespeed` — FIXED 2026-08-26, A/B-PROVEN ~2.9x: ~62k → ~21k frames (~17.2 → ~5.8 min)
 
 **The dominant sink (58% of the solve): a direction tap only TURNS the avatar when it faces another
-way, and a turn changes neither tile nor script — so `_step_towards`' attempt 1 waited out its FULL
-600-frame timeout after EVERY direction change (~60 turns/solve).** Fix A: a bounded PRE-TURN
-(`TURN_TIMEOUT_FRAMES=32`, every main-loop guard kept verbatim inside it) so attempt 1 always WALKS;
-main loop unchanged; all five safety checks untouched and silent on both arms. Evidence:
-`evidence/2026-08-26-mossdeep-speed-AB.txt`. ⛔ Fixes B/C (post-battle quiet window, per-step settle)
-deliberately NOT taken — the remaining cost is the six unavoidable trainer battles, and both sit
-closer to documented hazards. *(original filing:)*
+way — so `_step_towards`' attempt 1 waited out its FULL 600-frame timeout after EVERY direction
+change (~60 turns/solve).** Fix A: a bounded PRE-TURN (`TURN_TIMEOUT_FRAMES=32`, every main-loop
+guard kept verbatim inside it); all five safety checks untouched and silent on both arms. Evidence:
+`evidence/2026-08-26-mossdeep-speed-AB.txt`. ⛔ Fixes B/C deliberately NOT taken (documented
+hazards). 📦 Original filing (user quotes, profile-first constraint): `07-CHANGELOG.md` 2026-08-26
++ git history of this entry.
 
-**USER-OBSERVED:** solved right on the first attempt, but *"it took forever to navigate and solve"*.
-This is a PERFORMANCE item with a hard constraint: **keep the stuck/incorrect detection** (*"it
-should still be able to know if the puzzle is incomplete/not correct so it does not get stuck"*).
-Suspects: per-step re-planning, waits between inputs, or re-verifying the whole puzzle state after
-every move. ⛔ Measure BEFORE touching: drive `in_mossdeep_gym.ss1` and count frames-per-phase first,
-so the speedup is a measured before/after, not a feel. KI-58's solver is PROVEN — do not rewrite it,
-profile it.
-
-### ✅ `#26-fleefreeze` — FIXED 2026-08-26 at the DECISION LAYER, GATED as #32; the LIVE-trap arm rides the validation batch
+### ✅ `#26-fleefreeze` — FIXED 2026-08-26, GATED as #32 — and the LIVE arm LANDED: confirmed in batch `20260826-130441`
 
 **The one-line fix shipped:** `_escape` now delegates to the inherited KI-52 `_handle_flee` on the
 escape-impossible branch instead of blindly returning `run_away()`. **Proven by
@@ -733,27 +755,12 @@ escape-impossible branch instead of blindly returning `run_away()`. **Proven by
 byte-unchanged; ARM B the delegate called with the real state and a trap-naming reason, return
 passed through; ARM C the OLD behaviour refuted by construction (a refactor restoring the blind
 fallback fails there). `_handle_flee`'s internals carry their own KI-52 history — not re-proven.
-⚠ **THE LIVE TRAP IS STOCHASTIC AND DID NOT FIRE in the repro drive** (`magma_door_losing.ss1
---driver magmahideout`: the one flee was turn-0 at 13/130 HP, `outcome=RanAway`, clean — the
-ORDINARY case exercised; no `[Wrapped]` occurred). The live arm arrives with the post-fix validation
-batch — it fired in 3 of 8 lanes over 5 hours on the old code; **discriminator: `[KI-52]` fight-through
-lines where the baseline had `BattleScript_PrintCantEscapeFromBattle` freezes, and zero KI-47 nets on
-that signature.** *(original filing:)*
-
-**The Magma Hideout freezes are neither KI-36 nor trainer-flees.** Diagnosed with quotes, all three
-lanes: wild **Torkoal's Fire Spin** (learned L17 — every hideout Torkoal has it) sets `[Wrapped]`
-while grunt-gauntlet attrition has the lead under `hp_threshold: 20` → `lead_cannot_battle_action:
-flee` → `level_up.py:130-136 _escape` → `get_best_escape_method()` correctly returns **None**
-(trap-aware!) → ⛔ **`return TurnAction.run_away()` ANYWAY** — the blind fallback IS the bug. The
-game refuses at selection (`BattleScript_PrintCantEscapeFromBattle` + a button-wait), the handler's
-text-printer wait branch yields forever pressing nothing, KI-47 nets it at 3,001 frames, recovery
-can't clear the on-screen battle, the watchdog burns the budget. Telemetry: `[TURN 3] Loudred L36
-14/116 [Wrapped] -> RunAway` (L01), byte-identical shape in L03.
-⛔ **THE FIX SHAPE (one decision point):** when `get_best_escape_method()` is None, delegate to the
-inherited, trap-aware, fault-tested `_handle_flee` (`default.py:377` — the KI-52 fight-through:
-rotate to a healthy mon, else `_fight_on`). One change covers all story strategies. **Repro:**
-`magma_door_losing.ss1 --driver magmahideout`; acceptance = the `[KI-52] ... FIGHTING ON` line +
-battle ends naturally + no KI-47. ⚠ A shared battle path — the A/B needs an ORDINARY-case arm too.
+✅ **THE LIVE ARM LANDED 2026-08-26 (batch `20260826-130441`):** `[KI-52] … -> FIGHTING ON` fired
+repeatedly on the exact partial-trap signature; **zero CantEscape freezes corpus-wide** (baseline:
+3 of 8 lanes frozen); zero KI-47 nets on that signature. The stochastic trap the repro drive could
+not summon, summoned by 40 lane-hours. **The arc is CLOSED.** 📦 Original diagnosis (Torkoal Fire
+Spin + the blind `run_away()` fallback, quotes and fix shape): `07-CHANGELOG.md` 2026-08-26
+(fleefreeze entry) + git history of this entry.
 
 ### ✅ `#26-battleitemwedge` — the HANG is closed 2026-08-26 (bounded press-verify-re-press); the RELIABILITY work stays `#24-battleitems`
 
@@ -763,17 +770,11 @@ unbounded, press-nothing first wait. It now presses, VERIFIES `GameState.BAG_MEN
 re-decide: a re-decided turn beats a 3,001-frame KI-47 wedge + derail cascade. Every loop constant-
 bounded (verifiable by reading); `[ITEM-FLOW]` stages narrate each attempt.
 ⚠ HONEST LIMITS: (1) no deterministic repro exists for the eaten-A itself (timing-stochastic) — the
-proof is structural boundedness + the instrumented stages, and the live arm is the NEXT batch
-(⛔ the currently-running validation batch launched at `dce95b4a`, BEFORE this fix — it cannot
-validate it); (2) items still failing to be CONSUMED (5 requests → 1 potion, measured) is
-`#24-battleitems`' open work — this closes only the HANG. *(original filing:)*
-
-NOT a flee: a TRAINER battle where `[TURN 1] -> UseItem` logged `opened-bag` then nothing for
-~3,000 frames — `scroll_to_item_slot`'s UNBOUNDED first wait (`while get_game_state() !=
-GameState.BAG_MENU ... yield`) after `battle_action_use_item`'s single, un-verified A press failed
-to open the bag. The already-instrumented `#24-battleitems` "SELECTED BUT DOES NOT RELIABLY
-EXECUTE" defect graduating into a hard wedge. Fix shape: bound the wait + re-press while still at
-`HandleTurnActionSelectionState`.
+proof is structural boundedness + the instrumented stages, and **the live arm is the NEXT batch**
+(the `20260826-130441` validation batch ran `dce95b4a`, BEFORE this fix — and its 3 KI-47 nets are
+all this family's action-selection signatures, so the next batch has something to measure);
+(2) items still failing to be CONSUMED is `#24-battleitems`' open work — this closes only the HANG.
+📦 Original filing (the opened-bag freeze anatomy): `07-CHANGELOG.md` 2026-08-26 + git history.
 
 ### ‼ `#26-gatestartupcontention` — one gate times out IN-SUITE with an EMPTY log, passes solo (filed 2026-08-26)
 
@@ -784,11 +785,16 @@ before it; (2) `run_gates.py` is strictly SEQUENTIAL — "~30 parallel gates" wa
 gate-parallelism is not the mechanism; (3) it reproduces on a QUIET machine, so batch load is
 refuted too. What stands: in-suite hang (≥3 occurrences: two 900s timeouts + one live-observed),
 solo PASS the same hour, audio-host errors (`PaErrorCode -9999, no driver installed`) present at the
-freeze point. ⇒ an earlier gate in the SEQUENCE corrupts something this gate's emulator init then
-blocks on (audio host state is the leading candidate). ⛔ **A 900→2400 bound raise was tried and
-REVERTED — more time cannot fix a hang, it only defers the kill.** Next: bisect WHICH preceding
-gate arms the hang (run the suite's exact sequence, halving), and capture the runner's own
-"TIMEOUT — killed" transcript as the settled artifact.
+freeze point. ⛔ **A 900→2400 bound raise was tried and REVERTED — more time cannot fix a hang.**
+➡➡ **DIAGNOSED 2026-08-26 — THE HANG SITE IS CAPTURED; THE PLANNED BISECT IS MOOT.** Stack dump
+(`evidence/2026-08-26-gatecontention-stackdump.txt`): **`sounddevice.write` ← `libmgba.py:621
+run_single_frame`** — the FPS limiter is a blocking audio write with NO BOUND; a wedged PortAudio
+host blocks it forever. Reproduced **SOLO, twice, deterministically, 0 bytes out** (buffered
+stdout — "after the header" and "empty log" are the SAME hang); host-state-dependent, batch lanes
+immune (`audio=False speed=0` enforced). ⚠ The "sibling passes solo" control was WEAK
+(`probe_chapter_order` never drives frames). **FIX CANDIDATES (one drive each): (a) run the gate
+stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in `libmgba.py`
+(production internals — careful).** Narrative: `07-CHANGELOG.md` 2026-08-26.
 
 ### ✅ `#24-driftheadlineshape` — DONE 2026-08-26: `check_drift` PASS 3 reads the drift-row HEADLINE (filed 2026-08-24)
 
