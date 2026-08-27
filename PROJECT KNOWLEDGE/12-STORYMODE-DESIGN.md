@@ -3653,10 +3653,16 @@ RESULT reached=True at=SOOTOPOLIS_CITY(29,53) arrived=True center_path=True cave
   DELETED rather than updated — the game chooses that tile, so it is MEASURED. (Hard-coding a guessed
   coordinate is how `ROOM8_PUSHES` got fabricated.)
 * ⛔ **"the Cave of Origin door `(31,16)` is where leg 2 goes."** `calculate_path` **REFUSES to route there from the arrival point** — the
-  whole column `(31,16)..(31,22)`. ⛔ **An earlier version of this line said "ZERO NPCs loaded, so it is NOT the Expert body-block" — THAT INFERENCE IS INVALID.** `get_map_objects()` is a CAMERA-RANGE window and the probe stood 30+ tiles away, so an NPC at `(31,18)` would not load whether or not it is there. ⇒ **the Expert body-block named above remains the LEADING explanation** — it is simply untested from that vantage.
-  ⚠ **NOT "unreachable in principle" — that wording was CORRECTED the same day.** The door's land
-  island is **52 tiles and TOUCHES WATER** in both layouts, so a surfer could in theory dismount
-  onto it; why the planner refuses is UNDETERMINED (likely an elevation-transition rule).
+  whole column `(31,16)..(31,22)`. ✅✅ **THE CAUSE IS MEASURED NOW (2026-08-27, `--driver
+  ch21leg2probe`), no longer "undetermined" and NOT the Expert alone:** it is the
+  **Steven `(20,36)` + Boy2 `(19,37)` two-tile body-block cut** through `map_path.py`'s
+  loadedness-not-occupancy rule (`:843-853` — a flag-visible object that is NOT camera-loaded
+  makes its ROM-template tile impassable). Proven by the flip: from `(29,53)` all five tiles
+  refuse; **standing at `(21,36)` with both NPCs camera-loaded, the SAME queries path —
+  `(31,16)` 98 wp, `(31,22)` 94 wp.** *(An earlier "ZERO NPCs loaded so not the body-block"
+  inference was invalid — camera window; and the "elevation-transition rule" guess is refuted.
+  The 52-tile-island figure is UNVERIFIED either way — the leg-2 build spec measured ~350 and
+  says re-derive before trusting either number.)*
   It matches the decomp: Steven's escort ends `warp MAP_CAVE_OF_ORIGIN_ENTRANCE, 9, 20` — **the game
   WARPS you in.** ⇒ leg 2 is *find and talk to Steven*, never *walk to the cave*.
 

@@ -9731,3 +9731,53 @@ instead of guessing from nearby words. Proven by D28a-e both ways AND a live inc
 SITE'S OWN IDIOM (read it and pattern-match what is actually written there), not only from the
 phrasing of the last incident.** A gate grown incident-by-incident converges on the shapes that
 already burned you and stays blind to the one the site uses every day.
+
+## 2026-08-27 — MY "MISSED-PRESS" BAIL READ THE AVATAR, AND A RECOVERY WRAPPER THEN UN-DID A STORY WARP
+
+**Symptom.** Leg 2a's first drive ended `flag=True at=SOOTOPOLIS_CITY(20,37)` — the escort HAD
+run (flag set, Steven relocated), yet the bot stood back in the city at the second approach tile,
+and the leg raised "NO live object on (20,36)".
+
+**Root cause, two layers.** (1) `_ride_steven_escort`'s v1 bail — "controllable at frame 400 ⇒
+the A-press missed" — fired MID-SCENE (controllability is not script-idleness) and returned
+False while the escort was running. (2) The caller then called `_navigate_riding_out`, whose
+JOB is to ride out any scripted scene that interrupts a path and retry — so it rode the REST OF
+THE ESCORT as an "interruption", arrived at the Cave Entrance, and then dutifully pathed BACK
+to its target through the (9,20) return warp (open post-escort). Each layer behaved exactly as
+designed; the composition un-did a one-shot story warp.
+
+**The fix that worked.** The bail now reads the SCRIPT ENGINE, not the avatar: flag clear AND
+`get_global_script_context().stack` EMPTY AND still standing on the approach tile, for 60
+CONSECUTIVE frames inside the first 600 — plus a caller guard: a False bail coexisting with a
+set flag RAISES instead of navigating. Drive 2 passed end-to-end.
+
+⇒ **PREVENTION RULE: A "NOTHING ENGAGED" DISCRIMINATOR MUST READ THE SCRIPT ENGINE (the stack),
+NEVER AVATAR CONTROLLABILITY — and NEVER hand control to a ride-out-and-retry wrapper while a
+ONE-SHOT story scene could be mid-flight; the wrapper treats every scene as an interruption,
+including the one you were waiting for.**
+
+## 2026-08-27 — MY FIX'S DISCRIMINATOR WAS DEAD CODE, AND ONLY AN INDEPENDENT REVIEW COULD SEE IT
+
+**Symptom.** v2 of the escort's missed-press bail keyed on `bool(get_global_script_context().stack)`
+— and `ScriptContext.stack_pointers` unconditionally appends `bytecode_pointer` (`tasks.py:147`),
+so `.stack` is NEVER empty. The bail could never fire; a genuine missed press would busy-loop the
+full 30,000-frame budget; the caller's fallthrough and defense-in-depth were unreachable. Drive 2's
+`ACCEPTANCE: PASS` was real AND said nothing about this: the first press landed, so the dead branch
+was never asked to work.
+
+**Root cause.** I reached for the intuitive reader (`.stack` truthiness) instead of the tree's own
+idiom: every other call site gates on `.is_active` first (`main.py:83`, `tasks_scripts.py:130`,
+`pc_interaction.py:242…`). The reviewer found it by tracing the READER's implementation, not my
+usage — and noted mine was the only raw-truthiness use of `.stack` in the codebase.
+
+**The fix that worked, with the proof the item actually owed.** `.is_active` (the idiom), plus the
+arm the reviewer required: `POKEBOT_CH21_FAULT_MISS=1` faces AWAY on approach 1 so the A lands on
+nothing — the bail printed its detection at 60 consecutive idle frames, fell through to approach 2,
+and the escort completed (`ACCEPTANCE: PASS`, frames=6220); the clean arm re-ran with ZERO false
+fires (frames=6111, matching the original). Both transcripts in `evidence/2026-08-27-ch21escort-*`.
+
+⇒ **PREVENTION RULE (two halves): BEFORE KEYING A DISCRIMINATOR ON A READER, READ THE READER —
+and grep for how the tree already consumes it (a lone novel usage of a shared accessor is a
+smell). AND: A BRANCH THE HAPPY PATH CANNOT REACH IS UNPROVEN UNTIL AN ARM FORCES IT — the same
+session's earlier bail (v1) failed by FIRING wrongly, this one by NEVER firing; only the
+fault-injection arm distinguishes either from working.**

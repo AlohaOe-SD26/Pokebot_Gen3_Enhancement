@@ -514,3 +514,24 @@ Four independent reasons, each from surviving evidence:
 - **The escort's intermediate coordinates are not claimed by anyone.** One agent's tile-by-tile walk was refuted as a miscount and re-derived by a verifier as touching no colliding tile, both arms converging on (16,8) → (29,21) → (31,18) → (31,16). I have **not** re-derived it and I assert none of those tiles — only the endpoints.
 - **I did not verify the bicycle case** (Sootopolis has `"allow_cycling": true`) or whether the escort choreography differs for a cycling avatar. The bot arrives surfing and dismounts to walk, so it should not arise.
 - **The "52-tile island / touches water" figure in `story_harness.py` is contradicted by the dossier's ~350-tile land-component measurement, but nobody in the dossier reproduced the 52 itself.** Treat the correction as "the harness comment names an undetermined cause that is now determined", and re-derive the island figure before overwriting it — a broken instrument does not invalidate its past readings.
+---
+
+# ADDENDUM — THE LIVE PROBES RAN 2026-08-27 (`--driver ch21leg2probe`); the ❓ rows are now MEASURED
+
+* **§4.1**: `guides=False hide_steven=False state=2` — leg 2a is LIVE on the fixture. ✅ as predicted.
+* **§4.6**: party by PID: Swellow 112/112, **Zigzagoon 0/44 (fainted)**, **Sceptile 2/138**,
+  Wailmer 49/160, Mightyena 104/130, Castform 103/103 — "fainted at 54%" was TWO facts mangled.
+* **§4.2a**: from (29,53): (21,36) OK **27 wp**, (20,37) OK 27 wp, (43,31) OK 38 wp;
+  (20,36)/(19,36)/(20,35)/(31,22)/(31,16) ALL PathFindingError. ✅ every prediction held,
+  measured by the bot's own `calculate_path` this time.
+* **§4.3/4.4**: the walk landed on (21,36) **facing Left = DIR_WEST — a HANDLED escort branch**;
+  walking (surf exited), controllable. The whole probe incl. the walk fit in 4,000 frames.
+* **§4.2b — THE FLIP HAPPENED**: at (21,36) Steven IS loaded at (20,36), Boy2 at (19,37), and
+  the same queries now PATH — (31,16) **98 wp**, (31,22) **94 wp**, (19,36) 6 wp, (20,35) 8 wp.
+  **The two-tile body-block mechanism is CONFIRMED live; §0.4's corrections were applied in the
+  same commit** (harness comment + `12-STORYMODE-DESIGN.md`). The "elevation-transition rule"
+  guess is refuted. ⚠ The 52-vs-~350 island figure remains UNVERIFIED both ways — nobody re-derived.
+* **§4.5**: Steven's live `local_id` = **7** (measured, no longer an inference). Also loaded from
+  (21,36): 16 at (29,33) and 17 at (31,33) — the atlas's Maxie/Archie tiles, relevant to leg 5.
+* Still open: §4.7 (post-heal tile — needs the §0.1 enum first), §4.8 (escort frame cost),
+  §4.9 (multichoice task trace), §4.10 (cave encounter pressure), §4.11 (walk-out landing).

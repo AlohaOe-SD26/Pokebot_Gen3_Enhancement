@@ -1536,6 +1536,12 @@ class PokemonCenter(Enum):
     MossdeepCity = (MapRSE.MOSSDEEP_CITY, (28, 16))
     EvergrandeCity = (MapRSE.EVER_GRANDE_CITY, (27, 48))
     PacifidlogTown = (MapRSE.PACIFIDLOG_TOWN, (8, 15))
+    # §Ch21 leg 2 (2026-08-27): (43,31) is the city-side PC door warp — decomp
+    # `SootopolisCity/map.json` warp {'x': 43, 'y': 31, dest MAP_SOOTOPOLIS_CITY_POKEMON_CENTER_1F},
+    # convention-checked against Mossdeep/Pacifidlog/Lilycove members and live-pathed (38 wp)
+    # from the arrival tile. Interior layout is LAYOUT_POKEMON_CENTER_1F, same tiles the healer
+    # hard-codes (verified vs Mossdeep's map.json — identical nurse/warp tiles).
+    SootopolisCity = (MapRSE.SOOTOPOLIS_CITY, (43, 31))
 
     PalletTown = (MapFRLG.PALLET_TOWN, (6, 7))
     ViridianCity = (MapFRLG.VIRIDIAN_CITY, (26, 26))

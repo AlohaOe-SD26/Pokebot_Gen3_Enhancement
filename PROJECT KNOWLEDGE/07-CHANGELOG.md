@@ -18602,3 +18602,36 @@ genuine Ch20-done line). ‼ The Treecko wall now has a clean, named run-ender: 
 learn Surf and the party is full — needs PC box management (#24-pc) or a manual swap"* — the
 `#24-roster` withdraw half, measured in production's own words. Remaining KI-47 nets (2) are the
 `handle_fainted_pokemon`/FaintedMonTry family — filed as the next battle-wedge target.
+
+## 2026-08-27 — §Ch21 LEG 2a IS BUILT AND DRIVEN: probes first, then Steven's escort end-to-end; the seam fixture is pinned
+
+**The probes ran BEFORE any escort code** (`--driver ch21leg2probe`, 7 probes, every build-spec
+prediction confirmed by the bot's OWN instruments): the body-block FLIP proven live (from (21,36)
+with Steven+Boy2 camera-loaded, the whole refused column paths — §0.4's two doc corrections
+applied in the same commit), arrival facing Left = a handled escort branch, Steven local_id 7
+MEASURED, the never-driven Sootopolis PC heals end-to-end (exits (43,32), every PID full), and
+`PokemonCenter.SootopolisCity = (43,31)` added to `map_data.py` (drift 7 → 8, sandbox only).
+**Leg 2a shipped** (`modules/story/sootopolis.py`: `steven_escort()` + `_ride_steven_escort` +
+`steven_escort_done()`): preflight (one-shot flag, state==2, Steven spawned), heal with a
+by-PID full-party acceptance, the explicit two-approach talk (the spec's reasoned choice over
+`talk_to_npc`), and a bounded escort rider whose success is the three-conjunct predicate.
+**Drive 1 FAILED usefully and the failure is logged in 08-MISTAKES**: the v1 missed-press bail
+misread mid-scene controllability, and `_navigate_riding_out` then rode the rest of the escort
+as an "interruption" and pathed BACK through the (9,20) return warp — un-doing the story warp.
+v2's bail reads the SCRIPT STACK (empty + on-tile + flag-clear, 60 consecutive frames), plus a
+caller guard that refuses to navigate when a False bail coexists with a set flag.
+**Drive 2: `ACCEPTANCE: PASS`** — landed CAVE_OF_ORIGIN_ENTRANCE **(9,20), exactly the decomp's
+warp coords**; `saves/post_steven_escort.ss1` captured on full acceptance, PINNED, and verified
+by `probe_anchor_inventory` (badges 1-7, party 6 at 100%). `check_drift` caught 6 stale drift-7
+claims when the count moved — fixed; the drift-row headline (my own PASS 3's subject) updated.
+
+## 2026-08-27 — leg 2a review round: the v2 bail was DEAD CODE; fixed to `.is_active` and proven BOTH ways
+
+The adversarial review kicked back leg 2a with a real blocker: the missed-press bail keyed on
+`bool(ScriptContext.stack)`, which is ALWAYS TRUE (the accessor appends `bytecode_pointer`
+unconditionally) — dead discriminator, unreachable fallthrough. Fixed to the tree's `.is_active`
+idiom; a `POKEBOT_CH21_FAULT_MISS=1` fault arm added to `steven_escort()` (faces away on approach
+1). ARM A: miss DETECTED at 60 idle frames (printed via console — the harness does not echo
+`context.message`), fallthrough to approach 2, escort completed, PASS. ARM B clean: zero false
+fires, PASS, frames matching the original drive. Evidence: `evidence/2026-08-27-ch21escort-
+missbail-armA-fault.txt` / `-armB-clean.txt`. Full lesson: 08-MISTAKES same date.

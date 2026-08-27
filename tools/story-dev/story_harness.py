@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -8900,14 +8900,15 @@ class Ch21DiveMode(BotMode):
         # every other land target except the Poke Center. ⛔ AN EARLIER VERSION OF THIS COMMENT SAID
         # "ZERO NPCs loaded, so it is NOT the Expert body-block". THAT INFERENCE IS INVALID and a
         # Tier 1 review caught it: `get_map_objects()` is a CAMERA-RANGE WINDOW, and (29,53) is 30+
-        # tiles from (31,18) -- an NPC there would not be loaded WHETHER OR NOT IT EXISTS. The
-        # observation is SILENT on the question it was used to answer, and it contradicted our own
-        # §Ch21 ATLAS, which names LOCALID_SOOTOPOLIS_EXPERT at that tile, blocking at exactly this
-        # state. ⇒ THE EXPERT BODY-BLOCK REMAINS THE LEADING EXPLANATION; it is simply not tested
-        # from here. ⚠ Nor is it geometric: the door's land island is
-        # 52 tiles and TOUCHES WATER in both the LegendsBattle and Normal layouts, so 'unreachable
-        # in principle' would be an OVERCLAIM -- why the planner refuses is undetermined (likely an
-        # elevation-transition rule on the dismount). What settles it is the decomp: Steven LEADS the player there
+        # tiles from (31,18) -- an NPC there would not be loaded WHETHER OR NOT IT EXISTS.
+        # ✅✅ THE CAUSE IS MEASURED NOW (2026-08-27, `--driver ch21leg2probe`) -- it is the
+        # STEVEN (20,36) + BOY2 (19,37) TWO-TILE BODY-BLOCK through map_path's
+        # loadedness-not-occupancy rule (`map_path.py:843-853`), NOT the Expert alone and NOT an
+        # elevation rule (that guess is refuted). Proof = the flip: from (29,53) the column
+        # refuses; from (21,36), with both NPCs camera-loaded, the SAME queries path --
+        # (31,16) 98 wp, (31,22) 94 wp. (The old "52-tile island" figure here is UNVERIFIED --
+        # the leg-2 spec measured ~350; re-derive before trusting either number.)
+        # What settles the DESIGN is the decomp: Steven LEADS the player there
         # and his script ends `warp MAP_CAVE_OF_ORIGIN_ENTRANCE, 9, 20`. ⇒ THE GAME NEVER WALKS YOU
         # IN, so requiring a path there asserted something Pokemon Emerald does not provide.
         # ⛔ The bar is not being lowered: it is being pointed at the REAL next action. The party
@@ -8931,11 +8932,10 @@ class Ch21DiveMode(BotMode):
             f"center_path={center_path} cave_path={cave_path} state={state}")
         log(f"[ch21dive] POKE-CENTER PATH {center_detail}")
         log(f"[ch21dive] CAVE-OF-ORIGIN PATH {cave_detail}")
-        log("[ch21dive] ‼ cave_path=False is EXPECTED and is NOT graded. ⚠ The honest claim is "
-            "narrow: `calculate_path` REFUSES from this arrival point (measured twice). It is NOT that "
-            "the door is unreachable in principle -- its land island is 52 tiles and DOES touch water "
-            "in BOTH layouts, so a surfer could in theory dismount onto it; WHY the planner refuses is "
-            "undetermined. What justifies not grading it is the DECOMP: Steven's escort ends "
+        log("[ch21dive] ‼ cave_path=False is EXPECTED and is NOT graded. The cause is MEASURED "
+            "(2026-08-27, --driver ch21leg2probe): the Steven(20,36)+Boy2(19,37) two-tile "
+            "body-block via map_path's loadedness rule -- from (21,36) with both NPCs loaded the "
+            "same queries PATH. What justifies not grading it is the DECOMP: Steven's escort ends "
             "`warp MAP_CAVE_OF_ORIGIN_ENTRANCE, 9, 20`, so the bot is never required to walk there.")
         passed = reached and arrived and center_path
         log(f"[ch21dive] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
@@ -8962,6 +8962,276 @@ class Ch21DiveMode(BotMode):
                 _out.write_bytes(context.emulator.get_save_state())
                 log(f"[ch21dive] CAPTURE WROTE {_out.name} ({_out.stat().st_size} bytes) at {at} "
                     f"state={state} -- ‼ verify with probe_anchor_inventory.py, not this line")
+
+        context.set_manual_mode()
+
+
+class Ch21Leg2ProbeMode(BotMode):
+    """§Ch21 LEG 2 — the PRE-BUILD probes (§4.1/4.2/4.4/4.5/4.6 of the leg-2 build spec).
+
+    ‼ WHY THIS EXISTS BEFORE ANY ESCORT CODE: every reachability number in
+    `ai-research-notes/2026-08-26-ch21-leg2-BUILD-SPEC.md` is a RE-IMPLEMENTATION of the tile
+    model, not the bot's own `calculate_path` — three agents agreeing is corroboration, not
+    measurement (this project's measured rule). The spec's own instruction is that these probes
+    run FIRST. The driver walks exactly ONE leg (arrival tile → (21,36)) and otherwise only reads.
+
+    ⛔ PREDICTIONS FILED FIRST (the §Ch20 cavern method), from the spec:
+      P1 (§4.1)  guides=False hide_steven=False state=2. `guides=True` = leg 2a ALREADY SPENT —
+                 a RESULT that changes the whole spec, not a crash.
+      P2 (§4.2a) from the arrival tile: get_map_objects() lists NO Steven (camera window);
+                 paths: (21,36) OK, (20,37) OK, (43,31) OK;
+                 (20,36)/(19,36)/(20,35)/(31,22)/(31,16) all REFUSE.
+      P3 (§4.2b) from (21,36): Steven LOADED at (20,36), Boy2 at (19,37), AND (31,22) now
+                 PATHS — the body-block FLIP, the dossier's sharpest discriminator. If it
+                 flips, the §0.4 doc corrections (harness comment + 12-STORYMODE:3657) are OWED
+                 IN THE SAME COMMIT as this probe's results.
+      P4 (§4.4)  arrival facing at (21,36): UNPREDICTED (two tiles tie at distance) — record it,
+                 plus whether the surf-exit left a WALKING avatar.
+      P5 (§4.6)  the brief's party line ("fainted at 54%") is internally inconsistent — record
+                 real (pid, species, hp/total) tuples. IDENTITY, never slot or count.
+      P6 (§4.5)  Steven's numeric local_id read LIVE from (21,36) — it is INFERRED as 7 in the
+                 spec and must never be hard-coded from that inference.
+
+    ACCEPTANCE = the PRECONDITIONS hold (SOOTOPOLIS_CITY, state==2, controllable — else the run
+    is VACUOUS and says so) AND every probe EXECUTED to a reading. ⛔ A reading that contradicts
+    a prediction is a RESULT to report, never a driver failure — reality cannot "fail" a probe;
+    only not-measuring can.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_sootopolis_arrival.ss1 --driver ch21leg2probe
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch21Leg2Probe"
+
+    def run(self):
+        from modules.map import get_map_objects
+        from modules.map_data import MapRSE
+        from modules.map_path import calculate_path
+        from modules.memory import get_event_flag, get_event_var
+        from modules.modes.util.walking import navigate_to
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.pokemon_party import get_party
+
+        TAG = "ch21leg2probe"
+        probes_run: list[str] = []
+
+        def path_matrix(label: str) -> None:
+            at = tuple(get_player_avatar().local_coordinates)
+            for t in [(20, 36), (21, 36), (20, 37), (19, 36), (20, 35), (31, 22), (31, 16), (43, 31)]:
+                try:
+                    p = calculate_path((MapRSE.SOOTOPOLIS_CITY, at), (MapRSE.SOOTOPOLIS_CITY, t))
+                    log(f"[{TAG}] P-{label} {at}->{t} OK {len(p)} wp")
+                except Exception as perr:  # noqa: BLE001 - a refusal IS the reading here
+                    log(f"[{TAG}] P-{label} {at}->{t} {type(perr).__name__}")
+
+        def objects(label: str) -> list[tuple[int, tuple[int, int]]]:
+            got = [(o.local_id, tuple(o.current_coords)) for o in get_map_objects()]
+            log(f"[{TAG}] OBJ-{label} {got}")
+            return got
+
+        # ---- PRECONDITIONS (anti-vacuity: a probe on the wrong state measures nothing) ----
+        # ‼ SETTLE FIRST — the smoke test measured `controllable=False` at frame 0 on the pinned
+        # fixture: a freshly loaded save state needs frames before the avatar answers. Bounded,
+        # loud on timeout (the helper raises), and the same call the escort build will open with.
+        from modules.story.early_game import wait_until_truly_controllable
+
+        yield from wait_until_truly_controllable()
+
+        avatar = get_player_avatar()
+        try:
+            here = MapRSE(tuple(avatar.map_group_and_number))
+        except Exception:  # noqa: BLE001 - report the raw tuple rather than crash pre-reading
+            here = None
+        state = get_event_var("SOOTOPOLIS_CITY_STATE")
+        if here is not MapRSE.SOOTOPOLIS_CITY or state != 2 or not player_avatar_is_controllable():
+            log(f"[{TAG}] ‼ VACUOUS: map={here} state={state} "
+                f"controllable={player_avatar_is_controllable()} — fixture is not the spec's premise")
+            log(f"[{TAG}] ACCEPTANCE: FAIL")
+            context.set_manual_mode()
+            return
+
+        # ---- P1 — flags (§4.1). Names verified against modules/data/event_flags/emerald.txt
+        # in the spec; a MISSPELLED name reads False forever (memory.py:336), so this probe's
+        # commit must run audit_flag_names.py (standing gate does).
+        guides = get_event_flag("STEVEN_GUIDES_TO_CAVE_OF_ORIGIN")
+        hide_steven = get_event_flag("HIDE_SOOTOPOLIS_CITY_STEVEN")
+        log(f"[{TAG}] P1 guides={guides} hide_steven={hide_steven} state={state} "
+            f"(PREDICTED False/False/2)")
+        probes_run.append("P1")
+        if guides:
+            log(f"[{TAG}] ‼ P1 RESULT: leg 2a is ALREADY SPENT on this fixture — the spec's "
+                f"Steven position and the escort plan DO NOT APPLY. Stop and re-plan.")
+            log(f"[{TAG}] ACCEPTANCE: PASS (probe measured; the RESULT changes the build)")
+            context.set_manual_mode()
+            return
+
+        # ---- P5 — the party, by IDENTITY (§4.6) ----
+        party = [(m.personality_value, m.species.name, m.current_hp, m.total_hp)
+                 for m in get_party() if m is not None]
+        log(f"[{TAG}] P5 party={party}")
+        probes_run.append("P5")
+
+        # ---- P2 — objects + path matrix from the ARRIVAL tile (§4.2a) ----
+        objects("arrival")
+        path_matrix("arrival")
+        probes_run.append("P2")
+
+        # ---- the one walk: arrival -> (21,36) (§4.3 — the load-bearing precondition of the
+        # whole escort step, measured by the bot's OWN planner+walker, not a re-implementation) ----
+        walked = False
+        try:
+            yield from navigate_to(MapRSE.SOOTOPOLIS_CITY, (21, 36))
+            walked = True
+        except Exception as error:  # noqa: BLE001 - a refusal/timeout is a RESULT
+            log(f"[{TAG}] ‼ WALK FAILED: {type(error).__name__}: {str(error)[:300]}")
+
+        avatar = get_player_avatar()
+        at = tuple(avatar.local_coordinates)
+        # P4 — facing + locomotion state on arrival (§4.4)
+        log(f"[{TAG}] P4 walked={walked} at={at} facing={avatar.facing_direction} "
+            f"controllable={player_avatar_is_controllable()}")
+        probes_run.append("P4")
+
+        if walked and at == (21, 36):
+            # ---- P3 — the FLIP (§4.2b) + P6 — Steven's live local_id (§4.5) ----
+            got = objects("at-21-36")
+            steven = [lid for lid, coords in got if coords == (20, 36)]
+            log(f"[{TAG}] P3 steven_loaded={bool(steven)} "
+                f"P6 steven_local_id={steven[0] if steven else None} "
+                f"boy2_at_19_37={any(c == (19, 37) for _, c in got)} (PREDICTED True/?/True)")
+            path_matrix("at-21-36")
+            probes_run.extend(["P3", "P6"])
+        else:
+            log(f"[{TAG}] ‼ P3/P6 NOT REACHED — the walk did not land on (21,36); the readings "
+                f"above are still valid, the flip test is not run")
+
+        # ---- OPTIONAL P7 (§4.7, CH21_HEAL_PROBE=1) — where does `heal_in_pokemon_center`
+        # leave the bot on a PC NOBODY has driven, do its three piggyback blocks behave, and
+        # does the post-heal tile path back to the Steven approach? Needs the §0.1 enum member
+        # (`PokemonCenter.SootopolisCity`, added 2026-08-27). Runs AFTER the flip test on
+        # purpose: the flip needs the pristine un-walked city, the heal does not.
+        if _os.environ.get("CH21_HEAL_PROBE", "").strip() == "1":
+            from modules.map_data import PokemonCenter
+            from modules.modes.util.higher_level_actions import heal_in_pokemon_center
+
+            healed = False
+            try:
+                yield from heal_in_pokemon_center(PokemonCenter.SootopolisCity)
+                healed = True
+            except Exception as error:  # noqa: BLE001 - a failed heal is a RESULT
+                log(f"[{TAG}] ‼ HEAL RAISED: {type(error).__name__}: {str(error)[:300]}")
+            avatar = get_player_avatar()
+            post = tuple(avatar.local_coordinates)
+            try:
+                post_map = MapRSE(tuple(avatar.map_group_and_number)).name
+            except Exception:  # noqa: BLE001
+                post_map = str(tuple(avatar.map_group_and_number))
+            party_after = [(m.personality_value, m.species.name, m.current_hp, m.total_hp)
+                           for m in get_party() if m is not None]
+            all_full = all(hp == total for _, _, hp, total in party_after)
+            log(f"[{TAG}] P7 healed={healed} post={post_map}{post} all_full_hp={all_full} "
+                f"party={party_after}")
+            if post_map == "SOOTOPOLIS_CITY":
+                try:
+                    p = calculate_path((MapRSE.SOOTOPOLIS_CITY, post),
+                                       (MapRSE.SOOTOPOLIS_CITY, (21, 36)))
+                    log(f"[{TAG}] P7 path post-heal->(21,36) OK {len(p)} wp")
+                except Exception as perr:  # noqa: BLE001 - a refusal IS the reading
+                    log(f"[{TAG}] P7 path post-heal->(21,36) "
+                        f"{type(perr).__name__}: {str(perr)[:160]}")
+            probes_run.append("P7")
+
+        done = set(probes_run)
+        passed = {"P1", "P2", "P4", "P5"}.issubset(done)
+        log(f"[{TAG}] probes run: {sorted(done)} (P3/P6 conditional on the walk)")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
+class Ch21EscortMode(BotMode):
+    """§Ch21 LEG 2a — Steven's escort. Drives the PRODUCTION `sootopolis.steven_escort()`.
+
+    ‼ IT CALLS THE PRODUCTION ENTRY POINT (the `boxwithdraw`/`ch21dive` rule): a copy would prove
+    the copy. Every precondition was measured first by `--driver ch21leg2probe` (2026-08-27):
+    heal proven on this exact PC, both approach tiles pathed by the real planner, arrival facing
+    Left = a handled branch, Steven live at (20,36) local_id 7.
+
+    ACCEPTANCE = the leg-2 spec §2 predicate, re-read HERE (never trusting the module's own
+    message): `STEVEN_GUIDES_TO_CAVE_OF_ORIGIN` AND on CAVE_OF_ORIGIN_ENTRANCE AND controllable.
+    Also REPORTS (not asserts): the landing tile (decomp says (9,20)), the escort frame cost
+    (§4.8 — the budget was a guess of 30000; replace it with this measurement), and the party
+    by PID after the ride.
+
+    ⛔ THE ESCORT IS ONE-SHOT PER SAVE (spec §3.1). A FAILED run may still have consumed it
+    (flag set, warp missed) — the RESULT line prints the flag either way; if flag=True without
+    arrival, DO NOT re-drive from the same in-memory state: reload the fixture.
+
+    Capture: CH21_CAPTURE=<name>.ss1 writes saves/<name> ON FULL ACCEPTANCE ONLY — this leg's
+    end state IS the seam fixture leg 2b starts from (`post_steven_escort.ss1` by convention).
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_sootopolis_arrival.ss1 --driver ch21escort
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch21Escort"
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag, get_event_var
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.pokemon_party import get_party
+        from modules.story import sootopolis as ch21
+
+        TAG = "ch21escort"
+        frame_before = context.emulator.get_frame_count()
+        reached = False
+        try:
+            yield from ch21.steven_escort()
+            reached = True
+        except Exception as error:  # noqa: BLE001 - a failure is a RESULT here, not a crash
+            log(f"[{TAG}] LEG FAILED: {type(error).__name__}: {str(error)[:600]}")
+        frames_spent = context.emulator.get_frame_count() - frame_before
+
+        avatar = get_player_avatar()
+        at = tuple(avatar.local_coordinates)
+        try:
+            here_name = MapRSE(tuple(avatar.map_group_and_number)).name
+        except Exception:  # noqa: BLE001
+            here_name = f"UNKNOWN{tuple(avatar.map_group_and_number)}"
+        flag = get_event_flag("STEVEN_GUIDES_TO_CAVE_OF_ORIGIN")
+        on_entrance = here_name == "CAVE_OF_ORIGIN_ENTRANCE"
+        controllable = player_avatar_is_controllable()
+        state = get_event_var("SOOTOPOLIS_CITY_STATE")
+        party = [(m.personality_value, m.species.name, m.current_hp, m.total_hp)
+                 for m in get_party() if m is not None]
+        passed = reached and flag and on_entrance and controllable
+
+        log(f"[{TAG}] RESULT reached={reached} flag={flag} at={here_name}{at} "
+            f"controllable={controllable} state={state} frames={frames_spent}")
+        log(f"[{TAG}] party after: {party}")
+        log(f"[{TAG}] landing tile: decomp predicts (9,20); measured {at} — if these differ, "
+            f"correct the SPEC, not the game")
+        if flag and not passed:
+            log(f"[{TAG}] ‼ THE ESCORT IS CONSUMED (flag set) WITHOUT FULL ACCEPTANCE — "
+                f"do NOT re-drive this save state; reload the fixture.")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH21_CAPTURE", "").strip()
+        if _cap:
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if not passed:
+                log(f"[{TAG}] CAPTURE SKIPPED — not accepted; refusing to write {_cap}")
+            elif _out.exists() and _os.environ.get("CAPTURE_FORCE", "") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_cap} exists (set CAPTURE_FORCE=1 to replace)")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] CAPTURE WROTE {_out.name} ({_out.stat().st_size} bytes) at {at} "
+                    f"— ‼ verify with probe_anchor_inventory.py, not this line")
 
         context.set_manual_mode()
 
@@ -10368,6 +10638,10 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch20ChapterMode()
         elif args.driver == "ch21dive":
             context.bot_mode_instance = Ch21DiveMode()
+        elif args.driver == "ch21leg2probe":
+            context.bot_mode_instance = Ch21Leg2ProbeMode()
+        elif args.driver == "ch21escort":
+            context.bot_mode_instance = Ch21EscortMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

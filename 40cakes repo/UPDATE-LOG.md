@@ -20,8 +20,9 @@
 - **Upstream commit:** `5dd898f8` (40Cakes/pokebot-gen3 `main`)
 - Mirrored via `git subtree add --squash` at `40cakes repo/pokebot-gen3/`.
 - DOCUMENTATION/ 00–05 written against this commit (docs v1).
-- Last daily check: **2026-08-26** (`git fetch upstream-pokebot` → `upstream-pokebot/main` still
-  `5dd898f8`, unchanged; nothing to pull, nothing appended per the standing directive).
+- Last daily check: **2026-08-27** (`git fetch upstream-pokebot` → `upstream-pokebot/main` still
+  `5dd898f8`, unchanged, tree hash still `fa3504a285eb62fa`; nothing to pull, nothing appended
+  per the standing directive).
   ‼ Also RE-DERIVED on this date, not merely fetched: the mirror is byte-identical to upstream by
   TREE HASH — `git rev-parse 'HEAD:40cakes repo/pokebot-gen3'` and
   `git rev-parse 'upstream-pokebot/main^{tree}'` are both `fa3504a285eb62fa`, and
