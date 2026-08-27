@@ -1,0 +1,4 @@
+  post_wallace.ss1                   badges=1234567   OVERWORLD  CAVE_OF_ORIGIN_B1F (9, 14)        
+                                     party: Swellow L40, Zigzagoon L17, Sceptile L50, Wailmer L40, Mightyena L44, Castform L36
+                                      HP 687/687 (100%)
+  post_winona.ss1                    badges=123456    OVERWORLD  FORTREE_CITY_GYM (15, 3)          

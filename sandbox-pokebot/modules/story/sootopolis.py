@@ -1,9 +1,10 @@
-"""§Ch21 — SOOTOPOLIS and RAYQUAZA. **LEGS 1 and 2a so far: the dive in, and Steven's escort.**
+"""§Ch21 — SOOTOPOLIS and RAYQUAZA. **LEGS 1 AND 2 (2a+2b) so far: dive in, escort, Wallace.**
 
-⛔ THIS CHAPTER IS INCOMPLETE AND MUST NOT BE WIRED INTO `_play()` YET. Leg 1 (ROUTE128 → the
-underwater route → surfacing inside the crater) and leg 2a (heal → Steven → the escort into the
-Cave of Origin Entrance) are built; legs 2b-5 (the Cave of Origin descent + Wallace, the Sky
-Pillar climb, HM07 from BOTH Maxie AND Archie) are NOT. Read the **§Ch21 ATLAS** in
+⛔ THIS CHAPTER IS INCOMPLETE AND MUST NOT BE WIRED INTO `_play()` YET. Leg 1 (the dive in),
+leg 2a (heal → Steven → the escort) and leg 2b (the Cave of Origin descent → Wallace →
+SOOTOPOLIS_CITY_STATE=3) are built and driven; legs 3-5 (the exit + Sky Pillar climb, Rayquaza,
+HM07 from BOTH Maxie AND Archie) are NOT — ⛔ and leg 3 OPENS with the pocket-exit PROBE
+(spec §3.4/§5): the walk back out is the largest UNMEASURED risk in this area. Read the **§Ch21 ATLAS** in
 `PROJECT KNOWLEDGE/12-STORYMODE-DESIGN.md` AND the leg-2 build spec + its probe addendum
 (`ai-research-notes/2026-08-26-ch21-leg2-BUILD-SPEC.md`) before adding to this file — every
 coordinate below came from there, and both state their provenance per row.
@@ -441,3 +442,243 @@ def steven_escort() -> Generator:
         )
 
     context.message = f"Story: Ch21 — Steven's escort complete; at {_where()} (leg 2a done)."
+
+
+# --- LEG 2b CONSTANTS — spec §1 steps 5-10, coordinates SURVIVED adversarial verification --------
+ENTRANCE_TO_1F = (9, 5)       # Entrance: straight 5-wide shaft up x=9; warp -> 1F, land (11,17)
+ONEF_TO_B1F = (14, 5)         # 1F: warp -> B1F, land (9,3)
+WALLACE_TILE = (9, 13)        # B1F's ONLY object_event; MOVEMENT_TYPE_FACE_UP; never respawns (§3.6)
+#: ⛔ (9,12) — directly north of Wallace — is a COLLISION WALL (metatile 816 coll 1), never an
+#: approach. The three below are measured 21/19/19 steps from the (9,3) arrival.
+WALLACE_APPROACHES = (((9, 14), "Up"), ((8, 13), "Right"), ((10, 13), "Left"))
+MULTI_WHERES_RAYQUAZA = 110   # include/constants/script_menu.h:121 — the menu identity to assert
+
+
+def wallace_sent_to_sky_pillar() -> bool:
+    """Leg 2b's corroborating flag — single writer repo-wide (the AtSkyPillar branch)."""
+    from modules.memory import get_event_flag
+
+    return bool(get_event_flag("WALLACE_GOES_TO_SKY_PILLAR"))
+
+
+def _answer_wallace_multichoice(budget_frames: int = 12000) -> Generator:
+    """Drive Wallace's WHERES_RAYQUAZA menu to index 2 ("SKY PILLAR"). Returns the attempt count.
+
+    ⛔⛔ BESPOKE ON PURPOSE — `wait_for_multiple_choice_question` is unbounded, never checks WHICH
+    menu it answers, and verifies no outcome (spec §3.2; a wrong answer also drops the task,
+    because every wrong branch re-arms the prompt with a FRESH `multichoice` — cursor RESET to 0).
+    ⛔ THE LETTER "B" IS DELIBERATELY ABSENT FROM THIS FUNCTION: `multichoice … FALSE` means B
+    cancels into `MULTI_B_PRESSED` (127) → the bare `goto DontRemember` → the same prompt again,
+    forever. Every press here is A or Down.
+    ‼ The ONLY honest success is `SOOTOPOLIS_CITY_STATE == 3` — the task dropping proves nothing.
+    """
+    from modules.modes import BotModeError
+    from modules.story.early_game import _check_abort
+    from modules.tasks import get_task, task_is_active
+
+    import os as _os_fault
+
+    fault_wrong = _os_fault.environ.get("POKEBOT_CH21_FAULT_WRONGANSWER", "").strip() == "1"
+    attempts = 0
+    frames = 0
+
+    def _tick(n: int = 1) -> Generator:
+        nonlocal frames
+        for _ in range(n):
+            yield
+            frames += 1
+
+    while frames < budget_frames:
+        _check_abort()  # ⛔ FIRST statement of the loop body, OUTSIDE any try (loop-head abort rule)
+        if _var("SOOTOPOLIS_CITY_STATE") == 3:
+            return attempts
+        if task_is_active("Task_HandleMultichoiceInput"):
+            task = get_task("Task_HandleMultichoiceInput")
+            menu_id = task.data_value(7) if task is not None else None
+            if menu_id != MULTI_WHERES_RAYQUAZA:
+                raise BotModeError(
+                    f"Ch21 leg 2b: a multichoice is open but its id is {menu_id!r}, not "
+                    f"{MULTI_WHERES_RAYQUAZA} (MULTI_WHERES_RAYQUAZA) — refusing to answer a "
+                    "menu this handler was not built for."
+                )
+            attempts += 1
+            if attempts > 3:
+                raise BotModeError(
+                    "Ch21 leg 2b: the WHERES_RAYQUAZA prompt re-armed more than 3 times — the "
+                    "answer is not landing on index 2 (SKY PILLAR). The cursor RESETS to 0 on "
+                    "every re-arm, so a drift here means the Down presses are being eaten."
+                )
+            if attempts > 1:
+                from modules.console import console
+
+                console.print(
+                    f"[yellow]Story: Ch21 — the WHERES_RAYQUAZA prompt RE-ARMED "
+                    f"(attempt {attempts}, menu id {menu_id}, state still "
+                    f"{_var('SOOTOPOLIS_CITY_STATE')!r}); answering again.[/]"
+                )
+            yield from _tick(4)  # let the menu settle before moving the cursor
+            if fault_wrong and attempts == 1:
+                # ‼ FAULT INJECTION (POKEBOT_CH21_FAULT_WRONGANSWER=1, driver-proof only):
+                # answer index 0 once — the spec §4.9 arm. Proves the wrong-answer re-arm is
+                # DETECTED (attempt 2 with the same menu id, state still 2) and RECOVERED.
+                from modules.console import console
+
+                console.print(
+                    "[yellow]Story: Ch21 — FAULT ARM: deliberately answering index 0 "
+                    "(CAVE OF ORIGIN) on attempt 1.[/]"
+                )
+            else:
+                for _ in range(2):  # index 2 = Down x2 from the reset cursor (wrap is on; 2 < 4)
+                    context.emulator.press_button("Down")
+                    yield from _tick(3)
+            inner = 0
+            while task_is_active("Task_HandleMultichoiceInput"):
+                context.emulator.press_button("A")
+                yield from _tick(3)
+                inner += 1
+                if inner > 200:
+                    raise BotModeError(
+                        "Ch21 leg 2b: the multichoice task did not drop after 200 A-presses — "
+                        "the menu is not accepting input; a real wedge, not slowness."
+                    )
+            continue
+        # ‼ THE UNGATED A IS SAFE *HERE SPECIFICALLY*, and the museum-greeter rule demands the
+        # proof be stated: Wallace's monologue → multichoice → payoff is ONE continuous script
+        # (`CaveOfOrigin_B1F_EventScript_Wallace`) that NEVER releases control before
+        # `SOOTOPOLIS_CITY_STATE` is written to 3 — measured in BOTH arm transcripts
+        # (`evidence/2026-08-27-ch21cave-wronganswer-armB-clean.txt:224`: the script stack never
+        # empties until state 3), so a stray A cannot land on the overworld and re-open him;
+        # and the loop's own `state == 3` early-return exits before any post-payoff press.
+        # ⛔ Do NOT copy this press into overworld-adjacent loops — there the gate is mandatory.
+        context.emulator.press_button("A")  # advance the story msgbox toward/after the menu
+        yield from _tick(1)
+
+    raise BotModeError(
+        f"Ch21 leg 2b: {budget_frames} frames of Wallace dialogue without "
+        f"SOOTOPOLIS_CITY_STATE reaching 3 — it is {_var('SOOTOPOLIS_CITY_STATE')!r}, "
+        f"attempts={attempts}, at {_where()}."
+    )
+
+
+def cave_of_origin() -> Generator:
+    """LEG 2b — Entrance (9,20) → 1F → B1F → Wallace → SOOTOPOLIS_CITY_STATE == 3.
+
+    Preconditions: leg 2a is DONE (escort flag set) and we are standing in the Cave of Origin
+    Entrance. End state (spec §2): `SOOTOPOLIS_CITY_STATE == 3` AND `WALLACE_GOES_TO_SKY_PILLAR`
+    — ⛔ NEVER graded on Wallace's absence (three worlds return False) and NEVER on
+    `ch21_done()` (that is the whole chapter's flag, three legs away).
+    ⛔ THE WALK BACK OUT IS NOT BUILT HERE, deliberately (spec §3.4/§5): the Sootopolis pocket
+    re-plan trap belongs to leg 3's opening probe. This leg ENDS on B1F with state 3.
+    """
+    from modules.modes import BotModeError
+    from modules.modes.util.walking import ensure_facing_direction, navigate_to
+    from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+    from modules.story.space_center import _npc_is_on
+    from modules.tasks import get_global_script_context
+
+    yield from wait_until_truly_controllable()
+
+    # --- 0. PREFLIGHT ---------------------------------------------------------------------------
+    if not steven_escort_done():
+        raise BotModeError(
+            f"Ch21 leg 2b: the escort flag is CLEAR — leg 2a has not run (at {_where()}). "
+            "2b starts from the Entrance the escort warps into; run leg 2a first."
+        )
+    state = _var("SOOTOPOLIS_CITY_STATE")
+    if state == 3:
+        context.message = "Story: Ch21 — Wallace already sent to Sky Pillar (state 3); leg 2b is done."
+        return
+    if state != 2:
+        raise BotModeError(f"Ch21 leg 2b: SOOTOPOLIS_CITY_STATE is {state!r}, expected 2 (or 3=done).")
+    if not _on_map(MapRSE.CAVE_OF_ORIGIN_ENTRANCE):
+        raise BotModeError(
+            f"Ch21 leg 2b: not in the Cave of Origin Entrance — at {_where()}. "
+            "⛔ This leg does not travel to the cave; the escort (leg 2a) is the only way in."
+        )
+
+    # --- 1. ENTRANCE → 1F. ⛔ We are STANDING ON the warp back to Sootopolis ((9,20) → city
+    # (31,16)); the path up x=9 moves NORTH away from it by construction. Encounters are LIVE
+    # on Entrance and 1F (rate 4) — ride them out. --------------------------------------------
+    context.message = "Story: Ch21 — descending the Cave of Origin (Entrance → 1F)."
+    yield from _navigate_riding_out(MapRSE.CAVE_OF_ORIGIN_ENTRANCE, ENTRANCE_TO_1F, tries=6)
+    if not _on_map(MapRSE.CAVE_OF_ORIGIN_1F):
+        raise BotModeError(
+            f"Ch21 leg 2b: took the Entrance shaft to {ENTRANCE_TO_1F} but did not land on 1F — "
+            f"at {_where()} (expected CAVE_OF_ORIGIN_1F, arrival tile (11,17))."
+        )
+
+    # --- 2. 1F → B1F ----------------------------------------------------------------------------
+    context.message = "Story: Ch21 — descending the Cave of Origin (1F → B1F)."
+    yield from _navigate_riding_out(MapRSE.CAVE_OF_ORIGIN_1F, ONEF_TO_B1F, tries=6)
+    if not _on_map(MapRSE.CAVE_OF_ORIGIN_B1F):
+        raise BotModeError(
+            f"Ch21 leg 2b: took the 1F warp at {ONEF_TO_B1F} but did not land on B1F — "
+            f"at {_where()} (expected CAVE_OF_ORIGIN_B1F, arrival tile (9,3))."
+        )
+
+    # --- 3. WALLACE. B1F has NO wild encounters (whole-file grep, spec §Step 8) and no map
+    # scripts; he is the map's only object. ⛔ He NEVER respawns (removeobject sets his hide
+    # flag permanently, §3.6). ⛔⛔ The presence check runs INSIDE the approach loop, from the
+    # ADJACENT tile — the first smoke run checked from the (9,3) arrival, 10 tiles away, and
+    # `get_map_objects()` is a CAMERA-RANGE WINDOW: Wallace was "absent" whether or not he
+    # existed. The exact mistake the §4.2 flip lesson documents, re-made and caught in-smoke. --
+    from modules.story.early_game import _check_abort
+
+    for approach, facing in WALLACE_APPROACHES:
+        _check_abort()  # loop-head abort rule — consistent with every rider in this module
+        context.message = f"Story: Ch21 — approaching Wallace via {approach} facing {facing}."
+        yield from navigate_to(MapRSE.CAVE_OF_ORIGIN_B1F, approach)
+        yield from wait_until_truly_controllable()
+        if not _npc_is_on(MapRSE.CAVE_OF_ORIGIN_B1F, WALLACE_TILE):
+            if _var("SOOTOPOLIS_CITY_STATE") == 3:
+                context.message = "Story: Ch21 — Wallace already gone (state 3); leg 2b is done."
+                return
+            raise BotModeError(
+                f"Ch21 leg 2b: standing ADJACENT at {approach} (in camera range) and no live "
+                f"object is on {WALLACE_TILE}, state {_var('SOOTOPOLIS_CITY_STATE')!r} (not 3) — "
+                "Wallace should be here and is not. ⛔ Do not wait: he never respawns."
+            )
+        yield from ensure_facing_direction(facing)
+        context.emulator.press_button("A")
+        yield
+        # bounded ENGAGEMENT check (the leg-2a lesson, `.is_active` idiom): give the talk ~300
+        # frames to start a script; a miss falls through to the next approach instead of
+        # feeding 12,000 frames of A into empty air.
+        engaged = False
+        for _ in range(300):
+            _check_abort()  # loop-head abort rule
+            try:
+                ctx = get_global_script_context()
+                if ctx is not None and ctx.is_active:
+                    engaged = True
+                    break
+            except Exception:  # noqa: BLE001 - unreadable context: keep waiting, budget bounds us
+                pass
+            yield
+        if engaged:
+            attempts = yield from _answer_wallace_multichoice()
+            context.message = (
+                f"Story: Ch21 — Wallace sent to Sky Pillar (state 3, menu attempts={attempts})."
+            )
+            break
+        from modules.console import console
+
+        console.print(
+            f"[yellow]Story: Ch21 — the A-press at {approach} did not engage Wallace "
+            f"(no script in 300 frames); retrying the next approach.[/]"
+        )
+    else:
+        raise BotModeError(
+            "Ch21 leg 2b: all three Wallace approaches pressed A without engaging his script. "
+            "He was verified present before the loop, so check facing latching in the log."
+        )
+
+    # --- 4. ACCEPTANCE (spec §2, both observables) ----------------------------------------------
+    state = _var("SOOTOPOLIS_CITY_STATE")
+    if state != 3 or not wallace_sent_to_sky_pillar():
+        raise BotModeError(
+            f"Ch21 leg 2b: the dialogue ended but the end state is wrong — state={state!r}, "
+            f"WALLACE_GOES_TO_SKY_PILLAR={wallace_sent_to_sky_pillar()}. The two are written by "
+            "the same seven-line script block, so disagreement means a misread, not a half-run."
+        )
+    context.message = f"Story: Ch21 — leg 2b done: Wallace is off to Sky Pillar (at {_where()})."

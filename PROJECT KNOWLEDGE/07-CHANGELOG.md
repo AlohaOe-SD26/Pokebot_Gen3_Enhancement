@@ -18635,3 +18635,24 @@ idiom; a `POKEBOT_CH21_FAULT_MISS=1` fault arm added to `steven_escort()` (faces
 `context.message`), fallthrough to approach 2, escort completed, PASS. ARM B clean: zero false
 fires, PASS, frames matching the original drive. Evidence: `evidence/2026-08-27-ch21escort-
 missbail-armA-fault.txt` / `-armB-clean.txt`. Full lesson: 08-MISTAKES same date.
+
+## 2026-08-27 — §Ch21 LEG 2b IS BUILT AND DRIVEN: the Cave of Origin descent + Wallace, both arms proven; the chapter's leg-3 fixture is pinned
+
+**`cave_of_origin()` + `_answer_wallace_multichoice()` shipped** (`modules/story/sootopolis.py`,
+driver `ch21cave` driving the PRODUCTION entry point from `post_steven_escort.ss1`): preflight
+(2a flag required; state 3 = already done), the two-warp descent (Entrance (9,5) → 1F (11,17);
+1F (14,5) → B1F (9,3) — both landed exactly as the spec's decomp rows predict), the adjacent-tile
+Wallace check, and the BESPOKE bounded multichoice handler — menu id asserted == 110, index 2 via
+Down×2 from the reset cursor, success ONLY on `SOOTOPOLIS_CITY_STATE == 3`, attempts ≤ 3, and
+the letter "B" absent from the function by construction (spec §3.2).
+**Proof, both arms:** clean drive `ACCEPTANCE: PASS` (state 3 + `WALLACE_GOES_TO_SKY_PILLAR`,
+ends B1F (9,14) — `release`, no warp, as scripted; Wallace's object gone as §3.6 predicts;
+4,217 frames, deterministic across two runs); fault arm `POKEBOT_CH21_FAULT_WRONGANSWER=1`
+(registered) answered index 0 once — **the re-arm was DETECTED (attempt 2, same menu id, state
+still 2) and RECOVERED to PASS**, settling spec §4.9 by measurement. Evidence:
+`evidence/2026-08-27-ch21cave-wronganswer-arm{A-fault,B-clean}.txt`.
+**The smoke test caught a re-made camera-window mistake** (Wallace checked from 10 tiles away —
+see 08-MISTAKES same date); the check moved adjacent, and `advise_on_diff.py` gained
+`R-CAMWINDOW` (34-check self-test) so the shape now surfaces at edit time.
+**`saves/post_wallace.ss1` PINNED** (B1F (9,14), state 3, party 100%) — leg 3's fixture; leg 3
+OPENS with the pocket-exit probe (spec §3.4/§5), deliberately NOT built into 2b.

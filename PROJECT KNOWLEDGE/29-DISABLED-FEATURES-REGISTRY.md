@@ -111,6 +111,7 @@ idiom. **The fix is always the default; the switch restores the bug.**
 | `POKEBOT_FODDER_RULE` | `xp_rate` | which rule picks fodder |
 | `POKEBOT_CONNECTION_STEP` | `0` | ‼ **rationale not yet transcribed.** Documented here only so the linter passes; read the code before assuming what it does |
 | `POKEBOT_CH21_FAULT_MISS` | unset | FAULT INJECTION, driver-proof only (2026-08-27): `steven_escort()` faces AWAY on its first approach so the A-press misses — the arm that proves the missed-press bail fires and the approach loop recovers. ⛔ Never set in production; evidence `2026-08-27-ch21escort-missbail-armA-fault.txt` |
+| `POKEBOT_CH21_FAULT_WRONGANSWER` | unset | FAULT INJECTION, driver-proof only (2026-08-27): `_answer_wallace_multichoice()` answers index 0 once — the spec §4.9 arm proving the WHERES_RAYQUAZA re-arm is DETECTED (attempt 2, same menu id, state still 2) and RECOVERED to state 3. ⛔ Never set in production; evidence `2026-08-27-ch21cave-wronganswer-armA-fault.txt` |
 
 ---
 

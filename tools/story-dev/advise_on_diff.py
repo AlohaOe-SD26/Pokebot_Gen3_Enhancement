@@ -159,6 +159,20 @@ RULES: tuple[Rule, ...] = (
         ),
     ),
     Rule(
+        rule_id="R-CAMWINDOW",
+        headline="a live-object read was added (get_map_objects / _npc_is_on)",
+        kind="code",
+        pattern=re.compile(r"(get_map_objects\s*\(|_npc_is_on\s*\()"),
+        advice=(
+            "`get_map_objects()` is a CAMERA-RANGE WINDOW — an object outside ~7-9 tiles is "
+            "absent from it WHETHER OR NOT IT EXISTS. Check presence from an ADJACENT tile, "
+            "never from across the map (three paid instances: the §Ch21 'ZERO NPCs loaded' "
+            "misread, the (31,18) Expert claim, and leg 2b's Wallace check from (9,3) — "
+            "08-MISTAKES 2026-08-27). `MapLocation.objects` is the ROM template (ORIGINAL "
+            "positions) — never mix the two.",
+        ),
+    ),
+    Rule(
         rule_id="R-MIRROR",
         headline="a file inside the PRISTINE UPSTREAM MIRROR was touched",
         kind="path",
@@ -513,6 +527,14 @@ def self_test() -> int:
     check("T14 manual-comment", _mkdiff("m/x.py", ["# falls back to set_manual_mode()"]),
           {"R-MANUAL": False})
 
+    # T31/T32 — R-CAMWINDOW: a live-object read as code fires; a comment mention stays silent.
+    check("T31 camwindow-as-code",
+          _mkdiff("m/story/x.py", ["if not _npc_is_on(MapRSE.CAVE, (9, 13)):"]),
+          {"R-CAMWINDOW": True})
+    check("T32 camwindow-comment",
+          _mkdiff("m/story/x.py", ["# get_map_objects() is camera-limited, remember"]),
+          {"R-CAMWINDOW": False})
+
     # T15/T16/T17 — R-MIRROR: an edit fires, a DELETION fires, the enhancement forks don't.
     check("T15 mirror-edit",
           _mkdiff("40cakes repo/pokebot-gen3/modules/pokemon.py", ["x = 1"]),
@@ -591,7 +613,7 @@ def self_test() -> int:
     checks_run[0] += 1
     tested_positive = {
         "R-REGEX", "R-NUMGATE", "R-EXCEPT", "R-LOOP", "R-APRESS", "R-MANUAL",
-        "R-MIRROR", "R-KIHEADER", "R-HANDOFF", "R-PUNCH",
+        "R-MIRROR", "R-KIHEADER", "R-HANDOFF", "R-PUNCH", "R-CAMWINDOW",
     }
     actual = {rule.rule_id for rule in RULES}
     if tested_positive != actual:

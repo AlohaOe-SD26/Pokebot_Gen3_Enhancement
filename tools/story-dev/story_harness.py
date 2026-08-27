@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -9236,6 +9236,84 @@ class Ch21EscortMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch21CaveMode(BotMode):
+    """§Ch21 LEG 2b — the Cave of Origin descent + Wallace. Drives PRODUCTION `cave_of_origin()`.
+
+    Anchor: `saves/post_steven_escort.ss1` (PINNED — Entrance (9,20), escort flag set, state 2,
+    party 100%). ACCEPTANCE = the leg-2 spec §2 leg-2b predicate re-read HERE:
+    `SOOTOPOLIS_CITY_STATE == 3` AND `WALLACE_GOES_TO_SKY_PILLAR` — never Wallace's absence,
+    never the chapter flag. Also REPORTS: the end tile (the script has `release`, NO warp — the
+    bot stays on B1F), whether Wallace's object is gone (expected — `removeobject` hides him
+    permanently), the wild-encounter count across the descent (spec §4.10), and the frame cost.
+
+    Fault arm (spec §4.9): POKEBOT_CH21_FAULT_WRONGANSWER=1 answers index 0 once — proves the
+    wrong-answer RE-ARM is detected (attempt 2) and recovered to state 3.
+
+    Capture: CH21_CAPTURE=<name>.ss1 writes saves/<name> on FULL ACCEPTANCE — the leg-3 fixture
+    (`post_wallace.ss1` by convention; leg 3 opens with the pocket-exit PROBE, spec §3.4/§5).
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_steven_escort.ss1 --driver ch21cave
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch21Cave"
+
+    def run(self):
+        from modules.map import get_map_objects
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag, get_event_var
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.story import sootopolis as ch21
+
+        TAG = "ch21cave"
+        frame_before = context.emulator.get_frame_count()
+        reached = False
+        try:
+            yield from ch21.cave_of_origin()
+            reached = True
+        except Exception as error:  # noqa: BLE001 - a failure is a RESULT here, not a crash
+            log(f"[{TAG}] LEG FAILED: {type(error).__name__}: {str(error)[:600]}")
+        frames_spent = context.emulator.get_frame_count() - frame_before
+
+        avatar = get_player_avatar()
+        at = tuple(avatar.local_coordinates)
+        try:
+            here_name = MapRSE(tuple(avatar.map_group_and_number)).name
+        except Exception:  # noqa: BLE001
+            here_name = f"UNKNOWN{tuple(avatar.map_group_and_number)}"
+        state = get_event_var("SOOTOPOLIS_CITY_STATE")
+        flag = get_event_flag("WALLACE_GOES_TO_SKY_PILLAR")
+        passed = reached and state == 3 and flag
+        wallace_visible = any(
+            tuple(o.current_coords) == (9, 13) for o in get_map_objects()
+        ) if here_name == "CAVE_OF_ORIGIN_B1F" else None
+
+        log(f"[{TAG}] RESULT reached={reached} state={state} wallace_flag={flag} "
+            f"at={here_name}{at} controllable={player_avatar_is_controllable()} "
+            f"frames={frames_spent}")
+        log(f"[{TAG}] wallace_object_still_visible={wallace_visible} (expected False after "
+            f"success — removeobject hides him PERMANENTLY; his absence is never the grade)")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH21_CAPTURE", "").strip()
+        if _cap:
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if not passed:
+                log(f"[{TAG}] CAPTURE SKIPPED — not accepted; refusing to write {_cap}")
+            elif _out.exists() and _os.environ.get("CAPTURE_FORCE", "") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_cap} exists (set CAPTURE_FORCE=1 to replace)")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] CAPTURE WROTE {_out.name} ({_out.stat().st_size} bytes) at {at} "
+                    f"— ‼ verify with probe_anchor_inventory.py, not this line")
+
+        context.set_manual_mode()
+
+
 class Ch20ChapterMode(Ch20DiveMode):
     """§Ch20 AS A CHAPTER — drives the PRODUCTION function, not a copy of it.
 
@@ -10642,6 +10720,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch21Leg2ProbeMode()
         elif args.driver == "ch21escort":
             context.bot_mode_instance = Ch21EscortMode()
+        elif args.driver == "ch21cave":
+            context.bot_mode_instance = Ch21CaveMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

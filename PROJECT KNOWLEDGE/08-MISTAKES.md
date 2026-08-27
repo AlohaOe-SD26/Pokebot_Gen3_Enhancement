@@ -9781,3 +9781,25 @@ and grep for how the tree already consumes it (a lone novel usage of a shared ac
 smell). AND: A BRANCH THE HAPPY PATH CANNOT REACH IS UNPROVEN UNTIL AN ARM FORCES IT — the same
 session's earlier bail (v1) failed by FIRING wrongly, this one by NEVER firing; only the
 fault-injection arm distinguishes either from working.**
+
+## 2026-08-27 — I RE-MADE THE CAMERA-WINDOW MISTAKE THE DOCS ALREADY RECORD TWICE — A SMOKE TEST CAUGHT IT, AND THE ADVISOR NOW KEYS ON THE SHAPE
+
+**Symptom.** Leg 2b's first smoke run raised "no live object on (9,13) … Investigate the save" —
+from the B1F ARRIVAL tile (9,3), TEN tiles from Wallace. `get_map_objects()` is a camera-range
+window; Wallace was "absent" whether or not he existed. The check was wrong, not the save — the
+same inference the tree already documents as invalid in TWO places (the §Ch21 "ZERO NPCs loaded"
+misread and the (31,18) Expert claim), one of which I had personally corrected THE SAME DAY.
+
+**Root cause.** The spec's Step 8 says "before pressing A" — i.e. from the ADJACENT tile — and I
+hoisted the check to the arrival for tidiness, changing its meaning. Prose rules indexed by story
+again: I knew the rule, had quoted it, and did not connect it while writing a presence check.
+
+**The fix that worked.** The check moved inside the approach loop (adjacent = in camera range);
+the clean drive then passed end-to-end. **And the structural half:** `advise_on_diff.py` gained
+`R-CAMWINDOW` — any diff ADDING a `get_map_objects(`/`_npc_is_on(` call now surfaces the
+camera-window rule at edit time (self-tested both ways, T31/T32; T25 enforces the pairing).
+
+⇒ **PREVENTION RULE: A `get_map_objects` PRESENCE CHECK IS ONLY MEANINGFUL FROM WITHIN CAMERA
+RANGE — CHECK FROM THE ADJACENT TILE, AND WHEN YOU MOVE A CHECK, RE-DERIVE WHAT IT MEASURES AT
+ITS NEW SITE** (hoisting a check changes its meaning; the smoke test is what kept this at
+minutes instead of a burned drive).
