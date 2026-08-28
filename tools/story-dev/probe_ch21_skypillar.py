@@ -18,14 +18,23 @@ Production's tile data reports **38 cracked tiles on 2F and 34 on 4F**. The atla
 `2F_Clean`, reports **ZERO on 2F** and five on 4F. Both are honest; they are reading DIFFERENT
 LAYOUTS. Ours is the one with the cracks.
 
-That would be a footnote except for three measured facts that compose into a blocker:
+⛔⛔ **AND THE FIRST VERSION OF THIS PROBE DREW THE WRONG CONCLUSION FROM THAT — AN ADVERSARIAL
+REVIEW REFUTED IT (2026-08-27).** It reported "there is NO crack-free route across 2F or 4F", and
+the handoff carried that as leg 3's BLOCKER. The measurement was real but it **answered the wrong
+question**: it blocked the DEFAULT crack set (38 on 2F, 34 on 4F), of which **33 and 29 are SOLID
+GROUND on the CLEAN layout the story actually runs on**. Blocking tiles that are not cracked in the
+story manufactures a blocker that does not exist. MEASUREMENT 4 now asks BOTH questions side by
+side, and the STORY column is the one that decides the build: **every leg has a crack-free route,
+and on 4F banning the five real cracks costs NOTHING (29 wp either way).**
+
+What remains true, and is the real constraint:
   1. `map_path.py` does not model `"Cracked Floor"` AT ALL (`grep -n Cracked` = 0 hits), so the
-     planner cannot avoid one — and MEASURED HERE, its own proposed routes CROSS 27 of them.
-  2. There is **NO crack-free route** across 2F or 4F on the layout we read (measured by making
-     the cracked tiles impassable through the object-blocking rig and re-planning).
-  3. The bot is **BIKELESS** at this point in the story (`RECEIVED_BIKE` False, no bike in the
+     planner neither proposes the deliberate fall nor avoids a real crack. ⛔ For a WALKING bot a
+     cracked tile is TERMINAL — you fall on ENTRY, you do not "cross" it — so the chapter must ban
+     the five CLEAN cracks explicitly rather than trust an A* tie-break.
+  2. The bot is **BIKELESS** at this point in the story (`RECEIVED_BIKE` False, no bike in the
      bag on `post_wallace.ss1`), and the Sky Pillar's cracked floors are survived by SPEED —
-     a walking player falls.
+     a walking player falls. That is WHY the story uses the CLEAN layouts at all.
 ⇒ A bikeless bot cannot cross 2F on the layout we read, yet the story requires exactly that.
    ✅ **SETTLED the same day by a decomp recon pass: we read the POST-GAME layout.** Six floors
    swap to `*_CLEAN` in `OnTransition`, gated `call_if_lt VAR_SKY_PILLAR_STATE, 2`, so the STORY
@@ -109,6 +118,26 @@ LEGS = [
 ]
 
 ATLAS_4F_CRACKED = {(0, 3), (1, 3), (6, 4), (7, 4), (9, 4)}
+
+#: ⛔⛔ THE CRACK SET THAT MATTERS FOR THE STORY IS THE *CLEAN* ONE, NOT THE DEFAULT ONE.
+#: An adversarial review REFUTED the first version of MEASUREMENT 4: it blocked the DEFAULT set
+#: (38 on 2F, 34 on 4F) and concluded "NO crack-free route across 2F or 4F", which the handoff
+#: then carried as leg 3's BLOCKER. But 33 of those 38 and 29 of those 34 are NOT cracked on the
+#: CLEAN layout the story actually runs on — so the measurement was, in the reviewer's words,
+#: "the ANSWER TO THE WRONG QUESTION". Blocking tiles that are solid ground in the story
+#: manufactures a blocker that does not exist.
+#: Source of the CLEAN sets: the decomp's own `SkyPillar_*_Clean/map.bin`, decoded by
+#: `probe_skypillar_clean_layout.py` (2F_Clean has ZERO; 4F_Clean retains five).
+CLEAN_CRACKED_BY_FLOOR = {
+    "SKY_PILLAR_1F": set(),
+    "SKY_PILLAR_2F": set(),
+    "SKY_PILLAR_3F": set(),
+    "SKY_PILLAR_4F": ATLAS_4F_CRACKED,
+    "SKY_PILLAR_5F": set(),
+    "SKY_PILLAR_TOP": set(),
+    "SKY_PILLAR_ENTRANCE": set(),   # does not layout-swap
+    "SKY_PILLAR_OUTSIDE": set(),    # does not layout-swap
+}
 
 #: The three LIVE resting-tile readings measured 2026-08-27, used to blind-test the derived rule.
 #: ⛔ The third is the DISCRIMINATING NEGATIVE: without it, a rule that always predicts "+1 south"
@@ -323,19 +352,28 @@ def main() -> int:
 
     # ------------------------------------------------ IS A CRACK-FREE CLIMB POSSIBLE?
     print("\n" + "-" * 94)
-    print("MEASUREMENT 4 — is there a CRACK-FREE route? (cracked tiles made impassable)")
+    print("MEASUREMENT 4 — is there a CRACK-FREE route? Asked TWICE, because WHICH crack set you")
+    print("  block is the whole question. ⛔ For a WALKING bot a cracked tile is TERMINAL — you")
+    print("  fall on entry, you do not 'cross' it — so a usable route must not ENTER one.")
     print("-" * 94)
     blocked_legs = []
     for label, floor, src, dst, _note, expect_refused in LEGS:
         if expect_refused:
             continue
         m = getattr(MapRSE, floor)
-        safe = plan(m, src, dst, block=cracked[floor])
-        if safe is None:
+        clean_set = CLEAN_CRACKED_BY_FLOOR.get(floor, set())
+        story = plan(m, src, dst, block=clean_set)      # the STORY question
+        postgame = plan(m, src, dst, block=cracked[floor])  # the POST-GAME question
+        story_txt = f"{len(story)} wp" if story is not None else "REFUSED"
+        post_txt = f"{len(postgame)} wp" if postgame is not None else "REFUSED"
+        if story is None:
             blocked_legs.append(label)
-            print(f"  {label:22s} ‼ NO CRACK-FREE ROUTE")
-        else:
-            print(f"  {label:22s} crack-free route exists: {len(safe)} wp")
+        print(f"  {label:22s} STORY(block {len(clean_set):2d} CLEAN cracks): {story_txt:9s}"
+              f"   post-game(block {len(cracked[floor]):2d}): {post_txt}")
+    print("\n  ⛔ THE STORY COLUMN IS THE ONE THAT DECIDES THE BUILD. An adversarial review REFUTED")
+    print("     the first version of this check, which reported only the post-game column and so")
+    print("     concluded 'NO crack-free route across 2F or 4F' — a blocker that does not exist,")
+    print("     because 33 of 2F's 38 and 29 of 4F's 34 default cracks are SOLID GROUND on CLEAN.")
 
     # --------------------------------------------------------- FALSE-BLOCK RISK
     print("\n" + "-" * 94)

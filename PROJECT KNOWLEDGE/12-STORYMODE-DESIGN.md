@@ -3629,10 +3629,19 @@ planner "cannot express" the fall. Measured, it is worse: `map_path.py` has **ze
 **13 cracked tiles on 2F and 14 on 4F**. ⛔ `4F (11,1)->(5,4)`, which the atlas calls *"reachable
 without touching a crack"*, crosses **14**. ⇒ **`navigate_to` IS UNSAFE ON 2F AND 4F.**
 
-⛔⛔ **AND THERE IS NO CRACK-FREE ROUTE ACROSS 2F OR 4F AT ALL** on the layout we read — measured by
-making every cracked tile impassable through the object-blocking rig and re-planning (the rig is
-control-checked: blocking the naive route's first waypoint must change the answer, and a fault arm
-`POKEBOT_SKYPILLAR_PROBE_FAULT=rig` makes it inert and turns that control RED).
+⛔⛔ **THE "NO CRACK-FREE ROUTE ACROSS 2F OR 4F" BLOCKER WAS WRONG, AND AN ADVERSARIAL REVIEW KILLED
+IT (2026-08-27).** The measurement was real; it **answered the wrong question**. It blocked the
+DEFAULT crack set (38 on 2F, 34 on 4F) — but **33 of those 38 and 29 of those 34 are SOLID GROUND on
+the CLEAN layout the story runs on.** Blocking tiles that are not cracked in the story manufactures
+a blocker that does not exist.
+✅ **RE-MEASURED against the CLEAN sets, EVERY LEG HAS A CRACK-FREE STORY ROUTE:** 1F 32 wp,
+**2F 37 wp**, 3F 36 wp, **4F (11,1)→(5,4) 29 wp with all five real cracks banned**, 3F (6,4)→(7,1)
+4 wp, 4F (7,1)→(3,1) 6 wp, 5F 43 wp, TOP 13 wp. ⇒ **banning the five costs NOTHING** (29 either
+way), so the chapter should simply ban them rather than trust an A* tie-break.
+‼ **AND THE RIGHT MENTAL MODEL FOR A WALKING BOT: A CRACKED TILE IS TERMINAL.** You fall on ENTRY;
+you do not "cross" it. So the earlier "the planner's route CROSSES 27 cracked tiles" framing was
+itself wrong-shaped — the FIRST one would have ended the walk. What matters is only whether a route
+ENTERS a CLEAN crack, and none of the story routes above does.
 
 ✅✅ **SETTLED THE SAME DAY BY A DECOMP RECON PASS — THE INFERENCE WAS RIGHT, AND THE CONSEQUENCE IS
 MILDER THAN IT LOOKED.** The bot is **BIKELESS** (MEASURED on `post_wallace.ss1`:

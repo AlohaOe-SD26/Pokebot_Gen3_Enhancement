@@ -9946,3 +9946,39 @@ never count steps appended unconditionally — and it must include "and the bot 
 somewhere: a path to a door ends inside the building.** *(§Ch15 ended four floors underground,
 §Ch18 on an eleven-tile island, §Ch19 in a living room — all three PASSED their own tests. This is
 the fourth instance, and the first one caught before it shipped.)*
+
+---
+
+## 2026-08-27 — I SHIPPED A BLOCKER THAT WAS THE ANSWER TO THE WRONG QUESTION, AND ONLY AN ADVERSARIAL CRITIC COULD SEE IT
+
+**Symptom.** `probe_ch21_skypillar.py` reported **"NO crack-free route across 2F or 4F"**, I put it
+in the §Ch21 atlas, and `04-HANDOFF.md` carried it as **leg 3's BLOCKER** — a claim that the Sky
+Pillar climb could not be built until a layout question was resolved. It was committed and pushed.
+An independent critic refuted it within one pass.
+
+**Root cause.** The probe made the **DEFAULT** (post-game) crack set impassable — 38 tiles on 2F,
+34 on 4F — and asked whether a route survived. But the story climb runs on the **CLEAN** layout,
+where **33 of those 38 and 29 of those 34 are ordinary solid ground.** I blocked tiles that are not
+cracked in the story and then reported, truthfully, that nothing could get through. The measurement
+was correct; the question was wrong. ‼ **And the controls could not catch it** — C1 and C2 both
+verify the INSTRUMENT (does the scan see, does the blocking rig bite), and both passed. Nothing in
+the probe asked *"is this the set I should be blocking?"*
+
+**A second, compounding error of framing.** I wrote that the planner's route "CROSSES 27 cracked
+tiles". For a WALKING bot a cracked tile is **TERMINAL** — you fall on ENTRY, you never "cross" it.
+The first one ends the walk; a count of 27 is meaningless. The right question is only ever *does
+this route ENTER one*.
+
+**The fix that worked.** MEASUREMENT 4 now asks BOTH questions side by side — block the CLEAN set
+(the story) and block the DEFAULT set (post-game) — and prints which column decides the build. Re-run:
+**every leg has a crack-free story route**, and banning 4F's five real cracks costs **nothing**
+(29 wp either way). The blocker dissolved.
+
+**Prevention rule.** ⛔ **A CONTROL THAT PROVES YOUR INSTRUMENT WORKS SAYS NOTHING ABOUT WHETHER YOU
+POINTED IT AT THE RIGHT THING.** Before believing a negative result, state the SET or POPULATION the
+question ranges over, and ask what would change if it were the other plausible set. ‼ Here the two
+candidate sets differed by 62 tiles and I never named which one I had chosen. *(Related and already
+filed: "is my before/after comparing the SAME SUBJECT?" — this is its population-level twin, and it
+bit on the same day, in the same file, on a different axis.)*
+⇒ **And the meta-rule that actually caught it, twice today: spend agents on REFUTING finished work.**
+Neither this nor the morning's `ACCEPTANCE: PASS`-over-a-skipped-reading defect was found by a test.

@@ -18931,3 +18931,46 @@ door, rests exactly). ⇒ all eight Sky Pillar staircases rest one tile south of
 **GAP CLOSED:** `3F_Clean (3,1) -> (11,1)` — the leg the atlas's route depends on — had **never**
 been measured by any committed tool. It is **28 moves** on CLEAN; 3F's main region from (3,1) is 118
 tiles, contains (11,1) and does NOT contain (7,1), independently re-confirming the sealed pocket.
+
+---
+
+## 2026-08-27 — THE ADVERSARIAL CRITICS RAN, AND THEY KILLED MY OWN BLOCKER: "NO CRACK-FREE ROUTE ACROSS 2F/4F" WAS THE ANSWER TO THE WRONG QUESTION
+
+The Sky Pillar recon's two adjudicating critics had died on an account session limit; the workflow
+was resumed from cache once it reset (7 recon agents replayed, only the critics re-ran). ‼ **They
+immediately refuted a claim I had already committed and put in the handoff as leg 3's BLOCKER.**
+
+**⛔ THE REFUTATION.** `probe_ch21_skypillar.py` MEASUREMENT 4 reported *"NO crack-free route across
+2F or 4F"*. The measurement was real; **it answered the wrong question.** It made the **DEFAULT**
+crack set impassable — 38 tiles on 2F, 34 on 4F — but **33 of those 38 and 29 of those 34 are SOLID
+GROUND on the CLEAN layout the story actually runs on.** Blocking tiles that are not cracked in the
+story manufactures a blocker that does not exist. In the reviewer's words: *"claim_a is not false,
+it is the ANSWER TO THE WRONG QUESTION."*
+
+**✅ RE-MEASURED AGAINST THE CLEAN SETS — EVERY LEG HAS A CRACK-FREE STORY ROUTE:** 1F 32 wp,
+**2F 37 wp**, 3F 36 wp, **4F (11,1)→(5,4) 29 wp with all five real cracks banned**, 3F (6,4)→(7,1)
+4 wp, 4F (7,1)→(3,1) 6 wp, 5F 43 wp, TOP 13 wp. ⇒ **banning the five costs NOTHING** (29 either
+way), so the chapter bans them outright rather than trusting an A* tie-break. MEASUREMENT 4 now
+asks BOTH questions side by side and labels which one decides the build.
+
+**‼ AND THE MENTAL MODEL WAS WRONG-SHAPED TOO.** For a WALKING bot a cracked tile is **TERMINAL** —
+you fall on ENTRY, you do not "cross" it. So the earlier headline *"the planner's route CROSSES 27
+cracked tiles"* was never the right frame: the FIRST one would have ended the walk. What matters is
+only whether a route **ENTERS** a CLEAN crack, and none of the story routes above does.
+
+**OTHER CRITIC FINDINGS FOLDED IN:**
+* ⛔ **`ROUTE131`/`SKY_PILLAR_TOP` layout divergence is `KI-73`'s shape, NOT a new issue** — the
+  layout cache keyed on map number. Caught by the standing rule *"grep `06-DECISIONS-LOG.md` /
+  known issues BEFORE filing anything as new"*, which is exactly what that rule exists for.
+* ✅ **No `arrow_warp()` primitive is needed** — `map_path.py:391-401` already maps
+  `"South Arrow Warp"` → `Direction.South` and `:870-872` emits the held-direction waypoint. The
+  decomp mechanism was right; its CONSEQUENCE for our bot was not, because that angle explicitly
+  declined to read our code. ⇒ a computed path + `follow_waypoints` handles all four.
+* ✅ **The descent's SECOND fall was independently CONFIRMED** by a critic's own floor-graph search:
+  from Top (14,9) to the 1F exit, `allow_fall=True` finds a route via `4F (1,3) → 3F (1,3)`;
+  `allow_fall=False` finds **NO ROUTE**. It remains leg 3's biggest build requirement.
+
+**‼ THE PROCESS POINT.** This is the second time today an adversarial pass overturned something I
+had already written down and shipped — the first was the driver that printed `ACCEPTANCE: PASS`
+over a silently-skipped reading. Both were caught by an independent agent, neither by a test.
+⇒ the standing rule holds: **spend agents on REFUTING finished work.**

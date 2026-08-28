@@ -71,16 +71,23 @@ MEASUREMENT 3 — each climb leg asked of `calculate_path`, and does its route C
   ⇒ every one is a tile where a BIKELESS bot FALLS when the chapter did not intend to.
 
 ----------------------------------------------------------------------------------------------
-MEASUREMENT 4 — is there a CRACK-FREE route? (cracked tiles made impassable)
+MEASUREMENT 4 — is there a CRACK-FREE route? Asked TWICE, because WHICH crack set you
+  block is the whole question. ⛔ For a WALKING bot a cracked tile is TERMINAL — you
+  fall on entry, you do not 'cross' it — so a usable route must not ENTER one.
 ----------------------------------------------------------------------------------------------
-  1F  (6,13)->(10,1)     crack-free route exists: 32 wp
-  2F  (10,1)->(3,1)      ‼ NO CRACK-FREE ROUTE
-  3F  (3,1)->(11,1)      crack-free route exists: 36 wp
-  4F  (11,1)->(5,4)      ‼ NO CRACK-FREE ROUTE
-  3F  (6,4)->(7,1)       crack-free route exists: 4 wp
-  4F  (7,1)->(3,1)       crack-free route exists: 6 wp
-  5F  (3,1)->(10,1)      crack-free route exists: 43 wp
-  TOP (16,14)->(14,9)    crack-free route exists: 13 wp
+  1F  (6,13)->(10,1)     STORY(block  0 CLEAN cracks): 32 wp       post-game(block  0): 32 wp
+  2F  (10,1)->(3,1)      STORY(block  0 CLEAN cracks): 37 wp       post-game(block 38): REFUSED
+  3F  (3,1)->(11,1)      STORY(block  0 CLEAN cracks): 36 wp       post-game(block  0): 36 wp
+  4F  (11,1)->(5,4)      STORY(block  5 CLEAN cracks): 29 wp       post-game(block 34): REFUSED
+  3F  (6,4)->(7,1)       STORY(block  0 CLEAN cracks): 4 wp        post-game(block  0): 4 wp
+  4F  (7,1)->(3,1)       STORY(block  5 CLEAN cracks): 6 wp        post-game(block 34): 6 wp
+  5F  (3,1)->(10,1)      STORY(block  0 CLEAN cracks): 43 wp       post-game(block  0): 43 wp
+  TOP (16,14)->(14,9)    STORY(block  0 CLEAN cracks): 13 wp       post-game(block 42): 13 wp
+
+  ⛔ THE STORY COLUMN IS THE ONE THAT DECIDES THE BUILD. An adversarial review REFUTED
+     the first version of this check, which reported only the post-game column and so
+     concluded 'NO crack-free route across 2F or 4F' — a blocker that does not exist,
+     because 33 of 2F's 38 and 29 of 4F's 34 default cracks are SOLID GROUND on CLEAN.
 
 ----------------------------------------------------------------------------------------------
 MEASUREMENT 5 — object templates per floor (the Sootopolis false-block risk)
@@ -122,17 +129,6 @@ VERDICT
   and the post-fall walk works. The atlas's STEP COUNTS differ (different layout,
   and steps are not waypoints) — do not quote them as expected waypoint counts.
 
-  ⛔ NO CRACK-FREE ROUTE ON: 2F  (10,1)->(3,1), 4F  (11,1)->(5,4)
-  ⇒ On the layout WE read, a bikeless bot could not cross those floors at all.
-  ✅ SETTLED 2026-08-27 (decomp): that is because WE READ THE POST-GAME LAYOUT. Six
-     floors swap to *_CLEAN in OnTransition, gated `call_if_lt VAR_SKY_PILLAR_STATE,
-     2`, so the STORY climb runs entirely on CLEAN — where 2F has ZERO cracks.
-     `setmaplayoutindex` never touches the ROM table this probe reads.
-  ⇒ The misread is PESSIMISTIC, not wrong: DEFAULT-walkable ⊆ CLEAN-walkable on all
-    five climb floors (0 exceptions), so a route found here cannot walk the bot into
-    a story-time WALL on 1F-5F. ⛔ EXCEPT `SKY_PILLAR_TOP` (31 static-open tiles are
-    CLEAN walls) and `ROUTE131` (116, and it swaps UNCONDITIONALLY).
-
   ⛔ WHAT A DRIVE STILL OWES: confirmation of the resting tiles predicted by the rule
      validated in MEASUREMENT 6(a); whether the fall is unconditional for a WALKING
      player; and the SECOND fall the descent needs (Top->5F->4F(3,1) lands in a 12-tile
@@ -141,5 +137,5 @@ VERDICT
 Shutting down...
 Save state C:\Remote 
 Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
--08-27_21-29-55.ss1 created!
+-08-27_21-42-58.ss1 created!
 Updated `current_state.ss1`!
