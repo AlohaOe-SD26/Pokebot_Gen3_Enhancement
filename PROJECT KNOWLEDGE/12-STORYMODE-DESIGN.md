@@ -3757,6 +3757,28 @@ Mach Bike belongs to it, not to this leg.
 5. ⛔ **`mount_bike()` IS AN INFINITE HANG FOR A BIKELESS BOT**, not a hard fail
    (`puzzle_solver.py:39-42`: `while not get_player_avatar().is_on_bike: press Select; yield`).
 
+✅✅ **CLAUDE VALIDATED THE RECON'S THREE LOAD-BEARING CLAIMS AGAINST OUR OWN TILE DATA
+(`probe_ch21_skypillar.py` MEASUREMENT 6, 2026-08-27)** — because the adjudicating critics had
+died on a session limit and CLAUDE.md's rule is that an agent's output is a NOTE, never truth.
+Two claims CONFIRMED, one REFUTED in the favourable direction:
+
+* ✅ **THE RESTING-TILE RULE: CONFIRMED 3/3, including the discriminating negative.** Read from
+  our own `tile_type`: `SOOTOPOLIS_CITY (31,16)` = **`Non-Animated Door`** ⇒ predict (31,17),
+  live measured (31,17) ✓. `CAVE_OF_ORIGIN_ENTRANCE (9,5)` = **`Non-Animated Door`** ⇒ predict
+  (9,6), live (9,6) ✓. ‼ **`CAVE_OF_ORIGIN_1F (14,5)` = `Ladder`** ⇒ predict (14,5) exactly,
+  live (14,5) ✓. ⇒ the rule is not "always +1 south" — the NEGATIVE case is what proves it, and
+  it is now checkable by an instrument, not only by a decomp reading.
+* ✅ **THE FOUR ARROW WARPS: CONFIRMED 4/4, with a control that discriminates.**
+  `SKY_PILLAR_ENTRANCE (6,16)`/`(14,4)` and `SKY_PILLAR_1F (6,13)`/`(7,13)` all read
+  **`South Arrow Warp`**; the control — the ordinary staircase `1F (10,1)` — reads
+  `Non-Animated Door` and is correctly NOT an arrow warp.
+* ⚠ **THE 4F TIE-BREAK: REFUTED *ON THIS BUILD*, and that is NOT reassurance.** Production's
+  actual routes `4F (11,1)->(5,4)` (29 wp) and `4F (7,1)->(3,1)` (6 wp) cross **NONE** of the five
+  CLEAN-cracked tiles — so today's tie-break happens to be safe and the (9,4) decoy is not
+  currently hit. ⛔ **But equal cost means safety is an ACCIDENT of tie-breaking, not a property:
+  a planner change could flip it silently, with no test failing.** ⇒ the chapter must still BAN
+  those five tiles explicitly. Banning them costs nothing (29 vs 29, 6 vs 6).
+
 ✅ **THREE MORE FACTS THE PASS ESTABLISHED:**
 * **`SKY_PILLAR_ENTRANCE` and `SKY_PILLAR_OUTSIDE` do NOT swap layouts** — no `setmaplayoutindex`
   in either script. Their static layout IS their live layout, so our planner is exactly right on

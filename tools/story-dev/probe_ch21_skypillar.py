@@ -27,13 +27,17 @@ That would be a footnote except for three measured facts that compose into a blo
      bag on `post_wallace.ss1`), and the Sky Pillar's cracked floors are survived by SPEED —
      a walking player falls.
 ⇒ A bikeless bot cannot cross 2F on the layout we read, yet the story requires exactly that.
-   **Therefore the story climb almost certainly runs on the CLEAN layouts while our planner
-   models the post-game ones.** ⛔ That inference has ONE unverified link — "a walking player
-   falls" is the atlas's decomp claim, not measured here. It is named in the output, not hidden.
+   ✅ **SETTLED the same day by a decomp recon pass: we read the POST-GAME layout.** Six floors
+   swap to `*_CLEAN` in `OnTransition`, gated `call_if_lt VAR_SKY_PILLAR_STATE, 2`, so the STORY
+   climb runs entirely on CLEAN (2F_Clean has ZERO cracks). `setmaplayoutindex` writes only
+   `gSaveBlock1Ptr->mapLayoutId` and the live `gMapHeader` — never the ROM table this probe reads.
 
-⇒ CONSEQUENCE FOR THE BUILD: `navigate_to` is UNSAFE on 2F and 4F. Leg 3 cannot plan the climb
-with the planner; it needs waypoints valid for the layout that is actually live, which only a
-drive to the Sky Pillar can confirm.
+⇒ CONSEQUENCE FOR THE BUILD, and it is milder than it first looked: the misread is **PESSIMISTIC**
+— DEFAULT-walkable ⊆ CLEAN-walkable on all five climb floors with zero exceptions — so a route
+found here can never walk the bot into a story-time WALL on 1F-5F. ⛔ TWO EXCEPTIONS INVERT IT:
+`SKY_PILLAR_TOP` (31 static-open tiles are CLEAN walls) and `ROUTE131` (116, swapped
+UNCONDITIONALLY). And because a crack-free route costs EXACTLY the same, which one A* returns is a
+TIE-BREAK — so the chapter must BAN 4F's five CLEAN-cracked tiles explicitly rather than trust it.
 
 --------------------------------------------------------------------------------------------
 WHAT THIS PROBE CANNOT ANSWER — stated up front so nobody over-reads it
@@ -105,6 +109,23 @@ LEGS = [
 ]
 
 ATLAS_4F_CRACKED = {(0, 3), (1, 3), (6, 4), (7, 4), (9, 4)}
+
+#: The three LIVE resting-tile readings measured 2026-08-27, used to blind-test the derived rule.
+#: ⛔ The third is the DISCRIMINATING NEGATIVE: without it, a rule that always predicts "+1 south"
+#: would score 2/3 and look convincing.
+LIVE_RESTING_CASES = [
+    ("Entrance(9,20)->CITY", "SOOTOPOLIS_CITY", (31, 16), (31, 17)),
+    ("1F(11,17)->ENTRANCE", "CAVE_OF_ORIGIN_ENTRANCE", (9, 5), (9, 6)),
+    ("B1F(9,3)->1F  [NEGATIVE]", "CAVE_OF_ORIGIN_1F", (14, 5), (14, 5)),
+]
+
+#: Warps the recon says are ARROW WARPS — they do NOT fire on step, so a walk-only planner stalls
+#: forever with no error. The control is an ordinary staircase, which must NOT read as one.
+ARROW_WARPS = [
+    ("SKY_PILLAR_ENTRANCE", (6, 16)), ("SKY_PILLAR_ENTRANCE", (14, 4)),
+    ("SKY_PILLAR_1F", (6, 13)), ("SKY_PILLAR_1F", (7, 13)),
+]
+ARROW_CONTROL = ("SKY_PILLAR_1F", (10, 1))
 
 # ‼ FAULT HOOK — `POKEBOT_SKYPILLAR_PROBE_FAULT=rig` makes the blocking rig inert (the synthetic
 # blockers claim the wrong map), so "no crack-free route" would read as "route exists" and the
@@ -330,6 +351,74 @@ def main() -> int:
     print("  ⇒ a floor with ZERO templates cannot suffer the loadedness false-block that sealed")
     print("    the Sootopolis pocket. Floors with templates need the same care leg 3 step 0 took.")
 
+    # ------------------------------------------- VALIDATING THE RECON'S OWN CLAIMS
+    # ‼ WHY THIS IS HERE. The Sky Pillar recon pass (2026-08-27) produced claims whose two
+    # adjudicating critics DIED on an account session limit, leaving them UNVERIFIED. CLAUDE.md's
+    # standing directive is that an agent's output is a NOTE and CLAUDE VALIDATES IT. These three
+    # checks settle the load-bearing ones against PRODUCTION's own tile data, so the answer is
+    # re-runnable instead of a number in a chat log.
+    print("")
+    print("-" * 94)
+    print("MEASUREMENT 6 — validating the recon's load-bearing claims against our own tile data")
+    print("-" * 94)
+
+    def behaviour(m: MapRSE, coords: tuple[int, int]) -> str:
+        try:
+            return str(getattr(get_map_data(m, coords), "tile_type", "?"))
+        except Exception as error:  # noqa: BLE001 - an unreadable tile is itself a reading
+            return f"UNREADABLE:{type(error).__name__}"
+
+    # (a) THE RESTING-TILE RULE. Claim: `SetUpWarpExitTask()` branches on the behaviour AT THE WARP
+    # TARGET — the door family exits one tile SOUTH, anything else rests exactly.
+    rule_hits = 0
+    for label, map_name, target, observed in LIVE_RESTING_CASES:
+        m = getattr(MapRSE, map_name)
+        beh = behaviour(m, target)
+        predicted = (target[0], target[1] + 1) if "Door" in beh else target
+        ok = predicted == observed
+        rule_hits += ok
+        verdict_word = "MATCH" if ok else "MISMATCH"
+        print(f"  (a) {label:26s} {str(target):8s} = {beh:20s} "
+              f"predict {str(predicted):9s} live {observed}  {verdict_word}")
+    rule_ok = rule_hits == len(LIVE_RESTING_CASES)
+    print(f"      => blind test {rule_hits}/{len(LIVE_RESTING_CASES)} — "
+          + ("RULE CONFIRMED by our own tile data" if rule_ok
+             else "‼ RULE REFUTED — do not use it to predict Sky Pillar resting tiles"))
+
+    # (b) THE FOUR ARROW WARPS.
+    arrows_found = 0
+    for map_name, coords in ARROW_WARPS:
+        beh = behaviour(getattr(MapRSE, map_name), coords)
+        is_arrow = "Arrow Warp" in beh
+        arrows_found += is_arrow
+        print(f"  (b) {map_name:22s} {str(coords):8s} = {beh:20s}"
+              + ("  <-- ARROW WARP, does NOT fire on step" if is_arrow else ""))
+    ctrl_beh = behaviour(getattr(MapRSE, ARROW_CONTROL[0]), ARROW_CONTROL[1])
+    ctrl_ok = "Arrow Warp" not in ctrl_beh
+    print(f"      control: {ARROW_CONTROL[0]} {ARROW_CONTROL[1]} = {ctrl_beh!r} — must NOT be an "
+          f"arrow warp: {'PASS' if ctrl_ok else 'FAIL'}")
+    arrows_ok = arrows_found == len(ARROW_WARPS) and ctrl_ok
+    print(f"      => {arrows_found}/{len(ARROW_WARPS)} arrow warps "
+          + ("CONFIRMED" if arrows_ok else "‼ NOT CONFIRMED"))
+
+    # (c) THE 4F TIE-BREAK. Two recon agents CONTRADICTED each other: one said the stale model can
+    # NEVER route onto a real CLEAN crack; the other that a crack-free route costs exactly the SAME,
+    # making it a pure A* tie-break. Ask production what it ACTUALLY returns on this build.
+    four = getattr(MapRSE, "SKY_PILLAR_4F")
+    for label, src, dst in [("4F (11,1)->(5,4)", (11, 1), (5, 4)),
+                            ("4F (7,1)->(3,1)", (7, 1), (3, 1))]:
+        route = plan(four, src, dst)
+        if route is None:
+            print(f"  (c) {label:20s} REFUSED")
+            continue
+        crossed = [t for t in route if t in ATLAS_4F_CRACKED]
+        decoy = "  ‼ HITS THE (9,4) DECOY — the climb would be WASTED" if (9, 4) in crossed else ""
+        print(f"  (c) {label:20s} {len(route):3d} wp, crosses CLEAN-cracked: "
+              f"{crossed if crossed else 'NONE'}{decoy}")
+    print("      ⚠ NONE here means THIS BUILD's tie-break happens to be safe — never that it is")
+    print("        GUARANTEED. Equal cost means a planner change could flip it silently, so the")
+    print("        chapter must still BAN these five tiles explicitly. Banning them costs nothing.")
+
     _restore()
 
     # --------------------------------------------------------------- THE VERDICT
@@ -346,13 +435,19 @@ def main() -> int:
         print("  and steps are not waypoints) — do not quote them as expected waypoint counts.")
     if blocked_legs:
         print(f"\n  ⛔ NO CRACK-FREE ROUTE ON: {', '.join(blocked_legs)}")
-        print("  ⇒ On the layout WE read, a bikeless bot cannot cross those floors at all. The")
-        print("    story requires crossing them bikeless, so the story layout is almost certainly")
-        print("    NOT the one we read. ‼ THE UNVERIFIED LINK: 'a walking player falls' is the")
-        print("    atlas's decomp claim, not measured here. Settle it before building.")
-        print("  ⇒ `navigate_to` IS UNSAFE ON THOSE FLOORS regardless of which layout is live.")
-    print("\n  ⛔ NOT ANSWERABLE HERE, AND A DRIVE OWES EACH: which layout is live during the story")
-    print("     climb; where the avatar RESTS after each warp; whether the fall is unconditional.")
+        print("  ⇒ On the layout WE read, a bikeless bot could not cross those floors at all.")
+        print("  ✅ SETTLED 2026-08-27 (decomp): that is because WE READ THE POST-GAME LAYOUT. Six")
+        print("     floors swap to *_CLEAN in OnTransition, gated `call_if_lt VAR_SKY_PILLAR_STATE,")
+        print("     2`, so the STORY climb runs entirely on CLEAN — where 2F has ZERO cracks.")
+        print("     `setmaplayoutindex` never touches the ROM table this probe reads.")
+        print("  ⇒ The misread is PESSIMISTIC, not wrong: DEFAULT-walkable ⊆ CLEAN-walkable on all")
+        print("    five climb floors (0 exceptions), so a route found here cannot walk the bot into")
+        print("    a story-time WALL on 1F-5F. ⛔ EXCEPT `SKY_PILLAR_TOP` (31 static-open tiles are")
+        print("    CLEAN walls) and `ROUTE131` (116, and it swaps UNCONDITIONALLY).")
+    print("\n  ⛔ WHAT A DRIVE STILL OWES: confirmation of the resting tiles predicted by the rule")
+    print("     validated in MEASUREMENT 6(a); whether the fall is unconditional for a WALKING")
+    print("     player; and the SECOND fall the descent needs (Top->5F->4F(3,1) lands in a 12-tile")
+    print("     west pocket with no walking exit — omit it and the bot summits and is STRANDED).")
     print("=" * 94)
     return 0
 

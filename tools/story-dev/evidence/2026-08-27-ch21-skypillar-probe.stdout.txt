@@ -96,6 +96,25 @@ MEASUREMENT 5 — object templates per floor (the Sootopolis false-block risk)
   ⇒ a floor with ZERO templates cannot suffer the loadedness false-block that sealed
     the Sootopolis pocket. Floors with templates need the same care leg 3 step 0 took.
 
+----------------------------------------------------------------------------------------------
+MEASUREMENT 6 — validating the recon's load-bearing claims against our own tile data
+----------------------------------------------------------------------------------------------
+  (a) Entrance(9,20)->CITY       (31, 16) = Non-Animated Door    predict (31, 17)  live (31, 17)  MATCH
+  (a) 1F(11,17)->ENTRANCE        (9, 5)   = Non-Animated Door    predict (9, 6)    live (9, 6)  MATCH
+  (a) B1F(9,3)->1F  [NEGATIVE]   (14, 5)  = Ladder               predict (14, 5)   live (14, 5)  MATCH
+      => blind test 3/3 — RULE CONFIRMED by our own tile data
+  (b) SKY_PILLAR_ENTRANCE    (6, 16)  = South Arrow Warp      <-- ARROW WARP, does NOT fire on step
+  (b) SKY_PILLAR_ENTRANCE    (14, 4)  = South Arrow Warp      <-- ARROW WARP, does NOT fire on step
+  (b) SKY_PILLAR_1F          (6, 13)  = South Arrow Warp      <-- ARROW WARP, does NOT fire on step
+  (b) SKY_PILLAR_1F          (7, 13)  = South Arrow Warp      <-- ARROW WARP, does NOT fire on step
+      control: SKY_PILLAR_1F (10, 1) = 'Non-Animated Door' — must NOT be an arrow warp: PASS
+      => 4/4 arrow warps CONFIRMED
+  (c) 4F (11,1)->(5,4)      29 wp, crosses CLEAN-cracked: NONE
+  (c) 4F (7,1)->(3,1)        6 wp, crosses CLEAN-cracked: NONE
+      ⚠ NONE here means THIS BUILD's tie-break happens to be safe — never that it is
+        GUARANTEED. Equal cost means a planner change could flip it silently, so the
+        chapter must still BAN these five tiles explicitly. Banning them costs nothing.
+
 ==============================================================================================
 VERDICT
 ==============================================================================================
@@ -104,17 +123,23 @@ VERDICT
   and steps are not waypoints) — do not quote them as expected waypoint counts.
 
   ⛔ NO CRACK-FREE ROUTE ON: 2F  (10,1)->(3,1), 4F  (11,1)->(5,4)
-  ⇒ On the layout WE read, a bikeless bot cannot cross those floors at all. The
-    story requires crossing them bikeless, so the story layout is almost certainly
-    NOT the one we read. ‼ THE UNVERIFIED LINK: 'a walking player falls' is the
-    atlas's decomp claim, not measured here. Settle it before building.
-  ⇒ `navigate_to` IS UNSAFE ON THOSE FLOORS regardless of which layout is live.
+  ⇒ On the layout WE read, a bikeless bot could not cross those floors at all.
+  ✅ SETTLED 2026-08-27 (decomp): that is because WE READ THE POST-GAME LAYOUT. Six
+     floors swap to *_CLEAN in OnTransition, gated `call_if_lt VAR_SKY_PILLAR_STATE,
+     2`, so the STORY climb runs entirely on CLEAN — where 2F has ZERO cracks.
+     `setmaplayoutindex` never touches the ROM table this probe reads.
+  ⇒ The misread is PESSIMISTIC, not wrong: DEFAULT-walkable ⊆ CLEAN-walkable on all
+    five climb floors (0 exceptions), so a route found here cannot walk the bot into
+    a story-time WALL on 1F-5F. ⛔ EXCEPT `SKY_PILLAR_TOP` (31 static-open tiles are
+    CLEAN walls) and `ROUTE131` (116, and it swaps UNCONDITIONALLY).
 
-  ⛔ NOT ANSWERABLE HERE, AND A DRIVE OWES EACH: which layout is live during the story
-     climb; where the avatar RESTS after each warp; whether the fall is unconditional.
+  ⛔ WHAT A DRIVE STILL OWES: confirmation of the resting tiles predicted by the rule
+     validated in MEASUREMENT 6(a); whether the fall is unconditional for a WALKING
+     player; and the SECOND fall the descent needs (Top->5F->4F(3,1) lands in a 12-tile
+     west pocket with no walking exit — omit it and the bot summits and is STRANDED).
 ==============================================================================================
 Shutting down...
 Save state C:\Remote 
 Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
--08-27_19-25-52.ss1 created!
+-08-27_21-29-55.ss1 created!
 Updated `current_state.ss1`!
