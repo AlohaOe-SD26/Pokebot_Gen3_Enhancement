@@ -9830,3 +9830,86 @@ before shipping** is what caught it — the same discipline that produced the fi
 this bullet there is a marker" is not a retraction of a sentence written later. And when you
 tighten a gate, RUN IT AGAINST THE LIVE TREE BEFORE COMMITTING: the finding count is the only
 honest measure of whether you added a hole or closed one.
+
+---
+
+## 2026-08-27 — A WARP TABLE ANSWERS "WHERE DOES THE WARP POINT", NOT "WHERE DOES THE PLAYER END UP"
+
+**Symptom.** §4.11 ("the Sootopolis tile the bot lands on walking back out") was carried for days as
+*decomp-established as (31,16)*, and this session added a second, independent confirmation by reading
+our own ROM warp table — `Entrance (9,20) --warp--> SOOTOPOLIS_CITY (31,16)`. Two independent sources,
+agreeing. **The live drive measured the avatar resting on (31,17).**
+
+**Root cause.** Both sources were right and both answered a *different question*. The warp table gives
+the warp **event** tile; Gen3 then auto-steps the player one tile clear of a doorway-type warp. The same
+run shows it is **per-warp**: `1F (11,17) → Entrance` targets (9,5) and rests on **(9,6)**, while
+`B1F (9,3) → 1F` targets (14,5) and rests on **(14,5)** exactly. No table and no decomp JSON encodes
+which warps step and which do not.
+
+**The fix that worked.** Drive it and read `get_player_avatar().local_coordinates` after the transition
+(`--driver ch21pocket`, leg L1). The driver now logs the RESTING tile beside the table target and says
+so in those words, rather than calling the mismatch "the ROM read was wrong" — the first version of that
+log line drew exactly that wrong conclusion and would have sent a reader to re-audit a correct reader.
+
+**Prevention rule.** ⛔ **Never take a post-warp position from a warp table or the decomp — MEASURE THE
+RESTING TILE.** Agreement between two static sources is not a second opinion when both are computing the
+same quantity; it is the same answer twice. *(This is the measured "agreement is not a confidence signal"
+rule in a new dress: the two sources shared not a misconception but a DEFINITION.)*
+
+---
+
+## 2026-08-27 — I READ A PER-TILE CAPABILITY FLAG AS A MAP-LEVEL FACT, AND NEARLY REPORTED ENCOUNTERS ON A MAP WHERE THEY CANNOT HAPPEN
+
+**Symptom.** Scanning the three Cave of Origin maps for `get_map_data(...).has_encounters` returned
+~1,300–1,400 tiles **on every map including `CAVE_OF_ORIGIN_B1F`**, and I wrote that the whole return
+walk runs under encounter pressure. **B1F has no wild-encounter header at all — zero encounters are
+possible there.** The live drive settled it: 2 encounters, **both on `CAVE_OF_ORIGIN_1F`**, none on B1F.
+
+**Root cause.** `has_encounters` is a **metatile-behaviour capability** (MB_CAVE tiles *can* roll an
+encounter check); whether any check happens at all is decided by the **map's** encounter header, which
+that flag knows nothing about. I asked the tile a question only the map can answer. ⇒ **a candidate is
+not an attempt**, in its data-model form.
+
+**The fix that worked.** Take the count from the ACTION: `on_battle_started` on the bot mode
+(`_listeners.py:108` calls it unconditionally for every battle). ⛔ Not by polling — a driver generator
+gets no frames during a battle, so a poll could never have answered positive (playbook §0b Q4).
+
+**‼ AND A THIRD BROKEN SCAN THE SAME HOUR — THE DANGEROUS KIND, BECAUSE IT LOOKED RIGHT.** The
+rewritten warp scan reported **four** warps on `CAVE_OF_ORIGIN_ENTRANCE` where the decomp has **two**,
+and the phantoms were plausible coordinates, not garbage. Cause: I scanned a fixed 40x40 while the map
+is **19x26**, and tile lookup is a FLAT index (`y*width + x`), so an out-of-bounds x silently WRAPS
+into the next row — `(28,4)` and `(9,5)` are both index 104. Every warp was reported twice under a
+made-up coordinate. It was caught by an independent recon agent reading the decomp, NOT by the scan's
+own control, because C0 only asks *"did you find the warp we already know about?"* — and it had.
+⇒ **A positive control proves a scan is not BLIND; it says nothing about whether the scan is
+OVER-REPORTING.** Fixed by bounding every scan with the map's real `map_size`.
+⛔ **Prevention rule: bound a coordinate scan by the map's measured dimensions, never by a round
+number — and when a scan can over-report, give it a control with an expected COUNT, not just an
+expected member.**
+
+**Prevention rule.** ⛔ **Before reporting a per-tile flag as a map-level property, find the code that
+CONSUMES it.** And when the same session has a live run available, let the run's event hook produce the
+count rather than a static scan. *(A second broken instrument the same hour, caught by its own control:
+a warp scan built on `get_map_data(...).warps_to` returned ZERO warps on three maps that certainly have
+them. It was discarded, not reported — the accessor lives on `PathTile`. **A scan that cannot answer
+positive is not evidence**, which is why every scan here carries a positive control.)*
+
+---
+
+## 2026-08-27 — A DRIVER DOCSTRING CLAIMED A MEASUREMENT NOBODY HAD WRITTEN, AND THAT IS WHY §4.10 STAYED OPEN
+
+**Symptom.** `Ch21CaveMode`'s docstring said it reports *"the wild-encounter count across the descent
+(spec §4.10)"*. `grep` of its `run()` finds no encounter counting of any kind, and §4.10 sat OPEN in the
+spec addendum — the code and the spec agreed with each other and only the docstring was wrong.
+
+**Root cause.** The docstring was written from the *intent* for the driver, not from what shipped, and
+nothing checks a docstring against its own body. A reader skimming for "is encounter pressure known?"
+gets a confident yes from the half of the pair nobody validates.
+
+**The fix that worked.** Corrected the docstring to say it does **not** count encounters, name why §4.10
+stayed open, and point at `--driver ch21pocket` which does. The count now comes from a hook, not prose.
+
+**Prevention rule.** ⛔ **A docstring that says "this reports X" is a claim about the body — `grep` the
+body for X before believing it, and before writing it.** This is the P2 "headline carries the caveat"
+pair one level down: the pair is *docstring ↔ its own function*, and it is invisible to every doc gate
+because it lives in code.

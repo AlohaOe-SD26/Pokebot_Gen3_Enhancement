@@ -3643,7 +3643,7 @@ question as "needs a live run".
 
 ### ✅✅ LEG 1 IS BUILT AND DRIVEN — `modules/story/sootopolis.py`, `--driver ch21dive` (2026-08-24)
 
-`ACCEPTANCE: PASS` on drive 3. ⛔ **The chapter is NOT wired into `_play()`** — legs 2-5 do not exist.
+`ACCEPTANCE: PASS` on drive 3. ⛔ **The chapter is still NOT wired into `_play()`.** ‼ *(SUPERSEDED 2026-08-27 — this line read "legs 2-5 do not exist", which stopped being true on 2026-08-26/27: **legs 2a and 2b ARE built and driven** (`--driver ch21escort`, `--driver ch21cave`, both `ACCEPTANCE: PASS`) and **leg 3's pocket-exit probe is MEASURED** — see the LEG 3 STEP 0 section below. Legs 4-5 (Sky Pillar, HM07) genuinely do not exist. A Tier 1 review caught this: the handoff names THIS FILE as the authority for leg status, so a stale sentence here mis-states the arc for every cold reader.)*
 ```
 RESULT reached=True at=SOOTOPOLIS_CITY(29,53) arrived=True center_path=True cave_path=False state=2
 ```
@@ -3670,6 +3670,93 @@ RESULT reached=True at=SOOTOPOLIS_CITY(29,53) arrived=True center_path=True cave
 coordinate condition the instant the map loads, and sets the var to 2 only at its END. Drive 1 reported
 `reached=True … state=1` mid-scene — **an acceptance of "are we in Sootopolis?" would have PASSED it.**
 ⇒ **GRADE ON THE VAR, NEVER ON THE MAP.**
+
+### ✅✅ LEG 3 STEP 0 — THE POCKET EXIT IS MEASURED, STATICALLY **AND** LIVE (2026-08-27)
+
+`probe_ch21_pocket_exit.py` (static, seconds, 4 controls) + `--driver ch21pocket` (live,
+`ACCEPTANCE: PASS`, 4,166 frames). Evidence: `evidence/2026-08-27-ch21-pocket-exit-probe.stdout.txt`,
+`evidence/2026-08-27-ch21-pocket-LIVE-drive.stdout.txt` (both arms). Fixture: `saves/post_wallace.ss1`
+(PINNED, `CAVE_OF_ORIGIN_B1F (9,14)`, state 3, party **687/687 = 100%**).
+
+⛔⛔ **A WARP TABLE GIVES THE WARP *EVENT* TILE — NOT WHERE THE AVATAR COMES TO REST.** This is the
+single fact the drive bought, and neither the ROM warp table nor the decomp JSON could have supplied it:
+
+| warp | table target | **avatar RESTS at (MEASURED LIVE)** |
+|---|---|---|
+| `B1F (9,3)` → 1F | (14,5) | **(14,5)** — same tile |
+| `1F (11,17)` → Entrance | (9,5) | **(9,6)** — one south |
+| `Entrance (9,20)` → City | (31,16) | **(31,17)** — one south |
+
+⇒ **§4.11 IS ANSWERED, AND ITS ANSWER IS (31,17), NOT (31,16).** (31,16) is correct as the warp
+event tile — both our ROM reader and the decomp agree on it, and *both are answering a different
+question*. ⛔ **Leg 3 must key on the measured RESTING tile.** Hard-coding (31,16) as the post-warp
+position is wrong by one tile, silently.
+
+✅ **THE POCKET IS REAL, AND ITS CAUSE IS PROVEN BY FAULT INJECTION** (not by a re-implementation —
+production's own `calculate_path` is the oracle). From the landing tile with **nothing loaded**,
+`(43,31)`, `(29,53)` and `(21,36)` **all refuse**, symmetric in both directions. Marking Steven
+(local_id 7) loaded at his state-3 tile **(32,18)** re-opens all three. The rig's positive control
+reproduces the **98 wp** that `--driver ch21leg2probe` measured live, so the counterfactual is trusted.
+* **Pocket size: 347 tiles** by production's planner (three independent BFS re-implementations had
+  predicted ~343 — first confirmation from the oracle, and it retires the stale "52-tile island").
+* It is **ONE connected component**: from the deepest point (20,35) the same 347 tiles are reachable.
+  ⇒ an interrupted walk leaves the bot **stranded but alive**, never hard-crashed.
+
+‼‼ **THE RE-PLAN DANGER ZONE IS 89 OF 121 CITY WAYPOINTS — 74% OF THE ESCAPE.** Walking the route
+tile by tile and asking the pessimistic question at each: a plan re-computed while Steven is unloaded
+**refuses on the first 89 waypoints**, and the first safe waypoint is index 89 — **(20,36) itself**,
+his vacated template tile. ⛔ The build spec's "a re-plan more than ~9 tiles from Steven refuses" is
+**far too optimistic**; the exposure runs almost the whole way.
+
+✅ **THE WALK OUT SUCCEEDS, AND THE BOT CAN CONTINUE.** Live from (31,17): **121 wp** to the Poke
+Center FRONT tile `(43,32)`, 1,624 frames, `whiteouts=0`. ⛔ The target is deliberately (43,32) and
+not the door (43,31): a path TO a door FOLLOWS the warp, so a first version ended *inside the
+building* — which silently skipped the "and the bot can continue" check while ACCEPTANCE still said
+PASS, the exact §Ch15/18/19 false-pass shape. From (43,32) the planner reaches **(29,53), the dive
+tile leg 3 needs, in 37 wp** — that is the continuation proof. Steven **(32,18)** and the Expert
+**(30,18)** were sighted live for the first time, exactly where §5 predicted.
+
+✅✅ **AND THE POCKET RE-SEALS BEHIND THE BOT — measured, not inferred.** The same matrix taken again
+from the END tile (43,32), where Steven is now out of camera range, refuses `(31,22)`, `(20,36)` AND
+`(19,37)` while still reaching `(29,53)` and `(21,36)`. ⇒ the bot walked out through a gap that
+closed behind it. ⛔ **Leg 3 gets ONE attempt at this crossing per visit**; there is no going back
+for a forgotten errand inside the pocket without re-loading Steven.
+
+✅ **THE LIVE 'NOTHING LOADED' ARM, TAKEN FOR FREE ON B1F.** Standing in the cave, `get_map_objects()`
+is exactly `[(255,(9,14))]` — the player alone — and from there `(31,17)→(43,32)` and `(31,17)→(29,53)`
+both raise `PathFindingError`. The seal is therefore measured LIVE, not only in the static rig.
+‼ This matters because the near-arm alone is *guaranteed* to say "the pocket is open" and so proves
+nothing on its own; an adversarial review named exactly that gap.
+
+✅ Static and live AGREE tile-for-tile from (31,17): `(43,32)` 121, `(29,53)` 118, `(21,36)` 91,
+`(20,36)` 90, `(19,37)` REFUSED — identical in the static rig and the drive.
+
+⚠ **BOTH WALK ARMS MEASURED IDENTICAL — SO THE A/B IS *NOT* DISCRIMINATING, AND MUST NOT BE QUOTED
+AS ONE.** `follow_waypoints` (plan once, never re-plan) and a naive `navigate_to` both finished in
+**exactly 1,781 frames**: `navigate_to` wraps the same waypoint walk, so with nothing forcing a
+re-plan they are the same code path. The prediction was filed in the driver docstring *before* the
+run and held. ⇒ **The danger is a TAIL risk. A green run is not evidence the naive design is safe.**
+⛔ And neither primitive RECOVERS: `follow_waypoints` raises on a waypoint timeout, `navigate_to`
+re-plans and then refuses. **Leg 3 should plan once at the resting tile and, on a timeout, walk back
+toward (32,18) to re-load Steven before re-planning** — that recovery is a RECOMMENDATION, unbuilt
+and unproven, not a measured result.
+
+✅ **§4.10 ENCOUNTER PRESSURE, ANSWERED:** **2 encounters** over the whole 61-waypoint return, **both
+on `CAVE_OF_ORIGIN_1F`**. ⛔ **B1F has NO wild-encounter header at all — zero encounters are possible
+there**; Entrance and 1F carry land tables (rate 4; Zubat/Golbat/Sableye). ‼ Do NOT read our
+per-tile `has_encounters` flag as "this map has encounters" — it is a metatile-behaviour capability
+(MB_CAVE) and reads true across ~1,300 tiles of B1F, where encounters cannot fire. Counted via the
+`on_battle_started` **hook** (`_listeners.py:108` calls it unconditionally), never by polling — a
+driver generator gets no frames during a battle, so a poll could never have answered positive.
+
+✅ **Intra-cave return, by production rather than by re-implementation:** B1F `(9,14)→(9,3)` **21 wp**,
+1F `(14,5)→(11,17)` **24 wp**, Entrance `(9,5)→(9,20)` **16 wp** — **61 wp + 3 warps**. The spec's
+21/23/15 were *step* counts; a step count is not a waypoint count, so these agree.
+
+⚠ **A PRIOR, RECORDED SO A PASS IS NOT OVER-READ:** this walk had already been done live once, by
+accident — the escort-v1 bug rode past its bail and ended at `SOOTOPOLIS_CITY (20,37)`, the far side
+of the choke, at state 2 (where `SetEnterCaveOfOriginObjPos` places Steven identically). Its route was
+never logged, so it corroborates rather than proves.
 
 ### ✅ THE FIXTURES EXIST — `saves/post_ch20.ss1` and `saves/post_sootopolis_arrival.ss1` (2026-08-24)
 

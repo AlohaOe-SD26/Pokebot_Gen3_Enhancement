@@ -808,11 +808,15 @@ def check_queue_vs_headline(files: dict[str, str]) -> list[str]:
 #: perfectly self-consistent to a reader who stops at the first copy); a grep for the CLAIM can.
 #: ⇒ To add one: put the absolute phrasing in `bad`, and a substring that makes it honest in `fix`.
 QUALIFIED_CLAIMS = [
-    # "nothing is parked" is FALSE — §Ch20 chapter assembly is deliberately parked, finished and
-    # waiting. Only the MID-TASK reading is true (no half-edited work, no /checkpoint debt).
+    # "nothing is parked" is an UNQUALIFIED ABSOLUTE about a fact that changes weekly. Only the
+    # MID-TASK reading is durably checkable (no half-edited work, no /checkpoint debt); the broad
+    # reading needs whatever is parked NAMED, so a reader can re-verify it.
+    # ‼ The example this rule was born with (§Ch20 chapter assembly, parked and waiting) EXPIRED
+    # when §Ch20 shipped 2026-08-24; the rule outlived it, which is the point — do NOT re-word the
+    # message around whatever is parked TODAY, or it rots again. (Refreshed 2026-08-27.)
     {"bad": re.compile(r"nothing (?:is )?parked", re.I), "fix": re.compile(r"MID-TASK", re.I),
-     "why": "'nothing parked' is FALSE — §Ch20 chapter assembly IS parked (deliberately). "
-            "Say 'nothing parked MID-TASK', or name what is parked."},
+     "why": "'nothing parked' is an unqualified absolute — say 'nothing parked MID-TASK' (the "
+            "checkable reading), or NAME what is parked so a reader can verify it."},
     # A doc can never truthfully assert its own pushed-ness: the sentence IS the uncommitted edit.
     {"bad": re.compile(r"(?:all work|everything) is (?:committed and )?pushed", re.I),
      "fix": re.compile(r"as of the commit carrying this line|trust `?git status`?", re.I),

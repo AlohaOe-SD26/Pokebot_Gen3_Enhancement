@@ -1,0 +1,122 @@
+Running mGBA 0.10.2
+==============================================================================================
+§Ch21 LEG 3 — POCKET-EXIT PROBE (static; production's planner is the oracle)
+==============================================================================================
+
+FIXTURE  post_wallace.ss1: CAVE_OF_ORIGIN_B1F (9, 14)  state=3  WALLACE_GOES_TO_SKY_PILLAR=True
+         objects loaded here: [(255, (9, 14))]
+
+----------------------------------------------------------------------------------------------
+MEASUREMENT 0 — the warp chain out of the cave, read from the ROM (§4.11)
+----------------------------------------------------------------------------------------------
+  CAVE_OF_ORIGIN_ENTRANCE:
+     (9,5) --warp--> CAVE_OF_ORIGIN_1F (11, 17)
+     (9,20) --warp--> SOOTOPOLIS_CITY (31, 16)
+  CAVE_OF_ORIGIN_1F:
+     (14,5) --warp--> CAVE_OF_ORIGIN_B1F (9, 3)
+     (11,17) --warp--> CAVE_OF_ORIGIN_ENTRANCE (9, 5)
+  CAVE_OF_ORIGIN_B1F:
+     (9,3) --warp--> CAVE_OF_ORIGIN_1F (14, 5)
+  SOOTOPOLIS_CITY (cave warp only):
+     (31,16) --warp--> CAVE_OF_ORIGIN_ENTRANCE (9, 20)
+
+  C0 scan sees the DOCUMENTED Sootopolis->CaveOfOrigin warp: PASS
+  ⛔ The table names the warp EVENT tile (31, 16). The AVATAR RESTS ON (31, 17) — MEASURED LIVE
+    2026-08-27; two of the three return warps auto-step one tile clear of the doorway
+    ((9,5)->rests (9,6)), and B1F->1F does not ((14,5) exactly). Everything below is
+    measured FROM THE RESTING TILE.
+
+----------------------------------------------------------------------------------------------
+CONTROLS — a probe that finds nothing is indistinguishable from one that cannot see
+----------------------------------------------------------------------------------------------
+  C1 planner answers on the player's own map  B1F (9,14)->(9,3): OK 21 wp  PASS
+  C2 planner answers about a map the player is NOT on  (31, 17)<->(31, 16): OK 1 wp/OK 1 wp  PASS
+  C3 the FAULT-INJECTION RIG reproduces a LIVE reading  (21,36)->(31,16) with Steven+Boy2 loaded at their state-2 tiles:
+     got OK 98 wp, live-measured 98 wp  PASS
+
+  ALL CONTROLS PASS — the planner answers, and the rig reproduces a live number.
+
+----------------------------------------------------------------------------------------------
+MEASUREMENT 1 — is the landing tile sealed, and is LOADEDNESS the reason?
+----------------------------------------------------------------------------------------------
+
+  A nothing loaded             (from (31, 17))
+      -> (43,32) PC front      REFUSED
+      -> (29,53) dive/arrival  REFUSED
+      -> (21,36) Steven appr.  REFUSED
+      -> (20,36) Steven tile   REFUSED
+      -> (19,37) Boy2 tile     REFUSED
+      -> (31,22) inside pocket  OK 5 wp
+
+  B Steven@(32,18) [STATE 3]   (from (31, 17))
+      -> (43,32) PC front      OK 121 wp
+      -> (29,53) dive/arrival  OK 118 wp
+      -> (21,36) Steven appr.  OK 91 wp
+      -> (20,36) Steven tile   OK 90 wp
+      -> (19,37) Boy2 tile     REFUSED
+      -> (31,22) inside pocket  OK 5 wp
+
+  E Boy2 loaded ELSEWHERE      (from (31, 17))
+      -> (43,32) PC front      OK 125 wp
+      -> (29,53) dive/arrival  OK 126 wp
+      -> (21,36) Steven appr.  OK 95 wp
+      -> (20,36) Steven tile   REFUSED
+      -> (19,37) Boy2 tile     OK 92 wp
+      -> (31,22) inside pocket  OK 5 wp
+
+  F Steven@(20,36) [state 2]   (from (31, 17))
+      -> (43,32) PC front      REFUSED
+      -> (29,53) dive/arrival  REFUSED
+      -> (21,36) Steven appr.  REFUSED
+      -> (20,36) Steven tile   REFUSED
+      -> (19,37) Boy2 tile     REFUSED
+      -> (31,22) inside pocket  OK 5 wp
+
+  DISCRIMINATION — arms that AGREE prove nothing (a vacuous A/B):
+    -> (43,32) PC front      A=REFUSED   B=OK 121 wp E=OK 125 wp F=REFUSED    <<< ARMS DIFFER
+    -> (29,53) dive/arrival  A=REFUSED   B=OK 118 wp E=OK 126 wp F=REFUSED    <<< ARMS DIFFER
+    -> (21,36) Steven appr.  A=REFUSED   B=OK 91 wp  E=OK 95 wp  F=REFUSED    <<< ARMS DIFFER
+    -> (20,36) Steven tile   A=REFUSED   B=OK 90 wp  E=REFUSED   F=REFUSED    <<< ARMS DIFFER
+    -> (19,37) Boy2 tile     A=REFUSED   B=REFUSED   E=OK 92 wp  F=REFUSED    <<< ARMS DIFFER
+    -> (31,22) inside pocket  A=OK 5 wp   B=OK 5 wp   E=OK 5 wp   F=OK 5 wp    arms agree
+
+  5 of 6 targets discriminate between the arms.
+
+----------------------------------------------------------------------------------------------
+MEASUREMENT 2 — how much of the escape route is fatal to a RE-PLAN?
+----------------------------------------------------------------------------------------------
+  `navigate_to` restarts a FRESH plan on a waypoint timeout (walking.py). If a
+  re-plan is taken while Steven is unloaded, it refuses and the leg dies. So: walk
+  the route the bot WOULD take, and ask the pessimistic question at every tile.
+
+  escape route (Steven loaded)          : 121 waypoints (121 on SOOTOPOLIS_CITY, 0 off-map/interior — not tested)
+  city waypoints where a RE-PLAN REFUSES: 89 of 121
+  first waypoint safe to re-plan from   : index 89 = (20, 36)
+  first 8 danger tiles                  : [(0, (31, 18)), (1, (31, 19)), (2, (31, 20)), (3, (31, 21)), (4, (30, 21)), (5, (29, 21)), (6, (28, 21)), (7, (27, 21))]
+  last danger tile                      : (88, (20, 35))
+
+----------------------------------------------------------------------------------------------
+MEASUREMENT 3 — how big is the sealed pocket? (spec's re-implementations say ~343)
+----------------------------------------------------------------------------------------------
+  in-bounds tiles queried: 3599
+  reachable from (31, 17) with nothing loaded: 347
+
+----------------------------------------------------------------------------------------------
+MEASUREMENT 4 — the intra-cave return, by production rather than by re-implementation
+----------------------------------------------------------------------------------------------
+  B1F      (9,14) -> (9,3)    OK 21 wp    matches
+  1F       (14,5) -> (11,17)  OK 24 wp    vs 23 re-impl STEPS (a step count is not a waypoint count)
+  ENTRANCE (9,5)  -> (9,20)   OK 16 wp    vs 15 re-impl STEPS (a step count is not a waypoint count)
+  --> intra-cave return total: 61 waypoints, across 3 warp transitions
+
+==============================================================================================
+READ THIS NARROWLY. Everything above is the PLANNER's answer, measured statically.
+Still UNMEASURED and needing the live driver: where the (9,20) warp actually lands
+(§4.11), whether `navigate_to` completes the walk, and the cave's encounter pressure
+(§4.10). A static OK is evidence the leg is worth driving; it is not the standard.
+==============================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-08-27_17-52-50.ss1 created!
+Updated `current_state.ss1`!

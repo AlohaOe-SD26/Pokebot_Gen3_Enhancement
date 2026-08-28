@@ -3480,3 +3480,47 @@ list length" form** the item offered — counting files inside a 4,000-char pros
 inference engine (the "when a predicate needs a third exemption, delete the predicate" lesson,
 pre-empted); the headline-vs-measurement compare needs no list parsing because `real_drift()`
 already knows the truth.
+
+---
+
+## 2026-08-27 — THE POCKET-EXIT QUESTION IS ANSWERED STATIC-FIRST, WITH PRODUCTION'S PLANNER AS THE ORACLE AND THE DRIVE RESERVED FOR WHAT STATIC CANNOT SEE
+
+**Decision.** Split §Ch21 leg 3's opening probe into two instruments instead of one drive:
+`probe_ch21_pocket_exit.py` (static, no emulation loop, seconds) answers everything that is a
+question about **the planner**, and `--driver ch21pocket` (live, ~4,200 frames) is spent only on
+what a static query provably cannot reach.
+
+**Why.** The build spec called the pocket exit *"the single largest un-measured risk in this whole
+area"* and every number in it was a **re-implementation** — three BFS models over the decomp
+binaries, agreeing to the tile. `#24-ch21anchor`'s own filing names the failure mode: *"every §Ch21
+measurement pays a full Ch20 drive (~25 min) before it starts, which is precisely the cost that
+makes people skip the measurement."* `calculate_path` answers about any `(map, tile)` pair off ROM
+layout data **without the player being on that map**, so the pocket question is seconds of queries.
+`probe_r116_east_grass.py` had already established that shape for "is this pocket reachable".
+
+**What that bought, and it is not a small list:** the pocket's size **347 tiles** measured by the
+oracle rather than a fourth re-implementation; the cause proven by **fault injection** (mark Steven
+loaded at his state-3 tile → the exit re-opens) rather than argued; and the **90-of-122 re-plan
+danger zone**, a number nobody had asked for and which a drive would not have produced at all — a
+green drive shows the walk works, not how much of it is one interruption away from stranding.
+
+**The rule this follows, and the one it adds.** Playbook §0d: *"before re-implementing production
+logic in a probe, check whether production already PUBLISHES the value."* Added here: ⛔ **a static
+counterfactual is only admissible if the rig is shown to reproduce a known LIVE reading** — CONTROL
+3 requires the injection rig to return the 98 waypoints `--driver ch21leg2probe` measured live, and
+`POKEBOT_POCKET_FAULT=rig` fault-tests that control both ways (red → the probe prints no
+measurements and exits 1).
+
+**Alternatives rejected.** (a) *Drive it and read the log* — would have answered "does the walk
+work" (yes) and left the mechanism, the pocket size and the danger zone unmeasured, which is the
+state the spec was already in. (b) *A fourth BFS re-implementation* — the project has measured that
+agreement between re-implementations is not a confidence signal, and one of the three already
+diverges from the bot on door tiles. (c) *Static only* — rejected, and the drive proved why: it
+returned the one fact no static source could, that the avatar **rests on (31,17), not the warp
+table's (31,16)**.
+
+**⚠ What this decision does NOT settle.** The recommended walk-out design (plan once at the resting
+tile; on a waypoint timeout walk back toward Steven at (32,18) to re-load him, then re-plan) is
+**UNBUILT AND UNPROVEN**. The two walk arms that were run measured **identical** output, so they did
+not discriminate between the safe and naive designs — that comparison still owes a forced-timeout
+fault arm before anyone may claim `follow_waypoints` is safer in practice.

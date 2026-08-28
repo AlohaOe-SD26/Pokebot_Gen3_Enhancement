@@ -1,0 +1,67 @@
+§Ch21 LEG 3 STEP 0 — THE POCKET-EXIT PROBE, LIVE HALF (--driver ch21pocket)
+Captured 2026-08-27 from saves/post_wallace.ss1 (PINNED: CAVE_OF_ORIGIN_B1F (9,14), state 3).
+Both arms of POKEBOT_CH21_POCKET_ARM. Raw harness logs are gitignored (they rot); this is
+the driver's own signal, which is what the docs cite. Re-run the commands in 04-HANDOFF.md.
+
+================ ARM: follow (plan once at the resting tile, never re-plan) ================
+[ch21pocket] PRE at=CAVE_OF_ORIGIN_B1F(9, 14) state=3 wallace_flag=True arm=follow
+[ch21pocket] L0 FAR ARM from B1F — objects loaded: [(255, (9, 14))] (player-only expected: True)
+[ch21pocket] L0 far (31, 17)->(43, 32) PathFindingError (expected: the pocket is SEALED when Steven is unloaded)
+[ch21pocket] L0 far (31, 17)->(29, 53) PathFindingError (expected: the pocket is SEALED when Steven is unloaded)
+[ch21pocket] L1 B1F->1F: landed CAVE_OF_ORIGIN_1F(14, 5) frames=228 encounters_so_far=0 (expected map CAVE_OF_ORIGIN_1F)
+[ch21pocket] L1 1F->ENTR: landed CAVE_OF_ORIGIN_ENTRANCE(9, 6) frames=1892 encounters_so_far=2 (expected map CAVE_OF_ORIGIN_ENTRANCE)
+[ch21pocket] L1 ENTR->CITY: landed SOOTOPOLIS_CITY(31, 17) frames=265 encounters_so_far=2 (expected map SOOTOPOLIS_CITY)
+[ch21pocket] ‼ L1/§4.11 RESTING TILE (LIVE): SOOTOPOLIS_CITY(31, 17) — warp-table target is (31, 16), MEASURED resting tile is (31, 17): MATCHES the measured expectation ⇒ ⛔ leg 3 keys on the RESTING tile, never on the warp target
+[ch21pocket] L3 objects loaded at the landing tile: [(255, (31, 17)), (1, (30, 18)), (7, (32, 18))]
+[ch21pocket] L3 steven(7) loaded=True (static prediction: loaded at (32,18), which OPENS the pocket)
+[ch21pocket] M-landing (31, 17)->(43, 32) OK 121 wp
+[ch21pocket] M-landing (31, 17)->(29, 53) OK 118 wp
+[ch21pocket] M-landing (31, 17)->(21, 36) OK 91 wp
+[ch21pocket] M-landing (31, 17)->(20, 36) OK 90 wp
+[ch21pocket] M-landing (31, 17)->(19, 37) PathFindingError
+[ch21pocket] M-landing (31, 17)->(31, 22) OK 5 wp
+[ch21pocket] L4 planned 121 waypoints at the landing tile, following them WITHOUT re-planning
+[ch21pocket] L4 arm=follow walked=True planned=121 end=SOOTOPOLIS_CITY(43, 32) frames=1624 controllable=True
+[ch21pocket] M-end (43, 32)->(43, 32) OK 0 wp
+[ch21pocket] M-end (43, 32)->(29, 53) OK 37 wp
+[ch21pocket] M-end (43, 32)->(21, 36) OK 30 wp
+[ch21pocket] M-end (43, 32)->(20, 36) PathFindingError
+[ch21pocket] M-end (43, 32)->(19, 37) PathFindingError
+[ch21pocket] M-end (43, 32)->(31, 22) PathFindingError
+[ch21pocket] L2/§4.10 ENCOUNTERS over the whole return: 2 (maps: ['(24, 38)', '(24, 38)']) — count it as pressure, never as a rate
+[ch21pocket] RESULT legs=['B1F->1F', '1F->ENTR', 'ENTR->CITY', 'L4'] landing=(31, 17) landing_ok=True walked_out=True end=SOOTOPOLIS_CITY(43, 32) encounters=2 whiteouts=0 frames=4009
+[ch21pocket] readings=['L0', 'M-end', 'M-landing'] missing=[] (the grade is DID EVERY READING HAPPEN, not did the walk succeed)
+[ch21pocket] ACCEPTANCE: PASS
+
+================ ARM: navigate (naive single navigate_to) ================
+[ch21pocket] PRE at=CAVE_OF_ORIGIN_B1F(9, 14) state=3 wallace_flag=True arm=navigate
+[ch21pocket] L0 FAR ARM from B1F — objects loaded: [(255, (9, 14))] (player-only expected: True)
+[ch21pocket] L0 far (31, 17)->(43, 32) PathFindingError (expected: the pocket is SEALED when Steven is unloaded)
+[ch21pocket] L0 far (31, 17)->(29, 53) PathFindingError (expected: the pocket is SEALED when Steven is unloaded)
+[ch21pocket] L1 B1F->1F: landed CAVE_OF_ORIGIN_1F(14, 5) frames=228 encounters_so_far=0 (expected map CAVE_OF_ORIGIN_1F)
+[ch21pocket] L1 1F->ENTR: landed CAVE_OF_ORIGIN_ENTRANCE(9, 6) frames=1892 encounters_so_far=2 (expected map CAVE_OF_ORIGIN_ENTRANCE)
+[ch21pocket] L1 ENTR->CITY: landed SOOTOPOLIS_CITY(31, 17) frames=265 encounters_so_far=2 (expected map SOOTOPOLIS_CITY)
+[ch21pocket] ‼ L1/§4.11 RESTING TILE (LIVE): SOOTOPOLIS_CITY(31, 17) — warp-table target is (31, 16), MEASURED resting tile is (31, 17): MATCHES the measured expectation ⇒ ⛔ leg 3 keys on the RESTING tile, never on the warp target
+[ch21pocket] L3 objects loaded at the landing tile: [(255, (31, 17)), (1, (30, 18)), (7, (32, 18))]
+[ch21pocket] L3 steven(7) loaded=True (static prediction: loaded at (32,18), which OPENS the pocket)
+[ch21pocket] M-landing (31, 17)->(43, 32) OK 121 wp
+[ch21pocket] M-landing (31, 17)->(29, 53) OK 118 wp
+[ch21pocket] M-landing (31, 17)->(21, 36) OK 91 wp
+[ch21pocket] M-landing (31, 17)->(20, 36) OK 90 wp
+[ch21pocket] M-landing (31, 17)->(19, 37) PathFindingError
+[ch21pocket] M-landing (31, 17)->(31, 22) OK 5 wp
+[ch21pocket] L4 arm=navigate walked=True planned=None end=SOOTOPOLIS_CITY(43, 32) frames=1624 controllable=True
+[ch21pocket] M-end (43, 32)->(43, 32) OK 0 wp
+[ch21pocket] M-end (43, 32)->(29, 53) OK 37 wp
+[ch21pocket] M-end (43, 32)->(21, 36) OK 30 wp
+[ch21pocket] M-end (43, 32)->(20, 36) PathFindingError
+[ch21pocket] M-end (43, 32)->(19, 37) PathFindingError
+[ch21pocket] M-end (43, 32)->(31, 22) PathFindingError
+[ch21pocket] L2/§4.10 ENCOUNTERS over the whole return: 2 (maps: ['(24, 38)', '(24, 38)']) — count it as pressure, never as a rate
+[ch21pocket] RESULT legs=['B1F->1F', '1F->ENTR', 'ENTR->CITY', 'L4'] landing=(31, 17) landing_ok=True walked_out=True end=SOOTOPOLIS_CITY(43, 32) encounters=2 whiteouts=0 frames=4009
+[ch21pocket] readings=['L0', 'M-end', 'M-landing'] missing=[] (the grade is DID EVERY READING HAPPEN, not did the walk succeed)
+[ch21pocket] ACCEPTANCE: PASS
+
+‼ THE TWO ARMS MEASURED IDENTICAL (frames=1624 walk, 4009 total, encounters=2). With
+  nothing forcing a re-plan they are the same code path, so this A/B is NOT discriminating
+  and must not be quoted as one. The 89-of-121 danger zone is a TAIL risk no run has hit.

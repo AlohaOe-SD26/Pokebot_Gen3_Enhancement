@@ -18695,3 +18695,80 @@ description still carried its REFUTED filing; **KI-81's header claimed per-fork 
 `{31, 36}` that the shipped gate contradicts (`{23, 23}` since 2026-08-24)** and KI-67 deflected
 readers to that stale header in the present tense; `14-AGENT-PLAYBOOK` §2c pointed at a section
 archived out of `04` and its instrument table never listed `advise_on_diff.py`.
+
+---
+
+## 2026-08-27 — §Ch21 LEG 3 STEP 0: THE POCKET EXIT IS MEASURED (static + live), AND THE WARP TABLE'S ANSWER WAS THE WRONG ANSWER TO THE RIGHT QUESTION
+
+The handoff queue opened leg 3 with **"THE POCKET-EXIT PROBE, NOT A BUILD"** — the walk back out of
+the Sootopolis pocket, which the leg-2 build spec (§3.4/§4.11/§5) called *"the single largest
+un-measured risk in this whole area"*. Every number in that section was a **re-implementation**
+(three BFS models agreeing to the tile) and none had ever been asked of `calculate_path`.
+
+**NEW: `tools/story-dev/probe_ch21_pocket_exit.py`** — static, seconds, no emulation loop, four
+controls (C0 the ROM warp scan sees a documented warp; C1 the planner answers on the player's map;
+C2 it answers about a map the player is *not* on; **C3 the fault-injection rig reproduces the 98 wp
+that `--driver ch21leg2probe` measured LIVE**). ‼ C3 is **fault-tested**: `POKEBOT_POCKET_FAULT=rig`
+breaks the rig on purpose, C3 goes red, the probe refuses to print a single measurement and exits 1.
+
+**NEW: `--driver ch21pocket`** (`Ch21PocketExitMode`) — the live half, `ACCEPTANCE: PASS`, 4,166
+frames. Two arms (`POKEBOT_CH21_POCKET_ARM=follow|navigate`).
+
+**⛔⛔ THE FINDING THAT ONLY A DRIVE COULD BUY — A WARP TABLE GIVES THE WARP *EVENT* TILE, NOT WHERE
+THE AVATAR COMES TO REST.** `Entrance (9,20)` targets `SOOTOPOLIS_CITY (31,16)` — our ROM reader and
+the decomp agree, and **both answer a different question**. The avatar rests on **(31,17)**. Same
+one-south door-exit step on `1F (11,17) → Entrance (9,5)`, where it rests on **(9,6)**; `B1F (9,3) →
+1F (14,5)` has no step. ⇒ **§4.11 is answered and its answer is (31,17)**; leg 3 must key on the
+measured resting tile, and hard-coding the warp target is wrong by one tile, silently.
+
+**THE POCKET, PROVEN BY FAULT INJECTION rather than by re-implementation** (production's own planner
+is the oracle): from the landing tile with nothing loaded, `(43,31)`/`(29,53)`/`(21,36)` all refuse,
+symmetrically; marking Steven (local_id 7) loaded at **(32,18)** re-opens all three. **Pocket size
+347 tiles** (the re-implementations said ~343 — first confirmation from the oracle, and it retires
+the stale "52-tile island"). It is **one connected component** — from the deepest point the same 347
+are reachable ⇒ an interrupted walk is **stranded but alive**, not a hard error.
+
+**‼‼ THE RE-PLAN DANGER ZONE IS 89 OF 121 CITY WAYPOINTS (74%)**, first safe waypoint = index 89 =
+**(20,36)** itself. The spec's *"a re-plan more than ~9 tiles from Steven refuses"* is far too
+optimistic. **The walk SUCCEEDS AND THE BOT CAN CONTINUE**: 121 wp from (31,17) to the Poke Center
+FRONT tile **(43,32)**, 1,624 frames, `whiteouts=0`, and from there **(29,53) — the dive tile leg 3
+needs — is 37 wp**. Steven **(32,18)** and the Expert **(30,18)** sighted live for the first time.
+Static and live agree tile-for-tile (121/118/91/90 and `(19,37)` REFUSED in both).
+
+**✅✅ NEW, AND ONLY THE DRIVE COULD SEE IT: THE POCKET RE-SEALS BEHIND THE BOT.** The same matrix
+re-taken from the END tile (43,32), with Steven now out of camera range, refuses `(31,22)`,
+`(20,36)` and `(19,37)` while still reaching `(29,53)`/`(21,36)`. ⇒ **leg 3 gets ONE attempt at the
+crossing per visit.** And the **live "nothing loaded" arm is now taken for free on B1F**
+(`get_map_objects()` == `[(255,(9,14))]`, both city targets raise) — the near arm alone is
+*guaranteed* to say "open" and proves nothing without it.
+
+**THREE DEFECTS IN THE FIRST VERSION OF THIS DRIVER, ALL FOUND BY ADVERSARIAL REVIEW, ALL FIXED:**
+(1) it graded the landing against the warp tile (31,16) and so printed `landing_ok=False` on a
+**correct** run; (2) it walked to (43,31) — the Poke Center **door**, a warp — so the run ended
+*inside the building*, which silently skipped the "and the bot can continue" matrix **while
+ACCEPTANCE still printed PASS** (the §Ch15/18/19 false-pass shape exactly); (3) ACCEPTANCE counted
+`legs_done`, which appended `"L4"` unconditionally. The grade now **enumerates the readings that
+actually happened** (`readings=[...] missing=[...]`) and fails on a whiteout, which is also newly
+latched via `on_whiteout` — a whiteout would otherwise have turned every reading into a measurement
+of the respawn point.
+
+**⚠ BOTH WALK ARMS MEASURED IDENTICAL (1,781 frames each) — THE A/B IS NOT DISCRIMINATING AND IS NOT
+QUOTED AS ONE.** `navigate_to` wraps the same waypoint walk, so with nothing forcing a re-plan the
+two designs are one code path. The prediction was filed in the driver docstring **before** the run
+and held. ⇒ the danger is a **tail** risk; a green run is not evidence the naive design is safe.
+Neither primitive RECOVERS. The recommended "plan once, and on timeout walk back toward (32,18) to
+re-load Steven" is a **RECOMMENDATION, unbuilt and unproven** — recorded as such, not as a result.
+
+**§4.10 ANSWERED: 2 encounters over the 61-wp return, both on `CAVE_OF_ORIGIN_1F`.** ⛔ **B1F has no
+wild-encounter header — zero encounters are possible there.** Counted via the `on_battle_started`
+**hook** (`_listeners.py:108`, called unconditionally), never by polling: a driver generator gets no
+frames during a battle, so a poll could never have answered positive.
+
+**FIXED — a docstring that claimed work that was never written:** `Ch21CaveMode`'s docstring said it
+reports *"the wild-encounter count across the descent (spec §4.10)"*. **No such code was ever
+written**, which is exactly why §4.10 stayed open while a reader believed it was covered.
+
+**Intra-cave return by production:** 21 / 24 / 16 wp = **61 wp + 3 warps** (the spec's 21/23/15 were
+*step* counts — these agree). Docs: `12-STORYMODE-DESIGN.md` §Ch21 ATLAS gains a LEG 3 STEP 0
+section. Evidence: `evidence/2026-08-27-ch21-pocket-exit-probe.stdout.txt`,
+`evidence/2026-08-27-ch21-pocket-LIVE-drive.stdout.txt` (both arms).

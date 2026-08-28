@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -9244,7 +9244,9 @@ class Ch21CaveMode(BotMode):
     `SOOTOPOLIS_CITY_STATE == 3` AND `WALLACE_GOES_TO_SKY_PILLAR` — never Wallace's absence,
     never the chapter flag. Also REPORTS: the end tile (the script has `release`, NO warp — the
     bot stays on B1F), whether Wallace's object is gone (expected — `removeobject` hides him
-    permanently), the wild-encounter count across the descent (spec §4.10), and the frame cost.
+    permanently) and the frame cost. ⚠ It does NOT count wild encounters: an earlier version of
+    this line claimed it did (spec §4.10) and no such code was ever written, which is why §4.10
+    stayed OPEN. `--driver ch21pocket` counts them properly, via the `on_battle_started` hook.
 
     Fault arm (spec §4.9): POKEBOT_CH21_FAULT_WRONGANSWER=1 answers index 0 once — proves the
     wrong-answer RE-ARM is detected (attempt 2) and recovered to state 3.
@@ -9311,6 +9313,263 @@ class Ch21CaveMode(BotMode):
                 log(f"[{TAG}] CAPTURE WROTE {_out.name} ({_out.stat().st_size} bytes) at {at} "
                     f"— ‼ verify with probe_anchor_inventory.py, not this line")
 
+        context.set_manual_mode()
+
+
+class Ch21PocketExitMode(BotMode):
+    """§Ch21 LEG 3, STEP 0 — THE POCKET-EXIT PROBE. A MEASUREMENT, NOT A BUILD.
+
+    ‼ The handoff queue opens leg 3 with this probe because spec §3.4/§5 call the walk back out
+    of the Sootopolis pocket "the single largest un-measured risk in this whole area". The STATIC
+    half is already settled by `probe_ch21_pocket_exit.py` (run it first — it is seconds, this is
+    minutes) with four passing controls:
+      * the (9,20) exit warp lands on SOOTOPOLIS_CITY (31,16)   [ROM warp table, control-checked]
+      * from (31,16) with NOTHING loaded the pocket is SEALED   [(43,31)/(29,53)/(21,36) refuse]
+      * marking Steven loaded at his state-3 tile (32,18) OPENS it, 123 wp to the Poke Center
+      * 90 of the 122 city waypoints on that route are RE-PLAN-FATAL — a forced re-plan taken
+        anywhere in the first 90 refuses, and the first safe waypoint is (20,36) itself.
+
+    ⇒ WHAT ONLY A DRIVE CAN ADD, and therefore all this probe is for:
+      L1  §4.11 LIVE — does the (9,20) warp really land the AVATAR on (31,16)? (ROM-read, never
+          observed; the spec calls it "leg 3's first fact".)
+      L2  §4.10 — wild-encounter pressure over the 61-waypoint return. Counted via the
+          `on_battle_started` HOOK, not by polling: a driver generator does not get frames during
+          a battle, so a poll could never have answered positive (playbook §0b Q4).
+      L3  the LIVE optimistic arm — standing on (31,16), with Steven genuinely loaded at (32,18),
+          does `calculate_path` out of the pocket succeed, and at what cost?
+      L4  does the walk-out actually COMPLETE? ⛔ It is driven with `follow_waypoints` over a
+          path computed ONCE, never `navigate_to`: `navigate_to`'s outer loop restarts a FRESH
+          plan on a waypoint timeout, and a fresh plan taken inside the danger zone refuses.
+          That choice is the whole point of the measurement — see `POKEBOT_CH21_POCKET_ARM`.
+
+    ARMS (`POKEBOT_CH21_POCKET_ARM`, default `follow`):
+      follow    compute once at (31,16), then `follow_waypoints` — the SAFE design under test.
+      navigate  a single `navigate_to(SOOTOPOLIS_CITY, (43,31))` — the NAIVE design. Kept so the
+                two designs can be compared on the same fixture. ⚠ Expected to work MOST of the
+                time (nothing forces a re-plan on a clean run), so a PASS here is NOT evidence
+                the naive design is safe — the danger is a tail risk, and one trajectory is a
+                determinism check, never a replication.
+
+    ⚠ HONEST PRIOR, recorded so a PASS is not over-read: this walk has ALREADY been done live
+    once, by accident. The escort-v1 bug (2026-08-27) rode past its bail, pathed back through the
+    (9,20) warp and ended at SOOTOPOLIS_CITY (20,37) — the far side of the choke — at state 2,
+    where `SetEnterCaveOfOriginObjPos` has placed Steven identically to state 3. Its route was
+    never logged, so it corroborates rather than proves.
+
+    ACCEPTANCE = the preconditions hold (else the run is VACUOUS and says so) AND every leg
+    EXECUTED to a reading. ⛔ A reading that contradicts a prediction is a RESULT, never a driver
+    failure — reality cannot fail a probe; only not-measuring can.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_wallace.ss1 --driver ch21pocket
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch21PocketExit"
+
+    def __init__(self):
+        super().__init__()
+        # ‼ INSTRUMENT THE ACTION, NOT THE INPUT. This counts battles the game actually STARTED.
+        self.encounters = 0
+        self.encounter_maps: list[str] = []
+        # ⛔ A WHITEOUT WOULD SILENTLY CONVERT THIS PROBE INTO A MEASUREMENT OF THE RESPAWN POINT
+        # — the landing/pocket readings would then describe a Poke Center, not the cave exit, and
+        # every number below would be about the wrong place. Latch it and FAIL on it.
+        self.whiteouts = 0
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts += 1
+        log("[ch21pocket] ‼ WHITEOUT — every reading after this point is about the RESPAWN "
+            "point, not the cave exit. ACCEPTANCE fails on this.")
+        return False
+
+    def on_battle_started(self, encounter):
+        self.encounters += 1
+        try:
+            from modules.player import get_player_avatar
+
+            self.encounter_maps.append(str(tuple(get_player_avatar().map_group_and_number)))
+        except Exception:  # noqa: BLE001 - the count is what matters; the map is a nicety
+            self.encounter_maps.append("?")
+        return super().on_battle_started(encounter)
+
+    def run(self):
+        from modules.map import get_map_objects
+        from modules.map_data import MapRSE
+        from modules.map_path import calculate_path
+        from modules.memory import get_event_flag, get_event_var
+        from modules.modes.util.walking import follow_waypoints, navigate_to
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+        TAG = "ch21pocket"
+        ARM = _os.environ.get("POKEBOT_CH21_POCKET_ARM", "follow").strip() or "follow"
+        WARP_TARGET = (31, 16)   # the warp EVENT tile, per the ROM table and the decomp
+        LANDING = (31, 17)       # ⛔ where the avatar RESTS — MEASURED 2026-08-27. v1 graded on
+                                 # WARP_TARGET and therefore printed `landing_ok=False` on a
+                                 # perfectly CORRECT run; an adversarial review caught it.
+        PC_FRONT = (43, 32)      # ⛔ NOT (43,31): that is the Poke Center DOOR, a warp tile, and
+                                 # `calculate_path` follows a warp when it IS the destination — so
+                                 # v1 ended INSIDE the building, which silently skipped the
+                                 # "and the bot can continue" check while ACCEPTANCE still said PASS.
+        legs_done: list[str] = []
+        readings: list[str] = []
+
+        def where() -> tuple[str, tuple[int, int]]:
+            avatar = get_player_avatar()
+            try:
+                name = MapRSE(tuple(avatar.map_group_and_number)).name
+            except Exception:  # noqa: BLE001
+                name = f"UNKNOWN{tuple(avatar.map_group_and_number)}"
+            return name, tuple(avatar.local_coordinates)
+
+        def matrix(label: str, source: tuple[int, int] | None = None) -> None:
+            # ‼ THE CUT TILES ARE TARGETS ON PURPOSE: without them a refusal cannot be ATTRIBUTED.
+            # `source` may be pinned so two matrices differ in ONE variable (loadedness), not two.
+            at = source if source is not None else where()[1]
+            readings.append(f"M-{label}")
+            for target in [PC_FRONT, (29, 53), (21, 36), (20, 36), (19, 37), (31, 22)]:
+                try:
+                    path = calculate_path((MapRSE.SOOTOPOLIS_CITY, at),
+                                          (MapRSE.SOOTOPOLIS_CITY, target))
+                    log(f"[{TAG}] M-{label} {at}->{target} OK {len(path)} wp")
+                except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                    log(f"[{TAG}] M-{label} {at}->{target} {type(error).__name__}")
+
+        yield from wait_until_truly_controllable()
+
+        # ---- PRECONDITIONS (anti-vacuity: a probe on the wrong era measures nothing) ----
+        here, at = where()
+        state = get_event_var("SOOTOPOLIS_CITY_STATE")
+        wallace = get_event_flag("WALLACE_GOES_TO_SKY_PILLAR")
+        log(f"[{TAG}] PRE at={here}{at} state={state} wallace_flag={wallace} arm={ARM}")
+        if here != "CAVE_OF_ORIGIN_B1F" or state != 3 or not wallace:
+            log(f"[{TAG}] ‼ VACUOUS: fixture is not leg 3's premise (expected CAVE_OF_ORIGIN_B1F, "
+                f"state 3, WALLACE_GOES_TO_SKY_PILLAR set)")
+            log(f"[{TAG}] ACCEPTANCE: FAIL")
+            context.set_manual_mode()
+            return
+
+        frame0 = context.emulator.get_frame_count()
+
+        # ‼ THE PESSIMISTIC ARM, TAKEN FOR FREE BEFORE WE LEAVE. Standing on B1F, NO Sootopolis
+        # object can be camera-loaded, so this is the "nothing loaded" regime the static probe
+        # models — measured here rather than assumed. An adversarial review pointed out that the
+        # near-arm ALONE is guaranteed to say "the pocket is open" and so proves nothing on its own.
+        pre = [(o.local_id, tuple(o.current_coords)) for o in get_map_objects()]
+        log(f"[{TAG}] L0 FAR ARM from B1F — objects loaded: {pre} "
+            f"(player-only expected: {len(pre) == 1})")
+        for target in [PC_FRONT, (29, 53)]:
+            try:
+                n = len(calculate_path((MapRSE.SOOTOPOLIS_CITY, LANDING),
+                                       (MapRSE.SOOTOPOLIS_CITY, target)))
+                log(f"[{TAG}] L0 far {LANDING}->{target} OK {n} wp — ‼ UNEXPECTED: the pocket "
+                    f"reads OPEN with nothing loaded")
+            except Exception as error:  # noqa: BLE001 - the refusal IS the expected reading
+                log(f"[{TAG}] L0 far {LANDING}->{target} {type(error).__name__} "
+                    f"(expected: the pocket is SEALED when Steven is unloaded)")
+        readings.append("L0")
+
+        # ---- L1/L2 — the intra-cave return, one warp at a time. `calculate_path` does NOT span
+        # maps (measured: it raises "Source and destination are ..."), so this MUST be per-map.
+        # Static waypoint counts, for comparison: 21 / 24 / 16.
+        for label, src_map, warp_tile, want_map in [
+            ("B1F->1F", MapRSE.CAVE_OF_ORIGIN_B1F, (9, 3), "CAVE_OF_ORIGIN_1F"),
+            ("1F->ENTR", MapRSE.CAVE_OF_ORIGIN_1F, (11, 17), "CAVE_OF_ORIGIN_ENTRANCE"),
+            ("ENTR->CITY", MapRSE.CAVE_OF_ORIGIN_ENTRANCE, (9, 20), "SOOTOPOLIS_CITY"),
+        ]:
+            before = context.emulator.get_frame_count()
+            try:
+                yield from _navigate_riding_out(src_map, warp_tile, tries=6)
+            except Exception as error:  # noqa: BLE001 - a failure is a RESULT
+                log(f"[{TAG}] ‼ LEG {label} FAILED: {type(error).__name__}: {str(error)[:300]}")
+                log(f"[{TAG}] ACCEPTANCE: FAIL")
+                context.set_manual_mode()
+                return
+            name, tile = where()
+            spent = context.emulator.get_frame_count() - before
+            log(f"[{TAG}] L1 {label}: landed {name}{tile} frames={spent} "
+                f"encounters_so_far={self.encounters} (expected map {want_map})")
+            legs_done.append(label)
+            if name != want_map:
+                log(f"[{TAG}] ‼ L1 {label} landed on the WRONG MAP — stopping; the readings above "
+                    f"stand, the ones below are not run")
+                log(f"[{TAG}] ACCEPTANCE: FAIL")
+                context.set_manual_mode()
+                return
+
+        # ---- §4.11, LIVE. The tile the ROM warp table says is (31,16), never before observed. ----
+        name, landed = where()
+        # ⛔ A WARP TABLE GIVES THE WARP *EVENT* TILE, NOT WHERE THE AVATAR COMES TO REST.
+        # Measured 2026-08-27: two of the three return warps auto-step the player one tile clear
+        # of the doorway ((9,5)->rests (9,6); (31,16)->rests (31,17)) while B1F->1F does not
+        # ((14,5) exactly). So a MISMATCH here is NOT the ROM read being wrong — it is the
+        # door-exit step, and it is exactly the fact no table or decomp JSON can supply.
+        log(f"[{TAG}] ‼ L1/§4.11 RESTING TILE (LIVE): {name}{landed} — warp-table target is "
+            f"{WARP_TARGET}, MEASURED resting tile is {LANDING}: "
+            f"{'MATCHES the measured expectation' if landed == LANDING else 'DIFFERS FROM BOTH — re-measure'}"
+            f" ⇒ ⛔ leg 3 keys on the RESTING tile, never on the warp target")
+
+        # ---- L3 — the LIVE optimistic arm: is the pocket open with Steven genuinely loaded? ----
+        objects = [(o.local_id, tuple(o.current_coords)) for o in get_map_objects()]
+        log(f"[{TAG}] L3 objects loaded at the landing tile: {objects}")
+        log(f"[{TAG}] L3 steven(7) loaded={any(lid == 7 for lid, _ in objects)} "
+            f"(static prediction: loaded at (32,18), which OPENS the pocket)")
+        matrix("landing", source=landed)
+
+        # ---- L4 — does the walk out COMPLETE? ----
+        walked = False
+        planned = None
+        before = context.emulator.get_frame_count()
+        try:
+            if ARM == "navigate":
+                yield from navigate_to(MapRSE.SOOTOPOLIS_CITY, PC_FRONT)
+            else:
+                # ⛔ COMPUTE ONCE, HERE, WHERE STEVEN IS LOADED — then follow it blind.
+                # `follow_waypoints` raises on a per-waypoint timeout but NEVER re-plans, which is
+                # exactly the property the 90-waypoint danger zone requires.
+                path = calculate_path((MapRSE.SOOTOPOLIS_CITY, landed),
+                                      (MapRSE.SOOTOPOLIS_CITY, PC_FRONT))
+                planned = len(path)
+                log(f"[{TAG}] L4 planned {planned} waypoints at the landing tile, "
+                    f"following them WITHOUT re-planning")
+                yield from follow_waypoints(path)
+            walked = True
+        except Exception as error:  # noqa: BLE001 - a failure is the RESULT this probe exists for
+            log(f"[{TAG}] ‼ L4 WALK-OUT FAILED ({ARM}): {type(error).__name__}: {str(error)[:300]}")
+
+        name, final = where()
+        spent = context.emulator.get_frame_count() - before
+        log(f"[{TAG}] L4 arm={ARM} walked={walked} planned={planned} end={name}{final} "
+            f"frames={spent} controllable={player_avatar_is_controllable()}")
+        legs_done.append("L4")
+
+        # ---- and can it CONTINUE? (the §Ch15/18/19 rule: a leg that ends stranded still passes
+        # its own test unless you ask for a REAL path off the end tile) ----
+        if name == "SOOTOPOLIS_CITY":
+            matrix("end")
+        else:
+            log(f"[{TAG}] ‼ M-end NOT RUN — the run ended on {name}, not SOOTOPOLIS_CITY, so the "
+                f"'can it continue?' question cannot be asked here. This is a MISSING READING, and "
+                f"ACCEPTANCE below fails on it rather than passing in silence.")
+
+        total = context.emulator.get_frame_count() - frame0
+        log(f"[{TAG}] L2/§4.10 ENCOUNTERS over the whole return: {self.encounters} "
+            f"(maps: {self.encounter_maps}) — count it as pressure, never as a rate")
+        log(f"[{TAG}] RESULT legs={legs_done} landing={landed} landing_ok={landed == LANDING} "
+            f"walked_out={walked} end={name}{final} encounters={self.encounters} "
+            f"whiteouts={self.whiteouts} frames={total}")
+        # ⛔ THE GRADE ENUMERATES THE READINGS THAT ACTUALLY HAPPENED. v1 counted `legs_done`,
+        # which appended "L4" unconditionally — so it passed even when the end-matrix was silently
+        # skipped because the bot had walked into a building. A grade must assert something the run
+        # does not already satisfy.
+        required = {"L0", "M-landing", "M-end"}
+        got = set(readings)
+        missing = sorted(required - got)
+        ok = not missing and len(legs_done) >= 3 and self.whiteouts == 0
+        log(f"[{TAG}] readings={sorted(got)} missing={missing} "
+            f"(the grade is DID EVERY READING HAPPEN, not did the walk succeed)")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'}")
         context.set_manual_mode()
 
 
@@ -10722,6 +10981,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch21EscortMode()
         elif args.driver == "ch21cave":
             context.bot_mode_instance = Ch21CaveMode()
+        elif args.driver == "ch21pocket":
+            context.bot_mode_instance = Ch21PocketExitMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":
