@@ -9851,8 +9851,9 @@ which warps step and which do not.
 so in those words, rather than calling the mismatch "the ROM read was wrong" — the first version of that
 log line drew exactly that wrong conclusion and would have sent a reader to re-audit a correct reader.
 
-**Prevention rule.** ⛔ **Never take a post-warp position from a warp table or the decomp — MEASURE THE
-RESTING TILE.** Agreement between two static sources is not a second opinion when both are computing the
+**Prevention rule — NOW ENFORCED, NOT MERELY WRITTEN: `advise_on_diff.py` rule `R-WARPREST`**
+(fault-tested T41/T42; verified firing on this very commit's diff). ⛔ **Never take a post-warp
+position from a warp table or the decomp — MEASURE THE RESTING TILE.** Agreement between two static sources is not a second opinion when both are computing the
 same quantity; it is the same answer twice. *(This is the measured "agreement is not a confidence signal"
 rule in a new dress: the two sources shared not a misconception but a DEFINITION.)*
 
@@ -9883,9 +9884,9 @@ made-up coordinate. It was caught by an independent recon agent reading the deco
 own control, because C0 only asks *"did you find the warp we already know about?"* — and it had.
 ⇒ **A positive control proves a scan is not BLIND; it says nothing about whether the scan is
 OVER-REPORTING.** Fixed by bounding every scan with the map's real `map_size`.
-⛔ **Prevention rule: bound a coordinate scan by the map's measured dimensions, never by a round
-number — and when a scan can over-report, give it a control with an expected COUNT, not just an
-expected member.**
+⛔ **Prevention rule — NOW ENFORCED: `advise_on_diff.py` rule `R-SCANBOUND`** (fault-tested
+T43/T44). Bound a coordinate scan by the map's measured dimensions, never by a round number — and
+when a scan can over-report, give it a control with an expected COUNT, not just an expected member.**
 
 **Prevention rule.** ⛔ **Before reporting a per-tile flag as a map-level property, find the code that
 CONSUMES it.** And when the same session has a live run available, let the run's event hook produce the
@@ -9913,3 +9914,35 @@ stayed open, and point at `--driver ch21pocket` which does. The count now comes 
 body for X before believing it, and before writing it.** This is the P2 "headline carries the caveat"
 pair one level down: the pair is *docstring ↔ its own function*, and it is invisible to every doc gate
 because it lives in code.
+
+---
+
+## 2026-08-27 — MY PROBE DRIVER PRINTED `ACCEPTANCE: PASS` WHILE A WHOLE READING HAD BEEN SILENTLY SKIPPED — THE §Ch15/18/19 SHAPE, AGAIN, IN NEW CLOTHES
+
+**Symptom.** `--driver ch21pocket` v1 reported `ACCEPTANCE: PASS`. It had not run its end-of-run
+"can the bot continue?" matrix at all. The guard read `if name == "SOOTOPOLIS_CITY": matrix("end")`
+and the run ended on `SOOTOPOLIS_CITY_POKEMON_CENTER_1F` — so the branch simply did not fire, and
+nothing said so. An adversarial reviewer found it; no test did.
+
+**Root cause, and it is TWO independent faults that lined up.**
+1. **The walk target was a DOOR.** `(43,31)` is the Poké Center's warp tile, and `calculate_path`
+   FOLLOWS a warp when the warp IS the destination (`map_path.py`'s destination-warp exception).
+   So "walk to the Poké Center" put the bot INSIDE the building, off the city map.
+2. **The grade counted steps, not readings.** `passed = len(legs_done) >= 4`, while
+   `legs_done.append("L4")` ran unconditionally — including on the failure path. A grade computed
+   from a list you always append to cannot fail for the reason you care about.
+
+**The fix that worked.** Target `(43,32)`, the tile in FRONT of the door, and assert it is not a
+warp. Then make the grade ENUMERATE the readings that actually happened
+(`required = {"L0","M-landing","M-end"}; missing = required - got`) and fail on `missing`, plus a
+newly latched `on_whiteout` (a whiteout would have turned every reading into a measurement of the
+respawn point). The re-run ends on `SOOTOPOLIS_CITY(43,32)`, the end-matrix runs, and it proves the
+continuation: `(29,53)` — leg 3's dive tile — is 37 wp away.
+
+**Prevention rule — NOW ENFORCED: `advise_on_diff.py` rule `R-ACCEPTGRADE`** (fault-tested T45/T46;
+verified firing on this commit's own diff). ⛔ **A grade must enumerate the READINGS THAT HAPPENED,
+never count steps appended unconditionally — and it must include "and the bot can CONTINUE", a real
+`calculate_path` off the END tile.** ‼ **And never walk to a DOOR tile to prove you arrived
+somewhere: a path to a door ends inside the building.** *(§Ch15 ended four floors underground,
+§Ch18 on an eleven-tile island, §Ch19 in a living room — all three PASSED their own tests. This is
+the fourth instance, and the first one caught before it shipped.)*

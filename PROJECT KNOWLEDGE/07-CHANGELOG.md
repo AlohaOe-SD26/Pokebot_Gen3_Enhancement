@@ -18772,3 +18772,35 @@ written**, which is exactly why §4.10 stayed open while a reader believed it wa
 *step* counts — these agree). Docs: `12-STORYMODE-DESIGN.md` §Ch21 ATLAS gains a LEG 3 STEP 0
 section. Evidence: `evidence/2026-08-27-ch21-pocket-exit-probe.stdout.txt`,
 `evidence/2026-08-27-ch21-pocket-LIVE-drive.stdout.txt` (both arms).
+
+---
+
+## 2026-08-27 — THE DAY'S THREE MEASURED MISTAKES ARE NOW GATES, NOT PROSE (`advise_on_diff.py` +3 rules)
+
+The standing rule is *"anything enforceable belongs in a GATE, not in prose here — a rule already
+broken is evidence that prose failed."* Today produced three mistakes whose shapes are mechanically
+detectable in a diff, so they were written as `advise_on_diff.py` rules rather than as more text
+nobody re-reads. All three are ADVISORY (the tool exits 0 either way and fires at `git commit` via
+the fail-open PreToolUse hook), fault-tested BOTH ways, and — the part that matters — **verified
+firing on this very day's real commit `a1b5e91b`**, i.e. they would have caught the three mistakes
+as they were being made.
+
+* **`R-WARPREST`** — fires on `warps_to` / `dest_warp` / `destination_location`. ⛔ A warp table
+  gives the warp EVENT tile, not where the avatar RESTS: `(9,20)` targets `(31,16)` and the avatar
+  rests on `(31,17)`; `1F (11,17)` targets `(9,5)` and rests on `(9,6)`; `B1F (9,3)` does not step
+  at all. Per-warp, encoded nowhere. Tests T41/T42.
+* **`R-SCANBOUND`** — fires on `for x/y in range(`. ⛔ Bound coordinate scans by the map's real
+  `map_size`: tile lookup is a FLAT index, so an out-of-bounds x WRAPS and reports phantom
+  coordinates (a 40×40 scan on a 19-wide map double-reported every warp). ‼ Carries the sharper
+  half of the lesson too: a positive control proves a scan is not BLIND and says nothing about
+  OVER-reporting — give such a control an expected COUNT, not just an expected member.
+  Tests T43/T44.
+* **`R-ACCEPTGRADE`** — fires on `ACCEPTANCE`. ⛔ A grade must enumerate the readings that actually
+  happened, never count steps appended unconditionally; and it must include *"and the bot can
+  CONTINUE"* — a real `calculate_path` off the END tile. ‼ And never walk to a DOOR tile to prove
+  arrival: a path to a door ends INSIDE the building, which is how a driver skipped its whole
+  end-matrix while printing PASS. Tests T45/T46.
+
+`--self-test` now runs **40 checks** and enforces its own completeness: the T25 meta-check compares
+the rule set against the registered positive-test set, and it **caught all three new rules shipping
+untested** before they landed. `08-MISTAKES.md`'s three prevention rules now name their gate.

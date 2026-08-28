@@ -173,6 +173,61 @@ RULES: tuple[Rule, ...] = (
         ),
     ),
     Rule(
+        rule_id="R-WARPREST",
+        headline="a warp destination / landing coordinate was read or asserted",
+        kind="code",
+        pattern=re.compile(r"(warps_to|destination_warp|dest_warp|destination_location)"),
+        advice=(
+            "⛔ A WARP TABLE GIVES THE WARP *EVENT* TILE, NOT WHERE THE AVATAR COMES TO "
+            "REST. MEASURED 2026-08-27: `CaveOfOrigin_Entrance (9,20)` targets "
+            "`SOOTOPOLIS_CITY (31,16)` in BOTH our ROM reader and the decomp — and the avatar "
+            "rests on (31,17). Same one-tile door-exit step on `1F (11,17) -> Entrance` "
+            "(targets (9,5), rests (9,6)); but `B1F (9,3) -> 1F` does NOT step. It is "
+            "PER-WARP and NO table or decomp JSON encodes it (08-MISTAKES 2026-08-27).",
+            "⇒ Never grade a post-warp position against a warp target. Drive it once, read "
+            "`get_player_avatar().local_coordinates` after the transition, and key on THAT. A "
+            "driver that graded the target printed `landing_ok=False` on a CORRECT run.",
+            "Two static sources agreeing here is ONE opinion, not two — they compute the same "
+            "quantity. Only a live drive answers the resting tile.",
+        ),
+    ),
+    Rule(
+        rule_id="R-SCANBOUND",
+        headline="a coordinate scan loop was added",
+        kind="code",
+        pattern=re.compile(r"for\s+[xy]\s+in\s+range\("),
+        advice=(
+            "⛔ BOUND A COORDINATE SCAN BY THE MAP'S REAL SIZE "
+            "(`get_map_data(map, (0, 0)).map_size`), never by a round number. Tile lookup is a "
+            "FLAT index (`y*width + x`), so an out-of-bounds x silently WRAPS into the next row "
+            "and reports a PHANTOM coordinate: on the 19-wide Cave of Origin Entrance, (28,4) "
+            "and (9,5) are the same tile (index 104). A 40x40 scan double-reported every warp "
+            "(08-MISTAKES 2026-08-27).",
+            "‼ A positive control proves a scan is not BLIND — it says NOTHING about "
+            "OVER-reporting. When a scan can over-report, give its control an expected COUNT, "
+            "not just an expected member; the double-report passed a member-only control.",
+        ),
+    ),
+    Rule(
+        rule_id="R-ACCEPTGRADE",
+        headline="an ACCEPTANCE / pass-fail grade was added",
+        kind="code",
+        pattern=re.compile(r"ACCEPTANCE"),
+        advice=(
+            "⛔ A GRADE MUST ENUMERATE THE READINGS THAT ACTUALLY HAPPENED, not count steps "
+            "appended unconditionally. MEASURED 2026-08-27: `ACCEPTANCE: PASS` was computed "
+            "from `len(legs_done) >= 4` while `legs_done.append(\"L4\")` ran on the failure "
+            "path too — so it passed while a whole matrix had been SILENTLY SKIPPED.",
+            "⛔ AND IT MUST INCLUDE \"AND THE BOT CAN CONTINUE\" — a REAL `calculate_path` off "
+            "the END tile, never a `controllable` flag. §Ch15 ended four floors underground, "
+            "§Ch18 on an eleven-tile island, §Ch19 in a living room, and ALL THREE PASSED "
+            "THEIR OWN TESTS. ‼ Walking to a DOOR tile ends you INSIDE the building, which "
+            "skips that check — target the tile in FRONT of the door.",
+            "A liveness check must assert something the run does not ALREADY satisfy, and must "
+            "derive its target from the state the run actually reached — hardcode no coordinates.",
+        ),
+    ),
+    Rule(
         rule_id="R-MIRROR",
         headline="a file inside the PRISTINE UPSTREAM MIRROR was touched",
         kind="path",
@@ -527,6 +582,28 @@ def self_test() -> int:
     check("T14 manual-comment", _mkdiff("m/x.py", ["# falls back to set_manual_mode()"]),
           {"R-MANUAL": False})
 
+    # T41-T46 — the three rules added 2026-08-27 from that day's MEASURED mistakes. Each is
+    # fault-tested BOTH ways: it fires on the shape as CODE, and stays silent on a mere mention
+    # in a comment or a doc (a rule with false positives teaches the reader to bypass it).
+    check("T41 warprest-as-code",
+          _mkdiff("tools/story-dev/x.py", ["dest = tile.warps_to[0]"]),
+          {"R-WARPREST": True})
+    check("T42 warprest-in-comment",
+          _mkdiff("tools/story-dev/x.py", ["# the warps_to field names the event tile"]),
+          {"R-WARPREST": False})
+    check("T43 scanbound-as-code",
+          _mkdiff("tools/story-dev/x.py", ["for y in range(60):"]),
+          {"R-SCANBOUND": True})
+    check("T44 scanbound-in-comment",
+          _mkdiff("tools/story-dev/x.py", ["# for x in range(width) would wrap"]),
+          {"R-SCANBOUND": False})
+    check("T45 acceptgrade-as-code",
+          _mkdiff("tools/story-dev/x.py", ['log(f"ACCEPTANCE: {v}")']),
+          {"R-ACCEPTGRADE": True})
+    check("T46 acceptgrade-in-md",
+          _mkdiff("PROJECT KNOWLEDGE/07-CHANGELOG.md", ["the driver printed ACCEPTANCE: PASS"]),
+          {"R-ACCEPTGRADE": False})
+
     # T31/T32 — R-CAMWINDOW: a live-object read as code fires; a comment mention stays silent.
     check("T31 camwindow-as-code",
           _mkdiff("m/story/x.py", ["if not _npc_is_on(MapRSE.CAVE, (9, 13)):"]),
@@ -614,6 +691,8 @@ def self_test() -> int:
     tested_positive = {
         "R-REGEX", "R-NUMGATE", "R-EXCEPT", "R-LOOP", "R-APRESS", "R-MANUAL",
         "R-MIRROR", "R-KIHEADER", "R-HANDOFF", "R-PUNCH", "R-CAMWINDOW",
+        # added 2026-08-27 from that day's measured mistakes (T41-T46)
+        "R-WARPREST", "R-SCANBOUND", "R-ACCEPTGRADE",
     }
     actual = {rule.rule_id for rule in RULES}
     if tested_positive != actual:
