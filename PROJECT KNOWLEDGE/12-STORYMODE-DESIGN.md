@@ -3518,7 +3518,10 @@ spelling and returns −1 here.** (Playbook §4.2 — this is the default mistak
       HARD: ROUTE126 and UNDERWATER_ROUTE126 are BOTH (80,80) -> the same-(x,y) landing HOLDS
       HARD: 1,349 dive-capable tiles on ROUTE126; nearest the warp column: (45,66) dist=1
   UNDERWATER_ROUTE126 (45,65)  --warp-->  UNDERWATER_SOOTOPOLIS_CITY (9,8)   [its ONLY warp]
-  STOP: (9,8) AND (10,8) WARP STRAIGHT BACK to Route 126 -- STEP OFF BEFORE SURFACING
+  STOP: (9,8) WARPS STRAIGHT BACK to Route 126 -- STEP OFF BEFORE SURFACING
+      CORRECTED 2026-08-27: (10,8) does NOT. It is plain 'Deep Water'; its map-header warp
+      can never fire, because Gen 3 triggers a warp only when the TILE BEHAVIOUR is a warp
+      behaviour. Only (9,8) is 'Water South Arrow Warp'. The advice stands for (9,8).
   UNDERWATER_SOOTOPOLIS_CITY  --surface-->  SOOTOPOLIS_CITY
       HARD: map is (20,10); 33 tiles have collision==0
       HARD: ZERO tiles are "Underwater Blocked Above" or "Seaweed No Surfacing"
@@ -3799,6 +3802,38 @@ agent's output is *a NOTE, never truth* — and agreement between agents is not 
 The claims marked MEASURED here carry decomp quotes or our own probe output; the ones that do not
 are inferences. ⛔ **Before any of this becomes code, re-run the verification pass** — the
 contradiction above is exactly what it exists to catch, and it was found only by luck of ordering.
+
+✅✅ **LEG 3'S ROUTE (SOOTOPOLIS → THE SKY PILLAR DOOR) IS MEASURED END-TO-END ON PAPER, AND EVERY
+LOAD-BEARING NUMBER WAS RE-ASKED OF PRODUCTION (2026-08-27).** Recon proposed it; Claude validated it.
+
+| step | call | measured |
+|---|---|---|
+| 0 | start | `SOOTOPOLIS_CITY (31,17)`, state 3 (the resting tile, measured) |
+| 1 | `navigate_to(SOOTOPOLIS_CITY, (29,53))` | **118 wp** — ⛔ ONLY while Steven is camera-loaded |
+| 2 | assert tile, then `dive()` | 19 dive tiles, **x=24..32, y=53..55** — CONFIRMED exactly |
+| 3 | cross underwater | dive lands `UNDERWATER_SOOTOPOLIS_CITY (9,6)` (fixed warp); **3 wp** to (9,8) |
+| 4 | `surface_from_dive()` | at `UNDERWATER_ROUTE126 (45,65)` → `ROUTE126 (45,65)`, (x,y)-preserving |
+| 5 | `navigate_to(ROUTE131, (40,20))` | **322 wp in ONE call** — 126:51, 127:51, 128:57, 129:60, 130:80, 131:23 |
+| 6 | ⛔ **BLIND** `walk_one_tile("Up")` | (40,20)→(40,19): the planner **REFUSES** it — phantom wall |
+| 7 | `navigate_to(ROUTE131, (28,15))` | **16 wp** from (40,19) — ⛔ **35 wp and a detour** if called from (40,20) |
+
+✅ **CONFIRMED BY OUR OWN INSTRUMENT:** the 19 dive tiles and their exact span; the 322-waypoint
+one-call surf chain and its per-map split; `(40,19)` reads `'Normal'` and `(40,20)->(40,19)` genuinely
+**REFUSES**, so step 6 must be blind; and the 16-vs-35 asymmetry that makes step 6 worth taking.
+
+⛔ **THIS CORRECTS THE ATLAS ABOVE:** the HARD ROUTE block says *"(9,8) AND (10,8) WARP STRAIGHT
+BACK"*. Measured: **`(9,8)` is `'Water South Arrow Warp'` but `(10,8)` is plain `'Deep Water'`** —
+its map-header warp can never fire, because Gen 3 only triggers a warp when the tile's BEHAVIOUR is a
+warp behaviour. Only (9,8) warps back. The *advice* (step off before surfacing) stands for (9,8).
+
+⚠ **AND ONE CLAIM THAT LOOKS REFUTED AND IS NOT — IT IS A DIFFERENT SUBJECT.** The recon warns that
+at state 3 the dive tile reads `'Deep Water'`, not `'Sootopolis Deep Water'`. Our reader says
+`'Sootopolis Deep Water'` at (29,53). **Both are true**: ours reads the STATIC ROM layout, the recon
+means the LIVE `LEGENDS_BATTLE` layout. ✅ It does not matter, because leg 1's shipped guard
+(`sootopolis.py:179-180`) reads `get_map_data_for_current_position()` — LIVE — and accepts **all
+four** names. ⛔ **A new guard must do the same: read LIVE, accept the whole tuple, never one
+literal.** *(This is the "is my before/after comparing the SAME SUBJECT?" trap — the numbers
+disagreed and neither was wrong.)*
 
 ⛔ **WHAT A DRIVE STILL OWES:** which layout is live during the story climb; where the avatar RESTS
 after each of the eight Sky Pillar warps (all are TARGETS — the door-exit step is per-warp, MEASURED
