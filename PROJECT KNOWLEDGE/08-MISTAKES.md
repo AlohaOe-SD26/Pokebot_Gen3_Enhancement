@@ -9982,3 +9982,40 @@ filed: "is my before/after comparing the SAME SUBJECT?" — this is its populati
 bit on the same day, in the same file, on a different axis.)*
 ⇒ **And the meta-rule that actually caught it, twice today: spend agents on REFUTING finished work.**
 Neither this nor the morning's `ACCEPTANCE: PASS`-over-a-skipped-reading defect was found by a test.
+
+---
+
+## 2026-08-28 — THE FIRST THING A COLD READER SEES NAMED A DIFFERENT NEXT ACTION THAN THE QUEUE, AND RESURRECTED A BLOCKER THE SAME FILE CALLS REFUTED
+
+**Symptom.** A Tier 2 cold-start audit — given ONLY `04-HANDOFF.md` and `00-README.md` — reported
+that **two lines read as "the next action" and they command opposite things**:
+* the queue and banner: *"➡➡➡ NEXT ACTION: BUILD LEG 3 = THE APPROACH"*;
+* the 60-SECOND VERSION, four lines from the top: *"⛔ LEG 3 IS BLOCKED ON ONE MEASUREMENT, and it
+  is the next action: which Sky Pillar LAYOUT is live … finds NO crack-free route across 2F or 4F."*
+
+**Both halves of that bullet had been retracted elsewhere in the same file** — the layout question
+is *"SETTLED … ⛔ DO NOT RE-ASK IT"* and the blocker was *"REFUTED — it answered the wrong
+question"*. ⇒ a cold agent that reads the 60-second block **and stops, which is exactly what that
+block is for**, re-runs a settled measurement and inherits a refuted blocker.
+
+**Root cause.** I wrote that bullet on 2026-08-27 when it was true, then spent two days correcting
+the banner, the queue, the atlas, the punch list and the probes — and never re-read the summary at
+the top. ‼ **Both Tier 0 gates were GREEN over it the whole time**, because a contradiction between
+a *summary* and a *queue* is semantic and no gate models that pair. The doc-consistency layer names
+pairs P1–P5; the 60-second block is a **THIRD half of P1** that P1 does not cover.
+
+**The fix that worked.** The bullet now states the real next action and carries its own retraction
+so the correction cannot be silently lost. Also fixed in the same pass, all found by the same audit:
+the banner contradicted **itself on one line** ("leg 3's probe IS DONE" + "leg 3 OPENS with the
+pocket-exit PROBE"); the `upstream` STATE row was a calendar day behind the UPDATE-LOG it names as
+its own authority; `FIXTURES.md5` still told readers the pocket exit was UNMEASURED; a
+`story_harness.py` comment still asserted the refuted "NO crack-free route"; and an atlas heading
+still read "LEG 3 BLOCKER" over a body that retracts it.
+
+**Prevention rule.** ⛔ **WHEN A CLAIM IS RETRACTED, GREP THE TREE FOR IT AND FIX EVERY HIT — AND
+START WITH THE SUMMARY BLOCKS, BECAUSE THEY ARE READ FIRST AND UPDATED LAST.** A retraction that
+lands in the detailed section while the summary keeps the original is worse than never retracting:
+the reader who skims gets the old answer with a fresh date on it. *(This is the P1 pair generalised:
+the banner ↔ queue check does not cover a THIRD place that also claims to say what to do next.)*
+‼ And the meta-point, now three days running: **only an independent cold-start agent has caught
+these.** Tier 0 was green over every single one.

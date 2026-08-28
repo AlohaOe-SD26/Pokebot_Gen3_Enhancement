@@ -3524,3 +3524,69 @@ tile; on a waypoint timeout walk back toward Steven at (32,18) to re-load him, t
 **UNBUILT AND UNPROVEN**. The two walk arms that were run measured **identical** output, so they did
 not discriminate between the safe and naive designs — that comparison still owes a forced-timeout
 fault arm before anyone may claim `follow_waypoints` is safer in practice.
+
+---
+
+## 2026-08-28 — USER RULING: THE PREVENTION RULES ARE LIVING, AND I MAY UPDATE THEM — NOT ONLY APPEND
+
+**The directive, in the user's words (2026-08-27/28, given twice):** *"implement strategic,
+intelligent and robust safety measures from learned mistakes to avoid making the same mistakes
+again as well as new ones (living adaptive mistakes avoidance logic, free to update mistakes logic
+only to progress and only if they ensure no mistakes happen)."*
+
+**What it settles.** `08-MISTAKES.md` is APPEND-ONLY as a *history* — that does not change. But the
+ENFORCEMENT layer (`advise_on_diff.py` rules, gate checks, the prevention-rule text a rule cites)
+is explicitly **mine to evolve**, in both directions:
+* **SHARPEN** a rule when measurement shows it was too weak or aimed at the wrong thing.
+* **SOFTEN or RETIRE** one when it is proven to produce false positives, or when a
+  test/lint/refactor makes the mistake impossible — the `/reconcile` principle, now user-confirmed.
+⛔ **THE BAR: a change may only make a mistake LESS likely.** Never relax a rule to make a red gate
+go green, and never delete the history entry the rule came from.
+
+**Why it was needed, and it is not theoretical.** On 2026-08-27 `R-WARPREST` shipped saying *"only a
+live drive answers the resting tile"*. A decomp pass then showed the offset is DERIVABLE from the
+metatile behaviour at the warp target, and it blind-tested 3/3 against our live readings including
+the discriminating negative. Under an append-only reading of the rules I would have had to leave a
+now-superseded instruction standing. Under this ruling the rule was REFINED in place and the
+history kept. Three rules were born the same way that day (`R-WARPREST`, `R-SCANBOUND`,
+`R-ACCEPTGRADE`), each fault-tested both ways and each verified FIRING on the real commit that
+contained the mistake it exists to catch.
+
+**Alternatives rejected.** *(a) Append-only prevention rules* — produces a growing pile of stale
+"don't do X" lines that cost context and go unread; CLAUDE.md already warns a stale rule "keeps that
+idea active and wastes context". *(b) Ask before every rule change* — the user explicitly delegated
+this, and the round-trip would make the layer too slow to keep up with what measurement finds.
+
+---
+
+## 2026-08-28 — USER QUESTION, ANSWERED AND SETTLED: WHY `04-HANDOFF.md` IS NOT SPLIT INTO "PART 1 OF N"
+
+**The question (user, 2026-08-28):** *"the document you are talking about trimming … what if we made
+multiple documents 'part 1, part 2, part 3' … are we limited on space? is multiple documents a bad
+idea?"*
+
+**The answer, so it is never re-asked.** We are **not** limited on space — the 900-line cap in
+`lint_docs.py`'s `LINE_BUDGET` is a **cognitive** budget, and the multi-document structure already
+exists: `04-HANDOFF.md` (current-state) + `28-HANDOFF-ARCHIVE.md` (append-only), which
+`00-README.md` lists in its reading order.
+
+⛔ **It is an ASYMMETRIC PAIR on purpose, not numbered peers.** The failure this project actually
+had is recorded in the archive's own header: `04-HANDOFF.md` grew to **3,240 lines of which only
+~162 were current**, carrying **SIX** competing "YOU ARE HERE" banners, the oldest stale by two
+weeks — a reader looking for "where are we" found six answers and no way to tell which was live.
+**A part number tells you WHERE something is, never WHETHER it is still true.** "Part 3 of 5" would
+institutionalise that failure rather than fix it.
+
+⇒ **The split is by KIND, not SIZE:** CLAUDE.md defines 01-05 as current-state ("edit in place,
+remove stale content") and 06/07/08 as append-only history. Splitting by size cuts across that line
+and puts stale content inside a file labelled current-state.
+
+**And the cap earns its keep as a forcing function.** Hitting it on 2026-08-27 is what surfaced
+three REAL doc bugs rather than mechanical trimming: the 60-second summary was two arcs stale (it
+opened *"the live arc is PC / PARTY ROBUSTNESS"*), a line claimed §Ch20's assembly was "parked,
+finished and waiting" three days after it shipped, and the upstream row was four days behind its
+own authority.
+
+⚠ **The one caveat, recorded honestly:** 900 is tight and was hit twice in one day. **If it binds
+every session, that is evidence the budget is wrong rather than the content** — revisit it with the
+user then. On the day it was diagnosing rot correctly, so it was left alone.

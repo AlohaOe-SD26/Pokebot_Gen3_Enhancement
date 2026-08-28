@@ -259,6 +259,37 @@ def main() -> int:
             print(f"      {label}")
             print(f"        SET A distance {free}; avoiding the dangerous set {avoid}  -> {verdict}")
 
+        # ⛔⛔ STEP 5's OWN 23 ROUTE131 WAYPOINTS — the hole a Tier 2 cold-start audit found on
+        # 2026-08-28. The SET A/SET B analysis originally covered only (40,20)->(28,15) and
+        # (28,15)->door. But the incoming swim ENDS on this map: its last 23 waypoints are on
+        # ROUTE131, where 116 tiles the planner believes are open are live rock. The audit's
+        # words: the doc's own "the bot would jam facing a wall it believes is water" argument
+        # "applies verbatim to them", and nothing in the tree said they were safe.
+        # ‼ Source of truth for those waypoints is PRODUCTION's own path, not a re-derivation.
+        swim_json = (REPO / "tools" / "story-dev" / "evidence"
+                     / "2026-08-28-route131-production-waypoints.json")
+        print("\n    ⛔ STEP 5 AUDIT — the incoming swim's own ROUTE131 waypoints:")
+        if not swim_json.is_file():
+            print(f"      ‼ {swim_json.name} MISSING — cannot audit step 5. This is a GAP, not a pass.")
+        else:
+            import json as _json
+            swim = _json.loads(swim_json.read_text(encoding="utf-8"))
+            key = next((k for k in swim if k.startswith("swim ")), None)
+            waypoints = [tuple(t) for t in (swim.get(key) or [])] if key else []
+            if not waypoints:
+                print("      ‼ no swim waypoints recorded — GAP, not a pass.")
+            else:
+                hit = [t for t in waypoints if t in bad]
+                not_live_open = [t for t in waypoints if set_b.get(t, 1) != 0]
+                print(f"      {len(waypoints)} ROUTE131 waypoints from production's 322-wp plan")
+                print(f"      in the {len(bad)} dangerous (open-A/WALL-B) tiles : "
+                      f"{hit if hit else 'NONE'}")
+                print(f"      not open in SET B at all                        : "
+                      f"{not_live_open if not_live_open else 'NONE'}")
+                print("      ⇒ " + ("‼ THE SWIM ITSELF ENDS IN LIVE ROCK — leg 3 cannot use it as written"
+                                    if (hit or not_live_open)
+                                    else "clean: every swim waypoint is open in BOTH sets"))
+
         live_to_door = bfs(set_b, STAGING, DOOR)
         a_to_door = bfs(set_a, STAGING, DOOR)
         print(f"\n    (28,15) -> the door {DOOR}: SET A {a_to_door}   SET B {live_to_door}")

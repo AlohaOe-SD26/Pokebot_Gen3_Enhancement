@@ -6857,3 +6857,22 @@ tile is **`(17,42)` not `(16,42)`**, and the chapter grades on **`VAR_ROUTE128_S
 the Kyogre flag (set BEFORE a forced warp). (3) **KI-74/75/76** were filed there; KI-76's safety
 half is fixed and fault-tested, its **correctness half is OPEN**.
 ⇒ ✅ **ALL NINE ROOMS ARE DRIVEN — the cavern is END TO END (2026-08-14). ⛔ DO NOT REBUILD ANY.**
+
+
+---
+
+## MOVED FROM `04-HANDOFF.md` 2026-08-28 — the completed 2026-08-26 `#26-*` redirect
+
+> ‼ NOTHING DELETED. Both batches were mined and all four work items shipped; this is history.
+> It moved to make budget room for leg 3's runnable commands after a Tier 2 audit found the
+> newest shipped probe was not startable from the handoff. The three RIPE USER DECISIONS that
+> followed this block stayed in `04`, because they are still open.
+
+>    ✅✅ *(RETIRED 2026-08-27 — the 2026-08-26 USER REDIRECT to the three `#26-*` production
+>    defects is COMPLETE: all four work items shipped, and BOTH batches `20260826-130441` and
+>    `20260826-185918` are MINED — ⛔ DO NOT RE-MINE EITHER.* Finish rate moved 12.0 → 25.8 →
+>    37.5% in one day; the wedge fix VALIDATED (KI-47 family 2 → 0); the FIRST TREECKO FINISH;
+>    the Treecko wall NAMED as the `#24-pc` run-ender. Numbers in `#26-manualderails`, narrative
+>    in `07-CHANGELOG.md` (2026-08-26). The Winona SECOND WIND shipped the same day — ⚠ that is
+>    DECISION-LAYER proof only; its end-to-end pass is still owed by a post-fix batch
+>    (discriminator: no five-fold hopeless-gate repeats before Manual).

@@ -43,6 +43,12 @@ MEASUREMENT 1 — SET B, and the divergence, per direction
       blind step -> staging, from (40,19) [the ROUTE]
         SET A distance 16; avoiding the dangerous set 16  -> clean: an equal-cost live-safe route exists
 
+    ⛔ STEP 5 AUDIT — the incoming swim's own ROUTE131 waypoints:
+      23 ROUTE131 waypoints from production's 322-wp plan
+      in the 116 dangerous (open-A/WALL-B) tiles : NONE
+      not open in SET B at all                        : NONE
+      ⇒ clean: every swim waypoint is open in BOTH sets
+
     (28,15) -> the door (36, 6): SET A None   SET B 17
       ⇒ if SET A is None and SET B is a number, the final approach MUST be hand-walked:
         the planner cannot see the door at all, and any call it makes there is unsafe.
@@ -63,5 +69,5 @@ which cannot be read without standing on the map. ⛔ The first leg-3 drive must
 Shutting down...
 Save state C:\Remote 
 Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
--08-28_07-14-02.ss1 created!
+-08-28_08-34-59.ss1 created!
 Updated `current_state.ss1`!

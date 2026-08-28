@@ -9557,8 +9557,10 @@ class Ch21PocketExitMode(BotMode):
         # §3.8 says the planner reads the STATIC ROM layout while the game swaps Sootopolis to
         # LAYOUT_SOOTOPOLIS_CITY_LEGENDS_BATTLE at states 1-4. In Sootopolis that was measured
         # BENIGN (28 differing blocks, all in the arena). On the SKY PILLAR it would be
-        # LOAD-BEARING: production reads 38 cracked tiles on 2F and 34 on 4F, and NO crack-free
-        # route exists across either — while the atlas's *_Clean measurements say 2F has ZERO.
+        # LOAD-BEARING: production reads 38 cracked tiles on 2F and 34 on 4F while the atlas's
+        # *_Clean measurements say 2F has ZERO. ‼ THE "NO crack-free route" READING THAT STOOD
+        # HERE WAS REFUTED 2026-08-27 as an answer to the WRONG QUESTION: those are the POST-GAME
+        # cracks, and the story runs on CLEAN, where every leg HAS a crack-free route.
         # This settles the general question on a map we can actually stand on.
         # `get_map_data_for_current_position()` reads the LIVE `gMapHeader` (map.py:1750);
         # `get_map_data(map, coords)` reads the STATIC ROM header (map.py:751). If their layout

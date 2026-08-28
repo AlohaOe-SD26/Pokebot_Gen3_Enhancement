@@ -19019,3 +19019,46 @@ ROUTE131 loads at runtime — `setmaplayoutindex` writes only the live `gMapHead
 standing on the map. ⇒ **the first leg-3 drive must carry the `CH21_LAYOUT_PROBE` reading on
 ROUTE131** and settle that premise as a byproduct. Also recorded: the daily upstream check for
 2026-08-28 (unchanged at `5dd898f8`).
+
+---
+
+## 2026-08-28 — SESSION WRAP-UP: A TIER 2 COLD-START AUDIT FOUND EIGHT DEFECTS AND ONE REAL SAFETY HOLE; ALL FIXED
+
+The session-end Tier 2 check (one fresh agent, given ONLY `04-HANDOFF.md` + `00-README.md`) was run
+per the DoD. It returned **NO to "could I start the next item right now with no human input?"** and
+named exactly why. Everything below is fixed; ⛔ Tier 0 was GREEN over every one of them.
+
+**⛔ THE SAFETY HOLE (not doc drift).** The SET A/SET B analysis covered `(40,20)→(28,15)` and
+`(28,15)→door`, but **never step 5's own 23 ROUTE131 waypoints** — the tail of the incoming
+322-waypoint swim, which lands on the very map where 116 tiles the planner believes are open are
+live rock. The audit's words: the doc's own *"the bot would jam facing a wall it believes is water"*
+argument *"applies verbatim to them"*, and nothing in the tree said they were safe.
+✅ **MEASURED and CLOSED:** `probe_ch21_route131_live.py` now audits that leg from production's own
+saved waypoints — **all 23 are clean in BOTH sets**. Favourable, but it was genuinely unverified.
+
+**DOC DEFECTS FIXED (each found with both halves quoted):**
+1. ⛔ **The 60-SECOND VERSION named a DIFFERENT next action than the queue** and resurrected the
+   refuted "no crack-free route" blocker — in the one block a cold reader reads first. See
+   `08-MISTAKES.md` same date; the prevention rule is *retract everywhere, summaries first*.
+2. The banner contradicted **itself on one line** ("leg 3's probe IS DONE" + "leg 3 OPENS with the
+   pocket-exit PROBE").
+3. `probe_ch21_route131_live.py` — the newest shipped instrument — **was not in HOW TO RUN**, the
+   exact defect a Tier 1 review fixed for the leg drivers one day earlier. Added with its fault arm.
+4. The `upstream` STATE row read 2026-08-27 while `UPDATE-LOG.md` (which the row names as its own
+   authority) read 2026-08-28 ⇒ it ordered a cold agent to redo a check that had already run.
+5. `FIXTURES.md5`'s `post_wallace.ss1` row still said the pocket exit was **UNMEASURED**.
+6. A `story_harness.py` comment still asserted the **refuted** "NO crack-free route exists".
+7. `12-STORYMODE-DESIGN.md`'s heading still read **"LEG 3 BLOCKER"** over a body that retracts it (P2).
+8. **P5:** `#24-remainingarc` still ended *"➡ NEXT: §Ch21 Sootopolis / Rayquaza"*, framing the whole
+   arc as un-started while three legs are built and driven.
+9. ⛔ **An instruction that could not be followed:** the queue said *"CARRY `CH21_LAYOUT_PROBE` ON
+   ROUTE131"*, but that reading is hardcoded to `name == "SOOTOPOLIS_CITY"` inside `ch21pocket`, so
+   the env var does nothing on a ROUTE131 drive. The queue now says it must be RE-IMPLEMENTED.
+10. `04-HANDOFF.md:14` said "read down to the `➡➡➡` marker" — there are **two**, and the first is a
+    ✅-DONE block. Now says *the LAST*.
+
+**BUDGET.** `04-HANDOFF.md` is at **900/900** and `03-PUNCH-LIST.md` at **3597/3600**. Room was made
+by moving the completed 2026-08-26 `#26-*` redirect to `28-HANDOFF-ARCHIVE.md` (nothing deleted).
+⚠ **This is the third consecutive work item where the 900-line cap has bound.** Per the ruling in
+`06-DECISIONS-LOG.md` (2026-08-28) that is now evidence the budget may be wrong rather than the
+content — ⛔ **raising it is the USER's call and was NOT taken unilaterally.**

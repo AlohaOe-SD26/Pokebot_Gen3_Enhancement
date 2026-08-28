@@ -3601,7 +3601,7 @@ all, so it will never propose the fall — the fall must be an EXPLICIT chapter 
 *(The same file's Seafloor Cavern branch ends in `set_manual_mode()`; see the corrected note
 `2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md`.)*
 
-### ⛔⛔ LEG 3 BLOCKER — OUR PLANNER READS A DIFFERENT SKY PILLAR THAN THE ATLAS MEASURED (2026-08-27)
+### ⚠ OUR PLANNER READS A DIFFERENT SKY PILLAR THAN THE ATLAS MEASURED — REAL, BUT **NOT** A BLOCKER (2026-08-27, corrected 2026-08-28)
 
 `probe_ch21_skypillar.py` (static, seconds, no network, 2 controls both fault-tested; evidence
 `evidence/2026-08-27-ch21-skypillar-probe.stdout.txt`). ‼ It is **not** a duplicate of
