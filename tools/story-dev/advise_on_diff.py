@@ -188,7 +188,14 @@ RULES: tuple[Rule, ...] = (
             "`get_player_avatar().local_coordinates` after the transition, and key on THAT. A "
             "driver that graded the target printed `landing_ok=False` on a CORRECT run.",
             "Two static sources agreeing here is ONE opinion, not two — they compute the same "
-            "quantity. Only a live drive answers the resting tile.",
+            "quantity.",
+            "✅ REFINED 2026-08-27: the offset is NOT per-warp magic, it is DERIVABLE. "
+            "`SetUpWarpExitTask()` branches on the METATILE BEHAVIOUR AT THE WARP TARGET TILE — "
+            "`MB_NON_ANIMATED_DOOR` (0x60) and the door family exit one tile SOUTH; a plain warp "
+            "tile does not. Blind-tested 3/3 against our live readings INCLUDING the discriminating "
+            "negative (B1F (9,3)->1F (14,5), no door, rests exactly). ⇒ read the target tile's "
+            "behaviour FIRST — it is free — and treat a drive as CONFIRMATION, not as the only "
+            "source. ⛔ Still never grade a post-warp position against the raw warp TARGET.",
         ),
     ),
     Rule(

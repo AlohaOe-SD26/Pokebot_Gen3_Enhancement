@@ -18804,3 +18804,130 @@ as they were being made.
 `--self-test` now runs **40 checks** and enforces its own completeness: the T25 meta-check compares
 the rule set against the registered positive-test set, and it **caught all three new rules shipping
 untested** before they landed. `08-MISTAKES.md`'s three prevention rules now name their gate.
+
+---
+
+## 2026-08-27 — §Ch21 LEG 3 (SKY PILLAR), ATLAS PASS: OUR PLANNER IS READING A DIFFERENT SKY PILLAR THAN THE ATLAS MEASURED, AND IT ROUTES *THROUGH* 27 CRACKED TILES
+
+The queue's instruction was **"DESIGN LEG 3 PROPER — THE SKY PILLAR, ATLAS FIRST, NOT A BUILD."**
+This is that pass. Nothing was built; the design is deliberately **BLOCKED** on one measurement.
+
+**NEW: `tools/story-dev/probe_ch21_skypillar.py`** — static, seconds, no network, two controls,
+both fault-tested (`POKEBOT_SKYPILLAR_PROBE_FAULT=rig` makes the tile-blocking rig inert → C2 goes
+RED, no measurements printed, exit 1). ‼ It is **not** a duplicate of
+`probe_skypillar_clean_layout.py`: that decodes the DECOMP's `*_Clean` binaries over the network
+and runs its own BFS; this asks the tile data and planner **our bot actually uses**. Keeping both
+is the point — *they disagree*.
+
+**⛔ THE FINDING.** Production reads **38 cracked tiles on 2F and 34 on 4F**; the atlas, reading
+`*_Clean`, reports **0 and 5**. And because `map_path.py` has ZERO hits for `Cracked`, the planner
+neither proposes the fall NOR avoids the cracks: **its own proposed climb crosses 27 of them** (13
+on 2F, 14 on 4F). ⛔ `4F (11,1)->(5,4)` — which the atlas calls *"reachable without touching a
+crack"* — crosses **14**. There is moreover **NO crack-free route across 2F or 4F at all** on the
+layout we read. ⇒ **`navigate_to` IS UNSAFE ON 2F AND 4F.** `#24-crackedfloorpathfinder` is
+sharpened accordingly: it is not merely that the planner "cannot express" the fall.
+
+**⇒ THE CHAIN, WITH ITS ONE UNVERIFIED LINK NAMED.** The bot is **BIKELESS** here — MEASURED on
+`post_wallace.ss1` (`RECEIVED_BIKE=False`, no bike among 26 bag slots, badges 1-7) — and cracked
+floors are survived by SPEED. So a bikeless bot cannot cross 2F on the layout we read, yet the
+story requires exactly that. **Therefore the story climb almost certainly runs on the CLEAN layouts
+while our planner models the post-game ones.** ‼ The unverified link is *"a walking player falls"*,
+which is the atlas's decomp claim and is **not** measured by this probe. It is printed in the
+probe's own verdict rather than buried.
+
+**✅ WHAT THE ATLAS GOT RIGHT, NOW CONFIRMED BY THE ORACLE RATHER THAN BY TWO BFS MODELS AGREEING:**
+the route SHAPE. **Both sealed pockets REFUSE** (`3F (3,1)->(7,1)` and `4F (11,1)->(3,1)`), so the
+deliberate fall is genuinely required; the post-fall walk `3F (6,4)->(7,1)` is **4 wp** and
+`4F (7,1)->(3,1)` is **6 wp**. ⛔ Its STEP counts are not waypoint counts and were taken on the
+other layout — 1F is **32 wp** not 17, 5F **43** not 34, TOP **13** not 14.
+
+**✅ ONE REAL DE-RISKING:** floors **1F-5F carry ZERO object templates** (OUTSIDE has 1, TOP has 2),
+so the loadedness false-block that sealed the Sootopolis pocket **cannot occur on the climb floors**.
+
+**ALSO ADDED — `--driver ch21pocket` gains reading L5 (`CH21_LAYOUT_PROBE=1`)**: compares the LIVE
+`gMapHeader` layout (`map.py:1750`) against the STATIC ROM header (`map.py:751`). Run on SOOTOPOLIS
+at state 3 it returned **EQUAL — no runtime swap visible**. ⚠ Read narrowly: ONE map at ONE state.
+The measurement that settles leg 3 is the same check run **on the Sky Pillar**, and that needs a
+drive there. `03-PUNCH-LIST.md` returned to 3591/3600 by RETIRING the completed `#24-ch21anchor`
+to a summary (its "verify an anchor with `probe_anchor_inventory.py`, never the driver's log"
+lesson kept).
+
+---
+
+## 2026-08-27 — CORRECTION: DETAIL LOST WHEN `#24-ch21anchor` WAS RETIRED, RESTORED HERE (a Tier 1 review caught it)
+
+⛔ **This is a repair, not new work.** Retiring `#24-ch21anchor` to a summary in `03-PUNCH-LIST.md`
+(to keep that file under its 3600-line cap) left a pointer reading *"full detail in
+`07-CHANGELOG.md`"* — **and that promise was false.** An independent Tier 1 review grepped the whole
+`PROJECT KNOWLEDGE/` tree and found two load-bearing facts had vanished from the summary, from the
+changelog entry it pointed at, and from everywhere else. The standing rule is *"retire by SUMMARISE
++ POINT, never delete — do not delete hard-won detail."* I deleted. Restoring verbatim:
+
+* **WHY THE ANCHOR WAS NEEDED AT ALL.** `probe_anchor_inventory.py` over all **77** saves: the
+  frontier stopped at `post_dive.ss1` / `post_space_center.ss1` — **nothing existed after the
+  Seafloor Cavern.** Until one was captured, *every* §Ch21 measurement paid a full §Ch20 drive
+  (~25 min) before it could start, "which is precisely the cost that makes people skip the
+  measurement."
+* **⛔ WHY `--driver anchorcapture` COULD NOT BE USED.** It navigates to a map/tile, and **ROUTE128
+  is visited BOTH before and after the cavern**, so a map-only target cannot tell the two eras
+  apart. **The discriminator must be `ROUTE128_STATE == 2`.** ‼ This is the general lesson, and it
+  outlives the item: *an anchor's identity is the VAR that gates its era, never the map you are
+  standing on* — the same rule playbook §0b Q3 states as "name the flag/var that gates the content
+  and assert it on the anchor."
+
+‼ **THE PROCESS LESSON, which is the reason this entry exists rather than a silent re-edit.** A
+retirement is a MOVE, and a move is only complete when the destination is verified to contain the
+content. I wrote the pointer and did not read the destination. ⇒ **When retiring an item, grep the
+destination for the specific facts you are dropping, before you drop them** — "full detail in X" is
+a claim about X, and it is exactly as checkable as any other claim in this tree.
+
+---
+
+## 2026-08-27 — §Ch21 SKY PILLAR RECON: THE LAYOUT QUESTION IS SETTLED, AND FIVE DRIVE-KILLERS ARE NAMED — INCLUDING A SECOND DELIBERATE FALL THE ATLAS NEVER CONTAINED
+
+Seven read-only agents on separate angles (our ROM reader, the decomp, the fall mechanic, the exit
+route, the layout swap, an adversarial refutation, and fixture/cost). ⚠ **Its verification pass did
+NOT run** — both adjudicating critics died on an account session limit. Per the standing rule this
+section is therefore a **NOTE, not truth**; claims marked MEASURED carry a decomp quote or our own
+probe output, the rest are inferences. ⛔ Re-run the critics before any of it becomes code.
+
+**✅ THE QUESTION THAT BLOCKED THE BUILD IS ANSWERED.** Six Sky Pillar maps (1F-5F, TOP) swap to
+`LAYOUT_SKY_PILLAR_*_CLEAN` via `setmaplayoutindex` in each floor's `OnTransition`, gated
+`call_if_lt VAR_SKY_PILLAR_STATE, 2`. **The story climb runs entirely on CLEAN** (the var is 0 for
+the whole ascent). `setmaplayoutindex` writes only `gSaveBlock1Ptr->mapLayoutId` and the live
+`gMapHeader` — never the compiled `gMapGroups` table our reader uses ⇒ **our planner reads the
+post-game layout, confirmed.** `SKY_PILLAR_ENTRANCE` and `SKY_PILLAR_OUTSIDE` do **not** swap at all.
+
+**⛔⛔ THE FINDING THAT WOULD HAVE COST THE MOST: THE DESCENT NEEDS A *SECOND* DELIBERATE FALL.**
+Coming down, `Top -> 5F -> 4F (3,1)` lands in 4F's **12-tile WEST POCKET**, which has no walking
+exit. Without a second fall through `4F (0,3)`/`(1,3)` the bot summits, **wakes Rayquaza** (flipping
+the layouts DIRTY for every subsequent load) and is **STRANDED** — the §Ch15/§Ch18/§Ch19
+"passed its own test while stranded" shape, and the atlas contained no hint of it.
+
+**⛔ FOUR MORE THAT BREAK A FIRST DRIVE:** four Sky Pillar warps are **ARROW WARPS that do not fire
+on step** (`Entrance (6,16)`/`(14,4)`, `1F (6,13)`/`(7,13)`) — a walk-only planner stalls forever
+with no error; `SkyPillar_Outside`'s `ON_FRAME` Wallace cutscene fires on **map load** at
+`SOOTOPOLIS_CITY_STATE == 3` with no coord condition and **drives the player 12 tiles under
+`lockall`**; `ROUTE131` swaps its layout **UNCONDITIONALLY** (116 static-open tiles are live walls);
+and `SKY_PILLAR_TOP` **inverts** the layout subset (31 static-open tiles are CLEAN walls).
+
+**‼ TWO AGENTS CONTRADICTED EACH OTHER ON A LOAD-BEARING CLAIM, AND THE CRITICS WERE NOT THERE TO
+ADJUDICATE.** One argued the stale model "can never route the bot onto a real CLEAN crack"; the
+other showed the same arithmetic means a crack-avoiding route costs **exactly the same** (29 vs 29;
+6 vs 6; TOP 13 vs 13) ⇒ **which route A* returns is a pure TIE-BREAK.** The conservative reading
+wins: the planner **may** cross a real crack, and if the tie-break picks **(9,4)** the bot falls into
+3F's MAIN region — the documented decoy — wasting the climb. ⇒ **the build must BAN 4F's five
+CLEAN-cracked tiles explicitly**; equal cost makes that free. ⛔ The first version of this changelog
+and the atlas carried the *stronger, wrong* claim for about twenty minutes; it is corrected in place.
+
+**✅ AND ONE OF THE DAY'S OWN FINDINGS WAS UPGRADED.** The warp resting-tile offset is **not**
+per-warp magic — `SetUpWarpExitTask()` branches on the metatile behaviour **at the warp target
+tile**: the `MB_NON_ANIMATED_DOOR` (0x60) family exits one tile SOUTH. Blind-tested **3/3** against
+the day's live readings *including the discriminating negative* (`B1F (9,3) -> 1F (14,5)`, not a
+door, rests exactly). ⇒ all eight Sky Pillar staircases rest one tile south of their table target.
+`advise_on_diff.py`'s `R-WARPREST` was refined accordingly: read the target tile's behaviour first
+(free), treat a drive as CONFIRMATION — but still never grade against the raw warp target.
+
+**GAP CLOSED:** `3F_Clean (3,1) -> (11,1)` — the leg the atlas's route depends on — had **never**
+been measured by any committed tool. It is **28 moves** on CLEAN; 3F's main region from (3,1) is 118
+tiles, contains (11,1) and does NOT contain (7,1), independently re-confirming the sealed pocket.

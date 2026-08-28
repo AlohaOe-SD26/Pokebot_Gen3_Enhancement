@@ -6824,3 +6824,36 @@ reporting most runs as successes. Both root causes are fixed in sandbox with A/B
 >    arm 4 measured it doing exactly that. Blast radius (arithmetic measured, behaviour inferred):
 >    **Brawly** gains the machinery across his band, **Roxanne** at `team_max` 13-16, **Wattson** at
 >    20-22; Norman unchanged; the Rustboro rival unaffected (no `ace_types`).
+
+
+---
+
+## MOVED FROM `04-HANDOFF.md` 2026-08-27 — the §Ch20 rooms + pathfinder-scoping summaries
+
+> ‼ **NOTHING WAS DELETED.** These two sections were already "keep only what later work
+> leans on" summaries and every word is preserved below. They moved because §Ch20 SHIPPED as
+> a chapter on 2026-08-24, so they are history, and `04-HANDOFF.md` had grown past its
+> 900-line budget while leg 3's live findings needed room. `04` keeps a pointer plus the two
+> rules later work still leans on.
+
+## ✅ §Ch20 — ALL NINE ROOMS DRIVEN AND PASSING (2026-08-13/14) — DETAIL in `28-HANDOFF-ARCHIVE.md`
+
+⛔ **DO NOT REBUILD ANY OF THEM.** ‼ **Keep only the rules later work leans on:** graded on
+**`VAR_ROUTE128_STATE == 2`**, never the Kyogre flag (set BEFORE a forced warp); the atoll escape is
+**south to `(38,23)` then Surf onto `(38,24)`** (the landing tile has ZERO surfable neighbours, so a
+naive Surf reads as a HUNG LEG); the **Archie fight is the chain's one stochastic element (2W/1L)**
+and a LOST run prints nothing, so the chapter needs a whiteout-retry policy; *assert the OUTCOME,
+not the position you expected*; *the instrument was wrong, not the claim*; *copy upstream's ROUTE,
+never its CONTROL FLOW*; **`FLAG_SYS_USE_STRENGTH` is cleared on EVERY WARP**; and press **A only
+when a text printer is waiting, B otherwise** (A beside an NPC starts a conversation).
+## PATHFINDER + §Ch20 SCOPING BACKGROUND — in `28-HANDOFF-ARCHIVE.md`
+
+‼ **Keep only what later work leans on:** (1) **KI-59** (the pathfinder's inverted `Impassable *`
+handling) is **FIXED, PROVEN and GATED** (`repro_impassable_dirs.py`) — its headline was wrong in
+FOUR documents: it is **NOT** armed in the Seafloor Cavern (all 115 tiles are `collision=1`);
+game-wide **401 of 2,658** such tiles are live, chiefly the Regi tombs (144), Shoal Cave (98) and
+Victory Road (58). (2) §Ch20's spec corrected our own docs: **ROCK SMASH is mandatory**, the trigger
+tile is **`(17,42)` not `(16,42)`**, and the chapter grades on **`VAR_ROUTE128_STATE == 2`**, never
+the Kyogre flag (set BEFORE a forced warp). (3) **KI-74/75/76** were filed there; KI-76's safety
+half is fixed and fault-tested, its **correctness half is OPEN**.
+⇒ ✅ **ALL NINE ROOMS ARE DRIVEN — the cavern is END TO END (2026-08-14). ⛔ DO NOT REBUILD ANY.**

@@ -9553,6 +9553,34 @@ class Ch21PocketExitMode(BotMode):
                 f"'can it continue?' question cannot be asked here. This is a MISSING READING, and "
                 f"ACCEPTANCE below fails on it rather than passing in silence.")
 
+        # ---- OPTIONAL L5 (CH21_LAYOUT_PROBE=1) — IS THE PLANNER BLIND TO RUNTIME LAYOUT SWAPS?
+        # §3.8 says the planner reads the STATIC ROM layout while the game swaps Sootopolis to
+        # LAYOUT_SOOTOPOLIS_CITY_LEGENDS_BATTLE at states 1-4. In Sootopolis that was measured
+        # BENIGN (28 differing blocks, all in the arena). On the SKY PILLAR it would be
+        # LOAD-BEARING: production reads 38 cracked tiles on 2F and 34 on 4F, and NO crack-free
+        # route exists across either — while the atlas's *_Clean measurements say 2F has ZERO.
+        # This settles the general question on a map we can actually stand on.
+        # `get_map_data_for_current_position()` reads the LIVE `gMapHeader` (map.py:1750);
+        # `get_map_data(map, coords)` reads the STATIC ROM header (map.py:751). If their layout
+        # bytes differ HERE, the planner is blind to swaps everywhere.
+        if _os.environ.get("CH21_LAYOUT_PROBE", "").strip() == "1" and name == "SOOTOPOLIS_CITY":
+            from modules.map import get_map_data, get_map_data_for_current_position
+
+            try:
+                live = get_map_data_for_current_position()
+                static = get_map_data(MapRSE.SOOTOPOLIS_CITY, final)
+                live_l = getattr(live, "_map_layout", None)
+                static_l = getattr(static, "_map_layout", None)
+                same = bytes(live_l) == bytes(static_l) if (live_l and static_l) else None
+                log(f"[{TAG}] L5 LAYOUT live_size={getattr(live, 'map_size', '?')} "
+                    f"static_size={getattr(static, 'map_size', '?')} layout_bytes_equal={same} "
+                    f"state={get_event_var('SOOTOPOLIS_CITY_STATE')}")
+                log(f"[{TAG}] L5 ⇒ {'PLANNER IS BLIND to the runtime swap' if same is False else 'no swap detected at this state'}"
+                    f" — ⛔ read narrowly: this is ONE map at ONE state.")
+            except Exception as error:  # noqa: BLE001 - a failed diagnostic is a RESULT
+                log(f"[{TAG}] L5 LAYOUT PROBE RAISED: {type(error).__name__}: {str(error)[:200]}")
+            readings.append("L5")
+
         total = context.emulator.get_frame_count() - frame0
         log(f"[{TAG}] L2/§4.10 ENCOUNTERS over the whole return: {self.encounters} "
             f"(maps: {self.encounter_maps}) — count it as pressure, never as a rate")

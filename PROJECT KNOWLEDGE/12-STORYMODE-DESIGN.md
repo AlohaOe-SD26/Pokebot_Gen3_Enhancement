@@ -3598,6 +3598,190 @@ all, so it will never propose the fall — the fall must be an EXPLICIT chapter 
 *(The same file's Seafloor Cavern branch ends in `set_manual_mode()`; see the corrected note
 `2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md`.)*
 
+### ⛔⛔ LEG 3 BLOCKER — OUR PLANNER READS A DIFFERENT SKY PILLAR THAN THE ATLAS MEASURED (2026-08-27)
+
+`probe_ch21_skypillar.py` (static, seconds, no network, 2 controls both fault-tested; evidence
+`evidence/2026-08-27-ch21-skypillar-probe.stdout.txt`). ‼ It is **not** a duplicate of
+`probe_skypillar_clean_layout.py`: that one decodes the DECOMP's `*_Clean/map.bin` over the
+network and runs its own BFS; this one asks the tile data and planner **our bot actually uses**.
+They DISAGREE, and the disagreement is the finding.
+
+| floor | atlas, from `*_Clean` binaries | **production reads** |
+|---|---|---|
+| 2F | **0** cracked | **38** cracked |
+| 4F | **5** — (0,3)(1,3)(6,4)(7,4)(9,4) | **34** — those five **plus (4,4)** and 28 more |
+| 3F / 5F / 1F | 0 | **0** (agree) |
+
+✅ **THE ATLAS'S ROUTE *SHAPE* IS INDEPENDENTLY CONFIRMED BY PRODUCTION'S OWN PLANNER** — which
+matters, because until now it rested on two BFS re-implementations agreeing, and agreement is not
+a confidence signal here. **Both sealed pockets REFUSE**: `3F (3,1)->(7,1)` and `4F (11,1)->(3,1)`
+raise, exactly as predicted ⇒ the deliberate fall is genuinely required, not a modelling artifact.
+The post-fall walk `3F (6,4)->(7,1)` works in **4 wp**, and `4F (7,1)->(3,1)` in **6 wp**.
+⛔ The atlas's STEP counts are not waypoint counts and were measured on the other layout — do not
+quote them as expected waypoint numbers (1F 32 wp not 17; 5F 43 not 34; TOP 13 not 14).
+
+‼‼ **AND THE PLANNER ROUTES *THROUGH* CRACKS — 27 OF THEM.** `#24-crackedfloorpathfinder` said the
+planner "cannot express" the fall. Measured, it is worse: `map_path.py` has **zero** hits for
+`Cracked`, so the planner does not avoid them either, and its own proposed climb crosses
+**13 cracked tiles on 2F and 14 on 4F**. ⛔ `4F (11,1)->(5,4)`, which the atlas calls *"reachable
+without touching a crack"*, crosses **14**. ⇒ **`navigate_to` IS UNSAFE ON 2F AND 4F.**
+
+⛔⛔ **AND THERE IS NO CRACK-FREE ROUTE ACROSS 2F OR 4F AT ALL** on the layout we read — measured by
+making every cracked tile impassable through the object-blocking rig and re-planning (the rig is
+control-checked: blocking the naive route's first waypoint must change the answer, and a fault arm
+`POKEBOT_SKYPILLAR_PROBE_FAULT=rig` makes it inert and turns that control RED).
+
+✅✅ **SETTLED THE SAME DAY BY A DECOMP RECON PASS — THE INFERENCE WAS RIGHT, AND THE CONSEQUENCE IS
+MILDER THAN IT LOOKED.** The bot is **BIKELESS** (MEASURED on `post_wallace.ss1`:
+`RECEIVED_BIKE=False`, no bike among 26 bag slots). And the swap is now read out of the decomp:
+**SIX floors (1F-5F, TOP) carry a CLEAN variant**, swapped by `setmaplayoutindex
+LAYOUT_SKY_PILLAR_<F>_CLEAN` in each floor's `OnTransition`, gated `call_if_lt VAR_SKY_PILLAR_STATE, 2`.
+⇒ **THE STORY CLIMB RUNS ENTIRELY ON THE CLEAN LAYOUTS** (`VAR_SKY_PILLAR_STATE` is 0 for the whole
+ascent; it reaches 1 only at the summit cutscene). `setmaplayoutindex` writes ONLY
+`gSaveBlock1Ptr->mapLayoutId` and the live `gMapHeader.mapLayout` — never the compiled `gMapGroups`
+ROM table our reader uses. ⇒ **our planner reads the post-game layout, confirmed.**
+
+‼‼ **BUT THE MISREAD IS PESSIMISTIC, NOT WRONG — AND THAT CHANGES THE BUILD.** Measured over the
+decomp's own `map.bin` bytes on all five climb floors, with ZERO exceptions:
+**DEFAULT-walkable ⊆ CLEAN-walkable** and **CLEAN-cracked ⊆ DEFAULT-cracked**.
+⇒ (a) any route `calculate_path` finds on our DEFAULT layout **is also walkable on CLEAN** — the
+planner will NOT walk the bot into a story-time wall on 1F-5F; and (b) most of the 27 "crossings"
+counted above are tiles that are **SOLID on CLEAN**, so the bot would not fall on them.
+⛔ **What survives as a real hazard:** we cannot tell WHICH of the 27 are *also* CLEAN-cracked
+without the CLEAN data — and `4F_Clean` retains five. So a DEFAULT-computed route may still cross a
+genuinely cracked tile. **The route must be validated against CLEAN data**, which is exactly what
+`probe_skypillar_clean_layout.py` holds. ⇒ **KEEP BOTH PROBES; neither alone can plan this climb.**
+
+⛔⛔ **TWO PLACES WHERE THE SUBSET RELATION INVERTS — THESE ARE THE DANGEROUS MAPS:**
+* **`SKY_PILLAR_TOP`**: **31 tiles the static planner believes are OPEN are WALLS on CLEAN** (and 32
+  the other way). ⇒ on the summit map `navigate_to` CAN walk into a story-time wall. The atlas's
+  `(16,14)->(14,9)` leg must be re-derived on CLEAN before it is driven.
+* **`ROUTE131`** (the approach): an **UNCONDITIONAL** layout swap turns **116 static-open tiles into
+  live walls**. It is the single most dangerous map in the chain and it is on the way IN.
+
+✅ **ONE REAL DE-RISKING:** floors **1F-5F carry ZERO object templates** (only OUTSIDE has 1 and
+TOP has 2), so the loadedness false-block that sealed the Sootopolis pocket **cannot occur on the
+climb floors**.
+
+⚠ **A COMPANION NEGATIVE, READ NARROWLY.** `--driver ch21pocket CH21_LAYOUT_PROBE=1` compared the
+LIVE `gMapHeader` layout against the STATIC ROM one **on Sootopolis at state 3** and found them
+**EQUAL** — no runtime swap visible there. That is ONE map at ONE state and does NOT settle the
+Sky Pillar; `get_map_data()` reads the static header (`map.py:751`) while
+`get_map_data_for_current_position()` reads the live one (`map.py:1750`), so the same comparison
+run ON the Sky Pillar is the measurement that would settle it.
+
+‼‼ **AND THE ATLAS'S OWN ADVICE ABOUT UPSTREAM IS NOW SUSPECT — READ THIS BEFORE COPYING IT.**
+This file says of `puzzle_solver.py`: *"What is wrong with it for the story is ONLY its
+`assert_registered_item("Mach Bike")` and its `mount_bike()` … Take the waypoints, drop the bike."*
+⛔ **That may be exactly backwards.** Reading the vendored source
+(`40cakes repo/pokebot-gen3/modules/modes/puzzle_solver.py:143-168`), upstream rides the bike
+**across 2F and 4F — precisely the two floors where we measured NO crack-free route** — and its
+comment `# after falling down to floor 3` sits AFTER `navigate_to(SKY_PILLAR_4F, (5,4))`, with a
+second `mount_bike()` following: i.e. **the fall is expected to happen EN ROUTE, mid-navigation,
+and it dismounts you.** It never deliberately steps onto (6,4).
+✅ **RESOLVED by the decomp pass above: the SECOND reading is the true one.** The story climb runs
+on CLEAN, where `2F_Clean` has **ZERO** cracked tiles — so a bikeless walk across 2F is fine, and
+this file's "take the waypoints, drop the bike" advice **stands after all**. Upstream needs the
+bike because `puzzle_solver` is a POST-GAME utility mode (`VAR_SKY_PILLAR_STATE >= 2` ⇒ the cracked
+DEFAULT layout), not the story first visit. ⛔ **Still do not copy its CONTROL FLOW:**
+`mount_bike()` is `while not is_on_bike: press Select` — for a bikeless bot that is an INFINITE
+HANG, not a hard fail.
+*(Upstream also sets `use_repel = True` for this area — worth noting for §4.10-style pressure.)*
+
+⛔⛔⛔ **THE DESCENT NEEDS A *SECOND* DELIBERATE FALL — AND THIS ATLAS DID NOT CONTAIN IT.**
+Coming down, `Top -> 5F -> 4F (3,1)` lands in **4F's WEST POCKET (12 tiles)**, which has no walking
+exit. ⇒ the descent needs its own fall, through **`4F (0,3)` or `(1,3)`**. ‼ **If this is omitted
+the bot reaches the summit, WAKES RAYQUAZA (setting the var, so the layouts flip to DIRTY on the
+next load) and is STRANDED** — the §Ch15/§Ch18/§Ch19 "passed its own test while stranded" shape,
+one commit from shipping. ⇒ **BUILD THE DESCENT FALL INTO THE LEG FROM THE START**, and make the
+leg's acceptance a real `calculate_path` off the END tile, not a `controllable` flag.
+
+⛔⛔ **FOUR SKY PILLAR WARPS ARE *ARROW WARPS* AND DO NOT FIRE ON STEP.** `SkyPillar_Entrance`
+**(6,16)** and **(14,4)**, and `SkyPillar_1F` **(6,13)** and **(7,13)**, all carry
+`MB_SOUTH_ARROW_WARP`. A walk-only planner reaches (14,4) and **stalls forever with no error** — the
+leg needs an explicit held-direction press. *(`unroll_path` already appends the extra held-direction
+waypoint when a tile's type ends in ` Arrow Warp`, so `follow_waypoints` over a computed path
+handles it; a hand-written `walk_to` does not.)*
+
+✅✅ **AND THE RESTING-TILE OFFSET IS DERIVABLE — IT WAS NEVER PER-WARP MAGIC.** `SetUpWarpExitTask()`
+branches on the **metatile behaviour AT THE WARP TARGET TILE**: the `MB_NON_ANIMATED_DOOR` (0x60)
+door family exits **one tile SOUTH**; a plain warp tile does not. ‼ **Blind-tested 3/3 against the
+day's live readings, including the discriminating negative** — `CaveOfOrigin_Entrance (9,20)` →
+target (31,16) is `MB_NON_ANIMATED_DOOR` ⇒ rests (31,17) ✓; `1F (11,17)` → (9,5) door ⇒ rests (9,6)
+✓; `B1F (9,3)` → (14,5) **not** a door ⇒ rests (14,5) exactly ✓.
+⇒ **All eight Sky Pillar inter-floor staircases are `MB_NON_ANIMATED_DOOR`, so EVERY floor-to-floor
+warp rests one tile SOUTH of its table target** (e.g. `1F (10,1) -> 2F` rests **(10,2)**).
+⛔ Read the behaviour first — it is free — and treat a drive as CONFIRMATION, not the only source.
+
+⚠⚠ **TWO RECON AGENTS CONTRADICT EACH OTHER HERE, AND THE CRITICS THAT WOULD HAVE ADJUDICATED THEM
+DID NOT RUN (session limit). TAKE THE CONSERVATIVE READING.**
+* Agent A: "the stale DEFAULT model can NEVER route the bot onto a real CLEAN crack" — from
+  `d(src→c) + d(c→dst) == d(src→dst)` per cracked tile.
+* Agent B: that equality means the cracked tile lies **ON a shortest path** ⇒ a crack-avoiding
+  route exists at **EXACTLY EQUAL COST** (`4F (11,1)→(5,4)`: 29 both ways; `(7,1)→(3,1)`: 6 both
+  ways; `TOP (16,14)→(14,9)`: 13 both ways) ⇒ **which route A* returns is a pure TIE-BREAK, and
+  it is not modelled.**
+⇒ **B's reading subsumes A's and is the safe one: the planner MAY route across a real crack.** ⛔ All
+five of `4F_Clean`'s cracked tiles — (0,3)(1,3)(6,4)(7,4)(9,4) — are ALSO open-and-cracked in
+DEFAULT, so the planner sees ordinary floor. **If the tie-break picks (9,4) the bot falls into 3F's
+MAIN region — the documented DECOY — and the entire climb is wasted.**
+⇒ **THE BUILD MUST BAN THOSE TILES EXPLICITLY** (block them, or hand `follow_waypoints` a vetted
+path) rather than trust `calculate_path`. Equal cost means banning them is FREE.
+✅ What both agents DO agree on, and it stands: across the five interior floors there are 77
+collision differences, **all in the safe direction** (DEFAULT-walkable ⊆ CLEAN-walkable, zero
+exceptions) ⇒ a static-layout route never walks into a story-time WALL on 1F-5F. The earlier
+"27 crossings" figure counted DEFAULT-only cracks and overstated the danger — but it did not
+eliminate it.
+
+⛔ **AND THE WHOLE ROUTE IS FIRST-CLIMB-ONLY.** At `VAR_SKY_PILLAR_STATE >= 2` the DIRTY layouts
+load (4F: 5 → 34 cracked; 2F: 0 → 38). **The Rayquaza return trip is a DIFFERENT problem** and the
+Mach Bike belongs to it, not to this leg.
+
+‼‼ **FIVE HAZARDS THE RECON PASS FOUND THAT NO STATIC TILE READ COULD HAVE (2026-08-27):**
+1. ⛔ **`SKY_PILLAR_OUTSIDE` IS NOT A SAFE LANDING — AND IT IS LEG 3'S DOOR.**
+   `SkyPillar_Outside_OnFrame` fires `SkyPillar_Outside_EventScript_WallaceScene` at
+   **`VAR_SOOTOPOLIS_CITY_STATE == 3`** with **NO coordinate condition** — i.e. it triggers on map
+   load, which is exactly the state leg 3 arrives in. Plan the arrival as a RIDDEN CUTSCENE, the
+   way leg 1's arrival scene and leg 2a's escort were, never as a plain walk.
+2. ⛔ **A COORDINATE-ONLY ASSERT OF THE FALL IS SATISFIED BY *NOT* FALLING.** `warphole` preserves
+   (x,y): the avatar is at (6,4) before the step and at (6,4) after it. ⇒ **assert the MAP
+   changed** (`4F -> 3F`), never the coordinates. This is the §Ch20 "assert the OUTCOME, not the
+   position you expected" rule in its sharpest form.
+3. ⛔ **A ONE-TILE RESTING OFFSET DOES NOT FAIL LOUDLY — IT BURNS A TIMEOUT AND RE-PLANS.**
+   `navigate_to`'s arrival check is written against the warp TARGET (`walking.py:229/446`). Land one
+   tile off and it waits out the full warp timeout, then re-plans. ‼ In the Sootopolis pocket that
+   re-plan is the 89-of-121 trap — so the resting-tile finding and the re-plan finding COMPOSE.
+4. ⛔ **OUR DECODE CALLS THE CRUMBLED HOLE "Fall Warp", NOT "Cracked Floor Hole"**
+   (`MB_CRACKED_FLOOR_HOLE = 0x66`). Any guard that greps for "hole" silently matches nothing.
+   The intact tile is `0xD2 "Cracked Floor"`.
+5. ⛔ **`mount_bike()` IS AN INFINITE HANG FOR A BIKELESS BOT**, not a hard fail
+   (`puzzle_solver.py:39-42`: `while not get_player_avatar().is_on_bike: press Select; yield`).
+
+✅ **THREE MORE FACTS THE PASS ESTABLISHED:**
+* **`SKY_PILLAR_ENTRANCE` and `SKY_PILLAR_OUTSIDE` do NOT swap layouts** — no `setmaplayoutindex`
+  in either script. Their static layout IS their live layout, so our planner is exactly right on
+  those two. (Six floors 1F-5F+TOP swap; ENTRANCE/OUTSIDE do not.)
+* ⛔ **`ROUTE131` swaps UNCONDITIONALLY** — `Route131_OnTransition` calls
+  `setmaplayoutindex LAYOUT_ROUTE131_SKY_PILLAR` with **no var guard at all**, so the divergence is
+  permanent, not state-gated. It is the worst static-vs-live gap in the chain and it is on the way IN.
+* ✅ **A GAP NO COMMITTED TOOL HAD EVER MEASURED IS CLOSED:** `3F_Clean (3,1) -> (11,1)` — the leg
+  the atlas's route depends on — is **28 moves** on CLEAN (36 on default).
+  `probe_skypillar_clean_layout.py` never touched it, and neither did the 2026-08-24 evidence file.
+  Also measured: 3F's main region from (3,1) is **118 tiles**, contains (11,1), and does **NOT**
+  contain (7,1) — which independently re-confirms the sealed pocket.
+
+⚠⚠ **PROVENANCE, STATED PLAINLY: THIS SECTION IS RECON, AND ITS VERIFICATION PASS DID NOT RUN.**
+Seven read-only agents produced it; the two adjudicating critics (an independent fact-checker and a
+probe-spec designer) **both died on an account session limit**. Per this project's standing rule an
+agent's output is *a NOTE, never truth* — and agreement between agents is not a confidence signal.
+The claims marked MEASURED here carry decomp quotes or our own probe output; the ones that do not
+are inferences. ⛔ **Before any of this becomes code, re-run the verification pass** — the
+contradiction above is exactly what it exists to catch, and it was found only by luck of ordering.
+
+⛔ **WHAT A DRIVE STILL OWES:** which layout is live during the story climb; where the avatar RESTS
+after each of the eight Sky Pillar warps (all are TARGETS — the door-exit step is per-warp, MEASURED
+on the Cave of Origin the same day); and whether the fall is unconditional.
+
 ### ✅ THE MACH BIKE IS NOT NEEDED FOR THE STORY — but NOT for the reason first written
 
 The story ascent runs at `SKY_PILLAR_STATE` 0 then 1, **both `< 2`**, so every floor swaps to its
@@ -3674,7 +3858,7 @@ coordinate condition the instant the map loads, and sets the var to 2 only at it
 ### ✅✅ LEG 3 STEP 0 — THE POCKET EXIT IS MEASURED, STATICALLY **AND** LIVE (2026-08-27)
 
 `probe_ch21_pocket_exit.py` (static, seconds, 4 controls) + `--driver ch21pocket` (live,
-`ACCEPTANCE: PASS`, 4,166 frames). Evidence: `evidence/2026-08-27-ch21-pocket-exit-probe.stdout.txt`,
+`ACCEPTANCE: PASS`, 4,009 frames — the driver's own span). Evidence: `evidence/2026-08-27-ch21-pocket-exit-probe.stdout.txt`,
 `evidence/2026-08-27-ch21-pocket-LIVE-drive.stdout.txt` (both arms). Fixture: `saves/post_wallace.ss1`
 (PINNED, `CAVE_OF_ORIGIN_B1F (9,14)`, state 3, party **687/687 = 100%**).
 
@@ -3733,7 +3917,7 @@ nothing on its own; an adversarial review named exactly that gap.
 
 ⚠ **BOTH WALK ARMS MEASURED IDENTICAL — SO THE A/B IS *NOT* DISCRIMINATING, AND MUST NOT BE QUOTED
 AS ONE.** `follow_waypoints` (plan once, never re-plan) and a naive `navigate_to` both finished in
-**exactly 1,781 frames**: `navigate_to` wraps the same waypoint walk, so with nothing forcing a
+**exactly 1,624 frames**: `navigate_to` wraps the same waypoint walk, so with nothing forcing a
 re-plan they are the same code path. The prediction was filed in the driver docstring *before* the
 run and held. ⇒ **The danger is a TAIL risk. A green run is not evidence the naive design is safe.**
 ⛔ And neither primitive RECOVERS: `follow_waypoints` raises on a waypoint timeout, `navigate_to`

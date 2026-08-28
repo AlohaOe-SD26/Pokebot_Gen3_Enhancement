@@ -804,20 +804,29 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 
 ### ‼ `#24-crackedfloorpathfinder` — the planner cannot see a hole in the floor (filed 2026-08-24)
 
-`map_path.py` **does not model `"Cracked Floor"` at all.** The behaviour is decoded in `map.py:391`
-(`case 0xD2: return "Cracked Floor"`) and then **never consulted** — `grep -n "Cracked" map_path.py`
-returns ZERO hits. The planner handles `Muddy Slope`, the three `Rail` behaviours, `Bumpy Slope`,
-`Waterfall` and the currents, and treats a cracked tile as ordinary ground. ⇒ **it will plan a route
-straight across one, and the run then falls through the floor.**
+`map_path.py` **does not model `"Cracked Floor"` at all** — decoded in `map.py:391` then NEVER
+consulted (`grep -n "Cracked" map_path.py` = ZERO hits). ‼‼ **QUANTIFIED 2026-08-27 by
+`probe_ch21_skypillar.py` — IT IS WORSE THAN "CANNOT EXPRESS THE FALL": the planner's OWN proposed
+climb CROSSES 27 CRACKED TILES** (13 on 2F, 14 on 4F), and **NO crack-free route across 2F or 4F
+exists at all** on the layout production reads (38 cracked on 2F, 34 on 4F — vs the atlas's 0 and 5
+on `*_Clean`). The bot is BIKELESS (`RECEIVED_BIKE=False`, measured), and speed is what survives a
+crack ⇒ **`navigate_to` is UNSAFE on 2F/4F**, and the story layout is almost certainly NOT the one
+we read. Evidence + the one unverified link in `12-STORYMODE-DESIGN.md` §Ch21.
 
 **TWO SEPARATE CONSEQUENCES — do not conflate them:**
 * ⛔ **POST-GAME (a real blocker):** the Rayquaza capture needs **10 cracked tiles crossed on 2F** at
   `PLAYER_SPEED_FASTEST`, which is **Mach Bike at `bikeFrameCounter == 2` ONLY** — the Acro Bike
   returns `PLAYER_SPEED_FASTER` and **always falls**. Also gates Mirage Tower and Granite Cave B1F.
-* ⚠ **§Ch21 (NOT a blocker, but the planner still cannot express it):** the story ascent must
-  **deliberately fall** through `4F (6,4)` or `(7,4)`. A `calculate_path` to `4F (3,1)` simply raises,
-  because that pocket has no walkable route. ⇒ **the fall must be an EXPLICIT chapter step, exactly
-  like `dive()`** — do NOT wait for the planner to grow this feature before building Ch21.
+* ⚠ **§Ch21 — the fall itself is NOT a blocker:** the story ascent must **deliberately fall**
+  through `4F (6,4)` or `(7,4)`; `calculate_path` to `4F (3,1)` simply raises (production CONFIRMED
+  both sealed pockets 2026-08-27). ⇒ **the fall must be an EXPLICIT chapter step, like `dive()`**.
+  ⛔ **BUT DO NOT READ THAT AS A GREEN LIGHT TO BUILD THE CLIMB** — this bullet said "do NOT wait
+  … before building Ch21" while the prose above it and `04-HANDOFF.md` both said the climb is
+  BLOCKED (a Tier 1 review caught the contradiction 2026-08-27). What actually blocks it: our
+  planner reads the **post-game** layout while the story runs on **CLEAN** — safe on 1F-5F
+  (DEFAULT-walkable ⊆ CLEAN-walkable, measured) but **INVERTED on `SKY_PILLAR_TOP` (31 static-open
+  tiles are CLEAN walls) and on `ROUTE131` (116)**. The route must be validated against CLEAN data
+  (`probe_skypillar_clean_layout.py`) before any drive.
 
 ‼ **WHY THIS IS FILED RATHER THAN FIXED:** a hazard-avoiding planner would report the Sky Pillar
 summit UNREACHABLE, which reads as "our pathfinder is broken" or "the map data is wrong" — and this
@@ -825,28 +834,16 @@ project has burned days on exactly that shape. Whoever fixes it must decide whet
 a *hazard to avoid* or a *traversal edge with a destination*, and for the Sky Pillar it is BOTH,
 depending on the tile. ⛔ Evidence: `evidence/2026-08-24-skypillar-clean-reachability.txt`.
 
-### ✅ `#24-ch21anchor` — DONE 2026-08-24. `saves/post_ch20.ss1` EXISTS. ⛔ DO NOT RE-CAPTURE IT.
+### ✅ `#24-ch21anchor` — DONE 2026-08-24 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)
 
-Captured by `--driver ch20chapter` + `CH20_CAPTURE=post_ch20.ss1` (the driver writes ONLY on
-`ACCEPTANCE: PASS`, so the file's existence IS the acceptance record). Probe-verified:
-`OVERWORLD ROUTE128 (38,24)`, badges 1-7, `ROUTE128_STATE=2`, `SOOTOPOLIS_CITY_STATE=1`.
-⚠ **1 party member is FAINTED and HP is 80%** — the probe caught what the driver's log did not.
-Faithful, but a Ch21 leg from it can whiteout; heal first. Evidence:
-`evidence/2026-08-24-ch21-prereq-flags.txt`.
-
-*(original filing:)*
-
-`probe_anchor_inventory.py` over all **77** saves: the frontier stops at `post_dive.ss1` /
-`post_space_center.ss1`. **Nothing exists after the Seafloor Cavern.** Until one is captured, every
-§Ch21 measurement pays a full Ch20 drive (~25 min) before it starts, which is precisely the cost that
-makes people skip the measurement.
-**The capture:** run `--driver ch20chapter` from `post_dive.ss1` and snapshot at `ACCEPTANCE: PASS`
-(the chapter already ends asserted: `done=True var2=2 surfing=True at=(38,24) ocean_path=True`).
-⛔ `--driver anchorcapture` alone is NOT enough — it navigates to a map/tile, and ROUTE128 is visited
-BOTH before and after the cavern, so a map-only target cannot tell the two apart. The discriminator
-must be `ROUTE128_STATE == 2`.
-‼ Per playbook §2b: **verify the written file with `probe_anchor_inventory.py`, not with the driver's
-own log** — the driver reports what it believes, the probe reports what the file contains.
+⛔ **`saves/post_ch20.ss1` EXISTS — DO NOT RE-CAPTURE IT.** Captured by `--driver ch20chapter`
+with `CH20_CAPTURE=`, which writes ONLY on `ACCEPTANCE: PASS`, so the file's existence IS the
+acceptance record. Probe-verified `OVERWORLD ROUTE128 (38,24)`, badges 1-7, `ROUTE128_STATE=2`,
+`SOOTOPOLIS_CITY_STATE=1` — §Ch21's entry condition, measured live.
+⚠ It carries **1 FAINTED party member at 80% HP** — faithful, but a §Ch21 leg started from it
+can whiteout; heal first and do NOT read an early whiteout as a Ch21 bug.
+‼ The lesson that outlived the item: **verify an anchor with `probe_anchor_inventory.py`, never
+from the driver's log** — the probe caught the fainted member the driver's log did not report.
 
 ### ‼ `#24-divegroundroute120` — a MEASURABLY better Dive-learner ground nobody had evaluated (filed 2026-08-24)
 

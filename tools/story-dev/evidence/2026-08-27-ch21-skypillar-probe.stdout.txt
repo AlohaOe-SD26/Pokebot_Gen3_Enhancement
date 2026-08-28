@@ -1,0 +1,120 @@
+Running mGBA 0.10.2
+==============================================================================================
+§Ch21 LEG 3 — SKY PILLAR, asked of PRODUCTION (static; no network, no emulation loop)
+==============================================================================================
+
+----------------------------------------------------------------------------------------------
+CONTROLS — a probe that finds nothing is indistinguishable from one that cannot see
+----------------------------------------------------------------------------------------------
+  C1 warp scan finds EXACTLY 2 warps on CAVE_OF_ORIGIN_ENTRANCE (measured 2026-08-27): got 2  PASS
+  C2 the BLOCKING RIG changes an answer (block the naive route's first waypoint): 37 wp -> REFUSED  PASS
+
+  ALL CONTROLS PASS.
+
+----------------------------------------------------------------------------------------------
+MEASUREMENT 0 — is the bot BIKELESS? (speed is what survives a cracked floor)
+----------------------------------------------------------------------------------------------
+  bike in bag: NONE   RECEIVED_BIKE flag: False   bag slots: 26
+  ⛔ A bikeless bot FALLS on any cracked tile it walks onto (the atlas's decomp claim:
+     Mach Bike at PLAYER_SPEED_FASTEST survives; Acro Bike and walking do not).
+     ‼ THAT LINK IS THE ATLAS'S, NOT MEASURED HERE — it is the one unverified step in
+     the conclusion at the end of this run.
+
+----------------------------------------------------------------------------------------------
+MEASUREMENT 1 — the Sky Pillar warp chain, from the ROM (⚠ TARGETS, not resting tiles)
+----------------------------------------------------------------------------------------------
+  SKY_PILLAR_ENTRANCE    size=(18, 18)  ['(14,4)->SKY_PILLAR_OUTSIDE(17, 13)', '(6,16)->ROUTE131(36, 6)']
+  SKY_PILLAR_OUTSIDE     size=(28, 23)  ['(14,5)->SKY_PILLAR_1F(6, 13)', '(17,13)->SKY_PILLAR_ENTRANCE(14, 4)']
+  SKY_PILLAR_1F          size=(14, 14)  ['(10,1)->SKY_PILLAR_2F(10, 1)', '(6,13)->SKY_PILLAR_OUTSIDE(14, 5)', '(7,13)->SKY_PILLAR_OUTSIDE(14, 5)']
+  SKY_PILLAR_2F          size=(14, 14)  ['(3,1)->SKY_PILLAR_3F(3, 1)', '(10,1)->SKY_PILLAR_1F(10, 1)']
+  SKY_PILLAR_3F          size=(14, 14)  ['(3,1)->SKY_PILLAR_2F(3, 1)', '(7,1)->SKY_PILLAR_4F(7, 1)', '(11,1)->SKY_PILLAR_4F(11, 1)']
+  SKY_PILLAR_4F          size=(14, 14)  ['(3,1)->SKY_PILLAR_5F(3, 1)', '(7,1)->SKY_PILLAR_3F(7, 1)', '(11,1)->SKY_PILLAR_3F(11, 1)']
+  SKY_PILLAR_5F          size=(14, 14)  ['(3,1)->SKY_PILLAR_4F(3, 1)', '(10,1)->SKY_PILLAR_TOP(16, 14)']
+  SKY_PILLAR_TOP         size=(27, 24)  ['(16,14)->SKY_PILLAR_5F(10, 1)']
+  ⚠ Every coordinate above is a warp EVENT tile. Where the avatar RESTS is UNVERIFIED
+    and is per-warp (MEASURED on the Cave of Origin 2026-08-27). Only a drive settles it.
+
+----------------------------------------------------------------------------------------------
+MEASUREMENT 2 — cracked tiles PRODUCTION sees, vs what the atlas measured on *_Clean
+----------------------------------------------------------------------------------------------
+  SKY_PILLAR_ENTRANCE      0 cracked tile(s)
+  SKY_PILLAR_OUTSIDE       0 cracked tile(s)
+  SKY_PILLAR_1F            0 cracked tile(s)
+  SKY_PILLAR_2F           38 cracked tile(s)
+  SKY_PILLAR_3F            0 cracked tile(s)
+  SKY_PILLAR_4F           34 cracked tile(s)
+  SKY_PILLAR_5F            0 cracked tile(s)
+  SKY_PILLAR_TOP          42 cracked tile(s)
+
+  4F vs the atlas's CLEAN set [(0, 3), (1, 3), (6, 4), (7, 4), (9, 4)]:
+    atlas tiles still cracked here : [(0, 3), (1, 3), (6, 4), (7, 4), (9, 4)]
+    EXTRA cracked tiles we see     : 29
+  2F: atlas measured 0 on CLEAN; we see 38
+  ⇒ ⛔ WE ARE READING A DIFFERENT LAYOUT THAN THE ATLAS MEASURED.
+
+----------------------------------------------------------------------------------------------
+MEASUREMENT 3 — each climb leg asked of `calculate_path`, and does its route CROSS a crack?
+----------------------------------------------------------------------------------------------
+  (the planner cannot see cracked floors at all — `grep -n Cracked map_path.py` = 0 hits)
+  1F  (6,13)->(10,1)     OK  32 wp, crosses 0 crack(s)                        [atlas OK 17 steps]
+  2F  (10,1)->(3,1)      OK  37 wp, crosses 13 crack(s) [(11, 5), (11, 6), (11, 10), (11, 11), (11, 12)] [atlas OK 10, 0 cracked on CLEAN]
+  3F  (3,1)->(7,1)       REFUSED                                              [atlas NO PATH (sealed pocket)]  <-- EXPECTED REFUSAL (proves the sealed pocket / the fall)
+  3F  (3,1)->(11,1)      OK  36 wp, crosses 0 crack(s)                        [the 4F stairs]
+  4F  (11,1)->(3,1)      REFUSED                                              [atlas NO PATH (sealed pocket)]  <-- EXPECTED REFUSAL (proves the sealed pocket / the fall)
+  4F  (11,1)->(5,4)      OK  29 wp, crosses 14 crack(s) [(11, 5), (11, 6), (11, 7), (11, 11), (11, 12)] [atlas: reachable, crosses NO crack]
+  3F  (6,4)->(7,1)       OK   4 wp, crosses 0 crack(s)                        [the post-fall walk]
+  4F  (7,1)->(3,1)       OK   6 wp, crosses 0 crack(s)                        [atlas OK 7 steps]
+  5F  (3,1)->(10,1)      OK  43 wp, crosses 0 crack(s)                        [atlas OK 34 steps]
+  TOP (16,14)->(14,9)    OK  13 wp, crosses 0 crack(s)                        [atlas OK 14 steps]
+
+  TOTAL cracked-tile crossings across the planned climb: 27
+  ⇒ every one is a tile where a BIKELESS bot FALLS when the chapter did not intend to.
+
+----------------------------------------------------------------------------------------------
+MEASUREMENT 4 — is there a CRACK-FREE route? (cracked tiles made impassable)
+----------------------------------------------------------------------------------------------
+  1F  (6,13)->(10,1)     crack-free route exists: 32 wp
+  2F  (10,1)->(3,1)      ‼ NO CRACK-FREE ROUTE
+  3F  (3,1)->(11,1)      crack-free route exists: 36 wp
+  4F  (11,1)->(5,4)      ‼ NO CRACK-FREE ROUTE
+  3F  (6,4)->(7,1)       crack-free route exists: 4 wp
+  4F  (7,1)->(3,1)       crack-free route exists: 6 wp
+  5F  (3,1)->(10,1)      crack-free route exists: 43 wp
+  TOP (16,14)->(14,9)    crack-free route exists: 13 wp
+
+----------------------------------------------------------------------------------------------
+MEASUREMENT 5 — object templates per floor (the Sootopolis false-block risk)
+----------------------------------------------------------------------------------------------
+  SKY_PILLAR_ENTRANCE    0 object template(s)
+  SKY_PILLAR_OUTSIDE     1 object template(s)
+  SKY_PILLAR_1F          0 object template(s)
+  SKY_PILLAR_2F          0 object template(s)
+  SKY_PILLAR_3F          0 object template(s)
+  SKY_PILLAR_4F          0 object template(s)
+  SKY_PILLAR_5F          0 object template(s)
+  SKY_PILLAR_TOP         2 object template(s)
+  ⇒ a floor with ZERO templates cannot suffer the loadedness false-block that sealed
+    the Sootopolis pocket. Floors with templates need the same care leg 3 step 0 took.
+
+==============================================================================================
+VERDICT
+==============================================================================================
+  The atlas's route SHAPE is confirmed by production: both sealed pockets refuse,
+  and the post-fall walk works. The atlas's STEP COUNTS differ (different layout,
+  and steps are not waypoints) — do not quote them as expected waypoint counts.
+
+  ⛔ NO CRACK-FREE ROUTE ON: 2F  (10,1)->(3,1), 4F  (11,1)->(5,4)
+  ⇒ On the layout WE read, a bikeless bot cannot cross those floors at all. The
+    story requires crossing them bikeless, so the story layout is almost certainly
+    NOT the one we read. ‼ THE UNVERIFIED LINK: 'a walking player falls' is the
+    atlas's decomp claim, not measured here. Settle it before building.
+  ⇒ `navigate_to` IS UNSAFE ON THOSE FLOORS regardless of which layout is live.
+
+  ⛔ NOT ANSWERABLE HERE, AND A DRIVE OWES EACH: which layout is live during the story
+     climb; where the avatar RESTS after each warp; whether the fall is unconditional.
+==============================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-08-27_19-25-52.ss1 created!
+Updated `current_state.ss1`!
