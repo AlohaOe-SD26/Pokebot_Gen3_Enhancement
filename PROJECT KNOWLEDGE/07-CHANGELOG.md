@@ -18974,3 +18974,48 @@ only whether a route **ENTERS** a CLEAN crack, and none of the story routes abov
 had already written down and shipped — the first was the driver that printed `ACCEPTANCE: PASS`
 over a silently-skipped reading. Both were caught by an independent agent, neither by a test.
 ⇒ the standing rule holds: **spend agents on REFUTING finished work.**
+
+---
+
+## 2026-08-28 — THE ROUTE 131 PRE-BUILD GATE: VERIFIED FROM OUR OWN ROM, OFFLINE — AND IT OVERTURNED THE ATLAS'S OWN STEP-7 LINE
+
+Both critics of the leg-3 research named the same thing as *"the single cheapest measurement that
+most reduces first-drive risk"*: settle the ROUTE 131 layout divergence **before writing a line of
+leg 3**. Every byte of the recon's version rested on decomp blobs fetched over HTTP, and this
+environment is known to silently corrupt binary fetches (playbook §N).
+
+**NEW: `tools/story-dev/probe_ch21_route131_live.py`** — offline, no network, seconds. It re-derives
+the divergence from **our own ROM's `gMapLayouts` table** (which resolves; verified). Two controls,
+both fault-tested (`POKEBOT_R131_FAULT=stride` mis-strides the decode → C2 RED → exit 1).
+
+**⛔ THE TWO SETS, NAMED** — the rule that cost a shipped blocker the day before:
+* **SET A** = the ROM map header's DEFAULT layout, what `get_map_data`/`calculate_path` read.
+  ‼ **The planner is not wrong; it is reading SET A.**
+* **SET B** = what `Route131_OnTransition` loads at runtime, **unconditionally**. Identified as
+  **layout #318** — ⛔ selected by DIMENSIONS ALONE and then checked against the prediction, never
+  found by looking for the predicted tiles. A second same-sized candidate (#763) was correctly
+  REJECTED for not explaining the blind step.
+
+**RESULT — every number matches the independent decomp pass:** **116** tiles open-in-A/WALL-in-B,
+**20** the other way, the blind step (40,19) open in B, the door (36,6) open in B.
+
+**‼‼ AND IT OVERTURNS THIS PROJECT'S OWN ATLAS LINE.** The atlas called the (40,20) start of step 7
+*"35 wp and a detour"* — a cost penalty. **It is a WALL COLLISION.** SET A distance 35; avoiding the
+116 dangerous tiles costs **39**. Since 39 > 35, **every optimal 35-step path is FORCED through live
+rock** — no A* tie-break can dodge it. The bot would jam facing a wall it believes is water, and a
+re-plan returns the same path. ✅ The ACTUAL route from (40,19) is **16 either way** — clean.
+
+**⛔⛔ AND THE FINAL APPROACH MUST BE HAND-WALKED.** `(28,15) → the door (36,6)`: **SET A has no route
+at all**; SET B is 17 steps. The planner cannot see the door ⇒ **no planner call is permitted from
+(28,15) onward.** Both critics independently REFUTED a recon angle's *"blind-step to (28,13), then
+`navigate_to` the door"*: that 15-wp plan enters SEVEN live walls, the first on its very first step.
+
+**‼ WHY C2 REQUIRES THREE NUMBERS, MEASURED:** under the stride fault, one of C2's three checks
+**still matched** (16 vs 16). A single cross-check would have passed a garbage decode. The other two
+caught it.
+
+⚠ **READ NARROWLY.** This is a STATIC comparison of two ROM layouts. It does **not** prove which one
+ROUTE131 loads at runtime — `setmaplayoutindex` writes only the live `gMapHeader`, unreadable without
+standing on the map. ⇒ **the first leg-3 drive must carry the `CH21_LAYOUT_PROBE` reading on
+ROUTE131** and settle that premise as a byproduct. Also recorded: the daily upstream check for
+2026-08-28 (unchanged at `5dd898f8`).

@@ -355,35 +355,35 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    (31,17), NOT the warp target (31,16).** Pocket 347 tiles, one component; re-plan danger zone
 >    **89 of 121** wp; the walk out succeeds and the bot can continue; the pocket **RE-SEALS**
 >    ⇒ ONE crossing per visit. §4.10: 2 encounters, both on 1F. Detail: §Ch21 ATLAS.
->    ✅✅ **THE LAYOUT QUESTION IS SETTLED 2026-08-27 (decomp) — ⛔ DO NOT RE-ASK IT.** Six floors
->    (1F-5F, TOP) swap to `*_CLEAN` in `OnTransition`, gated `call_if_lt VAR_SKY_PILLAR_STATE, 2`
->    ⇒ **the story climb runs on CLEAN**, while our planner reads the **post-game** layout.
->    ⛔ FIRST-CLIMB-ONLY; the Rayquaza return trip is a different problem, and the Mach Bike
->    belongs to it, not here.
->    ➡➡➡ **NEXT ACTION: BUILD LEG 3 = THE APPROACH (the CLIMB is leg 4).**
->    ⛔ **FIVE THINGS THAT WILL KILL THE FIRST DRIVE IF NOT BUILT IN — all decomp-measured:**
->    (1) **THE DESCENT NEEDS A *SECOND* FALL.** `Top→5F→4F (3,1)` lands in 4F's 12-tile WEST
->        POCKET with no walking exit ⇒ fall again via `4F (0,3)`/`(1,3)`. Omit it and the bot
->        summits, WAKES RAYQUAZA (flipping layouts DIRTY) and is **STRANDED** — the §Ch15/18/19
->        shape. Grade on a REAL `calculate_path` off the END tile.
->    (2) **BAN 4F's FIVE CLEAN-CRACKED TILES** — (0,3)(1,3)(6,4)(7,4)(9,4) read as ordinary floor
->        to our planner. ✅ A crack-free route exists on EVERY leg and banning them costs NOTHING
->        (4F 29 wp either way; 2F 37) — ban them rather than trust an A* tie-break. ⛔ For a
->        WALKING bot a crack is TERMINAL (you fall on ENTRY) — a route must never ENTER one.
->    (3) **FOUR ARROW WARPS DO NOT FIRE ON STEP** (`Entrance (6,16)`/`(14,4)`, `1F (6,13)`/`(7,13)`)
->        ⇒ a walk-only planner stalls forever with NO error. Use a computed path +
->        `follow_waypoints` (`unroll_path` emits the held-direction waypoint).
->    (4) **`SKY_PILLAR_OUTSIDE` IS NOT A SAFE LANDING** — its `ON_FRAME` Wallace cutscene fires on
->        map load at `SOOTOPOLIS_CITY_STATE == 3` with no coord condition and DRIVES the player 12
->        tiles under `lockall`. Ride it like leg 1's arrival.
->    (5) **`ROUTE131` swaps layout UNCONDITIONALLY** (116 static-open tiles are live WALLS) and
->        **`SKY_PILLAR_TOP` inverts too** (31) ⇒ re-derive both on CLEAN before driving.
->        ‼ **This is `KI-73`'s shape** (the layout cache keyed on map number) — do NOT file it as
->        new; the decisions-log grep rule caught that.
->    ✅ Safe: 1F-5F (DEFAULT-walkable ⊆ CLEAN-walkable, 0 exceptions); ENTRANCE/OUTSIDE do not
->    swap at all. Resting tiles are DERIVABLE — the door family exits one tile SOUTH (3/3 blind).
->    ✅ **THE ADVERSARIAL CRITICS HAVE NOW RUN (2026-08-27)** and killed the "no crack-free route"
->    blocker as an answer to the wrong question. Their remaining must-measures live in the ATLAS.
+>    ✅✅ **THE SKY PILLAR LAYOUT QUESTION IS SETTLED 2026-08-27 (decomp) — ⛔ DO NOT RE-ASK IT.**
+>    Six floors swap to `*_CLEAN` gated `call_if_lt VAR_SKY_PILLAR_STATE, 2` ⇒ the story climb runs
+>    on CLEAN while our planner reads the post-game layout. ⛔ FIRST-CLIMB-ONLY; the Rayquaza
+>    return trip is a different problem and the Mach Bike belongs to it, not here.
+>    ✅✅ **THE ROUTE 131 PRE-BUILD GATE IS DONE 2026-08-28 — ⛔ DO NOT RE-RUN IT AS THE NEXT
+>    ACTION.** `probe_ch21_route131_live.py` (offline, no network, 2 controls, fault-tested)
+>    re-derived the whole divergence from **our own ROM's `gMapLayouts`** and every number
+>    matched the decomp pass. SET B = layout **#318**: **116** tiles open-in-A/WALL-in-B, 20
+>    the other way. ‼‼ **It overturned the atlas's own step-7 line: the (40,20) start is NOT
+>    "35 wp and a detour", it is a WALL COLLISION** (35 free vs 39 avoiding ⇒ every optimal
+>    path is FORCED through live rock; no tie-break dodges it). The real route from (40,19) is
+>    16 either way = clean. ⛔ And `(28,15)->door` is **no route at all in SET A, 17 in SET B**
+>    ⇒ **the final approach is HAND-WALKED; no planner call is permitted from (28,15) onward.**
+>
+>    ➡➡➡ **NEXT ACTION: BUILD LEG 3 = THE APPROACH** (the CLIMB is leg 4). The full step-by-step
+>    build order, agreed by two independent critics, is in `12-STORYMODE-DESIGN.md` §Ch21.
+>    ⛔ **THE FIVE THINGS THAT DECIDE WHETHER IT SURVIVES ITS FIRST DRIVE:**
+>    (1) **LEG 3 OWNS THE CAVE RETURN.** The fixture `post_wallace.ss1` is on
+>        `CAVE_OF_ORIGIN_B1F (9,14)`, NOT at (31,17) — (31,17) is where the ROUTE starts. A
+>        critic refuted the opposite framing; do not skip the 61-wp climb back out.
+>    (2) **THE POCKET: PLAN ONCE, THEN FOLLOW BLIND.** ⛔ `navigate_to` re-plans (it wraps
+>        `follow_waypoints` in `while True: except TimedOutTryingToReachWaypointError`), and a
+>        re-plan inside the pocket REFUSES. Assert Steven (local_id 7) is camera-loaded FIRST.
+>    (3) **HAND-WALK THE DOOR TAIL** — no planner call from (28,15) on. Copy the bounded
+>        `_fortree_walk_one_tile` shape from `early_game.py:6678`; `walk_one_tile` is unbounded.
+>    (4) **RIDE THE WALLACE CUTSCENE** at `SKY_PILLAR_OUTSIDE` (fires on MAP LOAD at
+>        `SOOTOPOLIS_CITY_STATE == 3`, no coord condition, moves the player under `lockall`).
+>    (5) **CARRY `CH21_LAYOUT_PROBE` ON ROUTE131** — the gate is STATIC and cannot prove which
+>        layout loads at runtime. The first drive must settle that premise as a byproduct.
 >    Full detail + evidence: `12-STORYMODE-DESIGN.md` §Ch21.
 
 >    ➡ *(then, and only then)* DESIGN LEG 3 PROPER. Order: (1) re-read the §Ch21

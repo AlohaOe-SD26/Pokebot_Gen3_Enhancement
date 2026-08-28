@@ -3824,11 +3824,48 @@ LOAD-BEARING NUMBER WAS RE-ASKED OF PRODUCTION (2026-08-27).** Recon proposed it
 | 4 | `surface_from_dive()` | at `UNDERWATER_ROUTE126 (45,65)` → `ROUTE126 (45,65)`, (x,y)-preserving |
 | 5 | `navigate_to(ROUTE131, (40,20))` | **322 wp in ONE call** — 126:51, 127:51, 128:57, 129:60, 130:80, 131:23 |
 | 6 | ⛔ **BLIND** `walk_one_tile("Up")` | (40,20)→(40,19): the planner **REFUSES** it — phantom wall |
-| 7 | `navigate_to(ROUTE131, (28,15))` | **16 wp** from (40,19) — ⛔ **35 wp and a detour** if called from (40,20) |
+| 7 | `navigate_to(ROUTE131, (28,15))` | **16 wp** from (40,19) — ⛔ from (40,20) it is **NOT a detour, it is a WALL COLLISION** (see below) |
 
 ✅ **CONFIRMED BY OUR OWN INSTRUMENT:** the 19 dive tiles and their exact span; the 322-waypoint
 one-call surf chain and its per-map split; `(40,19)` reads `'Normal'` and `(40,20)->(40,19)` genuinely
 **REFUSES**, so step 6 must be blind; and the 16-vs-35 asymmetry that makes step 6 worth taking.
+
+✅✅ **THE ROUTE 131 PRE-BUILD GATE IS DONE (2026-08-28) — AND IT WAS VERIFIED TWICE, INDEPENDENTLY.**
+`probe_ch21_route131_live.py` (offline, no network, 2 controls, fault-tested via
+`POKEBOT_R131_FAULT=stride`; evidence `evidence/2026-08-28-ch21-route131-live-gate.stdout.txt`).
+A recon pass had decoded this from decomp blobs fetched over HTTP; this probe re-derives it from
+**our own ROM's `gMapLayouts` table** and every number agrees.
+
+⛔ **THE TWO SETS, NAMED** (the rule that cost a shipped blocker on 2026-08-27):
+* **SET A** = the ROM map header's DEFAULT ROUTE131 layout — what `get_map_data` / `calculate_path`
+  read (`map.py:751` off the static `gMapGroups` header). **The planner is not wrong; it reads SET A.**
+* **SET B** = what `Route131_OnTransition` loads at runtime, **UNCONDITIONALLY** (no var guard).
+  Identified in our ROM as **layout #318**, selected by DIMENSIONS ALONE and then checked against
+  the prediction — not selected by looking for the predicted tiles. *(A second same-sized candidate,
+  #763, was correctly REJECTED for not explaining the blind step.)*
+
+| direction | count |
+|---|---|
+| open in A, **WALL in B** (the dangerous one) | **116** |
+| WALL in A, open in B (why step 6 is blind) | **20** |
+
+‼‼ **AND IT OVERTURNS THIS FILE'S OWN STEP-7 LINE.** The atlas called the (40,20) start *"35 wp and a
+detour"* — a cost penalty. **It is a WALL COLLISION.** SET A distance is 35; avoiding the 116
+dangerous tiles costs **39**. Since 39 > 35, every optimal 35-step path is FORCED through live rock
+⇒ **no A* tie-break can dodge it.** The bot would jam facing a wall it believes is water, and a
+re-plan returns the same path. ✅ By contrast the ACTUAL route from (40,19) is **16 either way** —
+an equal-cost live-safe route exists, so step 7 is clean.
+
+⛔⛔ **AND THE FINAL APPROACH MUST BE HAND-WALKED.** `(28,15) -> the door (36,6)`: **SET A = no route
+at all**, SET B = **17 steps**. The planner cannot see the door, so ANY planner call from the staging
+tile onward is unsafe — a recon angle's *"blind-step to (28,13), then `navigate_to` the door"* was
+REFUTED by both critics: that 15-wp plan enters SEVEN live walls, the first on its very first step.
+⇒ from (28,15) to the door, **no planner call is permitted**; the tail is hand-walked.
+
+⚠ **READ NARROWLY — WHAT THIS GATE DOES *NOT* PROVE.** It is a STATIC comparison of two ROM layouts.
+It does not prove which one ROUTE131 loads at runtime: `setmaplayoutindex` writes only the live
+`gMapHeader`, which cannot be read without standing on the map. ⇒ **the first leg-3 drive must carry
+the `CH21_LAYOUT_PROBE` reading on ROUTE131 and settle that premise as a byproduct.**
 
 ⛔ **THIS CORRECTS THE ATLAS ABOVE:** the HARD ROUTE block says *"(9,8) AND (10,8) WARP STRAIGHT
 BACK"*. Measured: **`(9,8)` is `'Water South Arrow Warp'` but `(10,8)` is plain `'Deep Water'`** —

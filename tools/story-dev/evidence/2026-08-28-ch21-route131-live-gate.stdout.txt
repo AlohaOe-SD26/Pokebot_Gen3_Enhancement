@@ -1,0 +1,67 @@
+Running mGBA 0.10.2
+==============================================================================================
+§Ch21 LEG 3 PRE-BUILD GATE — ROUTE 131, SET A vs SET B, from OUR OWN ROM (no network)
+==============================================================================================
+
+ROUTE131 map_size = (60, 40)
+layouts in `gMapLayouts` with plausible headers : 525
+of those, EXACTLY ROUTE131's dimensions          : 3  (indices [46, 318, 763])
+  ⛔ candidates are selected by DIMENSIONS ALONE — never by looking for the tiles the
+     recon predicted. The prediction is CHECKED against them below, not used to find them.
+
+----------------------------------------------------------------------------------------------
+CONTROL 1 — which same-sized layout is SET A? (agreement with production's own reads)
+----------------------------------------------------------------------------------------------
+  layout #46   agreement with get_map_data over 280 sampled tiles: 280/280 = 100.0%
+  layout #318  agreement with get_map_data over 280 sampled tiles: 263/280 = 93.9%
+  layout #763  agreement with get_map_data over 280 sampled tiles: 280/280 = 100.0%
+  ⇒ SET A = layout #46 at 100.0%  PASS
+
+----------------------------------------------------------------------------------------------
+CONTROL 2 — the SET A decode must reproduce THREE independent production numbers
+----------------------------------------------------------------------------------------------
+  (40,20)->(28,15) : decode 35  production 35   MATCH
+  (40,19)->(28,15) : decode 16  production 16   MATCH
+  (40,19) is a WALL in SET A : True            MATCH
+  ⇒ PASS — the decode agrees with the emulator oracle in three places
+
+  ALL CONTROLS PASS.
+
+----------------------------------------------------------------------------------------------
+MEASUREMENT 1 — SET B, and the divergence, per direction
+----------------------------------------------------------------------------------------------
+
+  candidate layout #318:
+    open in A, WALL in B (the dangerous direction) : 116
+    WALL in A, open in B (the blind-step direction): 20
+    the blind step (40, 19) is open in B        : True
+    the tower door (36, 6) is open in B             : True
+
+    ROUTE AUDIT against this candidate (the 116 dangerous tiles):
+      swim end -> staging, from (40,20) [the FALLBACK]
+        SET A distance 35; avoiding the dangerous set 39  -> ‼ FORCED THROUGH LIVE ROCK — no tie-break can dodge it
+      blind step -> staging, from (40,19) [the ROUTE]
+        SET A distance 16; avoiding the dangerous set 16  -> clean: an equal-cost live-safe route exists
+
+    (28,15) -> the door (36, 6): SET A None   SET B 17
+      ⇒ if SET A is None and SET B is a number, the final approach MUST be hand-walked:
+        the planner cannot see the door at all, and any call it makes there is unsafe.
+
+  candidate layout #763:
+    open in A, WALL in B (the dangerous direction) : 0
+    WALL in A, open in B (the blind-step direction): 0
+    the blind step (40, 19) is open in B        : False
+    the tower door (36, 6) is open in B             : True
+    ⇒ this candidate does NOT explain the blind step; it is probably not SET B.
+
+==============================================================================================
+READ NARROWLY. This is a STATIC comparison of two ROM layouts. It does NOT prove which
+one ROUTE131 loads at runtime — `setmaplayoutindex` writes only the live `gMapHeader`,
+which cannot be read without standing on the map. ⛔ The first leg-3 drive must carry the
+`CH21_LAYOUT_PROBE` reading on ROUTE131 and settle that premise as a byproduct.
+==============================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-08-28_07-14-02.ss1 created!
+Updated `current_state.ss1`!
