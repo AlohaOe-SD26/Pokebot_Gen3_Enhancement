@@ -19062,3 +19062,35 @@ by moving the completed 2026-08-26 `#26-*` redirect to `28-HANDOFF-ARCHIVE.md` (
 ⚠ **This is the third consecutive work item where the 900-line cap has bound.** Per the ruling in
 `06-DECISIONS-LOG.md` (2026-08-28) that is now evidence the budget may be wrong rather than the
 content — ⛔ **raising it is the USER's call and was NOT taken unilaterally.**
+
+---
+
+## 2026-09-01 — THE LEG-3 BUILD SPEC IS RECOVERED: the handoff had been pointing at a build order that WAS NOT THERE
+
+**The defect.** `04-HANDOFF.md` promised *"the full step-by-step build order, agreed by two
+independent critics, is in `12-STORYMODE-DESIGN.md` §Ch21."* **It was not.** Every "build order"
+hit in that file is at lines 270–3374; the §Ch21 ATLAS begins at **3458**. The 2026-08-28 Tier 2
+cold-start audit reported exactly this and named the missing acceptance predicate as the **#1
+reason** it answered **NO** to *"could I start this item right now with no human input?"* — and
+this one finding was **not fixed in that wrap-up** while nine others were. ‼ A pointer is a claim,
+and this one was false for four days.
+
+**NEW: `ai-research-notes/2026-09-01-ch21-leg3-BUILD-SPEC.md`** — recovered from the recon
+workflow's journal rather than re-derived, so nothing is re-invented. Leg 2 had
+`2026-08-26-ch21-leg2-BUILD-SPEC.md`; leg 3 had no equivalent and now does.
+
+⛔ **BOTH critics' orders are reproduced VERBATIM AND UNMERGED** (26 steps and 19 steps, plus 18
+must-measures and their refuted claims). They do **not** agree in every particular, and merging
+them here was deliberately refused: agreement between two agents is not a confidence signal
+(measured in this project), and choosing between them is a design decision that belongs to whoever
+builds the leg, with the atlas as the tiebreaker.
+
+⛔ **AND THE GAP IS NAMED RATHER THAN PAPERED OVER:** *neither* critic supplies the ACCEPTANCE
+predicate — the end-state var/flag plus the "and the bot can CONTINUE" `calculate_path` target.
+Writing it is leg 3's FIRST task, and §Ch15, §Ch18 and §Ch19 each PASSED their own test while
+stranded, so inventing one casually is the known failure mode. The handoff now says this instead of
+promising a build order it could not deliver.
+
+Also: the daily upstream check for **2026-09-01** (unchanged, `5dd898f8`), the `upstream` STATE row
+re-dated (it goes stale on a calendar day by its own rule), and the §Ch20 pointer block compressed
+to its still-live rules to stay inside the 900-line budget.

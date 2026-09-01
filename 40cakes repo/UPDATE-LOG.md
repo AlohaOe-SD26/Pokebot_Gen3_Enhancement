@@ -20,7 +20,7 @@
 - **Upstream commit:** `5dd898f8` (40Cakes/pokebot-gen3 `main`)
 - Mirrored via `git subtree add --squash` at `40cakes repo/pokebot-gen3/`.
 - DOCUMENTATION/ 00–05 written against this commit (docs v1).
-- Last daily check: **2026-08-28** (`git fetch upstream-pokebot` → `upstream-pokebot/main` still
+- Last daily check: **2026-09-01** (`git fetch upstream-pokebot` → `upstream-pokebot/main` still
   `5dd898f8`, unchanged, tree hash still `fa3504a285eb62fa`; nothing to pull, nothing appended
   per the standing directive).
   ‼ Also RE-DERIVED on this date, not merely fetched: the mirror is byte-identical to upstream by
@@ -32,7 +32,7 @@
   `--squash` subtree the prefix has no shared history upstream, so that diff reports a meaningless
   `4290 files changed`. *(Gap note: 2026-08-19..21 had no session, so no check was recorded on
   those calendar days; the recorded commit was still correct, so nothing was missed.)*
-  Prior 2026-08-27 (no changes). Prior 2026-08-22 (no changes; mirror tree re-derived identical). Prior 2026-08-18 (no changes). Prior 2026-08-16 (no changes). Prior 2026-08-15 (no changes). Prior 2026-08-14 (no changes). Prior 2026-08-13 (no changes). Prior 2026-08-12 (upstream main still `5dd898f8` — no changes). Prior 2026-08-11 (no
+  Prior 2026-08-28 (no changes). Prior 2026-08-27 (no changes). Prior 2026-08-22 (no changes; mirror tree re-derived identical). Prior 2026-08-18 (no changes). Prior 2026-08-16 (no changes). Prior 2026-08-15 (no changes). Prior 2026-08-14 (no changes). Prior 2026-08-13 (no changes). Prior 2026-08-12 (upstream main still `5dd898f8` — no changes). Prior 2026-08-11 (no
   changes), 2026-08-10 (no
   changes). Prior 2026-08-09 (no
   changes). Prior 2026-08-08, 2026-08-07, 2026-08-06, 2026-08-05, 2026-08-02: no changes. Prior 2026-07-31: no changes. Prior 2026-07-30: no changes.
