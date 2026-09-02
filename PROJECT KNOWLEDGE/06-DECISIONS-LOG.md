@@ -3839,3 +3839,29 @@ stranded. *Rejected:* the flag alone (cheaper, and exactly the shape this projec
 **What this does NOT settle, left for the chapter wiring:** §Ch21 is still NOT wired into `_play()`;
 the five legs exist as separately-driven functions with no orchestrator, and the chapter's completion
 flag (`RECEIVED_HM_WATERFALL`) is now produced by leg 5 but not yet consumed by `chapters.py`.
+
+---
+
+## 2026-09-02 (later) — CORRECTION to the entry above: `chapters.py` ALREADY consumes `RECEIVED_HM_WATERFALL`
+
+⛔ **This file is append-only, so the entry above is left standing and corrected here.** Its closing
+"What this does NOT settle" paragraph said *"the chapter's completion flag (`RECEIVED_HM_WATERFALL`)
+is now produced by leg 5 but not yet consumed by `chapters.py`"*. **That is FALSE.** Verified by
+opening the file: `chapters.py:249-250` is
+`Chapter("21", 26, "Sootopolis crisis & Rayquaza", "Sootopolis / Sky Pillar", flag("RECEIVED_HM_WATERFALL"), …)`,
+with a ten-line comment at `:240-248` explaining WHY that flag (and not a Rayquaza-defeated flag) is
+the right marker; `progress.py:40` maps it to the "Waterfall" readout.
+
+**Consequence for the next work item:** wiring §Ch21 into `_play()` needs **NO `chapters.py` edit**.
+The remaining work is the orchestrator plus its dispatch site — a materially smaller item than the
+superseded paragraph implied.
+
+**Two facts the same verification pass established, which the orchestrator design depends on:**
+1. **`enter_sootopolis()` has no resume guard.** After `assert_ch21_preflight()` it runs
+   `_navigate_riding_out(MapRSE.ROUTE126, DIVE_TILE)` unconditionally (`sootopolis.py:194`), and
+   Sootopolis has ZERO map connections — so on any post-whiteout resume, leg 1 is the FIRST thing
+   that fails, before reaching whichever leg actually owns the state. ⇒ the orchestrator must gate
+   leg 1 on "am I already in Sootopolis", not call it unconditionally.
+2. **`sootopolis_reached()` (`sootopolis.py:99`) is DEAD CODE** — defined, never called anywhere in
+   the tree. It is the obvious predicate for (1) and must be verified live before being trusted, not
+   adopted because its name fits.

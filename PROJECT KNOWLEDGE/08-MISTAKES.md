@@ -10612,3 +10612,38 @@ VERDICT RUN.** Copying an `on_whiteout` comment does not copy the `try/except` t
 when a driver is modelled on another, diff the ERROR PATHS, not just the happy path. ⇒ and pair it
 with the standing rule that a probe's grade must include the state its readings DEPEND on
 (`settle_ok`, `scene_failure`), never only "did the probe reach this line".
+
+---
+
+## 2026-09-02 (later) — I ASSERTED A NEGATIVE ABOUT ANOTHER MODULE WITHOUT OPENING IT, AND IT SHIPPED TO FOUR PLACES
+
+**Symptom.** The leg-5 commit stated, in `04-HANDOFF.md`, `03-PUNCH-LIST.md`,
+`06-DECISIONS-LOG.md` **and** the commit message itself, that `chapters.py` "does not yet consume
+`RECEIVED_HM_WATERFALL`". An adversarial refuter reviewing an unrelated recon flagged it; opening the
+file settled it in one look: `chapters.py:249-250` has graded §Ch21 on exactly that flag all along,
+with a ten-line comment at `:240-248` arguing for it, and `progress.py:40` maps it too.
+
+**Root cause.** I inferred the negative from what leg 5 needed to BUILD (nothing consumed the flag
+*for dispatch*) and wrote it as a fact about a file I never opened. ‼ **The file I edited all day
+already told me** — `sootopolis.py:64`, in the module docstring I read while writing leg 5, says
+*"The chapter's completion flag is `RECEIVED_HM_WATERFALL` (`chapters.py`)"*. I read past it because
+I was looking for something else.
+⇒ And note the propagation shape: it went into FOUR places in ONE commit, so no pair-check could
+catch it — P1–P5 compare documents to EACH OTHER, and all four agreed. **A consistency layer cannot
+detect a claim that is uniformly wrong.**
+
+**The fix that worked.** Verified by direct read + a tree-wide grep, corrected the two current-state
+files in place, and appended a correction to the append-only decisions log (the original entry
+stands). The practical upshot is good news: the §Ch21 wiring needs no `chapters.py` edit at all.
+
+**Prevention rules.**
+⛔ **A NEGATIVE CLAIM ABOUT A FILE YOU HAVE NOT OPENED IS A GUESS.** "X does not handle Y", "nothing
+consumes Z", "there is no caller" — each is one `grep` away from being a fact, and none of them is
+safe to infer from what your own work needed. Before writing "does not", run the grep and cite it.
+⛔ **AND THE PAIR CHECKS CANNOT SAVE YOU HERE.** Tier 0/1/2 compare documents to each other, so a
+claim written wrong in all four places passes every one of them. ⇒ **the only defence for a
+cross-module factual claim is a citation to the OTHER module**, added at the moment the sentence is
+written — which is also why this project requires FILE:LINE from its agents and should require it of
+itself. *(Cost of learning this: nothing yet — an adversarial refuter caught it inside the hour,
+before the wiring was built on top of it. That is the second time today a refuter beat a
+consistency check.)*
