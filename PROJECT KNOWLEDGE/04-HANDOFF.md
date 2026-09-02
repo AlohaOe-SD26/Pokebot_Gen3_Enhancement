@@ -276,7 +276,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    `--driver ch21approach`, `ACCEPTANCE: PASS`, 14/14 readings, `frames=34122`, three fault
 >    arms. Fixture `post_skypillar_door.ss1` PINNED (md5 `f6f8ab116b1bc18644286f51c2f202c6`;
 >    ⚠ 91% HP — no Poke Center above Sootopolis). Full detail: `07-CHANGELOG.md` 2026-09-01.
->    ➡➡➡ **NEXT ACTION: BUILD LEG 5 = THE RETURN + HM07 (WATERFALL).** Leg 4 is BUILT AND DRIVEN
+>    ➡➡➡ **NEXT ACTION: VALIDATE LEG 5 (run the PART C live-probe gates — the ROUTE131 live-pin A/B FIRST), THEN BUILD it (PART D). ⛔ Its RECON IS DONE — do NOT re-run it, and do NOT skip to the raw build.** Leg 4 is BUILT AND DRIVEN
 >    (`--driver ch21climb`, `ACCEPTANCE: PASS`, all 15 readings, `order_ok`, both falls, all 7
 >    floor pins, seven fault arms; ⛔ DO NOT REBUILD). It ends on `post_rayquaza_gone.ss1`:
 >    SKY_PILLAR_ENTRANCE (14,3), `SOOTOPOLIS_CITY_STATE=5`, `SKY_PILLAR_STATE=1`, Rayquaza gone
