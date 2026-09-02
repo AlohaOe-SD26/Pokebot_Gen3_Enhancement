@@ -1,0 +1,67 @@
+Running mGBA 0.10.2
+====================================================================================================
+SAVE: C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves\post_hm07.ss1
+====================================================================================================
+----------------------------------------------------------------------------------------------------
+PARTY
+----------------------------------------------------------------------------------------------------
+  party size = 6 (full party is 6)
+  party[0]                 Swellow      L41  pid=0B30A747 types=['Flying', 'Normal'] egg=False
+    type_match=False  (species types ['Flying', 'Normal'] vs NEEDED ['Dragon', 'Electric', 'Ice', 'Rock'])
+    move[0] = Peck             type=Flying     in_NEEDED=False  knows_move('Peck')=True
+    move[1] = Wing Attack      type=Flying     in_NEEDED=False  knows_move('Wing Attack')=True
+    move[2] = Aerial Ace       type=Flying     in_NEEDED=False  knows_move('Aerial Ace')=True
+    move[3] = Quick Attack     type=Normal     in_NEEDED=False  knows_move('Quick Attack')=True
+    move_match=False  hits=[]
+  party[1]                 Zigzagoon    L19  pid=33CB74C3 types=['Normal'] egg=False
+    type_match=False  (species types ['Normal'] vs NEEDED ['Dragon', 'Electric', 'Ice', 'Rock'])
+    move[0] = Tackle           type=Normal     in_NEEDED=False  knows_move('Tackle')=True
+    move[1] = Growl            type=Normal     in_NEEDED=False  knows_move('Growl')=True
+    move[2] = Surf             type=Water      in_NEEDED=False  knows_move('Surf')=True
+    move[3] = Headbutt         type=Normal     in_NEEDED=False  knows_move('Headbutt')=True
+    move_match=False  hits=[]
+  party[2]                 Sceptile     L50  pid=863B0917 types=['Grass'] egg=False
+    type_match=False  (species types ['Grass'] vs NEEDED ['Dragon', 'Electric', 'Ice', 'Rock'])
+    move[0] = Rock Smash       type=Fighting   in_NEEDED=False  knows_move('Rock Smash')=True
+    move[1] = Strength         type=Normal     in_NEEDED=False  knows_move('Strength')=True
+    move[2] = Leaf Blade       type=Grass      in_NEEDED=False  knows_move('Leaf Blade')=True
+    move[3] = Slam             type=Normal     in_NEEDED=False  knows_move('Slam')=True
+    move_match=False  hits=[]
+  party[3]                 Wailmer      L40  pid=FA51ECF3 types=['Water'] egg=False
+    type_match=False  (species types ['Water'] vs NEEDED ['Dragon', 'Electric', 'Ice', 'Rock'])
+    move[0] = Dive             type=Water      in_NEEDED=False  knows_move('Dive')=True
+    move[1] = Surf             type=Water      in_NEEDED=False  knows_move('Surf')=True
+    move[2] = Water Gun        type=Water      in_NEEDED=False  knows_move('Water Gun')=True
+    move[3] = Rollout          type=Rock       in_NEEDED=True  knows_move('Rollout')=True
+    move_match=True  hits=[('Rollout', 'Rock')]
+  party[4]                 Mightyena    L44  pid=5C96EA9B types=['Dark'] egg=False
+    type_match=False  (species types ['Dark'] vs NEEDED ['Dragon', 'Electric', 'Ice', 'Rock'])
+    move[0] = Tackle           type=Normal     in_NEEDED=False  knows_move('Tackle')=True
+    move[1] = Taunt            type=Dark       in_NEEDED=False  knows_move('Taunt')=True
+    move[2] = Take Down        type=Normal     in_NEEDED=False  knows_move('Take Down')=True
+    move[3] = Bite             type=Dark       in_NEEDED=False  knows_move('Bite')=True
+    move_match=False  hits=[]
+  party[5]                 Castform     L36  pid=C978D14E types=['Normal'] egg=False
+    type_match=False  (species types ['Normal'] vs NEEDED ['Dragon', 'Electric', 'Ice', 'Rock'])
+    move[0] = Powder Snow      type=Ice        in_NEEDED=True  knows_move('Powder Snow')=True
+    move[1] = Weather Ball     type=Normal     in_NEEDED=False  knows_move('Weather Ball')=True
+    move[2] = Sunny Day        type=Fire       in_NEEDED=False  knows_move('Sunny Day')=True
+    move[3] = Hail             type=Ice        in_NEEDED=True  knows_move('Hail')=True
+    move_match=True  hits=[('Powder Snow', 'Ice'), ('Hail', 'Ice')]
+----------------------------------------------------------------------------------------------------
+PC BOXES
+----------------------------------------------------------------------------------------------------
+  (no occupied slots in any box — all 14 boxes empty)
+----------------------------------------------------------------------------------------------------
+SUMMARY
+----------------------------------------------------------------------------------------------------
+  party_size=6  boxed_count=0  pokemon_count(reported)=0
+  no PID collisions found across party+box
+  pid=42207D6F NOT present in this save's party+box
+
+EXIT CODE: 0
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-02_16-12-41.ss1 created!
+Updated `current_state.ss1`!
