@@ -3709,8 +3709,10 @@ HANG, not a hard fail.
 *(Upstream also sets `use_repel = True` for this area — worth noting for §4.10-style pressure.)*
 
 ⛔⛔⛔ **THE DESCENT NEEDS A *SECOND* DELIBERATE FALL — AND THIS ATLAS DID NOT CONTAIN IT.**
-Coming down, `Top -> 5F -> 4F (3,1)` lands in **4F's WEST POCKET (12 tiles)**, which has no walking
-exit. ⇒ the descent needs its own fall, through **`4F (0,3)` or `(1,3)`**. ‼ **If this is omitted
+Coming down, `Top -> 5F -> 4F (3,1)` lands in **4F's WEST POCKET**.
+⛔⛔ **CORRECTION 2026-09-01 — "12 tiles, no walking exit" IS REFUTED, AND THE DIFFERENCE CHANGES THE CHECK YOU MUST WRITE.** The pocket contains **`4F (7,1)`, a planner-VISIBLE Non-Animated-Door staircase**, 5 walkable steps from `(3,2)`. It leads to 3F's sealed 11-tile pocket whose only exit is back up. ⇒ the second fall is still REQUIRED, but the failure mode is a **LIVELOCK the planner will happily route into**, NOT a refusal.
+‼ **So a "the planner refuses" guard would NEVER FIRE.** The post-fall check must be a `calculate_path` to **3F `(3,1)`**, which the wrong exit cannot satisfy.
+*(This correction lived only in `ai-research-notes/2026-09-01-ch21-leg3-BUILD-SPEC.md`, whose own header says a note LOSES to the authoritative doc — so a rule-following agent would have kept the refuted version. A Tier 2 cold-start audit caught that, 2026-09-01.)* ⇒ the descent needs its own fall, through **`4F (0,3)` or `(1,3)`**. ‼ **If this is omitted
 the bot reaches the summit, WAKES RAYQUAZA (setting the var, so the layouts flip to DIRTY on the
 next load) and is STRANDED** — the §Ch15/§Ch18/§Ch19 "passed its own test while stranded" shape,
 one commit from shipping. ⇒ **BUILD THE DESCENT FALL INTO THE LEG FROM THE START**, and make the

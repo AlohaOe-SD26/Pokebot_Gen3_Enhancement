@@ -286,8 +286,8 @@ def main() -> int:
             print(f"  flag {flag:<26} = {bool(get_event_flag(flag))}")
         except Exception as error:
             print(f"  flag {flag:<26} = ERROR {type(error).__name__}")
-    print(f"  ⛔ the §Ch21 ATLAS says VISITED_SOOTOPOLIS_CITY is False; the BUILD SPEC says True.")
-    print(f"     The reading above settles it for THIS fixture and the loser must be corrected.")
+    print("  ⛔ the §Ch21 ATLAS says VISITED_SOOTOPOLIS_CITY is False; the BUILD SPEC says True.")
+    print("     The reading above settles it for THIS fixture and the loser must be corrected.")
 
     # ------------------------------------------------------------------ summary
     print("")

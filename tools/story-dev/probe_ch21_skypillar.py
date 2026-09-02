@@ -484,8 +484,12 @@ def main() -> int:
         print("    CLEAN walls) and `ROUTE131` (116, and it swaps UNCONDITIONALLY).")
     print("\n  ⛔ WHAT A DRIVE STILL OWES: confirmation of the resting tiles predicted by the rule")
     print("     validated in MEASUREMENT 6(a); whether the fall is unconditional for a WALKING")
-    print("     player; and the SECOND fall the descent needs (Top->5F->4F(3,1) lands in a 12-tile")
-    print("     west pocket with no walking exit — omit it and the bot summits and is STRANDED).")
+    print("     player; and the SECOND fall the descent needs (Top->5F->4F(3,1) lands in 4F's")
+    print("     WEST POCKET — omit it and the bot summits and is STRANDED).")
+    print("  ⛔ CORRECTED 2026-09-01: that pocket does NOT have 'no walking exit'. It contains")
+    print("     4F (7,1), a planner-VISIBLE staircase, so the failure mode is a LIVELOCK the")
+    print("     planner routes into, NOT a refusal. A 'the planner refuses' guard would never")
+    print("     fire; check with calculate_path to 3F (3,1), which the wrong exit cannot satisfy.")
     print("=" * 94)
     return 0
 

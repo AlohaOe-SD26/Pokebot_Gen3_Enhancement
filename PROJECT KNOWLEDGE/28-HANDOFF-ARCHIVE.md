@@ -7116,3 +7116,62 @@ NOT RAISE THE CAP AGAIN, and `#24-hmslots` ratifies reserving HM slots.
       `28-HANDOFF-ARCHIVE.md` (2026-08-17)** on the R3 3,600-line budget. Closed, and its
       successor work (KI-79's identity-verified withdraw, and `#24-orphans` (1)) is tracked
       separately. Nothing deleted.
+
+### `#24-relocfloor` — closed item archived 2026-09-01 (line budget)
+
+- [x] `#24-relocfloor` — ✅ **DONE 2026-08-01, CLOSED. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (the R3 relief valve: this file hit its 3,600-line limit). ⛔ Nothing here is outstanding; read the archive for the measured relocation-floor table and the "ONLY the floor is wrong — do not key it all to the trainee" rule, which later training work still leans on.
+
+### ‼ BATCH 4 LANDED 2026-07-31 23:15 — the counter chain's blocker MOVED to KI-44
+
+### `#24-mtpyre` — closed item archived 2026-09-01 (line budget)
+
+- [x] `#24-mtpyre` — **BUILT AND LIVE-PROVEN 2026-08-06.** `open_route121_aqua_gate()` +
+      `do_mt_pyre_summit()`, Segment 14. From `post_winona.ss1` in 76,368 frames: Magma Emblem
+      obtained, `HIDE_JAGGED_PASS_MAGMA_GUARD` True (Magma Hideout open). End save:
+      `saves/post_mtpyre.ss1`. 8 repros green. ‼ NOT batched — see `#24-mtpyre-batch`.
+
+### `#24-pcoverflow` — closed item archived 2026-09-01 (line budget)
+
+- [x] `#24-pcoverflow` — **BUILT 2026-08-05** (user ruling: build the real thing, not a raised
+      constant). `resource_blocker` no longer refuses a full party (ball gate untouched);
+      `pc_trip.box_views/find_in_box/withdraw_from_box` read the PC, find a mon **by PID**, and
+      collect it at the next heal. Frees exactly ONE slot, never deposits its own target.
+      `repro_pc_overflow.py`. **NOT live-proven.**
+
+### `#24-progressiongate` — closed item archived 2026-09-01 (line budget)
+
+- [x] `#24-progressiongate` — **SHIPPED 2026-08-08.** `AREA_PREREQ[FIERY_PATH] = "rocksmash"`,
+      resolved by `_party_can_rock_smash()` (move AND `BADGE03_GET`, fails closed).
+      **DECOMP-VERIFIED**: `src/party_menu.c:122` — `FIELD_MOVE_ROCK_SMASH, // FLAG_BADGE03_GET`.
+      A/B: pre-Wattson **0 huntable** (was the circular Numel @ FIERY_PATH); post-Wattson 1.
+      Norman control preserved. Suite 8/8.
+
+### `#24-winonaground` — closed item archived 2026-09-01 (line budget)
+
+- [x] `#24-winonaground` — **SOLVED 2026-08-07 by `#24-movepoolcounters`. The real cause was
+      neither the whitelist nor reachability: across all 11 huntable grounds Winona's needed
+      types appear ONCE (Geodude @ ROUTE111) and it is a **Rock Smash** encounter, which the
+      `method == "Grass"` filter drops — leaving zero candidates.** She now has Slugma @
+      FIERY_PATH via Rock Throw. ‼ My first two stated causes were both wrong; the history is
+      kept below because the wrong turns are the lesson.
+
+### `#24-pcoverflow-proof` — closed item archived 2026-09-01 (line budget)
+
+- [x] `#24-pcoverflow-proof` — **CLOSED 2026-08-07. Both halves are now live-proven, each by its
+      own capability test.** Catch half: `--driver boxcatch` (see `#24-pcoverflow` below).
+      Withdraw half: `--driver boxwithdraw` (see `#24-pcwithdraw-proof` below).
+      The original blocker stands as a lesson: batch `20260805-122057` logged `withdrawing` **0**
+      times because the Surf guard derailed runs before any full-party catch reached the overflow
+      path. Bundling the feature with the cap measured the BUNDLE, not the part — and a targeted
+      probe answered in **~45,000 frames** what four 3-hour batches could not.
+
+### `#24-postwinona-save` — closed item archived 2026-09-01 (line budget)
+
+- [x] `#24-postwinona-save` — **THE PRACTICAL BLOCKER FOR ALL Ch14 WORK. Do this first.**
+      No save exists past Winona, so nothing in Mt. Pyre can be validated. A 2026-08-05 attempt
+      drove Story from `fortree_gym_wedge.ss1` and ground through 10 Winona attempts (KO'ing
+      3-4 of her 5 each) without converging — that save's team has no super-effective answer to
+      Flying. Options: drive a fresh run to completion and keep the end state; or build the save
+      from a run that already beat her (52% of batch runs do). Once it exists, commit it to
+      `tools/story-dev/saves/` as `post_winona.ss1` — every Ch14 probe will want it.
+

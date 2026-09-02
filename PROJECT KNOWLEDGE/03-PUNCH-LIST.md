@@ -161,26 +161,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       through §Ch20, and the user has ruled the feature helps the remaining progress rather than
       competing with it.
 
-- [x] `#24-pcoverflow-proof` — **CLOSED 2026-08-07. Both halves are now live-proven, each by its
-      own capability test.** Catch half: `--driver boxcatch` (see `#24-pcoverflow` below).
-      Withdraw half: `--driver boxwithdraw` (see `#24-pcwithdraw-proof` below).
-      The original blocker stands as a lesson: batch `20260805-122057` logged `withdrawing` **0**
-      times because the Surf guard derailed runs before any full-party catch reached the overflow
-      path. Bundling the feature with the cap measured the BUNDLE, not the part — and a targeted
-      probe answered in **~45,000 frames** what four 3-hour batches could not.
-
-- [x] `#24-pcoverflow` — **BUILT 2026-08-05** (user ruling: build the real thing, not a raised
-      constant). `resource_blocker` no longer refuses a full party (ball gate untouched);
-      `pc_trip.box_views/find_in_box/withdraw_from_box` read the PC, find a mon **by PID**, and
-      collect it at the next heal. Frees exactly ONE slot, never deposits its own target.
-      `repro_pc_overflow.py`. **NOT live-proven.**
-
 - [x] `#24-cavethread` — ✅ **CLOSED 2026-08-05 — IT WAS NEVER A BLOCKER. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (the R3 relief valve: this file hit its 3,600-line limit). ⛔ Nothing here is outstanding; read the archive only for the multi-hop cave reasoning.
-
-- [x] `#24-mtpyre` — **BUILT AND LIVE-PROVEN 2026-08-06.** `open_route121_aqua_gate()` +
-      `do_mt_pyre_summit()`, Segment 14. From `post_winona.ss1` in 76,368 frames: Magma Emblem
-      obtained, `HIDE_JAGGED_PASS_MAGMA_GUARD` True (Magma Hideout open). End save:
-      `saves/post_mtpyre.ss1`. 8 repros green. ‼ NOT batched — see `#24-mtpyre-batch`.
 
 - [x] `#24-pcoverflow` — **CATCH HALF PROVEN AND ENABLED 2026-08-07.** Two independent breaks
       were found and fixed: (1) `pc_trip.box_views()` called `boxes`, a `@cached_property`
@@ -460,7 +441,10 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
 - [x] ✅ DONE 2026-08-22/23 — brought current, and it was WORSE than — 📦 **ARCHIVED 2026-08-26 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 - [ ] `#24-gymwhiteoutgatehang` — **NEW 2026-09-01. `repro_gym_whiteout_guard.py` HANGS, and it
   is RED in `run_gates.py` right now.** Measured twice: killed at the suite's **900s** bound, then
-  re-run STANDALONE and killed at a **1500s** bound. Both times it stops after printing
+  re-run STANDALONE, where it produced no further output for **~36 minutes** and never printed a
+  verdict at all (a 1500s `timeout` was set on the wrapper; it did not appear to reach the child
+  process, so the run simply went quiet rather than being cleanly killed). Both times it stops
+  after printing
   `[1]+[2] FAULT INJECTION — force the player 'off the gym map' part-way through the route` and
   emits nothing further. ⇒ it is a genuine hang at the fault-injection step, **not** gate-startup
   contention (`#26-gatestartupcontention`), because the standalone run had the machine to itself
@@ -478,6 +462,17 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
   in place and it now reports `PASS — exactly at the baseline. No new debt.` ⇒ a re-run should
   read **31 of 32**, with THIS item the only red. ‼ That is an INFERENCE from re-running the
   one gate alone, not a re-run of the whole suite (which costs ~40 minutes).
+- [ ] `#24-skypillarprobewrites` — **NEW 2026-09-01, found by a Tier 2 cold-start audit.**
+  `probe_ch21_skypillar.py` is documented in `04-HANDOFF.md` as "Seconds, no network" recon, but
+  running it **WRITES**: it emitted `Save state ...profiles/repro-ml/states/<ts>.ss1 created!` and
+  `Updated current_state.ss1!`. The path is gitignored so the repo is safe, but it mutates the
+  SHARED `repro-ml` profile — and an agent may run it many times while building leg 4.
+  ‼ **This is the class PASS 4 claimed to close** (`04-HANDOFF.md` credits it with fixing "seven
+  observe-only gates writing shared profile state, 2,820 files / 160 MB"); this probe was added
+  2026-08-27, AFTER that sweep, and re-introduced it. ⇒ the sweep fixed the instances, not the
+  cause — there is no gate that FAILS a probe for writing profile state.
+  ⛔ Fix the probe, and consider the gate: a check that an "observe-only" tool leaves
+  `profiles/` byte-identical would make the class impossible rather than merely rare.
 - [ ] `#24-livegridreader` — **NEW 2026-09-01, created by §Ch21 leg 3's first drive. PROMOTE THE
   LIVE-GRID READER OUT OF A CHAPTER MODULE AND INTO `modules/map.py`.** Three helpers currently
   live in `modules/story/sootopolis.py` because that is where the bug bit: `_live_collision_grid()`
@@ -825,6 +820,19 @@ we read. Evidence + the one unverified link in `12-STORYMODE-DESIGN.md` §Ch21.
 * ⚠ **§Ch21 — the fall itself is NOT a blocker:** the story ascent must **deliberately fall**
   through `4F (6,4)` or `(7,4)`; `calculate_path` to `4F (3,1)` simply raises (production CONFIRMED
   both sealed pockets 2026-08-27). ⇒ **the fall must be an EXPLICIT chapter step, like `dive()`**.
+  ⛔⛔ **UPDATE 2026-09-01 — THE "NO CRACK-FREE ROUTE" CLAIM IN THIS ITEM IS **REFUTED**, AND
+  THE "DO NOT BUILD THE CLIMB" LINE BELOW IS SUPERSEDED.** It answered the WRONG QUESTION: it
+  blocked the DEFAULT/post-game crack set, of which 33 of 38 (2F) and 29 of 34 (4F) are SOLID
+  GROUND on the CLEAN layouts the story actually runs on. **Every leg HAS a crack-free story
+  route, and banning 4F's five real cracks costs NOTHING (29 wp either way, MEASURED).**
+  ⇒ `04-HANDOFF.md`'s live queue head IS "BUILD LEG 4 = THE SKY PILLAR CLIMB". ‼ A Tier 2
+  cold-start audit (2026-09-01) found this item still commanding the opposite of the first
+  action, and found that the handoff never NAMES this slug — so the correction was unfindable
+  from the place a cold reader starts. ⛔ What REMAINS true and is leg 4's real hazard:
+  `SKY_PILLAR_TOP` is INVERTED (31 static-open tiles are CLEAN walls) and is **un-validated** —
+  `probe_skypillar_clean_layout.py` fetches only 2F/3F/4F_Clean, so it cannot check TOP, 1F or
+  5F at all, and the atlas's "TOP 13 wp" was computed blocking CLEAN *cracks*, never CLEAN
+  *walls*.
   ⛔ **BUT DO NOT READ THAT AS A GREEN LIGHT TO BUILD THE CLIMB** — this bullet said "do NOT wait
   … before building Ch21" while the prose above it and `04-HANDOFF.md` both said the climb is
   BLOCKED (a Tier 1 review caught the contradiction 2026-08-27). What actually blocks it: our
@@ -1491,12 +1499,6 @@ from the driver's log** — the probe caught the fainted member the driver's log
       already failed to travel. ‼ Do NOT simply widen `HUNTING_GROUNDS` on a guess — its whole
       value is that every entry is measured.
 
-- [x] `#24-progressiongate` — **SHIPPED 2026-08-08.** `AREA_PREREQ[FIERY_PATH] = "rocksmash"`,
-      resolved by `_party_can_rock_smash()` (move AND `BADGE03_GET`, fails closed).
-      **DECOMP-VERIFIED**: `src/party_menu.c:122` — `FIELD_MOVE_ROCK_SMASH, // FLAG_BADGE03_GET`.
-      A/B: pre-Wattson **0 huntable** (was the circular Numel @ FIERY_PATH); post-Wattson 1.
-      Norman control preserved. Suite 8/8.
-
 - [x] `#24-r116sweep` — ✅ **ANSWERED 2026-08-09, CLOSED: DO NOT ADD ROUTE116 to `HUNTING_GROUNDS`. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (the R3 relief valve: this file hit its 3,600-line limit). ⛔ Nothing here is outstanding; read the archive for the reachability method behind the ruling.
 
 - [x] `#24-battleitems` — ✅ **DONE, PROMOTED 2026-08-10 (user-approved), zero source drift.**  — 📦 **ARCHIVED 2026-08-23 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
@@ -1555,13 +1557,6 @@ from the driver's log** — the probe caught the fainted member the driver's log
       instrument what `Task_ContinueTaskAfterMessagePrints` is waiting on. Every failure is Surf
       and every mon already carries an HM — worth checking whether the HM-slot exclusion in
       `replace_slot` picking leaves no legal choice and the game silently refuses.
-
-- [x] `#24-winonaground` — **SOLVED 2026-08-07 by `#24-movepoolcounters`. The real cause was
-      neither the whitelist nor reachability: across all 11 huntable grounds Winona's needed
-      types appear ONCE (Geodude @ ROUTE111) and it is a **Rock Smash** encounter, which the
-      `method == "Grass"` filter drops — leaving zero candidates.** She now has Slugma @
-      FIERY_PATH via Rock Throw. ‼ My first two stated causes were both wrong; the history is
-      kept below because the wrong turns are the lesson.
 
 - [x] HISTORY — `#24-winonaground` (wrong-cause history) — ‼‼ **MY STATED CAUSE WAS WRONG.**
       I wrote that the huntable whitelist was `{FIERY_PATH, ROUTE116, ROUTE117, ROUTE102}` and
@@ -1771,14 +1766,6 @@ from the driver's log** — the probe caught the fainted member the driver's log
       ‼ Known weakness to watch: the step target is a coarse-lattice tile, not aimed at the
       onward route, so it can land somewhere with less onward reachability than ideal.
 
-- [x] `#24-postwinona-save` — **THE PRACTICAL BLOCKER FOR ALL Ch14 WORK. Do this first.**
-      No save exists past Winona, so nothing in Mt. Pyre can be validated. A 2026-08-05 attempt
-      drove Story from `fortree_gym_wedge.ss1` and ground through 10 Winona attempts (KO'ing
-      3-4 of her 5 each) without converging — that save's team has no super-effective answer to
-      Flying. Options: drive a fresh run to completion and keep the end state; or build the save
-      from a run that already beat her (52% of batch runs do). Once it exists, commit it to
-      `tools/story-dev/saves/` as `post_winona.ss1` — every Ch14 probe will want it.
-
 - [x] `#24-magmahideout` — ✅ **DONE, CLOSED. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (`#24-handoffbudget`'s relief valve: this file hit its 3,600-line R3 limit). ⛔ Nothing here is outstanding; read the archive only if you need the history.
 
 - [x] `#24-strength` — ✅ **DONE, CLOSED. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (`#24-handoffbudget`'s relief valve: this file hit its 3,600-line R3 limit). ⛔ Nothing here is outstanding; read the archive only if you need the history.
@@ -1795,10 +1782,6 @@ justified by counting failures without counting successes. Do not re-enable with
 ### ‼ BATCH 5 LANDED — the blocker moved a THIRD time, to the LEAD  — 📦 **ARCHIVED 2026-08-22 (PASS 5, R3 budget) → `28-HANDOFF-ARCHIVE.md`. CLOSED; moved verbatim, nothing deleted.**
 
 ### ‼ APPLIED 2026-08-01 AFTER BATCH `20260801-075805` LANDED
-
-- [x] `#24-relocfloor` — ✅ **DONE 2026-08-01, CLOSED. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (the R3 relief valve: this file hit its 3,600-line limit). ⛔ Nothing here is outstanding; read the archive for the measured relocation-floor table and the "ONLY the floor is wrong — do not key it all to the trainee" rule, which later training work still leans on.
-
-### ‼ BATCH 4 LANDED 2026-07-31 23:15 — the counter chain's blocker MOVED to KI-44
 
 - [x] `#24-counters-travel` (**KI-44**) — **FIXED 2026-08-01, awaiting a batch for the OUTCOME
       proof.** It was never a routing bug: `train_counter` used the BOSS's grass, so a Machop

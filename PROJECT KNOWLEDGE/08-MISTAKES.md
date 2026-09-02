@@ -10233,3 +10233,42 @@ exception?* Then build the arm that makes it.
 ‼ And the meta-lesson, which is the real reason this entry exists: **three green drives and two
 fault arms were not enough. An adversarial read of the diff was.** Passing tests tell you the paths
 you thought of are fine; only an adversary looks for the path you did not think of.
+
+---
+
+## 2026-09-01 — I RETARGETED THE `➡➡➡` HEADING TO LEG 4 AND LEFT **LEG 3's** HAZARD LIST UNDER IT
+
+**Symptom.** None visible. Tier 0 was green, Tier 1 returned P1-P5 all AGREE, and the banner, the
+60-second block and the queue head all correctly said *"leg 3 is done, build leg 4"*. A **Tier 2
+cold-start agent** — given only the handoff and the README — found it.
+
+**Root cause.** Directly under the new `➡➡➡ **NEXT ACTION: BUILD LEG 4**` marker sat a block headed
+`⛔ THE FIVE THINGS THAT DECIDE WHETHER IT SURVIVES ITS FIRST DRIVE`. **Four of the five were leg 3's**:
+the cave return, the pocket crossing, the hand-walked door tail, and the ROUTE131 layout reading —
+every one of them work the SAME FILE marks DONE, with measured results, a few lines above. The
+auditor proved it was a copy rather than a coincidence: in `git show HEAD` the identical block sits
+verbatim under the OLD heading `➡➡➡ NEXT ACTION: BUILD LEG 3`. **I changed the heading and not the
+body.**
+
+⇒ **A cold agent following the live next action would have been handed a build order whose first,
+second, third and fifth items were finished work.** That is the single most expensive doc defect
+this project has, and this file already contains three separate entries about it.
+
+**The fix that worked.** The block was rewritten as SIX leg-4 hazards (the `(6,16)` arrow warp and
+the never-jolt rule, riding the Wallace cutscene, the fall as an explicit step with `(9,4)` named as
+a DECOY, the descent's second fall and its LIVELOCK failure mode, `SKY_PILLAR_TOP`'s inversion being
+un-validated, and a discriminator that actually differs) plus an explicit statement of the two things
+nobody has supplied: **leg 4's acceptance predicate and its end boundary**.
+
+**Prevention rule.** ⛔ **P2 IS NOT ONLY ABOUT `##` HEADINGS. A `➡➡➡` MARKER IS A CLAIM ABOUT EVERY
+BULLET BENEATH IT.** When an item ships, retargeting the pointer is HALF the edit — the body under it
+was written for the OLD item and is guilty until re-read. ‼ Concretely: after moving a queue head,
+`git show HEAD:<file>` and diff the block against its previous parent. If the bullets are unchanged
+while the heading moved, they are stale by construction.
+
+‼ **AND THE TIER LESSON, WHICH IS WHY TIER 2 EXISTS AND MUST NOT BE RETIRED:** Tier 0 is mechanical
+and cannot see semantics. **Tier 1 checked the pairs I gave it and they genuinely all agreed** — the
+defect was not in any P1-P5 pair, it was in the BODY under a correct heading. Only an agent that
+tried to *BEGIN THE NEXT ITEM* hit it, because you only notice a hazard list is about the wrong leg
+when you try to follow it. ⇒ **the strongest audit of a handoff is not "is it consistent?" but "can
+someone START from it?"**

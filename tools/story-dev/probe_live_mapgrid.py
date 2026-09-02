@@ -63,7 +63,7 @@ context.bot_mode = "Story"
 from modules.map import get_map_data
 from modules.map_data import MapRSE
 from modules.map_path import PathFindingError, calculate_path
-from modules.memory import read_symbol, unpack_uint16, unpack_uint32
+from modules.memory import read_symbol, unpack_uint32
 from modules.player import get_player_avatar
 
 
