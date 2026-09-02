@@ -266,17 +266,10 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    `modules/story/sootopolis.py`'s leg-3 constants, each with its provenance on the row.
 >    ⛔ DO NOT RE-RUN ANY OF THEM AS A NEXT ACTION. Detail: `28-HANDOFF-ARCHIVE.md` +
 >    `07-CHANGELOG.md` 2026-09-01 + the §Ch21 ATLAS.
->    ✅✅✅ **LEG 3 IS BUILT AND DRIVEN (2026-09-01) — ⛔ DO NOT REBUILD IT.** `--driver ch21approach`
->    from `post_wallace.ss1` → `ACCEPTANCE: PASS`, **all 14 readings, `missing=[]`**, `frames=34122`,
->    `encounters=9`, `whiteouts=0`, `pocket_attempts=1`, `method_ok=True`, `premise_ok=True`.
->    Fixture **`post_skypillar_door.ss1` PINNED** (probe-verified: SKY_PILLAR_ENTRANCE (6,16),
->    badges 1-7; ⚠ party at **91% HP**, not full — there is no Poke Center after Sootopolis).
->    **THREE** fault arms ran: `POCKETSTALL` → `pocket_attempts=2` and still PASS (the pocket
->    recovery was the leg's one designed-but-unproven part and is now a RESULT); `BLINDWALL` → fails
->    LOUDLY naming the step, bounded, **no hang**; and `POCKETWALKBACK` (added after an ADVERSARIAL
->    REVIEW found a BLOCKER) → the recovery's OWN walk-back stalling now raises a NAMED "stranded"
->    error instead of a raw exception that escaped the retry budget.
->
+>    ✅✅✅ **LEG 3 (THE APPROACH) IS BUILT AND DRIVEN 2026-09-01 — ⛔ DO NOT REBUILD IT.**
+>    `--driver ch21approach`, `ACCEPTANCE: PASS`, 14/14 readings, `frames=34122`, three fault
+>    arms. Fixture `post_skypillar_door.ss1` PINNED (md5 `f6f8ab116b1bc18644286f51c2f202c6`;
+>    ⚠ 91% HP — no Poke Center above Sootopolis). Full detail: `07-CHANGELOG.md` 2026-09-01.
 >    ➡➡➡ **NEXT ACTION: BUILD LEG 4 = THE SKY PILLAR CLIMB.** It starts by RIDING the Wallace
 >    cutscene: `SKY_PILLAR_ENTRANCE (14,4)` warps to `SKY_PILLAR_OUTSIDE`, whose ON_FRAME scene
 >    fires at `SOOTOPOLIS_CITY_STATE == 3` with NO coordinate condition, drives the player ~12
@@ -359,7 +352,13 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >        Both arms are executable: all three tiles are in the same 111-tile component.
 >    ⛔⛔ **AND THE THING NOBODY HAS SUPPLIED, WHICH IS LEG 4'S FIRST TASK — THE ACCEPTANCE
 >    PREDICATE AND THE LEG'S END BOUNDARY.** Neither exists anywhere in this tree. Decide, and
->    write down: (a) does leg 4 stop at the summit trigger or include the DESCENT? (the atlas says
+>    write down: (a) ✅ **ANSWERED 2026-09-01 — THE DESCENT IS IN SCOPE, and it is FORCED, not
+>    chosen.** MEASURED on the CLEAN layouts: descending, the only down-staircase reachable from
+>    4F's arrival is `(7,1)`, and from `3F (7,1)` the bot **CANNOT** reach `3F (3,1)` — it is
+>    TRAPPED on 3F without a SECOND deliberate fall (`4F (0,3)` from `(0,2)`, or `(1,3)` from
+>    `(1,2)`; both approachable). A summit-only leg therefore cannot satisfy this project's own
+>    "and the bot can CONTINUE" rule BY CONSTRUCTION. Ruling + the full chain in
+>    `06-DECISIONS-LOG.md`. *(superseded question:)* does leg 4 stop at the summit trigger or include the DESCENT? (the atlas says
 >    "build the descent fall into the leg from the start"; the queue says only "the climb" —
 >    they are different legs); (b) the end-state var to grade on — ⛔⛔ **AND IT IS NOT
 >    `SKY_PILLAR_STATE` **AT THE VALUES 4 OR 5**. ⚠ Scoped deliberately: `SKY_PILLAR_STATE` DOES
@@ -422,14 +421,8 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    `permissionDecision` — an "allow" would auto-approve past the user's prompt
 >    (`06-DECISIONS-LOG.md`). 32-check self-test, mutation-proven; an adversarial review kicked
 >    back v1 and both defects are fixed. Detail: `07-CHANGELOG.md` 2026-08-26.
->    ✅✅✅ **§Ch20 SHIPPED AS A CHAPTER 2026-08-24 — 5/5 drives PASS, both recovery paths
->    exercised. ⛔ DO NOT REBUILD IT.** ⚠ NOT proven: organic Dive in the same run (the driver
->    injects it) and a LOST Archie fight (stochastic, 2W/1L; all five runs won).
->    ⛔ Read `#24-divegroundroute120`, `#24-hmgroundwatertiles` and `#24-gatescopeharness`
->    first — all three are measured and none is started.
->    ⛔ **`#24-abortrecoveryresiduals` IS DONE — DO NOT RE-OPEN (a)/(b)/(c).** (a) closed by
->    ASSESSMENT (reachability VERY LOW, evidence in `07-CHANGELOG.md`); no code change to the
->    whiteout-recovery path, deliberately.
+>    ✅✅✅ **§Ch20 SHIPPED AS A CHAPTER 2026-08-24 — ⛔ DO NOT REBUILD.** Detail archived
+>    2026-09-01; narrative in `07-CHANGELOG.md`.
 >    ➡ **BEST NEXT ITEMS, in order:**
 >    1. **`#24-harnesswhiteoutdrop`** — 10 of 36 whiteout drops unresolved (26 were expected non-story-driver drops; the run header lacks `driver:`)
 >       after a whiteout. Any result measured after that point is suspect, so this taints EVIDENCE.

@@ -435,7 +435,78 @@ def main() -> int:
         print(f"    ✅ we think WALL, the game says open : {len(wall_d_open_c)}  {wall_d_open_c if len(wall_d_open_c) <= 40 else '(too many to list)'}")
         print(f"    cracked on DEFAULT {len(d_cracks)}  ->  cracked on CLEAN {len(c_cracks)}  {sorted(c_cracks)}")
 
-    print("\n" + "=" * 104)
+    # ---- MEASUREMENT 2 — CAN THE BOT ACTUALLY WALK THE CLIMB, AND THE DESCENT? --------------------
+    # ⛔ THE WHOLE POINT: a WALKING bot FALLS on entry to a cracked tile, so every leg below is
+    # computed with the CLEAN layout's own cracks BANNED. A leg that reports NO PATH is a leg that
+    # REQUIRES A DELIBERATE FALL — `calculate_path` can never propose one (it does not model
+    # "Cracked Floor" at all), so it must be an explicit chapter step.
+    # ‼ Coordinates are warp EVENT tiles from `evidence/2026-08-27-ch21-skypillar-probe.stdout.txt`
+    # MEASUREMENT 1. Where the avatar RESTS after each warp is UNVERIFIED and is per-warp — only a
+    # drive settles it, and this project has been bitten twice by assuming otherwise.
+    print("")
+    print("=" * 104)
+    print("MEASUREMENT 2 — the ASCENT and DESCENT on the CLEAN layouts, with CRACKS BANNED")
+    print("=" * 104)
+    print("  A 'NO PATH' row is NOT a bug: it is where a DELIBERATE FALL is mandatory.")
+    legs = [
+        ("ASCENT ", "SKY_PILLAR_1F", (6, 13), (10, 1), "arrive from OUTSIDE -> up to 2F"),
+        ("ASCENT ", "SKY_PILLAR_2F", (10, 1), (3, 1), "arrive from 1F -> up to 3F"),
+        ("ASCENT ", "SKY_PILLAR_3F", (3, 1), (11, 1), "arrive from 2F -> up to 4F via (11,1)"),
+        ("ASCENT ", "SKY_PILLAR_4F", (11, 1), (3, 1), "arrive from 3F -> up to 5F  <-- the FALL leg"),
+        ("ASCENT ", "SKY_PILLAR_5F", (3, 1), (10, 1), "arrive from 4F -> up to TOP"),
+        ("DESCENT", "SKY_PILLAR_5F", (10, 1), (3, 1), "arrive from TOP -> down to 4F"),
+        ("DESCENT", "SKY_PILLAR_4F", (3, 1), (7, 1), "arrive from 5F -> down to 3F via (7,1)"),
+        ("DESCENT", "SKY_PILLAR_4F", (3, 1), (11, 1), "arrive from 5F -> down to 3F via (11,1)"),
+        ("DESCENT", "SKY_PILLAR_3F", (7, 1), (3, 1), "arrive from 4F(7,1) -> down to 2F"),
+        ("DESCENT", "SKY_PILLAR_3F", (11, 1), (3, 1), "arrive from 4F(11,1) -> down to 2F"),
+        ("DESCENT", "SKY_PILLAR_2F", (3, 1), (10, 1), "arrive from 3F -> down to 1F"),
+        ("DESCENT", "SKY_PILLAR_1F", (10, 1), (6, 13), "arrive from 2F -> down to OUTSIDE"),
+    ]
+    for kind, name, src, dst, note in legs:
+        if name not in results or results[name][3] is None:
+            print(f"  {kind}  {name:<16} {src} -> {dst}   (no CLEAN layout resolved)")
+            continue
+        clean = results[name][3]
+        cracks = cracked_tiles(clean[1], clean[2])
+        walk = bfs(clean[2], src, dst, banned=cracks)
+        free = bfs(clean[2], src, dst)
+        verdict = f"{walk} steps" if walk is not None else "⛔ NO PATH (a FALL is required)"
+        extra = "" if walk == free else f"   [ignoring cracks: {free}]"
+        print(f"  {kind}  {name:<16} {str(src):<8} -> {str(dst):<8} {verdict}{extra}   {note}")
+
+    # ---- MEASUREMENT 3 — CAN THE BOT REACH THE TILE IT MUST FALL THROUGH? ------------------------
+    # A fall is an EXPLICIT step onto a cracked tile, so what matters is whether the bot can stand
+    # NEXT TO one and step in. Cracks are banned as through-tiles (a walking bot falls on entry), so
+    # the question is: with cracks banned, is any NEIGHBOUR of the launch tile reachable?
+    print("")
+    print("=" * 104)
+    print("MEASUREMENT 3 — the DELIBERATE FALLS: can the bot stand beside the tile and step in?")
+    print("=" * 104)
+    falls = [
+        ("ASCENT ", "SKY_PILLAR_4F", (11, 1), [(6, 4), (7, 4)],
+         "the atlas's ascent fall; ⛔ (9,4) is a DECOY - it drops into 3F's MAIN region, not the pocket"),
+        ("ASCENT ", "SKY_PILLAR_4F", (11, 1), [(9, 4)],
+         "the DECOY, measured here only so its reachability is not mistaken for correctness"),
+        ("DESCENT", "SKY_PILLAR_4F", (3, 1), [(0, 3), (1, 3)],
+         "the atlas's descent fall, needed because 3F(7,1) cannot reach 3F(3,1)"),
+    ]
+    for kind, name, src, targets, note in falls:
+        if name not in results or results[name][3] is None:
+            continue
+        clean = results[name][3]
+        grid, cracks = clean[2], cracked_tiles(clean[1], clean[2])
+        reachable = bfs(grid, src, None, banned=cracks) or set()
+        for target in targets:
+            neighbours = [(target[0] + dx, target[1] + dy)
+                          for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+            standable = [t for t in neighbours if t in reachable]
+            is_crack = target in cracks
+            print(f"  {kind}  {name} from {src}: launch tile {target} "
+                  f"is_cracked={is_crack}  standable neighbours={standable or 'NONE'}")
+        print(f"          {note}")
+
+    print("")
+    print("=" * 104)
     print("READ NARROWLY. This is a STATIC comparison of ROM layouts. It shows WHICH layout the")
     print("story runs on and where our planner disagrees with it. It does NOT prove which layout is")
     print("loaded at any given moment — only a live read of `gBackupMapLayout` does that, and")

@@ -3583,7 +3583,15 @@ agents reached the same structure; these numbers are OUR OWN, not either agent's
 | `Top` (16,14) → the (14,9) trigger | ✅ 14 steps |
 
 ⇒ **`4F (3,1)` (the 5F stairs) and `3F (7,1)` are SEALED 11-TILE POCKETS.** Their only entrance is a
-**fall through the cracked `4F (6,4)` or `(7,4)`** — `warphole` preserves (x,y), so you land on
+**fall through the cracked `4F (6,4)`** — `warphole` preserves (x,y), so you land on
+⛔⛔ **CORRECTED 2026-09-01 — IT IS `(6,4)` ONLY, NOT "`(6,4)` OR `(7,4)`".** MEASURED on the CLEAN
+layout read from our own ROM (`probe_skypillar_rom_layouts.py` MEASUREMENT 3): from the 4F arrival
+`(11,1)`, with cracks banned as through-tiles, **`(6,4)` has exactly one standable neighbour —
+`(5,4)` — while `(7,4)` has NONE.** You cannot stand beside `(7,4)` to step into it, so offering it
+as an alternative is offering a choice that does not exist; a builder who coded it as the primary
+would find no approach. ✅ This CONFIRMS the atlas's own launch tile: step EAST from `(5,4)`.
+‼ And the decoy is doubly ruled out: **`(9,4)` also has NO standable neighbour** from that arrival —
+it is not merely the wrong landing, it is unreachable. (The older text follows.) Landing on
 `3F (6,4)`, which our BFS confirms is inside the pocket holding `3F (7,1)`:
 `[(5,2) (6,2) (6,3) (6,4) (7,1) (7,2) (7,3) (7,4) (8,2) (8,3) (9,2)]`.
 
@@ -3748,6 +3756,24 @@ the bot reaches the summit, WAKES RAYQUAZA (setting the var, so the layouts flip
 next load) and is STRANDED** — the §Ch15/§Ch18/§Ch19 "passed its own test while stranded" shape,
 one commit from shipping. ⇒ **BUILD THE DESCENT FALL INTO THE LEG FROM THE START**, and make the
 leg's acceptance a real `calculate_path` off the END tile, not a `controllable` flag.
+
+✅✅ **AND THE LIVELOCK IS NOW MEASURED END TO END, NOT ARGUED (2026-09-01,
+`probe_skypillar_rom_layouts.py` MEASUREMENT 2, on the CLEAN layouts with CRACKS BANNED):**
+`5F (10,1)->(3,1)` **33 OK** ; `4F (3,1)->(7,1)` **6 OK** ; `4F (3,1)->(11,1)` **NO PATH** ;
+`3F (7,1)->(3,1)` **⛔ NO PATH** ; `3F (11,1)->(3,1)` 28 OK.
+⇒ descending, the ONLY down-staircase reachable from 4F's arrival is `(7,1)` — and from
+`3F (7,1)` the bot **CANNOT** reach `3F (3,1)`. **It is trapped on 3F.** That is the livelock,
+measured, and it is why the second fall is FORCED rather than advisable.
+✅ Both descent launch tiles are approachable: `4F (0,3)` from `(0,2)` and `(1,3)` from `(1,2)`
+— unlike the ASCENT, where of the two tiles this atlas offers only `(6,4)` has a standable
+neighbour at all.
+
+⇒ ⛔⛔ **THEREFORE LEG 4 CANNOT END AT THE SUMMIT — AND THAT IS NOT A PREFERENCE.** This project
+grades every leg on *"and the bot can CONTINUE"* (house rule 8; §Ch15, §Ch18 and §Ch19 each
+PASSED their own test while stranded). A summit-only leg leaves the bot unable to get down, so
+it cannot satisfy that rule BY CONSTRUCTION. The scope question — which the queue head and this
+atlas had answered differently — is settled by an existing standing rule plus the measurement
+above, not by anyone's judgement call.
 
 ⛔⛔ **FOUR SKY PILLAR WARPS ARE *ARROW WARPS* AND DO NOT FIRE ON STEP.** `SkyPillar_Entrance`
 **(6,16)** and **(14,4)**, and `SkyPillar_1F` **(6,13)** and **(7,13)**, all carry

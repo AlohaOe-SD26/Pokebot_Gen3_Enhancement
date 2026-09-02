@@ -177,6 +177,35 @@ MEASUREMENT — DEFAULT vs CLEAN, per floor: what our planner gets WRONG on the 
     cracked on DEFAULT 42  ->  cracked on CLEAN 0  []
 
 ========================================================================================================
+MEASUREMENT 2 — the ASCENT and DESCENT on the CLEAN layouts, with CRACKS BANNED
+========================================================================================================
+  A 'NO PATH' row is NOT a bug: it is where a DELIBERATE FALL is mandatory.
+  ASCENT   SKY_PILLAR_1F    (6, 13)  -> (10, 1)  16 steps   arrive from OUTSIDE -> up to 2F
+  ASCENT   SKY_PILLAR_2F    (10, 1)  -> (3, 1)   9 steps   arrive from 1F -> up to 3F
+  ASCENT   SKY_PILLAR_3F    (3, 1)   -> (11, 1)  28 steps   arrive from 2F -> up to 4F via (11,1)
+  ASCENT   SKY_PILLAR_4F    (11, 1)  -> (3, 1)   ⛔ NO PATH (a FALL is required)   arrive from 3F -> up to 5F  <-- the FALL leg
+  ASCENT   SKY_PILLAR_5F    (3, 1)   -> (10, 1)  33 steps   arrive from 4F -> up to TOP
+  DESCENT  SKY_PILLAR_5F    (10, 1)  -> (3, 1)   33 steps   arrive from TOP -> down to 4F
+  DESCENT  SKY_PILLAR_4F    (3, 1)   -> (7, 1)   6 steps   arrive from 5F -> down to 3F via (7,1)
+  DESCENT  SKY_PILLAR_4F    (3, 1)   -> (11, 1)  ⛔ NO PATH (a FALL is required)   arrive from 5F -> down to 3F via (11,1)
+  DESCENT  SKY_PILLAR_3F    (7, 1)   -> (3, 1)   ⛔ NO PATH (a FALL is required)   arrive from 4F(7,1) -> down to 2F
+  DESCENT  SKY_PILLAR_3F    (11, 1)  -> (3, 1)   28 steps   arrive from 4F(11,1) -> down to 2F
+  DESCENT  SKY_PILLAR_2F    (3, 1)   -> (10, 1)  9 steps   arrive from 3F -> down to 1F
+  DESCENT  SKY_PILLAR_1F    (10, 1)  -> (6, 13)  16 steps   arrive from 2F -> down to OUTSIDE
+
+========================================================================================================
+MEASUREMENT 3 — the DELIBERATE FALLS: can the bot stand beside the tile and step in?
+========================================================================================================
+  ASCENT   SKY_PILLAR_4F from (11, 1): launch tile (6, 4) is_cracked=True  standable neighbours=[(5, 4)]
+  ASCENT   SKY_PILLAR_4F from (11, 1): launch tile (7, 4) is_cracked=True  standable neighbours=NONE
+          the atlas's ascent fall; ⛔ (9,4) is a DECOY - it drops into 3F's MAIN region, not the pocket
+  ASCENT   SKY_PILLAR_4F from (11, 1): launch tile (9, 4) is_cracked=True  standable neighbours=NONE
+          the DECOY, measured here only so its reachability is not mistaken for correctness
+  DESCENT  SKY_PILLAR_4F from (3, 1): launch tile (0, 3) is_cracked=True  standable neighbours=[(0, 2)]
+  DESCENT  SKY_PILLAR_4F from (3, 1): launch tile (1, 3) is_cracked=True  standable neighbours=[(1, 2)]
+          the atlas's descent fall, needed because 3F(7,1) cannot reach 3F(3,1)
+
+========================================================================================================
 READ NARROWLY. This is a STATIC comparison of ROM layouts. It shows WHICH layout the
 story runs on and where our planner disagrees with it. It does NOT prove which layout is
 loaded at any given moment — only a live read of `gBackupMapLayout` does that, and
@@ -185,5 +214,5 @@ loaded at any given moment — only a live read of `gBackupMapLayout` does that,
 Shutting down...
 Save state C:\Remote 
 Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
--09-01_19-11-20.ss1 created!
+-09-01_19-29-15.ss1 created!
 Updated `current_state.ss1`!

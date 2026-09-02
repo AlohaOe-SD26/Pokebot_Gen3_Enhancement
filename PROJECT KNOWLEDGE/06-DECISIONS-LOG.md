@@ -3718,3 +3718,41 @@ constant the game uses, so it is an inference — a strong one (five controls, a
 exact match against an independent oracle on two floors), but an inference. The decisive alternative
 would be to read `gSaveBlock1Ptr->mapLayoutId` while standing on each floor, which needs a save state
 on every floor and is therefore circular until leg 4 exists.
+
+---
+
+## 2026-09-01 (later) — LEG 4's END BOUNDARY: **THE DESCENT IS IN SCOPE.** Not a judgement call — forced by a standing rule plus a measurement
+
+**The question**, open since leg 3 shipped and flagged by three separate Tier 2 audits: does leg 4
+stop at the summit (wake Rayquaza) or continue back down? The two authoritative docs DISAGREED — the
+§Ch21 atlas said *"build the descent fall into the leg from the start"*, the queue head said only
+*"the climb"* — and an audit called it *"arguably the user's call"*.
+
+**It is not a call. It is forced, and here is the forcing.** MEASURED 2026-09-01 on the CLEAN (story)
+layouts read from our own ROM, with cracked tiles banned as through-tiles because a walking bot
+falls on entry (`probe_skypillar_rom_layouts.py` MEASUREMENT 2):
+
+    5F (10,1) -> (3,1)    33 steps  OK
+    4F (3,1)  -> (7,1)     6 steps  OK      <- the ONLY down-staircase reachable from 4F's arrival
+    4F (3,1)  -> (11,1)   NO PATH
+    3F (7,1)  -> (3,1)    NO PATH           <- ⛔ THE TRAP
+    3F (11,1) -> (3,1)    28 steps  OK      (unreachable: you cannot get to 4F (11,1) coming down)
+
+⇒ **A bot that summits and walks down is TRAPPED on 3F.** The only staircase it can reach lands it
+in a sealed pocket with no walking exit to the floor below. Escaping needs a SECOND deliberate fall
+(`4F (0,3)` from `(0,2)`, or `(1,3)` from `(1,2)` — both approachable, MEASURED).
+
+**Why that settles it rather than merely informing it:** this project grades every leg on **"and the
+bot can CONTINUE"** — a real `calculate_path` off the end tile — because §Ch15, §Ch18 and §Ch19 each
+PASSED their own acceptance test while leaving the bot stranded. A summit-only leg 4 **cannot
+satisfy that rule by construction**: its end state is a bot that cannot get down. ⇒ the descent is
+in scope, and the alternative was never actually available.
+
+**Rejected: "summit-only, descent as leg 5".** It reads tidier and it is what the queue head implied.
+It fails because leg 4's acceptance would then have to either lie (grade on something other than
+continuation) or fail every time. ‼ A leg boundary drawn where the bot cannot continue is not a
+boundary, it is a strand.
+
+**What this does NOT settle,** and leg 4 still owes: the acceptance predicate itself (the end-state
+var — ⛔ NOT `SKY_PILLAR_STATE` at 4 or 5, those are `SOOTOPOLIS_CITY_STATE` values), and the
+Rayquaza trigger coordinate, which three sources in this tree still disagree about.

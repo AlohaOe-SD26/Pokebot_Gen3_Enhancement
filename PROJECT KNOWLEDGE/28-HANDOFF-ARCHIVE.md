@@ -7254,3 +7254,28 @@ was the worst of the four because it was a full build order, not a passing menti
 >    ⛔ **THREE USER DECISIONS REMAIN RIPE** (not mine, and still open): the drift promotion
 >    (double-batch validated); the post-wind repeat burn (`#26-manualderails` D4); mixin
 >    adoption (`#24-harnesswhiteoutdrop`).
+
+### the leg-3 completion block — compressed out of `04-HANDOFF.md` 2026-09-01
+
+>    ✅✅✅ **LEG 3 IS BUILT AND DRIVEN (2026-09-01) — ⛔ DO NOT REBUILD IT.** `--driver ch21approach`
+>    from `post_wallace.ss1` → `ACCEPTANCE: PASS`, **all 14 readings, `missing=[]`**, `frames=34122`,
+>    `encounters=9`, `whiteouts=0`, `pocket_attempts=1`, `method_ok=True`, `premise_ok=True`.
+>    Fixture **`post_skypillar_door.ss1` PINNED** (probe-verified: SKY_PILLAR_ENTRANCE (6,16),
+>    badges 1-7; ⚠ party at **91% HP**, not full — there is no Poke Center after Sootopolis).
+>    **THREE** fault arms ran: `POCKETSTALL` → `pocket_attempts=2` and still PASS (the pocket
+>    recovery was the leg's one designed-but-unproven part and is now a RESULT); `BLINDWALL` → fails
+>    LOUDLY naming the step, bounded, **no hang**; and `POCKETWALKBACK` (added after an ADVERSARIAL
+>    REVIEW found a BLOCKER) → the recovery's OWN walk-back stalling now raises a NAMED "stranded"
+>    error instead of a raw exception that escaped the retry budget.
+>
+
+### the §Ch20 completion block — compressed out of `04-HANDOFF.md` 2026-09-01
+
+>    ✅✅✅ **§Ch20 SHIPPED AS A CHAPTER 2026-08-24 — 5/5 drives PASS, both recovery paths
+>    exercised. ⛔ DO NOT REBUILD IT.** ⚠ NOT proven: organic Dive in the same run (the driver
+>    injects it) and a LOST Archie fight (stochastic, 2W/1L; all five runs won).
+>    ⛔ Read `#24-divegroundroute120`, `#24-hmgroundwatertiles` and `#24-gatescopeharness`
+>    first — all three are measured and none is started.
+>    ⛔ **`#24-abortrecoveryresiduals` IS DONE — DO NOT RE-OPEN (a)/(b)/(c).** (a) closed by
+>    ASSESSMENT (reachability VERY LOW, evidence in `07-CHANGELOG.md`); no code change to the
+>    whiteout-recovery path, deliberately.
