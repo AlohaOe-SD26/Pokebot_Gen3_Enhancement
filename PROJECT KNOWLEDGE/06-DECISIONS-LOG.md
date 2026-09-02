@@ -3756,3 +3756,47 @@ boundary, it is a strand.
 **What this does NOT settle,** and leg 4 still owes: the acceptance predicate itself (the end-state
 var — ⛔ NOT `SKY_PILLAR_STATE` at 4 or 5, those are `SOOTOPOLIS_CITY_STATE` values), and the
 Rayquaza trigger coordinate, which three sources in this tree still disagree about.
+
+---
+
+## 2026-09-01 (later) — §Ch21 LEG 4: THE FALL IS ITS OWN PRIMITIVE, AND THE GRADE IS POSITION+PATH, NOT VARS
+
+Two design choices leg 4 made against the obvious path, both forced by an adversarial recon pass
+that measured the failure BEFORE a drive paid for it.
+
+### D-A — `_fall_through_crack`, a NEW primitive, instead of `_bounded_step`
+
+The obvious move was to reuse leg 3's `_bounded_step` for the deliberate fall. **Rejected — it
+cannot express a fall, and worse, it fails a CORRECT one.** Its success predicate is
+`_at(map_enum, expect)` — SAME map, expected tile. A fall CHANGES the map while PRESERVING (x,y)
+(`warphole`). So `_bounded_step` either reports success the instant coordinates change (mid-cutscene,
+under `lockall`) or, on a retry, takes UNCOMMANDED steps on the landing floor. The correct witness
+for a fall is a MAP CHANGE and nothing else.
+
+`_fall_through_crack` presses toward the crack ONLY while still on the launch tile (a held direction
+after landing could start a second step onto the adjacent crack — (7,4) is also cracked), witnesses
+`_on_map(to_map)`, and rides out the fall cutscene before anyone reads state. ⛔ It deliberately does
+NOT assert the landing tile: a fall preserves (x,y), so a coordinate assert would pass even if the
+fall never happened — the landing is proven instead by a `calculate_path` from it (R-FALLPROOF).
+
+### D-B — grade on POSITION + a live path, with the three vars only CORROBORATING
+
+The obvious predicate keys on the story vars (state 5, pillar 1). **Rejected — a whiteout after the
+summit respawns the bot in Sootopolis, where the vars ALSO read (5,1,1).** A var-keyed predicate
+would grade a WHITEOUT as a PASS. So the driver conjoins: the bot ends on the ENTRANCE, a live
+`calculate_path` off the tile it reached succeeds (non-warp, to (6,15)), the negative control still
+refuses, the readings-in-ORDER trace matches, and both fall witnesses fired — and whiteouts == 0.
+The vars are logged and cross-checked but decide nothing alone.
+
+### D-C — the crack oracle is `tile_type`, because `_live_wall_tiles` is crack-BLIND
+
+`_live_wall_tiles` (built for leg 3) reads COLLISION; a cracked floor is collision 0, so it cannot
+see a crack. Leg 4's per-floor gate `_pin_and_verify_floor` therefore checks
+`get_map_data(...).tile_type` on the pinned floor, against BOTH `'Cracked Floor'` (intact) and
+`'Fall Warp'` (a re-visited, already-crumbled crack — a guard grepping only 'Cracked' matches
+nothing on the second pass). ⛔ Do not "simplify" leg 5 back to `_live_wall_tiles` on a floor with
+cracks.
+
+**What this does NOT settle, left for leg 5:** the Sootopolis layout at state 5 (the post-crisis
+DIRTY one) has not been measured; the return route out of the tower and the HM07 giver are
+un-reconned. All flagged in the queue head.

@@ -41,6 +41,17 @@ import re
 import sys
 from collections import defaultdict
 
+# This linter prints U+203C/U+26D4 markers on its FAILURE path. On a bare Windows console (cp1252)
+# an unconfigured stdout raises UnicodeEncodeError there -- so the linter crashes with a codec
+# traceback INSTEAD OF SHOWING THE VIOLATION IT FOUND (observed 2026-09-01: a real R3 over-budget
+# finding was nearly missed this way). run_gates.py sets PYTHONUTF8=1 and never saw it; a direct
+# `python lint_docs.py` did. Force UTF-8 on our own streams so a finding is always legible.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
 REPO = pathlib.Path(__file__).resolve().parents[2]
 DOCS = REPO / "PROJECT KNOWLEDGE"
 

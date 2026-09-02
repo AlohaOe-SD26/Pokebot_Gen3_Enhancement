@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -9860,6 +9860,227 @@ class Ch21ApproachMode(BotMode):
 
         context.set_manual_mode()
 
+
+
+class Ch21ClimbMode(BotMode):
+    """§Ch21 LEG 4 — THE SKY PILLAR: Wallace scene, the climb, RAYQUAZA, and the DESCENT.
+
+    ‼ IT CALLS THE PRODUCTION ENTRY POINT (`sootopolis.climb_sky_pillar`), never a copy — the
+    standing rule of every §Ch21 driver.
+
+    ⛔⛔ TWO TRUE ONE-SHOTS LIVE ON THIS LEG, in order: crossing ENTRANCE (14,4) fires OUTSIDE's
+    Wallace ON_FRAME scene (state 3->4, Wallace removed); stepping TOP (14,9) wakes RAYQUAZA
+    (state 4->5, SKY_PILLAR_STATE 0->1, CRY_DONE 1). Neither replays. A failed drive that spent
+    one costs a FULL leg-3 re-run (~34k frames + the one-crossing pocket) to rewind — which is why
+    the leg supports env-gated MID-LEG captures (CH21_CAPTURE_WALLACE / CH21_CAPTURE_SUMMIT) and
+    the RESUME phases those fixtures feed. ⛔ Only a FULL run (starting at vars 3/0/0 on the
+    ENTRANCE) can PASS; a resumed run reports honestly and grades FAIL by premise.
+
+    THE GRADE (house rule 8 — §Ch15/18/19 each PASSED their own test while STRANDED):
+      every reading happened AND the ORDER trace matches AND both falls happened AND all six
+      floors were pinned+matched to their CLEAN layouts AND the bot ENDS on the ENTRANCE with a
+      real non-warp path to (6,15) AND the planner still REFUSES (6,17) AND the three vars read
+      (5,1,1) AND whiteouts == 0.
+    ⛔ WHY POSITION+PATH AND NOT VARS ALONE: a whiteout after the summit respawns in Sootopolis
+    where the vars ALSO read (5,1,1) — a var-keyed predicate would grade a WHITEOUT as a PASS
+    (the leg-4 recon's grader trap). The vars corroborate; the position and the path decide.
+
+    FAULT ARMS (each driver-proof, env-read inside the leg; the happy path reaches none):
+      POKEBOT_CH21_FAULT_NOFALL=1      step the WRONG way at the ascent fall stand: the map-change
+                                       witness must raise NAMED, bounded, no hang. FAIL.
+      POKEBOT_CH21_FAULT_SUMMITSTOP=1  return at the summit — the §Ch15/18/19 shape exactly.
+                                       ⛔ THE MOST IMPORTANT ARM ON THE LEG: it must FAIL, with
+                                       missing= naming every descent reading.
+      POKEBOT_CH21_FAULT_POCKETEXIT=1  descend via the planner-visible 4F (7,1) staircase instead
+                                       of the fall: the leg must NAME the livelock ("LIVELOCK, not
+                                       a refusal") from inside the sealed pocket. FAIL.
+      POKEBOT_CH21_FAULT_DROPREADING=1 do the descent fall but suppress R-FALL2 at its take point:
+                                       missing=['R-FALL2'], FAIL — proves the readings gate is live.
+      POKEBOT_CH21_FAULT_CONTROLOPEN=1 aim R-CONTROL at a REACHABLE tile: control_refused=False,
+                                       FAIL — a control that cannot fail is decoration.
+      POKEBOT_CH21_FAULT_BADBLOCKDATA=1 corrupt the EXPECTED CLEAN blockdata for 1F: the leg's
+                                       hardest-leaned-on gate (`_pin_and_verify_floor`, the layout-
+                                       mismatch refusal leg 3 paid a drive to learn) must RAISE
+                                       BotModeError naming SKY_PILLAR_1F, bounded, before any walk.
+                                       FAIL — proves that gate fires on its own FAILURE path.
+      (no env var) THE VACUITY ARM     point this driver at its own output fixture: the preflight
+                                       reads vars (5,1,1) -> phase 'post-summit' -> premise FAIL.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_skypillar_door.ss1 --driver ch21climb --frames 60000
+    ‼ THE FRAME BUDGET IS AN ESTIMATE (leg 3 measured 13.4 f/wp walking; this leg is ~250 indoor
+    waypoints + two cutscenes + two falls; 1F/3F/5F carry encounter rate 10). ⛔ REPLACE IT WITH
+    THE MEASUREMENT from drive 1's frames= line.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch21Climb"
+
+    def __init__(self):
+        super().__init__()
+        # counted via the HOOK — a mode generator gets no frames during a battle (1F/3F/5F have
+        # land encounters at rate 10; 2F/4F/TOP have no table).
+        self.encounters = 0
+        self.encounter_maps: list[str] = []
+        self.whiteouts = 0
+
+    def on_whiteout(self) -> bool:
+        # ⛔ RETURNS True + LATCHES THE ABORT (leg 3's B1 fix): returning False would hand the run
+        # to Manual and discard this generator, so the RESULT/ACCEPTANCE block would never print.
+        # On THIS leg a whiteout is also an unrecoverable strand (a state-4/5 respawn in Sootopolis
+        # that no leg owns), so the verdict printing is the only evidence the run leaves.
+        self.whiteouts += 1
+        log("[ch21climb] ‼ WHITEOUT — the run respawns in Sootopolis at a state NO LEG OWNS; "
+            "latching the story abort so a verdict still prints.")
+        try:
+            from modules.story.early_game import set_story_abort
+
+            set_story_abort(True)
+        except Exception as error:  # noqa: BLE001 - never let the hook itself end the run
+            log(f"[ch21climb] ‼ could not latch the abort: {type(error).__name__}: {error}")
+            return False
+        return True
+
+    def on_battle_started(self, encounter):
+        self.encounters += 1
+        try:
+            from modules.player import get_player_avatar
+
+            self.encounter_maps.append(str(tuple(get_player_avatar().map_group_and_number)))
+        except Exception:  # noqa: BLE001 - the count is what matters
+            self.encounter_maps.append("?")
+        return super().on_battle_started(encounter)
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_var
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.story import sootopolis as ch21
+
+        TAG = "ch21climb"
+        frames_before = context.emulator.get_frame_count()
+
+        def where() -> tuple[str, tuple[int, int]]:
+            avatar = get_player_avatar()
+            coordinates = tuple(avatar.local_coordinates)
+            try:
+                return MapRSE(tuple(avatar.map_group_and_number)).name, coordinates
+            except Exception:  # noqa: BLE001
+                return f"UNKNOWN{tuple(avatar.map_group_and_number)}", coordinates
+
+        start_name, start_at = where()
+        start_vars = (get_event_var("SOOTOPOLIS_CITY_STATE"), get_event_var("SKY_PILLAR_STATE"),
+                      get_event_var("SKY_PILLAR_RAYQUAZA_CRY_DONE"))
+        log(f"[{TAG}] PRE at={start_name}{start_at} vars={start_vars} "
+            f"(full run requires (3, 0, 0) on SKY_PILLAR_ENTRANCE)")
+
+        # ⛔ THE DRIVER OWNS THE REPORT DICT AND HANDS IT IN — a dict RETURNED by a raising
+        # generator never arrives, and the failed run is the one whose partial readings matter.
+        report: dict = {}
+        failure = None
+        try:
+            yield from ch21.climb_sky_pillar(report)
+        except Exception as error:  # noqa: BLE001 - the driver REPORTS failures, never hides them
+            failure = f"{type(error).__name__}: {str(error)[:600]}"
+            log(f"[{TAG}] LEG FAILED: {failure}")
+
+        readings = set(report.get("readings") or ())
+        trace = list(report.get("trace") or ())
+        here_name, at = where()
+        reached = here_name == "SKY_PILLAR_ENTRANCE"
+        end_vars = (get_event_var("SOOTOPOLIS_CITY_STATE"), get_event_var("SKY_PILLAR_STATE"),
+                    get_event_var("SKY_PILLAR_RAYQUAZA_CRY_DONE"))
+
+        # ⛔ required set IMPORTED from the leg — a private copy is the P5 shape.
+        required = set(ch21.LEG4_READINGS)
+        missing = sorted(required - readings)
+
+        # ⛔ ORDER IS PART OF THE PREDICATE: LEG4_ORDER must be a subsequence of the trace.
+        # A readings SET cannot distinguish "descended, then proved continuation" from the reverse.
+        order_iter = iter(trace)
+        order_ok = all(any(step == want for step in order_iter) for want in ch21.LEG4_ORDER)
+
+        # ⛔ THE VACUITY GATE. Leg 4 starts AND ends on SKY_PILLAR_ENTRANCE, so — unlike leg 3 —
+        # the map name cannot discriminate a no-op. The STARTING VARS are the only conjunct false
+        # on the leg's own output fixture (which reads (5,1,1)).
+        premise_ok = (start_vars == (3, 0, 0) and start_name == "SKY_PILLAR_ENTRANCE"
+                      and report.get("phase") == "full")
+        if not premise_ok:
+            log(f"[{TAG}] ‼ VACUOUS/RESUMED PREMISE — start_vars={start_vars}, "
+                f"start={start_name}, phase={report.get('phase')}. Only a full run from (3,0,0) "
+                "on the ENTRANCE can PASS; a run from the leg's own output fixture satisfies every "
+                "END-state check while doing nothing.")
+
+        falls = list(report.get("falls") or ())
+        floors = list(report.get("floors") or ())
+        method_ok = (
+            len(falls) == 2
+            and {f[0] for f in floors} >= {"SKY_PILLAR_1F", "SKY_PILLAR_2F", "SKY_PILLAR_3F",
+                                           "SKY_PILLAR_4F", "SKY_PILLAR_5F", "SKY_PILLAR_TOP"}
+            and order_ok
+        )
+        continue_ok = bool(report.get("continue_ok"))
+        passed = (
+            failure is None
+            and premise_ok
+            and method_ok
+            and reached
+            and not missing
+            and self.whiteouts == 0
+            and continue_ok
+            and bool(report.get("control_refused"))
+            and end_vars == (5, 1, 1)
+        )
+        # capture gate — narrower than `passed` (a raise AFTER arrival must not cost the fixture).
+        capturable = (
+            reached and continue_ok and bool(report.get("control_refused"))
+            and self.whiteouts == 0 and premise_ok and end_vars == (5, 1, 1)
+        )
+
+        total = context.emulator.get_frame_count() - frames_before
+        log(f"[{TAG}] RESULT reached={reached} at={here_name}{at} phase={report.get('phase')} "
+            f"falls={falls} floors_pinned={len(floors)} "
+            f"post_wallace_tile={report.get('post_wallace_tile')} "
+            f"(predictions (14,7)/(14,6): matches={report.get('post_wallace_matches')}) "
+            f"top_rest={report.get('top_rest')} exit_rest={report.get('exit_rest')} "
+            f"encounters={self.encounters} maps={self.encounter_maps} "
+            f"whiteouts={self.whiteouts} frames={total}")
+        log(f"[{TAG}] FLOORS {floors} (each entry: name, LIVE blockdata — must equal the CLEAN "
+            f"column of the atlas per-floor table; the leg RAISES on mismatch)")
+        log(f"[{TAG}] VARS start={start_vars} summit={report.get('summit_vars')} end={end_vars} "
+            f"(the leg is graded on POSITION+PATH; vars corroborate — a whiteout also reads "
+            f"(5,1,1) from Sootopolis, which is why they cannot decide alone)")
+        log(f"[{TAG}] TRAP {report.get('trap')} (stair reachable AND pocket sealed = the livelock "
+            f"measured in place, the WHY of the second fall)")
+        log(f"[{TAG}] CONTINUE continue_wp={report.get('continue_wp')} continue_ok={continue_ok} "
+            f"control_refused={report.get('control_refused')} (target (6,15); ⛔ (6,16) is the "
+            f"live exit warp and is never aimed at)")
+        log(f"[{TAG}] ORDER order_ok={order_ok} trace={trace}")
+        log(f"[{TAG}] METHOD premise_ok={premise_ok} method_ok={method_ok} "
+            f"falls={len(falls)}/2 floors={len(floors)}")
+        log(f"[{TAG}] readings={sorted(readings)} missing={missing} "
+            f"(the grade is DID EVERY READING HAPPEN, IN ORDER, **and can the bot CONTINUE**)")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH21_CAPTURE", "").strip()
+        if _cap:
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if not capturable:
+                log(f"[{TAG}] CAPTURE SKIPPED — not capturable (reached={reached} "
+                    f"continue_ok={continue_ok} control_refused={report.get('control_refused')} "
+                    f"whiteouts={self.whiteouts} premise_ok={premise_ok} end_vars={end_vars})")
+            elif _out.exists() and _os.environ.get("CAPTURE_FORCE", "") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_cap} exists (set CAPTURE_FORCE=1 to replace)")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] CAPTURE WROTE {_out.name} ({_out.stat().st_size} bytes) at {at} "
+                    f"— ‼ verify with probe_anchor_inventory.py, not this line")
+
+        context.set_manual_mode()
+
 class Ch20ChapterMode(Ch20DiveMode):
     """§Ch20 AS A CHAPTER — drives the PRODUCTION function, not a copy of it.
 
@@ -11272,6 +11493,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch21PocketExitMode()
         elif args.driver == "ch21approach":
             context.bot_mode_instance = Ch21ApproachMode()
+        elif args.driver == "ch21climb":
+            context.bot_mode_instance = Ch21ClimbMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

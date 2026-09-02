@@ -7279,3 +7279,131 @@ was the worst of the four because it was a full build order, not a passing menti
 >    ⛔ **`#24-abortrecoveryresiduals` IS DONE — DO NOT RE-OPEN (a)/(b)/(c).** (a) closed by
 >    ASSESSMENT (reachability VERY LOW, evidence in `07-CHANGELOG.md`); no code change to the
 >    whiteout-recovery path, deliberately.
+
+---
+
+## §Ch21 LEG 4 — THE BUILD-ORDER BLOCK (spent; moved out of `04-HANDOFF.md` 2026-09-01)
+
+⛔ **SPENT — leg 4 is BUILT AND DRIVEN.** This was the queue's leg-4 build order and its
+hazard list. Every hazard it names was handled and is proven in `07-CHANGELOG.md` 2026-09-01.
+Kept for the reasoning (the one-shots, the fall tiles, the layout-pin rule, the scope ruling).
+
+>    ➡➡➡ **NEXT ACTION: BUILD LEG 4 = THE SKY PILLAR CLIMB.** It starts by RIDING the Wallace
+>    cutscene: `SKY_PILLAR_ENTRANCE (14,4)` warps to `SKY_PILLAR_OUTSIDE`, whose ON_FRAME scene
+>    fires at `SOOTOPOLIS_CITY_STATE == 3` with NO coordinate condition, drives the player ~12
+>    tiles under `lockall` and sets the var to 4. ⛔ That is a TRUE ONE-SHOT — leg 3 deliberately
+>    stops one tile short of it and asserts both story vars are UNCHANGED (3 and 0).
+>    ⛔ **READ THE §Ch21 ATLAS FIRST** (`12-STORYMODE-DESIGN.md`): the climb REQUIRES a deliberate
+>    fall through `4F (6,4)`/`(7,4)`, which `calculate_path` cannot propose, so the fall must be an
+>    explicit chapter step. The bot is BIKELESS (`RECEIVED_BIKE` False, measured) — ⛔ never
+>    `mount_bike` (`puzzle_solver.py:39-42` is an infinite hang for a bikeless bot).
+>    ‼ **AND THE ONE THING LEG 4 MUST INHERIT FROM LEG 3, OR IT WILL REPEAT ITS FIRST FAILURE:**
+>    the Sky Pillar floors SWAP LAYOUTS below `SKY_PILLAR_STATE` 2. Our planner reads the
+>    POST-GAME layouts. ⇒ **verify every planned route against `sootopolis._live_wall_tiles()`
+>    (the `gBackupMapLayout` grid the GAME walks on) before following it, and pin the planner with
+>    `_pin_planner_to_live_layout()` where it disagrees.** Leg 3's first drive jammed in Sootopolis
+>    for exactly this reason and the A/B is in `evidence/2026-09-01-ch21-leg3-LAYOUTPIN-ab.txt`.
+>    ⛔⛔ **THE SIX THINGS THAT DECIDE WHETHER **LEG 4** SURVIVES ITS FIRST DRIVE.**
+>    ‼ *(REWRITTEN 2026-09-01. Until then this block was **LEG 3's** hazard list: the `➡➡➡`
+>    heading above it had been retargeted to leg 4 and the FIVE bullets under it were NOT. FOUR of
+>    the five described work this same file marks DONE — the cave return, the pocket, the
+>    hand-walked tail and the ROUTE131 layout reading. A Tier 2 cold-start audit caught it and
+>    called it the file's most expensive defect, because it is what a cold agent ACTS from.
+>    ⇒ P2 is not only about `##` headings: **a `➡➡➡` marker is a claim about every bullet
+>    beneath it**, and retargeting the heading without rewriting the body is the same failure.)*
+>    (1) ⛔⛔ **WALK TO `(14,3)` — **NEVER** `navigate_to((14,4))`.** *(REWRITTEN 2026-09-01: this
+>        bullet used to say "must reach `(14,4)`", which is the tile LEG 3'S OWN SHIPPED CODE marks
+>        `⛔ NEVER (14,4)` — `sootopolis.py:737`. A third Tier 2 round caught it.)*
+>        `(14,4)` is a **South Arrow Warp to SKY_PILLAR_OUTSIDE**, so `calculate_path` to it returns
+>        `is_warp=True` ending on OUTSIDE `(17,13)` — i.e. **`navigate_to` would cross the map seam
+>        INSIDE the navigate and run the one-shot Wallace `lockall` cutscene**, which is the exact
+>        opposite of the `➡➡➡` line's own instruction to RIDE it. MEASURED: the same call to
+>        `(14,3)` returns 21 wp `is_warp=False` (`evidence/2026-09-01-ch21approach-CLEAN.txt`).
+>        ⇒ **navigate to `(14,3)`, THEN press Down deliberately** to fire the warp, THEN ride the
+>        scene on the far side. ‼ An arrow warp does **not** fire merely by stepping onto the tile —
+>        the direction must be HELD (`evidence/2026-08-27-ch21-skypillar-probe.stdout.txt`).
+>        ⛔ **AND THE 'NEVER PRESS DOWN' RULE IS SCOPED TO `(6,16)`, NOT TO THE WHOLE LEG** — an
+>        earlier draft banned it outright, which would have banned the one input leg 4 must make.
+>        `(6,16)` is a SOUTH arrow warp back to ROUTE131 where the Sootopolis pocket has ALREADY
+>        RE-SEALED; while standing there, never press or hold 'Down' and ⛔ **never use a helper
+>        that JOLTS the d-pad** — `walking.py`'s starve-jolt tries `"Down"` FIRST.
+>        `wait_until_truly_controllable()` presses nothing and is safe.
+>    (2) **RIDE THE WALLACE CUTSCENE** at `SKY_PILLAR_OUTSIDE` (fires on MAP LOAD at
+>        `SOOTOPOLIS_CITY_STATE == 3`, no coordinate condition, moves the player ~12 tiles under
+>        `lockall`, then sets the var to **4**). ⛔ It is a TRUE ONE-SHOT — leg 3 deliberately
+>        stops one tile short of it and asserts both story vars are UNCHANGED (3 and 0).
+>    (3) ⛔ **THE FALL IS AN EXPLICIT STEP, AND `(9,4)` IS A DECOY.** `calculate_path` cannot
+>        propose a deliberate fall (it does not model `"Cracked Floor"` at all), so the chapter
+>        adversarial recon pass caught the stale clauses. What (9,4) WOULD do if fallen through —
+>        land in 3F's 118-tile MAIN region, not the pocket — still powers discriminator (6).)*
+>    (4) ⛔ **THE DESCENT NEEDS A **SECOND** FALL, AND ITS FAILURE MODE IS A LIVELOCK, NOT A
+>        REFUSAL.** Omit it and the bot summits, wakes Rayquaza and is STRANDED. ‼ The atlas says
+>        the west pocket has "no walking exit"; that is **REFUTED** — it contains `4F (7,1)`, a
+>        planner-VISIBLE staircase, so the planner will happily route into a livelock. ⇒ the
+>        DESCENT post-fall check must be a `calculate_path` to **3F (3,1)** — ⛔ not to be confused
+>        with the ASCENT-FALL DISCRIMINATOR in (6), which targets 3F `(7,1)`; they answer
+>        different questions — and it is the target the wrong exit cannot
+>        satisfy. ⛔ A "the planner refuses" check would never fire.
+>    ‼ **AND READ `#24-crackedfloorpathfinder` IN `03-PUNCH-LIST.md` BEFORE THE CLIMB — but read
+>    its 2026-09-01 UPDATE FIRST.** That item still contains the REFUTED "no crack-free route"
+>    claim and a "⛔ DO NOT READ THAT AS A GREEN LIGHT TO BUILD THE CLIMB" line, both of which
+>    are SUPERSEDED (they blocked the post-game crack set, not the CLEAN one the story runs on).
+>    A Tier 2 audit found this handoff never NAMED that slug, so the correction was unfindable
+>    from where a cold reader starts. What survives from it is bullet (5) below.
+>    (5) ⛔ **`SKY_PILLAR_TOP` IS THE ONE MAP WHERE THE DIVERGENCE INVERTS, AND IT IS
+>        UN-VALIDATED.** 31 tiles the static planner calls OPEN are WALLS on CLEAN — and
+>        `probe_skypillar_clean_layout.py` fetches only `2F/3F/4F_Clean`, so **it cannot check
+>        TOP, 1F or 5F at all**. The atlas's "TOP 13 wp" was computed blocking CLEAN *cracks*
+>        only, never CLEAN *walls* — ⛔ do not quote it as a validated summit route. Extend that
+>        probe (or use `probe_live_mapgrid.py` while STANDING on each floor) before driving TOP.
+>    (6) ⛔⛔ **THE OBVIOUS A/B IS VACUOUS — USE THIS DISCRIMINATOR INSTEAD.** Banning the five
+>        `4F_Clean` cracks costs NOTHING (29 wp either way, 6 wp either way — MEASURED), so an
+>        A/B of that shape prints "no difference" and reads as a REFUTATION of a true finding.
+>        The arms that DO differ are the fall tile:
+>          ARM A `4F (6,4)`/`(7,4)` ⇒ post-fall `calculate_path(3F → (7,1))` = **4 wp, OK**
+>          ARM B `4F (9,4)` (the decoy) ⇒ the same call **REFUSES** (lands in the 118-tile main)
+>        ‼ NAME THE INSTRUMENT PER ARM: ARM A's 4 wp is production's own `calculate_path`
+>        (`evidence/2026-08-27-ch21-skypillar-probe.stdout.txt`); ARM B's refusal is so far only
+>        an OFFLINE BFS over the decomp's `*_Clean` blob (`probe_skypillar_clean_layout.py:147`).
+>        Re-ask ARM B of `calculate_path` before quoting it as one.
+>        Both arms are executable: all three tiles are in the same 111-tile component.
+>    ⛔⛔ **AND THE THING NOBODY HAS SUPPLIED, WHICH IS LEG 4'S FIRST TASK — THE ACCEPTANCE
+>    PREDICATE AND THE LEG'S END BOUNDARY.** ⚠ *(half-superseded the same day: the BOUNDARY is now
+>    SETTLED — see (a) below — so what remains unsupplied is the PREDICATE alone. An adversarial
+>    recon pass caught this preamble still saying "neither exists" one line above the answer.)*
+>    Decide, and
+>    write down: (a) ✅ **ANSWERED 2026-09-01 — THE DESCENT IS IN SCOPE, and it is FORCED, not
+>    chosen.** MEASURED on the CLEAN layouts: descending, the only down-staircase reachable from
+>    4F's arrival is `(7,1)`, and from `3F (7,1)` the bot **CANNOT** reach `3F (3,1)` — it is
+>    TRAPPED on 3F without a SECOND deliberate fall (`4F (0,3)` from `(0,2)`, or `(1,3)` from
+>    `(1,2)`; both approachable). A summit-only leg therefore cannot satisfy this project's own
+>    "and the bot can CONTINUE" rule BY CONSTRUCTION. Ruling + the full chain in
+>    `06-DECISIONS-LOG.md`. *(superseded question:)* does leg 4 stop at the summit trigger or include the DESCENT? (the atlas says
+>    "build the descent fall into the leg from the start"; the queue says only "the climb" —
+>    they are different legs); (b) the end-state var to grade on — ⛔⛔ **AND IT IS NOT
+>    `SKY_PILLAR_STATE` **AT THE VALUES 4 OR 5**. ⚠ Scoped deliberately: `SKY_PILLAR_STATE` DOES
+>    reach **1** at the summit cutscene, so if (a) resolves to "leg 4 ends at the summit" then
+>    `SKY_PILLAR_STATE == 1` may well be the right predicate. An earlier draft of this bullet
+>    said flatly "it is NOT SKY_PILLAR_STATE", which over-claimed and could have banned the
+>    correct answer. What is definitely wrong is the VALUES: an earlier draft wrote
+>    "`SKY_PILLAR_STATE`? 4 vs 5?"
+>    and that is FLATLY WRONG: **4 and 5 are `SOOTOPOLIS_CITY_STATE` values** (4 = Wallace opens
+>    the door, `SkyPillar_Outside/scripts.inc:82`; 5 = Rayquaza awakened,
+>    `SkyPillar_Top/scripts.inc:126`), while **`SKY_PILLAR_STATE` is 0 for the ENTIRE ascent**
+>    and reaches 1 only at the summit cutscene (`12-STORYMODE-DESIGN.md` §Ch21 state table).
+>    ‼ An agent taking the old text literally would grade on `SKY_PILLAR_STATE == 4`, **a value
+>    the story climb never reaches** — a leg that cannot pass its own test. *(Caught by a Tier 2
+>    RE-audit, 2026-09-01: the defect was introduced BY the fix for the previous audit, and this
+>    same block gets it RIGHT 38 lines above, at bullet (2).)*
+>    (c) the "and the bot can CONTINUE" `calculate_path` target off the tile actually reached.
+>    ‼ §Ch15, §Ch18 and §Ch19 each PASSED their own test while STRANDED, and a 2026-08-28 Tier 2
+>    audit named this missing predicate the #1 reason it answered NO to "could I start now?".
+>    ⚠ **Also unverified:** the Rayquaza trigger `SKY_PILLAR_TOP (14,9)` DISAGREES with the two
+>    coordinates our own code holds (`static_soft_resets.py:55` `(14,6)`; `static_run_away.py:163`
+>    `(16,14)`/`(14,7)`). Verify it live before it gates anything.
+>    ✅ **What leg 4 INHERITS, already built and proven:** `_bounded_step` (bounded, releases held
+>    buttons in a `finally`), `_live_wall_tiles()` / `_live_collision_grid()` (the grid the GAME
+>    walks on), `_pin_planner_to_live_layout()`, and the `LEG3_READINGS`-style readings/`method_ok`
+>    grading shape in `Ch21ApproachMode`. Start from `post_skypillar_door.ss1` (PINNED, md5
+>    `f6f8ab116b1bc18644286f51c2f202c6`; ⚠ party at 91% HP — there is no Poke Center up there).
+>    Full detail + evidence: `12-STORYMODE-DESIGN.md` §Ch21.

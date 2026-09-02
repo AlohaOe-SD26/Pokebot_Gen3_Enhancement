@@ -1,0 +1,102 @@
+§Ch21 LEG 4 — FAULT ARMS, all SEVEN, re-captured 2026-09-01 UNTRUNCATED
+==================================================================================
+Each exists because the happy path cannot reach the branch. All must FAIL for their OWN reason.
+‼ The five mid-leg arms run from resumed fixtures, so the PREMISE gate ALSO fires on them — their
+  proof is the DETAILED line (missing=, the named BotModeError, control_refused), not the verdict
+  alone. BADBLOCKDATA is the exception: it runs from the FULL fixture (premise_ok=True) and fails
+  purely on its own guard. VACUITY is the leg's own output fixture: position+vars mismatch.
+
+########## ARM: SUMMITSTOP ##########
+[ch21climb] PRE at=SKY_PILLAR_OUTSIDE(14, 7) vars=(4, 0, 0) (full run requires (3, 0, 0) on SKY_PILLAR_ENTRANCE)
+[ch21climb] ‼ VACUOUS/RESUMED PREMISE — start_vars=(4, 0, 0), start=SKY_PILLAR_OUTSIDE, phase=post-wallace. Only a full run from (3,0,0) on the ENTRANCE can PASS; a run from the leg's own output fixture satisfies every END-state check while doing nothing.
+[ch21climb] RESULT reached=False at=SKY_PILLAR_TOP(14, 9) phase=post-wallace falls=[('ascent', (6, 4))] floors_pinned=7 post_wallace_tile=None (predictions (14,7)/(14,6): matches=None) top_rest=(16, 15) exit_rest=None encounters=2 maps=['(24, 81)', '(24, 84)'] whiteouts=0 frames=4645
+[ch21climb] FLOORS [('SKY_PILLAR_1F', '0x08480DCC', (6, 13)), ('SKY_PILLAR_2F', '0x08480F74', (10, 2)), ('SKY_PILLAR_3F', '0x0848111C', (3, 2)), ('SKY_PILLAR_4F', '0x084812C4', (11, 2)), ('SKY_PILLAR_4F', '0x084812C4', (7, 2)), ('SKY_PILLAR_5F', '0x0848146C', (3, 2)), ('SKY_PILLAR_TOP', '0x08481614', (16, 15))] (each entry: name, LIVE blockdata — must equal the CLEAN column of the atlas per-floor table; the leg RAISES on mismatch)
+[ch21climb] VARS start=(4, 0, 0) summit=(5, 1, 1) end=(5, 1, 1) (the leg is graded on POSITION+PATH; vars corroborate — a whiteout also reads (5,1,1) from Sootopolis, which is why they cannot decide alone)
+[ch21climb] TRAP None (stair reachable AND pocket sealed = the livelock measured in place, the WHY of the second fall)
+[ch21climb] CONTINUE continue_wp=None continue_ok=False control_refused=None (target (6,15); ⛔ (6,16) is the live exit warp and is never aimed at)
+[ch21climb] ORDER order_ok=False trace=['R-DOOR1F', 'R-FALL1', 'R-FALLPROOF', 'R-LIVEGRID', 'R-SUMMIT', 'R-RAYQUAZA']
+[ch21climb] METHOD premise_ok=False method_ok=False falls=1/2 floors=7
+[ch21climb] readings=['R-DOOR1F', 'R-FALL1', 'R-FALLPROOF', 'R-LIVEGRID', 'R-RAYQUAZA', 'R-SUMMIT'] missing=['R-CONTINUE', 'R-CONTROL', 'R-EXITREST', 'R-FALL2', 'R-FALL2PROOF', 'R-OUTREST', 'R-SEAM', 'R-TRAP', 'R-WALLACE'] (the grade is DID EVERY READING HAPPEN, IN ORDER, **and can the bot CONTINUE**)
+[ch21climb] ACCEPTANCE: FAIL
+
+########## ARM: NOFALL ##########
+[ch21climb] PRE at=SKY_PILLAR_OUTSIDE(14, 7) vars=(4, 0, 0) (full run requires (3, 0, 0) on SKY_PILLAR_ENTRANCE)
+[ch21climb] LEG FAILED: BotModeError: Ch21 leg 4: 'Left' off (5, 4) on SKY_PILLAR_4F — 241 frames and THE MAP NEVER CHANGED (at ((24, 82), (4, 4))). The fall did not fire: either the tile stepped onto is not cracked on the layout actually loaded, or the crack was already consumed. ⛔ Do NOT retry blindly — a second press from an unknown tile is an uncommanded walk. Re-measure with probe_skypillar_rom_layouts.py.
+[ch21climb] ‼ VACUOUS/RESUMED PREMISE — start_vars=(4, 0, 0), start=SKY_PILLAR_OUTSIDE, phase=post-wallace. Only a full run from (3,0,0) on the ENTRANCE can PASS; a run from the leg's own output fixture satisfies every END-state check while doing nothing.
+[ch21climb] RESULT reached=False at=SKY_PILLAR_4F(4, 4) phase=post-wallace falls=[] floors_pinned=4 post_wallace_tile=None (predictions (14,7)/(14,6): matches=None) top_rest=None exit_rest=None encounters=1 maps=['(24, 81)'] whiteouts=0 frames=2216
+[ch21climb] FLOORS [('SKY_PILLAR_1F', '0x08480DCC', (6, 13)), ('SKY_PILLAR_2F', '0x08480F74', (10, 2)), ('SKY_PILLAR_3F', '0x0848111C', (3, 2)), ('SKY_PILLAR_4F', '0x084812C4', (11, 2))] (each entry: name, LIVE blockdata — must equal the CLEAN column of the atlas per-floor table; the leg RAISES on mismatch)
+[ch21climb] VARS start=(4, 0, 0) summit=None end=(4, 0, 0) (the leg is graded on POSITION+PATH; vars corroborate — a whiteout also reads (5,1,1) from Sootopolis, which is why they cannot decide alone)
+[ch21climb] TRAP None (stair reachable AND pocket sealed = the livelock measured in place, the WHY of the second fall)
+[ch21climb] CONTINUE continue_wp=None continue_ok=False control_refused=None (target (6,15); ⛔ (6,16) is the live exit warp and is never aimed at)
+[ch21climb] ORDER order_ok=False trace=['R-DOOR1F']
+[ch21climb] METHOD premise_ok=False method_ok=False falls=0/2 floors=4
+[ch21climb] readings=['R-DOOR1F'] missing=['R-CONTINUE', 'R-CONTROL', 'R-EXITREST', 'R-FALL1', 'R-FALL2', 'R-FALL2PROOF', 'R-FALLPROOF', 'R-LIVEGRID', 'R-OUTREST', 'R-RAYQUAZA', 'R-SEAM', 'R-SUMMIT', 'R-TRAP', 'R-WALLACE'] (the grade is DID EVERY READING HAPPEN, IN ORDER, **and can the bot CONTINUE**)
+[ch21climb] ACCEPTANCE: FAIL
+
+########## ARM: POCKETEXIT ##########
+[ch21climb] PRE at=SKY_PILLAR_TOP(14, 9) vars=(5, 1, 1) (full run requires (3, 0, 0) on SKY_PILLAR_ENTRANCE)
+[ch21climb] LEG FAILED: BotModeError: Ch21 leg 4: LIVELOCK, not a refusal — the descent took the planner-visible staircase and landed in 3F's sealed pocket at ((24, 81), (7, 2)); the 2F stairs are unreachable from here (Could not find a path from (7/2 @ SKY_PILLAR_3F) to (3/1 @ SKY_PILLAR_3F).). The only exit is back UP; the correct descent is the SECOND FALL through 4F (1,3).
+[ch21climb] ‼ VACUOUS/RESUMED PREMISE — start_vars=(5, 1, 1), start=SKY_PILLAR_TOP, phase=post-summit. Only a full run from (3,0,0) on the ENTRANCE can PASS; a run from the leg's own output fixture satisfies every END-state check while doing nothing.
+[ch21climb] RESULT reached=False at=SKY_PILLAR_3F(7, 2) phase=post-summit falls=[] floors_pinned=0 post_wallace_tile=None (predictions (14,7)/(14,6): matches=None) top_rest=None exit_rest=None encounters=1 maps=['(24, 84)'] whiteouts=0 frames=1680
+[ch21climb] FLOORS [] (each entry: name, LIVE blockdata — must equal the CLEAN column of the atlas per-floor table; the leg RAISES on mismatch)
+[ch21climb] VARS start=(5, 1, 1) summit=None end=(5, 1, 1) (the leg is graded on POSITION+PATH; vars corroborate — a whiteout also reads (5,1,1) from Sootopolis, which is why they cannot decide alone)
+[ch21climb] TRAP {'stair_reachable': True, 'pocket_escapes': False} (stair reachable AND pocket sealed = the livelock measured in place, the WHY of the second fall)
+[ch21climb] CONTINUE continue_wp=None continue_ok=False control_refused=None (target (6,15); ⛔ (6,16) is the live exit warp and is never aimed at)
+[ch21climb] ORDER order_ok=False trace=['R-TRAP']
+[ch21climb] METHOD premise_ok=False method_ok=False falls=0/2 floors=0
+[ch21climb] readings=['R-TRAP'] missing=['R-CONTINUE', 'R-CONTROL', 'R-DOOR1F', 'R-EXITREST', 'R-FALL1', 'R-FALL2', 'R-FALL2PROOF', 'R-FALLPROOF', 'R-LIVEGRID', 'R-OUTREST', 'R-RAYQUAZA', 'R-SEAM', 'R-SUMMIT', 'R-WALLACE'] (the grade is DID EVERY READING HAPPEN, IN ORDER, **and can the bot CONTINUE**)
+[ch21climb] ACCEPTANCE: FAIL
+
+########## ARM: DROPREADING ##########
+[ch21climb] PRE at=SKY_PILLAR_TOP(14, 9) vars=(5, 1, 1) (full run requires (3, 0, 0) on SKY_PILLAR_ENTRANCE)
+[ch21climb] ‼ VACUOUS/RESUMED PREMISE — start_vars=(5, 1, 1), start=SKY_PILLAR_TOP, phase=post-summit. Only a full run from (3,0,0) on the ENTRANCE can PASS; a run from the leg's own output fixture satisfies every END-state check while doing nothing.
+[ch21climb] RESULT reached=True at=SKY_PILLAR_ENTRANCE(14, 3) phase=post-summit falls=[('descent', (1, 3))] floors_pinned=0 post_wallace_tile=None (predictions (14,7)/(14,6): matches=None) top_rest=None exit_rest=(14, 4) encounters=2 maps=['(24, 84)', '(24, 79)'] whiteouts=0 frames=3436
+[ch21climb] FLOORS [] (each entry: name, LIVE blockdata — must equal the CLEAN column of the atlas per-floor table; the leg RAISES on mismatch)
+[ch21climb] VARS start=(5, 1, 1) summit=None end=(5, 1, 1) (the leg is graded on POSITION+PATH; vars corroborate — a whiteout also reads (5,1,1) from Sootopolis, which is why they cannot decide alone)
+[ch21climb] TRAP {'stair_reachable': True, 'pocket_escapes': False} (stair reachable AND pocket sealed = the livelock measured in place, the WHY of the second fall)
+[ch21climb] CONTINUE continue_wp=20 continue_ok=True control_refused=True (target (6,15); ⛔ (6,16) is the live exit warp and is never aimed at)
+[ch21climb] ORDER order_ok=False trace=['R-TRAP', 'R-FALL2PROOF', 'R-EXITREST', 'R-CONTINUE', 'R-CONTROL']
+[ch21climb] METHOD premise_ok=False method_ok=False falls=1/2 floors=0
+[ch21climb] readings=['R-CONTINUE', 'R-CONTROL', 'R-EXITREST', 'R-FALL2PROOF', 'R-TRAP'] missing=['R-DOOR1F', 'R-FALL1', 'R-FALL2', 'R-FALLPROOF', 'R-LIVEGRID', 'R-OUTREST', 'R-RAYQUAZA', 'R-SEAM', 'R-SUMMIT', 'R-WALLACE'] (the grade is DID EVERY READING HAPPEN, IN ORDER, **and can the bot CONTINUE**)
+[ch21climb] ACCEPTANCE: FAIL
+
+########## ARM: CONTROLOPEN ##########
+[ch21climb] PRE at=SKY_PILLAR_TOP(14, 9) vars=(5, 1, 1) (full run requires (3, 0, 0) on SKY_PILLAR_ENTRANCE)
+[ch21climb] ‼ VACUOUS/RESUMED PREMISE — start_vars=(5, 1, 1), start=SKY_PILLAR_TOP, phase=post-summit. Only a full run from (3,0,0) on the ENTRANCE can PASS; a run from the leg's own output fixture satisfies every END-state check while doing nothing.
+[ch21climb] RESULT reached=True at=SKY_PILLAR_ENTRANCE(14, 3) phase=post-summit falls=[('descent', (1, 3))] floors_pinned=0 post_wallace_tile=None (predictions (14,7)/(14,6): matches=None) top_rest=None exit_rest=(14, 4) encounters=2 maps=['(24, 84)', '(24, 79)'] whiteouts=0 frames=3436
+[ch21climb] FLOORS [] (each entry: name, LIVE blockdata — must equal the CLEAN column of the atlas per-floor table; the leg RAISES on mismatch)
+[ch21climb] VARS start=(5, 1, 1) summit=None end=(5, 1, 1) (the leg is graded on POSITION+PATH; vars corroborate — a whiteout also reads (5,1,1) from Sootopolis, which is why they cannot decide alone)
+[ch21climb] TRAP {'stair_reachable': True, 'pocket_escapes': False} (stair reachable AND pocket sealed = the livelock measured in place, the WHY of the second fall)
+[ch21climb] CONTINUE continue_wp=20 continue_ok=True control_refused=False (target (6,15); ⛔ (6,16) is the live exit warp and is never aimed at)
+[ch21climb] ORDER order_ok=False trace=['R-TRAP', 'R-FALL2', 'R-FALL2PROOF', 'R-EXITREST', 'R-CONTINUE']
+[ch21climb] METHOD premise_ok=False method_ok=False falls=1/2 floors=0
+[ch21climb] readings=['R-CONTINUE', 'R-EXITREST', 'R-FALL2', 'R-FALL2PROOF', 'R-TRAP'] missing=['R-CONTROL', 'R-DOOR1F', 'R-FALL1', 'R-FALLPROOF', 'R-LIVEGRID', 'R-OUTREST', 'R-RAYQUAZA', 'R-SEAM', 'R-SUMMIT', 'R-WALLACE'] (the grade is DID EVERY READING HAPPEN, IN ORDER, **and can the bot CONTINUE**)
+[ch21climb] ACCEPTANCE: FAIL
+
+########## ARM: BADBLOCKDATA ##########
+[ch21climb] PRE at=SKY_PILLAR_ENTRANCE(6, 16) vars=(3, 0, 0) (full run requires (3, 0, 0) on SKY_PILLAR_ENTRANCE)
+[ch21climb] LEG FAILED: BotModeError: Ch21 leg 4: SKY_PILLAR_1F is running blockdata 0x08480DCC, but the story (CLEAN) layout measured from our own ROM is 0xF7B7F233. The layout premise is BROKEN on this floor — the gate is `VAR_SKY_PILLAR_STATE < 2`, so either the var moved unexpectedly or the CLEAN identification is wrong. ⛔ Walking a floor whose layout is not the one the route was measured on is how leg 3's first drive jammed; refusing here instead.
+[ch21climb] RESULT reached=False at=SKY_PILLAR_1F(6, 13) phase=full falls=[] floors_pinned=0 post_wallace_tile=(14, 7) (predictions (14,7)/(14,6): matches=True) top_rest=None exit_rest=None encounters=0 maps=[] whiteouts=0 frames=2244
+[ch21climb] FLOORS [] (each entry: name, LIVE blockdata — must equal the CLEAN column of the atlas per-floor table; the leg RAISES on mismatch)
+[ch21climb] VARS start=(3, 0, 0) summit=None end=(4, 0, 0) (the leg is graded on POSITION+PATH; vars corroborate — a whiteout also reads (5,1,1) from Sootopolis, which is why they cannot decide alone)
+[ch21climb] TRAP None (stair reachable AND pocket sealed = the livelock measured in place, the WHY of the second fall)
+[ch21climb] CONTINUE continue_wp=None continue_ok=False control_refused=None (target (6,15); ⛔ (6,16) is the live exit warp and is never aimed at)
+[ch21climb] ORDER order_ok=False trace=['R-SEAM', 'R-WALLACE', 'R-OUTREST', 'R-DOOR1F']
+[ch21climb] METHOD premise_ok=True method_ok=False falls=0/2 floors=0
+[ch21climb] readings=['R-DOOR1F', 'R-OUTREST', 'R-SEAM', 'R-WALLACE'] missing=['R-CONTINUE', 'R-CONTROL', 'R-EXITREST', 'R-FALL1', 'R-FALL2', 'R-FALL2PROOF', 'R-FALLPROOF', 'R-LIVEGRID', 'R-RAYQUAZA', 'R-SUMMIT', 'R-TRAP'] (the grade is DID EVERY READING HAPPEN, IN ORDER, **and can the bot CONTINUE**)
+[ch21climb] ACCEPTANCE: FAIL
+
+########## ARM: VACUITY(no-env) ##########
+[ch21climb] PRE at=SKY_PILLAR_ENTRANCE(14, 3) vars=(5, 1, 1) (full run requires (3, 0, 0) on SKY_PILLAR_ENTRANCE)
+[ch21climb] LEG FAILED: BotModeError: Ch21 leg 4: vars (5,1) say post-summit, but the run stands at ((24, 77), (14, 3)) — the post-summit fixture is on SKY_PILLAR_TOP. ⛔ If this is the leg's own OUTPUT fixture (ENTRANCE, vars 5/1/1), the answer is that leg 4 is ALREADY DONE on this save; there is nothing to resume.
+[ch21climb] ‼ VACUOUS/RESUMED PREMISE — start_vars=(5, 1, 1), start=SKY_PILLAR_ENTRANCE, phase=None. Only a full run from (3,0,0) on the ENTRANCE can PASS; a run from the leg's own output fixture satisfies every END-state check while doing nothing.
+[ch21climb] RESULT reached=True at=SKY_PILLAR_ENTRANCE(14, 3) phase=None falls=[] floors_pinned=0 post_wallace_tile=None (predictions (14,7)/(14,6): matches=None) top_rest=None exit_rest=None encounters=0 maps=[] whiteouts=0 frames=30
+[ch21climb] FLOORS [] (each entry: name, LIVE blockdata — must equal the CLEAN column of the atlas per-floor table; the leg RAISES on mismatch)
+[ch21climb] VARS start=(5, 1, 1) summit=None end=(5, 1, 1) (the leg is graded on POSITION+PATH; vars corroborate — a whiteout also reads (5,1,1) from Sootopolis, which is why they cannot decide alone)
+[ch21climb] TRAP None (stair reachable AND pocket sealed = the livelock measured in place, the WHY of the second fall)
+[ch21climb] CONTINUE continue_wp=None continue_ok=False control_refused=None (target (6,15); ⛔ (6,16) is the live exit warp and is never aimed at)
+[ch21climb] ORDER order_ok=False trace=[]
+[ch21climb] METHOD premise_ok=False method_ok=False falls=0/2 floors=0
+[ch21climb] readings=[] missing=['R-CONTINUE', 'R-CONTROL', 'R-DOOR1F', 'R-EXITREST', 'R-FALL1', 'R-FALL2', 'R-FALL2PROOF', 'R-FALLPROOF', 'R-LIVEGRID', 'R-OUTREST', 'R-RAYQUAZA', 'R-SEAM', 'R-SUMMIT', 'R-TRAP', 'R-WALLACE'] (the grade is DID EVERY READING HAPPEN, IN ORDER, **and can the bot CONTINUE**)
+[ch21climb] ACCEPTANCE: FAIL
+

@@ -10400,3 +10400,86 @@ invitation to go and "fix" a correct handoff. A check whose own INPUT is silentl
 report *"I am broken"* — it reports *"your file is broken"*, which is the more expensive lie.
 ✅ The self-test now carries the adjacent-recipe boundary case explicitly, so the H5 scoping cannot
 silently regress.
+
+---
+
+## 2026-09-01 (later) — LEG 4's MID-LEG CAPTURE WROTE TO THE WRONG DIRECTORY, "SUCCEEDED", AND FIVE FAULT ARMS CAUGHT IT DOWNSTREAM
+
+**Symptom.** Leg 4's first drive PASSED and printed `CAPTURE WROTE post_wallace_scene.ss1` twice.
+The five fault arms that start from those fixtures then all died on
+`AssertionError: no such state: .../tools/story-dev/saves/post_wallace_scene.ss1`.
+
+**Root cause.** `_maybe_capture` built its path as `Path(__file__).resolve().parents[2] / "tools" /
+"story-dev" / "saves"`. `sootopolis.py` lives at `sandbox-pokebot/modules/story/`, so `parents[2]`
+is **`sandbox-pokebot/`**, not the repo root — the capture created
+`sandbox-pokebot/tools/story-dev/saves/`, a directory nothing reads. The WROTE line was true and
+useless. (The driver's own capture used `Path(__file__).parent` — it lives in `tools/story-dev/`
+already — so the FINAL fixture landed correctly and hid the asymmetry.)
+
+**The fix that worked.** `parents[3]` (the repo root), and the capture now prints the FULL path, not
+the basename.
+
+**Prevention rule.** ⛔ **VERIFY THE OUTCOME AT THE PATH THE CONSUMER WILL USE, NEVER THE
+OPERATION'S REPORT OF ITSELF.** This is the THIRD time in one day the same shape bit: a Bash
+"success line" over a deleted HOW TO RUN section, a probe's cheerful WROTE line over a
+never-read save state, and now a capture's WROTE line over a wrong directory. The check that caught
+every one asked a question about the RESULT — *is the file at the path someone will load it from?* —
+rather than reading the tool's summary of what it thinks it did.
+‼ And the corollary earned here: **a fault arm that fails on "no such input" is doing its job.** My
+first instinct was to look at the arm; the arm was fine — it was the upstream capture that lied. A
+downstream consumer failing loudly is often the truest signal you have that an upstream "success"
+was false.
+
+---
+
+## 2026-09-01 (later) — A RESUME PHASE KEYED ON VARS ALONE SENT THE LEG'S OWN OUTPUT FIXTURE ON A DOOMED WALK WITH NO VERDICT
+
+**Symptom.** The VACUITY arm (point the driver at leg 4's own output fixture: SKY_PILLAR_ENTRANCE,
+vars 5/1/1) printed `PRE ... vars=(5,1,1)` and then NOTHING — no RESULT, no ACCEPTANCE. It burned
+its whole frame budget silently.
+
+**Root cause.** The preflight chose `phase = "post-summit"` from `state == 5 and pillar == 1` ALONE,
+without checking position. The leg's own output save reads those vars but stands on the ENTRANCE,
+not on TOP — so the descent phase tried to `navigate_to` TOP-arrival tiles from the ENTRANCE, went
+nowhere, and produced the exact §Ch15/§Ch18/§Ch19 SILENCE this leg's whole grading design exists to
+prevent. The driver's premise gate would have failed it — but only if a verdict ever printed.
+
+**The fix that worked.** Every resume phase now asserts its POSITION as well as its vars: post-Wallace
+must be on OUTSIDE, post-summit on TOP. The leg's own output fixture (ENTRANCE + 5/1/1) now raises
+"leg 4 is ALREADY DONE on this save; nothing to resume" — a loud, correct answer instead of silence.
+
+**Prevention rule.** ⛔ **A RESUME/PHASE SELECTOR MUST MATCH POSITION AND STATE TOGETHER — vars say
+what HAPPENED, position says WHERE YOU ARE, and a fixture that agrees on one but not the other is the
+WRONG fixture, not a resumable state.** A phase that can be entered from the wrong place will do the
+wrong work there, and if that work is a navigate-to-nowhere it does it SILENTLY — which on this
+project is the most expensive failure mode there is.
+
+## 2026-09-01 (later) — MY NEW GATE PRINTED AN EMOJI ON ITS *SUCCESS* PATH AND CRASHED ON THE cp1252 CONSOLE — GREEN ONLY BECAUSE run_gates.py HID IT BEHIND PYTHONUTF8=1
+
+**Symptom.** Running `audit_handoff_invariants.py` (gate #33) DIRECTLY with bare `python` — exactly
+the invocation its own `HOW TO RUN` recipe prints — died with
+`UnicodeEncodeError: 'charmap' codec can't encode character '\u26d4'` at the closing epilogue,
+*after* every H1–H5 check had already passed. Exit code non-zero. Yet the gate had been recorded as
+"ALL PASS" all session.
+
+**Root cause.** Two things compounded. (1) The gate emits `⛔`/`‼` markers on BOTH its PASS epilogue
+(unconditional) AND its H1–H5 failure messages, but never forced its own stdout to UTF-8. On a bare
+Windows console — and on a `| tail` pipe — Python 3.9 defaults stdout to cp1252, which cannot encode
+those code points. (2) `run_gates.py` launches every gate under `PYTHONUTF8=1 py -3.12`, so the child
+inherited UTF-8 mode and the crash was invisible *through the runner*. The "PASS" was real only for
+the one launch path that happens to set UTF-8; the DOCUMENTED launch path crashed. Worse: because the
+FAILURE messages also carry emoji, the gate could never have *reported* an H1–H5 finding on this
+console — it would have crashed with a codec traceback instead of printing the finding, though it
+still exits non-zero so the runner fails closed.
+
+**The fix that worked.** Reconfigure the gate's own streams at module scope, guarded, before any
+print: `for _stream in (sys.stdout, sys.stderr): try: _stream.reconfigure(encoding="utf-8") except
+(AttributeError, ValueError): pass`. Verified by running the gate with bare `python` (exit 0, epilogue
+prints) and `--self-test` (exit 0, every check still fires only for its own reason).
+
+**Prevention rule.** ⛔ **A GATE MUST PRODUCE ITS VERDICT UNDER THE INVOCATION ITS OWN DOCS PRINT, NOT
+ONLY UNDER run_gates.py.** A tool that emits any non-ASCII on ANY reachable path (success epilogue
+included) must force UTF-8 on its own stdout/stderr — never rely on an ambient `PYTHONUTF8` a caller
+might set, because the human who runs it by hand will not. ‼ Corollary: "green via the runner" is not
+"green" — a gate whose failure message can itself crash cannot be trusted to *tell you why* it failed;
+test the raw `python gate.py` path, and test that its FAILURE branch prints rather than crashes.

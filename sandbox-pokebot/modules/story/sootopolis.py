@@ -3,8 +3,11 @@
 ⛔ THIS CHAPTER IS INCOMPLETE AND MUST NOT BE WIRED INTO `_play()` YET. Leg 1 (the dive in),
 leg 2a (heal → Steven → the escort), leg 2b (the Cave of Origin descent → Wallace →
 SOOTOPOLIS_CITY_STATE=3) and leg 3 (`approach_sky_pillar` — the cave return, the pocket, the heal,
-the dive out, the six-map swim and the hand-walked approach to the Sky Pillar door) are built;
-legs 4-5 (the Sky Pillar CLIMB, Rayquaza, HM07 from BOTH Maxie AND Archie) are NOT.
+the dive out, the six-map swim and the hand-walked approach to the Sky Pillar door) are BUILT AND
+DRIVEN; **leg 4 (`climb_sky_pillar` — the Wallace scene, the climb, both DELIBERATE FALLS, RAYQUAZA
+and the descent) is BUILT — its driven/undriven status lives in `04-HANDOFF.md`, not here** (a
+status word in a docstring goes stale the moment a drive lands); leg 5 (the return to Sootopolis,
+HM07 from BOTH Maxie AND Archie) is NOT built.
 ‼ THE POCKET EXIT IS NO LONGER THE OPEN RISK — it was MEASURED on 2026-08-27 (`--driver
 ch21pocket`) and leg 3 now owns it. The remaining UNPROVEN mechanic in this file is the SURF
 DISMOUNT inside leg 3's hand-walked tail, and `DOOR_APPROACH_FALLBACK` exists for it.
@@ -1845,4 +1848,777 @@ def approach_sky_pillar(report: dict | None = None) -> Generator:
     report["state"] = end_state
     report["pillar_state"] = end_pillar
     context.message = f"Story: Ch21 — leg 3 done: at the Sky Pillar door ({_where()})."
+    return report
+
+
+# --- LEG 4 CONSTANTS — THE SKY PILLAR CLIMB + DESCENT (both, and the scope is FORCED: see
+# 06-DECISIONS-LOG 2026-09-01 — a summit-only leg cannot satisfy "and the bot can CONTINUE"
+# BY CONSTRUCTION, because descending on foot traps the bot on 3F without a second fall). ---------
+# ⛔ PROVENANCE PER ROW. Sources:
+#   DECOMP        — pret/pokeemerald @ 5eff7864, fetched via `git/blobs` with sha1 verification
+#                   (⛔ NEVER via `.../contents/`, which corrupts binaries — playbook + the leg-4
+#                   recon note both carry the measurement). A NOTE until confirmed by a drive.
+#   MEASURED-ROM  — `tools/story-dev/probe_skypillar_rom_layouts.py` over OUR OWN ROM's
+#                   `gMapLayouts` (five controls, three fault arms);
+#                   evidence/2026-09-01-skypillar-ROM-clean-layouts.stdout.txt.
+#   MEASURED-PROD — production's own `calculate_path`/tile reader (leg 3's constants probe).
+SEAM_APPROACH = (14, 3)         # MEASURED-PROD: 21 wp from the leg-3 rest, is_warp=False. The tile
+#                               # leg 3's continuation proof ends on; leg 4 STARTS by walking here.
+SEAM_WARP = (14, 4)             # MEASURED-PROD: 'South Arrow Warp' -> SKY_PILLAR_OUTSIDE (17,13).
+#                               # Fires ONLY while Down is HELD. ⛔ Crossing it is leg 4's FIRST
+#                               # one-shot trigger: OUTSIDE's ON_FRAME Wallace scene is gated
+#                               # SOOTOPOLIS_CITY_STATE == 3 with NO coordinate condition (DECOMP)
+#                               # and fires on the FIRST frame of field control after the map loads.
+OUTSIDE_REST_PREDICTION = (17, 14)  # DECOMP+rule: (17,13) is a Non-Animated Door target, and the
+#                               # validated resting rule is +1 SOUTH. ⛔ REPORTED, never asserted.
+POST_WALLACE_PREDICTIONS = ((14, 7), (14, 6))  # ⛔ TWO recon angles DISAGREE on where the scene
+#                               # leaves the player, and NEITHER is measured. This run is the
+#                               # measurement; both predictions are carried so the log can say
+#                               # which (if either) was right.
+OUTSIDE_DOOR = (14, 5)          # DECOMP: warp -> SKY_PILLAR_1F (6,13). ⛔ IMPASSABLE IN THE STORED
+#                               # LAYOUT (closed door, collision 1) — `SkyPillar_Outside_OnLoad`
+#                               # setmetatiles it OPEN when FLAG_WALLACE_GOES_TO_SKY_PILLAR is set
+#                               # (it is, since leg 2b). ⇒ our planner CANNOT see the open door
+#                               # (KI-74's exact mechanism), so the entry is a HAND-WALK from
+#                               # (14,6), never a navigate_to((14,5)).
+DOOR_STAND = (14, 6)            # the tile below the door; Wallace's old spot, cleared by the scene.
+
+#: The tower, floor by floor. (map name, UP-warp event tile, expected CLEAN blockdata pointer).
+#: ⛔ THE BLOCKDATA EXPECTATIONS ARE THE PER-FLOOR LAYOUT MEASUREMENT the adversarial recon asked
+#: for: the leg reads the LIVE `gMapHeader` layout's blockdata on every floor and compares. A
+#: mismatch means the story-layout premise is broken ON THAT FLOOR and the leg refuses rather than
+#: walks — leg 3's first drive jammed on exactly this class of error, one map earlier.
+#: MEASURED-ROM (the CLEAN column of the per-floor table, atlas §Ch21).
+TOWER = (
+    ("SKY_PILLAR_1F", (10, 1), 0x08480DCC),
+    ("SKY_PILLAR_2F", (3, 1), 0x08480F74),
+    ("SKY_PILLAR_3F", (11, 1), 0x0848111C),
+    ("SKY_PILLAR_4F", None, 0x084812C4),      # ⛔ no walkable UP-route: the ascent FALLS here
+    ("SKY_PILLAR_5F", (10, 1), 0x0848146C),
+    ("SKY_PILLAR_TOP", None, 0x08481614),     # the summit; descent turns around here
+)
+CLEAN_BLOCKDATA = {name: bd for name, _up, bd in TOWER}
+
+ASCENT_FALL_STAND = (5, 4)      # MEASURED-ROM: the ONLY standable neighbour of the launch tile.
+ASCENT_FALL_TILE = (6, 4)       # MEASURED-ROM: 4F's launch crack. ⛔ (6,4) ONLY — (7,4) and (9,4)
+#                               # have NO standable neighbour from the ascent arrival; the old
+#                               # "(or (7,4))" offered a choice that does not exist.
+ASCENT_FALL_DIR = "Right"       # (5,4) -> (6,4) is +x = East = "Right" (walking.py:580-588).
+POCKET_UP_WARP = (7, 1)         # 3F pocket's staircase back up to 4F's EAST region. MEASURED-ROM:
+#                               # 4 steps from the (6,4) landing.
+FOURF_EAST_UP = (3, 1)          # 4F east region -> 5F. MEASURED-ROM: 6 steps from (7,1)'s rest.
+TOP_ARRIVAL = (16, 14)          # DECOMP: the 5F->TOP warp target; predicted rest (16,15).
+RAYQUAZA_TILE = (14, 9)         # DECOMP: a COORD_EVENT gated RAYQUAZA_CRY_DONE == 0 — ⛔ this
+#                               # settles the three-way (14,9)/(14,6)/(16,14) trigger dispute: the
+#                               # other two are a soft-reset stand tile and the arrival warp.
+#                               # MEASURED-ROM: 13 steps from (16,14) on CLEAN. Stepping onto it is
+#                               # ONE-SHOT #2: sets SOOTOPOLIS 4->5, SKY_PILLAR 0->1, CRY_DONE 1.
+DESCENT_FALL_STAND = (1, 2)     # MEASURED-ROM: standable neighbour of the descent launch tile.
+DESCENT_FALL_TILE = (1, 3)      # MEASURED-ROM: lands 3F (1,3), from which (3,1) is 4 steps —
+#                               # the shorter of the two measured landings ((0,3) is 5).
+DESCENT_FALL_DIR = "Down"       # (1,2) -> (1,3) is +y = South = "Down".
+THREEF_DOWN = (3, 1)            # 3F -> 2F staircase; then 2F (10,1) -> 1F; 1F (6,13) -> OUTSIDE.
+EXIT_WARP_OUTSIDE = (17, 13)    # OUTSIDE -> ENTRANCE (14,4). ⛔ the ENTRANCE arrival tile (14,4)
+#                               # is ITSELF the south arrow warp back to OUTSIDE: never hold Down
+#                               # there; step NORTH off it immediately.
+L4_CONTINUE = (6, 15)           # MEASURED-PROD: 'Cave', collision 0 — one tile north of the (6,16)
+#                               # exit warp to ROUTE131. ⛔ NEVER aim a path at (6,16) itself: it is
+#                               # a warp destination and the plan would cross to ROUTE131.
+L4_CONTROL = (6, 17)            # MEASURED-PROD: 'Normal', collision 1 — the same negative control
+#                               # leg 3 uses: the planner must still be able to REFUSE.
+
+#: ⛔ THE LABEL VOCABULARY IS EXPORTED BY THE LEG AND IMPORTED BY THE DRIVER — leg 3's rule (a
+#: private copy is the P5 shape, and it fails by silently deleting a required reading).
+LEG4_READINGS = (
+    "R-SEAM",       # ENTRANCE -> (14,3) -> the held-Down arrow warp -> the map became OUTSIDE
+    "R-WALLACE",    # the one-shot ridden: SOOTOPOLIS_CITY_STATE read 3 BEFORE and 4 AFTER
+    "R-OUTREST",    # the post-cutscene OUTSIDE tile READ (two predictions disagree; this decides)
+    "R-DOOR1F",     # through the setmetatile door; MAP asserted, tile read
+    "R-LIVEGRID",   # every floor's live blockdata matched CLEAN + planned tiles wall/crack-clean
+    "R-FALL1",      # the ASCENT fall: the MAP changed 4F -> 3F on one deliberate step
+    "R-FALLPROOF",  # the landing is the RIGHT region: calculate_path(landing -> 3F (7,1)) returns
+    "R-SUMMIT",     # standing on SKY_PILLAR_TOP, the Rayquaza tile stepped on
+    "R-RAYQUAZA",   # the three summit vars read AFTER control returned (5 / 1 / 1)
+    "R-TRAP",       # the livelock NAMED before it is dodged: 3F (7,1) -> (3,1) REFUSES
+    "R-FALL2",      # the DESCENT fall: the MAP changed 4F -> 3F from the west region
+    "R-FALL2PROOF", # the landing connects: calculate_path(landing -> 3F (3,1)) returns
+    "R-EXITREST",   # back on SKY_PILLAR_ENTRANCE; resting tile READ (it IS the seam warp tile)
+    "R-CONTINUE",   # the bot can CONTINUE: a real path to (6,15), non-warp, same map
+    "R-CONTROL",    # and the planner can still REFUSE: (6,17) must raise
+)
+
+#: ⛔ ORDER IS PART OF THE PREDICATE (the leg-4 predicate critic's point 4): a readings SET cannot
+#: distinguish "descended, then proved continuation" from the reverse. The leg appends to
+#: report["trace"] at each take-point and the driver asserts this subsequence.
+LEG4_ORDER = ("R-SEAM", "R-WALLACE", "R-FALL1", "R-SUMMIT", "R-RAYQUAZA",
+              "R-FALL2", "R-EXITREST", "R-CONTINUE")
+
+
+def rayquaza_awakened() -> bool:
+    """Leg 4's completion flag pair — read together; they are written by the same script block."""
+    return _var("SKY_PILLAR_STATE") == 1 and _var("SOOTOPOLIS_CITY_STATE") == 5
+
+
+def _take(report: dict, label: str) -> None:
+    """Record a reading AT THE POINT IT IS TAKEN — set for the grade, trace for the ORDER.
+
+    ⛔ Never call this anywhere except immediately after the assertion that defines the reading.
+    A label added early is indistinguishable from a label added after the work (leg 3's v1 defect),
+    and the trace exists precisely because the set cannot see order.
+    """
+    report["readings"].add(label)
+    report.setdefault("trace", []).append(label)
+
+
+def _fall_through_crack(direction: str, from_map, to_map, *, max_frames: int = 600) -> Generator:
+    """Step onto a cracked tile and PROVE the fall happened — the predicate is the MAP CHANGE.
+
+    ⛔⛔ WHY `_bounded_step` CANNOT DO THIS, MEASURED BY AN ADVERSARIAL RECON PASS BEFORE ANYONE
+    PAID FOR IT IN A DRIVE: its success predicate is `_at(map_enum, expect)` — SAME map, expected
+    tile. A fall CHANGES the map while PRESERVING (x, y) (`warphole`). So `_bounded_step` either
+    (i) reports SUCCESS the moment the coordinates change, while the ~80-frame fall cutscene is
+    still mid-flight under `lockall`, or (ii) on a retry, takes UNCOMMANDED steps on the LANDING
+    floor. The correct witness for a fall is `_on_map(to_map)`, nothing else.
+
+    ‼ AND THE TILE IS DELIBERATELY NOT ASSERTED MID-FLIGHT: the landing tile is checked by the
+    CALLER via the post-fall pathability reading (R-FALLPROOF / R-FALL2PROOF), because "where did I
+    land" is a question the planner answers more honestly than a coordinate compare — the fall
+    preserves (x,y), so a coordinate assert would pass even if the fall never happened.
+    """
+    from modules.modes import BotModeError
+    from modules.story.early_game import _check_abort, wait_until_truly_controllable
+
+    if not _on_map(from_map):
+        raise BotModeError(
+            f"Ch21 leg 4: asked to fall from {from_map.name} but standing at {_where()}."
+        )
+    stand = _here_tile()
+    frames = 0
+    while _on_map(from_map):
+        _check_abort()  # ⛔ FIRST statement of the loop body, OUTSIDE any try (loop-head rule)
+        if frames > max_frames:
+            context.emulator.reset_held_buttons()
+            raise BotModeError(
+                f"Ch21 leg 4: '{direction}' off {stand} on {from_map.name} — {frames} frames and "
+                f"THE MAP NEVER CHANGED (at {_where()}). The fall did not fire: either the tile "
+                "stepped onto is not cracked on the layout actually loaded, or the crack was "
+                "already consumed. ⛔ Do NOT retry blindly — a second press from an unknown tile "
+                "is an uncommanded walk. Re-measure with probe_skypillar_rom_layouts.py."
+            )
+        # ⛔ PRESS ONLY WHILE STILL ON THE STAND. A walking-speed crack breaks UNDER the player,
+        # but a direction still held after the step lands could START A SECOND STEP onto the next
+        # tile — (7,4) is ALSO cracked, so the worst case is falling through the WRONG tile.
+        # Once the coordinates leave the stand, the input's job is done; the floor does the rest.
+        if _here_tile() == stand:
+            context.emulator.press_button(direction)
+        frames += 1
+        yield
+    context.emulator.reset_held_buttons()
+    # ride out the fall cutscene (lockall + delays + the landing thud) before anyone reads state
+    yield from wait_until_truly_controllable()
+    if not _on_map(to_map):
+        raise BotModeError(
+            f"Ch21 leg 4: fell off {from_map.name} but landed on {_where()}, not {to_map.name} — "
+            "a hole warp went somewhere the decomp does not predict. STOP and investigate; do not "
+            "walk on an unknown floor."
+        )
+
+
+def _pin_and_verify_floor(floor_name: str, planned_tiles=None):
+    """Pin the planner to THIS floor's live layout, verify it IS the expected CLEAN one, and
+    (optionally) verify a planned route crosses no live wall and no cracked/crumbled tile.
+
+    Returns the live blockdata pointer (for the report). Raises, loudly and BEFORE any walking,
+    when the story-layout premise is broken — the lesson leg 3 paid a drive for, made a gate.
+
+    ⛔ THE CRACK CHECK CANNOT USE `_live_wall_tiles` — an adversarial pass measured that helper
+    STRUCTURALLY BLIND to cracks (it reads collision; a cracked floor is collision 0). After the
+    pin, `get_map_data` reads the pinned (live) struct, so `tile_type` is the crack oracle — and
+    it must catch BOTH spellings: 'Cracked Floor' (intact) and 'Fall Warp' (already crumbled),
+    because a re-visited crack decodes as the latter and a guard grepping only 'Cracked' matches
+    nothing on the second pass.
+    """
+    from modules.map import get_map_data
+    from modules.memory import read_symbol, unpack_uint32
+    from modules.modes import BotModeError
+
+    floor = getattr(MapRSE, floor_name)
+    pin_note = _pin_planner_to_live_layout(floor)
+    live_layout_pointer = unpack_uint32(read_symbol("gMapHeader")[:4])
+    live_blockdata = unpack_uint32(context.emulator.read_bytes(live_layout_pointer + 12, 4))
+    expected = CLEAN_BLOCKDATA[floor_name]
+    if live_blockdata != expected:
+        raise BotModeError(
+            f"Ch21 leg 4: {floor_name} is running blockdata 0x{live_blockdata:08X}, but the story "
+            f"(CLEAN) layout measured from our own ROM is 0x{expected:08X}. The layout premise is "
+            "BROKEN on this floor — the gate is `VAR_SKY_PILLAR_STATE < 2`, so either the var "
+            "moved unexpectedly or the CLEAN identification is wrong. ⛔ Walking a floor whose "
+            "layout is not the one the route was measured on is how leg 3's first drive jammed; "
+            "refusing here instead."
+        )
+    if planned_tiles:
+        walls = _live_wall_tiles(floor, planned_tiles)
+        cracked = [tuple(t) for t in planned_tiles
+                   if getattr(get_map_data(floor, tuple(t)), "tile_type", "")
+                   in ("Cracked Floor", "Fall Warp")]
+        if walls or cracked:
+            raise BotModeError(
+                f"Ch21 leg 4: the planned route on {floor_name} crosses live WALLS {walls} and/or "
+                f"CRACKED tiles {cracked}. A wall jams the walk; a crack is a TERMINAL fall on "
+                "entry for a walking bot. Refusing BEFORE walking."
+            )
+    return pin_note, live_blockdata
+
+
+def _planned_route(floor_name: str, src, dst) -> list:
+    """calculate_path on the (pinned) floor, as a tile list for verification. Raises when no route."""
+    from modules.map_path import calculate_path
+
+    floor = getattr(MapRSE, floor_name)
+    path = calculate_path((floor, tuple(src)), (floor, tuple(dst)))
+    return [tuple(w.coordinates) for w in path if tuple(w.map) == floor.value]
+
+def _ride_summit_scene(var_name: str, want: int, *, budget_frames: int = 30000) -> Generator:
+    """Ride a one-shot cutscene until `var_name` reads `want` — the gated-button shape.
+
+    ⛔ THE BUTTON IS GATED, NOT MASHED — `A` only when a printer is waiting, else `B` (the museum-
+    greeter rule, same as `_ride_arrival_scene`). ⛔ GRADED ON THE VAR, never on "the map is quiet":
+    both of leg 4's scenes end by WRITING their var (`setvar ... 4` / the summit block), and
+    §Ch21's own history says "we are on the map" is not "the scene is over".
+    """
+    from modules.modes import BotModeError
+    from modules.story.early_game import _check_abort
+    from modules.tasks import is_waiting_for_input
+
+    frames = 0
+    while frames < budget_frames:
+        _check_abort()  # ⛔ FIRST statement of the loop body, OUTSIDE any try
+        value = _var(var_name)
+        if isinstance(value, int) and value >= want:
+            return
+        context.emulator.press_button("A" if is_waiting_for_input() else "B")
+        yield
+        frames += 1
+    raise BotModeError(
+        f"Ch21 leg 4: rode the scene for {budget_frames} frames without {var_name} reaching "
+        f"{want} — it reads {_var(var_name)!r}, at {_where()}. A one-shot that stalls mid-scene "
+        "needs eyes, not a retry."
+    )
+
+
+def _maybe_capture(env_name: str, gate_ok: bool, reason: str) -> None:
+    """Mid-leg fixture capture, env-gated, with the standing overwrite guard.
+
+    ‼ WHY THE LEG (not the driver) CAPTURES: leg 4 has TWO one-shots with no fixture between them,
+    and the driver only regains control at the END — after both are spent. A whiteout after the
+    Wallace scene is a state-4 strand NO leg in this tree owns, so the only cheap iteration point
+    is a save taken between the one-shots, which only the leg itself can take.
+    ⛔ Gated on `gate_ok` — a capture of a run that has not proven its own premise is a trap for
+    the next session (the fixture would LOOK valid and carry a broken state).
+    """
+    import os as _os_cap
+    import pathlib as _pathlib
+
+    from modules.console import console
+
+    name = _os_cap.environ.get(env_name, "").strip()
+    if not name:
+        return
+    # ⛔ parents[3] IS THE REPO ROOT — parents[2] is `sandbox-pokebot/`, and this line SHIPPED with
+    # parents[2] on drive 1: the capture "succeeded", printed its cheerful WROTE line, and landed in
+    # a directory the harness never reads. Five fault arms then failed on "no such state" — which
+    # was the DOWNSTREAM CONSUMER catching what the success line hid. Same lesson, third time
+    # today: verify the OUTCOME (the file at the path the consumer will use), never the
+    # operation's report of itself.
+    out = _pathlib.Path(__file__).resolve().parents[3] / "tools" / "story-dev" / "saves" / name
+    if not gate_ok:
+        console.print(f"[yellow]Ch21 leg 4: CAPTURE SKIPPED ({env_name}) — {reason}.[/]")
+        return
+    if out.exists() and _os_cap.environ.get("CAPTURE_FORCE", "") != "1":
+        console.print(f"[yellow]Ch21 leg 4: CAPTURE REFUSED — {out.name} exists "
+                      f"(set CAPTURE_FORCE=1 to replace).[/]")
+        return
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(context.emulator.get_save_state())
+    console.print(f"[cyan]Ch21 leg 4: CAPTURE WROTE {out} ({out.stat().st_size} bytes) at "
+                  f"{_where()} — ‼ the FULL path is printed because a name-only line hid a "
+                  "wrong-directory bug on drive 1; verify with probe_anchor_inventory.py.[/]")
+
+
+def climb_sky_pillar(report: dict | None = None) -> Generator:
+    """LEG 4 — THE SKY PILLAR: the Wallace scene, the climb, RAYQUAZA, and the DESCENT.
+
+    ⛔⛔ SCOPE, SETTLED AND NOT RE-OPENABLE HERE: summit **plus descent** (06-DECISIONS-LOG
+    2026-09-01). Descending on foot, the only reachable staircase from 4F's arrival lands in 3F's
+    sealed pocket with NO path onward (MEASURED) — a summit-only leg cannot satisfy "and the bot
+    can CONTINUE" by construction.
+
+    THE TWO ONE-SHOTS, in order, both irreversible:
+      1. crossing ENTRANCE (14,4) — OUTSIDE's ON_FRAME Wallace scene (gate: state == 3, no coord
+         condition) rides the player ~12 tiles under lockall, sets state 4, removes Wallace.
+      2. stepping TOP (14,9) — the Rayquaza coord_event (gate: CRY_DONE == 0): state 4 -> 5,
+         SKY_PILLAR_STATE 0 -> 1, CRY_DONE 1.
+    ⇒ mid-leg captures exist for exactly the gaps between them (CH21_CAPTURE_WALLACE /
+    CH21_CAPTURE_SUMMIT), because a whiteout after one-shot #1 is a state-4 strand no leg owns.
+
+    RESUMABLE BY STATE, deliberately: (3,0) = full run; (4,0) = post-Wallace (from the mid-leg
+    fixture); (5,1) = descent only (from the summit fixture). ⛔ Only the full run can PASS —
+    the driver's premise gate keys on the STARTING vars, so a resumed run reports honestly but
+    never grades as the leg (leg 3's `resumed` semantics).
+
+    :param report: the CALLER-OWNED dict (leg 3's lesson — instrumentation must outlive the
+        generator; a failed run's partial readings matter most).
+    """
+    import os as _os_fault
+
+    from modules.console import console
+    from modules.map_path import PathFindingError, calculate_path
+    from modules.modes import BotModeError
+    from modules.modes.util.walking import navigate_to
+    from modules.player import AvatarFlags, get_player_avatar
+    from modules.story.early_game import (
+        _check_abort,
+        _navigate_riding_out,
+        _walk_through_warp,
+        wait_until_truly_controllable,
+    )
+
+    fault_nofall = _os_fault.environ.get("POKEBOT_CH21_FAULT_NOFALL", "").strip() == "1"
+    fault_summitstop = _os_fault.environ.get("POKEBOT_CH21_FAULT_SUMMITSTOP", "").strip() == "1"
+    fault_pocketexit = _os_fault.environ.get("POKEBOT_CH21_FAULT_POCKETEXIT", "").strip() == "1"
+    fault_dropreading = _os_fault.environ.get("POKEBOT_CH21_FAULT_DROPREADING", "").strip() == "1"
+    fault_controlopen = _os_fault.environ.get("POKEBOT_CH21_FAULT_CONTROLOPEN", "").strip() == "1"
+    fault_badblockdata = _os_fault.environ.get("POKEBOT_CH21_FAULT_BADBLOCKDATA", "").strip() == "1"
+
+    # ‼ FAULT INJECTION (POKEBOT_CH21_FAULT_BADBLOCKDATA=1, driver-proof only): corrupt the EXPECTED
+    # CLEAN blockdata for the first ascent floor so `_pin_and_verify_floor`'s premise guard MUST
+    # fire on 1F. This is the one arm that exercises the leg's hardest-leaned-on gate on its FAILURE
+    # path — the layout-mismatch refusal that leg 3 paid a whole drive to learn. The run must raise
+    # `BotModeError` NAMING SKY_PILLAR_1F, bounded, before any walking. ⛔ Runs from the FULL fixture
+    # only (post_skypillar_door): 1F is the first floor pinned, so this is where the guard bites.
+    # The XOR guarantees a value no real layout pointer can equal. Process-isolated per driver run;
+    # no restore needed (the run stops on the raise).
+    if fault_badblockdata:
+        CLEAN_BLOCKDATA["SKY_PILLAR_1F"] ^= 0xFFFFFFFF
+
+    if report is None:
+        report = {}
+    report.setdefault("readings", set())   # written via _take(), which also builds the ORDER trace
+    report.setdefault("trace", [])
+    report.setdefault("floors", [])
+    report.setdefault("falls", [])
+    report.setdefault("pins", [])
+
+    yield from wait_until_truly_controllable()
+
+    # --- 0. PREFLIGHT — resumable by the one-shot vars, loudly ----------------------------------
+    state = _var("SOOTOPOLIS_CITY_STATE")
+    pillar = _var("SKY_PILLAR_STATE")
+    cry = _var("SKY_PILLAR_RAYQUAZA_CRY_DONE")
+    report["vars_before"] = (state, pillar, cry)
+    if AvatarFlags.Underwater in get_player_avatar().flags:
+        raise BotModeError(f"Ch21 leg 4: the run is UNDERWATER at {_where()} — wrong universe.")
+    if state == 3 and pillar == 0:
+        phase = "full"
+        if not _on_map(MapRSE.SKY_PILLAR_ENTRANCE):
+            raise BotModeError(
+                f"Ch21 leg 4: state (3,0) but standing at {_where()}, not SKY_PILLAR_ENTRANCE. "
+                "The full run starts where leg 3 ended."
+            )
+    elif state == 4 and pillar == 0:
+        phase = "post-wallace"
+        # ⛔ A RESUME PHASE MUST MATCH ITS POSITION, NOT ONLY ITS VARS. The vars say which one-shots
+        # are spent; only the position says where the fixture actually stands. Without this guard
+        # the VACUITY run (the leg's own OUTPUT fixture: ENTRANCE, vars 5/1/1) picked "post-summit"
+        # and spent its whole frame budget trying to navigate to TOP from the ENTRANCE — ending
+        # with NO VERDICT AT ALL, which is the §Ch15-shape silence this leg exists to kill.
+        if not _on_map(MapRSE.SKY_PILLAR_OUTSIDE):
+            raise BotModeError(
+                f"Ch21 leg 4: vars (4,0) say post-Wallace, but the run stands at {_where()} — the "
+                "post-Wallace fixture is on SKY_PILLAR_OUTSIDE. A vars/position mismatch is a "
+                "wrong fixture, not a resumable state."
+            )
+        console.print("[yellow]Ch21 leg 4: RESUME at state 4 — the Wallace one-shot is already "
+                      "spent; starting from the climb. This run cannot PASS the full-leg grade.[/]")
+    elif state == 5 and pillar == 1:
+        phase = "post-summit"
+        if not _on_map(MapRSE.SKY_PILLAR_TOP):
+            raise BotModeError(
+                f"Ch21 leg 4: vars (5,1) say post-summit, but the run stands at {_where()} — the "
+                "post-summit fixture is on SKY_PILLAR_TOP. ⛔ If this is the leg's own OUTPUT "
+                "fixture (ENTRANCE, vars 5/1/1), the answer is that leg 4 is ALREADY DONE on this "
+                "save; there is nothing to resume."
+            )
+        console.print("[yellow]Ch21 leg 4: RESUME at state 5 — both one-shots are spent; "
+                      "descent only. This run cannot PASS the full-leg grade.[/]")
+    else:
+        raise BotModeError(
+            f"Ch21 leg 4: vars read (SOOTOPOLIS={state!r}, SKY_PILLAR={pillar!r}, CRY={cry!r}) — "
+            "no phase of this leg starts there. 3/0 = full, 4/0 = post-Wallace, 5/1 = descent."
+        )
+    report["phase"] = phase
+
+    # =========================== PHASE A — THE SEAM AND THE WALLACE SCENE ========================
+    if phase == "full":
+        # --- 1. R-SEAM: (14,3), then the HELD-Down arrow warp. `navigate_to` aimed at an arrow
+        # warp emits the held-direction final waypoint itself (the leg-1 underwater idiom) — the
+        # one primitive in this tree PROVEN to fire one. ⛔ Never a hand-rolled press loop here.
+        context.message = "Story: Ch21 leg 4 — crossing the seam to Sky Pillar OUTSIDE."
+        yield from navigate_to(MapRSE.SKY_PILLAR_ENTRANCE, SEAM_APPROACH)
+        yield from navigate_to(MapRSE.SKY_PILLAR_ENTRANCE, SEAM_WARP)
+        if not _on_map(MapRSE.SKY_PILLAR_OUTSIDE):
+            raise BotModeError(
+                f"Ch21 leg 4: took the {SEAM_WARP} arrow warp but am at {_where()} — the warp "
+                "fires ONLY while Down is HELD; check the plan's final held-direction waypoint."
+            )
+        _take(report, "R-SEAM")
+        console.print(f"[cyan]Ch21 leg 4 R-SEAM: on SKY_PILLAR_OUTSIDE at {_where()}.[/]")
+
+        # --- 2. R-WALLACE: the scene is ALREADY RUNNING (ON_FRAME, first frame, no coord gate).
+        # (the BEFORE reading is the preflight's vars_before — phase == "full" already proved
+        # state == 3; a post-hoc read here would measure the scene's OUTPUT, not its precondition)
+        yield from _ride_summit_scene("SOOTOPOLIS_CITY_STATE", 4)
+        yield from wait_until_truly_controllable()
+        _take(report, "R-WALLACE")
+        rest = _here_tile()
+        report["post_wallace_tile"] = rest
+        report["post_wallace_matches"] = tuple(rest) in POST_WALLACE_PREDICTIONS
+        _take(report, "R-OUTREST")
+        console.print(
+            f"[cyan]Ch21 leg 4 R-WALLACE/R-OUTREST: state 3->4 ridden; the scene left the player "
+            f"at {rest}. ⛔ TWO recon angles predicted (14,7) and (14,6) and neither was measured "
+            f"— THIS is the measurement (matches a prediction: {report['post_wallace_matches']}).[/]"
+        )
+        _maybe_capture("CH21_CAPTURE_WALLACE", True,
+                       "the gap between one-shot #1 and #2 — the only cheap iteration point")
+
+    # =========================== PHASE B — THE CLIMB =============================================
+    if phase in ("full", "post-wallace"):
+        # --- 3. R-DOOR1F: the setmetatile door. ⛔ HAND-WALKED: the planner reads the STORED
+        # layout, where (14,5) is a CLOSED door (collision 1) — KI-74's exact mechanism, so a
+        # navigate_to at the door either refuses or routes around reality.
+        context.message = "Story: Ch21 leg 4 — entering the tower."
+        yield from _navigate_riding_out(MapRSE.SKY_PILLAR_OUTSIDE, DOOR_STAND, tries=6)
+        yield from _walk_through_warp("Up", MapRSE.SKY_PILLAR_OUTSIDE.value, timeout_frames=300)
+        yield from wait_until_truly_controllable()
+        if not _on_map(MapRSE.SKY_PILLAR_1F):
+            raise BotModeError(f"Ch21 leg 4: through the tower door but at {_where()}.")
+        _take(report, "R-DOOR1F")
+        console.print(f"[cyan]Ch21 leg 4 R-DOOR1F: inside, at {_where()} (tile READ, not asserted "
+                      "— the 1F arrival (6,13) sits on the map's south edge, where the +1-south rule "
+                      "cannot apply).[/]")
+
+        # --- 4. floors 1F -> 2F -> 3F: pin, verify, climb. --------------------------------------
+        for floor_name, up_tile, _bd in TOWER[:3]:
+            _check_abort()
+            floor = getattr(MapRSE, floor_name)
+            if not _on_map(floor):
+                raise BotModeError(f"Ch21 leg 4: expected {floor_name}, standing at {_where()}.")
+            here = _here_tile()
+            pin_note, live_bd = _pin_and_verify_floor(floor_name)
+            try:
+                tiles = _planned_route(floor_name, here, up_tile)
+            except PathFindingError as error:
+                raise BotModeError(
+                    f"Ch21 leg 4: the pinned (CLEAN) planner refuses {floor_name} {here} -> "
+                    f"{up_tile} ({error}) — the measured route does not exist on the layout "
+                    "actually loaded. Re-measure; do not nudge."
+                ) from error
+            _pin_and_verify_floor(floor_name, planned_tiles=tiles)  # wall+crack check on the route
+            report["floors"].append((floor_name, f"0x{live_bd:08X}", tuple(here)))
+            report["pins"].append(pin_note)
+            context.message = f"Story: Ch21 leg 4 — {floor_name}: {len(tiles)} tiles to the stairs."
+            yield from _navigate_riding_out(floor, up_tile, tries=8)
+            yield from wait_until_truly_controllable()
+
+        # --- 5. 4F: the ASCENT FALL. -------------------------------------------------------------
+        if not _on_map(MapRSE.SKY_PILLAR_4F):
+            raise BotModeError(f"Ch21 leg 4: expected SKY_PILLAR_4F, at {_where()}.")
+        here = _here_tile()
+        pin_note, live_bd = _pin_and_verify_floor("SKY_PILLAR_4F")
+        try:
+            tiles = _planned_route("SKY_PILLAR_4F", here, ASCENT_FALL_STAND)
+        except PathFindingError as error:
+            raise BotModeError(
+                f"Ch21 leg 4: no route {here} -> {ASCENT_FALL_STAND} on 4F ({error}); the "
+                "measured 29-wp approach does not exist on the loaded layout."
+            ) from error
+        _pin_and_verify_floor("SKY_PILLAR_4F", planned_tiles=tiles)
+        report["floors"].append(("SKY_PILLAR_4F", f"0x{live_bd:08X}", tuple(here)))
+        report["pins"].append(pin_note)
+        yield from _navigate_riding_out(MapRSE.SKY_PILLAR_4F, ASCENT_FALL_STAND, tries=8)
+        if not _at(MapRSE.SKY_PILLAR_4F, ASCENT_FALL_STAND):
+            raise BotModeError(f"Ch21 leg 4: expected the fall stand {ASCENT_FALL_STAND}, at "
+                               f"{_where()}.")
+        direction = "Left" if fault_nofall else ASCENT_FALL_DIR
+        if fault_nofall:
+            console.print("[magenta]Ch21 leg 4 FAULT NOFALL: stepping the WRONG way off the fall "
+                          "stand — the map-change witness must raise, boundedly, never hang.[/]")
+        context.message = "Story: Ch21 leg 4 — the DELIBERATE FALL through 4F (6,4)."
+        yield from _fall_through_crack(direction, MapRSE.SKY_PILLAR_4F, MapRSE.SKY_PILLAR_3F,
+                                       max_frames=240 if fault_nofall else 600)
+        report["falls"].append(("ascent", tuple(_here_tile())))
+        _take(report, "R-FALL1")
+        console.print(f"[cyan]Ch21 leg 4 R-FALL1: fell 4F -> 3F, resting at {_where()}.[/]")
+
+        # --- 6. R-FALLPROOF: the landing is the RIGHT region — the planner says so. --------------
+        pin_note, live_bd = _pin_and_verify_floor("SKY_PILLAR_3F")
+        report["pins"].append(pin_note)
+        here = _here_tile()
+        try:
+            tiles = _planned_route("SKY_PILLAR_3F", here, POCKET_UP_WARP)
+        except PathFindingError as error:
+            raise BotModeError(
+                f"Ch21 leg 4: landed at 3F {here} and the pocket staircase {POCKET_UP_WARP} is "
+                f"UNREACHABLE ({error}) — this is the WRONG REGION (the (9,4)-class landing). The "
+                "fall went through a tile it should not have."
+            ) from error
+        _take(report, "R-FALLPROOF")
+        console.print(f"[cyan]Ch21 leg 4 R-FALLPROOF: 3F {here} -> {POCKET_UP_WARP} plans "
+                      f"({len(tiles)} tiles) — the sealed-pocket landing is confirmed.[/]")
+        yield from _navigate_riding_out(MapRSE.SKY_PILLAR_3F, POCKET_UP_WARP, tries=8)
+        yield from wait_until_truly_controllable()
+
+        # --- 7. 4F east -> 5F -> TOP. ------------------------------------------------------------
+        for floor_name, target in (("SKY_PILLAR_4F", FOURF_EAST_UP), ("SKY_PILLAR_5F", (10, 1))):
+            _check_abort()
+            floor = getattr(MapRSE, floor_name)
+            if not _on_map(floor):
+                raise BotModeError(f"Ch21 leg 4: expected {floor_name}, at {_where()}.")
+            here = _here_tile()
+            pin_note, live_bd = _pin_and_verify_floor(floor_name)
+            try:
+                tiles = _planned_route(floor_name, here, target)
+            except PathFindingError as error:
+                raise BotModeError(f"Ch21 leg 4: no route {here} -> {target} on {floor_name} "
+                                   f"({error}).") from error
+            _pin_and_verify_floor(floor_name, planned_tiles=tiles)
+            report["floors"].append((floor_name, f"0x{live_bd:08X}", tuple(here)))
+            report["pins"].append(pin_note)
+            yield from _navigate_riding_out(floor, target, tries=8)
+            yield from wait_until_truly_controllable()
+
+        # --- 8. THE SUMMIT. ⛔ TOP is the ONE floor where the planner's divergence INVERTS (31
+        # open-to-us tiles are story walls) — the pin+verify below is the whole reason the leg can
+        # walk here at all, and stepping onto (14,9) is ONE-SHOT #2.
+        if not _on_map(MapRSE.SKY_PILLAR_TOP):
+            raise BotModeError(f"Ch21 leg 4: expected SKY_PILLAR_TOP, at {_where()}.")
+        here = _here_tile()
+        report["top_rest"] = tuple(here)
+        pin_note, live_bd = _pin_and_verify_floor("SKY_PILLAR_TOP")
+        try:
+            tiles = _planned_route("SKY_PILLAR_TOP", here, RAYQUAZA_TILE)
+        except PathFindingError as error:
+            raise BotModeError(
+                f"Ch21 leg 4: the pinned planner refuses TOP {here} -> {RAYQUAZA_TILE} ({error}). "
+                "The 13-step CLEAN summit walk does not exist on the loaded layout."
+            ) from error
+        _pin_and_verify_floor("SKY_PILLAR_TOP", planned_tiles=tiles)
+        report["floors"].append(("SKY_PILLAR_TOP", f"0x{live_bd:08X}", tuple(here)))
+        report["pins"].append(pin_note)
+        _take(report, "R-LIVEGRID")   # every floor pinned, matched, and route-verified by here
+        context.message = "Story: Ch21 leg 4 — waking RAYQUAZA."
+        yield from _navigate_riding_out(MapRSE.SKY_PILLAR_TOP, RAYQUAZA_TILE, tries=8)
+        _take(report, "R-SUMMIT")
+        yield from _ride_summit_scene("SKY_PILLAR_STATE", 1)
+        yield from wait_until_truly_controllable()
+        vars_after = (_var("SOOTOPOLIS_CITY_STATE"), _var("SKY_PILLAR_STATE"),
+                      _var("SKY_PILLAR_RAYQUAZA_CRY_DONE"))
+        report["summit_vars"] = vars_after
+        if vars_after != (5, 1, 1):
+            raise BotModeError(
+                f"Ch21 leg 4: after the awakening the vars read {vars_after}, expected (5, 1, 1). "
+                "They are written by one script block; disagreement is a misread or a mis-fire."
+            )
+        _take(report, "R-RAYQUAZA")
+        console.print(f"[cyan]Ch21 leg 4 R-RAYQUAZA: vars {vars_after} — Rayquaza is AWAKE and "
+                      "gone to Sootopolis. One-shot #2 is spent.[/]")
+        _maybe_capture("CH21_CAPTURE_SUMMIT", True, "post-awakening, pre-descent")
+        if fault_summitstop:
+            console.print("[magenta]Ch21 leg 4 FAULT SUMMITSTOP: returning at the summit — the "
+                          "§Ch15/§Ch18/§Ch19 shape exactly. The driver MUST fail this run.[/]")
+            return report
+
+    # =========================== PHASE C — THE DESCENT ===========================================
+    # --- 9. TOP -> 5F -> 4F west. ----------------------------------------------------------------
+    context.message = "Story: Ch21 leg 4 — descending."
+    yield from _navigate_riding_out(MapRSE.SKY_PILLAR_TOP, TOP_ARRIVAL, tries=8)
+    yield from wait_until_truly_controllable()
+    if not _on_map(MapRSE.SKY_PILLAR_5F):
+        raise BotModeError(f"Ch21 leg 4: down from TOP but at {_where()}.")
+    here = _here_tile()
+    pin_note, live_bd = _pin_and_verify_floor("SKY_PILLAR_5F")
+    report["pins"].append(pin_note)
+    try:
+        tiles = _planned_route("SKY_PILLAR_5F", here, (3, 1))
+    except PathFindingError as error:
+        raise BotModeError(f"Ch21 leg 4: no descent route on 5F {here} -> (3,1) ({error}).") from error
+    _pin_and_verify_floor("SKY_PILLAR_5F", planned_tiles=tiles)
+    yield from _navigate_riding_out(MapRSE.SKY_PILLAR_5F, (3, 1), tries=8)
+    yield from wait_until_truly_controllable()
+    if not _on_map(MapRSE.SKY_PILLAR_4F):
+        raise BotModeError(f"Ch21 leg 4: down from 5F but at {_where()}.")
+    here = _here_tile()
+    pin_note, live_bd = _pin_and_verify_floor("SKY_PILLAR_4F")
+    report["pins"].append(pin_note)
+
+    # --- 10. R-TRAP: NAME the livelock before dodging it. The only reachable staircase down from
+    # here is (7,1); it lands in 3F's sealed pocket; and the pocket cannot reach the 2F stairs.
+    # ⛔ These are PLANNER READINGS, not walks — naming the trap costs three calculate_path calls.
+    try:
+        _planned_route("SKY_PILLAR_4F", here, POCKET_UP_WARP)
+        stair_reachable = True
+    except PathFindingError:
+        # ⛔ SWALLOWED DELIBERATELY: "can the bot reach the down-staircase" IS the value R-TRAP
+        # measures; a refusal is a legitimate answer (False), not an error to propagate.
+        stair_reachable = False
+    try:
+        _planned_route("SKY_PILLAR_3F", POCKET_UP_WARP, THREEF_DOWN)
+        pocket_escapes = True
+    except PathFindingError:
+        # ⛔ SWALLOWED DELIBERATELY: a refusal here IS the livelock — it is the whole point of
+        # R-TRAP that the pocket does NOT escape, so the exception is the expected measurement.
+        pocket_escapes = False
+    report["trap"] = {"stair_reachable": stair_reachable, "pocket_escapes": pocket_escapes}
+    if stair_reachable and not pocket_escapes:
+        _take(report, "R-TRAP")
+        console.print("[cyan]Ch21 leg 4 R-TRAP: the livelock is MEASURED in place — 4F's only "
+                      "reachable staircase lands in a pocket that cannot reach the 2F stairs. "
+                      "This is WHY the second fall exists.[/]")
+    else:
+        console.print(f"[magenta]‼ Ch21 leg 4: the trap did NOT reproduce "
+                      f"(stair_reachable={stair_reachable}, pocket_escapes={pocket_escapes}) — a "
+                      "FINDING against the measured premise; the fall is still taken (it is the "
+                      "proven route), but this reading is withheld and the docs must be revisited.[/]")
+
+    if fault_pocketexit:
+        # ‼ FAULT INJECTION: take the planner-visible staircase INSTEAD of the fall — the exact
+        # wrong turn the livelock invites. The leg must detect the sealed pocket and raise NAMED,
+        # boundedly, never ping-pong.
+        console.print("[magenta]Ch21 leg 4 FAULT POCKETEXIT: taking the (7,1) staircase into the "
+                      "sealed pocket on purpose.[/]")
+        yield from _navigate_riding_out(MapRSE.SKY_PILLAR_4F, POCKET_UP_WARP, tries=8)
+        yield from wait_until_truly_controllable()
+        try:
+            _planned_route("SKY_PILLAR_3F", _here_tile(), THREEF_DOWN)
+        except PathFindingError as error:
+            raise BotModeError(
+                "Ch21 leg 4: LIVELOCK, not a refusal — the descent took the planner-visible "
+                f"staircase and landed in 3F's sealed pocket at {_where()}; the 2F stairs are "
+                f"unreachable from here ({error}). The only exit is back UP; the correct descent "
+                "is the SECOND FALL through 4F (1,3)."
+            ) from error
+        raise BotModeError("Ch21 leg 4 FAULT POCKETEXIT: the pocket unexpectedly ESCAPES — the "
+                           "livelock premise is broken; investigate before any descent ships.")
+
+    # --- 11. R-FALL2: the descent fall. ----------------------------------------------------------
+    try:
+        tiles = _planned_route("SKY_PILLAR_4F", here, DESCENT_FALL_STAND)
+    except PathFindingError as error:
+        raise BotModeError(f"Ch21 leg 4: no route {here} -> {DESCENT_FALL_STAND} on 4F west "
+                           f"({error}).") from error
+    _pin_and_verify_floor("SKY_PILLAR_4F", planned_tiles=tiles)
+    yield from _navigate_riding_out(MapRSE.SKY_PILLAR_4F, DESCENT_FALL_STAND, tries=8)
+    if not _at(MapRSE.SKY_PILLAR_4F, DESCENT_FALL_STAND):
+        raise BotModeError(f"Ch21 leg 4: expected the descent stand {DESCENT_FALL_STAND}, at "
+                           f"{_where()}.")
+    context.message = "Story: Ch21 leg 4 — the SECOND deliberate fall, 4F (1,3)."
+    yield from _fall_through_crack(DESCENT_FALL_DIR, MapRSE.SKY_PILLAR_4F, MapRSE.SKY_PILLAR_3F)
+    report["falls"].append(("descent", tuple(_here_tile())))
+    if not fault_dropreading:
+        _take(report, "R-FALL2")
+    else:
+        console.print("[magenta]Ch21 leg 4 FAULT DROPREADING: R-FALL2 suppressed at its take "
+                      "point — the driver's missing-readings gate MUST catch this.[/]")
+    console.print(f"[cyan]Ch21 leg 4 R-FALL2: fell 4F -> 3F (west), resting at {_where()}.[/]")
+
+    # --- 12. R-FALL2PROOF, then down and out. ----------------------------------------------------
+    pin_note, live_bd = _pin_and_verify_floor("SKY_PILLAR_3F")
+    report["pins"].append(pin_note)
+    here = _here_tile()
+    try:
+        tiles = _planned_route("SKY_PILLAR_3F", here, THREEF_DOWN)
+    except PathFindingError as error:
+        raise BotModeError(
+            f"Ch21 leg 4: the descent landing 3F {here} cannot reach the 2F stairs {THREEF_DOWN} "
+            f"({error}) — the fall went through the wrong tile, or the landing premise is broken."
+        ) from error
+    _take(report, "R-FALL2PROOF")
+    yield from _navigate_riding_out(MapRSE.SKY_PILLAR_3F, THREEF_DOWN, tries=8)
+    yield from wait_until_truly_controllable()
+    for floor_name, target, next_map in (
+        ("SKY_PILLAR_2F", (10, 1), "SKY_PILLAR_1F"),
+        ("SKY_PILLAR_1F", (6, 13), "SKY_PILLAR_OUTSIDE"),
+    ):
+        _check_abort()
+        floor = getattr(MapRSE, floor_name)
+        if not _on_map(floor):
+            raise BotModeError(f"Ch21 leg 4: expected {floor_name} on the way down, at {_where()}.")
+        here = _here_tile()
+        pin_note, live_bd = _pin_and_verify_floor(floor_name)
+        report["pins"].append(pin_note)
+        try:
+            tiles = _planned_route(floor_name, here, target)
+        except PathFindingError as error:
+            raise BotModeError(f"Ch21 leg 4: no route {here} -> {target} on {floor_name} "
+                               f"({error}).") from error
+        _pin_and_verify_floor(floor_name, planned_tiles=tiles)
+        yield from _navigate_riding_out(floor, target, tries=8)
+        yield from wait_until_truly_controllable()
+    if not _on_map(MapRSE.SKY_PILLAR_OUTSIDE):
+        raise BotModeError(f"Ch21 leg 4: out of the tower but at {_where()}.")
+
+    # --- 13. OUTSIDE -> ENTRANCE. ⛔ the arrival tile (14,4) IS the seam's south arrow warp:
+    # never press or hold Down there; the FIRST move is a bounded step NORTH off it.
+    yield from _navigate_riding_out(MapRSE.SKY_PILLAR_OUTSIDE, EXIT_WARP_OUTSIDE, tries=8)
+    yield from wait_until_truly_controllable()
+    if not _on_map(MapRSE.SKY_PILLAR_ENTRANCE):
+        raise BotModeError(f"Ch21 leg 4: took the OUTSIDE exit warp but at {_where()}.")
+    exit_rest = _here_tile()
+    report["exit_rest"] = tuple(exit_rest)
+    _take(report, "R-EXITREST")
+    console.print(f"[cyan]Ch21 leg 4 R-EXITREST: back on the ENTRANCE at {exit_rest} (an arrow-"
+                  "warp target — the rule predicts rest == target (14,4); REPORTED, not asserted). "
+                  "⛔ Stepping NORTH off the live warp tile NOW.[/]")
+    yield from _bounded_step("Up", expect=(exit_rest[0], exit_rest[1] - 1),
+                             map_enum=MapRSE.SKY_PILLAR_ENTRANCE)
+
+    # --- 14. R-CONTINUE + R-CONTROL — the leg is GRADED on these (house rule 8). -----------------
+    here = _here_tile()
+    try:
+        continue_path = calculate_path(
+            (MapRSE.SKY_PILLAR_ENTRANCE, here), (MapRSE.SKY_PILLAR_ENTRANCE, L4_CONTINUE)
+        )
+    except PathFindingError:
+        # ⛔ SWALLOWED DELIBERATELY: "no path" IS the measurement — it means STRANDED, and it is
+        # graded below as continue_ok=False rather than crashing past the verdict.
+        continue_path = None
+    continue_ok = (
+        bool(continue_path)
+        and tuple(continue_path[-1].map) == MapRSE.SKY_PILLAR_ENTRANCE.value
+        and not continue_path[-1].is_warp
+        and tuple(continue_path[-1].coordinates) == L4_CONTINUE
+    )
+    report["continue_wp"] = 0 if continue_path is None else len(continue_path)
+    report["continue_ok"] = continue_ok
+    if continue_ok:
+        _take(report, "R-CONTINUE")
+    control_target = L4_CONTINUE if fault_controlopen else L4_CONTROL
+    if fault_controlopen:
+        console.print("[magenta]Ch21 leg 4 FAULT CONTROLOPEN: aiming the control at a REACHABLE "
+                      "tile — control_refused must read False and the driver must FAIL.[/]")
+    try:
+        calculate_path((MapRSE.SKY_PILLAR_ENTRANCE, here),
+                       (MapRSE.SKY_PILLAR_ENTRANCE, control_target))
+        control_refused = False
+    except PathFindingError:
+        # ⛔ SWALLOWED DELIBERATELY — here the exception IS the PASS condition (the negative
+        # control): a planner that can no longer refuse proves nothing when it accepts.
+        control_refused = True
+    report["control_refused"] = control_refused
+    if control_refused:
+        _take(report, "R-CONTROL")
+    console.print(f"[cyan]Ch21 leg 4 R-CONTINUE/R-CONTROL: continue={report['continue_wp']} wp "
+                  f"ok={continue_ok}; control_refused={control_refused}.[/]")
+    context.message = f"Story: Ch21 — leg 4 done: Rayquaza is away, the bot is down, at {_where()}."
     return report

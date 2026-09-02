@@ -19374,3 +19374,146 @@ or that a grading var is the wrong var — Tier 2 still has to, and stays.
 per-floor divergence table + the "31" confirmation); `04-HANDOFF.md`, `02-ARCHITECTURE.md` (gate
 counts, and the new tools in HOW TO RUN); `29-DISABLED-FEATURES-REGISTRY.md` (`POKEBOT_SPROM_FAULT`);
 evidence `2026-09-01-skypillar-ROM-clean-layouts.stdout.txt`, `2026-09-01-skypillar-ROM-faulttests.txt`.
+
+---
+
+## 2026-09-01 (later) — §Ch21 LEG 4 (THE SKY PILLAR CLIMB + DESCENT) IS **BUILT AND DRIVEN** — both one-shots, both deliberate falls, RAYQUAZA, all on the CLEAN layouts
+
+**`--driver ch21climb` from `post_skypillar_door.ss1` → ACCEPTANCE: PASS.** All **15 readings**,
+`order_ok=True`, `frames=10079`, `encounters=4`, `whiteouts=0`, both falls, all **7 floor pins**
+matched to their CLEAN blockdata. The bot rides the Wallace scene, climbs 1F→5F, takes the
+**ascent deliberate fall** through `4F (6,4)`, summits and **wakes Rayquaza**, then **descends
+through the second fall** (`4F (1,3)`) and walks out to the ENTRANCE with a real 20-wp continuation
+and the planner still refusing the control.
+
+### WHAT MADE THIS LEG DIFFERENT, AND WHAT THE ADVERSARIAL RECON SAVED
+
+* ⛔ **`_bounded_step` COULD NOT EXPRESS THE FALL.** Its success predicate asserts SAME-map; a fall
+  CHANGES the map while preserving (x,y). A recon pass measured this BEFORE a drive paid for it, so
+  leg 4 got a purpose-built `_fall_through_crack` whose witness is `_on_map(to_map)` and which
+  **stops pressing once off the stand** (a held direction after landing could start a second step
+  onto the adjacent crack — (7,4) is also cracked).
+* ⛔ **`_live_wall_tiles` IS STRUCTURALLY BLIND TO CRACKS** (collision only; a cracked floor is
+  collision 0). The queue head had told leg 4 to verify routes with it. The crack oracle is
+  `get_map_data(...).tile_type` on the live-pinned floor, checking BOTH `'Cracked Floor'` and
+  `'Fall Warp'` (a re-visited crack decodes as the latter).
+* ⛔ **PER-FLOOR LAYOUT VERIFICATION, not a whole-run inference.** `_pin_and_verify_floor` pins
+  each floor to its live layout and asserts the live blockdata equals the CLEAN pointer measured
+  from our ROM — leg 3's first-drive jam class, turned into a per-floor gate that refuses BEFORE
+  walking. All 7 pins matched.
+* ⛔ **GRADED ON POSITION + PATH, NOT VARS.** A whiteout after the summit respawns in Sootopolis
+  where the vars ALSO read (5,1,1) — a var-keyed predicate would grade a whiteout as PASS. The
+  driver conjoins the end position, a live continuation path, the order trace, and both fall
+  witnesses; vars only corroborate.
+* ✅ **THE RECON'S (14,7) POST-CUTSCENE PREDICTION IS CONFIRMED** over the competing (14,6):
+  `post_wallace_tile=(14,7)`, measured, `matches=True`.
+
+### SIX FAULT ARMS, ALL DRIVEN, ALL FAIL FOR THEIR OWN REASON
+(`evidence/2026-09-01-ch21climb-FAULTARMS.txt`):
+* **SUMMITSTOP** — the §Ch15/§Ch18/§Ch19 shape exactly: stop at the summit, `missing` = every
+  descent reading. ⛔ The most important arm on the leg, and it FAILS.
+* **NOFALL** — step the wrong way off the fall stand: "THE MAP NEVER CHANGED" at 241 frames,
+  bounded, no hang.
+* **POCKETEXIT** — descend via the planner-visible (7,1) staircase: "LIVELOCK, not a refusal" from
+  inside the sealed pocket, no ping-pong.
+* **DROPREADING** — do the fall but withhold R-FALL2: the fall HAPPENED, the reading is missing,
+  FAIL — proving the driver does not derive labels.
+* **CONTROLOPEN** — aim the control at a reachable tile: `control_refused=False`, FAIL (it also
+  showed `order_ok=False`, a bonus proof of the order gate).
+* **VACUITY** — point the driver at leg 4's own output fixture: "leg 4 is ALREADY DONE; nothing to
+  resume", premise FAIL.
+
+### TWO BUGS THE ARMS SURFACED, FIXED (08-MISTAKES)
+* The mid-leg capture wrote to `sandbox-pokebot/tools/...` (`parents[2]` instead of `parents[3]`);
+  the WROTE line was true and useless, and five arms then died on "no such state" downstream. Fixed;
+  the capture now prints the FULL path.
+* The resume phases keyed on vars alone, so the leg's own output fixture (ENTRANCE, 5/1/1) picked
+  "post-summit" and walked toward TOP from the ENTRANCE — ending in the §Ch15 SILENCE the leg exists
+  to kill. Every phase now asserts POSITION as well as vars.
+
+### THREE FIXTURES PINNED
+`post_wallace_scene.ss1` (OUTSIDE (14,7), state 4), `post_skypillar_summit.ss1` (TOP (14,9), state
+5/1), `post_rayquaza_gone.ss1` (ENTRANCE (14,3), state 5/1 — leg 5's start). All probe-verified.
+
+### FILES
+`sandbox-pokebot/modules/story/sootopolis.py` (leg-4 constants, `LEG4_READINGS`/`LEG4_ORDER`,
+`_fall_through_crack`, `_pin_and_verify_floor`, `_ride_summit_scene`, `_maybe_capture`,
+`climb_sky_pillar`; docstring inventory updated); `tools/story-dev/story_harness.py`
+(`Ch21ClimbMode` + both registration sites); `saves/FIXTURES.md5` (+3);
+`29-DISABLED-FEATURES-REGISTRY.md` (+5 fault flags); evidence `ch21climb-CLEAN.txt`,
+`ch21climb-FAULTARMS.txt`.
+
+---
+
+## 2026-09-01 (later) — §Ch21 LEG 4 SURVIVED TWO INDEPENDENT TIER-1 REVIEWS, AND THE HARDENING THEY FORCED: A **SEVENTH FAULT ARM** FOR THE GATE THE LEG LEANS ON HARDEST, AND TWO GATES THAT CRASHED INSTEAD OF REPORTING
+
+Leg 4 was already `ACCEPTANCE: PASS`. Before its commit it went through the doc-consistency layer's
+Tier 1 (a doc-pair reviewer) AND an adversarial code reviewer. Both found real defects; none was a
+correctness bug in the leg, and all are now fixed. This entry is the record of that hardening — the
+part of the Definition of Done that turns a passing drive into a *trusted* one.
+
+### THE DOC-PAIR REVIEW — the "one half of a pair moved, the other didn't" class, again
+
+The independent reviewer quoted both halves of P1–P5 and found the leg-4 status update had left FIVE
+stale "legs 4-5 do not exist / missing" clauses behind — in the banner, in two STATE-table rows, in
+the live-arc bullet, and in the `#24-remainingarc` punch-list row — each contradicting the leg-4-BUILT
+headline three lines away. My own tree-wide `grep` then caught a SIXTH the reviewer missed, buried in
+the 6 KB banner line. All corrected to "leg 5 does not exist"; the banner's self-note now records that
+this exact clause has gone stale **twice** (leg 3, then leg 4) — P2 in action: a banner is a claim
+about every clause inside it.
+
+### THE ADVERSARIAL CODE REVIEW — KICK-BACK, four findings, and what each earned
+
+* **(F2, MAJOR — the required fix) THE LEG'S HARDEST-LEANED-ON GATE WAS NEVER FAULT-TESTED.**
+  `_pin_and_verify_floor` refuses to walk a floor whose live blockdata ≠ the measured CLEAN pointer —
+  the exact refusal leg 3 paid a whole drive to learn. Every happy-path drive only ever exercised the
+  *equality* branch. Added **`POKEBOT_CH21_FAULT_BADBLOCKDATA`** (the **seventh** fault arm): it XORs
+  1F's expected pointer, and the leg **raised, NAMING `SKY_PILLAR_1F`** (`0x08480DCC` vs the corrupted
+  `0xF7B7F233`), `reached=False`, `floors_pinned=0`, **bounded at 2244 frames, no hang**,
+  `ACCEPTANCE: FAIL`. ‼ It runs from the FULL fixture (`premise_ok=True`), so unlike the five mid-leg
+  arms it fails **purely on its own guard**, not the premise gate — the cleanest possible proof the gate
+  fires on its failure path. The doc gate's H5 vocabulary was extended (`six` → `seven`…`ten`, with new
+  self-test cases) so it keeps counting the arm block instead of silently skipping a "SEVEN" claim.
+
+* **(F1, MAJOR — disclosure) undisclosed bundled gate change.** Named here explicitly:
+  `audit_handoff_invariants.py` carries this session's H5 refinement (an arm is a RUN, not an env var —
+  a two-flag arm on one line is ONE arm; see the earlier "THREE FALSE POSITIVES" mistake) AND the stdout
+  fix below; `lint_docs.py` carries the stdout fix. Both are in this commit by name.
+
+* **(F3, MINOR — evidence) truncated evidence.** Re-captured `ch21climb-CLEAN.txt` and
+  `ch21climb-FAULTARMS.txt` at full width. The CLEAN re-run is also a **regression proof**: with the
+  env-gated arm present but unset, the happy path is byte-for-byte the same result — `frames=10079`
+  identical, `ACCEPTANCE: PASS`, all 15 readings, both falls, 7 pins, and the previously-hidden
+  `exit_rest=(14,4)` now legible.
+
+* **(F4, MINOR/RISK — optional, filed) the whiteout hazard is argued, not driven.** The whole reason the
+  leg grades on POSITION+PATH and not vars is that a post-summit whiteout respawns in Sootopolis reading
+  the same `(5,1,1)`. The grading defeats it (`on_whiteout` → `whiteouts==0` + a position guard), but no
+  arm has ever forced a real whiteout to prove it. Filed as **`#24-ch21climb-whiteoutarm`** with a
+  concrete design (an all-BURNED 1-HP party → first on-floor encounter whites out). Deferred, not
+  dropped: a faithful whiteout needs party injection + a battle drive, its own focused increment, and a
+  flaky safety arm is worse than none.
+
+* **Checked and cleared (recorded so it is not re-flagged):** `_fall_through_crack` never leaks a held
+  button on its abort path — it uses only `press_button`, which the emulator clears every tick;
+  `hold_button`'s sticky `_held_inputs` is never touched here.
+
+### THE RECURRING CRASH THE REVIEW SURFACED — TWO GATES THAT CRASHED INSTEAD OF REPORTING
+
+Running gate #33 by hand (bare `python`, cp1252 console) died with `UnicodeEncodeError` on the `⛔` it
+prints on its **success** epilogue — and `lint_docs.py` did the same on its **failure** header, which
+nearly hid a real R3 over-budget finding behind a codec traceback. Both only ever looked green because
+`run_gates.py` launches gates under `PYTHONUTF8=1`; the invocation their own docs print did not. Both
+fixed with a module-scope `sys.stdout/stderr.reconfigure("utf-8")`. ‼ This crash class has now recurred
+**three-plus times** (`verify_fixtures.py`, the repro sweep's ~37 scripts, now two gates), so a GATE is
+owed and filed as **`#24-stdoututf8gate`**; the prevention rule is in `08-MISTAKES.md`.
+
+### FILES
+`sandbox-pokebot/modules/story/sootopolis.py` (the `POKEBOT_CH21_FAULT_BADBLOCKDATA` injection);
+`tools/story-dev/story_harness.py` (the arm in the `Ch21ClimbMode` docstring);
+`tools/story-dev/audit_handoff_invariants.py` (H5 `seven`…`ten` vocabulary + self-tests; stdout UTF-8);
+`tools/story-dev/lint_docs.py` (stdout UTF-8); `04-HANDOFF.md` (six→seven in banner/queue/STATE/bullet +
+the recipe line; the six stale "legs 4-5" clauses); `03-PUNCH-LIST.md` (`#24-remainingarc` clause;
+`#24-stdoututf8gate`, `#24-ch21climb-whiteoutarm` filed; two redundant blanks reclaimed for the R3
+budget); `29-DISABLED-FEATURES-REGISTRY.md` (the 7th flag); `08-MISTAKES.md` (the stdout crash);
+evidence `2026-09-01-ch21climb-CLEAN.txt` + `-FAULTARMS.txt` (re-captured untruncated, all seven arms).
