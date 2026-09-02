@@ -3865,3 +3865,29 @@ superseded paragraph implied.
 2. **`sootopolis_reached()` (`sootopolis.py:99`) is DEAD CODE** — defined, never called anywhere in
    the tree. It is the obvious predicate for (1) and must be verified live before being trusted, not
    adopted because its name fits.
+
+---
+
+## 2026-09-02 (later still) — §Ch21 DISPATCH grades STRICTER than `chapters.py` does, on purpose
+
+**Decision.** `ch21_chapter_done()` — the predicate the Segment 21 dispatch and `_guard` use — is
+`RECEIVED_HM_WATERFALL` **AND** `SOOTOPOLIS_WALLACE_STATE != 0`. `chapters.py:250` keeps grading the
+progress READOUT on the flag alone, and is deliberately NOT changed to match.
+
+**Why they differ.** They answer different questions. `chapters.py` answers *"which chapter is the
+run in?"*, and `chapters.py:240-248` argues at length that the flag is the right marker for that.
+The dispatcher answers *"can the NEXT chapter start?"* — and there is a real state where the flag is
+set and the answer is no: `giveitem`/`setflag` and the `call_if_eq VAR_FACING` tail that walks
+Wallace off the (31,33) tile blocking the (31,32) GYM warp are different decomp lines, two msgboxes
+apart. A run that dies in that window holds HM07 with §Ch22's entrance SEALED.
+‼ **MEASURED, not theorised:** leg-5 drive 1 printed `ACCEPTANCE: PASS` in exactly that state, and
+`calculate_path(-> (31,32))` raised `PathFindingError`.
+
+**Alternatives rejected.** (a) Tightening `chapters.py` to match — it would make the progress readout
+wrong for a state the player is legitimately in, to fix a dispatch concern. (b) Flag-only dispatch —
+the §Ch15/§Ch18/§Ch19 stranding shape, and here it is not hypothetical. (c) Making leg 5 the only
+place that checks — leg 5 DOES raise on `wallace_state == 0` at the end of its own run, but that
+does not help a RESUME that starts inside the window, which is exactly where a whiteout can land.
+
+**What this does NOT settle:** whether §Ch22 should heal first. The chapter ends with a chipped party
+(measured: one fainted member, lead at 25/115) and there is no Poké Center after leg 3.

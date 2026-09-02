@@ -3460,12 +3460,34 @@ the acceptance test, not just in the code.
 
 ## §Ch21 ATLAS — Sootopolis / Cave of Origin / Sky Pillar / Rayquaza (built 2026-08-24)
 
+### ✅✅✅ §Ch21 IS A CHAPTER (2026-09-02) — WIRED INTO `_play()` AND DRIVEN LEGS 1→5.
+
+`sootopolis.do_sootopolis_chapter()`, dispatched as **Segment 21** in `story_mode.py` right
+after Ch20's block, graded on `ch21_chapter_done()` = `RECEIVED_HM_WATERFALL` **AND**
+`SOOTOPOLIS_WALLACE_STATE != 0` (stricter than `chapters.py:250` on purpose — see
+`06-DECISIONS-LOG.md` 2026-09-02). `--driver ch21chapter` from `post_ch20.ss1` →
+**`ACCEPTANCE: PASS`**, ROUTE128 (38,24) vars (1,0) → SOOTOPOLIS_CITY (31,34) vars (5,3),
+`frames=95823` (MEASURED), `encounters=26`, `whiteouts=0`, gym warp reachable in 2 wp.
+⛔ **THE PARTY IS THE FINDING:** it starts with one member ALREADY FAINTED (the honest
+post-cavern state) and ENDS chipped (lead 25/115, one still fainted) — §Ch21 has exactly two
+heals (legs 2a and 3) and NO Poke Center after leg 3. ⇒ **§Ch22 inherits a chipped party.**
+⛔ KI-67 is quoted in the orchestrator's docstring and must not be "improved": the retry is
+`StoryMode.run` (40 recoveries), never a loop inside the chapter.
+⛔ Leg 1 is gated BY THE ORCHESTRATOR — `enter_sootopolis()` swims to ROUTE126
+unconditionally from a zero-connection island, so it cannot gate itself; the gate is its own
+driven postcondition (`SOOTOPOLIS_CITY_STATE >= 2`), NOT `sootopolis_reached()`, which is
+dead code.
+
 ### ✅✅ LEG 5 — THE RETURN + HM07 WATERFALL: BUILT AND DRIVEN 2026-09-02. ⛔ DO NOT REBUILD.
 
 `sootopolis.return_and_get_waterfall()`, `--driver ch21return` from `post_rayquaza_gone.ss1` →
 **`ACCEPTANCE: PASS`**, all 13 readings, `order_ok`, `missing=[]`, `frames=20705`, `whiteouts=0`,
-7 encounters. Output fixture `post_hm07.ss1` (`bc3686118ac7…`). **All five §Ch21 legs now exist**;
-what remains for the chapter is the `_play()` wiring, which does NOT exist yet.
+7 encounters. Output fixture `post_hm07.ss1` (`bc3686118ac7…`). **All five §Ch21 legs now exist — AND SO DOES THE
+`_play()` WIRING** (Segment 21, shipped and driven end to end 2026-09-02; see the "§Ch21 IS A
+CHAPTER" block above). *(This sentence read "what remains for the chapter is the `_play()`
+wiring, which does NOT exist yet" for a few hours between the leg-5 commit and the wiring
+commit — a THIRD file carrying the same stale claim, which two Tier 1 passes over 04/03 did not
+look at.)*
 
 **THE ROUTE, EVERY TILE MEASURED LIVE** (`--driver ch21leg5probe` then reproduced by the leg):
 `SKY_PILLAR_ENTRANCE (14,3)` → `(6,15)` → held-Down `(6,16)` → **`ROUTE131 (36,7)`** (facing Down,

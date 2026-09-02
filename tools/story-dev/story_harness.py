@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -11012,6 +11012,200 @@ class Ch21ReturnMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch21ChapterMode(BotMode):
+    """§Ch21 AS A CHAPTER — drives `sootopolis.do_sootopolis_chapter()`, not a copy of it.
+
+    ‼ THE POINT OF THIS DRIVER IS THE ASSEMBLY, NOT THE LEGS. Every leg is already proven on its
+    own fixture (`ch21dive` / `ch21escort` / `ch21cave` / `ch21approach` / `ch21climb` /
+    `ch21return`). What has NEVER been run is the ORCHESTRATION — and §Ch20's experience is that
+    the glue is where the blockers live: an adversarial review of THAT chapter's assembly found
+    FOUR, all in the glue and none in the rooms.
+
+    ⛔⛔ NOTHING HAS EVER DRIVEN LEGS 1 -> 5 IN SEQUENCE. Every fixture in the tree is a per-leg
+    pin, so this driver's FIRST RUN is also the first measurement of:
+      * the chapter's total frame cost (the known legs alone sum to >64,000: leg 3 = 34,122,
+        leg 5 = 20,705, leg 4 = 10,079 — legs 1/2a/2b have never been timed);
+      * whether the party SURVIVES the whole chapter. `post_ch20.ss1` starts with ONE FAINTED
+        member at 80% HP, the only heals are leg 2a's and leg 3's (`sootopolis.py:409`, `:1463`),
+        and there is NO Poke Center after leg 3 — legs 4 and 5 are pinned at 91%.
+    ⇒ a FAIL on the first drive is a MEASUREMENT, not necessarily a defect. Read the readings.
+
+    THE GRADE (house rule 8 — §Ch15/§Ch18/§Ch19 each PASSED their own test while STRANDED):
+      the chapter predicate holds (flag AND `SOOTOPOLIS_WALLACE_STATE != 0`) AND HM07 is in the bag
+      BY ITEM ID AND the bot stands on SOOTOPOLIS_CITY AND **a real `calculate_path` reaches the
+      GYM DOOR (31,32)** AND the Poke Center (43,32) is reachable AND whiteouts == 0.
+    ⛔ THE GYM-DOOR PATH IS THE LOAD-BEARING CONJUNCT, and it is the one leg-5 drive 1 would have
+    failed: that run held HM07, printed PASS, and had SEALED §Ch22's entrance because Wallace never
+    stepped off (31,33). "The bot can still path somewhere" is not the predicate; "the bot can
+    reach what the NEXT chapter starts at" is.
+
+    ⚠ A WHITEOUT IS TERMINAL **IN THIS HARNESS**, and that is not what production does. `on_whiteout`
+    latches the story abort, the chapter re-raises it (KI-67), and the run ends with a verdict. In
+    production `StoryMode.run` clears the latch and re-enters the chapter, bounded at 40 recoveries
+    (`story_mode.py:2624`). ⇒ do NOT read a whiteout here as "the chapter cannot recover".
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_ch20.ss1 --driver ch21chapter --frames 250000
+    ‼ THE BUDGET IS A GUESS ANCHORED ON A FLOOR, not a measurement. ⛔ REPLACE IT with drive 1's
+    `frames=` line.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch21Chapter"
+
+    def __init__(self):
+        super().__init__()
+        self.encounters = 0
+        self.encounter_maps: list[str] = []
+        self.whiteouts = 0
+
+    def on_whiteout(self) -> bool:
+        # ⛔ True + latch: returning False hands the run to Manual and DISCARDS this generator, so
+        # the RESULT/ACCEPTANCE block would never print.
+        self.whiteouts += 1
+        log(f"[ch21chapter] !! WHITEOUT #{self.whiteouts} - latching the story abort so a verdict "
+            "still prints. (In PRODUCTION this is recoverable: StoryMode.run clears the latch and "
+            "re-enters the chapter, bounded at 40 recoveries. Here it is terminal by design.)")
+        try:
+            from modules.story.early_game import set_story_abort
+
+            set_story_abort(True)
+        except Exception as error:  # noqa: BLE001 - never let the hook itself end the run
+            log(f"[ch21chapter] !! could not latch the abort: {type(error).__name__}: {error}")
+            return False
+        return True
+
+    def on_battle_started(self, encounter):
+        self.encounters += 1
+        try:
+            from modules.player import get_player_avatar
+
+            self.encounter_maps.append(str(tuple(get_player_avatar().map_group_and_number)))
+        except Exception:  # noqa: BLE001 - the count is what matters
+            self.encounter_maps.append("?")
+        return super().on_battle_started(encounter)
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.map_path import PathFindingError, calculate_path
+        from modules.memory import get_event_var
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story import sootopolis as ch21
+
+        TAG = "ch21chapter"
+        frames_before = context.emulator.get_frame_count()
+
+        def where() -> tuple[str, tuple[int, int]]:
+            avatar = get_player_avatar()
+            coordinates = tuple(avatar.local_coordinates)
+            try:
+                return MapRSE(tuple(avatar.map_group_and_number)).name, coordinates
+            except Exception:  # noqa: BLE001
+                return f"UNKNOWN{tuple(avatar.map_group_and_number)}", coordinates
+
+        start_name, start_at = where()
+        start_vars = (get_event_var("SOOTOPOLIS_CITY_STATE"), get_event_var("SKY_PILLAR_STATE"))
+        start_party = [(m.personality_value, m.species.name, m.current_hp, m.total_hp)
+                       for m in get_party() if m is not None]
+        # ⛔ THE VACUITY GATE, AND IT IS NOT HYPOTHETICAL — THE FIRST SMOKE TEST OF THIS DRIVER
+        # TRIPPED IT. Pointed at the chapter's OWN end fixture (`post_hm07.ss1`), the orchestrator
+        # correctly returns immediately (`if ch21_chapter_done(): return`, resume-safe) and every
+        # END-state conjunct below is satisfied — so the run printed `ACCEPTANCE: PASS` having
+        # executed ZERO frames. A grade that a no-op satisfies is not a grade.
+        start_done = ch21.ch21_chapter_done()
+        log(f"[{TAG}] PRE at={start_name}{start_at} vars(CITY,SKY)={start_vars} "
+            f"done={start_done} hm_flag={ch21.waterfall_received()} "
+            f"party={start_party}")
+        log(f"[{TAG}] PRE ‼ the party's STARTING health is part of the measurement: this chapter "
+            f"has only two heals (legs 2a and 3) and NO Poke Center after leg 3.")
+
+        failure = None
+        try:
+            yield from ch21.do_sootopolis_chapter()
+        except Exception as error:  # noqa: BLE001 - the driver REPORTS failures, never hides them
+            failure = f"{type(error).__name__}: {str(error)[:800]}"
+            log(f"[{TAG}] CHAPTER FAILED: {failure}")
+
+        here_name, at = where()
+        done = ch21.ch21_chapter_done()
+        hm_flag = ch21.waterfall_received()
+        hm_bag = ch21._hm07_in_bag()
+        wallace_state = get_event_var("SOOTOPOLIS_WALLACE_STATE")
+        end_vars = (get_event_var("SOOTOPOLIS_CITY_STATE"), get_event_var("SKY_PILLAR_STATE"))
+        end_party = [(m.personality_value, m.species.name, m.current_hp, m.total_hp)
+                     for m in get_party() if m is not None]
+
+        # ⛔ COMPUTED INLINE, from the tile the run ACTUALLY reached — never a hardcoded source.
+        def reachable(target) -> object:
+            if here_name != "SOOTOPOLIS_CITY":
+                return f"not-in-city({here_name})"
+            try:
+                return len(calculate_path((MapRSE.SOOTOPOLIS_CITY, at),
+                                          (MapRSE.SOOTOPOLIS_CITY, target)))
+            except (PathFindingError, KeyError, IndexError, ValueError, RuntimeError) as error:
+                return f"{type(error).__name__}"
+
+        gym_path = reachable(ch21.L5_GYM_DOOR)
+        continue_path = reachable(ch21.L5_CONTINUE)
+
+        # ⛔ `premise_ok` is a CONJUNCT of the grade, not a warning: only a run that STARTED with
+        # the chapter unfinished can pass it.
+        premise_ok = not start_done
+        if not premise_ok:
+            log(f"[{TAG}] !! VACUOUS - the chapter was ALREADY DONE at frame 0 "
+                f"(at={start_name}{start_at}). The orchestrator's resume-safe early return is "
+                f"CORRECT behaviour, but this run measured nothing: every end-state conjunct below "
+                f"was true before it started.")
+        passed = (
+            failure is None
+            and premise_ok
+            and done
+            and hm_bag >= 1
+            and wallace_state != 0
+            and here_name == "SOOTOPOLIS_CITY"
+            and isinstance(gym_path, int)
+            and isinstance(continue_path, int)
+            and self.whiteouts == 0
+        )
+
+        total = context.emulator.get_frame_count() - frames_before
+        log(f"[{TAG}] RESULT done={done} hm_flag={hm_flag} hm07_in_bag={hm_bag} "
+            f"wallace_state={wallace_state} at={here_name}{at} "
+            f"vars start={start_vars} end={end_vars} "
+            f"encounters={self.encounters} whiteouts={self.whiteouts} frames={total}")
+        log(f"[{TAG}] CONTINUE gym_door{ch21.L5_GYM_DOOR}={gym_path} "
+            f"poke_center{ch21.L5_CONTINUE}={continue_path} "
+            f"(⛔ THE GYM DOOR IS THE LOAD-BEARING ONE — it is what §Ch22 starts at, and it is the "
+            f"check leg-5 drive 1 would have failed while printing PASS)")
+        log(f"[{TAG}] PARTY start={start_party}")
+        log(f"[{TAG}] PARTY end={end_party} (‼ the chapter has two heals and no Poke Center after "
+            f"leg 3 — a chipped or fainted end party is a MEASUREMENT this drive exists to take)")
+        log(f"[{TAG}] MAPS encounters_on={self.encounter_maps}")
+        log(f"[{TAG}] METHOD premise_ok={premise_ok} (False = the chapter was already done at "
+            f"frame 0 and this run proves nothing)")
+        log(f"[{TAG}] FAILURE {failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH21_CAPTURE", "").strip()
+        if _cap:
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if not passed:
+                log(f"[{TAG}] CAPTURE SKIPPED - the run did not pass (done={done} bag={hm_bag} "
+                    f"wallace_state={wallace_state} at={here_name} whiteouts={self.whiteouts})")
+            elif _out.exists() and _os.environ.get("CAPTURE_FORCE", "") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED - {_cap} exists (set CAPTURE_FORCE=1 to replace)")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] CAPTURE WROTE {_out.name} ({_out.stat().st_size} bytes) at {at} "
+                    f"- !! verify with probe_anchor_inventory.py, not this line")
+
+        context.set_manual_mode()
+
+
 class Ch20ChapterMode(Ch20DiveMode):
     """§Ch20 AS A CHAPTER — drives the PRODUCTION function, not a copy of it.
 
@@ -12430,6 +12624,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch21Leg5ProbeMode()
         elif args.driver == "ch21return":
             context.bot_mode_instance = Ch21ReturnMode()
+        elif args.driver == "ch21chapter":
+            context.bot_mode_instance = Ch21ChapterMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

@@ -1,0 +1,32 @@
+[setup] LOG -> ch21chapter_fault_STRAND.log
+[setup] loaded save state post_rayquaza_gone.ss1; build=sandbox
+[run] starting faithful loop for up to 3000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ch21chapter] PRE at=SKY_PILLAR_ENTRANCE(14, 3) vars(CITY,SKY)=(5, 1) done=False hm_flag=False party=[(187737927, 'Swellow', 52, 115), (868971715, 'Zigzagoon', 46, 48), (2252015895, 'Sceptile', 138, 138), (4199673075, 'Wailmer', 160, 160), (1553394331, 'Mightyena', 130, 130), (3380138318, 'Castform', 103, 103)]
+[ch21chapter] PRE ‼ the party's STARTING health is part of the measurement: this chapter has only two heals (legs 2a and 3) and NO Poke Center after leg 3.
+f1: CONTROLLER -> Ch21ChapterMode.run   (state=OVERWORLD)
+[ch21chapter] CHAPTER FAILED: BotModeError: Ch21 (Sootopolis / Rayquaza / HM07) failed after 3 attempts. attempt 1: BotModeError: Ch21 chapter: SOOTOPOLIS_CITY_STATE is 2 and the escort flag is set, but the bot is at ((24, 77), (14, 3)), not CAVE_OF_ORIGIN_ENTRANCE. Steven's escort is the only way in and it does not replay; no l | attempt 2: BotModeError: Ch21 chapter: SOOTOPOLIS_CITY_STATE is 2 and the escort flag is set, but the bot is at ((24, 77), (14, 3)), not CAVE_OF_ORIGIN_ENTRANCE. Steven's escort is the only way in and it does not replay; no l | attempt 3: BotModeError: Ch21 chapter: SOOTOPOLIS_CITY_STATE is 2 and the escort flag is set, but the bot is at ((24, 77), (14, 3)), not CAVE_OF_ORIGIN_ENTRANCE. Steven's escort is the only way in and it does not replay; no l
+[ch21chapter] RESULT done=False hm_flag=False hm07_in_bag=0 wallace_state=0 at=SKY_PILLAR_ENTRANCE(14, 3) vars start=(5, 1) end=(5, 1) encounters=0 whiteouts=0 frames=90
+[ch21chapter] CONTINUE gym_door(31, 32)=not-in-city(SKY_PILLAR_ENTRANCE) poke_center(43, 32)=not-in-city(SKY_PILLAR_ENTRANCE) (⛔ THE GYM DOOR IS THE LOAD-BEARING ONE — it is what §Ch22 starts at, and it is the check leg-5 drive 1 would have failed while printing PASS)
+[ch21chapter] PARTY start=[(187737927, 'Swellow', 52, 115), (868971715, 'Zigzagoon', 46, 48), (2252015895, 'Sceptile', 138, 138), (4199673075, 'Wailmer', 160, 160), (1553394331, 'Mightyena', 130, 130), (3380138318, 'Castform', 103, 103)]
+[ch21chapter] PARTY end=[(187737927, 'Swellow', 52, 115), (868971715, 'Zigzagoon', 46, 48), (2252015895, 'Sceptile', 138, 138), (4199673075, 'Wailmer', 160, 160), (1553394331, 'Mightyena', 130, 130), (3380138318, 'Castform', 103, 103)] (‼ the chapter has two heals and no Poke Center after leg 3 — a chipped or fainted end party is a MEASUREMENT this drive exists to take)
+[ch21chapter] MAPS encounters_on=[]
+[ch21chapter] METHOD premise_ok=True (False = the chapter was already done at frame 0 and this run proves nothing)
+[ch21chapter] FAILURE BotModeError: Ch21 (Sootopolis / Rayquaza / HM07) failed after 3 attempts. attempt 1: BotModeError: Ch21 chapter: SOOTOPOLIS_CITY_STATE is 2 and the escort flag is set, but the bot is at ((24, 77), (14, 3)), not CAVE_OF_ORIGIN_ENTRANCE. Steven's escort is the only way in and it does not replay; no l | attempt 2: BotModeError: Ch21 chapter: SOOTOPOLIS_CITY_STATE is 2 and the escort flag is set, but the bot is at ((24, 77), (14, 3)), not CAVE_OF_ORIGIN_ENTRANCE. Steven's escort is the only way in and it does not replay; no l | attempt 3: BotModeError: Ch21 chapter: SOOTOPOLIS_CITY_STATE is 2 and the escort flag is set, but the bot is at ((24, 77), (14, 3)), not CAVE_OF_ORIGIN_ENTRANCE. Steven's escort is the only way in and it does not replay; no l
+[ch21chapter] ACCEPTANCE: FAIL
+f91: CONTROLLER -> <none>   (state=OVERWORLD)
+f991: SAVED stall state #1 to stalls/repro-ml-f991.ss1 (bt='Got away safely!')
+f1291: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (14, 3)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f1291:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[done] ran 3000 frames; final mode=Manual party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Swellow L41: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Sceptile L50: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Wailmer L40: Dive, Surf, Water Gun, Rollout
+[moveset] Mightyena L44: Tackle, Taunt, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 3001 get_party() recomputes, 11 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch21chapter 3001 recomputes (party_accounting_ledger.jsonl)

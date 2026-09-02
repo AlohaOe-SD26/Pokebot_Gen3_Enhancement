@@ -3740,7 +3740,28 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Seafloor Cavern already done — skipping.[/]")
         _guard("Seafloor Cavern / Kyogre (Ch20)", lambda: _done_var("ROUTE128_STATE", 2))
 
-        # END OF BUILT CONTENT. Next build: SOOTOPOLIS / RAYQUAZA — **Chapter 21**.
+        # --- Segment 21: SOOTOPOLIS / CAVE OF ORIGIN / SKY PILLAR / RAYQUAZA / HM07 ---------------
+        # ⛔⛔ GRADED ON `ch21_chapter_done()`, WHICH IS THE FLAG **AND**
+        # `SOOTOPOLIS_WALLACE_STATE != 0` — NOT the flag alone, even though `chapters.py:250` grades
+        # the progress READOUT on the flag alone (deliberately; see `chapters.py:240-248`).
+        # `giveitem`/`setflag` and the `call_if_eq VAR_FACING` tail that walks Wallace OFF the
+        # (31,33) tile blocking the (31,32) GYM warp are different decomp lines, and a run that dies
+        # between them holds HM07 with §Ch22's entrance SEALED. MEASURED: leg-5 drive 1 printed
+        # `ACCEPTANCE: PASS` in exactly that state (`08-MISTAKES.md` 2026-09-02).
+        from modules.story.sootopolis import ch21_chapter_done, do_sootopolis_chapter
+
+        if not ch21_chapter_done():
+            yield from do_sootopolis_chapter()
+        else:
+            console.print("[dim]Story: Sootopolis / Rayquaza already done — skipping.[/]")
+        _guard("Sootopolis / Rayquaza / HM07 (Ch21)", ch21_chapter_done)
+
+        # END OF BUILT CONTENT. Next build: GYM 8 — JUAN, in Sootopolis — **Chapter 22**
+        # (`chapters.py:255-256`, graded on `BADGE08_GET`). ✅ §Ch21 IS NOW WIRED (2026-09-02);
+        # the Ch21 leads below are retained because their TRAPS still apply to anyone touching it.
+        # ⛔ This heading has been wrong twice before — it is a BANNER, and a banner is a claim about
+        # every clause under it; retarget it in the SAME commit as the next segment that lands.
+        # (superseded heading: "Next build: SOOTOPOLIS / RAYQUAZA — **Chapter 21**".)
         # ✅ §Ch20 IS NOW WIRED (2026-08-24) — the text below is retained for its Ch21 leads and for
         # the traps, which still apply. Sootopolis is driven by `VAR_SOOTOPOLIS_CITY_STATE == 1`,
         # which Room 9 sets in the SAME block that sets `ROUTE128_STATE` — so Ch21 is enterable the
@@ -3763,9 +3784,9 @@ class StoryMode(BotMode):
         # (38,22) is a shallow-water SANDBAR — the bot must Surf off it. The standing rule is "and the bot
         # can continue", and three chapters have already shipped stranded.
         context.message = (
-            "Story: THE SEAFLOOR CAVERN IS DONE (Ch20) - Kyogre is awake and the run is off "
-            "the atoll in open ocean. End of built content. NEXT (WIP): Ch21, Sootopolis and "
-            "Rayquaza. Handing to manual."
+            "Story: SOOTOPOLIS IS DONE (Ch21) - Rayquaza is away, the legendaries are quelled "
+            "and HM07 WATERFALL is in the bag with the gym door clear. End of built content. "
+            "NEXT (WIP): Ch22, Gym 8 - Juan. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call

@@ -394,6 +394,10 @@ done
   assumed) and `modules/story/sootopolis.py`'s `_live_collision_grid()` / `_live_wall_tiles()` /
   `_pin_planner_to_live_layout()` in production. ⛔ Those production helpers currently live in a
   CHAPTER module; promoting them into `modules/map.py` is the open follow-up (see KI-74).
+  ‼ **AND THAT CHAPTER MODULE IS NOW DISPATCHED** (2026-09-02): `modules/story/sootopolis.py`
+  is wired as **Segment 21** in `plugins/custom_modes/story_mode.py`, immediately after
+  Ch20's block, via `do_sootopolis_chapter()` / `ch21_chapter_done()` — so these helpers now
+  run in a PRODUCTION story path, not only under a harness driver.
   ⛔⛔ **AND READING (3) IS NOT OPTIONAL EVEN WHEN THE READER'S NAME SAYS "CURRENT POSITION"
   (MEASURED 2026-09-02).** `get_map_data_for_current_position()` builds its `MapLocation` from the
   LIVE `gMapHeader` but resolves `_map_layout` through the SAME shared cache, so once any reader has

@@ -19676,3 +19676,79 @@ all four flag/var names resolve in `modules/data/event_{flags,vars}/emerald.txt`
 ### FILES
 `PROJECT KNOWLEDGE/ai-research-notes/2026-09-02-ch21-chapter-wiring-BUILD-SPEC.md` (NEW);
 `04-HANDOFF.md` (queue item 0 now points at it and carries the three build-deciding facts).
+
+---
+
+## 2026-09-02 (later still) — §Ch21 IS A CHAPTER: WIRED INTO `_play()` AND DRIVEN END TO END
+
+### WHAT SHIPPED
+**§Ch21 is now a CHAPTER, not five loose legs.** `modules/story/sootopolis.py` gains
+`do_sootopolis_chapter()` (the orchestrator) and `ch21_chapter_done()` (the dispatch predicate);
+`plugins/custom_modes/story_mode.py` gains the **Segment 21** dispatch block immediately after
+Ch20's; `tools/story-dev/story_harness.py` gains `--driver ch21chapter`.
+
+**THE FIRST END-TO-END DRIVE — legs 1→5 in sequence, which had NEVER been run:**
+`--driver ch21chapter` from `post_ch20.ss1` → **`ACCEPTANCE: PASS`**, `premise_ok=True`,
+`FAILURE None`, `ROUTE128 (38,24)` vars (1,0) → `SOOTOPOLIS_CITY (31,34)` vars (5,3),
+`hm07_in_bag=1`, `wallace_state=1`, gym door 2 wp, Poké Center 22 wp, `encounters=26`,
+`whiteouts=0`, **`frames=95823` (MEASURED** — replacing a >64,000 floor that was all anyone had).
+
+### THREE THINGS THIS MEASURED FOR THE FIRST TIME
+1. **The chapter's real cost: 95,823 frames.** The per-leg pins summed to a floor of ~64,000; legs
+   1/2a/2b had never been timed at all.
+2. **The party survives a chipped start — and ends chipped.** `post_ch20.ss1` begins with Zigzagoon
+   already FAINTED (0/44, the honest post-cavern state). It is still fainted at the end, with
+   Swellow 25/115 and Wailmer 78/160. The chapter has only two heals (legs 2a and 3) and no Poké
+   Center after leg 3. ⇒ §Ch22 (Juan) inherits a chipped party; do not assume otherwise.
+3. **26 encounters across 8 maps**, all survived, no whiteout.
+
+### THE ORCHESTRATOR COPIES §Ch20's PROVEN SHAPE DELIBERATELY
+`if done: return` → caller-owned report dict → `for attempt in range(1, 4)` with `_check_abort()` as
+the FIRST statement outside the try → resume state re-read EVERY attempt → `except StoryAbort: raise`
+→ `except BotModeError` whose first statement is `reraise_if_aborting(error)`.
+⛔ **KI-67 is quoted in the docstring because it is the one thing not to "improve":** the retry is
+`StoryMode.run` (bounded at 40 recoveries), NOT a loop in the chapter — catching a whiteout and
+looping would hit the next `_check_abort()` instantly and report three failures, two invented.
+
+**Leg 1 is gated BY THE ORCHESTRATOR because it cannot gate itself** — `enter_sootopolis()` swims to
+ROUTE126 unconditionally (`sootopolis.py:194`) from an island with zero connections, so on any
+post-whiteout resume it is the first thing to die. The gate is leg 1's own driven postcondition
+(`SOOTOPOLIS_CITY_STATE >= 2`), **not** `sootopolis_reached()`, which is dead code.
+
+### A DEFECT I CAUGHT IN MY OWN DRIVER, IN ITS FIRST SMOKE TEST
+Pointed at the chapter's own end fixture, the driver printed `ACCEPTANCE: PASS` having executed
+**zero frames** — the orchestrator's resume-safe early return is correct, and every end-state
+conjunct was already true. A `premise_ok = not start_done` conjunct now gates the grade, and the
+vacuity arm re-run FAILS as it should. ⇒ **a grade a no-op satisfies is not a grade**
+(`08-MISTAKES.md`).
+
+### THE ORCHESTRATOR'S TWO NOVEL PATHS ARE FAULT-PROVEN, NOT JUST WRITTEN
+§Ch20's chapter was only accepted once ITS recovery paths were exercised by injection, and the same
+bar is met here. Both arms are env-read inside the leg (driver-proof); the happy path reaches
+neither:
+* `POKEBOT_CH21_FAULT_CHAPTERONCE=1` — raise on attempt 1 AFTER the leg gates run. ‼ **This arm must
+  PASS**, and it did: the `attempt 1 failed` line printed exactly once, attempt 2 re-read the state
+  and finished (`done=True`, `hm07_in_bag=1`, `wallace_state=1`, `frames=20774`). ⇒ proves BOTH the
+  retry loop AND the per-attempt state re-read — the precise §Ch20 glue blocker where a resume check
+  evaluated once above the loop goes stale on attempt 2.
+* `POKEBOT_CH21_FAULT_STRAND=1` — force the leg-2b position check to fail (the un-owned strand:
+  state 2 + escort flag set + not on `CAVE_OF_ORIGIN_ENTRANCE`, a corridor NO leg walks). Raised
+  NAMED on all three attempts, bounded at 90 frames, `ACCEPTANCE: FAIL`, no hang.
+  ‼ **And the arm caught a defect in its own error message** — it hardcoded "STATE is 2" while the
+  injected state was 5. Now interpolated. *A fault arm that only proves the happy path is fine is
+  not doing its job; this one improved the thing it was testing.*
+
+### DRIFT
+⚠ **UNCHANGED at 8.** Both touched files (`sootopolis.py`, `story_mode.py`) were already in the
+drift set — measured with `promote.py --check`, not assumed. ⛔ Two clauses in `04-HANDOFF.md` said
+`sootopolis.py` is "not a promotion candidate" BECAUSE leg 5 was missing and it was not wired — both
+premises are now false, so both were corrected. ⚠ **The promotion RULING itself remains the USER's**
+and is deliberately not inferred here.
+
+### FILES
+`sandbox-pokebot/modules/story/sootopolis.py`; `sandbox-pokebot/plugins/custom_modes/story_mode.py`
+(Segment 21 + both stale "end of built content" banners retargeted to Ch22);
+`tools/story-dev/story_harness.py` (`Ch21ChapterMode` + registration);
+`tools/story-dev/evidence/2026-09-02-ch21chapter-{CLEAN.txt,CLEAN.stdout.txt,VACUITY.txt}`;
+`02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `06-DECISIONS-LOG.md`,
+`08-MISTAKES.md`, `12-STORYMODE-DESIGN.md`.

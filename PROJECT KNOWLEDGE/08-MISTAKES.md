@@ -10647,3 +10647,73 @@ written — which is also why this project requires FILE:LINE from its agents an
 itself. *(Cost of learning this: nothing yet — an adversarial refuter caught it inside the hour,
 before the wiring was built on top of it. That is the second time today a refuter beat a
 consistency check.)*
+
+---
+
+## 2026-09-02 (later still) — MY CHAPTER DRIVER GRADED A ZERO-FRAME NO-OP AS `ACCEPTANCE: PASS`
+
+**Symptom.** The very first smoke test of `--driver ch21chapter`, pointed at the chapter's own end
+fixture `post_hm07.ss1`, printed `ACCEPTANCE: PASS` with **`frames=0`**.
+
+**Root cause.** The orchestrator opens with `if ch21_chapter_done(): return` — resume-safe, correct,
+copied from §Ch20. So on that fixture it returns instantly, and EVERY end-state conjunct in my grade
+(`done`, `hm07_in_bag >= 1`, `wallace_state != 0`, position, both `calculate_path`s, `whiteouts == 0`)
+was already true before the run started. The grade could not distinguish "the chapter ran and
+succeeded" from "the chapter was already over".
+‼ I had written a vacuity/premise gate into BOTH of the drivers I built earlier the same day
+(`Ch21Leg5ProbeMode`, `Ch21ReturnMode`) — and then omitted it from the third. The rule was fresh,
+written down, and still did not fire while I was building something else.
+
+**The fix that worked.** `premise_ok = not start_done` as a CONJUNCT of the grade (not a warning),
+with a loud VACUOUS line naming the situation. Re-running the same arm now prints
+`METHOD premise_ok=False` and `ACCEPTANCE: FAIL`, and the real drive from `post_ch20.ss1` prints
+`premise_ok=True` and PASS.
+
+**Prevention rule.** ⛔ **EVERY DRIVER NEEDS A VACUITY GATE, AND THE TEST FOR ONE IS MECHANICAL:
+point the driver at its own OUTPUT fixture. If it passes, the grade is measuring nothing.** Do this
+BEFORE the expensive drive — it costs ~400 frames and it caught this in seconds. ‼ And note the
+shape: a resume-safe early return is a FEATURE of the code under test, which is precisely why the
+grade must carry its own premise conjunct rather than trusting that "the function ran".
+
+---
+
+## 2026-09-02 (latest) — ONE STATUS CHANGE, **EIGHT** STALE CLAIMS, AND A LITERAL-STRING GREP FOUND ONLY FIVE
+
+**Symptom.** Wiring §Ch21 into `_play()` falsified one sentence — "the chapter is not wired yet".
+That sentence turned out to exist, in eight different phrasings, across THREE files. Two independent
+Tier 1 passes plus three of my own greps were needed to clear them, and each pass found ones the
+previous had missed:
+* Tier 1 round 1 found 3 (the "60-SECOND VERSION" block, a punch-list cell contradicting *itself*,
+  and a banner clause I had half-patched).
+* My own re-grep of that round's instruction found 3 more — including **two that gated a promotion
+  decision on now-false premises** ("`sootopolis.py` … leg 5 missing, not wired … so it is not a
+  promotion candidate").
+* Tier 1 round 2 found a 7th: the **opening clause of the banner** — the literal first sentence a
+  cold reader sees — still said *"what is LEFT is the `_play()` WIRING"*.
+* A SEMANTIC sweep then found an 8th, in `12-STORYMODE-DESIGN.md`, **a file neither Tier 1 pass had
+  looked at**, because both were scoped to `04-HANDOFF.md` + `03-PUNCH-LIST.md`.
+
+**Root cause.** Two distinct failures, and it is worth separating them.
+1. **My greps were LITERAL.** I searched `"NOT wired into"`, `"does NOT exist yet"`,
+   `"no orchestrator"`, `"NEXT ACTION IS TO WIRE"` and reported "UNMARKED SURVIVORS: 0" — while
+   *"what is LEFT is the `_play()` WIRING"* sat in the banner's first sentence. ⛔ **A literal-string
+   grep cannot prove the absence of a CLAIM; it proves the absence of a SPELLING.** The fix that
+   worked was a proximity search — a topic word (`wiring|orchestrator|_play()`) within ~240 chars of
+   a staleness cue (`is LEFT|what remains|still not|not yet|does not exist|NOT wired|NOT built`) —
+   which found the two the literal patterns could not.
+2. **The pair check was SCOPED to two files.** P1–P5 name `04-HANDOFF` and `03-PUNCH-LIST`, so a
+   reviewer who does exactly what is asked never opens `12-STORYMODE-DESIGN.md`. The checklist
+   protected exactly what it enumerated — the same shape that added P5 in the first place.
+
+**Prevention rules.**
+⛔ **SWEEP BY MEANING, NOT BY SPELLING.** When a status flips, the sweep is
+`<topic word> NEAR <staleness cue>`, not a list of exact phrases you happen to remember writing. You
+did not write them all, and the ones you did write you paraphrased.
+⛔ **AND SWEEP THE WHOLE TREE, NOT THE PAIR LIST.** Before declaring a status change complete, grep
+EVERY `PROJECT KNOWLEDGE/*.md` for the topic — Tier 1's P1–P5 are a floor, not a ceiling, and a
+reviewer told to check two files will check two files. ⇒ **the enumeration is the reviewer's scope;
+the sweep is yours.**
+‼ *Second-order note worth keeping: the banner clause fixed here carried, in its own parenthetical,
+the warning "when the next leg/wiring ships, THIS SENTENCE is the one to grep for first" — written by
+me, one commit earlier. A note that predicts its own staleness still does not prevent it. Only a
+sweep does.*

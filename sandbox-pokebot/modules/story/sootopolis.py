@@ -3319,3 +3319,181 @@ def return_and_get_waterfall(report: dict | None = None) -> Generator:
                   f"ok={continue_ok}; control_refused={control_refused}.[/]")
     context.message = f"Story: Ch21 — leg 5 done: HM07 WATERFALL is in the bag, at {_where()}."
     return report
+
+
+# ================================ THE CHAPTER (the assembly) =====================================
+
+
+def ch21_chapter_done() -> bool:
+    """§Ch21's completion predicate — the flag **AND** Wallace off the gym door.
+
+    ⛔⛔ WHY NOT THE FLAG ALONE, WHICH IS WHAT `chapters.py:250` GRADES ON. `RECEIVED_HM_WATERFALL`
+    is set by `giveitem`/`setflag`, and the `call_if_eq VAR_FACING` tail that walks Wallace OFF the
+    (31,33) tile — one tile south of the (31,32) GYM warp — runs AFTER it, past two more msgboxes.
+    A run that dies in that window holds the HM and has SEALED §Ch22's entrance. Leg 5 already
+    raises on `wallace_state == 0` at the end of its own run, so this conjunct only bites on a
+    resume into that window — which is exactly where a whiteout can land.
+    ‼ MEASURED, not theorised: leg-5 drive 1 printed `ACCEPTANCE: PASS` in precisely that state and
+    `calculate_path(-> (31,32))` raised `PathFindingError` (`08-MISTAKES.md` 2026-09-02).
+
+    ⚠ `chapters.py` is deliberately NOT changed to match: it feeds the progress READOUT, where the
+    flag is the right marker (`chapters.py:240-248` argues that at length). This stricter predicate
+    is for DISPATCH, where "can the next chapter start" is the question.
+    """
+    return waterfall_received() and _var("SOOTOPOLIS_WALLACE_STATE") != 0
+
+
+def do_sootopolis_chapter() -> Generator:
+    """§Ch21 — SOOTOPOLIS / CAVE OF ORIGIN / SKY PILLAR / RAYQUAZA / HM07, end to end.
+
+    ‼ THE ASSEMBLY OF FIVE SEPARATELY-DRIVEN LEGS. Each leg is already built, driven and fault-armed
+    on its own fixture; what has NEVER run before this function is the ORCHESTRATION — and §Ch20's
+    experience is that the glue is where the blockers live (an adversarial review of that chapter
+    found FOUR, all in the glue and none in the rooms).
+
+    ⛔⛔ KI-67 — THE RETRY IS `StoryMode.run`, NOT A LOOP IN HERE, AND THIS IS COPIED DELIBERATELY
+    FROM `seafloor_cavern.do_seafloor_cavern_chapter` (`:934-939`). `except StoryAbort: raise` is
+    load-bearing: the abort latch is cleared ONLY by `StoryMode.run`, so catching a whiteout and
+    looping would run straight into the next `_check_abort()` and die instantly — one whiteout would
+    burn all three attempts in a handful of frames and report three failures, two of them invented.
+    ⇒ the `for attempt` loop below exists for `BotModeError`, and for nothing else. The whiteout
+    path is bounded at 40 recoveries by `StoryMode.run` (`story_mode.py:2624`).
+
+    ⛔ EVERY LEG GATE KEYS ON **POSITION *AND* STATE**, never on vars alone. A vars-only selector
+    once sent leg 4's own output fixture on a doomed walk with no verdict (`08-MISTAKES.md`
+    2026-09-01), and leg 4's (5,1) on the ENTRANCE is leg 4's OUTPUT — only the position separates
+    it from leg 5's starting state.
+
+    ⛔⛔ AND LEG 1 IS GATED BY THIS FUNCTION BECAUSE IT CANNOT GATE ITSELF. `enter_sootopolis()`
+    runs `_navigate_riding_out(MapRSE.ROUTE126, DIVE_TILE)` unconditionally (`:194`), and Sootopolis
+    has ZERO map connections (`:40-49`) — so calling it from inside the city cannot path and dies.
+    On any post-whiteout resume (which respawns at the Sootopolis Poke Center) leg 1 would be the
+    FIRST thing to fail, before ever reaching the leg that owns the state. ‼ `sootopolis_reached()`
+    (`:99`) LOOKS like the predicate for this and is DEAD CODE — defined, never called anywhere in
+    the tree — so it is NOT used here; the gate is leg 1's own postcondition (`SOOTOPOLIS_CITY_STATE
+    >= 2`, `:248-252`), which IS driven and proven.
+    """
+    import os as _os_fault
+
+    from modules.map_data import MapRSE
+    from modules.modes import BotModeError
+    from modules.story.early_game import (
+        StoryAbort,
+        _ch14_say,
+        _check_abort,
+        reraise_if_aborting,
+    )
+
+    # ⛔ FAULT ARMS (house rule 6 — FAULT-TEST EVERY GATE). The orchestrator has TWO code paths the
+    # happy path can never reach: the 3-attempt retry, and the un-owned-strand raise. §Ch20's
+    # chapter was only accepted once ITS recovery paths were exercised by injection, and the same
+    # bar applies here. Both are driver-proof (env-read) and the happy path reaches neither.
+    #   POKEBOT_CH21_FAULT_CHAPTERONCE=1  raise ONCE on attempt 1, after the leg gates have run:
+    #                                     attempt 2 must re-read the state and finish. PASS.
+    #   POKEBOT_CH21_FAULT_STRAND=1       force the leg-2b position check to fail: the UN-OWNED
+    #                                     STRAND must raise NAMED, not walk into leg 2b. FAIL.
+    fault_once = _os_fault.environ.get("POKEBOT_CH21_FAULT_CHAPTERONCE", "").strip() == "1"
+    fault_strand = _os_fault.environ.get("POKEBOT_CH21_FAULT_STRAND", "").strip() == "1"
+
+    if ch21_chapter_done():
+        return  # resume-safe
+
+    # ⛔ CALLER-OWNED REPORT DICT, shared across legs 3/4/5 — a dict RETURNED by a raising generator
+    # never arrives, and the run that dies is the one whose partial readings matter most.
+    report: dict = {}
+    attempts: list[str] = []
+    for attempt in range(1, 4):
+        _check_abort()  # ⛔ FIRST statement of the loop body, OUTSIDE the try below
+        try:
+            # ⛔ RE-READ EVERY ATTEMPT, NOT ONCE ABOVE THE LOOP. Every leg boundary in this chapter
+            # is a PERMANENT var/flag advance, so a phase decided once is stale on attempt 2 — the
+            # §Ch20 blocker that an adversarial review caught in that chapter's glue.
+            state = _var("SOOTOPOLIS_CITY_STATE")
+
+            # --- LEG 1 — dive in and ride the arrival scene. Gated: see the docstring. -----------
+            if not isinstance(state, int) or state < 2:
+                yield from enter_sootopolis()
+
+            # --- LEG 2a — Steven's escort. Called unconditionally ON PURPOSE: it self-skips on its
+            # own flag (`:381-383`), and that check runs BEFORE its `state != 2` raise, so a
+            # state-3+ resume returns cleanly instead of raising.
+            yield from steven_escort()
+
+            # --- LEG 2b — the cave descent + Wallace. POSITION and STATE. -------------------------
+            state = _var("SOOTOPOLIS_CITY_STATE")
+            if state == 2 or fault_strand:
+                if fault_strand or not _on_map(MapRSE.CAVE_OF_ORIGIN_ENTRANCE):
+                    # ⛔ THE UN-OWNED STRAND, NAMED RATHER THAN WALKED INTO. State 2 with the escort
+                    # flag SET means the escort already happened, but we are not where it puts us —
+                    # and the escort is the ONLY way into the cave, so NO leg owns this corridor.
+                    raise BotModeError(
+                        f"Ch21 chapter: SOOTOPOLIS_CITY_STATE is {state!r} and the escort flag is "
+                        f"set, but "
+                        f"the bot is at {_where()}, not CAVE_OF_ORIGIN_ENTRANCE. Steven's escort is "
+                        "the only way in and it does not replay; no leg walks this corridor. This "
+                        "is a STRANDED state, not a resumable one."
+                    )
+                yield from cave_of_origin()
+
+            # --- LEG 3 — the approach to the Sky Pillar door. ------------------------------------
+            state = _var("SOOTOPOLIS_CITY_STATE")
+            pillar = _var("SKY_PILLAR_STATE")
+            if state == 3 and pillar == 0 and not at_sky_pillar_door():
+                yield from approach_sky_pillar(report)
+
+            # --- LEG 4 — the climb, Rayquaza, and the descent. -----------------------------------
+            # ⛔ (5,1) ON THE ENTRANCE IS LEG 4's OWN OUTPUT and leg 4 RAISES on it (`:2251-2259`);
+            # only the POSITION separates that from leg 5's starting state.
+            state = _var("SOOTOPOLIS_CITY_STATE")
+            pillar = _var("SKY_PILLAR_STATE")
+            if (
+                (state == 3 and pillar == 0 and _on_map(MapRSE.SKY_PILLAR_ENTRANCE))
+                or (state == 4 and pillar == 0 and _on_map(MapRSE.SKY_PILLAR_OUTSIDE))
+                or (state == 5 and pillar == 1 and _on_map(MapRSE.SKY_PILLAR_TOP))
+            ):
+                yield from climb_sky_pillar(report)
+
+            # --- LEG 5 — the return swim, the leaders, and HM07. ---------------------------------
+            # ⛔ MIRRORS LEG 5's OWN THREE PHASES (`:2969-2976`) so the orchestrator can never call
+            # it into its "no phase starts here" raise.
+            state = _var("SOOTOPOLIS_CITY_STATE")
+            pillar = _var("SKY_PILLAR_STATE")
+            left = leaders_have_left()
+            if not waterfall_received() and (
+                (_on_map(MapRSE.SKY_PILLAR_ENTRANCE) and pillar == 1 and state == 5 and not left)
+                or (_on_map(MapRSE.SOOTOPOLIS_CITY) and isinstance(pillar, int) and pillar >= 2
+                    and not left)
+                or (_on_map(MapRSE.SOOTOPOLIS_CITY) and left)
+            ):
+                yield from return_and_get_waterfall(report)
+
+            if fault_once and attempt == 1:
+                # ⛔ FAULT ARM: raise AFTER the legs have run, which is the shape a transient
+                # navigation failure takes. Attempt 2 must RE-READ the state (not reuse attempt 1's)
+                # and finish cleanly — that re-read is the §Ch20 glue blocker this arm exists to
+                # prove is fixed here.
+                raise BotModeError(
+                    "Ch21 FAULT CHAPTERONCE: a synthetic failure on attempt 1; attempt 2 must "
+                    "re-read the state and complete the chapter."
+                )
+        except StoryAbort:
+            # ⛔ RE-RAISED, NEVER RETRIED HERE — see KI-67 in the docstring. `StoryMode.run` is the
+            # retry, and it is the only thing that clears the latch.
+            raise
+        except BotModeError as error:  # noqa: BLE001 - reported, never swallowed
+            reraise_if_aborting(error)  # ⛔ FIRST statement of the handler
+            attempts.append(f"attempt {attempt}: {type(error).__name__}: {str(error)[:200]}")
+            _ch14_say(f"Story: Ch21 attempt {attempt} failed — {str(error)[:120]}")
+            continue
+        if ch21_chapter_done():
+            _ch14_say("Story: Ch21 complete — HM07 Waterfall is in the bag and the gym door is "
+                      "clear.")
+            return
+        attempts.append(
+            f"attempt {attempt}: every leg gate declined but the chapter does not grade done "
+            f"(flag={waterfall_received()}, WALLACE_STATE={_var('SOOTOPOLIS_WALLACE_STATE')!r}, "
+            f"at {_where()})"
+        )
+    raise BotModeError(
+        "Ch21 (Sootopolis / Rayquaza / HM07) failed after 3 attempts. " + " | ".join(attempts)
+    )
