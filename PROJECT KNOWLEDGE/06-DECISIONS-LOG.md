@@ -3800,3 +3800,42 @@ cracks.
 **What this does NOT settle, left for leg 5:** the Sootopolis layout at state 5 (the post-crisis
 DIRTY one) has not been measured; the return route out of the tower and the HM07 giver are
 un-reconned. All flagged in the queue head.
+
+---
+
+## 2026-09-02 — §Ch21 LEG 5: THE FOUR CHOICES THAT SHAPED IT
+
+**1. The PART C A/B's discriminator is the SURF-ACTION COUNT, not the live-wall count.**
+*Chosen because* `map_path.py:916` seeds the start node's elevation from the LAYOUT, so a
+static "deep water" source makes the planner believe it is already surfing and emit no mount — the
+Surf-action count is the value KI-73 actually moves. *Rejected:* counting live WALL tiles on the
+planned path, which an adversarial refuter pointed out is **zero in both arms** (ocean is collision 0
+in either layout) and would have read INCONCLUSIVE forever, on a gate the queue called load-bearing.
+*Outcome:* the measured arms were even further apart than designed — un-pinned raises
+`PathFindingError` outright. ⇒ **pick the discriminator from the MECHANISM, not from whatever is
+easiest to count.**
+
+**2. The arrival scene is waited out on FOUR conjuncts, not on its var and not on "controllable".**
+*Chosen:* script quiet ∧ `SKY_PILLAR_STATE == 3` ∧ live `gMapHeader` back to the map's static
+NORMAL layout ∧ controllable. *Because* the scene writes its var 309 frames and one `warpwhitefade`
+before it ends (MEASURED), and the fault arm proved the danger rather than asserting it: mid-scene
+the live layout pointer really is a different map (`0x08469200` vs `0x083E8624`), so an un-gated pin
+would have planned on the crisis layout. *Rejected:* `_ride_summit_scene` + `wait_until_truly_
+controllable()` alone, which is what leg 4 uses and which returns mid-scene here.
+
+**3. The leg is graded on the GYM DOOR, not on "a path to somewhere".**
+*Chosen:* `R-GYMDOOR` = `calculate_path(-> (31,32))`, the warp to `SOOTOPOLIS_CITY_GYM_1F`.
+*Rejected:* the Poké Center (43,32), which was the original target and which **passed on a run that
+had sealed the gym** — Wallace was still standing on (31,33). The PC reading is kept as `R-CONTINUE`
+(a strict non-warp check) because it is still a real "the bot is not stuck" signal; it is simply not
+the one that decides. ⇒ **name the continuation the NEXT WORK ITEM needs.**
+
+**4. HM07 is graded by ITEM ID as well as by flag.**
+*Chosen:* `RECEIVED_HM_WATERFALL` **and** `get_item_bag().quantity_of(get_item_by_name("HM07")) >= 1`.
+*Because* `giveitem` and `setflag` are adjacent decomp lines but not the same fact — a full bag fails
+the first and not the second, and §Ch15/§Ch18/§Ch19 each PASSED on a single script-written value while
+stranded. *Rejected:* the flag alone (cheaper, and exactly the shape this project keeps paying for).
+
+**What this does NOT settle, left for the chapter wiring:** §Ch21 is still NOT wired into `_play()`;
+the five legs exist as separately-driven functions with no orchestrator, and the chapter's completion
+flag (`RECEIVED_HM_WATERFALL`) is now produced by leg 5 but not yet consumed by `chapters.py`.

@@ -394,6 +394,14 @@ done
   assumed) and `modules/story/sootopolis.py`'s `_live_collision_grid()` / `_live_wall_tiles()` /
   `_pin_planner_to_live_layout()` in production. ⛔ Those production helpers currently live in a
   CHAPTER module; promoting them into `modules/map.py` is the open follow-up (see KI-74).
+  ⛔⛔ **AND READING (3) IS NOT OPTIONAL EVEN WHEN THE READER'S NAME SAYS "CURRENT POSITION"
+  (MEASURED 2026-09-02).** `get_map_data_for_current_position()` builds its `MapLocation` from the
+  LIVE `gMapHeader` but resolves `_map_layout` through the SAME shared cache, so once any reader has
+  seeded a map statically it returns the STATIC layout's answer. Standing ON FOOT on live sand at
+  ROUTE131 (36,7) it reported `tile_type='Deep Water'`. ⇒ **on a layout-swapped map, `tile_type` /
+  `collision` / `elevation` guards are worthless until that map is pinned** — `_live_collision_grid`
+  (`gBackupMapLayout`) is the only trustworthy live oracle. Proven end-to-end on ROUTE131: un-pinned,
+  `calculate_path(ROUTE131 -> ROUTE126)` does not mis-plan, it RAISES, and the bot never moves.
   * ‼ **The state is the full tuple of object positions**, not "5 counters mod 4": pads do not all
     hold three objects, and nine TRAINERS rotate along with the 21 statues.
   * `tools/story-dev/probe_gym_arrows.py` dumps the arrow field and derives the encoding from data;

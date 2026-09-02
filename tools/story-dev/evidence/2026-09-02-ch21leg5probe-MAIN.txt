@@ -1,0 +1,109 @@
+[setup] LOG -> leg5probe_main2.log
+[setup] loaded save state post_rayquaza_gone.ss1; build=sandbox
+[run] starting faithful loop for up to 150000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch21Leg5ProbeMode.run   (state=OVERWORLD)
+[ch21leg5probe] P0 at=SKY_PILLAR_ENTRANCE(14, 3) vars(CITY,SKY,CRY)=(5,1,1) controllable=True (PREDICTED SKY_PILLAR_ENTRANCE(14,3) / 5,1,1 / True)
+[ch21leg5probe] P0 flags HM_WATERFALL=False ARCHIE_MAXIE_LEAVE=False KYOGRE_ESCAPED=True LEGENDARIES_IN_SOOTOPOLIS=True MET_ARCHIE=False MET_MAXIE=False WALLACE_STATE=0 (PREDICTED False/False/True/True/False/False/0)
+[ch21leg5probe] P0 can_surf_precondition badge05=True party_has_surf=True | can_dive_precondition badge07=True party_has_dive=True (both MUST be True/True or the P2 A/B differs for the wrong reason)
+[ch21leg5probe] P0 HM07 index=345 qty=0 (PREDICTED 345 / 0)
+[ch21leg5probe] P0 party=[(187737927, 'Swellow', 52, 115), (868971715, 'Zigzagoon', 46, 48), (2252015895, 'Sceptile', 138, 138), (4199673075, 'Wailmer', 160, 160), (1553394331, 'Mightyena', 130, 130), (3380138318, 'Castform', 103, 103)]
+[ch21leg5probe] P0 warpdata location(+0x04)=(24, 77, 1, -1, -1) lastHeal(+0x1C)=(0, 7, -1, 43, 32) (CONTROL: location's (group,num) must equal the LIVE map (24, 77); lastHeal PREDICTED (0,7,-1,43,32))
+[ch21leg5probe] P1 plan (14, 3)->(6,15) 20 wp off_map=0 seam_14_4_at=[] (PREDICTED all on ENTRANCE, seam absent)
+f323: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonAnimDoor'] ctrl=Ch21Leg5ProbeMode.run bt='Got away safely!' scripts=[] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[ch21leg5probe] P1 REST at=ROUTE131(36, 7) facing=Down flags=<AvatarFlags.OnFoot|Controllable: 33> tile_type='Deep Water' (PREDICTED ROUTE131 (36,7), Down, on foot, sand)
+[ch21leg5probe] P2 layout BEFORE pin: planner=0x08417FE4 live=0x0845C1B0 agree=False (PREDICTED agree=False)
+[ch21leg5probe] P2 arm A (static, as the planner seeded itself): REFUSED PathFindingError: Could not find a path from (36/7 @ ROUTE131) to (45/66 @ ROUTE126).
+[ch21leg5probe] P2 PIN ROUTE131: planner blockdata 0x08417FE4 -> 0x0845C1B0 (pinned to the LIVE header)
+[ch21leg5probe] P2 layout AFTER pin: planner=0x0845C1B0 live=0x0845C1B0 agree=True (PREDICTED agree=True)
+[ch21leg5probe] P2 arm B (pinned to the LIVE header): 356 wp surf_actions=3 at=[3, 225, 244] first_wp=[((0, 46), (35, 7), False, False, None)] on131=55 live_walls_on_131=[] (n=0)
+[ch21leg5probe] P2 SOURCE-TILE ELEVATION planner_before=1 planner_after=3 (PREDICTED 1 -> 3; map_path.py:916 seeds the start node from THIS value, which is why a static 'deep water' source emits no Surf mount)
+[ch21leg5probe] P2 DISCRIMINATOR surf_actions A=None B=3 | live_walls A=None B=0 | first_divergent_wp=None | ARMS_DIFFER=True (PREDICTED A=0 B=1 -> DIFFER; identical arms would be INCONCLUSIVE, not a refutation)
+f960: battle_is_active -> True  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f961: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f1789: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f1800: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.run_away_from_battle bt='Got away safely!' scripts=[] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f1820: CONTROLLER -> Ch21Leg5ProbeMode.run   (state=OVERWORLD)
+f2000: heartbeat mode=Story ctrl=Ch21Leg5ProbeMode.run state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f2533: battle_is_active -> True  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f2534: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f3362: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f3395: CONTROLLER -> Ch21Leg5ProbeMode.run   (state=OVERWORLD)
+f3804: battle_is_active -> True  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f3805: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f4000: heartbeat mode=Story ctrl=BattleListener.run_away_from_battle state=BATTLE party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f4633: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f4666: CONTROLLER -> Ch21Leg5ProbeMode.run   (state=OVERWORLD)
+f5534: battle_is_active -> True  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f5535: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f6000: heartbeat mode=Story ctrl=BattleListener.run_away_from_battle state=BATTLE party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f6363: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f6394: CONTROLLER -> Ch21Leg5ProbeMode.run   (state=OVERWORLD)
+f6752: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_SurfFieldEffect'] ctrl=Ch21Leg5ProbeMode.run bt='Got away safely!' scripts=[] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f7790: battle_is_active -> True  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f7791: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f8000: heartbeat mode=Story ctrl=BattleListener.run_away_from_battle state=BATTLE party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f8619: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f8630: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.run_away_from_battle bt='Got away safely!' scripts=[] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f8650: CONTROLLER -> Ch21Leg5ProbeMode.run   (state=OVERWORLD)
+f9253: battle_is_active -> True  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f9254: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f10000: heartbeat mode=Story ctrl=BattleListener.run_away_from_battle state=BATTLE party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f10136: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f10167: CONTROLLER -> Ch21Leg5ProbeMode.run   (state=OVERWORLD)
+f10366: battle_is_active -> True  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f10367: CONTROLLER -> BattleListener.run_away_from_battle   (state=BATTLE)
+f11249: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f11280: CONTROLLER -> Ch21Leg5ProbeMode.run   (state=OVERWORLD)
+[ch21leg5probe] P3 SWIM arrived at=ROUTE126(45, 66) tile_type='Deep Water' encounters_so_far=7 ['(0, 46)@3679231', '(0, 45)@3680804', '(0, 45)@3682075', '(0, 43)@3683805', '(0, 42)@3686061', '(0, 41)@3687524', '(0, 41)@3688637']
+f11460: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_UseDive', 'Task_FieldMoveShowMonOutdoors'] ctrl=Ch21Leg5ProbeMode.run bt='Got away safely!' scripts=[] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[ch21leg5probe] P3 UNDERWATER arrived at=UNDERWATER_SOOTOPOLIS_CITY(9, 8) (PREDICTED UNDERWATER_SOOTOPOLIS_CITY (9,8))
+[ch21leg5probe] P3 EMERGE-TILE at=UNDERWATER_SOOTOPOLIS_CITY(9, 7) tile_type='Deep Water' (PREDICTED (9,7) 'Deep Water')
+f12000: heartbeat mode=Story ctrl=Ch21Leg5ProbeMode.run state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[ch21leg5probe] P4 R-EMERGE uw_tile=(9, 7) city_tile=(29, 53) map=SOOTOPOLIS_CITY (PREDICTED SOOTOPOLIS_CITY (29,53) for ANY uw tile - the fixed `setdivewarp`, NOT an (x,y)-preserving emerge. If this reads (29,53) the KI-72 wording in sootopolis.py:25-32 is a DOC BUG owed a fix with the leg.)
+f13393: SAVED stall state #1 to stalls/repro-ml-f13393.ss1 (bt='Got away safely!')
+f13693: !!! NO-PROGRESS x1200 sig=('Ch21Leg5ProbeMode.run', 'UNKNOWN', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (29, 53)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_HandleRayDescends'] scripts=['SootopolisCity_EventScript_RayquazaSceneFromDive'] bt='Got away safely!' bot_mode=Story
+f13693:     gen -> Ch21Leg5ProbeMode.run  @ story_harness.py:10541
+f13693:     gen -> Ch21Leg5ProbeMode.run.<locals>.budgeted  @ story_harness.py:10238
+f13693:     gen -> _ride_summit_scene  @ sootopolis.py:2100
+f14000: heartbeat mode=Story ctrl=Ch21Leg5ProbeMode.run state=UNKNOWN party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[ch21leg5probe] P4 MID-SCENE (the instant SKY_PILLAR_STATE reached 2) at=SOOTOPOLIS_CITY(29, 49) script_active=True controllable=False (PREDICTED (29,49), script ACTIVE, controllable True *under lockall* - which is exactly why the settle below exists and why no tile may be read here)
+f16000: heartbeat mode=Story ctrl=Ch21Leg5ProbeMode.run state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[ch21leg5probe] P4 SETTLE ok=True frames=309 script_active=False SKY_PILLAR_STATE=3 live_header=0x083E8624 static_header=0x083E8624 (all four conjuncts must hold: script quiet AND var==3 AND the LIVE header is back to the map's own NORMAL layout AND controllable)
+[ch21leg5probe] P4 REST at=SOOTOPOLIS_CITY(29, 53) facing=Up flags=<AvatarFlags.Surfing|Controllable: 40> vars(CITY,SKY,CRY)=(5,3,1) LEGENDARIES_IN_SOOTOPOLIS=False HIDE_ARCHIE=False HIDE_MAXIE=False (PREDICTED (29,53) Up, 5/3/1, False, False/False)
+[ch21leg5probe] CAPTURE REFUSED - post_legends_calmed.ss1 exists (set CAPTURE_FORCE=1 to replace)
+[ch21leg5probe] P5 PIN SOOTOPOLIS_CITY: planner blockdata 0x083E6A04 -> 0x083E6A04 (pinned to the LIVE header) (PREDICTED a NO-OP: same blockdata on both sides. A pin that changes nothing is NOT a fix and must never be reported as one.)
+[ch21leg5probe] P5 COLLISION DIFF map=60x60 live_vs_static_deltas=10 OPEN-to-planner/WALL-live=0 [] (PREDICTED 0 - a nonzero count is a FINDING about the 'DIRTY post-crisis layout' claim in 04-HANDOFF; only the OPEN-to-planner/WALL-live direction can strand a walk)
+[ch21leg5probe] P5 COLLISION DIFF DETAIL (tile, static, live) [((8, 35), 1, 3), ((9, 6), 1, 3), ((9, 17), 1, 3), ((9, 26), 1, 3), ((31, 32), 1, 3), ((44, 17), 1, 3), ((45, 6), 1, 3), ((48, 25), 1, 3), ((51, 36), 1, 3), ((53, 28), 1, 3)]
+[ch21leg5probe] P5 TEMPLATES n=18 ids=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18] (CONTROL: exactly 18 entries with ids 1..18 - the map.json count. A different count means this offset is not objectEventTemplates and NO position below is trustworthy.)
+[ch21leg5probe] P5 TEMPLATE-CONTROL id2(Woman4, never moved by any script)=(2, 26, 47, 33, 854) (map.json says x=47 y=33; a reading of 54/40 would mean these coordinates carry the +7 MAP_OFFSET and every prediction below shifts with it)
+[ch21leg5probe] P5 TEMPLATES steven7=(7, 134, 29, 33, 973) maxie16=(16, 196, 33, 35, 827) archie17=(17, 195, 34, 35, 826) wallace18=(18, 133, 31, 33, 816) (PREDICTED x,y = (29,33) (33,35) (34,35) (31,33) after SetOutsideGymObjPos; map.json ROM defaults are (20,36) (29,33) (31,33) (31,18))
+[ch21leg5probe] OBJ-at-rest [(255, (29, 53))]
+[ch21leg5probe] P5 NOTE an EMPTY object list here is PREDICTED, not a finding: objects spawn only within roughly [y-7, y+9] of the player and the NPCs sit ~20 tiles north.
+[ch21leg5probe] P5 CONTROL-TILE (33, 34) live_collision=1
+[ch21leg5probe] P-rest (29, 53)->(33, 36) OK 21 wp
+[ch21leg5probe] P-rest (29, 53)->(32, 35) OK 21 wp
+[ch21leg5probe] P-rest (29, 53)->(34, 36) OK 22 wp
+[ch21leg5probe] P-rest (29, 53)->(34, 34) OK 24 wp
+[ch21leg5probe] P-rest (29, 53)->(31, 34) OK 21 wp
+[ch21leg5probe] P-rest (29, 53)->(43, 32) OK 37 wp
+[ch21leg5probe] P-rest (29, 53)->(33, 34) PathFindingError
+[ch21leg5probe] P-rest CONTROL (33, 34) -> PathFindingError (a control that PATHS proves nothing; it is verified against the LIVE grid before it is chosen)
+[ch21leg5probe] P6 PLAN 21 wp live_walls=[] (PREDICTED 0)
+[ch21leg5probe] P6 walked=True at=SOOTOPOLIS_CITY(33, 36) facing=Right
+[ch21leg5probe] OBJ-at-33-36 [(7, (29, 33)), (16, (33, 35)), (17, (34, 35)), (18, (31, 33)), (255, (33, 36))]
+[ch21leg5probe] P6 (PREDICTED loaded: 16@(33,35) 17@(34,35) 18@(31,33) 7@(29,33))
+[ch21leg5probe] P-at-33-36 (33, 36)->(34, 36) OK 1 wp
+[ch21leg5probe] P-at-33-36 (33, 36)->(34, 34) OK 7 wp
+[ch21leg5probe] P-at-33-36 (33, 36)->(31, 34) OK 4 wp
+[ch21leg5probe] P-at-33-36 (33, 36)->(32, 35) OK 2 wp
+[ch21leg5probe] P-at-33-36 (33, 36)->(33, 34) PathFindingError
+[ch21leg5probe] P-at-33-36 CONTROL (33, 34) -> PathFindingError (a control that PATHS proves nothing; it is verified against the LIVE grid before it is chosen)
+[ch21leg5probe] probes run: ['P0', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6'] (P6 conditional on the P5 matrix) whiteouts=0 encounters=7 ['(0, 46)@3679231', '(0, 45)@3680804', '(0, 45)@3682075', '(0, 43)@3683805', '(0, 42)@3686061', '(0, 41)@3687524', '(0, 41)@3688637'] frames=16297
+[ch21leg5probe] GRADE: this probe measures; it does not decide. Compare every line above against ai-research-notes/2026-09-02-ch21-leg5-PARTC-PREDICTIONS.md.
+[ch21leg5probe] ACCEPTANCE: PASS
+f16298: CONTROLLER -> <none>   (state=OVERWORLD)
+f17198: SAVED stall state #2 to stalls/repro-ml-f17198.ss1 (bt='Got away safely!')
+f17498: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (33, 36)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f17498:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]

@@ -1,0 +1,36 @@
+[setup] LOG -> ch21return_fault_NOPIN131.log
+[setup] loaded save state post_rayquaza_gone.ss1; build=sandbox
+[run] starting faithful loop for up to 60000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ch21return] PRE at=SKY_PILLAR_ENTRANCE(14, 3) vars=(5, 1, 1) hm_flag=False hm07_in_bag=0 leaders_left=False wallace_state=0 (a full run requires SKY_PILLAR_ENTRANCE, (5,1,1), flag CLEAR, bag 0)
+[ch21return] PRE gym-door (31,32) reachable: PathFindingError: Source (14/3 @ SKY_PILLAR_ENTRANCE) and destination (31/32 @ SOOTOPOLIS_CITY) are not on connected maps (note that warps don't count.)
+f1: CONTROLLER -> Ch21ReturnMode.run   (state=OVERWORLD)
+f323: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonAnimDoor'] ctrl=Ch21ReturnMode.run bt='Got away safely!' scripts=[] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[ch21return] LEG FAILED: UnreachableDestinationError: Could not reach (45, 66) on MapRSE.ROUTE126: the field is idle and we are still at (36, 7), so retrying cannot change the result (Cannot reach ROUTE126: it is not walkable from ROUTE131, and none of the 6 candidate warp route(s) start at a tile that can be walked to from here (tried: EVER_GRANDE_CITY(18, 5), EVER_GRANDE_CITY(27, 48), EVER_GRANDE_CITY(18, 41), EVER_GRANDE_CITY(18, 27), ROUTE124(70, 48), MOSSDEEP_CITY(28, 9)).).
+[ch21return] RESULT at=ROUTE131(36, 7) phase=full hm_flag=False hm07_in_bag=0 wallace_state=None gym_door_wp=None encounters=0 maps=[] whiteouts=0 frames=644
+[ch21return] ROUTE route131_rest=(36, 7) emerge=None mid_scene=None city_rest=None warp_landing=None (PART C measured (36,7) / ((9,7),(29,53)) / (29,49) / (29,53); the warp landing is the DECOMP's (31,34) and had never been observed live before this leg)
+[ch21return] PINS [] (the ROUTE131 pin is LOAD-BEARING - measured by an arm with it REMOVED; the Sootopolis pins are expected NO-OPs and are never a fix)
+[ch21return] VARS start=(5, 1, 1) end=(5, 1, 1) (the leg is graded on ITEM + POSITION + PATH; vars corroborate - a whiteout respawns in this very city, which is why they cannot decide alone)
+[ch21return] CONTINUE continue_wp=None continue_ok=False control_refused=False
+[ch21return] ORDER order_ok=False trace=['R-EXIT']
+[ch21return] METHOD premise_ok=True failure=UnreachableDestinationError: Could not reach (45, 66) on MapRSE.ROUTE126: the field is idle and we are still at (36, 7), so retrying cannot change the result (Cannot reach ROUTE126: it is not walkable from ROUTE131, and none of the 6 candidate warp route(s) start at a tile that can be walked to from here (tried: EVER_GRANDE_CITY(18, 5), EVER_GRANDE_CITY(27, 48), EVER_GRANDE_CITY(18, 41), EVER_GRANDE_CITY(18, 27), ROUTE124(70, 48), MOSSDEEP_CITY(28, 9)).).
+[ch21return] readings=['R-EXIT'] missing=['R-ARCHIE', 'R-ARRIVAL', 'R-CONTINUE', 'R-CONTROL', 'R-EMERGE', 'R-GYMDOOR', 'R-HM07', 'R-MAXIE', 'R-PIN131', 'R-SETTLE', 'R-SWIM', 'R-WARPED'] (the grade is DID EVERY READING HAPPEN, IN ORDER, **and does the bot HOLD THE HM and can it CONTINUE**)
+[ch21return] ACCEPTANCE: FAIL
+f645: CONTROLLER -> <none>   (state=OVERWORLD)
+f1545: SAVED stall state #1 to stalls/repro-ml-f1545.ss1 (bt='Got away safely!')
+f1845: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (36, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f1845:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f3645: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (36, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f3645:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f8645: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (36, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f8645:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f15645: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (36, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f15645:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]

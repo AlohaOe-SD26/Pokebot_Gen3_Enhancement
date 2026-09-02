@@ -1,0 +1,39 @@
+§Ch21 LEG 5 — `--driver ch21return` DRIVE 1 PREDICTIONS
+Filed BEFORE the drive (the §Ch20 cavern method). Fixture: post_rayquaza_gone.ss1 (35cb5e6502fd).
+A reading that contradicts a prediction is a RESULT; the drive is graded on ACCEPTANCE, not on
+whether I guessed right.
+
+MEASURED ALREADY (PART C probe, same route) — these should REPRODUCE:
+  phase                = full
+  route131_rest        = (36, 7)
+  emerge               = ((9, 7), (29, 53))
+  mid_scene_tile       = (29, 49)
+  city_rest            = (29, 53)
+  encounters           ~ 7 (all fled; the swim is 356 wp with 3 Surf mounts)
+
+NEVER OBSERVED LIVE BEFORE — decomp-only until this drive:
+  warp_landing         = (31, 34)     <- `MaxieArchieLeave` ends `warpsilent SOOTOPOLIS_CITY 31,34`
+  wallace_state_after  = 1            <- VAR_FACING == DIR_NORTH branch: Wallace walks RIGHT off
+                                         the gym door. (2 would mean he went LEFT = we faced West;
+                                         0 would mean NEITHER branch fired = we faced South, and he
+                                         is still standing on the door.)
+  hm_flag              = True
+  hm07_in_bag          = 1
+  R-MAXIE before R-ARCHIE in the trace (either order is legal in the decomp; we walk Maxie first)
+
+GRADE:
+  order_ok             = True
+  missing              = []
+  continue_ok          = True   (rest -> (43,32), MEASURED 37 wp from (29,53) in PART C)
+  control_refused      = True   ((33,34): MEASURED live collision 1 AND planner-refused)
+  whiteouts            = 0
+  ACCEPTANCE           = PASS
+  frames               ~ 20,000-26,000  (PART C walked the identical route in 16,297; the additions
+                                         are three talks and one short second walk)
+
+WHAT WOULD FALSIFY THE BUILD (each is a RESULT to act on, not a driver bug):
+  * wallace_state_after == 0  -> the facing never latched; Wallace still blocks the gym door.
+  * warp_landing != (31,34)   -> the leg navigates there itself and SAYS so; the decomp read was
+                                 wrong about the warp target.
+  * hm_flag True but hm07_in_bag == 0 -> `giveitem` failed (full bag); the flag ALONE would have
+                                 graded this a PASS, which is exactly why both are checked.

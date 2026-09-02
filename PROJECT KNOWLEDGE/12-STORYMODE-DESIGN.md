@@ -3460,6 +3460,50 @@ the acceptance test, not just in the code.
 
 ## §Ch21 ATLAS — Sootopolis / Cave of Origin / Sky Pillar / Rayquaza (built 2026-08-24)
 
+### ✅✅ LEG 5 — THE RETURN + HM07 WATERFALL: BUILT AND DRIVEN 2026-09-02. ⛔ DO NOT REBUILD.
+
+`sootopolis.return_and_get_waterfall()`, `--driver ch21return` from `post_rayquaza_gone.ss1` →
+**`ACCEPTANCE: PASS`**, all 13 readings, `order_ok`, `missing=[]`, `frames=20705`, `whiteouts=0`,
+7 encounters. Output fixture `post_hm07.ss1` (`bc3686118ac7…`). **All five §Ch21 legs now exist**;
+what remains for the chapter is the `_play()` wiring, which does NOT exist yet.
+
+**THE ROUTE, EVERY TILE MEASURED LIVE** (`--driver ch21leg5probe` then reproduced by the leg):
+`SKY_PILLAR_ENTRANCE (14,3)` → `(6,15)` → held-Down `(6,16)` → **`ROUTE131 (36,7)`** (facing Down,
+ON FOOT) → ⛔ **PIN ROUTE131** → 356-wp swim (3 Surf mounts) → `ROUTE126 (45,66)` → `dive()` →
+`UNDERWATER_ROUTE126 (45,65)` → `UNDERWATER_SOOTOPOLIS_CITY (9,8)` → `(9,7)` → `surface_from_dive()`
+→ **`SOOTOPOLIS_CITY (29,53)`, SURFING** → the Rayquaza-arrival one-shot (mid-scene `(29,49)`) →
+SETTLE → rest `(29,53)` facing Up, `SKY_PILLAR_STATE=3` → `(33,36)` face Up → **MAXIE** →
+`(34,36)` face Up → **ARCHIE** → ⛔ **the game `warpsilent`s you to `(31,34)`** → face Up →
+**WALLACE** → HM07.
+
+**THE FOUR THINGS THAT DECIDE WHETHER THIS LEG WORKS** (each cost something to learn):
+1. ⛔ **ROUTE131 must be PINNED before the swim is planned** — it unconditionally runs
+   `setmaplayoutindex LAYOUT_ROUTE131_SKY_PILLAR`. Un-pinned the plan does not go wrong, it does not
+   EXIST (`PathFindingError`, the bot never moves). Proven by an arm with the pin removed.
+2. ⛔ **The arrival cutscene ends 309 frames AFTER its var**, and `player_avatar_is_controllable()`
+   is not a witness. Settle on four conjuncts: script quiet ∧ `SKY_PILLAR_STATE == 3` ∧ live
+   `gMapHeader` back to the static NORMAL layout ∧ controllable.
+3. ⛔ **The SECOND leader talk teleports the player** (`MaxieArchieLeave` →
+   `warpsilent SOOTOPOLIS_CITY 31,34`, i.e. a MAP RELOAD). Never inherit position across it.
+4. ⛔ **Wallace's gift script branches on `VAR_FACING` and has NO SOUTH CASE.** NORTH/EAST → he
+   steps RIGHT off the gym door (`SOOTOPOLIS_WALLACE_STATE=1`); WEST → left (2); SOUTH → he does not
+   move and **stays on (31,33), sealing the (31,32) gym warp — i.e. §Ch22.** The leg therefore
+   grades on `R-GYMDOOR` (a live path to (31,32)), not on "a path to somewhere".
+
+**THE STATE-5 CITY LAYOUT IS MEASURED AND SAFE** (this was an OPEN question until 2026-09-02): the
+Sootopolis pin is a NO-OP, and a whole-map live-vs-static collision diff finds 10 differing tiles of
+which **0** are open-to-planner/wall-live. All ten are DOOR WARPS — the gym (31,32) plus nine houses
+— locked by `SootopolisCity_OnLoad` while `SOOTOPOLIS_ARCHIE_MAXIE_LEAVE` is clear, and unlocked by
+this leg's own second leader talk.
+
+**NPC POSITIONS AT STATE 5**, confirmed LIVE (RAM object templates at SaveBlock1+0xC70 *and*
+`get_map_objects()`), matching `SetOutsideGymObjPos`: Steven `local_id 7 @ (29,33)`, Maxie
+`16 @ (33,35)`, Archie `17 @ (34,35)`, Wallace `18 @ (31,33)`. ‼ From the (29,53) rest tile NONE of
+them are loaded — the spawn window is roughly y ∈ [rest−7, rest+9] — so an empty `get_map_objects()`
+there is EXPECTED, not a finding.
+
+Full detail: `07-CHANGELOG.md` 2026-09-02, `ai-research-notes/2026-09-02-ch21-leg5-PARTC-RESULTS.md`.
+
 **PROVENANCE, PER ROW.** ✅ **HARD** = read out of ROM map headers by `probe_ch21_topology.py`
 (evidence: `tools/story-dev/evidence/2026-08-24-ch21-topology-probe.stdout.txt`, every assertion
 PASS, fault-tested both ways). 📝 **NOTE** = decomp-cited research, authoritative-doc rules apply —

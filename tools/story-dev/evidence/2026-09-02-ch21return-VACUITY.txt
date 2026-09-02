@@ -1,0 +1,33 @@
+[setup] LOG -> ch21return_vacuity.log
+[setup] loaded save state post_hm07.ss1; build=sandbox
+[run] starting faithful loop for up to 1500 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ch21return] PRE at=SOOTOPOLIS_CITY(31, 34) vars=(5, 3, 1) hm_flag=True hm07_in_bag=1 leaders_left=True wallace_state=0 (a full run requires SKY_PILLAR_ENTRANCE, (5,1,1), flag CLEAR, bag 0)
+[ch21return] PRE gym-door (31,32) reachable: PathFindingError: Could not find a path from (31/34 @ SOOTOPOLIS_CITY) to (31/32 @ SOOTOPOLIS_CITY).
+f1: CONTROLLER -> Ch21ReturnMode.run   (state=OVERWORLD)
+[ch21return] LEG FAILED: BotModeError: Ch21 leg 5: `RECEIVED_HM_WATERFALL` is ALREADY SET at ((0, 7), (31, 34)) — this leg is SPENT on this fixture (HM07 x1 in the bag). ⛔ It is graded on ACQUIRING the HM, so a run from here would satisfy every end-state check while doing nothing.
+[ch21return] !! VACUOUS/RESUMED PREMISE - start=SOOTOPOLIS_CITY(31, 34) vars=(5, 3, 1) hm_flag=True bag=1 phase=None. Only a full run from the leg-4 output fixture can PASS; a run from this leg's OWN output satisfies every end-state check while doing nothing.
+[ch21return] RESULT at=SOOTOPOLIS_CITY(31, 34) phase=None hm_flag=True hm07_in_bag=1 wallace_state=None encounters=0 maps=[] whiteouts=0 frames=30
+[ch21return] ROUTE route131_rest=None emerge=None mid_scene=None city_rest=None warp_landing=None (PART C measured (36,7) / ((9,7),(29,53)) / (29,49) / (29,53); the warp landing is the DECOMP's (31,34) and had never been observed live before this leg)
+[ch21return] PINS [] (the ROUTE131 pin is LOAD-BEARING - measured by an arm with it REMOVED; the Sootopolis pins are expected NO-OPs and are never a fix)
+[ch21return] VARS start=(5, 3, 1) end=(5, 3, 1) (the leg is graded on ITEM + POSITION + PATH; vars corroborate - a whiteout respawns in this very city, which is why they cannot decide alone)
+[ch21return] CONTINUE continue_wp=None continue_ok=False control_refused=False
+[ch21return] ORDER order_ok=False trace=[]
+[ch21return] METHOD premise_ok=False failure=BotModeError: Ch21 leg 5: `RECEIVED_HM_WATERFALL` is ALREADY SET at ((0, 7), (31, 34)) — this leg is SPENT on this fixture (HM07 x1 in the bag). ⛔ It is graded on ACQUIRING the HM, so a run from here would satisfy every end-state check while doing nothing.
+[ch21return] readings=[] missing=['R-ARCHIE', 'R-ARRIVAL', 'R-CONTINUE', 'R-CONTROL', 'R-EMERGE', 'R-EXIT', 'R-HM07', 'R-MAXIE', 'R-PIN131', 'R-SETTLE', 'R-SWIM', 'R-WARPED'] (the grade is DID EVERY READING HAPPEN, IN ORDER, **and does the bot HOLD THE HM and can it CONTINUE**)
+[ch21return] ACCEPTANCE: FAIL
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+f931: SAVED stall state #1 to stalls/repro-ml-f931.ss1 (bt='Got away safely!')
+f1231: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (31, 34)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] scripts=['SootopolisCity_EventScript_GiveWaterfall', 'Std_MsgboxDefault'] bt='Got away safely!' bot_mode=Manual
+f1231:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[done] ran 1500 frames; final mode=Manual party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Swellow L41: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Sceptile L50: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Wailmer L40: Dive, Surf, Water Gun, Rollout
+[moveset] Mightyena L44: Tackle, Taunt, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 1501 get_party() recomputes, 6 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch21return 1501 recomputes (party_accounting_ledger.jsonl)

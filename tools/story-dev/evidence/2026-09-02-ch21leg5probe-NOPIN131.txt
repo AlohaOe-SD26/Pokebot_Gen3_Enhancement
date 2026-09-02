@@ -1,0 +1,53 @@
+[setup] LOG -> leg5probe_nopin.log
+[setup] loaded save state post_rayquaza_gone.ss1; build=sandbox
+[run] starting faithful loop for up to 30000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch21Leg5ProbeMode.run   (state=OVERWORLD)
+[ch21leg5probe] P0 at=SKY_PILLAR_ENTRANCE(14, 3) vars(CITY,SKY,CRY)=(5,1,1) controllable=True (PREDICTED SKY_PILLAR_ENTRANCE(14,3) / 5,1,1 / True)
+[ch21leg5probe] P0 flags HM_WATERFALL=False ARCHIE_MAXIE_LEAVE=False KYOGRE_ESCAPED=True LEGENDARIES_IN_SOOTOPOLIS=True MET_ARCHIE=False MET_MAXIE=False WALLACE_STATE=0 (PREDICTED False/False/True/True/False/False/0)
+[ch21leg5probe] P0 can_surf_precondition badge05=True party_has_surf=True | can_dive_precondition badge07=True party_has_dive=True (both MUST be True/True or the P2 A/B differs for the wrong reason)
+[ch21leg5probe] P0 HM07 index=345 qty=0 (PREDICTED 345 / 0)
+[ch21leg5probe] P0 party=[(187737927, 'Swellow', 52, 115), (868971715, 'Zigzagoon', 46, 48), (2252015895, 'Sceptile', 138, 138), (4199673075, 'Wailmer', 160, 160), (1553394331, 'Mightyena', 130, 130), (3380138318, 'Castform', 103, 103)]
+[ch21leg5probe] P0 warpdata location(+0x04)=(24, 77, 1, -1, -1) lastHeal(+0x1C)=(0, 7, -1, 43, 32) (CONTROL: location's (group,num) must equal the LIVE map (24, 77); lastHeal PREDICTED (0,7,-1,43,32))
+[ch21leg5probe] P1 plan (14, 3)->(6,15) 20 wp off_map=0 seam_14_4_at=[] (PREDICTED all on ENTRANCE, seam absent)
+f323: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonAnimDoor'] ctrl=Ch21Leg5ProbeMode.run bt='Got away safely!' scripts=[] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[ch21leg5probe] P1 REST at=ROUTE131(36, 7) facing=Down flags=<AvatarFlags.OnFoot|Controllable: 33> tile_type='Deep Water' (PREDICTED ROUTE131 (36,7), Down, on foot, sand)
+[ch21leg5probe] P2 layout BEFORE pin: planner=0x08417FE4 live=0x0845C1B0 agree=False (PREDICTED agree=False)
+[ch21leg5probe] P2 arm A (static, as the planner seeded itself): REFUSED PathFindingError: Could not find a path from (36/7 @ ROUTE131) to (45/66 @ ROUTE126).
+[ch21leg5probe] P2N CONTROL ARM (CH21_PROBE_NOPIN131=1): NOT pinning. PREDICTED the swim FAILS on ROUTE131 at the water's edge, on foot - the live KI-73 reproduction.
+[ch21leg5probe] P2N swim FAILED as predicted: UnreachableDestinationError: Could not reach (45, 66) on MapRSE.ROUTE126: the field is idle and we are still at (36, 7), so retrying cannot change the result (Cannot reach ROUTE126: it is not walkable from ROUTE131, and none of the 6 candidate warp route(s) start at a tile that can be walked to from here (tried: EVER_GRANDE_CIT
+[ch21leg5probe] P2N RESULT failed=True at=ROUTE131(36, 7) facing=Down flags=<AvatarFlags.OnFoot|Controllable: 33> (PREDICTED failed=True, ROUTE131 (36,8), Down, on foot)
+[ch21leg5probe] probes run: ['P0', 'P1', 'P2N'] whiteouts=0 encounters=0 [] frames=644
+[ch21leg5probe] ACCEPTANCE: PASS (the CONTROL arm's grade is 'the reading happened', not 'the swim worked')
+f645: CONTROLLER -> <none>   (state=OVERWORLD)
+f1545: SAVED stall state #1 to stalls/repro-ml-f1545.ss1 (bt='Got away safely!')
+f1845: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (36, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f1845:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f3645: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (36, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f3645:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f8645: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (36, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f8645:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f15645: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (36, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f15645:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f20000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f20645: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 20646 frames; final mode=Manual party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Swellow L41: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Sceptile L50: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Wailmer L40: Dive, Surf, Water Gun, Rollout
+[moveset] Mightyena L44: Tackle, Taunt, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 20646 get_party() recomputes, 69 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch21leg5probe 20646 recomputes (party_accounting_ledger.jsonl)

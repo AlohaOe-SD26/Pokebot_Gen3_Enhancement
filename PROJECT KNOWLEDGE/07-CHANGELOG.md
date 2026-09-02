@@ -19565,3 +19565,78 @@ mislabel; NPC-facing nuance) are folded into the note.
 `PROJECT KNOWLEDGE/ai-research-notes/2026-09-02-ch21-leg5-RECON.md` (NEW — the recon, PARTS A-D);
 `04-HANDOFF.md` (banner/queue/STATE leg-5: recon DONE, next = PART C gates then PART D build);
 `03-PUNCH-LIST.md` (`#24-remainingarc` leg-5 clause). ⛔ No production code changed; drift unchanged.
+
+---
+
+## 2026-09-02 — §Ch21 LEG 5 (THE RETURN + HM07 WATERFALL): VALIDATED, BUILT, DRIVEN, AND HARDENED
+
+### WHAT SHIPPED
+**§Ch21 leg 5 is BUILT AND DRIVEN.** `modules/story/sootopolis.py` gains
+`return_and_get_waterfall()` plus `waterfall_received()`, `leaders_have_left()`, `_hm07_in_bag()`,
+`_settle_after_arrival()`, `_arrival_is_settled()`, `_ride_talk()`, the `L5_*` constants and
+`LEG5_READINGS`/`LEG5_ORDER`. `tools/story-dev/story_harness.py` gains two drivers:
+`--driver ch21leg5probe` (the PART C read-mostly validation probe) and `--driver ch21return` (the
+leg). **`ACCEPTANCE: PASS`** from `post_rayquaza_gone.ss1`: all 13 readings, `missing=[]`,
+`order_ok=True`, `premise_ok=True`, `hm07_in_bag=1`, `wallace_state=1`, `gym_door_wp=2`,
+`continue_ok=True`, `control_refused=True`, `whiteouts=0`, **`frames=20705`** (MEASURED — the
+estimate had been ~60,000), 7 encounters, all fled.
+
+### PART C FIRST — THE QUEUE'S "VALIDATE, THEN BUILD", AND IT PAID FOR ITSELF
+Predictions were filed BEFORE the drive (`ai-research-notes/2026-09-02-ch21-leg5-PARTC-
+PREDICTIONS.md`) and graded after (`…-PARTC-RESULTS.md`). The probe returned `ACCEPTANCE: PASS`,
+P0–P6, `frames=16297`. What it settled:
+* **GATE 1 — the ROUTE131 live-pin is LOAD-BEARING, proven by an arm with it REMOVED**
+  (`CH21_PROBE_NOPIN131=1`, house rule 8). Un-pinned, `calculate_path(ROUTE131 (36,7) -> ROUTE126
+  (45,66))` does not mis-plan — it **raises `PathFindingError`** and the bot never moves. Pinned:
+  356 wp with **3** Surf mounts. Source-tile elevation reads **1 static, 3 live**, exactly the value
+  `map_path.py:916` seeds the start node from.
+* **GATE 2 — the state-5 Sootopolis layout is MEASURED and SAFE**, retiring an open question the
+  handoff had carried since leg 4. The pin is a **NO-OP** (`0x083E6A04 -> 0x083E6A04`) and a
+  whole-map live-vs-static collision diff finds **10 differing tiles, 0 of them dangerous**: every
+  delta is `static=1 -> live=3` (wall both ways), and **all ten are door warps** — the gym (31,32)
+  and nine houses — locked by `SootopolisCity_OnLoad` while `SOOTOPOLIS_ARCHIE_MAXIE_LEAVE` is
+  clear. ⛔ The COUNT alone would have read as a scare; only the per-tile DIRECTION answered it.
+* The four state-5 NPC positions predicted from `SetOutsideGymObjPos` were confirmed LIVE for the
+  first time (Steven 7 @ (29,33), Maxie 16 @ (33,35), Archie 17 @ (34,35), Wallace 18 @ (31,33)),
+  read both from the SaveBlock1 object templates (+0xC70, with an unmoved-NPC control proving no
+  MAP_OFFSET) and from `get_map_objects()` after the approach walk.
+
+### TWO DEFECTS FOUND AND FIXED (full detail + prevention rules in `08-MISTAKES.md`)
+1. ⛔ **Drive 1 PASSED while sealing the door to §Ch22.** `_ride_talk` returned as soon as the HM
+   flag was set, mid-script, so Wallace's `call_if_eq VAR_FACING` tail never ran, `WALLACE_STATE`
+   stayed 0, and he kept standing on (31,33) — one tile south of the gym warp. The "can continue"
+   reading aimed at the Poké Center, which is reachable either way. FIXED: `_ride_talk` now also
+   requires `not get_global_script_context().is_active`, and a new **R-GYMDOOR** reading proves
+   `calculate_path(-> (31,32))` succeeds (plus a named raise on `WALLACE_STATE == 0`).
+2. ⛔ **A held button cannot close a Gen-3 msgbox.** Tightening (1) exposed a latent input bug:
+   pressing every frame HOLDS the button, and `waitbuttonpress` needs a `JOY_NEW` edge, so the run
+   parked 20,000 frames at Maxie's msgbox. FIXED: press on a duty cycle (`frames % 4 == 0`).
+
+### THE PROBE WAS ADVERSARIALLY REVIEWED BEFORE IT RAN, AND THAT FOUND TWO MORE
+A fresh reviewer given only the diff + predictions found (a) `on_whiteout` promising "a verdict still
+prints" with no top-level `try/except` to make it true, and (b) no gate on the arrival settle, so a
+timed-out settle would have pinned the planner to the CRISIS layout and still printed PASS. Both
+fixed, both **FAULT-TESTED** (`POKEBOT_CH21_FAULT_PROBERAISE`, `POKEBOT_CH21_FAULT_SCENESTOP`), and
+the refactor proven NEUTRAL by re-running the clean arm to an identical `frames=16297`.
+
+### DOC CORRECTION SHIPPED WITH THE CODE
+`sootopolis.py`'s KI-72 trap said *"`Emerge` preserves (x,y), so the underwater tile IS the city
+tile"*. **MEASURED FALSE**: surfacing from UW (9,7) lands at city (29,53), because
+`Underwater_SootopolisCity_OnResume` runs `setdivewarp SOOTOPOLIS_CITY 29,53` — a FIXED destination.
+The hard-coded tile stays; its stated REASON was wrong and would mislead anyone routing a different
+emerge point.
+
+### FIXTURES
+`post_legends_calmed.ss1` (`68e78a663a01b9f9cb5be1795bec5bf0`) — the mid-leg arrival anchor, so the
+NPC half iterates in ~4,600 frames instead of re-swimming; `post_hm07.ss1`
+(`bc3686118ac70a9aa1aa6501618adbac`) — the leg's output, SOOTOPOLIS_CITY (31,34), HM07 in the bag,
+gym door open. Both probe-verified with `probe_anchor_inventory.py`.
+
+### FILES
+`sandbox-pokebot/modules/story/sootopolis.py` (leg 5 + the KI-72 correction);
+`tools/story-dev/story_harness.py` (`Ch21Leg5ProbeMode`, `Ch21ReturnMode`, driver registration);
+`tools/story-dev/saves/{post_legends_calmed,post_hm07}.ss1` + `FIXTURES.md5`;
+`tools/story-dev/evidence/2026-09-02-*` (probe clean/control/fault arms, leg clean + fault arms,
+the pre-registered predictions); `ai-research-notes/2026-09-02-ch21-leg5-PARTC-{PREDICTIONS,
+RESULTS}.md`; `05-KNOWN-ISSUES.md`, `12-STORYMODE-DESIGN.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`,
+`06-DECISIONS-LOG.md`, `08-MISTAKES.md`.

@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -10081,6 +10081,937 @@ class Ch21ClimbMode(BotMode):
 
         context.set_manual_mode()
 
+
+class Ch21Leg5ProbeMode(BotMode):
+    """§Ch21 LEG 5 — the PART C LIVE PROBES (the queue's "VALIDATE, then BUILD").
+
+    ‼ PREDICTIONS ARE FILED FIRST, IN A COMMITTED FILE, NOT IN THIS DOCSTRING:
+    `PROJECT KNOWLEDGE/ai-research-notes/2026-09-02-ch21-leg5-PARTC-PREDICTIONS.md`. Every reading
+    below is graded against it AFTER the run. ⛔ A reading that contradicts a prediction is a
+    RESULT, never a driver failure — reality cannot fail a probe; only not-measuring can.
+
+    WHAT IT MEASURES, IN ORDER (the leg is NOT built yet; this driver walks nothing it does not
+    have to, presses `A` at NO NPC, and writes NO state):
+      P0  premise + pre-readings on SKY_PILLAR_ENTRANCE (14,3): vars, flags, party BY PID, the
+          HM07 bag count, the respawn WarpData, and the `can_surf`/`can_dive` PRECONDITIONS.
+          ⛔ P0 gates `can_surf` because without BADGE05+Surf the P2 arm-B path degrades to a
+          refusal and the A/B would differ for the WRONG reason (refuter finding F2).
+      P1  the exit: plan (14,3)->(6,15) [refusing any plan through the (14,4) seam warp], then the
+          held-Down (6,16) door to ROUTE131, and the RESTING TILE it leaves.
+      P2  ⛔ THE GATE THE QUEUE PUTS FIRST — the ROUTE131 LIVE-PIN A/B. Arm A plans the return
+          swim on the STATIC layout the planner seeded itself with; arm B plans it after
+          `_pin_planner_to_live_layout(ROUTE131)`. THE DISCRIMINATOR IS THE **Surf-ACTION COUNT**
+          (map_path.py:916 seeds the source node's elevation from the LAYOUT, so a static "deep
+          water" source makes the planner believe it is ALREADY surfing and emit no mount).
+          ⛔ NOT the live-wall count: ocean is collision 0 in BOTH layouts, so a wall-only
+          discriminator reads INCONCLUSIVE forever (refuter finding F2).
+      P3  the return swim ROUTE131 -> ROUTE126 (45,66), the dive, and the underwater crossing.
+      P4  the surface + THE RAYQUAZA-ARRIVAL SCENE (one-shot #3), then a BOUNDED SETTLE.
+          ⛔⛔ THE SETTLE IS THE WHOLE POINT OF P4 (refuter finding F1, CRITICAL): the scene sets
+          SKY_PILLAR_STATE 2 roughly 120 frames AND ONE `warpwhitefade` BEFORE it ends, and the
+          avatar reads CONTROLLABLE under `lockall` — so `_ride_summit_scene` + the usual
+          `wait_until_truly_controllable()` both return MID-SCENE. Any tile read or planner pin
+          taken there describes a state the bot never rests in.
+      P5  the state-5 Sootopolis layout: the Sootopolis pin (predicted a NO-OP), a WHOLE-MAP live
+          -vs-static collision diff, the object templates read from SaveBlock1 (with a control),
+          the loaded-object dump, and a path matrix with a NEGATIVE CONTROL verified against the
+          LIVE grid before it is used.
+      P6  ONE walk (rest -> (33,36), Maxie's south approach) and the object dump from there —
+          the three HM07 NPCs are outside the spawn window from the rest tile, so an empty P5
+          object list is EXPECTED and only P6 can see them (refuter finding F3).
+
+    CONTROL ARM (a SECOND run, never the main one):
+      CH21_PROBE_NOPIN131=1  skip the ROUTE131 pin and try to swim anyway with tries=2.
+                             PREDICTED: it FAILS on ROUTE131 at the water's edge, on foot — the
+                             live reproduction of KI-73 that the pin exists to prevent. ⛔ Without
+                             this arm, "the pin is load-bearing" is a CLAIM (house rule 8).
+
+    ACCEPTANCE = P0..P5 each EXECUTED to a reading (P6 conditional on the P5 walk being planned)
+    AND whiteouts == 0. The premise gate makes a run on the wrong fixture say VACUOUS and stop.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_rayquaza_gone.ss1 --driver ch21leg5probe \
+             --frames 120000 --log leg5probe.log
+    ‼ ALL LOG TEXT IN THIS DRIVER IS ASCII ON PURPOSE — 2026-09-01 cost a gate a red-herring crash
+    when a non-ASCII character on a SUCCESS path hit the cp1252 console.
+    """
+
+    #: The P2N control arm ends the run DELIBERATELY, so it needs its own grade.
+    CONTROL_ARM_DONE = "P2N control arm complete"
+
+    @staticmethod
+    def name() -> str:
+        return "Ch21Leg5Probe"
+
+    def __init__(self):
+        super().__init__()
+        self.encounters = 0
+        self.encounter_maps: list[str] = []
+        self.whiteouts = 0
+        self.probes_run: list[str] = []
+        self.stop_reason: str | None = None
+        self.settle_ok = False
+        self.scene_failure: str | None = None
+        self.failure: str | None = None
+
+    def on_whiteout(self) -> bool:
+        # ⛔ True + latch: returning False hands the run to Manual and DISCARDS this generator,
+        # so the RESULT/ACCEPTANCE block would never print (leg 3's B1 fix).
+        self.whiteouts += 1
+        log("[ch21leg5probe] !! WHITEOUT - latching the story abort so a verdict still prints.")
+        try:
+            from modules.story.early_game import set_story_abort
+
+            set_story_abort(True)
+        except Exception as error:  # noqa: BLE001 - never let the hook itself end the run
+            log(f"[ch21leg5probe] !! could not latch the abort: {type(error).__name__}: {error}")
+            return False
+        return True
+
+    def on_battle_started(self, encounter):
+        self.encounters += 1
+        try:
+            from modules.player import get_player_avatar
+
+            self.encounter_maps.append(
+                f"{tuple(get_player_avatar().map_group_and_number)}@"
+                f"{context.emulator.get_frame_count()}"
+            )
+        except Exception:  # noqa: BLE001 - the count is what matters
+            self.encounter_maps.append("?")
+        return super().on_battle_started(encounter)
+
+    def run(self):
+        """A THIN WRAPPER: the probe body runs inside ONE try/except so a verdict ALWAYS prints.
+
+        ⛔⛔ THIS SHAPE IS NOT DECORATION, AND ITS ABSENCE WAS A REAL DEFECT FOUND BY ADVERSARIAL
+        REVIEW OF THIS VERY CLASS (2026-09-02, before the drive). Without it, ONE lost wild battle
+        during the P3 surf makes `on_whiteout` latch `StoryAbort`; the next `_check_abort()` inside
+        `_navigate_riding_out` raises it; the exception escapes this generator; the harness catches
+        `BotModeError` and calls `set_manual_mode()`, which CLEARS the controller stack and discards
+        the generator — so P4/P5/P6 and the ACCEPTANCE line never print, and `on_whiteout`'s own
+        comment ("latching the abort so a verdict still prints") is a LIE. `Ch21ClimbMode` has had
+        this wrapper since leg 3's B1 fix; this class was written without it and inherited the
+        comment anyway. ⇒ **a hook that promises a verdict is only as true as the catch that
+        lets the verdict run.**
+        """
+        TAG = "ch21leg5probe"
+        frames_before = context.emulator.get_frame_count()
+        try:
+            yield from self._probe()
+        except Exception as error:  # noqa: BLE001 - the driver REPORTS failures, never hides them
+            self.failure = f"{type(error).__name__}: {str(error)[:600]}"
+            log(f"[{TAG}] !! PROBE RAISED: {self.failure}")
+
+        done = set(self.probes_run)
+        if self.stop_reason == self.CONTROL_ARM_DONE:
+            # The control arm STOPS on purpose after P2N; its grade is "the reading happened".
+            passed = ({"P0", "P1", "P2N"}.issubset(done) and self.whiteouts == 0
+                      and self.failure is None)
+        else:
+            passed = (
+                {"P0", "P1", "P2", "P3", "P4", "P5"}.issubset(done)
+                and self.whiteouts == 0
+                and self.failure is None
+                and self.stop_reason is None
+                # ⛔ settle_ok AND scene_failure ARE PART OF THE GRADE, not just logged. The same
+                # review found that without them a timed-out settle still printed PASS over P5/P6
+                # readings taken on the CRISIS-state layout - a false PASS that looks clean.
+                and self.settle_ok
+                and self.scene_failure is None
+            )
+        log(f"[{TAG}] probes run: {sorted(done)} (P6 conditional on the P5 matrix) "
+            f"whiteouts={self.whiteouts} encounters={self.encounters} {self.encounter_maps} "
+            f"frames={context.emulator.get_frame_count() - frames_before}")
+        log(f"[{TAG}] VERDICT INPUTS stop_reason={self.stop_reason!r} failure={self.failure!r} "
+            f"settle_ok={self.settle_ok} scene_failure={self.scene_failure!r}")
+        log(f"[{TAG}] GRADE: this probe measures; it does not decide. Compare every line above "
+            f"against ai-research-notes/2026-09-02-ch21-leg5-PARTC-PREDICTIONS.md.")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+    def _probe(self):
+        import struct as _struct
+
+        import modules.map as _map_module
+        from modules.map import (
+            get_map_data,
+            get_map_data_for_current_position,
+            get_map_objects,
+        )
+        from modules.map_data import MapRSE
+        from modules.map_path import PathFindingError, WaypointAction, calculate_path
+        from modules.memory import get_event_flag, get_save_block, read_symbol, unpack_uint32
+        from modules.modes.util.higher_level_actions import dive, surface_from_dive
+        from modules.modes.util.walking import navigate_to
+        from modules.player import AvatarFlags, get_player_avatar, player_avatar_is_controllable
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import (
+            _check_abort,
+            _navigate_riding_out,
+            wait_until_truly_controllable,
+        )
+        from modules.story.seafloor_cavern import _var
+        from modules.story.sootopolis import (
+            _live_collision_grid,
+            _live_wall_tiles,
+            _pin_planner_to_live_layout,
+            _ride_summit_scene,
+            _route131_layout_reading,
+        )
+        from modules.tasks import get_global_script_context, is_waiting_for_input
+
+        TAG = "ch21leg5probe"
+        # ⛔ THE SAME LIST OBJECT the verdict reads - never rebind it, only append.
+        probes_run = self.probes_run
+        nopin_arm = _os.environ.get("CH21_PROBE_NOPIN131", "").strip() == "1"
+
+        # ---------------------------------------------------------------- small local instruments
+        def where() -> tuple[str, tuple[int, int]]:
+            avatar = get_player_avatar()
+            coordinates = tuple(avatar.local_coordinates)
+            try:
+                return MapRSE(tuple(avatar.map_group_and_number)).name, coordinates
+            except Exception:  # noqa: BLE001
+                return f"UNKNOWN{tuple(avatar.map_group_and_number)}", coordinates
+
+        def budgeted(generator, budget: int, label: str):
+            """Drive `generator` with a HARD frame ceiling.
+
+            ⛔ EVERY yielding call in this probe goes through here. `navigate_to` and
+            `_navigate_riding_out` have internal timeouts, but a probe that inherits somebody
+            else's bound is a probe that can silently eat the whole --frames budget and leave
+            NO verdict. The ceiling raises NAMED, which is a reading.
+            """
+            spent = 0
+            while True:
+                try:
+                    value = next(generator)
+                except StopIteration:
+                    return
+                spent += 1
+                if spent > budget:
+                    generator.close()
+                    raise RuntimeError(f"frame budget {budget} exhausted during {label}")
+                yield value
+
+        def describe(path) -> list[tuple]:
+            return [
+                (tuple(w.map), tuple(w.coordinates), w.is_warp, w.is_water_tile,
+                 None if w.action is None else w.action.name)
+                for w in path
+            ]
+
+        def static_collision_grid(map_enum):
+            """The map's OWN STATIC (ROM header) collision grid, whatever the planner cache holds.
+
+            ‼ WHY NOT `get_map_data(...).collision`: `MapLocation._map_layout` reads through
+            `modules.map._map_layout_cache`, which THIS PROBE DELIBERATELY POISONS with the live
+            layout (that is what the pin IS). After a pin, `get_map_data` would return the LIVE
+            grid and the "live vs static" diff would compare a grid against ITSELF and read 0.
+            ⇒ go to the static header pointer directly. Decode identical to map.py:773-781 and to
+            `_live_collision_grid`; the only difference is the SOURCE and that the static blockdata
+            carries NO border margin (map.py:769 indexes it with no offset).
+            """
+            header = _map_module._map_header_cache[context.rom.id][map_enum.value]
+            layout = context.emulator.read_bytes(unpack_uint32(header[:4]), 24)
+            width = unpack_uint32(layout[0:4])
+            height = unpack_uint32(layout[4:8])
+            raw = context.emulator.read_bytes(unpack_uint32(layout[12:16]), width * height * 2)
+            grid = {}
+            for y in range(height):
+                for x in range(width):
+                    index = (y * width + x) * 2
+                    block = raw[index] | (raw[index + 1] << 8)
+                    grid[(x, y)] = (block & 0x0C00) >> 10
+            return grid, width, height
+
+        def warp_data(offset: int) -> tuple:
+            # WarpData: s8 mapGroup, s8 mapNum, s8 warpId, (pad), s16 x, s16 y
+            return _struct.unpack("<bbbxhh", get_save_block(1, offset, 8))
+
+        def objects(label: str) -> list[tuple[int, tuple[int, int]]]:
+            got = sorted((o.local_id, tuple(o.current_coords)) for o in get_map_objects())
+            log(f"[{TAG}] OBJ-{label} {got}")
+            return got
+
+        def path_matrix(label: str, targets, control) -> dict:
+            here_map, at = where()
+            results = {}
+            for target in list(targets) + [control]:
+                try:
+                    path = calculate_path((MapRSE.SOOTOPOLIS_CITY, at),
+                                          (MapRSE.SOOTOPOLIS_CITY, target))
+                    results[target] = len(path)
+                    log(f"[{TAG}] P-{label} {at}->{target} OK {len(path)} wp")
+                except Exception as perr:  # noqa: BLE001 - a refusal IS the reading here
+                    results[target] = f"{type(perr).__name__}"
+                    log(f"[{TAG}] P-{label} {at}->{target} {type(perr).__name__}")
+            log(f"[{TAG}] P-{label} CONTROL {control} -> {results[control]} "
+                f"(a control that PATHS proves nothing; it is verified against the LIVE grid "
+                f"before it is chosen)")
+            return results
+
+        # ============================ P0 - PREMISE + PRE-READINGS ============================
+        yield from budgeted(wait_until_truly_controllable(), 3000, "P0 settle")
+
+        here_map, at = where()
+        city = _var("SOOTOPOLIS_CITY_STATE")
+        sky = _var("SKY_PILLAR_STATE")
+        cry = _var("SKY_PILLAR_RAYQUAZA_CRY_DONE")
+        hm_flag = get_event_flag("RECEIVED_HM_WATERFALL")
+        leave_flag = get_event_flag("SOOTOPOLIS_ARCHIE_MAXIE_LEAVE")
+        controllable = player_avatar_is_controllable()
+
+        party = get_party()
+        has_surf = party.has_pokemon_with_move("Surf")
+        has_dive = party.has_pokemon_with_move("Dive")
+        badge5 = get_event_flag("BADGE05_GET")
+        badge7 = get_event_flag("BADGE07_GET")
+
+        log(f"[{TAG}] P0 at={here_map}{at} vars(CITY,SKY,CRY)=({city},{sky},{cry}) "
+            f"controllable={controllable} (PREDICTED SKY_PILLAR_ENTRANCE(14,3) / 5,1,1 / True)")
+        log(f"[{TAG}] P0 flags HM_WATERFALL={hm_flag} ARCHIE_MAXIE_LEAVE={leave_flag} "
+            f"KYOGRE_ESCAPED={get_event_flag('KYOGRE_ESCAPED_SEAFLOOR_CAVERN')} "
+            f"LEGENDARIES_IN_SOOTOPOLIS={get_event_flag('LEGENDARIES_IN_SOOTOPOLIS')} "
+            f"MET_ARCHIE={get_event_flag('MET_ARCHIE_SOOTOPOLIS')} "
+            f"MET_MAXIE={get_event_flag('MET_MAXIE_SOOTOPOLIS')} "
+            f"WALLACE_STATE={_var('SOOTOPOLIS_WALLACE_STATE')} "
+            f"(PREDICTED False/False/True/True/False/False/0)")
+        log(f"[{TAG}] P0 can_surf_precondition badge05={badge5} party_has_surf={has_surf} | "
+            f"can_dive_precondition badge07={badge7} party_has_dive={has_dive} "
+            f"(both MUST be True/True or the P2 A/B differs for the wrong reason)")
+
+        try:
+            from modules.items import get_item_bag, get_item_by_name
+
+            hm07 = get_item_by_name("HM07")
+            hm07_qty = get_item_bag().quantity_of(hm07)
+            log(f"[{TAG}] P0 HM07 index={hm07.index} qty={hm07_qty} (PREDICTED 345 / 0)")
+        except Exception as error:  # noqa: BLE001 - a bag read must never end the probe
+            hm07_qty = None
+            log(f"[{TAG}] P0 HM07 read FAILED: {type(error).__name__}: {error}")
+
+        log(f"[{TAG}] P0 party={[(m.personality_value, m.species.name, m.current_hp, m.total_hp) for m in party if m is not None]}")
+        log(f"[{TAG}] P0 warpdata location(+0x04)={warp_data(0x04)} "
+            f"lastHeal(+0x1C)={warp_data(0x1C)} "
+            f"(CONTROL: location's (group,num) must equal the LIVE map "
+            f"{tuple(get_player_avatar().map_group_and_number)}; lastHeal PREDICTED (0,7,-1,43,32))")
+        probes_run.append("P0")
+
+        premise_ok = (
+            here_map == "SKY_PILLAR_ENTRANCE"
+            and at == (14, 3)
+            and (city, sky, cry) == (5, 1, 1)
+            and hm_flag is False
+            and leave_flag is False
+            and controllable
+            and badge5 and has_surf and badge7 and has_dive
+        )
+        if not premise_ok:
+            log(f"[{TAG}] !! VACUOUS - the fixture is not leg 5's premise (see the P0 lines "
+                f"above). Every downstream reading would describe a state the leg does not start "
+                f"in, so nothing is measured.")
+            self.stop_reason = "VACUOUS premise"
+            return
+
+        # ============================ P1 - THE EXIT TO ROUTE131 ==============================
+        entrance = MapRSE.SKY_PILLAR_ENTRANCE
+        try:
+            exit_plan = calculate_path((entrance, at), (entrance, (6, 15)))
+        except Exception as error:  # noqa: BLE001 - a refusal here IS the reading
+            log(f"[{TAG}] P1 PLAN REFUSED {at}->(6,15): {type(error).__name__}: {str(error)[:200]}")
+            self.stop_reason = "P1 exit plan refused"
+            return
+
+        off_map = [w for w in exit_plan if tuple(w.map) != entrance.value]
+        seam = [i for i, w in enumerate(exit_plan) if tuple(w.coordinates) == (14, 4)]
+        log(f"[{TAG}] P1 plan {at}->(6,15) {len(exit_plan)} wp off_map={len(off_map)} "
+            f"seam_14_4_at={seam} (PREDICTED all on ENTRANCE, seam absent)")
+        if seam:
+            log(f"[{TAG}] !! P1 REFUSING TO WALK - the plan routes over (14,4), the SOUTH ARROW "
+                f"WARP back to SKY_PILLAR_OUTSIDE. Walking it would re-enter the tower and cost "
+                f"the fixture. This is a RESULT the leg build must handle, not a driver bug.")
+            self.stop_reason = "P1 plan routes over the (14,4) seam warp"
+            return
+
+        yield from budgeted(navigate_to(entrance, (6, 15)), 4000, "P1 approach (6,15)")
+        yield from budgeted(navigate_to(entrance, (6, 16)), 4000, "P1 door (6,16)")
+        yield from budgeted(wait_until_truly_controllable(), 3000, "P1 settle")
+        here_map, rest131 = where()
+        avatar = get_player_avatar()
+        log(f"[{TAG}] P1 REST at={here_map}{rest131} facing={avatar.facing_direction} "
+            f"flags={avatar.flags!r} tile_type="
+            f"{getattr(get_map_data_for_current_position(), 'tile_type', None)!r} "
+            f"(PREDICTED ROUTE131 (36,7), Down, on foot, sand)")
+        probes_run.append("P1")
+        if here_map != "ROUTE131":
+            log(f"[{TAG}] !! P1 did not land on ROUTE131 - every downstream probe is about that "
+                f"map, so the run stops here with the readings it has.")
+            self.stop_reason = f"P1 landed on {here_map}, not ROUTE131"
+            return
+
+        # ====================== P2 - THE ROUTE131 LIVE-PIN A/B (GATE 1) ======================
+        reading_before, agree_before = _route131_layout_reading()
+        log(f"[{TAG}] P2 layout BEFORE pin: {reading_before} (PREDICTED agree=False)")
+
+        def swim_plan(label: str) -> tuple:
+            try:
+                path = calculate_path((MapRSE.ROUTE131, rest131), (MapRSE.ROUTE126, (45, 66)))
+            except Exception as error:  # noqa: BLE001 - a refusal IS an arm's reading
+                log(f"[{TAG}] P2 arm {label}: REFUSED {type(error).__name__}: {str(error)[:200]}")
+                return None, None, None
+            surfs = [i for i, w in enumerate(path) if w.action is WaypointAction.Surf]
+            on131 = [tuple(w.coordinates) for w in path if tuple(w.map) == MapRSE.ROUTE131.value]
+            walls = _live_wall_tiles(MapRSE.ROUTE131, on131)
+            first = describe(path[:1])
+            log(f"[{TAG}] P2 arm {label}: {len(path)} wp surf_actions={len(surfs)} at={surfs[:4]} "
+                f"first_wp={first} on131={len(on131)} live_walls_on_131={walls[:8]} "
+                f"(n={len(walls)})")
+            return path, len(surfs), len(walls)
+
+        planner_elev_before = get_map_data(MapRSE.ROUTE131, rest131).elevation
+        path_a, surfs_a, walls_a = swim_plan("A (static, as the planner seeded itself)")
+
+        if nopin_arm:
+            log(f"[{TAG}] P2N CONTROL ARM (CH21_PROBE_NOPIN131=1): NOT pinning. PREDICTED the swim "
+                f"FAILS on ROUTE131 at the water's edge, on foot - the live KI-73 reproduction.")
+            nopin_failed = False
+            try:
+                yield from budgeted(
+                    _navigate_riding_out(MapRSE.ROUTE126, (45, 66), tries=2), 12000, "P2N swim"
+                )
+            except Exception as error:  # noqa: BLE001 - the FAILURE is the reading
+                nopin_failed = True
+                log(f"[{TAG}] P2N swim FAILED as predicted: {type(error).__name__}: "
+                    f"{str(error)[:300]}")
+            end_map, end_at = where()
+            end_avatar = get_player_avatar()
+            log(f"[{TAG}] P2N RESULT failed={nopin_failed} at={end_map}{end_at} "
+                f"facing={end_avatar.facing_direction} flags={end_avatar.flags!r} "
+                f"(PREDICTED failed=True, ROUTE131 (36,8), Down, on foot)")
+            probes_run.append("P2N")
+            # ⛔ The control arm ENDS here on purpose; `run()` grades it on its own predicate
+            # ("the reading happened"), never on the swim working.
+            self.stop_reason = self.CONTROL_ARM_DONE
+            return
+
+        pin_note = _pin_planner_to_live_layout(MapRSE.ROUTE131)
+        log(f"[{TAG}] P2 PIN {pin_note}")
+        reading_after, agree_after = _route131_layout_reading()
+        log(f"[{TAG}] P2 layout AFTER pin: {reading_after} (PREDICTED agree=True)")
+        planner_elev_after = get_map_data(MapRSE.ROUTE131, rest131).elevation
+        path_b, surfs_b, walls_b = swim_plan("B (pinned to the LIVE header)")
+
+        divergence = None
+        if path_a is not None and path_b is not None:
+            described_a, described_b = describe(path_a), describe(path_b)
+            for index in range(min(len(described_a), len(described_b))):
+                if described_a[index] != described_b[index]:
+                    divergence = index
+                    break
+            if divergence is None and len(described_a) != len(described_b):
+                divergence = min(len(described_a), len(described_b))
+        differ = (surfs_a != surfs_b) or (walls_a != walls_b) or (divergence is not None) or (
+            (path_a is None) != (path_b is None)
+        )
+        log(f"[{TAG}] P2 SOURCE-TILE ELEVATION planner_before={planner_elev_before} "
+            f"planner_after={planner_elev_after} (PREDICTED 1 -> 3; map_path.py:916 seeds the "
+            f"start node from THIS value, which is why a static 'deep water' source emits no "
+            f"Surf mount)")
+        log(f"[{TAG}] P2 DISCRIMINATOR surf_actions A={surfs_a} B={surfs_b} | "
+            f"live_walls A={walls_a} B={walls_b} | first_divergent_wp={divergence} | "
+            f"ARMS_DIFFER={differ} (PREDICTED A=0 B=1 -> DIFFER; identical arms would be "
+            f"INCONCLUSIVE, not a refutation)")
+        probes_run.append("P2")
+
+        if _os.environ.get("POKEBOT_CH21_FAULT_PROBERAISE", "").strip() == "1":
+            # ⛔ FAULT ARM (house rule 6: FAULT-TEST EVERY GATE). This raises where a lost battle
+            # would raise `StoryAbort` - deep inside the probe, after real readings. It PASSES the
+            # test by making the run print `!! PROBE RAISED`, the P0/P1/P2 readings, and
+            # `ACCEPTANCE: FAIL`. Before the 2026-09-02 fix this same raise printed NOTHING.
+            raise RuntimeError("Ch21 leg5 FAULT PROBERAISE: simulating a mid-probe abort")
+
+        # ============================ P3 - THE RETURN SWIM + DIVE ============================
+        yield from budgeted(
+            _navigate_riding_out(MapRSE.ROUTE126, (45, 66), tries=30), 60000, "P3 swim"
+        )
+        here_map, at = where()
+        tile_type = getattr(get_map_data_for_current_position(), "tile_type", None)
+        log(f"[{TAG}] P3 SWIM arrived at={here_map}{at} tile_type={tile_type!r} "
+            f"encounters_so_far={self.encounters} {self.encounter_maps}")
+        if here_map != "ROUTE126" or at != (45, 66):
+            log(f"[{TAG}] !! P3 did not reach the dive tile - stopping with the readings taken.")
+            self.stop_reason = f"P3 stopped at {here_map}{at}, not the dive tile"
+            return
+        if tile_type not in ("Deep Water", "Interior Deep Water", "Semi-Deep Water",
+                             "Sootopolis Deep Water"):
+            log(f"[{TAG}] !! P3 refusing to dive - tile_type {tile_type!r} is not divable.")
+            self.stop_reason = f"P3 dive tile is {tile_type!r}, not divable"
+            return
+
+        yield from budgeted(dive(), 3000, "P3 dive")
+        yield from budgeted(
+            navigate_to(MapRSE.UNDERWATER_ROUTE126, (45, 65), False), 6000, "P3 uw door"
+        )
+        here_map, uw_at = where()
+        log(f"[{TAG}] P3 UNDERWATER arrived at={here_map}{uw_at} (PREDICTED "
+            f"UNDERWATER_SOOTOPOLIS_CITY (9,8))")
+        if here_map != "UNDERWATER_SOOTOPOLIS_CITY":
+            log(f"[{TAG}] !! P3 the dive door did not land underwater in Sootopolis.")
+            self.stop_reason = f"P3 dive door landed on {here_map}"
+            return
+        yield from budgeted(
+            navigate_to(MapRSE.UNDERWATER_SOOTOPOLIS_CITY, (9, 7), False), 6000, "P3 emerge tile"
+        )
+        here_map, uw_at = where()
+        uw_tile_type = getattr(get_map_data_for_current_position(), "tile_type", None)
+        log(f"[{TAG}] P3 EMERGE-TILE at={here_map}{uw_at} tile_type={uw_tile_type!r} "
+            f"(PREDICTED (9,7) 'Deep Water')")
+        probes_run.append("P3")
+        if uw_at != (9, 7) or uw_tile_type != "Deep Water":
+            log(f"[{TAG}] !! P3 not on the hand-picked emerge tile - refusing to surface (KI-72: "
+                f"25 of this map's 31 walkable tiles emerge under the crater wall and the GAME "
+                f"will not stop it).")
+            self.stop_reason = f"P3 not on the emerge tile ({uw_at}, {uw_tile_type!r})"
+            return
+
+        # ==================== P4 - SURFACE + THE RAYQUAZA-ARRIVAL SCENE ======================
+        yield from budgeted(surface_from_dive(), 4000, "P4 surface")
+        here_map, city_at = where()
+        log(f"[{TAG}] P4 R-EMERGE uw_tile={uw_at} city_tile={city_at} map={here_map} "
+            f"(PREDICTED SOOTOPOLIS_CITY (29,53) for ANY uw tile - the fixed `setdivewarp`, NOT "
+            f"an (x,y)-preserving emerge. If this reads (29,53) the KI-72 wording in "
+            f"sootopolis.py:25-32 is a DOC BUG owed a fix with the leg.)")
+        if here_map != "SOOTOPOLIS_CITY":
+            log(f"[{TAG}] !! P4 surfaced but not in SOOTOPOLIS_CITY.")
+            self.stop_reason = f"P4 surfaced onto {here_map}"
+            return
+
+        try:
+            yield from budgeted(
+                _ride_summit_scene("SKY_PILLAR_STATE", 2, budget_frames=30000), 31000, "P4 scene"
+            )
+        except Exception as error:  # noqa: BLE001 - a stalled one-shot is a RESULT
+            self.scene_failure = f"{type(error).__name__}: {str(error)[:300]}"
+            log(f"[{TAG}] !! P4 SCENE RIDE FAILED: {self.scene_failure}")
+        mid_map, mid_at = where()
+        script_mid = get_global_script_context().is_active
+        # ⛔ THE HEADLINE CARRIES THE CAVEAT. On the failure path the var may never have reached 2,
+        # so "the instant SKY_PILLAR_STATE reached 2" would be a claim the value does not support.
+        moment = ("the instant SKY_PILLAR_STATE reached 2" if self.scene_failure is None
+                  else "AFTER THE SCENE RIDE FAILED - NOT proven to be mid-scene")
+        log(f"[{TAG}] P4 MID-SCENE ({moment}) at={mid_map}{mid_at} "
+            f"script_active={script_mid} controllable={player_avatar_is_controllable()} "
+            f"(PREDICTED (29,49), script ACTIVE, controllable True *under lockall* - which is "
+            f"exactly why the settle below exists and why no tile may be read here)")
+
+        # ---- THE SETTLE (refuter finding F1). Four conjuncts, bounded, no state writes. ----
+        static_header = _map_module._map_header_cache[context.rom.id][MapRSE.SOOTOPOLIS_CITY.value]
+        settle_frames = 0
+        # ⛔ FAULT ARM (house rule 6): a budget of 0 means the settle can NEVER succeed, which is
+        # exactly the state the gate below exists to catch. It PASSES by refusing P5/P6 - i.e. by
+        # NOT pinning the planner to the crisis-state layout and NOT printing PASS.
+        settle_budget = 0 if _os.environ.get(
+            "POKEBOT_CH21_FAULT_SCENESTOP", "").strip() == "1" else 6000
+        while settle_frames < settle_budget:
+            _check_abort()  # ⛔ FIRST statement of the loop body, outside any try
+            if (
+                not get_global_script_context().is_active
+                and _var("SKY_PILLAR_STATE") == 3
+                and read_symbol("gMapHeader")[:4] == static_header[:4]
+                and player_avatar_is_controllable()
+            ):
+                self.settle_ok = True
+                break
+            if is_waiting_for_input():
+                context.emulator.press_button("B")
+            yield
+            settle_frames += 1
+        log(f"[{TAG}] P4 SETTLE ok={self.settle_ok} frames={settle_frames} "
+            f"script_active={get_global_script_context().is_active} "
+            f"SKY_PILLAR_STATE={_var('SKY_PILLAR_STATE')} "
+            f"live_header=0x{unpack_uint32(read_symbol('gMapHeader')[:4]):08X} "
+            f"static_header=0x{unpack_uint32(static_header[:4]):08X} "
+            f"(all four conjuncts must hold: script quiet AND var==3 AND the LIVE header is back "
+            f"to the map's own NORMAL layout AND controllable)")
+        if self.settle_ok:
+            yield from budgeted(wait_until_truly_controllable(), 3000, "P4 post-settle")
+
+        here_map, rest_city = where()
+        avatar = get_player_avatar()
+        log(f"[{TAG}] P4 REST at={here_map}{rest_city} facing={avatar.facing_direction} "
+            f"flags={avatar.flags!r} vars(CITY,SKY,CRY)=({_var('SOOTOPOLIS_CITY_STATE')},"
+            f"{_var('SKY_PILLAR_STATE')},{_var('SKY_PILLAR_RAYQUAZA_CRY_DONE')}) "
+            f"LEGENDARIES_IN_SOOTOPOLIS={get_event_flag('LEGENDARIES_IN_SOOTOPOLIS')} "
+            f"HIDE_ARCHIE={get_event_flag('HIDE_SOOTOPOLIS_CITY_ARCHIE')} "
+            f"HIDE_MAXIE={get_event_flag('HIDE_SOOTOPOLIS_CITY_MAXIE')} "
+            f"(PREDICTED (29,53) Up, 5/3/1, False, False/False)")
+        probes_run.append("P4")
+
+        capturable = (
+            self.settle_ok and here_map == "SOOTOPOLIS_CITY" and _var("SKY_PILLAR_STATE") == 3
+            and self.whiteouts == 0 and self.scene_failure is None
+        )
+        _cap = _os.environ.get("CH21_CAPTURE_ARRIVAL", "").strip()
+        if _cap:
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if not capturable:
+                log(f"[{TAG}] CAPTURE SKIPPED - not capturable (settle_ok={self.settle_ok} "
+                    f"map={here_map} sky={_var('SKY_PILLAR_STATE')} whiteouts={self.whiteouts} "
+                    f"scene_failure={self.scene_failure!r})")
+            elif _out.exists() and _os.environ.get("CAPTURE_FORCE", "") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED - {_cap} exists (set CAPTURE_FORCE=1 to replace)")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] CAPTURE WROTE {_out} ({_out.stat().st_size} bytes) at "
+                    f"{here_map}{rest_city} - !! verify with probe_anchor_inventory.py, never "
+                    f"with this line")
+
+        # ⛔⛔ THE SETTLE GATE - EVERYTHING BELOW IS ABOUT THE **STATE-5 NORMAL** LAYOUT.
+        # Found by adversarial review before this driver ever ran: without this gate a timed-out
+        # settle (or a raised scene ride) fell straight through into
+        # `_pin_planner_to_live_layout(SOOTOPOLIS_CITY)`, whose ONLY guard is "am I on this map" —
+        # so mid-scene it would pin the planner to `LAYOUT_SOOTOPOLIS_CITY_LEGENDS_BATTLE` (the
+        # crisis layout that runs at states 1-4) and every P5/P6 reading would describe the WRONG
+        # map while the run still printed PASS. ⇒ a FALSE PASS that looks clean is worse than a
+        # crash, and this project has shipped that shape before (§Ch15/18/19 each PASSED stranded).
+        if not self.settle_ok or self.scene_failure is not None:
+            log(f"[{TAG}] !! P5/P6 REFUSED - the arrival never settled (settle_ok="
+                f"{self.settle_ok} scene_failure={self.scene_failure!r}). Pinning or reading the "
+                f"layout now would measure the CRISIS-state map and label it state 5.")
+            self.stop_reason = "P4 settle failed; P5/P6 refused rather than measure the wrong map"
+            return
+
+        # ================ P5 - THE STATE-5 LAYOUT, THE TEMPLATES, THE MATRIX =================
+        static_grid, width, height = static_collision_grid(MapRSE.SOOTOPOLIS_CITY)
+        soot_pin = _pin_planner_to_live_layout(MapRSE.SOOTOPOLIS_CITY)
+        log(f"[{TAG}] P5 PIN {soot_pin} (PREDICTED a NO-OP: same blockdata on both sides. A pin "
+            f"that changes nothing is NOT a fix and must never be reported as one.)")
+        live_grid = _live_collision_grid(MapRSE.SOOTOPOLIS_CITY)
+        deltas = sorted(t for t in static_grid if live_grid.get(t) != static_grid[t])
+        # ⛔ THE COUNT ALONE IS NOT THE READING. "10 tiles differ" cannot tell a caller whether the
+        # planner is about to walk into a live WALL (static 0 / live 1 - the KI-73 failure) or is
+        # merely refusing a tile the game would allow (static 1 / live 0 - harmless). Print the
+        # DIRECTION per tile, and count the dangerous direction separately.
+        detail = [(t, static_grid[t], live_grid.get(t)) for t in deltas]
+        opens_to_us = [t for t, s, l in detail if s == 0 and l != 0]
+        log(f"[{TAG}] P5 COLLISION DIFF map={width}x{height} live_vs_static_deltas={len(deltas)} "
+            f"OPEN-to-planner/WALL-live={len(opens_to_us)} {opens_to_us} "
+            f"(PREDICTED 0 - a nonzero count is a FINDING about the 'DIRTY post-crisis layout' "
+            f"claim in 04-HANDOFF; only the OPEN-to-planner/WALL-live direction can strand a walk)")
+        log(f"[{TAG}] P5 COLLISION DIFF DETAIL (tile, static, live) {detail}")
+
+        templates = get_save_block(1, 0xC70, 64 * 24)
+        parsed = []
+        for i in range(64):
+            block = templates[i * 24:(i + 1) * 24]
+            local_id = block[0]
+            if local_id == 0:
+                continue
+            parsed.append((
+                local_id,
+                block[1],
+                _struct.unpack("<h", block[4:6])[0],
+                _struct.unpack("<h", block[6:8])[0],
+                _struct.unpack("<H", block[0x14:0x16])[0],
+            ))
+        by_id = {entry[0]: entry for entry in parsed}
+        log(f"[{TAG}] P5 TEMPLATES n={len(parsed)} ids={sorted(by_id)} "
+            f"(CONTROL: exactly 18 entries with ids 1..18 - the map.json count. A different count "
+            f"means this offset is not objectEventTemplates and NO position below is trustworthy.)")
+        log(f"[{TAG}] P5 TEMPLATE-CONTROL id2(Woman4, never moved by any script)="
+            f"{by_id.get(2)} (map.json says x=47 y=33; a reading of 54/40 would mean these "
+            f"coordinates carry the +7 MAP_OFFSET and every prediction below shifts with it)")
+        log(f"[{TAG}] P5 TEMPLATES steven7={by_id.get(7)} maxie16={by_id.get(16)} "
+            f"archie17={by_id.get(17)} wallace18={by_id.get(18)} "
+            f"(PREDICTED x,y = (29,33) (33,35) (34,35) (31,33) after SetOutsideGymObjPos; "
+            f"map.json ROM defaults are (20,36) (29,33) (31,33) (31,18))")
+        objects("at-rest")
+        log(f"[{TAG}] P5 NOTE an EMPTY object list here is PREDICTED, not a finding: objects "
+            f"spawn only within roughly [y-7, y+9] of the player and the NPCs sit ~20 tiles north.")
+
+        control_tile = (33, 34)
+        control_live = live_grid.get(control_tile)
+        if control_live == 0:
+            candidates = [t for t in ((33, 34), (32, 34), (34, 33), (30, 34), (35, 34))
+                          if live_grid.get(t, 0) != 0]
+            log(f"[{TAG}] !! P5 the intended negative control {control_tile} is collision "
+                f"{control_live} in the LIVE grid - it is NOT a wall. Substituting "
+                f"{candidates[0] if candidates else None} and SAYING SO; a control that can path "
+                f"is decoration.")
+            if candidates:
+                control_tile = candidates[0]
+        log(f"[{TAG}] P5 CONTROL-TILE {control_tile} live_collision={live_grid.get(control_tile)}")
+        matrix_rest = path_matrix("rest", [(33, 36), (32, 35), (34, 36), (34, 34), (31, 34),
+                                           (43, 32)], control_tile)
+        probes_run.append("P5")
+
+        # ========================= P6 - ONE WALK TO THE NPC APPROACH =========================
+        if isinstance(matrix_rest.get((33, 36)), int):
+            try:
+                plan = calculate_path((MapRSE.SOOTOPOLIS_CITY, rest_city),
+                                      (MapRSE.SOOTOPOLIS_CITY, (33, 36)))
+                walls = _live_wall_tiles(MapRSE.SOOTOPOLIS_CITY,
+                                         [tuple(w.coordinates) for w in plan])
+                log(f"[{TAG}] P6 PLAN {len(plan)} wp live_walls={walls} (PREDICTED 0)")
+            except Exception as error:  # noqa: BLE001
+                log(f"[{TAG}] P6 plan re-read failed: {type(error).__name__}: {str(error)[:200]}")
+            walked = False
+            try:
+                yield from budgeted(
+                    _navigate_riding_out(MapRSE.SOOTOPOLIS_CITY, (33, 36), tries=6), 12000,
+                    "P6 walk"
+                )
+                walked = True
+            except Exception as error:  # noqa: BLE001 - a failed walk is a RESULT
+                log(f"[{TAG}] !! P6 WALK FAILED: {type(error).__name__}: {str(error)[:300]}")
+            here_map, at = where()
+            log(f"[{TAG}] P6 walked={walked} at={here_map}{at} "
+                f"facing={get_player_avatar().facing_direction}")
+            objects("at-33-36")
+            log(f"[{TAG}] P6 (PREDICTED loaded: 16@(33,35) 17@(34,35) 18@(31,33) 7@(29,33))")
+            path_matrix("at-33-36", [(34, 36), (34, 34), (31, 34), (32, 35)], control_tile)
+            probes_run.append("P6")
+        else:
+            log(f"[{TAG}] !! P6 SKIPPED - the rest tile could not plan to (33,36) "
+                f"({matrix_rest.get((33, 36))}); that refusal is itself the finding.")
+
+        # ⛔ NO VERDICT HERE. `run()` owns the single ACCEPTANCE line, so that a raise anywhere
+        # above still reaches it. A second verdict site is how a partial run prints PASS.
+
+
+class Ch21ReturnMode(BotMode):
+    """§Ch21 LEG 5 — THE RETURN AND HM07 WATERFALL. Drives `sootopolis.return_and_get_waterfall`.
+
+    ‼ IT CALLS THE PRODUCTION ENTRY POINT, never a copy — the standing rule of every §Ch21 driver.
+
+    THE GRADE (house rule 8 — §Ch15/§Ch18/§Ch19 each PASSED their own test while STRANDED):
+      every reading happened AND the ORDER trace matches AND `RECEIVED_HM_WATERFALL` is SET AND
+      **HM07 is in the bag by ITEM ID** AND the bot ends on SOOTOPOLIS_CITY with a live
+      `calculate_path` to the continuation target AND the planner still REFUSES the control tile
+      AND whiteouts == 0.
+    ⛔ WHY THE ITEM AND NOT JUST THE FLAG: `giveitem ITEM_HM_WATERFALL` and
+    `setflag FLAG_RECEIVED_HM_WATERFALL` are ADJACENT decomp lines but not the same fact — a full
+    bag fails the first and not the second. The flag corroborates; the item and the path decide.
+
+    ⛔ ONE-SHOTS ON THIS LEG, in order: the Rayquaza ARRIVAL cutscene (SKY_PILLAR_STATE 1->2->3),
+    the two leader talks (the SECOND sets 0x9E and `warpsilent`s the player to (31,34)), and
+    Wallace's gift. None replay. The leg captures `CH21_CAPTURE_ARRIVAL` between the arrival and
+    the talks so the NPC half can be iterated without re-swimming.
+
+    FAULT ARMS (env-read inside the LEG, so they are driver-proof; the happy path reaches none):
+      POKEBOT_CH21_FAULT_NOPIN131=1    skip the ROUTE131 pin: the swim must fail NAMED, bounded.
+      POKEBOT_CH21_FAULT_SETTLESKIP=1  skip the arrival settle: the gate must RAISE before anything
+                                       pins or reads the city layout.
+      POKEBOT_CH21_FAULT_SCENESTOP=1   return at the arrival — the §Ch15/18/19 shape exactly.
+                                       ⛔ THE MOST IMPORTANT ARM: it must FAIL with missing= naming
+                                       every NPC and HM07 reading.
+      POKEBOT_CH21_FAULT_NPCMISS=1     face away on the first Maxie approach: the missed-press bail
+                                       must fire and the retry must recover. PASS is still expected.
+      POKEBOT_CH21_FAULT_DROPREADING=1 suppress R-HM07 at its take point: missing=['R-HM07'], FAIL.
+      POKEBOT_CH21_FAULT_CONTROLOPEN=1 aim R-CONTROL at a reachable tile: control_refused=False,
+                                       FAIL — a control that cannot fail is decoration.
+      (no env var) THE VACUITY ARM     point this driver at its OWN output fixture: the leg's
+                                       preflight sees `RECEIVED_HM_WATERFALL` already SET and
+                                       raises "this leg is SPENT" -> premise FAIL.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_rayquaza_gone.ss1 --driver ch21return \
+             --frames 60000
+    ‼ THE BUDGET IS AN ESTIMATE ANCHORED ON A MEASUREMENT: the PART C probe walked the identical
+    route (exit, swim, dive, arrival, one city walk) in **16,297 frames** with 7 encounters. The
+    three talks and the second city walk are the only additions. ⛔ REPLACE IT with drive 1's
+    `frames=` line.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch21Return"
+
+    def __init__(self):
+        super().__init__()
+        self.encounters = 0
+        self.encounter_maps: list[str] = []
+        self.whiteouts = 0
+
+    def on_whiteout(self) -> bool:
+        # ⛔ True + latch (leg 3's B1 fix): returning False hands the run to Manual and DISCARDS
+        # this generator, so the RESULT/ACCEPTANCE block would never print. On THIS leg a whiteout
+        # respawns at the Sootopolis PC — inside the leg's own map, with the vars unchanged — which
+        # is exactly why the grade is POSITION + PATH + ITEM and never vars alone.
+        self.whiteouts += 1
+        log("[ch21return] !! WHITEOUT - respawning at the Sootopolis PC; latching the story abort "
+            "so a verdict still prints.")
+        try:
+            from modules.story.early_game import set_story_abort
+
+            set_story_abort(True)
+        except Exception as error:  # noqa: BLE001 - never let the hook itself end the run
+            log(f"[ch21return] !! could not latch the abort: {type(error).__name__}: {error}")
+            return False
+        return True
+
+    def on_battle_started(self, encounter):
+        self.encounters += 1
+        try:
+            from modules.player import get_player_avatar
+
+            self.encounter_maps.append(str(tuple(get_player_avatar().map_group_and_number)))
+        except Exception:  # noqa: BLE001 - the count is what matters
+            self.encounter_maps.append("?")
+        return super().on_battle_started(encounter)
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_var
+        from modules.player import get_player_avatar
+        from modules.story import sootopolis as ch21
+
+        TAG = "ch21return"
+        frames_before = context.emulator.get_frame_count()
+
+        def where() -> tuple[str, tuple[int, int]]:
+            avatar = get_player_avatar()
+            coordinates = tuple(avatar.local_coordinates)
+            try:
+                return MapRSE(tuple(avatar.map_group_and_number)).name, coordinates
+            except Exception:  # noqa: BLE001
+                return f"UNKNOWN{tuple(avatar.map_group_and_number)}", coordinates
+
+        start_name, start_at = where()
+        start_vars = (get_event_var("SOOTOPOLIS_CITY_STATE"), get_event_var("SKY_PILLAR_STATE"),
+                      get_event_var("SKY_PILLAR_RAYQUAZA_CRY_DONE"))
+        start_hm = ch21.waterfall_received()
+        start_bag = ch21._hm07_in_bag()
+        log(f"[{TAG}] PRE at={start_name}{start_at} vars={start_vars} hm_flag={start_hm} "
+            f"hm07_in_bag={start_bag} leaders_left={ch21.leaders_have_left()} "
+            f"wallace_state={get_event_var('SOOTOPOLIS_WALLACE_STATE')} "
+            f"(a full run requires SKY_PILLAR_ENTRANCE, (5,1,1), flag CLEAR, bag 0)")
+        # ⛔ THE GYM DOOR IS THE CHAPTER'S REAL CONTINUATION TARGET: (31,32) warps to
+        # SOOTOPOLIS_CITY_GYM_1F, i.e. Juan, i.e. the NEXT chapter — and Wallace stands on (31,33),
+        # directly south of it, until his gift script moves him aside.
+        try:
+            from modules.map_path import calculate_path as _cp
+
+            _here = (MapRSE(tuple(get_player_avatar().map_group_and_number)),
+                     tuple(get_player_avatar().local_coordinates))
+            _p = _cp(_here, (MapRSE.SOOTOPOLIS_CITY, (31, 32)))
+            log(f"[{TAG}] PRE gym-door (31,32) reachable: OK {len(_p)} wp")
+        except Exception as _e:  # noqa: BLE001 - a refusal IS the reading
+            log(f"[{TAG}] PRE gym-door (31,32) reachable: {type(_e).__name__}: {str(_e)[:200]}")
+
+        # ⛔ THE DRIVER OWNS THE REPORT DICT AND HANDS IT IN — a dict RETURNED by a raising
+        # generator never arrives, and the failed run is the one whose partial readings matter.
+        report: dict = {}
+        failure = None
+        try:
+            yield from ch21.return_and_get_waterfall(report)
+        except Exception as error:  # noqa: BLE001 - the driver REPORTS failures, never hides them
+            failure = f"{type(error).__name__}: {str(error)[:600]}"
+            log(f"[{TAG}] LEG FAILED: {failure}")
+
+        readings = set(report.get("readings") or ())
+        trace = list(report.get("trace") or ())
+        here_name, at = where()
+        end_vars = (get_event_var("SOOTOPOLIS_CITY_STATE"), get_event_var("SKY_PILLAR_STATE"),
+                    get_event_var("SKY_PILLAR_RAYQUAZA_CRY_DONE"))
+
+        # ⛔ required set IMPORTED from the leg — a private copy is the P5 shape (a fact in two
+        # places, one of them updated).
+        required = set(ch21.LEG5_READINGS)
+        missing = sorted(required - readings)
+
+        # ⛔ ORDER IS PART OF THE PREDICATE: a readings SET cannot distinguish "got HM07, then
+        # proved it can continue" from the reverse.
+        order_iter = iter(trace)
+        order_ok = all(any(step == want for step in order_iter) for want in ch21.LEG5_ORDER)
+
+        # ⛔ THE VACUITY GATE. The leg's own OUTPUT fixture has the HM flag SET, which is the one
+        # conjunct false there — and the leg itself raises on it, so this also asserts that raise
+        # actually happened rather than trusting it.
+        premise_ok = (
+            start_name == "SKY_PILLAR_ENTRANCE"
+            and start_vars[0] == 5 and start_vars[1] == 1
+            and start_hm is False and start_bag == 0
+            and report.get("phase") == "full"
+        )
+        if not premise_ok:
+            log(f"[{TAG}] !! VACUOUS/RESUMED PREMISE - start={start_name}{start_at} "
+                f"vars={start_vars} hm_flag={start_hm} bag={start_bag} "
+                f"phase={report.get('phase')}. Only a full run from the leg-4 output fixture can "
+                "PASS; a run from this leg's OWN output satisfies every end-state check while "
+                "doing nothing.")
+
+        hm_flag = ch21.waterfall_received()
+        hm_bag = ch21._hm07_in_bag()
+        continue_ok = bool(report.get("continue_ok"))
+        control_refused = bool(report.get("control_refused"))
+        passed = (
+            failure is None
+            and premise_ok
+            and order_ok
+            and not missing
+            and hm_flag
+            and hm_bag >= 1
+            and here_name == "SOOTOPOLIS_CITY"
+            and continue_ok
+            and control_refused
+            and self.whiteouts == 0
+        )
+        # capture gate — NARROWER than `passed` (a raise AFTER the gift must not cost the fixture,
+        # and a fixture without the HM would be a trap for the next session).
+        capturable = (
+            hm_flag and hm_bag >= 1 and here_name == "SOOTOPOLIS_CITY"
+            and self.whiteouts == 0 and premise_ok
+        )
+
+        total = context.emulator.get_frame_count() - frames_before
+        log(f"[{TAG}] RESULT at={here_name}{at} phase={report.get('phase')} "
+            f"hm_flag={hm_flag} hm07_in_bag={hm_bag} "
+            f"wallace_state={report.get('wallace_state_after')} "
+            f"gym_door_wp={report.get('gym_wp')} "
+            f"encounters={self.encounters} maps={self.encounter_maps} "
+            f"whiteouts={self.whiteouts} frames={total}")
+        log(f"[{TAG}] ROUTE route131_rest={report.get('route131_rest')} "
+            f"emerge={report.get('emerge')} mid_scene={report.get('mid_scene_tile')} "
+            f"city_rest={report.get('city_rest')} warp_landing={report.get('warp_landing')} "
+            f"(PART C measured (36,7) / ((9,7),(29,53)) / (29,49) / (29,53); the warp landing is "
+            f"the DECOMP's (31,34) and had never been observed live before this leg)")
+        log(f"[{TAG}] PINS {report.get('pins')} (the ROUTE131 pin is LOAD-BEARING - measured by an "
+            f"arm with it REMOVED; the Sootopolis pins are expected NO-OPs and are never a fix)")
+        log(f"[{TAG}] VARS start={start_vars} end={end_vars} "
+            f"(the leg is graded on ITEM + POSITION + PATH; vars corroborate - a whiteout respawns "
+            f"in this very city, which is why they cannot decide alone)")
+        log(f"[{TAG}] CONTINUE continue_wp={report.get('continue_wp')} continue_ok={continue_ok} "
+            f"control_refused={control_refused}")
+        log(f"[{TAG}] ORDER order_ok={order_ok} trace={trace}")
+        log(f"[{TAG}] METHOD premise_ok={premise_ok} failure={failure}")
+        log(f"[{TAG}] readings={sorted(readings)} missing={missing} "
+            f"(the grade is DID EVERY READING HAPPEN, IN ORDER, **and does the bot HOLD THE HM and "
+            f"can it CONTINUE**)")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH21_CAPTURE", "").strip()
+        if _cap:
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if not capturable:
+                log(f"[{TAG}] CAPTURE SKIPPED - not capturable (hm_flag={hm_flag} bag={hm_bag} "
+                    f"at={here_name} whiteouts={self.whiteouts} premise_ok={premise_ok})")
+            elif _out.exists() and _os.environ.get("CAPTURE_FORCE", "") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED - {_cap} exists (set CAPTURE_FORCE=1 to replace)")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] CAPTURE WROTE {_out.name} ({_out.stat().st_size} bytes) at {at} "
+                    f"- !! verify with probe_anchor_inventory.py, not this line")
+
+        context.set_manual_mode()
+
+
 class Ch20ChapterMode(Ch20DiveMode):
     """§Ch20 AS A CHAPTER — drives the PRODUCTION function, not a copy of it.
 
@@ -11495,6 +12426,10 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch21ApproachMode()
         elif args.driver == "ch21climb":
             context.bot_mode_instance = Ch21ClimbMode()
+        elif args.driver == "ch21leg5probe":
+            context.bot_mode_instance = Ch21Leg5ProbeMode()
+        elif args.driver == "ch21return":
+            context.bot_mode_instance = Ch21ReturnMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

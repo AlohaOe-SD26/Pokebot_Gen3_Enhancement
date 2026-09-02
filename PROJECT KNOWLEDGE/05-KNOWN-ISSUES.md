@@ -2587,6 +2587,18 @@ the three refuted recon claims, and the fixture that CANNOT test this bug
 
 ## KI-72 — `calculate_path` cannot see the two tile types you CANNOT SURFACE FROM, so it will happily route a dive to a dead end (2026-08-13, code-verified, OPEN, ARMED for §Ch20 — the SEAFLOOR CAVERN; older text in the body says "§Ch21" and means Chapter 20, per the naming correction — and the Regi arc)
 
+- ⛔⛔ **2026-09-02 — A CLAIM THIS KI'S §Ch21 RESTATEMENT CARRIED IS MEASURED FALSE, AND THE
+  CORRECTION MATTERS FOR ANY FUTURE EMERGE.** `sootopolis.py`'s trap list used to say *"`Emerge`
+  preserves (x,y), so the underwater tile IS the city tile."* Measured by `--driver ch21leg5probe`
+  and reproduced by `--driver ch21return`: surfacing from `UNDERWATER_SOOTOPOLIS_CITY (9,7)` lands
+  at `SOOTOPOLIS_CITY (29,53)`. `Underwater_SootopolisCity_OnResume` runs
+  `setdivewarp MAP_SOOTOPOLIS_CITY, 29, 53` — a **FIXED** destination that ignores where you
+  surfaced from. ⇒ the KI's core danger is UNCHANGED and still real (the guard checks only the
+  underwater tile type, and this map has none of the two blocking types), and the hard-coded (9,7)
+  is still right — but **the city tile must be READ, never derived from the underwater one.**
+  Anyone routing a different emerge point on a map with a `setdivewarp` would have been misled.
+  Corrected in place at `sandbox-pokebot/modules/story/sootopolis.py:25-40`.
+
 - **The measurement** (verified directly, one grep):
   ```
   grep -rn "Underwater Blocked Above|Seaweed No Surfacing" modules/ --include=*.py
@@ -2624,7 +2636,29 @@ the three refuted recon claims, and the fixture that CANNOT test this bug
 
 ---
 
-## KI-73 — the map-layout cache is keyed on MAP NUMBER, but Shoal Cave swaps its floor plan at runtime, so the planner can route against a layout that is not on screen (2026-08-13, code-verified, OPEN)
+## KI-73 — the map-layout cache is keyed on MAP NUMBER, but Shoal Cave swaps its floor plan at runtime, so the planner can route against a layout that is not on screen (2026-08-13, code-verified, OPEN — blast radius WIDENED 2026-09-02)
+
+- ⛔⛔ **2026-09-02 — THE BLAST RADIUS INCLUDES `get_map_data_for_current_position()`, THE FUNCTION
+  WHOSE NAME PROMISES THE OPPOSITE.** MEASURED by `--driver ch21leg5probe`: standing ON FOOT on
+  ROUTE131 (36,7), a live sand tile, that function returned `tile_type='Deep Water'`. It builds its
+  `MapLocation` from the LIVE `gMapHeader`, but `MapLocation._map_layout` resolves through the
+  **shared** `_map_layout_cache` (map.py:745-755), which the run's own first `calculate_path` had
+  already seeded STATIC for ROUTE131. ⇒ **on a layout-swapped map, a `tile_type` / `collision` /
+  `elevation` guard is worthless until that map is pinned** — including the leg-1-style
+  "refuse to dive unless the tile is Deep Water" assertions, which can read the wrong map's answer.
+  The only trustworthy live oracle remains `_live_collision_grid` (`gBackupMapLayout`).
+- ✅ **2026-09-02 — AND THE PIN IS PROVEN LOAD-BEARING BY AN ARM WITH IT REMOVED** (house rule 8),
+  on ROUTE131 (which unconditionally runs `setmaplayoutindex LAYOUT_ROUTE131_SKY_PILLAR`):
+  un-pinned, `calculate_path(ROUTE131 (36,7) -> ROUTE126 (45,66))` raises `PathFindingError` and the
+  bot never moves — a PLANNING failure, not a walking one. Pinned: 356 wp with 3 Surf mounts. The
+  source tile's elevation reads **1 static / 3 live**, which is exactly what `map_path.py:916` seeds
+  the start node from. Evidence `tools/story-dev/evidence/2026-09-02-ch21leg5probe-NOPIN131.txt`
+  and `…-ch21return-fault-NOPIN131`.
+- ⚠ **A pin can also be a NO-OP, and reporting one as a fix is its own defect.** SOOTOPOLIS_CITY at
+  `SOOTOPOLIS_CITY_STATE=5` / `SKY_PILLAR_STATE=3` pins `0x083E6A04 -> 0x083E6A04` and a whole-map
+  live-vs-static collision diff finds 10 differing tiles of which **0** are open-to-planner/wall-live
+  (all ten are `static=1 -> live=3` door warps locked by `SootopolisCity_OnLoad`). ⇒ always log what
+  the pin CHANGED, and grade on the direction of the difference, never on the count.
 
 - **The mechanism**, `modules/map.py:735-755`:
   ```python

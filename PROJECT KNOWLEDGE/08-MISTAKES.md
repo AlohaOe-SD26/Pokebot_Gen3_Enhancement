@@ -10509,3 +10509,106 @@ built on it.)
 blind to the giant single-line cells (`#24-remainingarc`, the banner) that are the whole reason a
 value goes stale in one place and not another. When you must cap width to read, cap it on a SEPARATE
 line from the one that decides "clean": grep first (unfiltered, count the hits), *then* pretty-print.
+
+---
+
+## 2026-09-02 — §Ch21 LEG 5 PASSED ITS OWN ACCEPTANCE WHILE SEALING THE DOOR TO THE NEXT CHAPTER
+
+**Symptom.** `--driver ch21return` drive 1 returned `ACCEPTANCE: PASS`: all 12 readings, `order_ok`,
+`missing=[]`, `hm_flag=True`, `hm07_in_bag=1`, `continue_ok=True`, `control_refused=True`,
+`whiteouts=0`. One pre-registered prediction missed — `wallace_state=0`, predicted 1 — which the
+predictions file had itself named as a falsifier. Reading the leg's OWN OUTPUT FIXTURE confirmed it
+was not a stale read: `wallace_state=0` persisted, **and `calculate_path(-> (31,32))` raised
+`PathFindingError`.** (31,32) is the warp to `SOOTOPOLIS_CITY_GYM_1F` — Juan — i.e. **§Ch22**. The
+chapter had been completed into a dead end.
+
+**Root cause — two faults, one shape.**
+1. `_ride_talk`'s success predicate was `done() and controllable`. But
+   `SootopolisCity_EventScript_GiveWaterfall` sets `FLAG_RECEIVED_HM_WATERFALL` and then STILL runs
+   `msgbox`, `closemessage`, and the `call_if_eq VAR_FACING` tail that makes Wallace step off the
+   gym door. The ride returned mid-script, nothing pressed a button again, the script parked, and
+   `VAR_SOOTOPOLIS_WALLACE_STATE` was never written — so Wallace stayed on (31,33), one tile south
+   of the gym warp, blocking it. ‼ **This module already documents this exact lesson twice** —
+   `_ride_steven_escort` ("the `setflag` sits three lines BEFORE the `warp`") and
+   `_settle_after_arrival` (the var flips 309 frames before the scene ends). I wrote the second one
+   THIS SESSION and still shipped the first one's bug in a new helper an hour later.
+2. The "…and the bot can CONTINUE" reading aimed at the **Poké Center** (43,32), which is reachable
+   whether or not Wallace ever moves. The check was real, ran, and passed — on the wrong target.
+
+**The fix that worked.** (a) `_ride_talk` success now requires
+`not get_global_script_context().is_active` as well — the script must be FINISHED, not merely past
+its flag. (b) A new reading **R-GYMDOOR** proves `calculate_path(-> (31,32))` succeeds, plus a named
+raise when `WALLACE_STATE == 0`. Re-driven: `wallace_state=1`, `gym_door_wp=2`, and the same run's
+PRE line shows the door UNREACHABLE before the talks — a clean before/after A/B in one log.
+
+**Prevention rules.**
+⛔ **A CONTINUATION CHECK IS ONLY AS GOOD AS THE CONTINUATION IT NAMES.** "The bot can still path
+somewhere" is not the predicate; "the bot can reach THE THING THE NEXT CHAPTER STARTS AT" is. Before
+writing the target, ask what the very next work item needs to walk to, and aim the check there.
+⛔ **A TALK IS NOT OVER WHEN ITS FLAG IS SET — IT IS OVER WHEN THE SCRIPT IS.** Any ride whose
+success predicate reads a flag/var the script writes MID-body must also require
+`not get_global_script_context().is_active`. The flag says the write happened; only the script
+context says the tail ran. ‼ This rule is now stated in three helpers in one file; if a fourth ride
+is ever written, this is the line it must contain.
+
+---
+
+## 2026-09-02 — A CONTINUOUSLY-HELD BUTTON CANNOT CLOSE A GEN-3 MSGBOX: 20,000 FRAMES PARKED
+
+**Symptom.** After fixing the mistake above, `--driver ch21return` drive 2 produced **no verdict at
+all** — the harness stopped it with `HANG CONFIRMED (20000 frames no progress)` at frame 36289. The
+no-progress dump named the exact spot: at (33,36), `gen -> _ride_talk`, with
+`scripts=['SootopolisCity_EventScript_MaxieRayquaza', 'Std_MsgboxDefault']` and `DialogueNotActive`.
+It was ~11 frames from the ride's own 20,000-frame budget raising, so the bound was correct and
+simply slower than the harness's detector.
+
+**Root cause.** `_ride_talk` called `context.emulator.press_button(...)` on EVERY frame, which HOLDS
+the button. Every `MSGBOX_DEFAULT` ends in Gen 3's `waitbuttonpress`, which tests `JOY_NEW` — a
+fresh press EDGE. A held button never produces one, so the box could not close, so `setflag
+FLAG_MET_MAXIE_SOOTOPOLIS` (which sits AFTER the msgbox) never ran, so `done()` was never true.
+‼ Drive 1 hid this completely: its weaker predicate returned before the box mattered. **Tightening a
+success predicate exposed a latent input bug that had been there all along** — the fix did not cause
+the hang, it revealed it.
+
+**The fix that worked.** Press on a DUTY CYCLE — `if frames % 4 == 0:` — so the game sees a clean
+press/release edge. The NPC half then completed in 4,634 frames, and the full leg in 20,705.
+
+**Prevention rule.** ⛔ **PRESSING A BUTTON EVERY FRAME IS HOLDING IT, NOT PRESSING IT.** Any ride
+loop that must dismiss a msgbox / `waitbuttonpress` has to press on a duty cycle (one frame in four
+is proven here). Mash-every-frame is only safe for scenes driven by `delay`/`waitstate`, which is why
+`_ride_summit_scene` gets away with it. ‼ And when a newly-tightened predicate produces a hang,
+suspect a LATENT bug the old predicate skipped past — do not revert the predicate.
+
+---
+
+## 2026-09-02 — TWO GATES THAT WOULD HAVE PRODUCED A CLEAN-LOOKING FALSE PASS, CAUGHT BEFORE THE DRIVE
+
+**Symptom (pre-emptive — this one cost nothing, and that is the point).** An adversarial reviewer was
+given ONLY the new `Ch21Leg5ProbeMode` diff, the pre-registered predictions, and the project's known
+bug shapes, before the probe was ever run. It returned two CONFIRMED criticals.
+
+**Root cause.**
+1. `on_whiteout()` latched `StoryAbort` and its comment claimed "so a verdict still prints" — but the
+   probe body had no top-level `try/except`. One lost battle during the surf would have raised
+   `StoryAbort` out of the generator, the harness would have called `set_manual_mode()` (which clears
+   the controller stack), and P3-P6 plus the whole ACCEPTANCE line would never have printed. The
+   comment was copied from `Ch21ClimbMode`, which HAS the wrapper; the wrapper was not.
+2. Nothing gated P5/P6 on the settle succeeding. `_pin_planner_to_live_layout`'s only guard is "am I
+   standing on this map", so a timed-out settle would have pinned the planner to the CRISIS layout
+   and every downstream reading would have described the wrong map — while still printing PASS.
+
+**The fix that worked, and the FAULT TEST that proved it.** A single `run()` wrapper that owns the
+only ACCEPTANCE line, plus an explicit refusal when the settle fails. ⛔ Both gates were then
+FAULT-TESTED (house rule 6): `POKEBOT_CH21_FAULT_PROBERAISE=1` → `!! PROBE RAISED`, partial readings
+`['P0','P1','P2']`, `ACCEPTANCE: FAIL`; `POKEBOT_CH21_FAULT_SCENESTOP=1` → `SETTLE ok=False ...
+live_header=0x08469200 static_header=0x083E8624`, `P5/P6 REFUSED`, `ACCEPTANCE: FAIL`.
+‼ **That second arm MEASURED the danger rather than asserting it:** mid-scene the city really is
+running a different layout pointer, so the un-gated version would genuinely have pinned the wrong map.
+The refactor was then proven NEUTRAL by re-running the clean arm: identical `frames=16297`, identical
+readings, identical PASS.
+
+**Prevention rule.** ⛔ **A HOOK THAT PROMISES A VERDICT IS ONLY AS TRUE AS THE CATCH THAT LETS THE
+VERDICT RUN.** Copying an `on_whiteout` comment does not copy the `try/except` that makes it true —
+when a driver is modelled on another, diff the ERROR PATHS, not just the happy path. ⇒ and pair it
+with the standing rule that a probe's grade must include the state its readings DEPEND on
+(`settle_ok`, `scene_failure`), never only "did the probe reach this line".

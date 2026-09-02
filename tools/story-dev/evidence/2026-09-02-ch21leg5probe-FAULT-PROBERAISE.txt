@@ -1,0 +1,45 @@
+[setup] LOG -> leg5probe_fault_raise.log
+[setup] loaded save state post_rayquaza_gone.ss1; build=sandbox
+[run] starting faithful loop for up to 5000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch21Leg5ProbeMode.run   (state=OVERWORLD)
+[ch21leg5probe] P0 at=SKY_PILLAR_ENTRANCE(14, 3) vars(CITY,SKY,CRY)=(5,1,1) controllable=True (PREDICTED SKY_PILLAR_ENTRANCE(14,3) / 5,1,1 / True)
+[ch21leg5probe] P0 flags HM_WATERFALL=False ARCHIE_MAXIE_LEAVE=False KYOGRE_ESCAPED=True LEGENDARIES_IN_SOOTOPOLIS=True MET_ARCHIE=False MET_MAXIE=False WALLACE_STATE=0 (PREDICTED False/False/True/True/False/False/0)
+[ch21leg5probe] P0 can_surf_precondition badge05=True party_has_surf=True | can_dive_precondition badge07=True party_has_dive=True (both MUST be True/True or the P2 A/B differs for the wrong reason)
+[ch21leg5probe] P0 HM07 index=345 qty=0 (PREDICTED 345 / 0)
+[ch21leg5probe] P0 party=[(187737927, 'Swellow', 52, 115), (868971715, 'Zigzagoon', 46, 48), (2252015895, 'Sceptile', 138, 138), (4199673075, 'Wailmer', 160, 160), (1553394331, 'Mightyena', 130, 130), (3380138318, 'Castform', 103, 103)]
+[ch21leg5probe] P0 warpdata location(+0x04)=(24, 77, 1, -1, -1) lastHeal(+0x1C)=(0, 7, -1, 43, 32) (CONTROL: location's (group,num) must equal the LIVE map (24, 77); lastHeal PREDICTED (0,7,-1,43,32))
+[ch21leg5probe] P1 plan (14, 3)->(6,15) 20 wp off_map=0 seam_14_4_at=[] (PREDICTED all on ENTRANCE, seam absent)
+f323: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonAnimDoor'] ctrl=Ch21Leg5ProbeMode.run bt='Got away safely!' scripts=[] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[ch21leg5probe] P1 REST at=ROUTE131(36, 7) facing=Down flags=<AvatarFlags.OnFoot|Controllable: 33> tile_type='Deep Water' (PREDICTED ROUTE131 (36,7), Down, on foot, sand)
+[ch21leg5probe] P2 layout BEFORE pin: planner=0x08417FE4 live=0x0845C1B0 agree=False (PREDICTED agree=False)
+[ch21leg5probe] P2 arm A (static, as the planner seeded itself): REFUSED PathFindingError: Could not find a path from (36/7 @ ROUTE131) to (45/66 @ ROUTE126).
+[ch21leg5probe] P2 PIN ROUTE131: planner blockdata 0x08417FE4 -> 0x0845C1B0 (pinned to the LIVE header)
+[ch21leg5probe] P2 layout AFTER pin: planner=0x0845C1B0 live=0x0845C1B0 agree=True (PREDICTED agree=True)
+[ch21leg5probe] P2 arm B (pinned to the LIVE header): 356 wp surf_actions=3 at=[3, 225, 244] first_wp=[((0, 46), (35, 7), False, False, None)] on131=55 live_walls_on_131=[] (n=0)
+[ch21leg5probe] P2 SOURCE-TILE ELEVATION planner_before=1 planner_after=3 (PREDICTED 1 -> 3; map_path.py:916 seeds the start node from THIS value, which is why a static 'deep water' source emits no Surf mount)
+[ch21leg5probe] P2 DISCRIMINATOR surf_actions A=None B=3 | live_walls A=None B=0 | first_divergent_wp=None | ARMS_DIFFER=True (PREDICTED A=0 B=1 -> DIFFER; identical arms would be INCONCLUSIVE, not a refutation)
+[ch21leg5probe] !! PROBE RAISED: RuntimeError: Ch21 leg5 FAULT PROBERAISE: simulating a mid-probe abort
+[ch21leg5probe] probes run: ['P0', 'P1', 'P2'] (P6 conditional on the P5 matrix) whiteouts=0 encounters=0 [] frames=389
+[ch21leg5probe] VERDICT INPUTS stop_reason=None failure='RuntimeError: Ch21 leg5 FAULT PROBERAISE: simulating a mid-probe abort' settle_ok=False scene_failure=None
+[ch21leg5probe] GRADE: this probe measures; it does not decide. Compare every line above against ai-research-notes/2026-09-02-ch21-leg5-PARTC-PREDICTIONS.md.
+[ch21leg5probe] ACCEPTANCE: FAIL
+f390: CONTROLLER -> <none>   (state=OVERWORLD)
+f1290: SAVED stall state #1 to stalls/repro-ml-f1290.ss1 (bt='Got away safely!')
+f1590: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (36, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f1590:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+f3390: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020', (36, 7)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_DoAbnormalWeather', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f3390:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[done] ran 5000 frames; final mode=Manual party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Swellow L41: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Sceptile L50: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Wailmer L40: Dive, Surf, Water Gun, Rollout
+[moveset] Mightyena L44: Tackle, Taunt, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 5001 get_party() recomputes, 17 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch21leg5probe 5001 recomputes (party_accounting_ledger.jsonl)

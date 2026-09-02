@@ -28,8 +28,16 @@ five legs before driving one is how §Ch20's orchestration glue accumulated four
     walkable tiles, **only SIX emerge onto non-blocked ground**: (7,5) (6,6) (7,6) (9,7) (14,7)
     (14,8). The other 25 sit under the crater wall. **The game will not stop a bad surface here.**
     Measured 2026-08-24 by decoding `data/layouts/{Underwater_SootopolisCity,
-    SootopolisCity_LegendsBattle}/map.bin`; `Emerge` preserves (x,y), so the underwater tile IS the
-    city tile. ⇒ the tile is HARD-CODED and asserted, never planned.
+    SootopolisCity_LegendsBattle}/map.bin`. ⇒ the tile is HARD-CODED and asserted, never planned.
+    ⛔⛔ **CORRECTED 2026-09-02 — THIS TRAP USED TO GIVE A FALSE REASON.** It said *"`Emerge`
+    preserves (x,y), so the underwater tile IS the city tile"*. **That is FALSE for this map**, and
+    it is now MEASURED false: `--driver ch21leg5probe` surfaced from underwater **(9,7)** and landed
+    at city **(29,53)**. `Underwater_SootopolisCity_OnResume` runs
+    `setdivewarp MAP_SOOTOPOLIS_CITY, 29, 53` — a FIXED destination that ignores where you surface
+    from. The six-safe-tiles measurement above stands and the hard-coded tile is still right, but
+    for a different reason: (9,7) is the tile the map's own dive warp is built around, NOT a tile
+    whose coordinates carry over. ‼ Anyone routing a DIFFERENT emerge point on this map would have
+    been misled by the old sentence into predicting a city tile the game never uses.
 
  2. THE ARRIVAL TILE WARPS STRAIGHT BACK. `UNDERWATER_SOOTOPOLIS_CITY (9,8)` — where the Route 126
     warp lands you — is `Water South Arrow Warp` back to `UNDERWATER_ROUTE126`, as is `(10,8)`.
@@ -2621,4 +2629,693 @@ def climb_sky_pillar(report: dict | None = None) -> Generator:
     console.print(f"[cyan]Ch21 leg 4 R-CONTINUE/R-CONTROL: continue={report['continue_wp']} wp "
                   f"ok={continue_ok}; control_refused={control_refused}.[/]")
     context.message = f"Story: Ch21 — leg 4 done: Rayquaza is away, the bot is down, at {_where()}."
+    return report
+
+
+# ============================== LEG 5 — THE RETURN AND HM07 =======================================
+# ⛔ EVERY CONSTANT BELOW IS **MEASURED LIVE**, not recalled: `--driver ch21leg5probe` on
+# `post_rayquaza_gone.ss1`, 2026-09-02, `ACCEPTANCE: PASS`, evidence
+# `tools/story-dev/evidence/2026-09-02-ch21leg5probe-MAIN.txt`, graded against predictions filed
+# BEFORE the drive in `ai-research-notes/2026-09-02-ch21-leg5-PARTC-{PREDICTIONS,RESULTS}.md`.
+# The provenance sits on each row because leg 3 paid a drive for a constant whose provenance was
+# "the build spec said so".
+
+L5_EXIT_APPROACH = (6, 15)      # ENTRANCE: 'Cave' collision 0, one tile NORTH of the exit warp.
+L5_EXIT_WARP = (6, 16)          # ENTRANCE: the SOUTH arrow warp -> ROUTE131. ⛔ Aimed at only as
+                                # the SECOND navigate_to, so the plan's final waypoint HOLDS Down
+                                # (the leg-4 R-SEAM idiom; an arrow warp fires only while held).
+L5_ROUTE131_REST = (36, 7)      # MEASURED: where the ROUTE131 door leaves the bot — facing Down,
+                                # ON FOOT. ⛔ REPORTED, never asserted: the game owns the tile.
+L5_DIVE_TILE = DIVE_TILE        # (45,66) on ROUTE126 — leg 1's dive tile, re-proven in reverse.
+L5_CITY_REST = (29, 53)         # MEASURED: `Underwater_SootopolisCity_OnResume` runs
+                                # `setdivewarp SOOTOPOLIS_CITY 29,53` — a FIXED destination, so the
+                                # emerge lands here from ANY underwater tile, and the arrival
+                                # cutscene's own `warpwhitefade` returns to the same tile.
+                                # ‼ THE AVATAR IS **SURFING** THERE (measured), not on foot.
+L5_MAXIE_APPROACH = (33, 36)    # MEASURED: 21 wp from the rest tile, 0 live walls. Face Up.
+L5_MAXIE_TILE = (33, 35)        # MEASURED live (RAM template AND loaded object), local_id 16.
+L5_ARCHIE_APPROACH = (34, 36)   # MEASURED: 1 wp from the Maxie approach. Face Up.
+L5_ARCHIE_TILE = (34, 35)       # MEASURED live, local_id 17.
+L5_WARP_LANDING = (31, 34)      # ⛔⛔ DECOMP, and the sharpest trap on this leg:
+                                # `SootopolisCity_EventScript_MaxieArchieLeave` ends with
+                                # `warpsilent MAP_SOOTOPOLIS_CITY, 31, 34`. THE SECOND LEADER TALK
+                                # TELEPORTS THE PLAYER and reloads the map. Nothing about the bot's
+                                # position after that talk is inherited from before it.
+L5_WALLACE_TILE = (31, 33)      # MEASURED live, local_id 18 — standing ON the gym door, which is
+                                # why the gift script then makes him step aside.
+L5_CONTINUE = (43, 32)          # The Poke Center door: MEASURED reachable (37 wp) from the rest
+                                # tile. A continuation target — but NOT the load-bearing one.
+L5_GYM_DOOR = (31, 32)          # ⛔⛔ **THE CHAPTER'S REAL CONTINUATION TARGET**: the warp to
+                                # SOOTOPOLIS_CITY_GYM_1F, i.e. Juan, i.e. §Ch22. Wallace stands on
+                                # (31,33), DIRECTLY SOUTH OF IT, until his gift script moves him.
+                                # ‼ ADDED AFTER DRIVE 1 PASSED WITH THIS TILE UNREACHABLE: the old
+                                # "can continue" reading aimed at the Poke Center, which is
+                                # reachable whether or not Wallace ever moves. ⇒ **a continuation
+                                # check is only as good as the continuation it names.**
+L5_CONTROL = (33, 34)           # MEASURED live collision 1 AND planner-REFUSED from BOTH NPC
+                                # tiles. A planner that cannot refuse proves nothing when it
+                                # accepts, so this is checked every run.
+
+#: ⛔ The grade is DID EVERY READING HAPPEN, **IN ORDER** — a readings SET cannot distinguish
+#: "got HM07, then proved it can continue" from the reverse.
+LEG5_READINGS = (
+    "R-EXIT", "R-PIN131", "R-SWIM", "R-EMERGE", "R-ARRIVAL", "R-SETTLE",
+    "R-MAXIE", "R-ARCHIE", "R-WARPED", "R-HM07", "R-GYMDOOR", "R-CONTINUE", "R-CONTROL",
+)
+LEG5_ORDER = (
+    "R-EXIT", "R-PIN131", "R-SWIM", "R-EMERGE", "R-ARRIVAL", "R-SETTLE",
+    "R-MAXIE", "R-ARCHIE", "R-WARPED", "R-HM07", "R-GYMDOOR",
+)
+
+
+def waterfall_received() -> bool:
+    """§Ch21's completion flag — the one `chapters.py` grades the chapter on."""
+    from modules.memory import get_event_flag
+
+    return get_event_flag("RECEIVED_HM_WATERFALL")
+
+
+def leaders_have_left() -> bool:
+    """`FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE` (0x9E) — set by the SECOND leader talk.
+
+    It is this leg's phase discriminator for the NPC half: once set, Maxie and Archie are hidden
+    and only the Wallace talk remains.
+    """
+    from modules.memory import get_event_flag
+
+    return get_event_flag("SOOTOPOLIS_ARCHIE_MAXIE_LEAVE")
+
+
+def _hm07_in_bag() -> int:
+    """How many HM07 the bag holds, BY ITEM IDENTITY.
+
+    ‼ WHY THIS EXISTS ALONGSIDE THE FLAG. §Ch15/§Ch18/§Ch19 each PASSED their own test while
+    STRANDED, and the shape was always "grade on the single value the script writes". The flag and
+    the item come from ADJACENT decomp lines (`giveitem ITEM_HM_WATERFALL` then
+    `setflag FLAG_RECEIVED_HM_WATERFALL`) but they are not the same fact — `giveitem` can fail on a
+    full bag. ⇒ corroborate; never let either stand alone.
+    """
+    from modules.items import get_item_bag, get_item_by_name
+
+    return get_item_bag().quantity_of(get_item_by_name("HM07"))
+
+
+def _settle_after_arrival(budget_frames: int = 6000) -> Generator:
+    """Wait the Rayquaza-arrival scene out PROPERLY — four conjuncts, bounded, no state writes.
+
+    ⛔⛔ WHY `wait_until_truly_controllable()` IS NOT ENOUGH HERE, AND IT IS MEASURED (2026-09-02):
+    `SootopolisCity_EventScript_RayquazaSceneFromDive` writes `VAR_SKY_PILLAR_STATE = 2` and THEN
+    still runs `delay 120` and a `warpwhitefade`. The probe measured the var reaching 2 **309 frames
+    before** the scene ended. So a var-keyed ride returns MID-SCENE, standing at (29,49) with the
+    city on its cutscene layout — and a tile read or a planner pin taken there describes a state the
+    bot never rests in.
+
+    THE FOUR CONJUNCTS: the global script is QUIET; the var has been promoted 2 -> 3 by
+    `SootopolisCity_OnWarp` (the reload's own witness, so this also proves the warp landed); the
+    LIVE `gMapHeader` layout pointer is back to the map's STATIC (NORMAL) one; and the avatar is
+    controllable.
+    """
+    import modules.map as _map_module
+    from modules.memory import read_symbol, unpack_uint32  # noqa: F401 - unpack for the message
+    from modules.modes import BotModeError
+    from modules.player import player_avatar_is_controllable
+    from modules.story.early_game import _check_abort
+    from modules.tasks import get_global_script_context, is_waiting_for_input
+
+    # ⛔ `_map_header_cache` is filled WHOLESALE by the first `calculate_path` of the run
+    # (`_get_all_maps_metadata` -> `get_map_data` for every map), which this leg has already done in
+    # its exit phase. Reading it here is a dict lookup, never a load — and never a live read.
+    static_header = _map_module._map_header_cache[context.rom.id][MapRSE.SOOTOPOLIS_CITY.value]
+    frames = 0
+    while frames < budget_frames:
+        _check_abort()  # ⛔ FIRST statement of the loop body, OUTSIDE any try
+        if (
+            not get_global_script_context().is_active
+            and _var("SKY_PILLAR_STATE") == 3
+            and read_symbol("gMapHeader")[:4] == static_header[:4]
+            and player_avatar_is_controllable()
+        ):
+            return
+        if is_waiting_for_input():
+            # ⛔ B, not A. This scene has no menu anywhere, and B advances a printer without ever
+            # selecting anything; nothing on this leg may risk a menu choice.
+            context.emulator.press_button("B")
+        yield
+        frames += 1
+    raise BotModeError(
+        f"Ch21 leg 5: the Rayquaza arrival scene did not settle in {budget_frames} frames — "
+        f"script_active={get_global_script_context().is_active}, "
+        f"SKY_PILLAR_STATE={_var('SKY_PILLAR_STATE')!r}, at {_where()}. ⛔ Do NOT pin the planner "
+        "or read tiles from here: mid-scene the city is running its cutscene layout."
+    )
+
+
+def _ride_talk(done, approach_tile, label: str, *, budget_frames: int = 20000) -> Generator:
+    """Press through ONE NPC conversation. Returns True when `done()`, False if the A-press MISSED.
+
+    Modelled EXACTLY on `_ride_steven_escort` above, including the lesson that cost a drive: the
+    missed-press discriminator is **`get_global_script_context().is_active`** held clear for 60
+    CONSECUTIVE frames while still standing on the approach tile — never `bool(.stack)` (never
+    empty, `tasks.py:147`) and never "controllable at frame N" (True mid-scene under `lockall`).
+
+    ⛔ SUCCESS IS `done()` **AND THE SCRIPT IS FINISHED** (`not ...is_active`) **AND CONTROLLABLE**.
+    ⛔⛔ THE `is_active` CONJUNCT WAS ADDED AFTER DRIVE 1 SHIPPED WITHOUT IT AND STRANDED THE WHOLE
+    CHAPTER, and the failure is worth spelling out because this module ALREADY documents the same
+    lesson twice (`_ride_steven_escort`: "the `setflag` sits three lines BEFORE the `warp`";
+    `_settle_after_arrival`: the var flips 309 frames before the scene ends):
+      `SootopolisCity_EventScript_GiveWaterfall` sets `FLAG_RECEIVED_HM_WATERFALL` and then STILL
+      runs `msgbox ExplainWaterfallGoToGym`, `closemessage`, and the `call_if_eq VAR_FACING` that
+      makes Wallace STEP OFF THE GYM DOOR. With a flag+controllable predicate the ride returned
+      while that second msgbox was still open, so nothing pressed a button again, the script parked
+      forever, `VAR_SOOTOPOLIS_WALLACE_STATE` stayed 0, and Wallace kept standing on (31,33) — one
+      tile south of the (31,32) gym warp. MEASURED on the leg's own output fixture: the gift landed,
+      the leg printed `ACCEPTANCE: PASS`, and `calculate_path(-> (31,32))` raised `PathFindingError`.
+      ⇒ **the leg passed its own test while sealing the door to the next chapter.**
+    ⛔ AND SUCCESS MUST NOT REQUIRE STANDING ON THE APPROACH TILE: Archie's script ends by
+    `warpsilent`ing the player to a different tile entirely.
+    """
+    from modules.modes import BotModeError
+    from modules.player import player_avatar_is_controllable
+    from modules.story.early_game import _check_abort
+    from modules.tasks import get_global_script_context, is_waiting_for_input
+
+    frames = 0
+    idle_streak = 0
+    while frames < budget_frames:
+        _check_abort()  # ⛔ FIRST statement of the loop body, OUTSIDE any try
+        if (done() and not get_global_script_context().is_active
+                and player_avatar_is_controllable()):
+            context.message = f"Story: Ch21 leg 5 — {label} done in ~{frames} frames."
+            return True
+        if frames < 600 and not done():
+            try:
+                ctx = get_global_script_context()
+                script_running = ctx is not None and ctx.is_active
+            except Exception:  # noqa: BLE001 - an unreadable context must not kill the ride
+                script_running = True  # assume engaged; the budget still bounds us
+            if not script_running and _at(MapRSE.SOOTOPOLIS_CITY, approach_tile):
+                idle_streak += 1
+                if idle_streak >= 60:
+                    # ‼ PRINTED, not only `context.message` — the harness does not echo message
+                    # assignments, and this branch FIRING is the evidence its fault arm exists to
+                    # capture (instrument the ACTION, never only the outcome).
+                    from modules.console import console
+
+                    console.print(
+                        f"[yellow]Story: Ch21 leg 5 — the A-press for {label} at {approach_tile} "
+                        f"MISSED (no script for {idle_streak} consecutive frames, frame {frames}); "
+                        f"the caller retries.[/]"
+                    )
+                    return False
+            else:
+                idle_streak = 0
+        # ⛔ GATED, NOT MASHED (the museum-greeter rule): `A` only when a printer is waiting, else
+        # `B`. Safe for all three of this leg's talks — every one is msgbox / giveitem /
+        # applymovement with NO menu (`SootopolisCity_EventScript_{Maxie,Archie,Wallace}`).
+        # ⛔⛔ AND PRESSED ON A **DUTY CYCLE**, NOT EVERY FRAME. Calling `press_button` on every
+        # frame HOLDS the button, and Gen 3's `waitbuttonpress` (which every `MSGBOX_DEFAULT` ends
+        # in) tests `JOY_NEW` — a fresh press EDGE. A held button produces no edge, so the box never
+        # closes. MEASURED 2026-09-02: drive 2 parked 20,000 frames at (33,36) with
+        # `scripts=['SootopolisCity_EventScript_MaxieRayquaza', 'Std_MsgboxDefault']` and the
+        # harness's own no-progress detector stopped it 11 frames before the ride's budget would
+        # have. One frame pressed in four gives the game a clean press/release edge.
+        if frames % 4 == 0:
+            context.emulator.press_button("A" if is_waiting_for_input() else "B")
+        yield
+        frames += 1
+    raise BotModeError(
+        f"Ch21 leg 5: rode {label} for {budget_frames} frames without finishing — at {_where()}, "
+        f"done={done()}. A one-shot that stalls mid-scene needs eyes, not a retry."
+    )
+
+
+def _arrival_is_settled() -> bool:
+    """The four conjuncts `_settle_after_arrival` waits for, as a one-shot predicate.
+
+    ⛔ IT EXISTS SEPARATELY SO THE LEG CAN **GATE** ON IT, not merely wait for it. An adversarial
+    review of this leg's own probe found the shape: without an explicit gate, a settle that times
+    out falls straight through into `_pin_planner_to_live_layout(SOOTOPOLIS_CITY)`, whose ONLY guard
+    is "am I standing on this map" — so mid-scene it pins the planner to the CRISIS layout
+    (`LAYOUT_SOOTOPOLIS_CITY_LEGENDS_BATTLE`, states 1-4) and every downstream tile reading
+    describes the wrong map while the run still looks clean. ⇒ a false PASS is worse than a crash.
+    """
+    import modules.map as _map_module
+    from modules.memory import read_symbol
+    from modules.player import player_avatar_is_controllable
+    from modules.tasks import get_global_script_context
+
+    static_header = _map_module._map_header_cache[context.rom.id][MapRSE.SOOTOPOLIS_CITY.value]
+    return (
+        not get_global_script_context().is_active
+        and _var("SKY_PILLAR_STATE") == 3
+        and read_symbol("gMapHeader")[:4] == static_header[:4]
+        and player_avatar_is_controllable()
+    )
+
+
+def return_and_get_waterfall(report: dict | None = None) -> Generator:
+    """LEG 5 — the RETURN swim to Sootopolis, the leaders, and HM07 WATERFALL from Wallace.
+
+    THE END STATE (all of it, not any one conjunct): `RECEIVED_HM_WATERFALL` SET **and** HM07 in the
+    bag by ITEM ID **and** standing on SOOTOPOLIS_CITY controllable **and** a live `calculate_path`
+    to a continuation target. ⛔ §Ch15, §Ch18 and §Ch19 each PASSED their own test while STRANDED,
+    every time by grading on the single value the script writes. The flag corroborates; the item,
+    the position and the path decide.
+
+    ⛔⛔ THE THREE TRAPS, ALL MEASURED OR DECOMP-EXACT, NONE OF THEM GUESSED:
+
+     1. **ROUTE131 MUST BE PINNED BEFORE THE SWIM IS PLANNED.** ROUTE131 unconditionally runs
+        `setmaplayoutindex LAYOUT_ROUTE131_SKY_PILLAR`, so the STATIC layout our planner seeds
+        itself with describes a map the game is not running. MEASURED 2026-09-02 with an arm that
+        REMOVED the pin (`CH21_PROBE_NOPIN131=1`): un-pinned, `calculate_path(ROUTE131 (36,7) ->
+        ROUTE126 (45,66))` raises `PathFindingError` and the bot never moves at all — this is a
+        PLANNING failure, not a walking one. Pinned: 356 waypoints with 3 Surf mounts. The source
+        tile's elevation reads 1 (deep water) static and 3 (land) live, and `map_path.py:916` seeds
+        the start node from exactly that value.
+     2. **THE ARRIVAL CUTSCENE ENDS LONG AFTER ITS VAR.** See `_settle_after_arrival` — 309 frames
+        and one `warpwhitefade` late, measured. This leg GATES on `_arrival_is_settled()`.
+     3. **THE SECOND LEADER TALK TELEPORTS THE PLAYER.** `MaxieArchieLeave` ends with
+        `warpsilent MAP_SOOTOPOLIS_CITY, 31, 34` — a same-map warp, i.e. a MAP RELOAD. The bot does
+        not walk to Wallace; the game puts it one tile south of him. ⇒ re-read the position, never
+        inherit it, and re-pin the planner because the reload re-ran the map scripts.
+        ‼ AND WALLACE'S GIFT SCRIPT BRANCHES ON `VAR_FACING` WITH **NO SOUTH CASE**: NORTH/EAST make
+        him step right (`WALLACE_STATE=1`), WEST left (state 2), and SOUTH does neither — he stays
+        on the gym door he is blocking. Approaching from (31,34) facing **Up** takes the NORTH
+        branch, which is what the game itself sets up.
+
+    PHASES (matched on POSITION **and** state together — a vars-only selector sent leg 4's own
+    output fixture on a doomed walk with no verdict, `08-MISTAKES.md` 2026-09-01):
+      `full`          SKY_PILLAR_ENTRANCE, SKY_PILLAR_STATE 1  -> exit, swim, arrival, then the NPCs
+      `post-arrival`  SOOTOPOLIS_CITY, SKY_PILLAR_STATE >= 2, 0x9E clear -> the NPCs only
+      `post-leaders`  SOOTOPOLIS_CITY, 0x9E SET               -> Wallace only
+
+    FAULT ARMS (env-read here, so they are driver-proof; the happy path reaches none):
+      POKEBOT_CH21_FAULT_NOPIN131=1    skip the ROUTE131 pin: the swim must fail NAMED and bounded.
+      POKEBOT_CH21_FAULT_SETTLESKIP=1  skip the settle: the `_arrival_is_settled()` gate must RAISE
+                                       before anything pins or reads the city layout.
+      POKEBOT_CH21_FAULT_SCENESTOP=1   return right after the arrival — the §Ch15/18/19 shape
+                                       exactly. ⛔ THE MOST IMPORTANT ARM: it must FAIL, naming
+                                       every missing NPC/HM07 reading.
+      POKEBOT_CH21_FAULT_NPCMISS=1     face AWAY on the first Maxie approach so the A lands on
+                                       nothing: the missed-press bail must fire and the retry
+                                       must recover. The happy path cannot exercise that bail.
+      POKEBOT_CH21_FAULT_DROPREADING=1 suppress R-HM07 at its take point: missing=['R-HM07'], FAIL.
+      POKEBOT_CH21_FAULT_CONTROLOPEN=1 aim R-CONTROL at a REACHABLE tile: control_refused=False,
+                                       FAIL — a control that cannot fail is decoration.
+    """
+    import os as _os_fault
+
+    from modules.map import get_map_data_for_current_position
+    from modules.map_path import PathFindingError, calculate_path
+    from modules.modes import BotModeError
+    from modules.modes.util.higher_level_actions import dive, surface_from_dive
+    from modules.modes.util.walking import ensure_facing_direction, navigate_to
+    from modules.console import console
+    from modules.player import AvatarFlags, get_player_avatar
+    from modules.story.early_game import _check_abort, _navigate_riding_out, wait_until_truly_controllable
+    from modules.story.space_center import _npc_is_on
+
+    fault_nopin = _os_fault.environ.get("POKEBOT_CH21_FAULT_NOPIN131", "").strip() == "1"
+    fault_settleskip = _os_fault.environ.get("POKEBOT_CH21_FAULT_SETTLESKIP", "").strip() == "1"
+    fault_scenestop = _os_fault.environ.get("POKEBOT_CH21_FAULT_SCENESTOP", "").strip() == "1"
+    fault_npcmiss = _os_fault.environ.get("POKEBOT_CH21_FAULT_NPCMISS", "").strip() == "1"
+    fault_dropreading = _os_fault.environ.get("POKEBOT_CH21_FAULT_DROPREADING", "").strip() == "1"
+    fault_controlopen = _os_fault.environ.get("POKEBOT_CH21_FAULT_CONTROLOPEN", "").strip() == "1"
+
+    # ⛔ THE CALLER OWNS THE REPORT DICT AND HANDS IT IN — a dict RETURNED by a raising generator
+    # never arrives, and the run that dies is the one whose partial readings matter most (leg 3).
+    if report is None:
+        report = {}
+    report.setdefault("readings", set())
+    report.setdefault("trace", [])
+    report.setdefault("pins", [])
+    report.setdefault("battles", [])
+
+    yield from wait_until_truly_controllable()
+
+    # --- 0. PREFLIGHT — POSITION **AND** STATE, together ----------------------------------------
+    city_state = _var("SOOTOPOLIS_CITY_STATE")
+    pillar = _var("SKY_PILLAR_STATE")
+    left = leaders_have_left()
+    report["vars_before"] = (city_state, pillar, _var("SKY_PILLAR_RAYQUAZA_CRY_DONE"))
+    report["flags_before"] = (waterfall_received(), left)
+    if AvatarFlags.Underwater in get_player_avatar().flags:
+        raise BotModeError(f"Ch21 leg 5: the run is UNDERWATER at {_where()} — wrong universe.")
+    if waterfall_received():
+        raise BotModeError(
+            f"Ch21 leg 5: `RECEIVED_HM_WATERFALL` is ALREADY SET at {_where()} — this leg is SPENT "
+            f"on this fixture (HM07 x{_hm07_in_bag()} in the bag). ⛔ It is graded on ACQUIRING the "
+            "HM, so a run from here would satisfy every end-state check while doing nothing."
+        )
+    if _on_map(MapRSE.SKY_PILLAR_ENTRANCE) and pillar == 1 and city_state == 5 and not left:
+        phase = "full"
+    elif _on_map(MapRSE.SOOTOPOLIS_CITY) and isinstance(pillar, int) and pillar >= 2 and not left:
+        phase = "post-arrival"
+    elif _on_map(MapRSE.SOOTOPOLIS_CITY) and left:
+        phase = "post-leaders"
+    else:
+        raise BotModeError(
+            f"Ch21 leg 5: no phase starts at {_where()} with SOOTOPOLIS_CITY_STATE={city_state!r}, "
+            f"SKY_PILLAR_STATE={pillar!r}, ARCHIE_MAXIE_LEAVE={left}. The full run starts on "
+            "SKY_PILLAR_ENTRANCE at (5,1); the resumes start in the city. ⛔ A vars/position "
+            "mismatch is a WRONG FIXTURE, not a resumable state."
+        )
+    report["phase"] = phase
+    console.print(f"[cyan]Ch21 leg 5: phase={phase} at {_where()} vars={report['vars_before']} "
+                  f"flags(HM,0x9E)={report['flags_before']}.[/]")
+
+    # =============== PHASE A — OUT OF THE TOWER, HOME BY SEA, AND THE ARRIVAL ====================
+    if phase == "full":
+        # --- 1. R-EXIT. ⛔ The plan is INSPECTED before it is walked: (14,4) is the seam arrow warp
+        # BACK UP the tower, and walking it would spend the run and cost the fixture.
+        here = _here_tile()
+        try:
+            exit_plan = calculate_path((MapRSE.SKY_PILLAR_ENTRANCE, here),
+                                       (MapRSE.SKY_PILLAR_ENTRANCE, L5_EXIT_APPROACH))
+        except PathFindingError as error:
+            raise BotModeError(f"Ch21 leg 5: no route {here} -> {L5_EXIT_APPROACH} on the "
+                               f"ENTRANCE ({error}).") from error
+        seam = [i for i, w in enumerate(exit_plan) if tuple(w.coordinates) == SEAM_WARP]
+        if seam:
+            raise BotModeError(
+                f"Ch21 leg 5: REFUSING to walk the exit plan — it routes over {SEAM_WARP} at "
+                f"waypoint(s) {seam}, which is the SOUTH arrow warp back to SKY_PILLAR_OUTSIDE. "
+                "Walking it would re-enter the tower."
+            )
+        context.message = "Story: Ch21 leg 5 — leaving the Sky Pillar."
+        yield from navigate_to(MapRSE.SKY_PILLAR_ENTRANCE, L5_EXIT_APPROACH)
+        yield from navigate_to(MapRSE.SKY_PILLAR_ENTRANCE, L5_EXIT_WARP)
+        yield from wait_until_truly_controllable()
+        if not _on_map(MapRSE.ROUTE131):
+            raise BotModeError(
+                f"Ch21 leg 5: took the {L5_EXIT_WARP} exit warp but am at {_where()} — that warp "
+                "fires ONLY while Down is HELD; check the plan's final held-direction waypoint."
+            )
+        rest131 = _here_tile()
+        report["route131_rest"] = tuple(rest131)
+        _take(report, "R-EXIT")
+        console.print(f"[cyan]Ch21 leg 5 R-EXIT: on ROUTE131 at {rest131} (MEASURED (36,7) on "
+                      "2026-09-02 — REPORTED, not asserted; the game owns the landing tile).[/]")
+
+        # --- 2. R-PIN131 — the load-bearing pin (trap 1). -----------------------------------------
+        if fault_nopin:
+            console.print("[magenta]Ch21 leg 5 FAULT NOPIN131: skipping the ROUTE131 pin — the "
+                          "swim MUST fail NAMED and bounded, never hang.[/]")
+        else:
+            before_reading, _ = _route131_layout_reading()
+            pin_note = _pin_planner_to_live_layout(MapRSE.ROUTE131)
+            after_reading, agree = _route131_layout_reading()
+            report["pins"].append(pin_note)
+            if not agree:
+                raise BotModeError(
+                    f"Ch21 leg 5: pinned ROUTE131 and the planner STILL disagrees with the game "
+                    f"({after_reading}). Every downstream plan would be drawn on a map the game is "
+                    "not running."
+                )
+            _take(report, "R-PIN131")
+            console.print(f"[cyan]Ch21 leg 5 R-PIN131: {pin_note} | before: {before_reading} | "
+                          f"after: {after_reading}.[/]")
+
+        # --- 3. R-SWIM — the return crossing. ------------------------------------------------------
+        context.message = "Story: Ch21 leg 5 — swimming home to the Route 126 dive point."
+        yield from _navigate_riding_out(MapRSE.ROUTE126, L5_DIVE_TILE, tries=30)
+        if not _at(MapRSE.ROUTE126, L5_DIVE_TILE):
+            raise BotModeError(
+                f"Ch21 leg 5: could not reach the dive tile {L5_DIVE_TILE} on Route 126 — at "
+                f"{_where()}. (Un-pinned, this fails at the FIRST PLAN: see trap 1.)"
+            )
+        _take(report, "R-SWIM")
+        console.print(f"[cyan]Ch21 leg 5 R-SWIM: at the dive tile {_where()}.[/]")
+
+        # --- 4. R-EMERGE — dive, cross, and surface on the ONE safe tile. --------------------------
+        tile_type = getattr(get_map_data_for_current_position(), "tile_type", None)
+        if tile_type not in ("Deep Water", "Interior Deep Water", "Semi-Deep Water",
+                             "Sootopolis Deep Water"):
+            raise BotModeError(
+                f"Ch21 leg 5: refusing to dive at ROUTE126 {L5_DIVE_TILE} — its tile_type is "
+                f"{tile_type!r}, which `dive()` does not accept."
+            )
+        yield from dive()
+        yield from navigate_to(MapRSE.UNDERWATER_ROUTE126, SOOTOPOLIS_DOOR, False)
+        if not _on_map(MapRSE.UNDERWATER_SOOTOPOLIS_CITY):
+            raise BotModeError(
+                f"Ch21 leg 5: took the {SOOTOPOLIS_DOOR} warp but did not land in "
+                f"UNDERWATER_SOOTOPOLIS_CITY — at {_where()}."
+            )
+        yield from navigate_to(MapRSE.UNDERWATER_SOOTOPOLIS_CITY, UW_EMERGE, False)
+        if not _at(MapRSE.UNDERWATER_SOOTOPOLIS_CITY, UW_EMERGE):
+            raise BotModeError(
+                f"Ch21 leg 5: could not reach the surfacing tile {UW_EMERGE} — at {_where()}."
+            )
+        # ⛔ KI-72's assertion, kept for the reason MEASURED on 2026-09-02 rather than the one the
+        # module header used to give: the emerge does NOT preserve (x,y) (it is a FIXED
+        # `setdivewarp`), but `surface_from_dive()`'s own guard still cannot fire on this map, so a
+        # tile that is not the hand-picked one means the underwater walk drifted.
+        tile_type = getattr(get_map_data_for_current_position(), "tile_type", None)
+        if tile_type != "Deep Water":
+            raise BotModeError(
+                f"Ch21 leg 5 (KI-72): refusing to surface at {UW_EMERGE} — its tile_type is "
+                f"{tile_type!r}, not 'Deep Water'."
+            )
+        yield from surface_from_dive()
+        if not _on_map(MapRSE.SOOTOPOLIS_CITY):
+            raise BotModeError(f"Ch21 leg 5: surfaced but did not arrive in the city — {_where()}.")
+        report["emerge"] = (tuple(UW_EMERGE), tuple(_here_tile()))
+        _take(report, "R-EMERGE")
+        console.print(f"[cyan]Ch21 leg 5 R-EMERGE: underwater {UW_EMERGE} -> city "
+                      f"{report['emerge'][1]} (MEASURED: the dive warp is FIXED at (29,53), so the "
+                      "city tile does NOT track the underwater one).[/]")
+
+        # --- 5. R-ARRIVAL + R-SETTLE — the chapter's third one-shot (trap 2). ---------------------
+        context.message = "Story: Ch21 leg 5 — riding the Rayquaza arrival scene."
+        yield from _ride_summit_scene("SKY_PILLAR_STATE", 2)
+        report["mid_scene_tile"] = tuple(_here_tile())
+        _take(report, "R-ARRIVAL")
+        if fault_settleskip:
+            console.print("[magenta]Ch21 leg 5 FAULT SETTLESKIP: NOT settling — the "
+                          "`_arrival_is_settled()` gate below must RAISE before anything pins or "
+                          "reads the city layout.[/]")
+        else:
+            yield from _settle_after_arrival()
+        if not _arrival_is_settled():
+            raise BotModeError(
+                f"Ch21 leg 5: the arrival did not settle — at {_where()}, "
+                f"SKY_PILLAR_STATE={_var('SKY_PILLAR_STATE')!r}. ⛔ Refusing to pin or read the "
+                "city layout from mid-scene: the map runs its CUTSCENE layout there, and every "
+                "reading taken would describe a state the bot never rests in."
+            )
+        yield from wait_until_truly_controllable()
+        report["city_rest"] = tuple(_here_tile())
+        _take(report, "R-SETTLE")
+        console.print(f"[cyan]Ch21 leg 5 R-ARRIVAL/R-SETTLE: rode the scene from "
+                      f"{report['mid_scene_tile']} (mid-scene) to rest at {report['city_rest']}, "
+                      f"SKY_PILLAR_STATE={_var('SKY_PILLAR_STATE')}.[/]")
+        _maybe_capture("CH21_CAPTURE_ARRIVAL", True,
+                       "the gap between the arrival one-shot and the HM07 talks")
+
+        if fault_scenestop:
+            console.print("[magenta]Ch21 leg 5 FAULT SCENESTOP: returning at the arrival — the "
+                          "EXACT shape §Ch15/§Ch18/§Ch19 each PASSED while stranded. The driver "
+                          "MUST fail, naming every missing NPC/HM07 reading.[/]")
+            return report
+
+    # ==================== PHASE B — THE LEADERS, THEN HM07 FROM WALLACE =========================
+    if not _on_map(MapRSE.SOOTOPOLIS_CITY):
+        raise BotModeError(f"Ch21 leg 5: phase B needs the city; standing at {_where()}.")
+
+    # ⛔ Pinned for SAFETY, and the honest expectation is a NO-OP: MEASURED 2026-09-02, at state 5
+    # with SKY_PILLAR_STATE 3 the live header IS the map's static NORMAL layout
+    # (0x083E6A04 -> 0x083E6A04) and a whole-map live-vs-static collision diff finds ZERO tiles that
+    # are open to the planner and wall to the game. ⛔ NEVER report this pin as a fix.
+    report["pins"].append(_pin_planner_to_live_layout(MapRSE.SOOTOPOLIS_CITY))
+
+    if not leaders_have_left():
+        from modules.memory import get_event_flag
+
+        leaders = (
+            (L5_MAXIE_APPROACH, L5_MAXIE_TILE, "MET_MAXIE_SOOTOPOLIS", "Maxie", "R-MAXIE"),
+            (L5_ARCHIE_APPROACH, L5_ARCHIE_TILE, "MET_ARCHIE_SOOTOPOLIS", "Archie", "R-ARCHIE"),
+        )
+        for index, (approach, npc_tile, flag, label, reading) in enumerate(leaders):
+            _check_abort()
+            if get_event_flag(flag):
+                # Idempotent resume: the first talk is spent, the second is not.
+                _take(report, reading)
+                console.print(f"[cyan]Ch21 leg 5 {reading}: {flag} already SET — skipping.[/]")
+                continue
+            done = (lambda f=flag: get_event_flag(f))
+            # ⛔ BOUNDED RETRY, and the bail it recovers from is the reason it exists: a missed
+            # A-press must not end the leg, and a retry loop must never cross a SUCCESS (each talk
+            # is a one-shot whose flag `done()` already gates).
+            for attempt in range(2):
+                _check_abort()
+                context.message = f"Story: Ch21 leg 5 — approaching {label} via {approach}."
+                yield from _navigate_riding_out(MapRSE.SOOTOPOLIS_CITY, approach, tries=6)
+                yield from wait_until_truly_controllable()
+                if not _npc_is_on(MapRSE.SOOTOPOLIS_CITY, npc_tile):
+                    raise BotModeError(
+                        f"Ch21 leg 5: standing at {approach} but NO live object is on {npc_tile} "
+                        f"({label}). `SetOutsideGymObjPos` places him there at "
+                        f"SOOTOPOLIS_CITY_STATE 5 (MEASURED live 2026-09-02); an empty tile means "
+                        "the map state changed under us."
+                    )
+                if fault_npcmiss and index == 0 and attempt == 0:
+                    # ‼ FAULT INJECTION: face AWAY so the A lands on nothing. The happy path cannot
+                    # exercise the missed-press bail, and leg 2a's bail SHIPPED DEAD without an arm.
+                    yield from ensure_facing_direction("Down")
+                else:
+                    yield from ensure_facing_direction("Up")
+                context.emulator.press_button("A")
+                yield
+                if (yield from _ride_talk(done, approach, label)):
+                    break
+                console.print(f"[yellow]Ch21 leg 5: the {label} press missed; re-approaching "
+                              f"(attempt {attempt + 2}/2).[/]")
+            else:
+                raise BotModeError(
+                    f"Ch21 leg 5: pressed A at {label}'s approach {approach} twice without "
+                    f"engaging — flag={get_event_flag(flag)}, at {_where()}. Verify the facing "
+                    "actually latched before re-driving."
+                )
+            _take(report, reading)
+            console.print(f"[cyan]Ch21 leg 5 {reading}: {label} talked; {flag}="
+                          f"{get_event_flag(flag)}.[/]")
+
+        if not leaders_have_left():
+            raise BotModeError(
+                f"Ch21 leg 5: both leaders were talked to but `SOOTOPOLIS_ARCHIE_MAXIE_LEAVE` is "
+                f"CLEAR — at {_where()}. That flag is set by whichever talk happens SECOND "
+                "(`MaxieArchieLeave`); if it is clear, one of the talks did not really run."
+            )
+    else:
+        _take(report, "R-MAXIE")
+        _take(report, "R-ARCHIE")
+        console.print("[cyan]Ch21 leg 5 R-MAXIE/R-ARCHIE: 0x9E already SET — the leaders are "
+                      "gone; resuming at the Wallace talk.[/]")
+
+    # --- R-WARPED — trap 3. The game MOVED the bot; find out where, do not assume. ---------------
+    yield from wait_until_truly_controllable()
+    landed = _here_tile()
+    report["warp_landing"] = tuple(landed)
+    console.print(f"[cyan]Ch21 leg 5 R-WARPED: after the second leader talk the bot is at "
+                  f"{landed} (DECOMP predicts {L5_WARP_LANDING} via `warpsilent`; REPORTED, not "
+                  "asserted — a same-map warp is a MAP RELOAD, so the planner is re-pinned).[/]")
+    report["pins"].append(_pin_planner_to_live_layout(MapRSE.SOOTOPOLIS_CITY))
+    if tuple(landed) != L5_WARP_LANDING:
+        # Not an error — a RESULT. Walk to the approach the gift script is built around.
+        console.print(f"[yellow]Ch21 leg 5: the warp landed at {landed}, not {L5_WARP_LANDING}; "
+                      "navigating to the south approach so Wallace's DIR_NORTH branch fires.[/]")
+        yield from _navigate_riding_out(MapRSE.SOOTOPOLIS_CITY, L5_WARP_LANDING, tries=6)
+        yield from wait_until_truly_controllable()
+    if not _at(MapRSE.SOOTOPOLIS_CITY, L5_WARP_LANDING):
+        raise BotModeError(
+            f"Ch21 leg 5: could not stand on {L5_WARP_LANDING} to talk to Wallace — at {_where()}."
+        )
+    _take(report, "R-WARPED")
+
+    # --- R-HM07 — the gift. Graded on the ITEM as well as the flag. ------------------------------
+    if not _npc_is_on(MapRSE.SOOTOPOLIS_CITY, L5_WALLACE_TILE):
+        raise BotModeError(
+            f"Ch21 leg 5: no live object on Wallace's tile {L5_WALLACE_TILE} while standing at "
+            f"{_where()}. He blocks the gym door at this point in the story; an empty tile means "
+            "the gift already happened or the map state changed."
+        )
+    context.message = "Story: Ch21 leg 5 — asking Wallace for HM07."
+    # ⛔ FACING UP IS LOAD-BEARING, NOT COSMETIC: the gift script's tail is
+    # `call_if_eq VAR_FACING, DIR_NORTH/EAST/WEST` with NO south case, so the facing decides whether
+    # Wallace steps off the gym door at all.
+    yield from ensure_facing_direction("Up")
+    context.emulator.press_button("A")
+    yield
+    if not (yield from _ride_talk(waterfall_received, L5_WARP_LANDING, "Wallace")):
+        raise BotModeError(
+            f"Ch21 leg 5: the A-press at Wallace ({L5_WARP_LANDING} facing Up) engaged nothing — "
+            f"at {_where()}, HM flag={waterfall_received()}."
+        )
+    # ⛔ SETTLE BEFORE READING. `_ride_talk` now requires the script to be finished, but the
+    # avatar can still be mid-`applywaitmovement` (Wallace stepping aside) for a few frames, and
+    # `VAR_SOOTOPOLIS_WALLACE_STATE` is written by that same tail.
+    yield from wait_until_truly_controllable()
+    quantity = _hm07_in_bag()
+    if not waterfall_received() or quantity < 1:
+        raise BotModeError(
+            f"Ch21 leg 5: the Wallace talk finished but the gift did not land — "
+            f"RECEIVED_HM_WATERFALL={waterfall_received()}, HM07 in bag={quantity}. ⛔ Both are "
+            "checked because `giveitem` and `setflag` are ADJACENT lines, not the same fact (a "
+            "full bag fails the first and not the second)."
+        )
+    report["hm07_quantity"] = quantity
+    report["wallace_state_after"] = _var("SOOTOPOLIS_WALLACE_STATE")
+    if not fault_dropreading:
+        _take(report, "R-HM07")
+    else:
+        console.print("[magenta]Ch21 leg 5 FAULT DROPREADING: R-HM07 suppressed at its take point "
+                      "— the driver's missing-readings gate MUST catch this.[/]")
+    console.print(f"[cyan]Ch21 leg 5 R-HM07: HM07 x{quantity} in the bag, flag SET, "
+                  f"SOOTOPOLIS_WALLACE_STATE={report['wallace_state_after']} (DECOMP: 1 = he "
+                  "stepped RIGHT off the gym door, the DIR_NORTH branch).[/]")
+
+    # --- R-GYMDOOR — ⛔ THE READING DRIVE 1 DID NOT HAVE, AND ITS ABSENCE LET A STRANDED RUN PASS.
+    # Wallace blocks (31,33), one tile south of the (31,32) gym warp. If his gift script's
+    # `call_if_eq VAR_FACING` tail never ran he is still standing there, `WALLACE_STATE` is 0, and
+    # §Ch22 (Juan) cannot be started — while every other end-state check still reads green.
+    here = _here_tile()
+    if report["wallace_state_after"] == 0:
+        raise BotModeError(
+            f"Ch21 leg 5: HM07 is in the bag but `SOOTOPOLIS_WALLACE_STATE` is 0 — Wallace never "
+            f"stepped off the gym door at {L5_WALLACE_TILE}. His script's tail is "
+            "`call_if_eq VAR_FACING, DIR_NORTH/EAST/WEST` with NO south case, so a 0 means either "
+            f"the talk was left mid-script or the approach faced the wrong way (we stood at {here} "
+            "facing Up). ⛔ The HM alone is NOT the leg: it must also leave the gym reachable."
+        )
+    try:
+        gym_path = calculate_path((MapRSE.SOOTOPOLIS_CITY, here),
+                                  (MapRSE.SOOTOPOLIS_CITY, L5_GYM_DOOR))
+    except PathFindingError as error:
+        raise BotModeError(
+            f"Ch21 leg 5: HM07 is in the bag but the GYM DOOR {L5_GYM_DOOR} is UNREACHABLE from "
+            f"{here} ({error}). That warp is §Ch22's entrance; a run that ends here is STRANDED "
+            "however green the flag reads."
+        ) from error
+    report["gym_wp"] = len(gym_path)
+    _take(report, "R-GYMDOOR")
+    console.print(f"[cyan]Ch21 leg 5 R-GYMDOOR: the gym warp {L5_GYM_DOOR} is reachable in "
+                  f"{len(gym_path)} wp (last waypoint {tuple(gym_path[-1].map)}"
+                  f"{tuple(gym_path[-1].coordinates)}, is_warp={gym_path[-1].is_warp}).[/]")
+
+    # --- R-CONTINUE + R-CONTROL — "…and the bot can CONTINUE" (house rule 8). --------------------
+    here = _here_tile()
+    try:
+        continue_path = calculate_path((MapRSE.SOOTOPOLIS_CITY, here),
+                                       (MapRSE.SOOTOPOLIS_CITY, L5_CONTINUE))
+    except PathFindingError:
+        # ⛔ SWALLOWED DELIBERATELY: "no path" IS the measurement — it means STRANDED, and it is
+        # graded as continue_ok=False rather than crashing past the verdict.
+        continue_path = None
+    continue_ok = (
+        bool(continue_path)
+        and tuple(continue_path[-1].map) == MapRSE.SOOTOPOLIS_CITY.value
+        and tuple(continue_path[-1].coordinates) == L5_CONTINUE
+    )
+    report["continue_wp"] = 0 if continue_path is None else len(continue_path)
+    report["continue_ok"] = continue_ok
+    if continue_ok:
+        _take(report, "R-CONTINUE")
+    control_target = L5_CONTINUE if fault_controlopen else L5_CONTROL
+    if fault_controlopen:
+        console.print("[magenta]Ch21 leg 5 FAULT CONTROLOPEN: aiming the control at a REACHABLE "
+                      "tile — control_refused must read False and the driver must FAIL.[/]")
+    try:
+        calculate_path((MapRSE.SOOTOPOLIS_CITY, here), (MapRSE.SOOTOPOLIS_CITY, control_target))
+        control_refused = False
+    except PathFindingError:
+        # ⛔ SWALLOWED DELIBERATELY — here the exception IS the PASS condition (the negative
+        # control): a planner that can no longer refuse proves nothing when it accepts.
+        control_refused = True
+    report["control_refused"] = control_refused
+    if control_refused:
+        _take(report, "R-CONTROL")
+    console.print(f"[cyan]Ch21 leg 5 R-CONTINUE/R-CONTROL: continue={report['continue_wp']} wp "
+                  f"ok={continue_ok}; control_refused={control_refused}.[/]")
+    context.message = f"Story: Ch21 — leg 5 done: HM07 WATERFALL is in the bag, at {_where()}."
     return report
