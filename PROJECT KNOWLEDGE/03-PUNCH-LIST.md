@@ -833,6 +833,7 @@ we read. Evidence + the one unverified link in `12-STORYMODE-DESIGN.md` §Ch21.
   cold-start audit (2026-09-01) found this item still commanding the opposite of the first
   action, and found that the handoff never NAMES this slug — so the correction was unfindable
   from the place a cold reader starts. ⛔ What REMAINS true and is leg 4's real hazard:
+  ✅✅ **RESOLVED 2026-09-01 — `SKY_PILLAR_TOP` IS VALIDATED NOW.** `tools/story-dev/probe_skypillar_rom_layouts.py` reads the CLEAN layouts for ALL SIX floors out of OUR OWN ROM (no network, five controls, three fault arms) and CONFIRMS the atlas's numbers exactly: **31** static-open/CLEAN-wall tiles on TOP and 32 the other way. ‼ And it adds the fact leg 4 most needed: **1F-5F have ZERO tiles in the dangerous direction**, so the planner there can only ever REFUSE a real route — never route into rock. **TOP is the one dangerous floor**, and it is CRACK-FREE on the story layout (42 → 0). The per-floor table is in `12-STORYMODE-DESIGN.md` §Ch21. ⛔ The remaining TOP risk is the 31 walls, not cracks.
   `SKY_PILLAR_TOP` is INVERTED (31 static-open tiles are CLEAN walls) and is **un-validated** —
   `probe_skypillar_clean_layout.py` fetches only 2F/3F/4F_Clean, so it cannot check TOP, 1F or
   5F at all, and the atlas's "TOP 13 wp" was computed blocking CLEAN *cracks*, never CLEAN

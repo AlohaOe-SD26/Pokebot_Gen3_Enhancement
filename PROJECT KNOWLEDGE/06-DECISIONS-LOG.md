@@ -3685,3 +3685,36 @@ no matching refusal is a coin that only has heads.
 ⚠ **And the predicate says what it does NOT prove:** of the five continuation conjuncts only
 `bool(path)` can fail today. The other four are a **regression guard** against someone re-aiming the
 constant at `(14,4)`. Keeping them is right; claiming the run "proved" five things is not.
+
+---
+
+## 2026-09-01 (later) — READ THE SKY PILLAR'S CLEAN LAYOUTS FROM **OUR OWN ROM**, NOT BY EXTENDING THE NETWORK PROBE
+
+**The decision.** Four Tier 2 audits named the same blocker — `SKY_PILLAR_TOP` is un-validated and
+`probe_skypillar_clean_layout.py` cannot reach it — and the last one proposed the obvious fix:
+*"extend it to `1F_Clean`, `5F_Clean`, `Top_Clean` — a 3-line change, cache the binaries."*
+**Rejected.** A second, ROM-based reader was written instead.
+
+**Why, in order of weight:**
+1. ⛔ **THE PROPOSED FIX WOULD HAVE DECODED GARBAGE.** That probe hardcodes `W = H = 14` on the
+   stated premise *"every Sky Pillar floor is 14x14"*. MEASURED: **TOP is 27x24**. The "3-line
+   change" would have read 392 bytes of a 1,296-byte map. Its length guard would have caught it —
+   but the point is that the premise, not the line count, was the obstacle.
+2. **No network.** The playbook records that this environment silently corrupts binary HTTP fetches;
+   that probe carries a length check precisely because of it. A ROM read has no such failure mode.
+3. **Better evidence.** The decomp describes what pret ships. Our ROM is what the bot plays. For a
+   claim that code will depend on, the second is the one that matters.
+4. **It generalises.** The technique (enumerate `gMapLayouts`, match dimensions, identify by
+   agreement) is the one `probe_ch21_route131_live.py` already uses and that four controls already
+   vouch for.
+
+**What was NOT done, deliberately:** the network probe is KEPT, not replaced. It is the independent
+second instrument that control C2 checks against — and agreement between two instruments over two
+different sources is the whole reason the six-floor result can be trusted. ⛔ Deleting it would
+leave the new probe grading itself.
+
+**The cost, recorded honestly:** the identification is by *content*, not by reading the layout
+constant the game uses, so it is an inference — a strong one (five controls, a bijection, and an
+exact match against an independent oracle on two floors), but an inference. The decisive alternative
+would be to read `gSaveBlock1Ptr->mapLayoutId` while standing on each floor, which needs a save state
+on every floor and is therefore circular until leg 4 exists.

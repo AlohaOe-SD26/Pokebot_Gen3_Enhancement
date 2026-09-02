@@ -3676,6 +3676,37 @@ genuinely cracked tile. **The route must be validated against CLEAN data**, whic
 * **`SKY_PILLAR_TOP`**: **31 tiles the static planner believes are OPEN are WALLS on CLEAN** (and 32
   the other way). ⇒ on the summit map `navigate_to` CAN walk into a story-time wall. The atlas's
   `(16,14)->(14,9)` leg must be re-derived on CLEAN before it is driven.
+  ✅✅ **CONFIRMED 2026-09-01 FROM OUR OWN ROM, BY AN INDEPENDENT INSTRUMENT — 31 and 32 EXACTLY.**
+  A Tier 2 round-3 audit had flagged this "31" as having **no committed source** anywhere in the
+  tree. It has one now: `tools/story-dev/probe_skypillar_rom_layouts.py` reads the CLEAN layouts for
+  ALL SIX floors out of `gMapLayouts` with no network; its output is
+  `evidence/2026-09-01-skypillar-ROM-clean-layouts.stdout.txt`. ‼ Two instruments over DIFFERENT
+  sources (the decomp's shipped `map.bin` and our own ROM) agreeing to the tile is the strongest
+  evidence this claim has ever had.
+
+⛔⛔ **THE PER-FLOOR TABLE LEG 4 ACTUALLY NEEDS — MEASURED 2026-09-01, ALL SIX FLOORS.**
+`DEFAULT` is what `calculate_path` reads; `CLEAN` is what the story runs on while
+`VAR_SKY_PILLAR_STATE < 2`. "we think OPEN / game says WALL" is the DANGEROUS direction — it is
+where the planner routes the bot into rock:
+
+| floor | DEFAULT | CLEAN | ⛔ we-think-OPEN / game-says-WALL | ✅ we-think-WALL / game-says-open | cracks DEFAULT → CLEAN |
+|---|---|---|---|---|---|
+| `SKY_PILLAR_1F`  | #321 | #432 | **0** | 21 | 0 → 0 |
+| `SKY_PILLAR_2F`  | #322 | #433 | **0** | 13 | 38 → **0** |
+| `SKY_PILLAR_3F`  | #323 | #434 | **0** | 15 | 0 → 0 |
+| `SKY_PILLAR_4F`  | #324 | #435 | **0** | 13 | 34 → **5** `(0,3)(1,3)(6,4)(7,4)(9,4)` |
+| `SKY_PILLAR_5F`  | #329 | #436 | **0** | 15 | 0 → 0 |
+| `SKY_PILLAR_TOP` | #330 | #437 | **31** | 32 | 42 → **0** |
+
+⇒ **THE PLANNER IS SAFE ON 1F-5F AND DANGEROUS ONLY ON TOP.** On 1F-5F the divergence is entirely
+in the harmless direction (DEFAULT-walkable ⊆ CLEAN-walkable), so `calculate_path` there may REFUSE
+a route that exists, but it will never route into a story-time wall. **TOP is the one floor where a
+plan can walk the bot into rock**, and it is also the floor with no committed CLEAN route.
+‼ **The summit is CRACK-FREE on the story layout** (42 → 0), so there is no fall hazard on TOP — its
+danger is purely the 31 walls.
+⚠ SCOPE: a STATIC comparison of ROM layouts. It says WHICH layout the story runs on, not which is
+loaded at a given moment — for that, `sootopolis._live_wall_tiles()` reads `gBackupMapLayout`, the
+grid the game itself walks on.
 * **`ROUTE131`** (the approach): an **UNCONDITIONAL** layout swap turns **116 static-open tiles into
   live walls**. It is the single most dangerous map in the chain and it is on the way IN.
 

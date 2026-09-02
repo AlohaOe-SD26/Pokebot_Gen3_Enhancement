@@ -1,0 +1,38 @@
+SKY PILLAR ROM CLEAN-LAYOUT PROBE — FAULT SELF-TESTS (2026-09-01)
+=================================================================
+stride and noagree MUST go RED. anycand MUST PASS — that is a MEASURED result, not a broken
+arm: it proves the crack-subset filter is NOT the discriminator (agreement alone is).
+
+########## POKEBOT_SPROM_FAULT=stride ##########
+  ‼ FAIL  SKY_PILLAR_1F: DEFAULT #329 agrees with get_map_data   45.8%
+  ‼ FAIL  SKY_PILLAR_2F: DEFAULT #322 agrees with get_map_data   43.8%
+  ‼ FAIL  SKY_PILLAR_3F: DEFAULT #322 agrees with get_map_data   39.6%
+  ‼ FAIL  SKY_PILLAR_4F: DEFAULT #322 agrees with get_map_data   39.6%
+  ‼ FAIL  SKY_PILLAR_5F: DEFAULT #322 agrees with get_map_data   45.1%
+  ‼ FAIL  SKY_PILLAR_TOP: DEFAULT #437 agrees with get_map_data   40.0%
+  ‼ FAIL  SKY_PILLAR_ENTRANCE: DEFAULT #319 agrees with get_map_data   38.3%
+  ‼ FAIL  SKY_PILLAR_OUTSIDE: DEFAULT #320 agrees with get_map_data   40.8%
+  ‼ FAIL  SKY_PILLAR_4F: CLEAN has 5 cracked tile(s), exactly [(0, 3), (1, 3), (6, 4), (7, 4), (9, 4)]   got 0: []
+  ‼ FAIL  SKY_PILLAR_TOP: DEFAULT and CLEAN share both tilesets
+  DEFAULT indices: [322, 329, 437]
+  CLEAN   indices: [290, 433, 433, 433, 433, 436]
+  ‼ FAIL  the CLEAN twins are DISTINCT (no layout claimed by two floors)
+‼ CONTROLS FAILED — every measurement below is UNTRUSTED. Do not act on it.
+
+########## POKEBOT_SPROM_FAULT=noagree ##########
+  ‼ FAIL  SKY_PILLAR_4F: CLEAN has 5 cracked tile(s), exactly [(0, 3), (1, 3), (6, 4), (7, 4), (9, 4)]   got 0: []
+  ‼ FAIL  SKY_PILLAR_1F: DEFAULT and CLEAN share both tilesets
+  ‼ FAIL  SKY_PILLAR_2F: DEFAULT and CLEAN share both tilesets
+  ‼ FAIL  SKY_PILLAR_3F: DEFAULT and CLEAN share both tilesets
+  ‼ FAIL  SKY_PILLAR_4F: DEFAULT and CLEAN share both tilesets
+  ‼ FAIL  SKY_PILLAR_5F: DEFAULT and CLEAN share both tilesets
+  ‼ FAIL  SKY_PILLAR_TOP: DEFAULT and CLEAN share both tilesets
+  DEFAULT indices: [321, 322, 323, 324, 329, 330]
+  CLEAN   indices: [218, 218, 218, 218, 218, 290]
+  ‼ FAIL  the CLEAN twins are DISTINCT (no layout claimed by two floors)
+‼ CONTROLS FAILED — every measurement below is UNTRUSTED. Do not act on it.
+
+########## POKEBOT_SPROM_FAULT=anycand ##########
+  DEFAULT indices: [321, 322, 323, 324, 329, 330]
+  CLEAN   indices: [432, 433, 434, 435, 436, 437]
+  ALL CONTROLS PASS.

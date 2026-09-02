@@ -19306,3 +19306,71 @@ every one of these.** The defects lived in the BODY under CORRECT headings, and 
 instructed to *begin the next item* hit them. ⇒ **the strongest audit of a handoff is not "is it
 consistent?" but "can someone START from it?"** — and, newly earned: **a fix is a new claim that
 inherits no credibility from the defect it replaces.**
+
+---
+
+## 2026-09-01 (later) — LEG 4'S NAMED BLOCKER IS RETIRED: THE SKY PILLAR'S **CLEAN** LAYOUTS, ALL SIX FLOORS, FROM OUR OWN ROM — AND THE DOC LAYER GAINS ITS STRUCTURAL HALF
+
+Two completed items, both offline, both fault-tested.
+
+### 1. `tools/story-dev/probe_skypillar_rom_layouts.py` — the blocker four audits named
+
+Every Tier 2 audit of the §Ch21 handoff ended at the same wall: **`SKY_PILLAR_TOP` is un-validated,
+and the tool named to validate it cannot reach that map.** `probe_skypillar_clean_layout.py` fetches
+`SkyPillar_{2F,3F,4F}_Clean/map.bin` over HTTP — three floors of six. An audit called extending it
+*"a 3-line change"*.
+
+⛔ **IT IS NOT, AND THE REASON IS A FALSE PREMISE THAT PROBE CARRIES IN A COMMENT:**
+`W = H = 14  # every Sky Pillar floor is 14x14`. MEASURED from our ROM: 1F-5F are 14x14, but
+**TOP is 27x24**, ENTRANCE 18x18 and OUTSIDE 28x23. A 14x14 decode of TOP reads 392 bytes where
+1,296 are needed. (Its length guard would have caught it — it fails loudly rather than lying — but
+it cannot be extended as written.)
+
+So the layouts are now read **out of the ROM we actually run**, with no network at all: enumerate
+`gMapLayouts`, identify each floor's DEFAULT by agreement with production's own `get_map_data`, then
+identify its CLEAN twin by content. **All six floors, five controls, three fault arms.**
+
+**THE RESULT — and it is what leg 4 needed:**
+
+| floor | DEFAULT | CLEAN | ⛔ we-think-OPEN / game-says-WALL | cracks DEFAULT → CLEAN |
+|---|---|---|---|---|
+| 1F | #321 | #432 | **0** | 0 → 0 |
+| 2F | #322 | #433 | **0** | 38 → **0** |
+| 3F | #323 | #434 | **0** | 0 → 0 |
+| 4F | #324 | #435 | **0** | 34 → **5** |
+| 5F | #329 | #436 | **0** | 0 → 0 |
+| TOP | #330 | #437 | **31** | 42 → **0** |
+
+⇒ **THE PLANNER IS SAFE ON 1F-5F AND DANGEROUS ONLY ON TOP.** On 1F-5F every divergence is in the
+harmless direction, so `calculate_path` may refuse a real route but can never route into a
+story-time wall. TOP is the single floor where a confident plan walks the bot into rock — and the
+summit is CRACK-FREE on the story layout (42 → 0), so its danger is purely those 31 walls.
+
+✅ **AND THE ATLAS'S "31" NOW HAS A SOURCE.** A round-3 audit flagged that number as having **no
+committed evidence anywhere in the tree**. Two instruments over DIFFERENT sources — the decomp's
+shipped `map.bin` and our own ROM — now agree to the tile: **31 and 32 exactly.**
+C2 is what licenses the whole probe: the ROM method must REPRODUCE the decomp method where both can
+see, and it does — `2F_Clean` 0 cracks, `4F_Clean` 5 at exactly `(0,3)(1,3)(6,4)(7,4)(9,4)`.
+
+### 2. `tools/story-dev/audit_handoff_invariants.py` — gate #33
+
+FOUR cold-start audits in one day, each finding a defect the previous round's FIX had created or
+missed, and **Tier 0 was GREEN over every one** — because every one was STRUCTURAL, not textual.
+CLAUDE.md already says what to do: *"anything enforceable belongs in a GATE, not in prose"*.
+
+Five invariants, each earned by a real failure: **H1** exactly one `➡➡➡` queue marker (a LINE that
+begins with it — prose mentions made a bare grep return 11); **H2** the HOW TO RUN section exists
+with a real body (an archiving script of mine deleted all 333 lines after the last queue item);
+**H3** every `--driver` in the recipe is registered in the harness; **H4** every `.ss1` named as a
+harness argument exists on disk; **H5** a claimed fault-arm count matches the arms in its own recipe
+block (the file said "TWO" directly above THREE commands).
+
+⛔ It grades the MECHANICAL half only. It cannot tell you a hazard list belongs to the previous leg
+or that a grading var is the wrong var — Tier 2 still has to, and stays.
+
+### FILES
+`tools/story-dev/probe_skypillar_rom_layouts.py`, `audit_handoff_invariants.py` (new);
+`run_gates.py` (gate #33; suite 32 → 33 = 31 ENFORCING + 2 ADVISORY); `12-STORYMODE-DESIGN.md` (the
+per-floor divergence table + the "31" confirmation); `04-HANDOFF.md`, `02-ARCHITECTURE.md` (gate
+counts, and the new tools in HOW TO RUN); `29-DISABLED-FEATURES-REGISTRY.md` (`POKEBOT_SPROM_FAULT`);
+evidence `2026-09-01-skypillar-ROM-clean-layouts.stdout.txt`, `2026-09-01-skypillar-ROM-faulttests.txt`.

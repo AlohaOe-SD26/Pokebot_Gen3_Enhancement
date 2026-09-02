@@ -60,7 +60,7 @@ Every banner further down is HISTORY, newest first.
 >
 > ‼ **THEN, ALWAYS:** `cd tools/story-dev` **from the repo root** (the folder holding `sandbox-pokebot/`, `custom-pokebot/` and `40cakes repo/`), then
 > `PYTHONUTF8=1 py -3.12 preflight.py` and `PYTHONUTF8=1 py -3.12 run_gates.py`
-> — **both must exit 0; the suite is 32 gates (30 ENFORCING + 2 ADVISORY; #32 = the fleefreeze delegation, 2026-08-26)** ⚠ *(ONE EXPECTED EXCEPTION: if a session deliberately
+> — **both must exit 0; the suite is 33 gates (31 ENFORCING + 2 ADVISORY; #33 = `audit_handoff_invariants.py`, 2026-09-01 — the STRUCTURAL half of the doc layer)** ⚠ *(ONE EXPECTED EXCEPTION: if a session deliberately
 > holds a commit for a Tier 2 audit, `preflight.py` exits 1 on "git is AHEAD of the remote". That is
 > the ritual working, not a broken tree — report it and push, per `CLAUDE.md`.)* (it prints its own count — believe that, not this
 > line, which has been wrong at 17, 18, 19, 20, 21 and 25 on the way here). ‼ **The 25 was found by a Tier 1 reviewer, FOUR LINES above a correct `26/26`** — the gate could not see this phrasing until the same commit taught it to. That ritual survived the 2026-08-14
@@ -77,9 +77,10 @@ Every banner further down is HISTORY, newest first.
 > preflight telling you to push. ‼ *(An earlier version of this line promised "31 of 32" flatly.
 > That number is an INFERENCE from re-running ONE gate alone, not from a full suite run —
 > `run_gates.py` never prints such a string; on failure it prints a FAILED list.)*
-> *(This line said "32/32 gates green" while the punch list said 30-of-32 the same day; a Tier 2
+> *(This line once claimed the whole suite was green while the punch list recorded two reds the
+> same day — it quoted an all-pass fraction that was never true; a Tier 2
 > re-audit called it the single most likely way a next session wastes its time.)*
-> **State: `main`, suite is 32 gates (**30 ENFORCING + 2 ADVISORY** — ⛔ `run_gates.py` prints its own count and IS the authority, never this line), drift **8** (see the STATE drift row; run `promote.py --check`, which outranks this line; ⛔ NOT a promotion decision until it is driven further. `early_game.py`'s promotion was DONE 2026-08-24), nothing parked MID-TASK, nothing running.** ✅ **THREE DECISIONS AWAIT A USER RULING — the drift promotion, the post-wind repeat burn and mixin adoption, all listed in the queue.** *(KI-82 — the tracked Emerald ROM — was CLOSED 2026-08-23: it had ALREADY been ruled on 2026-07-18 (`06-DECISIONS-LOG.md`, "keep it as is"), and the user re-affirmed it. ⛔ Do not re-raise it; the only condition that reopens it is the repo being made PUBLIC.)*
+> **State: `main`, suite is 33 gates (**31 ENFORCING + 2 ADVISORY** — ⛔ `run_gates.py` prints its own count and IS the authority, never this line), drift **8** (see the STATE drift row; run `promote.py --check`, which outranks this line; ⛔ NOT a promotion decision until it is driven further. `early_game.py`'s promotion was DONE 2026-08-24), nothing parked MID-TASK, nothing running.** ✅ **THREE DECISIONS AWAIT A USER RULING — the drift promotion, the post-wind repeat burn and mixin adoption, all listed in the queue.** *(KI-82 — the tracked Emerald ROM — was CLOSED 2026-08-23: it had ALREADY been ruled on 2026-07-18 (`06-DECISIONS-LOG.md`, "keep it as is"), and the user re-affirmed it. ⛔ Do not re-raise it; the only condition that reopens it is the repo being made PUBLIC.)*
 > ⚠ **DISK: 87% used, 247 GB free (RE-MEASURED 2026-08-18 at wrap-up).** ⛔ This row briefly read
 > *"100% — 2.6 GB free"*, which was a TRANSIENT reading taken while audit agents were copying whole
 > forks to scratch; one of them hit `No space left on device` mid-run, which is real and is why the
@@ -539,7 +540,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ✅ **(d) DONE 2026-08-14 — the user approved that round and it was PROMOTED.** ‼ Promotion of
 >    anything drifted TODAY remains the USER's call and has not been asked for.
 > 1. **Run `preflight.py`**, then the gate suite in "HOW TO RUN / TEST" — **`run_gates.py` prints its own count and IS the authority; it reached 27 on 2026-08-17** (all exit 0
->    2026-08-15; it has said 17, 18, 19, 20, 21, 22, 23 and 28 on its way to **32** — `run_gates.py` is authoritative, never this prose), and the drift check below.
+>    2026-08-15; it has said 17, 18, 19, 20, 21, 22, 23 and 28 on its way to **33** — `run_gates.py` is authoritative, never this prose), and the drift check below.
 >    ⚠ **EXPECT 8 differing, 0 orphaned as of 2026-08-27 (the six `#26-*`/§Ch20/§Ch21 files in the drift row above + `map_data.py` + `story_mode.py` — NOT a promotion decision until the user rules) — the abort guards were PROMOTED (user-approved). Formerly 0 differing after the FIVE-FILE PROMOTION (2026-08-17, user-approved)**, the KI-66 `_on_field` fix included, the KI-81 whiteout guard
 >    included (2026-08-16, user-approved). **ANY file listed is unexplained drift.**
 >    *(This line read "EXPECT 0 — everything was PROMOTED 2026-08-15" until 2026-08-15, when Stage 2
@@ -677,11 +678,11 @@ handoff's own instruction found nothing. The archive copy is longer and still us
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py        # ‼ RUN THIS FIRST. git + fixtures + docs + freeze
-PYTHONUTF8=1 py -3.12 run_gates.py        # THE STANDING SUITE — all 32, exits non-zero on any
+PYTHONUTF8=1 py -3.12 run_gates.py        # THE STANDING SUITE — all 33, exits non-zero on any
                                           #   failure (~130s). ‼ The list lives in CODE, not prose — `run_gates.py` is the only
 #   authority on how many gates there are. Every prose count in this file has been
 #   wrong at some point.
-PYTHONUTF8=1 py -3.12 run_gates.py --quick   # the 24 needing no ROM (was 10, 14, 15, 16, 17, 18, 20, 21; MEASURE)
+PYTHONUTF8=1 py -3.12 run_gates.py --quick   # the 25 needing no ROM (was 10, 14, 15, 16, 17, 18, 20, 21; MEASURE)
 PYTHONUTF8=1 py -3.12 run_gates.py --list    # what is in the suite
 PYTHONUTF8=1 py -3.12 probe_chapter_order.py --build custom   # ‼ also check the OTHER fork
 PYTHONUTF8=1 py -3.12 probe_stale_citations.py   # ‼ RUN THIS BEFORE TRUSTING ANY `file.py:NNN`
@@ -837,7 +838,13 @@ PYTHONUTF8=1 py -3.12 collect_party_accounting.py   # (P3b) aggregate every driv
 #     read is a reading. It also fails LOUD when no log matches ("I could not look" != "clean").
 
 # --- THE DOC GATES — MANDATORY before ANY commit touching PROJECT KNOWLEDGE (Tier 0) ---
-PYTHONUTF8=1 py -3.12 lint_docs.py                  # line budgets, banners, flag registry
+PYTHONUTF8=1 py -3.12 lint_docs.py
+# ⛔ THE STRUCTURAL half of the doc layer (NEW 2026-09-01, gate #33). Tier 0 was GREEN over all
+#   four defects that four cold-start audits found in one day, because each was STRUCTURAL:
+#   a queue marker pointing at the wrong leg, the HOW TO RUN section deleted wholesale, a
+#   claimed fault-arm count disagreeing with the arms listed. Offline, seconds.
+PYTHONUTF8=1 py -3.12 audit_handoff_invariants.py
+PYTHONUTF8=1 py -3.12 audit_handoff_invariants.py --self-test   # 7 cases; ⛔ MUST stay green                  # line budgets, banners, flag registry
 PYTHONUTF8=1 py -3.12 audit_doc_consistency.py      # docs vs code vs each other
 PYTHONUTF8=1 py -3.12 audit_encoding.py             # mojibake + BOM; --repair fixes in place
 #   All three must exit 0. Each also takes --self-test, which FAULT-TESTS the gate itself.

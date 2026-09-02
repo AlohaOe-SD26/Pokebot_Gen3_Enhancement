@@ -10337,3 +10337,66 @@ it; nothing about that output said "you just deleted the run instructions". The 
 was asking a question about the RESULT — *is HOW TO RUN still there?* — rather than reading the
 tool's summary of itself. *(Same lesson as "instrument the action, not the input to the action";
 here it is instrument the OUTCOME, not the operation's self-report.)*
+
+---
+
+## 2026-09-01 (later) — A FAULT ARM I WROTE TO PROVE MY TEST WAS LOAD-BEARING **PROVED THE OPPOSITE**, AND I ALMOST SHIPPED THE CLAIM ANYWAY
+
+**Symptom.** `POKEBOT_SPROM_FAULT=anycand` was added to `probe_skypillar_rom_layouts.py` to
+demonstrate that its crack-subset filter was what identified a CLEAN layout. Running it: **ALL
+CONTROLS PASS.** The arm does not fire.
+
+**Root cause.** The docstring claimed *"the CONTENT test is what does the work and not the
+dimensions"*. It was not: with the crack filter dropped, **maximum collision agreement alone selects
+the same six layouts.** The filter is a cheap corroborating constraint, not the discriminator.
+
+**The fix that worked.** Say what the arms measured. The docstring now reads *"ranked by AGREEMENT,
+filtered by cracks"*, and a NEW arm (`noagree`) — which drops the agreement ranking — DOES fire, so
+the load-bearing half is the one under test. ⛔ `anycand` is **kept deliberately even though it
+passes**, as the standing evidence for the claim; delete it and the next reader re-asserts that the
+crack filter does the work.
+
+**Prevention rule.** ⛔ **A FAULT ARM IS AN EXPERIMENT, NOT A DEMONSTRATION. RUN IT BEFORE YOU WRITE
+THE SENTENCE IT IS SUPPOSED TO SUPPORT.** An arm that passes is not a broken arm — it is a RESULT,
+and usually the more interesting one. This project already says *"a claim of the form 'without X the
+bug survives' is a CLAIM, and the only currency accepted for it is an arm with X removed"*; the
+symmetric case is the one that bit here — **an arm with X removed that changes nothing REFUTES the
+claim, and the honest move is to rewrite the claim, not to retire the arm.**
+
+---
+
+## 2026-09-01 (later) — MY NEW GATE SHIPPED WITH **THREE FALSE POSITIVES**, AND ITS OWN SELF-TEST CAUGHT THEM BEFORE IT EVER GRADED THE REAL FILE
+
+**Symptom.** `audit_handoff_invariants.py` — written to mechanise four cold-start audits' findings —
+failed three of its five checks on a handoff that was, in fact, correct: 21 valid `--driver` names
+"unregistered", a live profile-state file reported as a missing fixture, and a correct "THREE FAULT
+ARMS" line contradicted.
+
+**Root causes, all in the gate:**
+1. **H3** extracted the driver list with `--driver.*?choices=\[(.*?)\]`, which matched an earlier
+   `--driver` mention in a docstring and then took the first `]` it found — **2 names out of 69**.
+2. **H4** matched any `*.ss1` token anywhere, so it flagged `current_state.ss1`, the emulator's live
+   profile state named in a PROSE WARNING about probes that write.
+3. **H5** counted every `POKEBOT_*FAULT*` in the whole section — ten arms across three chapters —
+   against a claim that was only ever about three of them.
+And a fourth, caught by the self-test before any real run: **H2's section boundary treated every
+`# comment` inside a ```bash fence as a markdown heading**, so the body measured 3 lines instead of
+~90, H2 fired on a HEALTHY file and H5 passed VACUOUSLY on an empty block.
+
+**The fixes that worked.** Anchor the extraction on `add_argument("--driver"`; require a fixture to
+be a positional argument to `story_harness.py`; scope an arm count to the claim's own recipe block
+(bounded by a blank line **or the next top-level `# ` header**, because these recipes are not
+blank-line separated); make the section scanner fence-aware. Plus a **plausibility floor**: if the
+driver extraction returns fewer than 20 names the gate REFUSES to grade H3 and says its own input is
+broken.
+
+**Prevention rule.** ⛔ **A NEW GATE IS GUILTY UNTIL ITS SELF-TEST PASSES *AND* IT RUNS GREEN ON A
+FILE YOU HAVE INDEPENDENTLY CONFIRMED IS HEALTHY.** Both halves are required and they catch different
+things: the self-test caught the fence bug; only the real file caught the three extraction bugs,
+because the synthetic fixture was too clean to contain a docstring, a prose warning or a second
+recipe.
+‼ **AND WHEN A NEW GATE FAILS, SUSPECT THE GATE FIRST.** Every one of these three "failures" was an
+invitation to go and "fix" a correct handoff. A check whose own INPUT is silently truncated does not
+report *"I am broken"* — it reports *"your file is broken"*, which is the more expensive lie.
+✅ The self-test now carries the adjacent-recipe boundary case explicitly, so the H5 scoping cannot
+silently regress.

@@ -45,7 +45,11 @@ from collections import deque
 
 RAW = "https://raw.githubusercontent.com/pret/pokeemerald/master/data/layouts/%s/map.bin"
 CACHE = pathlib.Path(__file__).resolve().parent / ".layout-cache"
-W = H = 14                      # every Sky Pillar floor is 14x14 (layouts.json:3217-3218)
+W = H = 14                      # 1F-5F only. ⛔ NOT "every Sky Pillar floor" — MEASURED from our
+                                # ROM 2026-09-01: TOP is 27x24, ENTRANCE 18x18, OUTSIDE 28x23.
+                                # That false premise is why this probe cannot simply be
+                                # extended to TOP/1F/5F; use probe_skypillar_rom_layouts.py,
+                                # which reads all six floors out of the ROM with no network.
 CRACKED_METATILE = 0x236        # behaviour 0xD2 == MB_CRACKED_FLOOR
 FAILURES = []
 

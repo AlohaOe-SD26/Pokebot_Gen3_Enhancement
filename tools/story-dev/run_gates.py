@@ -78,6 +78,14 @@ GATES: list[tuple[str, bool]] = [
     # contradict themselves or the code. Exists because a handoff passed its own quality bar and
     # still sent the next session to REBUILD FINISHED WORK. Self-test: `--self-test` (10 checks).
     ("audit_doc_consistency.py", False),
+    # The STRUCTURAL half of the same layer, added 2026-09-01. Tier 0 was GREEN over all four
+    # defects that four cold-start audits found in one day, because every one of them was
+    # structural rather than textual: a queue marker pointing at the wrong leg, the HOW TO RUN
+    # section deleted wholesale by an unbounded archiving script, a claimed fault-arm count that
+    # disagreed with the arms listed. CLAUDE.md: "anything enforceable belongs in a GATE, not in
+    # prose". Self-test: `--self-test` (7 cases; ⛔ three of its five checks shipped with FALSE
+    # POSITIVES that the self-test caught before it ever graded the real file).
+    ("audit_handoff_invariants.py", False),
     ("verify_fixtures.py", False),
     ("audit_flag_names.py", False),
     ("repro_undefined_names.py", False),

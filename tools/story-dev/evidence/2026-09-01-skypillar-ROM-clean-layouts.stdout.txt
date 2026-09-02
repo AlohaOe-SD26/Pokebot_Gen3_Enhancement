@@ -1,0 +1,189 @@
+Running mGBA 0.10.2
+========================================================================================================
+SKY PILLAR — THE CLEAN (STORY) LAYOUTS FOR ALL SIX FLOORS, FROM OUR OWN ROM (no network)
+========================================================================================================
+
+plausible layouts in `gMapLayouts`: 525
+
+--------------------------------------------------------------------------------------------------------
+PER-FLOOR RESOLUTION  (⛔ every candidate's diff size is shown, so the test is visible)
+--------------------------------------------------------------------------------------------------------
+
+  SKY_PILLAR_1F  (14x14)
+    DEFAULT = layout #321  (agreement with get_map_data 100.0%); cracked tiles in DEFAULT: 0
+      candidate #218  cracks=0   cracks-subset-of-default=True  collision_agree=57.1%
+      candidate #322  cracks=38  cracks-subset-of-default=False collision_agree=86.2%
+      candidate #323  cracks=0   cracks-subset-of-default=True  collision_agree=78.6%
+      candidate #324  cracks=34  cracks-subset-of-default=False collision_agree=78.6%
+      candidate #329  cracks=0   cracks-subset-of-default=True  collision_agree=70.9%
+      candidate #432  cracks=0   cracks-subset-of-default=True  collision_agree=89.3%  <- CLEAN twin
+      candidate #433  cracks=0   cracks-subset-of-default=True  collision_agree=88.8%
+      candidate #434  cracks=0   cracks-subset-of-default=True  collision_agree=85.2%
+      candidate #435  cracks=5   cracks-subset-of-default=False collision_agree=84.2%
+      candidate #436  cracks=0   cracks-subset-of-default=True  collision_agree=78.6%
+    ⇒ CLEAN = layout #432; cracked tiles REMAINING on CLEAN: 0  
+
+  SKY_PILLAR_2F  (14x14)
+    DEFAULT = layout #322  (agreement with get_map_data 100.0%); cracked tiles in DEFAULT: 38
+      candidate #218  cracks=0   cracks-subset-of-default=True  collision_agree=53.6%
+      candidate #321  cracks=0   cracks-subset-of-default=True  collision_agree=86.2%
+      candidate #323  cracks=0   cracks-subset-of-default=True  collision_agree=83.2%
+      candidate #324  cracks=34  cracks-subset-of-default=False collision_agree=86.2%
+      candidate #329  cracks=0   cracks-subset-of-default=True  collision_agree=76.5%
+      candidate #432  cracks=0   cracks-subset-of-default=True  collision_agree=92.9%
+      candidate #433  cracks=0   cracks-subset-of-default=True  collision_agree=93.4%  <- CLEAN twin
+      candidate #434  cracks=0   cracks-subset-of-default=True  collision_agree=89.8%
+      candidate #435  cracks=5   cracks-subset-of-default=False collision_agree=90.8%
+      candidate #436  cracks=0   cracks-subset-of-default=True  collision_agree=83.2%
+    ⇒ CLEAN = layout #433; cracked tiles REMAINING on CLEAN: 0  
+
+  SKY_PILLAR_3F  (14x14)
+    DEFAULT = layout #323  (agreement with get_map_data 100.0%); cracked tiles in DEFAULT: 0
+      candidate #218  cracks=0   cracks-subset-of-default=True  collision_agree=51.0%
+      candidate #321  cracks=0   cracks-subset-of-default=True  collision_agree=78.6%
+      candidate #322  cracks=38  cracks-subset-of-default=False collision_agree=83.2%
+      candidate #324  cracks=34  cracks-subset-of-default=False collision_agree=85.7%
+      candidate #329  cracks=0   cracks-subset-of-default=True  collision_agree=75.0%
+      candidate #432  cracks=0   cracks-subset-of-default=True  collision_agree=87.2%
+      candidate #433  cracks=0   cracks-subset-of-default=True  collision_agree=87.8%
+      candidate #434  cracks=0   cracks-subset-of-default=True  collision_agree=92.3%  <- CLEAN twin
+      candidate #435  cracks=5   cracks-subset-of-default=False collision_agree=86.2%
+      candidate #436  cracks=0   cracks-subset-of-default=True  collision_agree=79.6%
+    ⇒ CLEAN = layout #434; cracked tiles REMAINING on CLEAN: 0  
+
+  SKY_PILLAR_4F  (14x14)
+    DEFAULT = layout #324  (agreement with get_map_data 100.0%); cracked tiles in DEFAULT: 34
+      candidate #218  cracks=0   cracks-subset-of-default=True  collision_agree=54.1%
+      candidate #321  cracks=0   cracks-subset-of-default=True  collision_agree=78.6%
+      candidate #322  cracks=38  cracks-subset-of-default=False collision_agree=86.2%
+      candidate #323  cracks=0   cracks-subset-of-default=True  collision_agree=85.7%
+      candidate #329  cracks=0   cracks-subset-of-default=True  collision_agree=68.9%
+      candidate #432  cracks=0   cracks-subset-of-default=True  collision_agree=85.2%
+      candidate #433  cracks=0   cracks-subset-of-default=True  collision_agree=85.7%
+      candidate #434  cracks=0   cracks-subset-of-default=True  collision_agree=86.2%
+      candidate #435  cracks=5   cracks-subset-of-default=True  collision_agree=93.4%  <- CLEAN twin
+      candidate #436  cracks=0   cracks-subset-of-default=True  collision_agree=74.5%
+    ⇒ CLEAN = layout #435; cracked tiles REMAINING on CLEAN: 5  [(0, 3), (1, 3), (6, 4), (7, 4), (9, 4)]
+
+  SKY_PILLAR_5F  (14x14)
+    DEFAULT = layout #329  (agreement with get_map_data 100.0%); cracked tiles in DEFAULT: 0
+      candidate #218  cracks=0   cracks-subset-of-default=True  collision_agree=45.4%
+      candidate #321  cracks=0   cracks-subset-of-default=True  collision_agree=70.9%
+      candidate #322  cracks=38  cracks-subset-of-default=False collision_agree=76.5%
+      candidate #323  cracks=0   cracks-subset-of-default=True  collision_agree=75.0%
+      candidate #324  cracks=34  cracks-subset-of-default=False collision_agree=68.9%
+      candidate #432  cracks=0   cracks-subset-of-default=True  collision_agree=76.5%
+      candidate #433  cracks=0   cracks-subset-of-default=True  collision_agree=77.0%
+      candidate #434  cracks=0   cracks-subset-of-default=True  collision_agree=74.5%
+      candidate #435  cracks=5   cracks-subset-of-default=False collision_agree=72.4%
+      candidate #436  cracks=0   cracks-subset-of-default=True  collision_agree=92.3%  <- CLEAN twin
+    ⇒ CLEAN = layout #436; cracked tiles REMAINING on CLEAN: 0  
+
+  SKY_PILLAR_TOP  (27x24)
+    DEFAULT = layout #330  (agreement with get_map_data 100.0%); cracked tiles in DEFAULT: 42
+      candidate #290  cracks=0   cracks-subset-of-default=True  collision_agree=50.2%
+      candidate #437  cracks=0   cracks-subset-of-default=True  collision_agree=90.3%  <- CLEAN twin
+    ⇒ CLEAN = layout #437; cracked tiles REMAINING on CLEAN: 0  
+
+  SKY_PILLAR_ENTRANCE  (18x18)
+    DEFAULT = layout #319  (agreement with get_map_data 100.0%); cracked tiles in DEFAULT: 0
+    ⇒ no CLEAN twin found
+
+  SKY_PILLAR_OUTSIDE  (28x23)
+    DEFAULT = layout #320  (agreement with get_map_data 100.0%); cracked tiles in DEFAULT: 0
+    ⇒ no CLEAN twin found
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 1 — every floor's DEFAULT is identified by agreement with production
+--------------------------------------------------------------------------------------------------------
+  PASS  SKY_PILLAR_1F: DEFAULT #321 agrees with get_map_data   100.0%
+  PASS  SKY_PILLAR_2F: DEFAULT #322 agrees with get_map_data   100.0%
+  PASS  SKY_PILLAR_3F: DEFAULT #323 agrees with get_map_data   100.0%
+  PASS  SKY_PILLAR_4F: DEFAULT #324 agrees with get_map_data   100.0%
+  PASS  SKY_PILLAR_5F: DEFAULT #329 agrees with get_map_data   100.0%
+  PASS  SKY_PILLAR_TOP: DEFAULT #330 agrees with get_map_data   100.0%
+  PASS  SKY_PILLAR_ENTRANCE: DEFAULT #319 agrees with get_map_data   100.0%
+  PASS  SKY_PILLAR_OUTSIDE: DEFAULT #320 agrees with get_map_data   100.0%
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 2 — the ROM method must REPRODUCE the independent DECOMP method on 2F and 4F
+--------------------------------------------------------------------------------------------------------
+  oracle: evidence/2026-08-24-skypillar-clean-reachability.txt:16-18
+  PASS  SKY_PILLAR_2F: CLEAN has 0 cracked tile(s), exactly []   got 0: []
+  PASS  SKY_PILLAR_4F: CLEAN has 5 cracked tile(s), exactly [(0, 3), (1, 3), (6, 4), (7, 4), (9, 4)]   got 5: [(0, 3), (1, 3), (6, 4), (7, 4), (9, 4)]
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 3 — NEGATIVE: the two maps that do NOT swap must have no CLEAN twin
+--------------------------------------------------------------------------------------------------------
+  PASS  SKY_PILLAR_ENTRANCE: no CLEAN twin (it does not swap layouts)
+  PASS  SKY_PILLAR_OUTSIDE: no CLEAN twin (it does not swap layouts)
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 4 — DEFAULT and CLEAN must share both tilesets, or CLEAN's behaviour names lie
+--------------------------------------------------------------------------------------------------------
+  PASS  SKY_PILLAR_1F: DEFAULT and CLEAN share both tilesets
+  PASS  SKY_PILLAR_2F: DEFAULT and CLEAN share both tilesets
+  PASS  SKY_PILLAR_3F: DEFAULT and CLEAN share both tilesets
+  PASS  SKY_PILLAR_4F: DEFAULT and CLEAN share both tilesets
+  PASS  SKY_PILLAR_5F: DEFAULT and CLEAN share both tilesets
+  PASS  SKY_PILLAR_TOP: DEFAULT and CLEAN share both tilesets
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 5 — the DEFAULT->CLEAN assignment must be a BIJECTION (six floors, six distinct
+            layouts, none of them a DEFAULT). ⛔ 2F's winning margin is 0.5%; THIS is why
+            that is safe, not the margin.
+--------------------------------------------------------------------------------------------------------
+  DEFAULT indices: [321, 322, 323, 324, 329, 330]
+  CLEAN   indices: [432, 433, 434, 435, 436, 437]
+  PASS  every climb floor resolved a CLEAN twin   6/6
+  PASS  the CLEAN twins are DISTINCT (no layout claimed by two floors)
+  PASS  no CLEAN twin is also some floor's DEFAULT
+
+  ALL CONTROLS PASS.
+
+========================================================================================================
+MEASUREMENT — DEFAULT vs CLEAN, per floor: what our planner gets WRONG on the story climb
+========================================================================================================
+  'we think OPEN / game says WALL' is the DANGEROUS direction: the planner routes into rock.
+
+  SKY_PILLAR_1F  (DEFAULT #321 -> CLEAN #432)
+    ⛔ we think OPEN, the game says WALL : 0  []
+    ✅ we think WALL, the game says open : 21  [(0, 7), (0, 8), (0, 13), (1, 7), (2, 6), (2, 11), (3, 3), (3, 10), (4, 4), (7, 2), (8, 3), (9, 3), (9, 11), (10, 7), (11, 8), (12, 2), (12, 8), (13, 7), (13, 9), (13, 10), (13, 13)]
+    cracked on DEFAULT 0  ->  cracked on CLEAN 0  []
+
+  SKY_PILLAR_2F  (DEFAULT #322 -> CLEAN #433)
+    ⛔ we think OPEN, the game says WALL : 0  []
+    ✅ we think WALL, the game says open : 13  [(0, 6), (1, 6), (2, 12), (3, 11), (5, 3), (6, 4), (7, 3), (8, 2), (8, 3), (9, 11), (10, 4), (13, 7), (13, 13)]
+    cracked on DEFAULT 38  ->  cracked on CLEAN 0  []
+
+  SKY_PILLAR_3F  (DEFAULT #323 -> CLEAN #434)
+    ⛔ we think OPEN, the game says WALL : 0  []
+    ✅ we think WALL, the game says open : 15  [(0, 5), (0, 11), (1, 4), (1, 12), (2, 7), (2, 8), (3, 6), (5, 11), (7, 13), (9, 11), (10, 6), (10, 9), (11, 10), (12, 13), (13, 8)]
+    cracked on DEFAULT 0  ->  cracked on CLEAN 0  []
+
+  SKY_PILLAR_4F  (DEFAULT #324 -> CLEAN #435)
+    ⛔ we think OPEN, the game says WALL : 0  []
+    ✅ we think WALL, the game says open : 13  [(0, 9), (0, 10), (1, 5), (2, 7), (2, 8), (2, 9), (2, 12), (5, 11), (7, 13), (9, 11), (12, 7), (13, 3), (13, 8)]
+    cracked on DEFAULT 34  ->  cracked on CLEAN 5  [(0, 3), (1, 3), (6, 4), (7, 4), (9, 4)]
+
+  SKY_PILLAR_5F  (DEFAULT #329 -> CLEAN #436)
+    ⛔ we think OPEN, the game says WALL : 0  []
+    ✅ we think WALL, the game says open : 15  [(0, 5), (0, 11), (1, 6), (1, 13), (2, 3), (2, 9), (5, 2), (5, 13), (9, 12), (11, 4), (11, 5), (11, 10), (12, 9), (12, 12), (13, 6)]
+    cracked on DEFAULT 0  ->  cracked on CLEAN 0  []
+
+  SKY_PILLAR_TOP  (DEFAULT #330 -> CLEAN #437)
+    ⛔ we think OPEN, the game says WALL : 31  [(0, 8), (1, 5), (1, 9), (2, 6), (2, 10), (2, 16), (3, 7), (3, 11), (3, 17), (4, 10), (4, 16), (5, 5), (5, 17), (6, 6), (6, 8), (6, 10), (7, 7), (8, 6), (8, 8), (17, 7), (18, 6), (19, 5), (20, 4), (20, 6), (20, 8), (21, 11), (23, 9), (23, 16), (24, 10), (25, 11), (25, 16)]
+    ✅ we think WALL, the game says open : 32  [(8, 9), (9, 11), (10, 8), (10, 10), (10, 15), (11, 9), (12, 5), (12, 6), (12, 10), (12, 17), (13, 4), (13, 7), (13, 12), (15, 4), (15, 7), (15, 8), (15, 16), (16, 5), (16, 6), (16, 17), (17, 9), (17, 11), (17, 16), (18, 10), (18, 15), (19, 11), (19, 16), (20, 16), (23, 4), (24, 5), (25, 8), (25, 17)]
+    cracked on DEFAULT 42  ->  cracked on CLEAN 0  []
+
+========================================================================================================
+READ NARROWLY. This is a STATIC comparison of ROM layouts. It shows WHICH layout the
+story runs on and where our planner disagrees with it. It does NOT prove which layout is
+loaded at any given moment — only a live read of `gBackupMapLayout` does that, and
+`sootopolis._live_wall_tiles()` is the instrument for it.
+========================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-01_19-11-20.ss1 created!
+Updated `current_state.ss1`!
