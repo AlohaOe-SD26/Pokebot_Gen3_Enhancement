@@ -206,8 +206,45 @@ line10
 """
 
 
+def regex_self_test() -> int:
+    """‼ NEVER REVIEW A REGEX BY READING IT — print the COMPILED pattern and run BOTH lists.
+
+    This project has twice compiled `\\b` into a literal backspace (0x08) in a non-raw string and had
+    two gates report PASS over a pattern that matched nothing (08-MISTAKES 2026-08-23). A pattern
+    carrying a control character wears a green tick, so the check has to be MECHANICAL and it has to
+    live here rather than in someone's memory.
+    """
+    backspace = chr(8)
+    bad = 0
+    print("REGEX SELF-TEST — compiled patterns, plus a positive AND a negative list for each")
+    print("-" * 96)
+    for name in ("MARKER_RE", "HOWTO_RE", "DRIVER_RE", "FIXTURE_RE", "ARMCOUNT_RE", "ARM_ENV_RE"):
+        pattern = globals()[name].pattern
+        clean = backspace not in pattern
+        bad += not clean
+        print(f"  {'ok ' if clean else '‼ '} {name:<12} no-0x08={clean}  {pattern!r}")
+    cases = [
+        ("ARMCOUNT matches a real claim", bool(ARMCOUNT_RE.search("‼ THE THREE FAULT ARMS ARE NOT OPTIONAL")), True),
+        ("ARMCOUNT ignores 'threefold armsmith'", bool(ARMCOUNT_RE.search("threefold armsmith")), False),
+        ("FIXTURE takes a harness argument", FIXTURE_RE.findall("py story_harness.py post_wallace.ss1 --driver x"), ["post_wallace.ss1"]),
+        ("FIXTURE ignores prose current_state.ss1", FIXTURE_RE.findall("updates current_state.ss1 every run"), []),
+        ("MARKER matches a marker LINE", bool(MARKER_RE.match(">    ➡➡➡ NEXT ACTION")), True),
+        ("MARKER ignores a prose mention", bool(MARKER_RE.match("> the ➡➡➡ marker is the live one")), False),
+        ("DRIVER extracts the name", DRIVER_RE.findall("--driver ch21approach --frames 1"), ["ch21approach"]),
+        ("ARM_ENV extracts the env var", ARM_ENV_RE.findall("POKEBOT_CH21_FAULT_BLINDWALL=1"), ["POKEBOT_CH21_FAULT_BLINDWALL"]),
+    ]
+    for label, got, want in cases:
+        ok = got == want
+        bad += not ok
+        print(f"  {'ok ' if ok else '‼ '} {label:<42} got={got!r} want={want!r}")
+    print("-" * 96)
+    return bad
+
+
 def self_test() -> int:
     """Break each invariant ON PURPOSE; each must fail for its OWN reason, and none on the healthy one."""
+    regex_bad = regex_self_test()
+    print()
     print("SELF-TEST — every check must FAIL on a broken handoff and PASS on a healthy one")
     print("=" * 96)
     choices = {"ch21approach"}
@@ -246,10 +283,13 @@ def self_test() -> int:
         print(f"    fired={fired}  expected={want}  {'OK' if ok else '‼ SELF-TEST FAILED'}")
         if not ok:
             bad += 1
+    total = bad + regex_bad
     print("\n" + "=" * 96)
-    print("SELF-TEST PASS — every check fires for its own reason and none fires on a healthy file."
-          if not bad else f"‼ SELF-TEST FAILED on {bad} case(s) — this gate is NOT trustworthy.")
-    return 1 if bad else 0
+    print("SELF-TEST PASS — patterns verified, every check fires for its own reason, none on a "
+          "healthy file." if not total
+          else f"‼ SELF-TEST FAILED on {bad} case(s) and {regex_bad} regex check(s) — "
+               "this gate is NOT trustworthy.")
+    return 1 if total else 0
 
 
 def main() -> int:
