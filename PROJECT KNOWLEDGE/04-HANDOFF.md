@@ -12,16 +12,16 @@ Every banner further down is HISTORY, newest first.
 > ⛔ **ORDER, EXPLICITLY (a Tier 2 cold-start audit could not tell which of these came first):
 > (1) RUN THE RITUAL BELOW — it is cheap and it tells you whether the tree is sane; (2) READ
 > `14-AGENT-PLAYBOOK.md`; (3) GO TO `NEXT ACTIONS` item 0 and find the **`➡➡➡`** marker.
-> ✅ **THERE IS EXACTLY ONE `➡➡➡` **MARKER** IN THIS FILE, AND IT IS THE LIVE NEXT ACTION.**
+> ✅ **EXACTLY ONE LINE IN THIS FILE *BEGINS* WITH THE `➡➡➡` MARKER, AND IT IS THE LIVE NEXT ACTION.** ⚠ A bare `grep` finds many more — they are prose mentions.
 > ⛔ **A MARKER IS A LINE THAT *BEGINS* `>    ➡➡➡`.** Several lines MENTION the arrows in prose
-> (including this one), so a bare `grep -c` returns ~8 and the old "use the LAST one" tie-break
+> (including this one), so a bare `grep -c` returns ELEVEN (NOT a figure to trust either — re-count it) and the old "use the LAST one" tie-break
 > now lands on prose. Use `grep -n "^>    ➡➡➡"` — that returns exactly one line, and it is the
 > instruction. *(A Tier 2 round-3 audit caught this: the fix for the marker defect broke the
 > very invariant it was documenting.)*
 > This instruction used to have to warn *"there are two; the first is a ✅-DONE block"* — that was a
 > hedge around a doc defect, so the ✅-DONE block was moved to `28-HANDOFF-ARCHIVE.md` instead.
 > ⛔ **If you ever find more than one `➡➡➡` here again, that is a DEFECT to fix, not a rule to
-> follow:** the live instruction is the LAST one, and a ✅-DONE block must not wear the marker that
+> follow:** ⛔ *(and do NOT use the old 'the live instruction is the LAST one' tie-break — the LAST occurrence is now PROSE; use the line-anchored grep above)*, and a ✅-DONE block must not wear the marker that
 > means "do this next". **The live instruction is the `➡➡➡` line**, not the first thing under the
 > heading. The banner sentence above lists the
 > READING order only; the ritual outranks it, because reading is wasted if the tree is broken.
@@ -244,22 +244,15 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 > parked ... (item 0)". **RETIRED 2026-09-01: §Ch20 SHIPPED AS A CHAPTER 2026-08-24**, so that
 > pointer sent a cold reader to item 0 to finish work that had already shipped. ⇒ nothing is parked MID-TASK **and** no chapter is parked awaiting assembly; what IS outstanding is the drift promotion, which is a USER DECISION, not parked work.)*
 >
-> 0. ‼ **THE LIVE QUEUE (updated 2026-08-14) — DO THESE FIRST; items 2-4 below are older framing (item 1 is the ritual and is NOT older framing; item 5 was archived 2026-08-17).**
+> 0. ‼ **THE LIVE QUEUE (updated 2026-08-14) — DO THESE FIRST; ⛔ items 2-4 NO LONGER EXIST (archived 2026-09-01) (item 1 is the ritual and is NOT older framing; item 5 was archived 2026-08-17).**
 >    ‼ NEW STANDING RULE FOR EVERY ITEM BELOW: doc edits run Tier 0 (`lint_docs` +
 >    `audit_doc_consistency`, both exit 0) before their commit, and a completed item gets a
 >    Tier 1 independent review of its doc diff — see `CLAUDE.md`'s DOC CONSISTENCY LAYER.
 >    ✅ **✅ (a) (b) (a2) (a3) (a4) ARE ALL DONE, AND (c) IS OBSOLETE — eve…** 📦 ARCHIVED VERBATIM in `28-HANDOFF-ARCHIVE.md` (2026-08-26, R3
 >    budget; CLOSED, nothing deleted).
 >    ⛔⛔ **THE USER REDIRECTED PRIORITIES ON 2026-08-14, AFTER Room 9 landed. §Ch20 CHAPTER
->    ✅✅✅ **QUEUE ITEM 0'S AUGUST WORK IS ALL DONE AND COMMITTED — ⛔ DO NOT RE-RUN ANY OF IT.**
->    The five-pass deep sanity check, `#24-loopheadabort` (all 17 nav retry loops, gate #30),
->    `#24-p4residuals` (6 of 7; only (f) remains, a real emulator drive), and
->    `#24-abortrecoveryresiduals` (b) are DONE. Detail in `28-HANDOFF-ARCHIVE.md`.
->    ‼ **Still open there:** `#24-abortrecoveryresiduals` **(a)** (needs a driven double-whiteout)
->    and **(c)** (7 pre-existing swallowers, wants its own control arm).
->    ⛔ **THREE USER DECISIONS REMAIN RIPE** (not mine, and still open): the drift promotion
->    (double-batch validated); the post-wind repeat burn (`#26-manualderails` D4); mixin
->    adoption (`#24-harnesswhiteoutdrop`).
+>    ✅✅✅ **QUEUE ITEM 0'S AUGUST WORK IS ALL DONE — ⛔ DO NOT RE-RUN ANY OF IT.** Detail moved
+>    to `28-HANDOFF-ARCHIVE.md` 2026-09-01 (line budget). Still open there: `#24-abortrecoveryresiduals` (a) and (c).
 >    ✅✅ **LEG 2b IS DONE 2026-08-27 — ⛔ DO NOT REBUILD** (`ch21cave`, both arms PASS, `post_wallace.ss1` PINNED).
 >    ✅ **DEEP SANITY CHECK 2026-08-27 — PASSES 1-2 OF 5 ONLY** (a 20-agent fan-out was ruled too
 >    costly). 5 gate defects + 13 stale-prose contradictions fixed, fault-proven. ⛔ **PASSES 3-5
@@ -557,11 +550,12 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ⛔ Do not restate the figure here; it has been wrong at 2, 3 and 3 again. `promote.py --check`
 >    is the authority. (Earlier EXPECT-2 / EXPECT-3 trails moved to `28-HANDOFF-ARCHIVE.md`.)
 >
-> ‼ *(Queue items **1b, 2 and 3** were ✅-DONE and were archived to `28-HANDOFF-ARCHIVE.md` on
->    2026-09-01 for the line budget. ⛔ They are DONE, not pending — do not resurrect them.
->    NOTE ALSO: several lines in this file point at a "queue item 4" that **does not exist** (the
->    items are 0, 1, 1b, 2, 2c, 3, 3b); a Tier 2 round-3 audit found three such dangling
->    pointers, and the Regi arc they mean is tracked in `05-KNOWN-ISSUES.md` KI-69.)*
+> ‼ *(Queue items **1b, 2, 2c and 3** were archived to `28-HANDOFF-ARCHIVE.md` on 2026-09-01
+>    for the line budget — 1b/2/3 as ✅-DONE, and **2c as a live REFERENCE pointer** (it carried
+>    KI-72's rule, *never let the planner choose a surfacing tile*), so 2c is NOT 'done'.
+>    ⛔ **THE SURVIVING QUEUE ITEMS ARE ONLY `0`, `1` AND `3b`.** Any pointer in this file to
+>    items **2, 2c, 3 or 4** is DANGLING — 4 never existed, the rest are archived. The Regi
+>    arc those pointers mean is tracked in `05-KNOWN-ISSUES.md` KI-69.)*
 > 3b. ⛔⛔ **THE ORDER CHANGED 2026-08-13 — READ `06-DECISIONS-LOG.md` before item 4.** The Regi
 >    arc is **NOT** next: *"KI-59 blocked it, I fixed it, so build it"* was **REFUTED three ways**
 >    (the tombs walk with `follow_path`, **"no collision checking"**; their 144 tiles describe a
@@ -629,23 +623,10 @@ POKEBOT_CH21_FAULT_BLINDWALL=1   PYTHONUTF8=1 py -3.12 story_harness.py post_wal
 #   ("...the walk BACK to (31,17) then stalled too... the stranded case") and ACCEPTANCE: FAIL —
 #   ⛔ a RAW TimedOutTryingToReachWaypointError is the defect this arm exists to catch.
 POKEBOT_CH21_FAULT_POCKETSTALL=1 POKEBOT_CH21_FAULT_POCKETWALKBACK=1 PYTHONUTF8=1 py -3.12 story_harness.py post_wallace.ss1 --driver ch21approach --frames 30000
-# leg 3 — the TAIL adjudication + the CONSTANTS re-check. Offline, seconds, no emulation loop.
-PYTHONUTF8=1 py -3.12 probe_ch21_route131_tail.py
-POKEBOT_R131TAIL_FAULT=stride|swapsets|bendtail  ... same ...    # self-tests; all three must fire
-PYTHONUTF8=1 py -3.12 probe_ch21_leg3_constants.py
-# ⛔ THE INSTRUMENT FOR "the planner and the game disagree about a tile" — use it on ANY map that
-#   runs setmaplayoutindex or setmetatile. It reads gBackupMapLayout (RAM), which is the ONLY
-#   reader in this tree that can see either. Pass any save state.
-PYTHONUTF8=1 py -3.12 probe_live_mapgrid.py saves/post_skypillar_door.ss1
-# leg 3's layout-pin A/B, against drive 1's own stall state (reproduces the failure, then fixes it):
-PYTHONUTF8=1 py -3.12 ab_ch21_leg3_layoutpin.py
-
-# leg 3 step 0 — the STATIC half. Seconds, no emulation loop. RUN THIS FIRST.
-PYTHONUTF8=1 py -3.12 probe_ch21_pocket_exit.py
-POKEBOT_POCKET_FAULT=rig PYTHONUTF8=1 py -3.12 probe_ch21_pocket_exit.py   # self-test: C3 RED, exit 1
-
-# leg 3/4 — the SKY PILLAR, asked of PRODUCTION. Seconds, no network.
-# ⛔⛔ NONE OF THE §Ch21 PROBES BELOW IS READ-ONLY, WHATEVER ITS 'Offline / no emulation loop'
+# ⛔⛔ NONE OF THE §Ch21 PROBES **IN THIS BLOCK** IS READ-ONLY, WHATEVER ITS 'Offline / no
+#   emulation loop' LABEL SAYS. (A Tier 2 round-4 audit found this warning anchored 'BELOW' its
+#   own subjects, FIVE of which sat above it — one under an explicit 'RUN THIS FIRST'. Widening
+#   its SCOPE without moving its ANCHOR left a top-down reader mutating shared state 5x first.)
 #   LABEL SAYS. Every one of them boots `LibmgbaEmulator` on the SHARED `repro-ml` profile and
 #   writes a save state into profiles/repro-ml/states/ + updates current_state.ss1 ON EVERY RUN.
 #   Their OWN committed transcripts print it (`Save state ... created! / Updated current_state`):
@@ -656,6 +637,22 @@ POKEBOT_POCKET_FAULT=rig PYTHONUTF8=1 py -3.12 probe_ch21_pocket_exit.py   # sel
 #   is at least SEVEN, found by a Tier 2 round-3 audit reading their own evidence files).
 # ⛔ keep BOTH sky-pillar
 # probes: this one reads the layout WE plan on, `probe_skypillar_clean_layout.py` reads CLEAN.
+# leg 3 — the TAIL adjudication + the CONSTANTS re-check. Seconds. ⛔ NOT read-only — see above.
+PYTHONUTF8=1 py -3.12 probe_ch21_route131_tail.py
+POKEBOT_R131TAIL_FAULT=stride|swapsets|bendtail  ... same ...    # self-tests; all three must fire
+PYTHONUTF8=1 py -3.12 probe_ch21_leg3_constants.py
+# ⛔ THE INSTRUMENT FOR "the planner and the game disagree about a tile" — use it on ANY map that
+#   runs setmaplayoutindex or setmetatile. It reads gBackupMapLayout (RAM), which is the ONLY
+#   reader in this tree that can see either. Pass any save state.
+PYTHONUTF8=1 py -3.12 probe_live_mapgrid.py saves/post_skypillar_door.ss1
+# leg 3's layout-pin A/B, against drive 1's own stall state (reproduces the failure, then fixes it):
+PYTHONUTF8=1 py -3.12 ab_ch21_leg3_layoutpin.py
+
+# leg 3 step 0 — the STATIC half. Seconds. ⛔ NOT read-only (see above). RUN THIS FIRST.
+PYTHONUTF8=1 py -3.12 probe_ch21_pocket_exit.py
+POKEBOT_POCKET_FAULT=rig PYTHONUTF8=1 py -3.12 probe_ch21_pocket_exit.py   # self-test: C3 RED, exit 1
+
+# leg 3/4 — the SKY PILLAR, asked of PRODUCTION. Seconds, no network.
 PYTHONUTF8=1 py -3.12 probe_ch21_skypillar.py
 POKEBOT_SKYPILLAR_PROBE_FAULT=rig PYTHONUTF8=1 py -3.12 probe_ch21_skypillar.py  # self-test: C2 RED
 

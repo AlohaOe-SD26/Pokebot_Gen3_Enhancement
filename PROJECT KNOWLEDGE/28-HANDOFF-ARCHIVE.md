@@ -7242,3 +7242,15 @@ was the worst of the four because it was a full build order, not a passing menti
 >    the scale of what remains. **KI-72** also lands here: never let the planner choose a surfacing
 >    tile.
 >
+
+### queue item 0's August work - DONE, moved out of `04-HANDOFF.md` 2026-09-01
+
+>    ✅✅✅ **QUEUE ITEM 0'S AUGUST WORK IS ALL DONE AND COMMITTED — ⛔ DO NOT RE-RUN ANY OF IT.**
+>    The five-pass deep sanity check, `#24-loopheadabort` (all 17 nav retry loops, gate #30),
+>    `#24-p4residuals` (6 of 7; only (f) remains, a real emulator drive), and
+>    `#24-abortrecoveryresiduals` (b) are DONE. Detail in `28-HANDOFF-ARCHIVE.md`.
+>    ‼ **Still open there:** `#24-abortrecoveryresiduals` **(a)** (needs a driven double-whiteout)
+>    and **(c)** (7 pre-existing swallowers, wants its own control arm).
+>    ⛔ **THREE USER DECISIONS REMAIN RIPE** (not mine, and still open): the drift promotion
+>    (double-batch validated); the post-wind repeat burn (`#26-manualderails` D4); mixin
+>    adoption (`#24-harnesswhiteoutdrop`).

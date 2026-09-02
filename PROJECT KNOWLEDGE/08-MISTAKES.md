@@ -10306,3 +10306,34 @@ was just proven to attract this exact error.**
   live queue — and found `#24-skypillarprobewrites` filed while the run-recipe it names still
   advertised the probe as harmless read-only recon. ⇒ **fix the surface people copy from, not only
   the place you record the problem.**
+
+---
+
+## 2026-09-01 — MY ARCHIVING SCRIPT DELETED THE ENTIRE **HOW TO RUN** SECTION, AND ONLY A VERIFY-AFTER-WRITE CAUGHT IT
+
+**Symptom.** A one-line archive of a finished queue item reported `archived item 3b (333 lines)`.
+The intended block was ~20 lines. `grep -c "^# HOW TO RUN" 04-HANDOFF.md` then returned **0**.
+
+**Root cause.** The block-boundary helper walked forward until it found the next line starting
+`"> "` that was not a continuation. **Item 3b was the LAST queue item**, so no such line existed and
+the loop ran to **end of file**, swallowing everything after it — including `# HOW TO RUN / TEST`,
+the section that makes the whole handoff actionable (P3: *what shipped must be startable from this
+file alone*). Uncommitted, so `git checkout --` restored it exactly.
+
+**The fix that worked.** (1) `git checkout --` both files; (2) re-do the archive with a **hard size
+guard**: `MAX = 30`, and `assert end - start < MAX` — a block that reaches the guard REFUSES rather
+than proceeding; (3) broaden the terminator to include `## ` / `# ` section headings, not only queue
+markers; (4) verify AFTER writing that `HOW TO RUN`, the `➡➡➡` marker and the line count are all
+still what they should be.
+
+**Prevention rule.** ⛔ **ANY SCRIPT THAT DELETES A RANGE MUST BOUND THE RANGE AND REFUSE WHEN THE
+BOUND IS HIT.** An unbounded "scan until the terminator" is the same shape as an unbounded `while`
+loop — this project's prime directive already bans those in bot code, and the reason applies exactly
+as well to an edit script: **when the terminator does not exist, the loop does not stop, and for a
+DELETE the consequence is silent data loss rather than a hang.**
+‼ And the second half, which is what actually saved it: **verify the INVARIANT after the write, not
+the operation's own report.** The script cheerfully printed a success line with the count `333` in
+it; nothing about that output said "you just deleted the run instructions". The check that caught it
+was asking a question about the RESULT — *is HOW TO RUN still there?* — rather than reading the
+tool's summary of itself. *(Same lesson as "instrument the action, not the input to the action";
+here it is instrument the OUTCOME, not the operation's self-report.)*
