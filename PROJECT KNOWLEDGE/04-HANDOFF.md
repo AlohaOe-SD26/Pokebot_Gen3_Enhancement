@@ -61,7 +61,14 @@ Every banner further down is HISTORY, newest first.
 > line, which has been wrong at 17, 18, 19, 20, 21 and 25 on the way here). ‼ **The 25 was found by a Tier 1 reviewer, FOUR LINES above a correct `26/26`** — the gate could not see this phrasing until the same commit taught it to. That ritual survived the 2026-08-14
 > priority redirect and is NOT part of the superseded "older framing".
 
-> **State: `main`, 32/32 gates green (**30 ENFORCING + 2 ADVISORY** — ⛔ `run_gates.py` prints its own count and IS the authority, never this line), drift **8** (see the STATE drift row; run `promote.py --check`, which outranks this line; ⛔ NOT a promotion decision until it is driven further. `early_game.py`'s promotion was DONE 2026-08-24), nothing parked MID-TASK, nothing running.** ✅ **THREE DECISIONS AWAIT A USER RULING — the drift promotion, the post-wind repeat burn and mixin adoption, all listed in the queue.** *(KI-82 — the tracked Emerald ROM — was CLOSED 2026-08-23: it had ALREADY been ruled on 2026-07-18 (`06-DECISIONS-LOG.md`, "keep it as is"), and the user re-affirmed it. ⛔ Do not re-raise it; the only condition that reopens it is the repo being made PUBLIC.)*
+> ⛔⛔ **ONE ENFORCING GATE IS KNOWN RED: `repro_gym_whiteout_guard.py` HANGS** (killed at the
+> suite's 900s bound; re-run standalone it produced nothing for ~36 minutes). It is FILED as
+> `#24-gymwhiteoutgatehang` and it is **NOT a regression from §Ch21 leg 3** — it imports neither
+> `sootopolis` nor `story_harness`. ⇒ **expect `run_gates.py` to cost ~15 minutes and come back
+> RED on that one gate. Do not go hunting a regression.** A re-run should read **31 of 32**.
+> *(This line said "32/32 gates green" while the punch list said 30-of-32 the same day; a Tier 2
+> re-audit called it the single most likely way a next session wastes its time.)*
+> **State: `main`, suite is 32 gates (**30 ENFORCING + 2 ADVISORY** — ⛔ `run_gates.py` prints its own count and IS the authority, never this line), drift **8** (see the STATE drift row; run `promote.py --check`, which outranks this line; ⛔ NOT a promotion decision until it is driven further. `early_game.py`'s promotion was DONE 2026-08-24), nothing parked MID-TASK, nothing running.** ✅ **THREE DECISIONS AWAIT A USER RULING — the drift promotion, the post-wind repeat burn and mixin adoption, all listed in the queue.** *(KI-82 — the tracked Emerald ROM — was CLOSED 2026-08-23: it had ALREADY been ruled on 2026-07-18 (`06-DECISIONS-LOG.md`, "keep it as is"), and the user re-affirmed it. ⛔ Do not re-raise it; the only condition that reopens it is the repo being made PUBLIC.)*
 > ⚠ **DISK: 87% used, 247 GB free (RE-MEASURED 2026-08-18 at wrap-up).** ⛔ This row briefly read
 > *"100% — 2.6 GB free"*, which was a TRANSIENT reading taken while audit agents were copying whole
 > forks to scratch; one of them hit `No space left on device` mid-run, which is real and is why the
@@ -117,7 +124,9 @@ Every banner further down is HISTORY, newest first.
 > sat in a table cell, or read "0 as of". Full history of this line's four staleness incidents:
 > `28-HANDOFF-ARCHIVE.md`.)*
 > **Every room of the Seafloor Cavern is DRIVEN and PASSING** — `ch20dive` → rooms 1, 2, 6, 3, 8, 9
-> (Kyogre awakened, `VAR_ROUTE128_STATE == 2`). **What remains of §Ch20 is CHAPTER ASSEMBLY.**
+> (Kyogre awakened, `VAR_ROUTE128_STATE == 2`). ⛔ *(This line read "What remains of §Ch20 is
+> CHAPTER ASSEMBLY" until 2026-09-01 — FALSE, and two lines above the heading that says so:
+> §Ch20 SHIPPED AS A CHAPTER on 2026-08-24. Nothing of §Ch20 remains.)*
 
 ## ✅ §Ch20 — SHIPPED AS A CHAPTER 2026-08-24 — ⛔ DO NOT REBUILD — DETAIL in `28-HANDOFF-ARCHIVE.md`
 
@@ -280,7 +289,7 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    for exactly this reason and the A/B is in `evidence/2026-09-01-ch21-leg3-LAYOUTPIN-ab.txt`.
 >    ⛔⛔ **THE SIX THINGS THAT DECIDE WHETHER **LEG 4** SURVIVES ITS FIRST DRIVE.**
 >    ‼ *(REWRITTEN 2026-09-01. Until then this block was **LEG 3's** hazard list: the `➡➡➡`
->    heading above it had been retargeted to leg 4 and the SIX bullets under it were NOT. FOUR of
+>    heading above it had been retargeted to leg 4 and the FIVE bullets under it were NOT. FOUR of
 >    the five described work this same file marks DONE — the cave return, the pocket, the
 >    hand-walked tail and the ROUTE131 layout reading. A Tier 2 cold-start audit caught it and
 >    called it the file's most expensive defect, because it is what a cold agent ACTS from.
@@ -305,7 +314,9 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >        REFUSAL.** Omit it and the bot summits, wakes Rayquaza and is STRANDED. ‼ The atlas says
 >        the west pocket has "no walking exit"; that is **REFUTED** — it contains `4F (7,1)`, a
 >        planner-VISIBLE staircase, so the planner will happily route into a livelock. ⇒ the
->        post-fall check must be a `calculate_path` to **3F (3,1)**, which the wrong exit cannot
+>        DESCENT post-fall check must be a `calculate_path` to **3F (3,1)** — ⛔ not to be confused
+>        with the ASCENT-FALL DISCRIMINATOR in (6), which targets 3F `(7,1)`; they answer
+>        different questions — and it is the target the wrong exit cannot
 >        satisfy. ⛔ A "the planner refuses" check would never fire.
 >    ‼ **AND READ `#24-crackedfloorpathfinder` IN `03-PUNCH-LIST.md` BEFORE THE CLIMB — but read
 >    its 2026-09-01 UPDATE FIRST.** That item still contains the REFUTED "no crack-free route"
@@ -325,12 +336,25 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >        The arms that DO differ are the fall tile:
 >          ARM A `4F (6,4)`/`(7,4)` ⇒ post-fall `calculate_path(3F → (7,1))` = **4 wp, OK**
 >          ARM B `4F (9,4)` (the decoy) ⇒ the same call **REFUSES** (lands in the 118-tile main)
+>        ‼ NAME THE INSTRUMENT PER ARM: ARM A's 4 wp is production's own `calculate_path`
+>        (`evidence/2026-08-27-ch21-skypillar-probe.stdout.txt`); ARM B's refusal is so far only
+>        an OFFLINE BFS over the decomp's `*_Clean` blob (`probe_skypillar_clean_layout.py:147`).
+>        Re-ask ARM B of `calculate_path` before quoting it as one.
 >        Both arms are executable: all three tiles are in the same 111-tile component.
 >    ⛔⛔ **AND THE THING NOBODY HAS SUPPLIED, WHICH IS LEG 4'S FIRST TASK — THE ACCEPTANCE
 >    PREDICATE AND THE LEG'S END BOUNDARY.** Neither exists anywhere in this tree. Decide, and
 >    write down: (a) does leg 4 stop at the summit trigger or include the DESCENT? (the atlas says
 >    "build the descent fall into the leg from the start"; the queue says only "the climb" —
->    they are different legs); (b) the end-state var to grade on (`SKY_PILLAR_STATE`? 4 vs 5?);
+>    they are different legs); (b) the end-state var to grade on — ⛔⛔ **AND IT IS NOT
+>    `SKY_PILLAR_STATE`.** An earlier draft of this bullet wrote "`SKY_PILLAR_STATE`? 4 vs 5?"
+>    and that is FLATLY WRONG: **4 and 5 are `SOOTOPOLIS_CITY_STATE` values** (4 = Wallace opens
+>    the door, `SkyPillar_Outside/scripts.inc:82`; 5 = Rayquaza awakened,
+>    `SkyPillar_Top/scripts.inc:126`), while **`SKY_PILLAR_STATE` is 0 for the ENTIRE ascent**
+>    and reaches 1 only at the summit cutscene (`12-STORYMODE-DESIGN.md` §Ch21 state table).
+>    ‼ An agent taking the old text literally would grade on `SKY_PILLAR_STATE == 4`, **a value
+>    the story climb never reaches** — a leg that cannot pass its own test. *(Caught by a Tier 2
+>    RE-audit, 2026-09-01: the defect was introduced BY the fix for the previous audit, and this
+>    same block gets it RIGHT 38 lines above, at bullet (2).)*
 >    (c) the "and the bot can CONTINUE" `calculate_path` target off the tile actually reached.
 >    ‼ §Ch15, §Ch18 and §Ch19 each PASSED their own test while STRANDED, and a 2026-08-28 Tier 2
 >    audit named this missing predicate the #1 reason it answered NO to "could I start now?".
@@ -360,7 +384,8 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    existing gates and deliberately DELETED a third; ⛔ **do not resurrect the deleted check**
 >    — the long note at its former site in `audit_doc_consistency.py` says why, and it cost six
 >    review rounds to learn.
->    ⚠ **`03-PUNCH-LIST.md` IS AT ITS 3600 CAP.** ‼ Re-derive with `wc -l` LAST, never trust a
+>    ⚠ **`03-PUNCH-LIST.md` RUNS CLOSE TO ITS 3600-LINE CAP** (3,582 as of 2026-09-01, so ~18
+>    lines of headroom — it was AT the cap earlier the same day). ‼ Re-derive with `wc -l` LAST, never trust a
 >    written figure (one drifted by 4 lines because it was measured before the final edits).
 >    **THE NEXT EDIT THAT GROWS IT MUST FIRST RETIRE A COMPLETED ITEM** — candidates: older ✅
 >    `#24-*` blocks, and the mined `#26` entries (the batch section keeps their numbers).
@@ -472,18 +497,12 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    **BOTH** condition 7 (NO_ANSWER) **and** condition 9 (`team_max <= wild_max + 8`) — which
 >    `ch13_fortree_door.ss1` does NOT, despite passing 7.
 >
->    **(PARKED, NOT CANCELLED) ASSEMBLE §Ch20 AS A CHAPTER** — a module in `modules/story/`,
->    wired as Segment 20 in `story_mode.py`, built from the driven ingredients (`_ingress`, the
->    room solves, the walk route, the var-gated scene ride, the atoll escape). Requirements,
->    all measured: **organic Dive acquisition** (drivers inject it; KI-63's
->    `ensure_hm_learner_making_room` is wired in sandbox), **whiteout-retry policy for Archie**
->    (one retry = full re-dive of Rooms 1-8, ~25 min; Mossdeep Gym's N-attempts precedent),
->    **pre-boss readiness** (potions/party order — run 3 entered with a fainted mon and
->    Sceptile at 96/135), **Blocker 3** (Repel policy — Rooms 6/7 have `water_mons`; Rock Smash
->    prompts YES/NO every smash), **Blocker 4** (pre-flight badge/move assertion incl.
->    Dive/BADGE07), and grade the SEGMENT on **`VAR_ROUTE128_STATE == 2` + the escape +
->    can-continue** (the ladder chapter in `chapters.py:233` grades on
->    `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`, which is set PRE-warp — too weak for the segment).
+>    ⛔⛔ **RETIRED 2026-09-01 — DO NOT DO THIS. §Ch20 SHIPPED AS A CHAPTER ON 2026-08-24**
+>    (`modules/story/seafloor_cavern.py`, wired as Segment 20, 5/5 drives PASS). This was a full
+>    EXECUTABLE build spec sitting inside the LIVE queue item — the worst of the four stale
+>    §Ch20 clauses, and the previous audit's fix retired the other two and missed this one.
+>    The superseded spec read: **(PARKED, NOT CANCELLED) ASSEMBLE §Ch20 AS A CHAPTER** — a module in `modules/story/`,
+>    The superseded spec body (~11 lines) is archived verbatim in `28-HANDOFF-ARCHIVE.md`.
 >
 >    *(the superseded ROOM 3 / ROOM 8 build blocks MOVED to `28-HANDOFF-ARCHIVE.md` 2026-08-14 on
 >    the line budget. **Both rooms are DRIVEN AND PASSING — do not rebuild them.** Their reusable
@@ -623,7 +642,11 @@ PYTHONUTF8=1 py -3.12 ab_ch21_leg3_layoutpin.py
 PYTHONUTF8=1 py -3.12 probe_ch21_pocket_exit.py
 POKEBOT_POCKET_FAULT=rig PYTHONUTF8=1 py -3.12 probe_ch21_pocket_exit.py   # self-test: C3 RED, exit 1
 
-# leg 3/4 — the SKY PILLAR, asked of PRODUCTION. Seconds, no network. ⛔ keep BOTH sky-pillar
+# leg 3/4 — the SKY PILLAR, asked of PRODUCTION. Seconds, no network.
+# ⛔ BUT IT IS **NOT** READ-ONLY: it WRITES a save state into profiles/repro-ml/states/ and
+#   updates current_state.ss1 every run (filed as `#24-skypillarprobewrites`). Harmless to the
+#   repo (gitignored) but it mutates the SHARED profile, and the recipe below runs it TWICE.
+# ⛔ keep BOTH sky-pillar
 # probes: this one reads the layout WE plan on, `probe_skypillar_clean_layout.py` reads CLEAN.
 PYTHONUTF8=1 py -3.12 probe_ch21_skypillar.py
 POKEBOT_SKYPILLAR_PROBE_FAULT=rig PYTHONUTF8=1 py -3.12 probe_ch21_skypillar.py  # self-test: C2 RED

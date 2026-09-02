@@ -10272,3 +10272,37 @@ defect was not in any P1-P5 pair, it was in the BODY under a correct heading. On
 tried to *BEGIN THE NEXT ITEM* hit it, because you only notice a hazard list is about the wrong leg
 when you try to follow it. ⇒ **the strongest audit of a handoff is not "is it consistent?" but "can
 someone START from it?"**
+
+---
+
+## 2026-09-01 — THE FIX FOR A TIER 2 FINDING **INTRODUCED A WORSE ONE**, AND THE SAME BLOCK CONTRADICTED ITSELF 38 LINES APART
+
+**Symptom.** A Tier 2 RE-audit — run specifically to check *where* the previous fixes landed — found
+that the rewritten queue-head block told the next session to grade leg 4 on
+`SKY_PILLAR_STATE`, "4 vs 5?".
+
+**Root cause.** **4 and 5 are `SOOTOPOLIS_CITY_STATE` values** (4 = Wallace opens the door; 5 =
+Rayquaza awakened). **`SKY_PILLAR_STATE` is 0 for the entire ascent** and reaches 1 only at the
+summit cutscene. An agent taking it literally writes `SKY_PILLAR_STATE == 4` as the acceptance
+predicate — **a value the story climb never reaches** — producing a leg that cannot pass its own
+test, in the exact place the block was warning that §Ch15/§Ch18/§Ch19 each passed their own test
+while stranded.
+
+‼ **And the block already knew better:** bullet (2), *38 lines above*, correctly says the Wallace
+scene "sets the var to **4**" while naming `SOOTOPOLIS_CITY_STATE`. I wrote both, in one edit.
+
+**The fix that worked.** Name the right var, quote both decomp sources, and state explicitly that
+`SKY_PILLAR_STATE` is 0 throughout — so the wrong reading is closed rather than merely unstated.
+
+**Prevention rule.** ⛔ **A FIX IS A NEW CLAIM AND INHERITS NO CREDIBILITY FROM THE DEFECT IT
+REPLACES. RE-RUN THE AUDIT AFTER FIXING, EVERY TIME** — this project's rule already says to check
+*where* a fix landed; the sharper reason is that **the fix itself is unreviewed code in a file that
+was just proven to attract this exact error.**
+‼ Two further specifics, both earned here:
+* **When you rewrite a block, re-read the WHOLE block for internal contradiction.** Mine disagreed
+  with itself across 38 lines; a reader who checked only the changed lines could not have caught it.
+* **A fix that lands in a tracking file is not a fix.** The same re-audit found the §Ch20 correction
+  had retired two stale clauses and missed the worst one — a full EXECUTABLE build spec inside the
+  live queue — and found `#24-skypillarprobewrites` filed while the run-recipe it names still
+  advertised the probe as harmless read-only recon. ⇒ **fix the surface people copy from, not only
+  the place you record the problem.**

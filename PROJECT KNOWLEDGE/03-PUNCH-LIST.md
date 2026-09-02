@@ -808,6 +808,10 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 consulted (`grep -n "Cracked" map_path.py` = ZERO hits). ‼‼ **QUANTIFIED 2026-08-27 by
 `probe_ch21_skypillar.py` — IT IS WORSE THAN "CANNOT EXPRESS THE FALL": the planner's OWN proposed
 climb CROSSES 27 CRACKED TILES** (13 on 2F, 14 on 4F), and **NO crack-free route across 2F or 4F
+⛔⛔ **[REFUTED 2026-09-01 — SEE THE UPDATE BELOW.** This measured the DEFAULT/post-game crack
+set; the story runs on the CLEAN layouts, where 33 of the 38 (2F) and 29 of the 34 (4F) are SOLID
+GROUND. Every leg HAS a crack-free story route. ‼ This marker is INLINE because the caveat sat 13
+lines BELOW and a skimmer read the bold claim and stopped.]**
 exists at all** on the layout production reads (38 cracked on 2F, 34 on 4F — vs the atlas's 0 and 5
 on `*_Clean`). The bot is BIKELESS (`RECEIVED_BIKE=False`, measured), and speed is what survives a
 crack ⇒ **`navigate_to` is UNSAFE on 2F/4F**, and the story layout is almost certainly NOT the one
@@ -833,6 +837,9 @@ we read. Evidence + the one unverified link in `12-STORYMODE-DESIGN.md` §Ch21.
   `probe_skypillar_clean_layout.py` fetches only 2F/3F/4F_Clean, so it cannot check TOP, 1F or
   5F at all, and the atlas's "TOP 13 wp" was computed blocking CLEAN *cracks*, never CLEAN
   *walls*.
+  ⛔ **[SUPERSEDED 2026-09-01 — THE CLIMB *IS* THE LIVE NEXT ACTION.** `04-HANDOFF.md`'s only
+  `➡➡➡` marker reads "BUILD LEG 4 = THE SKY PILLAR CLIMB". What survives below is only the
+  `SKY_PILLAR_TOP` hazard, never the prohibition.]**
   ⛔ **BUT DO NOT READ THAT AS A GREEN LIGHT TO BUILD THE CLIMB** — this bullet said "do NOT wait
   … before building Ch21" while the prose above it and `04-HANDOFF.md` both said the climb is
   BLOCKED (a Tier 1 review caught the contradiction 2026-08-27). What actually blocks it: our

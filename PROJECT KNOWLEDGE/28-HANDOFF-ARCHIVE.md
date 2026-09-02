@@ -7175,3 +7175,23 @@ NOT RAISE THE CAP AGAIN, and `#24-hmslots` ratifies reserving HM slots.
       from a run that already beat her (52% of batch runs do). Once it exists, commit it to
       `tools/story-dev/saves/` as `post_winona.ss1` — every Ch14 probe will want it.
 
+---
+
+## §Ch20 'ASSEMBLE AS A CHAPTER' — the superseded build spec (moved out of `04-HANDOFF.md`, 2026-09-01)
+
+⛔ **DO NOT DO THIS. §Ch20 SHIPPED AS A CHAPTER ON 2026-08-24.** This spec sat inside the LIVE
+queue as an executable instruction for eight days after the work shipped; two Tier 2 cold-start
+audits were needed to find it (the first retired two sibling clauses and missed this one, which
+was the worst of the four because it was a full build order, not a passing mention).
+
+>    wired as Segment 20 in `story_mode.py`, built from the driven ingredients (`_ingress`, the
+>    room solves, the walk route, the var-gated scene ride, the atoll escape). Requirements,
+>    all measured: **organic Dive acquisition** (drivers inject it; KI-63's
+>    `ensure_hm_learner_making_room` is wired in sandbox), **whiteout-retry policy for Archie**
+>    (one retry = full re-dive of Rooms 1-8, ~25 min; Mossdeep Gym's N-attempts precedent),
+>    **pre-boss readiness** (potions/party order — run 3 entered with a fainted mon and
+>    Sceptile at 96/135), **Blocker 3** (Repel policy — Rooms 6/7 have `water_mons`; Rock Smash
+>    prompts YES/NO every smash), **Blocker 4** (pre-flight badge/move assertion incl.
+>    Dive/BADGE07), and grade the SEGMENT on **`VAR_ROUTE128_STATE == 2` + the escape +
+>    can-continue** (the ladder chapter in `chapters.py:233` grades on
+>    `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`, which is set PRE-warp — too weak for the segment).
