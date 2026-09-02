@@ -19640,3 +19640,39 @@ gym door open. Both probe-verified with `probe_anchor_inventory.py`.
 the pre-registered predictions); `ai-research-notes/2026-09-02-ch21-leg5-PARTC-{PREDICTIONS,
 RESULTS}.md`; `05-KNOWN-ISSUES.md`, `12-STORYMODE-DESIGN.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`,
 `06-DECISIONS-LOG.md`, `08-MISTAKES.md`.
+
+---
+
+## 2026-09-02 (later) — §Ch21 CHAPTER-WIRING RECON (no code changed)
+
+### WHAT SHIPPED
+`ai-research-notes/2026-09-02-ch21-chapter-wiring-BUILD-SPEC.md` — the build spec for wiring §Ch21
+into `_play()`, from a 7-agent workflow (5 recon angles → 1 adversarial refuter → 1 synthesis,
+run `wf_6355d22e-da6`). ⛔ No production code changed; drift unchanged.
+
+### THE REFUTER IS THE REASON THIS NOTE IS WORTH ANYTHING
+It found **six WRONG claims** in the five recon reports, all recorded in the note's §0. Three would
+have changed what a builder does:
+* "leg 1 re-runs safely" — **FALSE**, and it is the #1 build hazard: `enter_sootopolis()` has no
+  resume guard and swims to ROUTE126 unconditionally from a zero-connection island, so leg 1 is the
+  first thing that dies on any post-whiteout resume. `sootopolis_reached()` looks like the fix and
+  is DEAD CODE.
+* "L3→L4 needs a step-off the warp" — acting on it would have CREATED the south-warp bug the module
+  exists to avoid.
+* "whiteout recoveries are capped at 5" — it is **40**, an 8× understatement of the cost of a
+  mis-owned state.
+‼ A SEVENTH was mine, not the agents': see `08-MISTAKES.md` 2026-09-02 (later) — the false
+`chapters.py` claim. Its correction is the note's most useful output, because it REMOVES an edit
+site: `chapters.py:249-250` has graded §Ch21 on `RECEIVED_HM_WATERFALL` all along.
+
+### WHAT I VERIFIED MYSELF (agent output is a NOTE, never truth)
+Every ✅ in the note is a line I re-opened: the Ch20 dispatch block and insertion point
+(`story_mode.py:3735-3741`, `:3743`, `:3765-3778`), the chapter entry-point shape
+(`seafloor_cavern.py:931`) and its PROVEN orchestrator body (`:954-1000`), KI-67's "the retry is
+`StoryMode.run`" docstring (`:934-939`), leg 1's missing guard (`sootopolis.py:194`),
+`sootopolis_reached()` being uncalled tree-wide, the whiteout budget (`story_mode.py:2624`), and that
+all four flag/var names resolve in `modules/data/event_{flags,vars}/emerald.txt`.
+
+### FILES
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-02-ch21-chapter-wiring-BUILD-SPEC.md` (NEW);
+`04-HANDOFF.md` (queue item 0 now points at it and carries the three build-deciding facts).
