@@ -19517,3 +19517,51 @@ the recipe line; the six stale "legs 4-5" clauses); `03-PUNCH-LIST.md` (`#24-rem
 `#24-stdoututf8gate`, `#24-ch21climb-whiteoutarm` filed; two redundant blanks reclaimed for the R3
 budget); `29-DISABLED-FEATURES-REGISTRY.md` (the 7th flag); `08-MISTAKES.md` (the stdout crash);
 evidence `2026-09-01-ch21climb-CLEAN.txt` + `-FAULTARMS.txt` (re-captured untruncated, all seven arms).
+
+---
+
+## 2026-09-02 — §Ch21 LEG 5 RECON IS DONE: THE HM07 CHAIN IS DECOMP-MAPPED, AND AN ADVERSARIALLY-VERIFIED WORKFLOW FOUND THE REAL KI-73 LANDMINE IS **ROUTE131**, NOT SOOTOPOLIS
+
+Leg 5 (the return swim + HM07 Waterfall) had a clear brief but "zero measurement". The recon is now
+complete and lands in `ai-research-notes/2026-09-02-ch21-leg5-RECON.md` — a NOTE (its load-bearing
+claims still gate on the PART C live-probe A/Bs), but every decomp fact below was independently
+re-read, and the three routing/acceptance dimensions were each **adversarially verified and HELD**.
+
+### THE HM07 HANDOVER (decomp-cited, `gh api` live)
+`WALLACE` hands over HM07 — not Maxie/Archie. His gate is `FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE (0x9E)`,
+set only by talking to BOTH Maxie (runtime (33,35)) and Archie ((34,35)) at `CITY_STATE==5`; the 2nd
+talk `warpsilent`s the player to (31,34), directly S of Wallace (31,33). `GiveWaterfall` →
+`setflag FLAG_RECEIVED_HM_WATERFALL (0x138=312)` — a SINGLE setter repo-wide, so nothing can fake it.
+No battle, no multichoice, no bag-full guard. ‼ Runtime NPC tiles ≠ `map.json` (`SetOutsideGymObjPos`).
+
+### THE ROUTE, CORRECTED
+The fixture's **(14,4) seam is a TRAP** — it warps UP the tower to `SKY_PILLAR_OUTSIDE`. The only
+Entrance→Route131 door is the interior walk (14,3)→**(6,16)**. Then surf 131→130→129→128→127→126,
+dive → `UNDERWATER_SOOTOPOLIS_CITY`, emerge → `SOOTOPOLIS_CITY (29,53)` (`setdivewarp` pinned), where
+the arrival cutscene auto-fires and bumps `SKY_PILLAR_STATE` 1→2/3.
+
+### THE REAL KI-73 LANDMINE IS ROUTE131 (a verifier MEASURED the blobs)
+Sootopolis DOES swap to `LAYOUT_SOOTOPOLIS_CITY_LEGENDS_BATTLE` at the fixture state — but the
+divergence is **trivial and OUTSIDE the NPC rim (0 walkability flips in the mission area)** and reverts
+to NORMAL once the cutscene lifts `SKY_PILLAR` to 2. **ROUTE131 is the danger:** it unconditionally
+swaps to `LAYOUT_ROUTE131_SKY_PILLAR`, and ~32 tiles are LAND live where static `map.json` shows DEEP
+WATER — a static-seeded `calculate_path` would try to **surf across the tower island**. Pin it live
+(reuse `sootopolis.py:993/936`). ‼ And our cross-map connection graph reads the STATIC `gMapGroups` —
+the KI-73 mechanism itself; do not assume the route graph is live.
+
+### THE ACCEPTANCE PREDICATE
+Grade = `FLAG 0x138` SET ∧ position (in Sootopolis) ∧ a live can-continue path off the reached tile
+(NORMAL layout, pinned). ⛔ Premise must accept `SKY_PILLAR ∈ {1,2,3}` (a whiteout auto-advances it via
+the ON_FRAME cutscene — copying leg 4's `SKY_PILLAR==1` premise would strand a run), and branch on
+`0x9E` (leaders hide after). No hardcoded end coord.
+
+### METHOD (ultracode)
+Agent 1 (HM07 mechanic) completed solo; the return-route + adversarial agents hit a usage limit and were
+re-run as a 6-agent `Workflow` (3 recon dimensions → 3 independent adversarial verifiers). All 6 finished,
+0 errors, all 3 verdicts `holds=true`. Corrections the verifiers issued (connection-graph source; a metric
+mislabel; NPC-facing nuance) are folded into the note.
+
+### FILES
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-02-ch21-leg5-RECON.md` (NEW — the recon, PARTS A-D);
+`04-HANDOFF.md` (banner/queue/STATE leg-5: recon DONE, next = PART C gates then PART D build);
+`03-PUNCH-LIST.md` (`#24-remainingarc` leg-5 clause). ⛔ No production code changed; drift unchanged.
