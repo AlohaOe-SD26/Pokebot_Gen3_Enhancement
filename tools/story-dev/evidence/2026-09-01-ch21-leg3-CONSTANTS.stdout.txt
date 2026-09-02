@@ -1,0 +1,95 @@
+Running mGBA 0.10.2
+====================================================================================================
+§Ch21 LEG 3 — THE CONSTANTS, RE-ASKED OF PRODUCTION (offline, no emulation loop)
+====================================================================================================
+
+----------------------------------------------------------------------------------------------------
+CONTROL 1 — the fixture is the one we think it is (asserted by IDENTITY)
+----------------------------------------------------------------------------------------------------
+  map                       : (24, 42)  (CAVE_OF_ORIGIN_B1F = (24, 42))
+  tile                      : (9, 14)   spec: (9,14)
+  SOOTOPOLIS_CITY_STATE     : 3       spec: 3
+  SKY_PILLAR_STATE          : 0       spec: 0
+  WALLACE_GOES_TO_SKY_PILLAR: True    spec: True
+  ⇒ PASS
+
+----------------------------------------------------------------------------------------------------
+CONTROL 2 — the planner is ALIVE: one path that must SUCCEED, one that must REFUSE
+----------------------------------------------------------------------------------------------------
+  MUST SUCCEED  R131 (40,19) -> (28,15) : 16 wp, ends (28, 15) on map (0, 46), is_warp=False   (production's published 16)  PASS
+  MUST REFUSE   R131 (28,15) -> (36,6)  : NO ROUTE   (the door is invisible in SET A)  PASS
+  ⇒ PASS — the planner both finds and refuses, so a refusal below means something
+
+----------------------------------------------------------------------------------------------------
+CONTROL 3 — with NOTHING loaded the pocket escape MUST refuse (the Steven-gate premise)
+----------------------------------------------------------------------------------------------------
+  CITY (31,17) -> (43,32) [the PC front] : NO ROUTE
+  CITY (31,17) -> (29,53) [the dive tile]: NO ROUTE
+  ⇒ PASS — both refuse, exactly as the recon measured. Leg 3's Steven gate is
+     therefore load-bearing: without him camera-loaded the crossing cannot be planned.
+
+====================================================================================================
+MEASUREMENT 1 — THE ACCEPTANCE PREDICATE'S CONTINUATION PROOF (the load-bearing one)
+====================================================================================================
+  ⛔ §Ch15, §Ch18 and §Ch19 each PASSED their own acceptance test while STRANDED, so this
+     is the one number the leg is actually graded on.
+  OK ENTRANCE (6,16) -> (14,3)  [the PROOF]               spec: 21 wp, is_warp=False         got: 21 wp, ends (14, 3) on map (24, 77), is_warp=False
+  OK ENTRANCE (6,16) -> (14,4)  [the TRAP]                spec: 21 wp, is_warp=True          got: 21 wp, ends (17, 13) on map (24, 78), is_warp=True
+      ⇒ CONFIRMED: aiming at (14,4) leaves SKY_PILLAR_ENTRANCE and lands on (17, 13) of map (24, 78) — that is leg 4's
+        Wallace cutscene. The three conjuncts (bool / same map / not is_warp) are all
+        load-bearing: dropping `not is_warp` would make the TRAP pass as the PROOF.
+
+====================================================================================================
+MEASUREMENT 2 — the remaining hardcoded constants
+====================================================================================================
+  OK UNDERWATER (9,6) -> (9,8) [the exit warp]            spec: ends UW_ROUTE126 (45,65)     got: 3 wp, ends (45, 65) on map (0, 51), is_warp=True
+     UNDERWATER (9, 8) behaviour                          spec: (9,8) arrow / (10,8) plain   got: Water South Arrow Warp, collision=0
+     UNDERWATER (10, 8) behaviour                         spec: (9,8) arrow / (10,8) plain   got: Deep Water, collision=0
+  OK ROUTE126 (45,65) -> ROUTE131 (40,20) [the swim]      spec: 322 wp                       got: 322 wp, ends (40, 20) on map (0, 46), is_warp=False
+      per-map split: ROUTE126:51  ROUTE127:51  ROUTE128:57  ROUTE129:60  ROUTE130:80  ROUTE131:23
+      waypoints carrying an ACTION (2): [(121, (0, 43), (29, 9), 'Surf'), (143, (0, 43), (36, 24), 'Surf')]
+      its 23 ROUTE131 tiles: [(59, 23), (58, 23), (57, 23), (56, 23), (55, 23), (54, 23), (53, 23), (52, 23), (51, 23), (50, 23), (49, 23), (48, 23), (47, 23), (46, 23), (45, 23), (44, 23), (43, 23), (42, 23), (41, 23), (40, 23), (40, 22), (40, 21), (40, 20)]
+  OK ROUTE131 (40,19) -> (28,15) [the ROUTE]              spec: 16 wp                        got: 16 wp, ends (28, 15) on map (0, 46), is_warp=False
+  OK ROUTE131 (40,20) -> (28,15) [the FALLBACK]           spec: 35 wp, FATAL                 got: 35 wp, ends (28, 15) on map (0, 46), is_warp=False
+      ⛔ of its tiles, these are LIVE WALLS on SET B: [(23, 19), (23, 18), (24, 18)]
+         ⇒ this is why the blind step at (40,19) is MANDATORY, not an optimisation.
+     the blind step ROUTE131 (40, 19)                     spec: -                            got: Normal, collision=1, elevation=0
+     the staging tile ROUTE131 (28, 15)                   spec: -                            got: Ocean Water, collision=0, elevation=1
+     the door ROUTE131 (36, 6)                            spec: -                            got: Deep Water, collision=0, elevation=1
+     the dive tile SOOTOPOLIS_CITY (29, 53)               spec: -                            got: Sootopolis Deep Water, collision=0, elevation=1
+     the PC front SOOTOPOLIS_CITY (43, 32)                spec: -                            got: Normal, collision=0, elevation=3
+     the pocket resting tile SOOTOPOLIS_CITY (31, 17)     spec: -                            got: Normal, collision=0, elevation=3
+     ENTRANCE continue target SKY_PILLAR_ENTRANCE (14, 3) spec: -                            got: Cave, collision=0, elevation=3
+     ENTRANCE arrival prediction SKY_PILLAR_ENTRANCE (6, 16) spec: -                            got: South Arrow Warp, collision=0, elevation=3
+
+----------------------------------------------------------------------------------------------------
+MEASUREMENT 3 — capabilities and the flag the BUILD SPEC says the atlas has BACKWARDS
+----------------------------------------------------------------------------------------------------
+  party size 6; HP: [('Swellow', 112, 112), ('Zigzagoon', 44, 44), ('Sceptile', 138, 138), ('Wailmer', 160, 160), ('Mightyena', 130, 130), ('Castform', 103, 103)]
+  has a Surf user with PP : True
+  has a Dive user with PP : True
+  has a Fly user with PP : False
+  flag VISITED_SOOTOPOLIS_CITY    = True
+  flag VISITED_PACIFIDLOG_TOWN    = False
+  flag RECEIVED_BIKE              = False
+  flag BADGE05_GET                = True
+  flag BADGE07_GET                = True
+  flag SYS_WEATHER_CTRL           = True
+  ⛔ the §Ch21 ATLAS says VISITED_SOOTOPOLIS_CITY is False; the BUILD SPEC says True.
+     The reading above settles it for THIS fixture and the loser must be corrected.
+
+====================================================================================================
+SUMMARY — only rows the spec gave a number for are graded
+====================================================================================================
+  6/6 graded constants agree with the BUILD SPEC.
+
+====================================================================================================
+READ NARROWLY. These are STATIC answers from a loaded save with NOTHING camera-loaded.
+City paths WILL differ live (that is CONTROL 3's whole point), and the runtime ROUTE131
+layout is still unmeasured. Nothing here retires the first drive's readings.
+====================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-01_16-05-30.ss1 created!
+Updated `current_state.ss1`!

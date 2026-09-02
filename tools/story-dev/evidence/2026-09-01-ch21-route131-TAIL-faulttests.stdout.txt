@@ -1,0 +1,261 @@
+==================================================================================
+FAULT SELF-TESTS — proving this probe CAN fail, and fails NARROWLY (2026-09-01)
+==================================================================================
+
+########## POKEBOT_R131TAIL_FAULT=stride ##########
+========================================================================================================
+§Ch21 LEG 3 — THE HAND-WALKED TAIL, ADJUDICATED FROM OUR OWN ROM (offline, no network)
+========================================================================================================
+‼ FAULT HOOK ACTIVE: POKEBOT_R131TAIL_FAULT=stride — this run is a SELF-TEST.
+
+ROUTE131 map_size = (60, 40)
+same-sized layouts in `gMapLayouts` : 3  (indices [46, 318, 763])
+  ⛔ candidates are selected by DIMENSIONS ALONE — never by looking for the tiles the
+     recon predicted. The prediction is CHECKED against them below, not used to find them.
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 1 — SET A is the layout that AGREES with production's own get_map_data
+--------------------------------------------------------------------------------------------------------
+  layout #46   agreement over 504 sampled tiles: 288/504 = 57.1%
+  layout #318  agreement over 504 sampled tiles: 281/504 = 55.8%
+  layout #763  agreement over 504 sampled tiles: 288/504 = 57.1%
+  ⇒ SET A = layout #46 at 57.1%   FAIL
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 2 — the SET A decode must reproduce THREE production numbers
+--------------------------------------------------------------------------------------------------------
+  (40,20)->(28,15) : decode 17  production 35   MISMATCH
+  (40,19)->(28,15) : decode 16  production 16   MATCH
+  (40,19) is a WALL in SET A : False            MISMATCH
+  ⇒ FAIL
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 3 — SET B is the same-sized layout that opens the blind step AND the tower door
+--------------------------------------------------------------------------------------------------------
+  layout #318  opens blind step (40, 19): True   opens door (36, 6): True
+  layout #763  opens blind step (40, 19): True   opens door (36, 6): True
+  ⇒ SET B = layout #763   PASS
+
+‼ CONTROLS FAILED — every measurement below is UNTRUSTED. Do not act on it.
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-01_16-02-28.ss1 created!
+
+########## POKEBOT_R131TAIL_FAULT=swapsets ##########
+========================================================================================================
+§Ch21 LEG 3 — THE HAND-WALKED TAIL, ADJUDICATED FROM OUR OWN ROM (offline, no network)
+========================================================================================================
+‼ FAULT HOOK ACTIVE: POKEBOT_R131TAIL_FAULT=swapsets — this run is a SELF-TEST.
+
+ROUTE131 map_size = (60, 40)
+same-sized layouts in `gMapLayouts` : 3  (indices [46, 318, 763])
+  ⛔ candidates are selected by DIMENSIONS ALONE — never by looking for the tiles the
+     recon predicted. The prediction is CHECKED against them below, not used to find them.
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 1 — SET A is the layout that AGREES with production's own get_map_data
+--------------------------------------------------------------------------------------------------------
+  layout #46   agreement over 504 sampled tiles: 504/504 = 100.0%
+  layout #318  agreement over 504 sampled tiles: 474/504 = 94.0%
+  layout #763  agreement over 504 sampled tiles: 504/504 = 100.0%
+  ⇒ SET A = layout #46 at 100.0%   PASS
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 2 — the SET A decode must reproduce THREE production numbers
+--------------------------------------------------------------------------------------------------------
+  (40,20)->(28,15) : decode 35  production 35   MATCH
+  (40,19)->(28,15) : decode 16  production 16   MATCH
+  (40,19) is a WALL in SET A : True            MATCH
+  ⇒ PASS — the decode agrees with the emulator oracle in three places
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 3 — SET B is the same-sized layout that opens the blind step AND the tower door
+--------------------------------------------------------------------------------------------------------
+  layout #318  opens blind step (40, 19): True   opens door (36, 6): True
+  layout #763  opens blind step (40, 19): False   opens door (36, 6): True
+  ⇒ SET B = layout #318   PASS
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 4 — SET A and SET B must share BOTH tilesets, or SET B's behaviour NAMES lie
+--------------------------------------------------------------------------------------------------------
+  SET A tilesets: primary 0x083DF704  secondary 0x083DF824
+  SET B tilesets: primary 0x083DF704  secondary 0x083DF824
+  ⇒ PASS — identical, so a behaviour name decoded on SET B means what it says.
+
+========================================================================================================
+MEASUREMENT 1 — an INDEPENDENT shortest path (28,15) -> (36,6) over SET B
+========================================================================================================
+  17 steps: [(29, 15), (30, 15), (31, 15), (32, 15), (33, 15), (34, 15), (34, 14), (35, 14), (36, 14), (36, 13), (36, 12), (36, 11), (36, 10), (36, 9), (36, 8), (36, 7), (36, 6)]
+  ⛔ THIS IS ONE OF SEVERAL EQUAL-COST PATHS, NOT 'the' TAIL. It is a THIRD READING,
+     offered so the two proposals are graded against something other than each other.
+
+========================================================================================================
+MEASUREMENT 2 — the two proposed tails, tile by tile
+  ‼ FAULT swapsets: auditing against SET A. The tails MUST show walls — that is
+    their entire premise, and an audit that passes here cannot fail anywhere.
+========================================================================================================
+
+  --- CRITIC 1 (x=36 column, dismount at (36,8)) : 16 directions, 16 tiles ---
+     #  dir    tile      --- SET B ---                            --- SET A ---                      note
+     0  Right  (29, 15)  coll=1 elev=1  Normal                   coll=0 elev=1  Ocean Water      ⛔ WALL in the audited set
+     1  Right  (30, 15)  coll=1 elev=1  Normal                   coll=0 elev=1  Ocean Water      ⛔ WALL in the audited set
+     2  Right  (31, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     3  Right  (32, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     4  Right  (33, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     5  Right  (34, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     6  Up     (34, 14)  coll=0 elev=1  Interior Deep Water      coll=0 elev=1  Ocean Water      
+     7  Right  (35, 14)  coll=0 elev=1  Interior Deep Water      coll=0 elev=1  Ocean Water      
+     8  Right  (36, 14)  coll=0 elev=1  Interior Deep Water      coll=0 elev=1  Ocean Water      
+     9  Up     (36, 13)  coll=0 elev=1  Deep Water               coll=0 elev=1  Ocean Water      
+    10  Up     (36, 12)  coll=0 elev=1  Deep Water               coll=0 elev=1  Ocean Water      
+    11  Up     (36, 11)  coll=0 elev=1  Deep Water               coll=0 elev=1  Ocean Water      
+    12  Up     (36, 10)  coll=0 elev=1  Deep Water               coll=0 elev=1  Ocean Water      
+    13  Up     (36, 9)   coll=0 elev=1  Deep Water               coll=0 elev=1  Ocean Water      
+    14  Up     (36, 8)   coll=0 elev=1  Deep Water               coll=0 elev=3  Sand             
+    15  Up     (36, 7)   coll=0 elev=1  Deep Water               coll=0 elev=3  Sand             
+    ⇒ ends at (36, 7); contiguous=True walkable_in_audited_set=False blind_steps=0 elevation_changes=0
+
+  --- CRITIC 2 (x=34 column, dismount at (34,8)) : 16 directions, 16 tiles ---
+     #  dir    tile      --- SET B ---                            --- SET A ---                      note
+     0  Right  (29, 15)  coll=1 elev=1  Normal                   coll=0 elev=1  Ocean Water      ⛔ WALL in the audited set
+     1  Right  (30, 15)  coll=1 elev=1  Normal                   coll=0 elev=1  Ocean Water      ⛔ WALL in the audited set
+     2  Right  (31, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     3  Right  (32, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     4  Right  (33, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     5  Right  (34, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     6  Up     (34, 14)  coll=0 elev=1  Interior Deep Water      coll=0 elev=1  Ocean Water      
+     7  Up     (34, 13)  coll=0 elev=1  Deep Water               coll=0 elev=1  Ocean Water      
+     8  Up     (34, 12)  coll=0 elev=1  Deep Water               coll=0 elev=1  Ocean Water      
+     9  Up     (34, 11)  coll=0 elev=1  Deep Water               coll=0 elev=1  Ocean Water      
+    10  Up     (34, 10)  coll=0 elev=1  Deep Water               coll=0 elev=1  Ocean Water      
+    11  Up     (34, 9)   coll=0 elev=1  Deep Water               coll=0 elev=1  Ocean Water      
+    12  Up     (34, 8)   coll=0 elev=1  Deep Water               coll=0 elev=3  Sand             
+    13  Up     (34, 7)   coll=0 elev=1  Deep Water               coll=0 elev=3  Sand             
+    14  Right  (35, 7)   coll=0 elev=1  Deep Water               coll=0 elev=3  Sand             
+    15  Right  (36, 7)   coll=0 elev=1  Deep Water               coll=0 elev=3  Sand             
+    ⇒ ends at (36, 7); contiguous=True walkable_in_audited_set=False blind_steps=0 elevation_changes=0
+
+========================================================================================================
+VERDICT
+========================================================================================================
+  CRITIC 1 (x=36 column, dismount at (36,8))     ⛔ NOT USABLE   ends (36, 7), 0 blind, 0 elevation changes
+  CRITIC 2 (x=34 column, dismount at (34,8))     ⛔ NOT USABLE   ends (36, 7), 0 blind, 0 elevation changes
+
+  the door step (36,7) -> (36, 6): SET B collision = 0, behaviour = Non-Animated Door
+  the SAME tile in SET A       : collision = 0, behaviour = Deep Water
+
+========================================================================================================
+READ NARROWLY. A tail that is USABLE here is walkable on SET B's BYTES. It is NOT yet
+proven that ROUTE131 LOADS SET B at runtime — that reading is owed by the first drive.
+========================================================================================================
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-01_16-02-29.ss1 created!
+
+########## POKEBOT_R131TAIL_FAULT=bendtail ##########
+========================================================================================================
+§Ch21 LEG 3 — THE HAND-WALKED TAIL, ADJUDICATED FROM OUR OWN ROM (offline, no network)
+========================================================================================================
+‼ FAULT HOOK ACTIVE: POKEBOT_R131TAIL_FAULT=bendtail — this run is a SELF-TEST.
+
+ROUTE131 map_size = (60, 40)
+same-sized layouts in `gMapLayouts` : 3  (indices [46, 318, 763])
+  ⛔ candidates are selected by DIMENSIONS ALONE — never by looking for the tiles the
+     recon predicted. The prediction is CHECKED against them below, not used to find them.
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 1 — SET A is the layout that AGREES with production's own get_map_data
+--------------------------------------------------------------------------------------------------------
+  layout #46   agreement over 504 sampled tiles: 504/504 = 100.0%
+  layout #318  agreement over 504 sampled tiles: 474/504 = 94.0%
+  layout #763  agreement over 504 sampled tiles: 504/504 = 100.0%
+  ⇒ SET A = layout #46 at 100.0%   PASS
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 2 — the SET A decode must reproduce THREE production numbers
+--------------------------------------------------------------------------------------------------------
+  (40,20)->(28,15) : decode 35  production 35   MATCH
+  (40,19)->(28,15) : decode 16  production 16   MATCH
+  (40,19) is a WALL in SET A : True            MATCH
+  ⇒ PASS — the decode agrees with the emulator oracle in three places
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 3 — SET B is the same-sized layout that opens the blind step AND the tower door
+--------------------------------------------------------------------------------------------------------
+  layout #318  opens blind step (40, 19): True   opens door (36, 6): True
+  layout #763  opens blind step (40, 19): False   opens door (36, 6): True
+  ⇒ SET B = layout #318   PASS
+
+--------------------------------------------------------------------------------------------------------
+CONTROL 4 — SET A and SET B must share BOTH tilesets, or SET B's behaviour NAMES lie
+--------------------------------------------------------------------------------------------------------
+  SET A tilesets: primary 0x083DF704  secondary 0x083DF824
+  SET B tilesets: primary 0x083DF704  secondary 0x083DF824
+  ⇒ PASS — identical, so a behaviour name decoded on SET B means what it says.
+
+========================================================================================================
+MEASUREMENT 1 — an INDEPENDENT shortest path (28,15) -> (36,6) over SET B
+========================================================================================================
+  17 steps: [(29, 15), (30, 15), (31, 15), (32, 15), (33, 15), (34, 15), (34, 14), (35, 14), (36, 14), (36, 13), (36, 12), (36, 11), (36, 10), (36, 9), (36, 8), (36, 7), (36, 6)]
+  ⛔ THIS IS ONE OF SEVERAL EQUAL-COST PATHS, NOT 'the' TAIL. It is a THIRD READING,
+     offered so the two proposals are graded against something other than each other.
+
+========================================================================================================
+MEASUREMENT 2 — the two proposed tails, tile by tile
+========================================================================================================
+
+  --- CRITIC 1 (x=36 column, dismount at (36,8)) : 16 directions, 16 tiles ---
+     #  dir    tile      --- SET B ---                            --- SET A ---                      note
+     0  Right  (29, 15)  coll=0 elev=1  Ocean Water              coll=1 elev=1  Normal           blind (the other set calls it a wall)
+     1  Right  (30, 15)  coll=0 elev=1  Ocean Water              coll=1 elev=1  Normal           blind (the other set calls it a wall)
+     2  Right  (31, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     3  Right  (32, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     4  Right  (33, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     5  Right  (34, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     6  Up     (34, 14)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Interior Deep Water 
+     7  Right  (35, 13)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Deep Water       ⛔ NOT CONTIGUOUS — 'Right' from (34, 14) gives (35, 14), not (35, 13)
+     8  Right  (36, 14)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Interior Deep Water ⛔ NOT CONTIGUOUS — 'Right' from (35, 13) gives (36, 13), not (36, 14)
+     9  Up     (36, 13)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Deep Water       
+    10  Up     (36, 12)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Deep Water       
+    11  Up     (36, 11)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Deep Water       
+    12  Up     (36, 10)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Deep Water       
+    13  Up     (36, 9)   coll=0 elev=1  Ocean Water              coll=0 elev=1  Deep Water       
+    14  Up     (36, 8)   coll=0 elev=3  Sand                     coll=0 elev=1  Deep Water       ‼ ELEVATION 1 -> 3
+    15  Up     (36, 7)   coll=0 elev=3  Sand                     coll=0 elev=1  Deep Water       
+    ⇒ ends at (36, 7); contiguous=False walkable_in_audited_set=True blind_steps=2 elevation_changes=1
+
+  --- CRITIC 2 (x=34 column, dismount at (34,8)) : 16 directions, 16 tiles ---
+     #  dir    tile      --- SET B ---                            --- SET A ---                      note
+     0  Right  (29, 15)  coll=0 elev=1  Ocean Water              coll=1 elev=1  Normal           blind (the other set calls it a wall)
+     1  Right  (30, 15)  coll=0 elev=1  Ocean Water              coll=1 elev=1  Normal           blind (the other set calls it a wall)
+     2  Right  (31, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     3  Right  (32, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     4  Right  (33, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     5  Right  (34, 15)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Ocean Water      
+     6  Up     (34, 14)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Interior Deep Water 
+     7  Up     (34, 13)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Deep Water       
+     8  Up     (34, 12)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Deep Water       
+     9  Up     (34, 11)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Deep Water       
+    10  Up     (34, 10)  coll=0 elev=1  Ocean Water              coll=0 elev=1  Deep Water       
+    11  Up     (34, 9)   coll=0 elev=1  Ocean Water              coll=0 elev=1  Deep Water       
+    12  Up     (34, 8)   coll=0 elev=3  Sand                     coll=0 elev=1  Deep Water       ‼ ELEVATION 1 -> 3
+    13  Up     (34, 7)   coll=0 elev=3  Sand                     coll=0 elev=1  Deep Water       
+    14  Right  (35, 7)   coll=0 elev=3  Sand                     coll=0 elev=1  Deep Water       
+    15  Right  (36, 7)   coll=0 elev=3  Sand                     coll=0 elev=1  Deep Water       
+    ⇒ ends at (36, 7); contiguous=True walkable_in_audited_set=True blind_steps=2 elevation_changes=1
+
+========================================================================================================
+VERDICT
+========================================================================================================
+  CRITIC 1 (x=36 column, dismount at (36,8))     ⛔ NOT USABLE   ends (36, 7), 2 blind, 1 elevation changes
+      elevation change at step 14: (36, 9) -> (36, 8) (elev 1 -> 3)
+  CRITIC 2 (x=34 column, dismount at (34,8))     USABLE         ends (36, 7), 2 blind, 1 elevation changes
+      elevation change at step 12: (34, 9) -> (34, 8) (elev 1 -> 3)
+
+  the door step (36,7) -> (36, 6): SET B collision = 0, behaviour = Non-Animated Door
+  the SAME tile in SET A       : collision = 0, behaviour = Deep Water
+
+========================================================================================================
+READ NARROWLY. A tail that is USABLE here is walkable on SET B's BYTES. It is NOT yet
+proven that ROUTE131 LOADS SET B at runtime — that reading is owed by the first drive.
+========================================================================================================
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-01_16-02-30.ss1 created!

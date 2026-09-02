@@ -1,0 +1,25 @@
+Running mGBA 0.10.2
+====================================================================================================
+§Ch21 LEG 3 — THE LAYOUT-PIN FIX, A/B AGAINST DRIVE 1'S OWN STALL STATE
+====================================================================================================
+fixture: repro-ml-f5592.ss1  (captured BY the failing drive, mid-jam at SOOTOPOLIS_CITY (31,42))
+
+=== ARM A — WITHOUT the fix (as drive 1 ran) ===
+   (43, 32)->(29, 53): 37 waypoints
+   waypoints the GAME calls WALLS: [(31, 43), (31, 44), (31, 45)]
+   ⇒ ‼ WOULD JAM
+
+=== ARM B — WITH the fix (pin to the live layout) ===
+   SOOTOPOLIS_CITY: planner blockdata unseeded -> 0x084675E0 (pinned to the LIVE header)
+   (43, 32)->(29, 53): 35 waypoints
+   waypoints the GAME calls WALLS: NONE
+   ⇒ walkable end to end
+
+====================================================================================================
+DISCRIMINATING: True   (ARM A walls=[(31, 43), (31, 44), (31, 45)], ARM B walls=[])
+====================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-01_17-15-29.ss1 created!
+Updated `current_state.ss1`!

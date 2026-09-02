@@ -1329,7 +1329,10 @@ the Emerald event flag that proves completion (names from
 | 18 | **Gym 7 — Tate & Liza** | Mossdeep City | Tate & Liza (Psychic, **DOUBLE**) | **Mind** | **Dive usable** ✅ (`map_path.py:690` = `BADGE07_GET`) | `DEFEATED_MOSSDEEP_GYM` (1270), `BADGE07_GET` (2157) |
 | 19 | Mossdeep + Space Center | Rt 124/125 (Surf) / Mossdeep | Magma at Space Center; Steven tag (**DOUBLE**) | — | **Dive** (HM08) given in **Steven's house, Mossdeep** (`ITEM_MOSSDEEP_STEVENS_HOUSE_HM08` 1133) | `DEFEATED_MAGMA_SPACE_CENTER` (117), `RECEIVED_HM_DIVE` (123), `INTERACTED_WITH_STEVEN_SPACE_CENTER` (205) |  ‼ **ORDER CORRECTED 2026-08-12** — this beat REQUIRES Badge 7; its NPCs are hidden until then.
 | 20 | Seafloor Cavern (Kyogre) | Rt 128 (Dive) / Seafloor Cavern | Team Aqua; Archie; Kyogre wakes | — | **Dive** required to enter (`can_dive` gate) | `KYOGRE_ESCAPED_SEAFLOOR_CAVERN` (129) |
-| 21 | Sootopolis crisis & Rayquaza | Sootopolis (**Dive under Rt 126** to enter) / Cave of Origin / Sky Pillar | (Rayquaza quells legendaries) | — | Dive to enter Sootopolis (⛔ **no Fly** — `VISITED_SOOTOPOLIS_CITY` is False, measured). ⛔ **NO MACH BIKE NEEDED — but the ascent DELIBERATELY FALLS through ONE cracked tile.** `_CLEAN` is per-floor, not global: `2F_Clean` has 0 cracked tiles, **`4F_Clean` has 5**, and `4F (3,1)` is a SEALED POCKET reachable ONLY by falling through `4F (6,4)`/`(7,4)` (⛔ NOT `(9,4)` — a decoy). ➡ **READ §Ch21 ATLAS in this file before building; a route that avoids all cracked tiles CANNOT reach the summit.** | `LEGENDARIES_IN_SOOTOPOLIS` (83), `STEVEN_GUIDES_TO_CAVE_OF_ORIGIN` (307), `DEFEATED_RAYQUAZA` (448), `RECEIVED_RED_OR_BLUE_ORB` (212), `WALLACE_GOES_TO_SKY_PILLAR` (311) |
+| 21 | Sootopolis crisis & Rayquaza | Sootopolis (**Dive under Rt 126** to enter) / Cave of Origin / Sky Pillar | (Rayquaza quells legendaries) | — | Dive to enter Sootopolis (⛔ **no Fly** — because the party has **no Fly user**, measured
+2026-09-01. ‼ This row used to say "`VISITED_SOOTOPOLIS_CITY` is False"; that reading was taken
+pre-arrival and the flag is **True** from leg 1 onward, so the old reason is wrong even though the
+conclusion is right). ⛔ **NO MACH BIKE NEEDED — but the ascent DELIBERATELY FALLS through ONE cracked tile.** `_CLEAN` is per-floor, not global: `2F_Clean` has 0 cracked tiles, **`4F_Clean` has 5**, and `4F (3,1)` is a SEALED POCKET reachable ONLY by falling through `4F (6,4)`/`(7,4)` (⛔ NOT `(9,4)` — a decoy). ➡ **READ §Ch21 ATLAS in this file before building; a route that avoids all cracked tiles CANNOT reach the summit.** | `LEGENDARIES_IN_SOOTOPOLIS` (83), `STEVEN_GUIDES_TO_CAVE_OF_ORIGIN` (307), `DEFEATED_RAYQUAZA` (448), `RECEIVED_RED_OR_BLUE_ORB` (212), `WALLACE_GOES_TO_SKY_PILLAR` (311) |
 | 22 | **Gym 8 — JUAN** **[P2 FIX: not Wallace]** | Sootopolis City | **Juan** (Water) — `SootopolisCity_Gym_1F_EventScript_Juan` | **Rain** | **Waterfall** (HM07) given by **Wallace in Sootopolis** (around crisis resolution; *verify exact trigger live*) | `DEFEATED_SOOTOPOLIS_GYM` (1271), `BADGE08_GET` (2158), `RECEIVED_HM_WATERFALL` (312) |
 | 23 | Victory Road | Rt 128/132-134 (Surf/Dive/Waterfall) → Ever Grande | Rival Wally (Victory Road) | — | Surf+Waterfall+Dive to reach; **Strength**+Rock Smash+Flash inside | `DEFEATED_WALLY_VICTORY_ROAD` (126) |
 | 24 | **Elite Four + Champion** | Ever Grande / Pokémon League | Sidney→Phoebe→Glacia→Drake→Wallace | — | — | `DEFEATED_ELITE_4_SIDNEY/PHOEBE/GLACIA/DRAKE` (1275-1278), `IS_CHAMPION` (2175), `SYS_GAME_CLEAR` (2148) |
@@ -3546,7 +3549,12 @@ only non-Dive warps are its own buildings and the Cave of Origin.
   **False** on `post_dive.ss1`, and §Ch20 never goes near Pacifidlog, so it is still False when Ch21
   starts. `fly_to()` requires the destination's VISITED flag, so **this option silently is not one.**
   *(Badges 1-7 are set and 8 is not, as expected; `BADGE06_GET` was never the binding constraint.)*
-  ‼ `VISITED_SOOTOPOLIS_CITY` is **False** too — so **Fly cannot shortcut INTO Sootopolis either.**
+  ‼ `VISITED_SOOTOPOLIS_CITY` is **False** *on `post_ch20.ss1`, i.e. BEFORE the first arrival* —
+  ⛔ **and it is True from leg 1 onward.** MEASURED 2026-09-01 across all four §Ch21 anchors:
+  `post_ch20` False; `post_sootopolis_arrival`, `post_steven_escort` and `post_wallace` all **True**
+  (`SootopolisCity_OnTransition` sets it on arrival). ⇒ **the conclusion "swim, do not Fly" still
+  holds, but NOT for this reason** — it holds because **no party member knows Fly** (measured False
+  on `post_wallace.ss1`). ⛔ Leg 5's return planning must not inherit the old reason.
   ⇒ **BOTH the entry and the exit are by water. There is no air option anywhere in this chapter.**
 * ✅ **(b) SWIM BACK OUT — THE ONLY OPTION, not a preference.** — dive out of Sootopolis (`Sootopolis Deep Water` is in `dive()`'s allowed
   list), warp to `UNDERWATER_ROUTE126`, surface, then surf 126→127→128→129→130→131. Long, no Fly needed.
@@ -3793,8 +3801,18 @@ Two claims CONFIRMED, one REFUTED in the favourable direction:
 
 ✅ **THREE MORE FACTS THE PASS ESTABLISHED:**
 * **`SKY_PILLAR_ENTRANCE` and `SKY_PILLAR_OUTSIDE` do NOT swap layouts** — no `setmaplayoutindex`
-  in either script. Their static layout IS their live layout, so our planner is exactly right on
-  those two. (Six floors 1F-5F+TOP swap; ENTRANCE/OUTSIDE do not.)
+  in either script. (Six floors 1F-5F+TOP swap; ENTRANCE/OUTSIDE do not.)
+  ⛔⛔ **BUT "no `setmaplayoutindex`" DOES NOT MEAN "static == live", AND THIS BULLET USED TO SAY IT
+  DID.** It is true for ENTRANCE (our ROM's layout is byte-identical to the decomp's over all 324
+  blocks). It is **FALSE for OUTSIDE at two tiles**: `SkyPillar_Outside_OnLoad` runs
+  `setmetatile 14,4` / `14,5` when `FLAG_WALLACE_GOES_TO_SKY_PILLAR` is set, so the door our reader
+  calls `Sky Pillar Closed Door` collision 1 is **open at runtime**. ⇒ `setmetatile` in an OnLoad
+  script is a SECOND divergence mechanism that no layout grep will ever find (KI-74), and it is
+  invisible in principle to every reader we own — `MapLocation` dereferences the layout's blockdata
+  pointer, which is in **ROM**, while `setmetatile` writes `sBackupMapData` in **RAM**.
+  ✅ **The instrument for this now exists: `tools/story-dev/probe_live_mapgrid.py` reads
+  `gBackupMapLayout` — the grid the GAME walks on — and reports every tile where it disagrees with
+  our planner, whatever the cause.**
 * ⛔ **`ROUTE131` swaps UNCONDITIONALLY** — `Route131_OnTransition` calls
   `setmaplayoutindex LAYOUT_ROUTE131_SKY_PILLAR` with **no var guard at all**, so the divergence is
   permanent, not state-gated. It is the worst static-vs-live gap in the chain and it is on the way IN.
@@ -4083,7 +4101,9 @@ bullets had been CLOSED the same day — each bullet now carries its own marker.
   adjacent to the cracked `(6,4)`; the step ordering and the ~80-frame fall script are unmeasured live.
 * ⚠ **`1F`'s exit to the Outside is a `MB_SOUTH_ARROW_WARP`** — `TryArrowWarp` requires the direction
   to be **HELD**, so a single tap will NOT warp. Relevant on the way back down.
-* ✅ **CLOSED 2026-08-24: `VISITED_PACIFIDLOG_TOWN` is False** (and so is `VISITED_SOOTOPOLIS_CITY`).
+* ✅ **CLOSED 2026-08-24: `VISITED_PACIFIDLOG_TOWN` is False** (⛔ **and `VISITED_SOOTOPOLIS_CITY`
+  is False only BEFORE the first arrival — it is True on every anchor from `post_sootopolis_arrival`
+  onward, MEASURED 2026-09-01.** The no-Fly conclusion survives on the party having no Fly user).
   The Fly-vs-swim choice is settled — **it is SWIM**, and it was settled by a 20-second flag read
   rather than the live drive this line originally demanded.
 * ❓ Whether the Route 126 to Sootopolis warp is itself event-gated.

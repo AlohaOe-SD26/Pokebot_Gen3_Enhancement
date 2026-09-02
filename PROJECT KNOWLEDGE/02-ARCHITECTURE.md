@@ -373,6 +373,27 @@ done
     ‼ It re-reads the raw metatile id itself, because `modules/map.py` computes it (line 779) but
     returns only `(attributes, collision, elevation)` — widening a SHARED module for one puzzle was
     not worth the blast radius.
+
+- ⛔⛔ **THERE ARE THREE DIFFERENT ANSWERS TO "IS THIS TILE WALKABLE", AND THEY DISAGREE.** This is
+  load-bearing architecture, not trivia — it cost §Ch21 leg 3 a drive on 2026-09-01.
+  1. **`get_map_data(map, tile)`** builds a `MapLocation` from the **STATIC ROM header**
+     (`gMapGroups`, map.py:1774-1789). This is what `calculate_path` plans on.
+  2. **`get_map_data_for_current_position()`** builds one from the **LIVE `gMapHeader`**
+     (map.py:1742-1751) — a different layout whenever a map ran `setmaplayoutindex`.
+  3. **`gBackupMapLayout` → `sBackupMapData`** is the grid **the game itself walks on**. It is the
+     only one of the three that reflects `setmetatile`, because (1) and (2) both dereference a
+     layout blockdata pointer that lives in **ROM** while `setmetatile` writes **RAM**.
+  ‼ **AND (1) AND (2) SHARE ONE CACHE.** `_map_layout_cache` (map.py:735-755) is keyed by
+  **`(rom id, map)` ALONE** and does not record which header filled it, so **whichever reader
+  touches a map first wins for the whole process** — and `calculate_path` silently inherits that
+  choice. MEASURED: seeding SOOTOPOLIS_CITY statically gives `(43,32)->(29,53)` = 37 waypoints;
+  seeding it live gives 35. *The seeding order changes production's own answers.*
+  ⇒ **On any map that runs `setmaplayoutindex` or `setmetatile`, a planned route must be checked
+  against reading (3) before it is followed.** The instruments are
+  `tools/story-dev/probe_live_mapgrid.py` (offline, any save state, border offset CALIBRATED not
+  assumed) and `modules/story/sootopolis.py`'s `_live_collision_grid()` / `_live_wall_tiles()` /
+  `_pin_planner_to_live_layout()` in production. ⛔ Those production helpers currently live in a
+  CHAPTER module; promoting them into `modules/map.py` is the open follow-up (see KI-74).
   * ‼ **The state is the full tuple of object positions**, not "5 counters mod 4": pads do not all
     hold three objects, and nine TRAINERS rotate along with the 21 statues.
   * `tools/story-dev/probe_gym_arrows.py` dumps the arrow field and derives the encoding from data;

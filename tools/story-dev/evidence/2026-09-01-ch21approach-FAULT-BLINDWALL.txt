@@ -1,0 +1,22 @@
+§Ch21 LEG 3 — --driver ch21approach — ARM: FAULT-BLINDWALL   (2026-09-01)
+==========================================================================
+⛔ PROVENANCE: THIS ARM RAN **BEFORE** THE ADVERSARIAL REVIEW'S BLOCKER FIX, AND WAS NOT RE-RUN.
+The reasoning, stated so a reader can disagree with it: that fix touched `_cross_the_pocket` only
+(guarding the recovery's walk-back), plus a DOCSTRING in `_bounded_step`. This arm's subject is
+`_bounded_step`'s FAILURE branch, which no line of the fix altered — and `_cross_the_pocket`'s
+happy path, which this arm does traverse, was re-proven by the post-fix CLEAN re-run
+(byte-identical, frames=34122, tail_tiles_confirmed=16/16).
+‼ That is a REASONED exemption, not a measured one. If you are changing this area, re-run it.
+
+[ch21approach] PRE at=CAVE_OF_ORIGIN_B1F(9, 14) state=3 pillar_state=0 wallace_flag=True
+[ch21approach] LEG FAILED: BotModeError: Ch21 leg 3: could not step 'Left' onto (29, 15) on ROUTE131 after 3 attempts of up to 120 frames each; the run is at ((0, 46), (25, 15)). These tiles come from OUR OWN ROM's Route131_SkyPillar layout bytes and our planner sees open water where the island is, so there is NO fallback route to fall back ON. A mismatch means the live layout differs from that blob — RE-MEASURE it with probe_ch21_route131_tail.py; do not nudge the constant to make this pass.
+[ch21approach] RESULT reached=False at=ROUTE131(25, 15) pocket_attempts=1 rest=None rest_matches_prediction=None controllable=True encounters=8 maps=['(0, 42)', '(0, 44)', '(0, 44)', '(0, 45)', '(0, 45)', '(0, 45)', '(0, 45)', '(0, 46)'] whiteouts=0 frames=33088
+[ch21approach] ROUTE131 LIVE-GRID WALLS on tiles this leg walks: [] (⛔ must be an empty list; read from gBackupMapLayout, the grid the GAME walks on, not from our planner's layout)
+[ch21approach] UNDERWATER_ROUTE126 warp resting tile: (45, 66) (the warp TARGET is (45,65); a difference is a resting-tile FINDING, not a failure)
+[ch21approach] CONTINUE continue_wp=None continue_is_warp=None continue_ok=False (target (14,3); measured expectation 21 wp, is_warp=False — ⛔ (14,4) is the TRAP)
+[ch21approach] ROUTE131 LAYOUT planner=0x08417FE4 live=0x0845C1B0 agree=False planner_agrees_with_game=False (⛔ agreement here would CONTRADICT the premise the hand-walked tail was built for; it is a FINDING for the docs, not a run failure)
+[ch21approach] END STATE state=3 pillar_state=0 (both must be UNCHANGED at 3 and 0 — state 4 is written by leg 4's door scene)
+[ch21approach] METHOD planner_calls_on_route131=2 (exactly 2 permitted) blind_steps_taken=1 tail_tiles_confirmed=0/16 method_ok=False premise_ok=True
+[ch21approach] CONTROL control_refused=None (⛔ the planner must still be able to REFUSE; a reachability check with no matching refusal is a coin that only has heads)
+[ch21approach] readings=['R-BLIND', 'R-CAVE', 'R-DIVE', 'R-HEAL', 'R-LAYOUT', 'R-POCKET', 'R-STAGING', 'R-SURFACE', 'R-SWIM'] missing=['R-CONTINUE', 'R-CONTROL', 'R-DOOR', 'R-REST', 'R-TAIL'] (the grade is DID EVERY READING HAPPEN **and can the bot CONTINUE**, not merely did the walk finish)
+[ch21approach] ACCEPTANCE: FAIL

@@ -1,0 +1,24 @@
+§Ch21 LEG 3 — --driver ch21approach — ARM: FAULT-POCKETWALKBACK   (2026-09-01)
+==========================================================================
+Run with BOTH arms set: POKEBOT_CH21_FAULT_POCKETSTALL=1 POKEBOT_CH21_FAULT_POCKETWALKBACK=1
+(the walk-back arm can only fire while a recovery is already running).
+
+WHY THIS ARM EXISTS: an adversarial review found that the recovery's OWN walk back to the
+reload tile was NOT guarded against the same TimedOutTryingToReachWaypointError it recovers
+from. Unguarded, a second stall escapes the tries=3 loop as a RAW exception.
+⛔ HONEST SCOPE: this arm proves the GUARD FIRES and NAMES the failure. The unguarded
+behaviour is a CODE-READING claim (the exception had no handler on that path), not a measured
+arm — no 'before' drive was run.
+
+[ch21approach] PRE at=CAVE_OF_ORIGIN_B1F(9, 14) state=3 pillar_state=0 wallace_flag=True
+[ch21approach] LEG FAILED: BotModeError: Ch21 leg 3: the pocket crossing stalled at (26, 6), and the walk BACK to (31, 17) then stalled too (Did not reach waypoint ((30, 8)) @ SOOTOPOLIS_CITY in time.). The run is inside a 347-tile pocket it cannot re-plan out of — this is the stranded case the plan-once rule exists to prevent. ⛔ Do not retry from here: a fresh plan from an unknown tile inside the pocket REFUSES, which is the whole reason the recovery walks back to a known tile first.
+[ch21approach] RESULT reached=False at=SOOTOPOLIS_CITY(30, 7) pocket_attempts=0 rest=None rest_matches_prediction=None controllable=True encounters=0 maps=[] whiteouts=0 frames=1285
+[ch21approach] ROUTE131 LIVE-GRID WALLS on tiles this leg walks: None (⛔ must be an empty list; read from gBackupMapLayout, the grid the GAME walks on, not from our planner's layout)
+[ch21approach] UNDERWATER_ROUTE126 warp resting tile: None (the warp TARGET is (45,65); a difference is a resting-tile FINDING, not a failure)
+[ch21approach] CONTINUE continue_wp=None continue_is_warp=None continue_ok=False (target (14,3); measured expectation 21 wp, is_warp=False — ⛔ (14,4) is the TRAP)
+[ch21approach] ROUTE131 LAYOUT None planner_agrees_with_game=None (⛔ agreement here would CONTRADICT the premise the hand-walked tail was built for; it is a FINDING for the docs, not a run failure)
+[ch21approach] END STATE state=3 pillar_state=0 (both must be UNCHANGED at 3 and 0 — state 4 is written by leg 4's door scene)
+[ch21approach] METHOD planner_calls_on_route131=0 (exactly 2 permitted) blind_steps_taken=0 tail_tiles_confirmed=0/16 method_ok=False premise_ok=True
+[ch21approach] CONTROL control_refused=None (⛔ the planner must still be able to REFUSE; a reachability check with no matching refusal is a coin that only has heads)
+[ch21approach] readings=['R-CAVE'] missing=['R-BLIND', 'R-CONTINUE', 'R-CONTROL', 'R-DIVE', 'R-DOOR', 'R-HEAL', 'R-LAYOUT', 'R-POCKET', 'R-REST', 'R-STAGING', 'R-SURFACE', 'R-SWIM', 'R-TAIL'] (the grade is DID EVERY READING HAPPEN **and can the bot CONTINUE**, not merely did the walk finish)
+[ch21approach] ACCEPTANCE: FAIL

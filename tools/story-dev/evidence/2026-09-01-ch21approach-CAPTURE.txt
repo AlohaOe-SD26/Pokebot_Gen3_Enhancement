@@ -1,0 +1,14 @@
+§Ch21 LEG 3 — --driver ch21approach — ARM: CAPTURE   (2026-09-01)
+==========================================================================
+[ch21approach] PRE at=CAVE_OF_ORIGIN_B1F(9, 14) state=3 pillar_state=0 wallace_flag=True
+[ch21approach] RESULT reached=True at=SKY_PILLAR_ENTRANCE(6, 16) pocket_attempts=1 rest=(6, 16) rest_matches_prediction=True controllable=True encounters=9 maps=['(0, 42)', '(0, 44)', '(0, 44)', '(0, 45)', '(0, 45)', '(0, 45)', '(0, 45)', '(0, 46)', '(0, 46)'] whiteouts=0 frames=34122
+[ch21approach] ROUTE131 LIVE-GRID WALLS on tiles this leg walks: [] (⛔ must be an empty list; read from gBackupMapLayout, the grid the GAME walks on, not from our planner's layout)
+[ch21approach] UNDERWATER_ROUTE126 warp resting tile: (45, 66) (the warp TARGET is (45,65); a difference is a resting-tile FINDING, not a failure)
+[ch21approach] CONTINUE continue_wp=21 continue_is_warp=False continue_ok=True (target (14,3); measured expectation 21 wp, is_warp=False — ⛔ (14,4) is the TRAP)
+[ch21approach] ROUTE131 LAYOUT planner=0x08417FE4 live=0x0845C1B0 agree=False planner_agrees_with_game=False (⛔ agreement here would CONTRADICT the premise the hand-walked tail was built for; it is a FINDING for the docs, not a run failure)
+[ch21approach] END STATE state=3 pillar_state=0 (both must be UNCHANGED at 3 and 0 — state 4 is written by leg 4's door scene)
+[ch21approach] METHOD planner_calls_on_route131=2 (exactly 2 permitted) blind_steps_taken=1 tail_tiles_confirmed=16/16 method_ok=True premise_ok=True
+[ch21approach] CONTROL control_refused=True (⛔ the planner must still be able to REFUSE; a reachability check with no matching refusal is a coin that only has heads)
+[ch21approach] readings=['R-BLIND', 'R-CAVE', 'R-CONTINUE', 'R-CONTROL', 'R-DIVE', 'R-DOOR', 'R-HEAL', 'R-LAYOUT', 'R-POCKET', 'R-REST', 'R-STAGING', 'R-SURFACE', 'R-SWIM', 'R-TAIL'] missing=[] (the grade is DID EVERY READING HAPPEN **and can the bot CONTINUE**, not merely did the walk finish)
+[ch21approach] ACCEPTANCE: PASS
+[ch21approach] CAPTURE WROTE post_skypillar_door.ss1 (397312 bytes) at (6, 16) — ‼ verify with probe_anchor_inventory.py, not this line

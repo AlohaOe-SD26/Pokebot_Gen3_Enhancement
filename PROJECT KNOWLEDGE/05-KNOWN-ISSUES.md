@@ -1844,7 +1844,37 @@ Fixed, driven and gated (`repro_multi_battle_partner.py`, in the standing suite)
 2. **Never identify a Pokémon by party INDEX across a battle-menu boundary.** Opening the battle party menu runs `UpdatePartyToBattleOrder`, which physically PERMUTES `gPlayerParty` — the second fix's `index >= 3` cut was in the wrong index space and offered the ALLY's Pokémon while hiding one of ours. Key on **original trainer ID** (`ally_party_indices()`); identity travels with the Pokémon, position does not.
 
 
-## KI-74 — `setmetatile` tiles are INVISIBLE to the shared map model, and the KI-59 fix made that fail-DANGEROUS instead of fail-safe (2026-08-13, code-verified, OPEN)
+## KI-74 — `setmetatile` tiles are INVISIBLE to the shared map model, and the KI-59 fix made that fail-DANGEROUS instead of fail-safe (2026-08-13, code-verified, **STILL OPEN — but as of 2026-09-01 it is OBSERVABLE, and it has now COST A DRIVE**)
+
+- ‼‼ **UPDATE 2026-09-01 — THIS STOPPED BEING THEORETICAL.** §Ch21 leg 3's first drive walked out of
+  the Sootopolis Poke Center and jammed at `SOOTOPOLIS_CITY (31,42)`:
+  `UnreachableDestinationError: the field is idle and we are still at (31,42), so retrying cannot
+  change the result`. Our planner had returned a confident route whose FIRST waypoint `(31,43)` sits
+  inside a **9x3 block (x=27..35, y=43..45) that is collision-0 to us and collision-1 to the game**.
+- ✅ **AND THE FIX THIS ENTRY ASKED FOR IS NOW BUILT.** This KI's own "what a fix looks like" said:
+  *promote `gBackupMapLayout` into a "live grid" mode for the CURRENTLY LOADED map only.* That now
+  exists twice over: **`tools/story-dev/probe_live_mapgrid.py`** (offline, any save state, with a
+  CALIBRATED border offset — it scores 7 at 99.6% while every other candidate lands between 46% and
+  74%, so a wrong offset reports as a broken control rather than as a divergence) and
+  **`sootopolis._live_collision_grid()` / `_live_wall_tiles()`** in production, which refuse to run
+  unless the avatar is standing on the map being asked about.
+  ⛔ **It is NOT yet promoted into `modules/map.py`, so it is still opt-in per chapter** — which is
+  why this KI stays OPEN rather than closing.
+- ⛔ **THE PRECISE MECHANISM, now pinned to a line** (and it is the SHARED root of this KI and
+  KI-73): `map.py:735-755` caches each map's 24-byte layout struct in `_map_layout_cache` keyed by
+  **`(rom id, map)` ALONE**. It does not record whether the bytes came from the LIVE `gMapHeader`
+  (`get_map_data_for_current_position`) or the STATIC ROM `gMapGroups` table (`get_map_data`).
+  **Both writers populate the same entry, so whichever reader touches a map FIRST wins for the whole
+  process — and `calculate_path` silently inherits that choice.** MEASURED two-armed: static-seeded,
+  SOOTOPOLIS `(43,32)->(29,53)` is 37 waypoints; live-seeded it is 35. *The seeding order changes
+  production's own answers.*
+- ⇒ **A CONSEQUENCE WORTH KNOWING BEFORE YOU WRITE A PROBE:** any instrument that compares
+  `get_map_data_for_current_position()` against `get_map_data(...)` **cannot report a difference**,
+  because both return the same cache entry. `CH21_LAYOUT_PROBE` was exactly that shape and its
+  2026-08-27 "no swap visible" reading has been **retracted** (see `29-DISABLED-FEATURES-REGISTRY.md`).
+  A working comparison must dereference `gMapHeader` itself, as `sootopolis._route131_layout_reading()`
+  does — it read `planner=0x08417FE4 live=0x0845C1B0 agree=False` live on ROUTE131.
+
 
 - **The mechanism.** `modules/map.py:770` takes the layout pointer from `self._map_layout[12:16]` —
   the **compile-time ROM grid**. The engine's live grid is `gBackupMapLayout`, which is what

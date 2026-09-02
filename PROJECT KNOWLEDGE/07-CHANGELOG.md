@@ -19094,3 +19094,166 @@ promising a build order it could not deliver.
 Also: the daily upstream check for **2026-09-01** (unchanged, `5dd898f8`), the `upstream` STATE row
 re-dated (it goes stale on a calendar day by its own rule), and the §Ch20 pointer block compressed
 to its still-live rules to stay inside the 900-line budget.
+
+---
+
+## 2026-09-01 — §Ch21 LEG 3 (THE APPROACH) IS **BUILT AND DRIVEN**, AND THE DRIVE FOUND A DEFECT CLASS THE WHOLE PROJECT WAS BLIND TO
+
+**`ACCEPTANCE: PASS`** — `--driver ch21approach` from `post_wallace.ss1`, all **14 readings**, `missing=[]`,
+`frames=34122`, `encounters=9`, `whiteouts=0`, `pocket_attempts=1`, `method_ok=True`, `premise_ok=True`.
+The bot now goes from `CAVE_OF_ORIGIN_B1F (9,14)` to `SKY_PILLAR_ENTRANCE (6,16)` on its own:
+cave return → the sealed Sootopolis pocket → heal → dive out → the underwater arrow warp → a
+322-waypoint six-map swim → a **blind step onto a tile our own planner calls a wall** → 16
+hand-walked steps → the Sky Pillar door.
+
+### ⛔⛔ THE HEADLINE IS NOT THE LEG. IT IS WHY THE FIRST DRIVE FAILED.
+
+Drive 1 walked out of the Sootopolis Poké Center and jammed at `SOOTOPOLIS_CITY (31,42)` with
+`UnreachableDestinationError: the field is idle and we are still at (31,42), so retrying cannot
+change the result`. The cause, measured from the game's own RAM:
+
+> **`modules/map.py:735-755` caches each map's 24-byte layout struct in `_map_layout_cache` keyed by
+> `(rom id, map) ALONE` — it does not record whether those bytes came from the LIVE `gMapHeader` or
+> from the STATIC ROM `gMapGroups` table. `get_map_data()` uses the static header;
+> `get_map_data_for_current_position()` uses the live one; BOTH populate the same entry. So
+> whichever reader touches a map first wins for the whole process — and `calculate_path` silently
+> inherits that choice.**
+
+MEASURED, two-armed, on `post_sootopolis_arrival.ss1`: seeding SOOTOPOLIS_CITY from the **static**
+header gives blockdata `0x083E6A04` and `(43,32)->(29,53)` = **37 waypoints**; seeding it from the
+**live** header first gives `0x084675E0` and **35**. *The seeding order changes production's own
+answers.* Sootopolis swaps to `LAYOUT_SOOTOPOLIS_CITY_LEGENDS_BATTLE` at `SOOTOPOLIS_CITY_STATE`
+1-4 — exactly the state leg 3 runs in — and the static layout calls a **9x3 block (x=27..35,
+y=43..45) open water** where the game has solid rock. The planned route's FIRST waypoint `(31,43)`
+was inside it.
+
+**A/B proven against drive 1's own stall state** (`saves/stalls/repro-ml-f5592.ss1`,
+`evidence/2026-09-01-ch21-leg3-LAYOUTPIN-ab.txt`, reproducible via `ab_ch21_leg3_layoutpin.py`):
+
+| arm | waypoints | waypoints the GAME calls walls | verdict |
+|---|---|---|---|
+| **A** — as drive 1 ran | 37 | `[(31,43), (31,44), (31,45)]` | ‼ WOULD JAM |
+| **B** — with the fix | 35 | NONE | walkable end to end |
+
+### 🆕 `tools/story-dev/probe_live_mapgrid.py` — THE INSTRUMENT THAT DID NOT EXIST
+
+Every tile reader we own dereferences a layout's blockdata pointer, which is in **ROM**. The game
+walks on `sBackupMapData` in **RAM**. ⇒ **a ROM read can never observe `setmaplayoutindex` or
+`setmetatile`.** This probe reads `gBackupMapLayout` — the grid the game itself walks on — and
+reports every tile where it disagrees with our planner, *whatever the cause*. Its border offset is
+**calibrated, not assumed** (it scores 7 at 99.6% while every other candidate lands between 46% and
+74%), so a wrong offset reports as a broken control rather than as a catastrophic divergence.
+
+This closes a real hole: KI-74 (`setmetatile` closing ten Sootopolis doors at state 3) had been
+**unobservable in principle** until now.
+
+### THE OTHER TWO PROBES (both offline, both fault-tested)
+
+* **`probe_ch21_route131_tail.py`** — the BUILD SPEC shipped **TWO DIFFERENT** 16-step door tails,
+  one per critic, each claiming production provenance. The pre-build gate had proven a step COUNT
+  (17) and no step LIST. This adjudicates them against our own ROM's SET B bytes: **both are
+  contiguous, fully walkable and end on (36,7)**, so the choice is a design decision (see
+  `06-DECISIONS-LOG.md`), not a correctness one. ✅ **And it measured something better than either
+  critic had: only TWO of the 16 steps — (29,15) and (30,15) — are actually blind.** The other 14
+  are collision-0 in *both* layouts and unreachable only because they sit in a disconnected
+  component. ⇒ **if the layout premise were wrong, the tail fails on step 0 or 1, not fourteen
+  steps deep.** Four controls (incl. a NEW one: the two layouts must share both tilesets, or SET B's
+  behaviour names are decoded against the wrong attribute table); three fault arms
+  (`stride` / `swapsets` / `bendtail`), all three verified to fire, and `bendtail` verified to fail
+  **narrowly** — it fails the corrupted list while the untouched one still passes.
+* **`probe_ch21_leg3_constants.py`** — re-asks production for every constant leg 3 hardcodes, from
+  the pinned fixture. **6/6 graded constants agreed with the BUILD SPEC**; three controls pass,
+  including one that MUST refuse (`(28,15) -> the door` is NO ROUTE in the layout we plan on) and
+  one proving the pocket is sealed with nothing loaded.
+
+### WHAT THE DRIVE MEASURED THAT NOTHING BEFORE IT COULD
+
+* ✅ **`R-LAYOUT`: `planner=0x08417FE4 live=0x0845C1B0 agree=False`.** The Route 131 layout
+  divergence is now **read live, in-drive, for the first time** — it had been decomp-faith since the
+  atlas pass. (`0x0845C1B0` independently matches the offset the build spec found for the
+  `Route131_SkyPillar` blob.) **Of the 18 tiles the leg steps on, the game calls 0 of them walls.**
+* ✅ **`R-BLIND`: the avatar stood on ROUTE131 (40,19)** — a tile our own planner reads as
+  `'Normal'`, collision 1. **No blind step onto a static-wall tile had ever been executed in this
+  project.** The recon explicitly flagged the "a run already reached (40,19)" claim as FALSE (a
+  `calculate_path` source tile is arbitrary). It is a fact now.
+* ✅ **`R-REST`: (6,16), matching the prediction.** The resting-tile rule had been blind-tested 3/3
+  on Non-Animated Door and Ladder targets and **never on an arrow-warp target**. This is its first
+  such case and it **CONFIRMS** the rule (a `South Arrow Warp` target is neither `IsDoor` nor
+  `IsNonAnimDoor` ⇒ `Task_ExitNonDoor` ⇒ no step).
+* ⛔ **AND ITS FIRST REFUTATION, ON THE SAME LEG.** `UNDERWATER_ROUTE126`'s warp TARGET is `(45,65)`
+  and **both build-spec critics hard-asserted it**. The avatar actually rests on **`(45,66)`** — one
+  tile south. Drive 3 failed a *correct* run on that constant. `(45,66)` is not a new tile: it is
+  leg 1's own `DIVE_TILE`, whose comment already said "1 tile south of the warp column" — **the two
+  halves of this file disagreed and the drive settled it.** The code now asserts the
+  **(x,y)-preserving invariant** (`surface_tile == underwater_rest`) instead of a transcribed
+  literal, and reports the coordinate.
+* **The real cost, replacing an inference:** `frames=34122` against the spec's *"~55,000"* estimate,
+  and **9 encounters** on maps `(0,42) (0,44)x2 (0,45)x4 (0,46)x2` — counted via the
+  `on_battle_started` HOOK, because a mode generator gets no frames during a battle.
+
+### THE ACCEPTANCE PREDICATE — the thing the handoff said neither critic supplied
+
+Graded on **DID EVERY READING HAPPEN *and can the bot CONTINUE***, plus, new here:
+
+* **`R-CONTROL` — the planner must still be able to REFUSE.** Every path reading on this leg goes
+  through process globals this very leg writes to. A reachability assertion with no matching refusal
+  is *a coin that only has heads*. So the same call, from the same tile, asks for
+  `SKY_PILLAR_ENTRANCE (6,17)` — `'Normal'`, collision 1 — and **must raise**. Cross-checked with a
+  second instrument (`get_map_data(...).collision` logged beside the refusal).
+* **`method_ok` grades the ACTION, not the destination**: exactly **2** planner calls permitted on
+  ROUTE131, `blind_steps_taken >= 1`, `tail_tiles_confirmed == 16/16`, and zero live-grid walls.
+  A leg that reached the door by re-planning north of y=14 is not the same leg as one that
+  hand-walked it, and the end state cannot tell them apart.
+* **`premise_ok` refuses a VACUOUS run**: point this driver at its own output fixture and the resume
+  branch satisfies every end-state conjunct while doing nothing. `start_map == CAVE_OF_ORIGIN_B1F`
+  is the one conjunct false at frame 0 on any other fixture.
+* **The continuation proof gained two conjuncts**: no waypoint may leave the map, and the path must
+  end exactly on `(14,3)`. The three the spec named inspect only `path[-1]`, so a route that stepped
+  out through `(14,4)` to SKY_PILLAR_OUTSIDE and back would satisfy all three *while walking through
+  leg 4's Wallace cutscene*. ⛔ And be honest about them: only `bool(path)` can fail today; the other
+  four are a **regression guard**, measured (aiming at `(14,4)` returns the same length with
+  `is_warp=True` ending on SKY_PILLAR_OUTSIDE `(17,13)`).
+* **`LEG3_READINGS` is exported by the leg and imported by the driver.** A private copy is the P5
+  shape, and it fails in the worst direction: rename a label and a PERFECT run reports `missing`,
+  whose obvious repair silently deletes a required reading. (The two critics already disagreed:
+  `R-BLIND` vs `R-BLIND1`.)
+
+### FILES
+
+`sandbox-pokebot/modules/story/sootopolis.py` (+768 lines: leg-3 constants, `LEG3_READINGS`,
+`at_sky_pillar_door`, `_here_tile`, `_live_collision_grid`, `_live_wall_tiles`,
+`_pin_planner_to_live_layout`, `_route131_layout_reading`, `_bounded_step`,
+`_assert_pocket_is_open`, `_cross_the_pocket`, `approach_sky_pillar`; module docstring's leg
+inventory corrected in the same commit); `tools/story-dev/story_harness.py`
+(`Ch21ApproachMode` + both registration sites); `tools/story-dev/probe_ch21_route131_tail.py`,
+`probe_ch21_leg3_constants.py`, `probe_live_mapgrid.py`, `ab_ch21_leg3_layoutpin.py` (new);
+`PROJECT KNOWLEDGE/12-STORYMODE-DESIGN.md` (four atlas corrections).
+
+### ⛔ AND AN ADVERSARIAL REVIEW OF THE FINISHED DIFF FOUND A **BLOCKER** THE THREE PASSING DRIVES COULD NOT
+
+`_cross_the_pocket`'s recovery walks back to the reload tile when the crossing stalls. That walk —
+`follow_waypoints(back)` — **was not itself guarded against the very exception it exists to recover
+from.** Unguarded, a second `TimedOutTryingToReachWaypointError` propagates straight out of the
+`for attempt in range(tries)` loop: it skips the remaining attempts AND replaces the purpose-written
+"stranded" message with a raw exception.
+
+‼ **It is not a contrived edge case.** The walk back crosses the very tiles whose live NPCs *define*
+the pocket — `_assert_pocket_is_open` logs Steven (local_id 7) and another escort object standing on
+them — so "the recovery's own walk gets interrupted" is the most plausible way this leg fails on a
+rerun. ⛔ **And no existing arm could reach it:** `POCKETSTALL` forces the FORWARD stall and always
+lets the walk-back succeed cleanly.
+
+**Fixed, and the branch is now EXERCISED** by a new arm, `POKEBOT_CH21_FAULT_POCKETWALKBACK=1`
+(which only fires while a recovery is already running, so it must be set together with
+`POCKETSTALL=1`). Measured: forward stall at `(26,6)` → recovery → walk-back truncated → the guard
+converts it to a named `BotModeError` ("*the walk BACK to (31,17) then stalled too … this is the
+stranded case the plan-once rule exists to prevent*"), `ACCEPTANCE: FAIL`, 1,285 frames, no hang, no
+raw exception. ⛔ **HONEST SCOPE:** that arm proves the guard FIRES and NAMES the failure; the
+unguarded behaviour is a code-reading claim (the exception had no handler on that path), not a
+measured "before" arm. Evidence: `evidence/2026-09-01-ch21approach-FAULT-POCKETWALKBACK.txt`.
+
+Two smaller review findings were also taken, both as HONESTY fixes rather than code changes:
+`_bounded_step`'s "a battle does not consume the frame budget" is now labelled **reasoned from the
+architecture, NOT measured** (neither fault arm triggers a battle mid-blind-step), and the note says
+why the failure mode would be benign if the reasoning is wrong; and the self-report handed to a
+reviewer should CITE the evidence files rather than paraphrase console output — see `08-MISTAKES.md`.

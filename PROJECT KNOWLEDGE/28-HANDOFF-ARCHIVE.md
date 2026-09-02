@@ -6876,3 +6876,243 @@ half is fixed and fault-tested, its **correctness half is OPEN**.
 >    in `07-CHANGELOG.md` (2026-08-26). The Winona SECOND WIND shipped the same day — ⚠ that is
 >    DECISION-LAYER proof only; its end-to-end pass is still owed by a post-fix batch
 >    (discriminator: no five-fold hopeless-gate repeats before Manual).
+
+---
+
+## §Ch21 — THE SUPERSEDED LEG-1/2/3 QUEUE TEXT (moved out of `04-HANDOFF.md` on 2026-09-01)
+
+⛔ **MOVED, NOT DELETED, AND IT IS SUPERSEDED — DO NOT ACT ON IT.** Legs 1, 2a, 2b and 3 are all
+BUILT AND DRIVEN. This block is the queue text that used to command building them; it is kept
+because it carries the reasoning and the measured numbers behind the routes, and because this
+project's rule is that hard-won detail is archived rather than removed. The LIVE instruction is
+the last `➡➡➡` in `04-HANDOFF.md`'s NEXT ACTIONS (as of 2026-09-01: **build leg 4, the Sky
+Pillar climb**).
+
+>    ➡ *(then, and only then)* DESIGN LEG 3 PROPER. Order: (1) re-read the §Ch21
+>    ATLAS Sky Pillar rows in `12-STORYMODE-DESIGN.md` — the climb **requires a DELIBERATE FALL**
+>    through `4F (6,4)` or `(7,4)`, and `#24-crackedfloorpathfinder` says `calculate_path` to
+>    `4F (3,1)` simply RAISES, so **the fall must be an EXPLICIT chapter step like `dive()`** —
+>    ⛔ do NOT wait for the planner to grow the feature. (2) Sootopolis is a TRUE ISLAND: the only
+>    way out is to DIVE at one of its 19 dive tiles and surf 126→131 — Fly is ruled out (both
+>    VISITED flags False). ⛔ The dive out is a FIXED warp, not (x,y)-preserving. (3) The
+>    leg-3 start tile is the MEASURED resting tile **(31,17)**, and its route to the dive tile
+>    (29,53) is measured at **118 wp**.
+>    ‼ **Carry the probe's one unbuilt RECOMMENDATION into the design:** plan the pocket crossing
+>    ONCE at the resting tile and, on a waypoint timeout, walk back toward Steven (32,18) to
+>    re-load him before re-planning. Neither `follow_waypoints` nor `navigate_to` recovers on its
+>    own. ⛔ That recovery is UNBUILT AND UNPROVEN — it is a recommendation, not a result.
+>    ✅✅ *(RETIRED 2026-08-27 — LEG 2 IS BUILT AND DRIVEN, both halves; ⛔ DO NOT REBUILD.)*
+>    Leg 2a `--driver ch21escort` + leg 2b `--driver ch21cave`, both `ACCEPTANCE: PASS`, fixtures
+>    `post_steven_escort.ss1` and `post_wallace.ss1` PINNED. The ~24 lines of build instructions
+>    that stood here were commanding work that had already shipped. Detail lives in the
+>    §Ch21 ATLAS (`12-STORYMODE-DESIGN.md`), `07-CHANGELOG.md` (2026-08-26/27) and the spec
+>    `ai-research-notes/2026-08-26-ch21-leg2-BUILD-SPEC.md`. Two lessons kept, both also in
+>    `08-MISTAKES.md`: ⛔ **a bot stands BESIDE an NPC, never ON one** — `calculate_path` to an
+>    NPC's own tile ALWAYS refuses, and reading that as geography sent a session down a dead end;
+>    and ⛔ **`get_map_objects()` is CAMERA-RANGE limited**, so "zero NPCs loaded" is never
+>    evidence about the map.
+>    ✅ **LEG 1 IS DRIVEN — `--driver ch21dive` DONE 2026-08-24, `ACCEPTANCE: PASS`. ⛔ DO NOT
+>    REBUILD.** Its recipe (surf 128→127→126, dive tile `(45,66)`, the KI-72 tile_type assertion,
+>    step off `(9,8)`/`(10,8)` before surfacing) lives in the §Ch21 ATLAS, which is its authority.
+>    Fixture `post_ch20.ss1` is PINNED.
+
+---
+
+## §Ch21 LEG 3 — THE FOUR PRE-BUILD RESULT BLOCKS (moved out of `04-HANDOFF.md`, 2026-09-01)
+
+⛔ **SPENT, NOT WRONG.** These are the measurements that leg 3 was built ON; leg 3 shipped
+2026-09-01 and every number below now lives on a constant in `modules/story/sootopolis.py` with
+its provenance attached. Kept for the reasoning. ‼ **One of them is still LIVE for leg 4:** the
+Sky Pillar floors swap to `*_CLEAN` while `VAR_SKY_PILLAR_STATE < 2`, so our planner reads the
+POST-GAME layouts on the climb.
+
+>    ✅✅ **LEG 3 STEP 0 — THE POCKET EXIT — IS DONE 2026-08-27. ⛔ DO NOT RE-RUN IT.**
+>    `probe_ch21_pocket_exit.py` + `--driver ch21pocket` (PASS, 4,009 frames, both arms
+>    identical ⇒ that A/B is NOT discriminating). ⛔ §4.11's answer is the RESTING tile
+>    **(31,17)**, not (31,16). Pocket 347 tiles; re-plan danger zone **89 of 121** wp; the
+>    pocket RE-SEALS ⇒ ONE crossing per visit. §4.10: 2 encounters, both on 1F. §Ch21 ATLAS.
+>    ✅✅ **THE SKY PILLAR LAYOUT QUESTION IS SETTLED 2026-08-27 (decomp) — ⛔ DO NOT RE-ASK IT.**
+>    Six floors swap to `*_CLEAN` gated `call_if_lt VAR_SKY_PILLAR_STATE, 2` ⇒ the story climb runs
+>    on CLEAN while our planner reads the post-game layout. ⛔ FIRST-CLIMB-ONLY; the Rayquaza
+>    return trip is a different problem and the Mach Bike belongs to it, not here.
+>    ✅✅ **THE ROUTE 131 PRE-BUILD GATE IS DONE 2026-08-28 — ⛔ DO NOT RE-RUN IT AS THE NEXT
+>    ACTION.** `probe_ch21_route131_live.py` (offline, 2 controls, fault-tested) re-derived the
+>    divergence from **our own ROM's `gMapLayouts`** and matched the decomp pass. SET B = layout
+>    **#318**: **116** tiles open-in-A/WALL-in-B. ‼‼ **It overturned the atlas's own step-7 line:
+>    the (40,20) start is NOT "35 wp and a detour" but a WALL COLLISION** (35 free vs 39
+>    avoiding ⇒ every optimal path is FORCED through live rock). The real route from (40,19) is
+>    16 either way = clean, and ✅ the swim's own 23 ROUTE131 waypoints are clean in BOTH sets
+>    (audited 2026-08-28 after a Tier 2 audit found that leg unchecked). ⛔ `(28,15)->door` is
+>    **no route in SET A, 17 in SET B** ⇒ **the final approach is HAND-WALKED.**
+>
+
+---
+
+## QUEUE ITEM 0's ✅-DONE AUGUST HISTORY (moved out of `04-HANDOFF.md`, 2026-09-01)
+
+⛔ **DONE, NOT PENDING.** Moved so that `04-HANDOFF.md` contains exactly ONE `➡➡➡` marker —
+the LIVE next action. Previously there were two and the reading instruction had to warn that
+*"the first is a ✅-DONE block"*, which is a hedge around a doc defect rather than a fix.
+
+>    ASSEMBLY IS NO LONGER QUEUE ITEM 0 — IT IS PARKED, READY, AND WAITING.** The live queue is
+>    the **PC / PARTY ROBUSTNESS ARC** below. This was triggered by a live user test: a Winona
+>    counter-hunt caught Slugma, healed, **derailed to Manual**, and on continue re-fought Winona
+>    without the counter. The user's words: *"I want to ensure that the bot can robustly,
+>    intelligently and strategically use the pokemon pc"*, and *"we should shift focus onto this
+>    first so future issues can be handled better."*
+>
+>    **THE LIVE QUEUE, IN ORDER:**
+>    ✅ **(P1) the Slugma derail and (P2) KI-78 Stage 1 are BOTH DONE, A/B-PROVEN, GATED (#19,
+>    #20) AND PROMOTED. ⛔ DO NOT REBUILD EITHER.** Detail ARCHIVED VERBATIM to
+>    `28-HANDOFF-ARCHIVE.md` (2026-08-18, R3 budget). ‼ **The one caveat that must not be
+>    lost: KI-78 is NOT fully closed** — debug-fabricated identical pairs, corrupt box slots,
+>    Frontier rentals and the evolved-since-capture path all stay OPEN. See its entry.
+>    ✅ **(P3) party-accounting STAGE 0 is BUILT, GATED (#22) and DRIVEN, and (P3b) IS ANSWERED —
+>    a DIVERGENCE WAS OBSERVED (2026-08-15). ⛔ DO NOT RE-RUN EITHER.** Detail ARCHIVED VERBATIM
+>    to `28-HANDOFF-ARCHIVE.md` (2026-08-18, R3 budget). ‼ **Two rules survive and still bite:**
+>    STALE is SAMPLED 1-in-300, so ⛔ read the SCAN COUNT, never the bare zero; and
+>    ⛔ index/menu-cursor call sites STAY on quantity B — if A > B an index from A is out of
+>    range. Stage 1 (re-pointing the ~35 capacity-shaped call sites) is UNBLOCKED.
+>    🔜 **(P4) The END-TO-END repro of the user's actual scenario — STILL OWED.** Nincada evolves
+>    into a full party → counter hunt → heal. **The honest gap: P1 is proven by a fabricated
+>    fixture, not by reality.** ✅ **Its OBSERVABILITY half shipped 2026-08-14** (gate #23): the
+>    heal's three PC piggybacks swallowed everything, so *worked* / *nothing to do* / *threw* were
+>    one silence — the user's run took the middle branch, said nothing. They report now.
+>    ⛔ **That is NOT P4.** ‼ **DESIGNED IN FULL — read
+>    `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md` BEFORE BUILDING**; it refuted
+>    four of my own premises. ✅ **Steps 1-3 DONE:** `debug_write_box_slot()` (‼ **PROVEN LIVE**,
+>    `--driver boxwrite` → PASS; the P4 driver must still open with its own read-back control),
+>    the `POKEBOT_BOXCOUNTER_TYPEONLY_A` fault hook, and the gate exercising the REAL hook.
+>    ✅✅ **(P4) STAGES 1 AND 2 ARE DRIVEN AND CLOSED — `--driver boxcounter` (both arms) and
+>    `--driver boxcounter2` (matrix {ARM A, ARM B} × {sandbox, custom} = 4/4 `ACCEPTANCE: PASS`).
+>    ⛔ DO NOT REBUILD EITHER. 📦 **The full evidence — the four controls, the `hunted_pids=None`
+>    control that made the mechanism decisive, and ARM A reproducing the user's derail from
+>    PRODUCTION rather than simulation — is ARCHIVED VERBATIM in `28-HANDOFF-ARCHIVE.md`
+>    (moved 2026-08-24 on the R3 900-line budget; nothing deleted).**
+>    ‼ The PID is published ONLY from `box_counter_pid`'s return; `boxwithdraw` HAND-SETS it,
+>    which is exactly why that driver never caught this bug.
+>    ⛔⛔ **ANCHOR IS `saves/fortree_gym_wedge.ss1` — the "use `ch13_fortree_door.ss1`" correction
+>    is REVERSED BY A DRIVE.** `ch13_fortree_door` is on ROUTE120 and the run died on its first
+>    leg: `Cannot reach FORTREE_CITY: it is not walkable from ROUTE120`. That is **KI-24**,
+>    documented in our own `region_reach.py:7-11` — Routes 118/119/120 are dual-elevation-bridge
+>    maps `calculate_path` reads as WALLS. Every Winona-era anchor we own is on ROUTE119/120
+>    EXCEPT the wedge. The feared gym-exit leg cost nothing.
+>    ⚠ **What the swap gives up:** the wedge has NO Shedinja/Ninjask twins, so Stage 2 no longer
+>    runs over a live KI-78 collision; `ch13_fortree_door.ss1` (which DOES hold a real pair
+>    sharing `pid=42207D6F`) stays the anchor for any test whose SUBJECT is that collision.
+>    ⛔ **`needed` IS `{Rock, Ice, Dragon}` — NOT `{...Electric}`.** Corrected by the driver's new
+>    `needed_ok` control on its FIRST run: production derives `needed` from the ACE alone, the ace
+>    is Altaria (Dragon/Flying), and Electric is 0.5× into Dragon × 2.0× into Flying = **1.0,
+>    NEUTRAL**. Four copies (`counter_hunt.py:250`, the design note, THIS file, the driver) were
+>    corrected — ⛔ **and a FIFTH was found 2026-08-15**, prose on `CREDIBLE_ANSWER_POWER`
+>    (`story_mode.py:1087`) that named no type list, so the grep for the type set walked past it.
+>    ‼ **STILL NOT PROVEN BY STAGE 2 — the honest gap:** everything UPSTREAM of registration. The
+>    Slugma is INJECTED and the PID is published by the driver, so the real `hunt()` →
+>    `story_mode.py:1750` wiring remains untested end-to-end. ⚠ And `hunt()` snapshots its OWN
+>    `before_box_pids` AFTER travel, so an injected fixture is excluded a second time — that leg
+>    needs a REAL CATCH, not an injection.
+>    ✅✅ **(P4b) IS CLOSED — BOTH of its things are DONE (2026-08-15, user-approved).**
+>    ✅✅ **KI-80's REPRO DRIVER IS BUILT, DRIVEN AND FAULT-TESTED (2026-08-15). ⛔ DO NOT REBUILD.**
+>    `story_harness.py --driver ki80ladder`, anchor `saves/batch2_run04_wedge.ss1`. **THREE arms on
+>    one fixture — same party, same 8 seeded losses, same boss; only the cfg's `grass` key differs:**
+>    `NOGRASS` → ladder · `GRASS_FODDER` (Route 102, `wild_max` 4) → ladder ·
+>    ⛔ `GRASS_STRONG` (Route 119, `wild_max` 27 — **the patch her own cfg comment names**,
+>    `story_mode.py:3532`; ⛔ she has NO `grass` key today, and that is the only reason her ladder works) → **plain escalation,
+>    ladder SKIPPED**. `ACCEPTANCE: PASS` on `--build sandbox` AND `--build custom`.
+>    ‼ **The driver EXITS 0 even on FAIL — grade the `ACCEPTANCE:` line, never the exit code.**
+>    Fault-tested twice: against `ch13_fortree_door.ss1` it FAILS with *"THE A/B WOULD BE VACUOUS"*
+>    and all three arms return `LADDER` — a live demonstration that the fixture this file once
+>    prescribed would have read as a REFUTATION of a true finding; and `POKEBOT_KI80_DECOUPLED=1`
+>    FAILS today, which is what makes it usable as the AFTER run.
+>
+>    ✅ **✅✅ DONE 2026-08-16 — THE COUNTER-LADDER IS DECOUPLED FROM …** 📦 `28-HANDOFF-ARCHIVE.md` (2026-08-26, R3).
+>    ✅✅ **AND IT IS PROMOTED TO BOTH FORKS (2026-08-16, user-approved)** by a THREE-POINT A/B
+>    against `--build custom`: `POKEBOT_KI80_DECOUPLED=1` **FAIL → PASS**, the coupled expectation
+>    **PASS → FAIL**, and **arm 4 PASS on BOTH sides** — that invariance is what shows the mirror
+>    regression did not travel with the fix. ⛔ **THE KI-80 ARC IS CLOSED; DO NOT REOPEN.**
+>
+>    ✅ **✅✅ PREVIOUS QUEUE ITEM 0 IS ANSWERED (2026-08-17): `#24-fa…** 📦 `28-HANDOFF-ARCHIVE.md` (2026-08-26, R3).
+>    ⚠ Limits recorded in the item: refusal count APPROXIMATE, n=1 diverging faint.
+>
+>    ✅✅ **`#24-driftassertions` IS DONE (2026-08-17) — the drift sweep IS A GATE** (`check_drift`;
+>    reduction half `#24-driftreduction` open). ‼ Earned its keep again 2026-08-24: `sootopolis.py`
+>    moved the count and it found SEVEN stale claims — a Tier 1 review then found an EIGHTH, in this
+>    file's STATE-table HEADLINE, a shape `check_drift` missed (`#24-driftheadlineshape` —
+>    ✅ CLOSED 2026-08-26: PASS 3 reads the row's FIRST `N as of <date>`, D28a-e + a live
+>    incident replay prove it both ways).
+>    📦 Detail ARCHIVED in `28-HANDOFF-ARCHIVE.md` (2026-08-24, R3 budget).
+>    ✅✅ **`(P4c) #24-orphans` (1) IS HALF DONE (2026-08-17): its INSTRUMENTATION half is BUILT,
+>    GATED (#26) and A/B-PROVEN (`withdraw_from_box` returns `(landed, code, detail)`; ARM B
+>    `landed=True` vs ARM A `landed=False`). ⛔ DO NOT REBUILD IT. Its REACTION half stays OPEN
+>    and still needs the USER plus an unmeasured heap offset. 📦 Detail ARCHIVED VERBATIM in
+>    `28-HANDOFF-ARCHIVE.md` (2026-08-24, R3 headroom).
+>    ✅✅ **`#24-abortswallow` (2026-08-17): 8 MORE SITES FIXED** — part of the arc that ended in
+>    gate #27 (ratchet, baseline 36). ⛔ DO NOT REDO IT. 📦 Detail ARCHIVED VERBATIM in
+>    `28-HANDOFF-ARCHIVE.md` (2026-08-26, R3 budget).
+>    ✅✅ **`#24-abortswallow` ROUND 3 IS DONE (2026-08-17)** — refinement (1) shipped (37→36),
+>    refinement (2) REFUTED (it would blind the gate to five already-fixed sites, one an OBSERVED
+>    failure). ⛔ DO NOT REBUILD IT. 📦 Detail ARCHIVED VERBATIM in `28-HANDOFF-ARCHIVE.md`.
+>    ✅✅ **AND THE PROBE IS NOW GATE #27 — A RATCHET, baseline 36, fault-tested both ways** (inject one
+>    unguarded site → 37 → exit 1). That closed this item's gating question without a zero-threshold.
+>
+>    ➡➡➡ **QUEUE ITEM 0 — ✅✅✅ ALL FIVE PASSES ARE DONE AND COMMITTED (2026-08-22).
+>    ⛔ DO NOT RE-RUN ANY OF THEM. ✅✅ `#24-loopheadabort` IS ALSO DONE (2026-08-23) — **all 17**
+>    nav retry loops patched, gate #30. ⛔ An earlier draft excluded 3 on a FALSE premise ("the
+>    latch is still set"); an adversarial review refuted it and the exclusion is WITHDRAWN. #30 §1
+>    now gates the real invariant: the latch is cleared BEFORE every recovery routine.
+>    ✅✅ `#24-p4residuals` is 6 of 7 DONE (2026-08-23); only (f) remains (a real emulator drive).
+>    ✅✅ `#24-abortrecoveryresiduals` **(b) is DONE** (2026-08-23) — my own abort-swallowing debt
+>    cleared, 11 → 7, control-armed. **(a)** still needs a driven double-whiteout; **(c)** (7
+>    PRE-EXISTING swallowers, newly filed) wants its own control arm.
+>    ✅✅ *(RETIRED 2026-08-28 — the 2026-08-26 `#26-*` redirect is COMPLETE; detail in
+>    `28-HANDOFF-ARCHIVE.md`, narrative in `07-CHANGELOG.md` 2026-08-26.)*
+
+---
+
+## CLOSED PUNCH-LIST ITEMS, ARCHIVED VERBATIM (moved out of `03-PUNCH-LIST.md`, 2026-09-01)
+
+⛔ **ALL FOUR ARE `[x]` DONE — this is history, not work.** Moved because `03-PUNCH-LIST.md`
+is a CURRENT-STATE file with a 3,600-line budget and `lint_docs.py`'s own I1 advisory has
+been saying that 101 completed items were sitting in it. These are the four oldest
+(2026-08-05/06). ‼ Their RULINGS are still binding — `#24-partycap` in particular says DO
+NOT RAISE THE CAP AGAIN, and `#24-hmslots` ratifies reserving HM slots.
+
+- [x] `#24-partycap` — **MEASURED AND REVERTED 2026-08-05. DO NOT RAISE THE CAP AGAIN.**
+      Batch `20260805-122057` (`be104e9c`, VERDICT OK, 0 violations): **52.0% → 15.8%**.
+      The badge funnel put the ENTIRE loss on one rung — **Balance→Feather 76% → 21% (z=3.06)**
+      — with every earlier rung flat, so **a deeper team is FREE through five badges**.
+      Cause is **HM coverage, not strength**: 10 of 16 non-finishes are `No party mon can learn
+      Surf and the party is full` (**0 occurrences in all 14 prior batches**). The empty slots
+      are the RUNWAY that HM/counter catches land on — at cap 4 the team still reaches a mean
+      **5.85** by Feather. Both constants back to 4, each with a do-not-raise comment.
+      Full detail: `07-CHANGELOG.md` + `08-MISTAKES.md` 2026-08-05.
+
+- [x] `#24-hmslots` — **RULED 2026-08-05: RESERVE SLOTS. No code change; this ratifies current
+      behaviour.** The party fills to 4 with early wilds and grows organically to a measured mean
+      **5.85 by Feather** as HM learners and counters board. Logged as a ruling so nobody reads it
+      as unfinished and re-raises the cap — that mistake cost 36 points once already.
+      Rejected: cap 5 (unmeasured, cosmetic, costs a batch), deposit-to-make-room (the real fix,
+      but it is `POKEBOT_PC_ROTATION`'s shape — disabled for costing ~19 points).
+      Full rationale: `06-DECISIONS-LOG.md` 2026-08-05.
+
+- [x] `#24-mtpyre-batch` — **DONE 2026-08-06. Segment 14 holds in production.**
+      `20260806-055947` (`498eedd9`, VERDICT OK): MT. PYRE 274 / ROUTE 121 171 / ROUTE 122 89 in
+      the debug logs; **9 finishes vs 10 runs reaching Feather (~90% conversion)**; 0
+      BotModeError from either guard. Finish rate 52.0% → 37.5% is the new completion
+      requirement, not damage — **no funnel rung moved significantly** (Balance→Feather z=1.49,
+      whole funnel z=0.88). Whiteout uptick measured NOT attributable to Mt. Pyre.
+
+- [x] `#24-mtpyre-log` — **DONE 2026-08-06.** Segment 14's five milestones now `console.print`
+      (`_ch14_say`), so a mid-way failure leaves a trail in batch stdout. Frame count identical.
+
+### `#24-r121topology` — closed item archived 2026-09-01 (03-PUNCH-LIST.md line budget)
+
+- [x] `#24-r121topology` — **ANSWERED 2026-08-05: it is a STORY GATE, not topology.** See
+      `#24-r121gate`. Superseded text below kept for the reasoning trail.
+
+### `#24-pcwithdraw-proof` — closed item archived 2026-09-01 (line budget)
+
+- [x] `#24-pcwithdraw-proof` — **PROVEN 2026-08-07. FULL ENTRY MOVED to
+      `28-HANDOFF-ARCHIVE.md` (2026-08-17)** on the R3 3,600-line budget. Closed, and its
+      successor work (KI-79's identity-verified withdraw, and `#24-orphans` (1)) is tracked
+      separately. Nothing deleted.

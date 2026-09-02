@@ -10019,3 +10019,217 @@ the reader who skims gets the old answer with a fresh date on it. *(This is the 
 the banner ↔ queue check does not cover a THIRD place that also claims to say what to do next.)*
 ‼ And the meta-point, now three days running: **only an independent cold-start agent has caught
 these.** Tier 0 was green over every single one.
+
+---
+
+## 2026-09-01 — THE PLANNER AND THE GAME WERE READING TWO DIFFERENT MAPS, AND **NOTHING WE OWNED COULD SEE IT**
+
+**Symptom.** §Ch21 leg 3's first drive walked out of the Sootopolis Poké Center and stopped dead at
+`SOOTOPOLIS_CITY (31,42)`: `UnreachableDestinationError: the field is idle and we are still at
+(31,42), so retrying cannot change the result`. Our planner had confidently returned a route through
+that tile.
+
+**Root cause.** `modules/map.py:735-755` caches each map's 24-byte layout struct in
+`_map_layout_cache` keyed by **`(rom id, map)` ALONE**. It does not record whether those bytes came
+from the LIVE `gMapHeader` or from the STATIC ROM `gMapGroups` table. `get_map_data()` builds from
+the static header; `get_map_data_for_current_position()` builds from the live one; **both populate
+the same cache entry**, so whichever reader touches a map first wins *for the whole process* — and
+`calculate_path` silently inherits that choice. Sootopolis swaps to
+`LAYOUT_SOOTOPOLIS_CITY_LEGENDS_BATTLE` at `SOOTOPOLIS_CITY_STATE` 1-4 (the state leg 3 runs in),
+and the static layout calls a **9x3 block (x=27..35, y=43..45)** open water where the game has rock.
+
+**The fix that worked.** Pin the planner to the live layout before the walk (`_pin_planner_to_live_layout`),
+A/B proven against the drive's own stall state: **37 waypoints with 3 live walls → 35 waypoints with
+none.**
+
+**Prevention rule.** ⛔ **"THE PLANNER RETURNED A PATH" IS NOT "THE BOT CAN WALK IT." On any map that
+runs `setmaplayoutindex` or `setmetatile`, VERIFY THE ROUTE AGAINST `gBackupMapLayout` — the grid the
+GAME walks on — because every tile reader we own dereferences a layout blockdata pointer in ROM, and
+`setmetatile` writes RAM. A ROM read cannot observe a RAM write, IN PRINCIPLE.** The instrument now
+exists: `tools/story-dev/probe_live_mapgrid.py`, and `sootopolis._live_wall_tiles()` in production.
+
+‼ **AND THE COROLLARY THAT COST THE MOST TIME:** the pre-build gate had already proven this exact
+divergence *on Route 131* and the leg was built carefully around it — while the SAME class of bug sat
+un-guarded on the city map the leg crosses first. **A hazard proven on one map is a hazard to look
+for on every map the leg touches**, not a fact about that one map.
+
+---
+
+## 2026-09-01 — MY DRIVER REPORTED `readings=[]` ON A RUN THAT HAD TAKEN THREE READINGS
+
+**Symptom.** Drive 1 failed partway and printed
+`readings=[] missing=['R-BLIND','R-CAVE','R-CONTINUE',...all thirteen...]` — while the console
+immediately above it showed `R-CAVE`, `R-POCKET` and `R-HEAL` had all been taken and logged.
+
+**Root cause.** The leg built its `readings` set in a **local** and returned it. The driver did
+`report = yield from ch21.approach_sky_pillar()`. When the generator RAISES, there is no return
+value, so `report` stayed `{}` — and every reading the run had genuinely achieved was discarded with
+the frame. The log is the artefact a future agent reads, and it said the leg had measured nothing.
+
+**The fix that worked.** The **driver owns the dict and hands it in**
+(`approach_sky_pillar(report)`); the leg mutates it in place. Proven by drive 2, which failed on an
+unrelated bug and correctly printed `readings=['R-CAVE','R-HEAL','R-POCKET']`.
+
+**Prevention rule.** ⛔ **INSTRUMENTATION MUST OUTLIVE THE THING IT INSTRUMENTS. If a generator's
+findings are returned rather than written to caller-owned state, then EVERY failing run — the runs
+whose partial readings matter most — reports as if nothing happened.**
+
+---
+
+## 2026-09-01 — EVICTING **ONE MAP** FROM A CACHE THAT IS BUILT ALL-OR-NOTHING = `KeyError` ON THE NEXT LOOKUP
+
+**Symptom.** Drive 2 died with `KeyError: (0, 7)` — SOOTOPOLIS_CITY's own map value — immediately
+after the new layout-pin helper ran.
+
+**Root cause.** `map_path._get_all_maps_metadata` populates `_maps[game_key]` for **every map**, but
+only when the game key is ABSENT: `if game_key in _maps: return _maps[game_key]`. My helper did
+`_maps[game_key].pop(map_enum.value, None)` — surgical and wrong. The collection was then permanently
+missing that one map, with no code path that would ever rebuild it.
+
+**The fix that worked.** Evict the whole game key (`_maps.pop(context.rom.id, None)`) so the next
+call rebuilds everything from the (now pinned) layout cache.
+
+**Prevention rule.** ⛔ **BEFORE EVICTING PART OF A CACHE, READ ITS BUILDER. A cache populated
+all-at-once on a miss can only be invalidated all-at-once; a partial `pop` creates a hole that the
+builder's own fast path guarantees will never be filled.**
+‼ And the measurement lesson: **my offline A/B could not have caught this**, because its setup did
+`_maps.clear()` — so the key was absent and the full rebuild masked the bug. *A probe that resets
+more state than the real run does can pass over a defect the real run hits.*
+
+---
+
+## 2026-09-01 — BOTH BUILD-SPEC CRITICS HARD-ASSERTED A **WARP TARGET** AS IF IT WERE THE RESTING TILE, AND A CORRECT RUN FAILED ON IT
+
+**Symptom.** Drive 3 reached the ocean and died on
+`surfaced onto ROUTE126 (45,66), expected (45,65)`. The run was **correct**; the constant was wrong.
+
+**Root cause.** `UNDERWATER_SOOTOPOLIS_CITY (9,8)`'s arrow warp has TARGET `(45,65)`. The avatar
+**rests on `(45,66)`**, one tile south. Both critics wrote `(45,65)` and both told the builder to
+hard-assert it. This is the project's own resting-tile rule, and `story_harness.py` already records
+paying for it once: *"LANDING = (31,17) — ⛔ where the avatar RESTS. v1 graded on WARP_TARGET and
+therefore printed `landing_ok=False` on a perfectly CORRECT run."*
+‼ **The answer was already in the same file:** leg 1's `DIVE_TILE = (45, 66)` is commented *"1 tile
+south of the warp column"*. **The two halves of `sootopolis.py` disagreed and nobody had noticed.**
+
+**The fix that worked.** Assert the **MECHANIC**, not the coordinate: emerging is (x,y)-preserving,
+so `surface_tile == underwater_rest` — a value the run reads back from the state it actually reached.
+The literal is kept only to REPORT whether reality matched the prediction.
+
+**Prevention rule.** ⛔ **NEVER HARD-ASSERT A WARP TARGET. Assert the MAP CHANGED, then READ the
+resting tile and REPORT it against the prediction.** And where an invariant exists (x/y preservation,
+elevation, party identity), **assert the invariant rather than the coordinate** — an invariant is
+checkable against the run's own state, a coordinate is only checkable against a document.
+✅ *This one paid for itself immediately:* the SAME leg's `SKY_PILLAR_ENTRANCE` arrival was written
+report-don't-assert, and it produced the resting-tile rule's **first arrow-warp confirmation**
+(`(6,16)`, matching prediction) instead of a fourth constant to argue about.
+
+---
+
+## 2026-09-01 — MY OWN GATE'S CONTROL FAILED, AND MY FIRST INSTINCT WAS TO "FIX" THE THING IT WAS MEASURING
+
+**Symptom.** A new probe's CONTROL 1 read **90.0%** agreement where the existing gate reads 100.0%.
+I concluded the decode was missing `map.py`'s border-block fallback, implemented it, and re-ran:
+**still exactly 90.0%.**
+
+**Root cause.** The decode was fine. **My CONTROL's own SAMPLE ran `y` up to 42 on a 40-tall map**,
+so 28 out-of-bounds tiles compared production's border block against a key the grid does not have.
+28 of 280 = exactly the 10% deficit.
+
+**The fix that worked.** Constrain the sample to the map's real bounds, and make the probe REFUSE to
+run if any sampled tile is out of bounds — a control fed illegal inputs reports a defect in the
+wrong component.
+
+**Prevention rule.** ⛔ **WHEN A CONTROL FAILS, READ THE CONTROL BEFORE TOUCHING THE SUBJECT.** This
+is SESSION DISCIPLINE rule 4, and it caught me on the very first probe of the session — the fix I
+reached for first was a plausible, correct-sounding change to the thing under test. ‼ The border-block
+fallback was KEPT (it is faithful to `map.py`) but its comment says plainly that it fixed nothing,
+because **a comment that credits the wrong fix is worse than no comment**.
+
+---
+
+## 2026-09-01 — "DERIVE IT, DON'T HARDCODE IT" PRODUCED A **WRONG** DERIVATION, AND THE GUARD CAUGHT IT
+
+**Symptom.** `_live_collision_grid` raised *"cannot derive the live-grid border offset for
+SOOTOPOLIS_CITY (backup 75x74, map 60x60)"* on its very first real call.
+
+**Root cause.** I derived the border margin as `(width - map_width) // 2` and validated it with
+`% 2 == 0`. The decomp allocates `width = mapWidth + 15` but `height = mapHeight + 14` — **the margin
+is 7 on every side, but the WIDTH carries one extra column**. So the derivation read 7 and the
+parity check rejected it.
+
+**The fix that worked.** Use the decomp's named constant (`MAP_OFFSET = 7`) and validate the
+dimensions are large enough for it — with the empirical calibration recorded in the comment
+(`probe_live_mapgrid.py` scores offset 7 at 99.6%; every other candidate lands between 46% and 74%).
+
+**Prevention rule.** ⛔ **A DERIVATION IS ONLY BETTER THAN A CONSTANT IF THE THING IT DERIVES FROM IS
+ACTUALLY REGULAR.** Preferring "derived" over "hardcoded" is a good default and it is not a law:
+where the upstream data is asymmetric, the derivation encodes a false assumption *and looks
+principled while doing it*. ✅ The guard is the reason this was a loud raise on call one instead of
+every x-coordinate being silently off by half a tile on some other map.
+
+---
+
+## 2026-09-01 — I HANDED THE TIER 1 REVIEWER A DIFF THAT WAS ALREADY STALE, AND ONLY THE REVIEWER NOTICED
+
+**Symptom.** The Tier 1 doc reviewer opened its report with a finding I did not ask for: the
+`doc_diff.txt` it was given was **incomplete**. It was missing an entire file's diff
+(`05-KNOWN-ISSUES.md`, 32 changed lines) and a whole hunk of `04-HANDOFF.md`.
+
+**Root cause.** I generated the diff artifact, THEN kept editing — the KI-74 update, the §Ch21 STATE
+row, the `if stopped mid-task` row and the reading-rule fix all landed after the snapshot. The
+review input was a photograph of a moving target.
+
+**Why it mattered, in the reviewer's own words:** had it trusted its input literally, **P2 would
+have been certified "N/A — 05-KNOWN-ISSUES.md not touched"** and **P3 would have been reported as a
+BLOCKER** over a STATE row that had in fact already been fixed. Two wrong verdicts in opposite
+directions, both from a stale artifact. It only avoided them because the brief allowed it to read
+the live files and it chose to cross-check.
+
+**The fix that worked.** The reviewer re-derived the change set from the real working tree, and its
+P1-P5 verdicts are against current state. The DURABLE fix is ordering: **generate the Tier 1 diff as
+the LAST action before spawning the reviewer, and never edit the docs while it is running.**
+
+**Prevention rule.** ⛔ **AN EVIDENCE ARTIFACT MUST BE GENERATED AFTER THE LAST EDIT IT CLAIMS TO
+DESCRIBE, AND A REVIEWER MUST BE TOLD TO CROSS-CHECK IT AGAINST THE LIVE TREE.** A snapshot handed
+to an independent checker inherits every edit made after it was taken — and the failure is silent,
+because a diff that is merely INCOMPLETE still looks like a valid diff.
+‼ The deeper point, and it generalises past this project: **the independent reviewer's first and
+most valuable finding was about the QUALITY OF ITS OWN INPUT.** A checker that can only see what it
+is handed will certify whatever it is handed. Give it the means to distrust you.
+
+---
+
+## 2026-09-01 — THE RECOVERY'S OWN WALK WAS NOT GUARDED AGAINST THE EXCEPTION IT RECOVERS FROM, AND **THREE PASSING DRIVES COULD NOT SEE IT**
+
+**Symptom.** None. That is the point. §Ch21 leg 3 passed a clean drive and two fault arms; an
+ADVERSARIAL REVIEW of the finished diff found the defect by reading it.
+
+**Root cause.** `_cross_the_pocket` catches `TimedOutTryingToReachWaypointError`, then walks ~45
+waypoints back to the reload tile to re-open the pocket. That walk — `follow_waypoints(back)` — sat
+inside the handler with **no guard of its own**. A SECOND timeout on the way back therefore
+propagated straight out of the `for attempt in range(tries)` loop: it skipped the remaining
+attempts, and it replaced the purpose-written "stranded" `BotModeError` with a raw exception. The
+sibling `except PathFindingError` branch two lines above *did* produce that named error, so the
+function was inconsistent with itself.
+
+‼ **It is not a contrived edge case.** The walk back crosses the very tiles whose live NPCs DEFINE
+the pocket — the leg's own `_assert_pocket_is_open` logs Steven (local_id 7) and another escort
+object standing on them.
+
+**Why no drive could catch it.** `POKEBOT_CH21_FAULT_POCKETSTALL` forces the FORWARD crossing to
+stall and then always lets the walk-back succeed cleanly. **The arm that exercised the recovery
+could not exercise the recovery's own failure.**
+
+**The fix that worked.** Guard the walk-back against the same exception and raise the named
+"stranded" error; add `POKEBOT_CH21_FAULT_POCKETWALKBACK=1`, which only fires while a recovery is
+already running. Measured: forward stall at `(26,6)` → walk-back truncated → named `BotModeError`,
+`ACCEPTANCE: FAIL`, 1,285 frames, no hang. The clean arm was then RE-RUN and is byte-identical
+(`frames=34122`), so the fix did not disturb the proven path.
+
+**Prevention rule.** ⛔ **A RECOVERY PATH NEEDS ITS OWN RECOVERY, AND A FAULT ARM THAT ONLY TRIGGERS
+THE FAILURE IS NOT AN ARM FOR THE HANDLER — IT IS AN ARM FOR THE FAILURE.** For every `except` that
+performs real work (walking, planning, re-entering), ask: *what happens if THAT work raises the same
+exception?* Then build the arm that makes it.
+‼ And the meta-lesson, which is the real reason this entry exists: **three green drives and two
+fault arms were not enough. An adversarial read of the diff was.** Passing tests tell you the paths
+you thought of are fine; only an adversary looks for the path you did not think of.

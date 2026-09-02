@@ -3590,3 +3590,98 @@ own authority.
 ⚠ **The one caveat, recorded honestly:** 900 is tight and was hit twice in one day. **If it binds
 every session, that is evidence the budget is wrong rather than the content** — revisit it with the
 user then. On the day it was diagnosing rot correctly, so it was left alone.
+
+---
+
+## 2026-09-01 — §Ch21 LEG 3: FIVE DECISIONS THE BUILD SPEC LEFT TO THE BUILDER
+
+The leg-3 BUILD SPEC deliberately shipped **two critics' build orders, unmerged**, on the grounds
+that "agreement between two agents is not a confidence signal, and picking a winner is a design
+decision that belongs to whoever builds the leg". These are those decisions, with what was rejected.
+
+### D1 — THE DOOR TAIL: ship the x=36 column, keep the x=34 column as a documented fallback
+
+**The two critics gave DIFFERENT 16-step tails**, each claiming production provenance: one runs up
+the x=36 column and dismounts at `(36,8)`; the other up x=34, dismounting at `(34,8)`.
+
+**Decided by MEASUREMENT first, then by preference.** `probe_ch21_route131_tail.py` adjudicated both
+against our own ROM's SET B bytes: **both are contiguous, all 16 tiles are collision-0, and both end
+on `(36,7)`.** So correctness does not choose. What chose it: **the surf dismount is the single
+least-proven mechanic in the tail** (no arm of any recon pass had ever driven a blind step across
+one), and the x=36 column leaves **one** step after the dismount versus the x=34 column's **three**.
+Fewest steps downstream of the least-proven mechanic wins.
+
+*Rejected but KEPT IN THE CODE as `DOOR_APPROACH_FALLBACK`*, because if the dismount stalls the
+alternative is a one-line swap — and because critic 1 independently named the other column as its
+own fallback. ⛔ The code does NOT switch to it automatically: a bot that silently tries a second
+route hides the finding.
+
+*Superseded by the drive:* the dismount worked first time, `tail_tiles_confirmed=16/16`.
+
+### D2 — HEAL UNCONDITIONALLY, against critic 1's damage-gated heal
+
+Critic 1 gated the heal on somebody being hurt and then had to invent a `FORCEHEAL` fault arm to
+reach the branch at all (the pinned fixture is 687/687). Critic 2 made it unconditional and asked
+for the same arm anyway — while removing the branch that arm would force.
+
+**Decided: unconditional.** Two reasons, both safety: (1) healing **pins the whiteout respawn** to
+Sootopolis immediately before the longest unbroken stretch in the chapter — ~392 water waypoints,
+six routes, 39 undefeated trainers, **no Poké Center en route**; (2) a conditional heal is dead code
+on the pinned fixture, and an unconditional one means the by-PID assertion runs on **every** drive.
+⇒ the `FORCEHEAL` arm was **dropped**, because a fault arm for a branch that always executes is noise.
+
+⚠ **The cost, recorded honestly** (an adversarial review raised it): `heal_in_pokemon_center` calls
+`deposit_dead_weight_if_worth_it()`, which self-gates on a rotation plan and reads nothing off the
+bot mode — so a brand-new driver inherits it, and a deposit writes to box data. The by-PID check
+already catches that; the leg additionally **re-asserts Surf and Dive after the heal**, so the
+failure is named in a Poké Center rather than discovered inside `dive()`'s unbounded A-mash.
+
+### D3 — ⛔ PIN THE PLANNER TO THE LIVE LAYOUT, AND DO IT **AFTER** THE POCKET, NOT BEFORE
+
+The first drive proved `calculate_path` was planning Sootopolis on the **static** layout while the
+game ran `LAYOUT_SOOTOPOLIS_CITY_LEGENDS_BATTLE` (see `07-CHANGELOG.md` for the mechanism and the
+A/B). The fix re-seeds `_map_layout_cache` from the live `gMapHeader` and drops the `map_path`
+cache so the graph rebuilds.
+
+**Placement was the real decision.** The pocket crossing above it is DRIVEN and PROVEN as it stands;
+re-seeding the layout underneath it would change a step that already works, on a map where the
+pocket allows **one crossing per visit**. ⇒ the pin happens **once the pocket is behind us**, and
+affects only the walk that actually failed.
+
+*Rejected:* pinning at leg start (cleaner-looking, but it silently alters the one proven step);
+and the BUILD SPEC's `R-LAYOUTINJECT` follow-up, which patches ROM layout headers — far larger blast
+radius, and it was filed as an experiment rather than built.
+
+⚠ **Blast radius, stated rather than assumed:** `_map_layout_cache` is a process global with no
+eviction path (KI-73). This touches exactly one map key, only while standing on that map, and it is
+correct for as long as the map's layout does not change again — true for leg 3, whose whole run
+happens at `SOOTOPOLIS_CITY_STATE 3`. The function returns a description the caller **logs**.
+
+### D4 — LEG 3 ENDS AT `SKY_PILLAR_ENTRANCE`; the Wallace scene is leg 4's opening act
+
+`SKY_PILLAR_ENTRANCE (14,4)` warps to `SKY_PILLAR_OUTSIDE`, whose ON_FRAME Wallace scene fires at
+`SOOTOPOLIS_CITY_STATE == 3` with **no coordinate condition** and drives the player ~12 tiles under
+`lockall`, then sets the var to 4. That is a **true one-shot**.
+
+**Decided: leg 3 stops on the ENTRANCE mat and proves continuation with a NON-EXECUTING
+`calculate_path` to `(14,3)`.** ⛔ Never `(14,4)`: MEASURED, the same call to `(14,4)` returns a path
+of the same length with `is_warp=True` ending on SKY_PILLAR_OUTSIDE `(17,13)` — it would "prove"
+continuation by walking into leg 4's cutscene. The leg also asserts both story vars are **unchanged**
+at the end (3 and 0), which is the one end-state pair that is *not* vacuous: leg 3 could advance them.
+
+*Recorded here so leg 4 does not re-open it:* leg 4 begins by RIDING that scene.
+
+### D5 — THE ACCEPTANCE PREDICATE GRADES THE **METHOD**, NOT ONLY THE DESTINATION
+
+Rejected the spec's end-state-only predicate. A leg that reached the door by re-planning north of
+y=14 on Route 131 — where our planner returns a *confident* route through solid rock — has the same
+end state as one that hand-walked it. ⇒ `method_ok` requires **exactly 2** planner calls on ROUTE131,
+`blind_steps_taken >= 1`, `tail_tiles_confirmed == tail_tiles_expected`, and zero live-grid walls;
+`premise_ok` requires the run to have STARTED on `CAVE_OF_ORIGIN_B1F` (the one conjunct that is false
+at frame 0 on any other fixture, so pointing the driver at its own output cannot grade as a PASS);
+and `R-CONTROL` requires the planner to still be able to **refuse** — a reachability assertion with
+no matching refusal is a coin that only has heads.
+
+⚠ **And the predicate says what it does NOT prove:** of the five continuation conjuncts only
+`bool(path)` can fail today. The other four are a **regression guard** against someone re-aiming the
+constant at `(14,4)`. Keeping them is right; claiming the run "proved" five things is not.

@@ -1,0 +1,45 @@
+LIVE MAP GRID vs OUR PLANNER — SKY_PILLAR_ENTRANCE, on the leg-3 output fixture (2026-09-01)
+======================================================================================
+WHY THIS FILE: (1) it GENERALISES probe_live_mapgrid.py off Sootopolis — the border offset
+calibrates to 7 at 100% here while every other candidate scores 33-84%, so the control
+discriminates on a second map; (2) it CORROBORATES the atlas's ENTRANCE claim (zero divergent
+tiles — the atlas was right about ENTRANCE and wrong only about OUTSIDE); (3) it re-proves
+leg 3's R-CONTINUE with a SECOND instrument: the 21-wp route to (14,3) is live-walkable.
+⛔ It says NOTHING about SKY_PILLAR_1F..TOP, which DO swap while VAR_SKY_PILLAR_STATE < 2.
+
+====================================================================================================
+THE LIVE MAP GRID (gBackupMapLayout) vs OUR PLANNER'S VIEW (get_map_data)
+====================================================================================================
+save: C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves\post_skypillar_door.ss1
+standing on SKY_PILLAR_ENTRANCE (6, 16)
+gBackupMapLayout: 33 x 32 at 0x02032318   (the MAP itself is 18 x 18)
+
+----------------------------------------------------------------------------------------------------
+CONTROL 1 — calibrate the border offset (never assume it)
+----------------------------------------------------------------------------------------------------
+  offset 0: agreement 30/81 = 37.0%  <- best so far
+  offset 1: agreement 27/81 = 33.3%
+  offset 2: agreement 28/81 = 34.6%
+  offset 3: agreement 27/81 = 33.3%
+  offset 4: agreement 30/81 = 37.0%
+  offset 5: agreement 41/81 = 50.6%  <- best so far
+  offset 6: agreement 53/81 = 65.4%  <- best so far
+  offset 7: agreement 81/81 = 100.0%  <- best so far
+  offset 8: agreement 68/81 = 84.0%
+  ⇒ border offset = 7 at 100.0%   PASS
+  CONTROL 3 — the avatar's own tile (6, 16) is collision 0 in the LIVE grid PASS
+
+====================================================================================================
+DIFFERENCES — tiles where the GAME and OUR PLANNER disagree about walkability
+====================================================================================================
+  ⛔ WE THINK OPEN, THE GAME SAYS WALL  : 0 tiles  <- these are the DANGEROUS ones
+     []
+  ✅ we think wall, the game says open  : 0 tiles
+     []
+
+====================================================================================================
+DOES THIS EXPLAIN THE JAM? the planned route from (6, 16) to (14, 3)
+====================================================================================================
+  21 waypoints: [(6, 15), (6, 14), (6, 13), (6, 12), (6, 11), (6, 10), (6, 9), (6, 8), (6, 7), (6, 6), (6, 5), (6, 4), (6, 3), (7, 3), (8, 3), (9, 3), (10, 3), (11, 3), (12, 3), (13, 3), (14, 3)]
+  ⛔ waypoints the GAME calls WALLS: NONE
+-09-01_17-14-25.ss1 created!

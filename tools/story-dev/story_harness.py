@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -9603,6 +9603,256 @@ class Ch21PocketExitMode(BotMode):
         context.set_manual_mode()
 
 
+
+
+class Ch21ApproachMode(BotMode):
+    """§Ch21 LEG 3 — THE APPROACH, driven end to end from `post_wallace.ss1`.
+
+    ‼ IT CALLS THE PRODUCTION ENTRY POINT (`sootopolis.approach_sky_pillar`), never a copy. A copy
+    would only ever prove the copy — the `boxwithdraw` / `ch21dive` rule stated in all three
+    existing §Ch21 driver docstrings.
+
+    WHAT THE LEG DOES, from the PINNED fixture (CAVE_OF_ORIGIN_B1F (9,14), state 3):
+      cave return (3 warps) -> the Sootopolis POCKET (plan once, follow blind) -> heal (by PID)
+      -> walk to the dive tile -> dive -> underwater arrow warp -> surface on Route 126
+      -> a 322-waypoint six-map swim -> the BLIND STEP onto (40,19) -> the staging tile (28,15)
+      -> 16 HAND-WALKED steps our own planner calls unreachable -> the door -> SKY_PILLAR_ENTRANCE.
+
+    ⛔ ACCEPTANCE IS NOT "THE WALK FINISHED". §Ch15, §Ch18 and §Ch19 each PASSED their own test
+    while leaving the bot STRANDED, so the grade is:
+        every READING actually happened   AND   whiteouts == 0   AND   the bot can CONTINUE
+    where "can CONTINUE" is a real `calculate_path` from the tile the run REACHED to
+    SKY_PILLAR_ENTRANCE (14,3), requiring all three of `bool(path)`, `path[-1].map == ENTRANCE`
+    and `not path[-1].is_warp`. ⛔ The three conjuncts are load-bearing and MEASURED: the same call
+    aimed at (14,4) returns a path of the same length with `is_warp=True` ending on
+    SKY_PILLAR_OUTSIDE (17,13), so a two-conjunct check would "prove" continuation by walking into
+    leg 4's Wallace cutscene.
+
+    ⛔ THE READINGS ARE BUILT BY THE PRODUCTION FUNCTION AT THE POINT EACH IS TAKEN, and this
+    driver only grades what it is handed. It must never add a label itself — `Ch21PocketExitMode`
+    v1 appended its last label unconditionally and passed a run in which the reading was skipped.
+
+    FAULT ARMS (each exists because the happy path CANNOT reach the branch):
+      POKEBOT_CH21_FAULT_POCKETSTALL=1  truncate the pocket path mid-danger-zone and raise a
+                                        waypoint timeout. PASS requires pocket_attempts == 2 AND
+                                        the run still reaching the Poke Center front tile. This is
+                                        the ONLY way to observe the pocket recovery, which is the
+                                        one designed-but-unproven component of the leg.
+      POKEBOT_CH21_FAULT_BLINDWALL=1    substitute the wrong direction at door-approach step 0.
+                                        MUST fail loudly naming the step index, and MUST NOT hang.
+    ⛔ Do NOT drop an arm because the clean run passed — leg 2a shipped a bail that was dead code
+    for exactly that reason, and it cost a drive.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_wallace.ss1 --driver ch21approach --frames 120000
+    ‼ THE FRAME BUDGET ABOVE IS AN ESTIMATE DERIVED FROM TWO ANCHORS (13.4 frames/waypoint in the
+    city, from the 121-wp pocket drive at 1,624 frames; ~120 frames/waypoint for ocean travel WITH
+    battles, from leg 1). ⛔ REPLACE IT WITH THE MEASUREMENT from drive 1's `frames=` line — a run
+    that dies ON its budget yields NO reading, which is the worst possible outcome.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch21Approach"
+
+    def __init__(self):
+        super().__init__()
+        # ‼ COUNTED VIA THE HOOK, NOT BY POLLING. A mode generator receives NO frames while a
+        # battle runs, so a poll inside the leg could never have answered this — and the swim
+        # crosses six routes with 39 undefeated trainers, which is the number this drive exists
+        # to measure.
+        self.encounters = 0
+        self.encounter_maps: list[str] = []
+        # ⛔ A WHITEOUT SILENTLY TURNS EVERY LATER READING INTO A STATEMENT ABOUT THE POKE CENTER.
+        # There is no Poke Center between Sootopolis and the Sky Pillar, so a whiteout out there
+        # also costs the entire swim.
+        # ‼ BE PRECISE ABOUT WHAT THIS LATCH DOES. `on_whiteout` returning False hands the run back
+        # to MANUAL mode, so the driver generator is dropped and this block never reaches its
+        # RESULT/ACCEPTANCE lines. ⇒ the honest claim is "a whiteout ends the run with NO ACCEPTANCE
+        # LINE AT ALL", not "ACCEPTANCE fails on a whiteout". The counter is still worth keeping:
+        # the hook prints its own ‼ line, which is the only trace such a run leaves.
+        self.whiteouts = 0
+
+    def on_whiteout(self) -> bool:
+        # ⛔⛔ RETURNS **True**, UNLIKE EVERY OTHER §Ch21 DRIVER, AND THE DIFFERENCE IS THE WHOLE
+        # POINT. Returning False means "I do not handle this", which hands the run to MANUAL and
+        # DISCARDS the driver generator — so the RESULT/ACCEPTANCE block below never executes and
+        # the whiteout counter it was supposed to feed is thrown away with it. The log then ends
+        # with no verdict at all, and a reader files it as "crashed", not "the leg failed".
+        # ⇒ claim the event, latch the story abort, and let the leg unwind through its own
+        # `_check_abort()` loop heads so a verdict actually PRINTS with whiteouts=1.
+        self.whiteouts += 1
+        log("[ch21approach] ‼ WHITEOUT — every reading after this point would describe the RESPAWN "
+            "point, not the approach. Latching the story abort so the leg unwinds and this run "
+            "still prints a verdict.")
+        try:
+            from modules.story.early_game import set_story_abort
+
+            set_story_abort(True)
+        except Exception as error:  # noqa: BLE001 - never let the hook itself end the run
+            log(f"[ch21approach] ‼ could not latch the story abort: {type(error).__name__}: {error}")
+            return False
+        return True
+
+    def on_battle_started(self, encounter):
+        self.encounters += 1
+        try:
+            from modules.player import get_player_avatar
+
+            self.encounter_maps.append(str(tuple(get_player_avatar().map_group_and_number)))
+        except Exception:  # noqa: BLE001 - the count is what matters; the map is a nicety
+            self.encounter_maps.append("?")
+        return super().on_battle_started(encounter)
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag, get_event_var
+        from modules.player import get_player_avatar, player_avatar_is_controllable
+        from modules.story import sootopolis as ch21
+
+        TAG = "ch21approach"
+        frames_before = context.emulator.get_frame_count()
+
+        def where() -> tuple[str, tuple[int, int]]:
+            avatar = get_player_avatar()
+            coordinates = tuple(avatar.local_coordinates)
+            try:
+                return MapRSE(tuple(avatar.map_group_and_number)).name, coordinates
+            except Exception:  # noqa: BLE001
+                return f"UNKNOWN{tuple(avatar.map_group_and_number)}", coordinates
+
+        start_name, start_at = where()
+        log(f"[{TAG}] PRE at={start_name}{start_at} "
+            f"state={get_event_var('SOOTOPOLIS_CITY_STATE')} "
+            f"pillar_state={get_event_var('SKY_PILLAR_STATE')} "
+            f"wallace_flag={bool(get_event_flag('WALLACE_GOES_TO_SKY_PILLAR'))}")
+
+        # ⛔⛔ THE DRIVER OWNS THE REPORT DICT AND HANDS IT IN. If the leg raises, a dict it
+        # RETURNED would never arrive — and drive 1 (2026-09-01) proved that is not hypothetical:
+        # it printed `readings=[] missing=[all thirteen]` on a run whose console showed R-CAVE,
+        # R-POCKET and R-HEAL taken, because the readings died with the generator. The log is the
+        # artefact a future agent reads; a failed run must still say how far it got.
+        report: dict = {}
+        failure = None
+        try:
+            yield from ch21.approach_sky_pillar(report)
+        except Exception as error:  # noqa: BLE001 - the driver REPORTS failures, it does not hide them
+            failure = f"{type(error).__name__}: {str(error)[:600]}"
+            log(f"[{TAG}] LEG FAILED: {failure}")
+
+        readings = set(report.get("readings") or ())
+        here_name, at = where()
+        reached = here_name == "SKY_PILLAR_ENTRANCE"
+
+        # ⛔ THE REQUIRED SET IS IMPORTED FROM THE LEG, NEVER COPIED HERE. A private copy is the
+        # P5 shape — one fact in two places — and it fails in the worst direction: rename a label
+        # in the leg and this driver reports `missing=['R-BLIND']` on a PERFECT run, whose obvious
+        # repair is to edit the list here, which SILENTLY DELETES A REQUIRED READING.
+        required = set(ch21.LEG3_READINGS)
+        missing = sorted(required - readings)
+        continue_ok = bool(report.get("continue_ok"))
+        state = get_event_var("SOOTOPOLIS_CITY_STATE")
+        pillar_state = get_event_var("SKY_PILLAR_STATE")
+        # ⛔ `state == 3 and pillar_state == 0` is NOT vacuous decoration: leg 3 crossing into leg 4
+        # would advance one of them, and that is the specific way this leg could "succeed" while
+        # having eaten the next leg's opening cutscene.
+        # ⛔⛔ THE VACUITY GATE. Point this driver at its OWN captured fixture and the leg's resume
+        # branch returns in one frame: reached=True, on the right map, state 3, pillar 0, full HP,
+        # continuation provable — EVERY end-state conjunct satisfied by a run that did nothing.
+        # `start_map` is the one conjunct that is FALSE at frame 0 on any fixture but the intended
+        # one, so it is what stops a no-op from grading as a PASS.
+        premise_ok = start_name == "CAVE_OF_ORIGIN_B1F" and not report.get("resumed")
+        if not premise_ok:
+            log(f"[{TAG}] ‼ VACUOUS PREMISE — this driver must start on CAVE_OF_ORIGIN_B1F (it "
+                f"started on {start_name}, resumed={report.get('resumed')}). A run from the leg's "
+                "own output fixture satisfies every end-state check while doing nothing.")
+
+        # ⛔ GRADE THE METHOD, NOT ONLY THE DESTINATION. A leg that reached the door by re-planning
+        # north of y=14 on Route 131 — where our planner returns a confident route through solid
+        # rock — is not the same leg as one that hand-walked it, and the end state cannot tell them
+        # apart. EXACTLY two planner calls are permitted on that map: the swim and the staging walk.
+        method_ok = (
+            report.get("planner_calls_on_route131") == 2
+            and report.get("blind_steps_taken", 0) >= 1
+            and report.get("tail_tiles_confirmed") == report.get("tail_tiles_expected")
+            and not report.get("r131_live_walls")
+        )
+        passed = (
+            failure is None
+            and premise_ok
+            and method_ok
+            and reached
+            and not missing
+            and self.whiteouts == 0
+            and continue_ok
+            and bool(report.get("control_refused"))
+            and state == 3
+            and pillar_state == 0
+        )
+        # ⛔ CAPTURE IS GATED SEPARATELY, AND DELIBERATELY MORE NARROWLY THAN `passed`. A raise
+        # AFTER arrival — in a diagnostic, or a late assert — makes `failure` non-None and would
+        # otherwise refuse to save a fixture for a bot that is standing on SKY_PILLAR_ENTRANCE with
+        # its continuation proven, costing another one-shot ~50,000-frame swim through a pocket
+        # that allows one crossing per visit.
+        capturable = (
+            reached
+            and continue_ok
+            and bool(report.get("control_refused"))
+            and self.whiteouts == 0
+            and premise_ok
+        )
+
+        total = context.emulator.get_frame_count() - frames_before
+        log(f"[{TAG}] RESULT reached={reached} at={here_name}{at} "
+            f"pocket_attempts={report.get('pocket_attempts')} rest={report.get('rest')} "
+            f"rest_matches_prediction={report.get('rest_matches_prediction')} "
+            f"controllable={player_avatar_is_controllable()} "
+            f"encounters={self.encounters} maps={self.encounter_maps} "
+            f"whiteouts={self.whiteouts} frames={total}")
+        log(f"[{TAG}] ROUTE131 LIVE-GRID WALLS on tiles this leg walks: "
+            f"{report.get('r131_live_walls')} (⛔ must be an empty list; read from gBackupMapLayout, "
+            "the grid the GAME walks on, not from our planner's layout)")
+        log(f"[{TAG}] UNDERWATER_ROUTE126 warp resting tile: {report.get('uw_rest')} "
+            "(the warp TARGET is (45,65); a difference is a resting-tile FINDING, not a failure)")
+        log(f"[{TAG}] CONTINUE continue_wp={report.get('continue_wp')} "
+            f"continue_is_warp={report.get('continue_is_warp')} continue_ok={continue_ok} "
+            f"(target (14,3); measured expectation 21 wp, is_warp=False — ⛔ (14,4) is the TRAP)")
+        log(f"[{TAG}] ROUTE131 LAYOUT {report.get('r131_layout')} "
+            f"planner_agrees_with_game={report.get('r131_planner_agrees')} "
+            "(⛔ agreement here would CONTRADICT the premise the hand-walked tail was built for; "
+            "it is a FINDING for the docs, not a run failure)")
+        log(f"[{TAG}] END STATE state={state} pillar_state={pillar_state} "
+            "(both must be UNCHANGED at 3 and 0 — state 4 is written by leg 4's door scene)")
+        log(f"[{TAG}] METHOD planner_calls_on_route131={report.get('planner_calls_on_route131')} "
+            f"(exactly 2 permitted) blind_steps_taken={report.get('blind_steps_taken')} "
+            f"tail_tiles_confirmed={report.get('tail_tiles_confirmed')}"
+            f"/{report.get('tail_tiles_expected')} method_ok={method_ok} premise_ok={premise_ok}")
+        log(f"[{TAG}] CONTROL control_refused={report.get('control_refused')} "
+            "(⛔ the planner must still be able to REFUSE; a reachability check with no matching "
+            "refusal is a coin that only has heads)")
+        log(f"[{TAG}] readings={sorted(readings)} missing={missing} "
+            "(the grade is DID EVERY READING HAPPEN **and can the bot CONTINUE**, not merely "
+            "did the walk finish)")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH21_CAPTURE", "").strip()
+        if _cap:
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if not capturable:
+                log(f"[{TAG}] CAPTURE SKIPPED — not capturable (reached={reached} "
+                    f"continue_ok={continue_ok} control_refused={report.get('control_refused')} "
+                    f"whiteouts={self.whiteouts} premise_ok={premise_ok}); refusing to write {_cap}")
+            elif _out.exists() and _os.environ.get("CAPTURE_FORCE", "") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_cap} exists (set CAPTURE_FORCE=1 to replace)")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] CAPTURE WROTE {_out.name} ({_out.stat().st_size} bytes) at {at} "
+                    f"— ‼ verify with probe_anchor_inventory.py, not this line")
+
+        context.set_manual_mode()
+
 class Ch20ChapterMode(Ch20DiveMode):
     """§Ch20 AS A CHAPTER — drives the PRODUCTION function, not a copy of it.
 
@@ -11013,6 +11263,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch21CaveMode()
         elif args.driver == "ch21pocket":
             context.bot_mode_instance = Ch21PocketExitMode()
+        elif args.driver == "ch21approach":
+            context.bot_mode_instance = Ch21ApproachMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":
