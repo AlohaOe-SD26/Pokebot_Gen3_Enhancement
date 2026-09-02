@@ -10717,3 +10717,70 @@ the sweep is yours.**
 the warning "when the next leg/wiring ships, THIS SENTENCE is the one to grep for first" — written by
 me, one commit earlier. A note that predicts its own staleness still does not prevent it. Only a
 sweep does.*
+
+---
+
+## 2026-09-02 (final) — I WROTE ONE FIXTURE'S PARTY ONTO ANOTHER, AND FILED IT AS A MEASUREMENT
+
+**Symptom.** I recorded, in `04-HANDOFF.md`, `03-PUNCH-LIST.md`, `12-STORYMODE-DESIGN.md` and a
+commit message, that the §Ch22 start fixture "ENDS chipped — one member fainted, lead 25/115". An
+adversarial refuter reviewing an unrelated recon flagged the arithmetic; re-measuring settled it:
+**`post_hm07.ss1` is SIX ALIVE at 629/694 (91%), lead 52/115. Nothing is fainted.**
+
+**Root cause — and it is subtler than a typo.** BOTH numbers are real measurements I took the same
+day, from **two different runs**:
+* `post_hm07.ss1` was captured by the **leg-5** drive, which started from `post_rayquaza_gone.ss1`
+  (already at 91%) — so it inherited a healthy-ish party.
+* The **chapter** drive ran legs 1→5 from `post_ch20.ss1` and ENDED with Zigzagoon 0/44 and the lead
+  at 25/115 — a genuinely harder handover, and one that was **never captured to a fixture**.
+I read the chapter drive's `PARTY end=` line, and wrote it down as a property of the FIXTURE.
+‼ The tell was there and I did not look: `probe_anchor_inventory.py` reported `HP 629/694 (91%)` for
+`post_hm07.ss1` in the same session. **A fixture's party is a property of the RUN THAT CAPTURED IT,
+not of the last run I happened to read.**
+
+**Why it mattered rather than being cosmetic.** §Ch22 is a readiness problem — the fight is not
+winnable as-is — so the start party is the planning input. A "revive first / restructure the party"
+design premised on a faint would have solved a problem that is not in the save, while the real
+problems (no Dragon move, one Potion, zero Revives, `allow_escaping: false`) went unaddressed.
+
+**The fix that worked.** Re-measured directly, corrected all four sites, and — the part worth
+keeping — **recorded BOTH states**, because they are both real: the pinned fixture is healthier than
+a live §Ch21 handover, and **§Ch22 must be built for the WORSE one**.
+
+**Prevention rules.**
+⛔ **A FIXTURE'S PARTY/STATE IS A PROPERTY OF THE RUN THAT CAPTURED IT.** Before writing any state
+claim about a save, measure THAT SAVE (`probe_anchor_inventory.py` / `probe_box_contents.py`) — never
+transcribe it from a drive log that happens to be on screen, however recent.
+⛔ **WHEN TWO RUNS PRODUCE TWO END STATES, RECORD BOTH AND NAME WHICH IS WHICH** — and plan for the
+worse. A fixture captured mid-arc is systematically healthier than a full playthrough's handover, so
+"the fixture says 91%" is an optimistic floor, not the design input.
+
+---
+
+## 2026-09-02 (final) — THE LIVE-GRID INSTRUMENT THAT SOLVED §Ch21 IS A **FALSE NEGATIVE BY CONSTRUCTION** IN THE NEXT GYM
+
+**Symptom (caught in recon, before any code).** Planning §Ch22 I reached for `_live_collision_grid`
+and `probe_live_mapgrid.py` — the instruments that cracked KI-73 for §Ch21 and are described in
+`02-ARCHITECTURE.md` as *"the oracle for can the bot actually step there"*. In the Sootopolis Gym
+they would have reported **0 differences and PASS** over a model that is catastrophically wrong.
+
+**Root cause, verified at all three links myself:**
+1. `sootopolis.py:934` — our grid keeps `(block & 0x0C00) >> 10`, i.e. **collision bits only**.
+2. `src/scrcmd.c:2044-2047` — `ScrCmd_setmetatile` ORs `MAPGRID_IMPASSABLE` **only** when its 4th
+   argument is TRUE.
+3. `SootopolisCity_Gym_1F/scripts.inc` — **every** gym `setmetatile` passes **FALSE**.
+⇒ The gym rewrites its floor as you walk, and **not one of those writes touches the bits our reader
+looks at.** The ice cracking under the bot is invisible to it.
+
+**The fix (specified, not yet built).** Read the METATILE ID (`block & 0x03FF`) rather than the
+collision bits — a two-line variant of the existing helper, reusing its already-calibrated
+`offset = 7` — and/or gate on `get_event_var("ICE_STEP_COUNT")`, which exists today and must
+increment by exactly 1 per step.
+
+**Prevention rule.** ⛔ **AN INSTRUMENT IS VALID FOR THE FIELD IT READS, NOT FOR THE QUESTION YOU ARE
+ASKING.** Before reusing a probe on a new map, ask *which bits does it actually compare, and does the
+mechanism I am worried about write those bits?* A green result from a probe that cannot see the
+failure is worse than no probe — it is a certificate of correctness for an untested claim.
+‼ And note the shape: this instrument did not become wrong; **it was always collision-only**, and
+§Ch21's hazard happened to be a collision change. *Success on one map is not validation for the
+class of problem.*

@@ -2654,6 +2654,17 @@ the three refuted recon claims, and the fixture that CANNOT test this bug
   source tile's elevation reads **1 static / 3 live**, which is exactly what `map_path.py:916` seeds
   the start node from. Evidence `tools/story-dev/evidence/2026-09-02-ch21leg5probe-NOPIN131.txt`
   and `…-ch21return-fault-NOPIN131`.
+- ⛔⛔ **2026-09-02 — AND THE LIVE-GRID INSTRUMENT ITSELF IS COLLISION-ONLY, SO IT IS A FALSE
+  NEGATIVE BY CONSTRUCTION ON A MAP THAT REWRITES *PASSABLE* TILES.** Verified at three links:
+  `sootopolis.py:934` keeps `(block & 0x0C00) >> 10` (collision bits only);
+  `src/scrcmd.c:2044-2047` ORs `MAPGRID_IMPASSABLE` only when `setmetatile`'s 4th arg is TRUE;
+  and `SootopolisCity_Gym_1F/scripts.inc` passes **FALSE** on every one. ⇒ in that gym the ice
+  cracking under the bot is INVISIBLE to `_live_collision_grid` and `probe_live_mapgrid.py`,
+  which will report **0 differences and PASS** over a catastrophically wrong model.
+  ‼ The instrument did not become wrong — **it was always collision-only**, and §Ch21's hazard
+  merely happened to be a collision change. ⇒ **success on one map is not validation for the
+  class of problem.** The reader that works there is the METATILE ID (`block & 0x03FF`), or
+  `get_event_var("ICE_STEP_COUNT")`. Detail: `ai-research-notes/2026-09-02-ch22-juan-BUILD-SPEC.md`.
 - ⚠ **A pin can also be a NO-OP, and reporting one as a fix is its own defect.** SOOTOPOLIS_CITY at
   `SOOTOPOLIS_CITY_STATE=5` / `SKY_PILLAR_STATE=3` pins `0x083E6A04 -> 0x083E6A04` and a whole-map
   live-vs-static collision diff finds 10 differing tiles of which **0** are open-to-planner/wall-live

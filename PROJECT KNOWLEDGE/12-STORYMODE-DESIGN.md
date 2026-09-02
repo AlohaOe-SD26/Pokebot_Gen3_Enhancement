@@ -3469,7 +3469,7 @@ after Ch20's block, graded on `ch21_chapter_done()` = `RECEIVED_HM_WATERFALL` **
 **`ACCEPTANCE: PASS`**, ROUTE128 (38,24) vars (1,0) → SOOTOPOLIS_CITY (31,34) vars (5,3),
 `frames=95823` (MEASURED), `encounters=26`, `whiteouts=0`, gym warp reachable in 2 wp.
 ⛔ **THE PARTY IS THE FINDING:** it starts with one member ALREADY FAINTED (the honest
-post-cavern state) and ENDS chipped (lead 25/115, one still fainted) — §Ch21 has exactly two
+post-cavern state) and **MEASURED: `post_hm07.ss1` is SIX ALIVE at 629/694 (91%), lead 52/115 — NOTHING is fainted.** ⛔ *(A claim that it "ENDS chipped, one member fainted, lead 25/115" stood here on 2026-09-02 and was WRONG: that is the CHAPTER DRIVE's end party from a DIFFERENT run (`post_ch20.ss1` → legs 1-5), which was never captured to a fixture. An adversarial refuter caught it and my own re-measurement confirmed it — see `08-MISTAKES.md`.)* ‼ **BOTH states are real, and §Ch22 must handle the WORSE one:** a live §Ch21 handover arrives chipped HARDER than the pinned fixture suggests. — §Ch21 has exactly two
 heals (legs 2a and 3) and NO Poke Center after leg 3. ⇒ **§Ch22 inherits a chipped party.**
 ⛔ KI-67 is quoted in the orchestrator's docstring and must not be "improved": the retry is
 `StoryMode.run` (40 recoveries), never a loop inside the chapter.

@@ -19794,3 +19794,50 @@ stacking another correction on top is how it became unreadable in the first plac
 ### FILES
 `.claude/skills/{unlazy,staleness-sweep,story-drive}/SKILL.md` (NEW);
 `PROJECT KNOWLEDGE/03-PUNCH-LIST.md`; `PROJECT KNOWLEDGE/04-HANDOFF.md`.
+
+---
+
+## 2026-09-02 (final) — §Ch22 (JUAN) RECON: THE FIGHT IS NOT WINNABLE AS-IS, AND OUR LIVE-GRID PROBE IS BLIND IN THAT GYM
+
+### WHAT SHIPPED
+`ai-research-notes/2026-09-02-ch22-juan-BUILD-SPEC.md` — recon + build spec from a 6-agent workflow
+(4 angles → adversarial refuter → synthesis, `wf_f5458755-890`). ⛔ No production code changed.
+The refuter decoded `map.bin` and `metatile_attributes.bin` itself rather than trusting the recon,
+and **overturned seven claims — including one of mine.**
+
+### THE TWO FINDINGS THAT CHANGE THE PLAN
+1. ⛔ **§Ch22 IS A READINESS PROBLEM BEFORE IT IS A GYM PROBLEM — the measured party LOSES.**
+   Juan's ace **Kingdra is WATER/DRAGON**, which neutralises the whole party: Grass 2.0×0.5 = 1.0,
+   Electric 1.0, Ice 0.5×2.0 = 1.0. Only Dragon is 2× and **no member has a Dragon move** (TM02 is
+   in Meteor Falls, out of scope). Kingdra has 138 HP and Juan restores it **three times**
+   (Rest+Chesto + 2 Hyper Potions); Sceptile L50 Leaf Blade 3HKOs while being 2HKO'd by Ice Beam,
+   and Double Team stacks against its 100% accuracy. Bag: 1 Potion, 0 Revives.
+   ‼ The `12-STORYMODE-DESIGN` line "counters: Grass/Electric" is right about Juan's TEAM and wrong
+   about his ACE. ⇒ knowing this BEFORE a drive is the whole point of reconning first.
+2. ⛔⛔ **THE LIVE-GRID INSTRUMENT THAT SOLVED §Ch21 IS A FALSE NEGATIVE BY CONSTRUCTION HERE** —
+   verified at three links myself. `_live_collision_grid` keeps collision bits only; `setmetatile`
+   sets impassable only when its 4th arg is TRUE; the gym passes FALSE on every one. So
+   `probe_live_mapgrid.py` reports **0 differences and PASS** while the ice cracks invisibly under
+   the bot. Filed into KI-73 and `08-MISTAKES.md`. The reader that works is the metatile id
+   (`block & 0x03FF`) or `ICE_STEP_COUNT`.
+
+### ALSO ESTABLISHED (each would have cost a drive)
+* The ice puzzle is **exact cover** — 64 thin-ice tiles in sections of 7/19/38 against thresholds
+  8/28/67, arithmetic closing exactly ⇒ every tile once, zero revisits. `calculate_path` cannot
+  route it for three independent reasons and happily walks into `MB_SLIDE_SOUTH`.
+* ⛔ **The EXIT requires a deliberate FALL** — with the ice cracked, Juan's platform is a 20-tile
+  island; B1F is not a failure path, it is the only way out. The §Ch21-leg-4 shape again.
+* `"allow_escaping": false` on BOTH gym floors — Escape Rope/Dig/Teleport are dead.
+* Swellow is **IMMUNE** to Whiscash's Earthquake (a recon report had this exactly inverted).
+* **Leaf Blade is SPECIAL in Gen 3**, so X Attack is inert on it.
+* The 40-frame stair-unlock window resolves SAFE (an ON_FRAME match freezes the avatar).
+
+### A MISTAKE OF MINE, CORRECTED IN FOUR PLACES
+I had recorded the §Ch22 start party as "one member fainted, lead 25/115". **Wrong:**
+`post_hm07.ss1` is six alive at 629/694 (91%), lead 52/115. The fainted party was the CHAPTER
+drive's end state from a different run, never captured to a fixture. Both are real; the fixture is
+the OPTIMISTIC one, and §Ch22 must be built for the worse. Rules in `08-MISTAKES.md`.
+
+### FILES
+`ai-research-notes/2026-09-02-ch22-juan-BUILD-SPEC.md` (NEW); `04-HANDOFF.md`, `03-PUNCH-LIST.md`,
+`12-STORYMODE-DESIGN.md` (the party correction); `05-KNOWN-ISSUES.md` (KI-73); `08-MISTAKES.md`.
