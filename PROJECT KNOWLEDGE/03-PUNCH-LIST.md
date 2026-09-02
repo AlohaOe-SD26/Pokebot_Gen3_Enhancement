@@ -813,59 +813,34 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       flipped to `2` turned the gate red at `04-HANDOFF.md:209` naming both figures, file restored
       byte-identical. Narrative: `07-CHANGELOG.md` 2026-08-26.
 
-### ‼ `#24-crackedfloorpathfinder` — the planner cannot see a hole in the floor (filed 2026-08-24)
+### ‼ `#24-crackedfloorpathfinder` — the planner cannot see a hole in the floor (filed 2026-08-24; §Ch21 half RETIRED 2026-09-02, POST-GAME half still OPEN)
 
-`map_path.py` **does not model `"Cracked Floor"` at all** — decoded in `map.py:391` then NEVER
-consulted (`grep -n "Cracked" map_path.py` = ZERO hits). ‼‼ **QUANTIFIED 2026-08-27 by
-`probe_ch21_skypillar.py` — IT IS WORSE THAN "CANNOT EXPRESS THE FALL": the planner's OWN proposed
-climb CROSSES 27 CRACKED TILES** (13 on 2F, 14 on 4F), and **NO crack-free route across 2F or 4F
-⛔⛔ **[REFUTED 2026-09-01 — SEE THE UPDATE BELOW.** This measured the DEFAULT/post-game crack
-set; the story runs on the CLEAN layouts, where 33 of the 38 (2F) and 29 of the 34 (4F) are SOLID
-GROUND. Every leg HAS a crack-free story route. ‼ This marker is INLINE because the caveat sat 13
-lines BELOW and a skimmer read the bold claim and stopped.]**
-exists at all** on the layout production reads (38 cracked on 2F, 34 on 4F — vs the atlas's 0 and 5
-on `*_Clean`). The bot is BIKELESS (`RECEIVED_BIKE=False`, measured), and speed is what survives a
-crack ⇒ **`navigate_to` is UNSAFE on 2F/4F**, and the story layout is almost certainly NOT the one
-we read. Evidence + the one unverified link in `12-STORYMODE-DESIGN.md` §Ch21.
+- [ ] **WHAT SURVIVES, AND IT IS ONLY THE POST-GAME HALF.** `map_path.py` does not model
+      `"Cracked Floor"` at all — decoded in `map.py:391`, then never consulted
+      (`grep -n "Cracked" map_path.py` = ZERO hits). The real blocker is the **Rayquaza CAPTURE**
+      (post-game), which needs 10 cracked tiles crossed on Sky Pillar 2F at `PLAYER_SPEED_FASTEST`
+      = **Mach Bike at `bikeFrameCounter == 2` ONLY**; the Acro Bike returns `PLAYER_SPEED_FASTER`
+      and **always falls**. Also gates **Mirage Tower** and **Granite Cave B1F**. The bot is
+      BIKELESS (`RECEIVED_BIKE=False`, measured).
+      ‼ Whoever fixes it must decide whether a cracked tile is *a hazard to avoid* or *a traversal
+      edge with a destination* — for the Sky Pillar it is BOTH, tile by tile. A hazard-avoiding
+      planner would report the summit UNREACHABLE, which reads as "our pathfinder is broken", and
+      this project has burned days on exactly that shape.
 
-**TWO SEPARATE CONSEQUENCES — do not conflate them:**
-* ⛔ **POST-GAME (a real blocker):** the Rayquaza capture needs **10 cracked tiles crossed on 2F** at
-  `PLAYER_SPEED_FASTEST`, which is **Mach Bike at `bikeFrameCounter == 2` ONLY** — the Acro Bike
-  returns `PLAYER_SPEED_FASTER` and **always falls**. Also gates Mirage Tower and Granite Cave B1F.
-* ⚠ **§Ch21 — the fall itself is NOT a blocker:** the story ascent must **deliberately fall**
-  through `4F (6,4)` or `(7,4)`; `calculate_path` to `4F (3,1)` simply raises (production CONFIRMED
-  both sealed pockets 2026-08-27). ⇒ **the fall must be an EXPLICIT chapter step, like `dive()`**.
-  ⛔⛔ **UPDATE 2026-09-01 — THE "NO CRACK-FREE ROUTE" CLAIM IN THIS ITEM IS **REFUTED**, AND
-  THE "DO NOT BUILD THE CLIMB" LINE BELOW IS SUPERSEDED.** It answered the WRONG QUESTION: it
-  blocked the DEFAULT/post-game crack set, of which 33 of 38 (2F) and 29 of 34 (4F) are SOLID
-  GROUND on the CLEAN layouts the story actually runs on. **Every leg HAS a crack-free story
-  route, and banning 4F's five real cracks costs NOTHING (29 wp either way, MEASURED).**
-  ⇒ `04-HANDOFF.md`'s live queue head IS "BUILD LEG 4 = THE SKY PILLAR CLIMB". ‼ A Tier 2
-  cold-start audit (2026-09-01) found this item still commanding the opposite of the first
-  action, and found that the handoff never NAMES this slug — so the correction was unfindable
-  from the place a cold reader starts. ⛔ What REMAINS true and is leg 4's real hazard:
-  ✅✅ **RESOLVED 2026-09-01 — `SKY_PILLAR_TOP` IS VALIDATED NOW.** `tools/story-dev/probe_skypillar_rom_layouts.py` reads the CLEAN layouts for ALL SIX floors out of OUR OWN ROM (no network, five controls, three fault arms) and CONFIRMS the atlas's numbers exactly: **31** static-open/CLEAN-wall tiles on TOP and 32 the other way. ‼ And it adds the fact leg 4 most needed: **1F-5F have ZERO tiles in the dangerous direction**, so the planner there can only ever REFUSE a real route — never route into rock. **TOP is the one dangerous floor**, and it is CRACK-FREE on the story layout (42 → 0). The per-floor table is in `12-STORYMODE-DESIGN.md` §Ch21. ⛔ The remaining TOP risk is the 31 walls, not cracks.
-  `SKY_PILLAR_TOP` is INVERTED (31 static-open tiles are CLEAN walls) and is **un-validated** —
-  `probe_skypillar_clean_layout.py` fetches only 2F/3F/4F_Clean, so it cannot check TOP, 1F or
-  5F at all, and the atlas's "TOP 13 wp" was computed blocking CLEAN *cracks*, never CLEAN
-  *walls*.
-  ⛔ **[SUPERSEDED 2026-09-01 — THE CLIMB *IS* THE LIVE NEXT ACTION.** `04-HANDOFF.md`'s only
-  `➡➡➡` marker reads "BUILD LEG 4 = THE SKY PILLAR CLIMB". What survives below is only the
-  `SKY_PILLAR_TOP` hazard, never the prohibition.]**
-  ⛔ **BUT DO NOT READ THAT AS A GREEN LIGHT TO BUILD THE CLIMB** — this bullet said "do NOT wait
-  … before building Ch21" while the prose above it and `04-HANDOFF.md` both said the climb is
-  BLOCKED (a Tier 1 review caught the contradiction 2026-08-27). What actually blocks it: our
-  planner reads the **post-game** layout while the story runs on **CLEAN** — safe on 1F-5F
-  (DEFAULT-walkable ⊆ CLEAN-walkable, measured) but **INVERTED on `SKY_PILLAR_TOP` (31 static-open
-  tiles are CLEAN walls) and on `ROUTE131` (116)**. The route must be validated against CLEAN data
-  (`probe_skypillar_clean_layout.py`) before any drive.
-
-‼ **WHY THIS IS FILED RATHER THAN FIXED:** a hazard-avoiding planner would report the Sky Pillar
-summit UNREACHABLE, which reads as "our pathfinder is broken" or "the map data is wrong" — and this
-project has burned days on exactly that shape. Whoever fixes it must decide whether a cracked tile is
-a *hazard to avoid* or a *traversal edge with a destination*, and for the Sky Pillar it is BOTH,
-depending on the tile. ⛔ Evidence: `evidence/2026-08-24-skypillar-clean-reachability.txt`.
-
+⛔⛔ **THE ENTIRE §Ch21 HALF OF THIS ITEM IS RETIRED — IT IS RESOLVED, AND IT WAS DANGEROUS.**
+Its headline claim ("no crack-free route exists on 2F/4F") was **REFUTED 2026-09-01**: it measured
+the DEFAULT/post-game crack set, while the story runs on the `*_Clean` layouts where 33 of 38 (2F)
+and 29 of 34 (4F) are SOLID GROUND. Every leg had a crack-free story route, and banning 4F's five
+real cracks cost nothing (29 wp either way, measured). `SKY_PILLAR_TOP` was validated the same day.
+**And all of it has since SHIPPED: legs 3, 4 and 5 are built and driven, and §Ch21 IS A CHAPTER as
+of 2026-09-02** (`--driver ch21chapter`, PASS, `frames=95823`) — including the deliberate falls the
+planner cannot propose, and the ROUTE131 live-pin the swim turned out to be impossible without.
+Full narrative: `07-CHANGELOG.md` 2026-09-01 and 2026-09-02.
+‼ **WHY IT IS RETIRED RATHER THAN LEFT TO ACCRETE:** a Tier 2 cold-start audit found this item
+**commanding the opposite of the live first action**, under four layers of inline SUPERSEDED /
+REFUTED markers stacked on one another — a reader who stopped at any one of them got a different
+answer. ⇒ *when an item's claim is refuted AND its work has shipped, COMPRESS it to what survives;
+stacking another correction on top is how it became unreadable.*
 ### ✅ `#24-ch21anchor` — DONE 2026-08-24 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)
 
 ⛔ **`saves/post_ch20.ss1` EXISTS — DO NOT RE-CAPTURE IT.** Captured by `--driver ch20chapter`

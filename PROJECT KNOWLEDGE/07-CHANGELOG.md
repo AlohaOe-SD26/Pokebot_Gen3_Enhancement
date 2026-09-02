@@ -19752,3 +19752,45 @@ and is deliberately not inferred here.
 `tools/story-dev/evidence/2026-09-02-ch21chapter-{CLEAN.txt,CLEAN.stdout.txt,VACUITY.txt}`;
 `02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `06-DECISIONS-LOG.md`,
 `08-MISTAKES.md`, `12-STORYMODE-DESIGN.md`.
+
+---
+
+## 2026-09-02 (session tail) — THREE PROJECT SKILLS, AND THE PUNCH-LIST BUDGET BLOCKER CLEARED
+
+### WHAT SHIPPED
+**`.claude/skills/` now exists**, with three skills that encode failures this project actually paid
+for rather than generic advice:
+* **`unlazy`** — run before declaring any item done, or whenever tempted to stop at the first green.
+  Seven checklists: the CLAIM check (never assert a negative about a file you have not opened), the
+  MEASUREMENT check (vacuity, determinism-vs-replication, candidate-is-not-an-attempt), the GATE
+  check (fault-test it; aim "can continue" at what the NEXT item needs), the ERROR-PATH check (diff
+  the error paths when copying a class), the DOC check, the COMMIT check (is the evidence you cite
+  actually committed?), and the STOPPING check (what is the user's to decide?).
+* **`staleness-sweep`** — the post-status-change sweep, by MEANING not spelling. Carries the two
+  measured failures: a literal grep reported "0 survivors" while the handoff's FIRST SENTENCE
+  carried the stale claim in different words, and the P1–P5 pair list is scoped to two files so a
+  third went unchecked.
+* **`story-drive`** — the harness protocol: pre-register predictions, the driver shape (whiteout
+  latch + the try/except that makes it true, a vacuity conjunct, readings at their take point), one
+  fault arm per guard, `--log` is only HALF the transcript, and the six known live traps
+  (layout-swapped maps lying to `get_map_data_for_current_position`, cutscenes ending after their
+  var, talks ending after their flag, held buttons never closing a msgbox, the camera-range object
+  window, and `warpsilent` as a map reload).
+
+### THE BUDGET BLOCKER IS CLEARED — 3600/3600 → 3575/3600
+The Tier 2 audit called zero headroom a hard precondition, since `lint_docs.py` fails at
+`lines > budget` and any §Ch22 item grows the file. Cleared by **compressing**
+`#24-crackedfloorpathfinder`, not by deleting it: its §Ch21 half was REFUTED 2026-09-01 *and* has
+since SHIPPED (legs 3/4/5 + the chapter), while its POST-GAME half — the Rayquaza capture needing
+Mach-Bike-only `PLAYER_SPEED_FASTEST` across 10 cracked 2F tiles, plus Mirage Tower and Granite Cave
+— is genuinely open and is preserved verbatim, with the slug intact.
+‼ **It was also the most dangerous item in the file:** a Tier 2 audit had already caught it
+*commanding the opposite of the live first action*, buried under FOUR stacked inline
+SUPERSEDED/REFUTED markers, so a reader who stopped at any one of them got a different answer.
+⇒ **when an item's claim is refuted AND its work has shipped, COMPRESS it to what survives** —
+stacking another correction on top is how it became unreadable in the first place.
+⚠ 25 lines is still tight; the next growth needs another retirement first, and the handoff says so.
+
+### FILES
+`.claude/skills/{unlazy,staleness-sweep,story-drive}/SKILL.md` (NEW);
+`PROJECT KNOWLEDGE/03-PUNCH-LIST.md`; `PROJECT KNOWLEDGE/04-HANDOFF.md`.
