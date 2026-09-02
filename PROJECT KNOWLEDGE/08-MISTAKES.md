@@ -10483,3 +10483,29 @@ included) must force UTF-8 on its own stdout/stderr — never rely on an ambient
 might set, because the human who runs it by hand will not. ‼ Corollary: "green via the runner" is not
 "green" — a gate whose failure message can itself crash cannot be trusted to *tell you why* it failed;
 test the raw `python gate.py` path, and test that its FAILURE branch prints rather than crashes.
+
+## 2026-09-01 (later) — A LENGTH-FILTERED VERIFICATION GREP HID THE ONE MEGA-LINE CELL THAT STILL SAID "SIX", AND THE STALE COUNT SHIPPED
+
+**Symptom.** After propagating "six fault arms → seven" across the tree, I ran
+`grep -niE "six fault arm" 03-PUNCH-LIST.md | awk 'length($0)<250'` to confirm none remained; it
+returned empty, so I committed and pushed. The session-end Tier 2 cold-start audit then found
+`03-PUNCH-LIST.md:47` STILL said "SIX fault arms" — the `#24-remainingarc` cell, which like the
+`04-HANDOFF.md` banner is a single ~6 KB line. My `awk 'length($0)<250'` readability filter had
+silently excluded exactly that line.
+
+**Root cause.** A completeness grep must see EVERY hit; a length filter added "for readability"
+turns it into a *sampling* grep that is blind to precisely the mega-line cells where this project
+stores state (the banner, the `#24-remainingarc` row). The fact lived in THREE places (handoff count,
+recipe count, punch-list count); I updated the two that were short lines and the filter hid the third
+— the P5 "updating the named halves is the most dangerous state" shape, delivered by a tooling trap.
+
+**The fix that worked.** Re-grepped with NO length filter, found the single hit, changed it to
+"SEVEN"; Tier 0 green. (The doc-consistency layer functioned as designed: Tier 1 caught the
+"legs 4-5" clauses, Tier 2 caught the count — the shipped defect was caught before the next item
+built on it.)
+
+**Prevention rule.** ⛔ **NEVER LENGTH-FILTER A COMPLETENESS/PROPAGATION GREP.** `awk 'length<N'`,
+`cut -c1-N`, and `head` on a per-line basis are for READING, never for PROVING none remain — they are
+blind to the giant single-line cells (`#24-remainingarc`, the banner) that are the whole reason a
+value goes stale in one place and not another. When you must cap width to read, cap it on a SEPARATE
+line from the one that decides "clean": grep first (unfiltered, count the hits), *then* pretty-print.
