@@ -3600,7 +3600,9 @@ it is not merely the wrong landing, it is unreachable. (The older text follows.)
   1F (10,1) -> 2F ; 2F (3,1) -> 3F ; 3F (11,1) -> 4F (11,1)
   cross 4F to (5,4)          [reachable from (11,1) without touching a crack -- MEASURED]
   step EAST onto (6,4)       [CRACKED -> you FALL, on purpose]
-  !! NOT (9,4) -- IT IS A DECOY. All three of 4F's reachable cracked tiles drop you onto the
+  !! NOT (9,4) -- IT IS A DECOY. ⛔ *(CORRECTED 2026-09-01: this line said "all THREE of 4F's
+  REACHABLE cracked tiles" — MEASURED, only **(6,4)** has a standable neighbour from the 4F
+  arrival; (7,4) and (9,4) have NONE. One reachable launch tile, not three.)* The east cracks drop you onto the
   !! SAME (x,y) on 3F, but only (6,4)/(7,4) land INSIDE the sealed pocket. (9,4) lands in 3F's
   !! MAIN region, which cannot reach 3F (7,1) -- so the whole climb is wasted and the bot loops.
   !! MEASURED: 3F (6,4) in pocket=True, (7,4) in pocket=True, (9,4) in pocket=False.
@@ -3752,7 +3754,12 @@ Coming down, `Top -> 5F -> 4F (3,1)` lands in **4F's WEST POCKET**.
 ⛔⛔ **CORRECTION 2026-09-01 — "12 tiles, no walking exit" IS REFUTED, AND THE DIFFERENCE CHANGES THE CHECK YOU MUST WRITE.** The pocket contains **`4F (7,1)`, a planner-VISIBLE Non-Animated-Door staircase**, 5 walkable steps from `(3,2)`. It leads to 3F's sealed 11-tile pocket whose only exit is back up. ⇒ the second fall is still REQUIRED, but the failure mode is a **LIVELOCK the planner will happily route into**, NOT a refusal.
 ‼ **So a "the planner refuses" guard would NEVER FIRE.** The post-fall check must be a `calculate_path` to **3F `(3,1)`**, which the wrong exit cannot satisfy.
 *(This correction lived only in `ai-research-notes/2026-09-01-ch21-leg3-BUILD-SPEC.md`, whose own header says a note LOSES to the authoritative doc — so a rule-following agent would have kept the refuted version. A Tier 2 cold-start audit caught that, 2026-09-01.)* ⇒ the descent needs its own fall, through **`4F (0,3)` or `(1,3)`**. ‼ **If this is omitted
-the bot reaches the summit, WAKES RAYQUAZA (setting the var, so the layouts flip to DIRTY on the
+the bot reaches the summit, WAKES RAYQUAZA — ⛔ *(CORRECTED 2026-09-01: this line claimed the
+layouts "flip to DIRTY on the next load". **FALSE.** The awakening sets `SKY_PILLAR_STATE` to
+**1** and every floor's gate is `call_if_lt ..., 2`, so **CLEAN persists through the whole
+descent**. The strand mechanism is the SEALED POCKET, not a layout flip — a builder who checked
+for the flip, found none, and concluded the descent fall was unnecessary would be one commit
+from the stranding shape. Two recon angles flagged this and it survived a commit.)* (setting the var, so the layouts flip to DIRTY on the
 next load) and is STRANDED** — the §Ch15/§Ch18/§Ch19 "passed its own test while stranded" shape,
 one commit from shipping. ⇒ **BUILD THE DESCENT FALL INTO THE LEG FROM THE START**, and make the
 leg's acceptance a real `calculate_path` off the END tile, not a `controllable` flag.
@@ -3802,7 +3809,9 @@ DID NOT RUN (session limit). TAKE THE CONSERVATIVE READING.**
   it is not modelled.**
 ⇒ **B's reading subsumes A's and is the safe one: the planner MAY route across a real crack.** ⛔ All
 five of `4F_Clean`'s cracked tiles — (0,3)(1,3)(6,4)(7,4)(9,4) — are ALSO open-and-cracked in
-DEFAULT, so the planner sees ordinary floor. **If the tie-break picks (9,4) the bot falls into 3F's
+DEFAULT, so the planner sees ordinary floor. ⛔ *(2026-09-01: the tie-break CANNOT pick (9,4) —
+it has no standable neighbour from the ascent arrival, so no walking route passes through it.
+Kept as defence-in-depth only.)* **If the tie-break picked (9,4) the bot would fall into 3F's
 MAIN region — the documented DECOY — and the entire climb is wasted.**
 ⇒ **THE BUILD MUST BAN THOSE TILES EXPLICITLY** (block them, or hand `follow_waypoints` a vetted
 path) rather than trust `calculate_path`. Equal cost means banning them is FREE.

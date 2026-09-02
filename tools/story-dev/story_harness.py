@@ -9640,6 +9640,12 @@ class Ch21ApproachMode(BotMode):
                                         one designed-but-unproven component of the leg.
       POKEBOT_CH21_FAULT_BLINDWALL=1    substitute the wrong direction at door-approach step 0.
                                         MUST fail loudly naming the step index, and MUST NOT hang.
+      POKEBOT_CH21_FAULT_POCKETWALKBACK=1  (⛔ set TOGETHER WITH POCKETSTALL — it only fires
+                                        while a recovery is running) stall the recovery's OWN
+                                        walk back; MUST produce the NAMED 'stranded' BotModeError,
+                                        never a raw TimedOutTryingToReachWaypointError. Added by an
+                                        adversarial review that found the walk-back unguarded — an
+                                        arm nobody knows to run decays into dead code.
     ⛔ Do NOT drop an arm because the clean run passed — leg 2a shipped a bail that was dead code
     for exactly that reason, and it cost a drive.
 
@@ -9728,7 +9734,8 @@ class Ch21ApproachMode(BotMode):
 
         # ⛔⛔ THE DRIVER OWNS THE REPORT DICT AND HANDS IT IN. If the leg raises, a dict it
         # RETURNED would never arrive — and drive 1 (2026-09-01) proved that is not hypothetical:
-        # it printed `readings=[] missing=[all thirteen]` on a run whose console showed R-CAVE,
+        # it printed `readings=[] missing=[all thirteen]` (thirteen AT THE TIME; the exported
+        # set is 14 now — R-CONTROL joined later) on a run whose console showed R-CAVE,
         # R-POCKET and R-HEAL taken, because the readings died with the generator. The log is the
         # artefact a future agent reads; a failed run must still say how far it got.
         report: dict = {}

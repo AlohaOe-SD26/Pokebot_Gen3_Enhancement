@@ -338,6 +338,11 @@ def main() -> int:
             c_cracks = cracked_tiles(clean[1], clean[2])
             print(f"    ⇒ CLEAN = layout #{c_index}; cracked tiles REMAINING on CLEAN: "
                   f"{len(c_cracks)}  {sorted(c_cracks) if c_cracks else ''}")
+            # ‼ BLOCKDATA POINTERS, PRINTED SO A LIVE DRIVE CAN COMPARE. A leg-4 drive reads the
+            # LIVE `gMapHeader` layout's blockdata per floor; matching it against these turns the
+            # layout identification from an inference into a per-floor MEASUREMENT.
+            print(f"    blockdata: DEFAULT 0x{unpack_uint32(d_struct[12:16]):08X}   "
+                  f"CLEAN 0x{unpack_uint32(clean[1][12:16]):08X}")
         else:
             print("    ⇒ no CLEAN twin found")
 
@@ -461,18 +466,62 @@ def main() -> int:
         ("DESCENT", "SKY_PILLAR_3F", (11, 1), (3, 1), "arrive from 4F(11,1) -> down to 2F"),
         ("DESCENT", "SKY_PILLAR_2F", (3, 1), (10, 1), "arrive from 3F -> down to 1F"),
         ("DESCENT", "SKY_PILLAR_1F", (10, 1), (6, 13), "arrive from 2F -> down to OUTSIDE"),
+        # ⛔ THE POST-FALL WALKS — the rows a leg-4 adversarial pass found MISSING. A fall preserves
+        # (x,y) (`warphole`), so the DESCENT fall through 4F (0,3)/(1,3) lands on 3F (0,3)/(1,3):
+        # whether THOSE tiles connect to the 2F staircase decides whether the descent fall actually
+        # rescues the bot, and nothing had measured it.
+        ("POSTFALL", "SKY_PILLAR_3F", (0, 3), (3, 1), "DESCENT-fall landing -> the 2F staircase"),
+        ("POSTFALL", "SKY_PILLAR_3F", (1, 3), (3, 1), "DESCENT-fall landing (alt) -> the 2F staircase"),
+        ("POSTFALL", "SKY_PILLAR_3F", (6, 4), (7, 1), "ASCENT-fall landing -> the 4F(7,1) staircase"),
+        # ⛔ THE SUMMIT WALK ON CLEAN — the route nobody had computed on the story layout. The
+        # coord_event that wakes Rayquaza is at TOP (14,9) (decomp, gated RAYQUAZA_CRY_DONE == 0);
+        # the arrival warp target is (16,14) and the +1-south rest would be (16,15).
+        ("SUMMIT ", "SKY_PILLAR_TOP", (16, 14), (14, 9), "arrival TARGET -> the Rayquaza coord tile"),
+        ("SUMMIT ", "SKY_PILLAR_TOP", (16, 15), (14, 9), "predicted REST -> the Rayquaza coord tile"),
     ]
+    # ⛔⛔ BOTH THE WARP TARGET **AND** THE RESTING TILE ARE MEASURED, AND THE DIFFERENCE IS NOT
+    # PEDANTRY — IT IS THE MISTAKE THIS PROJECT HAS PAID FOR THREE TIMES. A warp's TARGET is where
+    # the ROM table points; where the avatar RESTS is decided by the arrival task and is per-warp.
+    # For a Non-Animated Door target the validated rule is REST = TARGET + (0,+1) (one tile SOUTH),
+    # and all twelve Sky Pillar interior staircases are Non-Animated Doors. Leg 3 hard-asserted a
+    # warp TARGET on ROUTE126 and a CORRECT run failed on it (the rest was one tile south).
+    # ⇒ every leg below is computed from BOTH, and any row where they DISAGREE is flagged.
     for kind, name, src, dst, note in legs:
         if name not in results or results[name][3] is None:
             print(f"  {kind}  {name:<16} {src} -> {dst}   (no CLEAN layout resolved)")
             continue
         clean = results[name][3]
-        cracks = cracked_tiles(clean[1], clean[2])
-        walk = bfs(clean[2], src, dst, banned=cracks)
-        free = bfs(clean[2], src, dst)
+        grid, cracks = clean[2], cracked_tiles(clean[1], clean[2])
+        _, _, _, _, _, width, height, _ = results[name]
+        walk = bfs(grid, src, dst, banned=cracks)
         verdict = f"{walk} steps" if walk is not None else "⛔ NO PATH (a FALL is required)"
-        extra = "" if walk == free else f"   [ignoring cracks: {free}]"
-        print(f"  {kind}  {name:<16} {str(src):<8} -> {str(dst):<8} {verdict}{extra}   {note}")
+        # ⛔ THE +1-SOUTH REST HEURISTIC APPLIES ONLY TO STAIRCASE-WARP ARRIVALS. A FALL lands ON
+        # its own (x,y) (`warphole` preserves both), so POSTFALL rows have no separate resting
+        # tile — printing one produced a phantom "REACHABILITY DIFFERS" on a correct row.
+        if kind.strip() == "POSTFALL":
+            print(f"  {kind}  {name:<16} {str(src):<8} -> {str(dst):<8} {verdict:<32} "
+                  f"[a fall lands ON its tile — no rest offset]")
+            print(f"          {note}")
+            continue
+        rest = (src[0], src[1] + 1)
+        in_bounds = 0 <= rest[0] < width and 0 <= rest[1] < height
+        if not in_bounds:
+            # ⛔ NOT A DISAGREEMENT — THE RULE SIMPLY DOES NOT APPLY HERE. `+1 south` presumes a tile
+            # exists to the south; this warp target sits on the map's SOUTH EDGE, so the arrival
+            # cannot rest one further south and the resting tile must be settled by a DRIVE.
+            note_rest = f"[rest {rest} is OFF-MAP — the +1-south rule cannot apply; needs a drive]"
+            flag = ""
+        else:
+            walk_rest = bfs(grid, rest, dst, banned=cracks)
+            rest_open = collision_of(grid.get(rest, OFF_MAP)) == 0
+            note_rest = (f"[from rest {rest}: {walk_rest}]" if walk_rest is not None
+                         else f"[from rest {rest}: {'NO PATH' if rest_open else 'WALL'}]")
+            # ‼ Only a REACHABILITY difference matters. A one-step difference in COUNT is expected
+            # (the rest tile is one step further along) and is not a finding.
+            flag = "" if (walk is None) == (walk_rest is None) else "   ‼ REACHABILITY DIFFERS"
+        print(f"  {kind}  {name:<16} {str(src):<8} -> {str(dst):<8} {verdict:<32} "
+              f"{note_rest}{flag}")
+        print(f"          {note}")
 
     # ---- MEASUREMENT 3 — CAN THE BOT REACH THE TILE IT MUST FALL THROUGH? ------------------------
     # A fall is an EXPLICIT step onto a cracked tile, so what matters is whether the bot can stand

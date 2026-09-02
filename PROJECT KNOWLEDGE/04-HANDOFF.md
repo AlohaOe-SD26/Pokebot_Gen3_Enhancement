@@ -316,9 +316,8 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >        stops one tile short of it and asserts both story vars are UNCHANGED (3 and 0).
 >    (3) ⛔ **THE FALL IS AN EXPLICIT STEP, AND `(9,4)` IS A DECOY.** `calculate_path` cannot
 >        propose a deliberate fall (it does not model `"Cracked Floor"` at all), so the chapter
->        must step EAST from `4F (5,4)` onto `(6,4)` (or `(7,4)`). **`(9,4)` is cracked AND
->        reachable AND WRONG** — it drops into 3F's 118-tile MAIN region instead of the sealed
->        11-tile pocket. See the discriminator in (6).
+>        adversarial recon pass caught the stale clauses. What (9,4) WOULD do if fallen through —
+>        land in 3F's 118-tile MAIN region, not the pocket — still powers discriminator (6).)*
 >    (4) ⛔ **THE DESCENT NEEDS A **SECOND** FALL, AND ITS FAILURE MODE IS A LIVELOCK, NOT A
 >        REFUSAL.** Omit it and the bot summits, wakes Rayquaza and is STRANDED. ‼ The atlas says
 >        the west pocket has "no walking exit"; that is **REFUTED** — it contains `4F (7,1)`, a
@@ -351,7 +350,10 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >        Re-ask ARM B of `calculate_path` before quoting it as one.
 >        Both arms are executable: all three tiles are in the same 111-tile component.
 >    ⛔⛔ **AND THE THING NOBODY HAS SUPPLIED, WHICH IS LEG 4'S FIRST TASK — THE ACCEPTANCE
->    PREDICATE AND THE LEG'S END BOUNDARY.** Neither exists anywhere in this tree. Decide, and
+>    PREDICATE AND THE LEG'S END BOUNDARY.** ⚠ *(half-superseded the same day: the BOUNDARY is now
+>    SETTLED — see (a) below — so what remains unsupplied is the PREDICATE alone. An adversarial
+>    recon pass caught this preamble still saying "neither exists" one line above the answer.)*
+>    Decide, and
 >    write down: (a) ✅ **ANSWERED 2026-09-01 — THE DESCENT IS IN SCOPE, and it is FORCED, not
 >    chosen.** MEASURED on the CLEAN layouts: descending, the only down-staircase reachable from
 >    4F's arrival is `(7,1)`, and from `3F (7,1)` the bot **CANNOT** reach `3F (3,1)` — it is

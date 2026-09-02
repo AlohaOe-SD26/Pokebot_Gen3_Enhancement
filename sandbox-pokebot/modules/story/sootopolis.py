@@ -1304,7 +1304,7 @@ def approach_sky_pillar(report: dict | None = None) -> Generator:
     :param report: an OPTIONAL dict OWNED BY THE CALLER, filled in as the leg progresses.
         ⛔⛔ IT IS AN ARGUMENT, NOT JUST A RETURN VALUE, AND THAT IS THE WHOLE POINT. The first
         leg-3 drive (2026-09-01) failed partway and its driver printed `readings=[]` with all
-        thirteen labels `missing` — while the console above it showed R-CAVE, R-POCKET and R-HEAL
+        thirteen labels `missing` (thirteen AT THE TIME — the set is 14 now, R-CONTROL joined later) — while the console above it showed R-CAVE, R-POCKET and R-HEAL
         had all been taken. The readings lived in a local that the raising generator never
         returned, so the ONE artefact a future agent reads said the leg had measured nothing. A
         run that dies is exactly the run whose partial readings matter most.
