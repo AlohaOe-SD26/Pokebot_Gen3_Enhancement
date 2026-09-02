@@ -7195,3 +7195,50 @@ was the worst of the four because it was a full build order, not a passing menti
 >    Dive/BADGE07), and grade the SEGMENT on **`VAR_ROUTE128_STATE == 2` + the escape +
 >    can-continue** (the ladder chapter in `chapters.py:233` grades on
 >    `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`, which is set PRE-warp — too weak for the segment).
+
+---
+
+## Queue items 1b / 2 / 3 - DONE, moved out of `04-HANDOFF.md` 2026-09-01
+
+### queue item 3 - DONE, archived 2026-09-01 (line budget)
+
+> 3. ✅ **DONE — DO NOT RE-DO.** KI-68's dive leg is driven (`--driver ch20dive` →
+>    `ACCEPTANCE: PASS legs=6/6`) and all nine cavern rooms with it. ‼ **Keep the RULE, not the
+>    task:** `WaypointAction.Dive`/`Emerge` are assigned NOWHERE and `warp_graph.py:342` excludes
+>    dives from `calculate_path` **on purpose** — so *"not routable" never meant "not possible"*;
+>    the answer is a CHAPTER that drives the transition, never a planner rewrite.
+>    ‼ **LIVE, not stale:** if a hunting ground is ever added, **NOT to `TRAINING_GRASS`** —
+>    measured, a Shoal Cave row becomes the highest band and flips `best_training_area` for every
+>    team ~L30 up. ⇒ see **KI-80**, the same table's second sharp edge.
+>
+### queue item 2 - DONE, archived 2026-09-01 (line budget)
+
+> 2. ✅ **DONE 2026-08-13 — `reorder_party()` IS DRIVEN.** `--driver roster` passes: six swaps, all
+>    verified by PID, including the never-driven `RotatePokemon(i, j != 0)`. Both unknowns this
+>    item asked about are SETTLED; the trace detail moved to `28-HANDOFF-ARCHIVE.md` 2026-08-14 on
+>    the line budget. ⚠ **Keep one thing from it:** `gPartyMenu.slot_id` is NOT reset between menu
+>    sessions and `navigate_to_mon:520-524` reads it — it happened to be re-read live in time, so
+>    that is LUCK, not safety. Re-check it first if a roster drive ever mis-swaps.
+>    ‼ **What is NOT done:** the **deposit/withdraw** half of `#24-roster`. Ordering answers "in
+>    what order", not "which Pokémon". And **promotion of `roster.py` + `menuing.py` to
+>    `custom-pokebot/` — ✅ **DONE, promoted 2026-08-13/14; both files are in BOTH forks.**
+>    ‼ That is a statement about THESE TWO FILES, not about the repo's drift figure today —
+>    PARTY ACCOUNTING STAGE 0 has since moved it. See the STATE line at the top of this file.**
+>
+### queue item 1b - DONE, archived 2026-09-01 (line budget)
+
+> 1b. ✅ **DONE — the KI-63 wiring was PROMOTED on 2026-08-14 and is in BOTH forks. There is no
+>    decision left here** (‼ not a claim about today's drift figure — see item 1). Its superseded
+>    "first decision for the user" text, and the measured worth behind it (20 terminal run-kills in
+>    1,129 runs, #1 of 14 derail causes by frames), moved to `28-HANDOFF-ARCHIVE.md` 2026-08-14.
+>
+
+### queue item 2c - reference pointer, moved out of `04-HANDOFF.md` 2026-09-01
+
+> 2c. **‼ READ `ai-research-notes/2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md`
+>    BEFORE ITEMS 3 AND 4 BELOW.** Both were written believing §Ch21 and the Regi arc had to be
+>    built as chapters. **Most of that content already exists in upstream code we already have.**
+>    Items 3 and 4 are still correct about the DIVE LEG — which is the real gap — but wrong about
+>    the scale of what remains. **KI-72** also lands here: never let the planner choose a surfacing
+>    tile.
+>

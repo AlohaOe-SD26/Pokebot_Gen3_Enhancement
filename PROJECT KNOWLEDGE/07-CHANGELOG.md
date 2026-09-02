@@ -19257,3 +19257,52 @@ Two smaller review findings were also taken, both as HONESTY fixes rather than c
 architecture, NOT measured** (neither fault arm triggers a battle mid-blind-step), and the note says
 why the failure mode would be benign if the reasoning is wrong; and the self-report handed to a
 reviewer should CITE the evidence files rather than paraphrase console output — see `08-MISTAKES.md`.
+
+---
+
+## 2026-09-01 (later) — THREE TIER 2 COLD-START AUDIT ROUNDS ON THE SAME HANDOFF, AND **EACH ROUND FOUND A DEFECT THE PREVIOUS ROUND'S FIX HAD CREATED OR MISSED**
+
+Not routine bookkeeping. The §Ch21 leg-3 work shipped with Tier 0 green and Tier 1 returning
+P1-P5 all AGREE. Three independent cold-start agents then read only `04-HANDOFF.md` +
+`00-README.md` and were told to **try to BEGIN the next item**. What they found, in order:
+
+**ROUND 1 — the queue head pointed at LEG 4 with LEG 3's hazard list under it.** Four of five
+bullets described work the same file marks DONE. `git show HEAD` proved it was a copy: the identical
+block sat verbatim under the old "BUILD LEG 3" heading. **I retargeted the heading and not the body.**
+⇒ rule: **a `➡➡➡` marker is a claim about every bullet beneath it.**
+
+**ROUND 2 — the fix for round 1 introduced a worse bug.** The rewritten block told the next session
+to grade leg 4 on `SKY_PILLAR_STATE` "4 vs 5?" — but 4/5 are `SOOTOPOLIS_CITY_STATE` values and
+`SKY_PILLAR_STATE` is **0 for the entire ascent**, so the predicate could never be satisfied: a leg
+that cannot pass its own test, written into the very block warning that §Ch15/18/19 each passed
+their own test while stranded. The same block got it right 38 lines above. Round 2 also found two
+§Ch20 "PARKED" texts the round-1 fix missed — one a full **executable build spec inside the live
+queue**, eight days after §Ch20 shipped — and two fixes that landed in a tracking file while the
+surface a builder copies from kept the old text.
+
+**ROUND 3 — found a "rebuild leg 3" instruction BOTH earlier rounds passed over**, plus four
+defects created by round 2's fixes:
+* ⛔ `03-PUNCH-LIST.md`'s `#24-remainingarc` row said **"LEG 3 ITSELF IS NOT BUILT"** in its THIRD
+  table cell while its FIRST cell said leg 3 shipped. The leg-3 commit rewrote cell 1 and left
+  cell 3 — **the P5 shape exactly: a fact in three places, two updated.**
+* ⛔ "A re-run should read 31 of 32" is wrong while the tree is AHEAD of the remote: `preflight.py`
+  is `GATES[0]` and hard-fails on `ahead`, so it is **two** red gates, and the un-hedged count would
+  send a reader hunting a second cause that is just "push your commits".
+* ⛔ My own bullet (1) told the builder to `navigate_to((14,4))` — **the tile leg 3's shipped code
+  marks `⛔ NEVER (14,4)`**, whose plan ends on SKY_PILLAR_OUTSIDE, so the navigate would cross the
+  seam and RUN the one-shot Wallace cutscene the same line says to RIDE. And its blanket "never
+  press Down" banned the one input leg 4 must make.
+* ⛔ The "3,582 lines" figure was stale in the commit that wrote it (that commit added 7 lines) —
+  the exact failure the next sentence warns about, committed inside the warning.
+* ⛔ The "exactly one `➡➡➡`" invariant was broken BY the fix documenting it (prose mentions made a
+  bare `grep -c` return 8, and the "use the LAST one" tie-break landed on prose). Now specified as
+  `grep -n "^>    ➡➡➡"`.
+* ⛔ The probe write-warning named **1 of 7** probes; the other six boot libmgba on the shared
+  profile and say so in their own committed transcripts.
+
+**All fixed; `08-MISTAKES.md` gains the rules.** The through-line, and the reason the tier is worth
+its cost: **Tier 0 is mechanical and Tier 1 checks the pairs you hand it — both were GREEN over
+every one of these.** The defects lived in the BODY under CORRECT headings, and only an agent
+instructed to *begin the next item* hit them. ⇒ **the strongest audit of a handoff is not "is it
+consistent?" but "can someone START from it?"** — and, newly earned: **a fix is a new claim that
+inherits no credibility from the defect it replaces.**

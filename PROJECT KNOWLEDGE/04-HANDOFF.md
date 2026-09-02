@@ -12,7 +12,12 @@ Every banner further down is HISTORY, newest first.
 > ⛔ **ORDER, EXPLICITLY (a Tier 2 cold-start audit could not tell which of these came first):
 > (1) RUN THE RITUAL BELOW — it is cheap and it tells you whether the tree is sane; (2) READ
 > `14-AGENT-PLAYBOOK.md`; (3) GO TO `NEXT ACTIONS` item 0 and find the **`➡➡➡`** marker.
-> ✅ **AS OF 2026-09-01 THERE IS EXACTLY ONE `➡➡➡` IN THIS FILE, AND IT IS THE LIVE NEXT ACTION.**
+> ✅ **THERE IS EXACTLY ONE `➡➡➡` **MARKER** IN THIS FILE, AND IT IS THE LIVE NEXT ACTION.**
+> ⛔ **A MARKER IS A LINE THAT *BEGINS* `>    ➡➡➡`.** Several lines MENTION the arrows in prose
+> (including this one), so a bare `grep -c` returns ~8 and the old "use the LAST one" tie-break
+> now lands on prose. Use `grep -n "^>    ➡➡➡"` — that returns exactly one line, and it is the
+> instruction. *(A Tier 2 round-3 audit caught this: the fix for the marker defect broke the
+> very invariant it was documenting.)*
 > This instruction used to have to warn *"there are two; the first is a ✅-DONE block"* — that was a
 > hedge around a doc defect, so the ✅-DONE block was moved to `28-HANDOFF-ARCHIVE.md` instead.
 > ⛔ **If you ever find more than one `➡➡➡` here again, that is a DEFECT to fix, not a rule to
@@ -65,7 +70,13 @@ Every banner further down is HISTORY, newest first.
 > suite's 900s bound; re-run standalone it produced nothing for ~36 minutes). It is FILED as
 > `#24-gymwhiteoutgatehang` and it is **NOT a regression from §Ch21 leg 3** — it imports neither
 > `sootopolis` nor `story_harness`. ⇒ **expect `run_gates.py` to cost ~15 minutes and come back
-> RED on that one gate. Do not go hunting a regression.** A re-run should read **31 of 32**.
+> RED on that one gate. Do not go hunting a regression.**
+> ⛔ **AND EXPECT A SECOND RED IF THIS TREE IS AHEAD OF THE REMOTE:** `preflight.py` is
+> `GATES[0]` and it HARD-FAILS on `ahead` (`preflight.py:95-98`). ⇒ while commits are unpushed
+> the suite reads **30 of 32**, not 31, and the second red is not a regression either — it is
+> preflight telling you to push. ‼ *(An earlier version of this line promised "31 of 32" flatly.
+> That number is an INFERENCE from re-running ONE gate alone, not from a full suite run —
+> `run_gates.py` never prints such a string; on failure it prints a FAILED list.)*
 > *(This line said "32/32 gates green" while the punch list said 30-of-32 the same day; a Tier 2
 > re-audit called it the single most likely way a next session wastes its time.)*
 > **State: `main`, suite is 32 gates (**30 ENFORCING + 2 ADVISORY** — ⛔ `run_gates.py` prints its own count and IS the authority, never this line), drift **8** (see the STATE drift row; run `promote.py --check`, which outranks this line; ⛔ NOT a promotion decision until it is driven further. `early_game.py`'s promotion was DONE 2026-08-24), nothing parked MID-TASK, nothing running.** ✅ **THREE DECISIONS AWAIT A USER RULING — the drift promotion, the post-wind repeat burn and mixin adoption, all listed in the queue.** *(KI-82 — the tracked Emerald ROM — was CLOSED 2026-08-23: it had ALREADY been ruled on 2026-07-18 (`06-DECISIONS-LOG.md`, "keep it as is"), and the user re-affirmed it. ⛔ Do not re-raise it; the only condition that reopens it is the repo being made PUBLIC.)*
@@ -295,12 +306,23 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    called it the file's most expensive defect, because it is what a cold agent ACTS from.
 >    ⇒ P2 is not only about `##` headings: **a `➡➡➡` marker is a claim about every bullet
 >    beneath it**, and retargeting the heading without rewriting the body is the same failure.)*
->    (1) **THE FIRST MOVE IS AN ARROW WARP, NOT A STEP.** The run starts on
->        `SKY_PILLAR_ENTRANCE (6,16)` and must reach `(14,4)`. ⛔ `(6,16)` is itself a SOUTH
->        arrow warp back to ROUTE131, where the Sootopolis pocket has ALREADY RE-SEALED — so
->        never press or hold 'Down', and ⛔ **never use a helper that JOLTS the d-pad**:
->        `walking.py`'s starve-jolt tries `"Down"` FIRST. `wait_until_truly_controllable()`
->        presses nothing and is safe.
+>    (1) ⛔⛔ **WALK TO `(14,3)` — **NEVER** `navigate_to((14,4))`.** *(REWRITTEN 2026-09-01: this
+>        bullet used to say "must reach `(14,4)`", which is the tile LEG 3'S OWN SHIPPED CODE marks
+>        `⛔ NEVER (14,4)` — `sootopolis.py:737`. A third Tier 2 round caught it.)*
+>        `(14,4)` is a **South Arrow Warp to SKY_PILLAR_OUTSIDE**, so `calculate_path` to it returns
+>        `is_warp=True` ending on OUTSIDE `(17,13)` — i.e. **`navigate_to` would cross the map seam
+>        INSIDE the navigate and run the one-shot Wallace `lockall` cutscene**, which is the exact
+>        opposite of the `➡➡➡` line's own instruction to RIDE it. MEASURED: the same call to
+>        `(14,3)` returns 21 wp `is_warp=False` (`evidence/2026-09-01-ch21approach-CLEAN.txt`).
+>        ⇒ **navigate to `(14,3)`, THEN press Down deliberately** to fire the warp, THEN ride the
+>        scene on the far side. ‼ An arrow warp does **not** fire merely by stepping onto the tile —
+>        the direction must be HELD (`evidence/2026-08-27-ch21-skypillar-probe.stdout.txt`).
+>        ⛔ **AND THE 'NEVER PRESS DOWN' RULE IS SCOPED TO `(6,16)`, NOT TO THE WHOLE LEG** — an
+>        earlier draft banned it outright, which would have banned the one input leg 4 must make.
+>        `(6,16)` is a SOUTH arrow warp back to ROUTE131 where the Sootopolis pocket has ALREADY
+>        RE-SEALED; while standing there, never press or hold 'Down' and ⛔ **never use a helper
+>        that JOLTS the d-pad** — `walking.py`'s starve-jolt tries `"Down"` FIRST.
+>        `wait_until_truly_controllable()` presses nothing and is safe.
 >    (2) **RIDE THE WALLACE CUTSCENE** at `SKY_PILLAR_OUTSIDE` (fires on MAP LOAD at
 >        `SOOTOPOLIS_CITY_STATE == 3`, no coordinate condition, moves the player ~12 tiles under
 >        `lockall`, then sets the var to **4**). ⛔ It is a TRUE ONE-SHOT — leg 3 deliberately
@@ -346,7 +368,12 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    write down: (a) does leg 4 stop at the summit trigger or include the DESCENT? (the atlas says
 >    "build the descent fall into the leg from the start"; the queue says only "the climb" —
 >    they are different legs); (b) the end-state var to grade on — ⛔⛔ **AND IT IS NOT
->    `SKY_PILLAR_STATE`.** An earlier draft of this bullet wrote "`SKY_PILLAR_STATE`? 4 vs 5?"
+>    `SKY_PILLAR_STATE` **AT THE VALUES 4 OR 5**. ⚠ Scoped deliberately: `SKY_PILLAR_STATE` DOES
+>    reach **1** at the summit cutscene, so if (a) resolves to "leg 4 ends at the summit" then
+>    `SKY_PILLAR_STATE == 1` may well be the right predicate. An earlier draft of this bullet
+>    said flatly "it is NOT SKY_PILLAR_STATE", which over-claimed and could have banned the
+>    correct answer. What is definitely wrong is the VALUES: an earlier draft wrote
+>    "`SKY_PILLAR_STATE`? 4 vs 5?"
 >    and that is FLATLY WRONG: **4 and 5 are `SOOTOPOLIS_CITY_STATE` values** (4 = Wallace opens
 >    the door, `SkyPillar_Outside/scripts.inc:82`; 5 = Rayquaza awakened,
 >    `SkyPillar_Top/scripts.inc:126`), while **`SKY_PILLAR_STATE` is 0 for the ENTIRE ascent**
@@ -384,8 +411,11 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    existing gates and deliberately DELETED a third; ⛔ **do not resurrect the deleted check**
 >    — the long note at its former site in `audit_doc_consistency.py` says why, and it cost six
 >    review rounds to learn.
->    ⚠ **`03-PUNCH-LIST.md` RUNS CLOSE TO ITS 3600-LINE CAP** (3,582 as of 2026-09-01, so ~18
->    lines of headroom — it was AT the cap earlier the same day). ‼ Re-derive with `wc -l` LAST, never trust a
+>    ⚠ **`03-PUNCH-LIST.md` RUNS CLOSE TO ITS 3600-LINE CAP** — it was AT the cap earlier on
+>    2026-09-01. ⛔ **NO FIGURE IS QUOTED HERE ON PURPOSE.** A previous version wrote "3,582"
+>    and the very commit that wrote it added 7 more lines to that file, so the figure was stale
+>    before it was pushed — the exact failure the next sentence warns about, committed inside
+>    the warning itself. `wc -l` is the only authority. ‼ Re-derive with `wc -l` LAST, never trust a
 >    written figure (one drifted by 4 lines because it was measured before the final edits).
 >    **THE NEXT EDIT THAT GROWS IT MUST FIRST RETIRE A COMPLETED ITEM** — candidates: older ✅
 >    `#24-*` blocks, and the mined `#26` entries (the batch section keeps their numbers).
@@ -527,39 +557,11 @@ Moved for the R3 budget; the arc is item 4 in NEXT ACTIONS and is not started. �
 >    ⛔ Do not restate the figure here; it has been wrong at 2, 3 and 3 again. `promote.py --check`
 >    is the authority. (Earlier EXPECT-2 / EXPECT-3 trails moved to `28-HANDOFF-ARCHIVE.md`.)
 >
-> 1b. ✅ **DONE — the KI-63 wiring was PROMOTED on 2026-08-14 and is in BOTH forks. There is no
->    decision left here** (‼ not a claim about today's drift figure — see item 1). Its superseded
->    "first decision for the user" text, and the measured worth behind it (20 terminal run-kills in
->    1,129 runs, #1 of 14 derail causes by frames), moved to `28-HANDOFF-ARCHIVE.md` 2026-08-14.
->
-> 2. ✅ **DONE 2026-08-13 — `reorder_party()` IS DRIVEN.** `--driver roster` passes: six swaps, all
->    verified by PID, including the never-driven `RotatePokemon(i, j != 0)`. Both unknowns this
->    item asked about are SETTLED; the trace detail moved to `28-HANDOFF-ARCHIVE.md` 2026-08-14 on
->    the line budget. ⚠ **Keep one thing from it:** `gPartyMenu.slot_id` is NOT reset between menu
->    sessions and `navigate_to_mon:520-524` reads it — it happened to be re-read live in time, so
->    that is LUCK, not safety. Re-check it first if a roster drive ever mis-swaps.
->    ‼ **What is NOT done:** the **deposit/withdraw** half of `#24-roster`. Ordering answers "in
->    what order", not "which Pokémon". And **promotion of `roster.py` + `menuing.py` to
->    `custom-pokebot/` — ✅ **DONE, promoted 2026-08-13/14; both files are in BOTH forks.**
->    ‼ That is a statement about THESE TWO FILES, not about the repo's drift figure today —
->    PARTY ACCOUNTING STAGE 0 has since moved it. See the STATE line at the top of this file.**
->
-> 2c. **‼ READ `ai-research-notes/2026-08-13-puzzle-solver-already-ships-ch21-and-the-regi-arc.md`
->    BEFORE ITEMS 3 AND 4 BELOW.** Both were written believing §Ch21 and the Regi arc had to be
->    built as chapters. **Most of that content already exists in upstream code we already have.**
->    Items 3 and 4 are still correct about the DIVE LEG — which is the real gap — but wrong about
->    the scale of what remains. **KI-72** also lands here: never let the planner choose a surfacing
->    tile.
->
-> 3. ✅ **DONE — DO NOT RE-DO.** KI-68's dive leg is driven (`--driver ch20dive` →
->    `ACCEPTANCE: PASS legs=6/6`) and all nine cavern rooms with it. ‼ **Keep the RULE, not the
->    task:** `WaypointAction.Dive`/`Emerge` are assigned NOWHERE and `warp_graph.py:342` excludes
->    dives from `calculate_path` **on purpose** — so *"not routable" never meant "not possible"*;
->    the answer is a CHAPTER that drives the transition, never a planner rewrite.
->    ‼ **LIVE, not stale:** if a hunting ground is ever added, **NOT to `TRAINING_GRASS`** —
->    measured, a Shoal Cave row becomes the highest band and flips `best_training_area` for every
->    team ~L30 up. ⇒ see **KI-80**, the same table's second sharp edge.
->
+> ‼ *(Queue items **1b, 2 and 3** were ✅-DONE and were archived to `28-HANDOFF-ARCHIVE.md` on
+>    2026-09-01 for the line budget. ⛔ They are DONE, not pending — do not resurrect them.
+>    NOTE ALSO: several lines in this file point at a "queue item 4" that **does not exist** (the
+>    items are 0, 1, 1b, 2, 2c, 3, 3b); a Tier 2 round-3 audit found three such dangling
+>    pointers, and the Regi arc they mean is tracked in `05-KNOWN-ISSUES.md` KI-69.)*
 > 3b. ⛔⛔ **THE ORDER CHANGED 2026-08-13 — READ `06-DECISIONS-LOG.md` before item 4.** The Regi
 >    arc is **NOT** next: *"KI-59 blocked it, I fixed it, so build it"* was **REFUTED three ways**
 >    (the tombs walk with `follow_path`, **"no collision checking"**; their 144 tiles describe a
@@ -643,9 +645,15 @@ PYTHONUTF8=1 py -3.12 probe_ch21_pocket_exit.py
 POKEBOT_POCKET_FAULT=rig PYTHONUTF8=1 py -3.12 probe_ch21_pocket_exit.py   # self-test: C3 RED, exit 1
 
 # leg 3/4 — the SKY PILLAR, asked of PRODUCTION. Seconds, no network.
-# ⛔ BUT IT IS **NOT** READ-ONLY: it WRITES a save state into profiles/repro-ml/states/ and
-#   updates current_state.ss1 every run (filed as `#24-skypillarprobewrites`). Harmless to the
-#   repo (gitignored) but it mutates the SHARED profile, and the recipe below runs it TWICE.
+# ⛔⛔ NONE OF THE §Ch21 PROBES BELOW IS READ-ONLY, WHATEVER ITS 'Offline / no emulation loop'
+#   LABEL SAYS. Every one of them boots `LibmgbaEmulator` on the SHARED `repro-ml` profile and
+#   writes a save state into profiles/repro-ml/states/ + updates current_state.ss1 ON EVERY RUN.
+#   Their OWN committed transcripts print it (`Save state ... created! / Updated current_state`):
+#   probe_ch21_skypillar, probe_ch21_route131_tail, probe_ch21_route131_live,
+#   probe_ch21_leg3_constants, probe_ch21_pocket_exit, probe_live_mapgrid, ab_ch21_leg3_layoutpin.
+#   Harmless to the REPO (gitignored) — but it mutates shared state, and these recipes run some
+#   of them TWICE. Filed as `#24-skypillarprobewrites` (‼ that item names ONE probe; the class
+#   is at least SEVEN, found by a Tier 2 round-3 audit reading their own evidence files).
 # ⛔ keep BOTH sky-pillar
 # probes: this one reads the layout WE plan on, `probe_skypillar_clean_layout.py` reads CLEAN.
 PYTHONUTF8=1 py -3.12 probe_ch21_skypillar.py
