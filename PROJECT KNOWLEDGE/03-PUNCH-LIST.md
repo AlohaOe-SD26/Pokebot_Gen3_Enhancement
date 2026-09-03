@@ -864,8 +864,25 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       ⇒ **THE CHAPTER IS NOT DONE UNTIL THE EXIT LEG EXISTS.** 'Can continue' is deliberately
       NOT a conjunct of the ICE leg's grade (its honest end state IS 'stranded in front of
       Juan'), but a CHAPTER grade that omitted it would be the §Ch15/18/19 shape exactly.
-      ⇒ **WHAT REMAINS:** the EXIT leg (fall → B1F → ladder (11,22) → 1F → city), which also
-      means B1F's TEN trainers — never entered; the Mart's stock (unverified); B1F (never entered — the exit fall, the
+      ✅✅ **THE EXIT IS MAPPED 2026-09-03** — `ai-research-notes/2026-09-03-ch22-B1F-EXIT.md`.
+      ⛔ **EXACTLY ONE tile can be fallen through: (8,6)** — the only cracked ice adjacent to
+      the 20-tile island (confirmed twice: live BFS and an offline decode of `map.bin`).
+      ⛔ **FROM IT THERE IS NO TRAINER-FREE ROUTE: the exit costs FIVE forced battles**
+      (Andrea, Annika, Bethany, Connie, Daphne) over a 20-step walk to the ladder (11,22),
+      B1F's ONLY warp. The sight-line rule is DECOMP-VERIFIED (`src/trainer_see.c`), not
+      assumed. ‼ My first pass picked (8,19) with a 7-step trainer-free route and it was
+      WORTHLESS — the stranded bot cannot reach it. **A "best option" computed without the
+      reachability constraint is not an option.**
+      ⇒ **THE EXIT AND THE XP RUN ARE THE SAME LEG** — the bot cannot leave without those
+      five fights, and it needs the XP for Juan. Do not design them separately.
+      ⇒ **AND HEALING/STOCKING BEFORE ENTERING IS MANDATORY, NOT PRUDENT:** no Poke Center
+      inside, `allow_escaping: false` on BOTH floors, and the bot arrives at ~91% with 1
+      Potion and 0 Revives. Money 67,466 makes stocking affordable; the Mart's stock is the
+      remaining unknown.
+      ⇒ **WHAT REMAINS:** BUILD the exit leg; the five trainers' parties; whether the party
+      survives all five (only a drive settles it); ⚠ B1F is ASSUMED static — VERIFY before
+      trusting `calculate_path` there, since trusting it on 1F would have walked into locked
+      stairs; the Mart's stock; B1F (never entered — the exit fall, the
       ten trainers, the (11,22) ladder are all decomp-only); and how under-levelled the party is —
       **only a live Juan drive settles that, and the FIRST ONE IS EXPECTED TO LOSE. That loss is the
       measurement, not a failure.**

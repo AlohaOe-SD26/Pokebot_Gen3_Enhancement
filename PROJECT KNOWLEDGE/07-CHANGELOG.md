@@ -20086,3 +20086,46 @@ walls**, for exactly the same reason. The right answer needs BOTH grids. Rules i
 ### FILES
 `tools/story-dev/story_harness.py`; `tools/story-dev/evidence/2026-09-02-ch22ice-CLEAN.txt`;
 `07-CHANGELOG.md`, `08-MISTAKES.md`, `03-PUNCH-LIST.md`.
+
+---
+
+## 2026-09-03 — §Ch22's EXIT IS MAPPED: ONE fall tile, FIVE forced battles, and the XP run is the exit
+
+### THE MEASUREMENT
+`ai-research-notes/2026-09-03-ch22-B1F-EXIT.md`. Decoded from the decomp myself and cross-checked
+against the live game — this note's load-bearing claims are mine and verified, not agent recall.
+
+* ✅ **The island is 20 tiles**, agreed EXACTLY by two independent authorities: the live BFS
+  (`live_reachable=20`) and an offline decode of `SootopolisCity_Gym_1F/map.bin`.
+* ⛔ **There is exactly ONE tile the bot can fall through: (8,6)** — the only cracked ice orthogonally
+  adjacent to the island, directly north of the now-open stairs at (8,5).
+* ⛔ **From (8,6) there is NO trainer-free route.** The shortest walk to the ladder (11,22) — B1F's
+  ONLY warp — is 20 steps and crosses FIVE sight lines: Andrea, Annika, Bethany, Connie, Daphne.
+* ✅ **The sight-line rule is DECOMP-VERIFIED** (`src/trainer_see.c`): a trainer sees exactly `range`
+  tiles along its facing (`GetTrainerApproachDistanceSouth` and its three mirrors), and
+  `CheckPathBetweenTrainerAndPlayer` blocks sight on any intervening collision.
+
+### ‼ A "BEST OPTION" COMPUTED WITHOUT THE CONSTRAINT IS NOT AN OPTION
+My first pass ranked all 64 ice tiles by B1F route quality and picked **(8,19)** — a 7-step
+TRAINER-FREE route. Worthless: (8,19) is in section 1 and **the stranded bot cannot reach it**. The
+reachability constraint has to be applied BEFORE the ranking, not after. It was tempting precisely
+because the answer it produced was so much better than the real one.
+
+### ⇒ THE STRATEGIC CONSEQUENCE
+**The exit and the XP run are the SAME LEG.** The recon had proposed "take the B1F trainers for XP"
+as an option for fixing readiness; this makes it a fact — the bot cannot leave without five of those
+fights, and it needs the XP for Juan. Do not design them separately, and do not design an exit that
+tries to dodge them.
+⛔ **AND HEALING/STOCKING BEFORE ENTERING IS MANDATORY, NOT PRUDENT:** no Poké Center inside,
+`"allow_escaping": false` on BOTH floors, arriving at ~91% with 1 Potion and 0 Revives. A party that
+cannot survive five consecutive trainer battles cannot leave the room it is standing in. Money is
+67,466, so stocking is affordable; the Mart's stock list is the remaining unknown.
+
+### STILL UNMEASURED (named, not glossed)
+The five trainers' parties; whether the party survives them; **B1F's staticness is ASSUMED** — verify
+before trusting `calculate_path` there, because trusting it on 1F would have walked the bot into
+locked stairs; and the ladder's landing tile on 1F.
+
+### FILES
+`ai-research-notes/2026-09-03-ch22-B1F-EXIT.md` (NEW); `03-PUNCH-LIST.md`, `04-HANDOFF.md`.
+⛔ No production code changed; drift unchanged at 9.
