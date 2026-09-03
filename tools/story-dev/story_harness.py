@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -11942,6 +11942,426 @@ class Ch22ExitMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch22ChapterMode(BotMode):
+    """§Ch22 AS A CHAPTER — drives PRODUCTION `sootopolis_gym.do_sootopolis_gym_chapter()`.
+
+    ‼ WHAT THIS PROVES THAT THE FOUR LEG DRIVERS DID NOT. Each leg was driven from a FRESH
+    `post_hm07.ss1`, so **no run has ever chained them** — and the seam they chain through is the
+    one with zero coverage: `walk_the_ice -> fight_juan -> fall_to_b1f` needs a SOUTHWARD walk that
+    did not exist until 2026-09-03 (`_climb_to` walks north only, and its first step from (8,3)
+    would have been Juan's own tile). This driver is that seam's first exercise.
+
+    ⛔ PREDICTIONS ARE PRE-REGISTERED IN
+    `PROJECT KNOWLEDGE/ai-research-notes/2026-09-03-ch22-CHAPTER-PREDICTIONS.md`, committed BEFORE
+    the orchestrator was written. Grade against that file, not against this docstring.
+    The load-bearing one, restated because it is the whole point:
+
+      ⭐ **P7 — B1F COSTS *ZERO* TRAINER BATTLES AFTER THE BADGE**, because the Juan victory script
+      `settrainerflag`s all ten B1F trainers. If the decomp read is wrong the answer is **3**
+      (Bethany/Andrea/Connie at (8,8)/(8,17)/(8,19), already measured pre-badge). 0 vs 3 is
+      unmissable and the run cannot produce both — that is what makes this a DISCRIMINATOR and not
+      a formality.
+
+    ⛔ THE GRADE: `BADGE08_GET` AND on `SOOTOPOLIS_CITY` AND a real `calculate_path` off the END
+    tile AND `whiteouts == 0` AND `ice_steps == 64` AND `battles_on_b1f == 0`.
+    ‼ `juan_defeated()` alone is NOT the grade — it is True while the bot is stranded on the
+    20-tile island, which is the §Ch15/§Ch18/§Ch19 shape verbatim.
+    ⚠ A LOSS to Juan is a RESULT (the fight is 4/4 but stochastic, and this run is an independent
+    5th sample); a HANG, a run that reports nothing, or a badge claimed from inside the gym are the
+    defect shapes.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_hm07.ss1 --driver ch22chapter --frames 200000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch22Chapter"
+
+    def __init__(self):
+        super().__init__()
+        self.whiteouts = 0
+        self.battles: list[str] = []
+        self.battles_b1f = 0
+        self.outcomes: list[str] = []
+        self.recoveries = 0
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts += 1
+        log("[ch22chapter] !! WHITEOUT — latching the abort so a verdict still prints.")
+        try:
+            from modules.story.early_game import set_story_abort
+
+            set_story_abort(True)
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch22chapter] !! could not latch the abort: {type(error).__name__}: {error}")
+            return False
+        return True
+
+    def on_battle_started(self, encounter):
+        # ⛔ RECORD THE MAP, NOT JUST A COUNT: the discriminator is battles ON B1F, and a run-wide
+        # count would fold Juan himself into it. Counting run-wide once printed a false REFUTED
+        # over data that CONFIRMED the claim (§Ch20 room 3).
+        try:
+            from modules.map_data import MapRSE
+            from modules.player import get_player_avatar
+
+            a = get_player_avatar()
+            name = MapRSE(tuple(a.map_group_and_number)).name
+            self.battles.append(f"{name}{tuple(a.local_coordinates)}")
+            if name == "SOOTOPOLIS_CITY_GYM_B1F":
+                self.battles_b1f += 1
+        except Exception:  # noqa: BLE001
+            self.battles.append("?")
+        return super().on_battle_started(encounter)
+
+    def on_battle_ended(self, outcome=None):
+        try:
+            self.outcomes.append(str(outcome))
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            return super().on_battle_ended(outcome)
+        except TypeError:
+            return None
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag, get_event_var
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story import sootopolis_gym as gym
+
+        TAG = "ch22chapter"
+        frames_before = context.emulator.get_frame_count()
+
+        def where():
+            a = get_player_avatar()
+            try:
+                return MapRSE(tuple(a.map_group_and_number)).name, tuple(a.local_coordinates)
+            except Exception:  # noqa: BLE001
+                return f"UNKNOWN{tuple(a.map_group_and_number)}", tuple(a.local_coordinates)
+
+        def party_snapshot():
+            return [(m.personality_value, m.species.name, m.level, m.current_hp, m.total_hp)
+                    for m in get_party() if m is not None]
+
+        import os  # ⛔ LOCAL: this module has no module-level `os` (a substring check for
+        #            "import os" once matched `import os.path` and a run died at f0 for it).
+
+        # ⛔ RE-RUNNING THIS UNJITTERED IS A REPLAY, NOT A SAMPLE — the harness is deterministic for
+        # a fixed (save, driver, code) triple, MEASURED. Idling N frames first moves `gRngValue`
+        # and makes the Juan fight an independent draw. Same knob as `Ch22JuanMode`.
+        JITTER = int(os.environ.get("POKEBOT_CH22JUAN_JITTER", "0") or 0)
+
+        def _rng() -> int:
+            from modules.memory import read_symbol, unpack_uint32
+
+            return unpack_uint32(read_symbol("gRngValue"))
+
+        rng_before = _rng()
+        for _ in range(JITTER):
+            yield
+        log(f"[{TAG}] RNG 0x{rng_before:08x} -> 0x{_rng():08x} after {JITTER} idle frames "
+            f"(EQUAL means the jitter moved nothing and this run is a REPLAY of a previous one)")
+
+        start_name, start_at = where()
+        party0 = party_snapshot()
+        # ⛔ THE ANTI-VACUITY PREMISE: a chapter driver that starts DONE grades a zero-frame no-op
+        # as PASS. §Ch21's chapter driver shipped with exactly that hole and it was caught late.
+        start_done = gym.ch22_chapter_done()
+        log(f"[{TAG}] PRE at={start_name}{start_at} badge8={get_event_flag('BADGE08_GET')} "
+            f"chapter_done={start_done} party={party0}")
+        if start_done:
+            log(f"[{TAG}] ⛔ PREMISE FAILS: the chapter already grades DONE at frame 0, so this run "
+                f"can prove nothing. Use a fixture from BEFORE the badge.")
+
+        report: dict = {}
+        failure = None
+        # THE LOSS BRANCH IS DRIVEN, NOT ASSERTED. A lost Juan fight is a whiteout, which unwinds
+        # as `StoryAbort` past the chapter to `StoryMode.run` — which clears the latch, walks out
+        # of the Poke Center and re-enters `_play()` from the top. THIS DRIVER IS NOT
+        # `StoryMode.run`, so without this loop it reports a loss as a chapter failure and the
+        # recovery path stays unexercised. MEASURED 2026-09-03: drive 1 LOST the fight
+        # (`BattleOutcome.Lost`), so this is a live branch, not a hypothetical one.
+        # Capped at 3 attempts: production's budget is 40, but a driver that can loop is a driver
+        # that can hang, and each attempt costs ~35k frames.
+        from modules.story.early_game import (
+            StoryAbort,
+            exit_building_after_whiteout,
+            set_story_abort,
+        )
+
+        for recovery in range(3):
+            try:
+                yield from gym.do_sootopolis_gym_chapter(report)
+                failure = None
+                break
+            except StoryAbort as error:
+                self.recoveries = recovery + 1
+                failure = f"StoryAbort: {str(error)[:400]}"
+                if recovery >= 2:
+                    log(f"[{TAG}] !! whiteout #{recovery + 1} - recovery budget spent, stopping.")
+                    break
+                log(f"[{TAG}] !! WHITEOUT #{recovery + 1} - replaying what StoryMode.run does: "
+                    f"clear the abort latch, leave the Poke Center, re-enter the chapter. The ice "
+                    f"puzzle resets on every entry (MEASURED), so this costs the walk, never the "
+                    f"chapter.")
+                set_story_abort(False)
+                try:
+                    yield from exit_building_after_whiteout()
+                except Exception as err:  # noqa: BLE001
+                    failure = f"recovery failed: {type(err).__name__}: {str(err)[:300]}"
+                    log(f"[{TAG}] !! {failure}")
+                    break
+            except Exception as error:  # noqa: BLE001 - REPORTED, never hidden
+                failure = f"{type(error).__name__}: {str(error)[:700]}"
+                log(f"[{TAG}] CHAPTER FAILED: {failure}")
+                break
+
+        here_name, at = where()
+        party1 = party_snapshot()
+        badge = get_event_flag("BADGE08_GET")
+        alive = [p for p in party1 if p[3] > 0]
+
+        # ⛔ A REAL PATH OFF THE END TILE — the conjunct whose absence let §Ch15/18/19 each PASS
+        # while stranded. Target the Poké Center APRON (43,32); pathing to the (43,31) door warp
+        # would end the check INSIDE the building and skip the very thing it is checking.
+        cont = None
+        if here_name == "SOOTOPOLIS_CITY":
+            try:
+                from modules.map_path import calculate_path
+
+                cont = len(calculate_path((MapRSE.SOOTOPOLIS_CITY, at),
+                                          (MapRSE.SOOTOPOLIS_CITY, (43, 32))))
+            except Exception as err:  # noqa: BLE001 - a refusal IS the reading
+                cont = type(err).__name__
+
+        # TWO CONJUNCTS WERE SATISFIABLE BY NOT DOING THE THING, AND DRIVE 1 PROVED IT:
+        #  (a) `battles_b1f == 0` was TRUE because the run never reached B1F at all - zero battles
+        #      for zero opportunities. That is "A CANDIDATE IS NOT AN ATTEMPT" in grade form. The
+        #      P7 discriminator means nothing unless B1F was ENTERED, so require the step count.
+        #  (b) `isinstance(cont, int)` was TRUE with cont == 0 - because a WHITEOUT respawns the
+        #      bot standing ON the Poke Center apron, so the path to it is empty. A can-continue
+        #      check that a whiteout satisfies is not a can-continue check. Require NON-ZERO.
+        b1f_entered = isinstance(report.get("b1f_steps"), int) and report["b1f_steps"] > 0
+        can_continue = isinstance(cont, int) and cont > 0
+        # A RECOVERED WHITEOUT IS THE LOSS BRANCH WORKING, NOT A FAILURE. Drive 2 lost the Juan
+        # fight, recovered, re-walked virgin ice, WON, took the fall, cleared B1F and walked out -
+        # and graded FAIL on a `whiteouts == 0` conjunct. Production tolerates FORTY whiteouts
+        # (`story_mode.py`), and this fight is measured stochastic (4W/1L), so demanding zero here
+        # grades a healthy run as broken - the same inversion a cold-start audit once found in the
+        # KI-80 arm. The bound is what matters, so the bound is what is graded, and the raw count
+        # is REPORTED right beside it.
+        # AND `steps == 64` was wrong for the same reason: the chapter's report accumulates across
+        # attempts, so a recovered run legitimately walks 128. Grade the INVARIANT (a whole number
+        # of complete 64-tile covers), never the single-attempt figure.
+        # AND THE ICE COUNT MUST BE SUMMED ACROSS ATTEMPTS, NOT READ OFF THE LAST ONE. The chapter
+        # archives each attempt's readings into `previous_attempts` and starts the next clean, and
+        # a later attempt legitimately SKIPS the ice (the badge is already won) - so `steps` reads
+        # None while the ice was in fact walked. MEASURED by the NODESCEND fault arm, which won the
+        # badge on attempt 1 and then faulted twice: `ice_steps=None`, `ice_ok=False`, on a run
+        # whose ice walk had completed. Grading the last attempt's figure would FAIL a healthy run.
+        ice_total = (report.get("steps") or 0) + sum(
+            (a.get("steps") or 0) for a in (report.get("previous_attempts") or [])
+        )
+        ice_ok = ice_total >= 64 and ice_total % 64 == 0
+        passed = (
+            failure is None
+            and not start_done
+            and badge
+            and here_name == "SOOTOPOLIS_CITY"
+            and can_continue
+            and self.recoveries <= 2
+            and ice_ok
+            and b1f_entered
+            and self.battles_b1f == 0
+        )
+        total = context.emulator.get_frame_count() - frames_before
+        log(f"[{TAG}] RESULT badge8={badge} at={here_name}{at} "
+            f"city_state={get_event_var('SOOTOPOLIS_CITY_STATE')} "
+            f"ice_steps={report.get('steps')} ice_total={ice_total} (ice_ok={ice_ok}; SUMMED "
+            f"across attempts - a later attempt legitimately skips the ice once the badge is won) "
+            f"end_tile={report.get('end_tile')} "
+            f"b1f_steps={report.get('b1f_steps')} whiteouts={self.whiteouts} "
+            f"(REPORTED, not graded - a RECOVERED whiteout is the loss branch working; the bound "
+            f"is what is graded) frames={total}")
+        log(f"[{TAG}] PREVIOUS ATTEMPTS {report.get('previous_attempts')} "
+            f"(archived per-attempt readings - the attempt that DIED is the one whose partial "
+            f"readings matter most)")
+        log(f"[{TAG}] P7 DISCRIMINATOR - b1f_entered={b1f_entered} "
+            f"(b1f_steps={report.get('b1f_steps')!r}) battles_on_B1F={self.battles_b1f}. "
+            f"ZERO BATTLES MEANS NOTHING UNLESS B1F WAS ENTERED - drive 1 printed 0 having never "
+            f"gone there. "
+            f"(PREDICTED 0, because the Juan victory script settrainerflags all ten. THREE would "
+            f"REFUTE that decomp read and force the chapter to be re-ordered.)")
+        log(f"[{TAG}] BATTLES {self.battles} outcomes={self.outcomes}")
+        log(f"[{TAG}] PARTY BEFORE {party0}")
+        log(f"[{TAG}] PARTY AFTER  {party1}  survivors={len(alive)}/{len(party1)}")
+        log(f"[{TAG}] HEAL before={report.get('party_before_heal')}")
+        log(f"[{TAG}] HEAL after ={report.get('party_after_heal')}")
+        log(f"[{TAG}] CONTINUE path to the Poke Center apron (43,32) = {cont} "
+            f"(must be NON-ZERO: a whiteout respawns ON that tile, and a length-0 path would "
+            f"otherwise let the very failure this checks for satisfy the check)")
+        log(f"[{TAG}] RECOVERIES {self.recoveries} (whiteouts survived and re-entered, replaying "
+            f"StoryMode.run's own loop)")
+        log(f"[{TAG}] PREMISE start_done={start_done} (must be False or the grade is vacuous)")
+        log(f"[{TAG}] FAILURE {failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
+class Ch22StairsMode(BotMode):
+    """§Ch22 — READ-ONLY: what does the stair column ACTUALLY read once the puzzle is solved?
+
+    ⛔⛔ THIS EXISTS BECAUSE THE CHAPTER'S NEXT LINE OF CODE IS A COORDINATE CONVERSION, AND THIS
+    PROJECT MEASURES THE DIRECTION BEFORE APPLYING ONE (SESSION DISCIPLINE #10 — `handle_fainted_
+    pokemon` has had THREE index-space bugs). The chapter must walk (8,3) -> (8,5), which is SOUTH,
+    through the two stair tiles (8,4) and (8,5). ‼ **NOBODY HAS EVER READ THOSE TWO METATILES AFTER
+    THE PUZZLE COMPLETES.** `OPEN_STAIRS = 0x207` comes from the DECOMP, not from a live read.
+
+    THE TWO OUTCOMES, AND THEY ARE NOT EQUALLY SAFE:
+      * (8,4)/(8,5) read `0x207` (`MB_NORMAL`)  -> a plain southward walk is safe. Build `_descend_to`.
+      * they still read `0x20F` (`MB_SLIDE_SOUTH`) -> stepping south SLIDES the bot back onto the
+        cracked ice and falls it through from the WRONG tile, mid-chapter, with the badge unclaimed.
+        ⇒ the descent would have to be modelled as a slide, not a walk.
+    ⇒ **This 2,300-frame read decides which of those two things gets written.**
+
+    ⛔ IT WRITES NOTHING AND FIGHTS NOBODY. It walks the PRODUCTION ice route (the only way to reach
+    the solved state), then dumps column x=8 from y=2 to y=20, twice: right after the walk, and
+    again after the 3-step climb to JUAN_STAND. The second dump is the one the chapter acts on.
+
+    ⛔ PREDICTIONS, FILED BEFORE THE RUN (`2026-09-03-ch22-CHAPTER-PREDICTIONS.md` P5):
+      (8,4) and (8,5) read 0x207 OPEN_STAIRS; (8,2) and (8,3) read plain floor; (8,6) reads
+      cracked/broken (0x20E or 0x206); the six locked-stair tiles are ALL open at count 68.
+      UNPREDICTED and wanted: the actual value of the plain-floor tiles, which no doc records.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_hm07.ss1 --driver ch22stairs --frames 60000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch22Stairs"
+
+    def __init__(self):
+        super().__init__()
+        self.whiteouts = 0
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts += 1
+        log("[ch22stairs] !! WHITEOUT during a READ-ONLY probe — that is a defect, not a result.")
+        try:
+            from modules.story.early_game import set_story_abort
+
+            set_story_abort(True)
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch22stairs] !! could not latch the abort: {type(error).__name__}: {error}")
+            return False
+        return True
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_var
+        from modules.player import get_player_avatar
+        from modules.story import sootopolis_gym as gym
+        from modules.story.sootopolis import _live_metatile_grid
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+        TAG = "ch22stairs"
+        frames_before = context.emulator.get_frame_count()
+
+        def where():
+            a = get_player_avatar()
+            try:
+                return MapRSE(tuple(a.map_group_and_number)).name, tuple(a.local_coordinates)
+            except Exception:  # noqa: BLE001
+                return f"UNKNOWN{tuple(a.map_group_and_number)}", tuple(a.local_coordinates)
+
+        def dump(label: str) -> dict:
+            """Column x=8, y=2..20, as the GAME sees it right now."""
+            grid = _live_metatile_grid(gym.GYM_1F)
+            col = {y: grid.get((8, y)) for y in range(2, 21)}
+            pretty = " ".join(
+                f"{y}:{'None' if v is None else f'{v:#05x}'}" for y, v in sorted(col.items())
+            )
+            log(f"[{TAG}] {label} COLUMN x=8  {pretty}")
+            return col
+
+        report: dict = {}
+        failure = None
+        col_after_walk: dict = {}
+        col_at_juan: dict = {}
+        try:
+            name, _ = where()
+            if name == "SOOTOPOLIS_CITY":
+                yield from _navigate_riding_out(MapRSE.SOOTOPOLIS_CITY, (31, 32), tries=6)
+                yield from _navigate_riding_out(gym.GYM_1F, gym.GYM_ENTRANCE, tries=4)
+                yield from wait_until_truly_controllable()
+
+            col_before = dump("BEFORE (virgin ice)")
+            yield from gym.walk_the_ice(report)
+            log(f"[{TAG}] ICE done steps={report.get('steps')} end_tile={report.get('end_tile')} "
+                f"ICE_STEP_COUNT={get_event_var('ICE_STEP_COUNT')}")
+            col_after_walk = dump("AFTER THE WALK (standing on (8,6))")
+
+            # the 3-step climb the CHAPTER will have to own — it lives only in drivers today
+            from modules.story.sootopolis import _bounded_step
+
+            for _ in range(3):
+                here = tuple(get_player_avatar().local_coordinates)
+                yield from _bounded_step("Up", expect=(here[0], here[1] - 1), map_enum=gym.GYM_1F)
+            yield from wait_until_truly_controllable()
+            col_at_juan = dump("AT JUAN_STAND (8,3) — ⭐ THE ONE THE CHAPTER ACTS ON")
+            _ = col_before
+        except Exception as error:  # noqa: BLE001 - the probe REPORTS failures, never hides them
+            failure = f"{type(error).__name__}: {str(error)[:600]}"
+            log(f"[{TAG}] PROBE FAILED: {failure}")
+
+        here_name, at = where()
+        # ⛔ THE VERDICT IS DERIVED FROM THE READING, NOT ASSERTED: it must say which of the two
+        #    descent designs the measurement licenses, and it must be able to say "neither".
+        stairs = {y: col_at_juan.get(y) for y in (4, 5)}
+        all_open = stairs and all(v == gym.OPEN_STAIRS for v in stairs.values())
+        any_locked = any(v == gym.LOCKED_STAIRS for v in stairs.values())
+        verdict = (
+            "WALK — (8,4)/(8,5) are OPEN_STAIRS, so a plain southward step is safe; build "
+            "`_descend_to` as the mirror of `_climb_to`."
+            if all_open else
+            "SLIDE — at least one stair tile is still MB_SLIDE_SOUTH; a southward step would shove "
+            "the bot onto cracked ice and fall it from the WRONG tile. The descent must be modelled "
+            "as a slide."
+            if any_locked else
+            "NEITHER — the tiles read something this probe did not predict. ⛔ Do NOT write the "
+            "descent until this is explained; an unpredicted value is exactly where the last three "
+            "index-space bugs lived."
+        )
+        # the probe is only meaningful if the puzzle actually completed
+        premise_ok = report.get("steps") == 64 and report.get("end_tile") == gym.FALL_TILE
+        passed = (
+            failure is None
+            and self.whiteouts == 0
+            and premise_ok
+            and at == gym.JUAN_STAND
+            and bool(col_at_juan)
+            and all(v is not None for v in stairs.values())
+        )
+        total = context.emulator.get_frame_count() - frames_before
+        log(f"[{TAG}] RESULT at={here_name}{at} ice_steps={report.get('steps')} "
+            f"end_tile={report.get('end_tile')} premise_ok={premise_ok} whiteouts={self.whiteouts} "
+            f"frames={total}")
+        log(f"[{TAG}] STAIR TILES (8,4)={stairs.get(4)!r} (8,5)={stairs.get(5)!r}  "
+            f"(OPEN_STAIRS={gym.OPEN_STAIRS:#05x} LOCKED_STAIRS={gym.LOCKED_STAIRS:#05x})")
+        log(f"[{TAG}] FALL TILE (8,6)={col_at_juan.get(6)!r}  "
+            f"(CRACKED={gym.CRACKED_ICE:#05x} BROKEN={gym.BROKEN_ICE:#05x})")
+        log(f"[{TAG}] JUAN'S SIDE (8,2)={col_at_juan.get(2)!r} (8,3)={col_at_juan.get(3)!r} "
+            f"— ⛔ (8,2) is JUAN'S OWN TILE; `_climb_to` would have stepped onto it")
+        log(f"[{TAG}] ⭐ VERDICT: {verdict}")
+        log(f"[{TAG}] FAILURE {failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'} "
+            f"(PASS means THE READING HAPPENED — it does NOT mean the answer was the predicted one. "
+            f"Read the VERDICT line for that.)")
+        context.set_manual_mode()
+
+
 class Ch22JuanMode(BotMode):
     """§Ch22 — THE JUAN FIGHT. Drives PRODUCTION `sootopolis_gym.fight_juan()`.
 
@@ -13545,6 +13965,10 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch22ExitMode()
         elif args.driver == "ch22juan":
             context.bot_mode_instance = Ch22JuanMode()
+        elif args.driver == "ch22stairs":
+            context.bot_mode_instance = Ch22StairsMode()
+        elif args.driver == "ch22chapter":
+            context.bot_mode_instance = Ch22ChapterMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

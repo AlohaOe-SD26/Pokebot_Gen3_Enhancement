@@ -629,3 +629,372 @@ def fight_juan(report: dict | None = None, *, budget_frames: int = 40000) -> Gen
     report["city_state"] = _var("SOOTOPOLIS_CITY_STATE")
     report["end_tile"] = tuple(_here())
     return report
+
+
+# ================================ THE CHAPTER ====================================================
+# ⛔⛔ FOUR MOVEMENT LEGS LIVED ONLY IN HARNESS DRIVERS UNTIL 2026-09-03, AND ONE OF THEM DID NOT
+# EXIST AT ALL. An adversarial review found the gap before any composed run: the chapter's own
+# order (… -> fight_juan -> fall_to_b1f) needs a SOUTHWARD walk from JUAN_STAND (8,3) to
+# FALL_STAGING (8,5), and `_climb_to` walks NORTH ONLY — its first step would have been (8,2),
+# **Juan's own tile**, which is plain floor (MEASURED `0x22b`), so neither of its guards fires.
+# ⇒ `_descend_to` below, plus `climb_to_juan`, `enter_gym` and `leave_gym_to_city`.
+#
+# ✅ THE DESCENT IS SAFE, AND THAT IS MEASURED, NOT ASSUMED (`--driver ch22stairs`, 2026-09-03,
+# evidence `2026-09-03-ch22stairs-COLUMN-AB.txt`). Column x=8 BEFORE the ice walk vs AFTER it:
+#     (8,4) 0x20f -> 0x207     (8,5) 0x20f -> 0x207     (8,6) 0x20d -> 0x20e
+# ⇒ both stair tiles really do become OPEN_STAIRS (`MB_NORMAL`), so a plain southward step is a
+# WALK and not a slide. ‼ THE ALTERNATIVE WAS NOT HYPOTHETICAL: had they stayed `MB_SLIDE_SOUTH`,
+# stepping south would have shoved the bot onto cracked ice and fallen it from the WRONG tile,
+# mid-chapter. This project measures the direction of a coordinate move BEFORE writing it.
+
+
+def _descend_to(target: tuple[int, int], *, max_steps: int = 6) -> Generator:
+    """Walk straight DOWN the stair column to `target`. The mirror of `_climb_to`, and its twin.
+
+    ⛔ `y` INCREASES SOUTHWARD, so "descend" means `y + 1`. That is the exact confusion that made
+    the §Ch22 exit leg press "Up" away from its fall tile on its first drive.
+    ⛔ It refuses to step onto CRACKED or BROKEN ice: that is a FALL, and the fall is its own leg
+    with its own guard. The caller stops one tile SHORT of the fall tile.
+    """
+    from modules.modes import BotModeError
+    from modules.story.early_game import _check_abort
+    from modules.story.sootopolis import _bounded_step
+
+    for _ in range(max_steps):
+        _check_abort()
+        here = tuple(_here())
+        if here == tuple(target):
+            return
+        if here[0] != target[0]:
+            raise BotModeError(
+                f"Ch22: the descent expects a single column; at {here}, target {target}. The "
+                f"stair pairs all sit in column {STAIR_COLUMN}."
+            )
+        if target[1] < here[1]:
+            raise BotModeError(
+                f"Ch22: `_descend_to` walks SOUTH only, and {target} is NORTH of {here} "
+                f"(y increases southward). Use `_climb_to` for that."
+            )
+        nxt = (here[0], here[1] + 1)
+        state = _live_metatile_grid(GYM_1F).get(nxt)
+        if state == LOCKED_STAIRS:
+            raise BotModeError(
+                f"Ch22: REFUSING to step onto {nxt} — it still reads LOCKED_STAIRS "
+                f"(0x{LOCKED_STAIRS:03X}, MB_SLIDE_SOUTH), which would shove the bot onto the ice "
+                "below and fall it from the wrong tile. The puzzle did not complete."
+            )
+        if state in (CRACKED_ICE, BROKEN_ICE):
+            raise BotModeError(
+                f"Ch22: REFUSING to step onto {nxt} — it reads 0x{state:03X} (cracked/broken ice). "
+                "That is a FALL, and the fall is its own leg. The descent stops one tile short."
+            )
+        if state is None:
+            raise BotModeError(
+                f"Ch22: REFUSING to step onto {nxt} — it is off the live metatile grid entirely. "
+                "The grid offset or the map is wrong; walking blind here costs the chapter."
+            )
+        yield from _bounded_step("Down", expect=nxt, map_enum=GYM_1F)
+    raise BotModeError(
+        f"Ch22: could not descend to {target} within {max_steps} steps — at {_here()}."
+    )
+
+
+def climb_to_juan() -> Generator:
+    """(8,6) -> JUAN_STAND (8,3), up the stairs the third unlock just opened.
+
+    ⛔ THIS IS THE GAP `walk_the_ice`'s OWN DOCSTRING USED TO PAPER OVER. The route table ends on
+    the last ICE tile (8,6); Juan is three tiles further north, across the (8,5)/(8,4) stair pair.
+    Every driver carried its own copy of this loop, so the production chapter had none.
+    """
+    from modules.modes import BotModeError
+    from modules.story.early_game import wait_until_truly_controllable
+
+    if not _on_map(GYM_1F):
+        raise BotModeError(f"Ch22: the climb to Juan needs GYM_1F; standing at {_where()}.")
+    if not _at(GYM_1F, JUAN_STAND):
+        yield from _climb_to(JUAN_STAND, max_steps=4)
+    yield from wait_until_truly_controllable()
+    if not _at(GYM_1F, JUAN_STAND):
+        raise BotModeError(
+            f"Ch22: the climb ended at {_where()}, not on JUAN_STAND {JUAN_STAND}."
+        )
+
+
+def enter_gym() -> Generator:
+    """SOOTOPOLIS_CITY -> the gym door (31,32) -> GYM_1F, landing on GYM_ENTRANCE.
+
+    ⛔ The (31,32) warp is one of the ten doors `SootopolisCity_OnLoad` keeps SEALED until
+    `FLAG 0x9E` — §Ch21 leg 5's second leader talk is what opens it. A run that arrives here with
+    that flag clear cannot enter, and it must say so rather than time out on a walk.
+    """
+    from modules.modes import BotModeError
+    from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+    if _on_map(GYM_1F):
+        yield from wait_until_truly_controllable()
+        return
+    if not _on_map(MapRSE.SOOTOPOLIS_CITY):
+        raise BotModeError(
+            f"Ch22: entering the gym starts from SOOTOPOLIS_CITY; standing at {_where()}."
+        )
+    yield from _navigate_riding_out(MapRSE.SOOTOPOLIS_CITY, (31, 32), tries=6)
+    yield from _navigate_riding_out(GYM_1F, GYM_ENTRANCE, tries=4)
+    yield from wait_until_truly_controllable()
+    if not _on_map(GYM_1F):
+        raise BotModeError(
+            f"Ch22: walked the (31,32) gym warp and did not end up on GYM_1F — at {_where()}. If "
+            "the door is still sealed, §Ch21 leg 5's second Wallace talk did not complete "
+            "(FLAG 0x9E)."
+        )
+
+
+def leave_gym_to_city() -> Generator:
+    """GYM_1F -> SOOTOPOLIS_CITY, ending on the apron OUTSIDE the door, never on the warp itself."""
+    from modules.modes import BotModeError
+    from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+    if _on_map(MapRSE.SOOTOPOLIS_CITY):
+        return
+    if not _on_map(GYM_1F):
+        raise BotModeError(f"Ch22: leaving the gym starts from GYM_1F; standing at {_where()}.")
+    # ⛔ (31,33) not (31,32): pathing to a DOOR warp ends you back INSIDE. Aim at the apron.
+    yield from _navigate_riding_out(MapRSE.SOOTOPOLIS_CITY, (31, 33), tries=6)
+    yield from wait_until_truly_controllable()
+    if not _on_map(MapRSE.SOOTOPOLIS_CITY):
+        raise BotModeError(f"Ch22: left the gym and did not reach the city — at {_where()}.")
+
+
+def assert_ch22_preflight() -> None:
+    """Refuse the chapter rather than walk it into a wall. ⛔ Called BEFORE the retry loop.
+
+    ‼ §Ch21's own preflight is DEAD CODE — defined and never called by `do_sootopolis_chapter()`.
+    §Ch20 calls its own, and that is the placement copied here.
+    """
+    from modules.memory import get_event_flag
+    from modules.modes import BotModeError
+    from modules.pokemon_party import get_party
+
+    party = [m for m in get_party() if m is not None]
+    if len(party) < 2:
+        raise BotModeError(
+            f"Ch22: the gym needs more than one usable Pokémon; the party holds {len(party)}. "
+            "⛔ There is no heal inside and `allow_escaping` is false on BOTH floors, so a party "
+            "that cannot survive cannot leave the room it is standing in."
+        )
+    if not get_event_flag("RECEIVED_HM_WATERFALL"):
+        raise BotModeError(
+            "Ch22: `RECEIVED_HM_WATERFALL` is clear, so §Ch21 did not finish. The gym door at "
+            "(31,32) is one of the ten Sootopolis doors sealed until that chapter's second "
+            "Wallace talk, and entering would be impossible."
+        )
+
+
+def ch22_chapter_done() -> bool:
+    """§Ch22 complete: the badge **AND** the bot is not still stranded inside the gym.
+
+    ⛔ `juan_defeated()` ALONE IS NOT A COMPLETION PREDICATE. It is True the instant the badge flag
+    is set — while the bot stands on JUAN_STAND, on a 20-tile island, with the exit warp and the
+    ladder both unreachable and `allow_escaping` false on both floors. Grading on it would repeat
+    §Ch15 (four floors underground), §Ch18 (an eleven-tile island) and §Ch19 (a living room), each
+    of which PASSED its own test while stranded.
+    ⇒ the second conjunct is POSITION: off the gym floors entirely.
+    """
+    from modules.map_data import MapRSE as _M
+
+    if not juan_defeated():
+        return False
+    try:
+        return not _on_map(GYM_1F) and not _on_map(_M.SOOTOPOLIS_CITY_GYM_B1F)
+    except Exception:  # noqa: BLE001 - a reader that cannot answer must not report "done"
+        return False
+
+
+def do_sootopolis_gym_chapter(report: dict | None = None) -> Generator:
+    """§Ch22 — GYM 8, JUAN. heal -> ice -> Juan -> fall -> B1F -> ladder -> out.
+
+    ⛔⛔ THE LEG ORDER IS A FINDING, NOT A PREFERENCE. The fall comes AFTER the badge because
+    `SootopolisCity_Gym_1F_EventScript_JuanDefeated` `settrainerflag`s all ten B1F trainers, so the
+    post-badge descent is BATTLE-FREE (decomp-verified 2026-09-03). Before the badge that same walk
+    costs three forced fights and ~48% of the party's HP, with no heal inside and no escape.
+    ‼ And the ice is walked ONCE. `--driver ch22exit` walks it twice because it never fights Juan;
+    an orchestrator that copied that shape would pay 2,232 frames and a second exact-cover risk for
+    nothing.
+
+    ⛔ A LOSS TO JUAN IS A WHITEOUT, AND IT DOES NOT COME BACK HERE. It unwinds as `StoryAbort` to
+    `StoryMode.run`, which clears the latch, exits the Poké Center and re-enters `_play()` from the
+    top — so the 3-attempt loop below is for `BotModeError` and NOTHING ELSE (KI-67). On that
+    re-entry every leg self-skips on its own state and the puzzle is virgin again (MEASURED), so a
+    lost fight costs the walk, never the chapter.
+    """
+    import os as _os_fault
+
+    from modules.modes import BotModeError
+    from modules.story.early_game import (
+        StoryAbort,
+        _ch14_say,
+        _check_abort,
+        reraise_if_aborting,
+    )
+
+    if report is None:
+        report = {}
+    if ch22_chapter_done():
+        return  # resume-safe
+
+    fault_nodescend = bool(_os_fault.environ.get("POKEBOT_CH22_FAULT_NODESCEND"))
+    fault_stranded = bool(_os_fault.environ.get("POKEBOT_CH22_FAULT_STRANDED"))
+
+    assert_ch22_preflight()
+
+    attempts: list[str] = []
+    for attempt in range(1, 4):
+        _check_abort()  # ⛔ FIRST statement of the loop body, OUTSIDE the try
+        try:
+            # ⛔⛔ ARCHIVE THE PREVIOUS ATTEMPT'S READINGS AND START THIS ONE CLEAN. `walk_the_ice`
+            # does `report.setdefault("steps", 0)` then `+= 1`, so a shared dict ACCUMULATES: two
+            # attempts report `steps=128` and `sections` grows to six, and any check asserting
+            # `steps == 64` fails on a CORRECT retry (its own error text even prints "step 65 of
+            # 64"). MEASURED 2026-09-03: chapter drive 2 recovered from a lost Juan fight and
+            # reported `ice_steps=128`. ⛔ ARCHIVED, NEVER DISCARDED — §Ch21's rule is that the
+            # attempt which DIED is the one whose partial readings matter most.
+            if "steps" in report:
+                report.setdefault("previous_attempts", []).append(
+                    {"steps": report.pop("steps"), "sections": report.pop("sections", None)}
+                )
+            # ⛔ RE-READ POSITION EVERY ATTEMPT. Every leg boundary here is a permanent flag or a
+            # map change, so a phase decided once above the loop is stale on attempt 2.
+            on_1f = _on_map(GYM_1F)
+            on_b1f = _on_map(MapRSE.SOOTOPOLIS_CITY_GYM_B1F)
+            badge = juan_defeated()
+
+            # --- L1 HEAL (skipped once inside; there is no Poké Center in the gym) -------------
+            if not on_1f and not on_b1f and not badge:
+                yield from _heal_before_the_gym(report)
+                yield from enter_gym()
+                on_1f = True
+
+            # --- L2 THE ICE + L3 THE FIGHT ------------------------------------------------------
+            if not badge:
+                if not on_b1f:
+                    if not _on_map(GYM_1F):
+                        yield from enter_gym()
+                    # `walk_the_ice` refuses on a partially-walked floor, which is the correct
+                    # answer for a mid-gym retry: leave and re-enter for virgin ice.
+                    if not _at(GYM_1F, JUAN_STAND):
+                        yield from walk_the_ice(report)
+                        yield from climb_to_juan()
+                    yield from fight_juan(report)
+                    badge = juan_defeated()
+                else:
+                    # On B1F without the badge = a fall happened before the fight. Walk out and
+                    # let the next attempt re-enter to virgin ice rather than guessing.
+                    yield from walk_b1f_to_ladder(report)
+                    yield from _ladder_to_1f()
+                    yield from leave_gym_to_city()
+                    raise BotModeError(
+                        "Ch22: fell to B1F before beating Juan — walked back out to the city so "
+                        "the next attempt gets virgin ice. This is a RECOVERY, not a defect."
+                    )
+
+            # --- L4 THE MANDATORY FALL + L5 THE WAY OUT ----------------------------------------
+            if badge and not _on_map(MapRSE.SOOTOPOLIS_CITY):
+                # ⛔⛔ ON GYM_1F THERE ARE **TWO** PLACES TO BE, AND ONLY ONE OF THEM NEEDS A FALL.
+                # The ISLAND side is the stair column at or above FALL_STAGING; everything else —
+                # including (11,22), the tile the B1F ladder lands on — is the ENTRANCE side, from
+                # which the bot simply walks out. Without this split, a retry that begins after the
+                # fall has already happened tries to DESCEND from (11,22) and raises the
+                # single-column guard, which is correct but reads as a routing bug.
+                # ‼ MEASURED by the `POKEBOT_CH22_FAULT_STRANDED` arm: attempts 2 and 3 both failed
+                # with "the descent expects a single column; at (11, 22), target (8, 5)" — a
+                # confusing cascade over a run whose only real problem was the un-walked exit.
+                here = tuple(_here()) if _on_map(GYM_1F) else None
+                on_island = here is not None and here[0] == STAIR_COLUMN and here[1] <= FALL_STAGING[1]
+                if on_island:
+                    if fault_nodescend:
+                        raise BotModeError("FAULT NODESCEND: skipping the descent on purpose.")
+                    yield from _descend_to(FALL_STAGING, max_steps=4)
+                    yield from fall_to_b1f(report)
+                if _on_map(MapRSE.SOOTOPOLIS_CITY_GYM_B1F):
+                    yield from walk_b1f_to_ladder(report)
+                    yield from _ladder_to_1f()
+                if not fault_stranded:
+                    yield from leave_gym_to_city()
+        except StoryAbort:
+            # ⛔ RE-RAISED, NEVER RETRIED HERE — the latch is cleared only by `StoryMode.run`, so
+            # looping would burn all three attempts in a handful of frames and report three
+            # failures, two of them invented (KI-67).
+            raise
+        except BotModeError as error:  # noqa: BLE001 - reported, never swallowed
+            reraise_if_aborting(error)  # ⛔ FIRST statement of the handler
+            attempts.append(f"attempt {attempt}: {type(error).__name__}: {str(error)[:200]}")
+            _ch14_say(f"Story: Ch22 attempt {attempt} failed — {str(error)[:120]}")
+            continue
+
+        if ch22_chapter_done():
+            _ch14_say("Story: Ch22 complete — Rain Badge won and out of the gym.")
+            return
+        attempts.append(
+            f"attempt {attempt}: every leg ran but the chapter does not grade done "
+            f"(badge={juan_defeated()}, at={_where()})"
+        )
+    raise BotModeError(
+        "Ch22 (Gym 8 — Juan) failed after 3 attempts. " + " | ".join(attempts)
+    )
+
+
+def _heal_before_the_gym(report: dict | None = None) -> Generator:
+    """Heal at the Sootopolis Poké Center and ASSERT the party survived the trip.
+
+    ⛔⛔ THE HEAL CAN SHRINK THE PARTY. `heal_in_pokemon_center` calls
+    `deposit_dead_weight_if_worth_it()`, and `team_policy.DEAD_WEIGHT_LEVEL_GAP = 8` makes anything
+    more than 8 levels behind the best mon deposit-eligible. In the measured §Ch22 party that is
+    Swellow (L41) AND Zigzagoon (L19) against Sceptile L50 — and Zigzagoon is NOT HM-exempt,
+    because Wailmer shares its Surf. ⇒ assert by PID, and assert the COUNT, because a gym with no
+    heal inside and no escape is the worst possible place to discover a 4-mon party.
+    """
+    from modules.map_data import PokemonCenter
+    from modules.modes import BotModeError
+    from modules.modes.util.higher_level_actions import heal_in_pokemon_center
+    from modules.pokemon_party import get_party
+    from modules.story.early_game import reraise_if_aborting
+
+    if report is None:
+        report = {}
+    before = {m.personality_value: m.species.name for m in get_party() if m is not None}
+    try:
+        yield from heal_in_pokemon_center(PokemonCenter.SootopolisCity)
+    except Exception as error:  # noqa: BLE001
+        reraise_if_aborting(error)
+        raise BotModeError(
+            f"Ch22: the Poké Center heal failed ({type(error).__name__}: {str(error)[:160]}). "
+            "⛔ Refusing to enter a gym with no heal and no escape on a party of unknown health."
+        ) from error
+
+    after = {m.personality_value: (m.species.name, m.current_hp, m.total_hp)
+             for m in get_party() if m is not None}
+    report["party_before_heal"] = before
+    report["party_after_heal"] = after
+    missing = [f"{name}({pid})" for pid, name in before.items() if pid not in after]
+    if missing:
+        raise BotModeError(
+            f"Ch22: the Poké Center trip REMOVED {missing} from the party (a rotation deposit). "
+            f"⛔ Refusing to enter the gym short-handed — there is no heal inside and "
+            f"`allow_escaping` is false on both floors."
+        )
+    not_full = [f"{n}={hp}/{mx}" for _pid, (n, hp, mx) in after.items() if hp != mx]
+    if not_full:
+        raise BotModeError(f"Ch22: heal did not restore the party: {not_full}.")
+
+
+def _ladder_to_1f() -> Generator:
+    """B1F ladder (11,22) -> GYM_1F. ⛔ The witness is the MAP CHANGE, never a coordinate."""
+    from modules.map_data import MapRSE as _M
+    from modules.modes import BotModeError
+    from modules.story.early_game import _walk_through_warp, wait_until_truly_controllable
+
+    if not _on_map(_M.SOOTOPOLIS_CITY_GYM_B1F):
+        return
+    yield from _walk_through_warp("Down", _M.SOOTOPOLIS_CITY_GYM_B1F.value, timeout_frames=400)
+    yield from wait_until_truly_controllable()
+    if not _on_map(GYM_1F):
+        raise BotModeError(f"Ch22: took the B1F ladder and did not land on GYM_1F — at {_where()}.")

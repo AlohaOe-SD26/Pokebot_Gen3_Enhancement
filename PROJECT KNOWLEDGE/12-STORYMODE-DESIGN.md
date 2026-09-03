@@ -4251,10 +4251,11 @@ bullets had been CLOSED the same day — each bullet now carries its own marker.
 > and the four movement legs still missing — is in
 > `ai-research-notes/2026-09-03-ch22-CHAPTER-ASSEMBLY-SPEC.md`. **That file is a NOTE**; this
 > section holds only what has been MEASURED live or read out of the decomp and quoted.
-> Status: **all FOUR DRIVERS pass — one read-only recon PROBE (`ch22probe`) plus THREE STORY
-> LEGS (`ch22ice`, `ch22juan`, `ch22exit`) — and the CHAPTER is not assembled**
-> (`#24-ch22chapter`). ‼ Count stated this way on purpose: "four legs" vs "three legs" drifted
-> across three files in one round before a Tier 1 reviewer pinned it.
+> Status: ✅✅ **SHIPPED 2026-09-03 — §Ch22 IS A CHAPTER.** `do_sootopolis_gym_chapter()` is wired
+> as **Segment 22** and `--driver ch22chapter` grades `ACCEPTANCE: PASS`, with both fault arms
+> exercised. ⛔ DO NOT REBUILD. Drivers: a read-only recon PROBE (`ch22probe`), a read-only STAIR
+> probe (`ch22stairs`), three STORY LEGS (`ch22ice`, `ch22juan`, `ch22exit`) and the CHAPTER
+> (`ch22chapter`).
 
 ## What the chapter is
 
@@ -4326,11 +4327,19 @@ FLAG_ENABLE_JUAN_MATCH_CALL` → `release`.
 * ✅ The TM03 bag-full branch is unreachable (58 distinct TMs+HMs, 64 pocket slots) and exits
   cleanly anyway; the Juan double-battle rematch cannot fire accidentally.
 
-## The chapter's leg order — settled by the decomp, not by preference
+## The chapter's leg order — settled by the decomp, and now DRIVEN
 
-**heal → (stock, optional) → enter → ice (64 steps, ends on (8,6)) → climb 3 to (8,3) → JUAN →
-descend to (8,5) → fall → B1F 19 steps (0 battles) → ladder (11,22) → 1F → out → can-continue.**
-⛔ **The climb, the descent, the gym entry and the walk out all live ONLY in harness drivers today**,
-and `_climb_to` walks **north only** — so the post-Juan descent has no implementation at all. It now
-refuses loudly instead of walking into Juan's tile. ‼ **No driver has ever run
-`walk_the_ice → fight_juan → fall_to_b1f` composed**; that arm is the chapter's acceptance test.
+**heal → enter → ice (64 steps, ends on (8,6)) → climb 3 to (8,3) → JUAN → descend to (8,5) →
+fall → B1F 19 steps (**0 battles**) → ladder (11,22) → 1F → out → can-continue.**
+✅ Every step is production code (`enter_gym`, `walk_the_ice`, `climb_to_juan`, `fight_juan`,
+`_descend_to`, `fall_to_b1f`, `walk_b1f_to_ladder`, `_ladder_to_1f`, `leave_gym_to_city`), and the
+whole chain is driven: `badge8=True`, ending `SOOTOPOLIS_CITY (31,33)`, `b1f_steps=19`,
+`battles_on_B1F=0` with `b1f_entered=True`, `CONTINUE=23`, `frames=64563`.
+⛔ **`_descend_to()` had to be WRITTEN — `_climb_to` walks north only, so the post-Juan descent
+would have stepped into Juan's own tile (8,2).** It was found by an adversarial review before any
+composed run, and the stair column was MEASURED before the descent was written
+(`--driver ch22stairs`: (8,4) and (8,5) both go `0x20f → 0x207`).
+⭐ **The chapter also passes by LOSING and RECOVERING**: the Juan fight is stochastic (5W/1L over
+six draws), and a whiteout unwinds to `StoryMode.run`, which re-enters against virgin ice.
+⛔ **KI-47 can freeze the shared battle path inside that fight** and drop the run to Manual with no
+`ACCEPTANCE` line — not §Ch22's defect, and KI-47 now carries a deterministic repro.

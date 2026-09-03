@@ -3891,3 +3891,30 @@ does not help a RESUME that starts inside the window, which is exactly where a w
 
 **What this does NOT settle:** whether §Ch22 should heal first. The chapter ends with a chipped party
 (measured: one fainted member, lead at 25/115) and there is no Poké Center after leg 3.
+
+
+## 2026-09-03 — §Ch22's LEG ORDER, AND WHAT A CHAPTER DRIVER'S GRADE IS ALLOWED TO DEMAND
+
+**DECISION 1 — the §Ch22 leg order is `heal → ice → Juan → fall → B1F → out`, with the fall AFTER
+the badge, and there is NO XP run.**
+*Alternatives rejected:* (a) an XP run first (clear B1F's trainers before Juan) — this was the
+recon's own recommendation and it rested on two premises that both turned out false: that the party
+could not beat Juan (a damage calculation, refuted by winning) and that the descent costs three
+battles (true only at `badge8=False`); (b) two descents, clearing the trainers on the first so the
+second is free — a real design, made pointless by the same decomp finding.
+*Rationale:* `SootopolisCity_Gym_1F_EventScript_JuanDefeated` runs `setvar VAR_0x8008, 8` +
+`call Common_EventScript_SetGymTrainers`, which `settrainerflag`s **all ten** B1F trainers. Read
+from the decomp, then CONFIRMED live (`b1f_entered=True`, `battles_on_B1F=0`).
+⇒ **the cheapest correct order is also the simplest one, and it was found by reading the game
+rather than by measuring our bot harder.**
+
+**DECISION 2 — a chapter driver grades the BOUND on a recoverable failure, never its ABSENCE.**
+`whiteouts == 0` was rejected as a conjunct after it graded a healthy run FAIL: the run lost the
+Juan fight, recovered exactly as production does, and finished the chapter. Production tolerates
+forty whiteouts. The grade is now `recoveries <= 2` with the raw count REPORTED beside it.
+*Alternative rejected:* keeping `whiteouts == 0` and treating a stochastic boss loss as a defect —
+that makes the driver disagree with the system it is testing, and this project has already been
+bitten once by an arm whose expectation was inverted by its own fix (KI-80).
+⇒ **generalised, and now in `08-MISTAKES.md`: an acceptance conjunct asserting an ABSENCE must be
+paired with one proving the OPPORTUNITY existed.** Three conjuncts in this one grade were
+satisfiable by not doing the thing.

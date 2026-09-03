@@ -11091,3 +11091,96 @@ false by me, and then survived in two files.
 itself creates a new inconsistency between the half that was corrected and the half that was not.
 Two passes here found *disjoint* sets of defects; one pass would have shipped the banner.
 ‼ Filed as `#24-retiredclaimgate`: this is enforceable and therefore belongs in a gate, not here.
+
+
+## 2026-09-03 — THREE CONJUNCTS IN ONE ACCEPTANCE LINE WERE SATISFIABLE **BY NOT DOING THE THING**
+
+**Symptom.** The §Ch22 chapter driver's grade contained `battles_b1f == 0`, `isinstance(cont, int)`
+and `whiteouts == 0`. All three looked like tightening. All three were wrong, and the runs — not a
+review — exposed them one at a time:
+
+1. **`battles_b1f == 0`** was the chapter's HEADLINE DISCRIMINATOR (does the post-badge B1F descent
+   cost zero trainer battles?). Drive 1 lost the Juan fight, never reached B1F, and printed
+   **`battles_on_B1F=0`** — the exact number that would have "confirmed" the finding. **Zero
+   battles for zero opportunities.**
+2. **`isinstance(cont, int)`** was the can-continue check — the conjunct this project added because
+   §Ch15, §Ch18 and §Ch19 each PASSED while stranded. Drive 1 returned `cont = 0`, because **a
+   whiteout respawns the player standing ON the Poke Center apron the path is measured to.** So the
+   check was satisfied by the very failure it exists to catch.
+3. **`whiteouts == 0`** graded a **successful recovery as a failure**. Drive 2 lost the fight,
+   cleared the abort latch, walked out, re-entered, walked virgin ice, won, took the fall, cleared
+   B1F and walked out — and got `ACCEPTANCE: FAIL`. Production tolerates forty whiteouts.
+
+**Root cause, and it is one cause with three faces.** Every one of these conjuncts asserts the
+*absence* of something. An absence is satisfied both by "the thing was tried and did not happen"
+and by "the thing was never tried" — and only the first is evidence. This is the same shape as this
+project's own **"A CANDIDATE IS NOT AN ATTEMPT"** rule, which is written down for *inputs to an
+action*; it had never been written down for **grades**.
+
+**The fix.** Every absence conjunct is now paired with a presence conjunct that proves the
+opportunity existed: `battles_b1f == 0` **and** `b1f_steps > 0`; `cont` an int **and** `cont > 0`;
+and `whiteouts == 0` replaced by `recoveries <= 2` with the raw count REPORTED beside it. The log
+lines print the pair together so the number can never be read alone.
+
+**Prevention rules.**
+⛔ **AN ACCEPTANCE CONJUNCT THAT ASSERTS AN ABSENCE MUST BE PAIRED WITH ONE THAT PROVES THE
+OPPORTUNITY EXISTED.** "No battles" needs "and it walked the floor". "No errors" needs "and it ran
+the step". Ask of every `== 0` and every `not`: *what else makes this true?*
+⛔ **AND A GRADE MUST NOT PUNISH A RECOVERY THE DESIGN REQUIRES.** If production tolerates a failure
+mode and recovers from it, a driver demanding zero occurrences grades the healthy system as broken.
+Grade the BOUND, report the COUNT. *(A cold-start audit once found this project's KI-80 arm inverted
+the same way — expecting PASS from a command whose FAIL was the proof the fix worked.)*
+‼ **AND NOTE WHAT FOUND THESE: not a reviewer, and not a re-reading — a run that took a branch I had
+rated unlikely.** Two of the three were only visible because a HIGH-confidence prediction missed.
+The pre-registered prediction is what turned a bad run into three measurements.
+
+
+## 2026-09-03 — A CHRONOLOGICAL APPEND-LOG INSIDE A CURRENT-STATE FILE ROTS FROM THE MIDDLE
+
+**Symptom.** `04-HANDOFF.md`'s NEXT ACTIONS queue head had become a **single 14,476-character
+line**: every §Ch22 finding appended to the end as it was made, newest last. By the time the
+chapter shipped — the same day — that one line still carried, as plain live text:
+
+* *"SO THE NEXT ACTION IS NOW §Ch22 CHAPTER ASSEMBLY"* (it shipped)
+* *"a descent helper is still owed"* (`_descend_to()` was written)
+* *"NO DRIVER HAS EVER RUN `walk_the_ice → fight_juan → fall_to_b1f` COMPOSED"* (three had)
+* *"SAMPLED — 4 WINS OUT OF 4"* (it became 5W/1L)
+* *"the chapter must be heal → stock → ice → Juan → fall/B1F/out"* (no stock leg; the order changed)
+
+**Five statements the same day's work had falsified**, all of them true when written.
+
+**Root cause.** Append-only is the right discipline for `06`/`07`/`08` — files whose whole purpose
+is *what was true then*. `04` is a CURRENT-STATE file, where the rule is the opposite: **edit in
+place, remove stale content.** I was appending to it as though it were a log, and each new clause
+was correct at the moment of writing, so nothing ever triggered a re-read of the ones above it.
+‼ **This is why it survives a pair check.** P1 compares the banner with the queue head; both said
+"§Ch23 next" and AGREED. The rot was 2,000 characters *inside* the queue head, below its own
+corrected opening — a place no named pair points at.
+
+**The fix.** Retire a chapter's build log the moment the chapter ships: summarise, point at
+`07-CHANGELOG.md` and the notes, and keep only the facts the NEXT chapter inherits. Here that is
+three sentences (the fight is stochastic and the chapter recovers; KI-47 can freeze it and is not
+§Ch22's to fix; the ladder is 23 of 24). 14,476 → 2,273 characters.
+
+**Prevention rules.**
+⛔ **DO NOT APPEND TO A CURRENT-STATE FILE. WHEN A NEW FACT ARRIVES, EDIT THE SENTENCE IT
+CONTRADICTS.** If that feels like losing history, the history belongs in `07-CHANGELOG.md`, which
+exists for exactly that and is never trimmed.
+⛔ **AND RETIRE A CHAPTER'S QUEUE ENTRY IN THE COMMIT THAT SHIPS THE CHAPTER**, not later. §Ch21's
+entry had the same shape and was retired for the same reason a day earlier — twice is a pattern.
+‼ **A pair check cannot see this**: both halves of P1 can be freshly correct while the body under
+one of them is stale. ⇒ when an item ships, re-read its queue entry TO THE END, not just its first
+sentence — the first sentence is the half everyone remembers to fix.
+
+**A SECOND, MECHANICAL VERSION OF THE SAME SHAPE, FOUND IN THE SAME PASS.** Filing a new
+`### #24-retiredclaimgate` item into `03-PUNCH-LIST.md` by inserting it *before* an existing
+anchor line **silently reparented the last bullet of `#24-ch22chapter`** — a `- [x]` bullet about
+§Ch22's preflight ended up sitting under the new item's heading, where it read as a done sub-task
+of a gate that has not been written. Nothing flagged it: the text was unchanged, the file linted
+clean, and both headings were individually accurate.
+⛔ **INSERTING A HEADING IS A STRUCTURAL EDIT, NOT A TEXT EDIT. After adding a `###` item, list
+every bullet under the NEW heading and under the one ABOVE it, and confirm each belongs.** A
+two-line check (`^### ` and `^- \[` in order) catches it; reading the diff does not, because the
+diff shows only the inserted lines and never the bullet that moved.
+‼ Related and worth the same care: this project's headings are load-bearing claims (pair P2), so a
+bullet under the wrong heading is a false claim even when every word in it is true.

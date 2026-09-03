@@ -270,3 +270,13 @@
 {"when": "2026-09-03T09:04:47", "driver": "ch22juan", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 45510, "recomputes": 45510, "scans": 152, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-03T09:10:41", "driver": "ch22juan", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 41388, "recomputes": 41388, "scans": 138, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-03T09:16:36", "driver": "ch22juan", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 44567, "recomputes": 44567, "scans": 149, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T10:13:18", "driver": "ch22stairs", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 22234, "recomputes": 22234, "scans": 75, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T10:23:08", "driver": "ch22chapter", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 55647, "recomputes": 55647, "scans": 186, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T10:32:13", "driver": "ch22chapter", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 84565, "recomputes": 84565, "scans": 282, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T10:40:09", "driver": "ch22chapter", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 41523, "recomputes": 41523, "scans": 139, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T10:55:05", "driver": "ch22chapter", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 84565, "recomputes": 84565, "scans": 282, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T11:02:09", "driver": "ch22chapter", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 83024, "recomputes": 83024, "scans": 277, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T11:08:40", "driver": "ch22chapter", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 84291, "recomputes": 84291, "scans": 281, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T11:16:31", "driver": "ch22chapter", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 84291, "recomputes": 84291, "scans": 281, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T11:23:00", "driver": "ch22chapter", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 83024, "recomputes": 83024, "scans": 277, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T11:29:30", "driver": "ch22chapter", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 84565, "recomputes": 84565, "scans": 282, "divergences": {}, "observer_broke": false}

@@ -20330,3 +20330,70 @@ the work was PARKED, both untrue since 2026-08-24. Its two opening paragraphs ar
 day-by-day narrative below them is deliberately left as history. ‼ That file is cited in
 `04-HANDOFF.md` as `#24-plainenglishstale` but **has no item in `03-PUNCH-LIST.md`** — a dangling
 slug of the `#24-codeorphans` shape, which the citation gate does not catch.
+
+
+## 2026-09-03 (chapter) — §Ch22 IS A CHAPTER: BUILT, WIRED AND DRIVEN TO **PASS**, INCLUDING A LOST GYM FIGHT
+
+**The ladder is 23 of 24.** `do_sootopolis_gym_chapter()` + `ch22_chapter_done()` in
+`sandbox-pokebot/modules/story/sootopolis_gym.py`, dispatched as **Segment 22** in
+`plugins/custom_modes/story_mode.py`, driven by `--driver ch22chapter`.
+
+```
+RESULT badge8=True at=SOOTOPOLIS_CITY(31, 33) city_state=6 ice_steps=64 (ice_ok=True)
+       end_tile=(8, 3) b1f_steps=19 whiteouts=1 frames=64563
+P7 DISCRIMINATOR - b1f_entered=True (b1f_steps=19) battles_on_B1F=0
+BATTLES [GYM_1F(8,3), GYM_1F(8,3)] outcomes=['BattleOutcome.Lost', 'BattleOutcome.Won']
+CONTINUE path to the Poke Center apron (43,32) = 23      RECOVERIES 1
+ACCEPTANCE: PASS
+```
+
+**FOUR MOVEMENT LEGS MOVED FROM DRIVERS INTO PRODUCTION, AND ONE WAS WRITTEN FROM SCRATCH:**
+`enter_gym()`, `climb_to_juan()` (the 3-step stair walk the ice route stops short of),
+`leave_gym_to_city()`, `_ladder_to_1f()`, `_heal_before_the_gym()` — and **`_descend_to()`**, the
+southward counterpart `_climb_to` never had. Without it the chapter's own order would have stepped
+from `JUAN_STAND (8,3)` toward `FALL_STAGING (8,5)` via **(8,2), Juan's own tile**.
+
+⭐ **AND THE DESCENT WAS MEASURED BEFORE IT WAS WRITTEN** (`--driver ch22stairs`, read-only, 2,232
+frames, evidence `2026-09-03-ch22stairs-COLUMN-AB.txt`). Column x=8, before the ice walk vs after:
+`(8,4) 0x20f -> 0x207`, `(8,5) 0x20f -> 0x207`, `(8,6) 0x20d -> 0x20e`. The stairs really do become
+`MB_NORMAL`, so a southward step is a WALK and not a slide — had they stayed `MB_SLIDE_SOUTH` the
+bot would have been shoved onto cracked ice and fallen from the wrong tile. The same read shows
+**(8,2) is plain floor `0x22b`**, which is *why* `_climb_to`'s guards would not have fired on it —
+the adversarial finding, confirmed by measurement rather than by argument.
+
+⭐⭐ **P7 IS CONFIRMED: THE POST-BADGE B1F DESCENT COSTS ZERO BATTLES** — `b1f_entered=True`,
+`b1f_steps=19`, `battles_on_B1F=0`. The decomp read (`setvar VAR_0x8008, 8` +
+`Common_EventScript_SetGymTrainers` -> all ten `settrainerflag`s) is validated live.
+Drive 1 printed the SAME `0` while never entering B1F. **Identical number, and only one of them
+means anything** — which is why the grade now demands `b1f_entered` beside it.
+
+⛔ **THE JUAN FIGHT IS STOCHASTIC, AND THE COMPOSED RUN LOST IT.** Running tally across six
+distinct RNG draws: **5 wins, 1 loss.** The chapter recovered — cleared the abort latch, walked out
+of the Poke Center, re-entered, walked **virgin ice**, fought again and won (`RECOVERIES 1`).
+=> "the party CAN win Juan" is measured; "reliably wins" is measured FALSE.
+
+**THREE GRADE DEFECTS THE DRIVES FOUND IN THE DRIVER'S OWN ACCEPTANCE LINE:**
+1. `battles_b1f == 0` was satisfiable by **never going to B1F** — zero battles for zero
+   opportunities, "a candidate is not an attempt" in grade form. Now requires `b1f_steps > 0`.
+2. `isinstance(cont, int)` was satisfied by `cont == 0`, because a **whiteout respawns the bot ON
+   the Poke Center apron**. A can-continue check that a whiteout satisfies is not one. Now
+   requires a non-zero path.
+3. `whiteouts == 0` graded a **successful recovery as a failure**. Production tolerates forty. The
+   bound is what matters, so `recoveries <= 2` is graded and the raw count is REPORTED beside it.
+   In the same pass, `steps == 64` was wrong because the shared `report` dict accumulates across
+   attempts; the chapter now **archives each attempt's readings** into `previous_attempts` and
+   starts the next one clean (visible in the transcript), and the grade checks the invariant.
+
+⛔ **A THIRD, JITTERED ARM DIED TO KI-47, AND THAT IS NOT §Ch22's DEFECT.**
+`handle_battle_action_selection` froze for 3,001 frames in the Juan fight
+(`LearnMoveState.DialogueNotActive`, stuck in `PARTY_MENU` on "What will SCEPTILE do?"). The KI-47
+net fired correctly — bounded, named, no hang — but the drop to Manual happens in the main loop's
+battle listener, outside the story generator, so **no `ACCEPTANCE` line prints at all**.
+⭐ The valuable half: **KI-47 now has a deterministic ~22,000-frame reproduction**, one command,
+where before it was only ever caught opportunistically in batches at "a whole lane" per hit.
+Recorded at the top of KI-47 with its stall state.
+
+**Docs:** predictions were filed BEFORE the orchestrator existed (`...-CHAPTER-PREDICTIONS.md`,
+commit `f372a780`) and are graded item by item in `...-CHAPTER-RESULTS.md` — the one I rated
+**HIGH** (Juan is won) is the one that missed, and the one I rated **riskiest** (the stair tiles)
+held. `05-KNOWN-ISSUES.md` KI-43 retired to a summary to make budget room.

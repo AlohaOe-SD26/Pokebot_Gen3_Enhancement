@@ -19,30 +19,44 @@
 A bot that plays **Pokémon Emerald by itself**, from a brand-new save, with nobody watching.
 It picks a starter, walks the routes, catches Pokémon, trains them, and fights the gyms.
 
-**Where it gets to today (brought current 2026-09-03):** it plays **22 of the game's 24 story
-beats** by itself, in one unattended run from a brand-new save. It wins **seven gym badges**, raids
+**Where it gets to today (brought current 2026-09-03):** it plays **23 of the game's 24 story
+beats** by itself, in one unattended run from a brand-new save. It wins **all eight gym badges**, raids
 the Magma Hideout and gets back out, recovers the stolen submarine at Slateport, clears the Aqua
 Hideout maze (**taking the Master Ball on the way**), defends the Mossdeep Space Center alongside
 Steven, earns **HM08 Dive**, plays the **Seafloor Cavern** end to end — boulder puzzles, underwater
 currents, the Aqua ambush, Archie, waking Kyogre and escaping the atoll — then dives into
 **Sootopolis**, escorts Steven to the Cave of Origin, climbs the **Sky Pillar**, wakes **Rayquaza**
-to end the Kyogre-vs-Groudon fight, and is given **HM07 Waterfall**.
+to end the Kyogre-vs-Groudon fight, is given **HM07 Waterfall**, and finally beats **Juan** for the
+eighth and last badge — which is what makes Waterfall usable out in the world.
 
 ⛔ *(Two paragraphs here said the cavern was "a test harness, not part of the real playthrough" and
 that the work was PARKED. Both stopped being true on 2026-08-24, when the cavern was wired into the
 real run; Sootopolis followed on 2026-09-02. This file went three weeks without catching up — see
 "What we got wrong" below, which is exactly the shape of mistake it describes.)*
 
-**What it is doing right now:** the **eighth and last gym — Juan, in Sootopolis.** This one is an
+✅✅ **AND AS OF 2026-09-03 IT WINS THE EIGHTH AND LAST GYM BADGE TOO** — 23 of the 24 story
+beats. The ice-puzzle gym below is now part of the real playthrough, not a test: the bot walks the
+64-tile ice route, beats Juan, falls through the floor on purpose and walks back out.
+⚠ **And it does that even when it LOSES the gym fight.** Juan is genuinely hard for this party —
+across six attempts it won five and lost one — so when it loses, the bot wakes up in the Poké
+Centre, walks back to the gym, re-solves the whole ice puzzle and fights him again. That happened
+on the very run that proved the chapter works.
+
+**What it was doing before that:** the **eighth and last gym — Juan, in Sootopolis.** This one is an
 ice puzzle: the floor is thin ice that cracks as you walk, you must cross **every** tile exactly
 once to open the stairs, and once you reach the leader the only way back out is to **deliberately
 fall through the floor** into the basement. The bot can now do all of it — the 64-step ice route,
-the fight, the fall, and the walk out — and **it beats Juan** (four wins out of four, including
-three runs deliberately given different luck).
+the fight, the fall, and the walk out — and **it beats Juan most of the time**.
+⛔ *(This read "four wins out of four, including three runs deliberately given different luck"
+for a few hours, until the very run that proved the chapter works LOST the fight. Six attempts
+are now measured: five wins and one loss. It is the spelled-out numbers that survive a search
+for "4/4" — which is how this one lasted as long as it did.)*
 
-‼ **An honest caveat, because it matters:** those four pieces are each driven separately from a
-saved game. Joining them into one chapter and wiring it into the real playthrough is the next job,
-and it is not a formality — no run has yet done the ice, the fight and the fall back to back.
+‼ **An honest caveat, because it matters:** one thing can still stop it, and it is not the gym.
+A long-standing bug in the shared *battle* code (KI-47) can freeze the bot mid-fight; a safety net
+catches it and stops cleanly rather than hanging, but the run ends there. It happened once in three
+attempts at this gym. The good news is that this is the first time we have been able to reproduce
+that bug **on demand** — before, it only ever turned up by chance in long overnight runs.
 
 ## ⛔ BUT THAT IS NOT WHAT WE ARE WORKING ON (changed 2026-08-14 — read this before the day-by-day below)
 

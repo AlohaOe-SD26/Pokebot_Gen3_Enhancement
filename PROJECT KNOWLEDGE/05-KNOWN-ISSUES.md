@@ -1110,108 +1110,11 @@ thing that will waste the next debugging session.
 
 ---
 
-## KI-43 — `_navigate_when_ready`'s escape hatch is budgeted EXACTLY like the watchdog, so it is dead code (2026-07-31, severity: HIGH — ✅ FIXED AND PROVEN 2026-07-31)  ⛔ **CORRECTED 2026-08-22 (PASS 5): this header said "FIX NOT YET APPLIED" for three weeks after it shipped.** PRODUCTION IS THE ORACLE — `global_navigation.py:244` defines `_TRANSIENT_WAIT_FRAMES = 600` and `_navigate_when_ready` uses it, not the 18,000-frame watchdog cap; the gate `repro_watchdog_budget_collision.py` exists and this file's own `:1209` already said *"KI-43 (fixed)"*.
+## KI-43 — `_navigate_when_ready`'s escape hatch was budgeted EXACTLY like the watchdog, so it was dead code (2026-07-31) — ✅ **FIXED, PROVEN AND GATED.** ⛔ DO NOT REOPEN.
 
-**This is the `global watchdog 9 → 143` caveat from the batch3 result, investigated.** The
-handoff's own hypothesis — *"runs travel much further now and long journeys trip the
-18k-frame no-progress watchdog"* — is **WRONG**. It is a hard regression introduced by
-`fea2bb19` (`#24-journey` part 3), and it has nothing to do with journey length.
-
-### The mechanism
-
-`_navigate_when_ready` (`modules/modes/util/global_navigation.py`) wraps every `navigate_to`
-call and waits for the overworld instead of letting `navigate_to` raise:
-
-```python
-while get_game_state() is not GameState.OVERWORLD or not player_avatar_is_controllable():
-    waited += 1
-    if waited > _MAX_NON_OVERWORLD_FRAMES:
-        break      # "so a genuine softlock still surfaces rather than yielding for ever"
-    yield
-```
-
-```
-_MAX_NON_OVERWORLD_FRAMES = 60 * 60 * 5   = 18,000    (global_navigation.py:224)
-StoryMode global watchdog: _stall_frames >= 18,000     (story_mode.py:2493)
-```
-
-**The same number.** The wrapper presses no buttons and changes no state, so map, coords,
-game state, progress signature and `context.message` stay frozen while it waits — which is
-exactly the watchdog's stall signature. The watchdog fires ON frame 18,000 (`>=`); the break
-needs frame 18,001 (`>`). **The watchdog wins by one frame, every time.** The docstring's
-promise that "a genuine softlock still surfaces" is unreachable code.
-
-The constant is not new — but at `289d1710` it guarded only the outer `navigate_to_anywhere`
-loop's `get_game_state() is not OVERWORLD` wait, which is rare. `fea2bb19` added the far
-stickier `not player_avatar_is_controllable()` to it and put it on EVERY `navigate_to` call.
-That is what made the collision reachable.
-
-### The measurement (stored logs only — no emulation was re-run)
-
-| | baseline `289d1710` | batch3 `3875843c` |
-|---|---|---|
-| `global watchdog` (stdout, deduped — see below) | **5** | **72** |
-| RUSTBORO_CITY_MART purchases completing cleanly | **33 / 33** | **0 / 36** |
-
-Where the 72 fire — **not** on long journeys:
-
-| trips | map | stage | fires immediately after |
-|---|---|---|---|
-| 35 | `RUSTBORO_CITY_MART` | 3: Woods & Cut | `bought Poké Balls` |
-| 31 | `LAVARIDGE_TOWN` | 13: Gym 5 — Norman | `BADGE: Heat Badge` |
-| 3 | `ROUTE112` | 11 | — |
-| 1 | `ROUTE116` | 3 | — |
-
-Both clusters are **stationary wedges at a step boundary**, not travel.
-
-### The Rustboro cluster, in full
-
-`early_game.py:2171` restocks balls, then `:2174` navigates to the grass. The restock buys in
-batches of ten to farm the free Premier Ball each purchase gives, and each batch re-enters
-`buy_poke_balls`, which opens with `_navigate_riding_out(mart_map, approach)` while the avatar
-is still settling out of the shop UI and is therefore **not controllable**. The wrapper sits
-on that for the full 18,000 frames and the watchdog derails the run.
-
-Proof it is the *second* purchase, from the ball-count transitions:
-
-```
-baseline  (0→10) ×17   (11→21) ×17   (22→32) ×16      three purchases, chained
-batch3    (0→10) ×13   (1→11)  ×23   — and NOTHING ELSE, 36 of 36 are FIRST buys
-```
-
-**So the cost is not only the burned frames.** Every restock now buys 10 balls instead of 30,
-loses 2 free Premier Balls, and spends a derail out of the budget that protects against
-genuine stuck loops.
-
-### ‼ Instrument note — `global_watchdog` in `summary.json` is DOUBLE-COUNTED
-
-`summarize_lane` counts over `stdout + debug logs`, and a watchdog derail is written to
-**both** (console line, and `[STORY] DERAIL #N:` in the debug log). So the headline
-`9 → 143` is really **5 → 72**. This is specific to the watchdog: `GAVE UP` appears only in
-debug logs and `BADGE:`/`losses` only in stdout, so those canaries are NOT inflated. Do not
-"fix" this by halving — dedupe the source.
-
-### Reproduce
-
-`tools/story-dev/repro_watchdog_budget_collision.py` — no emulator, reads both constants from
-source. **RED on purpose** until the cap is lowered.
-
-### The fix, AS APPLIED (2026-07-31) — ⛔ this sub-heading read *"and why it is not applied yet"* until 2026-08-22
-
-Lower `_MAX_NON_OVERWORLD_FRAMES` for the wrapper to something sized for the transient it was
-built for (a battle transition clears in a few frames; ~600 frames / 10 s is generous), so
-`navigate_to` gets to raise its own honest error and `_navigate_riding_out` spends a retry on
-it — the pre-`fea2bb19` behaviour, but without the spurious failure `fea2bb19` fixed.
-
-**NOT APPLIED 2026-07-31:** batch `20260731-201554` was mid-flight and the runner restarts
-crashed lanes, so an edit to `sandbox-pokebot/` would have been imported by a restarted lane
-and contaminated the batch. Apply after it lands, then prove with a live A/B (the Rustboro
-restock is a cheap repro site: it fails 36/36 today).
-
-Related: **KI-40** (a *different*, earlier watchdog spike, attributed to the KI-34/35/36/37
-work). The `289d1710` baseline shows only 5 fires, so KI-40's regression is not what this is.
-
----
+**The fix, and the oracle for it:** `global_navigation.py:244` defines `_TRANSIENT_WAIT_FRAMES = 600` and `_navigate_when_ready` uses THAT, not the 18,000-frame watchdog cap — so the escape hatch can actually fire. Gate: `repro_watchdog_budget_collision.py`.
+‼ **The header said "FIX NOT YET APPLIED" for three weeks after it shipped** (corrected 2026-08-22, PASS 5) — the standing lesson that PRODUCTION IS THE ORACLE, not a KI header.
+⛔ **RETIRED TO A SUMMARY 2026-09-03 (line budget) — SUMMARISED AND POINTED AT, NEVER DELETED.** The full investigation (the batch3 `9 → 143` caveat, the refuted journey-length hypothesis, and the `fea2bb19` regression it actually was) is in `07-CHANGELOG.md` 2026-07-31 and `31-KNOWN-ISSUES-ARCHIVE.md`.
 
 ## KI-44 — Counter training cannot REACH its training grass: ROUTE102 is unwalkable from ROUTE103 (2026-07-31, severity: HIGH — this is now the counter chain's blocker)  — ✅ **ROOT CAUSE FOUND AND FIXED 2026-08-01** (see this entry's own `### KI-44 — ROOT CAUSE FOUND AND FIXED` block. Header marker added 2026-08-22, PASS 5).
 
@@ -1398,6 +1301,32 @@ the battle path has no safety net but its own bound.
 > 📦 **KI-46 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — FIXED same day, 2026-08-03.
 
 ## KI-47 — The battle path has a CLASS of unbounded loops; the existing watchdog is STARVED by them (2026-08-04, NET ADDED)
+
+> ⭐⭐ **2026-09-03 — THIS CLASS NOW HAS A DETERMINISTIC, ~22,000-FRAME REPRODUCTION.** It has only
+> ever been seen opportunistically, in batches, at a cost of *"a whole lane"* per hit. One command:
+> ```
+> cd tools/story-dev && POKEBOT_CH22JUAN_JITTER=181 PYTHONUTF8=1 py -3.12 story_harness.py >     post_hm07.ss1 --driver ch22chapter --frames 300000
+> ```
+> **MEASURED:** at `f21520` the KI-47 net fires exactly as designed —
+> `BotModeError -> Manual: KI-47: battle sub-handler 'handle_battle_action_selection' ran 3001
+> frames with no battle progress (frozen at ('BattleScript_MoveEnd',
+> 'HandleTurnActionSelectionState', 'LearnMoveState.DialogueNotActive', 398269))`, in the JUAN
+> fight, stuck in `PARTY_MENU` on `bt='What will SCEPTILE do?'`. Stall state saved to
+> `stalls/repro-ml-f19485.ss1`; full transcript
+> `evidence/2026-09-03-ch22chapter-DRIVE3-KI47-FREEZE.txt`.
+> ✅ **THE NET WORKS** — bounded, named, no hang. ⛔ **AND THE RUN STILL DIES**: the drop to Manual
+> happens in the main loop's battle listener, OUTSIDE the story generator, so the driver's own
+> try/except never sees it and **no `ACCEPTANCE` line is printed at all**. ⇒ grade a §Ch22 chapter
+> transcript that ends with no ACCEPTANCE and a `BotModeError -> Manual` as *this*, not as a hang
+> and not as a §Ch22 defect. (Same convention as §Ch20's `ch20room9`, whose lost runs also print
+> nothing and cannot.)
+> ⚠ **HYPOTHESIS, NOT A FINDING — do not build on it without a probe:** the frozen state name is
+> `LearnMoveState.DialogueNotActive`, and Sceptile levels **50 → 51** during this fight in every
+> winning run. A mid-battle level-up move-learn prompt landing inside action selection is the
+> obvious suspect, and it is exactly the kind of thing this project has been wrong about before.
+> ⚠ **The repro is deterministic for a fixed (save, driver, code) triple** — measured. Any change
+> to the battle path re-rolls it, so re-verify the command still reproduces before using it as an
+> A/B baseline.
 
 **Audit result** (`ast` sweep of `battle_handler`, `battle_action_selection`, `battle_menuing`,
 `battle_move_replacing`, `battle_evolution_scene`, `modes/_listeners`): **32 `while` loops with

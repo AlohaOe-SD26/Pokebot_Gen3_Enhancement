@@ -1,4 +1,12 @@
-# §Ch22 CHAPTER ASSEMBLY — RECON + BUILD SPEC (all four drivers pass; the CHAPTER is not built)
+# §Ch22 CHAPTER ASSEMBLY — RECON + BUILD SPEC ✅ **SPENT: THE CHAPTER WAS BUILT FROM THIS, SAME DAY**
+
+> ✅✅ **SHIPPED 2026-09-03.** This file is the SPEC the chapter was built from, kept because its
+> recon is still the reference for the map; the STATUS line below said "the CHAPTER is not built"
+> and is now spent. What was built and driven is in `07-CHANGELOG.md` 2026-09-03 (chapter) and
+> graded against pre-registered predictions in `2026-09-03-ch22-CHAPTER-RESULTS.md`.
+> ⛔ **DO NOT REBUILD FROM THIS FILE.** Two of its own recommendations were overtaken within hours:
+> the "XP run" leg must NOT be built (the victory script flags all ten B1F trainers), and
+> `_climb_to`'s missing southward twin is now `_descend_to()`.
 
 > ‼ **COUNT, stated once so it stops drifting: FOUR DRIVERS = one read-only recon PROBE
 > (`ch22probe`) + THREE STORY LEGS (`ch22ice`, `ch22juan`, `ch22exit`).** A Tier 1 reviewer
@@ -57,9 +65,10 @@ would be `(8,2)`, which is **Juan's own tile**: plain floor, so neither the lock
 the cracked-ice guard fires. It would press "Up" into Juan for 3 × 900 frames and then blame its
 step budget.
 
-‼ **No driver has ever run `walk_the_ice → fight_juan → fall_to_b1f` composed.** `ch22exit` never
-fights Juan; `ch22juan` stops on the island. The seam the chapter is made of is the one seam with
-zero coverage. **Mitigated 2026-09-03** by a refusal that names the real problem instantly (a
+‼ **(SPENT) No driver had ever run `walk_the_ice → fight_juan → fall_to_b1f` composed** — `ch22exit`
+never fights Juan and `ch22juan` stops on the island, so the seam the chapter is made of had zero
+coverage. ✅ **`--driver ch22chapter` now runs it**, and it was worth the caution: the composed arm
+found three defects in its own acceptance line. Also **mitigated** by a refusal naming the problem (a
 descent helper is still owed) — see `07-CHANGELOG.md`.
 
 ---
@@ -83,7 +92,9 @@ descent helper is still owed) — see `07-CHANGELOG.md`.
 | ladder → 1F → city | **driver only** | ⛔ chapter must own it |
 | `ch22_chapter_done()` | **nothing** | ⛔ `juan_defeated()` alone returns True *while stranded on the island* |
 
-## §2. THE FIGHT IS SAMPLED: **4 WINS OUT OF 4**, THREE OF THEM INDEPENDENT
+## §2. THE FIGHT IS SAMPLED — ⛔ **UPDATED: 5 WINS AND 1 LOSS OVER SIX DRAWS**
+
+> ⛔ **THIS HEADING READ "4 WINS OUT OF 4".** The chapter drive, built from this very spec, > then LOST its first Juan fight and won the one after recovering. The four arms below are > still correct; they are four of six. ⇒ "CAN win" is measured, "wins reliably" is FALSE.
 
 | arm | `POKEBOT_CH22JUAN_JITTER` | frames | outcome | survivors |
 |---|---|---|---|---|

@@ -3756,8 +3756,33 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Sootopolis / Rayquaza already done — skipping.[/]")
         _guard("Sootopolis / Rayquaza / HM07 (Ch21)", ch21_chapter_done)
 
-        # END OF BUILT CONTENT. Next build: GYM 8 — JUAN, in Sootopolis — **Chapter 22**
-        # (`chapters.py:255-256`, graded on `BADGE08_GET`). ✅ §Ch21 IS NOW WIRED (2026-09-02);
+        # --- Segment 22: GYM 8 — JUAN (SOOTOPOLIS) -------------------------------------------------
+        # ⛔⛔ GRADED ON `ch22_chapter_done()`, WHICH IS THE BADGE **AND A POSITION** — never the
+        # badge alone. `BADGE08_GET` is set by `SootopolisCity_Gym_1F_EventScript_JuanDefeated`
+        # while the bot still stands on JUAN_STAND (8,3), on a 20-TILE ISLAND, with the exit warp
+        # AND the 1F ladder both unreachable and `allow_escaping` false on BOTH floors. Grading on
+        # the flag would hand the next segment a stranded run — the §Ch15 / §Ch18 / §Ch19 shape,
+        # each of which PASSED its own test while stranded.
+        # ‼ `chapters.py:255-256` grades the progress READOUT on the flag alone, deliberately: the
+        # readout answers "which chapter is this run in", not "may the next segment start".
+        # ⛔ AND THE FALL TO B1F IS PART OF THIS CHAPTER, NOT AN ACCIDENT. After the ice is walked
+        # there is no other way off Juan's platform; the chapter breaks (8,6) on purpose. Because
+        # the victory script `settrainerflag`s all ten B1F trainers, that descent is BATTLE-FREE.
+        from modules.story.sootopolis_gym import ch22_chapter_done, do_sootopolis_gym_chapter
+
+        if not ch22_chapter_done():
+            yield from do_sootopolis_gym_chapter()
+        else:
+            console.print("[dim]Story: Sootopolis Gym / Juan already done — skipping.[/]")
+        _guard("Gym 8 — Juan (Ch22)", ch22_chapter_done)
+
+        # END OF BUILT CONTENT. Next build: **VICTORY ROAD — Chapter 23** (`chapters.py:259-262`,
+        # graded on `DEFEATED_WALLY_VICTORY_ROAD`): Surf/Waterfall/Dive to Ever Grande, then clear
+        # Victory Road (Strength / Rock Smash / Flash inside) and beat Wally.
+        # ⭐ Badge 8 is what makes field WATERFALL usable (`src/field_control_avatar.c` gates
+        # `EventScript_UseWaterfall` on `FLAG_BADGE08_GET`), which is exactly what opens Routes
+        # 132-134 — so §Ch22 landing is what unblocks §Ch23.
+        # ✅ §Ch22 IS NOW WIRED (2026-09-03). ✅ §Ch21 IS NOW WIRED (2026-09-02);
         # the Ch21 leads below are retained because their TRAPS still apply to anyone touching it.
         # ⛔ This heading has been wrong twice before — it is a BANNER, and a banner is a claim about
         # every clause under it; retarget it in the SAME commit as the next segment that lands.
@@ -3784,9 +3809,9 @@ class StoryMode(BotMode):
         # (38,22) is a shallow-water SANDBAR — the bot must Surf off it. The standing rule is "and the bot
         # can continue", and three chapters have already shipped stranded.
         context.message = (
-            "Story: SOOTOPOLIS IS DONE (Ch21) - Rayquaza is away, the legendaries are quelled "
-            "and HM07 WATERFALL is in the bag with the gym door clear. End of built content. "
-            "NEXT (WIP): Ch22, Gym 8 - Juan. Handing to manual."
+            "Story: GYM 8 IS DONE (Ch22) - the RAIN BADGE is won, Juan is beaten and the bot is "
+            "back out of the gym, so field WATERFALL is now usable. End of built content. "
+            "NEXT (WIP): Ch23, VICTORY ROAD. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call

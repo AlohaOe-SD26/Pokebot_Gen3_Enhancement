@@ -409,8 +409,11 @@ done
   is A/B PROVEN: one step on thin ice moved the metatile grid by 1 tile (`0x20d → 0x20e`) and the
   collision grid by 0. ‼ Pick the reader by WHAT THE MAP MUTATES, not by which one you have.
 
-* **`modules/story/sootopolis_gym.py`** — §Ch22 (Gym 8, Juan). A chapter module whose legs are all
-  driven but which has **no orchestrator yet** (`#24-ch22chapter`); not imported by production.
+* **`modules/story/sootopolis_gym.py`** — §Ch22 (Gym 8, Juan). ✅ **A FULL CHAPTER, DISPATCHED AS
+  SEGMENT 22** (2026-09-03) via `do_sootopolis_gym_chapter()` / `ch22_chapter_done()`. ⛔ Its
+  completion predicate is the badge **AND a position**, because `BADGE08_GET` is set while the bot
+  still stands on a 20-tile island it cannot walk off — proven by two fault arms that strand it in
+  two different places and both FAIL.
   It is the tree's only map where **`calculate_path` must never be used**: the locked stairs are
   `MB_SLIDE_SOUTH` with collision **0**, so the planner happily routes straight through them, and
   the ice puzzle is an **exact cover**, not a shortest path. The route is therefore a
