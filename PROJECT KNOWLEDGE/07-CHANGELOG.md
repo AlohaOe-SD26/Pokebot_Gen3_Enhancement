@@ -20836,3 +20836,30 @@ otherwise. ⇒ every future fixture capture answers this for free.
 
 **4. ✅ Recorded at all three places a reader can arrive:** `saves/FIXTURES.md5` (the entry a future
 session reads first about this save), `04-HANDOFF.md`'s queue head, and `#24-ch23victoryroad`.
+
+
+## 2026-09-03 (sweep) — NAMING THE CASUALTIES TURNED AN OPAQUE COUNT INTO THREE FINDINGS
+
+`probe_anchor_inventory.py` — the tool that sweeps EVERY pinned fixture — reported `"N FAINTED"`
+without naming anyone. Now it prints `N FAINTED: Species#PID, ...`, and flags a `weakest` member
+under 25% when nothing is actually down. Read-only; nothing else changed. Three things fell out of
+one run:
+
+**1. ✅ THE §Ch23 HAZARD IS NOW VISIBLE WHERE ANCHORS ARE CHOSEN.** `post_badge8.ss1` and
+`post_waterfall.ss1` both read `1 FAINTED: Wailmer#FA51ECF3` — the chapter's sole Dive+Waterfall
+carrier — instead of the anonymous `1 FAINTED` that hid it for a day.
+
+**2. ⛔ "ASSERT BY PID" HAS AN EXCEPTION, AND THE SWEEP FOUND IT LIVE.** `batch3_run01_wedge.ss1`
+reports `Shedinja#42207D6F` **and** `Ninjask#42207D6F` — **the same personality value**. That is
+**KI-78** observed in a fixture rather than in theory (`CreateShedinja` memcpies its sibling and
+never rewrites the PID, so the twins are PID-identical for life). ⇒ **a PID is not a unique key when
+a Ninjask/Shedinja pair is in the party.** ✅ §Ch23 is unaffected (six distinct PIDs, no twins), but
+its preflight spec said "assert Wailmer by PID" — which is one roster change away from being wrong.
+Corrected to assert **(PID, species)** or to verify the PID occurs exactly once.
+
+**3. ⭐ AND A WARNING THAT HAS BEEN CRYING WOLF IS NOW LEGIBLE.** Eight `ch13_*` fixtures report
+`‼ CANNOT SURVIVE A JOURNEY` at **94%, 89%, 77%, 75%, 74%** party HP — because the single fainted
+member is **Shedinja**, whose max HP is 1 and which therefore dies to any chip damage. Anonymous,
+that reads as eight damaged anchors; named, it reads as one species' quirk. ‼ **A count cannot be
+interpreted; an identity can.** *(Not fixed here — the threshold is a separate judgement — but the
+output no longer hides why it fires.)*

@@ -11441,3 +11441,40 @@ Build the instrument first. The question "which member is fainted?" went unasked
 nothing could answer it, not because anyone judged it unimportant.
 ✅ **And the generic form of the rule this project keeps re-learning: ASSERT IDENTITY, NEVER A COUNT.**
 Six alive and six-with-one-down both report `party=6`.
+
+
+## 2026-09-03 — MY "IS THIS ITEM CLOSED?" HEURISTIC WOULD HAVE RETIRED TWO ITEMS WITH LIVE WORK IN THEM
+
+**Symptom (caught before any damage).** `03-PUNCH-LIST.md` went over its 3,600-line budget, so I
+searched for a fully-closed item to archive. My detector was *"the item contains no `- [ ]` and no
+`- [~]` checkbox"*. It nominated **`#26-manualderails` (105 lines)** and **`#26-surfteachchain`
+(38 lines)** as the two biggest closed items.
+⛔ **Both have live work.** `#26-manualderails` carries **D4, one of the three ripe USER DECISIONS**
+named in `04-HANDOFF.md` (the post-wind repeat burn). `#26-surfteachchain` carries **D3, which is
+OPEN and specifically ARMED on the §Ch23 route I am building right now** — its hazard is re-entry
+into `_select_forget_slot`, and the clean §Ch23 leg-1 run never re-entered it, so D3 *did not fire*
+rather than being fixed.
+
+**Root cause.** These items track state in PROSE with sub-item markers (`D1`, `D2`, `D3`, `D4`),
+not with checkboxes. **A structural test for openness is only valid where the structure is
+enforced** — and nothing enforces the checkbox convention here. My detector measured a proxy for
+"closed" and would have reported a confident, clean answer while deleting a user decision.
+
+**Why it was caught.** Only because I recognised both slugs from this session's own reading and
+stopped to check. ‼ **That is not a control — it is luck**, and it would not protect an agent with
+no prior context, which is exactly who does budget retirements at session end.
+
+**The fix applied instead.** I retired nothing and compressed **my own** newly-added verbose text —
+the §Ch23 guard spec, which was duplicating a ruling now stated in full in `06-DECISIONS-LOG.md`.
+Duplicating a decision across two current-state files is itself how halves drift apart.
+
+**Prevention rules.**
+⛔⛔ **NEVER RETIRE AN ITEM ON A STRUCTURAL TEST ALONE. READ IT.** "No open checkbox" is a proxy;
+open work also hides in prose, in `D<n>` sub-items, and in "AWAITING A USER RULING". ‼ Before
+archiving, `grep` the item's slug across `04-HANDOFF.md` and `05-KNOWN-ISSUES.md` — if the handoff
+names it as a live decision, it is not closed no matter what its checkboxes say.
+⛔ **WHEN OVER BUDGET, COMPRESS YOUR OWN NEWEST TEXT FIRST.** It is the text you understand best,
+it is the most likely to be verbose, and it is the only text whose removal cannot lose someone
+else's finding. Retirement of an OLD item is a bigger decision than a line budget should force.
+✅ **And prefer de-duplication to deletion:** a full ruling belongs in `06-DECISIONS-LOG.md` once,
+with a pointer from the punch list — not stated twice in two current-state files.

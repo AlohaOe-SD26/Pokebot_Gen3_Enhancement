@@ -119,6 +119,19 @@ def read_anchor(save: pathlib.Path) -> dict:
         row["hp_cur"] = sum(mon.current_hp for mon in party)
         row["hp_max"] = sum(mon.total_hp for mon in party)
         row["fainted"] = sum(1 for mon in party if mon.current_hp == 0)
+        # ⭐ NAME THE CASUALTIES, ADDED 2026-09-03 — A COUNT WAS NOT ENOUGH, AND IT COST A DAY.
+        # This probe reported "1 FAINTED" for `post_waterfall.ss1` while `saves/FIXTURES.md5`
+        # separately recorded that Wailmer is §Ch23's SINGLE POINT OF FAILURE — sole carrier of
+        # Dive (the only exit from the Sootopolis crater) and Waterfall (the only way up). Both
+        # statements were true and they AGREED, so no consistency check could see the problem:
+        # the fainted one WAS Wailmer. ⇒ the hazard lived in a conjunction no sentence performed,
+        # and no instrument in the tree could answer "WHICH member is down?".
+        # ⛔ ASSERT IDENTITY, NEVER A COUNT — the rule this file now implements instead of citing.
+        row["fainted_who"] = [f"{mon.species.name}#{mon.personality_value:08X}"
+                              for mon in party if mon.current_hp == 0]
+        row["weakest"] = min(
+            ((mon.species.name, mon.current_hp, mon.total_hp) for mon in party if mon.total_hp),
+            key=lambda t: t[1] / t[2], default=None)
     except Exception as error:
         row["party"] = []
         row["hp_cur"] = row["hp_max"] = row["fainted"] = None
@@ -142,7 +155,14 @@ def fmt(row: dict) -> str:
     cur, mx, fainted = row.get("hp_cur"), row.get("hp_max"), row.get("fainted")
     if cur is not None and mx:
         pct = 100 * cur / mx
-        health = f"  HP {cur}/{mx} ({pct:.0f}%)" + (f", {fainted} FAINTED" if fainted else "")
+        who = row.get("fainted_who") or []
+        # ⛔ NAME THEM. "1 FAINTED" is the reading that hid Wailmer — §Ch23's sole Dive+Waterfall
+        # carrier — being the casualty in that chapter's own start fixture.
+        health = f"  HP {cur}/{mx} ({pct:.0f}%)" + (
+            f", {fainted} FAINTED: {', '.join(who)}" if fainted else "")
+        weakest = row.get("weakest")
+        if not fainted and weakest and weakest[2] and weakest[1] / weakest[2] < 0.25:
+            health += f"   ⚠ weakest {weakest[0]} {weakest[1]}/{weakest[2]}"
         # Say it where the anchor is CHOSEN, not three runs later in a whiteout log.
         if fainted or pct < 50:
             health += "   ‼ CANNOT SURVIVE A JOURNEY — heal before using this as a start point"

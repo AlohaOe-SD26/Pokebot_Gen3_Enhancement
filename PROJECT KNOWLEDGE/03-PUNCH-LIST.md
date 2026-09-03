@@ -860,23 +860,15 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       Cause was NOT the missing edge-blocker rule (provably vacuous here) — it was that
       **I tested board states the game can never reach.** ‼ Applying a SUBSET of order-dependent
       actions does not produce a reachable state. `08-MISTAKES.md` 2026-09-03.
-      ⭐⭐ **THE EXACT GUARD TO BUILD, AND IT IS SMALL — read this before designing anything bigger.**
-      Because **only pushes can kill** (0 of 186,602 walk and 145 smash edges cross live→dead), the
-      whole hazard is expressible as a refusal inside one call:
-      `strength_push(map_enum, approach_tile, face_dir, *, tries=8)` — `early_game.py:7884`, already
-      built and idempotent, judged by the WORLD (boulder gone from its tile **and** present on the
-      destination). The boulder's tile is `approach_tile + face_dir`, and ⛔ **`y` INCREASES
-      SOUTHWARD, so SOUTH is `'Down'`** (the §Ch22 `_descend_to` lesson).
-      ⇒ **Refuse when `map == VICTORY_ROAD_B1F` and `face_dir == 'Down'` and the boulder tile is
-      (4,7) or (9,10)** — raise a NAMED error, never silently skip.
-      ⛔⛔ **BUILD IT FAIL-LOUD, NOT FAIL-OPEN.** The one way this guard becomes useless is a
-      COORDINATE-SPACE mismatch: if live coords carry `MAP_OFFSET` (+7) the comparison never matches
-      and the guard silently permits the fatal push. ⇒ **the guard must also assert it recognises the
-      floor** (e.g. that the two boulders are found where expected on entry) and raise if not.
-      *(The offset is believed retired — `calculate_path` accepted these decomp coordinates and
-      returned 29/44/15 wp with 29+15=44 — but "believed retired" is not what a safety guard rests on.)*
-      ⚠ **Do NOT modify `strength_push` itself** — §Ch20 shares it, and a shared-path change needs an
-      A/B on the ordinary case (session-discipline rule 9). Put the refusal in the §Ch23 module.
+      ⭐⭐ **THE GUARD TO BUILD IS SMALL, AND IT IS RULED IN `06-DECISIONS-LOG.md` (2026-09-03).**
+      Because **only pushes can kill**, the whole hazard is a refusal inside one call:
+      `strength_push(map_enum, approach_tile, face_dir)` — `early_game.py:7884`, already built and
+      idempotent. The boulder tile is `approach_tile + face_dir`, and ⛔ **`y` INCREASES SOUTHWARD,
+      so SOUTH is `'Down'`.** Refuse when `map == VICTORY_ROAD_B1F`, `face_dir == 'Down'`, and the
+      boulder is (4,7) or (9,10) — raise a NAMED error, never silently skip.
+      ⛔ **FAIL-LOUD, NOT FAIL-OPEN:** a `MAP_OFFSET` (+7) mismatch would make the comparison never
+      match and silently permit the fatal push, so the guard must also assert it recognises the
+      floor. ⚠ Put it in the §Ch23 module, NOT in `strength_push` — §Ch20 shares that function.
       ⭐ **Kit is {Strength, Rock Smash, Surf}** — Surf because B1F's two main regions are
       walk-disjoint and B2F (238 ocean tiles) is the only bridge. *(There is a THIRD region: a
       35-tile B2F-only pocket holding TM Psychic. Not hazard-relevant, but "two halves" is wrong.)* **Waterfall is NOT needed inside the
@@ -892,6 +884,9 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       Wailmer is **ALIVE by PID**, not merely present (a party count reads 6 either way).
       ⚠ Whether a FAINTED mon can be selected for a field move at all is dispatched to a decomp
       agent; heal-first is correct under either answer, so this is not a blocker.
+      ⚠⚠ **"ASSERT BY PID" HAS ONE EXCEPTION — KI-78, found LIVE in `batch3_run01_wedge.ss1`, where
+      `Shedinja` and `Ninjask` share PID `42207D6F`.** ✅ §Ch23 is unaffected (six distinct PIDs, no
+      twins), but ⇒ assert **(PID, species)** or verify the PID occurs exactly once.
       ⭐ **Wally is MANDATORY, not merely free** — blocking his (2,23)/(3,23) triggers makes the B1F
       ladder unreachable (477→429 tiles), so the chapter cannot skip its own grading flag
       `DEFEATED_WALLY_VICTORY_ROAD` (0x7E). ⚠ Afterwards he is a permanent blocker at (2,24)/(3,24).
