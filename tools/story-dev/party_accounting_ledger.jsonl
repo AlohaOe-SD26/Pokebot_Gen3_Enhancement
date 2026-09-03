@@ -282,3 +282,5 @@
 {"when": "2026-09-03T11:29:30", "driver": "ch22chapter", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 84565, "recomputes": 84565, "scans": 282, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-03T13:11:13", "driver": "ch22chapter", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 84565, "recomputes": 84565, "scans": 282, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-03T13:22:06", "driver": "ch23teach", "build": "sandbox", "state": "post_badge8.ss1", "frames_run": 21898, "recomputes": 21898, "scans": 73, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T14:32:26", "driver": "ch23teach", "build": "sandbox", "state": "post_badge8.ss1", "frames_run": 21898, "recomputes": 21898, "scans": 73, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T14:33:54", "driver": "ch23route", "build": "sandbox", "state": "post_waterfall.ss1", "frames_run": 600, "recomputes": 601, "scans": 3, "divergences": {}, "observer_broke": false}

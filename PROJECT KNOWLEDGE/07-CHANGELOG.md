@@ -20560,3 +20560,58 @@ rules in `08-MISTAKES.md` 2026-09-03.
 **`chapters.py` corrected a second time.** Its §Ch23 row went wrong-in-one-direction (naming Routes
 132-134), was fixed, then briefly wrong in the other (claiming the field moves were optional). It
 now states the measured requirement and carries the retraction inline so the next reader sees both.
+
+
+## 2026-09-03 (§Ch23 adjudicated) — PRODUCTION'S PLANNER SETTLES THE RETRACTION, AND THE BAG IS DUMPED
+
+**1. ⭐⭐ THE RETRACTION IS CONFIRMED BY THE AUTHORITY, NOT JUST BY MY CORRECTED MODEL.** New
+read-only `--driver ch23route` asks `calculate_path` — the planner the bot will actually use — the
+same questions my offline tool answered. This is the recorded prevention rule executed: *when a
+tool answers a question production also answers, DIFF THEM.* Evidence
+`evidence/2026-09-03-ch23route-PLANNER-READINGS.txt`:
+
+| question | my v1 (wrong) | my v2 (corrected) | **PRODUCTION** |
+|---|---|---|---|
+| VICTORY_ROAD_1F (15,40) → exit (39,5) | 71 steps | UNREACHABLE | ⭐ **`PathFindingError`** |
+| → Wally's trigger (3,23) | 29 | 29 | **29 wp** |
+| → the B1F ladder (9,14) | — | 44 | **44 wp** |
+| Wally (3,23) → ladder (9,14) | — | 15 | **15 wp** |
+
+⇒ **three-way agreement on the corrected answer, and production REFUTES the original.** 29 + 15 =
+44 = direct, so **Wally's detour costs 0 steps** — confirmed by the shipped planner.
+‼ It also cost a few frames: the probe moves nothing and presses nothing.
+
+**2. ⭐ THE BAG'S HMs ARE DUMPED FOR THE FIRST TIME IN THIS PROJECT.** `04-HANDOFF.md` had said
+plainly that no probe in this tree dumps them and that *"do we hold HM05 Flash?"* was UNMEASURED:
+
+| HM01 Cut | HM02 Fly | HM03 Surf | HM04 Strength | HM05 Flash | HM06 Rock Smash | HM07 Waterfall | HM08 Dive |
+|---|---|---|---|---|---|---|---|
+| **0** | **1** | 1 | 1 | **0** | 1 | 1 | 1 |
+
+⛔ **HM05 Flash is NOT held** — harmless, because Flash is optional, but had the earlier retraction
+gone the other way this would have been a hard blocker discovered mid-build. ⚠ **HM02 Fly IS held**
+though nobody knows it — relevant because Victory Road's exit terrace cannot be walked back down.
+
+**3. ✅ EVERY FIELD MOVE THE ROUTE NEEDS IS ALREADY CARRIED** (read by move identity, post-teach):
+Surf → Zigzagoon + Wailmer · Dive → Wailmer · Waterfall → Wailmer · Strength → Sceptile ·
+Rock Smash → Sceptile. Including the two the retraction made mandatory, both on Sceptile.
+⛔⛔ **BUT WAILMER IS THE CHAPTER'S SINGLE POINT OF FAILURE** — sole carrier of Dive (the only exit
+from the Sootopolis crater) AND of Waterfall (the only way up to Victory Road). §Ch23's preflight
+must assert it BY PID, and nothing may deposit it.
+
+**4. TWO READINGS THAT CHANGE HOW THE ROUTE IS BUILT.**
+* ✅ `ROUTE128_STATE = 2` ⇒ the `ON_FRAME` Kyogre scene is SPENT and will not ambush the swim. The
+  recon said to read it rather than assume; it is read.
+* ⛔ **`calculate_path` IS CONNECTION-GRAPH ONLY** — both cross-map legs refuse with *"not on
+  connected maps (note that warps don't count.)"* ⇒ the §Ch23 route must be driven with
+  `navigate_to_anywhere`. ‼ KI-53's shape: that refusal is the WRONG INSTRUMENT, not a verdict.
+* ✅ Ever Grande (18,41) → the Poké Center apron (27,49) = **23 wp**, so the heal is reachable from
+  the Victory Road entrance side.
+
+**5. A second fixture, pinned.** `saves/post_waterfall.ss1` (md5 `3eec11dbaa5deae51288cfa34e198536`)
+— `post_badge8` with Waterfall taught — captured by `CH23_CAPTURE` on the teach's FULL PASS and
+registered in `FIXTURES.md5` with the Wailmer single-point-of-failure warning.
+
+⚠ **STILL OWED, and the first one grew:** Victory Road **B1F and B2F have no trainer or boulder
+audit at all** — a recon bullet had scoped that away while the route was believed 1F-only, and the
+retraction put both floors on the mandatory path. Plus the Route 128 x=101 trainer pinch.

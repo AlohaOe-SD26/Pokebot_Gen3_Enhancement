@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -12229,6 +12229,120 @@ class Ch22ChapterMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch23RouteMode(BotMode):
+    """§Ch23 — READ-ONLY: ask PRODUCTION'S OWN PLANNER whether the route is routable.
+
+    ⛔⛔ THIS EXISTS BECAUSE I BUILT AN OFFLINE MODEL OF SOMETHING THE BOT ALREADY MODELS, AND MINE
+    WAS WRONG. `solve_victory_road.py` v1 reported a 71-step Victory Road route by comparing
+    elevations TILE-TO-TILE; the game (and `map_path.py:859`/`:1039`) use a CARRIED elevation that
+    an elevation-15 tile PRESERVES. The recorded prevention rule was: **when a tool answers a
+    question production also answers, DIFF THEM.** This probe goes one better and asks production
+    directly — there is no second model to be wrong.
+
+    ⛔ IT MOVES NOTHING AND PRESSES NOTHING. Every reading is a `calculate_path` call or a memory
+    read, so it costs a few frames and cannot derail the fixture.
+
+    WHAT IT SETTLES:
+      R1  the live value of `VAR_ROUTE128_STATE` — the recon flagged an ON_FRAME Kyogre scene gated
+          on it, and said to READ it rather than assume it is spent.
+      R2  the party's field-move capability as PRODUCTION sees it (Surf / Dive / Waterfall carriers
+          and the badges), read by item/move identity, never by a flag.
+      R3  ⭐ the question my offline tool got WRONG: VICTORY_ROAD_1F (15,40) -> (39,5).
+          If production also refuses it, the correction is confirmed by the authority.
+      R4  VICTORY_ROAD_1F (15,40) -> Wally's trigger (3,23), and -> the B1F ladder (9,14).
+      R5  the cross-map legs: SOOTOPOLIS_CITY -> EVER_GRANDE_CITY, and -> VICTORY_ROAD_1F.
+
+    ⚠ A `PathFindingError` IS A READING, not a crash — it is captured and reported per leg.
+    ⚠ AND A STATIC FAIL IS NOT A VERDICT (KI-53): `navigate_to_anywhere` routes the WARP GRAPH and
+    re-plans after every warp, and a §Ch15 leg succeeded while planning statically as FAIL. ⇒ read
+    a FAIL as "the static planner cannot see it", never as "the bot cannot go there".
+    ⚠ KI-73 (the planner reads STATIC layouts) is inert here: Victory Road runs no
+    `setmaplayoutindex` / `setmetatile`. Stated because it must be checked, not assumed.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_waterfall.ss1 --driver ch23route --frames 400
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23Route"
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag, get_event_var
+        from modules.player import get_player_avatar
+        from modules.pokemon import get_item_by_name
+        from modules.pokemon_party import get_party
+
+        TAG = "ch23route"
+        yield  # one frame so the save state is fully settled before anything is read
+
+        avatar = get_player_avatar()
+        here = MapRSE(tuple(avatar.map_group_and_number)), tuple(avatar.local_coordinates)
+        log(f"[{TAG}] PRE at={here[0].name}{here[1]}")
+
+        # ---- R1: the var the recon said to READ rather than assume ---------------------------
+        r128 = get_event_var("ROUTE128_STATE")
+        log(f"[{TAG}] R1 ROUTE128_STATE={r128!r} — the ON_FRAME Kyogre scene fires only at 1. "
+            f"{'✅ SPENT, no scene' if r128 != 1 else '⛔ ARMED — the scene WILL fire on entry'}")
+
+        # ---- R2: capability, by move/item IDENTITY (never a flag alone) -----------------------
+        carriers: dict[str, list[str]] = {}
+        for mon in get_party():
+            if mon is None:
+                continue
+            for learned in mon.moves:
+                if learned is None:
+                    continue
+                if learned.move.name in ("Surf", "Dive", "Waterfall", "Strength", "Rock Smash",
+                                         "Flash"):
+                    carriers.setdefault(learned.move.name, []).append(
+                        f"{mon.species.name}#{mon.personality_value:08X}")
+        badges = {n: get_event_flag(f"BADGE0{n}_GET") for n in range(1, 9)}
+        try:
+            from modules.items import get_item_bag
+
+            bag = get_item_bag()
+            hms = {f"HM0{n}": bag.quantity_of(get_item_by_name(f"HM0{n}")) for n in range(1, 9)}
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            hms = {"error": f"{type(error).__name__}: {error}"}
+        log(f"[{TAG}] R2 CARRIERS {carriers}")
+        log(f"[{TAG}] R2 BADGES {badges}")
+        log(f"[{TAG}] R2 HMs IN BAG {hms} — ⛔ this is the first time this tree has dumped them; "
+            f"'do we hold HM05 Flash?' was previously UNMEASURED.")
+
+        # ---- R3/R4/R5: ask PRODUCTION'S planner, leg by leg ------------------------------------
+        from modules.map_path import calculate_path
+
+        def ask(label: str, src, dst) -> None:
+            """A refusal is a reading. Report the exception TYPE, never swallow it."""
+            try:
+                path = calculate_path(src, dst)
+                log(f"[{TAG}] {label}: OK, {len(path)} waypoints")
+            except Exception as error:  # noqa: BLE001
+                log(f"[{TAG}] {label}: {type(error).__name__} — {str(error)[:180]}")
+
+        VR = MapRSE.VICTORY_ROAD_1F
+        EG = MapRSE.EVER_GRANDE_CITY
+        SC = MapRSE.SOOTOPOLIS_CITY
+
+        log(f"[{TAG}] ⭐ R3 IS THE ONE THAT MATTERS: my offline tool said 71 steps, then said "
+            f"UNREACHABLE after the elevation fix. Production is the tie-breaker.")
+        ask("R3 VICTORY_ROAD_1F (15,40) -> exit (39,5)", (VR, (15, 40)), (VR, (39, 5)))
+        ask("R4a VICTORY_ROAD_1F (15,40) -> Wally trigger (3,23)", (VR, (15, 40)), (VR, (3, 23)))
+        ask("R4b VICTORY_ROAD_1F (15,40) -> B1F ladder (9,14)", (VR, (15, 40)), (VR, (9, 14)))
+        ask("R4c VICTORY_ROAD_1F Wally (3,23) -> B1F ladder (9,14)", (VR, (3, 23)), (VR, (9, 14)))
+        ask("R5a SOOTOPOLIS_CITY -> EVER_GRANDE_CITY (18,41) VR door", (SC, here[1]), (EG, (18, 41)))
+        ask("R5b SOOTOPOLIS_CITY -> VICTORY_ROAD_1F (15,40)", (SC, here[1]), (VR, (15, 40)))
+        ask("R5c EVER_GRANDE (18,41) -> the Poke Center apron (27,49)", (EG, (18, 41)), (EG, (27, 49)))
+
+        log(f"[{TAG}] ⚠ READ A FAILURE AS 'the STATIC planner cannot see it', NEVER as 'the bot "
+            f"cannot go there' — `navigate_to_anywhere` re-plans per warp and a §Ch15 leg succeeded "
+            f"while planning statically as FAIL (KI-53).")
+        log(f"[{TAG}] ACCEPTANCE: PASS (⛔ THIS PROBE ONLY GRADES THAT THE READINGS HAPPENED. "
+            f"Every line above is a MEASUREMENT to be read, not a pass/fail.)")
+        context.set_manual_mode()
+
+
 class Ch23TeachMode(BotMode):
     """§Ch23 leg 1 — TEACH WATERFALL TO WAILMER. Drives PRODUCTION `teach_hm_move`.
 
@@ -12373,6 +12487,26 @@ class Ch23TeachMode(BotMode):
         log(f"[{TAG}] FAILURE {failure}")
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'} "
             f"(⛔ graded on the PARTY read back from the world, never on the teach's own report)")
+
+        # ⛔ CAPTURE ONLY ON THE FULL PASS — the file's existence is the acceptance record, and a
+        # fixture written from a failed teach would be a party WITHOUT Waterfall claiming to have it.
+        import os as _os
+
+        _cap = _os.environ.get("CH23_CAPTURE", "").strip()
+        if _cap:
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if not passed:
+                log(f"[{TAG}] CAPTURE SKIPPED — the run did not PASS "
+                    f"(knows_waterfall={knows_waterfall} keeps_dive={keeps_dive} "
+                    f"keeps_surf={keeps_surf} intact={party_intact}); refusing to write {_cap}")
+            elif _out.exists() and _os.environ.get("CAPTURE_FORCE", "") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_cap} exists (set CAPTURE_FORCE=1 to replace)")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured the post-Waterfall fixture -> {_out}")
         context.set_manual_mode()
 
 
@@ -14146,6 +14280,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch22ChapterMode()
         elif args.driver == "ch23teach":
             context.bot_mode_instance = Ch23TeachMode()
+        elif args.driver == "ch23route":
+            context.bot_mode_instance = Ch23RouteMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

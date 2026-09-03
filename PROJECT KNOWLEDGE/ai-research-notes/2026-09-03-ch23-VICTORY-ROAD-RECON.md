@@ -251,14 +251,70 @@ away and measured reachable. ‼ And §Ch23's own preflight must assert the part
 PID, exactly as §Ch22's does — a chapter that begins a no-escape ocean crossing on a fainted party
 has no way back.
 
+## §3d. ⭐⭐ PRODUCTION'S OWN PLANNER ADJUDICATES — AND IT SIDES WITH THE CORRECTION
+
+`--driver ch23route` (READ-ONLY; it moves nothing and presses nothing, so it costs a few frames and
+cannot derail the fixture) asks `calculate_path` — **the planner the bot will actually use** — the
+same questions my offline tool answered. This is the recorded prevention rule executed: *when a tool
+answers a question production also answers, DIFF THEM.* Evidence:
+`evidence/2026-09-03-ch23route-PLANNER-READINGS.txt`.
+
+| question | my v1 (wrong) | my v2 (corrected) | **PRODUCTION** |
+|---|---|---|---|
+| 1F (15,40) → exit (39,5) | 71 steps | **UNREACHABLE** | ⭐ **`PathFindingError` — "Could not find a path"** |
+| 1F (15,40) → Wally (3,23) | 29 | 29 | **29 waypoints** |
+| 1F (15,40) → B1F ladder (9,14) | — | 44 | **44 waypoints** |
+| Wally (3,23) → ladder (9,14) | — | 15 | **15 waypoints** |
+
+⇒ **THREE-WAY AGREEMENT on the corrected answer** (my fixed tool, the adversarial reviewer, and the
+shipped planner), and **production REFUTES the original**. 29 + 15 = 44 = the direct distance, so
+**Wally's detour costs 0 steps — now confirmed by the authority, not just by my own model.**
+
+## §3e. ⭐ THE BAG'S HMs, DUMPED FOR THE FIRST TIME IN THIS PROJECT
+
+`04-HANDOFF.md` said *"no probe in this tree dumps them, so 'do we hold HM05 Flash?' is genuinely
+UNMEASURED."* It is measured now, by item identity:
+
+| HM01 Cut | HM02 Fly | HM03 Surf | HM04 Strength | HM05 Flash | HM06 Rock Smash | HM07 Waterfall | HM08 Dive |
+|---|---|---|---|---|---|---|---|
+| **0** | **1** | 1 | 1 | **0** | 1 | 1 | 1 |
+
+* ⛔ **HM05 FLASH IS NOT HELD.** Harmless — Flash is optional (§0 F2) — but it is now a measurement
+  rather than an assumption, and it would have been a real blocker had the retraction gone the
+  other way.
+* ⭐ **HM02 FLY *IS* HELD** — worth knowing, because the adversarial review found that Victory
+  Road's exit terrace cannot be walked back down to the Poké Center or Route 128. Fly is allowed on
+  `MAP_TYPE_CITY`, so Ever Grande is escapable that way. ⚠ **No party member knows Fly**, so this is
+  a capability the bot *could* acquire, not one it has.
+* HM01 Cut is not held either; §Ch23 does not need it.
+
+**And the carriers, read from the party by move identity** (post-teach):
+Surf → Zigzagoon + Wailmer · Dive → **Wailmer only** · **Waterfall → Wailmer only** ·
+Strength → Sceptile · Rock Smash → Sceptile · Flash → nobody.
+⇒ ✅ **§Ch23 already carries every field move the route needs** — including the Strength and Rock
+Smash the retraction made mandatory, both on Sceptile. ⛔ But Wailmer now carries **three** of them
+(Dive, Surf, Waterfall) and is the sole carrier of two; it is the single point of failure for the
+whole chapter.
+
+## §3f. TWO MORE READINGS THAT CHANGE HOW THE ROUTE MUST BE BUILT
+
+* ✅ **`ROUTE128_STATE = 2`** — the `ON_FRAME` Kyogre scene fires only at 1, so it is SPENT and will
+  not ambush the swim. The recon said to read this rather than assume it; it is read.
+* ⛔ **`calculate_path` IS CONNECTION-GRAPH ONLY.** Both cross-map legs refuse with *"Source … and
+  destination … are not on connected maps (note that warps don't count.)"* ⇒ **the §Ch23 route must
+  be driven with `navigate_to_anywhere`, which routes the WARP graph and re-plans per leg**, and
+  `calculate_path` is only good for within-map questions. ‼ This is KI-53's shape and is NOT a
+  verdict about reachability — it is the wrong instrument for that question.
+* ✅ **Ever Grande (18,41) → the Poké Center apron (27,49) = 23 waypoints**, confirming the heal is
+  reachable from the Victory Road entrance side before the cave.
+
 ## §4. WHAT MUST HAPPEN BEFORE ANY §Ch23 CODE
 
 1. ✅ **DONE — the start fixture is captured and verified.** `saves/post_badge8.ss1`
    (md5 `723d94cc899f3ad2c75fbf49f9192984`). See §3c — ⚠ it arrives at 61% HP with one member
    FAINTED, so §Ch23 opens with a heal.
-2. ⛔ **MEASURE THE BAG.** No probe in this tree dumps HMs, so *"do we hold HM05 Flash?"* is
-   genuinely UNMEASURED. Per F2 it should not matter — which is exactly why it is cheap to check
-   and worth checking once rather than assuming twice.
+2. ✅ **DONE — the bag is dumped (§3e).** HM05 Flash is **NOT** held (harmless: Flash is
+   optional), HM02 Fly **is**, and every field move the route needs is already carried.
 3. ⛔⛔ **SUPERSEDED — AND IT IS THE MOST IMPORTANT LINE IN THIS LIST.** This read *"DONE —
    re-derived with controls: 71 steps, and ZERO obstacles on 1F. The scope cut is confirmed."*
    **RETRACTED** (§0, §3b): the exit is **UNREACHABLE on 1F alone**, the route is
