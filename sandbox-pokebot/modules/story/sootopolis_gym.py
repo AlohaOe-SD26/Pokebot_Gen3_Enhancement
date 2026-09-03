@@ -323,3 +323,175 @@ def _settle_var(name: str, *, stable_frames: int = 45, budget_frames: int = 600)
         last = now
         yield
         frames += 1
+
+
+# ============================== THE EXIT — B1F, AND WHY IT IS FORCED ==============================
+# ⛔⛔ THE BOT CANNOT WALK OUT OF THIS GYM. After the ice walk it stands on a 20-TILE ISLAND
+# (measured live AND re-derived offline, exact agreement), from which the exit warp and the 1F
+# ladder are BOTH unreachable. The only way out is to step back onto a CRACKED tile, break it, and
+# `warphole` down to B1F at the same (x,y) — the §Ch21-leg-4 shape, which no pathfinder can propose.
+# ‼ AND THE PLANNER DISAGREES AND IS WRONG: from Juan's tile it reports the exit 23 wp and the
+# ladder 22 wp away. Both are unreachable. ⛔ NEVER use `calculate_path` inside this gym — on EITHER
+# floor. B1F's LAYOUT is static, but trainer BODIES block tiles and appear nowhere in `map.bin`, and
+# sight lines are invisible to a collision planner.
+
+#: The ONLY cracked tile orthogonally adjacent to the island — therefore the only possible fall.
+FALL_TILE = (8, 6)
+#: The open-stair tile directly NORTH of the fall tile. ⛔ y INCREASES SOUTHWARD, so (8,5) is ABOVE
+#: (8,6): the bot stages here and steps **DOWN** to re-break the ice. The first cut said "directly
+#: south … steps NORTH" and pressed Up — which walked AWAY from the fall tile, up to (8,3), and the
+#: bounded map-change guard caught it in 900 frames with the position in the message.
+FALL_STAGING = (8, 5)
+#: B1F's only warp, back up to 1F.
+B1F_LADDER = (11, 22)
+
+#: ⛔ B1F HAS SLIDE TILES AND A PLAIN 4-CONNECTED MODEL IS WRONG ON IT. Stepping onto one carries the
+#: player SOUTH until a non-slide tile — which is free movement PAST sight lines, so ignoring them is
+#: wrong in the PESSIMISTIC direction (my first route model did exactly that and over-counted the
+#: forced battles). Chains: (8,10)->(8,12), (8,15)->(8,17), (8,20)->(8,22).
+B1F_SLIDE_TILES = ((8, 10), (8, 11), (8, 15), (8, 16), (8, 20), (8, 21))
+
+#: ⛔⛔ THE MINIMUM-BATTLE ROUTE, and the objective is named on purpose: this MINIMISES BATTLES, not
+#: distance. The shortest walk is the same 19 tiles but crosses FIVE sight lines; this one crosses
+#: THREE (Andrea, Bethany, Connie). ‼ I first reported five because I asked a BINARY question ("is
+#: there a trainer-free route?"), got "no", and fell back on the shortest path — see `08-MISTAKES.md`
+#: 2026-09-03. ⇒ **when the ideal is unavailable, MINIMISE.**
+#: Derived by a battle-weighted Dijkstra with slides modelled, and independently corroborated: an
+#: adversarial agent found a DIFFERENT 3-battle route (35 tiles), agreeing on the COUNT while
+#: disagreeing on the PATH — which is the stronger form of corroboration.
+#: Entries are the tiles the bot must END UP on, in order; a slide entry lands past its neighbour.
+B1F_ROUTE: tuple[tuple[int, int], ...] = (
+    (8, 7), (8, 8), (8, 9), (8, 12), (7, 12), (6, 12), (5, 12), (5, 13), (5, 14),
+    (6, 14), (7, 14), (8, 14), (8, 17), (8, 18), (8, 19), (8, 22), (9, 22), (10, 22), (11, 22),
+)
+
+#: The three trainers whose sight lines this route deliberately accepts. ⛔ Fighting them is PART OF
+#: THE ROUTE, not a fault (the §Ch20 precedent) — and the chapter NEEDS the XP, because the party is
+#: measured not to beat Juan. ⇒ the exit and the XP run are the same leg.
+B1F_FORCED_TRAINERS = ("Andrea", "Bethany", "Connie")
+
+
+def fall_to_b1f(report: dict | None = None) -> Generator:
+    """Break the one reachable cracked tile and drop to B1F. ⛔ This is DELIBERATE, not a failure."""
+    from modules.modes import BotModeError
+    from modules.story.early_game import _check_abort, wait_until_truly_controllable
+
+    if report is None:
+        report = {}
+    if not _on_map(GYM_1F):
+        raise BotModeError(f"Ch22: the fall needs GYM_1F; standing at {_where()}.")
+
+    grid = _live_metatile_grid(GYM_1F)
+    state = grid.get(FALL_TILE)
+    if state not in (CRACKED_ICE, BROKEN_ICE):
+        raise BotModeError(
+            f"Ch22: refusing to fall — {FALL_TILE} reads 0x{state:03X}, not cracked/broken. The ice "
+            "walk must have completed first; falling through virgin ice is not what this leg does."
+        )
+    # after the ice walk the bot rests ON the fall tile (8,6); (8,5) is one step NORTH of it, and
+    # `_climb_to` only ever walks north, which is exactly right here.
+    if not _at(GYM_1F, FALL_STAGING):
+        yield from _climb_to(FALL_STAGING)
+    _check_abort()
+
+    from modules.player import get_player_avatar
+    from modules.modes.util.walking import ensure_facing_direction
+
+    # ⛔ DOWN, not Up: the fall tile is SOUTH of the staging tile (y increases southward).
+    yield from ensure_facing_direction("Down")
+    # ⛔ THE WITNESS IS THE MAP CHANGE, never a coordinate — `warphole` preserves (x,y), so a
+    # coordinate assert would pass even if nothing happened (the §Ch21 `_fall_through_crack` rule).
+    frames = 0
+    while frames < 900:
+        _check_abort()
+        if _on_map(MapRSE.SOOTOPOLIS_CITY_GYM_B1F):
+            break
+        context.emulator.press_button("Down")
+        yield
+        frames += 1
+    else:
+        raise BotModeError(
+            f"Ch22: pressed Down at {FALL_STAGING} for 900 frames and the map never changed — at "
+            f"{_where()}. The fall is the only exit, so this is a stranded run, not a slow one."
+        )
+    yield from wait_until_truly_controllable()
+    report["fall_frames"] = frames
+    report["b1f_arrival"] = tuple(_here())
+    return report
+
+
+def walk_b1f_to_ladder(report: dict | None = None) -> Generator:
+    """Walk the minimum-battle route to the ladder, fighting the three trainers it accepts."""
+    from modules.modes import BotModeError
+    from modules.story.early_game import _check_abort, wait_until_truly_controllable
+    from modules.story.sootopolis import _bounded_step
+
+    B1F = MapRSE.SOOTOPOLIS_CITY_GYM_B1F
+    if report is None:
+        report = {}
+    report.setdefault("b1f_steps", 0)
+    if not _on_map(B1F):
+        raise BotModeError(f"Ch22: the B1F walk needs B1F; standing at {_where()}.")
+
+    for index, target in enumerate(B1F_ROUTE):
+        _check_abort()
+        # ⛔⛔ THE LADDER WARPS ON CONTACT, SO ITS STEP CANNOT USE `_bounded_step` — that helper's
+        # success predicate is `_at(map_enum, expect)` on the SAME map, and the ladder CHANGES the
+        # map mid-step. This is the §Ch21-leg-4 lesson exactly ("`_bounded_step` cannot express a
+        # fall"), and it recurred here: the first drive walked the whole route, took the ladder
+        # SUCCESSFULLY, and then reported a failure because the helper could not see it.
+        # ⇒ the witness for a warp step is the MAP CHANGE, never a coordinate.
+        if index == len(B1F_ROUTE) - 1:
+            here = tuple(_here())
+            dx, dy = target[0] - here[0], target[1] - here[1]
+            direction = ("Down" if dy > 0 else "Up") if dy else ("Right" if dx > 0 else "Left")
+            frames = 0
+            while frames < 900 and _on_map(B1F):
+                _check_abort()
+                context.emulator.press_button(direction)
+                yield
+                frames += 1
+            if _on_map(B1F):
+                raise BotModeError(
+                    f"Ch22: pressed {direction} toward the ladder {B1F_LADDER} for 900 frames and "
+                    f"the map never changed — at {_where()}."
+                )
+            yield from wait_until_truly_controllable()
+            report["b1f_steps"] += 1
+            report["ladder_landing"] = tuple(_here())
+            return report
+        # a trainer battle can fire mid-walk; let it finish before judging position
+        yield from wait_until_truly_controllable()
+        here = tuple(_here())
+        if here == tuple(target):
+            continue
+        dx, dy = target[0] - here[0], target[1] - here[1]
+        if dx and dy:
+            raise BotModeError(
+                f"Ch22: B1F route step {here} -> {target} is diagonal. The route is only valid as a "
+                "contiguous walk; a diagonal gap means the bot is not where the route thinks it is "
+                "(a trainer battle may have displaced it)."
+            )
+        direction = ("Down" if dy > 0 else "Up") if dy else ("Right" if dx > 0 else "Left")
+        if abs(dx) + abs(dy) == 1:
+            yield from _bounded_step(direction, expect=tuple(target), map_enum=B1F)
+        else:
+            # ⛔ A SLIDE: press once toward the slide tile and let the game carry us. The witness is
+            # ARRIVAL AT THE SLIDE DESTINATION, not the number of tiles moved.
+            frames = 0
+            while frames < 600 and tuple(_here()) != tuple(target):
+                _check_abort()
+                context.emulator.press_button(direction)
+                yield
+                frames += 1
+            if tuple(_here()) != tuple(target):
+                raise BotModeError(
+                    f"Ch22: slide from {here} did not land on {target} within 600 frames — at "
+                    f"{_where()}. B1F's slide chains are {B1F_SLIDE_TILES}."
+                )
+        report["b1f_steps"] += 1
+
+    raise BotModeError(
+        f"Ch22: the B1F route ran to its end without taking the ladder — at {_where()}. The last "
+        "route entry must be the ladder, and it returns via the map-change witness."
+    )

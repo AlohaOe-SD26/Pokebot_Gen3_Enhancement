@@ -20171,3 +20171,47 @@ it means the invariant is real and not a shared artefact.
 ### FILES
 `ai-research-notes/2026-09-03-ch22-B1F-EXIT.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`,
 `08-MISTAKES.md`. ⛔ No production code changed; drift unchanged at 9.
+
+---
+
+## 2026-09-03 (exit leg) — §Ch22's EXIT IS BUILT AND DRIVEN: the fall works, and the readiness cost is MEASURED
+
+### WHAT SHIPPED
+`modules/story/sootopolis_gym.py` gains `fall_to_b1f()` and `walk_b1f_to_ladder()`;
+`--driver ch22exit` drives the whole chain. **`ACCEPTANCE: PASS`, `frames=19989`, `whiteouts=0`** —
+and this is the **first time anything has entered B1F.**
+
+Ice 64 steps (count 68) → **FALL** to B1F (8,6) in 140 frames → 19-step B1F walk → ladder →
+1F (11,22) → out to `SOOTOPOLIS_CITY (31,33)`, with a real **23-wp** continue path to the PC apron.
+
+### ✅ THE ROUTE MODEL IS CONFIRMED LIVE — EXACTLY 3 BATTLES, ON THE PREDICTED TILES
+Battles fired at **(8,8), (8,17), (8,19)** = Andrea, Bethany, Connie — precisely the sight tiles the
+battle-weighted Dijkstra accepted. ⛔ **Three is the PASS shape**; zero would have meant the
+sight-line model was wrong, not that the bot got lucky.
+
+### ⭐ AND THIS IS THE READINESS MEASUREMENT THE CHAPTER NEEDED
+The forced battles cost **629/694 → 332/694 (~48% of party HP) with ZERO faints.** ⇒ the exit is
+survivable from ~91%, but **the bot reaches Juan at roughly half HP and cannot heal inside the gym.**
+That is now a number rather than a worry.
+
+### ‼ TWO MORE OF MY OWN BUGS, BOTH CAUGHT BOUNDED AND NAMED
+1. **I had the fall geometry backwards.** y increases southward, so the fall tile (8,6) is SOUTH of
+   the staging tile (8,5) — and my code pressed `"Up"`, walking AWAY from it up to (8,3). The
+   map-change guard caught it in 900 frames and the position in its message identified it instantly.
+2. **The ladder WARPS ON CONTACT, so `_bounded_step` cannot express it** — that helper asserts
+   `_at(map_enum, expect)` on the SAME map. The bot took the ladder SUCCESSFULLY and the helper
+   reported a failure. ‼ **This is the §Ch21-leg-4 lesson recurring verbatim** ("`_bounded_step`
+   cannot express a fall; the witness for a map change is the MAP CHANGE"). Fixed by giving the final
+   route step a map-change witness.
+⇒ Across this chapter the guards have now caught **five** of my own defects before any cost a fall or
+a false PASS. *A pre-step check that REFUSES is worth more than a post-hoc assertion that explains.*
+
+### BUDGET
+`03-PUNCH-LIST.md` went 4 lines OVER its 3600 cap and turned Tier 0 RED — exactly what the handoff
+warned. Cleared by compressing **my own** `#24-ch22juan` entry 101 → 41 lines (summarise + point;
+nothing deleted, the narrative is here). Now 3544.
+
+### FILES
+`sandbox-pokebot/modules/story/sootopolis_gym.py`; `tools/story-dev/story_harness.py`;
+`tools/story-dev/evidence/2026-09-03-ch22exit-{CLEAN,GUARD-CAUGHT-FALLDIR,GUARD-CAUGHT-LADDERWARP}.txt`;
+`03-PUNCH-LIST.md`, `04-HANDOFF.md`. ⚠ Drift unchanged at 9.

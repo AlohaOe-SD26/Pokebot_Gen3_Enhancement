@@ -813,90 +813,47 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       flipped to `2` turned the gate red at `04-HANDOFF.md:209` naming both figures, file restored
       byte-identical. Narrative: `07-CHANGELOG.md` 2026-08-26.
 
-### ‼ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): PART A DONE, THE CHAPTER NOT BUILT (filed 2026-09-02)
+### ‼ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): THE GYM IS SOLVED AND SURVIVED; THE FIGHT IS NOT (2026-09-03)
 
-- [~] **PART A (the live probe) IS DONE AND PASSED — ⛔ do not re-run it.** `--driver ch22probe` from
-      `post_hm07.ss1`: `ACCEPTANCE: PASS`, P0-P5, `frames=3958`, `whiteouts=0`. Predictions filed
-      BEFORE the run; both notes are `ai-research-notes/2026-09-02-ch22-PARTA-{PREDICTIONS,RESULTS}.md`
-      and the recon is `…-ch22-juan-BUILD-SPEC.md`.
-      ⛔⛔ **IT PROVED BY MEASUREMENT THAT `_live_collision_grid` / `probe_live_mapgrid.py` ARE BLIND
-      IN THIS GYM** — one ice step moved the METATILE grid ((8,19) `0x20d`→`0x20e`) and the COLLISION
-      grid by ZERO. Use the NEW `_live_metatile_grid()` or `ICE_STEP_COUNT`. *(Positive control that
-      the new grid is aligned: it found the six locked stairs at exactly the decomp's `setmetatile`
-      coordinates, 6/6 — a wrong border offset would have shifted every one.)*
-      ‼ MEASURED: 64 thin ice in sections **7/19/38**, EXACT COVER; `calculate_path` proposes 16 wp
-      straight THROUGH the locked stairs ⇒ **the route is a TABLE, never a plan**; the puzzle RESETS
-      on every entry ⇒ a table is safe and a failed run costs only the walk. ⭐ **money = 67,466** ⇒
-      buying healing is not constrained; the problem is LEVELS + TYPE COVERAGE.
-      ⛔ **THE FIGHT IS NOT WINNABLE AS-IS:** Kingdra is WATER/DRAGON so Grass, Electric AND Ice are
-      all NEUTRAL, no party member has a Dragon move, and Juan restores it three times.
-      ✅✅ **THE ROUTE TABLE IS GENERATED AND ITS INPUT IS LIVE-VERIFIED (2026-09-02).**
-      `tools/story-dev/solve_gym_ice.py` derives the route from the DECOMP layout and
-      re-derives it on every run, so a table can never silently drift from the map. All three
-      sections solved and verified — no revisits, every step orthogonal, endpoints forced:
-      **S1 (8,19)→(8,17) 7 tiles · S2 (8,14)→(8,12) 19 · S3 (8,9)→(8,6) 38.**
-      ⛔ **CONSTRAINING ONLY THE START WAS A REAL DEFECT IN THE FIRST CUT** — it returned a
-      valid Hamiltonian path for S1 ending at (9,18), from which the (8,16)/(8,15) stairs are
-      unreachable without re-crossing CRACKED ice ⇒ **a fall on the very first section
-      transition.** A route that covers every tile is not the same as a route you can LEAVE.
-      ✅ **AND THE TWO AUTHORITIES AGREE TILE-FOR-TILE:** the decomp's 64 thin-ice coordinates
-      vs the LIVE `gBackupMapLayout` set = **64/64, zero differences in both directions**
-      (evidence `2026-09-02-ch22-ICEROUTE-generated.txt` + `…-ch22probe-LIVECOORDS.txt`).
-      ‼ `--self-test` is the fault arm: it proves the solver REFUSES an uncoverable map
-      rather than returning a plausible partial path.
-      ✅✅✅ **THE ICE PUZZLE IS WALKED (2026-09-02) — `--driver ch22ice`, `ACCEPTANCE: PASS`,
-      64/64 steps, ending on JUAN_STAND (8,3), `frames=2232`, zero falls, zero encounters.**
-      Production: `modules/story/sootopolis_gym.py` (NEW). Sections measured
-      `(1,7,(8,17),9) (2,19,(8,12),29) (3,38,(8,6),68)`.
-      ⛔ **THE PREDICTED COUNTS 8/28/67 WERE WRONG — the real values are 9/29/68**, each the
-      decomp threshold PLUS ONE, because the unlock's own `addvar` lands in the same beat as
-      the crossing step. A RESULT, now measured and asserted.
-      ‼ **THE PRE-STEP GUARD CAUGHT TWO OF MY OWN BUGS BEFORE THEY COST A FALL:** (a) the
-      `+1 per step` counter model (it went 7→9 on a threshold crossing), and (b) an
-      inter-section climb that CONSUMED section 1's first ice tile, so the route then refused
-      its own step 1 on an already-cracked tile. Both were found by the guard, not by review.
-      ⛔⛔ **AND THE ICE LEG ENDS STRANDED BY DESIGN — CONFIRMED LIVE 2026-09-03.** After the
-      walk, Juan's platform is a **20-TILE ISLAND** (`live_reachable=20`,
-      `live_reaches_exit=False`, `live_reaches_ladder=False`), matching an independent decomp
-      BFS exactly ⇒ **the only way out is a DELIBERATE FALL to B1F**, the §Ch21-leg-4 shape.
-      ‼ The planner reports the exit 23 wp and the ladder 22 wp away — a THIRD independent
-      proof `calculate_path` is wrong in this gym.
-      ⇒ **THE CHAPTER IS NOT DONE UNTIL THE EXIT LEG EXISTS.** 'Can continue' is deliberately
-      NOT a conjunct of the ICE leg's grade (its honest end state IS 'stranded in front of
-      Juan'), but a CHAPTER grade that omitted it would be the §Ch15/18/19 shape exactly.
-      ✅✅ **THE EXIT IS MAPPED 2026-09-03** — `ai-research-notes/2026-09-03-ch22-B1F-EXIT.md`.
-      ⛔ **EXACTLY ONE tile can be fallen through: (8,6)** — the only cracked ice adjacent to
-      the 20-tile island (confirmed twice: live BFS and an offline decode of `map.bin`).
-      ⛔ **FROM IT THERE IS NO TRAINER-FREE ROUTE — THE MINIMUM IS *THREE* BATTLES** (Andrea,
-      Bethany, Connie; 19 tiles to the ladder (11,22), B1F's ONLY warp). The sight-line rule
-      is DECOMP-VERIFIED (`src/trainer_see.c`), not assumed.
-      ‼ **THIS ENTRY SAID *FIVE* AND WAS COMMITTED WRONG.** An adversarial refuter caught it
-      and I re-derived the correction myself. The error was METHODOLOGICAL: I asked a BINARY
-      question ("is there a trainer-free route?"), got "no", and defaulted to the SHORTEST
-      route — which costs five. The right question was **"what is the CHEAPEST route"**, a
-      Dijkstra weighted by battles. ⇒ **when the ideal is unavailable, MINIMISE; do not fall
-      back on the metric you happen to have.**
-      ⛔ And my model missed TWO B1F mechanics: **six `MB_SLIDE_SOUTH` tiles** ((8,10)(8,11)
-      (8,15)(8,16)(8,20)(8,21)) which carry the player south FREE past sight lines, and **six
-      DOUBLE-battle tiles** (2v2) at (5,8)(9,8)(11,7)(7,13)(8,13)(9,13).
-      ⚠ B1F's LAYOUT is static — but `calculate_path` is STILL unsafe there: trainer BODIES
-      block tiles and appear nowhere in `map.bin`, and sight lines are invisible to it. ‼ My first pass picked (8,19) with a 7-step trainer-free route and it was
-      WORTHLESS — the stranded bot cannot reach it. **A "best option" computed without the
-      reachability constraint is not an option.**
-      ⇒ **THE EXIT AND THE XP RUN ARE THE SAME LEG** — the bot cannot leave without those
-      five fights, and it needs the XP for Juan. Do not design them separately.
-      ⇒ **AND HEALING/STOCKING BEFORE ENTERING IS MANDATORY, NOT PRUDENT:** no Poke Center
-      inside, `allow_escaping: false` on BOTH floors, and the bot arrives at ~91% with 1
-      Potion and 0 Revives. Money 67,466 makes stocking affordable; the Mart's stock is the
-      remaining unknown.
-      ⇒ **WHAT REMAINS:** BUILD the exit leg; the five trainers' parties; whether the party
-      survives all five (only a drive settles it); ⚠ B1F is ASSUMED static — VERIFY before
-      trusting `calculate_path` there, since trusting it on 1F would have walked into locked
-      stairs; the Mart's stock; B1F (never entered — the exit fall, the
-      ten trainers, the (11,22) ladder are all decomp-only); and how under-levelled the party is —
-      **only a live Juan drive settles that, and the FIRST ONE IS EXPECTED TO LOSE. That loss is the
-      measurement, not a failure.**
-
+- [~] ✅✅✅ **THREE LEGS BUILT AND DRIVEN, ⛔ DO NOT REBUILD.** Production
+      `modules/story/sootopolis_gym.py`; drivers `ch22probe` / `ch22ice` / `ch22exit`, all
+      `ACCEPTANCE: PASS`. Notes: `ai-research-notes/2026-09-02-ch22-juan-BUILD-SPEC.md`,
+      `…-ch22-PARTA-{PREDICTIONS,RESULTS}.md`, `2026-09-03-ch22-B1F-EXIT.md`.
+      Full narrative: `07-CHANGELOG.md` 2026-09-02 and 2026-09-03.
+      * **PART A** (`ch22probe`, PASS, 3,958 frames) — ⛔ proved BY MEASUREMENT that
+        `_live_collision_grid` / `probe_live_mapgrid.py` are **BLIND in this gym** (one ice step moved
+        the METATILE grid and the COLLISION grid by ZERO), so they would PASS on a broken model. The
+        working oracle is `_live_metatile_grid` (added for this) or `ICE_STEP_COUNT`. Measured 64
+        thin-ice tiles in sections 7/19/38, six locked stairs, the puzzle RESETS on every entry, and
+        **money = 67,466** (so healing is affordable; the problem is levels/coverage).
+      * **THE ICE WALK** (`ch22ice`, PASS, 64/64 steps, 2,232 frames) — route GENERATED by
+        `tools/story-dev/solve_gym_ice.py` from the decomp and re-derived on every run; its tile set
+        matches the live grid 64/64 both ways. Section end counts **9/29/68** (the predicted 8/28/67
+        were the raw thresholds; each unlock's `addvar` lands in the crossing step's beat).
+      * **THE EXIT** (`ch22exit`, PASS, 19,989 frames, `whiteouts=0`) — first entry into B1F ever.
+        Ice → **FALL** to B1F (8,6) → 19-step walk → ladder → out to SOOTOPOLIS_CITY (31,33), with a
+        real 23-wp continue path. ⛔ The fall is MANDATORY: post-walk, Juan's platform is a **20-TILE
+        ISLAND** (live and offline agree exactly) and `calculate_path` wrongly claims the exit is
+        reachable — a THIRD proof it must never be used in this gym.
+      * ✅ **EXACTLY 3 FORCED BATTLES** at (8,8)(8,17)(8,19) = Andrea/Bethany/Connie, the predicted
+        sight tiles. ⛔ Three is the PASS shape; zero would mean the sight-line model is wrong.
+        ⭐ **READINESS MEASURED: they cost 629/694 → 332/694 (~48% HP) with ZERO faints** ⇒ the exit
+        is survivable from ~91%, but the bot reaches Juan at ~half HP and **cannot heal inside**.
+      ⇒ **WHAT REMAINS:** ⛔ **THE FIGHT, WHICH THE PARTY IS MEASURED NOT TO WIN** — Kingdra is
+      WATER/DRAGON so Grass, Electric AND Ice are all NEUTRAL, no member has a Dragon move, and Juan
+      restores it three times (Rest+Chesto + 2 Hyper Potions). The first live Juan drive is EXPECTED
+      TO LOSE and **that loss is the measurement**. Then: the Mart's stock (unverified, money is
+      not the constraint); whether to take more than the 3 forced B1F battles for XP; and the
+      chapter assembly + `_play()` wiring.
+      ‼ **THE GUARDS EARNED THEIR KEEP FIVE TIMES ON THIS ITEM** — each bounded, named, and caught
+      before it cost a fall or a false PASS: the `+1`-per-step counter model (it is +2 on a threshold
+      crossing); a climb that CONSUMED its own first ice tile; a vacuity grade that PASSED a
+      zero-frame no-op; the fall direction (y increases southward — 'Up' walked away from the fall
+      tile); and the ladder warping on contact, which `_bounded_step` cannot express (the
+      §Ch21-leg-4 lesson recurring verbatim). ⇒ *a pre-step check that REFUSES is worth more than a
+      post-hoc assertion that explains.*
+      ⚠ Drift is 9 — `sootopolis_gym.py` is a new sandbox-only chapter module, as §Ch20/§Ch21 each
+      added one. ⛔ PROMOTION IS THE USER'S CALL and is not implied.
 ### ‼ `#24-crackedfloorpathfinder` — the planner cannot see a hole in the floor (filed 2026-08-24; §Ch21 half RETIRED 2026-09-02, POST-GAME half still OPEN)
 
 - [ ] **WHAT SURVIVES, AND IT IS ONLY THE POST-GAME HALF.** `map_path.py` does not model

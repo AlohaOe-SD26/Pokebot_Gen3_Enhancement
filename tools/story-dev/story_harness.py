@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -11780,6 +11780,162 @@ class Ch22IceMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch22ExitMode(BotMode):
+    """§Ch22 — THE EXIT: walk the ice, then FALL to B1F and walk out. Drives PRODUCTION code.
+
+    ⛔⛔ THE FALL IS DELIBERATE AND MANDATORY. After the ice walk the bot is on a 20-TILE ISLAND
+    (measured live AND re-derived offline, exact agreement). The exit warp and the 1F ladder are
+    BOTH unreachable, so the only way out is to break the one reachable cracked tile (8,6) and
+    `warphole` down to B1F — the §Ch21-leg-4 shape, which no pathfinder can propose.
+
+    ⛔ PREDICTIONS, FILED BEFORE THE FIRST RUN:
+      the ice walk reproduces (64 steps, ICE_STEP_COUNT 68, ending at (8,3)); the fall lands on B1F
+      at (8,6); the B1F route reaches the ladder (11,22); **THREE trainer battles happen — Andrea,
+      Bethany, Connie — and they are PART OF THE ROUTE, not faults** (the §Ch20 precedent).
+      Frame cost UNPREDICTED: nobody has ever walked B1F.
+    ⛔ `battles` here counts TRAINER fights, and **3 is the PASS shape, not a warning**. A run with
+    ZERO would mean the route or the sight-line model is WRONG, not that the bot got lucky.
+
+    ⚠ THE REAL RISK IS THE PARTY, NOT THE ROUTE. Three consecutive trainer battles with 1 Potion and
+    0 Revives, arriving at ~91%. There is NO Poke Center inside and `allow_escaping: false` on BOTH
+    floors — a party that cannot survive them cannot leave the room it is standing in. **A whiteout
+    here is a RESULT that sizes the Juan readiness problem, not a driver defect.**
+
+    THE GRADE: back out in `SOOTOPOLIS_CITY`, whiteouts == 0, AND a real `calculate_path` off the
+    end tile — that last conjunct is the one whose absence let §Ch15/§Ch18/§Ch19 each PASS while
+    stranded.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch22Exit"
+
+    def __init__(self):
+        super().__init__()
+        self.encounters = 0
+        self.encounter_maps: list[str] = []
+        self.whiteouts = 0
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts += 1
+        log("[ch22exit] !! WHITEOUT - the party could not survive the forced battles. That is a "
+            "RESULT sizing the readiness problem, not a driver defect. Latching the abort so a "
+            "verdict still prints.")
+        try:
+            from modules.story.early_game import set_story_abort
+
+            set_story_abort(True)
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch22exit] !! could not latch the abort: {type(error).__name__}: {error}")
+            return False
+        return True
+
+    def on_battle_started(self, encounter):
+        self.encounters += 1
+        try:
+            from modules.player import get_player_avatar
+
+            self.encounter_maps.append(str(tuple(get_player_avatar().local_coordinates)))
+        except Exception:  # noqa: BLE001
+            self.encounter_maps.append("?")
+        return super().on_battle_started(encounter)
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_var
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story import sootopolis_gym as gym
+        from modules.story.early_game import (
+            _navigate_riding_out,
+            _walk_through_warp,
+            wait_until_truly_controllable,
+        )
+
+        TAG = "ch22exit"
+        frames_before = context.emulator.get_frame_count()
+
+        def where():
+            a = get_player_avatar()
+            try:
+                return MapRSE(tuple(a.map_group_and_number)).name, tuple(a.local_coordinates)
+            except Exception:  # noqa: BLE001
+                return f"UNKNOWN{tuple(a.map_group_and_number)}", tuple(a.local_coordinates)
+
+        def party_hp():
+            ms = [m for m in get_party() if m is not None]
+            fainted = [m.personality_value for m in ms if m.current_hp == 0]
+            return sum(m.current_hp for m in ms), sum(m.total_hp for m in ms), fainted
+
+        start_name, start_at = where()
+        hp0, mx0, faint0 = party_hp()
+        log(f"[{TAG}] PRE at={start_name}{start_at} party_hp={hp0}/{mx0} fainted={faint0}")
+
+        report: dict = {}
+        failure = None
+        try:
+            if start_name == "SOOTOPOLIS_CITY":
+                yield from _navigate_riding_out(MapRSE.SOOTOPOLIS_CITY, (31, 32), tries=6)
+                yield from _navigate_riding_out(gym.GYM_1F, gym.GYM_ENTRANCE, tries=4)
+                yield from wait_until_truly_controllable()
+
+            yield from gym.walk_the_ice(report)
+            log(f"[{TAG}] ICE done steps={report.get('steps')} "
+                f"ICE_STEP_COUNT={get_event_var('ICE_STEP_COUNT')}")
+
+            yield from gym.fall_to_b1f(report)
+            log(f"[{TAG}] FELL to {where()} in {report.get('fall_frames')} frames "
+                f"(the witness is the MAP CHANGE, never a coordinate — warphole preserves x,y)")
+
+            yield from gym.walk_b1f_to_ladder(report)
+            log(f"[{TAG}] B1F walked steps={report.get('b1f_steps')} end={report.get('b1f_end')} "
+                f"battles_so_far={self.encounters} at={self.encounter_maps}")
+
+            # ⛔ the ladder is taken INSIDE `walk_b1f_to_ladder` (its last step uses a map-change
+            # witness), so there is nothing to walk through here — we are already on 1F.
+            log(f"[{TAG}] LADDER -> {where()} landing={report.get('ladder_landing')}")
+            if where()[0] == "SOOTOPOLIS_CITY_GYM_1F":
+                yield from _navigate_riding_out(MapRSE.SOOTOPOLIS_CITY, (31, 33), tries=6)
+                yield from wait_until_truly_controllable()
+        except Exception as error:  # noqa: BLE001 - the driver REPORTS failures, never hides them
+            failure = f"{type(error).__name__}: {str(error)[:600]}"
+            log(f"[{TAG}] LEG FAILED: {failure}")
+
+        here_name, at = where()
+        hp1, mx1, faint1 = party_hp()
+        cont = None
+        if here_name == "SOOTOPOLIS_CITY":
+            try:
+                from modules.map_path import calculate_path
+
+                cont = len(calculate_path((MapRSE.SOOTOPOLIS_CITY, at),
+                                          (MapRSE.SOOTOPOLIS_CITY, (43, 32))))
+            except Exception as err:  # noqa: BLE001 - a refusal IS the reading
+                cont = type(err).__name__
+
+        passed = (
+            failure is None
+            and here_name == "SOOTOPOLIS_CITY"
+            and isinstance(cont, int)
+            and self.whiteouts == 0
+        )
+        total = context.emulator.get_frame_count() - frames_before
+        log(f"[{TAG}] RESULT at={here_name}{at} ice_steps={report.get('steps')} "
+            f"b1f_steps={report.get('b1f_steps')} battles={self.encounters} "
+            f"whiteouts={self.whiteouts} frames={total}")
+        log(f"[{TAG}] PARTY {hp0}/{mx0} -> {hp1}/{mx1}  fainted {faint0} -> {faint1} "
+            f"(this is the COST OF THE FORCED BATTLES, and what sizes the Juan readiness problem)")
+        log(f"[{TAG}] BATTLES at={self.encounter_maps} (PREDICTED 3: {gym.B1F_FORCED_TRAINERS}. "
+            f"THREE IS THE PASS SHAPE — zero would mean the route or the sight-line model is WRONG, "
+            f"not that the bot got lucky)")
+        log(f"[{TAG}] CONTINUE path to the Poke Center apron (43,32) = {cont} "
+            f"(a REAL path off the END tile — the conjunct whose absence let §Ch15/18/19 PASS "
+            f"while stranded)")
+        log(f"[{TAG}] FAILURE {failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
 class Ch20ChapterMode(Ch20DiveMode):
     """§Ch20 AS A CHAPTER — drives the PRODUCTION function, not a copy of it.
 
@@ -13204,6 +13360,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch22ProbeMode()
         elif args.driver == "ch22ice":
             context.bot_mode_instance = Ch22IceMode()
+        elif args.driver == "ch22exit":
+            context.bot_mode_instance = Ch22ExitMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":
