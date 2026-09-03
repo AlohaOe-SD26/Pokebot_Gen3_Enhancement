@@ -12335,6 +12335,28 @@ class Ch23RouteMode(BotMode):
         ask("R5b SOOTOPOLIS_CITY -> VICTORY_ROAD_1F (15,40)", (SC, here[1]), (VR, (15, 40)))
         ask("R5c EVER_GRANDE (18,41) -> the Poke Center apron (27,49)", (EG, (18, 41)), (EG, (27, 49)))
 
+        # ---- R6: THE FLOORS MY OFFLINE MODEL CANNOT SPEAK FOR --------------------------------
+        # ⛔⛔ AN ADVERSARIAL REVIEW FOUND THAT B2F IS 238 TILES OF `MB_OCEAN_WATER` AT ELEVATION 1,
+        # and that my offline tool has no water concept at all — so its "UNREACHABLE" verdicts on
+        # B1F/B2F are UNDER-approximations, not conservative ones. Production models surf natively
+        # (`map_path.py:855-857`), so ASK IT rather than build a third model I might also get wrong.
+        # ‼ On a map the bot is NOT standing on, `active_objects` is empty, so production does not
+        # block live boulders — its answer is therefore the "Strength and Rock Smash both spent"
+        # case, which is exactly the question worth asking of the terrain.
+        B1 = MapRSE.VICTORY_ROAD_B1F
+        B2 = MapRSE.VICTORY_ROAD_B2F
+        log(f"[{TAG}] ⭐ R6 asks PRODUCTION about the floors my offline tool cannot model (it has "
+            f"no water). These answers include SURF and WATERFALL; the offline one does not.")
+        ask("R6a B1F ladder-arrival (8,3) -> the B2F warp (30,25)", (B1, (8, 3)), (B1, (30, 25)))
+        ask("R6b B1F (8,3) -> the OTHER 1F ladder (20,21)", (B1, (8, 3)), (B1, (20, 21)))
+        ask("R6c B1F (8,3) -> (42,25) [-> 1F (42,38)]", (B1, (8, 3)), (B1, (42, 25)))
+        ask("R6d B2F (30,25) -> (19,12) [-> B1F (17,16)]", (B2, (30, 25)), (B2, (19, 12)))
+        ask("R6e B2F (30,25) -> (5,26) [-> B1F (5,26)]", (B2, (30, 25)), (B2, (5, 26)))
+        ask("R6f 1F exit-region: (21,32) -> the exit (39,5)", (VR, (21, 32)), (VR, (39, 5)))
+        log(f"[{TAG}] ‼ R6f IS THE ONE THAT CLOSES THE LOOP: if B1F(20,21)->1F(21,32) is the way "
+            f"into the exit region, then (21,32)->(39,5) must succeed for the chapter to be "
+            f"routable at all.")
+
         log(f"[{TAG}] ⚠ READ A FAILURE AS 'the STATIC planner cannot see it', NEVER as 'the bot "
             f"cannot go there' — `navigate_to_anywhere` re-plans per warp and a §Ch15 leg succeeded "
             f"while planning statically as FAIL (KI-53).")

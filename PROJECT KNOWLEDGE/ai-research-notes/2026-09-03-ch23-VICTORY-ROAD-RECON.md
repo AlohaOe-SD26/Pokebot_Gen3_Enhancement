@@ -308,6 +308,40 @@ whole chapter.
 * ✅ **Ever Grande (18,41) → the Poké Center apron (27,49) = 23 waypoints**, confirming the heal is
   reachable from the Victory Road entrance side before the cave.
 
+## §3g. ⛔⛔ A THIRD REQUIREMENT — **SURF** — AND WALLY IS *MANDATORY*, NOT MERELY FREE
+
+An adversarial review of my corrected tool confirmed all four of its headline numbers and then found
+two things the tool could not see:
+
+* ⛔⛔ **THE ROUTE REQUIRES SURF.** B2F is **238 tiles of `MB_OCEAN_WATER` at elevation 1**, and with
+  Strength + Rock Smash but no Surf the exit is unreachable. My tool is **land-only** and has no
+  water concept at all. ✅ **Visible in two instruments now:** the land-only model reaches just 64
+  B2F tiles from (30,25) and cannot reach the (19,12) warp, while **production routes (30,25) →
+  (19,12) in 64 wp** and (30,25) → (5,26) in 76 wp (it models surf at `map_path.py:855-857`).
+  ⇒ **the minimal kit is {Strength, Rock Smash, Surf}.** ✅ Harmless: Zigzagoon and Wailmer both
+  carry Surf.
+* ⭐ **WALLY IS MANDATORY.** *"Detour cost 0"* was the wrong instrument — it cannot distinguish
+  *mandatory* from *one of several equal-cost options*, and production actively prefers the
+  alternative when one exists (`map_path.py:1034-1037` adds **+10000** to a tile with an armed
+  `on_enter_event_triggers`, which (2,23)/(3,23) are). The review ran the CHOKEPOINT test instead:
+  **blocking both trigger tiles makes the B1F ladder UNREACHABLE (477 → 429 tiles).**
+  ⇒ a stronger answer than "free", and it means the chapter cannot accidentally skip the flag.
+
+⚠ **Two more the review surfaced, both real:**
+* **After the battle Wally becomes a PERMANENT blocker** at (2,24) or (3,24) (`copyobjectxytoperm`
+  + the `OnTransition` reposition), which raises the direct entrance→ladder distance **44 → 46**.
+  Any model computed pre-battle describes a world that stops existing the moment the trigger fires.
+* **Boulder pushes are ORDER-DEPENDENT and a tile graph cannot express them.** Three B1F boulders —
+  (20,5), (20,26), (21,25) — have **no legal push direction in the initial state**, because their
+  paired Rock Smash rock occupies every orthogonal neighbour. They become pushable only after the
+  rock is smashed. ⇒ **the "298 tiles with both moves" figure is an upper bound achievable in one
+  specific order, not a route.** A real solver must sequence smashes before pushes.
+
+⛔ **AND THE TOOL'S OWN CONTROLS WERE HOLLOW** — `_carry`, the rule the rewrite existed to add, had
+no fault arm, and the elevation arm restated its own condition. Both repaired, controls now run on
+all three floors, and a control that cannot discriminate says so (⚠) instead of failing or passing.
+Full account and prevention rules: `08-MISTAKES.md` 2026-09-03.
+
 ## §4. WHAT MUST HAPPEN BEFORE ANY §Ch23 CODE
 
 1. ✅ **DONE — the start fixture is captured and verified.** `saves/post_badge8.ss1`

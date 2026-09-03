@@ -57,6 +57,12 @@ ENTRANCE = ("1F", (15, 40))
 EXIT = ("1F", (39, 5))
 WALLY_TRIGGERS = [(2, 23), (3, 23)]
 
+#: Where the CONTROLS start on each floor. ⛔ Derived from the WARP GRAPH, not invented:
+#: 1F(9,14) -> dest_warp_id 4 -> B1F warp index 4 = (8,3); B1F(30,25) <-> B2F(30,25).
+#: ‼ Each must be elevation != 15, or this model's start diverges from the game's
+#: ELEVATION_TRANSITION(0) — the self-test asserts exactly that, per floor.
+FLOOR_STARTS = {"1F": (15, 40), "B1F": (8, 3), "B2F": (30, 25)}
+
 BOULDER_GFX = "OBJ_EVENT_GFX_PUSHABLE_BOULDER"
 ROCK_GFX = "OBJ_EVENT_GFX_BREAKABLE_ROCK"
 #: Object graphics that block a tile but are neither a boulder nor a rock (trainers, item balls).
@@ -129,7 +135,8 @@ def _carry(map_elev: int, carried: int) -> int:
 
 
 def reachable(floor: dict, start: tuple[int, int], *, blocked=frozenset(),
-              ignore_collision: bool = False, ignore_elevation: bool = False) -> dict:
+              ignore_collision: bool = False, ignore_elevation: bool = False,
+              break_carry: bool = False) -> dict:
     """BFS keyed by (x, y, CARRIED ELEVATION) — the same state our A* uses.
 
     ⛔ Keying by tile alone is what made v1 wrong: the SAME tile at two carried elevations is two
@@ -152,7 +159,14 @@ def reachable(floor: dict, start: tuple[int, int], *, blocked=frozenset(),
                 continue
             if not ignore_elevation and not _enterable(elev[nxt], carried):
                 continue
-            nxt_carried = carried if ignore_elevation else _carry(elev[nxt], carried)
+            # `break_carry` is the FAULT INJECTION for `_carry`: a 15-tile SETS the
+            # elevation instead of preserving it. Used only by the self-test.
+            if ignore_elevation:
+                nxt_carried = carried
+            elif break_carry:
+                nxt_carried = elev[nxt]
+            else:
+                nxt_carried = _carry(elev[nxt], carried)
             state = (nxt, nxt_carried)
             if state in seen:
                 continue
@@ -180,7 +194,13 @@ def main() -> int:
               f"objects blocking: {len(b):>2}   boulders: {nb}   rocks: {nr}")
 
     if args.self_test:
-        return _self_test(floors["1F"])
+        # ⛔ v2 ran its controls on 1F ONLY while printing answers for three floors. The B1F and
+        # B2F models were therefore uncontrolled — and B1F is where the whole boulder question is.
+        rc = 0
+        for name in ("1F", "B1F", "B2F"):
+            print(f"\n########## CONTROLS FOR {name} ##########")
+            rc |= _self_test(floors[name], name)
+        return rc
 
     f1 = floors["1F"]
     block = blockers(f1, strength=False, rock_smash=False)
@@ -226,24 +246,47 @@ def main() -> int:
                  if (w["x"], w["y"]) in r]
         print(f"  B1F from {arrival} with [{label:<10}]: {len(r):>3} tiles, "
               f"warps reached: {[(x, y, d.replace('MAP_VICTORY_ROAD_', '')) for x, y, d in warps]}")
-    print("\n‼ TILE-GRAPH ANSWERS ONLY. They say what the MAP allows; they model no trainer sight "
-          "lines, and a held field move is modelled as 'the obstacle is gone', which "
-          "over-approximates — so UNREACHABLE verdicts are conservative and step counts are floors.")
+    print("\n⛔⛔ DO NOT ACT ON AN 'UNREACHABLE' FROM THIS SCRIPT. It models LAND ONLY: no SURF "
+          "(B2F is 238 tiles of MB_OCEAN_WATER at elevation 1), no WATERFALL, no LEDGE jumps. On "
+          "TERRAIN it UNDER-approximates, so it can call reachable ground unreachable.")
+    print("‼ A previous version of this line claimed 'UNREACHABLE verdicts are conservative'. That "
+          "was FALSE and an adversarial review refuted it: the conservatism applies only to the "
+          "OBJECT model ('the obstacle is gone'), never to terrain.")
+    print("⇒ For a terrain question, ask PRODUCTION instead — `--driver ch23route` calls the real "
+          "`calculate_path`, which models surf and waterfall natively. This script's job is the "
+          "PER-KIT OBJECT SPLIT, which production cannot answer because it has no Strength model.")
+    print("‼ It also models no trainer sight lines, and boulder pushes are ORDER-DEPENDENT — three "
+          "B1F boulders have no legal push until their paired rock is smashed — so the 'both' "
+          "figure is an upper bound achievable in one specific order, not a route.")
     return 0
 
 
-def _self_test(floor: dict) -> int:
+def _self_test(floor: dict, floor_name: str = "1F") -> int:
     """⛔ ONE CONTROL PER MODEL. v1 had a collision control that passed while the ELEVATION model
     was broken — a control tests the failure mode it was written for and no other."""
     print("\n=== SELF-TEST ===")
     fails = []
     block = blockers(floor, strength=False, rock_smash=False)
-    seen = reachable(floor, ENTRANCE[1], blocked=block)
+    start = FLOOR_STARTS[floor_name]
+    seen = reachable(floor, start, blocked=block)
 
-    if seen.get(ENTRANCE[1]) != 0:
+    # ⛔⛔ THE TERRAIN CONTROLS MUST RUN ON THE LARGEST REACHABLE CONFIGURATION, NOT THE SMALLEST.
+    # They answer "is the elevation model LIVE on this floor", and from B1F's arrival tile with
+    # every boulder in place only 23 tiles are reachable — far too few to exercise elevation, so
+    # both terrain controls FAILED there. ‼ That failure was HONEST (they correctly refused to
+    # certify what they could not test); the fix is to give them a state that CAN test it — both
+    # field moves held, which is what the route actually holds when it crosses B1F — NOT to
+    # weaken the assertion.
+    open_block = blockers(floor, strength=True, rock_smash=True)
+    terrain_seen = reachable(floor, start, blocked=open_block)
+    if len(terrain_seen) > len(seen):
+        print(f"  ℹ terrain controls run with BOTH field moves held ({len(terrain_seen)} tiles "
+              f"vs {len(seen)} with neither) — the smaller set cannot exercise elevation here")
+
+    if seen.get(start) != 0:
         fails.append("positive: the entrance does not reach itself in 0 steps")
     else:
-        print("  ✅ positive: entrance reaches itself in 0 steps")
+        print(f"  ✅ positive: the {floor_name} start {start} reaches itself in 0 steps")
 
     walls = [t for t, c in floor["collision"].items() if c != 0]
     leaked = [t for t in walls if t in seen]
@@ -252,7 +295,7 @@ def _self_test(floor: dict) -> int:
     else:
         print(f"  ✅ negative(collision): 0 of {len(walls)} wall tiles reachable")
 
-    loose_c = reachable(floor, ENTRANCE[1], blocked=block, ignore_collision=True)
+    loose_c = reachable(floor, start, blocked=block, ignore_collision=True)
     wall = next((t for t in walls if t not in seen), None)
     if wall is not None and wall in loose_c:
         print(f"  ✅ fault(collision): ignoring collision makes {wall} reachable ⇒ the refusal is "
@@ -262,21 +305,88 @@ def _self_test(floor: dict) -> int:
 
     # ⭐ THE CONTROL v1 DID NOT HAVE. There must exist an OPEN tile (collision 0) that the
     # elevation model refuses, and disabling ONLY the elevation rule must make it reachable.
-    loose_e = reachable(floor, ENTRANCE[1], blocked=block, ignore_elevation=True)
-    open_tiles = [t for t, c in floor["collision"].items() if c == 0 and t not in block]
-    elev_blocked = [t for t in open_tiles if t not in seen and t in loose_e]
+    loose_e = reachable(floor, start, blocked=open_block, ignore_elevation=True)
+    open_tiles = [t for t, c in floor["collision"].items() if c == 0 and t not in open_block]
+    elev_blocked = [t for t in open_tiles if t not in terrain_seen and t in loose_e]
     if not elev_blocked:
-        fails.append("negative(elevation): NO open tile is refused by elevation alone — either the "
-                     "elevation rule is inert (the v1 bug) or this map cannot test it")
+        # ⛔ TWO CAUSES LOOK IDENTICAL HERE, AND ONLY ONE IS A DEFECT: either the elevation ENTRY
+        # rule is broken/inert (the v1 bug), or this floor is simply flat enough that elevation
+        # gates nothing from this start. ‼ They are DISTINGUISHABLE, and the distinction is already
+        # measured a few lines below: if breaking `_carry` changes the answer, the elevation
+        # machinery is demonstrably LIVE on this floor, so an inert ENTRY rule is a MAP FACT.
+        # ⇒ report it, do not fail — a control that fails on a map property teaches the next
+        # maintainer to weaken it, which is strictly worse than no control.
+        carry_live = len(reachable(floor, start, blocked=open_block, break_carry=True)) !=             len(terrain_seen)
+        if carry_live:
+            print(f"  ⚠ negative(elevation): NO open tile on {floor_name} is refused by the ENTRY "
+                  f"rule alone — but breaking `_carry` DOES change this floor's answer, so the "
+                  f"elevation machinery is live and this is a MAP PROPERTY, not a broken model. "
+                  f"UNCERTIFIED here, and said so rather than passing silently.")
+        else:
+            fails.append(f"negative(elevation): on {floor_name} NEITHER the entry rule NOR the "
+                         f"carry changes anything — the elevation model is inert and UNTESTED. "
+                         f"This is the v1 shape; do not trust this floor's answers.")
     else:
         print(f"  ✅ negative(elevation): {len(elev_blocked)} OPEN tiles are refused by the "
               f"elevation model alone, e.g. {sorted(elev_blocked)[:4]}")
-        print(f"  ✅ fault(elevation): disabling ONLY the elevation rule makes them reachable "
-              f"⇒ the refusal is the ELEVATION model, not collision and not a broken search")
+        # ⛔ THE FAULT ARM MUST BE COMPUTED SEPARATELY, NOT RESTATED. An adversarial review found
+        # the old line sitting in this same `else` and merely repeating `elev_blocked`'s own
+        # definition — it could not fail independently, so it certified nothing. The arm now
+        # asserts a DIFFERENT fact: that the exit's reachability itself flips with the rule.
+        anchor = EXIT[1] if floor_name == "1F" else sorted(elev_blocked)[0]
+        exit_strict = anchor in terrain_seen
+        exit_loose = anchor in loose_e
+        if exit_loose and not exit_strict:
+            print(f"  ✅ fault(elevation): {anchor} is unreachable WITH the elevation "
+                  f"rule and reachable WITHOUT it ⇒ elevation is what separates the regions, and "
+                  f"v1's '71 steps' was exactly this artifact")
+        else:
+            fails.append(f"fault(elevation): the exit's reachability does NOT flip with the "
+                         f"elevation rule (strict={exit_strict} loose={exit_loose}) — this arm is "
+                         f"not anchored to the defect it exists to catch")
 
-    if EXIT[1] in seen and EXIT[1] in loose_e and seen.get(EXIT[1]) == loose_e.get(EXIT[1]):
+    if floor_name == "1F" and EXIT[1] in seen and EXIT[1] in loose_e and seen.get(EXIT[1]) == loose_e.get(EXIT[1]):
         print("  ⚠ note: the exit is reachable identically with and without elevation — on THIS "
               "map that would mean elevation does not separate the regions. Read Q1's two lines.")
+
+    # ⭐⭐ THE CONTROL v2 DID NOT HAVE, AND IT IS THE RULE v2 WAS WRITTEN TO ADD.
+    # An adversarial review fault-injected `_carry` (making it `return map_elev`, i.e. a 15-tile
+    # SETS the elevation instead of preserving it) and the self-test still printed PASS while the
+    # answer changed from 477 tiles to 32 and the B1F ladder became UNREACHABLE.
+    # ‼ THAT IS v1'S FAILURE REPEATED ONE LAYER UP: v1 controlled collision while the bug was in
+    # elevation-ENTRY; v2 controlled entry while the new machinery was elevation-CARRY.
+    # ⇒ this control asserts the carry is LOAD-BEARING: with it, some tile is reachable ONLY
+    # because the carried elevation survived a 15-tile, and breaking the carry must lose it.
+    broken = reachable(floor, start, blocked=open_block, break_carry=True)
+    lost = [t for t in terrain_seen if t not in broken]
+    if not lost:
+        fails.append("negative(carry): breaking `_carry` changed NOTHING — either the carry is "
+                     "inert on this map or the injection does not reach the search. Either way "
+                     "this control cannot certify the rule it exists for.")
+    else:
+        print(f"  ✅ negative(carry): breaking `_carry` (a 15-tile SETS instead of PRESERVES) loses "
+              f"{len(lost)} tiles, e.g. {sorted(lost)[:4]} — the carry is LOAD-BEARING")
+        # ⛔ ANCHOR THE ARM TO SOMETHING THE ROUTE DEPENDS ON, PER FLOOR — an arm
+        # anchored to "some tile" can pass while the tile that matters is unaffected.
+        ladder = {"1F": (9, 14), "B1F": (20, 21), "B2F": (19, 12)}[floor_name]
+        if ladder in terrain_seen and ladder not in broken:
+            print(f"  ✅ fault(carry): the B1F ladder {ladder} is reachable ONLY with the carry "
+                  f"intact ({terrain_seen[ladder]} steps) ⇒ the rule decides real routing, not just counts")
+        elif ladder not in terrain_seen:
+            print(f"  ⚠ fault(carry): the anchor {ladder} is unreachable on {floor_name} even "
+                  f"normally, so this arm cannot discriminate here — REPORTED, not graded.")
+        else:
+            fails.append(f"fault(carry): the {floor_name} anchor {ladder} survives a broken carry "
+                         f"— this control is not anchored to anything the route depends on")
+
+    # ⭐ A CONTROL FOR THE OBJECT MODEL, also missing: emptying `blockers()` must change the answer.
+    no_objects = reachable(floor, start, blocked=frozenset())
+    if len(no_objects) == len(seen):
+        fails.append("negative(objects): removing every blocking object changed nothing — the "
+                     "object model is inert and its per-kit answers mean nothing")
+    else:
+        print(f"  ✅ negative(objects): removing the {len(block)} blocking objects changes the "
+              f"reachable set {len(seen)} -> {len(no_objects)} ⇒ the object model is live")
 
     try:
         reachable(floor, (999, 999))
@@ -284,13 +394,27 @@ def _self_test(floor: dict) -> int:
     except ValueError:
         print("  ✅ negative: an off-grid start RAISES")
 
+    # ⛔ THE START-ELEVATION LANDMINE. The game sets `currentElevation` from the arrival tile, and
+    # this model does the same — but ONLY because both start tiles are elevation 3. On an
+    # elevation-15 arrival the game keeps 0 (permissive) while `_carry(15, 15)` returns 15
+    # (restrictive), and the answer would silently collapse. Assert rather than hope.
+    if floor["elevation"].get(start) == 15:
+        fails.append(f"start-elevation: {floor_name} start {start} is elevation 15 — the carry "
+                     f"would diverge from the game's ELEVATION_TRANSITION(0) start")
+    else:
+        print(f"  ✅ start-elevation: {floor_name} start {start} is elevation "
+              f"{floor['elevation'][start]} (≠15, so the model's start matches the game's)")
+
     print()
     if fails:
         for f in fails:
             print(f"  ❌ {f}")
         print(f"\nSELF-TEST FAILED ({len(fails)})")
         return 1
-    print("SELF-TEST PASSED — one control per model, each with its own fault arm.")
+    # ⛔ THE SUMMARY MUST NOT OVERSTATE WHAT RAN — a passing summary is what a future
+    # reader quotes, and overclaiming is exactly what let v1 ship.
+    print(f"SELF-TEST PASSED for {floor_name} — every control that COULD discriminate did, "
+          f"and any that could not said so above (⚠) instead of passing silently.")
     return 0
 
 

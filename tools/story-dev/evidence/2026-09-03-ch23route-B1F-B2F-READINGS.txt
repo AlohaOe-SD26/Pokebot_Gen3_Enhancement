@@ -1,0 +1,40 @@
+[setup] LOG -> ch23route2.log
+[setup] loaded save state post_waterfall.ss1; build=sandbox
+[run] starting faithful loop for up to 600 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch23RouteMode.run   (state=OVERWORLD)
+[ch23route] PRE at=SOOTOPOLIS_CITY(31, 33)
+[ch23route] R1 ROUTE128_STATE=2 — the ON_FRAME Kyogre scene fires only at 1. ✅ SPENT, no scene
+[ch23route] R2 CARRIERS {'Rock Smash': ['Sceptile#863B0917'], 'Strength': ['Sceptile#863B0917'], 'Surf': ['Zigzagoon#33CB74C3', 'Wailmer#FA51ECF3'], 'Dive': ['Wailmer#FA51ECF3'], 'Waterfall': ['Wailmer#FA51ECF3']}
+[ch23route] R2 BADGES {1: True, 2: True, 3: True, 4: True, 5: True, 6: True, 7: True, 8: True}
+[ch23route] R2 HMs IN BAG {'HM01': 0, 'HM02': 1, 'HM03': 1, 'HM04': 1, 'HM05': 0, 'HM06': 1, 'HM07': 1, 'HM08': 1} — ⛔ this is the first time this tree has dumped them; 'do we hold HM05 Flash?' was previously UNMEASURED.
+[ch23route] ⭐ R3 IS THE ONE THAT MATTERS: my offline tool said 71 steps, then said UNREACHABLE after the elevation fix. Production is the tie-breaker.
+[ch23route] R3 VICTORY_ROAD_1F (15,40) -> exit (39,5): PathFindingError — Could not find a path from (15/40 @ VICTORY_ROAD_1F) to (39/5 @ VICTORY_ROAD_1F).
+[ch23route] R4a VICTORY_ROAD_1F (15,40) -> Wally trigger (3,23): OK, 29 waypoints
+[ch23route] R4b VICTORY_ROAD_1F (15,40) -> B1F ladder (9,14): OK, 44 waypoints
+[ch23route] R4c VICTORY_ROAD_1F Wally (3,23) -> B1F ladder (9,14): OK, 15 waypoints
+[ch23route] R5a SOOTOPOLIS_CITY -> EVER_GRANDE_CITY (18,41) VR door: PathFindingError — Source (31/33 @ SOOTOPOLIS_CITY) and destination (18/41 @ EVER_GRANDE_CITY) are not on connected maps (note that warps don't count.)
+[ch23route] R5b SOOTOPOLIS_CITY -> VICTORY_ROAD_1F (15,40): PathFindingError — Source (31/33 @ SOOTOPOLIS_CITY) and destination (15/40 @ VICTORY_ROAD_1F) are not on connected maps (note that warps don't count.)
+[ch23route] R5c EVER_GRANDE (18,41) -> the Poke Center apron (27,49): OK, 23 waypoints
+[ch23route] ⭐ R6 asks PRODUCTION about the floors my offline tool cannot model (it has no water). These answers include SURF and WATERFALL; the offline one does not.
+[ch23route] R6a B1F ladder-arrival (8,3) -> the B2F warp (30,25): PathFindingError — Could not find a path from (8/3 @ VICTORY_ROAD_B1F) to (30/25 @ VICTORY_ROAD_B1F).
+[ch23route] R6b B1F (8,3) -> the OTHER 1F ladder (20,21): PathFindingError — Could not find a path from (8/3 @ VICTORY_ROAD_B1F) to (20/21 @ VICTORY_ROAD_B1F).
+[ch23route] R6c B1F (8,3) -> (42,25) [-> 1F (42,38)]: PathFindingError — Could not find a path from (8/3 @ VICTORY_ROAD_B1F) to (42/25 @ VICTORY_ROAD_B1F).
+[ch23route] R6d B2F (30,25) -> (19,12) [-> B1F (17,16)]: OK, 64 waypoints
+[ch23route] R6e B2F (30,25) -> (5,26) [-> B1F (5,26)]: OK, 76 waypoints
+[ch23route] R6f 1F exit-region: (21,32) -> the exit (39,5): OK, 64 waypoints
+[ch23route] ‼ R6f IS THE ONE THAT CLOSES THE LOOP: if B1F(20,21)->1F(21,32) is the way into the exit region, then (21,32)->(39,5) must succeed for the chapter to be routable at all.
+[ch23route] ⚠ READ A FAILURE AS 'the STATIC planner cannot see it', NEVER as 'the bot cannot go there' — `navigate_to_anywhere` re-plans per warp and a §Ch15 leg succeeded while planning statically as FAIL (KI-53).
+[ch23route] ACCEPTANCE: PASS (⛔ THIS PROBE ONLY GRADES THAT THE READINGS HAPPENED. Every line above is a MEASUREMENT to be read, not a pass/fail.)
+f2: CONTROLLER -> <none>   (state=OVERWORLD)
+[done] ran 600 frames; final mode=Manual party=[Sceptile:L51:exp125800|Zigzagoon:L19:exp7035|Swellow:L42:exp67143|Wailmer:L40:exp69540|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L51: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Swellow L42: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Wailmer L40: Dive, Surf, Water Gun, Waterfall
+[moveset] Mightyena L44: Tackle, Taunt, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 601 get_party() recomputes, 3 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch23route 601 recomputes (party_accounting_ledger.jsonl)

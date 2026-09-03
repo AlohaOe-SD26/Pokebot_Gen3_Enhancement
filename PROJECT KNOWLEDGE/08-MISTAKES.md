@@ -11273,3 +11273,71 @@ path — it earns an adversarial pass, not a confirmatory one.
 ‼ **And note what DID work:** the adversarial agent was told to attack, given the byte-length trap
 in advance, and required to state what it asserted. It refuted a claim I had already "verified".
 That is the second time this session an adversarial pass overturned something I was confident in.
+
+
+## 2026-09-03 — I FIXED "MY CONTROL DIDN'T TEST THE MODEL" BY ADDING A MODEL WITH NO CONTROL
+
+**Symptom.** Yesterday's entry records that `solve_victory_road.py` v1 was wrong because its
+control tested COLLISION while the bug was in ELEVATION-ENTRY. I rewrote it, added an elevation
+control, and shipped v2 with the docstring *"⛔ ONE CONTROL PER MODEL … a control for EACH model,
+and a fault arm for each, independently."*
+
+**An adversarial review fault-injected every gate and asked v2's own self-test whether it noticed:**
+
+| gate | injected fault | self-test |
+|---|---|---|
+| collision decode | wrong shift | **fails ✓** |
+| elevation ENTRY | always `True` | **fails ✓** |
+| v1's exact bug | tile-to-tile, keyed by tile | **fails ✓** |
+| ⛔ **elevation CARRY (`_carry`)** | `return map_elev` | ⛔ **PASSES** — while the answer went 477 tiles → 32 and the B1F ladder became UNREACHABLE |
+| ⛔ object model | `blockers()` → `set()` | ⛔ **PASSES** |
+| B1F / B2F | — | ⛔ **no controls ran at all** — `_self_test(floors["1F"])` |
+
+⇒ **`_carry` — the single rule the entire v2 rewrite existed to add — had no control and no fault
+arm.** Break it and the script printed a different world *and* `SELF-TEST PASSED — one control per
+model, each with its own fault arm.`
+
+**Root cause. This is not "I forgot a control".** It is the identical failure one layer up: v1
+controlled the model it *had* while the bug was in the model it *added*; v2 did exactly the same.
+**A lesson recorded about old code does not automatically apply itself to the new code written to
+fix it** — and the new code is precisely where nobody has looked yet.
+
+**Two subtler defects in the same review, both worse than a missing control:**
+* ⛔ **The elevation fault arm was a TAUTOLOGY.** `elev_blocked` was *defined* as "refused normally
+  AND reachable with elevation ignored", and the fault line sat in the same `else` restating that
+  definition. **It could not fail independently.** A control that cannot fail is not a control; it
+  is a sentence that says "PASS".
+* ⛔ **The docstring's safety promise was FALSE.** *"UNREACHABLE verdicts are conservative"* holds
+  only for the OBJECT model ("the obstacle is gone"). On TERRAIN the script UNDER-approximates —
+  it models no surf, no waterfall, no ledges — and **B2F is 238 tiles of `MB_OCEAN_WATER`**. So its
+  UNREACHABLE verdicts were not safe to act on, and that sentence is the one a future reader would
+  have acted on.
+
+**The fix, and it is a design change rather than three patches.**
+1. A control **and an independent fault arm per gate**: collision, elevation-entry, elevation-carry,
+   objects, start-elevation, off-grid. Breaking `_carry` now loses 445 tiles on 1F and 180 on B1F,
+   and the arm is anchored to a tile **the route actually depends on** (the B1F ladder), not to
+   "some tile".
+2. Controls run on **all three floors**, not just the one whose answer was already known.
+3. ⭐ **A control that CANNOT discriminate now says so (⚠) instead of failing OR passing.** B1F's
+   entry rule gates nothing from that start — a MAP PROPERTY, not a defect — and the script now
+   proves that by checking whether `_carry` still discriminates there before deciding which it is.
+   ‼ **Failing on a map property teaches the next maintainer to weaken the control, which is
+   strictly worse than having none.**
+4. The summary line no longer claims "one control per model"; it says every control that *could*
+   discriminate did, and the rest said so.
+
+**Prevention rules.**
+⛔ **THE CONTROL FOR A NEW RULE IS PART OF THE NEW RULE.** When a fix adds a model, the fix is not
+done until that model has a fault arm that fails when it is broken. Ask, mechanically: *for each
+gate, what single-line change would corrupt it, and does the self-test go red?* If you cannot name
+the injection, you do not have a control.
+⛔ **A FAULT ARM MUST BE COMPUTED FROM DIFFERENT DATA THAN THE CONDITION IT VALIDATES.** If it is
+derived from the same expression, it restates a definition and can never fail.
+⛔ **AND A SAFETY CLAIM IN A DOCSTRING IS A LOAD-BEARING ASSERTION.** *"UNREACHABLE verdicts are
+conservative"* is the sentence a reader acts on; it was false for two of the three models and had
+no test at all. Either prove such a claim or delete it.
+‼ **What worked, again:** an adversarial agent told to attack, given the tooling trap in advance,
+and required to fault-inject rather than reason. It confirmed all four headline numbers AND found
+that the controls certifying them were hollow. **Third time this session that an adversarial pass
+overturned something I was confident in.**

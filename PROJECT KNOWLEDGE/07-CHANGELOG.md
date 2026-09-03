@@ -20615,3 +20615,48 @@ registered in `FIXTURES.md5` with the Wailmer single-point-of-failure warning.
 ⚠ **STILL OWED, and the first one grew:** Victory Road **B1F and B2F have no trainer or boulder
 audit at all** — a recon bullet had scoped that away while the route was believed 1F-only, and the
 retraction put both floors on the mandatory path. Plus the Route 128 x=101 trainer pinch.
+
+
+## 2026-09-03 (controls) — THE CONTROLS THAT CERTIFIED MY FIX WERE HOLLOW, AND SURF IS A THIRD REQUIREMENT
+
+**1. ⛔⛔ AN ADVERSARIAL REVIEW FAULT-INJECTED EVERY GATE IN `solve_victory_road.py` v2 AND FOUND
+`_carry` — the one rule the rewrite existed to add — HAD NO CONTROL.** Breaking it changed the
+answer from 477 tiles to 32 and made the B1F ladder unreachable, while the self-test still printed
+`SELF-TEST PASSED — one control per model, each with its own fault arm.` The object model and both
+lower floors were uncontrolled too. ‼ **This is v1's failure repeated one layer up**, and it is
+filed with prevention rules in `08-MISTAKES.md`.
+✅ **Repaired:** a control **and an independent fault arm per gate** (collision, elevation-entry,
+elevation-carry, objects, start-elevation, off-grid); controls now run on **all three floors**; the
+elevation fault arm no longer restates its own condition (it asserts the EXIT's reachability flips
+with the rule); and ⭐ **a control that cannot discriminate now says so (⚠) rather than failing or
+passing** — B1F's entry rule gates nothing from that start, which the script proves is a MAP
+PROPERTY by checking that `_carry` still discriminates there. Failing on a map property is how a
+control gets weakened by the next maintainer.
+
+**2. ⛔ THE DOCSTRING'S SAFETY PROMISE WAS FALSE AND IS DELETED.** *"UNREACHABLE verdicts are
+conservative"* holds only for the OBJECT model. The script is **land-only** — no surf, no
+waterfall, no ledges — so on TERRAIN it UNDER-approximates. It now says plainly: **do not act on an
+UNREACHABLE from this script; ask production instead.**
+
+**3. ⛔⛔ THE ROUTE ALSO REQUIRES SURF — a third field move nobody had named.** B2F is **238 tiles of
+`MB_OCEAN_WATER` at elevation 1**, and with Strength + Rock Smash but no Surf the exit is
+unreachable. ✅ **Independently visible in two instruments now:** my land-only model reaches only 64
+B2F tiles from (30,25) and cannot reach the (19,12) warp at all, while **production routes
+(30,25) → (19,12) in 64 waypoints** and (30,25) → (5,26) in 76 — production models surf natively at
+`map_path.py:855-857`. ✅ **Harmless in practice: Zigzagoon and Wailmer both carry Surf.**
+
+**4. ✅ PRODUCTION CORROBORATES THE B1F BOULDER FINDING.** Asked about B1F from the arrival tile
+(8,3), `calculate_path` refuses **all three** other warps — (30,25)→B2F, (20,21)→1F and (42,25)→1F —
+which matches my model's "23 tiles with neither move". And ✅ **1F (21,32) → the exit (39,5) = 64
+waypoints**, so the exit region IS routable once entered. ⇒ the route skeleton closes:
+1F entrance → B1F(8,3) → *[Strength + Rock Smash + Surf]* → B2F → B1F(20,21) → 1F(21,32) → exit.
+
+**5. ⭐ AND WALLY IS MANDATORY, NOT MERELY FREE.** The review ran the test I had not: blocking both
+trigger tiles makes the B1F ladder **UNREACHABLE** (477 → 429 tiles). *"Detour cost 0"* could not
+distinguish *mandatory* from *one of several equal-cost options* — and production actively prefers
+alternatives, since `map_path.py:1034-1037` adds **+10000** to a tile with an armed
+`on_enter_event_triggers`, which (2,23)/(3,23) are. ⇒ a stronger and more useful answer for §Ch23.
+⚠ Also flagged: after the battle Wally becomes a **permanent blocker** at (2,24)/(3,24), which
+raises the direct entrance→ladder distance 44 → 46; and three B1F boulders have **no legal push**
+until their paired rock is smashed, so pushes are order-dependent and the "298 tiles" figure is an
+upper bound achievable in one specific order, not a route.
