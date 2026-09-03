@@ -20791,3 +20791,21 @@ comment naming the trap; the probe's geometry half, which is correct and did rea
 Filed with prevention rules in `08-MISTAKES.md`. ✅ **No code was built on the false findings, because
 they were filed as a DISAGREEMENT with an explicit "take the UNION until adjudicated" instruction** —
 and that union was correct under both the true and the false model.
+
+
+## 2026-09-03 (probe hardening) — A PROPERTY CHECK CANNOT DETECT THAT THE WRONG TILE WAS NAMED
+
+The diff-triggered advisory (`#24-difftriggeredrules`, R-SCANBOUND) fired on
+`probe_vr_b1f_claims.py`: a coordinate scan bounded by `SHAFT_BOTTOMS[0][1] + 4` — the FIRST shaft's
+floor plus a magic number — and then reused for BOTH shafts. Its output was correct **by luck**
+(`range(11,15)` happens to reach the second shaft's floor at y=14).
+✅ Fixed to walk south from each boulder to the first wall, bounded by the map's real height
+(`b1f["h"]`), and to CROSS-CHECK the derived floor against the transcribed constant.
+
+⭐ **The fault arm then proved something better than the fix.** Injecting a mis-transcription —
+`SHAFT_BOTTOMS` (4,11) → (4,12) — leaves the ORIGINAL check **passing**, because **(4,12) is also a
+wall**. *"Is the named tile a wall?"* is a PROPERTY that many tiles share, so it cannot detect that
+the WRONG TILE WAS NAMED. Only the derived comparison catches it (exit 1, naming both values).
+⇒ ‼ **This is `08-MISTAKES.md`'s "assert IDENTITY, never a property" rule in a new costume** — and it
+is exactly the shape that would have made this probe certify a typo'd coordinate as verified decomp
+truth. The lesson is recorded as a comment at the check it concerns, not only here.

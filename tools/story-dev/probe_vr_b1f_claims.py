@@ -77,15 +77,38 @@ def main() -> int:
 
     # ---- 3. THE SHAFT GEOMETRY — the reason a south push is claimed fatal ------------------------
     head("3. THE SHAFT GEOMETRY — is there really a wall at the bottom?")
+    # ⚠ THIS CHECK ALONE IS NOT ENOUGH, AND THE FAULT ARM PROVED IT (2026-09-03).
+    # Mis-transcribing (4,11) as (4,12) leaves this check PASSING, because (4,12) is ALSO a wall.
+    # "Is the named tile a wall?" is a PROPERTY many tiles share; it cannot detect that the WRONG
+    # tile was named. The loop below catches it by DERIVING each shaft's floor from the data and
+    # comparing. ⇒ assert IDENTITY (this is THE first wall south of the boulder), never a property.
     for t in SHAFT_BOTTOMS:
         c = b1f["collision"].get(t)
         print(f"  {t}: collision={c} {'✅ WALL' if c else '⛔ OPEN — not a closed shaft'}")
         if not c:
             fails.append(f"CLAIM '{t} is collision-1 (the shaft bottom)' -> collision={c}")
-    print("\n  the shaft interiors (must be OPEN for the boulder to be pushed in at all):")
-    for (bx, by), (dx, dy) in SEALING:
-        col = [(bx, y) for y in range(by + 1, SHAFT_BOTTOMS[0][1] + 4) if (bx, y) in b1f["collision"]]
-        line = "  ".join(f"({x},{y}):{b1f['collision'][(x, y)]}" for x, y in col[:8])
+    print("\n  the shaft interiors — walk SOUTH to the first wall, bounded by the map's real height:")
+    # ⛔ THIS LOOP USED TO BOUND BOTH COLUMNS BY `SHAFT_BOTTOMS[0][1] + 4` — the FIRST shaft's floor
+    # plus a magic number — and then print the result for BOTH. It happened to cover the x=9 shaft
+    # too (range(11,15) reaches y=14), so the output was right BY LUCK. The advisory rule
+    # R-SCANBOUND names exactly this: bound a coordinate scan by the MAP's real size, never by a
+    # round number, and never reuse one feature's bound for another's.
+    # ‼ Also: derive each shaft's floor from the DATA (walk south until a wall) instead of pairing
+    # it positionally with SHAFT_BOTTOMS, so a mis-transcribed constant is CAUGHT rather than trusted.
+    for (bx, by), _ in SEALING:
+        col, y = [], by + 1
+        while y < b1f["h"] and b1f["collision"].get((bx, y)) == 0:
+            col.append((bx, y))
+            y += 1
+        floor = (bx, y) if y < b1f["h"] else None
+        line = "  ".join(f"({x},{yy}):{b1f['collision'][(x, yy)]}" for x, yy in col)
+        if floor is None:
+            fails.append(f"shaft x={bx}: no wall found below y={by} before the map edge (h={b1f['h']})")
+        else:
+            line += f"  ->  WALL at {floor}"
+            if floor not in SHAFT_BOTTOMS:
+                fails.append(f"shaft x={bx}: the first wall south of the boulder is {floor}, but "
+                             f"SHAFT_BOTTOMS says {SHAFT_BOTTOMS} — a transcribed constant is wrong")
         print(f"    x={bx} below y={by}: {line}")
 
     # ---- 4. THE MINIMUM SOLUTION'S TILES ---------------------------------------------------------
