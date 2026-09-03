@@ -830,8 +830,23 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       buying healing is not constrained; the problem is LEVELS + TYPE COVERAGE.
       ⛔ **THE FIGHT IS NOT WINNABLE AS-IS:** Kingdra is WATER/DRAGON so Grass, Electric AND Ice are
       all NEUTRAL, no party member has a Dragon move, and Juan restores it three times.
-      ⇒ **WHAT REMAINS:** the Mart's stock (unverified); the route table's ORDER (generate from
-      `map.bin`, re-derive in a test, verify live per step); B1F (never entered — the exit fall, the
+      ✅✅ **THE ROUTE TABLE IS GENERATED AND ITS INPUT IS LIVE-VERIFIED (2026-09-02).**
+      `tools/story-dev/solve_gym_ice.py` derives the route from the DECOMP layout and
+      re-derives it on every run, so a table can never silently drift from the map. All three
+      sections solved and verified — no revisits, every step orthogonal, endpoints forced:
+      **S1 (8,19)→(8,17) 7 tiles · S2 (8,14)→(8,12) 19 · S3 (8,9)→(8,6) 38.**
+      ⛔ **CONSTRAINING ONLY THE START WAS A REAL DEFECT IN THE FIRST CUT** — it returned a
+      valid Hamiltonian path for S1 ending at (9,18), from which the (8,16)/(8,15) stairs are
+      unreachable without re-crossing CRACKED ice ⇒ **a fall on the very first section
+      transition.** A route that covers every tile is not the same as a route you can LEAVE.
+      ✅ **AND THE TWO AUTHORITIES AGREE TILE-FOR-TILE:** the decomp's 64 thin-ice coordinates
+      vs the LIVE `gBackupMapLayout` set = **64/64, zero differences in both directions**
+      (evidence `2026-09-02-ch22-ICEROUTE-generated.txt` + `…-ch22probe-LIVECOORDS.txt`).
+      ‼ `--self-test` is the fault arm: it proves the solver REFUSES an uncoverable map
+      rather than returning a plausible partial path.
+      ⇒ **WHAT REMAINS:** the Mart's stock (unverified); **WALKING** the generated route and
+      verifying each step against `_live_metatile_grid` (the input is verified, the WALK is
+      not); B1F (never entered — the exit fall, the
       ten trainers, the (11,22) ladder are all decomp-only); and how under-levelled the party is —
       **only a live Juan drive settles that, and the FIRST ONE IS EXPECTED TO LOSE. That loss is the
       measurement, not a failure.**

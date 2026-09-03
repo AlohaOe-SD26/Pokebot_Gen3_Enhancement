@@ -11459,6 +11459,12 @@ class Ch22ProbeMode(BotMode):
         log(f"[{TAG}] P3 THIN ICE n={len(thin)} (PREDICTED 64) rows={sorted(bands)} "
             f"per_row={[bands[y] for y in sorted(bands)]}")
         log(f"[{TAG}] P3 LOCKED STAIRS (0x20F) n={len(stairs)} at={stairs}")
+        # ⛔ THE FULL COORDINATE LIST, not just a count. `solve_gym_ice.py` generates the route from
+        # the DECOMP layout; this is the LIVE tile set the game actually runs, and the two must be
+        # compared TILE BY TILE before the bot walks a generated route. A matching COUNT is not a
+        # matching SET — that is the "positive control proves a scan is not blind, it says nothing
+        # about over-reporting" lesson (08-MISTAKES 2026-08-27).
+        log(f"[{TAG}] P3 THIN-ICE COORDS (live, for diffing against solve_gym_ice.py) {thin}")
 
         mt_diff_before = sorted(t for t in stat_mt if live_mt.get(t) != stat_mt[t])
         col_diff_before = sorted(t for t in stat_col if live_col.get(t) != stat_col[t])

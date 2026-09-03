@@ -19963,3 +19963,47 @@ making it.*
 ### FILES
 `PROJECT KNOWLEDGE/03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`.
 ⚠ Drift UNCHANGED at 8 (`promote.py --check`, re-measured after the revert).
+
+---
+
+## 2026-09-02 (route table) — §Ch22's ICE ROUTE IS GENERATED, SELF-TESTED, AND ITS INPUT LIVE-VERIFIED
+
+### WHAT SHIPPED
+`tools/story-dev/solve_gym_ice.py` — derives the Sootopolis Gym ice route from the DECOMP layout
+(`map.bin` + `metatile_attributes.bin`) and **re-derives it on every run**, so a route table can
+never silently drift from the map. A transcribed 64-step exact-cover path is one typo away from a
+fall, and a fall costs a full B1F traverse (ten trainers).
+
+**THE ROUTE (all three sections solved and verified — no revisits, every step orthogonal):**
+`S1 (8,19)→(8,17)` 7 tiles · `S2 (8,14)→(8,12)` 19 · `S3 (8,9)→(8,6)` 38.
+
+### ⛔ CONSTRAINING ONLY THE START WAS A REAL DEFECT, AND I CAUGHT IT BY READING THE OUTPUT
+The first cut fixed each section's START and left the END free. It returned a perfectly valid
+Hamiltonian path for section 1 ending at **(9,18)** — from which the locked stairs at (8,16)/(8,15)
+are unreachable without re-crossing ALREADY-CRACKED ice. ⇒ **a fall on the very first section
+transition.**
+‼ **A ROUTE THAT COVERS EVERY TILE IS NOT THE SAME AS A ROUTE THE PLAYER CAN LEAVE.** Both endpoints
+are now forced, and both are DERIVED from the map rather than hardcoded: column 8 alternates
+ice-band / locked-stair-pair all the way up (VERIFIED: (8,20..21) floor, ice 19-17, stairs 16/15, ice
+14-12, stairs 11/10, ice 9-6, stairs 5/4, Juan at (8,3)), so a section is always entered at its
+southern end of column 8 and must be left from its northern end.
+
+### ✅ TWO INDEPENDENT AUTHORITIES AGREE TILE-FOR-TILE
+The decomp's 64 thin-ice coordinates vs the LIVE `gBackupMapLayout` set (dumped by `ch22probe`):
+**64/64, ZERO differences in both directions.** ⇒ the generated route's INPUT is verified against the
+grid the game actually walks on. ⛔ **The WALK is still unverified** — the route has never been
+stepped, and this project's rule is that two sources agreeing is corroboration, never proof.
+‼ And the count was never the check: a matching COUNT is not a matching SET (the "a positive control
+proves a scan is not blind, but says nothing about over-reporting" lesson). The diff is set-based,
+both directions.
+
+### THE FAULT ARM
+`--self-test` adds an unreachable tile to a section and proves the solver returns **None (REFUSED)**
+rather than a plausible partial route. An unfault-tested solver is a solver you are trusting on
+faith.
+
+### FILES
+`tools/story-dev/solve_gym_ice.py` (NEW); `tools/story-dev/story_harness.py` (the probe now dumps the
+full live coordinate list, not just a count);
+`tools/story-dev/evidence/2026-09-02-ch22-ICEROUTE-generated.txt`,
+`…-ch22probe-LIVECOORDS.txt`; `03-PUNCH-LIST.md`, `04-HANDOFF.md`.

@@ -1,0 +1,23 @@
+============================================================================================
+SOOTOPOLIS GYM 1F — ICE ROUTE GENERATOR (from the DECOMP layout)
+============================================================================================
+  thin-ice tiles: 64
+  sections (south -> north): [7, 19, 38]
+
+  SELF-TEST: added an unreachable tile (99,99) to section 1 -> solver returned None (REFUSED)
+  ✅ the solver refuses an uncoverable map rather than returning a partial route.
+
+  SECTION 1: 7 tiles, start (8, 19), end (8, 17), OK
+    [(8, 19), (7, 19), (7, 18), (8, 18), (9, 18), (9, 17), (8, 17)]
+
+  SECTION 2: 19 tiles, start (8, 14), end (8, 12), OK
+    [(8, 14), (7, 14), (6, 14), (5, 14), (5, 13), (5, 12), (6, 12), (7, 12), (7, 13), (8, 13), (9, 13), (9, 14), (10, 14), (11, 14), (11, 13), (11, 12), (10, 12), (9, 12), (8, 12)]
+
+  SECTION 3: 38 tiles, start (8, 9), end (8, 6), OK
+    [(8, 9), (7, 9), (6, 9), (6, 8), (5, 8), (5, 9), (4, 9), (3, 9), (3, 8), (3, 7), (3, 6), (4, 6), (4, 7), (5, 7), (6, 7), (6, 6), (7, 6), (7, 7), (8, 7), (8, 8), (9, 8), (9, 9), (10, 9), (10, 8), (10, 7), (11, 7), (11, 8), (12, 8), (12, 9), (13, 9), (13, 8), (13, 7), (13, 6), (12, 6), (11, 6), (10, 6), (9, 6), (8, 6)]
+
+============================================================================================
+RESULT: ✅ all 3 sections covered, 64 steps, no revisits, every step orthogonal.
+‼ THIS IS THE DECOMP'S ANSWER, NOT THE GAME'S. Verify it against `_live_metatile_grid`
+  before the bot walks it — two sources agreeing is corroboration, never proof.
+============================================================================================
