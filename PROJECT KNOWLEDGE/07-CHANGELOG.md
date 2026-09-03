@@ -20809,3 +20809,30 @@ the WRONG TILE WAS NAMED. Only the derived comparison catches it (exit 1, naming
 ⇒ ‼ **This is `08-MISTAKES.md`'s "assert IDENTITY, never a property" rule in a new costume** — and it
 is exactly the shape that would have made this probe certify a typo'd coordinate as verified decomp
 truth. The lesson is recorded as a comment at the check it concerns, not only here.
+
+
+## 2026-09-03 (preflight) — §Ch23'S IRREPLACEABLE POKÉMON STARTS THE CHAPTER FAINTED
+
+**1. ⛔⛔ MEASURED: `Wailmer#FA51ECF3 hp=0/160 — FAINTED` in `post_waterfall.ss1`, §Ch23's start
+fixture.** Wailmer is the SOLE carrier of Dive (the only exit from the Sootopolis crater) AND of
+Waterfall (the only way up to Victory Road), and it also carries Surf. Swellow is at **5/118 (4%)**;
+the other four are at 100%. ⇒ **the opening heal is a HARD PRECONDITION, not hygiene**, and §Ch23's
+preflight must assert Wailmer is **ALIVE by PID**, not merely present — a party count reads 6 either
+way. The ocean leg beyond the crater has `allow_escaping: false` and no Poké Center for its whole
+length, so departing on a dead Dive carrier is the worst available opening move.
+
+**2. ‼ THE DOC DEFECT IS THE INTERESTING PART, AND IT IS A SHAPE THE PAIR CHECKS CANNOT SEE.** The
+fixture registry already said *"61% HP with one member fainted"* AND *"Wailmer is the single point of
+failure"* — **two true statements, in the same file, that agree with each other perfectly.** The
+hazard is their CONJUNCTION, and no sentence performed it. P1-P5 look for CONTRADICTIONS; there was
+none to find. Filed with prevention rules in `08-MISTAKES.md`.
+
+**3. ✅ THE INSTRUMENT GAP THAT KEPT IT INVISIBLE IS CLOSED.** `probe_anchor_inventory.py` reports
+"1 FAINTED" without naming the member; `--driver partypids` reported PIDs without HP. **The decisive
+question — "is the fainted one the mon we cannot lose?" — was unanswerable by anything in the tree,
+so it was never asked.** `partypids` now reports `hp=cur/max (pct)` per member, flags each fainted
+one inline, and prints an explicit `FAINTED BY IDENTITY: [...]` summary line. Read-only, unchanged
+otherwise. ⇒ every future fixture capture answers this for free.
+
+**4. ✅ Recorded at all three places a reader can arrive:** `saves/FIXTURES.md5` (the entry a future
+session reads first about this save), `04-HANDOFF.md`'s queue head, and `#24-ch23victoryroad`.

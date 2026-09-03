@@ -11399,3 +11399,45 @@ intersection of what they permit, and let the adjudication catch up.**
 ‼ **Fourth adversarial overturn in this session.** The pattern is now unambiguous: a fresh agent told
 to ATTACK, given the tooling traps in advance and required to fault-inject rather than reason, finds
 things I do not — including errors in the corrections I made to my own earlier errors.
+
+
+## 2026-09-03 — TWO FACTS, BOTH RECORDED, WHOSE *CONJUNCTION* WAS THE HAZARD — AND NOTHING JOINED THEM
+
+**Symptom.** `saves/FIXTURES.md5`'s entry for §Ch23's start fixture said, in one sentence,
+*"61% HP with one member fainted — heal first"*, and in another sentence,
+*"WAILMER IS THE SINGLE POINT OF FAILURE FOR THE WHOLE CHAPTER — sole carrier of Dive (the only exit
+from the Sootopolis crater) AND of Waterfall (the only way up)."*
+Both true. Both written by me. **Neither says which member is fainted.** Measured with a driver:
+`Wailmer#FA51ECF3 hp=0/160 ⛔ FAINTED`. ⇒ **the chapter's irreplaceable Pokémon starts it dead**, and
+a bot that departed before healing would have tried to leave the crater on a corpse — into an ocean
+leg with `allow_escaping: false` and no Poké Center for its entire length.
+
+**Root cause — a doc-consistency shape the pair checks P1-P5 cannot see.** Every existing pair check
+asks *"do these two statements AGREE?"* These two agreed perfectly. The defect is that **the hazard
+lives in their CONJUNCTION and no sentence performs it.** Consistency checking is blind to a fact
+that is only dangerous when combined, because there is no contradiction to find.
+‼ A second cause made it invisible: **no instrument in the tree could answer the question.**
+`probe_anchor_inventory.py` reports "1 FAINTED" without saying which; `--driver partypids` reported
+PIDs without HP. The one question that mattered — *"is the fainted one the mon we cannot lose?"* —
+was unanswerable, so it was never asked.
+
+**The fix.**
+1. `--driver partypids` now reports **HP by identity** and prints an explicit
+   `FAINTED BY IDENTITY: [...]` line. The gap is closed for every future fixture, not just this one.
+2. The finding is recorded at all three places a reader could arrive: the fixture registry entry,
+   `04-HANDOFF.md`'s queue head, and `#24-ch23victoryroad`.
+3. §Ch23's preflight requirement is upgraded from "assert Wailmer BY PID" to **"assert Wailmer is
+   ALIVE by PID"**, and the opening heal from hygiene to a **hard precondition**.
+
+**Prevention rules.**
+⛔⛔ **WHEN A DOCUMENT NAMES A SINGLE POINT OF FAILURE, IT MUST ALSO STATE THAT COMPONENT'S CURRENT
+STATE.** "X is irreplaceable" and "something is broken" in the same file, without joining them, is
+worse than either alone — it reads as two handled risks.
+⛔ **A HAZARD CAN LIVE IN A CONJUNCTION THAT NO SENTENCE PERFORMS.** Pair checks find
+contradictions; they cannot find a dangerous AND. When you write a criticality claim, immediately
+ask "and what is its state RIGHT NOW?" — then measure it rather than assuming.
+⛔ **IF THE DECISIVE QUESTION IS UNANSWERABLE BY ANY EXISTING INSTRUMENT, THAT IS THE FINDING.**
+Build the instrument first. The question "which member is fainted?" went unasked for a day because
+nothing could answer it, not because anyone judged it unimportant.
+✅ **And the generic form of the rule this project keeps re-learning: ASSERT IDENTITY, NEVER A COUNT.**
+Six alive and six-with-one-down both report `party=6`.

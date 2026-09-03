@@ -884,6 +884,14 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       held, so the bot walks both basements dark.
       ⛔⛔ **WAILMER IS THE SINGLE POINT OF FAILURE** — sole carrier of Dive (the only exit from the
       Sootopolis crater) and Waterfall (the only way up). Preflight must assert it BY PID.
+      ⛔⛔⛔ **AND IT STARTS THIS CHAPTER FAINTED — MEASURED 2026-09-03.** `--driver partypids`
+      on `post_waterfall.ss1`: **`Wailmer#FA51ECF3 hp=0/160 ⛔ FAINTED`**, Swellow **5/118 (4%)**,
+      the other four at 100%. ‼ **The fixture registry recorded "1 FAINTED" and "Wailmer is the
+      SPOF" as SEPARATE sentences and never joined them — the hazard is the CONJUNCTION.**
+      ⇒ **the opening heal is a HARD PRECONDITION, not hygiene**, and the preflight must assert
+      Wailmer is **ALIVE by PID**, not merely present (a party count reads 6 either way).
+      ⚠ Whether a FAINTED mon can be selected for a field move at all is dispatched to a decomp
+      agent; heal-first is correct under either answer, so this is not a blocker.
       ⭐ **Wally is MANDATORY, not merely free** — blocking his (2,23)/(3,23) triggers makes the B1F
       ladder unreachable (477→429 tiles), so the chapter cannot skip its own grading flag
       `DEFEATED_WALLY_VICTORY_ROAD` (0x7E). ⚠ Afterwards he is a permanent blocker at (2,24)/(3,24).

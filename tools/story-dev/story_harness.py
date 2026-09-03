@@ -5254,10 +5254,24 @@ class PartyPidsMode(BotMode):
         yield from wait_until_truly_controllable()
 
         seen: "dict[int, list[str]]" = {}
+        # ⭐ HP IS REPORTED BY IDENTITY, ADDED 2026-09-03, AND IT CLOSED A REAL GAP.
+        # `probe_anchor_inventory.py` says "428/701 (61%), 1 FAINTED" but NOT **WHICH** member, and
+        # this driver reported PIDs but not HP — so NO instrument in this tree could answer
+        # "is the fainted one the mon we cannot lose?". That matters for §Ch23: Wailmer is the SOLE
+        # carrier of Dive (the only exit from the Sootopolis crater) AND Waterfall (the only way up
+        # to Victory Road), and the ocean leg has `allow_escaping: false` with no Poké Center for
+        # its whole length. ⛔ A party COUNT cannot answer it either — six alive and six with one
+        # down both read "6" (`08-MISTAKES.md`: assert IDENTITY, never a count).
+        fainted: "list[str]" = []
         for p in get_party():
+            down = p.current_hp == 0
+            if down:
+                fainted.append(f"{p.species.name}#{p.personality_value:08X}(slot{p.index})")
             log(f"[partypids] PARTY slot={p.index} {p.species.name:<12} L{p.level:<3} "
-                f"pid={p.personality_value:08X} egg={p.is_egg}")
+                f"pid={p.personality_value:08X} hp={p.current_hp}/{p.total_hp} "
+                f"({p.current_hp_percentage:.0f}%){' ⛔ FAINTED' if down else ''} egg={p.is_egg}")
             seen.setdefault(p.personality_value, []).append(f"{p.species.name}(party{p.index})")
+        log(f"[partypids] FAINTED BY IDENTITY: {fainted if fainted else 'none'}")
         n_box = 0
         for b in get_pokemon_storage().boxes:
             for s in (b.slots or []):
