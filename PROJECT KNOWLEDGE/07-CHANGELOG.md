@@ -20129,3 +20129,45 @@ locked stairs; and the ladder's landing tile on 1F.
 ### FILES
 `ai-research-notes/2026-09-03-ch22-B1F-EXIT.md` (NEW); `03-PUNCH-LIST.md`, `04-HANDOFF.md`.
 ⛔ No production code changed; drift unchanged at 9.
+
+---
+
+## 2026-09-03 (correction) — "FIVE FORCED BATTLES" WAS WRONG: THE §Ch22 EXIT COSTS **THREE**
+
+### THE CORRECTION
+The B1F exit note, `03-PUNCH-LIST.md`, `04-HANDOFF.md` and commit `853d3875` all said the gym exit
+costs FIVE forced battles. **The minimum is THREE — Andrea, Bethany, Connie, in 19 tiles.** Caught by
+the B1F recon's adversarial refuter and then re-derived by me independently before anything was
+changed.
+
+### WHY IT WAS WRONG — METHODOLOGICAL, WHICH IS WHY REVIEW WOULD NOT HAVE CAUGHT IT
+I asked a BINARY question ("is there a trainer-free route?"), got "no", and defaulted to reporting
+the SHORTEST route — which crosses five sight lines. The right question was **"what is the CHEAPEST
+route"**: a Dijkstra weighted by BATTLES, not a BFS weighted by distance.
+⇒ **When the ideal is unavailable, MINIMISE — do not fall back on the metric you already have.**
+"No perfect option exists" and "here is the best option" are different findings; only the second is
+planning.
+
+### AND MY WALK MODEL MISSED TWO B1F MECHANICS
+* **Six `MB_SLIDE_SOUTH` tiles** — (8,10)(8,11)(8,15)(8,16)(8,20)(8,21) — which carry the player south
+  for FREE, past sight lines. Three chains: (8,10)→(8,12), (8,15)→(8,17), (8,20)→(8,22).
+* **Six DOUBLE-battle tiles** (2v2): (5,8) Tiffany+Crissy, (9,8) Bethany+Olivia, (11,7)
+  Brianna+Bridget, and (7,13)/(8,13)/(9,13) Daphne+Annika.
+‼ Note the direction: the previous day's BFS bug was OPTIMISTIC (it walked through walls); this one
+was PESSIMISTIC. **A wrong model is not reliably conservative — it is just wrong.**
+
+### CORROBORATION OF THE RIGHT SHAPE
+The refuter found a different 3-battle route (35 tiles) than mine (19 tiles). **Two derivations
+agreeing on the COUNT while disagreeing on the PATH is stronger evidence than agreeing on both** —
+it means the invariant is real and not a shared artefact.
+
+### ALSO CORRECTED FROM THE REFUTATION (verified in its citations)
+* **B1F's LAYOUT is static** — but `calculate_path` is STILL unsafe there: trainer BODIES block tiles
+  and appear nowhere in `map.bin`, and sight lines are invisible to a collision planner. ⛔ "Static
+  layout" must not be read as "the planner is fine".
+* Every mon on the floor gets **abilityNum 0**, so Azumarill is **Thick Fat, not Huge Power** — its
+  damage had been ~2× overstated, and Bethany's Azumarill L39 is on the forced path.
+
+### FILES
+`ai-research-notes/2026-09-03-ch22-B1F-EXIT.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`,
+`08-MISTAKES.md`. ⛔ No production code changed; drift unchanged at 9.

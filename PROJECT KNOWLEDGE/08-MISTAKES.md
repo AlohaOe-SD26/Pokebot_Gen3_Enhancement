@@ -10858,3 +10858,43 @@ the reward for a dramatic result is what makes it dangerous.
 ⛔ **AND DO NOT LET "INSTRUMENT X IS BLIND TO Y" COLLAPSE INTO "INSTRUMENT X IS USELESS".** State
 what each instrument measures and use it only for that. Here the correct answer needed BOTH grids;
 using either alone gives a confidently wrong map.
+
+---
+
+## 2026-09-03 — I ANSWERED A BINARY QUESTION AND SHIPPED IT AS AN OPTIMUM: "FIVE FORCED BATTLES" WAS REALLY THREE
+
+**Symptom.** I committed, in a research note, the punch list, the handoff and a commit message, that
+§Ch22's gym exit "costs FIVE forced battles". An adversarial refuter said the minimum was THREE; I
+re-derived it myself and it is **three (Andrea, Bethany, Connie), in 19 tiles**.
+
+**Root cause — methodological, not arithmetic, which is why review would not have caught it.** I
+asked a BINARY question: *"is there a trainer-free route from the fall tile?"* The answer was no, so
+I fell back to reporting the SHORTEST route — which happens to cross five sight lines — and wrote
+that up as what the exit COSTS. **The right question was never "is there a free route" but "what is
+the CHEAPEST route"**: a Dijkstra weighted by battles, not a BFS weighted by distance.
+⇒ **WHEN THE IDEAL IS UNAVAILABLE, MINIMISE. Do not fall back on the metric you happen to have
+already computed.** "No perfect option exists" and "here is the best option" are different findings,
+and only the second one is planning.
+
+**A second, compounding error: my walk model was wrong in the pessimistic direction.** B1F has **six
+`MB_SLIDE_SOUTH` tiles** ((8,10)(8,11)(8,15)(8,16)(8,20)(8,21)) that carry the player south for free
+— *past sight lines* — and my 4-connected BFS did not model them at all. It also missed **six
+DOUBLE-battle tiles** where two trainers see the same square and a 2v2 starts.
+‼ Note the direction: I had just been burned by an optimistic bug (a BFS walking through walls) and
+this one was pessimistic. **A wrong model is not reliably conservative — it is just wrong**, so
+"erring on the safe side" is not a reason to skip verifying it.
+
+**The fix that worked.** A battle-weighted Dijkstra with slide chains modelled, re-derived by me
+after the refuter flagged it. The refuter independently found a *different* 3-battle route (35 tiles
+vs my 19) — **two derivations agreeing on the COUNT while disagreeing on the PATH is exactly the
+corroboration to want**, and far stronger than agreeing on both.
+
+**Prevention rules.**
+⛔ **A ROUTING/COST ANSWER MUST NAME ITS OBJECTIVE, AND THE OBJECTIVE MUST BE THE ONE THAT MATTERS.**
+Before reporting "it costs N", state what was minimised. If the answer came from a shortest-path
+search but the cost that matters is battles/damage/time, the number is not an answer to the question
+asked.
+⛔ **AND MODEL THE MAP'S OWN MOVEMENT MECHANICS BEFORE ROUTING ON IT.** Slide tiles, ice, currents,
+warps and one-way ledges all break a plain 4-connected walk. Census the behaviour bytes of every
+walkable tile FIRST — one line of code — and only then route. *(`{0x0: 116, 0x47: 6, 0x61: 1}` would
+have told me in seconds.)*

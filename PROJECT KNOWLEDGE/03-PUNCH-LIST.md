@@ -867,10 +867,20 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       ✅✅ **THE EXIT IS MAPPED 2026-09-03** — `ai-research-notes/2026-09-03-ch22-B1F-EXIT.md`.
       ⛔ **EXACTLY ONE tile can be fallen through: (8,6)** — the only cracked ice adjacent to
       the 20-tile island (confirmed twice: live BFS and an offline decode of `map.bin`).
-      ⛔ **FROM IT THERE IS NO TRAINER-FREE ROUTE: the exit costs FIVE forced battles**
-      (Andrea, Annika, Bethany, Connie, Daphne) over a 20-step walk to the ladder (11,22),
-      B1F's ONLY warp. The sight-line rule is DECOMP-VERIFIED (`src/trainer_see.c`), not
-      assumed. ‼ My first pass picked (8,19) with a 7-step trainer-free route and it was
+      ⛔ **FROM IT THERE IS NO TRAINER-FREE ROUTE — THE MINIMUM IS *THREE* BATTLES** (Andrea,
+      Bethany, Connie; 19 tiles to the ladder (11,22), B1F's ONLY warp). The sight-line rule
+      is DECOMP-VERIFIED (`src/trainer_see.c`), not assumed.
+      ‼ **THIS ENTRY SAID *FIVE* AND WAS COMMITTED WRONG.** An adversarial refuter caught it
+      and I re-derived the correction myself. The error was METHODOLOGICAL: I asked a BINARY
+      question ("is there a trainer-free route?"), got "no", and defaulted to the SHORTEST
+      route — which costs five. The right question was **"what is the CHEAPEST route"**, a
+      Dijkstra weighted by battles. ⇒ **when the ideal is unavailable, MINIMISE; do not fall
+      back on the metric you happen to have.**
+      ⛔ And my model missed TWO B1F mechanics: **six `MB_SLIDE_SOUTH` tiles** ((8,10)(8,11)
+      (8,15)(8,16)(8,20)(8,21)) which carry the player south FREE past sight lines, and **six
+      DOUBLE-battle tiles** (2v2) at (5,8)(9,8)(11,7)(7,13)(8,13)(9,13).
+      ⚠ B1F's LAYOUT is static — but `calculate_path` is STILL unsafe there: trainer BODIES
+      block tiles and appear nowhere in `map.bin`, and sight lines are invisible to it. ‼ My first pass picked (8,19) with a 7-step trainer-free route and it was
       WORTHLESS — the stranded bot cannot reach it. **A "best option" computed without the
       reachability constraint is not an option.**
       ⇒ **THE EXIT AND THE XP RUN ARE THE SAME LEG** — the bot cannot leave without those
