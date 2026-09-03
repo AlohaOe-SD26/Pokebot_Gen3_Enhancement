@@ -257,10 +257,25 @@ CHAPTERS: list[Chapter] = [
             objective="Beat Juan at the Sootopolis Gym for the Rain Badge. (HM07 Waterfall "
                       "is a Ch21 outcome — Wallace gives it BEFORE the gym; Badge 8 is "
                       "what makes it field-usable.)"),
-    Chapter("23", 28, "Victory Road", "Rt 128/132-134 → Ever Grande",
+    # ⛔ THIS ROW'S LOCATION AND DESCRIPTION WERE BOTH WRONG UNTIL 2026-09-03, and both were
+    # corrected against the decomp (read directly, not recalled):
+    #  * "Rt 128/132-134" — Routes 132/133/134 run WEST to Slateport (`Route134/map.json`:
+    #    `left -> MAP_SLATEPORT_CITY`) and carry the one-way Pacifidlog drift currents. Ever
+    #    Grande's ONLY connection is `{"map": "MAP_ROUTE128", "offset": 40, "direction": "left"}`,
+    #    so the real path is **126 -> 127 -> 128 -> Ever Grande**, entered from Sootopolis by the
+    #    scripted DIVE warp (`SootopolisCity/scripts.inc`: `setdivewarp`), the crater's only exit.
+    #  * "(Strength/Rock Smash/Flash inside)" — ⛔ NONE of the three is required to CLEAR it. All
+    #    boulders and rocks are on B1F, and a 72-step entrance->exit route stays entirely on 1F.
+    #    `VictoryRoad_1F/map.json` is `requires_flash: false`, and `requires_flash` only feeds
+    #    `SetDefaultFlashLevel` (a vision RADIUS); nothing gates movement, warps or scripts on it.
+    #  ‼ Wally is OFF the shortest path — a ~31-step detour to the coord triggers at (2,23)/(3,23) —
+    #    but the grading flag is set ONLY by his defeat script, so the detour is mandatory for US.
+    Chapter("23", 28, "Victory Road", "Sootopolis → dive → Rt 126/127/128 → Ever Grande",
             flag("DEFEATED_WALLY_VICTORY_ROAD"),
-            "Surf/Waterfall/Dive to Ever Grande and clear Victory Road "
-            "(Strength/Rock Smash/Flash inside); beat Wally."),
+            "Dive out of the Sootopolis crater, surf Routes 126-128 to Ever Grande, climb the ONE "
+            "waterfall (needs Badge 8 and surfing NORTH), then take the Victory Road 1F route and "
+            "detour to beat Wally. Strength / Rock Smash / Flash gate only the optional B1F/B2F "
+            "item rooms."),
     Chapter("24", 29, "Elite Four + Champion", "Ever Grande / Pokémon League",
             flag("SYS_GAME_CLEAR"),
             "Beat Sidney → Phoebe → Glacia → Drake, then Champion Wallace."),

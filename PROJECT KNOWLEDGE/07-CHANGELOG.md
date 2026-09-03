@@ -20397,3 +20397,60 @@ Recorded at the top of KI-47 with its stall state.
 commit `f372a780`) and are graded item by item in `...-CHAPTER-RESULTS.md` — the one I rated
 **HIGH** (Juan is won) is the one that missed, and the one I rated **riskiest** (the stair tiles)
 held. `05-KNOWN-ISSUES.md` KI-43 retired to a summary to make budget room.
+
+
+## 2026-09-03 (recon) — KI-47 IS DIAGNOSED, AND §Ch23's SCOPE JUST SHRANK BY TWO SIDE-QUESTS
+
+**1. ⭐⭐ KI-47's MECHANISM IS PROVEN, FROM THE STALL STATE'S EWRAM.** The freeze that killed a
+§Ch22 chapter arm is `battle_action_selection.py:269-291`, the `TurnAction.RotateLead` branch: it
+drove the in-battle party menu onto **the mon already on the field**, the game refused
+(`gStringVar4 = "SCEPTILE is already in battle!"`, which ends in `PAUSE_UNTIL_PRESS` and returns to
+the chooser via `Task_ReturnToChooseMonAfterText`), and the branch's last statement is an
+**unbounded** `while get_game_state() == PARTY_MENU: press A; yield`. ✅ I re-read that loop myself.
+‼ The existing KI-46 bound cannot fire — `unrecognised` only increments in the "no branch matched"
+paths, so it is frozen at 0 once a branch matched. Only `handle_battle._watch`'s 3,000-frame net
+caught it.
+⛔ **NOT FIXED, ON PURPOSE.** Why the cursor sat on slot 0 is UNEXPLAINED (three index spaces are
+conflated here and all three are measured divergent, but a reconstruction of
+`select_rotation_target` predicts slot 4). Any fix touches every battle in the game. Filed as
+`#24-ki47rotatelead` with an **observe-only probe** as the next step — this is the
+`handle_fainted_pokemon` index-space shape a FOURTH time, and the standing rule is that a
+conversion's direction gets MEASURED before it is applied.
+✅ **REFUTED:** the mid-battle level-up hypothesis KI-47 carried. `LearnMoveState` is OUR enum, its
+value was `DialogueNotActive`, `ml_tasks=[]`, and Sceptile was still L50 at the end — the 50→51
+level-up never happened in that run.
+⚠ **And the instrument is blind here:** `_progress_sig` is script instruction + callback +
+learn-move state + total exp, none of which a party-menu ping-pong changes. "KI-47 fired" means
+*this signature stopped moving*, not *the game stopped moving*.
+
+**2. ⚠ A PREVENTION RULE'S STATED MECHANISM CONTRADICTS THE CODE.** `08-MISTAKES.md` (2026-09-02,
+§Ch21 leg 5) says `press_button` every frame HOLDS the button. ✅ `modules/libmgba.py:476` shows it
+**auto-releases** — every-frame calls give a clean `JOY_NEW` edge every two frames. The `frames % 4`
+fix worked and stands; its CAUSE is now marked UNVERIFIED (not deleted) and filed as
+`#24-pressbuttoncause` with the A/B that would settle it. ⛔ A rule pointed at the wrong mechanism
+makes the next person apply the wrong remedy.
+
+**3. ⭐⭐ §Ch23 RECON — `ai-research-notes/2026-09-03-ch23-VICTORY-ROAD-RECON.md`.** Three findings
+change the build, and one of them is a correction to our own code:
+* ⛔ **`chapters.py`'s §Ch23 row named the WRONG ROUTES** — *"Rt 128/132-134"*, when Ever Grande's
+  only connection is ROUTE128 (✅ verified by me) and 132/133/134 run west to Slateport. It also
+  claimed Strength/Rock Smash/Flash are needed inside. **Both corrected in code** (drift 9 → 10, a
+  deliberate trade: that row feeds `progress.py`'s readout, so the error misdirects every reader).
+* ⛔⛔ **FLASH, STRENGTH AND ROCK SMASH ARE NOT REQUIRED** to clear Victory Road: all boulders and
+  rocks are on B1F, `VictoryRoad_1F` is `requires_flash: false` (✅ verified), and `requires_flash`
+  only feeds a vision RADIUS. ⇒ **no HM05 side-quest and no boulder solver** — the largest scope cut
+  available on this chapter, found by reading the game rather than by testing our bot.
+* ⛔ **WAILMER IS THE ONLY PARTY MEMBER THAT CAN LEARN WATERFALL** (✅ verified by me from
+  `tmhm_learnsets.h`) **and its moveset is FULL**, with Dive and Surf unforgettable as HMs. ⇒ the
+  first §Ch23 leg is a teach that MUST go through the forget menu, and `hm_learner_slot` never
+  inspects move slots.
+* ⭐ The route is two-way throughout (the waterfall descends by forced movement; the Sootopolis dive
+  is a paired scripted warp; no currents on 126/127/128) and the **Ever Grande Poké Center is
+  reachable before the cave** — so nothing on this chapter strands the bot.
+
+**Also:** `Ch22ChapterMode` gained `CH22_CAPTURE=<name>.ss1`, gated on the FULL PASS and refusing to
+overwrite — §Ch23 needs a pinned start fixture and had none. And the `ch22stairs` probe's hardcoded
+scan range now records WHY it is safe (its reader derives bounds from `map_size` and raises, so an
+out-of-range key is `None`, never a wrapped phantom tile).
+‼ **The doc gate earned its keep loudly here:** the drift figure lived in **SEVEN** places across
+two files and `audit_doc_consistency.py` caught every one, one at a time.

@@ -12207,6 +12207,25 @@ class Ch22ChapterMode(BotMode):
         log(f"[{TAG}] PREMISE start_done={start_done} (must be False or the grade is vacuous)")
         log(f"[{TAG}] FAILURE {failure}")
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        # CAPTURE THE §Ch23 START FIXTURE, AND ONLY ON A FULL PASS. Every chapter so far pins its
+        # output anchor this way, and the convention is load-bearing: the file's EXISTENCE is the
+        # acceptance record, so writing one from a failed run would forge it. Refuses to overwrite.
+        _cap = os.environ.get("CH22_CAPTURE", "").strip()
+        if _cap:
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if not passed:
+                log(f"[{TAG}] CAPTURE SKIPPED - the run did not PASS (badge={badge} "
+                    f"at={here_name} cont={cont} b1f_entered={b1f_entered} ice_ok={ice_ok} "
+                    f"battles_b1f={self.battles_b1f}); refusing to write {_cap}")
+            elif _out.exists() and os.environ.get("CAPTURE_FORCE", "") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED - {_cap} exists (set CAPTURE_FORCE=1 to replace)")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured the §Ch23 start fixture -> {_out}")
         context.set_manual_mode()
 
 
@@ -12277,7 +12296,16 @@ class Ch22StairsMode(BotMode):
                 return f"UNKNOWN{tuple(a.map_group_and_number)}", tuple(a.local_coordinates)
 
         def dump(label: str) -> dict:
-            """Column x=8, y=2..20, as the GAME sees it right now."""
+            """Column x=8, y=2..20, as the GAME sees it right now.
+
+            ⛔ THE HARDCODED RANGE IS SAFE HERE, AND THAT IS CHECKED RATHER THAN ASSUMED (the
+            standing rule is to bound a coordinate scan by the map's real size, because tile
+            lookup is a FLAT index and an out-of-bounds x silently WRAPS into the next row).
+            `_live_metatile_grid` derives its extent from `get_map_data(map, (0,0)).map_size` and
+            RAISES if the live grid is too small, then returns a dict keyed by real in-bounds
+            coordinates — so `grid.get((8, y))` for an out-of-range y is `None`, never a phantom
+            tile from another row. The gym floor is 17 wide x 26 tall, so x=8 and y=2..20 are in.
+            """
             grid = _live_metatile_grid(gym.GYM_1F)
             col = {y: grid.get((8, y)) for y in range(2, 21)}
             pretty = " ".join(

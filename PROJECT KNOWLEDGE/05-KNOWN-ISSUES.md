@@ -1328,6 +1328,63 @@ the battle path has no safety net but its own bound.
 > to the battle path re-rolls it, so re-verify the command still reproduces before using it as an
 > A/B baseline.
 
+> ---
+>
+> ⭐⭐ **AND AS OF 2026-09-03 THE MECHANISM IS *PROVEN*, NOT INFERRED — decoded out of the saved
+> stall state's EWRAM, read-only.** ✅ I re-read both load-bearing lines myself.
+>
+> **WHAT THE BOT DID:** `battle_action_selection.py:269-291`, the `TurnAction.RotateLead` branch,
+> drove the in-battle party menu onto **the Pokémon that was already on the field**. The game
+> refused. From `tools/story-dev/saves/stalls/repro-ml-f19485.ss1`:
+> ```
+> gStringVar4  = 'SCEPTILE is already\nin battle!{CTRL09}'      ({CTRL09} = FC 09 = PAUSE_UNTIL_PRESS)
+> gPartyMenu.slotId = 0   menuType = 1 (PARTY_MENU_TYPE_IN_BATTLE)
+> gChosenActionByBattler = [2,...]  (2 = B_ACTION_SWITCH)   gActionSelectionCursor = [2,0,0,0]
+> gPlayerParty[0] = SCEPTILE 26/138  (the mon on the field)
+> ```
+> `TrySwitchInPokemon` (`src/party_menu.c:5824`) refuses, `CursorCb_SendMon`'s failure arm
+> (`:3505-3520`) calls `DisplayPartyMenuMessage(gStringVar4, TRUE)` and hands off to
+> `Task_ReturnToChooseMonAfterText` — which is exactly the task pair the stall log shows.
+>
+> ⛔ **AND THE HANG SITE IS AN UNBOUNDED LOOP — one of KI-47's own 32.** ✅ Read by me at
+> `modules/battle_action_selection.py:288-291`:
+> ```python
+> while get_game_state() == GameState.PARTY_MENU:
+>     context.emulator.press_button("A")
+>     yield
+> ```
+> No counter, no `break`, no `raise`. Its ONLY exit is the game leaving `PARTY_MENU`, which the game
+> will not do while it sits on a refusal message that returns to the chooser.
+> ‼ **AND THE EXISTING KI-46 BOUND CANNOT SAVE IT:** `unrecognised` is only incremented in the
+> "no branch matched" paths (`:96`, `:117`), so once control is inside the `match action:` block the
+> counter is frozen at 0 forever. Only `handle_battle._watch`'s 3,000-frame net fired.
+>
+> ⚠ **WHY THE CURSOR WAS ON SLOT 0 IS *NOT* EXPLAINED, AND THAT IS THE LOAD-BEARING GAP.** Three
+> index spaces are conflated on this path and all three are MEASURED divergent in this state —
+> `battling_pokemon[i].party_index` is a **battle** party id (`gBattlerPartyIndexes`),
+> `map_battle_party_index` inverts *menu slot → battle party id*, and `scroll_to_party_menu_index`
+> drives `gPartyMenu.slotId`, which the game uses as a **live `gPlayerParty` index**. But a
+> reconstruction of `select_rotation_target` predicts slot 4, not 0, under every ordering tried.
+> ⛔ **DO NOT BUILD A FIX ON THAT GUESS.** This is the `handle_fainted_pokemon` shape a fourth time
+> (KI-18, KI-34, KI-66, `#24-faintchooser-fourthspace`), and the standing rule is that a coordinate
+> or index conversion gets its DIRECTION MEASURED before it is applied.
+> ⇒ **THE NEXT STEP IS AN OBSERVE-ONLY PROBE, filed as `#24-ki47rotatelead`:** log `index`,
+> `in_battle_index`, `gBattlePartyCurrentOrder`, `gBattlerPartyIndexes` and the live cursor
+> **immediately before** the A-spam, and again right after `scroll_to_party_menu_index` returns
+> (the party order is observed to change 35 frames after the decision, so a stale conversion is a
+> live candidate). ‼ Instrument the value the code ACTS on, not the candidate list.
+>
+> ✅ **REFUTED, so nobody re-opens it:** the mid-battle level-up hypothesis this entry carried.
+> `LearnMoveState` is OUR enum (`modules/battle_move_replacing.py:18`), its value in the frozen
+> tuple is `DialogueNotActive`, `ml_tasks=[]` in every sample, and Sceptile is still **L50** in the
+> run's final moveset dump — the 50→51 level-up never happened in this run at all.
+>
+> ⚠ **SECOND FINDING, and it is about the INSTRUMENT:** `_progress_sig`
+> (`battle_handler.py:257-269`) is built from the script instruction, the main callback, the
+> learn-move state and total exp — **none of which a party-menu ping-pong changes.** So the 3,001
+> "no progress" frames may have been furious menu activity that the signature cannot see. ⇒ a
+> KI-47 stall report means *"this signature stopped moving"*, NOT *"the game stopped moving"*.
+
 **Audit result** (`ast` sweep of `battle_handler`, `battle_action_selection`, `battle_menuing`,
 `battle_move_replacing`, `battle_evolution_scene`, `modes/_listeners`): **32 `while` loops with
 no counter, no `break` and no `raise`.** Two have each already cost a whole lane:

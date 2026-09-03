@@ -528,7 +528,7 @@ open-vs-built sweep of all 80 open items has **not** been done.
       ratchet went 36 → 31 → 23, **control-armed at each step** (strip the guards and it reads back
       up). Two-arm behavioural proof: latch CLEAR → swallowed, unchanged; latch SET → re-raised.
       ✅ **DONE 2026-08-24: PROMOTED (user-approved) and the custom baseline WAS lowered 36 → 23 in
-      the same commit. Drift is 9 (⬆ from 8 on 2026-09-02: the NEW `modules/story/sootopolis_gym.py`, §Ch22's chapter module — a new sandbox-only chapter file, exactly as §Ch20 and §Ch21 each did. ⚠ PROMOTION IS THE USER'S CALL and is NOT implied here; run `promote.py --check`, which outranks this text) as of 2026-08-27 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until driven); both forks now read ZERO AST abort-swallowers.**
+      the same commit. Drift is 10 (⬆ from 8 on 2026-09-02: the NEW `modules/story/sootopolis_gym.py`, §Ch22's chapter module — a new sandbox-only chapter file, exactly as §Ch20 and §Ch21 each did. ⚠ PROMOTION IS THE USER'S CALL and is NOT implied here; run `promote.py --check`, which outranks this text) as of 2026-08-27 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until driven); both forks now read ZERO AST abort-swallowers.**
 - [x] **(a): ASSESSED and CLOSED as VERY LOW — and the finding is that the code was NOT changed.**
       A second whiteout during recovery would be fatal, but it cannot realistically occur: the whole
       window is spent on maps whose land-encounter rate is **0** (all 17 towns + all 32 Poké Center
@@ -875,7 +875,7 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       tile); and the ladder warping on contact, which `_bounded_step` cannot express (the
       §Ch21-leg-4 lesson recurring verbatim). ⇒ *a pre-step check that REFUSES is worth more than a
       post-hoc assertion that explains.*
-      ⚠ Drift is 9 — `sootopolis_gym.py` is a new sandbox-only chapter module, as §Ch20/§Ch21 each
+      ⚠ Drift is 10 (2026-09-03: `chapters.py` joined for a §Ch23 correctness fix) — `sootopolis_gym.py` is a new sandbox-only chapter module, as §Ch20/§Ch21 each
       added one. ⛔ PROMOTION IS THE USER'S CALL and is not implied.
 
 ### ✅✅ `#24-ch22chapter` — §Ch22 IS A CHAPTER: **BUILT, WIRED AS SEGMENT 22, DRIVEN TO `ACCEPTANCE: PASS`, BOTH FAULT ARMS EXERCISED. THE LADDER IS 23 OF 24. ⛔ DO NOT REBUILD.** (filed and closed 2026-09-03)
@@ -929,6 +929,46 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       may spend an extra ~35k frames there; (2) ⛔ **KI-47 can freeze the shared battle path inside
       that fight** and drop the run to Manual with NO `ACCEPTANCE` line at all. KI-47 now carries a
       deterministic ~22,000-frame repro command, which is the first this project has had for it.
+
+### ‼‼ `#24-ki47rotatelead` — the RotateLead switch can wedge EVERY battle in the game (2026-09-03)
+
+- [ ] ⭐⭐ **MECHANISM PROVEN, REPRO DETERMINISTIC, FIX DELIBERATELY NOT ATTEMPTED YET.**
+      `battle_action_selection.py:269-291` drove the in-battle party menu onto **the mon already on
+      the field**; the game refused (`gStringVar4 = "SCEPTILE is already in battle!"`, which ends in
+      `PAUSE_UNTIL_PRESS` and returns to the chooser) and the branch's last statement is an
+      **unbounded** `while get_game_state() == PARTY_MENU: press A; yield` — no counter, no break,
+      no raise. ‼ The KI-46 bound cannot fire: `unrecognised` only increments in the
+      "no branch matched" paths, so it is frozen at 0 once a branch matched. Only
+      `handle_battle._watch`'s 3,000-frame net caught it. Full evidence in **KI-47**.
+      ⛔ Repro: `POKEBOT_CH22JUAN_JITTER=181 … --driver ch22chapter` (~22,000 frames).
+- [ ] ⛔ **THE NEXT STEP IS AN OBSERVE-ONLY PROBE, NOT A FIX.** Why the cursor sat on slot 0 is
+      UNEXPLAINED — three index spaces are conflated here (battle-party id vs menu slot vs live
+      `gPlayerParty` index, all MEASURED divergent in the stall state), and a reconstruction of
+      `select_rotation_target` predicts slot 4, not 0. **This is the `handle_fainted_pokemon` shape
+      a FOURTH time** (KI-18/34/66 + `#24-faintchooser-fourthspace`), and the standing rule is that
+      an index conversion has its DIRECTION MEASURED before it is applied. Log `index`,
+      `in_battle_index`, `gBattlePartyCurrentOrder`, `gBattlerPartyIndexes` and the live cursor
+      immediately BEFORE the A-spam and again after `scroll_to_party_menu_index` — the party order
+      is observed to change 35 frames after the decision, so a stale conversion is a live candidate.
+- [ ] ⚠ **AND THE STALL SIGNATURE IS BLIND TO MENU CHURN.** `_progress_sig`
+      (`battle_handler.py:257-269`) is script instruction + main callback + learn-move state + total
+      exp — none of which a party-menu ping-pong changes. ⇒ "KI-47 fired" means *this signature
+      stopped moving*, NOT *the game stopped moving*. Worth widening once the above is settled.
+- [ ] ⛔ **ANY FIX TOUCHES EVERY BATTLE IN THE GAME**, so it needs an A/B on the ORDINARY case, not
+      just on this repro (SESSION DISCIPLINE #9).
+
+### ‼ `#24-pressbuttoncause` — a prevention rule's stated MECHANISM contradicts the code (2026-09-03)
+
+- [ ] ⚠ `08-MISTAKES.md` (2026-09-02, §Ch21 leg 5) says `press_button` on every frame **HOLDS** the
+      button, denying `waitbuttonpress` its `JOY_NEW` edge. ✅ But `modules/libmgba.py:476` is
+      `self._pressed_inputs |= (self._prev_pressed_inputs & mask) ^ mask` with `_pressed_inputs`
+      cleared every frame — **so it AUTO-RELEASES: every-frame calls give a clean edge every two
+      frames.** The `frames % 4` fix worked; its recorded CAUSE cannot be right as written.
+- [ ] **THE DISCRIMINATOR:** one arm with the duty cycle removed and the `not ...is_active`
+      predicate KEPT, on the §Ch21 leg-5 fixture — the two landed together, so neither was isolated.
+      ⛔ Until it runs, the fix stands and the cause is marked UNVERIFIED, **not deleted**: a wrong
+      recorded cause that is flagged is far safer than a silent one, and a rule pointed at the wrong
+      mechanism is what makes the next person apply the wrong remedy.
 
 ### ‼ `#24-retiredclaimgate` — a RETRACTED claim survives a literal grep, four times in one round (filed 2026-09-03)
 

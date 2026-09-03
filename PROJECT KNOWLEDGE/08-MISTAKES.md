@@ -11184,3 +11184,39 @@ two-line check (`^### ` and `^- \[` in order) catches it; reading the diff does 
 diff shows only the inserted lines and never the bullet that moved.
 ‼ Related and worth the same care: this project's headings are load-bearing claims (pair P2), so a
 bullet under the wrong heading is a false claim even when every word in it is true.
+
+
+## 2026-09-03 — ⚠ A PREVENTION RULE IN THIS FILE NAMES A MECHANISM THAT THE CODE CONTRADICTS
+
+**This entry corrects the CAUSE of an earlier entry, not its fix.** The 2026-09-02 §Ch21-leg-5
+entry says a msgbox was parked for 20,000 frames because *"`press_button` on EVERY frame … HOLDS
+the button"*, giving Gen 3's `waitbuttonpress` no `JOY_NEW` edge; the fix was a `frames % 4` duty
+cycle, and **the fix demonstrably worked**.
+
+⛔ **But the stated mechanism does not match the emulator wrapper.** ✅ Read by me,
+`sandbox-pokebot/modules/libmgba.py:476`:
+```python
+self._pressed_inputs |= (self._prev_pressed_inputs & input_map[button]) ^ input_map[button]
+```
+with `self._prev_pressed_inputs = self._pressed_inputs; self._pressed_inputs = 0` each frame
+(`:588-589`). If the button was pressed last frame, `(prev & mask) ^ mask` is **0** — so it is NOT
+pressed this frame. ⇒ **calling `press_button` every frame produces a 1-on/1-off alternation, i.e.
+a clean `JOY_NEW` edge every two frames — not a hold.** `hold_button` is a separate method.
+
+**Why this matters more than a wording nit.** A prevention rule is only worth its accuracy: the
+next person to meet a parked msgbox will apply a duty cycle *because of the holding story*, and if
+holding is not the mechanism the duty cycle may be treating a symptom of something else (a wrong
+button choice, a predicate that opened the loop in the wrong state, or a printer state the press
+lands in the wrong half of). **This project has an explicit rule that a fix must be attributed, and
+one whose attribution is wrong is a fix nobody can generalise from.**
+
+⛔ **WHAT IS AND IS NOT CLAIMED HERE.** Claimed: the wrapper auto-releases, and the entry's stated
+cause therefore cannot be right as written. **NOT claimed:** that I know the real cause. The
+§Ch21-leg-5 fix landed together with a predicate change (`not ...is_active`), so two variables
+moved at once and neither was isolated.
+⇒ **Filed as `#24-pressbuttoncause`:** the discriminating A/B is one arm with the duty cycle
+removed and the predicate kept, on the §Ch21 leg-5 fixture. Until that runs, the §Ch21-leg-5
+entry's FIX stands and its CAUSE is marked UNVERIFIED — ‼ **not deleted**, because a wrong
+recorded cause that is flagged is far safer than a silent one.
+‼ Found by an agent diagnosing an unrelated freeze, which is the second time this session that a
+sourced, quoted contradiction arrived from a direction nobody was looking.
