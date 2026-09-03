@@ -20454,3 +20454,109 @@ scan range now records WHY it is safe (its reader derives bounds from `map_size`
 out-of-range key is `None`, never a wrapped phantom tile).
 ‼ **The doc gate earned its keep loudly here:** the drift figure lived in **SEVEN** places across
 two files and `audit_doc_consistency.py` caught every one, one at a time.
+
+
+## 2026-09-03 (§Ch23 groundwork) — THE START FIXTURE, THE ROUTING CLAIM RE-DERIVED, AND LEG 1 DRIVEN
+
+**1. ✅ §Ch23's START FIXTURE EXISTS AND IS VERIFIED FROM THE FILE.** `saves/post_badge8.ss1`
+(md5 `723d94cc899f3ad2c75fbf49f9192984`), written by `CH22_CAPTURE=post_badge8.ss1 --driver
+ch22chapter` **only on the full PASS**, so the file's existence is the acceptance record. Verified
+with `probe_anchor_inventory.py` — which ran its own positive control first (`oldale` 0 badges vs
+`post_winona` 6) — giving `badges=12345678`, `SOOTOPOLIS_CITY (31, 33)`.
+⚠ **AND THE PROBE'S WARNING IS THE FINDING:** the fixture arrives at **428/701 (61%) with ONE
+MEMBER FAINTED**. §Ch22 chews the party (contrast `post_hm07.ss1`: 91%, none down). ⇒ **§Ch23 must
+open with a heal**, and assert the party by PID afterwards.
+
+**2. ⭐⭐ THE LOAD-BEARING §Ch23 ROUTING CLAIM IS RE-DERIVED INDEPENDENTLY, WITH CONTROLS.** An agent
+had reported a 72-step Victory Road route needing no Strength/Rock Smash/Flash — a claim that
+deletes two side-quests, arriving as prose. New committed tool
+**`tools/story-dev/solve_victory_road.py`** decodes the decomp layouts offline and answers it:
+* **1F carries ZERO Strength boulders and ZERO Rock Smash rocks** — counted from 1F's own
+  `object_events` (5 trainers, 2 Wallys, 2 item balls), not inferred from a path. All **8 boulders
+  and 6 rocks are on B1F**; **B2F has none**.
+* entrance (15,40) → exit (39,5) = **71 steps** with every object blocking; Wally's trigger (3,23)
+  is a **29-step** detour. ‼ I report 71/29 rather than the agent's 72/~31 — two independent
+  derivations agreeing on the STRUCTURE while differing by a step is the corroboration worth having,
+  and the structure is what is load-bearing.
+* ⇒ ✅ **NO HM05 FLASH SIDE-QUEST AND NO BOULDER SOLVER FOR §Ch23.**
+⛔ **THE CONTROLS ARE THE POINT** (`--self-test`, all PASS): **0 of 1,388 collision tiles reachable**
+(the wall-walking failure mode this project logged the same day is absent); a **fault arm** proving
+that ignoring collision makes a wall reachable, so the refusal comes from the COLLISION MODEL and
+not a broken search; an off-grid start RAISES. ‼ And it **asserts the byte length** of every
+`map.bin` before decoding a tile (4140 = 46×45×2, 2852 = 46×31×2) — the guard against the silent
+binary corruption recorded earlier today.
+
+**3. ⭐ §Ch23's FIRST LEG IS BUILT AND DRIVEN: `--driver ch23teach`, `ACCEPTANCE: PASS`,
+`frames=1896`.** Teaching Waterfall was the chapter's one real capability risk: **Wailmer is the
+only party member that can learn it** and its moveset was FULL, so the teach had to go through the
+forget menu at **slot 3 — the deepest scroll this bot has ever driven** (both precedents were slot
+1), on a path where `#26-surfteachchain` D3 is armed.
+```
+LEARNER production picked party slot 3 -> Wailmer (pid=4199673075)
+MOVES ['Dive','Surf','Water Gun','Rollout'] -> ['Dive','Surf','Water Gun','Waterfall']
+GAINED ['Waterfall']   LOST ['Rollout']   keeps_dive=True keeps_surf=True   party 6 -> 6
+```
+⭐⭐ **`keeps_dive` IS THE GRADE, not a nicety:** Wailmer is the party's sole Dive carrier and Dive is
+the only exit from the Sootopolis crater (no land connections, `allow_escaping: false`). Losing it
+strands the run. Two independent guards should prevent it — `_is_hm_slot` excludes HM slots, and
+Gen 3 refuses to forget an HM — and **both held in practice**.
+✅ All **seven** predictions held, filed before the run in
+`ai-research-notes/2026-09-03-ch23-WATERFALL-TEACH-PREDICTIONS.md`, including the one rated
+LOW-MEDIUM. ⛔ Graded on the PARTY read back from the world, never on the teach's own report.
+⚠ **AND D3 DID NOT FIRE, WHICH IS NOT THE SAME AS D3 BEING FIXED.** Its hazard is a flow desync on
+**re-entry**, and this clean run never re-entered `_select_forget_slot`. D3 stays OPEN.
+
+**Docs:** §Ch21's leg-3, leg-4 and leg-5 recipe blocks (34 lines of fault arms) were **moved
+verbatim into `28-HANDOFF-ARCHIVE.md`** — moved, not deleted — to make room for §Ch23's, with
+pointers left in place. `--driver ch21chapter` remains the end-to-end arm the handoff keeps.
+
+
+## 2026-09-03 (retraction) — ⛔⛔ "STRENGTH AND ROCK SMASH ARE NOT REQUIRED" WAS WRONG, AND MY OWN TOOL PRODUCED IT
+
+**Two entries above this one claim §Ch23 needs no boulder solver. That claim is RETRACTED.** Only
+the Flash half survives. Correcting forward, since this file is append-only.
+
+**What was claimed, and by what.** An agent reported a 72-step Victory-Road route staying entirely
+on 1F with every boulder in place. I did not take it on trust — I wrote
+`tools/story-dev/solve_victory_road.py`, decoded the decomp layouts myself, asserted every byte
+length, ran a negative control and a fault arm, got **71 steps**, and reported the scope cut as
+independently confirmed.
+
+**Why it was wrong.** ⛔ **The elevation model.** Gen 3 gives the player a **carried elevation**,
+and an elevation-15 tile **preserves** it rather than setting it — which this repo already
+implements, at `modules/map_path.py:859` and `:1039`:
+```python
+if tile.elevation not in (0, 15) and from_elevation != 0 and tile.elevation != from_elevation: return False
+...
+if neighbour.elevation == 15: elevation = node.elevation
+else:                         elevation = neighbour.elevation
+```
+My tool compared **tile-to-tile** elevations and treated any 15 as a free pass. Victory Road 1F has
+a multi-level bridge where an elevation-3 corridor passes UNDER an elevation-4 one; that let the
+search change levels for free and join two regions the game keeps apart.
+‼ **Our own planner would have refused the route**, so the number could never have driven.
+
+**The corrected answer, from the same tool with the carried-elevation rule and state keyed by
+`(x, y, carried)`:**
+* ⛔ **The exit is UNREACHABLE on 1F alone** — 477 tiles reached. With elevation ignored (the bug):
+  **71 steps over 646 tiles.** The two arms disagreeing IS the diagnosis.
+* ⛔ **The real route is 1F → B1F → B2F → B1F → 1F**, and on B1F a 2×2 boulder/rock interlock opens
+  only when BOTH moves are held: **23 tiles with neither · 66 Strength-only · 23 Rock-Smash-only ·
+  298 tiles and the B2F warp with both.** ⇒ **§Ch23 DOES need a boulder solver.** (`strength_push`
+  and the §Ch20 precedent exist, so this is reuse, not a new primitive.)
+* ✅ **Flash is still optional** — nothing mechanical gates on it. ⚠ But B1F and B2F are now on the
+  CRITICAL path, so the bot walks them dark.
+* ⭐ **And one thing got BETTER: Wally is FREE.** His triggers sit ON the shortest path to the
+  mandatory B1F ladder — 29 + 15 = 44 = the direct distance ⇒ **detour cost 0 steps**, not the ~31
+  previously recorded, and the alcove is not a dead end.
+
+**⛔ THE PART WORTH KEEPING: MY CONTROL PASSED WHILE THE MODEL WAS BROKEN.** v1's negative control
+proved **0 of 1,388 COLLISION tiles** leaked into the reachable set. That was true, and it said
+NOTHING about elevation. ⇒ **a control tests the failure mode it was written for and no other.**
+The tool now carries **one control per model, each with its own fault arm**; the new elevation
+control fires on **169** open tiles that the elevation rule alone refuses. Filed with prevention
+rules in `08-MISTAKES.md` 2026-09-03.
+
+**`chapters.py` corrected a second time.** Its §Ch23 row went wrong-in-one-direction (naming Routes
+132-134), was fixed, then briefly wrong in the other (claiming the field moves were optional). It
+now states the measured requirement and carries the retraction inline so the next reader sees both.

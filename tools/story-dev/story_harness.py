@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -12229,6 +12229,153 @@ class Ch22ChapterMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch23TeachMode(BotMode):
+    """§Ch23 leg 1 — TEACH WATERFALL TO WAILMER. Drives PRODUCTION `teach_hm_move`.
+
+    ‼ WHAT THIS PROVES THAT NOTHING BEFORE IT DID. The forget-a-move flow has been driven twice,
+    and BOTH times it replaced **slot 1** (`teachfull` -> Taunt, `divelearner` -> Defense Curl).
+    Waterfall needs **slot 3** — the deepest forget-menu scroll this bot has ever attempted — and
+    `#26-surfteachchain` **D3** is armed exactly there: `_select_forget_slot` does a BLIND RELATIVE
+    scroll (`for _ in range(replace_slot): press Down`) and D3's recon says the hazard is flow
+    desync on re-entry. The arithmetic is certain; the menu drive is not.
+
+    ⛔ PREDICTIONS ARE PRE-REGISTERED in
+    `PROJECT KNOWLEDGE/ai-research-notes/2026-09-03-ch23-WATERFALL-TEACH-PREDICTIONS.md`, committed
+    BEFORE this ran. Grade against that file.
+
+    ⭐⭐ THE GRADE IS A SAFETY PROPERTY, NOT A SUCCESS FLAG: **DIVE MUST SURVIVE.** Wailmer is the
+    party's SOLE Dive carrier and Dive is the only way out of the Sootopolis crater — a map with
+    ZERO land connections and `allow_escaping: false`. Losing it strands the whole run. Two
+    independent guards should make that impossible (`_is_hm_slot` excludes HM slots, and Gen 3
+    refuses to forget an HM at all); this drive tests that both hold in practice.
+
+    ⛔ AND THE GRADE IS READ FROM THE PARTY, NEVER FROM THE TEACH'S OWN REPORT. A leg that says it
+    succeeded is not evidence that the world changed — this project has shipped exactly that shape.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_badge8.ss1 --driver ch23teach --frames 40000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23Teach"
+
+    def __init__(self):
+        super().__init__()
+        self.whiteouts = 0
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts += 1
+        log("[ch23teach] !! WHITEOUT during an overworld TEACH — that is a defect, not a result.")
+        try:
+            from modules.story.early_game import set_story_abort
+
+            set_story_abort(True)
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch23teach] !! could not latch the abort: {type(error).__name__}: {error}")
+            return False
+        return True
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+        from modules.pokemon import get_item_by_name
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import hm_learner_slot, teach_hm_move
+
+        TAG = "ch23teach"
+        WATERFALL = "Waterfall"
+        frames_before = context.emulator.get_frame_count()
+
+        def where():
+            a = get_player_avatar()
+            try:
+                return MapRSE(tuple(a.map_group_and_number)).name, tuple(a.local_coordinates)
+            except Exception:  # noqa: BLE001
+                return f"UNKNOWN{tuple(a.map_group_and_number)}", tuple(a.local_coordinates)
+
+        def party_moves() -> dict:
+            """PID -> (species, [move names]). ⛔ PID-KEYED: slot indices move under us."""
+            out = {}
+            for mon in get_party():
+                if mon is None:
+                    continue
+                out[mon.personality_value] = (
+                    mon.species.name,
+                    [m.move.name for m in mon.moves if m is not None],
+                )
+            return out
+
+        item = get_item_by_name("HM07")
+        before = party_moves()
+        log(f"[{TAG}] PRE at={where()} party={before}")
+
+        # ⛔ WHICH MON, ASKED OF PRODUCTION — not asserted by me. If this is not Wailmer the whole
+        # premise of the §Ch23 recon is wrong and the run should say so loudly rather than proceed.
+        slot = hm_learner_slot(item)
+        target_pid = None
+        if slot is not None:
+            mons = [m for m in get_party() if m is not None]
+            if slot < len(mons):
+                target_pid = mons[slot].personality_value
+        log(f"[{TAG}] LEARNER production picked party slot {slot!r} -> "
+            f"{before.get(target_pid, ('?', []))[0]} (pid={target_pid})")
+
+        # ⛔ ANTI-VACUITY: if it already knows Waterfall this run proves nothing.
+        premise_ok = (
+            target_pid is not None
+            and WATERFALL not in before.get(target_pid, ("", []))[1]
+            and len(before) == 6
+        )
+        if not premise_ok:
+            log(f"[{TAG}] ⛔ PREMISE FAILS — the learner is {target_pid!r} and its moves are "
+                f"{before.get(target_pid, ('?', []))[1]}; a run from here cannot prove the teach.")
+
+        failure = None
+        try:
+            if premise_ok:
+                yield from teach_hm_move(item, slot)
+        except Exception as error:  # noqa: BLE001 - the driver REPORTS failures, never hides them
+            failure = f"{type(error).__name__}: {str(error)[:600]}"
+            log(f"[{TAG}] TEACH FAILED: {failure}")
+
+        after = party_moves()
+        pre_moves = before.get(target_pid, ("?", []))[1]
+        post_moves = after.get(target_pid, ("?", []))[1]
+        gained = [m for m in post_moves if m not in pre_moves]
+        lost = [m for m in pre_moves if m not in post_moves]
+
+        knows_waterfall = WATERFALL in post_moves
+        # ⭐⭐ THE SAFETY CONJUNCTS. Dive first, because losing it strands the entire run.
+        keeps_dive = "Dive" in post_moves
+        keeps_surf = "Surf" in post_moves
+        party_intact = set(after) == set(before)
+
+        total = context.emulator.get_frame_count() - frames_before
+        passed = (
+            failure is None
+            and premise_ok
+            and knows_waterfall
+            and keeps_dive
+            and keeps_surf
+            and party_intact
+            and self.whiteouts == 0
+        )
+        log(f"[{TAG}] RESULT at={where()} premise_ok={premise_ok} "
+            f"whiteouts={self.whiteouts} frames={total}")
+        log(f"[{TAG}] LEARNER MOVES {pre_moves} -> {post_moves}")
+        log(f"[{TAG}] ⭐ GAINED {gained}   LOST {lost}   "
+            f"(PREDICTED: gained Waterfall, lost Rollout — slot 3, the deepest forget-menu scroll "
+            f"this bot has ever driven)")
+        log(f"[{TAG}] ⭐⭐ SAFETY keeps_dive={keeps_dive} keeps_surf={keeps_surf} — ⛔ DIVE IS THE "
+            f"ONLY WAY OUT OF THE SOOTOPOLIS CRATER AND WAILMER IS ITS SOLE CARRIER; losing it "
+            f"strands the run on a map with no land connections and no escaping.")
+        log(f"[{TAG}] PARTY intact={party_intact} size {len(before)} -> {len(after)}")
+        log(f"[{TAG}] FAILURE {failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'} "
+            f"(⛔ graded on the PARTY read back from the world, never on the teach's own report)")
+        context.set_manual_mode()
+
+
 class Ch22StairsMode(BotMode):
     """§Ch22 — READ-ONLY: what does the stair column ACTUALLY read once the puzzle is solved?
 
@@ -13997,6 +14144,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch22StairsMode()
         elif args.driver == "ch22chapter":
             context.bot_mode_instance = Ch22ChapterMode()
+        elif args.driver == "ch23teach":
+            context.bot_mode_instance = Ch23TeachMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

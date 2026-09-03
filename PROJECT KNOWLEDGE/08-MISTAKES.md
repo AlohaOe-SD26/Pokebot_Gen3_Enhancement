@@ -11220,3 +11220,56 @@ entry's FIX stands and its CAUSE is marked UNVERIFIED — ‼ **not deleted**, b
 recorded cause that is flagged is far safer than a silent one.
 ‼ Found by an agent diagnosing an unrelated freeze, which is the second time this session that a
 sourced, quoted contradiction arrived from a direction nobody was looking.
+
+
+## 2026-09-03 — MY CONTROL PASSED WHILE THE MODEL IT DID NOT TEST WAS BROKEN
+
+**Symptom.** An agent claimed Victory Road needs no Strength and no Rock Smash — a scope cut worth
+two side-quests. I refused to take it on trust and re-derived it myself in a committed tool
+(`solve_victory_road.py`): decoded the decomp layouts, **asserted every byte length**, ran a
+**negative control** (0 of 1,388 collision tiles reachable), ran a **fault arm** (ignoring collision
+made a wall reachable, proving the refusal came from the collision model), and got **71 steps**. I
+reported the scope cut as independently confirmed, and wrote it into `chapters.py`, the handoff
+banner-adjacent queue head, and a research note.
+
+**It was wrong.** An adversarial review refuted it, and my own corrected tool now reproduces the
+refutation exactly: **the exit is UNREACHABLE on 1F alone**, and the route needs BOTH field moves.
+
+**Root cause — the elevation model, which my controls never touched.** Gen 3 gives the player a
+**carried elevation**; an elevation-15 tile **preserves** it rather than setting it. This repo
+already implements exactly that (`map_path.py:859` and `:1039`). My tool compared **tile-to-tile**
+elevations and treated any 15 as a free pass, so on 1F's multi-level bridge — an elevation-3
+corridor passing under an elevation-4 one — it changed levels for free and welded two regions
+together. ‼ **Our own planner would have refused the route**, so the number could never have driven;
+the tool disagreed with production and nothing noticed.
+
+**⛔ THE ACTUAL LESSON, AND IT IS NOT "CHECK YOUR ELEVATION".** My control was real, it was correct,
+and it passed — *about collision*. The bug was in elevation. **A control tests the failure mode it
+was written for and no other, and a passing control creates exactly as much false confidence as its
+scope is narrower than the model.** This project already knows the neighbouring half of this rule —
+*"a positive control proves a scan is not BLIND; it says NOTHING about over-reporting"* — and this
+is its twin: **one control does not certify a model with two independent parts.**
+
+**The fix.** `solve_victory_road.py` now keys its search by `(x, y, CARRIED elevation)` — collapsing
+that to the tile is what allowed the free level change — and its `--self-test` carries **one control
+per model, each with its own fault arm**: collision leak + collision fault, **elevation leak +
+elevation fault**, plus an off-grid raise. The new elevation control fires on **169** open tiles the
+elevation rule alone refuses. The tool also prints its answer **with and without** the elevation
+rule, side by side, so the artifact that fooled me is visible in every future run.
+
+**Prevention rules.**
+⛔ **COUNT THE MODELS BEFORE YOU COUNT THE CONTROLS.** A reachability search over this game has at
+least three independent gates — collision, elevation, and objects. One control per model, each with
+a fault arm that disables only that model. A single "the search doesn't walk through walls" control
+certifies one third of the thing.
+⛔ **WHEN A TOOL ANSWERS A QUESTION PRODUCTION ALSO ANSWERS, DIFF THEM.** `map_path.py` implements
+this exact rule and disagreed with my tool. **Ten minutes reading the shipped planner would have
+caught it, and I had already cited that file twice the same day.** ⇒ before writing an offline model
+of something the bot does at runtime, read the runtime one and copy its rule verbatim.
+⛔ **THE BIGGER THE SCOPE CUT, THE HARDER IT MUST BE REFUTED BEFORE USE.** I called this "the single
+biggest scope reduction available on this chapter" in the same note that got it wrong. A finding
+that deletes work is the one with the most incentive to be believed and the least resistance in its
+path — it earns an adversarial pass, not a confirmatory one.
+‼ **And note what DID work:** the adversarial agent was told to attack, given the byte-length trap
+in advance, and required to state what it asserted. It refuted a claim I had already "verified".
+That is the second time this session an adversarial pass overturned something I was confident in.

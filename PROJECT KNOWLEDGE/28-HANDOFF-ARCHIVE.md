@@ -7407,3 +7407,71 @@ Kept for the reasoning (the one-shots, the fall tiles, the layout-pin rule, the 
 >    grading shape in `Ch21ApproachMode`. Start from `post_skypillar_door.ss1` (PINNED, md5
 >    `f6f8ab116b1bc18644286f51c2f202c6`; ⚠ party at 91% HP — there is no Poke Center up there).
 >    Full detail + evidence: `12-STORYMODE-DESIGN.md` §Ch21.
+
+
+## 2026-09-03 — §Ch21 LEG-4 FAULT ARMS, moved verbatim out of `04-HANDOFF.md`
+
+⛔ **MOVED, NOT DELETED.** §Ch21 shipped as a chapter on 2026-09-02 and §Ch22 on 2026-09-03; the
+handoff needed the lines for §Ch23's recipes and its own rule is to retire finished detail by
+SUMMARISING AND POINTING. Every command below still works and every one is still the right
+regression arm if `climb_sky_pillar` is ever touched — each FAILS for its own named reason.
+`--driver ch21chapter` covers legs 1→5 end to end and is what the handoff keeps.
+
+```
+# ‼ THE SEVEN FAULT ARMS ARE NOT OPTIONAL — each fails for its OWN reason (five from the mid-leg
+#   fixtures; BADBLOCKDATA from the FULL fixture, premise valid, so it fails purely on its own guard).
+POKEBOT_CH21_FAULT_SUMMITSTOP=1  story_harness.py post_wallace_scene.ss1 --driver ch21climb   # FAIL, missing every descent reading
+POKEBOT_CH21_FAULT_NOFALL=1      story_harness.py post_wallace_scene.ss1 --driver ch21climb   # FAIL, 'map never changed', bounded, no hang
+POKEBOT_CH21_FAULT_POCKETEXIT=1  story_harness.py post_skypillar_summit.ss1 --driver ch21climb # FAIL, 'LIVELOCK, not a refusal'
+POKEBOT_CH21_FAULT_DROPREADING=1 story_harness.py post_skypillar_summit.ss1 --driver ch21climb # FAIL, R-FALL2 missing though the fall happened
+POKEBOT_CH21_FAULT_CONTROLOPEN=1 story_harness.py post_skypillar_summit.ss1 --driver ch21climb # FAIL, control_refused=False + order_ok=False
+POKEBOT_CH21_FAULT_BADBLOCKDATA=1 story_harness.py post_skypillar_door.ss1 --driver ch21climb # FAIL, blockdata mismatch NAMES SKY_PILLAR_1F, bounded (2244 frames), no hang
+PYTHONUTF8=1 py -3.12 story_harness.py post_rayquaza_gone.ss1 --driver ch21climb  # the VACUITY arm: 'already DONE; nothing to resume'
+```
+
+
+## 2026-09-03 — §Ch21 LEG-3 FAULT ARMS, moved verbatim out of `04-HANDOFF.md`
+
+⛔ **MOVED, NOT DELETED**, for the same reason as the leg-4 block above. ‼ POCKETWALKBACK is the
+arm an adversarial review added BECAUSE IT CAUGHT A REAL BLOCKER, and POCKETSTALL must still
+PASS (`pocket_attempts=2`) — it proves the pocket recovery works LIVE. Restore from here if
+`approach_sky_pillar` is ever touched.
+
+```
+# ‼ THE THREE FAULT ARMS ARE NOT OPTIONAL — the happy path cannot reach any of them. (This line
+#   said TWO while THREE commands followed, until a Tier 2 audit caught it; a reader trusting the
+#   count would skip POCKETWALKBACK, the arm an adversarial review added because it caught a REAL
+#   blocker.) POCKETSTALL must still PASS with pocket_attempts=2 — the recovery working, LIVE.
+POKEBOT_CH21_FAULT_POCKETSTALL=1 PYTHONUTF8=1 py -3.12 story_harness.py post_wallace.ss1 --driver ch21approach --frames 40000
+#   BLINDWALL must FAIL loudly naming the step index, bounded, and must NOT hang.
+POKEBOT_CH21_FAULT_BLINDWALL=1   PYTHONUTF8=1 py -3.12 story_harness.py post_wallace.ss1 --driver ch21approach --frames 60000
+#   POCKETWALKBACK stalls the RECOVERY'S OWN walk back; it only fires while a recovery is running,
+#   so it MUST be set WITH POCKETSTALL. Expect a NAMED BotModeError ("...the walk BACK to (31,17)
+#   then stalled too... the stranded case") + FAIL — a RAW TimedOut... is the defect it catches.
+POKEBOT_CH21_FAULT_POCKETSTALL=1 POKEBOT_CH21_FAULT_POCKETWALKBACK=1 PYTHONUTF8=1 py -3.12 story_harness.py post_wallace.ss1 --driver ch21approach --frames 30000
+```
+
+
+## 2026-09-03 — §Ch21 LEG-5 RECIPES (PART C probe + the return leg + its six fault arms), moved verbatim out of `04-HANDOFF.md`
+
+⛔ **MOVED, NOT DELETED.** Same reason as the leg-3 and leg-4 blocks: §Ch21 and §Ch22 have both
+shipped and the handoff needed the lines for §Ch23. ‼ The PART C probe's two arms remain the
+reference for how KI-73 is proven on any layout-swapped map, and NPCMISS must still PASS.
+`--driver ch21chapter` is the end-to-end arm the handoff keeps.
+
+```
+# leg 5 PART C — read-mostly VALIDATION probe (post_rayquaza_gone.ss1) ~16,300 fr. SETTLED
+#   2026-09-02; the reference for proving KI-73 on a layout-swapped map.
+PYTHONUTF8=1 py -3.12 story_harness.py post_rayquaza_gone.ss1     --driver ch21leg5probe --frames 150000
+CH21_PROBE_NOPIN131=1 ... same ...   # CONTROL: un-pinned, the swim RAISES and never moves
+
+# leg 5 — THE RETURN + HM07 WATERFALL (post_rayquaza_gone.ss1) ~20,700 fr. Expect PASS, missing=[],
+#   order_ok, at=SOOTOPOLIS_CITY(31,34), hm_flag, hm07_in_bag=1, wallace_state=1, gym_door_wp=2,
+#   whiteouts=0, encounters=7
+PYTHONUTF8=1 py -3.12 story_harness.py post_rayquaza_gone.ss1     --driver ch21return --frames 60000
+PYTHONUTF8=1 py -3.12 story_harness.py post_legends_calmed.ss1    --driver ch21return --frames 30000
+#   ^ NPC half only, ~4,600 fr (FAILs by PREMISE — correct for a resumed run). Six fault arms, each
+#   FAIL for its own reason except NPCMISS which must still PASS: POKEBOT_CH21_FAULT_{NOPIN131,
+#   SETTLESKIP,SCENESTOP,NPCMISS,DROPREADING,CONTROLOPEN}=1
+
+```

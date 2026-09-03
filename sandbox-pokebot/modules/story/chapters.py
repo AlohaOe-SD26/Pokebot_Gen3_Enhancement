@@ -264,18 +264,26 @@ CHAPTERS: list[Chapter] = [
     #    Grande's ONLY connection is `{"map": "MAP_ROUTE128", "offset": 40, "direction": "left"}`,
     #    so the real path is **126 -> 127 -> 128 -> Ever Grande**, entered from Sootopolis by the
     #    scripted DIVE warp (`SootopolisCity/scripts.inc`: `setdivewarp`), the crater's only exit.
-    #  * "(Strength/Rock Smash/Flash inside)" — ⛔ NONE of the three is required to CLEAR it. All
-    #    boulders and rocks are on B1F, and a 72-step entrance->exit route stays entirely on 1F.
-    #    `VictoryRoad_1F/map.json` is `requires_flash: false`, and `requires_flash` only feeds
-    #    `SetDefaultFlashLevel` (a vision RADIUS); nothing gates movement, warps or scripts on it.
-    #  ‼ Wally is OFF the shortest path — a ~31-step detour to the coord triggers at (2,23)/(3,23) —
-    #    but the grading flag is set ONLY by his defeat script, so the detour is mandatory for US.
+    #  * ⛔⛔ **STRENGTH AND ROCK SMASH *ARE* REQUIRED — and a comment here briefly said they were
+    #    not.** That claim came from a pathfind run with ELEVATION IGNORED, which joined two 1F
+    #    regions the game keeps apart by a multi-level bridge. Re-derived with the carried-elevation
+    #    rule this repo already implements (`map_path.py:859` + `:1039`): **the exit is UNREACHABLE
+    #    on 1F alone**, the real route is 1F -> B1F -> B2F -> B1F -> 1F, and on B1F a 2x2
+    #    boulder/rock interlock opens only when BOTH moves are held (23 tiles with neither, 66 with
+    #    Strength alone, 23 with Rock Smash alone, 298 and the B2F warp with both).
+    #    ⇒ §Ch23 DOES need a boulder solver. Tool + controls: `tools/story-dev/solve_victory_road.py`.
+    #  * FLASH is still genuinely optional: `VictoryRoad_1F/map.json` is `requires_flash: false`,
+    #    B1F/B2F are `true` but that only feeds `SetDefaultFlashLevel` (a vision RADIUS) and gates
+    #    nothing mechanical. ⚠ B1F and B2F are on the critical path, so the bot walks them DARK.
+    #  ‼ Wally is FREE: his coord triggers at (2,23)/(3,23) sit ON the shortest path to the B1F
+    #    ladder the route must take anyway (29 + 15 == 44 == direct), so the detour costs 0 steps.
     Chapter("23", 28, "Victory Road", "Sootopolis → dive → Rt 126/127/128 → Ever Grande",
             flag("DEFEATED_WALLY_VICTORY_ROAD"),
             "Dive out of the Sootopolis crater, surf Routes 126-128 to Ever Grande, climb the ONE "
-            "waterfall (needs Badge 8 and surfing NORTH), then take the Victory Road 1F route and "
-            "detour to beat Wally. Strength / Rock Smash / Flash gate only the optional B1F/B2F "
-            "item rooms."),
+            "waterfall (needs Badge 8 and surfing NORTH), then clear Victory Road — which "
+            "REQUIRES Strength and Rock Smash to pass a B1F boulder/rock interlock, and runs "
+            "1F -> B1F -> B2F -> B1F -> 1F. Wally is on the way, not a detour. Flash is "
+            "optional (a vision radius only), but B1F/B2F are walked dark."),
     Chapter("24", 29, "Elite Four + Champion", "Ever Grande / Pokémon League",
             flag("SYS_GAME_CLEAR"),
             "Beat Sidney → Phoebe → Glacia → Drake, then Champion Wallace."),
