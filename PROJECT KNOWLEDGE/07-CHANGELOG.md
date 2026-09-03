@@ -19926,3 +19926,40 @@ silently resolving a contradiction you do not understand is how hard-won detail 
 `tools/story-dev/evidence/2026-09-02-ch22probe-{PARTA,PARTA.stdout,FAULT-NOSTEP}.txt`;
 `ai-research-notes/2026-09-02-ch22-PARTA-{PREDICTIONS,RESULTS}.md`; `04-HANDOFF.md`;
 `03-PUNCH-LIST.md` (`#24-ch22juan` filed); `29-DISABLED-FEATURES-REGISTRY.md`.
+
+---
+
+## 2026-09-02 (cleanup) — `#24-abortswallow` RETIRED 101 → 21 LINES, AND A "CONTRADICTION" SETTLED BY RUNNING THE PROBE
+
+### WHAT SHIPPED
+The punch-list budget blocker is cleared: **3598 → 3519 lines**, by retiring `#24-abortswallow` the
+documented way (SUMMARISE + POINT, never delete).
+
+### THE CONTRADICTION WAS NOT ONE — AND THE ONLY WAY TO KNOW WAS TO MEASURE
+The item's headline said *"⛔ 36 CANDIDATES REMAIN"* while `04-HANDOFF.md` said the class was closed
+with *"AST finds ZERO"*. I refused to compress it until that was settled, and settled it by RUNNING
+`probe_abort_swallowing.py` on both forks: **23 sites in each, exactly at baseline, PASS.** The probe
+answers it in its own words — *"CANDIDATE means 'could swallow a whiteout', NOT 'does'"*, with ~64%
+measured not to be the defect. ⇒ the two statements count DIFFERENT THINGS; the "36" was simply
+stale. ‼ **Had I compressed first and measured never, I would have silently deleted one side of a
+contradiction I did not understand.**
+
+### NOTHING WAS LOST
+Six changelog entries (2026-08-16 ×3, 08-17 ×2, 08-23) carry the narrative, and the one engineering
+rule worth keeping lives in the CODE where it cannot rot — `higher_level_actions.py:842`: a handler
+catching `Exception` must re-raise **only BotModeError-family** objects, because a re-raised
+`PathFindingError` (a `RuntimeError`) would escape `StoryMode.run`'s `except BotModeError` and leave
+the global abort latch STUCK TRUE for every later mode.
+
+### ⛔ AND A GATE STOPPED ME MAKING A BAD TRADE
+That code comment cites `story_mode.py:2505`, which is a bare `pass`; the real handler is `:2536`
+(verified). I fixed it — and `audit_doc_consistency.py` immediately failed: `higher_level_actions.py`
+is a SHARED file that was NOT drifted, so a one-word comment fix took **drift 8 → 9** and created a
+promotion decision for the USER over a typo. **Reverted.** The correct line number is now recorded in
+the punch-list item instead, to be bundled into the next approved promotion of that file.
+⇒ *the cheapest fix is not always the cheapest change; measure what a shared-file edit costs before
+making it.*
+
+### FILES
+`PROJECT KNOWLEDGE/03-PUNCH-LIST.md`, `04-HANDOFF.md`, `07-CHANGELOG.md`.
+⚠ Drift UNCHANGED at 8 (`promote.py --check`, re-measured after the revert).

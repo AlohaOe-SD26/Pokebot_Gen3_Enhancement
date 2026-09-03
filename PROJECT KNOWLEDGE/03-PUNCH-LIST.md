@@ -1149,107 +1149,35 @@ from the driver's log** — the probe caught the fainted member the driver's log
       and re-run `audit_doc_consistency.py --self-test` after, because deleting figures changes the
       very corpus the false-positive controls were tuned against.
 
-- [ ] `#24-abortswallow` — **KI-81. ✅ 8 SITES FIXED AND PROMOTED TO BOTH FORKS 2026-08-16;
-      ⛔ 36 CANDIDATES REMAIN (ALL `early_game.py`) — 8 were fixed 2026-08-17, and ✅ the probe is now GATE #27, a RATCHET.** `StoryAbort` is a `BotModeError` is an
-      `Exception`, so every broad `except` in the story path catches a whiteout. KI-67 fixed the two
-      chapters it had OBSERVED failing; the CLASS was never swept.
-      ✅ **THE TRIAGE QUESTION THIS ITEM POSED IS ANSWERED.** It said to start at `mossdeep_gym.py`
-      because that one site would reveal whether the probe over-flags. **It is a TRUE POSITIVE** —
-      `:465` is a DIFFERENT `try` from KI-67's `:534`, and after a whiteout it tried the second gym
-      door ON A DEAD RUN and raised a FABRICATED *"could not get out of the gym"*. ⇒ **the probe
-      does not over-flag; the sweep was incomplete.**
-      ✅ **FIXED + PROMOTED:** `higher_level_actions.py` `:297`/`:316`/`:345` (all three heal
-      piggybacks — a whiteout during a heal WAS swallowed) and `:746`; `pc_trip.py`
-      `:202`/`:305`/`:529`; `mossdeep_gym.py:465`. Proven by a MEASURED before/after, not a
-      byte-compare: `probe_abort_swallowing.py --build custom` fell **53 → 45**.
-      ✅✅ **A SECOND ROUND SHIPPED 2026-08-17 (sandbox at the time; ✅ PROMOTED TO BOTH FORKS later the same day — custom's probe went 44 → 36): 8 MORE SITES FIXED, probe 45 → 37,
-      MEASURED.** All eight were hand-verified to reach `_check_abort()` before being touched — the
-      triage, not the probe, decided what to fix. ‼ **7 of the 8 take a DIRECT `StoryAbort`; the Strength teach takes only a LAUNDERED one** — neither `ensure_strength_learner` nor `teach_hm_move` contains a `_check_abort()`, so no abort OBJECT reaches it and the guard fires only on the latch. Weaker, still worth it (it stops one whiteout printing two fabricated lines), and stated rather than counted as an equal. `counter_hunt.py`'s training handler (the whole
-      file's only candidate, now gone); `early_game.py`'s Mt. Chimney meteorite, the Rusturf wall
-      smash, the Strength teach, and the FOUR heal stops (Lavaridge / Lilycove / en-route / harbor).
-      ‼ **THE FOUR HEAL HANDLERS WERE UNDOING THE 2026-08-16 GUARD ONE FRAME AFTER IT FIRED** —
-      `heal_in_pokemon_center` deliberately re-raises on the latch and they caught it.
-      ⛔ **`counter_hunt.py` NEEDED A DIFFERENT SHAPE and it is the interesting one.** It catches
-      `Exception`, so a bare `reraise_if_aborting(error)` could re-raise a `PathFindingError` — a
-      `RuntimeError`, NOT a `BotModeError` — past `StoryMode.run`'s `except BotModeError`, leaving
-      the global abort latch STUCK TRUE for every later mode. It re-raises only BotModeError-family
-      objects. *(That hazard is documented at `higher_level_actions.py:842`, from an adversarial
-      review on 2026-08-16; I followed the house ruling rather than inventing a shape.)*
-      ✅ **FAULT-TESTED BOTH DIRECTIONS, no emulator needed:** latch CLEAR → the handler still
-      swallows (normal operation untouched); latch SET → a `StoryAbort` AND a laundered
-      `BotModeError` both propagate; and with the latch SET a `PathFindingError` is still swallowed,
-      proving the narrowing cannot leak the global. ⚠ The first cut referenced `BotModeError`
-      without importing it — a NameError on the abort path itself — and `repro_undefined_names.py`
-      caught it on the first run. `repro_no_silent_except.py`'s baseline was ratcheted 149 → 148.
-      ✅✅ **ROUND 3 DONE 2026-08-17 — AND IT CLOSED THIS ITEM'S GATING QUESTION.**
-      **(1) SHIPPED, 37 → 36:** the probe now recognises the HAND-WRITTEN guard
-      `if story_should_abort(): raise` (`early_game.py:2305`). ‼ It sits in the HANDLER — searching
-      the try BODY removes ZERO sites (measured). Two self-tests: the guard shape is quiet, the same
-      shape with an UNRELATED condition still fires.
-      ⛔⛔ **(2) REFUTED — DO NOT BUILD IT.** I built it (whole-package call graph, 2,208 functions,
-      120 abort-capable) and it works as designed: with the latch correction `heal_in_pokemon_center`
-      is abort-capable and `navigate_to` is not, and it cuts 36 → 8. **The UPWARD fault test killed
-      it:** against the ALREADY-FIXED sites it makes FIVE invisible — `pc_trip.py:181/:303/:474`,
-      `mossdeep_gym.py:465`, `higher_level_actions.py:839`.
-      **`mossdeep_gym.py:465` settles it because it is an OBSERVED failure recorded in this very
-      item** (*"after a whiteout it tried the second gym door ON A DEAD RUN and raised a FABRICATED
-      'could not get out of the gym'"*), and its body wraps only a navigation primitive with no abort
-      source beneath it. ⇒ **the predicate is wrong:** the defect is also *"the whiteout already
-      happened, so an ORDINARY operation fails for an ordinary reason and the handler fabricates a
-      diagnosis"*. Nothing abort-shaped is raised there — the latch is the only evidence, which is
-      why `reraise_if_aborting` is LATCH-keyed, not type-keyed. A reachability filter contradicts the
-      design of the guard it filters for.
-      ✅ **CROSS-CHECKED BY A SECOND, INDEPENDENT IMPLEMENTATION** (import-aware resolution vs my
-      bare-name graph): SAME five casualties; its 9/28 reconciles with my 8/28 (the extra is
-      `:2305`, which refinement (1) now guards). ⛔ **And it found a property that condemns the
-      approach outright — NON-MONOTONICITY:** because `reraise_if_aborting` in a handler makes
-      the ENCLOSING function abort-capable, the capable-set depends on WHICH GUARDS ALREADY
-      EXIST — `higher_level_actions.py:352/:375/:403` are REACHABLE only because
-      `pc_trip.py:181/:303/:474` are guarded. A filter whose output depends on the history of
-      fixes rather than on the code's behaviour must not be a gate.
-      ‼ **If anyone revisits call-graph work here: naive global name-matching is worthless** —
-      everything comes out REACHABLE, because the method name `run` collides
-      (`subprocess.run` vs `PokecenterLoopController.run`, which calls `heal_in_pokemon_center`).
-      Import-aware resolution is mandatory; 37/0/0 is the symptom of getting this wrong.
-      ✅✅ **SO THE PROBE IS NOW A GATE (#27) — AS A RATCHET, NOT A ZERO-THRESHOLD.** The count must
-      never GROW; baseline **36**. That is the only assertion here that is both true and useful:
-      real debt, no clean zero, no new debt. House pattern (`repro_no_silent_except.py`).
-      **Fault-tested both ways:** at 36 it PASSes (exit 0); inject ONE unguarded broad `except` around
-      a `yield from` → 37 and it FAILs (exit 1); restored → passes.
-      🔜 **WHAT REMAINS: 36 candidates, ALL in `early_game.py`** — ⛔ and *"remaining" is not a to-do
-      list*: ~64% are not this defect. Fix them the way round 2 did — hand-verify, then lower the
-      baseline — or leave them. ⛔ **Do NOT drive this number to zero**, and ⛔ do not claim a drop was
-      caused by your change without an arm that removes it.
-      ⛔⛔ **SUPERSEDED 2026-08-17 — REFINEMENT (2) IS REFUTED AND (1) IS SHIPPED. DO NOT BUILD EITHER FROM THIS PARAGRAPH.** It survived unmarked eight lines below its own refutation, and a cold-start audit called it the most expensive thing in the tree: acting on it rebuilds a day of refuted work and can ship a gate that HIDES real defects. *(superseded text:)* ⛔⛔ **AND THE TRIAGE FOUND THE PROBE OVER-FLAGS BADLY — ~64% of the original 45 are NOT the
-      defect it names.** 25 sites wrap navigation primitives only (`navigate_to`,
-      `navigate_to_anywhere`, `_enter_warp_by_navigation`), none of which contains `_check_abort()`,
-      so no `StoryAbort` can arrive; `:376` is the whiteout-RECOVERY path itself, called after
-      `set_story_abort(False)`; `:2305` already guards by hand with `if story_should_abort(): raise`,
-      a shape the probe cannot see. ⇒ **DO NOT PROMOTE THIS PROBE TO A GATE AS-IS** — it would be red
-      on arrival for reasons that are correct as written, which is the fastest way to teach everyone
-      to ignore gates. **Two cheap refinements would cut 45 → ~16:** recognise the
-      `if story_should_abort(): raise` shape, and require the try body to reach a callee that
-      TRANSITIVELY contains `_check_abort()` (a ~40-line AST call graph).
-      ‼ **A SEPARATE DEFECT FAMILY, FOUND WHILE TRIAGING — DO NOT CONFLATE IT WITH THIS ITEM:** 13
-      of those navigation sites are bounded retry loops with **no loop-head `_check_abort()`**
-      (`_navigate_through_scripts` retries up to `max_rounds=25`, `recover_devon_goods` up to 20).
-      After a whiteout they keep re-navigating a dead team from the respawn Centre and then raise a
-      fabricated *"Could not reach X (too many scripted interruptions)"*. **The fix there is a
-      loop-head check, not a handler guard.** Filed as `#24-loopheadabort` — ✅ **DONE 2026-08-23**, all 17 loops patched, gate #30.
-      *(Original remaining count when this item was filed:)* **45 candidates — 44 in `early_game.py`, 1 in `counter_hunt.py`.**
-      ⛔ **CANDIDATE ≠ DOES:** the probe cannot prove a `_check_abort()` is reachable through a given
-      `yield from`, so **triage before fixing** — bulk-editing 44 sites in the largest, most
-      timing-sensitive file here on a static signal is exactly the mistake this item avoided once.
-      ⛔ **SUPERSEDED 2026-08-17 — ROUND 2 DID THIS; the live spec is the ROUND 3 refinement above.**
-      ‼ A cold-start audit found this paragraph still commanding round 2 from inside the very item
-      the handoff calls "the spec", 21 lines under the paragraph saying round 2 shipped.
-      *(superseded text:)* ⇒ **Next concrete step:** hand-verify a handful of `early_game.py` sites the way the first
-      three were (read the enclosing retry loop; ask whether an abort can actually arrive), fix
-      those, and only THEN promote the probe from a PROBE to a gate — a gate red on arrival on
-      pre-existing debt teaches everyone to ignore gates.
-      ⚠ Also still true: `probe_abort_swallowing.py --self-test` fault-tests the rule in three
-      directions, and `--build custom` is what makes a promotion measurable rather than assumed.
-
+- [x] `#24-abortswallow` — **KI-81. ✅ CLOSED AND GATED. ⛔ DO NOT REOPEN, AND DO NOT "FIX" A LISTED
+      SITE.** `StoryAbort` is a `BotModeError` is an `Exception`, so every broad `except` in the
+      story path can catch a whiteout. KI-67 fixed only the two chapters it had OBSERVED failing;
+      this item swept the CLASS. Three rounds of fixes shipped and were PROMOTED TO BOTH FORKS
+      (user-approved), each proven by a MEASURED before/after rather than a byte-compare.
+      ✅ **`probe_abort_swallowing.py` IS GATE #27, A RATCHET — MEASURED 2026-09-02: 23 sites in
+      BOTH forks, exactly at baseline, PASS.** ⛔ **A "CANDIDATE" IS NOT A DEFECT** — the probe says
+      so itself, and ~64% were MEASURED (2026-08-17) not to be this defect. ⇒ **the number must
+      never GROW; do NOT drive it to zero, and do NOT fix a site because it is listed.**
+      *(This item's headline read "⛔ 36 CANDIDATES REMAIN" until 2026-09-02. It was STALE — the
+      baseline is 23 — and it looked like it contradicted `04-HANDOFF.md`'s "AST finds ZERO". It
+      does not: those count DIFFERENT THINGS (zero unguarded defects vs 23 candidate sites). The
+      contradiction was settled by RUNNING THE PROBE before this item was compressed, because
+      silently resolving a contradiction you do not understand is how detail gets lost.)*
+      ‼ **THE ONE ENGINEERING RULE WORTH CARRYING FORWARD lives in the CODE, not here** —
+      `higher_level_actions.py:842`: a handler that catches `Exception` must re-raise **only
+      BotModeError-family** objects, because `PathFindingError` is a `RuntimeError` and a re-raised
+      one would escape `StoryMode.run`'s `except BotModeError` (`story_mode.py:2536`) and leave the
+      global abort latch STUCK TRUE for every later mode.
+      ⚠ **KNOWN STALE CITATION, DELIBERATELY NOT FIXED:** that code comment still says
+      `story_mode.py:2505`, which is a bare `pass`; the handler is at **:2536** (verified
+      2026-09-02). ⛔ Fixing it in sandbox alone takes DRIFT 8 → 9 and creates a promotion
+      decision for the USER over a comment typo — a bad trade, and `audit_doc_consistency.py`
+      caught the drift the moment I tried it. ⇒ **bundle this one-word fix into the NEXT
+      approved promotion round of `higher_level_actions.py`**; the correct line number is
+      recorded HERE in the meantime, so nothing is lost by waiting.
+      ⇒ **Full narrative: `07-CHANGELOG.md` 2026-08-16 (×3), 2026-08-17 (×2), 2026-08-23.**
+      *(RETIRED to this summary 2026-09-02 — 101 lines → 21 — to free the line budget. Nothing was
+      deleted: the arc is in the changelog and the rule is in the code comment.)*
 - [ ] `#24-zerokocounter` — **NEW 2026-08-16, from the KI-80 decoupling. Should `boss_teaches` ALSO
       come off the counter-ladder's gate?** `story_mode.py:1901` is now `if boss_teaches:`. KI-80's
       wording ("gated on *is this fight hopeless*, which `_boss_plan_is_hopeless` answers alone")
