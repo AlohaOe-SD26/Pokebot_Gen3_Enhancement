@@ -261,3 +261,12 @@
 {"when": "2026-09-03T06:12:24", "driver": "ch22exit", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 23068, "recomputes": 23068, "scans": 77, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-03T06:18:53", "driver": "ch22exit", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 41606, "recomputes": 41606, "scans": 139, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-03T06:25:25", "driver": "ch22exit", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 39991, "recomputes": 39991, "scans": 134, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T08:33:59", "driver": "ch22juan", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 400, "recomputes": 401, "scans": 2, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T08:40:18", "driver": "ch22juan", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 52893, "recomputes": 52893, "scans": 177, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T08:47:27", "driver": "ch22juan", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 52893, "recomputes": 52893, "scans": 177, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T08:53:30", "driver": "ch22juan", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 52893, "recomputes": 52893, "scans": 177, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T08:57:51", "driver": "ch22juan", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T08:58:38", "driver": "ch22juan", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 6500, "recomputes": 6501, "scans": 22, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T09:04:47", "driver": "ch22juan", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 45510, "recomputes": 45510, "scans": 152, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T09:10:41", "driver": "ch22juan", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 41388, "recomputes": 41388, "scans": 138, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-03T09:16:36", "driver": "ch22juan", "build": "sandbox", "state": "post_hm07.ss1", "frames_run": 44567, "recomputes": 44567, "scans": 149, "divergences": {}, "observer_broke": false}

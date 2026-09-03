@@ -10898,3 +10898,196 @@ asked.
 warps and one-way ledges all break a plain 4-connected walk. Census the behaviour bytes of every
 walkable tile FIRST — one line of code — and only then route. *(`{0x0: 116, 0x47: 6, 0x61: 1}` would
 have told me in seconds.)*
+
+
+## 2026-09-03 — A DAMAGE CALCULATION BECAME A PUBLISHED CLAIM IN SIX FILES, AND THE FIGHT WAS WON FIRST TRY
+
+**Symptom.** For a full day, `04-HANDOFF.md`, `03-PUNCH-LIST.md`, two research notes, the production
+module `sootopolis_gym.py` and the `ch22juan` driver's own docstring all said, in bold, that the
+party **could not win** the Juan fight — several of them with the word *MEASURED* attached. The
+first live drive won it: `BADGE08_GET`=True, `SOOTOPOLIS_CITY_STATE=6`,
+`outcomes=['BattleOutcome.Won']`, **5 of 6 survivors**, 32,891 frames, zero whiteouts.
+
+**Root cause — and it is NOT "the numbers were wrong".** Every input fact was correct and is still
+correct: Kingdra L46 really is Water/Dragon, so the party's Grass, Electric and Ice are all
+**neutral**; nothing in the party has a Dragon move; Juan really does restore it three times
+(Rest + Chesto Berry, then two Hyper Potions); Sceptile's Leaf Blade really is a 3HKO on 138 HP
+while Ice Beam 2HKOs Sceptile. From those premises I computed that **Sceptile loses the 1v1** —
+which is *true* — and then published the conclusion **"the party cannot win"**, which does not
+follow. The battle is **six versus five**. Five other party members, five of Juan's own mons to
+grind down, switch-ins (Swellow is *immune* to Whiscash's Earthquake — an adversarial refuter had
+already corrected me on exactly that), and the AI's own move choices are all outside the
+calculation. ⇒ **I solved a sub-problem and reported it as the problem.**
+
+**The compounding error was the WORD.** Writing "MEASURED not to win" made a calculation
+indistinguishable from a reading, in the one project whose whole method is that those are different
+things. Nothing in the docs told a later reader which it was — and I was the later reader.
+
+**The near-miss this created.** The build spec's §1 recommended, on the strength of that
+conclusion, a *readiness programme*: take the ten B1F trainers for XP, buy a full stock at the
+Mart, and **grind if still short**. Had I built that first, it would have "worked" — the bot would
+have won after grinding — and the grind would have looked load-bearing forever. The cheap
+discriminator (one drive, ~33k frames, ~4 minutes, fully reversible because a whiteout respawns at
+the Poké Center and the ice puzzle resets on every entry) was available the whole time.
+
+**The fix.** All 12 stale claims corrected in place (the two in `07-CHANGELOG.md` are append-only
+and are corrected forward), each one keeping the typing analysis — which is still the right input
+to any future re-balancing — and marking only the CONCLUSION as withdrawn.
+
+**Prevention rules.**
+⛔ **NEVER WRITE "MEASURED" OVER SOMETHING THAT WAS COMPUTED.** If no run produced the number, the
+word is *calculated*, *derived*, or *predicted*. This project already refuses to let a Gemini recall
+pass as verification and refuses to let a candidate list pass as an attempt; a damage calculation
+passing as a measurement is the same offence with a new coat.
+⛔ **A CONCLUSION ABOUT A WHOLE SYSTEM MAY NOT BE DRAWN FROM A CORRECT ANALYSIS OF ONE PART OF IT.**
+Before publishing "X cannot work", name what the analysis left out. Here: five party members, five
+opposing mons, switching, and the AI. If the omitted set is non-empty, the honest headline is
+*"here is the hard part of X"*, never *"X cannot work"*.
+⛔ **AND WHEN A CHEAP DISCRIMINATOR EXISTS, RUN IT *BEFORE* WRITING THE PREDICTION INTO SIX FILES.**
+Pre-registering a prediction is good practice and I did it — but I also promoted the prediction to
+a finding across the tree, so the pre-registration bought nothing and the retraction cost six files.
+‼ **Pre-register in ONE place (the driver docstring or the PREDICTIONS note); publish only results.**
+
+
+## 2026-09-03 — I TRIED TO MEASURE RELIABILITY BY RE-RUNNING A DETERMINISTIC HARNESS (my own rule, violated in the experiment's DESIGN)
+
+**Symptom.** Having won the Juan fight once, I wrote — correctly — that *"one win is not a
+reliability measurement"* and launched two more runs of the same driver against the same fixture to
+get an N/3. All three came back **byte-identical**: `frames=32891`, `SURVIVORS 5/6`, `won=True`.
+I was one keystroke away from reporting **"3/3 wins"**, which would have been a fabricated
+confidence interval over a single trajectory.
+
+**Root cause.** `story_harness.py` replays a save state through a deterministic emulator with a
+deterministic driver. Same save + same code + same button sequence ⇒ **the same 32,891 frames,
+every time.** A repeat is a REPLAY, not a draw. This is written down, in this project's own
+`CLAUDE.md`, as SESSION DISCIPLINE **#8**: *"IDENTICAL OUTPUT ACROSS RUNS IS A DETERMINISM CHECK,
+NEVER A REPLICATION. Say 'one trajectory, replayed' — never 'measured twice'."*
+‼ **I had quoted that rule earlier the same day.** It did not fire, because #8 is filed as a rule
+about *reading results* and this was a failure of *experimental design*: the moment to apply it was
+when I typed the `for` loop, not when the output came back. **A rule that only fires at
+interpretation time cannot stop you spending the frames.**
+
+**Why the §Ch20 precedent misled me.** `ch20room9`'s Archie fight really is **2W/1L** — so I had a
+live example of a stochastic boss fight in this very harness and generalised from it. But those
+three runs differed in *code*: they were taken across driver revisions and route changes. ⇒ **the
+outcome is deterministic for a fixed (save, driver, code) triple, and re-rolls when ANY of the
+three changes.** That is a materially different — and much more useful — statement than "boss
+fights are stochastic".
+
+**What the wasted runs actually bought (they were not wasted).** They are the first *measurement*
+in this tree that the harness is deterministic end-to-end across a 33k-frame run containing a full
+gym-leader battle. That re-prices a reflex this project has: *"run it again to be sure"* buys
+**nothing** here unless something is perturbed.
+
+**The fix that worked — perturb the RNG, and prove the perturbation.** `gRngValue` is readable
+(`read_symbol("gRngValue")`; the tree already ships `wait_for_unique_rng_value()`). `Ch22JuanMode`
+now takes `POKEBOT_CH22JUAN_JITTER=N`, idles N frames on Juan's front tile, and **prints the RNG on
+both sides of the idle**, so a run that failed to perturb announces itself instead of being counted.
+✅ Verified before spending the sample: with `N=181` the value moves `0x008c33fa → 0xfbf1b389` — a
+~30-second, 6,500-frame probe that answered "does idling even advance the RNG?" before any 33k-frame
+arm was run.
+*(Cheap sub-lesson from that probe: it died at f0 with `NameError: name 'os' is not defined`,
+because my patch script's guard was `"import os" in text` — which matched an unrelated
+`import os.path`. **A substring is not an import.** Same shape as "a candidate is not an attempt".)*
+
+**Prevention rules.**
+⛔ **BEFORE RUNNING THE SAME THING TWICE, NAME WHAT DIFFERS BETWEEN THE RUNS.** If the answer is
+"nothing", you are buying a determinism check — which is worth having ONCE, and is worth nothing
+after that. Write the perturbation into the instrument, not into the hope.
+⛔ **A SAMPLER MUST PRINT THE THING IT PERTURBED**, on both sides of the perturbation, so a
+no-op sampler is visible in its own transcript. (Same shape as INSTRUMENT THE ACTION, NOT THE INPUT.)
+⛔ **AND STATE THE SCOPE OF A DETERMINISM CLAIM AS A TRIPLE:** deterministic *for a fixed (save,
+driver, code)*. ⇒ **the §Ch22 chapter drive will re-roll the Juan battle**, because it arrives by a
+different route with a different frame count — so the assembled chapter is an independent sample and
+must not be assumed to inherit this win.
+
+
+## 2026-09-03 — I MEASURED A LEG'S COST IN A PREMISE THE PRODUCTION RUN WILL NEVER BE IN
+
+**Symptom.** `--driver ch22exit` measured the §Ch22 escape as **3 forced trainer battles** costing
+**629/694 → 332/694 (~48% HP)**, and I wrote that number into the handoff, the punch list, the
+changelog and a production comment as *the readiness cost of the chapter*. It also drove the leg
+ORDER: "the fall goes AFTER the badge, because the exit costs half the party's HP."
+
+**Root cause.** The driver runs from `post_hm07.ss1`, where `BADGE08_GET` is **False**. The Juan
+victory script sets it — and, in the same script, runs
+`setvar VAR_0x8008, 8` + `call Common_EventScript_SetGymTrainers`, which `settrainerflag`s **all
+ten** B1F trainers as already defeated (`data/scripts/set_gym_trainers.inc`). ⇒ **in the assembled
+chapter the descent happens AFTER the badge and costs ZERO battles.** The 3-battle, −297-HP figure
+is real, reproducible, and describes a state the production run never enters.
+
+**Why the numbers being *correct* is the trap.** Nothing about the measurement was sloppy: the
+route was battle-weighted, the sight lines were decomp-verified, the tiles were predicted before
+the run and matched. A wrong number gets caught. A **right number attached to the wrong premise**
+propagates, because every check it meets — the driver's own grade, the pair checks, the gates —
+compares it against itself.
+
+**What it nearly cost.** A whole leg. The refuted "the party cannot win" claim had already produced
+a plan to *"take the ten B1F trainers deliberately for XP"*; this measurement then looked like its
+supporting evidence, and the two together were about to justify a pre-clearing descent that the
+game performs for free. Two independent-looking artifacts agreeing — which is exactly what this
+project has measured to be worthless as a confidence signal.
+
+**How it was actually caught.** Not by any gate and not by re-reading my own docs: by asking a
+decomp agent the flat question *"what EXACTLY happens in the Juan victory script?"* and then
+re-reading the two quoted blocks myself. The refuter, working from our code alone, could not have
+found it — it is not in our code.
+
+**Prevention rules.**
+⛔ **A COST MEASURED FROM A FIXTURE IS A COST *FOR THAT FIXTURE*. Before quoting it as the
+chapter's cost, name the flags and vars that differ between the fixture and the production run,
+and say which of them the measured path depends on.** Here the whole finding hung on one flag the
+fixture had False and production has True.
+⛔ **WHEN A LEG IS DRIVEN OUT OF ITS PRODUCTION ORDER, WRITE THE ORDER IT WAS DRIVEN IN NEXT TO THE
+NUMBER.** "3 battles" is not wrong; "3 battles (measured pre-badge; the chapter runs this leg
+post-badge)" is what a later reader needs, and it is one clause.
+⛔ **AND READ THE SCRIPT THAT SETS YOUR GRADING FLAG, ALL THE WAY THROUGH.** `BADGE08_GET` was
+treated as a boolean to grade on; it is a line in a script that also hides five NPCs, moves an NPC
+in front of the Cave of Origin, enables a Match Call, and clears ten trainer flags. **A flag is an
+event, not a value.**
+
+
+## 2026-09-03 — TWO TIER-1 REVIEWS IN A ROW FOUND STALE TEXT, EACH IN A PLACE THE PREVIOUS ONE HAD NOT LOOKED
+
+**Symptom.** One retraction ("the party cannot win Juan" → it won, 4/4) had to be chased through the
+tree **four separate times**:
+1. My own first sweep found 12 occurrences and fixed them.
+2. **Tier 1 pass 1** found three more: the NEXT ACTIONS queue head still opened *"NEXT ACTION: §Ch22
+   — GYM 8, JUAN"*; the leg count said THREE in one file and FOUR in two others over the same four
+   items; and `2026-09-02-ch22-PARTA-RESULTS.md` still said *"sample it before calling the fight
+   solved"* — a caveat **discharged in the same round that wrote it**.
+3. **Tier 1 pass 2**, run specifically to check *where* those fixes landed, found four more — the
+   worst being `04-HANDOFF.md`'s own **YOU ARE HERE banner**, line 10, still reading *"THE LIVE WORK
+   IS NOW §Ch22 (GYM 8 — JUAN)"* while the queue head 300 lines below had already been corrected.
+   ⇒ **the fix landed in the half a reviewer had pointed at, and not in the half a cold agent reads
+   first.** It also found a punch-list bullet contradicting the header **two lines above it** that
+   the same edit had just fixed, and the same discharged caveat surviving verbatim in the sibling
+   note that `04-HANDOFF.md` explicitly tells readers to go and read.
+4. My own sweep after that still found one more ("all four legs" in `12-STORYMODE-DESIGN.md`).
+
+**Root cause.** My sweeps were **literal**: I grepped the retracted phrase I remembered writing
+("not winnable", "expected to lose") and fixed the hits. Every survivor was a **paraphrase of the
+same claim** — *"THE LIVE WORK IS NOW §Ch22 (GYM 8 — JUAN)"* contains none of my search terms and
+says the same wrong thing. ‼ And the highest-value survivors clustered in exactly two places a
+literal grep is worst at: **a banner** (which states the claim as framing, not as a sentence about
+Juan) and **a file the corrected file points AT** (so a reader following the fixed pointer lands on
+the stale text — the fix and the staleness are one hop apart and never appear in the same grep).
+
+**What actually worked.** Independent reviewers given the FACT and asked to sweep for its
+*negations*, not for a phrase. Pass 2 was told explicitly to check *where* the fixes landed, and
+that instruction is what found the banner.
+
+**Prevention rules.**
+⛔ **A RETRACTION IS NOT DONE WHEN THE PHRASE IS GONE. IT IS DONE WHEN THE *CLAIM* IS GONE.** Write
+the corrected fact as one sentence, then sweep for things that CONTRADICT that sentence — including
+paraphrases, framings and titles that never contain your original wording.
+⛔ **SWEEP THE BANNER AND THE POINTERS FIRST, NOT LAST.** The two places a stale claim survives a
+grep are (a) the headline that frames it rather than states it, and (b) the file the corrected file
+cites. Both are one hop from the fix and neither shares its vocabulary.
+⛔ **WHEN AN ITEM RAISES A CAVEAT AND THEN DISCHARGES IT IN THE SAME ROUND, GREP FOR THE CAVEAT'S
+OWN WORDING BEFORE COMMITTING.** "One win is not a reliability measurement" was written by me, made
+false by me, and then survived in two files.
+⛔ **AND RE-RUN TIER 1 AFTER FIXING TIER 1** — not to re-check the same pairs, but because the fix
+itself creates a new inconsistency between the half that was corrected and the half that was not.
+Two passes here found *disjoint* sets of defects; one pass would have shipped the banner.
+‼ Filed as `#24-retiredclaimgate`: this is enforceable and therefore belongs in a gate, not here.

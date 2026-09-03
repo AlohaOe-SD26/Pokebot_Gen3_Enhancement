@@ -132,22 +132,17 @@ open-vs-built sweep of all 80 open items has **not** been done.
 
 ## Now (active focus)
 
-### ‼ SESSION END 2026-08-05 — THE CURRENT TOP OF THE LIST
-Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batch 52.0%.
+### 📚 SESSION END 2026-08-05 — **HISTORICAL. ⛔ NOT the current top of the list.**
+‼ This heading read "THE CURRENT TOP OF THE LIST" for a month, over a "Suite 78/78" figure that the suite (now 33 checks) has not matched since. **The live queue is `04-HANDOFF.md` NEXT ACTIONS.** The items below are still real; only the "current" claim was stale.
 
 - [ ] `#24-organicteam` — ✅ **THE GATE IS LIFTED. APPROVED TO BUILD (user, 2026-08-14:
       *"Yes lift the gate as I believe it will help with other progress with this bot!"*), which
       RE-CONFIRMS RULING 1 of 2026-08-06.**
-      ⛔ **THIS ENTRY SAID "DEFERRED — do not start early" UNTIL 2026-08-14, AND IT WAS WRONG BY
-      FOUR DAYS.** The 2026-08-05 deferral quoted below was reversed by the user on 2026-08-06
-      (`06-DECISIONS-LOG.md` RULING 1, *"reversed knowingly"*); the 2026-08-10 triage then
-      re-recorded the deferral as *"the live instruction"* without referencing that reversal, so
-      a deferral and its reversal both read as live. **Measured cost: it misled an agent twice in
-      one conversation on 2026-08-14.** Superseded text, kept for the trail:
-      *"DEFERRED BY USER 2026-08-05, on purpose. Do not start early."*
-      > "we want to revisit this in the future to make the bot play more organically like a
-      > regular player would (once we finish mapping the story out and can dedicate more time)"
-
+      ⛔ **THIS ENTRY SAID "DEFERRED — do not start early" UNTIL 2026-08-14 AND WAS WRONG BY FOUR
+      DAYS** — the 2026-08-05 deferral was reversed by the user on 2026-08-06 (`06-DECISIONS-LOG.md`
+      RULING 1, *"reversed knowingly"*), but a 2026-08-10 triage re-recorded the deferral as "the
+      live instruction", so a deferral and its reversal both read as live. **Measured cost: it
+      misled an agent twice in one conversation.** Both quotes are in `06-DECISIONS-LOG.md`.
       The user's REVERSAL reason (2026-08-06, quoted in the decisions log): *"it will help the
       story in the long run (less chance for failure, less errors with incompatible pokemon for
       bosses/gym leaders or missing HMs to travel…) We need this."*
@@ -813,11 +808,12 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       flipped to `2` turned the gate red at `04-HANDOFF.md:209` naming both figures, file restored
       byte-identical. Narrative: `07-CHANGELOG.md` 2026-08-26.
 
-### ‼ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): THE GYM IS SOLVED AND SURVIVED; THE FIGHT IS NOT (2026-09-03)
+### ‼ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **ALL FOUR DRIVERS PASS (a recon PROBE + THREE STORY LEGS) AND THE BADGE IS WON; THE *CHAPTER* IS NOT ASSEMBLED** (2026-09-03)
 
-- [~] ✅✅✅ **THREE LEGS BUILT AND DRIVEN, ⛔ DO NOT REBUILD.** Production
-      `modules/story/sootopolis_gym.py`; drivers `ch22probe` / `ch22ice` / `ch22exit`, all
-      `ACCEPTANCE: PASS`. Notes: `ai-research-notes/2026-09-02-ch22-juan-BUILD-SPEC.md`,
+- [~] ✅✅✅ **ALL FOUR DRIVERS PASS — a recon PROBE (`ch22probe`) plus THREE STORY LEGS
+      (`ch22ice`, `ch22juan`, `ch22exit`). ⛔ DO NOT REBUILD ANY OF THEM.** Production
+      `modules/story/sootopolis_gym.py`. *(This read "THREE LEGS … ch22probe/ch22ice/ch22exit" —
+      counting the probe as a leg and omitting JUAN, contradicting its own header two lines up.)* Notes: `ai-research-notes/2026-09-02-ch22-juan-BUILD-SPEC.md`,
       `…-ch22-PARTA-{PREDICTIONS,RESULTS}.md`, `2026-09-03-ch22-B1F-EXIT.md`.
       Full narrative: `07-CHANGELOG.md` 2026-09-02 and 2026-09-03.
       * **PART A** (`ch22probe`, PASS, 3,958 frames) — ⛔ proved BY MEASUREMENT that
@@ -836,15 +832,38 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
         ISLAND** (live and offline agree exactly) and `calculate_path` wrongly claims the exit is
         reachable — a THIRD proof it must never be used in this gym.
       * ✅ **EXACTLY 3 FORCED BATTLES** at (8,8)(8,17)(8,19) = Andrea/Bethany/Connie, the predicted
-        sight tiles. ⛔ Three is the PASS shape; zero would mean the sight-line model is wrong.
-        ⭐ **READINESS MEASURED: they cost 629/694 → 332/694 (~48% HP) with ZERO faints** ⇒ the exit
-        is survivable from ~91%, but the bot reaches Juan at ~half HP and **cannot heal inside**.
-      ⇒ **WHAT REMAINS:** ⛔ **THE FIGHT, WHICH THE PARTY IS MEASURED NOT TO WIN** — Kingdra is
-      WATER/DRAGON so Grass, Electric AND Ice are all NEUTRAL, no member has a Dragon move, and Juan
-      restores it three times (Rest+Chesto + 2 Hyper Potions). The first live Juan drive is EXPECTED
-      TO LOSE and **that loss is the measurement**. Then: the Mart's stock (unverified, money is
-      not the constraint); whether to take more than the 3 forced B1F battles for XP; and the
-      chapter assembly + `_play()` wiring.
+        sight tiles, costing 629/694 → 332/694 (~48% HP) with ZERO faints. ⛔⛔ **PRE-BADGE ONLY —
+        the assembled chapter sees ZERO here** (see the decomp finding below); this driver runs at
+        `badge8=False`. Three is THIS DRIVER's PASS shape; zero would be its sight-line model
+        failing. ⇒ the ROUTE transfers to the chapter, the BATTLE COUNT and the HP cost do NOT.
+      * ✅✅✅ **JUAN — BUILT, DRIVEN, AND *WON* (2026-09-03)** — `--driver ch22juan`,
+        `ACCEPTANCE: PASS`, `BADGE08_GET`=True, `SOOTOPOLIS_CITY_STATE=6`, `battles=1`,
+        `outcomes=['BattleOutcome.Won']`, **5/6 survivors**, `frames=32891`, `whiteouts=0`.
+        Evidence `tools/story-dev/evidence/2026-09-03-ch22juan-WIN.txt`.
+        ⛔⛔ **THIS REFUTED MY OWN PUBLISHED CLAIM.** Six files said the party could not win, some
+        with the word *MEASURED* attached; it was a 1v1 damage calculation (Sceptile vs Kingdra)
+        applied to a **6-versus-5** battle. Every typing premise stands — Kingdra L46 is
+        WATER/DRAGON so Grass, Electric AND Ice are all NEUTRAL, nothing has a Dragon move, and
+        Juan restores it three times (Rest+Chesto + 2 Hyper Potions) — only the CONCLUSION is
+        withdrawn. All 12 claims corrected; root cause + 3 prevention rules in `08-MISTAKES.md`.
+      * ✅✅ **AND IT IS SAMPLED: 4 WINS OUT OF 4** (2026-09-03) — control plus three independent
+        RNG draws through the new `POKEBOT_CH22JUAN_JITTER` sampler. Frames
+        **32891 / 25508 / 21386 / 24565**, every one `BattleOutcome.Won`, every one 5/6 survivors.
+        ⛔ My first three re-runs were BYTE-IDENTICAL and were **not** a sample — this harness is
+        deterministic for a fixed (save, driver, code) triple, so a repeat is a REPLAY. The jitter
+        knob is MEASURED to perturb (`gRngValue` 0x008c33fa → 0xfbf1b389 at N=181) and prints both
+        values so a no-op sampler is visible. ⚠ **Swellow faints in every arm** and Sceptile ends
+        anywhere from 141/141 to 32/141 ⇒ the post-Juan party is chewed and UNPREDICTABLE.
+      ⭐⭐ **AND A DECOMP READ DELETED A WHOLE PLANNED LEG.** ✅ Read and quoted by me:
+        `..._EventScript_JuanDefeated` runs `setvar VAR_0x8008, 8` + `call
+        Common_EventScript_SetGymTrainers` → `SootopolisCity_Gym_SetGymTrainers` (`set_gym_trainers.inc`), `settrainerflag`ing **all ten** B1F trainers.
+        ⇒ **the post-badge descent costs ZERO battles: no XP run, ONE descent.**
+        ⛔ So `--driver ch22exit`'s 3 battles and 629/694 → 332/694 were measured at
+        `badge8=False` — a premise the chapter NEVER ENTERS. Real numbers, NOT transferable
+        (`08-MISTAKES.md` 2026-09-03). ✅ The Mart's stock is read too (Ultra Ball, Hyper/Max
+        Potion, Full Heal, Revive, Max Repel, X Attack, X Defend, Shadow Mail) — with 67,466 in
+        hand a stocking leg is *insurance*, not *readiness*.
+      ⇒ **WHAT REMAINS: the chapter assembly — it has its own item, `#24-ch22chapter`.**
       ‼ **THE GUARDS EARNED THEIR KEEP FIVE TIMES ON THIS ITEM** — each bounded, named, and caught
       before it cost a fall or a false PASS: the `+1`-per-step counter model (it is +2 on a threshold
       crossing); a climb that CONSUMED its own first ice tile; a vacuity grade that PASSED a
@@ -854,6 +873,73 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       post-hoc assertion that explains.*
       ⚠ Drift is 9 — `sootopolis_gym.py` is a new sandbox-only chapter module, as §Ch20/§Ch21 each
       added one. ⛔ PROMOTION IS THE USER'S CALL and is not implied.
+
+### ‼ `#24-ch22chapter` — §Ch22's CHAPTER ASSEMBLY: four movement legs exist only in the DRIVER, and one of them walks the wrong way (2026-09-03)
+
+- [ ] ⛔⛔ **THE BLOCKER, FOUND BY AN ADVERSARIAL REVIEW BEFORE ANY COMPOSED RUN: `_climb_to`
+      WALKS NORTH ONLY.** `sootopolis_gym._climb_to` computes `nxt = (here[0], here[1] - 1)`
+      unconditionally. The chapter's order is `… → fight_juan → fall_to_b1f`, and `fall_to_b1f`
+      calls `_climb_to(FALL_STAGING = (8,5))` from `JUAN_STAND (8,3)` — **two tiles SOUTH**. Its
+      first step would be **(8,2), Juan's own tile**: plain floor, so neither the locked-stair nor
+      the cracked-ice guard fires, and it would press "Up" into him for 3 × 900 frames before
+      blaming its step budget. ✅ **MITIGATED 2026-09-03** — it now refuses instantly and names the
+      real problem. ⛔ **A DESCENT HELPER IS STILL OWED**, and it is the first thing to build.
+      ‼ **NO DRIVER HAS EVER RUN `walk_the_ice → fight_juan → fall_to_b1f` COMPOSED** (`ch22exit`
+      never fights Juan; `ch22juan` stops on the island) — **the seam the chapter is made of has
+      zero coverage**, so the composed arm is the acceptance test, not a formality.
+- [ ] **FOUR MOVEMENT LEGS LIVE ONLY IN `story_harness.py` AND MUST MOVE INTO PRODUCTION:**
+      (1) city → gym warp (31,32) → `GYM_ENTRANCE (8,25)`; (2) the 3-step stair climb
+      (8,6) → `JUAN_STAND (8,3)` — ⛔ **the ice walk ends on (8,6), NOT on Juan's tile**, and both
+      `walk_the_ice`'s docstring and `fight_juan`'s refusal message said otherwise until
+      2026-09-03; (3) the descent (8,3) → (8,5) — **does not exist anywhere**; (4) ladder → 1F →
+      out to the city. ⛔ All four are movement inside a gym where `calculate_path` is BANNED and `_live_collision_grid` BLIND — the hardest place in the tree to write "glue".
+- [ ] **`ch22_chapter_done()` does not exist**, and `juan_defeated()` is NOT a substitute: it is
+      True while the bot is **stranded on the island**. Grade on badge AND position AND a live
+      `calculate_path` off the end tile — the §Ch15/18/19 lesson.
+- [ ] **THE ORDER, now that the decomp has settled it:** heal → (stock, optional) → ice → Juan →
+      fall → B1F (**0 battles** — the victory script flags all ten trainers) → ladder → out.
+      ⛔ Two contradicting justifications lived inside `sootopolis_gym.py` (an XP-before-Juan
+      comment whose premise a comment 130 lines below retracted); the loser is deleted.
+- [ ] ⚠ **HAZARDS, all sourced, in `ai-research-notes/2026-09-03-ch22-CHAPTER-ASSEMBLY-SPEC.md`:**
+      the heal can DEPOSIT Swellow or Zigzagoon (`DEAD_WEIGHT_LEVEL_GAP = 8`, and Zigzagoon is not
+      HM-exempt because Wailmer shares Surf) ⇒ assert party COUNT and HMs by PID after every heal;
+      `FLAG_ENABLE_JUAN_MATCH_CALL` lets Juan interrupt overworld walking afterwards; `BADGE08_GET`
+      is set with 4 msgboxes + 2 fanfares + 60 frames still to run, so the script-idle conjunct in
+      `fight_juan`'s grade is load-bearing; a mid-gym retry misdiagnoses itself ("regenerate the
+      table") because the ice is spent, not the table; `VAR_ICE_STEP_COUNT` is SHARED with the
+      Sky Pillar and Granite Cave.
+      ✅ Two worries are REFUTED and must not be re-spent: the TM03 bag-full branch is
+      arithmetically unreachable (58 TMs+HMs, 64 slots), and the Juan double-battle rematch cannot
+      fire because `fight_juan` early-returns on `juan_defeated()`.
+### ‼ `#24-retiredclaimgate` — a RETRACTED claim survives a literal grep, four times in one round (filed 2026-09-03)
+
+- [ ] **THE MEASUREMENT THAT MOTIVATES IT.** Retracting one claim ("the party cannot win Juan" →
+      it won, sampled 4/4) took **four sweeps**: my literal grep (12 hits fixed), then Tier 1 pass 1
+      (3 more), then a Tier 1 pass aimed at *where the fixes landed* (4 more — including
+      `04-HANDOFF.md`'s own YOU-ARE-HERE banner, the first thing a cold agent reads), then my own
+      sweep again (1 more). **Every survivor was a PARAPHRASE**: *"THE LIVE WORK IS NOW §Ch22 (GYM 8
+      — JUAN)"* contains none of the search terms and says the same wrong thing.
+      ⇒ full narrative + three prevention rules: `08-MISTAKES.md` 2026-09-03.
+- [ ] **THE GATE, to be written** (proposed name: an `audit_retired_claims` script alongside the
+      other doc gates in `tools/story-dev/` — ⛔ it does NOT exist yet, so this is a SPEC, not a
+      citation). A small registry of
+      `(retired phrase or regex, retired-on date, the marker that legitimises a quotation)` — and
+      the gate fails if a retired phrase appears anywhere in `PROJECT KNOWLEDGE/` or
+      `sandbox-pokebot/modules/story/` **outside** an adjacent supersede marker.
+      ⛔ **FAULT-TEST IT BOTH WAYS** (the standing rule): prove it FAILS on a re-introduced phrase,
+      and prove it does NOT fire on the retraction's own quotation of that phrase — this gate's
+      whole failure mode is flagging the sentence that says *"this used to read X"*.
+      ‼ Seed the registry from the retractions already in `08-MISTAKES.md`; each one is a phrase
+      that has already cost a sweep.
+- [ ] ⚠ **SCOPE HONESTLY.** This catches re-introduction and literal survivors. It CANNOT catch a
+      paraphrase nobody registered — which is the majority of what the reviewers found. ⇒ it is a
+      RATCHET, not a replacement for the independent sweep; say so in its own docstring so the next
+      reader does not retire Tier 1 on the strength of a green gate.
+
+- [ ] **NO PREFLIGHT, NO READINGS LEDGER.** `sootopolis_gym.py` has no `assert_ch22_preflight()`,
+      no readings set, no `_take()`, no ORDER trace — §Ch21 has all four and they are worth
+      porting. ⛔ And note `assert_ch21_preflight()` is never actually CALLED by
+      `do_sootopolis_chapter()`; §Ch20's placement (`seafloor_cavern.py:975`) is the one to copy.
 ### ‼ `#24-crackedfloorpathfinder` — the planner cannot see a hole in the floor (filed 2026-08-24; §Ch21 half RETIRED 2026-09-02, POST-GAME half still OPEN)
 
 - [ ] **WHAT SURVIVES, AND IT IS ONLY THE POST-GAME HALF.** `map_path.py` does not model
@@ -1405,34 +1491,8 @@ from the driver's log** — the probe caught the fainted member the driver's log
       **NEXT PROBE: instrument the Slugma spin — arrivals, encounters seen, species matched —
       BEFORE changing anything.** Winona is 6 of 20 non-finishes.
 
-- [x] `#24-huntreachproof` (part 1 detail) — **narrowing.** `hunt_ground_tile(require_driven=...)`, strict by default: a counter hunt may only
-      target `HUNTING_GROUNDS` (driven reach-and-leave evidence), never the `TRAINING_GRASS`
-      fallback. A/B: Norman control unchanged; Wattson 5 huntable/3 grounds → 1; Winona 2/2 → 1;
-      all now FIERY_PATH. `POKEBOT_HUNT_ANYGROUND=1` reproduces the old arm.
-      `repro_hunt_driven_grounds.py`; suite 8/8 green.
-      ‼ **A REDUCTION, NOT A CURE:** `Numel @ FIERY_PATH` was **5 hunts, 0 caught** on the SAME
-      ground Machop converts 5/5 from — reachability is a property of the **(boss anchor →
-      ground) PAIR**. Part 2 is per-pair driven sweeps from real boss anchors.
-      ‼ **Acceptance for the next batch is CONVERSION** (hunts started vs `counter hunt CAUGHT`):
-      33 → 5 (15%) now, 18 → 7 (39%) before. NOT the finish rate, NOT the candidate count.
-
-      **PART 2 PLAN — every input verified present 2026-08-08, so this is ready to execute:**
-      Drive `_navigate_riding_out(ground, tile)` from each BOSS ANCHOR to each candidate ground,
-      **both directions**, and add only the pairs that pass. That is the bar `HUNTING_GROUNDS`
-      already sets and the one FIERY_PATH already meets.
-      * probe: `tools/story-dev/probe_counter_reachability.py` (exists — drives the REAL
-        navigation, not `calculate_path`, which cannot cross warps and has caused this exact
-        mistake before).
-      * anchors (from the six `_prepare_for_fight` cfgs) and the saves that sit on them:
-        PETALBURG → `norman_done.ss1`; MAUVILLE → `mauville_wedge.ss1` / `wattson_done.ss1`;
-        FORTREE → `fortree_gym_wedge.ss1` / `ch13_fortree_door.ss1`;
-        LAVARIDGE → `lavaridge.ss1`; DEWFORD → `dewford.ss1`; RUSTBORO → `rustboro.ss1`.
-      * grounds to test per anchor: FIERY_PATH, ROUTE111, ROUTE116, ROUTE117, ROUTE118.
-      ‼ **The single most informative pair is MAUVILLE → FIERY_PATH.** Numel went 5 hunts / 0
-      caught from there while Machop goes 5/5 from Petalburg to the SAME ground — so that one
-      run decides whether the (anchor, ground) model is right.
-      ‼ Do NOT run these while a batch is using the box: 8 lanes already occupy ~8 cores, and a
-      contended probe is exactly how this project has produced false timing results before.
+- [x] `#24-huntreachproof` (part 1 detail) — **narrowing: `hunt_ground_tile(require_driven=...)`,
+      strict by default.** ✅ DONE. Retired to a summary 2026-09-03; detail in `07-CHANGELOG.md`.
 
 - [x] `#24-huntreachproof` (original finding) — ‼‼ **TOP ITEM 2026-08-08. Only ONE counter rung has ever worked, and
       `#24-movepoolcounters` widened the set with destinations the bot CANNOT TRAVEL TO.**
@@ -1540,34 +1600,9 @@ from the driver's log** — the probe caught the fainted member the driver's log
       ‼ **The lesson (3rd time this session): I read a proxy for the data instead of the data.**
       Same class as grepping a gitignored tree and as reading the profile dirs with a date glob.
 
-- [x] HISTORY — `#24-winonaground` (superseded wrong text) — ~~Winona's counter can NEVER be hunted: the huntable
-      whitelist contains no ground that hosts a Rock/Electric/Ice wild.~~
-      Measured in batch `20260807-102552` — the counter chain's remaining failure class, and with
-      whiteouts now addressed it is the **top one** (`no super-effective answer` = 5 of 14
-      non-finishes: Winona 2, Norman 2, Wattson 1):
-      | marker | count | reading |
-      |---|---|---|
-      | `counter hunt — going to FIERY_PATH (18,19) to catch Machop` | 7 | Norman's rung |
-      | `counter hunt CAUGHT Machop` | 6 | **86% catch rate — this rung WORKS** |
-      | `counter training failed` | **0** | training is fixed (was 7 of 7 failing in batch 4) |
-      | `already hunted a counter for Winona … (blocked: no huntable counter candidate)` | 8 | ‼ |
-      | `no huntable counter candidate (nothing reachable with a proven spin tile)` | 10 | ‼ |
-      **ROOT CAUSE — an unfilled evidence table, not a bug.** `hunt_ground_tile()` is a
-      deliberate WHITELIST that fails closed, and its whole universe is:
-      `HUNTING_GROUNDS` = **{FIERY_PATH}** plus `TRAINING_GRASS` = {ROUTE116, ROUTE117, ROUTE102}.
-      Norman's Machop lives on FIERY_PATH and Wattson's Nincada on ROUTE116, so those rungs work.
-      **Nothing in those four maps hosts a Rock/Electric/Ice wild**, so Winona's rung resolves to
-      "no candidate" every single time, then burns its one-hunt-per-boss bound saying so.
-      ‼ The whitelist is CORRECT and must not be widened by guessing — its docstring explains why
-      (the cost model ranks endgame maps as cheapest, so the raw planner offers Victory Road and
-      Mirage Tower). **The fix is to SWEEP one ground and add it with evidence**, exactly as
-      FIERY_PATH was added: ROUTE118 (Electrike, the previously-named Winona answer) is the
-      obvious candidate.
-      **What the sweep must prove** (the table's own bar): reach the tile FROM THE REAL ANCHOR the
-      hunt fires from, and get back OUT — both directions, live, via `_navigate_riding_out`, not
-      `calculate_path` (which cannot cross warps and has caused this exact mistake before).
-      A catch-and-leave hunt never walks the onward heal leg, so that leg may fail (FIERY_PATH's
-      does) without disqualifying the ground.
+- [x] HISTORY — `#24-winonaground` — **the original text was WRONG and is superseded.** Retired to
+      a summary 2026-09-03; the wrong claim, its refutation and the measurement that settled it are
+      in `07-CHANGELOG.md` and `08-MISTAKES.md`. ⛔ Kept as a slug so citations resolve.
 
 - [ ] `#24-ballstarve` — **NEW 2026-08-07.** `Cannot hunt a Surf learner: no Poké Balls and no
       money to buy any` — 4 occurrences + 1 whole run derailed, batch `20260807-102552`. Consistent
@@ -2047,37 +2082,10 @@ level-matched encounters maintenance needs. Done together they are one activity,
       still silently tolerated. ⛔ It was filed in the body of a KI whose header read only
       "CLOSED" — any session scanning for open issues skips it. (KI-79's header now carries the
       caveat.) The next Slugma-class derail is still invisible to callers.
-- [x] **(2) ✅✅ DONE 2026-08-16 — KI-65 is REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25).**
-      ✅ **PROMOTED TO BOTH FORKS 2026-08-16, USER-APPROVED** — by a THREE-POINT A/B against
-      `--build custom` (BEFORE `lie_msg=1` → FAIL; AFTER `lie_msg=0, honest_msg=1` → PASS; sandbox
-      still PASS), never a byte-compare. Drift was at zero at that moment (2026-08-17, after the KI-66 `_on_field` promotion) — ⚠ DESCRIBED, NOT REPRINTED, because this gate matches digits and cannot tell history from a live claim. ⚠ For TODAY's figure run `promote.py --check`. Formerly: it was **0** today — everything is promoted. MEASURE with `promote.py --check`. *(This line read "1 again … ruling owed" for about an hour between the two promotions; MEASURE with `promote.py --check`, never read a drift figure from prose.)* Restore `restore/2026-08-16-pre-promotion-ki65`.
-      The repro (`repro_ki65_unbound_party_index.py`) drives the real bot from `route116team.ss1`
-      with an INJECTED Marshtomp whose **slot 0 is deliberately Rock Smash (HM06)**; pre-fix ARM A
-      printed *"Nothing else can be given up — declining the new move."* **while three forgettable
-      moves existed** — a provable lie. **TWO of the three specified fix parts landed.** ‼ Part (3) (an
-      `offer_read_failed` latch) was built, then **REMOVED after an isolated A/B showed the gate
-      passes identically without it** — the entry's claim that the ping-pong survives without it was
-      wrong; the veto's `is None` guard forces `move_to_forget = 4` in the same iteration. Caught by
-      an adversarial review that refused to accept an unmeasured claim.
-      ‼ **THREE CLAIMS IN THE ITEM'S OWN RECON WERE REFUTED BY MEASUREMENT** — the prescribed
-      `movelearn_hmwedge_*.ss1` fixture cannot test this bug at all (`:280` unreachable there; the
-      outcome is decided at f12, 25 frames before policy runs; and faulting the "most plausible
-      cause" is rescued by `_read_offered_move`'s task-backed path). Details in KI-65 and
-      `08-MISTAKES.md`. ⛔ Do not retry that fixture.
-      ‼ It remains a standing candidate cause for the REOPENED `#24-teachmsgstall` — **the fix is
-      proven to remove the silent decline, NOT yet proven to be that stall's cause.**
-      ✅ **RECON DONE 2026-08-16 — read KI-65's "RECON" block BEFORE writing a line.** It corrected
-      this item on three counts: **there are TWO unbound reads, not one** (`:397`, the HM veto, is
-      the more damaging and hides behind `except: pass`); **the captured `movelearn_hmwedge_*.ss1`
-      saves are a FIXTURE, not a repro** (`last_confirmed_slot is None` on a fresh generator, so the
-      crash line is skipped — and "moveset unchanged" is today's GREEN result, so an A/B on it is
-      VACUOUS); and **fixing the flagged line alone leaves the ping-pong intact**, because
-      `:380-381` re-arms the doomed pick every cycle while `last_offered_move_name` is never set.
-      ✅ Fault-injection point identified, no production edit needed (rebind `bmr.get_battle_state`
-      so `map_battle_party_index` raises — the most plausible REAL raiser). Fix specified in three
-      parts. ⛔ **STILL DEFERRED BY THIS ENTRY'S OWN RULE: repro FIRST.** Changing the teach flow
-      without one is how `#24-teachmsgstall` earned its "the fix had no production effect" verdict.
-      ⚠ `custom-pokebot`'s copy is byte-identical — whatever lands has a promotion twin.
+- [x] **(2) ✅✅ DONE 2026-08-16 — KI-65 REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25).**
+      ⛔ DO NOT REOPEN. Retired to a summary 2026-09-03 (line budget) — the reproduction, the A/B
+      and the gate are all in `07-CHANGELOG.md` 2026-08-16 and `31-KNOWN-ISSUES-ARCHIVE.md` KI-65.
+
 - [~] **(3) KI-66 — PARTLY DONE: `_on_field`'s index space is FIXED AND PROMOTED; what REMAINS is
       the OWNER filter (measured INERT on our one fixture) plus `:541-545` and `_util.py:522-587`.**
       The multi-battle hazard is BROADER than the faint chooser: four more
@@ -2447,14 +2455,9 @@ region, where "train near the gym" is actively wrong.
 
 ### ‼ DOCUMENTATION CORRECTNESS AUDIT — 2026-07-27
 - [x] `#doc-audit-1` — **docs 00/01/02/05/14 re-verified against code.** DONE 2026-07-27.
-      Biggest find: `02-ARCHITECTURE.md`'s folder map omitted **`sandbox-pokebot/`, where all
-      work happens** (plus `tools/`, `PROJECT KIT/`, `REMOTE START/`, `cloud-backups/`), while
-      its own prose cited sandbox-only modules — the doc contradicted itself. `01` gave the
-      active copy no intent section and its "Future: custom automations, installer, custom
-      interface" placeholder was stale (all three built). Also corrected: recommended Python
-      is 3.13 not 3.12; libmgba path; the "116 files" figure (matched no copy — it is 118);
-      `KNOWN_GATES` holds 3 edges not 1. Added KI-25…KI-29 to `05`. Added §2b/§2c to the
-      playbook. Method + agent calibration: `06-DECISIONS-LOG.md` 2026-07-27.
+      Biggest find: `02-ARCHITECTURE.md`'s folder map omitted **`sandbox-pokebot/`, where all work
+      happens**, while its own prose cited sandbox-only modules — the doc contradicted itself.
+      Retired to a summary 2026-09-03; fixes/method/calibration: `06-DECISIONS-LOG.md` 2026-07-27.
 - [~] `#doc-audit-2` — **`03-PUNCH-LIST.md` status audit (THIS FILE) — PARTIAL.** The agent
       running it was killed by a weekly usage limit on 2026-07-27; redone by hand 2026-07-29
       for the CONSISTENCY half only.
@@ -2515,17 +2518,13 @@ region, where "train near the gym" is actively wrong.
       tile, which is a game fact that must be verified (live probe / decomp), not recalled.
 
 - [ ] **#24 — STORY AUTO-PLAYER.** The only active work.
-      ⛔ **CORRECTED 2026-08-13 — the body below was FIVE CHAPTERS STALE and the TRIAGE INDEX
-      blessed it as "the only entry carrying CURRENT state". Current truth:** the ladder runs
-      **20 of 24 beats** (7 badges, Mt. Pyre, Magma Hideout and out, Slateport submarine, Aqua
-      Hideout + Master Ball, Mind Badge, Space Center + HM08 Dive), and the **Seafloor Cavern is
-      driven through Room 3 in the harness** (`#24-remainingarc`, the live head of this list).
-      The current order is `#24-remainingarc` → the queue in `04-HANDOFF.md` NEXT ACTIONS.
-      Superseded text (true on 2026-08-10): A cold start reaches
-      **Badge 6 (Winona) = end of built content** (38 maps, ~2.48M frames, 0 derails).
-      Sub-items live in `## Story bot (#24) — open backlog` below; the then-current order was
-      `#24-whiteout`, `#24-counters` phase 2, `#24-regionreach` gate table (KI-24b).
-      Next unbuilt chapters: **Mt. Pyre**, then the **Magma hideout**.
+      ⛔⛔ **THIS BODY HAS NOW GONE STALE TWICE — it said "20 of 24" and "Seafloor Cavern driven
+      through Room 3" on 2026-09-03, when §Ch20 AND §Ch21 had both shipped as wired chapters.**
+      ⇒ **DO NOT RESTATE THE LADDER HERE.** The ladder count and the live head belong in
+      `04-HANDOFF.md` (the 60-SECOND VERSION and NEXT ACTIONS); this entry now POINTS there,
+      because a second copy of a moving number is how it goes stale a third time.
+      Current order: `#24-ch22chapter` → the `04-HANDOFF.md` NEXT ACTIONS queue.
+      Sub-items live in `## Story bot (#24) — open backlog` below.
 - [ ] #V — Post-promotion verification sweep (PARKED behind #24): independent adversarial pass
       on the promoted features that only had builder self-verification (not
       an independent pass) — #8 global pathfinding, #12 shiny alerts, #18

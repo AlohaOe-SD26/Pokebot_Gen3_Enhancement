@@ -128,7 +128,10 @@ def assert_route_matches_live_floor() -> None:
 
 
 def walk_the_ice(report: dict | None = None) -> Generator:
-    """Walk the 64-step exact-cover route from the gym entrance to Juan's tile.
+    """Walk the 64-step exact-cover route from the gym entrance to (8,6), the last ice tile
+
+    ⛔ NOT to Juan's tile: (8,6) is THREE TILES SOUTH of JUAN_STAND (8,3), and the stair climb
+    that closes the gap is not in this function. (Corrected 2026-09-03.).
 
     ⛔ EVERY STEP IS CHECKED **BEFORE** IT IS TAKEN, against `_live_metatile_grid` — the target must
     be THIN ice, never cracked and never broken. That check is the whole safety story: the planner
@@ -156,8 +159,13 @@ def walk_the_ice(report: dict | None = None) -> Generator:
     yield from wait_until_truly_controllable()
     assert_route_matches_live_floor()
 
-    # ⛔ The approach tile is normal floor, so `navigate_to` is SAFE here and ONLY here — it is the
-    # one leg of this gym that contains no ice.
+    # ⛔ `navigate_to` is SAFE here and ONLY here. ‼ AND THE REASON IS NOT THE ONE THIS COMMENT
+    # USED TO GIVE ("the approach tile is normal floor, the one leg with no ice") — that argument
+    # only holds when the bot is already SOUTH of the ice, which nothing here asserts. What
+    # actually protects it is `assert_route_matches_live_floor()` on the line above: on any
+    # partially-walked floor the cracked tiles no longer read THIN_ICE and it refuses BEFORE this
+    # navigate runs. (Adversarial review, 2026-09-03: right code, wrong reason — and a wrong
+    # reason is what a later edit deletes.)
     if not _at(GYM_1F, GYM_APPROACH):
         yield from navigate_to(GYM_1F, GYM_APPROACH)
     if not _at(GYM_1F, GYM_APPROACH):
@@ -284,6 +292,21 @@ def _climb_to(target: tuple[int, int], *, max_steps: int = 6) -> Generator:
                 f"Ch22: the inter-section climb expects a single column; at {here}, target "
                 f"{target}. The stair pairs all sit in column {STAIR_COLUMN}."
             )
+        # ⛔⛔ THIS HELPER ONLY EVER WALKS NORTH — `nxt` is unconditionally `y - 1`. A target SOUTH
+        # of the bot is therefore UNREACHABLE, and without this refusal the loop presses "Up" away
+        # from it for `max_steps * 900` frames and then blames the step budget.
+        # ‼ THIS IS NOT HYPOTHETICAL: the chapter's own order (…→ Juan → fall) asks exactly this.
+        # `fight_juan` leaves the bot on JUAN_STAND (8,3); `fall_to_b1f` calls
+        # `_climb_to(FALL_STAGING=(8,5))`, which is TWO TILES SOUTH — so the first `nxt` is (8,2),
+        # **Juan's own tile**, which is plain floor and passes both guards below. Found by an
+        # adversarial review 2026-09-03, before the composed arm was ever run.
+        # ⇒ a DESCENT helper is still owed (`#24-ch22chapter`); this only makes the gap LOUD.
+        if target[1] > here[1]:
+            raise BotModeError(
+                f"Ch22: `_climb_to` walks NORTH only, and {target} is SOUTH of {here} "
+                f"(y increases southward). Refusing rather than pressing 'Up' away from the "
+                f"target. A southward move here needs a descent helper, which does not exist yet."
+            )
         nxt = (here[0], here[1] - 1)
         state = _live_metatile_grid(GYM_1F).get(nxt)
         if state == LOCKED_STAIRS:
@@ -366,8 +389,23 @@ B1F_ROUTE: tuple[tuple[int, int], ...] = (
 )
 
 #: The three trainers whose sight lines this route deliberately accepts. ⛔ Fighting them is PART OF
-#: THE ROUTE, not a fault (the §Ch20 precedent) — and the chapter NEEDS the XP, because the party is
-#: measured not to beat Juan. ⇒ the exit and the XP run are the same leg.
+#: THE ROUTE, not a fault (the §Ch20 precedent).
+#: ⛔⛔ THIS COMMENT USED TO ADD "and the chapter NEEDS the XP, because the party is measured not to
+#: beat Juan" — **REFUTED 2026-09-03: the party beats Juan 4 times out of 4** (one control plus
+#: three independent RNG draws via `POKEBOT_CH22JUAN_JITTER`). The XP is NOT the reason to fight
+#: them. ‼ An adversarial review found this line still arguing XP-before-Juan while `:503` below
+#: retracted its premise — a stale half of a P2 pair living INSIDE THE CODE, and load-bearing,
+#: because it dictates the chapter's leg order.
+#: ⛔⛔ AND THE THREE BATTLES DO NOT HAPPEN IN THE REAL CHAPTER AT ALL. **THE JUAN VICTORY SCRIPT
+#: FLAGS ALL TEN B1F TRAINERS AS ALREADY DEFEATED** — `SootopolisCity_Gym_1F_EventScript_JuanDefeated`
+#: runs `setvar VAR_0x8008, 8` + `call Common_EventScript_SetGymTrainers`, and
+#: `SootopolisCity_Gym_SetGymTrainers` (`data/scripts/set_gym_trainers.inc`) `settrainerflag`s
+#: ANDREA, CRISSY, BRIANNA, CONNIE, BRIDGET, OLIVIA, TIFFANY, BETHANY, ANNIKA and DAPHNE.
+#: ✅ Read and quoted from the decomp myself, 2026-09-03.
+#: ⇒ **the post-badge descent is BATTLE-FREE, the chapter needs only ONE descent, and there is no
+#: XP run.** ‼ `--driver ch22exit` measured 3 battles and 629/694 → 332/694 with `badge8=False` —
+#: a state the assembled chapter NEVER SEES. Those numbers are real and NOT transferable; the
+#: driver is still the right instrument for the fall + route, just not for the HP cost.
 B1F_FORCED_TRAINERS = ("Andrea", "Bethany", "Connie")
 
 
@@ -384,8 +422,13 @@ def fall_to_b1f(report: dict | None = None) -> Generator:
     grid = _live_metatile_grid(GYM_1F)
     state = grid.get(FALL_TILE)
     if state not in (CRACKED_ICE, BROKEN_ICE):
+        # ⛔ FORMAT THE STATE DEFENSIVELY: `grid.get` returns None for an off-grid tile, and
+        # `f"0x{None:03X}"` raises a raw TypeError — which is NOT a BotModeError, so it would
+        # escape the chapter's retry loop and kill the whole story run. `walk_the_ice` already
+        # formats it this way; this call site did not. (Found by an adversarial review, 2026-09-03.)
+        shown = f"0x{state:03X}" if state is not None else "None (off-grid)"
         raise BotModeError(
-            f"Ch22: refusing to fall — {FALL_TILE} reads 0x{state:03X}, not cracked/broken. The ice "
+            f"Ch22: refusing to fall — {FALL_TILE} reads {shown}, not cracked/broken. The ice "
             "walk must have completed first; falling through virgin ice is not what this leg does."
         )
     # after the ice walk the bot rests ON the fall tile (8,6); (8,5) is one step NORTH of it, and
@@ -495,3 +538,94 @@ def walk_b1f_to_ladder(report: dict | None = None) -> Generator:
         f"Ch22: the B1F route ran to its end without taking the ladder — at {_where()}. The last "
         "route entry must be the ladder, and it returns via the map-change witness."
     )
+
+
+# ================================ JUAN — THE 8TH GYM LEADER ======================================
+# ✅✅ MEASURED 2026-09-03: THE PARTY **WON**, FIRST TRY — BADGE08_GET set, city_state 6,
+# BattleOutcome.Won, 5/6 survivors, 32,891 frames.
+# ⛔ THIS COMMENT READ "THE PARTY IS MEASURED NOT TO WIN THIS YET" AND THAT WAS FALSE: it was
+# never measured, it was CALCULATED. Every typing fact below is still correct; the conclusion
+# drawn from it was not. ⚠ One win is not a reliability measurement (§Ch20's Archie was 2W/1L).
+# Juan (`src/data/trainers.h`, `trainer_parties.h`): Luvdisc 41, Whiscash 41, Sealeo 43,
+# Crawdaunt 43, **Kingdra 46 @ Chesto Berry** (Water Pulse / Double Team / Ice Beam / **Rest**),
+# all IVs 30, plus **2x Hyper Potion** on the trainer.
+#
+# KINGDRA IS WATER/DRAGON, AND THAT NEUTRALISES THE WHOLE PARTY:
+#   Grass 2.0 x 0.5 = 1.0 · Electric 1.0 · Ice 0.5 x 2.0 = 1.0.
+# Only DRAGON is 2x, and no party member has a Dragon move (TM02 is in Meteor Falls, out of scope).
+# ‼ The `12-STORYMODE-DESIGN` line "counters: Grass/Electric" is right about Juan's TEAM and WRONG
+# about his ACE.
+#
+# ⚠ AND BUYING ITEMS DOES NOT FIX IT — the Sootopolis Mart sells Hyper/Max Potion, Full Heal and
+# Revive, and money is 67,466, so healing is affordable; but the arithmetic says the problem is the
+# DAMAGE RACE, not the item count (Sceptile 3HKOs a 138-HP Kingdra while being 2HKO'd by Ice Beam,
+# against ~4 full bars of healing). ⛔ THAT IS A CALCULATION, NOT A MEASUREMENT — this leg exists so
+# a DRIVE decides it. Never let a damage calc stand in for a discriminator.
+#
+# ⇒ THE FIRST DRIVE WAS EXPECTED TO LOSE AND DID NOT. A loss would have been a RESULT sizing the
+# gap, not a defect,
+# and the leg reports HOW FAR it got rather than merely that it failed.
+
+JUAN_TILE = (8, 2)          # Juan himself; the bot stands one south of him
+BADGE8_FLAG = "BADGE08_GET"
+
+
+def juan_defeated() -> bool:
+    from modules.memory import get_event_flag
+
+    return get_event_flag(BADGE8_FLAG)
+
+
+def fight_juan(report: dict | None = None, *, budget_frames: int = 40000) -> Generator:
+    """Talk to Juan and ride the battle out. Reports HOW FAR the run got, win or lose.
+
+    ⛔ THE GRADE IS THE BADGE, NOT "THE BATTLE HAPPENED" — and the leg reports the opponent's
+    remaining party so a LOSS is a measurement (how many of his five we took down) rather than a
+    bare failure. §Ch20's Archie precedent: a loss is a VALID BRANCH the chapter must handle.
+    """
+    from modules.modes import BotModeError
+    from modules.modes.util.walking import ensure_facing_direction
+    from modules.story.early_game import _check_abort, wait_until_truly_controllable
+    from modules.tasks import get_global_script_context, is_waiting_for_input
+
+    if report is None:
+        report = {}
+    if juan_defeated():
+        report["already"] = True
+        return report
+    if not _on_map(GYM_1F):
+        raise BotModeError(f"Ch22: the Juan fight needs GYM_1F; standing at {_where()}.")
+    if not _at(GYM_1F, JUAN_STAND):
+        raise BotModeError(
+            f"Ch22: the Juan fight must start from {JUAN_STAND} (one tile SOUTH of him); standing "
+            f"at {_where()}. ⛔ THE ICE WALK DOES **NOT** PUT THE BOT THERE — it ends on (8,6), "
+            f"three tiles south, and the 3-step stair climb that closes the gap currently lives "
+            f"ONLY in the harness driver (`Ch22JuanMode`). A chapter must own that climb."
+        )
+
+    yield from wait_until_truly_controllable()
+    yield from ensure_facing_direction("Up")
+    context.emulator.press_button("A")
+    yield
+
+    frames = 0
+    while frames < budget_frames:
+        _check_abort()  # ⛔ FIRST statement, outside any try
+        if juan_defeated() and not get_global_script_context().is_active:
+            report["won"] = True
+            break
+        # ⛔ GATED, NOT MASHED, and on a DUTY CYCLE — a held button gives Gen 3's `waitbuttonpress`
+        # no JOY_NEW edge, which is what parked a msgbox for 20,000 frames in §Ch21 leg 5.
+        if frames % 4 == 0:
+            context.emulator.press_button("A" if is_waiting_for_input() else "B")
+        yield
+        frames += 1
+    else:
+        report["won"] = bool(juan_defeated())
+        report["timeout"] = True
+
+    report["frames"] = frames
+    report["badge"] = juan_defeated()
+    report["city_state"] = _var("SOOTOPOLIS_CITY_STATE")
+    report["end_tile"] = tuple(_here())
+    return report

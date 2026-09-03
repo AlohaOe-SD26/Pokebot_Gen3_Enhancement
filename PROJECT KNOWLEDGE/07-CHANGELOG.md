@@ -20215,3 +20215,118 @@ nothing deleted, the narrative is here). Now 3544.
 `sandbox-pokebot/modules/story/sootopolis_gym.py`; `tools/story-dev/story_harness.py`;
 `tools/story-dev/evidence/2026-09-03-ch22exit-{CLEAN,GUARD-CAUGHT-FALLDIR,GUARD-CAUGHT-LADDERWARP}.txt`;
 `03-PUNCH-LIST.md`, `04-HANDOFF.md`. ⚠ Drift unchanged at 9.
+
+
+## 2026-09-03 (Juan) — §Ch22's GYM-LEADER FIGHT IS BUILT AND DRIVEN, AND **IT WON** — refuting my own published claim
+
+**What shipped.** `fight_juan()` + `juan_defeated()` in
+`sandbox-pokebot/modules/story/sootopolis_gym.py`, and `Ch22JuanMode` (`--driver ch22juan`) in
+`tools/story-dev/story_harness.py`. The leg walks the 64-tile ice route, climbs the unlocked
+stairs to `JUAN_STAND (8,3)`, faces Juan, opens the talk with a single `A`, and then rides the
+fight out on a **gated duty cycle** — `A` only when `is_waiting_for_input()`, `B` otherwise, and
+only on `frames % 4 == 0`, because a *held* button gives Gen 3's `waitbuttonpress` no `JOY_NEW`
+edge (that is what parked a msgbox for 20,000 frames in §Ch21 leg 5). Bounded at 40,000 frames
+with `_check_abort()` as the loop's first statement.
+
+**The measurement (`evidence/2026-09-03-ch22juan-WIN.txt`), fixture `post_hm07.ss1`:**
+```
+RESULT badge8=True won=True at=SOOTOPOLIS_CITY_GYM_1F(8, 3) city_state=6 battles=1
+       outcomes=['BattleOutcome.Won'] whiteouts=0 frames=32891
+SURVIVORS 5/6   (Swellow 0/115; Sceptile 141/141, Mightyena 130/130, Castform 103/103,
+                 Wailmer 14/160, Zigzagoon 46/48)
+ACCEPTANCE: PASS
+```
+This is the **first gym-LEADER fight ever timed in this harness**: ~33k frames, versus ~20k for
+the whole exit leg and ~2.2k for the ice walk.
+
+**⛔ AND IT REFUTES A CLAIM I HAD PUBLISHED IN SIX FILES.** `04-HANDOFF.md`,
+`03-PUNCH-LIST.md`, `2026-09-02-ch22-juan-BUILD-SPEC.md` §1, `2026-09-02-ch22-PARTA-RESULTS.md`
+§7.2, `sootopolis_gym.py` and the driver's own docstring all said the party **could not win**, some
+of them with the word *MEASURED* attached. It was never measured — it was a 1v1 damage calculation
+(Sceptile versus Kingdra) applied to a **6-versus-5** battle. Every typing premise was correct and
+is retained; only the conclusion is withdrawn. All 12 claims are corrected in place; the two
+earlier entries in THIS file are append-only and are corrected forward, here. Root cause,
+near-miss (a grind programme that would have "worked" and looked load-bearing forever) and three
+prevention rules: `08-MISTAKES.md` 2026-09-03.
+
+**⚠ WHAT IS AND IS NOT MEASURED.** *Measured:* this party **can** win this fight from this fixture.
+**Not** measured: that it wins *reliably*. §Ch20's `ch20room9` Archie fight is **2W/1L**, so a
+gym-leader outcome is treated as stochastic until sampled — and re-running the same driver from the
+same save is **not** a sample (see the determinism note in the follow-up work). ⇒ no document may
+say "reliably wins".
+
+**Also read from the decomp while here** (`src/data/text/mart.h`): the Sootopolis Mart stocks Ultra
+Ball, **Hyper Potion**, **Max Potion**, Full Heal, **Revive**, Max Repel, X Attack, X Defend and
+Shadow Mail. With the measured 67,466 in hand, a stocking leg is buildable — and it is now an
+*insurance* item rather than a *readiness* one, which is a materially cheaper thing to build.
+
+**Docs.** `04-HANDOFF.md`: the 60-second version's §Ch22 bullet rewritten, the queue head retargeted
+to **chapter assembly**, and a HOW TO RUN block added for all three shipped §Ch22 legs
+(`ch22ice` / `ch22exit` / `ch22juan`) with their measured Expect lines — what shipped must be
+startable from the handoff alone. To pay for those lines inside the 900-line cap, 56 lines of
+FINISHED §Ch21 queue detail were retired the documented way (summarised + pointed at this file,
+never deleted); the file is now 894/900.
+
+
+## 2026-09-03 (sampled) — THE JUAN FIGHT IS **4 WINS OUT OF 4**, AND THE POST-BADGE ESCAPE IS FREE
+
+**1. A real sample, after a fake one.** Three re-runs of `--driver ch22juan` came back
+**byte-identical** (`frames=32891`, 5/6 survivors, three times) — a DETERMINISM reading, not three
+results, and one keystroke away from being reported as "3/3". `Ch22JuanMode` now takes
+`POKEBOT_CH22JUAN_JITTER=N`, which idles N frames on Juan's front tile so the battle starts from a
+different `gRngValue`, and **prints the RNG on both sides of the idle** so a sampler that perturbs
+nothing announces itself. ✅ Verified to perturb before any sample was spent: `0x008c33fa →
+0xfbf1b389` at N=181, measured by a 6,500-frame probe.
+
+| arm | jitter | frames | outcome | survivors |
+|---|---|---|---|---|
+| control | 0 | 32,891 | **Won** | 5/6 |
+| A | 181 | 25,508 | **Won** | 5/6 |
+| B | 1013 | 21,386 | **Won** | 5/6 |
+| C | 47 | 24,565 | **Won** | 5/6 |
+
+Three genuinely different battles (the frame counts differ), all won. **Swellow faints in every
+arm**; Sceptile's end HP swings 141/141 → **32/141**. ⇒ the post-Juan party is chewed and
+unpredictable. Evidence: `evidence/2026-09-03-ch22juan-{WIN,SAMPLE-jitter181,SAMPLE-jitter1013,
+SAMPLE-jitter47,RNGPROBE}.txt`.
+
+**2. ⭐ THE POST-BADGE DESCENT COSTS ZERO BATTLES** — read and quoted from the decomp myself.
+`SootopolisCity_Gym_1F_EventScript_JuanDefeated` runs `setvar VAR_0x8008, 8` +
+`call Common_EventScript_SetGymTrainers`, and `SootopolisCity_Gym_SetGymTrainers`
+(`data/scripts/set_gym_trainers.inc`) `settrainerflag`s all ten B1F trainers. ⇒ **no XP run, one
+descent not two, and `ch22exit`'s 3 battles / 629→332 HP were measured in a premise the chapter
+never enters** (`badge8=False`). Filed as a mistake with three prevention rules.
+
+**3. Four defects fixed in `sootopolis_gym.py`, all found by an ADVERSARIAL review before any
+composed run:**
+* `_climb_to` walks NORTH only, and the chapter's order (…→ Juan → fall) asks it to go SOUTH: from
+  `JUAN_STAND (8,3)` toward `FALL_STAGING (8,5)` its first step is **(8,2) — Juan's own tile**,
+  plain floor, so both existing guards pass and it would press "Up" into him for 2,700 frames. Now
+  **refuses immediately, naming the real problem**. ⛔ A descent helper is still owed.
+* `fall_to_b1f` formatted a possibly-`None` metatile as `f"0x{state:03X}"` → a raw **TypeError**,
+  which is not a `BotModeError` and would escape a chapter's retry loop and kill the story run.
+* A REFUTED claim was still in production and still dictating leg order (*"the chapter NEEDS the
+  XP, because the party is measured not to beat Juan"*) while a comment 130 lines below retracted
+  its premise — a stale half of a P2 pair living **inside the code**.
+* Two comments that told a reader something false: `walk_the_ice`'s docstring said it ends on
+  Juan's tile (it ends on (8,6), three south), and `fight_juan`'s refusal message said *"the ice
+  walk is what puts the bot there"*. The 3-step climb that closes the gap lives only in the driver.
+
+**4. Recon note for the next item:** `ai-research-notes/2026-09-03-ch22-CHAPTER-ASSEMBLY-SPEC.md`
+— the leg order and why, ten ranked hazards (two of them REFUTED so nobody re-spends time on
+them), the §Ch21 orchestrator template with citations, and the four movement legs that exist only
+in driver code today. ⚠ Correction to one agent's report, verified myself: `buy_in_shop` exists but
+has **zero callers** in this fork; the proven mart path is `early_game.buy_poke_balls`, hardcoded to
+Poké Balls and Rustboro, and `_mart_item_row()` (which reads `sMartInfo` live) is the reusable half.
+
+**5. Docs brought current beyond the item itself.** `02-ARCHITECTURE.md` gained the **fourth**
+live-map reading class — `_live_metatile_grid()` (metatile id, `block & 0x03FF`) — with the reason
+readings (1)-(3) are insufficient on a `setmetatile` map, plus an entry for `sootopolis_gym.py` as
+the one map where `calculate_path` must never be used. `12-STORYMODE-DESIGN.md` gained a full
+**§Ch22 design section** (a stub marker points at the note for the rest). And
+`24-PLAIN-ENGLISH-STATUS.md`, the human-facing file, was **three weeks and two chapters stale** —
+it still said the Seafloor Cavern was "a test harness, not part of the real playthrough" and that
+the work was PARKED, both untrue since 2026-08-24. Its two opening paragraphs are rewritten; the
+day-by-day narrative below them is deliberately left as history. ‼ That file is cited in
+`04-HANDOFF.md` as `#24-plainenglishstale` but **has no item in `03-PUNCH-LIST.md`** — a dangling
+slug of the `#24-codeorphans` shape, which the citation gate does not catch.

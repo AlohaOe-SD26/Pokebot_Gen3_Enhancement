@@ -4241,3 +4241,96 @@ bullets had been CLOSED the same day — each bullet now carries its own marker.
   The Fly-vs-swim choice is settled — **it is SWIM**, and it was settled by a 20-second flag read
   rather than the live drive this line originally demanded.
 * ❓ Whether the Route 126 to Sootopolis warp is itself event-gated.
+
+
+---
+
+# §Ch22 — GYM 8, JUAN (SOOTOPOLIS): DESIGN
+
+> ‼ **STUB MARKER.** The full recon — ten ranked hazards, the orchestrator template with citations,
+> and the four movement legs still missing — is in
+> `ai-research-notes/2026-09-03-ch22-CHAPTER-ASSEMBLY-SPEC.md`. **That file is a NOTE**; this
+> section holds only what has been MEASURED live or read out of the decomp and quoted.
+> Status: **all FOUR DRIVERS pass — one read-only recon PROBE (`ch22probe`) plus THREE STORY
+> LEGS (`ch22ice`, `ch22juan`, `ch22exit`) — and the CHAPTER is not assembled**
+> (`#24-ch22chapter`). ‼ Count stated this way on purpose: "four legs" vs "three legs" drifted
+> across three files in one round before a Tier 1 reviewer pinned it.
+
+## What the chapter is
+
+Graded on `BADGE08_GET` (`chapters.py:255-256`). Entry from `post_hm07.ss1` / a live §Ch21 handover
+at `SOOTOPOLIS_CITY (31,34)`, gym warp **(31,32)**, 2 wp. **The badge is what makes field Waterfall
+usable** (`src/field_control_avatar.c` gates `EventScript_UseWaterfall` on `FLAG_BADGE08_GET`), which
+is what opens Routes 132-134 → Ever Grande for §Ch23. `VAR_SOOTOPOLIS_CITY_STATE = 6` is set by the
+same script but unlocks nothing the bot needs.
+
+## The three mechanics that make this gym unlike every other one
+
+1. ⛔ **`calculate_path` MUST NEVER BE USED INSIDE IT.** The locked stairs are `MB_SLIDE_SOUTH`
+   (metatile `0x20F`) with **collision 0** — walkable, and they slide you back onto the ice. The
+   planner returns a confident 16-waypoint route straight up column x=8 through all six of them.
+   The route is a **precomputed table** (`tools/story-dev/solve_gym_ice.py`, re-derived from the
+   decomp on every run, live-verified per step). MEASURED: decomp vs live = **64/64, zero diffs**.
+2. ⛔ **THE COLLISION READER IS BLIND HERE, AND FAILS SILENTLY.** Every `setmetatile` in the gym
+   passes `FALSE` for its impassable flag, so the floor changes and `_live_collision_grid()` sees
+   nothing. Use `_live_metatile_grid()` (metatile id) or `ICE_STEP_COUNT`. A/B proven live.
+3. ⛔ **THE EXIT IS A DELIBERATE FALL.** With the ice walked, Juan's platform is a **20-tile
+   island**; the exit warp and the 1F ladder are both unreachable. The only way off is to break
+   the one reachable cracked tile **(8,6)** and `warphole` down to B1F at the same (x,y).
+   `allow_escaping: false` on BOTH floors, so Escape Rope / Dig / Teleport are refused.
+
+## The puzzle, measured
+
+64 thin-ice tiles in three sections of **7 / 19 / 38** (rows 17-19 / 12-14 / 6-9), against
+`VAR_ICE_STEP_COUNT` starting at 1 and unlock thresholds 8 / 28 / 67. It is an **exact cover** —
+every tile once, no revisits. ‼ **The observed section-end counts are 9 / 29 / 68, not 8 / 28 / 67**,
+because each unlock's `addvar` lands in the same beat as the crossing step; a guard asserting `+1`
+exactly is wrong, `after > before` is right. The puzzle **RESETS on every map entry**
+(`ON_TRANSITION` re-does `setvar VAR_ICE_STEP_COUNT, 1`, and `ClearTempFieldEventData` wipes the
+visited bitmask), so a failed attempt costs only the walk. ⚠ `VAR_ICE_STEP_COUNT` is **shared** with
+the Sky Pillar and Granite Cave cracked floors — never treat its value as gym-scoped.
+
+## The fight
+
+Juan: Luvdisc 41, Whiscash 41, Sealeo 43, Crawdaunt 43, **Kingdra 46 @ Chesto Berry** (Water Pulse /
+Double Team / Ice Beam / **Rest**), plus 2× Hyper Potion on the trainer. ⛔ **Kingdra is
+WATER/DRAGON, so Grass, Electric AND Ice are all NEUTRAL** and no party member has a Dragon move.
+⇒ *the "counters: Grass/Electric" note elsewhere in this file is right about Juan's TEAM and wrong
+about his ACE.*
+✅✅ **AND THE PARTY WINS ANYWAY — 4 out of 4** (control + three independent RNG draws via
+`POKEBOT_CH22JUAN_JITTER`; frames 32891 / 25508 / 21386 / 24565, all `BattleOutcome.Won`, all 5/6
+survivors). ⛔ A conclusion of "not winnable" was published in six files off this typing analysis and
+was WRONG — it was a 1v1 damage calculation applied to a 6-versus-5 battle (`08-MISTAKES.md`
+2026-09-03). ⚠ Swellow faints in every arm and Sceptile's end HP ranges 141/141 → 32/141, so **the
+post-Juan party is chewed and unpredictable.**
+
+## ⭐ The victory script does far more than set a badge — read it as an EVENT, not a value
+
+`SootopolisCity_Gym_1F_EventScript_JuanDefeated`, in order: badge fanfare → `setflag
+FLAG_DEFEATED_SOOTOPOLIS_GYM` → `setflag FLAG_BADGE08_GET` → hide the residents, Steven **and
+Wallace** → `setvar VAR_SOOTOPOLIS_CITY_STATE, 6` → show Man_1 → **`setvar VAR_0x8008, 8` + `call
+Common_EventScript_SetGymTrainers`** → TM03 → Match Call registration → `setflag
+FLAG_ENABLE_JUAN_MATCH_CALL` → `release`.
+
+* ⭐⭐ **`SootopolisCity_Gym_SetGymTrainers` `settrainerflag`s ALL TEN B1F trainers**
+  (`data/scripts/set_gym_trainers.inc`) ⇒ **the post-badge descent costs ZERO battles.** There is no
+  XP run and the chapter needs only ONE descent. ‼ `--driver ch22exit` measured 3 forced battles and
+  629/694 → 332/694 at `badge8=False` — real, and **not the chapter's cost**.
+* ⛔ **The badge flag is set with 4 msgboxes, 2 fanfares and 60 frames of `delay` still to run, and
+  the player still locked.** Grade on the flag **AND** an idle script context, never the flag alone.
+* ⚠ `FLAG_ENABLE_JUAN_MATCH_CALL` puts Juan in the PokéNav pool — he can now interrupt overworld
+  walking on the way out.
+* ✅ Nothing ambushes the bot outside: state 6 matches no `ON_WARP` or `ON_FRAME` script and
+  Sootopolis has **no coord_events at all**. Wallace is hidden, so the gym-door tile (31,32) is
+  clear. The Expert moves to (31,18), blocking the Cave of Origin — harmless for §Ch22.
+* ✅ The TM03 bag-full branch is unreachable (58 distinct TMs+HMs, 64 pocket slots) and exits
+  cleanly anyway; the Juan double-battle rematch cannot fire accidentally.
+
+## The chapter's leg order — settled by the decomp, not by preference
+
+**heal → (stock, optional) → enter → ice (64 steps, ends on (8,6)) → climb 3 to (8,3) → JUAN →
+descend to (8,5) → fall → B1F 19 steps (0 battles) → ladder (11,22) → 1F → out → can-continue.**
+⛔ **The climb, the descent, the gym entry and the walk out all live ONLY in harness drivers today**,
+and `_climb_to` walks **north only** — so the post-Juan descent has no implementation at all. It now
+refuses loudly instead of walking into Juan's tile. ‼ **No driver has ever run
+`walk_the_ice → fight_juan → fall_to_b1f` composed**; that arm is the chapter's acceptance test.

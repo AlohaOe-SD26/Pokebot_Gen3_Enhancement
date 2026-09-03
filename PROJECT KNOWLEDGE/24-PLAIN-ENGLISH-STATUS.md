@@ -4,7 +4,7 @@
 > code terms. No jargon, no statistics. Every technical claim here has a precise version
 > elsewhere: `07-CHANGELOG.md` (what changed), `08-MISTAKES.md` (what went wrong),
 > `03-PUNCH-LIST.md` (the queue), `04-HANDOFF.md` (resume point).
-> **Last updated: 2026-08-23.** ‼ **This file was THREE DAYS AND FIVE CHAPTERS STALE** until a
+> **Last updated: 2026-09-03** (the two opening paragraphs and this line; the day-by-day narrative below is still HISTORY from 2026-08-10, deliberately). ‼ **This file was THREE DAYS AND FIVE CHAPTERS STALE** until a
 > cold-start audit caught it. *(This line used to claim `00-README.md` "sends new readers HERE
 > FIRST". It does not — the README lists this file under **"Read WHEN RELEVANT — not part of the
 > start-of-session ritual"**, while calling it "START HERE FOR A HUMAN ANSWER". Overstating its own
@@ -19,20 +19,30 @@
 A bot that plays **Pokémon Emerald by itself**, from a brand-new save, with nobody watching.
 It picks a starter, walks the routes, catches Pokémon, trains them, and fights the gyms.
 
-**Where it gets to today (2026-08-13):** it plays **20 of the game's 24 story beats** by itself.
-It wins **seven gym badges**, raids the Magma Hideout and gets back out, recovers the stolen
-submarine at Slateport, clears the Aqua Hideout maze (**taking the Master Ball on the way**),
-defends the Mossdeep Space Center alongside Steven, and is handed **HM08 Dive**.
+**Where it gets to today (brought current 2026-09-03):** it plays **22 of the game's 24 story
+beats** by itself, in one unattended run from a brand-new save. It wins **seven gym badges**, raids
+the Magma Hideout and gets back out, recovers the stolen submarine at Slateport, clears the Aqua
+Hideout maze (**taking the Master Ball on the way**), defends the Mossdeep Space Center alongside
+Steven, earns **HM08 Dive**, plays the **Seafloor Cavern** end to end — boulder puzzles, underwater
+currents, the Aqua ambush, Archie, waking Kyogre and escaping the atoll — then dives into
+**Sootopolis**, escorts Steven to the Cave of Origin, climbs the **Sky Pillar**, wakes **Rayquaza**
+to end the Kyogre-vs-Groudon fight, and is given **HM07 Waterfall**.
 
-**What it is doing right now:** learning the **Seafloor Cavern** — the dungeon where Team Aqua
-wakes Kyogre. ‼ **UPDATED 2026-08-15:** it now plays the cavern **END TO END** — dives to the entrance, solves
-every boulder room, rides the underwater currents, fights the Aqua ambush, beats Archie, wakes
-Kyogre and escapes the atoll. *(This paragraph said it 'stops at the second-to-last room' for a
-day after that stopped being true.)*
+⛔ *(Two paragraphs here said the cavern was "a test harness, not part of the real playthrough" and
+that the work was PARKED. Both stopped being true on 2026-08-24, when the cavern was wired into the
+real run; Sootopolis followed on 2026-09-02. This file went three weeks without catching up — see
+"What we got wrong" below, which is exactly the shape of mistake it describes.)*
 
-‼ **An honest caveat, because it matters:** that cavern run is a **test harness**, not part of the
-real playthrough yet. It is driven room by room from a saved game, and the Dive move is handed to
-it rather than earned. Wiring it into the actual story run is still to do.
+**What it is doing right now:** the **eighth and last gym — Juan, in Sootopolis.** This one is an
+ice puzzle: the floor is thin ice that cracks as you walk, you must cross **every** tile exactly
+once to open the stairs, and once you reach the leader the only way back out is to **deliberately
+fall through the floor** into the basement. The bot can now do all of it — the 64-step ice route,
+the fight, the fall, and the walk out — and **it beats Juan** (four wins out of four, including
+three runs deliberately given different luck).
+
+‼ **An honest caveat, because it matters:** those four pieces are each driven separately from a
+saved game. Joining them into one chapter and wiring it into the real playthrough is the next job,
+and it is not a formality — no run has yet done the ice, the fight and the fall back to back.
 
 ## ⛔ BUT THAT IS NOT WHAT WE ARE WORKING ON (changed 2026-08-14 — read this before the day-by-day below)
 

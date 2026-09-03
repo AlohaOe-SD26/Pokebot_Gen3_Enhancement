@@ -97,8 +97,15 @@ readiness problem is **levels and type coverage**, not funds.
 
 ## 7. WHAT REMAINS UNMEASURED (do not build past these without settling them)
 1. **The Mart's stock list and prices** — needed before a shopping leg.
-2. **How under-levelled the party actually is.** Only a live Juan drive settles it, and the first one
-   is EXPECTED TO LOSE — that loss is the measurement, not a failure.
+2. **How under-levelled the party actually is.** ✅✅ **SETTLED 2026-09-03 — AND SAMPLED: 4 WINS
+   OUT OF 4** (control + jitter 181/1013/47 via `POKEBOT_CH22JUAN_JITTER`; frames
+   32891/25508/21386/24565, all `BattleOutcome.Won`, all 5/6 survivors). The predicted loss did not
+   happen and the "not winnable" conclusion was a calculation, not a measurement.
+   ⛔ *(This line said "one win is not a reliability measurement — sample it before calling the
+   fight solved" and went stale in the SAME round that produced the sample; a Tier 1 reviewer
+   caught it. ⇒ when an item both raises a caveat and discharges it, edit the caveat too.)*
+   See `07-CHANGELOG.md` 2026-09-03 and `08-MISTAKES.md` (three re-runs were a REPLAY, not a
+   sample — this harness is deterministic for a fixed (save, driver, code) triple).
 3. **The route table itself.** The 64 tiles are now known live; the ORDER is not. It must be
    generated from `map.bin` and re-derived by a test, then verified live step-by-step against
    `_live_metatile_grid` before it is trusted.

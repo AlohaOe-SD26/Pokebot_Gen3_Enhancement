@@ -398,6 +398,24 @@ done
   is wired as **Segment 21** in `plugins/custom_modes/story_mode.py`, immediately after
   Ch20's block, via `do_sootopolis_chapter()` / `ch21_chapter_done()` — so these helpers now
   run in a PRODUCTION story path, not only under a harness driver.
+  ⛔⛔ **AND THERE IS A *FOURTH* READING, BECAUSE READING (3) IS BLIND ON SOME MAPS
+  (MEASURED 2026-09-02, Sootopolis Gym 1F).** `_live_collision_grid()` keeps only the collision
+  bits — `(block & 0x0C00) >> 10` — and `ScrCmd_setmetatile` ORs `MAPGRID_IMPASSABLE` **only when
+  its 4th argument is TRUE**, which every `setmetatile` in that gym passes as FALSE. So the floor
+  can change completely underneath a run while both `_live_collision_grid()` and
+  `probe_live_mapgrid.py` report **zero** differences and PASS. ⇒ **a PASS from those two on a
+  `setmetatile` map is a FALSE NEGATIVE BY CONSTRUCTION.** The reader that works is
+  **`sootopolis._live_metatile_grid()`**, which keeps the metatile id — `block & 0x03FF` — and it
+  is A/B PROVEN: one step on thin ice moved the metatile grid by 1 tile (`0x20d → 0x20e`) and the
+  collision grid by 0. ‼ Pick the reader by WHAT THE MAP MUTATES, not by which one you have.
+
+* **`modules/story/sootopolis_gym.py`** — §Ch22 (Gym 8, Juan). A chapter module whose legs are all
+  driven but which has **no orchestrator yet** (`#24-ch22chapter`); not imported by production.
+  It is the tree's only map where **`calculate_path` must never be used**: the locked stairs are
+  `MB_SLIDE_SOUTH` with collision **0**, so the planner happily routes straight through them, and
+  the ice puzzle is an **exact cover**, not a shortest path. The route is therefore a
+  **precomputed table** generated from the decomp by `tools/story-dev/solve_gym_ice.py` and
+  re-verified against `_live_metatile_grid()` before and after every step.
   ⛔⛔ **AND READING (3) IS NOT OPTIONAL EVEN WHEN THE READER'S NAME SAYS "CURRENT POSITION"
   (MEASURED 2026-09-02).** `get_map_data_for_current_position()` builds its `MapLocation` from the
   LIVE `gMapHeader` but resolves `_map_layout` through the SAME shared cache, so once any reader has

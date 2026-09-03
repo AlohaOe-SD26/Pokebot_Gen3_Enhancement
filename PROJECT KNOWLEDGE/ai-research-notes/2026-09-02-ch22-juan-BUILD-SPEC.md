@@ -22,7 +22,19 @@
 
 ---
 
-## §1. THE FIGHT IS NOT WINNABLE BY THE MEASURED PARTY. This is the headline.
+## §1. ⛔ SUPERSEDED — **THE FIGHT IS WINNABLE: THE PARTY WON IT FIRST TRY, AND 4 TIMES OUT OF 4.**
+
+✅✅ **MEASURED 2026-09-03: THE PARTY *WON*, FIRST TRY** (`--driver ch22juan`, `BADGE08_GET`=True, `city_state=6`, `BattleOutcome.Won`, 5/6 survivors, `frames=32891`). ⛔ **THE "NOT WINNABLE" CLAIM WAS A DAMAGE CALCULATION, NOT A MEASUREMENT, AND IT WAS WRONG.** ✅✅ **AND IT IS NOW SAMPLED: 4 WINS OUT OF 4** — control plus three independent RNG draws (`POKEBOT_CH22JUAN_JITTER` 181/1013/47; frames 32891/25508/21386/24565, all `BattleOutcome.Won`, all 5/6 survivors). ⛔ *(This sentence read "ONE WIN IS NOT A RELIABILITY MEASUREMENT … treat a boss fight as stochastic until sampled" — a caveat that was discharged in the same round that wrote it, in the very file `04-HANDOFF.md` sends readers to. A Tier 1 re-check caught it. ⇒ **when an item raises a caveat AND discharges it, grep for the caveat's own wording before committing.**)* ⚠ Still true and still worth carrying: §Ch20's Archie fight is 2W/1L, so a re-run's LOSS is a RESULT, not a defect.
+
+> ⛔ **THIS SECTION'S HEADLINE READ "THE FIGHT IS NOT WINNABLE BY THE MEASURED
+> PARTY" AND IT WAS WRONG.** Every TYPING fact below is correct and verified — Kingdra really is
+> Water/Dragon, Grass/Electric/Ice really are all neutral, Juan really does restore it three
+> times — but the CONCLUSION drawn from them was a 1v1 damage calculation, and the live battle
+> is not a 1v1. ⇒ **correct premises do not license a conclusion that only a measurement can
+> settle.** Kept in full below because the typing analysis is still the right input to any
+> future re-balancing.
+
+### The original (correct) typing analysis, and its (wrong) conclusion
 
 Juan (`src/data/trainers.h:3268-3278`, `trainer_parties.h:3577-3613`): Luvdisc 41, Whiscash 41,
 Sealeo 43, Crawdaunt 43, **Kingdra 46 @ Chesto Berry** (Water Pulse / Double Team / Ice Beam /
@@ -96,7 +108,7 @@ ladder (11,22) → 1F → (8,25) → city. Every fall point (8,6)…(8,19) BFS-r
 | Leg | Does | Acceptance |
 |---|---|---|
 | **L1 HEAL & PREP** | (31,34) → Poké Center (43,31) → heal → shop → gym door (31,32) | every party PID present **and** `hp == total` (PID-keyed, never counts); HMs still on their carriers; path to (31,32) OK |
-| **L2 XP RUN** | deliberate B1F descent, clear the **10** trainers, exit (11,22), re-heal | the ten defeat flags SET — ⛔ instrument battles FOUGHT, not trainers "encountered" |
+| ~~**L2 XP RUN**~~ ⛔ **WITHDRAWN 2026-09-03** | *(was: deliberate B1F descent, clear the 10 trainers, exit (11,22), re-heal)* | ⛔ **THIS LEG MUST NOT BE BUILT.** The Juan victory script `settrainerflag`s all ten B1F trainers itself, so post-badge the descent is battle-free — and the party wins Juan 4/4 without any XP. Both premises for this leg are gone: see `2026-09-03-ch22-CHAPTER-ASSEMBLY-SPEC.md` §0 F1. |
 | **L3 ICE WALK** | the 64-step route to (8,3) | `_at(GYM_1F,(8,3))` **and** `ICE_STEP_COUNT == 67` — assert both: the var is the action, the position is the plan |
 | **L4 JUAN** | fight, take TM03 | `BADGE08_GET` **and** `SOOTOPOLIS_CITY_STATE == 6` and controllable. ⛔ Pre-check bag space — `giveitem` branches to `BagIsFull` INSIDE the badge script |
 | **L5 EXIT** | the mandatory fall → B1F → ladder → city | on `SOOTOPOLIS_CITY`, badge held, **and** a live path to (43,31) |

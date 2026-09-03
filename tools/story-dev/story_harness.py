@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -11604,7 +11604,8 @@ class Ch22IceMode(BotMode):
     AND whiteouts == 0. ⛔ Position ALONE is not the grade — `ICE_STEP_COUNT` is what the game's own
     unlock thresholds are counted against, so the var is the action and the tile is the plan.
     ⛔ AND THE BOT DOES NOT TALK TO JUAN. This leg ends one tile in front of him; the fight is its
-    own leg, and the party is measured NOT to win it yet.
+    own leg. ✅ (And the party WON that fight first try on 2026-09-03 — the earlier "measured NOT to
+    win" here was a calculation, not a measurement.)
 
     ⚠ A FALL IS RECOVERABLE AND COSTS ONLY THE WALK — the puzzle resets on every entry (MEASURED).
     So a failed run is cheap, and re-running is safe.
@@ -11799,7 +11800,9 @@ class Ch22ExitMode(BotMode):
     ⚠ THE REAL RISK IS THE PARTY, NOT THE ROUTE. Three consecutive trainer battles with 1 Potion and
     0 Revives, arriving at ~91%. There is NO Poke Center inside and `allow_escaping: false` on BOTH
     floors — a party that cannot survive them cannot leave the room it is standing in. **A whiteout
-    here is a RESULT that sizes the Juan readiness problem, not a driver defect.**
+    here is a RESULT — it says the party cannot survive its own way out — not a driver defect.**
+    ‼ (This read "sizes the Juan READINESS problem". Juan was won on 2026-09-03, so there is no
+    readiness problem; what a whiteout here sizes is the EXIT's own cost.)
 
     THE GRADE: back out in `SOOTOPOLIS_CITY`, whiteouts == 0, AND a real `calculate_path` off the
     end tile — that last conjunct is the one whose absence let §Ch15/§Ch18/§Ch19 each PASS while
@@ -11819,7 +11822,8 @@ class Ch22ExitMode(BotMode):
     def on_whiteout(self) -> bool:
         self.whiteouts += 1
         log("[ch22exit] !! WHITEOUT - the party could not survive the forced battles. That is a "
-            "RESULT sizing the readiness problem, not a driver defect. Latching the abort so a "
+            "RESULT — the party cannot survive its own way out — not a driver defect. Latching the "
+            "abort so a "
             "verdict still prints.")
         try:
             from modules.story.early_game import set_story_abort
@@ -11924,7 +11928,9 @@ class Ch22ExitMode(BotMode):
             f"b1f_steps={report.get('b1f_steps')} battles={self.encounters} "
             f"whiteouts={self.whiteouts} frames={total}")
         log(f"[{TAG}] PARTY {hp0}/{mx0} -> {hp1}/{mx1}  fainted {faint0} -> {faint1} "
-            f"(this is the COST OF THE FORCED BATTLES, and what sizes the Juan readiness problem)")
+            f"(this is the COST OF THE FORCED BATTLES. ⛔ It used to say this 'sizes the Juan readiness "
+            f"problem'; Juan was WON on 2026-09-03, so what it actually sizes is how much HP the "
+            f"chapter must have in hand BEFORE the exit — which is why the fall goes AFTER the badge)")
         log(f"[{TAG}] BATTLES at={self.encounter_maps} (PREDICTED 3: {gym.B1F_FORCED_TRAINERS}. "
             f"THREE IS THE PASS SHAPE — zero would mean the route or the sight-line model is WRONG, "
             f"not that the bot got lucky)")
@@ -11933,6 +11939,181 @@ class Ch22ExitMode(BotMode):
             f"while stranded)")
         log(f"[{TAG}] FAILURE {failure}")
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
+class Ch22JuanMode(BotMode):
+    """§Ch22 — THE JUAN FIGHT. Drives PRODUCTION `sootopolis_gym.fight_juan()`.
+
+    ✅✅ **DRIVEN 2026-09-03 AND IT WON** — badge8=True, city_state=6, BattleOutcome.Won,
+    5/6 survivors, frames=32891. ⛔ THE PREDICTION BELOW WAS **WRONG**, AND IT IS KEPT VERBATIM
+    BECAUSE A SPENT PREDICTION IS EVIDENCE: it was a 1v1 damage calculation (Sceptile vs Kingdra)
+    applied to a **6-versus-5** battle, and I published it as "MEASURED" in six files. See
+    `08-MISTAKES.md` 2026-09-03. ⚠ N=1 — see the DETERMINISM note at the end of this docstring.
+
+    ⛔⛔ (SPENT PREDICTION, 2026-09-02) THIS DRIVE IS **EXPECTED TO LOSE**, AND THE LOSS IS THE
+    MEASUREMENT.
+    Kingdra L46 is WATER/DRAGON, so Grass, Electric AND Ice are all NEUTRAL; no party member has a
+    Dragon move; and Juan restores it three times (Rest+Chesto + 2x Hyper Potion). The arithmetic
+    says Sceptile 3HKOs a 138-HP Kingdra while being 2HKO'd by Ice Beam.
+    ‼ **BUT THAT IS A CALCULATION, AND THIS PROJECT DOES NOT LET A DAMAGE CALC STAND IN FOR A
+    DISCRIMINATOR.** This driver exists so a live run decides it, and so a LOSS produces a NUMBER:
+    how many of Juan's five went down, what our party had left, and where the wall is.
+
+    ⛔ SO READ THE GRADE CAREFULLY: `ACCEPTANCE: FAIL` is a legitimate RESULT here, not a defect
+    — a re-run may lose. The defect shapes are: a hang (unbounded), a run that reports nothing, or
+    a claim of victory without `BADGE08_GET`.
+
+    ⛔ PREDICTIONS, FILED BEFORE THE FIRST RUN:
+      the ice walk reproduces (64 steps, count 68, at (8,3)); the talk starts a trainer battle;
+      **we LOSE** — a whiteout, badge=False; we take down 1-3 of Juan's five; the party is wiped or
+      nearly so. UNPREDICTED and wanted: WHICH of our mons does the work, WHICH of his stops us, and
+      the frame cost of a full gym-leader fight (nobody has measured one in this harness).
+
+    ⚠ A whiteout here respawns at the Sootopolis Poke Center, which is RECOVERABLE and costs only
+    the run — the ice puzzle resets on every entry (MEASURED). So this drive is cheap to repeat.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_hm07.ss1 --driver ch22juan --frames 120000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch22Juan"
+
+    def __init__(self):
+        super().__init__()
+        self.encounters = 0
+        self.whiteouts = 0
+        self.battle_outcomes: list[str] = []
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts += 1
+        log("[ch22juan] !! WHITEOUT — we lost. That is the EXPECTED first result and it is the "
+            "MEASUREMENT, not a defect. Latching the abort so a verdict still prints.")
+        try:
+            from modules.story.early_game import set_story_abort
+
+            set_story_abort(True)
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch22juan] !! could not latch the abort: {type(error).__name__}: {error}")
+            return False
+        return True
+
+    def on_battle_started(self, encounter):
+        self.encounters += 1
+        return super().on_battle_started(encounter)
+
+    def on_battle_ended(self, outcome=None):
+        try:
+            self.battle_outcomes.append(str(outcome))
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            return super().on_battle_ended(outcome)
+        except TypeError:
+            return None
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_flag, get_event_var
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story import sootopolis_gym as gym
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+
+        TAG = "ch22juan"
+        frames_before = context.emulator.get_frame_count()
+
+        def where():
+            a = get_player_avatar()
+            try:
+                return MapRSE(tuple(a.map_group_and_number)).name, tuple(a.local_coordinates)
+            except Exception:  # noqa: BLE001
+                return f"UNKNOWN{tuple(a.map_group_and_number)}", tuple(a.local_coordinates)
+
+        def party_snapshot():
+            return [(m.personality_value, m.species.name, m.level, m.current_hp, m.total_hp)
+                    for m in get_party() if m is not None]
+
+        import os  # ⛔ LOCAL on purpose — this module has NO module-level `os`, and a substring
+        #            check for "import os" passed over that fact (it matches `import os.path`
+        #            elsewhere). The run died at f0 with `NameError: name 'os' is not defined`.
+
+        def _rng() -> int:
+            """`gRngValue` — the ONLY thing that decides whether a re-run is a new sample."""
+            from modules.memory import read_symbol, unpack_uint32
+
+            return unpack_uint32(read_symbol("gRngValue"))
+
+        # ⛔ THE SAMPLER. Runs 1-3 from this fixture came back BYTE-IDENTICAL (frames=32891,
+        # 5/6 survivors, three times), which is a DETERMINISM reading and NOT three samples.
+        # This knob idles N frames before the talk so a re-run starts the battle from a
+        # DIFFERENT RNG state — the only way a repeat of a deterministic harness becomes a draw.
+        JITTER = int(os.environ.get("POKEBOT_CH22JUAN_JITTER", "0") or 0)
+
+        start_name, start_at = where()
+        party0 = party_snapshot()
+        log(f"[{TAG}] PRE at={start_name}{start_at} badge8={get_event_flag('BADGE08_GET')} "
+            f"party={party0}")
+        log(f"[{TAG}] ‼ THIS FIGHT WAS WON ON 2026-09-03 (5/6 survivors) — but N=1, so a LOSS "
+            f"on this run is a RESULT, not a defect. The typing is real and unhelpful: Kingdra L46 "
+            f"is WATER/DRAGON so Grass, Electric AND Ice are all NEUTRAL, nothing here has a "
+            f"Dragon move, and Juan restores it three times. ⛔ An earlier version of this line "
+            f"said the drive was EXPECTED TO LOSE; that was a damage calc, not a measurement.")
+        log(f"[{TAG}] RNG gRngValue=0x{_rng():08x} jitter={JITTER} — ⛔ THE RNG IS WHAT MAKES A "
+            f"RE-RUN A SAMPLE OR A REPLAY. Identical output across runs is a DETERMINISM check, "
+            f"never a replication (SESSION DISCIPLINE #8).")
+
+        report: dict = {}
+        failure = None
+        try:
+            if start_name == "SOOTOPOLIS_CITY":
+                yield from _navigate_riding_out(MapRSE.SOOTOPOLIS_CITY, (31, 32), tries=6)
+                yield from _navigate_riding_out(gym.GYM_1F, gym.GYM_ENTRANCE, tries=4)
+                yield from wait_until_truly_controllable()
+            if not gym.juan_defeated():
+                yield from gym.walk_the_ice(report)
+                # the ice walk rests on (8,6); step up the now-open stairs to Juan's front tile
+                from modules.story.sootopolis import _bounded_step
+
+                for _ in range(3):
+                    here = tuple(get_player_avatar().local_coordinates)
+                    yield from _bounded_step("Up", expect=(here[0], here[1] - 1),
+                                             map_enum=gym.GYM_1F)
+                yield from wait_until_truly_controllable()
+                rng_pre_jitter = _rng()
+                for _ in range(JITTER):
+                    yield
+                rng_at_talk = _rng()
+                report["rng_at_talk"] = rng_at_talk
+                log(f"[{TAG}] AT JUAN'S TILE {where()} — talking now. "
+                    f"RNG 0x{rng_pre_jitter:08x} -> 0x{rng_at_talk:08x} after {JITTER} idle "
+                    f"frames (⛔ IF THESE ARE EQUAL THE JITTER MOVED NOTHING and the re-run is a "
+                    f"REPLAY, not a sample — say so rather than reporting N+1).")
+            yield from gym.fight_juan(report)
+        except Exception as error:  # noqa: BLE001 - the driver REPORTS failures, never hides them
+            failure = f"{type(error).__name__}: {str(error)[:600]}"
+            log(f"[{TAG}] LEG FAILED: {failure}")
+
+        here_name, at = where()
+        party1 = party_snapshot()
+        badge = get_event_flag("BADGE08_GET")
+        alive = [p for p in party1 if p[3] > 0]
+        passed = badge and failure is None and self.whiteouts == 0
+        total = context.emulator.get_frame_count() - frames_before
+
+        log(f"[{TAG}] RESULT badge8={badge} won={report.get('won')} at={here_name}{at} "
+            f"city_state={get_event_var('SOOTOPOLIS_CITY_STATE')} battles={self.encounters} "
+            f"outcomes={self.battle_outcomes} whiteouts={self.whiteouts} frames={total}")
+        log(f"[{TAG}] PARTY BEFORE {party0}")
+        log(f"[{TAG}] PARTY AFTER  {party1}")
+        log(f"[{TAG}] SURVIVORS {len(alive)}/6 — ⭐ THIS IS THE MEASUREMENT: how far a party with "
+            f"NO super-effective answer to a Water/Dragon ace actually gets. It sizes the readiness "
+            f"gap that levels (or a Dragon move) have to close.")
+        log(f"[{TAG}] FAILURE {failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'} "
+            f"(⛔ FAIL WAS THE PREDICTION — a loss is a RESULT here, not a defect. The defect shapes "
+            f"would be a hang, a run that reports nothing, or a victory claim without the badge.)")
         context.set_manual_mode()
 
 
@@ -13362,6 +13543,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch22IceMode()
         elif args.driver == "ch22exit":
             context.bot_mode_instance = Ch22ExitMode()
+        elif args.driver == "ch22juan":
+            context.bot_mode_instance = Ch22JuanMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":
