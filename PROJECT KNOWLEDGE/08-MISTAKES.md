@@ -11341,3 +11341,61 @@ no test at all. Either prove such a claim or delete it.
 and required to fault-inject rather than reason. It confirmed all four headline numbers AND found
 that the controls certifying them were hollow. **Third time this session that an adversarial pass
 overturned something I was confident in.**
+
+
+## 2026-09-03 — I REFUTED A TRUE CLAIM TWICE BY TESTING BOARD STATES THE GAME CAN NEVER REACH
+
+**Symptom.** An agent audit said two boulder pushes seal Victory Road B1F and the minimum solution is
+2 pushes + 1 smash. I wrote `probe_vr_b1f_claims.py` to check it myself. Its geometry sections were
+right and valuable — they independently confirmed the boulder/rock positions, both shaft walls, both
+push destinations, and the 23-tile arrival chamber, settling the coordinate-space worry that was the
+likeliest way the audit could have been worthless. Then two further sections reported, confidently:
+
+* *"PUSH WEST (4,7) is REDUNDANT — the ladder is reachable without it"* — **WRONG.**
+* *"pushing (4,7) SOUTH does not seal the floor — 297 tiles still reach the ladder"* — **WRONG.**
+
+Two independent solvers (one built from scratch with no sight of the first) both return minimum cost
+**3** with that push required, and both return SEALED when (4,7)-south is forced as the first push.
+
+**Root cause — and ⛔ MY FIRST DIAGNOSIS OF IT WAS ALSO WRONG, which is half the lesson.** I blamed
+the missing directional edge-blocker rule (B1F has 178 `MB_IMPASSABLE_NORTH` tiles and my model
+ignores them), and wrote that into the note as the explanation. The independent solver then PROVED
+that rule is **vacuous on this map**: all 13 *passable* such tiles have a collision-1 wall directly
+north, so 0 passable→passable crossings are blocked by it, and its fault arm changes nothing.
+⇒ **I had produced a plausible mechanism and presented it as a cause.** A cause needs the same
+evidence bar as the claim it explains.
+
+**The actual, single cause of both false findings: I BUILT BOARD STATES THAT ARE UNREACHABLE.**
+* The seal test asked *"with this boulder parked here **and every other obstacle cleared**, is the
+  ladder reachable?"* — but you cannot clear the other obstacles **from** the sealed state. That is
+  what "sealed" means. The premise assumed away the conclusion.
+* The necessity test dropped push 1 and kept push 2 — but **push 2 is impossible without push 1**:
+  the only route to (8,10), the tile you must stand on to push (9,10) east, is (4,7)→(4,10)→(8,10),
+  and push 1 is what opens (4,7).
+
+**The fix.** Both sections were DELETED from the probe rather than repaired, and replaced with a long
+comment naming the trap, because the approach cannot be made correct by being more generous. The
+probe now answers geometry only and says so in its docstring, its section 6 banner and its verdict.
+The note (`ai-research-notes/2026-09-03-ch23-VICTORY-ROAD-B1F-B2F.md` §E2) records the false findings
+rather than quietly dropping them.
+
+**Prevention rules.**
+⛔⛔ **APPLYING A SUBSET OF ACTIONS DOES NOT PRODUCE A REACHABLE STATE.** Before a counterfactual
+board, config or fixture is allowed to refute anything, **prove it is reachable, in order.** A query
+over an impossible premise is vacuous, and it does not announce itself — it returns a clean,
+confident number.
+⛔ **A "NECESSITY" TEST THAT REMOVES STEP k AND KEEPS STEP k+1 ASSUMES THE STEPS ARE INDEPENDENT.**
+When the steps are order-dependent, that test measures nothing. ‼ *I had already written "pushes are
+ORDER-DEPENDENT and a tile graph cannot express them" into the same document, and then tested as
+though it were false.* **A constraint you have documented is not thereby in force in your next test.**
+⛔ **AN EXPLANATION FOR YOUR OWN ERROR IS A CLAIM AND NEEDS EVIDENCE.** "My model lacks rule X" is a
+hypothesis until you show rule X would have changed the answer. Mine would not have.
+✅ **WHAT WORKED, AND IT IS THE ONLY REASON NO CODE WAS BUILT ON THIS:** I filed the disagreement as
+a DISAGREEMENT — "my instrument says otherwise AND my instrument is known to be weaker here" — instead
+of as a refutation, and wrote *"until it is adjudicated, take the UNION of both answers: forbid BOTH
+south pushes and perform all THREE actions."* That union was the correct behaviour under both the
+true and the false model. ⇒ **when two instruments disagree on a safety property, ship the
+intersection of what they permit, and let the adjudication catch up.**
+‼ **Fourth adversarial overturn in this session.** The pattern is now unambiguous: a fresh agent told
+to ATTACK, given the tooling traps in advance and required to fault-inject rather than reason, finds
+things I do not — including errors in the corrections I made to my own earlier errors.

@@ -1334,7 +1334,7 @@ the Emerald event flag that proves completion (names from
 pre-arrival and the flag is **True** from leg 1 onward, so the old reason is wrong even though the
 conclusion is right). ⛔ **NO MACH BIKE NEEDED — but the ascent DELIBERATELY FALLS through ONE cracked tile.** `_CLEAN` is per-floor, not global: `2F_Clean` has 0 cracked tiles, **`4F_Clean` has 5**, and `4F (3,1)` is a SEALED POCKET reachable ONLY by falling through `4F (6,4)`/`(7,4)` (⛔ NOT `(9,4)` — a decoy). ➡ **READ §Ch21 ATLAS in this file before building; a route that avoids all cracked tiles CANNOT reach the summit.** | `LEGENDARIES_IN_SOOTOPOLIS` (83), `STEVEN_GUIDES_TO_CAVE_OF_ORIGIN` (307), `DEFEATED_RAYQUAZA` (448), `RECEIVED_RED_OR_BLUE_ORB` (212), `WALLACE_GOES_TO_SKY_PILLAR` (311) |
 | 22 | **Gym 8 — JUAN** **[P2 FIX: not Wallace]** | Sootopolis City | **Juan** (Water) — `SootopolisCity_Gym_1F_EventScript_Juan` | **Rain** | **Waterfall** (HM07) given by **Wallace in Sootopolis** (around crisis resolution; *verify exact trigger live*) | `DEFEATED_SOOTOPOLIS_GYM` (1271), `BADGE08_GET` (2158), `RECEIVED_HM_WATERFALL` (312) |
-| 23 | Victory Road | Rt 128/132-134 (Surf/Dive/Waterfall) → Ever Grande | Rival Wally (Victory Road) | — | Surf+Waterfall+Dive to reach; **Strength**+Rock Smash+Flash inside | `DEFEATED_WALLY_VICTORY_ROAD` (126) |
+| 23 | Victory Road | Sootopolis → scripted DIVE warp → **Rt 126/127/128** → Ever Grande (one waterfall, climbing NORTH) | Rival Wally (Victory Road) | — | Surf+Dive+Waterfall to reach; **{Strength, Rock Smash, Surf}** inside — ⛔ NOT Flash (optional, and not held) | `DEFEATED_WALLY_VICTORY_ROAD` (126) |
 | 24 | **Elite Four + Champion** | Ever Grande / Pokémon League | Sidney→Phoebe→Glacia→Drake→Wallace | — | — | `DEFEATED_ELITE_4_SIDNEY/PHOEBE/GLACIA/DRAKE` (1275-1278), `IS_CHAMPION` (2175), `SYS_GAME_CLEAR` (2148) |
 
 ### 2.1 HM → badge field-use gate table (the "stuck bot" prevention list)
@@ -1874,7 +1874,9 @@ from in-repo data alone):
    Strength boulder / Rock Smash rock / Surf/Dive/Waterfall spot is on the *only*
    path vs a shortcut. Late-game water HM sequence (Surf→Dive→Waterfall to reach
    Sootopolis/Seafloor/Ever Grande) is asserted from `can_surf/dive/waterfall`
-   gating but the exact required tiles on Rt 126/128/132-134 must be confirmed live.
+   gating but the exact required tiles on **Rt 126/127/128** must be confirmed live.
+   *(Read "Rt 126/128/132-134" until 2026-09-03 — Routes 132-134 run WEST to Slateport and are
+   the REGI arc, not the Ever Grande approach. Ever Grande's only connection is ROUTE128.)*
 4. **`navigate_to_anywhere` real-world leg coverage** — export it, add gate-aware
    retry, and test **leg-by-leg**; it definitely cannot open story-gated doors or
    route Dive segments, so the orchestrator must own gate-sequencing.
@@ -4262,8 +4264,13 @@ bullets had been CLOSED the same day — each bullet now carries its own marker.
 Graded on `BADGE08_GET` (`chapters.py:255-256`). Entry from `post_hm07.ss1` / a live §Ch21 handover
 at `SOOTOPOLIS_CITY (31,34)`, gym warp **(31,32)**, 2 wp. **The badge is what makes field Waterfall
 usable** (`src/field_control_avatar.c` gates `EventScript_UseWaterfall` on `FLAG_BADGE08_GET`), which
-is what opens Routes 132-134 → Ever Grande for §Ch23. `VAR_SOOTOPOLIS_CITY_STATE = 6` is set by the
+is what opens the route to Ever Grande for §Ch23. `VAR_SOOTOPOLIS_CITY_STATE = 6` is set by the
 same script but unlocks nothing the bot needs.
+⛔ *(This read "opens **Routes 132-134** → Ever Grande" until 2026-09-03. **That routing is WRONG and
+the same error was already corrected in `chapters.py` and the §Ch23 recon note — this was the third
+copy, and nothing pointed at it.** Ever Grande's ONLY connection is **ROUTE128**; the §Ch23 approach
+is Sootopolis → a scripted DIVE warp → Routes 126/127/128 → Ever Grande → one waterfall climbing
+NORTH. ⇒ on correcting a fact, `grep` the tree for it and fix EVERY copy — see §Ch23 below.)*
 
 ## The three mechanics that make this gym unlike every other one
 

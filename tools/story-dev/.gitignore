@@ -3,6 +3,17 @@
 *.stdout
 *.out
 recon_*.txt
+# ⛔ ANCHORED ON PURPOSE — the leading `/` means "this directory only", never `evidence/`.
+# The convention drifted from `foo.stdout` to `foo.stdout.txt` and this rule did not follow, so
+# 40 loose driver captures sat untracked for weeks. That is not clutter: it made the tree
+# permanently dirty, so the SessionStart hook reported "uncommitted changes — pull SKIPPED" at
+# EVERY session start, training the next agent to wave past the one warning that protects a
+# project worked on from several machines.
+# ‼ A bare `*.stdout.txt` here would ALSO swallow `evidence/*.stdout.txt` — 92 files that are
+# tracked DELIBERATELY as the project's evidence record — and every future one, silently.
+# Fault-tested both ways on 2026-09-03: `git check-ignore` fires on a loose capture and does
+# NOT fire on an evidence file.
+/*.stdout.txt
 # New states drivers write land in saves/ — commit only curated checkpoints, not scratch
 saves/2*.ss1
 saves/midstuck.ss1

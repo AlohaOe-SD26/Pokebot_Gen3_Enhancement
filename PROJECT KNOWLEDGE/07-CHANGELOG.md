@@ -20660,3 +20660,134 @@ alternatives, since `map_path.py:1034-1037` adds **+10000** to a tile with an ar
 raises the direct entrance→ladder distance 44 → 46; and three B1F boulders have **no legal push**
 until their paired rock is smashed, so pushes are order-dependent and the "298 tiles" figure is an
 upper bound achievable in one specific order, not a route.
+
+
+## 2026-09-03 (B1F/B2F) — THE FLOORS NOBODY HAD AUDITED, AND THE FIRST MOVE CAN BREAK THEM
+
+**1. ⛔⛔ VICTORY ROAD B1F CAN BE PERMANENTLY SEALED BY EITHER OF TWO PUSHES, AND BOTH ARE
+AVAILABLE ON MOVE ONE.** A decomp audit of `VictoryRoad_B1F`/`_B2F` — the two floors a recon bullet
+had scoped away while the route was believed 1F-only, and which the scope-cut retraction put back on
+the mandatory path — reports that the B1F arrival chamber at (8,3) is 23 tiles whose ONLY two exits
+are Strength boulders at **(4,7)** and **(9,10)**. Each sits at the mouth of a 1-tile shaft with a
+wall at the bottom, so **pushing either SOUTH makes the B2F ladder (30,25) unreachable**: an
+exhaustive search of 70,442 reachable states found 891 dead ones and **exactly two** alive→dead
+actions, both of them those pushes.
+⭐ **Minimum solution: 2 pushes + 1 smash** — PUSH WEST (4,7)→(3,7) from (5,7); PUSH EAST
+(9,10)→(10,10) from (8,10); SMASH (18,12). 79 actions to the ladder.
+✅ **Not a hard softlock:** `ClearTempFieldEventData()` memsets `FLAG_TEMP_11`–`1F` on every map
+load, so leaving and re-entering respawns every boulder. ⛔ The same call does
+`FlagClear(FLAG_SYS_USE_STRENGTH)` ⇒ **Strength must be re-activated on every visit**, and the
+puzzle therefore has to be solved in a SINGLE visit.
+⇒ **DESIGN RULING, and it is safe even if the simulation is imperfect: ship a fixed push SEQUENCE,
+never a runtime solver, and make a SOUTH push on those two boulders unreachable in code.** A refusal
+costs nothing if the model is over-cautious; a wrong push costs the visit. This is the §Ch22
+ice-route pattern — a precomputed table verified live per step beats a planner whenever one wrong
+move is unrecoverable.
+⚠⚠ **RECORDED AS A NOTE, NOT AS TRUTH.** The audit itself separates its decomp READS (with
+citations and asserted byte lengths) from its **Sokoban SIMULATION**, and says the sealing pushes,
+the 2-push solution and the Surf/Waterfall verdict must be confirmed live before code depends on
+them. `ai-research-notes/2026-09-03-ch23-VICTORY-ROAD-B1F-B2F.md` §F carries the three cheap
+decisive checks. **Two independent agents were dispatched to attack and to re-derive it.**
+
+**2. ⭐ THE CAVE'S KIT IS SETTLED: {Strength, Rock Smash, Surf}, AND WATERFALL IS NOT PART OF IT.**
+B1F is cut into two walk-disjoint halves (301 and 107 tiles) and **B2F-by-Surf is the only bridge** —
+238 `MB_OCEAN_WATER` tiles. `MB_WATERFALL` is `TILE_FLAG_SURFABLE` and descending is free
+(`ForcedMovement_PushedSouthByCurrent`); only CLIMBING is badge-gated. ⚠ But that makes the
+B1F→B2F→B1F transit ONE-WAY without Waterfall, so a route assuming two-way transit must check the
+carrier is still alive. Waterfall IS still required to reach Ever Grande in the first place.
+⚠ Also recorded: **6 unavoidable trainer battles** (returning via B1F(5,26) instead of (17,16) makes
+it 8), wild encounters on EVERY walkable tile of both floors, Rock Smash itself able to start a
+battle, one-way `MB_JUMP_WEST` ledges at (39,25-27) **on the mandatory route**, and ✅ **no map
+scripts at all** on either floor (`scripts.inc` is `.byte 0` for both).
+⚠ **AND ONE FINDING THAT INDICTS OUR OWN OFFLINE TOOL:** both floors carry `MB_IMPASSABLE_NORTH` on
+tiles that read collision-0 (13 on B1F, 16 on B2F). Production models this
+(`accessible_from_direction`); `solve_victory_road.py` does not — another reason that script answers
+the per-kit OBJECT split only, and terrain questions go to production.
+
+**3. 🔧 A GATE THAT MEASURES THE WRONG QUANTITY TEACHES THE WORKAROUND THAT DEFEATS IT.**
+`04-HANDOFF.md`'s §Ch23 queue head had reached **~14,000 characters on ONE line** and carried FOUR
+statements that later text on the SAME line falsified: *"§Ch23 has none"* (a fixture), *"STILL OWED:
+dump the bag's HMs"*, *"genuinely UNMEASURED"* (Flash), and *"B1F/B2F STILL HAVE NO TRAINER OR
+BOULDER AUDIT"* — every one of them done by the time it was read.
+‼ **Second time in two days, on the same queue item, with the warning already ON the line.** Root
+cause is mechanical, not attentional: `lint_docs.py` R3 counts **lines** and nothing else
+(`lint_docs.py:156`), so the cheapest way to stay under budget is to append to an existing line
+rather than add one. The budget meant to force retirement produced an unreadable line instead.
+✅ Retired to 5,911 characters (SUMMARISED AND POINTED AT, never deleted) and filed as
+**`#24-linebudgetchars`** with a fault-test requirement — ⚠ a naive character cap turns Tier 0 red
+immediately, because `03-PUNCH-LIST.md`'s `#24-remainingarc` row is one legitimately enormous table
+cell. ⛔ Raising the budgets is explicitly NOT the fix.
+
+**4. ✅ TWO RETIREMENTS PAID FOR ALL OF THE ABOVE, THE DOCUMENTED WAY.** `04-HANDOFF.md` was AT its
+900-line cap and `03-PUNCH-LIST.md` 2 lines under its 3,600 — the handoff's own queue said the next
+session's first act had to be a retirement in both files. Done: `#24-ch22juan` (70 lines, CLOSED)
+moved **VERBATIM** to `28-HANDOFF-ARCHIVE.md` behind a one-line pointer that keeps its live drift
+figure and its one durable rule (*a pre-step check that REFUSES beats a post-hoc assertion that
+explains*); the script REFUSED to archive anything containing an open `- [ ]`/`- [~]` box. Both new
+items — `#24-ch23victoryroad` (filed: §Ch23 had **no punch-list item at all** while the handoff
+commanded it, a P5 gap) and `#24-linebudgetchars` — fit in the space freed.
+✅ Also deleted from the handoff: a truncated fragment (*"THE USER REDIRECTED PRIORITIES ON
+2026-08-14, AFTER Room 9 landed. §Ch20 CHAPTER"*) whose **unclosed `**` bled bold into the lines
+below it** and whose content was superseded by the very next line.
+
+**5. 🔧 THE WORKING TREE HAD BEEN PERMANENTLY DIRTY, WHICH IS A SAFETY BUG, NOT UNTIDINESS.**
+40 loose `*.stdout.txt` driver captures sat untracked in `tools/story-dev/`, so the SessionStart hook
+reported *"Uncommitted changes exist … Pull was SKIPPED"* at **every** session start — training each
+new agent to wave past the one warning that protects a project worked on from several machines.
+Cause: the convention drifted from `foo.stdout` to `foo.stdout.txt` and the ignore rule never
+followed. ✅ Fixed with `/*.stdout.txt` — ⛔ **anchored on purpose**, because a bare `*.stdout.txt`
+would also swallow `evidence/*.stdout.txt`, 92 files tracked DELIBERATELY as the project's evidence
+record, and every future one, silently. **Fault-tested three ways:** it fires on a loose capture, and
+does NOT fire on an existing evidence file nor on a not-yet-created one.
+
+
+## 2026-09-03 (adjudication) — THE VICTORY ROAD SEAL SURVIVED THREE PASSES; FIVE SUB-CLAIMS DID NOT
+
+**1. ✅✅ THE HEADLINE HOLDS, AND IT IS NOW BACKED BY A SECOND INSTRUMENT RATHER THAN A SECOND
+OPINION.** A solver built **from scratch, in a fresh directory, with no sight of the first**
+reproduces the audit exactly: **70,442 reachable states, 891 dead, exactly 2 fatal actions, minimum
+cost 3** — and adds that **the minimal 3-action sequence is UNIQUE**. ⭐ The reason to believe it is
+its **fault-injection table**, not the agreement (agreement is not a confidence signal, measured):
+breaking the **elevation-CARRY** rule makes the goal UNREACHABLE, and ⭐ **the four rules that could
+not be broken were each chased to a proof of WHY** rather than claimed verified — the exact
+discipline `solve_victory_road.py` was repaired to adopt earlier the same day.
+
+**2. ⭐⭐ THE FACT THAT DECIDES WHERE THE GUARD GOES: ONLY PUSHES CAN KILL.** Of **186,602 walk edges
+and 145 smash edges, ZERO cross live→dead.** The bot cannot lose this floor by walking, by taking a
+ledge, or by smashing the wrong rock. ⇒ **the guard belongs on `strength_push` and nowhere else** —
+a much smaller and safer change than the "runtime solver with a dead-state check" the first reading
+implied.
+
+**3. ⛔ FIVE SUB-CLAIMS REFUTED, AND ONE OF THEM WOULD HAVE PUT THE WRONG RULE IN THE CODE.**
+The fatal boulder is really **(9,10)**; **(4,7)-south seals only INDIRECTLY** (it forces (9,10)'s
+only remaining push to be south) and **only while (9,10) is unmoved**. The shafts are **not 1-wide**
+(T-junctions at (4,10)/(9,13)), and a shafted boulder **can be pushed back north** ⇒ ‼ *"a boulder in
+a shaft means the floor is lost"* is the WRONG rule to encode. Also: B1F has **THREE** ladder-bearing
+regions, not two (a 35-tile elevation-4 pocket reachable only from B2F holds TM Psychic); minimum
+trainers are **≥5 sight-triggered + Wally**, not 6 sight-triggered; **no B1F ledge is load-bearing**
+(banning all 10 leaves Region A intact) so the "one-way ledge on the mandatory route" warning was
+backwards; and ⚠ **`VictoryRoad_1F` DOES have an `ON_TRANSITION` script and 2 Wally coord_events** —
+only the basements are script-free.
+⚠ **New routing hazard neither earlier pass found: Samuel's sight line lies ON the minimal path.**
+Across 1,200 trainer configurations, 900 give cost 3 and 300 give 6; the 300 rest on an approach
+mechanic that was reasoned about rather than read. **Robust, but only just.**
+
+**4. ✅ THE COORDINATE-SPACE TRAP — ATTACKED FIRST, AND RETIRED.** The likeliest way the audit could
+have been worthless while reading perfectly was an object/layout coordinate offset. Four independent
+invariants agree in raw layout space (all 7 B1F warps land on the 7 `MB_LADDER` tiles; both boulders
+sit on `MB_CAVE`/collision-0/elev-3; the `MB_IMPASSABLE_NORTH` counts reproduce exactly; the chamber
+computes to 23), and my own probe reproduced the geometry from the same bytes. ⚠ The residual
+`MAP_OFFSET` (+7) variant — live RAM vs. layout space — is **treated as retired on evidence already
+in hand**: `--driver ch23route` fed `calculate_path` these decomp coordinates and got 29 wp, 44 wp
+and 15 wp with 29 + 15 = 44, which is not obtainable under a uniform shift. §F check 1 confirms it
+for free anyway.
+
+**5. ⛔⛔ AND MY OWN PROBE PRODUCED TWO CONFIDENT FALSE REFUTATIONS, THEN I MISDIAGNOSED THEM.**
+It called the west push redundant and the (4,7) south push harmless. Both wrong. I blamed the missing
+directional edge-blocker rule — **also wrong; that rule is provably vacuous on B1F.** The real cause
+was that **I tested board states the game can never reach.** The two offending sections were DELETED
+rather than repaired (the approach cannot be fixed by being more generous) and replaced with a
+comment naming the trap; the probe's geometry half, which is correct and did real work, stays.
+Filed with prevention rules in `08-MISTAKES.md`. ✅ **No code was built on the false findings, because
+they were filed as a DISAGREEMENT with an explicit "take the UNION until adjudicated" instruction** —
+and that union was correct under both the true and the false model.

@@ -3918,3 +3918,42 @@ bitten once by an arm whose expectation was inverted by its own fix (KI-80).
 ⇒ **generalised, and now in `08-MISTAKES.md`: an acceptance conjunct asserting an ABSENCE must be
 paired with one proving the OPPORTUNITY existed.** Three conjuncts in this one grade were
 satisfiable by not doing the thing.
+
+
+## 2026-09-03 — VICTORY ROAD B1F: A FIXED PUSH SEQUENCE WITH A REFUSAL GUARD, NOT A RUNTIME SOLVER
+
+**Decision.** §Ch23 will clear the Victory Road B1F boulder puzzle with a **precomputed, fixed action
+sequence** (PUSH WEST (4,7)→(3,7) from (5,7); PUSH EAST (9,10)→(10,10) from (8,10); SMASH (18,12)),
+verified live per step, plus a **refusal guard that makes a SOUTH push on (4,7) or (9,10)
+unreachable in code**. The guard lives in the §Ch23 module, NOT in `strength_push`.
+
+**Why.** Two independent Sokoban solvers agree the floor has **891 dead states out of 70,442**, that
+**exactly two actions** cross live→dead, and that the minimum solution is **3 actions and unique**.
+⭐ Decisively, **only pushes can kill**: of 186,602 walk edges and 145 smash edges, **zero** cross
+live→dead. So the entire hazard is expressible as a refusal inside one call, and the bot cannot lose
+the floor by walking, laddering or smashing.
+‼ A wrong push is unrecoverable **within the visit**; recovery costs a full exit and re-entry, and
+`ClearTempFieldEventData` also clears `FLAG_SYS_USE_STRENGTH`, so the puzzle must be re-solved from
+scratch each time. On a puzzle where one wrong move is unrecoverable, a precomputed table verified
+per step beats a planner — the same reasoning that shipped §Ch22's ice route and §Ch20's Room 8
+9-push sequence.
+
+**Alternatives rejected.**
+* ⛔ **A runtime solver.** It would have to model boulder pushes, elevation carry, order-dependent
+  boulder-rock interlocks and directional edge blockers correctly — and our offline tooling has now
+  been wrong about this floor **three times in one day** (the elevation model twice, then two false
+  refutations from a reachability query over unreachable boards). A solver that is wrong once seals
+  the floor; a table that is wrong once fails a per-step assertion and stops.
+* ⛔ **Guarding inside `strength_push` (`early_game.py:7884`).** §Ch20 shares that function, so this
+  would be a shared-path change requiring an A/B on the ordinary case (session-discipline rule 9),
+  for no benefit — the hazard is specific to one map.
+* ⛔ **Detecting the dead state and recovering.** Recovery is possible (exit + re-enter resets every
+  boulder) but costs the whole visit and re-arms every trainer and encounter. Refusing is strictly
+  cheaper, and a refusal is safe even if the model is over-cautious: a push that is merely redundant
+  costs nothing to forbid, while permitting a fatal one costs the visit.
+
+**Conditions on this ruling.** ⛔ It is adjudicated OFFLINE only — **nothing has touched a live
+emulator.** The three checks in `ai-research-notes/2026-09-03-ch23-VICTORY-ROAD-B1F-B2F.md` §F are
+owed first, and the guard must be built **fail-LOUD**: if a `MAP_OFFSET` (+7) coordinate mismatch
+existed, a naive comparison would silently permit the fatal push, so the guard must also assert it
+recognises the floor and raise if it does not.

@@ -157,7 +157,8 @@ already normal at state 5, so no-ops); no `ON_WARP` or `ON_FRAME` scene matches 
 map has **no coord_events at all** ⇒ **nothing ambushes the bot on the way out.**
 ⚠ The gym exit warp lands on **(31,32)**, the tile Wallace used to occupy — clear at state 6.
 ⭐ The real world-unlock is the BADGE, not the var: `field_control_avatar.c` gates field Waterfall
-on `FLAG_BADGE08_GET`, which is what opens Route 132-134 → Ever Grande for §Ch23.
+on `FLAG_BADGE08_GET`, which is what opens the route to Ever Grande for §Ch23.
+> ⛔ **CORRECTION 2026-09-03 (in place, because `12-STORYMODE-DESIGN.md` points readers HERE as "the full recon"): this line read "opens Route 132-134 → Ever Grande". THAT ROUTING IS WRONG.** Routes 132/133/134 run WEST to Slateport (the Regi arc); **Ever Grande's only connection is ROUTE128**. The §Ch23 approach is Sootopolis → a scripted DIVE warp → Routes 126/127/128 → Ever Grande → one waterfall climbing NORTH. ‼ This was the **FOURTH** copy of the same error; three were fixed and this one was missed because it lives in a dated note rather than a current-state file — **a stub marker pointing at a note makes that note load-bearing, so it must be corrected like one.**
 
 ## §5. THE ORCHESTRATOR TEMPLATE (copy §Ch21's shape exactly)
 
