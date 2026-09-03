@@ -305,7 +305,19 @@ whole chapter.
   be driven with `navigate_to_anywhere`, which routes the WARP graph and re-plans per leg**, and
   `calculate_path` is only good for within-map questions. ‼ This is KI-53's shape and is NOT a
   verdict about reachability — it is the wrong instrument for that question.
-* ✅ **Ever Grande (18,41) → the Poké Center apron (27,49) = 23 waypoints**, confirming the heal is
+* ⚠⚠ **Ever Grande (18,41) → the Poké Center apron (27,49) = 23 waypoints** — but ⛔ **WHAT THIS
+  MEASURES IS NOW IN QUESTION, AND THE ANSWER DECIDES WHETHER §Ch23 CAN HEAL AT ALL.**
+  The 2026-09-03 water-route audit flood-filled Ever Grande and reports (27,48), (18,27) and
+  (18,5) are *"NOT reachable from below"*, sitting in an upper city gated behind Victory Road,
+  while the waterfall-top landing at **(18,55)** has a 151-tile land component that reaches the
+  Victory Road door (18,41) in 16 steps.
+  ‼ **These may not conflict:** production pathed FROM (18,41), and *"from below"* most likely
+  means below the WATERFALL — which is trivially true, since you must climb it. ⛔ **Do not
+  record either as refuted.** ⇒ **THE QUESTION THAT MATTERS IS UNMEASURED: is (27,48)
+  reachable from (18,55), the waterfall-top landing?** If NO, there is **no heal anywhere
+  between Sootopolis and the Pokémon League**, which changes the chapter's whole risk profile.
+  ⭐ **One `calculate_path` query settles it** — add (18,55) → (27,48) to `--driver ch23route`.
+* *(original wording, kept:)* **(18,41) → (27,49) = 23 wp**, confirming the heal is
   reachable from the Victory Road entrance side before the cave.
 
 ## §3g. ⛔⛔ A THIRD REQUIREMENT — **SURF** — AND WALLY IS *MANDATORY*, NOT MERELY FREE

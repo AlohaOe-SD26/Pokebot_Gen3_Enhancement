@@ -83,7 +83,17 @@ repro-fresh` or `repro-ml`). Regenerate any by running the story to that point.
 | `slateport.ss1` | Slateport City (19,20) at the PC, healed (Ch8a ✅) |
 | `stern_done.ss1` | Slateport, `DELIVERED_DEVON_GOODS` set (Ch8b ✅) |
 | `lavaridge.ss1` | Lavaridge Town (9,7), post-Jagged-Pass, healed (Ch11c ✅) |
-| `flannery_done.ss1` | **frontier**: Lavaridge Gym, `BADGE04_GET` (Ch11d ✅; next: Go-Goggles → Ch12) |
+| `flannery_done.ss1` | Lavaridge Gym, `BADGE04_GET` (Ch11d ✅) |
+
+⛔⛔ **THIS TABLE IS NOT THE REGISTRY, AND IT STOPS AT §Ch11d. THE REGISTRY IS
+`saves/FIXTURES.md5`** — one row per PINNED fixture as `<md5>  <filename>  PINNED  <provenance>`,
+and it is the file that is actually maintained. **Read it, not this table.**
+*(Until 2026-09-03 this row was labelled "**frontier**", so a cold reader was told the project's
+leading edge was §Ch11d while §Ch22 had shipped and §Ch23 was underway — twelve chapters of drift
+in the one word a skimmer trusts. The fixtures it never listed include `post_ch20`, `post_hm07`,
+`post_badge8` and `post_waterfall`. ⇒ the word "frontier" is deliberately not used here again:
+a leading-edge marker in a hand-maintained table rots the instant work moves, and this table has
+no gate. `04-HANDOFF.md` is the only place that names the frontier.)*
 
 (`saves/midstuck.ss1` is a SCRATCH state some drivers overwrite when stuck — gitignored,
 never rely on it across runs.)

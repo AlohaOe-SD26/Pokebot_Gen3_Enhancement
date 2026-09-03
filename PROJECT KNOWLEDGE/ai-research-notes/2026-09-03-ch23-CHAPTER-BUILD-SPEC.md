@@ -1,0 +1,243 @@
+# §Ch23 (VICTORY ROAD) — CHAPTER BUILD SPEC
+
+> Written 2026-09-03, before any §Ch23 production code exists. ⛔ **`sandbox-pokebot/modules/story/
+> victory_road.py` DOES NOT EXIST.** Everything §Ch23 has today is HARNESS DRIVERS.
+> Companion notes: `2026-09-03-ch23-VICTORY-ROAD-RECON.md` (the approach),
+> `2026-09-03-ch23-VICTORY-ROAD-B1F-B2F.md` (the basements + the boulder seal),
+> `2026-09-03-ch23-VICTORY-ROAD-1F.md` (1F — three regions cut by ELEVATION),
+> **`2026-09-03-ch23-WATER-ROUTE.md`** (Sootopolis → Ever Grande, tile by tile), and
+> `2026-09-03-ch23-WATERFALL-TEACH-PREDICTIONS.md` (leg 1, graded).
+> The authoritative live status is `#24-ch23victoryroad` and `04-HANDOFF.md`'s queue head.
+
+---
+
+## §0. ⛔⛔ THE FIRST THING TO GET RIGHT: "LEG 1 IS DONE" MEANS A DRIVER, NOT PRODUCTION
+
+`Ch23TeachMode` is a **harness driver** that calls production's `teach_hm_move`. So the PRIMITIVE is
+proven — Waterfall really can be taught to Wailmer, Rollout really is the move that goes, Dive and
+Surf really do survive. **But nothing in the shipped bot orchestrates it.**
+
+‼ **This is the exact shape an adversarial review caught in §Ch22**, where four movement legs lived
+only in drivers while the docs read as though the chapter could perform them.
+⇒ **§Ch23's real deliverable is a PRODUCTION MODULE plus Segment 23 wiring**, not more drivers.
+⇒ When writing status anywhere, say *"the driver drove it"* or *"the chapter does it"* — never the
+ambiguous *"leg N is done"*.
+
+## §1. THE OPENING STATE — AND A DANGER I GOT WRONG, CORRECTED HERE
+
+**Measured on `post_waterfall.ss1`** (`--driver partypids`, which had to be taught to report HP by
+identity before anything in this tree could answer the question):
+
+```
+slot=3  Wailmer   L40  pid=FA51ECF3  hp=0/160 (0%)  ⛔ FAINTED
+slot=2  Swellow   L42  hp=5/118 (4%)
+the other four at 100%          party total 428/701 (61%)
+```
+
+Wailmer is the **sole carrier of Dive** (the only exit from the Sootopolis crater) **and of
+Waterfall** (the only way up to Victory Road), and also carries Surf.
+
+### ⛔⛔ THE CORRECTION IS MORE USEFUL THAN THE FINDING: FIELD MOVES IGNORE HP ENTIRELY
+I first wrote that the heal was a **hard precondition** because the bot "cannot leave the crater on a
+dead Dive carrier". **That is FALSE**, and a decomp pass refuted it:
+
+* **No HP check exists anywhere in the field-move chain** — not in `SetPartyMonFieldSelectionActions`
+  (`party_menu.c:2607-2637`, which reads only `MON_DATA_MOVE1..4`), not in `CursorCb_FieldMove`
+  (`:3702-3780`, whose complete gate list is null-func / link-room / badge flag), not in
+  `SetUpFieldMove_Surf` (`:3858`), `_Dive` (`:3916`) or `_Waterfall` (`:3896`).
+* The **prompt** path is the same: every one of `EventScript_UseSurf` / `_UseDive` / `_UseWaterfall`
+  picks its mon with `checkpartymove` → `ScrCmd_checkpartymove` (`scrcmd.c:1713-1732`), which skips
+  **only** `SPECIES_NONE` and eggs.
+* All 15 `MON_DATA_HP` reads in `party_menu.c` were enumerated; every one is cosmetic or belongs to
+  another context. ‼ The `gText_PkmnHasNoEnergy` refusal people misremember is `:5813` — **in-battle
+  switching only.**
+
+⇒ **A fainted Wailmer Surfs, Dives and Waterfalls exactly as at full HP.**
+⇒ ⛔⛔ **ASSERT WAILMER *PRESENT*, NEVER *ALIVE*.** Present by `(PID, species)` is right — a deposited
+or released Wailmer genuinely strands the run. **A liveness gate is dead code against the real
+engine, and worse: it would make the bot refuse a move the game permits.**
+✅ **Our own code is already clear of the one real version of this risk:** `hm_learner_slot`
+(`early_game.py:4316`) skips only `None` and eggs, with **no HP filter** — read in full, not grepped.
+⚠ One behavioural difference worth knowing: the party menu uses the slot you highlight, while the
+**prompt auto-selects the LOWEST-NUMBERED slot** that knows the move. If the bot picks a slot and the
+prompt names another, that mismatch is ours to handle.
+
+### ⛔ AND I OVERSTATED `allow_escaping: false`
+It gates **Escape Rope and Dig ONLY** (`global.fieldmap.h:186`; exactly two readers —
+`item_use.c:911` and `fldeff_dig.c:17`). It does **not** block Fly, Teleport, or fleeing a wild
+battle. **Fly is permitted on Sootopolis, Routes 126/127/128 and Ever Grande**
+(`MAP_TYPE_CITY` / `MAP_TYPE_OCEAN_ROUTE`), blocked only while `MAP_TYPE_UNDERWATER`.
+⚠ No party member knows Fly, so it is a capability we could acquire, not one we hold.
+
+### ⭐⭐ THE TWO RISKS THAT REPLACE IT — BOTH BIGGER THAN THE ONE THEY REPLACE
+1. ⛔ **`lastHealLocation` MUST BE ARMED BEFORE DEPARTING.** A whiteout warps to
+   `gSaveBlock1Ptr->lastHealLocation`, set by `setrespawn` in the Poké Center's **`ON_TRANSITION`** —
+   i.e. by merely **walking in**; healing is not required. If the bot never entered the Sootopolis
+   Center, a whiteout dumps it at whatever far earlier Center is still saved. **That is the genuinely
+   expensive failure on this leg.** ⇒ **READ the value; never assume it.** *(⚠ `sWhiteOutHealCenters`
+   does not exist in Emerald — that is an FRLG construct. Emerald has exactly one saved heal warp.)*
+2. ⚠ **FIELD POISON TICKS WHILE SURFING AND CAN WIPE THE PARTY** — the only non-battle party-killer
+   (`field_poison.c:119-140`: `if (hp == 0 || --hp == 0) numFainted++`), exempt only on
+   forced-movement tiles. ⇒ **cure poison before departing.**
+
+### ✅ WHITEOUT IS A COST, NOT A STRAND
+`DoWhiteOut` (`overworld.c:358-366`) runs `HealPlayerParty()` — **full HP, full PP, status cleared**
+(`script_pokemon_util.c:30-60`) — halves money, and warps. The avatar state is **re-derived from the
+destination tile** (`GetAdjustedInitialTransitionFlags`, `overworld.c:911-927`), so on-foot-on-water
+is structurally impossible. ⇒ the heal before departing is still worth doing, for the smaller reason
+that a whiteout costs **half the money** and restarts the leg.
+
+## §2. THE BUILD MECHANICS — VERIFIED AGAINST THE HARNESS, AND IT IS **FOUR** EDITS, NOT THREE
+
+Line numbers verified 2026-09-03 against a 14,817-line `story_harness.py` (an earlier reading of
+14,803 was a transcription error and could not be reproduced; git's HEAD blob, `wc` and `grep -c`
+all agree on 14,817). ⚠ **Re-derive them before editing — they move constantly.**
+
+1. **`story_harness.py:37`** — add `"ch23chapter"` to `choices=[...]`. *(argparse ignores order; the
+   list is not chapter-ordered.)*
+2. **after `:14320`** — the dispatch branch:
+   ```python
+   elif args.driver == "ch23chapter":
+       context.bot_mode_instance = Ch23ChapterMode()
+   ```
+   The chain lives inside the main frame loop under
+   `if context.bot_mode == "Manual": … elif len(context.controller_stack) == 0:` and terminates in an
+   `else:` that instantiates the real production mode by name.
+   ⭐ *(`"story"` is in `choices` with NO `elif` — it falls through to that terminal `else` on purpose
+   and runs production `StoryMode`. A second shape defines the class inline inside the `elif` body
+   (`traintest`, `gymtest`, `anchorstory`) — **not** what §Ch2x uses; ignore it.)*
+3. **after `:12546`** (end of `Ch23TeachMode`, before `class Ch22StairsMode` at `:12549`) —
+   `class Ch23ChapterMode(BotMode)`, modelled on `Ch22ChapterMode` (`:11959-12229`).
+4. **a `saves/FIXTURES.md5` row** for any fixture the chapter captures. ⛔ **Not** a README table row:
+   `tools/story-dev/README.md`'s saves table stops at §Ch11d and is not the registry.
+
+**Required members:** `@staticmethod name() -> str`; `run(self)` — a GENERATOR pushed onto
+`context.controller_stack`, ending with `context.set_manual_mode()`.
+⚠ **`BotMode.on_whiteout` defaults to `False`, which DROPS the bot** — a chapter driver must override
+it. `on_battle_started` / `on_battle_ended` are optional; wrap `super().on_battle_ended(outcome)` in
+`try/except TypeError`.
+
+### ⛔⛔ THE `os` TRAP — IT HAS ALREADY COST A 25-MINUTE DRIVE, AND IT IS UNGATED
+`story_harness.py` imports **`os as _os`**. A bare module-level `os` in a new driver is a `NameError`
+**on frame 1**. Use a function-local `import os` (as `Ch22ChapterMode` does) or `import os as _os`
+(as `Ch23TeachMode` does).
+‼ **`repro_undefined_names.py` scans `modules/story/`, NOT `tools/story-dev/`**, so nothing catches
+this. ⇒ **SMOKE-TEST EVERY NEW DRIVER WITH A TINY `--frames` BEFORE COMMITTING TO A LONG RUN.**
+
+### Conventions
+* **Logging:** a module-level `log(msg)` to logfile + stdout, every line prefixed `f"[{TAG}] ..."`.
+  Emission order `PRE` → `RESULT` → named reading blocks → `CAPTURE SKIPPED`/`REFUSED` →
+  **`ACCEPTANCE:` last, always**. There is **no `READING:` prefix**.
+* ⭐ **A refusal IS a reading** — `except Exception as err:  # a refusal IS the reading`, logging the
+  exception TYPE. Never swallow.
+* **Fault knobs:** `POKEBOT_CH23_FAULT_<ARM>=1` (the §Ch21/§Ch22 suffixed-boolean style). ⛔ The bare
+  multi-valued `POKEBOT_CH20_FAULT=<name>` form is §Ch20-only. `POKEBOT_CH23_*` is a free namespace.
+* **Capture:** `CH23_CAPTURE=<name>.ss1`, gated on FULL PASS, refusing overwrite without
+  `CAPTURE_FORCE=1`. ⛔ Do **not** copy the older default-ON boolean idiom
+  (`os.environ.get("CH18_CAPTURE", "1") != "0"`) used by CH16-CH19 — it is superseded.
+* ⭐ `modules/debug_logger.py`'s `_BEHAVIOUR_ENV_VARS` is the canonical registry of production knobs
+  — read it before naming a new one. And `POKEBOT_HMTEACH_POSTLEARN_A` (`early_game.py:5045`) is an
+  existing A/B arm on the HM-teach post-learn path, directly relevant to the Waterfall teach.
+
+## §3. ⭐ THE FOUR GRADING RULES TO COPY — EACH ONE EARNED BY A SHIPPED DEFECT
+
+From `Ch22ChapterMode`. These are not style; each exists because a driver PASSED while broken.
+
+1. **ANTI-VACUITY PREMISE (`not start_done`).** A chapter driver that starts already-done grades a
+   **zero-frame no-op as PASS**. §Ch21's chapter driver shipped with exactly that hole.
+2. **A REAL `calculate_path` OFF THE END TILE, LENGTH NON-ZERO.** The missing conjunct that let
+   §Ch15, §Ch18 and §Ch19 each PASS **while stranded**. ⛔ Non-zero matters because *a whiteout
+   respawns the bot standing ON the Poké Center apron* — a length-0 path lets the very failure being
+   checked for satisfy the check.
+3. **A PRESENCE CONJUNCT BEFORE EVERY ABSENCE CONJUNCT** — `b1f_entered` before `battles_b1f == 0`.
+   *"Zero battles means nothing unless B1F was entered — drive 1 printed 0 having never gone there."*
+   This is house rule 7 (**a candidate is not an attempt**) in grade form.
+4. **GRADE THE BOUND, NOT THE COUNT; THE INVARIANT, NOT THE SINGLE-ATTEMPT FIGURE.**
+   `recoveries <= 2` rather than `whiteouts == 0` (production tolerates 40, and the Juan fight is
+   measured stochastic); `ice_total % 64 == 0` summed across attempts rather than `steps == 64`.
+
+## §4. THE LEG PLAN (skeleton — fill from the recon notes as they land)
+
+| leg | what | status |
+|---|---|---|
+| 1 | teach Waterfall to Wailmer | ✅ **driver** only (`ch23teach`), production module absent |
+| 2 | **heal (HARD precondition)** + preflight assert Wailmer ALIVE by (PID, species) | ⛔ not built |
+| 3 | leave the crater: dive at (29,53) → `UNDERWATER_SOOTOPOLIS_CITY (9,6)` → walk-on warp (9,8) → `UNDERWATER_ROUTE126 (45,65)` → **step south to (45,66)** → emerge | ⛔ not built — ✅ **recon DONE** |
+| 4 | Rt126 east → Rt127 south → Rt128 basin A → ⛔ **fight Carlee + Harrison at x=101** → exit (119, y 27-32) | ⛔ not built — ✅ **recon DONE** |
+| 5 | Ever Grande: surf to **(18,68)**, face NORTH, press A → lands **(18,59)** → (18,56) → step north to land **(18,55)** → 16 steps to **(18,41)** | ⛔ not built — ✅ **recon DONE** |
+| 6 | Victory Road 1F: (15,40) → **Hope (MANDATORY)** → Wally (2,23) or (3,23) → the B1F ladder (9,14) | ⛔ not built — ✅ **1F recon DONE** |
+| 7 | **B1F: 2 pushes + 1 smash** → B2F → back to B1F → 1F(21,32) → **Edgar (MANDATORY)** → exit (39,5) | ⛔ not built |
+| 8 | chapter orchestrator + Segment 23 wiring + fixture capture | ⛔ not built |
+
+⛔ **Leg 7 carries the seal hazard.** Only pushes can kill (0 of 186,602 walk and 145 smash edges
+cross live→dead), so the guard is a refusal inside the `strength_push` call site — ruled in
+`06-DECISIONS-LOG.md` 2026-09-03. **Never push (4,7) or (9,10) SOUTH.**
+### ⛔⛔ WHAT THE WATER-ROUTE AUDIT **CORRECTED** — three facts I had recorded wrong
+1. **THE WATERFALL IS ON EVER GRANDE'S OWN MAP, NOT ROUTE 128.** `MB_WATERFALL`: Rt126 **0**,
+   Rt127 **0**, Rt128 **0**, **EverGrandeCity 96** (x=15-26, y=60-67).
+2. **THE ROUTE HAS *TWO* UNDERWATER TRANSITIONS.** The dive lands on a separate 20×10 map,
+   `UNDERWATER_SOOTOPOLIS_CITY`, which reaches Route 126 by a **walk-on warp**, not by diving.
+3. **DIVE IS GATED ON BADGE 7**, not Badge 8 (Waterfall is Badge 8). Harmless — we hold all eight.
+
+⛔⛔ **AND THE x=101 PINCH IS SETTLED: THE BATTLES ARE UNAVOIDABLE.** Carlee (101,29) and Harrison
+(101,22), sight 4, patrol ranges that **between them occupy the entire 8-tile channel** (y=22-29,
+the only way through basin A). All 48 configurations × 8 rows enumerated: **no guaranteed-safe row**;
+best odds ~44% at y=22 or y=29. No alternate column, and the **underwater bypass fails** (max x=81).
+⇒ **the bot must FIGHT them, not route around them.** First pass only — their flags then stay set.
+⭐ **Land trainers cannot see a surfing player** (elevation mismatch is checked before the
+object-event case), so the three elevation-3 trainers on Route 128 are harmless.
+
+⚠ **Two more corrections worth carrying:** `VAR_ROUTE128_STATE` must be tested **`!= 1`, not `>= 2`**
+(`MapHeaderCheckScriptTable` is exact equality — only 1 fires); and ⛔ **do not emerge on the arrival
+tile** `UNDERWATER_ROUTE126 (45,65)` — it is `MB_WATER_DOOR`, emergible only because a `#ifdef BUGFIX`
+is off ("the dive glitch"). **Step one south to (45,66) first.**
+⚠ Route127 CAN seize control if `VAR_SHOULD_END_ABNORMAL_WEATHER == 1`, and its ON_LOAD rewrites
+water metatiles when `VAR_ABNORMAL_WEATHER_LOCATION` is 13/14 — a walkability change invisible to a
+static reader (KI-74's shape).
+
+### ⚠⚠ AND ONE UNMEASURED QUESTION THAT DECIDES THE CHAPTER'S RISK PROFILE
+**Is the Ever Grande Poké Center (27,48) reachable from the waterfall-top landing (18,55)?**
+Production paths (18,41)→(27,49) in 23 wp, but the water-route audit says (27,48) sits in an upper
+city gated behind Victory Road. **These may not conflict** — "from below" probably means below the
+*waterfall*. ⛔ **Do not assume either way.** If the answer is NO, there is **no heal anywhere between
+Sootopolis and the Pokémon League**. ⭐ **One `calculate_path` query settles it: add (18,55) → (27,48)
+to `--driver ch23route`.**
+
+### ⭐ WHAT THE 1F AUDIT ADDS TO THE PLAN (full detail in its own note)
+* ✅ **1F needs NO field moves** — zero boulders, zero breakable rocks, `requires_flash: false`.
+  Strength/Rock Smash/Flash are basement-only, and **1F cannot be bricked** the way B1F can.
+* ⭐⭐ **1F is THREE regions cut by ELEVATION, not walls.** From (15,40) you can reach ONLY (9,14);
+  from (21,32) ONLY (39,5); (42,38) is a dead end. A and B *share* 16 elevation-15 bridge tiles but
+  arrive carrying **3** vs **4**, so the same tile lets one through and refuses the other.
+  ⇒ **this is what forces the basement detour**, and it rests entirely on "elevation-15 PRESERVES
+  the carried elevation".
+* ⭐ **Wally fires unconditionally on the first visit and never again** (`VAR_VICTORY_ROAD_1F_STATE`
+  = 0x40C3, a persistent var appearing in only three files; nothing else in the game touches it).
+  The `ON_TRANSITION` is a **no-op at state 0** and can only reposition Wally.
+  ⛔ **CORRECTION: "he becomes a permanent blocker" was too strong** — he parks at (2,24) *or*
+  (3,24), never both, and seals nothing (44 vs 46 steps).
+* ⛔ **TWO MANDATORY 1F SIGHT BATTLES, one per leg: Hope (6,15) on the way IN, Edgar (33,22) on the
+  way OUT.** Both proven by removing their cones and finding the destination unreachable. The other
+  three (Albert, Katelynn, Quincy) are avoidable at **+0 steps**.
+* ⚠ **Encounters do NOT fire on every 1F tile** — only `MB_CAVE` carries the flag, so **632 of 682
+  walkable tiles (92.7%)**; 50 are safe. *(The basements differ — there it is every walkable tile.)*
+
+### ⚠⚠ AND ONE OPEN DISAGREEMENT THAT MUST BE SETTLED ON THE FIRST 1F VISIT
+Our `calculate_path` says **(21,32)→(39,5) = 64**; the audit's BFS says **61** — while agreeing
+EXACTLY on (15,40)→(9,14) = 44, →Wally = 29, Wally→ladder = 15, and on (15,40)→(39,5) being
+unreachable. ‼ **Leg 2 is the only leg crossing the elevation-15 bridge at y=17-18**, and
+elevation-15 is precisely the rule that moves the reachable set by hundreds of tiles.
+⭐ **The cheapest discriminator is ONE STEP:** walk to **1F (29,28)** from the entrance side, print
+the carried elevation (**predict 3**), step **EAST to (30,28)** (**predict FAIL**); then from the
+(21,32) side, same tile, **predict elevation 4 and the step SUCCEEDS**. ⛔ **If it succeeds from the
+entrance side, the three-region model is wrong and the basement detour is not forced** — which would
+change the chapter's shape entirely. **Do this on the first 1F visit; it costs one step.**
+
+⛔ **Nothing about the basements is confirmed live yet** — the three checks in the B1F/B2F note's §F
+are owed, and they cannot run until legs 2-6 can put the bot on that floor.
+
+## §5. WHAT DOES NOT EXIST YET (checked, not assumed)
+* `sandbox-pokebot/modules/story/victory_road.py` — **NOT FOUND**
+* Any fixture for Ever Grande, Victory Road, Routes 126/127/128, the League or the Elite Four —
+  **NONE**; §Ch23 creates the first on that arc.
+* ⚠ `wally_done.ss1` is the **Petalburg catching tutorial**, NOT Victory Road Wally. Do not reuse it.

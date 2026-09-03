@@ -20863,3 +20863,77 @@ member is **Shedinja**, whose max HP is 1 and which therefore dies to any chip d
 that reads as eight damaged anchors; named, it reads as one species' quirk. ‼ **A count cannot be
 interpreted; an identity can.** *(Not fixed here — the threshold is a separate judgement — but the
 output no longer hides why it fires.)*
+
+
+## 2026-09-03 (recon round) — §Ch23 IS FULLY MAPPED ON PAPER, AND FOUR AGENTS CORRECTED SIX OF MY FACTS
+
+Four agents ran concurrently on different angles — the water route, Victory Road 1F, our own code
+primitives, and a decomp safety question. Every one of them overturned something.
+
+**1. ⛔⛔ THE STRAND RISK I WAS ABOUT TO BUILD A GUARD FOR DOES NOT EXIST.** I had recorded that
+§Ch23's opening heal is a HARD PRECONDITION because the bot "cannot leave the crater on a dead Dive
+carrier". **FALSE — field moves ignore HP entirely.** No HP check exists in
+`SetPartyMonFieldSelectionActions`, `CursorCb_FieldMove` (`party_menu.c:3702-3780`),
+`SetUpFieldMove_Surf/Dive/Waterfall`, or `ScrCmd_checkpartymove` (`scrcmd.c:1713-1732`, which skips
+only `SPECIES_NONE` and eggs); all 15 `MON_DATA_HP` reads in `party_menu.c` were enumerated and every
+one is cosmetic or belongs to another context. *(The `gText_PkmnHasNoEnergy` refusal people
+misremember is `:5813` — in-battle switching only.)*
+⇒ **ASSERT WAILMER *PRESENT*, NEVER *ALIVE*** — a liveness gate is dead code that would make the bot
+refuse a move the game permits. ✅ Our `hm_learner_slot` (`early_game.py:4316`) has no HP filter
+either (read in full). ⛔ I also overstated `allow_escaping: false`: it gates **Escape Rope and Dig
+only** — Fly works on every map of this leg except underwater. ⭐ **Two bigger risks replace it:**
+`lastHealLocation` must be ARMED by walking into the Sootopolis Center (`ON_TRANSITION`; healing not
+required) or a whiteout dumps the bot at a far earlier Center; and **field poison ticks while surfing
+and can wipe the party.** ✅ Whiteout itself is a FULL heal — a cost, not a strand.
+
+**2. ⛔⛔ THREE WATER-ROUTE FACTS I HAD RECORDED ARE WRONG.** The **waterfall is on EVER GRANDE's own
+map**, not Route 128 (`MB_WATERFALL`: Rt126/127/128 = **0**, EGC = **96**, x=15-26 y=60-67). The route
+has **TWO** underwater transitions, not one — the dive lands on a separate 20×10 map,
+`UNDERWATER_SOOTOPOLIS_CITY`, which reaches Route 126 by a **walk-on warp**. And **Dive is gated on
+BADGE 7**, not 8. ⚠ Also: test `VAR_ROUTE128_STATE != 1`, **not `>= 2`** (`MapHeaderCheckScriptTable`
+is exact equality); and ⛔ never emerge on the arrival tile (45,65) — `MB_WATER_DOOR` is emergible
+only because a `#ifdef BUGFIX` is off, which the source itself calls "the dive glitch". Step south to
+(45,66). ⇒ `ai-research-notes/2026-09-03-ch23-WATER-ROUTE.md`, tile by tile.
+
+**3. ✅✅ THE x=101 PINCH IS SETTLED AFTER WEEKS OPEN — AND THE ANSWER IS FIGHT THEM.** Carlee
+(101,29) and Harrison (101,22), sight 4, patrol ranges that **between them cover the entire 8-tile
+channel** — y=22-29 is the only way through Route 128's basin A. All 48 configurations × 8 rows
+enumerated: **no guaranteed-safe row**, best ~44%. No alternate column; the **underwater bypass fails**
+(diveable tiles span x=25-81, max reachable x=81). ⭐ And land trainers **cannot see a surfing player**
+(elevation mismatch is evaluated before the object-event case), so the three elevation-3 trainers are
+harmless. ⭐ Route 128 also has **two disjoint water basins**, but a bot arriving from Route 127
+cannot fall into the dead-end one.
+
+**4. ⭐⭐ VICTORY ROAD 1F IS THREE REGIONS CUT BY *ELEVATION*, NOT WALLS.** From (15,40) you can reach
+**only** the B1F ladder; from (21,32) **only** the exit; (42,38) is a dead end. A and B *share* 16
+elevation-15 bridge tiles but arrive carrying **3** vs **4**, so the same tile passes one and refuses
+the other. ⇒ **this is what forces the basement detour**, and it rests entirely on *elevation-15
+PRESERVES the carried elevation*. ✅ 1F needs **no field moves** (zero boulders, zero rocks) and
+**cannot be bricked** the way B1F can. ✅ Wally fires unconditionally on the first visit and never
+again (`VAR_VICTORY_ROAD_1F_STATE` 0x40C3 is persistent and appears in only three files); ⛔ and *"he
+becomes a permanent blocker"* was **too strong** — he parks at (2,24) **or** (3,24), never both, and
+seals nothing (44 vs 46 steps). ⛔ **Two mandatory 1F sight battles: Hope on the way in, Edgar on the
+way out.** ⇒ `ai-research-notes/2026-09-03-ch23-VICTORY-ROAD-1F.md`.
+
+**5. ⛔ "LEG 1 IS DONE" MEANS A DRIVER, NOT PRODUCTION.** `modules/story/victory_road.py` **does not
+exist**; `Ch23TeachMode` calls production's `teach_hm_move`, so the PRIMITIVE is proven but nothing
+shipped orchestrates it — **the exact shape an adversarial review caught in §Ch22**. The build
+mechanics are now pinned in `…-ch23-CHAPTER-BUILD-SPEC.md`: **FOUR** harness edits (not three), the
+four grading rules each earned by a shipped defect, and ⛔ **the `os as _os` trap** — a bare
+module-level `os` in a new driver is a `NameError` on frame 1, `repro_undefined_names.py` does **not**
+scan `tools/story-dev/`, and it has already cost a 25-minute drive ⇒ **smoke-test every new driver
+with a tiny `--frames`.**
+
+**6. ⚠⚠ TWO OPEN DISAGREEMENTS, BOTH RECORDED RATHER THAN RESOLVED BY PICKING A SIDE.**
+(a) Our planner says 1F (21,32)→(39,5) = **64**; the audit's BFS says **61** — while agreeing exactly
+on the other three legs and on unreachability. It is **the only leg crossing the elevation-15 bridge**.
+⭐ One step discriminates it: at 1F (29,28), print the carried elevation and try one step EAST.
+(b) **Is the Ever Grande Poké Center reachable from the waterfall-top landing (18,55)?** Production
+paths (18,41)→(27,49) in 23 wp; the water-route audit says it is gated behind Victory Road. **They may
+not conflict** — "from below" probably means below the *waterfall*. ⛔ If the answer is NO, **there is
+no heal anywhere between Sootopolis and the Pokémon League**, which changes the chapter's whole risk
+profile. ⭐ One `calculate_path` query settles it.
+
+**7. 🔧 AND `#24-ch23victoryroad` WENT 167 LINES → 44.** It had been duplicating the analysis notes.
+The punch list now carries status, the three things a builder must not miss, and pointers; every
+analysis lives once, in the spec or its companion note.

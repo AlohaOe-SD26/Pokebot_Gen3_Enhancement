@@ -810,95 +810,71 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 
 ### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ⚠ **Drift is 10** (`chapters.py` joined 2026-09-03 for a §Ch23 correctness fix; `sootopolis_gym.py` is a new sandbox-only chapter module) — ⛔ **PROMOTION IS THE USER'S CALL and is not implied.** ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
 
-### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **LEG 1 DONE, THE ROUTE LEGS ARE THE LIVE WORK.** (filed 2026-09-03)
+### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **RECON IS DEEP, PRODUCTION CODE IS ZERO.** (filed 2026-09-03)
 
-- [~] **REMAINS: the route legs (heal → dive warp → Rt 126/127/128 → Ever Grande → waterfall) and the cave itself.** Leg 1 (teach Waterfall) is DONE.
-      ✅ **DONE:** `--driver ch23teach` → `ACCEPTANCE: PASS`, Waterfall onto Wailmer (lost Rollout,
-      **kept Dive and Surf**); fixtures `saves/post_badge8.ss1` (md5 `723d94cc899f3ad2c75fbf49f9192984`)
-      → `saves/post_waterfall.ss1` (`3eec11dbaa5deae51288cfa34e198536`) PINNED; the bag's HMs dumped
-      for the first time in this project; production's planner consulted read-only via `--driver ch23route`.
-      ⛔⛔ **THE HAZARD THAT DOMINATES THIS ITEM — TWO BOULDER PUSHES PERMANENTLY SEAL VICTORY ROAD
-      B1F FOR THAT VISIT, EACH AVAILABLE AS YOUR FIRST *PUSH*.** From the B1F arrival tile (8,3) the only two
-      exits are boulders at **(4,7)** and **(9,10)**; pushing EITHER **SOUTH** drives it into a
-      corridor it cannot be recovered from in that configuration and the B2F ladder (30,25)
-      becomes unreachable. ⛔ NOT "a 1-tile shaft" — that description is REFUTED:
-      (4,10)/(9,13) are T-junctions and a shafted boulder CAN be pushed back north.
-      ⭐ Minimum solution **2 pushes + 1 smash**: PUSH WEST (4,7)→(3,7) from (5,7); PUSH EAST
-      (9,10)→(10,10) from (8,10); SMASH (18,12).
-      ✅ Not a hard softlock — `ClearTempFieldEventData` respawns every boulder on map entry, so
-      leaving and re-entering resets the floor; ⛔ but the same call does
-      `FlagClear(FLAG_SYS_USE_STRENGTH)`, so **Strength must be re-activated on every visit** and
-      the puzzle solved in ONE visit.
-      ⇒ ⛔ **SHIP A FIXED PUSH SEQUENCE, NEVER A RUNTIME SOLVER, and make a SOUTH push on those two
-      boulders unreachable in code.** A refusal costs nothing if the model is over-cautious; a wrong
-      push costs the visit. *(This is the §Ch22 ice-route pattern: a precomputed table verified live
-      per step beats a planner on a puzzle where one wrong move is unrecoverable.)*
-      ⚠⚠ **ALL OF THE ABOVE IS AGENT-DERIVED AND NOT YET CONFIRMED LIVE.** It is a NOTE
-      (`ai-research-notes/2026-09-03-ch23-VICTORY-ROAD-B1F-B2F.md`); its §F names the three cheap
-      decisive checks and **they are this item's next action**: (1) push (4,7) WEST, confirm it lands
-      on (3,7); (2) push (9,10) SOUTH and confirm (30,25) goes unreachable — reproduce the seal
-      deliberately, then re-enter to confirm the reset; (3) drive B2F(30,25)→(19,12) confirming the
-      waterfall DESCENT needs no badge.
-      ✅✅ **ADJUDICATED OFFLINE, TWICE — THE HEADLINE SURVIVED, FIVE SUB-CLAIMS DID NOT.**
-      ⛔ **"ADJUDICATED" IS NOT "CONFIRMED": nothing here has touched a live emulator, and
-      the three checks in the note's §F remain this item's next action.** A from-scratch second solver reproduces **70,442
-      reachable states / 891 dead / exactly 2 fatal actions / minimum cost 3**, and finds the
-      minimal sequence **UNIQUE**. ⭐ Believe it because of its FAULT TABLE, not the agreement:
-      breaking the elevation-CARRY rule makes the goal UNREACHABLE, and the four rules that
-      could not be broken were each chased to a proof of why.
-      ⭐⭐ **ONLY PUSHES CAN KILL** — of 186,602 walk edges and 145 smash edges, ZERO cross
-      live→dead. ⇒ **put the guard on `strength_push` and nowhere else.**
-      ⛔ **CORRECTIONS THAT CHANGE THE CODE:** the fatal boulder is **(9,10)**; (4,7)-south
-      seals only INDIRECTLY and only while (9,10) is unmoved; the shafts are NOT 1-wide
-      (T-junctions at (4,10)/(9,13)) and a shafted boulder CAN be pushed back north ⇒
-      **"boulder in a shaft = lost" is the WRONG rule to encode.** B1F has THREE ladder-bearing
-      regions; trainers are **≥5 sight + Wally**, not 6; **no B1F ledge is load-bearing**;
-      ⚠ `VictoryRoad_1F` DOES have an `ON_TRANSITION` script (the basements do not).
-      ⚠ **Samuel's sight line lies ON the minimal path** — 900 of 1,200 trainer configurations
-      still give cost 3, the other 300 give 6 and rest on an unread approach mechanic.
-      ⛔⛔ **MY OWN PROBE GAVE TWO CONFIDENT FALSE REFUTATIONS AND I THEN MISDIAGNOSED THEM.**
-      Cause was NOT the missing edge-blocker rule (provably vacuous here) — it was that
-      **I tested board states the game can never reach.** ‼ Applying a SUBSET of order-dependent
-      actions does not produce a reachable state. `08-MISTAKES.md` 2026-09-03.
-      ⭐⭐ **THE GUARD TO BUILD IS SMALL, AND IT IS RULED IN `06-DECISIONS-LOG.md` (2026-09-03).**
-      Because **only pushes can kill**, the whole hazard is a refusal inside one call:
-      `strength_push(map_enum, approach_tile, face_dir)` — `early_game.py:7884`, already built and
-      idempotent. The boulder tile is `approach_tile + face_dir`, and ⛔ **`y` INCREASES SOUTHWARD,
-      so SOUTH is `'Down'`.** Refuse when `map == VICTORY_ROAD_B1F`, `face_dir == 'Down'`, and the
-      boulder is (4,7) or (9,10) — raise a NAMED error, never silently skip.
-      ⛔ **FAIL-LOUD, NOT FAIL-OPEN:** a `MAP_OFFSET` (+7) mismatch would make the comparison never
-      match and silently permit the fatal push, so the guard must also assert it recognises the
-      floor. ⚠ Put it in the §Ch23 module, NOT in `strength_push` — §Ch20 shares that function.
-      ⭐ **Kit is {Strength, Rock Smash, Surf}** — Surf because B1F's two main regions are
-      walk-disjoint and B2F (238 ocean tiles) is the only bridge. *(There is a THIRD region: a
-      35-tile B2F-only pocket holding TM Psychic. Not hazard-relevant, but "two halves" is wrong.)* **Waterfall is NOT needed inside the
-      cave** (descending is free) but IS needed to reach Ever Grande. ⛔ Flash is optional AND not
-      held, so the bot walks both basements dark.
-      ⛔⛔ **WAILMER IS THE SINGLE POINT OF FAILURE** — sole carrier of Dive (the only exit from the
-      Sootopolis crater) and Waterfall (the only way up). Preflight must assert it BY PID.
-      ⛔⛔⛔ **AND IT STARTS THIS CHAPTER FAINTED — MEASURED 2026-09-03.** `--driver partypids`
-      on `post_waterfall.ss1`: **`Wailmer#FA51ECF3 hp=0/160 ⛔ FAINTED`**, Swellow **5/118 (4%)**,
-      the other four at 100%. ‼ **The fixture registry recorded "1 FAINTED" and "Wailmer is the
-      SPOF" as SEPARATE sentences and never joined them — the hazard is the CONJUNCTION.**
-      ⇒ **the opening heal is a HARD PRECONDITION, not hygiene**, and the preflight must assert
-      Wailmer is **ALIVE by PID**, not merely present (a party count reads 6 either way).
-      ⚠ Whether a FAINTED mon can be selected for a field move at all is dispatched to a decomp
-      agent; heal-first is correct under either answer, so this is not a blocker.
-      ⚠⚠ **"ASSERT BY PID" HAS ONE EXCEPTION — KI-78, found LIVE in `batch3_run01_wedge.ss1`, where
-      `Shedinja` and `Ninjask` share PID `42207D6F`.** ✅ §Ch23 is unaffected (six distinct PIDs, no
-      twins), but ⇒ assert **(PID, species)** or verify the PID occurs exactly once.
-      ⭐ **Wally is MANDATORY, not merely free** — blocking his (2,23)/(3,23) triggers makes the B1F
-      ladder unreachable (477→429 tiles), so the chapter cannot skip its own grading flag
-      `DEFEATED_WALLY_VICTORY_ROAD` (0x7E). ⚠ Afterwards he is a permanent blocker at (2,24)/(3,24).
-      ⚠ **≥5 sight-triggered trainer battles + Wally** (a lower bound, computed with boulders
-      removed — the boulder-constrained minimum was never computed); wild encounters fire on
-      EVERY walkable tile of both basements and Rock Smash itself can start one ⇒ a mid-puzzle
-      battle is NORMAL, not a fault.
-      ⚠ **STILL OWED:** the Route 128 **x=101** trainer pinch (Carlee/Harrison, sight 4, patrolling
-      the only passable column) — the one place on the water route the decomp could not settle.
+- [~] **REMAINS: everything except leg 1 — and leg 1 is a DRIVER, not production.**
+      ⛔⛔ **`sandbox-pokebot/modules/story/victory_road.py` DOES NOT EXIST.** `Ch23TeachMode` calls
+      production's `teach_hm_move`, so the PRIMITIVE is proven, but nothing shipped orchestrates it.
+      ‼ Exactly the shape an adversarial review caught in §Ch22, where four movement legs lived only
+      in drivers. ⇒ **the deliverable is a PRODUCTION MODULE + Segment 23 wiring.** Say "the driver
+      drove it" or "the chapter does it" — never the ambiguous "leg N is done".
+      ✅ **DONE:** `--driver ch23teach` → PASS (Waterfall onto Wailmer; lost Rollout, **kept Dive and
+      Surf**); `--driver ch23route` (read-only) planner readings; fixtures `post_badge8.ss1`
+      (`723d94cc…`) → `post_waterfall.ss1` (`3eec11db…`) PINNED; the bag's HMs dumped; B1F/B2F audited
+      and adjudicated twice; the boulder ruling filed in `06-DECISIONS-LOG.md`.
+
+      📄 **ALL ANALYSIS LIVES IN ONE PLACE — READ IT BEFORE WRITING CODE:**
+      `ai-research-notes/2026-09-03-ch23-CHAPTER-BUILD-SPEC.md` — the opening state and the
+      field-move/HP correction (§1), the FOUR harness edits and the `os as _os` trap (§2), the four
+      grading rules earned by shipped defects (§3), and the 8-leg plan (§4).
+      Companions: `…-ch23-VICTORY-ROAD-RECON.md` (approach), `…-ch23-VICTORY-ROAD-B1F-B2F.md`
+      (basements + the seal), **`…-ch23-VICTORY-ROAD-1F.md`** (1F: three regions cut by ELEVATION;
+      no field moves; Wally is a proven one-shot; **Hope and Edgar are MANDATORY battles**), and
+      `…-ch23-WATERFALL-TEACH-PREDICTIONS.md` (leg 1, graded).
+      ⚠⚠ **ONE OPEN DISAGREEMENT TO SETTLE ON THE FIRST 1F VISIT:** our planner says
+      (21,32)→(39,5) = **64**, the audit's BFS says **61**, while agreeing exactly on all three
+      other legs. It is the only leg crossing the elevation-15 bridge. ⭐ **One step settles it** —
+      at 1F (29,28) print the carried elevation and try one step EAST; see the 1F note §5.
+
+      ⛔⛔ **THE THREE THINGS A BUILDER MUST NOT MISS** (everything else is in the spec):
+      1. **NEVER PUSH B1F's (4,7) OR (9,10) SOUTH** — either seals the floor for that visit. The
+         minimum solution is **PUSH WEST (4,7)→(3,7) from (5,7); PUSH EAST (9,10)→(10,10) from (8,10);
+         SMASH (18,12)**. ⭐ **Only pushes can kill** (0 of 186,602 walk and 145 smash edges cross
+         live→dead) ⇒ the guard is a refusal at the `strength_push` call site, **fail-LOUD**, in the
+         §Ch23 module — NOT in `strength_push` itself (§Ch20 shares it). Ruled 2026-09-03.
+         ⚠ **Adjudicated OFFLINE only — the three live checks in the B1F/B2F note §F are still owed**,
+         and they cannot run until legs 2-6 can put the bot on that floor.
+      2. **ASSERT WAILMER *PRESENT* BY (PID, species), NEVER *ALIVE*.** It is the sole carrier of Dive
+         (the only exit from the crater) and Waterfall (the only way up), and it starts the chapter
+         FAINTED — but **field moves ignore HP entirely**, so a liveness gate is dead code that would
+         refuse a move the game permits. ⚠ (PID, species) not PID alone: KI-78 twins share a PID.
+      3. **`lastHealLocation` MUST BE ARMED** by walking into the Sootopolis Poké Center
+         (`ON_TRANSITION` — healing not required), or a whiteout dumps the bot at a far earlier
+         Center. **Read the value; never assume it.** ⚠ Also cure poison before departing: field
+         poison ticks while surfing and is the only non-battle party-wipe.
+
+      ✅✅ **THE x=101 PINCH IS SETTLED — AND THE ANSWER IS *FIGHT THEM*.** Carlee (101,29) and
+      Harrison (101,22), sight 4, patrol ranges that **between them cover the entire 8-tile
+      channel** (y=22-29, the only way through Route 128's basin A). All 48 configurations × 8
+      rows enumerated: **no guaranteed-safe row**; best ~44%. No alternate column, and the
+      underwater bypass fails (max x=81, never reaches 101). ⇒ **the bot must be able to FIGHT
+      them.** First pass only. ⭐ Land trainers cannot see a surfing player (elevation mismatch
+      precedes the object-event case), so the elevation-3 trainers are harmless.
+      ⛔ **THREE THINGS I HAD RECORDED WRONG, NOW CORRECTED:** the waterfall is on **EVER
+      GRANDE's own map**, not Route 128 (`MB_WATERFALL`: Rt126/127/128 = 0, EGC = 96); the route
+      has **TWO** underwater transitions, not one; and **Dive is gated on BADGE 7**, not 8.
+      ⚠ Test `VAR_ROUTE128_STATE != 1`, **not `>= 2`** (exact-equality dispatch), and ⛔ do not
+      emerge on the arrival tile (45,65) — it is `MB_WATER_DOOR`, emergible only via a disabled
+      `#ifdef BUGFIX`; step south to **(45,66)** first.
+      ⚠⚠ **STILL OWED, AND IT DECIDES THE CHAPTER'S RISK PROFILE: is the Ever Grande Poké Center
+      (27,48) reachable from the waterfall-top landing (18,55)?** Production paths (18,41)→(27,49)
+      in 23 wp; the water-route audit says it sits in an upper city gated behind Victory Road.
+      **They may not conflict** — do not assume either way. If NO, there is **no heal between
+      Sootopolis and the League.** ⭐ One `calculate_path` query settles it.
       ⛔ `calculate_path` is CONNECTION-GRAPH ONLY (cross-map legs refuse with *"warps don't count"*)
-      ⇒ drive with `navigate_to_anywhere`. KI-72/73/53/60 are armed on this route; KI-47 can wedge
-      any battle (`#24-ki47rotatelead`, deliberately not fixed).
+      ⇒ drive with `navigate_to_anywhere`. KI-72/73/53/60 are armed on this route; KI-47 can wedge any
+      battle (`#24-ki47rotatelead`, deliberately not fixed); `#26-surfteachchain` **D3 is OPEN and
+      armed on this exact path** (its hazard is re-entry into `_select_forget_slot`).
 
 ### 🔧 `#24-linebudgetchars` — **THE LINE-COUNT DOC BUDGET REWARDS CRAMMING, AND IT HAS NOW PRODUCED THE ROT IT EXISTS TO PREVENT.** (filed 2026-09-03)
 
