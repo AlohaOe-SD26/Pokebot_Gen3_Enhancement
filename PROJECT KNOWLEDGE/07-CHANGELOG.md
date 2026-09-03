@@ -20007,3 +20007,50 @@ faith.
 full live coordinate list, not just a count);
 `tools/story-dev/evidence/2026-09-02-ch22-ICEROUTE-generated.txt`,
 `…-ch22probe-LIVECOORDS.txt`; `03-PUNCH-LIST.md`, `04-HANDOFF.md`.
+
+---
+
+## 2026-09-02 (ice walk) — §Ch22's ICE PUZZLE IS WALKED: 64/64 STEPS, ZERO FALLS
+
+### WHAT SHIPPED
+`sandbox-pokebot/modules/story/sootopolis_gym.py` (**NEW** — §Ch22's chapter module) and
+`--driver ch22ice`. From `post_hm07.ss1`: **`ACCEPTANCE: PASS`, 64/64 steps, ending on JUAN_STAND
+(8,3), `frames=2232`, zero falls, zero encounters, zero whiteouts.**
+Sections measured: `(1, 7, (8,17), 9) · (2, 19, (8,12), 29) · (3, 38, (8,6), 68)`.
+
+### ⛔ THE PREDICTED COUNTS WERE WRONG, AND THE MEASUREMENT IS BETTER THAN THE PREDICTION
+Predicted `ICE_STEP_COUNT` 8 / 28 / 67 (the decomp's raw unlock thresholds). **Measured 9 / 29 / 68**
+— each threshold PLUS ONE, because the unlock script's own `addvar` lands in the SAME BEAT as the
+step that crosses the threshold. Consistent across all three sections, now measured and asserted
+(`SECTION_END_COUNT`, `ICE_COMPLETE_COUNT`).
+
+### ‼ THE PRE-STEP GUARD CAUGHT TWO OF MY OWN BUGS — NEITHER WOULD HAVE BEEN CAUGHT BY REVIEW
+1. **The counter model.** The first walk asserted `+1 per step` and failed on section 1's last step
+   with `ICE_STEP_COUNT went 7 -> 9, not +1`. The model was corrected FROM THE MEASUREMENT; the
+   guard's FLOOR (`after > before` — "the avatar moved and the game did not score it") was left
+   untouched, and only the ceiling was raised to +2.
+2. **An inter-section climb that ate its own first tile.** The route table holds ICE ONLY, so nothing
+   walked the unlocked stairs between sections. My first fix climbed *to* the section's first tile —
+   which CONSUMED it, and the route loop then refused its own step 1 with
+   `(8,19) reads 0x20E, not thin ice`. The climb now stages one tile SOUTH and the route loop owns
+   every ice step.
+⇒ **Both were found by the guard mid-walk, not by reading the code.** A pre-step check that refuses
+is worth more than a post-hoc assertion that explains.
+
+### THE FAULT ARM IS THE CLEANEST DEMONSTRATION IN THE TREE OF "COUNT ≠ SET"
+`POKEBOT_CH22_FAULT_BADROUTE=1` moves one route tile off the ice. The pre-walk check refused before a
+single step: `live-only=[(8,18)] planned-only=[(13,18)] (live=64 planned=64)`, `steps=0`, 195 frames.
+‼ **The counts were 64 and 64.** A count-based check would have PASSED. The guard catches it only
+because the diff is a SYMMETRIC SET comparison taken in both directions.
+
+### ⚠ DRIFT IS NOW 9 (was 8)
+The new `modules/story/sootopolis_gym.py` — a sandbox-only chapter module, exactly as §Ch20 and
+§Ch21 each added one. ⛔ **PROMOTION REMAINS THE USER'S CALL** and is not implied.
+‼ Updating it took **seven** separate edits across two files before `audit_doc_consistency.py` went
+green — the drift figure lives in that many places. Fixed by SWEEPING for every mention rather than
+chasing the gate one failure at a time (the `staleness-sweep` skill's own rule, applied).
+
+### FILES
+`sandbox-pokebot/modules/story/sootopolis_gym.py` (NEW); `tools/story-dev/story_harness.py`;
+`tools/story-dev/evidence/2026-09-02-ch22ice-{CLEAN,FAULT-BADROUTE,GUARD-CAUGHT-COUNTERMODEL,GUARD-CAUGHT-CLIMB}.txt`;
+`03-PUNCH-LIST.md`, `04-HANDOFF.md`, `29-DISABLED-FEATURES-REGISTRY.md`.

@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -11584,6 +11584,142 @@ class Ch22ProbeMode(BotMode):
                 f"{type(error).__name__}: {str(error)[:200]}")
 
 
+class Ch22IceMode(BotMode):
+    """§Ch22 — WALK THE ICE PUZZLE. Drives the PRODUCTION `sootopolis_gym.walk_the_ice()`.
+
+    ‼ WHAT THIS PROVES THAT NOTHING BEFORE IT DID. The route table's INPUT was verified on
+    2026-09-02 (decomp vs the live `gBackupMapLayout` = 64/64 tiles, zero differences both ways),
+    but **the route has never been WALKED**. Two sources agreeing is corroboration; a walk is proof.
+
+    ⛔ PREDICTIONS, FILED BEFORE THE FIRST RUN:
+      steps=64; sections end at (8,17)/(8,12)/(8,6) with ICE_STEP_COUNT 8/28/67; end_tile=(8,6),
+      end_count=67; then three bounded steps up the now-open stairs to JUAN_STAND (8,3);
+      whiteouts=0; encounters=0 (a gym has no wild encounters). Frame cost UNPREDICTED — the walk is
+      64 tiles plus three ~40-frame unlock delays, and nobody has measured it.
+    ⛔ A reading that contradicts a prediction is a RESULT. The one thing that would be a DEFECT is
+    a fall — and the leg refuses to step onto anything that is not thin ice, so a fall would mean
+    the pre-step check is wrong, not that the route is unlucky.
+
+    THE GRADE: the leg completed AND `ICE_STEP_COUNT == 67` AND the bot stands on JUAN_STAND (8,3)
+    AND whiteouts == 0. ⛔ Position ALONE is not the grade — `ICE_STEP_COUNT` is what the game's own
+    unlock thresholds are counted against, so the var is the action and the tile is the plan.
+    ⛔ AND THE BOT DOES NOT TALK TO JUAN. This leg ends one tile in front of him; the fight is its
+    own leg, and the party is measured NOT to win it yet.
+
+    ⚠ A FALL IS RECOVERABLE AND COSTS ONLY THE WALK — the puzzle resets on every entry (MEASURED).
+    So a failed run is cheap, and re-running is safe.
+
+    FAULT ARM:
+      POKEBOT_CH22_FAULT_BADROUTE=1  corrupt one tile of the embedded route before walking. The
+                                     pre-step check MUST refuse, NAMED and bounded, BEFORE stepping
+                                     — proving the check is what protects the walk, not luck.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_hm07.ss1 --driver ch22ice --frames 60000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch22Ice"
+
+    def __init__(self):
+        super().__init__()
+        self.encounters = 0
+        self.whiteouts = 0
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts += 1
+        log("[ch22ice] !! WHITEOUT - latching the story abort so a verdict still prints.")
+        try:
+            from modules.story.early_game import set_story_abort
+
+            set_story_abort(True)
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch22ice] !! could not latch the abort: {type(error).__name__}: {error}")
+            return False
+        return True
+
+    def on_battle_started(self, encounter):
+        self.encounters += 1
+        return super().on_battle_started(encounter)
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_var
+        from modules.player import get_player_avatar
+        from modules.story import sootopolis_gym as gym
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+        from modules.story.sootopolis import _bounded_step
+
+        TAG = "ch22ice"
+        frames_before = context.emulator.get_frame_count()
+
+        def where():
+            a = get_player_avatar()
+            try:
+                return MapRSE(tuple(a.map_group_and_number)).name, tuple(a.local_coordinates)
+            except Exception:  # noqa: BLE001
+                return f"UNKNOWN{tuple(a.map_group_and_number)}", tuple(a.local_coordinates)
+
+        start_name, start_at = where()
+        log(f"[{TAG}] PRE at={start_name}{start_at} ICE_STEP_COUNT="
+            f"{get_event_var('ICE_STEP_COUNT')} route_tiles={len(gym.ice_route_tiles())}")
+
+        report: dict = {}
+        failure = None
+        try:
+            # get into the gym if we are not already there (the city walk is planner-safe)
+            if start_name == "SOOTOPOLIS_CITY":
+                yield from _navigate_riding_out(MapRSE.SOOTOPOLIS_CITY, (31, 32), tries=6)
+                yield from _navigate_riding_out(gym.GYM_1F, gym.GYM_ENTRANCE, tries=4)
+                yield from wait_until_truly_controllable()
+
+            if _os.environ.get("POKEBOT_CH22_FAULT_BADROUTE", "").strip() == "1":
+                # ⛔ FAULT ARM: corrupt ONE tile of the embedded route. The pre-walk set check must
+                # refuse BEFORE any stepping. Process-local; the module is re-imported per run.
+                bad = list(gym.ICE_ROUTE)
+                first = list(bad[0])
+                first[3] = (first[3][0] + 5, first[3][1])
+                bad[0] = tuple(first)
+                gym.ICE_ROUTE = tuple(bad)
+                log(f"[{TAG}] FAULT BADROUTE: moved one route tile off the ice — the pre-walk "
+                    f"check MUST refuse, named and bounded, before a single step.")
+
+            yield from gym.walk_the_ice(report)
+
+            # the stairs above section 3 are OPEN now; three bounded steps to Juan's front tile.
+            # ⛔ NOT `navigate_to` — the planner is provably wrong inside this gym.
+            for _ in range(3):
+                here = tuple(get_player_avatar().local_coordinates)
+                yield from _bounded_step("Up", expect=(here[0], here[1] - 1), map_enum=gym.GYM_1F)
+            yield from wait_until_truly_controllable()
+        except Exception as error:  # noqa: BLE001 - the driver REPORTS failures, never hides them
+            failure = f"{type(error).__name__}: {str(error)[:600]}"
+            log(f"[{TAG}] LEG FAILED: {failure}")
+
+        here_name, at = where()
+        count = get_event_var("ICE_STEP_COUNT")
+        passed = (
+            failure is None
+            and count == gym.ICE_COMPLETE_COUNT
+            and here_name == "SOOTOPOLIS_CITY_GYM_1F"
+            and at == gym.JUAN_STAND
+            and self.whiteouts == 0
+        )
+        total = context.emulator.get_frame_count() - frames_before
+        log(f"[{TAG}] RESULT at={here_name}{at} ICE_STEP_COUNT={count} steps={report.get('steps')} "
+            f"end_tile={report.get('end_tile')} end_count={report.get('end_count')} "
+            f"encounters={self.encounters} whiteouts={self.whiteouts} frames={total}")
+        log(f"[{TAG}] SECTIONS {report.get('sections')} "
+            f"(each: index, tiles, end tile, ICE_STEP_COUNT — MEASURED (8,17)/9, (8,12)/29, (8,6)/68; "
+            f"the PREDICTION was 8/28/67, the raw decomp thresholds — each unlock's own addvar "
+            f"lands in the same beat as the crossing step, so the rest value is threshold+1)")
+        log(f"[{TAG}] FAILURE {failure}")
+        log(f"[{TAG}] GRADE: the var is the ACTION and the tile is the PLAN — both are required. "
+            f"⛔ The bot does NOT talk to Juan here; the fight is its own leg.")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
 class Ch20ChapterMode(Ch20DiveMode):
     """§Ch20 AS A CHAPTER — drives the PRODUCTION function, not a copy of it.
 
@@ -13006,6 +13142,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch21ChapterMode()
         elif args.driver == "ch22probe":
             context.bot_mode_instance = Ch22ProbeMode()
+        elif args.driver == "ch22ice":
+            context.bot_mode_instance = Ch22IceMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

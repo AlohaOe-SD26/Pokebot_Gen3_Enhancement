@@ -533,7 +533,7 @@ Full state + rationale in `04-HANDOFF.md` "YOU ARE HERE". Suite 78/78; last batc
       ratchet went 36 → 31 → 23, **control-armed at each step** (strip the guards and it reads back
       up). Two-arm behavioural proof: latch CLEAR → swallowed, unchanged; latch SET → re-raised.
       ✅ **DONE 2026-08-24: PROMOTED (user-approved) and the custom baseline WAS lowered 36 → 23 in
-      the same commit. Drift is 8 as of 2026-08-27 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until driven); both forks now read ZERO AST abort-swallowers.**
+      the same commit. Drift is 9 (⬆ from 8 on 2026-09-02: the NEW `modules/story/sootopolis_gym.py`, §Ch22's chapter module — a new sandbox-only chapter file, exactly as §Ch20 and §Ch21 each did. ⚠ PROMOTION IS THE USER'S CALL and is NOT implied here; run `promote.py --check`, which outranks this text) as of 2026-08-27 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until driven); both forks now read ZERO AST abort-swallowers.**
 - [x] **(a): ASSESSED and CLOSED as VERY LOW — and the finding is that the code was NOT changed.**
       A second whiteout during recovery would be fatal, but it cannot realistically occur: the whole
       window is spent on maps whose land-encounter rate is **0** (all 17 towns + all 32 Poké Center
@@ -844,9 +844,18 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       (evidence `2026-09-02-ch22-ICEROUTE-generated.txt` + `…-ch22probe-LIVECOORDS.txt`).
       ‼ `--self-test` is the fault arm: it proves the solver REFUSES an uncoverable map
       rather than returning a plausible partial path.
-      ⇒ **WHAT REMAINS:** the Mart's stock (unverified); **WALKING** the generated route and
-      verifying each step against `_live_metatile_grid` (the input is verified, the WALK is
-      not); B1F (never entered — the exit fall, the
+      ✅✅✅ **THE ICE PUZZLE IS WALKED (2026-09-02) — `--driver ch22ice`, `ACCEPTANCE: PASS`,
+      64/64 steps, ending on JUAN_STAND (8,3), `frames=2232`, zero falls, zero encounters.**
+      Production: `modules/story/sootopolis_gym.py` (NEW). Sections measured
+      `(1,7,(8,17),9) (2,19,(8,12),29) (3,38,(8,6),68)`.
+      ⛔ **THE PREDICTED COUNTS 8/28/67 WERE WRONG — the real values are 9/29/68**, each the
+      decomp threshold PLUS ONE, because the unlock's own `addvar` lands in the same beat as
+      the crossing step. A RESULT, now measured and asserted.
+      ‼ **THE PRE-STEP GUARD CAUGHT TWO OF MY OWN BUGS BEFORE THEY COST A FALL:** (a) the
+      `+1 per step` counter model (it went 7→9 on a threshold crossing), and (b) an
+      inter-section climb that CONSUMED section 1's first ice tile, so the route then refused
+      its own step 1 on an already-cracked tile. Both were found by the guard, not by review.
+      ⇒ **WHAT REMAINS:** the Mart's stock (unverified); B1F (never entered — the exit fall, the
       ten trainers, the (11,22) ladder are all decomp-only); and how under-levelled the party is —
       **only a live Juan drive settles that, and the FIRST ONE IS EXPECTED TO LOSE. That loss is the
       measurement, not a failure.**
