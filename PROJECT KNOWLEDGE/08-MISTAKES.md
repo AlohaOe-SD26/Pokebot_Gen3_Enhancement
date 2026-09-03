@@ -10784,3 +10784,42 @@ failure is worse than no probe — it is a certificate of correctness for an unt
 ‼ And note the shape: this instrument did not become wrong; **it was always collision-only**, and
 §Ch21's hazard happened to be a collision change. *Success on one map is not validation for the
 class of problem.*
+
+---
+
+## 2026-09-02 (latest) — I VIOLATED MY OWN SKILL'S RULE IN THE NEXT DRIVER I WROTE, HOURS AFTER WRITING IT
+
+**Symptom.** A Tier 1 reviewer found that `Ch22ProbeMode`'s grade could return
+`ACCEPTANCE: PASS` on a run that measured nothing: `self.probes_run.append("P3")` ran
+**unconditionally**, including on the branch where no ice tile is found and the branch where the
+step raises. `passed` then only checked that the label was present — never `stepped`, never whether
+the metatile grid actually moved. The headline measurement the whole probe exists for was not in its
+own predicate.
+
+**Root cause.** The exact shape this project calls **"A CANDIDATE IS NOT AN ATTEMPT"** — instrument
+the ACTION, never the input to it. ‼ And the aggravating fact: I had written that rule into
+`.claude/skills/unlazy/SKILL.md` **earlier in the same session** ("Did the thing actually RUN, or did
+a guard skip it? … ⛔ A CANDIDATE IS NOT AN ATTEMPT"), and into `story-drive` ("a VACUITY conjunct in
+the grade"). I then wrote the violating driver a few hours later.
+⇒ **A rule filed as a SKILL does not fire either.** Writing it down improves the odds for the next
+reader; it did not stop the author. What stopped it was an independent reviewer reading the diff.
+
+**The fix that worked, and the arm that proves it.** P3 is recorded only when `stepped and mt_moved`;
+`passed` requires both. `POKEBOT_CH22_FAULT_NOSTEP=1` suppresses the step and the run now goes
+`P3 NOT RECORDED` → `probes run: ['P0','P1','P2','P4','P5']` → `ACCEPTANCE: FAIL`. **Before the fix
+that arm would have PASSED.** The clean arm was re-run byte-identical (`frames=3958`, PASS), proving
+the change touched only the failure path.
+⛔ Note the polarity choice: `col_moved` is deliberately NOT a pass condition. It is the FALSIFIER —
+if the collision grid ALSO moved, the static analysis was wrong and KI-73's new paragraph is what
+needs correcting. A falsifier must never be a pass condition, or it silently becomes an escape hatch.
+
+**Prevention rules.**
+⛔ **A GRADE MUST NAME THE MEASUREMENT, NOT THE CODE PATH.** "Did block P3 execute" and "did P3
+measure anything" are different predicates, and only the second is a grade. Concretely: every label
+appended to a readings list must be appended INSIDE the success branch, never after the `if/except`
+that could have skipped it.
+⛔ **AND THE TEST FOR THIS IS MECHANICAL, SO RUN IT: add the arm that suppresses the measurement and
+confirm the grade goes FAIL.** If you will not write that arm, you do not know your grade works.
+‼ Meta-rule, earned here: **writing a rule into a skill/doc does NOT protect the author who wrote
+it.** Skills help the next reader; the only thing that caught this was an independent reviewer given
+the diff. ⇒ **keep Tier 1 mandatory even when the author is the person who wrote the rulebook.**

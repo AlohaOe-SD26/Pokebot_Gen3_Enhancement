@@ -19841,3 +19841,88 @@ the OPTIMISTIC one, and §Ch22 must be built for the worse. Rules in `08-MISTAKE
 ### FILES
 `ai-research-notes/2026-09-02-ch22-juan-BUILD-SPEC.md` (NEW); `04-HANDOFF.md`, `03-PUNCH-LIST.md`,
 `12-STORYMODE-DESIGN.md` (the party correction); `05-KNOWN-ISSUES.md` (KI-73); `08-MISTAKES.md`.
+
+---
+
+## 2026-09-02 (final+) — §Ch22 PART A PROBE: THE COLLISION ORACLE'S BLINDNESS IS NOW **MEASURED**, NOT ARGUED
+
+### WHAT SHIPPED
+* `modules/story/sootopolis.py` gains **`_live_metatile_grid()`** — the sibling of
+  `_live_collision_grid` that keeps `block & 0x03FF` (the metatile id) instead of
+  `(block & 0x0C00) >> 10` (collision). Deliberately a sibling, not a rewrite, so the border
+  `offset = 7` that `probe_live_mapgrid.py` measured at 99.6% is inherited rather than re-earned.
+* `tools/story-dev/story_harness.py` gains **`--driver ch22probe`** — read-mostly, one ice step,
+  fully reversible, no state writes, no fixture capture.
+* Predictions filed BEFORE the run (`2026-09-02-ch22-PARTA-PREDICTIONS.md`) and graded after
+  (`…-PARTA-RESULTS.md`). **`ACCEPTANCE: PASS`, P0–P5, `frames=3958`, `whiteouts=0`.**
+
+### ⛔⛔ THE HEADLINE — AN INSTRUMENT'S FALSE NEGATIVE, DEMONSTRATED BY A/B
+The probe stepped on ONE ice tile (derived from the live grid, never hardcoded) and re-read both
+grids: **metatile diff = 1 at (8,19), `0x20d` → `0x20e`. Collision diff = 0.**
+⇒ the floor demonstrably changed and `_live_collision_grid` saw NOTHING, so
+`probe_live_mapgrid.py` would report 0 differences and **PASS** on a catastrophically wrong model.
+‼ **This is the first time this project has proven an instrument blind by MEASUREMENT rather than by
+argument.** The static three-link proof was already convincing — and convincing arguments are
+exactly where this project's mistakes live. The A/B cost 3,958 frames.
+
+### THE PUZZLE, CONFIRMED LIVE
+64 thin-ice tiles in three sections — **A rows 17-19 = 7, B rows 12-14 = 19, C rows 6-9 = 38** —
+with six locked stairs at exactly (8,4)(8,5)(8,10)(8,11)(8,15)(8,16). 7+19+38 = 64 and the unlock
+thresholds 8/28/67 close the arithmetic exactly ⇒ **exact cover, every tile once, zero revisits.**
+`calculate_path((8,19) → Juan (8,3))` **SUCCEEDS** with 16 waypoints straight through all six locked
+stairs, and the collision oracle calls the route clean ⇒ **the planner must never be used inside this
+gym; the route has to be a precomputed table.**
+✅ And the puzzle **RESETS on every entry** (re-entered: `ICE_STEP_COUNT=1`, metatile diff 0) — which
+is exactly what makes a static table safe and a runtime solver pointless.
+
+### THE READINESS NUMBERS THE DOCS DID NOT HAVE
+⭐ **MONEY = 67,466.** The recon had "buy healing" gated on unverified funds; it is not a constraint —
+the bot can stock Hyper Potions/Revives freely. Bag today: 1 Potion, 0 Revives, 0 Full Heals,
+2 X Attack. Party 629/694 → **694/694 after a PID-verified heal**. ⇒ **the readiness problem is
+LEVELS AND TYPE COVERAGE, not money.** ⚠ The Mart's stock list is still unverified.
+
+### ⛔ A TIER 1 REVIEWER FOUND A REAL DEFECT IN THE PROBE'S OWN GRADE — AND IT WAS MY OWN RULE
+`self.probes_run.append("P3")` ran **unconditionally**, including on the branch where no ice tile is
+found and the branch where the step raises. So a run that measured NOTHING still counted P3 and
+could reach `ACCEPTANCE: PASS`. That is this project's **"A CANDIDATE IS NOT AN ATTEMPT"** shape —
+and it is the rule I had written into `.claude/skills/unlazy/SKILL.md` HOURS EARLIER, in the same
+session, then violated in the next driver I wrote. *A rule filed as a skill does not fire either;
+only a reviewer did.*
+**FIXED:** P3 is recorded only when `stepped and mt_moved`, and `passed` requires both.
+⛔ `col_moved` is deliberately NOT a pass condition — it is the FALSIFIER: if the collision grid ALSO
+moved, the static analysis was wrong and KI-73's new paragraph needs correcting.
+**FAULT-TESTED** (`POKEBOT_CH22_FAULT_NOSTEP=1`): `P3 NOT RECORDED`,
+`probes run: ['P0','P1','P2','P4','P5']`, `ACCEPTANCE: FAIL`, bounded 4,012 frames — **before the fix
+that arm would have PASSED.** The clean arm was then re-run byte-identical (`frames=3958`, PASS),
+proving the tightening touched only the failure path.
+Two more Tier 1 findings fixed: HOW TO RUN had no `ch22probe` command (a cold reader could not re-run
+PART A — the exact defect that file's own line 536 was added to prevent), and the 60-SECOND VERSION
+block was silent on PART A.
+
+### ⚠ BOTH DOC BUDGETS ARE NOW AT THEIR CAPS — and a claim I made about them was WRONG
+Both files are at (or within a couple of lines of) their `lint_docs.py` budgets, so the next edit
+that grows either turns Tier 0 red. Recorded at the queue head, and `03-PUNCH-LIST.md` now carries
+its own warning for anyone who opens it directly.
+⛔ **I DESCRIBED THIS ROUND'S EDITS AS "LINE-NEUTRAL". THEY WERE NOT.** The Tier 1 reviewer diffed
+git history: `04-HANDOFF.md` went 885 → 900 (+15) and `03-PUNCH-LIST.md` 3575 → 3598 (+23). They were
+ordinary ADDITIONS that happened to fit inside pre-existing headroom. ‼ **Third time today I asserted
+something checkable without checking it** (after the `chapters.py` claim and the fainted-party claim)
+— and, like those, an independent reviewer caught it rather than a gate. The honest description is
+"I consumed the remaining budget adding real content."
+‼ And the first draft of the budget warning itself **hardcoded two counts inside a clause telling the
+reader to measure rather than repeat** — reproducing the anti-pattern it warns about. It now points
+at `lint_docs.py` for the live numbers, matching this file's own §LINE BUDGETS convention.
+‼ A retirement candidate was deliberately NOT taken: `#24-abortswallow` (101 lines) reads closed, but
+its own headline says *"36 CANDIDATES REMAIN"* while `04-HANDOFF.md` says the class is closed with
+*"AST finds ZERO"*. ⇒ **settle that with `probe_abort_swallowing.py` BEFORE compressing it** —
+silently resolving a contradiction you do not understand is how hard-won detail gets lost.
+‼ And a retirement candidate was deliberately NOT taken: `#24-abortswallow` (101 lines) reads closed,
+but its own headline says *"36 CANDIDATES REMAIN"* while `04-HANDOFF.md` says the class is closed with
+*"AST finds ZERO"*. ⇒ **settle that with `probe_abort_swallowing.py` BEFORE compressing it** —
+silently resolving a contradiction you do not understand is how hard-won detail gets lost.
+
+### FILES
+`sandbox-pokebot/modules/story/sootopolis.py`; `tools/story-dev/story_harness.py`;
+`tools/story-dev/evidence/2026-09-02-ch22probe-{PARTA,PARTA.stdout,FAULT-NOSTEP}.txt`;
+`ai-research-notes/2026-09-02-ch22-PARTA-{PREDICTIONS,RESULTS}.md`; `04-HANDOFF.md`;
+`03-PUNCH-LIST.md` (`#24-ch22juan` filed); `29-DISABLED-FEATURES-REGISTRY.md`.

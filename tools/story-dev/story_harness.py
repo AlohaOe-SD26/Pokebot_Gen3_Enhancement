@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -11206,6 +11206,378 @@ class Ch21ChapterMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch22ProbeMode(BotMode):
+    """§Ch22 PART A — the read-mostly probe that decides how the chapter gets built.
+
+    ‼ IT ANSWERS THREE QUESTIONS THAT CANNOT BE SETTLED ON PAPER, and predictions for every reading
+    were filed BEFORE it ran in `ai-research-notes/2026-09-02-ch22-PARTA-PREDICTIONS.md`.
+
+    ⛔⛔ P3 IS THE POINT: AN EMPIRICAL A/B OF AN INSTRUMENT WE ALREADY TRUST TOO MUCH.
+    `_live_collision_grid` + `probe_live_mapgrid.py` cracked KI-73 for §Ch21 and are described in
+    `02-ARCHITECTURE.md` as "the oracle for can the bot actually step there". In THIS gym they are a
+    FALSE NEGATIVE BY CONSTRUCTION — verified statically at three links (our reader keeps only
+    `(block & 0x0C00) >> 10`; `ScrCmd_setmetatile` ORs `MAPGRID_IMPASSABLE` only when its 4th arg is
+    TRUE; the gym passes FALSE on all of them). Static verification is an argument. **P3 takes ONE
+    ice step and shows the metatile grid changing while the collision grid does not.** That is the
+    difference between "I reasoned it out" and "I measured it", and this project's history says the
+    first one is where the mistakes live.
+
+    ⛔ A reading that contradicts a prediction is a RESULT, never a driver failure — including the
+    FALSIFIER: if the collision diff also moves, my static analysis was wrong and the KI-73 note
+    written today needs correcting.
+
+    SAFETY / REVERSIBILITY: exactly ONE ice tile is stepped on, and the puzzle resets on every map
+    change (`ClearTempFieldEventData()` + `OnTransition`), which P5 verifies by re-entering. No
+    state writes, no fixture capture, no battles sought, nobody talked to.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_hm07.ss1 --driver ch22probe --frames 40000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch22Probe"
+
+    def __init__(self):
+        super().__init__()
+        self.encounters = 0
+        self.whiteouts = 0
+        self.probes_run: list[str] = []
+        self.stop_reason: str | None = None
+        self.failure: str | None = None
+        # the P3 headline conjuncts — initialised False so a run that never reaches P3 cannot pass
+        self.stepped = False
+        self.mt_moved = False
+        self.col_moved = False
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts += 1
+        log("[ch22probe] !! WHITEOUT - latching the story abort so a verdict still prints.")
+        try:
+            from modules.story.early_game import set_story_abort
+
+            set_story_abort(True)
+        except Exception as error:  # noqa: BLE001
+            log(f"[ch22probe] !! could not latch the abort: {type(error).__name__}: {error}")
+            return False
+        return True
+
+    def on_battle_started(self, encounter):
+        self.encounters += 1
+        return super().on_battle_started(encounter)
+
+    def run(self):
+        """Thin wrapper so a raise anywhere still prints a verdict (the leg-5 probe's lesson)."""
+        TAG = "ch22probe"
+        frames_before = context.emulator.get_frame_count()
+        try:
+            yield from self._probe()
+        except Exception as error:  # noqa: BLE001 - the driver REPORTS failures, never hides them
+            self.failure = f"{type(error).__name__}: {str(error)[:600]}"
+            log(f"[{TAG}] !! PROBE RAISED: {self.failure}")
+
+        done = set(self.probes_run)
+        # ⛔ THE GRADE REQUIRES THE HEADLINE MEASUREMENT ITSELF, not just that P3's block ran:
+        # the ice step must have HAPPENED (`stepped`) and the metatile grid must have MOVED.
+        # `col_moved` is deliberately NOT a pass condition — it is the FALSIFIER: if the collision
+        # grid also moved, my static analysis was wrong and that is a RESULT to report, not a fail.
+        passed = (
+            {"P0", "P1", "P2", "P3", "P4", "P5"}.issubset(done)
+            and self.whiteouts == 0
+            and self.failure is None
+            and self.stop_reason is None
+            and self.stepped
+            and self.mt_moved
+        )
+        log(f"[{TAG}] probes run: {sorted(done)} whiteouts={self.whiteouts} "
+            f"encounters={self.encounters} "
+            f"frames={context.emulator.get_frame_count() - frames_before}")
+        log(f"[{TAG}] VERDICT INPUTS stop_reason={self.stop_reason!r} failure={self.failure!r} "
+            f"stepped={self.stepped} metatile_moved={self.mt_moved} collision_moved={self.col_moved} "
+            f"(collision_moved is the FALSIFIER, not a pass condition: if it is True my static "
+            f"analysis was wrong and KI-73's new paragraph needs correcting)")
+        log(f"[{TAG}] GRADE: this probe MEASURES; being right was never the bar. Compare every line "
+            f"to ai-research-notes/2026-09-02-ch22-PARTA-PREDICTIONS.md.")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+    def _probe(self):
+        from modules.map import get_map_data
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.map_path import PathFindingError, calculate_path
+        from modules.memory import get_event_flag, get_event_var
+        from modules.modes.util.higher_level_actions import heal_in_pokemon_center
+        from modules.player import get_player, get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import _navigate_riding_out, wait_until_truly_controllable
+        from modules.story.sootopolis import (
+            _live_collision_grid,
+            _live_metatile_grid,
+            _bounded_step,
+        )
+
+        TAG = "ch22probe"
+        GYM = MapRSE.SOOTOPOLIS_CITY_GYM_1F
+        THIN_ICE = (0x20D, 0x215)
+        CRACKED, BROKEN, LOCKED_STAIRS = 0x20E, 0x206, 0x20F
+
+        def where():
+            a = get_player_avatar()
+            try:
+                return MapRSE(tuple(a.map_group_and_number)).name, tuple(a.local_coordinates)
+            except Exception:  # noqa: BLE001
+                return f"UNKNOWN{tuple(a.map_group_and_number)}", tuple(a.local_coordinates)
+
+        def budgeted(gen, budget, label):
+            n = 0
+            while True:
+                try:
+                    v = next(gen)
+                except StopIteration:
+                    return
+                n += 1
+                if n > budget:
+                    gen.close()
+                    raise RuntimeError(f"frame budget {budget} exhausted during {label}")
+                yield v
+
+        def static_metatiles(map_enum):
+            """The map's own STATIC metatile ids, straight from the ROM header."""
+            import modules.map as _map_module
+            from modules.memory import unpack_uint32
+
+            header = _map_module._map_header_cache[context.rom.id][map_enum.value]
+            layout = context.emulator.read_bytes(unpack_uint32(header[:4]), 24)
+            w = unpack_uint32(layout[0:4])
+            h = unpack_uint32(layout[4:8])
+            raw = context.emulator.read_bytes(unpack_uint32(layout[12:16]), w * h * 2)
+            out = {}
+            for y in range(h):
+                for x in range(w):
+                    i = (y * w + x) * 2
+                    out[(x, y)] = (raw[i] | (raw[i + 1] << 8)) & 0x03FF
+            return out
+
+        def static_collision(map_enum):
+            import modules.map as _map_module
+            from modules.memory import unpack_uint32
+
+            header = _map_module._map_header_cache[context.rom.id][map_enum.value]
+            layout = context.emulator.read_bytes(unpack_uint32(header[:4]), 24)
+            w = unpack_uint32(layout[0:4])
+            h = unpack_uint32(layout[4:8])
+            raw = context.emulator.read_bytes(unpack_uint32(layout[12:16]), w * h * 2)
+            out = {}
+            for y in range(h):
+                for x in range(w):
+                    i = (y * w + x) * 2
+                    out[(x, y)] = ((raw[i] | (raw[i + 1] << 8)) & 0x0C00) >> 10
+            return out
+
+        # ============================= P0 — PREMISE + INVENTORY ==============================
+        yield from budgeted(wait_until_truly_controllable(), 3000, "P0 settle")
+        here_map, at = where()
+        badge8 = get_event_flag("BADGE08_GET")
+        party = [(m.personality_value, m.species.name, m.current_hp, m.total_hp)
+                 for m in get_party() if m is not None]
+        hp_now = sum(p[2] for p in party)
+        hp_max = sum(p[3] for p in party)
+        fainted = [p[0] for p in party if p[2] == 0]
+        log(f"[{TAG}] P0 at={here_map}{at} BADGE08={badge8} party_hp={hp_now}/{hp_max} "
+            f"fainted_pids={fainted} party={party}")
+        try:
+            money = get_player().money
+        except Exception as error:  # noqa: BLE001
+            money = f"UNREADABLE({type(error).__name__})"
+        log(f"[{TAG}] P0 MONEY={money} (UNPREDICTED — one of the numbers this probe exists to get)")
+        try:
+            from modules.items import get_item_bag, get_item_by_name
+
+            bag = get_item_bag()
+            counts = {n: bag.quantity_of(get_item_by_name(n))
+                      for n in ("Potion", "Super Potion", "Hyper Potion", "Revive", "Full Heal",
+                                "Full Restore", "X Attack", "Escape Rope")}
+            log(f"[{TAG}] P0 BAG {counts} (⛔ Escape Rope is DEAD WEIGHT here: both gym floors are "
+                f"`allow_escaping: false`)")
+        except Exception as error:  # noqa: BLE001
+            log(f"[{TAG}] P0 BAG read failed: {type(error).__name__}: {error}")
+        self.probes_run.append("P0")
+
+        if here_map != "SOOTOPOLIS_CITY" or badge8:
+            log(f"[{TAG}] !! VACUOUS — need SOOTOPOLIS_CITY with BADGE08 clear; got {here_map}, "
+                f"badge8={badge8}.")
+            self.stop_reason = "vacuous premise"
+            return
+
+        # ==================================== P1 — HEAL ======================================
+        before_pids = {p[0]: (p[2], p[3]) for p in party}
+        yield from budgeted(heal_in_pokemon_center(PokemonCenter.SootopolisCity), 20000, "P1 heal")
+        yield from budgeted(wait_until_truly_controllable(), 3000, "P1 settle")
+        after = {m.personality_value: (m.current_hp, m.total_hp)
+                 for m in get_party() if m is not None}
+        # ⛔ PID-KEYED, never a count — a count that nets to zero reads TRUE when nothing happened.
+        not_full = [pid for pid in before_pids if pid in after and after[pid][0] != after[pid][1]]
+        missing = [pid for pid in before_pids if pid not in after]
+        here_map, post_heal = where()
+        log(f"[{TAG}] P1 HEAL at={here_map}{post_heal} not_full={not_full} missing={missing} "
+            f"party_hp={sum(v[0] for v in after.values())}/{sum(v[1] for v in after.values())}")
+        self.probes_run.append("P1")
+
+        # ================================ P2 — ENTER THE GYM =================================
+        try:
+            apron = calculate_path((MapRSE.SOOTOPOLIS_CITY, post_heal),
+                                   (MapRSE.SOOTOPOLIS_CITY, (31, 32)))
+            log(f"[{TAG}] P2 path to the gym apron (31,32): OK {len(apron)} wp")
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            log(f"[{TAG}] P2 path to the gym apron: {type(error).__name__}: {str(error)[:200]}")
+        yield from budgeted(
+            _navigate_riding_out(MapRSE.SOOTOPOLIS_CITY, (31, 32), tries=6), 12000, "P2 to apron")
+        yield from budgeted(
+            _navigate_riding_out(GYM, (8, 25), tries=4), 8000, "P2 into the gym")
+        yield from budgeted(wait_until_truly_controllable(), 3000, "P2 settle")
+        here_map, gym_at = where()
+        ice_count_on_entry = get_event_var("ICE_STEP_COUNT")
+        log(f"[{TAG}] P2 INSIDE at={here_map}{gym_at} ICE_STEP_COUNT={ice_count_on_entry} "
+            f"(PREDICTED GYM_1F, arrival tile REPORTED not asserted, count 1)")
+        self.probes_run.append("P2")
+        if here_map != "SOOTOPOLIS_CITY_GYM_1F":
+            log(f"[{TAG}] !! P2 did not enter the gym — everything below is about that map.")
+            self.stop_reason = f"P2 landed on {here_map}"
+            return
+
+        # ================= P3 — THE HEADLINE: IS THE COLLISION READER BLIND? =================
+        live_mt = _live_metatile_grid(GYM)
+        stat_mt = static_metatiles(GYM)
+        live_col = _live_collision_grid(GYM)
+        stat_col = static_collision(GYM)
+
+        thin = sorted(t for t, v in live_mt.items() if v in THIN_ICE)
+        stairs = sorted(t for t, v in live_mt.items() if v == LOCKED_STAIRS)
+        # sections = contiguous bands of y, split by the locked-stair rows
+        bands: dict[int, int] = {}
+        for (x, y) in thin:
+            bands[y] = bands.get(y, 0) + 1
+        log(f"[{TAG}] P3 THIN ICE n={len(thin)} (PREDICTED 64) rows={sorted(bands)} "
+            f"per_row={[bands[y] for y in sorted(bands)]}")
+        log(f"[{TAG}] P3 LOCKED STAIRS (0x20F) n={len(stairs)} at={stairs}")
+
+        mt_diff_before = sorted(t for t in stat_mt if live_mt.get(t) != stat_mt[t])
+        col_diff_before = sorted(t for t in stat_col if live_col.get(t) != stat_col[t])
+        log(f"[{TAG}] P3 AT ENTRY metatile_diff={len(mt_diff_before)} "
+            f"collision_diff={len(col_diff_before)} (PREDICTED 0 and 0 — nothing stepped on yet)")
+
+        # --- derive the step target from the LIVE grid; ⛔ hardcode no coordinates ---
+        px, py = gym_at
+        candidates = [t for t in thin if t[0] == px and t[1] < py]
+        target = max(candidates, key=lambda t: t[1]) if candidates else None
+        log(f"[{TAG}] P3 STEP TARGET {target} (derived: the southernmost thin-ice tile in the "
+            f"player's own column, never hardcoded)")
+        stepped = False
+        if _os.environ.get("POKEBOT_CH22_FAULT_NOSTEP", "").strip() == "1":
+            # ⛔ FAULT ARM (house rule 6): suppress the ice step although everything else is fine.
+            # The tightened grade MUST go FAIL. Before the Tier 1 fix this arm would have PASSED.
+            log(f"[{TAG}] FAULT NOSTEP: skipping the ice step — P3 must NOT be recorded and the "
+                f"run must FAIL, proving the grade requires the measurement and not just the block.")
+            target = None
+        if target is None:
+            log(f"[{TAG}] !! P3 no thin ice in the player's column — the A/B cannot be run from "
+                f"here. That is a RESULT about the layout, not a driver fault.")
+        else:
+            # walk to the tile just south of it, then take ONE bounded step north onto the ice
+            approach = (target[0], target[1] + 1)
+            try:
+                if tuple(gym_at) != approach:
+                    yield from budgeted(_navigate_riding_out(GYM, approach, tries=4), 6000,
+                                        "P3 approach")
+                yield from budgeted(
+                    _bounded_step("Up", expect=target, map_enum=GYM), 1200, "P3 the ONE ice step")
+                stepped = True
+            except Exception as error:  # noqa: BLE001 - a failed step is a RESULT
+                log(f"[{TAG}] !! P3 the ice step failed: {type(error).__name__}: {str(error)[:250]}")
+
+        live_mt2 = _live_metatile_grid(GYM)
+        live_col2 = _live_collision_grid(GYM)
+        mt_diff_after = sorted(t for t in stat_mt if live_mt2.get(t) != stat_mt[t])
+        col_diff_after = sorted(t for t in stat_col if live_col2.get(t) != stat_col[t])
+        ice_count_after = get_event_var("ICE_STEP_COUNT")
+        log(f"[{TAG}] P3 AFTER ONE STEP stepped={stepped} at={where()[1]} "
+            f"ICE_STEP_COUNT {ice_count_on_entry} -> {ice_count_after} (PREDICTED 1 -> 2)")
+        log(f"[{TAG}] P3 metatile_diff={len(mt_diff_after)} at={mt_diff_after[:6]} "
+            f"values={[(t, hex(stat_mt[t]), hex(live_mt2[t])) for t in mt_diff_after[:4]]}")
+        log(f"[{TAG}] P3 ⛔ collision_diff={len(col_diff_after)} at={col_diff_after[:6]}")
+        verdict = ("BLIND — CONFIRMED" if len(mt_diff_after) > 0 and len(col_diff_after) == 0
+                   else "NOT blind / inconclusive — see the falsifier in the predictions note")
+        log(f"[{TAG}] P3 VERDICT: the collision reader is {verdict}. "
+            f"(metatile moved={len(mt_diff_after) > 0}, collision moved={len(col_diff_after) > 0}) "
+            f"⇒ if BLIND, `probe_live_mapgrid.py` would PASS on a broken model, MEASURED not argued.")
+        # ⛔ P3 IS RECORDED ONLY IF THE MEASUREMENT ACTUALLY HAPPENED. A Tier 1 reviewer found this
+        # appended unconditionally — so a run where no ice tile was found, or where the step raised,
+        # still marked P3 "done" and could reach ACCEPTANCE: PASS having measured NOTHING. That is
+        # this project's "A CANDIDATE IS NOT AN ATTEMPT" shape, and it is the rule I had written
+        # into the `unlazy` skill hours earlier. The headline conjuncts are stored for the verdict.
+        self.stepped = stepped
+        self.mt_moved = len(mt_diff_after) > 0
+        self.col_moved = len(col_diff_after) > 0
+        if stepped and self.mt_moved:
+            self.probes_run.append("P3")
+        else:
+            log(f"[{TAG}] !! P3 NOT RECORDED — stepped={stepped} metatile_moved={self.mt_moved}. "
+                f"The A/B did not happen, so P3 measured nothing and the grade must not count it.")
+
+        # ========================= P4 — IS THE PLANNER BLIND TOO? ===========================
+        here_now = where()[1]
+        try:
+            juan_path = calculate_path((GYM, here_now), (GYM, (8, 3)))
+            walls = [t for t in (tuple(w.coordinates) for w in juan_path)
+                     if live_col2.get(t, 0) != 0]
+            log(f"[{TAG}] P4 calculate_path({here_now} -> Juan (8,3)): **SUCCEEDS**, "
+                f"{len(juan_path)} wp, live_walls_on_it={len(walls)} "
+                f"⇒ the planner proposes a route through LOCKED STAIRS and un-walked ice, and the "
+                f"collision oracle calls it clean. The route MUST be a table, not a plan.")
+        except Exception as error:  # noqa: BLE001 - a refusal is also a reading
+            log(f"[{TAG}] P4 calculate_path(-> Juan (8,3)): {type(error).__name__}: "
+                f"{str(error)[:220]} (PREDICTED it would SUCCEED — a refusal is a RESULT)")
+        self.probes_run.append("P4")
+
+        # ==================== P5 — LEAVE, AND CONFIRM THE PUZZLE RESETS ======================
+        try:
+            yield from budgeted(_navigate_riding_out(GYM, (8, 25), tries=4), 8000, "P5 to the exit")
+            yield from budgeted(
+                _navigate_riding_out(MapRSE.SOOTOPOLIS_CITY, (31, 33), tries=4), 8000, "P5 out")
+        except Exception as error:  # noqa: BLE001
+            log(f"[{TAG}] !! P5 exit walk failed: {type(error).__name__}: {str(error)[:250]}")
+        yield from budgeted(wait_until_truly_controllable(), 3000, "P5 settle")
+        out_map, out_at = where()
+        log(f"[{TAG}] P5 OUT at={out_map}{out_at}")
+        if out_map == "SOOTOPOLIS_CITY":
+            try:
+                yield from budgeted(_navigate_riding_out(GYM, (8, 25), tries=4), 8000, "P5 re-enter")
+                yield from budgeted(wait_until_truly_controllable(), 3000, "P5 re-settle")
+                if where()[0] == "SOOTOPOLIS_CITY_GYM_1F":
+                    live_mt3 = _live_metatile_grid(GYM)
+                    reset_diff = sorted(t for t in stat_mt if live_mt3.get(t) != stat_mt[t])
+                    log(f"[{TAG}] P5 RE-ENTERED ICE_STEP_COUNT={get_event_var('ICE_STEP_COUNT')} "
+                        f"metatile_diff={len(reset_diff)} (PREDICTED 1 and 0 — every entry gets "
+                        f"VIRGIN ICE, which is what makes a precomputed route table safe)")
+                    yield from budgeted(_navigate_riding_out(GYM, (8, 25), tries=4), 8000,
+                                        "P5 leave again")
+                    yield from budgeted(
+                        _navigate_riding_out(MapRSE.SOOTOPOLIS_CITY, (31, 33), tries=4), 8000,
+                        "P5 out again")
+            except Exception as error:  # noqa: BLE001
+                log(f"[{TAG}] !! P5 re-entry check failed: {type(error).__name__}: "
+                    f"{str(error)[:250]}")
+        self.probes_run.append("P5")
+
+        final_map, final_at = where()
+        try:
+            cont = calculate_path((MapRSE.SOOTOPOLIS_CITY, final_at),
+                                  (MapRSE.SOOTOPOLIS_CITY, (31, 32)))
+            log(f"[{TAG}] CONTINUE from {final_map}{final_at} -> gym apron (31,32): OK {len(cont)} wp")
+        except Exception as error:  # noqa: BLE001
+            log(f"[{TAG}] CONTINUE from {final_map}{final_at} -> gym apron: "
+                f"{type(error).__name__}: {str(error)[:200]}")
+
+
 class Ch20ChapterMode(Ch20DiveMode):
     """§Ch20 AS A CHAPTER — drives the PRODUCTION function, not a copy of it.
 
@@ -12626,6 +12998,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch21ReturnMode()
         elif args.driver == "ch21chapter":
             context.bot_mode_instance = Ch21ChapterMode()
+        elif args.driver == "ch22probe":
+            context.bot_mode_instance = Ch22ProbeMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

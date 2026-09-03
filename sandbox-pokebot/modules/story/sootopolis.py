@@ -935,6 +935,62 @@ def _live_collision_grid(map_enum) -> dict[tuple[int, int], int]:
     return grid
 
 
+def _live_metatile_grid(map_enum) -> dict[tuple[int, int], int]:
+    """METATILE ID per LOCAL tile, read from `gBackupMapLayout` — the field `_live_collision_grid`
+    THROWS AWAY, and the only one that can see a map rewriting *passable* tiles.
+
+    ⛔⛔ THIS EXISTS BECAUSE `_live_collision_grid` IS A **FALSE NEGATIVE BY CONSTRUCTION** ON SOME
+    MAPS, AND IT FAILS SILENTLY. Verified at three links (2026-09-02):
+      1. `_live_collision_grid` keeps `(block & 0x0C00) >> 10` — the COLLISION bits, nothing else.
+      2. `ScrCmd_setmetatile` (`src/scrcmd.c:2044-2047`) ORs `MAPGRID_IMPASSABLE` **only** when its
+         4th argument is TRUE.
+      3. `SootopolisCity_Gym_1F/scripts.inc` passes **FALSE** on every one of its `setmetatile`s.
+    ⇒ in the Sootopolis Gym the ice cracking under the bot NEVER touches the bits that reader looks
+    at, so it — and `probe_live_mapgrid.py` — report **0 differences and PASS** over a model that is
+    catastrophically wrong. ‼ The collision reader did not become wrong; **it was always
+    collision-only**, and §Ch21's hazard merely happened to be a collision change.
+    ⇒ **SUCCESS ON ONE MAP IS NOT VALIDATION FOR THE CLASS OF PROBLEM.** (KI-73, `08-MISTAKES.md`.)
+
+    Same bulk read and the same MEASURED border `offset = 7` as `_live_collision_grid` — deliberately
+    a sibling rather than a rewrite, so the calibration that probe proved at 99.6% is inherited
+    rather than re-earned. The ONLY difference is the mask: `& 0x03FF` (metatile id) not
+    `& 0x0C00` (collision).
+
+    ⛔ ONLY VALID FOR THE MAP THE AVATAR IS STANDING ON — `gBackupMapLayout` describes the loaded map.
+    """
+    from modules.map import get_map_data
+    from modules.memory import read_symbol, unpack_uint32
+    from modules.modes import BotModeError
+
+    if not _on_map(map_enum):
+        raise BotModeError(
+            f"Ch21/22: _live_metatile_grid({map_enum.name}) was called while standing at {_where()}. "
+            "`gBackupMapLayout` only ever describes the LOADED map."
+        )
+
+    header = read_symbol("gBackupMapLayout", 0, 12)
+    width = unpack_uint32(header[0:4])
+    height = unpack_uint32(header[4:8])
+    pointer = unpack_uint32(header[8:12])
+
+    map_width, map_height = get_map_data(map_enum, (0, 0)).map_size
+    offset = 7  # MAP_OFFSET, include/constants/global.h — see `_live_collision_grid` for the proof
+    if width < map_width + 2 * offset or height < map_height + 2 * offset:
+        raise BotModeError(
+            f"Ch21/22: the live grid for {map_enum.name} is {width}x{height}, too small for a "
+            f"{map_width}x{map_height} map with a {offset}-tile border."
+        )
+
+    raw = context.emulator.read_bytes(pointer, width * height * 2)
+    grid: dict[tuple[int, int], int] = {}
+    for y in range(map_height):
+        for x in range(map_width):
+            index = ((y + offset) * width + (x + offset)) * 2
+            block = raw[index] | (raw[index + 1] << 8)
+            grid[(x, y)] = block & 0x03FF
+    return grid
+
+
 def _live_wall_tiles(map_enum, tiles) -> list[tuple[int, int]]:
     """Which of `tiles` does the GAME consider a wall, whatever our planner believes?"""
     grid = _live_collision_grid(map_enum)
