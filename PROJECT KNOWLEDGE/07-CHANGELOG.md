@@ -20054,3 +20054,35 @@ chasing the gate one failure at a time (the `staleness-sweep` skill's own rule, 
 `sandbox-pokebot/modules/story/sootopolis_gym.py` (NEW); `tools/story-dev/story_harness.py`;
 `tools/story-dev/evidence/2026-09-02-ch22ice-{CLEAN,FAULT-BADROUTE,GUARD-CAUGHT-COUNTERMODEL,GUARD-CAUGHT-CLIMB}.txt`;
 `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `29-DISABLED-FEATURES-REGISTRY.md`.
+
+---
+
+## 2026-09-03 — §Ch22's ICE LEG ENDS **STRANDED BY DESIGN**, CONFIRMED LIVE — and my first measurement of it was wrong
+
+### THE FINDING
+After the 64-step walk the bot stands in front of Juan on a **20-TILE ISLAND**: measured live,
+`live_reachable=20`, `live_reaches_exit=False`, `live_reaches_ladder=False`. That matches an
+independent decomp BFS exactly, so the recon's claim is CONFIRMED from the game itself: **the only
+way out of this gym is a DELIBERATE FALL to B1F** — the §Ch21-leg-4 shape, which no pathfinder can
+propose.
+‼ **AND THE PLANNER DISAGREES AND IS WRONG — a THIRD independent demonstration.** From the same
+tile it reports the exit warp **23 wp** and the ladder **22 wp** away. Both are unreachable.
+
+### ⛔ A GAP IN MY OWN GRADE, NAMED RATHER THAN PAPERED OVER
+The ice leg's acceptance checks position and `ICE_STEP_COUNT` — **not** "and the bot can continue".
+That is the exact shape §Ch15/§Ch18/§Ch19 each passed while stranded. The honest resolution is not
+to bolt a continuation check onto this leg (its true end state *is* "in front of Juan, stranded"),
+but to state loudly that **the chapter is not done until the EXIT leg exists**. The driver now says
+so on every run.
+
+### ⛔ AND MY FIRST MEASUREMENT OF IT WAS WRONG IN THE DANGEROUS DIRECTION
+The first BFS reported `live_reachable=372 … reaches_exit=True` — apparently REFUTING the island
+claim. It filtered ice and stairs but **never checked collision**, so it walked through walls. Caught
+by a plausibility check (372 of 442 tiles is absurd for this map), not by review.
+‼ The root error was over-generalising a true finding: having established that `_live_collision_grid`
+is blind to the ICE, I treated it as useless — when it is blind to the ice and **correct about
+walls**, for exactly the same reason. The right answer needs BOTH grids. Rules in `08-MISTAKES.md`.
+
+### FILES
+`tools/story-dev/story_harness.py`; `tools/story-dev/evidence/2026-09-02-ch22ice-CLEAN.txt`;
+`07-CHANGELOG.md`, `08-MISTAKES.md`, `03-PUNCH-LIST.md`.

@@ -11698,6 +11698,66 @@ class Ch22IceMode(BotMode):
 
         here_name, at = where()
         count = get_event_var("ICE_STEP_COUNT")
+
+        # ⛔⛔ "AND THE BOT CAN CONTINUE" — THE CONJUNCT I OMITTED FROM THIS GRADE, AND THE EXACT
+        # SHAPE §Ch15/§Ch18/§Ch19 EACH PASSED WHILE STRANDED. Reaching Juan's tile is not the leg;
+        # reaching it from somewhere the bot can still act is. Measured two ways, because in THIS
+        # gym the planner is provably wrong: a real `calculate_path`, AND a BFS over the LIVE
+        # metatile grid treating cracked/broken ice as impassable (which is what it is — a second
+        # step breaks it, and a broken tile is a hole).
+        exit_report = {}
+        try:
+            from modules.map_path import PathFindingError, calculate_path
+            from modules.story.sootopolis import _live_metatile_grid
+
+            for label, target in (("exit_warp", gym.GYM_ENTRANCE), ("ladder", (11, 22))):
+                try:
+                    path = calculate_path((gym.GYM_1F, at), (gym.GYM_1F, target))
+                    exit_report[f"planner_{label}"] = len(path)
+                except (PathFindingError, KeyError, IndexError, ValueError, RuntimeError) as err:
+                    exit_report[f"planner_{label}"] = type(err).__name__
+
+            from modules.story.sootopolis import _live_collision_grid
+
+            grid = _live_metatile_grid(gym.GYM_1F)
+            # ⛔⛔ COLLISION IS REQUIRED HERE AND I LEFT IT OUT OF THE FIRST CUT. Without it the BFS
+            # walked THROUGH WALLS and reported 372 of 442 tiles reachable — and I nearly wrote that
+            # up as REFUTING the recon's "Juan's platform is an island". The metatile grid answers
+            # "is this ice, and what state", NOT "is this solid": collision still lives in the
+            # collision bits, which are CORRECT for walls (the gym's `setmetatile`s never touch
+            # them — that is precisely why they are blind to the ICE, and precisely why they are
+            # still right about WALLS). ⇒ use BOTH grids, each for what it actually measures.
+            collision = _live_collision_grid(gym.GYM_1F)
+            blocked = {t for t, mt in grid.items()
+                       if mt in (gym.CRACKED_ICE, gym.BROKEN_ICE, gym.LOCKED_STAIRS)}
+            walkable = {t for t, mt in grid.items()
+                        if t not in blocked and mt not in gym.THIN_ICE
+                        and collision.get(t, 1) == 0}
+            seen, frontier = {tuple(at)}, [tuple(at)]
+            while frontier:
+                x, y = frontier.pop()
+                for nb in ((x, y-1), (x, y+1), (x-1, y), (x+1, y)):
+                    if nb in walkable and nb not in seen:
+                        seen.add(nb); frontier.append(nb)
+            exit_report["live_reachable"] = len(seen)
+            exit_report["live_reaches_exit"] = tuple(gym.GYM_ENTRANCE) in seen
+            exit_report["live_reaches_ladder"] = (11, 22) in seen
+        except Exception as err:  # noqa: BLE001 - a failed measurement is a RESULT
+            exit_report["error"] = f"{type(err).__name__}: {str(err)[:200]}"
+        log(f"[{TAG}] CONTINUE {exit_report}")
+        log(f"[{TAG}] ⛔⛔ CONFIRMED LIVE 2026-09-02: THIS LEG ENDS **STRANDED BY DESIGN**. Once the "
+            f"ice is cracked, Juan's platform is a 20-TILE ISLAND — matching an independent decomp "
+            f"BFS exactly — so `live_reaches_exit` and `live_reaches_ladder` are BOTH False and the "
+            f"chapter's only way out is a DELIBERATE FALL to B1F (a §Ch21-leg-4 shape no pathfinder "
+            f"can propose). ‼ THE PLANNER DISAGREES AND IS WRONG: it reports the exit warp "
+            f"{exit_report.get('planner_exit_warp')} wp and the ladder "
+            f"{exit_report.get('planner_ladder')} wp away — a THIRD independent demonstration that "
+            f"`calculate_path` must never be used inside this gym.")
+        log(f"[{TAG}] ⇒ 'CAN CONTINUE' IS DELIBERATELY **NOT** A CONJUNCT OF *THIS LEG'S* GRADE, "
+            f"because the leg's honest end state is 'in front of Juan, stranded'. ⛔ THE CHAPTER IS "
+            f"NOT DONE UNTIL THE EXIT LEG EXISTS — and a chapter grade that omitted it would be the "
+            f"exact §Ch15/§Ch18/§Ch19 shape (all three PASSED their own tests while stranded).")
+
         passed = (
             failure is None
             and count == gym.ICE_COMPLETE_COUNT

@@ -10823,3 +10823,38 @@ confirm the grade goes FAIL.** If you will not write that arm, you do not know y
 ‼ Meta-rule, earned here: **writing a rule into a skill/doc does NOT protect the author who wrote
 it.** Skills help the next reader; the only thing that caught this was an independent reviewer given
 the diff. ⇒ **keep Tier 1 mandatory even when the author is the person who wrote the rulebook.**
+
+---
+
+## 2026-09-03 — MY OWN REACHABILITY BFS WALKED THROUGH WALLS, AND I NEARLY PUBLISHED IT AS A REFUTATION
+
+**Symptom.** Measuring whether §Ch22's ice leg ends STRANDED, my live BFS reported
+`live_reachable=372, live_reaches_exit=True, live_reaches_ladder=True` — apparently REFUTING the
+recon's "once the ice is cracked, Juan's platform is a 20-tile island, and the only way out is a
+deliberate fall". I was one sentence from writing that up.
+
+**What stopped it.** The number was implausible on its face: 372 of a 17×26 = 442-tile map. A gym
+that is mostly ice and wall does not have 84% of its tiles mutually reachable.
+
+**Root cause.** My walkable set was
+`{t for t, mt in metatiles.items() if t not in blocked and mt not in THIN_ICE}` — it filtered ice,
+cracked ice and locked stairs, and **never checked collision at all**, so it walked straight through
+walls. With `collision.get(t, 1) == 0` added, the answer is **20 tiles, exit False, ladder False** —
+matching an independent decomp BFS *exactly*, and CONFIRMING the recon rather than refuting it.
+
+**The deeper error, and it is one I had already written the rule for.** I had just spent a day
+establishing that in this gym `_live_collision_grid` is *blind to the ice*, and I over-generalised
+that into treating the collision bits as useless. They are not: they are blind to the ICE and
+**correct about WALLS** — the gym's `setmetatile`s never touch them, which is exactly why both
+things are true at once. ⇒ **each grid answers its own question**; the metatile grid says "is this
+ice and what state", the collision grid says "is this solid". Neither substitutes for the other.
+
+**Prevention rules.**
+⛔ **A REACHABILITY/REFUTATION RESULT MUST PASS A PLAUSIBILITY CHECK BEFORE IT IS BELIEVED, AND
+ESPECIALLY BEFORE IT IS PUBLISHED.** Ask "what fraction of the map is this, and does that make
+sense for this map?" A number that would be remarkable if true is a number to re-derive, not to
+report. ‼ Refuting a prior finding is exactly when to be *most* suspicious of your own instrument —
+the reward for a dramatic result is what makes it dangerous.
+⛔ **AND DO NOT LET "INSTRUMENT X IS BLIND TO Y" COLLAPSE INTO "INSTRUMENT X IS USELESS".** State
+what each instrument measures and use it only for that. Here the correct answer needed BOTH grids;
+using either alone gives a confidently wrong map.

@@ -855,7 +855,17 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       `+1 per step` counter model (it went 7→9 on a threshold crossing), and (b) an
       inter-section climb that CONSUMED section 1's first ice tile, so the route then refused
       its own step 1 on an already-cracked tile. Both were found by the guard, not by review.
-      ⇒ **WHAT REMAINS:** the Mart's stock (unverified); B1F (never entered — the exit fall, the
+      ⛔⛔ **AND THE ICE LEG ENDS STRANDED BY DESIGN — CONFIRMED LIVE 2026-09-03.** After the
+      walk, Juan's platform is a **20-TILE ISLAND** (`live_reachable=20`,
+      `live_reaches_exit=False`, `live_reaches_ladder=False`), matching an independent decomp
+      BFS exactly ⇒ **the only way out is a DELIBERATE FALL to B1F**, the §Ch21-leg-4 shape.
+      ‼ The planner reports the exit 23 wp and the ladder 22 wp away — a THIRD independent
+      proof `calculate_path` is wrong in this gym.
+      ⇒ **THE CHAPTER IS NOT DONE UNTIL THE EXIT LEG EXISTS.** 'Can continue' is deliberately
+      NOT a conjunct of the ICE leg's grade (its honest end state IS 'stranded in front of
+      Juan'), but a CHAPTER grade that omitted it would be the §Ch15/18/19 shape exactly.
+      ⇒ **WHAT REMAINS:** the EXIT leg (fall → B1F → ladder (11,22) → 1F → city), which also
+      means B1F's TEN trainers — never entered; the Mart's stock (unverified); B1F (never entered — the exit fall, the
       ten trainers, the (11,22) ladder are all decomp-only); and how under-levelled the party is —
       **only a live Juan drive settles that, and the FIRST ONE IS EXPECTED TO LOSE. That loss is the
       measurement, not a failure.**

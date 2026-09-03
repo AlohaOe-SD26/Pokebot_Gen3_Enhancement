@@ -1,4 +1,4 @@
-[setup] LOG -> ch22ice_clean.log
+[setup] LOG -> ch22ice_final.log
 [setup] loaded save state post_hm07.ss1; build=sandbox
 [run] starting faithful loop for up to 60000 frames
 f0: CONTROLLER -> <none>   (state=OVERWORLD)
@@ -6,6 +6,9 @@ f0: CONTROLLER -> <none>   (state=OVERWORLD)
 f1: CONTROLLER -> Ch22IceMode.run   (state=OVERWORLD)
 f45: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DoDoorWarp', 'Task_AnimateDoor'] ctrl=Ch22IceMode.run bt='Got away safely!' scripts=[] party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
 f2000: heartbeat mode=Story ctrl=Ch22IceMode.run state=OVERWORLD party=[Swellow:L41:exp64229|Zigzagoon:L19:exp7035|Sceptile:L50:exp119908|Wailmer:L40:exp68951|Mightyena:L44:exp88688|Castform:L36:exp47020]
+[ch22ice] CONTINUE {'planner_exit_warp': 23, 'planner_ladder': 22, 'live_reachable': 20, 'live_reaches_exit': False, 'live_reaches_ladder': False}
+[ch22ice] ⛔⛔ CONFIRMED LIVE 2026-09-02: THIS LEG ENDS **STRANDED BY DESIGN**. Once the ice is cracked, Juan's platform is a 20-TILE ISLAND — matching an independent decomp BFS exactly — so `live_reaches_exit` and `live_reaches_ladder` are BOTH False and the chapter's only way out is a DELIBERATE FALL to B1F (a §Ch21-leg-4 shape no pathfinder can propose). ‼ THE PLANNER DISAGREES AND IS WRONG: it reports the exit warp 23 wp and the ladder 22 wp away — a THIRD independent demonstration that `calculate_path` must never be used inside this gym.
+[ch22ice] ⇒ 'CAN CONTINUE' IS DELIBERATELY **NOT** A CONJUNCT OF *THIS LEG'S* GRADE, because the leg's honest end state is 'in front of Juan, stranded'. ⛔ THE CHAPTER IS NOT DONE UNTIL THE EXIT LEG EXISTS — and a chapter grade that omitted it would be the exact §Ch15/§Ch18/§Ch19 shape (all three PASSED their own tests while stranded).
 [ch22ice] RESULT at=SOOTOPOLIS_CITY_GYM_1F(8, 3) ICE_STEP_COUNT=68 steps=64 end_tile=(8, 6) end_count=68 encounters=0 whiteouts=0 frames=2232
 [ch22ice] SECTIONS [(1, 7, (8, 17), 9), (2, 19, (8, 12), 29), (3, 38, (8, 6), 68)] (each: index, tiles, end tile, ICE_STEP_COUNT — MEASURED (8,17)/9, (8,12)/29, (8,6)/68; the PREDICTION was 8/28/67, the raw decomp thresholds — each unlock's own addvar lands in the same beat as the crossing step, so the rest value is threshold+1)
 [ch22ice] FAILURE None
