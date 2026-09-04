@@ -512,7 +512,11 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 - [ ] ⚠ **RELATED, NOT THE SAME:** `#24-ch23wally` option (b) (the faint ranking feeding the L19
       into fights) is the CAUSE; healing treats the symptom. Both open.
 
-### ‼ `#24-ch23attrition` — **Victory Road has NO healing, and the party is being ground down leg by leg.** (filed 2026-09-04, MEASURED across four fixtures)
+### ‼ `#24-ch23attrition` — **Victory Road has NO healing, and the party is being ground down leg by leg.** ⛔ **BUT IT DOES NOT BLOCK LEG 8 — LEG 8 BLOCKS *IT*.** (filed 2026-09-04, MEASURED across four fixtures; dependency corrected 2026-09-04)
+
+> ⛔⛔ **I HAD THIS BACKWARDS FOR ONE COMMIT, AND THE MEASUREMENT INVERTED IT.** I wrote that the party's condition blocked leg 8. It is the reverse: from the B2F landing **B1F (17,16)** the bot is **TRAPPED ON ITS ISLAND** — MEASURED `--driver ch23retprobe`: `(8,3)` (leg 6's ladder to 1F) **UNREACHABLE**, `(30,25)` (back to B2F) **UNREACHABLE**, `(20,21)` (the 1F ladder) **UNREACHABLE behind the plug**. ⇒ **the ONLY exit is through the plug, so the bot cannot leave Victory Road to heal until LEG 8 is solved.** Training or shopping first is not merely lower-priority, it is *impossible* from here.
+> ⇒ **BUILD LEG 8 FIRST.** ⭐ And it is safer than it looks: the pushes and smashes do not fight, the standpoints are 15-18 wp away, and a whiteout on B1F respawns at **EVER_GRANDE — outside Victory Road, healed**, which is an escape rather than a loss.
+> ‼ *The lesson: I priced an expensive option (hours of training) and put it to the user before checking whether the bot could even REACH the thing that option required. **Measure the dependency before pricing the remedy.***
 
 - [ ] **THE CURVE, measured not predicted:** `post_training` **95% / 0 fainted** → `post_wally`
       **67% / 2** → *(leg 6 heals)* → `post_b1f_healed` **87% / 0** → `post_b2f` **38% / 3**.
@@ -549,14 +553,19 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       Wailord fainting does not strand the run. ⇒ **do NOT "fix" `assert_carriers_survived` to reject
       fainted carriers** — it is correct as written, and that check would fire on a healthy run.
 
-### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **LEGS 1-7 ARE BUILT AND DRIVEN; ONLY LEG 8 (THE RETURN) AND THE CHAPTER WIRING REMAIN.** ⚠ The party is being ground down — see `#24-ch23attrition`. (filed 2026-09-03, updated 2026-09-04)
+### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **ALL EIGHT LEGS ARE BUILT AND DRIVEN. REMAINING: (1) the ARROW-WARP EXIT at 1F (39,5) — MEASURED reachable in 62 wp but NEVER DRIVEN — and (2) the chapter orchestrator + Segment 23 wiring.** ⚠ The party ends at 35% with three fainted — `#24-ch23attrition`, now ACTIONABLE because the bot can finally leave. (filed 2026-09-03, updated 2026-09-04)
+
+> ⛔⛔ **THAT HEADER DROPPED THE UN-DRIVEN EXIT FOR ONE COMMIT — THE FOURTH TIME THIS ITEM'S HEADLINE HAS BEEN CAUGHT CLAIMING MORE THAN ITS OWN BULLETS.** The bullet one line below it listed the arrow warp; the header said "ONLY the wiring remains". `04-HANDOFF.md` had it right in BOTH halves, so this was the punch list alone regressing. ⇒ **when a header enumerates what remains, diff it against the bullet directly beneath it before committing** — and note that gate #35 cannot catch this shape, because no CLOSED slug is being mis-described.
 
 > ⛔⛔ **P5 CAUGHT THIS ITEM FOR THE THIRD TIME (2026-09-04).** Twice before, a CHILD item was closed while this PARENT kept commanding the finished work; this time its header still read *"Leg 6 ships WITHOUT a heal step"* and its bullet still said *"Add the heal before building leg 7"* AFTER `#24-ch23healdescent` closed. ⇒ **closing a child is not updating the parent, and this item is where that keeps failing.** A research note calls this item *"the authoritative live status"*, so a cold agent reading it would rebuild shipped work and start leg 7 from the superseded 32%/3-fainted fixture. **Whoever closes the next §Ch23 child item: grep this slug and re-read this block FIRST.**
 
 > ⛔ **HEADER/BODY PAIR NOTE (2026-09-04).** This header read "LEGS 1-4 SHIP AND PASS; LEGS 5-8 REMAIN" for one commit *after* its own body bullet had been corrected to "legs 6-8" — a Tier 1 reviewer caught it. **P2: a header is a claim about every bullet beneath it**, and updating the body alone is the more dangerous state, because the body looks current.
 
-- [~] **REMAINS: leg 8 + the wiring** — the return (B1F's 2×2 plug → 1F → the arrow-warp exit) and
-      the chapter orchestrator + Segment 23 wiring.
+- [~] **REMAINS: the chapter orchestrator + Segment 23 wiring** — plus the arrow-warp exit itself
+      (1F (39,5), approached from (38,5), MEASURED reachable in 62 wp but not yet driven).
+      ✅✅✅ **LEG 8 SHIPPED 2026-09-04** (`ch23return`, PASS, `battles=2`, `whiteouts=0`, fixture
+      `post_return.ss1` at VICTORY_ROAD_1F (21,32)). ⛔ **It broke a TRAP:** from B1F (17,16) every
+      other exit was unreachable, so the bot could not leave Victory Road until it shipped.
       ✅✅ **LEG 7 SHIPPED 2026-09-04** (`ch23cross2`, PASS, `battles=3`, `whiteouts=0`, fixture
       `post_b2f.ss1` at VICTORY_ROAD_B1F (17,16)); its `LADDERAIM` fault arm is proven to FAIL.
       ⭐ The crossing is ONE `navigate_to` — the planner mounts Surf and rides the descent itself.

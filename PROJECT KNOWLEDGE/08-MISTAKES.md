@@ -12043,3 +12043,38 @@ whole time — I retyped from memory of what I had filed hours earlier instead o
    cheap enough to do while writing.
 3. ‼ **A NUMBER THAT "LOOKS RIGHT" IS THE DANGEROUS KIND.** `1428` was a real intermediate from the
    real calculation, so nothing about it read as wrong. Plausibility is not verification.
+
+
+## 2026-09-04 — I PRICED AN EXPENSIVE REMEDY BEFORE CHECKING THE BOT COULD REACH WHAT IT REQUIRED
+
+**Symptom.** After §Ch23 leg 7 I documented the blocker as *"the party is too degraded for leg 8"*
+(35–38% HP, three fainted), filed `#24-ch23attrition`, priced the fix — **up to ~1,073,317 frames,
+about five hours of emulator** — and put that decision to the user as the next action. The whole
+framing was inverted.
+
+**Root cause.** I never asked whether the bot could **reach** a Poké Center. An observe-only probe
+(`--driver ch23retprobe`) then measured, from the B2F landing **B1F (17,16)**: `(8,3)` (leg 6's
+ladder to 1F) **UNREACHABLE**, `(30,25)` (back to B2F) **UNREACHABLE**, `(20,21)` (the 1F ladder)
+**UNREACHABLE behind the plug**. ⇒ **the bot was TRAPPED on its island. Leg 8 was the only exit**, so
+healing, training and shopping were all *impossible* until leg 8 shipped. **Attrition did not block
+leg 8; leg 8 blocked attrition.**
+
+**Why it was plausible and therefore dangerous.** Every fact I had was true — the HP curve
+(95%→67%→87%→38%) was measured, the training cost was measured, the "no healing inside Victory Road"
+finding was decomp-verified. The error was not in any fact but in the **direction of the dependency
+between them**, which nothing I had gathered spoke to. ‼ *A correct premise set can still yield an
+unactionable plan if you never check the ordering.*
+
+**Cost.** One commit's worth of documentation pointing the next session at the wrong next action, and
+a five-hour decision put to the user that they could not have acted on. Caught by my own probe, not
+by a reviewer — but only because I happened to ask the reachability question afterwards.
+
+**Prevention rules.**
+1. ⛔ **MEASURE THE DEPENDENCY BEFORE PRICING THE REMEDY.** Before quoting a cost — especially one
+   measured in hours of the user's time — verify the bot can actually REACH the thing that cost buys.
+   A remedy that cannot be applied from the current state is not an option, it is a distraction.
+2. ⛔ **WHEN YOU WRITE "X BLOCKS Y", ASK WHETHER Y BLOCKS X.** The two read identically in prose and
+   invert the entire plan. This one is cheap to test: ask the planner whether the resources X needs
+   are reachable from where the run actually IS.
+3. ‼ **AN ESCALATION TO THE USER DESERVES THE SAME EVIDENCE BAR AS A CODE CHANGE.** I would not have
+   shipped a fix on an unverified dependency; I should not have shipped a *question* on one either.

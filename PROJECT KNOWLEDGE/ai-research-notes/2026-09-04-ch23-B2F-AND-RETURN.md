@@ -325,7 +325,9 @@ the visible list** — (20,26) is ~10 tiles from (17,16), at the edge of the cam
 NOT evidence it is absent**; `get_map_objects()` is a window, not a census. Confirm it from an
 adjacent standpoint before the push.
 
-⛔ **STILL OWED FOR LEG 8 — the arms that involve actually MOVING something:** the smash at (20,25),
+✅✅ **SUPERSEDED 2026-09-04 — LEG 8 SHIPPED AND ALL OF THIS WAS DRIVEN.** `--driver ch23return`, `ACCEPTANCE: PASS`, `battles=2`, `whiteouts=0`; the plug solve is legible in the run's own report (rock 11 smashed → boulder 5 **(20,26)→(20,25)** → rock 12 smashed → ladder open, **trap boulder 6 never moving**), and the `TRAPPUSH` arm PROVED the trap by pushing 6 to (22,25) and sealing the route. ⇒ **read `03-PUNCH-LIST.md` `#24-ch23victoryroad` and the handoff queue for live status, not this paragraph.** Kept as the pre-build record:
+
+⛔ *(WAS) STILL OWED FOR LEG 8 — the arms that involve actually MOVING something:* the smash at (20,25),
 the **NORTH** push of boulder 5 at (20,26) *(the recon's whole point: pushing boulder 6 at (21,25)
 EAST is its ONLY legal push and it BRICKS the route, so ordering the solve to push 5 first makes the
 trap physically unreachable)*, the second smash at (21,26), and then (20,21) becoming REACHABLE.

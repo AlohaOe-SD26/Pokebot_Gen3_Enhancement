@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -14220,8 +14220,13 @@ class Ch23ReturnProbeMode(BotMode):
             # ⭐ IS (17,16) EVEN IN THE PLUG'S WALK-REGION? The recon says B1F is SEVEN islands, not
             # the three we believed. Sample tiles on the way rather than claim a flood-fill we did
             # not run — reporting "N tiles" from a sample would be inventing precision.
+            # ⛔⛔ THE DECISIVE QUESTION: IS THE BOT TRAPPED? (8,3) is leg 6's arrival ladder to 1F
+            # and (30,25) the B2F ladder. If NEITHER is reachable from (17,16), then the ONLY exit
+            # from this island is (20,21) — behind the plug — and leg 8 is not blocked by the party's
+            # condition, it is what BLOCKS fixing it. That inverts the whole plan, so measure it.
             R["island_sample"] = {f"{xy}": probe(xy) for xy in
-                                  ((16, 18), (15, 22), (19, 26), (22, 25), (20, 12))}
+                                  ((16, 18), (15, 22), (19, 26), (22, 25), (20, 12),
+                                   (8, 3), (30, 25), (9, 15))}
             taken.add("R8-ISLANDS")
 
             tiles = {}
@@ -14254,6 +14259,134 @@ class Ch23ReturnProbeMode(BotMode):
         passed = failure is None and not missing
         log(f"[{TAG}] GRADE missing={missing} failure={failure}")
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
+class Ch23ReturnMode(BotMode):
+    """§Ch23 LEG 8 — clear B1F's 2x2 plug and climb back to 1F. **PRODUCTION CODE.**
+
+    ⛔⛔ **URGENT: THE BOT IS TRAPPED UNTIL THIS WORKS.** From the B2F landing (17,16) every other
+    exit is UNREACHABLE (measured), so this is the only way out of Victory Road — and therefore the
+    only way to reach a Poké Center to fix the party.
+
+    ⭐ The step ORDER is the safety mechanism: pushing boulder `local_id 5` at (20,26) NORTH first
+    makes boulder `6`'s route-bricking EAST push physically unreachable. Correctness by
+    construction, with the assertions as a second layer.
+
+    FAULT ARMS — both MUST print `ACCEPTANCE: FAIL`:
+      `POKEBOT_CH23_FAULT_NOPUSHN=1`  skip the north push
+      `POKEBOT_CH23_FAULT_TRAPPUSH=1` take the route-bricking east push
+
+    ⚠ Party arrives at 38% with three fainted; a whiteout respawns at EVER_GRANDE — OUTSIDE Victory
+    Road and healed — which here is an escape, not a loss.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_b2f.ss1 --driver ch23return --frames 150000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23Return"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23return] WHITEOUT #{self.whiteouts} — respawn EVER_GRANDE (outside, healed).")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        what = "unknown"
+        try:
+            opp = getattr(encounter, "pokemon", None) or getattr(encounter, "opponent", None)
+            what = f"wild {getattr(getattr(opp, 'species', None), 'name', opp)}" if opp is not None \
+                else "TRAINER (trainer battles pass no encounter object)"
+        except Exception:  # noqa: BLE001 - logging must never break the run it observes
+            what = "unreadable"
+        self.battle_log = getattr(self, "battle_log", [])
+        self.battle_log.append(what)
+        log(f"[ch23return] BATTLE #{self.battles}: {what}")
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        from modules.story import victory_road as VR
+        from modules.map_data import MapRSE
+        from modules.map_path import calculate_path
+
+        TAG = "ch23return"
+        VR1F = MapRSE.VICTORY_ROAD_1F
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        report: dict = {"readings": set()}
+
+        start_on_1f = VR._on_map(VR1F)
+        hp = [(m.species.name, m.current_hp, m.total_hp) for m in VR.get_party() if m is not None]
+        log(f"[{TAG}] PRE at={VR._where()} already_on_1f={start_on_1f}")
+        log(f"[{TAG}] PRE party_hp={hp}")
+
+        failure = None
+        try:
+            yield from VR.return_through_b1f(report)
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        taken = report.get("readings", set())
+        missing = [r for r in VR.LEG8_READINGS if r not in taken]
+        for key in ("b1f_return_entry", "plug_before", "ladder_before", "plug_after_smash_a",
+                    "plug_after_push", "plug_after_smash_b", "ladder_reachable", "ladder_apron",
+                    "f1_arrival", "on_1f"):
+            if key in report:
+                log(f"[{TAG}] R {key} = {report[key]!r}")
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+        log(f"[{TAG}] RESULT battle_log={getattr(self, 'battle_log', [])}")
+        log(f"[{TAG}] POST party_hp="
+            f"{[(m.species.name, m.current_hp, m.total_hp) for m in VR.get_party() if m is not None]}")
+
+        on_1f = VR._on_map(VR1F)
+        # ⛔ "AND THE BOT CAN CONTINUE" — a REAL path off the tile actually reached. ⭐ And here the
+        # continuation that MATTERS is the EXIT, since being trapped is the whole problem this leg
+        # solves: can we reach the arrow-warp tile's neighbourhood from where we landed?
+        cont = None
+        if on_1f:
+            here = VR._here_tile()
+            # ⛔⛔ THE CONTINUATION THAT MATTERS IS **THE EXIT**, and the first draft of this list
+            # did not test it. It tried (39,6) — the tile SOUTH of the arrow warp, which the recon
+            # says is a WALL — then fell through to a tile 4 wp away and called that "can continue".
+            # ‼ That is precisely the §Ch15/§Ch18/§Ch19 shape: a liveness check that passes while
+            # answering a question nobody asked. The exit is approached from (38,5), WEST of the
+            # arrow tile — so that is what we ask for, and the fallbacks are only diagnostics.
+            for cand in ((VR.F1_EXIT_ARROW[0] - 1, VR.F1_EXIT_ARROW[1]),   # (38,5), the real apron
+                         VR.B1F_LADDER_APRON,
+                         (here[0], here[1] - 4)):
+                try:
+                    cont = {"to": cand, "wp": len(calculate_path((VR1F, here), (VR1F, cand)))}
+                    break
+                except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                    VR.reraise_if_aborting(error)
+            log(f"[{TAG}] R continue_from_1f = {cont!r}")
+
+        premise_ok = not start_on_1f
+        passed = (failure is None and premise_ok and on_1f and not missing
+                  and cont is not None and self.whiteouts == 0)
+        log(f"[{TAG}] GRADE premise_ok={premise_ok} on_1f={on_1f} missing={missing} "
+            f"can_continue={cont is not None} battles={self.battles} "
+            f"whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] FINAL position={VR._where()}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH23_CAPTURE", "").strip()
+        if passed and _cap:
+            import pathlib as _pathlib   # ⛔ local: `pathlib` is NOT bound at module scope here
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if _out.exists() and _os.environ.get("CAPTURE_FORCE") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_out.name} exists. Set CAPTURE_FORCE=1 to overwrite.")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured the post-return fixture -> {_out}")
         context.set_manual_mode()
 
 
@@ -16049,6 +16182,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23CrossB2fMode()
         elif args.driver == "ch23retprobe":
             context.bot_mode_instance = Ch23ReturnProbeMode()
+        elif args.driver == "ch23return":
+            context.bot_mode_instance = Ch23ReturnMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

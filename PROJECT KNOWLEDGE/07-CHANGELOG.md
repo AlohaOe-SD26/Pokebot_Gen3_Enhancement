@@ -21802,3 +21802,61 @@ boulder solve twice, because every warp resets the puzzle. Leg 8 has its own tra
 boulder plug. ⇒ the options are written up in the item; **option (a), training on B1F now that it is
 reachable (950.8 EXP/battle vs 1F's 775.6), was already the plan for the Elite Four gap** and would
 fix attrition as a side effect.
+
+
+## 2026-09-04 — §Ch23 LEG 8 SHIPS: **VICTORY ROAD IS TRAVERSED**, and it broke a trap
+
+**What shipped.** `return_through_b1f` in `victory_road.py`, driven by `--driver ch23return`.
+**First run PASSED**: all 6 readings, `missing=[]`, `battles=2` (one trainer, one wild Golbat),
+`whiteouts=0`; fixture `post_return.ss1` (md5 `259177d049ce1dceede82b66c2bcae5b`) at
+**VICTORY_ROAD_1F (21,32)**, with the exit apron **(38,5) measured reachable in 62 wp**.
+⇒ **§Ch23's eight legs are all built and driven.**
+
+**⛔⛔ AND I HAD THE DEPENDENCY BACKWARDS — the measurement inverted the plan.** The previous commit
+said the party's condition blocked leg 8, and put an expensive training decision (up to ~5 hours) to
+the user. Then an observe-only probe asked whether the bot could even *reach* a Poké Center: from the
+B2F landing **B1F (17,16)**, `(8,3)` **UNREACHABLE**, `(30,25)` **UNREACHABLE**, `(20,21)`
+**UNREACHABLE behind the plug**. ⇒ **the bot was TRAPPED on its island; leg 8 was the only way out,
+so attrition could not be acted on before it.**
+‼ **I priced a remedy before checking the bot could reach the thing the remedy required.**
+⇒ **MEASURE THE DEPENDENCY BEFORE PRICING THE REMEDY.**
+
+**⭐ CORRECTNESS BY CONSTRUCTION, not by assertion.** Boulder `local_id 6` at (21,25) has exactly one
+legal push — EAST — and it **bricks the route** (its target (22,25) is the base of the only column to
+the ladder). Rather than guard against choosing it, leg 8 **orders the solve so it cannot be chosen**:
+pushing boulder `5` at (20,26) NORTH first removes boulder 6's only legal push. The run's own report
+proves it happened that way: rock `11` smashed → boulder `5` **(20,26)→(20,25)** → rock `12` smashed
+→ ladder open, with **boulder `6` never moving from (21,25)**.
+
+**‼ TWO WEAK INSTRUMENTS, CAUGHT BY READING THE RUN'S OWN OUTPUT rather than by a reviewer:**
+1. `b1f_obstacle_positions()` watched only **leg 6's** three `local_id`s, so leg 8's first run logged
+   `plug_after_smash_a = {}`, `plug_after_push = {}`, `plug_after_smash_b = {}` — three readings that
+   **read as "no obstacles left" and meant "not looking"**. The run PASSED with them in its report.
+   ⇒ **AN INSTRUMENT SCOPED TO YESTERDAY'S QUESTION RETURNS A CONFIDENT EMPTY ANSWER TO TODAY'S.**
+   Now watches all seven ids this chapter touches, including the trap boulder it never pushes —
+   because *"the leg never touches it"* is a claim, and a report that cannot see it cannot support it.
+2. The liveness check aimed at `(39,6)`, the tile SOUTH of the arrow warp — **a wall** — then fell
+   through to a target 4 wp away and called that "can continue". ⇒ the §Ch15/§Ch18/§Ch19 shape
+   exactly: a check that passes while answering a question nobody asked. It now asks for the real
+   exit apron **(38,5)**, which is what makes the 62-wp reading meaningful.
+
+**⭐⭐ AND THE TRAP IS PROVEN REAL, NOT ASSERTED.** `POKEBOT_CH23_FAULT_TRAPPUSH=1` takes the EAST
+push, and the report shows exactly what the recon predicted:
+
+    plug_after_push = {6: (22,25), 5: (20,26), 12: (21,26)}
+
+**Boulder `6` moved (21,25) → (22,25)** — onto the base of the only column to the ladder — and the
+leg then refused to continue. `POKEBOT_CH23_FAULT_NOPUSHN=1` also fails. ⇒ both arms print
+`ACCEPTANCE: FAIL`, so the step order is demonstrably load-bearing rather than merely argued.
+
+⚠ **HONEST CAVEAT ON *HOW* THEY FAIL.** Both arms raise `UnreachableDestinationError` at the SECOND
+SMASH's approach — *"Could not reach (20,26)... the field is idle and we are still at (19,25)"* —
+rather than at the ladder-reachability guard I wrote for them. That is a correct refusal (the leg
+stops, loudly, with the tile named) but it is **a different failure mode than designed**: the route
+seals before the guard is reached. ‼ Recorded rather than glossed, because "the arm failed" and "the
+arm failed the way I intended" are different claims, and only the first is measured here.
+
+**Still owed:** the arrow-warp exit itself (stand on (39,5), face South, hold Down) is measured
+reachable but **not yet driven**, and the chapter orchestrator + Segment 23 wiring remain.
+⚠ The party ends at **35% with three fainted** — `#24-ch23attrition` is now genuinely ACTIONABLE,
+because the bot is one warp from the door with a Poké Center just outside.

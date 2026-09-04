@@ -359,3 +359,8 @@
 {"when": "2026-09-04T15:04:29", "driver": "ch23descend", "build": "sandbox", "state": "post_wally.ss1", "frames_run": 45308, "recomputes": 45308, "scans": 152, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-04T15:11:09", "driver": "ch23cross2", "build": "sandbox", "state": "post_b1f_healed.ss1", "frames_run": 40773, "recomputes": 40773, "scans": 136, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-04T15:18:12", "driver": "ch23retprobe", "build": "sandbox", "state": "post_b2f.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T15:40:18", "driver": "ch23retprobe", "build": "sandbox", "state": "post_b2f.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T15:49:26", "driver": "ch23return", "build": "sandbox", "state": "post_b2f.ss1", "frames_run": 28573, "recomputes": 28573, "scans": 96, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T15:56:15", "driver": "ch23return", "build": "sandbox", "state": "post_b2f.ss1", "frames_run": 28573, "recomputes": 28573, "scans": 96, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T16:02:33", "driver": "ch23return", "build": "sandbox", "state": "post_b2f.ss1", "frames_run": 24758, "recomputes": 24758, "scans": 83, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T16:08:13", "driver": "ch23return", "build": "sandbox", "state": "post_b2f.ss1", "frames_run": 25585, "recomputes": 25585, "scans": 86, "divergences": {}, "observer_broke": false}

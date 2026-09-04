@@ -1,0 +1,33 @@
+=== LEG 8 RUN (PASS, instruments fixed) ===
+[ch23return] PRE at=((24, 44), (17, 16)) already_on_1f=False
+[ch23return] PRE party_hp=[('Sceptile', 0, 147), ('Zigzagoon', 0, 48), ('Swellow', 136, 136), ('Wailord', 0, 226), ('Mightyena', 141, 141), ('Castform', 28, 103)]
+[ch23return] BATTLE #1: TRAINER (trainer battles pass no encounter object)
+[ch23return] BATTLE #2: wild Golbat
+[ch23return] R b1f_return_entry = (17, 16)
+[ch23return] R plug_before = {4: (9, 10), 6: (21, 25), 10: (18, 12), 11: (20, 25)}
+[ch23return] R ladder_before = False
+[ch23return] R plug_after_smash_a = {6: (21, 25), 5: (20, 26), 12: (21, 26)}
+[ch23return] R plug_after_push = {6: (21, 25), 5: (20, 25), 12: (21, 26)}
+[ch23return] R plug_after_smash_b = {6: (21, 25), 5: (20, 25)}
+[ch23return] R ladder_reachable = True
+[ch23return] R ladder_apron = {'tile': (21, 21), 'step': 'Left'}
+[ch23return] R f1_arrival = ((24, 43), (21, 32))
+[ch23return] R on_1f = True
+[ch23return] RESULT readings=['R8-1F', 'R8-ENTER', 'R8-LADDERPATH', 'R8-PUSHN', 'R8-SMASHA', 'R8-SMASHB'] missing=[]
+[ch23return] RESULT battles=2 whiteouts=0
+[ch23return] RESULT battle_log=['TRAINER (trainer battles pass no encounter object)', 'wild Golbat']
+[ch23return] POST party_hp=[('Sceptile', 0, 147), ('Zigzagoon', 0, 48), ('Swellow', 108, 136), ('Wailord', 0, 226), ('Mightyena', 141, 141), ('Castform', 28, 103)]
+[ch23return] R continue_from_1f = {'to': (38, 5), 'wp': 62}
+[ch23return] GRADE premise_ok=True on_1f=True missing=[] can_continue=True battles=2 whiteouts=0 failure=None
+[ch23return] FINAL position=((24, 43), (21, 32))
+[ch23return] ACCEPTANCE: PASS
+[ch23return] captured the post-return fixture -> C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves\post_return.ss1
+
+=== FAULT NOPUSHN (must FAIL) ===
+[ch23return] FAILURE UnreachableDestinationError: Could not reach (20, 26) on MapRSE.VICTORY_ROAD_B1F: the field is idle and we are still at (19, 25), so retrying cannot change the result (Could not find a path from (19/
+[ch23return] ACCEPTANCE: FAIL
+
+=== FAULT TRAPPUSH (must FAIL — boulder 6 moves to (22,25) and seals the route) ===
+[ch23return] FAILURE UnreachableDestinationError: Could not reach (20, 26) on MapRSE.VICTORY_ROAD_B1F: the field is idle and we are still at (21, 25), so retrying cannot change the result (Could not find a path from (21/
+[ch23return] R plug_after_push = {6: (22, 25), 5: (20, 26), 12: (21, 26)}
+[ch23return] ACCEPTANCE: FAIL

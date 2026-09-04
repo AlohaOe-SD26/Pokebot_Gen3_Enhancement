@@ -276,6 +276,48 @@ B2F_BUDGET_FRAMES = 150_000
 
 LEG7_READINGS = ("R7-ENTER", "R7-APRON", "R7-CROSS", "R7-B1F")
 
+# ============================== LEG 8 — THE RETURN: B1F's 2x2 PLUG -> 1F =======================
+#: ⛔⛔ **URGENT, NOT OPTIONAL: THE BOT IS TRAPPED UNTIL THIS SHIPS.** MEASURED
+#: (`--driver ch23retprobe`, observe-only) from the B2F landing **B1F (17,16)**: `(8,3)` (leg 6's
+#: ladder to 1F) **UNREACHABLE**, `(30,25)` (back to B2F) **UNREACHABLE**, `(20,21)` (the 1F ladder)
+#: **UNREACHABLE behind the plug**. ⇒ **the only exit from this island is through the plug**, so the
+#: party cannot leave Victory Road to heal, train or shop until leg 8 works.
+#: ‼ I documented the dependency BACKWARDS for one commit (as "attrition blocks leg 8"). It is the
+#: reverse. ⇒ **measure the dependency before pricing the remedy.**
+B1F_RETURN_LANDING = (17, 16)          # where leg 7's ladder drops us
+
+#: ⛔⛔ THE 1F LADDER IS A **WARP** — never a navigation target. SIXTH trap of this shape in §Ch23.
+B1F_1F_LADDER = (20, 21)
+
+#: ⭐ THE 2x2 PLUG, each keyed by its LIVE `local_id`. MEASURED present from (17,16):
+#: rock `11` @ (20,25) and boulder `6` @ (21,25). ⚠ Boulder `5` @ (20,26) and rock `12` @ (21,26)
+#: sit ~10 tiles out, at the edge of the CAMERA WINDOW — **absent from the visible list is NOT
+#: evidence they are gone**; confirm them from an adjacent standpoint, which the leg does.
+#: ⛔⛔ **THE TRAP, AND IT IS AVOIDED BY CONSTRUCTION RATHER THAN GUARDED AGAINST.** Boulder `6` at
+#: (21,25) has a SINGLE legal push — **EAST** — and it **BRICKS THE ROUTE** (its target (22,25) is
+#: already the base of the only column to the ladder; MEASURED unreachable from here). ⇒ **push
+#: boulder `5` at (20,26) NORTH instead, which makes boulder 6's trap physically unreachable.**
+#: ‼ That is why the order below is not interchangeable: it is chosen so the wrong move cannot be
+#: made, not so that a guard catches it afterwards.
+B1F_SMASH_A = {"local_id": 11, "tile": (20, 25), "approach": (19, 25), "face": "Right"}
+B1F_PUSH_N = {"local_id": 5, "tile": (20, 26), "approach": (20, 27), "face": "Up", "to": (20, 25)}
+B1F_SMASH_B = {"local_id": 12, "tile": (21, 26), "approach": (20, 26), "face": "Right"}
+
+#: ⛔ THE TRAP BOULDER. Leg 8 NEVER pushes it — the step order makes its only legal push (EAST)
+#: physically unreachable — but it is WATCHED, because "the leg never touches it" is a claim and an
+#: obstacle report that cannot see it cannot support that claim.
+B1F_TRAP_BOULDER_ID = 6
+
+#: MEASURED approach distances from (17,16): (19,25) = 15 wp, (20,27) = 18 wp.
+B1F_RETURN_BUDGET = 120_000
+
+#: 1F's exit is an ARROW WARP — see `VR_EXIT_ARROW`. From (21,32) the bot must reach (39,5), stand
+#: on it facing South, and HOLD Down. ⚠ MODELED at 61 steps by an agent; not yet driven.
+F1_LADDER_LANDING = (21, 32)
+F1_EXIT_ARROW = (39, 5)
+
+LEG8_READINGS = ("R8-ENTER", "R8-SMASHA", "R8-PUSHN", "R8-SMASHB", "R8-LADDERPATH", "R8-1F")
+
 # ============================== TRAINING — BEFORE WALLY ========================================
 #: ⛔⛔ TRAIN ON **1F**, NOT B1F, AND THAT IS NOT A PREFERENCE — IT IS FORCED.
 #: B1F is the better ground (950.8 EXP/battle vs 1F's 775.6, because B1F swaps 1F's low-level
@@ -389,6 +431,11 @@ FAULT_ARMS = {
     #: leg 7 — aim navigation AT the exit ladder instead of an apron, so the warp-override trap
     #: fires on demand and the apron guard must catch it
     "LADDERAIM": "POKEBOT_CH23_FAULT_LADDERAIM",
+    #: leg 8 — skip the NORTH push, so the ladder-reachability guard must catch the still-sealed plug
+    "NOPUSHN": "POKEBOT_CH23_FAULT_NOPUSHN",
+    #: leg 8 — take the TRAP: push boulder 6 at (21,25) EAST, which bricks the route. ⛔ The leg must
+    #: refuse to do this on its own; the arm exists to prove the trap is real, as leg 6's did.
+    "TRAPPUSH": "POKEBOT_CH23_FAULT_TRAPPUSH",
 }
 
 
@@ -1727,10 +1774,22 @@ def b1f_obstacle_positions() -> dict:
     """
     from modules.map import get_map_objects
 
+    # ⛔⛔ TRACK **EVERY** B1F OBSTACLE THIS CHAPTER TOUCHES, not just leg 6's three.
+    # ‼ MEASURED 2026-09-04: leg 8's first run logged `plug_after_smash_a = {}`,
+    # `plug_after_push = {}`, `plug_after_smash_b = {}` — which READS as "no obstacles left" and
+    # actually meant "this function was not looking at leg 8's ids at all". The run PASSED with three
+    # vacuous readings in its own report.
+    # ⇒ **AN INSTRUMENT SCOPED TO YESTERDAY'S QUESTION RETURNS A CONFIDENT EMPTY ANSWER TO TODAY'S.**
+    # Same family as `#24-waterfalltimeout` and the six dead fault arms: silent, plausible, wrong.
+    watched = (
+        B1F_PUSH_WEST["local_id"], B1F_PUSH_EAST["local_id"], B1F_SMASH["local_id"],   # leg 6
+        B1F_SMASH_A["local_id"], B1F_PUSH_N["local_id"], B1F_SMASH_B["local_id"],       # leg 8
+        B1F_TRAP_BOULDER_ID,                                                            # the trap
+    )
     out = {}
     for obj in get_map_objects():
         local_id = getattr(obj, "local_id", None)
-        if local_id in (B1F_PUSH_WEST["local_id"], B1F_PUSH_EAST["local_id"], B1F_SMASH["local_id"]):
+        if local_id in watched:
             out[local_id] = tuple(obj.current_coords)
     return out
 
@@ -2179,3 +2238,115 @@ def cross_b2f(report=None) -> Generator:
             f"Ch23 leg 7: pressed {step_dir} from the apron {apron} onto the ladder "
             f"{B2F_EXIT_LADDER} and did not arrive on VICTORY_ROAD_B1F — we are at {_where()}."
         )
+
+
+# --------------------------------------------------------------------------------------------
+# LEG 8 — THE RETURN: solve B1F's 2x2 plug and climb back to 1F
+# --------------------------------------------------------------------------------------------
+def return_through_b1f(report=None) -> Generator:
+    """§Ch23 LEG 8 — clear the 2x2 plug on B1F and take the ladder up to 1F (21,32).
+
+    ⛔⛔ **THE BOT IS TRAPPED UNTIL THIS WORKS.** From the B2F landing (17,16) every other exit is
+    unreachable (MEASURED), so this is the only way out of Victory Road — including the only way to
+    reach a Poké Center.
+
+    ⭐ **THE ORDER IS CHOSEN SO THE TRAP BECOMES UNTAKEABLE — and here is the exact mechanism, so
+    nobody has to take the claim on trust.** Boulder `local_id 6` at (21,25) has exactly one legal
+    push (EAST), which bricks the route; **pushing it EAST requires STANDING ON (20,25)**. Step 2
+    pushes boulder `5` from (20,26) **NORTH onto (20,25)** — i.e. **it parks a boulder on the trap's
+    only standpoint.** ⇒ from step 2 onward the trap is *physically* impossible, not merely avoided.
+    ‼ **BE PRECISE ABOUT WHEN:** that protection engages AT step 2, not before it. Between step 1 and
+    step 2 the standpoint is clear and the trap IS takeable — which is exactly the window
+    `POKEBOT_CH23_FAULT_TRAPPUSH` exploits, and why that arm can move boulder 6 to (22,25) at all.
+    ⇒ correctness by construction beats correctness by assertion, but only over the interval where
+    the construction actually holds; the assertions cover the rest.
+
+    ‼ RE-SOLVED ON EVERY ENTRY, NEVER CACHED: every warp resets the puzzle, confirmed THREE times
+    now (most recently arriving here from B2F, with leg 6's obstacles restored).
+    """
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    from modules.story.early_game import _smash_rock, strength_push
+
+    yield from wait_until_truly_controllable()
+    if not _on_map(B1F):
+        raise BotModeError(
+            f"Ch23 leg 8: must start on VICTORY_ROAD_B1F (leg 7 lands at {B1F_RETURN_LANDING}) but "
+            f"we are at {_where()}. Use `post_b2f.ss1`."
+        )
+    report["b1f_return_entry"] = _here_tile()
+    report["plug_before"] = b1f_obstacle_positions()
+    report["ladder_before"] = _can_reach(B1F, B1F_1F_LADDER)
+    _take(report, "R8-ENTER")
+
+    # ⛔ ANTI-VACUITY: the plug is supposed to seal the ladder on every entry. If it is already open,
+    # this run cannot demonstrate anything and the start state is not what we think it is.
+    if report["ladder_before"]:
+        raise BotModeError(
+            f"Ch23 leg 8: the 1F ladder {B1F_1F_LADDER} is reachable BEFORE any work — the plug is "
+            f"supposed to seal it on every entry (the warp reset). Obstacles: "
+            f"{report['plug_before']}. ⇒ the start state is wrong, or the reset assumption is."
+        )
+    assert_carriers_survived("entering the return leg")
+
+    # ---- step 1: smash rock 11 at (20,25), standing west at (19,25) -----------------------------
+    yield from _smash_rock(B1F, B1F_SMASH_A["approach"], B1F_SMASH_A["face"])
+    yield from wait_until_truly_controllable()
+    report["plug_after_smash_a"] = b1f_obstacle_positions()
+    _take(report, "R8-SMASHA")
+
+    # ---- step 2: the NORTH push that makes the trap unreachable ---------------------------------
+    if not _fault("NOPUSHN"):
+        if _fault("TRAPPUSH"):
+            # ‼ THE TRAP ARM: push boulder 6 EAST instead. Its target (22,25) is the base of the only
+            # column to the ladder, so this seals the route. The guard below must catch it.
+            context.message = "Ch23 FAULT TRAPPUSH: taking the route-bricking EAST push"
+            yield from strength_push(B1F, (20, 25), "Right")
+        else:
+            yield from strength_push(B1F, B1F_PUSH_N["approach"], B1F_PUSH_N["face"])
+        yield from wait_until_truly_controllable()
+    else:
+        context.message = "Ch23 FAULT NOPUSHN: skipping the north push"
+    report["plug_after_push"] = b1f_obstacle_positions()
+    _take(report, "R8-PUSHN")
+
+    # ---- step 3: smash rock 12 at (21,26) --------------------------------------------------------
+    # ⚠ Rock Smash rolls a wild encounter; the battle listener handles it.
+    yield from _smash_rock(B1F, B1F_SMASH_B["approach"], B1F_SMASH_B["face"])
+    yield from wait_until_truly_controllable()
+    report["plug_after_smash_b"] = b1f_obstacle_positions()
+    _take(report, "R8-SMASHB")
+
+    # ---- the verdict: is the ladder open? --------------------------------------------------------
+    report["ladder_reachable"] = _can_reach(B1F, B1F_1F_LADDER)
+    _take(report, "R8-LADDERPATH")
+    if not report["ladder_reachable"]:
+        raise BotModeError(
+            f"Ch23 leg 8: the plug steps ran but the 1F ladder {B1F_1F_LADDER} is still unreachable. "
+            f"Obstacles: {report['plug_after_smash_b']}. Before: {report['plug_before']}. "
+            f"⛔ Do NOT retry blindly — if boulder {B1F_PUSH_N['local_id']} went EAST instead of "
+            f"NORTH the route is BRICKED, and the only recovery is to leave B1F and re-enter, which "
+            f"resets the puzzle. ‼ From here the bot is TRAPPED, so that recovery means a whiteout "
+            f"(respawn EVER_GRANDE, outside and healed) — survivable, but not free."
+        )
+
+    # ---- up to 1F, apron-first ---------------------------------------------------------------------
+    apron, step_dir = _ladder_apron(B1F, B1F_1F_LADDER, "leg 8")
+    report["ladder_apron"] = {"tile": apron, "step": step_dir}
+    yield from _budgeted(_navigate_riding_out(B1F, apron), B1F_RETURN_BUDGET, "reach the 1F ladder")
+    yield from wait_until_truly_controllable()
+    if _here_tile() != apron:
+        raise BotModeError(
+            f"Ch23 leg 8: navigated toward the 1F ladder apron {apron} but ended on {_here_tile()}."
+        )
+    yield from _walk_through_warp(step_dir, B1F.value)
+    yield from wait_until_truly_controllable()
+    report["f1_arrival"] = _where()
+    report["on_1f"] = _on_map(VR1F)
+    _take(report, "R8-1F")
+    if not report["on_1f"]:
+        raise BotModeError(
+            f"Ch23 leg 8: pressed {step_dir} onto the ladder {B1F_1F_LADDER} from {apron} and did "
+            f"not arrive on VICTORY_ROAD_1F — we are at {_where()}."
+        )
+    assert_carriers_survived("returning to 1F")
