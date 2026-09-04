@@ -21019,3 +21019,55 @@ filed with prevention rules in `08-MISTAKES.md`.
 **3. ⇒ A BUILD RULE FALLS OUT: never aim a path at a tile an object stands on.** Leg 4 must target a
 free channel tile such as **(101,26)**, never Carlee's or Harrison's own tile. A refusal to an
 occupied tile says *"something is standing there"*, not *"you cannot get there"*.
+
+
+## 2026-09-03 (design review) — A DESIGN WAS ATTACKED BEFORE IT WAS CODE, AND IT FOUND A PRODUCTION HAZARD
+
+Three independent designs for §Ch23 legs 2-3 (safety-first / minimal-reuse / structural-fidelity)
+were synthesised into one, then adversarially attacked. ⛔ **The attack found 4 BLOCKERS, 5 SERIOUS
+and 3 MINOR defects in the design that had ALREADY been judged best of three** — all local; verdict
+*implement with the listed fixes*. ‼ **Each blocker would have cost at least one 25-minute drive, and
+one of them costs HOURS.** No code had been written, which is the point.
+
+**1. ⛔⛔ THE STRUCTURAL FACT THAT SHAPES LEG 3.** `WaypointAction.Dive` / `.Emerge` are **declared**
+(`map_path.py:692-693`) and **assigned nowhere**; `follow_waypoints` handles only Surf and Waterfall.
+The warp graph gives `SOOTOPOLIS_CITY` 13 warp edges and **zero** connections to the underwater map.
+⇒ **no navigation primitive in this tree can dive or emerge**, so leg 3 must hand-sequence and
+`navigate_to_anywhere` from inside the crater is structurally impossible. ⭐ **But §Ch21 leg 3 already
+makes this exact crossing and is driven and passing** ⇒ import its constants; do NOT refactor it in
+the same commit (that charges §Ch23 for a §Ch21 regression). ⚠ **And a correction to our own note:**
+§Ch21's three drive logs show the arrow warp rests on **(45,66)** — already the safe emerge tile — so
+READ and BRANCH rather than unconditionally stepping south.
+
+**2. ⛔ THE BLOCKER THAT COSTS HOURS.** `_pin_planner_to_live_layout` mutates a **process-global**
+cache with no unpin, and §Ch21 leaves Sootopolis pinned to the LEGENDS_BATTLE layout. The design put
+the re-pin in leg 2 — but a whiteout on Route 128 respawns in the crater with `departure_ready()`
+True (a whiteout heals fully), so **leg 2 is SKIPPED and the pin never runs**, and leg 3 then walks
+Sootopolis on the stale layout, which §Ch21 measured as *"37 waypoints, walks into live rock"* against
+35 correct. Bounded only by the ~41-cycle whiteout budget. ⇒ **pin inside the leg whose walk it
+protects.** ‼ *A guard placed in a leg that self-skips is a guard that is not there.*
+
+**3. ⛔ TWO GRADE DEFECTS THAT WOULD HAVE FAILED HEALTHY RUNS.** A per-attempt "archive and reset"
+would have made a **perfect single-attempt run FAIL** (the reading lands in `previous_attempts`, not
+in `readings`) — the same shape §Ch22 already measured and fixed by summing across attempts. And an
+assertion ORDER defect: "HP must rise" placed before the respawn check means a real respawn fault
+retries into a full-HP party and dies with *"HP total did not rise"* — **the wrong diagnosis, with the
+re-arm retry destroyed by its own ordering.**
+
+**4. ⛔⛔ AND THE REVIEW FOUND A REAL PRODUCTION HAZARD, NOW `KI-83`.** It noticed the design's
+"never-hang audit" had cleared `heal_in_pokemon_center` by checking its **exit** loops while the
+**nurse interaction three lines earlier** was unbounded. Verified independently before filing:
+**`tasks_scripts.py` is 162 lines containing 8 unbounded wait loops, ZERO frame caps and ZERO
+`_check_abort()`** — including a bare `while True:` at `:80`. `heal_in_pokemon_center` calls two of
+them, so **every heal in every chapter runs unbounded abort-blind waits**, and the trigger is already
+documented in our own tree (a whiteout inside the heal kills the menus, so the awaited task never
+starts). ✅ **It is byte-identical to the pristine upstream mirror**, so patching it is a DIVERGENCE
+decision with the widest blast radius in the codebase ⇒ **filed, deliberately NOT fixed** (the same
+ruling as KI-47, which is the same shape); **bound it at the CALL SITE.**
+‼ ⇒ **A NEVER-HANG AUDIT MUST ENUMERATE THE LOOPS THE CALL *REACHES*, NOT THE LOOPS NEARBY.**
+
+**5. ⭐ AND 5 OF 12 PROPOSED FAULT ARMS WERE HOLLOW** — one faults a branch that provably never
+executes, one pushes a guard in the direction it cannot fire, one is a self-declared no-op, one
+patches a read at only one of its two call sites so the run departs anyway. *An arm that cannot fail
+is a sentence that says PASS.* The reviewed set is recorded in the build spec §4b, which is now the
+implementation contract.

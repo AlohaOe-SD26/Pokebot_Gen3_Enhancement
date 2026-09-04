@@ -844,6 +844,19 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       occupied. ‼ This also falsified a comment in `Ch23RouteMode` claiming production ignores
       objects on a non-active map — it does not, which *strengthens* the B1F sealed-chamber
       reading. `08-MISTAKES.md` 2026-09-03.
+      ⭐⭐ **LEGS 2-3 ARE DESIGNED AND ADVERSARIALLY REVIEWED — the attack found 4 BLOCKERS, 5
+      SERIOUS and 3 MINOR defects in the design already judged best of three.** Verdict:
+      *implement with fixes*, all local. **Full contract: BUILD SPEC §4b — read it before coding.**
+      ⛔⛔ **NO NAVIGATION PRIMITIVE HERE CAN DIVE OR EMERGE** (`WaypointAction.Dive`/`.Emerge`
+      declared at `map_path.py:692-693`, **assigned nowhere**; zero Sootopolis→Underwater warp
+      edges) ⇒ leg 3 hand-sequences. ⭐ **§Ch21 leg 3 already makes this crossing and passes** ⇒
+      import its constants, do NOT refactor it in the same commit.
+      ⛔ **The blocker that costs HOURS:** the layout pin sits in leg 2 but protects leg 3's walk,
+      and a whiteout SKIPS leg 2 ⇒ pin inside leg 3.
+      ⛔⛔ **AND A REAL PRODUCTION HAZARD FELL OUT — `KI-83`:** `tasks_scripts.py` is 8 unbounded,
+      abort-blind loops with 0 frame caps and 0 `_check_abort`; `heal_in_pokemon_center` runs two
+      of them, so **every heal in every chapter is unbounded.** Byte-identical to upstream ⇒
+      filed, NOT fixed; bound at the call site.
       ⛔⛔ **THE THREE THINGS A BUILDER MUST NOT MISS** (everything else is in the spec):
       1. **NEVER PUSH B1F's (4,7) OR (9,10) SOUTH** — either seals the floor for that visit. The
          minimum solution is **PUSH WEST (4,7)→(3,7) from (5,7); PUSH EAST (9,10)→(10,10) from (8,10);

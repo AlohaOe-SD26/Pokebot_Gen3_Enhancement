@@ -270,6 +270,80 @@ change the chapter's shape entirely. **Do this on the first 1F visit; it costs o
 ⛔ **Nothing about the basements is confirmed live yet** — the three checks in the B1F/B2F note's §F
 are owed, and they cannot run until legs 2-6 can put the bot on that floor.
 
+## §4b. ⭐⭐ THE REVIEWED DESIGN FOR LEGS 2-3 — AND THE FOUR BLOCKERS FOUND *BEFORE ANY CODE EXISTED*
+
+Three independent designs (safety-first / minimal-reuse / structural-fidelity) were synthesised and
+then adversarially attacked. **The attack found 4 BLOCKERS, 5 SERIOUS and 3 MINOR defects in a design
+that had already been judged the best of three.** Verdict: *implement with the listed fixes* — all
+local. ‼ **Every one of these would have cost at least one 25-minute drive, and blocker 3 costs hours.**
+
+### ⛔⛔ THE FACT THAT SHAPES EVERYTHING: NO NAVIGATION PRIMITIVE HERE CAN DIVE OR EMERGE
+`WaypointAction.Dive` / `.Emerge` are **declared** at `map_path.py:692-693` and **assigned nowhere**;
+`follow_waypoints` handles only `Surf` and `Waterfall` (`walking.py:221,226,284,294`). Structurally
+corroborated: `cache/warp_graph_BPEE0.json` gives `SOOTOPOLIS_CITY` **13 warp edges and ZERO
+connections**, none to `UNDERWATER_SOOTOPOLIS_CITY` — the scripted `setdivewarp` is in neither
+structure. ⇒ **leg 3 must hand-sequence the crossing; `navigate_to_anywhere(ROUTE126, …)` from inside
+the crater is structurally impossible.**
+⭐ **BUT §Ch21 LEG 3 ALREADY DOES THIS EXACT CROSSING AND IS DRIVEN AND PASSING** (`sootopolis.py:1613`,
+`:1636`). ⇒ **import its constants, do not re-derive them; do NOT refactor it in this commit** (that
+would charge §Ch23 for a §Ch21 regression). Extract to a shared helper only after §Ch23 has its own
+`ACCEPTANCE: PASS`, in one commit that re-drives **both** `ch21approach` and `ch23depart`.
+⚠ **CORRECTION to the water-route note:** §Ch21's three drive logs
+(`ch21approach_clean4/clean5/capture.log:134`) all print the warp resting tile as **(45,66)**, not
+(45,65) — so `navigate_to(UWS,(9,8))` *does* fire the arrow warp and the avatar *already rests on the
+safe emerge tile*. **READ and BRANCH; do not unconditionally step south.**
+
+### THE FOUR BLOCKERS (each with the failure sequence, so they are not re-introduced)
+1. ⛔ **A PER-ATTEMPT "archive and reset" MAKES THE HAPPY PATH UNGRADEABLE.** Taking `R-PRE` before
+   the retry loop and then archiving `readings`/`trace` on attempt 1 means a **perfect single-attempt
+   run FAILS** (the reading is in `previous_attempts`, not in `readings`). ⇒ **grade the UNION across
+   `previous_attempts`** exactly as §Ch22 sums `ice_total` (`story_harness.py:12170-12181`, which
+   records that grading the last attempt's figure *"would FAIL a healthy run"*), and make the trace
+   check a **subsequence**, never `==`. ‼ §Ch22's archive is deliberately narrow (`if "steps" in
+   report:`, only accumulating counters) — do not generalise it to readings.
+2. ⛔ **ASSERTION ORDER MISDIAGNOSES THE EXACT FAULT THE LEG EXISTS FOR.** "HP must rise" placed
+   BEFORE the respawn check means: a real respawn fault → retry → the party is already full → the HP
+   assertion raises *"HP total did not rise"* and the respawn check is never reached. The chapter dies
+   with the wrong diagnosis and its own re-arm retry is destroyed. ⇒ **respawn check FIRST**, and gate
+   the HP rise on `hp_before < max`, not on an attempt number.
+3. ⛔⛔ **THE LAYOUT PIN LIVES IN LEG 2 BUT PROTECTS LEG 3'S WALK — AND A WHITEOUT SKIPS LEG 2.**
+   `_pin_planner_to_live_layout` mutates a **process-global** cache keyed by (rom, map) with no unpin,
+   and §Ch21 leaves `SOOTOPOLIS_CITY` pinned to the LEGENDS_BATTLE layout. Sequence: whiteout on
+   Route 128 → respawn at (43,32) → `departure_ready()` is True (whiteout heals fully) → **leg 2 is
+   skipped → the pin never runs** → leg 3 walks `(43,32)→(29,53)` on the stale layout, which §Ch21
+   measured as *"37 waypoints, walks into live rock"* vs 35 correct. Bounded only by the ~41-cycle
+   whiteout budget ⇒ **hours**. ⇒ **pin inside leg 3, where the walk it protects happens.**
+4. ⛔ **THE NEVER-HANG AUDIT CLEARED THE WRONG LOOPS.** It checked `heal_in_pokemon_center`'s *exit*
+   loops and declared it safe; the **nurse interaction three lines earlier** is unbounded and
+   abort-blind. ⇒ **KI-83** (filed): `tasks_scripts.py` is **8 unbounded, abort-blind loops, 0 frame
+   caps, 0 `_check_abort`** — upstream code, byte-identical to the mirror, so **bound it at the CALL
+   SITE** with `_budgeted(...)`, never by patching upstream.
+
+### THE SERIOUS ONES WORTH CARRYING INTO THE CODE
+* **Every resume path `KeyError`s the acceptance** — the leg-2 block is the only writer of the graded
+  keys and it is skipped whenever `departure_ready()` is True. ⇒ initialise every graded key to a
+  sentinel and read with `.get`.
+* **`pc_entered` is a READ, not an action witness** — `respawn_reading()` returns a tuple whenever the
+  save-block read succeeds, *whatever value it holds*, so it is True on every non-erroring run. ⇒ latch
+  a real witness (a map-change observation), per house rule *a candidate is not an attempt*.
+* **5 of 12 fault arms are hollow or predict the wrong outcome** — one faults a branch that provably
+  never executes; one pushes a guard in the direction it cannot fire; one is a self-declared no-op;
+  one patches a read at only one of its two call sites so the run departs anyway. ⇒ *an arm that
+  cannot fail is a sentence that says PASS.* Keep NOHEAL, LOSEDIVE, STATUS, SKIPLEG2, STRANDED, BADEMERGE.
+* **A resume from INSIDE the Poké Center is an un-owned strand** two tiles from the exit — the phase
+  selector matches no known map and raises. ⇒ treat `(CITY, PC_1F, PC_2F)` as the island side.
+* **`navigate_to(UWS,(9,8))` silently no-ops if the dive already lands ON (9,8)** (`walking.py:431,439`),
+  and §Ch21 leg-5 PART C measured an arrival of exactly (9,8). ⇒ step off and re-navigate, or assert a
+  non-empty path first.
+* **A stated bound of "1 re-entry" is 1 PER ATTEMPT** ⇒ 3 per chapter call, 9 under the driver's
+  wrapper. *A bounded loop re-entered by its dispatcher is still infinite* (KI-34 burned 23.9M frames).
+
+### ⚠ AND ONE THING NOT TO HARD-CODE
+The tile type at `UNDERWATER_ROUTE126 (45,66)` is **UNMEASURED**; two designs predicted different
+values. §Ch21 emerged there three times with **no tile guard at all**. ⇒ **REPORT the type, raise only
+on a named-bad set** (`Water Door`, `Underwater Blocked Above`, `Seaweed No Surfacing`); an allowlist
+can only lose. Tighten after drive 1 prints the real string.
+
 ## §5. WHAT DOES NOT EXIST YET (checked, not assumed)
 * `sandbox-pokebot/modules/story/victory_road.py` — **NOT FOUND**
 * Any fixture for Ever Grande, Victory Road, Routes 126/127/128, the League or the Elite Four —
