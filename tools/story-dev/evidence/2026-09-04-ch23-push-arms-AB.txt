@@ -1,0 +1,35 @@
+=== ARM: correct ===
+[ch23push] ARM=correct approach=(5, 7) face=Left
+[ch23push] R arm = 'correct'
+[ch23push] R approach = (5, 7)
+[ch23push] R face = 'Left'
+[ch23push] R before_8_10 = {'reachable': False, 'why': 'PathFindingError'}
+[ch23push] R before_30_25 = {'reachable': False, 'why': 'PathFindingError'}
+[ch23push] R before_boulders = [(3, (4, 7)), (4, (9, 10))]
+[ch23push] R after_8_10 = {'wp': 7, 'reachable': True}
+[ch23push] R after_30_25 = {'reachable': False, 'why': 'PathFindingError'}
+[ch23push] R after_boulders = [(3, (3, 7)), (4, (9, 10))]
+[ch23push] R here = (4, 7)
+[ch23push] RESULT readings=['RP-AFTER', 'RP-ARRIVE', 'RP-BEFORE', 'RP-PUSH'] missing=[]
+[ch23push] RESULT battles=0 whiteouts=0
+[ch23push] PREDICTION (correct arm): (8,10) UNREACHABLE -> REACHABLE. observed opened=True
+[ch23push] GRADE arm=correct predicted_held=True missing=[] failure=None
+[ch23push] ACCEPTANCE: PASS
+
+=== ARM: trap ===
+[ch23push] ARM=trap approach=(4, 6) face=Down
+[ch23push] R arm = 'trap'
+[ch23push] R approach = (4, 6)
+[ch23push] R face = 'Down'
+[ch23push] R before_8_10 = {'reachable': False, 'why': 'PathFindingError'}
+[ch23push] R before_30_25 = {'reachable': False, 'why': 'PathFindingError'}
+[ch23push] R before_boulders = [(3, (4, 7)), (4, (9, 10))]
+[ch23push] R after_8_10 = {'reachable': False, 'why': 'PathFindingError'}
+[ch23push] R after_30_25 = {'reachable': False, 'why': 'PathFindingError'}
+[ch23push] R after_boulders = [(3, (4, 8)), (4, (9, 10))]
+[ch23push] R here = (4, 7)
+[ch23push] RESULT readings=['RP-AFTER', 'RP-ARRIVE', 'RP-BEFORE', 'RP-PUSH'] missing=[]
+[ch23push] RESULT battles=0 whiteouts=0
+[ch23push] PREDICTION (trap arm): (8,10) and (30,25) BOTH stay UNREACHABLE. observed 8_10_open=False 30_25={'reachable': False, 'why': 'PathFindingError'}
+[ch23push] GRADE arm=trap predicted_held=True missing=[] failure=None
+[ch23push] ACCEPTANCE: PASS

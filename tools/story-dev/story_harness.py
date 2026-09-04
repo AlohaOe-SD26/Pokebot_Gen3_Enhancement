@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -13493,6 +13493,151 @@ class Ch23B1fProbeMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch23PushArmMode(BotMode):
+    """§Ch23 LEG 6 — THE PUSH ARMS. Proves the boulder claims by MOVING a boulder and re-measuring.
+
+    ⛔⛔ THIS ONE CHANGES STATE, unlike `ch23b1fprobe`. It is safe to run anyway, and that is a
+    MEASURED property rather than a hope: **every warp resets the whole puzzle** — `LoadMapFromWarp`
+    re-copies the object templates from ROM and `ClearTempFieldEventData()` wipes `FLAG_TEMP_*` — so
+    leaving B1F and re-entering restores every boulder. ⇒ even the deliberately-wrong push is
+    recoverable by taking the ladder back up.
+
+    ⭐ THE A/B IS *INSIDE ONE RUN*: reachability is measured BEFORE the push and AFTER it, from the
+    same start state. Two separate runs compared by memory would not be an A/B — and "identical
+    output across runs is a determinism check, never a replication".
+
+    ARMS (`POKEBOT_CH23_PUSH_ARM`):
+      `correct` (default) — push (4,7) **WEST** from (5,7). PREDICTION: (8,10) flips
+                            UNREACHABLE -> REACHABLE. That is the ordering constraint made real.
+      `trap`              — push (4,7) **SOUTH** from (4,6). PREDICTION: (8,10) stays UNREACHABLE
+                            and (30,25) stays UNREACHABLE. ‼ THIS ARM EXISTS BECAUSE THE TRAP-PUSH
+                            WARNING HAS NEVER BEEN SEEN TO FIRE, and a warning nobody has watched
+                            fail is a claim, not a finding.
+
+    ⚠ Party arrives at 67% with 2 fainted (`post_wally.ss1`); B1F rolls encounters, and a whiteout
+    is survivable (respawn EVER_GRANDE) but ends the arm.
+
+    Run: PYTHONUTF8=1 POKEBOT_CH23_PUSH_ARM=correct py -3.12 story_harness.py post_wally.ss1 \
+             --driver ch23push --frames 20000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23Push"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23push] WHITEOUT #{self.whiteouts}")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        from modules.story import victory_road as VR
+        from modules.story.early_game import strength_push, wait_until_truly_controllable
+        from modules.map import get_map_objects
+        from modules.map_data import MapRSE
+        from modules.map_path import calculate_path
+        from modules.story.seafloor_cavern import _on_map, _where
+
+        TAG = "ch23push"
+        B1F = MapRSE.VICTORY_ROAD_B1F
+        ARM = _os.environ.get("POKEBOT_CH23_PUSH_ARM", "correct").strip().lower()
+        if ARM not in ("correct", "trap"):
+            raise BotModeError(
+                f"ch23push: unknown arm {ARM!r}. Known: 'correct', 'trap'. ⛔ Refusing rather than "
+                f"defaulting — an unrecognised arm that silently ran the safe path would report a "
+                f"PASS for an experiment nobody performed."
+            )
+        # (5,7)+Left pushes (4,7) WEST — the safe one. (4,6)+Down pushes it SOUTH — the trap.
+        APPROACH, FACE = ((5, 7), "Left") if ARM == "correct" else ((4, 6), "Down")
+
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        taken, R = set(), {"arm": ARM, "approach": APPROACH, "face": FACE}
+        log(f"[{TAG}] ARM={ARM} approach={APPROACH} face={FACE}")
+
+        def reach(target):
+            try:
+                return {"wp": len(calculate_path((B1F, VR._here_tile()), (B1F, target))),
+                        "reachable": True}
+            except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                VR.reraise_if_aborting(error)
+                return {"reachable": False, "why": f"{type(error).__name__}"}
+
+        def boulder_at():
+            return [ (o.local_id, tuple(o.current_coords)) for o in get_map_objects()
+                     if getattr(o, "local_id", None) in (3, 4) ]
+
+        failure = None
+        try:
+            yield from wait_until_truly_controllable()
+            if not _on_map(B1F):
+                yield from VR._walk_through_warp("Up", VR.VR1F.value)
+                yield from wait_until_truly_controllable()
+            if not _on_map(B1F):
+                raise BotModeError(f"ch23push: never reached B1F; at {_where()}.")
+            taken.add("RP-ARRIVE")
+
+            # ---- BEFORE ------------------------------------------------------------------------
+            R["before_8_10"] = reach((8, 10))
+            R["before_30_25"] = reach((30, 25))
+            R["before_boulders"] = boulder_at()
+            taken.add("RP-BEFORE")
+
+            # ⛔ ANTI-VACUITY: if (8,10) is ALREADY reachable the experiment proves nothing, because
+            # the thing the push is supposed to change is already true.
+            if R["before_8_10"]["reachable"]:
+                raise BotModeError(
+                    "ch23push: (8,10) is ALREADY reachable before any push — the arm would be "
+                    "vacuous. The puzzle is supposed to start blocked; something reset it or the "
+                    "start state is wrong."
+                )
+
+            # ---- THE PUSH ----------------------------------------------------------------------
+            yield from strength_push(B1F, APPROACH, FACE)
+            yield from wait_until_truly_controllable()
+            taken.add("RP-PUSH")
+
+            # ---- AFTER -------------------------------------------------------------------------
+            R["after_8_10"] = reach((8, 10))
+            R["after_30_25"] = reach((30, 25))
+            R["after_boulders"] = boulder_at()
+            R["here"] = VR._here_tile()
+            taken.add("RP-AFTER")
+        except Exception as error:  # noqa: BLE001 - the arm reports; a refusal IS a reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        for k, v in R.items():
+            log(f"[{TAG}] R {k} = {v!r}")
+        EXPECTED = ("RP-ARRIVE", "RP-BEFORE", "RP-PUSH", "RP-AFTER")
+        missing = [r for r in EXPECTED if r not in taken]
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+
+        # ⛔ EACH ARM IS GRADED ON *ITS OWN* PREDICTION. The trap arm PASSES by staying blocked —
+        # grading both on "did it open" would score a correct refutation as a failure.
+        opened = bool(R.get("after_8_10", {}).get("reachable"))
+        if ARM == "correct":
+            predicted = opened
+            log(f"[{TAG}] PREDICTION (correct arm): (8,10) UNREACHABLE -> REACHABLE. "
+                f"observed opened={opened}")
+        else:
+            predicted = (not opened) and not R.get("after_30_25", {}).get("reachable", False)
+            log(f"[{TAG}] PREDICTION (trap arm): (8,10) and (30,25) BOTH stay UNREACHABLE. "
+                f"observed 8_10_open={opened} 30_25={R.get('after_30_25')}")
+        passed = failure is None and not missing and predicted
+        log(f"[{TAG}] GRADE arm={ARM} predicted_held={predicted} missing={missing} "
+            f"failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
 class Ch22StairsMode(BotMode):
     """§Ch22 — READ-ONLY: what does the stair column ACTUALLY read once the puzzle is solved?
 
@@ -15275,6 +15420,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23TrainMode()
         elif args.driver == "ch23b1fprobe":
             context.bot_mode_instance = Ch23B1fProbeMode()
+        elif args.driver == "ch23push":
+            context.bot_mode_instance = Ch23PushArmMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

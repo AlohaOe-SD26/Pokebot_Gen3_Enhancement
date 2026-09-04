@@ -203,6 +203,37 @@ raise is the same shape as a fault arm that cannot fire.** The probe now refuses
 reading unless it is actually on B1F — **a MISSING reading is honest; a VACUOUS one is a lie with a
 number on it** — and the `on_b1f` grade is what caught it.
 
+## 6c. ✅✅✅ THE PUSH ARMS — RUN 2026-09-04, `--driver ch23push`. **BOTH PASS.**
+
+⭐⭐ **THE ORDERING CONSTRAINT AND THE TRAP ARE BOTH PROVEN LIVE.** Reachability is measured BEFORE
+and AFTER the push **inside one run**, from the same start state — two runs compared by memory would
+not be an A/B. Each arm is graded on ITS OWN prediction (the trap arm passes by staying blocked;
+grading both on "did it open" would score a correct refutation as a failure).
+
+| arm | push | boulder `local_id 3` | (8,10) after | (30,25) after | verdict |
+|---|---|---|---|---|---|
+| `correct` | (4,7) **WEST** from (5,7) | (4,7) → **(3,7)** | **REACHABLE, 7 wp** *(was unreachable)* | still blocked | ✅ PASS |
+| `trap` | (4,7) **SOUTH** from (4,6) | (4,7) → **(4,8)** | **UNREACHABLE** | still blocked | ✅ PASS |
+
+Both runs: `battles=0`, `whiteouts=0`, all four readings taken.
+
+⇒ **(1) THE CORRIDOR REALLY IS GATED BY (4,7).** Before the push (8,10) refuses; after it, 7
+waypoints. That is the constraint a *"delete the boulder and re-path"* model misses, now measured
+rather than modeled.
+⇒ **(2) THE TRAP PUSH IS REAL.** Pushing the same boulder SOUTH leaves the corridor sealed — and
+SOUTH is exactly what a greedy "push toward the goal" router would choose. ‼ **This warning had
+never been seen to fire; a warning nobody has watched fail is a claim, not a finding.** It is now a
+finding.
+⇒ **(3) AND THE WARP-RESET CLAIM PROVED ITSELF FOR FREE.** The `trap` run's `before_boulders` shows
+`local_id 3` back at **(4,7)** — after the `correct` run had left it at (3,7). Two runs from the
+same fixture, boulder restored in between. ⇒ **§5.1 is confirmed: leaving and re-entering B1F resets
+the puzzle**, which is what makes the trap arm safe to run at all.
+
+⛔ **STILL OWED — THE POSITIVE ARM OF THE FULL SOLVE.** Nothing above shows (30,25) ever becoming
+REACHABLE. That needs the whole chain — push (4,7) WEST, walk to (8,10), push (9,10) EAST, smash the
+rock at (18,12) — and **an A/B with only its negative arm run is not an A/B.** ‼ Do not read "both
+arms PASS" as "the puzzle is solved": what is proven is the first gate and the trap, not the route.
+
 ## 7. ⛔ WHAT MUST BE VALIDATED LIVE BEFORE ANY BOULDER CODE SHIPS
 
 Everything in §1, §4 and the routes is **MODELED** — a reimplementation of pokeemerald's collision
@@ -212,15 +243,16 @@ and cutting reachability 301 → 106 tiles). That is exactly the class of error 
 hiding.
 
 **The three cheap decisive live checks** (also `2026-09-03-...-B1F-B2F.md` §F's owed checks):
-1. ⚠ **HALF DONE.** (5,7) is confirmed REACHABLE (9 wp) and (8,10) confirmed UNREACHABLE — see §6b.
-   ⛔ **STILL OWED: the PUSH itself** — push (4,7) WEST and confirm the corridor to (8,10) opens.
-2. ⛔ **STILL OWED.** Deliberately push **(9,10) SOUTH** once and confirm (30,25) becomes
-   unreachable — **this arm is what makes the "trap push" claim real rather than asserted.** Without
-   it we have a warning we have never seen fire. ⭐ Safe to run: **every warp resets the puzzle**
-   (§5.1), so leaving and re-entering B1F recovers it.
-3. ⚠ **HALF DONE.** The "fails with the boulders in place" half is MEASURED (§6b). ⛔ **STILL OWED:
-   that it SUCCEEDS after the two pushes** — that half is the one that proves the plan works, and
-   an A/B with only its negative arm run is not an A/B.
+1. ✅ **DONE (§6c).** (5,7) reachable in 9 wp; pushing (4,7) **WEST** flips (8,10) from UNREACHABLE
+   to **REACHABLE in 7 wp**, measured before/after inside one run.
+2. ✅ **DONE (§6c), and it fired.** Pushing (4,7) **SOUTH** leaves (8,10) AND (30,25) both sealed —
+   the trap is real, not asserted. ⭐ Safe because **every warp resets the puzzle** (§5.1), which the
+   two runs independently confirmed (the boulder was back at (4,7) on the second).
+3. ⚠ **STILL HALF DONE — THIS IS THE ONE THAT REMAINS.** The negative half is measured: (30,25)
+   refuses with the boulders in place, and still refuses after only the first push. ⛔ **STILL OWED:
+   the POSITIVE arm** — the full chain (push (4,7) WEST → walk to (8,10) → push (9,10) EAST → smash
+   (18,12)) ending with (30,25) **REACHABLE**. **An A/B with only its negative arm run is not an
+   A/B**, and this is the half that proves the route rather than the obstacle.
 
 ✅ **ALREADY VERIFIED IN OUR CODE (2026-09-04):** `strength_push(map, approach_tile, face_dir)` exists
 at `early_game.py:7884`, tracks the boulder by **`local_id`**, requires **both** halves of success
