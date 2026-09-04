@@ -346,6 +346,48 @@ def poisoned_members() -> list:
     ]
 
 
+def assert_carriers_survived(where: str) -> None:
+    """⛔⛔ REFUSE TO CONTINUE IF A HEAL ATE A FIELD-MOVE CARRIER. Call after EVERY heal.
+
+    ‼ WHY THIS EXISTS, AND IT IS NOT PARANOIA. `heal_in_pokemon_center` does not only heal — it
+    piggybacks TWO PC-deposit paths while it is already inside the centre
+    (`higher_level_actions.py:353-355` and `:370-381`), and `team_policy.py:36` defines dead weight
+    as **`DEAD_WEIGHT_LEVEL_GAP = 8` levels behind the lead**.
+    ⇒ with Sceptile L51 leading, THIS PARTY IS MOSTLY "DEAD WEIGHT" BY THAT MEASURE: Zigzagoon is
+    32 levels behind, Castform 15, **Wailmer 11**, Swellow 9.
+    ⛔ **AND WAILMER IS THE SOLE CARRIER OF DIVE *AND* WATERFALL** — depositing it strands the
+    chapter with no way back through the crater and no way up the waterfall.
+
+    ✅ THREE INDEPENDENT REASONS IT IS INERT TODAY — all verified by reading, none assumed:
+      1. the rotation deposit bails at `pc_trip.py:83` unless `POKEBOT_PC_ROTATION` is 1 (default "0");
+      2. the KI-63 slot-freeing deposit fires only when a caller sets `_needs_party_slot`, which no
+         §Ch23 driver does; and
+      3. ⭐ **Wailmer is explicitly EXEMPT**: `team_policy.py:147-149` never deposits a SOLE HM
+         carrier (`_only_hm_carrier`, `:119-128`), and `HM_MOVES` (`:64`) includes both `Dive` and
+         `Waterfall`.
+    ⛔⛔ **BUT EXEMPTION 3 IS COMPUTED FROM THE LIVE MOVEPOOL AND IS ONE MOVE AWAY FROM EVAPORATING.**
+    A SHARED HM protects NEITHER mon — the precedent is in this very chapter's neighbour:
+    `sootopolis_gym.py:951` records that Zigzagoon was **not** HM-exempt precisely *"because Wailmer
+    shares its Surf"*. ⇒ the moment anything else learns Dive or Waterfall, Wailmer becomes
+    deposit-eligible like everything else — and it is 11 levels behind the lead, well past the
+    8-level threshold.
+    ⇒ **that is exactly why this guard is cheap and permanent rather than redundant:** it costs one
+    party read after a heal, and it converts a silent chapter-stranding into a named refusal.
+    ‼ Assert by IDENTITY, never by party count — a deposit plus a catch nets to six.
+    """
+    carriers = field_move_carriers()
+    lost = [move for move in ("Surf", "Dive", "Waterfall") if carriers[move] is None]
+    if lost:
+        raise BotModeError(
+            f"Ch23: after {where}, the party no longer carries {lost}. Roster now: "
+            f"{sorted(party_identities())}. ⛔ The most likely cause is a PC deposit piggybacked on "
+            f"the heal (`higher_level_actions.py:353` / `:370`), which treats anything "
+            f"{8} levels behind the lead as dead weight — and this party is mostly that. "
+            f"Dive is the only exit from the Sootopolis crater and Waterfall the only way up to "
+            f"Victory Road, so continuing would strand the run."
+        )
+
+
 def departure_ready() -> bool:
     """Is leg 2's work already done? ONE copy, consumed by the leg gate AND the driver.
 
@@ -470,6 +512,7 @@ def _re_enter_pokemon_center_once(report) -> Generator:
     )
     report["pc_map_seen"] = True
     yield from wait_until_truly_controllable()
+    assert_carriers_survived("the Sootopolis re-entry heal")
 
 
 def prepare_to_depart(report=None) -> Generator:
@@ -498,6 +541,7 @@ def prepare_to_depart(report=None) -> Generator:
         )
         report["pc_map_seen"] = True
         yield from wait_until_truly_controllable()
+        assert_carriers_survived("the Sootopolis heal")
 
     after = party_identities()
     report["identities_after"] = after
@@ -936,6 +980,7 @@ def cross_to_ever_grande(report=None) -> Generator:
             heal_in_pokemon_center(PokemonCenter.EvergrandeCity), HEAL_BUDGET,
             "heal at Ever Grande")
         yield from wait_until_truly_controllable()
+        assert_carriers_survived("the Ever Grande heal")
     report["hp_after4"] = {k: v[0] for k, v in party_identities().items()}
     _take(report, "R4-HEAL4")
 

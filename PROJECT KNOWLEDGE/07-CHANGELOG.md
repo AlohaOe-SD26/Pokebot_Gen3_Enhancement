@@ -21403,3 +21403,40 @@ than after.
 must either (a) switch weak members in deliberately and protect them, or (b) accept a smaller viable
 core and stop pretending the mules will fight. That choice needs the opposition's real levels and the
 best encounter table, which are the two questions currently out with agents.
+
+
+## 2026-09-04 (safety) — A HEAL CAN DEPOSIT A PARTY MEMBER, AND OUR SPOF SITS ONE MOVE FROM ELIGIBLE
+
+An audit of the training machinery surfaced a hazard that is **already live in shipped §Ch23 code**:
+`heal_in_pokemon_center` does not only heal. It piggybacks **two PC-deposit paths** while it is
+already inside the centre (`higher_level_actions.py:353-355` and `:370-381`), and
+`team_policy.py:36` defines dead weight as **8 levels behind the lead**.
+
+⚠ **Against this party that is most of it.** With Sceptile L51 leading: Zigzagoon **−32**, Castform
+**−15**, **Wailmer −11**, Swellow −9. Legs 2 and 4 both call that heal, three times in total.
+
+**✅ INERT TODAY — THREE INDEPENDENT REASONS, EACH READ RATHER THAN ASSUMED:**
+1. the rotation deposit bails at `pc_trip.py:83` unless `POKEBOT_PC_ROTATION` is `1` (default `"0"`,
+   and measured harmful: it removes ~one team member per run, funnel 76% → 52-57%);
+2. the KI-63 slot-freeing deposit fires only when a caller sets `_needs_party_slot`, which no §Ch23
+   driver does; and
+3. ⭐ **Wailmer is explicitly EXEMPT** — `team_policy.py:147-149` never deposits a **sole HM
+   carrier** (`_only_hm_carrier`, `:119-128`), and `HM_MOVES` (`:64`) includes both `Dive` and
+   `Waterfall`.
+
+**⛔⛔ BUT REASON 3 IS ONE MOVE FROM EVAPORATING, AND THE PRECEDENT IS IN THIS CHAPTER'S NEIGHBOUR.**
+The exemption is computed from the live movepool, and a **SHARED** HM protects *neither* mon:
+`sootopolis_gym.py:951` records that Zigzagoon was not HM-exempt precisely *"because Wailmer shares
+its Surf"*. ⇒ the moment anything else learns Dive or Waterfall, **Wailmer — the sole exit from the
+crater and the only way up the waterfall — becomes deposit-eligible like everything else.**
+‼ And a training leg makes this WORSE in two ways at once: `train_team` heals on every HP **or** PP
+dip, so a long grind is many deposit rolls; and raising the stragglers **raises the party max, which
+raises the 8-level threshold with it.**
+
+**✅ THE GUARD: `assert_carriers_survived(where)`**, called after **every** heal in the chapter (both
+Sootopolis sites and the Ever Grande one). It re-reads the party and raises a named error if Surf,
+Dive or Waterfall is no longer carried — by IDENTITY, never by count, because a deposit plus a catch
+nets to six. Verified not to fire on a healthy run: `--driver ch23depart` still `ACCEPTANCE: PASS`.
+⇒ **the point is not that a deposit is likely today — it is that "currently gated" is not "safe".**
+One environment variable, or one future caller, turns a silent chapter-stranding into a loud refusal
+that costs one party read.
