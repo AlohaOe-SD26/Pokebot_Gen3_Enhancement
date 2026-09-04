@@ -11884,3 +11884,86 @@ cutting reachability from 301 tiles to 106), so a decode bug and a model bug can
 **Prevention rule.** ⛔ **NEVER PIPE BINARY THROUGH `gh api ... | base64 -d` ON WINDOWS. Fetch
 binaries from `raw.githubusercontent.com`, and assert the decoded length against an independently
 known size before parsing.** A binary read that cannot state its expected length is not a read.
+
+
+## 2026-09-04 — SIX OF SEVEN §Ch23 FAULT ARMS WERE DEAD FROM CREATION, AND EVERY DOC CALLED THEM PROOF
+
+**Symptom.** A Wally re-test drive died on `BotModeError: Ch23: unknown fault arm 'NOLEAD5'. Known
+arms: ['NOHEAL']`. The raise was correct and had been added hours earlier; what it exposed was that
+**`NOPIN`, `BADSTEP`, `NOLEAD`, `NOCLIMB`, `NOHEAL4` and `NOLEAD5` had never been registered.**
+
+**Root cause.** `_fault(arm)` builds its env name with an f-string:
+`os.environ.get(f"POKEBOT_CH23_FAULT_{arm}")`. An unregistered or mistyped arm therefore reads a
+variable nobody sets and returns `False` **forever** — silently, with no error, on every call. Legs
+2–5 each shipped a fault hook that **could not fire**, while `29-DISABLED-FEATURES-REGISTRY.md` and
+the leg docstrings described those arms as the things that prove the legs' guards work.
+
+⛔ **A FAULT HOOK THAT CANNOT FIRE IS WORSE THAN NO FAULT HOOK: it reads as tested while testing
+nothing.** This is the identical shape as `POKEBOT_CH21PROBE_FAULT`'s entry — a probe assertion that
+passed because it *could not fail* — recurring in a new place, which is exactly what these entries
+exist to stop.
+
+**Why prose did not catch it, and a runtime raise nearly didn't either.** The arms were *documented*
+and the call sites were *correct*; the only missing thing was a mapping nobody could see was absent,
+because absence produced silence rather than an error. ‼ And the runtime validation that finally
+caught it **only fires if someone happens to DRIVE that leg** — it survived until a real Wally run,
+and would have survived longer if that run had not been attempted today.
+
+**The fix.** All seven arms registered in `FAULT_ARMS` as arm → full env-name **literal** (the
+literal spelling also being what makes `lint_docs` R6 able to see them at all), `_fault` raises on an
+unknown arm, and every arm got a registry row. **Then the lesson was made enforceable:**
+`tools/story-dev/probe_ch23_fault_arms.py` (gate **#34** in `run_gates.py`) checks statically that every
+`_fault(...)` call site is registered, every registered arm is really called, and every arm's env
+name is canonical and documented. It walks the **AST**, not a regex, so `_fault("X")` written inside
+a comment or docstring correctly does **not** count as a call site — a gate with false positives
+teaches the reader to bypass it. Fault-tested three ways (`unregistered` / `orphan` / `noregistry`),
+each driving it RED with exit 1; clean exits 0. ‼ Its own first clean run went RED on the
+documentation check, and that was a **true** finding: six arms had no registry row.
+
+**Prevention rules.**
+1. ⛔ **NEVER BUILD A FLAG NAME BY STRING INTERPOLATION WITHOUT A CLOSED REGISTRY OF THE PARTS.** If
+   the parts are computed, an invalid part must RAISE, never return the "off" value — because the
+   "off" value is indistinguishable from a correct answer.
+2. ⛔ **A SWITCH THAT IS ONLY VALIDATED AT RUNTIME IS VALIDATED ONLY ON THE PATHS SOMEONE RUNS.**
+   Anything enumerable — arms, registry rows, call sites — gets a static gate, because the whole
+   point of a fault arm is that it is *not* exercised by ordinary runs.
+3. ⛔ **WHEN YOU ADD A GUARD AND IT FIRES IMMEDIATELY, THAT IS THE GUARD WORKING — READ WHAT IT
+   FOUND BEFORE WEAKENING IT.** The first instinct on seeing a new raise break a drive is to relax
+   the new code; here the new code was right and six latent defects were real.
+
+
+## 2026-09-04 — I INSERTED A GATE MID-LIST, DIRECTLY BENEATH THE TWO WARNINGS THAT FORBID IT
+
+**Symptom.** Adding `probe_ch23_fault_arms.py` to `run_gates.py`, I anchored the insertion on the
+`audit_doc_citations.py` line and put the new entry there — **in the middle of the `GATES` list** —
+and labelled its comment `# #29`. That ordinal was already taken by `selftest_git_add_hook.py`. The
+result gave one gate **three different numbers**: `#29` in its own comment, `#34` in `04-HANDOFF.md`,
+and a third value as its true list position. A Tier 1 reviewer caught it; no gate caught it.
+
+**Root cause — not ignorance of the rule, but not reading it.** `run_gates.py` states the rule
+**twice, verbatim, within a few lines of where I typed**:
+
+> ‼‼ APPEND NEW GATES, NEVER INSERT. Gates are cited BY ORDINAL across the docs ('gate #25', 'suite
+> #24', 'gate #27'). This entry was first INSERTED at position 4 on 2026-08-17 and silently
+> renumbered SIX existing citations; an audit agent caught it.
+
+⇒ **This project had already paid for this exact mistake once, written the warning at the scene, and
+I re-committed it anyway.** I chose my insertion point by what made a convenient unique anchor for a
+string replacement, and never read the surrounding comment block I was anchoring against.
+
+**The fix.** Moved to the END of `GATES`, renumbered `#34` (the next unused ordinal — the highest
+cited was `#33`), reconciled with `04-HANDOFF.md` and `02-ARCHITECTURE.md`, and the entry now carries
+its own postmortem so the next person to append reads *why* rather than just *what*.
+
+**Prevention rules.**
+1. ⛔ **AN ORDERED LIST WHOSE ELEMENTS ARE CITED BY POSITION IS APPEND-ONLY. Append at the END, and
+   take the next UNUSED ordinal — never reuse, never renumber.** Before adding, `grep` the file for
+   the ordinal you intend to claim; a collision is silent otherwise.
+2. ⛔⛔ **A CONVENIENT STRING ANCHOR IS NOT A CORRECT INSERTION POINT.** When scripting an edit,
+   READ the comment block around the anchor before writing — the anchor is chosen for uniqueness,
+   which has nothing to do with where the content belongs. *(Every edit in this session used
+   anchored replacement; this is the failure mode that technique invites.)*
+3. ‼ **AND THE DEEPER ONE: a warning I had not read could not protect me, but a GATE would have.**
+   The same session that wrote "anything enforceable belongs in a gate, not in prose" then relied on
+   prose. ⇒ a checker for ordinal collisions and mid-list insertion is a real candidate, and until it
+   exists this entry is the only thing standing where the last warning already failed twice.

@@ -13124,7 +13124,18 @@ class Ch23RoadMode(BotMode):
 
         start_done = VR.at_b1f_doorstep()
         start_wally = VR.wally_beaten()
-        log(f"[{TAG}] PRE at={VR._where()} at_doorstep={start_done} wally_already={start_wally}")
+        # ⛔ A RESUMED START IS A DIFFERENT EXPERIMENT AND MUST SAY SO. `post_training.ss1` is
+        # captured INSIDE VICTORY_ROAD_1F, so the Ever Grande -> VR warp never happens and
+        # `R5-WARP` can never be taken. Exempting it is legitimate ONLY because the step it
+        # measures genuinely did not occur — ‼ but a PASS from here is NOT a pass of the whole
+        # leg, so the grade is labelled RESUMED and the exemption is logged, never silent.
+        start_resumed = VR._on_map(VR.VR1F)
+        log(f"[{TAG}] PRE at={VR._where()} at_doorstep={start_done} wally_already={start_wally}"
+            f" resumed_inside_vr={start_resumed}")
+        if start_resumed:
+            log(f"[{TAG}] ⚠ RESUMED START — began already on VICTORY_ROAD_1F, so the Ever "
+                f"Grande->VR warp does not happen and R5-WARP is N/A. A PASS here grades "
+                f"WALLY, not the full leg.")
         log(f"[{TAG}] PRE party={VR.party_identities()}")
 
         failure = None
@@ -13135,7 +13146,9 @@ class Ch23RoadMode(BotMode):
             log(f"[{TAG}] FAILURE {failure}")
 
         taken = report.get("readings", set())
-        missing = [r for r in VR.LEG5_READINGS if r not in taken]
+        _expected = [r for r in VR.LEG5_READINGS
+                     if not (start_resumed and r == "R5-WARP")]
+        missing = [r for r in _expected if r not in taken]
         log(f"[{TAG}] RESULT readings={sorted(taken)}")
         log(f"[{TAG}] RESULT missing={missing}")
         log(f"[{TAG}] RESULT trace={report.get('trace')}")
@@ -13167,7 +13180,9 @@ class Ch23RoadMode(BotMode):
             f"entered_1f={entered_1f} can_continue={can_continue} ({cont!r}) missing={missing} "
             f"battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
         log(f"[{TAG}] FINAL position={VR._where()}")
-        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        _verdict = ("PASS (RESUMED — WALLY ONLY, not the full leg)" if (passed and start_resumed)
+                    else "PASS" if passed else "FAIL")
+        log(f"[{TAG}] ACCEPTANCE: {_verdict}")
 
         _cap = _os.environ.get("CH23_CAPTURE", "").strip()
         if passed and _cap:

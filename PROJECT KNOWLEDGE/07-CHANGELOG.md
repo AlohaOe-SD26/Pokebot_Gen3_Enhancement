@@ -21535,3 +21535,71 @@ League's full warp chain, and two facts that change §Ch24 planning — **League
 AND a Mart** one map before Sidney (so the empty bag is fixable with the ₽38,893 in hand), while
 **every E4 room seals its own exit** (`setmetatile … impassable=TRUE`) so the Hall5→Sidney step
 commits to five fights on one party. A whiteout anywhere in Hoenn runs `ResetEliteFour`.
+
+
+## 2026-09-04 — §Ch23 LEG 5: **WALLY IS BEATEN**, and a dead fault-arm family was exposed doing it
+
+**The result.** `--driver ch23road` from `post_training.ss1`: `wally_flag=True`, **`whiteouts=0`**,
+`battles=6`, `missing=[]`, `ACCEPTANCE: PASS (RESUMED — WALLY ONLY, not the full leg)`. Fixture
+`post_wally.ss1` (md5 `76000aa5ad5c5fb85fc34965e7295e21`) PINNED and probe-verified at
+**VICTORY_ROAD_1F (9,15)** — the B1F ladder apron, so leg 6 begins exactly there.
+
+**⭐⭐ THE A/B, SAME LEG AND SAME CODE — this is why `#24-ch23wally` closes on evidence rather than
+on the levels:**
+
+| start fixture | party | battles | whiteouts | `wally_flag` |
+|---|---|---|---|---|
+| `post_ever_grande.ss1` (untrained) | Swellow L42 / Wailmer L40 / Mightyena L44 | 5 | **2** | **False** |
+| `post_training.ss1` (trained) | Swellow L47 / Wailord L47 / Mightyena L47 | 6 | **0** | **True** |
+
+⇒ **the leg's CODE was correct the whole time; the party was the blocker.** No code change to the
+fight was needed, which is exactly what the original diagnosis predicted and what the training leg
+was built to test.
+
+**⛔ THE WIN WAS COSTLY, AND THE FIXTURE SAYS SO.** 67% HP with **Sceptile AND Zigzagoon FAINTED**
+(Sceptile levelled to L52). `probe_anchor_inventory` independently marks the fixture *"CANNOT SURVIVE
+A JOURNEY — heal before using this as a start point"*, and every doc pointing at it now repeats that.
+⇒ **leg 6 must heal before it starts.**
+
+**⚠ AND OPTION (b) STOPPED BEING THEORETICAL.** `#24-ch23wally` listed "fix the faint-replacement
+ranking" as an untaken option. In the winning run that ranking — `hp_fraction` above LEVEL
+(`story_mode.py:210`) — fed the **L19 Zigzagoon** into a fight against L40s and it fainted. It cost
+nothing here because the battlers carried the fight. ⛔ Across the Elite Four's **five consecutive
+fights on one party with no heal and no escape**, the same cascade is a run-ender. The item stays
+open for exactly that reason; closing the Wally half must not bury it.
+
+### ‼‼ THE RUN'S FIRST ATTEMPT FAILED — AND THE FAILURE WAS A GUARD ADDED HOURS EARLIER, WORKING
+
+The re-test's first drive died on `BotModeError: Ch23: unknown fault arm 'NOLEAD5'. Known arms:
+['NOHEAL']`. That raise came from the arm-validation added the same day, and it was **correct**:
+
+⛔ **`_fault(arm)` builds its env name with an f-string**, so an unregistered arm reads a variable
+nobody sets and returns `False` **forever**. **Six of §Ch23's seven fault arms had never been
+registered** — `NOPIN`, `BADSTEP`, `NOLEAD`, `NOCLIMB`, `NOHEAL4`, `NOLEAD5` — meaning every one of
+them was **dead from creation**. Legs 2–5 each shipped with a fault hook that could not fire, while
+the docs described them as the arms that prove those legs' guards work.
+
+⇒ **A FAULT HOOK THAT CANNOT FIRE IS WORSE THAN NONE: it reads as tested while testing nothing.**
+
+**Fixed:** all seven arms registered in `FAULT_ARMS` (arm → full env-name literal) with a registry
+row each. **And the lesson generalised into a GATE**, because the runtime raise only fires if
+someone happens to drive that leg — which is why this survived until a real Wally drive:
+`tools/story-dev/probe_ch23_fault_arms.py` checks statically, via the AST (so mentions in comments
+and docstrings correctly do *not* count as call sites), that (1) every `_fault(...)` call site is
+registered, (2) every registered arm is actually called, (3) every arm's env name is canonical and
+has a `29-DISABLED-FEATURES-REGISTRY.md` row. **Fault-tested three ways** —
+`POKEBOT_CH23ARMS_FAULT=unregistered|orphan|noregistry` each drive it RED with exit 1; clean is
+exit 0. ‼ Its own first clean run was RED on check (3) and that was a true finding, not a false
+positive: six arms had no registry row.
+
+**Also fixed — a resumed start was being graded as a failure.** `post_training.ss1` is captured
+*inside* Victory Road, so the Ever Grande→VR warp never happens and `R5-WARP` can never be taken; the
+grade counted it missing and returned FAIL over a run that had done everything asked. The driver now
+detects the resumed start, exempts **only** that one genuinely-inapplicable reading, logs the
+exemption, and reports `PASS (RESUMED — WALLY ONLY, not the full leg)` so it can never be mistaken
+for a pass of the whole leg.
+
+**Gate status, stated honestly.** Tier 0 all green. `run_gates.py` exits 1 on two counts, **neither
+introduced here**: `preflight.py` failed on *"git is AHEAD of the remote"* (true when the suite
+started, resolved by the push of `7329dca8`), and `repro_gym_whiteout_guard.py` timed out at 900s —
+the known pre-existing `#24-gymwhiteoutgatehang`.

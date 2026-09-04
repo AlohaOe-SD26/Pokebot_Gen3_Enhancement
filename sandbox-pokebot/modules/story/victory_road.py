@@ -268,7 +268,20 @@ def _os_environ_flag(name: str) -> bool:
 #: `#24-advisorydocstring`), and a human grepping for the flag finds nothing if it only ever exists
 #: as an f-string fragment. Add an arm here and it is registered, validated and findable at once.
 FAULT_ARMS = {
+    #: leg 2 — skip the pre-departure heal, so `departure_ready()`'s failure branch is exercisable
     "NOHEAL": "POKEBOT_CH23_FAULT_NOHEAL",
+    #: leg 2 — skip the Sootopolis layout pin
+    "NOPIN": "POKEBOT_CH23_FAULT_NOPIN",
+    #: leg 3 — step the WRONG way off the dive tile ("Up" instead of "Down")
+    "BADSTEP": "POKEBOT_CH23_FAULT_BADSTEP",
+    #: leg 3 — do not lead the strongest battler across the 273-tile crossing
+    "NOLEAD": "POKEBOT_CH23_FAULT_NOLEAD",
+    #: leg 4 — do not drive the waterfall climb the planner refuses to plan
+    "NOCLIMB": "POKEBOT_CH23_FAULT_NOCLIMB",
+    #: leg 4 — skip the Ever Grande heal that resets every `hp_fraction` to 1.0
+    "NOHEAL4": "POKEBOT_CH23_FAULT_NOHEAL4",
+    #: leg 5 — do not lead the strongest battler into the Wally fight
+    "NOLEAD5": "POKEBOT_CH23_FAULT_NOLEAD5",
 }
 
 

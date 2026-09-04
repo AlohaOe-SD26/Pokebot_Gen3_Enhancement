@@ -1,0 +1,59 @@
+[ch23road] PRE at=((24, 43), (15, 39)) at_doorstep=False wally_already=False resumed_inside_vr=True
+[ch23road] 
+[ch23road] PRE party={(2252015895, 'Sceptile'): (142, 142, 'Healthy'), (868971715, 'Zigzagoon'): (48, 48, 'Healthy'), (187737927, 'Swellow'): (136, 136, 'Healthy'), (4199673075, 'Wailord'): (226, 226, 'Healthy'
+[ch23road] RESULT readings=['R5-CONTINUE5', 'R5-FLAG', 'R5-LADDER', 'R5-WALLY']
+[ch23road] RESULT missing=[]
+[ch23road] RESULT trace=['R5-WALLY', 'R5-FLAG', 'R5-LADDER', 'R5-CONTINUE5']
+[ch23road] RESULT maps_seen=[(24, 43)]
+[ch23road] RESULT battles=6 whiteouts=0
+[ch23road] R leg5_entry = '((24, 43), (15, 39))'
+[ch23road] R vr_arrival = None
+[ch23road] R avatar_flags = None
+[ch23road] R on_foot = None
+[ch23road] R vr1f_state = None
+[ch23road] R arrival_elevation = None
+[ch23road] R after_wally_tile = (3, 23)
+[ch23road] R trigger_elevation = 4
+[ch23road] R trigger_tile_type = 'Cave'
+[ch23road] R vr1f_state_at_trigger = 0
+[ch23road] R lead5_after = (2252015895, 'Sceptile')
+[ch23road] R retrigger_attempts = 1
+[ch23road] R steps_at_arrival = None
+[ch23road] R steps_at_trigger = 25141
+[ch23road] R prev_elevation_at_trigger = 4
+[ch23road] R wally_flag = None
+[ch23road] R continue_wp5 = 1
+[ch23road] GRADE premise_ok=True on_apron=True wally_flag=True entered_1f=True can_continue=True (1) missing=[] battles=6 whiteouts=0 failure=None
+[ch23road] FINAL position=((24, 43), (9, 15))
+[ch23road] ACCEPTANCE: PASS (RESUMED 
+[ch23road] captured the post-Wally fixture -> C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves\post_wally.ss1
+
+=== THE CRASHED FIRST ATTEMPT (the guard firing on the dead fault arm) ===
+[ch23road] PRE at=((24, 43), (15, 39)) at_doorstep=False wally_already=False
+[ch23road] PRE party={(2252015895, 'Sceptile'): (142, 142, 'Healthy'), (868971715, 'Zigzagoon'): (48, 48, 'Healthy'), (187737927, 'Swellow'): (136, 136, 'Healthy'), (4199673075, 'Wailord'): (226, 226, 'Healthy'
+[ch23road] FAILURE BotModeError: Ch23: unknown fault arm 'NOLEAD5'. Known arms: ['NOHEAL']. 
+[ch23road] RESULT readings=[]
+[ch23road] RESULT missing=['R5-WARP', 'R5-WALLY', 'R5-FLAG', 'R5-LADDER', 'R5-CONTINUE5']
+[ch23road] RESULT trace=[]
+[ch23road] RESULT maps_seen=[]
+[ch23road] RESULT battles=0 whiteouts=0
+[ch23road] R leg5_entry = '((24, 43), (15, 39))'
+[ch23road] R vr_arrival = None
+[ch23road] R avatar_flags = None
+[ch23road] R on_foot = None
+[ch23road] R vr1f_state = None
+[ch23road] R arrival_elevation = None
+[ch23road] R after_wally_tile = None
+[ch23road] R trigger_elevation = None
+[ch23road] R trigger_tile_type = None
+[ch23road] R vr1f_state_at_trigger = None
+[ch23road] R lead5_after = None
+[ch23road] R retrigger_attempts = None
+[ch23road] R steps_at_arrival = None
+[ch23road] R steps_at_trigger = None
+[ch23road] R prev_elevation_at_trigger = None
+[ch23road] R wally_flag = None
+[ch23road] R continue_wp5 = None
+[ch23road] GRADE premise_ok=True on_apron=False wally_flag=False entered_1f=True can_continue=False (None) missing=['R5-WARP', 'R5-WALLY', 'R5-FLAG', 'R5-LADDER', 'R5-CONTINUE5'] battles=0 whiteouts=0 failure=B
+[ch23road] FINAL position=((24, 43), (15, 39))
+[ch23road] ACCEPTANCE: FAIL

@@ -187,6 +187,20 @@ GATES: list[tuple[str, bool]] = [
     # (ordinary unchanged / trapped delegates / old-behaviour refuted by construction). Guards the
     # one-line fix for the freeze that killed 3 of 8 lanes in batch 20260826-063456.
     ("repro_flee_trap_delegate.py", False),
+    # #34 — every §Ch23 fault arm is REGISTERED, CALLED and DOCUMENTED.
+    # ‼ APPENDED AT THE END, never inserted — gate ordinals are append-only. ⛔ THIS ENTRY WAS FIRST
+    # INSERTED MID-LIST ON 2026-09-04, directly under the two standing warnings above that forbid
+    # exactly that, AND its comment said "#29" — colliding with `selftest_git_add_hook.py`'s real
+    # #29 and giving one gate THREE different numbers (comment #29 / handoff #34 / true position).
+    # A Tier 1 reviewer caught it. ⇒ the warning was not enough on its own; read it as a RULE, not
+    # as background prose.
+    # WHY THE GATE EXISTS (MEASURED 2026-09-04): SIX of §Ch23's seven fault arms were unregistered,
+    # so `_fault(arm)` — which builds its env name with an f-string — read a variable nobody sets
+    # and returned False FOREVER. Every one of them was DEAD FROM CREATION while the docs described
+    # them as the arms that prove those legs' guards work. A runtime raise only fires if someone
+    # happens to DRIVE that leg (this survived until a real Wally drive); this is the static half.
+    # Fault-tested three ways (`POKEBOT_CH23ARMS_FAULT=unregistered|orphan|noregistry`).
+    ("probe_ch23_fault_arms.py", False),
 ]
 
 

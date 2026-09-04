@@ -810,23 +810,17 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 
 ### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ⚠ **Drift is 11** (2026-09-03: `chapters.py` for a §Ch23 correctness fix, plus the new sandbox-only chapter modules `sootopolis_gym.py` and `victory_road.py`) — ⛔ **PROMOTION IS THE USER'S CALL and is not implied.** ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
 
-### ⚠ `#24-ch23wally` — **THE USER RULED: TRAIN (option (a)). TRAINING IS DONE AND THE PARTY IS READY — ⛔ BUT THE RE-TEST AGAINST WALLY IS STILL OWED, SO THIS ITEM IS NOT CLOSED.** (filed 2026-09-04, MEASURED; ruled + trained 2026-09-04)
+### ✅ `#24-ch23wally` — **CLOSED 2026-09-04: WALLY IS BEATEN. Training was the fix, and an A/B on the same leg proves it (untrained → 2 whiteouts + flag False; trained → 0 whiteouts + flag True).** ⚠ Option (b) — the faint-replacement ranking — remains UNTAKEN and was OBSERVED firing inside the winning run. (filed 2026-09-04, MEASURED; ruled, trained and closed 2026-09-04)
 
-- [ ] **MEASURED, NOT INFERRED: `WallyEntranceBattle` fires correctly and the bot LOSES**, twice in
-      one drive (`BattleScript_LocalBattleLostEnd` ×2, 2 whiteouts). ⛔ **The coord-event mechanic is
-      intact** — var armed (0), `prev_elevation` 4 matching the event, and a `GAME_STAT_STEPS` delta
-      of exactly 29 across a 29-waypoint walk proving the step gate opened every time.
-      **Roster:** Sceptile **L51** / Zigzagoon **L19** / Swellow L42 / Wailmer L40 / Mightyena L44 /
-      Castform L36, at full HP, versus Wally's **L41-45** team. Sceptile fights and gains exp
-      (127,205 → 132,729) but the match is lost.
-      ⚠ **The L19 Zigzagoon is a live liability**, not just dead weight: the story override's
-      faint-replacement ranking (`story_mode.py:210`) puts HP **fraction** above LEVEL, so once the
-      type terms tie — which in a cave is immediately — the freshest mon leads and is one-shot.
-      ⇒ **OPTIONS, none of which I should pick unilaterally:** (a) train before Victory Road
-      (`#24-organicteam` / `#24-maintain` territory); (b) fix the faint-replacement ranking to weigh
-      level properly; (c) accept the loss loop — it is survivable, because leg 4 arms the respawn to
-      EVER_GRANDE so a whiteout lands ABOVE the falls and leg 5 simply re-runs.
-      ⛔ **NOT a blocker for the leg's CODE**, which is correct; it is a blocker for the leg PASSING.
+- [x] 📦 **THE ORIGINAL DIAGNOSIS (2026-09-04, now HISTORY — full narrative in `07-CHANGELOG.md`
+      2026-09-04).** `WallyEntranceBattle` fired correctly and the bot LOST twice in one drive
+      (2 whiteouts); the coord-event mechanic was never at fault (var armed, `prev_elevation` 4,
+      `GAME_STAT_STEPS` delta exactly 29 across a 29-waypoint walk). Pre-training roster: Sceptile
+      L51 / Zigzagoon L19 / Swellow L42 / Wailmer L40 / Mightyena L44 / Castform L36 vs Wally's
+      L41-45. ⇒ **the leg's CODE was correct all along; the party was the blocker** — which is why
+      the fix was (a) TRAIN, and why the A/B above is the proof rather than a code diff.
+      Options were (a) train ✅ TAKEN, (b) fix the faint ranking ⚠ STILL OPEN (bullet below),
+      (c) accept the loss loop — survivable because leg 4 arms the respawn ABOVE the falls.
 - [x] ✅ **2026-09-04 — THE USER GREENLIT OPTION (a), AND IT IS EXECUTED.** Party is now
       **Sceptile L51 / Swellow L47 / Wailord L47 / Mightyena L47 (WITH CRUNCH)**; fixture
       `post_training.ss1` (md5 `2f517f1f790b0151af9a7837ac493e4e`), `--driver ch23train`,
@@ -835,21 +829,30 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       needs 438,498 and is ALSO Mightyena's Crunch level.
       ‼ **The grind only worked after KI-84** — `train_team(slots={i})` with `i != 0` runs ONE
       spin-batch and returns as if finished. First attempt: **8 battles**, Wailmer stalled at L41.
-- [ ] ⚠ **STILL OWED — THE ACTUAL RE-TEST.** Nothing here proves the trained party BEATS Wally;
-      it proves only that the party reached the levels. ⛔ **Do not mark this item done on the
-      training result** — that would be grading the input to the fight, not the fight
-      (SESSION DISCIPLINE #7: a candidate is not an attempt). Re-run `--driver ch23road` from
-      `post_training.ss1`, **healing first** (95% HP, one Potion in the bag).
-      ⚠ Options (b) and (c) remain untaken and are NOT superseded: the faint-replacement ranking
-      still weighs HP fraction above level, so the L19 Zigzagoon can still be sent in on a cascade.
+- [x] ✅✅ **DONE 2026-09-04 — THE RE-TEST RAN AND WALLY IS BEATEN.** `--driver ch23road` from
+      `post_training.ss1`: `wally_flag=True`, **`whiteouts=0`**, `battles=6`, `missing=[]`,
+      `ACCEPTANCE: PASS (RESUMED — WALLY ONLY, not the full leg)`. Fixture `post_wally.ss1`
+      (md5 `76000aa5ad5c5fb85fc34965e7295e21`) PINNED at **VICTORY_ROAD_1F (9,15)** = the B1F
+      ladder apron, so **leg 6 starts exactly there**.
+      ⭐ **THE A/B, same leg and same code — the item closes on evidence, not on the levels:**
+      untrained → `battles=5`, **`whiteouts=2`**, `wally_flag=False`; trained → `battles=6`,
+      **`whiteouts=0`**, `wally_flag=True`.
+      ⛔ **THE WIN WAS COSTLY: 67% HP with Sceptile AND Zigzagoon FAINTED** (Sceptile levelled to
+      L52). ⇒ **leg 6 must HEAL before it starts.**
+- [ ] ⚠ **OPTION (b) IS STILL UNTAKEN, and it is no longer theoretical — it was OBSERVED.** The
+      faint-replacement ranking (`story_mode.py:210`) weighs `hp_fraction` above LEVEL, and in the
+      winning run it fed the **L19 Zigzagoon** into a fight against L40s, where it fainted. It cost
+      nothing this time because the battlers carried the fight. ⛔ Against the Elite Four — five
+      fights, one party, no heal, no escape — the same cascade is a run-ender. Tracked here so
+      closing the Wally half does not bury it.
 
 ### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **LEGS 1-5 ARE BUILT AND THE PARTY IS TRAINED; LEGS 6-8 REMAIN.** (filed 2026-09-03, updated 2026-09-04)
 
 > ⛔ **HEADER/BODY PAIR NOTE (2026-09-04).** This header read "LEGS 1-4 SHIP AND PASS; LEGS 5-8 REMAIN" for one commit *after* its own body bullet had been corrected to "legs 6-8" — a Tier 1 reviewer caught it. **P2: a header is a claim about every bullet beneath it**, and updating the body alone is the more dangerous state, because the body looks current.
 
 - [~] **REMAINS: legs 6-8** — the B1F boulder puzzle, B2F, the return, and the chapter
-      orchestrator + Segment 23 wiring. *(Was "legs 5-8"; leg 5 is BUILT — its code is
-      correct and its remaining blocker is the Wally FIGHT, tracked in `#24-ch23wally`.)*
+      orchestrator + Segment 23 wiring. *(Was "legs 5-8"; leg 5 is BUILT **and WALLY IS BEATEN
+      2026-09-04** — `#24-ch23wally` is CLOSED. ⛔ HEAL FIRST: `post_wally.ss1` is 67%, 2 fainted.)*
       ⭐⭐ **STUB MARKER — READ BEFORE ANY BOULDER CODE:** `ai-research-notes/2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` (3 independent agents) + `...-ch24-POKEMON-LEAGUE.md`. ⛔ NOTES, not truth — the reachability is MODELED and 3 live checks are OWED. Headlines: (1) **the route is `1F→B1F→B2F→B1F→1F`** — 1F's entrance and exit are in DIFFERENT walk-regions, so "walk across 1F" is impossible; (2) **TWO boulders are mandatory, (4,7) WEST and (9,10) EAST** — a "delete it and re-path" model finds only (9,10) and misses (4,7); (3) ⛔ **pushing either SOUTH kills the route irreversibly** — exactly what a greedy push-toward-goal router does; (4) **every warp RESETS the puzzle** (`FLAG_TEMP_*` cleared, boulders revert — also the recovery from a trap push) and **`FLAG_SYS_USE_STRENGTH` clears on every map load**; (5) minimal HMs = **{Surf, Strength, Rock Smash}** — **Waterfall and Flash NOT required**; (6) ✅ `strength_push` exists (`early_game.py:7884`, Magma-Hideout-proven) ⇒ **the machinery exists; only the route is missing.**
       ⛔ *(This item's header read "PRODUCTION CODE IS ZERO" and its first line "`victory_road.py`
       DOES NOT EXIST" for a day AFTER legs 2-4 shipped from that very file — the heading-vs-body rot
@@ -866,14 +869,18 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       **FIXTURE CHAIN (all PINNED, each captured only on a FULL PASS):**
       `post_badge8` → `post_waterfall` → `post_depart_sootopolis` (ROUTE126 (45,66), 100%) →
       **`post_ever_grande.ss1`** (`18203e99…`, EVER_GRANDE (18,42), 100%) →
-      **`post_training.ss1`** (`2f517f1f…`, VICTORY_ROAD_1F (15,39), 95%) ← **⭐ START HERE NOW.**
-      ⛔ **`post_ever_grande.ss1` IS NO LONGER THE START POINT** — it is PRE-TRAINING and its
-      party LOSES to Wally (MEASURED, twice). `post_training.ss1` is the same run trained to
-      **Sceptile L51 / Swellow L47 / Wailord L47 / Mightyena L47 WITH CRUNCH** (2026-09-04,
-      `--driver ch23train`, `ACCEPTANCE: PASS`, `battles=132`, `whiteouts=0`).
-      ⚠ **HEAL FIRST** (95% HP, ONE Potion in the bag), and ⚠ **the fight is STILL UNTESTED**
-      with the trained party — see `#24-ch23wally`, which is OPEN for exactly that re-test.
+      **`post_training.ss1`** (`2f517f1f…`, VICTORY_ROAD_1F (15,39), 95%) →
+      **`post_wally.ss1`** (`76000aa5…`, VICTORY_ROAD_1F (9,15), 67%) ← **⭐ START HERE NOW.**
+      ⛔ **NEITHER EARLIER FIXTURE IS THE START POINT.** `post_ever_grande.ss1` is PRE-TRAINING and
+      its party LOSES to Wally (MEASURED, twice); `post_training.ss1` is trained but PRE-WALLY.
+      ✅ **WALLY IS BEATEN (2026-09-04)** — `--driver ch23road`, `wally_flag=True`,
+      **`whiteouts=0`**, `battles=6` — and `post_wally.ss1` sits on **(9,15) = the B1F ladder
+      apron**, i.e. leg 6 starts exactly there. `#24-ch23wally` is **CLOSED**.
+      ⛔⛔ **HEAL FIRST — 67% HP with Sceptile AND Zigzagoon FAINTED** (`probe_anchor_inventory`
+      marks it "CANNOT SURVIVE A JOURNEY"). Sceptile is now **L52**, not the L51 training left.
       ‼ The grind only worked after **KI-84**; gym prep is still exposed to the same bug.
+      ⚠ *(Both claims here were false for one commit — Tier 1 caught it. **P5 twice in the same
+      item: closing the CHILD item is not updating the PARENT.**)*
 
       📄 **ALL ANALYSIS LIVES IN ONE PLACE:** `ai-research-notes/2026-09-03-ch23-CHAPTER-BUILD-SPEC.md`
       — §1 the opening state and the field-move/HP correction, §2 the FOUR harness edits + the `os`
