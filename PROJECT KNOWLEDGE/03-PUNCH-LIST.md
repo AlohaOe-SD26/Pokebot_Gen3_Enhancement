@@ -1091,6 +1091,24 @@ from the driver's log** — the probe caught the fainted member the driver's log
       ‼ And the cheaper half needs no code at all: **run the gate suite BEFORE a long drive**, not
       only before a commit.
 
+### 🔧 `#24-advisorydocstring` — **`advise_on_diff.py` FIRES ON HAZARDS DESCRIBED IN DOCSTRINGS, SO DOCUMENTING A TRAP ACCUSES YOU OF HAVING IT.** (filed 2026-09-03, MEASURED)
+
+- [ ] **R-LOOP false-fired on `victory_road.py` for a `while True:` THAT DOES NOT EXIST** — the only
+      occurrence is `:149`, inside the **module docstring**, describing KI-83. AST-verified: the file
+      has **six `For` loops and ZERO `While` loops.** **Cause:** the tool strips `#` comments, but a
+      **docstring is a string expression, not a comment**, so documented hazard names reach the
+      matcher as code.
+      ⛔⛔ **THE PERVERSE INCENTIVE IS THE POINT: the more carefully you DOCUMENT a hazard, the more
+      the tool accuses you of COMMITTING it** — and this project asks every module to explain its
+      traps in its docstring, so the two rules fight. ‼ *A gate with false positives teaches the
+      reader to bypass it* — advisory-only makes that cheaper, not harmless.
+      **Fix, FAULT-TESTED BOTH WAYS:** blank every `ast.Expr` string before matching. ⭐ The two arms
+      are the point: (a) a real `while True:` still FIRES; (b) the same text in a docstring is
+      SILENT. Without (a) the "fix" could just disable the rule.
+      ⚠ Likely affects the other text-matching rules too — check them in the same pass.
+      ✅ The rest of that advisory run was correct: R-EXCEPT prompted a real check, and
+      `probe_abort_swallowing.py` reports **23 sites, exactly at baseline** — zero new debt.
+
 ### ✅ `#24-difftriggeredrules` — **DONE 2026-08-26, CLOSED.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 budget; nothing deleted). ⛔ DO NOT REBUILD. `tools/story-dev/advise_on_diff.py` — 9 diff-keyed rule families, ADVISORY and never blocking (exit 0 either way), delivered by `.claude/hooks/advise-on-commit.ps1` as `additionalContext` only; ⛔ deliberately NO `permissionDecision`, because an "allow" would auto-approve the commit past the user's own prompt. Proof: a 32-check `--self-test` (every rule both ways) plus a mutation test. ⭐ **IT IS LIVE AND EARNING ITS KEEP:** on 2026-09-03 its **R-SCANBOUND** rule caught a coordinate scan in a new probe bounded by the WRONG shaft's floor — the output had been right only by luck. ‼ Adding a rule = one table entry + its two self-test arms (T25 enforces the pairing).
 
 ### ‼ `#24-sanitycheck2` — the deep sanity check is 2 passes of 5 (filed 2026-08-27)
