@@ -234,6 +234,38 @@ REACHABLE. That needs the whole chain — push (4,7) WEST, walk to (8,10), push 
 rock at (18,12) — and **an A/B with only its negative arm run is not an A/B.** ‼ Do not read "both
 arms PASS" as "the puzzle is solved": what is proven is the first gate and the trap, not the route.
 
+## 6d. ✅✅✅ THE FULL SOLVE — `POKEBOT_CH23_PUSH_ARM=solve`, 2026-09-04. **(30,25) IS REACHED.**
+
+⭐⭐⭐ **THE ENTIRE MODELED ROUTE IS NOW CONFIRMED LIVE, STEP BY STEP, IN ONE RUN.** This is the
+positive arm that §6c said was still owed — the one that proves the ROUTE rather than the OBSTACLE.
+
+| step | boulders (live `local_id`) | (8,10) | **(30,25)** |
+|---|---|---|---|
+| before | `3 @ (4,7)`, `4 @ (9,10)` | ✗ | ✗ |
+| push (4,7) **WEST** from (5,7) | `3 → (3,7)` | ✅ **7 wp** | ✗ |
+| push (9,10) **EAST** from (8,10) | `4 → (10,10)` | ✅ | ✗ **still** |
+| Rock Smash **(18,12)** from (17,12) | — | ✅ 13 wp | ✅✅ **REACHABLE, 50 wp** |
+
+`battles=2` (Rock Smash rolls a wild encounter — B1F has a `rock_smash_mons` table, and the battle
+listener handled both), `whiteouts=0`, all six readings taken, `ACCEPTANCE: PASS`.
+
+⇒ **THE INTERMEDIATE READING IS THE MOST INFORMATIVE ONE.** After BOTH pushes but BEFORE the smash,
+(30,25) was **still unreachable**. ⇒ **the rock at (18,12) is genuinely load-bearing, not
+incidental** — a third independent confirmation, and one that a run reporting only its endpoints
+would have missed entirely. ‼ *Measure the intermediate state, not just the outcome: an outcome tells
+you THAT it worked, the intermediates tell you WHY — and which of your three steps you could not
+have dropped.*
+
+⇒ **ALL THREE OWED LIVE CHECKS ARE DONE.** The route, the ordering constraint, the trap, the
+warp-reset and the Rock Smash requirement are all measured against our own planner and the game's own
+object list. ⛔ What remains for leg 6 is BUILDING it — production code in `victory_road.py` with the
+usual guards — not further recon.
+
+⚠ Two honest caveats. (1) `after_boulders` at the end reads `[(4, (10,10))]` — boulder 3 is simply
+outside the camera window from (17,12); **that is not evidence it vanished** (see §6b's window
+caveat). (2) This proves the path from B1F's arrival chamber to the **B2F ladder**; B2F itself
+(Surf, the waterfall descent) and the return leg are still entirely unmeasured.
+
 ## 7. ⛔ WHAT MUST BE VALIDATED LIVE BEFORE ANY BOULDER CODE SHIPS
 
 Everything in §1, §4 and the routes is **MODELED** — a reimplementation of pokeemerald's collision
@@ -248,11 +280,10 @@ hiding.
 2. ✅ **DONE (§6c), and it fired.** Pushing (4,7) **SOUTH** leaves (8,10) AND (30,25) both sealed —
    the trap is real, not asserted. ⭐ Safe because **every warp resets the puzzle** (§5.1), which the
    two runs independently confirmed (the boulder was back at (4,7) on the second).
-3. ⚠ **STILL HALF DONE — THIS IS THE ONE THAT REMAINS.** The negative half is measured: (30,25)
-   refuses with the boulders in place, and still refuses after only the first push. ⛔ **STILL OWED:
-   the POSITIVE arm** — the full chain (push (4,7) WEST → walk to (8,10) → push (9,10) EAST → smash
-   (18,12)) ending with (30,25) **REACHABLE**. **An A/B with only its negative arm run is not an
-   A/B**, and this is the half that proves the route rather than the obstacle.
+3. ✅ **DONE (§6d) — BOTH HALVES.** (30,25) refuses with the boulders in place, still refuses after
+   the first push, still refuses after BOTH pushes, and becomes **REACHABLE in 50 wp** only after the
+   rock at (18,12) is smashed. ⇒ the route is proven AND each of the three steps is shown to be
+   individually necessary.
 
 ✅ **ALREADY VERIFIED IN OUR CODE (2026-09-04):** `strength_push(map, approach_tile, face_dir)` exists
 at `early_game.py:7884`, tracks the boulder by **`local_id`**, requires **both** halves of success

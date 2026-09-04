@@ -13547,14 +13547,15 @@ class Ch23PushArmMode(BotMode):
         TAG = "ch23push"
         B1F = MapRSE.VICTORY_ROAD_B1F
         ARM = _os.environ.get("POKEBOT_CH23_PUSH_ARM", "correct").strip().lower()
-        if ARM not in ("correct", "trap"):
+        if ARM not in ("correct", "trap", "solve"):
             raise BotModeError(
-                f"ch23push: unknown arm {ARM!r}. Known: 'correct', 'trap'. ⛔ Refusing rather than "
-                f"defaulting — an unrecognised arm that silently ran the safe path would report a "
-                f"PASS for an experiment nobody performed."
+                f"ch23push: unknown arm {ARM!r}. Known: 'correct', 'trap', 'solve'. ⛔ Refusing "
+                f"rather than defaulting — an unrecognised arm that silently ran the safe path "
+                f"would report a PASS for an experiment nobody performed."
             )
-        # (5,7)+Left pushes (4,7) WEST — the safe one. (4,6)+Down pushes it SOUTH — the trap.
-        APPROACH, FACE = ((5, 7), "Left") if ARM == "correct" else ((4, 6), "Down")
+        # (5,7)+Left pushes (4,7) WEST — the safe first move, shared by `correct` and `solve`.
+        # (4,6)+Down pushes the SAME boulder SOUTH — the trap.
+        APPROACH, FACE = ((4, 6), "Down") if ARM == "trap" else ((5, 7), "Left")
 
         self.whiteouts = getattr(self, "whiteouts", 0)
         self.battles = getattr(self, "battles", 0)
@@ -13598,10 +13599,38 @@ class Ch23PushArmMode(BotMode):
                     "start state is wrong."
                 )
 
-            # ---- THE PUSH ----------------------------------------------------------------------
+            # ---- THE PUSH(ES) --------------------------------------------------------------------
             yield from strength_push(B1F, APPROACH, FACE)
             yield from wait_until_truly_controllable()
             taken.add("RP-PUSH")
+            R["after_push1_boulders"] = boulder_at()
+            R["after_push1_8_10"] = reach((8, 10))
+
+            if ARM == "solve":
+                # ⭐ THE POSITIVE ARM. Everything before this measured an OBSTACLE; this measures
+                # the ROUTE. ⛔ An A/B with only its negative arm run is not an A/B.
+                from modules.story.early_game import _smash_rock
+
+                if not R["after_push1_8_10"]["reachable"]:
+                    raise BotModeError(
+                        f"ch23push solve: (8,10) is still unreachable after pushing (4,7) WEST, so "
+                        f"the second push cannot be reached. Boulders now: "
+                        f"{R['after_push1_boulders']}."
+                    )
+                # push (9,10) EAST — standing at (8,10), facing Right
+                yield from strength_push(B1F, (8, 10), "Right")
+                yield from wait_until_truly_controllable()
+                R["after_push2_boulders"] = boulder_at()
+                R["after_push2_30_25"] = reach((30, 25))
+                taken.add("RP-PUSH2")
+
+                # smash the rock at (18,12) — approached from the WEST at (17,12), facing Right.
+                # ⚠ Rock Smash rolls a WILD ENCOUNTER (B1F has a rock_smash_mons table); the
+                # battle listener handles it, which is why this is not wrapped in its own guard.
+                yield from _smash_rock(B1F, (17, 12), "Right")
+                yield from wait_until_truly_controllable()
+                R["after_smash_30_25"] = reach((30, 25))
+                taken.add("RP-SMASH")
 
             # ---- AFTER -------------------------------------------------------------------------
             R["after_8_10"] = reach((8, 10))
@@ -13615,7 +13644,9 @@ class Ch23PushArmMode(BotMode):
 
         for k, v in R.items():
             log(f"[{TAG}] R {k} = {v!r}")
-        EXPECTED = ("RP-ARRIVE", "RP-BEFORE", "RP-PUSH", "RP-AFTER")
+        EXPECTED = ["RP-ARRIVE", "RP-BEFORE", "RP-PUSH", "RP-AFTER"]
+        if ARM == "solve":
+            EXPECTED += ["RP-PUSH2", "RP-SMASH"]
         missing = [r for r in EXPECTED if r not in taken]
         log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
         log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
@@ -13623,7 +13654,16 @@ class Ch23PushArmMode(BotMode):
         # ⛔ EACH ARM IS GRADED ON *ITS OWN* PREDICTION. The trap arm PASSES by staying blocked —
         # grading both on "did it open" would score a correct refutation as a failure.
         opened = bool(R.get("after_8_10", {}).get("reachable"))
-        if ARM == "correct":
+        if ARM == "solve":
+            # ⛔ THE PREDICTION IS ABOUT (30,25), NOT ABOUT THE PUSHES SUCCEEDING. A run where every
+            # push "worked" but the ladder stayed unreachable is a REFUTATION of the route, and must
+            # grade FAIL — otherwise this arm would just be re-testing the previous two.
+            final = R.get("after_smash_30_25", {}).get("reachable", False)
+            predicted = final
+            log(f"[{TAG}] PREDICTION (solve arm): (30,25) UNREACHABLE -> REACHABLE after "
+                f"push(4,7)W + push(9,10)E + smash(18,12). observed reachable={final} "
+                f"(after push2 only: {R.get('after_push2_30_25')})")
+        elif ARM == "correct":
             predicted = opened
             log(f"[{TAG}] PREDICTION (correct arm): (8,10) UNREACHABLE -> REACHABLE. "
                 f"observed opened={opened}")

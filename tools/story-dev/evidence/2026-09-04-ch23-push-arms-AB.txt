@@ -33,3 +33,26 @@
 [ch23push] PREDICTION (trap arm): (8,10) and (30,25) BOTH stay UNREACHABLE. observed 8_10_open=False 30_25={'reachable': False, 'why': 'PathFindingError'}
 [ch23push] GRADE arm=trap predicted_held=True missing=[] failure=None
 [ch23push] ACCEPTANCE: PASS
+
+=== ARM: solve (the POSITIVE arm) ===
+[ch23push] ARM=solve approach=(5, 7) face=Left
+[ch23push] R arm = 'solve'
+[ch23push] R approach = (5, 7)
+[ch23push] R face = 'Left'
+[ch23push] R before_8_10 = {'reachable': False, 'why': 'PathFindingError'}
+[ch23push] R before_30_25 = {'reachable': False, 'why': 'PathFindingError'}
+[ch23push] R before_boulders = [(3, (4, 7)), (4, (9, 10))]
+[ch23push] R after_push1_boulders = [(3, (3, 7)), (4, (9, 10))]
+[ch23push] R after_push1_8_10 = {'wp': 7, 'reachable': True}
+[ch23push] R after_push2_boulders = [(3, (3, 7)), (4, (10, 10))]
+[ch23push] R after_push2_30_25 = {'reachable': False, 'why': 'PathFindingError'}
+[ch23push] R after_smash_30_25 = {'wp': 50, 'reachable': True}
+[ch23push] R after_8_10 = {'wp': 13, 'reachable': True}
+[ch23push] R after_30_25 = {'wp': 50, 'reachable': True}
+[ch23push] R after_boulders = [(4, (10, 10))]
+[ch23push] R here = (17, 12)
+[ch23push] RESULT readings=['RP-AFTER', 'RP-ARRIVE', 'RP-BEFORE', 'RP-PUSH', 'RP-PUSH2', 'RP-SMASH'] missing=[]
+[ch23push] RESULT battles=2 whiteouts=0
+[ch23push] PREDICTION (solve arm): (30,25) UNREACHABLE -> REACHABLE after push(4,7)W + push(9,10)E + smash(18,12). observed reachable=True (after push2 only: {'reachable': False, 'why': 'PathFindingError'})
+[ch23push] GRADE arm=solve predicted_held=True missing=[] failure=None
+[ch23push] ACCEPTANCE: PASS
