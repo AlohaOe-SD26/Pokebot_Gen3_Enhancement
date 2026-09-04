@@ -13436,13 +13436,51 @@ class Ch23B1fProbeMode(BotMode):
                     tiles[name] = {"xy": xy, "error": f"{type(error).__name__}"}
             R["tiles"] = tiles
             taken.add("R6-TILES")
+
+            # ---- ⛔⛔ THE PREREQUISITE THAT DECIDES WHETHER LEG 6 IS BUILDABLE AT ALL ----------
+            # `EventScript_StrengthBoulder` gates on **FLAG_BADGE04_GET *and*
+            # `checkpartymove MOVE_STRENGTH`** — a party that cannot use Strength cannot push
+            # anything, and every route conclusion above would be unreachable in practice.
+            # ‼ ASK BEFORE BUILDING: this is the cheapest possible read and it gates the whole leg.
+            from modules.player import get_player
+            from modules.pokemon_party import get_party
+            from modules.items import get_item_bag
+
+            party_moves = {}
+            for mon in get_party():
+                if mon is None or mon.is_egg:
+                    continue
+                party_moves[f"{mon.species.name}#{mon.personality_value:08X}"] = [
+                    lm.move.name for lm in mon.moves if lm is not None
+                ]
+            R["party_moves"] = party_moves
+            R["knows_strength"] = any("Strength" in mv for mv in party_moves.values())
+            R["knows_rock_smash"] = any("Rock Smash" in mv for mv in party_moves.values())
+            R["knows_surf"] = any("Surf" in mv for mv in party_moves.values())
+
+            # ⚠ THE HM POCKET, NOT THE ITEMS POCKET. An earlier §Ch23 reading reported a bag of
+            # {Nugget, X Attack, Potion, Escape Rope} and called it the FULL BAG — it was one
+            # pocket. HMs live separately, so "no HM04 in the bag" from that read would have been
+            # a false blocker.
+            hms = {}
+            try:
+                for slot in get_item_bag().tms_hms:
+                    hms[slot.item.name] = slot.quantity
+            except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                VR.reraise_if_aborting(error)
+                hms = {"error": f"{type(error).__name__}: {str(error)[:80]}"}
+            R["tm_hm_pocket"] = hms
+            R["has_hm04_strength"] = any("HM04" in k or "Strength" in k for k in hms)
+            R["badges"] = getattr(get_player(), "badges", None)
+            taken.add("R6-STRENGTH")
         except Exception as error:  # noqa: BLE001 - the probe reports, it does not crash the run
             failure = f"{type(error).__name__}: {error}"
             log(f"[{TAG}] FAILURE {failure}")
 
         for k, v in R.items():
             log(f"[{TAG}] R {k} = {v!r}")
-        EXPECTED = ("R6-ARRIVE", "R6-OBJECTS", "R6-BLOCKED", "R6-PUSH1", "R6-PUSH2", "R6-TILES")
+        EXPECTED = ("R6-ARRIVE", "R6-OBJECTS", "R6-BLOCKED", "R6-PUSH1", "R6-PUSH2", "R6-TILES",
+                    "R6-STRENGTH")
         missing = [r for r in EXPECTED if r not in taken]
         log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
         log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")

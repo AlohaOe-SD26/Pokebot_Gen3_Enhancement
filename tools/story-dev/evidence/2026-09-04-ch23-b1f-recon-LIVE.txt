@@ -1,10 +1,4 @@
-[setup] LOG -> ch23b1fprobe3.log
-[setup] loaded save state post_wally.ss1; build=sandbox
-[run] starting faithful loop for up to 4000 frames
-f0: CONTROLLER -> <none>   (state=OVERWORLD)
 [ch23b1fprobe] PRE at=((24, 43), (9, 15))
-f1: CONTROLLER -> Ch23B1fProbeMode.run   (state=OVERWORLD)
-f89: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_SuccessForceOut textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonDoor'] ctrl=Ch23B1fProbeMode.run bt='Wild LAIRON used ROAR!' scripts=[] party=[Sceptile:L52:exp135509|Zigzagoon:L19:exp7672|Swellow:L47:exp98380|Wailord:L47:exp115139|Mightyena:L47:exp106535|Castform:L36:exp47997]
 [ch23b1fprobe] R arrived_on = '((24, 44), (8, 3))'
 [ch23b1fprobe] R on_b1f = True
 [ch23b1fprobe] R here = (8, 3)
@@ -12,26 +6,15 @@ f89: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_SuccessForceOut 
 [ch23b1fprobe] R to_b2f_ladder_30_25 = {'target': (30, 25), 'reachable': False, 'why': 'PathFindingError: Could not find a path from (8/3 @ VICTORY_ROAD_B1F) to (30/25 @ VICTORY_ROAD_B1F).'}
 [ch23b1fprobe] R to_pushspot_5_7 = {'target': (5, 7), 'wp': 9, 'reachable': True}
 [ch23b1fprobe] R to_pushspot_8_10 = {'target': (8, 10), 'reachable': False, 'why': 'PathFindingError: Could not find a path from (8/3 @ VICTORY_ROAD_B1F) to (8/10 @ VICTORY_ROAD_B1F).'}
-[ch23b1fprobe] R tiles = {'boulder_4_7': {'xy': (4, 7), 'type': 'Cave', 'collision': 0, 'elev': 3}, 'boulder_9_10': {'xy': (9, 10), 'type': 'Cave', 'collision': 0, 'elev': 3}, 'rock_18_12': {'xy': (18, 12), 'type': 'Cave', 'collision': 0, 'elev': 3}, 'pushspot_5_7': {'xy': (5, 7), 'type': 'Cave', 'collision': 0, 'elev': 3}, 'pushspot_8_10': {'xy': (8, 10), 'type': 'Cave', 'collision': 0, 'elev': 3}, 'b2f_ladder_30_25': {'xy': (30, 25), 'type': 'Ladder', 'collision': 0, 'elev': 3}, 'arrival_8_3': {'xy': (8, 3), 'type': 'Ladder', 'collision': 0, 'elev': 3}}
-[ch23b1fprobe] RESULT readings=['R6-ARRIVE', 'R6-BLOCKED', 'R6-OBJECTS', 'R6-PUSH1', 'R6-PUSH2', 'R6-TILES'] missing=[]
+[ch23b1fprobe] R tiles = {'boulder_4_7': {'xy': (4, 7), 'type': 'Cave', 'collision': 0, 'elev': 3}, 'boulder_9_10': {'xy': (9, 10), 'type': 'Cave', 'collision': 0, 'elev': 3}, 'rock_18_12': {'xy': (18, 12), 'type': 'Cave', 'collision': 0, 'elev': 3}, 'pushspot_5_7': {'xy': (5, 7), 'type': 'Cave', 'collision': 0, 
+[ch23b1fprobe] R party_moves = {'Sceptile#863B0917': ['Rock Smash', 'Strength', 'Leaf Blade', 'Slam'], 'Zigzagoon#33CB74C3': ['Tackle', 'Growl', 'Surf', 'Headbutt'], 'Swellow#0B30A747': ['Peck', 'Wing Attack', 'Aerial Ace', 'Quick Attack'], 'Wailord#FA51ECF3': ['Dive', 'Surf', 'Water Spout', 'Waterfall'], 'Mighty
+[ch23b1fprobe] R knows_strength = True
+[ch23b1fprobe] R knows_rock_smash = True
+[ch23b1fprobe] R knows_surf = True
+[ch23b1fprobe] R tm_hm_pocket = {'TM03': 1, 'TM04': 1, 'TM08': 1, 'TM34': 1, 'TM39': 1, 'TM40': 1, 'TM42': 1, 'TM47': 1, 'TM50': 1, 'HM02': 1, 'HM03': 1, 'HM04': 1, 'HM06': 1, 'HM07': 1, 'HM08': 1}
+[ch23b1fprobe] R has_hm04_strength = True
+[ch23b1fprobe] R badges = None
+[ch23b1fprobe] RESULT readings=['R6-ARRIVE', 'R6-BLOCKED', 'R6-OBJECTS', 'R6-PUSH1', 'R6-PUSH2', 'R6-STRENGTH', 'R6-TILES'] missing=[]
 [ch23b1fprobe] RESULT battles=0 whiteouts=0
 [ch23b1fprobe] GRADE on_b1f=True missing=[] failure=None
 [ch23b1fprobe] ACCEPTANCE: PASS
-f145: CONTROLLER -> <none>   (state=OVERWORLD)
-f1045: SAVED stall state #1 to stalls/repro-ml-f1045.ss1 (bt='Wild LAIRON used ROAR!')
-f1345: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L52:exp135509|Zigzagoon:L19:exp7672|Swellow:L47:exp98380|Wailord:L47:exp115139|Mightyena:L47:exp106535|Castform:L36:exp47997', (8, 3)) instr=BattleScript_SuccessForceOut cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Wild LAIRON used ROAR!' bot_mode=Manual
-f1345:     gen -> <no controller on the stack (Manual mode / dropped out)>
-f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L52:exp135509|Zigzagoon:L19:exp7672|Swellow:L47:exp98380|Wailord:L47:exp115139|Mightyena:L47:exp106535|Castform:L36:exp47997]
-f3145: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L52:exp135509|Zigzagoon:L19:exp7672|Swellow:L47:exp98380|Wailord:L47:exp115139|Mightyena:L47:exp106535|Castform:L36:exp47997', (8, 3)) instr=BattleScript_SuccessForceOut cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Wild LAIRON used ROAR!' bot_mode=Manual
-f3145:     gen -> <no controller on the stack (Manual mode / dropped out)>
-[done] ran 4000 frames; final mode=Manual party=[Sceptile:L52:exp135509|Zigzagoon:L19:exp7672|Swellow:L47:exp98380|Wailord:L47:exp115139|Mightyena:L47:exp106535|Castform:L36:exp47997]
-[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
-[moveset] Sceptile L52: Rock Smash, Strength, Leaf Blade, Slam
-[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
-[moveset] Swellow L47: Peck, Wing Attack, Aerial Ace, Quick Attack
-[moveset] Wailord L47: Dive, Surf, Water Spout, Waterfall
-[moveset] Mightyena L47: Tackle, Crunch, Take Down, Bite
-[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
-[PARTY-ACCT] STAGE 0 SUMMARY — 4001 get_party() recomputes, 14 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
-[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
-[PARTY-ACCT] ledger += ch23b1fprobe 4001 recomputes (party_accounting_ledger.jsonl)

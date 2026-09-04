@@ -164,6 +164,30 @@ ELEVEN IS NOT EVIDENCE OF ANYTHING.** ‼ *(This project has paid for that read 
 from several standpoints, and nothing here needs that. ‼ Note also `MapLocation.objects` is the ROM
 **template** (ORIGINAL positions) — never mix it with the live list.
 
+### ✅✅ AND THE PREREQUISITE THAT COULD HAVE BLOCKED EVERYTHING IS ALREADY SATISFIED
+
+`EventScript_StrengthBoulder` gates on `FLAG_BADGE04_GET` **and** `checkpartymove MOVE_STRENGTH`, so
+a party that cannot use Strength makes every route conclusion here unreachable in practice. Measured
+the same run:
+
+| prerequisite | live reading |
+|---|---|
+| party knows **Strength** | ✅ `True` |
+| party knows **Rock Smash** | ✅ `True` |
+| party knows **Surf** | ✅ `True` |
+| HM04 in the bag | ✅ present (`HM02, HM03, HM04, HM06, HM07, HM08`) |
+
+⇒ **THE WHOLE MINIMAL HM SET `{Surf, Strength, Rock Smash}` IS ALREADY ON THE PARTY. Leg 6 needs NO
+teaching step** — `ensure_strength_learner()` exists but is not required here.
+
+‼ **AND IT CORRECTS AN EARLIER READING OF OUR OWN.** A §Ch23 note recorded `FULL BAG: {'Nugget': 1,
+'X Attack': 2, 'Potion': 1, 'Escape Rope': 1}` — that was **one pocket**, not the bag. The TM/HM
+pocket holds **15** entries. ⇒ had leg 6 checked "is HM04 in the bag" against that reading it would
+have found a **false blocker** and gone looking for a Strength teach that was never needed.
+⛔ **A POCKET IS NOT A BAG** — name the pocket you read.
+*(⚠ The probe's `badges` reading returns `None`: that accessor is wrong, not the save. Badge count
+comes from `probe_anchor_inventory`, which reports **badges=12345678** for every §Ch23 fixture.)*
+
 ⇒ **THE ORDERING CONSTRAINT IS REAL AND OUR PLANNER SEES IT.** (8,10) is the only tile from which
 (9,10) can be pushed EAST, and it is unreachable until (4,7) moves. This is precisely the claim the
 adversarial agent said a *"delete the boulder and re-path"* model would MISS — and our own
