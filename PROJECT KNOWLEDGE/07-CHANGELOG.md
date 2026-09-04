@@ -21695,3 +21695,50 @@ ago is just a stale number wearing a citation.**
 ‼ Its own opening line records that this heading read *"THE CURRENT TOP OF THE LIST"* for a month
 over a stale figure — the exact failure mode that keeping spent content in a current-state file
 produces, documented inside the block that was causing it.
+
+
+## 2026-09-04 — `#24-waterfalltimeout` FIXED: the waterfall timeout scaled by the MAP NUMBER
+
+**The defect.** `modules/modes/util/walking.py` computed a Waterfall waypoint's timeout as
+`195 + (get_player_location()[0][1] - waypoint.coordinates[1]) * 42`. `get_player_location()` returns
+**`(map_enum, (x, y))`**, and `MapRSE.__getitem__` makes `map_enum[1]` the **map number** — so the
+allowance scaled by which map you were on rather than by how far the climb is.
+
+**⭐ THE DIRECTION WAS MEASURED BEFORE THE EDIT, NOT REASONED OUT.** This codebase has shipped
+**three** backwards index/coordinate "fixes" (KI-18, KI-34, KI-66), and the standing rule from
+2026-08-17 is to run an observe-only probe printing both candidate values beside a ground truth
+first. Standing on VICTORY_ROAD_B1F (8,3):
+
+| expression | value | what it actually is |
+|---|---|---|
+| `[0][1]` — what the code used | **44** | the MAP NUMBER (`VICTORY_ROAD_B1F = (24,44)`) |
+| `[1][1]` | **3** | the player's `y` ✅ |
+| ground truth | coords **(8,3)** | y = 3 |
+
+**The A/B, from those measured values:**
+
+| case | old | new |
+|---|---|---|
+| Ever Grande climb to y=59 | **−1947 frames** (negative — expires instantly) | **+573** |
+| VICTORY_ROAD_B2F descent | **+1497** | **+69** (1,428 frames of false slack) |
+
+⇒ **wrong in BOTH directions depending on the map**, which is exactly why it never produced a clean
+repeatable symptom and survived unnoticed. It stayed latent because our story legs hand-drive
+waterfall climbs rather than letting the planner emit a `Waterfall` waypoint — §Ch23 leg 7's forced
+descent would likely have been the first one we ever rode.
+
+**Provenance worth noting:** this was found by a recon agent auditing our own Surf/Waterfall support
+— an agent dispatched to research the *decomp* that turned up a bug in *our code* instead. It was
+then independently re-verified twice (by me against `player.py:291`, and by a Tier 1 reviewer against
+`map_data.py`'s `__getitem__`) before a line was touched.
+
+**⚠ Drift 11 → 12.** `walking.py` is now divergent between sandbox and custom. Promotion is the
+USER's call.
+
+**‼ And two gates caught side effects of a one-line fix that I did not.** `audit_doc_citations` saw
+that my 13-line explanatory comment moved `run_in_circle` from `:706` to `:719`; `audit_doc_consistency`
+saw the drift count go stale in **nine** places across two files — which it surfaced in **four
+successive rounds**, because each time I fixed only what the last error message named.
+⇒ **GREP THE TREE FOR THE FACT, NOT FOR THE LINE THE ERROR NAMED.** The final pass swept all
+remaining instances at once and re-ran the gate to confirm zero, which is what the first pass should
+have done.

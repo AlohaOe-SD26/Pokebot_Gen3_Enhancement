@@ -1498,7 +1498,7 @@ automation can key off them directly (not pixels). Real names below.**
    bag. `navigate_to(MapRSE.ROUTE101, <bag coords>)` with
    `avoid_scripted_events=False` / `expecting_script=True` so the pathfinder
    *does not route around* the trigger tile (default `avoid_scripted_events=True`
-   would dodge it — `walking.py:314`, `map_path.py:924-927`).
+   would dodge it — `walking.py:409` (`navigate_to`), `map_path.py:924-927`).
 2. **Choose starter from Birch's bag.** This is the *exact* mechanic
    `starters.py` already automates (RSE Hoenn path): it opens the bag via
    `wait_until_task_is_active("Task_HandleStarterChooseInput"/"Task_StarterChoose2",
@@ -3904,7 +3904,7 @@ Mach Bike belongs to it, not to this leg.
    changed** (`4F -> 3F`), never the coordinates. This is the §Ch20 "assert the OUTCOME, not the
    position you expected" rule in its sharpest form.
 3. ⛔ **A ONE-TILE RESTING OFFSET DOES NOT FAIL LOUDLY — IT BURNS A TIMEOUT AND RE-PLANS.**
-   `navigate_to`'s arrival check is written against the warp TARGET (`walking.py:229/446`). Land one
+   `navigate_to`'s arrival check is written against the warp TARGET (`walking.py:250` in `follow_waypoints`, `walking.py:446` in `navigate_to`). Land one
    tile off and it waits out the full warp timeout, then re-plans. ‼ In the Sootopolis pocket that
    re-plan is the 89-of-121 trap — so the resting-tile finding and the re-plan finding COMPOSE.
 4. ⛔ **OUR DECODE CALLS THE CRUMBLED HOLE "Fall Warp", NOT "Cracked Floor Hole"**

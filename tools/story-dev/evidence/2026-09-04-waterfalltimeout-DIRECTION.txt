@@ -1,0 +1,8 @@
+[ch23b1fprobe] R wf_bug_index_0_1 = 44
+[ch23b1fprobe] R wf_bug_index_1_1 = 3
+[ch23b1fprobe] R wf_bug_ground_truth = {'map': 'MapRSE.VICTORY_ROAD_B1F', 'coords': (8, 3), 'here_tile': (8, 3)}
+
+=== THE A/B, computed from the measured values (base 195, 42 frames/tile) ===
+  Ever Grande climb   old=195+(8-59)*42 =  -1947   new=195+(68-59)*42 =   573
+  VICTORY_ROAD_B2F    old=195+(45-14)*42 =   1497   new=195+(11-14)*42 =    69
+  => the old line was wrong in BOTH directions depending on the map.

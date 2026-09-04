@@ -12010,3 +12010,36 @@ become mechanical — a blind gate converts a known-recurring defect into an *un
    written *because* something keeps recurring. #34 went red on its first clean run and that was a
    true finding; #35 went green on a file that was, at that moment, genuinely fixed — which is why
    the reconstruction, not the live file, was the only test that could tell the difference.
+
+
+## 2026-09-04 — I RETYPED AN ILLUSTRATIVE NUMBER FROM MEMORY AND BAKED THE WRONG ONE INTO PRODUCTION CODE
+
+**Symptom.** Filing `#24-waterfalltimeout`, I wrote that VICTORY_ROAD_B2F "gives **+1428**" frames of
+allowance, and Ever Grande "**−2142**". When I later fixed the bug I copied `+1428` **into the
+explanatory comment in `walking.py` itself**. A Tier 1 reviewer noticed the same scenario carried two
+different values ~13 lines apart in one punch-list item: `+1428` in the old bullet, `+1497` in the
+new evidence-sourced one.
+
+**Root cause.** Both original figures were the **un-based terms** — `(map − y) × 42` without the
+`195` base — and the B2F one additionally used the **wrong waypoint `y`** (11, the player's, instead
+of 14, the waypoint's). The correct values, recomputed from the committed evidence file:
+`Ever Grande 195 + (8 − 59) × 42 = −1947` and `B2F 195 + (45 − 14) × 42 = +1497` (right answer `+69`).
+`1428` is real but is the **slack**, not the total — which is exactly why it looked plausible.
+
+**‼ WHY THIS ONE STINGS.** It is a wrong number about coordinate arithmetic, written into the comment
+of a line whose *entire defect* was coordinate arithmetic, in a codebase that has shipped **three**
+backwards index/coordinate fixes. The comment exists to stop the next person getting it wrong, and it
+would have taught them a wrong figure. And the evidence file was sitting right there, correct, the
+whole time — I retyped from memory of what I had filed hours earlier instead of reading it.
+
+**Prevention rules.**
+1. ⛔ **RECOMPUTE AN ILLUSTRATIVE NUMBER FROM THE EVIDENCE AT THE MOMENT YOU WRITE IT.** Never retype
+   it from memory of an earlier filing, and never carry it forward from prose into code. If a figure
+   is worth putting in a comment it is worth re-deriving in the same minute — this is the same rule
+   as *"re-measure a count at the moment you write it"*, which I also broke earlier today with a
+   stale line count.
+2. ⛔ **THE SAME QUANTITY APPEARING TWICE IS A CHECK, NOT A REDUNDANCY.** When a doc states a value in
+   two places, diff them deliberately — a Tier 1 reviewer found this by doing exactly that, and it is
+   cheap enough to do while writing.
+3. ‼ **A NUMBER THAT "LOOKS RIGHT" IS THE DANGEROUS KIND.** `1428` was a real intermediate from the
+   real calculation, so nothing about it read as wrong. Plausibility is not verification.

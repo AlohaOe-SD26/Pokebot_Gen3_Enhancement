@@ -46,7 +46,48 @@ attrition shape that took leg 6 from 100% to 32%.
 ⛔ *(This paragraph called it "a capability question, not a routing one" because of the double-battle
 claim above. With that refuted it is a ROUTING and ATTRITION question — the ordinary kind.)*
 
-## 1. THE B2F ROUTE (MODELED — two agents converged on the same shape, 115 vs 119 steps)
+## 1. ⛔⛔⛔ THE B2F ROUTE BELOW **STRANDS THE BOT** — DO NOT BUILD IT. (kept as history; see §1b)
+
+> **REFUTED 2026-09-04 by an adversarial verifier working from the decoded `map.bin` (size asserted
+> 2852 = 46×31×2, decoder self-validated by finding exactly 4 `MB_LADDER` tiles at exactly the 4
+> `map.json` warp coordinates).**
+>
+> ⛔ **THE FATAL STEP IS PHASE 2.** Mounting Surf at `(33,17)` northward onto `(33,16)` enters a
+> **43-tile DEAD-END POND** (x24-35, y12-16) whose **seven** dismount tiles all return to the land
+> pocket you came from. **It cannot reach the exit ladder from there.** A leg built on this route
+> surfs into a cul-de-sac and strands.
+>
+> ⛔ Two further errors in the same phase: the arrival pocket is **354 tiles, not 65** (it spans
+> y=1..26 and contains **3 of the 4 ladders** — (30,25), (43,2) and (5,26) are all walk-connected
+> with **no Surf at all**), and it offers **20 legal Surf mounts, not one**. The "65" figure is not
+> reproducible under any movement model; the correct one — treating **elevation 0 as
+> `ELEVATION_TRANSITION`, a wildcard** (`event_object_movement.c:7709`) — gives 354.
+>
+> ⇒ ‼ **THE ROUTE WAS BUILT ON A MOVEMENT MODEL THAT MIS-HANDLED ELEVATION 0**, which is exactly the
+> class of error the FIRST recon agent reported correcting in its own simulator mid-run (301 tiles
+> vs 106). The same bug survived into a different agent's output and was never caught, because the
+> workflow's verify stage **exempted `READ`-tagged claims** — see §6.
+
+### ⭐ THE CORRECTING STRUCTURE: THE WATER IS **THREE DISCONNECTED BODIES**, NOT ONE
+
+Waterfalls are one-way, and the only seams at row y=11 are the two waterfall columns (x7-9 and
+x25-27); **every other tile on that row is collision 1.**
+
+| body | tiles | extent | mounts from the arrival pocket | reaches the EXIT ladder? |
+|---|---|---|---|---|
+| NORTH | 141 | x4-27, y1-10 | (4,6)N (5,6)N (6,6)N/E (6,7)E (6,8)E (6,9)E **(6,10)E** | **only via a waterfall** |
+| **WEST-MID** | 54 | x6-22, y12-17 | **(13,18)N (14,18)N (15,18)N** | ✅ **YES** |
+| EAST-MID | 43 | x24-35, y12-16 | (33,12)W (33,13)W/S (34,13)S (35,13)S **(33,17)N** (34,17)N (35,17)N | ⛔ **NO — dead end** |
+
+⇒ **ONE mount suffices**: enter WEST-MID directly at (13,18)/(14,18)/(15,18). The second mount and
+the waterfall descent in §1 are **not required** — they are one valid way to reach WEST-MID, not the
+only one.
+
+## 1b. THE ORIGINAL (REFUTED) ROUTE — HISTORY ONLY, DO NOT BUILD
+
+*(kept so the error is legible; every phase from 2 onward rests on the dead-end mount)*
+
+## 1c. THE ORIGINAL ROUTE TABLE (MODELED — two agents, 115 vs 119 steps)
 
 B2F has `connections: null`, so the whole traverse is **ONE per-map walk** containing 2 surf mounts,
 2 dismounts and a forced descent. Ordered:
@@ -58,7 +99,7 @@ B2F has `connections: null`, so the whole traverse is **ONE per-map walk** conta
 | 3 | surf | `(33,16)` → N → `(33,15)` → N → `(33,14)` |
 | 4 | **DISMOUNT** | N onto `(33,13)` (elev 3) |
 | 5 | walk, the long circuit (~60 steps) | `(33,12)` → E `(34,12)` → N×7 → `(34,5)` → E×4 `(38,5)` → S `(38,6)` → E `(39,6)` → … → `(41,8)` → S×11 → `(41,19)` |
-| 6 | elev 3→4 | W onto **`(40,19)`** — an **ELEVATION-0 TRANSITION** tile |
+| 6 | elev 3→4 | W onto **`(40,19)`** — an ELEVATION-0 TRANSITION tile. ⚠ **There are FIVE such 3↔4 seams, not two: (39,17), (6,18), (40,18), (6,19), (40,19)** — any route hardcoding two mis-models the graph (verified 2026-09-04). |
 | 7 | walk, elev-4 trunk | `(40,19)` → W×32 along row 19 → `(8,19)`. ⛔ **`(25,19)` is in BOTH Dianne's and Felix's cones — TWO CONSECUTIVE SINGLE battles (not a double; see §0).** |
 | 8 | elev 4→3 | `(8,19)` → N `(8,18)` → W `(7,18)` → W **`(6,18)`** (second elevation-0 gateway) → W×4 → `(1,18)` |
 | 9 | walk | `(1,18)` → N×8 → `(1,10)` → E×5 → **`(6,10)`** |
@@ -67,8 +108,11 @@ B2F has `connections: null`, so the whole traverse is **ONE per-map walk** conta
 | 12 | surf | `(7,14)` → E along row 14 → `(17,12)`/`(19,14)` region |
 | 13 | **DISMOUNT + ladder** | onto the apron (`(18,12)` or `(19,13)`), then **ONE explicit step** onto **`(19,12)`** `MB_LADDER` → B1F warp 1 = **`(17,16)`** |
 
-⚠ The two agents differ on the final approach (`(18,12)` E-step vs `(19,13)` N-step). **Both are
-MODELED. Measure it.**
+✅ **RESOLVED 2026-09-04 — BOTH agents were right, and there is a third.** The ladder `(19,12)` sits
+on a 6-tile island `{(18,12),(19,12),(20,12),(18,13),(19,13),(20,13)}`, all `MB_CAVE` elev 3.
+**`(19,11)` is collision 1 — a wall — so a NORTH approach is impossible**; the other three neighbours
+all work: **`(18,12)`→E, `(20,12)`→W, `(19,13)`→N**. Our own planner reaches (18,12) and (19,13) in
+**63 wp each** (§4b). ⇒ the "at most one can be right" framing was itself wrong.
 
 ## 2. ⭐ THE VERIFIER'S CORRECTION — the waterfalls are BIDIRECTIONAL
 
@@ -101,7 +145,7 @@ There is no separate "mount surf" helper and no caller passes `no_surfing=True`.
 end-to-end (climb UP gated on BADGE08 + the move, ride DOWN un-gated), with integration tests both
 directions on Route 119.
 
-⛔⛔ **THE BUG — `walking.py:227`, VERIFIED IN OUR OWN CODE 2026-09-04, filed as `#24-waterfalltimeout`:**
+✅ **THE BUG — FOUND HERE AND FIXED 2026-09-04 (`#24-waterfalltimeout`, sandbox only). The snippet below is the PRE-FIX text, kept because it is what made the defect legible:**
 ```python
 frames_remaining_until_timeout += 195 + (get_player_location()[0][1] - waypoint.coordinates[1]) * 42
 ```
@@ -140,6 +184,126 @@ Then on 1F: `(21,32)` → 61 steps → apron **`(38,5)`** → **one explicit ste
 Victory Road **top exit lands on an isolated Ever Grande region** (consistent with the earlier
 League-approach note's plateau finding).
 
+## 4b. ✅✅✅ LIVE VERIFICATION — `--driver ch23b2fprobe`, OBSERVE ONLY, 2026-09-04
+
+Run from `post_b1f_healed.ss1` (already on B2F (30,25)), `ACCEPTANCE: PASS`, all 6 readings,
+**`battles=0`, `whiteouts=0`, not a step taken.** Everything below is **OURS** — our own
+`calculate_path` and our own `get_map_data`, not a model.
+
+### ⭐ EVERY TILE-LEVEL CLAIM IN THIS NOTE IS CONFIRMED
+
+| tile | claimed | MEASURED |
+|---|---|---|
+| `(30,25)` arrival | ladder | **Ladder**, coll 0, elev 3 ✅ |
+| `(33,17)` mount 1 stand | land | **Cave**, elev 3 ✅ |
+| `(33,16)` | ocean water | **Ocean Water**, elev 1 ✅ |
+| `(33,13)` dismount | land elev 3 | **Cave**, elev 3 ✅ |
+| `(40,19)` | ELEVATION-0 transition | **Cave, elev 0** ✅ |
+| `(6,18)` | second elev-0 gateway | **Impassable North, elev 0** ✅ |
+| `(6,10)` mount 2 stand | land | **Cave**, elev 3 ✅ |
+| `(7,10)` / `(7,11)` / `(7,14)` | water / waterfall / water | **Ocean Water / Waterfall / Ocean Water**, all elev 1 ✅ |
+| `(40,20)`, `(42,20)`, `(44,20)` | `MB_JUMP_SOUTH` ledges | **Jump South**, coll 1, elev 0 ✅ |
+
+⇒ **the agents' READS were accurate.** It is the *routing synthesis* built on top of them that needs
+care — which is the same split the double-battle error showed (real files, wrong conclusion).
+
+### ⛔⛔ BUT THE ROUTE ITSELF IS MUCH SIMPLER THAN THIS NOTE'S §1 SAYS
+
+| target | our planner |
+|---|---|
+| `(33,16)` — first water | **12 wp**, actions `{Surf: 1}` |
+| `(33,13)` — across, dismounted | 15 wp, `{Surf: 1}` |
+| `(6,10)` — second mount stand | 54 wp, `{Surf: 1, Waterfall: 1}` |
+| `(25,19)` — the trainer corridor | 61 wp, `{Surf: 1}` |
+| **`(18,12)` exit apron** | **63 wp**, `{Surf: 1, Waterfall: 1}` |
+| **`(19,13)` exit apron** | **63 wp**, `{Surf: 1, Waterfall: 1}` |
+
+⭐⭐ **OUR PLANNER ROUTES THE WHOLE TRAVERSE BY ITSELF, MOUNTING SURF AND RIDING THE WATERFALL** —
+one `navigate_to` reaches the exit apron. §1's 13-phase hand-built route was a MODELED reconstruction
+of what the planner does anyway. ⇒ **leg 7 does NOT need to hand-drive the crossing** the way leg 4
+had to hand-drive its waterfall CLIMB (the planner genuinely will not plan a climb; it plans a
+descent fine).
+
+⭐ **THE TWO AGENTS' DISAGREEMENT IS RESOLVED — AND BOTH WERE RIGHT.** (18,12) and (19,13) are each
+reachable in **63 wp**. Either works as the exit apron; pick one and pin it.
+
+⛔⛔ **THE WARP-OVERRIDE TRAP, CONFIRMED LIVE FOR THE FOURTH TIME IN THIS CHAPTER.** Aiming at the
+ladder itself: `calculate_path (30,25) → (19,12)` returns **64 wp whose LAST waypoint is
+`map=(24,44) coords=(17,16) is_warp=True`** — i.e. it silently ends on **B1F**, doing leg 8's job,
+and an honest end-position grade would FAIL a perfect run. ⇒ **aim at the apron; step onto the ladder
+explicitly.**
+
+⚠ **WHAT THIS DOES *NOT* SETTLE.** Waypoints are not steps — 63 wp is consistent with §1's ~115
+tiles. And a reachable path says nothing about **trainer sight-lines**, which fire regardless: the
+corridor tile `(25,19)` is 61 wp in and on a live path. The attrition question stands.
+
+## 4c. ⭐⭐⭐ THE TRAINER LOAD IS A CHOICE, NOT A MAP PROPERTY — AND WE ALREADY HOLD THE LEVER
+
+**VERIFIED 2026-09-04** by an adversarial pass that decoded `map.bin` itself (2852 bytes asserted)
+and replayed the decomp's own LOS algorithm over all 1426 tiles, by two independent constructions
+that agreed exactly.
+
+| capability | FORCED trainer fights |
+|---|---|
+| **Surf + Waterfall** | ⭐ **ONE — Julie only** |
+| Surf only | **FOUR** — Caroline, Julie, Dianne, Felix |
+| no Surf | the exit is **unreachable** (238 tiles of B2F are `MB_OCEAN_WATER`; the exit ladder sits on a 3×2 island) |
+
+⇒ ⛔ **"FOUR UNAVOIDABLE" IS REFUTED AS A MAP FACT.** It is a property of *a pathfinder that cannot
+climb waterfalls* — and the exact membership match makes that the near-certain cause of the original
+figure. **Never hardcode it.**
+
+✅✅ **AND WE ALREADY HAVE THE LEVER — MEASURED, NOT ASSUMED (`--driver ch23b2fprobe`, 2026-09-04):**
+`knows_waterfall = True`. **Wailord#FA51ECF3 carries `['Dive', 'Surf', 'Water Spout', 'Waterfall']`**
+(§Ch23 leg 1 taught it), Sceptile carries `Rock Smash` + `Strength`, and Zigzagoon carries Surf too.
+⇒ **leg 7 faces ONE forced fight, not four.**
+
+**Julie — the one unavoidable fight.** Her row-22 corridor is exactly x33–34 (walled at x32, occupied
+at x35), forced in *every* scenario and for *every* exit warp:
+**Sandslash 42 · Ninetales 42 · Tropius 42**, IV 100, full AI, one Full Restore.
+⇒ Against Sceptile L53 / Swellow L47 / Wailord L47 / Mightyena L47 this is favourable: **Wailord's
+Surf is 2× on Sandslash and Ninetales; Swellow's Flying is 2× on Tropius.** The Full Restore costs
+turns, not HP.
+
+⚠ **THE HAZARD THE FIRST RECON SENSED BUT MIS-EXPLAINED (third correction to the same claim; see
+§0).** Dianne (25,18) and Felix (25,21) share **both** sight tiles (25,19) and (25,20), and
+`CheckForTrainersWantingBattle` accumulates `gNoOfApproachingTrainers == 2` — one step there fires
+**BOTH, back to back, with no field access between them.** Real and specific, but **two single
+battles, not a double** — and on the Waterfall route it never fires at all.
+
+⚠ **Three corrections to the trainer data itself:** **Owen's sight range is 4, not 2**; **no trainer
+on this map uses an alternating `FACE_*` variant** (all six are fixed-direction); and there is a
+**7th object event — an item ball (Full Heal) at (13,8)** — not a trainer, but it **occludes LOS**.
+
+**Sight tiles (computed twice, agreeing):** Vito (15,7)(15,8) · Owen (43,10)–(43,13) ·
+Caroline (2,18)(2,19) · Julie (33,22)(34,22) · Dianne (25,19)(25,20) · Felix (25,20)(25,19).
+
+**If a Surf-only route is ever forced** (it should not be), the added fights are Caroline
+(Skarmory 43 / Sableye 43, IV 100) and Dianne + Felix — both of whom are **IV 0 with `aiFlags = 0`**
+(random move choice) and two moves each. ‼ **Felix's Medicham has only Psychic, which does nothing at
+all to Mightyena** (Dark is immune, and hits back 2×). The two genuine problems there are **Lanturn's
+Thunderbolt, 2× on BOTH Wailord and Swellow** (lead Sceptile — Electric resisted, Grass 2× back), and
+**Skarmory, which nothing in our party hits super-effectively** (best answered by Wailord's special
+Surf into its weak 65 Sp.Def rather than anything physical into Def 140).
+
+## 5. ⛔ WHAT MUST BE MEASURED BEFORE LEG 7 IS BUILT
+
+Legs 5 and 6 both shipped clean because every load-bearing value was driven first. Leg 7 has **no
+live recon at all** yet. In priority order:
+1. ✅ **DONE 2026-09-04 — `#24-waterfalltimeout` is FIXED** (`[0][1]` → `[1][1]`, direction measured first; sandbox only). ⭐ This note's prediction was right: `ch23b2fprobe` measured `{Surf: 1, Waterfall: 1}` on the route to the exit. ⚠ Still unexercised on a live traversal.
+2. **The trainer load, not a double battle.** `(25,19)`/`(25,20)` sit in both Dianne's and Felix's
+   cones, giving **two consecutive SINGLE battles** (§0 — the "double battle" reading was refuted).
+   Confirm the party survives four unavoidable fights with no heal between them.
+3. ✅ **DONE (§4b).** `calculate_path` emits `Surf` on the way to `(33,16)` and `Surf`+`Waterfall`
+   on the way to `(6,10)` and the exit apron. ⛔ Still owed: that the bot ACTUALLY MOUNTS when driven
+   — a plan containing a Surf waypoint is not a mount performed.
+4. ⚠ **PARTLY DONE (§4b).** `(7,11)` is confirmed `Waterfall`, elev 1, with Ocean Water above and
+   below, and our planner emits a `Waterfall` action. ⛔ Still owed: DRIVING it and watching the
+   slide end at `(7,14)`.
+5. ✅ **DONE (§4b) — and both agents were right.** (18,12) and (19,13) are each 63 wp. Pick one.
+6. ✅ **DONE (§4b).** `(40,19)` is Cave elev **0** and `(6,18)` is Impassable North elev **0** —
+   both confirmed as elevation-0 transition tiles, and our planner routes across them.
+
 ## 6. ‼‼ A PROCESS GAP THIS NOTE EXPOSED — READ BEFORE TRUSTING THE NEXT RECON ROUND
 
 The workflow that produced this note ran **19 agents with an adversarial verifier on each recon
@@ -168,17 +332,3 @@ layer was strongest exactly where it was least needed, and absent where a mistak
    returned, not that anything is true. This project already knows agreement is not a confidence
    signal; *"0 errors"* is a weaker signal still.
 
-## 5. ⛔ WHAT MUST BE MEASURED BEFORE LEG 7 IS BUILT
-
-Legs 5 and 6 both shipped clean because every load-bearing value was driven first. Leg 7 has **no
-live recon at all** yet. In priority order:
-1. ⛔ **Fix `#24-waterfalltimeout`** — it is in the path leg 7 will take.
-2. **The trainer load, not a double battle.** `(25,19)`/`(25,20)` sit in both Dianne's and Felix's
-   cones, giving **two consecutive SINGLE battles** (§0 — the "double battle" reading was refuted).
-   Confirm the party survives four unavoidable fights with no heal between them.
-3. **The two Surf mounts** — that `calculate_path` really emits `WaypointAction.Surf` at `(33,17)`
-   and `(6,10)`, and that the bot mounts.
-4. **The forced descent** — one observe-only run confirming `(7,11)` slides to `(7,14)`.
-5. **The final approach to `(19,12)`** — the two agents disagree ((18,12) E-step vs (19,13) N-step).
-6. The elevation-0 transition tiles **(40,19)** and **(6,18)** — our planner's elevation handling
-   across them.

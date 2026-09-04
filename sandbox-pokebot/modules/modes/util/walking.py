@@ -224,7 +224,27 @@ def follow_waypoints(
             else:
                 frames_remaining_until_timeout += 300
         elif waypoint.action is WaypointAction.Waterfall:
-            frames_remaining_until_timeout += 195 + (get_player_location()[0][1] - waypoint.coordinates[1]) * 42
+            # ⛔⛔ `[1][1]`, NOT `[0][1]` — FIXED 2026-09-04 (`#24-waterfalltimeout`).
+            # `get_player_location()` returns **(map_enum, (x, y))** (`modules/player.py:291`), and
+            # `MapRSE.__getitem__` makes `map_enum[1]` the MAP NUMBER. So the original `[0][1]`
+            # scaled this timeout by the map number instead of by how far the climb is.
+            # ⭐ MEASURED before touching it (observe-only, `--driver ch23b1fprobe`, standing on
+            # VICTORY_ROAD_B1F (8,3)): `[0][1]` = **44** (the map number), `[1][1]` = **3** (the y),
+            # ground truth coords (8,3). ‼ This project has shipped THREE backwards index/coordinate
+            # "fixes" (KI-18, KI-34, KI-66), so the direction is measured, never reasoned out.
+            # ⇒ the old line was wrong in BOTH directions depending on the map: Ever Grande is map
+            # num 8, so a climb to y=59 gave 195 + (8 - 59) * 42 = **-1947** frames (a NEGATIVE
+            # allowance, i.e. the timeout expires immediately), while VICTORY_ROAD_B2F is map
+            # num 45 against a waypoint y of 14, giving 195 + (45 - 14) * 42 = **+1497** where
+            # the correct value is 195 + (11 - 14) * 42 = **+69** — 1,428 frames of false slack.
+            # ‼ THIS COMMENT FIRST SAID "+1428" AS THE TOTAL. That was the SLACK, computed
+            # from the wrong waypoint y and without the base term — a wrong illustrative number
+            # baked into production code on exactly the line-class this project has broken on
+            # three times. A Tier 1 reviewer caught it. ⇒ recompute an illustrative number from
+            # the committed evidence, never retype it from memory of the filing.
+            # It stayed latent only because our story legs hand-drive waterfall climbs rather than
+            # letting the planner emit a Waterfall waypoint.
+            frames_remaining_until_timeout += 195 + (get_player_location()[1][1] - waypoint.coordinates[1]) * 42
 
         _fw_trace_n = 0
         while not player_is_at(waypoint.map, waypoint.coordinates) or field_effect_is_active:

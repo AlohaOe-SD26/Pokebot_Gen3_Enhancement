@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -13437,6 +13437,18 @@ class Ch23B1fProbeMode(BotMode):
             R["tiles"] = tiles
             taken.add("R6-TILES")
 
+            # ---- OBSERVE-ONLY DIRECTION MEASUREMENT for #24-waterfalltimeout -------------------
+            # walking.py:227 uses `get_player_location()[0][1]` where it means the player's y.
+            # This project has shipped THREE backwards index/coordinate "fixes", so the standing
+            # rule is: MEASURE BOTH VALUES BESIDE A GROUND TRUTH BEFORE TOUCHING THE LINE.
+            from modules.player import get_player_location as _gpl
+            _loc = _gpl()
+            R["wf_bug_index_0_1"] = _loc[0][1]      # what the code uses today
+            R["wf_bug_index_1_1"] = _loc[1][1]      # what it appears to mean (y)
+            R["wf_bug_ground_truth"] = {"map": str(_loc[0]), "coords": tuple(_loc[1]),
+                                        "here_tile": VR._here_tile()}
+            taken.add("R6-WFBUG")
+
             # ---- ⛔⛔ THE PREREQUISITE THAT DECIDES WHETHER LEG 6 IS BUILDABLE AT ALL ----------
             # `EventScript_StrengthBoulder` gates on **FLAG_BADGE04_GET *and*
             # `checkpartymove MOVE_STRENGTH`** — a party that cannot use Strength cannot push
@@ -13480,7 +13492,7 @@ class Ch23B1fProbeMode(BotMode):
         for k, v in R.items():
             log(f"[{TAG}] R {k} = {v!r}")
         EXPECTED = ("R6-ARRIVE", "R6-OBJECTS", "R6-BLOCKED", "R6-PUSH1", "R6-PUSH2", "R6-TILES",
-                    "R6-STRENGTH")
+                    "R6-STRENGTH", "R6-WFBUG")
         missing = [r for r in EXPECTED if r not in taken]
         log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
         log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
@@ -13789,6 +13801,177 @@ class Ch23DescendMode(BotMode):
                 _out.parent.mkdir(parents=True, exist_ok=True)
                 _out.write_bytes(context.emulator.get_save_state())
                 log(f"[{TAG}] captured the post-descent fixture -> {_out}")
+        context.set_manual_mode()
+
+
+class Ch23B2fProbeMode(BotMode):
+    """§Ch23 LEG 7 RECON — OBSERVE ONLY. Measures B2F against OUR planner, without taking a step.
+
+    ⛔⛔ IT MOVES NOTHING AND CHANGES NOTHING. Leg 7 currently rests entirely on a 19-agent recon
+    whose routing is MODELED, and whose verification stage had a hole: it exempted any claim the
+    agent self-tagged `READ`, so the route facts were never adversarially checked. One claim from
+    that batch is already PROVEN FALSE (the "forced double battle" — the decomp shows
+    `trainerbattle_single` for both trainers). ⇒ **assume more errors, and measure before building**,
+    which is what made legs 5 and 6 land clean on their first drive.
+
+    Start from `post_b1f_healed.ss1`, which already sits on VICTORY_ROAD_B2F (30,25) at 87% HP.
+
+    WHAT IT ASKS OUR PLANNER (never a model):
+      R7-POCKET   how far does the arrival area actually extend? (the note claims a 65-tile pocket)
+      R7-MOUNT1   is (33,17) reachable, and does a path to the water at (33,16) contain a **Surf**
+                  waypoint? ‼ That is the real question — not "is there water", but "does OUR
+                  planner mount".
+      R7-MOUNT2   the same for the second claimed mount at (6,10) / (7,10)
+      R7-EXIT     (18,12) vs (19,13) — two agents disagreed on the exit apron; at most one is right
+      R7-LADDER   a path to the ladder (19,12) ITSELF, to confirm the warp-override trap
+      R7-TILES    tile type / collision / elevation for every load-bearing coordinate, including the
+                  claimed ledges (40,20)-(44,20) and the elevation-0 gateways (40,19) and (6,18)
+
+    ⚠ A FAILING `calculate_path` here is a MEASUREMENT, not an error. Several of these are EXPECTED
+    to refuse (the pocket is supposed to be sealed until you surf), and an unexpected SUCCESS would
+    be the finding.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_b1f_healed.ss1 --driver ch23b2fprobe --frames 3000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23B2fProbe"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23b2fprobe] WHITEOUT #{self.whiteouts}")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        from modules.story import victory_road as VR
+        from modules.map import get_map_data
+        from modules.map_data import MapRSE
+        from modules.map_path import calculate_path
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.seafloor_cavern import _on_map, _where
+
+        TAG = "ch23b2fprobe"
+        B2F = MapRSE.VICTORY_ROAD_B2F
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        taken, R = set(), {}
+
+        log(f"[{TAG}] PRE at={_where()}")
+        failure = None
+        try:
+            yield from wait_until_truly_controllable()
+            if not _on_map(B2F):
+                raise BotModeError(
+                    f"Ch23 leg 7 probe: must start ON VICTORY_ROAD_B2F (use `post_b1f_healed.ss1`), "
+                    f"but we are at {_where()}. ⛔ Every path reading below would otherwise be about "
+                    f"tiles that are not on this map — a vacuous reading is a lie with a number on it."
+                )
+            here = VR._here_tile()
+            R["here"] = here
+
+            def probe(target):
+                """Path + whether OUR planner emits a Surf/Waterfall waypoint on the way."""
+                try:
+                    path = calculate_path((B2F, here), (B2F, target))
+                    acts = {}
+                    for wp in path:
+                        a = getattr(getattr(wp, "action", None), "name", None)
+                        if a and a != "Walk":
+                            acts[a] = acts.get(a, 0) + 1
+                    last = path[-1] if path else None
+                    return {"wp": len(path), "reachable": True, "actions": acts,
+                            "last": {"map": str(getattr(last, "map", None)),
+                                     "coords": tuple(getattr(last, "coordinates", ())),
+                                     "is_warp": getattr(last, "is_warp", None)} if last else None}
+                except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                    VR.reraise_if_aborting(error)
+                    return {"reachable": False, "why": f"{type(error).__name__}: {str(error)[:90]}"}
+
+            # ---- how big is the arrival pocket, really? ------------------------------------------
+            # ⛔ SAMPLED, NOT COUNTED — and the reading says so. A true flood-fill is the planner's
+            # job, not this probe's, and reporting "65 tiles" from a sample would be inventing
+            # precision we did not measure.
+            sample = {}
+            for label, xy in (("N_pocket", (33, 18)), ("mount1_stand", (33, 17)),
+                              ("across_water", (33, 13)), ("far_west", (6, 10)),
+                              ("mid_trunk", (25, 19)), ("east_col", (41, 19))):
+                sample[label] = probe(xy)
+            R["pocket_sample"] = sample
+            taken.add("R7-POCKET")
+
+            R["mount1_water_33_16"] = probe((33, 16))
+            taken.add("R7-MOUNT1")
+            R["mount2_water_7_10"] = probe((7, 10))
+            taken.add("R7-MOUNT2")
+
+            # ⭐ THE DISAGREEMENT: two agents named different exit aprons. At most one is right.
+            R["exit_apron_18_12"] = probe((18, 12))
+            R["exit_apron_19_13"] = probe((19, 13))
+            taken.add("R7-EXIT")
+
+            # ⛔ the ladder ITSELF — expected to show the warp-override trap in `last`
+            R["ladder_19_12"] = probe((19, 12))
+            taken.add("R7-LADDER")
+
+            tiles = {}
+            for name, xy in (("arrival_30_25", (30, 25)), ("mount1_stand_33_17", (33, 17)),
+                             ("water_33_16", (33, 16)), ("dismount_33_13", (33, 13)),
+                             ("elev_gate_40_19", (40, 19)), ("elev_gate_6_18", (6, 18)),
+                             ("mount2_stand_6_10", (6, 10)), ("water_7_10", (7, 10)),
+                             ("waterfall_7_11", (7, 11)), ("wf_base_7_14", (7, 14)),
+                             ("ledge_40_20", (40, 20)), ("ledge_42_20", (42, 20)),
+                             ("ledge_44_20", (44, 20)), ("exit_18_12", (18, 12)),
+                             ("exit_19_13", (19, 13)), ("ladder_19_12", (19, 12))):
+                try:
+                    md = get_map_data(B2F, xy)
+                    tiles[name] = {"xy": xy, "type": str(md.tile_type),
+                                   "coll": md.collision, "elev": md.elevation}
+                except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                    VR.reraise_if_aborting(error)
+                    tiles[name] = {"xy": xy, "error": type(error).__name__}
+            R["tiles"] = tiles
+            taken.add("R7-TILES")
+
+            # ---- ⭐⭐ THE DECISIVE CAPABILITY QUESTION FOR LEG 7 -------------------------------
+            # An adversarial verifier measured: Surf+Waterfall => ONE forced trainer fight (Julie);
+            # Surf alone => FOUR. So "four unavoidable" is a property of a pathfinder that cannot
+            # CLIMB, not of the map. §Ch23 leg 1 taught Waterfall to Wailmer -> Wailord, so this may
+            # already be true. ⛔ VERIFY, never assume: a move can be lost to a later teach.
+            from modules.pokemon_party import get_party as _gp
+            moves = {}
+            for mon in _gp():
+                if mon is None or mon.is_egg:
+                    continue
+                moves[f"{mon.species.name}#{mon.personality_value:08X}"] = [
+                    lm.move.name for lm in mon.moves if lm is not None]
+            R["party_moves"] = moves
+            R["knows_waterfall"] = any("Waterfall" in mv for mv in moves.values())
+            R["knows_surf"] = any("Surf" in mv for mv in moves.values())
+            taken.add("R7-HMS")
+        except Exception as error:  # noqa: BLE001 - the probe reports, it does not crash the run
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        for k, v in R.items():
+            log(f"[{TAG}] R {k} = {v!r}")
+        EXPECTED = ("R7-POCKET", "R7-MOUNT1", "R7-MOUNT2", "R7-EXIT", "R7-LADDER", "R7-TILES",
+                    "R7-HMS")
+        missing = [r for r in EXPECTED if r not in taken]
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+
+        # ⛔ GRADED ON "DID I MEASURE?", NOT ON "DID I LIKE THE ANSWER". Several of these paths are
+        # EXPECTED to refuse; grading on reachability would invert the experiment.
+        passed = failure is None and not missing
+        log(f"[{TAG}] GRADE missing={missing} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
         context.set_manual_mode()
 
 
@@ -15578,6 +15761,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23PushArmMode()
         elif args.driver == "ch23descend":
             context.bot_mode_instance = Ch23DescendMode()
+        elif args.driver == "ch23b2fprobe":
+            context.bot_mode_instance = Ch23B2fProbeMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":
