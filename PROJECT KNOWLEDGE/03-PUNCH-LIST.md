@@ -528,7 +528,7 @@ open-vs-built sweep of all 80 open items has **not** been done.
       ratchet went 36 → 31 → 23, **control-armed at each step** (strip the guards and it reads back
       up). Two-arm behavioural proof: latch CLEAR → swallowed, unchanged; latch SET → re-raised.
       ✅ **DONE 2026-08-24: PROMOTED (user-approved) and the custom baseline WAS lowered 36 → 23 in
-      the same commit. Drift is 10 (⬆ from 8 on 2026-09-02: the NEW `modules/story/sootopolis_gym.py`, §Ch22's chapter module — a new sandbox-only chapter file, exactly as §Ch20 and §Ch21 each did. ⚠ PROMOTION IS THE USER'S CALL and is NOT implied here; run `promote.py --check`, which outranks this text) as of 2026-08-27 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until driven); both forks now read ZERO AST abort-swallowers.**
+      the same commit. Drift is 11 (⬆ from 10 on 2026-09-03: `modules/story/victory_road.py`, §Ch23 legs 2-3; previously ⬆ from 8 on 2026-09-02: the NEW `modules/story/sootopolis_gym.py`, §Ch22's chapter module — a new sandbox-only chapter file, exactly as §Ch20 and §Ch21 each did. ⚠ PROMOTION IS THE USER'S CALL and is NOT implied here; run `promote.py --check`, which outranks this text) as of 2026-08-27 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until driven); both forks now read ZERO AST abort-swallowers.**
 - [x] **(a): ASSESSED and CLOSED as VERY LOW — and the finding is that the code was NOT changed.**
       A second whiteout during recovery would be fatal, but it cannot realistically occur: the whole
       window is spent on maps whose land-encounter rate is **0** (all 17 towns + all 32 Poké Center
@@ -808,7 +808,7 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       flipped to `2` turned the gate red at `04-HANDOFF.md:209` naming both figures, file restored
       byte-identical. Narrative: `07-CHANGELOG.md` 2026-08-26.
 
-### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ⚠ **Drift is 10** (`chapters.py` joined 2026-09-03 for a §Ch23 correctness fix; `sootopolis_gym.py` is a new sandbox-only chapter module) — ⛔ **PROMOTION IS THE USER'S CALL and is not implied.** ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
+### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ⚠ **Drift is 11** (2026-09-03: `chapters.py` for a §Ch23 correctness fix, plus the new sandbox-only chapter modules `sootopolis_gym.py` and `victory_road.py`) — ⛔ **PROMOTION IS THE USER'S CALL and is not implied.** ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
 
 ### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **RECON IS DEEP, PRODUCTION CODE IS ZERO.** (filed 2026-09-03)
 
@@ -844,19 +844,24 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       occupied. ‼ This also falsified a comment in `Ch23RouteMode` claiming production ignores
       objects on a non-active map — it does not, which *strengthens* the B1F sealed-chamber
       reading. `08-MISTAKES.md` 2026-09-03.
-      ⭐⭐ **LEGS 2-3 ARE DESIGNED AND ADVERSARIALLY REVIEWED — the attack found 4 BLOCKERS, 5
-      SERIOUS and 3 MINOR defects in the design already judged best of three.** Verdict:
-      *implement with fixes*, all local. **Full contract: BUILD SPEC §4b — read it before coding.**
-      ⛔⛔ **NO NAVIGATION PRIMITIVE HERE CAN DIVE OR EMERGE** (`WaypointAction.Dive`/`.Emerge`
-      declared at `map_path.py:692-693`, **assigned nowhere**; zero Sootopolis→Underwater warp
-      edges) ⇒ leg 3 hand-sequences. ⭐ **§Ch21 leg 3 already makes this crossing and passes** ⇒
-      import its constants, do NOT refactor it in the same commit.
-      ⛔ **The blocker that costs HOURS:** the layout pin sits in leg 2 but protects leg 3's walk,
-      and a whiteout SKIPS leg 2 ⇒ pin inside leg 3.
-      ⛔⛔ **AND A REAL PRODUCTION HAZARD FELL OUT — `KI-83`:** `tasks_scripts.py` is 8 unbounded,
-      abort-blind loops with 0 frame caps and 0 `_check_abort`; `heal_in_pokemon_center` runs two
-      of them, so **every heal in every chapter is unbounded.** Byte-identical to upstream ⇒
-      filed, NOT fixed; bound at the call site.
+      ✅✅✅ **LEGS 2-3 ARE BUILT, DRIVEN AND PASSING. ⛔ DO NOT REBUILD.**
+      `modules/story/victory_road.py` (638 lines) + `--driver ch23depart` → **`ACCEPTANCE: PASS`
+      first drive**, ~2,000 frames, 10/10 readings, `missing=[]`, trace in order, ending **ROUTE126 (45,66)**.
+      ✅ **`post_depart_sootopolis.ss1`** (`5e1652cb…`) PINNED — ROUTE126 (45,66), 8 badges, **701/701
+      (100%)**; strictly better than `post_waterfall.ss1` (61%, Wailmer fainted).
+      ⭐⭐ First-ever reading: **`emerge_tile_type='Normal'`**; the arrow warp rests on **(45,66)**,
+      not (45,65) — the denylist-not-allowlist ruling is why either predicted value proceeded.
+      ✅ **`NOHEAL` IS FAULT-PROVEN BY A/B** (clean → PASS; `NOHEAL=1` → **FAIL**). ⛔ A code review
+      found it had been **disabling its own detector**; two BLOCKERS fixed — see `07-CHANGELOG.md`.
+      ⛔⛔ **NOT PROVEN:** the re-arm branch (respawn was already armed); the layout pin (**NO-OP**
+      here); `BADSTEP` (**hollow**); and ⚠ **`NOPIN` fails on the READING, not the behaviour** — the
+      run still reached ROUTE126, so it proves nothing about the pin. Runs are **replays**, not
+      samples. ⇒ owed: `STALERESPAWN`, a real `BADSTEP`, a `_play()` run. Contract: BUILD SPEC §4b.
+      ⇒ **NEXT IS LEG 4** — Rt126→127→128, fight Carlee + Harrison at x=101, exit (119,27-32).
+      ⛔⛔ **`KI-83` FELL OUT OF THE DESIGN REVIEW:** `tasks_scripts.py` is 8 unbounded, abort-blind
+      loops (0 frame caps, 0 `_check_abort`); `heal_in_pokemon_center` runs two, so **every heal in
+      every chapter is unbounded.** Upstream-identical ⇒ filed, NOT fixed; bounded at our call site
+      by `_budgeted`. Design detail (incl. why no primitive here can Dive/Emerge): BUILD SPEC §4b.
       ⛔⛔ **THE THREE THINGS A BUILDER MUST NOT MISS** (everything else is in the spec):
       1. **NEVER PUSH B1F's (4,7) OR (9,10) SOUTH** — either seals the floor for that visit. The
          minimum solution is **PUSH WEST (4,7)→(3,7) from (5,7); PUSH EAST (9,10)→(10,10) from (8,10);
@@ -1086,28 +1091,7 @@ from the driver's log** — the probe caught the fainted member the driver's log
       ‼ And the cheaper half needs no code at all: **run the gate suite BEFORE a long drive**, not
       only before a commit.
 
-### ✅ `#24-difftriggeredrules` — DONE 2026-08-26: rules are now INDEXED BY THE DIFF (filed 2026-08-23)
-
-- [x] **SHIPPED 2026-08-26 — ⛔ DO NOT REBUILD.** `tools/story-dev/advise_on_diff.py`: 9 diff-keyed
-      rule families (regex-added, digit-matching-added, `except`-added, `while True`-added,
-      ungated-A-press-added, `set_manual_mode`-added, pristine-mirror path, 05-KI-header line,
-      04/03 doc-pair paths), each firing on the SHAPE as code and silent on a `#`-comment mention.
-      ⛔ ADVISORY, NEVER BLOCKING, as specified: exit 0 with or without findings. Delivery =
-      `.claude/hooks/advise-on-commit.ps1` (PreToolUse on `git commit`): fail-open on every path,
-      injects `additionalContext` ONLY — ⛔ deliberately NO `permissionDecision`, because an
-      "allow" would auto-approve the commit past the user's permission prompt (a researcher agent
-      claimed "allow" was mandatory; refuted — see `06-DECISIONS-LOG.md` 2026-08-26).
-      **Proof:** 32-check `--self-test` (each rule both ways) + a mutation test (gutted
-      comment-stripper → FAIL, gutted parser → FAIL, restored → PASS; transcript at
-      `evidence/2026-08-26-advise-on-diff-mutation-test.txt`). An adversarial review KICKED BACK
-      v1 with two real majors, both fixed + regression-tested: the two-line
-      `if is_waiting_for_input(): press` idiom false-fired (now a ±2-added-line `unless` window,
-      boundary tested T11c) and PURE RENAMES / BINARY diffs were invisible to path rules (git
-      emits no `---`/`+++` for either; paths now also harvested from `diff --git` +
-      `rename from/to` headers, tested T26-T29 incl. the real trailing-tab shape).
-      ‼ Residual, deliberate: NOT in `run_gates.py` (the runner buries advisory output in
-      `.gate-logs/`, which defeats "unmissable"); the hook is the delivery. Rules are a table —
-      adding one = one entry + its two self-test arms (T25 enforces the pairing).
+### ✅ `#24-difftriggeredrules` — **DONE 2026-08-26, CLOSED.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 budget; nothing deleted). ⛔ DO NOT REBUILD. `tools/story-dev/advise_on_diff.py` — 9 diff-keyed rule families, ADVISORY and never blocking (exit 0 either way), delivered by `.claude/hooks/advise-on-commit.ps1` as `additionalContext` only; ⛔ deliberately NO `permissionDecision`, because an "allow" would auto-approve the commit past the user's own prompt. Proof: a 32-check `--self-test` (every rule both ways) plus a mutation test. ⭐ **IT IS LIVE AND EARNING ITS KEEP:** on 2026-09-03 its **R-SCANBOUND** rule caught a coordinate scan in a new probe bounded by the WRONG shaft's floor — the output had been right only by luck. ‼ Adding a rule = one table entry + its two self-test arms (T25 enforces the pairing).
 
 ### ‼ `#24-sanitycheck2` — the deep sanity check is 2 passes of 5 (filed 2026-08-27)
 

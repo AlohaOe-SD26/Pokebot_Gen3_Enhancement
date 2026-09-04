@@ -21071,3 +21071,87 @@ executes, one pushes a guard in the direction it cannot fire, one is a self-decl
 patches a read at only one of its two call sites so the run departs anyway. *An arm that cannot fail
 is a sentence that says PASS.* The reviewed set is recorded in the build spec §4b, which is now the
 implementation contract.
+
+
+## 2026-09-03 (BUILD) — §Ch23 LEGS 2-3 ARE PRODUCTION CODE, DRIVEN, AND PASSING FIRST TIME
+
+**`sandbox-pokebot/modules/story/victory_road.py` NOW EXISTS** (638 lines) and
+**`--driver ch23depart` returned `ACCEPTANCE: PASS` on its first real drive**, in ~2,000 frames:
+all 10 readings, `missing=[]`, trace in exact order
+(`R-PRE → R-HEAL → R-ARM → R-DEPART → R-PIN → R-DIVE → R-UWWARP → R-EMERGETILE → R-SURFACE →
+R-CONTINUE`), `crater_exits=1`, `whiteouts=0`, `attempts_used=1`, ending **ROUTE126 (45,66)**.
+
+**⭐ THE MEASUREMENTS, INCLUDING ONE NOBODY HAD EVER TAKEN.**
+`dive_tile_type='Sootopolis Deep Water'` · underwater arrival **(9,6)**, exactly as predicted ·
+the arrow warp rests on **(45,66)**, NOT its target (45,65), so the "step south" branch never
+executes — **confirming the design's C2 ruling against the older build-spec sentence** ·
+⭐⭐ **`emerge_tile_type='Normal'` — THE FIRST TIME THIS TREE HAS READ THAT TILE.** Two independent
+designs predicted different values ("Deep Water" vs "Normal"); the denylist-not-allowlist ruling
+meant *either* answer proceeded, and an allowlist built on the wrong guess would have refused a
+correct run. · `calculate_path` off the end tile = **55 wp**, matching `ch23route` R9f exactly.
+
+**✅ NEW FIXTURE `post_depart_sootopolis.ss1`** (`5e1652cb…`), PINNED: ROUTE126 (45,66), all 8
+badges, **party 701/701 (100%)**. ⭐ Strictly better than `post_waterfall.ss1` (61%, **Wailmer
+FAINTED**) — legs 2-3 heal it, so leg 4 starts on a full party with the sole Dive/Waterfall carrier
+alive. It is the first fixture this project has ever had outside the Sootopolis crater on this arc.
+
+**⛔ WHAT IS *NOT* PROVEN, STATED PLAINLY.**
+* The **re-arm branch never executed**: the respawn was ALREADY armed to `(0,7)` on entry (§Ch22 had
+  entered that Center). It is built and gated but **UNPROVEN**; the `STALERESPAWN` arm is owed.
+* The **layout pin was a NO-OP** here (`0x083E6A04 -> 0x083E6A04`) because §Ch21 never ran in this
+  process to leave a stale pin. Its protective value is real — it is blocker 3 from the design
+  review — but **this drive does not demonstrate it**; only a full `_play()` run can.
+* The **`BADSTEP` arm is hollow as predicted**: it faults a direction inside a branch guarded by
+  `rest != EMERGE_TILE`, and the measured rest IS `EMERGE_TILE`, so the branch never runs.
+* Runs 2 and 3 are **REPLAYS** of one trajectory, not independent samples. Run 1 differed only in
+  code (the orchestrator fix below) and produced **identical readings**, which is the useful
+  comparison: the fix did not change the happy path.
+
+**🔧 AND I CAUGHT ONE BUG IN MY OWN ORCHESTRATOR BY TRACING, NOT BY RUNNING.** An early version
+raised *"neither the island side nor ROUTE126"* when leg 2 was needed but the bot was elsewhere. A
+wild battle **underwater** chips the party ⇒ `departure_ready()` goes False ⇒ the bot is on
+`UNDERWATER_SOOTOPOLIS_CITY`, which is not the island side ⇒ the run would have died with a message
+about **leg 2** while **leg 3** was half-finished and perfectly resumable. ⇒ **a precondition for one
+leg must not be able to fail the next.** Fixed before the second drive.
+
+**⚠ AND THE CAPTURE CRASHED AFTER PRINTING PASS** — `NameError: name 'pathlib' is not defined`. I had
+honoured the documented `os as _os` trap and then written bare `pathlib`; the "fix" to `_pathlib` was
+the same bug a third time, because that alias is **function-local** in every existing block. ✅ The
+no-false-record convention held perfectly: the run printed PASS, crashed, and **wrote nothing**, so
+no fixture claimed a capture that had not happened. Filed with prevention rules in `08-MISTAKES.md` —
+the headline being that **a rule naming a SYMBOL protects that symbol and nothing else.**
+
+
+## 2026-09-03 (code review) — TWO BLOCKERS IN THE CODE, AND THE NOHEAL ARM IS NOW FAULT-PROVEN
+
+An adversarial review of the §Ch23 legs 2-3 **implementation** (after the earlier review of its
+design) returned two BLOCKERS and three RISKS. All fixed; the fixes are A/B-proven.
+
+**1. THE PREFLIGHT WAS NARROWER THAN THE LEG IT GUARDS.** It accepted only the island side and
+ROUTE126, while `leave_the_crater` has explicit branches to resume from either underwater map — so a
+fresh run from a mid-leg-3 savestate raised **before** the phase selector built for it.
+‼ **The same bug I had fixed hours earlier in the orchestrator, in a sibling gate eight lines away.**
+✅ Fixed with a distinct `_RESUMABLE_MAPS` set. ⇒ *fixing an instance is not fixing the class.*
+
+**2. THE `NOHEAL` FAULT ARM DISABLED ITS OWN DETECTOR.** The only HP-completion check in the chapter
+was gated on `not _fault("NOHEAL")`, and nothing else inspects HP before departure, so the arm would
+have printed **PASS with the party at 61% and the sole Dive carrier fainted.**
+✅ **FIXED AND PROVEN BY A/B:** clean gives `ACCEPTANCE: PASS`; `NOHEAL=1` gives **`ACCEPTANCE:
+FAIL`**, naming Swellow 5/118 and Wailmer 0/160 as the members that did not rise. Before the fix it
+passed.
+
+**3. `NOPIN` FAILS FOR THE WRONG REASON — recorded so nobody counts it as proof.** It returns FAIL on
+`missing=['R-PIN']` while `ended_on_r126=True`, `dived=True`, `can_continue=True` — **the run still
+succeeded.** It proves the readings check works, NOT that the layout pin protects anything. The pin
+only bites in a `_play()` run where §Ch21 left a stale pin; that run has not happened.
+⛔ **An arm can fail for the wrong reason.** Read which conjunct failed before claiming a proof.
+
+**4. THREE RISKS FIXED TOO.** The driver's presence conjunct `dived` was `crater_exits > 0`, which is
+incremented only in the CITY branch — so a legitimate underwater resume would have reached ROUTE126
+and been graded **FAIL**; it now also accepts an explicit `leg3_entry` recorded by the leg. `(79,45)`
+gained its MEASURED-PROD provenance comment (`ch23route` R9f = 55 wp, reproduced by the drive).
+`navigate_to(UWS, ...)` now passes `run=False` explicitly rather than inheriting the Underwater-flag
+suppression as an unstated dependency on someone else's implementation detail.
+
+**5. AND A FAIR PROCESS FINDING:** I edited both files *while* the review ran, so its two reads
+disagreed. It noticed and re-read. ⇒ **freeze the artifact under review, or say it is moving.**

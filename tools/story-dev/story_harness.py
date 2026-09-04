@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -12674,6 +12674,156 @@ class Ch23TeachMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch23DepartMode(BotMode):
+    """§Ch23 LEGS 2-3 — heal, arm the whiteout respawn, and leave the Sootopolis crater by Dive.
+
+    Drives PRODUCTION's `modules/story/victory_road.py`, not a copy of it.
+
+    ⛔⛔ SMOKE-TEST WITH A TINY `--frames` BEFORE ANY LONG RUN. `story_harness.py` imports
+    **`os as _os`**, so a bare module-level `os` in a driver is a `NameError` on frame 1, and
+    `repro_undefined_names.py` scans `modules/story/`, NOT `tools/story-dev/` — this class of bug is
+    UNGATED here and has already cost a 25-minute drive.
+
+    ⭐ THE FOUR GRADING RULES BELOW ARE NOT STYLE. Each exists because a driver once PASSED while
+    broken, and they are the reason this leg is graded the way it is:
+      1. ANTI-VACUITY — a run that starts already-done must not grade a zero-frame no-op as PASS.
+      2. A REAL `calculate_path` OFF THE END TILE, LENGTH NON-ZERO. §Ch15/§Ch18/§Ch19 each PASSED
+         while stranded. Non-zero matters because a whiteout respawns the bot ON the Poké Center
+         apron, so a length-0 path lets the very failure being checked for satisfy the check.
+      3. A PRESENCE CONJUNCT BEFORE EVERY ABSENCE CONJUNCT — "zero X" means nothing unless the place
+         where X could happen was actually entered.
+      4. GRADE THE BOUND, NOT THE COUNT — production tolerates whiteouts; demanding zero grades a
+         healthy run as broken.
+
+    ‼ READINGS ARE IMPORTED FROM THE LEG, NEVER RE-TYPED HERE. A private copy fails in the worst
+    direction: a rename makes a PERFECT run report `missing=[...]`, and the obvious repair is to
+    delete a required reading.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_waterfall.ss1 --driver ch23depart --frames 60000
+    Fault arms: POKEBOT_CH23_FAULT_{NOHEAL,NOPIN,BADSTEP}=1
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23Depart"
+
+    def on_whiteout(self) -> bool:
+        # ⛔ `BotMode.on_whiteout` defaults to False, WHICH DROPS THE BOT. A chapter driver must
+        # override it or a single whiteout ends the run with no verdict line.
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23depart] WHITEOUT #{self.whiteouts} — recovering (the leg is idempotent).")
+        return True
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.story import victory_road as VR
+
+        TAG = "ch23depart"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        report: dict = {}
+
+        # ---- PREMISE (rule 1) — both legs must have REAL WORK TO DO, or the grade is vacuous ----
+        start_departed = VR.departed_sootopolis()
+        start_ready = VR.departure_ready()
+        log(f"[{TAG}] PRE departed={start_departed} departure_ready={start_ready} "
+            f"respawn={VR.respawn_reading()} carriers={VR.field_move_carriers()}")
+        log(f"[{TAG}] PRE party={VR.party_identities()}")
+        log(f"[{TAG}] PRE poisoned={VR.poisoned_members()}")
+
+        failure = None
+        try:
+            yield from VR.depart_sootopolis(report)
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        # ---- the readings the leg actually took --------------------------------------------------
+        taken = report.get("readings", set())
+        missing = [r for r in VR.LEG23_READINGS if r not in taken]
+        log(f"[{TAG}] RESULT readings={sorted(taken)}")
+        log(f"[{TAG}] RESULT missing={missing}")
+        log(f"[{TAG}] RESULT trace={report.get('trace')}")
+        for key in ("respawn_before", "respawn_after", "pin", "dive_tile_type", "uw_arrival",
+                    "uw126_rest", "emerge_tile", "emerge_tile_type", "surface_tile",
+                    "continue_wp", "crater_exits", "attempts_used", "leg3_entry",
+                    "poisoned_before", "poisoned_after", "pc_map_seen"):
+            log(f"[{TAG}] R {key} = {report.get(key)!r}")
+        if report.get("attempt_errors"):
+            for line in report["attempt_errors"]:
+                log(f"[{TAG}] ATTEMPT-ERROR {line}")
+
+        # ⭐ THE ONE STRING NOBODY HAS EVER READ. The emerge tile's behaviour was PREDICTED
+        # differently by two independent designs, so the leg uses a named-bad DENYLIST rather than
+        # an allowlist. This line is what licenses tightening it later — and only after it is read.
+        log(f"[{TAG}] ⭐ FIRST-EVER READING of UNDERWATER_ROUTE126 emerge tile type: "
+            f"{report.get('emerge_tile_type')!r} at {report.get('emerge_tile')!r} — an allowlist "
+            f"may be tightened to this ONLY in a follow-up commit, never pre-emptively.")
+
+        # ---- ACCEPTANCE -------------------------------------------------------------------------
+        ended_on_r126 = VR.departed_sootopolis()
+        here = VR._where()
+        # rule 3: a PRESENCE conjunct for every absence one.
+        # ⛔ `crater_exits` ALONE IS THE WRONG WITNESS. It is incremented only in leg 3's CITY
+        # branch, so a LEGITIMATE resume from either underwater map reaches ROUTE126 and would be
+        # graded FAIL. A presence witness must witness the work THIS run did, not the work a
+        # different entry path would have done. ⇒ accept either: an in-process dive, or an explicit
+        # mid-leg entry recorded by the leg itself.
+        entry = report.get("leg3_entry")
+        dived = (isinstance(report.get("crater_exits"), int) and report["crater_exits"] > 0) or (
+            entry in ("UWS", "UW126")
+        )
+        surfaced = isinstance(report.get("surface_tile"), tuple)
+        # rule 2: a real path off the END tile, LENGTH NON-ZERO.
+        cont = report.get("continue_wp")
+        can_continue = isinstance(cont, int) and cont > 0
+        # rule 1: the run must not have started already-finished.
+        premise_ok = not start_departed
+        # rule 4: grade the BOUND, report the count.
+        recoveries_ok = self.whiteouts <= 2
+
+        passed = (
+            failure is None
+            and premise_ok
+            and ended_on_r126
+            and dived
+            and surfaced
+            and can_continue
+            and not missing
+            and recoveries_ok
+        )
+        log(f"[{TAG}] GRADE premise_ok={premise_ok} ended_on_r126={ended_on_r126} dived={dived} "
+            f"leg3_entry={entry!r} "
+            f"surfaced={surfaced} can_continue={can_continue} ({cont!r}) missing={missing} "
+            f"whiteouts={self.whiteouts} recoveries_ok={recoveries_ok} failure={failure}")
+        log(f"[{TAG}] FINAL position={here}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH23_CAPTURE", "").strip()
+        if passed and _cap:
+            # ⛔⛔ THE LOCAL IMPORT IS THE HOUSE IDIOM AND IT IS NOT OPTIONAL — every other
+            # capture block in this file does exactly this (`:8967`, `:9237`, `:9317`).
+            # `pathlib` is NOT bound at module scope here (the file has `from pathlib import
+            # Path` and `import os as _os`), so a bare `pathlib.Path` is a NameError.
+            # ‼ I hit that, "fixed" it to `_pathlib` — and that was STILL a NameError, because
+            # `_pathlib` is function-local in every existing block too. THREE layers of one
+            # trap. ⇒ the rule is not "use `_os`"; it is **check every stdlib name you
+            # reference against this file's real bindings, module AND function scope.**
+            import pathlib as _pathlib
+
+            # ⛔ CAPTURE IS GATED ON THE FULL PASS, so the file's EXISTENCE is the acceptance
+            # record. ✅ That convention held under the NameError above: the run printed
+            # `ACCEPTANCE: PASS`, then crashed here, and **no fixture was written** — so there is
+            # no false record of a capture that did not happen.
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if _out.exists() and _os.environ.get("CAPTURE_FORCE") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_out.name} exists. Set CAPTURE_FORCE=1 to overwrite.")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured the post-departure fixture -> {_out}")
+        context.set_manual_mode()
+
+
 class Ch22StairsMode(BotMode):
     """§Ch22 — READ-ONLY: what does the stair column ACTUALLY read once the puzzle is solved?
 
@@ -14446,6 +14596,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23TeachMode()
         elif args.driver == "ch23route":
             context.bot_mode_instance = Ch23RouteMode()
+        elif args.driver == "ch23depart":
+            context.bot_mode_instance = Ch23DepartMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

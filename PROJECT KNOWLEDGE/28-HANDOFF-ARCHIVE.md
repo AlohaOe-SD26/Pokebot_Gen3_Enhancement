@@ -7612,3 +7612,35 @@ PYTHONUTF8=1 py -3.12 story_harness.py post_legends_calmed.ss1    --driver ch21r
       may spend an extra ~35k frames there; (2) ⛔ **KI-47 can freeze the shared battle path inside
       that fight** and drop the run to Manual with NO `ACCEPTANCE` line at all. KI-47 now carries a
       deterministic ~22,000-frame repro command, which is the first this project has had for it.
+
+
+## 📦 `#24-difftriggeredrules` — ARCHIVED VERBATIM 2026-09-03 (03-PUNCH-LIST.md R3 budget)
+
+> CLOSED 2026-08-26. Moved here **unaltered**. Retired because §Ch23's build findings needed
+> the space and this item is fully shipped. ⭐ **THE SYSTEM IS LIVE AND EARNING ITS KEEP** —
+> on 2026-09-03 its R-SCANBOUND rule fired on a new probe and caught a coordinate scan bounded
+> by the WRONG shaft's floor, which had been producing a correct answer only by luck.
+> The surviving one-line pointer is in `03-PUNCH-LIST.md`.
+
+### ✅ `#24-difftriggeredrules` — DONE 2026-08-26: rules are now INDEXED BY THE DIFF (filed 2026-08-23)
+
+- [x] **SHIPPED 2026-08-26 — ⛔ DO NOT REBUILD.** `tools/story-dev/advise_on_diff.py`: 9 diff-keyed
+      rule families (regex-added, digit-matching-added, `except`-added, `while True`-added,
+      ungated-A-press-added, `set_manual_mode`-added, pristine-mirror path, 05-KI-header line,
+      04/03 doc-pair paths), each firing on the SHAPE as code and silent on a `#`-comment mention.
+      ⛔ ADVISORY, NEVER BLOCKING, as specified: exit 0 with or without findings. Delivery =
+      `.claude/hooks/advise-on-commit.ps1` (PreToolUse on `git commit`): fail-open on every path,
+      injects `additionalContext` ONLY — ⛔ deliberately NO `permissionDecision`, because an
+      "allow" would auto-approve the commit past the user's permission prompt (a researcher agent
+      claimed "allow" was mandatory; refuted — see `06-DECISIONS-LOG.md` 2026-08-26).
+      **Proof:** 32-check `--self-test` (each rule both ways) + a mutation test (gutted
+      comment-stripper → FAIL, gutted parser → FAIL, restored → PASS; transcript at
+      `evidence/2026-08-26-advise-on-diff-mutation-test.txt`). An adversarial review KICKED BACK
+      v1 with two real majors, both fixed + regression-tested: the two-line
+      `if is_waiting_for_input(): press` idiom false-fired (now a ±2-added-line `unless` window,
+      boundary tested T11c) and PURE RENAMES / BINARY diffs were invisible to path rules (git
+      emits no `---`/`+++` for either; paths now also harvested from `diff --git` +
+      `rename from/to` headers, tested T26-T29 incl. the real trailing-tab shape).
+      ‼ Residual, deliberate: NOT in `run_gates.py` (the runner buries advisory output in
+      `.gate-logs/`, which defeats "unmissable"); the hook is the delivery. Rules are a table —
+      adding one = one entry + its two self-test arms (T25 enforces the pairing).

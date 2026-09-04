@@ -11524,3 +11524,94 @@ a path at an object's tile**; aim beside it.
 ⭐ **THE DISCRIMINATOR THAT WORKED, WORTH REUSING: split the journey.** If the whole refuses and both
 halves succeed, it is a budget. If the LONGER half succeeds and the SHORTER refuses, it is not — and
 the from/to asymmetry then tells you it is the destination.
+
+
+## 2026-09-03 — I AVOIDED THE DOCUMENTED IMPORT TRAP AND WALKED INTO ITS SIBLING, THEN INTO ITS COUSIN
+
+**Symptom.** `--driver ch23depart` printed `ACCEPTANCE: PASS` and then died:
+`NameError: name 'pathlib' is not defined` — in the fixture-capture block, three lines after the
+verdict. **The run reported success and captured nothing.**
+
+**The trap, and why knowing about it did not help.** The build spec carries this warning, and I had
+just written it into the punch list myself:
+
+> *"`story_harness.py` imports **`os as _os`**, so a bare module-level `os` in a new driver is a
+> `NameError` on frame 1 … it has already cost a 25-minute drive."*
+
+I honoured it exactly — every `os` reference in my driver is `_os`. **And then I wrote
+`pathlib.Path(...)`.** The harness has `from pathlib import Path`, so the *module* name `pathlib` is
+not bound at all. ⇒ **the rule named ONE SYMBOL when the hazard is a CLASS**, and a rule phrased as
+"use `_os`" is silent about every other stdlib name.
+
+⛔ **AND THE FIX WAS THE SAME BUG AGAIN.** I saw existing capture blocks using `_pathlib`, changed
+mine to match — and `_pathlib` is a **function-local** import in every one of those blocks
+(`:8967`, `:9237`, `:9317`), not a module-level alias. So the "fix" was a third `NameError`,
+avoided only because I checked where `_pathlib` was bound before re-running instead of assuming the
+grep hit meant module scope.
+
+**Root cause.** A prevention rule written as an instance (*"use `_os`"*) instead of a property
+(*"this file's import bindings are not what you assume"*) protects exactly the instance it names. I
+followed the letter of a rule I had personally re-typed into the docs an hour earlier, and the
+letter did not cover the case.
+
+**What worked, and it is a design property rather than luck.** The capture is gated on the full pass
+and **the fixture's EXISTENCE is the acceptance record**. The NameError landed after the verdict but
+before the write, so **no file was created and no false record existed** — the failure was loud
+(a traceback) and left nothing behind to mislead the next session. ‼ *A convention that refuses to
+record a thing that did not happen survives its own tooling crashing mid-record.*
+
+**Prevention rules.**
+⛔⛔ **A RULE THAT NAMES A SYMBOL PROTECTS THAT SYMBOL AND NOTHING ELSE. WRITE THE PROPERTY.** The
+correct rule here is: **check EVERY stdlib name your new code references against this file's actual
+bindings — module scope AND function scope — because `story_harness.py` aliases some, `from`-imports
+others, and imports several only locally.**
+⛔ **AN EXISTING USAGE IS EVIDENCE OF A NAME, NOT OF ITS SCOPE.** `grep _pathlib` finds the idiom; it
+does not tell you the binding is local. Read the line above the usage.
+⭐ **SMOKE-TESTING WITH A TINY `--frames` WOULD NOT HAVE CAUGHT THIS**, and that is worth knowing:
+the smoke test passed cleanly, because the capture block is reached only on a FULL PASS with the env
+var set. ⇒ **a code path gated on success is not exercised by a failure-free smoke test** — exercise
+the capture path deliberately, or accept that its first real run is its first test.
+
+
+## 2026-09-03 — I FIXED THE INSTANCE AND NOT THE CLASS, TWICE IN ONE FILE, ON THE SAME DAY
+
+An adversarial review of §Ch23 legs 2-3 (the CODE, after a separate review of its design) returned
+two BLOCKERS. Both were mine and both are the same shape.
+
+**BLOCKER 1 — a precondition narrower than the leg it guards.** `assert_ch23_preflight` accepted only
+the island-side maps and ROUTE126, while `leave_the_crater` has explicit phase branches to resume from
+`UNDERWATER_SOOTOPOLIS_CITY` and `UNDERWATER_ROUTE126`. A fresh run from a savestate taken mid-leg-3
+would raise in the preflight, **before the phase selector built to handle it ever ran.**
+‼ **AND I HAD ALREADY FIXED THIS EXACT BUG EARLIER THE SAME DAY**, in the orchestrator, and written it
+up: *"a precondition for one leg must not be able to fail the next."* I fixed the gate I was looking
+at and never asked whether it had siblings. It had one, eight lines away.
+⇒ **PREVENTION: when a precondition is found wrong, `grep` for the OTHER places answering the same
+question.** A predicate duplicated across two call sites is the code form of the P5 doc shape, and
+fixing one copy is the most dangerous state — the bug survives while feeling resolved.
+✅ Fixed by introducing `_RESUMABLE_MAPS` (every map the chapter can start OR resume on) as a set
+distinct from `_ISLAND_SIDE_MAPS` (where leg 2's work can happen). They answer different questions;
+conflating them was the bug.
+
+**BLOCKER 2 — a fault arm that switched off its own detector.** The only HP-completion check in the
+entire chapter read `if could_rise and not _fault("NOHEAL")`. Nothing else in leg 2, leg 3 or the
+driver inspects HP before departure. So `POKEBOT_CH23_FAULT_NOHEAL=1` would have printed
+**`ACCEPTANCE: PASS` with the party at 61% and the sole Dive carrier still fainted.**
+‼ This is the purest form of *"an arm that cannot fail is a sentence that says PASS"* — a rule I had
+re-typed into the punch list hours earlier, violated inside the code written under it.
+✅ **FIXED AND FAULT-PROVEN BY A/B:** clean arm gives `ACCEPTANCE: PASS`; `NOHEAL=1` gives
+**`ACCEPTANCE: FAIL`**, naming the two members that did not rise (Swellow 5/118, Wailmer 0/160) and
+stating that the raise IS the arm firing. **Before the fix that run passed; after it, it fails.**
+That is the difference between a claimed guard and a proven one.
+
+**AND A THIRD THING, WHICH IS A LESSON ABOUT READING RESULTS RATHER THAN A BUG.** The `NOPIN` arm also
+returns `ACCEPTANCE: FAIL` — but on `missing=['R-PIN']`, i.e. the *reading* was not taken, while
+`ended_on_r126=True`, `dived=True` and `can_continue=True`. **The run still succeeded.** So the arm
+proves the readings check works; it does **NOT** prove the layout pin protects anything. The pin only
+bites in a full `_play()` run where §Ch21 left a stale pin behind, and no such run has happened.
+⛔ **AN ARM CAN FAIL FOR THE WRONG REASON, AND A FAILING ARM IS NOT AUTOMATICALLY A PROVEN GUARD.**
+Read WHICH conjunct failed before claiming the arm demonstrated the hazard.
+
+**PROCESS NOTE THE REVIEWER RAISED, AND IT IS FAIR.** I edited both files *while* the review was
+running, so its first and second reads disagreed. It caught this itself and re-read. ⇒ **freeze the
+artifact under review, or tell the reviewer it is moving** — a reviewer racing the author can deliver
+findings that are already stale.
