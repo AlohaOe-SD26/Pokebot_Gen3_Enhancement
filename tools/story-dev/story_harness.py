@@ -12598,6 +12598,40 @@ class Ch23RouteMode(BotMode):
             f"live OBJECT the static planner cannot see — Wally himself, unhidden). If the planner "
             f"ALSO refuses, it is in the map data and our offline model is missing a term.")
 
+        # ---- R14: ⭐ THE TRAINING QUESTION — DO WE HOLD AN EXP SHARE, AND WHAT ELSE IS USABLE? -
+        # MEASURED from a losing Wally drive: across 5 battles, Sceptile went L51->L52 while
+        # **Zigzagoon's exp did not move at all** (7672 -> 7672 -> 7672), and Swellow's and Wailmer's
+        # did not either. ⇒ in Gen 3 without an EXP Share **only PARTICIPANTS gain exp**, so raising
+        # the L19 means switching it into fights it cannot survive.
+        # ⇒ an EXP SHARE would change the whole training plan: the weak mon levels passively while
+        # the Sceptile does the work. ASK THE BAG rather than assume either way.
+        try:
+            from modules.items import get_item_bag
+
+            _bag = get_item_bag()
+            _want = ("Exp. Share", "Exp Share", "Lucky Egg", "Rare Candy", "Macho Brace")
+            _have = {}
+            for _slot in getattr(_bag, "items", []) or []:
+                _nm = getattr(getattr(_slot, "item", None), "name", None)
+                if _nm:
+                    _have[_nm] = getattr(_slot, "quantity", 0)
+            log(f"[{TAG}] R14 TRAINING ITEMS: "
+                f"{ {k: _have.get(k, 0) for k in _want} }")
+            _heals = {k: v for k, v in _have.items()
+                      if any(s in k for s in ("Potion", "Revive", "Restore", "Heal", "Elixir",
+                                              "Ether", "Candy"))}
+            log(f"[{TAG}] R14 HEALS/RESTORES IN BAG: {_heals}")
+            log(f"[{TAG}] R14 FULL BAG: {_have}")
+            from modules.player import get_player
+
+            log(f"[{TAG}] R14 MONEY: {get_player().money}")
+            log(f"[{TAG}] R14 bag holds {len(_have)} distinct item(s)")
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            log(f"[{TAG}] R14 bag unreadable: {type(error).__name__}: {error}")
+        log(f"[{TAG}] ‼ R14 DECIDES THE TRAINING DESIGN: with an EXP SHARE the weak members level "
+            f"PASSIVELY behind the strongest; without one they must be SWITCHED IN, which is slower "
+            f"and can lose the mon. Do not design the leg before reading this line.")
+
         log(f"[{TAG}] ⚠ READ A FAILURE AS 'the STATIC planner cannot see it', NEVER as 'the bot "
             f"cannot go there' — `navigate_to_anywhere` re-plans per warp and a §Ch15 leg succeeded "
             f"while planning statically as FAIL (KI-53).")

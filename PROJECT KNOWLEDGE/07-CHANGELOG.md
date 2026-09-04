@@ -21360,3 +21360,46 @@ EVER_GRANDE, so the bot lands above the falls and leg 5 re-runs rather than losi
    128. Against Victory Road's cave wilds nothing resists and nothing is super-effective, so the
    type terms tie across the whole party and the L19 mule leads immediately.
    ‼ **An environment-specific computation does not generalise to a different environment.**
+
+
+## 2026-09-04 (training recon) — THE FOUR MEASURED FACTS THAT DECIDE HOW §Ch23 TRAINS
+
+The user has greenlit training the party before and inside Victory Road. Before designing anything,
+four things were measured rather than assumed — and each one narrows the design sharply.
+
+**1. ⭐⭐ ONLY PARTICIPANTS GAIN EXP, AND IT IS MEASURED IN OUR OWN RUN.** Across a losing Wally
+drive with 5 battles, the party's exp moved like this:
+
+| mon | exp before | exp after |
+|---|---|---|
+| **Sceptile L51 → L52** | 127,205 | **134,500** |
+| **Zigzagoon L19** | 7,672 | **7,672 — ZERO GAIN** |
+| **Swellow L42** | 67,143 | **67,143 — ZERO GAIN** |
+| **Wailmer L40** | 70,692 | **70,692 — ZERO GAIN** |
+| Mightyena L44 | 88,688 | 89,958 |
+| Castform L36 | 47,020 | 48,791 |
+
+⇒ the strongest mon does the work and levels; the mons that most need levels gain **nothing**.
+‼ **Raising the L19 therefore requires SWITCHING IT IN**, to take hits it cannot survive — which is
+precisely the shape that produced the two whiteouts.
+
+**2. ⛔ THERE IS NO EXP SHARE.** `R14 TRAINING ITEMS: {'Exp. Share': 0, 'Exp Share': 0, 'Lucky Egg':
+0, 'Rare Candy': 0, 'Macho Brace': 0}`. That single item would have made the weak members level
+passively behind the Sceptile; without it, passive training is not available at all. **Asked before
+designing, because the answer changes the whole leg.**
+
+**3. ⛔⛔ THE BAG IS EMPTY IN THE WAY THAT MATTERS.** `FULL BAG: {'Nugget': 1, 'X Attack': 2,
+'Potion': 1, 'Escape Rope': 1}` — **one Potion**, no Revives, no Full Restores, going into Victory
+Road and the Elite Four. ‼ A §Ch22-era note said *"with 67,466 in hand a stocking leg is INSURANCE,
+not readiness"* — that judgement was made when the bag still had stock and the money was nearly
+double. **It is now readiness, not insurance.**
+
+**4. ✅ BUT THE MONEY IS REAL: ₽38,893.** Enough for a serious restock — and worth spending, because
+the two Wally whiteouts each HALVED it (a third of the original ₽67,466 is already gone). ⚠ Every
+further loss is a compounding cost, which is an argument for stocking BEFORE the next attempt rather
+than after.
+
+⇒ **These four together rule out the easy design.** There is no passive-EXP path, so a training leg
+must either (a) switch weak members in deliberately and protect them, or (b) accept a smaller viable
+core and stop pretending the mules will fight. That choice needs the opposition's real levels and the
+best encounter table, which are the two questions currently out with agents.
