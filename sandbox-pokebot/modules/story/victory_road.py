@@ -1100,6 +1100,11 @@ def enter_victory_road(report=None) -> Generator:
         # a DIFFERENT NUMBER that merely happens to agree. ‼ Measuring a value adjacent to the
         # load-bearing one and calling the question settled is the same class of error as
         # reading `tail`'s exit code for the gate suite's.
+        # ⚠ R-CAMWINDOW REVIEWED AND INAPPLICABLE HERE: `get_map_objects()` is a CAMERA-RANGE
+        # window, so an object outside ~7-9 tiles is absent WHETHER OR NOT IT EXISTS — three
+        # paid instances in this tree. ✅ The object being read is **the PLAYER**, which is by
+        # definition at the centre of that window and can never be culled. ⛔ Do not copy this
+        # pattern to read an NPC from across the map.
         try:
             _po = next((o for o in get_map_objects() if o.local_id == 255 or o.is_player),
                        None)
