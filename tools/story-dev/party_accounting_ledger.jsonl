@@ -366,3 +366,4 @@
 {"when": "2026-09-04T16:08:13", "driver": "ch23return", "build": "sandbox", "state": "post_b2f.ss1", "frames_run": 25585, "recomputes": 25585, "scans": 86, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-04T16:30:16", "driver": "ch23exit", "build": "sandbox", "state": "post_return.ss1", "frames_run": 42261, "recomputes": 42261, "scans": 141, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-04T16:37:08", "driver": "ch23exit", "build": "sandbox", "state": "post_return.ss1", "frames_run": 42240, "recomputes": 42240, "scans": 141, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T16:54:09", "driver": "ch23leagueprobe", "build": "sandbox", "state": "post_vr_exit.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}

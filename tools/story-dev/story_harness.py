@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -14484,6 +14484,140 @@ class Ch23ExitMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch23LeagueProbeMode(BotMode):
+    """§Ch23 — OBSERVE ONLY: is the 37-wp walk to the Pokémon League SAFE for a 4% party?
+
+    ⛔⛔ THE QUESTION IS NOT "CAN WE GET THERE" — leg 9 already measured 37 wp. It is **"can a party
+    with ONE conscious Pokémon survive the trip"**, which is a different question and the one that
+    actually decides whether we drive it. ⇒ walk NOTHING; read the tiles the route crosses and report
+    which of them roll wild encounters.
+
+    ‼ This is the "measure the dependency before pricing the remedy" rule applied one step earlier:
+    before building a heal leg, check that the walk TO the heal is survivable. The party is
+    36/807 HP with FIVE of six fainted — a single wild encounter could end the run.
+
+    READINGS:
+      RL-PATH      the actual waypoint list our planner produces to the League door
+      RL-TILES     every distinct tile behaviour along it, with a count
+      RL-DANGER    which of those behaviours roll encounters (tall grass / cave / water)
+      RL-DOOR      the door tile (18,5) and its apron (18,6)
+      RL-PARTY     who is actually conscious
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_vr_exit.ss1 --driver ch23leagueprobe --frames 2000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23LeagueProbe"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        from modules.story import victory_road as VR
+        from modules.map import get_map_data
+        from modules.map_data import MapRSE
+        from modules.map_path import calculate_path
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.seafloor_cavern import _on_map, _where
+
+        TAG = "ch23leagueprobe"
+        EG = MapRSE.EVER_GRANDE_CITY
+        LEAGUE_DOOR = (18, 5)
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        taken, R = set(), {}
+
+        log(f"[{TAG}] PRE at={_where()}")
+        failure = None
+        try:
+            yield from wait_until_truly_controllable()
+            if not _on_map(EG):
+                raise BotModeError(
+                    f"Ch23 league probe: must start on EVER_GRANDE_CITY (use `post_vr_exit.ss1`) but "
+                    f"we are at {_where()}."
+                )
+            here = VR._here_tile()
+            R["here"] = here
+
+            # ⛔ WHO IS ACTUALLY CONSCIOUS? A party count says nothing; assert on identity + HP.
+            party = []
+            for mon in VR.get_party():
+                if mon is None or mon.is_egg:
+                    continue
+                party.append({"who": f"{mon.species.name}#{mon.personality_value:08X}",
+                              "hp": f"{mon.current_hp}/{mon.total_hp}",
+                              "conscious": mon.current_hp > 0})
+            R["party"] = party
+            R["conscious_count"] = sum(1 for m in party if m["conscious"])
+            taken.add("RL-PARTY")
+
+            path = calculate_path((EG, here), (EG, LEAGUE_DOOR))
+            R["path_wp"] = len(path)
+            R["path_last"] = {"coords": tuple(getattr(path[-1], "coordinates", ())),
+                              "is_warp": getattr(path[-1], "is_warp", None)} if path else None
+            taken.add("RL-PATH")
+
+            # ---- ⭐ THE ACTUAL QUESTION: what does the route CROSS? ----------------------------
+            # ‼ Waypoints are not tiles — a waypoint can span several — so this samples the tiles the
+            # waypoints LAND on. It is a LOWER BOUND on what the walk touches, and the reading says
+            # so rather than pretending to be a full tile trace.
+            behaviours, danger = {}, []
+            for wp in path:
+                xy = tuple(getattr(wp, "coordinates", ()))
+                if len(xy) != 2:
+                    continue
+                try:
+                    md = get_map_data(EG, xy)
+                    b = str(md.tile_type)
+                except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                    VR.reraise_if_aborting(error)
+                    b = f"<{type(error).__name__}>"
+                behaviours[b] = behaviours.get(b, 0) + 1
+                if any(k in b for k in ("Grass", "Cave", "Water", "Seaweed")):
+                    danger.append({"xy": xy, "type": b})
+            R["waypoint_tile_behaviours"] = behaviours
+            R["encounter_bearing_waypoints"] = danger
+            R["note"] = ("waypoint landing tiles only — a LOWER BOUND on what the walk crosses, "
+                         "not a full per-tile trace")
+            taken.add("RL-TILES")
+            taken.add("RL-DANGER")
+
+            doors = {}
+            for name, xy in (("league_door_18_5", (18, 5)), ("door_apron_18_6", (18, 6)),
+                             ("landing_18_28", (18, 28))):
+                try:
+                    md = get_map_data(EG, xy)
+                    doors[name] = {"xy": xy, "type": str(md.tile_type),
+                                   "coll": md.collision, "elev": md.elevation}
+                except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                    VR.reraise_if_aborting(error)
+                    doors[name] = {"xy": xy, "error": type(error).__name__}
+            R["doors"] = doors
+            taken.add("RL-DOOR")
+        except Exception as error:  # noqa: BLE001 - the probe reports, it does not crash the run
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        for k, v in R.items():
+            log(f"[{TAG}] R {k} = {v!r}")
+        EXPECTED = ("RL-PARTY", "RL-PATH", "RL-TILES", "RL-DANGER", "RL-DOOR")
+        missing = [r for r in EXPECTED if r not in taken]
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+        passed = failure is None and not missing
+        log(f"[{TAG}] GRADE missing={missing} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
 class Ch22StairsMode(BotMode):
     """§Ch22 — READ-ONLY: what does the stair column ACTUALLY read once the puzzle is solved?
 
@@ -16280,6 +16414,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23ReturnMode()
         elif args.driver == "ch23exit":
             context.bot_mode_instance = Ch23ExitMode()
+        elif args.driver == "ch23leagueprobe":
+            context.bot_mode_instance = Ch23LeagueProbeMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":
