@@ -284,6 +284,17 @@ corroborated: `cache/warp_graph_BPEE0.json` gives `SOOTOPOLIS_CITY` **13 warp ed
 connections**, none to `UNDERWATER_SOOTOPOLIS_CITY` — the scripted `setdivewarp` is in neither
 structure. ⇒ **leg 3 must hand-sequence the crossing; `navigate_to_anywhere(ROUTE126, …)` from inside
 the crater is structurally impossible.**
+⛔⛔ **DO NOT GENERALISE THAT TO THE REST OF THE CHAPTER — MEASURED 2026-09-04, AND LEG 4 IS THE
+OPPOSITE.** The crater refuses because Sootopolis has **zero map connections**; that says nothing
+about maps which ARE connected. `ch23route` R10 asked, and every cross-map query on the ocean route
+**SUCCEEDED**: ROUTE126→ROUTE127 **56 wp**, ROUTE127→ROUTE128 **65 wp**, ROUTE128 (101,26)→
+EVER_GRANDE (18,68) **53 wp**, and ⭐⭐ **the WHOLE of leg 4 — ROUTE126 (45,66) → EVER_GRANDE
+(18,68) — in ONE call: 273 wp.**
+⇒ **leg 4 is a navigate-and-fight leg, not a hand-sequenced one.**
+‼ **The rule to carry is NOT "the planner cannot cross maps". It is "the planner crosses
+CONNECTIONS, never WARPS"** — which is exactly what its own refusal message says (*"warps don't
+count"*). The crater is warp-only; the ocean route is connection-joined. **One sentence, two opposite
+consequences, and the difference is a property of the MAP, not of the planner.**
 ⭐ **BUT §Ch21 LEG 3 ALREADY DOES THIS EXACT CROSSING AND IS DRIVEN AND PASSING** (`sootopolis.py:1613`,
 `:1636`). ⇒ **import its constants, do not re-derive them; do NOT refactor it in this commit** (that
 would charge §Ch23 for a §Ch21 regression). Extract to a shared helper only after §Ch23 has its own

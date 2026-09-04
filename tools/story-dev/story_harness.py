@@ -12336,6 +12336,9 @@ class Ch23RouteMode(BotMode):
                 log(f"[{TAG}] {label}: {type(error).__name__} — {str(error)[:180]}")
 
         VR = MapRSE.VICTORY_ROAD_1F
+        # ⚠ This driver is normally run from a SOOTOPOLIS fixture, but leg 4's fixture starts on
+        # ROUTE126 — so R10a must not assume which map `here` is on.
+        _on_map_r126 = here[0] == MapRSE.ROUTE126.value
         EG = MapRSE.EVER_GRANDE_CITY
         SC = MapRSE.SOOTOPOLIS_CITY
 
@@ -12498,6 +12501,25 @@ class Ch23RouteMode(BotMode):
             f"Center to a dive tile, leg 3 needs `navigate_to_anywhere`, not `calculate_path`. "
             f"⚠ And a refusal on R9d/R9e is MORE likely KI-72 than terrain: verify live before "
             f"concluding the underwater hop is impossible.")
+
+        # ---- R10: ⭐ CAN THE PLANNER CROSS *CONNECTED* MAPS? THIS DECIDES LEG 4'S SHAPE. ------
+        # ⛔ R5a/R5b refused with "warps don't count" — but that was SOOTOPOLIS, which has ZERO
+        # connections, so the refusal said nothing about connected maps. Routes 126/127/128 and
+        # Ever Grande ARE joined by real map-edge CONNECTIONS (up/down/left/right), which is the
+        # case `calculate_path` is documented to handle. ⇒ ask, rather than inherit the crater's
+        # answer. If these succeed, leg 4 is one planner call per hop instead of hand-sequencing.
+        EG2 = MapRSE.EVER_GRANDE_CITY
+        log(f"[{TAG}] ⭐ R10 asks whether the planner crosses CONNECTED maps. A refusal here means "
+            f"something different from R5's refusal: Sootopolis had no connections at all.")
+        ask("R10a ROUTE126 here -> ROUTE127 (0,45)", (R126, here[1]) if _on_map_r126 else (R126, (45, 66)), (R127, (0, 45)))
+        ask("R10b ROUTE126 (45,66) -> ROUTE128 (30,0)", (R126, (45, 66)), (R128, (30, 0)))
+        ask("R10c ROUTE127 (0,45) -> ROUTE128 (30,0)", (R127, (0, 45)), (R128, (30, 0)))
+        ask("R10d ROUTE128 (101,26) -> EVER_GRANDE waterfall base (18,68)", (R128, (101, 26)), (EG2, (18, 68)))
+        ask("R10e ROUTE126 (45,66) -> EVER_GRANDE (18,68) [the whole leg 4]", (R126, (45, 66)), (EG2, (18, 68)))
+        log(f"[{TAG}] ‼ R10 VERDICT SHAPE: if the single-hop ones (R10a/R10c/R10d) succeed, leg 4 is "
+            f"a sequence of planner calls. If they refuse while R9's WITHIN-map hops succeeded, the "
+            f"planner is within-map only and leg 4 must walk to each seam and let the CONNECTION "
+            f"carry it across — which is a different build, and cheaper to learn now than mid-drive.")
 
         log(f"[{TAG}] ⚠ READ A FAILURE AS 'the STATIC planner cannot see it', NEVER as 'the bot "
             f"cannot go there' — `navigate_to_anywhere` re-plans per warp and a §Ch15 leg succeeded "

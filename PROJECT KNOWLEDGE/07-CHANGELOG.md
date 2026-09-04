@@ -21190,3 +21190,30 @@ gate is a failed gate* by that runner's own rule.
 **4. ✅ RE-DRIVEN AFTER THE FIX:** `--driver ch23depart` → `ACCEPTANCE: PASS`, identical readings
 (`leg3_entry='CITY'`, `missing=[]`, `can_continue=55`). The change was comment-only, and it was still
 re-driven rather than assumed.
+
+
+## 2026-09-04 — THE PLANNER *DOES* CROSS CONNECTED MAPS, AND LEG 4'S SHAPE CHANGES BECAUSE OF IT
+
+**MEASURED, BEFORE WRITING A LINE OF LEG 4.** `ch23route` gained R10, which asks the one question
+that decides the leg's whole architecture. Every cross-map query on the ocean route **succeeded**:
+ROUTE126 to ROUTE127 **56 wp**, ROUTE127 to ROUTE128 **65 wp**, ROUTE128 (101,26) to EVER_GRANDE
+(18,68) **53 wp**, and the headline — **ROUTE126 (45,66) to EVER_GRANDE (18,68), the entire leg, in
+ONE call: 273 waypoints.**
+
+=> **Leg 4 is a navigate-and-fight leg, not a hand-sequenced one like leg 3.**
+
+**AND IT SHARPENS A RULE I HAD WRITTEN TOO BROADLY.** The build spec records that leg 3's
+hand-sequencing is *forced* because `navigate_to_anywhere(ROUTE126, ...)` from inside the crater is
+structurally impossible. That is TRUE — and it is true **because Sootopolis has zero map
+connections**, not because the planner cannot cross maps. A reader carrying that sentence forward
+would have hand-built leg 4 for no reason.
+=> **The correct rule is "the planner crosses CONNECTIONS, never WARPS"** — precisely what its own
+refusal message says (*"warps don't count"*). The crater is warp-only; the ocean route is
+connection-joined. **One sentence, two opposite consequences, and the difference is a property of the
+MAP, not of the planner.**
+
+**Also today: the daily upstream check.** `upstream-pokebot/main` is still `5dd898f8`, tree
+`fa3504a285eb62fa` — unchanged, nothing pulled, nothing appended, per the standing directive.
+**2026-09-03 was MISSED and is recorded as missed** rather than quietly backfilled: the directive is
+once per calendar day, and a gap is a fact about our process, not about upstream. Nothing was lost —
+but a silently-skipped check would make the next real upstream move look like it landed overnight.
