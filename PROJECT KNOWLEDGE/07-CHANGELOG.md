@@ -21440,3 +21440,34 @@ nets to six. Verified not to fire on a healthy run: `--driver ch23depart` still 
 ⇒ **the point is not that a deposit is likely today — it is that "currently gated" is not "safe".**
 One environment variable, or one future caller, turns a silent chapter-stranding into a loud refusal
 that costs one party read.
+
+
+## 2026-09-04 (evolutions) — TWO FREE UPGRADES THE TRAINING PLAN ALMOST MISSED
+
+A research agent recommended a Victory Road core of *"Sceptile / Hariyama / **Wailord** / Mightyena"*.
+⛔ **We own none of the middle two** — the party is Sceptile L51, Zigzagoon L19, Swellow L42,
+**Wailmer** L40, Mightyena L44, Castform L36. Rather than adopt a plan written for a roster we do not
+have, the premise was checked against **our own ROM data** (`modules/pokemon.get_species_by_name`):
+
+| species | base EXP yield | evolution |
+|---|---|---|
+| Sceptile | **208** | none |
+| Hariyama | 184 | none |
+| Swellow | 162 | none |
+| Castform | 145 | none |
+| **Wailmer** | 137 | ⭐ **Wailord via level @ 40** |
+| Mightyena | 128 | none |
+| **Zigzagoon** | 60 | ⭐ **Linoone via level @ 20** |
+| Makuhita | 87 | Hariyama via level @ 24 |
+
+⭐⭐ **OUR WAILMER IS L40 AND OUR ZIGZAGOON IS L19 — EACH IS *ONE LEVEL* FROM EVOLVING.**
+⇒ the agent's "Wailord" core needs **no catch**: a single level-up delivers it, and Wailord carries
+the entire Victory Road field-move kit (Surf, Waterfall, Strength, Rock Smash, Dive) in one mon.
+⇒ the "Hariyama" half would need catching a Makuhita **and** raising it to 24 — real scope — while we
+already own Swellow L42 and Castform L36, which are cheaper to train than a new mon is to acquire.
+
+‼ **THE LESSON IS ABOUT THE ADVICE, NOT THE POKÉMON.** A research agent will happily design around an
+ideal roster unless its premise is checked; its plan was internally sound and simply not about us.
+⇒ **before adopting any recommendation, verify it is expressed in terms of what we actually own** —
+and check the cheap upgrades first, because two of the six party members were a single level-up away
+from being substantially better and no plan had noticed.
