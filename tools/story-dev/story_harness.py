@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -13301,6 +13301,160 @@ class Ch23TrainMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch23B1fProbeMode(BotMode):
+    """§Ch23 LEG 6 RECON — OBSERVE ONLY. Steps to VICTORY_ROAD_B1F and MEASURES the boulder puzzle.
+
+    ⛔⛔ THIS PUSHES NOTHING AND CHANGES NOTHING. It exists because legs 6-8 rest on a MODELED
+    claim — three research agents solved the puzzle with their own reimplementations of pokeemerald's
+    collision rules, and one of them found and corrected a bug in its OWN elevation model mid-run
+    (301 tiles vs 106). ‼ `2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` §7 names three OWED live
+    checks; this driver is the first, and it is deliberately the read-only one.
+    ⇒ **MEASURE THE BOARD BEFORE MOVING A PIECE** — the same rule that made
+    `handle_fainted_pokemon`'s index-space fix safe after three failed attempts.
+
+    WHAT IT CHECKS (all against OUR planner and OUR live object list, not a model):
+      R6-ARRIVE   the 1F (9,14) ladder really lands on B1F **(8,3)**
+      R6-OBJECTS  every live object event with `local_id` + coords — the REAL boulder/rock positions
+      R6-BLOCKED  `calculate_path((8,3) -> (30,25))` must **FAIL** with the boulders in place
+      R6-PUSH1    can we even REACH (5,7), the tile you must stand on to push (4,7) WEST?
+      R6-PUSH2    can we reach (8,10), the tile for pushing (9,10) EAST? Expected **NO** initially —
+                  that is the whole claim: (4,7) gates the corridor to (8,10)
+      R6-TILES    tile types/elevations at the tiles the plan depends on
+
+    ⚠ A FAILING `calculate_path` here is a MEASUREMENT, not an error — R6-BLOCKED expects failure and
+    an unexpected SUCCESS would be the finding.
+    ⚠ Party comes in at 67% with 2 fainted (`post_wally.ss1`); this is ONE step onto a ladder, so
+    encounter exposure is minimal, but a whiteout is survivable (respawn is EVER_GRANDE).
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_wally.ss1 --driver ch23b1fprobe --frames 4000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23B1fProbe"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23b1fprobe] WHITEOUT #{self.whiteouts}")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        from modules.story import victory_road as VR
+        from modules.map import get_map_objects, get_map_data
+        from modules.map_data import MapRSE
+        from modules.map_path import calculate_path
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.seafloor_cavern import _on_map, _where
+
+        TAG = "ch23b1fprobe"
+        B1F = MapRSE.VICTORY_ROAD_B1F
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        taken, R = set(), {}
+
+        log(f"[{TAG}] PRE at={_where()}")
+        failure = None
+        try:
+            yield from wait_until_truly_controllable()
+            # ---- step onto the ladder. ⛔ `_walk_through_warp`, never `navigate_to((9,14))`:
+            # (9,14) is a WARP and `navigate_to` overrides its destination when the last waypoint
+            # is one — the trap this chapter has already hit three times.
+            if not _on_map(B1F):
+                # ⛔ THE SECOND ARG IS THE MAP YOU ARE **LEAVING**, NOT THE DESTINATION.
+                # `_walk_through_warp` loops `while _map_group_number() == from_map`, so passing the
+                # DESTINATION makes the condition false on the first check: it presses nothing,
+                # returns instantly, and the caller reads "no exception" as success. Measured
+                # 2026-09-04: the probe reported three confident `calculate_path` refusals that were
+                # really taken from a 1F tile labelled as B1F. ‼ A no-op that cannot raise is the
+                # same shape as a fault arm that cannot fire.
+                yield from VR._walk_through_warp("Up", VR.VR1F.value)
+                yield from wait_until_truly_controllable()
+            R["arrived_on"] = str(_where())
+            R["on_b1f"] = _on_map(B1F)
+            taken.add("R6-ARRIVE")
+
+            here = VR._here_tile()
+            R["here"] = here
+
+            # ---- the REAL object list, by identity ------------------------------------------
+            objs = []
+            for o in get_map_objects():
+                objs.append({
+                    "local_id": getattr(o, "local_id", None),
+                    "coords": tuple(o.current_coords),
+                })
+            R["objects"] = objs
+            taken.add("R6-OBJECTS")
+
+            # ---- reachability, measured against OUR planner ----------------------------------
+            def probe(label, target):
+                try:
+                    path = calculate_path((B1F, here), (B1F, target))
+                    return {"target": target, "wp": len(path), "reachable": True}
+                except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                    VR.reraise_if_aborting(error)
+                    return {"target": target, "reachable": False,
+                            "why": f"{type(error).__name__}: {str(error)[:100]}"}
+
+            # ⛔⛔ REFUSE TO TAKE A READING THE RUN CANNOT SUPPORT. If we are not actually ON
+            # B1F, `calculate_path((B1F, here))` is asking about a tile that is not on that map —
+            # it returns a confident PathFindingError that MEANS NOTHING, and the probe would
+            # report three "unreachable" findings as though they were measurements. That is
+            # exactly the "board states the game can never reach" error this chapter already paid
+            # for once. ⇒ a MISSING reading is honest; a VACUOUS one is a lie with a number on it.
+            if R.get("on_b1f"):
+                R["to_b2f_ladder_30_25"] = probe("b2f", (30, 25))
+                taken.add("R6-BLOCKED")
+                R["to_pushspot_5_7"] = probe("push1", (5, 7))
+                taken.add("R6-PUSH1")
+                R["to_pushspot_8_10"] = probe("push2", (8, 10))
+                taken.add("R6-PUSH2")
+            else:
+                R["path_readings"] = ("SKIPPED — not on B1F, so every path query would be about a "
+                                      "tile that is not on that map. Vacuous readings withheld.")
+
+            # ---- the tiles the plan rests on --------------------------------------------------
+            # ‼ `get_map_data(B1F, xy)` reads the STATIC layout and is valid from anywhere, so
+            # these stay — but they are LAYOUT facts, never "the bot can stand here".
+            tiles = {}
+            for name, xy in (("boulder_4_7", (4, 7)), ("boulder_9_10", (9, 10)),
+                             ("rock_18_12", (18, 12)), ("pushspot_5_7", (5, 7)),
+                             ("pushspot_8_10", (8, 10)), ("b2f_ladder_30_25", (30, 25)),
+                             ("arrival_8_3", (8, 3))):
+                try:
+                    md = get_map_data(B1F, xy)
+                    tiles[name] = {"xy": xy, "type": str(md.tile_type),
+                                   "collision": md.collision, "elev": md.elevation}
+                except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                    VR.reraise_if_aborting(error)
+                    tiles[name] = {"xy": xy, "error": f"{type(error).__name__}"}
+            R["tiles"] = tiles
+            taken.add("R6-TILES")
+        except Exception as error:  # noqa: BLE001 - the probe reports, it does not crash the run
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        for k, v in R.items():
+            log(f"[{TAG}] R {k} = {v!r}")
+        EXPECTED = ("R6-ARRIVE", "R6-OBJECTS", "R6-BLOCKED", "R6-PUSH1", "R6-PUSH2", "R6-TILES")
+        missing = [r for r in EXPECTED if r not in taken]
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+
+        # ⛔ THE GRADE IS "DID I MEASURE?", NOT "DID I LIKE THE ANSWER". A blocked path is the
+        # EXPECTED reading here, so grading on reachability would invert the experiment.
+        passed = failure is None and not missing and R.get("on_b1f") is True
+        log(f"[{TAG}] GRADE on_b1f={R.get('on_b1f')} missing={missing} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
 class Ch22StairsMode(BotMode):
     """§Ch22 — READ-ONLY: what does the stair column ACTUALLY read once the puzzle is solved?
 
@@ -15081,6 +15235,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23RoadMode()
         elif args.driver == "ch23train":
             context.bot_mode_instance = Ch23TrainMode()
+        elif args.driver == "ch23b1fprobe":
+            context.bot_mode_instance = Ch23B1fProbeMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

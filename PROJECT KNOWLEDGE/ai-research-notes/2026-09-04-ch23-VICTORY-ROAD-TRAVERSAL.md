@@ -139,6 +139,35 @@ LOS is a straight line in the facing direction, distance 1..range, blocked by co
 
 ⇒ the navigator must treat these as EXPECTED, not as a derail.
 
+## 6b. ✅✅ LIVE VERIFICATION — RUN 2026-09-04, `--driver ch23b1fprobe` (OBSERVE ONLY)
+
+⭐⭐ **THE LOAD-BEARING CLAIMS ARE NO LONGER MODELED. They were measured against OUR planner and the
+GAME'S OWN live object list**, from `post_wally.ss1`, one step onto the ladder. `battles=0`,
+`whiteouts=0`, all six readings taken.
+
+| claim (3 agents, MODELED) | live measurement | verdict |
+|---|---|---|
+| 1F (9,14) ladder lands at B1F **(8,3)** | `arrived_on = ((24,44), (8,3))` | ✅ |
+| boulders at **(4,7)** and **(9,10)**, rock at **(18,12)** | live objects: `local_id 3 @ (4,7)`, `local_id 4 @ (9,10)`, `local_id 10 @ (18,12)` | ✅ exact |
+| (30,25) is UNREACHABLE with the boulders in place | `PathFindingError (8,3) -> (30,25)` | ✅ |
+| (5,7) — the tile you stand on to push (4,7) WEST — is reachable | **9 waypoints** | ✅ |
+| ⭐ **(8,10) is gated BEHIND boulder (4,7)** | `PathFindingError (8,3) -> (8,10)` | ✅✅ |
+
+⇒ **THE ORDERING CONSTRAINT IS REAL AND OUR PLANNER SEES IT.** (8,10) is the only tile from which
+(9,10) can be pushed EAST, and it is unreachable until (4,7) moves. This is precisely the claim the
+adversarial agent said a *"delete the boulder and re-path"* model would MISS — and our own
+`calculate_path`, which does model boulders as dynamic obstacles via `active_objects`, independently
+agrees. ⇒ **`strength_push` has real `local_id`s to track: 3, 4 and 10.**
+
+‼ **THE PROBE'S OWN FIRST RUN WAS WRONG, AND IT MATTERS HOW.** It reported three confident
+`PathFindingError`s that were **vacuous** — `_walk_through_warp`'s second argument is the map you are
+**LEAVING**, not the destination, so passing the destination made its `while` condition false
+immediately: it pressed nothing, raised nothing, and returned "successfully" while the bot stood
+still on 1F. The path queries then asked about 1F tiles *labelled* B1F. ⛔ **A no-op that cannot
+raise is the same shape as a fault arm that cannot fire.** The probe now refuses to take any path
+reading unless it is actually on B1F — **a MISSING reading is honest; a VACUOUS one is a lie with a
+number on it** — and the `on_b1f` grade is what caught it.
+
 ## 7. ⛔ WHAT MUST BE VALIDATED LIVE BEFORE ANY BOULDER CODE SHIPS
 
 Everything in §1, §4 and the routes is **MODELED** — a reimplementation of pokeemerald's collision
@@ -147,13 +176,16 @@ mid-run** (it propagated elevation with `me or e`, silently swallowing elevation
 and cutting reachability 301 → 106 tiles). That is exactly the class of error that could still be
 hiding.
 
-**The three cheap decisive live checks** (they are also `2026-09-03-...-B1F-B2F.md` §F's owed checks):
-1. Walk to **(5,7)**, push **WEST**, and confirm the corridor to (8,10) opens.
-2. Deliberately push **(9,10) SOUTH** once and confirm (30,25) becomes unreachable — **this arm is
-   what makes the "trap push" claim real rather than asserted.** ⛔ Without it we have a warning we
-   have never seen fire.
-3. Confirm a `calculate_path` from (8,3) to (30,25) **fails** with the boulders in place and
-   **succeeds** after the two pushes — the A/B that proves our own planner sees the puzzle at all.
+**The three cheap decisive live checks** (also `2026-09-03-...-B1F-B2F.md` §F's owed checks):
+1. ⚠ **HALF DONE.** (5,7) is confirmed REACHABLE (9 wp) and (8,10) confirmed UNREACHABLE — see §6b.
+   ⛔ **STILL OWED: the PUSH itself** — push (4,7) WEST and confirm the corridor to (8,10) opens.
+2. ⛔ **STILL OWED.** Deliberately push **(9,10) SOUTH** once and confirm (30,25) becomes
+   unreachable — **this arm is what makes the "trap push" claim real rather than asserted.** Without
+   it we have a warning we have never seen fire. ⭐ Safe to run: **every warp resets the puzzle**
+   (§5.1), so leaving and re-entering B1F recovers it.
+3. ⚠ **HALF DONE.** The "fails with the boulders in place" half is MEASURED (§6b). ⛔ **STILL OWED:
+   that it SUCCEEDS after the two pushes** — that half is the one that proves the plan works, and
+   an A/B with only its negative arm run is not an A/B.
 
 ✅ **ALREADY VERIFIED IN OUR CODE (2026-09-04):** `strength_push(map, approach_tile, face_dir)` exists
 at `early_game.py:7884`, tracks the boulder by **`local_id`**, requires **both** halves of success
