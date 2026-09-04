@@ -178,6 +178,57 @@ B1F_LADDER_APRON = (9, 15)
 
 LEG5_READINGS = ("R5-WARP", "R5-WALLY", "R5-FLAG", "R5-LADDER", "R5-CONTINUE5")
 
+# ============================== LEG 6 — VICTORY ROAD B1F: THE BOULDER PUZZLE ====================
+#: ⭐⭐ EVERY VALUE BELOW WAS DRIVEN LIVE ON 2026-09-04 (`--driver ch23push`, all three arms PASS),
+#: not taken from a model. Three research agents solved this puzzle with their own reimplementations
+#: of pokeemerald's collision rules; one of them found and corrected a bug in its OWN elevation model
+#: mid-run. ⇒ the agents told us WHAT TO LOOK FOR; the harness told us what is TRUE.
+#: Evidence: `tools/story-dev/evidence/2026-09-04-ch23-push-arms-AB.txt`.
+B1F = MapRSE.VICTORY_ROAD_B1F
+
+#: Where the 1F (9,14) ladder drops us. MEASURED: `arrived_on = ((24,44), (8,3))`.
+B1F_ARRIVAL = (8, 3)
+
+#: ⛔⛔ THE B2F LADDER IS A **WARP** AND MUST NEVER BE A NAVIGATION TARGET — this is the FOURTH
+#: warp-as-destination trap in this chapter (the Poké Center door, the Victory Road door, the 1F
+#: ladder, now this). `navigate_to` overrides its own destination when the final waypoint is a warp
+#: (`walking.py:446-448`), so aiming here would silently do LEG 7's job and an honest end-position
+#: grade would FAIL a perfect run. Aim at the APRON; step onto the ladder with `_walk_through_warp`.
+B1F_B2F_LADDER = (30, 25)
+#: ⛔ THERE IS DELIBERATELY NO HARDCODED APRON CONSTANT HERE. `b1f_ladder_apron()` MEASURES which
+#: neighbour of the ladder our planner can actually reach, because "hardcode no coordinates — derive
+#: the target from the state the run ACTUALLY reached" is this project's rule, and a guessed apron is
+#: precisely the kind of value that looks right in review and strands a run in practice.
+
+#: ⭐ THE THREE OBSTACLES, EACH KEYED BY ITS LIVE `local_id` — never by "is something on that tile".
+#: `strength_push` and `_smash_rock` both track by `local_id`, and an NPC standing on a tile would
+#: fool a positional check.
+#: ‼ THE ORDER IS FORCED AND IT IS NOT OBVIOUS: (9,10) can only be pushed EAST, which requires
+#: standing at (8,10) — and **(8,10) is unreachable until (4,7) moves**. MEASURED: before the first
+#: push `calculate_path (8,3)->(8,10)` REFUSES; after it, 7 waypoints. ⇒ a "delete the boulder and
+#: re-path" model finds only (9,10) and misses (4,7) entirely.
+B1F_PUSH_WEST = {"local_id": 3, "tile": (4, 7), "approach": (5, 7), "face": "Left", "to": (3, 7)}
+B1F_PUSH_EAST = {"local_id": 4, "tile": (9, 10), "approach": (8, 10), "face": "Right", "to": (10, 10)}
+B1F_SMASH = {"local_id": 10, "tile": (18, 12), "approach": (17, 12), "face": "Right"}
+
+#: ⛔⛔ PUSHING EITHER BOULDER **SOUTH** BRICKS THE ROUTE — and SOUTH is exactly what a greedy
+#: "push toward the goal" router chooses. MEASURED 2026-09-04: pushing (4,7) south moves it to (4,8)
+#: and leaves BOTH (8,10) and (30,25) sealed. ‼ Recovery is to leave B1F and re-enter (see
+#: `B1F_PUZZLE_RESETS_ON_WARP`), which is what makes that experiment safe to run at all.
+B1F_TRAP_DIRECTION = "Down"
+
+#: ⭐⭐ EVERY WARP RESETS THE ENTIRE PUZZLE. `LoadMapFromWarp` re-copies the object templates from
+#: ROM and `ClearTempFieldEventData()` wipes `FLAG_TEMP_*`, so boulders revert and smashed rocks
+#: respawn on EVERY entry to B1F. CONFIRMED LIVE, for free: the `trap` run's first reading showed
+#: `local_id 3` back at (4,7) after the `correct` run had left it at (3,7).
+#: ⛔ ⇒ **NEVER CACHE "THE PUZZLE IS SOLVED" ACROSS A WARP.** Re-solve on every entry.
+B1F_PUZZLE_RESETS_ON_WARP = True
+
+#: The whole B1F descent, generously bounded. The measured solve ran well inside this.
+B1F_BUDGET_FRAMES = 120_000
+
+LEG6_READINGS = ("R6-ENTER", "R6-PUSH1", "R6-PUSH2", "R6-SMASH", "R6-LADDERPATH", "R6-B2F")
+
 # ============================== TRAINING — BEFORE WALLY ========================================
 #: ⛔⛔ TRAIN ON **1F**, NOT B1F, AND THAT IS NOT A PREFERENCE — IT IS FORCED.
 #: B1F is the better ground (950.8 EXP/battle vs 1F's 775.6, because B1F swaps 1F's low-level
@@ -282,6 +333,10 @@ FAULT_ARMS = {
     "NOHEAL4": "POKEBOT_CH23_FAULT_NOHEAL4",
     #: leg 5 — do not lead the strongest battler into the Wally fight
     "NOLEAD5": "POKEBOT_CH23_FAULT_NOLEAD5",
+    #: leg 6 — skip the FIRST boulder push, so the ordering guard must catch the sealed corridor
+    "NOPUSH1": "POKEBOT_CH23_FAULT_NOPUSH1",
+    #: leg 6 — skip the Rock Smash, so the ladder-reachability guard must catch the blocked route
+    "NOSMASH": "POKEBOT_CH23_FAULT_NOSMASH",
 }
 
 
@@ -1594,3 +1649,242 @@ def train_for_victory_road(report=None, *, target: int = TRAIN_TARGET) -> Genera
             f"Levels now: {report['train_post']}."
         )
     _take(report, "R-READY")
+
+
+# --------------------------------------------------------------------------------------------
+# LEG 6 — B1F: solve the boulder puzzle and descend to B2F
+# --------------------------------------------------------------------------------------------
+def b1f_obstacle_positions() -> dict:
+    """`{local_id: (x, y)}` for the three obstacles this leg moves, as the GAME currently sees them.
+
+    ⛔⛔ `get_map_objects()` IS A CAMERA-RANGE WINDOW, NOT A CENSUS. An object further than roughly a
+    screen away is absent from the list **whether or not it exists** — this project has paid for that
+    read three times (the §Ch21 "ZERO NPCs loaded" misread, the (31,18) Expert claim, and leg 2b's
+    Wallace check from (9,3)). ⇒ **an id MISSING from this dict means "not visible from here", NEVER
+    "gone"**, and no caller may treat absence as proof.
+    ‼ `MapLocation.objects` is the ROM TEMPLATE (original positions) — never mix it with this.
+    """
+    from modules.map import get_map_objects
+
+    out = {}
+    for obj in get_map_objects():
+        local_id = getattr(obj, "local_id", None)
+        if local_id in (B1F_PUSH_WEST["local_id"], B1F_PUSH_EAST["local_id"], B1F_SMASH["local_id"]):
+            out[local_id] = tuple(obj.current_coords)
+    return out
+
+
+def b1f_can_reach(target: tuple) -> bool:
+    """Can our planner reach `target` on B1F from where we stand *right now*?
+
+    ⛔ THE WORLD IS THE JUDGE, NOT THE SCRIPT. This is how each puzzle step is verified: not "did the
+    push routine return without raising" but "did the map actually open up". `strength_push` already
+    judges its own success by object identity; this judges the *consequence*.
+    """
+    from modules.map_path import calculate_path
+
+    try:
+        calculate_path((B1F, _here_tile()), (B1F, target))
+        return True
+    except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+        reraise_if_aborting(error)
+        return False
+
+
+def b1f_ladder_apron() -> tuple:
+    """MEASURE which neighbour of the B2F ladder we can actually stand on. Returns `(tile, step)`.
+
+    ⛔⛔ DERIVED, NEVER HARDCODED. The rule this obeys — *"a liveness check must derive its target
+    from the state the run ACTUALLY reached; hardcode no coordinates"* — exists because a guessed
+    coordinate looks perfectly reasonable in review and strands the run in practice. The solve drive
+    measured the ladder reachable in 50 waypoints but never recorded WHICH tile it stood on, so
+    inventing one here would be exactly the guess the rule forbids.
+
+    ‼ The returned `step` is the direction to press to move FROM the apron ONTO the ladder, which is
+    the OPPOSITE of the offset that produced the apron — getting that backwards walks the bot away
+    from the warp. (Three index/direction inversions have shipped in this codebase; this comment is
+    cheaper than a fourth.)
+    """
+    ladder_x, ladder_y = B1F_B2F_LADDER
+    # (offset from the ladder) -> (direction that steps back ONTO the ladder)
+    for (dx, dy), step in (((1, 0), "Left"), ((-1, 0), "Right"),
+                           ((0, 1), "Up"), ((0, -1), "Down")):
+        candidate = (ladder_x + dx, ladder_y + dy)
+        if b1f_can_reach(candidate):
+            return candidate, step
+    raise BotModeError(
+        f"Ch23 leg 6: the B2F ladder {B1F_B2F_LADDER} has no reachable neighbour, so there is "
+        f"nowhere to stand to step onto it. Obstacles: {b1f_obstacle_positions()}. ⇒ the puzzle "
+        f"solved but the approach did not open — re-enter B1F (which resets it) and re-solve."
+    )
+
+
+def enter_b1f(report=None) -> Generator:
+    """Step from the 1F ladder apron (9,15) onto the ladder (9,14), landing on B1F (8,3)."""
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    yield from wait_until_truly_controllable()
+
+    if _on_map(B1F):
+        report["b1f_entry"] = f"already on B1F at {_here_tile()}"
+        _take(report, "R6-ENTER")
+        return
+
+    if not _on_map(VR1F):
+        raise BotModeError(
+            f"Ch23 leg 6: expected to start on VICTORY_ROAD_1F (or already on B1F) but we are at "
+            f"{_where()}. Leg 5 ends on the ladder apron {B1F_LADDER_APRON}; start this leg from "
+            f"`post_wally.ss1`."
+        )
+    if _here_tile() != B1F_LADDER_APRON:
+        yield from _navigate_riding_out(VR1F, B1F_LADDER_APRON)
+        yield from wait_until_truly_controllable()
+
+    # ⛔ `_walk_through_warp` and NOT `navigate_to(B1F_LADDER)`: (9,14) is a WARP, and aiming a
+    # navigation at it makes `navigate_to` override its own destination (the trap this chapter has
+    # now hit four times). ‼ AND THE SECOND ARGUMENT IS THE MAP WE ARE **LEAVING**, NOT THE
+    # DESTINATION — passing the destination makes its `while` loop exit immediately, so it presses
+    # nothing, raises nothing, and returns "successfully" while the bot stands still. That exact
+    # no-op produced three confident-but-vacuous readings on 2026-09-04.
+    yield from _walk_through_warp("Up", VR1F.value)
+    yield from wait_until_truly_controllable()
+
+    if not _on_map(B1F):
+        raise BotModeError(
+            f"Ch23 leg 6: stepped onto the ladder {B1F_LADDER} from {B1F_LADDER_APRON} and did not "
+            f"arrive on VICTORY_ROAD_B1F — we are at {_where()}."
+        )
+    report["b1f_entry"] = _here_tile()
+    _take(report, "R6-ENTER")
+
+
+def solve_b1f_puzzle(report=None) -> Generator:
+    """Push both boulders and smash the rock, verifying the WORLD after every step.
+
+    ⛔⛔ RE-SOLVED ON EVERY ENTRY, NEVER CACHED. Every warp resets the puzzle
+    (`B1F_PUZZLE_RESETS_ON_WARP`), so a "we already did this" flag would be wrong the moment the bot
+    takes any ladder — including the one it is about to take. There is deliberately no such flag.
+
+    THE ORDER IS FORCED: (9,10) can only be pushed EAST from (8,10), and (8,10) is unreachable until
+    (4,7) has moved WEST. Each step below asserts the CONSEQUENCE it is supposed to produce, so a
+    silent no-op cannot pass for success.
+    """
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    from modules.story.early_game import _smash_rock, strength_push
+
+    report["puzzle_before"] = b1f_obstacle_positions()
+    report["ladder_before"] = b1f_can_reach(B1F_B2F_LADDER)
+
+    # ⛔ ANTI-VACUITY. If the ladder is ALREADY reachable this leg has nothing to prove, and a PASS
+    # would be meaningless. That should be impossible (every warp resets the puzzle), so it means the
+    # start state is not what we think it is — which is worth a loud stop, not a quiet success.
+    if report["ladder_before"]:
+        raise BotModeError(
+            f"Ch23 leg 6: the B2F ladder {B1F_B2F_LADDER} is reachable BEFORE any push — the puzzle "
+            f"is supposed to start blocked on every entry. Obstacles now: {report['puzzle_before']}. "
+            f"⇒ the start state is wrong, or the reset assumption is."
+        )
+
+    # ---- step 1: the WEST push that unlocks everything else ------------------------------------
+    if not _fault("NOPUSH1"):
+        yield from strength_push(
+            B1F, B1F_PUSH_WEST["approach"], B1F_PUSH_WEST["face"]
+        )
+        yield from wait_until_truly_controllable()
+    else:
+        context.message = "Ch23 FAULT NOPUSH1: skipping the first boulder push"
+
+    # ⛔ ASSERT THE CONSEQUENCE, NOT THE CALL. MEASURED: (8,10) refuses before this push and returns
+    # 7 waypoints after it. That flip is the whole ordering constraint, so it is what we check —
+    # `strength_push` returning is not evidence the corridor opened.
+    report["opened_east_approach"] = b1f_can_reach(B1F_PUSH_EAST["approach"])
+    report["puzzle_after_push1"] = b1f_obstacle_positions()
+    _take(report, "R6-PUSH1")
+    if not report["opened_east_approach"]:
+        raise BotModeError(
+            f"Ch23 leg 6: after pushing {B1F_PUSH_WEST['tile']} WEST, the approach tile "
+            f"{B1F_PUSH_EAST['approach']} is STILL unreachable, so the second boulder cannot be "
+            f"pushed. Obstacles: {report['puzzle_after_push1']}. ⛔ The likeliest cause is a push in "
+            f"the wrong DIRECTION: south bricks the route (measured), and recovery is to leave B1F "
+            f"and re-enter, which resets the puzzle."
+        )
+
+    # ---- step 2: the EAST push ------------------------------------------------------------------
+    yield from strength_push(B1F, B1F_PUSH_EAST["approach"], B1F_PUSH_EAST["face"])
+    yield from wait_until_truly_controllable()
+    report["puzzle_after_push2"] = b1f_obstacle_positions()
+    report["ladder_after_push2"] = b1f_can_reach(B1F_B2F_LADDER)
+    _take(report, "R6-PUSH2")
+
+    # ‼ AND THIS IS THE READING THAT PROVES THE ROCK IS LOAD-BEARING. MEASURED: after BOTH pushes the
+    # ladder is STILL unreachable. A leg that only checked the endpoints would never learn that, and
+    # would not know which of its three steps it could drop.
+    if report["ladder_after_push2"]:
+        report["surprise"] = (
+            "the B2F ladder became reachable after two pushes and BEFORE the Rock Smash — that "
+            "contradicts the 2026-09-04 measurement, where it stayed blocked until (18,12) was "
+            "smashed. Not fatal, but the route model is wrong somewhere."
+        )
+
+    # ---- step 3: the rock ------------------------------------------------------------------------
+    # ⚠ Rock Smash rolls a WILD ENCOUNTER (B1F has a `rock_smash_mons` table: Geodude/Graveler
+    # 30-40). The battle listener fights it; the measured solve took 2 battles this way.
+    if not _fault("NOSMASH"):
+        yield from _smash_rock(B1F, B1F_SMASH["approach"], B1F_SMASH["face"])
+        yield from wait_until_truly_controllable()
+    else:
+        context.message = "Ch23 FAULT NOSMASH: skipping the Rock Smash"
+    report["puzzle_after_smash"] = b1f_obstacle_positions()
+    _take(report, "R6-SMASH")
+
+    # ---- the verdict: can we actually reach the ladder now? --------------------------------------
+    report["ladder_reachable"] = b1f_can_reach(B1F_B2F_LADDER)
+    _take(report, "R6-LADDERPATH")
+    if not report["ladder_reachable"]:
+        raise BotModeError(
+            f"Ch23 leg 6: the puzzle steps all ran but the B2F ladder {B1F_B2F_LADDER} is still "
+            f"unreachable. Obstacles: {report['puzzle_after_smash']}. Before: "
+            f"{report['puzzle_before']}. ⛔ Do NOT retry blindly — every warp resets the puzzle, so "
+            f"the recovery is to leave B1F and re-enter, then re-solve from the top."
+        )
+
+
+def descend_to_b2f(report=None) -> Generator:
+    """§Ch23 LEG 6 — enter B1F, solve the puzzle, and take the ladder down to B2F.
+
+    ⛔ BOUNDED END TO END (`B1F_BUDGET_FRAMES`). KI-83's shape is a leg that cannot finish and cannot
+    stop; the measured solve ran far inside this budget, so a run that exhausts it is stuck, not slow.
+    """
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+
+    yield from _budgeted(enter_b1f(report), B1F_BUDGET_FRAMES // 4, "enter B1F")
+    yield from _budgeted(solve_b1f_puzzle(report), B1F_BUDGET_FRAMES, "solve the B1F puzzle")
+
+    # ---- walk to the ladder's APRON, never to the ladder ----------------------------------------
+    # ⛔ THE APRON IS MEASURED, NOT GUESSED. See `b1f_ladder_apron`.
+    apron, step_dir = b1f_ladder_apron()
+    report["ladder_apron"] = {"tile": apron, "step": step_dir}
+    yield from _navigate_riding_out(B1F, apron)
+    yield from wait_until_truly_controllable()
+    report["at_ladder_apron"] = _here_tile()
+    if _here_tile() != apron:
+        raise BotModeError(
+            f"Ch23 leg 6: navigated toward the B2F ladder apron {apron} but ended on "
+            f"{_here_tile()}. ⛔ Refusing to press {step_dir} from the wrong tile — that is how a "
+            f"leg walks into a wall and calls it a warp failure."
+        )
+
+    # ⛔ THE SECOND ARG IS THE MAP WE ARE LEAVING. See `enter_b1f` for what passing the destination
+    # silently does.
+    yield from _walk_through_warp(step_dir, B1F.value)
+    yield from wait_until_truly_controllable()
+    report["b2f_arrival"] = _where()
+    report["on_b2f"] = _on_map(MapRSE.VICTORY_ROAD_B2F)
+    _take(report, "R6-B2F")
+    if not report["on_b2f"]:
+        raise BotModeError(
+            f"Ch23 leg 6: stepped onto the B2F ladder {B1F_B2F_LADDER} from {B1F_B2F_APRON} and did "
+            f"not arrive on VICTORY_ROAD_B2F — we are at {_where()}."
+        )

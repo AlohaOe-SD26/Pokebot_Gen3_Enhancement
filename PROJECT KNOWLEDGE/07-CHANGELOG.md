@@ -21603,3 +21603,46 @@ for a pass of the whole leg.
 introduced here**: `preflight.py` failed on *"git is AHEAD of the remote"* (true when the suite
 started, resolved by the push of `7329dca8`), and `repro_gym_whiteout_guard.py` timed out at 900s —
 the known pre-existing `#24-gymwhiteoutgatehang`.
+
+
+## 2026-09-04 — §Ch23 LEG 6 SHIPS: the B1F boulder puzzle is SOLVED IN PRODUCTION CODE
+
+**What shipped.** `enter_b1f`, `b1f_obstacle_positions`, `b1f_can_reach`, `b1f_ladder_apron`,
+`solve_b1f_puzzle` and `descend_to_b2f` in `victory_road.py`, driven by `--driver ch23descend`.
+**First run PASSED**: all 6 readings, `missing=[]`, `battles=4`, `whiteouts=0`, fixture
+`post_b1f.ss1` (md5 `d362df89c5d9807e88ea246519dd987d`) captured at **VICTORY_ROAD_B2F (30,25)**.
+
+**Every intermediate reproduced the earlier measurement exactly** — boulder `local_id 3` (4,7)→(3,7)
+opening (8,10); `4` (9,10)→(10,10); **the ladder still blocked after both pushes**; open only after
+the rock at (18,12) is smashed. ⇒ the recon was right, and the leg is built from driven facts rather
+than a model's output.
+
+**The guards, and both are PROVEN to fail:**
+- `POKEBOT_CH23_FAULT_NOPUSH1=1` → *"after pushing (4,7) WEST, the approach tile (8,10) is STILL
+  unreachable"* → `ACCEPTANCE: FAIL` ✅
+- `POKEBOT_CH23_FAULT_NOSMASH=1` → *"the puzzle steps all ran but the B2F ladder (30,25) is still
+  unreachable"* → `ACCEPTANCE: FAIL` ✅
+⇒ a gate that cannot fail is decoration; these two were exercised on demand the day they shipped.
+
+**Three design rules this leg follows deliberately.**
+1. ⛔ **IT ASSERTS THE CONSEQUENCE, NOT THE CALL.** After the first push it does not check that
+   `strength_push` returned — it checks that `calculate_path` now reaches (8,10). "It returned" is
+   not "it worked", which is exactly how KI-84's index bug stayed invisible for 900k frames.
+2. ⛔ **THE APRON IS DERIVED AT RUNTIME, NOT HARDCODED.** `b1f_ladder_apron()` measures which
+   neighbour of the ladder is reachable and returns the direction to step back onto it. It came out
+   **(31,25) / "Left"** — which happened to match the value I first wrote as a guess, and that is
+   precisely why guessing is dangerous: it would have looked right in review either way.
+3. ⛔ **THE PUZZLE IS RE-SOLVED ON EVERY ENTRY, NEVER CACHED.** Every warp resets it
+   (`ClearTempFieldEventData` wipes `FLAG_TEMP_*`), so a "already solved" flag would be wrong the
+   moment the bot takes any ladder — including the one it is about to take. There is deliberately no
+   such flag, and an anti-vacuity check raises if the ladder is reachable *before* any push.
+
+**⛔ AND AN HONEST PROBLEM THE RUN EXPOSED.** The drive was deliberately un-healed, so the first test
+of the puzzle logic would not also exercise untested navigation. That isolation worked — but the
+party finished at **32% HP with THREE fainted** (it started with two). ⇒ **`post_b1f.ss1` is a
+puzzle-logic artifact, not a runnable start point, and leg 6 needs a HEAL step before the descent.**
+The fixture row and the handoff both say so rather than letting a green PASS imply a healthy party.
+
+**‼ The new fault-arm gate (#34) caught its own author within the hour** — `NOPUSH1` and `NOSMASH`
+were added to `FAULT_ARMS` but not to the registry, and `probe_ch23_fault_arms.py` went red on the
+next run. That is the static half doing exactly what the six dead arms proved was needed.
