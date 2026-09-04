@@ -291,6 +291,46 @@ Thunderbolt, 2× on BOTH Wailord and Swellow** (lead Sceptile — Electric resis
 **Skarmory, which nothing in our party hits super-effectively** (best answered by Wailord's special
 Surf into its weak 65 Sp.Def rather than anything physical into Def 140).
 
+## 4d. ✅✅ THE RETURN LEG IS VERIFIED LIVE TOO — `--driver ch23retprobe`, OBSERVE ONLY, 2026-09-04
+
+Run from `post_b2f.ss1`, which sits exactly where leg 8 begins (B1F **(17,16)**, the B2F landing).
+`ACCEPTANCE: PASS`, all 5 readings, **`battles=0`, `whiteouts=0`, nothing moved or pushed.**
+‼ That fixture is 38% HP with three fainted — fine here *precisely because* this probe fights nothing.
+
+| §4's claim (MODELED) | measured against OUR planner |
+|---|---|
+| trap boulder **`local_id 6` at (21,25)** | ✅ present, exactly there |
+| rock **`local_id 11` at (20,25)** | ✅ present |
+| the 1F ladder **(20,21)** is blocked by the plug | ✅ **UNREACHABLE** |
+| smash standpoint **(19,25)** reachable, ~15 steps | ✅ **REACHABLE, 15 wp** — the step count matches |
+| push standpoint **(20,27)** reachable | ✅ **REACHABLE, 18 wp** |
+| apron **(21,21)** lies behind the plug | ✅ **UNREACHABLE** |
+| **(20,21)** is a ladder | ✅ `Ladder`, coll 0, elev 3 |
+
+⭐ **The plug tiles are all `Cave`, collision 0, elevation 3** — (20,25), (21,26), (21,25), (20,26).
+⇒ the tiles are walkable; it is the **OBJECTS** on them that block, which is why `strength_push` and
+`_smash_rock` (both keyed on `local_id`) are the right instruments and a tile-collision check is not.
+
+⭐ **`(22,25)` — the tile east of the trap boulder — is ALREADY UNREACHABLE**, and `(20,12)` is on a
+different island. ⇒ consistent with §4's "B1F is SEVEN walk-islands, not three".
+
+⭐⭐ **AND THE WARP-RESET IS CONFIRMED A THIRD TIME, FROM A NEW DIRECTION.** Leg 6's boulder
+`local_id 4` is back at **(9,10)** and its rock `local_id 10` back at **(18,12)** — restored even
+though we returned via **B2F**, not by re-entering B1F from 1F. ⇒ the reset is a property of the WARP,
+not of any particular door. ⛔ Leg 8 must therefore re-solve the plug on every entry, exactly as leg 6
+re-solves its own.
+
+⚠ **HONEST LIMIT:** `local_id 5` (the boulder the recon says to push NORTH at (20,26)) is **NOT in
+the visible list** — (20,26) is ~10 tiles from (17,16), at the edge of the camera window. **That is
+NOT evidence it is absent**; `get_map_objects()` is a window, not a census. Confirm it from an
+adjacent standpoint before the push.
+
+⛔ **STILL OWED FOR LEG 8 — the arms that involve actually MOVING something:** the smash at (20,25),
+the **NORTH** push of boulder 5 at (20,26) *(the recon's whole point: pushing boulder 6 at (21,25)
+EAST is its ONLY legal push and it BRICKS the route, so ordering the solve to push 5 first makes the
+trap physically unreachable)*, the second smash at (21,26), and then (20,21) becoming REACHABLE.
+‼ **An A/B with only its negative arm run is not an A/B** — that is the same debt leg 6 cleared.
+
 ## 5. ⛔ WHAT MUST BE MEASURED BEFORE LEG 7 IS BUILT
 
 Legs 5 and 6 both shipped clean because every load-bearing value was driven first. Leg 7 has **no

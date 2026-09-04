@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -14121,6 +14121,142 @@ class Ch23CrossB2fMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch23ReturnProbeMode(BotMode):
+    """§Ch23 LEG 8 RECON — OBSERVE ONLY. Measures the RETURN leg's B1F plug against our own planner.
+
+    ⛔⛔ IT MOVES NOTHING AND PUSHES NOTHING. Leg 8 currently rests on a MODELED route from the same
+    recon round whose B2F half was **refuted and would have stranded the bot**. ⇒ measure first; that
+    is what made legs 6 and 7 pass on their first drives.
+
+    ⭐ Runs from `post_b1f_healed.ss1`? **No — from `post_b2f.ss1`**, which sits exactly where leg 8
+    begins: VICTORY_ROAD_B1F **(17,16)**, the landing from B2F. ‼ That fixture is 38% HP with three
+    fainted, which is fine here precisely BECAUSE this probe fights nothing.
+
+    WHAT IT ASKS (all against OUR planner and the GAME'S live object list):
+      R8-OBJECTS   the live objects near the 2x2 plug, by `local_id` — the recon names rocks at
+                   (20,25)/(21,26) and boulders at (21,25)/(20,26), and claims boulder id 6 at
+                   (21,25) has a SINGLE legal push (EAST) that BRICKS the route
+      R8-BLOCKED   `calculate_path (17,16) -> (20,21)` — the 1F ladder. EXPECTED to REFUSE.
+      R8-APPROACH  can we reach the recon's smash/push standpoints (19,25) and (20,27)?
+      R8-ISLANDS   is (17,16) even in the same walk-region as the plug? (the recon says B1F is SEVEN
+                   islands, not the three we previously believed)
+      R8-TILES     tile type / collision / elevation for every load-bearing coordinate
+
+    ⚠ A FAILING `calculate_path` is a MEASUREMENT here, not an error — R8-BLOCKED expects failure,
+    and an unexpected SUCCESS would be the finding.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_b2f.ss1 --driver ch23retprobe --frames 3000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23ReturnProbe"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23retprobe] WHITEOUT #{self.whiteouts}")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        from modules.story import victory_road as VR
+        from modules.map import get_map_objects, get_map_data
+        from modules.map_data import MapRSE
+        from modules.map_path import calculate_path
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.seafloor_cavern import _on_map, _where
+
+        TAG = "ch23retprobe"
+        B1F = MapRSE.VICTORY_ROAD_B1F
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        taken, R = set(), {}
+
+        log(f"[{TAG}] PRE at={_where()}")
+        failure = None
+        try:
+            yield from wait_until_truly_controllable()
+            if not _on_map(B1F):
+                raise BotModeError(
+                    f"Ch23 leg 8 probe: must start ON VICTORY_ROAD_B1F (use `post_b2f.ss1`, which is "
+                    f"the B2F landing at (17,16)), but we are at {_where()}. ⛔ Every path reading "
+                    f"below would otherwise be about tiles that are not on this map."
+                )
+            here = VR._here_tile()
+            R["here"] = here
+
+            def probe(target):
+                try:
+                    path = calculate_path((B1F, here), (B1F, target))
+                    last = path[-1] if path else None
+                    return {"wp": len(path), "reachable": True,
+                            "last": {"map": str(getattr(last, "map", None)),
+                                     "coords": tuple(getattr(last, "coordinates", ())),
+                                     "is_warp": getattr(last, "is_warp", None)} if last else None}
+                except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                    VR.reraise_if_aborting(error)
+                    return {"reachable": False, "why": f"{type(error).__name__}"}
+
+            # ⛔ CAMERA-RANGE WINDOW, NOT A CENSUS. An id missing here means "not visible from
+            # (17,16)", NEVER "not there" — this project has paid for that read three times.
+            R["objects_visible"] = [
+                {"local_id": getattr(o, "local_id", None), "coords": tuple(o.current_coords)}
+                for o in get_map_objects()
+            ]
+            taken.add("R8-OBJECTS")
+
+            R["to_1f_ladder_20_21"] = probe((20, 21))       # EXPECTED to refuse
+            taken.add("R8-BLOCKED")
+            R["to_smash_stand_19_25"] = probe((19, 25))
+            R["to_push_stand_20_27"] = probe((20, 27))
+            R["to_apron_21_21"] = probe((21, 21))
+            taken.add("R8-APPROACH")
+
+            # ⭐ IS (17,16) EVEN IN THE PLUG'S WALK-REGION? The recon says B1F is SEVEN islands, not
+            # the three we believed. Sample tiles on the way rather than claim a flood-fill we did
+            # not run — reporting "N tiles" from a sample would be inventing precision.
+            R["island_sample"] = {f"{xy}": probe(xy) for xy in
+                                  ((16, 18), (15, 22), (19, 26), (22, 25), (20, 12))}
+            taken.add("R8-ISLANDS")
+
+            tiles = {}
+            for name, xy in (("landing_17_16", (17, 16)), ("rock_20_25", (20, 25)),
+                             ("rock_21_26", (21, 26)), ("boulder_21_25", (21, 25)),
+                             ("boulder_20_26", (20, 26)), ("smash_stand_19_25", (19, 25)),
+                             ("push_stand_20_27", (20, 27)), ("apron_21_21", (21, 21)),
+                             ("ladder_20_21", (20, 21)), ("east_of_boulder_22_25", (22, 25))):
+                try:
+                    md = get_map_data(B1F, xy)
+                    tiles[name] = {"xy": xy, "type": str(md.tile_type),
+                                   "coll": md.collision, "elev": md.elevation}
+                except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                    VR.reraise_if_aborting(error)
+                    tiles[name] = {"xy": xy, "error": type(error).__name__}
+            R["tiles"] = tiles
+            taken.add("R8-TILES")
+        except Exception as error:  # noqa: BLE001 - the probe reports, it does not crash the run
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        for k, v in R.items():
+            log(f"[{TAG}] R {k} = {v!r}")
+        EXPECTED = ("R8-OBJECTS", "R8-BLOCKED", "R8-APPROACH", "R8-ISLANDS", "R8-TILES")
+        missing = [r for r in EXPECTED if r not in taken]
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+
+        # ⛔ GRADED ON "DID I MEASURE?", NOT ON "DID I LIKE THE ANSWER".
+        passed = failure is None and not missing
+        log(f"[{TAG}] GRADE missing={missing} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
 class Ch22StairsMode(BotMode):
     """§Ch22 — READ-ONLY: what does the stair column ACTUALLY read once the puzzle is solved?
 
@@ -15911,6 +16047,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23B2fProbeMode()
         elif args.driver == "ch23cross2":
             context.bot_mode_instance = Ch23CrossB2fMode()
+        elif args.driver == "ch23retprobe":
+            context.bot_mode_instance = Ch23ReturnProbeMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

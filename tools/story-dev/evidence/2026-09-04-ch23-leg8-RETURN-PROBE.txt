@@ -1,0 +1,13 @@
+[ch23retprobe] PRE at=((24, 44), (17, 16))
+[ch23retprobe] R here = (17, 16)
+[ch23retprobe] R objects_visible = [{'local_id': 255, 'coords': (17, 16)}, {'local_id': 4, 'coords': (9, 10)}, {'local_id': 6, 'coords': (21, 25)}, {'local_id': 10, 'coords': (18, 12)}, {'local_id': 11, 'coords': (20, 25)}, {'local_id': 15, 'coords': (26, 16)}, {'local_id': 20, 'coords': (14, 16)}, {'local_id': 21, 'coords': (14, 20)}]
+[ch23retprobe] R to_1f_ladder_20_21 = {'reachable': False, 'why': 'PathFindingError'}
+[ch23retprobe] R to_smash_stand_19_25 = {'wp': 15, 'reachable': True, 'last': {'map': '(24, 44)', 'coords': (19, 25), 'is_warp': False}}
+[ch23retprobe] R to_push_stand_20_27 = {'wp': 18, 'reachable': True, 'last': {'map': '(24, 44)', 'coords': (20, 27), 'is_warp': False}}
+[ch23retprobe] R to_apron_21_21 = {'reachable': False, 'why': 'PathFindingError'}
+[ch23retprobe] R island_sample = {'(16, 18)': {'wp': 3, 'reachable': True, 'last': {'map': '(24, 44)', 'coords': (16, 18), 'is_warp': False}}, '(15, 22)': {'wp': 8, 'reachable': True, 'last': {'map': '(24, 44)', 'coords': (15, 22), 'is_warp': False}}, '(19, 26)': {'wp': 16, 'reachable': True, 'last': {'map': '(24, 44)', 'coords': (19, 26), 'is_warp': False}}, '(22, 25)': {'reachable': False, 'why': 'PathFindingError'}, '(20, 12)': {'reachable': False, 'why': 'PathFindingError'}}
+[ch23retprobe] R tiles = {'landing_17_16': {'xy': (17, 16), 'type': 'Ladder', 'coll': 0, 'elev': 3}, 'rock_20_25': {'xy': (20, 25), 'type': 'Cave', 'coll': 0, 'elev': 3}, 'rock_21_26': {'xy': (21, 26), 'type': 'Cave', 'coll': 0, 'elev': 3}, 'boulder_21_25': {'xy': (21, 25), 'type': 'Cave', 'coll': 0, 'elev': 3}, 'boulder_20_26': {'xy': (20, 26), 'type': 'Cave', 'coll': 0, 'elev': 3}, 'smash_stand_19_25': {'xy': (19, 25), 'type': 'Cave', 'coll': 0, 'elev': 3}, 'push_stand_20_27': {'xy': (20, 27), 'type': 'Cave', 'coll': 0, 'elev': 3}, 'apron_21_21': {'xy': (21, 21), 'type': 'Cave', 'coll': 0, 'elev': 3}, 'ladder_20_21': {'xy': (20, 21), 'type': 'Ladder', 'coll': 0, 'elev': 3}, 'east_of_boulder_22_25': {'xy
+[ch23retprobe] RESULT readings=['R8-APPROACH', 'R8-BLOCKED', 'R8-ISLANDS', 'R8-OBJECTS', 'R8-TILES'] missing=[]
+[ch23retprobe] RESULT battles=0 whiteouts=0
+[ch23retprobe] GRADE missing=[] failure=None
+[ch23retprobe] ACCEPTANCE: PASS
