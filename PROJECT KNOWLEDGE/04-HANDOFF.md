@@ -70,7 +70,7 @@ Every banner further down is HISTORY, newest first.
 > suite's 900s bound; re-run standalone it produced nothing for ~36 minutes). It is FILED as
 > `#24-gymwhiteoutgatehang` and it is **NOT a regression from §Ch21 leg 3** — it imports neither
 > `sootopolis` nor `story_harness`. ⇒ **expect `run_gates.py` to cost ~15 minutes and come back
-> RED on that one gate. Do not go hunting a regression.**
+> RED on that one gate. Do not go hunting a regression.** ✅ **RE-CONFIRMED 2026-09-03 AFTER §Ch23 legs 2-3 SHIPPED: `FAILED: 1 of 33` — that gate and ONLY that gate** (exit 124 at exactly 900.0s, reproducing its filed description). ⚠ It was briefly **2 of 33**: `repro_no_silent_except.py` went `modules/story 124 > 123` because the new `victory_road.py` added one silent handler. ✅ Fixed by WRITING THE JUSTIFICATION the gate asks for (that gate accepts a re-raise, a report, **or** a real explanation) rather than raising the baseline — back to 123/123, zero new debt. ⛔⛔ **AND READ `run_gates.py`'s VERDICT FROM THE ARTIFACT, NEVER FROM THE HARNESS'S "exit code":** a `;`-chain reports the LAST command's status, so `run_gates.py > f; tail f` hands you `tail`'s success and I reported a RED suite as green because of it. ⇒ **`run_gates.py > f 2>&1; echo "GATES_EXIT=$?" >> f`** and grep the file (`08-MISTAKES.md` 2026-09-03).
 > ⛔ **AND EXPECT A SECOND RED IF THIS TREE IS AHEAD OF THE REMOTE:** `preflight.py` is
 > `GATES[0]` and it HARD-FAILS on `ahead` (`preflight.py:95-98`). ⇒ while commits are unpushed
 > the suite reads **30 of 32**, not 31, and the second red is not a regression either — it is
