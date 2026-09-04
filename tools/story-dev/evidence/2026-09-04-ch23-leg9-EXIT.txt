@@ -1,0 +1,21 @@
+=== LEG 9 RUN 1 (FAILED — the arrow-warp mistake) ===
+[ch23exit] FAILURE BotModeError: Did not pass through the Down warp from map (24, 43).
+[ch23exit] R at_exit_apron = (38, 5)
+[ch23exit] ACCEPTANCE: FAIL
+
+=== LEG 9 RUN 2 (PASS — stepped ONTO the tile first) ===
+[ch23exit] PRE at=((24, 43), (21, 32)) on_victory_road=True
+[ch23exit] PRE party_hp=[('Sceptile', 0, 147), ('Zigzagoon', 0, 48), ('Swellow', 108, 136), ('Wailord', 0, 226), ('Mightyena', 141, 141), ('Castform', 28, 103)]
+[ch23exit] BATTLE #1: TRAINER
+[ch23exit] BATTLE #2: TRAINER
+[ch23exit] R at_exit_apron = (38, 5)
+[ch23exit] R exit_landing = ((0, 8), (18, 28))
+[ch23exit] R out_of_vr = True
+[ch23exit] R heal_options = {'ever_grande_pc_apron': {'to': (27, 49), 'reachable': False, 'why': 'PathFindingError'}, 'league_door': {'to': (18, 5), 'wp': 37}, 'victory_road_door_apron': {'to': (18, 42), 'reachable': False, 'why': 'PathFindingError'}}
+[ch23exit] RESULT readings=['R9-APRON', 'R9-ARROW', 'R9-OUT', 'R9-WHERECANWEHEAL'] missing=[]
+[ch23exit] RESULT battles=2 whiteouts=0
+[ch23exit] RESULT battle_log=['TRAINER', 'TRAINER']
+[ch23exit] GRADE premise_ok=True out_of_vr=True missing=[] battles=2 whiteouts=0 failure=None
+[ch23exit] FINAL position=((0, 8), (18, 28))
+[ch23exit] ACCEPTANCE: PASS
+[ch23exit] captured the post-exit fixture -> C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves\post_vr_exit.ss1

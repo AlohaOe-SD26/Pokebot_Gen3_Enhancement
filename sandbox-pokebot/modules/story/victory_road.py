@@ -318,6 +318,27 @@ F1_EXIT_ARROW = (39, 5)
 
 LEG8_READINGS = ("R8-ENTER", "R8-SMASHA", "R8-PUSHN", "R8-SMASHB", "R8-LADDERPATH", "R8-1F")
 
+# ============================== LEG 9 — OUT OF VICTORY ROAD ====================================
+#: ⛔⛔ (39,5) IS AN **ARROW WARP** (`MB_SOUTH_ARROW_WARP`), NOT A STEP-ON WARP: it fires only when
+#: the player STANDS on it, FACES South and HOLDS Down. ⚠ We have driven the OTHER arrow warp
+#: (15,40) OUTWARD (leg 6's heal), so the mechanic is proven — **this tile is not.**
+#: ⭐ MEASURED (leg 8's continuation check): the apron **(38,5)** is reachable from (21,32) in
+#: **62 wp**. ⛔ (39,6), the tile SOUTH of the arrow, is a WALL — never aim there.
+F1_EXIT_APRON = (38, 5)
+
+#: Where the arrow warp lands. ⚠ MODELED by an agent as EVER_GRANDE (18,27); **not yet observed.**
+EG_EXIT_LANDING = (18, 27)
+
+#: ⛔⛔ THE OPEN QUESTION THIS LEG EXISTS TO SETTLE. A research pass DERIVED (its own flood-fill, not
+#: the decomp) that (18,27) sits on a **closed plateau containing the League door (18,5) but NOT the
+#: Ever Grande Poké Center**. If that holds, "exit and heal" is WRONG and the only heal is the
+#: **League's own Poké Center on `EVER_GRANDE_CITY_POKEMON_LEAGUE_1F`** — which also has a Mart.
+#: ‼ That agent flagged its own elevation model as a reimplementation and asked for a live probe.
+#: ⇒ this leg walks out and then ASKS OUR PLANNER, rather than inheriting the claim.
+EG_LEAGUE_DOOR = (18, 5)
+
+LEG9_READINGS = ("R9-APRON", "R9-ARROW", "R9-OUT", "R9-WHERECANWEHEAL")
+
 # ============================== TRAINING — BEFORE WALLY ========================================
 #: ⛔⛔ TRAIN ON **1F**, NOT B1F, AND THAT IS NOT A PREFERENCE — IT IS FORCED.
 #: B1F is the better ground (950.8 EXP/battle vs 1F's 775.6, because B1F swaps 1F's low-level
@@ -436,6 +457,9 @@ FAULT_ARMS = {
     #: leg 8 — take the TRAP: push boulder 6 at (21,25) EAST, which bricks the route. ⛔ The leg must
     #: refuse to do this on its own; the arm exists to prove the trap is real, as leg 6's did.
     "TRAPPUSH": "POKEBOT_CH23_FAULT_TRAPPUSH",
+    #: leg 9 — aim the exit navigation AT the arrow tile (39,5) instead of its apron (38,5), so the
+    #: apron guard must catch it (arrow warps are not step-on, so this should simply strand us there)
+    "ARROWAIM": "POKEBOT_CH23_FAULT_ARROWAIM",
 }
 
 
@@ -2350,3 +2374,97 @@ def return_through_b1f(report=None) -> Generator:
             f"not arrive on VICTORY_ROAD_1F — we are at {_where()}."
         )
     assert_carriers_survived("returning to 1F")
+
+
+# --------------------------------------------------------------------------------------------
+# LEG 9 — out through the 1F arrow warp, and measure what is reachable on the far side
+# --------------------------------------------------------------------------------------------
+def exit_victory_road(report=None) -> Generator:
+    """§Ch23 LEG 9 — leave Victory Road via the 1F arrow warp at (39,5).
+
+    ⛔ THE ARROW WARP IS NOT A STEP-ON WARP. `TryArrowWarp` fires only on STAND + FACE South + HOLD
+    Down, so the leg navigates to the APRON (38,5) and then holds the direction; aiming navigation at
+    (39,5) itself would simply park the bot on the tile without warping.
+
+    ⭐⭐ AND IT ANSWERS AN OPEN QUESTION RATHER THAN INHERITING IT. A research pass DERIVED that the
+    landing (18,27) sits on a plateau **without** the Ever Grande Poké Center, which would make
+    "exit and heal" wrong and force the League's own Centre instead. That agent flagged its own
+    elevation model as a reimplementation. ⇒ once outside, this leg **asks our planner what is
+    actually reachable** and records it, so `#24-ch23attrition` gets a measured answer.
+    """
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    yield from wait_until_truly_controllable()
+
+    # ⛔ ANTI-VACUITY: starting outside Victory Road proves nothing about leaving it.
+    if not _on_map(VR1F):
+        raise BotModeError(
+            f"Ch23 leg 9: must start on VICTORY_ROAD_1F (leg 8 lands at {F1_LADDER_LANDING}) but we "
+            f"are at {_where()}. Use `post_return.ss1`."
+        )
+
+    target = F1_EXIT_ARROW if _fault("ARROWAIM") else F1_EXIT_APRON
+    if _fault("ARROWAIM"):
+        context.message = "Ch23 FAULT ARROWAIM: aiming at the arrow tile, not its apron"
+    yield from _budgeted(
+        _navigate_riding_out(VR1F, target), B1F_RETURN_BUDGET, "reach the exit apron")
+    yield from wait_until_truly_controllable()
+    report["at_exit_apron"] = _here_tile()
+    _take(report, "R9-APRON")
+    if _here_tile() != F1_EXIT_APRON:
+        raise BotModeError(
+            f"Ch23 leg 9: expected to stand on the exit apron {F1_EXIT_APRON} but we are at "
+            f"{_here_tile()}. ⛔ If this is {F1_EXIT_ARROW}, the navigation was aimed at the ARROW "
+            f"TILE itself — arrow warps do not fire on a step, so the bot would sit there forever."
+        )
+
+    # ---- ⛔⛔ STEP **ONTO** THE ARROW TILE FIRST — THIS IS WHERE MY FIRST DRIVE FAILED ------------
+    # An ARROW warp is not a normal warp and the two need OPPOSITE handling:
+    #   normal warp  -> stand BESIDE it and press TOWARD it (legs 6, 7, 8 all do this)
+    #   arrow warp   -> stand **ON** it and press the ARROW'S OWN direction (South, here)
+    # ‼ MEASURED 2026-09-04: with the apron (38,5) WEST of the arrow (39,5), pressing Down from the
+    # apron walks the bot SOUTH, away from the tile, and `_walk_through_warp` then exhausts its
+    # budget — *"Did not pass through the Down warp from map (24,43)"* with the bot parked on (38,5).
+    # ⇒ the recon said this outright (*"issue ONE explicit step EAST onto (39,5); (39,5) MUST be the
+    # standing tile"*) and I read it through the shape of the previous three legs instead.
+    # ⇒ **WHEN A MECHANIC IS NAMED AS DIFFERENT, DO NOT REUSE THE PREVIOUS LEG'S PATTERN FOR IT.**
+    yield from _bounded_step("Right", F1_EXIT_ARROW, map_enum=VR1F)
+    yield from wait_until_truly_controllable()
+    if _here_tile() != F1_EXIT_ARROW:
+        raise BotModeError(
+            f"Ch23 leg 9: stepped EAST from {F1_EXIT_APRON} but landed on {_here_tile()} instead of "
+            f"the arrow tile {F1_EXIT_ARROW}. ⛔ The warp cannot fire unless we are STANDING on it."
+        )
+    report["on_arrow_tile"] = _here_tile()
+
+    # ---- now hold Down until the map changes -----------------------------------------------------
+    # ⛔ `_walk_through_warp` presses the direction repeatedly, which IS the arrow-warp semantic once
+    # we are on the tile (`TryArrowWarp` wants stand + face South + HOLD Down). Second arg = the map
+    # we are LEAVING.
+    yield from _walk_through_warp("Down", VR1F.value)
+    yield from wait_until_truly_controllable()
+    report["exit_landing"] = _where()
+    report["out_of_vr"] = not _on_map(VR1F)
+    _take(report, "R9-ARROW")
+    if not report["out_of_vr"]:
+        raise BotModeError(
+            f"Ch23 leg 9: held Down on the arrow warp {F1_EXIT_ARROW} from {F1_EXIT_APRON} and never "
+            f"left VICTORY_ROAD_1F — we are at {_where()}. ⛔ `MB_SOUTH_ARROW_WARP` needs the player "
+            f"STANDING on the tile FACING South while Down is held; a single step does nothing."
+        )
+    _take(report, "R9-OUT")
+
+    # ---- ⭐ THE MEASUREMENT THIS LEG EXISTS FOR: where can we actually heal? ---------------------
+    from modules.map_path import calculate_path
+
+    here = _here_tile()
+    reach = {}
+    for label, tile in (("ever_grande_pc_apron", EG_PC_APRON), ("league_door", EG_LEAGUE_DOOR),
+                        ("victory_road_door_apron", VR_APRON)):
+        try:
+            reach[label] = {"to": tile, "wp": len(calculate_path((EG, here), (EG, tile)))}
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            reraise_if_aborting(error)
+            reach[label] = {"to": tile, "reachable": False, "why": type(error).__name__}
+    report["heal_options"] = reach
+    _take(report, "R9-WHERECANWEHEAL")

@@ -21860,3 +21860,50 @@ arm failed the way I intended" are different claims, and only the first is measu
 reachable but **not yet driven**, and the chapter orchestrator + Segment 23 wiring remain.
 ⚠ The party ends at **35% with three fainted** — `#24-ch23attrition` is now genuinely ACTIONABLE,
 because the bot is one warp from the door with a Poké Center just outside.
+
+
+## 2026-09-04 — §Ch23 LEG 9: **THE BOT IS OUT OF VICTORY ROAD**, and the heal question is settled
+
+**What shipped.** `exit_victory_road` in `victory_road.py`, driven by `--driver ch23exit`.
+`ACCEPTANCE: PASS`, all 4 readings, `battles=2` (both TRAINERS), `whiteouts=0`; fixture
+`post_vr_exit.ss1` (md5 `0ad243164fd62211a8ef80c1efc17722`) at **EVER_GRANDE_CITY (18,28)**.
+⇒ **Victory Road is traversed AND exited — nine legs built and driven.**
+
+**⭐⭐ THE LEG WAS BUILT TO ANSWER A QUESTION, NOT JUST TO WALK — and the answer inverts an
+assumption.** A research pass had **DERIVED** (its own flood-fill, which it explicitly flagged as a
+reimplementation needing a probe) that the exit lands on a plateau without the Ever Grande Poké
+Center. So the leg asks our own planner once it is outside:
+
+| target | result |
+|---|---|
+| Ever Grande Poké Center apron (27,49) | **UNREACHABLE** |
+| Victory Road door apron (18,42) | **UNREACHABLE** |
+| **League door (18,5)** | ✅ **REACHABLE, 37 wp** |
+
+⇒ **"exit and heal at Ever Grande" is WRONG.** The exit lands on a closed plateau and the **only**
+heal is the **League's own Poké Center** — which the earlier §Ch24 recon found also carries a **Mart
+(Full Restore / Revive / Max Potion)** against the **₽38,893** in hand.
+⭐ **That fixes the attrition problem AND the empty bag in a single 37-waypoint walk**, and it means
+the training options in `#24-ch23attrition` were never the answer to *that* problem. (They remain the
+answer to the Elite Four **level** gap, which is a separate question.)
+‼ *A derived claim, flagged by its own author as unverified, turned out to be right — and checking it
+cost one reading appended to a leg that had to walk there anyway.*
+
+**‼ AND THE ARROW WARP NEEDED THE OPPOSITE HANDLING TO EVERY OTHER WARP IN THIS CHAPTER.** My first
+drive failed: *"Did not pass through the Down warp from map (24,43)"*, with the bot parked on the
+apron (38,5). The two mechanics are mirror images —
+
+    normal warp -> stand BESIDE it and press TOWARD it   (legs 6, 7 and 8 all do this)
+    arrow warp  -> stand **ON** it and press the ARROW'S OWN direction (South)
+
+and the apron (38,5) is **west** of the arrow (39,5), so pressing Down from it walks *away*. ⇒ the
+fix is one explicit `_bounded_step("Right", …)` onto the tile first. **The recon had said this
+outright** — *"issue ONE explicit step EAST onto (39,5); (39,5) MUST be the standing tile"* — and I
+read it through the shape of the previous three legs instead.
+⇒ **WHEN A MECHANIC IS NAMED AS DIFFERENT, DO NOT REUSE THE PREVIOUS LEG'S PATTERN FOR IT.**
+
+**⛔ THE STATE THIS LEAVES, STATED PLAINLY: the party is at 36/807 HP (4%) with FIVE FAINTED** —
+only Mightyena is conscious (it and Swellow both reached L48 on the way out). The two 1F trainer
+fights nearly wiped the run. ⇒ the 37-wp walk to the League is **urgent**, and the first obstacle for
+that leg is that our `PokemonCenter` enum has **no League entry** (only `EvergrandeCity`), so
+`heal_in_pokemon_center` cannot target it as written.

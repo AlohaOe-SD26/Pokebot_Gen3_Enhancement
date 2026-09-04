@@ -535,6 +535,23 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       Zigzagoon into fights it cannot survive, which is a real slice of the damage taken;
       (d) accept it and let leg 8 run on a 38% party — ⛔ leg 8 has its own trainers (Samuel, Halle)
       and its own boulder puzzle.
+- [x] ✅✅✅ **ANSWERED 2026-09-04 — AND THE ANSWER NEEDS NO TRAINING AT ALL.** The bot is now OUT
+      of Victory Road (`post_vr_exit.ss1`, EVER_GRANDE_CITY (18,28)), and the leg that took it there
+      MEASURED where healing is possible:
+      **Ever Grande Poké Center (27,49) → UNREACHABLE · Victory Road apron (18,42) → UNREACHABLE ·
+      LEAGUE DOOR (18,5) → REACHABLE in 37 wp.**
+      ⇒ the exit lands on a **closed plateau**, so *"exit and heal at Ever Grande" is WRONG*; the
+      only heal is the **League's own Poké Center**, which also carries a Mart (Full Restore /
+      Revive / Max Potion) against the **₽38,893** in hand. ⭐ **That fixes attrition AND the empty
+      bag in one 37-waypoint walk** — the training options below are no longer the answer to THIS
+      problem (they remain the answer to the Elite Four LEVEL gap, which is a different question).
+      ‼ This confirms live a claim a research pass had only DERIVED from its own flood-fill, and had
+      explicitly flagged as needing a probe.
+- [ ] ⛔ **URGENT: THE PARTY IS AT 4% WITH FIVE FAINTED** — only Mightyena is conscious. The two 1F
+      trainer fights on the way out nearly wiped it. ⇒ the 37-wp walk to the League door is the very
+      next action and must not be delayed. ‼ **Our `PokemonCenter` enum has NO League entry** (only
+      `EvergrandeCity`), so `heal_in_pokemon_center` cannot target it as written — that gap is the
+      first thing the heal leg must solve.
 - [ ] ⭐ **OPTION (a) IS NOW PRICED — measured 2026-09-04 from the CURRENT (post-B2F) party,
       estimate-only, zero frames spent, on 1F at 775.6 EXP/battle:**
       **L50 → 315,260 frames** (~88 min) · **L53 → 705,036** (~196 min) · **L55 → 1,073,317**
@@ -553,7 +570,7 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       Wailord fainting does not strand the run. ⇒ **do NOT "fix" `assert_carriers_survived` to reject
       fainted carriers** — it is correct as written, and that check would fire on a healthy run.
 
-### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **ALL EIGHT LEGS ARE BUILT AND DRIVEN. REMAINING: (1) the ARROW-WARP EXIT at 1F (39,5) — MEASURED reachable in 62 wp but NEVER DRIVEN — and (2) the chapter orchestrator + Segment 23 wiring.** ⚠ The party ends at 35% with three fainted — `#24-ch23attrition`, now ACTIONABLE because the bot can finally leave. (filed 2026-09-03, updated 2026-09-04)
+### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **TRAVERSED AND EXITED — NINE LEGS BUILT AND DRIVEN. REMAINING: (1) the LEAGUE HEAL (37 wp, urgent — the party is at 4%) and (2) the chapter orchestrator + Segment 23 wiring.** ⚠ The party ends at 35% with three fainted — `#24-ch23attrition`, now ACTIONABLE because the bot can finally leave. (filed 2026-09-03, updated 2026-09-04)
 
 > ⛔⛔ **THAT HEADER DROPPED THE UN-DRIVEN EXIT FOR ONE COMMIT — THE FOURTH TIME THIS ITEM'S HEADLINE HAS BEEN CAUGHT CLAIMING MORE THAN ITS OWN BULLETS.** The bullet one line below it listed the arrow warp; the header said "ONLY the wiring remains". `04-HANDOFF.md` had it right in BOTH halves, so this was the punch list alone regressing. ⇒ **when a header enumerates what remains, diff it against the bullet directly beneath it before committing** — and note that gate #35 cannot catch this shape, because no CLOSED slug is being mis-described.
 
@@ -561,8 +578,10 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 
 > ⛔ **HEADER/BODY PAIR NOTE (2026-09-04).** This header read "LEGS 1-4 SHIP AND PASS; LEGS 5-8 REMAIN" for one commit *after* its own body bullet had been corrected to "legs 6-8" — a Tier 1 reviewer caught it. **P2: a header is a claim about every bullet beneath it**, and updating the body alone is the more dangerous state, because the body looks current.
 
-- [~] **REMAINS: the chapter orchestrator + Segment 23 wiring** — plus the arrow-warp exit itself
-      (1F (39,5), approached from (38,5), MEASURED reachable in 62 wp but not yet driven).
+- [~] **REMAINS: (1) the LEAGUE HEAL and (2) the chapter orchestrator + Segment 23 wiring.**
+      ✅✅✅ **LEG 9 SHIPPED 2026-09-04 — THE BOT IS OUT OF VICTORY ROAD** (`ch23exit`, PASS,
+      `battles=2`, `whiteouts=0`, fixture `post_vr_exit.ss1` at EVER_GRANDE_CITY (18,28)).
+      ⛔ **URGENT: 4% HP, FIVE FAINTED** — the League door is 37 wp away and it is the ONLY heal.
       ✅✅✅ **LEG 8 SHIPPED 2026-09-04** (`ch23return`, PASS, `battles=2`, `whiteouts=0`, fixture
       `post_return.ss1` at VICTORY_ROAD_1F (21,32)). ⛔ **It broke a TRAP:** from B1F (17,16) every
       other exit was unreachable, so the bot could not leave Victory Road until it shipped.

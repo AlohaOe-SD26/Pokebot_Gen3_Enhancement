@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -14390,6 +14390,100 @@ class Ch23ReturnMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch23ExitMode(BotMode):
+    """§Ch23 LEG 9 — leave Victory Road through the 1F arrow warp, and MEASURE the far side.
+
+    ⭐⭐ THIS LEG ANSWERS AN OPEN QUESTION, it does not just walk. A research pass DERIVED (its own
+    flood-fill, explicitly flagged as a reimplementation) that the landing EG (18,27) sits on a
+    plateau **without** the Ever Grande Poké Center — which would make "exit and heal" WRONG and
+    force the League's own Centre instead. ⇒ once outside, the leg asks OUR planner what is actually
+    reachable, so `#24-ch23attrition` gets a measured answer rather than an inherited one.
+
+    ⛔ (39,5) is `MB_SOUTH_ARROW_WARP`: STAND + FACE South + HOLD Down. It does NOT fire on a step,
+    so the fault arm `POKEBOT_CH23_FAULT_ARROWAIM=1` (aim at the tile itself) makes the bot STALL
+    there rather than overshoot — and the apron guard must catch it. It MUST print ACCEPTANCE: FAIL.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_return.ss1 --driver ch23exit --frames 120000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23Exit"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23exit] WHITEOUT #{self.whiteouts} — respawn EVER_GRANDE.")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        what = "unknown"
+        try:
+            opp = getattr(encounter, "pokemon", None) or getattr(encounter, "opponent", None)
+            what = f"wild {getattr(getattr(opp, 'species', None), 'name', opp)}" if opp is not None \
+                else "TRAINER"
+        except Exception:  # noqa: BLE001 - logging must never break the run it observes
+            what = "unreadable"
+        self.battle_log = getattr(self, "battle_log", [])
+        self.battle_log.append(what)
+        log(f"[ch23exit] BATTLE #{self.battles}: {what}")
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        from modules.story import victory_road as VR
+        from modules.map_data import MapRSE
+
+        TAG = "ch23exit"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        report: dict = {"readings": set()}
+
+        start_on_vr = VR._on_map(MapRSE.VICTORY_ROAD_1F)
+        hp = [(m.species.name, m.current_hp, m.total_hp) for m in VR.get_party() if m is not None]
+        log(f"[{TAG}] PRE at={VR._where()} on_victory_road={start_on_vr}")
+        log(f"[{TAG}] PRE party_hp={hp}")
+
+        failure = None
+        try:
+            yield from VR.exit_victory_road(report)
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        taken = report.get("readings", set())
+        missing = [r for r in VR.LEG9_READINGS if r not in taken]
+        for key in ("at_exit_apron", "exit_landing", "out_of_vr", "heal_options"):
+            if key in report:
+                log(f"[{TAG}] R {key} = {report[key]!r}")
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+        log(f"[{TAG}] RESULT battle_log={getattr(self, 'battle_log', [])}")
+
+        out = not VR._on_map(MapRSE.VICTORY_ROAD_1F)
+        # ⛔ ANTI-VACUITY: a run that started OUTSIDE proves nothing about leaving.
+        premise_ok = start_on_vr
+        passed = (failure is None and premise_ok and out and not missing and self.whiteouts == 0)
+        log(f"[{TAG}] GRADE premise_ok={premise_ok} out_of_vr={out} missing={missing} "
+            f"battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] FINAL position={VR._where()}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH23_CAPTURE", "").strip()
+        if passed and _cap:
+            import pathlib as _pathlib   # ⛔ local: `pathlib` is NOT bound at module scope here
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if _out.exists() and _os.environ.get("CAPTURE_FORCE") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_out.name} exists. Set CAPTURE_FORCE=1 to overwrite.")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured the post-exit fixture -> {_out}")
+        context.set_manual_mode()
+
+
 class Ch22StairsMode(BotMode):
     """§Ch22 — READ-ONLY: what does the stair column ACTUALLY read once the puzzle is solved?
 
@@ -16184,6 +16278,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23ReturnProbeMode()
         elif args.driver == "ch23return":
             context.bot_mode_instance = Ch23ReturnMode()
+        elif args.driver == "ch23exit":
+            context.bot_mode_instance = Ch23ExitMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":
