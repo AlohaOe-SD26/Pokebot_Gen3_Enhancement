@@ -148,10 +148,21 @@ GAME'S OWN live object list**, from `post_wally.ss1`, one step onto the ladder. 
 | claim (3 agents, MODELED) | live measurement | verdict |
 |---|---|---|
 | 1F (9,14) ladder lands at B1F **(8,3)** | `arrived_on = ((24,44), (8,3))` | ✅ |
-| boulders at **(4,7)** and **(9,10)**, rock at **(18,12)** | live objects: `local_id 3 @ (4,7)`, `local_id 4 @ (9,10)`, `local_id 10 @ (18,12)` | ✅ exact |
+| boulders at **(4,7)** and **(9,10)**, rock at **(18,12)** | live objects: `local_id 3 @ (4,7)`, `local_id 4 @ (9,10)`, `local_id 10 @ (18,12)` | ✅ exact — ⚠ but see the window caveat below |
 | (30,25) is UNREACHABLE with the boulders in place | `PathFindingError (8,3) -> (30,25)` | ✅ |
 | (5,7) — the tile you stand on to push (4,7) WEST — is reachable | **9 waypoints** | ✅ |
 | ⭐ **(8,10) is gated BEHIND boulder (4,7)** | `PathFindingError (8,3) -> (8,10)` | ✅✅ |
+
+⛔⛔ **AND A CAVEAT ON THAT OBJECT ROW THAT I ALMOST SHIPPED AS A COMPLETENESS CLAIM.**
+`get_map_objects()` is a **CAMERA-RANGE WINDOW**, not a map census: an object further than roughly a
+screen away is **absent from the list whether or not it exists**. The agents say B1F carries **8
+boulders and 6 rocks**; this probe, standing at (8,3), saw **three**. ⇒ **THE THREE IT SAW ARE
+CONFIRMED PRESENT AT THE NAMED TILES WITH THE NAMED `local_id`s — AND THE ABSENCE OF THE OTHER
+ELEVEN IS NOT EVIDENCE OF ANYTHING.** ‼ *(This project has paid for that read three times: the §Ch21
+"ZERO NPCs loaded" misread, the (31,18) Expert claim, and leg 2b's Wallace check from (9,3).)*
+⇒ what is established is exactly the critical-path subset; enumerating the full 14 would need reads
+from several standpoints, and nothing here needs that. ‼ Note also `MapLocation.objects` is the ROM
+**template** (ORIGINAL positions) — never mix it with the live list.
 
 ⇒ **THE ORDERING CONSTRAINT IS REAL AND OUR PLANNER SEES IT.** (8,10) is the only tile from which
 (9,10) can be pushed EAST, and it is unreachable until (4,7) moves. This is precisely the claim the
