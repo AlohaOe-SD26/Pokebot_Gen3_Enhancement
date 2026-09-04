@@ -132,392 +132,9 @@ open-vs-built sweep of all 80 open items has **not** been done.
 
 ## Now (active focus)
 
-### 📚 SESSION END 2026-08-05 — **HISTORICAL. ⛔ NOT the current top of the list.**
-‼ This heading read "THE CURRENT TOP OF THE LIST" for a month, over a "Suite 78/78" figure that the suite (now 33 checks) has not matched since. **The live queue is `04-HANDOFF.md` NEXT ACTIONS.** The items below are still real; only the "current" claim was stale.
+### 📦 SESSION END 2026-08-05 — **ARCHIVED 2026-09-04 to `28-HANDOFF-ARCHIVE.md` (387 lines, VERBATIM, nothing deleted).**
 
-- [ ] `#24-organicteam` — ✅ **THE GATE IS LIFTED. APPROVED TO BUILD (user, 2026-08-14:
-      *"Yes lift the gate as I believe it will help with other progress with this bot!"*), which
-      RE-CONFIRMS RULING 1 of 2026-08-06.**
-      ⛔ **THIS ENTRY SAID "DEFERRED — do not start early" UNTIL 2026-08-14 AND WAS WRONG BY FOUR
-      DAYS** — the 2026-08-05 deferral was reversed by the user on 2026-08-06 (`06-DECISIONS-LOG.md`
-      RULING 1, *"reversed knowingly"*), but a 2026-08-10 triage re-recorded the deferral as "the
-      live instruction", so a deferral and its reversal both read as live. **Measured cost: it
-      misled an agent twice in one conversation.** Both quotes are in `06-DECISIONS-LOG.md`.
-      The user's REVERSAL reason (2026-08-06, quoted in the decisions log): *"it will help the
-      story in the long run (less chance for failure, less errors with incompatible pokemon for
-      bosses/gym leaders or missing HMs to travel…) We need this."*
-      The real design question is not a seat count — it is the bot CHOOSING a team on purpose
-      (type coverage, HM duties, keeping a favourite) instead of taking whatever slot is free.
-      **Needs PC deposit/withdraw to be trustworthy first** — and as of 2026-08-14 that is
-      measurably NOT trustworthy: three cited defects (the PC-menu Manual trapdoor, the egg-blind
-      `withdraw_from_box` fullness test, and the type-only `box_counter_pid`) are being fixed
-      first. It subsumes `#24-pcoverflow-proof` and the retired `POKEBOT_PC_ROTATION`.
-      ‼ The OLD gate (*"story mapping must be finished first"*) is retired: the story IS mapped
-      through §Ch20, and the user has ruled the feature helps the remaining progress rather than
-      competing with it.
-
-- [x] `#24-cavethread` — ✅ **CLOSED 2026-08-05 — IT WAS NEVER A BLOCKER. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (the R3 relief valve: this file hit its 3,600-line limit). ⛔ Nothing here is outstanding; read the archive only for the multi-hop cave reasoning.
-
-- [x] `#24-pcoverflow` — **CATCH HALF PROVEN AND ENABLED 2026-08-07.** Two independent breaks
-      were found and fixed: (1) `pc_trip.box_views()` called `boxes`, a `@cached_property`
-      returning a list → `TypeError` every call; (2) both catch branches required `party < 6`.
-      Capability test (`--driver boxcatch`, `post_mtpyre.ss1`): `caught=True box 0→1
-      exited_clean=True exit_frames=120`, then `second_catch=True box_now=2`.
-      `POKEBOT_BOX_OVERFLOW_CATCH` defaults **1**.
-      ‼ The box-transfer message does NOT need dismissing — the existing battle handler already
-      rides it out. I "confirmed" that wedge twice and both were my probe idling (`08-MISTAKES`).
-
-- [ ] `#24-roster` — **APPROVED 2026-08-06, gate LIFTED. The PC-roster feature.**
-      Catch overflow into the box + withdraw on demand, so the bot can field type counters and HM
-      carriers it could not otherwise hold. **Rulings + rationale: `06-DECISIONS-LOG.md` 2026-08-06.**
-      Measured targets: `no super-effective answer` = **8 of 15 non-finishes**;
-      `nobody can learn Surf — hunting…` = **~42/batch in 16 of 17 batches**.
-      ‼ Round one changes NO catch policy, NO party cap, and adds NO deposit path
-      (`POKEBOT_PC_ROTATION` stays pinned at 0 — it cost ~1 team member/run and a 5.4% VOID batch).
-      ‼ **KEY INSIGHT: the roster is the missing PRECONDITION for `#24-partycap`, not a competitor.**
-      At cap 4 the bot hunts a Surf carrier successfully (42×/batch, costly); at cap 6 the identical
-      need became a hard derail (127×) and the batch collapsed 52.0% → 15.8%. A roster decouples
-      "party is full" from "cannot obtain a carrier" — the exact mechanism that made the cap fatal.
-      Prerequisites, in order: `#24-hmteachloop` → `#24-pcoverflow-proof` → re-baseline → slice.
-      ✅ **PARTY ORDER IS DONE AND PROVEN (2026-08-13).** `modules/story/roster.py`'s
-      `reorder_party()` is driven end-to-end by **`--driver roster`**: six swaps, all verified by
-      PID, including `RotatePokemon(i, j != 0)` — a path nothing in this project had ever driven.
-      The drive found and fixed a real defect (it returned `True` with the avatar unable to walk;
-      A/B proven). This is the piece the **Regi arc** needs (KI-69: Wailord first, Relicanth last).
-      ✅ **PROMOTED to `custom-pokebot/` 2026-08-13 (user-approved)** — verified by driving
-      `--driver roster --build custom` to a **frame-identical PASS**, with `find_spec` confirming
-      the custom tree was the one imported. Post-copy drift ZERO. Restore point
-      `restore/2026-08-13-pre-roster-promotion`.
-      ‼ **The DEPOSIT/WITHDRAW half of `#24-roster` is still the open work** — ordering answers
-      *"in what order"*, not *"which Pokémon"*. `withdraw_from_box` remains proven only by
-      `--driver boxwithdraw`. Two issues filed and deliberately NOT fixed: **KI-70**, **KI-71**.
-      ‼ `reorder_party()` still has **ZERO production callers** — it is capability, not yet content.
-      ✅ **THE DEPOSIT HALF SHIPPED 2026-08-13** — `pc_trip.deposit_one_dead_weight()` frees exactly
-      one slot (postcondition-verified, sole-HM-carrier exempt), wired into production via
-      `early_game.ensure_hm_learner_making_room` at both `story_mode.py` HM call sites, and gated by
-      `repro_hm_slot_wiring.py` (22/22, fault-injected). Driven: `--driver divelearner`
-      `ACCEPTANCE: PASS`, deposit asserted **by PID**.
-      **Measured worth:** 20 terminal run-kills in 1,129 runs (**0.91%** excl. a reverted party-cap
-      bundle) and **#1 of 14 derail causes by frames per event (1,717k ≈ 46 min)**, every one five
-      badges deep — rare, but it kills the deepest runs.
-      ✅ **PROMOTED 2026-08-14 — `custom-pokebot` is no longer inert.** ⛔ Corrected 2026-08-14:
-      this line read *"NOT promoted — `custom-pokebot` is still inert (reads the flag, nothing
-      sets it)"* for hours AFTER the promotion landed, contradicting `04-HANDOFF.md` item 1b and
-      the changelog. Caught by MEASURING (`promote.py --check` lists only the two PARTY ACCOUNTING
-      STAGE 0 files), not by reading. ‼ *A promotion updates the handoff AND every punch-list item
-      that claims the file is unpromoted — that is a P-pair, and it was missed.*
-      ‼ **STILL OPEN in this item:** withdraw-on-demand, catch-overflow policy, and any use of
-      `reorder_party` by real content (the Regi arc is what will need it).
-
-      ## PARTY ACCOUNTING — STAGE 0 SHIPPED 2026-08-14 (the ROOT beneath the P1/P2 fixes)
-      ✅ **`modules/party_accounting.py` + gate `repro_party_accounting.py` (#22).** Splits the
-      three quantities RULING D named: **A** `gPlayerPartyCount` (CAPACITY authority), **B**
-      `len(get_party())` (ITERATION/INDEX authority, can be LESS than A), **C** the belief ledger
-      — **not built, deliberately**. Divergence classes: HOLE / OVERFLOW / INVALID observed
-      EXACTLY from `get_party()`'s own branches; STALE ⛔ **SAMPLED 1-in-300, never exhaustive.**
-      ✅ **It wires NO call site, and the gate ASSERTS that** rather than trusting it — alongside
-      a byte-identical observer-on/off A/B, silence on a healthy party, and a raising observer
-      that must break the LOG and never the read. Three source injections each made it fail.
-      ✅ **DRIVEN:** `--driver ch20dive` → `ACCEPTANCE: PASS` unchanged, and the run reported
-      **25,523 recomputes / 86 scans / NO DIVERGENCE** — which also empirically confirms the
-      once-per-frame bound (25,523 recomputes over 25,523 frames).
-      🔜 **NEXT IS MORE MEASUREMENT, NOT STAGE 1.** ⛔ Do not re-point the ~35 capacity-shaped
-      call sites at A until `collect_party_accounting.py` exits 0. ✅ PROMOTED 2026-08-15 (user-approved,
-      verified by driving `--build custom` to an ACCEPTANCE: PASS); drift is back to nil.
-      ‼ **(P3b) 2026-08-15 — the collector I shipped COULD NOT REACH ITS OWN CRITERION.** It
-      demanded ≥5 drives and read them from `harness*.log`, which `story_harness.py:70` opens
-      `"w"` — **every drive truncates the previous**. Fixed with a durable append-only
-      `party_accounting_ledger.jsonl`; proven by ACCUMULATING, not by inspection. And its first
-      fixed run **double-counted one drive as two** (`ch20dive` vs `Ch20Dive`), so fingerprints are
-      normalised and log-scanning is OFF by default. ⇒ *for a tool that decides "is there enough
-      evidence yet", over-counting is the dangerous direction.*
-      ✅✅ **(P3b) ANSWERED 2026-08-15 — CRITERION (a) MET, the collector exits 0.
-      7 clean drives / 7 distinct drivers / 280,707 recomputes / 940 scans / NO DIVERGENCE.**
-      `ch20dive` 25,523 · `room1` 28,364 · `room9` 69,645 · `room2` 31,275 · `room8` 47,585 ·
-      `room3` 46,118 · `room6` 32,197. ‼ `ch20room9` LOST its Archie fight (documented 2W/1L) and
-      its row was written anyway — the measurement is independent of the driver's verdict.
-      ⛔⛔ **READ THE POPULATION, NOT JUST THE ZERO.** All seven drives are §Ch20 DUNGEON content
-      with a STATIC party — no catching, no evolving, no PC traffic. The scenarios most likely to
-      make A differ from B (catch into a full party; a Shedinja spawning unbidden) were never
-      exercised. The criterion was pre-registered and is honestly met, so P3b CLOSES — but the
-      finding is *"the dungeon path is clean"*, **not** *"A cannot differ from B"*, and it is NOT
-      licence to re-point the ~35 capacity call sites. ⇒ **(P4) is the better next step than
-      Stage 1**: its fixture is exactly the party-mutating case this population lacks.
-
-      ## (P4) THE END-TO-END REPRO — ✅ STAGE 1 **AND STAGE 2** DRIVEN, 4/4 ACROSS BOTH FORKS
-      ✅✅ **STAGE 2 IS DRIVEN 2026-08-15 (`--driver boxcounter2`) — matrix {ARM A, ARM B} ×
-      {sandbox, custom} = 4/4 `ACCEPTANCE: PASS`. ⛔ DO NOT REBUILD IT.** A SUBCLASS of
-      `BoxCounterMode`, so every Stage 2 run re-proves Stage 1 first. ARM B: the real
-      `heal_in_pokemon_center(FortreeCity)` collected the boxed Slugma — `moved=True` (in party
-      AND gone from the box), `knows_rock_throw=True`, `lead_is_counter=True` with a
-      `hunted_pids=None` CONTROL proving the mechanism was decisive (`control=Mightyena L38` →
-      `real=Slugma L15`), and a second heal that NO-OPed for the ATTRIBUTED reason. ARM A: the
-      derail reproduced organically — `_hunted_counter_pids` published EMPTY, counter left boxed,
-      **no deposit at all**. ‼ The PID is published ONLY from `box_counter_pid`'s return value.
-      ⛔⛔ **THE ANCHOR IS `fortree_gym_wedge.ss1` — the "use `ch13_fortree_door.ss1`" correction
-      further down this entry is REVERSED BY A DRIVE.** `ch13_fortree_door` is on ROUTE120 and the
-      run died on its first leg (`Cannot reach FORTREE_CITY: it is not walkable from ROUTE120`) —
-      **KI-24**, documented in our own `region_reach.py:7-11`. ⚠ The wedge has NO Shedinja/Ninjask
-      twins, so `ch13_fortree_door.ss1` stays the anchor for tests whose SUBJECT is that collision.
-      ⛔ **`needed` IS `{Rock, Ice, Dragon}` — NOT `{…Electric}`** (the ace is Altaria,
-      Dragon/Flying; Electric is 0.5×2.0 = 1.0, NEUTRAL). Caught by the new `needed_ok` control on
-      its first run; the four-type set was in four documents that were copies of one another.
-      🔜 **WHAT (P4) STILL DOES NOT COVER:** everything UPSTREAM of registration — a real `hunt()`
-      catch feeding `story_mode.py:1750`. The Slugma is INJECTED and the PID published by the
-      driver. Also still unbuilt: the natural-vs-injected byte-equivalence control.
-      🆕 **RESIDUAL `#24-zerokocounter` (filed 2026-08-16, from the KI-80 decoupling):
-      SHOULD `boss_teaches` ALSO COME OFF THE COUNTER-LADDER'S GATE?** The KI-80 fix removed
-      `grass_is_fodder` from `story_mode.py:1901` and KEPT `boss_teaches`. KI-80's own wording
-      ("gated on *is this fight hopeless*, which `_boss_plan_is_hopeless` already answers alone")
-      can be read as removing BOTH conjuncts. ‼ **The argument for removing it is strong:** a party
-      that KOs **nothing** and has no type answer is the MOST hopeless case, yet it currently gets
-      the `:1932` "the boss can't teach us" message and plain grass escalation rather than a counter
-      hunt. ⛔ **It was NOT shipped because NO TEST CAN SEE IT:** all four `ki80ladder` arms seed
-      `kos = 1`, so `boss_teaches` is True in every arm we have. Shipping it would be changing
-      behaviour we cannot observe — the thing this project keeps being burned by.
-      ⇒ **To pick this up: add a FIFTH arm that seeds a flat `kos = 0` history** on
-      `batch2_run04_wedge.ss1` with the NOGRASS cfg. ✅ **DISCRIMINATOR COMPUTED 2026-08-16 — the
-      arms DO differ:** `recent_kos = [0,0]` ⇒ `boss_teaches` False ⇒ **today** `:1901` is skipped,
-      `:1932` fires, `boss_mode` stays False, `OUTCOME = PLAIN_ESCALATION`; **after** removing the
-      gate, `_boss_plan_is_hopeless` runs and every one of its own gates still passes on a flat zero
-      seed (`losses 8 >= 6`; `len 8 >= 6`; `max(last 3)=0 > max(prev 3)=0` is False so it does NOT
-      bail; `hard_plateau` needs 12) ⇒ `hopeless=True` ⇒ `OUTCOME = LADDER`. Non-vacuous.
-      ⛔⛔ **BUT A FIFTH ARM IS NOT ENOUGH, AND THIS ENTRY UNDERSTATED THE HAZARD UNTIL 2026-08-16.**
-      It described the `:1932` problem as a lost MESSAGE. It is worse, twice over:
-      (a) removing `boss_teaches` makes `:1901` unconditional, so the `elif` at `:1932` is
-      **structurally DEAD in every case**, not just the hopeless one — an `elif` on an always-true
-      `if` never runs; and (b) the NOT-hopeless path below becomes reachable by a zero-KO party for
-      the first time, so a boss with a **fodder patch AND a credible answer** whose party KOs
-      nothing would hit `if grass_is_fodder: boss_mode = True`, print *"re-attempting the boss is
-      the real training (KO'd [0, 0] of theirs)"* — absurd on its face — and **SUPPRESS `:1937`'s
-      grass escalation.** ‼ **That is KI-23's mirror regression in a new guise, and arm 5 CANNOT SEE
-      IT** (a NO_ANSWER save returns at `:1923` and never reaches `:1925`). ⇒ **an ARM 6 is required
-      too: HAS_ANSWER save + `kos = 0` + a FODDER patch.** Same lesson as arms 1-3 vs arm 4.
-      ⚠ **And measure first:** nobody has checked how often a flat zero-KO loss series actually
-      occurs in production. `analyse_defeat_loops.py` measured *"53 sequences with >=3 defeats — flat
-      in 37"* but never broke out zero-KO series. ⛔ Do not change behaviour of unknown frequency.
-      *(Hazard (a)/(b) and the discriminator were derived by a Tier 2 cold-start agent, 2026-08-16.)*
-      🆕 **RESIDUAL (filed 2026-08-15, found by a Tier 2 cold-start): `04-HANDOFF.md`'s
-      `NEXT ACTIONS` numbering RESTARTS.** It runs 1, 2, 2c, 3, 3b, 4, 5 and then begins again at
-      2b, 3, 4, 5, so a cross-reference to "NEXT ACTIONS item 3" resolves to TWO different items.
-      Not misleading about STATE — item 0 is unambiguous and is what a cold start acts on — but any
-      citation to items 1-5 is unresolvable. ⇒ when the "older framing" block is next touched,
-      archive it wholesale rather than renumbering in place.
-      ✅✅ **KI-80'S REPRO IS BUILT, DRIVEN AND FAULT-TESTED (2026-08-15) — `--driver ki80ladder`.**
-      THREE arms on `saves/batch2_run04_wedge.ss1` (`team_max` 28, 8 seeded losses): `NOGRASS` →
-      ladder · `GRASS_FODDER` (Route 102, `wild_max` 4) → ladder · ⛔ `GRASS_STRONG` (Route 119 —
-      **the patch her own cfg comment names**, `story_mode.py:3531`; ⛔ she has NO `grass` key today, `wild_max` 27) → **plain escalation, ladder SKIPPED.** Only the
-      `grass` key differs. `ACCEPTANCE: PASS` in BOTH forks. Fault-tested twice: the fixture KI-80
-      itself once prescribed (`ch13_fortree_door`) FAILS with *"THE A/B WOULD BE VACUOUS"* and all
-      three arms return `LADDER`. ‼ **Exits 0 even on FAIL — grade the `ACCEPTANCE:` line.**
-      ✅✅ **DONE AND PROMOTED 2026-08-16 — ⛔ DO NOT REDO THIS.** *(This block used to end with
-      ➡ "NEXT: decouple `_counter_ladder` from `grass_is_fodder`" and "`POKEBOT_KI80_DECOUPLED=1`
-      FAILS today". BOTH became false on 2026-08-16 and stood until an adversarial audit caught
-      them on 2026-08-17 — an arrow commanding work that had shipped to BOTH forks.)*
-      **MEASURED NOW:** `story_mode.py:1901` is `if boss_teaches:` in sandbox AND custom, and the
-      driver's expectations are inverted so `POKEBOT_KI80_DECOUPLED=1` **PASSES**.
-      ⛔⛔ **BUT NOT THE NAIVE EDIT, AND `POKEBOT_KI80_DECOUPLED` ALONE WILL BLESS IT.** MEASURED
-      2026-08-16: with `grass_is_fodder` simply deleted from the `:1901` gate, the three-arm run
-      goes **`ACCEPTANCE: PASS`** — all three arms reach the ladder — while KI-23's **mirror
-      regression has silently landed**. ⇒ **ALSO RUN ARM 4, BEFORE AND AFTER:**
-      `POKEBOT_KI80_ARM4=1 … story_harness.py fortree_gym_wedge.ss1 --driver ki80ladder`.
-      It PASSes today and, against that same naive edit, printed
-      `ARM4 OUTCOME=BOSS_TRAINING_MODE` and `ACCEPTANCE: FAIL` — *"a boss with a STRONG patch AND a
-      credible answer entered BOSS-TRAINING MODE, so `:1937`'s plain grass escalation is
-      SUPPRESSED."* Keep `boss_mode = True` (`:1925`) behind `grass_is_fodder`.
-      Transcripts: `evidence/2026-08-16-ki80ladder-FAULT-naive-edit-*`. The BEFORE run is committed FIRST because
-      it is unrepeatable afterwards. `repro_boss_grass_gate.py` SELF-RETIRES on the fix — designed.
-      ✅ **BOTH PROMOTIONS ARE DONE (user-approved 2026-08-15).** *(✅ The comment-only `story_mode.py` fix was PROMOTED 2026-08-16, user-approved. ✅ And the KI-80 DECOUPLING in the same file — a BEHAVIOUR change — was PROMOTED 2026-08-16 too, by a THREE-POINT A/B against `--build custom`. drift is 7 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until the chapter is driven) — `modules/story/seafloor_cavern.py`, the §Ch20 chapter UNDER CONSTRUCTION, sandbox only. ⛔ NOT a promotion decision: it is incomplete (constants + predicates + preflight only, no legs yet) and must not be promoted until it is driven end to end..)* The KI-79 fix `pc_trip.py` (a BEHAVIOUR change) was proven by a THREE-POINT A/B showing the new branch actually RUNS in custom, not merely that the file copied. And `counter_hunt.py`
-      (comment-only, the Electric correction) promoted with restore point
-      `restore/2026-08-15-pre-promotion-counterhunt-comment`: 1/1 byte-identical, and VERIFIED BY
-      DRIVING — `--driver boxcounter2 --build custom` ARM A and ARM B both `ACCEPTANCE: PASS`,
-      plus four `--build custom` gates. See `custom-pokebot/DIVERGENCE-LOG.md`.
-
-      *(Everything below is the Stage-1-era text. It is kept for its build detail; where it
-      predicts Stage 2 or names the anchor, the block above supersedes it.)*
-      ## (P4) THE END-TO-END REPRO — ✅ STAGE 1 DRIVEN (both arms), ⛔ STAGE 2 NOT BUILT
-      ‼ **Read `ai-research-notes/2026-08-15-p4-boxcounter-repro-design.md` before building.** It
-      refuted FOUR of the premises it was briefed with, two fatally: the heal's withdraw is no
-      longer gated `if _pids:`, and ⛔ **`post_dive.ss1` is POST-WINONA**, so the counter rung can
-      never fire from it (use `saves/ch13_fortree_door.ss1` — the wedge sits INSIDE the gym).
-      ✅ **BUILT:** `debug_write_box_slot()` (`debug_utilities.py`) — the missing half of the
-      fixture, mirroring the storage reader; refuses on R/S, on an occupied slot, on a short
-      record. `POKEBOT_BOXCOUNTER_TYPEONLY_A` — a permanent fault hook restoring the pre-fix
-      TYPE-ONLY behaviour, read INSIDE the function. And `repro_box_counter_move_test.py` now
-      exercises the **REAL** hook (4 checks, 2 of them controls) — every arm in that gate was
-      previously a re-implementation, so the hook could have rotted unnoticed.
-      ✅ **STAGE 1 IS DRIVEN 2026-08-15 (`--driver boxcounter`), BOTH ARMS PASS** — the first time
-      `box_counter_pid` ran against REAL `gPokemonStorage` memory rather than `FakeStorage`.
-      ARM B → the Slugma's PID (found by its MOVE); ARM A (`POKEBOT_BOXCOUNTER_TYPEONLY_A=1`) →
-      `None`, the user's bug reproduced on demand. Four controls: `disjoint`, `fixture_ok`,
-      `sole`, `not_excluded`. ⛔ Stage 1 CANNOT DERAIL, which is why the decisive claim lives
-      there — under KI-71 a derailed arm prints nothing at all.
-      ✅ **ANCHOR CORRECTED BY MEASUREMENT for Stage 2: `saves/ch13_fortree_door.ss1`**, not
-      `fortree_gym_wedge.ss1` (that one sits INSIDE the gym). It holds a **REAL Shedinja+Ninjask
-      sharing `pid=42207D6F`** — the first LIVE KI-78 twin pair here. ⚠ Its box holds a Castform.
-      🔜 **SMALL OPEN ITEM (not blocking):** two docstrings still say the Shedinja twin is "the
-      LATER slot" without the *at creation* caveat — `repro_pid_identity_key.py` (tools, free to
-      edit) and `pokemon_party.get_index_for_pokemon` (PROMOTED, so editing it costs a promotion
-      cycle). The live save has them REVERSED because `reorder_party()` runs. The fix does not
-      depend on order, so this is wording, not behaviour.
-      🔜 **STAGE 2 REMAINS:** the heal → withdraw → boss-fought-WITH-the-counter half,
-      a one-time natural-vs-injected byte-equivalence control, and the
-      {ARM A,B}×{sandbox,custom} matrix. ⛔ **The likeliest way it ships broken:** inject the
-      Slugma BEFORE `counter_hunt.py:477`'s `before_box_pids` snapshot and `exclude_pids` filters
-      it out — `None` in BOTH arms, so ARM A "reproduces" the bug for entirely the wrong reason.
-
-      ## THE HEAL'S PC PIGGYBACKS NOW REPORT — the OTHER half of the Slugma/Winona derail (2026-08-14)
-      ✅ **Gate #23 `repro_heal_piggyback_reporting.py` (20 checks, no emulator; ‼ it PRINTS its own count — believe that, not this).** The three PC
-      actions riding on `heal_in_pokemon_center` (rotation deposit, KI-63 slot-freeing deposit,
-      hunted-counter withdraw) each wrapped everything in `except Exception: pass`, collapsing
-      *worked* / *nothing to do* / *threw* into one silence. **The user's run took the middle
-      branch and said nothing** — that silence is most of why the bug cost a day. All three now
-      report; the decision is a pure, testable `counter_withdraw_outcome()`; the empty-case message
-      names `_hunted_counter_pids` AND the Slugma shape. ⛔ The empty case must NOT read as an
-      error — it is the common case, and that is a gate check, because a diagnostic that cries
-      wolf on every heal is worse than the silence it replaced.
-      ‼ **Why no gate caught it:** `repro_no_silent_except` did not scan `modules/modes/util/`, and
-      **its rule-3 escape hatch had already approved all three handlers** — a justification comment
-      documents intent, it does not make a failure observable. Scope extended (baseline 140 → 149)
-      and the ratchet is now **per scan root** (133/4/3/9, all measured), so the widened budget
-      cannot fund new debt in the roots it already covered. Both halves fault-tested.
-      ⛔ **THIS IS NOT (P4).** P4 — the END-TO-END live repro — is **still owed**. Recon is done and
-      its three constraints are recorded in `04-HANDOFF.md`'s queue item P4 (no save holds a
-      Nincada; KI-71 means a derailed arm prints NO RESULT; do not depend on a stochastic catch).
-
-- [ ] `#24-logcollision-siblings` — **NEW 2026-08-16, found while fixing `#24-orphans` (4).** Four
-      more repro scripts carry the SAME evidence-destroying pattern `story_harness.py` just shed —
-      a fixed default log name opened `"w"`, so re-running the same arm silently eats the previous
-      transcript: `repro_hm_move_replace_loop.py:82`, `repro_hm_replace_valve_forced.py:54`,
-      `repro_movelearn_fault_recovery.py:73`, `repro_movelearn_hm_wedge.py:65`. ⚠ **Milder than the
-      harness's was** — each varies by `build`/`mode`/`state`, so it only collides when the SAME
-      arm is repeated (still exactly the before/after case). ⇒ apply the same one-line fix
-      (`_<timestamp>_<pid>`, print the path first). **Filed rather than done** so the change can be
-      run-verified per script instead of swept in unverified — the harness fix was proven by an
-      actual A/B, and these deserve the same.
-
-- [x] `#24-driftassertions` — ✅✅ **DONE 2026-08-17: the drift-statement sweep IS A GATE** (`check_drift`, A/B-measured 4→9 sites caught with none lost, 17 fault tests). **Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-18** (R3 budget). ⛔ Nothing outstanding here. ‼ Its SEPARATE reduction half is `#24-driftreduction` and is still OPEN. ‼ Two rules the gate earned and later work leans on: **claim-bound, never neighbourhood-bound** exemptions (a proximity window exempted a live claim twice), and **a gate cannot tell a quotation from a claim** — describe a stale figure, never reprint it.
-
-- [x] `#24-handoffbudget` — ✅ **DONE 2026-08-17. `04-HANDOFF.md` was 7 lines from its 900-line limit; 38 LINES WERE RECOVERED, NET, and NOTHING WAS DELETED.** *(The merge itself freed 43; six citations an independent check found missing were then RESTORED, costing five back. ‼ This headline said 43 until a Tier 1 reviewer recomputed it from `git show HEAD:` — the item about stale numbers published a stale number, in its own headline.)* **** ⛔ No current count is quoted here — `lint_docs.py` prints it and IS the authority; a quoted count goes stale on the next edit to the file it describes (this row's own predecessor did, three times in one day, once by a single line). Ten `##` stub sections (`:179-233`) whose detail has lived in `28-HANDOFF-ARCHIVE.md` since 2026-08-13 were merged into one. ‼ **The saving came mostly from DE-DUPLICATION, not from cutting:** *"a chapter's acceptance test must include AND THE BOT CAN CONTINUE"* was written out THREE times in separate sections and *"N instruments agreeing on something impossible share a missing primitive"* TWICE; each is now stated ONCE, loudly. ⛔ An independent agent enumerated every claim, lesson, number and citation in the BEFORE text and checked each against the AFTER — the merge was not trusted to my own reading of it. ⚠ **My FIRST attempt made the file LONGER (893 → 905, R3 RED)**: consolidating headings does not shrink a file if the replacement prose is more verbose than what it replaced. Reverted and rewritten tight. *(Original filing:)* **`04-HANDOFF.md` was at 893/900 lines (7 FREE), which BLOCKED the next item's Definition of Done.** A Tier 2 cold-start audit measured it: a few
-      added lines turn `lint_docs.py` RED, and step 2 of the DoD (update the docs) then cannot be
-      committed. ⛔ **MEASURE with `lint_docs.py`; do not quote this line** — the budget row in the
-      handoff has itself gone stale twice in one day.
-      ✅ **THE WORK IS CONSOLIDATION, NOT DELETION, and the candidates are already identified:**
-      `04-HANDOFF.md:179-233` is ten `## … MOVED to 28-HANDOFF-ARCHIVE.md` stub sections. They are
-      NOT empty pointers — each keeps a distilled LESSON — but several keep the SAME one. *"A
-      chapter's acceptance test must include **and the bot can continue**"* is restated at `:196`,
-      `:209-212` and `:224-225`; the §Ch18 *"N of your own instruments agreeing on something
-      impossible share a missing primitive"* lesson is at both `:185-189` and `:192`.
-      ⇒ Merge the duplicates into ONE block per lesson, keep every DISTINCT lesson verbatim, and
-      leave the archive untouched (it already holds the detail). Expected saving ~15-25 lines.
-      ⛔ **DO IT AT A QUIET MOMENT, NOT MID-ARC** — same reasoning as `#24-driftreduction`: it
-      touches the lines every in-flight change touches, and it must not run while a Tier 2 audit is
-      reading the file. ‼ Re-run Tier 0 AND a fresh cold-start read afterwards: these stubs are what
-      a cold agent skims, so a bad merge costs more than the lines it saves.
-      ⚠ Related but SEPARATE: lint's `I1` line reports the completed `[x]` items still sitting in
-      `03-PUNCH-LIST.md` — ⛔ RUN IT rather than quoting it; that figure and the line budget beside
-      it were BOTH stale within a day of being written. That is this file's relief valve, not the handoff's.
-
-- [x] ✅✅ DONE 2026-08-23 — ALL 17 nav retry loops patched, and GATED — 📦 **ARCHIVED 2026-08-26 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
-- [x] **✅ DONE 2026-08-23 — both halves fixed** (`00-README`'s row was corrected earlier; `31`'s own header was corrected 2026-08-23 to say KI-59 is FIXED, KI-60 is open, and that "armed in the Seafloor Cavern" is refuted by that file's own correction). Original text follows.
-      `#24-ki59archiveheader` — **NEW 2026-08-17, from a cold-start audit. THREE FILES DISAGREE ABOUT
-      WHETHER KI-59 IS OPEN, and the one a cold reader meets first is wrong.**
-      `00-README.md` describes `31-KNOWN-ISSUES-ARCHIVE.md` as *"Resolved/superseded known issues …
-      Not current state"*; that file's OWN header says two **OPEN, unfixed** pathfinder bugs live in
-      it (KI-59, KI-60); and `05-KNOWN-ISSUES.md` — **the correct one** — says *"KI-59 ITSELF IS
-      FIXED, A/B-PROVEN, GATED (#17) AND PROMOTED TO BOTH FORKS"*, with only a NARROWER residual plus
-      KI-60 still open. `04-HANDOFF.md` agrees with `05`.
-      ⇒ **Fix `31`'s header to name the residual rather than the whole KI, and make `00-README`'s row
-      say the file may contain open residuals.** ⛔ Do not "fix" it by marking KI-59 open — that would
-      re-open work that is fixed, gated and promoted, which is this project's most expensive mistake.
-      ⚠ Cheap, but it misdirects EVERY cold start that follows the reading order.
-
-- [x] ✅ DONE 2026-08-22/23 — brought current, and it was WORSE than — 📦 **ARCHIVED 2026-08-26 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
-- [ ] `#24-gymwhiteoutgatehang` — **NEW 2026-09-01. `repro_gym_whiteout_guard.py` HANGS, and it
-  is RED in `run_gates.py` right now.** Measured twice: killed at the suite's **900s** bound, then
-  re-run STANDALONE, where it produced no further output for **~36 minutes** and never printed a
-  verdict at all (a 1500s `timeout` was set on the wrapper; it did not appear to reach the child
-  process, so the run simply went quiet rather than being cleanly killed). Both times it stops
-  after printing
-  `[1]+[2] FAULT INJECTION — force the player 'off the gym map' part-way through the route` and
-  emits nothing further. ⇒ it is a genuine hang at the fault-injection step, **not** gate-startup
-  contention (`#26-gatestartupcontention`), because the standalone run had the machine to itself
-  for most of its window.
-  ⛔ **NOT CAUSED BY §Ch21 LEG 3, and that is checkable rather than asserted:** the only
-  production file this session changed is `modules/story/sootopolis.py` (see `git diff --stat`),
-  and `repro_gym_whiteout_guard.py` imports `modules.story.mossdeep_gym` and
-  `modules.story.early_game` only — it never imports `sootopolis` or `story_harness`.
-  ‼ **It was NOT re-verified against an older commit**, so "pre-existing" is an INFERENCE from
-  the import graph, not a measurement. The cheap decisive test is to run it on the previous
-  commit; do that before assuming it broke today.
-  ⇒ **the suite measured 30 of 32 PASS when it ran.** The OTHER failure,
-  `repro_no_silent_except.py`, was RED for a real reason (leg 3 added 3 silent handlers,
-  126 > the 123 budget for `modules/story`) and has been FIXED — the handlers are justified
-  in place and it now reports `PASS — exactly at the baseline. No new debt.` ⇒ a re-run should
-  read **31 of 32**, with THIS item the only red. ‼ That is an INFERENCE from re-running the
-  one gate alone, not a re-run of the whole suite (which costs ~40 minutes).
-- [ ] `#24-skypillarprobewrites` — **NEW 2026-09-01, found by a Tier 2 cold-start audit.**
-  `probe_ch21_skypillar.py` is documented in `04-HANDOFF.md` as "Seconds, no network" recon, but
-  running it **WRITES**: it emitted `Save state ...profiles/repro-ml/states/<ts>.ss1 created!` and
-  `Updated current_state.ss1!`. The path is gitignored so the repo is safe, but it mutates the
-  SHARED `repro-ml` profile — and an agent may run it many times while building leg 4.
-  ‼ **This is the class PASS 4 claimed to close** (`04-HANDOFF.md` credits it with fixing "seven
-  observe-only gates writing shared profile state, 2,820 files / 160 MB"); this probe was added
-  2026-08-27, AFTER that sweep, and re-introduced it. ⇒ the sweep fixed the instances, not the
-  cause — there is no gate that FAILS a probe for writing profile state.
-  ⛔ Fix the probe, and consider the gate: a check that an "observe-only" tool leaves
-  `profiles/` byte-identical would make the class impossible rather than merely rare.
-- [ ] `#24-stdoututf8gate` — **NEW 2026-09-01.** `audit_handoff_invariants.py` AND `lint_docs.py`
-  crashed with `UnicodeEncodeError` under bare `python` on cp1252 (they print `⛔`/`‼` without
-  reconfiguring stdout; only green because `run_gates.py` sets `PYTHONUTF8=1`). Both fixed in place
-  (module-scope `reconfigure("utf-8")`); see `08-MISTAKES.md`. ‼ Crash class has recurred 3×+
-  (`verify_fixtures.py`, the repro sweep, now two gates) → a GATE is owed: fail any `tools/story-dev/*.py`
-  that can emit non-ASCII yet neither reconfigures stdout nor uses a byte-safe writer; FAULT-TEST it
-  (fires on a no-reconfigure emoji print; not on `verify_fixtures`'s `buffer.write` nor pure-ASCII).
-- [ ] `#24-ch21climb-whiteoutarm` — **NEW 2026-09-01, code-review finding 4 (OPTIONAL).** No arm has
-  DRIVEN a real whiteout, so the leg's grade-on-POSITION-not-vars claim (a post-summit whiteout reads the
-  same 5/1/1 from Sootopolis) is argued, not measured. Add `POKEBOT_CH21_FAULT_WHITEOUT` (all-BURNED 1-HP
-  party → first encounter whites out; assert `whiteouts=1`, `reached=False`, FAIL). Deferred: needs
-  party-injection + a battle drive; a flaky arm is worse than none.
-- [ ] `#24-livegridreader` — **NEW 2026-09-01, created by §Ch21 leg 3's first drive. PROMOTE THE
-  LIVE-GRID READER OUT OF A CHAPTER MODULE AND INTO `modules/map.py`.** Three helpers currently
-  live in `modules/story/sootopolis.py` because that is where the bug bit: `_live_collision_grid()`
-  (reads `gBackupMapLayout` — the grid the GAME walks on, and the ONLY reader in this tree that
-  can observe `setmetatile` or `setmaplayoutindex`), `_live_wall_tiles()`, and
-  `_pin_planner_to_live_layout()`. ⛔ **They are general, and the hazard is general** — every map
-  that swaps a layout at runtime has it, and KI-74's own "what a fix looks like" asked for exactly
-  this promotion. Leaving them in a chapter means the NEXT chapter re-earns the bug.
-  ‼ **WHAT MAKES THIS NON-TRIVIAL, so nobody starts it expecting a move-and-rename:**
-  (a) `_live_collision_grid` is valid ONLY for the currently loaded map and must keep refusing
-  otherwise; (b) `_pin_planner_to_live_layout` MUTATES two process globals — it must evict the
-  WHOLE `map_path._maps` game key, never one map (a per-map `pop` raised `KeyError` on a real
-  drive, because `_get_all_maps_metadata` only populates when the key is absent entirely);
-  (c) the border offset is `MAP_OFFSET = 7` but the backup grid is `mapWidth + 15` by
-  `mapHeight + 14` — **asymmetric**, so a "derive it from the dimensions" implementation is
-  wrong in a way that looks principled. ⇒ port the guards and the comments, not just the code.
-  Evidence: `evidence/2026-09-01-ch21-leg3-LAYOUTPIN-ab.txt`, `probe_live_mapgrid.py`, KI-74.
-- [ ] `#24-probecountgate` — **NEW 2026-08-17. Teach `audit_doc_consistency.py` to grade PROBE
-      COUNTS the way it already grades gate counts and the drift figure.**
-      ‼ **FILED FROM EVIDENCE, NOT A HUNCH: this is the THIRD un-gated number class to go stale in a
-      SINGLE SESSION.** Drift claim-shapes went first (`#24-driftassertions`), then gate counts
-      — ⚠ DESCRIBED, NOT REPRINTED (this gate matches literal strings and fired on this bullet's first draft): one phrasing put a NOUN between subject and verb, another wrapped the digits in markdown BOLD. And now
-      `probe_abort_swallowing.py`'s candidate count: after round 2 took it 45 → 37, **three** sites
-      still said 45, including **KI-81's HEADER AND BODY** — a P2 pair that went stale together — and
-      a runnable command's trailing comment. A Tier 1 reviewer found them by RUNNING the probe.
-      ⇒ **The pattern is now unambiguous: any number a doc quotes and a tool can measure WILL go
-      stale, and prose discipline has never once caught it here.**
-      **THE DELIVERABLE:** a rule that finds claims of the shape `N candidates`, `N candidate sites`,
-      `N remain`, `45 → 37` near `probe_abort_swallowing` and compares them against the MEASURED
-      count. ⛔ **FAULT-TEST BOTH WAYS** — it must fire on a stale count AND stay quiet on a clearly
-      HISTORICAL one (`03-PUNCH-LIST.md` deliberately preserves *"Original remaining count when this
-      item was filed: 45"*, and `07-CHANGELOG.md` is append-only history that must never be graded).
-      ‼ Reuse the machinery that already exists rather than inventing a fourth dialect: `_CURRENCY`
-      marker attachment, the span-scoped retraction exemption, and the `[*_]{0,2}` markdown
-      tolerance are all in that file and were each earned by a real miss.
-      ⚠ **COST NOTE:** the probe is a static AST scan over ~20 files, so measuring is cheap — but
-      confirm it before wiring it in, because `audit_doc_consistency.py` runs in every Tier 0 check.
-      ⚠ **AND SCOPE IT:** grade only CURRENT-STATE files (00-05, 24). `07`/`08`/`28`/`31` are
-      append-only history where a stale count is CORRECT.
+- [x] **Moved because this file sat at its 3,600-line cap for three commits and R3's own wording names the cause: "an archive is forming inside a current-state file". This block declared itself HISTORICAL in its own heading.** ‼ Its opening line records that the heading read "THE CURRENT TOP OF THE LIST" for a month over a stale suite figure — the exact failure mode that keeping spent content in a current-state file causes. Slugs it contains, preserved and findable in the archive: `#24-cavethread`, `#24-ch21climb-whiteoutarm`, `#24-driftassertions`, `#24-driftreduction`, `#24-gymwhiteoutgatehang`, `#24-handoffbudget`, `#24-hmteachloop`, `#24-ki59archiveheader`, `#24-livegridreader`, `#24-logcollision-siblings`, `#24-organicteam`, `#24-orphans`, `#24-partycap`, `#24-pcoverflow`, `#24-pcoverflow-proof`, `#24-probecountgate`, `#24-roster`, `#24-skypillarprobewrites`, `#24-stdoututf8gate`, `#24-zerokocounter`, `#26-gatestartupcontention`.
 
 ### ✅ `#24-abortrecoveryresiduals` — ALL THREE RESOLVED 2026-08-23 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)
 
@@ -827,7 +444,29 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       one party, no heal, no escape — the same cascade is a run-ender. ‼ And leg 6 has now shown the
       same drift: the party reached B2F at **32% with THREE fainted**. Tracked here so closing the
       Wally half does not bury it.
-### ⚠ `#24-ch23healdescent` — **§Ch23 legs 6-8 have NO heal step, and the party is degrading run over run.** (filed 2026-09-04, MEASURED)
+### ‼ `#24-waterfalltimeout` — **`follow_waypoints` computes the waterfall timeout from the MAP NUMBER instead of the player's `y`.** (filed 2026-09-04, VERIFIED IN OUR OWN CODE)
+
+- [ ] ⛔ **THE DEFECT, `modules/modes/util/walking.py:227`:**
+      `frames_remaining_until_timeout += 195 + (get_player_location()[0][1] - waypoint.coordinates[1]) * 42`
+      `get_player_location()` returns **`(map_enum, (x, y))`** (`modules/player.py:291`), so `[0][1]`
+      is the **MAP NUMBER**, not the player's `y`. It must be **`[1][1]`**.
+- [ ] **WHY IT IS BOTH TOO SHORT AND TOO LONG, depending on the map:**
+      Ever Grande is map num **8**; a climb to `y=59` gives `(8 − 59) × 42 = **−2142** frames` — a
+      **negative** allowance. VICTORY_ROAD_B2F is map num **45** against `y≈11`, giving **+1428** — a
+      wildly over-generous one. ⇒ the same line under- and over-shoots on different maps, which is
+      why it has never produced a clean, repeatable symptom.
+- [ ] ⚠ **LATENT, NOT DORMANT.** It has not bitten because our legs **hand-drive** waterfall climbs
+      instead of letting the planner emit a `Waterfall` waypoint — §Ch23 leg 4 does exactly that (its
+      `NOCLIMB` fault arm exists for it). ⛔ **§Ch23 leg 7's forced DESCENT may be the first time we
+      ride a planner-emitted waterfall waypoint, so fix this BEFORE building leg 7.**
+- [ ] **HOW TO PROVE IT (do not fix on inspection alone — this project has shipped three backwards
+      index/coordinate "fixes"):** ⛔ **MEASURE THE DIRECTION FIRST** with an observe-only probe that
+      logs BOTH `get_player_location()[0][1]` and `[1][1]` beside a ground truth, exactly as the
+      2026-08-17 rule requires. Then A/B the timeout value on a real waterfall waypoint.
+      ‼ Found by a recon agent auditing our Surf/Waterfall support, and confirmed by reading
+      `player.py:291` — an agent's note that turned out to be about OUR code, not the decomp.
+
+### ✅ `#24-ch23healdescent` — **CLOSED 2026-09-04: leg 6 now heals before descending, and an A/B proves it (un-healed 32% / 3 fainted vs healed 87% / 0).** (filed and closed 2026-09-04)
 
 - [ ] **MEASURED, NOT PREDICTED — the party gets worse at every stage:**
       `post_training.ss1` 95%/0 fainted → `post_wally.ss1` **67%/2** → `post_b1f.ss1` **32%/3**
@@ -840,19 +479,32 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       (18,42) → warp in → (9,15) → B1F. ‼ `assert_carriers_survived` after it (deposits ride along).
       ⛔ **PROBE THE ARROW-WARP FIRST.** 1F (15,40) is `MB_SOUTH_ARROW_WARP` — fires only on
       standing + facing South + holding Down, never a step; we have only crossed it INWARD.
+- [x] ✅✅ **DONE 2026-09-04 — `heal_before_descent()` ships in `victory_road.py`.** Measured, same
+      start fixture and same code: **un-healed → 32% HP with THREE fainted; healed → 87% with
+      ZERO.** The heal itself read `538/799 (67.3%), 2 fainted` → **`799/799 (100%), 0 fainted`**.
+      `--driver ch23descend` `ACCEPTANCE: PASS`, all 7 readings, `battles=6`, `whiteouts=0`; fixture
+      **`post_b1f_healed.ss1`** (`b2eeb15c…`) is now the leg-7 start point.
+      ⭐ **AND IT PROVED THE ARROW-WARP OUTWARD** — the untested navigation this item flagged. 1F
+      (15,40) is `MB_SOUTH_ARROW_WARP` and we had only ever crossed it inward; it works.
+      ‼ It heals from **1F, not B1F**: from below the round trip would cost the whole boulder solve
+      twice, because every warp resets the puzzle. Fault arm `POKEBOT_CH23_FAULT_NOHEAL6` keeps the
+      un-healed descent reproducible.
 - [ ] ⚠ **RELATED, NOT THE SAME:** `#24-ch23wally` option (b) (the faint ranking feeding the L19
       into fights) is the CAUSE; healing treats the symptom. Both open.
 
-### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **LEGS 1-6 ARE BUILT AND DRIVEN; LEGS 7-8 REMAIN.** ⚠ Leg 6 ships WITHOUT a heal step — see its bullet. (filed 2026-09-03, updated 2026-09-04)
+### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **LEGS 1-6 ARE BUILT AND DRIVEN, HEAL INCLUDED; LEGS 7-8 REMAIN.** (filed 2026-09-03, updated 2026-09-04)
+
+> ⛔⛔ **P5 CAUGHT THIS ITEM FOR THE THIRD TIME (2026-09-04).** Twice before, a CHILD item was closed while this PARENT kept commanding the finished work; this time its header still read *"Leg 6 ships WITHOUT a heal step"* and its bullet still said *"Add the heal before building leg 7"* AFTER `#24-ch23healdescent` closed. ⇒ **closing a child is not updating the parent, and this item is where that keeps failing.** A research note calls this item *"the authoritative live status"*, so a cold agent reading it would rebuild shipped work and start leg 7 from the superseded 32%/3-fainted fixture. **Whoever closes the next §Ch23 child item: grep this slug and re-read this block FIRST.**
 
 > ⛔ **HEADER/BODY PAIR NOTE (2026-09-04).** This header read "LEGS 1-4 SHIP AND PASS; LEGS 5-8 REMAIN" for one commit *after* its own body bullet had been corrected to "legs 6-8" — a Tier 1 reviewer caught it. **P2: a header is a claim about every bullet beneath it**, and updating the body alone is the more dangerous state, because the body looks current.
 
 - [~] **REMAINS: legs 7-8** — B2F, the return, and the chapter orchestrator + Segment 23 wiring.
       ✅ **LEG 6 SHIPPED 2026-09-04** (`ch23descend`, PASS, `battles=4`, `whiteouts=0`, fixture
       `post_b1f.ss1` at VICTORY_ROAD_B2F (30,25)); both its fault arms proven to FAIL.
-      ⛔⛔ **BUT LEG 6 HAS NO HEAL STEP AND THE PARTY ARRIVES ON B2F AT 32% WITH THREE FAINTED** —
-      `post_b1f.ss1` is a PUZZLE-LOGIC artifact, NOT a runnable start for leg 7. **Add the heal
-      before building leg 7** (see `#24-ch23healdescent`).*
+      ✅✅ **AND THE HEAL SHIPPED TOO (2026-09-04) — `#24-ch23healdescent` is CLOSED.** The A/B:
+      un-healed → **32% HP, THREE fainted**; healed → **87%, ZERO**. ⭐ **LEG 7 STARTS FROM
+      `post_b1f_healed.ss1`** (`b2eeb15c…`), ⛔ **NOT `post_b1f.ss1`**, which is kept only as that
+      A/B's un-healed arm.*
       ⭐⭐ **STUB MARKER — READ BEFORE ANY BOULDER CODE:** `ai-research-notes/2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` (3 independent agents) + `...-ch24-POKEMON-LEAGUE.md`. ⛔ NOTES, not truth — the reachability is MODELED and 3 live checks are OWED. Headlines: (1) **the route is `1F→B1F→B2F→B1F→1F`** — 1F's entrance and exit are in DIFFERENT walk-regions, so "walk across 1F" is impossible; (2) **TWO boulders are mandatory, (4,7) WEST and (9,10) EAST** — a "delete it and re-path" model finds only (9,10) and misses (4,7); (3) ⛔ **pushing either SOUTH kills the route irreversibly** — exactly what a greedy push-toward-goal router does; (4) **every warp RESETS the puzzle** (`FLAG_TEMP_*` cleared, boulders revert — also the recovery from a trap push) and **`FLAG_SYS_USE_STRENGTH` clears on every map load**; (5) minimal HMs = **{Surf, Strength, Rock Smash}** — **Waterfall and Flash NOT required**; (6) ✅ `strength_push` exists (`early_game.py:7884`, Magma-Hideout-proven) ⇒ **the machinery exists; only the route is missing.**
       ⛔ *(This item's header read "PRODUCTION CODE IS ZERO" and its first line "`victory_road.py`
       DOES NOT EXIST" for a day AFTER legs 2-4 shipped from that very file — the heading-vs-body rot
@@ -870,7 +522,10 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       `post_badge8` → `post_waterfall` → `post_depart_sootopolis` (ROUTE126 (45,66), 100%) →
       **`post_ever_grande.ss1`** (`18203e99…`, EVER_GRANDE (18,42), 100%) →
       **`post_training.ss1`** (`2f517f1f…`, VICTORY_ROAD_1F (15,39), 95%) →
-      **`post_wally.ss1`** (`76000aa5…`, VICTORY_ROAD_1F (9,15), 67%) ← **⭐ START HERE NOW.**
+      **`post_wally.ss1`** (`76000aa5…`, VICTORY_ROAD_1F (9,15), 67%) →
+      **`post_b1f.ss1`** (`d362df89…`, B2F (30,25), 32%, 3 fainted — ⛔ the UN-HEALED A/B arm,
+      NOT a start point) → **`post_b1f_healed.ss1`** (`b2eeb15c…`, B2F (30,25), **87%, ZERO
+      fainted**) ← **⭐ START LEG 7 HERE.**
       ⛔ **NEITHER EARLIER FIXTURE IS THE START POINT.** `post_ever_grande.ss1` is PRE-TRAINING and
       its party LOSES to Wally (MEASURED, twice); `post_training.ss1` is trained but PRE-WALLY.
       ✅ **WALLY IS BEATEN (2026-09-04)** — `--driver ch23road`, `wally_flag=True`,

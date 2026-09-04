@@ -201,6 +201,15 @@ GATES: list[tuple[str, bool]] = [
     # happens to DRIVE that leg (this survived until a real Wally drive); this is the static half.
     # Fault-tested three ways (`POKEBOT_CH23ARMS_FAULT=unregistered|orphan|noregistry`).
     ("probe_ch23_fault_arms.py", False),
+    # #35 — a CLOSED punch-list item must never be described as OPEN by another item.
+    # ‼ APPENDED AT THE END, never inserted — see #34's note; that rule was broken hours before this.
+    # WHY: P5 ("an item's status and the handoff's claim move TOGETHER") failed THREE times in
+    # 2026-09, twice inside the SAME item, always as "closing a CHILD is not updating the PARENT".
+    # Three rounds of prose did not fix it, so per SESSION DISCIPLINE #6 it became a gate.
+    # ⛔ AND IT WAS ONLY TRUSTED AFTER IT CAUGHT A RECONSTRUCTION OF THE REAL BROKEN FILE: it passed
+    # clean TWICE first (line-by-line, then bullet-wise but unflattened) while its own fault arm
+    # "proved" it worked. A gate is not proven by its own fault arm.
+    ("probe_closed_item_refs.py", False),
 ]
 
 

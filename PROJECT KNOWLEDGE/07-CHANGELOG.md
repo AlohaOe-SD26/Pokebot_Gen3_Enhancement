@@ -21646,3 +21646,52 @@ The fixture row and the handoff both say so rather than letting a green PASS imp
 **‼ The new fault-arm gate (#34) caught its own author within the hour** — `NOPUSH1` and `NOSMASH`
 were added to `FAULT_ARMS` but not to the registry, and `probe_ch23_fault_arms.py` went red on the
 next run. That is the static half doing exactly what the six dead arms proved was needed.
+
+
+## 2026-09-04 — §Ch23 leg 6 gets its HEAL, and 387 lines of history leave the punch list
+
+**The heal.** `heal_before_descent()` + `party_needs_heal()` in `victory_road.py`, wired as leg 6's
+first step. `--driver ch23descend` `ACCEPTANCE: PASS`, all 7 readings, `battles=6`, `whiteouts=0`;
+new fixture `post_b1f_healed.ss1` (md5 `b2eeb15c1d078a6036471d0a7d018f1e`).
+
+**⭐ THE A/B, same code and same start fixture — this is why the item closes on evidence:**
+
+| descent | end HP | fainted |
+|---|---|---|
+| un-healed (`post_b1f.ss1`) | 257/799 — **32%** | **3** |
+| healed (`post_b1f_healed.ss1`) | 696/801 — **87%** | **0** |
+
+The heal itself measured `538/799 (67.3%), 2 fainted` → **`799/799 (100%), 0 fainted`**, and
+`probe_anchor_inventory` attaches no "cannot survive a journey" warning to the healed fixture.
+
+**⭐ It also proved the 1F arrow-warp OUTWARD for the first time.** (15,40) is
+`MB_SOUTH_ARROW_WARP` — it fires only on standing + facing South + holding Down, never on a step —
+and every previous crossing had been inward. The punch-list item that filed this work said "probe
+the arrow-warp first"; since an arrow-warp cannot be observed without attempting it, the probe *is*
+a bounded attempt that raises with the tile named. It worked first time.
+
+**‼ PLACEMENT IS THE DESIGN DECISION, not the heal itself.** It runs from **1F, not B1F**: from
+below, the round trip would cost the entire boulder solve **twice**, because every warp resets the
+puzzle. A heal placed one function later would have been correct code in the wrong place, and the
+run would merely have looked slow rather than wrong.
+
+**And it asserts the consequence, not the call** — `heal_in_pokemon_center` returning is not "the
+party is healed", so it re-reads the party and refuses to descend if anyone is still fainted. Same
+rule that caught KI-84. `assert_carriers_survived` runs after it, because the heal piggybacks two
+PC-deposit paths and this party is mostly "dead weight" behind an L53 lead.
+
+**📦 AND THE PUNCH LIST GOT REAL HEADROOM.** `03-PUNCH-LIST.md` had sat at its 3,600-line cap for
+three consecutive commits, and I had been trimming single lines to fit — which is treating the
+symptom. `lint_docs` R3's own wording names the cause: *"an archive is forming inside a current-state
+file"*. The archive turned out to be **"SESSION END 2026-08-05" — 387 lines that declare themselves
+HISTORICAL in their own heading**. Moved VERBATIM to `28-HANDOFF-ARCHIVE.md` with a stub pointing
+there and **all 21 slugs it contains listed so they stay findable**; nothing deleted.
+**387 lines out, and the file finished this session at 3255** (it also gained new items — the heal
+closure and `#24-waterfalltimeout`). ‼ This entry first said "383 lines" in its title and "3600 →
+3217" here, against a body that said 387: **3217 was an intermediate count I quoted as the final
+one.** A Tier 1 reviewer re-measured with `git diff --numstat` (36 added / 387 removed) plus two
+`wc -l` runs. ⇒ **RE-MEASURE A COUNT AT THE MOMENT YOU WRITE IT — a number that was true ten edits
+ago is just a stale number wearing a citation.**
+‼ Its own opening line records that this heading read *"THE CURRENT TOP OF THE LIST"* for a month
+over a stale figure — the exact failure mode that keeping spent content in a current-state file
+produces, documented inside the block that was causing it.

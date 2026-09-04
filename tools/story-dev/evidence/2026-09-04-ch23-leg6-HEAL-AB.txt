@@ -1,0 +1,28 @@
+=== LEG 6 WITH HEAL (PASS) ===
+[ch23descend] PRE at=((24, 43), (9, 15)) already_on_b2f=False
+[ch23descend] PRE party_hp=[('Sceptile', 0, 145), ('Zigzagoon', 0, 48), ('Swellow', 110, 136), ('Wailord', 226, 226), ('Mightyena', 99, 141), ('Castform', 103, 103)]
+[ch23descend] PRE fainted=['Sceptile', 'Zigzagoon']
+[ch23descend] R heal_before = {'hp': '538/799', 'fraction': 0.673, 'fainted': ['Sceptile#863B0917', 'Zigzagoon#33CB74C3']}
+[ch23descend] R healed = {'before': {'hp': '538/799', 'fraction': 0.673, 'fainted': ['Sceptile#863B0917', 'Zigzagoon#33CB74C3']}, 'after': {'hp': '799/799', 'fraction': 1.0, 'fainted': []}, 'back_at': (9, 15)}
+[ch23descend] R heal_after = {'hp': '799/799', 'fraction': 1.0, 'fainted': []}
+[ch23descend] R exited_to = ((0, 8), (18, 42))
+[ch23descend] R b1f_entry = (8, 3)
+[ch23descend] R puzzle_before = {3: (4, 7), 4: (9, 10), 10: (18, 12)}
+[ch23descend] R ladder_before = False
+[ch23descend] R puzzle_after_push1 = {3: (3, 7), 4: (9, 10)}
+[ch23descend] R opened_east_approach = True
+[ch23descend] R puzzle_after_push2 = {3: (3, 7), 4: (10, 10), 10: (18, 12)}
+[ch23descend] R ladder_after_push2 = False
+[ch23descend] R puzzle_after_smash = {4: (10, 10)}
+[ch23descend] R ladder_reachable = True
+[ch23descend] R ladder_apron = {'tile': (31, 25), 'step': 'Left'}
+[ch23descend] R at_ladder_apron = (31, 25)
+[ch23descend] R b2f_arrival = ((24, 45), (30, 25))
+[ch23descend] R on_b2f = True
+[ch23descend] RESULT readings=['R6-B2F', 'R6-ENTER', 'R6-HEAL', 'R6-LADDERPATH', 'R6-PUSH1', 'R6-PUSH2', 'R6-SMASH'] missing=[]
+[ch23descend] RESULT battles=6 whiteouts=0
+[ch23descend] R continue_from_b2f = {'to': (34, 25), 'wp': 4}
+[ch23descend] GRADE premise_ok=True on_b2f=True missing=[] can_continue=True battles=6 whiteouts=0 failure=None
+[ch23descend] FINAL position=((24, 45), (30, 25))
+[ch23descend] ACCEPTANCE: PASS
+[ch23descend] captured the post-descent fixture -> C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves\post_b1f_healed.ss1

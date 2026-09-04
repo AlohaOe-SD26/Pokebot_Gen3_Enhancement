@@ -11967,3 +11967,46 @@ its own postmortem so the next person to append reads *why* rather than just *wh
    The same session that wrote "anything enforceable belongs in a gate, not in prose" then relied on
    prose. ⇒ a checker for ordinal collisions and mid-list insertion is a real candidate, and until it
    exists this entry is the only thing standing where the last warning already failed twice.
+
+
+## 2026-09-04 — A GATE PASSED ITS OWN FAULT TEST TWICE WHILE BEING BLIND TO THE DEFECT IT WAS WRITTEN FOR
+
+**Context.** P5 — *"an item's status in `03-PUNCH-LIST.md` and the handoff's claim about it move
+TOGETHER"* — failed **three times in 2026-09, twice inside the same item**, always as *closing a
+CHILD item is not updating the PARENT*. Prose had been tried three times, so per SESSION DISCIPLINE
+#6 I wrote a gate: `probe_closed_item_refs.py` (#35), which flags any item describing a CLOSED slug
+as still open.
+
+**Symptom.** It reported **`✅ PASS`** on a reconstruction of the genuinely broken file — **twice**,
+in two different ways — while its own `inject` fault arm reported **`EXIT=1`** and looked healthy.
+
+**Root cause, both rounds — and both are about the SHAPE of the real text, not the logic:**
+1. **Round 1: it matched LINE BY LINE.** The real defect wrapped across three markdown lines — the
+   verb *"Add the heal"* on one, *"before building leg 7"* and the slug `#24-ch23healdescent` on the
+   next. No single line held both halves. The `inject` arm passed because **I had injected a
+   single-line case** — a shape that does not occur in a hand-wrapped 100-column file.
+2. **Round 2: it grouped by bullet but matched the RAW text.** `re` `.` does not cross a newline
+   without `re.DOTALL`, so `\bADD\b.{0,40}\bbefore\b` still could not span the wrap. Fixed by
+   flattening (`" ".join(bullet.split())`) before matching.
+
+**How it was actually caught.** Not by the fault arms — by **pointing the gate at a reconstruction of
+the real broken file** (the gate now takes an optional path argument for exactly this). Only then did
+it produce the finding it exists to produce, naming the item, the closed slug and the line.
+
+**‼ WHY THIS IS WORSE THAN NO GATE.** A gate that passes for the wrong reason is *load-bearing
+false confidence*: it appears in `run_gates.py`, it is cited in the handoff, and every future session
+reads its green as evidence. The whole reason this project ratchets gates is so that prose failures
+become mechanical — a blind gate converts a known-recurring defect into an *unknown*-recurring one.
+
+**Prevention rules.**
+1. ⛔⛔ **A GATE IS NOT PROVEN BY ITS OWN FAULT ARM. It is proven against the ACTUAL DEFECT it was
+   written for.** Reconstruct the real broken input — from git history, or by reverting the fix in a
+   scratch copy — and require the gate to go RED on it. If the defect is unreconstructable, say so in
+   the gate's docstring rather than implying coverage it has never demonstrated.
+2. ⛔ **A FAULT ARM MUST REPRODUCE THE REAL SHAPE, NOT A CONVENIENT ONE.** Mine injected one tidy
+   line because that was easy to write; the defect lives in wrapped prose. **An arm you can write
+   without looking at the real defect is probably not testing it.**
+3. ‼ **WHEN A GATE'S FIRST CLEAN RUN IS GREEN, BE SUSPICIOUS, NOT PLEASED** — especially a gate
+   written *because* something keeps recurring. #34 went red on its first clean run and that was a
+   true finding; #35 went green on a file that was, at that moment, genuinely fixed — which is why
+   the reconstruction, not the live file, was the only test that could tell the difference.

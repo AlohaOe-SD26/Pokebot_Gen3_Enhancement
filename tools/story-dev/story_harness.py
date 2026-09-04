@@ -13741,7 +13741,8 @@ class Ch23DescendMode(BotMode):
 
         taken = report.get("readings", set())
         missing = [r for r in VR.LEG6_READINGS if r not in taken]
-        for key in ("b1f_entry", "puzzle_before", "ladder_before", "puzzle_after_push1",
+        for key in ("heal_before", "healed", "heal_after", "exited_to",
+                    "b1f_entry", "puzzle_before", "ladder_before", "puzzle_after_push1",
                     "opened_east_approach", "puzzle_after_push2", "ladder_after_push2",
                     "puzzle_after_smash", "ladder_reachable", "surprise", "ladder_apron",
                     "at_ladder_apron", "b2f_arrival", "on_b2f"):

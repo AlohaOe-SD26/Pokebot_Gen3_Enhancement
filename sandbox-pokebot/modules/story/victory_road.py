@@ -227,7 +227,20 @@ B1F_PUZZLE_RESETS_ON_WARP = True
 #: The whole B1F descent, generously bounded. The measured solve ran well inside this.
 B1F_BUDGET_FRAMES = 120_000
 
-LEG6_READINGS = ("R6-ENTER", "R6-PUSH1", "R6-PUSH2", "R6-SMASH", "R6-LADDERPATH", "R6-B2F")
+#: ⛔⛔ 1F (15,40) IS AN **ARROW WARP** (`MB_SOUTH_ARROW_WARP`), NOT A STEP-ON WARP. `TryArrowWarp`
+#: fires only when the player STANDS on the tile, FACES South and HOLDS Down. ⇒ walking onto it does
+#: nothing; `_walk_through_warp("Down", ...)` works because it keeps pressing Down.
+#: ‼ AND THE COROLLARY BITES INWARD: arriving from Ever Grande leaves the bot STANDING ON this tile,
+#: so any stray Down press warps it straight back out of Victory Road.
+VR_EXIT_ARROW = VR_ENTRANCE          # (15,40) — the same tile, used in the outward direction
+VR_EXIT_APRON = (15, 39)             # one north; MEASURED walkable (leg 5 and the training leg both
+                                     # stood here). ⛔ Never navigate to (15,40) itself — warp trap.
+
+#: ⚠ Heal when ANY battler is fainted, or the party is below this fraction of total HP. Measured
+#: degradation without a heal: 95%/0 fainted → 67%/2 → **32%/3** across three legs.
+HEAL_HP_FRACTION = 0.70
+
+LEG6_READINGS = ("R6-HEAL", "R6-ENTER", "R6-PUSH1", "R6-PUSH2", "R6-SMASH", "R6-LADDERPATH", "R6-B2F")
 
 # ============================== TRAINING — BEFORE WALLY ========================================
 #: ⛔⛔ TRAIN ON **1F**, NOT B1F, AND THAT IS NOT A PREFERENCE — IT IS FORCED.
@@ -337,6 +350,8 @@ FAULT_ARMS = {
     "NOPUSH1": "POKEBOT_CH23_FAULT_NOPUSH1",
     #: leg 6 — skip the Rock Smash, so the ladder-reachability guard must catch the blocked route
     "NOSMASH": "POKEBOT_CH23_FAULT_NOSMASH",
+    #: leg 6 — skip the pre-descent heal, to reproduce the degraded-party descent on demand
+    "NOHEAL6": "POKEBOT_CH23_FAULT_NOHEAL6",
 }
 
 
@@ -1719,6 +1734,117 @@ def b1f_ladder_apron() -> tuple:
     )
 
 
+def party_needs_heal() -> tuple[bool, dict]:
+    """`(needs_heal, reading)` — judged on FAINTS and HP FRACTION, never on a single mon.
+
+    ⛔ ASSERT ON IDENTITY, NEVER ON COUNT. The reading names the fainted mons by PID, because a party
+    count nets to zero when one faints and another is healed, and "6 Pokémon" reads TRUE either way.
+    """
+    total = live = 0
+    fainted = []
+    for mon in get_party():
+        if mon is None or mon.is_egg:
+            continue
+        total += mon.total_hp
+        live += mon.current_hp
+        if mon.current_hp == 0:
+            fainted.append(f"{mon.species.name}#{mon.personality_value:08X}")
+    frac = (live / total) if total else 1.0
+    reading = {"hp": f"{live}/{total}", "fraction": round(frac, 3), "fainted": fainted}
+    return (bool(fainted) or frac < HEAL_HP_FRACTION), reading
+
+
+def heal_before_descent(report=None) -> Generator:
+    """Heal at the Ever Grande Poké Center BEFORE dropping into B1F, then come back to the ladder.
+
+    ⛔⛔ WHY THIS EXISTS, MEASURED NOT FEARED. Without it the party degrades every leg:
+    `post_training` 95% / 0 fainted → `post_wally` 67% / 2 → `post_b1f` **32% / 3**. Leg 7 would
+    start from the worst of those, and `probe_anchor_inventory` already refuses to call it usable.
+
+    ⛔ IT HEALS FROM **1F**, NOT FROM B1F, AND THAT IS THE WHOLE POINT OF ITS PLACEMENT: on 1F the
+    bot is ONE warp from the exit, whereas from B1F it would have to re-cross the puzzle — and the
+    puzzle RESETS on every warp, so a round trip from below costs the entire solve twice.
+
+    ‼ THE ROUTE OUT USES AN **ARROW WARP** (`VR_EXIT_ARROW`), which fires only on standing + facing
+    South + holding Down. We had only ever crossed it INWARD before this leg, so the attempt is
+    bounded and raises with the tile named rather than pressing Down forever.
+    """
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    yield from wait_until_truly_controllable()
+
+    needs, before = party_needs_heal()
+    report["heal_before"] = before
+    if not needs:
+        report["healed"] = f"not needed ({before['hp']}, no faints)"
+        _take(report, "R6-HEAL")
+        return
+    if _fault("NOHEAL6"):
+        context.message = "Ch23 FAULT NOHEAL6: skipping the pre-descent heal"
+        report["healed"] = "SKIPPED (fault arm)"
+        _take(report, "R6-HEAL")
+        return
+
+    if not _on_map(VR1F):
+        raise BotModeError(
+            f"Ch23 leg 6: the pre-descent heal must run from VICTORY_ROAD_1F (one warp from the "
+            f"exit) but we are at {_where()}. ⛔ Healing from B1F would cost the whole boulder solve "
+            f"twice, because every warp resets the puzzle."
+        )
+
+    # ---- out through the arrow warp ------------------------------------------------------------
+    if _here_tile() != VR_EXIT_APRON:
+        yield from _navigate_riding_out(VR1F, VR_EXIT_APRON)
+        yield from wait_until_truly_controllable()
+    yield from _walk_through_warp("Down", VR1F.value)
+    yield from wait_until_truly_controllable()
+    report["exited_to"] = _where()
+    if not _on_map(EG):
+        raise BotModeError(
+            f"Ch23 leg 6: held Down on the arrow warp {VR_EXIT_ARROW} from {VR_EXIT_APRON} and did "
+            f"not arrive in EVER_GRANDE_CITY — we are at {_where()}. ⛔ `MB_SOUTH_ARROW_WARP` needs "
+            f"the player STANDING on the tile, FACING South and HOLDING Down; a single step onto it "
+            f"does nothing."
+        )
+
+    # ---- heal ------------------------------------------------------------------------------------
+    yield from _budgeted(
+        heal_in_pokemon_center(PokemonCenter.EvergrandeCity), HEAL_BUDGET,
+        "heal before the B1F descent",
+    )
+    yield from wait_until_truly_controllable()
+    # ⛔ THE HEAL PIGGYBACKS TWO PC-DEPOSIT PATHS, and this party is mostly "dead weight" behind an
+    # L52 lead by `DEAD_WEIGHT_LEVEL_GAP = 8`. Losing Wailord here strands the chapter.
+    assert_carriers_survived("the pre-descent heal")
+
+    _, after = party_needs_heal()
+    report["heal_after"] = after
+    # ⛔ ASSERT THE CONSEQUENCE. "heal_in_pokemon_center returned" is not "the party is healed" —
+    # the same rule that caught KI-84. A heal that leaves anyone fainted has not worked.
+    if after["fainted"]:
+        raise BotModeError(
+            f"Ch23 leg 6: after the Ever Grande heal the party STILL has fainted members "
+            f"{after['fainted']} ({after['hp']}). ⛔ Refusing to descend — B1F carries a trainer and "
+            f"wild encounters, and this is how a run whites out underground."
+        )
+
+    # ---- back in, and back to the ladder apron ---------------------------------------------------
+    if _here_tile() != VR_APRON:
+        yield from _navigate_riding_out(EG, VR_APRON)
+        yield from wait_until_truly_controllable()
+    yield from _walk_through_warp("Up", EG.value)
+    yield from wait_until_truly_controllable()
+    if not _on_map(VR1F):
+        raise BotModeError(
+            f"Ch23 leg 6: stepped north off the Ever Grande apron {VR_APRON} after healing and did "
+            f"not re-enter VICTORY_ROAD_1F — we are at {_where()}."
+        )
+    yield from _navigate_riding_out(VR1F, B1F_LADDER_APRON)
+    yield from wait_until_truly_controllable()
+    report["healed"] = {"before": before, "after": after, "back_at": _here_tile()}
+    _take(report, "R6-HEAL")
+
+
 def enter_b1f(report=None) -> Generator:
     """Step from the 1F ladder apron (9,15) onto the ladder (9,14), landing on B1F (8,3)."""
     report = report if report is not None else {}
@@ -1859,6 +1985,8 @@ def descend_to_b2f(report=None) -> Generator:
     report = report if report is not None else {}
     report.setdefault("readings", set())
 
+    # ⛔ HEAL FIRST, FROM 1F. See `heal_before_descent` for why placement matters.
+    yield from _budgeted(heal_before_descent(report), B1F_BUDGET_FRAMES, "heal before descending")
     yield from _budgeted(enter_b1f(report), B1F_BUDGET_FRAMES // 4, "enter B1F")
     yield from _budgeted(solve_b1f_puzzle(report), B1F_BUDGET_FRAMES, "solve the B1F puzzle")
 
