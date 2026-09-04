@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -12560,6 +12560,44 @@ class Ch23RouteMode(BotMode):
             f"R11b's LAST waypoint is `is_warp=True` or lands on VICTORY_ROAD_1F, aiming at (18,41) "
             f"ends leg 4 inside the cave ⇒ aim at the apron (18,42) instead, as R11c checks.")
 
+        # ---- R12: LEG 5's TRAPS, ASKED *BEFORE* THE CODE — the lesson leg 4 paid for. ---------
+        # ⛔ Leg 4 nearly ended INSIDE Victory Road because (18,41) is a DOOR WARP and `navigate_to`
+        # overrides its destination when the last waypoint is a warp. **(9,14) is a LADDER warp with
+        # exactly the same property** — so ask now rather than discover it in a drive.
+        # ⚠ AND A SECOND TRAP UNIQUE TO LEG 5: `map_path.py:1034-1037` adds **+10000** to any tile
+        # carrying an armed `on_enter_event_triggers`, and Wally's triggers (2,23)/(3,23) ARE armed.
+        # The planner will therefore route AROUND the battle that sets this chapter's GRADING FLAG
+        # if any alternative exists. The 1F recon says blocking both makes the ladder unreachable —
+        # so an alternative should NOT exist — but "should not" is not a measurement.
+        log(f"[{TAG}] ⛔ R12 asks LEG 5's two traps before any leg-5 code exists.")
+        dump("R12a VICTORY_ROAD_1F (15,40) -> the B1F ladder (9,14)  [WARP?]", (VR, (15, 40)), (VR, (9, 14)))
+        dump("R12b VICTORY_ROAD_1F (15,40) -> the tile BELOW it (9,15) [apron]", (VR, (15, 40)), (VR, (9, 15)))
+        dump("R12c VICTORY_ROAD_1F (15,40) -> Wally trigger (3,23)", (VR, (15, 40)), (VR, (3, 23)))
+        ask("R12d VICTORY_ROAD_1F (15,40) -> (9,14) with Wally's triggers COSTED +10000", (VR, (15, 40)), (VR, (9, 14)))
+        log(f"[{TAG}] ‼ R12 VERDICT SHAPE: if R12a's LAST waypoint is `is_warp=True` on "
+            f"VICTORY_ROAD_B1F, then aiming leg 5 at (9,14) ends it on B1F — doing leg 6's job — and "
+            f"leg 5 must stop on the APRON instead (R12b). ⚠ And compare R12a's LENGTH against the "
+            f"recon's 44 wp: a LONGER path is the planner paying +10000 to DETOUR AROUND Wally, "
+            f"which would skip the battle that sets `DEFEATED_WALLY_VICTORY_ROAD`.")
+
+        # ---- R13: ⛔ THE BOT IS STUCK ON WALLY'S TRIGGER TILE. ASK THE PLANNER WHY. -----------
+        # MEASURED over six leg-5 drives: the bot walks to (3,23), reports itself there, and then
+        # cannot step NORTH to (3,22) NOR navigate WEST to (2,23) — both of which read open,
+        # collision-0, elevation-4 in the raw layout bytes. Meanwhile nothing fires: no Wally coord
+        # event and no Hope sight line, on a floor where both are supposed to be unavoidable.
+        # ⇒ ask the planner about the immediate neighbourhood; if IT also refuses, the obstruction is
+        # something the layout bytes do not carry (an OBJECT, or a directional edge blocker).
+        log(f"[{TAG}] ⛔ R13 asks why the bot cannot leave Wally's trigger tile.")
+        ask("R13a 1F (3,23) -> the OTHER trigger (2,23)", (VR, (3, 23)), (VR, (2, 23)))
+        ask("R13b 1F (3,23) -> north (3,22)", (VR, (3, 23)), (VR, (3, 22)))
+        ask("R13c 1F (3,23) -> south (3,24)", (VR, (3, 23)), (VR, (3, 24)))
+        ask("R13d 1F (3,23) -> the B1F ladder apron (9,15)", (VR, (3, 23)), (VR, (9, 15)))
+        ask("R13e 1F (15,40) -> the OTHER trigger (2,23)", (VR, (15, 40)), (VR, (2, 23)))
+        ask("R13f 1F (15,40) -> Hope's tile neighbour (6,16)", (VR, (15, 40)), (VR, (6, 16)))
+        log(f"[{TAG}] ‼ R13 SHAPE: if the planner ROUTES these fine, the obstruction is dynamic (a "
+            f"live OBJECT the static planner cannot see — Wally himself, unhidden). If the planner "
+            f"ALSO refuses, it is in the map data and our offline model is missing a term.")
+
         log(f"[{TAG}] ⚠ READ A FAILURE AS 'the STATIC planner cannot see it', NEVER as 'the bot "
             f"cannot go there' — `navigate_to_anywhere` re-plans per warp and a §Ch15 leg succeeded "
             f"while planning statically as FAIL (KI-53).")
@@ -12977,6 +13015,116 @@ class Ch23CrossMode(BotMode):
                 _out.parent.mkdir(parents=True, exist_ok=True)
                 _out.write_bytes(context.emulator.get_save_state())
                 log(f"[{TAG}] captured the post-crossing fixture -> {_out}")
+        context.set_manual_mode()
+
+
+class Ch23RoadMode(BotMode):
+    """§Ch23 LEG 5 — enter Victory Road 1F, beat Wally, park at the B1F ladder apron.
+
+    Drives PRODUCTION's `victory_road.enter_victory_road`.
+
+    ⛔⛔ THE GRADE READS THE **FLAG**, NOT THE ROUTE. `DEFEATED_WALLY_VICTORY_ROAD` (flag 126) is
+    this chapter's grading flag and the one thing leg 5 exists to set. ‼ The name is verified to
+    resolve — `get_event_flag` returns **False for any unknown name**, so a typo would build a guard
+    that can never be true and would fail a perfect run forever.
+
+    ⛔ (9,14) IS A LADDER **WARP**. Measured (`ch23route` R12a): a plan aimed at it ends on
+    `VICTORY_ROAD_B1F (8,3) is_warp=True` — inside B1F's sealed arrival chamber, doing leg 6's job.
+    The leg parks on the APRON (9,15) and this driver grades the apron.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_ever_grande.ss1 --driver ch23road --frames 120000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23Road"
+
+    def on_whiteout(self) -> bool:
+        # ⛔ Defaults to False, WHICH DROPS THE BOT. ✅ Leg 4 armed the respawn to EVER_GRANDE, so a
+        # whiteout here lands ABOVE the falls — the leg is re-runnable without redoing legs 3-4.
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23road] WHITEOUT #{self.whiteouts} — respawn is EVER_GRANDE (leg 4 armed it).")
+        return True
+
+    def on_battle_started(self, encounter):
+        # ⛔⛔ THIS HOOK IS THE **STRATEGY PROVIDER**, NOT A NOTIFICATION — ITS RETURN VALUE IS USED.
+        # An earlier version of this driver counted battles here and returned `None`, which is not a
+        # strategy. `Ch23CrossMode` (leg 4) has NO override at all and battles worked fine, so this
+        # override ADDED a defect where the default was correct. ‼ **An instrument that changes the
+        # behaviour it measures is worse than no instrument** — and it cost three diagnostic drives
+        # chasing a game mechanic that was never broken.
+        # ⇒ return what every other chapter driver returns, and count as a SIDE EFFECT only.
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        from modules.story import victory_road as VR
+
+        TAG = "ch23road"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        report: dict = {"readings": set(), "trace": []}
+
+        start_done = VR.at_b1f_doorstep()
+        start_wally = VR.wally_beaten()
+        log(f"[{TAG}] PRE at={VR._where()} at_doorstep={start_done} wally_already={start_wally}")
+        log(f"[{TAG}] PRE party={VR.party_identities()}")
+
+        failure = None
+        try:
+            yield from VR.enter_victory_road(report)
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        taken = report.get("readings", set())
+        missing = [r for r in VR.LEG5_READINGS if r not in taken]
+        log(f"[{TAG}] RESULT readings={sorted(taken)}")
+        log(f"[{TAG}] RESULT missing={missing}")
+        log(f"[{TAG}] RESULT trace={report.get('trace')}")
+        log(f"[{TAG}] RESULT maps_seen={sorted(report.get('maps_seen', ()))}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+        for key in ("leg5_entry", "vr_arrival", "avatar_flags", "on_foot", "vr1f_state",
+                    "arrival_elevation", "after_wally_tile", "trigger_elevation",
+                    "trigger_tile_type", "vr1f_state_at_trigger", "lead5_after", "retrigger_attempts",
+                    "steps_at_arrival", "steps_at_trigger", "prev_elevation_at_trigger",
+                    "wally_flag", "continue_wp5"):
+            log(f"[{TAG}] R {key} = {report.get(key)!r}")
+
+        # ---- ACCEPTANCE -----------------------------------------------------------------------
+        on_apron = VR.at_b1f_doorstep()
+        wally = VR.wally_beaten()
+        # ⭐ PRESENCE before ABSENCE: the leg must have actually ENTERED 1F, not merely ended
+        # somewhere plausible. VICTORY_ROAD_1F in maps_seen is the witness.
+        entered_1f = VR.VR1F.value in set(report.get("maps_seen", ())) or VR._on_map(VR.VR1F)
+        cont = report.get("continue_wp5")
+        can_continue = isinstance(cont, int) and cont > 0     # ⛔ NON-ZERO
+        # ⛔ ANTI-VACUITY, AND IT NEEDS **BOTH** HALVES: a run that starts on the apron with Wally
+        # already beaten has nothing to do. Either alone is satisfiable by a no-op.
+        premise_ok = not (start_done and start_wally)
+        recoveries_ok = self.whiteouts <= 2
+
+        passed = (failure is None and premise_ok and on_apron and wally and entered_1f
+                  and can_continue and not missing and recoveries_ok)
+        log(f"[{TAG}] GRADE premise_ok={premise_ok} on_apron={on_apron} wally_flag={wally} "
+            f"entered_1f={entered_1f} can_continue={can_continue} ({cont!r}) missing={missing} "
+            f"battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] FINAL position={VR._where()}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH23_CAPTURE", "").strip()
+        if passed and _cap:
+            import pathlib as _pathlib   # ⛔ local: `pathlib` is NOT bound at module scope here
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if _out.exists() and _os.environ.get("CAPTURE_FORCE") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_out.name} exists. Set CAPTURE_FORCE=1 to overwrite.")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured the post-Wally fixture -> {_out}")
         context.set_manual_mode()
 
 
@@ -14756,6 +14904,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23DepartMode()
         elif args.driver == "ch23cross":
             context.bot_mode_instance = Ch23CrossMode()
+        elif args.driver == "ch23road":
+            context.bot_mode_instance = Ch23RoadMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

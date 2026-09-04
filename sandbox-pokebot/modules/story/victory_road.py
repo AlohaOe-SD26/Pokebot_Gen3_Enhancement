@@ -51,15 +51,17 @@ from modules.modes.util.higher_level_actions import (
     surface_from_dive,
 )
 from modules.modes.util.walking import navigate_to
+from modules.player import get_player_avatar
 from modules.pokemon_party import get_party
 
 # ‼ IMPORTED, NOT RE-IMPLEMENTED — this package's transcription rule: the same fact in two files is
 # the P5 doc shape in code form, and it drifts.
-from modules.story.seafloor_cavern import _at, _on_map, _where
+from modules.story.seafloor_cavern import _at, _flag, _on_map, _var, _where
 from modules.story.early_game import (
     StoryAbort,
     _check_abort,
     _navigate_riding_out,
+    _walk_through_warp,
     reraise_if_aborting,
     wait_until_truly_controllable,
 )
@@ -141,6 +143,40 @@ CLIMB_BUDGET = 3_000
 
 LEG4_READINGS = ("R4-LEAD", "R4-STAGE", "R4-BASE", "R4-CLIMB", "R4-LAND", "R4-HEAL4", "R4-ARM4",
                  "R4-APRON", "R4-CONTINUE4")
+
+# ============================== LEG 5 — VICTORY ROAD 1F =======================================
+VR1F = MapRSE.VICTORY_ROAD_1F
+
+#: Where the Ever Grande door warp lands, and the two tiles leg 5 turns on.
+VR_ENTRANCE = (15, 40)
+
+#: ⛔ WALLY'S TRIGGER IS *MANDATORY*, AND THE PLANNER ACTIVELY DISLIKES IT.
+#: `map_path.py:1034-1037` adds **+10000** to any tile with an armed `on_enter_event_triggers`, and
+#: (2,23)/(3,23) are exactly that — so the planner routes AROUND this battle wherever it can.
+#: ✅ It cannot here: blocking both triggers makes the B1F ladder UNREACHABLE (477 → 429 tiles), and
+#: MEASURED (`ch23route` R12) the entrance→ladder plan is **44 wp = 29 (to the trigger) + 15 (from
+#: it)** — i.e. the only path runs straight through it. ⇒ the penalty costs nothing and the battle
+#: that sets this chapter's GRADING FLAG cannot be skipped.
+WALLY_TRIGGER = (3, 23)
+
+#: ⭐ The OTHER armed trigger, same elevation, one tile west. **LOAD-BEARING**: walking between
+#: the two is what actually fires the battle — an A/B measured `battles=5` with that walk and
+#: `battles=0` without it, at an identical step-count delta.
+WALLY_TRIGGER_WEST = (2, 23)
+
+#: ⛔⛔ (9,14) IS A LADDER **WARP** AND MUST NEVER BE A NAVIGATION TARGET.
+#: MEASURED (`ch23route` R12a): `calculate_path(1F (15,40) -> 1F (9,14))` returns 44 wp whose LAST
+#: waypoint is **`map=VICTORY_ROAD_B1F coords=(8,3) is_warp=True`** — because `navigate_to` overrides
+#: its own destination when the final waypoint is a warp. Aiming leg 5 there would drop the bot into
+#: B1F's **sealed 23-tile arrival chamber**, doing leg 6's job, and an honest
+#: `_at(VICTORY_ROAD_1F, (9,14))` grade would FAIL a perfect run.
+#: ✅ R12b: the APRON (9,15) returns 45 wp, LAST `map=VICTORY_ROAD_1F (9,15) is_warp=False`.
+#: ‼ This is the THIRD warp-as-destination trap in this chapter (the Poké Center door, the Victory
+#: Road door, now the ladder). ⇒ **ask the planner before aiming at any tile adjacent to a warp.**
+B1F_LADDER = (9, 14)
+B1F_LADDER_APRON = (9, 15)
+
+LEG5_READINGS = ("R5-WARP", "R5-WALLY", "R5-FLAG", "R5-LADDER", "R5-CONTINUE5")
 
 #: ⛔ A NAMED-BAD DENYLIST, NOT AN ALLOWLIST. The tile type at UW126 (45,66) has NEVER been read;
 #: two independent designs predicted DIFFERENT values, and §Ch21 emerged there three times with no
@@ -927,3 +963,228 @@ def cross_to_ever_grande(report=None) -> Generator:
     except Exception as error:  # noqa: BLE001 - a refusal IS the reading
         report["continue_wp4"] = f"{type(error).__name__}: {str(error)[:120]}"
     _take(report, "R4-CONTINUE4")
+
+
+# --------------------------------------------------------------------------------------------
+# LEG 5 — ENTER VICTORY ROAD 1F, BEAT WALLY, REACH THE B1F LADDER
+# --------------------------------------------------------------------------------------------
+def wally_beaten() -> bool:
+    """The chapter's GRADING FLAG. ⛔ Read the flag, never "we walked past his tile".
+
+    ‼ The name is verified to resolve: `DEFEATED_WALLY_VICTORY_ROAD` is flag **126** in
+    `modules/data/event_flags/emerald.txt`, and `chapters.py:281` already grades §Ch23 on it.
+    That check matters because `get_event_flag` returns **False for any unknown name** — a typo
+    would produce a guard that can never be True and would fail a perfect run forever.
+    """
+    return bool(_flag("DEFEATED_WALLY_VICTORY_ROAD"))
+
+
+def at_b1f_doorstep() -> bool:
+    """Leg 5's completion predicate — ⛔ a POSITIVE whitelist on the APRON, never the ladder."""
+    return _on_map(VR1F) and _at(VR1F, B1F_LADDER_APRON)
+
+
+def enter_victory_road(report=None) -> Generator:
+    """LEG 5 — warp into Victory Road 1F, fight through to Wally, and park at the B1F ladder.
+
+    ⛔ 1F NEEDS NO FIELD MOVES AND CANNOT BE BRICKED: it has ZERO pushable boulders and ZERO
+    breakable rocks, and `requires_flash: false`. The boulder-seal hazard is a **B1F** property and
+    belongs to leg 6. Nothing this leg does can make the floor unwinnable.
+    """
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    yield from wait_until_truly_controllable()
+
+    if at_b1f_doorstep():
+        report["leg5_entry"] = "already at the B1F doorstep"
+        return
+
+    # ---- phase 1: through the Victory Road door ------------------------------------------------
+    # ⛔ `_walk_through_warp` and NOT `navigate_to(VR1F, ...)`: leg 4 deliberately parks on the
+    # APRON (18,42) precisely so that taking the warp is leg 5's explicit act rather than a side
+    # effect of a path whose last waypoint happens to be a door.
+    if _on_map(EG):
+        report["leg5_entry"] = "EVER_GRANDE apron"
+        if not _at(EG, VR_APRON):
+            yield from _sampling(_navigate_riding_out(EG, VR_APRON), report)
+        yield from _walk_through_warp("Up", EG.value)
+        yield from wait_until_truly_controllable()
+        if not _on_map(VR1F):
+            raise BotModeError(
+                f"Ch23 leg 5: stepped NORTH off the Ever Grande apron {VR_APRON} and did not arrive "
+                f"on VICTORY_ROAD_1F — now at {_where()}."
+            )
+        report["vr_arrival"] = _here_tile()
+        # ⛔ DIAGNOSTIC ADDED AFTER DRIVE 1 FAILED WITH `battles=0` AND THE FLAG CLEAR.
+        # Neither Hope's sight line nor Wally's coord event fired, and BOTH are elevation-gated in
+        # the same way: a land trainer cannot see a SURFING player (the elevation mismatch is checked
+        # before the object-event case), and a coord event only matches when
+        # `coordEvent.elevation == playerElevation`. ⇒ one shared cause explains both, so measure the
+        # avatar's state at arrival rather than guessing which of the two mechanics broke.
+        # ⛔ `is_in_water`, NOT `is_surfing` — the latter does not exist and my first diagnostic
+        # died on it. Reading an attribute I had not verified is the same class of error as the
+        # `pathlib`/`_pathlib` trap: **check the name against the class before using it.**
+        av = get_player_avatar()
+        report["avatar_flags"] = str(av.flags)          # MEASURED drive 2: 33 = OnFoot|Controllable
+        report["on_foot"] = not av.is_in_water          # ⇒ the "still surfing" theory is REFUTED
+        # ⇒ so the cause is upstream of the avatar: is the coord event even ARMED, and does the
+        # player's elevation match the event's? Both are read, never assumed.
+        from modules.map import get_map_data_for_current_position
+
+        # ⭐ `GAME_STAT_STEPS` IS THE PERFECT PROXY FOR "DID THE COORD-EVENT GATE OPEN".
+        # `field_control_avatar.c:157` increments it INSIDE the same `if (input->tookStep)`
+        # block, TWO LINES above the `TryStartStepBasedScript` call that runs coord events —
+        # and nothing else in the game increments it. ⇒ a step-count DELTA of 29 across a
+        # 29-waypoint walk proves the gate opened on every step, including the last one.
+        from modules.game_stats import GameStat, get_game_stat
+
+        report["steps_at_arrival"] = get_game_stat(GameStat.STEPS)
+        report["vr1f_state"] = _var("VICTORY_ROAD_1F_STATE")
+        try:
+            report["arrival_elevation"] = getattr(
+                get_map_data_for_current_position(), "elevation", None)
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            report["arrival_elevation"] = f"{type(error).__name__}: {error}"
+        _take(report, "R5-WARP")
+    report.setdefault("leg5_entry", str(_where()))
+
+    # ---- phase 1b: PUT THE STRONGEST BATTLER IN FRONT — measured necessary, not insurance -------
+    # ⛔⛔ LEG 5 ORIGINALLY SKIPPED THIS AND TOOK **2 WHITEOUTS IN ONE DRIVE.**
+    # The story override's faint-replacement ranking is `(incoming, -outgoing, -hp_fraction,
+    # -level)` (`story_mode.py:210`), i.e. HP **fraction** outranks LEVEL. On the OCEAN that was
+    # nearly harmless — Sceptile resists Water and carries a super-effective move, so it wins the
+    # first two key terms outright, which is why I recorded the risk as NARROW.
+    # ‼ **THAT NARROWING WAS TRUE OF WATER FOES AND FALSE HERE.** Victory Road's wilds are Golbat /
+    # Hariyama / Lairon / Loudred at L36-40: nothing in this party resists them and nothing carries a
+    # super-effective move, so `incoming` and `outgoing` TIE ACROSS THE WHOLE PARTY and the tiebreak
+    # falls to `hp_fraction` — handing the lead to the freshest mon, which is the **L19 Zigzagoon**.
+    # It is then one-shot by a L40, and `battle_items.py` declines to heal a mon that never gets an
+    # intermediate turn. ⇒ measured: 5 battles, 2 whiteouts.
+    # ⇒ **an environment-specific computation does not generalise to a different environment.**
+    if not _fault("NOLEAD5"):
+        try:
+            from modules.story.early_game import _lead_strongest_battler
+
+            yield from _lead_strongest_battler()
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            reraise_if_aborting(error)   # ⛔ non-fatal must never mean deaf to an abort
+            report["lead5_error"] = f"{type(error).__name__}: {error}"
+    report["lead5_after"] = next(iter(party_identities()), None)
+
+    # ---- phase 2: walk to Wally's trigger ------------------------------------------------------
+    # ‼ Two sight battles are UNAVOIDABLE on this floor and both are expected, not faults: **Hope**
+    # (6,15) on the way in — (9,14) is provably unreachable without entering her cone — and Edgar
+    # (33,22) on the way OUT, which belongs to leg 7. A battle here is NORMAL.
+    if not wally_beaten():
+        yield from _sampling(_navigate_riding_out(VR1F, WALLY_TRIGGER), report)
+        yield from wait_until_truly_controllable()
+        report["after_wally_tile"] = _here_tile()
+        # ⛔⛔ MEASURE AT THE TRIGGER, NOT AT ARRIVAL — my first diagnostic read the elevation on the
+        # ENTRANCE tile (15,40) and answered a question I had not asked. Wally's coord events are
+        # declared **elevation 4**, and `GetCoordEventScriptAtPosition` fires only when
+        # `coordEvent.elevation == playerElevation || == 0`. So the load-bearing number is the
+        # elevation the avatar carries **standing on (3,23)** — read it here, where it decides.
+        from modules.map import get_map_data_for_current_position
+
+        _md = get_map_data_for_current_position()
+        report["trigger_elevation"] = getattr(_md, "elevation", None)
+        report["trigger_tile_type"] = getattr(_md, "tile_type", None)
+        from modules.game_stats import GameStat, get_game_stat
+        from modules.map import get_map_objects
+
+        report["steps_at_trigger"] = get_game_stat(GameStat.STEPS)
+        # ⛔⛔ THE VALUE THAT ACTUALLY DECIDES, AND I HAD NEVER READ IT.
+        # `GetCoordEventScriptAtPosition` compares the event's elevation against
+        # `PlayerGetElevation()` = `gObjectEvents[player].previousElevation` — NOT the tile's
+        # grid elevation. What I measured earlier as "elevation 4" was `MapLocation.elevation`,
+        # a DIFFERENT NUMBER that merely happens to agree. ‼ Measuring a value adjacent to the
+        # load-bearing one and calling the question settled is the same class of error as
+        # reading `tail`'s exit code for the gate suite's.
+        try:
+            _po = next((o for o in get_map_objects() if o.local_id == 255 or o.is_player),
+                       None)
+            report["prev_elevation_at_trigger"] = getattr(_po, "previous_elevation", None)
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            report["prev_elevation_at_trigger"] = f"{type(error).__name__}: {error}"
+        report["vr1f_state_at_trigger"] = _var("VICTORY_ROAD_1F_STATE")
+
+        # ---- ⭐⭐ THE RE-ENTRY IS *REQUIRED*, AND AN ACCIDENTAL A/B PROVED IT ------------------
+        # ⛔ I DELETED THIS ONCE, ON AN INFERENCE, AND THE NEXT DRIVE REFUTED ME. The reasoning was:
+        # `GAME_STAT_STEPS` is incremented inside the same `if (input->tookStep)` block that runs
+        # coord events, so a delta of 29 across a 29-waypoint walk "proves" the gate opened on the
+        # arrival step and a re-entry cannot matter. ‼ **THE DIRECT COMPARISON SAYS OTHERWISE:**
+        #     with this block    -> battles=5, whiteouts=2, `WallyEntranceBattle` RUNS
+        #     without this block -> battles=0, whiteouts=0, nothing fires
+        #     (steps_delta = 29 in BOTH — so the proxy cannot tell them apart)
+        # ⇒ **A PROXY THAT SAYS "THIS SHOULD NOT BE NECESSARY" DOES NOT OUTRANK AN A/B SHOWING THAT
+        # IT IS.** The step counter measures that a step COMPLETED, not that the coord-event lookup
+        # ran with the arrival position on that frame — those are different claims, and I treated the
+        # cheap one as settling the expensive one.
+        # ⇒ walking between the two trigger tiles is what actually arms the battle. Both (2,23) and
+        # (3,23) carry the same event, so either arrival re-enters it.
+        # ‼ BOUNDED AT 2 AND IT FALLS THROUGH TO A NAMED RAISE — a re-entry that never works must
+        # fail loudly rather than spin, and this loop is why a failing run shows battles at all.
+        for attempt in range(1, 3):
+            if wally_beaten():
+                break
+            report["retrigger_attempts"] = attempt
+            target = WALLY_TRIGGER_WEST if _here_tile() != WALLY_TRIGGER_WEST else WALLY_TRIGGER
+            try:
+                yield from _navigate_riding_out(VR1F, target)
+            except BotModeError as error:
+                # ⛔ Aborts are re-raised FIRST — "non-fatal" must never mean "deaf" (the ratchet
+                # caught exactly this shape in leg 4). The rest is recorded, not swallowed: a failed
+                # re-entry attempt is a READING that the next attempt and the final raise both use.
+                reraise_if_aborting(error)
+                report.setdefault("retrigger_errors", []).append(f"{type(error).__name__}: {error}")
+            yield from wait_until_truly_controllable()
+        report["retrigger_end_tile"] = _here_tile()
+        _take(report, "R5-WALLY")
+
+    # ---- phase 3: the grading flag, read from the WORLD -----------------------------------------
+    if not wally_beaten():
+        # ⛔⛔ THIS MESSAGE ONCE ASSERTED WHAT THE FAILURE *WASN'T*, AND COST SIX DIAGNOSTIC DRIVES.
+        # It read: "a clear flag here means the trigger was never stepped on — NOT that the battle
+        # was lost (a loss whites out instead)." Every clause is wrong in the case that actually
+        # happened: the coord event fired, `WallyEntranceBattle` ran, and the bot LOST — twice, with
+        # `BattleScript_LocalBattleLostEnd` and two whiteouts printed in the SAME log I was reading.
+        # ‼ **A DIAGNOSTIC THAT RULES A CAUSE OUT IS A CLAIM, AND A WRONG ONE SENDS THE READER AWAY
+        # FROM THE ANSWER.** State what was OBSERVED; let the reader weigh it.
+        _delta = (report.get("steps_at_trigger") or 0) - (report.get("steps_at_arrival") or 0)
+        raise BotModeError(
+            f"Ch23 leg 5: standing on {_here_tile()} but `DEFEATED_WALLY_VICTORY_ROAD` is CLEAR. "
+            f"⇒ READ THE DRIVER'S `whiteouts` AND `battles` LINES BEFORE CONCLUDING ANYTHING: the "
+            f"flag is set only at the END of `WallyEntranceBattle`, so it stays clear whether the "
+            f"trigger never fired OR the battle fired and was LOST. Those two look IDENTICAL from "
+            f"here. Diagnostics on hand: "
+            f"var={_var('VICTORY_ROAD_1F_STATE')} (0 = armed); "
+            f"steps_delta={_delta} (steps COMPLETED; ⚠ this does NOT prove the coord-event "
+            f"lookup ran with the arrival position — an A/B measured battles=5 WITH the re-entry walk and battles=0 WITHOUT it at this SAME delta, so the counter cannot tell those "
+            f"two apart); "
+            f"prev_elevation={report.get('prev_elevation_at_trigger')} (must equal the event's 4). "
+            f"If all three are good, the trigger fired and the BATTLE WAS LOST."
+        )
+    _take(report, "R5-FLAG")
+
+    # ---- phase 4: park on the LADDER APRON, never on the ladder ---------------------------------
+    yield from _sampling(_navigate_riding_out(VR1F, B1F_LADDER_APRON), report)
+    if not _at(VR1F, B1F_LADDER_APRON):
+        raise BotModeError(
+            f"Ch23 leg 5: aimed at the B1F ladder apron {B1F_LADDER_APRON} and ended on "
+            f"{_where()}. ⛔ Never retry this by aiming at the ladder {B1F_LADDER} itself — that is "
+            f"a WARP, and the plan's last waypoint becomes B1F (8,3)."
+        )
+    _take(report, "R5-LADDER")
+
+    # ---- can the bot CONTINUE? ⛔ off the END tile, NON-ZERO ------------------------------------
+    # ⚠ The target is the ladder itself: leg 6's first act is to step onto it, so "can I still reach
+    # the warp from where I stopped?" is exactly the question that matters — and it is 1 wp, which
+    # is non-zero, so the check cannot be satisfied by standing on the answer.
+    from modules.map_path import calculate_path
+
+    try:
+        path = calculate_path((VR1F, _here_tile()), (VR1F, B1F_LADDER))
+        report["continue_wp5"] = len(path)
+    except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+        report["continue_wp5"] = f"{type(error).__name__}: {str(error)[:120]}"
+    _take(report, "R5-CONTINUE5")

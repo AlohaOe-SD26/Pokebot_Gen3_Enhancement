@@ -306,3 +306,17 @@
 {"when": "2026-09-04T06:48:48", "driver": "ch23cross", "build": "sandbox", "state": "post_depart_sootopolis.ss1", "frames_run": 30000, "recomputes": 30001, "scans": 101, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-04T06:49:32", "driver": "ch23cross", "build": "sandbox", "state": "post_depart_sootopolis.ss1", "frames_run": 36270, "recomputes": 36270, "scans": 121, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-04T07:01:45", "driver": "ch23cross", "build": "sandbox", "state": "post_depart_sootopolis.ss1", "frames_run": 30000, "recomputes": 30001, "scans": 101, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T07:26:38", "driver": "ch23route", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 400, "recomputes": 401, "scans": 2, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T07:29:27", "driver": "ch23road", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 120, "recomputes": 121, "scans": 1, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T07:35:24", "driver": "ch23road", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 20471, "recomputes": 20471, "scans": 69, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T07:37:36", "driver": "ch23road", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 20208, "recomputes": 20208, "scans": 68, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T07:44:15", "driver": "ch23road", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 20471, "recomputes": 20471, "scans": 69, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T07:50:27", "driver": "ch23road", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 20471, "recomputes": 20471, "scans": 69, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T07:59:15", "driver": "ch23road", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 20471, "recomputes": 20471, "scans": 69, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T08:05:27", "driver": "ch23road", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 23261, "recomputes": 23261, "scans": 78, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T08:08:54", "driver": "ch23road", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 60000, "recomputes": 60001, "scans": 201, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T08:12:23", "driver": "ch23road", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 60000, "recomputes": 60001, "scans": 201, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T08:13:32", "driver": "ch23route", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 400, "recomputes": 401, "scans": 2, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T08:17:09", "driver": "ch23road", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 60000, "recomputes": 60001, "scans": 201, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T08:27:35", "driver": "ch23road", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 20471, "recomputes": 20471, "scans": 69, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T08:31:16", "driver": "ch23road", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 60000, "recomputes": 60001, "scans": 201, "divergences": {}, "observer_broke": false}

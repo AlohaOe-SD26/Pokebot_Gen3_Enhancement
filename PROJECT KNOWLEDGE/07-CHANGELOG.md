@@ -21290,3 +21290,73 @@ probe whose output was right only by luck.
 **Also fixed in the same pass: P1.** The 60-second banner still read *"THE ROUTE LEGS … Leg 1 is
 DONE"* while the queue below said *"NEXT IS LEG 5"* — understating by three shipped legs. The banner
 is what a cold reader sees first, so it now names leg 5, the fixture, and the standing position.
+
+
+## 2026-09-04 (leg 5 recon) — LEG 5's TWO TRAPS ASKED BEFORE THE CODE, AND BOTH WERE REAL
+
+`ch23route` gained **R12**, applying the lesson leg 4 had just paid for: ask the planner about any
+destination adjacent to a warp BEFORE writing the leg.
+
+**1. ⛔⛔ THE B1F LADDER IS A WARP, AND AIMING AT IT DROPS THE BOT INTO THE SEALED CHAMBER.**
+MEASURED: `calculate_path(1F (15,40) → 1F (9,14))` returns 44 wp whose LAST waypoint is
+**`map=VICTORY_ROAD_B1F coords=(8,3) is_warp=True`**. That is B1F's 23-tile arrival chamber — whose
+only two exits are the boulders that can **permanently seal the floor**. So leg 5 would have done leg
+6's job, from the most dangerous tile in the chapter, and an honest `_at(VICTORY_ROAD_1F,(9,14))`
+grade would have FAILED a perfect run.
+✅ **The apron (9,15) is clean:** 45 wp, LAST `VICTORY_ROAD_1F (9,15) is_warp=False`. Leg 5 parks
+there; leg 6 takes the ladder as its own explicit act.
+‼ **This is the THIRD warp-as-destination trap in this chapter** (Poké Center door, Victory Road
+door, now the ladder) — filed in `08-MISTAKES.md` as a property of `navigate_to`, not a fact about
+three tiles.
+
+**2. ✅ THE PLANNER DOES *NOT* DETOUR AROUND WALLY, AND THAT MATTERS FOR THE GRADING FLAG.**
+`map_path.py:1034-1037` adds **+10000** to any tile with an armed `on_enter_event_triggers`, and
+Wally's (2,23)/(3,23) are exactly that — so the planner routes around such battles **wherever it
+can**. MEASURED here it cannot: entrance→ladder is **44 wp = 29 (to the trigger) + 15 (from it)**,
+i.e. the only path runs straight through him. ⇒ the penalty costs nothing, and the battle that sets
+`DEFEATED_WALLY_VICTORY_ROAD` cannot be skipped.
+
+**3. ✅ AND THE FLAG NAME WAS VERIFIED BEFORE USE.** `get_event_flag` returns **False for any unknown
+name**, so a typo builds a guard that can never be true and fails a perfect run forever.
+`DEFEATED_WALLY_VICTORY_ROAD` is flag **126** in `modules/data/event_flags/emerald.txt`, and
+`chapters.py:281` already grades §Ch23 on it.
+
+
+## 2026-09-04 (leg 5) — THE COORD EVENT WAS NEVER BROKEN. THE BOT LOSES TO WALLY.
+
+Six diagnostic drives went into §Ch23 leg 5 reaching Wally's trigger with the grading flag still
+clear. **The mechanic is intact:** `WallyEntranceBattle` runs, and the log carries
+`BattleScript_LocalBattleLostEnd` twice with two whiteouts. ⇒ **the trigger fires and the party
+LOSES.**
+
+**✅ EVERYTHING ABOUT THE MECHANIC IS NOW MEASURED GOOD**, and the measurements are worth keeping:
+* `VAR_VICTORY_ROAD_1F_STATE = 0` at the trigger ⇒ the coord events are ARMED.
+* `prev_elevation_at_trigger = 4` ⇒ matches the events' declared elevation 4. *(This is
+  `ObjectEvent.previous_elevation` — the value `GetCoordEventScriptAtPosition` actually compares.
+  My earlier "elevation 4" was `MapLocation.elevation`, the TILE's grid elevation: a different
+  number that happened to agree.)*
+* ⭐ **`GAME_STAT_STEPS` delta = 23491 − 23462 = 29 across a 29-waypoint walk.** That stat is
+  incremented inside the same `if (input->tookStep)` block that runs coord events, two lines above
+  the call, and nothing else increments it ⇒ **the gate opened on every step and the lookup ran.**
+  One number eliminated the whole "the mechanic is broken" family.
+* Avatar `OnFoot|Controllable`; every walkable neighbour of both triggers is elevation 4, so
+  `previousElevation` cannot be stale.
+
+**⛔ THE REAL FINDING, AND IT IS NOT A CODE BUG: THE PARTY IS TOO WEAK FOR WALLY.** Sceptile L51
+fights and gains exp (127,205 → 132,729) but the match is lost, twice. The roster is
+Sceptile L51 / Zigzagoon **L19** / Swellow L42 / Wailmer L40 / Mightyena L44 / Castform L36 against
+Wally's L41-45 team — and the faint-replacement ranking (`story_mode.py:210`, HP **fraction** above
+LEVEL) sends the freshest mon in once the type terms tie, which in a cave is immediately.
+⇒ **This is a TEAM-STRENGTH question and it is the user's call**, not something to paper over in the
+leg. Filed as `#24-ch23wally`. ⚠ The whiteouts are survivable by design — leg 4 armed the respawn to
+EVER_GRANDE, so the bot lands above the falls and leg 5 re-runs rather than losing legs 3-4.
+
+**🔧 TWO REAL DEFECTS FELL OUT OF THE CHASE AND ARE FIXED:**
+1. My `on_battle_started` override returned `None` — but that hook is the **strategy provider**, not
+   a notification. Leg 4 has no override and works; my *counter* introduced a defect into the thing
+   it measured. Now returns `LevelUpTravelBattleStrategy()`.
+2. Leg 5 did not call `_lead_strongest_battler` (leg 4 does). ⚠ And my earlier narrowing of that
+   risk — "it needs BOTH Sceptile and Wailmer out" — was computed against **Water** foes on Route
+   128. Against Victory Road's cave wilds nothing resists and nothing is super-effective, so the
+   type terms tie across the whole party and the L19 mule leads immediately.
+   ‼ **An environment-specific computation does not generalise to a different environment.**

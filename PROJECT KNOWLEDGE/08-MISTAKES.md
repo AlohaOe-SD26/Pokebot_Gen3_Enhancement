@@ -11674,3 +11674,143 @@ its heading and first bullet in the same edit**, or the append is what makes the
 signal is the append count, not the length.
 ‼ **AND THE STALEST TEXT IS WHERE A LINE-BUDGET RULE POINTS AWAY FROM.** "Trim your newest text" is
 right for authorship and wrong for accuracy; pair it with "re-read the oldest".
+
+
+## 2026-09-04 — THE SAME TRAP THREE TIMES IN ONE CHAPTER: AIMING A PATH AT A **WARP** TILE
+
+**The shape.** `navigate_to` OVERRIDES ITS OWN DESTINATION when the plan's last waypoint is a warp
+(`walking.py:446-448`). So asking to walk to a door, a ladder or a stair does not park you in front
+of it — **it takes you through it**, onto a different map. Any grade asserting `_at(thisMap, thatTile)`
+then FAILS a perfect run, and the leg silently does the NEXT leg's job.
+
+**It has now happened three times in §Ch23 alone, on three different kinds of warp:**
+
+| # | the tile aimed at | what the plan actually ends on |
+|---|---|---|
+| 1 | Sootopolis Poké Center **door** (43,31) | inside the building — caught in design |
+| 2 | Victory Road **door** (18,41) | `VICTORY_ROAD_1F (15,40) is_warp=True` — **measured** |
+| 3 | the B1F **ladder** (9,14) | `VICTORY_ROAD_B1F (8,3) is_warp=True` — **measured** |
+
+⇒ #3 would have dropped the bot into B1F's **sealed 23-tile arrival chamber**, whose only two exits
+are the boulders that can permanently seal the floor — i.e. the most dangerous tile in the chapter,
+reached by a leg that had no business being there.
+
+**Why it kept recurring.** Each time it was recorded as a fact about *that tile* — "(18,41) is a
+door" — rather than as a property of the primitive. A fact about one tile does not generalise; a
+property of `navigate_to` does. The first two were caught by review and measurement; the third I
+asked about **before writing the code**, and that is the only reason it cost seconds instead of a
+drive.
+
+**Prevention rules.**
+⛔⛔ **NEVER AIM A PATH AT A WARP TILE. AIM AT ITS APRON.** Doors, ladders, stairs, arrow warps and
+dive spots are all destinations that *move you*. The apron is the tile you can stand on and still be
+where you think you are. Name the pair explicitly in code (`PC_DOOR`/`PC_APRON`,
+`VR_DOOR`/`VR_APRON`, `B1F_LADDER`/`B1F_LADDER_APRON`) so the distinction survives the next edit.
+⛔ **AND ASK THE PLANNER BEFORE AIMING AT ANY TILE ADJACENT TO A WARP.** One `calculate_path` call,
+dumping the last waypoint's `(map, coordinates, is_warp)`, settles it in seconds — versus a
+30-minute drive that ends on the wrong map and reports a confusing failure.
+✅ **THE CHECK IS NOW ROUTINE, AND THAT IS THE POINT.** `ch23route` R11/R12 exist precisely to ask
+this before each leg is written. ‼ *A trap that recurs is not bad luck — it is a rule written at the
+wrong level of generality.*
+
+
+## 2026-09-04 — I WROTE A DIAGNOSTIC THAT RULED OUT THE TRUE CAUSE, THEN BELIEVED IT FOR SIX DRIVES
+
+**Symptom.** §Ch23 leg 5 reached Wally's trigger tile (3,23) and `DEFEATED_WALLY_VICTORY_ROAD` stayed
+clear. I spent **six diagnostic drives** proving the coord-event mechanic was intact.
+
+**The mechanic was never broken.** `WallyEntranceBattle` ran, and the log carried
+`BattleScript_LocalBattleLostEnd` **twice**, with two `WhiteoutListener` hand-offs. ⇒ **the trigger
+fired and the bot LOST THE BATTLE.**
+
+**⛔⛔ THE ROOT CAUSE IS THE MESSAGE I WROTE MYSELF.** The raise read:
+
+> *"a clear flag here means the trigger was never stepped on — **not** that the battle was lost
+> (a loss whites out instead)."*
+
+Every clause is wrong in the case that happened, and the sentence **ruled out the true cause by
+name**. Worse, the disconfirming evidence was printed in the same output the whole time: the driver's
+own `whiteouts=2` line, two lines below the failure text. I read past it six times because my
+message had already told me what the answer was not.
+
+‼ **A DIAGNOSTIC THAT SAYS WHAT THE FAILURE *ISN'T* IS A CLAIM — AND A WRONG ONE IS WORSE THAN NO
+MESSAGE**, because it redirects the reader with authority. ⇒ **state what was OBSERVED and let the
+reader weigh it.** The rewritten raise now prints the three diagnostics and ends: *"If all three are
+good, the trigger fired and the BATTLE WAS LOST."*
+
+**Three more errors inside the same chase, each worth its own line:**
+
+1. ⛔ **AN INSTRUMENT THAT CHANGED WHAT IT MEASURED.** I added `on_battle_started` to count battles —
+   but that hook is the **strategy provider**, and I returned `None`. `Ch23CrossMode` (leg 4) has no
+   override at all and battles worked fine, so my counter *introduced* a defect into the thing it was
+   measuring. ⇒ **before overriding a hook to observe something, check whether its RETURN VALUE is
+   load-bearing.**
+2. ⛔ **I MEASURED A VALUE ADJACENT TO THE LOAD-BEARING ONE AND CALLED THE QUESTION SETTLED.** I read
+   `MapLocation.elevation` (the tile's grid elevation) and reported "elevation 4 — matches". The
+   value the game actually compares is `gObjectEvents[player].previousElevation`, a *different
+   number* that merely happened to agree. Same class as reading `tail`'s exit code for the gate
+   suite's.
+3. ⛔ **I MISAPPLIED MY OWN RECON.** I treated "Hope is an unavoidable sight battle" as proof that
+   *any* 1F traversal must fight her, so `battles=0` looked like a second broken mechanic and I built
+   a "two mechanics, one shared cause" theory on it. The recon says her cone is unavoidable on the
+   route to **the ladder (44 steps)**; leg 5 walks to **the trigger (29 steps)**, which never enters
+   it. **Zero battles was the CORRECT result.** ⇒ *a claim scoped to one route is not a claim about
+   the map.*
+
+**⭐ THE TECHNIQUE THAT FINALLY SETTLED IT, AND IT IS REUSABLE.** `GAME_STAT_STEPS` is incremented at
+`field_control_avatar.c:157`, **inside the same `if (input->tookStep)` block and two lines above** the
+call that runs coord events — and nothing else increments it. So the step-count DELTA across a walk
+is a perfect proxy for *"did the step gate open on every step?"*. Measured **23491 − 23462 = 29**
+against a 29-waypoint walk ⇒ the gate opened every time and the lookup ran with correct arguments.
+That one number eliminated the entire mechanic-is-broken family in a single drive.
+
+**Prevention rules.**
+⛔⛔ **NEVER WRITE "THIS IS NOT X" INTO A FAILURE MESSAGE UNLESS X IS DISPROVEN *AT THAT MOMENT* BY A
+VALUE IN THE MESSAGE.** Diagnostics enumerate observations; they do not adjudicate.
+⛔ **WHEN A FAILURE PERSISTS, RE-READ THE FULL RUN OUTPUT BEFORE FORMING THE NEXT HYPOTHESIS.** The
+counters that contradicted me were always on screen. A hypothesis built without re-reading is built
+on the last thing you happened to notice.
+⛔ **FIND THE GAME'S OWN COUNTER FOR THE GATE YOU SUSPECT.** A step counter, a flag, a stat — an
+incrementing value adjacent to the branch under test converts "is this code path running?" from an
+argument into a measurement.
+
+
+## 2026-09-04 — I DELETED THE WORKING CODE BECAUSE A PROXY SAID IT SHOULDN'T BE NEEDED
+
+**Symptom.** §Ch23 leg 5 contained a "re-entry" loop that walked between Wally's two trigger tiles.
+A decomp analysis gave me a decision rule: `GAME_STAT_STEPS` is incremented inside the very
+`if (input->tookStep)` block that runs coord events, two lines above the call, so *"a step delta
+matching the walk length proves the gate opened and the re-entry cannot help."* I measured
+**delta = 29 across a 29-waypoint walk**, concluded the loop was dead weight, and deleted it —
+writing a confident comment about deleting refuted experiments.
+
+**The very next drive refuted ME:**
+
+| | battles | whiteouts | `WallyEntranceBattle` | steps_delta |
+|---|---|---|---|---|
+| **with** the re-entry | 5 | 2 | **RUNS** | 29 |
+| **without** it | 0 | 0 | never fires | 29 |
+
+**The delta is identical in both.** So the proxy cannot distinguish them, and the loop is the only
+thing that makes the battle fire.
+
+**Root cause.** The step counter proves a step **completed**. It does *not* prove the coord-event
+lookup ran **with the arrival position on that frame**. Those are different claims, and I let the
+cheap one settle the expensive one because it came with a decomp citation and a clean number.
+‼ **A citation makes a premise credible; it does not make it the same claim as your conclusion.**
+
+**What made it recoverable.** I re-drove after deleting, rather than committing on the inference —
+so the deletion and its refutation were one run apart, and the comparison was accidentally a clean
+A/B: same fixture, same code except the block, same step delta.
+
+**Prevention rules.**
+⛔⛔ **A PROXY THAT SAYS "THIS SHOULD NOT BE NECESSARY" NEVER OUTRANKS AN A/B SHOWING THAT IT IS.**
+Direct evidence about the behaviour beats an inference about the mechanism, even a well-cited one.
+⛔ **BEFORE DELETING CODE AS UNNECESSARY, RUN THE ARM WITHOUT IT.** This project already had the
+rule in the other direction — *"a claim of the form 'without X the bug survives' is a CLAIM, and the
+only currency is an arm with X removed"* — and the converse holds exactly as hard: *"X is redundant"*
+is a claim, and its currency is an arm with X removed. I had that arm available and reasoned instead.
+‼ **AND THE DIAGNOSTIC THAT CARRIED THE BAD INFERENCE SPREAD IT.** I had written the over-claim into
+the failure message itself (*"steps_delta … proves the lookup ran"*), so every future reader would
+have inherited it. Fixed to state what the counter measures and what it cannot distinguish — the
+THIRD over-claiming diagnostic corrected today.

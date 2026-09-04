@@ -810,6 +810,24 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 
 ### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ⚠ **Drift is 11** (2026-09-03: `chapters.py` for a §Ch23 correctness fix, plus the new sandbox-only chapter modules `sootopolis_gym.py` and `victory_road.py`) — ⛔ **PROMOTION IS THE USER'S CALL and is not implied.** ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
 
+### ⚠ `#24-ch23wally` — **THE PARTY LOSES TO WALLY. This is a TEAM-STRENGTH question and it is the USER's call.** (filed 2026-09-04, MEASURED)
+
+- [ ] **MEASURED, NOT INFERRED: `WallyEntranceBattle` fires correctly and the bot LOSES**, twice in
+      one drive (`BattleScript_LocalBattleLostEnd` ×2, 2 whiteouts). ⛔ **The coord-event mechanic is
+      intact** — var armed (0), `prev_elevation` 4 matching the event, and a `GAME_STAT_STEPS` delta
+      of exactly 29 across a 29-waypoint walk proving the step gate opened every time.
+      **Roster:** Sceptile **L51** / Zigzagoon **L19** / Swellow L42 / Wailmer L40 / Mightyena L44 /
+      Castform L36, at full HP, versus Wally's **L41-45** team. Sceptile fights and gains exp
+      (127,205 → 132,729) but the match is lost.
+      ⚠ **The L19 Zigzagoon is a live liability**, not just dead weight: the story override's
+      faint-replacement ranking (`story_mode.py:210`) puts HP **fraction** above LEVEL, so once the
+      type terms tie — which in a cave is immediately — the freshest mon leads and is one-shot.
+      ⇒ **OPTIONS, none of which I should pick unilaterally:** (a) train before Victory Road
+      (`#24-organicteam` / `#24-maintain` territory); (b) fix the faint-replacement ranking to weigh
+      level properly; (c) accept the loss loop — it is survivable, because leg 4 arms the respawn to
+      EVER_GRANDE so a whiteout lands ABOVE the falls and leg 5 simply re-runs.
+      ⛔ **NOT a blocker for the leg's CODE**, which is correct; it is a blocker for the leg PASSING.
+
 ### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **LEGS 1-4 SHIP AND PASS; LEGS 5-8 REMAIN.** (filed 2026-09-03)
 
 - [~] **REMAINS: legs 5-8** — Victory Road 1F (Hope, Wally), the B1F boulder puzzle, B2F, the
