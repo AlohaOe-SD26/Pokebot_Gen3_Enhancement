@@ -11615,3 +11615,29 @@ Read WHICH conjunct failed before claiming the arm demonstrated the hazard.
 running, so its first and second reads disagreed. It caught this itself and re-read. ⇒ **freeze the
 artifact under review, or tell the reviewer it is moving** — a reviewer racing the author can deliver
 findings that are already stale.
+
+
+## 2026-09-03 — I REPORTED A GATE SUITE AS GREEN BY READING `tail`'s EXIT CODE
+
+**Symptom.** I told the user *"the full gate suite exited 0"*. It had **FAILED 2 of 33**.
+
+**Cause.** The command was
+`run_gates.py > gates.txt 2>&1; echo "GATES_EXIT=$?"; tail -5 gates.txt`, run in the background. A
+`;`-chain gives the harness the exit status of the **last** command — `tail` — which succeeds
+whatever the suite did. The true status went to stdout as `GATES_EXIT=1`, into the *task output*
+file, while I read the *gate log* file. **The verdict and the evidence ended up in two different
+places and I read the one without the verdict.**
+
+**Why it slipped.** The notification said "completed (exit code 0)" in the same sentence shape as
+every successful command all session, so it looked like confirmation rather than a different
+measurement. I then quoted it onward without opening the file that held the real answer.
+
+**Prevention rules.**
+⛔⛔ **PUT THE EXIT CODE WHERE THE READER WILL LOOK.** `echo "EXIT=$?" >> the_same_file`, so the
+verdict and the evidence cannot be separated. Never let a redirect split them.
+⛔ **A `;`-CHAIN LAUNDERS FAILURE.** The harness reports the LAST command's status. End the chain on
+the command under test, or use `set -o pipefail`/`&&`, or check the status explicitly.
+‼ **AND A HARNESS "exit code 0" IS A MEASUREMENT OF WHATEVER YOU ACTUALLY RAN**, not of what you
+meant to run. Quoting it onward is a claim; treat it like any other claim and check the artifact.
+✅ **What caught it:** re-reading the gate log for a different reason and seeing the word `FAILED`
+in a suite I had already called green.

@@ -21155,3 +21155,38 @@ suppression as an unstated dependency on someone else's implementation detail.
 
 **5. AND A FAIR PROCESS FINDING:** I edited both files *while* the review ran, so its two reads
 disagreed. It noticed and re-read. ⇒ **freeze the artifact under review, or say it is moving.**
+
+
+## 2026-09-03 (gates) — THE SUITE WAS RED AND MY OWN INSTRUMENTATION SAID IT WAS GREEN
+
+**1. ⛔⛔ I READ `tail`'s EXIT CODE AND CALLED IT THE GATE SUITE'S.** I ran
+`run_gates.py > file 2>&1; echo "GATES_EXIT=$?"; tail -5 file` in the background. The harness
+reported **"completed (exit code 0)"** — which is the exit of the LAST command in the chain, `tail`.
+The real answer, `GATES_EXIT=1`, went to stdout in the task output, a file I then did not read
+because I was reading the gate log instead. ⇒ **I reported "the full gate suite exited 0" to the
+user, and it had FAILED 2 of 33.**
+‼ ⇒ **PUT AN EXIT CODE WHERE THE THING THAT READS IT WILL LOOK.** A `;`-chain hands the harness the
+last command's status, and a redirect splits the verdict from the evidence. Either `set -o pipefail`
+and end on the command under test, or write the exit code INTO the artifact being read
+(`echo "EXIT=$?" >> file`). *(Corrected to the user in the same session.)*
+
+**2. ⛔ ONE FAILURE WAS MINE, AND THE RATCHET CAUGHT EXACTLY WHAT IT EXISTS FOR.**
+`repro_no_silent_except.py` enforces a SILENT-except budget **per scan root**, and
+`modules/story` went **124 > 123** — my new `victory_road.py` added one silent handler. The gate's
+own message names the case precisely: *"new debt in one root funded by headroom another root brought
+in"*, which a total-only ratchet would have missed.
+✅ **Fixed the right way: by writing the justification the gate asks for, NOT by raising the
+baseline.** The handler is the orchestrator's bounded retry, and the comment now states the four
+properties that make swallowing legitimate there — aborts re-raised, the error kept and surfaced,
+the loop bounded and raising on exhaustion, every leg idempotent. ⇒ **123/123, zero new debt**, and
+the file is better documented than a baseline bump would have left it.
+‼ The gate accepts a re-raise, a report, **or a real justification comment** — a design that turns
+"suppress the warning" into "explain yourself", which is why the fix improved the code.
+
+**3. ✅ THE OTHER FAILURE IS PRE-EXISTING AND ALREADY FILED:** `repro_gym_whiteout_guard.py` TIMED
+OUT at 900s — `#24-gymwhiteoutgatehang`, open since 2026-09-01. Not caused by this work, and *a hung
+gate is a failed gate* by that runner's own rule.
+
+**4. ✅ RE-DRIVEN AFTER THE FIX:** `--driver ch23depart` → `ACCEPTANCE: PASS`, identical readings
+(`leg3_entry='CITY'`, `missing=[]`, `can_continue=55`). The change was comment-only, and it was still
+re-driven rather than assumed.

@@ -20,3 +20,8 @@ saves/midstuck.ss1
 livetest-runs/
 x4-runs/
 .gate-logs/
+
+# `run_gates.py` transcripts — regenerable, one per run.
+# ⛔ ANCHORED with a leading `/` like the `.stdout.txt` rule above, so it can never reach
+# `evidence/`, where a gate transcript IS the record rather than scratch.
+/gates_*.txt

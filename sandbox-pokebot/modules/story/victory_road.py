@@ -676,6 +676,18 @@ def depart_sootopolis(report=None, *, attempts: int = 3) -> Generator:
         except StoryAbort:
             raise
         except BotModeError as error:
+            # ⛔ THIS HANDLER SWALLOWS ON PURPOSE, AND HERE IS WHY IT IS SAFE TO — the four
+            # properties that make a retry legitimate rather than a silent derail:
+            #   1. ABORTS ARE NOT SWALLOWED. `StoryAbort` is re-raised by the clause above, and
+            #      `reraise_if_aborting` re-raises any abort wearing a `BotModeError` costume.
+            #   2. THE ERROR IS KEPT, NOT DISCARDED — appended to `report["attempt_errors"]`, which
+            #      the driver prints line by line, and surfaced live via `context.message`.
+            #   3. THE LOOP IS BOUNDED (`attempts=3`) and its exhaustion RAISES, naming the last
+            #      error, so "we retried and gave up" can never be mistaken for "we succeeded".
+            #   4. EVERY LEG IS IDEMPOTENT and self-skips on state the game holds, so a retry
+            #      resumes rather than redoing work.
+            # ‼ Without all four this would be the `#26-manualderails` shape: 44 of 50 runs ended in
+            # a Manual hand-off whose budget was exhausted rather than whose situation was hopeless.
             reraise_if_aborting(error)
             last_error = f"attempt {attempt}: {type(error).__name__}: {error}"
             report.setdefault("attempt_errors", []).append(last_error)
