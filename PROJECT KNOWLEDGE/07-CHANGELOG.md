@@ -21471,3 +21471,67 @@ ideal roster unless its premise is checked; its plan was internally sound and si
 ⇒ **before adopting any recommendation, verify it is expressed in terms of what we actually own** —
 and check the cheap upgrades first, because two of the six party members were a single level-up away
 from being substantially better and no plan had noticed.
+
+
+## 2026-09-04 — §Ch23 TRAINING LEG: THE PARTY IS READY FOR WALLY AND THE ELITE FOUR
+
+**What shipped.** `train_for_victory_road` in `sandbox-pokebot/modules/story/victory_road.py`, driven
+by `--driver ch23train`. `ACCEPTANCE: PASS`, **battles=132, whiteouts=0**, fixture
+`post_training.ss1` (md5 `2f517f1f790b0151af9a7837ac493e4e`) PINNED and probe-verified:
+VICTORY_ROAD_1F (15,39), 8 badges, **Sceptile L51 / Zigzagoon L19 / Swellow L47 / Wailord L47 /
+Mightyena L47 / Castform L36**, HP 754/796. The run log carries `MIGHTYENA learned CRUNCH!`.
+
+**The target was PRICED, not chosen.** The leg's own budget guard refused L50, so rather than raise
+the ceiling the cost was measured across targets (`POKEBOT_CH23_ESTIMATE_ONLY=1`, zero frames):
+
+| target | total frames | worst single mon | verdict |
+|---|---|---|---|
+| L46 | 339,621 | — | fits |
+| **L47** | **438,498** | **Wailmer 217,816** | ✅ **chosen** |
+| L48 | 556,004 | — | fits |
+| L50 | 793,882 | **Wailmer 359,683** | ⛔ over the 250,000 per-call ceiling |
+
+⇒ **47 is the highest affordable target AND Mightyena's Crunch level.** Two independent constraints
+landing on one number, so neither can be relaxed to buy room for the other.
+
+**The budget guard was measuring the wrong quantity.** It summed across mons against a ceiling every
+other caller applies PER CALL. KI-28's 19.9M-frame livelock was ONE unbounded call, not a large sum
+of converging ones — so the guard blocked a plan that was merely LONG while doing nothing about the
+failure it exists for. Now: refuse any single unaffordable mon, REPORT the total (the total is the
+user's time, which is their decision, not a safety property).
+
+**⛔ KI-84 — and without it none of the above would have run.** The first attempt spent its budget
+and produced **8 battles**: Wailmer 40→41, Mightyena 44→45, Swellow **+0**, then reported "finished
+the grind". `train_team` computes `need` from `party[i]` **by index** (`early_game.py:2021`) and then
+SWAPS that mon to slot 0 via the party menu's SWITCH option (`higher_level_actions.py:500`), so the
+next iteration reads the OLD LEAD (Sceptile L51 ≥ target), finds nothing to do and breaks. ⇒ ONE
+spin-batch per call. **A/B on the same fixture:** before, Wailmer stalled at L41; after, Wailord
+reached L47. Fixed by rotating to slot 0 ourselves and handing `train_team` only `slots={0}` — the
+case the bug cannot reach. **Deliberately NOT fixed inside `train_team`**, which is also the gym-prep
+path and would move every gym's levels at once.
+
+**Three guards added, each from a measured failure.**
+1. **A PID landing check after the rotation** — `_rotate_lead_safely` gives up silently after 3
+   attempts, and training the wrong Pokémon would burn the whole budget while every level readout
+   still looked plausible.
+2. **An achievement assert after every `train_team` call** — "it returned" is not "it worked", which
+   is precisely how the index bug stayed invisible for 900k frames.
+3. **A liveness reading** (`training_continue_reading`) — the grade proved readiness but never that
+   the bot could LEAVE. §Ch15 ended four floors underground, §Ch18 on an eleven-tile island and
+   §Ch19 in a living room, and all three PASSED their own tests.
+
+**And a readiness check that was grading a proxy.** `team_is_ready` only complained about a missing
+Crunch when `level < 47`, so at exactly 47 it stopped asking — a Mightyena that hit 47 with full move
+slots and declined the learn would have graded READY carrying no Dark move. It passed honestly this
+run (the log proves the learn) but it would have passed either way, which is the defect. It now
+asserts the **move**; Emerald has no Dark TM, so there is no recovery from missing it.
+
+**Also:** `_fault` built its env name with an f-string, so a mistyped arm read a variable nobody sets
+and returned False forever — a fault hook that cannot fire reads as tested while testing nothing.
+`FAULT_ARMS` now maps arm → full env-name literal and `_fault` raises on an unknown arm.
+
+**Recon landed alongside (agent NOTES, decomp-cited, not yet verified in our own data):** the Pokémon
+League's full warp chain, and two facts that change §Ch24 planning — **League 1F has a Poké Center
+AND a Mart** one map before Sidney (so the empty bag is fixable with the ₽38,893 in hand), while
+**every E4 room seals its own exit** (`setmetatile … impassable=TRUE`) so the Hall5→Sidney step
+commits to five fights on one party. A whiteout anywhere in Hoenn runs `ResetEliteFour`.

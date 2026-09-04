@@ -810,7 +810,7 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 
 ### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ⚠ **Drift is 11** (2026-09-03: `chapters.py` for a §Ch23 correctness fix, plus the new sandbox-only chapter modules `sootopolis_gym.py` and `victory_road.py`) — ⛔ **PROMOTION IS THE USER'S CALL and is not implied.** ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
 
-### ⚠ `#24-ch23wally` — **THE PARTY LOSES TO WALLY. This is a TEAM-STRENGTH question and it is the USER's call.** (filed 2026-09-04, MEASURED)
+### ⚠ `#24-ch23wally` — **THE USER RULED: TRAIN (option (a)). TRAINING IS DONE AND THE PARTY IS READY — ⛔ BUT THE RE-TEST AGAINST WALLY IS STILL OWED, SO THIS ITEM IS NOT CLOSED.** (filed 2026-09-04, MEASURED; ruled + trained 2026-09-04)
 
 - [ ] **MEASURED, NOT INFERRED: `WallyEntranceBattle` fires correctly and the bot LOSES**, twice in
       one drive (`BattleScript_LocalBattleLostEnd` ×2, 2 whiteouts). ⛔ **The coord-event mechanic is
@@ -827,11 +827,30 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       level properly; (c) accept the loss loop — it is survivable, because leg 4 arms the respawn to
       EVER_GRANDE so a whiteout lands ABOVE the falls and leg 5 simply re-runs.
       ⛔ **NOT a blocker for the leg's CODE**, which is correct; it is a blocker for the leg PASSING.
+- [x] ✅ **2026-09-04 — THE USER GREENLIT OPTION (a), AND IT IS EXECUTED.** Party is now
+      **Sceptile L51 / Swellow L47 / Wailord L47 / Mightyena L47 (WITH CRUNCH)**; fixture
+      `post_training.ss1` (md5 `2f517f1f790b0151af9a7837ac493e4e`), `--driver ch23train`,
+      `ACCEPTANCE: PASS`, `battles=132`, `whiteouts=0`. Target **L47** was PRICED, not chosen:
+      L50 needed 793,882 frames (Wailmer alone 359,683, over the 250,000 per-call ceiling); L47
+      needs 438,498 and is ALSO Mightyena's Crunch level.
+      ‼ **The grind only worked after KI-84** — `train_team(slots={i})` with `i != 0` runs ONE
+      spin-batch and returns as if finished. First attempt: **8 battles**, Wailmer stalled at L41.
+- [ ] ⚠ **STILL OWED — THE ACTUAL RE-TEST.** Nothing here proves the trained party BEATS Wally;
+      it proves only that the party reached the levels. ⛔ **Do not mark this item done on the
+      training result** — that would be grading the input to the fight, not the fight
+      (SESSION DISCIPLINE #7: a candidate is not an attempt). Re-run `--driver ch23road` from
+      `post_training.ss1`, **healing first** (95% HP, one Potion in the bag).
+      ⚠ Options (b) and (c) remain untaken and are NOT superseded: the faint-replacement ranking
+      still weighs HP fraction above level, so the L19 Zigzagoon can still be sent in on a cascade.
 
-### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **LEGS 1-4 SHIP AND PASS; LEGS 5-8 REMAIN.** (filed 2026-09-03)
+### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **LEGS 1-5 ARE BUILT AND THE PARTY IS TRAINED; LEGS 6-8 REMAIN.** (filed 2026-09-03, updated 2026-09-04)
 
-- [~] **REMAINS: legs 5-8** — Victory Road 1F (Hope, Wally), the B1F boulder puzzle, B2F, the
-      return, and the chapter orchestrator + Segment 23 wiring.
+> ⛔ **HEADER/BODY PAIR NOTE (2026-09-04).** This header read "LEGS 1-4 SHIP AND PASS; LEGS 5-8 REMAIN" for one commit *after* its own body bullet had been corrected to "legs 6-8" — a Tier 1 reviewer caught it. **P2: a header is a claim about every bullet beneath it**, and updating the body alone is the more dangerous state, because the body looks current.
+
+- [~] **REMAINS: legs 6-8** — the B1F boulder puzzle, B2F, the return, and the chapter
+      orchestrator + Segment 23 wiring. *(Was "legs 5-8"; leg 5 is BUILT — its code is
+      correct and its remaining blocker is the Wally FIGHT, tracked in `#24-ch23wally`.)*
+      ⭐⭐ **STUB MARKER — READ BEFORE ANY BOULDER CODE:** `ai-research-notes/2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` (3 independent agents) + `...-ch24-POKEMON-LEAGUE.md`. ⛔ NOTES, not truth — the reachability is MODELED and 3 live checks are OWED. Headlines: (1) **the route is `1F→B1F→B2F→B1F→1F`** — 1F's entrance and exit are in DIFFERENT walk-regions, so "walk across 1F" is impossible; (2) **TWO boulders are mandatory, (4,7) WEST and (9,10) EAST** — a "delete it and re-path" model finds only (9,10) and misses (4,7); (3) ⛔ **pushing either SOUTH kills the route irreversibly** — exactly what a greedy push-toward-goal router does; (4) **every warp RESETS the puzzle** (`FLAG_TEMP_*` cleared, boulders revert — also the recovery from a trap push) and **`FLAG_SYS_USE_STRENGTH` clears on every map load**; (5) minimal HMs = **{Surf, Strength, Rock Smash}** — **Waterfall and Flash NOT required**; (6) ✅ `strength_push` exists (`early_game.py:7884`, Magma-Hideout-proven) ⇒ **the machinery exists; only the route is missing.**
       ⛔ *(This item's header read "PRODUCTION CODE IS ZERO" and its first line "`victory_road.py`
       DOES NOT EXIST" for a day AFTER legs 2-4 shipped from that very file — the heading-vs-body rot
       this tree keeps paying for. Rewritten 2026-09-04.)*
@@ -846,7 +865,15 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 
       **FIXTURE CHAIN (all PINNED, each captured only on a FULL PASS):**
       `post_badge8` → `post_waterfall` → `post_depart_sootopolis` (ROUTE126 (45,66), 100%) →
-      **`post_ever_grande.ss1`** (`18203e99…`, EVER_GRANDE (18,42), 100%) ← **leg 5 starts here.**
+      **`post_ever_grande.ss1`** (`18203e99…`, EVER_GRANDE (18,42), 100%) →
+      **`post_training.ss1`** (`2f517f1f…`, VICTORY_ROAD_1F (15,39), 95%) ← **⭐ START HERE NOW.**
+      ⛔ **`post_ever_grande.ss1` IS NO LONGER THE START POINT** — it is PRE-TRAINING and its
+      party LOSES to Wally (MEASURED, twice). `post_training.ss1` is the same run trained to
+      **Sceptile L51 / Swellow L47 / Wailord L47 / Mightyena L47 WITH CRUNCH** (2026-09-04,
+      `--driver ch23train`, `ACCEPTANCE: PASS`, `battles=132`, `whiteouts=0`).
+      ⚠ **HEAL FIRST** (95% HP, ONE Potion in the bag), and ⚠ **the fight is STILL UNTESTED**
+      with the trained party — see `#24-ch23wally`, which is OPEN for exactly that re-test.
+      ‼ The grind only worked after **KI-84**; gym prep is still exposed to the same bug.
 
       📄 **ALL ANALYSIS LIVES IN ONE PLACE:** `ai-research-notes/2026-09-03-ch23-CHAPTER-BUILD-SPEC.md`
       — §1 the opening state and the field-move/HP correction, §2 the FOUR harness edits + the `os`

@@ -11814,3 +11814,73 @@ is a claim, and its currency is an arm with X removed. I had that arm available 
 the failure message itself (*"steps_delta … proves the lookup ran"*), so every future reader would
 have inherited it. Fixed to state what the counter measures and what it cannot distinguish — the
 THIRD over-claiming diagnostic corrected today.
+
+
+## 2026-09-04 — I PRICED A GRIND AGAINST A FUNCTION THAT COULD NOT DELIVER IT, AND THE ESTIMATE WAS THE ONLY THING I CHECKED
+
+**Symptom.** §Ch23's training leg estimated 438,498 frames / ~306 wild battles to take three battlers
+to L47. The run spent its budget and produced **8 battles**: Wailmer 40→41, Mightyena 44→45, Swellow
+**+0**. `train_team` returned normally each time, so the leg believed the grind had *finished* and
+raised only at its final readiness check.
+
+**Root cause — a position/identity bug inside SHARED code, not in my leg.**
+`early_game.py:2021` computes `need` from `party[i]` **by index**. `:2034` then calls
+`_rotate_lead_safely(target_slot)`, which drives the party menu's SWITCH option
+(`higher_level_actions.py:500`) — a **SWAP**, not a move-to-front. On the next iteration `party[i]`
+holds the **old lead** (Sceptile L51 ≥ target), so `need` is empty and the `while True` breaks after
+a single spin-batch. ⇒ `train_team(slots={i})` with `i != 0` trains once and reports success.
+
+**The fix that worked, and why it is small.** The bug cannot bite when the mon is *already* slot 0,
+because then `target_slot == 0` and no swap happens. So §Ch23 rotates the mon to the lead itself and
+hands `train_team` only the case it gets right (`slots={0}`). **A/B on the same fixture:** before,
+Wailmer stalled at L41; after, **Wailord reached L47**. Filed as KI-84; deliberately NOT fixed inside
+`train_team`, which is also the gym-prep path and would move every gym's levels at once.
+
+**What I actually did wrong.** I had *already written down* the rule this breaks — SESSION DISCIPLINE
+#3, *"Assert IDENTITY, never position or count"* — and I applied it scrupulously to MY code: the leg
+re-resolves every mon by PID immediately before each call, precisely because rotation invalidates
+indices. ‼ **Then I passed those indices into a function I never checked for the same defect.** I
+audited my side of the boundary and assumed the other side obeyed a rule I was actively obeying.
+
+**And the estimate hid it.** 438,498 frames was a real number computed from real EXP yields, and it
+was *never wrong* — it priced the work correctly and said nothing about whether the executor would do
+it. I treated "the plan is affordable" as "the plan will run". ⛔ **A COST MODEL IS NOT A LIVENESS
+CHECK.** The guard I built to prevent a runaway grind (KI-28's 19.9M frames) is blind by construction
+to the opposite failure: a grind that stops far too early and calls itself done.
+
+**Prevention rules (two, both narrow enough to fire).**
+1. ⛔ **WHEN YOU PASS A SLOT INDEX ACROSS A FUNCTION BOUNDARY, THE CALLEE OWNS IT TOO.** Re-resolving
+   by identity on your own side proves nothing if the callee re-reads that index after mutating the
+   collection. Read the callee's loop before trusting it, or pass the case it cannot get wrong.
+2. ⛔ **EVERY LONG-RUNNING CALL NEEDS AN ACHIEVEMENT ASSERT, NOT JUST A BUDGET.** "It returned"
+   is not "it worked". §Ch23 now re-reads the mon by PID after each `train_team` and raises if the
+   level did not move — the check that would have caught this in one battle instead of 900k frames.
+
+
+## 2026-09-04 — `gh api | base64 -d` SILENTLY CORRUPTS BINARY DECOMP FILES ON WINDOWS (two agents, independently)
+
+**Symptom.** Two separate research agents fetching pokeemerald layout binaries with
+`gh api repos/pret/pokeemerald/contents/<path> --jq .content | base64 -d` received **larger files
+than the originals and no error at all**: `VictoryRoad_B1F/map.bin` 2852 bytes decoded to 3942,
+`VictoryRoad_1F/map.bin` 4140 decoded to 5756. Both analysed garbage before noticing.
+
+**Root cause.** The pipeline round-trips the decoded bytes through a UTF-16→UTF-8 conversion on
+Windows. Any byte that is not valid UTF-8 is re-encoded rather than passed through. Text files
+survive; **binaries do not**, and nothing raises.
+
+**The fix that worked.** Fetch binaries from `raw.githubusercontent.com` (e.g. via Python
+`urllib`/`requests`), and **verify `len(data) == width * height * 2` against the dimensions in
+`data/layouts/layouts.json`** before trusting a single byte. That length check is what caught it
+both times — one agent only noticed because the GitHub API's own `size` field disagreed with what it
+had received.
+
+**Why this is worth an entry rather than a shrug.** A corrupt layout does not look corrupt. It
+decodes into plausible metatile ids, plausible collision bits and plausible elevations, and a
+reachability solver run over it returns confident, specific, **wrong** coordinates — which is exactly
+the shape this project keeps paying for. One of the two agents also had to correct its own elevation
+model mid-run (it propagated with `me or e`, silently swallowing elevation-0 transition tiles and
+cutting reachability from 301 tiles to 106), so a decode bug and a model bug can compound invisibly.
+
+**Prevention rule.** ⛔ **NEVER PIPE BINARY THROUGH `gh api ... | base64 -d` ON WINDOWS. Fetch
+binaries from `raw.githubusercontent.com`, and assert the decoded length against an independently
+known size before parsing.** A binary read that cannot state its expected length is not a read.

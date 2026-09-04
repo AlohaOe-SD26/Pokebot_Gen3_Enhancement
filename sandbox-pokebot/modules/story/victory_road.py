@@ -223,7 +223,7 @@ BENCH_SPECIES = ("Zigzagoon", "Linoone", "Castform")
 #: KI-28 burned 19.9M frames on a target the local grass could not deliver.
 MAX_TRAINING_FRAMES = 250_000
 
-TRAIN_READINGS = ("R-TRAINPRE", "R-ESTIMATE", "R-TRAINED", "R-READY")
+TRAIN_READINGS = ("R-TRAINPRE", "R-ESTIMATE", "R-TRAINED", "R-READY", "R-TRAINCONTINUE")
 
 #: ⛔ A NAMED-BAD DENYLIST, NOT AN ALLOWLIST. The tile type at UW126 (45,66) has NEVER been read;
 #: two independent designs predicted DIFFERENT values, and §Ch21 emerged there three times with no
@@ -1354,9 +1354,63 @@ def team_is_ready() -> tuple[bool, list]:
         if mon is None or mon.species.name != "Mightyena":
             continue
         moves = [l.move.name for l in mon.moves if l is not None]
-        if "Crunch" not in moves and mon.level < CRUNCH_LEVEL:
-            reasons.append(f"Mightyena L{mon.level} has no Crunch (learns it at L{CRUNCH_LEVEL})")
+        # ⛔⛔ ASSERT THE MOVE, NEVER THE LEVEL THAT USUALLY GRANTS IT. The first version of this
+        # check read `if "Crunch" not in moves AND mon.level < CRUNCH_LEVEL` — so at exactly L47 it
+        # stopped asking, and a Mightyena that reached 47 with FULL MOVE SLOTS and declined the
+        # learn would have graded READY while carrying no Dark move at all. The level is a PROXY;
+        # the move is the requirement. ‼ (It passed honestly on 2026-09-04 — the log shows
+        # "MIGHTYENA learned CRUNCH!" — but it would have passed either way, which is the defect.)
+        if "Crunch" not in moves:
+            if mon.level < CRUNCH_LEVEL:
+                reasons.append(
+                    f"Mightyena L{mon.level} has no Crunch (learns it at L{CRUNCH_LEVEL})")
+            else:
+                reasons.append(
+                    f"⛔ Mightyena is L{mon.level} ≥ {CRUNCH_LEVEL} but does NOT know Crunch — the "
+                    f"level-up learn was missed or declined, and there is NO Dark TM in Emerald to "
+                    f"recover with. Moves: {moves}."
+                )
     return (not reasons), reasons
+
+
+def training_continue_reading(report) -> None:
+    """⛔⛔ LIVENESS: "the team is ready" is NOT "the bot can continue" — prove a REAL path out.
+
+    ‼ WHY THIS IS NOT DECORATION. §Ch15 ended four floors underground, §Ch18 on an eleven-tile
+    island and §Ch19 in a living room, and **all three PASSED their own acceptance tests**, because
+    every one of those tests graded the goal and never asked whether the bot could leave. A grind
+    ends wherever the last heal left it, so this leg is squarely in that family.
+
+    ⛔ THE TARGET IS DERIVED FROM THE MAP THE RUN ACTUALLY ENDED ON, never hardcoded — and when the
+    bot is already standing on the natural target, the check re-aims at a DIFFERENT tile, because a
+    path from a tile to itself is vacuous and would grade PASS while proving nothing.
+    ⛔ It aims at APRONS, never at the ladder (9,14) or the door (18,41): both are WARPS, and
+    `navigate_to` overrides its own destination when the final waypoint is a warp — the trap this
+    chapter has now hit three times.
+    """
+    from modules.map_path import calculate_path
+
+    here = _here_tile()
+    if _on_map(VR1F):
+        target = B1F_LADDER_APRON if here != B1F_LADDER_APRON else VR_ENTRANCE
+        target_map = VR1F
+    elif _on_map(EG):
+        target = VR_APRON if here != VR_APRON else EG_PC_APRON
+        target_map = EG
+    else:
+        # ‼ An unexpected end map is itself the finding — record it, do not invent a target.
+        report["continue_after_training"] = f"UNEXPECTED MAP {_where()} — no continuation target"
+        _take(report, "R-TRAINCONTINUE")
+        return
+
+    try:
+        path = calculate_path((target_map, here), (target_map, target))
+        report["continue_after_training"] = {"from": here, "to": target, "wp": len(path)}
+    except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+        # ⛔ Aborts first: "deliberately non-fatal" must never mean "deliberately deaf".
+        reraise_if_aborting(error)
+        report["continue_after_training"] = f"{type(error).__name__}: {str(error)[:120]}"
+    _take(report, "R-TRAINCONTINUE")
 
 
 def train_for_victory_road(report=None, *, target: int = TRAIN_TARGET) -> Generator:
@@ -1434,7 +1488,8 @@ def train_for_victory_road(report=None, *, target: int = TRAIN_TARGET) -> Genera
         )
 
     # ---- guard 2: we restore the lead, because `train_team` will not on an abort ---------------
-    from modules.story.early_game import _lead_strongest_battler, train_team
+    from modules.story.early_game import (
+        _lead_strongest_battler, _rotate_lead_safely, train_team)
 
     try:
         for (pid, species), (_slot, level) in sorted(
@@ -1454,17 +1509,69 @@ def train_for_victory_road(report=None, *, target: int = TRAIN_TARGET) -> Genera
             slot_now, level_now = here
             if level_now >= target:
                 continue
+
+            # ---- ⛔⛔ ROTATE TO SLOT 0 OURSELVES, THEN TRAIN `slots={0}` ------------------------
+            # ‼ MEASURED 2026-09-04: `train_team(slots={i})` with i != 0 does exactly ONE spin-batch
+            # and then RETURNS AS IF FINISHED. A 900k-frame run produced **8 battles** and moved
+            # Wailmer 40->41, Mightyena 44->45, Swellow **+0**, against an estimate of 306 battles.
+            # ⇒ WHY: `early_game.py:2021` computes `need` from `party[i]` BY INDEX; `:2034` then
+            # calls `_rotate_lead_safely(target_slot)`, which drives the party menu's SWITCH option
+            # (`higher_level_actions.py:500`) — a **SWAP**. On the next iteration `party[i]` is the
+            # OLD LEAD (Sceptile L51 >= target), so `need` is empty and the loop breaks.
+            # ⇒ This is THIS PROJECT'S OWN RULE #3 — "assert IDENTITY, never position" — violated
+            # inside shared code. Filed separately; NOT fixed here, because `train_team(slots=...)`
+            # is also the gym-prep path and changing it would move every gym's levels at once.
+            # ⭐ THE COROLLARY IS THE FIX: with the mon ALREADY at slot 0, `target_slot == 0`, no
+            # rotation happens, `party[0]` stays the same mon, and the loop converges correctly.
+            # So we do the rotation, and hand `train_team` only the case it gets right.
+            if slot_now != 0:
+                yield from _rotate_lead_safely(slot_now)
+                # ⛔ VERIFY BY PID THAT IT LANDED. `_rotate_lead_safely` "gives up gracefully" after
+                # 3 attempts (its own docstring: "the rotation is an optimization") — and a silent
+                # give-up here is NOT cosmetic: it would grind whatever else is in slot 0, burning
+                # the entire budget on the wrong Pokémon while every level readout looked plausible.
+                lead = get_party()[0]
+                if lead is None or lead.personality_value != pid:
+                    # ⛔ BUILD THE DESCRIPTION FIRST. A ternary at the end of an implicit string
+                    # concatenation binds to the WHOLE concatenation, not the last fragment — the
+                    # same fused-literal trap that silently produced "ch23roadch23train" from a
+                    # missing comma earlier in this chapter. Keep the conditional out of the f-string.
+                    holder = "nothing"
+                    if lead is not None:
+                        holder = f"{lead.species.name}#{lead.personality_value:08X}"
+                    raise BotModeError(
+                        f"Ch23 training: tried to rotate {species}#{pid:08X} from slot {slot_now} "
+                        f"to the lead, but slot 0 holds {holder}. ⛔ `_rotate_lead_safely` gives up "
+                        f"gracefully after 3 attempts, and training the wrong Pokémon would burn "
+                        f"the whole budget while every level readout still looked plausible."
+                    )
             yield from train_team(
-                target, slots={slot_now}, grass=TRAIN_SPOT_1F,
+                target, slots={0}, grass=TRAIN_SPOT_1F,
                 heal_center=PokemonCenter.EvergrandeCity,
             )
             assert_carriers_survived(f"training {species}#{pid:08X}")
+
+            # ⛔ AND PROVE THE CALL ACTUALLY MOVED THE MON. `train_team` returning is not evidence
+            # it trained — that is exactly how the index bug above stayed invisible. Re-resolve by
+            # PID and refuse to spin on a call that achieved nothing.
+            after = battler_identities().get((pid, species))
+            if after is not None and after[1] <= level_now and after[1] < target:
+                raise BotModeError(
+                    f"Ch23 training: `train_team` returned without raising {species}#{pid:08X} "
+                    f"past L{level_now} (still L{after[1]}, target L{target}). ⛔ Refusing to loop "
+                    f"— a call that trains nothing would spin the budget away silently."
+                )
     finally:
         # ⛔ IN A `finally` ON PURPOSE — this is the guard `train_team` does not give us.
         yield from _lead_strongest_battler()
 
     report["train_post"] = {f"{s}#{p:08X}": lv for (p, s), (_sl, lv) in battler_identities().items()}
     _take(report, "R-TRAINED")
+
+    # ⛔ TAKE THE LIVENESS READING BEFORE THE READINESS RAISE. If it went after, a not-ready run
+    # would raise first and the one reading that says whether the bot is STRANDED would never be
+    # taken — exactly when it matters most.
+    training_continue_reading(report)
 
     ready, reasons = team_is_ready()
     report["train_reasons_after"] = reasons

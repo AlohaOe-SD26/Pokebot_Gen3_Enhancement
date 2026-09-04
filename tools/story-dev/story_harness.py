@@ -13242,7 +13242,8 @@ class Ch23TrainMode(BotMode):
         missing = [r for r in VR.TRAIN_READINGS if r not in taken]
         log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
         for key in ("train_pre", "train_reasons", "train_estimates", "train_estimate_total",
-                    "trained", "train_post", "train_reasons_after"):
+                    "trained", "train_post", "train_reasons_after",
+                    "continue_after_training"):
             log(f"[{TAG}] R {key} = {report.get(key)!r}")
         log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
 

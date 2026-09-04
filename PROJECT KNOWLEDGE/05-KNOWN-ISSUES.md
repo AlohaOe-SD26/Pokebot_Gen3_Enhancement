@@ -98,6 +98,12 @@ sandbox-fixed case.
 > 📦 **KI-6 and KI-7 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — both resolved July
 > 2026. Moved verbatim, nothing deleted, to keep this file inside its 3,000-line budget (rule R3).
 
+## KI-84 — `train_team(slots={i})` with i≠0 runs ONE spin-batch then returns as if finished (opened 2026-09-04, severity: HIGH — ⚠ **OPEN.** Worked around in §Ch23 only; every other `slots=` caller is still exposed)
+- **Measured:** a 900k-frame §Ch23 run produced **8 battles** against an estimate of 306 — Wailmer 40→41, Mightyena 44→45, **Swellow +0** — then reported "finished the grind" (`tools/story-dev/ch23train_real.log`, 2026-09-04).
+- **Root cause:** `early_game.py:2021` builds `need` from `party[i]` **by index**; `:2034` then calls `_rotate_lead_safely(target_slot)`, which drives the party menu's SWITCH option (`higher_level_actions.py:500`) — a **SWAP**. Next iteration `party[i]` holds the OLD LEAD (level ≥ target), `need` is empty, and the loop breaks. ⇒ this project's own SESSION DISCIPLINE rule #3 — *assert IDENTITY, never position* — violated inside shared code.
+- **Workaround in §Ch23 (`victory_road.train_for_victory_road`):** rotate the mon to slot 0 ourselves, then call `train_team(slots={0})` — with the mon already lead, `target_slot == 0`, no swap happens and the loop converges. It asserts by **PID** that the rotation landed (`_rotate_lead_safely` gives up silently after 3 attempts) and raises if a call fails to move the level at all.
+- ⛔ **Deliberately NOT fixed in `train_team` itself:** it is also the gym-prep path, so a change moves every gym's levels at once and needs its own A/B. A deferral with a reason, not an oversight.
+
 ## KI-82 — ✅ **CLOSED 2026-08-23 — NOT A DEFECT. The tracked Emerald ROM is a DELIBERATE, USER-RULED choice, and this KI should never have been opened.** (opened 2026-08-22, closed 2026-08-23)
 
 ⛔⛔ **DO NOT RE-RAISE THIS. IT HAS NOW BEEN RULED TWICE.**
