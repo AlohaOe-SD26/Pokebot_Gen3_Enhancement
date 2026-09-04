@@ -20988,3 +20988,34 @@ QUESTION"* while its body, updated minutes later, said SETTLED — the exact P2 
 this project keeps paying for, committed inside the round that closed the question. Fixed, with the
 original reasoning kept: the argument that made the gap look dangerous is what chose the query that
 settled it.
+
+
+## 2026-09-03 (R9) — THE LEGS ABOUT TO BE BUILT ARE MEASURED, AND A FALSE COMMENT IN MY OWN DRIVER FELL OUT
+
+`--driver ch23route` gained R9: every within-map hop of §Ch23 legs 2-4, asked of production BEFORE
+writing the code that walks them.
+
+**1. ✅ LEGS 2-3 ARE PLANNER-ROUTABLE END TO END.** Sootopolis (31,33) → Poké Center door (43,32)
+**23 wp**; → a dive tile (29,53) **22 wp**; Poké Center → dive tile **37 wp**;
+`UNDERWATER_SOOTOPOLIS_CITY` (9,6) → the walk-on warp (9,8) **3 wp**; `UNDERWATER_ROUTE126` (45,65) →
+the safe emerge tile (45,66) **1 wp**; `ROUTE126` (45,66) → east edge **55 wp**; `ROUTE127` → south
+edge **64 wp**. ⭐ **KI-72 did NOT bite on either underwater hop**, which was the flagged risk.
+
+**2. ⛔⛔ A ROUTE 128 REFUSAL TURNED OUT TO BE MY OWN INSTRUMENT, NOT THE TERRAIN — AND CHASING IT
+FALSIFIED A COMMENT I HAD WRITTEN IN THAT SAME DRIVER.** (30,0) → (101,29) refused. Rather than
+record "Route 128 is obstructed", the journey was split: the **longer** half succeeded (79 wp) while
+the **shorter** refused — so not a budget. Pathing FROM (101,29) worked while pathing TO it failed —
+the signature of an occupied DESTINATION with an exempt START. Two more queries settled it:
+**(101,29) is Carlee's tile and (101,22) is Harrison's; both REFUSE, while (101,26) and (100,29)
+beside them return 32 and 34 wp.** ⇒ **the channel is OPEN**, and **production DOES block on object
+events on a map the bot is not standing on.**
+‼ That falsifies this driver's own R6 comment, which asserted the opposite and was doing interpretive
+work for every B1F reading. ✅ **The correction is good news:** R6's B1F answers are the *"boulders
+still present"* case, so R6a/R6b/R6c refusing genuinely corroborates that the arrival chamber is
+SEALED until the pushes happen — a stronger reading than the comment claimed. B2F and the 1F queries
+are unaffected. ⇒ **a false premise that flatters your conclusions is the hardest kind to notice**;
+filed with prevention rules in `08-MISTAKES.md`.
+
+**3. ⇒ A BUILD RULE FALLS OUT: never aim a path at a tile an object stands on.** Leg 4 must target a
+free channel tile such as **(101,26)**, never Carlee's or Harrison's own tile. A refusal to an
+occupied tile says *"something is standing there"*, not *"you cannot get there"*.

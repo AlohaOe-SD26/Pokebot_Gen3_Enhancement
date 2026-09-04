@@ -836,6 +836,14 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       other legs. It is the only leg crossing the elevation-15 bridge. ⭐ **One step settles it** —
       at 1F (29,28) print the carried elevation and try one step EAST; see the 1F note §5.
 
+      ✅ **LEGS 2-3 ARE MEASURED PLANNER-ROUTABLE END TO END** (`ch23route` R9): PC door 23 wp,
+      dive tile 22, PC→dive 37, underwater hops 3 and 1, Rt126 55, Rt127 64. **KI-72 did not
+      bite on either underwater hop.** ⛔ **AND A BUILD RULE: NEVER AIM A PATH AT AN OBJECT'S
+      TILE** — Rt128 → (101,29)/(101,22) REFUSE (Carlee's and Harrison's tiles) while (101,26)
+      and (100,29) beside them return 32/34 wp. The channel is open; the destination was
+      occupied. ‼ This also falsified a comment in `Ch23RouteMode` claiming production ignores
+      objects on a non-active map — it does not, which *strengthens* the B1F sealed-chamber
+      reading. `08-MISTAKES.md` 2026-09-03.
       ⛔⛔ **THE THREE THINGS A BUILDER MUST NOT MISS** (everything else is in the spec):
       1. **NEVER PUSH B1F's (4,7) OR (9,10) SOUTH** — either seals the floor for that visit. The
          minimum solution is **PUSH WEST (4,7)→(3,7) from (5,7); PUSH EAST (9,10)→(10,10) from (8,10);

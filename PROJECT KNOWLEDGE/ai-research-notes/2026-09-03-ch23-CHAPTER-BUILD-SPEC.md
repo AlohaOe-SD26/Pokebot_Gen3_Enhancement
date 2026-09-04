@@ -139,6 +139,40 @@ this. ⇒ **SMOKE-TEST EVERY NEW DRIVER WITH A TINY `--frames` BEFORE COMMITTING
   — read it before naming a new one. And `POKEBOT_HMTEACH_POSTLEARN_A` (`early_game.py:5045`) is an
   existing A/B arm on the HM-teach post-learn path, directly relevant to the Waterfall teach.
 
+## §2b. ✅ THE LEGS ARE MEASURED — PRODUCTION ROUTES THEM, HOP BY HOP (`ch23route` R9)
+
+Asked of production BEFORE writing the code that walks them. Every hop below is WITHIN one map,
+which is the only shape `calculate_path` can answer, so each is a real reading.
+
+| hop | production |
+|---|---|
+| SOOTOPOLIS (31,33) → Poké Center door (43,32) | ✅ 23 wp |
+| SOOTOPOLIS (31,33) → dive tile (29,53) | ✅ 22 wp |
+| **SOOTOPOLIS Poké Center (43,32) → dive tile (29,53)** | ✅ **37 wp** — leg 2 → leg 3 joins up |
+| `UNDERWATER_SOOTOPOLIS_CITY` (9,6) → walk-on warp (9,8) | ✅ 3 wp |
+| `UNDERWATER_ROUTE126` (45,65) → safe emerge tile (45,66) | ✅ 1 wp |
+| `ROUTE126` (45,66) → east edge (79,45) | ✅ 55 wp |
+| `ROUTE127` (0,45) → south edge (30,79) | ✅ 64 wp |
+| `ROUTE128` (30,0) → midpoint (70,25) | ✅ 79 wp |
+| `ROUTE128` (101,29) → Ever Grande seam (119,29) | ✅ 20 wp |
+
+⭐ **KI-72 ("the planner cannot see non-surfacing tiles") did NOT bite on either underwater hop** —
+that was the flagged risk on leg 3 and it is measured clear.
+
+### ⛔⛔ AND ONE REFUSAL TAUGHT A BUILD RULE — **NEVER AIM A PATH AT AN OBJECT'S TILE**
+`ROUTE128 (70,25) → (101,29)` **REFUSES**, and so does `→ (101,22)`. But `→ (101,26)` returns **32
+wp** and `→ (100,29)` returns **34 wp**. **(101,29) is Carlee's tile and (101,22) is Harrison's.**
+⇒ the channel is **OPEN**; production was refusing because the **destination** was occupied.
+⇒ **Leg 4 must target a free channel tile — use (101,26) — never a trainer's own tile.**
+‼ **A refusal to an occupied tile says "something is standing there", not "you cannot get there".**
+
+‼ **This also falsified a comment in `Ch23RouteMode` itself**, which asserted that production does
+NOT block on objects on a non-active map. It does. ✅ The correction *strengthens* the B1F reading:
+R6's answers are the **"boulders still present"** case, so R6a/R6b/R6c refusing genuinely corroborates
+that the B1F arrival chamber is SEALED until the pushes happen. B2F (no boulders) and the 1F queries
+are unaffected. ⇒ `08-MISTAKES.md` 2026-09-03: *a claim about your INSTRUMENT needs the same evidence
+bar as a claim about the SUBJECT.*
+
 ## §3. ⭐ THE FOUR GRADING RULES TO COPY — EACH ONE EARNED BY A SHIPPED DEFECT
 
 From `Ch22ChapterMode`. These are not style; each exists because a driver PASSED while broken.

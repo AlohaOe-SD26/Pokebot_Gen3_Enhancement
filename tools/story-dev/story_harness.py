@@ -12354,9 +12354,24 @@ class Ch23RouteMode(BotMode):
         # and that my offline tool has no water concept at all — so its "UNREACHABLE" verdicts on
         # B1F/B2F are UNDER-approximations, not conservative ones. Production models surf natively
         # (`map_path.py:855-857`), so ASK IT rather than build a third model I might also get wrong.
-        # ‼ On a map the bot is NOT standing on, `active_objects` is empty, so production does not
-        # block live boulders — its answer is therefore the "Strength and Rock Smash both spent"
-        # case, which is exactly the question worth asking of the terrain.
+        # ⛔⛔ A COMMENT THAT STOOD HERE WAS FALSE, AND R9 CAUGHT IT (2026-09-03). It read:
+        #     "On a map the bot is NOT standing on, `active_objects` is empty, so production does
+        #      not block live boulders — its answer is therefore the 'Strength and Rock Smash both
+        #      spent' case, which is exactly the question worth asking of the terrain."
+        # ‼ MEASURED FALSE. On ROUTE128 — a map the bot is NOT standing on — production REFUSED to
+        # path to (101,29) and (101,22), the template tiles of the trainers Carlee and Harrison,
+        # while happily pathing to (101,26) and (100,29) beside them (32 and 34 wp). ⇒ **production
+        # DOES block on object events on a non-active map.**
+        # ⇒ WHAT THAT CHANGES HERE, AND IT IS GOOD NEWS: R6's B1F answers are the **"boulders STILL
+        # PRESENT"** case, not the "both moves spent" case. So R6a/R6b/R6c refusing is a genuine
+        # corroboration that the arrival chamber is SEALED until the pushes happen — a STRONGER
+        # reading than the one the old comment claimed, not a weaker one. B2F (R6d/R6e) has no
+        # boulders, so those are unaffected.
+        # ⇒ AND A BUILD RULE FALLS OUT: **never aim a path at a tile an object stands on.** A
+        # refusal then says "something is standing there", not "you cannot get there".
+        # ‼ THE GENERAL LESSON: I asserted a property of the planner in a comment and then read
+        # every result through it. A claim about your INSTRUMENT needs the same evidence bar as a
+        # claim about the SUBJECT — and this one cost nothing to test.
         B1 = MapRSE.VICTORY_ROAD_B1F
         B2 = MapRSE.VICTORY_ROAD_B2F
         log(f"[{TAG}] ⭐ R6 asks PRODUCTION about the floors my offline tool cannot model (it has "
@@ -12428,6 +12443,61 @@ class Ch23RouteMode(BotMode):
             f"carry model, and R8e/R8f refusing confirms the region split that forces the basements. "
             f"⛔ If R8b SUCCEEDS, the three-region model is WRONG and the basement detour is not "
             f"forced, which would change the chapter's shape entirely.")
+
+        # ---- R9: THE LEGS ABOUT TO BE BUILT — measure them BEFORE writing code ----------------
+        # Legs 2-3 are: heal at the Sootopolis Poke Center, then leave the crater by Dive. Every
+        # hop below is WITHIN one map, which is the only shape `calculate_path` can answer — so
+        # each is a real reading rather than a KI-53 connection-graph refusal.
+        # ‼ KI-72 IS ARMED ON THE UNDERWATER HOPS ("the planner cannot see non-surfacing tiles").
+        # A refusal there is therefore MORE likely to be the instrument than the terrain — which is
+        # exactly why it is worth knowing NOW, at zero cost, instead of mid-drive.
+        UWS = MapRSE.UNDERWATER_SOOTOPOLIS_CITY
+        UW126 = MapRSE.UNDERWATER_ROUTE126
+        R126, R127, R128 = MapRSE.ROUTE126, MapRSE.ROUTE127, MapRSE.ROUTE128
+        log(f"[{TAG}] ⭐ R9 measures THE LEGS ABOUT TO BE BUILT (leg 2 = heal, leg 3 = leave the "
+            f"crater). Cheap now; a 40-minute drive later.")
+        ask("R9a SOOTOPOLIS here -> Poke Center door (43,32)", (SC, here[1]), (SC, (43, 32)))
+        ask("R9b SOOTOPOLIS here -> dive tile (29,53)", (SC, here[1]), (SC, (29, 53)))
+        ask("R9c SOOTOPOLIS Poke Center (43,32) -> dive tile (29,53)", (SC, (43, 32)), (SC, (29, 53)))
+        ask("R9d UNDERWATER_SOOTOPOLIS (9,6) -> the walk-on warp (9,8)", (UWS, (9, 6)), (UWS, (9, 8)))
+        ask("R9e UNDERWATER_ROUTE126 (45,65) -> the SAFE emerge tile (45,66)", (UW126, (45, 65)), (UW126, (45, 66)))
+        ask("R9f ROUTE126 (45,66) -> east edge (79,45)", (R126, (45, 66)), (R126, (79, 45)))
+        ask("R9g ROUTE127 (0,45) -> south edge (30,79)", (R127, (0, 45)), (R127, (30, 79)))
+        ask("R9h ROUTE128 (30,0) -> the x=101 channel (101,29)", (R128, (30, 0)), (R128, (101, 29)))
+        ask("R9i ROUTE128 (101,29) -> the Ever Grande seam (119,29)", (R128, (101, 29)), (R128, (119, 29)))
+        # ⛔ R9h REFUSED WHILE R9i SUCCEEDED. Before recording "Route 128 is unroutable" — a false
+        # alarm this project has paid for before — DISCRIMINATE THE INSTRUMENT FROM THE TERRAIN.
+        # Production spends ONE bounded step budget across a whole path, and Route128 is 120x40, by
+        # far the longest single-map leg on this route. If the same journey succeeds in TWO HOPS,
+        # the refusal is a BUDGET artifact and the water is continuous — which also tells the
+        # builder to walk this leg in stages rather than ask for it in one call.
+        ask("R9j ⭐ ROUTE128 (30,0) -> midpoint (70,25)", (R128, (30, 0)), (R128, (70, 25)))
+        ask("R9k ⭐ ROUTE128 midpoint (70,25) -> the x=101 channel (101,29)", (R128, (70, 25)), (R128, (101, 29)))
+        # ⛔⛔ R9j SUCCEEDED (79 wp) WHILE THE SHORTER R9k REFUSED — so it is NOT a path budget.
+        # ‼ LOOK AT *WHICH* TILE IS BEING ASKED FOR: (101,29) is **CARLEE'S OWN TILE**, and (101,22)
+        # is Harrison's. Pathing FROM (101,29) succeeded (R9i) while pathing TO it fails — which is
+        # exactly the asymmetry you get when the DESTINATION is occupied by an object and the START
+        # tile is exempt. ⇒ the hypothesis is "the destination is a trainer", NOT "the water is cut".
+        # ⚠ THIS MATTERS BEYOND THIS LEG: this driver's R6 block asserts that on a map the bot is
+        # NOT standing on, `active_objects` is empty and production therefore does not block on
+        # objects. If THAT is false, R6's B1F/B2F answers are affected too. Test it here, cheaply.
+        ask("R9l ⭐ ROUTE128 (70,25) -> channel tile (101,26) [NOT a trainer tile]", (R128, (70, 25)), (R128, (101, 26)))
+        ask("R9m ⭐ ROUTE128 (70,25) -> (100,29) [one tile WEST of Carlee]", (R128, (70, 25)), (R128, (100, 29)))
+        ask("R9n ROUTE128 (70,25) -> Harrison's tile (101,22)", (R128, (70, 25)), (R128, (101, 22)))
+        log(f"[{TAG}] ‼‼ R9l/R9m ARE THE REAL DISCRIMINATOR. If they SUCCEED while R9k/R9n refuse, "
+            f"then the channel is OPEN and production is refusing only because the DESTINATION tile "
+            f"is a trainer object ⇒ (a) leg 4 must aim at a free tile, never at a trainer's tile, and "
+            f"(b) ⛔ THIS DRIVER'S OWN R6 COMMENT — 'active_objects is empty on a non-active map, so "
+            f"production does not block on objects' — IS FALSE, and R6's B1F/B2F readings are the "
+            f"'boulders still present' case, not the 'both moves spent' case I labelled them.")
+        log(f"[{TAG}] ‼ R9j+R9k vs R9h IS THE DISCRIMINATOR: if BOTH halves succeed while the whole "
+            f"refuses, R9h is a PATH-BUDGET artifact, NOT a wall — the basin is continuous and the "
+            f"leg must simply be walked in stages. ⛔ Do not record R9h as 'Route 128 is unroutable' "
+            f"without this pair; that is the 'wrong instrument, not a verdict' shape (KI-53).")
+        log(f"[{TAG}] ‼ R9b/R9c ARE THE ONES LEG 3 DEPENDS ON — if the bot cannot plan from the Poke "
+            f"Center to a dive tile, leg 3 needs `navigate_to_anywhere`, not `calculate_path`. "
+            f"⚠ And a refusal on R9d/R9e is MORE likely KI-72 than terrain: verify live before "
+            f"concluding the underwater hop is impossible.")
 
         log(f"[{TAG}] ⚠ READ A FAILURE AS 'the STATIC planner cannot see it', NEVER as 'the bot "
             f"cannot go there' — `navigate_to_anywhere` re-plans per warp and a §Ch15 leg succeeded "

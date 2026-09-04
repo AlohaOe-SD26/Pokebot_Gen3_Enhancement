@@ -11478,3 +11478,49 @@ it is the most likely to be verbose, and it is the only text whose removal canno
 else's finding. Retirement of an OLD item is a bigger decision than a line budget should force.
 ✅ **And prefer de-duplication to deletion:** a full ruling belongs in `06-DECISIONS-LOG.md` once,
 with a pointer from the punch list — not stated twice in two current-state files.
+
+
+## 2026-09-03 — I ASSERTED A PROPERTY OF MY OWN INSTRUMENT IN A COMMENT, THEN READ EVERY RESULT THROUGH IT
+
+**Symptom.** `Ch23RouteMode`'s R6 block carried this comment, written by me, as the justification for
+how to interpret its Victory Road B1F readings:
+
+> *"On a map the bot is NOT standing on, `active_objects` is empty, so production does not block live
+> boulders — its answer is therefore the 'Strength and Rock Smash both spent' case, which is exactly
+> the question worth asking of the terrain."*
+
+**Measured FALSE, at zero cost, by a query I only ran because something else looked odd.** On
+`ROUTE128` — a map the bot is not standing on — `calculate_path` **REFUSED** to path to **(101,29)**
+and **(101,22)**, the template tiles of the trainers Carlee and Harrison, while pathing happily to
+**(101,26)** and **(100,29)** right beside them (32 and 34 wp). ⇒ **production DOES block on object
+events on a non-active map.**
+
+**How it surfaced, which is the part worth copying.** A route query refused, and instead of recording
+*"Route 128 is obstructed"* I ran a discriminator: the same journey in two hops. The LONGER half
+succeeded (79 wp) while the SHORTER one refused — so it was not a path budget. That asymmetry
+(pathing FROM (101,29) works, pathing TO it fails) is the signature of an occupied DESTINATION with an
+exempt START, which named the hypothesis; two more queries confirmed it.
+
+**Root cause.** I wrote a confident claim about how the planner behaves, in a comment, and then read
+every downstream result through that claim. Nothing tested it. It was not a guess about the game —
+it was a guess about **my own instrument**, which is the kind that hides best, because the instrument
+is the thing you are using to check everything else.
+
+**What it actually changed — and it is GOOD news, which is why it could have gone unnoticed for a
+long time.** R6's B1F answers are the **"boulders STILL PRESENT"** case, not the "both moves spent"
+case. So R6a/R6b/R6c refusing is a genuine corroboration that the arrival chamber is SEALED until the
+pushes happen — a **stronger** reading than the comment claimed, not a weaker one. B2F has no
+boulders, so R6d/R6e are unaffected; 1F's R8 queries aimed at bridge tiles and warps, not object
+tiles, so they stand. ‼ **A false premise that happens to make your conclusions look better is the
+hardest kind to notice.**
+
+**Prevention rules.**
+⛔⛔ **A CLAIM ABOUT YOUR INSTRUMENT NEEDS THE SAME EVIDENCE BAR AS A CLAIM ABOUT THE SUBJECT.** "The
+planner does not model X here" is a testable assertion, not a framing device. Test it in the same
+run, especially when it is doing interpretive work for every other reading.
+⛔ **WHEN A PATH QUERY REFUSES, ASK *WHICH TILE* YOU ASKED FOR BEFORE CONCLUDING ANYTHING ABOUT THE
+TERRAIN.** A refusal to a tile an object stands on says "something is standing there". ⇒ **never aim
+a path at an object's tile**; aim beside it.
+⭐ **THE DISCRIMINATOR THAT WORKED, WORTH REUSING: split the journey.** If the whole refuses and both
+halves succeed, it is a budget. If the LONGER half succeeds and the SHORTER refuses, it is not — and
+the from/to asymmetry then tells you it is the destination.
