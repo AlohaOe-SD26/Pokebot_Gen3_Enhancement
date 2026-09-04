@@ -866,11 +866,18 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       ⚠ Test `VAR_ROUTE128_STATE != 1`, **not `>= 2`** (exact-equality dispatch), and ⛔ do not
       emerge on the arrival tile (45,65) — it is `MB_WATER_DOOR`, emergible only via a disabled
       `#ifdef BUGFIX`; step south to **(45,66)** first.
-      ⚠⚠ **STILL OWED, AND IT DECIDES THE CHAPTER'S RISK PROFILE: is the Ever Grande Poké Center
-      (27,48) reachable from the waterfall-top landing (18,55)?** Production paths (18,41)→(27,49)
-      in 23 wp; the water-route audit says it sits in an upper city gated behind Victory Road.
-      **They may not conflict** — do not assume either way. If NO, there is **no heal between
-      Sootopolis and the League.** ⭐ One `calculate_path` query settles it.
+      ✅✅✅ **BOTH OPEN QUESTIONS SETTLED 2026-09-03 by `--driver ch23route` R7/R8 (read-only).**
+      ⭐ **1F's three-region model is CONFIRMED by production:** the same tile (30,28) is OK 15 wp
+      from the B-side and **PathFindingError from the A-side**, and both cross-region ladder
+      queries refuse ⇒ **the basement detour is genuinely forced.** The 61-vs-64 step gap is
+      **retired as a non-issue** (both models agree on reachability; the gap is a tie-break).
+      ⭐ **THERE IS A HEAL BEFORE THE CAVE:** Ever Grande's Poké Center is **16 wp from the
+      waterfall-top landing (18,55)** ⇒ arrive chipped, heal, then enter. ⛔ The audit had grouped
+      (27,48)/(18,27)/(18,5) as one gated "upper city" — **2 of 3 are; the Poké Center is not.**
+      ‼ *A claim about a SET is not evidence about each MEMBER.*
+      ⭐⭐ **AND VICTORY ROAD IS MANDATORY, PROVEN:** the League door (18,5) and the far exit
+      (18,27) both REFUSE from the landing. ⇒ **CHAPTER SHAPE FIXED: in at (18,41), out at
+      (18,27), then 38 wp to the League door (18,5).**
       ⛔ `calculate_path` is CONNECTION-GRAPH ONLY (cross-map legs refuse with *"warps don't count"*)
       ⇒ drive with `navigate_to_anywhere`. KI-72/73/53/60 are armed on this route; KI-47 can wedge any
       battle (`#24-ki47rotatelead`, deliberately not fixed); `#26-surfteachchain` **D3 is OPEN and

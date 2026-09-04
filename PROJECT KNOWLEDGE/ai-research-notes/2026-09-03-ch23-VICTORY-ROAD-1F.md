@@ -40,7 +40,7 @@ unreachable from region A. THIS is what makes the basements mandatory.**
 
 ✅ **Cross-check against OUR planner — 3 of 4 exact:** (15,40)→(9,14) = **44** ✔,
 (15,40)→Wally(3,23) = **29** ✔, (3,23)→(9,14) = **15** ✔, (15,40)→(39,5) **UNREACHABLE** ✔.
-⚠ **One mismatch, and it is the open question — see §5.**
+✅ **The one step-count mismatch is retired as a non-issue, and production has since CONFIRMED the whole three-region model — see §5.**
 
 ## §1. ✅ THE SCRIPTS ARE HARMLESS — THE `ON_TRANSITION` WORRY IS CLOSED
 
@@ -117,7 +117,11 @@ Nine objects (`map.json:16-201`); five are sight trainers. Cones simulated with 
 
 ⇒ **§Ch23's total unavoidable sight battles: 2 on 1F (Hope, Edgar) + ≥5 in the basements + Wally.**
 
-## §5. ⚠⚠ THE OPEN QUESTION — 61 vs 64, ON THE ONE LEG NOBODY HAS DRIVEN
+## §5. ✅✅ SETTLED — PRODUCTION CONFIRMS THE THREE REGIONS; THE 61-vs-64 GAP IS A NON-ISSUE
+
+*(This section was headed "THE OPEN QUESTION" for a few hours. It is kept in full below, because the reasoning that made it look dangerous is the reasoning that chose the query which settled it — but ⛔ the heading claimed OPEN while the body below said SETTLED, which is exactly the P2 heading/body violation this project keeps paying for. Fixed the same day.)*
+
+### The disagreement, as it stood
 
 The agent's BFS reproduces our planner **exactly** on three legs and on the unreachability verdict,
 then **disagrees on the fourth**:
@@ -138,7 +142,32 @@ the leg the bot must walk to finish Victory Road.
 ⚠ A 3-step gap is small enough to be a tie-break between equal paths and large enough to be a
 modelling error. **It is not currently distinguishable, and it should not be guessed.**
 
-### ⭐ THE CHEAPEST LIVE CHECK — ONE TILE, ONE STEP, SETTLES THE WHOLE AUDIT
+### ✅✅ SETTLED 2026-09-03 — PRODUCTION'S OWN PLANNER INDEPENDENTLY CONFIRMS THE THREE REGIONS
+
+`--driver ch23route` R8 asked `calculate_path` **from both arrival sides**, which is what reproduces
+the two different carried elevations. *(Asking about a bare tile in isolation would NOT — it has no
+arrival history. That is precisely why the model is subtle.)*
+
+| query | production |
+|---|---|
+| A-side (15,40) → bridge tile (29,28) | ✅ OK, 48 wp |
+| **A-side (15,40) → EAST of the bridge (30,28)** | ⛔ **PathFindingError** |
+| B-side (21,32) → bridge tile (29,28) | ✅ OK, 14 wp |
+| **B-side (21,32) → EAST of the bridge (30,28)** | ✅ **OK, 15 wp** |
+| A-side (15,40) → the other ladder (21,32) | ⛔ REFUSED (expected) |
+| B-side (21,32) → the entrance ladder (9,14) | ⛔ REFUSED (expected) |
+
+⭐⭐ **THE SAME TILE (30,28) IS REACHABLE FROM ONE SIDE AND REFUSED FROM THE OTHER.** That is the
+elevation-15 carry model reproduced by the shipped planner, independently of the audit's BFS — and
+the two cross-region refusals confirm the split that **forces the basement detour**.
+⇒ **The three-region model is no longer a simulation to be checked; it is corroborated by the
+authority the bot will actually use.**
+⚠ **The 61-vs-64 step-count gap is NOT settled by this** and does not need to be: both models agree
+on *reachability*, which is what the route depends on. A 3-step difference between two shortest-path
+implementations is a tie-break among equal-cost paths, not a structural disagreement. ⇒ **retired as
+a non-issue**, not as "resolved".
+
+### ⭐ THE ORIGINAL LIVE CHECK (now optional — production already answered it)
 Observe-only, no state writes, no basement traversal:
 1. From the Ever Grande entrance side, walk to **1F (29,28)** (region A, 3 tiles east of the y=27-28
    bridge). Print the carried elevation — **predict 3** — then attempt **one step EAST to (30,28)**

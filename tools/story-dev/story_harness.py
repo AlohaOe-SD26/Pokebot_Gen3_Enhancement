@@ -12371,6 +12371,64 @@ class Ch23RouteMode(BotMode):
             f"into the exit region, then (21,32)->(39,5) must succeed for the chapter to be "
             f"routable at all.")
 
+        # ---- R7: ⛔ IS THERE A HEAL BETWEEN SOOTOPOLIS AND THE LEAGUE? -------------------------
+        # THE QUESTION: the 2026-09-03 water-route audit flood-filled Ever Grande and reported the
+        # Poke Center (27,48) is NOT reachable "from below", sitting in an upper city gated behind
+        # Victory Road — while R5c above measures (18,41) -> (27,49) in 23 wp. Those may not
+        # conflict ("below" probably means below the WATERFALL), so the audit was NOT recorded as
+        # refuting anything. ⇒ the decisive question is the one NEITHER has asked:
+        #     **can the bot reach the Poke Center from (18,55), the waterfall-top LANDING?**
+        # If NO, there is no heal anywhere between Sootopolis and the Pokemon League, and the
+        # chapter must carry its own healing items. That changes the build, so it is asked here
+        # BEFORE any leg is written rather than discovered by a 40-minute drive.
+        log(f"[{TAG}] ⛔ R7 SETTLES 'IS THERE A HEAL BEFORE THE LEAGUE?'. The waterfall-top landing "
+            f"is (18,55); the Poke Center DOOR is (27,48) and its apron (27,49).")
+        ask("R7a ⭐ EVER_GRANDE landing (18,55) -> Poke Center DOOR (27,48)", (EG, (18, 55)), (EG, (27, 48)))
+        ask("R7b ⭐ EVER_GRANDE landing (18,55) -> Poke Center apron (27,49)", (EG, (18, 55)), (EG, (27, 49)))
+        ask("R7c EVER_GRANDE landing (18,55) -> VICTORY ROAD door (18,41)", (EG, (18, 55)), (EG, (18, 41)))
+        ask("R7d EVER_GRANDE (18,41) -> Poke Center DOOR (27,48)", (EG, (18, 41)), (EG, (27, 48)))
+        ask("R7e EVER_GRANDE arrival from Rt128 (0,70) -> waterfall base (18,68)", (EG, (0, 70)), (EG, (18, 68)))
+        ask("R7f EVER_GRANDE waterfall TOP (18,59) -> the landing (18,55)", (EG, (18, 59)), (EG, (18, 55)))
+        # ⛔⛔ THE QUESTION NOBODY THOUGHT TO ASK, AND IT IS THE ONE THAT COULD DELETE THE CHAPTER.
+        # The water-route audit lists (27,48), (18,27) AND (18,5) together as an "upper city gated
+        # behind Victory Road". (18,5) is the POKEMON LEAGUE DOOR and (18,27) is Victory Road's FAR
+        # exit. If either is reachable from the waterfall-top landing, the bot could walk straight
+        # to the League and Victory Road would be OPTIONAL — which would change §Ch23 entirely.
+        # ‼ ASK, DO NOT ASSUME: the audit already turned out to be wrong about (27,48) one line above.
+        ask("R7g ⛔ EVER_GRANDE landing (18,55) -> POKEMON LEAGUE door (18,5)", (EG, (18, 55)), (EG, (18, 5)))
+        ask("R7h ⛔ EVER_GRANDE landing (18,55) -> Victory Road FAR exit (18,27)", (EG, (18, 55)), (EG, (18, 27)))
+        ask("R7i EVER_GRANDE VR far-exit (18,27) -> POKEMON LEAGUE door (18,5)", (EG, (18, 27)), (EG, (18, 5)))
+        log(f"[{TAG}] ‼ R7g IS A CHAPTER-SHAPE QUESTION: if the League door is reachable from the "
+            f"landing, VICTORY ROAD IS OPTIONAL and §Ch23 collapses to a swim. If it REFUSES, the "
+            f"cave is mandatory and R7i is the leg the chapter exits through.")
+        log(f"[{TAG}] ‼ R7a/R7b ARE THE VERDICT. If BOTH refuse while R7c succeeds, the audit is "
+            f"right and there is NO HEAL between Sootopolis and the League ⇒ the chapter must carry "
+            f"its own potions/revives. If they succeed, the heal is available on arrival.")
+
+        # ---- R8: ⭐ DOES PRODUCTION AGREE 1F IS THREE REGIONS CUT BY ELEVATION? ----------------
+        # The 1F audit says regions A and B SHARE 16 elevation-15 bridge tiles but arrive carrying
+        # 3 vs 4, so the same tile passes one and refuses the other. That model is what forces the
+        # whole basement detour, and it disagreed with our planner on ONE leg (it says (21,32) ->
+        # (39,5) is 61; production said 64).
+        # ‼ WHY PRODUCTION *CAN* ANSWER THIS EVEN THOUGH THE BOT IS NOT THERE: `calculate_path`
+        # carries elevation ALONG the path from a real start tile, so asking it from (15,40) and
+        # from (21,32) reproduces the two different carried elevations that the whole model turns
+        # on. ⛔ Asking about a bare tile like (29,28) in isolation would NOT — it has no arrival
+        # history — which is exactly why the note's live check specifies WHICH SIDE you arrive from.
+        log(f"[{TAG}] ⭐ R8 tests the 1F THREE-REGION model with production's own planner, by "
+            f"asking from BOTH arrival sides — that is what reproduces the two carried elevations.")
+        ask("R8a A-side (15,40) -> bridge tile (29,28)", (VR, (15, 40)), (VR, (29, 28)))
+        ask("R8b A-side (15,40) -> EAST of the bridge (30,28)", (VR, (15, 40)), (VR, (30, 28)))
+        ask("R8c B-side (21,32) -> bridge tile (29,28)", (VR, (21, 32)), (VR, (29, 28)))
+        ask("R8d B-side (21,32) -> EAST of the bridge (30,28)", (VR, (21, 32)), (VR, (30, 28)))
+        ask("R8e A-side (15,40) -> the OTHER ladder (21,32)  [expect REFUSED]", (VR, (15, 40)), (VR, (21, 32)))
+        ask("R8f B-side (21,32) -> the entrance ladder (9,14) [expect REFUSED]", (VR, (21, 32)), (VR, (9, 14)))
+        log(f"[{TAG}] ‼ R8 VERDICT SHAPE: if R8b REFUSES while R8d SUCCEEDS — the same tile, "
+            f"reachable from one side only — production INDEPENDENTLY confirms the elevation-15 "
+            f"carry model, and R8e/R8f refusing confirms the region split that forces the basements. "
+            f"⛔ If R8b SUCCEEDS, the three-region model is WRONG and the basement detour is not "
+            f"forced, which would change the chapter's shape entirely.")
+
         log(f"[{TAG}] ⚠ READ A FAILURE AS 'the STATIC planner cannot see it', NEVER as 'the bot "
             f"cannot go there' — `navigate_to_anywhere` re-plans per warp and a §Ch15 leg succeeded "
             f"while planning statically as FAIL (KI-53).")

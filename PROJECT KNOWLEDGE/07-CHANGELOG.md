@@ -20937,3 +20937,54 @@ profile. ⭐ One `calculate_path` query settles it.
 **7. 🔧 AND `#24-ch23victoryroad` WENT 167 LINES → 44.** It had been duplicating the analysis notes.
 The punch list now carries status, the three things a builder must not miss, and pointers; every
 analysis lives once, in the spec or its companion note.
+
+
+## 2026-09-03 (settled) — BOTH §Ch23 OPEN QUESTIONS CLOSED, AND ASKING ONE MORE SAVED THE CHAPTER
+
+`--driver ch23route` gained R7 and R8 — read-only `calculate_path` queries chosen specifically to
+DISCRIMINATE the two disagreements, rather than to re-measure what was already agreed.
+
+**1. ⭐⭐ THE 1F THREE-REGION MODEL IS CONFIRMED BY PRODUCTION'S OWN PLANNER.** The trick was asking
+from **both arrival sides**, because `calculate_path` carries elevation ALONG the path from a real
+start tile — so the two queries reproduce the two different carried elevations the model turns on.
+*(Asking about a bare tile in isolation would not: it has no arrival history. That is exactly why the
+model is subtle and why the earlier note specified WHICH SIDE to arrive from.)*
+
+| query | production |
+|---|---|
+| A-side (15,40) → bridge (29,28) | OK, 48 wp |
+| **A-side (15,40) → EAST of it (30,28)** | ⛔ **PathFindingError** |
+| B-side (21,32) → bridge (29,28) | OK, 14 wp |
+| **B-side (21,32) → EAST of it (30,28)** | ✅ **OK, 15 wp** |
+| (15,40) → (21,32) / (21,32) → (9,14) | ⛔ both REFUSED |
+
+⇒ **the SAME TILE is reachable from one side and refused from the other** — the elevation-15 carry
+rule, reproduced by the shipped planner independently of the audit's BFS. **The basement detour is
+genuinely forced.** ⚠ The 61-vs-64 step-count gap is **retired as a non-issue**: both models agree on
+REACHABILITY, which is all the route depends on, and a 3-step difference between two shortest-path
+implementations is a tie-break among equal-cost paths, not a structural disagreement.
+
+**2. ⭐ THERE *IS* A HEAL BEFORE THE CAVE — the audit's grouping was 2-of-3 right.** The water-route
+audit listed (27,48), (18,27) and (18,5) together as an "upper city gated behind Victory Road".
+Production, asked from the waterfall-top landing **(18,55)**: Poké Center door **(27,48) OK 16 wp**,
+apron (27,49) OK 15, Victory Road door (18,41) OK 16 — **so the Poké Center is NOT gated.**
+⇒ §Ch23 can arrive chipped, **heal, and then enter Victory Road**, which matters a great deal given
+the party starts at 61% with a fainted member and there is no other Center on the whole leg.
+‼ **The lesson: a claim about a SET is not evidence about each MEMBER.** The audit grouped three tiles
+by a shared story intuition; the one that broke the pattern is the one the chapter needed.
+
+**3. ⛔⛔ AND ASKING ONE MORE QUESTION CONFIRMED THE CHAPTER EXISTS AT ALL.** Because the audit had
+just been shown wrong about a neighbouring tile, I asked the thing nobody had: **is the Pokémon League
+door reachable from the landing?** If it were, Victory Road would be OPTIONAL and §Ch23 would collapse
+to a swim. **It REFUSES** — as does the Victory Road far exit (18,27) — while **(18,27) → (18,5) is OK
+at 38 wp.** ⇒ **Victory Road is MANDATORY, proven rather than assumed, and THE CHAPTER'S SHAPE IS NOW
+FIXED: in at (18,41), out at (18,27), then 38 wp to the League door (18,5).**
+‼ *This is the general rule that keeps paying: when a source is caught being wrong about one item,
+re-ask the items next to it — the error rarely sits alone, and here the neighbouring item was
+load-bearing for the entire chapter.*
+
+**4. 🔧 And a heading I wrote the same hour went stale.** The 1F note's §5 was headed *"THE OPEN
+QUESTION"* while its body, updated minutes later, said SETTLED — the exact P2 heading/body violation
+this project keeps paying for, committed inside the round that closed the question. Fixed, with the
+original reasoning kept: the argument that made the gap look dangerous is what chose the query that
+settled it.

@@ -173,10 +173,27 @@ player. *(This is KI-74's shape: `setmetatile` is invisible to a static layout r
 | 2 | **(18, 41)** | **VICTORY ROAD 1F warp 0 ← the entrance** |
 | 3 | (18, 27) | Victory Road 1F warp 1 (the far-side exit) |
 
-⛔ **(27,48), (18,27) and (18,5) are NOT reachable from below the waterfall** — they sit in the upper
-city, gated behind Victory Road. ‼ **This retires an earlier claim that the Ever Grande Poké Center
-is reachable before the cave**: `--driver ch23route` measured (18,41) → (27,49) = 23 wp, which is a
-path *within the upper city*, not one the bot can walk on arrival.
+⛔⛔ **THE AUDIT BUNDLED THREE TILES AS "GATED BEHIND VICTORY ROAD". TWO ARE; ONE IS NOT —
+SETTLED 2026-09-03 BY ASKING PRODUCTION FROM THE LANDING TILE (`--driver ch23route`, R7):**
+
+| from the waterfall-top landing **(18,55)** | production |
+|---|---|
+| **Poké Center door (27,48)** | ✅ **OK, 16 wp** — ⛔ the audit's "not reachable" is **REFUTED** |
+| Poké Center apron (27,49) | ✅ OK, 15 wp |
+| Victory Road entrance (18,41) | ✅ OK, **16 wp** — exactly the audit's own figure |
+| **Pokémon League door (18,5)** | ⛔ **REFUSED** — audit CONFIRMED |
+| **Victory Road far exit (18,27)** | ⛔ **REFUSED** — audit CONFIRMED |
+| (18,27) → (18,5), i.e. the way OUT | ✅ OK, **38 wp** |
+
+⇒ ⭐ **THERE *IS* A HEAL BEFORE THE CAVE.** The Ever Grande Poké Center is 16 wp from the landing, so
+§Ch23 can arrive chipped, heal, and *then* enter Victory Road. This matters: the party starts the
+chapter at 61% with a fainted member, and there is no other Center on the whole leg.
+⇒ ⭐ **AND VICTORY ROAD IS MANDATORY, PROVEN RATHER THAN ASSUMED.** The League door is unreachable
+from the landing, so the cave cannot be skipped; the chapter enters at **(18,41)** and comes out at
+**(18,27)**, then walks **38 wp** to the League.
+‼ **The lesson: the audit grouped three tiles by a shared *story* intuition ("upper city"), and the
+grouping was 2-of-3 correct. A claim about a SET is not evidence about each MEMBER** — each tile had
+to be asked separately, and the one that broke the pattern is the one the chapter needed.
 ⭐ The top pool is 44 tiles (x=15..26, y=56..59) and its **only** surf→land exits are
 **(18..22, 56) stepping NORTH onto (18..22, 55)**.
 The 11 `coord_events` at y=58, x=16..26 run only `setflag FLAG_VISITED_EVER_GRANDE_CITY` +
