@@ -178,6 +178,53 @@ B1F_LADDER_APRON = (9, 15)
 
 LEG5_READINGS = ("R5-WARP", "R5-WALLY", "R5-FLAG", "R5-LADDER", "R5-CONTINUE5")
 
+# ============================== TRAINING — BEFORE WALLY ========================================
+#: ⛔⛔ TRAIN ON **1F**, NOT B1F, AND THAT IS NOT A PREFERENCE — IT IS FORCED.
+#: B1F is the better ground (950.8 EXP/battle vs 1F's 775.6, because B1F swaps 1F's low-level
+#: Zubat/Whismur slots for more Hariyama at 184 base EXP). **But B1F is BEHIND WALLY.** The only
+#: path to the ladder is 44 wp = 29 to Wally's trigger + 15 onward (MEASURED, `ch23route` R12), and
+#: his triggers are a collision-geometry articulation pair — seal them and the ladder is
+#: unreachable. ⇒ **the best training ground is gated behind the fight the training is FOR.**
+#: ‼ A research pass recommended B1F without noticing that. Grinding 18% slower on 1F is the whole
+#: cost of the mistake not being made.
+#: ⭐ MEASURED 'Cave' (`ch23route` R15) — and that check is not pedantry: only `MB_CAVE` rolls
+#: encounters on 1F, 16 walkable tiles are `MB_NORMAL`, and a spin parked on one of those generates
+#: ZERO battles while looking perfectly healthy. That is `#24-grindconverge`'s exact shape.
+TRAIN_SPOT_1F = (VR1F, (15, 39))     # 1 step from the entrance warp, elevation 3
+
+#: ⭐⭐ THE TARGET, DERIVED FROM THE OPPOSITION *AND THEN PRICED* — 50 was the first answer and the
+#: measurement overruled it. Max level faced is **58** (Champion Wallace's Milotic); the Elite Four
+#: runs 49 / 51 / 53 / 55 and Wally's ace is 45.
+#: ⛔ BUT L50 IS NOT AFFORDABLE ON 1F. Measured 2026-09-04 (`POKEBOT_CH23_ESTIMATE_ONLY=1`), worst
+#: SINGLE mon against the 250,000 per-call ceiling:
+#:     L46 → 339,621 total · L47 → 438,498 (worst Wailmer 217,816 ✅) · L48 → 556,004
+#:     L50 → 793,882 (worst **Wailmer 359,683** ⛔ — 1.4x over the ceiling on its own)
+#: ⇒ **47 is the highest target that fits, and it is ALSO `CRUNCH_LEVEL`.** The move constraint and
+#: the budget constraint landing on the same number is a coincidence worth stating out loud, because
+#: it means neither can be relaxed to buy room for the other.
+#: ‼ 47 clears Wally's ace (45) outright and sits 2 under Sidney. It does NOT clear Wallace's 58 —
+#: the remaining gap is meant to be closed on **B1F after Wally** (950.8 EXP/battle vs 1F's 775.6),
+#: which is the only better ground and is gated behind exactly the fight this training is for.
+TRAIN_TARGET = 47
+
+#: ⛔ THE BINDING CONSTRAINT IS A MOVE, NOT A LEVEL. Mightyena learns **Crunch at L47** and has NO
+#: Dark TM available at all — below 47 there is no answer to Phoebe's all-Ghost team.
+CRUNCH_LEVEL = 47
+
+#: ⚠ NOT BATTLERS FOR THIS ARC — training them costs 3.7x the work and fixes nothing, because the
+#: problem is TYPING, not levels. ⛔ "Bench" here means **do not train and do not lead** — it does
+#: NOT mean deposit: a PC deposit is the hazard `assert_carriers_survived` exists to catch.
+#: ⭐ And benching is safe only because a FULL-HP party makes the faint-replacement ranking fall
+#: through `hp_fraction` (all tie at 1.0) to `-level`, which then picks the STRONGEST.
+BENCH_SPECIES = ("Zigzagoon", "Linoone", "Castform")
+
+#: The frame ceiling every existing `train_team` caller gates on before calling
+#: (`story_mode.py:1034`). ⛔ `train_team` itself has NO frame budget — only a 500-ROUND guard — and
+#: KI-28 burned 19.9M frames on a target the local grass could not deliver.
+MAX_TRAINING_FRAMES = 250_000
+
+TRAIN_READINGS = ("R-TRAINPRE", "R-ESTIMATE", "R-TRAINED", "R-READY")
+
 #: ⛔ A NAMED-BAD DENYLIST, NOT AN ALLOWLIST. The tile type at UW126 (45,66) has NEVER been read;
 #: two independent designs predicted DIFFERENT values, and §Ch21 emerged there three times with no
 #: tile guard at all. An allowlist can only LOSE here: it cannot make a correct run more correct and
@@ -207,11 +254,41 @@ LEG23_READINGS = (
 )
 
 
+def _os_environ_flag(name: str) -> bool:
+    """A plain env-var switch, read as an exact '1'. ⛔ Never truthiness on the string — "0" is
+    truthy in Python and would turn every guard permanently ON."""
+    import os
+
+    return os.environ.get(name) == "1"
+
+
+#: ⭐ The fault arms this chapter honours, mapped to their **FULL env names as literals**.
+#: ‼ The literal spelling is the point, twice over: `lint_docs` R6 cross-checks the registry against
+#: names that appear in CODE (a mention in a comment deliberately does not count — see
+#: `#24-advisorydocstring`), and a human grepping for the flag finds nothing if it only ever exists
+#: as an f-string fragment. Add an arm here and it is registered, validated and findable at once.
+FAULT_ARMS = {
+    "NOHEAL": "POKEBOT_CH23_FAULT_NOHEAL",
+}
+
+
 def _fault(arm: str) -> bool:
     """A fault arm is ON only when its env var is exactly '1'. ⛔ Never truthiness on the string."""
     import os
 
-    return os.environ.get(f"POKEBOT_CH23_FAULT_{arm}") == "1"
+    # ⛔⛔ VALIDATE THE ARM NAME. The flag is BUILT with an f-string, so a typo'd arm reads an
+    # env var nobody sets and returns False forever — a fault hook that cannot fire, which is the
+    # "control that cannot fail" shape this project has paid for repeatedly (see the
+    # `POKEBOT_CH21PROBE_FAULT` row: a probe assertion that passed because it COULD NOT fail).
+    # ‼ It also keeps the full literal names greppable, which is what `lint_docs` R6 checks and what
+    # a human needs to find them at all.
+    if arm not in FAULT_ARMS:
+        raise BotModeError(
+            f"Ch23: unknown fault arm {arm!r}. Known arms: {sorted(FAULT_ARMS)}. ⛔ Raising rather "
+            f"than returning False, because a mistyped arm would silently disable the fault it "
+            f"names — a fault hook that cannot fire is worse than none, since it reads as tested."
+        )
+    return os.environ.get(FAULT_ARMS[arm]) == "1"
 
 
 def _budgeted(gen: Generator, budget_frames: int, label: str) -> Generator:
@@ -1238,3 +1315,162 @@ def enter_victory_road(report=None) -> Generator:
     except Exception as error:  # noqa: BLE001 - a refusal IS the reading
         report["continue_wp5"] = f"{type(error).__name__}: {str(error)[:120]}"
     _take(report, "R5-CONTINUE5")
+
+
+# --------------------------------------------------------------------------------------------
+# TRAINING — raise the battlers before Wally
+# --------------------------------------------------------------------------------------------
+def battler_identities() -> dict:
+    """`{(pid, species): (slot, level)}` for the mons this arc actually fights with.
+
+    ⛔ Returns IDENTITIES with their CURRENT slot, never a bare slot list: `train_team` physically
+    rotates the party (`_rotate_lead_safely`), so a slot index resolved before a call is not the
+    same mon afterwards. Resolve immediately before use, and re-verify by PID after.
+    """
+    out = {}
+    for slot, mon in enumerate(get_party()):
+        if mon is None or mon.is_egg:
+            continue
+        if mon.species.name in BENCH_SPECIES:
+            continue
+        out[(mon.personality_value, mon.species.name)] = (slot, mon.level)
+    return out
+
+
+def team_is_ready() -> tuple[bool, list]:
+    """Is the party ready for Wally and the Elite Four? Returns `(ready, reasons)`.
+
+    ⛔ ASSERTS ON SPECIES + MOVE IDENTITY, NEVER ON SLOT INDEX — benching reshuffles every slot, and
+    a slot-index assert would happily read TRUE against the wrong Pokémon.
+    ‼ The level is not the only gate: **Mightyena below L47 has no Crunch and therefore no answer to
+    Phoebe's all-Ghost team**, so a party that is "all L50" but reached it without that level-up is
+    still not ready. A readiness check that only counts levels would pass it.
+    """
+    reasons = []
+    for (pid, species), (_slot, level) in battler_identities().items():
+        if level < TRAIN_TARGET:
+            reasons.append(f"{species}#{pid:08X} is L{level} < {TRAIN_TARGET}")
+    for mon in get_party():
+        if mon is None or mon.species.name != "Mightyena":
+            continue
+        moves = [l.move.name for l in mon.moves if l is not None]
+        if "Crunch" not in moves and mon.level < CRUNCH_LEVEL:
+            reasons.append(f"Mightyena L{mon.level} has no Crunch (learns it at L{CRUNCH_LEVEL})")
+    return (not reasons), reasons
+
+
+def train_for_victory_road(report=None, *, target: int = TRAIN_TARGET) -> Generator:
+    """Raise the battlers on VICTORY_ROAD_1F before attempting Wally.
+
+    ⛔⛔ THREE GUARDS, EACH FROM A MEASURED FAILURE — none is optional:
+    1. **PRE-ESTIMATE AND REFUSE.** `train_team` has no frame budget of its own, only a 500-round
+       guard, and KI-28 burned **19.9M frames** grinding toward a level the local grass could not
+       deliver. This estimates first and raises rather than spinning. ‼ An estimate of `None` means
+       "cannot tell" and is treated as EXPENSIVE, never as cheap.
+    2. **RESTORE THE LEAD OURSELVES, IN A `finally`.** `train_team`'s own
+       `_lead_strongest_battler()` sits AFTER its loop, not inside its `finally`
+       (`early_game.py:2091-2094`), so any abort or whiteout mid-grind exits with the WEAKEST
+       trainee in slot 0. Measured cost of not doing this: 19 losses and 44 whiteouts at one tile.
+    3. **CHECK THE CARRIERS SURVIVED.** `train_team` heals on every HP *or* PP dip, and each heal is
+       another PC-deposit roll — see `assert_carriers_survived`.
+    """
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    yield from wait_until_truly_controllable()
+
+    ready, reasons = team_is_ready()
+    report["train_pre"] = {f"{s}#{p:08X}": lv for (p, s), (_sl, lv) in battler_identities().items()}
+    report["train_reasons"] = reasons
+    _take(report, "R-TRAINPRE")
+    if ready:
+        report["trained"] = "already ready"
+        _take(report, "R-ESTIMATE")
+        _take(report, "R-TRAINED")
+        _take(report, "R-READY")
+        return
+
+    # ---- guard 1: estimate BEFORE committing frames -------------------------------------------
+    from modules.story.training_areas import estimate_frames_to_level
+
+    WILD_MAX = 40      # MEASURED: VICTORY_ROAD_1F's strongest land encounter is L40
+    estimates, total = {}, 0
+    for (pid, species), (slot, level) in battler_identities().items():
+        if level >= target:
+            continue
+        mon = get_party()[slot]
+        est = estimate_frames_to_level(mon, target, WILD_MAX)
+        estimates[f"{species}#{pid:08X}"] = est
+        if est is None:
+            raise BotModeError(
+                f"Ch23 training: cannot estimate the cost of taking {species}#{pid:08X} from "
+                f"L{level} to L{target} on L{WILD_MAX} wilds. ⛔ An unknown estimate is treated as "
+                f"EXPENSIVE, never as cheap — that is the KI-28 shape, which burned 19.9M frames."
+            )
+        total += est
+    report["train_estimates"] = estimates
+    report["train_estimate_total"] = total
+    _take(report, "R-ESTIMATE")
+    # ⭐ ESTIMATE-ONLY MODE. The whole point of estimating first is to be able to REPORT the cost
+    # before spending it — a grind is the one kind of work where "just run it and see" is the
+    # expensive option. `POKEBOT_CH23_ESTIMATE_ONLY=1` stops here with the numbers taken.
+    if _os_environ_flag("POKEBOT_CH23_ESTIMATE_ONLY"):
+        report["trained"] = "ESTIMATE ONLY — no frames spent"
+        return
+    # ⛔⛔ THE CEILING IS PER-CALL, NOT PER-TOTAL, AND THE DISTINCTION IS THE WHOLE POINT.
+    # KI-28's 19.9M-frame livelock was ONE `train_team` call chasing a level the local grass could
+    # never deliver — an unbounded call, not a large sum of bounded ones. This leg makes a SEPARATE
+    # `train_team` call per mon, each of which converges on its own, so summing them and refusing
+    # would be measuring the wrong quantity: it would block a plan that is merely LONG in favour of
+    # one that is merely SHORT, while doing nothing about the failure mode the ceiling exists for.
+    # ⇒ refuse any SINGLE mon whose grind is unaffordable; REPORT the total, because the total is
+    # the user's time and that is a decision for them, not a safety property.
+    worst = max(estimates.items(), key=lambda kv: kv[1], default=(None, 0))
+    if worst[1] > MAX_TRAINING_FRAMES:
+        raise BotModeError(
+            f"Ch23 training: {worst[0]} alone needs {worst[1]:,} frames, over the "
+            f"{MAX_TRAINING_FRAMES:,} per-call ceiling every other caller respects. "
+            f"Per-mon: {estimates}. ⇒ lower the target for that mon, or train on B1F AFTER Wally "
+            f"(950.8 EXP/battle vs 1F's 775.6) — do NOT raise the ceiling to make the run start."
+        )
+
+    # ---- guard 2: we restore the lead, because `train_team` will not on an abort ---------------
+    from modules.story.early_game import _lead_strongest_battler, train_team
+
+    try:
+        for (pid, species), (_slot, level) in sorted(
+            battler_identities().items(), key=lambda kv: kv[1][1]
+        ):
+            if level >= target:
+                continue
+            _check_abort()
+            # ⛔ RE-RESOLVE THE SLOT IMMEDIATELY BEFORE THE CALL. A previous round's rotation has
+            # already moved this mon; the index captured above is stale by construction.
+            here = battler_identities().get((pid, species))
+            if here is None:
+                raise BotModeError(
+                    f"Ch23 training: {species}#{pid:08X} vanished from the battler set mid-grind. "
+                    f"Roster now: {sorted(party_identities())}."
+                )
+            slot_now, level_now = here
+            if level_now >= target:
+                continue
+            yield from train_team(
+                target, slots={slot_now}, grass=TRAIN_SPOT_1F,
+                heal_center=PokemonCenter.EvergrandeCity,
+            )
+            assert_carriers_survived(f"training {species}#{pid:08X}")
+    finally:
+        # ⛔ IN A `finally` ON PURPOSE — this is the guard `train_team` does not give us.
+        yield from _lead_strongest_battler()
+
+    report["train_post"] = {f"{s}#{p:08X}": lv for (p, s), (_sl, lv) in battler_identities().items()}
+    _take(report, "R-TRAINED")
+
+    ready, reasons = team_is_ready()
+    report["train_reasons_after"] = reasons
+    if not ready:
+        raise BotModeError(
+            f"Ch23 training: finished the grind but the team is still not ready: {reasons}. "
+            f"Levels now: {report['train_post']}."
+        )
+    _take(report, "R-READY")

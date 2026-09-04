@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -12632,6 +12632,27 @@ class Ch23RouteMode(BotMode):
             f"PASSIVELY behind the strongest; without one they must be SWITCHED IN, which is slower "
             f"and can lose the mon. Do not design the leg before reading this line.")
 
+        # ---- R15: PICK A TRAINING TILE BY MEASUREMENT, NOT BY PROXIMITY. ---------------------
+        # ⛔ Only `MB_CAVE` tiles roll encounters on 1F — `MB_NORMAL`, `MB_LADDER` and the arrow
+        # warps do not, and 16 walkable 1F tiles are `MB_NORMAL`. A training spin parked on one of
+        # those would look perfectly healthy and generate ZERO battles for as long as it ran, which
+        # is `#24-grindconverge`'s exact shape (a target the local ground cannot deliver).
+        # ⇒ read the behaviour of each candidate rather than trusting that "near the entrance" and
+        # "walkable" imply "grass".
+        from modules.map import get_map_data
+
+        log(f"[{TAG}] ⭐ R15 tile behaviours near the VICTORY_ROAD_1F entrance (encounters need Cave):")
+        for _cand in ((15, 39), (14, 40), (16, 40), (15, 38), (14, 39), (16, 39), (13, 40), (17, 40)):
+            try:
+                _md = get_map_data(MapRSE.VICTORY_ROAD_1F, _cand)
+                log(f"[{TAG}]     {_cand} tile_type={getattr(_md, 'tile_type', None)!r} "
+                    f"elev={getattr(_md, 'elevation', None)} "
+                    f"collision={getattr(_md, 'collision', None)}")
+            except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                log(f"[{TAG}]     {_cand} unreadable: {type(error).__name__}: {error}")
+        log(f"[{TAG}] ‼ R15: pick the nearest 'Cave' tile. ⛔ A 'Normal' tile spins forever for zero "
+            f"encounters and looks healthy while doing it.")
+
         log(f"[{TAG}] ⚠ READ A FAILURE AS 'the STATIC planner cannot see it', NEVER as 'the bot "
             f"cannot go there' — `navigate_to_anywhere` re-plans per warp and a §Ch15 leg succeeded "
             f"while planning statically as FAIL (KI-53).")
@@ -13159,6 +13180,108 @@ class Ch23RoadMode(BotMode):
                 _out.parent.mkdir(parents=True, exist_ok=True)
                 _out.write_bytes(context.emulator.get_save_state())
                 log(f"[{TAG}] captured the post-Wally fixture -> {_out}")
+        context.set_manual_mode()
+
+
+class Ch23TrainMode(BotMode):
+    """§Ch23 TRAINING — raise the battlers on VICTORY_ROAD_1F before attempting Wally.
+
+    ⛔⛔ RUN IT ESTIMATE-ONLY FIRST: `POKEBOT_CH23_ESTIMATE_ONLY=1`. A grind is the one kind of work
+    where "just run it and see" is the expensive option, and `train_team` has NO frame budget of its
+    own — only a 500-ROUND guard. KI-28 burned **19.9M frames** grinding toward a level the local
+    grass could not deliver.
+
+    ⛔ TRAINS ON **1F**, NOT B1F, AND THAT IS FORCED: B1F is the better ground (950.8 EXP/battle vs
+    775.6) but it lies BEHIND WALLY, who is the fight this training exists for.
+
+    Run: PYTHONUTF8=1 POKEBOT_CH23_ESTIMATE_ONLY=1 py -3.12 story_harness.py post_ever_grande.ss1 --driver ch23train --frames 3000
+    Then, to actually train: drop the env var and raise --frames.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23Train"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23train] WHITEOUT #{self.whiteouts} — respawn is EVER_GRANDE (leg 4 armed it).")
+        return True
+
+    def on_battle_started(self, encounter):
+        # ⛔ THE STRATEGY PROVIDER, not a notification — returning None here broke leg 5's battles.
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        from modules.story import victory_road as VR
+
+        TAG = "ch23train"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        report: dict = {"readings": set(), "trace": []}
+
+        ready_before, reasons_before = VR.team_is_ready()
+        log(f"[{TAG}] PRE at={VR._where()} ready={ready_before}")
+        log(f"[{TAG}] PRE reasons={reasons_before}")
+        log(f"[{TAG}] PRE party={VR.party_identities()}")
+        log(f"[{TAG}] PRE battlers={VR.battler_identities()}  (benched: {VR.BENCH_SPECIES})")
+
+        failure = None
+        try:
+            # ⭐ TARGET OVERRIDE so the cost curve can be MEASURED rather than guessed at.
+            _tgt = _os.environ.get('POKEBOT_CH23_TRAIN_TARGET')
+            yield from VR.train_for_victory_road(
+                report, target=int(_tgt) if _tgt else VR.TRAIN_TARGET)
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        taken = report.get("readings", set())
+        missing = [r for r in VR.TRAIN_READINGS if r not in taken]
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        for key in ("train_pre", "train_reasons", "train_estimates", "train_estimate_total",
+                    "trained", "train_post", "train_reasons_after"):
+            log(f"[{TAG}] R {key} = {report.get(key)!r}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+
+        est = report.get("train_estimate_total")
+        if isinstance(est, int):
+            # ⭐ Report the cost in the units a human decides in, not just frames.
+            log(f"[{TAG}] ⭐ COST: ~{est:,} frames ≈ {est / 1433:.0f} wild battles "
+                f"≈ {est / 60 / 60:.1f} minutes of emulator at 60fps "
+                f"(ceiling is {VR.MAX_TRAINING_FRAMES:,})")
+
+        ready, reasons = VR.team_is_ready()
+        estimate_only = _os.environ.get("POKEBOT_CH23_ESTIMATE_ONLY") == "1"
+        # ⛔ ANTI-VACUITY: a run that starts ready has nothing to prove. And in estimate-only mode
+        # the grade is about the ESTIMATE existing, not about the team being trained.
+        premise_ok = not ready_before
+        if estimate_only:
+            passed = failure is None and premise_ok and isinstance(est, int) and est > 0
+            log(f"[{TAG}] GRADE (ESTIMATE-ONLY) premise_ok={premise_ok} estimate={est!r} "
+                f"failure={failure}")
+        else:
+            passed = (failure is None and premise_ok and ready and not missing
+                      and self.whiteouts <= 3)
+            log(f"[{TAG}] GRADE premise_ok={premise_ok} ready={ready} reasons={reasons} "
+                f"missing={missing} battles={self.battles} whiteouts={self.whiteouts} "
+                f"failure={failure}")
+        log(f"[{TAG}] FINAL position={VR._where()}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH23_CAPTURE", "").strip()
+        if passed and _cap and not estimate_only:
+            import pathlib as _pathlib   # ⛔ local: `pathlib` is NOT bound at module scope here
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if _out.exists() and _os.environ.get("CAPTURE_FORCE") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_out.name} exists. Set CAPTURE_FORCE=1 to overwrite.")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured the trained fixture -> {_out}")
         context.set_manual_mode()
 
 
@@ -14940,6 +15063,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23CrossMode()
         elif args.driver == "ch23road":
             context.bot_mode_instance = Ch23RoadMode()
+        elif args.driver == "ch23train":
+            context.bot_mode_instance = Ch23TrainMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":
