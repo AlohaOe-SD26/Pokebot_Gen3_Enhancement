@@ -162,9 +162,8 @@ PROVEN and GATED (`repro_impassable_dirs.py`) — ⚠ KI-76's correctness half i
   `whiteouts=0`, ending SOOTOPOLIS_CITY (31,34) with the GYM WARP reachable in 2 wp. The
   chapter ladder is **23 of 24** — ⛔ DERIVED so it can be re-checked: §Ch18+§Ch19 reached **20**,
   §Ch20 **21**, §Ch21 **22**, §Ch22 **23**. Only §Ch23 (Victory Road) and §Ch24 remain. *(A draft said 21, putting §Ch20 and §Ch21 on the same rung; a Tier 2 cold-start audit caught it.)*
-* ➡ **THE NEXT ACTION IS §Ch23 — VICTORY ROAD, THE ROUTE LEGS** (`chapters.py:259-262`, graded on
-  `DEFEATED_WALLY_VICTORY_ROAD`). Leg 1 (teach Waterfall) is DONE. ⭐ **Badge 8 is precisely what
-  unblocks it** — `field_control_avatar.c` gates `EventScript_UseWaterfall` on `FLAG_BADGE08_GET`.
+* ➡ **NEXT ACTION: §Ch23 LEG 5 — VICTORY ROAD 1F**, from **`post_ever_grande.ss1`** (`chapters.py:259-262`, graded on `DEFEATED_WALLY_VICTORY_ROAD`). ✅✅ **LEGS 1-4 SHIP AND PASS — ⛔ DO NOT REBUILD:** `ch23teach` / `ch23depart` / `ch23cross`. The bot starts leg 5 on **EVER_GRANDE (18,42)** (the Victory Road APRON) at **701/701**, respawn armed **above the falls**.
+  ⇒ **Leg 5: warp NORTH onto (18,41) → 1F (15,40) → Hope (MANDATORY sight battle) → Wally (2,23)/(3,23), which sets the grading flag → the B1F ladder (9,14), 44 wp.**
   ⛔⛔ **TWO BOULDER PUSHES SEAL VICTORY ROAD B1F FOR THAT VISIT, EACH AVAILABLE AS YOUR FIRST *PUSH* —
   never push (4,7) or (9,10) SOUTH; see the queue for the 2-push solution.** ⚠ AGENT-DERIVED, unconfirmed.
   ⛔ Do NOT rebuild a §Ch21/§Ch22 leg, re-run the leg-5 PART C probe, or re-wire either chapter.

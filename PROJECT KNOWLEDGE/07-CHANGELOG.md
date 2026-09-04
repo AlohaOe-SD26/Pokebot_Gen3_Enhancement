@@ -21262,3 +21262,31 @@ that promotes a fresh L19 mule needs **both Sceptile and Wailmer** out. The defe
 guard shipped as cheap insurance, but it is recorded at its true severity.
 ‼ **An agent's worked example is an argument, not a measurement — recompute it before adopting its
 urgency.**
+
+
+## 2026-09-04 (ratchet) — THE ABORT-SWALLOW GATE CAUGHT A REAL DEFECT IN LEG 4 WITHIN MINUTES
+
+`probe_abort_swallowing.py` went **24 > 23** on the leg-4 commit. Not a ratchet nit — a real bug.
+
+`cross_to_ever_grande`'s `_lead_strongest_battler` call is wrapped in a **deliberately non-fatal**
+`except Exception` (leading the strongest battler is insurance, not a precondition, and refusing to
+depart because a nicety failed would trade a small risk for a certain stop). But it had **no
+`reraise_if_aborting(error)`** — and `_lead_strongest_battler` walks and opens menus, so a whiteout
+inside it latches `StoryAbort`, which that handler would have **swallowed**, carrying on to cross an
+ocean on a run the harness had already given up on.
+
+✅ Fixed by re-raising the abort FIRST and keeping the non-fatal behaviour for ordinary failures.
+Both ratchets back at baseline: abort-swallow **23/23**, silent-except **138**, `modules/story`
+**123/123**. Re-driven after the fix: `ACCEPTANCE: PASS`, identical readings.
+
+‼ **THE RULE THIS EARNS: "DELIBERATELY NON-FATAL" MUST NEVER MEAN "DELIBERATELY DEAF."** A handler
+may choose to continue past a failure; it may not choose to continue past an abort. The two are
+different decisions and the second is never the author's to make.
+⭐ **And the delivery is what made it cheap:** the diff advisory named R-EXCEPT on the commit itself,
+so the check took seconds rather than surfacing as a mid-ocean derail hours later. That is the second
+time in two commits the advisory has paid for itself — the first being the R-SCANBOUND catch on a
+probe whose output was right only by luck.
+
+**Also fixed in the same pass: P1.** The 60-second banner still read *"THE ROUTE LEGS … Leg 1 is
+DONE"* while the queue below said *"NEXT IS LEG 5"* — understating by three shipped legs. The banner
+is what a cold reader sees first, so it now names leg 5, the fixture, and the standing position.

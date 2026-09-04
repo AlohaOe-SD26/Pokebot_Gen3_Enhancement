@@ -807,9 +807,16 @@ def cross_to_ever_grande(report=None) -> Generator:
 
             yield from _lead_strongest_battler()
         except Exception as error:  # noqa: BLE001 - a refusal IS the reading, and this is optional
-            # ⛔ DELIBERATELY NON-FATAL: leading the strongest is INSURANCE, not a precondition. The
-            # crossing is winnable without it, and refusing to depart because a nicety failed would
-            # trade a small risk for a certain stop.
+            # ⛔⛔ THE ABORT LATCH IS RE-RAISED FIRST, AND THAT ORDER IS NOT OPTIONAL.
+            # `_lead_strongest_battler` walks and opens menus, so a whiteout inside it latches
+            # `StoryAbort` — and a bare `except Exception` would SWALLOW it and carry on crossing an
+            # ocean on a run the harness has already given up on. The abort-swallowing ratchet
+            # caught this within minutes of the commit (24 > 23, gate #27); it is a real defect, not
+            # a ratchet nit. ‼ "Deliberately non-fatal" must never mean "deliberately deaf".
+            reraise_if_aborting(error)
+            # ⛔ DELIBERATELY NON-FATAL *for ordinary failures*: leading the strongest is INSURANCE,
+            # not a precondition. The crossing is winnable without it, and refusing to depart
+            # because a nicety failed would trade a small risk for a certain stop.
             report["lead_error"] = f"{type(error).__name__}: {error}"
     report["lead_after"] = next(iter(party_identities()), None)
     _take(report, "R4-LEAD")
