@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -13237,7 +13237,12 @@ class Ch23TrainMode(BotMode):
         self.battles = getattr(self, "battles", 0)
         report: dict = {"readings": set(), "trace": []}
 
-        ready_before, reasons_before = VR.team_is_ready()
+        # ⛔ GRADE AGAINST THE TARGET THIS RUN ACTUALLY ASKED FOR. Defaulting to TRAIN_TARGET here
+        # while the leg trains toward an overridden target would grade a different experiment than
+        # the one performed — the same "flag reaches only half the code" defect the leg just fixed.
+        _t = _os.environ.get("POKEBOT_CH23_TRAIN_TARGET")
+        _target = int(_t) if _t else VR.TRAIN_TARGET
+        ready_before, reasons_before = VR.team_is_ready(_target)
         log(f"[{TAG}] PRE at={VR._where()} ready={ready_before}")
         log(f"[{TAG}] PRE reasons={reasons_before}")
         log(f"[{TAG}] PRE party={VR.party_identities()}")
@@ -13269,7 +13274,7 @@ class Ch23TrainMode(BotMode):
                 f"≈ {est / 60 / 60:.1f} minutes of emulator at 60fps "
                 f"(ceiling is {VR.MAX_TRAINING_FRAMES:,})")
 
-        ready, reasons = VR.team_is_ready()
+        ready, reasons = VR.team_is_ready(_target)
         estimate_only = _os.environ.get("POKEBOT_CH23_ESTIMATE_ONLY") == "1"
         # ⛔ ANTI-VACUITY: a run that starts ready has nothing to prove. And in estimate-only mode
         # the grade is about the ESTIMATE existing, not about the team being trained.
@@ -13951,6 +13956,25 @@ class Ch23B2fProbeMode(BotMode):
                     continue
                 moves[f"{mon.species.name}#{mon.personality_value:08X}"] = [
                     lm.move.name for lm in mon.moves if lm is not None]
+            # ⭐ WHICH ENCOUNTER POLICY DOES LEG 7 WANT? Leg 4 used `avoid_encounters=False` on the
+            # OPEN OCEAN because the penalty is +1000 per WATER tile, which on an all-water crossing
+            # dominates the cost. B2F is MIXED land/water, so the answer is not obvious — measure it
+            # rather than inherit leg 4's choice.
+            pol = {}
+            for label, flag in (("avoid_encounters_TRUE", True), ("avoid_encounters_FALSE", False)):
+                try:
+                    _p = calculate_path((B2F, here), (B2F, (18, 12)), avoid_encounters=flag)
+                    _a = {}
+                    for _w in _p:
+                        _n = getattr(getattr(_w, "action", None), "name", None)
+                        if _n and _n != "Walk":
+                            _a[_n] = _a.get(_n, 0) + 1
+                    pol[label] = {"wp": len(_p), "actions": _a}
+                except Exception as _e:  # noqa: BLE001 - a refusal IS the reading
+                    VR.reraise_if_aborting(_e)
+                    pol[label] = {"reachable": False, "why": type(_e).__name__}
+            R["encounter_policy"] = pol
+
             R["party_moves"] = moves
             R["knows_waterfall"] = any("Waterfall" in mv for mv in moves.values())
             R["knows_surf"] = any("Surf" in mv for mv in moves.values())
@@ -13972,6 +13996,128 @@ class Ch23B2fProbeMode(BotMode):
         passed = failure is None and not missing
         log(f"[{TAG}] GRADE missing={missing} failure={failure}")
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
+class Ch23CrossB2fMode(BotMode):
+    """§Ch23 LEG 7 — cross VICTORY_ROAD_B2F and take the ladder back up to B1F. **PRODUCTION CODE.**
+
+    Every decision in this leg was measured first (`--driver ch23b2fprobe`, observe-only): the
+    planner solves the crossing itself in 63 wp with `{Surf: 1, Waterfall: 1}`, the exit ladder is a
+    warp-override trap, and three aprons work so the leg derives one rather than picking.
+
+    ⛔ EXPECT EXACTLY ONE FORCED TRAINER FIGHT (Julie: Sandslash/Ninetales/Tropius, all L42) because
+    Wailord carries Waterfall. With Surf alone it would be four.
+
+    FAULT ARM: `POKEBOT_CH23_FAULT_LADDERAIM=1` aims at the ladder instead of the apron; the leg's
+    apron assert MUST fire and print `ACCEPTANCE: FAIL`.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_b1f_healed.ss1 --driver ch23cross2 --frames 200000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23CrossB2f"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23cross2] WHITEOUT #{self.whiteouts} — respawn is EVER_GRANDE.")
+        return True
+
+    def on_battle_started(self, encounter):
+        # ⛔ THE STRATEGY PROVIDER, not a notification.
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        # ⛔⛔ INSTRUMENT THE ACTION, NOT THE PREDICTION. The recon predicts EXACTLY ONE forced
+        # trainer fight on the Waterfall route (Julie); run 1 logged `battles=3` and the log named
+        # NOTHING, so the prediction could not be checked against the trace at all. A Tier 1 reviewer
+        # flagged that silence. ⇒ record what each battle actually WAS, defensively — a wild
+        # encounter and a trainer both arrive here, and the shapes differ.
+        what = "unknown"
+        try:
+            opp = getattr(encounter, "pokemon", None) or getattr(encounter, "opponent", None)
+            if opp is not None:
+                what = f"wild {getattr(getattr(opp, 'species', None), 'name', opp)}"
+            elif encounter is None:
+                what = "TRAINER (no encounter object — trainer battles pass None)"
+        except Exception:  # noqa: BLE001 - logging must never break the run it observes
+            what = "unreadable"
+        self.battle_log = getattr(self, "battle_log", [])
+        self.battle_log.append(what)
+        log(f"[ch23cross2] BATTLE #{self.battles}: {what}")
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        from modules.story import victory_road as VR
+        from modules.map_data import MapRSE
+        from modules.map_path import calculate_path
+
+        TAG = "ch23cross2"
+        B1F = MapRSE.VICTORY_ROAD_B1F
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        report: dict = {"readings": set()}
+
+        start_where = VR._where()
+        start_on_b1f = VR._on_map(B1F)
+        hp = [(m.species.name, m.current_hp, m.total_hp) for m in VR.get_party() if m is not None]
+        log(f"[{TAG}] PRE at={start_where} already_on_b1f={start_on_b1f}")
+        log(f"[{TAG}] PRE party_hp={hp}")
+
+        failure = None
+        try:
+            yield from VR.cross_b2f(report)
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        taken = report.get("readings", set())
+        missing = [r for r in VR.LEG7_READINGS if r not in taken]
+        for key in ("b2f_entry", "exit_apron", "after_crossing", "b1f_arrival", "on_b1f"):
+            if key in report:
+                log(f"[{TAG}] R {key} = {report[key]!r}")
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+        log(f"[{TAG}] RESULT battle_log={getattr(self, 'battle_log', [])}")
+        log(f"[{TAG}] POST party_hp="
+            f"{[(m.species.name, m.current_hp, m.total_hp) for m in VR.get_party() if m is not None]}")
+
+        on_b1f = VR._on_map(B1F)
+        # ⛔ "AND THE BOT CAN CONTINUE" — a REAL path off the tile actually reached, derived from it,
+        # never a `controllable` flag. §Ch15/18/19 all PASSED their own tests while stranded.
+        cont = None
+        if on_b1f:
+            here = VR._here_tile()
+            for cand in ((here[0] + 4, here[1]), (here[0] - 4, here[1]),
+                         (here[0], here[1] + 4), (here[0], here[1] - 4)):
+                try:
+                    cont = {"to": cand, "wp": len(calculate_path((B1F, here), (B1F, cand)))}
+                    break
+                except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                    VR.reraise_if_aborting(error)
+            log(f"[{TAG}] R continue_from_b1f = {cont!r}")
+
+        premise_ok = not start_on_b1f
+        passed = (failure is None and premise_ok and on_b1f and not missing
+                  and cont is not None and self.whiteouts == 0)
+        log(f"[{TAG}] GRADE premise_ok={premise_ok} on_b1f={on_b1f} missing={missing} "
+            f"can_continue={cont is not None} battles={self.battles} "
+            f"whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] FINAL position={VR._where()}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH23_CAPTURE", "").strip()
+        if passed and _cap:
+            import pathlib as _pathlib   # ⛔ local: `pathlib` is NOT bound at module scope here
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if _out.exists() and _os.environ.get("CAPTURE_FORCE") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_out.name} exists. Set CAPTURE_FORCE=1 to overwrite.")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured the post-B2F fixture -> {_out}")
         context.set_manual_mode()
 
 
@@ -15763,6 +15909,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23DescendMode()
         elif args.driver == "ch23b2fprobe":
             context.bot_mode_instance = Ch23B2fProbeMode()
+        elif args.driver == "ch23cross2":
+            context.bot_mode_instance = Ch23CrossB2fMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

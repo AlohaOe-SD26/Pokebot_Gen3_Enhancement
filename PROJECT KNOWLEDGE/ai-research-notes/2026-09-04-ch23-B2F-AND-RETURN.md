@@ -249,6 +249,11 @@ that agreed exactly.
 | Surf only | **FOUR** — Caroline, Julie, Dianne, Felix |
 | no Surf | the exit is **unreachable** (238 tiles of B2F are `MB_OCEAN_WATER`; the exit ladder sits on a 3×2 island) |
 
+✅✅ **AND THE ONE-FIGHT PREDICTION IS NOW CONFIRMED IN A LIVE DRIVE (2026-09-04).** Leg 7's
+instrumented run logged `battle_log = ['wild Lairon', 'TRAINER', 'wild Golbat']` — **two wild
+encounters and EXACTLY ONE trainer.** ‼ Run 1 had logged only `battles=3` with no names, which could
+not confirm or refute anything; the fix was an INSTRUMENT, not a rewording.
+
 ⇒ ⛔ **"FOUR UNAVOIDABLE" IS REFUTED AS A MAP FACT.** It is a property of *a pathfinder that cannot
 climb waterfalls* — and the exact membership match makes that the near-certain cause of the original
 figure. **Never hardcode it.**

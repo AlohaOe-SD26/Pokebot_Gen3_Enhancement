@@ -512,13 +512,54 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 - [ ] ⚠ **RELATED, NOT THE SAME:** `#24-ch23wally` option (b) (the faint ranking feeding the L19
       into fights) is the CAUSE; healing treats the symptom. Both open.
 
-### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **LEGS 1-6 ARE BUILT AND DRIVEN, HEAL INCLUDED; LEGS 7-8 REMAIN.** (filed 2026-09-03, updated 2026-09-04)
+### ‼ `#24-ch23attrition` — **Victory Road has NO healing, and the party is being ground down leg by leg.** (filed 2026-09-04, MEASURED across four fixtures)
+
+- [ ] **THE CURVE, measured not predicted:** `post_training` **95% / 0 fainted** → `post_wally`
+      **67% / 2** → *(leg 6 heals)* → `post_b1f_healed` **87% / 0** → `post_b2f` **38% / 3**.
+      ⇒ **leg 7 alone costs ~49 points of HP and three Pokémon**, on only `battles=3`.
+- [ ] ⛔ **AND THERE IS NOWHERE TO HEAL INSIDE VICTORY ROAD.** The nearest Poké Center is Ever
+      Grande's, outside the 1F entrance; the League's own Center is *past* the exit. Leg 6's heal
+      works only because it runs from 1F, one warp from the door. ‼ From B1F/B2F the round trip
+      costs the **whole boulder solve twice**, because every warp resets the puzzle.
+- [ ] **OPTIONS — none of which I should pick unilaterally:**
+      (a) **train more on B1F now that it is reachable** (950.8 EXP/battle vs 1F's 775.6 — this was
+      always the plan for closing the Elite Four gap, and it would fix attrition as a side effect);
+      (b) **buy healing items before entering** — ₽38,893 is in hand and the bag holds ONE Potion;
+      ⚠ the League 1F Mart (Full Restore / Revive / Max Potion) is PAST Victory Road, so this needs
+      an earlier shop;
+      (c) **fix `#24-ch23wally` option (b)** — the faint-replacement ranking keeps feeding the L19
+      Zigzagoon into fights it cannot survive, which is a real slice of the damage taken;
+      (d) accept it and let leg 8 run on a 38% party — ⛔ leg 8 has its own trainers (Samuel, Halle)
+      and its own boulder puzzle.
+- [ ] ⭐ **OPTION (a) IS NOW PRICED — measured 2026-09-04 from the CURRENT (post-B2F) party,
+      estimate-only, zero frames spent, on 1F at 775.6 EXP/battle:**
+      **L50 → 315,260 frames** (~88 min) · **L53 → 705,036** (~196 min) · **L55 → 1,073,317**
+      (**~5 hours**). ⛔ **Wallace is L58, so even L55 leaves a gap** — this buys survivability and
+      the Elite Four's first three members, not the Champion.
+      ‼ B1F is ~18% better ground (950.8 vs 775.6) but every heal round-trip from B1F re-crosses the
+      boulder puzzle, so the 1F figures above are the realistic ones. **This is a real cost and the
+      USER's call, not mine.**
+      ‼ **AND THE ESTIMATE ONLY WORKS BECAUSE OF A FIX MADE WHILE MEASURING IT:** `team_is_ready()`
+      read the module constant `TRAIN_TARGET` instead of the caller's target, so
+      `POKEBOT_CH23_TRAIN_TARGET=53` printed `PRE reasons=[]` / `train_estimate_total = None` — the
+      flag silently did nothing past the readiness gate. ⇒ **a parameter that reaches only half a
+      function is not a parameter**, and it is the same defect shape as the six dead fault arms.
+- [ ] ⚠ **NOT A TRAVERSAL BLOCKER — a BATTLE one.** VERIFIED: a fainted carrier still works for field
+      moves (`ScrCmd_checkpartymove`, `src/scrcmd.c:1713`, skips only eggs and never reads HP), so
+      Wailord fainting does not strand the run. ⇒ **do NOT "fix" `assert_carriers_survived` to reject
+      fainted carriers** — it is correct as written, and that check would fire on a healthy run.
+
+### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **LEGS 1-7 ARE BUILT AND DRIVEN; ONLY LEG 8 (THE RETURN) AND THE CHAPTER WIRING REMAIN.** ⚠ The party is being ground down — see `#24-ch23attrition`. (filed 2026-09-03, updated 2026-09-04)
 
 > ⛔⛔ **P5 CAUGHT THIS ITEM FOR THE THIRD TIME (2026-09-04).** Twice before, a CHILD item was closed while this PARENT kept commanding the finished work; this time its header still read *"Leg 6 ships WITHOUT a heal step"* and its bullet still said *"Add the heal before building leg 7"* AFTER `#24-ch23healdescent` closed. ⇒ **closing a child is not updating the parent, and this item is where that keeps failing.** A research note calls this item *"the authoritative live status"*, so a cold agent reading it would rebuild shipped work and start leg 7 from the superseded 32%/3-fainted fixture. **Whoever closes the next §Ch23 child item: grep this slug and re-read this block FIRST.**
 
 > ⛔ **HEADER/BODY PAIR NOTE (2026-09-04).** This header read "LEGS 1-4 SHIP AND PASS; LEGS 5-8 REMAIN" for one commit *after* its own body bullet had been corrected to "legs 6-8" — a Tier 1 reviewer caught it. **P2: a header is a claim about every bullet beneath it**, and updating the body alone is the more dangerous state, because the body looks current.
 
-- [~] **REMAINS: legs 7-8** — B2F, the return, and the chapter orchestrator + Segment 23 wiring.
+- [~] **REMAINS: leg 8 + the wiring** — the return (B1F's 2×2 plug → 1F → the arrow-warp exit) and
+      the chapter orchestrator + Segment 23 wiring.
+      ✅✅ **LEG 7 SHIPPED 2026-09-04** (`ch23cross2`, PASS, `battles=3`, `whiteouts=0`, fixture
+      `post_b2f.ss1` at VICTORY_ROAD_B1F (17,16)); its `LADDERAIM` fault arm is proven to FAIL.
+      ⭐ The crossing is ONE `navigate_to` — the planner mounts Surf and rides the descent itself.
       ✅ **LEG 6 SHIPPED 2026-09-04** (`ch23descend`, PASS, `battles=4`, `whiteouts=0`, fixture
       `post_b1f.ss1` at VICTORY_ROAD_B2F (30,25)); both its fault arms proven to FAIL.
       ✅✅ **AND THE HEAL SHIPPED TOO (2026-09-04) — `#24-ch23healdescent` is CLOSED.** The A/B:

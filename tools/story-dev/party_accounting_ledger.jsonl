@@ -347,3 +347,14 @@
 {"when": "2026-09-04T14:10:47", "driver": "ch23b1fprobe", "build": "sandbox", "state": "post_wally.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-04T14:18:17", "driver": "ch23b2fprobe", "build": "sandbox", "state": "post_b1f_healed.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-04T14:27:33", "driver": "ch23b2fprobe", "build": "sandbox", "state": "post_b1f_healed.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T14:38:01", "driver": "ch23b2fprobe", "build": "sandbox", "state": "post_b1f_healed.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T14:47:10", "driver": "ch23cross2", "build": "sandbox", "state": "post_b1f_healed.ss1", "frames_run": 40773, "recomputes": 40773, "scans": 136, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T14:54:18", "driver": "ch23cross2", "build": "sandbox", "state": "post_b1f_healed.ss1", "frames_run": 40765, "recomputes": 40765, "scans": 136, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T14:58:36", "driver": "ch23train", "build": "sandbox", "state": "post_b2f.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T14:59:11", "driver": "ch23train", "build": "sandbox", "state": "post_b2f.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T14:59:46", "driver": "ch23train", "build": "sandbox", "state": "post_b2f.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T15:01:39", "driver": "ch23train", "build": "sandbox", "state": "post_b2f.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T15:02:14", "driver": "ch23train", "build": "sandbox", "state": "post_b2f.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T15:02:48", "driver": "ch23train", "build": "sandbox", "state": "post_b2f.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T15:04:29", "driver": "ch23descend", "build": "sandbox", "state": "post_wally.ss1", "frames_run": 45308, "recomputes": 45308, "scans": 152, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-04T15:11:09", "driver": "ch23cross2", "build": "sandbox", "state": "post_b1f_healed.ss1", "frames_run": 40773, "recomputes": 40773, "scans": 136, "divergences": {}, "observer_broke": false}

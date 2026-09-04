@@ -21742,3 +21742,63 @@ successive rounds**, because each time I fixed only what the last error message 
 ⇒ **GREP THE TREE FOR THE FACT, NOT FOR THE LINE THE ERROR NAMED.** The final pass swept all
 remaining instances at once and re-ran the gate to confirm zero, which is what the first pass should
 have done.
+
+
+## 2026-09-04 — §Ch23 LEG 7 SHIPS: B2F is crossed, and it is ONE `navigate_to`
+
+**What shipped.** `cross_b2f` in `victory_road.py`, driven by `--driver ch23cross2`. **First run
+PASSED**: all 4 readings, `missing=[]`, `battles=3`, `whiteouts=0`; fixture `post_b2f.ss1`
+(md5 `ce29a026df983f1a31b9f0a27cb807f2`) at **VICTORY_ROAD_B1F (17,16)** — one leg from the exit.
+
+**⭐⭐ THE DESIGN DECISION WAS MADE BY MEASUREMENT, AND IT INVERTED THE PLAN.** A 19-agent recon had
+produced a 13-phase hand-built crossing. An observe-only probe then measured our own planner solving
+the whole thing — **63 wp with `{Surf: 1, Waterfall: 1}`**, mounting and riding the descent by itself
+— while an adversarial verifier showed the hand-built route's first mount enters a **43-tile
+dead-end pond** that cannot reach the exit. ⇒ **leg 7 is one `navigate_to`.** Leg 4 had to hand-drive
+its waterfall CLIMB because the planner will not plan one; a DESCENT it plans fine.
+
+**♻ THE LEG-6 HELPERS WERE GENERALISED, NOT COPIED — AND LEG 6 WAS RE-DRIVEN TO PROVE IT.**
+`_can_reach(map, target)` and `_ladder_apron(map, ladder, label)` are now single implementations with
+`b1f_can_reach` / `b1f_ladder_apron` delegating. ⛔ That touched shipped, passing code, so the
+non-regression was **measured, not argued**: `--driver ch23descend` after the change gives
+`ACCEPTANCE: PASS`, the identical derived apron `(31,25)/"Left"`, `battles=6`, `whiteouts=0`.
+Rationale in `06-DECISIONS-LOG.md`.
+
+**⭐ THE APRON WAS DERIVED, AND THAT PAID OFF VISIBLY.** Two agents named different exit aprons
+((18,12) and (19,13)) and I framed it as "at most one can be right" — which was itself wrong: both
+work, `(19,11)` is a wall, and **the runtime derivation picked `(20,12)`, a third option neither
+agent named.** ⇒ *deriving beat choosing, and it beat the argument about choosing.*
+
+**The `LADDERAIM` fault arm is proven to fail**, reproducing the warp-override trap on demand — the
+FIFTH time this chapter has hit it. Aiming at the ladder ends on B1F (17,16) without the apron step;
+the guard catches it: *"expected to be standing on the exit apron (20,12) on B2F, but we are at
+((24,44), (17,16))"*.
+
+**⭐⭐ THE "ONE FORCED TRAINER" PREDICTION IS CONFIRMED — and it took an instrument to say so.**
+Run 1 logged `battles=3` against a recon predicting exactly ONE forced trainer on the Waterfall
+route, and **the log named nothing**, so the prediction could not be checked against the trace at
+all. A Tier 1 reviewer flagged that silence (not as a contradiction — wild encounters exist — but as
+an assertion left unverified). ⇒ the driver now records what each battle IS, and the re-run answers
+it outright:
+
+    battle_log = ['wild Lairon', 'TRAINER (no encounter object)', 'wild Golbat']
+
+**Three battles = TWO wild encounters + EXACTLY ONE trainer.** ‼ *A prediction you cannot check
+against the trace is not evidence, however confidently the docstring states it — and the fix is an
+instrument, not a rewording.* ⚠ Both runs gave `battles=3` from the same fixture: that is a
+DETERMINISM check, never a replication.
+
+**Also measured, and it prevented a wrong "fix":** `battles=3`, and the party ended at **38% HP with
+three fainted, including Wailord** — which carries Surf, Waterfall and Dive. Before touching
+`assert_carriers_survived` I checked the decomp: **`ScrCmd_checkpartymove` (`src/scrcmd.c:1713`)
+skips only EGGS and never reads HP**, so a fainted carrier still works for field moves. ⇒ the guard
+is correct as written, and adding a not-fainted check would have fired on healthy runs for no reason.
+
+**⛔ AND THE REAL BLOCKER IS NOW ATTRITION, filed as `#24-ch23attrition`.** Measured across four
+fixtures: `post_training` 95%/0 fainted → `post_wally` 67%/2 → *(leg 6 heals)* → `post_b1f_healed`
+87%/0 → `post_b2f` **38%/3**. **There is nowhere to heal inside Victory Road** — leg 6's heal works
+only because it runs from 1F, one warp from the door; from B1F/B2F the round trip costs the whole
+boulder solve twice, because every warp resets the puzzle. Leg 8 has its own trainers and its own
+boulder plug. ⇒ the options are written up in the item; **option (a), training on B1F now that it is
+reachable (950.8 EXP/battle vs 1F's 775.6), was already the plan for the Elite Four gap** and would
+fix attrition as a side effect.

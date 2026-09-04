@@ -3957,3 +3957,33 @@ emulator.** The three checks in `ai-research-notes/2026-09-03-ch23-VICTORY-ROAD-
 owed first, and the guard must be built **fail-LOUD**: if a `MAP_OFFSET` (+7) coordinate mismatch
 existed, a naive comparison would silently permit the fatal push, so the guard must also assert it
 recognises the floor and raise if it does not.
+
+
+## 2026-09-04 — §Ch23: generalise leg 6's ladder helpers rather than copy them into leg 7
+
+**The choice.** Leg 7 needed the same two behaviours leg 6 already had: "can our planner reach tile X
+on map M from here?" and "which neighbour of this ladder can we actually stand on, and which way do
+we then step?". The options were (a) copy both into B2F-shaped twins, or (b) generalise them to take
+a map and have the B1F versions delegate.
+
+**Chosen: (b).** `_can_reach(map_enum, target)` and `_ladder_apron(map_enum, ladder, label)` are now
+the single implementations; `b1f_can_reach` and `b1f_ladder_apron` are thin wrappers, the latter
+still wrapping the error to append leg 6's obstacle-position detail.
+
+**Why, and it is this project's own rule rather than a style preference.** `victory_road.py` already
+carries the note *"IMPORTED, NOT RE-IMPLEMENTED — this package's transcription rule: the same fact in
+two files is the P5 doc shape in code form, and it drifts."* Two copies of the apron-derivation logic
+would be exactly that: a fact maintained in two places, where fixing one is the most dangerous state
+(the pair check then returns PASS). ⇒ the same reasoning that makes P5 a doc rule makes this a code
+rule.
+
+**Rejected: (a) copy them.** Faster to write and lower-risk in the moment, but it would have doubled
+a piece of logic that has *already* been subtle once — the apron derivation exists because two
+independent agents named different aprons and the framing "at most one can be right" was itself
+wrong. Logic that has surprised us once should have one home.
+
+**Cost accepted.** The refactor touched leg 6, which was shipped and passing. ⇒ it was re-driven
+rather than argued: `--driver ch23descend` after the change gives `ACCEPTANCE: PASS`, the same
+derived apron `(31,25)/"Left"`, `battles=6`, `whiteouts=0`. ‼ A Tier 1 reviewer had flagged exactly
+this — that the non-regression was argued structurally and not yet proven — and the re-drive is the
+answer to it.

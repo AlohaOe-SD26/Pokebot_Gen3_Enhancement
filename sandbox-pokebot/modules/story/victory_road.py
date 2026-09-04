@@ -242,6 +242,40 @@ HEAL_HP_FRACTION = 0.70
 
 LEG6_READINGS = ("R6-HEAL", "R6-ENTER", "R6-PUSH1", "R6-PUSH2", "R6-SMASH", "R6-LADDERPATH", "R6-B2F")
 
+# ============================== LEG 7 — VICTORY ROAD B2F: SURF AND DESCEND =====================
+#: ⭐⭐ THIS LEG IS ONE `navigate_to`, AND THAT IS A MEASURED DECISION, NOT LAZINESS.
+#: A 19-agent recon produced a 13-phase hand-built crossing (two Surf mounts, a forced descent,
+#: three elevation layers). ⛔ **THAT ROUTE WAS REFUTED AND WOULD HAVE STRANDED THE BOT** — its first
+#: mount at (33,17) enters a 43-tile DEAD-END POND that cannot reach the exit ladder.
+#: ✅ Meanwhile `--driver ch23b2fprobe` measured our own planner solving the whole thing:
+#:     `calculate_path (30,25) -> (18,12)` = **63 wp, actions {Surf: 1, Waterfall: 1}**
+#: ⇒ the planner MOUNTS SURF AND RIDES THE DESCENT ITSELF. Leg 4 had to hand-drive its waterfall
+#: **CLIMB** because the planner will not plan one; a **DESCENT** it plans fine.
+#: ‼ So the lesson is not "trust agents less" — their TILE reads were all correct — it is that a
+#: hand-built route is a SYNTHESIS, and the planner is the authority on what our bot can walk.
+B2F = MapRSE.VICTORY_ROAD_B2F
+
+#: Where leg 6's ladder drops us. MEASURED: `b2f_arrival = ((24,45), (30,25))`.
+B2F_ARRIVAL = (30, 25)
+
+#: ⛔⛔ THE EXIT LADDER IS A **WARP** — NEVER A NAVIGATION TARGET. This is the FIFTH warp-as-
+#: destination trap in this chapter, and it is MEASURED here, not assumed: `calculate_path (30,25) ->
+#: (19,12)` returns **64 wp whose LAST waypoint is `map=(24,44) coords=(17,16) is_warp=True`** — i.e.
+#: aiming at it silently ends on **B1F**, doing leg 8's job, and an honest end-position grade would
+#: FAIL a perfect run. Aim at an apron; step onto the ladder explicitly.
+B2F_EXIT_LADDER = (19, 12)
+
+#: ⭐ MEASURED: the ladder sits on a 6-tile island, and **(19,11) is a WALL** — a north approach is
+#: impossible. THREE neighbours work: (18,12)→E, (20,12)→W, (19,13)→N; our planner reaches (18,12)
+#: and (19,13) in **63 wp each**. ⇒ `_ladder_apron()` picks whichever it can actually reach rather
+#: than hardcoding one, because two independent agents disagreed about this and BOTH were right.
+#: ⚠ MEASURED AND NON-DISCRIMINATING: `avoid_encounters` True vs False both give **63 wp with the
+#: same actions** on this crossing. ⇒ the default stands; **do not spend time tuning that knob here**
+#: (it is the `POKEBOT_CH21_POCKET_ARM` shape — an arm whose two sides produce identical output).
+B2F_BUDGET_FRAMES = 150_000
+
+LEG7_READINGS = ("R7-ENTER", "R7-APRON", "R7-CROSS", "R7-B1F")
+
 # ============================== TRAINING — BEFORE WALLY ========================================
 #: ⛔⛔ TRAIN ON **1F**, NOT B1F, AND THAT IS NOT A PREFERENCE — IT IS FORCED.
 #: B1F is the better ground (950.8 EXP/battle vs 1F's 775.6, because B1F swaps 1F's low-level
@@ -352,6 +386,9 @@ FAULT_ARMS = {
     "NOSMASH": "POKEBOT_CH23_FAULT_NOSMASH",
     #: leg 6 — skip the pre-descent heal, to reproduce the degraded-party descent on demand
     "NOHEAL6": "POKEBOT_CH23_FAULT_NOHEAL6",
+    #: leg 7 — aim navigation AT the exit ladder instead of an apron, so the warp-override trap
+    #: fires on demand and the apron guard must catch it
+    "LADDERAIM": "POKEBOT_CH23_FAULT_LADDERAIM",
 }
 
 
@@ -1420,7 +1457,7 @@ def battler_identities() -> dict:
     return out
 
 
-def team_is_ready() -> tuple[bool, list]:
+def team_is_ready(target: int = None) -> tuple[bool, list]:
     """Is the party ready for Wally and the Elite Four? Returns `(ready, reasons)`.
 
     ⛔ ASSERTS ON SPECIES + MOVE IDENTITY, NEVER ON SLOT INDEX — benching reshuffles every slot, and
@@ -1429,10 +1466,19 @@ def team_is_ready() -> tuple[bool, list]:
     Phoebe's all-Ghost team**, so a party that is "all L50" but reached it without that level-up is
     still not ready. A readiness check that only counts levels would pass it.
     """
+    # ⛔⛔ THE TARGET IS A PARAMETER, NOT A CONSTANT — FIXED 2026-09-04.
+    # It used to read `TRAIN_TARGET` directly while `train_for_victory_road` accepted a `target`
+    # argument, so a caller asking for a HIGHER target was checked against 47 anyway: the readiness
+    # gate returned "already ready", the leg returned early, and **no estimate was ever produced**.
+    # ‼ MEASURED: `POKEBOT_CH23_TRAIN_TARGET=53` printed `PRE reasons=[]` and
+    # `train_estimate_total = None` — a flag that silently did nothing, which is the same defect
+    # shape as the six dead fault arms (#34's gate exists for that class).
+    # ⇒ **A PARAMETER THAT ONLY REACHES HALF THE FUNCTION IS NOT A PARAMETER.**
+    target = TRAIN_TARGET if target is None else target
     reasons = []
     for (pid, species), (_slot, level) in battler_identities().items():
-        if level < TRAIN_TARGET:
-            reasons.append(f"{species}#{pid:08X} is L{level} < {TRAIN_TARGET}")
+        if level < target:
+            reasons.append(f"{species}#{pid:08X} is L{level} < {target}")
     for mon in get_party():
         if mon is None or mon.species.name != "Mightyena":
             continue
@@ -1515,7 +1561,7 @@ def train_for_victory_road(report=None, *, target: int = TRAIN_TARGET) -> Genera
     report.setdefault("readings", set())
     yield from wait_until_truly_controllable()
 
-    ready, reasons = team_is_ready()
+    ready, reasons = team_is_ready(target)
     report["train_pre"] = {f"{s}#{p:08X}": lv for (p, s), (_sl, lv) in battler_identities().items()}
     report["train_reasons"] = reasons
     _take(report, "R-TRAINPRE")
@@ -1656,7 +1702,7 @@ def train_for_victory_road(report=None, *, target: int = TRAIN_TARGET) -> Genera
     # taken — exactly when it matters most.
     training_continue_reading(report)
 
-    ready, reasons = team_is_ready()
+    ready, reasons = team_is_ready(target)
     report["train_reasons_after"] = reasons
     if not ready:
         raise BotModeError(
@@ -1689,21 +1735,54 @@ def b1f_obstacle_positions() -> dict:
     return out
 
 
-def b1f_can_reach(target: tuple) -> bool:
-    """Can our planner reach `target` on B1F from where we stand *right now*?
+def _can_reach(map_enum, target: tuple) -> bool:
+    """Can our planner reach `target` on `map_enum` from where we stand *right now*?
 
-    ⛔ THE WORLD IS THE JUDGE, NOT THE SCRIPT. This is how each puzzle step is verified: not "did the
-    push routine return without raising" but "did the map actually open up". `strength_push` already
-    judges its own success by object identity; this judges the *consequence*.
+    ⛔ THE WORLD IS THE JUDGE, NOT THE SCRIPT. This is how each step is verified: not "did the routine
+    return without raising" but "did the map actually open up". `strength_push` already judges its own
+    success by object identity; this judges the *consequence*.
     """
     from modules.map_path import calculate_path
 
     try:
-        calculate_path((B1F, _here_tile()), (B1F, target))
+        calculate_path((map_enum, _here_tile()), (map_enum, target))
         return True
     except Exception as error:  # noqa: BLE001 - a refusal IS the reading
         reraise_if_aborting(error)
         return False
+
+
+def b1f_can_reach(target: tuple) -> bool:
+    """Leg 6's B1F-scoped wrapper. ‼ ONE implementation, not two — the same fact in two functions is
+    the P5 doc shape in code form, and it drifts."""
+    return _can_reach(B1F, target)
+
+
+def _ladder_apron(map_enum, ladder: tuple, label: str) -> tuple:
+    """MEASURE which neighbour of a ladder we can actually stand on. Returns `(tile, step)`.
+
+    ⛔⛔ DERIVED, NEVER HARDCODED — *"a liveness check must derive its target from the state the run
+    ACTUALLY reached; hardcode no coordinates"*. A guessed coordinate looks perfectly reasonable in
+    review and strands the run in practice.
+    ⭐ AND IT IS NOT A HYPOTHETICAL SAFEGUARD HERE: two independent agents named DIFFERENT aprons for
+    B2F's exit ladder ((18,12) and (19,13)) and the framing "at most one can be right" turned out to
+    be wrong — both work, and so does (20,12), while (19,11) is a wall. Deriving sidesteps the whole
+    argument.
+
+    ‼ The returned `step` is the direction to press to move FROM the apron ONTO the ladder, which is
+    the OPPOSITE of the offset that produced the apron — getting that backwards walks the bot away
+    from the warp. (Three index/direction inversions have shipped in this codebase.)
+    """
+    lx, ly = ladder
+    for (dx, dy), step in (((1, 0), "Left"), ((-1, 0), "Right"),
+                           ((0, 1), "Up"), ((0, -1), "Down")):
+        candidate = (lx + dx, ly + dy)
+        if _can_reach(map_enum, candidate):
+            return candidate, step
+    raise BotModeError(
+        f"Ch23 {label}: the ladder {ladder} on {map_enum} has no reachable neighbour, so there is "
+        f"nowhere to stand to step onto it. We are at {_here_tile()}."
+    )
 
 
 def b1f_ladder_apron() -> tuple:
@@ -1720,18 +1799,15 @@ def b1f_ladder_apron() -> tuple:
     from the warp. (Three index/direction inversions have shipped in this codebase; this comment is
     cheaper than a fourth.)
     """
-    ladder_x, ladder_y = B1F_B2F_LADDER
-    # (offset from the ladder) -> (direction that steps back ONTO the ladder)
-    for (dx, dy), step in (((1, 0), "Left"), ((-1, 0), "Right"),
-                           ((0, 1), "Up"), ((0, -1), "Down")):
-        candidate = (ladder_x + dx, ladder_y + dy)
-        if b1f_can_reach(candidate):
-            return candidate, step
-    raise BotModeError(
-        f"Ch23 leg 6: the B2F ladder {B1F_B2F_LADDER} has no reachable neighbour, so there is "
-        f"nowhere to stand to step onto it. Obstacles: {b1f_obstacle_positions()}. ⇒ the puzzle "
-        f"solved but the approach did not open — re-enter B1F (which resets it) and re-solve."
-    )
+    try:
+        return _ladder_apron(B1F, B1F_B2F_LADDER, "leg 6")
+    except BotModeError as error:
+        # ⛔ Aborts first — "deliberately non-fatal" must never mean "deliberately deaf".
+        reraise_if_aborting(error)
+        raise BotModeError(
+            f"{error} Obstacles: {b1f_obstacle_positions()}. ⇒ the puzzle solved but the approach "
+            f"did not open — re-enter B1F (which resets it) and re-solve."
+        ) from error
 
 
 def party_needs_heal() -> tuple[bool, dict]:
@@ -2015,4 +2091,91 @@ def descend_to_b2f(report=None) -> Generator:
         raise BotModeError(
             f"Ch23 leg 6: stepped onto the B2F ladder {B1F_B2F_LADDER} from {B1F_B2F_APRON} and did "
             f"not arrive on VICTORY_ROAD_B2F — we are at {_where()}."
+        )
+
+# --------------------------------------------------------------------------------------------
+# LEG 7 — B2F: cross the water and take the ladder back up to B1F
+# --------------------------------------------------------------------------------------------
+def cross_b2f(report=None) -> Generator:
+    """§Ch23 LEG 7 — cross VICTORY_ROAD_B2F from (30,25) to the exit ladder, landing on B1F (17,16).
+
+    ⭐ ONE `navigate_to` DOES THE CROSSING. Measured: our planner returns 63 waypoints with
+    `{Surf: 1, Waterfall: 1}`, mounting and riding the descent by itself. The hand-built 13-phase
+    route a recon produced was REFUTED — its first mount enters a dead-end pond.
+
+    ⛔ EXPECT EXACTLY ONE FORCED TRAINER FIGHT. Measured against the decomp's own LOS algorithm:
+    with Surf **and Waterfall** the only unavoidable trainer is **Julie** (Sandslash/Ninetales/Tropius,
+    all L42); with Surf alone it is four. ✅ Wailord carries Waterfall, so we are on the one-fight
+    route. ‼ **NEVER HARDCODE "four unavoidable"** — that figure was an artefact of a pathfinder that
+    could not climb.
+    """
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    yield from wait_until_truly_controllable()
+
+    # ⛔ ANTI-VACUITY: a run that starts on B1F has already crossed and would prove nothing.
+    if _on_map(B1F):
+        raise BotModeError(
+            f"Ch23 leg 7: we are already on VICTORY_ROAD_B1F at {_here_tile()} — the crossing this "
+            f"leg exists to perform has already happened, so a PASS here would be meaningless. "
+            f"Start from `post_b1f_healed.ss1` (B2F (30,25))."
+        )
+    if not _on_map(B2F):
+        raise BotModeError(
+            f"Ch23 leg 7: must start on VICTORY_ROAD_B2F but we are at {_where()}. Leg 6 ends there; "
+            f"use `post_b1f_healed.ss1`."
+        )
+    report["b2f_entry"] = _here_tile()
+    _take(report, "R7-ENTER")
+
+    # ⛔ THE CARRIERS MATTER MORE HERE THAN ANYWHERE ELSE IN THE CHAPTER. Wailord carries **Surf AND
+    # Waterfall AND Dive** — and B2F cannot be crossed without the first two. Losing it to a PC
+    # deposit mid-chapter would strand the run on an island of water.
+    assert_carriers_survived("entering B2F")
+
+    # ---- derive the apron, never hardcode it ----------------------------------------------------
+    apron, step_dir = _ladder_apron(B2F, B2F_EXIT_LADDER, "leg 7")
+    report["exit_apron"] = {"tile": apron, "step": step_dir}
+    _take(report, "R7-APRON")
+
+    if _fault("LADDERAIM"):
+        # ‼ THE FAULT ARM AIMS AT THE LADDER ITSELF, which is what this leg exists NOT to do.
+        # `navigate_to` overrides its destination when the last waypoint is a warp, so this ends on
+        # B1F at (17,16) WITHOUT the explicit step — and the apron assert below must catch it.
+        context.message = "Ch23 FAULT LADDERAIM: navigating AT the ladder, not the apron"
+        target = B2F_EXIT_LADDER
+    else:
+        target = apron
+
+    # ⛔⛔ BOUNDED. `B2F_BUDGET_FRAMES` was declared with commentary implying it bounded this leg and
+    # then referenced NOWHERE — a Tier 1 reviewer caught it. A safety constant wired to nothing is
+    # the same defect as a fault arm that cannot fire: it reads as protection while providing none,
+    # and the next maintainer trusts it. ⇒ it is now actually applied.
+    yield from _budgeted(
+        _navigate_riding_out(B2F, target), B2F_BUDGET_FRAMES, "cross B2F")
+    yield from wait_until_truly_controllable()
+    report["after_crossing"] = _where()
+    _take(report, "R7-CROSS")
+
+    # ⛔ ASSERT WE ARE ON THE APRON BEFORE PRESSING ANYTHING. Under the fault arm we will already be
+    # on B1F here, which is exactly the silent-success this guard exists to refuse.
+    if not _on_map(B2F) or _here_tile() != apron:
+        raise BotModeError(
+            f"Ch23 leg 7: expected to be standing on the exit apron {apron} on B2F, but we are at "
+            f"{_where()}. ⛔ If this says VICTORY_ROAD_B1F, the navigation was aimed at the LADDER "
+            f"and `navigate_to` overrode its own destination — the warp-as-target trap. Aim at the "
+            f"apron and step onto the ladder explicitly."
+        )
+    assert_carriers_survived("crossing B2F")
+
+    # ⛔ `_walk_through_warp`, and the second arg is the map we are **LEAVING**.
+    yield from _walk_through_warp(step_dir, B2F.value)
+    yield from wait_until_truly_controllable()
+    report["b1f_arrival"] = _where()
+    report["on_b1f"] = _on_map(B1F)
+    _take(report, "R7-B1F")
+    if not report["on_b1f"]:
+        raise BotModeError(
+            f"Ch23 leg 7: pressed {step_dir} from the apron {apron} onto the ladder "
+            f"{B2F_EXIT_LADDER} and did not arrive on VICTORY_ROAD_B1F — we are at {_where()}."
         )

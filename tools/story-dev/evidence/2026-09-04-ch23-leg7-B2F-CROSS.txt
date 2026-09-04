@@ -1,0 +1,36 @@
+=== LEG 7 RUN 1 (PASS) ===
+[ch23cross2] PRE at=((24, 45), (30, 25)) already_on_b1f=False
+[ch23cross2] PRE party_hp=[('Sceptile', 42, 147), ('Zigzagoon', 48, 48), ('Swellow', 136, 136), ('Wailord', 226, 226), ('Mightyena', 141, 141), ('Castform', 103, 103)]
+[ch23cross2] R b2f_entry = (30, 25)
+[ch23cross2] R exit_apron = {'tile': (20, 12), 'step': 'Left'}
+[ch23cross2] R after_crossing = ((24, 45), (20, 12))
+[ch23cross2] R b1f_arrival = ((24, 44), (17, 16))
+[ch23cross2] R on_b1f = True
+[ch23cross2] RESULT readings=['R7-APRON', 'R7-B1F', 'R7-CROSS', 'R7-ENTER'] missing=[]
+[ch23cross2] RESULT battles=3 whiteouts=0
+[ch23cross2] POST party_hp=[('Sceptile', 0, 147), ('Zigzagoon', 0, 48), ('Swellow', 136, 136), ('Wailord', 0, 226), ('Mightyena', 141, 141), ('Castform', 28, 103)]
+[ch23cross2] R continue_from_b1f = {'to': (13, 16), 'wp': 6}
+[ch23cross2] GRADE premise_ok=True on_b1f=True missing=[] can_continue=True battles=3 whiteouts=0 failure=None
+[ch23cross2] FINAL position=((24, 44), (17, 16))
+[ch23cross2] ACCEPTANCE: PASS
+[ch23cross2] captured the post-B2F fixture -> C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\saves\post_b2f.ss1
+
+=== FAULT LADDERAIM (must FAIL) ===
+[ch23cross2] FAILURE BotModeError: Ch23 leg 7: expected to be standing on the exit apron (20, 12) on B2F, but we are at ((24, 44), (17, 16)). 
+[ch23cross2] R after_crossing = ((24, 44), (17, 16))
+[ch23cross2] ACCEPTANCE: FAIL
+=== LEG 6 RE-RUN AFTER THE HELPER REFACTOR (regression check) ===
+[ch23descend] R ladder_reachable = True
+[ch23descend] R ladder_apron = {'tile': (31, 25), 'step': 'Left'}
+[ch23descend] RESULT readings=['R6-B2F', 'R6-ENTER', 'R6-HEAL', 'R6-LADDERPATH', 'R6-PUSH1', 'R6-PUSH2', 'R6-SMASH'] missing=[]
+[ch23descend] RESULT battles=6 whiteouts=0
+[ch23descend] ACCEPTANCE: PASS
+
+=== LEG 7 RE-RUN, INSTRUMENTED — the battle breakdown ===
+[ch23cross2] BATTLE #1: wild Lairon
+[ch23cross2] BATTLE #2: TRAINER (no encounter object 
+[ch23cross2] BATTLE #3: wild Golbat
+[ch23cross2] R exit_apron = {'tile': (20, 12), 'step': 'Left'}
+[ch23cross2] RESULT battles=3 whiteouts=0
+[ch23cross2] RESULT battle_log=['wild Lairon', 'TRAINER (no encounter object 
+[ch23cross2] ACCEPTANCE: PASS
