@@ -105,6 +105,43 @@ EMERGE_TILE = R126_SURFACE_TILE      # (45,66) — the MEASURED-LIVE resting til
 #: The ROUTE126 east-edge seam toward ROUTE127 — i.e. the tile leg 4 departs through.
 R126_EAST_PROBE = (79, 45)
 
+# ============================== LEG 4 — THE OCEAN CROSSING ====================================
+R127 = MapRSE.ROUTE127
+R128 = MapRSE.ROUTE128
+EG = MapRSE.EVER_GRANDE_CITY
+
+#: ⭐ MEASURED-PROD 2026-09-04 (`ch23route` R10/R11): the planner crosses these CONNECTED maps and
+#: plans ROUTE126 (45,66) -> EVER_GRANDE (18,68) in **273 waypoints**.
+#: ‼ The rule is "the planner crosses CONNECTIONS, never WARPS" — the crater refuses only because
+#: Sootopolis has ZERO connections. Do not carry leg 3's "hand-sequencing is forced" here.
+WATERFALL_BASE = (18, 68)   # stand here SURFING, face NORTH, press A
+WATERFALL_TOP = (18, 59)    # where the climb ends — same x, still surfing
+EG_LANDING = (18, 55)       # the only surf->land exits are (18..22,56) stepping NORTH
+
+#: ⛔⛔ (18,41) IS THE VICTORY ROAD DOOR **WARP**, AND AIMING AT IT ENDS LEG 4 INSIDE THE CAVE.
+#: MEASURED (`ch23route` R11b): `calculate_path(EG (18,55) -> EG (18,41))` returns 16 wp whose LAST
+#: waypoint is **`map=VICTORY_ROAD_1F coords=(15,40) is_warp=True`** — because `navigate_to`
+#: overrides its own destination when the final waypoint is a warp. Leg 4 would then silently do
+#: leg 5's job, and an honest `_at(EG, (18,41))` grade would FAIL a perfect run.
+#: ✅ R11c: aiming at the APRON (18,42) returns 15 wp, LAST `map=EVER_GRANDE (18,42) is_warp=False`.
+VR_DOOR = (18, 41)
+VR_APRON = (18, 42)
+
+#: ⛔ STAGE THE CROSSING HERE, and ⛔ NEVER at (101,29)/(101,22) — those are Carlee's and Harrison's
+#: own tiles, and the planner REFUSES a path to an occupied tile (measured: both refuse, while
+#: (101,26) and (100,29) beside them return 32 and 34 wp). A refusal to an occupied tile means
+#: "something is standing there", not "you cannot get there".
+CHANNEL_STAGE = (101, 26)
+
+EG_PC_DOOR = PokemonCenter.EvergrandeCity.value[1]     # (27,48)
+EG_PC_APRON = (EG_PC_DOOR[0], EG_PC_DOOR[1] + 1)
+
+CROSSING_BUDGET = 400_000   # the crossing is ~273 wp of surfing plus two forced trainer battles
+CLIMB_BUDGET = 3_000
+
+LEG4_READINGS = ("R4-LEAD", "R4-STAGE", "R4-BASE", "R4-CLIMB", "R4-LAND", "R4-HEAL4", "R4-ARM4",
+                 "R4-APRON", "R4-CONTINUE4")
+
 #: ⛔ A NAMED-BAD DENYLIST, NOT AN ALLOWLIST. The tile type at UW126 (45,66) has NEVER been read;
 #: two independent designs predicted DIFFERENT values, and §Ch21 emerged there three times with no
 #: tile guard at all. An allowlist can only LOSE here: it cannot make a correct run more correct and
@@ -696,3 +733,190 @@ def depart_sootopolis(report=None, *, attempts: int = 3) -> Generator:
 
     report["failure"] = last_error or "exhausted attempts without reaching ROUTE126"
     raise BotModeError(f"Ch23: legs 2-3 failed after {attempts} attempts. Last: {last_error}")
+
+
+# --------------------------------------------------------------------------------------------
+# LEG 4 — CROSS THE OCEAN TO EVER GRANDE AND CLIMB THE WATERFALL
+# --------------------------------------------------------------------------------------------
+def _sampling(gen: Generator, report: dict) -> Generator:
+    """Run a navigation generator while SAMPLING the map every frame.
+
+    ⛔⛔ TWO REASONS THIS WRAPPER EXISTS, AND NEITHER IS COSMETIC.
+    1. **THE PRESENCE WITNESS CANNOT BE COLLECTED ANY OTHER WAY.** `yield from navigate_to(...)`
+       gives the leg no frames of its own, so it can never observe that ROUTE127 and ROUTE128 were
+       actually crossed. Without that, a run that never left ROUTE126 could satisfy a
+       position-plus-path grade — the house rule is *a presence conjunct before every absence one*.
+    2. ⛔ **`navigate_to` NEVER CALLS `_check_abort()`**, so a `StoryAbort` latched by a whiteout is
+       unobserved for the whole crossing. This is where the latch gets read.
+    """
+    for _ in gen:
+        _check_abort()
+        where = _where()
+        if not isinstance(where, str):
+            report.setdefault("maps_seen", set()).add(where[0])
+        yield
+
+
+def at_ever_grande_top() -> bool:
+    """Leg 4's completion predicate — ⛔ a POSITIVE whitelist, never `not _on_map(R126)`."""
+    return _on_map(EG) and _here_tile()[1] <= EG_LANDING[1]
+
+
+def cross_to_ever_grande(report=None) -> Generator:
+    """LEG 4 — ROUTE126 → 127 → 128 → Ever Grande, climb the waterfall, heal, reach the VR apron.
+
+    ⛔⛔ WHY `_navigate_riding_out` AND NOT A RAW `navigate_to`. A trainer's sight line ABORTS a raw
+    `navigate_to`: the intro msgbox runs while the game state is still OVERWORLD, so the waypoint
+    countdown keeps ticking and `walking.py:479-485` raises `BotModeError`. **This crossing is
+    GUARANTEED to hit two** — Carlee (101,29) and Harrison (101,22) patrol the only channel through
+    Route 128's basin A, and an enumeration of all 48 configurations × 8 rows found **no safe row**.
+    ⛔ And NEVER pass `expecting_script=True` to dodge it: that path `return`s, silently ending the
+    crossing mid-ocean and reporting success.
+    """
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    yield from wait_until_truly_controllable()
+
+    if at_ever_grande_top():
+        report["leg4_entry"] = "already above the falls"
+        return
+
+    # ---- phase 0: a whiteout respawns INSIDE THE CRATER, where this leg cannot plan at all ------
+    # ⛔ `SOOTOPOLIS_CITY` has zero map connections, so a crossing planned from there raises
+    # `PathFindingError` on every attempt and reports "could not reach (18,68)" — the WRONG
+    # diagnosis for "we are behind the dive". Leg 3 is idempotent and self-skips, so calling it is
+    # free when we are already out.
+    if any(_on_map(m) for m in (CITY, PC_1F, PC_2F, UWS, UW126)):
+        report["leg4_entry"] = f"behind the dive on {_where()[0]} — re-running leg 3"
+        yield from leave_the_crater(report)
+        yield from wait_until_truly_controllable()
+    report.setdefault("leg4_entry", "ROUTE126" if _on_map(R126) else str(_where()))
+
+    # ---- phase 1: put the STRONGEST battler in slot 0 before the forced fights ------------------
+    # ⛔⛔ THE STORY OVERRIDE'S FAINT-REPLACEMENT RANKING IS `(incoming, -outgoing, -hp_fraction,
+    # -level)` (`story_mode.py:210`) and its only filter is `current_hp > 0` (`:185`) — it drops the
+    # parent's `pokemon_can_battle` and ranks HP **FRACTION above LEVEL**. ⇒ once the type terms tie,
+    # an untouched 100% L19 HM mule outranks a chipped L44.
+    # ‼ VERIFIED FOR THIS PARTY against Water STAB: Sceptile (Grass) is picked first — incoming 0.5,
+    # outgoing 2.0 — and Wailmer second. **The Zigzagoon only leads if BOTH are out**, which is
+    # narrower than the review claimed but still reachable after a 273-tile crossing where every
+    # tile rolls an encounter. Leading the strongest is cheap insurance either way.
+    if not _fault("NOLEAD"):
+        try:
+            from modules.story.early_game import _lead_strongest_battler
+
+            yield from _lead_strongest_battler()
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading, and this is optional
+            # ⛔ DELIBERATELY NON-FATAL: leading the strongest is INSURANCE, not a precondition. The
+            # crossing is winnable without it, and refusing to depart because a nicety failed would
+            # trade a small risk for a certain stop.
+            report["lead_error"] = f"{type(error).__name__}: {error}"
+    report["lead_after"] = next(iter(party_identities()), None)
+    _take(report, "R4-LEAD")
+
+    # ---- phase 2: stage the crossing at the channel mouth ---------------------------------------
+    # ⛔ TWO REASONS TO STAGE RATHER THAN ASK FOR THE WHOLE 273 WAYPOINTS IN ONE CALL:
+    #   (a) `_navigate_riding_out`'s fail-fast assumes "nothing can differ between attempts", which
+    #       is false against a WALKING NPC — its effective tries collapse from 10 to ~2 in the
+    #       channel; and
+    #   (b) `navigate_to`'s no-progress window holds SIX positions against an EIGHT-tile channel, so
+    #       it can keep resetting the window while making no real progress.
+    # ⇒ get to the channel mouth first, then cross, so a failure names WHICH half failed.
+    # ⚠ `avoid_encounters=False` on the ocean: it adds +1000 per WATER tile, which on an all-water
+    # crossing avoids nothing and only inflates the search.
+    if not _on_map(EG):
+        yield from _sampling(
+            _navigate_riding_out(R128, CHANNEL_STAGE, avoid_encounters=False), report)
+        if not _at(R128, CHANNEL_STAGE):
+            raise BotModeError(
+                f"Ch23 leg 4: aimed at the ROUTE128 channel mouth {CHANNEL_STAGE} and ended on "
+                f"{_where()}. maps_seen={sorted(report.get('maps_seen', ()))}"
+            )
+        _take(report, "R4-STAGE")
+
+        # ---- phase 3: through the channel and across the seam into Ever Grande -----------------
+        yield from _sampling(
+            _navigate_riding_out(EG, WATERFALL_BASE, avoid_encounters=False), report)
+
+    if not _at(EG, WATERFALL_BASE):
+        raise BotModeError(
+            f"Ch23 leg 4: aimed at the waterfall base {WATERFALL_BASE} and ended on {_where()}."
+        )
+    report["base_tile_type"] = _tile_type_here()
+    _take(report, "R4-BASE")
+
+    # ---- phase 4: the climb — HAND-ROLLED ON PURPOSE -------------------------------------------
+    # ⛔⛔ DO NOT ASK `navigate_to` FOR THE TOP. `follow_waypoints`' waterfall branch computes its
+    # timeout from the MAP NUMBER instead of the player's y (`walking.py:226-227`): for
+    # EVER_GRANDE_CITY that is `195 + (8-59)*42 = -1947`, a NEGATIVE budget that trips on frame 1
+    # and burns eight no-progress re-paths into `NavigationStuckError`. Upstream-origin and never
+    # exercised — filed rather than patched (see KI-83's ruling on upstream-identical files).
+    # ✅ MEASURED SAFE: `ch23route` R11a dumped the 273-wp crossing plan — its only actions are four
+    # `WaypointAction.Surf`, **no `Waterfall` waypoint at all** — so aiming at the BASE never enters
+    # that branch. The climb below is what the planner deliberately does not do.
+    if not _fault("NOCLIMB"):
+        from modules.modes.util.tasks_scripts import wait_for_task_to_start_and_finish
+        from modules.modes.util.walking import ensure_facing_direction
+
+        yield from ensure_facing_direction("Up")
+        yield from _budgeted(
+            wait_for_task_to_start_and_finish("Task_UseWaterfall", "A"),
+            CLIMB_BUDGET, "climb the Ever Grande waterfall")
+        yield from wait_until_truly_controllable()
+
+    here = _here_tile()
+    if not _on_map(EG) or here[1] > WATERFALL_TOP[1]:
+        raise BotModeError(
+            f"Ch23 leg 4: the waterfall climb did not lift the avatar — now at {_where()}, "
+            f"expected to be at or above y={WATERFALL_TOP[1]}. Climbing needs BADGE08, the SURFING "
+            f"state and a NORTH facing; descending is un-gated, so a failure here reads as 'stayed "
+            f"at the bottom', never as 'fell'."
+        )
+    report["climb_end"] = here
+    _take(report, "R4-CLIMB")
+
+    # ---- phase 5: step off the water onto land --------------------------------------------------
+    yield from _sampling(_navigate_riding_out(EG, EG_LANDING), report)
+    if not _at(EG, EG_LANDING):
+        raise BotModeError(f"Ch23 leg 4: aimed at the landing {EG_LANDING}, ended on {_where()}.")
+    _take(report, "R4-LAND")
+
+    # ---- phase 6: heal, and RE-ARM THE RESPAWN ABOVE THE FALLS ----------------------------------
+    # ⛔⛔ THIS IS LOAD-BEARING, NOT HOUSEKEEPING. Until the bot walks into the Ever Grande Poké
+    # Center, `lastHealLocation` is still SOOTOPOLIS — so any whiteout inside Victory Road drops it
+    # back **inside the crater, below the falls**, forcing a full re-run of legs 3 AND 4.
+    # ⭐ It is also the mitigation for the faint-replacement ranking above: healing resets every
+    # `hp_fraction` to 1.0, so the ranking cannot prefer a fresh low-level mule over a chipped
+    # veteran on the next fight.
+    if not _fault("NOHEAL4"):
+        yield from _budgeted(
+            heal_in_pokemon_center(PokemonCenter.EvergrandeCity), HEAL_BUDGET,
+            "heal at Ever Grande")
+        yield from wait_until_truly_controllable()
+    report["hp_after4"] = {k: v[0] for k, v in party_identities().items()}
+    _take(report, "R4-HEAL4")
+
+    report["respawn_after4"] = respawn_reading()
+    if not respawn_is_armed(EG):
+        raise BotModeError(
+            f"Ch23 leg 4: the whiteout respawn is still not armed to EVER_GRANDE "
+            f"(reads {report['respawn_after4']!r}, want {EG.value}). Refusing to hand leg 5 a run "
+            f"whose whiteout lands BELOW the waterfall, inside the crater."
+        )
+    _take(report, "R4-ARM4")
+
+    # ---- phase 7: park on the Victory Road APRON, never on the door ------------------------------
+    yield from _sampling(_navigate_riding_out(EG, VR_APRON), report)
+    if not _at(EG, VR_APRON):
+        raise BotModeError(f"Ch23 leg 4: aimed at the VR apron {VR_APRON}, ended on {_where()}.")
+    _take(report, "R4-APRON")
+
+    # ---- can the bot CONTINUE? ⛔ off the END tile, and it must be NON-ZERO ---------------------
+    from modules.map_path import calculate_path
+
+    try:
+        path = calculate_path((EG, _here_tile()), (EG, EG_PC_APRON))
+        report["continue_wp4"] = len(path)
+    except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+        report["continue_wp4"] = f"{type(error).__name__}: {str(error)[:120]}"
+    _take(report, "R4-CONTINUE4")

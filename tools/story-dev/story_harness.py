@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -12521,6 +12521,45 @@ class Ch23RouteMode(BotMode):
             f"planner is within-map only and leg 4 must walk to each seam and let the CONNECTION "
             f"carry it across — which is a different build, and cheaper to learn now than mid-drive.")
 
+        # ---- R11: ⛔ WHAT IS *IN* THE LEG-4 PLAN? Two BLOCKERS hinge on this. -----------------
+        # An adversarial review of the leg-4 plan found two defects that a waypoint dump settles in
+        # seconds and that each otherwise cost a 30-minute drive:
+        #  (a) `follow_waypoints`' WATERFALL branch computes its timeout from the MAP NUMBER instead
+        #      of the player's y (`walking.py:226-227`), giving a NEGATIVE budget that trips on
+        #      frame 1. ⇒ if the plan contains a `WaypointAction.Waterfall`, a plain `navigate_to`
+        #      CANNOT climb, and the climb must stay hand-rolled.
+        #  (b) (18,41) is the Victory Road DOOR WARP, and `navigate_to` overrides its destination
+        #      when the last waypoint is a warp (`walking.py:446-448`) ⇒ aiming there ends the leg
+        #      on VICTORY_ROAD_1F, i.e. leg 4 would silently do leg 5's job.
+        # ⇒ dump every waypoint carrying an ACTION or a WARP, plus the last one, for both paths.
+        def dump(label: str, src, dst) -> None:
+            try:
+                path = calculate_path(src, dst)
+            except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                log(f"[{TAG}] {label}: {type(error).__name__} — {str(error)[:150]}")
+                return
+            marked = [(i, w) for i, w in enumerate(path)
+                      if getattr(w, "action", None) is not None or getattr(w, "is_warp", False)]
+            log(f"[{TAG}] {label}: {len(path)} wp; {len(marked)} carry an action/warp")
+            for i, w in marked[:14]:
+                log(f"[{TAG}]     [{i}] map={getattr(w, 'map', '?')} "
+                    f"coords={getattr(w, 'coordinates', '?')} "
+                    f"action={getattr(w, 'action', None)} is_warp={getattr(w, 'is_warp', False)}")
+            if path:
+                w = path[-1]
+                log(f"[{TAG}]     LAST map={getattr(w, 'map', '?')} "
+                    f"coords={getattr(w, 'coordinates', '?')} is_warp={getattr(w, 'is_warp', False)}")
+
+        EG3 = MapRSE.EVER_GRANDE_CITY
+        log(f"[{TAG}] ⛔ R11 settles two leg-4 BLOCKERS by DUMPING the plan rather than driving it.")
+        dump("R11a the whole leg-4 crossing ROUTE126 (45,66) -> EVER_GRANDE (18,68)", (R126, (45, 66)), (EG3, (18, 68)))
+        dump("R11b the landing walk EVER_GRANDE (18,55) -> the VR door (18,41)", (EG3, (18, 55)), (EG3, (18, 41)))
+        dump("R11c the landing walk EVER_GRANDE (18,55) -> the APRON (18,42)", (EG3, (18, 55)), (EG3, (18, 42)))
+        log(f"[{TAG}] ‼ R11 VERDICT SHAPE: a `Waterfall` action in R11a means a raw `navigate_to` "
+            f"CANNOT make the crossing (the negative-budget bug) ⇒ hand-roll the climb. And if "
+            f"R11b's LAST waypoint is `is_warp=True` or lands on VICTORY_ROAD_1F, aiming at (18,41) "
+            f"ends leg 4 inside the cave ⇒ aim at the apron (18,42) instead, as R11c checks.")
+
         log(f"[{TAG}] ⚠ READ A FAILURE AS 'the STATIC planner cannot see it', NEVER as 'the bot "
             f"cannot go there' — `navigate_to_anywhere` re-plans per warp and a §Ch15 leg succeeded "
             f"while planning statically as FAIL (KI-53).")
@@ -12843,6 +12882,101 @@ class Ch23DepartMode(BotMode):
                 _out.parent.mkdir(parents=True, exist_ok=True)
                 _out.write_bytes(context.emulator.get_save_state())
                 log(f"[{TAG}] captured the post-departure fixture -> {_out}")
+        context.set_manual_mode()
+
+
+class Ch23CrossMode(BotMode):
+    """§Ch23 LEG 4 — cross the ocean to Ever Grande, climb the waterfall, heal, reach the VR apron.
+
+    Drives PRODUCTION's `victory_road.cross_to_ever_grande`, not a copy.
+
+    ⛔ SMOKE-TEST WITH A TINY `--frames` FIRST — `story_harness.py` imports `os as _os` and
+    function-locally aliases `pathlib as _pathlib`, and `repro_undefined_names.py` does NOT scan
+    `tools/story-dev/`, so a bare stdlib name here is a `NameError` this tree cannot catch.
+
+    ⭐ THE PRESENCE WITNESS IS THE MAPS ACTUALLY VISITED. `yield from navigate_to(...)` gives the
+    leg no frames, so the module wraps every navigation in `_sampling(...)` to record the map each
+    frame. Without that, **a run that never left ROUTE126 could satisfy a position-plus-path grade**
+    — the house rule is a PRESENCE conjunct before every ABSENCE one.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_depart_sootopolis.ss1 --driver ch23cross --frames 400000
+    Fault arms: POKEBOT_CH23_FAULT_{NOCLIMB,NOHEAL4,NOLEAD}=1
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23Cross"
+
+    def on_whiteout(self) -> bool:
+        # ⛔ `BotMode.on_whiteout` defaults to False, WHICH DROPS THE BOT.
+        # ‼ A whiteout here respawns INSIDE THE CRATER (below the falls) until leg 4's Ever Grande
+        # heal re-arms the respawn — which is exactly why the leg re-runs leg 3 on phase 0.
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23cross] WHITEOUT #{self.whiteouts} — respawn is BELOW the falls until R4-ARM4.")
+        return True
+
+    def run(self):
+        from modules.story import victory_road as VR
+
+        TAG = "ch23cross"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        report: dict = {"readings": set(), "trace": []}
+
+        start_done = VR.at_ever_grande_top()
+        log(f"[{TAG}] PRE at={VR._where()} already_above_falls={start_done}")
+        log(f"[{TAG}] PRE party={VR.party_identities()}")
+        log(f"[{TAG}] PRE respawn={VR.respawn_reading()} carriers={VR.field_move_carriers()}")
+
+        failure = None
+        try:
+            yield from VR.cross_to_ever_grande(report)
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        taken = report.get("readings", set())
+        missing = [r for r in VR.LEG4_READINGS if r not in taken]
+        maps_seen = sorted(report.get("maps_seen", ()))
+        log(f"[{TAG}] RESULT readings={sorted(taken)}")
+        log(f"[{TAG}] RESULT missing={missing}")
+        log(f"[{TAG}] RESULT trace={report.get('trace')}")
+        log(f"[{TAG}] RESULT maps_seen={maps_seen}")
+        for key in ("leg4_entry", "lead_after", "lead_error", "base_tile_type", "climb_end",
+                    "hp_after4", "respawn_after4", "continue_wp4"):
+            log(f"[{TAG}] R {key} = {report.get(key)!r}")
+
+        # ---- ACCEPTANCE ---------------------------------------------------------------------
+        ended_above = VR.at_ever_grande_top()
+        on_apron = VR._at(VR.EG, VR.VR_APRON)
+        # ⭐ PRESENCE: the crossing must actually have HAPPENED. ROUTE127 and ROUTE128 are the two
+        # maps only a real crossing visits — a leg that never left ROUTE126 fails here.
+        crossed = {VR.R127.value, VR.R128.value} <= set(report.get("maps_seen", ()))
+        climbed = isinstance(report.get("climb_end"), tuple)
+        armed4 = report.get("respawn_after4") == VR.EG.value
+        cont = report.get("continue_wp4")
+        can_continue = isinstance(cont, int) and cont > 0     # ⛔ NON-ZERO, per the house rule
+        premise_ok = not start_done                            # anti-vacuity
+        recoveries_ok = self.whiteouts <= 2
+
+        passed = (failure is None and premise_ok and ended_above and on_apron and crossed
+                  and climbed and armed4 and can_continue and not missing and recoveries_ok)
+        log(f"[{TAG}] GRADE premise_ok={premise_ok} ended_above={ended_above} on_apron={on_apron} "
+            f"crossed={crossed} climbed={climbed} armed4={armed4} can_continue={can_continue} "
+            f"({cont!r}) missing={missing} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] FINAL position={VR._where()}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH23_CAPTURE", "").strip()
+        if passed and _cap:
+            import pathlib as _pathlib   # ⛔ local: `pathlib` is NOT bound at module scope here
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if _out.exists() and _os.environ.get("CAPTURE_FORCE") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_out.name} exists. Set CAPTURE_FORCE=1 to overwrite.")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured the post-crossing fixture -> {_out}")
         context.set_manual_mode()
 
 
@@ -14620,6 +14754,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23RouteMode()
         elif args.driver == "ch23depart":
             context.bot_mode_instance = Ch23DepartMode()
+        elif args.driver == "ch23cross":
+            context.bot_mode_instance = Ch23CrossMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

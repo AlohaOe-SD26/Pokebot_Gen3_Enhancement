@@ -21217,3 +21217,48 @@ MAP, not of the planner.**
 **2026-09-03 was MISSED and is recorded as missed** rather than quietly backfilled: the directive is
 once per calendar day, and a gap is a fact about our process, not about upstream. Nothing was lost —
 but a silently-skipped check would make the next real upstream move look like it landed overnight.
+
+
+## 2026-09-04 (BUILD) — §Ch23 LEG 4 SHIPPED: THE OCEAN CROSSING, PASSING ON ITS FIRST DRIVE
+
+`victory_road.cross_to_ever_grande` + `--driver ch23cross` → **`ACCEPTANCE: PASS` first drive**:
+all 9 readings, `missing=[]`, trace in exact order, `whiteouts=0`, ending **EVER_GRANDE (18,42)** —
+the Victory Road apron, above the waterfall.
+✅ **NEW FIXTURE `post_ever_grande.ss1`** (`18203e99…`), PINNED: EVER_GRANDE (18,42), 8 badges,
+**701/701 (100%)** — the first state this project has ever had above the falls.
+
+**⭐ THE MEASUREMENTS.** `maps_seen = {ROUTE126, ROUTE127, ROUTE128, EVER_GRANDE}` — the PRESENCE
+witness fired, so the crossing genuinely happened rather than being inferred from a final position.
+Lead in slot 0 = **Sceptile**. Waterfall base tile `'Ocean Water'`; **climb ended (18,59), exactly
+the predicted top**. `respawn_after4 = (0,8)` — **armed to EVER_GRANDE, above the falls.**
+`continue_wp4 = 22`.
+
+**⭐⭐ THREE BLOCKERS WERE FOUND BEFORE THE CODE EXISTED, AND TWO WERE SETTLED BY A 3-QUERY DUMP
+COSTING SECONDS** (`ch23route` R11) — each would otherwise have cost a 30-minute drive:
+1. **`follow_waypoints`' waterfall timeout reads the MAP NUMBER, not the player's y**
+   (`walking.py:226-227`) — for Ever Grande that is `195 + (8-59)*42 = -1947`, a NEGATIVE budget
+   tripping on frame 1. ✅ R11a proved our crossing plan carries **no `Waterfall` waypoint at all**
+   (its only actions are four `Surf`), so aiming at the BASE never enters that branch — and the
+   hand-rolled climb is a measured necessity, not a style choice.
+2. **A trainer's sight line ABORTS a raw `navigate_to`**, and this crossing is *guaranteed* to hit
+   two (Carlee and Harrison; no safe row exists). ⇒ `_navigate_riding_out`, and ⛔ never
+   `expecting_script=True`, which `return`s and would end the crossing mid-ocean **reporting
+   success**.
+3. **Aiming at (18,41) ends leg 4 INSIDE Victory Road** — MEASURED: the plan's last waypoint is
+   `VICTORY_ROAD_1F (15,40) is_warp=True`. ⇒ park on the **apron (18,42)**; leg 5 takes the warp.
+
+**⭐ AND THE LOAD-BEARING "SERIOUS": the Ever Grande heal is not housekeeping.** Until the bot walks
+into that Poké Center the respawn is still Sootopolis, so a whiteout in Victory Road lands **below
+the falls inside the crater**, forcing a re-run of legs 3 AND 4. The leg now heals and then
+**asserts** `respawn_is_armed(EVER_GRANDE)`.
+
+**⚠ AND ONE REVIEW FINDING I VERIFIED AND *NARROWED* RATHER THAN RELAYING.** The review called the
+L19 Zigzagoon a live faint-replacement candidate: `story_mode.py:210` ranks
+`(incoming, -outgoing, -hp_fraction, -level)` — HP **fraction above level** — and `:185` filters only
+`current_hp > 0`, dropping the parent's `pokemon_can_battle`. ✅ Both halves verified by reading.
+⛔ **But its worked example omits Sceptile**, which against Water STAB is `incoming 0.5 / outgoing
+2.0` and is picked FIRST — as the drive then confirmed (`lead_after = Sceptile`). The four-way tie
+that promotes a fresh L19 mule needs **both Sceptile and Wailmer** out. The defect is real and the
+guard shipped as cheap insurance, but it is recorded at its true severity.
+‼ **An agent's worked example is an argument, not a measurement — recompute it before adopting its
+urgency.**

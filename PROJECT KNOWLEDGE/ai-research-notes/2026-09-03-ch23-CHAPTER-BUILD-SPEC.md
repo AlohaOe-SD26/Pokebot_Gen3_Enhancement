@@ -355,6 +355,79 @@ values. §Ch21 emerged there three times with **no tile guard at all**. ⇒ **RE
 on a named-bad set** (`Water Door`, `Underwater Blocked Above`, `Seaweed No Surfacing`); an allowlist
 can only lose. Tighten after drive 1 prints the real string.
 
+## §4c. ⭐⭐ LEG 4's CONTRACT — 3 BLOCKERS + 5 SERIOUS, FOUND BEFORE THE CODE, TWO SETTLED BY QUERY
+
+An adversarial review of the leg-4 PLAN returned **3 BLOCKERS and 5 SERIOUS** defects. ⭐ **Two of
+the blockers were then settled definitively by a 3-query waypoint DUMP (`ch23route` R11) that cost
+seconds — each would otherwise have cost a 30-minute drive.**
+
+### ⛔ BLOCKER 1 — `follow_waypoints`' WATERFALL TIMEOUT READS THE MAP NUMBER, NOT THE PLAYER'S y
+`walking.py:226-227` indexes `get_player_location()` as `[0][1]`, which is the **map number**
+(`MapRSE.__getitem__` returns `value[item]`), so for `EVER_GRANDE_CITY (0,8)` it computes
+`195 + (8-59)*42 = -1947` — a **negative budget** that trips on frame 1, re-paths, times out
+identically, and dies in 8 no-progress rounds as `NavigationStuckError`. Upstream-origin, never
+exercised.
+✅ **MEASURED SAFE FOR OUR PATH (R11a):** the 273-wp crossing plan's only actions are **four
+`WaypointAction.Surf`** and its last waypoint is `EVER_GRANDE (18,68) is_warp=False` — **no
+`Waterfall` waypoint at all.** ⇒ aiming at the BASE never enters that branch.
+⇒ **The climb stays HAND-ROLLED**, and that is now a measured necessity rather than a style choice:
+`ensure_facing_direction("Up")` + `_budgeted(wait_for_task_to_start_and_finish("Task_UseWaterfall",
+"A"), …)`. ⛔ **Never ask `navigate_to` for the TOP.**
+
+### ⛔ BLOCKER 2 — A TRAINER'S SIGHT LINE ABORTS A RAW `navigate_to`, AND THIS CROSSING HITS TWO
+`walking.py:479-485` raises `BotModeError` when a waypoint times out while a script is active — and
+the countdown keeps ticking through the trainer intro msgbox because the game state stays
+`OVERWORLD` (`:253-254`). **Carlee and Harrison are unavoidable** (no safe row exists in the x=101
+channel), so a raw `navigate_to` is *guaranteed* to abort, retry the whole 273-wp crossing, and
+exhaust its attempts ~30 minutes in.
+⇒ **Use `_navigate_riding_out`**, whose docstring names this exact case. ⛔ **NEVER
+`expecting_script=True`** to dodge it — that path `return`s, silently ending the crossing mid-ocean
+**and reporting success.**
+
+### ⛔ BLOCKER 3 — AIMING AT (18,41) ENDS LEG 4 *INSIDE* VICTORY ROAD — MEASURED
+(18,41) is the Victory Road DOOR **warp**, and `navigate_to` overrides its own destination when the
+final waypoint is a warp (`walking.py:446-448`). **R11b measured it:** the 16-wp plan's last waypoint
+is `map=VICTORY_ROAD_1F coords=(15,40) is_warp=True`.
+⇒ leg 4 would silently do **leg 5's** job, and an honest `_at(EVER_GRANDE,(18,41))` grade would FAIL
+a perfect run. ✅ **R11c: aiming at the APRON (18,42) returns 15 wp ending `EVER_GRANDE (18,42)
+is_warp=False`.** ⇒ **park on the apron; leg 5 takes the warp.** *(Same door-vs-apron split as
+`PC_DOOR`/`PC_APRON` in leg 2.)*
+
+### THE FIVE SERIOUS ONES, EACH BUILT INTO THE LEG
+* **The Ever Grande heal is LOAD-BEARING, not housekeeping.** Until the bot walks into that Poké
+  Center, `lastHealLocation` is still **Sootopolis**, so any whiteout inside Victory Road lands
+  **below the falls, inside the crater**, forcing a full re-run of legs 3 AND 4. ⇒ heal, then assert
+  `respawn_is_armed(EVER_GRANDE)`.
+* **A mid-leg whiteout respawns where this leg cannot plan at all** — Sootopolis has zero
+  connections, so every attempt raises `PathFindingError` and reports *"could not reach (18,68)"*,
+  the wrong diagnosis. ⇒ phase 0 detects an island-side/underwater position and re-runs leg 3, which
+  is idempotent and self-skips.
+* **The recovery machinery is weakest exactly at the channel.** `_navigate_riding_out`'s fail-fast
+  assumes "nothing can differ between attempts" — false against a *walking NPC*, collapsing its
+  effective tries ~10 → 2 — and `navigate_to`'s no-progress window holds **six** positions against
+  an **eight**-tile channel, so it can keep resetting while making no progress. ⇒ **stage at
+  ROUTE128 (101,26) first**, so a failure names which half failed.
+* **The grade needs a PRESENCE witness that cannot be collected as written.** `yield from
+  navigate_to(...)` gives the leg no frames, so it can never observe the crossing. ⇒ a `_sampling()`
+  wrapper records the map every frame (and is also where the missing `_check_abort()` lives, since
+  `navigate_to` never calls it). **ROUTE127 ∈ maps_seen AND ROUTE128 ∈ maps_seen** is the witness.
+* ⚠ **`avoid_encounters=True` adds +1000 per WATER tile** — on an all-water crossing it avoids
+  nothing and only inflates the search. ⇒ `avoid_encounters=False` for the ocean.
+
+### ⚠ AND ONE FINDING I VERIFIED AND *NARROWED* RATHER THAN RELAYING
+The review said the **L19 Zigzagoon** is a live faint-replacement candidate, because
+`story_mode.py:210` keys on `(incoming, -outgoing, -hp_fraction, -level)` — ranking HP **fraction
+above level** — while `:185` filters only `current_hp > 0`, dropping the parent's
+`pokemon_can_battle`. ✅ **Both halves verified by reading.**
+⛔ **But its worked example omits Sceptile.** Computed for this party against Water STAB: Sceptile is
+`incoming 0.5 / outgoing 2.0` (Grass resists Water; Leaf Blade is super-effective) and **is picked
+first**; Wailmer second. The four-way tie that promotes the fresh L19 mule requires **BOTH Sceptile
+AND Wailmer** to be out — reachable after a 273-tile crossing, but narrower than stated.
+⇒ **The defect is real and the fix is cheap insurance, so it ships** (`_lead_strongest_battler`
+before the channel — it exists at `early_game.py:1646`, and no travel leg had ever called it), **but
+it is recorded at its true severity.** ‼ *An agent's worked example is an argument, not a
+measurement — recompute it before adopting its urgency.*
+
 ## §5. WHAT DOES NOT EXIST YET (checked, not assumed)
 * `sandbox-pokebot/modules/story/victory_road.py` — **NOT FOUND**
 * Any fixture for Ever Grande, Victory Road, Routes 126/127/128, the League or the Elite Four —

@@ -11641,3 +11641,36 @@ the command under test, or use `set -o pipefail`/`&&`, or check the status expli
 meant to run. Quoting it onward is a claim; treat it like any other claim and check the artifact.
 ✅ **What caught it:** re-reading the gate log for a different reason and seeing the word `FAILED`
 in a suite I had already called green.
+
+
+## 2026-09-04 — MY OWN PUNCH-LIST HEADER SAID "PRODUCTION CODE IS ZERO" WHILE THREE LEGS SHIPPED FROM IT
+
+**Symptom.** `#24-ch23victoryroad`'s heading read *"RECON IS DEEP, **PRODUCTION CODE IS ZERO**"* and
+its first bullet *"⛔⛔ `sandbox-pokebot/modules/story/victory_road.py` **DOES NOT EXIST**"* — for a
+full day after legs 2, 3 and 4 shipped **from that very file**, each with a passing drive and a
+pinned fixture. A cold reader arriving at the live work item would have been told the chapter had no
+code at all.
+
+**Why it survived.** I updated the item's BODY every time a leg landed — adding "LEGS 2-3 ARE BUILT",
+then "LEG 4 IS SHIPPED" — and never re-read the two lines above them. The pair check I keep applying
+(P1 banner↔queue, P5 item↔handoff) is about agreement BETWEEN documents; this was a contradiction
+*within a single item*, between its heading and its own newest sentence. **Nothing in the routine
+looks upward from the line being edited.**
+
+**And the line budget hid it.** Every time the item grew I trimmed the NEWEST text to fit, which is
+the correct rule — but it meant the oldest, most stale lines were the ones never touched. ⇒ **a
+"compress your newest text" rule protects fresh content and preserves stale headers.** The two rules
+need each other: compress the newest, but re-read the OLDEST before declaring the item current.
+
+**The fix.** The item was rewritten whole rather than patched again: 103 lines → 47, header and body
+both true, all analysis pointed at the build spec instead of duplicated. The rewrite ALSO paid the
+line budget it had been fighting — a stale narrative is usually the cheapest space available.
+
+**Prevention rules.**
+⛔⛔ **P2 APPLIES *WITHIN* AN ITEM, NOT ONLY BETWEEN DOCUMENTS.** A heading is a claim about every
+line beneath it — including lines added months later. When appending a status to an item, **re-read
+its heading and first bullet in the same edit**, or the append is what makes them false.
+⛔ **WHEN AN ITEM HAS BEEN APPENDED TO THREE TIMES, REWRITE IT INSTEAD OF APPENDING A FOURTH.** The
+signal is the append count, not the length.
+‼ **AND THE STALEST TEXT IS WHERE A LINE-BUDGET RULE POINTS AWAY FROM.** "Trim your newest text" is
+right for authorship and wrong for accuracy; pair it with "re-read the oldest".
