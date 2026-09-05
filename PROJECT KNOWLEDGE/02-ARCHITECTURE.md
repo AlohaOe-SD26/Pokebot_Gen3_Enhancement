@@ -241,9 +241,15 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 37 entries = 35 ENFORCING + 2 ADVISORY
-#   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate), ~150s,
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 38 entries = 36 ENFORCING + 2 ADVISORY
+#   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips 8 ROM gates and is NOT a green suite.
+#   ⏱ MEASURED 2026-09-05: `--quick` ~31-36s for its 30 gates; the FULL suite is dominated by
+#   `repro_gym_whiteout_guard.py`, which is a KNOWN-RED ~900s timeout (`#24-gymwhiteoutgatehang`),
+#   so budget ~15 MINUTES, not seconds. *(This comment read "~150s" until 2026-09-05, which a Tier 1
+#   reviewer read as the total runtime and under-estimated the wall clock by two orders of
+#   magnitude. 150s is a TIMEOUT CAP discussed further down, not a duration — ⇒ never put a bare
+#   number next to a command without saying what it MEASURES.)*
 #  ‼ It PRINTS its own count. Believe that, not this comment: it has read 17, 18, 21 and 22, and a
 #  stale count here is invisible to every gate — three separate copies of it existed on 2026-08-14.
 ```

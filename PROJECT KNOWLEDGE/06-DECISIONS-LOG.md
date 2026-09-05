@@ -4147,3 +4147,42 @@ falsified.
 
 **Precedent.** §Ch21 and §Ch22 made the same stricter-than-the-flag choice for the same reason; this
 entry exists because a Tier 1 reviewer noticed those were logged and this one was not.
+
+
+## 2026-09-05 — a repro for an OPEN bug may be a gate ONLY if it SELF-RETIRES
+
+**Decision.** `repro_ki90_absent_left_slot.py` is registered as gate #38 even though it asserts that
+an OPEN defect still reproduces — because it self-retires: if the raise disappears while its
+discriminator still passes, it prints `SELF-RETIRED` and exits 0 instead of failing.
+
+**Why.** A gate that asserts "the bug is still here" turns the suite RED the moment someone fixes the
+bug. ⇒ it would punish exactly the work it exists to enable, and the rational response would be to
+delete it — losing the evidence. ⭐ **A SAFETY MEASURE THAT PENALISES THE FIX IS NOT A SAFETY
+MEASURE.**
+
+**What makes it safe rather than merely convenient — AND THE VERSION OF THIS PARAGRAPH THAT WAS
+WRONG.** Self-retirement can hide a live defect if the repro rots, so the retirement test must key on
+something the defect cannot fake.
+⛔ **IT FIRST KEYED ON THE EXCEPTION'S MESSAGE TEXT, AND A TIER 1 REVIEWER BROKE IT BY CONSTRUCTION**
+(2026-09-05): reword the raise while leaving the defect completely untouched, and the gate printed
+`SELF-RETIRED` and exited 0 — silently retiring a live defect, the one outcome this entry claimed was
+impossible. ⇒ ⭐ **A GUARD KEYED ON A HUMAN-READABLE STRING IS NOT A GUARD ON BEHAVIOUR.**
+✅ It now keys on BEHAVIOUR, three-way: *raised anything* → the defect is LIVE whatever the wording;
+*returned cleanly* → SELF-RETIRED; *hit the step cap* → the repro is broken, fail loudly. Verified
+against the reviewer's own counterexample: reworded-message → REPRODUCED (not retired); genuinely
+fixed → SELF-RETIRED/exit 0.
+‼ **The lesson is bigger than this gate:** my original fault test exercised only the direction I had
+thought of (fixture rot). The reviewer attacked a direction I had not — and *that* is why the
+adversarial pass is not optional. **Fault-testing proves the arms you wrote, never the arms you
+didn't.**
+
+**Alternatives rejected.**
+* *Do not register it at all* — keeps the suite honest but leaves the repro un-run, so it rots
+  silently and nobody notices until it is needed. The tree already shows what an unrun check is worth.
+* *Register it inverted (assert the fix)* — it would fail today, for a bug that is real and open;
+  a permanently-red gate is one people learn to ignore, which is the failure mode `CLAUDE.md` rule 6
+  warns about.
+* *Register it and accept it goes red on the fix* — that is the booby trap above.
+
+**Precedent.** This project already has the concept (`repro_boss_grass_gate.py` "SELF-RETIRED"); this
+entry makes the reasoning explicit and adds the requirement that BOTH directions be fault-proven.

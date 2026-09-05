@@ -1083,49 +1083,9 @@ the fix is `ROUTE102` reachability from `ROUTE103`, shipped 2026-08-01 and uncha
 new evidence, no reopening — this line exists because a header edit and its body must move
 together (pair P2), and retiring a body is still editing it.
 
-## KI-45 — A battle MOVE-menu loop hangs a lane indefinitely, and neither guard can see it (2026-08-02, severity: HIGH)  — ✅ **FIXED 2026-08-03** (bounded + reported through the recoverable channel; see this entry's own `### KI-45 — FIXED` block. Header marker added 2026-08-22, PASS 5).
+## KI-45 — ✅ **FIXED 2026-08-02.** A battle MOVE-menu loop hung a lane indefinitely and neither guard could see it. **FULL ENTRY ARCHIVED VERBATIM to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-09-05** (no loss, no orphan — both invariants asserted before writing). ⛔ Retired only to keep this current-state file inside its 3000-line budget. ‼ **PRECISELY WHAT MOVED:** the ORIGINAL 2026-08-02 diagnosis block. **The `### KI-45 — FIXED 2026-08-03` write-up below did NOT move and is still in THIS file** — the archiver stops at a `###` sub-heading, so a `##` entry containing one is split there. *(superseded: this read "the diagnosis and the fix are intact in the archive", which a Tier 1 reviewer refuted by opening both files.)*
 
-**Observed live**, batch6 lane H4 (`x4-runs/20260802-160603`): the lane produced **no stdout
-for 27 minutes** while the process stayed alive and burned CPU (8,874 s). Not a freeze — a
-loop. It ended the batch with ~7.3 MB of output against ~15 MB on healthy lanes, i.e. it lost
-roughly half its productive time.
-
-```
-generator call stack (where the bot is waiting):
-  -> BattleListener.fight            @ _listeners.py:219
-  -> handle_battle                   @ battle_handler.py:306
-  -> handle_battle_action_selection  @ battle_action_selection.py:96
-  -> battle_action_use_move          @ battle_action_selection.py:283
-  -> scroll_to_move                  @ battle_menuing.py:52
-  -> _select_in_menu                 @ battle_menuing.py:41
-f3060001 state=4 controllable=False map=DEWFORD TOWN(3,3) pos=(4,4)
-         party=['Nincada:L10','Marshtomp:L20','Whismur:L13']
-         scripts=['EventScript_DoTrainerBattle']
-```
-**866 STUCK dumps** at that site; every heartbeat in the last 200 lines is the same message
-(`entering Dewford Gym to challenge Brawly`).
-
-**‼ WHY NOTHING STOPPED IT — both guards are structurally blind here.**
-* The **global watchdog** requires an UNCHANGED progress signature for 18,000 frames. A menu
-  loop keeps changing map/coords/state/message, so the signature never goes stale.
-* The **per-run frame budget** is KI-36's documented hole: *"the per-run frame budget CANNOT
-  fire while a battle handler is on the stack."* This is exactly that shape, in a new place.
-
-**NOT caused by the 2026-08-02 changes.** `#24-pc` and `#24-areaitemgate` touch healing,
-training-area choice and the PC; nothing on this stack. The party here (Nincada L10 /
-Marshtomp L20 / Whismur L13) is a normal early-game team.
-
-**What to do — do NOT just raise a timeout.** `_select_in_menu` is a cursor-scroll loop; if it
-cannot reach the target slot the honest answer is to raise so the battle handler's existing
-fault path can take over, not to spin. Establish first WHY the cursor never arrives (a
-disabled/0-PP move? a move slot index off the end? the cursor already there and the
-success test wrong?), reproducing from H4's own debug log, before bounding anything.
-
-Related: **KI-36** (the frame budget cannot fire under a battle handler — the same blind
-spot), **KI-8** (mid-battle rotation party-menu stall), **KI-17** (after-faint party-menu
-freeze). This project has now seen three distinct battle-menu wedges; a shared bounded
-menu-drive helper may be the real fix.
-
+**2026-09-05 — body retired, status re-confirmed unchanged.** KI-45 is CLOSED and stays closed. ⭐ Read it before touching `KI-90`: it is the same SHAPE — a battle-path loop that hung a lane while every guard reported healthy.
 ### KI-45 — FIXED 2026-08-03 (bounded + reported through the recoverable channel)
 
 **Root cause: stock `battle_menuing._select_in_menu` is `while True:`.** It presses a direction
@@ -2941,7 +2901,7 @@ one about the PARTY menu, because the item side had been "verified" by printing 
 independently by a decomp read.
 
 
-## `KI-90` — ⛔⛔ IN A **DOUBLE BATTLE** WITH ONE OPPONENT SLOT ABSENT, THE BOT AIMS AT THE EMPTY SLOT, RAISES, AND THE RUN HANGS (2026-09-05, MEASURED; ‼ root cause CORRECTED the same day; NOT fixed)
+## `KI-90` — ⛔⛔ IN A **DOUBLE BATTLE** WITH ONE OPPONENT SLOT ABSENT, THE BOT AIMS AT THE EMPTY SLOT, RAISES, AND THE RUN HANGS (2026-09-05, MEASURED; ✅ **REPRODUCED** by gate #38; ‼ root cause CORRECTED the same day; ⛔ **NOT FIXED**)
 
 **Severity: HIGH, and it is a HANG, not a crash.** The exception unwinds the whole controller stack,
 the bot drops to Manual *inside a battle nothing is driving*, and the run sits until the watchdog
@@ -2989,9 +2949,21 @@ a rate. It is a CORRECTNESS question, so the instrument is a repro, never a batc
 
 **NOT FIXED, deliberately** — `battle_action_selection.py` is shared upstream; same ruling as
 `KI-83`/`KI-88`/`KI-89`. Tracked as `#24-ch23chain`.
-⇒ **THE REPRO IS NOT WHAT IT LOOKS LIKE.** ⛔ **Left-absent ALONE IS VACUOUS** — `story_mode.py:261-313` already aims RIGHT when the right opponent is alive, so that arm runs GREEN and reads as "does not reproduce". The raise is the FALL-THROUGH: left absent **AND** right also `hp == 0` in the same frozen snapshot. ‼ COMPUTE THE DISCRIMINATOR (print the `TurnAction` the strategy returns) BEFORE driving anything.
+✅ **REPRODUCED 2026-09-05 — `tools/story-dev/repro_ki90_absent_left_slot.py` (gate #38).**
+Three arms, in-process, milliseconds, against a REAL `BattleState` and the REAL
+`battle_action_use_move` (what is real vs stubbed, and why, is in that file's own docstring):
+```
+ARM A  absent LEFT slot + UseMove         -> RuntimeError   (the defect)
+ARM B  no absent flag  + UseMove          -> no raise       (⇒ the FLAG is the cause)
+ARM C  absent LEFT slot + RIGHT-targeted  -> no raise       (⇒ the TARGET is the cause)
+```
+⭐ **IT SELF-RETIRES** (prints `SELF-RETIRED`, exits 0) if the raise disappears while its
+discriminator still passes — so this gate cannot punish the fix. Both directions fault-proven.
+📦 Rationale + rejected alternatives: `06-DECISIONS-LOG.md` 2026-09-05.
+
+⛔ **Left-absent ALONE IS VACUOUS** — `story_mode.py:261-313` already aims RIGHT when the right opponent is alive, so that arm runs GREEN and reads as "does not reproduce". The raise is the FALL-THROUGH: left absent **AND** right also `hp == 0` in the same frozen snapshot. ‼ COMPUTE THE DISCRIMINATOR (print the `TurnAction` the strategy returns) BEFORE driving anything.
 📌 **The full repro plan — the pinned fixture, the two trainer pairs, the KO count and the three left-hardcoded producers — lives in `03-PUNCH-LIST.md` `#24-ch23chain`**, which is where work is tracked; this entry describes the DEFECT, not the task.
-Candidate fix (UNVERIFIED, build the repro first): fall back to the RIGHT opponent when the left is
+Candidate fix (UNVERIFIED — gate #38 now exists to judge it): fall back to the RIGHT opponent when the left is
 absent, as `HandleInputChooseMove` already does.
 
 📦 Full evidence chain, the forensics, and a write-up of the refuted first diagnosis:

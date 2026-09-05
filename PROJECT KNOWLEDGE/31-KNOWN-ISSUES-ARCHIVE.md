@@ -3312,3 +3312,52 @@ lesson is that the mechanism firing is not the same as the funnel moving. Read
 
 ---
 
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Closed history, retired to keep `05-KNOWN-ISSUES.md` inside its 3000-line R3 budget. KI-45 was FIXED on 2026-08-02. ⭐ Kept verbatim because it is the nearest precedent to KI-90 — a battle-path loop that hung a lane while every guard reported healthy — and a future reader comparing the two should be able to read the whole original.
+
+## KI-45 — A battle MOVE-menu loop hangs a lane indefinitely, and neither guard can see it (2026-08-02, severity: HIGH)  — ✅ **FIXED 2026-08-03** (bounded + reported through the recoverable channel; see this entry's own `### KI-45 — FIXED` block. Header marker added 2026-08-22, PASS 5).
+
+**Observed live**, batch6 lane H4 (`x4-runs/20260802-160603`): the lane produced **no stdout
+for 27 minutes** while the process stayed alive and burned CPU (8,874 s). Not a freeze — a
+loop. It ended the batch with ~7.3 MB of output against ~15 MB on healthy lanes, i.e. it lost
+roughly half its productive time.
+
+```
+generator call stack (where the bot is waiting):
+  -> BattleListener.fight            @ _listeners.py:219
+  -> handle_battle                   @ battle_handler.py:306
+  -> handle_battle_action_selection  @ battle_action_selection.py:96
+  -> battle_action_use_move          @ battle_action_selection.py:283
+  -> scroll_to_move                  @ battle_menuing.py:52
+  -> _select_in_menu                 @ battle_menuing.py:41
+f3060001 state=4 controllable=False map=DEWFORD TOWN(3,3) pos=(4,4)
+         party=['Nincada:L10','Marshtomp:L20','Whismur:L13']
+         scripts=['EventScript_DoTrainerBattle']
+```
+**866 STUCK dumps** at that site; every heartbeat in the last 200 lines is the same message
+(`entering Dewford Gym to challenge Brawly`).
+
+**‼ WHY NOTHING STOPPED IT — both guards are structurally blind here.**
+* The **global watchdog** requires an UNCHANGED progress signature for 18,000 frames. A menu
+  loop keeps changing map/coords/state/message, so the signature never goes stale.
+* The **per-run frame budget** is KI-36's documented hole: *"the per-run frame budget CANNOT
+  fire while a battle handler is on the stack."* This is exactly that shape, in a new place.
+
+**NOT caused by the 2026-08-02 changes.** `#24-pc` and `#24-areaitemgate` touch healing,
+training-area choice and the PC; nothing on this stack. The party here (Nincada L10 /
+Marshtomp L20 / Whismur L13) is a normal early-game team.
+
+**What to do — do NOT just raise a timeout.** `_select_in_menu` is a cursor-scroll loop; if it
+cannot reach the target slot the honest answer is to raise so the battle handler's existing
+fault path can take over, not to spin. Establish first WHY the cursor never arrives (a
+disabled/0-PP move? a move slot index off the end? the cursor already there and the
+success test wrong?), reproducing from H4's own debug log, before bounding anything.
+
+Related: **KI-36** (the frame budget cannot fire under a battle handler — the same blind
+spot), **KI-8** (mid-battle rotation party-menu stall), **KI-17** (after-faint party-menu
+freeze). This project has now seen three distinct battle-menu wedges; a shared bounded
+menu-drive helper may be the real fix.
+

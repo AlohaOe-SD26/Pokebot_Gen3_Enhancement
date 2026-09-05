@@ -644,7 +644,9 @@ This project is worked from multiple computers, so a session elsewhere will NOT 
 REGENERATE them by re-running `--driver ch23chapter post_wally.ss1 --frames 600000` and reading the
 `SAVED stall state` lines. ‼ Do not treat the paths above as a fixture pin.
 
-**NEXT STEP, IN ORDER:** (1) build a targeted repro for `KI-90` — ⭐ **A DOUBLE battle whose opponent LEFT slot is ABSENT *AND* whose RIGHT battler also reads
+✅ **STEP (1) IS DONE 2026-09-05 — `repro_ki90_absent_left_slot.py`, GATE #38, REPRODUCES IT** (ARM A raises; ARM B proves the FLAG is the cause; ARM C proves the TARGET is). It SELF-RETIRES when the bug is fixed, and both directions of that are fault-proven, so it will not punish the fix. ⇒ **THE LIVE STEP IS NOW (2): DECIDE THE FIX.**
+
+*(superseded step list, kept for its reasoning:)* **NEXT STEP, IN ORDER:** (1) build a targeted repro for `KI-90` — ⭐ **A DOUBLE battle whose opponent LEFT slot is ABSENT *AND* whose RIGHT battler also reads
 `hp == 0` in the SAME frozen snapshot** — ⛔ **left-absent ALONE IS VACUOUS**: `story_mode.py:261-313`
 (`decide_turn_in_double_battle`) already returns `use_move_against_right_side_opponent` when the right
 is alive, so that arm runs GREEN and would be misread as "does not reproduce". The raise is the

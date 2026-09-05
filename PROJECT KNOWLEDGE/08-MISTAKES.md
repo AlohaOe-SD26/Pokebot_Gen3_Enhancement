@@ -12672,3 +12672,59 @@ gitignored AND uses filenames every run reuses (`stalls/repro-ml-fNNNNN.ss1`). T
 the failing battle was one drive away from being overwritten and could never have reached another
 machine. ⇒ **when a run produces evidence you may need again, COPY IT TO A STABLE, TRACKED NAME AND
 PIN ITS md5 THE SAME DAY.**
+
+
+## 2026-09-05 — a guard I could not test, and the one line I keep forgetting to edit
+
+**Symptom (two, same round).** (a) Gate #38's safety guard claimed "raised ANYTHING → the defect is
+LIVE" while `drive()` caught only `Exception`; a `SystemExit(0)` from the stub layer produced a
+silent **exit 0 with no verdict**, which `run_gates.py` records as a PASS. (b) The `➡➡➡` NEXT ACTION
+marker still said "BUILD THE KI-90 REPRO" after the repro shipped as gate #38.
+
+**Root causes.** (a) I wrote the word "anything" and implemented a subset — the same shape as the
+message-text guard I had been corrected for one round earlier, so the lesson had not generalised.
+(b) I updated FIVE documents and missed the single line the project's own ritual calls authoritative.
+
+**The fixes that worked.** `drive()` now catches `BaseException`; `run_with_verdict_guard()` refuses
+to return 0 unless a verdict was printed, which closes the class rather than the instance; the marker
+now says the repro is DONE and the live step is the FIX.
+
+**⇒ PREVENTION RULES (five).**
+1. ⛔ **A GUARD THAT SAYS "ANYTHING" BUT EXCLUDES AN EXCEPTION FAMILY IS NOT A GUARD ON ANYTHING.**
+   When you write an absolute word in a safety claim, go read the implementation and make it literally
+   true — or weaken the word. Both of this gate's holes were absolutes that the code did not deliver.
+2. ⛔ **A GUARD YOU CANNOT TEST FROM OUTSIDE IS A GUARD YOU HAVE NOT TESTED.** The first version lived
+   inline in `if __name__ == "__main__":`; the fault test could not reach it and reported success
+   while exercising nothing. **Put guards in named functions so a test can call them.**
+3. ⛔ **WHEN A STEP COMPLETES, EDIT THE `➡➡➡` MARKER FIRST, NOT LAST.** It is the line a cold session
+   acts from. Updating five other documents and missing it is not a partial success — the one place
+   that drives behaviour was the one place left wrong.
+   ‼ ⭐ **A GATE JUDGED ONLY BY ITS RETURN CODE MUST NEVER BE ABLE TO PASS SILENTLY** — that is the
+   generalisation worth keeping from this round, and it applies to every gate in the suite.
+4. ⛔⛔ **AND THE RULE THAT SUBSUMES ALL OF THEM, EARNED THREE TIMES IN ONE FILE.** I claimed "the
+   message check is enough", then "raised ANYTHING", then "the class is closed" — and a reviewer
+   refuted each BY CONSTRUCTION, the third by proving a `SystemExit(0)` walked past a `try/finally`
+   guard to a silent exit 0. ⇒ ⭐ **STATE A GUARANTEE AS WHAT THE CODE LITERALLY DOES, AND ENUMERATE
+   WHAT IT DOES NOT COVER.** Every one of those three was an ABSOLUTE ("enough", "anything",
+   "closed") that the implementation did not deliver, and each absolute is a promise the next reader
+   relies on. ‼ Mechanically: **`try/finally` OBSERVES a result; only `except` INTERVENES on one that
+   never arrives.**
+5. ⛔ **A GUARD THAT FAILS THE DOCUMENTED HAPPY PATH TEACHES PEOPLE TO IGNORE IT.**
+
+**‼ AND THE P1 MARKER DEFECT RECURRED A FOURTH TIME ON THIS ONE ITEM — the rule I wrote last round
+was not enough.** Last round's rule was *"when a step completes, edit the `➡➡➡` marker FIRST."* I did
+exactly that — and the banner (line 10) and the "60-SECOND VERSION (if you read nothing else)" digest
+(line 165) still said *"build the KI-90 repro FIRST"*, both of them describing work that had shipped
+as gate #38. **The banner's own text promises it lists "the SAME order as the `➡➡➡` NEXT ACTION queue
+marker below."**
+⇒ ⭐⭐ **A SENTENCE THAT CLAIMS TO MIRROR ANOTHER LINE IS A CLAIM, NOT A DESCRIPTION — AND IT GOES
+STALE THE MOMENT THAT LINE MOVES.** Editing the marker first is necessary and NOT sufficient; the
+same edit must re-read every sentence that promises to agree with it. The four fast-path readers of
+this file (banner, 60-second digest, STATE table, `➡➡➡` marker) are four copies of one fact, and a
+cold session may read ANY ONE of them alone — which is precisely why they exist, and precisely why
+they are dangerous.
+⇒ **The banner now carries that instruction inline**, so the next person to move the marker is told
+by the banner itself to come back and fix it. The same guard
+   made `--discriminator` — a command in the file's own usage block — always exit 1. That is
+   `CLAUDE.md` rule 6's false-positive warning arriving from the other direction: a guard can be
+   worthless by being too eager just as easily as by being too lax.

@@ -22465,3 +22465,91 @@ Python. Corrected, with the old text kept as an explicit warning.
 valuable thing it returned was not a location but a REFUTATION of the plan's premise, plus the exact
 code that makes it vacuous. ⇒ ⭐ **ask an agent to plan the cheap version of a task and it will often
 tell you the task is wrong.**
+
+
+## 2026-09-05 — `KI-90` is REPRODUCED (gate #38), and the gate self-retires so it cannot punish the fix
+
+**Shipped.** `tools/story-dev/repro_ki90_absent_left_slot.py`, registered as gate **#38** (suite
+37→38, enforcing 35→36, quick 29→30; six count claims bumped across `02` and `04`).
+
+**It reproduces the defect in milliseconds, in-process:**
+```
+ARM A  absent LEFT slot + UseMove         -> RuntimeError   (the defect)
+ARM B  no absent flag  + UseMove          -> no raise       (⇒ the FLAG is the cause)
+ARM C  absent LEFT slot + RIGHT-targeted  -> no raise       (⇒ the TARGET is the cause)
+```
+⭐ **ARMS B AND C ARE THE POINT.** Arm A alone proves a raise happened; B and C independently isolate
+the two variables, so the claim is *bounded* rather than merely demonstrated.
+‼ **What is REAL and what is stubbed:** a REAL `BattleState` built from real byte buffers (so
+`opponent.left_battler` runs the real property against a real `absent_battler_flags` byte), the REAL
+`battle_action_use_move`, the REAL strategies. Only emulator-facing calls are stubbed. **Stubbing
+`left_battler` itself would have proved nothing but the stub** — the trap `#24-brokenrepros` already
+records for this repro's sibling.
+
+**⭐ THE DISCRIMINATOR RUNS FIRST, AND IT IS WHY THIS REPRO IS TRUSTWORTHY.** `--discriminator`
+prints the fault and control states and asserts the arms differ *before* anything is driven. That
+check exists because **the previous repro SPEC for this bug was vacuous** — "left slot absent" alone
+cannot raise, and that arm would have reported "KI-90 does not reproduce".
+
+**⭐ AND IT SELF-RETIRES, WHICH IS WHAT MAKES IT SAFE TO BE A GATE AT ALL.** A gate asserting an open
+bug still reproduces goes RED the moment someone fixes it — punishing the fix. This one prints
+`SELF-RETIRED` and exits 0 instead. ⛔ **AND THE FIRST VERSION OF THAT GUARD WAS BROKEN — Tier 1 refuted it by
+construction.** It keyed on the exception's MESSAGE TEXT, so rewording the raise while leaving the
+defect untouched produced `SELF-RETIRED`/exit 0: silently retiring a live defect, the exact outcome
+it claimed to prevent. ⇒ ⭐ **A GUARD KEYED ON A HUMAN-READABLE STRING IS NOT A GUARD ON BEHAVIOUR.**
+It now keys on behaviour, three-way (raised anything → LIVE; returned cleanly → SELF-RETIRED; step
+cap → repro broken), and was re-verified against the reviewer's own counterexample.
+‼ My fault test had covered only the direction I thought of. **Fault-testing proves the arms you
+wrote, never the arms you didn't** — which is the argument for the adversarial pass, not a
+formality. Rationale and rejected alternatives: `06-DECISIONS-LOG.md` 2026-09-05.
+
+⛔ **KI-90 IS REPRODUCED, NOT FIXED.** The §Ch23 chain still hangs. The candidate fix (fall back to
+the RIGHT opponent, as `HandleInputChooseMove` already does) is UNAPPLIED — the file is shared
+upstream, so the `KI-83`/`KI-88`/`KI-89` ruling stands: route around, do not casually patch. The repro
+now exists to judge any such fix.
+
+
+## 2026-09-05 — gate #38 hardened twice more, and the `➡➡➡` marker was stale AGAIN
+
+**Two BLOCKING Tier 1 findings, both mine, both fixed.**
+
+**1. `drive()` caught `Exception`, while the code comment and both logs claimed "raised ANYTHING →
+the defect is LIVE".** A reviewer proved at OS-process level that a `SystemExit(0)` reaching that
+handler from the STUB layer escaped it, exiting **0 with no verdict printed at all** — and
+`run_gates.py` judges a gate by its RETURN CODE alone, so that registers as **gate #38 PASSING**
+while ARM B, ARM C and the discriminator never ran.
+⇒ ⭐ **A GUARD THAT SAYS "ANYTHING" BUT EXCLUDES AN EXCEPTION FAMILY IS NOT A GUARD ON ANYTHING** —
+the exact parallel to the message-text guard this same file had already been corrected for once.
+✅ `drive()` now catches `BaseException`, making the claim literally true.
+✅ **AND `run_with_verdict_guard()` FORCES A NON-ZERO RESULT** when `entry` returns 0 with no verdict
+printed, **and** when `entry` raises anything at all (`BaseException` included, from anywhere in
+`main()`). ⚠ It cannot cover `os._exit()`, which bypasses Python's exception machinery — written down
+rather than claimed away.
+⛔⛔ **AND THAT WORDING IS ITSELF A CORRECTION.** This entry first said "THE CLASS IS CLOSED… no future
+variant can be recorded as a pass", and a Tier 1 reviewer refuted it BY CONSTRUCTION: the guard was
+`try/finally`, so a `SystemExit(0)` from `_install_stubs()` — called in `main()`, outside `drive()`'s
+reach — propagated straight past it to a silent exit 0. ⇒ ⭐ **`try/finally` OBSERVES; only `except`
+INTERVENES.** Now fixed and fault-proven at OS-process level (escape → exit 1).
+‼ **THAT IS THE THIRD SAFETY PROPERTY I OVERCLAIMED IN THIS ONE FILE** — "the message check is
+enough", "raised ANYTHING", "the class is closed" — each refuted by construction by a reviewer.
+⇒ ⭐ **STATE A GUARANTEE AS WHAT THE CODE LITERALLY DOES, AND ENUMERATE WHAT IT DOES NOT COVER.** An
+absolute in a safety claim is a promise the next reader will rely on.
+‼ **AND A LESSON ABOUT THE FIX ITSELF.** That guard was first written INLINE in `if __name__ ==
+"__main__":`, where a fault test cannot reach it — my test appeared to pass while exercising nothing.
+Extracting it into a function made the test real: entry returning 0 with no verdict → **rc=1**; the
+real `main` → **rc=0**. ⇒ ⭐ **A GUARD YOU CANNOT TEST FROM OUTSIDE IS A GUARD YOU HAVE NOT TESTED.**
+
+**2. The `➡➡➡` NEXT ACTION marker still said "BUILD THE `KI-90` REPRO"** while `03-PUNCH-LIST.md`
+said that step had shipped as gate #38 — pair P1 broken, and a resuming session following the
+project's own documented ritual would have rebuilt shipped work.
+⛔ I had updated the punch list, `05-KNOWN-ISSUES.md`, the changelog, the decisions log and two
+gate-count lines in `04-HANDOFF.md` — **five places — and missed the one line `CLAUDE.md` designates
+as the line a cold agent acts from.**
+⇒ ⭐ **WHEN A STEP COMPLETES, THE `➡➡➡` MARKER IS THE FIRST THING TO EDIT, NOT THE LAST.** Updating
+five documents and missing the authoritative one is not a near-miss; it is the whole failure.
+
+**3. And the guard was over-eager on its own documented healthy path.** `--discriminator`, a command
+in this file's own usage block, always exited 1 — `discriminator()` returned 0 without recording a
+verdict. ⇒ ⭐ **A GUARD THAT FAILS THE DOCUMENTED HAPPY PATH TEACHES PEOPLE TO IGNORE IT**, which is
+`CLAUDE.md` rule 6's false-positive warning arriving from the opposite direction. Fixed: the
+discriminator's result is a verdict.

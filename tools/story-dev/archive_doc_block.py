@@ -50,6 +50,14 @@ import pathlib
 import sys
 
 #: A block runs until the next line that opens a new item or heading at column 0.
+#: ⚠⚠ CONSEQUENCE THAT SURPRISED THIS FILE'S OWN AUTHOR (2026-09-05, caught by Tier 1): because
+#: `### ` is a stop prefix, a `##` section that CONTAINS a `###` sub-heading is split at that
+#: sub-heading — the sub-section stays behind. That is not a bug (invariant B correctly sees a real
+#: boundary and invariant A correctly reports no loss), but the POINTER YOU WRITE must then say
+#: which part moved. Archiving KI-45 moved its diagnosis and left its `### KI-45 — FIXED` block
+#: behind, while the pointer claimed both had moved.
+#: ⇒ ⭐ **THE TOOL GUARANTEES NOTHING IS LOST. IT CANNOT GUARANTEE YOUR SENTENCE ABOUT IT IS TRUE.**
+#: Check what actually moved before describing it — `--dry-run` prints the line count.
 STOP_PREFIXES = ("- [", "### ", "## ", "#### ")
 
 #: ⛔ THE SAME PREFIXES, FROZEN, FOR **INVARIANT B ONLY** — and the duplication is deliberate.

@@ -235,6 +235,21 @@ GATES: list[tuple[str, bool]] = [
     # because a gate with false positives teaches the reader to bypass it. 7 fault arms:
     # `probe_item_header_body.py --self-test`.
     ("probe_item_header_body.py", False),
+    # --- #38 — `KI-90`: the bot aims at an ABSENT opponent slot in a DOUBLE battle and raises
+    # ‼ APPENDED AT THE END, never inserted — the same rule #34-#37 carry.
+    # WHY A GATE, AND WHY IT IS SAFE TO BE ONE: this repro asserts that an OPEN defect still
+    # reproduces, which would normally be a BOOBY TRAP — the suite would go red the moment someone
+    # FIXED the bug, punishing exactly the work the repro exists to enable. ⇒ it SELF-RETIRES:
+    # if the raise is gone while its discriminator still passes, it prints SELF-RETIRED and exits 0.
+    # ⛔ The retirement test keys on BEHAVIOUR, not on the exception's message: raised anything ->
+    # the defect is LIVE whatever the wording; returned cleanly -> SELF-RETIRED; step cap -> the
+    # repro is broken, fail loudly. ‼ It keyed on the MESSAGE TEXT first, and a Tier 1 reviewer broke
+    # it by rewording the raise while leaving the defect untouched — it retired a live defect.
+    # ⇒ A GUARD KEYED ON A HUMAN-READABLE STRING IS NOT A GUARD ON BEHAVIOUR.
+    # ⭐ It also computes its DISCRIMINATOR before driving anything, because the FIRST repro spec
+    # written for KI-90 was vacuous: "left slot absent" alone cannot raise (`story_mode.py:261-313`
+    # already aims right), and that arm would have reported "does not reproduce".
+    ("repro_ki90_absent_left_slot.py", False),
 ]
 
 
