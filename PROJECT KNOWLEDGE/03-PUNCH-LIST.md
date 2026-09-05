@@ -644,9 +644,27 @@ This project is worked from multiple computers, so a session elsewhere will NOT 
 REGENERATE them by re-running `--driver ch23chapter post_wally.ss1 --frames 600000` and reading the
 `SAVED stall state` lines. ‼ Do not treat the paths above as a fixture pin.
 
-**NEXT STEP, IN ORDER:** (1) build a targeted repro for `KI-90` — ⭐ **a DOUBLE battle whose opponent
-LEFT slot is ABSENT** (its trainer out of switchable Pokémon), with our side required to act — and make it
-FAIL FIRST. ⛔ **DO NOT hunt a faint-during-move-selection window: that mechanism is REFUTED** (the
+**NEXT STEP, IN ORDER:** (1) build a targeted repro for `KI-90` — ⭐ **A DOUBLE battle whose opponent LEFT slot is ABSENT *AND* whose RIGHT battler also reads
+`hp == 0` in the SAME frozen snapshot** — ⛔ **left-absent ALONE IS VACUOUS**: `story_mode.py:261-313`
+(`decide_turn_in_double_battle`) already returns `use_move_against_right_side_opponent` when the right
+is alive, so that arm runs GREEN and would be misread as "does not reproduce". The raise is the
+FALL-THROUGH. ‼ **COMPUTE THE DISCRIMINATOR BEFORE DRIVING:** call the strategy and PRINT the
+returned `TurnAction`; if it is `UseMoveAgainstRightSideOpponent`, the arm proves nothing.
+⚠ **THREE left-hardcoded producers exist — exercise both of the first two:**
+`story_mode.py`'s `_default_target` fall-through; `DefaultBattleStrategy._fight_on`
+(`modules/battle_strategies/default.py:345-374`, reached via `_handle_lead_cannot_battle` at
+`:243-249` when the actor is below `hp_threshold` with no healthy partner); and `catch.py:60/65`.
+⭐⭐ **AND THEIR DISCRIMINATORS DIFFER — DO NOT REPRODUCE #2 UNDER #1's CONDITION.** `_fight_on`'s only `return` is an UNCONDITIONAL `TurnAction.use_move(move)` with no left/right check at all, so **producer #2 raises on LEFT-ABSENT ALONE** — a strictly WEAKER (and cheaper) precondition than producer #1's fall-through, which additionally needs the right battler at `hp == 0`. ‼ Verified by reading `default.py:345-374`.
+⭐ **FIXTURE, ALREADY PINNED AND TRACKED:** `saves/ki90_double_absent_seed.ss1`
+(md5 `38673954cf2d0da197ccbc4e2acf5499`) — the harness's own auto-saved stall state from ~3.3k frames
+BEFORE the raise, copied off the reused `stalls/repro-ml-*.ss1` name that every driver run overwrites.
+Fallbacks, both same-map walks: `post_b1f_healed.ss1` → VICTORY_ROAD_B2F, stand on **(25,19)/(25,20)**
+between **Dianne (25,18)** and **Felix (25,21)**; or `post_wally.ss1` → VICTORY_ROAD_1F **(30,17)/(31,17)**
+between **Katelynn (29,17)** and **Quincy (32,17)**. Both trainers in every pair carry **2** Pokémon,
+so **exactly 2 KOs** empty one side (`battle_util.c:2331-2347` scans `gEnemyParty[0..2]` for battler 1).
+⚠ **UNVERIFIED — READ IT LIVE FIRST:** whether those pairs are already defeated in those fixtures; a
+beaten trainer never approaches (`trainer_see.c:255-273`), so the run would silently prove nothing.
+⇒ make it FAIL FIRST. ⛔ **DO NOT hunt a faint-during-move-selection window: that mechanism is REFUTED** (the
 `battle_state` byte is a FROZEN snapshot taken before the A-presses), and chasing it would burn a day on a
 state that cannot occur. The raise is DETERMINISTIC given an absent left slot, not stochastic; (2) only then decide the fix, and remember the file
 is shared upstream (`KI-83`/`KI-88`/`KI-89` ruling: route around, do not casually patch);
@@ -1551,24 +1569,7 @@ from the driver's log** — the probe caught the fainted member the driver's log
       pick costs the boss. `repro_movepool_counter_candidates.py` §5 asserts the flag stays off.
       **NO OUTCOME PROOF YET** — needs a batch: `CAUGHT Slugma` > 0 with `CAUGHT Machop` unchanged.
 
-- [x] HISTORY — `#24-counterdesertgate` (original diagnosis) — **NEW 2026-08-07, ROOT-CAUSED.**
-      Batch `20260807-200030`: **7 Baltoy hunts to ROUTE111 (25,55), 0 caught.**
-      `AREA_ITEM_PREREQ = {ROUTE111: "Go-Goggles"}` gates the desert, and
-      **`counter_plan.py` references `AREA_ITEM_PREREQ` ZERO times** — it consults only
-      `AREA_PREREQ`. The planner offers the desert tile (which sits NORTH of the goggles gate),
-      the bot walks cross-Hoenn, cannot enter, and spins wherever it stopped.
-      ‼ **PRE-EXISTING.** The gate exists in `_counter_area_allowed` behind
-      `POKEBOT_AREA_ITEM_GATE` and is **OFF BY DEFAULT since 2026-08-04** ("THIS GATE COST MORE
-      THAN IT SAVED", measured). `#24-movepoolcounters` only made it load-bearing — before it,
-      ROUTE111 never won Winona's ranking.
-      ‼ **DO NOT just flip `POKEBOT_AREA_ITEM_GATE` on.** That was measured and rejected for
-      TRAINING, where a bad pick costs one trek. A COUNTER HUNT gets **one attempt per boss per
-      run**, so a bad pick costs the boss. **Fix `find_counter_candidates` to honour
-      `AREA_ITEM_PREREQ` for its own destination choice only** — that demotes Baltoy@ROUTE111
-      below Slugma@FIERY_PATH, a ground already proven by Norman's 6-of-7 catch rate.
-      **Acceptance:** `counter hunt — … FIERY_PATH … Slugma` appears and `CAUGHT Slugma` > 0,
-      with `CAUGHT Machop` (control) unchanged.
-
+- [x] HISTORY — `#24-counterdesertgate` (original diagnosis) — ✅ FIXED 2026-08-07, the same day it was found. **Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-09-05** (no loss, no orphan — both invariants asserted before writing).
 - [x] `#24-huntreachproof` — **PART 1 SHIPPED AND BATCH-CONFIRMED 2026-08-08.**
       **CONVERSION 15% → 50% (5/33 → 10/20), z = +2.73 — RESOLVABLE ✅.** Hunts fell 33 → 20 and
       catches DOUBLED. `could not reach` 72 → 53; `global watchdog` 9 → 0.

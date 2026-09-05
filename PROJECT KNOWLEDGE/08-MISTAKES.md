@@ -12636,3 +12636,39 @@ second guess; asking it to REFUTE yields information. One angle here asserted "t
 upstream" and its own verifier disproved it with an archived log line from three weeks before the
 commit it blamed. ⇒ the measured Gemini rule applies unchanged to Claude agents: **grade their
 ENUMERATION highly, their CAUSAL CONCLUSIONS not at all.**
+
+
+## 2026-09-05 — I wrote a repro spec that could not fail, and shipped it as the next session's instruction
+
+**Symptom.** `KI-90`'s corrected entry, the punch-list item and the `➡➡➡` marker all told the next
+session to *"stage a DOUBLE battle whose opponent LEFT slot is ABSENT"*. That arm cannot raise:
+`story_mode.py:261-313` already returns `use_move_against_right_side_opponent` when the left is absent
+and the right is alive. The run would have gone GREEN and been recorded as **"KI-90 does not
+reproduce"** — the worst possible outcome, because it retires a real defect.
+
+**Root cause.** I derived the repro from the MECHANISM (`left_battler is None` ⇒ raise) without
+checking whether anything upstream of the raise already handles that state. I verified the mechanism
+carefully and never asked the next question: **is there a guard between the state and the failure?**
+There was — written for this very raise on 2026-07-22.
+
+**The fix that worked.** A scouting agent asked for the cheapest staging computed the discriminator
+instead and refuted the premise, quoting the guard. All three live sites now specify the
+fall-through condition (left absent **AND** right `hp == 0`), name all three left-hardcoded producers,
+and instruct: **print the `TurnAction` the strategy returns before driving anything.**
+
+**⇒ PREVENTION RULES (two).**
+1. ⛔ **A REPRO SPEC IS A CLAIM, AND IT CAN BE VACUOUS.** CLAUDE.md already requires a handed-off A/B
+   to have its discriminator computed and its arms shown to differ. **That check belongs on a repro
+   the moment it is WRITTEN, not when it is handed off.** Before writing "stage X", find the code
+   path between X and the failure and confirm nothing already handles X.
+2. ⛔ **A MODULE DOCSTRING IS A CLAIM ABOUT THE MODULE — PAIR P2 APPLIES TO CODE.**
+   `victory_road.py` opened with *"LEGS 2 AND 3 ONLY … MUST NOT BE WIRED INTO `_play()` YET"* for ~30
+   commits while legs 4-11 and the orchestrator were being written INTO THAT FILE, and it misled a
+   subagent on 2026-09-05. Gate #37 enforces this shape for punch-list headings; **nothing enforces it
+   in Python**, so when you finish a module, re-read its first ten lines as if you had never seen it.
+
+‼ **AND A THIRD, ABOUT EVIDENCE:** the harness auto-saves stall states into a directory that is BOTH
+gitignored AND uses filenames every run reuses (`stalls/repro-ml-fNNNNN.ss1`). The one save capturing
+the failing battle was one drive away from being overwritten and could never have reached another
+machine. ⇒ **when a run produces evidence you may need again, COPY IT TO A STABLE, TRACKED NAME AND
+PIN ITS md5 THE SAME DAY.**

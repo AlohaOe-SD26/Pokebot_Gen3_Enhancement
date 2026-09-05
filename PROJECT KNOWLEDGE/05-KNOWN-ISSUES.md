@@ -2981,7 +2981,7 @@ NOT make this recoverable — which is exactly the fix the old wording invited.
 ⛔ **NOT OURS, AND NOT NEW.** The identical raise is in an archived live run of **2026-07-22**
 (`tools/story-dev/livetest-runs/archive/20260722-204645/run01/run.log:18254`), three weeks before our
 `_fight_on` KI-52 fork landed (`72e938d2`, 2026-08-11). Our fork may raise exposure; it did not create
-this.
+this. ‼ **BUT NOT UNTOUCHED EITHER:** `story_mode.py:261`'s own comment cites *"batch runs 01+03, 2026-07-22, both at the same trainer pair once one opponent went down"* — that override was WRITTEN to fix this raise, and the 2026-09-05 run died anyway. ⇒ the guard exists; the surviving hole is its both-not-alive FALL-THROUGH. ⚠ Which producer fired on 2026-09-05 is **NOT established**.
 
 ⛔ **BLAST RADIUS: EVERY CHAPTER'S BATTLES**, and §Ch24 hardest — five consecutive fights, no nurse.
 ⚠ **NOT MEASURED: how OFTEN it fires.** Two occurrences seven weeks apart is an existence proof, not
@@ -2989,8 +2989,8 @@ a rate. It is a CORRECTNESS question, so the instrument is a repro, never a batc
 
 **NOT FIXED, deliberately** — `battle_action_selection.py` is shared upstream; same ruling as
 `KI-83`/`KI-88`/`KI-89`. Tracked as `#24-ch23chain`.
-⇒ **THE REPRO IS DETERMINISTIC:** stage a DOUBLE battle whose opponent LEFT slot is absent and require
-our side to act. ⛔ **Do NOT chase a faint-during-move-selection window — that mechanism is REFUTED.**
+⇒ **THE REPRO IS NOT WHAT IT LOOKS LIKE.** ⛔ **Left-absent ALONE IS VACUOUS** — `story_mode.py:261-313` already aims RIGHT when the right opponent is alive, so that arm runs GREEN and reads as "does not reproduce". The raise is the FALL-THROUGH: left absent **AND** right also `hp == 0` in the same frozen snapshot. ‼ COMPUTE THE DISCRIMINATOR (print the `TurnAction` the strategy returns) BEFORE driving anything.
+📌 **The full repro plan — the pinned fixture, the two trainer pairs, the KO count and the three left-hardcoded producers — lives in `03-PUNCH-LIST.md` `#24-ch23chain`**, which is where work is tracked; this entry describes the DEFECT, not the task.
 Candidate fix (UNVERIFIED, build the repro first): fall back to the RIGHT opponent when the left is
 absent, as `HandleInputChooseMove` already does.
 

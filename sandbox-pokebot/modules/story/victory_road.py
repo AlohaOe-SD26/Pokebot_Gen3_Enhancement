@@ -1,8 +1,17 @@
-"""§Ch23 — VICTORY ROAD. **LEGS 2 AND 3 ONLY: prepare to depart Sootopolis, and leave the crater.**
+"""§Ch23 — VICTORY ROAD. **ALL ELEVEN LEGS, PLUS THE CHAPTER ORCHESTRATOR.**
 
-⛔⛔ THIS CHAPTER IS INCOMPLETE AND MUST NOT BE WIRED INTO `_play()` YET. Legs 4-8 (the ocean route,
-Ever Grande, the waterfall, Victory Road itself) do not exist. `story_mode.py`'s END-OF-BUILT-CONTENT
-banner is retargeted by leg 8, not by this file.
+✅ **WIRED AS SEGMENT 23 SINCE 2026-09-05** (`plugins/custom_modes/story_mode.py:3779-3795`).
+`ch23_chapter_done()` and `do_victory_road_chapter()` live at the bottom of this file.
+⛔ **DO NOT REBUILD ANY OF IT.** What is NOT proven is the CHAIN: it hangs on `KI-90`, a shared
+battle-path defect (`#24-ch23chain`).
+
+⛔⛔ *(SUPERSEDED HEADER, kept as a warning: this docstring read "**LEGS 2 AND 3 ONLY** … THIS CHAPTER
+IS INCOMPLETE AND MUST NOT BE WIRED INTO `_play()` YET. Legs 4-8 … do not exist." for the ~30 commits
+in which legs 4-11 and the orchestrator were written into this very file. On 2026-09-05 a subagent
+read that headline and reported the chapter unfinished. ⇒ ⭐ **A MODULE DOCSTRING IS A CLAIM ABOUT THE
+MODULE, and it goes stale in exactly the way a punch-list heading does — pair P2 applies to CODE.**
+`probe_item_header_body.py` (gate #37) catches this shape in the punch list; nothing catches it in
+Python, so it is on the author.)*
 
 The full contract this module is built against — including the four BLOCKERS an adversarial review
 found in the design *before any code existed* — is

@@ -22421,3 +22421,47 @@ REFUTE produce information.** One angle's causal conclusion ("this is OUR code, 
 itself refuted by its own verifier, using a log line I then confirmed. ⇒ the standing rule held
 exactly: **grade agent ENUMERATION highly and agent CAUSAL CONCLUSIONS not at all.**
 Evidence chain: `ai-research-notes/2026-09-05-ki90-DOUBLE-BATTLE-ABSENT-SLOT.md`.
+
+
+## 2026-09-05 — the KI-90 repro spec was VACUOUS, and a scout computed the discriminator before it cost a session
+
+**⛔ CORRECTION TO THE REPRO SPEC SHIPPED IN `2cbec6c6`.** It said: *"stage a DOUBLE battle whose
+opponent LEFT slot is ABSENT"*. **That arm would have run GREEN and been read as "KI-90 does not
+reproduce."** `plugins/custom_modes/story_mode.py:261-313` (`decide_turn_in_double_battle`) is already
+left/right aware — with the left absent and the right alive it returns
+`use_move_against_right_side_opponent` and never reaches the raise.
+⇒ the raise is the **FALL-THROUGH**: left absent **AND** right also reading `hp == 0` in the same
+frozen snapshot. ‼ Three left-hardcoded producers exist, not one: that fall-through,
+`DefaultBattleStrategy._fight_on` (`battle_strategies/default.py:345-374`, reached from
+`_handle_lead_cannot_battle` at `:243-249`), and `catch.py:60/65`.
+
+⭐ **THIS IS CLAUDE.md's OWN TIER 2 RULE, APPLIED ONE STEP EARLIER THAN IT IS WRITTEN.** That rule says
+an A/B or repro handed off must have its DISCRIMINATOR COMPUTED on the named fixture, showing the arms
+actually differ — it exists because a handed-off spec once named a fixture that made its own A/B
+vacuous. ⇒ **the same check belongs on a repro spec BEFORE it is built, not only before it is handed
+off.** The corrected spec now says, in all three live sites: print the `TurnAction` the strategy
+returns first; if it is `UseMoveAgainstRightSideOpponent`, the arm proves nothing.
+
+**⚠ AND A CAVEAT ADDED TO KI-90's "NOT OURS" CLAUSE.** `story_mode.py:261`'s own comment cites *"batch
+runs 01+03, 2026-07-22, both at the same trainer pair once one opponent went down"* — that override
+was WRITTEN to fix this raise, and the 2026-09-05 run died anyway. The guard exists; the surviving
+hole is its fall-through. Which producer fired on 2026-09-05 is **not established**.
+
+**⭐ THE EVIDENCE IS NOW PINNED AND TRAVELS.** `saves/ki90_double_absent_seed.ss1`
+(md5 `38673954cf2d0da197ccbc4e2acf5499`) is the harness's own auto-saved stall state from ~3.3k frames
+before the raise, copied off `stalls/repro-ml-f63425.ss1`. ⛔ That directory is gitignored AND its
+`repro-ml-fNNNNN.ss1` names are REUSED by every driver run — the evidence was one drive away from
+being overwritten, and would never have reached another machine.
+
+**⛔ AND A STALE CLAIM IN PRODUCTION CODE, FOUND BY BEING MISLED BY IT.**
+`modules/story/victory_road.py`'s module docstring opened *"**LEGS 2 AND 3 ONLY** … THIS CHAPTER IS
+INCOMPLETE AND MUST NOT BE WIRED INTO `_play()` YET. Legs 4-8 … do not exist"* — in a 3057-line file
+containing legs 2 through 11 AND `do_victory_road_chapter`, wired as Segment 23. A subagent read that
+headline and reported the chapter unfinished. ⇒ ⭐ **A MODULE DOCSTRING IS A CLAIM ABOUT THE MODULE,
+and pair P2 applies to CODE.** Gate #37 catches this shape in the punch list; nothing catches it in
+Python. Corrected, with the old text kept as an explicit warning.
+
+**Method note.** The scout was asked *where to stage this as cheaply as possible* — and the most
+valuable thing it returned was not a location but a REFUTATION of the plan's premise, plus the exact
+code that makes it vacuous. ⇒ ⭐ **ask an agent to plan the cheap version of a task and it will often
+tell you the task is wrong.**
