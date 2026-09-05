@@ -2819,10 +2819,10 @@ def stock_for_the_elite_four(report=None) -> Generator:
         # clerk and then died on *"Cannot buy things in mart because `Task_ShopMenu` is not active"*.
         # The clerk has intro dialogue that needs SEVERAL presses, and the thing to wait on is a
         # TASK, not the absence of a script.
-        # ⭐ `buy_poke_balls` (`early_game.py:2179-2199`) has always done it correctly, and this is
-        # its Phase 1 verbatim in shape: press A on a cadence until `Task_GoToBuyOrSellMenu` (or
-        # `Task_BuyMenu`) is up, bounded. ⇒ **THIS IS THE SECOND TIME TODAY THE FIX WAS "COPY THE
-        # PROVEN HELPER'S SHAPE"** — the nurse taught it, and I still hand-rolled the next menu.
+        # ⭐ `buy_poke_balls` (`early_game.py:2179-2199`) supplies the SHAPE: press A on a cadence
+        # until the menu task is up, bounded. ⛔ But NOT its target task — see the comment on the
+        # wait below. ⇒ **THIS IS THE SECOND TIME TODAY THE FIX WAS "COPY THE PROVEN HELPER'S
+        # SHAPE"** — the nurse taught it, and I still hand-rolled the next menu.
         # ⇒ *when an interaction already has a working caller in this repo, read that caller FIRST.*
         from modules.modes.util.tasks_scripts import task_is_active
 
@@ -2846,9 +2846,16 @@ def stock_for_the_elite_four(report=None) -> Generator:
         report["shop_menu_open"] = opened
         if not opened:
             raise BotModeError(
+                # ⛔⛔ THE MESSAGE MUST NAME THE TASK THE LOOP ACTUALLY WAITED FOR. It said
+                # `Task_GoToBuyOrSellMenu` — a task this code never watches — for one commit, left
+                # behind when the wait was corrected to `Task_ShopMenu`. ⇒ a debugger would have
+                # grepped for the wrong symbol and concluded the check was absent.
+                # ‼ THE FAILURE MESSAGE IS PART OF THE FIX, NOT COMMENTARY ON IT: when you change
+                # what a guard checks, change what its refusal SAYS in the same edit.
                 f"Ch23 leg 11: stood at {LEAGUE_MART_STAND} facing north and pressed A 60 times "
-                f"without `Task_GoToBuyOrSellMenu` ever becoming active. ⛔ The clerk is at (16,2) "
-                f"behind a counter at (16,3) — check we are on the right tile and facing NORTH."
+                f"without `Task_ShopMenu` ever becoming active — that is the task `buy_in_shop` "
+                f"requires (`higher_level_actions.py:607`). ⛔ The clerk is at (16,2) behind a "
+                f"counter at (16,3) — check we are on the right tile and facing NORTH."
             )
         _take(report, "R11-MENU")
 
