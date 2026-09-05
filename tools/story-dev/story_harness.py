@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -12661,6 +12661,20 @@ class Ch23RouteMode(BotMode):
         context.set_manual_mode()
 
 
+# ⛔⛔ §Ch23 DRIVERS USE `StoryItemBattleStrategy`, NOT `LevelUpTravelBattleStrategy` — FIXED
+# 2026-09-04, AND THE DIFFERENCE IS A FIDELITY DEFECT, NOT A PREFERENCE.
+# `plugins/custom_modes/story_mode.py` returns `StoryItemBattleStrategy()` in production, describing
+# it as *"a strict superset — it only acts in TRAINER battles, and falls through to exactly this
+# behaviour everywhere else"*. Every §Ch23 driver was written with the NON-item strategy, so **every
+# trainer fight this chapter measured was fought without items while the shipped bot would have used
+# them.** The harness's whole purpose is to be FAITHFUL to production; a driver that fights
+# differently measures a bot we do not ship.
+# ‼ The practical damage was small only by luck — the bag held ONE Potion for most of the chapter —
+# but the attrition figures this chapter reported are, strictly, a LOWER bound on the real party's
+# staying power. ⇒ **CHECK WHICH STRATEGY PRODUCTION USES BEFORE WRITING A DRIVER**, and never
+# assume the one the previous driver used is the shipped one.
+# ⚠ Wild battles are unaffected by construction (the strategy returns None outside trainer battles).
+
 class Ch23TeachMode(BotMode):
     """§Ch23 leg 1 — TEACH WATERFALL TO WAILMER. Drives PRODUCTION `teach_hm_move`.
 
@@ -13109,10 +13123,10 @@ class Ch23RoadMode(BotMode):
         # behaviour it measures is worse than no instrument** — and it cost three diagnostic drives
         # chasing a game mechanic that was never broken.
         # ⇒ return what every other chapter driver returns, and count as a SIDE EFFECT only.
-        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
-        return LevelUpTravelBattleStrategy()
+        return StoryItemBattleStrategy()
 
     def run(self):
         from modules.story import victory_road as VR
@@ -13224,10 +13238,10 @@ class Ch23TrainMode(BotMode):
 
     def on_battle_started(self, encounter):
         # ⛔ THE STRATEGY PROVIDER, not a notification — returning None here broke leg 5's battles.
-        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
-        return LevelUpTravelBattleStrategy()
+        return StoryItemBattleStrategy()
 
     def run(self):
         from modules.story import victory_road as VR
@@ -13344,10 +13358,10 @@ class Ch23B1fProbeMode(BotMode):
         return True
 
     def on_battle_started(self, encounter):
-        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
-        return LevelUpTravelBattleStrategy()
+        return StoryItemBattleStrategy()
 
     def run(self):
         from modules.story import victory_road as VR
@@ -13548,10 +13562,10 @@ class Ch23PushArmMode(BotMode):
         return True
 
     def on_battle_started(self, encounter):
-        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
-        return LevelUpTravelBattleStrategy()
+        return StoryItemBattleStrategy()
 
     def run(self):
         from modules.story import victory_road as VR
@@ -13726,10 +13740,10 @@ class Ch23DescendMode(BotMode):
 
     def on_battle_started(self, encounter):
         # ⛔ THE STRATEGY PROVIDER, not a notification — returning None here broke leg 5's battles.
-        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
-        return LevelUpTravelBattleStrategy()
+        return StoryItemBattleStrategy()
 
     def run(self):
         from modules.story import victory_road as VR
@@ -13849,10 +13863,10 @@ class Ch23B2fProbeMode(BotMode):
         return True
 
     def on_battle_started(self, encounter):
-        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
-        return LevelUpTravelBattleStrategy()
+        return StoryItemBattleStrategy()
 
     def run(self):
         from modules.story import victory_road as VR
@@ -14026,7 +14040,7 @@ class Ch23CrossB2fMode(BotMode):
 
     def on_battle_started(self, encounter):
         # ⛔ THE STRATEGY PROVIDER, not a notification.
-        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
         # ⛔⛔ INSTRUMENT THE ACTION, NOT THE PREDICTION. The recon predicts EXACTLY ONE forced
@@ -14046,7 +14060,7 @@ class Ch23CrossB2fMode(BotMode):
         self.battle_log = getattr(self, "battle_log", [])
         self.battle_log.append(what)
         log(f"[ch23cross2] BATTLE #{self.battles}: {what}")
-        return LevelUpTravelBattleStrategy()
+        return StoryItemBattleStrategy()
 
     def run(self):
         from modules.story import victory_road as VR
@@ -14158,10 +14172,10 @@ class Ch23ReturnProbeMode(BotMode):
         return True
 
     def on_battle_started(self, encounter):
-        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
-        return LevelUpTravelBattleStrategy()
+        return StoryItemBattleStrategy()
 
     def run(self):
         from modules.story import victory_road as VR
@@ -14293,7 +14307,7 @@ class Ch23ReturnMode(BotMode):
         return True
 
     def on_battle_started(self, encounter):
-        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
         what = "unknown"
@@ -14306,7 +14320,7 @@ class Ch23ReturnMode(BotMode):
         self.battle_log = getattr(self, "battle_log", [])
         self.battle_log.append(what)
         log(f"[ch23return] BATTLE #{self.battles}: {what}")
-        return LevelUpTravelBattleStrategy()
+        return StoryItemBattleStrategy()
 
     def run(self):
         from modules.story import victory_road as VR
@@ -14416,7 +14430,7 @@ class Ch23ExitMode(BotMode):
         return True
 
     def on_battle_started(self, encounter):
-        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
         what = "unknown"
@@ -14429,7 +14443,7 @@ class Ch23ExitMode(BotMode):
         self.battle_log = getattr(self, "battle_log", [])
         self.battle_log.append(what)
         log(f"[ch23exit] BATTLE #{self.battles}: {what}")
-        return LevelUpTravelBattleStrategy()
+        return StoryItemBattleStrategy()
 
     def run(self):
         from modules.story import victory_road as VR
@@ -14515,10 +14529,10 @@ class Ch23LeagueProbeMode(BotMode):
         return True
 
     def on_battle_started(self, encounter):
-        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
-        return LevelUpTravelBattleStrategy()
+        return StoryItemBattleStrategy()
 
     def run(self):
         from modules.story import victory_road as VR
@@ -14602,13 +14616,26 @@ class Ch23LeagueProbeMode(BotMode):
                     doors[name] = {"xy": xy, "error": type(error).__name__}
             R["doors"] = doors
             taken.add("RL-DOOR")
+
+            # ---- ⭐ WHAT CAN WE ACTUALLY AFFORD? The Elite Four is an ITEM-ONLY gauntlet (user
+            # directive 2026-09-04), so the bag IS the healing system. Measure money and the CURRENT
+            # bag rather than reusing the pre-Victory-Road reading.
+            from modules.items import get_item_bag
+            from modules.player import get_player
+
+            bag = get_item_bag()
+            R["money"] = getattr(get_player(), "money", None)
+            R["items_pocket"] = {s.item.name: s.quantity for s in bag.items}
+            R["key_items"] = {s.item.name: s.quantity for s in bag.key_items}
+            R["poke_balls"] = {s.item.name: s.quantity for s in bag.poke_balls}
+            taken.add("RL-BAG")
         except Exception as error:  # noqa: BLE001 - the probe reports, it does not crash the run
             failure = f"{type(error).__name__}: {error}"
             log(f"[{TAG}] FAILURE {failure}")
 
         for k, v in R.items():
             log(f"[{TAG}] R {k} = {v!r}")
-        EXPECTED = ("RL-PARTY", "RL-PATH", "RL-TILES", "RL-DANGER", "RL-DOOR")
+        EXPECTED = ("RL-PARTY", "RL-PATH", "RL-TILES", "RL-DANGER", "RL-DOOR", "RL-BAG")
         missing = [r for r in EXPECTED if r not in taken]
         log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
         log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
@@ -14649,12 +14676,12 @@ class Ch23LeagueHealMode(BotMode):
         return True
 
     def on_battle_started(self, encounter):
-        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
         log(f"[ch23heal] BATTLE #{self.battles} — ⚠ UNEXPECTED: EVER_GRANDE_CITY has no land_mons "
             f"table and no NPCs, so this route was measured encounter-free.")
-        return LevelUpTravelBattleStrategy()
+        return StoryItemBattleStrategy()
 
     def run(self):
         from modules.story import victory_road as VR
@@ -14706,6 +14733,93 @@ class Ch23LeagueHealMode(BotMode):
                 _out.parent.mkdir(parents=True, exist_ok=True)
                 _out.write_bytes(context.emulator.get_save_state())
                 log(f"[{TAG}] captured the healed fixture -> {_out}")
+        context.set_manual_mode()
+
+
+class Ch23ShopMode(BotMode):
+    """§Ch23 LEG 11 — stock the League Mart for the Elite Four. **PRODUCTION CODE.**
+
+    ⛔⛔ THE BAG IS THE GAUNTLET'S ONLY HEALING (user directive): five fights, ~25 opposing Pokémon,
+    every room sealed, no nurse past the front door. Items ARE legal there — verified at
+    `battle_main.c:4221-4239`, whose block list is only LINK/FRONTIER/E-READER/RECORDED.
+
+    ⭐ THE BASKET SKIPS MAX POTION ON PURPOSE. Hyper Potion heals a flat 200 HP for ₽1,200, and this
+    party's max HP runs ~115-231 — so 200 full-heals everything we own and Max Potion's ₽2,500 buys
+    nothing. It also skips Ultra Balls (blocked in trainer battles) and Max Repel (no wild
+    encounters past the front door).
+
+    FAULT ARM: `POKEBOT_CH23_FAULT_NOBUY=1` skips the purchase; the bag-contents guard MUST fire.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_league_heal.ss1 --driver ch23shop --frames 120000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23Shop"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        from modules.story import victory_road as VR
+
+        TAG = "ch23shop"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        report: dict = {"readings": set()}
+
+        before = VR.bag_healing_stock()
+        log(f"[{TAG}] PRE at={VR._where()}")
+        log(f"[{TAG}] PRE bag={before}")
+
+        failure = None
+        try:
+            yield from VR.stock_for_the_elite_four(report)
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        taken = report.get("readings", set())
+        missing = [r for r in VR.LEG11_READINGS if r not in taken]
+        for key in ("money_before", "bag_before", "clerk_stand", "bag_after", "money_after",
+                    "basket_shortfall", "back_outside", "out"):
+            if key in report:
+                log(f"[{TAG}] R {key} = {report[key]!r}")
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+
+        # ⛔ GRADE THE BAG, NOT THE CALL. An under-stocked bag is a run that dies five fights later.
+        after = VR.bag_healing_stock()
+        short = {n: q for n, q in VR.LEAGUE_BASKET if after.get(n, 0) < q}
+        log(f"[{TAG}] POST bag={after}")
+        log(f"[{TAG}] POST basket_shortfall={short}")
+        # ⛔ ANTI-VACUITY: a run that STARTED stocked proves nothing about shopping.
+        premise_ok = bool({n: q for n, q in VR.LEAGUE_BASKET if before.get(n, 0) < q})
+        passed = (failure is None and premise_ok and not short and not missing
+                  and self.whiteouts == 0)
+        log(f"[{TAG}] GRADE premise_ok={premise_ok} shortfall={short} missing={missing} "
+            f"whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] FINAL position={VR._where()}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH23_CAPTURE", "").strip()
+        if passed and _cap:
+            import pathlib as _pathlib   # ⛔ local: `pathlib` is NOT bound at module scope here
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if _out.exists() and _os.environ.get("CAPTURE_FORCE") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_out.name} exists. Set CAPTURE_FORCE=1 to overwrite.")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured the stocked fixture -> {_out}")
         context.set_manual_mode()
 
 
@@ -16509,6 +16623,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23LeagueProbeMode()
         elif args.driver == "ch23heal":
             context.bot_mode_instance = Ch23LeagueHealMode()
+        elif args.driver == "ch23shop":
+            context.bot_mode_instance = Ch23ShopMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

@@ -398,6 +398,42 @@ LEAGUE_HEAL_BUDGET = 100_000
 
 LEG10_READINGS = ("R10-APRON", "R10-INSIDE", "R10-HEALED", "R10-OUT")
 
+# ============================== LEG 11 — STOCK THE LEAGUE MART ================================
+#: ⛔⛔ **THE BAG IS THE ELITE FOUR'S ENTIRE HEALING SYSTEM** (user directive 2026-09-04): five
+#: consecutive fights, ~25 opposing Pokémon, every room sealing its own exit, and **no nurse past
+#: the front door**. Items are fully legal in those battles — VERIFIED at `battle_main.c:4221-4239`,
+#: where the only conditions that produce "Items can't be used here!" are LINK / FRONTIER / E-READER
+#: / RECORDED, and an Elite Four fight is a plain `BATTLE_TYPE_TRAINER`.
+#: ⇒ this leg is not housekeeping; it is the gauntlet's survivability.
+LEAGUE_MART_STAND = (16, 4)          # the clerk is at (16,2) behind a `MB_COUNTER` at (16,3)
+
+#: ⭐⭐ THE BASKET, AND THE ONE COUNTER-INTUITIVE CHOICE IN IT.
+#: **Max Potion (₽2,500) is STRICTLY DOMINATED by Hyper Potion (₽1,200) FOR THIS PARTY.** Hyper
+#: Potion heals a **flat 200 HP** (`item_effects.h:39`), and our whole party's max HP runs ~115-231
+#: (Sceptile ~153, Swellow ~130, Mightyena ~140, Wailord ~231). ⇒ 200 full-heals every member,
+#: Wailord included from 16 HP up, so a Max Potion buys **nothing** for ₽1,300 more. Skipping it is
+#: what turns ₽36,000 into THIRTY heals instead of fourteen.
+#: ⛔ Also deliberately NOT bought: **Ultra Ball** (every ball is BLOCKED in trainer battles —
+#: `battle_script_commands.c:9915-9920`, the first branch, nothing overrides it) and **Max Repel**
+#: (there is no wild-encounter table for ANY map past the League's front door).
+#: ‼ ORDER IS LOAD-BEARING: the shop's quantity selector caps at `min(money / price, 99)` recomputed
+#: from CURRENT money each transaction (`src/shop.c:1046-1051`), so **the largest line must be bought
+#: FIRST** or the selector silently caps it low.
+LEAGUE_BASKET = (
+    ("Hyper Potion", 30),     # ₽36,000 — the basket; flat 200 HP full-heals anything we own
+    ("Full Restore", 3),      # ₽9,000  — the one-turn emergency: low HP *and* status together
+    ("Full Heal", 8),         # ₽4,800  — cheapest item on the board; Gen-3 freeze is permanent
+    ("Revive", 3),            # ₽4,500  — anti-wipe insurance only (returns at HALF HP into L53-58)
+)                             # ₽54,300 total against a MEASURED ₽56,041
+
+#: ⚠ Money is not safe sitting still: `DoWhiteOut` (`overworld.c:358`) does `SetMoney(money / 2)`.
+#: ⇒ unspent cash is cash at risk, and the gauntlet itself pays ~₽32,400 back on the way through.
+LEAGUE_MIN_MONEY = 54_300
+
+LEAGUE_SHOP_BUDGET = 80_000
+
+LEG11_READINGS = ("R11-INSIDE", "R11-MENU", "R11-BOUGHT", "R11-VERIFIED", "R11-OUT")
+
 # ============================== TRAINING — BEFORE WALLY ========================================
 #: ⛔⛔ TRAIN ON **1F**, NOT B1F, AND THAT IS NOT A PREFERENCE — IT IS FORCED.
 #: B1F is the better ground (950.8 EXP/battle vs 1F's 775.6, because B1F swaps 1F's low-level
@@ -521,6 +557,8 @@ FAULT_ARMS = {
     "ARROWAIM": "POKEBOT_CH23_FAULT_ARROWAIM",
     #: leg 10 — skip the nurse interaction, so the "did the party actually heal?" guard must fire
     "NOHEAL10": "POKEBOT_CH23_FAULT_NOHEAL10",
+    #: leg 11 — skip the purchase, so the "is the basket actually IN the bag?" guard must fire
+    "NOBUY": "POKEBOT_CH23_FAULT_NOBUY",
 }
 
 
@@ -2233,7 +2271,7 @@ def descend_to_b2f(report=None) -> Generator:
     _take(report, "R6-B2F")
     if not report["on_b2f"]:
         raise BotModeError(
-            f"Ch23 leg 6: stepped onto the B2F ladder {B1F_B2F_LADDER} from {B1F_B2F_APRON} and did "
+            f"Ch23 leg 6: stepped onto the B2F ladder {B1F_B2F_LADDER} from {apron} and did "
             f"not arrive on VICTORY_ROAD_B2F — we are at {_where()}."
         )
 
@@ -2694,4 +2732,157 @@ def heal_at_league(report=None) -> Generator:
         raise BotModeError(
             f"Ch23 leg 10: pressed Down on the League exit {LEAGUE_EXIT_TILE} and did not return to "
             f"EVER_GRANDE_CITY — we are at {_where()}."
+        )
+
+
+# --------------------------------------------------------------------------------------------
+# LEG 11 — stock the League Mart for the Elite Four
+# --------------------------------------------------------------------------------------------
+def bag_healing_stock() -> dict:
+    """What the Items pocket actually holds, by NAME. ⛔ Read the bag, never assume a purchase."""
+    from modules.items import get_item_bag
+
+    return {slot.item.name: slot.quantity for slot in get_item_bag().items}
+
+
+def stock_for_the_elite_four(report=None) -> Generator:
+    """§Ch23 LEG 11 — buy the Elite Four's healing at the League Mart.
+
+    ⛔ THE BAG IS THE GAUNTLET'S ONLY HEALING. Five fights, no nurse, sealed doors. Items are legal
+    in those battles (verified in the decomp), so what goes in the bag here is what the party has to
+    survive on.
+
+    ⭐ The basket deliberately skips **Max Potion**: Hyper Potion's flat 200 HP full-heals every
+    member of this party for less than half the price. It also skips Ultra Balls (balls are blocked
+    in trainer battles) and Max Repel (no wild encounters past the front door).
+
+    ‼ AND IT BUYS THE LARGEST LINE FIRST, because the shop's quantity cap is recomputed from current
+    money on every transaction — buy the small lines first and the big one silently caps low.
+    """
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    from modules.items import get_item_by_name
+    from modules.modes.util.higher_level_actions import buy_in_shop
+    from modules.player import get_player
+
+    yield from wait_until_truly_controllable()
+    report["money_before"] = getattr(get_player(), "money", None)
+    report["bag_before"] = bag_healing_stock()
+
+    # ⛔ REFUSE RATHER THAN UNDER-BUY. The basket is sized to the gauntlet, not to the wallet; if we
+    # cannot afford it the right move is to say so loudly, not to quietly buy a thinner one that
+    # looks like success. ‼ And the figure is MEASURED at run time — an earlier plan was written
+    # against ₽38,893, which was the pre-Victory-Road number and ₽17,148 short of the truth.
+    if report["money_before"] is None or report["money_before"] < LEAGUE_MIN_MONEY:
+        raise BotModeError(
+            f"Ch23 leg 11: the basket costs ₽{LEAGUE_MIN_MONEY:,} but we hold "
+            f"₽{report['money_before']}. ⛔ Refusing to buy a thinner basket silently — the Elite "
+            f"Four has no other healing, so an under-stocked bag is a run that fails five fights "
+            f"later for a reason nobody will connect to this moment."
+        )
+
+    if not _on_map(LEAGUE_1F):
+        if not _on_map(EG):
+            raise BotModeError(
+                f"Ch23 leg 11: must start in EVER_GRANDE_CITY or the League but we are at {_where()}."
+            )
+        if _here_tile() != LEAGUE_DOOR_APRON:
+            yield from _budgeted(_navigate_riding_out(EG, LEAGUE_DOOR_APRON),
+                                 LEAGUE_SHOP_BUDGET, "reach the League door")
+            yield from wait_until_truly_controllable()
+        yield from _walk_through_warp("Up", EG.value)
+        yield from wait_until_truly_controllable()
+    if not _on_map(LEAGUE_1F):
+        raise BotModeError(f"Ch23 leg 11: failed to enter the League — we are at {_where()}.")
+    _take(report, "R11-INSIDE")
+
+    # ---- talk to the clerk ACROSS the counter, exactly as with the nurse -------------------------
+    # ‼ BOTH IMPORTS ARE FUNCTION-LOCAL ON PURPOSE, and forgetting the second one cost a drive:
+    # `wait_for_no_script_to_run` is imported inside leg 10, NOT at module scope, so referencing it
+    # here raised `NameError` on the first run. ⇒ **a helper another function imported locally is
+    # NOT available to yours** — this is the third time that shape has bitten in this file
+    # (`os as _os`, `pathlib`, and now this).
+    from modules.modes.util import wait_for_n_frames
+    from modules.modes.util.walking import ensure_facing_direction
+
+    yield from _navigate_riding_out(LEAGUE_1F, LEAGUE_MART_STAND)
+    yield from wait_until_truly_controllable()
+    yield from ensure_facing_direction("Up")
+    report["clerk_stand"] = _here_tile()
+    if _fault("NOBUY"):
+        context.message = "Ch23 FAULT NOBUY: skipping the purchase"
+        _take(report, "R11-MENU")
+        _take(report, "R11-BOUGHT")
+    else:
+        # ⛔⛔ OPENING A SHOP IS NOT ONE A-PRESS, AND IT IS NOT THE NURSE'S SHAPE EITHER.
+        # ‼ MEASURED 2026-09-04: a single A followed by `wait_for_no_script_to_run` reached the
+        # clerk and then died on *"Cannot buy things in mart because `Task_ShopMenu` is not active"*.
+        # The clerk has intro dialogue that needs SEVERAL presses, and the thing to wait on is a
+        # TASK, not the absence of a script.
+        # ⭐ `buy_poke_balls` (`early_game.py:2179-2199`) has always done it correctly, and this is
+        # its Phase 1 verbatim in shape: press A on a cadence until `Task_GoToBuyOrSellMenu` (or
+        # `Task_BuyMenu`) is up, bounded. ⇒ **THIS IS THE SECOND TIME TODAY THE FIX WAS "COPY THE
+        # PROVEN HELPER'S SHAPE"** — the nurse taught it, and I still hand-rolled the next menu.
+        # ⇒ *when an interaction already has a working caller in this repo, read that caller FIRST.*
+        from modules.modes.util.tasks_scripts import task_is_active
+
+        context.emulator.press_button("Up")
+        yield
+        yield from wait_for_n_frames(6)
+        opened = False
+        for _ in range(60):
+            _check_abort()
+            # ⛔ WAIT FOR **`Task_ShopMenu`** — the task `buy_in_shop` ACTUALLY checks
+            # (`higher_level_actions.py:607,613`). ‼ My first fix copied `buy_poke_balls`'s target
+            # tasks (`Task_GoToBuyOrSellMenu`/`Task_BuyMenu`) and still failed, because that helper
+            # DRIVES THE MENU BY HAND and never calls `buy_in_shop` — so its shape is right for
+            # advancing the clerk's dialogue and wrong for the task to wait on.
+            # ⇒ **COPY THE SHAPE FROM A SIBLING, BUT TAKE THE CONTRACT FROM THE CALLEE.**
+            if task_is_active("Task_ShopMenu"):
+                opened = True
+                break
+            context.emulator.press_button("A")
+            yield from wait_for_n_frames(10)
+        report["shop_menu_open"] = opened
+        if not opened:
+            raise BotModeError(
+                f"Ch23 leg 11: stood at {LEAGUE_MART_STAND} facing north and pressed A 60 times "
+                f"without `Task_GoToBuyOrSellMenu` ever becoming active. ⛔ The clerk is at (16,2) "
+                f"behind a counter at (16,3) — check we are on the right tile and facing NORTH."
+            )
+        _take(report, "R11-MENU")
+
+        yield from _budgeted(
+            buy_in_shop([(get_item_by_name(name), qty) for name, qty in LEAGUE_BASKET]),
+            LEAGUE_SHOP_BUDGET, "buy the Elite Four basket",
+        )
+        yield from wait_until_truly_controllable()
+        _take(report, "R11-BOUGHT")
+
+    # ---- ⛔ ASSERT THE CONSEQUENCE: is the basket actually IN THE BAG? ---------------------------
+    after = bag_healing_stock()
+    report["bag_after"] = after
+    report["money_after"] = getattr(get_player(), "money", None)
+    missing = {name: qty for name, qty in LEAGUE_BASKET if after.get(name, 0) < qty}
+    report["basket_shortfall"] = missing
+    _take(report, "R11-VERIFIED")
+    if missing:
+        raise BotModeError(
+            f"Ch23 leg 11: the purchase did not land. Short: {missing}. Bag now: {after}. "
+            f"Money {report['money_before']} → {report['money_after']}. ⛔ 'buy_in_shop returned' is "
+            f"not 'the items are in the bag' — and the Elite Four has no second chance to notice."
+        )
+
+    # ---- back out ---------------------------------------------------------------------------------
+    yield from _navigate_riding_out(LEAGUE_1F, LEAGUE_EXIT_TILE)
+    yield from wait_until_truly_controllable()
+    yield from _walk_through_warp("Down", LEAGUE_1F.value)
+    yield from wait_until_truly_controllable()
+    report["back_outside"] = _where()
+    report["out"] = _on_map(EG)
+    _take(report, "R11-OUT")
+    if not report["out"]:
+        raise BotModeError(
+            f"Ch23 leg 11: pressed Down on the League exit and did not return to EVER_GRANDE_CITY — "
+            f"we are at {_where()}."
         )

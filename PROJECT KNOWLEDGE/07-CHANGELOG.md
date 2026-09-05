@@ -21954,3 +21954,79 @@ silent: the leg grades *"is every battler whole?"*, not *"did we press A at the 
    maps north in Sidney's room.
 
 The `NOHEAL10` fault arm was run and correctly prints `ACCEPTANCE: FAIL`.
+
+
+## 2026-09-04 — §Ch23 LEG 11: the Elite Four's healing system is STOCKED, and a driver fidelity gap closed
+
+**What shipped.** `stock_for_the_elite_four` + `bag_healing_stock` in `victory_road.py`, driven by
+`--driver ch23shop`. `ACCEPTANCE: PASS`, all 5 readings, `battles=0`, `whiteouts=0`. Fixture
+`post_league_shop.ss1` (md5 `1564948368f64097fda2a74d5354c65d`).
+**Bag: Hyper Potion 30 · Full Restore 3 · Full Heal 8 · Revive 3.** ₽56,041 → ₽1,741 — a ₽54,300
+spend that matched the plan to the pokédollar.
+
+‼‼ **AND A TIER 1 REVIEWER CAUGHT THE HEADLINE OVERCLAIMING WHAT THIS BUYS — CORRECTED HERE.** The
+bag holds 44 healing items; **only 33 are USABLE.** Full Heal and Revive carry `parameter == 0` in
+`items.json`, and `battle_items.py:85` filters on `param > 0`, so **no code path we have can use
+them, in or out of battle.** ⇒ **HP carries across all five fights, a fainted Pokémon stays fainted
+for the whole gauntlet, and status is entirely unhandled.** Filed as **`#24-e4healing`**, which must
+ship BEFORE §Ch24 is attempted. ⭐ The reviewer's phrasing is the lesson: *"the diff under review
+ships a claim of gauntlet-readiness that its own author's next commit retracts."* ⇒ **an independent
+reader with only the diff caught a contradiction between two things I knew separately and had not
+put side by side.**
+
+**⛔ WHY THIS IS A SURVIVAL MECHANISM, NOT HOUSEKEEPING.** Per the user's directive, the Elite Four
+is a gauntlet: five fights, ~25 opposing Pokémon, every room sealing its own exit, **no nurse past
+the front door** — and items usable throughout. ⇒ **the bag IS the healing system.** Verified in the
+decomp that items are legal there (`battle_main.c:4221-4239`: the only conditions producing "Items
+can't be used here!" are LINK/FRONTIER/E-READER/RECORDED, and an E4 fight is a plain
+`BATTLE_TYPE_TRAINER`).
+
+**⭐⭐ THE BASKET SKIPS MAX POTION, AND THAT IS THE WHOLE ECONOMY OF IT.** Hyper Potion heals a
+**flat 200 HP** for ₽1,200; this party's max HP runs ~115–231, so 200 full-heals every member —
+Wailord included. Max Potion at ₽2,500 buys literally nothing extra. Skipping it turned ₽36,000 into
+**thirty** heals instead of fourteen. Also skipped: **Ultra Ball** (every ball is blocked in trainer
+battles, `battle_script_commands.c:9915`, first branch) and **Max Repel** (no encounter table exists
+for any map past the front door).
+
+**⭐ A TACTICAL FACT WORTH MORE THAN AN ITEM: the AI heals only STRICTLY BELOW 25% max HP**
+(`battle_ai_switch_items.c`), and its second item unlocks only at ≤2 Pokémon left. ⇒ **killing from
+above 25% denies the Full Restore outright**, and Wallace — 4 items, 2nd unlocking one mon down —
+should be budgeted at 3–4 uses. Recorded for §Ch24's battle policy.
+
+**‼ AND THE MONEY WAS RE-MEASURED, NOT REUSED.** I had been quoting **₽38,893** since before Victory
+Road; the live reading was **₽56,041** — ₽17,148 more, because Victory Road's trainers paid out.
+Budgeting from the stale figure would have under-bought the gauntlet's only healing. *(Third time
+today that re-measuring a number at the moment of writing caught a stale one.)*
+
+**♻ AND A FIDELITY GAP IN MY OWN HARNESS, CLOSED.** An audit found production story mode uses
+`StoryItemBattleStrategy` — *"a strict superset… it only acts in TRAINER battles"* — while **every
+§Ch23 driver that declared a strategy at all used `LevelUpTravelBattleStrategy`, the NON-item
+version.** So every trainer fight this chapter measured was fought without items, unlike the shipped
+bot.
+‼ **AND THE COUNT IS STATED EXACTLY, BECAUSE I FIRST WROTE IT WRONG.** *"Every §Ch23 driver"* was an
+OVERCLAIM. An AST sweep found **17** §Ch23 driver classes: **13 now carry `StoryItemBattleStrategy`**
+and **4 — `Ch23RouteMode`, `Ch23TeachMode`, `Ch23DepartMode`, `Ch23CrossMode` — override
+`on_battle_started` NOT AT ALL**, falling through to the BotMode default. Those four are the
+chapter's earliest legs. ⚠ **`Ch23CrossMode` DOES fight**, so its measurements remain un-faithful and
+are NOT covered by this fix — filed rather than silently absorbed. ⇒ **"I fixed every X" is a COUNT,
+and a count is checkable; run the sweep before writing the word "every".** The harness exists to
+be FAITHFUL; a driver that fights differently measures a bot we do not ship. 24 usages swapped across
+12 driver classes, and leg 9 was **re-driven** to prove it: `ACCEPTANCE: PASS`, identical readings.
+⇒ **check which strategy production uses before writing a driver** — never inherit it from the
+previous driver. *(The chapter's attrition figures are, strictly, a lower bound on the real party's
+staying power.)*
+
+**‼ THREE FAILED ATTEMPTS BEFORE THE PURCHASE LANDED, AND THE LESSON SHARPENED EACH TIME:**
+1. `NameError: wait_for_no_script_to_run` — imported in leg 10's scope, not leg 11's. **A helper
+   another function imported locally is not available to yours** (third time this shape has bitten
+   this file, after `os as _os` and `pathlib`).
+2. A single A-press then `wait_for_no_script_to_run` → *"`Task_ShopMenu` is not active"*. The clerk
+   has intro dialogue needing several presses, and the thing to wait on is a TASK.
+3. Copied `buy_poke_balls`'s target tasks (`Task_GoToBuyOrSellMenu`/`Task_BuyMenu`) — still failed,
+   because **that helper drives the menu BY HAND and never calls `buy_in_shop`**. ⇒ **copy the SHAPE
+   from a sibling, but take the CONTRACT from the callee** (`buy_in_shop` checks `Task_ShopMenu`,
+   `higher_level_actions.py:607`).
+
+The `NOBUY` fault arm was run and correctly prints `ACCEPTANCE: FAIL`, naming the exact shortfall —
+because the leg grades **the bag's contents**, not whether `buy_in_shop` returned. The Elite Four has
+no second chance to notice a thin basket.

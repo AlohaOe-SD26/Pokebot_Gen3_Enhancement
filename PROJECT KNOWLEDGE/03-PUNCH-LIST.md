@@ -528,7 +528,7 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 - [ ] **OPTIONS — none of which I should pick unilaterally:**
       (a) **train more on B1F now that it is reachable** (950.8 EXP/battle vs 1F's 775.6 — this was
       always the plan for closing the Elite Four gap, and it would fix attrition as a side effect);
-      (b) **buy healing items before entering** — ₽38,893 is in hand and the bag holds ONE Potion;
+      (b) **buy healing items before entering** — ✅ **DONE 2026-09-04 (leg 11)** *(this line said ₽38,893; the LIVE reading was **₽56,041**, spent down to **₽1,741**)* and the bag holds ONE Potion;
       ⚠ the League 1F Mart (Full Restore / Revive / Max Potion) is PAST Victory Road, so this needs
       an earlier shop;
       (c) **fix `#24-ch23wally` option (b)** — the faint-replacement ranking keeps feeding the L19
@@ -542,7 +542,7 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       LEAGUE DOOR (18,5) → REACHABLE in 37 wp.**
       ⇒ the exit lands on a **closed plateau**, so *"exit and heal at Ever Grande" is WRONG*; the
       only heal is the **League's own Poké Center**, which also carries a Mart (Full Restore /
-      Revive / Max Potion) against the **₽38,893** in hand. ⭐ **That fixes attrition AND the empty
+      Revive / Max Potion) against the **₽56,041** in hand *(⚠ **₽38,893** as first written here — KNOWN-STALE, the pre-Victory-Road figure; ✅ spent down to **₽1,741** by leg 11).* ⭐ **That fixes attrition AND the empty
       bag in one 37-waypoint walk** — the training options below are no longer the answer to THIS
       problem (they remain the answer to the Elite Four LEVEL gap, which is a different question).
       ‼ This confirms live a claim a research pass had only DERIVED from its own flood-fill, and had
@@ -583,7 +583,97 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       Wailord fainting does not strand the run. ⇒ **do NOT "fix" `assert_carriers_survived` to reject
       fainted carriers** — it is correct as written, and that check would fire on a healthy run.
 
-### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **TRAVERSED, EXITED, AND THE PARTY IS WHOLE — TEN LEGS BUILT AND DRIVEN. ONLY THE CHAPTER ORCHESTRATOR + SEGMENT 23 WIRING REMAIN.** ⚠ The party ends at 35% with three fainted — `#24-ch23attrition`, now ACTIONABLE because the bot can finally leave. (filed 2026-09-03, updated 2026-09-04)
+### 🔜 `#24-e4healing` — ⛔⛔ **§Ch24 BLOCKER: THE BOT CANNOT USE 11 OF THE 44 ITEMS IT JUST BOUGHT, AND HAS NO WAY TO HEAL BETWEEN THE FIVE FIGHTS.** (opened 2026-09-04)
+
+**STATUS: OPEN — this is the FIRST thing §Ch24 needs, ahead of any routing or battle work.**
+
+**MEASURED BY ME against our own code, 2026-09-04 — not an agent's claim.** (A research agent
+reported the in-battle cap was "1+ per battle"; the real constant is
+`MAX_ITEM_USES_PER_BATTLE = 4` at `modules/story/battle_items.py:46`. The agent's number was wrong,
+which is exactly why this was re-read rather than believed.)
+
+**WHAT THE IN-BATTLE POLICY ACTUALLY DOES** (`battle_items.py`, a pure module):
+- heals only below **`HEAL_AT_FRACTION = 0.35`** (line 40) — above 35% HP it attacks instead;
+- picks the **cheapest SUFFICIENT** item, else the largest (rules 2, lines 94-104);
+- **refuses to heal into a losing race** — if the best heal we hold is smaller than the biggest hit
+  taken this battle, it attacks instead (rule 3, lines 89-92);
+- is **bounded at 4 uses per battle** (line 46), and `on_battle_started` returns a FRESH strategy
+  instance per fight, so the bound RESETS each fight ⇒ **up to 20 in-battle heals across the
+  gauntlet**, against 33 usable HP items. The bound is not the problem.
+
+⛔ **THE PROBLEM IS THE FILTER AT `battle_items.py:85`** — `if qty > 0 and param > 0`. Checked
+against `modules/data/items.json`:
+
+| item | bought | `battle_use` | `parameter` | in-battle usable? |
+|---|---|---|---|---|
+| Hyper Potion | 30 | healing | 200 | ✅ |
+| Full Restore | 3 | healing | 255 | ✅ |
+| **Full Heal** | **8** | healing | **0** | ⛔ **NO** |
+| **Revive** | **3** | healing | **0** | ⛔ **NO** |
+| Antidote | 4 | healing | 0 | ⛔ NO |
+
+⇒ **11 purchased items — ₽9,300 of the ₽54,300 — are invisible to the in-battle policy.** The module
+says so on purpose (docstring lines 16-18: *"`Full Heal` is `parameter == 0` — a STATUS cure, not an
+HP item, and is excluded here on purpose"*). It is a deliberate, documented scope boundary, **not a
+bug** — but it is a boundary the Elite Four sits directly on top of.
+
+⛔⛔ **AND THE SECOND HALF IS WORSE: THERE IS NO OUT-OF-BATTLE PARTY-HEAL AT ALL.**
+`modules/modes/util/items.py:43` `use_item_from_bag()` opens the bag, scrolls, presses A and waits
+for the start menu — the shape for a **no-target** item like a Repel. A Potion or Revive then asks
+*"Use on which POKéMON?"*, and **nothing in the tree answers that prompt.** ‼ Corrected while
+writing this: `menuing.py:680/723/728` DO contain the strings "Revive"/"Max Revive", but they are
+entries in `get_items_available_for_pickup()` — a list of what the Pickup ability can yield. **That
+is not revive logic**, and reading it as such would have been a false reassurance.
+
+⇒ **WHAT THIS MEANS FOR THE GAUNTLET, CONCRETELY:**
+1. **HP carries over between all five fights** with no way to top up between rooms.
+2. **A fainted Pokémon stays fainted for the entire gauntlet** — attrition is strictly one-way. The
+   3 Revives cannot be used by any code path we currently have.
+3. **Status is completely unhandled.** Gen-3 freeze does not thaw on its own; Glacia's ice moves and
+   a sleep/paralysis from any of the five would simply persist. The 8 Full Heals cannot be used.
+
+⛔⛔ **AND A THIRD THING, READ OFF THE FIXTURE FILE ITSELF (`probe_anchor_inventory.py
+post_league_shop.ss1`) RATHER THAN RECALLED — THE PARTY IS NOT WHAT I HAD BEEN WRITING.**
+I had been describing it as "L47 across the board". It is actually:
+
+| slot | mon | level | verdict for the gauntlet |
+|---|---|---|---|
+| 1 | Sceptile | **L53** | real fighter |
+| 2 | **Zigzagoon** | **L19** | ⛔ **DEAD WEIGHT** — HM mule |
+| 3 | Swellow | **L48** | real fighter |
+| 4 | Wailord | **L47** | real fighter |
+| 5 | Mightyena | **L48** | real fighter (has Crunch) |
+| 6 | **Castform** | **L36** | ⛔ **DEAD WEIGHT** |
+
+⇒ ‼ **THIS IS A FOUR-POKÉMON PARTY, NOT A SIX**, against five trainers fielding ~25 Pokémon at
+L46-58. Two slots are carrying an HM mule and a L36 passenger. **That reframes the level-gap question
+entirely:** the cheapest intervention may not be grinding the four — it may be *replacing the two
+dead slots*, which costs no grinding at all.
+⚠ **AND IT ARMS A KNOWN BUG:** `#24-ch23wally` records that the faint-replacement ranking can feed
+**Zigzagoon L19** into a fight. In Victory Road that cost a leg; in the Elite Four, where a fainted
+mon cannot be revived (see above), sending the L19 in is **a wasted Pokémon we cannot get back.**
+⇒ this is now a §Ch24 blocker too, not just a §Ch23 annoyance.
+
+**THE WORK (in order):**
+- [ ] **1. Build an out-of-battle party-heal** — `heal_party_from_bag()`: open bag → select item →
+      answer the party-menu prompt → target the right member → confirm the HP/status actually
+      changed. ⛔ **GRADE THE CONSEQUENCE, NOT THE CALL** (the leg-11 lesson): assert HP rose /
+      status cleared, never that the menu closed.
+- [ ] **2. Call it between rooms**, in the corridor after each Elite Four win, before the next door.
+- [ ] **3. Decide whether the in-battle policy should get status/revive awareness**, or whether
+      between-room healing is enough. ⭐ Prefer step 2 first — it is the cheaper, more testable half,
+      and it may make step 3 unnecessary.
+- [ ] **4. Re-check `HEAL_AT_FRACTION = 0.35` for the gauntlet specifically.** 35% against an E4 mon
+      may already be inside one-shot range; this is a NUMBER TO MEASURE, not to argue about.
+
+‼ **DO NOT "FIX" THIS BY EDITING `battle_items.py`'s filter.** That module is pure and exhaustively
+tested by `repro_battle_items.py`; widening `param > 0` would silently make `effective_heal()` return
+0 for a Revive and the policy would pick it as the "cheapest sufficient" heal for everything. The
+right place is a NEW out-of-battle path.
+
+---
+
+### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **TRAVERSED, EXITED, PARTY WHOLE AND BAG STOCKED — ELEVEN LEGS BUILT AND DRIVEN. ONLY THE CHAPTER ORCHESTRATOR + SEGMENT 23 WIRING REMAIN.** ⚠ The party ends at 35% with three fainted — `#24-ch23attrition` — ✅ **CLOSED 2026-09-04** (the party is back to 807/807 with zero fainted; the fix was a 36-step walk to the League's Poké Center, not the ~5 hours of training I had priced). *(This clause read "now ACTIONABLE because the bot can finally leave" until a Tier 1 reviewer quoted it against that item's own CLOSED header — P2: a heading is a claim about everything it points at.)* (filed 2026-09-03, updated 2026-09-04)
 
 > ⛔⛔ **THAT HEADER DROPPED THE UN-DRIVEN EXIT FOR ONE COMMIT — THE FOURTH TIME THIS ITEM'S HEADLINE HAS BEEN CAUGHT CLAIMING MORE THAN ITS OWN BULLETS.** The bullet one line below it listed the arrow warp; the header said "ONLY the wiring remains". `04-HANDOFF.md` had it right in BOTH halves, so this was the punch list alone regressing. ⇒ **when a header enumerates what remains, diff it against the bullet directly beneath it before committing** — and note that gate #35 cannot catch this shape, because no CLOSED slug is being mis-described.
 
@@ -592,6 +682,10 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 > ⛔ **HEADER/BODY PAIR NOTE (2026-09-04).** This header read "LEGS 1-4 SHIP AND PASS; LEGS 5-8 REMAIN" for one commit *after* its own body bullet had been corrected to "legs 6-8" — a Tier 1 reviewer caught it. **P2: a header is a claim about every bullet beneath it**, and updating the body alone is the more dangerous state, because the body looks current.
 
 - [~] **REMAINS: the chapter orchestrator + Segment 23 wiring.**
+      ✅✅✅ **LEG 11 SHIPPED 2026-09-04 — THE ELITE FOUR'S HEALING IS STOCKED** (`ch23shop`, PASS,
+      fixture `post_league_shop.ss1`): **Hyper Potion 30 · Full Restore 3 · Full Heal 8 · Revive 3**,
+      ₽56,041 → ₽1,741. ⛔ **BUT ONLY 33 OF THE 44 ARE USABLE** — see `#24-e4healing` above; the
+      bot cannot use Full Heal or Revive at all, so **it is NOT ready to attempt §Ch24.**
       ✅✅✅ **LEG 10 SHIPPED 2026-09-04 — THE PARTY IS WHOLE** (`ch23heal`, PASS, `battles=0`,
       `whiteouts=0`, fixture `post_league_heal.ss1` at EVER_GRANDE_CITY (18,6), **807/807**).
       ✅✅✅ **LEG 9 SHIPPED 2026-09-04 — THE BOT IS OUT OF VICTORY ROAD** (`ch23exit`, PASS,

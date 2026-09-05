@@ -3987,3 +3987,66 @@ rather than argued: `--driver ch23descend` after the change gives `ACCEPTANCE: P
 derived apron `(31,25)/"Left"`, `battles=6`, `whiteouts=0`. ‼ A Tier 1 reviewer had flagged exactly
 this — that the non-regression was argued structurally and not yet proven — and the re-drive is the
 answer to it.
+
+
+## 2026-09-04 — USER DIRECTIVE: the Elite Four is an ITEM-ONLY gauntlet
+
+**The user's ruling, recorded so it is never re-derived or re-asked:**
+
+> *"the elite 4 is a gauntlet of beating 4 elite 4 trainers/gym leaders and a champion, healing via a
+> nurse is not possible here but items can be used in and out of battle while in here to heal."*
+
+**Why this is load-bearing rather than background.** It settles the §Ch24 design question outright:
+**the bag IS the healing system for the whole gauntlet.** Five consecutive fights, ~25 opposing
+Pokémon, one party, no Poké Center — so every point of HP restored between Sidney and Wallace comes
+out of the Items pocket.
+
+⇒ **Consequences that follow directly, and that §Ch24 must be built around:**
+1. ⛔ **STOCKING THE LEAGUE MART IS NOT OPTIONAL — it is the survival mechanism.** We hold ₽56,041
+   and the bag currently contains **ONE Potion**. That is the single largest gap between here and a
+   Champion attempt, larger than the level gap.
+   ✅ **RESOLVED THE SAME DAY (§Ch23 leg 11):** bought **Hyper Potion ×30 · Full Restore ×3 ·
+   Full Heal ×8 · Revive ×3** for ₽54,300, leaving ₽1,741.
+   ‼ **The ₽38,893 first written on this line was the PRE-VICTORY-ROAD figure** — ₽17,148 short of
+   the live reading, because Victory Road's own trainers paid out on the way through. Corrected
+   before this entry was ever committed. ⇒ *re-measure a number at the moment you spend it.*
+2. ⛔ **THE BOT MUST BE ABLE TO USE ITEMS IN BATTLE, OR THE MONEY IS WASTED.** Buying is worthless
+   if no code path opens the bag mid-fight. **This is a CAPABILITY question about our own bot and it
+   must be answered BEFORE the shopping trip** — otherwise we would spend the money to discover the
+   feature does not exist. *(That is the "measure the dependency before pricing the remedy" rule from
+   earlier today, applied before spending rather than after.)*
+3. ⇒ **The Elite Four LEVEL gap and the ITEM gap are different problems with different fixes.** The
+   cost curve in `#24-ch23attrition` (L50 ≈ 88 min … L55 ≈ 5 h, and Wallace is L58) answers the
+   LEVEL gap. It does **not** answer the item gap, and stocking does not close the level gap.
+   Neither substitutes for the other.
+
+✅ **This CONFIRMS the independent decomp finding** already recorded in
+`ai-research-notes/2026-09-04-ch24-POKEMON-LEAGUE.md`: every E4 room seals its own exit with
+`setmetatile … impassable=TRUE`, Halls 1–5 contain zero objects, and the only healing before the
+gauntlet is the League 1F Poké Center — which is also where the Mart is. ⇒ **one visit does both.**
+
+⚠ **What is NOT settled by this directive** and must still be measured: whether our battle strategy
+can select an item action at all, what the Mart's prices are, and what basket ₽56,041 actually buys.
+Those are out with agents rather than assumed.
+
+✅ **TWO OF THE THREE ARE NOW SETTLED (2026-09-04).** *The basket:* bought, ₽54,300 — see above.
+*The capability:* **`StoryItemBattleStrategy` DOES open the bag mid-fight** — `decide_turn()` calls
+`_maybe_use_item()`, which asks `choose_healing_item()` (`modules/story/battle_items.py`) and returns
+a `TurnAction.use_item_on(...)` when the policy approves — and it acts in **TRAINER battles only**,
+which is exactly where the Elite Four lives. So the money is not wasted.
+
+✅ **AND THE PER-BATTLE CAP — WHICH I FLAGGED HERE AS THE FRIGHTENING UNKNOWN — WAS MEASURED THE
+SAME HOUR, AND IT IS NOT THE PROBLEM.** `MAX_ITEM_USES_PER_BATTLE = 4` (`battle_items.py:46`), and
+`on_battle_started` returns a FRESH strategy instance per fight, so the bound **resets every fight**
+⇒ up to **20 in-battle heals across the gauntlet**. *(A research agent had reported the cap as "1+
+per battle"; re-reading the constant refuted it — the standing rule that an agent claim is a NOTE
+paid for itself again.)*
+
+⛔⛔ **THE REAL BLOCKER TURNED OUT TO BE SOMETHING ELSE ENTIRELY, AND IT IS WORSE:** the policy
+filters on `param > 0` (`battle_items.py:85`), and **Full Heal / Revive / Antidote all carry
+`parameter == 0`** ⇒ **11 of the 44 items just bought are unusable by any code path we have**, in or
+out of battle. ⇒ **HP carries across all five fights, a fainted Pokémon stays fainted for the whole
+gauntlet, and status is entirely unhandled.** Filed as **`#24-e4healing`**, which is now the FIRST
+thing §Ch24 needs. ⭐ *The lesson worth keeping: the question I was afraid of had a reassuring answer,
+and the blocker was one line below it in the same file. **Fear is not a good prioritiser; reading
+is.***

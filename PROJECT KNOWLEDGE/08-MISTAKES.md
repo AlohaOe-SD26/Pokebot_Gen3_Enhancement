@@ -12078,3 +12078,156 @@ by a reviewer — but only because I happened to ask the reachability question a
    are reachable from where the run actually IS.
 3. ‼ **AN ESCALATION TO THE USER DESERVES THE SAME EVIDENCE BAR AS A CODE CHANGE.** I would not have
    shipped a fix on an unverified dependency; I should not have shipped a *question* on one either.
+
+
+---
+
+## 2026-09-04 — §Ch23 leg 11: "copy the SHAPE from a sibling, but take the CONTRACT from the callee"
+
+**Symptom.** Three consecutive failures opening the League Mart, each one looking like the last fix
+should have worked.
+
+**Root cause, and it moved each time.**
+1. `NameError: wait_for_no_script_to_run` — the name was imported inside *leg 10's* function body, so
+   leg 11's body never had it. **Third time this exact shape has bitten `victory_road.py`** (after
+   `os as _os` and `pathlib`).
+2. One A-press then `wait_for_no_script_to_run` → *"Cannot buy things in mart because
+   `Task_ShopMenu` is not active"*. The clerk has intro dialogue needing several presses, and the
+   thing to wait on is a **task**, not the absence of a script.
+3. I then copied the target tasks from `buy_poke_balls` — `Task_GoToBuyOrSellMenu` / `Task_BuyMenu` —
+   and it STILL failed. Because `buy_poke_balls` **drives the menu by hand and never calls
+   `buy_in_shop` at all.** Its shape was right; its tasks were answering a different question.
+   `buy_in_shop` checks for **`Task_ShopMenu`** (`higher_level_actions.py:607`).
+
+**The fix that worked.** Poll for `Task_ShopMenu` specifically, bounded at 60 presses, and raise a
+message naming the tile and facing if it never opens.
+
+**Prevention rule.** ⛔ **COPY THE SHAPE FROM A SIBLING, BUT TAKE THE CONTRACT FROM THE CALLEE.** A
+neighbouring function shows you the *rhythm* of an interaction; only the function you are actually
+calling tells you what state it demands. When a helper fails a precondition, **read that helper**,
+not the code that resembles yours.
+**Corollary (the deeper one):** a sibling that solves the same problem *a different way* is the most
+misleading reference there is — it looks maximally relevant and its details are all wrong. Ask first:
+*does this sibling call what I am calling?*
+
+---
+
+## 2026-09-04 — A success message that was false: backticks inside a double-quoted BASH string
+
+**Symptom.** A one-liner printed `banner updated; 899 lines`, and the gates all passed. The handoff
+banner it wrote actually read **`₽56,041 → ₽1,741 ().`** — the fixture name had vanished.
+
+**Root cause.** I embedded Python containing `` `post_league_shop.ss1` `` inside a **double-quoted**
+bash string. Bash performed command substitution on the backticks *before* Python ever saw the text,
+substituting the (empty, failed) output of running `post_league_shop.ss1` as a command. The only
+visible trace was one `command not found` line above an otherwise-successful run.
+
+**Why it nearly shipped.** Every check downstream passed. The assertion passed (it matched text
+*around* the hole), the line count printed, `lint_docs` and `audit_doc_consistency` returned 0 —
+because **an empty pair of parentheses is perfectly valid Markdown.** Nothing in the toolchain can
+see a missing citation; it is only wrong to a reader.
+
+**Prevention rule.** ⛔ **NEVER PUT BACKTICKS — OR `$` — INSIDE A DOUBLE-QUOTED SHELL STRING.** Write
+doc-editing Python to a **file** and run the file; the project already does this everywhere else, and
+this is exactly why.
+**And the rule that actually caught it:** ‼ **A TOOL'S SUCCESS MESSAGE IS NOT EVIDENCE THE WRITE WAS
+CORRECT — READ BACK THE BYTES YOU WROTE.** This is the same lesson as *"'`buy_in_shop` returned' is
+not 'the items are in the bag'"*, one layer up, learned twice on the same day: **verify the
+CONSEQUENCE, never the call.** A stderr line above a success line deserves to be read before the
+success line is believed.
+
+
+---
+
+## 2026-09-04 — A `NameError` hiding inside an ERROR MESSAGE, and why eleven passing drives never saw it
+
+**Symptom.** `repro_undefined_names.py` (gate) went red:
+`victory_road.py:2274:78: undefined name 'B1F_B2F_APRON'`.
+
+**Root cause.** `descend_to_b2f` derives its apron at run time into a **local** called `apron`
+(`apron, step_dir = b1f_ladder_apron()`), but the failure branch's f-string interpolated
+**`B1F_B2F_APRON`** — a module constant that has never existed. Almost certainly a leftover from an
+earlier draft that used a hardcoded apron, before the derivation replaced it.
+
+**Why every green run missed it, and this is the whole point.** The name appears **only inside the
+`raise BotModeError(...)` that fires when the descent FAILS.** Leg 6 has passed on every drive, so
+that branch has never executed. ⇒ the bug was **perfectly invisible to testing** and would have
+surfaced on the first real failure — replacing *"stepped onto the ladder and did not arrive"*, the
+diagnostic written specifically to explain that failure, with a bare `NameError` that explains
+nothing. ‼ **The defect would have detonated at exactly the moment it was most needed.**
+
+**The fix.** `{B1F_B2F_APRON}` → `{apron}`, the local the function already computes.
+
+**Prevention rule.** ⛔ **AN ERROR PATH IS CODE, AND IT IS THE CODE LEAST LIKELY TO BE EXERCISED.**
+Every f-string in a `raise` is a live expression: a typo there is a latent crash that testing the
+happy path can never find. ⇒ **this is a job for a STATIC gate, not for review or for drives** —
+`repro_undefined_names.py` found it in 2.2 seconds after eleven green drives did not.
+⭐ **And the more general form, which is the one worth carrying:** *a passing test suite is evidence
+about the paths it takes, and says NOTHING about the paths it avoids.* The rarer the branch, the
+more it needs a static check — inverted from where attention naturally goes.
+‼ Corollary: when a hardcoded constant is replaced by a runtime derivation, **grep for the old
+constant's name** before considering the refactor done. This one survived in a string.
+
+
+---
+
+## 2026-09-04 — I described the party from MEMORY three times, and every number was wrong
+
+**Symptom.** I briefed a research agent with *"Sceptile L47, Swellow L47, Mightyena L47, Wailord ~L45,
+max HP ~115-231"*. The agent built a careful five-fight simulation on it and concluded the run fails
+at Drake. Then `probe_ch24_readiness.py` read the actual fixture:
+
+| | I said | **measured** |
+|---|---|---|
+| Sceptile | L47, 139 HP, 134 Spe | **L53, 147 HP, 160 Spe** |
+| Swellow | L47, 129 HP, **138 Spe** | **L48, 139 HP, 129 Spe** |
+| Wailord | ~L45, 223 HP | **L47, 226 HP** |
+| Mightyena | L47 | **L48** |
+
+**Root cause.** The party had gained levels across eleven legs of Victory Road and I kept quoting the
+figures from before the training leg. Nothing forced a re-read, because a party composition *feels*
+like something you know.
+
+**Why it mattered more than a typo.** The agent's conclusion turned on exactly the wrong stats:
+its argument was *"Glacia's ice OHKOs both mons that outspeed Salamence"* — but **Swellow at 129 Spe
+never outsped Salamence's 132 in the first place**, and **Sceptile at 147 HP survives** the 120-142
+Blizzard roll that was supposed to kill it. ⇒ **an expensive, well-reasoned analysis was aimed at a
+party that does not exist.** The real risk it should have found (one Pokémon, not two, is the entire
+speed answer, and it cannot be revived) is *narrower and sharper* than what it reported.
+
+**Prevention rule.** ⛔ **NEVER DESCRIBE THE PARTY FROM MEMORY — READ THE FIXTURE.**
+`probe_anchor_inventory.py <fixture>` prints species/level/HP; `probe_ch24_readiness.py` adds Speed
+and the per-item usability verdict. ‼ **And when briefing an agent, PASTE THE PROBE OUTPUT** rather
+than paraphrasing it: an agent cannot check the premise you hand it, so **every stat in a brief is a
+claim you are making on its behalf**, and its confident conclusion will inherit your stale number
+without inheriting your uncertainty about it.
+⭐ The general form: *a fact that changes silently as the project progresses is exactly the fact you
+will quote from memory.* Party stats, money, item counts and levels are all in that class.
+
+---
+
+## 2026-09-04 — Quoting a money figure that four weeks of gameplay had moved
+
+**Symptom.** I wrote a decision-log entry budgeting the Elite Four's healing against **₽38,893**, and
+planned a basket around it. The live reading at the Mart was **₽56,041** — **₽17,148 more**.
+
+**Root cause.** ₽38,893 was the pre-Victory-Road balance. Victory Road's own trainers paid out on the
+way through, and I carried the old figure forward across several documents without re-reading it.
+
+**Why it was nearly costly in both directions.** Under-budgeting would have bought a thinner basket
+for a gauntlet that has **no other healing**; and had the drift gone the other way, the leg's own
+`LEAGUE_MIN_MONEY` guard would have refused to buy at all. The purchase only matched the plan to the
+pokédollar because the code reads `get_player().money` **at run time** rather than trusting the
+document.
+
+**The fix that worked.** The leg measures money live and refuses loudly if it is short; the stale
+figure was corrected in `04-HANDOFF.md`, `06-DECISIONS-LOG.md` and — ‼ **only after a Tier 1 reviewer
+caught it** — in `03-PUNCH-LIST.md`, which the first two rounds of correction had missed.
+
+**Prevention rule.** ⛔ **RE-MEASURE A NUMBER AT THE MOMENT YOU SPEND IT**, and have the code read it
+rather than the document. ‼ **And when you correct a stale figure, `grep` the whole tree for it** —
+this correction reached two of the three current-state files on its first pass, which is the most
+dangerous state of all, because the pair check between the two that were fixed returns PASS.
+⭐ Distinguish the file kinds while doing it: in an **append-only** file (`06`/`07`/`08`) a dated
+later correction is sufficient and the old entry stays; in a **current-state** file (`01`-`05`) the
+stale figure must be fixed or annotated **in place**, because nothing tells the reader it is old.
