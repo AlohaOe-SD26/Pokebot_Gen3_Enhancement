@@ -145,7 +145,7 @@ open-vs-built sweep of all 80 open items has **not** been done.
       ratchet went 36 → 31 → 23, **control-armed at each step** (strip the guards and it reads back
       up). Two-arm behavioural proof: latch CLEAR → swallowed, unchanged; latch SET → re-raised.
       ✅ **DONE 2026-08-24: PROMOTED (user-approved) and the custom baseline WAS lowered 36 → 23 in
-      the same commit. Drift is 12 (⬆ from 11 on 2026-09-04: `modules/modes/util/walking.py`, the `#24-waterfalltimeout` fix; previously ⬆ from 10 on 2026-09-03: `modules/story/victory_road.py`, §Ch23 legs 2-3; previously ⬆ from 8 on 2026-09-02: the NEW `modules/story/sootopolis_gym.py`, §Ch22's chapter module — a new sandbox-only chapter file, exactly as §Ch20 and §Ch21 each did. ⚠ PROMOTION IS THE USER'S CALL and is NOT implied here; run `promote.py --check`, which outranks this text) as of 2026-08-27 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until driven); both forks now read ZERO AST abort-swallowers.**
+      the same commit. Drift is 14 (⬆ from 13 on 2026-09-04: `modules/story/pokemon_league.py` joined 2026-09-04 — the §Ch24 out-of-battle party heal; before that ⬆ from 12: `modules/story/overworld_items.py` joined 2026-09-04 — the NEW pure out-of-battle healing policy for `#24-e4healing`, gate #36; before that ⬆ from 11: `modules/modes/util/walking.py`, the `#24-waterfalltimeout` fix; previously ⬆ from 10 on 2026-09-03: `modules/story/victory_road.py`, §Ch23 legs 2-3; previously ⬆ from 8 on 2026-09-02: the NEW `modules/story/sootopolis_gym.py`, §Ch22's chapter module — a new sandbox-only chapter file, exactly as §Ch20 and §Ch21 each did. ⚠ PROMOTION IS THE USER'S CALL and is NOT implied here; run `promote.py --check`, which outranks this text) as of 2026-08-27 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until driven); both forks now read ZERO AST abort-swallowers.**
 - [x] **(a): ASSESSED and CLOSED as VERY LOW — and the finding is that the code was NOT changed.**
       A second whiteout during recovery would be fatal, but it cannot realistically occur: the whole
       window is spent on maps whose land-encounter rate is **0** (all 17 towns + all 32 Poké Center
@@ -425,7 +425,7 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       flipped to `2` turned the gate red at `04-HANDOFF.md:209` naming both figures, file restored
       byte-identical. Narrative: `07-CHANGELOG.md` 2026-08-26.
 
-### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ⚠ **Drift is 12** (`modules/modes/util/walking.py` joined on 2026-09-04 — the `#24-waterfalltimeout` fix; 2026-09-03: `chapters.py` for a §Ch23 correctness fix, plus the new sandbox-only chapter modules `sootopolis_gym.py` and `victory_road.py`) — ⛔ **PROMOTION IS THE USER'S CALL and is not implied.** ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
+### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ⚠ **Drift is 14** (`modules/story/pokemon_league.py` joined 2026-09-04 — the §Ch24 out-of-battle party heal; `modules/story/overworld_items.py` joined 2026-09-04 — the NEW pure out-of-battle healing policy for `#24-e4healing`, gate #36; `modules/modes/util/walking.py` joined on 2026-09-04 — the `#24-waterfalltimeout` fix; 2026-09-03: `chapters.py` for a §Ch23 correctness fix, plus the new sandbox-only chapter modules `sootopolis_gym.py` and `victory_road.py`) — ⛔ **PROMOTION IS THE USER'S CALL and is not implied.** ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
 
 ### ✅ `#24-ch23wally` — **CLOSED 2026-09-04: WALLY IS BEATEN.** ⚠ Option (b) (the faint-replacement ranking) remains UNTAKEN and was OBSERVED firing inside the winning run — see the open bullet. (filed, ruled, trained and closed 2026-09-04)
 
@@ -583,9 +583,9 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       Wailord fainting does not strand the run. ⇒ **do NOT "fix" `assert_carriers_survived` to reject
       fainted carriers** — it is correct as written, and that check would fire on a healthy run.
 
-### 🔜 `#24-e4healing` — ⛔⛔ **§Ch24 BLOCKER: THE BOT CANNOT USE 11 OF THE 44 ITEMS IT JUST BOUGHT, AND HAS NO WAY TO HEAL BETWEEN THE FIVE FIGHTS.** (opened 2026-09-04)
+### 🔜 `#24-e4healing` — **§Ch24 HEALING: the bot CAN now revive, cure status and top up out of battle (step 1 DONE 2026-09-04). Steps 2-4 — calling it between rooms, the in-battle question, and the 0.35 threshold — REMAIN.** (opened 2026-09-04)
 
-**STATUS: OPEN — this is the FIRST thing §Ch24 needs, ahead of any routing or battle work.**
+**STATUS: OPEN — step 1 of 4 is DONE (the party-heal is built and driven); steps 2-4 remain.**
 
 **MEASURED BY ME against our own code, 2026-09-04 — not an agent's claim.** (A research agent
 reported the in-battle cap was "1+ per battle"; the real constant is
@@ -655,10 +655,23 @@ mon cannot be revived (see above), sending the L19 in is **a wasted Pokémon we 
 ⇒ this is now a §Ch24 blocker too, not just a §Ch23 annoyance.
 
 **THE WORK (in order):**
-- [ ] **1. Build an out-of-battle party-heal** — `heal_party_from_bag()`: open bag → select item →
-      answer the party-menu prompt → target the right member → confirm the HP/status actually
-      changed. ⛔ **GRADE THE CONSEQUENCE, NOT THE CALL** (the leg-11 lesson): assert HP rose /
-      status cleared, never that the menu closed.
+- [x] ✅✅ **1. DONE 2026-09-04 — `heal_party_from_bag()` IS BUILT AND DRIVEN.** ⛔ DO NOT REBUILD IT.
+      `modules/story/pokemon_league.py` (the driver) + `modules/story/overworld_items.py` (a PURE
+      policy, gate **#36** `repro_overworld_items.py`, fault-tested against **five** broken policies).
+      `--driver ch24heal` `ACCEPTANCE: PASS`: from *two fainted, one FROZEN, two badly hurt* → seven
+      actions → **147/147 · 48/48 · 139/139 · 226/226 · 144/144 · 103/103**, `heal_ready=True`,
+      `whiteouts=0`. `POKEBOT_CH24_FAULT_NOHEAL=1` correctly FAILS.
+      ⭐ **THE DISCRIMINATOR IS THE REVIVE ORDER**, and it is asserted live: with Mightyena L48 in
+      slot 4 and Zigzagoon L19 in slot 1 both fainted, a slot-order policy revives the HM mule first.
+      The run logs `REVIVE ORDER = [(4,'Revive'),(1,'Revive')]` — battle value, not slot order.
+      ⭐ And a CONTROL: Castform is deliberately left untouched by the staging, and the run asserts it
+      is still untouched afterwards — a heal there would mean the "never a no-op" rule is broken.
+      ⛔⛔ **TWO BUGS ONLY THE LIVE DRIVE CAUGHT, BOTH "a field read as if it described itself":**
+      (1) `parameter` is a **UNION TYPE** — filtering on `parameter > 0` picked **Repel** (parameter
+      100 = *steps*) as a healer; (2) `field_use` is an **ENUM**, so `== "healing"` is always False
+      and the allowlist came back EMPTY — **silently**, because the revive/status passes do not use
+      it. ⇒ the gate now carries Repel/X Attack/Nugget/Escape Rope as TRAPS (its item universe was
+      cleaner than the real bag), and an empty allowlist now RAISES.
 - [ ] **2. Call it between rooms**, in the corridor after each Elite Four win, before the next door.
 - [ ] **3. Decide whether the in-battle policy should get status/revive awareness**, or whether
       between-room healing is enough. ⭐ Prefer step 2 first — it is the cheaper, more testable half,

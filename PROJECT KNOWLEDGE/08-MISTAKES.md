@@ -12231,3 +12231,68 @@ dangerous state of all, because the pair check between the two that were fixed r
 ⭐ Distinguish the file kinds while doing it: in an **append-only** file (`06`/`07`/`08`) a dated
 later correction is sufficient and the old entry stays; in a **current-state** file (`01`-`05`) the
 stale figure must be fixed or annotated **in place**, because nothing tells the reader it is old.
+
+
+---
+
+## 2026-09-04 — A field read as if it described itself, twice in one function
+
+Two separate bugs in `#24-e4healing`, both found by DRIVING and neither by a gate, and they are the
+same mistake wearing different clothes.
+
+### (a) `parameter` is a UNION TYPE — and Repel's is 100
+
+**Symptom.** The healing plan contained `(4, 'Repel', 'Mightyena at 0/144')`, and the leg died with
+*"`Task_HandleChooseMonInput` never became active"*.
+
+**Root cause.** `plan_healing` selected healers with `parameter > 0`. **`Repel`'s parameter is 100 —
+one hundred STEPS, not one hundred HP.** A no-target item never opens the party menu, so the run
+stalled at a state it could never reach.
+
+**Prevention rule.** ⛔ **`parameter` MEANS DIFFERENT THINGS FOR DIFFERENT ITEMS** — HP for a potion,
+steps for a Repel, 0 for a status cure. **A number cannot identify a category.** Filter medicine by
+an explicit allowlist (`ItemFieldUse.Healing`), never by a numeric field being non-zero.
+‼ This is the MIRROR of `battle_items.py:85`, which uses the same test to wrongly EXCLUDE Full Heal
+and Revive. **One field, read two ways, wrong both times.**
+
+### (b) `field_use` is an ENUM — and comparing it to a string fails silently
+
+**Symptom.** The fix for (a) derived an allowlist with `slot.item.field_use == "healing"`. The next
+drive planned the two Revives and the Full Heal correctly and **no HP top-ups at all** — Sceptile
+sat at 40/147 and Wailord at 30/226 while the run reported no error.
+
+**Root cause.** `Item.field_use` is an `ItemFieldUse` **enum** (`modules/items.py:92-106`), so the
+comparison is always `False` and the allowlist came back **EMPTY**. ⇒ ‼ **It failed silently because
+only ONE of the three passes consults the allowlist** — the revive and status passes index the bag
+by name directly, so they kept working. **The run looked nearly right.**
+
+**Prevention rule.** ⛔ **AN EMPTY FILTER RESULT IS A BUG, NOT A STATE** — `heal_party_from_bag` now
+RAISES if the allowlist is empty while the bag holds items. ⭐ And the general form:
+**a wrong answer that is a subset of the right answer is far more dangerous than a crash**, because
+every surviving part corroborates it. When a change makes output *smaller*, ask what disappeared.
+
+---
+
+## 2026-09-04 — My fault test found my gate blind: a check whose two arms give the same answer
+
+**Symptom.** Gate #36's most important rule — *revive by battle value, not slot order* — had a
+dedicated check, and the check PASSED against a deliberately broken slot-order policy.
+
+**Root cause.** The fixture fainted **Sceptile (slot 0, L53)** and **Zigzagoon (slot 1, L19)**. Sorting
+by lowest slot and sorting by highest level **both answer Sceptile.** The two policies were
+indistinguishable on that input, so the check could not fail.
+
+**How it was found.** Not by reading it. By breaking the production module four ways in a script and
+demanding the gate go red for each — fault A came back `exit=0 ⛔⛔ GATE MISSED IT`.
+
+**The fix.** Both revive checks now put the high-level mon LATER in slot order than a decoy
+(Mightyena slot 4 L48 vs Zigzagoon slot 1 L19), so slot order and level order disagree. A fifth
+fault arm was added for the Repel bug. All five now fail the gate.
+
+**Prevention rule.** ⛔ **A CHECK WHOSE ARMS PRODUCE THE SAME ANSWER ON THE CHOSEN FIXTURE IS
+VACUOUS, AND IT PASSES LOUDLY.** Before trusting a discriminating check, **compute both arms on that
+exact fixture and confirm they differ** — the project already knows this shape (`team_max 39` made a
+§Ch21 A/B vacuous), and it recurs because a passing test feels like evidence.
+⭐ Corollary, and the reason this is a separate entry from the two above: **a gate is not proven by
+its own `--self-test` arm.** #36's built-in self-test was green while the gate was blind. Only
+breaking the REAL module proved anything.

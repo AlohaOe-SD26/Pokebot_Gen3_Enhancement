@@ -22030,3 +22030,55 @@ staying power.)*
 The `NOBUY` fault arm was run and correctly prints `ACCEPTANCE: FAIL`, naming the exact shortfall —
 because the leg grades **the bag's contents**, not whether `buy_in_shop` returned. The Elite Four has
 no second chance to notice a thin basket.
+
+
+## 2026-09-04 — `#24-e4healing` step 1: the bot can finally use the other half of its bag
+
+**What shipped.** `modules/story/overworld_items.py` (a **PURE** policy — `plan_healing`,
+`party_is_gauntlet_ready`) and `modules/story/pokemon_league.py` (the driver —
+`use_item_on_party_member`, `heal_party_from_bag`), plus gate **#36**
+`repro_overworld_items.py` and harness driver `--driver ch24heal`.
+
+`ACCEPTANCE: PASS` on its third drive: from a staged party of **two fainted, one FROZEN and two badly
+hurt**, seven actions produced **147/147 · 48/48 · 139/139 · 226/226 · 144/144 · 103/103**,
+`heal_ready=True`, `battles=0`, `whiteouts=0`. `POKEBOT_CH24_FAULT_NOHEAL=1` correctly FAILS.
+
+**⛔ WHY IT MATTERED.** Until now the bot could not use **11 of the 44 items §Ch23 leg 11 bought** —
+`battle_items.py:85` filters on `param > 0` and Full Heal / Revive / Antidote are all `parameter ==
+0`. In a five-fight gauntlet with no nurse that meant no revives, no status cures, and damage
+carrying from Sidney to Wallace. It can now do all three.
+
+**⭐ THE SPLIT IS THE DESIGN.** The policy is pure — no emulator, no game state — so gate #36 proved
+it exhaustively in milliseconds *before a single button was pressed*, the same separation that made
+`battle_items.py` provable. The driver only executes a plan.
+
+**⛔⛔ TWO BUGS THE LIVE DRIVE CAUGHT THAT THE GATE DID NOT, AND THEY ARE THE SAME BUG TWICE:**
+1. **`parameter` is a UNION TYPE.** Filtering healers on `parameter > 0` selected **`Repel`**, whose
+   parameter is **100 — one hundred STEPS, not HP**. The plan read *"(4, 'Repel', 'Mightyena at
+   0/144')"* and the run died waiting for a party menu that a no-target item never opens.
+2. **`field_use` is an ENUM, not a string** (`modules/items.py:92`). `field_use == "healing"` is
+   always False, so the allowlist came back **EMPTY** — and it failed **SILENTLY**, because the
+   revive and status passes never consult it. Two revives and a Full Heal still worked; only the HP
+   top-ups vanished. ⇒ **the run looked *nearly* right, which is the worst way to be wrong.**
+
+⇒ **ASK WHAT A FIELD MEANS BEFORE TRUSTING WHAT IT SAYS.** A number that is HP for one item and steps
+for another cannot identify a category; a string comparison against an enum cannot either. Both now
+have guards: an allowlist derived from `ItemFieldUse.Healing`, and an **empty allowlist RAISES**
+instead of quietly planning nothing.
+
+**‼ AND WHY THE GATE MISSED BOTH: its item universe was cleaner than reality.** `PARAMS` listed only
+medicine, so there was no Repel to fall into. It now carries **Repel, X Attack, Nugget and Escape
+Rope as deliberate traps** — every one of them genuinely in `post_league_shop.ss1` — with checks that
+assert no non-medicine is ever chosen, *including when medicine has run out.*
+
+**⭐ THE FAULT TEST IS WHAT MADE THE GATE WORTH ANYTHING, AND IT FOUND THE GATE BLIND.** Breaking the
+production module five ways showed fault A — *revive by slot order* — passing cleanly, because the
+fixture fainted Sceptile at slot 0 and Zigzagoon at slot 1, so **"lowest slot" and "highest level"
+both answered Sceptile.** ⇒ **a check whose arms give the same answer on the chosen fixture is
+vacuous, and it passes loudly.** Both revive checks now put the high-level mon LATER in slot order
+than a decoy, and all five faults are caught.
+
+**The live discriminator matches:** with Mightyena L48 (slot 4) and Zigzagoon L19 (slot 1) both
+fainted, the run logs `REVIVE ORDER = [(4,'Revive'),(1,'Revive')]` — battle value, not slot order.
+Castform is left untouched by the staging and asserted untouched afterwards, so "never a no-op" is
+checked live rather than only in the gate.

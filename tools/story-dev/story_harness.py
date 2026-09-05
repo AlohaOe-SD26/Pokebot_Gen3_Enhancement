@@ -1,4 +1,4 @@
-﻿"""FAITHFUL reproduction harness for the Lv16 move-learn hang (ML-11/ML-12).
+"""FAITHFUL reproduction harness for the Lv16 move-learn hang (ML-11/ML-12).
 
 Replicates modules/main.py's main_loop EXACTLY (FrameInfo build + listener
 dispatch + controller-stack advance + run_single_frame) so behaviour matches
@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch24heal", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -14823,6 +14823,154 @@ class Ch23ShopMode(BotMode):
         context.set_manual_mode()
 
 
+def _where_ch24():
+    """Position, for the §Ch24 drivers' FINAL line. Kept local so §Ch24 does not import §Ch23."""
+    from modules.player import get_player_avatar
+
+    a = get_player_avatar()
+    return (a.map_group_and_number, (a.local_coordinates[0], a.local_coordinates[1]))
+
+
+
+class Ch24HealMode(BotMode):
+    """§Ch24 `#24-e4healing` — OUT-OF-BATTLE healing from the bag. **PRODUCTION CODE.**
+
+    ⛔⛔ WHY THIS EXISTS. The Elite Four is five fights with no nurse and no way back, and until now
+    the bot could not use **11 of the 44 items it bought**: `battle_items.py:85` filters on
+    `param > 0`, and Full Heal / Revive / Antidote are all `parameter == 0`. So it could not revive,
+    could not cure status, and could not top up between rooms.
+
+    ‼ THIS DRIVER STAGES ITS OWN DAMAGE, because no fixture has BOTH a hurt party and the basket —
+    `post_vr_exit.ss1` is hurt but pre-purchase, `post_league_shop.ss1` is stocked but at 807/807.
+    Staging writes `gPlayerParty` directly (the proven KI-66 shape) and then re-reads through the
+    PRODUCTION reader with the cache reset, so the run is graded on what the game actually holds.
+
+    ⭐ THE STAGING IS CHOSEN TO DISCRIMINATE, not just to damage:
+      * slot 4 Mightyena (L48) is FAINTED and slot 1 Zigzagoon (L19) is FAINTED — so a policy that
+        revived by SLOT ORDER would pick Zigzagoon and a policy that revives by BATTLE VALUE picks
+        Mightyena. ⛔ Two Revives are held, so BOTH get revived — the discriminator is the ORDER,
+        which the report records.
+      * slot 0 Sceptile is FROZEN — Gen-3 freeze never thaws on its own, and it is the status the
+        policy explicitly warns about.
+      * slot 3 Wailord is hurt but NOT below the bar... actually it is, deliberately, so the
+        cheapest-sufficient rule has to choose between Hyper Potion and Full Restore.
+      * slot 5 Castform is left UNTOUCHED — ⭐ the CONTROL. If the run touches it, the "never a
+        no-op" rule is broken and the gate that proves it is lying.
+
+    FAULT ARM: `POKEBOT_CH24_FAULT_NOHEAL=1` stages the damage and SKIPS the heal; the acceptance
+    check MUST then FAIL.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_league_shop.ss1 --driver ch24heal --frames 60000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24Heal"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        from modules.memory import read_symbol, write_symbol
+        from modules.state_cache import state_cache
+        from modules.story import pokemon_league as PL
+        # ‼ FOURTH TIME THIS FILE HAS BITTEN ME: a helper another driver imports LOCALLY is not in
+        # scope here. `wait_until_truly_controllable` is imported per-function throughout.
+        from modules.story.early_game import wait_until_truly_controllable
+
+        TAG = "ch24heal"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        report: dict = {"readings": set()}
+
+        yield from wait_until_truly_controllable()
+
+        # ---- STAGE. ⛔ `gPlayerParty` slot stride is 100; HP is data[86:88], status is data[80:84].
+        # ‼ RESET THE CACHE BEFORE READING BACK — `get_party()` is served from `state_cache`, and
+        # the KI-66 driver's first version read the PRE-WRITE value and reported a false failure.
+        STAGE = {0: {"hp": 40, "status": 0x20},   # Sceptile 147 -> 40 and FROZEN (0x20)
+                 1: {"hp": 0},                    # Zigzagoon L19 FAINTED  (the decoy)
+                 3: {"hp": 30},                   # Wailord 226 -> 30
+                 4: {"hp": 0}}                    # Mightyena L48 FAINTED  (the right Revive target)
+        raw = bytearray(read_symbol("gPlayerParty"))
+        for slot, want in STAGE.items():
+            off = slot * 100
+            raw[off + 86 : off + 88] = int(want["hp"]).to_bytes(2, "little")
+            if "status" in want:
+                raw[off + 80 : off + 84] = int(want["status"]).to_bytes(4, "little")
+        write_symbol("gPlayerParty", bytes(raw))
+        state_cache.reset()
+
+        staged = PL._party_snapshot()
+        log(f"[{TAG}] STAGED " + " | ".join(
+            f"{t.name}:{t.current_hp}/{t.total_hp}" + (f" {t.status}" if t.status else "")
+            for t in staged))
+        report["staged"] = [(t.name, t.current_hp, t.status) for t in staged]
+
+        # ⛔ ANTI-VACUITY: if the staging did not take, the run proves nothing about healing.
+        premise_ok = (
+            any(t.fainted for t in staged)
+            and any(t.status is not None for t in staged)
+            and not PL.party_is_gauntlet_ready(staged)
+        )
+        report["premise_ok"] = premise_ok
+        log(f"[{TAG}] premise_ok={premise_ok} "
+            f"(fainted={[t.name for t in staged if t.fainted]}, "
+            f"statused={[(t.name, t.status) for t in staged if t.status]})")
+
+        control_before = staged[5] if len(staged) > 5 else None
+
+        failure = None
+        if _os.environ.get("POKEBOT_CH24_FAULT_NOHEAL") == "1":
+            context.message = "Ch24 FAULT NOHEAL: staging only, no heal"
+            log(f"[{TAG}] FAULT NOHEAL — skipping heal_party_from_bag")
+        else:
+            try:
+                yield from PL.heal_party_from_bag(report)
+            except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                failure = f"{type(error).__name__}: {error}"
+                log(f"[{TAG}] FAILURE {failure}")
+
+        state_cache.reset()
+        after = PL._party_snapshot()
+        for key in ("heal_plan", "heal_actions", "heal_ready"):
+            if key in report:
+                log(f"[{TAG}] R {key} = {report[key]!r}")
+        log(f"[{TAG}] AFTER " + " | ".join(
+            f"{t.name}:{t.current_hp}/{t.total_hp}" + (f" {t.status}" if t.status else "")
+            for t in after))
+
+        # ---- ⭐ THE DISCRIMINATOR: which mon got revived FIRST? ----------------------------------
+        order = [(a[0], a[1]) for a in report.get("heal_plan", []) if a[1] in ("Revive", "Max Revive")]
+        log(f"[{TAG}] REVIVE ORDER (slot, item) = {order}")
+        revive_ok = bool(order) and order[0][0] == 4   # Mightyena L48 before Zigzagoon L19
+        log(f"[{TAG}] revive_by_battle_value={revive_ok} "
+            f"(slot 4 Mightyena L48 must come before slot 1 Zigzagoon L19)")
+
+        # ---- ⛔ THE CONTROL: the untouched member must be untouched -------------------------------
+        control_ok = True
+        if control_before is not None and len(after) > 5:
+            control_ok = (after[5].current_hp == control_before.current_hp)
+            log(f"[{TAG}] CONTROL Castform {control_before.current_hp} -> {after[5].current_hp} "
+                f"untouched={control_ok}  (a heal here would break 'never a no-op')")
+
+        ready = PL.party_is_gauntlet_ready(after)
+        passed = (failure is None and premise_ok and ready and revive_ok and control_ok
+                  and self.whiteouts == 0)
+        log(f"[{TAG}] GRADE premise_ok={premise_ok} ready={ready} revive_ok={revive_ok} "
+            f"control_ok={control_ok} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] FINAL position={_where_ch24()}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
 class Ch22StairsMode(BotMode):
     """§Ch22 — READ-ONLY: what does the stair column ACTUALLY read once the puzzle is solved?
 
@@ -16625,6 +16773,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23LeagueHealMode()
         elif args.driver == "ch23shop":
             context.bot_mode_instance = Ch23ShopMode()
+        elif args.driver == "ch24heal":
+            context.bot_mode_instance = Ch24HealMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

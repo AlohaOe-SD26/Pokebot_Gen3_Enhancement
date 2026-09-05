@@ -210,6 +210,18 @@ GATES: list[tuple[str, bool]] = [
     # clean TWICE first (line-by-line, then bullet-wise but unflattened) while its own fault arm
     # "proved" it worked. A gate is not proven by its own fault arm.
     ("probe_closed_item_refs.py", False),
+    # --- #36 — `#24-e4healing`: the OUT-OF-BATTLE healing policy (`modules/story/overworld_items.py`)
+    # ‼ APPENDED AT THE END, never inserted — the same rule #34 and #35 carry.
+    # WHY A GATE: the policy runs between Elite Four rooms, where there is no nurse, no shop and no
+    # way back, so a wrong choice is unrecoverable rather than merely wasteful. The module is PURE,
+    # so exhaustive checking costs milliseconds and there is no excuse not to.
+    # ⛔ AND IT WAS ONLY TRUSTED AFTER A REAL FAULT TEST BROKE THE PRODUCTION MODULE FOUR WAYS.
+    # The first version was BLIND to its single most important rule (revive by battle value, not
+    # slot order): the fixture fainted Sceptile at slot 0 and Zigzagoon at slot 1, so "lowest slot"
+    # and "highest level" both answered Sceptile and the two policies were INDISTINGUISHABLE.
+    # ⇒ **a check whose arms give the same answer on the chosen fixture is vacuous**, and it passes
+    # loudly. Both revive checks now put the high-level mon LATER in slot order than a decoy.
+    ("repro_overworld_items.py", False),
 ]
 
 
