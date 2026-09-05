@@ -624,27 +624,16 @@ our best hit of 74. That needs SolarBeam + Sunny Day (TM22 / TM11, both also fre
 
 ### ✅ `#24-flyunlock` — **CLOSED 2026-09-05: FLY IS TAUGHT AND FLOWN. THE EVER GRANDE PLATEAU IS SOLVED.** ⛔ DO NOT REDO.
 
-⛔⛔ **THE PROBLEM WAS GEOGRAPHY, NOT POLICY.** MEASURED with `calculate_path` from
-EVER_GRANDE_CITY (18,6):
-
-| target | result |
-|---|---|
-| League door apron (18,6) | OK 0 wp |
-| Victory Road exit landing (18,28) | OK 36 wp |
-| Poké Center door (27,48) | ⛔ `PathFindingError` |
-| Victory Road apron (18,42) | ⛔ `PathFindingError` |
-| southern shore (18,55) / water (18,60) | ⛔ `PathFindingError` |
-
-⇒ **the bot could not walk to a single wild encounter.** The catching/Pokédex directive AND both
-free TM pickups that win Drake were all behind one Fly.
-
-✅ **`--driver ch24fly`** (`post_fly.ss1`, md5 `a45283a669e7ee36776b43acec3a8580`): Swellow learns
-**Fly** over **Wing Attack** — strictly dominated by the Aerial Ace it already knew (same type, same
-60 power, never misses). Swellow is the ONLY member that can learn it.
-✅ **`--driver ch24flyto`** (`post_slateport.ss1`, md5 `171460626f5f6fead942aa88a85b2050`): flies to
-**SLATEPORT_CITY (19,20)** — `moved=True`, `party_pids_stable=True` (by PID), `neighbours_reachable=4`.
-⭐ **Graded on ARRIVAL, not on knowing the move.** Fault arm `POKEBOT_CH24_FAULT_NOFLY=1` FAILS.
-✅ 16 of 17 fly destinations unlocked (all but Pacifidlog).
+⛔⛔ **THE PROBLEM WAS GEOGRAPHY, NOT POLICY.** `calculate_path` from EVER_GRANDE_CITY (18,6)
+reached ONLY the League door (0 wp) and the Victory Road exit landing (36 wp); the Poké Center
+(27,48), the VR apron (18,42), the southern shore (18,55) and the water (18,60) all returned
+`PathFindingError` ⇒ **the bot could not walk to a single wild encounter.**
+✅ `--driver ch24fly` → `post_fly.ss1` (`a45283a669e7ee36776b43acec3a8580`): Swellow learns **Fly**
+over **Wing Attack** (strictly dominated by its own Aerial Ace; Swellow is the ONLY member that can
+learn Fly). ✅ `--driver ch24flyto` → `post_slateport.ss1` (`171460626f5f6fead942aa88a85b2050`):
+flies to **SLATEPORT_CITY (19,20)**, `moved=True`, `party_pids_stable=True`, `neighbours_reachable=4`.
+⭐ Graded on ARRIVAL, not on knowing the move; `POKEBOT_CH24_FAULT_NOFLY=1` FAILS. 16/17 destinations
+unlocked. 📦 Full detail: `07-CHANGELOG.md` 2026-09-05.
 
 ---
 

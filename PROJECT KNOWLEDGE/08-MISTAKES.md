@@ -12388,3 +12388,57 @@ the user's language, not in the repo's slugs. ⇒ **grep the decisions log for t
 `dex`, `pokedex`) at the START of any new feature, not only before escalating.** ⭐ And the tell was
 there: `_should_catch` already implemented the exact policy. **Code that already does what you are
 about to design is evidence that someone decided this before you.**
+
+
+---
+
+## 2026-09-05 — I fixed a pair failure by committing the same pair failure
+
+**Symptom.** A Tier 2 cold-start audit found the `➡➡➡` queue marker naming TWO different "first
+actions" with no tie-break, and — worse — ranking first an item whose step 2 could not be started
+(*"call the heal BETWEEN ROOMS"* when no rooms exist; `story_mode.py` dispatch stops at Segment 22).
+I rewrote the marker. A Tier 2 **RE-audit** then found **four** statements of a first action in the
+same file, one of them my fix.
+
+**Root cause.** The order lives in THREE places: the line-10 banner, the 60-second version (line
+165), and the marker (line 309). **I rewrote the marker and left the other two** — and both of them
+end with the words *"the SAME order as the queue marker"*. ⇒ ⛔ **they falsely certified their own
+agreement**, so the cheap consistency check — *does the summary match the queue?* — was answered BY
+THE SUMMARY. A reader trusting the 60-second version (which this file calls the first thing a cold
+reader sees) would have started the one item that cannot be started.
+
+**Prevention rule.** ⛔ **A SUMMARY THAT SAYS "the SAME order as X" IS A CLAIM ABOUT X, AND IT GOES
+STALE WHEN X MOVES.** Treat every such sentence as another half of the pair and re-read it whenever
+the thing it points at is edited. ⭐ And the sharper form: **a cross-reference that ASSERTS agreement
+is more dangerous than one that merely restates**, because it disables the check a reader would
+otherwise perform.
+‼ **THE CONTEXT IS THE POINT: P1 IS THIS PROJECT'S OLDEST NAMED PAIR, AND THE FIX FOR A P1 VIOLATION
+WAS ITSELF A P1 VIOLATION.** Knowing a rule, and having just invoked it, does not make you apply it
+to your own edit. ⇒ **the re-audit is not optional ceremony** — CLAUDE.md already says *"when a
+Tier 2 finding is fixed, re-run Tier 2 and check WHERE the fix landed, not merely THAT it landed"*,
+and this is the third time that instruction has earned its keep.
+
+---
+
+## 2026-09-05 — Three more shapes the same round, all "a fix that landed in one half"
+
+**(a) A COUNT WITHOUT ITS ENUMERATION.** The STATE table's drift cell was corrected from **9** to
+**14** — and the list of files underneath was left at **EIGHT**. That cell is *promotion-facing*: a
+user ruling taken off it would have promoted 8 of 14. ⇒ ⛔ **A COUNT AND ITS LIST ARE TWO HALVES OF
+ONE FACT.** The cell now names `promote.py --check` and refuses to be the authority.
+
+**(b) A LINE-COUNT WRITTEN INTO THE FILE IT COUNTS.** Correcting an inverted budget warning, I
+hardcoded *"892/900"* — and my own edit had already made it **893**. The clause it sat in told the
+reader to measure rather than repeat. ⇒ ⛔ **A LINE-COUNT IS STALE THE MOMENT IT IS WRITTEN INTO ITS
+OWN FILE.** Name the tool, quote no number.
+
+**(c) A PREDICTION PROMOTED TO A FACT BY REWORDING.** The marker read *"It turns DRAKE from a LOSS
+into a WIN"*. **The bot has never fought Drake** — §Ch24 is not implemented. Line 165 had it right
+(*"analysis says"*); my rewrite dropped the hedge, and the new STATE row repeated the loss of it. ⇒
+⛔ **WHEN YOU SHORTEN A CLAIM, THE HEDGE IS THE FIRST THING THAT FALLS OFF, AND IT IS THE PART THAT
+WAS DOING THE WORK.** These figures are IV-31/EV-0 estimates, ±15%, with Intimidate unmodelled.
+
+⭐ All four defects passed Tier 0 clean. **`lint_docs`, `audit_doc_consistency` and
+`audit_handoff_invariants` cannot see a marker that contradicts the two summaries pointing at it, a
+count with a short list beneath it, or a hedge that has been deleted.** ⇒ the mechanical layer bounds
+the damage; it does not detect this class. Only a cold reader trying to START does.
