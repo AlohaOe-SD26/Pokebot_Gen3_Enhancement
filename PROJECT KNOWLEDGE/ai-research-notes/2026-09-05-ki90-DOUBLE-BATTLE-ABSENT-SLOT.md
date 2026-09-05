@@ -102,7 +102,12 @@ their CAUSAL CONCLUSIONS not at all.**
 * Whether other double-battle trainer pairs on the §Ch23/§Ch24 route reach the same state.
 * Whether the candidate fix (fall back to the RIGHT opponent when the left is absent, as
   `HandleInputChooseMove` does) is safe for every caller of `battle_action_use_move` — **UNVERIFIED**,
-  and the file is shared upstream, so the `KI-83`/`KI-88`/`KI-89` ruling applies: build the repro
-  first, and route around rather than casually patch.
+  and the file is shared hot-path code. ⚠ *(This read "the `KI-83`/`KI-88`/`KI-89` ruling applies" — that ruling **does not exist**; see `06-DECISIONS-LOG.md` 2026-09-05.)* Build the repro FIRST (done — gate #38), then decide the fix on
+  EVIDENCE: a failing repro, an argument that the change is ADDITIVE to states that work
+  today, and the full suite. ⛔ **NOT "route around rather than casually patch"** — that was
+  the retracted ruling's own conclusion, and it stood here as the sentence's LAST WORDS for one
+  revision after the citation above was corrected. ‼ Caught by Tier 1: **retracting a claim
+  means retracting what it CONCLUDED, not just the sentence that cited it** — the headline
+  carries the caveat, and a reader reaches the END of the sentence.
 
 📌 Related: `05-KNOWN-ISSUES.md` KI-90 (the live entry), `03-PUNCH-LIST.md` `#24-ch23chain`.

@@ -2886,7 +2886,7 @@ used items whose two indices COINCIDE. TM13 is the first item this save acquired
 differs per caller and can be a NO-OP rather than an error (using the wrong potion still "works").
 ⚠ **NOT yet measured for those callers** — this KI records what one run proved, not a sweep.
 
-**NOT FIXED UPSTREAM, DELIBERATELY — same ruling as `KI-88`.** `modules/menuing.py` is a shared file
+**NOT FIXED UPSTREAM — A CASE-BY-CASE CALL, NOT A RULING.** ⛔ *(This read "same ruling as `KI-88`" until 2026-09-05. **There is no such ruling** — `KI-88` in turn cited `KI-83`, and nothing at the bottom of that chain was ever decided; see `06-DECISIONS-LOG.md` 2026-09-05. This is a ROOT LINK of the chain that entry retracts, and it was left standing for one revision after the entries citing it were fixed.)* The reason below is this defect's OWN reason and stands on its own: `modules/menuing.py` is a shared file
 every chapter depends on, and a partial fix to its sibling hung a drive on 2026-09-05. Routed around
 in `modules/story/pokemon_league.py::scroll_to_tm_verified`, which calls upstream, READS THE CURSOR
 BACK out of `gBagPosition`, corrects it closed-loop and BOUNDED against `get_item_bag().tms_hms`, and
@@ -2947,8 +2947,7 @@ this. ‼ **BUT NOT UNTOUCHED EITHER:** `story_mode.py:261`'s own comment cites 
 ⚠ **NOT MEASURED: how OFTEN it fires.** Two occurrences seven weeks apart is an existence proof, not
 a rate. It is a CORRECTNESS question, so the instrument is a repro, never a batch.
 
-**NOT FIXED, deliberately** — `battle_action_selection.py` is shared upstream; same ruling as
-`KI-83`/`KI-88`/`KI-89`. Tracked as `#24-ch23chain`.
+**NOT FIXED YET — and NOT because of a ruling.** ⛔ This entry used to say "shared upstream; same ruling as `KI-83`/`KI-88`/`KI-89`". **That ruling does not exist** (`06-DECISIONS-LOG.md` 2026-09-05); we have modified this file 8 times, including a hang fix. It is unfixed because the fix is not yet DECIDED — see `#24-ch23chain`. Tracked as `#24-ch23chain`.
 ✅ **REPRODUCED 2026-09-05 — `tools/story-dev/repro_ki90_absent_left_slot.py` (gate #38).**
 Three arms, in-process, milliseconds, against a REAL `BattleState` and the REAL
 `battle_action_use_move` (what is real vs stubbed, and why, is in that file's own docstring):

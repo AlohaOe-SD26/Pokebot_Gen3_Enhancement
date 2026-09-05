@@ -669,7 +669,7 @@ beaten trainer never approaches (`trainer_see.c:255-273`), so the run would sile
 ⇒ make it FAIL FIRST. ⛔ **DO NOT hunt a faint-during-move-selection window: that mechanism is REFUTED** (the
 `battle_state` byte is a FROZEN snapshot taken before the A-presses), and chasing it would burn a day on a
 state that cannot occur. The raise is DETERMINISTIC given an absent left slot, not stochastic; (2) only then decide the fix, and remember the file
-is shared upstream (`KI-83`/`KI-88`/`KI-89` ruling: route around, do not casually patch);
+is shared upstream ⚠ *(and note: the "`KI-83`/`KI-88`/`KI-89` ruling: route around" this line used to cite **DOES NOT EXIST** — see `06-DECISIONS-LOG.md` 2026-09-05. The real bar is EVIDENCE, not the filename; we have modified that file 8 times, including a hang fix)*;
 (3) re-run `--driver ch23chapter post_wally.ss1 --frames 600000` and expect the chain to complete.
 ⚠ Do NOT reach for a batch: this is a CORRECTNESS question, so the instrument is a repro.
 
@@ -728,7 +728,7 @@ used items whose two indices COINCIDE. TM13 is the first item acquired out of th
 **THE FIX, SHIPPED (`pokemon_league.py::scroll_to_tm_verified`):** call upstream, then READ the cursor
 back out of `gBagPosition`, correct it closed-loop and BOUNDED against `get_item_bag().tms_hms`, and
 **RAISE rather than press A on an unverified cursor** (a Gen-3 TM is single-use).
-⛔ Upstream `modules/menuing.py` is left ALONE — shared file, same ruling as `KI-88`.
+⛔ Upstream `modules/menuing.py` is left ALONE — a CASE-BY-CASE call for THIS defect (shared hot path; the cheaper route existed), ⛔ **not a ruling**: *(this read "same ruling as `KI-88`" until 2026-09-05; no such ruling exists — see `06-DECISIONS-LOG.md` 2026-09-05)*.
 
 **ALSO MEASURED, so do not re-derive:** the party cursor lands correctly
 (`reads=[2,2,2,2,2,2,2,3,3,3]`, mon under cursor = Wailord); `can_learn_tm_hm(TM13)` is True;

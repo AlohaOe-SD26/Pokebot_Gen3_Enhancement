@@ -22553,3 +22553,108 @@ in this file's own usage block, always exited 1 — `discriminator()` returned 0
 verdict. ⇒ ⭐ **A GUARD THAT FAILS THE DOCUMENTED HAPPY PATH TEACHES PEOPLE TO IGNORE IT**, which is
 `CLAUDE.md` rule 6's false-positive warning arriving from the opposite direction. Fixed: the
 discriminator's result is a verdict.
+
+
+## 2026-09-05 — the "route around" ruling I kept citing DOES NOT EXIST, and my own gate blesses bad fixes
+
+**⛔ CORRECTION TO FIVE LIVE DOCUMENTS, INCLUDING THE `➡➡➡` MARKER.** I asserted, and used to constrain
+the KI-90 fix decision, *"the `KI-83`/`KI-88`/`KI-89` ruling: route around, do not casually patch"*.
+A 10-agent decision workflow's PRECEDENT angle checked it and I verified myself:
+* `grep -ic "route around" 06-DECISIONS-LOG.md` → **1**, and that hit is a VETO in an unrelated
+  decision, not a policy on shared files;
+* `git log --oneline -- .../battle_action_selection.py | wc -l` → **8**. We have modified that exact
+  file eight times, including **`d8230560`, a HANG FIX in this very file**.
+⇒ ⭐ **A KI-TO-KI CITATION CHAIN IS NOT A RULING.** KI-89 cited KI-88, KI-88 cited KI-83, and nothing
+at the bottom was ever decided. `CLAUDE.md` puts rulings in the decisions log precisely so a question
+is not answered twice; a chain with no root is worse than no rule — it is a constraint nobody chose,
+nobody can find, and that silently narrows every later decision. The real position is now recorded in
+`06-DECISIONS-LOG.md`: **the bar is EVIDENCE, not the filename.**
+‼ The KI-88/KI-89 judgments themselves survive as case-by-case calls with real reasons; what does not
+survive is their status as binding precedent and their premise that the file is untouched.
+
+**⛔⛔ AND THE WORKFLOW FOUND SOMETHING WORSE, ABOUT MY OWN GATE.** Its RISK angle fault-tested gate
+#38 and reports it exits 0 printing *"KI-90 NO LONGER REPRODUCES"* for candidate fixes that **do
+nothing, aim at our own partner, or aim at a slot that may not exist** — and that it SKIPS arms B and
+C when it self-retires. ⇒ **the yardstick would bless a broken fix.** That is the single most
+dangerous thing in this defect, because the gate is what any fix will be judged by.
+⭐ The cause is my design: self-retirement triggers on *any* non-raise, and never checks WHAT the code
+did. This project's own rule names the error — **INSTRUMENT THE ACTION, NOT THE INPUT**: the gate
+asks "did it raise?" when it should assert the `target_index` the code actually acts on.
+⇒ Tracked as the next step of `#24-ch23chain`; **no targeting fix may be judged by this gate until it
+is hardened.**
+
+**AND THE FIX DECISION IS DELIBERATELY NOT MADE.** Four of five proposals were broken by their own
+attackers. Two findings that must survive into whoever decides it:
+* ⛔ **THE RAISE IS LOAD-BEARING.** Deleting it produces a measured infinite Down-press loop —
+  `HandleInputChooseTarget` skips absent battlers (`src/battle_controller_player.c:422`, `:464`), so
+  "just remove the raise" converts a loud failure into a HANG, which is strictly worse.
+* ⛔ **ROUTE-AROUND IS INCOMPLETE AS SCOPED:** the "three producers" are **eight** unguarded
+  `TurnAction.UseMove` sites across four files, and `use_move_against_left_side_opponent()` is a pure
+  ALIAS for `use_move()`, so three more sites only LOOK left/right-aware. One of the eight returns
+  **Teleport** (`target=USER`), where "aim right" is semantically meaningless.
+
+
+## 2026-09-05 — gate #38 hardened so it can no longer bless a broken fix
+
+**The finding it answers.** A decision workflow's RISK angle fault-tested gate #38 and it exited 0
+printing *"KI-90 NO LONGER REPRODUCES"* for three candidate fixes that **do nothing, aim at our own
+partner, or aim at a slot that may not exist** — and it SKIPPED arms B and C when it retired. ⇒ **the
+yardstick every future fix would be judged by was blessing broken fixes.**
+
+**The cause was my design.** Self-retirement fired on *any* non-raise and never asked WHAT the code
+did. ⭐ This project's own rule names it: **INSTRUMENT THE ACTION, NOT THE INPUT.** "It did not raise"
+is not a result.
+
+**The fix.** `capture_target_index()` reads the slot the code actually COMMITS to. `target_index` is a
+LOCAL, so it is read the only honest way — drive the target-selection loop one candidate cursor value
+at a time and see which the code accepts with "A" (`battle_action_selection.py:511-518`).
+Self-retirement now requires slot **3**, the RIGHT opponent, matching what the game itself defaults to
+(`src/battle_controller_player.c:535-536`). Anything else FAILS LOUDLY.
+
+**FAULT-PROVEN, all three arms (2026-09-05):**
+```
+does nothing (target stays 1, the absent left) -> commits to 1 -> REFUSED, exit 1
+aims at our OWN PARTNER                        -> commits to 2 -> REFUSED, exit 1
+aims at the RIGHT opponent                     -> commits to 3 -> SELF-RETIRED, exit 0
+```
+‼ And when the target cannot be established at all, it REFUSES — fail-closed, because an
+unknown target is not evidence of a correct one.
+
+**‼ TWO MISTAKES OF MY OWN, CAUGHT BEFORE THEY COUNTED, BOTH THE SAME SHAPE.**
+1. The first `capture_target_index` reported **0 for everything**. Cause: `HandleInputChooseTarget` is
+   not in the tuple `battle_action_use_move` checks first (`:471`, `:482`), so a stub reporting it
+   immediately sent the function down its EARLY-RETURN branch — and the helper was reading the
+   early-return's own A-presses. A confident number from the wrong code path.
+2. My first FAULT TEST then refused even the CORRECT fix, because the test double jumped straight to
+   the target loop without consuming the move phase the real function requires.
+⇒ ⭐ **A CANDIDATE IS NOT AN ATTEMPT — AND THAT APPLIES TO THE INSTRUMENT AND TO THE TEST DOUBLE, NOT
+JUST TO THE CODE UNDER TEST.** Both times the number was real and measured the wrong thing; both were
+caught only by asking "is this value what I think it is?" before believing it.
+
+⛔ **THE KI-90 FIX IS STILL NOT DECIDED, DELIBERATELY.** Four of five workflow proposals were broken by
+their own attackers. Two findings any decider must carry: **the raise is LOAD-BEARING** (deleting it
+yields a measured infinite Down-press loop, because the cursor cannot rest on an absent slot — a HANG,
+strictly worse than the raise), and **route-around is INCOMPLETE as scoped** (eight unguarded
+`TurnAction.UseMove` sites across four files, not three; `use_move_against_left_side_opponent()` is a
+pure ALIAS for `use_move()`; one site returns Teleport, a `target=USER` move where "aim right" is
+meaningless). The gate is now a yardstick worth judging a fix by — that was the prerequisite.
+
+
+## 2026-09-05 — the phantom ruling's ROOT LINKS retracted (the first pass fixed only the leaves)
+
+⛔ The retraction shipped earlier today corrected every entry that CITED the phantom
+`KI-83`→`KI-88`→`KI-89` chain, and **left the chain's own two root sentences unedited**:
+`05-KNOWN-ISSUES.md:2889` (*"NOT FIXED UPSTREAM, DELIBERATELY — same ruling as `KI-88`"*) and
+`03-PUNCH-LIST.md:731` (*"shared file, same ruling as `KI-88`"*).
+⇒ `05-KNOWN-ISSUES.md` asserted **both** "there is a ruling" and "that ruling does not exist", 61
+lines apart. Caught by Tier 1.
+
+‼ **The `08-MISTAKES.md` entry written in the SAME change quotes those two sentences as the cause.**
+So the diagnosis was correct, written down, and not acted on.
+⇒ ⭐⭐ **WHEN YOU DIAGNOSE A ROOT CAUSE, FIX THE ROOT — WRITING IT DOWN IS NOT FIXING IT.** If your own
+mistake entry can quote the offending sentences, that quote is an edit list.
+
+✅ Both root links now state the independent, case-by-case reason each defect actually had — which is
+what `06-DECISIONS-LOG.md` 2026-09-05 records — and mark the "ruling" framing as retracted. Swept:
+**0 unqualified "same ruling as" sites remain**; the only hits left are quotations inside their own
+refutations.

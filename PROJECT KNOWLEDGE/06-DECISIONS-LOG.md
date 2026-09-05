@@ -4186,3 +4186,41 @@ didn't.**
 
 **Precedent.** This project already has the concept (`repro_boss_grass_gate.py` "SELF-RETIRED"); this
 entry makes the reasoning explicit and adds the requirement that BOTH directions be fault-proven.
+
+
+## 2026-09-05 — modifying `modules/battle_*`: what is ACTUALLY decided (and the phantom ruling this replaces)
+
+**Decision.** There is **no blanket prohibition** on modifying `sandbox-pokebot/modules/battle_*.py`.
+The bar is EVIDENCE, not the filename: a change to a shared battle-path file requires (a) a repro or
+A/B that fails first, (b) an argument for why the change is ADDITIVE to states that work today, and
+(c) the full gate suite. That is the same bar as any other hot-path change.
+
+**Why this entry exists — a correction to my own documentation.** Five live documents asserted *"the
+`KI-83`/`KI-88`/`KI-89` ruling: route around, do not casually patch"*, and I used it to rule out
+fixing `battle_action_selection.py` for `KI-90`. **That ruling does not exist.** MEASURED 2026-09-05:
+* `grep -ic "route around" 06-DECISIONS-LOG.md` → **1**, and that hit is a VETO in an unrelated
+  decision (*"nothing can route around it"*), not a policy on shared files;
+* `git log --oneline -- .../battle_action_selection.py | wc -l` → **8** — we have modified that exact
+  file eight times, including **`d8230560`, a HANG FIX in this very file**.
+⇒ ⭐ **A KI-TO-KI CITATION CHAIN IS NOT A RULING.** KI-89 cited KI-88, KI-88 cited KI-83, and nothing
+at the bottom was ever decided. `CLAUDE.md` puts rulings in THIS file so a question is not answered
+twice; a chain with no root produces the opposite — a constraint nobody chose, that nobody can find,
+and that silently narrows every later decision.
+
+**What the KI-88 / KI-89 judgments DO stand for**, restated honestly and kept:
+* they were case-by-case calls that ROUTING AROUND WAS CHEAPER *for those two defects*, and both had a
+  concrete reason: a partial fix in that area destabilised a drive on 2026-09-05 (KI-88's own note records the attempt being reverted byte-identical);
+* ⇒ **"prefer the smaller blast radius when both options work"** is good engineering and survives.
+  **"Never touch these files"** was never decided and is contradicted by eight commits.
+
+**Alternatives rejected.**
+* *Keep citing the KI chain* — rejected: it is unfindable, unattributable, and factually wrong about
+  the file's history.
+* *Adopt "never modify battle_*" as a real rule now* — rejected: it would forbid `d8230560`, a fix
+  this project already shipped and relies on, and it would push every future battle fix into
+  producer-side shims. ‼ A workflow measured what that costs: the "three producers" for KI-90 are
+  really **eight** unguarded sites across four files, and one of them returns **Teleport**, a
+  `target=USER` move for which "aim right" is semantically meaningless. A rule that forces fig-leaf
+  edits at eight sites to avoid one correct edit is a bad rule.
+* *Declare the KI-90 fix approved* — rejected, and deliberately: see the entry below. This decision
+  only removes a FALSE constraint; it does not choose the fix.

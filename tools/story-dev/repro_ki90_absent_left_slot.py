@@ -32,7 +32,12 @@ THE THREE LEFT-HARDCODED PRODUCERS, AND THEIR DISCRIMINATORS DIFFER:
       UNCONDITIONAL `TurnAction.use_move(...)`, so it raises on **left-absent ALONE** (weaker)
   P3  `catch.py:60/65`
 
-Run:  py -3.12 repro_ki90_absent_left_slot.py                 # the repro (expects the raise)
+⚠ PREREQUISITES, so nobody loses time to a red herring: this needs **Python >= 3.11**
+(`enum.KEEP`, used by `BattleType`) — the repo's bare `python` may be 3.9 — and on a Windows
+console **`PYTHONUTF8=1`**, or its emoji output dies in cp1252. Neither is a defect in this
+file; both have already cost a reviewer time.
+
+Run:  PYTHONUTF8=1 py -3.12 repro_ki90_absent_left_slot.py    # the repro (expects the raise)
       py -3.12 repro_ki90_absent_left_slot.py --discriminator # show the arms differ, drive nothing
 """
 
@@ -90,7 +95,7 @@ class _FakeEmulator:
         pass
 
 
-def _install_stubs(callback_frames: int = 3):
+def _install_stubs(callback_frames: int = 3, cursor_value: "int | None" = None):
     """Stub ONLY what talks to the emulator. Returns the fake emulator for inspection.
 
     `battle_action_use_move` needs `get_battle_controller_callback` to report the move menu, then to
@@ -112,6 +117,31 @@ def _install_stubs(callback_frames: int = 3):
     bas.get_main_battle_callback = lambda: "HandleTurnActionSelectionState"
     bas.scroll_to_battle_action = _empty_gen
     bas.scroll_to_move = _empty_gen
+    if cursor_value is not None:
+        # ⭐ TARGET-SELECTION PHASE. `battle_action_use_move` ends in a loop that presses "Down" until
+        # `gMultiUsePlayerCursor` equals its LOCAL `target_index`, then "A"
+        # (`battle_action_selection.py:511-518`). `target_index` is a local, so the only honest way to
+        # read it is to observe which cursor value the code ACCEPTS — INSTRUMENT THE ACTION, NOT THE
+        # INPUT. Feed one candidate and watch for "A".
+        # ‼ THE PHASE ORDER IS LOAD-BEARING AND I GOT IT WRONG ONCE. `battle_action_use_move` first
+        # requires "HandleInputChooseMove" (`:471`, `:482`); "HandleInputChooseTarget" is NOT in that
+        # tuple, so a stub that reports it immediately sends the function down its EARLY-RETURN branch
+        # and never reaches the target loop at all. The capture then reads the early-return's own
+        # A-presses and returns a confident, meaningless number — a candidate, not the attempt.
+        # ⇒ move-menu phase FIRST, then target phase.
+        frames = {"n": 0}
+
+        def _cb_target(_battler_index):
+            frames["n"] += 1
+            if frames["n"] <= callback_frames:
+                return "HandleInputChooseMove"      # phase 1: pick the move
+            if frames["n"] <= callback_frames + 40:
+                return "HandleInputChooseTarget"    # phase 2: pick the target — what we measure
+            return "SomethingElse"
+
+        bas.get_battle_controller_callback = _cb_target
+        bas.read_symbol = lambda *_a, **_k: b""
+        bas.unpack_uint32 = lambda *_a, **_k: cursor_value
 
     # ⛔ `context.rom` is a READ-ONLY property on the real `BotContext`, so the module's own
     # `context` reference is replaced instead. `battle_action_use_move` touches only `rom.is_rs`,
@@ -122,6 +152,37 @@ def _install_stubs(callback_frames: int = 3):
         rom=SimpleNamespace(is_rs=False, is_rse=True, is_frlg=False, is_emerald=True),
     )
     return emu
+
+
+def capture_target_index(action, state) -> "int | None":
+    """Return the target slot the code COMMITS to, or None if it commits to nothing.
+
+    ⛔⛔ THIS EXISTS BECAUSE THE GATE WOULD OTHERWISE BLESS A BROKEN FIX. Self-retirement used to fire
+    on ANY non-raise — so a "fix" that did nothing, aimed at our own partner, or aimed at a slot that
+    does not exist would have retired this gate and been recorded as correct. An adversarial review
+    fault-tested exactly that and it passed three bogus fixes.
+    ⇒ ⭐ **INSTRUMENT THE ACTION, NOT THE INPUT** — this project's own rule. "It did not raise" is not
+    a result; the TARGET the code commits to is.
+
+    `target_index` is a LOCAL, so it is read the only honest way: drive the target-selection loop with
+    one candidate cursor value at a time and see which one the code ACCEPTS with "A"
+    (`battle_action_selection.py:511-518`).
+    """
+    import modules.battle_action_selection as bas
+
+    for candidate in (0, 1, 2, 3):
+        emu = _install_stubs(cursor_value=candidate)
+        try:
+            drive(bas.battle_action_use_move(action, 0, 0, state), cap=400)
+        except BaseException:  # noqa: BLE001 — a raise here is not this helper's business
+            pass
+        # ⛔ Count only presses AFTER the move phase — the move phase presses A too, and counting
+        # those is precisely how the first version of this helper returned 0 for everything.
+        target_phase = emu.presses[emu.presses.count("A") and 0:]
+        if "Down" in emu.presses or "A" in target_phase:
+            if "A" in emu.presses and "Down" not in emu.presses[-3:]:
+                return candidate
+    return None
 
 
 def drive(gen, cap: int = 2000) -> "tuple[int, str]":
@@ -245,8 +306,25 @@ def main() -> int:
         # faulted and the arms genuinely differ — which is what lets this branch distinguish
         # "KI-90 was FIXED" from "this repro rotted". Without that guard it could not tell them
         # apart, and a rotted repro reporting SELF-RETIRED would silently retire a live defect.
+        # ⛔⛔ SELF-RETIREMENT IS NOT "IT DID NOT RAISE" — IT IS "IT DID THE RIGHT THING".
+        # An adversarial review fault-tested the previous version and it retired the gate for three
+        # bogus fixes: one that did nothing, one that aimed at our OWN PARTNER, and one that aimed at
+        # a slot that may not exist. ⇒ read the target the code COMMITS to and require the RIGHT
+        # opponent (slot 3), which is what the game itself defaults to
+        # (`src/battle_controller_player.c:535-536`).
+        committed = capture_target_index(TurnAction.UseMove, make_state(ABSENT_OPPONENT_LEFT))
+        print(f"  [target] with the LEFT slot absent, the code commits to slot: {committed}")
+        if committed != 3:
+            failures.append(
+                f"ARM A stopped raising, but the code commits to slot {committed}, not 3 (the RIGHT "
+                f"opponent). ⛔ THAT IS A BROKEN FIX, NOT A FIXED BUG — slot 1 is the absent left "
+                f"(and would press Down for ever, a HANG), 0/2 are our own side. REFUSING to retire."
+            )
+            print("  ⛔ REFUSING TO SELF-RETIRE — see the failure above.")
+            print("=" * 92)
+            return 1
         print()
-        _verdict("  ⭐⭐ THIS REPRO HAS SELF-RETIRED — `KI-90` NO LONGER REPRODUCES.")
+        _verdict("  ⭐⭐ THIS REPRO HAS SELF-RETIRED — `KI-90` NO LONGER REPRODUCES, AND THE TARGET IS RIGHT.")
         print("     The fault state is still genuinely faulted (the discriminator above passed),")
         print("     so the raise is gone because the CODE changed, not because this repro rotted.")
         print("  ⇒ TODO for whoever sees this: INVERT the arms (assert the absent slot is now")
