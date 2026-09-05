@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch24heal", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch24heal", "ch24moves", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -14961,13 +14961,153 @@ class Ch24HealMode(BotMode):
             log(f"[{TAG}] CONTROL Castform {control_before.current_hp} -> {after[5].current_hp} "
                 f"untouched={control_ok}  (a heal here would break 'never a no-op')")
 
+        # ---- ⛔ "AND THE BOT CAN CONTINUE" — the half an ACCEPTANCE grade must not omit -----------
+        # ‼ This leg NEVER MOVES the player: it is a menu operation, so a `calculate_path` off the
+        # end tile would be answering a question the leg cannot fail (it ends where it began, on a
+        # tile leg 11 already proved). The MEANINGFUL continuation check here is different and was
+        # MISSING until an advisory diff-rule prompted a re-read: **did we get back OUT of the bag?**
+        # `heal_party_from_bag` closes the menu, but nothing was asserting that it worked — a run
+        # that finished stuck in BAG_MENU with a healthy party would have printed PASS.
+        from modules.memory import GameState, get_game_state
+
+        state = get_game_state()
+        back_in_overworld = state is GameState.OVERWORLD
+        log(f"[{TAG}] CONTINUE game_state={state} back_in_overworld={back_in_overworld} "
+            f"(a run that ends in BAG_MENU cannot take another step, however healthy it is)")
+
         ready = PL.party_is_gauntlet_ready(after)
         passed = (failure is None and premise_ok and ready and revive_ok and control_ok
-                  and self.whiteouts == 0)
+                  and back_in_overworld and self.whiteouts == 0)
         log(f"[{TAG}] GRADE premise_ok={premise_ok} ready={ready} revive_ok={revive_ok} "
-            f"control_ok={control_ok} whiteouts={self.whiteouts} failure={failure}")
+            f"control_ok={control_ok} back_in_overworld={back_in_overworld} "
+            f"whiteouts={self.whiteouts} failure={failure}")
         log(f"[{TAG}] FINAL position={_where_ch24()}")
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
+class Ch24MovesMode(BotMode):
+    """§Ch24 PREP — apply the FREE, in-bag moveset changes. **PRODUCTION CODE.**
+
+    ⭐ Four changes, every TM/HM already in the pocket, zero travel:
+      Sceptile  Aerial Ace (TM40) over SLAM   — never-miss vs FOUR Double-Team users
+      Swellow   Facade     (TM42) over PECK   — 35 BP -> 70 with STAB; doubles when Toxic'd
+      Mightyena Strength   (HM04) over TACKLE — 35 -> 80 BP; HMs are reusable
+      Zigzagoon Rock Smash (HM06) over GROWL  — keeps the field move if Sceptile's slot is freed
+
+    ⛔ GEN-3 TMs ARE SINGLE-USE, so the leg REFUSES rather than guesses: it finds the party slot by
+    SPECIES at run time, finds the move index by NAME in that Pokemon's CURRENT moves, and raises if
+    either is absent. It is also RE-RUNNABLE — an already-applied change is SKIPPED, not repeated.
+
+    FAULT ARM: `POKEBOT_CH24_FAULT_BADMOVE=1` aims a change at a move the Pokemon does NOT know, so
+    the refusal must fire. ⭐ That is the arm that matters here: the expensive failure is not "the
+    leg crashed", it is "a single-use TM was burned over the wrong move".
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_league_shop.ss1 --driver ch24moves --frames 40000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24Moves"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        from modules.story import pokemon_league as PL
+        from modules.story.early_game import wait_until_truly_controllable
+
+        TAG = "ch24moves"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        report: dict = {"readings": set()}
+
+        yield from wait_until_truly_controllable()
+
+        plan = PL.MOVESET_PLAN
+        if _os.environ.get("POKEBOT_CH24_FAULT_BADMOVE") == "1":
+            context.message = "Ch24 FAULT BADMOVE: aiming at a move nobody knows"
+            plan = (("Sceptile", "TM40", "Aerial Ace", "Hyper Beam", "FAULT: Sceptile has no Hyper Beam"),)
+            log(f"[{TAG}] FAULT BADMOVE — the refusal must fire")
+
+        before = {}
+        for m in get_party():
+            if m is not None and getattr(m, "species", None) is not None:
+                before[m.species.name] = [x.move.name for x in m.moves if x is not None and x.move is not None]
+        log(f"[{TAG}] BEFORE {before}")
+
+        failure = None
+        try:
+            yield from PL.apply_moveset_plan(report, plan)
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        for key in ("plan_todo", "plan_skipped", "plan_refused", "taught", "final_movesets",
+                    "tm_pocket_before", "tm_pocket_after"):
+            if key in report:
+                log(f"[{TAG}] R {key} = {report[key]!r}")
+
+        after = {}
+        for m in get_party():
+            if m is not None and getattr(m, "species", None) is not None:
+                after[m.species.name] = [x.move.name for x in m.moves if x is not None and x.move is not None]
+        log(f"[{TAG}] AFTER {after}")
+
+        # ---- ⛔ GRADE THE PARTY, NOT THE CALL --------------------------------------------------
+        want = {s: (learn, repl) for s, _, learn, repl, _ in PL.MOVESET_PLAN}
+        landed, wrong = [], []
+        for species, (learn, repl) in want.items():
+            have = after.get(species)
+            if have is None:
+                wrong.append(f"{species} not in party")
+            elif learn not in have:
+                wrong.append(f"{species} lacks {learn}")
+            elif repl in have:
+                wrong.append(f"{species} still knows {repl}")
+            else:
+                landed.append(f"{species}:{learn}")
+        log(f"[{TAG}] LANDED {landed}")
+        log(f"[{TAG}] WRONG  {wrong}")
+
+        # ⛔ ANTI-VACUITY: a run that started with every change already applied proves nothing.
+        premise_ok = any(
+            want[s][0] not in before.get(s, []) for s in want if s in before
+        )
+        missing = [r for r in PL.MOVESET_READINGS if r not in report.get("readings", set())]
+
+        # ⭐ AND THE BOT CAN CONTINUE — teaching happens in menus; a run that ends stuck in one
+        # cannot take another step however good the moveset is.
+        from modules.memory import GameState, get_game_state
+
+        state = get_game_state()
+        back = state is GameState.OVERWORLD
+        log(f"[{TAG}] CONTINUE game_state={state} back_in_overworld={back}")
+
+        passed = (failure is None and premise_ok and not wrong and not missing
+                  and back and self.whiteouts == 0)
+        log(f"[{TAG}] GRADE premise_ok={premise_ok} wrong={wrong} missing={missing} "
+            f"back_in_overworld={back} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] FINAL position={_where_ch24()}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH24_CAPTURE", "").strip()
+        if passed and _cap:
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if _out.exists() and _os.environ.get("CAPTURE_FORCE") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_out.name} exists. Set CAPTURE_FORCE=1 to overwrite.")
+            else:
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured -> {_out}")
         context.set_manual_mode()
 
 
@@ -16775,6 +16915,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23ShopMode()
         elif args.driver == "ch24heal":
             context.bot_mode_instance = Ch24HealMode()
+        elif args.driver == "ch24moves":
+            context.bot_mode_instance = Ch24MovesMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

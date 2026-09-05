@@ -12296,3 +12296,60 @@ exact fixture and confirm they differ** — the project already knows this shape
 ⭐ Corollary, and the reason this is a separate entry from the two above: **a gate is not proven by
 its own `--self-test` arm.** #36's built-in self-test was green while the gate was blind. Only
 breaking the REAL module proved anything.
+
+
+---
+
+## 2026-09-05 — Three of four "worked", and only two were steering
+
+**Symptom.** A moveset leg taught four Pokémon. Three landed on the right move. The fourth
+(Zigzagoon, index 1) replaced index 0. Five successive fix attempts — a closed-loop cursor read, a
+stability requirement, two task-name corrections and a rewrite — failed to move it, because every
+one of them assumed the navigation code was RUNNING.
+
+**Root cause.** `teach_hm_or_tm`'s A-mash loop can blow past the move-selection screen and confirm
+the default cursor (index 0). Two of the three "successes" **wanted index 0**, so they were
+indistinguishable from the bug.
+
+**What actually found it.** Not reasoning — a **per-iteration trace**. Four teaches produced only
+TWO cursor traces; Mightyena and Zigzagoon never entered the navigation block at all.
+
+**Prevention rule.** ⛔ **A PASSING RESULT FROM A CODE PATH THAT NEVER RAN IS THE MOST CONVINCING
+KIND OF WRONG.** When some cases pass and one fails, **prove the passing ones took the path you
+think they did** before theorising about the failure. ⭐ The cheap instrument is a trace of the
+loop's own reads — not a log of what you passed IN, but of what the code SAW. *(This is the
+`#24-instrumenttheaction` rule — "a candidate is not an attempt" — one layer deeper: here the
+candidate was right and the code never looked at it.)*
+
+---
+
+## 2026-09-05 — I sampled a task list once and called it a contract
+
+**Symptom.** After measuring the forget-move screen's active tasks, I concluded upstream's
+`Task_HandleReplaceMoveInput` was "the battle path, wrong for the field" and switched to
+`Task_HandleInputCantForgetHMsMoves`. My cursor loop then never settled, and the leg refused.
+
+**Root cause.** The screen runs under **both**, at different phases: the "can't forget HMs" task is
+**transient** at the start, and `Task_HandleReplaceMoveInput` is the **steady state**. I sampled
+once, caught the transient, and generalised. A second trace — over time rather than at an instant —
+showed 2 frames of the first task followed by 22 of the second.
+
+**Prevention rule.** ⛔ **A ONE-FRAME SAMPLE OF A TASK LIST IS NOT A CONTRACT.** Before deciding
+what a screen "is", watch it across frames. ‼ And note the shape of the error: **I used a
+measurement to overrule working upstream code, and the measurement was the thing that was wrong.**
+A single reading is evidence; it is not a contract.
+
+---
+
+## 2026-09-05 — "Dead slot" was a judgement about purpose, not about numbers
+
+**Symptom.** I twice described Sceptile as carrying *"Rock Smash AND Strength — two dead slots"* and
+planned to free both.
+
+**Root cause.** I classified the moves by what they are FOR (field moves) instead of by what they
+DO. **`Strength` is 80 BP at 100% accuracy; `Slam` — the move I was keeping — is 80 BP at 75%.**
+Strength was Sceptile's *better* Normal move; Slam was the actual waste.
+
+**Prevention rule.** ⛔ **A FIELD MOVE IS NOT AUTOMATICALLY A DEAD SLOT.** Compare the numbers before
+calling anything dead. ⭐ More generally: a category label ("HM move", "utility", "filler") is a
+hypothesis about value, and the data is one lookup away.

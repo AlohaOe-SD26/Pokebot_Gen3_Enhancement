@@ -583,6 +583,29 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       Wailord fainting does not strand the run. ⇒ **do NOT "fix" `assert_carriers_survived` to reject
       fainted carriers** — it is correct as written, and that check would fire on a healthy run.
 
+### ✅ `#24-e4moveset` — **CLOSED 2026-09-05: the four FREE move changes are applied and driven.** ⛔ DO NOT REDO THEM.
+
+`--driver ch24moves` `ACCEPTANCE: PASS`, fixture `post_moveset.ss1` (md5 `36e4510ecccf06957a7c3cb38ce2a967`),
+fault arm `POKEBOT_CH24_FAULT_BADMOVE=1` correctly FAILS by refusing.
+
+| mon | change | why |
+|---|---|---|
+| Sceptile | Slam → **Aerial Ace** (TM40) | never-misses; **four** opponents run Double Team. Grass resists Grass, so Leaf Blade did 30%/25% to Cacturne/Shiftry where Aerial Ace does 59%/47% |
+| Swellow | Peck → **Facade** (TM42) | Peck is **35 BP**, the worst move on the team. Wallace's Tentacruel AND Milotic carry Toxic ⇒ Guts ×1.5 *and* Facade's doubling both apply |
+| Mightyena | Tackle → **Strength** (HM04) | 35 → 80 BP at 100%; HMs are reusable so Sceptile keeps its copy |
+| Zigzagoon | Growl → **Rock Smash** (HM06) | Growl is worthless; keeps the field move in the party |
+
+⭐ **All four TMs/HMs were already in the bag — zero travel, zero money.** Compatibility read from
+`src/data/pokemon/tmhm_learnsets.h` at two revisions and diffed (Gen-3 TMs are SINGLE-USE).
+‼ **I had this wrong first:** Sceptile's Rock Smash + Strength were NOT "two dead slots" —
+**Slam** (80 BP / 75%) is worse than **Strength** (80 BP / 100%).
+
+**WHAT REMAINS (not this item):** the two free PICKUPS that win Drake — **Ice Beam (TM13)** for
+Wailord and **Dragon Claw (TM02)** for Sceptile, both confirmed still available by
+`probe_ch24_readiness.py`. And **Wallace is still a loss** — see the note.
+
+---
+
 ### 🔜 `#24-e4healing` — **§Ch24 HEALING: the bot CAN now revive, cure status and top up out of battle (step 1 DONE 2026-09-04). Steps 2-4 — calling it between rooms, the in-battle question, and the 0.35 threshold — REMAIN.** (opened 2026-09-04)
 
 **STATUS: OPEN — step 1 of 4 is DONE (the party-heal is built and driven); steps 2-4 remain.**

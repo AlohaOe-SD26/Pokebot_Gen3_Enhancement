@@ -22082,3 +22082,70 @@ than a decoy, and all five faults are caught.
 fainted, the run logs `REVIVE ORDER = [(4,'Revive'),(1,'Revive')]` — battle value, not slot order.
 Castform is left untouched by the staging and asserted untouched afterwards, so "never a no-op" is
 checked live rather than only in the gate.
+
+
+## 2026-09-05 — `#24-e4moveset`: four free move changes, and a bug that made three of them look right
+
+**What shipped.** `MOVESET_PLAN` + `apply_moveset_plan` + `teach_move_from_bag` in
+`modules/story/pokemon_league.py`, driver `--driver ch24moves`, fault arm
+`POKEBOT_CH24_FAULT_BADMOVE`. `ACCEPTANCE: PASS`; fixture `post_moveset.ss1`
+(md5 `36e4510ecccf06957a7c3cb38ce2a967`), verified FROM THE FILE with every PID unchanged.
+
+| mon | change | why |
+|---|---|---|
+| Sceptile | Slam → **Aerial Ace** | never-misses; **four** opponents run Double Team |
+| Swellow | Peck → **Facade** | Peck is **35 BP**; Toxic makes Guts ×1.5 *and* Facade stack |
+| Mightyena | Tackle → **Strength** | 35 → 80 BP; HMs are reusable |
+| Zigzagoon | Growl → **Rock Smash** | keeps the field move in the party |
+
+⭐ **Every TM/HM was already in the bag — zero travel, zero money**, against ₽1,741 in hand.
+Compatibility came from `src/data/pokemon/tmhm_learnsets.h` read at **two revisions and diffed**,
+because Gen-3 TMs are single-use and a wrong claim is permanent.
+
+**‼ I HAD ONE OF THESE BACKWARDS.** I recorded Sceptile as carrying *"Rock Smash AND Strength — two
+dead slots"*. **`Slam` is 80 BP at 75%; `Strength` is 80 BP at 100%.** ⇒ Strength is its BETTER
+Normal move and **Slam** was the waste. **A field move is not automatically a dead slot** — the
+label came from what the move is FOR, not from its numbers.
+
+**⛔⛔ THE EXPENSIVE FINDING: `teach_hm_or_tm` REPLACED THE WRONG MOVE — TWICE, ON DIFFERENT
+POKÉMON, IN DIFFERENT DRIVES.** ‼ A Tier 1 reviewer caught this entry telling them as ONE incident,
+which made it contradict its own evidence — the trace below is from the SECOND drive, where Sceptile
+is marked CORRECT.
+* **Drive 1, unmodified upstream:** asked for Sceptile's **Slam** (index 3), it replaced **index 2,
+  Leaf Blade** — its STAB move. `['Rock Smash','Strength','Leaf Blade','Slam']` →
+  `['Rock Smash','Strength','Aerial Ace','Slam']`. A single-use TM spent on the wrong move.
+* **A later drive, after a closed-loop cursor was added:** Sceptile now steered correctly, but the
+  A-mash still blew past for two others and **Zigzagoon lost Tackle instead of Growl**.
+In both, the caller's post-condition caught it; nothing inside the helper did.
+
+Its A-mash loop runs until it sees `Task_DuckBGMForPokemonCry`, but **the move-selection screen can
+appear first** — and the next blind `press A` confirms whatever the cursor is on, the default
+**index 0**. Its own navigation never runs.
+
+⭐ **A per-iteration cursor trace is what settled it — four teaches produced only TWO traces:**
+```
+target=3 cursor reads=[0,0,0,1,1,2,2,3,3,3]   Sceptile — navigation ran, CORRECT
+target=0 cursor reads=[0,0,0]                 Swellow  — CORRECT
+(Mightyena, Zigzagoon: NO TRACE — the block never executed)
+```
+⇒ **Mightyena wanted index 0 and got index 0, so it looked correct. It was luck.** Three of four
+"worked" and only two were actually steering. ‼ **A passing result from a code path that never ran
+is the most convincing kind of wrong.**
+
+**⛔ UPSTREAM WAS LEFT ALONE, DELIBERATELY.** It is a shared file every chapter depends on and holds
+several unbounded loops; a partial fix **hung a drive** and was reverted (`git checkout`,
+byte-identical). Filed as **`KI-88`** with the full measurement and routed around instead —
+`teach_move_from_bag` owns the whole flow, gates its A-presses on the screen not being up, and
+refuses rather than pressing on an unknown cursor. ⇒ **drift on `items.py` is ZERO.**
+
+**‼ AND A MEASUREMENT MISTAKE OF MY OWN, worth more than the bug.** I dumped the live task list ONCE
+at the forget-move screen, saw `Task_HandleInputCantForgetHMsMoves`, and concluded upstream's
+`Task_HandleReplaceMoveInput` was "the battle path". Wrong: the screen runs under **both, at
+different phases** — the first is transient, the second is the steady state. My cursor loop kept
+resetting because it only recognised the transient one. ⇒ ⭐ **A ONE-FRAME SAMPLE OF A TASK LIST IS
+NOT A CONTRACT. Watch a state over time before deciding what it is.**
+
+**Doc housekeeping forced by this entry:** `05-KNOWN-ISSUES.md` hit its 3000-line budget, so **KI-82**
+(closed, user-ruled twice) was archived verbatim to `31-KNOWN-ISSUES-ARCHIVE.md` — ⛔ leaving a
+**DO-NOT-REOPEN STUB**, because that entry's whole job is to stop an auditor re-raising a settled
+question and moving it silently would have re-armed the failure it documents.

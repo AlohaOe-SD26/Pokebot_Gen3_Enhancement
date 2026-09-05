@@ -104,64 +104,18 @@ sandbox-fixed case.
 - **Workaround in §Ch23 (`victory_road.train_for_victory_road`):** rotate the mon to slot 0 ourselves, then call `train_team(slots={0})` — with the mon already lead, `target_slot == 0`, no swap happens and the loop converges. It asserts by **PID** that the rotation landed (`_rotate_lead_safely` gives up silently after 3 attempts) and raises if a call fails to move the level at all.
 - ⛔ **Deliberately NOT fixed in `train_team` itself:** it is also the gym-prep path, so a change moves every gym's levels at once and needs its own A/B. A deferral with a reason, not an oversight.
 
-## KI-82 — ✅ **CLOSED 2026-08-23 — NOT A DEFECT. The tracked Emerald ROM is a DELIBERATE, USER-RULED choice, and this KI should never have been opened.** (opened 2026-08-22, closed 2026-08-23)
+## KI-82 — ✅ **CLOSED, NOT A DEFECT. ⛔⛔ DO NOT RE-RAISE — RULED TWICE.** (opened 2026-08-22, closed 2026-08-23)
 
-⛔⛔ **DO NOT RE-RAISE THIS. IT HAS NOW BEEN RULED TWICE.**
-* **2026-07-18 — the original ruling** (`06-DECISIONS-LOG.md`, *"Emerald ROM stays tracked in the
-  repo (user ruling)"*). The user was offered purge / untrack / keep and chose **keep it as is**.
-  That entry ends with the words **"Do not re-raise this for THIS file."**
-* **2026-08-23 — re-affirmed** when a PASS 4 audit surfaced it again: *"leave as-is, fix the docs."*
-‼ **THE REAL DEFECT WAS THE PROCESS, NOT THE REPO.** This KI was filed after an audit found the
-tracked ROMs — **without first checking `06-DECISIONS-LOG.md`, where the answer had been sitting
-since 2026-07-18 with an explicit do-not-re-raise.** The decisions log exists precisely so a question
-never has to be asked twice, and it was not consulted. See `08-MISTAKES.md` (2026-08-23).
-
-**THE FACTS, corrected — the original filing overstated the cost:**
-* ⛔ **"33 MB" WAS WRONG.** Both paths (`sandbox-pokebot/roms/…` and `custom-pokebot/roms/…`) resolve
-  to the **SAME git blob `21bfd6e0`**, so the repository stores **ONE copy, not two** — git
-  deduplicates identical content. Two tree entries, one object.
-* The file is a genuine retail ROM, **SHA-1 `f3ae0881…`, which matches the bot's OWN whitelist** at
-  `sandbox-pokebot/modules/roms.py:50` — i.e. the bot is designed to accept exactly this dump.
-* **`.gitignore:17`'s `roms/*` IS NOT A CONTRADICTION** — and the 2026-07-18 ruling already said so:
-  *"`.gitignore` still blocks accidental **local** ROM commits; the tracked file is unaffected by
-  ignore rules."* Git ignore rules never apply to already-tracked paths. ⇒ an audit seeing
-  "ignored yet tracked" is seeing the intended design, not a mistake.
-* ✅ **`25-BACKUPS-AND-RESTORE.md` §3 listing the ROM under CAPTURED is therefore CORRECT and load-
-  bearing** — it is *why* a restore point is "a runnable program", and untracking would silently
-  break that promise on every existing tag.
-
-**THE ONE CONDITION THAT REOPENS IT, from the original ruling — unchanged:**
-⛔ **If this repository is ever made PUBLIC, this decision MUST be revisited FIRST.** It is private
-today; the copyright exposure was explained to the user and accepted on that basis.
-⚠ Agents must still never commit ADDITIONAL ROMs, saves or profiles — the ruling covers THIS file.
-
-*(Superseded material below, kept because it is the analysis that was put to the user. ⛔ Its
-"awaiting a ruling" framing is NO LONGER TRUE — the ruling is above.)*
-
-**THE FACTS AS ORIGINALLY FILED:**
-* `git ls-tree -r -l HEAD` shows **`sandbox-pokebot/roms/Pokemon - Emerald Version (USA, Europe).gba`
-  and the identical file under `custom-pokebot/roms/`, 16,777,216 bytes each** — 33 MB of a 146 MB
-  `.git`. Header bytes confirm a genuine retail ROM. Added by commit `2e933129`.
-* **Each fork's own `.gitignore:17` says `roms/*`** (with `!roms/.gitkeep`), so the tracked state
-  contradicts the stated intent of the very repo that carries it.
-* ‼ **BUT `25-BACKUPS-AND-RESTORE.md` §3 lists "the ROM — 2 `.gba` files are tracked" under
-  CAPTURED**, i.e. this project has been *relying* on restore points containing a runnable ROM.
-  ⇒ **It is at least partly deliberate. Do not assume it is an accident.**
-
-**WHY IT MATTERS BOTH WAYS — the tradeoff is real and belongs to the user:**
-* Untracking (`git rm --cached`, the ignore rule already covers it) is the licensing-clean posture,
-  and shrinks every future clone. **But it means each machine must supply its own ROM**, and this
-  project is explicitly worked on from more than one computer — the next `git pull` elsewhere would
-  DELETE the ROM that machine is running from, and every restore point after that stops being
-  "a runnable program" as §3 promises.
-* ⛔ **Removing it from HISTORY is a different and much larger action** — it rewrites published
-  history, which this project's git-conduct rule forbids outright, and would invalidate all 19
-  pushed `restore/*` tags. **Nobody should do that without the user saying so explicitly.**
-
-⇒ **NEXT STEP IS A QUESTION, NOT A COMMIT.** Ask the user: leave as-is (and correct the forks'
-`.gitignore` comment so the contradiction stops confusing audits), or untrack going forward (and
-update `25-BACKUPS-AND-RESTORE.md` §3, which would no longer be true). ⛔ Until then, change nothing.
-
+**The tracked Emerald ROM is a DELIBERATE, USER-RULED choice.** Ruled 2026-07-18
+(`06-DECISIONS-LOG.md`, *"Emerald ROM stays tracked in the repo (user ruling)"*, ending **"Do not
+re-raise this for THIS file."**) and re-affirmed 2026-08-23: *"leave as-is, fix the docs."*
+⚠ Two facts an auditor usually gets wrong: the "33 MB" figure was **wrong** — both paths resolve to
+the SAME git blob `21bfd6e0`, so git stores **one** copy; and `.gitignore:17`'s `roms/*` is **not** a
+contradiction (it blocks accidental *local* commits; the tracked file is unaffected).
+‼ **THE REAL DEFECT WAS THE PROCESS:** this was filed without first checking
+`06-DECISIONS-LOG.md`, where the answer had sat for five weeks. ⇒ **`grep -i` the decisions log
+BEFORE escalating anything.**
+📦 Full original entry archived verbatim in `31-KNOWN-ISSUES-ARCHIVE.md` (2026-09-05).
 ## KI-8 — Mid-battle rotation execution can stall the party-menu switch (opened 2026-07-21, severity: med)
 - **Symptom:** a mid-battle switch (`TurnAction.RotateLead`) into a weak/underlevelled bench
   hung the in-battle PARTY_MENU (Roxanne with Torchic vs Rock + an L6-7 bench → stuck, then
@@ -2996,3 +2950,48 @@ longer current state. ⛔ **DO NOT REOPEN OR REBUILD IT.**
 ⇒ ⭐ **THE MITIGATION IS LOCAL AND COSTS NOTHING: wrap the CALL in a frame budget** (§Ch23's `_budgeted(gen, budget, label)` closing the generator in a `finally`). Bound at the call site, upstream untouched.
 ‼ **How it was found, which is the reusable part:** an adversarial review of a *design* (before any code existed) audited the "never-hang" claim and noticed it had cleared `heal_in_pokemon_center` by checking the **exit** loops (`:443-472`) while the **nurse interaction three lines earlier** was unbounded. ⇒ *a never-hang audit must enumerate the loops the call REACHES, not the loops nearby.* I then verified every claim myself before filing.
 ⛔ **NOT A HANG WE HAVE OBSERVED** — no drive has wedged here. It is a latent hazard with a documented trigger, and it is recorded so the next hang in a heal is diagnosed in minutes rather than days.
+
+
+---
+
+## `KI-88` — ⛔ `teach_hm_or_tm` CAN REPLACE THE WRONG MOVE (upstream helper; NOT fixed, ROUTED AROUND)
+
+**Status: OPEN, deliberately. Filed 2026-09-05 with a full measurement; upstream left untouched.**
+
+**The defect.** `modules/modes/util/items.py::teach_hm_or_tm` A-mashes toward the move-learn
+screen, looping while `not task_is_active("Task_DuckBGMForPokemonCry")` and pressing A every frame.
+**The move-selection screen can appear BEFORE that task is observed** — and the next blind `press A`
+CONFIRMS WHATEVER THE CURSOR IS ON, the default **index 0**. Its own navigation
+(`for _ in range(move_index_to_replace): press Down`) never runs at all.
+
+**⭐ TWO FAILURES, ONE BUG — AND THE DOCS FIRST TOLD THEM AS ONE** (a Tier 1 reviewer caught it;
+the trace below is from drive 2, where Sceptile is CORRECT, so quoting it beside the Leaf Blade
+incident was incoherent). **Drive 1, unmodified upstream:** asked for Sceptile's **Slam** (index 3),
+replaced **index 2, Leaf Blade** — its STAB move — spending a single-use TM on the wrong move.
+**Drive 2, after a closed-loop cursor:** Sceptile then steered correctly, but the A-mash still blew
+past for two others and **Zigzagoon lost Tackle instead of Growl**. Both real; different runs.
+
+**⭐ THE MEASUREMENT, because this is the interesting part.** Teaching four Pokémon with a
+per-iteration cursor trace produced only **TWO** traces:
+```
+target=3 cursor reads=[0,0,0,1,1,2,2,3,3,3]   Sceptile  — navigation ran, CORRECT
+target=0 cursor reads=[0,0,0]                 Swellow   — CORRECT
+(Mightyena, Zigzagoon: NO TRACE — the block never executed)
+```
+⇒ Mightyena wanted index 0 and got index 0, so it **looked** correct. **It was luck.** Zigzagoon
+wanted index 1, got 0, and lost **Tackle** instead of Growl.
+‼ **A passing result from a code path that never ran is the most convincing kind of wrong.**
+
+**Blast radius.** Only bites when the move to replace is **not index 0**. §Ch23 leg 1 (teach
+Waterfall) uses this helper and passes, so it is a race, not a certainty.
+
+**⛔ WHY IT WAS NOT FIXED.** Shared file, every chapter depends on it, and it holds several unbounded
+loops; a partial fix **hung a drive** and was reverted (`git checkout`, byte-identical). ⇒ **routed
+around**: `modules/story/pokemon_league.py::teach_move_from_bag` owns the whole flow, gates its
+A-presses on the screen not being up, and refuses on an unknown cursor. **If ever fixed:** the
+A-mash must stop the instant a move-selection task is active, and the cursor must be READ, not
+counted — the closed-loop reader already exists at `battle_move_replacing.py:564`.
+
+⚠ **A TRAP FOR WHOEVER TRIES:** the screen runs under **TWO** tasks at different phases —
+`Task_HandleInputCantForgetHMsMoves` transiently, then `Task_HandleReplaceMoveInput`. Sampling the
+task list ONCE catches the transient. ⇒ **a one-frame sample is not a contract.**

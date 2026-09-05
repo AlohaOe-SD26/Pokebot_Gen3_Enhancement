@@ -4050,3 +4050,45 @@ gauntlet, and status is entirely unhandled.** Filed as **`#24-e4healing`**, whic
 thing §Ch24 needs. ⭐ *The lesson worth keeping: the question I was afraid of had a reassuring answer,
 and the blocker was one line below it in the same file. **Fear is not a good prioritiser; reading
 is.***
+
+
+## 2026-09-04 — USER DIRECTIVE: the bot CATCHES and TRAINS, and fills the Pokédex
+
+**The directive, verbatim:**
+> *"I am fine with the bot catching and training pokemon, it should be doing this as well as
+> collecting pokemon (new, rare, considered rare) to fill out the pokedex understood? continue what
+> you were doing this but consider what I said"*
+
+**What it settles.** Catching and training are **first-class goals**, alongside story progress —
+not a distraction from it. **Pokédex completion is an explicit objective**, with a stated preference
+for **new, rare, and "considered rare"** species. And *"continue what you were doing"* means this
+composes with the §Ch24 work rather than replacing it.
+
+⇒ **CONSEQUENCES THAT FOLLOW DIRECTLY:**
+1. ⭐⭐ **THE EMPTY PC STOPS BEING A CONSTRAINT AND BECOMES A GAP TO FILL.** `probe_box_contents.py`
+   measured **0 boxed Pokémon across all 14 boxes**. Every prior analysis treated "there is no bench"
+   as a fact to design around — *"replacing Zigzagoon L19 or Castform L36 would mean catching and
+   training something new"* was written as if that ruled it out. **It is now sanctioned.**
+2. ⭐ **IT ANSWERS AN OPEN §Ch24 QUESTION.** Two of six party slots are dead weight (Zigzagoon L19,
+   Castform L36 — the latter *"outsped by everything except Phoebe's Dusclops; it never gets a turn"*).
+   The moveset analysis independently concluded that replacing them is one of the three things that
+   would actually fix the Elite Four. Catching is the mechanism.
+3. ⚠ **BALLS ARE BLOCKED IN TRAINER BATTLES** (`battle_script_commands.c:9915`), and **no interior
+   League map has a wild-encounter table.** ⇒ catching happens OUTSIDE the gauntlet, never inside it.
+   This directive does not change how §Ch24 itself is fought.
+4. ⛔ **IT INTRODUCES A NEW CLASS OF RISK, AND THAT MUST BE DESIGNED FOR, NOT ASSUMED AWAY.** The
+   story chapters were built against a party that only ever changed when *we* changed it. Catching
+   mutates party composition, party ORDER, and party SIZE mid-chapter — and `#24-ch23wally` already
+   records the faint-replacement chooser feeding a **L19 Zigzagoon** into fights. More Pokémon means
+   more ways for that to bite. Several chapters assert members **by PID**.
+   ⇒ **the integration is being designed before it is built**, with an explicit survey of what a
+   changing party could break.
+
+**What is NOT settled by this directive**, and is being measured rather than assumed: whether a
+freshly caught Pokémon can be trained to L50+ in acceptable bot-time; which species are actually
+reachable and rare from the bot's current position; and whether catching should run inside story
+chapters or only between them. Those are out with a design workflow, not decided here.
+
+⚠ **Do NOT read this as "catch everything, always".** The user asked for **new, rare, and considered
+rare** — a policy that re-catches Zigzagoons satisfies the letter and wastes the run. The catch
+policy is a real design problem and is being treated as one.

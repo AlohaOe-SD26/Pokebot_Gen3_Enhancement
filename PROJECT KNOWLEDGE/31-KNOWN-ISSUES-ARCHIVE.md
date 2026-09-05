@@ -3129,3 +3129,69 @@ that section was the *pre-fix* narrowing of the original filing and is fully sup
 block above. ‼ **Keep only its rule, which outlived it:** *an entry that corrects itself in the BODY
 must correct its TITLE in the same edit* — that header outlived its own retraction by four days.
 
+---
+
+## ARCHIVED 2026-09-05 from `05-KNOWN-ISSUES.md` — KI-82 (verbatim, nothing removed)
+
+*Moved on the file's 3000-line budget when `KI-88` was opened. ⛔ A **DO-NOT-REOPEN STUB REMAINS IN
+`05`**, because this entry's whole job is to stop an auditor re-raising a settled question — moving
+it silently would have re-armed the exact failure it documents.*
+
+## KI-82 — ✅ **CLOSED 2026-08-23 — NOT A DEFECT. The tracked Emerald ROM is a DELIBERATE, USER-RULED choice, and this KI should never have been opened.** (opened 2026-08-22, closed 2026-08-23)
+
+⛔⛔ **DO NOT RE-RAISE THIS. IT HAS NOW BEEN RULED TWICE.**
+* **2026-07-18 — the original ruling** (`06-DECISIONS-LOG.md`, *"Emerald ROM stays tracked in the
+  repo (user ruling)"*). The user was offered purge / untrack / keep and chose **keep it as is**.
+  That entry ends with the words **"Do not re-raise this for THIS file."**
+* **2026-08-23 — re-affirmed** when a PASS 4 audit surfaced it again: *"leave as-is, fix the docs."*
+‼ **THE REAL DEFECT WAS THE PROCESS, NOT THE REPO.** This KI was filed after an audit found the
+tracked ROMs — **without first checking `06-DECISIONS-LOG.md`, where the answer had been sitting
+since 2026-07-18 with an explicit do-not-re-raise.** The decisions log exists precisely so a question
+never has to be asked twice, and it was not consulted. See `08-MISTAKES.md` (2026-08-23).
+
+**THE FACTS, corrected — the original filing overstated the cost:**
+* ⛔ **"33 MB" WAS WRONG.** Both paths (`sandbox-pokebot/roms/…` and `custom-pokebot/roms/…`) resolve
+  to the **SAME git blob `21bfd6e0`**, so the repository stores **ONE copy, not two** — git
+  deduplicates identical content. Two tree entries, one object.
+* The file is a genuine retail ROM, **SHA-1 `f3ae0881…`, which matches the bot's OWN whitelist** at
+  `sandbox-pokebot/modules/roms.py:50` — i.e. the bot is designed to accept exactly this dump.
+* **`.gitignore:17`'s `roms/*` IS NOT A CONTRADICTION** — and the 2026-07-18 ruling already said so:
+  *"`.gitignore` still blocks accidental **local** ROM commits; the tracked file is unaffected by
+  ignore rules."* Git ignore rules never apply to already-tracked paths. ⇒ an audit seeing
+  "ignored yet tracked" is seeing the intended design, not a mistake.
+* ✅ **`25-BACKUPS-AND-RESTORE.md` §3 listing the ROM under CAPTURED is therefore CORRECT and load-
+  bearing** — it is *why* a restore point is "a runnable program", and untracking would silently
+  break that promise on every existing tag.
+
+**THE ONE CONDITION THAT REOPENS IT, from the original ruling — unchanged:**
+⛔ **If this repository is ever made PUBLIC, this decision MUST be revisited FIRST.** It is private
+today; the copyright exposure was explained to the user and accepted on that basis.
+⚠ Agents must still never commit ADDITIONAL ROMs, saves or profiles — the ruling covers THIS file.
+
+*(Superseded material below, kept because it is the analysis that was put to the user. ⛔ Its
+"awaiting a ruling" framing is NO LONGER TRUE — the ruling is above.)*
+
+**THE FACTS AS ORIGINALLY FILED:**
+* `git ls-tree -r -l HEAD` shows **`sandbox-pokebot/roms/Pokemon - Emerald Version (USA, Europe).gba`
+  and the identical file under `custom-pokebot/roms/`, 16,777,216 bytes each** — 33 MB of a 146 MB
+  `.git`. Header bytes confirm a genuine retail ROM. Added by commit `2e933129`.
+* **Each fork's own `.gitignore:17` says `roms/*`** (with `!roms/.gitkeep`), so the tracked state
+  contradicts the stated intent of the very repo that carries it.
+* ‼ **BUT `25-BACKUPS-AND-RESTORE.md` §3 lists "the ROM — 2 `.gba` files are tracked" under
+  CAPTURED**, i.e. this project has been *relying* on restore points containing a runnable ROM.
+  ⇒ **It is at least partly deliberate. Do not assume it is an accident.**
+
+**WHY IT MATTERS BOTH WAYS — the tradeoff is real and belongs to the user:**
+* Untracking (`git rm --cached`, the ignore rule already covers it) is the licensing-clean posture,
+  and shrinks every future clone. **But it means each machine must supply its own ROM**, and this
+  project is explicitly worked on from more than one computer — the next `git pull` elsewhere would
+  DELETE the ROM that machine is running from, and every restore point after that stops being
+  "a runnable program" as §3 promises.
+* ⛔ **Removing it from HISTORY is a different and much larger action** — it rewrites published
+  history, which this project's git-conduct rule forbids outright, and would invalidate all 19
+  pushed `restore/*` tags. **Nobody should do that without the user saying so explicitly.**
+
+⇒ **NEXT STEP IS A QUESTION, NOT A COMMIT.** Ask the user: leave as-is (and correct the forks'
+`.gitignore` comment so the contradiction stops confusing audits), or untrack going forward (and
+update `25-BACKUPS-AND-RESTORE.md` §3, which would no longer be true). ⛔ Until then, change nothing.
+

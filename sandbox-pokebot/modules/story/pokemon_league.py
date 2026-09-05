@@ -52,6 +52,11 @@ from modules.modes.util.sleep import wait_for_n_frames
 from modules.modes.util.tasks_scripts import wait_for_task_to_start_and_finish
 from modules.pokemon_party import get_party, get_party_size
 from modules.story.overworld_items import Target, plan_healing, party_is_gauntlet_ready
+
+
+def _take(report: dict, reading: str) -> None:
+    """Record that a reading actually happened. ⛔ A grade must enumerate what OCCURRED."""
+    report.setdefault("readings", set()).add(reading)
 from modules.tasks import task_is_active
 
 #: Frames to spend on one item use before giving up. A bound, not a preference — a menu that never
@@ -254,3 +259,313 @@ def heal_party_from_bag(report=None, *, max_actions: int | None = None) -> Gener
     report["heal_actions"] = done
     report["heal_ready"] = party_is_gauntlet_ready(after)
     report["readings"].add("R-HEALED")
+
+
+#: The input task of the "which move should be forgotten?" screen ON THE FIELD PATH.
+#: ⛔ IT IS NOT THE BATTLE PATH'S TASK. `battle_move_replacing._get_evolution_task_name()` returns
+#: `Task_HandleReplaceMoveInput`, which is the BATTLE screen. Teaching a TM from the BAG opens the
+#: SUMMARY screen, whose task greys out HM moves — hence the name. MEASURED by dumping live tasks:
+#:   ACTIVE = ['Task_HandleInputCantForgetHMsMoves', 'Task_ShowPowerAccWindow',
+#:             'Task_ShowAppealJamWindow', 'Task_DuckBGMForPokemonCry']
+#: ‼‼ AND IT IS **BOTH**, AT DIFFERENT PHASES — measured with a per-iteration trace, after a
+#: single-instant sample misled me. `Task_HandleInputCantForgetHMsMoves` is TRANSIENT (the opening
+#: "can't forget HM moves" check); the steady-state input task is `Task_HandleReplaceMoveInput`,
+#: which is exactly what `battle_move_replacing._get_evolution_task_name()` returns. The trace:
+#:   [0, 0, ('notask', ['Task_HandleReplaceMoveInput', 'Task_DuckBGMForPokemonCry', ...]) x22]
+#: ⇒ my cursor loop kept resetting because it only recognised the transient one.
+#: ⭐ **THE LESSON: A ONE-FRAME SAMPLE OF A TASK LIST IS NOT A CONTRACT.** I measured once, caught a
+#: transient, generalised from it, and wrote off upstream's task name as "the battle path" when it
+#: was right all along. Watch a state OVER TIME before deciding what it is.
+FORGET_MOVE_TASKS = ("Task_HandleReplaceMoveInput", "Task_HandleInputCantForgetHMsMoves")
+
+#: Consecutive frames the forget-move cursor must report the SAME value before we act on it.
+FORGET_CURSOR_STABLE_READS = 3
+
+
+def teach_move_from_bag(item: Item, party_index: int, move_index_to_replace: int) -> Generator:
+    """Teach a TM/HM to `party_index`, replacing EXACTLY `move_index_to_replace`.
+
+    ⛔⛔ WHY THIS EXISTS INSTEAD OF `modules/modes/util/items.py::teach_hm_or_tm`.
+    That helper is used by §Ch23 leg 1 and works there, but it has a MEASURED defect that only bites
+    when the move to replace is not index 0. Its A-mashing loop runs until it sees
+    `Task_DuckBGMForPokemonCry`, and **the move-selection screen can appear first** — so the next
+    blind `press A` CONFIRMS WHATEVER THE CURSOR IS ON, which is the default, **index 0**. Its own
+    cursor navigation (`for _ in range(move_index_to_replace): press Down`) then never runs.
+    ‼ A per-iteration trace proved it: four teaches produced only TWO traces —
+        target=3 reads=[0,0,0,1,1,2,2,3,3,3]   (Sceptile — steered, correct)
+        target=0 reads=[0,0,0]                 (Swellow  — correct)
+        (Mightyena and Zigzagoon: NO TRACE — the navigation block never executed)
+    ⇒ Mightyena wanted index 0 and got index 0, so it **looked** correct. It was luck. Zigzagoon
+    wanted index 1, got 0, and lost **Tackle** instead of Growl.
+    ⭐ **A passing result from a code path that never ran is the most convincing kind of wrong.**
+    ⛔ Upstream was left ALONE deliberately: it is a shared file every chapter depends on, it has
+    several unbounded loops, and a partial fix destabilised it (a drive hung). Filed rather than
+    half-fixed. This routine controls the whole flow instead, the same way `use_item_on_party_member`
+    does for healing.
+
+    ⛔ AND IT NEVER PRESSES A ON AN UNKNOWN CURSOR. Gen-3 TMs are single-use; a wrong pick is
+    permanent, so this refuses rather than guesses.
+    """
+    from modules.battle_move_replacing import _get_move_selection_cursor
+    from modules.modes.util.items import scroll_to_item_in_bag
+
+    party = get_party()
+    if len(party) <= party_index or party[party_index] is None:
+        raise BotModeError(f"§Ch24 teach: no party member at slot {party_index}.")
+    target = party[party_index]
+    if get_item_bag().quantity_of(item) <= 0:
+        raise BotModeError(f"§Ch24 teach: {item.name} is not in the bag.")
+    if not target.species.can_learn_tm_hm(item):
+        raise BotModeError(
+            f"§Ch24 teach: {target.species.name} cannot learn {item.name}. ⛔ Refusing — a "
+            f"single-use TM would be wasted."
+        )
+
+    yield from StartMenuNavigator("BAG").step()
+    yield from scroll_to_item_in_bag(item)
+
+    # ---- open the context menu and take "Use" ----------------------------------------------------
+    yield from wait_for_task_to_start_and_finish(ITEM_CONTEXT_TASK, "A")
+
+    # ---- the party menu: pick the recipient, closed-loop ------------------------------------------
+    # ⛔ A TM DOES NOT REACH THE PARTY MENU THE WAY A POTION DOES. `use_item_on_party_member` waits
+    # on `Task_HandleChooseMonInput` and that is correct for MEDICINE, whose "Use" goes straight to
+    # `CB2_ShowPartyMenuForItemUse`. A TM needs additional A-presses first, and MEASURED 2026-09-04
+    # that task never became active — the leg refused (correctly) rather than pressing blind.
+    # ⭐ Upstream's proven wait is the GAME STATE, not a task, so use that and accept the task as a
+    # secondary signal. *Take the contract from the screen you are actually on* — third time this
+    # session that copying a sibling's SHAPE was right and copying its TASK NAME was wrong.
+    opened = False
+    for _ in range(600):
+        if get_game_state() is GameState.PARTY_MENU or task_is_active(CHOOSE_MON_TASK):
+            opened = True
+            break
+        context.emulator.press_button("A")
+        yield from wait_for_n_frames(4)
+    if not opened:
+        raise BotModeError(
+            f"§Ch24 teach: used {item.name} but the PARTY MENU never opened "
+            f"(state={get_game_state()})."
+        )
+    yield from wait_for_n_frames(10)
+    for _ in range(60):
+        cursor = _slot_cursor()
+        if cursor == party_index:
+            break
+        context.emulator.press_button("Down" if cursor < party_index else "Up")
+        yield
+    else:
+        raise BotModeError(f"§Ch24 teach: could not reach party slot {party_index}.")
+    context.emulator.press_button("A")
+    yield
+
+    # ---- ⛔ THE FORGET-MOVE SCREEN. Advance WITHOUT mashing past it. ------------------------------
+    # A-presses here are gated on the screen NOT being up yet, which is exactly the guard the
+    # upstream helper lacks.
+    up = False
+    for _ in range(600):
+        if any(task_is_active(n) for n in FORGET_MOVE_TASKS):
+            up = True
+            break
+        if get_game_state() is GameState.BAG_MENU:
+            # It learned into an EMPTY slot (or was refused) and bounced back — no choice needed.
+            return
+        context.emulator.press_button("A")
+        yield from wait_for_n_frames(4)
+    if not up:
+        raise BotModeError(
+            f"§Ch24 teach: none of {FORGET_MOVE_TASKS} appeared for {target.species.name}."
+        )
+
+    # ---- navigate the move cursor, closed-loop AND stable -----------------------------------------
+    stable, landed = 0, False
+    for _ in range(240):
+        if not any(task_is_active(n) for n in FORGET_MOVE_TASKS):
+            stable = 0
+            yield
+            continue
+        cursor = _get_move_selection_cursor()
+        if cursor == move_index_to_replace:
+            # ‼ Require the read to HOLD. `sMonSummaryScreen` is still initialising while the screen
+            # animates in — the 2026-07-25 hazard in `battle_move_replacing`, where a stale read of
+            # 4 once confirmed forgetting an HM.
+            stable += 1
+            if stable >= FORGET_CURSOR_STABLE_READS:
+                landed = True
+                break
+            yield
+            continue
+        stable = 0
+        context.emulator.press_button("Down" if cursor < move_index_to_replace else "Up")
+        yield
+        yield
+    if not landed:
+        raise BotModeError(
+            f"§Ch24 teach: could not settle the forget-move cursor on index "
+            f"{move_index_to_replace} for {target.species.name}. ⛔ Refusing to press A on an "
+            f"unknown slot — a Gen-3 TM is single-use."
+        )
+    context.emulator.press_button("A")
+    yield
+
+    # ---- back out ---------------------------------------------------------------------------------
+    for _ in range(600):
+        if get_game_state() is GameState.OVERWORLD:
+            return
+        if get_game_state() is GameState.BAG_MENU and not is_fade_active():
+            yield from wait_for_task_to_start_and_finish("Task_ShowStartMenu", "B")
+            return
+        context.emulator.press_button("A")
+        yield from wait_for_n_frames(4)
+
+
+# ==================================================================================================
+# §Ch24 PREP — THE MOVESET PLAN (`#24-e4moveset`)
+# ==================================================================================================
+#: ⭐⭐ FOUR CHANGES THAT COST NOTHING: every TM/HM here is ALREADY IN THE BAG and no travel is
+#: needed. Compatibility was read from the decomp's `src/data/pokemon/tmhm_learnsets.h` **at two
+#: revisions and diffed** (the macro form and the post-`912a80e27a40` bitfield form — identical for
+#: all six species) and cross-checked against our own `modules/data/species.json`.
+#: ⛔ GEN-3 TMs ARE SINGLE-USE. A wrong compatibility claim destroys one permanently, which is why
+#: this list is decomp-sourced rather than reasoned from types.
+#:
+#: ‼ AND ONE ENTRY EXISTS BECAUSE I WAS WRONG. I had recorded Sceptile as carrying "Rock Smash AND
+#: Strength — two dead slots". **`Slam` is 80 BP at 75%; `Strength` is 80 BP at 100%.** ⇒ Strength is
+#: Sceptile's BETTER Normal move and **Slam** is the wasted slot. A field move is not automatically
+#: a dead slot — check the numbers before calling one dead.
+MOVESET_PLAN = (
+    # (species, item, move to LEARN, move to REPLACE, why)
+    ("Sceptile", "TM40", "Aerial Ace", "Slam",
+     "never-misses, and FOUR opponents run Double Team (Shiftry, Sableye, Ludicolo, Glalie) plus "
+     "Sand-Attack and Swagger. Also covers Grass-resists-Grass: Leaf Blade does 30%/25% to "
+     "Cacturne/Shiftry where Aerial Ace does 59%/47%"),
+    ("Swellow", "TM42", "Facade", "Peck",
+     "Peck is 35 BP, the worst move on the team. Facade is 70 with STAB — and Wallace's Tentacruel "
+     "AND Milotic both carry Toxic, after which Guts (x1.5) and Facade's doubling BOTH apply"),
+    ("Mightyena", "HM04", "Strength", "Tackle",
+     "35 BP -> 80 BP at 100%. HMs are REUSABLE, so Sceptile keeps its own copy"),
+    ("Zigzagoon", "HM06", "Rock Smash", "Growl",
+     "Growl is worthless, and Victory Road needs Rock Smash kept in the party if Sceptile's slot is "
+     "ever freed for Dragon Claw"),
+)
+
+#: ⛔ NOT IN THE PLAN, ON PURPOSE — recorded so a future reader does not 'helpfully' add them:
+#: TM34 Shock Wave (only Castform L36 and Zigzagoon L19 can learn it; Castform's does 21% to
+#: Gyarados while Gyarados's Surf does 106% back), TM03 Water Pulse (Wailord already has Surf 95 and
+#: Water Spout 150), TM39 Rock Tomb (20-31% at 80% accuracy).
+#: ⛔ AND THREE ARE UNUSABLE BY ANYONE HERE: TM04 Calm Mind, TM08 Bulk Up, TM50 Overheat.
+
+MOVESET_READINGS = ("R-PLAN", "R-TAUGHT", "R-VERIFIED")
+
+
+def _find_slot(species: str) -> "int | None":
+    """Party index of `species`, or None if absent.
+
+    ⛔ DERIVED AT RUN TIME, never hardcoded — a caught Pokémon or a faint-swap reorders the party,
+    and this project has a filed bug (`#24-ch23wally`) from code that assumed slot order.
+    ‼ RETURNS None RATHER THAN RAISING, deliberately: the caller treats "not in the party" as one
+    REFUSAL REASON among several and reports them together. Raising here would have forced a
+    `try/except` around it, and a swallowed exception in `modules/story` is exactly the debt
+    `repro_no_silent_except.py` ratchets (it caught this at 124/123). ⇒ **when a caller only wants
+    to know "is it there?", answering with an exception manufactures a swallow.**
+    """
+    for i, mon in enumerate(get_party()):
+        if mon is not None and getattr(mon, "species", None) is not None and mon.species.name == species:
+            return i
+    return None
+
+
+def _moves_of(index: int) -> "list[str]":
+    mon = get_party()[index]
+    return [m.move.name for m in mon.moves if m is not None and m.move is not None]
+
+
+def apply_moveset_plan(report=None, plan=MOVESET_PLAN) -> Generator:
+    """Teach the free in-bag moves for the Elite Four.
+
+    ⛔ EVERY STEP IS DERIVED AND ASSERTED, NOT ASSUMED:
+      * the party SLOT comes from the species name at run time;
+      * the move INDEX to replace comes from that Pokémon's CURRENT moves;
+      * a change is SKIPPED (not failed) if it is already applied — this leg must be re-runnable;
+      * afterwards the Pokémon is re-read and must KNOW the new move and have LOST the old one.
+    ‼ "the teach helper returned" is not "the move is known" — the leg-11 lesson, one layer up.
+    """
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+
+
+    bag = {slot.item.name: slot.quantity for slot in get_item_bag().tms_hms}
+    report["tm_pocket_before"] = dict(bag)
+    todo, skipped, missing = [], [], []
+    for species, item_name, learn, replace, why in plan:
+        idx = _find_slot(species)
+        if idx is None:
+            missing.append(
+                f"{species} is not in the party "
+                f"({[m.species.name for m in get_party() if m and m.species]})"
+            )
+            continue
+        have = _moves_of(idx)
+        if learn in have:
+            skipped.append(f"{species} already knows {learn}")
+            continue
+        if replace not in have:
+            # ⛔ REFUSE rather than replace something else. Burning a single-use TM over the wrong
+            # move is unrecoverable, and "the slot I expected" is exactly the assumption that fails.
+            missing.append(f"{species} does not know {replace} (has {have}) — refusing to guess")
+            continue
+        if bag.get(item_name, 0) <= 0:
+            missing.append(f"{item_name} not in the TM/HM pocket")
+            continue
+        todo.append((species, idx, item_name, learn, replace, have.index(replace), why))
+
+    report["plan_todo"] = [(s, i, it, l, r) for s, i, it, l, r, _, _ in todo]
+    report["plan_skipped"] = skipped
+    report["plan_refused"] = missing
+    _take(report, "R-PLAN")
+    if missing:
+        raise BotModeError(
+            f"§Ch24 moveset: refusing to proceed — {missing}. ⛔ Gen-3 TMs are SINGLE-USE; a wrong "
+            f"target is permanent. Fix the plan or the party, do not let this pass."
+        )
+    if not todo:
+        report["taught"] = []
+        _take(report, "R-TAUGHT")
+        _take(report, "R-VERIFIED")
+        return
+
+    taught = []
+    for species, idx, item_name, learn, replace, move_index, why in todo:
+        before = _moves_of(idx)
+        yield from teach_move_from_bag(get_item_by_name(item_name), idx, move_index)
+        yield from wait_for_n_frames(10)
+        after = _moves_of(idx)
+        # ⛔ GRADE THE CONSEQUENCE.
+        if learn not in after:
+            raise BotModeError(
+                f"§Ch24 moveset: taught {learn} to {species} (slot {idx}, replacing {replace} at "
+                f"index {move_index}) and it does NOT know it. before={before} after={after}. "
+                f"⛔ A single-use TM may have been consumed for nothing."
+            )
+        if replace in after:
+            raise BotModeError(
+                f"§Ch24 moveset: {species} learned {learn} but STILL knows {replace} — the wrong "
+                f"slot was replaced. before={before} after={after}."
+            )
+        taught.append((species, learn, replace, before, after))
+    report["taught"] = taught
+    _take(report, "R-TAUGHT")
+
+    # ---- final re-read of the whole party ---------------------------------------------------------
+    final = {}
+    for species, _, _, learn, replace, _, _ in todo:
+        idx = _find_slot(species)
+        if idx is None:
+            raise BotModeError(
+                f"§Ch24 moveset: {species} vanished from the party between teaching and the final "
+                f"re-read. ⛔ Something reordered or removed it mid-leg."
+            )
+        final[species] = _moves_of(idx)
+    report["final_movesets"] = final
+    report["tm_pocket_after"] = {slot.item.name: slot.quantity for slot in get_item_bag().tms_hms}
+    _take(report, "R-VERIFIED")
