@@ -426,3 +426,6 @@
 {"when": "2026-09-05T08:54:19", "driver": "ch24teachice", "build": "sandbox", "state": "post_icebeam.ss1", "frames_run": 20575, "recomputes": 20575, "scans": 69, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-05T08:56:48", "driver": "ch24teachice", "build": "sandbox", "state": "post_icebeam.ss1", "frames_run": 1500, "recomputes": 1501, "scans": 6, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-05T08:59:48", "driver": "ch24teachice", "build": "sandbox", "state": "post_icebeam.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-05T09:45:29", "driver": "ch23chapter", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-05T09:46:36", "driver": "ch23chapter", "build": "sandbox", "state": "post_wally.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-05T09:53:42", "driver": "ch23chapter", "build": "sandbox", "state": "post_wally.ss1", "frames_run": 87507, "recomputes": 87507, "scans": 292, "divergences": {}, "observer_broke": false}

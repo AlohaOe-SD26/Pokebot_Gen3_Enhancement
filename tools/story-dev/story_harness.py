@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -15514,6 +15514,140 @@ class Ch24TeachIceMode(Ch24MovesMode):
 
 
 
+class Ch23ChapterMode(BotMode):
+    """§Ch23 AS A CHAPTER — drives PRODUCTION `victory_road.do_victory_road_chapter()`.
+
+    ‼ WHAT THIS PROVES THAT THE TWELVE LEG DRIVERS DID NOT. Every leg was driven from its own
+    pinned fixture, so **no run has ever chained them**, and the orchestrator's real content is not
+    the legs — it is the GUARDS in front of them. SIX legs carry ANTI-VACUITY guards that RAISE when
+    their work is already done (`solve_b1f_puzzle`, `cross_b2f`, `return_through_b1f`,
+    `exit_victory_road`, `heal_at_league`, and `enter_b1f`'s precondition). Those were written so a
+    STANDALONE DRIVER could not score a vacuous PASS — correct for a driver, and INVERTED for a
+    chapter that must resume after a whiteout. This driver exercises the dispatch that keeps them
+    from firing.
+
+    ⭐ **RUN THE CHEAP ARM FIRST — IT IS A REAL TEST, NOT A FORMALITY.**
+        `post_league_shop.ss1` is §Ch23's END state (out of Victory Road, at EVER_GRANDE, healed,
+        basket bought). From it the chapter MUST self-skip and grade PASS in a few hundred frames.
+        That single run proves the completion predicate reads the real end state correctly, that the
+        chapter is resume-safe, and that nothing in the wiring raises on import.
+        ‼ It also FALSIFIES the most dangerous mistake available here: if `ch23_chapter_done()` were
+        graded on `DEFEATED_WALLY_VICTORY_ROAD` alone it would ALSO pass this arm — so the cheap arm
+        is checked together with the STRANDED fault arm below, which the flag-only version fails.
+
+    ⛔ THE GRADE: `ch23_chapter_done()` AND on `EVER_GRANDE_CITY` AND on NO Victory Road floor AND a
+    REAL `calculate_path` off the END tile AND `whiteouts == 0`.
+    ‼ `wally_beaten()` alone is NOT the grade — that flag is set at LEG 5 OF 11, with the bot at the
+    B1F ladder apron and six legs still ahead. Grading on it is the §Ch15/§Ch18/§Ch19 shape verbatim.
+
+    FAULT ARM: `POKEBOT_CH23_FAULT_STRANDED=1` skips `exit_victory_road`, so a run that starts
+    inside Victory Road must FAIL rather than report a chapter done from underground.
+
+    Run (cheap, resume-safety):
+        PYTHONUTF8=1 py -3.12 story_harness.py post_league_shop.ss1 --driver ch23chapter --frames 3000
+    Run (the real chain — expensive; expect a long grind if the party is untrained):
+        PYTHONUTF8=1 py -3.12 story_harness.py post_wally.ss1 --driver ch23chapter --frames 600000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23Chapter"
+
+    def __init__(self):
+        super().__init__()
+        self.whiteouts = 0
+        self.battles = 0
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts += 1
+        log(f"[ch23chapter] !! WHITEOUT #{self.whiteouts} — latching the abort so a verdict prints.")
+        try:
+            from modules.story.early_game import set_story_abort
+
+            set_story_abort("ch23chapter whiteout")
+        except Exception as error:  # noqa: BLE001 — the latch failing must not hide the whiteout
+            log(f"[ch23chapter] could not latch the abort: {type(error).__name__}: {error}")
+        return True
+
+    def on_battle_started(self, encounter):
+        self.battles += 1
+        return None
+
+    def run(self):
+        import modules.story.victory_road as VR
+
+        TAG = "ch23chapter"
+        report: dict = {}
+        log(f"[{TAG}] BEFORE at={VR._where()} done={VR.ch23_chapter_done()} "
+            f"wally={VR.wally_beaten()}")
+        # ⛔ REPORT BOTH PREDICATES SIDE BY SIDE. The whole design question of this chapter is that
+        # they DISAGREE for six legs; printing only the one we grade on would hide that.
+        log(f"[{TAG}] BEFORE flag_only_would_say={VR.wally_beaten()}  gate_says={VR.ch23_chapter_done()}")
+
+        # ⭐ OBSERVE-ONLY DISCRIMINATOR — `POKEBOT_CH23_PREDICATE_ONLY=1`.
+        # ⛔ THE CHEAP RESUME ARM CANNOT PROVE THE PREDICATE IS RIGHT: on the END fixture the flag
+        # and the gate AGREE, so a flag-only `ch23_chapter_done()` would pass it identically. The
+        # discriminating question is about the PREDICATE, not the walk — so ask the predicate, on a
+        # fixture where the two MUST disagree (`post_wally.ss1`: Wally beaten, bot still on
+        # VICTORY_ROAD_1F with six legs to go). Grading a driver by running eleven legs to answer a
+        # two-line question is the "choose the instrument by the question" rule, violated.
+        import os as _os_pred
+
+        if _os_pred.environ.get("POKEBOT_CH23_PREDICATE_ONLY"):
+            flag_only = VR.wally_beaten()
+            gate = VR.ch23_chapter_done()
+            in_vr_now = any(VR._on_map(m) for m in VR.VICTORY_ROAD_MAPS)
+            log(f"[{TAG}] PREDICATE at={VR._where()} inside_victory_road={in_vr_now}")
+            log(f"[{TAG}] PREDICATE flag_only(DEFEATED_WALLY_VICTORY_ROAD)={flag_only} "
+                f"gate(ch23_chapter_done)={gate}")
+            # The bot is INSIDE Victory Road with the flag set ⇒ the flag-only reading must be a
+            # FALSE 'done' and the gate must refuse. Anything else means the gate is the flag.
+            ok = bool(in_vr_now and flag_only and not gate)
+            log(f"[{TAG}] PREDICATE discriminates={ok} "
+                f"(need inside_vr=True, flag_only=True, gate=False)")
+            log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} (PREDICATE-ONLY probe; walks nothing)")
+            context.set_manual_mode()
+            yield
+            return
+
+        failure = None
+        try:
+            yield from VR.do_victory_road_chapter(report)
+        except Exception as error:  # noqa: BLE001 — a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        done = VR.ch23_chapter_done()
+        where = VR._where()
+        on_eg = VR._on_map(VR.EG)
+        in_vr = any(VR._on_map(m) for m in VR.VICTORY_ROAD_MAPS)
+
+        # AND THE BOT CAN CONTINUE — a REAL path off the end tile, never a `controllable` flag.
+        from modules.map_path import calculate_path
+
+        here = VR._here_tile()
+        reachable = 0
+        for tile in ((here[0], here[1] + 1), (here[0] + 1, here[1]),
+                     (here[0], here[1] - 1), (here[0] - 1, here[1])):
+            try:
+                calculate_path((where[0], here), (where[0], tile))
+                reachable += 1
+            except Exception:  # noqa: BLE001 — a refusal is a reading
+                pass
+
+        log(f"[{TAG}] AFTER at={where} done={done} on_ever_grande={on_eg} inside_victory_road={in_vr}")
+        log(f"[{TAG}] CONTINUE neighbours_reachable={reachable}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
+        for key in ("leg5_entry", "ladder_apron", "b2f_arrival", "heal_before", "bought"):
+            if key in report:
+                log(f"[{TAG}] R {key} = {report[key]}")
+
+        passed = (failure is None and done and on_eg and not in_vr
+                  and reachable > 0 and self.whiteouts == 0)
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+        yield
+
 class Ch22StairsMode(BotMode):
     """§Ch22 — READ-ONLY: what does the stair column ACTUALLY read once the puzzle is solved?
 
@@ -17316,6 +17450,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23LeagueHealMode()
         elif args.driver == "ch23shop":
             context.bot_mode_instance = Ch23ShopMode()
+        elif args.driver == "ch23chapter":
+            context.bot_mode_instance = Ch23ChapterMode()
         elif args.driver == "ch24heal":
             context.bot_mode_instance = Ch24HealMode()
         elif args.driver == "ch24moves":

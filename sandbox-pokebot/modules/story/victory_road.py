@@ -2893,3 +2893,165 @@ def stock_for_the_elite_four(report=None) -> Generator:
             f"Ch23 leg 11: pressed Down on the League exit and did not return to EVER_GRANDE_CITY — "
             f"we are at {_where()}."
         )
+
+
+# ==================================================================================================
+# THE CHAPTER — §Ch23 as a Segment, wired the way §Ch21 and §Ch22 are
+# ==================================================================================================
+
+#: ⛔ EVERY MAP INSIDE VICTORY ROAD. Written out because NO such constant existed — the file carried
+#: only the three module shortcuts. A position test that forgets one floor reports "out" from inside.
+VICTORY_ROAD_MAPS = (VR1F, B1F, B2F)
+
+#: The maps this chapter can still be on BEFORE the crater is left. Distinct from `_RESUMABLE_MAPS`
+#: (which includes ROUTE126, i.e. already OUT) — those answer different questions, and §Ch21 already
+#: paid for conflating two such sets once.
+_PRE_DEPARTURE_MAPS = (CITY, PC_1F, PC_2F, UWS, UW126)
+
+
+def ch23_chapter_done() -> bool:
+    """§Ch23 complete: Wally is beaten **AND** the bot is out of Victory Road, in Ever Grande.
+
+    ⛔⛔ `wally_beaten()` ALONE IS NOT A COMPLETION PREDICATE — AND NEITHER IS THE CHAPTER TABLE'S
+    MILESTONE. `chapters.py:281` grades Segment 23's READOUT on `DEFEATED_WALLY_VICTORY_ROAD`, and
+    **that flag is set at LEG 5 OF 11** — while the bot stands at the B1F ladder apron with the
+    boulder interlock, B2F, the return climb, the exit, the League heal and the shop all still ahead.
+    Grading the GATE on it would hand §Ch24 a run buried two floors underground.
+    ‼ That is the §Ch15 / §Ch18 / §Ch19 shape — three chapters that PASSED THEIR OWN TESTS while
+    stranded — and `ch22_chapter_done` exists because §Ch22 was nearly the fourth.
+    ⇒ **The readout and the gate answer DIFFERENT QUESTIONS** — "which chapter is this run in?"
+    versus "may the next segment start?". Both are correct. Do not collapse them.
+
+    ⚠ DELIBERATELY NOT CONJUNCTS: "healed" and "stocked". Both are CONSUMABLE — one battle or one
+    purchase flips them back — and a done-predicate that can turn False again would re-run a
+    finished chapter forever. Legs 10 and 11 self-skip on their own readings instead.
+    """
+    if not wally_beaten():
+        return False
+    try:
+        return _on_map(EG) and not any(_on_map(m) for m in VICTORY_ROAD_MAPS)
+    except Exception:  # noqa: BLE001 — a reader that cannot answer must not report "done"
+        return False
+
+
+def do_victory_road_chapter(report: dict | None = None) -> Generator:
+    """§Ch23 — VICTORY ROAD. Sootopolis -> the ocean -> Wally -> the interlock -> the League.
+
+    ⛔⛔ THIS DISPATCHES ON **WHERE THE BOT IS**, NOT DOWN A FIXED LIST — and that is a finding, not
+    a style choice. SIX of these legs carry ANTI-VACUITY guards that RAISE when their work is
+    already done (`solve_b1f_puzzle`, `cross_b2f`, `return_through_b1f`, `exit_victory_road`,
+    `heal_at_league`, and `enter_b1f`'s precondition). Those guards exist so a STANDALONE DRIVER
+    cannot score a vacuous PASS from a fixture that already satisfies the goal — correct for a
+    driver, and **inverted for a chapter that must resume after a whiteout**, where re-entry would
+    RAISE instead of skipping. ⇒ every call below sits behind a guard mirroring that leg's own
+    precondition, so no anti-vacuity guard can ever fire from the chapter path.
+    ‼ The nastiest is `heal_at_league`, which raises when the party is ALREADY HEALTHY — a state a
+    whiteout produces naturally. It is state-gated, not position-gated, so `party_is_healthy()`
+    must be consulted BEFORE the call, never after the failure.
+
+    ⛔ A WHITEOUT IS NOT RETRIED HERE. It unwinds as `StoryAbort` to `StoryMode.run`, which clears
+    the latch and re-enters `_play()` from the top; looping on it would burn all three attempts in
+    a handful of frames and report two invented failures (KI-67). The 3-attempt loop is for
+    `BotModeError` and nothing else.
+
+    ⛔ `depart_sootopolis` ALREADY CONTAINS ITS OWN 3-ATTEMPT LOOP (`:1139`). It is NOT wrapped in a
+    second one here — nesting them would mean 9 attempts and a 9x frame bill on the one leg whose
+    failure mode is a slow underwater crossing.
+
+    ‼ TWO PLACES ON VR1F, AND ONLY ONE OF THEM DESCENDS. The bot stands on VICTORY_ROAD_1F both
+    BEFORE the descent (at the B1F doorstep, (9,15)) and AFTER the return climb (at
+    `F1_LADDER_LANDING` (21,32)). `at_b1f_doorstep()` is the discriminator; without it a resume
+    after the return would try to descend a second time. This is the same split §Ch22 needed for
+    its island-vs-entrance sides, and §Ch22 recorded that getting it wrong "reads as a routing bug".
+    """
+    import os as _os_fault
+
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    if ch23_chapter_done():
+        return  # resume-safe
+
+    fault_noheal = bool(_os_fault.environ.get("POKEBOT_CH23_FAULT_NOLEAGUEHEAL"))
+    fault_stranded = bool(_os_fault.environ.get("POKEBOT_CH23_FAULT_STRANDED"))
+
+    attempts: "list[str]" = []
+    for attempt in range(1, 4):
+        _check_abort()  # ⛔ FIRST statement of the loop body, OUTSIDE the try
+        try:
+            # ⛔ RE-READ POSITION EVERY ATTEMPT. Every boundary here is a map change or a permanent
+            # flag, so a phase decided once above the loop is stale on attempt 2.
+
+            # --- LEGS 1-3 — OUT OF THE CRATER ---------------------------------------------------
+            if any(_on_map(m) for m in _PRE_DEPARTURE_MAPS):
+                yield from depart_sootopolis(report)
+
+            inside_vr = any(_on_map(m) for m in VICTORY_ROAD_MAPS)
+
+            # --- LEG 4 — THE OCEAN CROSSING -----------------------------------------------------
+            # ⛔ GUARDED ON `inside_vr` TOO. `at_ever_grande_top()` is False while the bot is on any
+            # Victory Road floor, so the bare skip test would send a run that is already INSIDE the
+            # cave back out to surf the ocean.
+            if not inside_vr and not at_ever_grande_top():
+                yield from cross_to_ever_grande(report)
+
+            # --- THE TRAINING LEG — BEFORE WALLY, AND IT NAVIGATES ITSELF ------------------------
+            # ‼ VERIFIED, NOT ASSUMED: `--driver ch23train` runs from `post_ever_grande.ss1`, i.e.
+            # from EVER_GRANDE and not from inside the cave, so the leg reaches its own grass. Its
+            # docstring's "on VICTORY_ROAD_1F" names WHERE THE GRASS IS, not a precondition.
+            # ⛔ ONLY BEFORE WALLY. After the flag is set, levels gate nothing and `train_team` has
+            # burned 19.9M frames on a target local grass could not deliver (KI-28).
+            if not inside_vr and not wally_beaten() and not team_is_ready(TRAIN_TARGET)[0]:
+                yield from train_for_victory_road(report)
+
+            # --- LEG 5 — INTO VICTORY ROAD AND THROUGH WALLY ------------------------------------
+            if not at_b1f_doorstep() and (_on_map(EG) or _on_map(VR1F)):
+                yield from enter_victory_road(report)
+
+            # --- LEG 6 — HEAL, B1F PUZZLE, DOWN TO B2F ------------------------------------------
+            # `descend_to_b2f` IS leg 6 whole: it composes heal_before_descent + enter_b1f +
+            # solve_b1f_puzzle + the ladder. Calling those three separately would double-guard them.
+            if _on_map(VR1F) and at_b1f_doorstep():
+                yield from descend_to_b2f(report)
+
+            # --- LEG 7 — ACROSS B2F -------------------------------------------------------------
+            if _on_map(B2F):
+                yield from cross_b2f(report)
+
+            # --- LEG 8 — BACK THROUGH B1F AND UP ------------------------------------------------
+            if _on_map(B1F):
+                yield from return_through_b1f(report)
+
+            # --- LEG 9 — OUT ---------------------------------------------------------------------
+            if _on_map(VR1F) and not fault_stranded:
+                yield from exit_victory_road(report)
+
+            # --- LEG 10 — HEAL AT THE LEAGUE ----------------------------------------------------
+            # ⛔ THE GUARD IS THE POINT. `heal_at_league` RAISES on an already-healthy party.
+            if _on_map(EG) and not fault_noheal and not party_is_healthy()[0]:
+                yield from heal_at_league(report)
+
+            # --- LEG 11 — STOCK THE BASKET ------------------------------------------------------
+            # ⛔ READ THE BAG, NEVER ASSUME A PURCHASE (the leg's own rule). Re-running the shop
+            # with a full basket would spend money the gauntlet needs; skipping it when short would
+            # send the bot into five unhealed fights.
+            if _on_map(EG):
+                stock = bag_healing_stock()
+                if any(stock.get(name, 0) < qty for name, qty in LEAGUE_BASKET):
+                    yield from stock_for_the_elite_four(report)
+        except StoryAbort:
+            # ⛔ RE-RAISED, NEVER RETRIED HERE — the latch is cleared only by `StoryMode.run` (KI-67).
+            raise
+        except BotModeError as error:  # noqa: BLE001 - reported, never swallowed
+            reraise_if_aborting(error)  # ⛔ FIRST statement of the handler
+            attempts.append(f"attempt {attempt}: {type(error).__name__}: {str(error)[:200]}")
+            continue
+
+        if ch23_chapter_done():
+            return
+        attempts.append(
+            f"attempt {attempt}: every leg ran but the chapter does not grade done "
+            f"(wally={wally_beaten()}, at={_where()})"
+        )
+    raise BotModeError(
+        "Ch23 (Victory Road) failed after 3 attempts. " + " | ".join(attempts)
+    )

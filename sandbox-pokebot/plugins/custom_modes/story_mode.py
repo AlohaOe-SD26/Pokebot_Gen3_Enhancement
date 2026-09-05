@@ -3776,9 +3776,36 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Sootopolis Gym / Juan already done — skipping.[/]")
         _guard("Gym 8 — Juan (Ch22)", ch22_chapter_done)
 
-        # END OF BUILT CONTENT. Next build: **VICTORY ROAD — Chapter 23** (`chapters.py:259-262`,
-        # graded on `DEFEATED_WALLY_VICTORY_ROAD`): Surf/Waterfall/Dive to Ever Grande, then clear
-        # Victory Road (Strength / Rock Smash / Flash inside) and beat Wally.
+        # --- Segment 23: VICTORY ROAD ---------------------------------------------------------------
+        # ⛔⛔ GRADED ON `ch23_chapter_done()`, WHICH IS THE FLAG **AND A POSITION** — never the flag
+        # alone. `chapters.py:280-286` grades Segment 23's READOUT on `DEFEATED_WALLY_VICTORY_ROAD`,
+        # and that flag is set at **LEG 5 OF 11**, while the bot stands at the B1F ladder apron with
+        # the boulder interlock, B2F, the return climb, the exit, the League heal and the shop all
+        # still ahead of it. Grading the GATE on it would hand §Ch24 a run buried two floors
+        # underground — the §Ch15 / §Ch18 / §Ch19 shape, each of which PASSED its own test while
+        # stranded, and which §Ch22's predicate exists because it was nearly the fourth.
+        # ‼ The readout answers "which chapter is this run in"; the gate answers "may the next
+        # segment start". Both are correct. Do not collapse them.
+        from modules.story.victory_road import ch23_chapter_done, do_victory_road_chapter
+
+        if not ch23_chapter_done():
+            yield from do_victory_road_chapter()
+        else:
+            console.print("[dim]Story: Victory Road already done — skipping.[/]")
+        _guard("Victory Road (Ch23)", ch23_chapter_done)
+
+        # END OF BUILT CONTENT. Next build: **THE POKÉMON LEAGUE — Chapter 24**: the Elite Four
+        # gauntlet (Sidney, Phoebe, Glacia, Drake) and Champion Wallace. ⛔ NO NURSE BETWEEN ROOMS —
+        # the doors seal behind you, so the BAG is the only healing, and items are legal in those
+        # battles (decomp-verified). §Ch23 leg 11 already buys the basket for exactly this reason.
+        # ✅ §Ch23 IS NOW WIRED (2026-09-05) — the orchestrator dispatches on POSITION because six of
+        # its legs RAISE when their work is already done (anti-vacuity guards written for standalone
+        # drivers, which invert into a liability on a whiteout resume).
+        # ⛔ THE CITATION BELOW USED TO READ `chapters.py:259-262` FOR CHAPTER 23. It is
+        # **`chapters.py:280-286`** — 259-262 is Segment 21's neighbourhood. Verified 2026-09-05.
+        # (superseded heading: "Next build: VICTORY ROAD — Chapter 23", graded on
+        # `DEFEATED_WALLY_VICTORY_ROAD`: Surf/Waterfall/Dive to Ever Grande, then clear Victory Road
+        # and beat Wally.)
         # ⭐ Badge 8 is what makes field WATERFALL usable (`src/field_control_avatar.c` gates
         # `EventScript_UseWaterfall` on `FLAG_BADGE08_GET`), which is exactly what opens Routes
         # 132-134 — so §Ch22 landing is what unblocks §Ch23.
@@ -3809,9 +3836,10 @@ class StoryMode(BotMode):
         # (38,22) is a shallow-water SANDBAR — the bot must Surf off it. The standing rule is "and the bot
         # can continue", and three chapters have already shipped stranded.
         context.message = (
-            "Story: GYM 8 IS DONE (Ch22) - the RAIN BADGE is won, Juan is beaten and the bot is "
-            "back out of the gym, so field WATERFALL is now usable. End of built content. "
-            "NEXT (WIP): Ch23, VICTORY ROAD. Handing to manual."
+            "Story: VICTORY ROAD IS DONE (Ch23) - Wally is beaten, the B1F/B2F interlock is "
+            "cleared, and the bot is out at EVER GRANDE with the party healed and the Elite Four "
+            "basket bought. End of built content. NEXT (WIP): Ch24, THE POKEMON LEAGUE - a FIVE "
+            "FIGHT GAUNTLET with NO NURSE between rooms. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call

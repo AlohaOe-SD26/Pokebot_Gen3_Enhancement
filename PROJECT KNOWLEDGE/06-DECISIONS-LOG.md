@@ -4118,3 +4118,32 @@ a genuine extension and belongs in `#24-dexhunt`'s body, not in a second item.
 **What is measured and settled as of today:** dex is **seen 116 / owned 11** (105 free wins), the
 bot holds **23 balls**, the PC is **empty**, and `resource_blocker()`'s only remaining gate is
 `_ball_count() <= 1`. ⇒ **nothing in the ruled predicate blocks the work today.**
+
+
+## 2026-09-05 — §Ch23's completion gate is FLAG **AND** POSITION, not the chapter table's milestone
+
+**Decision.** `ch23_chapter_done()` = `wally_beaten()` AND on `EVER_GRANDE_CITY` AND on no Victory
+Road floor. The Segment 23 dispatch in `story_mode.py` gates on THAT, never on
+`DEFEATED_WALLY_VICTORY_ROAD`.
+
+**Why.** `chapters.py:281` grades Segment 23's progress READOUT on that flag, and the flag is set at
+**LEG 5 OF 11** — while the bot stands at the B1F ladder apron with the boulder interlock, B2F, the
+return climb, the exit, the League heal and the shop all still ahead. A gate on the flag alone would
+hand §Ch24 a run buried two floors underground.
+⭐ **MEASURED, NOT ARGUED:** `POKEBOT_CH23_PREDICATE_ONLY=1` on `post_wally.ss1` printed
+`inside_victory_road=True  flag_only=True  gate=False`. The wrong design is falsifiable and was
+falsified.
+
+**Alternatives rejected.**
+* *Grade on the flag alone* — simplest, and it is the §Ch15/§Ch18/§Ch19 shape verbatim: three
+  chapters that PASSED THEIR OWN TESTS while stranded. §Ch22's predicate exists because it was
+  nearly the fourth.
+* *Change `chapters.py` so the milestone matches the gate* — rejected: the readout and the gate
+  answer genuinely different questions ("which chapter is this run in?" vs "may the next segment
+  start?"). Collapsing them would break the progress display to fix a dispatch concern.
+* *Add "healed" and "stocked" as conjuncts* — rejected: both are CONSUMABLE, so the predicate could
+  flip back to False after a single battle or purchase and re-run a finished chapter for ever. Legs
+  10 and 11 self-skip on their own readings instead.
+
+**Precedent.** §Ch21 and §Ch22 made the same stricter-than-the-flag choice for the same reason; this
+entry exists because a Tier 1 reviewer noticed those were logged and this one was not.

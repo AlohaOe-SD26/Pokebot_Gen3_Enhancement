@@ -2939,3 +2939,56 @@ one about the PARTY menu, because the item side had been "verified" by printing 
 📌 The exit the game actually took is path **E** of
 `ai-research-notes/2026-09-05-ch24-TMHM-TEACH-CHAIN.md` (`gText_PkmnAlreadyKnows`), confirmed
 independently by a decomp read.
+
+
+## `KI-90` — ⛔⛔ AN UNCAUGHT `RuntimeError` IN THE SHARED BATTLE PATH EMPTIES THE CONTROLLER STACK MID-BATTLE, AND THE RUN HANGS (2026-09-05, MEASURED, upstream helper, NOT fixed)
+
+**Severity: HIGH. It is not a crash — it is a HANG, which is worse.** The exception unwinds the
+whole controller stack, the bot drops to Manual *inside a battle nothing is driving*, and the run
+sits there until the harness's watchdog kills it. MEASURED: 20,000 frames of no progress, then
+`HANG CONFIRMED`.
+
+**MEASURED** in the FIRST end-to-end §Ch23 chapter chain drive (`--driver ch23chapter` from
+`post_wally.ss1`), at frame **66693**, immediately after `MIGHTYENA fainted!` /
+`BattleScript_FaintTarget`:
+```
+RuntimeError: Cannot attack the left-side opponent Pokémon because there isn't one.
+  modules/battle_action_selection.py:499 in battle_action_use_move
+  <- battle_handler.py:294 _watch  <- _listeners.py:219 BattleListener.fight
+f66695: CONTROLLER -> <none>   (state=BATTLE)
+f68706: !!! NO-PROGRESS ... gen -> <no controller on the stack (Manual mode / dropped out)>
+f87506: HANG CONFIRMED (20000 frames no progress). Stopping.
+```
+
+⛔ **THE ORDER OF OPERATIONS IS THE BUG** (`battle_action_selection.py:492-499`): it presses A
+through `HandleInputChooseMove` **FIRST**, and only THEN reads the target —
+```
+yield from scroll_to_move(move_index, battler_index > 1)
+while get_battle_controller_callback(battler_index) in ("HandleInputChooseMove", ...):
+    context.emulator.press_button("A"); yield
+if action is TurnAction.UseMove:
+    target_index = 1
+    if battle_state.opponent.left_battler is None:
+        raise RuntimeError(...)
+```
+⇒ the target is validated **after** the input that commits to it, so a faint that clears
+`opponent.left_battler` during those A-presses turns a normal turn into a fatal raise.
+
+⛔⛔ **AND IT IS A BARE `RuntimeError`, NOT A `BotModeError`.** That is what makes it lethal rather
+than recoverable: every story-side recovery in this project catches `BotModeError` (and re-raises
+`StoryAbort`), so a `RuntimeError` passes through all of them and empties the stack. ‼ §Ch23's own
+3-attempt loop never saw it — the raise happens inside `BattleListener.fight`, a DIFFERENT
+controller, so the chapter generator was never resumed to catch anything.
+⇒ ⭐ **A RECOVERY LOOP ONLY CATCHES WHAT THE EXCEPTION TYPE LETS IT CATCH, AND ONLY ON ITS OWN
+STACK.** Being "wrapped in a retry" is not protection from a sibling controller.
+
+⛔ **BLAST RADIUS: EVERY CHAPTER, EVERY BATTLE.** This is the shared battle path, not a §Ch23 file.
+⚠ It is very likely to bite **§Ch24 hardest**: the Elite Four is five consecutive fights with no
+nurse, so it has the most turns-with-fainting of anything in the game.
+‼ **NOT MEASURED:** how OFTEN it fires. One occurrence in one drive is an existence proof, not a
+rate — and this is a CORRECTNESS question, so the instrument is a targeted repro, not a batch.
+
+**NOT FIXED, and deliberately so** — `modules/battle_action_selection.py` is a shared upstream file
+every chapter depends on, the same ruling as `KI-83` / `KI-88` / `KI-89`. Tracked as
+`#24-ch23chain`. ⚠ The obvious fix (check the target BEFORE the A-presses, and refuse rather than
+raise) is UNVERIFIED and must not be applied without a repro that fails first.

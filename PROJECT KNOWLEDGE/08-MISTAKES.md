@@ -12563,3 +12563,31 @@ first pass made a falsifiable claim with no check behind it. Re-run: 67 lines mo
 **⇒ PREVENTION RULE.** **A falsifiable claim in a document is worth exactly as much as the check
 behind it.** If a script's output asserts "verbatim", "complete", or "all", the script must verify it
 before writing — and if it cannot, the claim must be softened rather than the check skipped.
+
+
+## 2026-09-05 — THE UNIT OF EDIT IS THE CELL, NOT THE SENTENCE (the same error three times in one session)
+
+**Symptom.** Three separate Tier 1 failures in one session, all the same shape:
+1. an archive claimed "VERBATIM" while two of three blocks were truncated;
+2. two new `###` headers were spliced over an old one and **only the header moved**, leaving ~35
+   lines of pre-shipment body under a "CLOSED ⛔ DO NOT REOPEN" heading;
+3. a STATE-table cell and an "if stopped mid-task" cell each **contradicted themselves internally** —
+   I appended "✅ §Ch23 is WIRED" to the end of cells whose opening clause still read "IS NOT A
+   CHAPTER … UNBUILT".
+
+**Root cause.** Every one of my edit scripts substituted **the sentence I had named**. The pair
+checks I ran (P1-P5) then passed, because they compare NAMED halves — and the stale text was never
+one of the halves I named. ⛔ **A checklist protects exactly what it enumerates**, and I was
+enumerating sentences inside units whose OTHER sentences asserted the opposite.
+
+**The fix that worked.** Replace the whole clause, and mark the old wording `*(superseded: …)*` in
+place rather than leaving it to be found. For (3), rewrite the cell's opening clause in the same edit
+as its closing one.
+
+**⇒ PREVENTION RULE.** **WHEN A FACT CHANGES, THE UNIT OF EDIT IS THE CELL / SECTION / ENTRY, NOT THE
+SENTENCE.** A table cell is a claim about everything inside it, exactly as a heading is a claim about
+every bullet beneath it (pair P2) — so after changing a fact, RE-READ THE WHOLE CELL from its first
+character, not the sentence you replaced. ‼ Corollary, earned by finding (3) twice: **the HOW TO RUN
+section is part of every shipped item.** If a command shipped and that section has no line for it, a
+cold reader cannot reproduce the item's own evidence — and that section's own text already records
+being caught for this once before.

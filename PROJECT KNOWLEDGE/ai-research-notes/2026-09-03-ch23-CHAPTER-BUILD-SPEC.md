@@ -1,5 +1,12 @@
 # §Ch23 (VICTORY ROAD) — CHAPTER BUILD SPEC
 
+> ⛔⛔ **SUPERSEDED IN PART, 2026-09-05 — ITEM 8 OF THIS SPEC IS BUILT.** The "chapter
+> orchestrator + Segment 23 wiring" this note lists as `⛔ not built` **SHIPPED**: `ch23_chapter_done()`
+> + `do_victory_road_chapter()` in `modules/story/victory_road.py`, dispatch at `story_mode.py:3779-3795`,
+> `--driver ch23chapter`. ⛔ DO NOT BUILD IT AGAIN. The live work is `#24-ch23chain` — the chapter's
+> CHAIN is blocked by `KI-90`. The rest of this spec is kept for its reasoning.
+
+
 > Written 2026-09-03, before any §Ch23 production code exists. ⛔ **`sandbox-pokebot/modules/story/
 > victory_road.py` DOES NOT EXIST.** Everything §Ch23 has today is HARNESS DRIVERS.
 > Companion notes: `2026-09-03-ch23-VICTORY-ROAD-RECON.md` (the approach),

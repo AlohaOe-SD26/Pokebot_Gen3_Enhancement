@@ -22332,3 +22332,47 @@ trying to inject the TRUNCATION bug, which is how the second invariant got disco
 `ch24icebeam` (the passing run needed ~700k) and `--frames 40000` for `ch24teachice` (its verdict
 lands by ~f574, so the suggestion cost ~12 wasted minutes per attempt). Both synced to what was
 actually measured, with the reason written down.
+
+
+## 2026-09-05 — §Ch23 is wired as a chapter, and its first chain drive found a shared-path hang
+
+**Shipped.** `victory_road.ch23_chapter_done()` + `do_victory_road_chapter()` +
+`VICTORY_ROAD_MAPS`; the Segment 23 dispatch at `story_mode.py:3779-3795`; `--driver ch23chapter`
+with an observe-only `POKEBOT_CH23_PREDICATE_ONLY` arm and two fault hooks. The end-of-content banner
+and hand-off message were retargeted to §Ch24 **in the same edit** — the banner's own comment demands
+it — and its stale `chapters.py:259-262` citation for Chapter 23 was corrected to `280-286`.
+
+**⛔ TWO DESIGN FINDINGS, BOTH VERIFIED IN THE CODE BEFORE A LINE WAS WRITTEN.**
+1. **`DEFEATED_WALLY_VICTORY_ROAD` FIRES AT LEG 5 OF 11.** `chapters.py:281` grades Segment 23's
+   READOUT on it, and it is set while the bot stands at the B1F ladder apron with the boulder
+   interlock, B2F, the return climb, the exit, the heal and the shop all ahead. ⇒ the GATE is flag
+   **AND** position. ⭐ **MEASURED, NOT ARGUED:** on `post_wally.ss1` the probe printed
+   `inside_victory_road=True flag_only=True gate=False` — a flag-only predicate would have declared
+   the chapter done with six legs to go, the §Ch15/§Ch18/§Ch19 stranding shape.
+   ‼ And the cheap resume arm CANNOT prove this: on the end fixture the two AGREE, so a flag-only
+   predicate passes it identically. ⇒ ⭐ **an arm that both the right and the wrong design pass is
+   not evidence for either.**
+2. **SIX LEGS RAISE WHEN THEIR WORK IS ALREADY DONE.** Those anti-vacuity guards were written so a
+   STANDALONE DRIVER could not score a vacuous PASS — correct there, and INVERTED for a chapter that
+   must resume after a whiteout. ⇒ the orchestrator dispatches on WHERE THE BOT IS, every call behind
+   a guard mirroring that leg's own precondition. The nastiest is `heal_at_league`, which raises on
+   an ALREADY-HEALTHY party — state-gated, not position-gated, and a whiteout produces that state.
+
+**Two sequencing questions CHECKED rather than assumed**, either of which would have wasted a long
+drive: the training leg runs from EVER_GRANDE and navigates itself (`ch23train` drives from
+`post_ever_grande.ss1`; its docstring's "on VICTORY_ROAD_1F" names where the grass is, not a
+precondition), and `descend_to_b2f` IS leg 6 whole — it composes the heal, the B1F entry and the
+puzzle, which is what makes map-based dispatch unambiguous where VR1F otherwise appears twice.
+
+**⛔⛔ AND THE CHAIN IS NOT PROVEN — SAY SO PLAINLY.** The end-to-end drive from `post_wally.ss1` ran
+~66k frames, fought through Victory Road, and died on a NEW defect now filed as **`KI-90`**:
+`RuntimeError: Cannot attack the left-side opponent Pokémon because there isn't one`
+(`battle_action_selection.py:499`). The target is validated AFTER the A-presses that commit to it, so
+a faint during move selection turns a normal turn into a fatal raise.
+⭐ **IT IS NOT CATCHABLE BY THE CHAPTER, AND THAT IS THE INTERESTING PART:** it is raised inside
+`BattleListener.fight` — a DIFFERENT controller — and it is a bare `RuntimeError` where every story
+recovery catches `BotModeError`. ⇒ ⭐ **A RETRY LOOP ONLY CATCHES WHAT THE EXCEPTION TYPE ALLOWS, AND
+ONLY ON ITS OWN STACK.** "Wrapped in a retry" is not protection from a sibling controller.
+‼ Verified pre-existing, not caused by this work: `battle_action_selection.py` is not in the diff.
+‼ And this is exactly what an end-to-end chain drive is FOR — twelve green leg drivers could not have
+found it, because none of them chains a battle into the next leg.

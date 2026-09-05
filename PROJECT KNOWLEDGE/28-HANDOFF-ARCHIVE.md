@@ -8135,3 +8135,54 @@ how a project loses track of them.
       and every mon already carries an HM — worth checking whether the HM-slot exclusion in
       `replace_slot` picking leaves no legal choice and the game silently refuses.
 
+---
+
+## Archived from `03-PUNCH-LIST.md`
+
+Closed history, retired to keep `03-PUNCH-LIST.md` inside its 3600-line R3 budget. `#24-whiteoutloop` shipped BOTH parts on 2026-08-07; this block is its part-2 narrative, kept for its reasoning and never a live instruction. ⭐ First real use of `archive_doc_block.py`, the tool written earlier the same day after two hand-rolled archivings went wrong in opposite directions.
+
+- [x] HISTORY — `#24-whiteoutloop` (part 2) — **the hard plateau.**
+      Confirmed as the **#1 end reason** of batch `20260807-102552`: *"too many whiteout
+      recoveries in a row"* = **4 of 14 non-finishes (29%)**.
+      **SHIPPED — the hard plateau.** `_boss_plan_is_hopeless` demanded BOTH a KO plateau AND
+      "no credible super-effective answer", so an UNDERLEVELLED party holding a good move on
+      paper never gave up (measured worst case: PETALBURG_CITY_GYM, **32 consecutive losses**,
+      KOs stuck at 2-3 throughout). The type-chart answer test is a **prediction**; a long flat
+      KO series is a **measurement**. Past `HARD_PLATEAU_LOSS_THRESHOLD = 12` the measurement now
+      wins and the existing counter/training escalation runs instead of another identical attempt.
+      ‼ **Keyed on FLAT KOs across two six-attempt windows, never on attempt count** — that is
+      what honours KI-26's record of a run that lost **13 times** at ROUTE110 and then reached
+      Fortree. `repro_boss_plateau.py` cases 8-10 pin all three behaviours (fires on flat;
+      **does NOT fire on a climbing run**; leaves the original no-answer path untouched); 1-7
+      still pass unchanged.
+      **STILL TO DO (part 1):** real `_prepare_for_fight` cfgs for **Flannery / Gym 4** and the
+      **Route 110 rival**. They have none, so none of this machinery runs there at all — and
+      they are **48% of all defeats** (1,079 / 2,236 over four batches) and top-4 in 4 of 4.
+      ‼ Needs verified game facts (training grass tile, heal centre, ace types/level) — probe or
+      decomp, never recall. The Route 110 rival's ace depends on the player's starter.
+
+---
+
+## Archived from `03-PUNCH-LIST.md`
+
+Closed history, retired to keep `03-PUNCH-LIST.md` inside its 3600-line R3 budget. It is the 2026-08-07 DIAGNOSIS narrative for `#24-whiteoutloop`, whose fix shipped the same day; kept for its reasoning, never a live instruction.
+
+- [x] HISTORY — `#24-whiteoutloop` (diagnosis) — **DIAGNOSED 2026-08-07 from stored logs. It is KI-26, generalised:
+      uncapped boss re-attempts. Fix is specified and NOT yet implemented.**
+      ‼ Measured NOT to be Mt. Pyre's: a run with 0 `MT. PYRE` mentions logged 3 whiteouts while
+      heavy-Mt.-Pyre runs logged none. **The "show WHERE" ask is now answered** — every whiteout is
+      preceded by `lost a battle at map (G,N) (defeat #K here; KO'd J of theirs first)`, so the
+      map, the attempt ordinal and the progress signal were in the logs all along.
+      * **48% of all defeats (1,079 / 2,236 across four batches) are at maps with NO
+        `_prepare_for_fight` cfg** — ROUTE110 and LAVARIDGE_GYM (Flannery) are top-4 in 4 of 4.
+      * **Re-attempting usually does not work:** of 53 sequences with ≥3 defeats at one map,
+        the KO trend is **FLAT in 37, improving in 15, worse in 1**. Worst: 17 straight losses at
+        Lavaridge with a constant `kos=[3]*17`; 32 straight at Petalburg.
+      * `_boss_plan_is_hopeless` already has the right plateau test but demands **plateau AND no
+        super-effective answer**, so an underlevelled party that HAS one never gives up.
+      **FIX (2 parts, both deferred until the batch lands — never edit `sandbox-pokebot/` mid-batch):**
+      1. Real `_prepare_for_fight` cfgs for Flannery and the Route 110 rival.
+      2. A cfg-independent cap keyed on **flat KOs, not attempt count** — which is precisely what
+         lets it honour KI-26's warning that a run losing 13 times still went on to reach Fortree.
+      Full measurement + method in `05-KNOWN-ISSUES.md` KI-26.
+
