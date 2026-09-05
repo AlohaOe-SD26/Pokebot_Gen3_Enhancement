@@ -583,6 +583,45 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       Wailord fainting does not strand the run. ⇒ **do NOT "fix" `assert_carriers_survived` to reject
       fainted carriers** — it is correct as written, and that check would fire on a healthy run.
 
+### 🔜 `#24-icebeamtrip` — **FETCH TM13 ICE BEAM. The single change that turns DRAKE from a loss into a win.** (opened 2026-09-05, route DE-RISKED, not built)
+
+**STATUS: OPEN, unblocked, and every prerequisite is MEASURED. This is the next build.**
+
+**WHY IT IS THE HIGHEST-VALUE REMAINING ACTION.** Drake is 4/5 dragon-ish and carries **zero Ice
+moves**; Wailord takes only 22-56% from his whole team. With Ice Beam, Wailord does **Flygon 88% ·
+Salamence 73% · Altaria 71% · Shelgon 71%**. ⭐ **Flygon has LEVITATE**, so Ice is the ONLY
+super-effective type we can reach on it. Today the analysis says **Drake is a loss**; with this TM it
+is a win. Cost: **₽0**.
+
+**✅ DE-RISKED 2026-09-05 (read-only probe from `post_slateport.ss1`):**
+* **BOTH gating flags are STILL UNSET** — `ITEM_ABANDONED_SHIP_ROOMS_B1F_TM_ICE_BEAM` **and**
+  `ITEM_ABANDONED_SHIP_CAPTAINS_OFFICE_STORAGE_KEY`. Gen-3 TMs are single-use and non-repurchasable,
+  so this was THE question; the answer is the good one.
+* **All seven maps in the chain exist in our `MapRSE` enum:** `ROUTE109`, `ROUTE108`,
+  `ABANDONED_SHIP_DECK`, `ABANDONED_SHIP_CAPTAINS_OFFICE`, `ABANDONED_SHIP_CORRIDORS_1F`,
+  `ABANDONED_SHIP_CORRIDORS_B1F`, `ABANDONED_SHIP_ROOM_B1F`.
+* **The bot is already AT Slateport** (`post_slateport.ss1`, (19,20)) and can Fly there at will.
+
+**THE ROUTE (decomp-traced, NOT walked — ⛔ confirm each hop with `calculate_path` before coding it):**
+Fly Slateport → **R109** → Surf west to **R108** → `ABANDONED_SHIP_DECK` → **Captain's Office** for
+the **Storage Key** (`item_ball_scripts.inc:441`) → Corridors 1F → **Corridors B1F**, where warp 5 at
+**(11,4)** is the Storage Room door gated by `checkitem ITEM_STORAGE_KEY`
+(`AbandonedShip_Corridors_B1F/scripts.inc:28-35`) → `ABANDONED_SHIP_ROOM_B1F`, TM13 at
+`item_ball_scripts.inc:433`.
+⭐ **NO DIVE IS REQUIRED** — the Dive branch leads to `AbandonedShip_Underwater1` / the Hidden Floor
+(TM18, Scanner), a different part of the ship entirely. ⚠ And the Captain's Office NPC's
+`checkitem ITEM_SCANNER` **gates nothing** — it is pure dialogue, easy to misread as a lock.
+
+**GRADE IT ON THE BAG, NOT THE WALK** (the leg-11 lesson): `TM13` present in the TM/HM pocket, the
+flag flipped, party unchanged BY PID, and the bot can continue. Fault arm: skip the Storage Key
+pickup, so the locked-door refusal must fire rather than the leg silently ending short.
+
+⚠ **WHAT THIS DOES NOT FIX:** **Wallace is still a loss** — Milotic's Recover heals 98/turn against
+our best hit of 74. That needs SolarBeam + Sunny Day (TM22 / TM11, both also free pickups). See
+`ai-research-notes/2026-09-04-ch24-MOVESET-AND-TM-PLAN.md` §6.
+
+---
+
 ### ✅ `#24-flyunlock` — **CLOSED 2026-09-05: FLY IS TAUGHT AND FLOWN. THE EVER GRANDE PLATEAU IS SOLVED.** ⛔ DO NOT REDO.
 
 ⛔⛔ **THE PROBLEM WAS GEOGRAPHY, NOT POLICY.** MEASURED with `calculate_path` from
@@ -614,17 +653,13 @@ free TM pickups that win Drake were all behind one Fly.
 `--driver ch24moves` `ACCEPTANCE: PASS`, fixture `post_moveset.ss1` (md5 `36e4510ecccf06957a7c3cb38ce2a967`),
 fault arm `POKEBOT_CH24_FAULT_BADMOVE=1` correctly FAILS by refusing.
 
-| mon | change | why |
-|---|---|---|
-| Sceptile | Slam → **Aerial Ace** (TM40) | never-misses; **four** opponents run Double Team. Grass resists Grass, so Leaf Blade did 30%/25% to Cacturne/Shiftry where Aerial Ace does 59%/47% |
-| Swellow | Peck → **Facade** (TM42) | Peck is **35 BP**, the worst move on the team. Wallace's Tentacruel AND Milotic carry Toxic ⇒ Guts ×1.5 *and* Facade's doubling both apply |
-| Mightyena | Tackle → **Strength** (HM04) | 35 → 80 BP at 100%; HMs are reusable so Sceptile keeps its copy |
-| Zigzagoon | Growl → **Rock Smash** (HM06) | Growl is worthless; keeps the field move in the party |
-
-⭐ **All four TMs/HMs were already in the bag — zero travel, zero money.** Compatibility read from
-`src/data/pokemon/tmhm_learnsets.h` at two revisions and diffed (Gen-3 TMs are SINGLE-USE).
-‼ **I had this wrong first:** Sceptile's Rock Smash + Strength were NOT "two dead slots" —
-**Slam** (80 BP / 75%) is worse than **Strength** (80 BP / 100%).
+**Sceptile** Slam→**Aerial Ace** (four opponents run Double Team; Grass resists Grass) ·
+**Swellow** Peck(35 BP)→**Facade** (Toxic makes Guts ×1.5 *and* Facade stack) · **Mightyena**
+Tackle→**Strength** (35→80 BP; HMs reusable) · **Zigzagoon** Growl→**Rock Smash**.
+⭐ All four were already in the bag — zero travel, zero money; compatibility read from
+`tmhm_learnsets.h` at two revisions and diffed (Gen-3 TMs are SINGLE-USE).
+‼ **I had this wrong first:** Rock Smash + Strength were NOT "two dead slots" — **Slam** (80/75%) is
+worse than **Strength** (80/100%). 📦 Full detail: `07-CHANGELOG.md` 2026-09-05.
 
 **WHAT REMAINS (not this item):** the two free PICKUPS that win Drake — **Ice Beam (TM13)** for
 Wailord and **Dragon Claw (TM02)** for Sceptile, both confirmed still available by
