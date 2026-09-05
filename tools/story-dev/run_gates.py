@@ -222,6 +222,19 @@ GATES: list[tuple[str, bool]] = [
     # ⇒ **a check whose arms give the same answer on the chosen fixture is vacuous**, and it passes
     # loudly. Both revive checks now put the high-level mon LATER in slot order than a decoy.
     ("repro_overworld_items.py", False),
+    # --- #37 — a CLOSED punch-list header may not sit over its OWN still-open body
+    # ‼ APPENDED AT THE END, never inserted — the same rule #34, #35 and #36 carry.
+    # WHY A GATE: this exact defect cost FIVE Tier 1 rounds on 2026-09-05, and it was caught in BOTH
+    # directions on the same item — a header commanding a rebuild of work shipped in the same commit,
+    # then, after "fixing" it, a header claiming closure over a body still reading "still open".
+    # ⛔ THE GAP WAS BETWEEN TWO EXISTING CHECKLISTS: `audit_doc_consistency.check_touched_ki_pairs`
+    # checks KI headers, `probe_closed_item_refs` checks a closed item described as outstanding BY
+    # ANOTHER item — and nobody checked a punch-list header against ITS OWN body. A checklist
+    # protects exactly what it enumerates.
+    # ⭐ Deliberately NARROW, and SILENT on marked history / 🔶 MIXED / 🔜 open items / fenced code,
+    # because a gate with false positives teaches the reader to bypass it. 7 fault arms:
+    # `probe_item_header_body.py --self-test`.
+    ("probe_item_header_body.py", False),
 ]
 
 

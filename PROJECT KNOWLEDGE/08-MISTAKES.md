@@ -12591,3 +12591,48 @@ character, not the sentence you replaced. ‼ Corollary, earned by finding (3) t
 section is part of every shipped item.** If a command shipped and that section has no line for it, a
 cold reader cannot reproduce the item's own evidence — and that section's own text already records
 being caught for this once before.
+
+
+## 2026-09-05 — I committed a root cause that was causally impossible, and it shipped as an instruction
+
+**Symptom.** `KI-90` and its punch-list item were committed and pushed stating that the defect was a
+race: *"the target is validated AFTER the A-presses that commit to it, so a faint during move
+selection turns a normal turn into a fatal raise."* Two documents then told the next session to build
+a repro of exactly that window — **a window that cannot occur.**
+
+**Root cause of the ERROR (not of the bug).** I reasoned from the shape of the code — the check
+visibly sits after the A-press loop — and never asked the one question that decides it: **is the
+value being checked LIVE or a SNAPSHOT?** It is a snapshot: `_absent_battler_flags` is a plain stored
+`int` (`modules/battle_state.py:245`) copied once at `battle_action_selection.py:23`/`:247`. Read
+order in the source told me nothing about read TIME.
+
+**The fix that worked.** A 10-agent adversarial workflow: 5 independent angles, each handed to a
+separate verifier instructed to REFUTE it. Two were refuted, and the refutations contained the
+correction. I then re-verified every load-bearing half myself before touching the docs —
+`battle_state.py:396-402`, `battle_state.py:245`/`:821`, `src/battle_util.c:2271`,
+`modules/main.py:151-158`, and the 2026-07-22 archived log against `git show -s 72e938d2`.
+
+**⇒ PREVENTION RULES (three).**
+1. **BEFORE BLAMING AN ORDER OF OPERATIONS, ESTABLISH WHETHER THE VALUE IS LIVE OR A SNAPSHOT.** If it
+   is a snapshot, "A happens before B" is not a race and any reorder fix is INERT. Source order is not
+   evaluation time.
+2. **A WRONG ROOT CAUSE IS WORSE THAN NO ROOT CAUSE, BECAUSE IT SHIPS AS AN INSTRUCTION.** A stale
+   status wastes a reader's time; a stale instruction spends their day. ⇒ when a diagnosis is
+   corrected, GREP THE TREE FOR THE INSTRUCTIONS IT SPAWNED, not just the status sentences.
+3. ⛔ **WHEN YOU CORRECT *N* CLAIMS, SWEEP FOR *N* PATTERNS.** I corrected TWO wrong claims here —
+   the faint-race mechanism AND the exception-type blast-radius reason — then ran a tree-wide sweep
+   for **one** of them. Tier 1 found the other still standing inside `#24-ch23chain`, one paragraph
+   above the very NEXT STEP I had just corrected, restating the refuted framing as fact.
+   ‼ The sweep was tree-wide and still incomplete, because *breadth of path* is not *breadth of
+   pattern*: I had fixed the enumeration failure of scope and kept the enumeration failure of
+   subject. ⇒ **list the claims you are retracting, and grep for each one by name.**
+4. **THE FIX A WRONG EXPLANATION INVITES IS THE REAL DAMAGE.** Mine invited two: reorder the check
+   (inert — the snapshot is frozen), and change the exception type (inert — from a sibling controller
+   `BotModeError` sets Manual too). Both would have been "verified" by a run that simply never hit a
+   double battle. ⇒ ask what a reader would DO with the explanation, and check that the doing works.
+
+‼ **AND THE METHOD NOTE, because it generalises:** asking a second agent the same question yields a
+second guess; asking it to REFUTE yields information. One angle here asserted "this is OUR code, not
+upstream" and its own verifier disproved it with an archived log line from three weeks before the
+commit it blamed. ⇒ the measured Gemini rule applies unchanged to Claude agents: **grade their
+ENUMERATION highly, their CAUSAL CONCLUSIONS not at all.**

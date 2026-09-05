@@ -22376,3 +22376,48 @@ ONLY ON ITS OWN STACK.** "Wrapped in a retry" is not protection from a sibling c
 ‼ Verified pre-existing, not caused by this work: `battle_action_selection.py` is not in the diff.
 ‼ And this is exactly what an end-to-end chain drive is FOR — twelve green leg drivers could not have
 found it, because none of them chains a battle into the next leg.
+
+
+## 2026-09-05 — KI-90's root cause was WRONG, and a 10-agent adversarial workflow proved it
+
+**⛔ CORRECTION TO THE ENTRY IMMEDIATELY ABOVE.** That entry — and the KI-90 I committed with it —
+said the defect was an ORDER-OF-OPERATIONS RACE: *"the target is validated AFTER the A-presses that
+commit to it, so a faint during move selection turns a normal turn into a fatal raise."*
+**That mechanism is causally impossible.** This entry does not rewrite it (this file is append-only);
+it corrects it.
+
+**WHAT IS ACTUALLY TRUE — every load-bearing half re-verified by reading the code and the decomp:**
+* `opponent.left_battler is None` **iff** bit 1 of `gAbsentBattlerFlags` is set
+  (`modules/battle_state.py:396-402`) — no other path to `None`.
+* That byte is a **FROZEN SNAPSHOT** (`battle_state.py:245`, read at `:821`) captured at
+  `battle_action_selection.py:23`/`:247`, **before** the A-press loop. ⇒ nothing during the presses
+  can change it, and **the reorder-the-check fix I proposed would have changed NOTHING.**
+* `HasNoMonsToSwitch` returns FALSE unconditionally outside double battles
+  (`src/battle_util.c:2271`) and gates every writer of that byte ⇒ ⭐ **the raise itself PROVES the
+  battle was a DOUBLE**, with the opponent's left trainer out of switchable Pokémon — a state that
+  PERSISTS for the rest of the fight. The game handles it; we don't
+  (`src/battle_controller_player.c:535-536` defaults the cursor to OPPONENT_RIGHT).
+* Victory Road makes doubles from face-to-face `trainerbattle_single` pairs, no flag required.
+* **And it is not ours:** the identical raise sits in an archived run of **2026-07-22**, three weeks
+  before our `_fight_on` KI-52 fork (`72e938d2`, 2026-08-11).
+
+**⛔ THE BLAST-RADIUS REASON WAS ALSO WRONG.** I wrote that the exception TYPE was the problem (a bare
+`RuntimeError` where recoveries catch `BotModeError`). In fact `handle_battle` is only reached from
+`BattleListener`, a **SIBLING** controller, so from there **every** exception — `BotModeError`
+included — ends at `modules/main.py:151-158` and sets Manual.
+⇒ ⭐ **A RECOVERY LOOP ONLY CATCHES WHAT REACHES ITS OWN STACK.** Changing the exception type would
+not have helped — and that is precisely the fix my old wording invited.
+
+**WHAT THE CORRECTION BOUGHT.** Two LIVE instructions (`03-PUNCH-LIST.md`, and the `➡➡➡` marker a cold
+session acts from) told the next session to build *"a repro — a battle where the opponent faints
+during move selection"*. That window does not exist. ⇒ ⭐ **a stale STATUS wastes a reader's time; a
+stale INSTRUCTION spends their day.** Both now specify the real repro: a DOUBLE battle whose opponent
+LEFT slot is ABSENT, which is DETERMINISTIC rather than a timing window.
+
+**Method note, because it is the reusable part.** The workflow ran 5 angles, each handed to an
+INDEPENDENT verifier told to refute it: 3 survived, 2 were refuted — and the refutations carried the
+correction. ⭐ **A second agent asked the same question produces a second guess; agents asked to
+REFUTE produce information.** One angle's causal conclusion ("this is OUR code, not upstream") was
+itself refuted by its own verifier, using a log line I then confirmed. ⇒ the standing rule held
+exactly: **grade agent ENUMERATION highly and agent CAUSAL CONCLUSIONS not at all.**
+Evidence chain: `ai-research-notes/2026-09-05-ki90-DOUBLE-BATTLE-ABSENT-SLOT.md`.

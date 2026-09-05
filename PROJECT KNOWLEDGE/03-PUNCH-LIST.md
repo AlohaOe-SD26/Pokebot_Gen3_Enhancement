@@ -627,8 +627,13 @@ drives green. ⛔ But do not silently drop them — that is why this slug exists
 fought its way through Victory Road, and then died on **`KI-90`** — an uncaught `RuntimeError`
 ("Cannot attack the left-side opponent Pokémon because there isn't one") from the SHARED battle path
 that empties the controller stack and hangs the run. ‼ **NOT a defect in the orchestrator, and not
-catchable by it:** the raise happens inside `BattleListener.fight`, a different controller, and it is
-a `RuntimeError` where every story recovery catches `BotModeError`.
+catchable by it:** the raise happens inside `BattleListener.fight`, a **SIBLING** controller — and
+that is the operative fact, not the exception type. From that stack position **every** exception,
+`BotModeError` INCLUDED, unwinds to `modules/main.py`, where BOTH `except BotModeError` (`:151-153`)
+and the bare `except Exception` (`:158`) call `set_manual_mode()`.
+⇒ ⭐ **A RECOVERY LOOP ONLY CATCHES WHAT REACHES ITS OWN STACK.**
+*(superseded 2026-09-05: this read "it is a `RuntimeError` where every story recovery catches
+`BotModeError`" — which invited exactly the wrong fix, changing the exception type. See `KI-90`.)*
 
 ⭐ **A REPRO SEED ALREADY EXISTS — BUT ONLY ON THE MACHINE THAT RAN THE DRIVE.** The harness
 auto-saved stall states inside the failing battle: `saves/stalls/repro-ml-f63425.ss1` (bt=`CASTFORM
@@ -639,8 +644,11 @@ This project is worked from multiple computers, so a session elsewhere will NOT 
 REGENERATE them by re-running `--driver ch23chapter post_wally.ss1 --frames 600000` and reading the
 `SAVED stall state` lines. ‼ Do not treat the paths above as a fixture pin.
 
-**NEXT STEP, IN ORDER:** (1) build a targeted repro for `KI-90` — a battle where the opponent faints
-during move selection — and make it FAIL FIRST; (2) only then decide the fix, and remember the file
+**NEXT STEP, IN ORDER:** (1) build a targeted repro for `KI-90` — ⭐ **a DOUBLE battle whose opponent
+LEFT slot is ABSENT** (its trainer out of switchable Pokémon), with our side required to act — and make it
+FAIL FIRST. ⛔ **DO NOT hunt a faint-during-move-selection window: that mechanism is REFUTED** (the
+`battle_state` byte is a FROZEN snapshot taken before the A-presses), and chasing it would burn a day on a
+state that cannot occur. The raise is DETERMINISTIC given an absent left slot, not stochastic; (2) only then decide the fix, and remember the file
 is shared upstream (`KI-83`/`KI-88`/`KI-89` ruling: route around, do not casually patch);
 (3) re-run `--driver ch23chapter post_wally.ss1 --frames 600000` and expect the chain to complete.
 ⚠ Do NOT reach for a batch: this is a CORRECTNESS question, so the instrument is a repro.
@@ -1645,26 +1653,7 @@ from the driver's log** — the probe caught the fainted member the driver's log
       3600-line budget). Nothing was deleted.** ‼ The live summary of its status is the table row
       for `#24-teachmsgstall` near the top of this file; this entry is its history.
 - [x] HISTORY — `#24-teachmsgstall` (original characterisation) — ✅ superseded; the live status is the `- [x]` entry above (shipped 2026-08-11, reopened the same day). **Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-09-05**, including its task signature, its "post_select DOES NOT MATTER" analysis and its NEXT STEP plan.
-- [x] HISTORY — `#24-winonaground` (wrong-cause history) — ‼‼ **MY STATED CAUSE WAS WRONG.**
-      I wrote that the huntable whitelist was `{FIERY_PATH, ROUTE116, ROUTE117, ROUTE102}` and
-      contained no Rock/Electric/Ice ground. **False.** I grepped for named `*_TRAINING_GRASS =`
-      CONSTANTS instead of reading the `TRAINING_GRASS` TABLE, which has **10 entries**:
-      ROUTE101/102/103/111/115/116/117/**118**/119/121, plus FIERY_PATH from `HUNTING_GROUNDS`
-      = **11 huntable grounds**.
-      * **ROUTE118 (29,15) — Electrike, the named Winona answer — is ALREADY whitelisted.**
-      * **ROUTE111 hosts Geodude (Ground/Rock, rate 100%, Lmax 20)** — a by-TYPE Rock answer to
-        Winona that is already huntable.
-      So there IS a candidate and there IS a swept ground. **Do NOT sweep ROUTE118; it is done.**
-      The failure message is `no huntable counter candidate (**nothing reachable** with a proven
-      spin tile)` — the rejection is downstream of the whitelist, in reachability or in
-      `best_huntable`'s cost/level gates. Prior evidence points the same way: 2026-07-30 measured
-      `Electrike @ ROUTE118 (29,15) — navigation FAILED, 255 frames`.
-      **NEXT PROBE:** call `counter_plan.huntable_candidates()` for Winona's needed types from a
-      REAL pre-Winona anchor and log the rejection reason PER CANDIDATE. Do not guess which gate
-      it is — four gates can produce this one message.
-      ‼ **The lesson (3rd time this session): I read a proxy for the data instead of the data.**
-      Same class as grepping a gitignored tree and as reading the profile dirs with a date glob.
-
+- [x] HISTORY — `#24-winonaground` (wrong-cause history) — ✅ CLOSED. **Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-09-05** (no loss, no orphan — both invariants asserted before writing). It records a diagnosis that was WRONG and how it was corrected.
 - [x] HISTORY — `#24-winonaground` — **the original text was WRONG and is superseded.** Retired to
       a summary 2026-09-03; the wrong claim, its refutation and the measurement that settled it are
       in `07-CHANGELOG.md` and `08-MISTAKES.md`. ⛔ Kept as a slug so citations resolve.

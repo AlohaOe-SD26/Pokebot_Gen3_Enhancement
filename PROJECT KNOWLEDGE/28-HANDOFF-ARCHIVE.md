@@ -8186,3 +8186,29 @@ Closed history, retired to keep `03-PUNCH-LIST.md` inside its 3600-line R3 budge
          lets it honour KI-26's warning that a run losing 13 times still went on to reach Fortree.
       Full measurement + method in `05-KNOWN-ISSUES.md` KI-26.
 
+---
+
+## Archived from `03-PUNCH-LIST.md`
+
+Closed history, retired to keep `03-PUNCH-LIST.md` inside its 3600-line R3 budget. ⭐ Fittingly, this block is itself a record of a WRONG STATED CAUSE being corrected — the same shape as the KI-90 correction made on the day it was archived. Kept verbatim for its reasoning; never a live instruction.
+
+- [x] HISTORY — `#24-winonaground` (wrong-cause history) — ‼‼ **MY STATED CAUSE WAS WRONG.**
+      I wrote that the huntable whitelist was `{FIERY_PATH, ROUTE116, ROUTE117, ROUTE102}` and
+      contained no Rock/Electric/Ice ground. **False.** I grepped for named `*_TRAINING_GRASS =`
+      CONSTANTS instead of reading the `TRAINING_GRASS` TABLE, which has **10 entries**:
+      ROUTE101/102/103/111/115/116/117/**118**/119/121, plus FIERY_PATH from `HUNTING_GROUNDS`
+      = **11 huntable grounds**.
+      * **ROUTE118 (29,15) — Electrike, the named Winona answer — is ALREADY whitelisted.**
+      * **ROUTE111 hosts Geodude (Ground/Rock, rate 100%, Lmax 20)** — a by-TYPE Rock answer to
+        Winona that is already huntable.
+      So there IS a candidate and there IS a swept ground. **Do NOT sweep ROUTE118; it is done.**
+      The failure message is `no huntable counter candidate (**nothing reachable** with a proven
+      spin tile)` — the rejection is downstream of the whitelist, in reachability or in
+      `best_huntable`'s cost/level gates. Prior evidence points the same way: 2026-07-30 measured
+      `Electrike @ ROUTE118 (29,15) — navigation FAILED, 255 frames`.
+      **NEXT PROBE:** call `counter_plan.huntable_candidates()` for Winona's needed types from a
+      REAL pre-Winona anchor and log the rejection reason PER CANDIDATE. Do not guess which gate
+      it is — four gates can produce this one message.
+      ‼ **The lesson (3rd time this session): I read a proxy for the data instead of the data.**
+      Same class as grepping a gitignored tree and as reading the profile dirs with a date glob.
+
