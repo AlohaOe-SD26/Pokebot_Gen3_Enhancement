@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch24heal", "ch24moves", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -15020,18 +15020,23 @@ class Ch24MovesMode(BotMode):
         self.battles = getattr(self, "battles", 0) + 1
         return StoryItemBattleStrategy()
 
+    def _plan(self):
+        from modules.story import pokemon_league as PL
+
+        return PL.MOVESET_PLAN
+
     def run(self):
         from modules.story import pokemon_league as PL
         from modules.story.early_game import wait_until_truly_controllable
 
-        TAG = "ch24moves"
+        TAG = self.name().lower()
         self.whiteouts = getattr(self, "whiteouts", 0)
         self.battles = getattr(self, "battles", 0)
         report: dict = {"readings": set()}
 
         yield from wait_until_truly_controllable()
 
-        plan = PL.MOVESET_PLAN
+        plan = self._plan()
         if _os.environ.get("POKEBOT_CH24_FAULT_BADMOVE") == "1":
             context.message = "Ch24 FAULT BADMOVE: aiming at a move nobody knows"
             plan = (("Sceptile", "TM40", "Aerial Ace", "Hyper Beam", "FAULT: Sceptile has no Hyper Beam"),)
@@ -15062,7 +15067,10 @@ class Ch24MovesMode(BotMode):
         log(f"[{TAG}] AFTER {after}")
 
         # ---- ⛔ GRADE THE PARTY, NOT THE CALL --------------------------------------------------
-        want = {s: (learn, repl) for s, _, learn, repl, _ in PL.MOVESET_PLAN}
+        # ⛔ GRADE THE PLAN THIS RUN WAS GIVEN, not a hardcoded one — `Ch24FlyMode` subclasses this
+        # with a different plan, and grading `MOVESET_PLAN` there would have been VACUOUS (it would
+        # check four changes the fly run never attempts, and pass on work done by a PREVIOUS leg).
+        want = {s: (learn, repl) for s, _, learn, repl, _ in self._plan()}
         landed, wrong = [], []
         for species, (learn, repl) in want.items():
             have = after.get(species)
@@ -15109,6 +15117,139 @@ class Ch24MovesMode(BotMode):
                 _out.write_bytes(context.emulator.get_save_state())
                 log(f"[{TAG}] captured -> {_out}")
         context.set_manual_mode()
+
+
+class Ch24FlyMode(Ch24MovesMode):
+    """§Ch24 PREP — teach FLY to Swellow. **PRODUCTION CODE.**
+
+    ⛔⛔ THIS IS THE BLOCKING STEP FOR EVERYTHING THAT FOLLOWS. Measured from `post_moveset.ss1` at
+    EVER_GRANDE_CITY (18,6): every tile on the map except the League door and the Victory Road exit
+    landing is `PathFindingError`. **The bot cannot walk to a single wild encounter** — so the
+    user's catching / Pokédex directive AND both free TM pickups that win Drake (TM13 Ice Beam,
+    TM02 Dragon Claw) are all on the far side of learning Fly.
+
+    ⭐ Swellow is the ONLY party member that can learn it, and it replaces **Wing Attack**, which is
+    strictly dominated by the Aerial Ace Swellow already knows (same type, same power, never misses).
+
+    ‼ IT REUSES `apply_moveset_plan` UNCHANGED — same refusals, same post-conditions, same fault arm
+    shape. The only difference is the plan it is handed.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_moveset.ss1 --driver ch24fly --frames 40000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24Fly"
+
+    def _plan(self):
+        from modules.story import pokemon_league as PL
+
+        return PL.TRAVEL_PLAN
+
+
+
+class Ch24FlyToMode(BotMode):
+    """§Ch24 PREP — actually FLY somewhere, and prove we arrived. **PRODUCTION CODE.**
+
+    ⛔⛔ THIS IS THE LEG THAT UNBLOCKS EVERYTHING ELSE. `EVER_GRANDE_CITY (18,6)` is a CLOSED
+    PLATEAU — measured: only the League door and the Victory Road exit landing are reachable; the
+    Poké Center, the Victory Road apron, the southern shore and every water tile return
+    `PathFindingError`. ⇒ **the bot cannot walk to one patch of grass or one tile of water**, so the
+    catching / Pokédex directive AND both free TM pickups that win Drake sit behind a single Fly.
+
+    ⭐ IT GRADES ARRIVAL, NOT THE MOVE. "Swellow knows Fly" is not "the bot has flown". The grade is:
+    the position CHANGED, the destination map is the one asked for, the party is unchanged BY PID,
+    and a REAL `calculate_path` finds at least one reachable neighbour of the landing tile.
+
+    Destination defaults to SLATEPORT_CITY (the route to the free TM13 Ice Beam that wins Drake);
+    override with `CH24_FLY_DEST=LilycoveCity` etc.
+
+    FAULT ARM: `POKEBOT_CH24_FAULT_NOFLY=1` skips the flight, so the arrival grade MUST fail.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_fly.ss1 --driver ch24flyto --frames 40000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24FlyTo"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        from modules.region_map import FlyDestinationRSE
+        from modules.story import pokemon_league as PL
+        from modules.story.early_game import wait_until_truly_controllable
+
+        TAG = "ch24flyto"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        report: dict = {"readings": set()}
+
+        yield from wait_until_truly_controllable()
+
+        want = _os.environ.get("CH24_FLY_DEST", "SlateportCity").strip()
+        try:
+            destination = FlyDestinationRSE[want]
+        except KeyError:
+            log(f"[{TAG}] ⛔ unknown CH24_FLY_DEST={want!r}; "
+                f"valid: {[d.name for d in FlyDestinationRSE]}")
+            log(f"[{TAG}] ACCEPTANCE: FAIL")
+            context.set_manual_mode()
+            return
+
+        origin = _where_ch24()
+        log(f"[{TAG}] ORIGIN {origin} -> flying to {destination.name}")
+
+        failure = None
+        if _os.environ.get("POKEBOT_CH24_FAULT_NOFLY") == "1":
+            context.message = "Ch24 FAULT NOFLY: not flying"
+            log(f"[{TAG}] FAULT NOFLY — skipping the flight")
+        else:
+            try:
+                yield from PL.fly_to_destination(destination, report)
+            except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                failure = f"{type(error).__name__}: {error}"
+                log(f"[{TAG}] FAILURE {failure}")
+
+        for key in ("fly_knower", "badge06", "destination_available", "origin", "arrived",
+                    "moved", "party_pids_stable", "neighbours_reachable"):
+            if key in report:
+                log(f"[{TAG}] R {key} = {report[key]!r}")
+
+        final = _where_ch24()
+        moved = final != origin
+        missing = [r for r in PL.FLY_READINGS if r not in report.get("readings", set())]
+        log(f"[{TAG}] FINAL {final} moved={moved} missing={missing}")
+
+        passed = (failure is None and moved and not missing
+                  and report.get("party_pids_stable") is True
+                  and (report.get("neighbours_reachable") or 0) > 0
+                  and self.whiteouts == 0)
+        log(f"[{TAG}] GRADE moved={moved} pids_stable={report.get('party_pids_stable')} "
+            f"neighbours={report.get('neighbours_reachable')} missing={missing} "
+            f"whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH24_CAPTURE", "").strip()
+        if passed and _cap:
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if _out.exists() and _os.environ.get("CAPTURE_FORCE") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_out.name} exists. Set CAPTURE_FORCE=1 to overwrite.")
+            else:
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured -> {_out}")
+        context.set_manual_mode()
+
 
 
 class Ch22StairsMode(BotMode):
@@ -16917,6 +17058,10 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24HealMode()
         elif args.driver == "ch24moves":
             context.bot_mode_instance = Ch24MovesMode()
+        elif args.driver == "ch24fly":
+            context.bot_mode_instance = Ch24FlyMode()
+        elif args.driver == "ch24flyto":
+            context.bot_mode_instance = Ch24FlyToMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

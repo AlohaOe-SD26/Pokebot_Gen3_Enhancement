@@ -22149,3 +22149,62 @@ NOT A CONTRACT. Watch a state over time before deciding what it is.**
 (closed, user-ruled twice) was archived verbatim to `31-KNOWN-ISSUES-ARCHIVE.md` — ⛔ leaving a
 **DO-NOT-REOPEN STUB**, because that entry's whole job is to stop an auditor re-raising a settled
 question and moving it silently would have re-armed the failure it documents.
+
+
+## 2026-09-05 — `#24-flyunlock`: the bot could not walk anywhere, and now it can go everywhere
+
+**What shipped.** `TRAVEL_PLAN` + `fly_to_destination` in `modules/story/pokemon_league.py`, drivers
+`--driver ch24fly` and `--driver ch24flyto`, fault arm `POKEBOT_CH24_FAULT_NOFLY`. Two fixtures:
+`post_fly.ss1` (`a45283a669e7ee36776b43acec3a8580`) and `post_slateport.ss1`
+(`171460626f5f6fead942aa88a85b2050`). Both `ACCEPTANCE: PASS`.
+
+**⛔⛔ THE FINDING THAT MADE THIS URGENT WAS GEOGRAPHY, NOT POLICY.** Investigating the user's
+2026-09-04 catching/Pokédex directive, `calculate_path` from EVER_GRANDE_CITY (18,6) returned:
+
+```
+League door apron (18,6)          OK  0 wp
+VictoryRoad exit landing (18,28)  OK 36 wp
+Poke Center door (27,48)          ⛔ PathFindingError
+VictoryRoad apron (18,42)         ⛔ PathFindingError
+southern shore (18,55)            ⛔ PathFindingError
+water/ocean (18,60)               ⛔ PathFindingError
+```
+
+⇒ **the bot could not walk to a single patch of grass or tile of water.** Every wild encounter the
+Pokédex work needs, and both free TM pickups that turn **Drake** from a loss into a win, sat behind
+one Fly. ⭐ A directive about *catching* turned out to be blocked by *travel* — and no amount of
+catch-policy work would have moved it.
+
+**The fix, and why it cost nothing.** Swellow is the ONLY party member that can learn Fly (measured
+with `species.can_learn_tm_hm(HM02)` across all six), the gate is BADGE06 and we hold eight, and
+**Wing Attack was strictly dominated by the Aerial Ace Swellow already knew** — same type, same 60
+power, and Aerial Ace never misses. So the move slot was free in the only sense that matters.
+
+**⭐ IT IS GRADED ON ARRIVAL, NOT ON KNOWING THE MOVE.** *"Swellow knows Fly"* is not *"the bot has
+flown"*, and a leg that graded the former would pass without ever travelling. `ch24flyto` asserts the
+position CHANGED, the destination map, the party unchanged **BY PID**, and that a real
+`calculate_path` finds a reachable neighbour of the landing tile (it found 4). The
+`POKEBOT_CH24_FAULT_NOFLY=1` arm skips the flight and correctly FAILS with
+`missing=['R-FLYABLE','R-FLOWN','R-CONTINUE']`.
+
+✅ **16 of 17 fly destinations are unlocked** (all but Pacifidlog). Slateport is the default target
+because it is the route to the free **TM13 Ice Beam**.
+
+**‼‼ AND THE ROUND'S MOST IMPORTANT CORRECTION HAS NOTHING TO DO WITH FLYING.** Designing the
+catching feature, I filed **`#24-dexcatch`** with a fresh guard list. An adversarial reviewer's first
+finding was that **the user had already ruled on this, on 2026-07-31, as `#24-dexhunt`** — a ruling
+that PINS the predicate: *"the codebase already has the right predicate:
+`counter_hunt.resource_blocker()`. **Reuse it rather than writing a second one that can drift.**"*
+⇒ my guard list WAS the forbidden second predicate. A further ruling (`#24-pcoverflow`, 2026-08-05)
+had already removed the full-party objection I was designing around.
+⛔ **CLAUDE.md has carried the rule since 2026-08-23 — *"BEFORE ESCALATING ANYTHING TO THE USER,
+`grep -i` `06-DECISIONS-LOG.md` FIRST"* — and I broke it because I was not escalating, I was
+DESIGNING.** ⇒ the rule needs the wider trigger, now recorded in `08-MISTAKES.md`: **a NEW USER
+DIRECTIVE is exactly when old rulings are most likely to already cover the ground**, because a
+directive arrives in the user's language, not in the repo's slugs. ⭐ And the tell was already
+visible: `_should_catch` in `story_mode.py` *already implemented the exact policy*. **Code that
+already does what you are about to design is evidence that someone decided this before you.**
+`#24-dexcatch` is retired before it ever shipped; the work proceeds as `#24-dexhunt`, whose entry now
+carries the five measured constraints the review produced (the EXP-blind spin watchdog, KI-36's
+blind frame budget, the stock `CatchStrategy`'s drop to Manual, and the vacuity of a
+party-unchanged-by-PID grade on a full party).

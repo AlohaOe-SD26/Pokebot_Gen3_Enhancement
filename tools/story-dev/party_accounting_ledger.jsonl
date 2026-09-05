@@ -400,3 +400,9 @@
 {"when": "2026-09-05T00:12:33", "driver": "ch24moves", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 27787, "recomputes": 27787, "scans": 93, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-05T00:18:32", "driver": "ch24moves", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 20032, "recomputes": 20032, "scans": 67, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-05T00:49:12", "driver": "ch24moves", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 27787, "recomputes": 27787, "scans": 93, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-05T00:59:12", "driver": "ch24fly", "build": "sandbox", "state": "post_moveset.ss1", "frames_run": 21862, "recomputes": 21862, "scans": 73, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-05T01:05:18", "driver": "ch24fly", "build": "sandbox", "state": "post_moveset.ss1", "frames_run": 21862, "recomputes": 21862, "scans": 73, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-05T01:11:01", "driver": "ch24fly", "build": "sandbox", "state": "post_moveset.ss1", "frames_run": 20000, "recomputes": 20001, "scans": 67, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-05T01:19:32", "driver": "ch24flyto", "build": "sandbox", "state": "post_fly.ss1", "frames_run": 20726, "recomputes": 20726, "scans": 70, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-05T01:25:52", "driver": "ch24flyto", "build": "sandbox", "state": "post_fly.ss1", "frames_run": 20726, "recomputes": 20726, "scans": 70, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-05T01:31:32", "driver": "ch24flyto", "build": "sandbox", "state": "post_fly.ss1", "frames_run": 20000, "recomputes": 20001, "scans": 67, "divergences": {}, "observer_broke": false}

@@ -12353,3 +12353,38 @@ Strength was Sceptile's *better* Normal move; Slam was the actual waste.
 **Prevention rule.** ⛔ **A FIELD MOVE IS NOT AUTOMATICALLY A DEAD SLOT.** Compare the numbers before
 calling anything dead. ⭐ More generally: a category label ("HM move", "utility", "filler") is a
 hypothesis about value, and the data is one lookup away.
+
+
+---
+
+## 2026-09-05 — I invented a new slug for a question the user had already ruled on. Twice-warned.
+
+**Symptom.** Given a new user directive about catching Pokémon and filling the Pokédex, I surveyed
+the code, designed a feature, and filed it as **`#24-dexcatch`** with a fresh guard list (ball
+reserve, frame budget, PID assertion, owned-set test).
+
+**Root cause.** **`#24-dexhunt` already existed, and the user ruled on it on 2026-07-31.** The
+ruling is *"catch every unseen species except when doing so would block progress"*, and it
+explicitly PINS the predicate:
+> *"'Cheap' is defined, not left to judgement… the codebase already has the right predicate:
+> `counter_hunt.resource_blocker()`. **Reuse it rather than writing a second one that can drift.**"*
+⇒ **my guard list WAS the second predicate the ruling forbids**, under a slug that forks the record
+away from the tracked item. A *second* ruling (`#24-pcoverflow`, 2026-08-05) had already removed the
+full-party objection I was designing around — *"A FULL PARTY NO LONGER REFUSES THE CATCH"*.
+
+**How it was caught.** Not by me — by an adversarial reviewer whose first finding was
+`06-DECISIONS-LOG.md:1175-1214`. I had read `story_mode.py`, `pokedex.py`, `encounter.py` and
+`catch_balls.py`, and measured the dex, the balls and the plateau. **I never grepped the decisions
+log.**
+
+**Prevention rule.** ⛔ **THIS RULE ALREADY EXISTS AND I BROKE IT ANYWAY** — CLAUDE.md, added
+2026-08-23: *"BEFORE ESCALATING ANYTHING TO THE USER, `grep -i` `06-DECISIONS-LOG.md` FIRST."* The
+first violation cost an escalation about a tracked ROM the user had ruled on five weeks earlier.
+This one cost a duplicate design.
+⇒ ‼ **THE RULE NEEDS A WIDER TRIGGER, AND THAT IS THE REAL LESSON.** It says *before escalating*. I
+was not escalating — I was **designing**, which felt like new work. **A NEW USER DIRECTIVE IS EXACTLY
+WHEN THE OLD RULINGS ARE MOST LIKELY TO ALREADY COVER THE GROUND**, because a directive arrives in
+the user's language, not in the repo's slugs. ⇒ **grep the decisions log for the TOPIC (`catch`,
+`dex`, `pokedex`) at the START of any new feature, not only before escalating.** ⭐ And the tell was
+there: `_should_catch` already implemented the exact policy. **Code that already does what you are
+about to design is evidence that someone decided this before you.**

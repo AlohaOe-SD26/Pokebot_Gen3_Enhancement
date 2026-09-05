@@ -51,6 +51,7 @@ from modules.modes.util.items import scroll_to_item_in_bag
 from modules.modes.util.sleep import wait_for_n_frames
 from modules.modes.util.tasks_scripts import wait_for_task_to_start_and_finish
 from modules.pokemon_party import get_party, get_party_size
+from modules.story.early_game import wait_until_truly_controllable
 from modules.story.overworld_items import Target, plan_healing, party_is_gauntlet_ready
 
 
@@ -420,6 +421,107 @@ def teach_move_from_bag(item: Item, party_index: int, move_index_to_replace: int
 
 
 # ==================================================================================================
+# §Ch24 PREP — FLY OFF THE PLATEAU (`#24-dexcatch` prerequisite)
+# ==================================================================================================
+FLY_READINGS = ("R-FLYABLE", "R-FLOWN", "R-CONTINUE")
+
+
+def fly_to_destination(destination, report=None) -> Generator:
+    """Fly to `destination` and PROVE we arrived.
+
+    ⛔⛔ WHY THIS IS A LEG AND NOT A ONE-LINER. `EVER_GRANDE_CITY (18,6)` is a CLOSED PLATEAU —
+    measured with `calculate_path` from that exact tile: the League door and the Victory Road exit
+    landing (36 wp) are reachable and **nothing else is**; the Poké Center, the Victory Road apron,
+    the southern shore and every water tile all return `PathFindingError`. ⇒ **the bot cannot walk
+    to a single wild encounter**, so the user's catching / Pokédex directive and both free TM
+    pickups that win Drake are all on the far side of one Fly.
+
+    ⭐ It reuses `higher_level_actions.fly_to`, which is already guarded (BADGE06 — a documented
+    FORK fix, KI-7, because the stock check was FR/LG's BADGE03 — plus the destination's own
+    visited-flag and a `first_pokemon_with_move("Fly")` lookup) and already has a proven caller in
+    `modules/modes/roamer_reset.py`.
+
+    ‼ IT GRADES ARRIVAL, NOT THE MOVE. "Swellow knows Fly" is not "the bot has flown" — the leg
+    asserts the destination MAP, that the party is unchanged BY PID, and that a real path exists off
+    the landing tile.
+    """
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    from modules.modes.util.higher_level_actions import fly_to
+    from modules.memory import get_event_flag
+    from modules.player import get_player_avatar
+
+    flyer = get_party().first_pokemon_with_move("Fly")
+    report["fly_knower"] = None if flyer is None else (flyer.species.name, flyer.index)
+    report["badge06"] = get_event_flag("BADGE06_GET")
+    report["destination_available"] = get_event_flag(destination.get_flag_name())
+    if flyer is None:
+        raise BotModeError(
+            "§Ch24 fly: no party member knows Fly. ⛔ Teach it first (`--driver ch24fly`) — Swellow "
+            "is the only member of this party that CAN learn it."
+        )
+    if not report["badge06"]:
+        raise BotModeError("§Ch24 fly: BADGE06 (Feather) is required for the Fly field move.")
+    if not report["destination_available"]:
+        raise BotModeError(
+            f"§Ch24 fly: {destination.name} has never been visited, so it is not on the region map."
+        )
+    _take(report, "R-FLYABLE")
+
+    before = get_player_avatar()
+    report["origin"] = (before.map_group_and_number, before.local_coordinates)
+    party_before = [(m.species.name, hex(m.personality_value)) for m in get_party()
+                    if m is not None and getattr(m, "species", None) is not None]
+
+    # ⛔ ANTI-VACUITY: the run must END somewhere it did not START, or it cannot distinguish a
+    # successful flight from doing nothing. The origin is recorded here and compared after the
+    # flight (`report["moved"]`), which is the same check without needing to know the destination's
+    # map id up front — the enum carries region-map COORDINATES, not a map group/number.
+
+    yield from fly_to(destination)
+    yield from wait_until_truly_controllable()
+
+    after = get_player_avatar()
+    report["arrived"] = (after.map_group_and_number, after.local_coordinates)
+    report["moved"] = report["arrived"] != report["origin"]
+    _take(report, "R-FLOWN")
+    if not report["moved"]:
+        raise BotModeError(
+            f"§Ch24 fly: still at {report['origin']} after flying to {destination.name}."
+        )
+
+    # ⛔ THE PARTY MUST BE UNTOUCHED — asserted BY PID, never by count.
+    party_after = [(m.species.name, hex(m.personality_value)) for m in get_party()
+                   if m is not None and getattr(m, "species", None) is not None]
+    report["party_pids_stable"] = party_before == party_after
+    if not report["party_pids_stable"]:
+        raise BotModeError(
+            f"§Ch24 fly: the party changed across the flight. "
+            f"before={party_before} after={party_after}"
+        )
+
+    # ⭐ AND THE BOT CAN CONTINUE — a REAL path off the landing tile, not a `controllable` flag.
+    from modules.modes.util.walking import calculate_path
+
+    here = after.local_coordinates
+    probes, reachable = [(here[0], here[1] + 1), (here[0] + 1, here[1]), (here[0], here[1] - 1),
+                         (here[0] - 1, here[1])], 0
+    for tile in probes:
+        try:
+            calculate_path((after.map_group_and_number, here), (after.map_group_and_number, tile))
+            reachable += 1
+        except Exception:  # noqa: BLE001 — a refusal is a reading, not an error
+            pass
+    report["neighbours_reachable"] = reachable
+    _take(report, "R-CONTINUE")
+    if reachable == 0:
+        raise BotModeError(
+            f"§Ch24 fly: landed on {report['arrived']} but NO neighbouring tile is reachable — the "
+            f"bot cannot take a step. That is a landing, not an arrival."
+        )
+
+
+# ==================================================================================================
 # §Ch24 PREP — THE MOVESET PLAN (`#24-e4moveset`)
 # ==================================================================================================
 #: ⭐⭐ FOUR CHANGES THAT COST NOTHING: every TM/HM here is ALREADY IN THE BAG and no travel is
@@ -456,6 +558,33 @@ MOVESET_PLAN = (
 #: ⛔ AND THREE ARE UNUSABLE BY ANYONE HERE: TM04 Calm Mind, TM08 Bulk Up, TM50 Overheat.
 
 MOVESET_READINGS = ("R-PLAN", "R-TAUGHT", "R-VERIFIED")
+
+#: ⭐⭐ THE TRAVEL PLAN — **FLY IS NOT AN OPTIMISATION HERE, IT IS THE ONLY WAY OFF THE PLATEAU.**
+#: MEASURED 2026-09-05 from `post_moveset.ss1` at EVER_GRANDE_CITY (18,6), with `calculate_path`:
+#:     League door apron (18,6)          OK 0 wp
+#:     VictoryRoad exit landing (18,28)  OK 36 wp
+#:     Poke Center door (27,48)          ⛔ PathFindingError
+#:     VR apron (18,42)                  ⛔ PathFindingError
+#:     southern shore (18,55) / water (18,60)  ⛔ PathFindingError
+#: ⇒ **the bot cannot walk to a single wild encounter** — no grass, no water access. Everything the
+#: user's catching/Pokédex directive needs, and both free TM pickups that win Drake (TM13 Ice Beam,
+#: TM02 Dragon Claw), are on the far side of this.
+#:
+#: ⭐ SWELLOW IS THE ONLY MEMBER THAT CAN LEARN FLY — measured with `species.can_learn_tm_hm(HM02)`:
+#: Sceptile False · Zigzagoon False · Swellow **True** · Wailord False · Mightyena False ·
+#: Castform False. Badge gate is `BADGE03`; we hold all eight.
+#:
+#: ⛔ AND IT REPLACES **WING ATTACK**, WHICH IS STRICTLY DOMINATED. Swellow now knows Facade (Normal
+#: STAB), Wing Attack (Flying 60/100%), Aerial Ace (Flying 60, NEVER MISSES) and Quick Attack
+#: (priority). Wing Attack and Aerial Ace are the same type and power, and Aerial Ace cannot miss —
+#: so Wing Attack contributes nothing that Aerial Ace does not do better. ‼ Fly itself is a 2-turn
+#: move in battle and is NOT intended as an attack; it is bought for the overworld.
+TRAVEL_PLAN = (
+    ("Swellow", "HM02", "Fly", "Wing Attack",
+     "Fly is the ONLY exit from the Ever Grande plateau (measured: every non-League tile is "
+     "PathFindingError from (18,6)). Wing Attack is strictly dominated by the Aerial Ace Swellow "
+     "already knows — same type, same 60 power, and Aerial Ace never misses"),
+)
 
 
 def _find_slot(species: str) -> "int | None":

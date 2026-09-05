@@ -583,6 +583,32 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       Wailord fainting does not strand the run. ⇒ **do NOT "fix" `assert_carriers_survived` to reject
       fainted carriers** — it is correct as written, and that check would fire on a healthy run.
 
+### ✅ `#24-flyunlock` — **CLOSED 2026-09-05: FLY IS TAUGHT AND FLOWN. THE EVER GRANDE PLATEAU IS SOLVED.** ⛔ DO NOT REDO.
+
+⛔⛔ **THE PROBLEM WAS GEOGRAPHY, NOT POLICY.** MEASURED with `calculate_path` from
+EVER_GRANDE_CITY (18,6):
+
+| target | result |
+|---|---|
+| League door apron (18,6) | OK 0 wp |
+| Victory Road exit landing (18,28) | OK 36 wp |
+| Poké Center door (27,48) | ⛔ `PathFindingError` |
+| Victory Road apron (18,42) | ⛔ `PathFindingError` |
+| southern shore (18,55) / water (18,60) | ⛔ `PathFindingError` |
+
+⇒ **the bot could not walk to a single wild encounter.** The catching/Pokédex directive AND both
+free TM pickups that win Drake were all behind one Fly.
+
+✅ **`--driver ch24fly`** (`post_fly.ss1`, md5 `a45283a669e7ee36776b43acec3a8580`): Swellow learns
+**Fly** over **Wing Attack** — strictly dominated by the Aerial Ace it already knew (same type, same
+60 power, never misses). Swellow is the ONLY member that can learn it.
+✅ **`--driver ch24flyto`** (`post_slateport.ss1`, md5 `171460626f5f6fead942aa88a85b2050`): flies to
+**SLATEPORT_CITY (19,20)** — `moved=True`, `party_pids_stable=True` (by PID), `neighbours_reachable=4`.
+⭐ **Graded on ARRIVAL, not on knowing the move.** Fault arm `POKEBOT_CH24_FAULT_NOFLY=1` FAILS.
+✅ 16 of 17 fly destinations unlocked (all but Pacifidlog).
+
+---
+
 ### ✅ `#24-e4moveset` — **CLOSED 2026-09-05: the four FREE move changes are applied and driven.** ⛔ DO NOT REDO THEM.
 
 `--driver ch24moves` `ACCEPTANCE: PASS`, fixture `post_moveset.ss1` (md5 `36e4510ecccf06957a7c3cb38ce2a967`),
@@ -1792,8 +1818,58 @@ below); `#24-leadpolicy` → **A+C**; `#24-route110cap` → **A** (prep, NO cap)
 KI-24b → **A** (fix the mock, re-baseline, show the diff); `#doc-policy-05` → **A**
 (keep-and-mark until promotion); repo size → **leave it**.
 
-### `#24-dexhunt` — catch EVERY new species, and hunt between gyms (user proposal 2026-07-29)
-**NOT SCHEDULED — proposed, understood, and deliberately deferred by the user** ("we don't have
+### 🔜 `#24-dexhunt` — catch EVERY new species, and hunt for unseen ones — **RE-AFFIRMED AND WIDENED BY A NEW USER DIRECTIVE 2026-09-04; NOW UNBLOCKED** (user proposal 2026-07-29, ruled 2026-07-31)
+
+⛔⛔ **THIS IS THE ITEM THAT SERVES THE 2026-09-04 CATCHING DIRECTIVE. DO NOT OPEN A SECOND ONE.**
+*(I opened `#24-dexcatch` on 2026-09-05 with a fresh guard list before an adversarial reviewer found
+this entry and the 2026-07-31 ruling. That ruling PINS the predicate — "the codebase already has the
+right predicate: `counter_hunt.resource_blocker()`. **Reuse it rather than writing a second one that
+can drift**" — so my guard list WAS the forbidden second predicate. `#24-dexcatch` is retired before
+it ever shipped. See `08-MISTAKES.md` 2026-09-05.)*
+
+**THE NEW DIRECTIVE (2026-09-04, verbatim):** *"I am fine with the bot catching and training
+pokemon, it should be doing this as well as collecting pokemon (new, rare, considered rare) to fill
+out the pokedex"*. ⇒ it does not overturn the 2026-07-31 ruling; it **widens** it — Pokédex
+completion becomes a first-class goal, and **rarity becomes a selection criterion** rather than an
+accident of what the bot happened to meet.
+
+**✅ WHAT IS NOW MEASURED AND UNBLOCKED (2026-09-05):**
+* **Dex: seen 116 / owned 11** — **105 species seen but never caught**, incl. Pikachu, Gyarados,
+  Skarmory, Kingdra, Tentacruel, Crobat, Azumarill, Magneton, Xatu.
+* **23 Poké Balls** held ⇒ `resource_blocker()`'s only remaining gate (`_ball_count() <= 1`) is clear.
+* **A full party no longer refuses a catch** — ruled `#24-pcoverflow` 2026-08-05; it lands in the box
+  and `pc_trip.withdraw_from_box` retrieves it. The PC is empty (all 14 boxes).
+* **`#24-flyunlock` is CLOSED**, so the bot can finally REACH wild encounters at all.
+
+**⛔ THE FIVE CONSTRAINTS AN ADVERSARIAL REVIEW FOUND — build against these, they are measured:**
+1. **`_should_catch` already implements the right dex test** (`story_mode.py:1300`, comparing
+   `owned_species` by national dex number). It is gated off by conditions written for the NARROWER
+   pre-Gym-1 team-building purpose: `if get_event_flag("BADGE01_GET"): return False` and a
+   party-full check. ⇒ **relax those two; do not rewrite the predicate.**
+2. ⛔ **THE SPIN'S WATCHDOG IS EXP-BASED AND A CATCH EARNS ZERO EXP.** `_story_spin` stops after
+   `_STORY_SPIN_NO_PROGRESS_FRAMES = 2400` of unchanged party EXP (`early_game.py:168,183-219`). A
+   catch-and-skip phase moves that number by nothing ⇒ the watchdog fires every ~40 s and the caller
+   re-navigates: **an invisible retry loop, not a hang you would see.** `counter_hunt.hunt` survives
+   only because it FIGHTS nearly every encounter.
+3. ⛔ **THE FRAME BUDGET IS BLIND HERE — KI-36.** `_run_with_frame_budget` cannot check itself while
+   a battle handler sits above the mode, and a catch phase is ~100% battle handler. KI-36 measured
+   25,632,106 frames against a 5,000,000 cap reporting `frame-cap=0`.
+4. ⛔ **NEVER RETURN `BattleAction.Catch`.** It routes through `_listeners.py:277` to the STOCK
+   `CatchStrategy`, whose `decide_turn` returns `switch_to_manual()` the moment no ball can be
+   thrown (`catch.py:45-48`) — and ball exhaustion is this feature's DESIGNED terminus. Return a
+   STRATEGY OBJECT (`StoryCatchStrategy`), which `_listeners.py:124` routes through `fight()`.
+5. ⛔ **"PARTY UNCHANGED BY PID" IS A VACUOUS GRADE HERE** — with a 6/6 party every catch goes to the
+   box by construction, so the PID SET cannot change and the check passes whether or not the feature
+   ran. Keep it as a SAFETY INVARIANT; grade on **`owned_species` COUNT STRICTLY INCREASED** and name
+   the new dex numbers. ⚠ And do NOT grade party ORDER: `choose_new_lead_after_battle` legitimately
+   rotates the lead after a faint, which catch battles cause often.
+
+**STATUS: OPEN, unblocked, and the constraints above are the build spec.**
+
+---
+
+### `#24-dexhunt` (original 2026-07-29 proposal, kept for its rationale) — catch EVERY new species, and hunt between gyms
+⛔⛔ **SUPERSEDED — DO NOT ACT ON THE STATUS BELOW.** This is the ORIGINAL 2026-07-29 proposal, kept ONLY for its rationale; the LIVE entry is the `#24-dexhunt` heading ~50 lines ABOVE, which reads **"STATUS: OPEN, unblocked"**. The deferral quoted here was overtaken by the user's 2026-07-31 RULING and again by the 2026-09-04 catching directive. ‼ A Tier 1 reviewer found two headings under the SAME SLUG saying "OPEN, unblocked" and "NOT SCHEDULED" — ⇒ **retitling a superseded block is not stamping it; the STATUS LINE is the half a reader acts on.** *(historical:)* **NOT SCHEDULED — proposed, understood, and deliberately deferred by the user** ("we don't have
 to implement it now… after I send these logs we should be at a good point to continue the
 story").
 

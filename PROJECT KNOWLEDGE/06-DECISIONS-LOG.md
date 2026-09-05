@@ -4092,3 +4092,29 @@ chapters or only between them. Those are out with a design workflow, not decided
 ⚠ **Do NOT read this as "catch everything, always".** The user asked for **new, rare, and considered
 rare** — a policy that re-catches Zigzagoons satisfies the letter and wastes the run. The catch
 policy is a real design problem and is being treated as one.
+
+
+## 2026-09-05 — The 2026-09-04 catching directive is served BY `#24-dexhunt`, not by a new item
+
+**The finding.** After the user's 2026-09-04 directive (*"catching and training… as well as
+collecting pokemon (new, rare, considered rare) to fill out the pokedex"*), I designed a feature and
+filed it as `#24-dexcatch`. An adversarial review found that **the question was already ruled**:
+* **2026-07-31 — `#24-dexhunt`:** *"catch every unseen species except when doing so would block
+  progress"*, with `counter_hunt.resource_blocker()` PINNED as the predicate and an explicit
+  instruction not to write a second one.
+* **2026-08-05 — `#24-pcoverflow`:** *"A FULL PARTY NO LONGER REFUSES THE CATCH"* — let it land in
+  the box and retrieve it (`pc_trip.withdraw_from_box`).
+
+⇒ **THE RULING IS `#24-dexhunt`. `#24-dexcatch` IS RETIRED BEFORE IT EVER SHIPPED** — one slug, one
+record. The 2026-09-04 directive does not overturn the 2026-07-31 ruling; it **re-affirms and widens
+it**, adding Pokédex COMPLETION as a first-class goal and an explicit preference for *new, rare and
+considered-rare* species.
+
+**What the new directive DOES change, and it is worth stating so it is not lost:** the 2026-07-31
+ruling was about catching *encountered* species cheaply during ordinary play. The new one asks the
+bot to **go and collect**, which makes rarity a selection criterion rather than an accident. That is
+a genuine extension and belongs in `#24-dexhunt`'s body, not in a second item.
+
+**What is measured and settled as of today:** dex is **seen 116 / owned 11** (105 free wins), the
+bot holds **23 balls**, the PC is **empty**, and `resource_blocker()`'s only remaining gate is
+`_ball_count() <= 1`. ⇒ **nothing in the ruled predicate blocks the work today.**
