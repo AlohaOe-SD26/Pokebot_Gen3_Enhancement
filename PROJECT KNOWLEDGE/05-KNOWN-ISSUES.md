@@ -1076,109 +1076,12 @@ thing that will waste the next debugging session.
 ‼ **The header said "FIX NOT YET APPLIED" for three weeks after it shipped** (corrected 2026-08-22, PASS 5) — the standing lesson that PRODUCTION IS THE ORACLE, not a KI header.
 ⛔ **RETIRED TO A SUMMARY 2026-09-03 (line budget) — SUMMARISED AND POINTED AT, NEVER DELETED.** The full investigation (the batch3 `9 → 143` caveat, the refuted journey-length hypothesis, and the `fea2bb19` regression it actually was) is in `07-CHANGELOG.md` 2026-07-31 and `31-KNOWN-ISSUES-ARCHIVE.md`.
 
-## KI-44 — Counter training cannot REACH its training grass: ROUTE102 is unwalkable from ROUTE103 (2026-07-31, severity: HIGH — this is now the counter chain's blocker)  — ✅ **ROOT CAUSE FOUND AND FIXED 2026-08-01** (see this entry's own `### KI-44 — ROOT CAUSE FOUND AND FIXED` block. Header marker added 2026-08-22, PASS 5).
+## KI-44 — ✅ **FIXED 2026-08-01 (root cause found the day after it was opened). FULL ENTRY ARCHIVED VERBATIM to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-09-05** — Counter training could not REACH its training grass because ROUTE102 is unwalkable from ROUTE103. ⛔ Retired here only to keep this current-state file inside its 3000-line budget; the diagnosis, the fix and its A/B are intact in the archive.
 
-**Measured**, batch4 `x4-runs/20260731-201554` (commit `92d220d5`), 7 of 7 attempts:
-
-```
-Story: training the counter — Machop L15 -> L21 (team is L35, est 222115 frames).
-Story: counter training failed (UnreachableDestinationError('Could not reach (9, 2) on
-  MapRSE.ROUTE102: the field is idle and we are still at (45, …), so retrying cannot change
-  the result (Cannot reach PETALBURG_CITY: it is not walkable from ROUTE103, and none of the
-  6 candidate warp route(s) start at a tile that can be walked to from here
-  (tried: OLDALE_TOWN(…)×4, PETALBURG_CITY(…)×2).).')) — continuing untrained.
-```
-
-6 of 7 are this exact error; the 7th is a whiteout abort. **Zero counters were trained**, so
-the Machop still fights Norman's L28-31 team at L15-16 — the same state as batch3, which is
-why batch4's badge funnel is flat at every rung (Heat→Balance 77% → 83%, z = 0.52).
-
-‼ **EXPOSED, NOT CAUSED, BY `affordable_training_target` (`1c4b183d`).** Before that fix the
-gate refused to train at all, so the bot never attempted the journey and this failure could
-not appear in any log. Do not "revert the training fix" — the fix is correct and is doing its
-job (`training … rejected` went 4 → 0, the affordable target fires 7×). The blocker simply
-MOVED from the budget to the travel, exactly one step further down the chain.
-
-**What the error says.** The bot stands on **ROUTE103** and wants **ROUTE102 (9,2)**.
-`_walk_is_possible` says no for the direct route, and all six warp candidates it was offered
-(4× OLDALE_TOWN, 2× PETALBURG_CITY) are judged unwalkable from where it stands. Route 103
-connects to Oldale Town by an ordinary map CONNECTION, so "no candidate is walkable" is the
-suspicious part — this smells like KI-24's `calculate_path` unsoundness at region scale
-rather than a genuinely sealed route.
-
-**Do not fix by raising retries.** The message already contains the fail-fast reasoning —
-*"the field is idle and we are still at (45, …), so retrying cannot change the result"* — so
-retrying is known-useless here. Establish first whether ROUTE103 → OLDALE_TOWN → ROUTE102 is
-genuinely walkable from that tile with a live probe from the ACTUAL captured position (the
-2026-07-31 lesson: validating travel from an easy starting position and shipping it as done
-is already in `08-MISTAKES.md`), plus a control tile that DOES path.
-
-Related: **KI-24/24b** (`calculate_path` unsound at region scale; `_training_area_allowed`
-still uses it), **KI-39 CORRECTED**, **KI-43** (fixed).
-
-### KI-44 — ROOT CAUSE FOUND AND FIXED 2026-08-01 (live-probed; awaiting a batch for the outcome proof)
-
-**It was never a routing bug.** `train_counter` used `cfg["grass"]` — the **BOSS's** patch —
-so a Machop caught in FIERY_PATH was sent to Norman's `PETALBURG_TRAINING_GRASS =
-(ROUTE102, (9, 2))`. Two independent faults; the log only ever showed the first.
-
-| | |
-|---|---|
-| 1. it cannot get there | 6 of 7 stranded on ROUTE103 (45, 7) — eight maps from the catch |
-| 2. it would not be worth going | **ROUTE102's land wilds are L3-4** |
-
-Fault 2 was invisible in every log and is arguably the worse one. Probed 2026-08-01
-(`tools/story-dev/probe_counter_grass.py`, reads the ROM's own encounter tables):
-
-| map | land wild levels | |
-|---|---|---|
-| **ROUTE102** | **3-4** | what Norman's cfg used |
-| FIERY_PATH | 14-16 | where the counter is caught |
-| ROUTE112 | 14-16 | adjacent |
-| JAGGED_PASS | 20-22 | adjacent |
-
-`story_mode.py:739` already described this exact patch as *"Route 102 at L4 ... ~25 xp a
-kill, i.e. never"* — the pathological case `FODDER_LEVEL_GAP` was invented for. So even a
-perfect journey would have bought a near-worthless grind.
-
-‼ **AND THE OBVIOUS REPAIR IS ALSO WRONG.** "Train where you caught it" picks FIERY_PATH,
-which is in `NO_RETURN_GROUNDS`: reachable and exitable (fine for catch-and-leave hunting)
-but **the heal leg back to Lavaridge FAILS**, and a training loop needs that third leg.
-ROUTE112 is there for the same measured reason (Lavaridge→door OK at 60 waypoints,
-door→Lavaridge FAILS) and JAGGED_PASS cannot even path within itself. There was simply **no
-legal training ground** for a counter caught in Fiery Path — a structural hole in the chain,
-not a wrong constant.
-
-**THE FIX** — `counter_hunt.counter_training_ground()`. Ask `best_training_area`, the picker
-the rest of the bot already uses: it refuses no-return grounds FIRST, applies the winnability
-guard, honours the live reachability predicate, and prefers the band closest to the trainee.
-Falls back to `cfg`'s pair when it has no answer, so a boss whose configured grass IS correct
-keeps exactly today's behaviour, and a picker failure can never destroy a successful catch.
-
-**Live probe from `lavaridge.ss1`** (one map from the catch site), with the real
-`_counter_area_allowed` predicate:
-```
-best_training_area(L15) -> (ROUTE117, (31,16), (13,14))
-best_training_area(L20) -> (ROUTE111, (25,55), (19,22))     # level-matching works
-counter_training_ground(L15, Norman cfg)
-    -> grass=(ROUTE117,(31,16))  heal=PokemonCenter.VerdanturfTown   => RELOCATED, fix fired
-```
-So the counter now trains on **L13-14 wilds with a working heal loop** instead of L3-4 on the
-far side of Hoenn.
-
-**Repro:** `tools/story-dev/repro_counter_training_ground.py` — asserts the PROPERTY (never a
-no-return ground at any level L10-30 even with `allow=<always true>`, never an unwinnable
-band, never ROUTE102 for a L15 counter, and safe degradation with no ROM) rather than one
-hardcoded map, so a future table edit cannot quietly reintroduce the hole.
-
-‼ **WHAT IS NOT YET PROVEN.** The probe stood on LAVARIDGE_TOWN, not on FIERY_PATH (18,19)
-where the catch actually happens — one map short of the exact case. And the OUTCOME claim
-(that a trained counter beats Norman) is unmeasured: that needs a batch, and batch4's own
-lesson is that the mechanism firing is not the same as the funnel moving. Read
-`Heat→Balance` against batch4's 24/29 (83%), and count `counter training failed` — it was
-**7 of 7**.
-
----
+**2026-09-05 — body retired, status re-confirmed unchanged.** KI-44 is CLOSED and stays closed:
+the fix is `ROUTE102` reachability from `ROUTE103`, shipped 2026-08-01 and unchanged since. No
+new evidence, no reopening — this line exists because a header edit and its body must move
+together (pair P2), and retiring a body is still editing it.
 
 ## KI-45 — A battle MOVE-menu loop hangs a lane indefinitely, and neither guard can see it (2026-08-02, severity: HIGH)  — ✅ **FIXED 2026-08-03** (bounded + reported through the recoverable channel; see this entry's own `### KI-45 — FIXED` block. Header marker added 2026-08-22, PASS 5).
 
@@ -2995,3 +2898,44 @@ counted — the closed-loop reader already exists at `battle_move_replacing.py:5
 ⚠ **A TRAP FOR WHOEVER TRIES:** the screen runs under **TWO** tasks at different phases —
 `Task_HandleInputCantForgetHMsMoves` transiently, then `Task_HandleReplaceMoveInput`. Sampling the
 task list ONCE catches the transient. ⇒ **a one-frame sample is not a contract.**
+
+
+## `KI-89` — ⛔⛔ `scroll_to_item_in_bag` RETURNS SUCCESS WITH THE CURSOR ON THE WRONG ITEM (upstream helper; MEASURED 2026-09-05, NOT fixed, ROUTED AROUND)
+
+**Severity: HIGH and SILENT.** It does not raise, does not warn, and does not look wrong from the
+outside. The caller then presses A on whatever the cursor happens to be sitting on.
+
+**MEASURED, one run, `--driver ch24teachice` on `post_icebeam.ss1`:**
+```
+[TEACH-CURSOR] after scroll_to_item_in_bag(TM13): pocket=2 slot=13 -> HM08
+[TEACH-ITEM]   TM/HM pocket order = ['TM03','TM04','TM08','TM13','TM34','TM39','TM47','TM50',
+                                     'HM02','HM03','HM04','HM06','HM07','HM08']
+[TEACH-SAID]   0: 'DIVER already knows DIVE.'
+```
+Asked for **TM13 (Ice Beam)** it left the cursor on **HM08 (Dive)** — slot 13, not 3 — so the bot used
+Dive on Wailord (nicknamed DIVER) and the game refused. `modules/menuing.py::scroll_to_item_slot`
+scrolls the on-screen cursor to the slot number `first_slot_index_for()` returns, and for TM13 those
+two numbers are not the same index space.
+
+⛔ **WHY IT HAD NEVER BITTEN:** five earlier teaches — Aerial Ace, Facade, Strength, Rock Smash, Fly —
+used items whose two indices COINCIDE. TM13 is the first item this save acquired out of that order.
+⇒ ⭐ **A HELPER THAT HAS WORKED FIVE TIMES IS NOT A VERIFIED HELPER, ONLY AN UNMEASURED ONE.**
+
+⛔ **BLAST RADIUS — this is NOT teach-only.** Every caller of `scroll_to_item_in_bag` /
+`use_item_from_bag` inherits it: healing, Repels, Escape Ropes, evolution stones. The visible symptom
+differs per caller and can be a NO-OP rather than an error (using the wrong potion still "works").
+⚠ **NOT yet measured for those callers** — this KI records what one run proved, not a sweep.
+
+**NOT FIXED UPSTREAM, DELIBERATELY — same ruling as `KI-88`.** `modules/menuing.py` is a shared file
+every chapter depends on, and a partial fix to its sibling hung a drive on 2026-09-05. Routed around
+in `modules/story/pokemon_league.py::scroll_to_tm_verified`, which calls upstream, READS THE CURSOR
+BACK out of `gBagPosition`, corrects it closed-loop and BOUNDED against `get_item_bag().tms_hms`, and
+**RAISES rather than press A on an unverified cursor** (a Gen-3 TM is single-use).
+
+‼ **THE DIAGNOSTIC LESSON IS BIGGER THAN THE BUG.** SIX diagnoses were spent downstream of this, every
+one about the PARTY menu, because the item side had been "verified" by printing the pocket's CONTENTS
+— which is not the cursor. ⇒ ⭐ **A CANDIDATE IS NOT AN ATTEMPT: instrument what A acts on.**
+
+📌 The exit the game actually took is path **E** of
+`ai-research-notes/2026-09-05-ch24-TMHM-TEACH-CHAIN.md` (`gText_PkmnAlreadyKnows`), confirmed
+independently by a decomp read.

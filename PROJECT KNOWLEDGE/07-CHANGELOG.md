@@ -22208,3 +22208,127 @@ already does what you are about to design is evidence that someone decided this 
 carries the five measured constraints the review produced (the EXP-blind spin watchdog, KI-36's
 blind frame budget, the stock `CatchStrategy`'s drop to Manual, and the vacuity of a
 party-unchanged-by-PID grade on a full party).
+
+
+## 2026-09-05 — `#24-icebeamtrip`: TM13 is in the bag, and four invisible blockers are documented
+
+**What shipped.** `fetch_ice_beam` + `_hop` + `_insert_storage_key` + `_ball_approach` +
+`teach_move_from_bag` in `modules/story/pokemon_league.py`; drivers `--driver ch24icebeam` (with an
+OBSERVE-ONLY `POKEBOT_CH24_SHIPPROBE` arm) and `--driver ch24teachice`; fault arm
+`POKEBOT_CH24_FAULT_NOKEY`. Fixture **`post_icebeam.ss1`** (`5515f893a2aa1a1e7e60d6741a3d8497`),
+`ACCEPTANCE: PASS`.
+
+**⛔⛔ FOUR BLOCKERS, NONE VISIBLE IN THE DATA I TRUSTED.** I mapped the route from our own runtime
+`get_map_data(...).warps` and believed that outranked a decomp claim. **The coordinates were right
+and the route was still wrong**, because a warp table does not carry the warp's KIND, the collision
+connectivity between two tiles, or a metatile gate a map's `OnLoad` applies at runtime.
+⇒ ⭐ **"OUR DATA OUTRANKS THE DECOMP" IS TRUE ABOUT VALUES AND FALSE ABOUT MECHANISMS.**
+
+1. **A NORTH ARROW WARP** — stand ON (29,6) and hold Up. ⭐ Proven by experiment *before* the decomp
+   arrived: a hand-step WEST walked straight through the tile without firing it.
+2. **The deck is split**; the Captain's Office is unreachable from the boarding tile. The decomp
+   found it by collision BFS and **our own planner independently refused the same hop** — the
+   strongest confirmation available.
+3. **B1F row 5 is the ship's only crossover.**
+4. **The Storage Room door is metatile-gated** — `MB_NORMAL`, a wall, until the key is *inserted*.
+
+**⭐ THE AGENTS EARNED THEIR COST HERE, PRECISELY AS THE USER'S STANDING DIRECTIVE INTENDS.** Four
+drives found ONE blocker. A 7-agent adversarial workflow found THREE MORE in the same wall-clock
+time — and its refutation pass then caught the recon's own error (the game auto-walks the player one
+tile off every door warp, so its stated arrival tiles are wrong). ‼ **That error could not touch us,
+because `_hop` asserts the MAP, never the tile** — a design choice validated by an attack on it.
+
+**‼ AND A LESSON ABOUT MY OWN DISCIPLINE, EARNED SIX TIMES OVER.** The teach still fails, and every
+diagnosis I offered was wrong: warp-as-waypoint → elevation → aim-at-the-warp → location → party
+cursor → HM slot. Each was *plausible* and each was refuted by the next measurement. Two things
+finally moved it forward, and neither was reasoning:
+* **instrumenting the ACTION** (tracing the cursor and naming the mon under it) — which proved the
+  half I had been blaming was correct all along;
+* **splitting the leg at its natural seam**, so the experiment costs seconds instead of 12 minutes.
+⇒ ⭐ **WHEN THREE DIAGNOSES IN A ROW ARE WRONG, STOP DIAGNOSING AND START INSTRUMENTING** — and if
+each attempt is expensive, the FIRST fix is to make attempts cheap.
+
+**⛔ AND ONE I WROTE THIS MORNING AND THEN COMMITTED MYSELF.** `KI-88` documents upstream's A-mash
+blowing past the move-selection screen and confirming index 0. My replacement — written specifically
+to avoid that bug — pressed A every 4 frames in its own wait loop and did the same thing.
+⇒ **DOCUMENTING A BUG DOES NOT INOCULATE YOU AGAINST WRITING IT. The guard has to be in the code,
+not in the note about the code.**
+
+**The teach is split out as `#24-icebeamteach`** with everything measured attached, and the honest
+next step recorded: **read what the game actually SAYS.** Six inferences have been wrong; the
+dialogue box has never been read.
+
+
+## 2026-09-05 — `#24-icebeamteach`: Wailord knows Ice Beam, and the bug was never where I was looking
+
+**Shipped.** `scroll_to_tm_verified` + `_bag_cursor_slot` + `_screen_message` in
+`modules/story/pokemon_league.py`; `--driver ch24teachice`. `ACCEPTANCE: PASS`,
+`LANDED ['Wailord:Ice Beam']`, `wrong=[]`, `missing=[]`, `whiteouts=0`. Wailord went
+`['Dive','Surf','Water Spout','Waterfall']` → `['Dive','Surf','Ice Beam','Waterfall']`.
+⭐ **A clean A/B: same driver, same fixture, one changed call.**
+
+**⛔ ROOT CAUSE — `KI-89`.** Upstream's `scroll_to_item_in_bag` returns SUCCESS with the cursor on the
+wrong item: asked for TM13 it left it on **HM08 Dive**. The bot had been using Dive on Wailord all
+along, and the game answered *"DIVER already knows DIVE."* Five earlier teaches passed because their
+two index spaces happen to coincide. ⇒ ⭐ **a helper that has worked five times is not verified, only
+unmeasured.**
+
+**‼ SIX DIAGNOSES, ALL DOWNSTREAM OF AN INPUT I HAD "VERIFIED".** Every one concerned the party menu.
+The item side had been checked by printing the pocket's CONTENTS — a list — and that was recorded as
+"item selection verified correct". It was never the cursor. ⇒ ⭐ **A CANDIDATE IS NOT AN ATTEMPT.**
+This project has written that rule down twice; this is the third time it was broken.
+
+**⭐ WHAT ACTUALLY BROKE IT OPEN: READING THE GAME'S OWN WORDS.** One instrument — decode
+`gStringVar4` — and the answer was a plain English sentence naming both the wrong item and the reason.
+‼ And it was fitted with its own control: `gStringVar4` is never cleared, so the same run BASELINED it
+on entry (`'NICK put away the TM13…'`) to prove the message had CHANGED. Without that baseline a stale
+buffer would have been the seventh wrong diagnosis.
+⇒ ⭐ **BEFORE INFERRING A REFUSAL FROM BEHAVIOUR, READ THE MESSAGE — AND BASELINE IT.**
+
+**Agents, used as the standing directive intends.** A decomp subagent independently enumerated all
+seven bag-return exits, and its table's path **E** (`gText_PkmnAlreadyKnows`) is verbatim the message
+we read — confirmation from a second, independent angle. ‼ Its own RANKING put that answer fourth and
+named a different cause "most likely". ⇒ ⭐ **agent ENUMERATION is gold; agent RANKING is not evidence**
+— the same rule the 2026-07-25 Gemini measurement produced, now re-confirmed on a Claude agent. Banked
+as `ai-research-notes/2026-09-05-ch24-TMHM-TEACH-CHAIN.md`, including two hazards we have NOT hit but
+would have: **B is destructive at every YES/NO in the chain**, and **"Stop trying to teach?" defaults
+to YES, where YES means ABORT.**
+
+**Doc-consistency, honestly.** Tier 1 FAILED this round's first attempt, twice usefully: my
+"ARCHIVED VERBATIM" retirement had truncated two of three blocks (an index-space bug — `hits` computed
+on the mutated list, bounds scanned on the original), and **four** stale copies of "the live frontier
+is `#24-icebeamtrip`" survived in `04-HANDOFF.md` while the marker said CLOSED. Both fixed; the
+archiver now ASSERTS that every removed line is present in the archive before writing.
+⇒ ⭐ **a falsifiable claim in a document is worth exactly as much as the check behind it.**
+
+
+## 2026-09-05 — `archive_doc_block.py`: the doc-archiving safeguard becomes a tool instead of a sentence
+
+**Why.** Tier 1 passed the ice-beam round and then raised a sharper point: the changelog and the
+mistakes log both described "the archiver" as something that "now ASSERTS that every removed line is
+present before writing" — present tense, implying a durable safeguard — while the thing that actually
+did the asserting was a scratchpad script that no longer exists. ⇒ **CLAUDE.md rule 6: anything
+enforceable belongs in a GATE, not in prose.** A safety property proven once, in a file thrown away,
+does not protect the next archiving.
+
+**What shipped.** `tools/story-dev/archive_doc_block.py`, enforcing **two** invariants before either
+file is written — because the two failures this session were OPPOSITE and one check cannot catch both:
+* **INVARIANT A (no loss)** — every non-blank line removed from the source is present in the archive.
+  Catches the truncation (an index-space mismatch: starts from the mutated list, ends from the original).
+* **INVARIANT B (no orphan)** — after the swap the pointer is followed by a real block boundary.
+  Catches the header-only move that left ~35 lines reading "STATUS: OPEN" under a CLOSED heading.
+
+**‼ THE SELF-TEST EARNED ITS KEEP IMMEDIATELY, TWICE.** Arm B failed on the first run — and it was
+RIGHT: invariant B read `STOP_PREFIXES`, the very constant the block-finder uses, so injecting a bad
+boundary broke the finder AND blinded the check meant to catch it. ⇒ ⭐ **A CHECK THAT SHARES ITS
+INPUT WITH THE THING IT CHECKS IS NOT A CHECK** — the same principle behind "no agent certifies text
+it wrote" and "a fork does not count as independent". Fixed with a deliberately duplicated
+`_BOUNDARY_FOR_CHECK`. Before that, an earlier version of arm B reproduced the ORPHAN bug while
+trying to inject the TRUNCATION bug, which is how the second invariant got discovered at all.
+⇒ ⭐ **fault arms find bugs you were not testing for; that is the argument for writing them.**
+4 arms now pass: happy path, truncation refused, orphan refused, ambiguous anchor refused.
+
+**Also fixed** (same review): `story_harness.py`'s docstrings suggested `--frames 400000` for
+`ch24icebeam` (the passing run needed ~700k) and `--frames 40000` for `ch24teachice` (its verdict
+lands by ~f574, so the suggestion cost ~12 wasted minutes per attempt). Both synced to what was
+actually measured, with the reason written down.

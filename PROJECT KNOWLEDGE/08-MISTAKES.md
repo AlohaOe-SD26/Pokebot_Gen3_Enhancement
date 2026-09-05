@@ -12442,3 +12442,124 @@ WAS DOING THE WORK.** These figures are IV-31/EV-0 estimates, ±15%, with Intimi
 `audit_handoff_invariants` cannot see a marker that contradicts the two summaries pointing at it, a
 count with a short list beneath it, or a hedge that has been deleted.** ⇒ the mechanical layer bounds
 the damage; it does not detect this class. Only a cold reader trying to START does.
+
+
+## 2026-09-05 — "our data outranks the decomp": right about VALUES, wrong about MECHANISMS
+
+**Symptom.** Four consecutive drives failed to board the Abandoned Ship. Each time I had the correct
+coordinates, straight from our own runtime `get_map_data(...).warps`, and each time the bot walked to
+the tile and nothing happened.
+
+**Root cause.** I treated a warp TABLE as a route MAP. A warp table gives you a position and a
+destination. It does not give you **the warp's KIND** (this one is a NORTH ARROW warp — you stand ON
+it and press its own direction), **collision connectivity** (the ship's deck is split in two; the
+Captain's Office is not reachable from the boarding tile at all), or **a runtime metatile gate** (the
+Storage Room door is stamped `MB_NORMAL` — a WALL — by the map's `OnLoad` until `FLAG_USED_STORAGE_KEY`
+is set). Three of the four blockers on this route are invisible in the data I was reading, and I had
+explicitly reasoned that our runtime data OUTRANKED a decomp claim to the contrary.
+
+**The fix that worked.** A hand-step experiment: step WEST across (29,6) and print the position. The
+bot walked straight THROUGH the tile — which no step-on warp permits — and that single reading
+reclassified the problem from "the walk is wrong" to "the warp KIND is wrong". A 7-agent decomp sweep
+then found the other three blockers in the same wall-clock time four solo drives had spent finding one.
+
+**⇒ PREVENTION RULE.** **Our data outranks the decomp about VALUES and never about MECHANISMS.** When
+a correct coordinate does not work, stop re-checking the coordinate and ask what KIND of thing it is.
+
+---
+
+## 2026-09-05 — six wrong diagnoses in a row, and the thing I never instrumented was the other half
+
+**Symptom.** Teaching TM13 to Wailord bounces back to the bag with the TM unconsumed. I offered six
+causes in sequence — warp-as-waypoint, elevation, aim-at-the-warp, wrong location, party cursor, HM
+slot — and every one was plausible, and every one was refuted by the next measurement.
+
+**Root cause (of the wasted effort, not of the bug).** ‼ *(Written before the fix landed and
+corrected the same day: this entry originally said the bug was "still open". It was ROOT-CAUSED
+and FIXED hours later — see `KI-89` and the entry below. Left visible rather than silently
+rewritten, because the sequence is the point: the wasted effort was real before the cause was.)*
+Two compounding errors. First, I kept reasoning where I should have been measuring: five of the six
+diagnoses were about the PARTY side, and when I finally traced it (`cursor reads=[2,2,2,2,2,2,2,3,3,3]`,
+mon under cursor = Wailord) that side proved correct all along. Second — and this is what made it
+expensive — **the experiment was bundled inside a 700k-frame ship voyage**, so each wrong guess cost
+~12 minutes instead of seconds.
+
+**The fix that worked.** Split the leg at its natural seam. `fetch_ice_beam` is now graded on **TM13
+being in the bag**, the fixture `post_icebeam.ss1` is banked, and the teach is its own item iterated
+by `--driver ch24teachice` in seconds. ‼ The banked half is a real, complete win; the split is what
+made the remaining half cheap to attack.
+
+**⇒ PREVENTION RULES (two).**
+1. **When three diagnoses in a row are wrong, stop diagnosing and start instrumenting** — and
+   instrument the half you have NOT yet looked at, not the half you already suspect.
+2. **If each attempt is expensive, the first fix is not a better guess — it is making attempts
+   cheap.** Bank the part that works, split at the seam, then iterate.
+
+---
+
+## 2026-09-05 — I wrote the note about `KI-88` in the morning and committed the same bug in the afternoon
+
+**Symptom.** My replacement teach routine, written specifically to avoid the upstream bug, blew past
+the move-selection screen and confirmed index 0 — exactly what `KI-88` documents upstream's
+`teach_hm_or_tm` doing.
+
+**Root cause.** `KI-88` says *"upstream mashes A and that confirms the cursor's default"*. My own wait
+loop pressed A every 4 frames while waiting for the screen. That IS mashing A. I had encoded the
+knowledge as a description of someone else's function rather than as a constraint on mine.
+
+**⇒ PREVENTION RULE.** **Documenting a bug does not inoculate you against writing it.** When a note
+says "upstream does X and X is wrong", grep YOUR OWN new code for X before you run it — and if the
+rule is mechanical, put it in a gate, because prose about a bug has now failed to prevent that exact
+bug on the same day it was written.
+
+
+## 2026-09-05 — the Ice Beam teach: the answer was on screen, in English, for six drives
+
+**Symptom.** Teaching TM13 to Wailord bounced back to the bag, TM unconsumed. Six diagnoses in a row
+were wrong (warp-as-waypoint → elevation → aim-at-the-warp → location → party cursor → HM slot).
+
+**Root cause.** Upstream's `scroll_to_item_in_bag` returns SUCCESS with the cursor on the WRONG ITEM
+(`KI-89`): asked for TM13 it left it on **HM08 Dive**. Every diagnosis had been about the party menu —
+downstream of an item selection that was wrong on the very first frame.
+
+**‼ WHY I DIDN'T FIND IT: I INSTRUMENTED THE INPUT AND CALLED IT THE ACTION.** I *had* added an item
+probe. It printed `get_item_bag().tms_hms` — the pocket's CONTENTS — and I recorded "item selection
+verified correct: TM13 at pocket index 3". A list of what is in the bag says nothing about where the
+cursor is, and the cursor is the only thing A acts on.
+
+**The fix that worked, in one run.** Decode `gStringVar4` — the game's own message buffer — and print
+every distinct message before the bounce. It read **`'DIVER already knows DIVE.'`**, naming both the
+wrong item and the reason. ‼ Fitted WITH ITS OWN CONTROL: `gStringVar4` is never cleared, so the same
+run baselined it on entry (`'NICK put away the TM13…'`) to prove the message had CHANGED — without
+that, a stale buffer would have been the seventh wrong diagnosis.
+
+**⇒ PREVENTION RULES (three).**
+1. **BEFORE INFERRING A REFUSAL FROM BEHAVIOUR, READ WHAT THE GAME SAYS — AND BASELINE IT.** A message
+   buffer that is never cleared is evidence only when it has CHANGED.
+2. **A CANDIDATE IS NOT AN ATTEMPT — and a probe that reads a LIST is a candidate.** If a probe cannot
+   fail when the thing it checks is broken, it is decoration. Mine passed every time while the bot
+   used the wrong item.
+3. **A HELPER THAT HAS WORKED FIVE TIMES IS NOT VERIFIED, ONLY UNMEASURED.** Five earlier teaches
+   passed on items whose two index spaces coincide. Prior successes are not coverage.
+
+---
+
+## 2026-09-05 — I claimed "ARCHIVED VERBATIM" and shipped a truncation
+
+**Symptom.** Tier 1 review caught that two of three punch-list blocks retired to
+`28-HANDOFF-ARCHIVE.md` under the words "Full entry ARCHIVED VERBATIM" were truncated — one stopped
+mid-sentence — leaving orphaned tails in the punch list under a pointer saying they had been moved.
+
+**Root cause.** An **index-space mismatch**: `hits` was computed against the MUTATED list while
+`block_bounds()` scanned the ORIGINAL, so after the first replacement every later block was cut at an
+offset from the wrong list. ⛔ This is this project's single most-repeated bug shape — three are filed
+against `handle_fainted_pokemon` alone — and I wrote it into a doc script on the same day I was
+writing up a different instance of it.
+
+**The fix that worked.** Compute bounds against the same list that is mutated, and — the part that
+matters — **assert after writing that every non-blank removed line is present in the archive.** The
+first pass made a falsifiable claim with no check behind it. Re-run: 67 lines moved, all verified.
+
+**⇒ PREVENTION RULE.** **A falsifiable claim in a document is worth exactly as much as the check
+behind it.** If a script's output asserts "verbatim", "complete", or "all", the script must verify it
+before writing — and if it cannot, the claim must be softened rather than the check skipped.

@@ -3195,3 +3195,120 @@ today; the copyright exposure was explained to the user and accepted on that bas
 `.gitignore` comment so the contradiction stops confusing audits), or untrack going forward (and
 update `25-BACKUPS-AND-RESTORE.md` §3, which would no longer be true). ⛔ Until then, change nothing.
 
+---
+
+## 2026-09-05 — KI-44 retired from `05-KNOWN-ISSUES.md`
+
+⛔ **ARCHIVED VERBATIM, AND THE CLAIM IS CHECKED:** the script that moved this block asserts every
+non-blank line it removed appears below before writing. (An earlier pass this same day made the
+same claim with no check and truncated two of three blocks — Tier 1 caught it. ⇒ ⭐ *a falsifiable
+claim in a document is worth exactly as much as the check behind it.*)
+
+KI-44 is **FIXED** — root cause found 2026-08-01, the day after it was opened — so this is closed
+history, not a live instruction. It moves because `05-KNOWN-ISSUES.md` crossed its 3000-line R3
+budget, the same reason and the same convention as the KI-65/KI-67/KI-78/KI-79 retirements above.
+
+## KI-44 — Counter training cannot REACH its training grass: ROUTE102 is unwalkable from ROUTE103 (2026-07-31, severity: HIGH — this is now the counter chain's blocker)  — ✅ **ROOT CAUSE FOUND AND FIXED 2026-08-01** (see this entry's own `### KI-44 — ROOT CAUSE FOUND AND FIXED` block. Header marker added 2026-08-22, PASS 5).
+
+**Measured**, batch4 `x4-runs/20260731-201554` (commit `92d220d5`), 7 of 7 attempts:
+
+```
+Story: training the counter — Machop L15 -> L21 (team is L35, est 222115 frames).
+Story: counter training failed (UnreachableDestinationError('Could not reach (9, 2) on
+  MapRSE.ROUTE102: the field is idle and we are still at (45, …), so retrying cannot change
+  the result (Cannot reach PETALBURG_CITY: it is not walkable from ROUTE103, and none of the
+  6 candidate warp route(s) start at a tile that can be walked to from here
+  (tried: OLDALE_TOWN(…)×4, PETALBURG_CITY(…)×2).).')) — continuing untrained.
+```
+
+6 of 7 are this exact error; the 7th is a whiteout abort. **Zero counters were trained**, so
+the Machop still fights Norman's L28-31 team at L15-16 — the same state as batch3, which is
+why batch4's badge funnel is flat at every rung (Heat→Balance 77% → 83%, z = 0.52).
+
+‼ **EXPOSED, NOT CAUSED, BY `affordable_training_target` (`1c4b183d`).** Before that fix the
+gate refused to train at all, so the bot never attempted the journey and this failure could
+not appear in any log. Do not "revert the training fix" — the fix is correct and is doing its
+job (`training … rejected` went 4 → 0, the affordable target fires 7×). The blocker simply
+MOVED from the budget to the travel, exactly one step further down the chain.
+
+**What the error says.** The bot stands on **ROUTE103** and wants **ROUTE102 (9,2)**.
+`_walk_is_possible` says no for the direct route, and all six warp candidates it was offered
+(4× OLDALE_TOWN, 2× PETALBURG_CITY) are judged unwalkable from where it stands. Route 103
+connects to Oldale Town by an ordinary map CONNECTION, so "no candidate is walkable" is the
+suspicious part — this smells like KI-24's `calculate_path` unsoundness at region scale
+rather than a genuinely sealed route.
+
+**Do not fix by raising retries.** The message already contains the fail-fast reasoning —
+*"the field is idle and we are still at (45, …), so retrying cannot change the result"* — so
+retrying is known-useless here. Establish first whether ROUTE103 → OLDALE_TOWN → ROUTE102 is
+genuinely walkable from that tile with a live probe from the ACTUAL captured position (the
+2026-07-31 lesson: validating travel from an easy starting position and shipping it as done
+is already in `08-MISTAKES.md`), plus a control tile that DOES path.
+
+Related: **KI-24/24b** (`calculate_path` unsound at region scale; `_training_area_allowed`
+still uses it), **KI-39 CORRECTED**, **KI-43** (fixed).
+
+### KI-44 — ROOT CAUSE FOUND AND FIXED 2026-08-01 (live-probed; awaiting a batch for the outcome proof)
+
+**It was never a routing bug.** `train_counter` used `cfg["grass"]` — the **BOSS's** patch —
+so a Machop caught in FIERY_PATH was sent to Norman's `PETALBURG_TRAINING_GRASS =
+(ROUTE102, (9, 2))`. Two independent faults; the log only ever showed the first.
+
+| | |
+|---|---|
+| 1. it cannot get there | 6 of 7 stranded on ROUTE103 (45, 7) — eight maps from the catch |
+| 2. it would not be worth going | **ROUTE102's land wilds are L3-4** |
+
+Fault 2 was invisible in every log and is arguably the worse one. Probed 2026-08-01
+(`tools/story-dev/probe_counter_grass.py`, reads the ROM's own encounter tables):
+
+| map | land wild levels | |
+|---|---|---|
+| **ROUTE102** | **3-4** | what Norman's cfg used |
+| FIERY_PATH | 14-16 | where the counter is caught |
+| ROUTE112 | 14-16 | adjacent |
+| JAGGED_PASS | 20-22 | adjacent |
+
+`story_mode.py:739` already described this exact patch as *"Route 102 at L4 ... ~25 xp a
+kill, i.e. never"* — the pathological case `FODDER_LEVEL_GAP` was invented for. So even a
+perfect journey would have bought a near-worthless grind.
+
+‼ **AND THE OBVIOUS REPAIR IS ALSO WRONG.** "Train where you caught it" picks FIERY_PATH,
+which is in `NO_RETURN_GROUNDS`: reachable and exitable (fine for catch-and-leave hunting)
+but **the heal leg back to Lavaridge FAILS**, and a training loop needs that third leg.
+ROUTE112 is there for the same measured reason (Lavaridge→door OK at 60 waypoints,
+door→Lavaridge FAILS) and JAGGED_PASS cannot even path within itself. There was simply **no
+legal training ground** for a counter caught in Fiery Path — a structural hole in the chain,
+not a wrong constant.
+
+**THE FIX** — `counter_hunt.counter_training_ground()`. Ask `best_training_area`, the picker
+the rest of the bot already uses: it refuses no-return grounds FIRST, applies the winnability
+guard, honours the live reachability predicate, and prefers the band closest to the trainee.
+Falls back to `cfg`'s pair when it has no answer, so a boss whose configured grass IS correct
+keeps exactly today's behaviour, and a picker failure can never destroy a successful catch.
+
+**Live probe from `lavaridge.ss1`** (one map from the catch site), with the real
+`_counter_area_allowed` predicate:
+```
+best_training_area(L15) -> (ROUTE117, (31,16), (13,14))
+best_training_area(L20) -> (ROUTE111, (25,55), (19,22))     # level-matching works
+counter_training_ground(L15, Norman cfg)
+    -> grass=(ROUTE117,(31,16))  heal=PokemonCenter.VerdanturfTown   => RELOCATED, fix fired
+```
+So the counter now trains on **L13-14 wilds with a working heal loop** instead of L3-4 on the
+far side of Hoenn.
+
+**Repro:** `tools/story-dev/repro_counter_training_ground.py` — asserts the PROPERTY (never a
+no-return ground at any level L10-30 even with `allow=<always true>`, never an unwinnable
+band, never ROUTE102 for a L15 counter, and safe degradation with no ROM) rather than one
+hardcoded map, so a future table edit cannot quietly reintroduce the hole.
+
+‼ **WHAT IS NOT YET PROVEN.** The probe stood on LAVARIDGE_TOWN, not on FIERY_PATH (18,19)
+where the catch actually happens — one map short of the exact case. And the OUTCOME claim
+(that a trained counter beats Norman) is unmeasured: that needs a batch, and batch4's own
+lesson is that the mechanism firing is not the same as the funnel moving. Read
+`Heat→Balance` against batch4's 24/29 (83%), and count `counter training failed` — it was
+**7 of 7**.
+
+---
+

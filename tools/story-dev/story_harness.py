@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -15252,6 +15252,268 @@ class Ch24FlyToMode(BotMode):
 
 
 
+class Ch24IceBeamMode(BotMode):
+    """`#24-icebeamtrip` — fetch TM13 ICE BEAM from the Abandoned Ship. **PRODUCTION CODE.**
+
+    WHY: Drake carries ZERO Ice moves and Flygon's Levitate makes Ice the only super-effective type
+    reachable on it. Analysis PREDICTS this turns Drake from a loss into a win.
+    WARNING: PREDICTED, NOT OBSERVED — the bot has never fought Drake. Cost: 0 pokedollars.
+
+    Every coordinate came from OUR OWN RUNTIME MAP DATA (`get_map_data(...).warps/.objects/
+    .bg_events`), not from the decomp. Storage Key at CAPTAINS_OFFICE (0,6); the Storage Room door is
+    a BG Script at CORRIDORS_B1F (11,4) gating a warp on the same tile; TM13 at ROOM_B1F (4,4).
+    TWO SIMILAR MAPS: the TM is in ABANDONED_SHIP_ROOM_B1F (SINGULAR, map 61), not
+    ABANDONED_SHIP_ROOMS_B1F (plural, 58) — while the FLAG is named `..._ROOMS_B1F_...`.
+    Duncan, an UNDEFEATED trainer with sight 4, sits at CORRIDORS_B1F (9,6). A battle there is
+    EXPECTED and REPORTED, never graded.
+
+    FAULT ARM: `POKEBOT_CH24_FAULT_NOKEY=1` skips the Storage Key, so the refusal must fire BEFORE
+    the bot walks to a door that cannot open. That is the arm that matters: the expensive failure is
+    not a crash, it is a wasted trip across four maps.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_slateport.ss1 --driver ch24icebeam --frames 700000
+    (the PASSING run needed ~700k; 400k is NOT enough for the full four-map round trip.)
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24IceBeam"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        from modules.story import pokemon_league as PL
+        from modules.story.early_game import wait_until_truly_controllable
+
+        TAG = "ch24icebeam"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        report: dict = {"readings": set()}
+
+        yield from wait_until_truly_controllable()
+
+        def _moves(name):
+            for m in get_party():
+                if m is not None and getattr(m, "species", None) is not None and m.species.name == name:
+                    return [x.move.name for x in m.moves if x is not None and x.move is not None]
+            return None
+
+        before_moves = _moves("Wailord")
+        log(f"[{TAG}] BEFORE at={PL._where()} Wailord={before_moves}")
+        # ANTI-VACUITY: a run that STARTS holding TM13 or already knowing Ice Beam proves nothing.
+        premise_ok = (before_moves is not None and "Ice Beam" not in before_moves
+                      and not PL._tm_pocket_has("TM13"))
+        log(f"[{TAG}] premise_ok={premise_ok} (must not already hold TM13 or know Ice Beam)")
+
+        # ---- OBSERVE-ONLY ARM: measure, do not guess a third time -----------------------------
+        if _os.environ.get("POKEBOT_CH24_SHIPPROBE") == "1":
+            from modules.map_data import MapRSE
+            from modules.map import get_map_data
+            from modules.map_path import calculate_path
+            from modules.modes.util.global_navigation import navigate_to_anywhere
+            from modules.player import get_player_avatar
+
+            log(f"[{TAG}] PROBE — surfing toward the ship, then REPORTING (no pickup, no warp)")
+            try:
+                yield from navigate_to_anywhere(MapRSE.ROUTE108, (30, 6))
+            except Exception as error:  # noqa: BLE001 — the refusal IS the reading
+                log(f"[{TAG}] PROBE navigate raised (expected): {type(error).__name__}: {error}")
+            yield from wait_until_truly_controllable()
+
+            a = get_player_avatar()
+            here = tuple(a.local_coordinates)
+            on = a.map_group_and_number
+            log(f"[{TAG}] PROBE at map={on} tile={here} surfing={getattr(a, 'is_on_water', '?')}")
+
+            R = MapRSE.ROUTE108
+            for target in ((29, 6), (30, 6), (28, 6), (31, 6), (29, 7), (30, 7)):
+                try:
+                    wps = calculate_path((on, here), (R.value, target))
+                    tail = [(w.coordinates, getattr(w, "is_warp", None), str(getattr(w, "action", "")))
+                            for w in wps[-4:]]
+                    log(f"[{TAG}] PROBE path->{target}: {len(wps)} wp  tail={tail}")
+                except Exception as error:  # noqa: BLE001 — a refusal is a reading
+                    log(f"[{TAG}] PROBE path->{target}: ⛔ {type(error).__name__}: {str(error)[:90]}")
+
+            for tile in ((29, 6), (30, 6), (31, 6), (29, 7)):
+                try:
+                    d = get_map_data(R.value, tile)
+                    log(f"[{TAG}] PROBE tile {tile}: collision={d.collision} elev={d.elevation} "
+                        f"surfable={d.is_surfable} type={getattr(d, 'tile_type', '?')}")
+                except Exception as error:  # noqa: BLE001
+                    log(f"[{TAG}] PROBE tile {tile}: ERR {type(error).__name__}")
+
+            # ---- SYSTEMATIC APPROACH SWEEP -----------------------------------------------------
+            # ⛔ Walking WEST across (29,6) does NOT fire it (measured: passed through to (28,6)).
+            # Try each side. ‼ HOLD the direction rather than tapping: an animated-door/stairs warp
+            # needs a sustained press, which is the (c) DOOR pattern in this project's warp taxonomy.
+            from modules.modes.util.global_navigation import navigate_to_anywhere as _nav
+            from modules.player import get_player_avatar as _gpa
+
+            SWEEP = (((29, 7), "Up", "from the SEA below — how a ship is actually boarded"),
+                     ((28, 6), "Right", "from the west shallow"),
+                     ((30, 6), "Left", "from the east shallow (already known to walk through)"))
+            for stand, press, why in SWEEP:
+                start_map = _gpa().map_group_and_number
+                try:
+                    yield from _nav(MapRSE.ROUTE108, stand)
+                    yield from wait_until_truly_controllable()
+                except Exception as error:  # noqa: BLE001 — a refusal is a reading
+                    log(f"[{TAG}] SWEEP could not reach {stand}: {type(error).__name__}: "
+                        f"{str(error)[:70]}")
+                    continue
+                at = tuple(_gpa().local_coordinates)
+                if at != stand:
+                    log(f"[{TAG}] SWEEP wanted {stand}, ended {at} — skipping this arm")
+                    continue
+                log(f"[{TAG}] SWEEP standing {stand}, HOLDING {press} ({why})")
+                fired = False
+                for _f in range(180):
+                    if _gpa().map_group_and_number != start_map:
+                        fired = True
+                        break
+                    context.emulator.press_button(press)
+                    yield
+                a2 = _gpa()
+                log(f"[{TAG}] SWEEP RESULT stand={stand} press={press} warp_fired={fired} "
+                    f"map={a2.map_group_and_number} tile={tuple(a2.local_coordinates)}")
+                if fired:
+                    log(f"[{TAG}] ⭐⭐ BOARDING MECHANISM FOUND: stand {stand}, hold {press}.")
+                    break
+
+            # ---- (superseded) the single west hand-step ---------------------------------------
+            # ⛔ `navigate_to` cannot (measured 3x). If a bare directional press CAN, the leg has a
+            # mechanism; if it cannot, the blocker is the surf/elevation state and not the router.
+            from modules.player import get_player_avatar as _gpa
+
+            start_map = _gpa().map_group_and_number
+            log(f"[{TAG}] PROBE hand-step: pressing Left from {tuple(_gpa().local_coordinates)} "
+                f"on {start_map} for up to 240 frames")
+            fired = False
+            for _f in range(240):
+                if _gpa().map_group_and_number != start_map:
+                    fired = True
+                    break
+                context.emulator.press_button("Left")
+                yield
+            after = _gpa()
+            log(f"[{TAG}] PROBE hand-step RESULT warp_fired={fired} "
+                f"map={after.map_group_and_number} tile={tuple(after.local_coordinates)}")
+            if fired:
+                log(f"[{TAG}] ⭐ HAND-STEP WORKS — the leg should use `_walk_through_warp`, not "
+                    f"`navigate_to`, for this specific water-entered warp.")
+            else:
+                log(f"[{TAG}] ⛔ HAND-STEP ALSO FAILS — the blocker is the avatar state (surf/"
+                    f"elevation), not the router. Do NOT keep trying routers.")
+
+            log(f"[{TAG}] PROBE COMPLETE — observe only, nothing was collected")
+            log(f"[{TAG}] ACCEPTANCE: PASS (probe: the READING is the result)")
+            context.set_manual_mode()
+            return
+
+        failure = None
+        try:
+            if _os.environ.get("POKEBOT_CH24_FAULT_NOKEY") == "1":
+                context.message = "Ch24 FAULT NOKEY: skipping the Storage Key"
+                log(f"[{TAG}] FAULT NOKEY — the door guard must fire")
+                yield from PL.fetch_ice_beam(report, teach=False, skip_key=True)
+            else:
+                yield from PL.fetch_ice_beam(report)
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        for key in ("start", "key_approach", "have_key", "at_corridor", "in_storage_room",
+                    "tm_approach", "have_tm13", "taught"):
+            if key in report:
+                log(f"[{TAG}] R {key} = {report[key]!r}")
+
+        after_moves = _moves("Wailord")
+        has_tm = PL._tm_pocket_has("TM13")
+        knows = bool(after_moves and "Ice Beam" in after_moves)
+        missing = [r for r in PL.ICEBEAM_READINGS if r not in report.get("readings", set())]
+        log(f"[{TAG}] AFTER Wailord={after_moves} tm13_in_pocket={has_tm} knows_ice_beam={knows}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts} missing={missing}")
+
+        # AND THE BOT CAN CONTINUE — a REAL path off the end tile, never a `controllable` flag.
+        from modules.map_path import calculate_path
+
+        here = PL._here_tile()
+        where = PL._where()
+        reachable = 0
+        for tile in ((here[0], here[1] + 1), (here[0] + 1, here[1]),
+                     (here[0], here[1] - 1), (here[0] - 1, here[1])):
+            try:
+                calculate_path((where[0], here), (where[0], tile))
+                reachable += 1
+            except Exception:  # noqa: BLE001 — a refusal is a reading
+                pass
+        log(f"[{TAG}] CONTINUE at={where} neighbours_reachable={reachable}")
+
+        # ⛔ GRADED ON THE BAG, NOT THE MOVESET. The leg delivers TM13; teaching it is
+        # `#24-icebeamteach`. ‼ `knows_ice_beam` is still REPORTED above so the split stays visible
+        # — a reading that is no longer graded must not silently disappear, or the next reader will
+        # think it was never measured.
+        passed = (failure is None and premise_ok and has_tm and not missing
+                  and reachable > 0 and self.whiteouts == 0)
+        log(f"[{TAG}] GRADE premise_ok={premise_ok} tm13_in_pocket={has_tm} "
+            f"(knows_ice_beam={knows}, REPORTED not graded — see `#24-icebeamteach`) "
+            f"missing={missing} neighbours={reachable} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH24_CAPTURE", "").strip()
+        if passed and _cap:
+            import pathlib as _pathlib
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if _out.exists() and _os.environ.get("CAPTURE_FORCE") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_out.name} exists. Set CAPTURE_FORCE=1 to overwrite.")
+            else:
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured -> {_out}")
+        context.set_manual_mode()
+
+
+
+class Ch24TeachIceMode(Ch24MovesMode):
+    """`#24-icebeamteach` — teach Ice Beam to Wailord, from `post_icebeam.ss1`.
+
+    WHY ITS OWN DRIVER: the teach cost SIX drives while bundled into the ship leg, each a ~700k-frame
+    round trip. Split at the natural seam (TM13 is in the bag), the same experiment costs seconds.
+    The route is banked and PASSING; this is the remaining half.
+
+    MEASURED SO FAR:
+      * the party cursor lands correctly (cursor reads [2,2,2,2,2,2,2,3,3,3], mon = Wailord);
+      * can_learn_tm_hm(TM13) is True for Wailord;
+      * the flow bounces back to the BAG, TM NOT consumed, nothing learned;
+      * Wailord's ONLY forgettable slot is Water Spout — Dive/Surf/Waterfall are HMs, and
+        Task_HandleInputCantForgetHMsMoves means the game refuses to forget an HM.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_icebeam.ss1 --driver ch24teachice --frames 6000
+    ⛔ USE A SMALL BUDGET. The verdict lands by ~f574 and the driver then idles to the cap in
+    Manual mode, so `--frames 40000` costs ~12 minutes per attempt for nothing. Making attempts
+    cheap is what turned a six-drive dead end into a one-run diagnosis.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24TeachIce"
+
+    def _plan(self):
+        return (("Wailord", "TM13", "Ice Beam", "Water Spout",
+                 "Ice is the only super-effective type that reaches Flygon (LEVITATE); Water Spout "
+                 "is the ONLY forgettable slot — Dive/Surf/Waterfall are all HMs"),)
+
+
+
 class Ch22StairsMode(BotMode):
     """§Ch22 — READ-ONLY: what does the stair column ACTUALLY read once the puzzle is solved?
 
@@ -17062,6 +17324,10 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24FlyMode()
         elif args.driver == "ch24flyto":
             context.bot_mode_instance = Ch24FlyToMode()
+        elif args.driver == "ch24icebeam":
+            context.bot_mode_instance = Ch24IceBeamMode()
+        elif args.driver == "ch24teachice":
+            context.bot_mode_instance = Ch24TeachIceMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

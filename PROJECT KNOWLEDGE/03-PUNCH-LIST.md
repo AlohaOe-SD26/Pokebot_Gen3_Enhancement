@@ -583,57 +583,100 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       Wailord fainting does not strand the run. ⇒ **do NOT "fix" `assert_carriers_survived` to reject
       fainted carriers** — it is correct as written, and that check would fire on a healthy run.
 
-### 🔜 `#24-icebeamtrip` — **FETCH TM13 ICE BEAM. The single change that turns DRAKE from a loss into a win.** (opened 2026-09-05, route DE-RISKED, not built)
+### ✅ `#24-icebeamtrip` — **CLOSED 2026-09-05: TM13 ICE BEAM IS IN THE BAG.** ⛔ DO NOT REDO THE TRIP.
 
-**STATUS: OPEN, unblocked, and every prerequisite is MEASURED. This is the next build.**
+`--driver ch24icebeam` `ACCEPTANCE: PASS` from `post_slateport.ss1` → fixture **`post_icebeam.ss1`**
+(md5 `5515f893a2aa1a1e7e60d6741a3d8497`): `have_key=True`, `have_tm13=True`, `missing=[]`,
+`battles=2`, `whiteouts=0`. Fault arm `POKEBOT_CH24_FAULT_NOKEY=1` refuses at the Captain's Office.
 
-**WHY IT IS THE HIGHEST-VALUE REMAINING ACTION.** Drake is 4/5 dragon-ish and carries **zero Ice
-moves**; Wailord takes only 22-56% from his whole team. With Ice Beam, Wailord does **Flygon 88% ·
-Salamence 73% · Altaria 71% · Shelgon 71%**. ⭐ **Flygon has LEVITATE**, so Ice is the ONLY
-super-effective type we can reach on it. Today the analysis says **Drake is a loss**; with this TM it
-is a win. Cost: **₽0**.
+⛔⛔ **FOUR BLOCKERS, AND NOT ONE WAS VISIBLE IN THE WARP TABLES I TRUSTED:**
+1. **Boarding is a NORTH ARROW WARP** (`MB_STAIRS_OUTSIDE_ABANDONED_SHIP`). Stand ON (29,6), hold Up.
+   ⭐ Proven before the decomp arrived: a hand-step WEST walked straight *through* the tile to (28,6)
+   without firing it — which no step-on warp can do.
+2. **The DECK is split in two.** The Captain's Office is UNREACHABLE from the boarding tile — the
+   decomp found it by collision BFS and **our own planner confirmed it independently** by refusing
+   `(13,15) → (12,5)`.
+3. **`CORRIDORS_B1F` ROW 5 is the ONLY crossover in the entire ship.** Reaching the key requires
+   board → down → cross → up the WEST stair → deck west half.
+4. **The Storage Room door is METATILE-GATED**, not warp-gated: `OnLoad` stamps (11,4) as
+   `MB_NORMAL` — a WALL — until `FLAG_USED_STORAGE_KEY` is set. **Holding the key does nothing; it
+   must be INSERTED with A.**
 
-**✅ DE-RISKED 2026-09-05 (read-only probe from `post_slateport.ss1`):**
-* **BOTH gating flags are STILL UNSET** — `ITEM_ABANDONED_SHIP_ROOMS_B1F_TM_ICE_BEAM` **and**
-  `ITEM_ABANDONED_SHIP_CAPTAINS_OFFICE_STORAGE_KEY`. Gen-3 TMs are single-use and non-repurchasable,
-  so this was THE question; the answer is the good one.
-* **All seven maps in the chain exist in our `MapRSE` enum:** `ROUTE109`, `ROUTE108`,
-  `ABANDONED_SHIP_DECK`, `ABANDONED_SHIP_CAPTAINS_OFFICE`, `ABANDONED_SHIP_CORRIDORS_1F`,
-  `ABANDONED_SHIP_CORRIDORS_B1F`, `ABANDONED_SHIP_ROOM_B1F`.
-* **The bot is already AT Slateport** (`post_slateport.ss1`, (19,20)) and can Fly there at will.
+📦 Full evidence: `ai-research-notes/2026-09-05-ch24-ABANDONED-SHIP-ROUTE.md`.
 
-**THE ROUTE (decomp-traced, NOT walked — ⛔ confirm each hop with `calculate_path` before coding it):**
-Fly Slateport → **R109** → Surf west to **R108** → `ABANDONED_SHIP_DECK` → **Captain's Office** for
-the **Storage Key** (`item_ball_scripts.inc:441`) → Corridors 1F → **Corridors B1F**, where warp 5 at
-**(11,4)** is the Storage Room door gated by `checkitem ITEM_STORAGE_KEY`
-(`AbandonedShip_Corridors_B1F/scripts.inc:28-35`) → `ABANDONED_SHIP_ROOM_B1F`, TM13 at
-`item_ball_scripts.inc:433`.
-⭐ **NO DIVE IS REQUIRED** — the Dive branch leads to `AbandonedShip_Underwater1` / the Hidden Floor
-(TM18, Scanner), a different part of the ship entirely. ⚠ And the Captain's Office NPC's
-`checkitem ITEM_SCANNER` **gates nothing** — it is pure dialogue, easy to misread as a lock.
+---
 
-**GRADE IT ON THE BAG, NOT THE WALK** (the leg-11 lesson): `TM13` present in the TM/HM pocket, the
-flag flipped, party unchanged BY PID, and the bot can continue. Fault arm: skip the Storage Key
-pickup, so the locked-door refusal must fire rather than the leg silently ending short.
+### ✅ `#24-icebeamteach` — **CLOSED 2026-09-05: WAILORD KNOWS ICE BEAM.** ⛔ DO NOT REOPEN.
 
-⚠ **WHAT THIS DOES NOT FIX:** **Wallace is still a loss** — Milotic's Recover heals 98/turn against
-our best hit of 74. That needs SolarBeam + Sunny Day (TM22 / TM11, both also free pickups). See
+`--driver ch24teachice` on `post_icebeam.ss1`: `ACCEPTANCE: PASS`, `LANDED ['Wailord:Ice Beam']`,
+`wrong=[]`, `missing=[]`, `back_in_overworld=True`, `whiteouts=0`. Wailord's moves went
+`['Dive','Surf','Water Spout','Waterfall']` → `['Dive','Surf','Ice Beam','Waterfall']`.
+⭐ **A CLEAN A/B: same driver, same fixture, ONE line changed** — before the fix the cursor sat on
+HM08 and the game refused; after it, the teach lands. Nothing else was touched.
+
+**STATUS: CLOSED (was: OPEN — ROOT-CAUSED 2026-09-05).**
+Reproduce with `--driver ch24teachice --frames 6000` on `post_icebeam.ss1` (~20 seconds).
+‼ Use a SMALL `--frames`: the driver reaches its verdict by ~f574 and then
+idles to the cap in Manual mode, so `--frames 40000` wastes twelve minutes per attempt.
+
+⛔⛔ **ROOT CAUSE — `scroll_to_item_in_bag` RETURNS SUCCESS WITH THE CURSOR ON THE WRONG ITEM.**
+MEASURED in ONE run once the right instrument was fitted:
+```
+[TEACH-CURSOR] after scroll_to_item_in_bag(TM13): pocket=2 slot=13 -> HM08
+[TEACH-ITEM]   TM/HM pocket order = ['TM03','TM04','TM08','TM13',...,'HM07','HM08']
+[TEACH-SAID]   0: 'DIVER already knows DIVE.'
+```
+The bot was using **HM08 Dive** on Wailord (nickname DIVER) the whole time. The game refused, bounced
+to the bag, consumed nothing. Upstream scrolls to a slot number from `first_slot_index_for()`, and
+for TM13 that is not the slot the on-screen cursor counts.
+⭐ **WHY IT NEVER BIT BEFORE:** five earlier teaches (Aerial Ace, Facade, Strength, Rock Smash, Fly)
+used items whose two indices COINCIDE. TM13 is the first item acquired out of that order.
+⇒ **A helper that has worked five times is not verified, only unmeasured.**
+
+**THE FIX, SHIPPED (`pokemon_league.py::scroll_to_tm_verified`):** call upstream, then READ the cursor
+back out of `gBagPosition`, correct it closed-loop and BOUNDED against `get_item_bag().tms_hms`, and
+**RAISE rather than press A on an unverified cursor** (a Gen-3 TM is single-use).
+⛔ Upstream `modules/menuing.py` is left ALONE — shared file, same ruling as `KI-88`.
+
+**ALSO MEASURED, so do not re-derive:** the party cursor lands correctly
+(`reads=[2,2,2,2,2,2,2,3,3,3]`, mon under cursor = Wailord); `can_learn_tm_hm(TM13)` is True;
+⚠ Wailord's ONLY forgettable slot is **Water Spout** — Dive/Surf/Waterfall are HMs and the game
+refuses to forget an HM ⇒ **the swap is a REAL trade**, not a free slot.
+
+‼ **THE LESSON, AND IT COST SIX DRIVES:** every one of those six diagnoses was about the PARTY menu,
+downstream of an item selection that was wrong from the first frame. The item side had been
+"verified" by printing the pocket's CONTENTS — which is not the cursor. ⇒ ⭐ **A CANDIDATE IS NOT AN
+ATTEMPT: read what A will actually act on.**
+
+*(superseded 2026-09-05 — the block that stood here was this item's PRE-SHIPMENT plan, left behind
+when the header above was replaced. It said "STATUS: OPEN... this is the next build" and gave a route
+"decomp-traced, NOT walked". Both are done. Retired rather than kept, because a route plan under a
+CLOSED header is an instruction to redo finished work; the route AS BUILT is in the entry above and
+in `07-CHANGELOG.md` 2026-09-05. Two things from it are still TRUE and are kept here:)*
+
+**WHY THIS ITEM EXISTED (the rationale, still the justification for the whole §Ch24 TM plan).** Drake
+is 4/5 dragon-ish and carries **zero Ice moves**; Wailord takes only 22-56% from his whole team. With
+Ice Beam, Wailord does **Flygon 88% · Salamence 73% · Altaria 71% · Shelgon 71%**. ⭐ **Flygon has
+LEVITATE**, so Ice is the ONLY super-effective type that reaches it. Cost: **₽0**.
+⚠ **STILL A PREDICTION — THE BOT HAS NEVER FOUGHT DRAKE.** Ice Beam is now TAUGHT; that changes the
+inputs to the analysis, not its status as an analysis.
+
+⚠⚠ **WHAT THIS DOES NOT FIX, AND IT IS THE NEXT TM QUESTION: WALLACE IS STILL A LOSS.** Milotic's
+Recover heals 98/turn against our best hit of 74 — Ice Beam does not touch that. The candidate answer
+is SolarBeam + Sunny Day (TM22 / TM11, both also FREE pickups). ⛔ NOT scheduled and NOT de-risked:
+neither flag has been probed and neither route has been walked. See
 `ai-research-notes/2026-09-04-ch24-MOVESET-AND-TM-PLAN.md` §6.
-
 ---
 
 ### ✅ `#24-flyunlock` — **CLOSED 2026-09-05: FLY IS TAUGHT AND FLOWN. THE EVER GRANDE PLATEAU IS SOLVED.** ⛔ DO NOT REDO.
 
-⛔⛔ **THE PROBLEM WAS GEOGRAPHY, NOT POLICY.** `calculate_path` from EVER_GRANDE_CITY (18,6)
-reached ONLY the League door (0 wp) and the Victory Road exit landing (36 wp); the Poké Center
-(27,48), the VR apron (18,42), the southern shore (18,55) and the water (18,60) all returned
-`PathFindingError` ⇒ **the bot could not walk to a single wild encounter.**
-✅ `--driver ch24fly` → `post_fly.ss1` (`a45283a669e7ee36776b43acec3a8580`): Swellow learns **Fly**
-over **Wing Attack** (strictly dominated by its own Aerial Ace; Swellow is the ONLY member that can
-learn Fly). ✅ `--driver ch24flyto` → `post_slateport.ss1` (`171460626f5f6fead942aa88a85b2050`):
-flies to **SLATEPORT_CITY (19,20)**, `moved=True`, `party_pids_stable=True`, `neighbours_reachable=4`.
-⭐ Graded on ARRIVAL, not on knowing the move; `POKEBOT_CH24_FAULT_NOFLY=1` FAILS. 16/17 destinations
-unlocked. 📦 Full detail: `07-CHANGELOG.md` 2026-09-05.
+⛔⛔ **THE PROBLEM WAS GEOGRAPHY, NOT POLICY:** from EVER_GRANDE (18,6) only the League door and the
+Victory Road exit landing were reachable — the Poké Center, the VR apron, the shore and every water
+tile returned `PathFindingError`, so **the bot could not walk to a single wild encounter.**
+✅ `ch24fly` → `post_fly.ss1` (`a45283a669e7ee36776b43acec3a8580`) teaches Swellow **Fly** over Wing
+Attack (dominated by its own Aerial Ace); ✅ `ch24flyto` → `post_slateport.ss1`
+(`171460626f5f6fead942aa88a85b2050`) FLIES to SLATEPORT (19,20), graded on ARRIVAL with
+`party_pids_stable=True`. 16/17 destinations unlocked. 📦 `07-CHANGELOG.md` 2026-09-05.
 
 ---
 
@@ -1202,8 +1245,10 @@ from the driver's log** — the probe caught the fainted member the driver's log
       CLAIM-BOUND — the SAME bug shape already fixed in `check_promotion_prose` on 2026-08-17.**
       ⚠ **ITS EXAMPLE IS NOW UNREPRODUCIBLE — a starter must build a fresh one** (the stale line was
       fixed the same day). The GATE DEFECT is still real: `audit_doc_consistency.py:513` still scopes
-      the exemption to the whole unit. As it was MEASURED: `04-HANDOFF.md:51` ("the suite is 28 gates") went stale six lines above a correct
-      `29` and the gate stayed SILENT — because the claim falls inside a **3,975-character unit**
+      the exemption to the whole unit. As it was MEASURED: `04-HANDOFF.md:51` carried a stale GATE-COUNT claim (a suite size two behind
+      reality) six lines above a correct one, and the gate stayed SILENT. ⛔ The stale sentence is
+      DESCRIBED here, not reproduced — quoting it verbatim re-created a live-looking false claim
+      that `audit_doc_consistency` then flagged, correctly, in this very file — because the claim falls inside a **3,975-character unit**
       that contains the words *"older framing"* somewhere, and one supersede marker exempts the
       WHOLE unit, live orientation instructions included. A **Tier 1 human-shaped reviewer** caught
       it; the gate structurally could not. ⇒ scope the exemption to the SENTENCE/clause, as
@@ -1490,33 +1535,7 @@ from the driver's log** — the probe caught the fainted member the driver's log
 - [x] `#24-huntreachproof` (part 1 detail) — **narrowing: `hunt_ground_tile(require_driven=...)`,
       strict by default.** ✅ DONE. Retired to a summary 2026-09-03; detail in `07-CHANGELOG.md`.
 
-- [x] `#24-huntreachproof` (original finding) — ‼‼ **TOP ITEM 2026-08-08. Only ONE counter rung has ever worked, and
-      `#24-movepoolcounters` widened the set with destinations the bot CANNOT TRAVEL TO.**
-      Batch `20260808-095721`, conversion by target:
-      | species | hunts | caught |
-      |---|---|---|
-      | **Machop @ FIERY_PATH** | 5 | **5 (100%)** |
-      | Wingull / Nincada / Numel / Oddish / Baltoy / Taillow | 28 | **0** |
-      `could not reach` **72**, `Could not find a path` **45**, `hunt found nothing` **0** —
-      **travel failures, not catch failures.** Hunts 18 → 33 while catches fell 7 → 5.
-      **ROOT CAUSE:** `huntable = reachable AND hunt_tile is not None`, and **`reachable` is a
-      PREDICTION** (`_counter_area_allowed`'s hop budget + region oracle) that is wrong for 28 of
-      33. `hunt_ground_tile`'s whitelist is evidence-backed for STANDING AND SPINNING, but its
-      `TRAINING_GRASS` entries were two-way swept **for training, from training anchors** — not
-      for a hunt firing from a boss anchor. `HUNTING_GROUNDS` — the table that encodes *driven,
-      reach-and-leave* evidence — still has **one** entry, FIERY_PATH, and that is the only rung
-      that converts. Not a coincidence.
-      ‼ **Plausibly WORSE than before:** Winona used to stop immediately; now she burns a
-      cross-Hoenn trek and then stops, and the hunt is bounded to ONE attempt per boss per run —
-      so a failed destination costs the boss, not a trek. `no super-effective answer` rose from
-      10 of 14 (71%) to **19 of 23 (83%)** of non-finishes. (Finish 41.7% → 25.8% is z = −1.24,
-      NOT resolvable — the concern rests on the conversion counters, not on the rate.)
-      **FIX:** require DRIVEN evidence from the anchor the hunt fires from — the bar
-      `HUNTING_GROUNDS` already sets and FIERY_PATH already meets. Either sweep candidate grounds
-      from real boss anchors and add them, or have the ladder demote a destination that has
-      already failed to travel. ‼ Do NOT simply widen `HUNTING_GROUNDS` on a guess — its whole
-      value is that every entry is measured.
-
+- [x] `#24-huntreachproof` (original finding) — ✅ CLOSED. **Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-09-05.** The ORIGINAL 2026-08-08 framing — *"only ONE counter rung has ever worked"* — kept for its reasoning; the shipped answer is the `- [x]` entry above.
 - [x] `#24-r116sweep` — ✅ **ANSWERED 2026-08-09, CLOSED: DO NOT ADD ROUTE116 to `HUNTING_GROUNDS`. Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-08-17** (the R3 relief valve: this file hit its 3,600-line limit). ⛔ Nothing here is outstanding; read the archive for the reachability method behind the ruling.
 
 - [x] `#24-battleitems` — ✅ **DONE, PROMOTED 2026-08-10 (user-approved), zero source drift.**  — 📦 **ARCHIVED 2026-08-23 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
@@ -1554,28 +1573,7 @@ from the driver's log** — the probe caught the fainted member the driver's log
       reopening analysis — is ARCHIVED VERBATIM in `28-HANDOFF-ARCHIVE.md` (moved 2026-08-16 on the
       3600-line budget). Nothing was deleted.** ‼ The live summary of its status is the table row
       for `#24-teachmsgstall` near the top of this file; this entry is its history.
-- [x] HISTORY — `#24-teachmsgstall` (original characterisation) — **NEW 2026-08-07, THIRD teach bug.**
-      All **9** teach failures in batch `20260807-160545` share one signature:
-      ```
-      tasks=['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']   9 of 9, identical
-      move=Surf                                                            9 of 9
-      post_select=exhausted (7)   |   post_select=replace-prompt (2)
-      ```
-      A message never completes with the bag list still up, so the teach rides out the full
-      9,000-frame cap and Surf is never learned.
-      ‼ **`post_select` DOES NOT MATTER** — the two that reached the replace prompt died in the
-      same place. That rules out path selection as the cause, and rules out `#24-teachpathrace`
-      (my 2026-08-07 fix) as the culprit: it changed the shape (`instant-learn` → `exhausted`)
-      because it stopped the flow mislabelling the path, which **revealed** this stall rather
-      than creating it.
-      ‼ 4 → 9 failures is **z = +1.05, NOT resolvable** — do not call it a regression. Teach
-      SUCCESSES rose 33 → 38 over the same window.
-      **NEXT STEP:** reproduce with `--driver teachfull TEACH_ITEM=HM03` on a save whose party
-      matches the failing shape (a 4-move Marshtomp-line mon that already knows Rock Smash), then
-      instrument what `Task_ContinueTaskAfterMessagePrints` is waiting on. Every failure is Surf
-      and every mon already carries an HM — worth checking whether the HM-slot exclusion in
-      `replace_slot` picking leaves no legal choice and the game silently refuses.
-
+- [x] HISTORY — `#24-teachmsgstall` (original characterisation) — ✅ superseded; the live status is the `- [x]` entry above (shipped 2026-08-11, reopened the same day). **Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-09-05**, including its task signature, its "post_select DOES NOT MATTER" analysis and its NEXT STEP plan.
 - [x] HISTORY — `#24-winonaground` (wrong-cause history) — ‼‼ **MY STATED CAUSE WAS WRONG.**
       I wrote that the huntable whitelist was `{FIERY_PATH, ROUTE116, ROUTE117, ROUTE102}` and
       contained no Rock/Electric/Ice ground. **False.** I grepped for named `*_TRAINING_GRASS =`
@@ -1632,30 +1630,7 @@ from the driver's log** — the probe caught the fainted member the driver's log
       every free-slot teach in the 900-frame loop, and the replace test cannot see that.
       `repro_hmteach_postlearn.py` §5 pins it (17 → 22 checks).
 
-- [x] HISTORY — `#24-teachpathrace` (original report) — **found 2026-08-07 by the `#24-hmteachloop` telemetry.**
-      2 failures in 24 teaches (~8%) in `20260807-102552`, both on **Surf**, both fatal
-      (`not-learned-after-ride:hard-cap`, the full 9,000 frames, Surf never learned):
-      ```
-      TEACH EXIT reason=ride:hard-cap stall_peak=82 post_select=instant-learn move=Surf
-        slot=4 replace_slot=1 frame=8999 tasks=['ListMenuDummyTask',
-        'Task_BagMenu_HandleInput', 'Task_ScrollIndicatorArrowPair']
-        moves=['Take Down', 'Mud Shot', 'Rock Smash', 'Muddy Water']
-      ```
-      ‼ **`post_select=instant-learn` on a mon with FOUR moves is a contradiction, and that is
-      the smoking gun.** The post-select loop (`early_game.py`, `for _f in range(900)`) breaks on
-      `"Task_PartyMenuReplaceMove" in t or "Task_HandleChooseMonInput" in t` and calls it the
-      instant-learn path — but `Task_HandleChooseMonInput` is STILL UP for a while after the mon
-      is chosen, so it wins the race before `Task_ReplaceMoveYesNo` appears. The guarded
-      `if "Task_ReplaceMoveYesNo" in _tasks():` block is then skipped entirely, the replace
-      prompt is never answered, and the flow rides out the cap stuck in the BAG
-      (`Task_BagMenu_HandleInput`). `stall_peak=82` confirms it was churning, not frozen.
-      **FIX SHAPE:** the instant-learn break must require positive evidence of a FREE SLOT (or of
-      the move actually being known), not the mere presence of the party-menu task — a task that
-      is present on BOTH paths cannot discriminate between them.
-      ‼ **Pre-existing, not introduced:** that loop is untouched by the 2026-08-07 fix. It was
-      invisible before because nothing logged which exit fired, and it was being absorbed into
-      the "7/8/9/4 teach failures" that four budget rounds chased.
-
+- [x] HISTORY — `#24-teachpathrace` (original report) — ✅ CLOSED (fixed 2026-08-07, same day). **Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-09-05**, including its root-cause and FIX SHAPE paragraphs.
 - [x] `#24-whiteoutloop` — **BOTH PARTS SHIPPED 2026-08-07.**
       **Part 1 (cfgs):** `flannery_fight` + `rival110_fight` added — the two fights that had NO
       boss cfg at all and were **48% of all defeats**. Team data decomp-verified

@@ -8044,3 +8044,94 @@ PYTHONUTF8=1 py -3.12 story_harness.py post_legends_calmed.ss1    --driver ch21r
       ⚠ **AND SCOPE IT:** grade only CURRENT-STATE files (00-05, 24). `07`/`08`/`28`/`31` are
       append-only history where a stale count is CORRECT.
 
+---
+
+## 2026-09-05 — three superseded HISTORY blocks retired from `03-PUNCH-LIST.md`
+
+⛔ **ARCHIVED VERBATIM, NOT SUMMARISED — and this time the claim is CHECKED.** The script that
+moved these blocks asserts that every non-blank line it removed from the punch list appears
+below; the first attempt made the same claim with no such check and truncated two of the three.
+⇒ ⭐ **a falsifiable claim in a document is worth exactly as much as the check behind it.**
+
+All three belong to items that are **CLOSED**, and each is self-labelled HISTORY or *(original
+finding)* — superseded narrative kept for its reasoning, never a live instruction. Their
+punch-list entries now carry a one-line pointer here, matching how `#24-magmahideout` and
+`#24-strength` were retired on 2026-08-17.
+
+‼ **Why these three and not the two biggest sections:** `#24-codeorphans` and the 2026-07-27 doc
+audit are **OPEN work with unfinished sub-items** — retiring live instructions into an archive is
+how a project loses track of them.
+
+- [x] `#24-huntreachproof` (original finding) — ‼‼ **TOP ITEM 2026-08-08. Only ONE counter rung has ever worked, and
+      `#24-movepoolcounters` widened the set with destinations the bot CANNOT TRAVEL TO.**
+      Batch `20260808-095721`, conversion by target:
+      | species | hunts | caught |
+      |---|---|---|
+      | **Machop @ FIERY_PATH** | 5 | **5 (100%)** |
+      | Wingull / Nincada / Numel / Oddish / Baltoy / Taillow | 28 | **0** |
+      `could not reach` **72**, `Could not find a path` **45**, `hunt found nothing` **0** —
+      **travel failures, not catch failures.** Hunts 18 → 33 while catches fell 7 → 5.
+      **ROOT CAUSE:** `huntable = reachable AND hunt_tile is not None`, and **`reachable` is a
+      PREDICTION** (`_counter_area_allowed`'s hop budget + region oracle) that is wrong for 28 of
+      33. `hunt_ground_tile`'s whitelist is evidence-backed for STANDING AND SPINNING, but its
+      `TRAINING_GRASS` entries were two-way swept **for training, from training anchors** — not
+      for a hunt firing from a boss anchor. `HUNTING_GROUNDS` — the table that encodes *driven,
+      reach-and-leave* evidence — still has **one** entry, FIERY_PATH, and that is the only rung
+      that converts. Not a coincidence.
+      ‼ **Plausibly WORSE than before:** Winona used to stop immediately; now she burns a
+      cross-Hoenn trek and then stops, and the hunt is bounded to ONE attempt per boss per run —
+      so a failed destination costs the boss, not a trek. `no super-effective answer` rose from
+      10 of 14 (71%) to **19 of 23 (83%)** of non-finishes. (Finish 41.7% → 25.8% is z = −1.24,
+      NOT resolvable — the concern rests on the conversion counters, not on the rate.)
+      **FIX:** require DRIVEN evidence from the anchor the hunt fires from — the bar
+      `HUNTING_GROUNDS` already sets and FIERY_PATH already meets. Either sweep candidate grounds
+      from real boss anchors and add them, or have the ladder demote a destination that has
+      already failed to travel. ‼ Do NOT simply widen `HUNTING_GROUNDS` on a guess — its whole
+      value is that every entry is measured.
+
+- [x] HISTORY — `#24-teachpathrace` (original report) — **found 2026-08-07 by the `#24-hmteachloop` telemetry.**
+      2 failures in 24 teaches (~8%) in `20260807-102552`, both on **Surf**, both fatal
+      (`not-learned-after-ride:hard-cap`, the full 9,000 frames, Surf never learned):
+      ```
+      TEACH EXIT reason=ride:hard-cap stall_peak=82 post_select=instant-learn move=Surf
+        slot=4 replace_slot=1 frame=8999 tasks=['ListMenuDummyTask',
+        'Task_BagMenu_HandleInput', 'Task_ScrollIndicatorArrowPair']
+        moves=['Take Down', 'Mud Shot', 'Rock Smash', 'Muddy Water']
+      ```
+      ‼ **`post_select=instant-learn` on a mon with FOUR moves is a contradiction, and that is
+      the smoking gun.** The post-select loop (`early_game.py`, `for _f in range(900)`) breaks on
+      `"Task_PartyMenuReplaceMove" in t or "Task_HandleChooseMonInput" in t` and calls it the
+      instant-learn path — but `Task_HandleChooseMonInput` is STILL UP for a while after the mon
+      is chosen, so it wins the race before `Task_ReplaceMoveYesNo` appears. The guarded
+      `if "Task_ReplaceMoveYesNo" in _tasks():` block is then skipped entirely, the replace
+      prompt is never answered, and the flow rides out the cap stuck in the BAG
+      (`Task_BagMenu_HandleInput`). `stall_peak=82` confirms it was churning, not frozen.
+      **FIX SHAPE:** the instant-learn break must require positive evidence of a FREE SLOT (or of
+      the move actually being known), not the mere presence of the party-menu task — a task that
+      is present on BOTH paths cannot discriminate between them.
+      ‼ **Pre-existing, not introduced:** that loop is untouched by the 2026-08-07 fix. It was
+      invisible before because nothing logged which exit fired, and it was being absorbed into
+      the "7/8/9/4 teach failures" that four budget rounds chased.
+
+- [x] HISTORY — `#24-teachmsgstall` (original characterisation) — **NEW 2026-08-07, THIRD teach bug.**
+      All **9** teach failures in batch `20260807-160545` share one signature:
+      ```
+      tasks=['ListMenuDummyTask', 'Task_ContinueTaskAfterMessagePrints']   9 of 9, identical
+      move=Surf                                                            9 of 9
+      post_select=exhausted (7)   |   post_select=replace-prompt (2)
+      ```
+      A message never completes with the bag list still up, so the teach rides out the full
+      9,000-frame cap and Surf is never learned.
+      ‼ **`post_select` DOES NOT MATTER** — the two that reached the replace prompt died in the
+      same place. That rules out path selection as the cause, and rules out `#24-teachpathrace`
+      (my 2026-08-07 fix) as the culprit: it changed the shape (`instant-learn` → `exhausted`)
+      because it stopped the flow mislabelling the path, which **revealed** this stall rather
+      than creating it.
+      ‼ 4 → 9 failures is **z = +1.05, NOT resolvable** — do not call it a regression. Teach
+      SUCCESSES rose 33 → 38 over the same window.
+      **NEXT STEP:** reproduce with `--driver teachfull TEACH_ITEM=HM03` on a save whose party
+      matches the failing shape (a 4-move Marshtomp-line mon that already knows Rock Smash), then
+      instrument what `Task_ContinueTaskAfterMessagePrints` is waiting on. Every failure is Surf
+      and every mon already carries an HM — worth checking whether the HM-slot exclusion in
+      `replace_slot` picking leaves no legal choice and the game silently refuses.
+
