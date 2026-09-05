@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -14618,6 +14618,97 @@ class Ch23LeagueProbeMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch23LeagueHealMode(BotMode):
+    """§Ch23 LEG 10 — walk to the Pokémon League and heal. **PRODUCTION CODE.**
+
+    ⭐ This is the answer to `#24-ch23attrition`, and it replaced a far more expensive one: I had
+    priced up to ~5 hours of training for a party that kept degrading, when the actual fix is a
+    **37-waypoint walk** — the League's Poké Center is the only one reachable from the Victory Road
+    exit, and it has a Mart besides.
+
+    ⛔⛔ THE ROUTE'S REAL DANGER IS ONE TILE FROM THE START. `(18,27)` is a WALKABLE non-animated
+    door back into Victory Road: one completed step warps instantly, no button. The leg asserts its
+    own plan avoids it before walking. ⇒ never add a "nudge north" recovery at (18,28).
+
+    ✅ Safe to drive with ONE conscious Pokémon: EVER_GRANDE_CITY has no `land_mons` table and zero
+    NPCs, and our probe measured all 37 waypoints as `Normal` tiles.
+
+    FAULT ARM: `POKEBOT_CH23_FAULT_NOHEAL10=1` skips the nurse; the consequence guard MUST fire and
+    print `ACCEPTANCE: FAIL`.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_vr_exit.ss1 --driver ch23heal --frames 120000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23LeagueHeal"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23heal] WHITEOUT #{self.whiteouts}")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import LevelUpTravelBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        log(f"[ch23heal] BATTLE #{self.battles} — ⚠ UNEXPECTED: EVER_GRANDE_CITY has no land_mons "
+            f"table and no NPCs, so this route was measured encounter-free.")
+        return LevelUpTravelBattleStrategy()
+
+    def run(self):
+        from modules.story import victory_road as VR
+
+        TAG = "ch23heal"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        report: dict = {"readings": set()}
+
+        healthy_before, before = VR.party_is_healthy()
+        log(f"[{TAG}] PRE at={VR._where()} healthy={healthy_before}")
+        log(f"[{TAG}] PRE party={before}")
+
+        failure = None
+        try:
+            yield from VR.heal_at_league(report)
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        taken = report.get("readings", set())
+        missing = [r for r in VR.LEG10_READINGS if r not in taken]
+        for key in ("heal_before", "plan_wp", "at_league_apron", "inside", "heal_after",
+                    "back_outside", "out"):
+            if key in report:
+                log(f"[{TAG}] R {key} = {report[key]!r}")
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+
+        healthy_after, after = VR.party_is_healthy()
+        log(f"[{TAG}] POST party={after}")
+        # ⛔ ANTI-VACUITY: a run that started healthy proves nothing about healing.
+        premise_ok = not healthy_before
+        passed = (failure is None and premise_ok and healthy_after and not missing
+                  and self.whiteouts == 0)
+        log(f"[{TAG}] GRADE premise_ok={premise_ok} healthy_after={healthy_after} "
+            f"missing={missing} battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] FINAL position={VR._where()}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+
+        _cap = _os.environ.get("CH23_CAPTURE", "").strip()
+        if passed and _cap:
+            import pathlib as _pathlib   # ⛔ local: `pathlib` is NOT bound at module scope here
+
+            _out = _pathlib.Path(__file__).resolve().parent / "saves" / _cap
+            if _out.exists() and _os.environ.get("CAPTURE_FORCE") != "1":
+                log(f"[{TAG}] CAPTURE REFUSED — {_out.name} exists. Set CAPTURE_FORCE=1 to overwrite.")
+            else:
+                _out.parent.mkdir(parents=True, exist_ok=True)
+                _out.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured the healed fixture -> {_out}")
+        context.set_manual_mode()
+
+
 class Ch22StairsMode(BotMode):
     """§Ch22 — READ-ONLY: what does the stair column ACTUALLY read once the puzzle is solved?
 
@@ -16416,6 +16507,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23ExitMode()
         elif args.driver == "ch23leagueprobe":
             context.bot_mode_instance = Ch23LeagueProbeMode()
+        elif args.driver == "ch23heal":
+            context.bot_mode_instance = Ch23LeagueHealMode()
         elif args.driver == "divelearner":
             context.bot_mode_instance = DiveLearnerMode()
         elif args.driver == "groundsweep":

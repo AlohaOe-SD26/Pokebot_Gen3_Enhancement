@@ -512,7 +512,7 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 - [ ] ⚠ **RELATED, NOT THE SAME:** `#24-ch23wally` option (b) (the faint ranking feeding the L19
       into fights) is the CAUSE; healing treats the symptom. Both open.
 
-### ‼ `#24-ch23attrition` — **Victory Road has NO healing, and the party is being ground down leg by leg.** ⛔ **BUT IT DOES NOT BLOCK LEG 8 — LEG 8 BLOCKS *IT*.** (filed 2026-09-04, MEASURED across four fixtures; dependency corrected 2026-09-04)
+### ✅ `#24-ch23attrition` — **CLOSED 2026-09-04: the party is back to 807/807 with zero fainted. The fix was a 36-STEP WALK to the League's Poké Center, not the ~5 hours of training I had priced.** ⚠ The Elite Four LEVEL gap is a SEPARATE, still-open question. (filed, dependency-corrected and closed 2026-09-04)
 
 > ⛔⛔ **I HAD THIS BACKWARDS FOR ONE COMMIT, AND THE MEASUREMENT INVERTED IT.** I wrote that the party's condition blocked leg 8. It is the reverse: from the B2F landing **B1F (17,16)** the bot is **TRAPPED ON ITS ISLAND** — MEASURED `--driver ch23retprobe`: `(8,3)` (leg 6's ladder to 1F) **UNREACHABLE**, `(30,25)` (back to B2F) **UNREACHABLE**, `(20,21)` (the 1F ladder) **UNREACHABLE behind the plug**. ⇒ **the ONLY exit is through the plug, so the bot cannot leave Victory Road to heal until LEG 8 is solved.** Training or shopping first is not merely lower-priority, it is *impossible* from here.
 > ⇒ **BUILD LEG 8 FIRST.** ⭐ And it is safer than it looks: the pushes and smashes do not fight, the standpoints are 15-18 wp away, and a whiteout on B1F respawns at **EVER_GRANDE — outside Victory Road, healed**, which is an escape rather than a loss.
@@ -547,6 +547,19 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       problem (they remain the answer to the Elite Four LEVEL gap, which is a different question).
       ‼ This confirms live a claim a research pass had only DERIVED from its own flood-fill, and had
       explicitly flagged as needing a probe.
+- [x] ✅✅✅ **DONE 2026-09-04 — `heal_at_league` ships and the party is WHOLE.** `--driver
+      ch23heal` `ACCEPTANCE: PASS`, `battles=0`, `whiteouts=0`; **36/807 with five fainted →
+      807/807 with none**, fixture `post_league_heal.ss1` (`1a8a0269…`) at EVER_GRANDE_CITY (18,6).
+      ⭐ **AND IT FOUND A HIDDEN KILLER:** the party's only conscious member, Mightyena, was
+      **badly poisoned** — that is what drained 36 → 24 HP across the walk with ZERO battles, and a
+      whiteout on the last standing Pokémon was one or two steps away. An HP-only reading could not
+      have explained it; `party_is_healthy()` now reports STATUS too.
+      ‼ **The first attempt FAILED and the consequence guard caught it**: the bot reached the nurse
+      tile (3,4) facing north and healed NOTHING, because I mashed A at a nurse who asks a YES/NO
+      question. `heal_in_pokemon_center` has always done it properly (ONE A, then
+      `wait_for_yes_no_question("Yes")`, then ride the script out). ⇒ **when a proven helper exists
+      for an interaction, copy its SHAPE, not just its intent — the shape is where the timing
+      knowledge lives.**
 - [ ] ⛔ **URGENT: THE PARTY IS AT 4% WITH FIVE FAINTED** — only Mightyena is conscious. The two 1F
       trainer fights on the way out nearly wiped it. ⇒ the 37-wp walk to the League door is the very
       next action and must not be delayed. ‼ **Our `PokemonCenter` enum has NO League entry** (only
@@ -570,7 +583,7 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       Wailord fainting does not strand the run. ⇒ **do NOT "fix" `assert_carriers_survived` to reject
       fainted carriers** — it is correct as written, and that check would fire on a healthy run.
 
-### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **TRAVERSED AND EXITED — NINE LEGS BUILT AND DRIVEN. REMAINING: (1) the LEAGUE HEAL (37 wp, urgent — the party is at 4%) and (2) the chapter orchestrator + Segment 23 wiring.** ⚠ The party ends at 35% with three fainted — `#24-ch23attrition`, now ACTIONABLE because the bot can finally leave. (filed 2026-09-03, updated 2026-09-04)
+### 🔜 `#24-ch23victoryroad` — §Ch23 VICTORY ROAD: **TRAVERSED, EXITED, AND THE PARTY IS WHOLE — TEN LEGS BUILT AND DRIVEN. ONLY THE CHAPTER ORCHESTRATOR + SEGMENT 23 WIRING REMAIN.** ⚠ The party ends at 35% with three fainted — `#24-ch23attrition`, now ACTIONABLE because the bot can finally leave. (filed 2026-09-03, updated 2026-09-04)
 
 > ⛔⛔ **THAT HEADER DROPPED THE UN-DRIVEN EXIT FOR ONE COMMIT — THE FOURTH TIME THIS ITEM'S HEADLINE HAS BEEN CAUGHT CLAIMING MORE THAN ITS OWN BULLETS.** The bullet one line below it listed the arrow warp; the header said "ONLY the wiring remains". `04-HANDOFF.md` had it right in BOTH halves, so this was the punch list alone regressing. ⇒ **when a header enumerates what remains, diff it against the bullet directly beneath it before committing** — and note that gate #35 cannot catch this shape, because no CLOSED slug is being mis-described.
 
@@ -578,7 +591,9 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 
 > ⛔ **HEADER/BODY PAIR NOTE (2026-09-04).** This header read "LEGS 1-4 SHIP AND PASS; LEGS 5-8 REMAIN" for one commit *after* its own body bullet had been corrected to "legs 6-8" — a Tier 1 reviewer caught it. **P2: a header is a claim about every bullet beneath it**, and updating the body alone is the more dangerous state, because the body looks current.
 
-- [~] **REMAINS: (1) the LEAGUE HEAL and (2) the chapter orchestrator + Segment 23 wiring.**
+- [~] **REMAINS: the chapter orchestrator + Segment 23 wiring.**
+      ✅✅✅ **LEG 10 SHIPPED 2026-09-04 — THE PARTY IS WHOLE** (`ch23heal`, PASS, `battles=0`,
+      `whiteouts=0`, fixture `post_league_heal.ss1` at EVER_GRANDE_CITY (18,6), **807/807**).
       ✅✅✅ **LEG 9 SHIPPED 2026-09-04 — THE BOT IS OUT OF VICTORY ROAD** (`ch23exit`, PASS,
       `battles=2`, `whiteouts=0`, fixture `post_vr_exit.ss1` at EVER_GRANDE_CITY (18,28)).
       ⛔ **URGENT: 4% HP, FIVE FAINTED** — the League door is 37 wp away and it is the ONLY heal.

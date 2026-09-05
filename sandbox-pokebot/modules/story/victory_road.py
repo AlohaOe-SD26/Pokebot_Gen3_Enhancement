@@ -339,6 +339,65 @@ EG_LEAGUE_DOOR = (18, 5)
 
 LEG9_READINGS = ("R9-APRON", "R9-ARROW", "R9-OUT", "R9-WHERECANWEHEAL")
 
+# ============================== LEG 10 — THE LEAGUE HEAL ======================================
+#: ⭐⭐ THE ONLY HEAL REACHABLE FROM THE VICTORY ROAD EXIT. MEASURED (leg 9): Ever Grande's own Poké
+#: Center (27,49) is **UNREACHABLE** from the landing — the exit sits on a closed plateau — while the
+#: League door is **37 wp** away. An adversarial decomp pass then confirmed *why*: EVER_GRANDE_CITY
+#: is split into a north plateau and a south beach connected only THROUGH Victory Road.
+LEAGUE_1F = MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_1F
+
+#: ⛔⛔ THE ENTRY IS A **DOOR**, NOT A STEP-ON WARP AND NOT AN ARROW WARP — a THIRD warp kind in this
+#: chapter, each needing different handling:
+#:     step-on warp (ladders) -> stand BESIDE, press TOWARD          (legs 6, 7, 8)
+#:     arrow warp   (39,5)    -> stand **ON**, press its OWN direction (leg 9)
+#:     door        (18,5)     -> stand BESIDE at (18,6), FACE north, HOLD Up
+#: `(18,5)` is `MB_ANIMATED_DOOR` with **collision 1** — you never stand on it. VERIFIED in our own
+#: data: `get_map_data` reports `'Door Warp', coll 1, elev 0`.
+LEAGUE_DOOR = (18, 5)
+LEAGUE_DOOR_APRON = (18, 6)
+
+#: ⛔⛔⛔ **THE TRAP NOBODY ASKED ABOUT, AND IT IS ONE TILE FROM WHERE LEG 9 LANDS.**
+#: `(18,27)` is `MB_NON_ANIMATED_DOOR` with **collision 0 — WALKABLE** — and it warps straight back
+#: into VICTORY_ROAD_1F. `IsWarpMetatileBehavior` includes non-animated doors, so **completing a
+#: single step onto it warps instantly: no facing requirement, no button, no confirmation.**
+#: ⇒ from the landing (18,28), **NORTH IS A ONE-STEP TRAP BACK INTO VICTORY ROAD** with a 4% party.
+#: ✅ Our planner already routes around it (`map_path.py:971` costs a non-destination warp tile at
+#: 1,000,000) and the optimal route runs EAST first — but ⛔ **any "nudge north" or "unstick" recovery
+#: heuristic at (18,28) undoes the entire trip.** This constant exists so that guard is nameable.
+EG_VICTORY_ROAD_RETURN_TRAP = (18, 27)
+
+#: ⛔ THE NURSE HAS NO WALKABLE NEIGHBOUR. (3,2) is behind a counter: (2,2), (4,2), (3,1) and (3,3)
+#: are all collision 1, and **(3,3) is `MB_COUNTER`**. `GetInteractedObjectEventScript` looks ONE
+#: TILE FURTHER across a counter, so the bot must stand at **(3,4)** facing NORTH and press A.
+#: ‼ A naive "navigate adjacent to the NPC then talk" router FAILS here — which is exactly why
+#: `heal_in_pokemon_center` cannot be reused: it walks to (7,4), the standard Centre nurse tile.
+LEAGUE_NURSE_STAND = (3, 4)
+
+#: Where the door drops us inside, and the tile to stand on to leave. ⛔ The EXIT is an ARROW warp
+#: (`MB_SOUTH_ARROW_WARP`), so it does NOT fire on a step — the bot cannot fall out by accident, and
+#: must stand ON it and press Down.
+LEAGUE_ENTRY_LANDING = (9, 11)
+LEAGUE_EXIT_TILE = (9, 11)
+
+#: ⛔⛔ **DO NOT PRESS A NEAR THE GUARDS.** They sit at (9,2)/(10,2) while `FLAG_ENTERED_ELITE_FOUR`
+#: is unset, blocking the north doors positionally — they are `TRAINER_TYPE_NONE`, so bumping them
+#: does nothing and no script runs without an A-press. ‼ Talking to one sets that flag
+#: **PERMANENTLY** (nothing in the decomp ever clears it), which parks the guards aside and leaves
+#: (9,1)/(10,1) — **step-on** doors to Hall5 — open forever. ⇒ that is how a bot wanders into the
+#: Elite Four by accident. The heal never goes near them.
+#: ‼ AND `map.json` LISTS THE GUARDS AT (8,2)/(11,2) — those are the POST-flag positions, applied by
+#: `copyobjectxytoperm`. The blocking positions exist only because `OnTransition` re-applies
+#: `setobjectxyperm` on every entry. ⇒ **read LIVE object positions, never the template.**
+LEAGUE_GUARD_TILES = ((9, 2), (10, 2))
+
+#: ⚠ `(1,7)` is `MB_UP_ESCALATOR`, collision 0 — an accidental step-on warp to League 2F (the Cable
+#: Club). Benign (2F warps straight back) but pointless; the heal route never touches it.
+LEAGUE_ESCALATOR = (1, 7)
+
+LEAGUE_HEAL_BUDGET = 100_000
+
+LEG10_READINGS = ("R10-APRON", "R10-INSIDE", "R10-HEALED", "R10-OUT")
+
 # ============================== TRAINING — BEFORE WALLY ========================================
 #: ⛔⛔ TRAIN ON **1F**, NOT B1F, AND THAT IS NOT A PREFERENCE — IT IS FORCED.
 #: B1F is the better ground (950.8 EXP/battle vs 1F's 775.6, because B1F swaps 1F's low-level
@@ -460,6 +519,8 @@ FAULT_ARMS = {
     #: leg 9 — aim the exit navigation AT the arrow tile (39,5) instead of its apron (38,5), so the
     #: apron guard must catch it (arrow warps are not step-on, so this should simply strand us there)
     "ARROWAIM": "POKEBOT_CH23_FAULT_ARROWAIM",
+    #: leg 10 — skip the nurse interaction, so the "did the party actually heal?" guard must fire
+    "NOHEAL10": "POKEBOT_CH23_FAULT_NOHEAL10",
 }
 
 
@@ -2468,3 +2529,169 @@ def exit_victory_road(report=None) -> Generator:
             reach[label] = {"to": tile, "reachable": False, "why": type(error).__name__}
     report["heal_options"] = reach
     _take(report, "R9-WHERECANWEHEAL")
+
+
+# --------------------------------------------------------------------------------------------
+# LEG 10 — walk to the Pokémon League and heal
+# --------------------------------------------------------------------------------------------
+def party_is_healthy() -> tuple[bool, dict]:
+    """`(healthy, reading)` — every battler at full HP and nobody fainted, BY IDENTITY."""
+    fainted, hurt, statused, live, total = [], [], [], 0, 0
+    for mon in get_party():
+        if mon is None or mon.is_egg:
+            continue
+        total += mon.total_hp
+        live += mon.current_hp
+        who = f"{mon.species.name}#{mon.personality_value:08X}"
+        if mon.current_hp == 0:
+            fainted.append(who)
+        elif mon.current_hp < mon.total_hp:
+            hurt.append(who)
+        # ⛔ RECORD STATUS, NOT JUST HP. MEASURED 2026-09-04: the party lost 12 HP across a
+        # 36-step walk with `battles=0` — which HP alone cannot explain and POISON can. A reading
+        # that only counts HP would have left that as a mystery, and poison on the LAST conscious
+        # Pokémon is a whiteout waiting to happen.
+        status = getattr(mon, "status_condition", None)
+        if status is not None and str(status) not in ("StatusCondition.Healthy", "Healthy", "None"):
+            statused.append(f"{who}:{status}")
+    reading = {"hp": f"{live}/{total}", "fainted": fainted, "hurt": hurt, "status": statused}
+    return (not fainted and not hurt), reading
+
+
+def heal_at_league(report=None) -> Generator:
+    """§Ch23 LEG 10 — walk from the Victory Road exit to the League and heal at its Poké Center.
+
+    ⭐ THIS IS THE ANSWER TO `#24-ch23attrition`, and it replaces a much more expensive one. I had
+    priced up to ~5 hours of training as the fix for a party that kept degrading; the actual fix is a
+    **37-waypoint walk**, because the League's Poké Center is the only one reachable from the exit.
+
+    ⛔⛔ THREE THINGS THIS LEG MUST NOT DO, each verified against the decomp:
+    1. **Never step NORTH from the landing.** `(18,27)` is a WALKABLE non-animated door that warps
+       instantly back into Victory Road — one completed step, no button. See
+       `EG_VICTORY_ROAD_RETURN_TRAP`.
+    2. **Never press A near the guards** at (9,2)/(10,2): it sets `FLAG_ENTERED_ELITE_FOUR`
+       permanently and opens step-on doors to the Elite Four.
+    3. **Never walk adjacent to the nurse and talk** — she is behind a counter with no walkable
+       neighbour. Stand at (3,4) and talk ACROSS it.
+
+    ✅ And what makes it safe to drive with one conscious Pokémon: EVER_GRANDE_CITY has **no
+    `land_mons` table at all** and **zero NPCs**, so land encounters and trainers are impossible;
+    our own probe measured all 37 waypoints as `Normal` tiles.
+    """
+    report = report if report is not None else {}
+    report.setdefault("readings", set())
+    yield from wait_until_truly_controllable()
+
+    healthy_before, before = party_is_healthy()
+    report["heal_before"] = before
+    # ⛔ ANTI-VACUITY: healing an already-healthy party proves nothing.
+    if healthy_before:
+        raise BotModeError(
+            f"Ch23 leg 10: the party is ALREADY at full health ({before['hp']}) — this leg would "
+            f"prove nothing. Start from `post_vr_exit.ss1`."
+        )
+    if not _on_map(EG):
+        raise BotModeError(
+            f"Ch23 leg 10: must start in EVER_GRANDE_CITY (leg 9 lands at (18,28)) but we are at "
+            f"{_where()}."
+        )
+
+    # ---- ⛔ THE TRAP GUARD, ASSERTED NOT ASSUMED --------------------------------------------------
+    # Our planner routes around warp tiles (cost 1,000,000), so the plan SHOULD avoid (18,27) —
+    # but "should" is not "does", and the cost of being wrong is the whole trip. Check the plan.
+    from modules.map_path import calculate_path
+
+    plan = calculate_path((EG, _here_tile()), (EG, LEAGUE_DOOR_APRON))
+    crossed = [tuple(getattr(wp, "coordinates", ())) for wp in plan]
+    report["plan_wp"] = len(crossed)
+    if EG_VICTORY_ROAD_RETURN_TRAP in crossed:
+        raise BotModeError(
+            f"Ch23 leg 10: the planned route to {LEAGUE_DOOR_APRON} passes through "
+            f"{EG_VICTORY_ROAD_RETURN_TRAP}, which is a WALKABLE door back into VICTORY_ROAD_1F — "
+            f"stepping on it warps instantly, with a party at {before['hp']}. ⛔ Refusing to walk it."
+        )
+
+    yield from _budgeted(
+        _navigate_riding_out(EG, LEAGUE_DOOR_APRON), LEAGUE_HEAL_BUDGET, "reach the League door")
+    yield from wait_until_truly_controllable()
+    report["at_league_apron"] = _here_tile()
+    _take(report, "R10-APRON")
+    if _here_tile() != LEAGUE_DOOR_APRON:
+        raise BotModeError(
+            f"Ch23 leg 10: expected to stand on the League door apron {LEAGUE_DOOR_APRON} but we are "
+            f"at {_here_tile()}."
+        )
+
+    # ---- in through the DOOR: stand beside, face north, HOLD Up ---------------------------------
+    yield from _walk_through_warp("Up", EG.value)
+    yield from wait_until_truly_controllable()
+    report["inside"] = _where()
+    _take(report, "R10-INSIDE")
+    if not _on_map(LEAGUE_1F):
+        raise BotModeError(
+            f"Ch23 leg 10: held Up into the League door {LEAGUE_DOOR} from {LEAGUE_DOOR_APRON} and "
+            f"did not arrive on LEAGUE_1F — we are at {_where()}. ⛔ `MB_ANIMATED_DOOR` needs a HELD "
+            f"north input while FACING north; it has collision 1 and is never stood on."
+        )
+
+    # ---- heal ACROSS the counter -----------------------------------------------------------------
+    if not _fault("NOHEAL10"):
+        # ‼ LOCAL IMPORT: `ensure_facing_direction` is NOT bound at this module's scope — the one
+        # other user of it in this file imports it inside its own function too. A module-level
+        # reference here would be a NameError on a path only a real drive reaches.
+        from modules.modes.util.walking import ensure_facing_direction
+
+        from modules.modes.util import (
+            wait_for_no_script_to_run,
+            wait_for_player_avatar_to_be_standing_still,
+            wait_for_yes_no_question,
+        )
+
+        yield from _navigate_riding_out(LEAGUE_1F, LEAGUE_NURSE_STAND)
+        yield from wait_until_truly_controllable()
+        yield from ensure_facing_direction("Up")
+        report["nurse_stand"] = _here_tile()
+
+        # ⛔⛔ THE NURSE ASKS A YES/NO QUESTION, AND MASHING A IS THE WRONG ANSWER TO IT.
+        # ‼ MEASURED 2026-09-04: my first version pressed A every other frame for up to 240 tries,
+        # polling `party_is_healthy()` between presses. The bot reached (3,4) correctly, faced north
+        # correctly, and **healed nothing** — the mash drives the prompt open and shut faster than
+        # the heal can run. `heal_in_pokemon_center` has always done it properly
+        # (`higher_level_actions.py:337-341`): ONE A, then answer the prompt, then ride the script
+        # out. ⇒ **when a proven helper exists for an interaction, copy its SHAPE, not just its
+        # intent** — the shape is where the timing knowledge lives.
+        yield
+        context.emulator.press_button("A")
+        yield from wait_for_yes_no_question("Yes")
+        yield from wait_for_no_script_to_run("B")
+        yield from wait_for_player_avatar_to_be_standing_still("B")
+        yield from wait_until_truly_controllable()
+    else:
+        context.message = "Ch23 FAULT NOHEAL10: skipping the nurse"
+
+    healthy_after, after = party_is_healthy()
+    report["heal_after"] = after
+    _take(report, "R10-HEALED")
+    # ⛔ ASSERT THE CONSEQUENCE, NOT THE INTERACTION. "We pressed A at the nurse" is not "the party
+    # is healed" — the same rule that caught KI-84 and the leg-6 heal.
+    if not healthy_after:
+        raise BotModeError(
+            f"Ch23 leg 10: after the League nurse the party is STILL not whole — {after}. "
+            f"⛔ Check the bot stood on {LEAGUE_NURSE_STAND} facing NORTH: the nurse is behind a "
+            f"counter at (3,2) with no walkable neighbour, and the interaction only works ACROSS it."
+        )
+    assert_carriers_survived("the League heal")
+
+    # ---- back out: the exit is an ARROW warp — stand ON it and press Down -------------------------
+    yield from _navigate_riding_out(LEAGUE_1F, LEAGUE_EXIT_TILE)
+    yield from wait_until_truly_controllable()
+    yield from _walk_through_warp("Down", LEAGUE_1F.value)
+    yield from wait_until_truly_controllable()
+    report["back_outside"] = _where()
+    report["out"] = _on_map(EG)
+    _take(report, "R10-OUT")
+    if not report["out"]:
+        raise BotModeError(
+            f"Ch23 leg 10: pressed Down on the League exit {LEAGUE_EXIT_TILE} and did not return to "
+            f"EVER_GRANDE_CITY — we are at {_where()}."
+        )

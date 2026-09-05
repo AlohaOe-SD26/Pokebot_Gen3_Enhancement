@@ -21907,3 +21907,50 @@ only Mightyena is conscious (it and Swellow both reached L48 on the way out). Th
 fights nearly wiped the run. ⇒ the 37-wp walk to the League is **urgent**, and the first obstacle for
 that leg is that our `PokemonCenter` enum has **no League entry** (only `EvergrandeCity`), so
 `heal_in_pokemon_center` cannot target it as written.
+
+
+## 2026-09-04 — §Ch23 LEG 10: **THE PARTY IS WHOLE**, and `#24-ch23attrition` closes for a 36-step walk
+
+**What shipped.** `heal_at_league` + `party_is_healthy` in `victory_road.py`, driven by
+`--driver ch23heal`. `ACCEPTANCE: PASS`, all 4 readings, `battles=0`, `whiteouts=0`:
+**36/807 HP with FIVE fainted → 807/807 with NONE**. Fixture `post_league_heal.ss1`
+(md5 `1a8a0269b42900dd98897a41d964c1e3`) at **EVER_GRANDE_CITY (18,6)** — the first §Ch23 fixture
+since `post_training.ss1` that `probe_anchor_inventory` does not flag as unusable.
+
+**⭐⭐ THE FIX COST A 36-STEP WALK, NOT THE ~5 HOURS OF TRAINING I HAD PRICED.** Two commits ago I
+put a training decision to the user as the answer to a party that kept degrading. It was the wrong
+answer to the wrong question: the League's Poké Center is the only one reachable from the Victory
+Road exit, and walking there fixes the party outright. *(The Elite Four LEVEL gap is a separate,
+still-open question, and the cost curve remains the honest answer to THAT one.)*
+
+**⭐ AND THE HEAL EXPOSED A HIDDEN KILLER — because I added a reading, not because I guessed.** HP
+had fallen 36 → 24 across the walk with `battles=0`, which HP alone cannot explain. So
+`party_is_healthy()` learned to report STATUS, and the next run said it outright:
+`Mightyena#5C96EA9B:StatusCondition.BadPoison` — **badly poisoned, on the party's only conscious
+member.** A whiteout was one or two steps away. ⇒ *a reading that only counts the obvious quantity
+turns a mechanism into a mystery.*
+
+**‼ THE FIRST ATTEMPT FAILED, AND THE CONSEQUENCE GUARD IS WHY THAT WAS USEFUL.** The bot walked the
+36 steps correctly, entered correctly, reached the nurse tile (3,4) facing north — and **healed
+nothing**, because I rode the dialogue by pressing A every other frame for 240 tries. The nurse asks
+a **YES/NO question**, and the mash drives the prompt open and shut faster than the heal can run.
+`heal_in_pokemon_center` has always done it properly (`higher_level_actions.py:337-341`): ONE A, then
+`wait_for_yes_no_question("Yes")`, then `wait_for_no_script_to_run("B")`.
+⇒ **WHEN A PROVEN HELPER EXISTS FOR AN INTERACTION, COPY ITS *SHAPE*, NOT JUST ITS INTENT — the
+shape is where the timing knowledge lives.** ‼ And note what made the failure legible rather than
+silent: the leg grades *"is every battler whole?"*, not *"did we press A at the nurse?"*.
+
+**⛔ THREE FACTS THE ADVERSARIAL PASS SURFACED THAT ARE LOAD-BEARING FOR §Ch24:**
+1. **`(18,27)` — one tile north of the exit landing — is a WALKABLE non-animated door straight back
+   into Victory Road.** One completed step warps instantly; no button, no confirmation. Our planner
+   costs non-destination warps at 1,000,000 so it routes around, and the leg **asserts its own plan
+   avoids it before walking** — but any "nudge north" recovery at (18,28) would undo the whole trip.
+2. **The nurse is behind a counter** at (3,2) with no walkable neighbour; you stand at **(3,4)** and
+   interact across it. This is exactly why `heal_in_pokemon_center` could not be reused — it walks
+   to (7,4), the standard Centre's nurse tile.
+3. **Never press A at the guards** (9,2)/(10,2): it sets `FLAG_ENTERED_ELITE_FOUR` permanently,
+   parking them aside and leaving **step-on** doors into the Elite Four open forever. Healing itself
+   is safe — the map has zero coord events and no `ON_FRAME_TABLE`; the point of no return is two
+   maps north in Sidney's room.
+
+The `NOHEAL10` fault arm was run and correctly prints `ACCEPTANCE: FAIL`.
