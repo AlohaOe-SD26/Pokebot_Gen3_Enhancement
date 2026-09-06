@@ -8463,3 +8463,76 @@ already names it: *"smash the twin-rocks choke from the NORTH side … column 18
 now. That is CORRECT — the bot genuinely cannot walk through it — but it means every generic
 "can I get there?" answer is a NO that a single field-move would turn into a YES.
 
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Fixed 2026-09-05, promoted 2026-09-06. Archived the same day to keep 05-KNOWN-ISSUES.md under its lint_docs R3 budget after KI-91/92/93 were filed. Its both-absent branch note and the sibling-controller containment observation are preserved verbatim in the archive.
+
+## `KI-90` — ⛔⛔ IN A **DOUBLE BATTLE** WITH ONE OPPONENT SLOT ABSENT, THE BOT AIMS AT THE EMPTY SLOT, RAISES, AND THE RUN HANGS (2026-09-05, MEASURED; ✅ REPRODUCED by gate #38; ‼ root cause CORRECTED the same day; ✅✅ **FIXED the same day at the checkpoint — gate #38 SELF-RETIRED**; ✅ PROMOTED to `custom-pokebot/` 2026-09-06, user-approved, and re-verified against `--build custom`)
+
+**Severity: HIGH, and it is a HANG, not a crash.** The exception unwinds the whole controller stack,
+the bot drops to Manual *inside a battle nothing is driving*, and the run sits until the watchdog
+kills it. MEASURED: 20,000 frames of no progress, then `HANG CONFIRMED`.
+
+**2026-09-05, first end-to-end §Ch23 chapter drive, frame 66693:**
+```
+RuntimeError: Cannot attack the left-side opponent Pokemon because there isn't one.
+  modules/battle_action_selection.py:499 in battle_action_use_move
+  <- battle_handler.py:294 _watch  <- _listeners.py:219 BattleListener.fight
+f66695: CONTROLLER -> <none>   (state=BATTLE)      f87506: HANG CONFIRMED
+```
+
+⛔ **THE MECHANISM, VERIFIED — AND IT IS A PERSISTENT STATE, NOT A TIMING RACE.**
+* `opponent.left_battler is None` **iff** bit 1 of `gAbsentBattlerFlags` is set
+  (`modules/battle_state.py:396-402`) — there is no other path to `None`.
+* That byte is a **FROZEN SNAPSHOT** (`battle_state.py:245`, read at `:821`), captured at
+  `battle_action_selection.py:23`/`:247`, i.e. **before** the A-press loop. Nothing during the
+  presses can change it.
+* `HasNoMonsToSwitch` returns FALSE unconditionally when `BATTLE_TYPE_DOUBLE` is off
+  (`src/battle_util.c:2271`), and gates every writer of that byte.
+  ⇒ ⭐ **THE RAISE ITSELF PROVES THE BATTLE WAS A DOUBLE**, with the opponent's LEFT trainer out of
+  switchable Pokémon — a state that persists for the rest of the fight.
+* Our code hardcodes `target_index = 1` and raises; **the game handles this case**, defaulting the
+  cursor to OPPONENT_RIGHT (`src/battle_controller_player.c:535-536`).
+* ‼ Victory Road makes doubles from face-to-face `trainerbattle_single` pairs
+  (`gNoOfApproachingTrainers == 2`) — no double-battle trainer flag required.
+
+⛔⛔ **AND IT IS UNRECOVERABLE FOR A REASON THIS ENTRY FIRST GOT WRONG.** It is NOT that the raise is a
+bare `RuntimeError` where recoveries catch `BotModeError`. `handle_battle` is only ever reached from
+`BattleListener`, a **SIBLING** generator on the controller stack — so from that position **every**
+exception, `BotModeError` INCLUDED, unwinds to `modules/main.py`, where BOTH `except BotModeError`
+(`:151-153`) and the bare `except Exception` (`:158`) call `set_manual_mode()`.
+⇒ ⭐ **A RECOVERY LOOP ONLY CATCHES WHAT REACHES ITS OWN STACK.** Changing the exception type would
+NOT make this recoverable — which is exactly the fix the old wording invited.
+
+⛔ **NOT OURS, AND NOT NEW.** The identical raise is in an archived live run of **2026-07-22**
+(`tools/story-dev/livetest-runs/archive/20260722-204645/run01/run.log:18254`), three weeks before our
+`_fight_on` KI-52 fork landed (`72e938d2`, 2026-08-11). Our fork may raise exposure; it did not create
+this. ‼ **BUT NOT UNTOUCHED EITHER:** `story_mode.py:261`'s own comment cites *"batch runs 01+03, 2026-07-22, both at the same trainer pair once one opponent went down"* — that override was WRITTEN to fix this raise, and the 2026-09-05 run died anyway. ⇒ the guard exists; the surviving hole is its both-not-alive FALL-THROUGH. ⚠ Which producer fired on 2026-09-05 is **NOT established**.
+
+⛔ **BLAST RADIUS: EVERY CHAPTER'S BATTLES**, and §Ch24 hardest — five consecutive fights, no nurse.
+⚠ **NOT MEASURED: how OFTEN it fires.** Two occurrences seven weeks apart is an existence proof, not
+a rate. It is a CORRECTNESS question, so the instrument is a repro, never a batch.
+
+✅✅ **FIXED 2026-09-05 (`06-DECISIONS-LOG.md` same day).** `battle_action_use_move` now sets `target_index = 3` — the RIGHT opponent — when the left slot is absent, matching the game (`src/battle_controller_player.c:535-536`) and this module's own `active_battler` rule (`battle_state.py:418-429`); it raises only if BOTH slots are absent. Gate #38 SELF-RETIRED, having verified the committed slot is **3** rather than merely that the raise stopped. ⚠ Sandbox only — promotion to `custom-pokebot/` is the USER's call. ⚠ The both-absent raise is unchanged and would still hang if reached (believed unreachable, NOT traced). *(superseded:)* **NOT FIXED YET — and NOT because of a ruling.** ⛔ This entry used to say "shared upstream; same ruling as `KI-83`/`KI-88`/`KI-89`". **That ruling does not exist** (`06-DECISIONS-LOG.md` 2026-09-05); we have modified this file 8 times, including a hang fix. *(that sentence read "It is unfixed because the fix is not yet DECIDED" — the fix WAS decided and written the same day; see the ✅✅ line above.)* Tracked as `#24-ch23chain`.
+✅ **REPRODUCED 2026-09-05 — `tools/story-dev/repro_ki90_absent_left_slot.py` (gate #38).**
+Three arms, in-process, milliseconds, against a REAL `BattleState` and the REAL
+`battle_action_use_move` (what is real vs stubbed, and why, is in that file's own docstring):
+```
+ARM A  absent LEFT slot + UseMove         -> RuntimeError   (the defect)
+ARM B  no absent flag  + UseMove          -> no raise       (⇒ the FLAG is the cause)
+ARM C  absent LEFT slot + RIGHT-targeted  -> no raise       (⇒ the TARGET is the cause)
+```
+⭐ **IT SELF-RETIRES** (prints `SELF-RETIRED`, exits 0) if the raise disappears while its
+discriminator still passes — so this gate cannot punish the fix. Both directions fault-proven.
+📦 Rationale + rejected alternatives: `06-DECISIONS-LOG.md` 2026-09-05.
+
+⛔ **Left-absent ALONE IS VACUOUS** — `story_mode.py:261-313` already aims RIGHT when the right opponent is alive, so that arm runs GREEN and reads as "does not reproduce". The raise is the FALL-THROUGH: left absent **AND** right also `hp == 0` in the same frozen snapshot. ‼ COMPUTE THE DISCRIMINATOR (print the `TurnAction` the strategy returns) BEFORE driving anything.
+📌 **The full repro plan — the pinned fixture, the two trainer pairs, the KO count and the three left-hardcoded producers — lives in `03-PUNCH-LIST.md` `#24-ch23chain`**, which is where work is tracked; this entry describes the DEFECT, not the task.
+Candidate fix (UNVERIFIED — gate #38 now exists to judge it): fall back to the RIGHT opponent when the left is
+absent, as `HandleInputChooseMove` already does.
+
+📦 Full evidence chain, the forensics, and a write-up of the refuted first diagnosis:
+`ai-research-notes/2026-09-05-ki90-DOUBLE-BATTLE-ABSENT-SLOT.md`.
+

@@ -4540,3 +4540,65 @@ so the Aqua Hideout Master Ball becomes standable (`early_game.py:8799-8801`) �
 is no money grind anywhere in `modules/story/` (verified), and `train_for_victory_road` grinds WILD
 encounters, which pay ₽0. If a future chapter is short of cash, **the answer is not to widen this
 list** — it is to ask what the route skipped.
+
+
+## 2026-09-06 — KI-93 (Torment): the fix is DESIGNED AND VERIFIED, and deliberately NOT IMPLEMENTED YET
+
+**Decision.** The Torment fix is fully researched and its facts are verified, but the edit is
+**deferred to a fresh cycle** with an ordinary-case A/B specified first. Nothing in
+`modules/battle_strategies/` or `modules/battle_action_selection.py` was touched.
+
+**⭐ THE NUMBERS THAT DECIDE IT — both measured, not argued.**
+```
+blast radius of the BUG   : exactly ONE Pokémon in the whole game.
+                            `grep -c MOVE_TORMENT src/data/trainer_parties.h` = 1  (Sidney's SHIFTRY)
+blast radius of a WRONG FIX: EVERY battle the bot ever has.
+```
+⇒ **the asymmetry is enormous and points one way.** A defect that costs one fight does not justify a
+hurried change to the code path every battle depends on — especially at the end of a long session,
+which is exactly how this project acquired three index-space bugs (`KI-18`, `KI-34`, `KI-66`).
+
+**✅ WHAT IS VERIFIED AND READY (so the next cycle does not re-derive it):**
+1. **The bit is right.** `STATUS2_TORMENT = (1 << 31)`, `STATUS2_DEFENSE_CURL = (1 << 30)`
+   (`include/constants/battle.h:154-155`, fetched). Our decode at `battle_state.py:157-159` matches.
+   ⇒ a Torment-keyed filter **cannot misfire in ordinary battles**, which was the single highest risk.
+2. **The forbidden thing is `gLastMoves[battler]` — a MOVE ID, not a slot** — tested at SELECTION time
+   in `TrySetCantSelectMoveBattleScript` (`src/battle_util.c:999`). The refusal is a **pure re-prompt
+   that never consumes the turn**, which is exactly why a chooser that re-picks spins forever.
+3. **`gLastMoves` is readable in house style** — `pokeemerald.sym:150` (`02024248`, 8 bytes = 4
+   battlers × u16), and `battle_state.py` already does `read_symbol(...)` reads of this shape.
+4. **An exclusion filter already exists** at `_util.py:259` (0-PP and `disabled_move`), so Torment is
+   one more clause rather than new machinery.
+
+**⛔ AND THE TRAP THAT MAKES THE OBVIOUS FIX DANGEROUS — verified by reading the function.**
+`get_strongest_move_against` (`_util.py:244-269`) does `moves = [m for m in pokemon.moves if m is not
+None]` and then returns `move_strengths.index(max_strength)` — **an index into the COMPACTED list.**
+The existing filters are safe only because they append `-1` and thereby PRESERVE position. ⇒ a Torment
+filter written the natural way (skipping the move) would shift every later index and **mis-select in
+ORDINARY battles**. ‼ This is the same index-space shape the project has paid for three times.
+
+**⇒ THE CHOSEN APPROACH: the OBSERVED-REFUSAL variant, not the predictive one.** Rather than predict
+which move the game will refuse, detect that it *did* refuse and pick differently. It is **vacuously
+safe on the shared path** (it cannot fire unless the game actually refuses a selection), it needs no
+`gLastMoves` read at all, and it closes **Taunt and Imprison** by the same mechanism. The action
+selector already carries bounded no-progress counters (`KI-45`/`KI-46` idioms in
+`battle_action_selection.py:22-60`), so it has a natural home.
+
+**Alternatives rejected.**
+* *The predictive filter at `_util.py:259`* — smallest-looking, and it is what three of four research
+  angles proposed. Rejected because it fires in every battle, depends on the compacted-index behaviour
+  above, and **does not actually fix the bug alone**: a four-layer fallback chain
+  (`story_mode.py:239-241`, `:255-257`, `:101-107`, `default.py:254-263`) re-picks the forbidden slot,
+  and it does not cover `decide_turn_in_double_battle` (`story_mode.py:261`).
+* *Do nothing and let `KI-47`'s net stop the run* — honest, and it is the status quo, but it makes
+  §Ch24 unreachable: the gauntlet cannot pass fight 1.
+* *Implement now, verify next session* — rejected explicitly. The bar for a shared battle file is a
+  repro that fails first (have it), an additive argument, **and the full suite**; and the project's own
+  rule is that the decisive test for a shared path is an **A/B on the ORDINARY case**. None of that is
+  finishable safely right now, and a half-verified hot-path change is worse than none.
+
+**⚠ SEPARATE LATENT ISSUE FOUND WHILE VERIFYING, filed not fixed:** `get_strongest_move_against`
+returns an index into the **compacted** move list. For a Pokémon with a gap in its moveset
+(`[Move, None, Move]`), that index is not the real move slot. Most parties are contiguous so it rarely
+bites — but it is a genuine index-space hazard in shared code, and it is now written down rather than
+rediscovered a fourth time.
