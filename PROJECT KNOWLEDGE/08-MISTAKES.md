@@ -13378,3 +13378,31 @@ frames because *nothing was driving the fight at all*.
 ‼ **The second run, with a 90,000-frame budget, shows the controller dropping at ~f19,363 — so there
 IS a real defect underneath (`KI-93`).** But the first run's evidence is VOID and is recorded as void:
 had I filed KI-93 from it, the diagnosis would have rested on a measurement of my own bug.
+
+
+## 2026-09-06 — my A/B instrument silently swapped the subject, three different ways
+
+**Symptom.** Building the turn recorder that the KI-93 fix's ordinary-case A/B depends on, it produced
+no output file. Three separate defects, found one at a time, and **not one of them announced itself**:
+1. `_TurnRecorder` did not subclass `BattleStrategy`, so `_listeners.py:110`'s `isinstance` check
+   discarded it and the trainer battle ran on `DefaultBattleStrategy()` instead.
+2. `NameError: pathlib` (the harness imports `Path`, not the module) — absorbed, run continued.
+3. `__getattr__` delegation does not cover methods the BASE CLASS defines; `BattleStrategy`'s stubs
+   `raise NotImplementedError`, so the wrapper passed `isinstance` and then broke everything it had
+   not explicitly overridden.
+
+**⇒ PREVENTION RULES (three).**
+1. ⛔⛔ **AN INSTRUMENT THAT FAILS DOES NOT GO QUIET — IT SUBSTITUTES THE SUBJECT.** Each of these
+   produced a *running bot* on a *different code path* than the one under test. Had the file happened
+   to be written, the A/B baseline would have come from the wrong strategy and been believed. ⇒
+   **before trusting any wrapper/probe, prove the observed run is UNCHANGED** — here, that the
+   recorded run returns the same `ACCEPTANCE`/`battles`/`whiteouts` as the un-instrumented one. That
+   check is what makes a recorder evidence rather than decoration.
+2. ⛔ **A DELEGATING WRAPPER MUST DELEGATE THE WHOLE SURFACE, NOT RELY ON `__getattr__`.** `__getattr__`
+   fires only for attributes Python cannot find, so any method the base class DEFINES — including
+   abstract stubs — silently wins. ⇒ install delegates by introspection over the base class, so a
+   method added upstream is covered without anyone remembering to.
+3. ⭐ **THE MISSING OUTPUT FILE WAS THE ONLY SIGNAL.** No exception surfaced for (1); (2) and (3) were
+   absorbed into a continuing run. ⇒ **give an instrument a mandatory artefact and check for it
+   FIRST** — "did the thing I built actually write anything?" is the cheapest possible test and it
+   caught a class of bug that produces confident, plausible, wrong evidence.

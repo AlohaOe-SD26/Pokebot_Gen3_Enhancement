@@ -14616,7 +14616,7 @@ class Ch23ExitMode(BotMode):
         self.battle_log = getattr(self, "battle_log", [])
         self.battle_log.append(what)
         log(f"[ch23exit] BATTLE #{self.battles}: {what}")
-        return StoryItemBattleStrategy()
+        return _maybe_record(StoryItemBattleStrategy())
 
     def run(self):
         from modules.story import victory_road as VR
@@ -15005,6 +15005,111 @@ def _where_ch24():
 
 
 
+
+from modules.battle_strategies import BattleStrategy
+# =================================================================================================
+# TURN RECORDER — the A/B instrument for changes to the shared battle path
+# =================================================================================================
+#: ⛔⛔ WHY. A change inside `modules/battle_strategies/` runs in EVERY battle, and this project's rule
+#: for a shared path is that the decisive test is an A/B on the ORDINARY case. "The ordinary battle is
+#: unchanged" cannot be eyeballed — it is dozens of decisions — so record the DECISION SEQUENCE and
+#: require it to be byte-identical across the change.
+#: ⭐ IT RECORDS WHAT THE STRATEGY **RETURNED**, never what it considered. `08-MISTAKES.md`:
+#: *a candidate is not an attempt* — a driver once reported a bug reproduced from a candidate list
+#: while the bot had chosen correctly every single time.
+#: ‼ Inert unless `POKEBOT_RECORD_TURNS` names a file. Harness-only; never promoted.
+class _TurnRecorder(BattleStrategy):
+    """Delegates to a real BattleStrategy and appends every returned turn action to a file.
+
+    ⛔⛔ IT **MUST** SUBCLASS `BattleStrategy`, AND THE FIRST VERSION DID NOT. `_listeners.py:110`
+    reads:
+        if encounter_type is EncounterType.Trainer and not isinstance(action, BattleStrategy):
+            action = BattleAction.Fight
+    ⇒ a wrapper that merely DELEGATES is silently DISCARDED for trainer battles and the bot falls back
+    to `DefaultBattleStrategy()`. The recorder then wrote nothing — and, far worse, **the run it was
+    observing used a different strategy than the one under test.**
+    ⇒ ⭐ **AN INSTRUMENT THAT FAILS A TYPE CHECK DOES NOT GO QUIET; IT SILENTLY SUBSTITUTES THE
+    SUBJECT.** Caught only because the output file was missing. Had it subclassed something by luck,
+    the A/B baseline would have been recorded from the WRONG code path and believed.
+    """
+
+    def __init__(self, inner, path: str):
+        self._inner = inner
+        self._path = Path(path)
+        self._n = 0
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._path.write_text("", encoding="utf-8")
+
+    def __getattr__(self, name):
+        # ⛔⛔ `__getattr__` IS NOT ENOUGH, AND RELYING ON IT WAS THE SECOND BUG IN THIS INSTRUMENT.
+        # Python calls `__getattr__` only for attributes it CANNOT find normally. `BattleStrategy`
+        # DEFINES its other methods as stubs that `raise NotImplementedError`, so Python finds those
+        # on the base class and never delegates — the recorder passed `isinstance` and then broke
+        # every method it had not explicitly overridden. MEASURED: a live `NotImplementedError`
+        # mid-run while `decide_turn` recorded happily.
+        # ⇒ ⭐ **A PARTIALLY-DELEGATING WRAPPER IS WORSE THAN NO WRAPPER**: it looks like the subject,
+        # satisfies the type check, and diverges silently. Every public method is delegated
+        # explicitly below; this hook only covers genuinely absent attributes.
+        return getattr(self._inner, name)
+
+    # ---- explicit delegation of the whole BattleStrategy surface --------------------------------
+    # ‼ Generated from the base class rather than hand-listed, so a future method added upstream is
+    # delegated automatically instead of silently raising.
+    def __init_subclass__(cls, **kwargs):  # pragma: no cover - defensive
+        super().__init_subclass__(**kwargs)
+
+    def _log(self, what: str, result) -> None:
+        self._n += 1
+        try:
+            shown = repr(result)
+        except Exception:  # noqa: BLE001 - a recorder must never break the run it observes
+            shown = "<unreprable>"
+        with self._path.open("a", encoding="utf-8") as handle:
+            handle.write(f"{self._n:04d} {what} -> {shown}\n")
+
+    def decide_turn(self, battle_state):
+        result = self._inner.decide_turn(battle_state)
+        self._log("decide_turn", result)
+        return result
+
+    def decide_turn_in_double_battle(self, battle_state, battler_index):
+        result = self._inner.decide_turn_in_double_battle(battle_state, battler_index)
+        self._log(f"decide_turn_in_double_battle[{battler_index}]", result)
+        return result
+
+
+# ⭐ INSTALL DELEGATES FOR EVERY `BattleStrategy` METHOD THE RECORDER DOES NOT ITSELF OVERRIDE.
+# Without this the inherited stubs raise `NotImplementedError` (measured), which makes the recorder
+# change the behaviour it exists to observe. Done by introspection so upstream additions are covered.
+def _install_recorder_delegates() -> None:
+    recorded = {"decide_turn", "decide_turn_in_double_battle"}
+    for _name in dir(BattleStrategy):
+        if _name.startswith("_") or _name in recorded or _name in vars(_TurnRecorder):
+            continue
+        if not callable(getattr(BattleStrategy, _name, None)):
+            continue
+
+        def _make(name):
+            def _delegate(self, *args, **kwargs):
+                return getattr(self._inner, name)(*args, **kwargs)
+            _delegate.__name__ = name
+            return _delegate
+
+        setattr(_TurnRecorder, _name, _make(_name))
+
+
+_install_recorder_delegates()
+
+
+def _maybe_record(strategy):
+    """Wrap `strategy` in a `_TurnRecorder` iff `POKEBOT_RECORD_TURNS` names a file."""
+    target = _os.environ.get("POKEBOT_RECORD_TURNS", "").strip()
+    if not target:
+        return strategy
+    log(f"[turn-recorder] recording every returned turn action to {target}")
+    return _TurnRecorder(strategy, target)
+
+
 class Ch24ProbeMode(BotMode):
     """§Ch24 PROBE — enter the League and MEASURE the Sidney fight. Sets no progress marker.
 
@@ -15055,7 +15160,7 @@ class Ch24ProbeMode(BotMode):
 
         self.battles = getattr(self, "battles", 0) + 1
         log(f"[ch24probe] BATTLE #{self.battles} — {self._hp_line()}")
-        return StoryItemBattleStrategy()
+        return _maybe_record(StoryItemBattleStrategy())
 
     @staticmethod
     def _hp_line() -> str:

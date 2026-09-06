@@ -23195,3 +23195,47 @@ that are now unsourced.
 careful calculation.* Two notes and a four-agent workflow all did rigorous arithmetic on top of
 IV31/EV0, and the rigour made the result look trustworthy. **The one agent that said "my own numbers
 rest on an unmeasured assumption" was worth more than the three that computed confidently.**
+
+
+## 2026-09-06 — the ORDINARY-CASE A/B INSTRUMENT for KI-93, and the THREE bugs it had before it was trustworthy
+
+**Shipped:** an env-gated **turn recorder** in `story_harness.py` (`_TurnRecorder` + `_maybe_record`),
+wired into `--driver ch23exit` and `--driver ch24probe`. Inert unless `POKEBOT_RECORD_TURNS` names a
+file. **Harness-only — it never ships to either fork.**
+
+**Why it had to exist before the Torment fix.** That fix touches `modules/battle_strategies/`, which
+runs in EVERY battle, and this project's rule for a shared path is *the decisive test is an A/B on the
+ORDINARY case.* But "an ordinary battle is unchanged" is dozens of decisions — not eyeballable. ⇒
+record the DECISION SEQUENCE and require it byte-identical across the change.
+⭐ It records what the strategy **RETURNED**, never what it considered — `08-MISTAKES.md`:
+*a candidate is not an attempt.*
+
+**✅ THE BASELINE, CAPTURED:** `evidence/ki93_ordinary_BASELINE.turns` — 9 decisions from the Edgar
+fight (`post_return.ss1 --driver ch23exit`), every one `(TurnAction.UseMove, 1)`.
+✅ **And the instrument is proven behaviour-NEUTRAL:** the recorded run returns
+`ACCEPTANCE: PASS`, `battles=1`, `whiteouts=0` — identical to the un-instrumented run of the same
+driver earlier today.
+
+**⛔⛔ IT TOOK THREE BUGS TO GET THERE, AND ALL THREE FAILED THE SAME WAY — SILENTLY SUBSTITUTING THE
+SUBJECT RATHER THAN STOPPING.**
+1. **The wrapper did not subclass `BattleStrategy`.** `_listeners.py:110` reads
+   `if encounter_type is EncounterType.Trainer and not isinstance(action, BattleStrategy): action =
+   BattleAction.Fight` ⇒ the wrapper was **discarded** and the run used `DefaultBattleStrategy()`.
+   **The recorder did not merely fail to record — the observed run used a different strategy than the
+   one under test.** Caught only because the output file was missing.
+2. **`NameError: pathlib`** — the harness imports `Path`, not the module. The exception was absorbed
+   and the run continued on the fallback strategy.
+3. **`__getattr__` does not cover base-class stubs.** Python calls it only for attributes it cannot
+   find; `BattleStrategy` DEFINES its other methods as `raise NotImplementedError`, so those were
+   found on the base and never delegated — a live `NotImplementedError` mid-run while `decide_turn`
+   recorded happily. Fixed by installing delegates for the whole surface **by introspection**, so a
+   method added upstream is covered automatically.
+
+⇒ ⭐⭐ **AN INSTRUMENT THAT FAILS A TYPE CHECK, AN IMPORT, OR AN ABSTRACT METHOD DOES NOT GO QUIET —
+IT SUBSTITUTES THE SUBJECT AND KEEPS RUNNING.** Every one of these would have produced a plausible
+`.turns` file from the WRONG code path, and the A/B built on it would have "proved" the fix inert.
+
+**⇒ THE A/B IS NOW SPECIFIED AND READY** (`KI-93`): after the Torment fix, re-run
+`POKEBOT_RECORD_TURNS=… story_harness.py post_return.ss1 --driver ch23exit --frames 120000` and require
+the `.turns` file to be **byte-identical** to the committed baseline. ⛔ Any difference in the ordinary
+battle is a REGRESSION, not a refinement.
