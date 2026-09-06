@@ -885,36 +885,9 @@ deleted — the full correction and its diagnosis are in the archive.
 
 ---
 
-## KI-41 — The Mauville→Route 112 corridor is sealed by a ROCK SMASH rock the planner treats as permanent (2026-07-31)  — ✅ **FIXED 2026-07-31, same day** (`#24-smashroute`; see this entry's own `### ‼ KI-41 — FIXED` block. Header marker added 2026-08-22, PASS 5).
+## KI-41 — the Mauville→Route 112 corridor is sealed by a ROCK SMASH rock the planner treats as permanent — ✅ **FIXED 2026-07-31.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, to keep 05 under its R3 line budget; nothing deleted).
 
-**Measured** from `rocksmash_taught.ss1` (Mauville 32,15), `probe_journey_walls.py`:
-ROUTE111 column-by-column reachability, y from 139 (south, next to Mauville) northward —
-
-```
-x=17  ##########.........######.....#####..#............   last reachable y=102
-x=18  #########..........#######....#####..#............   last reachable y=102, y=101 BLOCKED
-x=19  ##########......#..##..####...#########...........   last reachable y=101, y=100 BLOCKED
-x=20  ...####.###.#..##.###..##.###.#########...........   last reachable y=101, y=100 BLOCKED
-```
-
-The intermittent bands further south are the corridor's **one-way ledges** (they only
-descend, so northbound approach is fragmented); the hard floor at **y≈100–101** is the
-twin-rocks choke. `modules/story/early_game.py`'s `travel_lavaridge_to_petalburg` docstring
-already names it: *"smash the twin-rocks choke from the NORTH side … column 18 needs only the
-(18,101) rock"*, and notes the rocks **RESPAWN on map reload**.
-
-**Consequences**
-* ROUTE112 is **0/76** sampled tiles reachable from Mauville. FIERY_PATH's only two doors are
-  ROUTE112 (11,36) and (22,10), so **Fiery Path is unreachable from Mauville** until that
-  rock is smashed — and Fiery Path's Machop is the counter `#24-counters` names for Norman.
-* The story only gets past it because `travel_to_fallarbor` / `travel_lavaridge_to_petalburg`
-  hand-code a `_smash_rock` at exactly that coordinate. **Nothing generic does.**
-
-**Why the planner cannot see it.** `calculate_path` models a Rock-Smash rock via
-`dynamic_collision_flag` / `dynamic_object_id`, i.e. as an obstacle that *is* impassable right
-now. That is CORRECT — the bot genuinely cannot walk through it — but it means every generic
-"can I get there?" answer is a NO that a single field-move would turn into a YES.
-
+**2026-09-06 — ARCHIVED, NOT REOPENED.** The full entry moved VERBATIM to `28-HANDOFF-ARCHIVE.md` to keep this file under its R3 budget after `KI-91`, `KI-92` and `KI-93` were filed. ⛔ Status unchanged: FIXED 2026-07-31.
 ### ‼ KI-41 — FIXED 2026-07-31 (same day). `#24-smashroute`.
 `modules/story/obstacle_clearing.py` reads the ROM's own object events, keeps the ones whose
 script is a known field-move obstacle, and offers only those the bot can both REACH (an
@@ -2931,7 +2904,7 @@ probably the real fix, and is a bigger change than this entry.
 ‼ **AND THIS ENTRY ITSELF TRIPPED THE GATE ON ITS FIRST DRAFT** — it quoted the stale figure verbatim, twice, in the very entry whose lesson is *retract measured numbers by DELETING and POINTING, never by quoting*. ⇒ ⭐ **the gate caught its own documentation**, which is the strongest evidence that the rule is real and that the habit, not the gate, is the problem.
 
 
-## `KI-93` — ⛔⛔ THE CONTROLLER DROPS OUT MID-FIGHT AGAINST SIDNEY, AND THE BATTLE THEN HANGS FOREVER (2026-09-06, MEASURED, OPEN — §Ch24 BLOCKER)
+## `KI-93` — ⛔⛔ THE MOVE CHOOSER IGNORES **TORMENT**, SPINS FOREVER, AND `KI-47`'s NET STOPS THE BOT (2026-09-06, MEASURED AND ROOT-CAUSED THE SAME DAY, OPEN — §Ch24 BLOCKER)
 
 **MEASURED** by the new `--driver ch24probe` on `post_league_shop.ss1`. The bot walks into the League,
 reaches Sidney, starts the fight, **fights several turns successfully**, and then the controller
@@ -2968,6 +2941,36 @@ sibling-controller containment problem left open by `KI-90`.
 with the exception surfaced (log it from the listener, or wrap `decide_turn`), and read the type and
 the message. Everything after that depends on which it is.
 **Reproduce:** `PYTHONUTF8=1 py -3.12 story_harness.py post_league_shop.ss1 --driver ch24probe --frames 200000`
+
+**⭐⭐ ROOT-CAUSED 2026-09-06, SAME DAY — AND MY OWN HYPOTHESIS WAS WRONG IN MECHANISM.**
+This entry first said the controller "drops out", and offered "Torment makes our chooser raise" as a
+hypothesis. **There is no exception at all.** The bot's own debug log records a DELIBERATE guard:
+```
+f4334908 [MODE] Story -> Manual
+  message="KI-47: battle sub-handler 'handle_battle_action_selection' ran 3001 frames with no
+           battle progress (frozen at ('BattleScript_SelectingTormentedMove', 'Handle…"
+```
+⇒ ✅ **`KI-47`'s net fired exactly as designed.** The chooser does not raise — it **loops**, making no
+progress, and the watchdog stopped the bot with a diagnostic. ‼ The "no controller on the stack" line
+I read as a drop-out is the CONSEQUENCE of that deliberate stop, not its cause.
+
+**⇒ THE ACTUAL DEFECT, LOCATED:**
+* `TemporaryStatus.Torment` is real and readable — `battle_state.py:97` defines it and `:159` sets it
+  from `(status2 >> 31) & 0b1`.
+* ⛔ **NO move chooser consults it.** `grep -rn "Torment"` over `modules/battle_strategies/`,
+  `modules/battle_action_selection.py` and `plugins/custom_modes/story_mode.py` returns **nothing**.
+* ‼ And this is a GAP IN AN ESTABLISHED PATTERN, not an unknown mechanic: `_util.py:67-69,124` and
+  `item_stealing.py:55` already consult `Rooted`, `Wrapped`, `EscapePrevention` and `Substitute`.
+⇒ under Torment the chooser re-selects the strongest move — the one it just used — the game refuses
+it, and the sub-handler spins until `KI-47` stops the run.
+
+**⚠ THE FIX HAS A PREREQUISITE, AND IT IS WHY THIS IS NOT A ONE-LINE FILTER.** Excluding the forbidden
+move requires knowing the LAST MOVE USED, and **our `battle_state` does not expose one** — no
+`last_used_move` / `last_move` / `previous_move` anywhere in `modules/battle_state.py`. ⇒ any fix must
+first surface that (Emerald tracks it in `gLastMoves`), which makes this a state-model addition plus a
+chooser change, in a SHARED battle-path file. ⛔ The bar for that is this project's standard one: a
+repro that fails first, an argument for why the change is ADDITIVE, and the full gate suite.
+✅ **The repro already exists** — `--driver ch24probe` reproduces it in ~19k frames.
 
 **⛔ IMPLICATION FOR §Ch24 — THIS IS THE BLOCKER, NOT THE LEVEL GAP.** Planning so far has argued about
 whether the party can WIN (the analysis says it dies at Glacia, fight 3). **This says the run cannot

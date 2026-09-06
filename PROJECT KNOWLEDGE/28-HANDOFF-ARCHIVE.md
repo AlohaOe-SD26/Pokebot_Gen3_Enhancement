@@ -8427,3 +8427,39 @@ Fixed 2026-07-30. Archived 2026-09-06 to keep 05-KNOWN-ISSUES.md under its lint_
   party order and proves the OLD test calls menu slot 1 selectable while the NEW test correctly
   rejects it as on-field: the user's observation, reproduced as arithmetic.
 
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Fixed 2026-07-31. Archived 2026-09-06 to keep 05-KNOWN-ISSUES.md under its lint_docs R3 budget after KI-91, KI-92 and KI-93 were filed.
+
+## KI-41 — The Mauville→Route 112 corridor is sealed by a ROCK SMASH rock the planner treats as permanent (2026-07-31)  — ✅ **FIXED 2026-07-31, same day** (`#24-smashroute`; see this entry's own `### ‼ KI-41 — FIXED` block. Header marker added 2026-08-22, PASS 5).
+
+**Measured** from `rocksmash_taught.ss1` (Mauville 32,15), `probe_journey_walls.py`:
+ROUTE111 column-by-column reachability, y from 139 (south, next to Mauville) northward —
+
+```
+x=17  ##########.........######.....#####..#............   last reachable y=102
+x=18  #########..........#######....#####..#............   last reachable y=102, y=101 BLOCKED
+x=19  ##########......#..##..####...#########...........   last reachable y=101, y=100 BLOCKED
+x=20  ...####.###.#..##.###..##.###.#########...........   last reachable y=101, y=100 BLOCKED
+```
+
+The intermittent bands further south are the corridor's **one-way ledges** (they only
+descend, so northbound approach is fragmented); the hard floor at **y≈100–101** is the
+twin-rocks choke. `modules/story/early_game.py`'s `travel_lavaridge_to_petalburg` docstring
+already names it: *"smash the twin-rocks choke from the NORTH side … column 18 needs only the
+(18,101) rock"*, and notes the rocks **RESPAWN on map reload**.
+
+**Consequences**
+* ROUTE112 is **0/76** sampled tiles reachable from Mauville. FIERY_PATH's only two doors are
+  ROUTE112 (11,36) and (22,10), so **Fiery Path is unreachable from Mauville** until that
+  rock is smashed — and Fiery Path's Machop is the counter `#24-counters` names for Norman.
+* The story only gets past it because `travel_to_fallarbor` / `travel_lavaridge_to_petalburg`
+  hand-code a `_smash_rock` at exactly that coordinate. **Nothing generic does.**
+
+**Why the planner cannot see it.** `calculate_path` models a Rock-Smash rock via
+`dynamic_collision_flag` / `dynamic_object_id`, i.e. as an obstacle that *is* impassable right
+now. That is CORRECT — the bot genuinely cannot walk through it — but it means every generic
+"can I get there?" answer is a NO that a single field-move would turn into a YES.
+
