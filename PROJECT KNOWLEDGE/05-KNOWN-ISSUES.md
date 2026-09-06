@@ -2930,6 +2930,34 @@ repro that fails first, an argument for why the change is ADDITIVE, and the full
 have it), an ADDITIVE argument, the full suite, **and an A/B on the ORDINARY case** — a normal battle
 that must be unchanged. Specify that A/B first.
 
+**⛔⛔ FIX ATTEMPT 1 — TRIED, MEASURED DEAD, AND REVERTED (2026-09-06).** Do not repeat it.
+The attempt copied the SHIPPED precedent 12 lines above it in the same function: the
+`BattleScript_SelectingMoveWithNoPP` fork (`battle_action_selection.py`, added 2026-07-23), which
+overrides the strategy's pick when the game bounces it. Extending that to
+`BattleScript_SelectingTormentedMove` looked ideal — same shape, same file, observed-refusal, inert
+unless the refusal is on screen.
+✅ **It passed the ordinary-case A/B** (`ki93_ordinary_BASELINE.turns`, byte-identical) — so it was
+provably harmless.
+⛔ **And it did NOT fix the freeze.** Rather than guess why, I instrumented the fork itself with a
+one-line log and re-drove: **it fired ZERO times.**
+⇒ ⭐ **THE FORK IS NEVER REACHED.** It sits AFTER the branch dispatch, so it only runs once a branch
+has assigned `battler_index` — i.e. once a decision is being COMMITTED. The Torment loop never gets
+there: it alternates `HandleInputChooseAction` → select → refusal → `HandleInputChooseMove` → the
+"press B" branch → `continue`, which short-circuits before the fork. The PP fork works only because
+its refusal leaves the game in a state that DOES reach the commit path.
+‼ **"The fix is wrong" and "the fix is never reached" are different answers needing different work** —
+one log line separated them in a single drive.
+
+**⇒ CORRECTED DESIGN FOR ATTEMPT 2 (not yet built).** The fix needs MEMORY ACROSS LOOP ITERATIONS,
+which the one-shot fork does not have: record that the last submitted `(battler_index, index)` was
+REFUSED, and make the next selection in that turn choose a different usable slot. The natural home is
+the `HandleInputChooseMove` branch (which is where the refusal is observed) plus a small
+`refused_this_turn` set consulted after `decide_turn` returns.
+⛔ That is a bigger change to the most safety-critical loop in the codebase than attempt 1 was, so it
+keeps the same bar: the ordinary-case A/B above must stay byte-identical, plus the full suite.
+✅ Everything needed is already in place — the baseline, the recorder (`POKEBOT_RECORD_TURNS`), and
+the repro (`--driver ch24probe`).
+
 **⛔ IMPLICATION FOR §Ch24 — THIS IS THE BLOCKER, NOT THE LEVEL GAP.** Planning so far has argued about
 whether the party can WIN (the analysis says it dies at Glacia, fight 3). **This says the run cannot
 finish fight 1 for reasons that have nothing to do with damage.** ⇒ ⭐ **fix the hang before spending

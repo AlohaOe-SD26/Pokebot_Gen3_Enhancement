@@ -13406,3 +13406,35 @@ no output file. Three separate defects, found one at a time, and **not one of th
    absorbed into a continuing run. ⇒ **give an instrument a mandatory artefact and check for it
    FIRST** — "did the thing I built actually write anything?" is the cheapest possible test and it
    caught a class of bug that produces confident, plausible, wrong evidence.
+
+
+## 2026-09-06 — I copied the right precedent into the wrong place, and one log line proved it
+
+**Symptom.** The KI-93 Torment fix was modelled on a SHIPPED precedent sitting 12 lines above it in
+the same function — the `BattleScript_SelectingMoveWithNoPP` fork that overrides a bounced pick. Same
+shape, same file, observed-refusal, and it **passed the ordinary-case A/B byte-identically**. It also
+did not fix the bug.
+
+**Root cause.** The fork sits AFTER the branch dispatch, so it only runs when a decision is being
+COMMITTED. The Torment loop never reaches that point — it cycles
+`HandleInputChooseAction` → refusal → `HandleInputChooseMove` → "press B" → `continue`, short-circuiting
+first. The PP precedent works because ITS refusal leaves the game somewhere that does reach the commit
+path. **The precedent was right about the shape and wrong about the location**, and the two are easy to
+conflate because the code looks identical.
+
+**⇒ PREVENTION RULES (three).**
+1. ⛔⛔ **"THE FIX IS WRONG" AND "THE FIX IS NEVER REACHED" ARE DIFFERENT ANSWERS.** A fix that changes
+   nothing looks exactly like a fix that is incorrect, and they need opposite next steps. ⇒ **before
+   theorising about why a fix failed, log that it RAN.** One line, one drive, and the answer was
+   unambiguous: zero hits.
+2. ⭐ **COPYING A PRECEDENT COPIES ITS PRECONDITIONS, NOT JUST ITS SHAPE.** The PP fork's precondition
+   is "the game bounced us into the commit path". I matched the code and inherited an assumption I had
+   never checked. ⇒ when reusing a pattern, **ask what state the original relies on and prove the new
+   case reaches it.**
+3. ⭐ **A PASSING A/B PROVES HARMLESSNESS, NEVER EFFICACY.** The ordinary-case A/B was byte-identical
+   — which was true, valuable, and said nothing about whether the bug was fixed. ⇒ keep the two
+   questions separate and answer both: *does it break anything?* and *does it do anything?*
+
+‼ **The dead fork was REVERTED, not left in place.** It was provably harmless, which makes it tempting
+to keep as "groundwork" — but dead code in the most safety-critical loop in the codebase teaches the
+next reader that the case is handled. The corrected design is recorded in `KI-93` instead.
