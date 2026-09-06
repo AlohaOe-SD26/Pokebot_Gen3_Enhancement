@@ -2967,3 +2967,30 @@ absent, as `HandleInputChooseMove` already does.
 
 📦 Full evidence chain, the forensics, and a write-up of the refuted first diagnosis:
 `ai-research-notes/2026-09-05-ki90-DOUBLE-BATTLE-ABSENT-SLOT.md`.
+
+
+## `KI-91` — a 1,200-frame NO-PROGRESS stall inside §Ch23 leg 11, self-recovered (2026-09-05, MEASURED; ⚠ OPEN, not diagnosed)
+
+**Symptom.** The §Ch23 chapter chain logged
+`f65015: !!! NO-PROGRESS x1200 sig=(... (16, 4)) instr=BattleScript_GotAwaySafely
+cb=ReturnFromBattleToOverworld bt='Got away safely!'` with the generator stack
+`Ch23ChapterMode.run -> do_victory_road_chapter -> stock_for_the_elite_four -> wait_until_truly_controllable`.
+It **recovered on its own** by ~f66446 and the run went on to `ACCEPTANCE: PASS`.
+
+**What is known.** The bot was standing on `LEAGUE_MART_STAND (16,4)`, i.e. leg 11 had arrived at the
+clerk. The overworld callback was still `ReturnFromBattleToOverworld` with a stale
+`BattleScript_GotAwaySafely` instruction and a text printer cycling — the same "STUCK-OW" shape logged
+repeatedly earlier in the run after wild-battle escapes. ⇒ the likely story is that
+`wait_until_truly_controllable` waits out a battle-return tail that takes >1,200 frames when a
+`Got away safely!` message is still draining.
+
+**⚠ WHY IT IS FILED RATHER THAN FIXED.** It did not affect the outcome and I have not reproduced it in
+isolation, so any fix would be speculative. ⛔ But a 1,200-frame stall at the LAST leg of the chapter is
+worth a name: if the chapter ever hangs at the shop, this is the first thing to read.
+‼ It is filed because the changelog said *"file rather than forget"* and a Tier 1 reviewer checked
+whether that promise had been kept — **it had not.** ⇒ ⭐ **A PROMISE TO FILE IS NOT A FILING.**
+
+**Next step if it recurs:** capture the stall save (`stalls/repro-ml-f65015.ss1` was written by the
+harness, but that directory is gitignored and its names are REUSED — copy it out first, the trap
+`ki90_double_absent_seed.ss1` already records), then drive `post_league_heal.ss1 --driver ch23shop`
+and watch for the same `ReturnFromBattleToOverworld` tail.

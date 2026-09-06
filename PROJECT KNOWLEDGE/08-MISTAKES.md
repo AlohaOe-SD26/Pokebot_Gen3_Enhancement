@@ -13175,3 +13175,64 @@ you most need it.
 because I applied it only in the files I was editing. ⇒ **the summary sentence and the status cell live
 in EVERY file that mentions the item, not just the one you have open.** The STATE table is the highest-
 value instance and the easiest to forget, because it is a table cell and reads nothing like prose.
+
+
+## 2026-09-05 — my A/B passed on BOTH arms, because the fixture was healthier than production
+
+**Symptom.** I built the leg-9 bypass and ran a clean A/B: arm A (bypass) `battles=1`, arm B
+(`NOBYPASS=1`) `battles=2` with the extra fight at exactly **(31,17)** — the tile the chain drive died
+on. The discriminator is exact and the mechanism is proven. **But both arms returned
+`ACCEPTANCE: PASS`, `whiteouts=0`** — the direct route WON the fight that killed the chain.
+
+**Root cause.** `post_return.ss1` enters that fight with **Mightyena at 141/141 (100%)**; the real
+chain arrives with **Mightyena at 23/143 (16%)** after eight battles and no heal. Same tile, same
+trainers, materially different party. ⇒ the fixture is **healthier than production at the same point**.
+
+**Why this matters more than it sounds.** Had I not compared the two entry states, the natural write-up
+was *"the bypass fixes the leg-9 loss — A/B proven."* It does not. It provably removes an ENCOUNTER;
+whether that converts the chain's loss into a win is a different claim, and only the full chain drive
+can settle it.
+
+**⇒ PREVENTION RULES (two).**
+1. ⛔⛔ **BEFORE GRADING AN A/B, COMPARE THE FIXTURE'S ENTRY STATE TO PRODUCTION'S AT THE SAME POINT.**
+   If the fixture is healthier/richer/further along, the control arm may survive something production
+   cannot, and **a PASS on both arms is then uninformative about the outcome** — even when the
+   discriminator is perfect. ⇒ quote both entry states in the write-up.
+2. ⭐ **NAME WHICH CLAIM THE A/B SUPPORTS: "removes an encounter" or "converts a loss into a win".**
+   They need different evidence. The first needs a discriminator; the second needs the control arm to
+   actually FAIL. Mine had the first and I nearly wrote the second.
+
+‼ **Related, same run:** I predicted the bypass would meet NEITHER trainer and it met one — **Edgar
+(33,22)**, a MANDATORY sight battle already documented in the handoff's own recon. The code was right;
+my forecast was careless. ⇒ **when predicting a count, enumerate from the map data you already have**,
+not from the two actors you happen to be thinking about.
+
+
+## 2026-09-05 — I costed a routing change as "free" and it cost ₽4,128
+
+**Symptom.** Leg 9 was re-routed around two trainers to stop the party being wiped. I priced the detour
+carefully — **62 waypoints either way, exactly the direct route's cost** — and recorded the trade-off
+as *"forfeits their EXP"*, weighed against the Elite Four level gap. The chain then cleared Victory
+Road for the first time and failed at leg 11, **₽2,387 short** of the basket.
+
+**Root cause.** I enumerated ONE of the things a skipped encounter produces. A trainer battle yields
+**EXP, PRIZE MONEY, sometimes an item, and sometimes a flag**. The arithmetic is exact and I could have
+computed it in advance: ₽56,041 (drive with the fight) − ₽51,913 (drive with the bypass) = **₽4,128**
+= 2 × ₽2,064 = 2 × (`48 × level 43`) for two Cooltrainers.
+
+**⇒ PREVENTION RULES (two).**
+1. ⛔⛔ **"THE DETOUR IS FREE" IS A CLAIM ABOUT STEPS ONLY. ENUMERATE EVERY YIELD OF WHAT YOU SKIP.**
+   For a trainer that is EXP, money, items and flags; for an item ball, the item and its flag; for a
+   scripted event, whatever it sets. ⇒ **write the list before calling anything free** — the cost that
+   bites is the one not on the list.
+2. ⭐ **A COST THAT APPEARS TWO LEGS LATER STILL BELONGS TO THE CHANGE THAT CAUSED IT.** The failure
+   surfaced at leg 11 as a shopping problem, which is exactly where a future reader would NOT look for
+   a leg-9 routing decision. ⇒ the leg-11 refusal message now names the cause out loud (*"if this
+   appeared after a ROUTING change, check what payouts the new route skips: ₽2,064 per Cooltrainer"*).
+   **When you accept a trade-off, put the pointer at the place the bill will arrive, not only at the
+   place you made the choice.**
+
+‼ **What went RIGHT and is worth copying:** the leg-11 guard refused to buy a thinner basket silently.
+That turned an invisible §Ch24 defeat five fights later into a loud, precise, early failure with the
+exact shortfall in the message. ⇒ **a guard that refuses to degrade quietly is worth more than the
+feature it blocks.**

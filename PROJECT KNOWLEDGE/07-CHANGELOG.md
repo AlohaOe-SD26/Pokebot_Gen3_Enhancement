@@ -22956,3 +22956,127 @@ count corrects 22 → 21.
 ‼ `CLAUDE.md` rule 6 is the reason this was repaired rather than worked around: *a gate with false
 positives teaches the reader to bypass it, which is strictly worse than no gate.* An inconvenient RED
 is exactly when that rule is load-bearing.
+
+
+## 2026-09-05 (late) — §Ch23 leg 9 BYPASS SHIPPED AND A/B PROVEN — with the claim stated narrowly
+
+**Shipped.** `exit_victory_road` now crosses at **`F1_BYPASS_WAYPOINT = (33,16)`** before heading for
+the exit apron, guarded (it refuses to continue if it is not standing there, because the remaining leg
+is cone-free only FROM that tile). Fault arm **`POKEBOT_CH23_FAULT_NOBYPASS`** routes direct.
+
+**THE A/B, both arms driven on `post_return.ss1`:**
+```
+ARM A  bypass (default)   battles=1  whiteouts=0  ACCEPTANCE: PASS  -> Edgar only, at pos (33,24)
+ARM B  NOBYPASS=1         battles=2  whiteouts=0  ACCEPTANCE: PASS  -> Edgar, THEN a fight at pos (31,17)
+```
+⭐⭐ **THE DISCRIMINATOR IS EXACT: remove the bypass and a battle fires at (31,17) — the precise tile
+the 2026-09-05 chain drive began its fatal double on. Keep it and that tile is never touched.** ⇒ the
+bypass is PROVEN to be what avoids the Katelynn/Quincy encounter.
+‼ ONE battle at (31,17), not two — consistent with the decomp: both trainers spot on the same step, so
+`gNoOfApproachingTrainers == 2` and it is a single DOUBLE battle.
+
+**⛔ WHAT THIS DOES **NOT** PROVE, AND THE DISTINCTION IS THE POINT.** **Arm B also PASSED** — it WON
+the double and did not white out. ⇒ **the bypass provably removes an ENCOUNTER; it is NOT proven to
+turn a loss into a win on this fixture**, because the direct route did not lose here.
+
+**⭐ WHY ARM B SURVIVED WHERE THE CHAIN DIED — measured, and it indicts the fixture, not the finding:**
+```
+chain drive, entering the (31,17) fight:  Mightyena  23/143  (16%)   Sceptile 0/145, Wailord 0/226  -> LOST
+arm B,       entering the (31,17) fight:  Mightyena 141/141  (100%)  Sceptile 0/147, Wailord 0/226  -> won
+```
+⇒ ‼ **`post_return.ss1` IS NOT REPRESENTATIVE OF THE CHAIN'S STATE AT LEG 9.** It arrives with its
+strongest surviving battler at full HP; the chain arrives at 16% after eight battles with no heal. The
+bypass's value is that it removes a fight **the chain state cannot afford**, even though this fixture
+can. ⇒ ⭐ **A GREEN A/B ON A FIXTURE HEALTHIER THAN PRODUCTION IS A WEAKER RESULT THAN IT LOOKS** —
+say so rather than banking it.
+
+**⚠ AND A PREDICTION OF MINE WAS WRONG, which is why the arm was run.** I predicted the bypass would
+meet NEITHER trainer; it met one — **Edgar at (33,22)**, fired from pos (33,24). Edgar is a documented
+MANDATORY 1F sight battle on the way out (it is in the handoff's own recon) and I simply failed to
+carry that into the prediction. The bypass did exactly its job: (31,17) untouched, Katelynn and Quincy
+never engaged. ⇒ the error was in my forecast, not the code — but an unexamined "battles=1" would have
+read as a partial failure.
+
+**Cost accepted, restated:** skipping the pair forfeits their EXP (on 2026-09-04 that levelling took
+Swellow and Mightyena to L48). Right here — no reachable heal between legs 8 and 10 — and explicitly
+**not** a fix for the Elite Four level gap.
+
+
+## 2026-09-05 (late) — ⭐⭐ THE CHAIN RE-DRIVE: the leg-9 loss IS FIXED (whiteouts 1 → 0). It now fails ₽2,387 short at LEG 11.
+
+**MEASURED** — `post_wally.ss1 --driver ch23chapter --frames 600000`, with the (33,16) bypass shipped:
+```
+BEFORE  at=((24,43),(9,15))  done=False  wally=True
+AFTER   at=EVER_GRANDE_CITY (18,6)  inside_victory_road=False
+RESULT  battles=16  whiteouts=0
+FAIL    leg 11: "the basket costs ₽54,300 but we hold ₽51913.
+                 ⛔ Refusing to buy a thinner basket silently"
+```
+**⭐⭐ THE WALL HAS MOVED, AND THIS IS THE HEADLINE: `whiteouts=1 → 0`.** The previous drive died in the
+leg-9 double at (31,17); this one **cleared Victory Road entirely and reached the League door**. Legs 9
+and 10 now pass. `#24-ch23chain`'s original failure is FIXED.
+
+**⛔ AND THE NEW FAILURE IS A DIRECT CONSEQUENCE OF THE FIX — I priced the trade wrong.** I recorded the
+bypass as forfeiting **EXP**, and flagged that against the Elite Four level gap. The bite is
+**PRIZE MONEY**: skipping two level-43 Cooltrainers left the bot **₽2,387** short of the basket.
+⇒ ⭐ **A ROUTING CHANGE THAT SKIPS A TRAINER SKIPS THE PAYOUT, NOT ONLY THE FIGHT AND THE EXP.** When
+costing a "free" detour, enumerate everything the skipped encounter would have produced — EXP, money,
+items, and any flag it sets. I enumerated one of four.
+
+**✅ THE GUARD THAT CAUGHT IT IS EXACTLY RIGHT AND MUST NOT BE WEAKENED.** Leg 11 refuses to buy a
+thinner basket *silently* — because an under-stocked bag is a run that fails five fights later, where
+there is no nurse. ⇒ this is a loud, early, precise failure instead of a §Ch24 mystery. **Do not
+"fix" this by lowering the basket without a decision recorded.**
+
+**⚠ SECONDARY, WORTH ITS OWN LOOK:** the orchestrator's retry made attempts 2 and 3 fail differently —
+`UnreachableDestinationError: Could not reach (18,42) ... still at (18,6)`. ⇒ **the retry cannot
+recover from the League door**: it tries to walk back to the Victory Road apron, which is not reachable
+from the plateau (a fact `post_vr_exit.ss1` already records). A retry that cannot possibly succeed is
+burning two attempts and obscuring the real error — file separately.
+
+⚠ **NOT YET DECIDED: how to close the ₽2,387.** Candidates are (a) fight the pair as two SINGLES via
+(33,16) — measured reachable, and singles re-enable the in-battle item policy that doubles disable —
+(b) find the money elsewhere, or (c) a smaller basket. **Deliberately not chosen here**: this session
+has already reversed three leg-9 prescriptions that were adopted before the load-bearing number was
+measured. The prize-money figures are being checked against the decomp first.
+
+
+## 2026-09-05 (late) — ⭐⭐⭐ §Ch23 IS COMPLETE END TO END. `ACCEPTANCE: PASS`, `done=True`, `whiteouts=0`.
+
+**MEASURED** — `post_wally.ss1 --driver ch23chapter --frames 600000`:
+```
+AFTER   at=EVER_GRANDE_CITY (18,6)  done=True  on_ever_grande=True  inside_victory_road=False
+RESULT  battles=16  whiteouts=0  failure=None
+CONTINUE neighbours_reachable=4
+ACCEPTANCE: PASS
+```
+**⭐⭐ ALL ELEVEN LEGS, FROM `post_wally.ss1` TO A STOCKED BAG AT THE LEAGUE DOOR.** `#24-ch23chain`'s
+original failure — the leg-9 whiteout — is fixed, and so is the ₽2,387 shortfall it caused.
+
+**⭐ `done=True` IS A WORK-PRODUCT ASSERTION, NOT A POSITION CHECK — AND THAT MATTERS HERE.**
+`ch23_chapter_done()` returns True only if `bag_healing_stock()` holds **every** `LEAGUE_BASKET` line
+at quantity (30 Hyper Potion, 3 Full Restore, 8 Full Heal, 3 Revive). ⇒ the basket is provably IN THE
+BAG. ‼ And since the immediately preceding drive FAILED at ₽51,913 with the **only** change being the
+Nugget sale, **the sale demonstrably worked** — a helper (`sell_in_shop`) that had zero callers
+anywhere in this repo before today.
+⇒ ⭐ **THE PREDICATE HARDENED THIS MORNING IS WHAT MAKES THIS RESULT TRUSTWORTHY.** It was fixed
+because it called a WIPED party "complete" after a whiteout respawn; the same conjunct now proves a
+genuine completion. **A predicate that demands the work product pays for itself twice: once by
+refusing a false pass, once by making a true pass mean something.**
+
+**THE FULL CAUSAL CHAIN, all of it measured today:**
+1. The chain lost the leg-9 double at **(31,17)** and whited out — entering with two mons at 0 HP.
+2. Root cause was **attrition, not levels** (opposition L43 vs our L52/L48/L47/L47).
+3. No heal is reachable between legs 8 and 10 — a fix was built, driven, and **refuted**.
+4. The planner routes through (31,17) because `calculate_path` is **blind to trainer sight cones**.
+5. Crossing at **(33,16)** avoids both trainers for **62 wp — exactly the direct route's cost**.
+6. That skipped their **prize money**: ₽56,041 − ₽51,913 = **₽4,128 = 2 × ₽2,064** (`48 × level 43`).
+7. Selling the **Nugget** (₽5,000, purpose served since the Aqua Hideout) closes the ₽2,387 gap.
+
+**⚠ OBSERVED, NOT YET DIAGNOSED — worth its own look.** The run logged a
+`NO-PROGRESS x1200` stall inside `stock_for_the_elite_four` at f65015 (`bt='Got away safely!'`,
+stalled on `wait_until_truly_controllable`) and **recovered on its own**. It did not affect the
+outcome, but a 1,200-frame stall at the shop is not nothing. ⇒ file rather than forget.
+
+⚠ **STILL TRUE AND UNCHANGED: this does not close the Elite Four level gap**, and skipping the pair
+makes it marginally worse. §Ch24 remains unbuilt.

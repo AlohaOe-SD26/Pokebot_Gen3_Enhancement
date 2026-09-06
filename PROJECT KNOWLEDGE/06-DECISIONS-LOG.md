@@ -4501,3 +4501,42 @@ them is somewhere a heal exists — not a no-heal corridor.
   planner is structurally blind to them (`avoid_scripted_events` consults only
   `on_enter_event_triggers`, while spotting is a per-frame scan in `trainer_see.c`), which is exactly
   why it routed through (31,17). Too large a blast radius for this item; file separately.
+
+
+## 2026-09-05 (late) — leg 11 may SELL to close a basket shortfall, from an ALLOW-LIST, never a deny-list
+
+**Decision.** `stock_for_the_elite_four` may sell items to cover a shortfall on the Elite Four basket.
+What it may sell is `LEAGUE_SELLABLE`, today exactly one entry: **Nugget (₽5,000)**.
+
+**Why selling at all.** Routing leg 9 around Katelynn and Quincy fixed the whiteout and cost their
+payouts — **₽4,128**, leaving the chain ₽2,387 short. The alternatives were priced:
+* *Fight them as two singles* — yields ₽4,128 but **stakes ₽25,956**: a whiteout HALVES money
+  (`overworld.c:358`), and our own logs have lost that fight once in three attempts — including in the
+  chain run, which is the case that counts. ⇒ risking the chapter to win ₽4,128 is a bad trade.
+* *A thinner basket* — the leg's existing guard refuses it, correctly. Not reopened.
+* *Sell the Nugget* — ₽5,000, zero steps, zero battles, zero whiteout exposure.
+
+**Why an ALLOW-LIST is the load-bearing safety property.** A deny-list ("sell anything that is not
+medicine") would sell the **Master Ball**, a TM, or a key item the day someone adds an item this file
+has never heard of. An allow-list can only ever sell what a human has cleared. ⇒ **adding an entry
+requires proving the item has no downstream use**, not merely that it is not medicine.
+⭐ The Nugget qualifies on evidence: its only role was as a STEPPING STONE — taking it frees `(15,10)`
+so the Aqua Hideout Master Ball becomes standable (`early_game.py:8799-8801`) — a purpose served on
+2026-08-12 (`#24-masterball`). Repo-wide search finds no other reader, and
+`repro_overworld_items.py` classes it as a TRAP the healing chooser must never pick.
+
+**Guards this decision requires, all shipped.**
+1. The early affordability check now distinguishes **unaffordable** from **recoverable**, so the loud
+   early refusal survives for the genuinely broke case — and its message names the likely cause
+   (*"if this appeared after a ROUTING change, check what payouts the new route skips: ₽2,064 per
+   Cooltrainer"*).
+2. The sale **asserts the consequence**: the wallet is re-read and the leg refuses if it did not move.
+   ‼ `sell_in_shop` had **no caller anywhere in this repo** before this, so a silent no-op was the
+   likeliest failure and is now the named suspect in the refusal message.
+3. `POKEBOT_CH23_FAULT_NOSELL` reproduces the shortfall on demand.
+4. It sells the **minimum** that closes the gap, not the stack — an item kept is an option kept.
+
+**⚠ What this does NOT license.** It is not a money-grinding feature and must not grow into one. There
+is no money grind anywhere in `modules/story/` (verified), and `train_for_victory_road` grinds WILD
+encounters, which pay ₽0. If a future chapter is short of cash, **the answer is not to widen this
+list** — it is to ask what the route skipped.

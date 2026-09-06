@@ -334,6 +334,14 @@ LEG8_READINGS = ("R8-ENTER", "R8-SMASHA", "R8-PUSHN", "R8-SMASHB", "R8-LADDERPAT
 #: ⭐ MEASURED (leg 8's continuation check): the apron **(38,5)** is reachable from (21,32) in
 #: **62 wp**. ⛔ (39,6), the tile SOUTH of the arrow, is a WALL — never aim there.
 F1_EXIT_APRON = (38, 5)
+#: ⭐ THE LEG-9 BYPASS WAYPOINT. Crossing here instead of along y=17 skips BOTH trainers for
+#: FREE: MEASURED 44 wp from the leg-8 landing + 18 wp on to the exit apron = 62, exactly what
+#: the direct route costs — and both halves are cone-free, where the direct route steps on
+#: (31,17), the tile the 2026-09-05 chain drive lost its fatal double battle on.
+#: ⚠ (33,16) AND NOT (33,17): (33,17) is on the elevation-15 bridge, and `calculate_path` seeds
+#: its search with the SOURCE TILE's elevation (`map_path.py:916`) then forbids stepping to a
+#: different one (`:859`) — which once produced a false "this bypass is impossible" reading.
+F1_BYPASS_WAYPOINT = (33, 16)
 
 #: Where the arrow warp lands. ⚠ MODELED by an agent as EVER_GRANDE (18,27); **not yet observed.**
 EG_EXIT_LANDING = (18, 27)
@@ -438,6 +446,17 @@ LEAGUE_BASKET = (
 #: ⚠ Money is not safe sitting still: `DoWhiteOut` (`overworld.c:358`) does `SetMoney(money / 2)`.
 #: ⇒ unspent cash is cash at risk, and the gauntlet itself pays ~₽32,400 back on the way through.
 LEAGUE_MIN_MONEY = 54_300
+
+#: ⭐ ITEMS WE MAY SELL TO CLOSE A BASKET SHORTFALL — `(name, unit sell price)`.
+#: ⛔ AN ALLOW-LIST ON PURPOSE. See `bag_sellable_plan` for why a deny-list is unsafe here.
+#: ‼ WHY THIS EXISTS AT ALL, MEASURED 2026-09-05: routing leg 9 around Katelynn and Quincy to
+#: stop the party being wiped ALSO skipped their prize money. The arithmetic is exact —
+#: ₽56,041 (drive with the fight) − ₽51,913 (drive with the bypass) = **₽4,128** = 2 × ₽2,064,
+#: which is `48 × level 43` per Cooltrainer. ⇒ the chain then failed ₽2,387 short of the basket.
+#: ⇒ ⭐ **A ROUTING CHANGE THAT SKIPS A TRAINER SKIPS THE PAYOUT, NOT ONLY THE FIGHT.**
+LEAGUE_SELLABLE = (
+    ("Nugget", 5_000),   # ₽10,000 buy price; Gen-3 sells at half. Stepping stone, purpose served.
+)
 
 LEAGUE_SHOP_BUDGET = 80_000
 
@@ -564,6 +583,13 @@ FAULT_ARMS = {
     #: leg 9 — aim the exit navigation AT the arrow tile (39,5) instead of its apron (38,5), so the
     #: apron guard must catch it (arrow warps are not step-on, so this should simply strand us there)
     "ARROWAIM": "POKEBOT_CH23_FAULT_ARROWAIM",
+    #: leg 9 — skip the (33,16) bypass and route DIRECT through the trainer row. ⛔ This is the arm
+    #: that makes "the bypass is what avoids the double battle" falsifiable: without it, a clean run
+    #: proves only that the run was clean. Expect the direct arm to meet Katelynn and Quincy.
+    "NOBYPASS": "POKEBOT_CH23_FAULT_NOBYPASS",
+    #: leg 11 — skip the sell-to-top-up, so the basket shortfall reproduces on demand. ⛔ Without
+    #: this arm, "selling the Nugget is what buys the basket" is an unfalsifiable claim.
+    "NOSELL": "POKEBOT_CH23_FAULT_NOSELL",
     #: leg 10 — skip the nurse interaction, so the "did the party actually heal?" guard must fire
     "NOHEAL10": "POKEBOT_CH23_FAULT_NOHEAL10",
     #: leg 11 — skip the purchase, so the "is the basket actually IN the bag?" guard must fire
@@ -2511,6 +2537,40 @@ def exit_victory_road(report=None) -> Generator:
             f"are at {_where()}. Use `post_return.ss1`."
         )
 
+    # ---- ⛔⛔ CROSS AT (33,16), NOT THROUGH THE TRAINER ROW. THIS IS THE WHOLE FIX. ----------------
+    # Katelynn (29,17) faces EAST and Quincy (32,17) faces WEST, both with sight range 2, so their
+    # cones cover EXACTLY (30,17) and (31,17). ‼ Our planner is STRUCTURALLY BLIND to trainer sight
+    # lines — `calculate_path`'s `avoid_scripted_events` consults only `on_enter_event_triggers`, while
+    # spotting is a per-frame scan in `trainer_see.c` — so left alone it routes straight through
+    # (31,17). MEASURED: its 62-waypoint route to the exit apron does exactly that, and the 2026-09-05
+    # chapter chain began its fatal double battle on that tile.
+    # ⭐ THE DETOUR IS FREE. MEASURED by `--driver ch23leg9probe` from the real leg-8 landing:
+    #       ladder landing -> (33,16)   44 wp, cone-free
+    #       (33,16)        -> exit apron 18 wp, cone-free      44 + 18 = 62 == the direct route's cost
+    # ⇒ the bot skips BOTH trainers for nothing. It forfeits their EXP, which is a deliberate trade:
+    # the party reaches leg 9 at ~35% HP with three fainted and there is NO reachable heal between
+    # leg 8 and leg 10 (measured — see `06-DECISIONS-LOG.md` REVERSAL #2). A party that dies here
+    # earns no EXP at all.
+    # ⚠ (33,16) NOT (33,17): (33,17) is on the elevation-15 bridge. Pathing FROM it makes
+    # `calculate_path` seed the search with elevation 15 (`map_path.py:916`) and then refuse every step
+    # onto normal ground (`:859`) — which is how this bypass was once wrongly measured DEAD.
+    if not _fault("NOBYPASS"):
+        yield from _budgeted(
+            _navigate_riding_out(VR1F, F1_BYPASS_WAYPOINT), B1F_RETURN_BUDGET,
+            "cross at the (33,16) bypass, north of the trainer row")
+        yield from wait_until_truly_controllable()
+        report["at_bypass"] = _here_tile()
+        _take(report, "R9-BYPASS")
+        if _here_tile() != F1_BYPASS_WAYPOINT:
+            raise BotModeError(
+                f"Ch23 leg 9: expected to stand on the bypass waypoint {F1_BYPASS_WAYPOINT} but we "
+                f"are at {_here_tile()}. ⛔ Refusing to continue — the remaining leg to the exit is "
+                f"only cone-free FROM this tile; from anywhere else the planner may route through "
+                f"(31,17) and start the double battle that whited out the 2026-09-05 chain drive."
+            )
+    else:
+        context.message = "Ch23 FAULT NOBYPASS: routing direct, straight through the sight cone"
+
     target = F1_EXIT_ARROW if _fault("ARROWAIM") else F1_EXIT_APRON
     if _fault("ARROWAIM"):
         context.message = "Ch23 FAULT ARROWAIM: aiming at the arrow tile, not its apron"
@@ -2754,6 +2814,35 @@ def bag_healing_stock() -> dict:
     return {slot.item.name: slot.quantity for slot in get_item_bag().items}
 
 
+def bag_sellable_plan(needed: int) -> tuple[int, list]:
+    """`(value, [(name, qty), …])` — what we may sell to close a shortfall of `needed`.
+
+    ⛔⛔ THIS IS AN **ALLOW-LIST**, NEVER A DENY-LIST, AND THAT IS THE WHOLE SAFETY PROPERTY.
+    A deny-list ("sell anything that is not medicine") would happily sell the Master Ball, a held TM,
+    or an HM-adjacent key item the moment someone adds an item this file has never heard of. An
+    allow-list can only ever sell what a human has explicitly cleared. ⇒ **to add an entry, prove the
+    item has no downstream use** — not merely that it is not medicine.
+
+    ⭐ `Nugget` qualifies, and it is the only entry today. Its ONLY purpose in this run was as a
+    STEPPING STONE: taking it frees `(15,10)` so the Aqua Hideout Master Ball becomes standable
+    (`early_game.py:8799-8801`). That purpose is long served (`#24-masterball`, DONE 2026-08-12) and a
+    repo-wide search finds no other reader — `repro_overworld_items.py` even classes it as a TRAP the
+    healing chooser must never pick. It sells for **₽5,000** (price ₽10,000, Gen-3 sell = price // 2).
+    """
+    stock = bag_healing_stock()
+    plan, value = [], 0
+    for name, unit_price in LEAGUE_SELLABLE:
+        have = stock.get(name, 0)
+        if have <= 0 or value >= needed:
+            continue
+        # ⛔ SELL THE MINIMUM THAT CLOSES THE GAP, not the whole stack — an item kept is an option kept.
+        want = min(have, -(-(needed - value) // unit_price))
+        if want > 0:
+            plan.append((name, want))
+            value += want * unit_price
+    return value, plan
+
+
 def stock_for_the_elite_four(report=None) -> Generator:
     """§Ch23 LEG 11 — buy the Elite Four's healing at the League Mart.
 
@@ -2782,13 +2871,31 @@ def stock_for_the_elite_four(report=None) -> Generator:
     # cannot afford it the right move is to say so loudly, not to quietly buy a thinner one that
     # looks like success. ‼ And the figure is MEASURED at run time — an earlier plan was written
     # against ₽38,893, which was the pre-Victory-Road number and ₽17,148 short of the truth.
+    # ‼ A SHORTFALL MAY BE RECOVERABLE BY SELLING — but the Mart menu is not open yet, so all we can
+    # do HERE is decide whether it is recoverable at all. The sell itself happens below, once
+    # `Task_ShopMenu` is up. ⇒ this keeps the "fail early and loudly" property for the genuinely
+    # unaffordable case, without failing a case we can fix in one menu.
+    report["sell_plan"] = []
     if report["money_before"] is None or report["money_before"] < LEAGUE_MIN_MONEY:
-        raise BotModeError(
-            f"Ch23 leg 11: the basket costs ₽{LEAGUE_MIN_MONEY:,} but we hold "
-            f"₽{report['money_before']}. ⛔ Refusing to buy a thinner basket silently — the Elite "
-            f"Four has no other healing, so an under-stocked bag is a run that fails five fights "
-            f"later for a reason nobody will connect to this moment."
-        )
+        have = report["money_before"] or 0
+        gap = LEAGUE_MIN_MONEY - have
+        sellable, plan = bag_sellable_plan(gap)
+        if _fault("NOSELL"):
+            context.message = "Ch23 FAULT NOSELL: not selling to cover the basket shortfall"
+            sellable, plan = 0, []
+        if sellable < gap:
+            raise BotModeError(
+                f"Ch23 leg 11: the basket costs ₽{LEAGUE_MIN_MONEY:,} but we hold ₽{have:,} — short "
+                f"by ₽{gap:,}, and the sellable items in the bag would only raise ₽{sellable:,} "
+                f"({plan or 'nothing sellable'}). ⛔ Refusing to buy a thinner basket silently — the "
+                f"Elite Four has no other healing, so an under-stocked bag is a run that fails five "
+                f"fights later for a reason nobody will connect to this moment. ‼ If this appeared "
+                f"after a ROUTING change, check what payouts the new route skips: ₽2,064 per Victory "
+                f"Road Cooltrainer (`48 × level`)."
+            )
+        report["sell_plan"] = plan
+        report["sell_value"] = sellable
+        context.message = f"Ch23 leg 11: ₽{gap:,} short — will sell {plan} for ₽{sellable:,}"
 
     if not _on_map(LEAGUE_1F):
         if not _on_map(EG):
@@ -2867,6 +2974,31 @@ def stock_for_the_elite_four(report=None) -> Generator:
                 f"counter at (16,3) — check we are on the right tile and facing NORTH."
             )
         _take(report, "R11-MENU")
+
+        # ---- ⭐ SELL FIRST IF WE ARE SHORT. The menu is open; this is the only place it can happen --
+        # ⛔ ASSERT THE CONSEQUENCE, NOT THE CALL. `sell_in_shop` returning proves nothing — the same
+        # rule that caught KI-84 and the §Ch23 heal. Re-READ the wallet and refuse if it did not move.
+        if report["sell_plan"]:
+            from modules.modes.util.higher_level_actions import sell_in_shop
+
+            yield from _budgeted(
+                sell_in_shop([(get_item_by_name(name), qty) for name, qty in report["sell_plan"]]),
+                LEAGUE_SHOP_BUDGET, "sell to cover the basket shortfall",
+            )
+            yield from wait_until_truly_controllable()
+            money_after_sale = getattr(get_player(), "money", None)
+            report["money_after_sale"] = money_after_sale
+            report["bag_after_sale"] = bag_healing_stock()
+            _take(report, "R11-SOLD")
+            if money_after_sale is None or money_after_sale < LEAGUE_MIN_MONEY:
+                raise BotModeError(
+                    f"Ch23 leg 11: sold {report['sell_plan']} to cover the basket but the wallet "
+                    f"reads ₽{money_after_sale} — still short of ₽{LEAGUE_MIN_MONEY:,}. ⛔ The sale "
+                    f"did not raise what it should have (expected +₽{report['sell_value']:,} from "
+                    f"₽{report['money_before']:,}). ‼ `sell_in_shop` had NO caller anywhere in this "
+                    f"repo before this leg, so treat a silent no-op as the likely cause and check "
+                    f"the Mart menu actually reached the SELL branch."
+                )
 
         yield from _budgeted(
             buy_in_shop([(get_item_by_name(name), qty) for name, qty in LEAGUE_BASKET]),
