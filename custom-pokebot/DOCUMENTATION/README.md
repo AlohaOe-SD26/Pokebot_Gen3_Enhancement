@@ -8,16 +8,24 @@
 `custom-pokebot/` was forked 2026-07-17 as an exact copy of the upstream
 mirror at commit `5dd898f8`.
 
-**As of 2026-08-10 there are EIGHT user-approved promotions** (‼ this line
-read *"No divergences yet"* until then, and had been wrong for three weeks —
-see `DIVERGENCE-LOG.md`, which is the authoritative list of every intentional
-difference from upstream).
+**`DIVERGENCE-LOG.md` is the authoritative list of every intentional difference
+from upstream — count them there, not here.** ⛔ This line used to carry a NUMBER
+("No divergences yet", then "EIGHT user-approved promotions as of 2026-08-10")
+and it went stale BOTH times — the second time for four weeks, while the log grew
+to 42 entries. ⇒ ⭐ **a count kept in two places is a count that will disagree with
+itself; point at the owner instead of copying its answer.**
 
 The headline divergence is the **Story mode** (`plugins/custom_modes/story_mode.py`
 plus `modules/story/`): a bot mode that plays Emerald from a cold start. Built
-content runs **Littleroot → 6 badges → Mt. Pyre / Magma Emblem → Magma Hideout /
-Groudon** (Segment 15, 2026-08-10); the next unwritten beat is the Slateport
-submarine. ‼ Story mode is OUR addition and has no upstream counterpart, so
+content runs **Littleroot → 8 badges → Seafloor Cavern → Sootopolis → VICTORY ROAD →
+the Pokémon League door, with the Elite Four healing basket bought** (Segment 23,
+promoted 2026-09-06 — see `DIVERGENCE-LOG.md` that date). It is DRIVEN end to end:
+`--build custom --driver ch23chapter post_wally.ss1` returns `ACCEPTANCE: PASS`,
+`done=True`, `whiteouts=0`.
+⛔ **The next unwritten beat is §Ch24, THE ELITE FOUR** — five consecutive fights
+with no nurse between rooms. `story_mode.py` hands to manual at the League door.
+‼ *(This paragraph read "Segment 15 … the next unwritten beat is the Slateport
+submarine" for four weeks after that stopped being true.)* ‼ Story mode is OUR addition and has no upstream counterpart, so
 nothing in `../../40cakes repo/DOCUMENTATION/` describes it — the design lives
 in `PROJECT KNOWLEDGE/12-STORYMODE-DESIGN.md` and the running state in
 `PROJECT KNOWLEDGE/04-HANDOFF.md`.

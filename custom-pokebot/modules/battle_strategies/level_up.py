@@ -133,4 +133,16 @@ class LevelUpLeadBattleStrategy(DefaultBattleStrategy):
 
         if best_escape_method is not None:
             return best_escape_method
-        return TurnAction.run_away()
+        # ⛔ `#26-fleefreeze` (2026-08-26): this used to `return TurnAction.run_away()` — a blind
+        # fallback ON THE VERY BRANCH WHERE `get_best_escape_method()` HAS JUST DETERMINED, trap-
+        # aware and correctly, that escape is IMPOSSIBLE (Wrapped/Rooted/EscapePrevention, trapping
+        # abilities). The game then refuses the run at selection time
+        # (`BattleScript_PrintCantEscapeFromBattle` + a button-wait), the handler's text-printer
+        # branch yields forever, KI-47 nets it at 3,001 frames, and the derail cascade burns to
+        # Manual. MEASURED killing 3 of 8 lanes in batch 20260826-063456 (wild Torkoal Fire Spin —
+        # learned at L17, so every Magma Hideout Torkoal has it — trapping a sub-20%-HP lead:
+        # `[TURN 3] Loudred L36 14/116 [Wrapped] -> RunAway` → frozen). The craft rule is
+        # "un-fleeable battles must fight through": delegate to the inherited, trap-aware,
+        # fault-tested KI-52 `_handle_flee` — rotate to a healthy mon, else `_fight_on`. The
+        # escape-POSSIBLE path above is byte-unchanged.
+        return self._handle_flee(battle_state, util, "being trapped (escape is impossible)")

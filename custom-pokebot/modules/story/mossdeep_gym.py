@@ -57,6 +57,15 @@ MAX_REPLANS = 40
 #: takes much longer, so this is generous and still bounded.
 STEP_TIMEOUT_FRAMES = 600
 
+#: Frames to let a TURN-IN-PLACE finish (~8 frames in Gen 3; bounded generously).
+#: ‼ `#26-mossdeeppuzzlespeed` (USER REPORT 2026-08-26): a direction tap only TURNS the avatar when
+#: it faces another way, and a turn changes neither the tile nor the script state — so
+#: `_step_towards`' attempt 1 used to sit out its ENTIRE 600-frame timeout after every direction
+#: change. MEASURED on the 2026-08-26 baseline log (`ACCEPTANCE: PASS` at f61988): ~60 turns x ~600
+#: frames ≈ 36,000 of the 62,000-frame solve — 58% of the user's "it took forever". The pre-turn
+#: below makes attempt 1 always be a WALK.
+TURN_TIMEOUT_FRAMES = 32
+
 
 def _tile() -> tuple[int, int]:
     return tuple(get_player_avatar().local_coordinates)
@@ -148,6 +157,24 @@ def _step_towards(target: tuple[int, int]) -> Generator:
         from modules.modes import BotModeError
 
         raise BotModeError(f"Mossdeep Gym: {target} is not adjacent to {start}")
+
+    # --- PRE-TURN (#26-mossdeeppuzzlespeed): face the direction FIRST, so the main loop's press is
+    # always a WALK. A 1-frame tap while facing another way is a turn-in-place (never a step), so
+    # this cannot skip a tile — and every guard the main loop has is kept here verbatim, so if a
+    # scene fires mid-turn (a trainer spotting us) or the tile somehow changes, we behave exactly as
+    # the main loop would. If the wait times out, we simply fall through to the OLD behaviour.
+    if get_player_avatar().facing_direction != direction:
+        context.emulator.press_button(direction)
+        for _ in range(TURN_TIMEOUT_FRAMES):
+            script = get_global_script_context()
+            if script is not None and script.is_active:
+                return  # a scene took over; the caller rides it out and re-solves
+            if _tile() != start or not _on_gym_map():
+                yield from _wait_until_ready()
+                return
+            if get_player_avatar().facing_direction == direction and player_avatar_is_standing_still():
+                break
+            yield
 
     for attempt in range(2):
         context.emulator.press_button(direction)

@@ -2051,3 +2051,70 @@ recovery window is spent on maps whose land encounter rate is 0 and `on_whiteout
 on Emerald) and deliberately NOT patched. See `06-DECISIONS-LOG.md` for that ruling and its re-open
 triggers. It also does not change what the bot does when no whiteout is pending: the guard is
 latch-keyed, and the CLEAR arm above is the proof.
+
+
+## 2026-09-06 — PROMOTED: §Ch19 → §Ch23, FOURTEEN FILES, USER-APPROVED. Drift back to ZERO.
+
+**The largest promotion so far.** Six NEW story modules and eight modified files move the fork's built
+content from *Magma Hideout / Groudon* all the way to **the Pokémon League door with a stocked bag**.
+
+**What moved (14 files, `promote.py` reports `byte-identical 14/14`, `drift after: 0`, `orphaned: 0`):**
+```
+NEW      modules/story/victory_road.py        3222 lines   §Ch23, eleven legs
+NEW      modules/story/sootopolis.py          3555 lines   §Ch21
+NEW      modules/story/pokemon_league.py      1439 lines   §Ch24 prep (out-of-battle healing)
+NEW      modules/story/seafloor_cavern.py     1028 lines   §Ch19
+NEW      modules/story/sootopolis_gym.py      1000 lines   §Ch22, gym 8
+NEW      modules/story/overworld_items.py      245 lines   item-ball collection
+CHANGED  plugins/custom_modes/story_mode.py   the segment dispatch through Segment 23
+CHANGED  modules/story/chapters.py            the chapter table
+CHANGED  modules/story/mossdeep_gym.py · modules/battle_action_selection.py
+CHANGED  modules/battle_strategies/level_up.py · modules/modes/util/walking.py
+CHANGED  modules/story/early_game.py · modules/map_data.py
+```
+
+**⭐ VERIFIED BY DRIVING, WHICH IS THE ONLY EVIDENCE THAT COUNTS — A COPY IS NOT.**
+```
+BEFORE (custom, pre-promotion):
+    ModuleNotFoundError: No module named 'modules.story.victory_road'
+    ⇒ custom could not run §Ch23 AT ALL.
+
+AFTER  (custom, --build custom --driver ch23chapter post_wally.ss1 --frames 600000):
+    AFTER at=((0,8),(18,6)) done=True on_ever_grande=True inside_victory_road=False
+    CONTINUE neighbours_reachable=4
+    RESULT battles=16 whiteouts=0 failure=None
+    ACCEPTANCE: PASS
+```
+‼ `done=True` is a WORK-PRODUCT assertion, not a position check: `ch23_chapter_done()` passes only if
+the bag holds every `LEAGUE_BASKET` line at quantity ⇒ **the Elite Four basket is provably in the bag.**
+The BEFORE half was captured and pushed in its own commit (`da3c821b`) before anything moved, so
+attribution is earned rather than assumed.
+
+**✅ BUILD-AWARE GATES, ALL RUN WITH `--build custom`, ALL EXIT 0 (14):**
+`repro_undefined_names`, `repro_no_silent_except`, `repro_roster_reorder`, `repro_box_counter_move_test`,
+`repro_pid_identity_key`, `probe_abort_swallowing`, `probe_chapter_order`, `probe_ch14_recon`,
+`probe_counter_grass`, `probe_pc_tile`, `repro_heal_piggyback_reporting`, `repro_hm_move_replace_loop`,
+`repro_hm_replace_valve_forced`, `repro_ki65_unbound_party_index`.
+⭐ `probe_abort_swallowing --build custom` reads **23 sites, exactly at baseline** ⇒ **this promotion
+added NO new abort-swallowing debt to the fork.**
+
+🔖 **Rollback point:** tag `pre-promote-2026-09-06-ch19-ch23` (pushed before the copy).
+📁 **Transcripts (COMMITTED):** `tools/story-dev/evidence/2026-09-06-PROMOTION-{BEFORE,AFTER}-custom.stdout.txt` — each carries the actual verdict lines. ⛔ The raw `.log` files are GITIGNORED (`tools/story-dev/.gitignore:2`) and do NOT travel; the first version of these transcripts was a `tee` of stdout that captured shutdown noise while the verdict went to the log, so they were CITED-BUT-EMPTY until rebuilt. ‼ Read an evidence file before citing it.
+
+**⭐ ONE PRE-FLIGHT CHECK WORTH REPEATING.** Before copying, every file was grepped for sandbox-only
+coupling. All hits were comments citing evidence paths — except `sootopolis.py:2197`, which is LIVE
+code writing into `tools/story-dev/saves/`. It is safe: the function returns immediately unless an
+env var names a capture (`if not name: return`), and `parents[3]` resolves to the repo root from
+either fork. ⇒ **verify the one live hit rather than trusting that "they're all comments".**
+
+**⛔ WHAT THIS DOES *NOT* MEAN.**
+* **§Ch24 (the Elite Four) is NOT built.** Built content ends at the League door; `story_mode.py:3838`
+  hands to manual there. §Ch24 must set its OWN progress marker, because `ch23_chapter_done()` requires
+  the basket and will re-enter §Ch23 once the gauntlet spends it.
+* **The Elite Four LEVEL GAP is open and slightly WORSE.** §Ch23 leg 9 now routes around two
+  Cooltrainers to avoid a whiteout, forfeiting their EXP (and their ₽4,128, which leg 11 now covers by
+  selling the Nugget).
+* **`calculate_path` is still blind to trainer sight cones** — it consults only `on_enter_event_triggers`
+  while spotting is a per-frame scan in `trainer_see.c`. §Ch23 works around it at one location; the
+  general defect is untouched and will recur wherever a route grazes a cone.
+* **`KI-91`** (a 1,200-frame self-recovering stall in leg 11) is filed, not diagnosed.

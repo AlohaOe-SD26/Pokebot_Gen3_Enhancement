@@ -4416,7 +4416,17 @@ def ensure_hm_learner(item) -> Generator:
                 continue
     except Exception:
         pass
-    map_enum, tile, names = chosen if chosen is not None else grounds[-1]
+    # ⛔ FALLBACK DIRECTION FLIPPED 2026-08-26 (`#26-surfteachchain` audit): when NOTHING statically
+    # paths, the old pick was `grounds[-1]` — the FURTHEST-progressed ground, which is precisely the
+    # one most likely to be gated behind the very HM being hunted. MEASURED incident: batch
+    # 20260731-105549/L01 f2493651 — seconds after "HM03 Surf incoming", the hunt announced
+    # "hunting Linoone/Zigzagoon on ROUTE119", a SURF-GATED ground, for the SURF hunt. Circular.
+    # `grounds[0]` is the earliest-game ground (for HM03: Route 101/102 grass on Petalburg's
+    # doorstep), by construction the least gated and the most likely for the riding navigation to
+    # actually reach. ⚠ HONEST LIMIT: this branch fires only when no candidate paths — an abnormal
+    # state no driver reproduces yet — so the flip is proven by the measured incident's geometry,
+    # not by a live A/B of the branch itself.
+    map_enum, tile, names = chosen if chosen is not None else grounds[0]
     context.message = f"Story: nobody can learn {move.name} — hunting {'/'.join(names)} on {map_enum.name}..."
 
     if sum(s.quantity for s in get_item_bag().poke_balls) <= 1:
@@ -4894,7 +4904,15 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
             break
         if not _WINDOW_A and any(x in t for x in _STOP_TASKS):
             _press("B")  # NO — never abandon the teach. A here means YES, give up.
-        elif _f % 12 == 0:
+        elif _f % 12 == 0 and (
+            get_game_state() is not GameState.OVERWORLD
+            or _menu_task_active()
+            or is_waiting_for_input()
+        ):
+            # ⛔ GATED 2026-08-26 (`#26-surfteachchain` D2) — same museum-greeter shape as the ride
+            # loop's blind A, smaller window. This loop is also the recorded source of the open
+            # `#24-teachmsgstall` residue (post_select=exhausted, 8/85): an A that lands at the
+            # open overworld can only start a conversation, never advance a teach.
             _press("A")
         yield
     if _post_select_exit == "exhausted":
@@ -5030,6 +5048,7 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
     _TEACH_RIDE_STALL_FRAMES = 900   # observable state frozen this long => wedged, stop cheaply
     _stall = 0
     _last_sig = None
+    _fail_stable = 0  # `#26-surfteachchain` D1b: consecutive stable-overworld frames with no learn
     _ride_exit = "hard-cap"
     _stall_peak = 0
     for _f in range(_TEACH_RIDE_HARD_CAP):
@@ -5095,10 +5114,44 @@ def teach_hm_move(item, party_index: int, replace_slot: int | None = None) -> Ge
         elif "Task_HandleReplaceMoveInput" in t and not _knows():
             yield from _select_forget_slot()
             continue
-        elif _f % 3 == 0:
+        elif _f % 3 == 0 and (
+            get_game_state() is not GameState.OVERWORLD
+            or _menu_task_active()
+            or is_waiting_for_input()
+        ):
+            # ⛔ THE A IS GATED NOW (`#26-surfteachchain` D1, USER REPORT 2026-08-26). This branch
+            # used to press A one frame in three UNCONDITIONALLY — the museum-greeter shape,
+            # verbatim, in the one seam that arms it: a FAILED teach unwinds to the open overworld
+            # INSIDE WALLY'S HOUSE, next to Wally's dad, and the blind A re-opened his dialogue
+            # every third frame. The dialogue's task churn kept the progress signature changing, so
+            # the stall detector could never fire (its own measurement above: stall_peak=171 vs a
+            # 900 threshold) and the loop burned its full 9,000-frame cap TALKING TO THE NPC — then
+            # raised, and the derail re-ran the teach, which is the user's "loops talking to the
+            # npc ... loops a bunch attempting to teach". A is now pressed only where an accept
+            # can land: in a menu, in text, or when a printer is actually waiting for input.
             _press("A")
         else:
             _press("B")
+
+        # ⛔ FAILURE-PHASE EXIT (`#26-surfteachchain` D1b): a teach that reaches a STABLE open
+        # overworld WITHOUT the move learned can never succeed by pressing more buttons — every
+        # menu is gone. Break and let the honest "does not know" raise at the bottom fire ~8,000
+        # frames sooner, without ever touching the NPC. 30 stable frames ≈ two input windows,
+        # long enough to be sure no task is mid-transition (the same debounce reasoning as
+        # `wait_until_truly_controllable`).
+        if (
+            not _knows()
+            and get_game_state() is GameState.OVERWORLD
+            and player_avatar_is_controllable()
+            and not _menu_task_active()
+            and not is_waiting_for_input()
+        ):
+            _fail_stable += 1
+            if _fail_stable >= 30:
+                _ride_exit = "failed-overworld"
+                break
+        else:
+            _fail_stable = 0
         yield
     # ‼ THE LINE THAT FOUR BUDGET ROUNDS WERE MISSING. `_ride_exit` distinguishes the three
     # ways out of the ride, which demand OPPOSITE fixes and were indistinguishable before:

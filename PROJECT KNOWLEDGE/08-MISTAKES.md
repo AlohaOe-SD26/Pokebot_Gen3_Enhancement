@@ -13236,3 +13236,89 @@ computed it in advance: ₽56,041 (drive with the fight) − ₽51,913 (drive wi
 That turned an invisible §Ch24 defeat five fights later into a loud, precise, early failure with the
 exact shortfall in the message. ⇒ **a guard that refuses to degrade quietly is worth more than the
 feature it blocks.**
+
+
+## 2026-09-06 — my retraction convention FIGHTS a measuring gate, and the gate is right
+
+**Symptom.** After the promotion, `audit_doc_consistency` flagged nine docs claiming `drift=14` when
+the measured drift was 0. I fixed all nine using this project's standard retraction form — *(this read
+"Drift is 14")* — and **four still failed**, because the gate matched the number inside my own
+quotation.
+
+**Root cause.** The retraction convention exists for PROSE claims, where quoting the old wording helps
+a reader who half-remembers it. But `audit_doc_consistency` does not read prose — it **MEASURES** drift
+by running the comparison, then greps for numeric claims. A quoted stale number is indistinguishable
+from a live one to a grep, and *should* be: the gate cannot know my parenthesis means "formerly".
+
+**⇒ PREVENTION RULES (two).**
+1. ⛔ **WHERE A GATE MEASURES A FACT, DO NOT PRESERVE THE STALE VALUE VERBATIM IN A CURRENT-STATE
+   FILE.** State the new value and point at the append-only log for the history. ⇒ **retract prose by
+   quoting; retract MEASURED NUMBERS by deleting and pointing.** They are different operations and I
+   had one habit for both.
+2. ⭐ **PREFER A GATE THAT DERIVES GROUND TRUTH OVER ANY SWEEP OVER PROSE.** This gate found all nine
+   sites in one pass, including two saying *"promotion is the USER's call"* after the promotion had
+   happened — which no token sweep of mine would have connected. ‼ My own sweeps this week only worked
+   once I guessed the right token. **Wherever a fact is mechanically measurable, measure it and check
+   the docs against the measurement**; that is strictly stronger than checking documents against each
+   other.
+
+
+## 2026-09-06 — I cited two evidence files without opening them. BOTH were empty of evidence.
+
+**Symptom.** The promotion's DIVERGENCE-LOG entry cited
+`evidence/2026-09-06-PROMOTION-{BEFORE,AFTER}-custom.*` as the proof. I had created both with
+`... | tail -N | tee <file>`. **Neither contained a single line of the evidence it was cited for** —
+no `ACCEPTANCE`, no `ModuleNotFoundError`. I was one commit from shipping a promotion record whose
+proof was shutdown noise.
+
+**Root cause, two compounding halves.**
+1. **I captured the wrong STREAM.** The harness writes its verdict to the `--log` file; stdout's tail
+   is emulator shutdown chatter. `tee` faithfully captured what I pointed it at, which was not the
+   thing the claim rests on. ⇒ **the same shape as "instrument the ACTION, not the input to it"**,
+   now applied to evidence capture.
+2. **The raw `.log` that DID hold the verdict is GITIGNORED** (`tools/story-dev/.gitignore:2  *.log`).
+   So even the correct file would not have travelled to another machine — the identical trap as the
+   `stalls/` saves, which this project has already paid for once (`ki90_double_absent_seed.ss1`).
+
+**⇒ PREVENTION RULES (three).**
+1. ⛔⛔ **READ AN EVIDENCE FILE BEFORE CITING IT.** One `grep` for the string the claim depends on. I
+   wrote the citation, the summary and the log entry without ever opening either file.
+2. ⛔ **A TRANSCRIPT MUST BE CHECKED FOR THE CLAIM'S OWN KEYWORD, NOT FOR EXISTENCE.** "The file is
+   there and is 3 KB" proves nothing. The check that works is `grep -c ACCEPTANCE <file>` — and it is
+   cheap enough to be unconditional.
+3. ⛔ **BEFORE CITING A PATH AS DURABLE EVIDENCE, ASK WHETHER GIT WILL KEEP IT** — `git check-ignore -v
+   <path>`. An evidence directory can still be covered by a `*.log` rule two lines long.
+
+‼ **What caught it:** not a gate and not the reviewer — I went to confirm the cited files existed
+before committing, and found them empty. ⇒ ⭐ **the habit of verifying your own citation is worth more
+than the citation**, and it is the third time this session that opening the artefact refuted the
+sentence about it.
+
+
+## 2026-09-06 — a GREEN GATE let ten stale copies through, and I trusted the green
+
+**Symptom.** After the promotion, `audit_doc_consistency` flagged nine docs claiming `drift=14`. I
+fixed all nine, re-ran it, got **PASS**, and treated the sweep as complete. A Tier 1 reviewer then
+found a **10th** live claim inside `04-HANDOFF.md`'s banner — and my own follow-up sweep found **two
+more** phrased as *"PROMOTION IS THE USER'S CALL"*, which the gate does not check at all because it is
+not a numeric claim.
+
+**Root cause, two parts.**
+1. ⛔ **I read a green gate as "no instances remain" when it means "no instances THIS GATE CHECKS
+   remain".** The gate checks numeric drift claims; "promotion is the user's call" is a STATUS claim in
+   prose and outside its contract entirely.
+2. ⛔ **The gate is genuinely blind at that position** — fault-proven, filed as `KI-92`: a stale claim
+   injected 17,400 chars into a 39,825-char line passes.
+
+**⇒ PREVENTION RULES (three).**
+1. ⛔⛔ **A GREEN GATE BOUNDS ITS OWN CONTRACT, NOT THE WORLD.** Before treating a sweep as finished,
+   ask *what shape does this gate NOT check?* Here: prose status claims, and anything its unit logic
+   cannot reach. ⇒ **pair every mechanical check with one sweep in a DIFFERENT shape** — I found the
+   remaining two by grepping the STATUS phrase, which no gate owns.
+2. ⭐ **WHEN A REVIEWER FINDS WHAT A GATE MISSED, FAULT-TEST THE GATE.** Re-injecting the exact claim
+   turned "the reviewer was luckier" into "the instrument is blind, here is the repro" — a filed,
+   reproducible defect instead of an anecdote. That took two minutes.
+3. ⭐ **A 39,825-CHARACTER LINE DEFEATS EVERY PER-LINE INSTRUMENT, INCLUDING MINE.** My token sweeps
+   print `file:line`, which is useless when the file has one line holding years of history. ⇒ report
+   `file:line@offset` when a line is huge, and treat "the longest line in the file" as the **last**
+   place a stale fact will be found and therefore the **first** place to look.

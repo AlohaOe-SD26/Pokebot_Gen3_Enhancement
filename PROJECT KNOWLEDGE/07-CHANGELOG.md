@@ -23080,3 +23080,41 @@ outcome, but a 1,200-frame stall at the shop is not nothing. ⇒ file rather tha
 
 ⚠ **STILL TRUE AND UNCHANGED: this does not close the Elite Four level gap**, and skipping the pair
 makes it marginally worse. §Ch24 remains unbuilt.
+
+
+## 2026-09-06 — ⭐⭐⭐ PROMOTED §Ch19 → §Ch23 TO `custom-pokebot/` (14 files, USER-APPROVED). Drift 14 → 0.
+
+**The largest promotion this project has done.** Six NEW story modules (~10,500 lines) and eight
+modified files move the FORK's built content from *Magma Hideout / Groudon* to **the Pokémon League
+door with the Elite Four basket bought**.
+
+**⭐ VERIFIED BY DRIVING — the standing rule, and `promote.py` refuses to pretend otherwise
+(*"a copy is not evidence"*):**
+```
+BEFORE (custom):  ModuleNotFoundError: No module named 'modules.story.victory_road'
+AFTER  (custom):  --build custom --driver ch23chapter post_wally.ss1 --frames 600000
+                  done=True  battles=16  whiteouts=0  failure=None   ACCEPTANCE: PASS
+```
+The BEFORE half was captured and pushed in its own commit (`da3c821b`) **before anything moved**, so
+attribution is earned rather than assumed.
+✅ `promote.py`: **byte-identical 14/14**, drift 0 both directions, 0 orphaned.
+✅ **14 build-aware gates run with `--build custom`, all exit 0**, and `probe_abort_swallowing --build
+custom` reads **23 sites, exactly at baseline** ⇒ the promotion added NO new debt to the fork.
+🔖 Rollback tag `pre-promote-2026-09-06-ch19-ch23`, pushed before the copy.
+
+**⭐ THE TOOL REFUSED ME ONCE, CORRECTLY.** First attempt: *"⛔ REFUSED — local and origin have
+diverged (ahead 1, behind 0)."* I had committed the BEFORE evidence and not pushed it. ⇒ **a promotion
+tool that fails closed on an unpushed commit is worth more than one that trusts the operator**, and
+this is the second time this session a refusal was the correct answer rather than an obstacle.
+
+**⭐ ONE PRE-FLIGHT CHECK THAT MATTERED.** Every promoted file was grepped for sandbox-only coupling.
+All hits were comments citing evidence paths — **except `sootopolis.py:2197`, LIVE code writing into
+`tools/story-dev/saves/`.** It is safe (returns immediately unless an env var names a capture; and
+`parents[3]` is the repo root from either fork) — but it had to be READ, not assumed. ⇒ **when a grep
+returns "mostly comments", the value is entirely in the exception.**
+
+**⛔ AND THE FORK'S OWN README WAS FOUR WEEKS STALE.** It claimed *"EIGHT user-approved promotions"*
+and *"built content runs … Segment 15; the next unwritten beat is the Slateport submarine"* — while
+the log held 42 entries and content reached §Ch23. ‼ **That line had ALREADY been wrong once before
+and said so in its own text.** ⇒ ⭐ the count is now REPLACED BY A POINTER to `DIVERGENCE-LOG.md`:
+**a count kept in two places is a count that will disagree with itself.**

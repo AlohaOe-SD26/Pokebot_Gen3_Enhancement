@@ -755,123 +755,17 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 - **Bounded, not fixed:** the per-run frame budget would have ended this run at 3.5M frames
   (it was at 2.78M when stopped), and KI-32 now makes it *diagnosable*. Neither prevents it.
 
-## KI-34 — the after-faint chooser LIVELOCKS when its candidate filter and the game disagree (opened 2026-07-29, severity: HIGH — ✅ **FIXED 2026-07-30, and the index-space mapping is IN THE CODE TODAY**: `battle_handler.py:676-680` defines `_to_menu_order()` and `:683` builds `alive_slots_menu`. ⚠ **The diagnosis tables below are the PRE-FIX picture, kept for the reasoning** — read them as history, not as today's code)
-- **User report:** *"noticed an error with I think p2 or p3 where they were training with a
-  skitty and an Abra in the team in a double battle but had issues selecting the Abra."*
-  Confirmed in P2 of bundle `20260729-172342`, and **this is the first production catch by the
-  KI-32 in-battle stall fix** — without it the log would again have been silent.
-- **Evidence (71 in-battle STUCK dumps, f652,238 → f862,238 = 210,000 frames):**
-  ```
-  game_state=3 (PARTY_MENU)  controllable=False
-  battle: active=True  instr=BattleScript_FaintedMonTryChoose
-  battle_text='MARSHTOMP fainted!'
-  party=['Marshtomp L27 0/76', 'Skitty L15 41/41', 'Poochyena L12 0/32', 'Abra L7 21/21']
-  -> handle_battle @ battle_handler.py:264
-  -> handle_fainted_pokemon @ battle_handler.py:532 / :537
-  ```
-- **It is a LIVELOCK, not a hang.** Across all 71 dumps the **party never changes** — no
-  replacement is ever sent out — but the menu state *cycles*:
-  `Task_ReturnToChooseMonAfterText + Task_PrintAndWaitForText` ×57,
-  `Task_HandleChooseMonInput` ×10, `Task_HandleSelectionMenuInput` ×3, and the stack alternates
-  between the two `yield` sites at `:532`/`:537`. The bot is pressing buttons and the game is
-  responding; the *outcome* never occurs.
-- **‼ Its 6,000-frame bound does not bound anything.** `handle_fainted_pokemon` ends with
-  `if frames > 6000: return` — but the dispatcher re-enters it with `frames = 0`.
-  210,000 / 6,000 ≈ **35 re-entries**. This is verbatim the playbook rule
-  *"bound the OUTCOME, not just the frames — a bounded loop re-entered by its dispatcher is
-  still infinite."*
-- **Two candidate mechanisms — NOT yet distinguished, and the dump cannot separate them:**
-  1. **`alive_slots` is EMPTY.** If this is a DOUBLE battle whose actives are Skitty(1) and
-     Abra(3), then `_on_field = {1,3}`; slots 0 and 2 are fainted, so the KI-18 exclusion
-     leaves **no candidate at all**. Every branch then either dismisses text or walks the
-     cursor, and A is never pressed — matching "issues selecting the Abra" exactly.
-  2. **Text-branch starvation.** The `Task_PrintAndWaitForText` /
-     `Task_ReturnToChooseMonAfterText` branch is checked FIRST and was active in 57 of 71
-     samples, so it can starve the `cursor not in alive_slots → "Down"` branch: A dismisses
-     the text, the cursor is still on a fainted slot, A re-selects it, the text returns.
-     KI-17's `post_gap = 24` was meant to prevent this; 24 frames may be insufficient.
-- **‼ INSTRUMENTED 2026-07-29 — the next occurrence will name its own cause.**
-  `handle_fainted_pokemon` now emits, via `debug_logger.event(category="BATTLE")`:
-  * on entry — `[FAINT-CHOOSER] alive_slots=… on_field=… party=[(slot, species, hp)…]`, with an
-    explicit **`‼ NO ELIGIBLE REPLACEMENT — cannot succeed`** when `alive_slots` is empty. That
-    one line separates mechanism (a) from (b).
-  * on give-up — `[FAINT-CHOOSER] GAVE UP after N frames … presses={…} cursors_seen=[…]`.
-    The press histogram is what distinguishes *pressing the wrong thing* from *pressing
-    nothing* (playbook §7); the state trace alone cannot.
-  Counted per iteration, emitted once, so it cannot flood a log.
-- **‼ DIAGNOSED 2026-07-30 by that instrumentation — mechanism (b), and (a) is REFUTED.**
-  Overnight batch `20260730-062818`, 7,539 chooser entries and 3,978 give-ups:
-  * **`alive_slots` was NEVER empty — 0 of 7,539.** So the KI-18 on-field exclusion is NOT
-    starving the candidate set. **Mechanism (a) is dead.**
-  * **`presses={'A': 289}` — A and NOTHING ELSE**, every time. No `Down`, no `B`, no `(none)`.
-  * **`cursors_seen=[1]` — a SINGLE position for the whole 6,002 frames**, and that position
-    **is in `alive_slots`**. The cursor is parked on a living, eligible mon.
-  So: the cursor is already correct, the bot presses A ~289 times, and the menu never advances.
-  It is not choosing wrongly and not failing to find a candidate — **its A-presses are not
-  being accepted**, and the printer-task branch (`Task_PrintAndWaitForText` /
-  `Task_ReturnToChooseMonAfterText`) keeps re-arming, so it never reaches any other branch.
-  KI-17's `post_gap = 24` is insufficient for this case.
-- **Where:** `MAUVILLE CITY(10,0)` — the Mauville Gym — in **3,975 of 3,975** located give-ups,
-  and `on_field` carries TWO slots, i.e. a **DOUBLE battle**. Exactly the user's original report.
-- **‼ Scale, and why it matters more than it looks:** P3 alone burned **23,857,950 frames** in
-  3,975 give-ups (**~7.8 complete runs' worth**) — and P3 completed only **5 badge-earning runs
-  overnight against P2's 19.** The livelock, not difficulty, is what cost that lane its night.
-  P1 1, P2 0, P4 2 — it is **99.9% concentrated in P3/Treecko**, because Treecko has no Ground
-  answer to Wattson, loses repeatedly, and every loss is another after-faint chooser roll.
-- **‼ ROOT CAUSE FOUND 2026-07-30 — USER OBSERVATION + CODE, and it invalidates my reading of
-  my own instrumentation.** The user, watching the screen: *"the bot is selecting a live pokemon
-  in the pokeparty, but its one that is already in the field (cannot select an already active
-  pokemon to swap out)"*.
-  That is impossible if `alive_slots` is correct — and it is correct, **in its own index space.
-  The comparison is not.** There are TWO party index spaces:
-  * **regular party order** — what `get_party()` returns;
-  * **in-battle party-menu order** — what the party MENU uses, which diverges from the regular
-    order once mons have been switched in and out. `BattleState.map_battle_party_index()`
-    (`battle_state.py:332`) exists solely to convert between them, and its docstring says so:
-    *"the order in the party menu might be different from what `get_party()` returns so we'd
-    have to scroll to a different index."*
+## KI-34 — the after-faint chooser LIVELOCKS when its candidate filter and the game disagree — ✅ **FIXED 2026-07-30; the index-space mapping is IN THE CODE TODAY** (`battle_handler.py:676-680` `_to_menu_order()`, `:683` `alive_slots_menu`). 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, to keep 05 under its R3 line budget; nothing deleted).
 
-  ⛔ **PRE-FIX PICTURE (2026-07-29). `handle_fainted_pokemon` *USED* BOTH SPACES AND COMPARED THEM
-  DIRECTLY.** ✅ It no longer does: `:676-680` `_to_menu_order()` and `:683` `alive_slots_menu`
-  now convert party-order → menu-order before any comparison. Line numbers below are TODAY's
-  homes for those values, re-derived 2026-08-16; the *mixed-space* row is what got fixed:
-  | line | value | space |
-  |---|---|---|
-  | `battle_handler.py:610` | `party_in_menu = get_party()` | **regular** |
-  | `battle_handler.py:633` | `alive_slots` built by enumerating that party | **regular** |
-  | `battle_handler.py:724` | `cursor = get_party_menu_cursor_pos(...)["slot_id"]` (reads `gPartyMenu.slotId`) | **in-battle menu** |
-  | `battle_handler.py:667` (comment) / `:683` (the fix) | *was* `cursor in alive_slots` raw; **now** `alive_slots_menu = {_to_menu_order(i) for i in alive_slots}` | ✅ **was ‼ mixed — now MAPPED** |
-
-  ‼ **The same function already knows better**: its PRIMARY path maps correctly at
-  `battle_handler.py:443-444` (`if index_needs_mapping: new_lead_index =
-  battle_state.map_battle_party_index(new_lead_index)`). Only the RECOVERY SWEEP — the loop that
-  actually wedges — skips the mapping.
-- **Why this explains every observation at once:** once the orders diverge (i.e. after switches
-  and faints — exactly a double battle late in a fight), menu-slot *n* is a different mon than
-  party-slot *n*. The sweep concludes "cursor is on a living, eligible mon", presses A, and the
-  game **refuses because that mon is on the field** — which re-arms
-  `Task_PrintAndWaitForText`, so the loop takes the dismiss-text branch again. Hence exactly
-  what was logged: `presses={'A': 289}`, **cursor static**, and a `cursor in alive_slots` test
-  that was TRUE and meaningless. It is worst in P3 because that lane faints most, so its orders
-  diverge most.
-- **‼ LESSON (logged in 08-MISTAKES):** I instrumented the VALUES but not their UNITS. Two
-  integers from different coordinate systems compared as if interchangeable — and the log I
-  added made the wrong comparison look verified.
-- **FIXED 2026-07-30.** Two changes in `modules/battle_handler.py`:
-  1. **Convert before comparing.** `alive_slots_menu = {map_battle_party_index(i) ...}` and every
-     cursor test now uses the MENU-order set — matching what the primary path and
-     `battle_action_selection.py:124/199` already did. The entry log prints BOTH sets with their
-     units and flags `[orders DIVERGE]`.
-  2. **Bound the OUTCOME, not the frames.** `FAINT_CHOOSER_GIVEUP_LIMIT = 3` per battle
-     (counter reset in `handle_battle`); on exceeding it the run gets a RECOVERABLE derail via
-     `battle_fault.request_mode_recovery()`, which makes `handle_battle` and `BattleListener`
-     short-circuit so `StoryMode` claims it and the endless loop starts the next run.
-     It never RAISES from battle code — on this flat controller stack that would reach
-     `main_loop` and force Manual.
-- **Repro:** `tools/story-dev/repro_faint_chooser_index_space.py` — builds a diverged battle
-  party order and proves the OLD test calls menu slot 1 selectable while the NEW test correctly
-  rejects it as on-field: the user's observation, reproduced as arithmetic.
-
+**2026-09-06 — ARCHIVED, NOT REOPENED.** The full entry (113 lines: the livelock trace, the
+index-space diagnosis tables, and the A/B that proved the fix) moved VERBATIM to
+`28-HANDOFF-ARCHIVE.md` to keep this file under its `lint_docs` R3 budget after `KI-91` and
+`KI-92` were filed. ⛔ **Nothing was deleted and nothing changed status** — KI-34 remains FIXED
+(2026-07-30), and `battle_handler.py:676-680` / `:683` still carry the mapping.
+⭐ **WHY IT IS WORTH RE-READING RATHER THAN FORGETTING:** its shape — a candidate filter and the
+game disagreeing about which INDEX SPACE they are in — has recurred three more times since
+(`KI-18`, `KI-66`, and `#24-faintchooser-fourthspace`). ⇒ read the archived tables before
+touching `handle_fainted_pokemon` again.
 ## KI-36 — the per-run frame budget CANNOT fire while a battle handler is on the stack (opened 2026-07-30, severity: HIGH)
 - **Symptom:** in `20260730-062818`, P3 run `235303` ran for **25,632,106 frames** — five times
   the 5,000,000 cap — and the batch reported **`frame-cap=0`**. The budget never fired.
@@ -2901,7 +2795,7 @@ one about the PARTY menu, because the item side had been "verified" by printing 
 independently by a decomp read.
 
 
-## `KI-90` — ⛔⛔ IN A **DOUBLE BATTLE** WITH ONE OPPONENT SLOT ABSENT, THE BOT AIMS AT THE EMPTY SLOT, RAISES, AND THE RUN HANGS (2026-09-05, MEASURED; ✅ REPRODUCED by gate #38; ‼ root cause CORRECTED the same day; ✅✅ **FIXED the same day at the checkpoint — gate #38 SELF-RETIRED**; ⚠ sandbox only, promotion is the user's call)
+## `KI-90` — ⛔⛔ IN A **DOUBLE BATTLE** WITH ONE OPPONENT SLOT ABSENT, THE BOT AIMS AT THE EMPTY SLOT, RAISES, AND THE RUN HANGS (2026-09-05, MEASURED; ✅ REPRODUCED by gate #38; ‼ root cause CORRECTED the same day; ✅✅ **FIXED the same day at the checkpoint — gate #38 SELF-RETIRED**; ✅ PROMOTED to `custom-pokebot/` 2026-09-06, user-approved, and re-verified against `--build custom`)
 
 **Severity: HIGH, and it is a HANG, not a crash.** The exception unwinds the whole controller stack,
 the bot drops to Manual *inside a battle nothing is driving*, and the run sits until the watchdog
@@ -2994,3 +2888,44 @@ whether that promise had been kept — **it had not.** ⇒ ⭐ **A PROMISE TO FI
 harness, but that directory is gitignored and its names are REUSED — copy it out first, the trap
 `ki90_double_absent_seed.ss1` already records), then drive `post_league_heal.ss1 --driver ch23shop`
 and watch for the same `ReturnFromBattleToOverworld` tail.
+
+
+## `KI-92` — `audit_doc_consistency` is BLIND to drift claims buried in `04-HANDOFF.md`'s banner line (2026-09-06, ⛔ FAULT-PROVEN, OPEN)
+
+**Symptom.** The §Ch19→§Ch23 promotion took drift 14 → 0. A sweep corrected nine sites and the gate
+returned **PASS** — yet a **10th** live claim survived, ~17,400 characters into `04-HANDOFF.md`'s
+YOU-ARE-HERE banner (a **single line of 39,825 characters**):
+> `⚠ **DRIFT IS <the pre-promotion figure> as of 2026-09-04 (⬆ from …) … ⚠ PROMOTION IS THE USER'S CALL and is NOT implied here`
+> ‼ *(the figure itself is deliberately NOT reproduced here — see the rule below)*
+
+A Tier 1 reviewer found it by reading. **The gate did not.**
+
+**⛔ FAULT-PROVEN, NOT INFERRED.** I injected a literal stale claim back into the same region and re-ran
+the gate:
+```
+inject at offset 17400 of the 39,866-char banner a literal stale drift claim of the form
+  ' ⚠ **DRIFT IS <pre-promotion figure> as of 2026-09-04.** '
+audit_doc_consistency.py  ->  "all consistency checks PASS across 7 current-state files"   exit 0
+```
+⇒ **the gate cannot see a drift claim at that position.** (The injection was reverted from a backup
+and the revert verified: the corrections present, the injection absent, all gates green.)
+
+**Why it matters.** This gate is the project's strongest doc instrument — it MEASURES drift by running
+the comparison and checks claims against the measurement, and it found nine sites in one pass. Its
+blind spot is therefore expensive: **a green PASS here reads as "no stale drift claim exists"**, and
+that is exactly the false confidence `promote.py`'s own scope note warns about for a different check.
+
+**⚠ NOT YET DIAGNOSED.** Candidate causes, none confirmed: the banner's "unit" may be exempted by a
+`_QUOTED` / supersede span elsewhere in the same 39k-char line; `_SUBJECT_WINDOW = 90` proximity may
+resolve differently at that offset; or the unit-splitting may cap. ⛔ Do not "fix" it by widening a
+regex until the mechanism is known — this gate's own comments record two previous false-positive
+rounds caused by exactly that.
+
+**Reproduce:** copy `04-HANDOFF.md`, splice a stale drift claim (`⚠ **DRIFT IS <old figure> as of
+<old date>.**`) into line 10 at offset ~17400, run `audit_doc_consistency.py`, observe PASS. ⛔ **Restore from the copy afterwards.**
+
+**⇒ THE STRUCTURAL POINT, worth more than the bug:** a 39,825-character single line defeats every
+instrument that reasons per line or per unit — mine and the gate's alike. Splitting that banner is
+probably the real fix, and is a bigger change than this entry.
+
+‼ **AND THIS ENTRY ITSELF TRIPPED THE GATE ON ITS FIRST DRAFT** — it quoted the stale figure verbatim, twice, in the very entry whose lesson is *retract measured numbers by DELETING and POINTING, never by quoting*. ⇒ ⭐ **the gate caught its own documentation**, which is the strongest evidence that the rule is real and that the habit, not the gate, is the problem.

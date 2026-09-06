@@ -1151,6 +1151,10 @@ class StoryMode(BotMode):
         self._defeat_counts: dict = {}
         self._loss_ko_history: dict = {}  # map key -> [(seq, opponent KOs) per lost attempt]
         self._loss_seq: int = 0
+        #: `#26-manualderails`: boss keys whose ONE "second wind" (below) has been consumed.
+        #: Per-instance and per-run BY DESIGN — a fresh instance (the user's manual flip) and the
+        #: endless loop's per-run reset both re-arm it, exactly like `_counter_hunts`.
+        self._second_winds: set = set()
         self._whiteout_pending = False
         self._last_defeat_key = None
         self._derails = 0  # consecutive non-whiteout derails (self-correct before Manual)
@@ -1912,6 +1916,33 @@ class StoryMode(BotMode):
                     # it falls through to the SAME raise below on every failure path.
                     acted = yield from self._counter_ladder(cfg, losses, needed)
                     if not acted:
+                        # ‼ `#26-manualderails` SECOND WIND (2026-08-26). Once the ladder's one
+                        # attempt has failed, every derail retry used to re-raise DETERMINISTICALLY
+                        # — same instance, same history, zero new information — burning the
+                        # 5-derail budget into Manual. MEASURED: the user's flip back to Story
+                        # (a fresh instance: losses reset, ladder re-armed) then often WINS —
+                        # batch 20260811/L01 lost twice and beat Winona with NO super-effective
+                        # answer, refuting this raise's own "grinding will not fix this" premise.
+                        # So grant ONE fresh boss-attempt cycle per boss per run: empty this
+                        # boss's loss history (the derail retry now does what the flip does) and
+                        # return. ⛔ ONCE — the marker below is checked-then-written exactly like
+                        # `_counter_ladder`'s consumed-gate, and `_boss_plan_is_hopeless`'s own
+                        # len(history) >= 6 gate means the honest stop re-arms after at most 6
+                        # fresh flat losses. The 2026-07-30 honest-stop ruling is COMPLIED WITH,
+                        # not reopened: the raise below is intact and fires on the next hopeless
+                        # cycle. ⚠ Marker + pops BEFORE the print, no yields between — a tripwire
+                        # or real derail mid-wind must not re-grant it (`:1655-1658`'s rule).
+                        wind_key = tuple(cfg["keys"])[0] if cfg.get("keys") else cfg.get("name", "boss")
+                        if wind_key not in self._second_winds:
+                            self._second_winds.add(wind_key)
+                            for k in cfg.get("keys", ()):
+                                self._loss_ko_history.pop(k, None)
+                            console.print(
+                                f"[bold yellow]Story: counter hunt failed for {cfg.get('name', 'this boss')} "
+                                f"— granting ONE second wind: loss history cleared, re-attempting the "
+                                f"boss fresh (the honest stop re-arms after 6 fresh flat losses).[/]"
+                            )
+                            return
                         # ‼ NEVER DELETE THIS RAISE. Silent non-progress is worse than an
                         # honest stop: before phase 1 existed this boss looped for ever,
                         # and the whole value of the diagnosis is that it ENDS the run
@@ -3651,7 +3682,143 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Mossdeep Space Center already done — skipping.[/]")
         _guard("Mossdeep Space Center + Dive (Ch19)", lambda: _done("RECEIVED_HM_DIVE"))
 
-        # END OF BUILT CONTENT. Next build: the SEAFLOOR CAVERN — which is **Chapter 20**
+        # --- Segment 19b: TEACH DIVE. HM08 is in the bag after Ch19, but at this point in a real
+        #     run the party is FULL and NOBODY can learn Dive (measured on `post_space_center.ss1`:
+        #     Sceptile/Zigzagoon/Swellow/Skitty/Mightyena/Castform, `hm_learner_slot(HM08)` -> None).
+        #     §Ch20 REFUSES to start without a Dive user, so this must be acquired by PLAYING.
+        #     ‼ The ch20 drivers cheat here — `_inject_dive_fixture` `debug_write_party`s a Wailmer
+        #     into slot 3. Production does NOT fabricate; it hunts, makes room, and teaches.
+        #     ⚠ Route 117 Marill (10%, L13, ~1055 waypoints) is what `_hm_hunting_grounds` picks
+        #     today. Route 120 Marill (15%, L25-27, ~379 waypoints) is measurably better on every
+        #     axis and is filed as `#24-divegroundroute120` — it needs ONE live sweep first, because
+        #     this project demotes statically-derived grounds (the Route 114 lesson).
+        #     ⛔ Shoal Cave is NOT an option and must not be re-proposed: ruled out 2026-08-13
+        #     (`06-DECISIONS-LOG.md`) because at HIGH TIDE its reachable on-foot encounter tiles drop
+        #     to ZERO, so the hunt would silently burn its whole budget and read as bad luck.
+        def _party_knows_dive() -> bool:
+            try:
+                from modules.pokemon_party import get_party as _gp
+
+                return any(
+                    learned is not None and learned.move.name == "Dive"
+                    for mon in _gp()
+                    if mon is not None and not mon.is_egg
+                    for learned in mon.moves
+                )
+            except Exception:
+                return False
+
+        if not _party_knows_dive():
+            from modules.items import get_item_by_name
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import ensure_hm_learner_making_room, teach_hm_move
+
+            _hm08 = get_item_by_name("HM08")
+            # ‼ `ensure_hm_learner_making_room` is safe with a full party: it deposits ONLY on the
+            # specific "party is full" failure, and `find_dead_weight` EXEMPTS the sole carrier of
+            # any HM — driven evidence on this exact party picks Skitty and spares the Zigzagoon
+            # carrying Surf, which the run needs to reach Route 128 at all.
+            _slot = yield from ensure_hm_learner_making_room(_hm08, (PokemonCenter.MossdeepCity,))
+            yield from teach_hm_move(_hm08, _slot)
+        else:
+            console.print("[dim]Story: someone already knows Dive — teach skipped.[/]")
+        _guard("Teach Dive (Ch19b)", _party_knows_dive)
+
+        # --- Segment 20: the SEAFLOOR CAVERN — dive in, nine rooms, Kyogre, off the atoll. ---
+        #     ⛔ GRADED ON `ROUTE128_STATE >= 2`, NEVER on `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`: that
+        #     flag is set at `Room9/scripts.inc:128`, BEFORE the warp at `:138` and before a SECOND
+        #     lock-all cutscene on Route 128 — so a flag-graded segment would report success from
+        #     inside two nested scenes, standing on a sandbar it cannot leave.
+        #     ‼ `_done_var` is used rather than a raw `get_event_var` because `get_event_var`
+        #     returns -1 for a phantom name and would compare False against every threshold forever.
+        #     The decomp spells it `VAR_ROUTE128_STATE`; our table's key is the bare `ROUTE128_STATE`.
+        from modules.story.seafloor_cavern import do_seafloor_cavern_chapter
+
+        if not _done_var("ROUTE128_STATE", 2):
+            yield from do_seafloor_cavern_chapter()
+        else:
+            console.print("[dim]Story: Seafloor Cavern already done — skipping.[/]")
+        _guard("Seafloor Cavern / Kyogre (Ch20)", lambda: _done_var("ROUTE128_STATE", 2))
+
+        # --- Segment 21: SOOTOPOLIS / CAVE OF ORIGIN / SKY PILLAR / RAYQUAZA / HM07 ---------------
+        # ⛔⛔ GRADED ON `ch21_chapter_done()`, WHICH IS THE FLAG **AND**
+        # `SOOTOPOLIS_WALLACE_STATE != 0` — NOT the flag alone, even though `chapters.py:250` grades
+        # the progress READOUT on the flag alone (deliberately; see `chapters.py:240-248`).
+        # `giveitem`/`setflag` and the `call_if_eq VAR_FACING` tail that walks Wallace OFF the
+        # (31,33) tile blocking the (31,32) GYM warp are different decomp lines, and a run that dies
+        # between them holds HM07 with §Ch22's entrance SEALED. MEASURED: leg-5 drive 1 printed
+        # `ACCEPTANCE: PASS` in exactly that state (`08-MISTAKES.md` 2026-09-02).
+        from modules.story.sootopolis import ch21_chapter_done, do_sootopolis_chapter
+
+        if not ch21_chapter_done():
+            yield from do_sootopolis_chapter()
+        else:
+            console.print("[dim]Story: Sootopolis / Rayquaza already done — skipping.[/]")
+        _guard("Sootopolis / Rayquaza / HM07 (Ch21)", ch21_chapter_done)
+
+        # --- Segment 22: GYM 8 — JUAN (SOOTOPOLIS) -------------------------------------------------
+        # ⛔⛔ GRADED ON `ch22_chapter_done()`, WHICH IS THE BADGE **AND A POSITION** — never the
+        # badge alone. `BADGE08_GET` is set by `SootopolisCity_Gym_1F_EventScript_JuanDefeated`
+        # while the bot still stands on JUAN_STAND (8,3), on a 20-TILE ISLAND, with the exit warp
+        # AND the 1F ladder both unreachable and `allow_escaping` false on BOTH floors. Grading on
+        # the flag would hand the next segment a stranded run — the §Ch15 / §Ch18 / §Ch19 shape,
+        # each of which PASSED its own test while stranded.
+        # ‼ `chapters.py:255-256` grades the progress READOUT on the flag alone, deliberately: the
+        # readout answers "which chapter is this run in", not "may the next segment start".
+        # ⛔ AND THE FALL TO B1F IS PART OF THIS CHAPTER, NOT AN ACCIDENT. After the ice is walked
+        # there is no other way off Juan's platform; the chapter breaks (8,6) on purpose. Because
+        # the victory script `settrainerflag`s all ten B1F trainers, that descent is BATTLE-FREE.
+        from modules.story.sootopolis_gym import ch22_chapter_done, do_sootopolis_gym_chapter
+
+        if not ch22_chapter_done():
+            yield from do_sootopolis_gym_chapter()
+        else:
+            console.print("[dim]Story: Sootopolis Gym / Juan already done — skipping.[/]")
+        _guard("Gym 8 — Juan (Ch22)", ch22_chapter_done)
+
+        # --- Segment 23: VICTORY ROAD ---------------------------------------------------------------
+        # ⛔⛔ GRADED ON `ch23_chapter_done()`, WHICH IS THE FLAG **AND A POSITION** — never the flag
+        # alone. `chapters.py:280-286` grades Segment 23's READOUT on `DEFEATED_WALLY_VICTORY_ROAD`,
+        # and that flag is set at **LEG 5 OF 11**, while the bot stands at the B1F ladder apron with
+        # the boulder interlock, B2F, the return climb, the exit, the League heal and the shop all
+        # still ahead of it. Grading the GATE on it would hand §Ch24 a run buried two floors
+        # underground — the §Ch15 / §Ch18 / §Ch19 shape, each of which PASSED its own test while
+        # stranded, and which §Ch22's predicate exists because it was nearly the fourth.
+        # ‼ The readout answers "which chapter is this run in"; the gate answers "may the next
+        # segment start". Both are correct. Do not collapse them.
+        from modules.story.victory_road import ch23_chapter_done, do_victory_road_chapter
+
+        if not ch23_chapter_done():
+            yield from do_victory_road_chapter()
+        else:
+            console.print("[dim]Story: Victory Road already done — skipping.[/]")
+        _guard("Victory Road (Ch23)", ch23_chapter_done)
+
+        # END OF BUILT CONTENT. Next build: **THE POKÉMON LEAGUE — Chapter 24**: the Elite Four
+        # gauntlet (Sidney, Phoebe, Glacia, Drake) and Champion Wallace. ⛔ NO NURSE BETWEEN ROOMS —
+        # the doors seal behind you, so the BAG is the only healing, and items are legal in those
+        # battles (decomp-verified). §Ch23 leg 11 already buys the basket for exactly this reason.
+        # ✅ §Ch23 IS NOW WIRED (2026-09-05) — the orchestrator dispatches on POSITION because six of
+        # its legs RAISE when their work is already done (anti-vacuity guards written for standalone
+        # drivers, which invert into a liability on a whiteout resume).
+        # ⛔ THE CITATION BELOW USED TO READ `chapters.py:259-262` FOR CHAPTER 23. It is
+        # **`chapters.py:280-286`** — 259-262 is Segment 21's neighbourhood. Verified 2026-09-05.
+        # (superseded heading: "Next build: VICTORY ROAD — Chapter 23", graded on
+        # `DEFEATED_WALLY_VICTORY_ROAD`: Surf/Waterfall/Dive to Ever Grande, then clear Victory Road
+        # and beat Wally.)
+        # ⭐ Badge 8 is what makes field WATERFALL usable (`src/field_control_avatar.c` gates
+        # `EventScript_UseWaterfall` on `FLAG_BADGE08_GET`), which is exactly what opens Routes
+        # 132-134 — so §Ch22 landing is what unblocks §Ch23.
+        # ✅ §Ch22 IS NOW WIRED (2026-09-03). ✅ §Ch21 IS NOW WIRED (2026-09-02);
+        # the Ch21 leads below are retained because their TRAPS still apply to anyone touching it.
+        # ⛔ This heading has been wrong twice before — it is a BANNER, and a banner is a claim about
+        # every clause under it; retarget it in the SAME commit as the next segment that lands.
+        # (superseded heading: "Next build: SOOTOPOLIS / RAYQUAZA — **Chapter 21**".)
+        # ✅ §Ch20 IS NOW WIRED (2026-08-24) — the text below is retained for its Ch21 leads and for
+        # the traps, which still apply. Sootopolis is driven by `VAR_SOOTOPOLIS_CITY_STATE == 1`,
+        # which Room 9 sets in the SAME block that sets `ROUTE128_STATE` — so Ch21 is enterable the
+        # moment Ch20 completes. (Superseded text follows.)
+        # OLD: END OF BUILT CONTENT. Next build: the SEAFLOOR CAVERN — which is **Chapter 20**
         # (`chapters.py:233`, graded on `KYOGRE_ESCAPED_SEAFLOOR_CAVERN`). Chapter 21 is
         # Sootopolis/Rayquaza and has not been touched.
         # ✅ **KI-63 IS RESOLVED (2026-08-13) — this comment used to say the cavern was BLOCKED by
@@ -3669,9 +3836,10 @@ class StoryMode(BotMode):
         # (38,22) is a shallow-water SANDBAR — the bot must Surf off it. The standing rule is "and the bot
         # can continue", and three chapters have already shipped stranded.
         context.message = (
-            "Story: HM08 DIVE IS IN THE BAG - end of built content. "
-            "NEXT (WIP): the Seafloor Cavern (Ch20). The Dive blocker (KI-63) is RESOLVED and the "
-            "dive leg is driven; the cavern INTERIOR is not built yet. Handing to manual."
+            "Story: VICTORY ROAD IS DONE (Ch23) - Wally is beaten, the B1F/B2F interlock is "
+            "cleared, and the bot is out at EVER GRANDE with the party healed and the Elite Four "
+            "basket bought. End of built content. NEXT (WIP): Ch24, THE POKEMON LEAGUE - a FIVE "
+            "FIGHT GAUNTLET with NO NURSE between rooms. Handing to manual."
         )
         console.print(f"[bold green]{context.message}")
         # ‼ Mark a GENUINE completion. Both this path and the give-up paths call
