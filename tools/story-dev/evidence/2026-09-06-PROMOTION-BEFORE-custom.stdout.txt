@@ -1,0 +1,12 @@
+[moveset] Swellow L48: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Wailord L47: Dive, Surf, Water Spout, Waterfall
+[moveset] Mightyena L48: Tackle, Crunch, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 501 get_party() recomputes, 2 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch23chapter 501 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\custom-pokebot\profiles\repro-ml\states\2026-
+09-06_06-30-47.ss1 created!
+Updated `current_state.ss1`!
