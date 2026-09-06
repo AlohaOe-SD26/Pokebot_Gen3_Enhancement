@@ -13351,3 +13351,30 @@ carefully argued.
    ROUTING sections of both §Ch24 notes are independent of this assumption and remain sound. Only the
    DAMAGE sections are now unsourced. ⇒ **mark the affected sections rather than discarding the
    document**, or the good half is lost with the bad.
+
+
+## 2026-09-06 — my probe abandoned a live battle and produced a signature that looked like a bot hang
+
+**Symptom.** The first §Ch24 probe run ended in `HANG CONFIRMED` with
+`state=BATTLE ctrl=<none>` and `BattleScript_SelectingTormentedMove` in the no-progress signature. It
+looked exactly like a Torment defect in our move chooser.
+
+**It was my instrument.** The probe's battle wait was **4,000 frames**. When it expired the probe fell
+through to its report and called `set_manual_mode()` — **abandoning a live battle**, which then waited
+forever for a move selection that no controller was left to make. The party EXP was frozen for 10,000
+frames because *nothing was driving the fight at all*.
+
+**⇒ PREVENTION RULES (two).**
+1. ⛔⛔ **AN INSTRUMENT THAT ABANDONS THE THING IT MEASURES PRODUCES A SIGNATURE THAT LOOKS LIKE A
+   FINDING.** The stall state it reports is wherever the subject happened to be standing, and it will
+   name a real mechanic — Torment, here — which makes the false finding *plausible and specific*. ⇒
+   before reading a hang signature, **prove the instrument was still attached**: look for
+   `no controller on the stack` and check the wait budget against the frame it stopped at.
+2. ⭐ **A TIMEOUT MUST REFUSE, NOT FALL THROUGH.** The probe now raises with an explicit message
+   ("do NOT read this as a bot hang until you have checked the controller was still attached") instead
+   of quietly finishing. ⇒ **a bounded wait that ends silently converts an unfinished measurement into
+   a confident wrong one** — the same shape as a gate that passes without printing a verdict.
+
+‼ **The second run, with a 90,000-frame budget, shows the controller dropping at ~f19,363 — so there
+IS a real defect underneath (`KI-93`).** But the first run's evidence is VOID and is recorded as void:
+had I filed KI-93 from it, the diagnosis would have rested on a measurement of my own bug.

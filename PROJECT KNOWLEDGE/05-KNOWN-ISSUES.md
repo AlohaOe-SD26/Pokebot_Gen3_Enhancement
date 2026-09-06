@@ -2929,3 +2929,47 @@ instrument that reasons per line or per unit — mine and the gate's alike. Spli
 probably the real fix, and is a bigger change than this entry.
 
 ‼ **AND THIS ENTRY ITSELF TRIPPED THE GATE ON ITS FIRST DRAFT** — it quoted the stale figure verbatim, twice, in the very entry whose lesson is *retract measured numbers by DELETING and POINTING, never by quoting*. ⇒ ⭐ **the gate caught its own documentation**, which is the strongest evidence that the rule is real and that the habit, not the gate, is the problem.
+
+
+## `KI-93` — ⛔⛔ THE CONTROLLER DROPS OUT MID-FIGHT AGAINST SIDNEY, AND THE BATTLE THEN HANGS FOREVER (2026-09-06, MEASURED, OPEN — §Ch24 BLOCKER)
+
+**MEASURED** by the new `--driver ch24probe` on `post_league_shop.ss1`. The bot walks into the League,
+reaches Sidney, starts the fight, **fights several turns successfully**, and then the controller
+vanishes while the battle is still live:
+```
+f6569 … f11393   PARTY CHANGE ×6   ⇐ EXP gained and lead rotations: the fight WAS progressing
+f19363  !!! NO-PROGRESS x1200
+        sig=('<none>', 'BATTLE', 'BattleScript_SelectingTormentedMove', 'DialogueNotActive', …)
+f19363      gen -> <no controller on the stack (Manual mode / dropped out)>
+f38163  HANG CONFIRMED (20000 frames no progress)
+```
+⇒ **Sceptile gained EXP (145272 → 146533) and mons fainted and were replaced before the drop**, so
+this is not a failure to engage — it is a mid-battle collapse.
+
+**WHAT IS MEASURED, AND WHAT IS NOT — read this before acting.**
+* ✅ MEASURED: the controller is GONE at f19363 (`no controller on the stack`), the mode is Manual, the
+  battle is still live, and the game sits in `BattleScript_SelectingTormentedMove`.
+* ✅ MEASURED: it is **not** the probe's timeout. The probe's battle wait is **90,000 frames** and the
+  drop happens at ~19k. ‼ An EARLIER version of this probe waited only 4,000 frames and produced a
+  *superficially identical* signature by abandoning the battle itself — **that run's evidence is void
+  and must not be cited.** The fix to the instrument came first, and only then was this recorded.
+* ⛔ NOT MEASURED: **the identity of the exception.** "Torment makes our move-chooser raise" is a
+  HYPOTHESIS, not a finding. `BattleScript_SelectingTormentedMove` is where the game was standing when
+  everything stopped; that is a correlation.
+
+**WHY IT IS PLAUSIBLE ANYWAY** (still a hypothesis): Sidney's team carries **Torment**, which forbids
+repeating the last move. Our story strategy picks the strongest usable move each turn and would keep
+re-selecting the same one; if the selection path raises rather than falling back, the exception escapes
+`BattleListener` — and this project has ALREADY established that **any** exception from that sibling
+controller reaches `modules/main.py:151-158` and sets Manual, which is precisely the
+sibling-controller containment problem left open by `KI-90`.
+
+**⇒ NEXT STEP, AND IT IS CHEAP: CATCH THE EXCEPTION'S IDENTITY.** Do not guess it. Re-run the probe
+with the exception surfaced (log it from the listener, or wrap `decide_turn`), and read the type and
+the message. Everything after that depends on which it is.
+**Reproduce:** `PYTHONUTF8=1 py -3.12 story_harness.py post_league_shop.ss1 --driver ch24probe --frames 200000`
+
+**⛔ IMPLICATION FOR §Ch24 — THIS IS THE BLOCKER, NOT THE LEVEL GAP.** Planning so far has argued about
+whether the party can WIN (the analysis says it dies at Glacia, fight 3). **This says the run cannot
+finish fight 1 for reasons that have nothing to do with damage.** ⇒ ⭐ **fix the hang before spending
+anything on levels or TMs** — a stronger party hangs in exactly the same place.

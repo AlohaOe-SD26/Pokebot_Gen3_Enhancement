@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -15005,6 +15005,295 @@ def _where_ch24():
 
 
 
+class Ch24ProbeMode(BotMode):
+    """§Ch24 PROBE — enter the League and MEASURE the Sidney fight. Sets no progress marker.
+
+    ⛔⛔ WHY THIS EXISTS. Every §Ch24 damage number to date was CALCULATED from an assumed IV31/EV0
+    spread, and 2026-09-06 measured that assumption wrong exactly where the plan is thinnest —
+    Sceptile's SpA contribution is **20**, not 31, and Sceptile is the only mon that outspeeds Drake's
+    ace. ⇒ rather than build a better model and trust it, **fight fight #1 and read the numbers.**
+
+    ‼ THE ONE-WAY-GAUNTLET OBJECTION DOES NOT APPLY TO A PROBE. The harness reloads from a fixture, so
+    a loss costs one drive. And a white-out here is recoverable, not a softlock: respawn is
+    EVER_GRANDE_CITY (18,6), the lobby door (`heal_locations.json:117-122`); it halves money
+    (`overworld.c:358-366`) and forfeits the attempt, nothing more.
+
+    ROUTE (all decomp-sourced, `2026-09-04-ch24-LEAGUE-INTERIOR-ROUTING.md` §2):
+        EVER_GRANDE (18,6)  --face N, HOLD Up (MB_ANIMATED_DOOR)-->  LEAGUE_1F
+        LEAGUE_1F: talk the guards from (9,3) facing N; they step onto (9,2)/(10,2)
+        LEAGUE_1F (9,1)     --STEP-ON (MB_NON_ANIMATED_DOOR)------->  HALL5
+        HALL5 (5,2)         --STEP-ON------------------------------>  SIDNEYS_ROOM
+        entering auto-walks the player to (6,7); Sidney stands at (6,5)
+        ⇒ north 1 to (6,6), face N, press A  ⇒ battle
+
+    READINGS
+      P24-IN        we are inside LEAGUE_1F
+      P24-HALL5     we reached HALL5 (the guards let us through)
+      P24-ROOM      we are in SIDNEYS_ROOM, with the tile we landed on
+      P24-ENGAGED   a battle actually started
+      P24-OUTCOME   ⭐ THE MEASUREMENT: won/lost, and the party HP either side
+
+    ⛔ GRADED ON HAVING REACHED SIDNEY AND OBTAINED AN OUTCOME — **never on winning.** A probe graded
+    on winning would report FAIL for a correct measurement of a losing matchup, which is precisely the
+    answer this exists to get.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_league_shop.ss1 --driver ch24probe --frames 120000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24Probe"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch24probe] WHITEOUT #{self.whiteouts} — respawn EVER_GRANDE (18,6); money halved. "
+            f"⭐ This is a legitimate MEASUREMENT, not a driver failure.")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        log(f"[ch24probe] BATTLE #{self.battles} — {self._hp_line()}")
+        return StoryItemBattleStrategy()
+
+    @staticmethod
+    def _hp_line() -> str:
+        from modules.pokemon_party import get_party
+
+        return " ".join(
+            f"{m.species.name}:{m.current_hp}/{m.total_hp}"
+            for m in get_party() if m is not None and getattr(m, "species", None) is not None
+        )
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.memory import get_event_var
+        from modules.story import victory_road as VR
+        # ‼ `_check_abort` MUST be imported HERE. `victory_road.py` records this exact trap three
+        # times: a helper another function imported locally is NOT available to yours, and the first
+        # run of this probe died on `NameError: name '_check_abort' is not defined` after correctly
+        # reaching the lobby. ⇒ the lesson was already written down and I still hit it.
+        from modules.story.early_game import _check_abort, wait_until_truly_controllable
+        from modules.story.seafloor_cavern import _on_map, _where
+        from modules.modes.util import wait_for_n_frames
+        from modules.modes.util.walking import ensure_facing_direction
+
+        TAG = "ch24probe"
+        EG = MapRSE.EVER_GRANDE_CITY
+        L1F = MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_1F
+        HALL5 = MapRSE.EVER_GRANDE_CITY_HALL5
+        SIDNEY = MapRSE.EVER_GRANDE_CITY_SIDNEYS_ROOM
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        taken, R = set(), {}
+
+        log(f"[{TAG}] PRE at={_where()} elite4_state={get_event_var('ELITE_4_STATE')}")
+        log(f"[{TAG}] PRE party={self._hp_line()}")
+        failure = None
+        try:
+            yield from wait_until_truly_controllable()
+
+            # ---- into the lobby (leg 11 already proves this door) -------------------------------
+            if _on_map(EG):
+                if VR._here_tile() != (18, 6):
+                    yield from VR._navigate_riding_out(EG, (18, 6))
+                    yield from wait_until_truly_controllable()
+                yield from VR._walk_through_warp("Up", EG.value)
+                yield from wait_until_truly_controllable()
+            if not _on_map(L1F):
+                raise BotModeError(
+                    f"Ch24 probe: expected to be inside POKEMON_LEAGUE_1F but we are at {_where()}. "
+                    f"⛔ The lobby door is an MB_ANIMATED_DOOR — stand (18,6), face North and HOLD Up; "
+                    f"a single step does nothing."
+                )
+            R["in_lobby_at"] = VR._here_tile()
+            taken.add("P24-IN")
+
+            # ---- the guards. They stand ON (9,2)/(10,2) until spoken to ------------------------
+            # ⚠ MEASURED-BY-RESEARCH, NOT BY US: the note says talking from (9,3) facing North moves
+            # them aside. If the step-on below fails, THIS is the line to doubt first.
+            yield from VR._navigate_riding_out(L1F, (9, 3))
+            yield from wait_until_truly_controllable()
+            yield from ensure_facing_direction("Up")
+            for _ in range(30):
+                _check_abort()
+                if _on_map(HALL5):
+                    break
+                context.emulator.press_button("A")
+                yield from wait_for_n_frames(8)
+                if VR._here_tile() != (9, 3):
+                    break
+            yield from wait_until_truly_controllable()
+            R["after_guards_at"] = (str(_where()), VR._here_tile())
+
+            # ---- step ONTO the door tile (9,1): MB_NON_ANIMATED_DOOR is step-on ----------------
+            if not _on_map(HALL5):
+                yield from VR._navigate_riding_out(L1F, (9, 1))
+                yield from wait_until_truly_controllable()
+            if not _on_map(HALL5):
+                raise BotModeError(
+                    f"Ch24 probe: stepped toward the lobby's north door (9,1) and did not reach "
+                    f"HALL5 — we are at {_where()}, tile {VR._here_tile()}. ⛔ Suspect the GUARDS: "
+                    f"they occupy (9,2)/(10,2) until spoken to from (9,3) facing North."
+                )
+            R["hall5_at"] = VR._here_tile()
+            taken.add("P24-HALL5")
+
+            # ---- HALL5 (5,2) -> Sidney's room --------------------------------------------------
+            yield from VR._navigate_riding_out(HALL5, (5, 2))
+            yield from wait_until_truly_controllable()
+            if not _on_map(SIDNEY):
+                raise BotModeError(
+                    f"Ch24 probe: stepped on HALL5 (5,2) and did not reach SIDNEYS_ROOM — we are at "
+                    f"{_where()}."
+                )
+            R["room_landing"] = VR._here_tile()
+            R["elite4_state_in_room"] = get_event_var("ELITE_4_STATE")
+            taken.add("P24-ROOM")
+            log(f"[{TAG}] in Sidney's room at {VR._here_tile()} (the script auto-walks to (6,7))")
+
+            # ---- ⛔ LOCATE SIDNEY LIVE. DO NOT TRUST THE RESEARCHED COORDINATE. ----------------
+            # MEASURED on the first run: the note says entering auto-walks the player to (6,7) with
+            # Sidney at (6,5). The landing is actually **(6,11)**, and pressing A at (6,6) hit nothing.
+            # ⇒ read the object table and approach whoever is actually there. This also survives the
+            # auto-walk still being in flight when we look.
+            from modules.map import get_map_objects
+
+            sidney = None
+            for _ in range(90):          # let any entry cutscene / auto-walk settle
+                _check_abort()
+                objs = [o for o in get_map_objects() if tuple(o.current_coords) != VR._here_tile()]
+                if objs:
+                    sidney = min(objs, key=lambda o: abs(o.current_coords[0] - VR._here_tile()[0])
+                                 + abs(o.current_coords[1] - VR._here_tile()[1]))
+                    break
+                yield from wait_for_n_frames(10)
+            R["objects_seen"] = [tuple(o.current_coords) for o in get_map_objects()]
+            R["player_before_approach"] = VR._here_tile()
+            if sidney is None:
+                raise BotModeError(
+                    f"Ch24 probe: no map object visible in SIDNEYS_ROOM from {VR._here_tile()}. "
+                    f"⛔ Sidney is an INTERACTION script and must be ON the map to talk to."
+                )
+            sx, sy = tuple(sidney.current_coords)
+            R["sidney_at"] = (sx, sy)
+            stand = (sx, sy + 1)          # stand SOUTH of him and face North
+            log(f"[{TAG}] ⭐ SIDNEY MEASURED at {(sx, sy)} — approaching {stand} (note claimed (6,5))")
+
+            hp_before = self._hp_line()
+            if VR._here_tile() != stand:
+                yield from VR._navigate_riding_out(SIDNEY, stand)
+                yield from wait_until_truly_controllable()
+            R["stood_at"] = VR._here_tile()
+            yield from ensure_facing_direction("Up")
+            # ⛔ INSTRUMENTED. The first two runs stood correctly at (6,6) facing North with Sidney
+            # MEASURED at (6,5) and 40 A-presses produced nothing. ⇒ before blaming the position
+            # again, record what the game actually thinks: the player's facing, every object with its
+            # local_id, and whether a script is running. A press that does nothing is a reading.
+            from modules.player import get_player
+            from modules.modes.util.tasks_scripts import get_global_script_context
+
+            def _diag(tag):
+                try:
+                    p = get_player()
+                    facing = getattr(p, "facing_direction", "?")
+                except Exception:  # noqa: BLE001
+                    facing = "?"
+                try:
+                    sc = get_global_script_context()
+                    running = getattr(sc, "is_active", None)
+                except Exception:  # noqa: BLE001
+                    running = "?"
+                objs = [(getattr(o, "local_id", "?"), tuple(o.current_coords)) for o in get_map_objects()]
+                log(f"[{TAG}] DIAG {tag}: tile={VR._here_tile()} facing={facing} "
+                    f"script_active={running} objects={objs}")
+
+            _diag("before A-presses")
+            # ⭐⭐ THE PROVEN CADENCE, COPIED FROM A WORKING CALLER IN THIS REPO —
+            # `_talk_to_the_stair_grunt` (`modules/story/space_center.py:319-332`), the §Ch19 grunt
+            # that is likewise an INTERACTION trainer. It presses EVERY FRAME, alternating
+            # `"B" if frames % 3 else "A"`, because B advances dialogue without re-triggering.
+            # ⛔ MEASURED: my first cadence (one A every 20 frames) DID start Sidney's script —
+            # `script_active` went False -> True — and then never advanced past the intro dialogue.
+            # ⇒ the interaction was never the problem; the ADVANCE was. Third time this session that
+            # reading an existing caller was the answer, and the project's own rule says to do it first.
+            context.emulator.press_button("A")
+            yield
+            for frames in range(3000):
+                _check_abort()
+                if self.battles:
+                    break
+                context.emulator.press_button("B" if frames % 3 else "A")
+                yield
+                if frames in (600, 1500):
+                    _diag(f"after {frames} frames of A/B")
+            R["engaged"] = bool(self.battles)
+            _diag("after A/B advance")
+            taken.add("P24-ENGAGED")
+            if not self.battles:
+                raise BotModeError(
+                    f"Ch24 probe: stood at (6,6) facing North and pressed A 40 times without starting "
+                    f"a battle. ⛔ Sidney is an INTERACTION script, not a sight trigger — check we are "
+                    f"adjacent and facing him at (6,5)."
+                )
+
+            # ---- ⭐ THE MEASUREMENT --------------------------------------------------------------
+            # ⛔⛔ THIS WAIT WAS 4,000 FRAMES AND THAT WAS *MY* BUG, NOT THE BOT'S. The first run
+            # abandoned a LIVE battle when the loop expired, fell through to `set_manual_mode()`, and
+            # the harness then logged `HANG CONFIRMED` with `state=BATTLE ctrl=<none>` — a battle
+            # waiting forever for a move selection that no controller was left to make.
+            # ‼ The NO-PROGRESS signature named `BattleScript_SelectingTormentedMove`, which looked
+            # like a Torment defect. It is NOT evidence of one: party EXP was frozen for 10,000
+            # frames because nothing was driving the battle at all. ⇒ **an instrument that abandons
+            # the thing it is measuring produces a signature that looks like a finding.**
+            # ⇒ a five-fight gauntlet needs a real budget; grade the OUTCOME, never the timeout.
+            from modules.battle_state import get_battle_state
+
+            battle_frames = 0
+            for battle_frames in range(90_000):
+                _check_abort()
+                if get_battle_state() is None:
+                    break
+                yield
+            R["battle_frames"] = battle_frames
+            if get_battle_state() is not None:
+                raise BotModeError(
+                    f"Ch24 probe: the Sidney battle was still live after {battle_frames:,} frames. "
+                    f"⛔ Do NOT read this as a bot hang until you have checked the controller was "
+                    f"still attached — the first run of this probe produced exactly that signature "
+                    f"by abandoning the battle itself."
+                )
+            yield from wait_until_truly_controllable()
+            R["hp_before_sidney"] = hp_before
+            R["hp_after_sidney"] = self._hp_line()
+            R["elite4_state_after"] = get_event_var("ELITE_4_STATE")
+            R["still_in_room"] = _on_map(SIDNEY)
+            taken.add("P24-OUTCOME")
+
+        except Exception as error:  # noqa: BLE001
+            VR.reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]}")
+        want = {"P24-IN", "P24-HALL5", "P24-ROOM", "P24-ENGAGED", "P24-OUTCOME"}
+        missing = sorted(want - taken)
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+        # ⛔ GRADED ON REACHING AND MEASURING, NEVER ON WINNING. `ELITE_4_STATE` 0 -> 1 is the game's
+        # own record that Sidney was beaten; we REPORT it rather than requiring it, because a LOSS is
+        # a valid and valuable measurement here.
+        ok = not missing and failure is None
+        log(f"[{TAG}] GRADE missing={missing} failure={failure} "
+            f"elite4_state={R.get('elite4_state_after')} (1 = Sidney beaten, 0 = not)")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+            f"(the probe must REACH Sidney and MEASURE an outcome; winning is not required)")
+        context.set_manual_mode()
+        yield
+
+
 class Ch24HealMode(BotMode):
     """§Ch24 `#24-e4healing` — OUT-OF-BATTLE healing from the bag. **PRODUCTION CODE.**
 
@@ -17627,6 +17916,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23ShopMode()
         elif args.driver == "ch23chapter":
             context.bot_mode_instance = Ch23ChapterMode()
+        elif args.driver == "ch24probe":
+            context.bot_mode_instance = Ch24ProbeMode()
         elif args.driver == "ch24heal":
             context.bot_mode_instance = Ch24HealMode()
         elif args.driver == "ch24moves":
