@@ -496,7 +496,34 @@ def battle_action_use_move(
     if action is TurnAction.UseMove:
         target_index = 1
         if battle_state.opponent.left_battler is None:
-            raise RuntimeError("Cannot attack the left-side opponent Pokémon because there isn't one.")
+            # ⛔⛔ `KI-90`. This branch used to be an unconditional `raise`, and it was UNRECOVERABLE:
+            # `handle_battle` is only reached from `BattleListener`, a SIBLING controller, so EVERY
+            # exception from here — `BotModeError` included — unwinds to `modules/main.py:151-158`,
+            # sets Manual, and the run HANGS with nothing driving the battle. MEASURED 2026-09-05: the
+            # first §Ch23 chain drive died exactly this way at f66693 and hung until the watchdog.
+            #
+            # ⭐ THE LEFT SLOT BEING ABSENT IS NORMAL, NOT AN ERROR. `gAbsentBattlerFlags` bit 1 can
+            # only be set in a DOUBLE battle (`HasNoMonsToSwitch`, `src/battle_util.c:2271`), and it
+            # means that trainer is out of switchable Pokémon — a PERSISTENT state for the rest of the
+            # fight. Both the game and this very module already say what to do about it:
+            #   * `src/battle_controller_player.c:535-536` defaults the cursor to OPPONENT_RIGHT;
+            #   * `battle_state.active_battler` (`battle_state.py:418-429`) documents the identical
+            #     rule — *"in double battles it will return the left side, unless that is absent in
+            #     which case it will return the right side."*
+            # ⇒ this is not new policy; it makes the checkpoint agree with its own module's selector.
+            #
+            # ‼ WHY NOT SIMPLY DELETE THE RAISE: `target_index` would stay 1, and the loop below
+            # presses "Down" until the cursor REACHES it — but the cursor can never rest on an absent
+            # slot, so it would press Down for ever. That converts a loud failure into a SILENT hang,
+            # which is strictly worse. The re-aim is the fix; deleting is not.
+            if battle_state.opponent.right_battler is None:
+                # Both slots absent. Believed unreachable (the battle should already be over), so this
+                # stays a raise rather than a guess. ⚠ It is still a hang if it ever fires — the
+                # sibling-controller problem above is NOT solved here, only made unreachable on the
+                # path that actually occurs. ‼ The wording deliberately avoids the substring gate #38
+                # uses as a failure marker, so a future both-absent arm cannot false-fail.
+                raise RuntimeError("Neither opponent slot is occupied, so there is nothing to target.")
+            target_index = 3
     elif action is TurnAction.UseMoveAgainstRightSideOpponent:
         target_index = 3
         if battle_state.opponent.right_battler is None:

@@ -4224,3 +4224,49 @@ and that silently narrows every later decision.
   edits at eight sites to avoid one correct edit is a bad rule.
 * *Declare the KI-90 fix approved* — rejected, and deliberately: see the entry below. This decision
   only removes a FALSE constraint; it does not choose the fix.
+
+
+## 2026-09-05 — `KI-90` is fixed AT THE CHECKPOINT: aim at the RIGHT opponent when the LEFT is absent
+
+**Decision.** `battle_action_use_move` (`modules/battle_action_selection.py`) no longer raises when
+`opponent.left_battler is None`. It sets `target_index = 3` — the RIGHT opponent — and raises only if
+BOTH opponent slots are absent. ⛔ This entry exists because the previous decision explicitly deferred
+this choice (*"This decision only removes a FALSE constraint; it does not choose the fix"*), and an
+adversarial reviewer correctly refused to let the code land without it.
+
+**Why the checkpoint and not the producers.**
+* ⭐ **THE CODEBASE ALREADY AGREED WITH THE GAME; ONLY THIS FUNCTION DISAGREED.**
+  `battle_state.active_battler` (`battle_state.py:418-429`) documents the rule verbatim — *"in double
+  battles it will return the left side, unless that is absent in which case it will return the right
+  side"* — and the game does the same (`src/battle_controller_player.c:535-536` defaults the cursor to
+  OPPONENT_RIGHT). ⇒ this is not new policy; it makes the checkpoint consistent with its own module.
+* **The branch had exactly ONE outcome before: an unrecoverable raise.** Every exception from
+  `BattleListener` — a sibling controller — reaches `modules/main.py:151-158` and sets Manual, so the
+  run HANGS. Nothing that worked before changes; the change is additive to a dead branch.
+* **Route-around would need EIGHT edits, and one is meaningless.** A workflow measured eight unguarded
+  `TurnAction.UseMove` sites across four files (not the three first believed), and
+  `use_move_against_left_side_opponent()` is a pure ALIAS for `use_move()`, so three more only LOOK
+  left/right-aware. One site returns **Teleport**.
+
+**The two findings carried forward from the deferral, both now CLOSED:**
+1. *"The raise is load-bearing — deleting it yields an infinite Down-press loop."* ✅ **HONOURED, and it
+   is why the fix RE-AIMS rather than deletes.** With `target_index` left at 1 the loop presses "Down"
+   until the cursor reaches a slot it can never rest on — a SILENT hang, strictly worse than the raise.
+2. *"Teleport is `target=USER`, so 'aim right' is semantically meaningless for it."* ✅ **CLOSED BY THE
+   REVIEWER, WITH A CITATION I DID NOT HAVE:** `MOVE_TARGET_USER` moves never enter
+   `HandleInputChooseTarget` at all (`src/battle_controller_player.c:510`), so `target_index` is never
+   consulted for Teleport. The concern was real for a producer-side fix and is INERT for this one.
+   ⭐ That asymmetry is itself an argument for the checkpoint: the fix sits after the game has already
+   decided whether a target is needed.
+
+**Alternatives rejected.**
+* *Route around at the producers* — eight sites, no acceptance test (gate #38 drives the checkpoint, so
+  a producer-only fix would not make it self-retire), and one edit that does nothing.
+* *Delete the raise* — converts a loud failure into a silent Down-press hang. See finding 1.
+* *Do nothing* — the §Ch23 chain hangs on it, and §Ch24 is five consecutive fights with the most
+  turns-with-fainting in the game.
+
+**⚠ WHAT THIS DECISION DOES NOT COVER.** The both-absent branch still raises, and a raise from this
+stack position is still a hang — believed unreachable (the battle should be over), NOT traced to the
+win-check. ⇒ the sibling-controller containment problem is untouched and remains open. And this lands
+in `sandbox-pokebot/` only; **promotion to `custom-pokebot/` is the USER's call.**

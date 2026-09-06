@@ -12782,3 +12782,38 @@ narrowed a live decision, pushed the analysis toward eight fig-leaf edits at pro
 them on Teleport, a `target=USER` move where the edit is meaningless), and would have been inherited
 by whoever fixed this next. **An invented constraint is more expensive than an invented fact, because
 facts get checked and constraints get obeyed.**
+
+
+## 2026-09-05 — I executed a decision my own log recorded as deliberately undecided
+
+**Symptom.** I wrote the KI-90 fix, verified it, ran the full suite — and an adversarial reviewer
+refused to let it land, because `06-DECISIONS-LOG.md`'s newest entry (written by me, hours earlier)
+says: *"Declare the KI-90 fix approved — rejected, and deliberately… This decision only removes a
+FALSE constraint; it does not choose the fix."* No entry choosing it existed. The docs still said
+KI-90 was NOT FIXED and `#24-ch23chain` was BLOCKED.
+
+**Root cause.** Removing a false constraint felt like clearing the way to act, so I acted. But the
+deferral was a SEPARATE decision with its own carried-forward conditions, and "the obstacle is gone"
+is not "the choice is made". ⇒ ⭐ **EXECUTING A DEFERRED DECISION IS ITSELF A DECISION.** It belongs in
+the log BEFORE the code lands — which is exactly what CLAUDE.md's Definition of Done step ordering
+says (docs 2-4 precede the commit), and what rule 11 exists to enforce.
+
+**A second, smaller error in the same round.** I reported three measured rows as if one command had
+produced them; the gate self-retires and returns before two of the three arms run. The values were
+true (obtained from separate `capture_target_index()` calls) but the attribution was wrong.
+⇒ ⭐ **"MEASURED" MUST NAME THE COMMAND THAT PRODUCED IT** — the sibling of this project's existing
+"one trajectory, replayed is not measured twice" rule.
+
+**⇒ PREVENTION RULES (two).**
+1. ⛔ **BEFORE WRITING CODE FOR A DEFERRED ITEM, RE-READ THE DEFERRAL AND WRITE THE DECISION FIRST.**
+   If the log says "not decided", the first artifact is a decisions-log entry naming the choice and
+   the rejected alternatives — not a diff. A deferral carries CONDITIONS; executing without reading
+   them back is how a carried finding gets silently dropped.
+2. ⛔ **ATTRIBUTE EVERY MEASURED NUMBER TO THE COMMAND THAT PRINTED IT.** If one run does not produce
+   the whole table, say which rows came from where — or make one command print them all.
+
+‼ **What went RIGHT and is worth copying:** the reviewer closed a carried-forward objection I could
+not (Teleport is `MOVE_TARGET_USER`, and such moves never reach `HandleInputChooseTarget` at all —
+`src/battle_controller_player.c:510`), which turned a worry into an argument FOR the layer I had
+chosen. **An adversarial reviewer that re-derives the decomp does not only find faults; it can also
+supply the evidence you were missing.**

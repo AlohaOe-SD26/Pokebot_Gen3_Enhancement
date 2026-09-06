@@ -22658,3 +22658,57 @@ mistake entry can quote the offending sentences, that quote is an edit list.
 what `06-DECISIONS-LOG.md` 2026-09-05 records — and mark the "ruling" framing as retracted. Swept:
 **0 unqualified "same ruling as" sites remain**; the only hits left are quotations inside their own
 refutations.
+
+
+## 2026-09-05 — `KI-90` IS FIXED: aim at the RIGHT opponent when the LEFT slot is absent
+
+**Shipped.** One branch of `modules/battle_action_selection.py::battle_action_use_move`: when
+`opponent.left_battler is None` it now sets `target_index = 3` instead of raising, and raises only if
+BOTH slots are absent. ⚠ **Sandbox only — promotion to `custom-pokebot/` is the USER's call.**
+
+**⭐ THE ARGUMENT THAT DECIDED IT: the codebase already agreed with the game, and only this function
+disagreed.** `battle_state.active_battler` (`battle_state.py:418-429`) documents the rule verbatim —
+*"in double battles it will return the left side, unless that is absent in which case it will return
+the right side"* — and `src/battle_controller_player.c:535-536` does exactly that. ⇒ the fix is not new
+policy; it makes the checkpoint consistent with its own module's selector.
+
+**MEASURED — and read precisely, because the cited command does not print all of it:**
+```
+left absent + UseMove         -> commits to slot 3   (was: unrecoverable raise)
+no absent flag + UseMove      -> commits to slot 1   (UNCHANGED)
+left absent + RIGHT-targeted  -> commits to slot 3   (UNCHANGED)
+```
+‼ **HOW THESE WERE OBTAINED, STATED HONESTLY.** Only the FIRST row comes from the gate run: gate #38
+self-retires and RETURNS before arms B and C execute. Rows 2 and 3 come from separate
+`capture_target_index()` calls on the same build. A reviewer caught me presenting all three as one
+run's output. ⇒ ⭐ **"MEASURED" MUST NAME THE COMMAND THAT PRODUCED IT** — three numbers from three
+calls are not one measurement, and this project already has a rule for the sibling error ("one
+trajectory, replayed" is not "measured twice").
+
+**Gate #38 SELF-RETIRED** — and it verified the committed slot is **3**, not merely that the raise
+stopped. That is why the self-retiring design was built: the gate did not go red for the fix it exists
+to enable, and it would have REFUSED a fix that aimed at slot 1, at our own partner, or at nothing.
+
+**⭐ THE ADVERSARIAL REVIEW CLOSED A CARRIED-FORWARD OBJECTION I COULD NOT.** The deferral warned that
+Teleport is `target=USER`, so "aim right" is meaningless for it. The reviewer supplied the citation:
+`MOVE_TARGET_USER` moves never enter `HandleInputChooseTarget` at all
+(`src/battle_controller_player.c:510`), so `target_index` is never consulted for them. **The concern
+was real for a producer-side fix and is INERT for a checkpoint fix** — an argument FOR the layer
+chosen, which I did not have when choosing it.
+
+**⛔ AND IT BLOCKED THE LANDING FOR THE RIGHT REASON.** The decisions log recorded this fix as
+*deliberately undecided* — an entry I had written hours earlier — and I executed it without recording
+the decision. ⇒ ⭐ **EXECUTING A DEFERRED DECISION IS ITSELF A DECISION, AND IT BELONGS IN THE LOG
+BEFORE THE CODE LANDS.** Recorded now, with the rejected alternatives.
+
+**VERIFICATION.** Full suite (no `--quick`) **35/38**, the one failure being the pre-existing tracked
+`#24-gymwhiteoutgatehang`; the battle-path gate `repro_multi_battle_partner` passes at 0.5s.
+⚠ **The green suite is WEAK evidence for this change specifically**: `gAbsentBattlerFlags` can only be
+non-zero in a DOUBLE battle, so the fix is INERT in single battles — nearly everything the suite
+drives. It shows nothing else broke; the evidence that the fix is RIGHT is the committed-slot
+measurement, the game's own behaviour, and `active_battler`'s documented rule.
+
+⛔ **STILL OPEN:** the §Ch23 chain has NOT been re-driven, so it is not yet proven to complete; the
+both-absent raise would still hang if reached (believed unreachable, NOT traced to the win-check); and
+the sibling-controller containment problem — that ANY exception from `BattleListener` hangs the run —
+is untouched.

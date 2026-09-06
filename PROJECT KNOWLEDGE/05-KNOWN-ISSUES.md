@@ -2901,7 +2901,7 @@ one about the PARTY menu, because the item side had been "verified" by printing 
 independently by a decomp read.
 
 
-## `KI-90` — ⛔⛔ IN A **DOUBLE BATTLE** WITH ONE OPPONENT SLOT ABSENT, THE BOT AIMS AT THE EMPTY SLOT, RAISES, AND THE RUN HANGS (2026-09-05, MEASURED; ✅ **REPRODUCED** by gate #38; ‼ root cause CORRECTED the same day; ⛔ **NOT FIXED**)
+## `KI-90` — ⛔⛔ IN A **DOUBLE BATTLE** WITH ONE OPPONENT SLOT ABSENT, THE BOT AIMS AT THE EMPTY SLOT, RAISES, AND THE RUN HANGS (2026-09-05, MEASURED; ✅ REPRODUCED by gate #38; ‼ root cause CORRECTED the same day; ✅✅ **FIXED the same day at the checkpoint — gate #38 SELF-RETIRED**; ⚠ sandbox only, promotion is the user's call)
 
 **Severity: HIGH, and it is a HANG, not a crash.** The exception unwinds the whole controller stack,
 the bot drops to Manual *inside a battle nothing is driving*, and the run sits until the watchdog
@@ -2947,7 +2947,7 @@ this. ‼ **BUT NOT UNTOUCHED EITHER:** `story_mode.py:261`'s own comment cites 
 ⚠ **NOT MEASURED: how OFTEN it fires.** Two occurrences seven weeks apart is an existence proof, not
 a rate. It is a CORRECTNESS question, so the instrument is a repro, never a batch.
 
-**NOT FIXED YET — and NOT because of a ruling.** ⛔ This entry used to say "shared upstream; same ruling as `KI-83`/`KI-88`/`KI-89`". **That ruling does not exist** (`06-DECISIONS-LOG.md` 2026-09-05); we have modified this file 8 times, including a hang fix. It is unfixed because the fix is not yet DECIDED — see `#24-ch23chain`. Tracked as `#24-ch23chain`.
+✅✅ **FIXED 2026-09-05 (`06-DECISIONS-LOG.md` same day).** `battle_action_use_move` now sets `target_index = 3` — the RIGHT opponent — when the left slot is absent, matching the game (`src/battle_controller_player.c:535-536`) and this module's own `active_battler` rule (`battle_state.py:418-429`); it raises only if BOTH slots are absent. Gate #38 SELF-RETIRED, having verified the committed slot is **3** rather than merely that the raise stopped. ⚠ Sandbox only — promotion to `custom-pokebot/` is the USER's call. ⚠ The both-absent raise is unchanged and would still hang if reached (believed unreachable, NOT traced). *(superseded:)* **NOT FIXED YET — and NOT because of a ruling.** ⛔ This entry used to say "shared upstream; same ruling as `KI-83`/`KI-88`/`KI-89`". **That ruling does not exist** (`06-DECISIONS-LOG.md` 2026-09-05); we have modified this file 8 times, including a hang fix. *(that sentence read "It is unfixed because the fix is not yet DECIDED" — the fix WAS decided and written the same day; see the ✅✅ line above.)* Tracked as `#24-ch23chain`.
 ✅ **REPRODUCED 2026-09-05 — `tools/story-dev/repro_ki90_absent_left_slot.py` (gate #38).**
 Three arms, in-process, milliseconds, against a REAL `BattleState` and the REAL
 `battle_action_use_move` (what is real vs stubbed, and why, is in that file's own docstring):

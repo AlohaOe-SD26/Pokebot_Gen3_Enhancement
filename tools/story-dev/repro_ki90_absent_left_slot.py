@@ -87,6 +87,8 @@ def make_state(absent_flags: int) -> BattleState:
 class _FakeEmulator:
     def __init__(self):
         self.presses: "list[str]" = []
+        #: index into `presses` where the TARGET-selection phase began, or None if it never did.
+        self.target_phase_at: "int | None" = None
 
     def press_button(self, button):
         self.presses.append(button)
@@ -136,6 +138,13 @@ def _install_stubs(callback_frames: int = 3, cursor_value: "int | None" = None):
             if frames["n"] <= callback_frames:
                 return "HandleInputChooseMove"      # phase 1: pick the move
             if frames["n"] <= callback_frames + 40:
+                # ⛔ RECORD WHERE PHASE 2 BEGINS. The caller must NOT infer this from press order:
+                # the MOVE phase presses "A" too, and a heuristic over the whole press log returned a
+                # confident WRONG target three separate times — including `0` for a state that
+                # actually RAISES. ⇒ ⭐ **AN INSTRUMENT THAT CAN BE READ TWO WAYS IS NOT AN
+                # INSTRUMENT.** Mark the boundary; do not guess it.
+                if emu.target_phase_at is None:
+                    emu.target_phase_at = len(emu.presses)
                 return "HandleInputChooseTarget"    # phase 2: pick the target — what we measure
             return "SomethingElse"
 
@@ -176,12 +185,12 @@ def capture_target_index(action, state) -> "int | None":
             drive(bas.battle_action_use_move(action, 0, 0, state), cap=400)
         except BaseException:  # noqa: BLE001 — a raise here is not this helper's business
             pass
-        # ⛔ Count only presses AFTER the move phase — the move phase presses A too, and counting
-        # those is precisely how the first version of this helper returned 0 for everything.
-        target_phase = emu.presses[emu.presses.count("A") and 0:]
-        if "Down" in emu.presses or "A" in target_phase:
-            if "A" in emu.presses and "Down" not in emu.presses[-3:]:
-                return candidate
+        # ⛔ ONLY phase-2 presses count, and the boundary is RECORDED, not inferred.
+        if emu.target_phase_at is None:
+            continue                      # the code never reached target selection (e.g. it raised)
+        phase2 = emu.presses[emu.target_phase_at:]
+        if "A" in phase2:                 # it ACCEPTED this cursor value ⇒ this is its target
+            return candidate
     return None
 
 
@@ -327,9 +336,11 @@ def main() -> int:
         _verdict("  ⭐⭐ THIS REPRO HAS SELF-RETIRED — `KI-90` NO LONGER REPRODUCES, AND THE TARGET IS RIGHT.")
         print("     The fault state is still genuinely faulted (the discriminator above passed),")
         print("     so the raise is gone because the CODE changed, not because this repro rotted.")
-        print("  ⇒ TODO for whoever sees this: INVERT the arms (assert the absent slot is now")
-        print("     handled), close `KI-90` and `#24-ch23chain`, and record the fix in the")
-        print("     changelog. Until then this file passes and does nothing.")
+        print("  ✅ KI-90 WAS FIXED 2026-09-05 and this gate retired on it — that is EXPECTED, not")
+        print("     a TODO. `06-DECISIONS-LOG.md` 2026-09-05 records the decision.")
+        print("  ⛔ `#24-ch23chain` IS STILL OPEN: the §Ch23 CHAIN has NOT been re-driven, so it is")
+        print("     UNPROVEN. Fixing KI-90 unblocked it; it did not prove it. Do NOT close that item")
+        print("     on the strength of this gate retiring.")
         print("=" * 92)
         return 0
 
