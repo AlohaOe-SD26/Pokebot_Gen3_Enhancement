@@ -100,12 +100,12 @@ elevation = bits 12-15 per `include/global.fieldmap.h:7-12`) and ran BFS with Em
 rules (`IsElevationMismatchAt` :7707, `ObjectEventUpdateElevation` :7759, `AreElevationsCompatible`
 :7789). **(33,17) is walkable**, and a route via `(32,19) (32,18) (33,18) (33,17) (33,16) (33,15)
 (32,15) (32,14)` reaches the Ever Grande exit warp `(39,5)` with `(30,17)` and `(31,17)` FORBIDDEN —
-**61 steps, identical to the natural route.** No coord trigger forces the fight (the map's only
+**61 steps, identical to the natural route** — ⛔ **REFUTED by a live `calculate_path` probe, 2026-09-05: the exit apron is UNREACHABLE from (33,17).** No coord trigger forces the fight (the map's only
 `coord_events` are the two Wally triggers at `(2,23)`/`(3,23)`).
 
 ## THREE options, all decomp-verified reachable
 
-1. **Skip entirely** — route through `(33,17)`. **+0 steps.**
+1. ⛔⛔ **REFUTED 2026-09-05 — DO NOT BUILD THIS.** *(This read: "Skip entirely — route through (33,17). +0 steps.")* `--driver ch23leg9probe` asked our own planner from the real leg-8 landing: **(33,17) is reachable (43 wp) but the exit apron is NOT reachable from it** (`PathFindingError`). ⇒ the "61 steps either way" BFS below is wrong, and so was my own flood-fill. **(33,17) is a dead end with respect to the exit.**
 2. **Split into two singles** — stand at `(29,16)` / `(32,16)` (or the `,18` equivalents) and interact;
    interaction runs `trainerbattle_single`. None of `(29,16)`, `(29,18)`, `(32,16)`, `(32,18)` lie in any
    sight cone. ⭐ **This is the option that also re-enables our in-battle item policy** (see the headline).
@@ -122,7 +122,33 @@ the **entrance** component, not the exit component, so it does not help the exit
 you get a **single** instead. ‼ Which means a badly-attrited party silently changes the battle type —
 worth knowing before reading any future log.
 
-## ✅ WHAT I VERIFIED MYSELF, AGAINST OUR OWN CACHE (2026-09-05, not the agent's recall)
+## ⛔⛔ REFUTED BY A LIVE DRIVE — READ THIS BEFORE THE SECTION BELOW (2026-09-05)
+
+**The connectivity conclusion in the next section is WRONG, and it was refuted by our own planner the
+same day.** I ran a BFS over the cached layout, concluded VICTORY_ROAD_1F is **one 652-tile component**
+containing both ladders and both arrow warps, and used that to override this note's own "entrance
+component / exit component" remark. Then I built a pre-exit heal on it and drove it:
+
+```
+[ch23exit] GRADE ... failure=UnreachableDestinationError:
+    Could not find a path from (21/32 @ VICTORY_ROAD_1F) to (15/39 @ VICTORY_ROAD_1F)
+[ch23exit] ACCEPTANCE: FAIL   battles=0  whiteouts=0
+```
+
+⇒ ⭐ **`calculate_path` — the authority this project names for reachability — says the leg-9 start
+CANNOT reach the entrance arrow warp.** The agent's two-component reading was RIGHT; my flood-fill was
+too permissive about elevation (I allowed any step where either tile was elevation 0 or 15, which is
+not Emerald's rule).
+⇒ ⛔ **THEREFORE: THERE IS NO HEAL AVAILABLE BETWEEN LEG 8 AND LEG 10.** Leg 6 heals before descending;
+leg 10 heals at the League after exiting; in between, the bot is committed. This is now MEASURED, and
+it permanently rules out "heal before the exit traverse" as a fix. `#24-ch23attrition`'s line *"there
+is NOWHERE to heal inside Victory Road"* was right and I under-read it as being only about B1F/B2F.
+
+‼ The tile-by-tile walkability table below (collision/elevation per tile) was checked against the
+cache and stands. **What does NOT stand is the CONNECTIVITY conclusion drawn from it.** ⇒ ⭐ *per-tile
+walkability is not reachability, and a homemade BFS is not our planner.*
+
+## ⚠ WHAT I VERIFIED MYSELF, AGAINST OUR OWN CACHE — TILE DATA GOOD, CONNECTIVITY REFUTED (see above)
 
 The agent's geometry was re-checked against **our own cached decomp copy** in
 `tools/story-dev/.cache/victory_road/` — a source independent of what the agent remembered. Commands
@@ -152,7 +178,7 @@ agent's stated dimensions; collision = bits 10-11, elevation = bits 12-15:
 | (32,16) / (29,16) split-single tiles | 0 | 3 | yes |
 
 ⇒ ⭐ **THE BYPASS TILE IS GENUINELY WALKABLE, AND SO ARE THE SPLIT-SINGLE TILES** — confirmed from our
-data, not from recall. The elevation-15 crossing patch is confirmed too.
+data, not from recall. ⚠ **WALKABLE IS NOT REACHABLE** — see the refutation above; whether our planner will actually ROUTE through (33,17) is still owed a live probe. The elevation-15 crossing patch is confirmed too.
 
 ⛔ **WHAT THIS DOES *NOT* ESTABLISH, AND THE DISTINCTION MATTERS.** Per-tile walkability is not a ROUTE.
 I did **not** run a BFS, did **not** run our own `calculate_path`, and did **not** walk it live. The
@@ -162,7 +188,7 @@ live probe the project's rules require before building on it.
 
 ## ⛔ GAPS — stated, not filled
 
-* **NOT WALKED IN OUR HARNESS.** `(33,17)` and the `(29,16)`/`(32,16)` interaction tiles are decomp BFS
+* ✅ **PARTLY CLOSED 2026-09-05 — THE PROBE HAS NOW BEEN RUN** (`--driver ch23leg9probe`, `ACCEPTANCE: PASS`): it KILLED the (33,17) bypass and CONFIRMED the split standpoints. What remains un-walked is the split itself — that interacting from (29,16)/(32,16) really starts a SINGLE battle. *(This gap read:)* **NOT WALKED IN OUR HARNESS.** `(33,17)` and the `(29,16)`/`(32,16)` interaction tiles are decomp BFS
   results. Per project rule they are a note until a live probe confirms them. **That probe is cheap and
   decisive; do it before building either route.**
 * **Coordinates are decomp map-local.** If our map frame uses a different origin, translate first.

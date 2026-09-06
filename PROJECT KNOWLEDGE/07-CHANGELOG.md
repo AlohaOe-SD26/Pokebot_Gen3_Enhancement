@@ -22820,3 +22820,84 @@ here rest only on what survives. ‼ Same shape as the fixture that was one driv
 
 **NEXT (respecified):** `#24-ch23chain` step 4 is no longer "make the party survive" — it is **wire the
 heal that already exists**. See the punch list.
+
+
+## 2026-09-05 — MEASURED NEGATIVE: there is NO heal between §Ch23 leg 8 and leg 10 (a built fix, driven, refuted, reverted)
+
+**Built, driven, and REVERTED the same hour.** `heal_before_exit()` (106 lines + fault arm
+`POKEBOT_CH23_FAULT_NOHEAL9` + a registry row) was to heal at the Ever Grande Poké Center before leg
+9's two-trainer exit traverse, reusing leg 6's proven arrow-warp route. **The first drive killed it:**
+```
+[ch23exit] GRADE ... failure=UnreachableDestinationError:
+    Could not find a path from (21/32 @ VICTORY_ROAD_1F) to (15/39 @ VICTORY_ROAD_1F)
+[ch23exit] ACCEPTANCE: FAIL   battles=0   whiteouts=0
+```
+⇒ ⛔⛔ **MEASURED, AND DURABLE: from the leg-8 landing the entrance arrow warp is UNREACHABLE, so there
+is NO heal available anywhere between leg 8 and leg 10.** Leg 6 heals before descending; leg 10 heals
+at the League after exiting; in between the bot is committed to whatever state leg 8 left it in.
+⭐ **This is the useful output.** It permanently removes "heal before the traverse" from the option set,
+which no amount of further design work would have done.
+
+**Why I built the wrong thing** — recorded in full in `08-MISTAKES.md`: a decomp note said 1F has an
+"entrance component" separate from the "exit component"; I overrode it with a homemade BFS over our
+cached layout that reported one 652-tile component, and wrote *"REACHABILITY IS MEASURED, NOT ASSUMED"*
+into the docstring citing that BFS. My flood-fill's elevation rule was too permissive. ⇒ ⭐ **a
+flood-fill over cached data is a HINT at the same tier as an agent's recall — `calculate_path` from a
+real captured position is the authority, and that is already this project's written rule.**
+‼ The per-tile walkability table in the research note is CORRECT and stands; only the connectivity
+conclusion drawn from it was wrong. The note now carries the refutation ABOVE that section.
+
+**Reverted cleanly:** `victory_road.py` is byte-identical to `0b5e1707` (verified — the only residue
+was a CRLF→LF flip from my editing script, restored with `git checkout`); the fault arm and its
+registry row are gone; `lint_docs` reports **83 flags in code, 83 documented**.
+
+⇒ **`#24-ch23chain` step 4 is re-pointed at the ROUTING levers**, which are the only ones left:
+avoid the pair via (33,17), or split them into two singles. ⚠ Both are still owed the live probe that
+just refuted the heal — **and this time that probe comes FIRST, before any build.**
+
+
+## 2026-09-05 — ⭐⭐ the leg-9 ROUTING PROBE: the double battle is a routing consequence, the bypass is DEAD, and the split IS viable
+
+**Shipped:** `--driver ch23leg9probe` (`story_harness.py`) — OBSERVE-ONLY, walks nowhere, fights
+nothing, and asks `calculate_path` the questions that decide step 4. `ACCEPTANCE: PASS`, all five
+readings, `battles=0`, `whiteouts=0`, ~1 minute on `post_return.ss1`.
+⛔ **It exists because the previous step skipped exactly this.** A pre-exit heal was designed and built
+on a homemade BFS and died on its first navigation. This probe restores the project's own rule —
+*reachability is `calculate_path` from a real captured position* — and puts it BEFORE the build.
+
+**MEASURED, from the real leg-8 landing `(21,32)`:**
+```
+CONE VERDICT: the planner's route to (38,5) ENTERS the sight cones at [(31,17)]
+direct_to_exit      reachable, 62 wp   — and (31,17) is the ONLY tile it touches on row y=17
+to_bypass_33_17     reachable, 43 wp
+bypass_to_exit      ⛔ reachable=False, PathFindingError
+split_standpoints   (29,16) reachable 46 wp · (32,16) reachable 45 wp
+```
+
+**⭐ FINDING 1 — THE DOUBLE BATTLE IS A ROUTING CONSEQUENCE, AND NOW IT IS PROVEN.** The planner's own
+62-waypoint route steps on **(31,17)** — the single tile our 2026-09-05 chain drive began its fatal
+battle on, and one of only two tiles covered by both trainers' sight cones. ‼ Our pathfinder cannot see
+this: `calculate_path`'s `avoid_scripted_events` only consults `on_enter_event_triggers` (coord events),
+and trainer spotting is a per-frame scan in `trainer_see.c`, not a coord event. ⇒ **the planner is
+structurally blind to trainer sight lines** — a general fact, not specific to this fight.
+
+**⛔ FINDING 2 — THE (33,17) BYPASS IS DEAD.** You can reach (33,17) (43 wp) but **cannot reach the exit
+apron from it** (`PathFindingError`). ⇒ the decomp note's *"61 steps, identical to the natural route"*
+is REFUTED, and so is my own BFS, which claimed the exit stays reachable with both cone tiles
+forbidden. **Both were wrong the same way: a flood-fill over cached tiles is not our planner.** That is
+now twice in one session, which is why the probe is a permanent driver rather than a scratch script.
+
+**✅ FINDING 3 — THE SPLIT IS VIABLE, AND IT IS THE ONLY SURVIVING LEVER.** Both standpoints are
+reachable: **(32,16) at 45 wp** (directly north of Quincy) and **(29,16) at 46 wp** (directly north of
+Katelynn), and neither lies in a sight cone. ⇒ face South and interact, which runs `trainerbattle_single`
+(decomp: both trainers ARE `trainerbattle_single`; the double is emergent from simultaneous spotting).
+⭐⭐ **AND THE SPLIT IS BETTER THAN AVOIDANCE WOULD HAVE BEEN**, for a reason avoidance never had: our
+in-battle item policy is unreachable in DOUBLE battles only (`StoryItemBattleStrategy` overrides
+`decide_turn` but not `decide_turn_in_double_battle`). ⇒ **fighting them as singles turns our healing
+items back on** in the hardest stretch of the chapter. Afterwards the row is safe to walk: a defeated
+trainer returns 0 from `CheckTrainer` (`src/trainer_see.c:275-277`).
+
+⇒ **`#24-ch23chain` step 4 is now: engage Katelynn and Quincy as two SINGLES from (29,16)/(32,16),
+then continue to the exit.** ⚠ Still to verify live: that interacting from those tiles actually starts
+a single battle, and that the party survives two singles from whatever state leg 8 leaves it in — **the
+heal that would have guaranteed that is measured impossible, so this is not a free win.**

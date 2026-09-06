@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -14404,6 +14404,139 @@ class Ch23ReturnMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch23Leg9ProbeMode(BotMode):
+    """§Ch23 LEG 9 ROUTING PROBE — OBSERVE ONLY. Does our planner walk into the trainer sight cones?
+
+    ⛔⛔ WHY THIS EXISTS. On 2026-09-05 a pre-exit heal was specced, documented, implemented (106
+    lines + a fault arm + a registry row) and driven — and `calculate_path` refused its FIRST
+    navigation, because the leg-9 start cannot reach the entrance arrow warp at all. The design had
+    rested on a homemade BFS over cached map data that said otherwise. ⇒ **this probe asks the
+    planner BEFORE anything is built.** It moves nowhere and fights nothing.
+
+    THE QUESTION. Leg 9 walks `F1_LADDER_LANDING (21,32)` -> `F1_EXIT_APRON (38,5)`. Decomp puts
+    Katelynn at (29,17) facing EAST and Quincy at (32,17) facing WEST, each with sight range 2, so
+    both cones cover **(30,17) and (31,17)** and nothing else. Our 2026-09-05 chain drive began its
+    fatal battle at **(31,17)**. ⇒ if the planner's own waypoints enter those tiles, the double
+    battle is a ROUTING consequence and (33,17) is the lever.
+
+    READINGS
+      R9P-HERE      where we actually are (anti-vacuity: the whole probe is about THIS position)
+      R9P-DIRECT    the planner's real route to the exit apron, with its full waypoint list
+      R9P-CONE      ⭐ THE VERDICT: does that route step on (30,17) or (31,17)?
+      R9P-BYPASS    is (33,17) reachable from here, and from (33,17) can we still reach the exit?
+      R9P-SPLIT     are the split-single standpoints (29,16)/(32,16) reachable?
+
+    ⚠ A REFUSAL IS A MEASUREMENT, not an error — several of these are expected to fail, and an
+    unexpected SUCCESS is the finding.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_return.ss1 --driver ch23leg9probe --frames 3000
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch23Leg9Probe"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ch23leg9probe] WHITEOUT #{self.whiteouts}")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        log(f"[ch23leg9probe] BATTLE #{self.battles} — ⚠ an OBSERVE-ONLY probe should not fight")
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        from modules.story import victory_road as VR
+        from modules.map_data import MapRSE
+        from modules.map_path import calculate_path
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.story.seafloor_cavern import _on_map, _where
+
+        TAG = "ch23leg9probe"
+        VR1F = MapRSE.VICTORY_ROAD_1F
+        EXIT_APRON, BYPASS = (38, 5), (33, 17)
+        CONES = {(30, 17), (31, 17)}
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        taken, R = set(), {}
+
+        log(f"[{TAG}] PRE at={_where()}")
+        failure = None
+        try:
+            yield from wait_until_truly_controllable()
+            if not _on_map(VR1F):
+                raise BotModeError(
+                    f"Ch23 leg 9 probe: must start ON VICTORY_ROAD_1F (use `post_return.ss1`, the "
+                    f"leg-8 landing at (21,32)) but we are at {_where()}. Every reading below would "
+                    f"otherwise be about tiles that are not on this map."
+                )
+            here = VR._here_tile()
+            R["here"] = here
+            taken.add("R9P-HERE")
+
+            def route(src, dst):
+                """Full waypoint list, or the refusal. ⚠ A refusal IS a reading."""
+                try:
+                    path = calculate_path((VR1F, src), (VR1F, dst))
+                    tiles = [tuple(getattr(w, "coordinates", ())) for w in path]
+                    return {"reachable": True, "wp": len(path), "tiles": tiles}
+                except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+                    VR.reraise_if_aborting(error)
+                    return {"reachable": False, "why": type(error).__name__, "tiles": []}
+
+            # --- the route leg 9 actually takes ------------------------------------------------------
+            direct = route(here, EXIT_APRON)
+            R["direct_to_exit"] = {k: v for k, v in direct.items() if k != "tiles"}
+            R["direct_tiles"] = direct["tiles"]
+            taken.add("R9P-DIRECT")
+
+            # --- ⭐ THE VERDICT ----------------------------------------------------------------------
+            hit = sorted(set(direct["tiles"]) & CONES)
+            R["walks_into_sight_cones"] = bool(hit)
+            R["cone_tiles_entered"] = hit
+            log(f"[{TAG}] ⭐ CONE VERDICT: the planner's route to {EXIT_APRON} "
+                f"{'ENTERS' if hit else 'DOES NOT ENTER'} the sight cones {sorted(CONES)}"
+                f"{' at ' + str(hit) if hit else ''}")
+            taken.add("R9P-CONE")
+
+            # --- the bypass, in two halves (source may be a tile we are not standing on) --------------
+            R["to_bypass_33_17"] = {k: v for k, v in route(here, BYPASS).items() if k != "tiles"}
+            via = route(BYPASS, EXIT_APRON)
+            R["bypass_to_exit"] = {k: v for k, v in via.items() if k != "tiles"}
+            R["bypass_leg2_hits_cones"] = sorted(set(via["tiles"]) & CONES)
+            taken.add("R9P-BYPASS")
+
+            # --- the split-single standpoints ---------------------------------------------------------
+            R["split_standpoints"] = {
+                str(tile): {k: v for k, v in route(here, tile).items() if k != "tiles"}
+                for tile in ((29, 16), (32, 16))
+            }
+            taken.add("R9P-SPLIT")
+
+        except Exception as error:  # noqa: BLE001
+            VR.reraise_if_aborting(error)
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]}")
+        want = {"R9P-HERE", "R9P-DIRECT", "R9P-CONE", "R9P-BYPASS", "R9P-SPLIT"}
+        missing = sorted(want - taken)
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
+        # ⛔ GRADED ON HAVING ASKED, NOT ON THE ANSWER. Every reading here is legitimately allowed to
+        # be a refusal; grading on "the bypass works" would make an inconvenient truth look like a bug.
+        ok = not missing and failure is None and self.battles == 0
+        log(f"[{TAG}] GRADE missing={missing} battles={self.battles} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+            f"(the probe must ASK every question, walk nowhere, and fight nothing)")
+        context.set_manual_mode()
+        yield
+
+
 class Ch23ExitMode(BotMode):
     """§Ch23 LEG 9 — leave Victory Road through the 1F arrow warp, and MEASURE the far side.
 
@@ -17442,6 +17575,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23ReturnProbeMode()
         elif args.driver == "ch23return":
             context.bot_mode_instance = Ch23ReturnMode()
+        elif args.driver == "ch23leg9probe":
+            context.bot_mode_instance = Ch23Leg9ProbeMode()
         elif args.driver == "ch23exit":
             context.bot_mode_instance = Ch23ExitMode()
         elif args.driver == "ch23leagueprobe":

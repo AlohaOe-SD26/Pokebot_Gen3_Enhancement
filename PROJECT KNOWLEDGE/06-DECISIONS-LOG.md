@@ -4387,3 +4387,67 @@ mechanism is already built, driven and A/B-proven (**un-healed 32% / 3 fainted �
 * *Split the pair into two singles* — genuinely attractive because it also **re-enables our in-battle
   item policy** (the MRO hole is doubles-only), but it depends on the same unverified coordinates and
   still leaves the party arriving damaged. Keep as option (c).
+
+
+## 2026-09-05 (evening) — REVERSAL: the leg-9 fix is TWO SINGLE BATTLES. The heal AND the bypass are measured dead.
+
+⛔ **THIS SUPERSEDES THE ENTRY EARLIER TODAY TITLED *"the leg-9 attrition fix will be a POKÉ CENTER
+heal, not bag items, and not grinding"*.** That entry is left intact (this file is append-only) and is
+now WRONG in its conclusion; its reasoning about grinding and bag items still stands. ‼ It also listed
+*"Route around via (33,17) — decomp says it is free (61 steps either way) and it is worth doing"* as a
+live alternative. **That is refuted too.** Read this entry instead.
+
+**Decision.** §Ch23 leg 9 will engage Katelynn and Quincy as **two separate SINGLE battles**, from
+standpoints **(32,16)** (Quincy, 45 wp) and **(29,16)** (Katelynn, 46 wp), then continue to the exit.
+
+**What killed the previous decision — a drive, not an argument.** `heal_before_exit()` was written
+(106 lines + fault arm + registry row) and driven. It failed on its first navigation:
+```
+UnreachableDestinationError: Could not find a path from (21/32 @ VICTORY_ROAD_1F)
+                                                     to (15/39 @ VICTORY_ROAD_1F)
+[ch23exit] ACCEPTANCE: FAIL   battles=0   whiteouts=0
+```
+⇒ ⛔ **THERE IS NO HEAL REACHABLE BETWEEN LEG 8 AND LEG 10.** Leg 6 heals before descending; leg 10
+heals at the League; in between the bot is committed. Fully reverted — `victory_road.py` is
+byte-identical to `0b5e1707`. ‼ The design had rested on a homemade BFS over cached map data that
+claimed one connected component; **the BFS was wrong and the decomp note it overrode was right.**
+
+**What killed the bypass — the probe I should have run first.** `--driver ch23leg9probe`
+(OBSERVE-ONLY, `ACCEPTANCE: PASS`, `battles=0`) asked `calculate_path` from the real leg-8 landing:
+```
+to_bypass_33_17   reachable, 43 wp
+bypass_to_exit    ⛔ reachable=False, PathFindingError
+split_standpoints (29,16) 46 wp · (32,16) 45 wp   ✅ both reachable
+CONE VERDICT      the 62-wp route to the exit apron ENTERS the sight cones at [(31,17)]
+```
+⇒ **(33,17) is a dead end with respect to the exit**, so "61 steps either way" was wrong — the same
+flood-fill error, a second time, on a different question.
+
+**Why two singles is the right answer and not merely the last one standing.**
+* ⭐ **It restores a capability the double battle silently removes.** `StoryItemBattleStrategy`
+  (`story_mode.py:417`) overrides `decide_turn` but not `decide_turn_in_double_battle`, so in a DOUBLE
+  the bot never reaches its item check. Singles turn our healing items back on — which matters
+  *because* the heal is impossible.
+* **It is legal by trainer data, not a trick.** Both trainers are `trainerbattle_single` with
+  `.doubleBattle = FALSE` (`src/data/trainers.h:3899`, `:3911`); the double is emergent from both
+  spotting on the same step (`gNoOfApproachingTrainers == 2`, `src/battle_setup.c:1274-1275`).
+* **The row is safe afterwards** — a defeated trainer returns 0 from `CheckTrainer`
+  (`src/trainer_see.c:275-277`).
+
+**⚠ WHAT THIS DECISION DOES NOT SETTLE, stated so it is not read as a promise.**
+1. **It is not yet driven.** Owed live: that interacting from (29,16)/(32,16) really starts a SINGLE.
+2. **Attrition is NOT fixed, only un-worsened.** The party still arrives at leg 9 in whatever state
+   leg 8 leaves it (`post_return.ss1` is 35% HP with three fainted) and **no heal is available to
+   change that.** Two singles un-healed may still lose.
+3. **The pathfinder's blindness to trainer sight cones is untouched** and is a general defect:
+   `avoid_scripted_events` consults only `on_enter_event_triggers`, while spotting is a per-frame scan
+   in `trainer_see.c`. This will recur wherever a route grazes a cone.
+
+**Alternatives rejected.**
+* *A Poké Center heal before leg 9* — **measured impossible** (above). Do not re-propose.
+* *Route around via (33,17)* — **measured dead end** (above). Do not re-propose.
+* *Grind levels* — the opposition is L43 against our L52/L48/L47/L47, and the party entered the fight
+  with its two best mons already fainted. Levels were never the constraint.
+* *Teach `calculate_path` about sight cones* — the correct general fix, and far too large a blast
+  radius for this item: it is a shared upstream-derived pathfinding file, and leg 9 needs one route,
+  not a new pathfinding feature. Worth filing separately.
