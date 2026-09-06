@@ -23118,3 +23118,80 @@ and *"built content runs … Segment 15; the next unwritten beat is the Slatepor
 the log held 42 entries and content reached §Ch23. ‼ **That line had ALREADY been wrong once before
 and said so in its own text.** ⇒ ⭐ the count is now REPLACED BY A POINTER to `DIVERGENCE-LOG.md`:
 **a count kept in two places is a count that will disagree with itself.**
+
+
+## 2026-09-06 — §Ch24 READINESS RE-MEASURED: 11 of the 44 basket items are UNUSABLE IN BATTLE by our own filter
+
+**Measured today** with `probe_ch24_readiness.py` against `post_league_shop.ss1` — re-run because the
+2026-09-04 winnability note predates Ice Beam, the four move changes and the basket purchase, and a
+five-day-old snapshot is not current state.
+
+**THE PARTY (measured, not recalled):**
+```
+Sceptile  L53  147/147  Spe 160   ✅ the ONLY mon that outspeeds Drake's Salamence (132)
+Swellow   L48  139/139  Spe 129      Mightyena L48  144/144  Spe 97
+Wailord   L47  226/226  Spe 72       Castform  L36  103/103  Spe 63
+Zigzagoon L19   48/48   Spe 33
+⚠ Sceptile vs Walrein L53 Ice Beam = ROLL-DEPENDENT OHKO (147 HP, rolls 125-148)
+```
+⇒ the single-point-of-failure the 2026-09-04 note identified is CONFIRMED against today's party: **one
+mon outspeeds the ace, and it can be one-shot by a roll.**
+
+**⛔⛔ AND THE FINDING I DID NOT EXPECT — THE BASKET IS PART UNUSABLE *IN BATTLE*:**
+```
+Hyper Potion x30 param=200 ✅   Full Restore x3 param=255 ✅   Super Potion x1 ✅   Potion x1 ✅
+Revive       x3  param=0   ⛔    Full Heal    x8 param=0   ⛔    Antidote     x4 param=0 ⛔
+⇒ of the 44 items BOUGHT for the gauntlet, 11 cannot be chosen IN BATTLE by our policy.
+```
+Our in-battle policy filters candidates on `parameter > 0` (`battle_items.py:85`,
+`story_mode.py:559`), and Revive / Full Heal / Antidote all carry `parameter == 0`.
+
+**⚠ WHAT I AM DELIBERATELY *NOT* CONCLUDING YET.** It is tempting to call the basket a mis-purchase or
+the filter a bug. **Both may be wrong:** `heal_party_from_bag()` — the OUT-OF-BATTLE path — CAN use
+Revive and status cures, and between rooms there is no time pressure, so 3 Revives + 8 Full Heals may
+be exactly right for a five-fight gauntlet *provided something calls that function between rooms*.
+‼ It currently has **no chapter caller at all** (measured 2026-09-05).
+⇒ ⭐ **THE QUESTION IS NOT "is the filter wrong" BUT "where is healing supposed to happen".** That is
+`#24-e4healing` steps 2-4, and it is under research now — **this entry records the MEASUREMENT and
+stops there.** This session has already reversed three §Ch23 prescriptions that were adopted before
+the load-bearing number was measured; this one waits for the evidence.
+
+
+## 2026-09-06 — ⭐⭐ §Ch24 STATS MEASURED: every prior damage number rested on an assumption that is WRONG for our key attacker
+
+**`probe_ch24_readiness.py` extended to dump the full stat line and invert the Gen-3 formula for the
+`(IV + EV//4)` contribution each stat implies.** Why: a 4-angle research workflow flagged that every
+damage roll in BOTH existing §Ch24 notes *and* in its own adversarial pass was computed from an
+assumed **IV 31 / EV 0** spread that nobody had ever measured.
+
+**MEASURED (fixture `post_league_shop.ss1`):**
+```
+species     lvl  HP   Atk  Def  SpA  SpD  Spe    implied (IV + EV//4)
+Sceptile    53   147  111  86   127  124  160     HP=18 Atk=30 Def=22 SpA=20 SpD=54 Spe=52
+Swellow     48   139  100  81   65   66   129     HP=48 Atk=27 Def=38 SpA=25 SpD=27 Spe=8
+Mightyena   48   144  97   92   85   80   97      HP=39 Atk=11 Def=41 SpA=46 SpD=36 Spe=51
+Wailord     47   226  96   54   96   54   72      HP=19 Atk=13 Def=14 SpA=13 SpD=14 Spe=22
+Castform    36   103  56   61   62   63   63      HP=18 Atk=1  Def=15 SpA=18 SpD=21 Spe=21
+Zigzagoon   19   48   18   24   17   23   33      HP=24 Atk=8  Def=18 SpA=3  SpD=12 Spe=27
+```
+✅ Every value falls inside 0..63, so these are clean reads — a value outside that range would mean
+NATURE, not a bad measurement (the probe says so in its own output).
+
+**⛔⛔ THE FINDING: THE ASSUMPTION WAS OPTIMISTIC EXACTLY WHERE IT MATTERS MOST.**
+**Sceptile's special-attack contribution is 20, not the assumed 31** — and Sceptile is the ONLY mon
+that outspeeds Drake's ace AND, per the adversarial analysis, the only one that can meaningfully hurt
+Glacia. ⇒ **the fight the analysis says kills the run is one our key attacker is WEAKER in than every
+published calculation assumed.** Its HP contribution is 18, also below 31.
+⇒ ⭐ this does not merely refine the estimate — it moves it in the losing direction, so the
+"blocked at Glacia, fight 3" verdict is now MORE credible, not less.
+
+**⇒ EVERY §Ch24 DAMAGE NUMBER PUBLISHED BEFORE TODAY IS BUILT ON A REFUTED INPUT.** The two 2026-09-04
+notes and the 2026-09-06 workflow output must all be re-graded against these figures before any level
+target, TM choice or battle plan is trusted. ‼ **Do not delete those notes** — their ROSTERS and
+ROUTING sections are independent of the stat assumption and remain useful; it is the DAMAGE sections
+that are now unsourced.
+
+⭐ **THE GENERAL RULE THIS EARNS:** *an unmeasured input does not become measured by being used in a
+careful calculation.* Two notes and a four-agent workflow all did rigorous arithmetic on top of
+IV31/EV0, and the rigour made the result look trustworthy. **The one agent that said "my own numbers
+rest on an unmeasured assumption" was worth more than the three that computed confidently.**

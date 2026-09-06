@@ -1,5 +1,13 @@
 # §Ch24 — THE MOVESET PLAN: what to teach, what to sell, and which fight still loses
 
+> ⛔⛔ **STAT ASSUMPTION REFUTED 2026-09-06 — RE-GRADE EVERY DAMAGE NUMBER BELOW.** Every
+> damage roll in this note was computed from an assumed **IV 31 / EV 0** spread. Measured
+> today (`probe_ch24_readiness.py`, extended to invert the Gen-3 stat formula), the party's
+> implied `(IV + EV//4)` runs **1 to 54**, and **Sceptile — the mon this plan hinges on — has
+> SpA 20, not 31.** ⇒ the damage sections here are UNSOURCED until re-computed; the ROSTER and
+> ROUTING sections are independent of the assumption and still stand. ‼ Marked rather than
+> deleted, so the good half is not lost with the bad. See `07-CHANGELOG.md` 2026-09-06.
+
 **Date:** 2026-09-04 · **Status:** ⚠ **AGENT NOTE — NOT TRUTH**, but an unusually well-sourced one:
 TM compatibility was read from `src/data/pokemon/tmhm_learnsets.h` **at two revisions** (the macro form
 and the post-`912a80e27a40` bitfield form) and diffed — identical for all six species — and

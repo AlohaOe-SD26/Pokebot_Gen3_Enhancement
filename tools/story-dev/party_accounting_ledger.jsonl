@@ -447,3 +447,5 @@
 {"when": "2026-09-06T06:31:10", "driver": "ch23chapter", "build": "custom", "state": "post_league_shop.ss1", "frames_run": 500, "recomputes": 501, "scans": 2, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-06T06:33:01", "driver": "ch23chapter", "build": "custom", "state": "post_league_shop.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-06T06:39:56", "driver": "ch23chapter", "build": "custom", "state": "post_wally.ss1", "frames_run": 86955, "recomputes": 86955, "scans": 290, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-06T07:02:12", "driver": "ch23chapter", "build": "custom", "state": "post_league_shop.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-06T08:04:07", "driver": "ch23chapter", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 200, "recomputes": 201, "scans": 1, "divergences": {}, "observer_broke": false}

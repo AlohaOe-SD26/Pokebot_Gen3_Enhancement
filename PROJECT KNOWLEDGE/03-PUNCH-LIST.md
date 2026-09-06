@@ -764,6 +764,21 @@ Wailord and **Dragon Claw (TM02)** for Sceptile, both confirmed still available 
 
 ### 🔜 `#24-e4healing` — **§Ch24 HEALING: the bot CAN now revive, cure status and top up out of battle (step 1 DONE 2026-09-04). Steps 2-4 — calling it between rooms, the in-battle question, and the 0.35 threshold — REMAIN.** (opened 2026-09-04)
 
+⛔⛔⛔ **AND IT IS WORSE THAN A RE-BUY — VERIFIED IN CODE 2026-09-06.** The §Ch23 dispatch is:
+`story_mode.py:3791` `if not ch23_chapter_done():` → `:3792` runs the chapter, `:3793` else-skips —
+and `:3795` `_guard("Victory Road (Ch23)", ch23_chapter_done)` sits **OUTSIDE the if/else**.
+`_guard` (`story_mode.py:2758-2772`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
+§Ch24 spends the basket, the next pass through `_play()` does all three of these:
+(1) re-enters the WHOLE Victory Road chapter, because `:3791` is now True;
+(2) reaches leg 11 and tries to re-buy a **₽54,300** basket holding **₽1,741** — leg 11 refuses
+loudly, exactly as designed; and
+(3) `_guard` raises anyway, because the predicate is still False.
+⇒ ⭐ **BOTH HALVES MUST BE RELAXED IN THE SAME COMMIT — a fix aimed only at the `if` leaves the
+unconditional `_guard` and turns a wasteful re-buy into a HARD FAILURE.** ‼ Research suggests
+short-circuiting on `SYS_GAME_CLEAR` (claimed whiteout-proof, unlike the `DEFEATED_ELITE_4_*` flags
+which `ResetEliteFour` clears) — ⚠ **that is AGENT-REPORTED and NOT yet measured here; verify it
+before relying on it.**
+
 ⛔⛔ **READ THIS BEFORE BUILDING ANY §Ch24 STEP — A HARD DEPENDENCY §Ch23 NOW PLACES ON YOU.** `ch23_chapter_done()` requires the **Elite Four basket in the bag** (it was position-only until 2026-09-05, and a WHITEOUT respawn at Ever Grande satisfied it — the predicate called a WIPED party "chapter complete"; see `06-DECISIONS-LOG.md` 2026-09-05). ⇒ **THE MOMENT §Ch24 SPENDS THE BASKET, `ch23_chapter_done()` FLIPS FALSE and the dispatch will RE-ENTER §Ch23** and re-buy it. ‼ **§Ch24 MUST THEREFORE SET ITS OWN PROGRESS MARKER** (a flag/var its own predicate reads) so Segment 23 is not re-entered mid-gauntlet. ⭐ This line exists here, and not only in the decisions log, because this project has repeatedly lost facts that lived in exactly one place a builder does not open.
 
 **STATUS: OPEN — step 1 of 4 is DONE (the party-heal is built and driven); steps 2-4 remain.**

@@ -148,6 +148,56 @@ def main() -> int:
               f"{'✅ OUTSPEEDS' if faster else '⛔ slower'}")
 
     print(f"\n   ⇒ MONS THAT OUTSPEED DRAKE'S ACE: {len(fast)} — {fast if fast else 'NONE'}")
+
+    # ---- 2b. ⭐⭐ THE FULL STAT LINE, AND THE IV+EV IT IMPLIES ------------------------------------
+    # ⛔⛔ WHY THIS EXISTS. Every damage number in `2026-09-04-ch24-ROSTERS-AND-WINNABILITY.md`, in
+    # `2026-09-04-ch24-MOVESET-AND-TM-PLAN.md`, and in the 2026-09-06 adversarial pass was computed
+    # from an ASSUMED IV 31 / EV 0 spread. That assumption was never measured, and the agent that
+    # relied on it said so plainly: calibrating against our real HP and Speed implies an
+    # (IV + EV//4) contribution ranging **19–50**, not a flat 31. ⇒ the level target for the gauntlet
+    # is currently a GUESS built on a guess.
+    # ⭐ Gen-3 stat formula (`src/pokemon.c`, CalculateMonStats):
+    #       HP    = (2*Base + IV + EV//4) * L // 100 + L + 10
+    #       other = ((2*Base + IV + EV//4) * L // 100 + 5) * NatureMod
+    # ⇒ inverting it gives `(IV + EV//4)` per stat, which is what actually drives every damage roll.
+    # ‼ NATURE IS NOT REMOVED HERE — a ±10% nature on one stat shows up as an implausible spread on
+    # that stat. Read a value outside 0..63 as "nature, not IVs", never as a bad measurement.
+    print("\n-- ⭐ FULL STATS, and the (IV + EV//4) each implies — THE INPUT EVERY DAMAGE ROLL NEEDS")
+    print(f"   {'species':<12}{'lvl':<5}{'HP':<7}{'Atk':<6}{'Def':<6}{'SpA':<6}{'SpD':<6}{'Spe':<6}"
+          f"  implied (IV+EV//4) per stat")
+    try:
+        from modules.data.pokemon import get_species_by_name  # noqa: F401  (presence check only)
+    except Exception:  # noqa: BLE001
+        pass
+    for mon in get_party():
+        if mon is None or getattr(mon, "species", None) is None:
+            continue
+        s, L = mon.stats, mon.level
+        base = getattr(mon.species, "base_stats", None)
+
+        def implied(stat_value: int, base_value: "int | None", is_hp: bool) -> str:
+            """Invert the Gen-3 formula for `(IV + EV//4)`. ⚠ Nature is NOT removed — see above."""
+            if not base_value or not L:
+                return "?"
+            if is_hp:
+                v = (stat_value - L - 10) * 100 // L - 2 * base_value
+            else:
+                v = (stat_value - 5) * 100 // L - 2 * base_value
+            return str(v)
+
+        cells = ""
+        if base is not None:
+            cells = "  ".join(
+                f"{n}={implied(getattr(s, a), getattr(base, a, None), a == 'hp')}"
+                for n, a in (("HP", "hp"), ("Atk", "attack"), ("Def", "defence"),
+                             ("SpA", "special_attack"), ("SpD", "special_defence"), ("Spe", "speed"))
+            )
+        else:
+            cells = "⚠ base stats unavailable on this species object — cannot invert"
+        print(f"   {mon.species.name:<12}{L:<5}{mon.total_hp:<7}{s.attack:<6}{s.defence:<6}"
+              f"{s.special_attack:<6}{s.special_defence:<6}{s.speed:<6}  {cells}")
+    print("   ‼ A value outside 0..63 means NATURE is inflating/deflating that stat, not a bad read.")
+    print("   ⇒ USE THESE, NOT IV31/EV0, FOR EVERY DAMAGE ROLL FROM NOW ON.")
     if len(fast) <= 2:
         print("   ⛔ THIS IS THE POINT-OF-NO-RETURN SET. The analysis predicts Glacia's ice OHKOs")
         print("      exactly these, and with NO usable Revive a faint is permanent for the gauntlet.")

@@ -13322,3 +13322,32 @@ not a numeric claim.
    print `file:line`, which is useless when the file has one line holding years of history. ⇒ report
    `file:line@offset` when a line is huge, and treat "the longest line in the file" as the **last**
    place a stale fact will be found and therefore the **first** place to look.
+
+
+## 2026-09-06 — two §Ch24 notes and a 4-agent workflow all computed damage from an assumption nobody measured
+
+**Symptom.** §Ch24 planning has produced careful damage tables since 2026-09-04: which Elite Four
+attack OHKOs which of our mons, which fight ends the run, which TM fixes it. **Every one of those
+numbers assumed IV 31 / EV 0.** Measuring the party today gives implied `(IV + EV//4)` contributions
+ranging **1 to 54** — and for Sceptile, the mon the whole plan hinges on, a special attack of **20**
+where 31 was assumed.
+
+**Root cause.** The assumption was made once, early, in a note that was then CITED rather than
+re-checked. Each later analysis inherited it as a premise and did rigorous work on top — and **the
+rigour is what made it convincing.** Nobody re-derived the premise because the conclusions looked
+carefully argued.
+
+**⇒ PREVENTION RULES (three).**
+1. ⛔⛔ **AN UNMEASURED INPUT DOES NOT BECOME MEASURED BY BEING USED IN A CAREFUL CALCULATION.** The
+   more elaborate the arithmetic downstream, the more authoritative a guessed input looks. ⇒ before
+   trusting a damage/threshold/timing table, **name its inputs and mark each measured or assumed** —
+   and check whether the tool to measure it already exists. Here it did: the probe already read
+   `mon.stats.speed`; adding five more fields took minutes.
+2. ⭐ **THE AGENT THAT DOUBTS ITS OWN NUMBERS IS THE VALUABLE ONE.** Three angles produced confident
+   damage analysis; one said *"every damage number in this report rests on an unmeasured estimate,
+   measure it before you trust my level target."* That single caveat was worth more than the three
+   confident reports, and it is why the adversarial angle is always briefed to attack.
+3. ⛔ **WHEN A PREMISE FALLS, RE-GRADE THE CONCLUSIONS — DO NOT DELETE THE NOTES.** The ROSTER and
+   ROUTING sections of both §Ch24 notes are independent of this assumption and remain sound. Only the
+   DAMAGE sections are now unsourced. ⇒ **mark the affected sections rather than discarding the
+   document**, or the good half is lost with the bad.

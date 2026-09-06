@@ -1,5 +1,13 @@
 # §Ch24 — THE ELITE FOUR ROSTERS, AND WHETHER THIS PARTY CAN BEAT THEM
 
+> ⛔⛔ **STAT ASSUMPTION REFUTED 2026-09-06 — RE-GRADE EVERY DAMAGE NUMBER BELOW.** Every
+> damage roll in this note was computed from an assumed **IV 31 / EV 0** spread. Measured
+> today (`probe_ch24_readiness.py`, extended to invert the Gen-3 stat formula), the party's
+> implied `(IV + EV//4)` runs **1 to 54**, and **Sceptile — the mon this plan hinges on — has
+> SpA 20, not 31.** ⇒ the damage sections here are UNSOURCED until re-computed; the ROSTER and
+> ROUTING sections are independent of the assumption and still stand. ‼ Marked rather than
+> deleted, so the good half is not lost with the bad. See `07-CHANGELOG.md` 2026-09-06.
+
 **Date:** 2026-09-04 · **Status:** ⚠ **MIXED — READ THE HEADER OF EACH SECTION.**
 §1 (rosters) is decomp-cited agent output, unverified by us. **§2 is MEASURED by
 `probe_ch24_readiness.py` against the live fixture and REFUTES several of §3's inputs.** §3 is the
