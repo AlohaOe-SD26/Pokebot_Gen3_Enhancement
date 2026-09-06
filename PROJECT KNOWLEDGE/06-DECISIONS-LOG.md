@@ -4270,3 +4270,120 @@ adversarial reviewer correctly refused to let the code land without it.
 stack position is still a hang — believed unreachable (the battle should be over), NOT traced to the
 win-check. ⇒ the sibling-controller containment problem is untouched and remains open. And this lands
 in `sandbox-pokebot/` only; **promotion to `custom-pokebot/` is the USER's call.**
+
+
+## 2026-09-05 — REVERSAL: `ch23_chapter_done()` DOES require the Elite Four basket
+
+**Decision.** The §Ch23 completion predicate now requires the chapter's WORK PRODUCT — the Elite Four
+basket in the bag — in addition to the Wally flag and the position. ⛔ This REVERSES the reasoning
+recorded in its own docstring earlier today.
+
+**What the earlier reasoning said, and why it was wrong.** It said: *"DELIBERATELY NOT CONJUNCTS:
+'healed' and 'stocked'. Both are CONSUMABLE … a done-predicate that can turn False again would re-run
+a finished chapter forever."* The logic is sound in isolation and it built a hole: **a WHITEOUT
+teleports the bot to the Ever Grande Poké Center**, which satisfies "on EG and not on a Victory Road
+floor".
+⭐ **MEASURED, not theorised** — `saves/ki90_whiteout_at_evergrande.ss1`
+(md5 `96b666dd63a8d158734660cef51849b6`), captured by the harness from the live drive that lost the
+leg-9 double: the party had just been wiped and the predicate returned **True**.
+
+**Why that was worse than the stranding shape it was written to prevent.** `StoryMode.run` catches the
+whiteout's `StoryAbort` and re-enters `_play()` from the top (`story_mode.py:2392-2426`). The dispatch
+then asks this predicate, gets True, prints *"Victory Road already done — skipping"*, and advances —
+**having skipped the League heal AND the basket**, the two legs whose entire purpose is surviving a
+five-fight gauntlet with no nurse.
+⇒ ⭐⭐ **A POSITION CAN BE REACHED BY SUCCEEDING *OR* BY FAILING. A WORK PRODUCT CANNOT.** That is the
+general rule; the basket is merely this chapter's instance of it.
+
+**The trade, stated rather than claimed away.** The basket IS consumable, so when §Ch24 spends it the
+predicate flips False and the dispatch re-enters §Ch23 — costing a re-buy (every other leg self-skips
+on position). ⚠ **FORWARD DEPENDENCY, now load-bearing: when §Ch24 is built it MUST set its own
+progress marker so §Ch23 is not re-entered.** A wasteful re-buy is strictly better than walking into
+the gauntlet wiped and unstocked.
+
+**Alternatives rejected.**
+* *Keep position-only* — measured False on a real drive; it is the defect.
+* *Add "party is healthy"* — a whiteout HEALS the party at the Poké Center, so it is True in exactly
+  the state we must exclude. ⛔ It would have looked like a fix and changed nothing.
+* *Exclude the respawn tile by coordinate* — fragile, and it encodes a map detail instead of the
+  chapter's meaning.
+
+
+## 2026-09-05 — REJECTED: a gate for "two different next steps on one line"
+
+**Decision.** I wrote `probe_one_live_step.py` — a gate to catch the defect that has now recurred
+SEVEN times in one session ("I edited the half I named", most recently: new text PREPENDED to the
+handoff banner while the sentence it superseded was left standing). **I am NOT shipping it**, and the
+file is deleted rather than left disabled.
+
+**Why, measured rather than guessed.** Run against the live tree it produced a **FALSE POSITIVE**: it
+flagged the `➡➡➡` marker line for declaring two different steps, when the two were the SAME step in
+different words —
+```
+- #24-CH23CHAIN: MAKE THE PARTY SURVIVE THE LEG-9
+- MAKE THE PARTY SURVIVE THAT DOUBLE, NOT TO RE-DR
+```
+Its own self-test also failed its primary arm, and I found that cause: `(.{0,80})` is greedy, so the
+first match swallowed the second declaration and `finditer` never saw it. **That part was fixable.**
+The false positive is not: telling "the leg-9 double" from "that double" requires comparing free text
+for MEANING, and any threshold I pick will flag honest rewordings.
+
+⇒ ⭐ **`CLAUDE.md` RULE 6 CUTS BOTH WAYS.** It says anything enforceable belongs in a gate — and it
+says *"a gate with false positives teaches the reader to bypass it, which is strictly worse than no
+gate."* A doc gate that cries wolf on legitimate rewording would be bypassed within a day, and would
+then also be ignored when it was right. **The rule "put it in a gate" does not license putting it in a
+BAD gate.**
+
+**What this leaves.** The seven instances stay as prose rules in `08-MISTAKES.md`. That is
+unsatisfying and I am recording it as unsatisfying rather than dressing a flaky check as a safeguard.
+⚠ **The honest state: this failure mode is NOT mechanically defended.** If a future agent finds a
+crisp, low-false-positive signature for it, that is worth real effort — the candidates I rejected were
+keyword-overlap scoring and negation-detection, both of which are thresholds, not edges.
+
+**Alternatives rejected.**
+* *Ship it anyway and tune later* — a gate that fires wrongly on its first live run has already lost
+  the reader; there is no "later".
+* *Ship it advisory-only* — the suite has two advisory gates and they are read as noise; adding a
+  third that is wrong would make the advisory channel worse, not better.
+* *Constrain the docs to identical wording so the gate works* — that is contorting the artefact to
+  suit the instrument.
+
+
+## 2026-09-05 — the leg-9 attrition fix will be a POKÉ CENTER heal, not bag items, and not grinding
+
+**Decision.** `#24-ch23chain` step 4 heals the party at a **Poké Center before leg 9**, reusing the
+shape `heal_before_descent()` already proves (1F → south arrow-warp (15,40) → EG (18,41) →
+`heal_in_pokemon_center` → back in). ⛔ **Not** `heal_party_from_bag()`, and ⛔ **not** levelling.
+
+**Why not levelling — measured, twice, independently.** The opposition is **level 43** (decomp:
+`src/data/trainer_parties.h:4272-4300`, both trainers, both mons each) against our
+**L52 / L48 / L47 / L47**. And the bot entered the fight with **Sceptile 0/145 and Wailord 0/226
+already fainted** (`Story-debug-20260905-172610.log:318`). ⇒ a stronger party still walks in with its
+two best mons dead. Grinding would have cost hours and fixed nothing.
+
+**Why not the bag.** `#24-ch23attrition` (CLOSED 2026-09-04) records the wallet **spent down to ₽1,741
+with ONE Potion** by leg 11. ⇒ bag-healing has nothing to spend here, and a null result from it would
+have read as *"healing doesn't help"* — actively misleading the next session back toward grinding.
+
+**Why the Poké Center, specifically.** `#24-ch23attrition` establishes that **there is nowhere to heal
+inside Victory Road**, and that leg 6's heal is possible *only* because it runs from 1F, one warp from
+the door. The leg-9 fight is at **(31,17), also on 1F** ⇒ the same escape is available, and the
+mechanism is already built, driven and A/B-proven (**un-healed 32% / 3 fainted → healed 87% / 0**).
+
+**⚠ Two things this decision deliberately does NOT do.**
+* It does not close `#24-e4healing`. §Ch24's gauntlet has no nurse; the League basket remains its own
+  problem, and a healthy party at the League door does not survive five fights unaided.
+* It does not touch the DOUBLE-battle item hole (`StoryItemBattleStrategy` never overrides
+  `decide_turn_in_double_battle`, `story_mode.py:417` / `:261`). That hole is real and stays open —
+  it is simply not the cheapest lever for THIS fight.
+
+**Alternatives rejected.**
+* *Grind levels* — refuted above; the expensive option that fixes nothing.
+* *`heal_party_from_bag()`* — empty bag; would have produced a misleading null result.
+* *Route around via (33,17)* — decomp says it is free (**61 steps either way**) and it is worth doing,
+  but it routes around ONE fight while attrition is draining the whole floor. ⚠ Also **not yet walked
+  in our harness**; it is a decomp BFS result in decomp-local coordinates. Keep as a force-multiplier
+  (option b), not as the fix.
+* *Split the pair into two singles* — genuinely attractive because it also **re-enables our in-battle
+  item policy** (the MRO hole is doubles-only), but it depends on the same unverified coordinates and
+  still leaves the party arriving damaged. Keep as option (c).

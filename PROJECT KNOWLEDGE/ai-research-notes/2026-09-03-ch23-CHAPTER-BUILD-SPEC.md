@@ -4,7 +4,7 @@
 > orchestrator + Segment 23 wiring" this note lists as `⛔ not built` **SHIPPED**: `ch23_chapter_done()`
 > + `do_victory_road_chapter()` in `modules/story/victory_road.py`, dispatch at `story_mode.py:3779-3795`,
 > `--driver ch23chapter`. ⛔ DO NOT BUILD IT AGAIN. The live work is `#24-ch23chain` — the chapter's
-> CHAIN is UNPROVEN — `KI-90` was FIXED 2026-09-05, but the chain has not been re-driven since. The rest of this spec is kept for its reasoning.
+> CHAIN is UNPROVEN — `KI-90` was FIXED 2026-09-05 and the chain then FAILED on a lost leg-9 double battle — ⛔ **MEASURED AS ATTRITION, A BOT DEFECT** (two mons entered that fight already fainted, after eight battles with no heal; the opposition is only L43). *(This stub briefly read "a game problem, not a defect" — refuted the same day.)* See `#24-ch23chain` and `06-DECISIONS-LOG.md` 2026-09-05. The rest of this spec is kept for its reasoning.
 
 
 > Written 2026-09-03, before any §Ch23 production code exists. ⛔ **`sandbox-pokebot/modules/story/

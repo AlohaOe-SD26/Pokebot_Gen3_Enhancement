@@ -22712,3 +22712,111 @@ measurement, the game's own behaviour, and `active_battler`'s documented rule.
 both-absent raise would still hang if reached (believed unreachable, NOT traced to the win-check); and
 the sibling-controller containment problem — that ANY exception from `BattleListener` hangs the run —
 is untouched.
+
+
+## 2026-09-05 — the §Ch23 chain re-drive: KI-90's fix HELD, the chain still fails, and the drive exposed a production defect
+
+**⭐ THE PREDICTIONS WERE PRE-REGISTERED BEFORE THE LOG WAS READ, AND THEY WERE RIGHT.** Four agent
+angles filed falsifiable predictions while the drive ran; three survived an adversarial challenge; two
+named the same failure: *"a WHITEOUT in the Katelynn+Quincy double on VICTORY_ROAD_1F during leg 9 —
+graded FAIL with `whiteouts=1`, **not** a hang."* That is exactly what happened.
+⇒ ⭐ **PRE-REGISTRATION IS WHAT MADE THE RESULT READABLE.** With a rubric written first, the log took
+one pass; without one I would have been interpreting a 600k-frame run with no way to tell "the fix
+moved the wall" from "the fix did nothing".
+
+**RESULT: `ACCEPTANCE: FAIL`, `battles=16`, `whiteouts=1`, 87,980 frames.**
+✅ **KI-90's FIX HELD.** No `Cannot attack the left-side opponent`, no `CONTROLLER -> <none>
+(state=BATTLE)`, no `HANG CONFIRMED`. The fatal battle began at **f56544 — the same frame as the
+previous drive's** — so it is the SAME fight: last time the bot could not act and hung; this time it
+acted and LOST (`outcome=BattleOutcome.Lost`, f67819).
+⇒ ⭐ **THE WALL MOVED FROM ONE BOT DEFECT TO ANOTHER.** ⛔ **THIS SENTENCE ORIGINALLY READ "THE WALL MOVED FROM A BOT DEFECT TO A GAME PROBLEM" AND THAT WAS WRONG** — corrected the same day, before commit, when the drive log was actually read (see the ATTRITION entry below). Hanging was a defect; losing this fight is ALSO a defect, because no heal ever runs.
+✅ Legs 6, 7 and 8 all completed — `R b2f_arrival = ((24, 45), (30, 25))` and
+`R ladder_apron = {'tile': (21, 21), ...}`, both matching the pre-registered predictions exactly.
+
+**⛔⛔ AND THE DRIVE EXPOSED A LIVE PRODUCTION DEFECT IN MY OWN COMPLETION PREDICATE.** The same log
+line reads `AFTER … done=True on_ever_grande=True` beside `ACCEPTANCE: FAIL`. A whiteout respawns the
+bot at the Ever Grande Poké Center, which satisfied `ch23_chapter_done()`'s position test.
+⇒ In production `StoryMode.run` re-enters `_play()` after the abort (`story_mode.py:2392-2426`), the
+dispatch asks the predicate, gets True, prints *"already done — skipping"*, and advances to §Ch24
+**having skipped the League heal and the Elite Four basket**.
+✅ **FIXED** — the predicate now requires the basket. **A/B on two pinned fixtures:**
+```
+ki90_whiteout_at_evergrande.ss1   done=True  ->  done=False   (the defect, and the fix)
+post_league_shop.ss1              done=True  ->  done=True    (genuine completion, unchanged)
+```
+‼ `flag_only_would_say=True` on BOTH — so the flag-only predicate is wrong here too, and the gate now
+correctly disagrees with it. Rationale and rejected alternatives: `06-DECISIONS-LOG.md` same day.
+⚠ **The tempting fix would have changed nothing:** "also require the party to be healthy" is TRUE
+after a whiteout, because whiting out heals you at the Poké Center.
+
+⛔ **STILL OPEN.** The chain is UNPROVEN and now for a known reason: **the party loses the leg-9
+Katelynn+Quincy double.** ⛔ **THIS ORIGINALLY READ "a levelling/strategy problem, not a defect" — REFUTED the same day by the log.** It is a DEFECT: the party enters with two mons already fainted because no heal runs. See the ATTRITION entry below.
+
+
+## 2026-09-05 — a gate I wrote and then REFUSED to ship
+
+Seven times this session one error recurred — *"I edited the half I named"* — most recently by
+PREPENDING new text to the handoff banner and leaving the superseded sentence in place, which a Tier 1
+reviewer caught telling a cold reader to re-drive a chain that had already been re-driven and lost.
+Prose rules had been written after each recurrence and had not stopped the next, so I built a gate.
+
+**It failed its own first live run with a FALSE POSITIVE** — flagging the `➡➡➡` marker for two
+"different" next steps that were the same step worded twice ("the leg-9 double" / "that double") — and
+its self-test missed the real defect because a greedy `(.{0,80})` capture swallowed the second
+declaration. The regex bug was fixable; the false positive is inherent, because separating a genuine
+contradiction from an honest rewording means comparing free text for meaning.
+⇒ ⭐ **RULE 6 CUTS BOTH WAYS: "put it in a gate" does not license a BAD gate**, and the same rule warns
+that a false-positive gate teaches people to bypass it — strictly worse than none. **Deleted, not
+disabled**, with the reasoning and the rejected alternatives in `06-DECISIONS-LOG.md`.
+‼ ⚠ **This leaves the session's most-repeated failure mode mechanically UNDEFENDED, and that is
+recorded as a gap rather than papered over.**
+
+
+## 2026-09-05 — ⭐⭐ THE LEG-9 LOSS IS ATTRITION, NOT LEVELS — and BOTH healing paths are off in that fight
+
+**This entry REFUTES a conclusion I published earlier the same day** (corrected in place above, before
+commit): *"the wall moved from a BOT DEFECT to a GAME PROBLEM … a levelling/strategy problem, not a
+defect."* **Wrong on both counts.** I had reasoned from the *outcome* — the bot lost a hard double, so
+the party must be too weak — without reading the party state at the moment the fight began.
+
+**⭐ WHAT THE LOG ACTUALLY SAYS.** `sandbox-pokebot/profiles/repro-ml/debug-logs/Story-debug-20260905-172610.log`:
+```
+:318  f4289054 [BATTLE] started [('Swellow',112,136), ('Zigzagoon',48,48), ('Mightyena',23,143),
+                                ('Wailord',0,226), ('Sceptile',0,145), ('Castform',103,103)]
+:356  f4300330 [BATTLE] ended (outcome=BattleOutcome.Lost)
+      party=['Swellow:L47','Zigzagoon:L19','Mightyena:L48','Wailord:L47','Sceptile:L52','Castform:L36']
+:358  f4300452 [MAP] VICTORY ROAD(24,43) -> EVER GRANDE CITY(0,8)      :366  battle_text='NICK whited out!'
+```
+⛔⛔ **THE BOT WALKED INTO THE FIGHT WITH SCEPTILE (L52, its BEST) AND WAILORD BOTH AT 0 HP, AND
+MIGHTYENA AT 23/143.** Eight `[BATTLE] started` lines precede it; the party is whole through `f4254643`
+and both mons read `0` from `f4272749` onward — they never come back. **Nothing healed, ever.**
+⇒ ⭐ **LEVELLING WOULD NOT HAVE FIXED THIS.** A stronger party still enters with its two best mons dead.
+That is the entire difference between the fix I was about to research and the one that is correct.
+
+**⛔ AND THE CAUSE IS A BOT DEFECT — TWO HEALING PATHS EXIST AND NEITHER RUNS HERE (both verified
+directly, not taken from an agent):**
+1. **Out-of-battle healing is BUILT AND UNWIRED.** `heal_party_from_bag()` — `modules/story/pokemon_league.py:221`,
+   documented live-validated, handles Revive and status cures. `grep -rn heal_party_from_bag` over
+   `sandbox-pokebot/` + `tools/` returns exactly one call site: **`tools/story-dev/story_harness.py:14936`,
+   the test harness.** ⇒ **no chapter calls it.**
+2. **In-battle items are UNREACHABLE IN DOUBLES BY INHERITANCE.** `StoryItemBattleStrategy`
+   (`story_mode.py:417`) overrides `decide_turn` (`:464` → `_maybe_use_item` `:466`) but defines **no**
+   `decide_turn_in_double_battle`; the only one is `LevelUpTravelBattleStrategy`'s at `story_mode.py:261`,
+   which never calls `_maybe_use_item`. ⇒ **the item policy is silently absent in exactly the battle
+   type that killed the run.** ‼ Nothing is broken and no error is logged — the method simply is not there.
+
+**⭐ THE TRAINER PAIR IS NOW MEASURED, NOT INFERRED.** I had been writing "the leg-9 Katelynn+Quincy
+double" as though measured; it was an inference. It now rests on two independent sources: the fatal
+battle starts at **pos=(31,17)** (`:314-318`), and the map recon independently places that tile on the
+elevation-15 bridge **between Katelynn (29,17) and Quincy (32,17)**
+(`ai-research-notes/2026-09-03-ch23-VICTORY-ROAD-1F.md:115-116`).
+
+**⚠ EVIDENCE THAT DID NOT SURVIVE, STATED RATHER THAN GLOSSED.** The harness driver log for this run is
+**gone** — `tools/story-dev/harness_*ch23chapter*.log` holds only the 18:29/18:30 probe runs. So
+`ACCEPTANCE: FAIL`, `battles=16`, `whiteouts=1`, `f56544`/`f67819` **cannot currently be re-checked**;
+what survives is the ledger row (`party_accounting_ledger.jsonl`, `17:32:50`, `frames_run: 87980`) and
+the bot debug log above, which uses ABSOLUTE frames (`f4289054`), not run-relative ones. The conclusions
+here rest only on what survives. ‼ Same shape as the fixture that was one drive from being overwritten.
+
+**NEXT (respecified):** `#24-ch23chain` step 4 is no longer "make the party survive" — it is **wire the
+heal that already exists**. See the punch list.

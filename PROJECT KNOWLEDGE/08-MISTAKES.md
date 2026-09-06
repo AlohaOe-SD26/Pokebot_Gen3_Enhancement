@@ -12817,3 +12817,184 @@ not (Teleport is `MOVE_TARGET_USER`, and such moves never reach `HandleInputChoo
 `src/battle_controller_player.c:510`), which turned a worry into an argument FOR the layer I had
 chosen. **An adversarial reviewer that re-derives the decomp does not only find faults; it can also
 supply the evidence you were missing.**
+
+
+## 2026-09-05 — my completion predicate called a WIPED PARTY "chapter complete"
+
+**Symptom.** The §Ch23 chain drive lost a battle and whited out. The driver printed, on one line:
+`AFTER … done=True on_ever_grande=True` next to `ACCEPTANCE: FAIL`. `ch23_chapter_done()` — the gate
+`story_mode.py`'s dispatch uses — said the chapter was finished.
+
+**Root cause.** The predicate was `wally_beaten() AND on EVER_GRANDE AND not on a Victory Road floor`.
+**A whiteout teleports the bot to the Ever Grande Poké Center**, which satisfies the last two. I built
+that predicate specifically to avoid the §Ch15/§Ch18/§Ch19 "passed its own test while stranded" shape
+— and it failed from a direction I never considered: not *stranded and claims done*, but **wiped,
+teleported to the goal position, and claims done.**
+
+**Why it was worse than stranding.** `StoryMode.run` catches the whiteout's `StoryAbort` and re-enters
+`_play()` (`story_mode.py:2392-2426`); the dispatch would then SKIP §Ch23 — including the League heal
+and the Elite Four basket, the two legs that exist to survive §Ch24's no-nurse gauntlet. A stranded
+bot stops. **This one advances.**
+
+**The fix.** Require the chapter's WORK PRODUCT — the basket — not merely the position. A/B on two
+pinned fixtures: the whiteout state flips `True → False`; genuine completion stays `True`.
+
+**⇒ PREVENTION RULES (three).**
+1. ⛔⛔ **A POSITION CAN BE REACHED BY SUCCEEDING *OR* BY FAILING; A WORK PRODUCT CANNOT.** When a
+   completion predicate tests WHERE the bot is, ask what ELSE puts it there — respawns, warps, flee
+   destinations and whiteouts all move the player without doing the work.
+2. ⛔ **THE OBVIOUS EXTRA CONJUNCT WOULD HAVE CHANGED NOTHING.** "Also require a healthy party" is TRUE
+   after a whiteout, because whiting out heals you. ⇒ **check that a proposed conjunct is actually
+   FALSE in the state you are trying to exclude** — otherwise it is decoration that reads as rigour.
+3. ⛔ **A DOCUMENTED DESIGN REASON CAN BE THE THING THAT BUILDS THE HOLE.** My docstring argued, in
+   good faith, that consumable conjuncts must be excluded because the predicate could flip back. That
+   is true — and it excluded the ONLY conjuncts that distinguish "did the work" from "got wiped and
+   respawned at the same place". ⇒ when a rule excludes a whole class of test, ask what the class was
+   protecting against before honouring it.
+
+‼ **And the reason this was caught at all:** the drive's own report printed `done=True` beside
+`ACCEPTANCE: FAIL` — two verdicts from two different judges on one line. ⇒ ⭐ **PRINT THE THING YOU
+GRADE ON *AND* THE THING PRODUCTION GRADES ON; WHERE THEY DISAGREE IS A DEFECT.** Had the driver only
+printed its own verdict, this would have shipped.
+
+
+## 2026-09-05 — I diagnosed a lost battle from the OUTCOME and was about to fix the wrong thing
+
+**Symptom.** The §Ch23 chain drive lost a double battle and whited out. I concluded — and published in
+the handoff, the punch list and the changelog — *"that is a levelling/strategy problem, not a defect"*
+and *"the wall moved from a BOT DEFECT to a GAME PROBLEM"*, then began researching how to level the
+party or avoid the fight.
+
+**Root cause of the misdiagnosis.** I reasoned from the RESULT (it lost a hard fight ⇒ it is too weak)
+without ever reading the party state at the moment the fight STARTED. One log line refuted it:
+`[BATTLE] started [('Swellow',112,136), ('Zigzagoon',48,48), ('Mightyena',23,143), ('Wailord',0,226),
+('Sceptile',0,145), ...]` — **two mons, including the strongest, were already at 0 HP**, after eight
+battles with no heal. The party was not underlevelled. It was unhealed.
+
+**What made it a BOT defect after all.** Two healing paths exist and neither runs there:
+`heal_party_from_bag()` (`pokemon_league.py:221`) is built and validated but **its only caller is the
+harness**; and in-battle items are **unreachable in doubles** because `StoryItemBattleStrategy`
+overrides `decide_turn` but not `decide_turn_in_double_battle` (`story_mode.py:417` vs `:261`).
+
+**⇒ PREVENTION RULES (four).**
+1. ⛔⛔ **DIAGNOSE FROM THE STATE AT THE START OF THE FAILURE, NOT FROM THE OUTCOME.** "It lost" is a
+   result, not a cause. The first question for any lost fight is *what did it walk in WITH* — and that
+   is one grep of the battle-start line. Losing with a full party and losing with two mons dead are
+   different bugs with different fixes, and the outcome line cannot tell them apart.
+2. ⛔ **"THE OBVIOUS FIX" IS A HYPOTHESIS WITH A COST.** Grinding levels was plausible, expensive, and
+   would have left the defect in place — the party would still enter with its best mons dead, and the
+   re-drive would have "proved" that levelling does not help. ⇒ **before building the obvious fix, state
+   what the failure would look like if the obvious cause were WRONG**, then check for that first.
+3. ⭐ **A CAPABILITY WITH NO CALLER IS INVISIBLE TO EVERY DIAGNOSIS THAT ASKS "CAN WE DO X?"** The answer
+   for healing was simultaneously "yes, it is built and validated" and "no, it never runs". ⇒ when
+   asking whether the bot CAN do something, always resolve it to **does anything CALL it on this path** —
+   and for a class hierarchy, check the *specific method the framework invokes* (`decide_turn` vs
+   `decide_turn_in_double_battle`), because an unoverridden method fails SILENTLY by inheritance.
+4. ‼ **DO NOT PUBLISH AN INFERENCE IN THE GRAMMAR OF A MEASUREMENT.** I wrote "the leg-9
+   Katelynn+Quincy double" as fact; the trainers were never named in any log. It happened to be
+   RIGHT — pos=(31,17) sits on the bridge between them — but I only learned that afterwards, and a
+   reviewer could not have told my inference from my measurements. ⇒ **name the source in the sentence**,
+   or mark it as inferred until it is checked.
+
+‼ **And the reason this was caught:** an agent I had sent to fetch party data reported that the trainer
+names appeared in NO log. That was half-wrong (they are in the map recon, not the logs) — but chasing
+the half that was right is what made me open the drive log at all. ⇒ ⭐ **A PARTIALLY-WRONG REPORT THAT
+CONTRADICTS YOUR ASSUMPTION IS STILL WORTH OPENING THE FILE OVER.** Do not dismiss the whole report
+because part of it is refutable.
+
+
+## 2026-09-05 — right diagnosis, WRONG PRESCRIPTION: I proposed a fix this chapter had already tried and rejected
+
+**Symptom.** Having correctly measured that the leg-9 loss is ATTRITION (the bot entered with two mons
+at 0 HP), I specified the fix as *"wire `heal_party_from_bag()` into the leg-9 approach"* and wrote it
+into the punch list, the handoff banner, the 60-second digest and the `➡➡➡` marker — four places.
+
+**Root cause.** I went from *diagnosis* straight to *remedy* without asking whether this project had
+already solved the same problem. It had — **twice**, both closed and both A/B-proven, and both sitting
+in the same file I was editing:
+* `#24-ch23healdescent` — `heal_before_descent()` heals at a **Poké Center** via the 1F south
+  arrow-warp. A/B: **un-healed 32% / 3 fainted → healed 87% / 0**.
+* `#24-ch23attrition` — `heal_at_league`, a 36-step walk to the League Center: **36/807 with five
+  fainted → 807/807 with none**. ‼ It also states outright that **there is NOWHERE to heal inside
+  Victory Road**, and that leg 6's heal works *only* because it runs from 1F, one warp from the door.
+
+**And the closed items contained the number that REFUTES my prescription:** `#24-ch23attrition` records
+the wallet **spent down to ₽1,741** with **ONE Potion** in the bag by leg 11. ⇒ **bag-healing at leg 9
+would have had almost nothing to spend.** I would have built it, driven it, and measured "no
+improvement" — and the natural reading of that result is *"healing doesn't help, so it IS a levels
+problem"*, which would have sent the next session back to the grinding idea I had just ruled out.
+
+**The correct remedy, which the same items hand over for free:** the fatal fight is on **1F at (31,17)**
+— architecturally the *same* position leg 6 heals from. ⇒ apply the **proven** mechanism a second time,
+rather than introducing a new one.
+
+**⇒ PREVENTION RULES (three).**
+1. ⛔⛔ **A DIAGNOSIS AND A PRESCRIPTION ARE TWO SEPARATE CLAIMS, AND EACH NEEDS ITS OWN EVIDENCE.**
+   Being right about the cause creates confidence that silently carries into the cure, where it was
+   never earned. ⇒ after naming a cause, **stop and ask separately: has this project already fixed
+   this, and what did it learn?**
+2. ⛔ **BEFORE PRESCRIBING A MECHANISM, GREP FOR THE *PROBLEM*, NOT THE SLUG.** I searched for
+   `#24-ch23chain`'s own text and found its halves. The two items that mattered were named
+   `#24-ch23attrition` and `#24-ch23healdescent` — they would have surfaced on `attrition` or `heal`,
+   words from **the diagnosis**, which is what I had and did not use.
+3. ⭐ **A CLOSED ITEM IS THE CHEAPEST RESEARCH IN THE TREE, AND IT CARRIES NUMBERS A FRESH AGENT
+   CANNOT GET.** Neither the decomp agent nor the code agent could have told me the bag holds one
+   Potion and ₽1,741 — that is *our run's* history, and it is the fact that decides between the two
+   candidate fixes. ⇒ **read the closed neighbours of an open item before speccing it**, and note that
+   this is exactly what `03`'s 90 completed `[x]` items are FOR.
+
+‼ **Sequence worth preserving:** an agent's partly-wrong report made me open the drive log (finding
+the real cause); the drive log made me respec the item; respeccing pushed the file over its line
+budget; the budget forced me to list closed blocks — **and the listing is what revealed the two prior
+fixes.** ⇒ ⭐ **The line-budget gate did real diagnostic work today that it was never written to do.**
+That is an argument for keeping cheap mechanical constraints even when they feel like bureaucracy.
+
+
+## 2026-09-05 — I wrote the correction and left the refuted sentence DIRECTLY AFTER IT (9th instance)
+
+**Symptom.** Having measured that the leg-9 loss is attrition, I inserted the corrected reasoning into
+the handoff banner. A Tier 1 reviewer then found the banner reading, in a single paragraph:
+
+> "⛔ **DO NOT GRIND — levelling would not have fixed this**; the party would still walk in with its two
+> best mons dead. ⇒ **the wall moved from a BOT DEFECT to a GAME PROBLEM** (levelling/strategy), which
+> is the next question."
+
+**Two adjacent clauses of one sentence flatly contradicting each other** — in the file a cold session
+reads first, at three sites, plus two more in the punch list and one in a research-note stub. Six live
+sites total.
+
+**Root cause — the same one, for the ninth time in this session: I edited the half I named.** I had a
+list of "the sites that state the next action" and swept exactly those. The refuted CONCLUSION was a
+different sentence, three words later, and it was never on my list. ⛔ **Adjacency made it worse, not
+better:** because my correct text was right there, I read the paragraph as fixed.
+
+**⭐⭐ THE VALUABLE PART — WHICH CONTROL CAUGHT IT, AND WHICH ONE COULD NOT.**
+Earlier the same day I wrote a mechanical gate for exactly this failure class, found it false-positived
+on its first live run, and deleted it (`06-DECISIONS-LOG.md` 2026-09-05), recording that the class was
+left "NOT mechanically defended". **This instance settles that call with evidence:**
+* the deleted gate compared *"next step"* declarations **per line**. These two clauses are not two next-step
+  declarations — one is an imperative and one is a *diagnosis*. ⇒ **it would have returned PASS.**
+* the independent Tier 1 reviewer quoted both halves and rejected the commit. ⇒ **it returned KICK-BACK.**
+⇒ ⭐ **DELETING THE GATE WAS RIGHT, AND THE REVIEWER IS THE CONTROL THAT ACTUALLY WORKS FOR THIS CLASS.**
+The failure is *semantic contradiction between neighbouring sentences*, which is not a string property.
+A regex can catch a duplicated marker; only a reader can catch "these two sentences cannot both be true".
+‼ **So do not re-attempt the gate.** Spend the effort on making sure Tier 1 actually runs, and on giving
+it the diff plus a claim paragraph — that is what let this reviewer find it in one pass.
+
+**⇒ PREVENTION RULES (three).**
+1. ⛔⛔ **WHEN YOU CORRECT A CONCLUSION, SEARCH FOR THE CONCLUSION — NOT FOR THE TOPIC AND NOT FOR THE
+   SLUG.** I searched "next action" and "leg-9". The stale text said *"the wall moved from a BOT DEFECT
+   to a GAME PROBLEM"* and matched neither. ⇒ **grep for the WORDS OF THE CLAIM YOU ARE RETRACTING**,
+   verbatim, tree-wide, and read every hit.
+2. ⛔ **A CORRECTION PLACED NEXT TO THE ERROR DOES NOT REPLACE IT — AND ADJACENCY HIDES THIS.** Nine
+   instances now, and this is the first where both halves were in one paragraph. ⇒ after editing a
+   paragraph, **re-read the WHOLE paragraph as a stranger would**, not just the sentence you inserted.
+3. ⭐ **RETRACT IN PLACE, WITH THE OLD WORDS QUOTED.** Every fix here uses the form *(this read "X" —
+   SUPERSEDED: Y)*. That is strictly better than deleting X, because a future reader who half-remembers
+   X can see it was considered and why it lost — and a grep for X still lands somewhere truthful.
+
+‼ **Corollary about my own checkers, earned twice today:** the verification script I wrote to prove the
+retraction landed **failed on correct text**, twice — once because its window regex knew "this read" but
+not "this stub briefly read", once because the retraction word sat on the previous line and the window
+was line-scoped. ⇒ ⭐ **WHEN A CHECK FAILS, READ THE FAILING LINE BEFORE TOUCHING THE SUBJECT.** Both
+times the document was right and the instrument was wrong.

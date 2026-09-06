@@ -8236,3 +8236,71 @@ Closed history, retired to keep `03-PUNCH-LIST.md` inside its 3600-line R3 budge
       **Acceptance:** `counter hunt — … FIERY_PATH … Slugma` appears and `CAUGHT Slugma` > 0,
       with `CAUGHT Machop` (control) unchanged.
 
+---
+
+## Archived from `03-PUNCH-LIST.md`
+
+Closed 2026-09-05. Archived the same day to keep 03-PUNCH-LIST.md under its lint_docs R3 budget while step 4 of #24-ch23chain was respecified.
+
+### ✅ `#24-icebeamteach` — **CLOSED 2026-09-05: WAILORD KNOWS ICE BEAM.** ⛔ DO NOT REOPEN.
+
+`--driver ch24teachice` on `post_icebeam.ss1`: `ACCEPTANCE: PASS`, `LANDED ['Wailord:Ice Beam']`,
+`wrong=[]`, `missing=[]`, `back_in_overworld=True`, `whiteouts=0`. Wailord's moves went
+`['Dive','Surf','Water Spout','Waterfall']` → `['Dive','Surf','Ice Beam','Waterfall']`.
+⭐ **A CLEAN A/B: same driver, same fixture, ONE line changed** — before the fix the cursor sat on
+HM08 and the game refused; after it, the teach lands. Nothing else was touched.
+
+**STATUS: CLOSED (was: OPEN — ROOT-CAUSED 2026-09-05).**
+Reproduce with `--driver ch24teachice --frames 6000` on `post_icebeam.ss1` (~20 seconds).
+‼ Use a SMALL `--frames`: the driver reaches its verdict by ~f574 and then
+idles to the cap in Manual mode, so `--frames 40000` wastes twelve minutes per attempt.
+
+⛔⛔ **ROOT CAUSE — `scroll_to_item_in_bag` RETURNS SUCCESS WITH THE CURSOR ON THE WRONG ITEM.**
+MEASURED in ONE run once the right instrument was fitted:
+```
+[TEACH-CURSOR] after scroll_to_item_in_bag(TM13): pocket=2 slot=13 -> HM08
+[TEACH-ITEM]   TM/HM pocket order = ['TM03','TM04','TM08','TM13',...,'HM07','HM08']
+[TEACH-SAID]   0: 'DIVER already knows DIVE.'
+```
+The bot was using **HM08 Dive** on Wailord (nickname DIVER) the whole time. The game refused, bounced
+to the bag, consumed nothing. Upstream scrolls to a slot number from `first_slot_index_for()`, and
+for TM13 that is not the slot the on-screen cursor counts.
+⭐ **WHY IT NEVER BIT BEFORE:** five earlier teaches (Aerial Ace, Facade, Strength, Rock Smash, Fly)
+used items whose two indices COINCIDE. TM13 is the first item acquired out of that order.
+⇒ **A helper that has worked five times is not verified, only unmeasured.**
+
+**THE FIX, SHIPPED (`pokemon_league.py::scroll_to_tm_verified`):** call upstream, then READ the cursor
+back out of `gBagPosition`, correct it closed-loop and BOUNDED against `get_item_bag().tms_hms`, and
+**RAISE rather than press A on an unverified cursor** (a Gen-3 TM is single-use).
+⛔ Upstream `modules/menuing.py` is left ALONE — a CASE-BY-CASE call for THIS defect (shared hot path; the cheaper route existed), ⛔ **not a ruling**: *(this read "same ruling as `KI-88`" until 2026-09-05; no such ruling exists — see `06-DECISIONS-LOG.md` 2026-09-05)*.
+
+**ALSO MEASURED, so do not re-derive:** the party cursor lands correctly
+(`reads=[2,2,2,2,2,2,2,3,3,3]`, mon under cursor = Wailord); `can_learn_tm_hm(TM13)` is True;
+⚠ Wailord's ONLY forgettable slot is **Water Spout** — Dive/Surf/Waterfall are HMs and the game
+refuses to forget an HM ⇒ **the swap is a REAL trade**, not a free slot.
+
+‼ **THE LESSON, AND IT COST SIX DRIVES:** every one of those six diagnoses was about the PARTY menu,
+downstream of an item selection that was wrong from the first frame. The item side had been
+"verified" by printing the pocket's CONTENTS — which is not the cursor. ⇒ ⭐ **A CANDIDATE IS NOT AN
+ATTEMPT: read what A will actually act on.**
+
+*(superseded 2026-09-05 — the block that stood here was this item's PRE-SHIPMENT plan, left behind
+when the header above was replaced. It said "STATUS: OPEN... this is the next build" and gave a route
+"decomp-traced, NOT walked". Both are done. Retired rather than kept, because a route plan under a
+CLOSED header is an instruction to redo finished work; the route AS BUILT is in the entry above and
+in `07-CHANGELOG.md` 2026-09-05. Two things from it are still TRUE and are kept here:)*
+
+**WHY THIS ITEM EXISTED (the rationale, still the justification for the whole §Ch24 TM plan).** Drake
+is 4/5 dragon-ish and carries **zero Ice moves**; Wailord takes only 22-56% from his whole team. With
+Ice Beam, Wailord does **Flygon 88% · Salamence 73% · Altaria 71% · Shelgon 71%**. ⭐ **Flygon has
+LEVITATE**, so Ice is the ONLY super-effective type that reaches it. Cost: **₽0**.
+⚠ **STILL A PREDICTION — THE BOT HAS NEVER FOUGHT DRAKE.** Ice Beam is now TAUGHT; that changes the
+inputs to the analysis, not its status as an analysis.
+
+⚠⚠ **WHAT THIS DOES NOT FIX, AND IT IS THE NEXT TM QUESTION: WALLACE IS STILL A LOSS.** Milotic's
+Recover heals 98/turn against our best hit of 74 — Ice Beam does not touch that. The candidate answer
+is SolarBeam + Sunny Day (TM22 / TM11, both also FREE pickups). ⛔ NOT scheduled and NOT de-risked:
+neither flag has been probed and neither route has been walked. See
+`ai-research-notes/2026-09-04-ch24-MOVESET-AND-TM-PLAN.md` §6.
+---
+

@@ -2931,14 +2931,38 @@ def ch23_chapter_done() -> bool:
     ⇒ **The readout and the gate answer DIFFERENT QUESTIONS** — "which chapter is this run in?"
     versus "may the next segment start?". Both are correct. Do not collapse them.
 
-    ⚠ DELIBERATELY NOT CONJUNCTS: "healed" and "stocked". Both are CONSUMABLE — one battle or one
-    purchase flips them back — and a done-predicate that can turn False again would re-run a
-    finished chapter forever. Legs 10 and 11 self-skip on their own readings instead.
+    ⛔⛔ AND IT REQUIRES THE ELITE FOUR BASKET — A REVERSAL, MEASURED 2026-09-05.
+    This docstring used to say: *"DELIBERATELY NOT CONJUNCTS: 'healed' and 'stocked'. Both are
+    CONSUMABLE … a done-predicate that can turn False again would re-run a finished chapter."*
+    **That reasoning created a hole, and a live drive fell into it.**
+    ‼ A WHITEOUT TELEPORTS THE BOT TO THE EVER GRANDE POKÉ CENTER — which satisfies "on EG and not on
+    a Victory Road floor". MEASURED on `saves/ki90_whiteout_at_evergrande.ss1`
+    (md5 `96b666dd63a8d158734660cef51849b6`, captured from the failing drive): the party had just been
+    wiped in the leg-9 double battle, and this predicate returned **True**.
+    ⇒ ⛔ In production that is worse than stranding: `StoryMode.run` catches the whiteout's
+    `StoryAbort` and re-enters `_play()` from the top (`story_mode.py:2392-2426`), the dispatch asks
+    this predicate, gets True, prints *"Victory Road already done — skipping"* — and the bot advances
+    to §Ch24 **having skipped the League heal AND the Elite Four basket**, the two legs that exist
+    solely to survive a five-fight gauntlet with no nurse.
+    ⇒ ⭐ **A POSITION CAN BE REACHED BY SUCCEEDING *OR* BY FAILING. The chapter's WORK PRODUCT cannot.**
+    The basket is what this chapter is *for*, so it is the conjunct that distinguishes "finished" from
+    "wiped and respawned at the same place".
+
+    ⚠ THE TRADE, STATED HONESTLY RATHER THAN CLAIMED AWAY: the basket IS consumable, so when §Ch24
+    spends it this predicate flips False and the dispatch would re-enter §Ch23. That costs a re-buy
+    (every leg self-skips on position; only leg 11 does work). ⇒ **when §Ch24 is built it MUST set its
+    own progress marker so §Ch23 is not re-entered** — a forward dependency, recorded here because it
+    is now load-bearing. A wasteful re-buy is strictly better than advancing into the gauntlet with a
+    wiped, unstocked party.
     """
     if not wally_beaten():
         return False
     try:
-        return _on_map(EG) and not any(_on_map(m) for m in VICTORY_ROAD_MAPS)
+        if not _on_map(EG) or any(_on_map(m) for m in VICTORY_ROAD_MAPS):
+            return False
+        # ⛔ THE WORK PRODUCT, not merely the position. See the reversal above.
+        stock = bag_healing_stock()
+        return not any(stock.get(name, 0) < qty for name, qty in LEAGUE_BASKET)
     except Exception:  # noqa: BLE001 — a reader that cannot answer must not report "done"
         return False
 
