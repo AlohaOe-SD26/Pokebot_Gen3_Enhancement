@@ -4451,3 +4451,53 @@ flood-fill error, a second time, on a different question.
 * *Teach `calculate_path` about sight cones* — the correct general fix, and far too large a blast
   radius for this item: it is a shared upstream-derived pathfinding file, and leg 9 needs one route,
   not a new pathfinding feature. Worth filing separately.
+
+
+## 2026-09-05 (late) — REVERSAL #2: leg 9 ROUTES AROUND the pair via (33,16). The split is shelved.
+
+⛔ **THIS SUPERSEDES BOTH OF TODAY'S EARLIER LEG-9 DECISIONS** (the Poké Center heal, and the
+split-singles reversal). Both are left intact above — this file is append-only — and both are now
+wrong in their conclusions. ‼ The heal entry remains correct that grinding and bag-items are dead ends;
+the split entry remains correct that the heal is impossible.
+
+**Decision.** §Ch23 leg 9 will navigate **ladder landing → (33,16) → exit apron**, skipping Katelynn
+and Quincy entirely.
+
+**Why — measured, and it costs nothing.** `--driver ch23leg9probe` (`ACCEPTANCE: PASS`, `battles=0`):
+```
+to_bypass_33_16       reachable 44 wp   enters_cones []          SAFE
+bypass_33_16_to_exit  reachable 18 wp   enters_cones []          SAFE     44 + 18 = 62
+direct route          reachable 62 wp   ENTERS the cone (31,17)
+```
+⇒ **the same 62 waypoints, and it meets neither trainer.**
+
+**What reversed the previous decision.** Two measurements, both of which contradict something I had
+already committed:
+1. **The split's approach routes enter the cone.** `(32,16)` 45 wp and `(29,16)` 46 wp both report
+   `enters_cones [(31,17)], safe=False`. ⇒ walking to a standpoint **starts the double the split exists
+   to avoid.** I selected that plan having measured the destinations and not the routes.
+2. **"The (33,17) bypass is dead" was an artifact of my own probe.** `map_path.py:916` seeds the search
+   with `source_tile.elevation`; `:859` then forbids any elevation change. (33,17) is on the
+   elevation-15 bridge, so the query ran as a phantom player carrying 15. Re-seeding one tile north at
+   (33,16) — elevation 3 — answers cleanly. The probe now keeps the bad call as a labelled CONTROL.
+
+**⚠ WHAT THIS GIVES UP, STATED PLAINLY.** Skipping two trainers forfeits their EXP. On 2026-09-04
+Swellow and Mightyena both reached L48 fighting this pair. ⇒ **this decision trades levels for
+survival**, and it is the right trade *here* because the party arrives at leg 9 at 35% HP with three
+fainted and **there is no heal available between leg 8 and leg 10** (measured). A party that dies at
+leg 9 gets no EXP at all.
+‼ **The Elite Four level gap is a real and separate problem** (`#24-e4healing` and the E4 gap notes).
+⇒ **Do not let this decision be read as closing it.** If §Ch24 needs those levels, the place to get
+them is somewhere a heal exists — not a no-heal corridor.
+
+**Alternatives rejected.**
+* *Split into two singles* — **available but not chosen.** Rescuable via (33,16) (hop 3 wp cone-free,
+  exit 20 wp cone-free) and singles do re-enable the in-battle item policy that doubles disable by MRO.
+  But it buys two L43 fights with no heal, for the same 62 waypoints the bypass costs. Revisit only if
+  the E4 gap forces it.
+* *A heal before leg 9* — measured impossible (no reachable Poké Center between legs 8 and 10).
+* *Grinding* — the opposition is L43 against our L52/L48/L47/L47; levels were never the constraint.
+* *Teach `calculate_path` about trainer sight cones* — the correct GENERAL fix and still open: the
+  planner is structurally blind to them (`avoid_scripted_events` consults only
+  `on_enter_event_triggers`, while spotting is a per-frame scan in `trainer_see.c`), which is exactly
+  why it routed through (31,17). Too large a blast radius for this item; file separately.

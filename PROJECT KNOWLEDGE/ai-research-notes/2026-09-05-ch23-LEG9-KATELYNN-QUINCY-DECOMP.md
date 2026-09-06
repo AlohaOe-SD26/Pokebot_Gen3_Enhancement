@@ -105,7 +105,7 @@ rules (`IsElevationMismatchAt` :7707, `ObjectEventUpdateElevation` :7759, `AreEl
 
 ## THREE options, all decomp-verified reachable
 
-1. ⛔⛔ **REFUTED 2026-09-05 — DO NOT BUILD THIS.** *(This read: "Skip entirely — route through (33,17). +0 steps.")* `--driver ch23leg9probe` asked our own planner from the real leg-8 landing: **(33,17) is reachable (43 wp) but the exit apron is NOT reachable from it** (`PathFindingError`). ⇒ the "61 steps either way" BFS below is wrong, and so was my own flood-fill. **(33,17) is a dead end with respect to the exit.**
+1. ✅✅ **CORRECT AFTER ALL, AND NOW SELECTED — my "refutation" of it was an instrument error.** Re-measured from **(33,16)** (elevation 3, off the bridge): **44 wp there and 18 wp on to the exit, both cone-free — 62 total, exactly the direct route's cost.** ⇒ this note's original "+0 steps" claim was RIGHT. The refusal I recorded came from seeding `calculate_path` at the elevation-**15** tile (33,17); `map_path.py:916`/`:859` then forbid every step onto normal ground. *(The superseded verdict read:)* ⛔⛔ **REFUTED 2026-09-05 — DO NOT BUILD THIS.** *(This read: "Skip entirely — route through (33,17). +0 steps.")* `--driver ch23leg9probe` asked our own planner from the real leg-8 landing: **(33,17) is reachable (43 wp) but the exit apron is NOT reachable from it** (`PathFindingError`). ⇒ the "61 steps either way" BFS below is wrong, and so was my own flood-fill. **(33,17) is a dead end with respect to the exit.**
 2. **Split into two singles** — stand at `(29,16)` / `(32,16)` (or the `,18` equivalents) and interact;
    interaction runs `trainerbattle_single`. None of `(29,16)`, `(29,18)`, `(32,16)`, `(32,18)` lie in any
    sight cone. ⭐ **This is the option that also re-enables our in-battle item policy** (see the headline).
@@ -188,7 +188,7 @@ live probe the project's rules require before building on it.
 
 ## ⛔ GAPS — stated, not filled
 
-* ✅ **PARTLY CLOSED 2026-09-05 — THE PROBE HAS NOW BEEN RUN** (`--driver ch23leg9probe`, `ACCEPTANCE: PASS`): it KILLED the (33,17) bypass and CONFIRMED the split standpoints. What remains un-walked is the split itself — that interacting from (29,16)/(32,16) really starts a SINGLE battle. *(This gap read:)* **NOT WALKED IN OUR HARNESS.** `(33,17)` and the `(29,16)`/`(32,16)` interaction tiles are decomp BFS
+* ✅ **PARTLY CLOSED 2026-09-05 — THE PROBE HAS NOW BEEN RUN** (`--driver ch23leg9probe`, `ACCEPTANCE: PASS`): ⛔ *(this said it "KILLED the (33,17) bypass and CONFIRMED the split standpoints" — **BOTH HALVES ARE NOW REFUTED**)*: the bypass verdict was an instrument artifact and the bypass via **(33,16)** is FREE and SELECTED (44 + 18 = 62 wp, cone-free); and the split standpoints, while reachable, have ROUTES that enter the cone at (31,17) (`safe: False`), so the split as specified starts the double it exists to avoid. What remains un-walked is the SELECTED bypass itself — that a real drive routes (33,16) and meets neither trainer. *(This gap read:)* **NOT WALKED IN OUR HARNESS.** `(33,17)` and the `(29,16)`/`(32,16)` interaction tiles are decomp BFS
   results. Per project rule they are a note until a live probe confirms them. **That probe is cheap and
   decisive; do it before building either route.**
 * **Coordinates are decomp map-local.** If our map frame uses a different origin, translate first.

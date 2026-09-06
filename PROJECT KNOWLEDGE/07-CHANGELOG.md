@@ -22901,3 +22901,58 @@ trainer returns 0 from `CheckTrainer` (`src/trainer_see.c:275-277`).
 then continue to the exit.** ⚠ Still to verify live: that interacting from those tiles actually starts
 a single battle, and that the party survives two singles from whatever state leg 8 leaves it in — **the
 heal that would have guaranteed that is measured impossible, so this is not a free win.**
+
+
+## 2026-09-05 (late) — ⭐⭐ THE BYPASS IS ALIVE AND FREE; THE SPLIT AS SPECIFIED IS REFUTED
+
+**Two committed conclusions corrected, both by re-measuring rather than arguing.**
+
+**1. "The (33,17) bypass is DEAD" was an INSTRUMENT ARTIFACT.** `map_path.py:916` seeds the search with
+`source_tile.elevation`; `:859` then forbids stepping to any other elevation. (33,17) is on the
+elevation-15 bridge, so my probe asked the question as a phantom player carrying 15 — which cannot step
+onto normal ground at all. Re-measured from **(33,16)** (elevation 3, one tile north, off the bridge):
+```
+to_bypass_33_16        reachable  44 wp   enters_cones []   SAFE
+bypass_33_16_to_exit   reachable  18 wp   enters_cones []   SAFE
+direct route           reachable  62 wp   ENTERS the cone at (31,17)
+CONTROL from (33,17)   PathFindingError   ← artifact, now kept in the probe as a labelled control
+```
+⇒ ⭐⭐ **44 + 18 = 62 — THE BYPASS COSTS EXACTLY WHAT THE DANGEROUS ROUTE COSTS, AND MEETS NEITHER
+TRAINER.** The decomp note's "+0 steps" was right all along.
+
+**2. THE SPLIT-SINGLES PLAN IS SELF-DEFEATING AS SPECIFIED.** The probe now keeps the waypoint lists it
+previously discarded, and both approach routes **enter the cone at (31,17)**:
+```
+split_standpoints  (32,16) 45 wp enters_cones [(31,17)] safe=False
+                   (29,16) 46 wp enters_cones [(31,17)] safe=False
+```
+⇒ walking to a standpoint **starts the double battle before the bot can press A**. Selecting that plan
+without measuring its approach route was the same error as everything else this session: the
+destination was measured, the route was not.
+‼ The split is not dead — reached VIA (33,16) it becomes available (hop (32,16)→(29,16) is 3 wp and
+cone-free; exit from (29,16) is 20 wp and cone-free) — but it is no longer the cheapest option, and it
+costs two hard fights with no heal available.
+
+**Probe hardened:** every route now keeps its tiles and is intersected with the cones; the hop between
+standpoints and the exit-from-last-standpoint are measured; and the invalid (33,17) call is retained as
+a CONTROL so the artifact stays visible instead of being quietly fixed. `ACCEPTANCE: PASS`, `battles=0`.
+
+
+## 2026-09-05 (late) — gate #N `probe_closed_item_refs.py` repaired: a progress note in a header was being read as a STATUS
+
+**Measured false positive.** The gate classified `#24-e4healing` as CLOSED and then rejected a correct
+cross-reference to it. Its header is:
+> `### 🔜 #24-e4healing — **§Ch24 HEALING: … (step 1 DONE 2026-09-04). Steps 2-4 … REMAIN.**`
+
+Plainly OPEN, and the **🔜** says so — but `CLOSED_MARKS` contains the literal `"DONE 20"`, which
+matches inside *"DONE 2026-09-04"*. ⇒ ⭐ **A PARTIALLY-DONE ITEM DESCRIBES ITS DONE PART IN ITS OWN
+HEADER, so substring-matching a header for completion words reads a PROGRESS NOTE as a STATUS.**
+
+**Fix:** an explicit open marker (`🔜`, `⬜`, `🔶`) in the header now beats every CLOSED substring —
+the status emoji is the status. **Fault-proven both directions after the change**, because a repair
+must not disarm the gate: `POKEBOT_CLOSEDREF_FAULT=inject` → exit 1 (still catches a real parent
+calling a closed slug open); `=history` → exit 0 (still silent on history-marked lines). Closed-item
+count corrects 22 → 21.
+‼ `CLAUDE.md` rule 6 is the reason this was repaired rather than worked around: *a gate with false
+positives teaches the reader to bypass it, which is strictly worse than no gate.* An inconvenient RED
+is exactly when that rule is load-bearing.

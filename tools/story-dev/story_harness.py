@@ -14502,18 +14502,58 @@ class Ch23Leg9ProbeMode(BotMode):
                 f"{' at ' + str(hit) if hit else ''}")
             taken.add("R9P-CONE")
 
-            # --- the bypass, in two halves (source may be a tile we are not standing on) --------------
-            R["to_bypass_33_17"] = {k: v for k, v in route(here, BYPASS).items() if k != "tiles"}
-            via = route(BYPASS, EXIT_APRON)
-            R["bypass_to_exit"] = {k: v for k, v in via.items() if k != "tiles"}
-            R["bypass_leg2_hits_cones"] = sorted(set(via["tiles"]) & CONES)
+            # --- ⛔⛔ THE ELEVATION TRAP, AND THE CONTROL THAT DEMONSTRATES IT ------------------------
+            # `map_path.py:916` seeds the search with `source_tile.elevation`, and `:859` then refuses
+            # any step onto a tile of a DIFFERENT elevation (bar 0/15). (33,17) is on the elevation-15
+            # bridge, so pathing FROM it begins as a phantom player carrying 15 and is forbidden from
+            # every normal elevation-3 tile. The first run of this probe did exactly that and recorded
+            # "the (33,17) bypass is DEAD" — a false negative that reached four documents.
+            # ⇒ a real player NEVER carries 15; it keeps its own elevation across a multi-level tile.
+            # ⇒ so we test the bypass from (33,16) — elevation 3, off the bridge — and KEEP the old
+            #   call beside it, labelled, so the artifact is visible rather than merely fixed.
+            BYPASS_OFFBRIDGE = (33, 16)
+
+            def with_cones(r):
+                hits = sorted(set(r["tiles"]) & CONES)
+                out = {k: v for k, v in r.items() if k != "tiles"}
+                out["enters_cones"] = hits
+                out["safe"] = (not hits) and bool(r.get("reachable"))
+                return out
+
+            R["to_bypass_33_16"] = with_cones(route(here, BYPASS_OFFBRIDGE))
+            R["bypass_33_16_to_exit"] = with_cones(route(BYPASS_OFFBRIDGE, EXIT_APRON))
+            # ⚠ CONTROL — EXPECTED TO REFUSE. Not a finding about the map; a finding about the CALL.
+            R["CONTROL_invalid_seed_from_bridge_33_17"] = {
+                **{k: v for k, v in route(BYPASS, EXIT_APRON).items() if k != "tiles"},
+                "note": "elevation-15 source: refusal here is an ARTIFACT, not a map fact",
+            }
+            R["to_bypass_33_17_reachable"] = {k: v for k, v in route(here, BYPASS).items()
+                                              if k != "tiles"}
+            log(f"[{TAG}] ⭐ BYPASS via {BYPASS_OFFBRIDGE} (elevation 3, VALID seed): "
+                f"reach={R['to_bypass_33_16']} then exit={R['bypass_33_16_to_exit']}")
+            log(f"[{TAG}] ⚠ CONTROL from (33,17) (elevation 15, INVALID seed): "
+                f"{R['CONTROL_invalid_seed_from_bridge_33_17']}")
             taken.add("R9P-BYPASS")
 
-            # --- the split-single standpoints ---------------------------------------------------------
-            R["split_standpoints"] = {
-                str(tile): {k: v for k, v in route(here, tile).items() if k != "tiles"}
-                for tile in ((29, 16), (32, 16))
-            }
+            # --- the split-single standpoints, ROUTES KEPT THIS TIME ---------------------------------
+            # ⛔ "(32,16) is reachable in 45 wp" says NOTHING about whether the walk there steps on
+            # (30,17)/(31,17). If it does, the double fires before the bot ever presses A.
+            QUINCY_STAND, KATELYNN_STAND = (32, 16), (29, 16)
+            splits = {}
+            for tile in (QUINCY_STAND, KATELYNN_STAND):
+                splits[str(tile)] = with_cones(route(here, tile))
+                log(f"[{TAG}] ⭐ SPLIT ROUTE to {tile}: {splits[str(tile)]}")
+            R["split_standpoints"] = splits
+
+            # ⛔ the hop between them: if THAT crosses a cone, the surviving trainer spots us and the
+            # split collapses into the very fight it exists to avoid.
+            R["hop_between_standpoints"] = with_cones(route(QUINCY_STAND, KATELYNN_STAND))
+            log(f"[{TAG}] ⭐ HOP {QUINCY_STAND} -> {KATELYNN_STAND}: {R['hop_between_standpoints']}")
+
+            # ⛔ and the exit AFTER both are beaten — reachable from the last standpoint is a different
+            # question from reachable from the ladder landing, and has never been asked.
+            R["exit_from_last_standpoint"] = with_cones(route(KATELYNN_STAND, EXIT_APRON))
+            log(f"[{TAG}] ⭐ EXIT from {KATELYNN_STAND}: {R['exit_from_last_standpoint']}")
             taken.add("R9P-SPLIT")
 
         except Exception as error:  # noqa: BLE001

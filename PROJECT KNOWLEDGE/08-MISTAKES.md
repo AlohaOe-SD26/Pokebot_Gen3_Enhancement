@@ -13065,3 +13065,113 @@ is not phrased like the sentence, so no search for the claim's wording finds it.
    not a gate (the deleted one would have passed — this is one imperative and one diagnosis, not two
    next-step declarations), but an independent reviewer reading for meaning. That is now three catches
    for Tier 1 in one session and zero for any mechanical check.
+
+
+## 2026-09-05 — my probe called `calculate_path` FROM A BRIDGE TILE and published the false negative to four documents
+
+**Symptom.** `--driver ch23leg9probe` reported `bypass_to_exit = {'reachable': False, 'why':
+'PathFindingError'}`, and I concluded **"the (33,17) bypass is DEAD"** — writing it into
+`07-CHANGELOG.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md` and a research note, and using it to eliminate
+the option. A research workflow challenged it. **It was an artifact of my own call**, and re-measuring
+correctly showed the bypass is not merely alive but **FREE**.
+
+**Root cause, verified in our own code before believing the workflow.**
+```
+map_path.py:916   open_queue.put(PathNode(source_tile, source_tile.elevation, ...))
+map_path.py:859   if tile.elevation not in (0, 15) and from_elevation != 0
+                  and tile.elevation != from_elevation: return False
+```
+The search is seeded with the **source TILE's** elevation. (33,17) sits on the elevation-**15** bridge,
+so the search began as a phantom player carrying 15 and was then forbidden from stepping onto every
+normal elevation-3 tile. ⇒ the refusal described **my call**, not the map.
+‼ **A real player never carries 15** — it keeps its own elevation while crossing a multi-level tile.
+
+**What the corrected measurement says** — same probe, source moved one tile north to **(33,16)**
+(elevation 3, off the bridge):
+```
+to_bypass_33_16        reachable  44 wp   enters_cones []   SAFE
+bypass_33_16_to_exit   reachable  18 wp   enters_cones []   SAFE      44 + 18 = 62
+direct route           reachable  62 wp   ENTERS the cone at (31,17)
+CONTROL from (33,17)   PathFindingError  ← the artifact, reproduced beside the fix
+```
+⇒ ⭐⭐ **THE BYPASS COSTS EXACTLY WHAT THE DANGEROUS ROUTE COSTS — 62 WAYPOINTS EITHER WAY — AND
+AVOIDS BOTH TRAINERS.** The decomp note's original "+0 steps" claim was RIGHT; I refuted it with a
+broken instrument and then recorded my refutation as measured fact.
+
+**⇒ PREVENTION RULES (three).**
+1. ⛔⛔ **`calculate_path` FROM A TILE THE BOT IS NOT STANDING ON IS ONLY VALID WHEN THAT TILE'S
+   ELEVATION MATCHES THE BOT'S.** Off-elevation sources — bridges (15), water (1), stair/ledge
+   transitions — produce refusals that say nothing about the map. ⇒ **when probing a hypothetical
+   waypoint, seed from a tile of the elevation the bot will actually carry**, and say which that is.
+2. ⛔ **A REFUSAL IS ONLY A MEASUREMENT IF THE QUESTION WAS ASKABLE.** I had written into the probe's
+   own docstring that *"a refusal IS the reading"* — true for a genuine query, false for a malformed
+   one. ⇒ **before recording a negative result, ask what would have to be true for the tool to refuse
+   for an uninteresting reason** — and where cheap, include a CONTROL that would expose it. This probe
+   now keeps the bad (33,17) call, labelled, precisely so the artifact stays visible.
+3. ⭐ **THE THIRD WRONG REACHABILITY ANSWER IN ONE SESSION, AND THE FIRST TWO WERE MY BFS.** Twice I
+   trusted a homemade flood-fill over the planner; the third time I trusted the planner but **fed it
+   an invalid question**. ⇒ the lesson is not "use `calculate_path`" — it is **"state the elevation
+   and the standing tile your reachability claim assumes"**, because both instruments fail silently on
+   exactly that axis.
+
+‼ **And note what caught it:** not a gate, not my own re-reading — an adversarial research agent told
+to REFUTE the plan, which went and read `map_path.py`. That is four catches this session for
+independent adversarial review and zero for any mechanical check.
+
+
+## 2026-09-05 — the SUMMARY LINE of an option list has now been wrong three times
+
+**Symptom.** `#24-ch23chain`'s step 4 carries a one-line summary of its options. Today it read, in
+sequence: *"(a) is the fix; (b)/(c) are cheap force-multipliers — DO (a) FIRST"* → *"(a) AND (b) ARE
+BOTH REFUTED. (c) IS THE WHOLE OPTION SET"* → and now *"(b) IS SELECTED"*. **Each rewrite was itself
+made stale by the next measurement, and twice I updated the option BLOCKS and left the summary.**
+
+**Root cause.** A summary is a DERIVED claim: it restates the status of every item beneath it. Editing
+any one option silently invalidates it, and it does not contain the words of the option it summarises,
+so a grep for the changed option's text never finds it.
+
+**⇒ PREVENTION RULES (two).**
+1. ⛔ **A SUMMARY OF N THINGS IS N CLAIMS, AND IT ROTS WHEN ANY ONE OF THEM MOVES.** ⇒ when you change
+   an option, a step, or a status, **immediately re-read the nearest sentence that summarises the
+   group** — it is the half most likely to be stale and the least likely to be found by searching for
+   what you changed. This is the same failure as heading-vs-body (instances 10 and 11), one level up.
+2. ⭐ **PREFER A SUMMARY THAT NAMES THE MEASUREMENT, NOT THE VERDICT.** *"(b) is dead"* rots; *"(b):
+   44+18=62 wp, cone-free"* stays true even when the choice changes, because a measurement is not a
+   decision. Where a verdict is genuinely needed, put it in exactly ONE place and point at it.
+
+‼ **And a note on gates, earned the same hour:** the run that caught this also produced a RED from
+`probe_closed_item_refs.py` that was a **false positive** — it read *"step 1 DONE 2026-09-04"* in an
+open item's header as a closed-status marker. ⇒ ⭐ **WHEN A GATE GOES RED, ESTABLISH WHETHER THE
+SUBJECT OR THE INSTRUMENT IS WRONG BEFORE EDITING EITHER.** I have now had this cut both ways in one
+session: three times the instrument was wrong (two BFS runs, one malformed `calculate_path`), and the
+temptation each time was to believe the reading and rewrite the subject.
+
+
+## 2026-09-05 — I swept for the SENTENCE I wrote, not for the CLAIM, and five live copies survived
+
+**Symptom.** Having established that "the (33,17) bypass is dead" was false, I swept the tree and
+reported it clean. A Tier 1 reviewer then found **five live copies still asserting it**, three of them
+in sections this session never opened — including the handoff's **STATE table**, which is the canonical
+"where are we" cell and was still commanding the superseded split-singles plan.
+
+**Root cause.** My sweep grepped the phrases I remembered writing: `bypass is DEAD`, `MEASURED DEAD`,
+`61 steps`, `+0 steps`. The survivors said *"dead end"*, *"NOT reachable from it"*, *"reachable 43 wp"*,
+*"(measured dead)"*. **Same claim, different words** — so the sweep returned clean while the claim
+stood in five places.
+
+**⇒ PREVENTION RULE — and this one supersedes the weaker version I wrote two hours earlier.**
+⛔⛔ **SWEEP BY THE FACT-BEARING TOKEN, NEVER BY YOUR OWN SENTENCE.** A claim is *about* something —
+a coordinate, an identifier, a number, a filename. Those tokens appear in **every** phrasing because
+they are the data; prose is rewritten freely around them. Here, `grep -E "33,17|43 wp"` found all five
+instantly, including the three I had never read.
+⇒ Practically: before declaring a retraction complete, **grep the one token the claim cannot be stated
+without**, and read every hit. ‼ Expect noise — that sweep flagged ten lines of which nine were neutral
+geometry or correct retractions. **A coarse token sweep is for finding CANDIDATES; the reading is still
+yours.** Noise is the correct trade: a sweep that only matches your own wording is silent exactly where
+you most need it.
+
+‼ **Corollary about summaries, now confirmed twice in one hour:** the reviewer noted my own rule
+("re-read the nearest sentence that summarises the group") should have caught these — and it did not,
+because I applied it only in the files I was editing. ⇒ **the summary sentence and the status cell live
+in EVERY file that mentions the item, not just the one you have open.** The STATE table is the highest-
+value instance and the easiest to forget, because it is a table cell and reads nothing like prose.

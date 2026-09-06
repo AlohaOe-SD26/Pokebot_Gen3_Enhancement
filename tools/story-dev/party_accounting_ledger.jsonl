@@ -438,3 +438,4 @@
 {"when": "2026-09-05T18:30:41", "driver": "ch23chapter", "build": "sandbox", "state": "ki90_whiteout_at_evergrande.ss1", "frames_run": 400, "recomputes": 401, "scans": 2, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-05T19:33:44", "driver": "ch23exit", "build": "sandbox", "state": "post_return.ss1", "frames_run": 20317, "recomputes": 20317, "scans": 68, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-05T19:39:59", "driver": "ch23leg9probe", "build": "sandbox", "state": "post_return.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-05T21:46:40", "driver": "ch23leg9probe", "build": "sandbox", "state": "post_return.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}

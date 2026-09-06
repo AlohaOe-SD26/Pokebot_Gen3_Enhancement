@@ -52,6 +52,16 @@ PUNCH = (pathlib.Path(sys.argv[1]) if len(sys.argv) > 1
 #: A header marks its item CLOSED when it carries one of these. Kept literal and small on purpose.
 CLOSED_MARKS = ("✅", "CLOSED", "DONE 20", "**DONE**")
 
+#: ⛔⛔ AN EXPLICIT OPEN MARKER BEATS EVERY CLOSED SUBSTRING. Added 2026-09-05 after a MEASURED false
+#: positive: `#24-e4healing`'s header is `### 🔜 ... (step 1 DONE 2026-09-04). Steps 2-4 ... REMAIN.`
+#: — plainly OPEN, and the 🔜 says so — but the substring "DONE 20" inside "DONE 2026-09-04" made this
+#: gate classify it CLOSED and then reject a correct cross-reference to it.
+#: ⇒ ⭐ A PARTIALLY-DONE ITEM DESCRIBES ITS DONE PART IN ITS OWN HEADER; matching "DONE 20" against a
+#: header therefore reads a progress note as a status. The status EMOJI is the status.
+#: ‼ `CLAUDE.md` rule 6: a gate with false positives teaches the reader to bypass it, which is strictly
+#: worse than no gate. This is that repair, not a workaround for an inconvenient failure.
+OPEN_MARKS = ("🔜", "⬜", "🔶")
+
 #: Language that asserts a slug is still outstanding. Each must be a CLAIM about status, never a
 #: mere mention — "see `#24-foo`" is fine, "`#24-foo` is OPEN" is not.
 OPEN_PATTERNS = (
@@ -119,7 +129,10 @@ def main() -> int:
     parsed = items(text)
 
     closed = {it["slug"] for it in parsed
-              if it["slug"] and any(m in it["header"] for m in CLOSED_MARKS)}
+              if it["slug"]
+              and any(m in it["header"] for m in CLOSED_MARKS)
+              # ⛔ an explicit OPEN marker in the same header wins — see OPEN_MARKS above
+              and not any(m in it["header"] for m in OPEN_MARKS)}
 
     if FAULT == "inject":
         # a parent describing a genuinely-closed slug as open, on a line with NO history marker
