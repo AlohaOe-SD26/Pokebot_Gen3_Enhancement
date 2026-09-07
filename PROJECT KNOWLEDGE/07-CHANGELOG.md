@@ -23834,3 +23834,73 @@ one-hunt-per-run bound are untouched — all SETTLED (`06-DECISIONS-LOG.md:958/9
 
 Files: `sandbox-pokebot/modules/story/counter_plan.py`,
 `sandbox-pokebot/plugins/custom_modes/story_mode.py`, `PROJECT KNOWLEDGE/{03,04,05,07}`.
+
+## 2026-09-07 — THE ACCEPTANCE ROUND: `KI-97` DRIVEN GREEN, and `KI-96`'s root cause MEASURED FALSE
+
+The 8-lane batch was stopped early (user-authorised promotion requires a frozen `custom`, and its
+dominant failure was already fixed). Emulator freed, then the drives that had been deferred all day.
+
+### ⭐⭐ `KI-96` — THE MEASUREMENT REFUTED MY OWN ROOT CAUSE ON ITS FIRST RUN
+
+Round 3 deliberately shipped observe-only telemetry INSTEAD of the obvious fix, because
+`08-MISTAKES.md` rule 10 requires an index-space conversion to be measured before it is changed. The
+first drive (`post_grind_L60.ss1 --driver ch23chapter`, `POKEBOT_KI96_CENSUS=1`) returned:
+
+```
+[KI96-REREAD] party_slot=2
+  pre (raw=201345 decoded=[2,0,1,3,4,5] aims_at_menu_slot=0 active_was=0)
+  post(raw=201345 decoded=[2,0,1,3,4,5] aims_at_menu_slot=0 active_now=0)   VERDICT=AGREE
+```
+
+**pre and post are BYTE-IDENTICAL**, on a drive that DID reproduce the wedge (`[KI96-SPIN]` to n=120).
+⇒ the array is NOT a stale leftover refilled at menu-open, and "recompute the slot after the menu
+opens" **would have changed nothing while being published as the cure** — the THIRD false root cause
+on this KI. The code comment asserting it is now marked REFUTED, with its evidence, BEFORE promotion,
+so the refuted story is not what lands in `custom`.
+⭐ **The measurement paid for itself on its first run. That is the whole argument for rule 10.**
+
+**WHAT THE SAME DRIVE POINTS AT — recorded as an OPEN QUESTION, not a fourth theory:**
+`[KI96-STAGE] 3 ... state=PARTY_MENU actioncursor=2` beside
+`[KI96-SPIN] n=120 instr='BattleScript_DoTurnDmgEnd' bt='What will DIVER do?'` — `get_game_state()`
+says PARTY_MENU while the screen shows the ACTION-SELECT prompt and the battle script is mid-turn.
+**The state and the screen disagree**, so the menu may never have opened.
+
+### ✅ THE `KI-96` BOUND IS DRIVEN-PROVEN
+
+```
+KI-96: the in-battle party menu would not accept party slot 2 (menu slot 0) after 241 A-presses.
+Backed out with B and refused rather than spinning until the KI-47 net fires.
+```
+An unbounded `while PARTY_MENU: press A` is now a bounded, named, diagnosable stop. ‼ The run then
+went `Story -> Manual` — and that is **CORRECT, not a failure of the round-2 recovery fix**: the
+harness installs `Ch23ChapterMode`, and `handles_battle_faults` appears **ZERO times** in
+`story_harness.py`, so `request_mode_recovery` returns False and the contract requires the caller to
+raise exactly as before (`modules/battle_fault.py`). ⚠ The recovery path is therefore **UNPROVEN BY
+DRIVING**, not disproven — see `#24-harness-faultgap`.
+
+### ✅ `KI-97` — DRIVEN GREEN
+
+`post_sootopolis_arrival.ss1 --driver storyresume --frames 25000`:
+* C1 signature `Could not reach (19, 6) on MapRSE.MAUVILLE_CITY` — **0**
+* C2 positive control `Story: Fortree arc already complete (BADGE06) — Ch13a skipped.` — **1**
+* `grade_ki97_drive.py` on that log: **PASS (exit 0)**, C0 yes / C1 0 / C2 1 / C3 yes.
+⭐ **Gate #42 is now validated in BOTH directions** — exit 1 on the pre-fix batch logs, exit 0 here.
+A grader proven only on the failing side can still be a grader that always fails.
+
+`#24-mossdeepstrand`'s SAFE half is driven too: Segment 18's `else` ran
+(`Story: Mossdeep Gym already done — skipping.`) and `leave_the_gym()` no-oped off the gym map with no
+error. ⚠ Its RESCUE half is still unproven — that needs a save standing on (23,8) with BADGE07 SET,
+and `at_mossdeep_leaders.ss1` was captured BEFORE the fight.
+
+### ⭐ NEW DRIVER: `--driver storyresume` — the production mode, on the loaded save
+
+The harness had **107 driver modes and not one ran a plain `StoryMode`**. The only StoryMode-derived
+driver, `storydebugreset`, HARD-RESETS to the boot screen, so it can only ever test a fresh run.
+⇒ `_play()`'s RESUME path — what production executes on every whiteout and every derail, and the
+entire class `KI-97` belongs to — **was untestable in this harness and could only be argued
+statically.** `storyresume` loads any anchor and runs the real mode; it is what made KI-97's
+acceptance a DRIVE instead of an argument. It also inherits `handles_battle_faults = True`, so it is
+the only harness driver that can ever exercise the fault-recovery path.
+
+Files: `sandbox-pokebot/modules/battle_action_selection.py`, `tools/story-dev/story_harness.py`,
+`tools/story-dev/acceptance-2026-09-07/`, `PROJECT KNOWLEDGE/{03,05,07,08}`.

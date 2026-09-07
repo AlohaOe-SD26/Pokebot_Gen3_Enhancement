@@ -14124,3 +14124,56 @@ contradiction, suspect the LINE before the LOGIC** — read the code that produc
 is not telling you. The tell here was that the claim required the recommender to be stupid in a very
 obvious way, on a path with a dated user directive attached to it; **an "obvious" bug in
 long-settled, directive-backed code is far more likely to be a reporting gap.**
+
+## 2026-09-07 — the measurement refuted my own root cause on its FIRST run. Rule 10 paid for itself.
+
+**WHAT HAPPENED.** `KI-96`'s round-3 root cause was: `gBattlePartyCurrentOrder` is a scratch buffer
+the game refills when the party menu is requested, and we compute the menu slot BEFORE that, so we
+aim from a leftover. It was well-evidenced — decomp-backed, and it explained the 261-vs-1 split. The
+obvious fix was one line: move the computation after the menu opens.
+**I did not apply it.** `08-MISTAKES.md` rule 10 says an index-space conversion gets an OBSERVE-ONLY
+probe against a ground truth first, because `handle_fainted_pokemon` has had three such bugs, each
+applied on reasoning that sounded exactly this good. So round 3 shipped telemetry instead.
+
+**THE FIRST DRIVE KILLED IT.** `[KI96-REREAD]` showed `pre` and `post` byte-identical
+(`raw=201345` both sides, VERDICT=AGREE) on a run that DID reproduce the wedge. The "fix" would have
+changed nothing, and would have been published as the cure — the THIRD false root cause on this KI
+and the second one I personally published.
+
+**⭐⭐ THE RULE, RESTATED WITH ITS RECEIPT: WHEN A FIX AND A MEASUREMENT COST THE SAME, MEASURE.**
+Applying the fix and applying the probe were both one small edit and one drive. One of them would
+have produced a false claim plus a code change to unwind; the other produced a fact. ‼ The tell that
+you are in this situation: **you can state exactly what the fix would change, but you have never
+observed the thing it changes.** That is a measurement, not a repair.
+
+**‼ AND KEEP THE NEGATIVE RESULT.** The telemetry stays in the tree. `VERDICT=AGREE` is now the
+recorded proof that the array is stable across menu-open on the single-battle wedge — which is what
+stops the next reader re-proposing the same fix. A refuted theory with its evidence attached is worth
+more than no theory.
+
+## 2026-09-07 — the harness had 107 drivers and none ran the production mode
+
+**SYMPTOM.** To accept `KI-97` I needed to re-enter `StoryMode._play()` on a loaded save — exactly
+what production does on every whiteout and every derail. No driver could. `grep` for
+`bot_mode_instance = ` returns **107** assignments in `story_harness.py` and **not one** is a plain
+`StoryMode`; the only StoryMode-derived driver, `storydebugreset`, hard-resets to the boot screen and
+can therefore only test a FRESH run.
+
+**⇒ THE WHOLE BUG CLASS "RESUME `_play` FROM AN ARBITRARY POSITION" WAS UNTESTABLE**, which is
+precisely the class `KI-97` (and `#24-mossdeepstrand`) belong to. Every such fix could only ever be
+argued statically — and static argument is what this project has repeatedly measured false.
+
+**RELATED, FOUND THE SAME HOUR:** `handles_battle_faults` appears **ZERO times** in the harness, so
+`request_mode_recovery` returns False for every driver and the caller raises — meaning the entire
+FAULT-RECOVERY path is also unexercisable. A drive dropping to Manual therefore proves nothing about
+recovery, and could easily be misread as proving it broken.
+
+**FIX:** `--driver storyresume` installs a real `StoryMode` on the loaded save. It made `KI-97`'s
+acceptance a DRIVE instead of an argument, and it inherits `handles_battle_faults`, so it is the only
+driver that can ever test the recovery path.
+
+**⭐⭐ PREVENTION RULE — WHEN A HARNESS CANNOT RUN THE THING PRODUCTION RUNS, THAT IS A DEFECT IN THE
+HARNESS, NOT A REASON TO ARGUE STATICALLY.** Before accepting "this cannot be driven", check whether
+the harness is missing the *mode*, not the *fixture*. Here the gap was a ten-line dispatch branch
+guarding an entire class of bugs. ‼ And when a drive produces a surprising outcome (here: Manual),
+ask FIRST whether the harness can even express the behaviour you are testing for.

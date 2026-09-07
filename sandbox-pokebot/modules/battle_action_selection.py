@@ -662,13 +662,31 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                 # (`data/battle_scripts_1.s:3110-3112`) — so the guard would have REFUSED
                 # LEGITIMATE ROTATIONS. A guard with false positives is worse than no guard.
                 #
-                # ⭐ THE LIKELIER MECHANISM, AND WHAT THIS TELEMETRY EXISTS TO TEST:
-                # `gBattlePartyCurrentOrder` is a 3-byte SCRATCH buffer that
-                # `PlayerHandleChoosePokemon` REFILLS at the moment the party menu is requested.
-                # We compute `in_battle_index` at line ~584, **before** `scroll_to_battle_action(2)`
-                # opens that menu — i.e. from the LEFTOVER contents of a previous operation.
-                # If that is the bug, the array read AFTER the menu opens will DIFFER from the one
-                # read before it, and only on the wedging rotations.
+                # ⛔⛔ MEASURED 2026-09-07 AND **REFUTED** — READ THIS BEFORE THEORISING AGAIN.
+                # The theory this telemetry was built to test was: `gBattlePartyCurrentOrder` is a
+                # 3-byte SCRATCH buffer that `PlayerHandleChoosePokemon` refills when the party menu
+                # is requested, and we compute `in_battle_index` BEFORE that happens — so we aim
+                # from a leftover. **THE FIRST DRIVE KILLED IT:**
+                #   [KI96-REREAD] party_slot=2
+                #     pre (raw=201345 decoded=[2,0,1,3,4,5] aims_at_menu_slot=0 active_was=0)
+                #     post(raw=201345 decoded=[2,0,1,3,4,5] aims_at_menu_slot=0 active_now=0)
+                #     VERDICT=AGREE
+                # pre and post are BYTE-IDENTICAL on a drive that DID reproduce the wedge
+                # (`[KI96-SPIN]` reached n=120). ⇒ moving the mapping after the menu opens would
+                # change NOTHING. ⛔ DO NOT "FIX" IT THAT WAY — that would have been the third false
+                # root cause on this KI.
+                #
+                # ⭐ WHAT THE SAME DRIVE POINTS AT, AS AN OPEN QUESTION AND NOT A NEW THEORY:
+                #   [KI96-STAGE] 3 ...: state=PARTY_MENU actioncursor=2
+                #   [KI96-SPIN] n=120 instr='BattleScript_DoTurnDmgEnd' bt='What will DIVER do?'
+                # `get_game_state()` reports PARTY_MENU while the displayed text is the ACTION-SELECT
+                # prompt and the battle script is mid-turn. The state and the screen DISAGREE, so the
+                # menu may never have opened and every A-press may land on a screen that ignores it.
+                # ‼ Three published root causes for this KI have now been measured false. The next
+                # claim gets a drive BEFORE it gets a commit.
+                #
+                # THE TELEMETRY STAYS: a negative result is a result, and it will still catch a
+                # DIFFER case elsewhere (doubles encode only the LEFT battler at slot 0).
                 #
                 # ⛔ DO NOT "FIX" THIS BY MOVING THE MAPPING WITHOUT READING THE MEASUREMENT FIRST.
                 # `08-MISTAKES.md` rule 10: an index-space conversion gets an observe-only probe

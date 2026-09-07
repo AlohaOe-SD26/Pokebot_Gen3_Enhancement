@@ -3572,3 +3572,22 @@ region, where "train near the gym" is actively wrong.
   `via move:<Name>@L<n>` clause, (b) a `type` answer renders `(type match)`, (c) a missing
   `answer_via` renders neither and does not raise, (d) the displayed list keeps at most one row per
   species. Fault-test each arm, then register as a gate and bump the suite count.
+
+### `#24-harness-faultgap` — no harness driver can exercise `request_mode_recovery` (filed 2026-09-07)
+- [ ] ✅ VERIFIED: `handles_battle_faults` appears **ZERO times** in `tools/story-dev/story_harness.py`,
+  so `request_mode_recovery` (`modules/battle_fault.py`) returns False for every driver and the caller
+  raises — dropping to Manual **by design**. ⇒ every fix that routes through that channel (`KI-47`'s
+  watchdog, the `KI-34` faint-chooser give-up, `KI-96`'s new bound) is **UNPROVEN BY DRIVING**, and a
+  Manual drop in a harness log proves nothing about recovery — it is easily misread as proving it
+  BROKEN. ⭐ `--driver storyresume` (added 2026-09-07) inherits `handles_battle_faults = True` from
+  `StoryMode` and is the first driver that CAN test it. **Next:** drive a fault through it and show
+  the mode consumes it (`take_pending_fault`) and derails recoverably instead of stopping.
+
+### `#24-mossdeep-strandfixture` — the strand fix's RESCUE half has no fixture (filed 2026-09-07)
+- [ ] `#24-mossdeepstrand`'s SAFE half is driven (Segment 18's `else` ran and `leave_the_gym()`
+  no-oped off the gym map). Its RESCUE half needs a save standing on **MOSSDEEP_CITY_GYM (23,8) with
+  BADGE07 SET**, and `at_mossdeep_leaders.ss1` was captured BEFORE the fight, so the badge is unset.
+  **Build:** win the fight from `at_mossdeep_leaders.ss1` and capture immediately after the badge
+  flag sets, before leaving the platform — that is precisely the state production reaches and the one
+  no fixture covers. ⚠ The batch shows this fight is lost often (`#24-tateliza-attrition`), so the
+  capture may need several attempts.
