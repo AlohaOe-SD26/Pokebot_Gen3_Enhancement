@@ -825,45 +825,9 @@ the fix is `ROUTE102` reachability from `ROUTE103`, shipped 2026-08-01 and uncha
 new evidence, no reopening — this line exists because a header edit and its body must move
 together (pair P2), and retiring a body is still editing it.
 
-## KI-45 — ✅ **FIXED 2026-08-02.** A battle MOVE-menu loop hung a lane indefinitely and neither guard could see it. **FULL ENTRY ARCHIVED VERBATIM to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-09-05** (no loss, no orphan — both invariants asserted before writing). ⛔ Retired only to keep this current-state file inside its 3000-line budget. ‼ **PRECISELY WHAT MOVED:** the ORIGINAL 2026-08-02 diagnosis block. **The `### KI-45 — FIXED 2026-08-03` write-up below did NOT move and is still in THIS file** — the archiver stops at a `###` sub-heading, so a `##` entry containing one is split there. *(superseded: this read "the diagnosis and the fix are intact in the archive", which a Tier 1 reviewer refuted by opening both files.)*
+## ✅ KI-45 — a battle MOVE-menu loop hung a lane indefinitely. **FIXED 2026-08-02.** 📦 ARCHIVED 2026-09-07
 
-**2026-09-05 — body retired, status re-confirmed unchanged.** KI-45 is CLOSED and stays closed. ⭐ Read it before touching `KI-90`: it is the same SHAPE — a battle-path loop that hung a lane while every guard reported healthy.
-### KI-45 — FIXED 2026-08-03 (bounded + reported through the recoverable channel)
-
-**Root cause: stock `battle_menuing._select_in_menu` is `while True:`.** It presses a direction
-until the cursor read equals the target. If the menu is not actually open, or the read returns
-anything outside 0..3, no press can change it — and the movement logic still picks a direction
-every iteration: `current_index=5` with `target_index=0` matches
-`current_index > 1 and target_index <= 1` and presses **"Up" forever**.
-
-**Measured cost, twice:**
-| | dumps | effect |
-|---|---|---|
-| batch6 lane H4 | 866 | 27 min silent, ~half the lane's output lost |
-| batch9 lane H6 | 1,430 | **0 runs completed in a 180-minute batch** |
-
-**Fix:** `_MAX_CURSOR_STEPS = 60` (~180 frames; a real selection needs ≤3 presses, so ~20×
-headroom and ~1% of the watchdog window). On exhaustion it reports through
-`battle_fault.request_mode_recovery()` — one recoverable derail for a mode that opted in —
-and only raises `BotModeError` when no mode can handle it, preserving stock behaviour.
-
-‼ **The message carries the last cursor value, because THAT is the diagnosis.** An
-out-of-range value means the menu was never open; a stuck in-range value means the presses are
-not landing. Without it the next reader is back to guessing, which is what cost two lanes.
-
-**Repro:** `repro_ki45_cursor_bound.py` — **drives the real generator** against a stuck cursor
-rather than asserting on source text, so a regression to `while True` hangs the test instead of
-passing it. Also asserts a normal selection still completes in ≤4 presses.
-
-‼ **Why nothing else caught it, worth keeping:** the global watchdog needs an UNCHANGED
-progress signature and a menu loop keeps changing map/coords/state; the per-run frame budget
-is KI-36's documented hole ("cannot fire while a battle handler is on the stack"). **Two
-independent guards were both structurally blind to the same loop.** Any new `while True` on
-the battle path has no safety net but its own bound.
-
----
-
-> 📦 **KI-46 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — FIXED same day, 2026-08-03.
+Full entry in `28-HANDOFF-ARCHIVE.md`. Closed over a month; moved for the R3 line budget. ‼ Kept as a pointer because it is the ANCESTOR of `KI-47`, `KI-93` and `KI-96` — the same class of unbounded battle-menu loop, and the first one this project paid for.
 
 ## KI-47 — The battle path has a CLASS of unbounded loops; the existing watchdog is STARVED by them (2026-08-04, NET ADDED)
 
@@ -2824,6 +2788,35 @@ presses A blindly every other frame; if the cursor sits on SUMMARY it opens a sc
 it backs out — either way `state` stays `PARTY_MENU` and the switch never completes. ⛔ **DO NOT ACT ON
 THIS PARAGRAPH.** Tonight a root cause that merely FIT the symptom was published and then measured
 false; log the submenu's existence and cursor before believing it.
+
+**✅✅ 2026-09-07 — THE CONTROL ARM ARRIVED FROM THE LIVE x8 BATCH, AND IT SHARPENS THE CONDITION.**
+Three census drives had produced three refusals and ZERO acceptances, so there was nothing to compare
+against. The 8-lane batch (`20260907-073620`, `--build custom`, census armed) produced **250 rotation
+attempts across all 8 lanes, and ALL 250 WERE ACCEPTED** (`[KI96-DONE]` = 250, each spinning ~1 frame).
+
+| | `_battler_party_order` | mapping observed | outcome |
+|---|---|---|---|
+| **250 accepted** (batch) | `[0, 1, 2, 3, 4, 5]` — IDENTITY | `2→2`, `1→1`, `3→3`, `4→4` | ✅ accepted, **0 mis-aims** |
+| **1 wedged** (`ch23chapter`) | `[2, 0, 1, 3, 4, 5]` — **PERMUTED** | `2→0` | ⛔ hangs |
+
+⇒ ⭐⭐ **THE CONDITION IS NOW MEASURED: `KI-96` FIRES ONLY WHEN THE BATTLE ORDER HAS BEEN PERMUTED —
+i.e. only after a PRIOR SWITCH in the same battle.** In all 250 accepted cases the order is untouched
+and the mapping is the identity, so it is trivially correct; **the wedge is the only observed case where
+`map_battle_party_index` did any real work.**
+
+‼ **HONEST WEIGHTS: the accepted side is n=250 across 8 independent lanes; the wedged side is n=1.**
+The CONDITION (permuted ⇒ wedge) is a strong lead, not an established law — one observation cannot
+establish a rate, and a second permuted case must be captured before anyone builds on it.
+
+⭐ **AND IT EXPLAINS THE STRATEGY SPLIT.** `LevelUpTravelBattleStrategy.decide_turn` never returns
+`RotateLead` in a TRAINER battle, so every one of the 250 is a WILD-battle rotation — where a prior
+switch is rare and the order stays identity. The chapter drivers bypass that mitigation and reach
+`DefaultBattleStrategy`, which rotates in long trainer fights where a prior switch is normal.
+
+⭐ **THE NEXT MEASUREMENT IS NOW CHEAP AND EXACT:** find a PERMUTED-order rotation. Either grep the
+batch for any `[KI96-ORDER]` whose decoded order is not `[0,1,2,3,4,5]`, or force a second switch in
+one battle. ⛔ Do NOT change `map_battle_party_index` until a permuted case is observed twice — this
+KI has already had one confidently-published root cause measured false.
 
 **⛔ WHAT IS GENUINELY UNKNOWN NOW — DO NOT GUESS; THE LAST GUESS WAS WRONG:**
 * Does `scroll_to_party_menu_index(0)` actually leave the cursor on entry 0? Unverified.

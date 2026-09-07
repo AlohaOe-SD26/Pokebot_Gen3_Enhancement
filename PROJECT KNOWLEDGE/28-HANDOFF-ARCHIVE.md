@@ -9474,3 +9474,51 @@ because it records how a BLOCKER was dissolved by checking rather than by buildi
 > `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md`.
 
 ### (original filing, kept for its measurements)
+
+---
+
+## `KI-45` — the original battle move-menu hang (archived 2026-09-07)
+
+Fixed 2026-08-02; archived for the line budget. Kept verbatim because it is the first
+member of the unbounded-battle-loop family that later produced `KI-47`, `KI-93` and
+`KI-96`.
+
+## KI-45 — ✅ **FIXED 2026-08-02.** A battle MOVE-menu loop hung a lane indefinitely and neither guard could see it. **FULL ENTRY ARCHIVED VERBATIM to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-09-05** (no loss, no orphan — both invariants asserted before writing). ⛔ Retired only to keep this current-state file inside its 3000-line budget. ‼ **PRECISELY WHAT MOVED:** the ORIGINAL 2026-08-02 diagnosis block. **The `### KI-45 — FIXED 2026-08-03` write-up below did NOT move and is still in THIS file** — the archiver stops at a `###` sub-heading, so a `##` entry containing one is split there. *(superseded: this read "the diagnosis and the fix are intact in the archive", which a Tier 1 reviewer refuted by opening both files.)*
+
+**2026-09-05 — body retired, status re-confirmed unchanged.** KI-45 is CLOSED and stays closed. ⭐ Read it before touching `KI-90`: it is the same SHAPE — a battle-path loop that hung a lane while every guard reported healthy.
+### KI-45 — FIXED 2026-08-03 (bounded + reported through the recoverable channel)
+
+**Root cause: stock `battle_menuing._select_in_menu` is `while True:`.** It presses a direction
+until the cursor read equals the target. If the menu is not actually open, or the read returns
+anything outside 0..3, no press can change it — and the movement logic still picks a direction
+every iteration: `current_index=5` with `target_index=0` matches
+`current_index > 1 and target_index <= 1` and presses **"Up" forever**.
+
+**Measured cost, twice:**
+| | dumps | effect |
+|---|---|---|
+| batch6 lane H4 | 866 | 27 min silent, ~half the lane's output lost |
+| batch9 lane H6 | 1,430 | **0 runs completed in a 180-minute batch** |
+
+**Fix:** `_MAX_CURSOR_STEPS = 60` (~180 frames; a real selection needs ≤3 presses, so ~20×
+headroom and ~1% of the watchdog window). On exhaustion it reports through
+`battle_fault.request_mode_recovery()` — one recoverable derail for a mode that opted in —
+and only raises `BotModeError` when no mode can handle it, preserving stock behaviour.
+
+‼ **The message carries the last cursor value, because THAT is the diagnosis.** An
+out-of-range value means the menu was never open; a stuck in-range value means the presses are
+not landing. Without it the next reader is back to guessing, which is what cost two lanes.
+
+**Repro:** `repro_ki45_cursor_bound.py` — **drives the real generator** against a stuck cursor
+rather than asserting on source text, so a regression to `while True` hangs the test instead of
+passing it. Also asserts a normal selection still completes in ≤4 presses.
+
+‼ **Why nothing else caught it, worth keeping:** the global watchdog needs an UNCHANGED
+progress signature and a menu loop keeps changing map/coords/state; the per-run frame budget
+is KI-36's documented hole ("cannot fire while a battle handler is on the stack"). **Two
+independent guards were both structurally blind to the same loop.** Any new `while True` on
+the battle path has no safety net but its own bound.
+
+---
+
+> 📦 **KI-46 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — FIXED same day, 2026-08-03.
