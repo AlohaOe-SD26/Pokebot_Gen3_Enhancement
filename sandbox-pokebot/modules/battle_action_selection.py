@@ -621,6 +621,26 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                 _ki96_log(f"[KI96-INDEX] requested party index={index} -> mapped menu "
                           f"in_battle_index={in_battle_index}  |  {_ki96_who(index)}  |  "
                           f"party_size={get_party_size()}")
+                # ⭐⭐ THE NAMED NEXT MEASUREMENT (`KI-96`): dump the RAW nibble-packed order the
+                # mapping walks, decoded, beside the ACTIVE battler's own party index. This is what
+                # decides between "the array is stale", "it is the wrong battler's", and "battle
+                # position 0 is simply the active slot, so any mapping onto 0 is unusable".
+                # ⛔ It is printed, never acted on — rule 10: measure a coordinate conversion's
+                # DIRECTION before changing it.
+                try:
+                    _raw = bytes(battle_state._battler_party_order)
+                    _decoded = []
+                    for _i in range(6):
+                        _b = _raw[_i // 2]
+                        _decoded.append((_b >> 4) if _i % 2 == 0 else (_b & 0xF))
+                    _active = battle_state.battling_pokemon[0].party_index
+                    _ki96_log(f"[KI96-ORDER] raw={_raw.hex()} decoded_battleorder={_decoded} "
+                              f"(battle_pos -> party_index)  active_battler_party_index={_active}  "
+                              f"=> menu slot {in_battle_index} holds party "
+                              f"{_decoded[in_battle_index] if in_battle_index < 6 else '?'}")
+                except Exception as _e:  # noqa: BLE001 - a failed dump prints itself, so an
+                    # unreadable order can never be mistaken for a benign one.
+                    _ki96_log(f"[KI96-ORDER] <unreadable: {type(_e).__name__}: {_e}>")
 
                 yield from scroll_to_battle_action(2)
                 # JP roms need a little delay

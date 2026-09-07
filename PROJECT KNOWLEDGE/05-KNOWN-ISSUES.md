@@ -2795,7 +2795,52 @@ rather than a slot.* ‼ `KI-93` took four implement-drive-revert cycles, three 
 were VOID, before one control-lined census named the site — which is why the census came first
 here too, and answered it in ONE drive.
 
-**✅ WHAT WAS NOT MEASURED IS NOW MEASURED** — *why* the switch is refused. Candidates: the
+**🔶 2026-09-07 — TWO CENSUS DRIVES. THE FIRST LOOKED LIKE A ROOT CAUSE; THE SECOND REFUTED IT.**
+`[KI96-CTL]` fired in both, so both are valid measurements.
+
+**DRIVE 1 — the refusal, and the target's identity:**
+```
+f5862188 [KI96-INDEX] requested party index=2 -> mapped menu in_battle_index=0
+                      | slot2=Mightyena#5C96EA9B L60 184/184 | party_size=6
+f5862270 [KI96-SPIN] n=1     instr='BattleScript_DoTurnDmgEnd' bt='What will DIVER do?'
+f5864069 [KI96-SPIN] n=1800  instr='BattleScript_DoTurnDmgEnd' bt='What will DIVER do?'   (unchanged)
+```
+⛔ **THE TARGET IS NOT THE PROBLEM.** Mightyena is **L60, 184/184, not fainted, not the active mon**.
+Every "is the switch legal?" theory is dead — the game refuses a perfectly legal Pokémon.
+⇒ From `index=2 -> 0` I concluded the mapping was aiming at the ACTIVE battler (party 0). **That
+conclusion was published and it is WRONG.**
+
+**DRIVE 2 — the array dump that refuted it:**
+```
+f5862188 [KI96-ORDER] raw=201345  decoded_battleorder=[2, 0, 1, 3, 4, 5]  (battle_pos -> party_index)
+                      active_battler_party_index=0   => menu slot 0 holds party 2
+```
+⇒ **Battle position 0 holds PARTY INDEX 2 — Mightyena, the intended target.** So
+`map_battle_party_index(2) -> 0` is **CORRECT**, and the ACTIVE battler sits at position **1**, not 0.
+⭐ **The conversion is NOT the bug.** The cursor is aimed at the right entry and the game still refuses.
+
+**‼ THIS IS WHAT `08-MISTAKES.md` RULE 10 IS FOR, AND IT JUST PAID FOR ITSELF** — *when a fix is a
+coordinate conversion, MEASURE ITS DIRECTION FIRST; a backwards conversion is worse than the bug it
+replaces.* An index-space story that merely FITS the symptom is worth nothing until the array is read.
+⛔ **AND A DOC HAZARD TO NOTE:** the wrong conclusion reached `04-HANDOFF.md` and commit `eb5abec3`'s
+message before the refutation existed. Worse, a line-budget compression then DELETED it from this file
+while those claims stood — *deleting text never breaks a gate's count*, so nothing flagged the
+divergence. ⇒ **when trimming for a budget, re-read what the replaced span actually contained.**
+
+**⛔ WHAT IS GENUINELY UNKNOWN NOW — DO NOT GUESS; THE LAST GUESS WAS WRONG:**
+* Does `scroll_to_party_menu_index(0)` actually leave the cursor on entry 0? Unverified.
+* Is the A press being consumed by something else on that frame? Unverified.
+* ⭐⭐ **THE MOST INTERESTING THREAD, AND IT IS UNEXPLAINED:** `bt='What will DIVER do?'` is the
+  **ACTION-SELECT** prompt (FIGHT / BAG / POKéMON / RUN), not a party-menu prompt — yet
+  `get_game_state()` reports `PARTY_MENU`. **The state and the screen disagree.** If the game is really
+  sitting on the action menu, then the party menu never opened, `scroll_to_party_menu_index` scrolled
+  nothing, and every A press is landing on the action menu — which would explain the refusal completely
+  and has nothing to do with indices.
+⇒ **NEXT: log the live cursor position AND the game state together, frame by frame, across the
+`scroll_to_party_menu_index` call.** The census hook (`POKEBOT_KI96_CENSUS`) is already in place; this
+is a few more lines and one 6-minute drive.
+
+**✅ WHAT WAS NOT MEASURED IS NOW PARTLY MEASURED** — *why* the switch is refused. Candidates: the
 target is fainted, is already out, or is the mon the game just asked about. **Instrument it first** —
 log the requested `index`, the mon's PID/HP at that moment, and the on-screen message — exactly the
 census that made `KI-93` solvable after four blind attempts. ‼ `KI-93`'s history is the warning: four

@@ -13844,3 +13844,45 @@ YOU EDITED.** The dangerous rows are the ones your change made stale WITHOUT tou
 rule) does not find them, because they never mention the slug — they describe the situation the slug
 just changed. ⇒ after shipping, ask *"which sentences in this file are now false?"*, not *"which
 sentences mention what I did?"*
+
+## 2026-09-07 — I published a root cause, then measured it FALSE an hour later. Rule 10 paid for itself.
+
+**What happened.** The `KI-96` census showed `map_battle_party_index(2) -> 0` while the active battler
+was party slot 0. That fits the symptom perfectly: *the bot is aiming at the Pokémon already fighting,
+so the game refuses.* I wrote it into `05-KNOWN-ISSUES.md` and `04-HANDOFF.md` and pushed it in commit
+`eb5abec3`'s message.
+
+**Then I dumped the array the mapping actually walks:**
+```
+raw=201345  decoded_battleorder=[2, 0, 1, 3, 4, 5]  (battle_pos -> party_index)
+active_battler_party_index=0   => menu slot 0 holds party 2
+```
+Battle position 0 holds **party index 2 — the intended target**. The mapping is **CORRECT**; the active
+battler sits at position 1. **The conclusion was wrong and the fix it implied would have broken a
+working conversion.**
+
+**⭐ PREVENTION RULE — AN INDEX-SPACE STORY THAT *FITS* THE SYMPTOM IS WORTH NOTHING UNTIL THE ARRAY IS
+READ.** `08-MISTAKES.md` rule 10 already said *measure a coordinate conversion's DIRECTION first*; what
+this adds is WHEN it applies. It is not only before writing the fix — it is **before writing the
+DIAGNOSIS**, because a diagnosis gets quoted, committed, and acted on by the next agent. The dump cost
+one 6-minute drive and four lines of logging; the wrong fix would have cost a working mapping.
+‼ The tell I ignored: `index=2 -> 0` is a CLAIM ABOUT AN ARRAY, and I never looked at the array.
+
+## 2026-09-07 — a line-budget compression DELETED the evidence, and no gate could notice
+
+**Symptom.** Trimming `05-KNOWN-ISSUES.md` to its 3000-line budget, I replaced the span from
+*"THIS IS ONE OF KI-47's NAMED UNBOUNDED LOOPS…"* to *"WHAT WAS NOT MEASURED…"* with a shorter pointer.
+The root-cause block I had written minutes earlier **sat between those two anchors** and went with it.
+For an hour the file carried no conclusion while `04-HANDOFF.md` and a pushed commit message both
+announced one.
+
+**Why nothing caught it.** Every doc gate counts, compares or resolves: line budgets, gate counts,
+drift figures, citation targets, flag registration, header/body agreement. **Deleting a paragraph
+breaks none of them** — the file got *shorter*, which is exactly what the budget rule wanted.
+
+**⭐ PREVENTION RULE — WHEN TRIMMING FOR A BUDGET, READ WHAT THE REPLACED SPAN ACTUALLY CONTAINED, NOT
+JUST ITS ENDPOINTS.** An anchor-to-anchor replacement is a blind delete of everything between. Print
+the removed block, or assert on something it must contain, before writing the file.
+**⭐ COROLLARY: BUDGET PRESSURE IS AN EVIDENCE HAZARD.** The moment a current-state file is over its
+limit is exactly when freshly-measured findings are newest and least protected. Archive OLD material
+deliberately; never let the trimming target be "whatever span makes the number fit".
