@@ -14249,3 +14249,61 @@ measured quantity is physically implausible, suspect the measurement before the 
 noticing an arithmetic impossibility — 94 runs in ten minutes at ~1,000 frames/sec. ⭐ **A number that
 cannot be true is the cheapest bug detector there is**, and it costs nothing but the habit of
 multiplying it out.
+
+## 2026-09-07 — prefer the check that makes a mistake ANNOUNCE ITSELF over the rule that forbids it
+
+**CONTEXT.** This morning I wrote the rule "NEVER PROMOTE WHILE A BATCH IS RUNNING", from first
+principles, after nearly doing it. Later the same day an investigation found the MECHANISM that makes
+it bite: `x4_headless.py` RESPAWNS a dead lane, and the new process imports whatever is on disk at
+that moment — so a mid-batch edit puts **two builds inside one batch**, and the MANIFEST, which
+captures `code_commit` once at start, would still name a single commit.
+
+**⭐⭐ THE RULE THIS BUYS: A RULE NOBODY CAN VERIFY IS PROSE.** The prohibition was correct and it was
+unenforceable — nothing in the artifact could tell you it had been broken. The failure mode it guards
+against is not malice, it is the ordinary case: an interrupted session, a second operator, a promotion
+that felt safe because the batch "was nearly done". ⇒ **when you write a rule, ask what artifact would
+CHANGE if someone broke it, and make that artifact say so.** Here: record the commit at every spawn,
+and let the MANIFEST refuse to be quiet.
+
+**‼ AND THE COROLLARY THAT KEEPS IT HONEST: fault-test the announcement in BOTH directions.** It must
+fire on the broken case and stay silent on the healthy one — including the *older artifact that
+predates the field*, which is the false-positive nobody thinks to test. A warning that cannot fire is
+decoration; a warning that cries wolf teaches the reader to skip the whole document, which is worse
+than no warning. This project has already paid for both halves.
+
+**‼ Note what was NOT done: the rule was not deleted.** Detection does not make prohibition
+unnecessary — it makes it auditable. The instrument tells you afterwards; the rule is what stops you
+beforehand. Retire a rule only when the thing it forbids becomes IMPOSSIBLE, not merely visible.
+
+## 2026-09-07 — I tested the unit and called it "GATED". THIRD verification-that-didn't-verify today.
+
+**SYMPTOM.** I shipped mixed-build detection for `#24-lane-respawn-build` with seven green gate checks
+and wrote "✅ FIXED + GATED / all four arms verified". A reviewer showed the feature had **never worked
+once**: the value was recorded on the `Lane` and never copied into the dict the report reads, so a
+mixed batch would print `(not recorded)`. Every one of my checks called the reporting function on a
+**hand-typed dict**, so they exercised the function and never the path.
+
+**⭐⭐ THE RULE: IF A VALUE MUST TRAVEL FROM AN OBJECT INTO A REPORT, THE TEST MUST MAKE THAT JOURNEY.**
+A fixture asserts the destination's SHAPE. Only the real assembly proves the value ARRIVES. ⇒ when
+testing anything reporting-shaped, ask: *did I construct the input by hand?* If yes, I am testing my
+own understanding of the format, not the system. Extract the assembly into a callable and drive THAT.
+
+**‼ AND THE OTHER HALF: I EDITED THE WRONG PLACE, BECAUSE IT LOOKED RIGHT.** I added the field to a
+key list containing `header_verdict`, `restarts`, `starter`, `profile` — exactly the names the real
+assembly sets. It was `resummarise()`'s fallback list. ⇒ **matching on SHAPE is not matching on ROLE.**
+Before editing a list of names, confirm what READS it, not what it resembles.
+
+**⭐ THE PATTERN, AND IT IS THE EXPENSIVE PART — THIS IS THE THIRD TODAY:**
+1. `[KI96-REREAD]` — a probe that ran before the thing it measured, so it compared a value with itself.
+2. `grade_ki97_drive.py` C2 — a "positive control" that was a tautology and could never fail.
+3. This — seven checks that tested the function while the feature was dead.
+**All three were instruments I built to be careful with, and all three were green while proving
+nothing.** ⇒ **the failure mode is not sloppiness, it is that a NEW INSTRUMENT IS ITSELF UNTESTED
+CODE**, and I kept granting it the trust I would never grant the code under test.
+
+**⭐⭐ THE STANDING RULE THIS BUYS — FAULT-TEST EVERY INSTRUMENT AGAINST THE DEFECT IT EXISTS TO CATCH,
+BEFORE CLAIMING IT WORKS.** Not a synthetic defect — *the actual one*. Here: delete the wiring line,
+watch 11 checks go red, restore, watch them go green. That takes two minutes and it is the ONLY thing
+that distinguishes a gate from decoration. ‼ A green gate is not evidence the feature works; a RED
+gate on the real defect is evidence the GATE works. Those are different claims and I conflated them
+three times in one day.

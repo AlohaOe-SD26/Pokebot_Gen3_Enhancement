@@ -318,12 +318,84 @@ def summarize_lane(stdout_text: str, debug_text: str) -> dict:
 # ---------------------------------------------------------------------------
 # Reporting (pure — covered by repro_x4_headless.py)
 # ---------------------------------------------------------------------------
+def lane_summary(lane: "Lane", stdout_text: str, debug_text: str, n_logs: int) -> dict:
+    """Assemble ONE lane's summary dict — the thing that becomes `batch["lanes_detail"][tag]`.
+
+    ⭐ EXTRACTED SO A GATE CAN DRIVE THE REAL PATH. This lived inline in `run_batch`, which meant the
+    only way to test anything downstream of it was to hand-build a `lanes_detail` dict — and a
+    hand-built fixture tests the FUNCTION, never the WIRING. `#24-lane-respawn-build` shipped once
+    with `build_commits` recorded on the `Lane` and never copied into this dict: seven gate checks
+    passed, and the feature had never worked. ‼ If a value has to travel from an object into a
+    report, the test must make that JOURNEY, not assert the destination's shape.
+    """
+    s = summarize_lane(stdout_text, debug_text)
+    verdicts = [v for v, _ in lane.headers.values()]
+    s["header_verdict"] = "BAD" if "bad" in verdicts else ("ok" if "ok" in verdicts else "unknown")
+    s["headers_checked"] = len(verdicts)
+    s["restarts"] = lane.restarts
+    s["starter"] = lane.starter
+    s["profile"] = lane.profile
+    s["debug_logs_collected"] = n_logs
+    #: ⭐ #24-lane-respawn-build — the commits this lane's PROCESSES actually loaded.
+    s["build_commits"] = list(lane.build_commits)
+    return s
+
+
+# ---------------------------------------------------------------------------
+def build_provenance_lines(batch: dict) -> list[str]:
+    """⭐⭐ #24-lane-respawn-build — DOES THIS BATCH SPAN MORE THAN ONE BUILD?
+
+    `code_commit` is captured ONCE, at batch start. But a lane that dies is RESPAWNED, and the new
+    process imports whatever is **on disk at that moment** — so an edit or a promotion mid-batch
+    lands in some lanes and not others, while the MANIFEST still names a single commit.
+    ⇒ every spawn records the commit it loaded; this reports the set.
+
+    ‼ DETECT rather than merely forbid. "Never promote while a batch runs" was already a rule, and a
+    rule nobody can verify is prose. This makes the honest mistake — an interrupted session, a second
+    operator, a promotion that felt safe — announce itself instead of silently poisoning a number.
+    ⛔ `.get` throughout on purpose: a reporting function must never crash on an older batch dict
+    (the gate's fixture predates this field).
+    """
+    detail = batch.get("lanes_detail") or {}
+    seen: dict[str, list[str]] = {}
+    for tag, d in detail.items():
+        for commit in (d or {}).get("build_commits") or []:
+            seen.setdefault(commit, []).append(tag)
+    if not seen:
+        return ["build_commits  (not recorded — this batch predates #24-lane-respawn-build)"]
+    # ⛔ "UNVERIFIED" IS NOT "MIXED", AND THE LOUD CLAIM MUST NOT FIRE ON A GIT HICCUP.
+    # `git_commit()` returns "unknown" when git is missing or times out. Folding that into the
+    # commit set would make a perfectly clean batch shout "do not quote a rate from it" — a false
+    # alarm, and this project rates a gate that cries wolf as worse than no gate. So `unknown` is
+    # reported as a SEPARATE, quieter caveat, and only two distinct REAL commits mean MIXED.
+    unknown_tags = sorted(set(seen.pop("unknown", [])))
+    if not seen:
+        return [f"build_commits  ⚠ UNVERIFIED — git could not identify the build for: "
+                f"{', '.join(unknown_tags)}. Not necessarily mixed; simply unknown."]
+    caveat = ([f"               ⚠ plus UNVERIFIED spawns (git failed) on: {', '.join(unknown_tags)}"]
+              if unknown_tags else [])
+    if len(seen) == 1:
+        only = next(iter(seen))
+        return [f"build_commits  {only}  (every lane, every spawn — SINGLE BUILD)"] + caveat
+    out = [
+        "build_commits  ⛔⛔ MIXED BUILD — THIS BATCH SPANS MORE THAN ONE COMMIT.",
+        "               A finish rate whose build is ambiguous is NOT a measurement. Do not",
+        "               compare this batch against another, and do not quote a rate from it.",
+        "               Cause: a lane died and was respawned against the ON-DISK code after the",
+        "               tree changed (see #24-lane-respawn-build).",
+    ]
+    for commit, tags in sorted(seen.items()):
+        out.append(f"               {commit}  <- {', '.join(sorted(set(tags)))}")
+    return out + caveat
+
+
 def render_manifest(batch: dict) -> str:
     lines = [
         "ENDLESS-RESET HEADLESS BATCH — MANIFEST",
         "=" * 72,
         f"stamp          {batch['stamp']}",
         f"code_commit    {batch['code_commit']}",
+        *build_provenance_lines(batch),
         # ⛔ WHICH FORK PRODUCED THESE NUMBERS. `.get` on purpose: the gate's fixture predates this
         # field, and a reporting function must never crash on an older batch dict.
         f"build          {batch.get('build', '?')}",
@@ -495,6 +567,10 @@ class Lane:
     fh: object = None
     restarts: int = 0
     finished_naturally: bool = False
+    #: ⭐ #24-lane-respawn-build — the commit THIS LANE'S PROCESS LOADED, recorded at every spawn.
+    #: A respawn imports whatever is on disk at that moment, so a batch's single `code_commit` can
+    #: be a lie. One entry per spawn; more than one DISTINCT value means the batch is mixed.
+    build_commits: list[str] = field(default_factory=list)
     #: debug-log path -> ('ok'|'bad'|'unknown', reason); one entry per run.
     headers: dict[str, tuple[str, str]] = field(default_factory=dict)
 
@@ -561,8 +637,13 @@ def spawn(lane: Lane, runs_per_lane: int) -> None:
         stdin=subprocess.DEVNULL,
         creationflags=creation_flags,
     )
+    # ⭐ PROVENANCE PER SPAWN, not per batch. A respawned lane loads the CURRENT on-disk code, so
+    # this is the only moment the truth is available. Printed as well as stored, because the reader
+    # who needs it most is someone scanning stdout after a surprising result.
+    _spawn_commit = git_commit()
+    lane.build_commits.append(_spawn_commit)
     print(f"[x4h] {lane.tag} ({lane.starter}) started — pid {lane.proc.pid}, "
-          f"profile `{lane.profile}`", flush=True)
+          f"profile `{lane.profile}`, build {_spawn_commit}", flush=True)
 
 
 def check_headers(lane: Lane, since: float, on_bad: str) -> list[dict]:
@@ -804,7 +885,8 @@ def resummarise(batch_dir: Path) -> int:
         s = summarize_lane(stdout_text, debug_text)
         previous = old.get("lanes_detail", {}).get(tag, {})
         # Carry forward the facts that come from the RUN, not from parsing.
-        for key in ("header_verdict", "headers_checked", "restarts", "starter", "profile",
+        for key in ("build_commits", "header_verdict", "headers_checked", "restarts", "starter",
+                    "profile",
                     "debug_logs_collected"):
             s[key] = previous.get(key, row.get(key))
         lanes_detail[tag] = s
@@ -1016,19 +1098,14 @@ def main() -> int:
                 debug_text += f.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 pass
-        s = summarize_lane(stdout_text, debug_text)
-        verdicts = [v for v, _ in lane.headers.values()]
-        s["header_verdict"] = "BAD" if "bad" in verdicts else ("ok" if "ok" in verdicts else "unknown")
-        s["headers_checked"] = len(verdicts)
-        s["restarts"] = lane.restarts
-        s["starter"] = lane.starter
-        s["profile"] = lane.profile
-        s["debug_logs_collected"] = n_logs
+        s = lane_summary(lane, stdout_text, debug_text, n_logs)
         lanes_detail[lane.tag] = s
         lane_rows.append({
             "tag": lane.tag, "starter": lane.starter, "profile": lane.profile,
             "runs_ended": s["runs_ended"], "finished": s["finished"],
             "header_verdict": s["header_verdict"], "restarts": lane.restarts,
+            # ‼ carried here too so `resummarise()`'s `row` fallback can find it.
+            "build_commits": list(lane.build_commits),
         })
 
     ended = datetime.now()

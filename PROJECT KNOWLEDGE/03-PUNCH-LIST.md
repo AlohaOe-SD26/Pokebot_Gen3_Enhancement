@@ -3555,8 +3555,17 @@ region, where "train near the gym" is actively wrong.
   AND the fix acted) and a truck exit (`INSIDE OF TRUCK(25,40) -> LITTLEROOT TOWN`) within 300
   frames. ⛔ Do not close `#24-truckleak` until this runs.
 
-### `#24-lane-respawn-build` — a respawned lane loads the ON-DISK build, not the batch's (filed 2026-09-07)
-- [ ] ⚠ `x4_headless.py` respawns a dead lane, and the new process imports whatever is on disk **at
+### ✅ `#24-lane-respawn-build` — a respawned lane loads the ON-DISK build (filed + fixed 2026-09-07)
+- [x] ✅ **FIXED AND GATED — after shipping DEAD once.** `Lane.build_commits` records
+  `git_commit()` at EVERY spawn, and `lane_summary()` (extracted for exactly this reason)
+  carries it into the report. ⛔ The FIRST version recorded it on the Lane and never copied
+  it into the summary dict — a mixed batch would have printed `(not recorded)` — and SEVEN
+  green checks missed it because each called the reporting function on a HAND-TYPED dict.
+  The gate now drives the REAL path (a real `Lane` through the real assembly), separates
+  UNVERIFIED (a git hiccup) from MIXED, and is **fault-tested against the actual defect**:
+  deleting the wiring line turns 11 checks red and exits 1; restoring it returns ALL PASS.
+  ⭐ Detection does NOT replace the rule — it makes it auditable.
+- [x] ⚠ `x4_headless.py` respawns a dead lane, and the new process imports whatever is on disk **at
   that moment**. ⇒ promoting mid-batch can put **two builds inside one batch**, not merely stale the
   MANIFEST — a finish rate whose build is ambiguous is not a measurement. This is the concrete
   mechanism behind the "never promote while a batch runs" rule. **Options:** snapshot the build per

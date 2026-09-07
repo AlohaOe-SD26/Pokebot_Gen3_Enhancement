@@ -24007,3 +24007,81 @@ then require the released-mask line AND a truck exit. A normal run holds nothing
 proves nothing.
 
 Files: `sandbox-pokebot/plugins/custom_modes/story_mode.py`, `PROJECT KNOWLEDGE/{03,07,08}`.
+
+## 2026-09-07 — `#24-lane-respawn-build`: a batch can now SAY that it spans two builds
+
+**THE HAZARD, found while root-causing the truck loop.** `x4_headless.py` captures `code_commit`
+**once**, at batch start — but a lane that dies is **RESPAWNED**, and the new process imports whatever
+is on disk **at that moment**. ⇒ an edit or a promotion mid-batch lands in some lanes and not others,
+while the MANIFEST still names a single commit. **A finish rate whose build is ambiguous is not a
+measurement**, and nothing could tell you it had happened.
+
+**FIXED.** `Lane.build_commits` records `git_commit()` at **every** spawn (initial and respawn); the
+spawn line prints it; and `build_provenance_lines()` puts the result in the MANIFEST — quiet on a
+single-build batch, and loud and specific on a mixed one, naming each commit and the lanes that ran it.
+
+**⭐ WHY DETECT RATHER THAN FORBID — the reasoning worth keeping.** "Never promote while a batch runs"
+was already a rule, written this same morning. A rule nobody can verify is prose. The failure it
+guards against is not malice but the ordinary case: an interrupted session, a second operator, a
+promotion that felt safe because the batch "was nearly done". ⇒ **prefer the check that makes a
+mistake ANNOUNCE ITSELF over the rule that asks people not to make it.** The rule stays; it now has an
+instrument behind it.
+
+**‼ FAULT-TESTED IN BOTH DIRECTIONS, and gated (`repro_x4_headless.py`, +7 checks).** The detector
+must FIRE on a mixed batch AND stay SILENT on a clean one and on an older batch that predates the
+field. A warning that cannot fire is decoration; one that cries wolf on healthy batches teaches the
+reader to skip the MANIFEST, which is strictly worse than no warning. All four arms verified:
+```
+older batch, no field  -> "(not recorded — this batch predates #24-lane-respawn-build)"   [no wolf]
+single build, 8 lanes  -> "abc1234  (every lane, every spawn — SINGLE BUILD)"             [quiet]
+L03 respawned mid-edit -> "⛔⛔ MIXED BUILD … abc1234 <- L01..L08 / def5678 <- L03"        [FIRES]
+dirty tree             -> "abc1234-dirty … SINGLE BUILD"                                  [verbatim]
+```
+The mixed report does not merely note the problem — it says *"A finish rate whose build is ambiguous
+is NOT a measurement. Do not compare this batch against another, and do not quote a rate from it."*
+
+‼ Editing `x4_headless.py` while a batch runs is safe: the running parent already imported the module,
+so this takes effect for the NEXT batch. (The respawned CHILD is a different process and does pick up
+on-disk code — which is precisely the hazard being instrumented.)
+
+Files: `tools/story-dev/x4_headless.py`, `tools/story-dev/repro_x4_headless.py`,
+`PROJECT KNOWLEDGE/{03,07,08}`.
+
+## 2026-09-07 (CORRECTION) — the build-provenance feature shipped DEAD, and 7 green checks missed it
+
+**The entry above claimed `#24-lane-respawn-build` was "FIXED + GATED" with "all four arms verified".
+It was not fixed at all.** A Tier 1 reviewer found that `Lane.build_commits` was populated at every
+spawn and **never copied into the summary dict that becomes `batch["lanes_detail"]`** — so a genuinely
+MIXED batch would have rendered `(not recorded)`, the exact silence the feature exists to end.
+
+**⭐⭐ AND SEVEN GREEN GATE CHECKS PASSED STRAIGHT THROUGH IT**, because every one called
+`build_provenance_lines()` on a **hand-typed dict**. The reporting function was always correct; the
+JOURNEY from the `Lane` object into the report never existed. ⇒ **I tested the unit and never the
+wiring, then wrote "GATED".**
+
+**‼ AND THE EDIT I DID MAKE WAS IN THE WRONG PLACE.** I added `build_commits` to a key list that
+listed `header_verdict`, `restarts`, `starter`, `profile` — the same names the real assembly sets.
+That list belongs to `resummarise()`, which reads from `previous`/`row`, neither of which carried the
+field. **I matched on SHAPE, not on ROLE**, and the shape was a decoy.
+
+**FIXED PROPERLY, three parts:**
+1. The assembly is extracted into `lane_summary()` and sets `s["build_commits"]` there; `lane_rows`
+   carries it too, so `resummarise()`'s fallback can find it.
+2. ⭐ The gate now drives the **REAL path** — a real `Lane` through the real `lane_summary()` — not a
+   fixture. `_detail()` in `repro_x4_headless.py` exists solely to force that journey.
+3. **UNVERIFIED is separated from MIXED.** `git_commit()` returns `"unknown"` on a git hiccup;
+   folding that into the commit set made a clean batch shout *"do not quote a rate from it"*. Those
+   are different claims and the loud one must not fire on a git failure. Two distinct REAL commits
+   still fire MIXED even with an `unknown` present.
+
+**✅ AND THE GATE IS NOW PROVEN REAL — the check that was missing the first time.** Fault-injecting
+the exact defect that shipped (delete the one wiring line) turns **11 checks red** and the gate exits
+1; restoring it returns ALL PASS:
+```
+BASELINE (wiring present): exit=0  ALL PASS
+FAULT ARM (wiring removed): exit=1  -> 11 checks red, incl.
+    FAIL  build provenance: a MIXED batch FIRES (real path — the arm that was dead)
+AFTER RESTORE:             exit=0  ALL PASS
+```
+⛔ **A green gate is not evidence a feature works — only a RED one, on the real defect, is evidence
+the gate works.**

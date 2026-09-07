@@ -22,6 +22,7 @@ from __future__ import annotations
 import ast
 import re
 import subprocess
+import dataclasses
 import sys
 from pathlib import Path
 
@@ -422,6 +423,74 @@ idx = x4.render_index([row])
 check("INDEX row carries the commit", "abc1234" in idx)
 check("INDEX row carries the finish rate", "33%" in idx, idx)
 check("INDEX row carries the KI-38/KI-40 canaries", "| 2 | 5 |" in idx, idx)
+
+# --- #24-lane-respawn-build: a MIXED-BUILD batch must announce itself ------------------------
+# ⭐ WHY THIS IS GATED. `code_commit` is captured ONCE at batch start, but a lane that dies is
+# RESPAWNED and the new process imports whatever is on disk THEN — so an edit or a promotion
+# mid-batch can put TWO BUILDS in one measurement while the MANIFEST still names one commit.
+# ‼ FAULT-TESTED IN BOTH DIRECTIONS on purpose: the detector must FIRE on a mixed batch AND stay
+# SILENT on a clean one. A warning that cannot fire is decoration; one that cries wolf on healthy
+# batches teaches the reader to skip the MANIFEST, which is strictly worse than no warning.
+# ⛔⛔ THESE DRIVE THE REAL PATH — a REAL `Lane` through the REAL `lane_summary()` — NOT a
+# hand-typed `lanes_detail` dict. THAT DISTINCTION IS THE WHOLE POINT: this feature shipped once
+# with `build_commits` recorded on the Lane and never copied into the summary, and SEVEN checks
+# built on hand-typed fixtures all passed while the feature had never worked once. A fixture tests
+# the FUNCTION; only the real assembly tests the WIRING. If a value must travel from an object into
+# a report, the test has to make that JOURNEY.
+def _detail(**lanes_to_commits):
+    """Build `lanes_detail` the way `run_batch` does: real Lane -> real lane_summary()."""
+    out = {}
+    for tag, commits in lanes_to_commits.items():
+        ln = x4.Lane(slot=0, tag=tag, starter="torchic", profile="p",
+                     profile_dir=Path("."), out_dir=Path("."))
+        ln.build_commits = list(commits)
+        out[tag] = x4.lane_summary(ln, "", "", 0)
+    return {"lanes_detail": out}
+
+
+check("build provenance: the REAL assembly carries build_commits off the Lane",
+      "build_commits" in x4.lane_summary(
+          x4.Lane(slot=0, tag="L01", starter="t", profile="p",
+                  profile_dir=Path("."), out_dir=Path(".")), "", "", 0))
+
+_prov_none = "\n".join(x4.build_provenance_lines({}))
+check("build provenance: an OLDER batch says 'not recorded', it does NOT cry wolf",
+      "not recorded" in _prov_none and "MIXED" not in _prov_none, _prov_none)
+
+_one = "\n".join(x4.build_provenance_lines(_detail(**{f"L0{i}": ["abc1234"] for i in range(1, 9)})))
+check("build provenance: a SINGLE-build batch is quiet (real path)",
+      "SINGLE BUILD" in _one and "MIXED" not in _one, _one)
+
+# a lane that RESTARTED while the tree was unchanged records the same commit twice — still quiet.
+_dup = _detail(L01=["abc1234"], L03=["abc1234", "abc1234"])
+_prov_dup = "\n".join(x4.build_provenance_lines(_dup))
+check("build provenance: a restart with an UNCHANGED tree stays quiet (real path)",
+      "SINGLE BUILD" in _prov_dup and "MIXED" not in _prov_dup, _prov_dup)
+
+_mix = _detail(L01=["abc1234"], L03=["abc1234", "def5678"])
+_prov_mix = "\n".join(x4.build_provenance_lines(_mix))
+check("build provenance: a MIXED batch FIRES (real path — the arm that was dead)",
+      "MIXED BUILD" in _prov_mix, _prov_mix)
+check("build provenance: the mixed report NAMES both commits",
+      "abc1234" in _prov_mix and "def5678" in _prov_mix, _prov_mix)
+check("build provenance: the mixed report NAMES the affected lane", "L03" in _prov_mix, _prov_mix)
+check("build provenance: the mixed report REFUSES comparison, not merely notes it",
+      "NOT a measurement" in _prov_mix, _prov_mix)
+
+# ⛔ "UNVERIFIED" IS NOT "MIXED" — a git hiccup must not fire the loud claim.
+_unk = "\n".join(x4.build_provenance_lines(_detail(L01=["unknown"], L03=["unknown"])))
+check("build provenance: all-unknown reads UNVERIFIED, never MIXED",
+      "UNVERIFIED" in _unk and "MIXED" not in _unk, _unk)
+_unk_mixed = "\n".join(x4.build_provenance_lines(_detail(L01=["abc1234"], L03=["unknown"])))
+check("build provenance: one unknown beside one real commit is a CAVEAT, not MIXED",
+      "MIXED" not in _unk_mixed and "UNVERIFIED" in _unk_mixed, _unk_mixed)
+_really = "\n".join(x4.build_provenance_lines(_detail(L01=["abc1234"], L03=["def5678", "unknown"])))
+check("build provenance: two REAL commits still fire MIXED even with an unknown present",
+      "MIXED BUILD" in _really, _really)
+
+check("Lane records the build it loaded at EVERY spawn (not once per batch)",
+      "build_commits" in {f.name for f in dataclasses.fields(x4.Lane)},
+      str(sorted(f.name for f in dataclasses.fields(x4.Lane))))
 
 
 print()
