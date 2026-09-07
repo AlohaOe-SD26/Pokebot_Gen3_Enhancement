@@ -23239,3 +23239,84 @@ IT SUBSTITUTES THE SUBJECT AND KEEPS RUNNING.** Every one of these would have pr
 `POKEBOT_RECORD_TURNS=… story_harness.py post_return.ss1 --driver ch23exit --frames 120000` and require
 the `.turns` file to be **byte-identical** to the committed baseline. ⛔ Any difference in the ordinary
 battle is a REGRESSION, not a refinement.
+
+
+## 2026-09-06 — the §Ch24 PREPARED party, measured for the first time — and 3 of its 6 slots are HM-clogged
+
+**Captured from `post_ch24ready.ss1`** (the party after all §Ch24 prep, which until today existed in no
+save at all — see `KI-94`):
+```
+Sceptile  L53 147HP Spe160 : Rock Smash, Strength, Leaf Blade, Aerial Ace
+Swellow   L48 139   Spe129 : Facade, Fly, Aerial Ace, Quick Attack
+Wailord   L47 226   Spe72  : Dive, Surf, ICE BEAM, Waterfall
+Mightyena L48 144   Spe97  : Strength, Crunch, Take Down, Bite
+Castform  L36 103   Spe63  : Powder Snow, Weather Ball, Sunny Day, Hail
+Zigzagoon L19  48   Spe33  : Tackle, Rock Smash, Surf, Headbutt
+```
+✅ **`#24-e4moveset` and `#24-icebeamteach` are BOTH confirmed applied** — Sceptile has Aerial Ace,
+Swellow has Facade, Mightyena has Strength, Zigzagoon has Rock Smash, and **Wailord has Ice Beam**.
+Both closed items were right; only the fixture was missing.
+
+**⚠ AND THE THING NO §Ch24 ANALYSIS HAS ACCOUNTED FOR: HM CLOG.** Sceptile carries **Rock Smash AND
+Strength**, Swellow carries **Fly**, and Zigzagoon is a **L19 HM mule** (Rock Smash + Surf). ⇒ against
+a five-fight gauntlet the party effectively fields **Sceptile with 2 real attacks, Swellow with 3,
+Wailord with 2 (Surf/Ice Beam), Mightyena with 3** — and one slot that cannot fight at all.
+‼ Every prior winnability estimate assumed four usable moves per Pokémon.
+
+⭐ **A GEN-3 DETAIL THAT CUTS THE OTHER WAY, and which the old analysis also missed:** the
+physical/special split is **by TYPE, not by move**. Grass and Flying are SPECIAL in Gen 3, so
+**Leaf Blade and Aerial Ace both run off Sceptile's SpA 127** — its best stat is not wasted. Likewise
+Crunch (Dark) runs off Mightyena's SpA 85, not its Atk 97.
+⇒ **winnability must be re-graded with the split right AND the HM clog counted**; the two corrections
+push in opposite directions, so neither can be waved through.
+
+⛔ **NOT YET CONCLUDED:** whether Ice Beam is actually decisive against Drake. That claim
+("turns Drake from a loss into a win") came from the **same refuted IV31/EV0 analysis**, and it is the
+justification for reordering the whole chapter. It is being re-derived against the measured stats
+before any reorder is built — reordering a chapter for an unverified benefit is exactly the trap this
+session has already paid for twice.
+
+
+## 2026-09-06 — ⛔⛔ §Ch24 IS NOT WINNABLE AS CONFIGURED, AND ICE BEAM IS NOT DECISIVE. The chapter reorder is CANCELLED.
+
+**Asked before building.** The plan was to reorder §Ch24's prep ahead of Victory Road (`KI-94`), whose
+whole justification was *"Ice Beam turns Drake from a loss into a win"* — a claim from the **refuted
+IV31/EV0 analysis**. Re-derived against the MEASURED party before committing to the reorder.
+
+**⇒ THE ANSWER: DO NOT REORDER.** Simulated over 400 runs per configuration:
+```
+Sidney  100% win        Phoebe 100% win        GLACIA 0/400  ⇐ THE RUN ENDS HERE
+Ice Beam's contribution vs Drake: +0.01 enemy KOs out of 5.   0/400 wins with it, 0/400 without.
+```
+**⭐ AND THE OLD CLAIM'S ERROR IS DEEPER THAN THE IV SPREAD.** It modelled Wailord as if it could be
+BROUGHT IN for the dragons. **Our bot never voluntarily switches in a trainer battle** — Sceptile leads,
+cannot be withdrawn, and spends ~13 turns and all four Hyper Potions failing to break Shelgon (Leaf
+Blade is 0.5× on Dragon, ~39/turn into 145 HP **plus two Full Restores ≈ 435 effective HP**). Wailord
+arrives with an empty item budget and fires Ice Beam twice.
+⇒ ⭐ **A MOVE'S VALUE IS ONLY REAL IF THE POLICY CAN DELIVER IT.** The arithmetic for Ice Beam vs
+Salamence genuinely works in isolation (2 hits = 238-280 vs 216 effective HP); the bot just never gets
+to fire them.
+
+**WHY GLACIA IS THE WALL** — Glalie, pure Ice, 155/160 HP, Spe 100:
+* their Ice Beam → Sceptile **88-104**/147 (2HKO); → Swellow **164-194**/139 (**OHKO**)
+* our best back → Glalie: Sceptile Leaf Blade **53-63** (3HKO), Wailord Surf **48-57**, Mightyena
+  Crunch **38-45** ⇒ **we lose every 1-on-1 before their two Full Restores.**
+* Sealeo/Walrein have **Thick Fat**, so Ice Beam there is 0.5 × 0.5 = **0.25×**.
+
+**⭐ THE REAL CEILING IS WALLACE'S MILOTIC, NOT DRAKE.** L58, 196 HP, SpD 167, **Recover 98 HP/turn**;
+Sceptile L53 Leaf Blade does 66-78 ⇒ a **net −20/turn losing race**. Break-even is L62.
+
+**⇒ WHAT ACTUALLY CONVERTS IT — levelling, and nothing else:**
+```
+L53 (now)  0% Glacia      L57  87% Glacia, dies at Drake
+L60        99.7% Glacia   L75  88% CLEAR THE GAUNTLET
+```
+Free structural fixes (box Castform + Zigzagoon, fix the faint chooser, lead Mightyena not Sceptile
+for Glacia/Drake) **do not convert it** — but roughly double how deep the run gets, and are correct
+anyway.
+
+**⚠ THESE ARE SIMULATION RESULTS, NOT DRIVES — say so when citing them.** The model uses our real
+policy from source but approximates the enemy AI as max-expected-damage rather than Gen-3's score
+table, and ignores crits, status, Attract/Encore/Double Team. ⇒ treat the LEVEL TARGETS as estimates
+to be confirmed by a drive, and the *ordering* of the walls (Glacia, then Milotic) as the robust part
+— it survived every variant tested including ±10% natures, Sheer Cold live, and corrected Sitrus.

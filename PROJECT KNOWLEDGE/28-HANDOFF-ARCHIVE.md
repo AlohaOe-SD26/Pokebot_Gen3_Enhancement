@@ -8734,3 +8734,106 @@ it depends on winning a boss fight with a party that arrives worn down. Quote it
 **Why it matters beyond this chapter:** the post-Maxie era is the precondition for §Ch16 (the
 Slateport Harbor beat), so anchor manufacture for the next chapter inherits this coin-flip.
 
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Archived 2026-09-06 for the R3 budget after KI-91..KI-95 were filed. Status unchanged.
+
+## KI-24b — region reachability BUILT; hop count alone is too coarse to rank by (2026-07-25)
+
+`modules/story/region_reach.py` now answers reachability from the ROM's own `MapConnections` +
+warps (never a hand-written table), with capability gates and — the point of the module —
+`why_unreachable()` reasons that distinguish **"no connection path"** from **"needs Surf at
+A↔B"** from **"reachable but N hops away (limit M)"**. The oracle itself is proven: ROUTE118 is
+reachable from ROUTE120 at the Winona moment, where tile-level `calculate_path` said it was not.
+
+**✅ SCOPE — KI-24 is now fixed for BOTH consumers (2026-07-25).** `region_reach` is wired into
+`_counter_area_allowed` (counter-candidate selection, `counter_plan.find_counter_candidates`) AND,
+as of 2026-07-25, into `_training_area_allowed` (training-area selection, passed as `allow=` to
+`best_training_area`). Tile-level `calculate_path` no longer answers any region-scale question in
+the story bot.
+
+**The measured effect on the training predicate** (`repro_counter_plan.py`, same Winona-era live
+position, same candidate list, ONLY the predicate changed):
+
+| `_training_area_allowed` | reachable flags over the 10 Winona candidates |
+|---|---|
+| before (`calculate_path`) | `[False × 10]` — every candidate rejected; KI-24 in the raw |
+| after (`region_reach`) | `[True × 5, False × 5]` — incl. **Route 118 Electrike: reachable** |
+
+**How it landed, and the test bug it exposed.** The first attempt FAILED
+`tools/story-dev/repro_fodder_grass.py` case 5 (`L31 team in Fallarbor`: expected `SKIP GRIND`,
+got `RELOCATE to ROUTE111 L19-22`) and was reverted rather than forced. Investigating the failure
+showed the TEST was wrong, not the change — see 08-MISTAKES 2026-07-25 (partial mock). `_stand_at()`
+patched only `modules.map.get_map_data_for_current_position`, while the predicate's `calculate_path`
+branch read `modules.player.get_player_location`, which stayed live. So case 5 had been asserting a
+verdict for a position it never simulated — it was really asking about `(PETALBURG_CITY, (7,6))`.
+
+Proof the re-baseline was a TEST fix and not a behaviour change: with `_stand_at()` repaired and
+`story_mode.py` **untouched**, the ORIGINAL `calculate_path` code also answers
+`RELOCATE to ROUTE111`, and cases 1-4 are unchanged. Three independent sources agree Route 111 is
+reachable from Fallarbor — `calculate_path` succeeds from `(14,7)`, `region_reach` measures 2 hops,
+and `training_areas.py`'s own comment says so.
+
+**✅ The sibling repro that went red is fixed — `tools/story-dev/repro_counter_plan.py`.** Its
+primary assertions never failed; what failed was a non-vacuity scaffold asserting that a
+deliberately WIDE type set contained at least one `False`. **That scaffold was relying on the
+bug** — it existed only because the Winona set was vacuously all-`False` under the pre-KI-24
+predicate, and it inverted the moment the false negatives went away (the wide set now returns
+`[True × 25]`). Per user ruling 2026-07-25 the non-vacuity check MOVED to where non-vacuity now
+genuinely lives: the Winona set itself, asserted to span BOTH branches, which is the property the
+sort proof actually needs. The wide set is still sorted as a larger-sample check.
+
+This was the SECOND test in one day found to be asserting something that depended on a defect
+(case 5 was the first) — see the 08-MISTAKES pattern entry for the shape and the prevention rule.
+
+**‼ But the cost model I assumed is wrong, and the measurement says so.** Measured hops from
+ROUTE120 on the Winona-era save:
+
+| target | hops |
+|---|---|
+| FORTREE_CITY | 1 |
+| ROUTE119 | 2 |
+| **LILYCOVE_CITY** | **2** |
+| **ROUTE118** (the real Winona answer) | **3** |
+| MOSSDEEP_CITY | 4 |
+| PACIFIDLOG_TOWN | 10 |
+
+I expected "the answer is a handful of hops, the far cities are many". **Lilycove is CLOSER than
+Route 118 by this metric**, and Mossdeep is one hop further. Because a single ROM connection can
+span an entire sea route, uniform 1-hop weighting compresses "same landmass cluster" (1-4) and
+only separates the genuinely far-flung (Pacifidlog, 10).
+
+**So hop count is a usable FILTER but not a usable RANK.** `max_hops=4` cuts Pacifidlog-class
+targets while keeping the Fortree/119/118 cluster, and that is how it should be used — as a
+sanity bound, with `counter_plan`'s existing criteria (type coverage → verified tile →
+encounter rate → level fit) doing the actual ranking.
+
+**Next, if finer granularity is ever needed (`#24-edgecost`):** weight each edge by the source
+map's traversal length rather than a flat 1, or price travel in FRAMES so it composes with
+`training_areas.estimate_frames_to_level`. Both are real work; neither is needed until hop
+count demonstrably mis-ranks something.
+
+**Also still open:** `KNOWN_GATES` holds only THREE hand-verified edges (`region_reach.py:81-91`) —
+DEWFORD_TOWN↔ROUTE106 and DEWFORD_TOWN↔ROUTE107 (both `surf`), plus EVER_GRANDE_CITY↔VICTORY_ROAD_1F
+(`waterfall`, added 2026-07-26 because Victory Road's L38-42 Hariyama otherwise ranked #1 as a
+counter candidate). *(This line said "only one entry" until re-counted 2026-07-27.)* So
+edges whose requirement cannot be derived from ROM data currently read as UNGATED — i.e. this
+oracle now fails OPEN where the old one failed CLOSED. That is the safer direction for a
+*planner* (a wrong "yes" costs a wasted walk that navigation will fail recoverably; a wrong "no"
+is invisible) but it must be grown before this gates anything irreversible.
+
+**Prevention rule:** when you introduce a cost metric, MEASURE it against known-good and
+known-bad cases before trusting it to rank. "Reachable" was a boolean that hid a cost; "hops" is
+a cost that hides map size. Each fix exposed the next assumption — check the numbers, don't
+reason about them.
+
+---
+
+# ⚠ MIXED — entries added 2026-07-27 onward. ⛔ **READ EACH ENTRY'S OWN MARKER.**
+> Re-titled 2026-08-22 (PASS 5). This H1 read *"open issues found by a code audit"* and is
+> the LAST H1 in the file, so it scoped ~82% of it — while many entries beneath it carry their
+> own ✅ markers. ⛔ **A heading is a claim about every entry beneath it**;
+> that exact shape once cost about a day of re-doing finished, gated, promoted work.
+

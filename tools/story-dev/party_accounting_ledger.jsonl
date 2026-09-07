@@ -480,3 +480,4 @@
 {"when": "2026-09-06T20:35:49", "driver": "ch24flyto", "build": "sandbox", "state": "post_teachice.ss1", "frames_run": 20743, "recomputes": 20743, "scans": 70, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-06T20:37:15", "driver": "ch23leagueprobe", "build": "sandbox", "state": "post_ch24ready.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-06T20:38:39", "driver": "ch23leagueprobe", "build": "sandbox", "state": "post_ch24ready.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-06T22:04:30", "driver": "ch24probe", "build": "sandbox", "state": "post_ch24ready.ss1", "frames_run": 300, "recomputes": 301, "scans": 2, "divergences": {}, "observer_broke": false}

@@ -396,103 +396,9 @@ hand-verified during this investigation. Doing this would also retire the `AREA_
 tile pathfinder to answer a cross-region question inherits every one of its blind spots as a false
 "no", and false negatives are invisible — nothing errors, the option is simply never proposed.
 
-## KI-24b — region reachability BUILT; hop count alone is too coarse to rank by (2026-07-25)
+## KI-24b — region reachability BUILT; hop count alone is too coarse to rank by (2026-07-25) — 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, R3 line budget; nothing deleted, status unchanged).
 
-`modules/story/region_reach.py` now answers reachability from the ROM's own `MapConnections` +
-warps (never a hand-written table), with capability gates and — the point of the module —
-`why_unreachable()` reasons that distinguish **"no connection path"** from **"needs Surf at
-A↔B"** from **"reachable but N hops away (limit M)"**. The oracle itself is proven: ROUTE118 is
-reachable from ROUTE120 at the Winona moment, where tile-level `calculate_path` said it was not.
-
-**✅ SCOPE — KI-24 is now fixed for BOTH consumers (2026-07-25).** `region_reach` is wired into
-`_counter_area_allowed` (counter-candidate selection, `counter_plan.find_counter_candidates`) AND,
-as of 2026-07-25, into `_training_area_allowed` (training-area selection, passed as `allow=` to
-`best_training_area`). Tile-level `calculate_path` no longer answers any region-scale question in
-the story bot.
-
-**The measured effect on the training predicate** (`repro_counter_plan.py`, same Winona-era live
-position, same candidate list, ONLY the predicate changed):
-
-| `_training_area_allowed` | reachable flags over the 10 Winona candidates |
-|---|---|
-| before (`calculate_path`) | `[False × 10]` — every candidate rejected; KI-24 in the raw |
-| after (`region_reach`) | `[True × 5, False × 5]` — incl. **Route 118 Electrike: reachable** |
-
-**How it landed, and the test bug it exposed.** The first attempt FAILED
-`tools/story-dev/repro_fodder_grass.py` case 5 (`L31 team in Fallarbor`: expected `SKIP GRIND`,
-got `RELOCATE to ROUTE111 L19-22`) and was reverted rather than forced. Investigating the failure
-showed the TEST was wrong, not the change — see 08-MISTAKES 2026-07-25 (partial mock). `_stand_at()`
-patched only `modules.map.get_map_data_for_current_position`, while the predicate's `calculate_path`
-branch read `modules.player.get_player_location`, which stayed live. So case 5 had been asserting a
-verdict for a position it never simulated — it was really asking about `(PETALBURG_CITY, (7,6))`.
-
-Proof the re-baseline was a TEST fix and not a behaviour change: with `_stand_at()` repaired and
-`story_mode.py` **untouched**, the ORIGINAL `calculate_path` code also answers
-`RELOCATE to ROUTE111`, and cases 1-4 are unchanged. Three independent sources agree Route 111 is
-reachable from Fallarbor — `calculate_path` succeeds from `(14,7)`, `region_reach` measures 2 hops,
-and `training_areas.py`'s own comment says so.
-
-**✅ The sibling repro that went red is fixed — `tools/story-dev/repro_counter_plan.py`.** Its
-primary assertions never failed; what failed was a non-vacuity scaffold asserting that a
-deliberately WIDE type set contained at least one `False`. **That scaffold was relying on the
-bug** — it existed only because the Winona set was vacuously all-`False` under the pre-KI-24
-predicate, and it inverted the moment the false negatives went away (the wide set now returns
-`[True × 25]`). Per user ruling 2026-07-25 the non-vacuity check MOVED to where non-vacuity now
-genuinely lives: the Winona set itself, asserted to span BOTH branches, which is the property the
-sort proof actually needs. The wide set is still sorted as a larger-sample check.
-
-This was the SECOND test in one day found to be asserting something that depended on a defect
-(case 5 was the first) — see the 08-MISTAKES pattern entry for the shape and the prevention rule.
-
-**‼ But the cost model I assumed is wrong, and the measurement says so.** Measured hops from
-ROUTE120 on the Winona-era save:
-
-| target | hops |
-|---|---|
-| FORTREE_CITY | 1 |
-| ROUTE119 | 2 |
-| **LILYCOVE_CITY** | **2** |
-| **ROUTE118** (the real Winona answer) | **3** |
-| MOSSDEEP_CITY | 4 |
-| PACIFIDLOG_TOWN | 10 |
-
-I expected "the answer is a handful of hops, the far cities are many". **Lilycove is CLOSER than
-Route 118 by this metric**, and Mossdeep is one hop further. Because a single ROM connection can
-span an entire sea route, uniform 1-hop weighting compresses "same landmass cluster" (1-4) and
-only separates the genuinely far-flung (Pacifidlog, 10).
-
-**So hop count is a usable FILTER but not a usable RANK.** `max_hops=4` cuts Pacifidlog-class
-targets while keeping the Fortree/119/118 cluster, and that is how it should be used — as a
-sanity bound, with `counter_plan`'s existing criteria (type coverage → verified tile →
-encounter rate → level fit) doing the actual ranking.
-
-**Next, if finer granularity is ever needed (`#24-edgecost`):** weight each edge by the source
-map's traversal length rather than a flat 1, or price travel in FRAMES so it composes with
-`training_areas.estimate_frames_to_level`. Both are real work; neither is needed until hop
-count demonstrably mis-ranks something.
-
-**Also still open:** `KNOWN_GATES` holds only THREE hand-verified edges (`region_reach.py:81-91`) —
-DEWFORD_TOWN↔ROUTE106 and DEWFORD_TOWN↔ROUTE107 (both `surf`), plus EVER_GRANDE_CITY↔VICTORY_ROAD_1F
-(`waterfall`, added 2026-07-26 because Victory Road's L38-42 Hariyama otherwise ranked #1 as a
-counter candidate). *(This line said "only one entry" until re-counted 2026-07-27.)* So
-edges whose requirement cannot be derived from ROM data currently read as UNGATED — i.e. this
-oracle now fails OPEN where the old one failed CLOSED. That is the safer direction for a
-*planner* (a wrong "yes" costs a wasted walk that navigation will fail recoverably; a wrong "no"
-is invisible) but it must be grown before this gates anything irreversible.
-
-**Prevention rule:** when you introduce a cost metric, MEASURE it against known-good and
-known-bad cases before trusting it to rank. "Reachable" was a boolean that hid a cost; "hops" is
-a cost that hides map size. Each fix exposed the next assumption — check the numbers, don't
-reason about them.
-
----
-
-# ⚠ MIXED — entries added 2026-07-27 onward. ⛔ **READ EACH ENTRY'S OWN MARKER.**
-> Re-titled 2026-08-22 (PASS 5). This H1 read *"open issues found by a code audit"* and is
-> the LAST H1 in the file, so it scoped ~82% of it — while many entries beneath it carry their
-> own ✅ markers. ⛔ **A heading is a claim about every entry beneath it**;
-> that exact shape once cost about a day of re-doing finished, gated, promoted work.
-
+**2026-09-06 — ARCHIVED, STATUS UNCHANGED.** Full entry verbatim in `28-HANDOFF-ARCHIVE.md`. ⛔ Archived for the R3 budget only — NOT a closure.
 ## KI-25 — `_lead_best_matchup` is purely DEFENSIVE; it benches the only mon that can win (opened 2026-07-27, severity: HIGH)
 - **Symptom:** before a type-countered fight the bot leads a mon that merely *survives* the
   foe's STAB, regardless of whether it can deal damage. Measured in bundle
@@ -2988,3 +2894,39 @@ trip.
 **⭐ THE LESSON — AND IT IS A CHEAP ONE TO REUSE:** a fixture's own note is a precondition, not
 decoration. `post_league_shop.ss1` said "NOT READY" in its first sentence and I drove §Ch24 from it
 anyway, repeatedly. **Read the fixture note before the drive, not after the anomaly.**
+
+
+## `KI-95` — the faint chooser ranks replacements on a PURE TYPE MULTIPLIER, so a L19 mule outranks a healthy L48 (2026-09-06, VERIFIED IN CODE, OPEN)
+
+**VERIFIED BY READING IT** — `plugins/custom_modes/story_mode.py:200-210`:
+```python
+outgoing = 0.0
+for learned in mon.moves:
+    if learned is None or learned.pp == 0 or learned.move.base_power == 0:
+        continue                                   # ⬅ base_power used ONLY to skip status moves
+    for pair in foe_pairs:
+        m = 1.0
+        for t in pair:
+            m *= learned.move.type.get_effectiveness_against(t)   # ⬅ PURE TYPE MULTIPLIER
+        outgoing = max(outgoing, m)
+key = (incoming, -outgoing, -hp_fraction, -mon.level)
+```
+⇒ **`outgoing` is effectiveness only — never weighted by base power or level**, and `level` is merely
+the last tiebreak, applied AFTER it.
+
+**CONSEQUENCE.** Against Glacia's Glalie (pure Ice), our **L19 Zigzagoon's Rock Smash** (Fighting, 2×,
+**20 BP on a level-19 mon**) scores `outgoing = 2.0` and **outranks a full-HP L48 Mightyena** whose best
+is 1.0. The mule is sent in to die. Observed in a simulated Glacia run at T19.
+
+**⚠ SCOPE — this runs in EVERY battle**, so the bar is this project's shared-path bar: a repro that
+fails first, an argument that the change is ADDITIVE, the full suite, **and the ordinary-case A/B**.
+✅ The A/B instrument and baseline already exist (`POKEBOT_RECORD_TURNS`,
+`evidence/ki93_ordinary_BASELINE.turns`).
+**Fix shape:** weight `outgoing` by expected damage (base power × level, or reuse
+`calculate_move_damage_range`) instead of raw effectiveness. ~4 lines, but in a hot path.
+
+**⛔ NOT A BUG, RECORDED SO IT IS NOT "FIXED" LATER:** `Fly` and `Dive` sit in `banned_moves`
+(`profiles/battle.yml:23-27`) under an explicit **`# 2-turn`** comment, beside `Bounce`. That is a
+DELIBERATE exclusion — two-turn moves waste a turn and can desync the handler. It has a real cost
+(Swellow's Fly is its best move vs Grass and is never used, so it effectively fields three moves), but
+it is a trade-off with a reason, **not an oversight**. Analysis that calls it a defect is wrong.
