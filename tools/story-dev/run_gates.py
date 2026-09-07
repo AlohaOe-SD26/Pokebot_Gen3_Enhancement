@@ -250,6 +250,22 @@ GATES: list[tuple[str, bool]] = [
     # written for KI-90 was vacuous: "left slot absent" alone cannot raise (`story_mode.py:261-313`
     # already aims right), and that arm would have reported "does not reproduce".
     ("repro_ki90_absent_left_slot.py", False),
+    # --- #39 — `KI-95`: the faint chooser's replacement ranking (`rank_replacement`)
+    # ‼ APPENDED AT THE END, never inserted — the same rule #34-#38 carry.
+    # WHY A GATE: `choose_new_lead_after_faint` has had THREE index-space bugs (`KI-18`, `KI-34`,
+    # `KI-66`) and every one needed a ROM, a live battle and a staged faint to see — which is
+    # precisely why they kept happening. `KI-95` (ranking on a bare type multiplier, so a 40 BP
+    # super-effective move outscored a 100 BP neutral one) is the first found by READING the code.
+    # ⭐ THE DURABLE FIX IS NOT THE METRIC, IT IS THE TESTABILITY: the ranking is now a PURE function
+    # taking an injected damage estimator, so this runs offline in milliseconds with no ROM.
+    # ⛔ FAULT-TESTED: `POKEBOT_KI95_PROBE_FAULT=legacy` feeds it the pre-KI-95 metric, and EXACTLY
+    # C1 goes red — the other SIX cases (C2-C7) are deliberately independent of the offensive
+    # metric's scale, so a fault that knocked them over too would prove the probe was coupled where
+    # it claims not to be. A probe that passes in both arms measures nothing.
+    # ‼ THIS COMMENT SAID "the other four" until 2026-09-06, hours after C6 and C7 were added — an
+    # independent reviewer caught it. A count in prose beside a list that grows is a pair, and both
+    # halves move together.
+    ("probe_faint_chooser_rank.py", False),
 ]
 
 

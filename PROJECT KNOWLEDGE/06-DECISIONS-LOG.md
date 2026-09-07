@@ -4602,3 +4602,33 @@ returns an index into the **compacted** move list. For a Pokémon with a gap in 
 (`[Move, None, Move]`), that index is not the real move slot. Most parties are contiguous so it rarely
 bites — but it is a genuine index-space hazard in shared code, and it is now written down rather than
 rediscovered a fourth time.
+
+## 2026-09-06 — reuse the shipped damage formula, and make the faint ranking a PURE function
+
+**Decision 1 — score with `BattleStrategyUtil.calculate_move_damage_range`, not a hand-rolled
+`base_power × STAB × effectiveness`.**
+*Rejected:* the approximation I had planned. It would have been a SECOND damage model in a codebase
+that already has one, guaranteed to drift from it, and blind to the immunity abilities. The shipped
+method already accepts a party `Pokemon` as attacker (`_util.py:165-174`) and `decide_turn` already
+trusts it four lines below the chooser — so using anything else would have been choosing a worse
+answer for no reason.
+*Cost accepted:* it is heavier than a type lookup. Irrelevant — it runs once per faint, over ≤6 mons ×
+≤4 moves × ≤2 foes.
+
+**Decision 2 — extract the ranking into a pure `rank_replacement(...)` with an INJECTED damage
+function, rather than fixing the metric in place.**
+*Why:* `choose_new_lead_after_faint` has had THREE index-space bugs and every one required a ROM, a
+live battle and a staged faint to observe. **The function's untestability is the root cause of its bug
+history**, and a four-line metric fix would have left that untouched. The injected estimator is what
+makes the probe possible without building fake `Pokemon`/`BattlePokemon` objects with stats, abilities
+and a type chart.
+*Rejected:* testing it through the live `ki66faint` driver only. That proves non-regression, not that
+the new ranking is BETTER, and it costs a ROM plus ~10 minutes per question.
+*Honest limit:* the probe therefore does NOT test the integration with the real formula. That is
+argued from `decide_turn`'s existing call, and confirmed at runtime by the new `metric=`/
+`estimates_ok=` fields in the `[FAINT-CHOOSER]` telemetry.
+
+**Decision 3 — do NOT promote to `custom-pokebot/`.**
+Standing project rule: promotion is the user's call. The user is asleep. Drift goes to 1 and every
+doc that claimed 0 now says 1 and why. *Rejected:* promoting because "the gates are green" — green
+gates bound a contract, not a permission.

@@ -8896,3 +8896,52 @@ PYTHONUTF8=1 py -3.12 probe_route128_landing.py     # §Ch20's EXIT: 9/9, the at
 #   ‼ The landing tile has ZERO surfable neighbours, so a naive "Surf from where you land" reads
 #     as a HUNG LEG, not a failure. (§Ch20's exit leg is built; this stays as the trap it names.)
 ```
+
+---
+
+## `KI-95` — the original defect (archived 2026-09-06 from `05-KNOWN-ISSUES.md`)
+
+Moved when the bug was fixed: `05-KNOWN-ISSUES.md` is for OPEN problems, and what remained open
+about `KI-95` was only that the fix is unpromoted and rests on deprecated behaviour. The defect
+record itself is kept in full here — it is the evidence that the fix was needed.
+
+**VERIFIED BY READING IT** — as it stood on 2026-09-06, before the fix extracted the ranking into `rank_replacement` (`plugins/custom_modes/story_mode.py:118-191`); the chooser itself is `choose_new_lead_after_faint` (`story_mode.py:215-320`):
+```python
+outgoing = 0.0
+for learned in mon.moves:
+    if learned is None or learned.pp == 0 or learned.move.base_power == 0:
+        continue                                   # ⬅ base_power used ONLY to skip status moves
+    for pair in foe_pairs:
+        m = 1.0
+        for t in pair:
+            m *= learned.move.type.get_effectiveness_against(t)   # ⬅ PURE TYPE MULTIPLIER
+        outgoing = max(outgoing, m)
+key = (incoming, -outgoing, -hp_fraction, -mon.level)
+```
+⇒ **`outgoing` is effectiveness only — never weighted by base power or level**, and `level` is merely
+the last tiebreak, applied AFTER it.
+
+**CONSEQUENCE.** Against Glacia's Glalie (pure Ice), our **L19 Zigzagoon's Rock Smash** (Fighting, 2×,
+**20 BP on a level-19 mon**) scores `outgoing = 2.0` and **outranks a full-HP L48 Mightyena** whose best
+is 1.0. The mule is sent in to die. Observed in a simulated Glacia run at T19.
+
+**⚠ SCOPE — this runs in EVERY battle**, so the bar is this project's shared-path bar: a repro that
+fails first, an argument that the change is ADDITIVE, and the full suite.
+
+⛔⛔ **CORRECTED 2026-09-06 — THE INSTRUMENT NAMED HERE WAS THE WRONG ONE.** This entry said the bar
+included *"the ordinary-case A/B"* via `POKEBOT_RECORD_TURNS` /
+`evidence/ki93_ordinary_BASELINE.turns`. **That A/B cannot see this change at all.** The turn recorder
+records what `decide_turn` RETURNS, and `choose_new_lead_after_faint` is not called unless something
+FAINTS — so in an ordinary battle the recording is byte-identical whether the fix is present, absent,
+or actively broken. ⇒ it would have passed trivially and been reported as evidence.
+‼ **A passing A/B over a code path the run never executes is not weak evidence, it is NO evidence** —
+and it is worse than none, because it reads as proof. **Choose the instrument by the QUESTION** (the
+playbook §0c rule) means asking *"does this run reach the changed line?"* BEFORE quoting a green arm.
+
+**⛔ NOT A BUG, RECORDED SO IT IS NOT "FIXED" LATER:** `Fly` and `Dive` sit in `banned_moves`
+(`profiles/battle.yml:23-27`) under an explicit **`# 2-turn`** comment, beside `Bounce`. That is a
+DELIBERATE exclusion — two-turn moves waste a turn and can desync the handler. It has a real cost
+(Swellow's Fly is its best move vs Grass and is never used, so it effectively fields three moves), but
+it is a trade-off with a reason, **not an oversight**. Analysis that calls it a defect is wrong.
+
+---

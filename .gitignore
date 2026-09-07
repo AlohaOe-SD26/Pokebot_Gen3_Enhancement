@@ -53,3 +53,8 @@ tools/story-dev/.layout-cache/
 # solve_victory_road.py's decomp download cache — re-fetchable, and it must NEVER be the
 # source of truth for a tile claim (the script asserts byte lengths on every read).
 tools/story-dev/.cache/
+
+# Windows device-name artifacts: in Git Bash `2>NUL` creates a REAL 0-byte file called NUL
+# instead of discarding output. One appeared on 2026-09-06 and nearly reached a commit.
+NUL
+nul

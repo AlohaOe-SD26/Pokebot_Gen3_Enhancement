@@ -23320,3 +23320,43 @@ policy from source but approximates the enemy AI as max-expected-damage rather t
 table, and ignores crits, status, Attract/Encore/Double Team. ⇒ treat the LEVEL TARGETS as estimates
 to be confirmed by a drive, and the *ordering* of the walls (Glacia, then Milotic) as the robust part
 — it survived every variant tested including ±10% natures, Sheer Cold live, and corrected Sitrus.
+
+## 2026-09-06 — `KI-95` fixed in the sandbox: the faint chooser now ranks on EXPECTED DAMAGE (gate #39)
+
+**The defect, found by READING rather than by losing a run.** `choose_new_lead_after_faint`
+(`plugins/custom_modes/story_mode.py`) scored a replacement's offence as a **pure type multiplier**;
+`base_power` was used only to test `== 0` (skip status moves). So a L19 Zigzagoon's 20 BP Rock Smash
+(2× vs Ice) scored `2.0` and **outranked a full-HP L48 Mightyena** whose best was `1.0`. The mule got
+sent in to die.
+
+**The fix reuses the shipped formula rather than inventing one.**
+`BattleStrategyUtil.calculate_move_damage_range` already accepts a party `Pokemon` as attacker and is
+already trusted by `decide_turn` four lines below. It brings base power, STAB, level, stats and the
+immunity abilities along for free — so a Ground move vs a **Levitate** foe now scores 0 instead of 1.0.
+The chooser also now skips `banned_moves`, which it never did: it had been ranking mons on Fly/Dive
+that `decide_turn` would then refuse to use.
+
+**The durable half is the TESTABILITY, not the metric.** This function has had THREE index-space bugs
+(`KI-18`, `KI-34`, `KI-66`) and every one needed a ROM, a live battle and a staged faint to see — which
+is why they kept happening. The ranking is now a **pure function** `rank_replacement(...)` taking an
+injected damage estimator, so `tools/story-dev/probe_faint_chooser_rank.py` (**gate #39**) interrogates
+it offline in 0.6 s. Suite: 38 → 39 gates (37 enforcing + 2 advisory); `--quick` 30 → 31.
+
+**Fault-tested, which is the only reason the green arm means anything.**
+`POKEBOT_KI95_PROBE_FAULT=legacy` feeds the ranker the pre-fix metric; **exactly C1 goes red** and
+C2–C7 stay green. The other six are deliberately independent of the offensive metric's SCALE, so a
+fault that knocked them over too would have proved the probe coupled where it claims not to be.
+
+**⛔ A BUG IN THE FIRST VERSION OF THE FIX, CAUGHT BEFORE COMMIT** — see `08-MISTAKES.md`: the
+legacy-fallback test read a counter accumulated ACROSS candidates from INSIDE the per-candidate loop,
+so candidates measured before the first successful estimate were scored 0–4 (a multiplier) and later
+ones 0–300 (damage), then compared in the same sort key. Now two-pass: measure everything, then choose
+ONE metric for the whole ranking. Case **C6** is built so the two versions disagree, and the report
+NAMES the metric that decided (`metric=damage|legacy`).
+
+**⛔ SANDBOX ONLY. NOT PROMOTED.** `custom-pokebot/` still carries the defect; drift is 1. Promotion is
+the user's call and was not given (this was built while the user was asleep).
+
+Files: `sandbox-pokebot/plugins/custom_modes/story_mode.py`,
+`tools/story-dev/probe_faint_chooser_rank.py` (new), `tools/story-dev/run_gates.py`,
+`PROJECT KNOWLEDGE/{03,04,05,29}`, `02-ARCHITECTURE.md`.

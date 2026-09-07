@@ -2896,37 +2896,78 @@ decoration. `post_league_shop.ss1` said "NOT READY" in its first sentence and I 
 anyway, repeatedly. **Read the fixture note before the drive, not after the anomaly.**
 
 
-## `KI-95` — the faint chooser ranks replacements on a PURE TYPE MULTIPLIER, so a L19 mule outranks a healthy L48 (2026-09-06, VERIFIED IN CODE, OPEN)
+## `KI-95` — the faint chooser ranked replacements on a PURE TYPE MULTIPLIER, so a L19 mule outranked a healthy L48 (2026-09-06, ✅ FIXED IN THE SANDBOX + GATED as #39 — ⛔ NOT PROMOTED to `custom-pokebot/`, which is the USER's call)
 
-**VERIFIED BY READING IT** — `plugins/custom_modes/story_mode.py:200-210`:
-```python
-outgoing = 0.0
-for learned in mon.moves:
-    if learned is None or learned.pp == 0 or learned.move.base_power == 0:
-        continue                                   # ⬅ base_power used ONLY to skip status moves
-    for pair in foe_pairs:
-        m = 1.0
-        for t in pair:
-            m *= learned.move.type.get_effectiveness_against(t)   # ⬅ PURE TYPE MULTIPLIER
-        outgoing = max(outgoing, m)
-key = (incoming, -outgoing, -hp_fraction, -mon.level)
+📦 **The defect description, the code excerpt, the Glacia consequence and the retracted acceptance-bar
+note are ARCHIVED VERBATIM** in `28-HANDOFF-ARCHIVE.md` → "KI-95 — the original defect". Nothing is
+deleted; this file's own preamble says it holds OPEN problems, and the only parts of `KI-95` still open
+are the two below: it is **NOT PROMOTED**, and it rests on a **deprecated CPython behaviour**.
+
+**One-line restatement:** the offensive term in `choose_new_lead_after_faint` was a bare type
+multiplier — `base_power` was used only to test `== 0` — so a L19 Zigzagoon's 20 BP Rock Smash (2× vs
+Ice) scored `2.0` and outranked a full-HP L48 Mightyena scoring `1.0`. The mule was sent in to die.
+
+### ✅ 2026-09-06 — FIXED IN THE SANDBOX, GATED, AND FAULT-TESTED. ⛔ NOT PROMOTED.
+
+**What changed** (`sandbox-pokebot/plugins/custom_modes/story_mode.py`): the ranking is extracted into
+a module-level **pure function `rank_replacement(candidates, foe_types, foes, damage_of)`**, and the
+offensive term is now **expected damage** from the SHIPPED formula
+`BattleStrategyUtil.calculate_move_damage_range` — which already accepts a party `Pokemon` as the
+attacker, and which `decide_turn` a few lines below already trusts. No second damage model was written.
+
+**Three things the fix corrects that the report above did not name:**
+* **Immunity abilities.** A Ground move against a **Levitate** foe used to score `1.0`; the shipped
+  formula returns 0 damage, so it now scores 0.
+* **`banned_moves`.** The chooser ranked a mon on moves `decide_turn` would then REFUSE to use —
+  `battle.yml:23-27` bans Fly/Dive as 2-turn moves. ⇒ *a move's value is only real if the policy can
+  deliver it* (`08-MISTAKES.md`).
+* **Ties.** Two mons holding the same-typed move used to tie regardless of power and fall through to
+  HP fraction.
+
+**Evidence — `tools/story-dev/probe_faint_chooser_rank.py`, GATE #39, offline, no ROM, 0.6 s.**
+7 cases, and the fault arm is the reason it can be believed:
 ```
-⇒ **`outgoing` is effectiveness only — never weighted by base power or level**, and `level` is merely
-the last tiebreak, applied AFTER it.
+clean                             -> 7/7 PASS, exit 0
+POKEBOT_KI95_PROBE_FAULT=legacy   -> EXACTLY C1 red, C2-C7 green, exit 0 ("the probe detects the defect")
+```
+The fault arm feeds the ranker the **pre-KI-95 metric** as its damage function, and C1 then picks
+`A/Ember-40` — the wrong answer this KI describes. ⇒ **the probe was RED before the fix and is GREEN
+after**, which is what makes it a measurement rather than a demonstration.
 
-**CONSEQUENCE.** Against Glacia's Glalie (pure Ice), our **L19 Zigzagoon's Rock Smash** (Fighting, 2×,
-**20 BP on a level-19 mon**) scores `outgoing = 2.0` and **outranks a full-HP L48 Mightyena** whose best
-is 1.0. The mule is sent in to die. Observed in a simulated Glacia run at T19.
+⛔ **WHAT THE PROBE DOES NOT PROVE.** It injects its OWN damage function, so it tests the RANKING, not
+the integration with `calculate_move_damage_range`. The integration is argued from the fact that
+`decide_turn` already calls that method with the same argument shapes — that is an ARGUMENT, not a
+measurement, and the live confirmation is the `metric=damage estimates_ok=<n>` field now printed in the
+`[FAINT-CHOOSER]` telemetry on every real faint. ‼ **If a live log ever shows `metric=legacy`, this fix
+is NOT running** and the entry above is again true at runtime.
 
-**⚠ SCOPE — this runs in EVERY battle**, so the bar is this project's shared-path bar: a repro that
-fails first, an argument that the change is ADDITIVE, the full suite, **and the ordinary-case A/B**.
-✅ The A/B instrument and baseline already exist (`POKEBOT_RECORD_TURNS`,
-`evidence/ki93_ordinary_BASELINE.turns`).
-**Fix shape:** weight `outgoing` by expected damage (base power × level, or reuse
-`calculate_move_damage_range`) instead of raw effectiveness. ~4 lines, but in a hot path.
 
-**⛔ NOT A BUG, RECORDED SO IT IS NOT "FIXED" LATER:** `Fly` and `Dive` sit in `banned_moves`
-(`profiles/battle.yml:23-27`) under an explicit **`# 2-turn`** comment, beside `Bounce`. That is a
-DELIBERATE exclusion — two-turn moves waste a turn and can desync the handler. It has a real cost
-(Swellow's Fly is its best move vs Grass and is never used, so it effectively fields three moves), but
-it is a trade-off with a reason, **not an oversight**. Analysis that calls it a defect is wrong.
+### ⚠ A LATENT FRAGILITY THIS FIX NOW DEPENDS ON — measured 2026-09-06, not reasoned about
+
+An adversarial reviewer asked the right question: *does `calculate_move_damage_range` even work for a
+**bench** `Pokemon`, or does it throw — leaving `estimates_ok=0` and the fix silently inert?* Chased to
+the bottom rather than assumed:
+
+* `_util.py:_calculate_base_move_damage` opens with `if attacker in self._battle_state.own_side:`.
+* `BattleSide.__contains__` (`modules/battle_state.py:370`) returns **`NotImplemented`** for anything
+  that is not a `BattlePokemon` — and a party `Pokemon` is a separate class (`pokemon.py:907` vs
+  `battle_state.py:472`), not a subclass.
+* Python's `in` coerces that with `bool()`. **MEASURED on this interpreter (3.12.4):
+  `bool(NotImplemented)` is `True`, with a `DeprecationWarning` — it does NOT raise.**
+
+⇒ **The fix works, and by luck lands on the RIGHT branch:** `attacker_is_player = True` is correct for
+our own party mon, so the badge boosts apply and `partner_for` returns a live battler or `None`. Party
+`Pokemon` also really does expose `.stats`, `.ability` and `.held_item` (`pokemon.py:1240/1158/1080`).
+
+⛔ **BUT IT RESTS ON DEPRECATED BEHAVIOUR.** CPython has warned since 3.9 that `NotImplemented` in a
+boolean context will become a **`TypeError`**. On the day that lands, `calculate_move_damage_range`
+will raise for every bench mon, `estimates_ok` will be 0, and the ranker will silently fall back to the
+legacy multiplier — i.e. **`KI-95` would quietly return without a single test going red**, because the
+gate injects its own damage function and never touches this path.
+⭐ **THAT IS EXACTLY WHAT THE `metric=` TELEMETRY IS FOR.** A live `[FAINT-CHOOSER]` line reading
+`metric=legacy` means this has happened. It is the one signal that distinguishes "fixed" from "fixed on
+paper", and it is why the field was added rather than leaving a reader to infer it from `estimates_ok`.
+
+**Status:** sandbox only. `custom-pokebot/` still has the defect; drift is 1. **Promotion is the user's
+call and has not been given.**
+

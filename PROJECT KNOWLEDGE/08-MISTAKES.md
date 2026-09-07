@@ -13525,3 +13525,96 @@ that ends at ROUTE108 and **captures no combined fixture**, so nothing carries i
 ‼ **Cost:** a session of §Ch24 measurement against a party the bot will never field. **Not wasted
 entirely** — the routing, `KI-93` and the doc fixes all stand — but the readiness and winnability
 numbers must be re-taken.
+
+## 2026-09-06 — I shipped a scale-mixing bug INTO MY OWN FIX for a ranking bug (caught before commit)
+
+**Symptom.** None observed — caught by re-reading the diff I had just written, before any commit and
+before the reviewer I had already dispatched came back.
+
+**Root cause.** `rank_replacement`'s legacy fallback was written as:
+```python
+best_index, best_key, ok, failed = None, None, 0, 0    # ok initialised OUTSIDE the candidate loop
+for index, mon, mon_types in candidates:
+    ...
+    if ok == 0:            # ...but TESTED INSIDE it
+        outgoing = legacy
+```
+`ok` accumulates across candidates, so the fallback was decided **per candidate, in candidate order**:
+a candidate measured before the first successful estimate was scored with the legacy multiplier
+(0–4) while a later one was scored in damage (0–300) — and the sort key then compared them as if they
+were the same quantity. The reverse order did something different again (a later failing candidate
+kept `outgoing = 0.0` and got no fallback at all). ⇒ **the winner could depend on party order.**
+
+**What makes this worth writing down:** the prose above the code said *"if every damage estimate fails,
+fall back to legacy"*. The code said *"if no estimate has succeeded SO FAR"*. I wrote both, minutes
+apart, and the comment made the loop LOOK right on re-reading. This is the same shape as the standing
+rule that **a diagnosis and a prescription are two separate claims** — here the docstring was the
+prescription and nothing had checked it against the loop.
+
+**The fix that worked.** Two passes: measure every candidate (recording BOTH the damage estimate and
+the legacy multiplier), then choose ONE metric for the whole ranking and score every row with it.
+Plus `report["metric"]` naming which one decided, so a log line can never leave it ambiguous.
+
+**⭐ PREVENTION RULE — A RANKING IS ONLY MEANINGFUL IF EVERY ROW IS SCORED IN THE SAME UNITS, SO THE
+CHOICE OF UNITS MAY NEVER BE MADE INSIDE THE LOOP THAT SCORES THEM.** If a comparison has a fallback
+metric, decide the metric in a pass that completes BEFORE any comparison happens. A state variable
+that accumulates across iterations must never be read as though it were per-iteration.
+
+**⭐ SECOND PREVENTION RULE, from the same hour — WRITE THE TEST CASE THAT MAKES THE TWO VERSIONS
+DISAGREE, or you have not tested the change.** My first three attempts at a regression case for this
+bug all returned the SAME winner under the old and new code, so they would have passed over the defect.
+Case C6 only became a test once it was built so old→A and new→B. *This is the `08-MISTAKES.md` entry on
+vacuous A/Bs arriving in a new costume: an arm that cannot distinguish the arms is not an arm.*
+
+---
+
+## 2026-09-06 — I nearly cited an A/B that CANNOT EXECUTE THE CHANGED CODE as proof of a hot-path fix
+
+**Symptom.** `KI-95`'s own entry, and my overnight plan, both named the ordinary-case turn-recorder A/B
+(`POKEBOT_RECORD_TURNS` vs `evidence/ki93_ordinary_BASELINE.turns`) as the gate this fix had to pass.
+
+**Root cause.** The turn recorder records what `decide_turn` RETURNS. The code I changed lives in
+`choose_new_lead_after_faint`, **which is not called unless something faints.** In an ordinary battle
+the recording is byte-identical whether the fix is present, absent, or actively broken.
+
+**Why it is dangerous rather than merely useless:** it would have come back GREEN, and a green arm gets
+quoted. The entry would then have carried "A/B passed" beside a change the A/B never touched.
+
+**The fix that worked.** Ask *"does this run execute the changed line?"* before choosing the
+instrument — then build one that does: a pure-function probe (gate #39) whose fault arm proves it goes
+RED on the defect.
+
+**⭐ PREVENTION RULE — BEFORE QUOTING AN A/B, NAME THE LINE IT EXECUTES.** *A passing A/B over a code
+path the run never reaches is not weak evidence, it is NO evidence* — and it is worse than none,
+because it reads as proof. This is the playbook's *choose the instrument by the question* rule applied
+one level earlier: not "which question?" but "does the instrument reach the subject at all?"
+
+## 2026-09-06 — my citation "fixer" wrote THREE IMPOSSIBLE LINE RANGES (`2861-2772`), and the gate passed
+
+**Symptom.** An independent Tier 1 reviewer found `story_mode.py:2861-2772`, `story_mode.py:1404-1356`
+and `story_mode.py:364-313` in the docs — spans whose START is AFTER their END. All three were created
+by the script I wrote to REPAIR citations, minutes earlier, in the same session.
+
+**Root cause.** The repair replaced the token `story_mode.py:2758` with `story_mode.py:2861`. But that
+citation was a RANGE — `story_mode.py:2758-2772` — so the substring matched its FIRST HALF and the
+end line was left behind pointing at the old file. ⇒ **a line number is not always a line number; it
+can be the opening half of a span.**
+
+**Why nothing caught it.** `audit_doc_citations.py` checks that a cited line falls INSIDE the symbol's
+span. `2861` does fall inside `_guard`, so the gate went green over a citation that cannot exist. **The
+gate validated the half I changed and had no opinion about the half I broke.**
+
+**The fix that worked.** Re-derive the WHOLE span from the source with `ast` (start AND end), keyed on
+the symbol named on the same line, and sweep for `start > end` as a standalone invariant.
+
+**⭐ PREVENTION RULE — WHEN REWRITING A NUMBER THAT MAY BE PART OF A COMPOUND TOKEN, MATCH THE WHOLE
+TOKEN, NEVER ITS PREFIX.** And after any mechanical doc rewrite, run a cheap self-consistency sweep
+over the SHAPE it produced (`start > end`) rather than trusting the gate that motivated the rewrite —
+*a green gate bounds its contract, not the world*, and an automated edit is exactly where a
+contract's edges get found.
+
+**⭐ SECOND RULE, and the reason the reviewer was worth its cost — ⛔ DO NOT EDIT THE SUBJECT WHILE AN
+INDEPENDENT REVIEW OF IT IS IN FLIGHT.** I dispatched two reviewers and then rewrote the file under
+them. One correctly refused to certify: *"I cannot certify a diff that mutates under me while the
+self-report describes a version that no longer exists on disk."* That is the right call, and the wasted
+pass was mine to prevent. **Freeze the tree, or dispatch the review only when you are done editing.**

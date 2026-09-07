@@ -425,9 +425,9 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       flipped to `2` turned the gate red at `04-HANDOFF.md:209` naming both figures, file restored
       byte-identical. Narrative: `07-CHANGELOG.md` 2026-08-26.
 
-### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ✅ **Drift is 0 — PROMOTED 2026-09-06.** *(pre-promotion count now lives in `DIVERGENCE-LOG.md`; the file detail is kept:)* (`modules/story/pokemon_league.py` joined 2026-09-04 — the §Ch24 out-of-battle party heal; `modules/story/overworld_items.py` joined 2026-09-04 — the NEW pure out-of-battle healing policy for `#24-e4healing`, gate #36; `modules/modes/util/walking.py` joined on 2026-09-04 — the `#24-waterfalltimeout` fix; 2026-09-03: `chapters.py` for a §Ch23 correctness fix, plus the new sandbox-only chapter modules `sootopolis_gym.py` and `victory_road.py`) — ✅✅ **PROMOTED 2026-09-06 with USER APPROVAL, drift now 0**, driven-verified against `--build custom`; see `custom-pokebot/DIVERGENCE-LOG.md`. *(this read "PROMOTION IS THE USER'S CALL and is not implied", true until that date.)* ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
+### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ✅ **Drift is 1 as of 2026-09-06 (`story_mode.py`, the `KI-95` fix, sandbox-only and awaiting the user's promotion call); it was 0 — PROMOTED 2026-09-06.** *(pre-promotion count now lives in `DIVERGENCE-LOG.md`; the file detail is kept:)* (`modules/story/pokemon_league.py` joined 2026-09-04 — the §Ch24 out-of-battle party heal; `modules/story/overworld_items.py` joined 2026-09-04 — the NEW pure out-of-battle healing policy for `#24-e4healing`, gate #36; `modules/modes/util/walking.py` joined on 2026-09-04 — the `#24-waterfalltimeout` fix; 2026-09-03: `chapters.py` for a §Ch23 correctness fix, plus the new sandbox-only chapter modules `sootopolis_gym.py` and `victory_road.py`) — ✅✅ **PROMOTED 2026-09-06 with USER APPROVAL, which took drift to 0** *(it is 1 again as of 2026-09-06 — `story_mode.py`, the `KI-95` fix, sandbox-only and unpromoted)*, driven-verified against `--build custom`; see `custom-pokebot/DIVERGENCE-LOG.md`. *(this read "PROMOTION IS THE USER'S CALL and is not implied", true until that date.)* ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
 
-### ✅ `#24-ch23wally` — **CLOSED 2026-09-04: WALLY IS BEATEN.** ⚠ Option (b) (the faint-replacement ranking) remains UNTAKEN and was OBSERVED firing inside the winning run — see the open bullet. (filed, ruled, trained and closed 2026-09-04)
+### ✅ `#24-ch23wally` — **CLOSED 2026-09-04: WALLY IS BEATEN.** ✅ Option (b) (the faint-replacement ranking) is **DONE 2026-09-06** — `KI-95`, gate #39, sandbox-only and unpromoted. It had been OBSERVED firing inside the winning run — see the open bullet. (filed, ruled, trained and closed 2026-09-04)
 
 - [x] 📦 **SUMMARISED 2026-09-04 — full narrative in `07-CHANGELOG.md` (three entries, same date).**
       The leg's CODE was never at fault; the PARTY was. The user ruled TRAIN; the target L47 was
@@ -531,7 +531,7 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       (b) **buy healing items before entering** — ✅ **DONE 2026-09-04 (leg 11)** *(this line said ₽38,893; the LIVE reading was **₽56,041**, spent down to **₽1,741**)* and the bag holds ONE Potion;
       ⚠ the League 1F Mart (Full Restore / Revive / Max Potion) is PAST Victory Road, so this needs
       an earlier shop;
-      (c) **fix `#24-ch23wally` option (b)** — the faint-replacement ranking keeps feeding the L19
+      (c) ✅ **DONE 2026-09-06 — `#24-ch23wally` option (b) is fixed** (`KI-95`, gate #39, sandbox-only). It had been the faint-replacement ranking feeding the L19
       Zigzagoon into fights it cannot survive, which is a real slice of the damage taken;
       (d) accept it and let leg 8 run on a 38% party — ⛔ leg 8 has its own trainers (Samuel, Halle)
       and its own boulder puzzle.
@@ -659,8 +659,8 @@ a stronger party still walks in with its two best mons dead.
 **⛔ IT IS A BOT DEFECT: TWO HEALING PATHS EXIST AND NEITHER RUNS HERE** (both verified directly in our tree, not taken from an agent):
 1. **Out-of-battle healing is BUILT AND UNWIRED.** `heal_party_from_bag()` — `modules/story/pokemon_league.py:221`, documented live-validated,
    handles Revive and status cures. Its **only** call site in the repo is `tools/story-dev/story_harness.py:14936` (the harness). **No chapter calls it.**
-2. **In-battle items are UNREACHABLE IN DOUBLES BY INHERITANCE.** `StoryItemBattleStrategy` (`story_mode.py:417`) overrides `decide_turn`
-   (`:464` → `_maybe_use_item` `:466`) but defines **no** `decide_turn_in_double_battle`; doubles resolve up the MRO to `story_mode.py:261`,
+2. **In-battle items are UNREACHABLE IN DOUBLES BY INHERITANCE.** `StoryItemBattleStrategy` (`story_mode.py:520`) overrides `decide_turn`
+   (`:464` → `_maybe_use_item` `:466`) but defines **no** `decide_turn_in_double_battle`; doubles resolve up the MRO to `story_mode.py:364`,
    which never calls it. ‼ **Silent by design — no error, the method simply is not there.**
 
 **⭐ AND THE FIGHT IS ONLY A DOUBLE BECAUSE OF HOW WE APPROACH IT.** Decomp: both trainers are `trainerbattle_single` with `.doubleBattle = FALSE`
@@ -767,7 +767,7 @@ Wailord and **Dragon Claw (TM02)** for Sceptile, both confirmed still available 
 ⛔⛔⛔ **AND IT IS WORSE THAN A RE-BUY — VERIFIED IN CODE 2026-09-06.** The §Ch23 dispatch is:
 `story_mode.py:3791` `if not ch23_chapter_done():` → `:3792` runs the chapter, `:3793` else-skips —
 and `:3795` `_guard("Victory Road (Ch23)", ch23_chapter_done)` sits **OUTSIDE the if/else**.
-`_guard` (`story_mode.py:2758-2772`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
+`_guard` (`story_mode.py:2861-2878`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
 §Ch24 spends the basket, the next pass through `_play()` does all three of these:
 (1) re-enters the WHOLE Victory Road chapter, because `:3791` is now True;
 (2) reaches leg 11 and tries to re-buy a **₽54,300** basket holding **₽1,741** — leg 11 refuses
@@ -1855,7 +1855,7 @@ accident of what the bot happened to meet.
 * **`#24-flyunlock` is CLOSED**, so the bot can finally REACH wild encounters at all.
 
 **⛔ THE FIVE CONSTRAINTS AN ADVERSARIAL REVIEW FOUND — build against these, they are measured:**
-1. **`_should_catch` already implements the right dex test** (`story_mode.py:1300`, comparing
+1. **`_should_catch` already implements the right dex test** (`story_mode.py:1404`, comparing
    `owned_species` by national dex number). It is gated off by conditions written for the NARROWER
    pre-Gym-1 team-building purpose: `if get_event_flag("BADGE01_GET"): return False` and a
    party-full check. ⇒ **relax those two; do not rewrite the predicate.**
@@ -2654,7 +2654,7 @@ region, where "train near the gym" is actively wrong.
       asked and the data is now free, but it is not where the failures are.
 - [ ] #24-partyvariety — **Fill the party and vary what is caught; PC deposit/withdraw.**
       ‼ **ROOT CAUSE FOUND (recon 2026-07-26) — it is not emergent, it is two conditions.**
-      `_should_catch` (`story_mode.py:1301-1356`) requires `not BADGE01_GET` AND
+      `_should_catch` (`story_mode.py:1404-1442`) requires `not BADGE01_GET` AND
       `len(party) < _catch_team_target` where **`_catch_team_target = 4`** (`:811`). So the
       bot catches FOUR mons before the Stone Badge and then never catches again for the
       rest of the run. Part 1 is nearly a one-line change.
