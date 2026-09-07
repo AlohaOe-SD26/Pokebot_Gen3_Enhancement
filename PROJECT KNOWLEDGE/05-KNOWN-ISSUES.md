@@ -818,40 +818,9 @@ touching `handle_fainted_pokemon` again.
   Expect to raise it again as content grows; re-derive from the deepest COMPLETED run.
 
 
-## KI-37 — a listener above the mode can STARVE it, so a handed-over battle fault is never claimed (opened 2026-07-30, severity: HIGH — CAUSED BY THE KI-34 FIX)  — ✅ **FIXED 2026-07-30** (see the ✅ bullet in this entry's body; header marker added 2026-08-22, PASS 5). ⚠ A follow-up remains open — read the body.
-- **Symptom:** user log `20260730-081347` (`Story (DEBUG - RESET)`, build `4f1e02f9`).
-  `handle_fainted_pokemon` did its job — 3 give-ups, then a correct hand-over at f1,797,401:
-  `[FAINT-CHOOSER] handing a recoverable derail to the mode`. **Nothing claimed it.** The run
-  then sat at `state=3 controllable=False` on ROUTE 117 for **1,182,000 frames** until the user
-  stopped it by hand. KI-36's 60,000-frame net ALSO fired and was ALSO unclaimed.
-- **Contrast, same build, sibling log `20260730-074518` (`ENDLESS RESET`):** the identical
-  hand-over was claimed **one frame later** — `f902223 [STORY] DERAIL #1: Story: battle handler
-  gave up — after-faint chooser could not send a mon out after 3 attempts (KI-34)`. So the
-  channel works; something specific starved the mode in the other run.
-- **Cause.** `TrainerApproachListener.handle_trainer_approach` was:
-  ```python
-  while get_global_script_context().is_active:
-      context.emulator.press_button("B")
-      yield
-  ```
-  An **unbounded loop with no fault check**. When a battle wedges, the trainer script never
-  clears, so this listener sits on TOP of the controller stack pressing B for ever — and the
-  MODE, the only thing that can consume the fault and derail, is never advanced. The stack at
-  the wedge was `['StoryDebugResetMode.run', 'TrainerApproachListener.handle_trainer_approach']`
-  with **no battle handler at all**: the fault had already short-circuited it, exactly as
-  designed.
-- **‼ `BattleListener` ALREADY HAD THIS EXACT GUARD**, ~110 lines above in the same file, with a
-  comment naming the identical hazard: *"this would press B forever while the MODE — the only
-  thing that can recover — is starved of frames."* The sibling listener simply never mirrored
-  it. Third instance of that shape (KI-18's driver, KI-34's recovery sweep, now this).
-- **This is a deadlock the fix created**, and `battle_fault.py`'s own docstring predicted it:
-  *"An unconsumed fault would be far worse than a Manual drop."*
-- **✅ FIXED 2026-07-30:** `handle_trainer_approach` now returns when `battle_fault_pending()`,
-  popping back to the mode. Asserted in `repro_faint_chooser_index_space.py`.
-- **‼ FOLLOW-UP, STILL OPEN:** audit **every** listener that can sit above the mode for the same
-  omission, and bound their loops. A per-frame, stack-independent recovery (KI-36's complete
-  fix) would make this class impossible rather than requiring each listener to remember.
+## KI-37 — a listener above the mode can STARVE it, so a handed-over battle fault is never claimed — ✅ **FIXED 2026-07-30.** ⚠ A follow-up remains; see the archived body. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, R3 line budget; nothing deleted).
 
+**2026-09-06 — ARCHIVED, NOT REOPENED.** Full entry verbatim in `28-HANDOFF-ARCHIVE.md`; status unchanged (FIXED 2026-07-30, with its follow-up still recorded there). ⚠ Its STARVATION shape is live again in `KI-93`: a recognised wait branch that is exempt from the specific counter, so only the last-resort net fires.
 ## KI-38 — 3 residual after-faint give-ups remain; the text fallback has now EARNED its place (opened 2026-07-30 — ⛔ SUPERSEDED: see the REOPENED KI-38 entry further down; it was MITIGATED, not fixed, and is the dominant battle hang)
 - **The KI-34 index fix works and the diagnosis is CONFIRMED.** `[orders DIVERGE]` appears in
   both logs with concrete evidence — `alive_slots=[1, 2, 3](party-order) -> [0, 2, 3](menu-order)`
@@ -2958,7 +2927,40 @@ keeps the same bar: the ordinary-case A/B above must stay byte-identical, plus t
 ✅ Everything needed is already in place — the baseline, the recorder (`POKEBOT_RECORD_TURNS`), and
 the repro (`--driver ch24probe`).
 
-**⛔⛔ THREE FIX LOCATIONS ELIMINATED BY MEASUREMENT (2026-09-06). ALL REVERTED. Do not retry them.**
+**⛔⛔⛔ RETRACTED 2026-09-06 — THE "THREE ELIMINATED LOCATIONS" BELOW WERE MEASURED WITH A BROKEN
+INSTRUMENT AND ARE **NOT** ELIMINATED.** Every one of those verdicts rested on a diagnostic that
+called **`debug_logger.log(...)` — A FUNCTION THAT DOES NOT EXIST** (`modules/debug_logger.py` has
+`event()`, not `log()`) — inside my own `try/except: pass`. So the `AttributeError` was swallowed and
+**nothing was ever written**; "fired zero times" meant "my logger never ran", not "the code never ran".
+⇒ ⭐ **THE LESSON THIS FILE ALREADY CARRIED, COMMITTED AGAIN HOURS LATER: an instrument that fails silently substitutes the subject.** Treat the table below as UNTESTED, not excluded.
+
+**✅ WHAT IS ACTUALLY MEASURED, WITH A VERIFIED-WORKING LOGGER (`debug_logger.event`, plus an
+unconditional CONTROL line proving the logger writes):**
+* The confirm loop in `battle_action_use_move` **is entered and exits normally** — CONTROL fired **13
+  times**, the spin-detector **0**. ⇒ not the freeze site.
+* The commit path runs **20 times** with `instr='BattleScript_MoveEnd'` / `'FaintedMonEnd'` —
+  **never** `'SelectingTormentedMove'`. ⇒ conditioning a fix on the refusal script AT THE COMMIT POINT
+  can never fire, which is the real reason attempt 1 did nothing.
+* ⭐⭐ **A BRANCH CENSUS FOUND THE SPIN SITE IN ONE DRIVE:**
+```
+controller0='CompleteOnInactiveTextPrinter2' count=1     instr='BattleScript_SelectingTormentedMove'
+controller0='CompleteOnInactiveTextPrinter2' count=500   instr='BattleScript_SelectingTormentedMove'
+controller0='CompleteOnInactiveTextPrinter2' count=2000  instr='BattleScript_SelectingTormentedMove'
+```
+⇒ **the loop sits in the "KNOWN WAIT STATES" branch** of `handle_battle_action_selection` with the
+Torment message on screen. That branch does `yield; continue` for ever and is **deliberately exempt
+from `KI-46`'s counter** ("recognised, so they must NOT count"), which is why only `KI-47`'s
+last-resort net ever fired. Its own comment predicted this: *"safe to wait … because the KI-47 net
+still backstops this."*
+‼ **A first fix there — bound the wait and press B to dismiss — did NOT clear the hang** and was
+reverted. Whether the press is wrong, the bound too long, or the message needs a different input is
+**not yet measured**; instrument that the new branch RUNS before theorising.
+
+**⇒ NEXT STEP: keep the census.** It cost one drive and named the branch that four
+implement-drive-revert cycles could not. Re-add it, then instrument INSIDE that branch.
+
+*(The untested table follows, kept for the record — ⛔ its verdicts are void:)*
+**THREE FIX LOCATIONS TRIED (2026-09-06). ALL REVERTED. ⛔ Their "eliminated" verdicts are RETRACTED — see above.**
 Each was implemented, driven, and disproved by instrumenting whether the code RAN — never by argument:
 | # | where | why it is wrong |
 |---|---|---|

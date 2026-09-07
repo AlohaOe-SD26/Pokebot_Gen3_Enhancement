@@ -13467,3 +13467,33 @@ only after the third failure.
 ‼ **What went right and is worth keeping:** every attempt was reverted, none left dead code in a
 shared battle path, and each was disproved by instrumenting that it RAN rather than by argument. The
 discipline was sound; the ORDER was wrong.
+
+
+## 2026-09-06 — I committed three "eliminated by measurement" verdicts produced by a logger that never wrote
+
+**Symptom.** Chasing `KI-93` I implemented, drove and reverted three candidate fixes, and recorded each
+as ELIMINATED because its diagnostic "fired zero times". I committed that to `05-KNOWN-ISSUES.md` as a
+table of excluded locations. **All three verdicts were void.** The diagnostics called
+`debug_logger.log(...)`; `modules/debug_logger.py` exposes `event()`, not `log()`. The resulting
+`AttributeError` was swallowed by **my own `try/except: pass`**, so nothing was ever written.
+
+**Root cause.** I wrote the guard clause reflexively — "a diagnostic must never break the run" is a
+good instinct — and it converted a broken instrument into a silent one. "Zero hits" then read as
+evidence about the SUBJECT when it was evidence about the INSTRUMENT.
+
+**⇒ PREVENTION RULES (three).**
+1. ⛔⛔ **AN INSTRUMENT NEEDS A CONTROL THAT MUST FIRE.** Add one unconditional line that has to appear
+   on every pass. If the control is silent, the instrument is broken; only if the control fires and the
+   detector does not have you learned anything about the subject. Adding a CONTROL is what finally
+   distinguished "not reached" from "not logging" — in one drive, after three wasted cycles.
+2. ⛔ **`try/except: pass` AROUND A DIAGNOSTIC IS THE MOST DANGEROUS PLACE TO PUT IT.** It protects the
+   run and destroys the measurement. ⇒ let a diagnostic RAISE, or at minimum verify the API exists
+   before relying on its silence.
+3. ⭐ **"ZERO HITS" IS NEVER EVIDENCE ON ITS OWN.** It is one of: the code did not run, the logger did
+   not work, or you are reading the wrong file. ⇒ **rank those three and rule them out in that order**
+   — the cheapest first, which is proving the logger writes.
+
+‼ **And the cost was not just the three cycles:** I published the false verdicts to a permanent record
+where a future session would have trusted them and skipped the right location. **The correction matters
+more than the original finding**, which is why `KI-93` now leads with the retraction rather than
+burying it.

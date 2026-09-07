@@ -8536,3 +8536,43 @@ absent, as `HandleInputChooseMove` already does.
 📦 Full evidence chain, the forensics, and a write-up of the refuted first diagnosis:
 `ai-research-notes/2026-09-05-ki90-DOUBLE-BATTLE-ABSENT-SLOT.md`.
 
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Fixed 2026-07-30, follow-up still noted in the body. Archived 2026-09-06 to keep 05-KNOWN-ISSUES.md under its lint_docs R3 budget after KI-91/92/93 were filed and KI-93 grew with the retraction of its false elimination verdicts.
+
+## KI-37 — a listener above the mode can STARVE it, so a handed-over battle fault is never claimed (opened 2026-07-30, severity: HIGH — CAUSED BY THE KI-34 FIX)  — ✅ **FIXED 2026-07-30** (see the ✅ bullet in this entry's body; header marker added 2026-08-22, PASS 5). ⚠ A follow-up remains open — read the body.
+- **Symptom:** user log `20260730-081347` (`Story (DEBUG - RESET)`, build `4f1e02f9`).
+  `handle_fainted_pokemon` did its job — 3 give-ups, then a correct hand-over at f1,797,401:
+  `[FAINT-CHOOSER] handing a recoverable derail to the mode`. **Nothing claimed it.** The run
+  then sat at `state=3 controllable=False` on ROUTE 117 for **1,182,000 frames** until the user
+  stopped it by hand. KI-36's 60,000-frame net ALSO fired and was ALSO unclaimed.
+- **Contrast, same build, sibling log `20260730-074518` (`ENDLESS RESET`):** the identical
+  hand-over was claimed **one frame later** — `f902223 [STORY] DERAIL #1: Story: battle handler
+  gave up — after-faint chooser could not send a mon out after 3 attempts (KI-34)`. So the
+  channel works; something specific starved the mode in the other run.
+- **Cause.** `TrainerApproachListener.handle_trainer_approach` was:
+  ```python
+  while get_global_script_context().is_active:
+      context.emulator.press_button("B")
+      yield
+  ```
+  An **unbounded loop with no fault check**. When a battle wedges, the trainer script never
+  clears, so this listener sits on TOP of the controller stack pressing B for ever — and the
+  MODE, the only thing that can consume the fault and derail, is never advanced. The stack at
+  the wedge was `['StoryDebugResetMode.run', 'TrainerApproachListener.handle_trainer_approach']`
+  with **no battle handler at all**: the fault had already short-circuited it, exactly as
+  designed.
+- **‼ `BattleListener` ALREADY HAD THIS EXACT GUARD**, ~110 lines above in the same file, with a
+  comment naming the identical hazard: *"this would press B forever while the MODE — the only
+  thing that can recover — is starved of frames."* The sibling listener simply never mirrored
+  it. Third instance of that shape (KI-18's driver, KI-34's recovery sweep, now this).
+- **This is a deadlock the fix created**, and `battle_fault.py`'s own docstring predicted it:
+  *"An unconsumed fault would be far worse than a Manual drop."*
+- **✅ FIXED 2026-07-30:** `handle_trainer_approach` now returns when `battle_fault_pending()`,
+  popping back to the mode. Asserted in `repro_faint_chooser_index_space.py`.
+- **‼ FOLLOW-UP, STILL OPEN:** audit **every** listener that can sit above the mode for the same
+  omission, and bound their loops. A per-frame, stack-independent recovery (KI-36's complete
+  fix) would make this class impossible rather than requiring each listener to remember.
+
