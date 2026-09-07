@@ -671,12 +671,25 @@ def status(target: str) -> int:
     """
     root = RUNS_ROOT
     if target.strip().lower() == "latest":
-        pointer = root / "LATEST.txt"
-        if not pointer.exists():
-            print(f"[x4h] no {pointer} — has a batch ever run?", flush=True)
-            return 2
-        stamp = pointer.read_text(encoding="utf-8").strip().splitlines()[0].strip()
-        batch_dir = root / stamp
+        # ⛔⛔ RESOLVE BY NEWEST STAMP DIRECTORY, **NOT** VIA `LATEST.txt`. That pointer is only
+        # written when a batch COMPLETES, so `--status latest` used to report the last FINISHED
+        # batch while a new one was actively running — the single case this command exists for.
+        # A status command that silently reports a DIFFERENT batch is worse than none: the numbers
+        # look plausible and belong to someone else.
+        # Stamps are `YYYYmmdd-HHMMSS`, so lexical sort == chronological, and the directory exists
+        # from the moment the batch starts.
+        stamps = sorted(
+            (d for d in root.glob("[0-9]" * 8 + "-" + "[0-9]" * 6) if d.is_dir()),
+            key=lambda d: d.name,
+        )
+        if not stamps:
+            pointer = root / "LATEST.txt"          # fallback for an unusual layout
+            if not pointer.exists():
+                print(f"[x4h] no batch directories under {root} — has a batch ever run?", flush=True)
+                return 2
+            batch_dir = root / pointer.read_text(encoding="utf-8").strip().splitlines()[0].strip()
+        else:
+            batch_dir = stamps[-1]
     else:
         batch_dir = Path(target)
     if not batch_dir.exists():
@@ -686,8 +699,14 @@ def status(target: str) -> int:
     manifest = batch_dir / "MANIFEST.txt"
     header = manifest.read_text(encoding="utf-8", errors="replace").splitlines()[:12] \
         if manifest.exists() else ["(no MANIFEST yet — the batch is still starting)"]
+    # ‼ A batch with no `ended` line in its MANIFEST (or no MANIFEST yet) is still RUNNING.
+    # Stating it removes the only way to misread this output.
+    _man_text = (batch_dir / "MANIFEST.txt").read_text(encoding="utf-8", errors="replace") \
+        if (batch_dir / "MANIFEST.txt").exists() else ""
+    _live = "(no MANIFEST yet)" not in _man_text and "ended " not in _man_text
     print("=" * 78)
-    print(f"x4 BATCH STATUS — {batch_dir.name}")
+    print(f"x4 BATCH STATUS — {batch_dir.name}   [{'RUNNING' if _live else 'finished'}]")
+    print(f"  dir: {batch_dir}")
     print("=" * 78)
     for line in header:
         if line.strip() and not line.startswith("="):

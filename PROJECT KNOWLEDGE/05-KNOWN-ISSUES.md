@@ -2720,7 +2720,14 @@ Pokémon**, and would have leaked across battles.
 (`post_grind_L60.ss1`) cannot complete §Ch23's chain — it wedges here long before the League door, so
 the §Ch24 measurement this fixture was built for is BLOCKED on this, not on levels.
 
-**THE CODE** — `modules/battle_action_selection.py:590-592`, the `TurnAction.RotateLead` arm:
+**⛔ CITATION DRIFT, CORRECTED 2026-09-07 — AND NO GATE COULD HAVE CAUGHT IT.** This entry cited
+`battle_action_selection.py:590-592`. That was true when `KI-96` was filed; the `KI-93` fix and this
+KI's own census then grew the file and moved the loop to **line 672** (verified in BOTH forks). An
+adversarial recon agent caught it, not `audit_doc_citations.py` — because that gate resolves
+`symbol` + `file.py:LINE` PAIRS, and a **bare line number has no symbol to resolve against**.
+⭐ **RULE: cite the SYMBOL.** The `TurnAction.RotateLead` arm is stable across edits; line 590 was not.
+
+**THE CODE** — `modules/`battle_action_selection.py`'s `TurnAction.RotateLead` arm (line 672 as of 2026-09-07 — ⛔ cite the SYMBOL, not the line: this citation already drifted once from 590)`, the `TurnAction.RotateLead` arm:
 ```python
 yield from scroll_to_party_menu_index(in_battle_index)
 while get_game_state() == GameState.PARTY_MENU:
