@@ -14441,3 +14441,37 @@ why.** "Same as X" is a claim, and it decays the moment either side moves.
 the tautological control, the dead instrumentation: **I keep producing artifacts that LOOK verified.**
 The common defence is the one that has worked every time today: an independent reader who checks the
 claim rather than the intent.
+
+## 2026-09-07 — a gate passed four synthetic arms and INVERTED on real code. Synthetics are not validation.
+
+**SYMPTOM.** I built `probe_hm_coverage.py` to catch the class of bug that ended every 8-badge run.
+Four synthetic arms: PASS. Then I ran it against the two real trees and got the **exact inversion** —
+it PASSED `custom` (which still has the bug) and FAILED `sandbox` (which I had just fixed).
+
+**ROOT CAUSE, both mine, both from using regexes where structure was needed.**
+1. The real requirement is a LOOP over a tuple —
+   `missing = [m for m in ("Surf","Dive","Waterfall") if carriers[m] is None]` — and my pattern only
+   matched literal subscripts, so the gate never knew Waterfall was required.
+2. My teach-resolution window was 40 lines; the real gap between the `"HM07"` literal and its
+   `teach_hm_move` call is **67**.
+Both synthetic arms were written in the shape *I* had imagined, so of course they matched.
+
+**⭐⭐ THE RULE: SYNTHETIC ARMS TEST YOUR MODEL OF THE CODE; ONLY REAL CODE TESTS THE CODE.** A
+fixture you wrote encodes your own assumptions twice over — once in the checker and once in the
+sample — so agreement between them proves nothing. ⇒ **every gate must be run against the real tree,
+and where possible against a tree KNOWN to be broken and one KNOWN to be fixed.** This project had
+both sitting side by side (`custom` unpromoted, `sandbox` fixed) and that pairing is what exposed it
+in one command.
+‼ **Demand the RED.** The green direction is the weak one: a gate can be green because the code is
+fine or because the gate is blind, and those are indistinguishable from the outside.
+
+**⭐ AND THE STRUCTURAL FIX GENERALISES: MATCH THE STRUCTURE THAT GOVERNS, NOT A PROXY FOR IT.** "The
+item and its teach are within 40 lines" was a proxy for "they are in the same function". Proxies
+drift the moment someone writes a longer docstring. Rewritten on AST with function scope, it is also
+immune to comments for free — better than the comment filter I had hand-written for the regex.
+
+**‼ FOURTH INSTRUMENT TODAY THAT LOOKED RIGHT AND MEASURED NOTHING** (vacuous probe, tautological
+control, dead instrumentation, now an inverted gate). The pattern is stable enough to name: **I build
+instruments with the same optimism I am supposed to be guarding against.** The only defence that has
+worked every single time is external: run it on real data, in both directions, and make an
+independent reader check the claim rather than the intent.

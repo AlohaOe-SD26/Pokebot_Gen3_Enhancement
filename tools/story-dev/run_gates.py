@@ -314,6 +314,27 @@ GATES: list[tuple[str, bool]] = [
     # Bare invocation runs `--self-test`: good drive and benign-Route-119 -> 0; the signature,
     # a vacuous log, an over-gate, and an unattributed Mauville failure -> 1.
     ("grade_ki97_drive.py", False),
+    # --- #43 — HM COVERAGE: anything the story REQUIRES someone to know must have a TEACH step
+    # APPENDED AT THE END, never inserted — the same rule #34-#42 carry.
+    # ⛔⛔ WHY: this is the most expensive gap in the project's history and it was STRUCTURAL. §Ch23's
+    # preflight asserts a WATERFALL carrier; §Ch21 puts HM07 in the bag; **production never taught
+    # it**. Across 37 stored batches the 8th badge was reached six times and ALL SIX died on that
+    # assertion — nothing ever passed it.
+    # ‼ NO BEHAVIOURAL TEST COULD HAVE SEEN IT. §Ch23 was built, driven and green — from FIXTURES
+    # captured downstream of a HARNESS DRIVER that did the teach. The chapter passed its own tests
+    # for days while the route reaching it was impassable. A fixture encodes everything the step
+    # before it did, INCLUDING steps that exist only in the harness. Only a structural check sees it.
+    # ⭐ VALIDATED ON REAL CODE IN BOTH DIRECTIONS, not only synthetics: `--build sandbox` (which has
+    # the 2026-09-07 teach) exits 0, and `--build custom` (which does not yet) exits 1 naming
+    # `assert_ch23_preflight` — i.e. it catches the ACTUAL historical bug on the fork that still has
+    # it. A grader proven only on synthetic arms can still be blind to the real thing: an earlier
+    # regex version of this gate PASSED the broken fork and FAILED the fixed one, because the real
+    # preflight expresses its requirement as a loop over a tuple. It is AST + function-scoped now.
+    # ‼ BARE = SELF-TEST **AND** AUDIT SANDBOX. A gate whose default mode only runs synthetic arms
+    # proves the checker works and nothing about the code. Sandbox, not custom: custom fails today
+    # for a KNOWN correct reason (unpromoted fix), and a gate red for a good reason gets ignored.
+    # Pure and fast: parses Python, reads no ROM.
+    ("probe_hm_coverage.py", False),
 ]
 
 

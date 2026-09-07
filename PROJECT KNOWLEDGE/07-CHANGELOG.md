@@ -24227,3 +24227,40 @@ can learn it. The wall is not about who is in the party; it is that nothing ever
 
 Files: `sandbox-pokebot/modules/story/victory_road.py`,
 `sandbox-pokebot/plugins/custom_modes/story_mode.py`, `PROJECT KNOWLEDGE/{03,04,05,07,08,28}`.
+
+## 2026-09-07 — gate #43 `probe_hm_coverage.py`: the structural check that would have caught the wall
+
+**THE INVARIANT, deliberately narrow so it stays believed:**
+`{ field moves the story ASSERTS a carrier for } ⊆ { field moves the story TEACHES }`.
+A move on the left with nothing on the right is a wall the bot cannot pass, **by construction**.
+
+**⛔ WHY A STRUCTURAL CHECK AND NOT A TEST.** §Ch23 was built, driven and GREEN — from fixtures
+captured downstream of a harness driver (`Ch23TeachMode`) that did the teach production never had.
+The chapter passed its own tests for days while the route reaching it was impassable. ⇒ **no
+behavioural test can see this class**; the failing state is one the test setup silently repairs.
+
+**⭐⭐ AND THE GATE ITSELF SHIPPED WRONG FIRST — CAUGHT BEFORE COMMIT, BY THE DISCIPLINE THAT CAUGHT
+EVERYTHING ELSE TODAY.** A regex version passed its four synthetic arms and then, run against real
+code, produced the **exact inversion**: it PASSED `custom` (which still has the bug) and FAILED
+`sandbox` (which is fixed). Two causes, both mine: the real preflight expresses its requirement as a
+**loop over a tuple** (`[m for m in ("Surf","Dive","Waterfall") if carriers[m] is None]`), which no
+subscript pattern matches; and a real teach sits **67 lines** below the `"HM07"` literal naming it,
+outside a 40-line window. ⇒ rewritten on **AST with FUNCTION scope**, which is the structure that
+actually governs — and which makes comments structurally invisible rather than hand-filtered.
+‼ **A gate validated only on synthetics can be blind to the real thing.** This one is now validated
+on REAL code in BOTH directions: `--build sandbox` exits 0, `--build custom` exits **1**, naming
+`assert_ch23_preflight` — the very line that ended all six 8-badge runs.
+
+**BARE = SELF-TEST *AND* AUDIT SANDBOX.** A gate whose default mode only runs synthetic arms proves
+the checker works and nothing about the code — and bare is the mode `run_gates.py` uses. Sandbox and
+not custom, because custom fails today for a KNOWN correct reason (the fix is unpromoted while a
+batch runs), and a gate red for a good reason is one everybody learns to skip.
+
+**⛔ WHAT IT DOES NOT CHECK, stated so nobody mistakes green for safe:** that the teach SUCCEEDS (a
+party may have no compatible mon with a free slot — `#24-hm07funnel`, a policy problem this cannot
+see), that the teach happens BEFORE the requirement, or that the move survives. **Existence only.
+Existence was the bug.**
+
+Suite: **42 → 43** (41 ENFORCING + 2 ADVISORY); `--quick` 34 → 35.
+Files: `tools/story-dev/probe_hm_coverage.py` (new), `tools/story-dev/run_gates.py`,
+`PROJECT KNOWLEDGE/{02,04,07}`.
