@@ -2958,6 +2958,40 @@ keeps the same bar: the ordinary-case A/B above must stay byte-identical, plus t
 ✅ Everything needed is already in place — the baseline, the recorder (`POKEBOT_RECORD_TURNS`), and
 the repro (`--driver ch24probe`).
 
+**⛔⛔ THREE FIX LOCATIONS ELIMINATED BY MEASUREMENT (2026-09-06). ALL REVERTED. Do not retry them.**
+Each was implemented, driven, and disproved by instrumenting whether the code RAN — never by argument:
+| # | where | why it is wrong |
+|---|---|---|
+| 1 | a one-shot fork AFTER the branch dispatch in `handle_battle_action_selection`, copying the shipped `BattleScript_SelectingMoveWithNoPP` precedent | fired **zero** times — that path is only reached when a decision COMMITS, and this loop never gets there |
+| 2 | remember the refused slot at the caller's `HandleInputChooseMove` "press B" branch | fired **zero** times — instrumenting the outer `while` head showed it NEVER OBSERVES the refusal |
+| 3 | bound the unbounded confirm loop in `battle_action_use_move` (`while ... press A`) and re-pick | the 90-press bound never fired: neither the re-pick nor its `BotModeError` appeared ⇒ execution is not in that loop either |
+‼ All three PASSED the ordinary-case A/B byte-identically — which proves only that they were harmless.
+⇒ ⭐ **A PASSING A/B PROVES HARMLESSNESS, NEVER EFFICACY.** Both questions must be asked separately.
+
+**⭐⭐ THE ARTIFACT THAT SHOULD HAVE BEEN PULLED FIRST — THE GENERATOR STACK AT THE STALL:**
+```
+f18160 NO-PROGRESS x3000  sig=('BattleListener.fight','BATTLE','BattleScript_SelectingTormentedMove',…)
+    gen -> isolate_inputs.<locals>.wrapper_function   @ _util_helper.py:10
+    gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+    gen -> BattleListener.fight                       @ _listeners.py:219
+    gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+    gen -> handle_battle                              @ battle_handler.py:373
+    gen -> handle_battle.<locals>._watch              @ battle_handler.py:314
+f18161 *** BotModeError -> Manual: KI-47 … 'handle_battle_action_selection' ran 3001 frames …
+```
+⇒ ⛔ **`handle_battle_action_selection` IS NOT ON THE STACK.** The deepest frame is `KI-47`'s own
+`_watch` wrapper (`battle_handler.py:314`), which DRIVES the sub-handler rather than `yield from`-ing
+it — so the sub-handler's own frame never appears, and every location I guessed at was downstream of a
+frame the stack does not show.
+⇒ ⭐ **START HERE NEXT TIME:** read `handle_battle.<locals>._watch` (`battle_handler.py:~314`) and
+`handle_battle` (`:373`) and establish HOW the sub-handler is driven before choosing a fix site. The
+stall signature and this stack are already captured in
+`tools/story-dev/ki_ch24probe_ATTEMPT3.log`.
+
+**⇒ THE METHOD LESSON, worth more than the three attempts:** the harness prints a full generator stack
+on every no-progress event. **Pull it FIRST.** Three implement-drive-revert cycles cost real time and
+each only excluded one candidate; the stack excludes all of them at once and names the frame to read.
+
 **⛔ IMPLICATION FOR §Ch24 — THIS IS THE BLOCKER, NOT THE LEVEL GAP.** Planning so far has argued about
 whether the party can WIN (the analysis says it dies at Glacia, fight 3). **This says the run cannot
 finish fight 1 for reasons that have nothing to do with damage.** ⇒ ⭐ **fix the hang before spending

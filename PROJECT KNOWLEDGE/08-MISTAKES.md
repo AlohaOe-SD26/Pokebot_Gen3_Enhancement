@@ -13438,3 +13438,32 @@ conflate because the code looks identical.
 ‼ **The dead fork was REVERTED, not left in place.** It was provably harmless, which makes it tempting
 to keep as "groundwork" — but dead code in the most safety-critical loop in the codebase teaches the
 next reader that the case is handled. The corrected design is recorded in `KI-93` instead.
+
+
+## 2026-09-06 — I guessed three fix locations before reading the stack the harness had already printed
+
+**Symptom.** Fixing `KI-93` (the Torment freeze) I implemented, drove and reverted **three** candidate
+fixes in a row. Each was disproved cleanly — I instrumented whether the code RAN rather than theorising
+— but each cycle excluded exactly ONE location and cost a full build-drive-revert.
+
+**Root cause.** The harness prints a **generator stack** on every no-progress event, and it was in the
+log the whole time. It shows the deepest frame as `handle_battle.<locals>._watch`
+(`battle_handler.py:314`) with `handle_battle_action_selection` **not on the stack at all** — which
+excludes all three of my guesses simultaneously and names the frame to read instead. I reached for it
+only after the third failure.
+
+**⇒ PREVENTION RULES (three).**
+1. ⛔⛔ **WHEN SOMETHING HANGS, READ THE STACK BEFORE CHOOSING A FIX SITE.** This harness prints one
+   free with every `NO-PROGRESS` line. A stack excludes a whole class of hypotheses at once; a
+   drive-and-revert excludes exactly one and costs minutes. ⇒ **the order is stack → hypothesis →
+   change**, and I ran it backwards three times.
+2. ⭐ **"THE FIX DID NOT WORK" IS NOT A LOCATION.** Each attempt was disproved correctly and I still
+   had no idea where the freeze WAS — because eliminating a site tells you nothing about the right
+   one. The stack is the only artefact that points forward rather than backward.
+3. ⭐ **A PASSING ORDINARY-CASE A/B IS NOT PROGRESS TOWARD A FIX.** All three attempts passed it
+   byte-identically. That was genuinely valuable — it proved each was harmless enough to test safely
+   — but it is a SAFETY result, not an EFFICACY one, and it made three dead ends feel like progress.
+
+‼ **What went right and is worth keeping:** every attempt was reverted, none left dead code in a
+shared battle path, and each was disproved by instrumenting that it RAN rather than by argument. The
+discipline was sound; the ORDER was wrong.
