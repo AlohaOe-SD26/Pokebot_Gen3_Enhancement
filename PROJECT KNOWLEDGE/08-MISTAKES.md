@@ -13886,3 +13886,24 @@ the removed block, or assert on something it must contain, before writing the fi
 **⭐ COROLLARY: BUDGET PRESSURE IS AN EVIDENCE HAZARD.** The moment a current-state file is over its
 limit is exactly when freshly-measured findings are newest and least protected. Archive OLD material
 deliberately; never let the trimming target be "whatever span makes the number fit".
+
+
+## 2026-09-07 — a NEW safety rule the batch exposed: NEVER PROMOTE WHILE A BATCH IS RUNNING
+
+**Not a mistake made — a mistake NARROWLY AVOIDED, written down before it can be.** With an 8-lane
+batch measuring `custom-pokebot` for 8 hours, I fixed `KI-96` in the sandbox. The reflex at that point
+is to promote it, because promotion is how work reaches the fork.
+
+⛔ **Promoting mid-batch would CHANGE THE BUILD UNDER A RUNNING MEASUREMENT.** The lanes would then
+span two different codebases, the MANIFEST's `code_commit` would describe neither, and the finish rate
+would be uninterpretable — the exact "analysing logs against undeployed code" waste the playbook names,
+in its worst form: logs against code that changed *halfway through*.
+
+**⭐ THE RULE: `custom-pokebot` IS FROZEN FOR THE DURATION OF A BATCH.** That is not an inconvenience,
+it is the property that makes `--build custom` worth having — the batch measures a build that holds
+still. Sandbox work continues freely; drift is EXPECTED to be non-zero during a batch and is not a
+defect. Promote after the batch ends and the fix has been driven.
+
+**⭐ COROLLARY — DRIFT ≠ DEBT WHILE A BATCH IS LIVE.** A doc gate reporting drift 1 mid-batch is
+reporting the intended state. Record WHY in the drift row, so a cold reader does not "helpfully"
+promote to make the number zero.

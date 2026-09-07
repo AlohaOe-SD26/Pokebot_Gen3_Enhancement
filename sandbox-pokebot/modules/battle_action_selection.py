@@ -653,6 +653,35 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                         # never be mistaken for a healthy reading.
                         return f"<unreadable: {type(_e).__name__}>"
 
+                # ⛔⛔ KI-96 — REFUSE A ROTATION COMPUTED FROM A STALE BATTLE-ORDER ARRAY.
+                # MEASURED over 262 rotations (261 healthy + the one wedge), perfect separation:
+                #     decoded_battleorder[0] == active_battler_party_index
+                # `UpdatePartyToBattleOrder` puts the ACTIVE battler at battle position 0, so that
+                # equality is an invariant of a FRESH array. When it is violated the array is STALE,
+                # `map_battle_party_index` maps onto the slot the ACTIVE really occupies, and the game
+                # refuses for ever — you cannot switch in the Pokémon already out.
+                # ⛔ The mapping's ARITHMETIC is correct; only its INPUT is stale. Do not "fix" it.
+                _ki96_stale = False
+                try:
+                    _raw = bytes(battle_state._battler_party_order)
+                    _pos0 = _raw[0] >> 4                      # battle position 0 -> party index
+                    _act = battle_state.battling_pokemon[0].party_index
+                    _ki96_stale = _pos0 != _act
+                except Exception:  # noqa: BLE001 - if the order cannot be read we CANNOT conclude it
+                    # is stale, and refusing on an unreadable check would break every healthy switch.
+                    _ki96_stale = False
+                if _ki96_stale:
+                    from modules.modes import BotModeError
+
+                    raise BotModeError(
+                        f"KI-96: the in-battle party order is STALE — battle position 0 holds party "
+                        f"{_pos0} but the ACTIVE battler is party {_act}. Switching to party slot "
+                        f"{index} would scroll to menu slot "
+                        f"{battle_state.map_battle_party_index(index)}, which is where the ACTIVE "
+                        f"Pokémon sits, and the game refuses that for ever. Refusing the rotation "
+                        f"instead of spinning."
+                    )
+
                 _ki96_log(f"[KI96-STAGE] 0 before scroll_to_battle_action(2): {_ki96_state()}")
                 yield from scroll_to_battle_action(2)
                 _ki96_log(f"[KI96-STAGE] 1 after scroll_to_battle_action(2): {_ki96_state()}")
@@ -668,9 +697,27 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                 yield from scroll_to_party_menu_index(in_battle_index)
                 _ki96_log(f"[KI96-STAGE] 3 after scroll_to_party_menu_index({in_battle_index}): "
                           f"{_ki96_state()}")
+                #: ⛔ KI-96 — A CORRECT AIM IS NOT A BOUND. A rotation can still be refused (a mon
+                #: that faints between the decision and the menu opening), and this loop had no exit
+                #: at all: it relied on `KI-47`'s net stopping the whole run 3001 frames later.
+                #: MEASURED: a healthy switch closes the menu in ~1-27 presses, so 240 is ~9x the
+                #: worst observed and cannot fire on a working rotation.
+                _KI96_MENU_BOUND = 240
                 _ki96_spins = 0
                 while get_game_state() == GameState.PARTY_MENU:
                     _ki96_spins += 1
+                    if _ki96_spins > _KI96_MENU_BOUND:
+                        # Back out with B — never A. On the move menu A re-commits; B cancels to the
+                        # action menu, which this handler already recognises.
+                        context.emulator.press_button("B")
+                        yield
+                        from modules.modes import BotModeError
+
+                        raise BotModeError(
+                            f"KI-96: the in-battle party menu would not accept party slot {index} "
+                            f"(menu slot {in_battle_index}) after {_ki96_spins} A-presses. Backed out "
+                            f"with B and refused rather than spinning until the KI-47 net fires."
+                        )
                     if _ki96 and (_ki96_spins in (1, 30, 120, 600, 1800)
                                   or _ki96_spins % 5000 == 0):
                         try:
