@@ -846,9 +846,12 @@ def ensure_waterfall_learner() -> Generator:
     ‼ IDEMPOTENT ON THE LIVE MOVEPOOL, never on `RECEIVED_HM_WATERFALL`: the flag and the item are
     not the same fact (`sootopolis.py:2769-2772`), and only the movepool answers "can we climb?".
     """
-    # ‼ LOCAL IMPORTS, matching this module's own style and that of
-    # `ensure_strength_learner`: pulling `teach_hm_move` in at module scope would create an
-    # import cycle between `victory_road` and `early_game`.
+    # ‼ LOCAL IMPORTS, for consistency with `ensure_strength_learner` and this module's own habit.
+    # ⛔ AN EARLIER VERSION OF THIS COMMENT CLAIMED A MODULE-SCOPE IMPORT "would create an import
+    # cycle". THAT WAS FALSE AND IS RETRACTED: `victory_road.py:69-76` already imports six names
+    # from `early_game` at module scope, and `early_game` imports nothing from `modules.story.*`
+    # there — a cycle would already be firing. It was a plausible-sounding rationale I never
+    # checked. ‼ A false REASON is worse than no reason: the next reader inherits it as fact.
     from modules.console import console
     from modules.items import get_item_bag
     from modules.story.early_game import teach_hm_move
@@ -870,12 +873,20 @@ def ensure_waterfall_learner() -> Generator:
     # four-HM Swampert and a free-slotted Marill it picks the Swampert and fails avoidably. That is
     # not hypothetical — it is 5 of the 6 measured 8-badge parties.
     # ‼ `_is_hm_slot` is a nested helper inside `teach_hm_move`, so the predicate is repeated here
-    # rather than imported. It must stay identical to `early_game.py:4603-4608`.
+    # rather than imported.
+    # ⛔⛔ IT DELIBERATELY DIVERGES FROM `early_game.py:4603-4608` IN THE EXCEPTION BRANCH, and an
+    # earlier comment here wrongly claimed they were identical. They answer DIFFERENT questions and
+    # are therefore conservative in OPPOSITE directions:
+    #   * `_is_hm_slot` picks WHICH SLOT TO OVERWRITE — unreadable -> False -> treat as overwritable.
+    #   * this one decides WHETHER TO PICK THIS MON AT ALL — unreadable -> True -> treat as NOT
+    #     spendable, so a movepool we cannot read never makes a saturated mon look like a valid
+    #     learner and send us into a teach that must fail.
+    # Making them "match" would be a regression, not a tidy-up.
     def _is_hm(learned) -> bool:
         try:
             m = learned.move
             return m.tm_hm is not None and m.tm_hm.name.startswith("HM")
-        except Exception:  # noqa: BLE001 - an unreadable move is not provably forgettable
+        except Exception:  # noqa: BLE001 - see above: unreadable => NOT provably spendable.
             return True
 
     best, best_level = None, -1
@@ -889,12 +900,21 @@ def ensure_waterfall_learner() -> Generator:
     if best is None:
         # ⛔ A NAMED REFUSAL, NOT A GENERIC FAILURE. This is the state 5 of 6 measured parties reach,
         # and the reader needs the CAUSE, not the symptom: every HM funnelled onto one mon.
+        # ‼ THE ROSTER MUST NOT DIE WHILE EXPLAINING A FAILURE. This block exists to make the
+        # refusal NAMED rather than generic, so an unreadable move here would defeat its own
+        # purpose — the reader would get a traceback instead of the cause.
         roster = []
         for mon in get_party():
             if mon is None or mon.is_egg:
                 continue
-            moves = [l.move.name for l in mon.moves if l is not None]
-            roster.append(f"{mon.species.name} L{mon.level} {moves}")
+            try:
+                moves = [l.move.name for l in mon.moves if l is not None]
+            except Exception:  # noqa: BLE001 - name the gap; never lose the whole message for it.
+                moves = ["<unreadable movepool>"]
+            try:
+                roster.append(f"{mon.species.name} L{mon.level} {moves}")
+            except Exception:  # noqa: BLE001 - same reasoning one level up.
+                roster.append(f"<unreadable mon> {moves}")
         raise BotModeError(
             "Ch23 leg 1: nobody can be taught Waterfall — every compatible party member has four "
             "HM moves and HMs cannot be forgotten in Gen 3 (Move Deleter only). This is the "

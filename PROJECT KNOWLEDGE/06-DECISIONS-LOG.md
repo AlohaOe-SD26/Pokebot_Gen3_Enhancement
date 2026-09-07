@@ -4729,3 +4729,41 @@ it (`story_mode.py:1350-1353`); the harness driver was the gap, and `ch24grind` 
 **Decision 5 — grade on LEVELS, and capture nothing by default.**
 ACCEPTANCE requires a BATTLER to have actually gained a level (`train_team` returning is not evidence —
 the `KI-84` shape). `GRIND_CAPTURE` is opt-in and refuses to overwrite an existing fixture.
+
+## 2026-09-07 — `#24-hm07teach`: TEACH the move (not relax the preflight), and place it at Segment 22b
+
+Two choices were argued at length while fixing the wall that ended every 8-badge run in project
+history. Recorded so they are not re-litigated.
+
+### DECISION 1 — TEACH HM07. Do NOT relax `assert_ch23_preflight`.
+*Chosen:* add a production teach (`ensure_waterfall_learner`) and leave the preflight strict.
+
+**Why, and it is mechanical rather than stylistic.** `data/scripts/field_move_scripts.inc:183-186`
+gates `EventScript_UseWaterfall` on `checkpartymove MOVE_WATERFALL`. With no carrier,
+`dofieldeffect FLDEFF_USE_WATERFALL` never runs, `Task_UseWaterfall` is never created, and §Ch23
+leg 4's `wait_for_task_to_start_and_finish("Task_UseWaterfall", "A")` burns its entire
+`CLIMB_BUDGET = 3_000`. ⇒ relaxing the preflight converts a **named refusal at frame 0** into a
+**silent 3,000-frame timeout ~60,000 frames later, mid-ocean**, on maps recorded as
+`allow_escaping: false` with no Poké Center until Ever Grande. Walking up is impossible —
+`MetatileBehavior_IsWaterfall` maps to `ForcedMovement_PushedSouthByCurrent`.
+*Rejected:* **relax the preflight to a warning.** It trades a diagnosable stop for an undiagnosable
+one in the worst possible place, and this project has repeatedly paid for exactly that trade.
+
+### DECISION 2 — the teach goes at Segment **22b** (after the Juan guard), not 21b.
+*Chosen:* immediately after `_guard("Gym 8 — Juan (Ch22)")` and before Segment 23.
+
+**Why.** Badge 8 has been reached **six times in the project's entire recorded history**, all on
+2026-09-07. A 21b placement would fire BEFORE badge 8, so any failure there would **erase the only
+evidence that §Ch21 and §Ch22 work end to end** — the deepest signal the project has ever had. 22b
+is still strictly before the preflight: nothing between it and `depart_sootopolis` touches the party.
+*Rejected:* **21b (immediately after §Ch21, where HM07 enters the bag).* It fails ~40,000 frames
+earlier, which is cheaper per run — but it buys that cheapness by destroying the measurement. If the
+teach later proves reliable, 21b becomes the better home and this entry is the reason it was not
+chosen first.
+*Rejected:* **inside `do_victory_road_chapter`.** The chapter's own preflight is the thing being
+satisfied; satisfying a precondition from inside the code that asserts it makes the assertion
+meaningless.
+
+⚠ **HONEST SCOPE:** this decision is about WHERE and WHETHER to teach. It does not address the HM
+funnel that leaves 5 of 6 measured parties with no spendable slot — that is `#24-hm07funnel`, filed
+and unbuilt, and it is the reason Change A alone rescues only one of the six.

@@ -14406,3 +14406,38 @@ file.
 prose died. ⇒ **shell corruption of comments is invisible to every check we have**, so the only
 defence is not to expose the text to a shell. When it does happen, the tell is a
 `command not found` line in output that otherwise looks successful — do not skim past it.
+
+## 2026-09-07 — I invented a MECHANICAL reason for a STYLISTIC choice, and it read as verified fact
+
+**WHAT HAPPENED.** I used local imports inside `ensure_waterfall_learner()` — a fine choice, matching
+the neighbouring `ensure_strength_learner`. Then I wrote the reason as:
+    *"pulling `teach_hm_move` in at module scope would create an import cycle between
+      `victory_road` and `early_game`."*
+**That is false.** `victory_road.py:69-76` ALREADY imports six names from `early_game` at module
+scope, and `early_game` imports nothing from `modules.story.*` there. A cycle would already be
+firing. A Tier 1 reviewer checked it in one AST scan.
+
+**⭐⭐ WHY THIS IS WORSE THAN A VAGUE COMMENT, AND IT IS THE WHOLE LESSON.** The real reason was
+"consistency with the function next door" — true, sufficient, and unglamorous. I upgraded it to a
+MECHANICAL claim, and a mechanical claim is *checkable*, which is exactly what makes it dangerous:
+it reads as something someone verified. Vague hand-waving invites scrutiny; a crisp false mechanism
+suppresses it. ⇒ **the more verifiable a justification SOUNDS, the more certain you must be that you
+actually verified it.**
+
+**⭐ THE TELL, AND IT IS CHEAP TO CATCH.** I wrote a claim of the form *"X would cause Y"* about code
+I had not run or read. Every such claim in a comment is a testable proposition. ⇒ **before writing
+"this would break / would cycle / would fail", either check it or write the reason you ACTUALLY had.**
+"For consistency with the function above" is a complete and honest justification; there is no
+obligation to produce a deeper one, and inventing one is a lie with a citation's clothing.
+
+**‼ THE SAME REVIEW CAUGHT ITS TWIN.** I wrote that a copied predicate *"must stay identical to
+`early_game.py:4603-4608`"* — it isn't; mine returns `True` on an unreadable move where the original
+returns `False`. The divergence is CORRECT (the two answer opposite questions and are conservative in
+opposite directions), so the fault was not the code but the claim of sameness. ⇒ **when you copy a
+predicate, state whether you copied it EXACTLY or ADAPTED it, and if adapted, say what changed and
+why.** "Same as X" is a claim, and it decays the moment either side moves.
+
+**PATTERN NOTE.** Both faults are the same shape as this session's earlier ones — the vacuous probe,
+the tautological control, the dead instrumentation: **I keep producing artifacts that LOOK verified.**
+The common defence is the one that has worked every time today: an independent reader who checks the
+claim rather than the intent.
