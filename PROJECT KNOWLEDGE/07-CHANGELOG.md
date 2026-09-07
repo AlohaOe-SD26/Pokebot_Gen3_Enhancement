@@ -23686,3 +23686,43 @@ is set. ⇒ **the bot wins the badge and locks itself in the room.** Filed as `#
 
 Detail, evidence and the counter-hunt findings: `ai-research-notes/2026-09-07-batch-blockers-RECON.md`.
 Files: `sandbox-pokebot/plugins/custom_modes/story_mode.py`, `PROJECT KNOWLEDGE/{03,04,05,07}`.
+
+## 2026-09-07 — `#24-mossdeepstrand`: winning BADGE07 LOCKED THE BOT IN THE ROOM. ⚠ SANDBOX, UNDRIVEN.
+
+**Found while auditing whether `KI-97` actually rescued all four Mauville failures. It did not** — an
+independent forward-walk of `_play` showed the MOSSDEEP_CITY_GYM (23,8) variant is a different bug,
+and `KI-97` only moves its derail from Segment 13a to Segment 19.
+
+**THE DEFECT.** `(23,8)` is a leader-approach tile on an **eleven-tile collision island**. Its only
+exit is a **coord_event** at `(21,6)`, and `mossdeep_gym.py:460-461` says so itself: *"it is a
+coord_event, not a warp event, so no warp-graph solver will ever offer it."* ⇒ no navigation call can
+route off that platform; the only thing that steps on it is `leave_the_gym()`. And `leave_the_gym()`
+was bypassed **twice** once the badge was set: Segment 18 reads `if not _done("BADGE07_GET")`
+(`story_mode.py:3772`) so the chapter was never called, and the chapter's own early-return
+(`mossdeep_gym.py:549`) returned before reaching it. **Double bypass ⇒ nothing in the tree could move
+the avatar.**
+
+**⭐⭐ THE IRONY, AND THE RULE IT BUYS.** The correct call at `:592-596` carries a comment describing
+this exact hazard — *"a chapter that returned here would pass its own test and strand the run"* — and
+an early-return added later, labelled **`# resume-safe`**, re-opened precisely that hole. ‼ **The
+label was the bug:** "resume-safe" was true of the common resume and asserted of all of them, and the
+one resume it is NOT safe for is the only one that matters.
+⇒ **A "DONE" FLAG IS NOT A "TIDY" FLAG.** `BADGE07_GET` answers *did we win?*; the code used it to
+answer *is there nothing left to do?* The gap between those two questions is an 11-tile island. Same
+family as the §Ch24 warning already on file, that `ResetEliteFour` clears its flags on BOTH the win
+and the whiteout path — a state reachable by succeeding OR by failing.
+
+**THE FIX (sandbox, both halves no-ops off the gym map because `leave_the_gym()` opens with
+`if not _on_gym_map(): return`):** Segment 18's `else` calls `leave_the_gym()` before printing; the
+chapter's badge early-return leaves first.
+⛔ **The IDENTICAL two-line early-return in `fight_the_leaders()` (`:382`) was deliberately NOT
+touched.** It is a SUB-STEP: leaving is the CHAPTER's job, and the fight is retried up to three times
+by the loop. ‼ That distinction only surfaced because the edit script ASSERTED its anchor was unique
+and REFUSED to run when it matched twice — a blind `replace(..., 1)` would have patched the correct
+copy and left the defect, breaking a working path while fixing nothing.
+
+**⚠ UNDRIVEN.** Acceptance needs a save standing on (23,8) with BADGE07 set; the drive waits for the
+batch to end. ⛔ Not promoted — `custom-pokebot` is frozen.
+Detail: `ai-research-notes/2026-09-07-batch-blockers-RECON.md`.
+Files: `sandbox-pokebot/plugins/custom_modes/story_mode.py`,
+`sandbox-pokebot/modules/story/mossdeep_gym.py`, `PROJECT KNOWLEDGE/{03,04,05,07,08}`.

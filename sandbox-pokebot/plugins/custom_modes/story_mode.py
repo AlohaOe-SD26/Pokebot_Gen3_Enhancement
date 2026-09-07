@@ -3767,11 +3767,23 @@ class StoryMode(BotMode):
         #     so the chapter re-enters and re-solves all 117 steps. It allows three attempts.
         # ‼ Graded on the BADGE **and** controllable — `BADGE07_GET` is set mid-script, so a
         #     flag-only test would call a `lockall`ed avatar a success.
-        from modules.story.mossdeep_gym import do_mossdeep_gym_chapter
+        from modules.story.mossdeep_gym import do_mossdeep_gym_chapter, leave_the_gym
 
         if not _done("BADGE07_GET"):
             yield from do_mossdeep_gym_chapter()
         else:
+            # ⛔⛔ #24-mossdeepstrand — "ALREADY DONE" IS NOT "ALREADY OUT". Winning BADGE07 leaves
+            # the avatar on the leaders' platform (23,8): an ELEVEN-TILE COLLISION ISLAND whose only
+            # exit is a **coord_event** at (21,6) that no warp-graph solver can ever offer
+            # (`mossdeep_gym.py:460-461`). With the badge set this branch used to only PRINT, so
+            # nothing ever stepped on that exit and the run was stranded — every later segment then
+            # fail-fast derailed on a navigation it could not possibly satisfy.
+            # ‼ `leave_the_gym()` is resume-safe by construction (`mossdeep_gym.py:471-472`
+            # `if not _on_gym_map(): return`), so on every ordinary re-entry — anywhere else in
+            # Hoenn — this costs one call and changes nothing.
+            # ⇒ A "DONE" FLAG IS NOT A "TIDY" FLAG: `BADGE07_GET` answers *did we win?*, not *is
+            # there nothing left to do?*, and the gap between those two questions is this island.
+            yield from leave_the_gym()
             console.print("[dim]Story: Mossdeep Gym already done — skipping.[/]")
         _guard("Mossdeep Gym (Ch18)", lambda: _done("BADGE07_GET"))
 

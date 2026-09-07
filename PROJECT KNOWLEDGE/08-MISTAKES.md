@@ -13993,3 +13993,32 @@ is what caught case 3, a bug that did not exist when the first review ran. ⇒ *
 fixing; a fix is a new change and deserves the same scrutiny as the original.** The doc layer already
 says this for Tier 2 (*"check WHERE the fix landed, not merely THAT it landed"*); today proved it is
 just as load-bearing at Tier 1.
+
+## 2026-09-07 — a unique-anchor assert stopped me patching the CORRECT copy of a two-line pattern
+
+**WHAT HAPPENED.** Fixing `#24-mossdeepstrand` I wrote an edit whose anchor was
+`if get_event_flag(BADGE_FLAG):` / `return  # resume-safe`. The script asserted
+`text.count(anchor) == 1` and **failed**: the pattern appears TWICE, byte-identical, in the same file.
+
+**⭐ AND THE TWO COPIES WANTED OPPOSITE TREATMENT.**
+* `mossdeep_gym.py:382` is inside **`fight_the_leaders()`** — a SUB-STEP. Its early-return means "the
+  fight is already won, nothing for this step to do", which is CORRECT: leaving the gym is the
+  CHAPTER's job, and the fight is retried up to three times by the caller's loop. Editing it would
+  have broken a working path *and* violated the layering.
+* `mossdeep_gym.py:549` is inside **`do_mossdeep_gym_chapter()`** — the chapter, which owns tidiness.
+  That one strands the run.
+
+⇒ a blind `replace(old, new, 1)` would have patched **L382**, the correct one, and left the real
+defect untouched: a change that breaks something that worked *and* fixes nothing.
+
+**⭐⭐ PREVENTION RULE — AN ANCHOR ASSERT IS A DESIGN QUESTION, NOT AN OBSTACLE.** Always
+`assert count == 1` before a scripted edit. ‼ And when it trips, **do NOT reflexively add surrounding
+context until the match becomes unique** — first ask *which copy did I mean, and do the others want
+the same change?* Here the answer was "no", and it changed the fix. The uniqueness failure was the
+most informative event in the whole item.
+
+**‼ RELATED, SAME ITEM: the label was the bug.** The stranding return was annotated `# resume-safe`.
+That was true of the common resume and asserted of every resume — and the single case it is NOT safe
+for is the one that matters. ⇒ **when a comment asserts a property, ask which case it was verified on
+and whether it was then generalised.** A confident label suppresses exactly the scrutiny that would
+find its counter-example.

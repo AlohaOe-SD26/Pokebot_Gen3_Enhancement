@@ -547,7 +547,21 @@ def do_mossdeep_gym_chapter() -> Generator:
     )
 
     if get_event_flag(BADGE_FLAG):
-        return  # resume-safe
+        # ⛔⛔ #24-mossdeepstrand — THIS READ `return  # resume-safe`, AND THE LABEL WAS THE BUG.
+        # The one resume it is NOT safe for is the only one that matters: re-entering with the badge
+        # already set while standing on the leaders' platform (23,8) — an ELEVEN-TILE COLLISION
+        # ISLAND whose only exit is the (21,6) **coord_event**, which no warp-graph solver can ever
+        # offer (`:460-461`). Returning there passes this chapter's own done-test and strands the
+        # run — exactly the hazard the comment at the `leave_the_gym()` call below warns about.
+        # ⇒ A "DONE" FLAG IS NOT A "TIDY" FLAG: `BADGE07_GET` answers *did we win?*, not *is there
+        # nothing left to do?*, and the gap between those questions is this island.
+        # ‼ `leave_the_gym()` no-ops off the gym map (`:471-472`), so this stays resume-safe for
+        # every other position while fixing the one it was not.
+        # ⛔ DO NOT make the same edit to the identical early-return in `fight_the_leaders()`
+        # (`:382`): that one is a SUB-STEP and is correct as written — leaving is the CHAPTER's job,
+        # and the fight is retried up to three times by the loop below.
+        yield from leave_the_gym()
+        return
 
     GYM_DOOR = (38, 9)  # MOSSDEEP_CITY warp 1 -> MOSSDEEP_CITY_GYM
     attempts = []

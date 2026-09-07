@@ -2953,7 +2953,7 @@ gate injects its own damage function and never touches this path.
 `metric=legacy` means this has happened. It is the one signal that distinguishes "fixed" from "fixed on
 paper", and it is why the field was added rather than leaving a reader to infer it from `estimates_ok`.
 
-**Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` still has the defect; drift is 2 (`KI-96` + the `KI-97` gate, both sandbox-only while the batch runs). **Promotion is the user's
+**Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` still has the defect; drift is 3 (`KI-96` telemetry, the `KI-97` gate and `#24-mossdeepstrand`, all sandbox-only while the batch runs). **Promotion is the user's
 call and has not been given.**
 
 ## `KI-97` — a `_play()` re-entry from a POST-Fortree position marched to MAUVILLE and fail-fast derailed (2026-09-07, MEASURED on the live batch, ✅ FIXED IN THE SANDBOX — ⚠ NOT DRIVEN, NOT PROMOTED)
