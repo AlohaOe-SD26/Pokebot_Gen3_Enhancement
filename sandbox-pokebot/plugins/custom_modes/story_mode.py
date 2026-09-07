@@ -1044,9 +1044,28 @@ def _counter_catch_message(cfg: dict, losses: int, needed: list[str]) -> str:
     try:
         from modules.story import counter_plan
 
+        # ‼ ASK FOR MORE THAN WE SHOW, THEN DEDUPE BY SPECIES. Live, four of Winona's five rows
+        # were the same Geodude on four different Magma Hideout floors — one answer occupying 80%
+        # of the list while other species never appeared. ⛔ The ladder's `huntable_candidates()`
+        # dedupes by `(map, tile)` and does NOT collapse these (the floors are distinct maps); it
+        # answers "where would the executor walk?", which is a different question from "what are
+        # my options?". Different questions, different keys — so this does not reuse that helper.
+        # ⛔ DISPLAY ONLY: this function builds the text of a BotModeError and feeds nothing the
+        # ladder chooses. Ranking and huntability are untouched.
         candidates = counter_plan.find_counter_candidates(
-            needed, allow=_counter_area_allowed, max_results=5
+            needed, allow=_counter_area_allowed, max_results=12
         )
+        _seen_species: set = set()
+        _deduped = []
+        for _c in candidates or []:
+            _name = _c.get("species_name")
+            if _name in _seen_species:
+                continue
+            _seen_species.add(_name)
+            _deduped.append(_c)
+            if len(_deduped) >= 5:
+                break
+        candidates = _deduped
         if candidates:
             summary = counter_plan.summarise_candidates(candidates)
             # Full list to the debug log FIRST — it must land even if the raised

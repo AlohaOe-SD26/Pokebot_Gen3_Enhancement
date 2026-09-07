@@ -14088,3 +14088,39 @@ then flagged legitimate sentences about OTHER tools' fault arms ("two fault arms
 code with a fault-test proving it stays SILENT on healthy text, and this one had none. The right check
 here was the precise one: grep for the exact stale strings I had replaced and require zero. **Match
 the instrument to the question: a one-off correction wants an exact search, not a pattern.**
+
+## 2026-09-07 — I reported correct code as broken, because the field that explained it was never printed
+
+**SYMPTOM.** Reading a live batch log I saw the counter guard say, for Winona:
+*"Need one of: Rock, Ice, Dragon. Nearest reachable counters: Slugma (Fire) on Fiery Path..."* — a
+FIRE type offered as the answer to a Rock/Ice/Dragon requirement. I reported it to the user as a
+defect in the recommender: *"the top recommendation doesn't satisfy its own constraint."*
+
+**IT WAS CORRECT.** `counter_plan.py:156,185-205` admits a species by its TYPES **or** by a level-up
+move of a needed type — deliberately, as `#24-movepoolcounters` (user directive 2026-08-07), because
+pure type matching left **Winona with zero candidates**. Slugma learns **Rock Throw** (50 BP, Rock) at
+**L15**, and Fiery Path Slugma is L15, so it is caught already knowing it. A legitimate Rock answer.
+
+**ROOT CAUSE — and it is the sharp bit.** The code **already computed the explanation and threw it
+away.** `counter_plan.py:331-335` builds `answer_via` (`"type"` vs `"move:Rock Throw@L15"`) under a
+comment stating outright that the log must be able to say which rule fired — and
+`summarise_candidates` never rendered it. It had **zero production consumers**: the only readers were
+three offline probes. So the one fact that made the list legible existed, was asserted by a repro, and
+never reached a human.
+
+**THE FIX THAT WORKED.** Render it: `Slugma (Fire) via move:Rock Throw@L15 on Fiery Path ...`. Also
+dedupe the displayed list BY SPECIES, because four of Winona's five rows were the same Geodude across
+four Magma Hideout floors — one answer occupying 80% of the list. Both display-only.
+
+**⭐⭐ PREVENTION RULE — A FIELD WHOSE ONLY PURPOSE IS TO EXPLAIN A DECISION MUST BE WIRED INTO THE
+HUMAN-FACING OUTPUT IN THE SAME CHANGE.** If it is computed and not printed, it is not documentation;
+it is a comment that costs memory. ‼ Concretely: after adding such a field, grep for its name — if
+every consumer is a test or a probe, it is not doing the job it was added for.
+
+**⭐ AND THE COSTLIER LESSON: A MESSAGE THAT MAKES CORRECT BEHAVIOUR LOOK BROKEN COSTS EXACTLY WHAT A
+BUG COSTS.** An agent investigated it, wrote it up, and I relayed it to the user as a finding before
+a deeper audit refuted it. Nothing was wrong with the program. ⇒ **when a log line looks like a
+contradiction, suspect the LINE before the LOGIC** — read the code that produced it and ask what it
+is not telling you. The tell here was that the claim required the recommender to be stupid in a very
+obvious way, on a path with a dated user directive attached to it; **an "obvious" bug in
+long-settled, directive-backed code is far more likely to be a reporting gap.**

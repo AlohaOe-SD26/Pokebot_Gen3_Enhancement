@@ -23794,3 +23794,43 @@ not the pattern it looks for. ⇒ **a gate sees the pattern it was written for a
 
 Files: `tools/story-dev/grade_ki97_drive.py` (new), `tools/story-dev/run_gates.py`,
 `PROJECT KNOWLEDGE/{02,04}`.
+
+## 2026-09-07 — `#24-countermsg`: the counter guard was RIGHT and its message made it look WRONG
+
+⚠ SANDBOX, DISPLAY-ONLY. Not driven, but the changed function was exercised DIRECTLY (output below).
+
+**⭐ THE JUSTIFICATION IS A MISTAKE I MADE TODAY.** From a live batch log I read *"Winona: Need one of:
+Rock, Ice, Dragon. Nearest reachable counters: Slugma (Fire) on Fiery Path..."*, concluded the
+recommender was violating its own constraint, and reported it as a defect. **It was correct.**
+`counter_plan.py:156,185-205` admits a species by its TYPES **or** by a level-up move of a needed type
+— deliberately (`#24-movepoolcounters`, user directive 2026-08-07), because pure type matching left
+**Winona with zero candidates**. Slugma learns **Rock Throw** (50 BP, Rock) at **L15**, and Fiery Path
+Slugma is L15, so it arrives already knowing it.
+⇒ **A MESSAGE THAT MAKES CORRECT BEHAVIOUR LOOK BROKEN COSTS EXACTLY WHAT A BUG COSTS** — an agent
+investigated it, wrote it up, and nearly "fixed" working code.
+
+**AND THE EXPLANATION WAS ALREADY COMPUTED, THEN THROWN AWAY.** `counter_plan.py:331-335` builds
+`answer_via` (`"type"` vs `"move:Rock Throw@L15"`) under a comment saying the log must be able to name
+which rule fired — and `summarise_candidates` never printed it. Zero production consumers.
+
+**FIXED (two display changes, no behaviour):**
+1. `answer_via` is rendered. Verified by calling the function directly:
+   `Slugma (Fire) via move:Rock Throw@L15 on Fiery Path (tile (18, 19), L15-15, 10% rate) - reachable`
+   `Geodude (Ground/Rock) (type match) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, ...)`
+2. The printed list is deduped **BY SPECIES** (5 of up to 12). Live, four of Winona's five rows were
+   the same Geodude on four Magma Hideout floors — one answer taking 80% of the list.
+   ⛔ The ladder's `huntable_candidates()` dedupes by `(map, tile)` and does NOT collapse those (the
+   floors are distinct maps); it answers *"where would the executor walk?"*, a different question from
+   *"what are my options?"*. **Different questions, different keys** — the helper is deliberately not
+   reused here.
+
+⛔ **STRICTLY DISPLAY.** `_counter_catch_message` builds the text of a `BotModeError`
+(`story_mode.py:2053`) and feeds nothing the ladder chooses. Ranking, huntability and the
+one-hunt-per-run bound are untouched — all SETTLED (`06-DECISIONS-LOG.md:958/998/3423`).
+
+**‼ FOUND IN PASSING:** `probe_counter_candidates_offline.py` fails its own positive control and is
+**not registered in `run_gates.py`**. ✅ Ruled out as caused by this change — it never calls
+`summarise_candidates`, and this diff is confined to that function. Filed `#24-counterprobe-rotted`.
+
+Files: `sandbox-pokebot/modules/story/counter_plan.py`,
+`sandbox-pokebot/plugins/custom_modes/story_mode.py`, `PROJECT KNOWLEDGE/{03,04,05,07}`.

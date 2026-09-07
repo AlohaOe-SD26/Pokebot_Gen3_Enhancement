@@ -471,9 +471,21 @@ def summarise_candidates(cands) -> str:
             map_name = getattr(map_enum, "pretty_name", str(map_enum))
             reach_str = "reachable" if c.get("reachable") else "UNREACHABLE"
             types = "/".join(c.get("types", []))
+            # ‼ SAY WHICH RULE ADMITTED IT. `answer_via` has been computed since
+            # `#24-movepoolcounters` under a comment demanding exactly this, and was never
+            # printed — so a MOVE answer read as a TYPE answer and the list looked wrong.
+            # MEASURED COST: on 2026-09-07 I read "Need Rock/Ice/Dragon ... Slugma (Fire)" off a
+            # live log and reported the recommender as broken. It was correct: Slugma learns Rock
+            # Throw at L15 and is caught at L15. The line, not the logic, was the defect.
+            via = c.get("answer_via")
+            via_str = ""
+            if via and via != "type":
+                via_str = f" via {via}"          # e.g. "via move:Rock Throw@L15"
+            elif via == "type":
+                via_str = " (type match)"
             lines.append(
-                f"{c.get('species_name')} ({types}) on {map_name} ({tile_str}, {band_str}, "
-                f"{c.get('encounter_rate')}% rate) — {reach_str}"
+                f"{c.get('species_name')} ({types}){via_str} on {map_name} ({tile_str}, "
+                f"{band_str}, {c.get('encounter_rate')}% rate) — {reach_str}"
             )
         return "\n".join(lines)
     except Exception as error:
