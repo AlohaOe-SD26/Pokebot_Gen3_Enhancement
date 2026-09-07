@@ -2793,6 +2793,32 @@ every other frame. The presses ARE landing; **the game is refusing the switch an
 4. ⛔ **REMEMBER THE REFUSAL BY POKÉMON (`personality_value`), NEVER BY SLOT** — `KI-93`'s reviewer
    proved a slot-keyed memory lets a fainted mon's vetoes hit its replacement.
 
+**⭐⭐ THE TRIGGER IS MEASURED (from production's own `[TURN]` telemetry, `Story-debug-20260907-021148.log`):**
+```
+f5859471 [TURN 0] Wailord L61  88/307 [BadPoison] -> UseMove:Waterfall  vs Swellow L42
+f5860818 [TURN 1] Wailord L61  69/307 [BadPoison] -> UseMove:Waterfall  vs Mawile  L42
+f5862188 [TURN 2] Wailord L61  31/307 [BadPoison] -> RotateLead        vs Kadabra L42   ⬅ THE WEDGE
+```
+The lead is **badly poisoned and bleeding out** (118 → 98 → 69 → **31/307**), the strategy correctly
+decides to **switch it out**, and the party-menu switch is what hangs.
+
+**⇒ ⭐ WHY THIS SURFACED ONLY NOW, AND IT IS NOT THE GRIND'S FAULT: THE L60 PARTY *EXPOSED* THE BUG BY
+SURVIVING LONG ENOUGH TO ATTEMPT A SWITCH.** At L47 the chain lost or ended before a rotate was ever
+reached. ⇒ **levelling did not break anything; it advanced the run into code that was already broken.**
+‼ That is the general shape worth remembering: *making the bot stronger moves the failure, it does not
+remove it* — every level gained reaches states no drive has ever executed.
+
+**⭐ PRIME SUSPECT, AND IT IS A HYPOTHESIS, NOT A MEASUREMENT — `map_battle_party_index`:**
+`battle_action_selection.py:582` computes `in_battle_index = battle_state.map_battle_party_index(index)`
+and `:589` scrolls to THAT entry before mashing A. **That is an INDEX-SPACE CONVERSION, and this
+codebase has had THREE of them wrong in the sibling faint chooser (`KI-18`, `KI-34`, `KI-66`) plus a
+fourth filed (`#24-faintchooser-fourthspace`).** If the mapping mis-aims, A lands on an entry the game
+will not accept, the game re-prompts, and the unbounded loop turns a MIS-AIM into a HANG.
+⛔ **DO NOT "FIX" THE MAPPING FROM THIS PARAGRAPH.** `08-MISTAKES.md` is explicit: *when a fix is a
+coordinate conversion, MEASURE ITS DIRECTION FIRST* with an observe-only probe printing both indices
+beside an independently-derived ground truth. Log the requested `index`, the mapped `in_battle_index`,
+the PID/HP of the mon at each, and the on-screen message — then decide.
+
 **⛔ WHAT IS NOT YET MEASURED, AND MUST BE BEFORE A FIX:** *why* the switch is refused. Candidates: the
 target is fainted, is already out, or is the mon the game just asked about. **Instrument it first** —
 log the requested `index`, the mon's PID/HP at that moment, and the on-screen message — exactly the

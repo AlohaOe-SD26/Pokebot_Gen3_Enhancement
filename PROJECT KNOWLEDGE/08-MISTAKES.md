@@ -13782,3 +13782,31 @@ raised" were the same silence. `_checkpoint` now logs on every path, including `
 `⛔ CAPTURE FAILED`, and confirms a write by RE-READING the file's size. *A guard that cannot tell "no"
 from "I broke" is worse than no guard* — the rule `repro_no_silent_except.py` enforces, which I had
 just spent an hour satisfying elsewhere in the same file.
+
+## 2026-09-07 — grinding to L60 "broke" §Ch23's chain, and that framing is wrong in a way worth naming
+
+**Symptom.** §Ch23's chain PASSES at L47-52 (`done=True`, `battles=16`, `whiteouts=0`, 2026-09-05).
+Driven from the new L60 fixture it **wedges** in the in-battle party menu at ~f27k and never reaches
+the League. The obvious reading — *the grind broke the chain* — is false.
+
+**What actually happened.** Production's own `[TURN]` telemetry shows the lead badly poisoned and
+falling 118 → 98 → 69 → **31/307**, at which point the strategy correctly chose `RotateLead` — and the
+switch hung. ✅ A/B'd with the entire `KI-93` change reverted: **the hang reproduces identically**, so
+it is not a regression from that night's work either.
+
+⇒ **At L47 the chain never got that far.** It lost, or ended, before a rotate was ever attempted. The
+stronger party did not introduce a defect; it **survived long enough to execute code no drive had ever
+executed.**
+
+**⭐ PREVENTION RULE — MAKING THE BOT STRONGER MOVES THE FAILURE, IT DOES NOT REMOVE IT.** Every level
+gained, every fix that lets a run continue, pushes execution into paths that have never run. So a
+"regression" that appears immediately after an improvement deserves the A/B **before** the blame: revert
+the improvement and re-drive. If the bug survives the revert, the improvement was the MESSENGER.
+‼ The corollary matters for planning: *a green chain is only green over the states it reached.* §Ch23
+passing at L47 was never evidence that §Ch23 passes — only that it passes when the party is too weak to
+reach the party menu.
+
+**⭐ SECOND RULE — WHEN A LONG-RUNNING IMPROVEMENT LANDS, EXPECT THE NEXT WALL AND BUDGET FOR IT.** I
+priced the grind (30 min) and treated the §Ch24 measurement as the payoff. The real outcome was a new
+blocker (`KI-96`) standing between the two — which is the normal shape of unblocking work, not a
+surprise. Say so in the plan, so a night that ends at a NEW wall reads as progress rather than failure.
