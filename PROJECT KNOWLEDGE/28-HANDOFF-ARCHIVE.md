@@ -8837,3 +8837,62 @@ reason about them.
 > own ✅ markers. ⛔ **A heading is a claim about every entry beneath it**;
 > that exact shape once cost about a day of re-doing finished, gated, promoted work.
 
+---
+
+## §Ch20 — the seven live drives (archived 2026-09-06 from `04-HANDOFF.md`)
+
+Moved verbatim: §Ch20 shipped 2026-08-14 and its per-room recipes are a FINISHED chapter's
+record, not current state. They are kept in full because each `Expect:` block names which
+field of the verdict is load-bearing — knowledge that cost seven live drives to earn.
+⚠ Status when archived: **all PASS except `ch20room9`, which is 2W/1L** (the Archie fight is
+the chain's one stochastic element — see its own note below).
+
+```
+# --- §Ch20, the live drives (SEVEN of them; each ~4-25 min). All PASS as of 2026-08-14,
+#     EXCEPT ch20room9, which is 2W/1L — the Archie fight is stochastic, see its note. ---
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20dive  --frames 900000
+#   Expect: legs=6/6 at_entrance=True got_out=True can_continue=True ACCEPTANCE: PASS
+#   ‼ `got_out` is the one that matters — an underwater cavern is the best place to strand a run.
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room1 --frames 1500000
+#   Expect: in_room1=True ab_before=False ab_after=True smashed=True pushed1=True pushed2=True
+#           in_room2=True can_continue=True   ACCEPTANCE: PASS
+#   ‼ `ab_before=False` is an ASSERTED part of the verdict: if the corridor was already reachable
+#     the run proved nothing about the puzzle. A one-armed pass here would be meaningless.
+# ⛔ THE THREE Expect: BLOCKS BELOW WERE ATTACHED TO THE WRONG COMMANDS until 2026-08-13 (the
+#   fault note even carried ch20room2's PASS line). Each now sits DIRECTLY under its own command.
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room2 --frames 2000000
+#   Expect: room1_ok=True m1=False m2=False m3=True pushes=3/3 in_room6=True can_continue=True
+#   ‼ It RE-SOLVES ROOM 1 from scratch first (FLAG_TEMP_* objects respawn on every map load), so
+#     a ch20room2 PASS is also a Room 1 PASS. `m2=False` is the arm that matters: it attributes
+#     the opening to the PUSHES rather than to the Rock Smash.
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room6 --frames 2500000
+#   Expect: room2_ok=True crossed=True in_room3=True room3_walk=True can_continue=True
+#   ‼ `crossed` is THE FIRST EXECUTED CURRENT CROSSING here. `room3_walk` re-confirms LIVE that
+#     Room 3 is crossable PUSH-FREE and that the line enters the trainer sight tile (6,5).
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room3 --frames 3000000
+#   Expect: crossed=True usable=6 battles=1 saw_double=True in_room8=True can_continue=True
+#   ‼ `saw_double` is REPORTED, NOT GRADED — grading a decomp claim would turn "we learned the
+#     claim was wrong" into "the run failed". ‼ `battles` counts ROOM 3 only: counting run-wide
+#     once printed a false REFUTED over data that CONFIRMED it (the Room 1 grunt fights every run).
+# ‼ FAULT INJECTION: POKEBOT_CH20_FAULT=room1 forces the Room 1 solve to fail, so the drivers'
+#   FAILURE branch can be exercised on demand.
+#   Expect: RESULT … in_room2=False can_continue=False and a clean `ACCEPTANCE: FAIL` — ‼ a run
+#   in fault mode that prints ACCEPTANCE: PASS, or no ACCEPTANCE at all, is the DEFECT.
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room8 --frames 4000000
+#   Expect: room3_ok=True pushes=9/9 attempts=1 recovered=False exit_path=True in_room9=True
+#           can_continue=True   ACCEPTANCE: PASS
+#   ‼ Step 9 faces LEFT. A boulder pushed north from (5,4) lands on (5,3) and PERMANENTLY
+#     seals the only route to the (5,2) exit.
+#   FAULT: POKEBOT_CH20_FAULT=room8 abandons attempt 1 before push 5 to EXERCISE the
+#     jam-recovery handler. Expect: attempts=2 recovered=True and still ACCEPTANCE: PASS.
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver ch20room9 --frames 6000000
+#   Expect: rooms_ok=True triggered=True battles_r9=1 kyogre_flag=True var2=True landed=True
+#           escaped=True ocean_path=True can_continue=True   ACCEPTANCE: PASS
+#   ‼ 2W/1L: the ARCHIE fight is the chain's one stochastic element. A LOST run prints NO
+#     RESULT AND CANNOT — the whiteout drops to Manual and the generator is abandoned. The
+#     `PRE-ARCHIE PARTY` HP line is the loss's attribution record; grade a silent transcript
+#     by its presence.
+PYTHONUTF8=1 py -3.12 probe_route128_landing.py     # §Ch20's EXIT: 9/9, the atoll is real
+#   ‼ The landing tile has ZERO surfable neighbours, so a naive "Surf from where you land" reads
+#     as a HUNG LEG, not a failure. (§Ch20's exit leg is built; this stays as the trap it names.)
+```
