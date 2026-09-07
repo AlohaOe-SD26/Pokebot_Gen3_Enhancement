@@ -23543,3 +23543,40 @@ shape). `GRIND_CAPTURE` is opt-in and **refuses to overwrite an existing fixture
 
 Files: `tools/story-dev/story_harness.py` (new `Ch24GrindMode` + dispatch + `--driver` choice),
 `PROJECT KNOWLEDGE/{06,07,29}`, `ai-research-notes/2026-09-07-emulator-throughput-MEASURED.md`.
+
+## 2026-09-07 — THE L60 PARTY, and the discovery that levelling is NOT sufficient
+
+**Three commits shipped without an entry here and this covers all three** (`c5125f17` the capture fix,
+`debb9812` the L60 party, `664b3e0c` `KI-96`). A Tier 2 cold-start audit caught the gap: Definition of
+Done step 3 was skipped three times in one night, which is exactly how a changelog stops being the
+place a resumer can trust.
+
+**✅ THE L60 PARTY EXISTS AND IS PINNED.** `--driver ch24grind` from `post_training.ss1`: all four
+battlers **L47/51 → L60**, **623 battles, 0 whiteouts**, 1782 s (~30 min) at the measured 1032 f/s.
+`post_grind_L60.ss1` is PINNED (`md5 69ac95c6e05a25a5206e8cac6ce0a964`) and **verified by RELOADING the
+file** — `badges=12345678`, `VICTORY_ROAD_1F (15,39)`, HP 984/992 — not by trusting the driver's log.
+A checkpoint ladder `post_grind_L49/51/53/55/57/59.ss1` (odd levels; the grind steps 2 at a time) means
+nobody re-grinds. ‼ `post_grind_FINAL.ss1` was byte-identical to L60 and was DELETED rather than
+committed twice.
+
+**⛔ THE CAPTURE BUG THAT COST A WHOLE GRIND.** The FIRST L60 run finished perfectly and wrote NOTHING:
+the capture raised `NameError: pathlib` (this harness imports `Path`, not the module) AFTER the
+ACCEPTANCE line, so the run printed PASS, exited 0, and 30 minutes of levels died with the process.
+Fixed four ways — `Path`; a checkpoint after EVERY step; an UNCONDITIONAL log on every path
+(`NOT REQUESTED` / `✅ CAPTURED` / `⛔ CAPTURE FAILED`); and the write confirmed by re-reading the file
+size. ⭐ **The rule it bought: validate the path that KEEPS the result, not only the path that produces
+it** — my careful L49 rehearsal had run with the capture flag unset.
+
+**⛔⛔ AND THE HEADLINE FINDING: LEVELLING ALONE DOES NOT UNBLOCK §Ch24 — `KI-96`.** Driving §Ch23's
+chain with the L60 party WEDGES in the in-battle party menu at ~f27k, long before the League door.
+`battle_action_selection.py:590-592` is an unbounded `while PARTY_MENU: press A` with no check that the
+switch was ACCEPTED; production's own `[TURN]` telemetry shows the trigger — a badly-poisoned lead
+falling 118 → 98 → 69 → **31/307**, at which point the strategy correctly chose `RotateLead`.
+✅ **A/B'd as PRE-EXISTING** (the entire `KI-93` change reverted → the hang reproduces identically), and
+the edge-trigger theory is RULED OUT (`press_button` auto-releases, `libmgba.py:471`).
+⭐ **The L60 party did not break the chain — it SURVIVED long enough to execute code no drive had ever
+reached.** At L47 the chain lost or ended before a rotate was attempted.
+‼ The same loop exists in `custom-pokebot/modules/battle_action_selection.py` — `KI-96` is in BOTH forks.
+
+Files: `tools/story-dev/story_harness.py`, `tools/story-dev/saves/post_grind_L*.ss1`,
+`tools/story-dev/saves/FIXTURES.md5`, `PROJECT KNOWLEDGE/{04,05,06,08,29}`.

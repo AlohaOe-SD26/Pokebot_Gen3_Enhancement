@@ -2653,8 +2653,13 @@ argument and the A/B. It is also in `07-CHANGELOG.md` 2026-09-06/07. Kept here, 
 are the only parts still LIVE:
 
 **The result in one line:** `KI-47` battle-handler stops **3-6 → 0**, `SelectingTormentedMove`
-**→ 0**, and ⭐⭐ **the bot BEATS SIDNEY** (`f35237 outcome=BattleOutcome.Won`, then
-`SetAdvanceToNextRoomMetatiles` — the door to Phoebe opens). **§Ch24 FIGHT 1 IS WON.**
+**→ 0**, and ⭐⭐ **the bot BEATS SIDNEY** — `outcome=BattleOutcome.Won`. **§Ch24 FIGHT 1 IS WON.**
+
+⚠⚠ **AND IT WON ON ITS LAST POKÉMON — FIVE OF SIX FAINTED.** At the win the party read `Sceptile 0/147, Zigzagoon 0/48, Swellow 0/139, Mightyena 0/144, Castform 0/103` with only **`Wailord L47 226/226`** standing, after **20 faint-chooser events**. ⇒ *"the bot beats Sidney"* is true and **materially weaker than it sounds**: it is a survival-by-one-mon win on the UNDER-PREPARED `post_league_shop` party that `KI-94` says invalidates §Ch24 measurements. A Tier 2 cold-start audit caught this stated without its survivor count. ‼ It also CONFIRMS the level story: at L47-53 fight 1 is barely survivable, which is exactly why the L60 grind was worth doing.
+
+‼ **CITE THE LOG WITH THE FRAME.** The win is `f35237` in the HARNESS log (`ki93_fix5_drive.log`, relative frames) and `f4351983` in the DEBUG log (`Story-debug-20260906-235815.log`, absolute frames). A Tier 2 auditor grepped `f35237` in the debug log, found nothing, and reasonably suspected a fabricated citation. **A frame number without its log is not a citation.**
+
+⚠ **AND THE "DOOR TO PHOEBE OPENS" CLAIM IS AN INFERENCE, NOT A WALK.** `PokemonLeague_EliteFour_SetAdvanceToNextRoomMetatiles` appears ONCE in the harness log's script list — the game queued the metatile change. **The bot never walked through**: the probe has no "advance to the next room" behaviour and parked in the defeat dialogue. Fights 2-5 remain UNDRIVEN.
 Graded by `grade_ki93_drive.py` (C0-C3 PASS, exit 0); ordinary-case A/B byte-identical.
 
 **The fix, in one line:** a dismiss gated on `get_text_printer(0).state == WaitForButton`

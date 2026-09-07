@@ -9334,3 +9334,50 @@ POKEBOT_BOXCOUNTER_TYPEONLY_A=1 PYTHONUTF8=1 py -3.12 story_harness.py fortree_g
 #   ‼ Stage 2 SUBCLASSES Stage 1, so each run re-proves Stage 1 first — read the STAGE-1 GATE line.
 #   ⛔ The gym leg is OFF by default and REPORTED-NOT-GRADED: POKEBOT_BOXCOUNTER2_GYM=1 enables it.
 ```
+
+---
+
+## KI-80 — the counter-ladder gate recipe (archived 2026-09-07)
+
+Moved out of `04-HANDOFF.md` for its line budget. The check itself is **gate #13**
+(`repro_boss_grass_gate.py`) and runs on every suite, so this hand recipe is history.
+Kept verbatim because it records the THREE ARMS and the exact anchor they need.
+
+```
+# --- KI-80 — the counter-ladder gate, THREE arms in ONE run. ~40s. ⛔ ANCHOR MUST BE THIS SAVE:
+#     it is NO_ANSWER (condition 7) AND team_max 28 <= wild_max 27 + 8 (condition 9). Both named
+#     alternatives FAIL one of those: `fortree_gym_wedge` has a credible answer (Castform scores
+#     160 >= 75), and `ch13_fortree_door` has team_max 39, which makes the A/B VACUOUS.
+PYTHONUTF8=1 py -3.12 story_harness.py batch2_run04_wedge.ss1 --driver ki80ladder --frames 2000
+#   ⛔ EXPECT `ACCEPTANCE: FAIL` — AND THAT IS THE HEALTHY ANSWER SINCE THE FIX SHIPPED.
+#     This command grades the OLD, COUPLED expectation, so GRASS_STRONG now correctly reads
+#     `-> LADDER expected PLAIN_ESCALATION`. Its FAIL is what PROVES the decoupling changed
+#     behaviour. ‼ It said "Expect ... ACCEPTANCE: PASS" until 2026-08-16 and was inverted by the
+#     fix — a cold-start audit caught it grading a healthy tree as broken.
+#   ‼ THE DRIVER EXITS 0 EVEN ON FAIL — it is a harness driver, not a gate. GRADE THE
+#     `ACCEPTANCE:` LINE, never `$?`. Grep with `grep "ki80ladder]"`.
+POKEBOT_KI80_ARM4=1 PYTHONUTF8=1 py -3.12 story_harness.py fortree_gym_wedge.ss1 --driver ki80ladder --frames 2000
+#   ⛔ ARM 4 — THE MIRROR-REGRESSION GUARD. Run BEFORE and AFTER the decoupling; must PASS both
+#     times (OUTCOME=PLAIN_ESCALATION). Needs THIS save (HAS_ANSWER); the driver FAILS by name
+#     on the wrong one, because arms 1-3's save cannot reach the `:1925` line it watches.
+POKEBOT_KI80_DECOUPLED=1 PYTHONUTF8=1 py -3.12 story_harness.py batch2_run04_wedge.ss1 --driver ki80ladder --frames 2000
+#   ✅ THE AFTER RUN, AND IT NOW PASSES — the ladder IS decoupled (2026-08-16). All three arms
+#     reach LADDER. ‼ It said "Expect FAIL TODAY" until the fix shipped; seeing PASS is correct and
+#     is NOT a sign the discriminator stopped discriminating. The proof that it still discriminates
+#     is the command ABOVE, which correctly FAILS against the old expectation.
+#   Fault-test kept for reference — the VACUOUS fixture this file once prescribed:
+#     PYTHONUTF8=1 py -3.12 story_harness.py ch13_fortree_door.ss1 --driver ki80ladder --frames 2000
+#     -> `ACCEPTANCE: FAIL … THE A/B WOULD BE VACUOUS`, and ALL THREE arms come back LADDER.
+#   Transcripts: tools/story-dev/evidence/2026-08-15-ki80ladder-*.stdout.txt
+
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver boxwrite --frames 200000
+PYTHONUTF8=1 py -3.12 probe_box_contents.py ch13_fortree_door.ss1
+#   READ-ONLY dump of EVERY box + party slot: species, level, PID, types, full moves, and per mon
+#   `type_match`/`move_match` against NEEDED. Takes any save name (defaults to ch13_fortree_door).
+#   ‼ This is what turned "the anchor's box might matter" into a measurement: it found the boxed
+#   Castform whose Powder Snow (Ice) qualifies it as a counter, sitting AHEAD of any injected mon.
+PYTHONUTF8=1 py -3.12 story_harness.py ch13_fortree_door.ss1 --driver partypids --frames 200000
+#   READ-ONLY identity dump (party + box: species, level, PID) — flags shared PIDs. On this save
+#   it prints the REAL KI-78 twin pair: Shedinja L30 and Ninjask L29 both pid=42207D6F.
+#   Proves `debug_write_box_slot` writes a box slot the PRODUCTION reader can read. ACCEPTANCE: PASS.
+```
