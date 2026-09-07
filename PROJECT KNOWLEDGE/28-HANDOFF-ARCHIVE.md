@@ -9217,3 +9217,120 @@ the wait branch and the committed-slot path that EVERY battle executes.
 
 
 ---
+
+---
+
+## `KI-93` — the full resolution evidence (archived 2026-09-07)
+
+Archived once the fix shipped and was graded clean. Kept in full because it is the
+template `KI-96` should copy: gate on the game's own state rather than a frame count,
+key the memory on the Pokémon rather than the slot, and grade the drive by its
+SEQUENCE rather than its totals.
+
+### ✅ 2026-09-06 — FIXED, RE-DRIVEN, AND GRADED CLEAN BY A FAULT-PROVEN INSTRUMENT. ⛔ NOT PROMOTED.
+
+**The bot now fights Sidney to a conclusion.** Same repro, same fixture
+(`post_league_shop.ss1 --driver ch24probe --frames 200000`):
+
+⛔⛔ **EVERY NUMBER BELOW IS LABELLED WITH THE DRIVE THAT PRODUCED IT.** An earlier version of this
+table mixed two runs — it printed the SUPERSEDED drive's loss under the FINAL drive's heading, and a
+Tier 1 reviewer caught it. *(SESSION DISCIPLINE #7/#8: say which run a number came from.)*
+
+| | before the fix | `234031` — first fix, DEFECTIVE | ✅ `235815` — FINAL, the graded drive |
+|---|---|---|---|
+| `KI-47` battle sub-handler stops | 3-6 per run | 0 | **0** |
+| `SelectingTormentedMove` in the run log | the run ends on it | 0 | **0** |
+| unjustified re-picks (grader C2) | n/a | **RED** — a fainted mon's vetoes reached its replacement | ✅ **0** |
+| battle outcome | never reached — Manual at ~f18k | `BattleOutcome.Lost` at f38534, then a whiteout | ⭐ **`BattleOutcome.Won` at f35237** |
+
+⭐⭐ **THE BOT NOW BEATS SIDNEY.** `f35237: outcome=BattleOutcome.Won`, `bt='NICK got $4900 for
+winning!'`, and the game runs `EverGrandeCity_SidneysRoom_EventScript_Defeated` +
+`PokemonLeague_EliteFour_SetAdvanceToNextRoomMetatiles` — the door to Phoebe opens. **§Ch24 FIGHT 1 IS
+WON.**
+‼ **And the two drives are deterministic from the same save**, so the only variable is the code ⇒ the
+stale vetoes were not merely cosmetic: they forced bad moves and plausibly cost that battle. That is a
+strong inference from a matched pair, not a controlled experiment — labelled as such.
+
+⛔⛔ **RETRACTED — THIS PARAGRAPH SAID "It LOST the fight" AND THAT WAS THE OTHER DRIVE.** The final
+run **WON**. The loss belongs to `234031`, the defective first fix.
+
+‼ **WHAT IS NOW UNPROVEN, AND MUST NOT BE ASSERTED EITHER WAY:** *"the bot loses the Elite Four on
+levels"* has **never been driven on the current code**. The only drive of the current code won fight 1
+and stopped there. The party is L48-53 and the simulation says ~L60 is needed for Glacia (fight 3), so
+the level gap is still the expected wall — **but that is a SIMULATION result, not a drive**, and this
+entry no longer claims otherwise.
+‼ The run's remaining stall is `Ch24ProbeMode.run` **in Sidney's room at (6,6) AFTER THE WIN** —
+`DUMP [STUCK — 18300 frames no progress]`, because the probe has no "advance to the next room"
+behaviour. A driver limitation, not this bug: `grep -c 'battle sub-handler'` is **0**.
+
+**All three mechanisms fired** (`POKEBOT_KI93_CENSUS=1`): `DISMISS 12`, `REPICK 26`, `RESET 3`, and the
+refused set now ROTATES (`{2}`, `{0,2}`, `{1,3}`, `{0,1,3}` …) instead of filling:
+```
+[KI93-REPICK] battler=0 slot 2 was REFUSED -> 0
+[KI93-REPICK] battler=0 slot 2 was REFUSED -> 1
+[KI93-REPICK] battler=0 slot 2 was REFUSED -> 3
+```
+
+**THE FIX, BOTH HALVES** (`modules/battle_action_selection.py`):
+* **(a) DISMISS, GATED ON THE PRINTER'S OWN STATE.** The `CompleteOnInactiveTextPrinter*` branch was a
+  bare `yield; continue`. A message ending in `\p` parks the printer in `RENDER_STATE_CLEAR` awaiting
+  an EDGE-TRIGGERED `JOY_NEW(A|B)`, and `gTextFlags.autoScroll` is FALSE outside link battles ⇒ **no
+  timeout, ever.** It now presses **B** on one frame in twelve while
+  `get_text_printer(0).state == TextPrinterState.WaitForButton`.
+  ⛔ **Never gate this on a frame count** — a press delivered while glyphs are still printing is eaten
+  as a text speed-up and is not the dismissal press. The printer state is the only honest signal, and
+  `modules/modes/_listeners.py:168-170` already used exactly this test.
+  ⭐ **B, not A:** `gMoveSelectionCursor` is NOT reset when the menu re-opens, so a stray A re-commits
+  the very move that was refused; a stray B falls back to the action menu, where B is inert in a
+  single battle.
+* **(b) DO NOT RE-SUBMIT A REFUSED SLOT.** Dismissing alone only converts the hang into a livelock —
+  the engine returns to `STATE_WAIT_ACTION_CHOSEN` and re-emits `CHOOSEMOVE`. `_ki93_refused_slots` is
+  **MODULE-LEVEL**, because the census measured the handler being RE-ENTERED five times per refusal
+  episode; a function-local (the design this entry carried for a day) is destroyed between every pick.
+
+**⭐⭐ IT IS A CLASS FIX, NOT A TORMENT FIX.** 61 battle strings end in `\p`; every one of them would
+have hung in that branch. The refusal vocabulary covers Torment, Disable, Taunt, Imprison,
+Choice-lock and no-PP (`KI93_SELECTION_REFUSAL_SCRIPTS`).
+
+**ORDINARY-CASE A/B (the correct instrument here, unlike `KI-95`):** this change touches the wait
+branch and the committed-slot path that EVERY battle executes, so the decision sequence must be
+unchanged.
+✅ **BYTE-IDENTICAL** (first arm, before the identity fix): 9 decisions, md5 `fd23c131a39df57fde5130791772fa7a`.
+
+**RE-RUN AFTER THE IDENTITY FIX** (the code changed, so the earlier arm no longer describes it): ✅ **BYTE-IDENTICAL.** `post_return.ss1 --driver ch23exit --frames 120000`, 9 decisions, every one `(TurnAction.UseMove, 1)`, md5 `fd23c131a39df57fde5130791772fa7a` on BOTH arms (baseline captured before the fix; after-arm captured 2026-09-06 with it). ‼ **That proves HARMLESSNESS, never efficacy** — efficacy is the drive above, and the two are separate claims.
+
+**⭐ THE ADDITIVE ARGUMENT:** the press fires only when the printer reports `WaitForButton`. Ordinary
+battle messages auto-advance and never enter that state, so in a normal battle the new code is inert.
+
+---
+
+## (P4) STAGE 1 + STAGE 2 — the Slugma/Winona box-counter drives (archived 2026-09-07)
+
+Moved out of `04-HANDOFF.md` for its line budget. The work CLOSED 2026-08-15 with all
+four cells passing on both forks. Kept verbatim because each arm records WHICH
+expectation it is graded against — `pid_match` means "matched THIS ARM's expectation",
+so both arms PASS when the code is correct.
+
+```
+# --- (P4) STAGE 1 — the Slugma/Winona bug, live, BOTH ARMS. Needs a ROM; ~3 min each. ---
+PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver boxcounter --frames 200000
+#   ARM B (this command, hook unset): expect `-> <pid>` and ACCEPTANCE: PASS.
+POKEBOT_BOXCOUNTER_TYPEONLY_A=1 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver boxcounter --frames 200000
+#   ARM A (pre-fix): expect `-> None` and ACCEPTANCE: PASS — its expectation IS None.
+#   ‼ BOTH ARMS PASS when the code is correct; `pid_match` means "matched THIS ARM's expectation".
+#   ‼ Grade by `grep "boxcounter]"` — a driver that throws at f0 still produces a clean [done] line.
+
+# --- (P4) STAGE 2 — the REAL heal collects the counter. ~4 min each. ⛔ ANCHOR IS THE GYM WEDGE:
+#     `ch13_fortree_door.ss1` is on ROUTE120, which `calculate_path` reads as a WALL (KI-24), and
+#     the run dies on its first leg with "Cannot reach FORTREE_CITY". This is measured, not feared.
+PYTHONUTF8=1 py -3.12 story_harness.py fortree_gym_wedge.ss1 --driver boxcounter2 --frames 400000
+#   ARM B: expect moved=True knows_rock_throw=True lead_is_counter=True noop_attributed=True,
+#          ACCEPTANCE: PASS. Production prints `depositing Skitty L17` to make room — that deposit
+#          is REPORTED, never graded.
+POKEBOT_BOXCOUNTER_TYPEONLY_A=1 PYTHONUTF8=1 py -3.12 story_harness.py fortree_gym_wedge.ss1 --driver boxcounter2 --frames 400000
+#   ARM A (the user's derail, reproduced): expect _hunted_counter_pids=[] and
+#          still_boxed=True not_in_party=True, ACCEPTANCE: PASS — and NO deposit at all.
+#   Add `--build custom` to either for the other fork (all four cells pass as of 2026-08-15).
+#   ‼ Stage 2 SUBCLASSES Stage 1, so each run re-proves Stage 1 first — read the STAGE-1 GATE line.
+#   ⛔ The gym leg is OFF by default and REPORTED-NOT-GRADED: POKEBOT_BOXCOUNTER2_GYM=1 enables it.
+```

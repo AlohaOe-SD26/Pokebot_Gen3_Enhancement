@@ -2645,81 +2645,25 @@ guarantees; **61 battle strings end in `\p`** and every one hung identically.
 the refusal memory must be MODULE-LEVEL. The design this entry carried for a day put it in a
 function-local and could never have worked — and nothing in the text signalled that.
 
-### ✅ 2026-09-06 — FIXED, RE-DRIVEN, AND GRADED CLEAN BY A FAULT-PROVEN INSTRUMENT. ⛔ NOT PROMOTED.
+### ✅ 2026-09-06/07 — FIXED, RE-DRIVEN, GRADED CLEAN BY A FAULT-PROVEN INSTRUMENT. ⛔ NOT PROMOTED.
 
-**The bot now fights Sidney to a conclusion.** Same repro, same fixture
-(`post_league_shop.ss1 --driver ch24probe --frames 200000`):
+📦 **The full evidence block is ARCHIVED** → `28-HANDOFF-ARCHIVE.md` (2026-09-07): the
+before/after table labelled per drive, the mechanism, the class-fix argument, the additive
+argument and the A/B. It is also in `07-CHANGELOG.md` 2026-09-06/07. Kept here, because these
+are the only parts still LIVE:
 
-⛔⛔ **EVERY NUMBER BELOW IS LABELLED WITH THE DRIVE THAT PRODUCED IT.** An earlier version of this
-table mixed two runs — it printed the SUPERSEDED drive's loss under the FINAL drive's heading, and a
-Tier 1 reviewer caught it. *(SESSION DISCIPLINE #7/#8: say which run a number came from.)*
+**The result in one line:** `KI-47` battle-handler stops **3-6 → 0**, `SelectingTormentedMove`
+**→ 0**, and ⭐⭐ **the bot BEATS SIDNEY** (`f35237 outcome=BattleOutcome.Won`, then
+`SetAdvanceToNextRoomMetatiles` — the door to Phoebe opens). **§Ch24 FIGHT 1 IS WON.**
+Graded by `grade_ki93_drive.py` (C0-C3 PASS, exit 0); ordinary-case A/B byte-identical.
 
-| | before the fix | `234031` — first fix, DEFECTIVE | ✅ `235815` — FINAL, the graded drive |
-|---|---|---|---|
-| `KI-47` battle sub-handler stops | 3-6 per run | 0 | **0** |
-| `SelectingTormentedMove` in the run log | the run ends on it | 0 | **0** |
-| unjustified re-picks (grader C2) | n/a | **RED** — a fainted mon's vetoes reached its replacement | ✅ **0** |
-| battle outcome | never reached — Manual at ~f18k | `BattleOutcome.Lost` at f38534, then a whiteout | ⭐ **`BattleOutcome.Won` at f35237** |
+**The fix, in one line:** a dismiss gated on `get_text_printer(0).state == WaitForButton`
+(never a frame count — a press during glyph printing is eaten as a speed-up), plus a refusal
+memory keyed on `personality_value` that expires when a turn executes. **It is a CLASS fix:
+61 battle strings end in `\p`.**
 
-⭐⭐ **THE BOT NOW BEATS SIDNEY.** `f35237: outcome=BattleOutcome.Won`, `bt='NICK got $4900 for
-winning!'`, and the game runs `EverGrandeCity_SidneysRoom_EventScript_Defeated` +
-`PokemonLeague_EliteFour_SetAdvanceToNextRoomMetatiles` — the door to Phoebe opens. **§Ch24 FIGHT 1 IS
-WON.**
-‼ **And the two drives are deterministic from the same save**, so the only variable is the code ⇒ the
-stale vetoes were not merely cosmetic: they forced bad moves and plausibly cost that battle. That is a
-strong inference from a matched pair, not a controlled experiment — labelled as such.
-
-⛔⛔ **RETRACTED — THIS PARAGRAPH SAID "It LOST the fight" AND THAT WAS THE OTHER DRIVE.** The final
-run **WON**. The loss belongs to `234031`, the defective first fix.
-
-‼ **WHAT IS NOW UNPROVEN, AND MUST NOT BE ASSERTED EITHER WAY:** *"the bot loses the Elite Four on
-levels"* has **never been driven on the current code**. The only drive of the current code won fight 1
-and stopped there. The party is L48-53 and the simulation says ~L60 is needed for Glacia (fight 3), so
-the level gap is still the expected wall — **but that is a SIMULATION result, not a drive**, and this
-entry no longer claims otherwise.
-‼ The run's remaining stall is `Ch24ProbeMode.run` **in Sidney's room at (6,6) AFTER THE WIN** —
-`DUMP [STUCK — 18300 frames no progress]`, because the probe has no "advance to the next room"
-behaviour. A driver limitation, not this bug: `grep -c 'battle sub-handler'` is **0**.
-
-**All three mechanisms fired** (`POKEBOT_KI93_CENSUS=1`): `DISMISS 12`, `REPICK 26`, `RESET 3`, and the
-refused set now ROTATES (`{2}`, `{0,2}`, `{1,3}`, `{0,1,3}` …) instead of filling:
-```
-[KI93-REPICK] battler=0 slot 2 was REFUSED -> 0
-[KI93-REPICK] battler=0 slot 2 was REFUSED -> 1
-[KI93-REPICK] battler=0 slot 2 was REFUSED -> 3
-```
-
-**THE FIX, BOTH HALVES** (`modules/battle_action_selection.py`):
-* **(a) DISMISS, GATED ON THE PRINTER'S OWN STATE.** The `CompleteOnInactiveTextPrinter*` branch was a
-  bare `yield; continue`. A message ending in `\p` parks the printer in `RENDER_STATE_CLEAR` awaiting
-  an EDGE-TRIGGERED `JOY_NEW(A|B)`, and `gTextFlags.autoScroll` is FALSE outside link battles ⇒ **no
-  timeout, ever.** It now presses **B** on one frame in twelve while
-  `get_text_printer(0).state == TextPrinterState.WaitForButton`.
-  ⛔ **Never gate this on a frame count** — a press delivered while glyphs are still printing is eaten
-  as a text speed-up and is not the dismissal press. The printer state is the only honest signal, and
-  `modules/modes/_listeners.py:168-170` already used exactly this test.
-  ⭐ **B, not A:** `gMoveSelectionCursor` is NOT reset when the menu re-opens, so a stray A re-commits
-  the very move that was refused; a stray B falls back to the action menu, where B is inert in a
-  single battle.
-* **(b) DO NOT RE-SUBMIT A REFUSED SLOT.** Dismissing alone only converts the hang into a livelock —
-  the engine returns to `STATE_WAIT_ACTION_CHOSEN` and re-emits `CHOOSEMOVE`. `_ki93_refused_slots` is
-  **MODULE-LEVEL**, because the census measured the handler being RE-ENTERED five times per refusal
-  episode; a function-local (the design this entry carried for a day) is destroyed between every pick.
-
-**⭐⭐ IT IS A CLASS FIX, NOT A TORMENT FIX.** 61 battle strings end in `\p`; every one of them would
-have hung in that branch. The refusal vocabulary covers Torment, Disable, Taunt, Imprison,
-Choice-lock and no-PP (`KI93_SELECTION_REFUSAL_SCRIPTS`).
-
-**ORDINARY-CASE A/B (the correct instrument here, unlike `KI-95`):** this change touches the wait
-branch and the committed-slot path that EVERY battle executes, so the decision sequence must be
-unchanged.
-✅ **BYTE-IDENTICAL** (first arm, before the identity fix): 9 decisions, md5 `fd23c131a39df57fde5130791772fa7a`.
-
-**RE-RUN AFTER THE IDENTITY FIX** (the code changed, so the earlier arm no longer describes it): ✅ **BYTE-IDENTICAL.** `post_return.ss1 --driver ch23exit --frames 120000`, 9 decisions, every one `(TurnAction.UseMove, 1)`, md5 `fd23c131a39df57fde5130791772fa7a` on BOTH arms (baseline captured before the fix; after-arm captured 2026-09-06 with it). ‼ **That proves HARMLESSNESS, never efficacy** — efficacy is the drive above, and the two are separate claims.
-
-**⭐ THE ADDITIVE ARGUMENT:** the press fires only when the printer reports `WaitForButton`. Ordinary
-battle messages auto-advance and never enter that state, so in a normal battle the new code is inert.
-
+‼ **`KI-96` IS THE SAME CLASS, STILL OPEN** — the in-battle PARTY-MENU switch is another of
+`KI-47`'s unbounded loops, and it now blocks the L60 party from reaching the League.
 
 ### ⛔⛔ 2026-09-06, SAME NIGHT — AN INDEPENDENT REVIEWER FOUND A REAL DEFECT IN THIS FIX. ✅ FIXED AND RE-DRIVEN CLEAN (see the grade below).
 
@@ -2801,6 +2745,63 @@ Pokémon**, and would have leaked across battles.
   is harmless there is reasoned, not measured.
 
 **Status:** sandbox only. `custom-pokebot/` still hangs on Torment. **Promotion is the user's call.**
+## `KI-96` — ⛔ THE IN-BATTLE PARTY-MENU SWITCH IS AN UNBOUNDED `while PARTY_MENU: press A`, AND IT WEDGES §Ch23'S CHAIN AT L60 (2026-09-07, MEASURED, A/B'd AS PRE-EXISTING, OPEN)
+
+**⭐⭐ WHY IT MATTERS RIGHT NOW: LEVELLING ALONE DOES NOT UNBLOCK §Ch24.** The L60 party
+(`post_grind_L60.ss1`) cannot complete §Ch23's chain — it wedges here long before the League door, so
+the §Ch24 measurement this fixture was built for is BLOCKED on this, not on levels.
+
+**THE CODE** — `modules/battle_action_selection.py:590-592`, the `TurnAction.RotateLead` arm:
+```python
+yield from scroll_to_party_menu_index(in_battle_index)
+while get_game_state() == GameState.PARTY_MENU:
+    context.emulator.press_button("A")
+    yield
+```
+No bound, no escape, no check that the switch was ACCEPTED. If the game refuses the chosen mon it
+returns to the party menu, the state stays `PARTY_MENU`, and this presses A for ever.
+
+**MEASURED** — `--driver ch23chapter` from `post_grind_L60.ss1`:
+```
+f26951 *** BotModeError -> Manual: KI-47: battle sub-handler 'handle_battle_action_selection' ran
+       3001 frames with no battle progress (frozen at ('BattleScript_DoTurnDmgEnd',
+       'HandleTurnActionSelectionState', ...))
+f28153 !!! NO-PROGRESS x1200  state=PARTY_MENU  bt='What will DIVER do?'
+       tasks=['Task_ReturnToChooseMonAfterText', 'Task_PrintAndWaitForText']
+       scripts=['EventScript_DoTrainerBattle']
+f46953 HANG CONFIRMED (20000 frames no progress)
+```
+`Task_ReturnToChooseMonAfterText` is the game saying *"I printed a message and put you BACK in the
+party menu"* — i.e. **the switch was REJECTED**, and we answered by pressing A again.
+
+**✅ A/B — IT IS PRE-EXISTING, NOT A `KI-93` REGRESSION.** Same fixture, same driver, with the entire
+`KI-93` change reverted to `a662f51a~1` (546 lines vs 848): the hang **reproduces identically** — one
+`KI-47` battle sub-handler stop, same `state=PARTY_MENU` wedge. ⇒ *the arm with the change removed
+still shows the bug*, which is the only currency this project accepts for "not mine".
+
+**⛔ NOT AN EDGE-TRIGGER PROBLEM — CHECKED, SO NOBODY RE-DERIVES IT.** `press_button` auto-releases
+(`libmgba.py:471`: *"if pressed on previous frame it will be released"*), so mashing A yields an edge
+every other frame. The presses ARE landing; **the game is refusing the switch and we keep re-asking.**
+
+**⇒ THIS IS ONE OF `KI-47`'s NAMED UNBOUNDED LOOPS, AND `KI-93` WAS ANOTHER.** The `KI-93` fix
+(shipped 2026-09-07) is the template and it is worth copying rather than re-inventing:
+1. **BOUND the loop** (`KI-93` used ~90 frames for a confirm; a menu switch needs its own measurement).
+2. **DETECT THE REFUSAL FROM THE GAME'S OWN STATE**, never from a frame count — `KI-93` gated on
+   `get_text_printer(0).state == TextPrinterState.WaitForButton`, and the same reader is available here.
+3. **BACK OUT WITH B** rather than pressing A into a menu that keeps saying no, then either pick a
+   different mon or raise a NAMED error into `KI-47`'s existing channel instead of burning 3001 frames.
+4. ⛔ **REMEMBER THE REFUSAL BY POKÉMON (`personality_value`), NEVER BY SLOT** — `KI-93`'s reviewer
+   proved a slot-keyed memory lets a fainted mon's vetoes hit its replacement.
+
+**⛔ WHAT IS NOT YET MEASURED, AND MUST BE BEFORE A FIX:** *why* the switch is refused. Candidates: the
+target is fainted, is already out, or is the mon the game just asked about. **Instrument it first** —
+log the requested `index`, the mon's PID/HP at that moment, and the on-screen message — exactly the
+census that made `KI-93` solvable after four blind attempts. ‼ `KI-93`'s history is the warning: four
+implement-drive-revert cycles, three of them VOID, before one control-lined census named the site.
+
+**Repro:** `PYTHONUTF8=1 py -3.12 story_harness.py post_grind_L60.ss1 --driver ch23chapter --frames 400000`
+(wedges by ~f27k, ~6 min). Stall states are saved under `stalls/`.
+
 ## `KI-94` — ⛔⛔ THE §Ch24 PREP HAS NO COMBINED END-STATE, SO EVERY §Ch24 MEASUREMENT SO FAR USED AN UNDER-PREPARED PARTY (2026-09-06, MEASURED, OPEN — §Ch24 BLOCKER, BIGGER THAN `KI-93`)
 
 **Symptom.** Every §Ch24 probe and all four `KI-93` fix attempts were driven from

@@ -8,7 +8,7 @@ Every banner further down is HISTORY, newest first.
 
 ---
 <!-- OVERNIGHT-RUN 2026-09-06/07 -->
-> ## 🌙 OVERNIGHT RUN, 2026-09-06/07 — TWO ITEMS SHIPPED (⛔ do not rebuild either). `git log` is the truth.
+> ## 🌙 OVERNIGHT RUN, 2026-09-06/07 — THREE ITEMS SHIPPED + THE L60 PARTY (⛔ do not rebuild). `git log` is the truth.
 >
 > 1. ✅ **`KI-95`** — the faint chooser ranked replacements on a bare TYPE MULTIPLIER (a L19 mule
 >    outranked a healthy L48). Now scores EXPECTED DAMAGE via the shipped
@@ -22,10 +22,18 @@ Every banner further down is HISTORY, newest first.
 >    (never on a frame count), and a refusal memory keyed on `personality_value` that expires when a
 >    turn executes. **It is a CLASS fix: 61 battle strings end in `\p`.** Graded by
 >    `grade_ki93_drive.py` (C0-C3 PASS, exit 0); ordinary-case A/B byte-identical.
-> 3. 🔜 **THE GRIND — NOT STARTED, AND DELIBERATELY SO.** See `#24-remainingarc` / the `➡➡➡` marker.
->    Three blockers are documented, one decisive: **emulator throughput is unresolved by ~5×**
->    (`ai-research-notes/2026-09-07-emulator-throughput-MEASURED.md`), which is the difference
->    between a 3-hour and a 12-hour job. ⛔ Calibrate before spending a night on it.
+> 3. ✅ **THE GRIND — DONE. THE PARTY IS AT L60.** `--driver ch24grind` (new: bounded, recovering,
+>    checkpointed) took all four battlers from L47/51 to **L60** — 623 battles, **0 whiteouts**, ~30 min.
+>    **`post_grind_L60.ss1` is PINNED and verified by RELOADING it**, with a ladder
+>    `post_grind_L{49..59}.ss1` so nobody re-grinds. Throughput MEASURED at **1032 f/s**; the docs'
+>    "~5 hours" was emulator-minutes at 60 fps, never converted.
+> 4. ⛔⛔ **AND HERE IS WHERE THE NIGHT STOPPED — `KI-96`. LEVELLING ALONE DOES NOT UNBLOCK §Ch24.**
+>    Driving §Ch23's chain with the L60 party wedges in the in-battle **PARTY MENU**, long before the
+>    League door: `battle_action_selection.py:590-592` is an unbounded `while PARTY_MENU: press A`
+>    with no check that the switch was ACCEPTED. ✅ **A/B'd as PRE-EXISTING** — reverting the entire
+>    `KI-93` change reproduces it identically. ⇒ **`KI-96` IS THE NEXT JOB**, and `KI-93` is its
+>    template: gate on the game's own state (never a frame count), and key any memory on
+>    `personality_value` (never a slot).
 >
 > ⛔ **BOTH FIXES ARE SANDBOX-ONLY — drift is 2 and PROMOTION IS THE USER'S CALL, not given.**
 > **Rules this run bound itself to** (full set + evidence in `08-MISTAKES.md` 2026-09-06/07): sandbox
@@ -744,28 +752,9 @@ PYTHONUTF8=1 py -3.12 probe_abort_swallowing.py --build custom  # KI-81 ratchet:
 #     `28-HANDOFF-ARCHIVE.md` -> "§Ch20 — the seven live drives". ⛔ Still the way to
 #     re-verify §Ch20; nothing was deleted, and §Ch20 remains PASSING as of 2026-08-14.
 
-# --- (P4) STAGE 1 — the Slugma/Winona bug, live, BOTH ARMS. Needs a ROM; ~3 min each. ---
-PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver boxcounter --frames 200000
-#   ARM B (this command, hook unset): expect `-> <pid>` and ACCEPTANCE: PASS.
-POKEBOT_BOXCOUNTER_TYPEONLY_A=1 PYTHONUTF8=1 py -3.12 story_harness.py post_dive.ss1 --driver boxcounter --frames 200000
-#   ARM A (pre-fix): expect `-> None` and ACCEPTANCE: PASS — its expectation IS None.
-#   ‼ BOTH ARMS PASS when the code is correct; `pid_match` means "matched THIS ARM's expectation".
-#   ‼ Grade by `grep "boxcounter]"` — a driver that throws at f0 still produces a clean [done] line.
-
-# --- (P4) STAGE 2 — the REAL heal collects the counter. ~4 min each. ⛔ ANCHOR IS THE GYM WEDGE:
-#     `ch13_fortree_door.ss1` is on ROUTE120, which `calculate_path` reads as a WALL (KI-24), and
-#     the run dies on its first leg with "Cannot reach FORTREE_CITY". This is measured, not feared.
-PYTHONUTF8=1 py -3.12 story_harness.py fortree_gym_wedge.ss1 --driver boxcounter2 --frames 400000
-#   ARM B: expect moved=True knows_rock_throw=True lead_is_counter=True noop_attributed=True,
-#          ACCEPTANCE: PASS. Production prints `depositing Skitty L17` to make room — that deposit
-#          is REPORTED, never graded.
-POKEBOT_BOXCOUNTER_TYPEONLY_A=1 PYTHONUTF8=1 py -3.12 story_harness.py fortree_gym_wedge.ss1 --driver boxcounter2 --frames 400000
-#   ARM A (the user's derail, reproduced): expect _hunted_counter_pids=[] and
-#          still_boxed=True not_in_party=True, ACCEPTANCE: PASS — and NO deposit at all.
-#   Add `--build custom` to either for the other fork (all four cells pass as of 2026-08-15).
-#   ‼ Stage 2 SUBCLASSES Stage 1, so each run re-proves Stage 1 first — read the STAGE-1 GATE line.
-#   ⛔ The gym leg is OFF by default and REPORTED-NOT-GRADED: POKEBOT_BOXCOUNTER2_GYM=1 enables it.
-
+# --- (P4) STAGE 1 + STAGE 2 (the Slugma/Winona box-counter bug) — ARCHIVED 2026-09-07 to
+#     `28-HANDOFF-ARCHIVE.md`. CLOSED 2026-08-15, all four cells passing on both forks; the
+#     recipes and their BOTH-ARMS notes are kept there verbatim. ---
 # --- KI-66 — the faint chooser inside the Steven MULTI battle (2026-08-17) ---
 #   Stages ONE of our own picks at 1 HP so it FAINTS in real combat, then reads production's own
 #   [FAINT-CHOOSER] telemetry. Expect `[ch19b] ACCEPTANCE: PASS`.
