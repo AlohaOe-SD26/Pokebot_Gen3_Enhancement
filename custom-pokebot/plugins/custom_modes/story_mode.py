@@ -115,6 +115,92 @@ class StoryShinyCatchStrategy(StoryCatchStrategy):
         return CatchStrategy.decide_turn(self, battle_state)
 
 
+def rank_replacement(candidates, foe_types, foes, damage_of):
+    """Pick the best replacement after a faint. PURE — no globals, no battle state, no ROM.
+
+    ``candidates``  : ``[(index, mon, mon_types), ...]`` — already filtered for alive/not-excluded.
+    ``foe_types``   : every type on the field, flattened (the DEFENSIVE half's worst case).
+    ``foes``        : the opposing battler objects, passed through to ``damage_of`` untouched.
+    ``damage_of``   : ``(mon, learned_move, foe) -> float | None``. ``None`` means "could not
+                      estimate"; ``0.0`` means "estimated, and it does nothing".
+
+    Returns ``(best_index, report)``. ``report`` carries ``estimates_ok`` / ``estimates_failed`` so the
+    caller can SEE which metric actually decided — ``08-MISTAKES.md``: *an instrument needs a control
+    that must fire*, and a heuristic that silently degrades is the thing that rule exists to catch.
+
+    ⭐ THE KEY IS ``(incoming, -outgoing, -hp_fraction, -level)`` and stays lexicographic, so the
+    DEFENSIVE term still decides first and only ties reach ``outgoing``. Only the METRIC changed:
+    ``outgoing`` was a bare type multiplier (`KI-95`) and is now expected damage.
+    ‼ Because the tuple is lexicographic, the two terms never need to share a scale — which is why
+    swapping a 0-4 multiplier for a 0-300 damage figure is safe rather than a silent re-weighting.
+    """
+    # ---- PASS 1: measure every candidate. Nothing is compared yet. -------------------------------
+    rows, ok, failed = [], 0, 0
+    for index, mon, mon_types in candidates:
+        # Defensive: the worst the foe's STAB can do to this mon (lower = better). UNCHANGED.
+        incoming = 0.0
+        for foe_type in foe_types:
+            multiplier = 1.0
+            for own_type in mon_types:
+                multiplier *= foe_type.get_effectiveness_against(own_type)
+            incoming = max(incoming, multiplier)
+
+        # Offensive, measured BOTH ways: the real damage estimate, and the pre-KI-95 multiplier kept
+        # purely as the fallback. `max` over foes matches the pre-KI-95 semantics exactly.
+        damage, legacy = 0.0, 0.0
+        for learned in mon.moves:
+            if learned is None or learned.pp == 0 or learned.move.base_power == 0:
+                continue
+            for foe in foes:
+                multiplier = 1.0
+                for foe_type in foe.types_for_ranking:
+                    multiplier *= learned.move.type.get_effectiveness_against(foe_type)
+                legacy = max(legacy, multiplier)
+
+                estimate = damage_of(mon, learned, foe.battler)
+                if estimate is None:
+                    failed += 1
+                else:
+                    ok += 1
+                    damage = max(damage, estimate)
+
+        rows.append((index, incoming, damage, legacy,
+                     mon.current_hp / max(1, mon.total_hp), mon.level))
+
+    # ---- PASS 2: ONE metric for the whole ranking, chosen only now that everything is measured. ---
+    # ⛔⛔ THIS TWO-PASS SHAPE IS THE POINT, AND THE FIRST VERSION OF THIS FUNCTION GOT IT WRONG.
+    # Deciding the fallback INSIDE the loop made the units depend on ITERATION ORDER: a candidate
+    # measured before the first successful estimate was scored 0-4 (a multiplier) while a later one
+    # was scored 0-300 (damage), and the sort key then compared them as if they were the same
+    # quantity. ⇒ A RANKING IS ONLY MEANINGFUL IF EVERY ROW IS SCORED IN THE SAME UNITS, so the
+    # choice of units must be made once, for all rows, after all measurements.
+    use_damage = ok > 0
+    best_index, best_key = None, None
+    for index, incoming, damage, legacy, hp_fraction, level in rows:
+        outgoing = damage if use_damage else legacy
+        key = (incoming, -outgoing, -hp_fraction, -level)
+        if best_key is None or key < best_key:
+            best_index, best_key = index, key
+    return best_index, {
+        "estimates_ok": ok,
+        "estimates_failed": failed,
+        # ⭐ NAME THE METRIC THAT ACTUALLY DECIDED. `estimates_ok=0` alone left a reader to infer it;
+        # an inference is exactly what a log line should never require.
+        "metric": "damage" if use_damage else "legacy",
+        "key": best_key,
+    }
+
+
+class _RankingFoe:
+    """The two things `rank_replacement` needs about a foe, so the ranker stays ROM-free."""
+
+    __slots__ = ("types_for_ranking", "battler")
+
+    def __init__(self, types_for_ranking, battler):
+        self.types_for_ranking = types_for_ranking
+        self.battler = battler
+
+
 class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
     """Fights to win like LevelUpLead, but NEVER flees a TRAINER battle.
 
@@ -141,17 +227,20 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
             # Opponent type PAIRS on the field right now (both actives in a double).
             # Kept as per-battler pairs: effectiveness against a dual-type is the
             # PRODUCT over its two types (Ground vs Flying/Electric is 0x, not 2x).
-            foe_pairs = []
+            # ‼ KI-95 — KEEP THE BATTLER OBJECTS, not just their type lists. The old code discarded
+            # them, which is exactly why the offensive term could only ever be a type multiplier:
+            # the real damage formula needs the DEFENDER, and it had been thrown away.
+            foes = []
             for battler in (
                 getattr(battle_state.opponent, "left_battler", None),
                 getattr(battle_state.opponent, "right_battler", None),
             ):
                 if battler is not None:
                     try:
-                        foe_pairs.append(list(battler.species.types))
+                        foes.append(_RankingFoe(list(battler.species.types), battler))
                     except Exception:
                         pass
-            foe_types = [t for pair in foe_pairs for t in pair]
+            foe_types = [t for foe in foes for t in foe.types_for_ranking]
             if not foe_types:
                 return super().choose_new_lead_after_faint(battle_state)
 
@@ -180,37 +269,51 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
                         return True
                 return False
 
-            best_index, best_key = None, None
+            candidates = []
             for index, mon in enumerate(_gp()):
                 if mon is None or mon.is_egg or mon.current_hp <= 0 or _excluded(index):
                     continue
                 try:
-                    mon_types = mon.species.types
+                    mon_types = list(mon.species.types)
                 except Exception:
                     mon_types = []
-                # Defensive: the worst the foe's STAB can do to this mon (lower = better).
-                incoming = 0.0
-                for ft in foe_types:
-                    m = 1.0
-                    for t in mon_types:
-                        m *= ft.get_effectiveness_against(t)
-                    incoming = max(incoming, m)
-                # Offensive: the best effectiveness among its usable damaging moves,
-                # judged against each opponent's full type pair.
-                outgoing = 0.0
-                for learned in mon.moves:
-                    if learned is None or learned.pp == 0 or learned.move.base_power == 0:
-                        continue
-                    for pair in foe_pairs:
-                        m = 1.0
-                        for t in pair:
-                            m *= learned.move.type.get_effectiveness_against(t)
-                        outgoing = max(outgoing, m)
-                hp_fraction = mon.current_hp / max(1, mon.total_hp)
-                key = (incoming, -outgoing, -hp_fraction, -mon.level)
-                if best_key is None or key < best_key:
-                    best_index, best_key = index, key
+                candidates.append((index, mon, mon_types))
+
+            # ⭐⭐ KI-95 — SCORE BY EXPECTED DAMAGE, NOT BY A BARE TYPE MULTIPLIER. This reuses the
+            # SHIPPED formula that `decide_turn` (a few lines below) already trusts, rather than
+            # inventing a second one: base power, STAB, level, stats and the immunity abilities all
+            # come along for free. ⛔ It also skips `banned_moves`, because `08-MISTAKES.md` says a
+            # move's value is only real if the policy can deliver it — `battle.yml` bans Fly/Dive as
+            # 2-turn moves, so ranking a mon highly for its Dive promised damage `decide_turn` would
+            # then refuse to deal.
+            _util = BattleStrategyUtil(battle_state)
+
+            def _damage_of(mon, learned, foe):
+                try:
+                    if learned.move.name in context.config.battle.banned_moves:
+                        return 0.0
+                    return float(_util.calculate_move_damage_range(learned.move, mon, foe).max)
+                except Exception:
+                    return None  # "could not estimate" — counted, never silently read as 0 damage
+
+            best_index, report = rank_replacement(candidates, foe_types, foes, _damage_of)
             if best_index is not None:
+                # ⭐ THE CONTROL THAT MUST FIRE. `estimates_ok=0` in a real battle means the damage
+                # formula never ran and the ranker silently fell back to the legacy multiplier — i.e.
+                # `KI-95` is NOT actually fixed at runtime. It is logged rather than asserted because
+                # instrumentation must never affect a battle, but it is now VISIBLE instead of mute.
+                try:
+                    from modules import debug_logger
+
+                    debug_logger.event(
+                        f"[FAINT-CHOOSER] KI-95 rank -> slot {best_index} "
+                        f"metric={report['metric']} "
+                        f"estimates_ok={report['estimates_ok']} "
+                        f"estimates_failed={report['estimates_failed']} key={report['key']}",
+                        category="BATTLE",
+                    )
+                except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
+                    pass
                 return best_index
         except Exception:
             pass

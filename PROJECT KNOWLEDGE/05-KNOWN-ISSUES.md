@@ -2591,7 +2591,7 @@ probably the real fix, and is a bigger change than this entry.
 ‼ **AND THIS ENTRY ITSELF TRIPPED THE GATE ON ITS FIRST DRAFT** — it quoted the stale figure verbatim, twice, in the very entry whose lesson is *retract measured numbers by DELETING and POINTING, never by quoting*. ⇒ ⭐ **the gate caught its own documentation**, which is the strongest evidence that the rule is real and that the habit, not the gate, is the problem.
 
 
-## `KI-93` — the move chooser ignored **TORMENT**, spun for ever, and `KI-47`'s net stopped the bot — ✅ **FIXED IN THE SANDBOX 2026-09-06, DRIVEN CLEAN** (⛔ NOT PROMOTED — the USER's call). ‼ It was a CLASS bug: any battle message ending in `\p` hung identically.
+## `KI-93` — the move chooser ignored **TORMENT**, spun for ever, and `KI-47`'s net stopped the bot — ✅ **FIXED IN THE SANDBOX 2026-09-06, DRIVEN CLEAN** (✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`)). ‼ It was a CLASS bug: any battle message ending in `\p` hung identically.
 
 📦 **The entire pre-fix investigation is ARCHIVED VERBATIM** → `28-HANDOFF-ARCHIVE.md`
 (2026-09-06): the original measurement, the four failed fix attempts, the three VOID verdicts
@@ -2609,7 +2609,7 @@ guarantees; **61 battle strings end in `\p`** and every one hung identically.
 the refusal memory must be MODULE-LEVEL. The design this entry carried for a day put it in a
 function-local and could never have worked — and nothing in the text signalled that.
 
-### ✅ 2026-09-06/07 — FIXED, RE-DRIVEN, GRADED CLEAN BY A FAULT-PROVEN INSTRUMENT. ⛔ NOT PROMOTED.
+### ✅ 2026-09-06/07 — FIXED, RE-DRIVEN, GRADED CLEAN BY A FAULT-PROVEN INSTRUMENT. ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`).
 
 📦 **The full evidence block is ARCHIVED** → `28-HANDOFF-ARCHIVE.md` (2026-09-07): the
 before/after table labelled per drive, the mechanism, the class-fix argument, the additive
@@ -2713,7 +2713,7 @@ Pokémon**, and would have leaked across battles.
 * ⛔ **STILL OPEN — an ordinary parked `\p` prompt has never been observed** in a drive, so the claim that a B press
   is harmless there is reasoned, not measured.
 
-**Status:** sandbox only. `custom-pokebot/` still hangs on Torment. **Promotion is the user's call.**
+**Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` still hangs on Torment. **Promotion is the user's call.**
 ## `KI-96` — ⛔ THE IN-BATTLE PARTY-MENU SWITCH IS AN UNBOUNDED `while PARTY_MENU: press A`, AND IT WEDGES §Ch23'S CHAIN AT L60 (2026-09-07, MEASURED, A/B'd AS PRE-EXISTING, OPEN)
 
 **⭐⭐ WHY IT MATTERS RIGHT NOW: LEVELLING ALONE DOES NOT UNBLOCK §Ch24.** The L60 party
@@ -2918,7 +2918,7 @@ decoration. `post_league_shop.ss1` said "NOT READY" in its first sentence and I 
 anyway, repeatedly. **Read the fixture note before the drive, not after the anomaly.**
 
 
-## `KI-95` — the faint chooser ranked replacements on a PURE TYPE MULTIPLIER, so a L19 mule outranked a healthy L48 (2026-09-06, ✅ FIXED IN THE SANDBOX + GATED as #39 — ⛔ NOT PROMOTED to `custom-pokebot/`, which is the USER's call)
+## `KI-95` — the faint chooser ranked replacements on a PURE TYPE MULTIPLIER, so a L19 mule outranked a healthy L48 (2026-09-06, ✅ FIXED IN THE SANDBOX + GATED as #39 — ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`))
 
 📦 **The defect description, the code excerpt, the Glacia consequence and the retracted acceptance-bar
 note are ARCHIVED VERBATIM** in `28-HANDOFF-ARCHIVE.md` → "KI-95 — the original defect". Nothing is
@@ -2929,7 +2929,7 @@ are the two below: it is **NOT PROMOTED**, and it rests on a **deprecated CPytho
 multiplier — `base_power` was used only to test `== 0` — so a L19 Zigzagoon's 20 BP Rock Smash (2× vs
 Ice) scored `2.0` and outranked a full-HP L48 Mightyena scoring `1.0`. The mule was sent in to die.
 
-### ✅ 2026-09-06 — FIXED IN THE SANDBOX, GATED AS #39, FAULT-TESTED. ⛔ NOT PROMOTED.
+### ✅ 2026-09-06 — FIXED IN THE SANDBOX, GATED AS #39, FAULT-TESTED. ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`).
 
 📦 **The full resolution is ARCHIVED** → `28-HANDOFF-ARCHIVE.md` (2026-09-07), and it is also
 in `07-CHANGELOG.md` 2026-09-06. **In one line:** the offensive term now scores EXPECTED DAMAGE
@@ -2967,6 +2967,6 @@ gate injects its own damage function and never touches this path.
 `metric=legacy` means this has happened. It is the one signal that distinguishes "fixed" from "fixed on
 paper", and it is why the field was added rather than leaving a reader to infer it from `estimates_ok`.
 
-**Status:** sandbox only. `custom-pokebot/` still has the defect; drift is 2. **Promotion is the user's
+**Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` still has the defect; drift is 0. **Promotion is the user's
 call and has not been given.**
 

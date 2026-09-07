@@ -2118,3 +2118,45 @@ either fork. ⇒ **verify the one live hit rather than trusting that "they're al
   while spotting is a per-frame scan in `trainer_see.c`. §Ch23 works around it at one location; the
   general defect is untouched and will recur wherever a route grazes a cone.
 * **`KI-91`** (a 1,200-frame self-recovering stall in leg 11) is filed, not diagnosed.
+
+---
+
+## 2026-09-07 — PROMOTED: `KI-95` (faint chooser) + `KI-93` (the Torment livelock), user-authorised
+
+**Two files, both battle-path:** `plugins/custom_modes/story_mode.py` (`KI-95`) and
+`modules/battle_action_selection.py` (`KI-93`, plus the env-gated `KI-96` census). Drift measured 2
+before, **0 after, byte-identical 2/2, orphaned 0** in both directions.
+
+**⭐ VERIFIED BY DRIVING, NOT BY COPYING** — `promote.py`'s own rule is *"a copy is not evidence"*:
+```
+--driver ch24probe --build custom --frames 200000   (post_league_shop.ss1)
+  battle sub-handler KI-47 stops : 0        (was 3-6)
+  SelectingTormentedMove         : 0
+  outcome                        : BattleOutcome.Won   ⭐ the bot BEATS SIDNEY on the fork
+
+grade_ki93_drive.py <custom debug-log> <harness log>   -> real exit 0
+  C0 CONTROL   PASS  [KI93-CTL] fired 32x
+  C1 LIVELOCK  PASS  KI-47 battle sub-handler stops = 0
+  C2 JUSTIFIED PASS  0 REPICK(s) with no refusal behind them
+  C3 ENGAGED   PASS  DISMISS=8 REPICK=12 — both halves live
+```
+📁 Transcript COMMITTED: `tools/story-dev/evidence/2026-09-07-PROMOTION-VERIFY-custom.txt`.
+✅ Build-aware gates re-run against the fork: `repro_box_counter_move_test`, `repro_pid_identity_key`,
+`probe_chapter_order` — all `--build custom` exit 0.
+🔖 **Rollback point:** tag `pre-promote-2026-09-07` (created AND pushed before the copy — `promote.py`
+refused until it existed, which is the guard working).
+
+**‼ A TRAP THAT COST ME A GRADING PASS, WRITTEN DOWN SO IT DOES NOT REPEAT.** `--build custom` writes
+its debug log under **`custom-pokebot/profiles/…/debug-logs/`**, not the sandbox's. I graded the
+sandbox's newest log first and got `C0 CONTROL RED — the census never ran`, which looked like the
+promotion had failed. ⇒ **when verifying a promotion, read the log the PROMOTED build wrote.**
+
+**⛔ WHAT THIS DOES *NOT* MEAN.**
+* **`KI-96` IS IN THIS FORK TOO, AND IT IS OPEN.** `modules/battle_action_selection.py:590-592` is an
+  unbounded `while PARTY_MENU: press A`; it wedges the §Ch23 chain when a poisoned lead triggers a
+  switch. Narrowed by three census drives (the aim, the mapping, the target's legality and the
+  menu-opening are all RULED OUT) but **not fixed**.
+* **The Sidney win is a ONE-SURVIVOR win** — 5 of 6 fainted, only Wailord standing, on the
+  under-prepared `post_league_shop` party. Fights 2-5 are UNDRIVEN.
+* **§Ch24 is still not built**, and the L60 party (`post_grind_L60.ss1`) has not reached the League
+  because `KI-96` stops the chain first.

@@ -1,0 +1,11 @@
+================================================================================================
+KI-93 DRIVE GRADE — Story-debug-20260907-060711.log
+================================================================================================
+  events: {'CTL': 32, 'COMMIT': 51, 'CANCEL': 19, 'WAIT': 32, 'DISMISS': 8, 'REPICK': 12, 'RESET': 2}
+
+  C0 CONTROL     PASS  [KI93-CTL] fired 32x
+  C1 LIVELOCK    PASS  `KI-47 battle sub-handler` stops = 0  (was 3-6 before the fix)
+  C2 JUSTIFIED   PASS  0 REPICK(s) with no refusal behind them
+  C3 ENGAGED     PASS  DISMISS=8 and REPICK=12 — both halves engaged
+------------------------------------------------------------------------------------------------
+ACCEPTANCE: PASS
