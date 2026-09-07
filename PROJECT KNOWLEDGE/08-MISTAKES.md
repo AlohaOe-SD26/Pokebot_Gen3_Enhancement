@@ -14177,3 +14177,75 @@ HARNESS, NOT A REASON TO ARGUE STATICALLY.** Before accepting "this cannot be dr
 the harness is missing the *mode*, not the *fixture*. Here the gap was a ten-line dispatch branch
 guarding an entire class of bugs. ‼ And when a drive produces a surprising outcome (here: Manual),
 ask FIRST whether the harness can even express the behaviour you are testing for.
+
+## 2026-09-07 — I built a probe to avoid a false root cause, and the PROBE gave me a false root cause
+
+**SYMPTOM.** `KI-96`'s round 3 deliberately shipped observe-only `[KI96-REREAD]` telemetry instead of
+the obvious fix, honouring rule 10 (measure an index-space conversion before changing it). The first
+drive printed `VERDICT=AGREE`, I read that as "the stale-array theory is dead", and published it in a
+commit message, `07-CHANGELOG.md`, `custom-pokebot/DIVERGENCE-LOG.md` and a code comment — which was
+then PROMOTED into `custom`.
+
+**ROOT CAUSE. The probe measured nothing.** Its frame stamps show both reads at f5864245 — five frames
+BEFORE the A press and 77 before the party menu existed. I had placed the "post" read immediately
+after `scroll_to_battle_action(2)`, believing that opened the menu. **It only moves the action
+cursor.** The refill happens in `PlayerHandleChoosePokemon`, after the A press. So `pre` and `post`
+were two reads of the same pre-request value, and AGREE was guaranteed.
+
+**⭐⭐ THE REFUTATION WAS PRINTED ON THE SAME LINE I WAS QUOTING.** `[KI96-STAGE] 1` ends with
+`state=BATTLE`. I had that field, in that log, in the message I pasted into three documents — and I
+never read it, because I was reading the line for the value I expected it to carry.
+⇒ **WHEN A PROBE CONFIRMS WHAT YOU EXPECTED, CHECK THAT IT RAN WHERE YOU THINK IT RAN.** The cheapest
+version of that check is to make the probe PRINT ITS OWN PRECONDITION — the fixed one now logs
+`state_now=`, so a future reader cannot mistake where it fired. ‼ **A probe that cannot say where it
+was standing is not an instrument.**
+
+**AND THIS IS SESSION-DISCIPLINE RULE 7 AGAIN** — *instrument the ACTION, not the INPUT to the
+action* — this time broken BY the instrument built to satisfy rule 10. Following one rule is not
+protection against breaking another; a new instrument is itself a change, and it deserves the same
+"how would I know if this were wrong?" that the code under test gets.
+
+**‼ THE SECOND-ORDER COST is what makes this worth its own entry.** A wrong fix is reverted. A wrong
+MEASUREMENT is published as knowledge — it went into an append-only changelog, a divergence log that
+tells future readers *"do not re-propose it"*, and a comment shipped to the other fork. It actively
+suppresses the correct answer. ⇒ **hold a measurement to a HIGHER bar than a fix, not a lower one**,
+precisely because it will be quoted rather than executed.
+
+**HOW IT WAS CAUGHT:** an independent agent asked to explain the mechanism read the frame stamps,
+which I never had. ⭐ It was not looking for my error — it found it while doing its own job properly.
+That is the argument for asking an agent to EXPLAIN a phenomenon rather than to CHECK your conclusion:
+a checker inherits your framing, an explainer does not.
+
+## 2026-09-07 — process state survived a "hard reset", and one lane lost 146 runs to it
+
+**SYMPTOM.** A batch lane's ended-run count jumped 18 → 112 in ten minutes; every run died instantly
+on `Could not step off the truck`, the opening scene of the game.
+
+**ROOT CAUSE.** `_held_inputs` lives on the emulator WRAPPER in Python (`modules/libmgba.py:157`), not
+in the emulator core, so `reset()` did not clear it and it was re-OR'd into the pad every frame. A run
+killed mid-walk by the frame budget left `Up` held; `GeneratorExit` unwound the navigator, which has
+no `finally:`, so nothing released it. Every subsequent run inherited it.
+
+**⭐⭐ THE PREVENTION RULE — "RESET" MUST NAME WHAT IT RESETS.** `context.emulator.reset()` resets the
+EMULATOR CORE. The wrapper's own state — held inputs, and anything else Python holds alongside the
+core — is untouched, and the method name actively suggests otherwise. ⇒ **when a wrapper keeps state
+beside the thing it wraps, a reset of the thing is not a reset of the pair.** Ask, for every such
+object: *what did I add next to it, and who clears that?*
+
+**⭐ AND THE GENERAL FORM, WHICH IS THE VALUABLE HALF: STATE THAT OUTLIVES A CANCELLATION.** A
+generator killed by `GeneratorExit` runs no cleanup unless someone wrote `finally:`. Any resource a
+generator ACQUIRES — a held button, a latch, an opened menu, a suspended mode — will outlive it
+otherwise. ‼ Concretely here: `walking.py` releases its buttons on every NORMAL path and none of them
+ran. **Normal-path cleanup is not cleanup;** it is the happy case wearing cleanup's clothes.
+
+**‼ AND A NUMBER I PUBLISHED WAS WRONG — check a suspicious figure before repeating it.** I reported
+each junk run burned "~70 frames". It was ~6,500: the run length is computed from a `start_frame`
+captured BEFORE a reset that zeroes the emulator's frame counter, so the subtraction underflows. The
+runaway was real and the diagnosis stands, but I quoted an instrument I had not questioned — and "70
+frames" was implausible on its face for a sequence that boots a ROM and drives a menu. ⇒ **when a
+measured quantity is physically implausible, suspect the measurement before the subject.**
+
+**HOW IT WAS CAUGHT:** by re-reading the batch status while answering an unrelated question, and
+noticing an arithmetic impossibility — 94 runs in ten minutes at ~1,000 frames/sec. ⭐ **A number that
+cannot be true is the cheapest bug detector there is**, and it costs nothing but the habit of
+multiplying it out.

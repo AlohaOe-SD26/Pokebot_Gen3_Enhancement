@@ -23904,3 +23904,106 @@ the only harness driver that can ever exercise the fault-recovery path.
 
 Files: `sandbox-pokebot/modules/battle_action_selection.py`, `tools/story-dev/story_harness.py`,
 `tools/story-dev/acceptance-2026-09-07/`, `PROJECT KNOWLEDGE/{03,05,07,08}`.
+
+## 2026-09-07 (CORRECTION) — ⛔ THE "`KI-96` ROOT CAUSE MEASURED FALSE" CLAIM IS WITHDRAWN
+
+**Earlier today I published, in this file, the divergence log, a commit message and a code comment,
+that `KI-96`'s round-3 root cause had been MEASURED FALSE. That claim rested on a probe that
+MEASURED NOTHING, and it is retracted.**
+
+An independent agent read the FRAME STAMPS in the same log I had been quoting:
+```
+f5864245  [KI96-STAGE] 1 after scroll_to_battle_action(2): state=BATTLE     <- "post" read HERE
+f5864245  [KI96-REREAD] ... VERDICT=AGREE
+f5864250  [KI96-STAGE] 2 at the A press
+f5864322  [KI96-STAGE] 3 after scroll_to_party_menu_index(0): state=PARTY_MENU  <- menu opens HERE
+```
+Both reads were taken at **f5864245**, five frames BEFORE the A press and 77 frames before the party
+menu existed. `scroll_to_battle_action(2)` only moves the ACTION CURSOR; the only thing that refills
+`gBattlePartyCurrentOrder` is `PlayerHandleChoosePokemon`, which cannot run until after the A press.
+⇒ **`VERDICT=AGREE` was two reads of the same pre-request value.**
+⇒ **THE STALE-ARRAY THEORY IS UNTESTED, NOT REFUTED.**
+
+⭐⭐ **AND THE REFUTATION WAS INSIDE THE LINE I QUOTED.** `[KI96-STAGE] 1` prints `state=BATTLE` — the
+menu was not open, and the field saying so was on the same line as the reading I trusted. I placed the
+probe after the call whose NAME sounded like it opened the menu, and never checked the state it
+reported. This is `SESSION DISCIPLINE` rule 7 — *instrument the ACTION, not the INPUT to the action* —
+broken by the instrument built to honour rule 10.
+
+**⛔ ALSO RETRACTED: "the state and the screen disagree."** `get_game_state()` reads `gMain.callback2`
+and caches per-frame (`modules/memory.py:245-272`), so it CANNOT report PARTY_MENU while the action
+screen is up. The stale fields are `bt=` (`gDisplayedStringBattle`, written by
+`PlayerHandleChooseAction`, never cleared when the menu opens) and `instr=` (`Cmd_end2` does not
+advance the script pointer). ⇒ **the menu IS open, IS accepting every press, and the game is actively
+REFUSING the selection** — proven by the STUCK dump's
+`tasks=['Task_ReturnToChooseMonAfterText', 'Task_PrintAndWaitForText']`, which is the
+`TrySwitchInPokemon() == FALSE` branch of `CursorCb_SendMon`.
+
+**WHAT IS ACTUALLY OPEN — two hypotheses, separated by ONE byte:**
+1. `gPartyMenu.action` == 2 (`PARTY_ACTION_CANT_SWITCH`: Wrap family / Mean Look / Ingrain) or 4
+   (`PARTY_ACTION_ABILITY_PREVENTS`: Shadow Tag / Arena Trap / Magnet Pull). The engine sets these
+   BEFORE the menu opens; then **no slot can ever be accepted**, the A-mash is unwinnable by
+   construction, and the 240-press bound is exactly the right behaviour.
+2. `action` == 0/1 — an ordinary menu — so the refusal is PER-SLOT and the AIM is wrong. ‼ A STUCK
+   dump taken at PARTY_MENU showed the party in FIELD order (Wailord, Zigzagoon, Mightyena, …) while
+   the aim assumed `[2,0,1,3,4,5]`; if the in-menu array is identity, menu slot 0 is the ACTIVE
+   battler and the refusal is literally *"DIVER is already in battle!"*
+
+**FIXED IN THE SANDBOX (not yet promoted — a batch is running):** the probe moved to after STAGE 3
+and now prints the state it was taken in; a new `[KI96-WHY]` line reads `gPartyMenu.action`, the
+cursor `slotId`, the in-menu order array, the literal refusal text and all six party PIDs.
+
+**‼ A RELATED DEFECT WORTH FIXING WHATEVER THE ANSWER:** the `RotateLead` arm has **no precondition**.
+`battle_action_use_move` presses only while `get_battle_controller_callback` is an input-accepting
+callback and stops the instant it is not; `RotateLead` scrolls blind, presses blind, then mashes on
+`state == PARTY_MENU` — which is true both while the menu waits for input AND while it prints a
+refusal. Filed as `#24-rotatelead-precondition`.
+
+**⛔ WHAT REMAINS TRUE from the earlier entry:** the 240-press BOUND is still driven-proven, and
+`KI-97`'s acceptance is unaffected (different code path, independently graded).
+
+## 2026-09-07 — `#24-truckleak`: a HELD BUTTON leaked across the reset boundary and cost a lane 146 runs
+
+**FOUND BY WATCHING THE BATCH, NOT THE CODE.** Lane L03's ended-run count jumped from 18 to 112 in
+about ten minutes — impossible for real runs at ~1,000 frames/sec. Every one of them died on
+`Could not step off the truck (still INSIDE OF TRUCK)`, the game's opening scene. A 6-agent
+adversarial workflow root-caused it.
+
+**ROOT CAUSE.** `LibmgbaEmulator._held_inputs` is **Python-side state on the wrapper**
+(`modules/libmgba.py:157`). `reset()` (`:198-199`) does not touch it, and it is re-OR'd into the pad
+every frame (`:581`). Run 2 died on the per-run frame budget **mid-walk**; the `finally: inner.close()`
+threw `GeneratorExit` into the suspended navigator, and `modules/modes/util/walking.py` has **no
+`finally:`** — its button releases are all normal-flow. The framework's only generic release
+(`modules/main.py:151-152`, on `BotModeError`) is unreachable because the mode catches first, and the
+derail recovery clears nothing. ⇒ a leaked **`Up`** was re-applied every frame of every later run, and
+it beat the truck loop's `press_button("Right")` forever.
+
+**⭐ THE SEPARATION IS TOTAL — this is causation, not adjacency.** Same lane, same profile, same
+starter: **867** dumps with `held_buttons=[]` exit the truck in ~67 frames; **719** dumps with
+`['B','Up']` sit at `(2,1) facing Up` — **858 failures, ZERO escapes.**
+
+**‼ AND A NUMBER I PUBLISHED WAS WRONG.** I reported "each junk run burns ~70 frames". The real figure
+is ~**6,500**: `raw_frames` is computed from a `start_frame` sampled BEFORE
+`StoryDebugResetMode.run`'s `context.emulator.reset()` zeroes the emulator's frame counter, so the
+subtraction underflows the reported length. The runaway was real; my per-run figure was not.
+
+**THE FIX (sandbox):** `reset_held_buttons()` immediately before `context.emulator.reset()` in
+`StoryDebugResetMode.run`, and it PRINTS the released mask — a silent release is an un-gradeable fix.
+That seam is reached by `StoryEndlessResetMode` through `super().run()` every iteration AND by the
+standalone menu entry, so one line covers both; it is also upstream of the main-menu drive, which
+presses A/Down and is equally corrupted by a stale hold.
+⛔ **What NOT to do:** clear holds on a per-frame or per-wait path. Navigation DEPENDS on held buttons
+(`walking.py`), so that would stop the avatar moving and fill the batch with `Could not reach …`
+derails instead — that is the inverse failure to watch for.
+
+**⚠⚠ A SECOND FINDING, AND IT VALIDATES A RULE WITH A MECHANISM.** `x4_headless.py` **RESPAWNS a dead
+lane**, and a respawned lane loads whatever is **on disk at that moment**. ⇒ promoting mid-batch does
+not merely stale the MANIFEST — it can put **TWO BUILDS INSIDE ONE BATCH**. The
+"never promote while a batch is running" rule was written on 2026-09-07 from first principles; this is
+the concrete mechanism that makes it non-negotiable.
+
+⚠ **UNDRIVEN.** Acceptance needs a FAULT-ARMED run — hold `Up`+`B` deliberately at a run boundary,
+then require the released-mask line AND a truck exit. A normal run holds nothing, so an unarmed run
+proves nothing.
+
+Files: `sandbox-pokebot/plugins/custom_modes/story_mode.py`, `PROJECT KNOWLEDGE/{03,07,08}`.

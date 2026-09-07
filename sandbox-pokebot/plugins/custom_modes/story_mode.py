@@ -4126,6 +4126,30 @@ class StoryDebugResetMode(StoryMode):
         except Exception:
             pass
 
+        # ⛔⛔ A HARD RESET MUST START FROM NO INPUT — `#24-truckleak`, MEASURED 2026-09-07.
+        # `_held_inputs` is PYTHON-SIDE state on the emulator wrapper (`modules/libmgba.py:157`)
+        # and `reset()` (`:198-199`) does not touch it, so any D-pad key still held when a run is
+        # KILLED is re-OR'd into the pad every frame of the NEXT run (`libmgba.py:581`).
+        # ⭐ WHAT THAT COST: batch lane L03 lost **146 runs** to
+        # "Could not step off the truck (still INSIDE OF TRUCK)". Run 2 died on the frame budget
+        # mid-walk, `GeneratorExit` unwound the navigator (which has no `finally:`), and a leaked
+        # `Up` then beat the truck loop's `press_button("Right")` for the rest of the batch.
+        # The separation is total: 867 dumps with `held_buttons=[]` exit the truck in ~67 frames;
+        # 719 dumps with `['B','Up']` sit at (2,1) facing Up — 858 failures, ZERO escapes.
+        # ‼ THIS SEAM ON PURPOSE: `StoryEndlessResetMode` reaches it through `super().run()` every
+        # iteration, and the standalone "Story (DEBUG - RESET)" menu entry gets it too — one line,
+        # both modes. It is also UPSTREAM of the main-menu drive below, which presses A/Down and is
+        # equally corrupted by a stale hold.
+        # ⛔ DO NOT move this to a per-frame or per-wait path: navigation DEPENDS on held buttons
+        # (`modules/modes/util/walking.py`), and clearing them there would stop the avatar moving
+        # and fill the batch with "Could not reach …" derails instead. That is the inverse failure.
+        # ‼ It ANNOUNCES itself — a silent release is an un-gradeable fix, and the printed mask is
+        # what makes a fault-armed acceptance run readable.
+        _leaked = context.emulator.reset_held_buttons()
+        if _leaked:
+            console.print(f"[yellow]DEBUG-RESET: released leaked held inputs (0x{_leaked:04x}) "
+                          f"before the reset — see #24-truckleak.[/]")
+
         # Hard reset to the boot screen. (State after this: copyright/intro -> title.)
         context.emulator.reset()
         yield

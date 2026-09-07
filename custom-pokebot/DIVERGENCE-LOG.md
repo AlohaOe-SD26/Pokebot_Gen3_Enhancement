@@ -2210,3 +2210,25 @@ repro_pid_identity_key.py       --build custom -> exit 0
   (`#24-mossdeep-strandfixture`).
 * **§Ch24 is still not built**, and the batch's other blockers (`#24-tateliza-attrition`,
   `#24-ballrestock-ordering`, the L03 truck fast-fail loop) are open.
+
+---
+
+## 2026-09-07 (CORRECTION to the arc-2 entry above) — the "MEASURED FALSE" note was WRONG
+
+⛔ The arc-2 entry says `KI-96`'s round-3 root cause was **MEASURED FALSE** and instructs *"do not
+re-propose it"*. **That instruction is WITHDRAWN — it could suppress the correct answer.**
+
+The probe it cited was VACUOUS: its two reads were taken five frames BEFORE the A press and 77 frames
+before the party menu existed (`[KI96-STAGE] 1` on the same frame reports `state=BATTLE`).
+`scroll_to_battle_action(2)` only moves the action cursor; `PlayerHandleChoosePokemon` — the only
+thing that refills `gBattlePartyCurrentOrder` — cannot run until after the A press. ⇒ `VERDICT=AGREE`
+compared a value with itself. **The stale-array theory is UNTESTED, not refuted.**
+
+⛔ Also withdrawn from that entry: *"the live thread is that `get_game_state()` reports PARTY_MENU
+while the screen shows the ACTION-SELECT prompt."* `get_game_state()` reads `gMain.callback2` with a
+per-frame cache and is trustworthy; `bt=` and `instr=` are the stale fields. The menu is open and the
+game is actively REFUSING the switch.
+
+✅ **UNAFFECTED:** the promoted BOUND is still driven-proven, `KI-97` is still driven green, and the
+promotion itself (drift 0, 4/4 byte-identical, verified against `--build custom`) stands. What changed
+is a CLAIM ABOUT A CAUSE, not the behaviour of the promoted code.

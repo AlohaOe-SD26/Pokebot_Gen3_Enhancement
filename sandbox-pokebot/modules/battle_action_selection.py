@@ -662,31 +662,51 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                 # (`data/battle_scripts_1.s:3110-3112`) — so the guard would have REFUSED
                 # LEGITIMATE ROTATIONS. A guard with false positives is worse than no guard.
                 #
-                # ⛔⛔ MEASURED 2026-09-07 AND **REFUTED** — READ THIS BEFORE THEORISING AGAIN.
-                # The theory this telemetry was built to test was: `gBattlePartyCurrentOrder` is a
-                # 3-byte SCRATCH buffer that `PlayerHandleChoosePokemon` refills when the party menu
-                # is requested, and we compute `in_battle_index` BEFORE that happens — so we aim
-                # from a leftover. **THE FIRST DRIVE KILLED IT:**
-                #   [KI96-REREAD] party_slot=2
-                #     pre (raw=201345 decoded=[2,0,1,3,4,5] aims_at_menu_slot=0 active_was=0)
-                #     post(raw=201345 decoded=[2,0,1,3,4,5] aims_at_menu_slot=0 active_now=0)
-                #     VERDICT=AGREE
-                # pre and post are BYTE-IDENTICAL on a drive that DID reproduce the wedge
-                # (`[KI96-SPIN]` reached n=120). ⇒ moving the mapping after the menu opens would
-                # change NOTHING. ⛔ DO NOT "FIX" IT THAT WAY — that would have been the third false
-                # root cause on this KI.
+                # ⛔⛔ RETRACTION, 2026-09-07 — A "REFUTED" VERDICT THAT USED TO SIT HERE WAS WRONG.
+                # This comment claimed the "stale leftover array" theory had been MEASURED FALSE,
+                # citing `[KI96-REREAD] ... VERDICT=AGREE`. **The probe was VACUOUS.** Its frame
+                # stamps show BOTH reads at f5864245 — five frames BEFORE the A press and 77 frames
+                # before the party menu existed:
+                #     f5864245 [KI96-STAGE] 1 after scroll_to_battle_action(2): state=BATTLE
+                #     f5864245 [KI96-REREAD] ... VERDICT=AGREE
+                #     f5864250 [KI96-STAGE] 2 at the A press
+                #     f5864322 [KI96-STAGE] 3 ...: state=PARTY_MENU
+                # `scroll_to_battle_action(2)` only moves the ACTION CURSOR; `PlayerHandleChoosePokemon`
+                # is what refills `gBattlePartyCurrentOrder`, and it cannot run until after the A
+                # press. ⇒ AGREE was two reads of the SAME pre-request value.
+                # ⇒ **THE STALE-ARRAY THEORY IS UNTESTED, NOT REFUTED.** The probe now lives after
+                # STAGE 3 and prints the state it was taken in.
+                # ‼ THE RULE THIS BROKE IS THIS PROJECT'S OWN: *instrument the ACTION, not the INPUT
+                # to it* — and the refutation was inside the very log line being quoted (`state=BATTLE`).
                 #
-                # ⭐ WHAT THE SAME DRIVE POINTS AT, AS AN OPEN QUESTION AND NOT A NEW THEORY:
-                #   [KI96-STAGE] 3 ...: state=PARTY_MENU actioncursor=2
-                #   [KI96-SPIN] n=120 instr='BattleScript_DoTurnDmgEnd' bt='What will DIVER do?'
-                # `get_game_state()` reports PARTY_MENU while the displayed text is the ACTION-SELECT
-                # prompt and the battle script is mid-turn. The state and the screen DISAGREE, so the
-                # menu may never have opened and every A-press may land on a screen that ignores it.
-                # ‼ Three published root causes for this KI have now been measured false. The next
-                # claim gets a drive BEFORE it gets a commit.
+                # ⛔ ALSO RETRACTED: "the state and the screen disagree". `get_game_state()` reads
+                # `gMain.callback2` and caches per-frame (`modules/memory.py:245-272`), so it CANNOT
+                # report PARTY_MENU while the action screen is up. What is stale is `bt=`
+                # (`gDisplayedStringBattle`, written by `PlayerHandleChooseAction` and never cleared
+                # when the menu opens) and `instr=` (`Cmd_end2` does not advance the script pointer).
+                # ⇒ **The menu IS open and IS accepting every press — the game is actively REFUSING
+                # the selection and bouncing back to the chooser.** The STUCK dump proves it:
+                # `tasks=['Task_ReturnToChooseMonAfterText', 'Task_PrintAndWaitForText']`, which is
+                # the `TrySwitchInPokemon() == FALSE` branch of `CursorCb_SendMon`.
                 #
-                # THE TELEMETRY STAYS: a negative result is a result, and it will still catch a
-                # DIFFER case elsewhere (doubles encode only the LEFT battler at slot 0).
+                # ⭐ TWO LIVE HYPOTHESES — `[KI96-WHY]`'s `action` byte separates them in one drive:
+                #   (1) `gPartyMenu.action` is 2 (CANT_SWITCH: Wrap family/Mean Look/Ingrain) or 4
+                #       (ABILITY_PREVENTS: Shadow Tag/Arena Trap/Magnet Pull). The engine sets these
+                #       BEFORE the menu opens, and then NO slot can ever be accepted — the A-mash is
+                #       unwinnable by construction and the 240-bound is exactly right.
+                #   (2) `action` is 0/1 — an ordinary menu — so the refusal is PER-SLOT and the AIM is
+                #       wrong. ‼ A STUCK dump taken at PARTY_MENU showed the party in FIELD order
+                #       (Wailord, Zigzagoon, Mightyena, ...) while the aim assumed [2,0,1,3,4,5]; if
+                #       the in-menu array is identity then menu slot 0 is the ACTIVE battler and the
+                #       refusal is literally "DIVER is already in battle!".
+                # ⛔ DO NOT PICK ONE FROM THE ARMCHAIR. Three published root causes for this KI have
+                # been measured false, and a fourth was published on a probe that measured nothing.
+                #
+                # ‼ A RELATED DEFECT, WORTH FIXING WHATEVER THE ANSWER: this arm has NO precondition.
+                # `battle_action_use_move` presses ONLY while `get_battle_controller_callback` is an
+                # input-accepting callback and stops the instant it is not; `RotateLead` scrolls
+                # blind, presses blind, then mashes on `state == PARTY_MENU` — which is true both
+                # while the menu waits for you AND while it prints a refusal at you.
                 #
                 # ⛔ DO NOT "FIX" THIS BY MOVING THE MAPPING WITHOUT READING THE MEASUREMENT FIRST.
                 # `08-MISTAKES.md` rule 10: an index-space conversion gets an observe-only probe
@@ -703,32 +723,6 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                 _ki96_log(f"[KI96-STAGE] 0 before scroll_to_battle_action(2): {_ki96_state()}")
                 yield from scroll_to_battle_action(2)
                 _ki96_log(f"[KI96-STAGE] 1 after scroll_to_battle_action(2): {_ki96_state()}")
-                # ⭐ THE MEASUREMENT. The party menu is now OPEN, so the engine has just
-                # refilled the scratch buffer. Re-read it and recompute the cursor slot — WITHOUT
-                # using the result. If `pre` and `post` disagree, the mapping we are about to act
-                # on (`in_battle_index`, computed pre-open) is aimed by stale data, and the fix is
-                # to compute it HERE. If they always agree, this theory is dead and the wedge is
-                # something else. ‼ OBSERVE ONLY — `in_battle_index` is deliberately NOT reassigned.
-                if _ki96 and _ki96_pre is not None:
-                    try:
-                        _post_state = get_battle_state()
-                        _post_raw = bytes(_post_state._battler_party_order)
-                        _post_slot = _post_state.map_battle_party_index(index)
-                        _pre_raw, _pre_act, _pre_slot = _ki96_pre
-                        _dec = lambda b: [(b[k // 2] >> 4) if k % 2 == 0 else (b[k // 2] & 0xF)
-                                          for k in range(6)]
-                        _ki96_log(
-                            f"[KI96-REREAD] party_slot={index} "
-                            f"pre(raw={_pre_raw.hex()} decoded={_dec(_pre_raw)} aims_at_menu_slot="
-                            f"{_pre_slot} active_was={_pre_act}) "
-                            f"post(raw={_post_raw.hex()} decoded={_dec(_post_raw)} "
-                            f"aims_at_menu_slot={_post_slot} active_now="
-                            f"{_post_state.battling_pokemon[0].party_index}) "
-                            f"VERDICT={'AGREE' if _pre_slot == _post_slot else 'DIFFER'}"
-                        )
-                    except Exception as _e:  # noqa: BLE001 - a failed read NAMES itself so it can
-                        # never be mistaken for a healthy AGREE.
-                        _ki96_log(f"[KI96-REREAD] <unreadable: {type(_e).__name__}: {_e}>")
                 # JP roms need a little delay
                 for _ in range(5):
                     yield
@@ -741,6 +735,38 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                 yield from scroll_to_party_menu_index(in_battle_index)
                 _ki96_log(f"[KI96-STAGE] 3 after scroll_to_party_menu_index({in_battle_index}): "
                           f"{_ki96_state()}")
+                # ⭐⭐ THE MEASUREMENT — AND IT LIVES **HERE**, NOT EARLIER. It used to sit
+                # immediately after `scroll_to_battle_action(2)`, on the assumption that call opened
+                # the party menu. It does not — it only moves the ACTION CURSOR, and STAGE 1's own
+                # `state=BATTLE` said so. Both reads therefore landed BEFORE the A press, five frames
+                # apart, 77 frames before the menu existed, and `VERDICT=AGREE` was two reads of the
+                # same pre-request value. ⛔ It proved NOTHING, and the "stale leftover" theory it was
+                # built to test is UNTESTED, not refuted.
+                # ‼ THE RULE THIS BROKE IS MINE: *instrument the ACTION, not the INPUT to it.* The
+                # refutation was inside the very log line I was quoting.
+                # `PlayerHandleChoosePokemon` is what refills `gBattlePartyCurrentOrder`, and it
+                # cannot run until after the A press — so the only honest place to re-read is after
+                # the menu is OBSERVED open, which is what STAGE 3 reports.
+                if _ki96 and _ki96_pre is not None:
+                    try:
+                        _post_state = get_battle_state()
+                        _post_raw = bytes(_post_state._battler_party_order)
+                        _post_slot = _post_state.map_battle_party_index(index)
+                        _pre_raw, _pre_act, _pre_slot = _ki96_pre
+                        _dec = lambda b: [(b[k // 2] >> 4) if k % 2 == 0 else (b[k // 2] & 0xF)
+                                          for k in range(6)]
+                        _ki96_log(
+                            f"[KI96-REREAD] party_slot={index} state_now={get_game_state().name} "
+                            f"pre(raw={_pre_raw.hex()} decoded={_dec(_pre_raw)} "
+                            f"aims_at_menu_slot={_pre_slot} active_was={_pre_act}) "
+                            f"post(raw={_post_raw.hex()} decoded={_dec(_post_raw)} "
+                            f"aims_at_menu_slot={_post_slot} active_now="
+                            f"{_post_state.battling_pokemon[0].party_index}) "
+                            f"VERDICT={'AGREE' if _pre_slot == _post_slot else 'DIFFER'}"
+                        )
+                    except Exception as _e:  # noqa: BLE001 - a failed read NAMES itself so it can
+                        # never be mistaken for a healthy AGREE.
+                        _ki96_log(f"[KI96-REREAD] <unreadable: {type(_e).__name__}: {_e}>")
                 #: ⛔ KI-96 — A CORRECT AIM IS NOT A BOUND. A rotation can still be refused (a mon
                 #: that faints between the decision and the menu opening), and this loop had no exit
                 #: at all: it relied on `KI-47`'s net stopping the whole run 3001 frames later.
@@ -769,7 +795,7 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                         if request_mode_recovery(_ki96_reason):
                             return
                         raise BotModeError(_ki96_reason)
-                    if _ki96 and (_ki96_spins in (1, 30, 120, 600, 1800)
+                    if _ki96 and (_ki96_spins in (1, 5, 30, 120, 600, 1800)
                                   or _ki96_spins % 5000 == 0):
                         try:
                             # ‼ `get_battle_text()` DOES NOT EXIST — checked before writing this.
@@ -786,6 +812,49 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                             _instr = get_current_battle_script_instruction()
                         except Exception:  # noqa: BLE001 - same reasoning as above.
                             _instr = "<unreadable>"
+                        # ⭐⭐ THE ONE BYTE THAT SEPARATES THE TWO SURVIVING HYPOTHESES.
+                        # `gPartyMenu.action` is byte 11 (exitCallback 0-3, task 4-7, packed
+                        # menuType/layout 8, slotId 9, slotId2 10, action 11):
+                        #   2 = PARTY_ACTION_CANT_SWITCH      -> TRAPPED (Wrap family/Mean Look/
+                        #                                       Ingrain). NO slot can ever be
+                        #                                       accepted; the A-mash is unwinnable
+                        #                                       and the 240-bound is CORRECT.
+                        #   4 = PARTY_ACTION_ABILITY_PREVENTS -> Shadow Tag/Arena Trap/Magnet Pull.
+                        #                                       Same: unwinnable by construction.
+                        #   0/1 = an ordinary menu            -> the refusal is PER-SLOT, i.e. the
+                        #                                       AIM is wrong and the order array is.
+                        # ‼ Also `slotId` (byte 9): `scroll_to_party_menu_index` can return early via
+                        # `request_mode_recovery`, so STAGE 3 does NOT prove the cursor arrived.
+                        def _ki96_read(label, fn):
+                            """One handler for every diagnostic read. A failure NAMES itself, so an
+                            unreadable value can never be mistaken for a healthy one — and one
+                            helper keeps this file inside the `repro_no_silent_except` per-root
+                            budget instead of adding four handlers' worth of debt."""
+                            try:
+                                return fn()
+                            except Exception as _e:  # noqa: BLE001 - see docstring; never blank.
+                                return f"<unreadable {label}: {type(_e).__name__}>"
+
+                        from modules.game import decode_string as _ds
+
+                        _pm = _ki96_read("gPartyMenu", lambda: read_symbol("gPartyMenu"))
+                        _why = {
+                            # ⭐ byte 11 = `action`; byte 9 = the cursor `slotId` the game HOLDS.
+                            "action": _pm[11] if isinstance(_pm, (bytes, bytearray)) else _pm,
+                            "cursor_slotId": _pm[9] if isinstance(_pm, (bytes, bytearray)) else _pm,
+                            "order_in_menu": _ki96_read(
+                                "order", lambda: read_symbol("gBattlePartyCurrentOrder",
+                                                             size=0x03).hex()),
+                            "msg": _ki96_read("gStringVar4",
+                                              lambda: _ds(read_symbol("gStringVar4"))),
+                            # PIDs, in the order the MENU sees them — settles whether
+                            # `UpdatePartyToBattleOrder` permuted the party the way the aim assumed.
+                            # ‼ IDENTITY, never slot indices.
+                            "pids": _ki96_read(
+                                "party", lambda: [f"{p.personality_value:08X}" if p else None
+                                                  for p in get_party()]),
+                        }
+                        _ki96_log(f"[KI96-WHY] n={_ki96_spins} {_why}")
                         # ⭐ Q2/Q3/Q4 in one line: what the game SAYS, who the target IS, how long.
                         _ki96_log(f"[KI96-SPIN] n={_ki96_spins} instr={_instr!r} bt={_bt!r} "
                                   f"target={_ki96_who(index)}")

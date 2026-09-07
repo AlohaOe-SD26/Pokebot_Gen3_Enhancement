@@ -9728,3 +9728,80 @@ is shared upstream ⚠ *(and note: the "`KI-83`/`KI-88`/`KI-89` ruling: route ar
 
 ---
 
+---
+
+## 📦 ARCHIVED 2026-09-07 FROM `03-PUNCH-LIST.md` — `#24-ch23attrition` (VERBATIM, nothing edited)
+
+Moved only to keep 03 inside its 3600-line budget (`lint_docs.py` R3). The item is CLOSED; its stub keeps the slug, the status and the do-not-redo warning.
+
+### ✅ `#24-ch23attrition` — **CLOSED 2026-09-04: the party is back to 807/807 with zero fainted. The fix was a 36-STEP WALK to the League's Poké Center, not the ~5 hours of training I had priced.** ⚠ The Elite Four LEVEL gap is a SEPARATE, still-open question. (filed, dependency-corrected and closed 2026-09-04)
+
+> ⛔⛔ **I HAD THIS BACKWARDS FOR ONE COMMIT, AND THE MEASUREMENT INVERTED IT.** I wrote that the party's condition blocked leg 8. It is the reverse: from the B2F landing **B1F (17,16)** the bot is **TRAPPED ON ITS ISLAND** — MEASURED `--driver ch23retprobe`: `(8,3)` (leg 6's ladder to 1F) **UNREACHABLE**, `(30,25)` (back to B2F) **UNREACHABLE**, `(20,21)` (the 1F ladder) **UNREACHABLE behind the plug**. ⇒ **the ONLY exit is through the plug, so the bot cannot leave Victory Road to heal until LEG 8 is solved.** Training or shopping first is not merely lower-priority, it is *impossible* from here.
+> ⇒ **BUILD LEG 8 FIRST.** ⭐ And it is safer than it looks: the pushes and smashes do not fight, the standpoints are 15-18 wp away, and a whiteout on B1F respawns at **EVER_GRANDE — outside Victory Road, healed**, which is an escape rather than a loss.
+> ‼ *The lesson: I priced an expensive option (hours of training) and put it to the user before checking whether the bot could even REACH the thing that option required. **Measure the dependency before pricing the remedy.***
+
+- [ ] **THE CURVE, measured not predicted:** `post_training` **95% / 0 fainted** → `post_wally`
+      **67% / 2** → *(leg 6 heals)* → `post_b1f_healed` **87% / 0** → `post_b2f` **38% / 3**.
+      ⇒ **leg 7 alone costs ~49 points of HP and three Pokémon**, on only `battles=3`.
+- [ ] ⛔ **AND THERE IS NOWHERE TO HEAL INSIDE VICTORY ROAD.** The nearest Poké Center is Ever
+      Grande's, outside the 1F entrance; the League's own Center is *past* the exit. Leg 6's heal
+      works only because it runs from 1F, one warp from the door. ‼ From B1F/B2F the round trip
+      costs the **whole boulder solve twice**, because every warp resets the puzzle.
+- [ ] **OPTIONS — none of which I should pick unilaterally:**
+      (a) **train more on B1F now that it is reachable** (950.8 EXP/battle vs 1F's 775.6 — this was
+      always the plan for closing the Elite Four gap, and it would fix attrition as a side effect);
+      (b) **buy healing items before entering** — ✅ **DONE 2026-09-04 (leg 11)** *(this line said ₽38,893; the LIVE reading was **₽56,041**, spent down to **₽1,741**)* and the bag holds ONE Potion;
+      ⚠ the League 1F Mart (Full Restore / Revive / Max Potion) is PAST Victory Road, so this needs
+      an earlier shop;
+      (c) ✅ **DONE 2026-09-06 — `#24-ch23wally` option (b) is fixed** (`KI-95`, gate #39, sandbox-only). It had been the faint-replacement ranking feeding the L19
+      Zigzagoon into fights it cannot survive, which is a real slice of the damage taken;
+      (d) accept it and let leg 8 run on a 38% party — ⛔ leg 8 has its own trainers (Samuel, Halle)
+      and its own boulder puzzle.
+- [x] ✅✅✅ **ANSWERED 2026-09-04 — AND THE ANSWER NEEDS NO TRAINING AT ALL.** The bot is now OUT
+      of Victory Road (`post_vr_exit.ss1`, EVER_GRANDE_CITY (18,28)), and the leg that took it there
+      MEASURED where healing is possible:
+      **Ever Grande Poké Center (27,49) → UNREACHABLE · Victory Road apron (18,42) → UNREACHABLE ·
+      LEAGUE DOOR (18,5) → REACHABLE in 37 wp.**
+      ⇒ the exit lands on a **closed plateau**, so *"exit and heal at Ever Grande" is WRONG*; the
+      only heal is the **League's own Poké Center**, which also carries a Mart (Full Restore /
+      Revive / Max Potion) against the **₽56,041** in hand *(⚠ **₽38,893** as first written here — KNOWN-STALE, the pre-Victory-Road figure; ✅ spent down to **₽1,741** by leg 11).* ⭐ **That fixes attrition AND the empty
+      bag in one 37-waypoint walk** — the training options below are no longer the answer to THIS
+      problem (they remain the answer to the Elite Four LEVEL gap, which is a different question).
+      ‼ This confirms live a claim a research pass had only DERIVED from its own flood-fill, and had
+      explicitly flagged as needing a probe.
+- [x] ✅✅✅ **DONE 2026-09-04 — `heal_at_league` ships and the party is WHOLE.** `--driver
+      ch23heal` `ACCEPTANCE: PASS`, `battles=0`, `whiteouts=0`; **36/807 with five fainted →
+      807/807 with none**, fixture `post_league_heal.ss1` (`1a8a0269…`) at EVER_GRANDE_CITY (18,6).
+      ⭐ **AND IT FOUND A HIDDEN KILLER:** the party's only conscious member, Mightyena, was
+      **badly poisoned** — that is what drained 36 → 24 HP across the walk with ZERO battles, and a
+      whiteout on the last standing Pokémon was one or two steps away. An HP-only reading could not
+      have explained it; `party_is_healthy()` now reports STATUS too.
+      ‼ **The first attempt FAILED and the consequence guard caught it**: the bot reached the nurse
+      tile (3,4) facing north and healed NOTHING, because I mashed A at a nurse who asks a YES/NO
+      question. `heal_in_pokemon_center` has always done it properly (ONE A, then
+      `wait_for_yes_no_question("Yes")`, then ride the script out). ⇒ **when a proven helper exists
+      for an interaction, copy its SHAPE, not just its intent — the shape is where the timing
+      knowledge lives.**
+- [ ] ⛔ **URGENT: THE PARTY IS AT 4% WITH FIVE FAINTED** — only Mightyena is conscious. The two 1F
+      trainer fights on the way out nearly wiped it. ⇒ the 37-wp walk to the League door is the very
+      next action and must not be delayed. ‼ **Our `PokemonCenter` enum has NO League entry** (only
+      `EvergrandeCity`), so `heal_in_pokemon_center` cannot target it as written — that gap is the
+      first thing the heal leg must solve.
+- [ ] ⭐ **OPTION (a) IS NOW PRICED — measured 2026-09-04 from the CURRENT (post-B2F) party,
+      estimate-only, zero frames spent, on 1F at 775.6 EXP/battle:**
+      **L50 → 315,260 frames** (~88 min) · **L53 → 705,036** (~196 min) · **L55 → 1,073,317**
+      (**~5 hours**). ⛔ **Wallace is L58, so even L55 leaves a gap** — this buys survivability and
+      the Elite Four's first three members, not the Champion.
+      ‼ B1F is ~18% better ground (950.8 vs 775.6) but every heal round-trip from B1F re-crosses the
+      boulder puzzle, so the 1F figures above are the realistic ones. **This is a real cost and the
+      USER's call, not mine.**
+      ‼ **AND THE ESTIMATE ONLY WORKS BECAUSE OF A FIX MADE WHILE MEASURING IT:** `team_is_ready()`
+      read the module constant `TRAIN_TARGET` instead of the caller's target, so
+      `POKEBOT_CH23_TRAIN_TARGET=53` printed `PRE reasons=[]` / `train_estimate_total = None` — the
+      flag silently did nothing past the readiness gate. ⇒ **a parameter that reaches only half a
+      function is not a parameter**, and it is the same defect shape as the six dead fault arms.
+- [ ] ⚠ **NOT A TRAVERSAL BLOCKER — a BATTLE one.** VERIFIED: a fainted carrier still works for field
+      moves (`ScrCmd_checkpartymove`, `src/scrcmd.c:1713`, skips only eggs and never reads HP), so
+      Wailord fainting does not strand the run. ⇒ **do NOT "fix" `assert_carriers_survived` to reject
+      fainted carriers** — it is correct as written, and that check would fire on a healthy run.
+
