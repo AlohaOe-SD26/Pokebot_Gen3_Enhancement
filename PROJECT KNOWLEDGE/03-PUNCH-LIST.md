@@ -3510,3 +3510,27 @@ region, where "train near the gym" is actively wrong.
 ### `#24-punchlist-archive` — 03 is AT its 3600-line budget; the next item needs an archive pass first (filed 2026-09-07)
 - [ ] ⛔ Move CLOSED items VERBATIM to an append-only archive; never splice. A 2026-09-07
   anchor-to-anchor compression swallowed a root-cause block and no gate noticed.
+
+### `#24-tateliza-attrition` — the DEEPEST runs die losing to Tate & Liza, and NO guard catches it (filed 2026-09-07)
+- [ ] ✅ MEASURED on the live batch: both `too many whiteout recoveries in a row` runs — the two
+  deepest of the batch at **3,877,438** and **4,198,775 frames** — died in the Mossdeep Gym
+  (`MOSSDEEP_CITY_GYM = (14, 0)`, `map_data.py:1005`) against **Tate & Liza**. Lane L04 reached
+  **`defeat #24 here`**, L05 `defeat #11`. Each loss whites out, and each recovery **re-solves the
+  117-step statue puzzle** (`Story: Ch18 plan #1 from (6, 35) — 117 steps`) before losing again.
+- [ ] ⛔ **THE GUARD THAT SHOULD HAVE STOPPED IT NEVER FIRED, AND THAT IS THE REAL FINDING.** The
+  non-convergence guard stops a boss it judges HOPELESS — but it grades on TYPE coverage, and against
+  Psychic the party genuinely has Dark/Ghost/Bug answers, so `_boss_plan_is_hopeless` returns False
+  and the bot simply keeps losing. ⇒ **it catches "wrong types" and is blind to "right types, too
+  weak".** The 3 runs that died with a clean *"no super-effective answer"* diagnosis are the case it
+  DOES handle; this is the case it does not, and it is the one that burns the most frames.
+- [ ] ⚠ **TWO HYPOTHESES, NOT YET DISCRIMINATED — do not pick one without measuring.**
+  (a) TEAM: the party is simply under-levelled/under-powered for a double boss.
+  (b) BATTLE LOGIC: Tate & Liza is the story's one DOUBLE battle, and `KI-96`'s freshness invariant
+  is **incomplete in doubles** — battle slot 0 encodes only the LEFT battler (decomp-verified
+  2026-09-07), so a rotation aimed from a partly-stale order is unvalidated exactly here.
+  ⭐ **The discriminator is cheap and already built:** run the `[KI96-REREAD]` drive against this
+  fight and count rotations that hit the 240-press bound or log `DIFFER`. If rotations are clean, it
+  is (a) and the answer is levels; if they wedge, (b) is contributing. ⛔ Do NOT grind levels first —
+  that is the expensive arm, and it would mask (b) rather than rule it out.
+- [ ] ⚠ Also worth pricing: a whiteout here costs the 117-step puzzle re-solve, so attrition at this
+  boss is far more expensive per attempt than at any other. Detail: `ai-research-notes/2026-09-07-batch-blockers-RECON.md`.

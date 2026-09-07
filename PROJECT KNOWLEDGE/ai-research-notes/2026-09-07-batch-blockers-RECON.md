@@ -1,8 +1,9 @@
 # The 2026-09-07 batch's real blockers — a 9-agent recon. ⚠ A NOTE, NOT TRUTH.
 
 **Produced 2026-09-07** from the live 8-lane batch (`x4-runs/20260907-073620`, `--build custom`) by
-three independent investigations: a 6-agent adversarial workflow on the routing failure, a
-forward-walk audit of `_play` after the fix, and a counter-guard audit. ⛔ Per
+FOUR independent investigations: a 6-agent adversarial workflow on the routing failure, a
+forward-walk audit of `_play` after the fix, a counter-guard audit, and a triage of the
+whiteout-recovery cluster (§4). ⛔ Per
 `ai-research-notes/00-READ-THIS-FIRST.md` this is a **NOTE**: the authoritative docs win on any
 contradiction until a claim is verified. Claims marked ✅ were re-verified BY ME in the tree.
 
@@ -17,10 +18,11 @@ contradiction until a claim is verified. Claims marked ✅ were re-verified BY M
 |---|---|---|
 | 4 | `Could not reach (19,6) on MAUVILLE_CITY` from Sootopolis/Mossdeep | ✅ ROOT-CAUSED → `KI-97`, fixed in sandbox |
 | 3 | `no super-effective answer` → 5 derails | ✅ ROOT-CAUSED, three distinct sub-causes below |
-| 2 | too many whiteout recoveries in a row | not investigated |
+| 2 | too many whiteout recoveries in a row | ✅ INVESTIGATED — **Tate & Liza**, see §4 |
 
-‼ The Mauville share was **4/6 (67%)** when first measured and **4/9 (44%)** three runs later. Quote
-it as a running figure with its `n`, never as "the" rate.
+‼ The Mauville share read **4/6 (67%)**, then **4/9 (44%)**, then **6/14 (43%)** as the batch
+ran on. ⇒ **always quote it with its `n`, never as "the" rate.** Navigation-class failures
+together were **8 of 14** at the last reading.
 
 ---
 
@@ -86,10 +88,16 @@ own comment at `:590-593` already warns *"winning leaves the avatar on the leade
 eleven-tile island; a chapter that returned here would pass its own test and strand the run"* — the
 warning is correct and the early-return added later re-opened exactly that hole.
 
-**Candidate fix (NOT yet applied — needs the same measure-first treatment):** `leave_the_gym()` is
-already resume-safe (`:471-472` `if not _on_gym_map(): return`; `:474` acts only on the platform
-tiles), so either call it unconditionally at Segment 18, or move the badge early-return to *after*
-it. ⚠ Prefer the version that also covers a run whose BADGE07 was won in a PREVIOUS run.
+**✅ FIXED 2026-09-07 (sandbox, UNDRIVEN)** — commit `e458a29b`. BOTH halves, since either alone
+leaves a hole: Segment 18's `else` now calls `leave_the_gym()` (that is the half that matters —
+with the badge set the chapter is never called at all), and the chapter's own badge early-return
+leaves before returning. Each is a no-op off the gym map (`:471-472` `if not _on_gym_map():
+return`).
+⛔ **The IDENTICAL early-return in `fight_the_leaders()` (`:382`) was deliberately LEFT ALONE** —
+it is a SUB-STEP and correct as written: leaving is the CHAPTER's job, and the fight is retried
+three times by the loop. ‼ That only surfaced because the edit asserted anchor uniqueness and
+REFUSED when the two-line pattern matched twice; a blind replace would have patched the correct
+copy and left the defect.
 
 ---
 
@@ -149,6 +157,33 @@ lookup*, or gating the restock on the mart being near the hunt route.
 earn no XP). Live: `L07` caught a Numel, boxed it, and fielded it at **L16** beside an L33 party
 against Gym 4 — and lost. Closing this touches `pc_trip`, the lead picker and the one-attempt bound,
 i.e. it is adjacent to settled ground. ⛔ Do not build it without asking.
+
+---
+
+## 4. ⭐ THE DEEPEST RUNS DIE AT TATE & LIZA — a failure class no guard covers
+
+Found by triaging the one cluster nobody had examined (`too many whiteout recoveries in a row`, 2 of
+14 ended runs). Both are the DEEPEST runs of the batch (3,877,438 and 4,198,775 frames), and both die
+in the Mossdeep Gym against Tate & Liza — L04 at `defeat #24 here`, L05 at `defeat #11`.
+
+```
+Story: Ch18 plan #1 from (6, 35) — 117 steps, 16 switch press(es)
+Story: Ch18 reached the leaders' tile (23, 8)
+Story: Ch18 challenging Tate & Liza from (23, 8) (5 able to battle)...
+Story: lost a battle at map (14, 0) (defeat #24 here; KO'd 1 of theirs first).
+Story: whited out — recovering ...
+```
+
+⛔ **THE NON-CONVERGENCE GUARD NEVER FIRED.** It grades a boss HOPELESS on TYPE coverage; against
+Psychic the party really does hold Dark/Ghost/Bug, so it keeps trying. ⇒ **the guard catches "wrong
+types" and is blind to "right types, too weak"** — and the blind case is the expensive one, because
+every loss re-solves the 117-step statue puzzle.
+
+⚠ **TWO HYPOTHESES, UNDISCRIMINATED:** (a) the party is under-powered; (b) `KI-96`'s freshness
+invariant is incomplete in DOUBLES (slot 0 encodes only the LEFT battler, decomp-verified), and Tate
+& Liza is the story's only double battle. ⭐ The `[KI96-REREAD]` drive against this fight
+discriminates them cheaply — clean rotations ⇒ (a); wedges or `DIFFER` ⇒ (b) contributes.
+⛔ Grinding levels first is the expensive arm AND would mask (b).
 
 ---
 
