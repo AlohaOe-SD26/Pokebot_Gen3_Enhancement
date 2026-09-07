@@ -8619,3 +8619,61 @@ each only excluded one candidate; the stack excludes all of them at once and nam
 whether the party can WIN (the analysis says it dies at Glacia, fight 3). **This says the run cannot
 finish fight 1 for reasons that have nothing to do with damage.** ⇒ ⭐ **fix the hang before spending
 anything on levels or TMs** — a stronger party hangs in exactly the same place.
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+MIXED status preserved. Archived 2026-09-06 for the R3 budget after KI-91/92/93/94 were filed. The CORRECTNESS half remains open under #24-ki76correctness.
+
+## KI-76 — our CURRENT-SLIDE model ends the slide ONE TILE SHORT and in the WRONG MOVEMENT MODE, and it cannot see that a slide can END ON A WARP (2026-08-13 — ✅ SAFETY half FIXED, fault-tested, cap PROVEN; ⚠ CORRECTNESS half still UNFIXED and TRACKED as `#24-ki76correctness`, but ✅✅ **its ENDS-ON-A-WARP defect is CONFIRMED LIVE 2026-08-17** while the DISMOUNT defect remains analysis; ‼ **MIXED ARMING — the two defects are armed in DIFFERENT PLACES, see the 2026-08-17 blocks**)
+
+> ⛔⛔ **THIS HEADER USED TO END *"so it is ARMED chiefly on Routes 132-134"*, ONE claim covering
+> TWO defects. MEASURED 2026-08-17 (`probe_slide_endpoints.py`), that is half right and half
+> BACKWARDS:** the **dismount** defect is armed **1,852** times ROM-wide and overwhelmingly on those
+> routes (765/542/501) — but the **ends-on-a-warp** defect is armed **9** times and **ALL NINE ARE
+> IN SEAFLOOR_CAVERN_ROOM6, ZERO on the routes.** A reader acting on the old header would have hunted
+> the warp defect on the routes, where it does not exist. ‼ **A header covering two defects must
+> state each one's status separately** — the P2 rule, applied to defects rather than to bullets.
+> ✅ **The 512-step cap is no longer taken on faith:** production followed every cross-map chain on
+> ONE shared budget, the cap NEVER fired, nothing cycles, and the longest chain is **77** steps
+> (margin **6.6x**). ⛔ The *"longest real chain is 32 / ~16x / Routes 132-134 are unmeasured"* line
+> below and in `map_path.py` was stale on all three counts and is corrected in both.
+> ➡ **Full measurement, the priority ruling and the startable next action live in
+> `03-PUNCH-LIST.md` under `#24-ki76correctness`. ⛔ The numbers are NOT repeated here — one copy.**
+
+Found by an adversarial audit of the KI-59-era claim *"our planner models the currents"*, which I had
+just committed off the back of a clean 4/4 prediction run. **The 4/4 stands; the conclusion drawn
+from it was too strong.** Both defects below are corroborated by OUR OWN measurements, not only by
+the agent that reported them.
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+PARTLY FIXED status preserved. Archived 2026-09-06 for the R3 budget after KI-91/92/93/94 were filed. Its index-space diagnosis is worth re-reading before touching handle_fainted_pokemon - that shape has now recurred four times.
+
+## KI-66 — the multi-battle hazard is BROADER than the faint chooser — **PARTLY FIXED 2026-08-17: DRIVEN (`--driver ki66faint`), and the `_on_field` INDEX-SPACE defect is FIXED AND PROMOTED TO BOTH FORKS. STILL OPEN: the OWNER filter (measured INERT on our one fixture), `:541-545`, `_util.py:522-587`.** ⛔ Its HEADLINE — "it sends out an ALLY's mon" — is **REFUTED**: the bot never ATTEMPTED an ally slot. (Filed 2026-08-12, code-verified; the turn-1 IndexError sub-claim was REFUTED 2026-08-12.)
+
+Filed from the adversarial review of the finished §Ch19. KI-64 fixed the three *faint* choosers; the
+review found **four more party scans** on the same battle's paths that still have no partner concept.
+None is fixed, and none has ever run live (every §Ch19 drive had zero faints).
+
+**THE FOUR SITES — TABLE MOVED to `31-KNOWN-ISSUES-ARCHIVE.md` (2026-08-17).** ‼ Keep the list:
+`battle_handler.py:541-545` (the `None` fallback — no owner AND no on-field filter),
+`:588-598` (writes a party-order index into a menu-order variable — the KI-34 shape),
+`:630-636` (`alive_slots`, excludes only the on-field pair — and see the DRIVEN block below: that
+exclusion is itself in the WRONG INDEX SPACE), and `_util.py:522-587`
+(`get_potential_rotation_targets` / `select_rotation_target`, feeding an UNBOUNDED
+`while … press A` at `battle_action_selection.py:288`).
+
+✅ **REFUTED 2026-08-12 — the `IndexError` on turn 1 does not happen.** The review flagged
+`decide_turn_in_double_battle` (`default.py:240-241`) doing `get_party()[partner.party_index]` with
+an index of 3-5 while `gPlayerPartyCount` might still be 3, which would have fired on the FIRST turn
+rather than on a faint. Refuted by our own driven run: `ch19d.log` f23255 shows `battle_is_active ->
+True` with a **six-entry** party (`Sceptile|Mightyena|Swellow|Metang|Skarmory|Aggron`), and the
+multi battle was won. `FillPartnerParty` does update the count in practice, so the index is in range.
+‼ Worth stating because it is the one item on this list that would have broken §Ch19 in production
+rather than merely on an error path — and it is the reason to check a "would fire immediately" claim
+against an existing log before scheduling work for it.
+

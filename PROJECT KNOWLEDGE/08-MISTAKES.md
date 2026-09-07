@@ -13497,3 +13497,31 @@ evidence about the SUBJECT when it was evidence about the INSTRUMENT.
 where a future session would have trusted them and skipped the right location. **The correction matters
 more than the original finding**, which is why `KI-93` now leads with the retraction rather than
 burying it.
+
+
+## 2026-09-06 — I drove §Ch24 from a fixture whose own note says "NOT READY", all session
+
+**Symptom.** Every §Ch24 probe and all four `KI-93` fix attempts started from
+`post_league_shop.ss1`. That fixture's note opens: **"⛔ THE BOT IS NOT READY TO ATTEMPT §Ch24."** The
+tell was visible in every drive — `Wailord L47: Dive, Surf, Water Spout, Waterfall`, no Ice Beam,
+while a CLOSED punch-list item says Wailord knows it. I read that moveset line a dozen times.
+
+**Root cause.** I picked the fixture by POSITION ("the bot is at the League door") and never read
+what state it was in. The §Ch24 prep is a separate lineage — four move changes, Fly, TM13, the teach —
+that ends at ROUTE108 and **captures no combined fixture**, so nothing carries it to the League.
+
+**⇒ PREVENTION RULES (three).**
+1. ⛔⛔ **A FIXTURE'S NOTE IS A PRECONDITION, NOT DECORATION.** `FIXTURES.md5` entries in this project
+   routinely open with what the save is NOT ready for. ⇒ **read the note before the drive**, and treat
+   a "NOT READY" as a refusal to start, not a caveat to remember.
+2. ⛔ **A CLOSED ITEM CLAIMS A CAPABILITY, NOT A SAVE.** `#24-icebeamteach` is correctly closed — the
+   teach works. It does not follow that any fixture HAS the taught move. ⇒ **when a closed item's
+   result must persist, ask which fixture holds it**, and if none does, that is an open gap
+   (now `KI-94`).
+3. ⭐ **THE ANOMALY WAS IN EVERY LOG.** The moveset dump printed on every single drive and contradicted
+   a closed item. ⇒ when a routine dump disagrees with a doc, that is the cheapest possible signal —
+   **read the dumps you already print** before building instruments to find what they were telling you.
+
+‼ **Cost:** a session of §Ch24 measurement against a party the bot will never field. **Not wasted
+entirely** — the routing, `KI-93` and the doc fixes all stand — but the readiness and winnability
+numbers must be re-taken.

@@ -1565,27 +1565,9 @@ Fixed, driven and gated (`repro_multi_battle_partner.py`, in the standing suite)
 
 ---
 
-## KI-76 — our CURRENT-SLIDE model ends the slide ONE TILE SHORT and in the WRONG MOVEMENT MODE, and it cannot see that a slide can END ON A WARP (2026-08-13 — ✅ SAFETY half FIXED, fault-tested, cap PROVEN; ⚠ CORRECTNESS half still UNFIXED and TRACKED as `#24-ki76correctness`, but ✅✅ **its ENDS-ON-A-WARP defect is CONFIRMED LIVE 2026-08-17** while the DISMOUNT defect remains analysis; ‼ **MIXED ARMING — the two defects are armed in DIFFERENT PLACES, see the 2026-08-17 blocks**)
+## KI-76 — our CURRENT-SLIDE model ends the slide ONE TILE SHORT and in the WRONG MOVEMENT MODE — 🔶 **MIXED: ✅ SAFETY half FIXED and fault-tested; ⚠ CORRECTNESS half UNFIXED, tracked as `#24-ki76correctness`.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, R3 line budget; nothing deleted, status unchanged).
 
-> ⛔⛔ **THIS HEADER USED TO END *"so it is ARMED chiefly on Routes 132-134"*, ONE claim covering
-> TWO defects. MEASURED 2026-08-17 (`probe_slide_endpoints.py`), that is half right and half
-> BACKWARDS:** the **dismount** defect is armed **1,852** times ROM-wide and overwhelmingly on those
-> routes (765/542/501) — but the **ends-on-a-warp** defect is armed **9** times and **ALL NINE ARE
-> IN SEAFLOOR_CAVERN_ROOM6, ZERO on the routes.** A reader acting on the old header would have hunted
-> the warp defect on the routes, where it does not exist. ‼ **A header covering two defects must
-> state each one's status separately** — the P2 rule, applied to defects rather than to bullets.
-> ✅ **The 512-step cap is no longer taken on faith:** production followed every cross-map chain on
-> ONE shared budget, the cap NEVER fired, nothing cycles, and the longest chain is **77** steps
-> (margin **6.6x**). ⛔ The *"longest real chain is 32 / ~16x / Routes 132-134 are unmeasured"* line
-> below and in `map_path.py` was stale on all three counts and is corrected in both.
-> ➡ **Full measurement, the priority ruling and the startable next action live in
-> `03-PUNCH-LIST.md` under `#24-ki76correctness`. ⛔ The numbers are NOT repeated here — one copy.**
-
-Found by an adversarial audit of the KI-59-era claim *"our planner models the currents"*, which I had
-just committed off the back of a clean 4/4 prediction run. **The 4/4 stands; the conclusion drawn
-from it was too strong.** Both defects below are corroborated by OUR OWN measurements, not only by
-the agent that reported them.
-
+**2026-09-06 — ARCHIVED, STATUS UNCHANGED.** Full entry verbatim in `28-HANDOFF-ARCHIVE.md`. 🔶 Still MIXED: the SAFETY half is fixed and fault-tested; the CORRECTNESS half is still open under `#24-ki76correctness`. ⛔ Archived for the R3 budget only — this is NOT a closure.
 ### Defect 1 — the slide stops one tile early, and leaves the avatar notionally still surfing
 `modules/map_path.py:340-353`:
 ```python
@@ -1944,30 +1926,9 @@ DRIVEN question**. This probe answers "do we have it", never "can we get there".
 at all (only their own puzzle flags), which would mean the tombs are solvable without the Sealed
 Chamber. That contradicts common knowledge — **sequence the Sealed Chamber first regardless.**
 
-## KI-66 — the multi-battle hazard is BROADER than the faint chooser — **PARTLY FIXED 2026-08-17: DRIVEN (`--driver ki66faint`), and the `_on_field` INDEX-SPACE defect is FIXED AND PROMOTED TO BOTH FORKS. STILL OPEN: the OWNER filter (measured INERT on our one fixture), `:541-545`, `_util.py:522-587`.** ⛔ Its HEADLINE — "it sends out an ALLY's mon" — is **REFUTED**: the bot never ATTEMPTED an ally slot. (Filed 2026-08-12, code-verified; the turn-1 IndexError sub-claim was REFUTED 2026-08-12.)
+## KI-66 — the multi-battle hazard is BROADER than the faint chooser — 🔶 **PARTLY FIXED 2026-08-17 (DRIVEN); the residual is tracked as `#24-faintchooser-fourthspace`.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, R3 line budget; nothing deleted, status unchanged).
 
-Filed from the adversarial review of the finished §Ch19. KI-64 fixed the three *faint* choosers; the
-review found **four more party scans** on the same battle's paths that still have no partner concept.
-None is fixed, and none has ever run live (every §Ch19 drive had zero faints).
-
-**THE FOUR SITES — TABLE MOVED to `31-KNOWN-ISSUES-ARCHIVE.md` (2026-08-17).** ‼ Keep the list:
-`battle_handler.py:541-545` (the `None` fallback — no owner AND no on-field filter),
-`:588-598` (writes a party-order index into a menu-order variable — the KI-34 shape),
-`:630-636` (`alive_slots`, excludes only the on-field pair — and see the DRIVEN block below: that
-exclusion is itself in the WRONG INDEX SPACE), and `_util.py:522-587`
-(`get_potential_rotation_targets` / `select_rotation_target`, feeding an UNBOUNDED
-`while … press A` at `battle_action_selection.py:288`).
-
-✅ **REFUTED 2026-08-12 — the `IndexError` on turn 1 does not happen.** The review flagged
-`decide_turn_in_double_battle` (`default.py:240-241`) doing `get_party()[partner.party_index]` with
-an index of 3-5 while `gPlayerPartyCount` might still be 3, which would have fired on the FIRST turn
-rather than on a faint. Refuted by our own driven run: `ch19d.log` f23255 shows `battle_is_active ->
-True` with a **six-entry** party (`Sceptile|Mightyena|Swellow|Metang|Skarmory|Aggron`), and the
-multi battle was won. `FillPartnerParty` does update the count in practice, so the index is in range.
-‼ Worth stating because it is the one item on this list that would have broken §Ch19 in production
-rather than merely on an error path — and it is the reason to check a "would fire immediately" claim
-against an existing log before scheduling work for it.
-
+**2026-09-06 — ARCHIVED, STATUS UNCHANGED.** Full entry verbatim in `28-HANDOFF-ARCHIVE.md`. 🔶 Still PARTLY FIXED; the residual is `#24-faintchooser-fourthspace`. ⛔ Archived for the R3 budget only — NOT a closure. ⭐ Re-read its index-space diagnosis before touching `handle_fainted_pokemon`: that shape has now recurred four times.
 ### ✅✅ RECON 2026-08-16 — THE ITEM IS NOW BUILD-READY, AND ONE OF ITS SUB-CLAIMS IS NARROWED
 
 ⛔ **Read this before writing a line.** A Tier 2 cold-start agent tried to BEGIN this item and
@@ -2998,3 +2959,42 @@ implement-drive-revert cycles could not. Re-add it, then instrument INSIDE that 
 
 *(⛔ The three attempts and their VOID verdicts are archived verbatim in `28-HANDOFF-ARCHIVE.md` (2026-09-06), moved out of this current-state file per the R3 budget rule. They are history, not evidence — treat those locations as UNTESTED.)*
 
+
+## `KI-94` — ⛔⛔ THE §Ch24 PREP HAS NO COMBINED END-STATE, SO EVERY §Ch24 MEASUREMENT SO FAR USED AN UNDER-PREPARED PARTY (2026-09-06, MEASURED, OPEN — §Ch24 BLOCKER, BIGGER THAN `KI-93`)
+
+**Symptom.** Every §Ch24 probe and all four `KI-93` fix attempts were driven from
+`post_league_shop.ss1` — whose OWN fixture note opens with
+**"⛔ THE BOT IS *NOT* READY TO ATTEMPT §Ch24 — SEE `#24-e4healing`."** I read past that line for a
+whole session.
+
+**MEASURED.** Wailord's moveset in every drive today:
+```
+[moveset] Wailord L47: Dive, Surf, Water Spout, Waterfall      ⇐ NO ICE BEAM
+```
+…while `#24-icebeamteach` is marked **CLOSED: "WAILORD KNOWS ICE BEAM" ⛔ DO NOT REOPEN**.
+
+**⇒ THE CLOSED ITEM IS NOT WRONG — THE FIXTURE LINEAGE IS.** The §Ch24 prep runs
+`post_league_shop → post_moveset → post_fly → post_slateport → post_icebeam`, and:
+* each step was driven and PASSED in isolation;
+* `post_icebeam.ss1` ends at **ROUTE108**, not the League;
+* **`ch24teachice` captures NO fixture** — there is no `post_teachice.ss1` in `FIXTURES.md5`.
+⇒ ⭐⭐ **THE PREP IS A CHAIN OF PROVEN STEPS WITH NO COMBINED END STATE.** Nothing carries the four
+move changes, Fly, TM13 and the taught Ice Beam forward to the League door, and no save holds them
+together.
+
+**⛔ WHAT THIS INVALIDATES.**
+* The winnability analysis must NOT be run against `post_league_shop.ss1` — it is the wrong party.
+  Ice Beam was called *"the single change that turns Drake from a loss into a win"*, and the party we
+  measured does not have it.
+* `probe_ch24_readiness.py`'s stat dump is correct FOR THAT SAVE, but that save is pre-prep.
+* ‼ `KI-93` is **NOT** invalidated: Torment blindness is structural (the chooser cannot see
+  `gLastMoves`/`STATUS2_TORMENT` whatever the moveset), and the freeze would recur on any party.
+
+**⇒ THE REAL NEXT STEP FOR §Ch24, AND IT COMES BEFORE `KI-93`:** chain the prep and **capture a
+combined fixture** — the fully-prepared party standing at the League door — then re-measure
+readiness and winnability against THAT. Until it exists, every §Ch24 number is about a party the
+bot will never actually field.
+
+**⭐ THE LESSON — AND IT IS A CHEAP ONE TO REUSE:** a fixture's own note is a precondition, not
+decoration. `post_league_shop.ss1` said "NOT READY" in its first sentence and I drove §Ch24 from it
+anyway, repeatedly. **Read the fixture note before the drive, not after the anomaly.**
