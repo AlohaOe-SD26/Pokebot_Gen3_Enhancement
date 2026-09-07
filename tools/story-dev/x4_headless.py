@@ -89,8 +89,17 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[1]
-SANDBOX = REPO_ROOT / "sandbox-pokebot"
-PROFILES = SANDBOX / "profiles"
+#: ⛔⛔ WHICH FORK THE LANES RUN. Defaults to `custom` because that is the fork that HOLDS STILL:
+#: the standing directive is "during a sandbox round, do NOT modify custom-pokebot", so a batch
+#: pointed here measures the PROMOTED PRODUCT and cannot be poisoned by whatever is being edited in
+#: the sandbox mid-batch. `14-AGENT-PLAYBOOK.md` calls analysing logs against undeployed code the
+#: largest single waste in this project — this is the mechanical guard against it.
+#: ‼ Rebound by `--build`; the MANIFEST records which was used, because a finish rate whose build is
+#: unknown is not a measurement.
+BUILD_ROOTS = {"sandbox": "sandbox-pokebot", "custom": "custom-pokebot"}
+BUILD_NAME = "custom"
+BUILD_ROOT = REPO_ROOT / BUILD_ROOTS[BUILD_NAME]
+PROFILES = BUILD_ROOT / "profiles"
 RUNS_ROOT = HERE / "x4-runs"
 
 BOT_MODE = "Story (ENDLESS RESET)"
@@ -315,6 +324,9 @@ def render_manifest(batch: dict) -> str:
         "=" * 72,
         f"stamp          {batch['stamp']}",
         f"code_commit    {batch['code_commit']}",
+        # ⛔ WHICH FORK PRODUCED THESE NUMBERS. `.get` on purpose: the gate's fixture predates this
+        # field, and a reporting function must never crash on an older batch dict.
+        f"build          {batch.get('build', '?')}",
         f"bot_mode       {BOT_MODE}",
         f"lanes          {batch['lanes']}",
         f"bound          runs/lane={batch['runs_per_lane'] or 'infinite'}  "
@@ -497,7 +509,7 @@ def lane_command(lane: Lane, runs_per_lane: int) -> list[str]:
     selects the tile frontend) is replaced by `-hl`. The `--tile-*` args are GUI-only.
     """
     return [
-        sys.executable, str(SANDBOX / "pokebot.py"),
+        sys.executable, str(BUILD_ROOT / "pokebot.py"),
         lane.profile,
         "-m", BOT_MODE,
         "-s", "0",                       # unthrottled
@@ -530,7 +542,7 @@ def spawn(lane: Lane, runs_per_lane: int) -> None:
     creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
     lane.proc = subprocess.Popen(
         lane_command(lane, runs_per_lane),
-        cwd=str(SANDBOX),
+        cwd=str(BUILD_ROOT),
         env=lane_env(),
         stdout=lane.fh,
         stderr=subprocess.STDOUT,
@@ -635,6 +647,85 @@ def _merge_end_reasons(lanes_detail: dict) -> Counter:
         merged.update(lane.get("end_reasons", {}))
     return merged
 
+def status(target: str) -> int:
+    """Print progress for a RUNNING or finished batch. STRICTLY READ-ONLY.
+
+    ⛔ WHY THIS EXISTS: `--resummarise` reads a FINISHED batch, so there was no way to answer
+    "how is it going?" during an 8-hour run without opening files by hand. Lanes write stdout LIVE
+    and unbuffered (`lane_env` sets `PYTHONUNBUFFERED=1` precisely so a long-running lane is not
+    invisible on disk), so the data is already there.
+    ‼ It opens files and NOTHING else — no signals, no writes, no process inspection. Checking on a
+    batch must never be able to perturb it.
+    """
+    root = RUNS_ROOT
+    if target.strip().lower() == "latest":
+        pointer = root / "LATEST.txt"
+        if not pointer.exists():
+            print(f"[x4h] no {pointer} — has a batch ever run?", flush=True)
+            return 2
+        stamp = pointer.read_text(encoding="utf-8").strip().splitlines()[0].strip()
+        batch_dir = root / stamp
+    else:
+        batch_dir = Path(target)
+    if not batch_dir.exists():
+        print(f"[x4h] no such batch dir: {batch_dir}", flush=True)
+        return 2
+
+    manifest = batch_dir / "MANIFEST.txt"
+    header = manifest.read_text(encoding="utf-8", errors="replace").splitlines()[:12] \
+        if manifest.exists() else ["(no MANIFEST yet — the batch is still starting)"]
+    print("=" * 78)
+    print(f"x4 BATCH STATUS — {batch_dir.name}")
+    print("=" * 78)
+    for line in header:
+        if line.strip() and not line.startswith("="):
+            print("  " + line)
+
+    lane_dirs = sorted(d for d in batch_dir.glob("L*") if d.is_dir())
+    if not lane_dirs:
+        print("\n  no lane directories yet.")
+        return 0
+
+    # ⛔⛔ USE `summarize_lane`, NEVER A HAND-ROLLED COUNT. The first version of this function
+    # counted the literal string "FINISHED" and reported 0% for a batch whose own INDEX row records
+    # 36% — a status tool that understates progress is worse than none, because it turns a healthy
+    # batch into a false alarm. `summarize_lane` is the SAME logic the batch summary and the gate
+    # use, so this figure and the recorded one can never disagree.
+    # ‹ `debug_text=""` is deliberate: runs/finished derive from `_RUN_END_RE` over stdout alone.
+    print(f"\n  {'lane':<6} {'runs':>5} {'fin':>4} {'rate':>6}  last activity")
+    print("  " + "-" * 72)
+    total_runs = total_fin = 0
+    reasons: Counter = Counter()
+    for d in lane_dirs:
+        out = d / "stdout.txt"
+        text = out.read_text(encoding="utf-8", errors="replace") if out.exists() else ""
+        lane_sum = summarize_lane(text, "")
+        runs, fin = lane_sum["runs_ended"], lane_sum["finished"]
+        total_runs += runs
+        total_fin += fin
+        reasons.update(lane_sum.get("end_reasons", {}))
+        rate = f"{(100 * fin / runs):.0f}%" if runs else "-"
+        tail = ""
+        for line in reversed(text.splitlines()):
+            if line.strip():
+                tail = line.strip()[:58]
+                break
+        print(f"  {d.name:<6} {runs:>5} {fin:>4} {rate:>6}  {tail}")
+    overall = f"{(100 * total_fin / total_runs):.0f}%" if total_runs else "-"
+    print("  " + "-" * 72)
+    print(f"  {'TOTAL':<6} {total_runs:>5} {total_fin:>4} {overall:>6}")
+
+    if reasons:
+        # ⭐ The code's own comment calls this "the only number that should drive the next item".
+        print("\n  WHY RUNS ENDED (grouped) — the number that should drive the next item:")
+        for reason, n in reasons.most_common(8):
+            print(f"    {n:>4}x  {reason[:66]}")
+
+    print("\n  ⚠ A rate from a PARTIAL batch is a running figure, not a result — lanes mid-run")
+    print("    drag it down. Compare only completed batches, and only against the same build.")
+    return 0
+
+
 def resummarise(batch_dir: Path) -> int:
     """Re-parse a stored batch's logs and rewrite its `summary.json` / `MANIFEST.txt`.
 
@@ -732,6 +823,13 @@ def main() -> int:
     # Default 4 to MIRROR the user's GUI dashboard (torchic/mudkip/treecko/random). On the
     # dev box use 8: four lanes measured ~4 cores of a 16C/32T machine, so 8 is comfortable
     # and still leaves headroom. Do not max it out.
+    ap.add_argument("--build", choices=sorted(BUILD_ROOTS), default="custom",
+                    help="which fork the lanes run (default: custom — the fork that HOLDS STILL "
+                         "while the sandbox is being edited). Recorded in the MANIFEST.")
+    ap.add_argument("--status", default=None, metavar="BATCH_DIR",
+                    help="print live progress for a RUNNING (or finished) batch and exit. "
+                         "Accepts a batch dir or the word 'latest'. Strictly read-only — it opens "
+                         "files and never signals a process, so it is safe to run at any time.")
     ap.add_argument("--lanes", type=int, default=4)
     ap.add_argument("--minutes", type=float, default=0.0,
                     help="wall-clock bound; 0 = unbounded (then --runs must be set)")
@@ -755,8 +853,21 @@ def main() -> int:
                          "logs are the data, the summary is only a reading of them.")
     args = ap.parse_args()
 
+    if args.status:
+        return status(args.status)
+
     if args.resummarise:
         return resummarise(Path(args.resummarise))
+
+    # ⛔ REBIND THE BUILD BEFORE ANY LANE IS PREPARED. `ensure_lane_profile` and `lane_command`
+    # read these at call time, so this must happen before either runs.
+    global BUILD_NAME, BUILD_ROOT, PROFILES
+    BUILD_NAME = args.build
+    BUILD_ROOT = REPO_ROOT / BUILD_ROOTS[BUILD_NAME]
+    PROFILES = BUILD_ROOT / "profiles"
+    if not (BUILD_ROOT / "pokebot.py").exists():
+        print(f"[x4h] FATAL: --build {BUILD_NAME} -> {BUILD_ROOT} has no pokebot.py", flush=True)
+        return 2
 
     if args.lanes < 1:
         print("[x4h] FATAL: --lanes must be >= 1", flush=True)
@@ -776,7 +887,7 @@ def main() -> int:
 
     print(f"[x4h] batch {stamp} — {args.lanes} lane(s), "
           f"runs/lane={args.runs or 'infinite'}, minutes={args.minutes or 'unbounded'}, "
-          f"code={commit}", flush=True)
+          f"code={commit}, build={BUILD_NAME} ({BUILD_ROOT.name})", flush=True)
     print(f"[x4h] output: {out_root}", flush=True)
     if commit.endswith("-dirty"):
         print("[x4h] ‼ WORKING TREE IS DIRTY — this batch cannot be attributed to a commit.",

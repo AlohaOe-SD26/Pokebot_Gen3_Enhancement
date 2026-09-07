@@ -371,6 +371,52 @@ check("MANIFEST records the commit", "abc1234" in man)
 check("MANIFEST records the emulation assertion result", "EMULATION ASSERTION" in man and "24" in man)
 check("MANIFEST records lanes + starters", "H1" in man and "torchic" in man)
 
+# --- the BUILD selector (added 2026-09-07 with `--build`) --------------------------------------
+# ⛔ A batch's numbers are unattributable without the fork that produced them. `--build` defaults to
+# `custom` DELIBERATELY: custom is the fork that holds still while the sandbox is edited, so a batch
+# measures the PROMOTED PRODUCT and cannot be poisoned mid-run by development work.
+check("both forks are selectable", set(x4.BUILD_ROOTS) == {"sandbox", "custom"})
+check("the default build is `custom` (the fork that holds still)", x4.BUILD_NAME == "custom")
+check("BUILD_ROOT resolves under the repo root",
+      x4.BUILD_ROOT.name in ("custom-pokebot", "sandbox-pokebot"))
+# ‼ `.get`-based so an OLDER batch dict (no `build` key) still renders — a reporting function must
+# never crash on historical data.
+check("MANIFEST renders a build line for an OLD batch dict without a build key", "build" in man)
+batch_with_build = dict(batch)
+batch_with_build["build"] = "custom"
+check("MANIFEST records the build when present",
+      "custom" in x4.render_manifest(batch_with_build))
+
+# --- the --status counter (added 2026-09-07) ---------------------------------------------------
+# ⛔⛔ THIS EXISTS BECAUSE THE FIRST `--status` COUNTED THE LITERAL STRING "FINISHED" AND REPORTED
+# 0% FOR A BATCH RECORDED AT 36%. The fix was to reuse `summarize_lane`; this check keeps it reused.
+# ⭐ A CONTROL, not a tautology: the fixture's finish count is known from its own text, so a
+# regression to any hand-rolled heuristic goes RED.
+_stdout_fixture = "\n".join([
+    # ⛔ COPIED FROM A REAL BATCH (`x4-runs/20260826-185918/L0*/stdout.txt`), not composed from
+    # memory — the first version of this fixture invented a plausible format that `_RUN_END_RE`
+    # matched zero times, and the checks silently measured nothing.
+    "=== ENDLESS RESET: run 1/infinite -> finished (1,234,567 frames) ===",
+    "=== ENDLESS RESET: run 2/infinite -> derailed: Story: too many whiteout recoveries in a row"
+    " — stopping so I do not burn the budget (2,000,000 frames) ===",
+    "=== ENDLESS RESET: run 3/infinite -> finished (999,999 frames) ===",
+    # ⛔ THE ONE THAT MATTERS: a run handed to Manual must NOT count as a finish.
+    # `classify_outcome`'s docstring records the cost of getting this wrong — 16 dead runs read as
+    # wins and a summary claimed ~80% against a true ~20%.
+    "=== ENDLESS RESET: run 4/infinite -> stopped: handed to Manual mid-run (500,000 frames) ===",
+])
+_s = x4.summarize_lane(_stdout_fixture, "")
+check("--status counts runs via summarize_lane (4 runs seen)", _s["runs_ended"] == 4,
+      f"got {_s['runs_ended']}")
+check("--status counts ONLY literal `finished` (2 of 4, Manual hand-off excluded)",
+      _s["finished"] == 2, f"got {_s['finished']}")
+check("--status does NOT count a Manual hand-off as a finish", _s["stopped"] == 1,
+      f"stopped={_s['stopped']}")
+check("--status derives a finish RATE, not a raw count", _s["finish_rate"] == round(2 / 4, 3),
+      f"got {_s['finish_rate']}")
+check("--status surfaces WHY runs ended (the number that drives the next item)",
+      bool(_s.get("end_reasons")), f"got {_s.get('end_reasons')}")
+
 row = x4.index_row("20260731-120000", dict(batch, verdict="OK"))
 idx = x4.render_index([row])
 check("INDEX row carries the commit", "abc1234" in idx)

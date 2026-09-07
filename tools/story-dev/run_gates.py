@@ -279,6 +279,17 @@ GATES: list[tuple[str, bool]] = [
     # Bare invocation runs `--self-test`: good drive -> 0; cross-mon veto leak, missing identity,
     # vacuous drive, and missing control line -> 1.
     ("grade_ki93_drive.py", False),
+    # --- #41 — the x4 batch runner's own reporting + build selector
+    # APPENDED AT THE END, never inserted — the same rule #34-#40 carry.
+    # WHY A GATE, AND WHY NOW: this repro has covered `x4_headless.py`'s parsing since 2026-07-31 but
+    # was NEVER REGISTERED, so nothing ran it — exactly the rot `#24-reprosweepratchet` describes
+    # ("none of the 104 repros is in run_gates.py, and what the suite does not run, rots").
+    # It got urgent on 2026-09-07 when `--build` and `--status` landed: `--build` decides WHICH FORK a
+    # batch measures (a finish rate whose build is unknown is not a measurement), and `--status`
+    # shipped WRONG once already — it counted the literal string "FINISHED" and reported 0% for a
+    # batch whose own INDEX row records 36%.
+    # Pure and fast: it parses fixtures and reads two source files. No ROM, no emulator.
+    ("repro_x4_headless.py", False),
 ]
 
 
