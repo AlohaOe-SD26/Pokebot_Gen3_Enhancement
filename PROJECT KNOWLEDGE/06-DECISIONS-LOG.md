@@ -4632,3 +4632,58 @@ argued from `decide_turn`'s existing call, and confirmed at runtime by the new `
 Standing project rule: promotion is the user's call. The user is asleep. Drift goes to 1 and every
 doc that claimed 0 now says 1 and why. *Rejected:* promoting because "the gates are green" — green
 gates bound a contract, not a permission.
+
+## 2026-09-06 — `KI-93`: gate the dismiss on the PRINTER STATE, and hold the refusal memory at MODULE level
+
+**Decision 1 — press only while `sTextPrinters[0].state == RENDER_STATE_CLEAR`, never on a timer.**
+*Why:* a press delivered while glyphs are still printing is consumed as a text SPEED-UP
+(`src/text.c:944-955`) and is therefore NOT the dismissal press. A frame-count trigger would burn its
+edge and still hang — and would have looked like "the fix does not work".
+*Rejected:* "wait N frames then press", which is what a fifth guess would naturally have been.
+*Free win:* `modules/text_printer.py` already wrapped this and `_listeners.py:168-170` already used it,
+so this is house style rather than a new mechanism.
+
+**Decision 2 — press B, not A.**
+*Why:* `gMoveSelectionCursor` is not reset when the menu re-opens, so a stray **A** re-commits the very
+move that was refused. A stray **B** cancels to the action menu, where B is inert in a single battle.
+⇒ the failure mode of a mistimed B is a no-op; of a mistimed A, another refusal.
+
+**Decision 3 — `_ki93_refused_slots` is MODULE-LEVEL.**
+*Why:* MEASURED — the handler is re-entered ~5x per refusal episode, so a function-local set is
+destroyed between picks. *Rejected:* the function-local design this KI had carried for a day, which
+reasoned (wrongly) that the function runs once per selection phase.
+*Cost accepted:* module-level mutable state in a battle module. Bounded by a single clearing rule
+(an ordinary script while parked) and a collapse guard, and a stale entry costs at most one turn of
+second-best move choice — against a livelock that ends the run.
+
+**Decision 4 — fix the CLASS, not Torment.**
+61 battle strings end in `\p` and every one would hang in that branch. The vocabulary covers Torment,
+Disable, Taunt, Imprison, Choice-lock and no-PP. *Rejected:* keying on `BattleScript_SelectingTormentedMove`
+alone, which would have left five identical hangs armed.
+
+## 2026-09-07 — `KI-93`: the refusal memory is keyed on the POKÉMON and expires when a turn executes
+
+**Supersedes the "Cost accepted" clause of Decision 3 (2026-09-06), which was MEASURED FALSE the same
+night.** That clause read *"a stale entry costs at most one turn of second-best move choice"*. Measured:
+a fainted Swellow's vetoes reached Castform and forced it into Sunny Day for two turns in a battle that
+then whited out. ‼ This file is append-only and SESSION DISCIPLINE #11 sends future agents to grep it
+FIRST, so the correction is recorded here rather than left only in `05-KNOWN-ISSUES.md`.
+
+**Decision — key `_ki93_refused_slots` on `personality_value`, and drop it when a turn executes.**
+*Why identity:* a battler index is a POSITION; the thing that earns a refusal is a POKÉMON. Keyed by
+slot, the memory outlived its owner. `CLAUDE.md` SESSION DISCIPLINE #3 already said this in capitals
+and I broke it anyway — which is why the CHECKER (`grade_ki93_drive.py` C2) is now keyed on identity
+too, so the same class of error cannot pass unnoticed again.
+*Why the lifetime rule:* Torment forbids the **last move used** (`src/battle_util.c:999`), and that
+changes every time a turn executes. A veto is therefore true only for the selection episode that
+produced it — keeping it afterwards is wrong even for the same Pokémon, and leaked across battles.
+*Rejected:* clearing at battle start/end only. It would have fixed the cross-battle leak and left the
+cross-turn one, and there is no cheap battle-start signal in this module.
+*Rejected:* per-candidate fallback to the legacy metric — that is the scale-mixing bug from `KI-95`
+in another costume.
+
+**⭐ ALSO SUPERSEDED: "the blast radius of the BUG is exactly ONE Pokémon in the whole game"**
+(2026-09-06, from `grep -c MOVE_TORMENT src/data/trainer_parties.h` = 1). True of TORMENT, false of the
+DEFECT: 61 battle strings end in `\p` and every one parks the printer identically, so the hang class
+covers Disable, Taunt, Imprison, Choice-lock and no-PP as well. The fix is keyed on a vocabulary of
+refusal scripts, not on Torment.

@@ -13618,3 +13618,133 @@ INDEPENDENT REVIEW OF IT IS IN FLIGHT.** I dispatched two reviewers and then rew
 them. One correctly refused to certify: *"I cannot certify a diff that mutates under me while the
 self-report describes a version that no longer exists on disk."* That is the right call, and the wasted
 pass was mine to prevent. **Freeze the tree, or dispatch the review only when you are done editing.**
+
+## 2026-09-06 — three self-inflicted bugs in one hour of `KI-93` work, all in the BOOKKEEPING, not the fix
+
+The `KI-93` dismiss half worked on its FIRST drive — gating on `TextPrinterState.WaitForButton` and
+pressing B ended the park every time (`[KI93-WAIT] ENDED after 257 frames`, repeatedly). **Every
+failure that followed was in the memory that decides which slot not to re-pick.** Three distinct bugs,
+each of which produced a *plausible-looking* log.
+
+### 1. A STALE SIGNAL, READ EVERY FRAME, MANUFACTURES EVIDENCE
+
+I recorded "the slot we last committed was refused" on **every frame** the printer was parked with a
+refusal script on screen. But `get_current_battle_script_instruction()` still reads
+`SelectingTormentedMove` during the *next* park, so each freshly re-picked slot was marked refused
+although the game had never rejected it. Measured: `refused={0: {0, 1, 2, 3}}` — **all four slots** —
+after which the re-pick found no alternative and the livelock returned.
+
+**⭐ PREVENTION RULE — SAMPLE A LEVEL ONCE PER EDGE, NEVER CONTINUOUSLY.** A signal that stays true
+after the event it describes is a LEVEL, not an event. Reading it in a loop does not gather more
+evidence; it manufactures duplicates of one observation and disguises them as many.
+⭐ Corollary that caught it: **a derived set that can be complete is telling you it is wrong.** Torment
+forbids exactly ONE move, and the engine takes the Struggle path when nothing is usable — so a
+"refused everything" state is impossible in the game and therefore a bug in the bookkeeping. Assert the
+impossible state and collapse it rather than acting on it.
+
+### 2. A GUARD MADE THE CLEARING BRANCH ITS FALL-THROUGH
+
+The fix for (1) was a once-per-park latch, written as:
+```python
+if _instr_now in REFUSAL_SCRIPTS and not _ki93_recorded_park:   # ⛔ WRONG
+    ...record...
+elif _instr_now:
+    _ki93_forget()          # "the turn moved on"
+```
+On the frame after banking a refusal, the first test goes False, the `elif` sees a perfectly truthy
+`SelectingTormentedMove`, and **the memory is wiped**. Measured: `refused={}` on every line and
+`KI93-REPICK: 0` — the exact opposite failure to (1), from the fix for (1).
+
+**⭐ PREVENTION RULE — A CONDITION'S `elif` INHERITS EVERY TERM YOU ADD TO ITS `if`.** When a guard is
+about *whether we have already acted*, it must nest INSIDE the test about *what state we are in*, never
+be `and`-ed into it. Adding a term to an `if` silently widens its `elif`.
+
+### 3. `ls -t` SORTS BY MODIFICATION TIME, SO I READ THE WRONG RUN'S LOG
+
+I started a second ROM drive while the first was still running, then picked "the newest log" with
+`ls -t | head -1` — which returned the OLDER run, because it was still being appended to and therefore
+had the later mtime. I read the previous experiment's numbers as the new one's result.
+
+**⭐ PREVENTION RULE — IDENTIFY AN ARTEFACT BY ITS IDENTITY, NEVER BY ITS RECENCY.** These logs carry
+their start time IN THE FILENAME; that is the identity. `ls -t` answers a different question than "which
+run produced this".
+**⭐ AND: NEVER START A SECOND ROM DRIVE WHILE ONE IS RUNNING.** Beyond the wrong-log trap, they contend
+for CPU — which silently corrupted the throughput measurement I took at the same time (see
+`ai-research-notes/2026-09-06-emulator-throughput-UNRESOLVED.md`). Wait for the completion signal.
+
+## 2026-09-06 — I broke `CLAUDE.md`'s OWN rule #3 ("assert IDENTITY, never position") and declared the result clean
+
+**Symptom.** An independent adversarial reviewer read my `KI-93` diff and the drive log I had just
+called "driven clean", and found that a **fainted** Pokémon's move vetoes were being applied to its
+**replacement**:
+```
+f4348916  Swellow (battler 0) Tormented; refused={0: {0,1,3}}
+f4349501  Swellow FAINTS; Castform is sent in to battler 0
+f4349924  [KI93-REPICK] battler=0 slot 0 was REFUSED -> 2     ⬅ no preceding [KI93-WAIT]
+f4373734  battle_text='NICK whited out!'
+```
+Castform was forced into Sunny Day for two consecutive turns having been refused nothing, in the
+battle that then whited out.
+
+**Root cause.** `_ki93_refused_slots` was keyed by **`battler_index`** — a POSITION. The thing that
+earns a refusal is a POKÉMON. `CLAUDE.md` SESSION DISCIPLINE #3 states this in capitals: *"Assert
+IDENTITY, never position or count. PIDs — never slot indices."* **I had read that rule this session,
+quoted it in another document the same night, and still wrote position-keyed state.**
+
+**What makes this the expensive kind of mistake:** I had already READ that log. I grepped it for
+`KI93-DISMISS`, `KI93-REPICK` and `KI-47`, saw healthy-looking counts, and reported success. The
+evidence of the defect was in the lines I counted but did not read — **a `[KI93-REPICK]` with no
+preceding `[KI93-WAIT]` is an override with no refusal behind it**, and that is visible only if you
+look at the sequence rather than the totals.
+
+**The fix that worked.** (1) `_ki93_owner[battler_index]` records the `personality_value` that owns the
+memory, checked before every read and write. (2) The memory expires when a turn actually executes —
+because Torment forbids the LAST MOVE USED, which changes every turn, so a veto is true only for the
+selection episode that produced it.
+
+**⭐ PREVENTION RULE — A COUNT IS NOT A READING. When a log is the evidence for a fix, grade the
+SEQUENCE, not the totals.** Name, in advance, the ordering invariant that must hold (here: *every
+`REPICK` is preceded by a `WAIT … ENDED` in the same episode*) and grep for its VIOLATIONS, not for the
+presence of the happy lines. Healthy counts are exactly what a partially-working fix produces.
+
+**⭐ SECOND RULE — WHEN A RULE EXISTS FOR A BUG CLASS, CHECK THE NEW CODE AGAINST IT BY NAME BEFORE
+CALLING THE WORK DONE.** `08-MISTAKES.md` and SESSION DISCIPLINE are not background reading; they are a
+checklist with entries like "position vs identity" that can be mechanically applied to a diff. A rule
+I had quoted hours earlier did not fire when I wrote the code it governs — which is the precise failure
+mode SESSION DISCIPLINE's own preamble warns about: *"a rule filed as 'the lesson from bug X' does not
+fire when you are building Y."*
+
+## 2026-09-06 — the grader I wrote to catch my bug PASSED the bug, twice, for two different reasons
+
+Having been caught grading a drive by its totals, I wrote `tools/story-dev/grade_ki93_drive.py` to
+grade by SEQUENCE. It then failed its own fault test twice — and both failures are more instructive
+than the tool.
+
+### v1 — the invariant was keyed on POSITION, so it flagged CORRECT behaviour
+
+C2 armed on a refusal and disarmed on the next `COMMIT`. That marked **6 re-picks RED that were
+right**: `handle_battle_action_selection` is re-entered per selection phase, so a mon's own veto
+legitimately survives a commit — that persistence is the entire point of the fix. Keyed by slot, a
+mon's carried-over veto and a **fainted mon's veto inherited by its replacement** are the same shape.
+
+**⭐ PREVENTION RULE — AN INVARIANT ABOUT AN ENTITY MUST BE KEYED ON THAT ENTITY.** I fixed the
+production code to assert identity and then wrote the CHECKER against position. *The instrument needs
+the same discipline as the subject, and it is easy to grant it less because it is "just a script".*
+
+### v2 — it returned PASS on the known-bad log, because it could not SEE identity
+
+With C2 keyed on `owner=`, I re-ran it against the drive that contains the real defect. It printed
+**`C2 PASS — 0 REPICK(s) with no refusal behind them`** and `ACCEPTANCE: PASS`. That log predates the
+`owner=` field, so every lookup returned `"?"`, the arming degenerated, and **the grader cleared the
+exact defect it was written to catch.**
+
+**⭐ PREVENTION RULE — A CHECK THAT CANNOT SEE ITS INPUT MUST SAY "INDETERMINATE", NEVER "PASS".**
+Missing evidence is not absence of the defect. The grader now detects that its `REPICK` lines carry no
+identity and refuses to grade C2, exiting non-zero. ⇒ **a gate that passes its own fault case is worse
+than no gate** — this project already had that rule for false POSITIVES (they teach the reader to
+bypass), and this is the mirror image: a false NEGATIVE teaches the reader to trust.
+
+**⭐ THIRD RULE, re-learned the same hour — `EXIT=$?` AFTER A PIPE REPORTS THE PIPE.** I printed
+`EXIT=0` from `... | grep -E "C2|ACCEPTANCE"` and briefly read the grader as passing; run without the
+pipe it exits 1. `run_gates.py`'s own docstring warns about exactly this, which is why that runner
+reads `returncode` directly.

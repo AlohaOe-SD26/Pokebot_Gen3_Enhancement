@@ -266,6 +266,19 @@ GATES: list[tuple[str, bool]] = [
     # independent reviewer caught it. A count in prose beside a list that grows is a pair, and both
     # halves move together.
     ("probe_faint_chooser_rank.py", False),
+    # --- #40 — `KI-93`: the drive GRADER's own five fault arms
+    # ‼ APPENDED AT THE END, never inserted — the same rule #34-#39 carry.
+    # WHY A GATE: `grade_ki93_drive.py` is the instrument that decides whether a `KI-93` drive is
+    # believable, and it SHIPPED THREE BUGS IN ONE NIGHT — it flagged correct behaviour (its
+    # invariant was keyed on slot, not Pokemon), then returned PASS on the known-bad log (it could
+    # not read identity there), then returned PASS on a drive where the fix never engaged. Each was
+    # caught by a human reviewer rather than by the tool. ⇒ the arms are now embedded.
+    # ⛔ THE ARMS ARE SYNTHETIC ON PURPOSE: the real drive logs live under `profiles/`, which
+    # `.gitignore` excludes, so pointing at them would make the fault matrix unreproducible on a
+    # fresh clone — and `#24-reprosweepratchet` is blunt that what the suite does not run, rots.
+    # Bare invocation runs `--self-test`: good drive -> 0; cross-mon veto leak, missing identity,
+    # vacuous drive, and missing control line -> 1.
+    ("grade_ki93_drive.py", False),
 ]
 
 

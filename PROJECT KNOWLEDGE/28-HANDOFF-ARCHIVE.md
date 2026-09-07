@@ -8945,3 +8945,275 @@ DELIBERATE exclusion — two-turn moves waste a turn and can desync the handler.
 it is a trade-off with a reason, **not an oversight**. Analysis that calls it a defect is wrong.
 
 ---
+
+---
+
+## `KI-93` — the REFUTED "corrected design for attempt 2" (archived 2026-09-06)
+
+Archived when the census measured its central premise false. Its error is instructive: the design
+was carefully argued, internally consistent, and named the right code — and it could never have
+worked, because the memory it proposed would be destroyed between every pick. **Nothing in the
+text signalled that; only a control-line drive did.**
+
+**⇒ CORRECTED DESIGN FOR ATTEMPT 2 (not yet built).** The fix needs MEMORY ACROSS LOOP ITERATIONS,
+which the one-shot fork does not have: record that the last submitted `(battler_index, index)` was
+REFUSED, and make the next selection in that turn choose a different usable slot. The natural home is
+the `HandleInputChooseMove` branch (which is where the refusal is observed) plus a small
+`refused_this_turn` set consulted after `decide_turn` returns.
+⛔ That is a bigger change to the most safety-critical loop in the codebase than attempt 1 was, so it
+keeps the same bar: the ordinary-case A/B above must stay byte-identical, plus the full suite.
+✅ Everything needed is already in place — the baseline, the recorder (`POKEBOT_RECORD_TURNS`), and
+the repro (`--driver ch24probe`).
+
+---
+
+## `KI-93` — fix attempt 1, verbatim (archived 2026-09-06)
+
+Superseded: its central verdict was measured with a diagnostic that called a
+non-existent function inside a bare `except`, so "fired zero times" meant "my logger
+never ran". Kept in full — the attempt itself was reasonable and the way it failed is
+the lesson.
+
+**⛔⛔ FIX ATTEMPT 1 — TRIED, MEASURED DEAD, AND REVERTED (2026-09-06).** Do not repeat it.
+The attempt copied the SHIPPED precedent 12 lines above it in the same function: the
+`BattleScript_SelectingMoveWithNoPP` fork (`battle_action_selection.py`, added 2026-07-23), which
+overrides the strategy's pick when the game bounces it. Extending that to
+`BattleScript_SelectingTormentedMove` looked ideal — same shape, same file, observed-refusal, inert
+unless the refusal is on screen.
+✅ **It passed the ordinary-case A/B** (`ki93_ordinary_BASELINE.turns`, byte-identical) — so it was
+provably harmless.
+⛔ **And it did NOT fix the freeze.** Rather than guess why, I instrumented the fork itself with a
+one-line log and re-drove: **it fired ZERO times.**
+⇒ ⭐ **THE FORK IS NEVER REACHED.** It sits AFTER the branch dispatch, so it only runs once a branch
+has assigned `battler_index` — i.e. once a decision is being COMMITTED. The Torment loop never gets
+there: it alternates `HandleInputChooseAction` → select → refusal → `HandleInputChooseMove` → the
+"press B" branch → `continue`, which short-circuits before the fork. The PP fork works only because
+its refusal leaves the game in a state that DOES reach the commit path.
+‼ **"The fix is wrong" and "the fix is never reached" are different answers needing different work** —
+one log line separated them in a single drive.
+
+---
+
+## `KI-93` — the full pre-fix investigation (archived 2026-09-06)
+
+Archived on the day it was fixed. Kept in full because the way this bug resisted FOUR
+implement-drive-revert cycles is more instructive than the fix: three of those verdicts
+were VOID (a diagnostic calling a function that does not exist, inside a bare `except`),
+and the design that replaced them was refuted by a single control-lined census drive.
+
+**MEASURED** by the new `--driver ch24probe` on `post_league_shop.ss1`. The bot walks into the League,
+reaches Sidney, starts the fight, **fights several turns successfully**, and then the controller
+vanishes while the battle is still live:
+```
+f6569 … f11393   PARTY CHANGE ×6   ⇐ EXP gained and lead rotations: the fight WAS progressing
+f19363  !!! NO-PROGRESS x1200
+        sig=('<none>', 'BATTLE', 'BattleScript_SelectingTormentedMove', 'DialogueNotActive', …)
+f19363      gen -> <no controller on the stack (Manual mode / dropped out)>
+f38163  HANG CONFIRMED (20000 frames no progress)
+```
+⇒ **Sceptile gained EXP (145272 → 146533) and mons fainted and were replaced before the drop**, so
+this is not a failure to engage — it is a mid-battle collapse.
+
+**WHAT IS MEASURED, AND WHAT IS NOT — read this before acting.**
+* ✅ MEASURED: the controller is GONE at f19363 (`no controller on the stack`), the mode is Manual, the
+  battle is still live, and the game sits in `BattleScript_SelectingTormentedMove`.
+* ✅ MEASURED: it is **not** the probe's timeout. The probe's battle wait is **90,000 frames** and the
+  drop happens at ~19k. ‼ An EARLIER version of this probe waited only 4,000 frames and produced a
+  *superficially identical* signature by abandoning the battle itself — **that run's evidence is void
+  and must not be cited.** The fix to the instrument came first, and only then was this recorded.
+* ⛔ NOT MEASURED: **the identity of the exception.** "Torment makes our move-chooser raise" is a
+  HYPOTHESIS, not a finding. `BattleScript_SelectingTormentedMove` is where the game was standing when
+  everything stopped; that is a correlation.
+
+**WHY IT IS PLAUSIBLE ANYWAY** (still a hypothesis): Sidney's team carries **Torment**, which forbids
+repeating the last move. Our story strategy picks the strongest usable move each turn and would keep
+re-selecting the same one; if the selection path raises rather than falling back, the exception escapes
+`BattleListener` — and this project has ALREADY established that **any** exception from that sibling
+controller reaches `modules/main.py:151-158` and sets Manual, which is precisely the
+sibling-controller containment problem left open by `KI-90`.
+
+**⇒ NEXT STEP, AND IT IS CHEAP: CATCH THE EXCEPTION'S IDENTITY.** Do not guess it. Re-run the probe
+with the exception surfaced (log it from the listener, or wrap `decide_turn`), and read the type and
+the message. Everything after that depends on which it is.
+**Reproduce:** `PYTHONUTF8=1 py -3.12 story_harness.py post_league_shop.ss1 --driver ch24probe --frames 200000`
+
+**⭐⭐ ROOT-CAUSED 2026-09-06, SAME DAY — AND MY OWN HYPOTHESIS WAS WRONG IN MECHANISM.**
+This entry first said the controller "drops out", and offered "Torment makes our chooser raise" as a
+hypothesis. **There is no exception at all.** The bot's own debug log records a DELIBERATE guard:
+```
+f4334908 [MODE] Story -> Manual
+  message="KI-47: battle sub-handler 'handle_battle_action_selection' ran 3001 frames with no
+           battle progress (frozen at ('BattleScript_SelectingTormentedMove', 'Handle…"
+```
+⇒ ✅ **`KI-47`'s net fired exactly as designed.** The chooser does not raise — it **loops**, making no
+progress, and the watchdog stopped the bot with a diagnostic. ‼ The "no controller on the stack" line
+I read as a drop-out is the CONSEQUENCE of that deliberate stop, not its cause.
+
+**⇒ THE ACTUAL DEFECT, LOCATED:**
+* `TemporaryStatus.Torment` is real and readable — `battle_state.py:97` defines it and `:159` sets it
+  from `(status2 >> 31) & 0b1`.
+* ⛔ **NO move chooser consults it.** `grep -rn "Torment"` over `modules/battle_strategies/`,
+  `modules/battle_action_selection.py` and `plugins/custom_modes/story_mode.py` returns **nothing**.
+* ‼ And this is a GAP IN AN ESTABLISHED PATTERN, not an unknown mechanic: `_util.py:67-69,124` and
+  `item_stealing.py:55` already consult `Rooted`, `Wrapped`, `EscapePrevention` and `Substitute`.
+⇒ under Torment the chooser re-selects the strongest move — the one it just used — the game refuses
+it, and the sub-handler spins until `KI-47` stops the run.
+
+**⚠ THE FIX HAS A PREREQUISITE, AND IT IS WHY THIS IS NOT A ONE-LINE FILTER.** Excluding the forbidden
+move requires knowing the LAST MOVE USED, and **our `battle_state` does not expose one** — no
+`last_used_move` / `last_move` / `previous_move` anywhere in `modules/battle_state.py`. ⇒ any fix must
+first surface that (Emerald tracks it in `gLastMoves`), which makes this a state-model addition plus a
+chooser change, in a SHARED battle-path file. ⛔ The bar for that is this project's standard one: a
+repro that fails first, an argument for why the change is ADDITIVE, and the full gate suite.
+✅ **The repro already exists** — `--driver ch24probe` reproduces it in ~19k frames.
+
+**✅ FIX DESIGNED AND VERIFIED 2026-09-06 — DELIBERATELY NOT YET IMPLEMENTED.** Full reasoning in
+`06-DECISIONS-LOG.md` that date. The short version, so nobody re-derives it:
+* ✅ `STATUS2_TORMENT = (1 << 31)` (`include/constants/battle.h:155`) — our decode at
+  `battle_state.py:159` is CORRECT, so a Torment-keyed filter cannot misfire in ordinary battles.
+* ✅ The forbidden thing is `gLastMoves[battler]`, a MOVE ID, tested at SELECTION time
+  (`src/battle_util.c:999`); the refusal is a **pure re-prompt that never consumes the turn** — which
+  is precisely why re-picking spins.
+* ✅ `gLastMoves` is readable in house style (`pokeemerald.sym:150`, `02024248`, 8 bytes).
+* ⭐⭐ **THE BUG'S TOTAL BLAST RADIUS IS ONE POKÉMON IN THE WHOLE GAME:**
+  `grep -c MOVE_TORMENT src/data/trainer_parties.h` = **1**, Sidney's SHIFTRY. A WRONG fix would
+  affect EVERY battle. ⇒ that asymmetry is why this is designed carefully rather than patched quickly.
+* ⛔ **THE OBVIOUS FIX IS THE DANGEROUS ONE.** `get_strongest_move_against` (`_util.py:244-269`)
+  compacts its move list and returns an index INTO THE COMPACTED LIST; the existing exclusions are
+  safe only because they append `-1` and preserve position. A filter that SKIPS would shift indices
+  and mis-select in ordinary battles — the same index-space shape as `KI-18`/`KI-34`/`KI-66`. It also
+  would not fix the bug alone (a four-layer fallback re-picks the slot) and misses double battles.
+* ⇒ **CHOSEN: the OBSERVED-REFUSAL variant** — detect that the game refused a selection and pick
+  differently, rather than predicting the forbidden move. Vacuously safe on the shared path, needs no
+  `gLastMoves` read, and closes **Taunt and Imprison** too.
+⛔ **BEFORE IMPLEMENTING:** the bar for a shared battle file is a failing repro (`--driver ch24probe`,
+have it), an ADDITIVE argument, the full suite, **and an A/B on the ORDINARY case** — a normal battle
+that must be unchanged. Specify that A/B first.
+
+**⛔ FIX ATTEMPT 1 (the `SelectingMoveWithNoPP`-style one-shot fork) — ARCHIVED** →
+`28-HANDOFF-ARCHIVE.md` (2026-09-06). It passed the ordinary-case A/B, did NOT fix the freeze,
+and its *"fired zero times"* verdict is one of the three RETRACTED below as measured with a
+broken logger. ⇒ **do not re-run it to "check"; re-derive it if it is ever proposed again.**
+
+**⇒ ⛔ THE "CORRECTED DESIGN FOR ATTEMPT 2" IS REFUTED AND ARCHIVED** → `28-HANDOFF-ARCHIVE.md`
+(2026-09-06). It rested on *"this function runs for ONE selection phase, so a plain local set
+lives exactly one turn"* — **measured FALSE** by the census below (the handler is re-entered
+five times per refusal episode). Kept verbatim in the archive because the REASON it is wrong is
+the most useful thing anyone has learned about this bug.
+
+**⛔⛔⛔ RETRACTED 2026-09-06 — THE "THREE ELIMINATED LOCATIONS" BELOW WERE MEASURED WITH A BROKEN
+INSTRUMENT AND ARE **NOT** ELIMINATED.** Every one of those verdicts rested on a diagnostic that
+called **`debug_logger.log(...)` — A FUNCTION THAT DOES NOT EXIST** (`modules/debug_logger.py` has
+`event()`, not `log()`) — inside my own `try/except: pass`. So the `AttributeError` was swallowed and
+**nothing was ever written**; "fired zero times" meant "my logger never ran", not "the code never ran".
+⇒ ⭐ **THE LESSON THIS FILE ALREADY CARRIED, COMMITTED AGAIN HOURS LATER: an instrument that fails silently substitutes the subject.** Treat the table below as UNTESTED, not excluded.
+
+**✅ WHAT IS ACTUALLY MEASURED, WITH A VERIFIED-WORKING LOGGER (`debug_logger.event`, plus an
+unconditional CONTROL line proving the logger writes):**
+* The confirm loop in `battle_action_use_move` **is entered and exits normally** — CONTROL fired **13
+  times**, the spin-detector **0**. ⇒ not the freeze site.
+* The commit path runs **20 times** with `instr='BattleScript_MoveEnd'` / `'FaintedMonEnd'` —
+  **never** `'SelectingTormentedMove'`. ⇒ conditioning a fix on the refusal script AT THE COMMIT POINT
+  can never fire, which is the real reason attempt 1 did nothing.
+* ⭐⭐ **A BRANCH CENSUS FOUND THE SPIN SITE IN ONE DRIVE:**
+```
+controller0='CompleteOnInactiveTextPrinter2' count=1     instr='BattleScript_SelectingTormentedMove'
+controller0='CompleteOnInactiveTextPrinter2' count=500   instr='BattleScript_SelectingTormentedMove'
+controller0='CompleteOnInactiveTextPrinter2' count=2000  instr='BattleScript_SelectingTormentedMove'
+```
+⇒ **the loop sits in the "KNOWN WAIT STATES" branch** of `handle_battle_action_selection` with the
+Torment message on screen. That branch does `yield; continue` for ever and is **deliberately exempt
+from `KI-46`'s counter** ("recognised, so they must NOT count"), which is why only `KI-47`'s
+last-resort net ever fired. Its own comment predicted this: *"safe to wait … because the KI-47 net
+still backstops this."*
+‼ **A first fix there — bound the wait and press B to dismiss — did NOT clear the hang** and was
+reverted. Whether the press is wrong, the bound too long, or the message needs a different input is
+**not yet measured**; instrument that the new branch RUNS before theorising.
+
+**⭐⭐⭐ ROOT CAUSE ESTABLISHED FROM THE DECOMP, 2026-09-06 — AND IT IS A LIVELOCK, NOT A HANG.**
+TWO things are true at once, and every fix attempt addressed only one:
+1. **A BUTTON PRESS IS REQUIRED.** `sText_PkmnCantUseMoveTorment` (`src/battle_message.c:260`) ends in
+   `\p` = `CHAR_PROMPT_CLEAR`, which parks the printer in `RENDER_STATE_CLEAR`
+   (`src/text.c:1102-1105`) until `TextPrinterWaitWithDownArrow` sees an **edge-triggered**
+   `JOY_NEW(A_BUTTON | B_BUTTON)` (`src/text.c:865-882`). `gTextFlags.autoScroll` is set ONLY for
+   link/recorded battles (`src/battle_message.c:3002-3005`) ⇒ in an ordinary battle **there is no
+   timeout and no auto-advance: it waits for ever.** That is why our "recognised wait" branch spins.
+2. ⛔⛔ **AND DISMISSING IT DOES NOT HELP.** `Cmd_endselectionscript` sends the engine to
+   `STATE_WAIT_ACTION_CHOSEN`, which **re-emits `CONTROLLER_CHOOSEMOVE`** (`src/battle_main.c:4217`)
+   — the move menu reopens and the bot picks the SAME slot again.
+
+**⇒ ⭐ THE ASYMMETRY THAT IS THE WHOLE BUG — and it explains why our no-PP handling works:**
+the `ChooseMoveStruct` handed to the controller carries only `species`, `monTypes`, `moves[4]`,
+`currentPP[4]`, `maxPP[4]` (`src/battle_main.c:4201-4217`).
+* **no-PP** is VISIBLE (`currentPP[i]`) ⇒ a PP-aware chooser never re-picks ⇒ **at most one refusal**.
+* **Torment** depends on `gLastMoves[]` + `STATUS2_TORMENT` (`src/battle_util.c:999`), **neither
+  transmitted** ⇒ the chooser is structurally blind ⇒ **it re-picks for ever.**
+⇒ **no-PP's refusal is SELF-CORRECTING; Torment's is STABLE UNDER RE-SELECTION.**
+✅ **INDEPENDENTLY PROVEN BY OUR OWN DATA:** the commit-path instrumentation logged
+`slot=2 battler=0` **20 times**. The decomp predicted exactly that, and we measured it before knowing
+why.
+‼ **The same blindness covers Disable, Taunt, Imprison and Choice-lock** (all set in
+`TrySetCantSelectMoveBattleScript`, `src/battle_util.c:976-1080`) — a fix should cover the class.
+
+**⇒ THE FIX NEEDS BOTH HALVES. Either alone is why four attempts failed:**
+(a) **DISMISS** — ONE edge-triggered A or B, delivered only once the glyphs have finished (the
+    down-arrow is up). ⚠ Three timing traps, all decomp-cited: a press DURING printing is eaten as a
+    speed-up and does not count (`src/text.c:950-954`); a HELD button is invisible because `JOY_NEW`
+    is edge-only (`include/global.h:128`); and a press ONE FRAME LATE lands in
+    `HandleInputChooseMove` where B means CANCEL → the action menu, where B is inert in a single
+    battle (`src/battle_controller_player.c:306-311`) — **a second, different-looking freeze.**
+(b) **DO NOT RE-PICK THE REFUSED SLOT** — the half every attempt missed. Either mirror
+    `CheckMoveLimitations` bot-side (`src/battle_util.c:1082-1123` is the algorithm) by reading
+    `gLastMoves[]`, `STATUS2_TORMENT` and `gDisableStructs[]`, or — symbol-free — **blacklist for the
+    turn any slot that produced a selection-refusal message.**
+
+**⇒ ✅ THE CENSUS WAS RE-ADDED AND DRIVEN, 2026-09-06 — AND IT REFUTED THE FIX DESIGN BELOW.**
+`POKEBOT_KI93_CENSUS=1`, `--driver ch24probe` on `post_league_shop.ss1`. ⭐ **The `[KI93-CTL]` control
+line fired 13 times**, so unlike the three VOID verdicts above, this instrument provably wrote.
+
+```
+f4328601 [KI93-CTL]    handle_battle_action_selection entered — census armed
+f4328608 [KI93-COMMIT] battler=0 action=UseMove slot=2 census={'decide@0': 1}
+f4329276 [KI93-CTL]    handle_battle_action_selection entered — census armed
+f4329283 [KI93-COMMIT] battler=0 action=UseMove slot=2 census={'decide@0': 1}
+f4330143 [KI93-CTL] … f4330149 [KI93-COMMIT] slot=2 census={'decide@0': 1}
+f4331061 [KI93-CTL] … f4331068 [KI93-COMMIT] slot=2 census={'decide@0': 1}
+f4331887 [KI93-CTL] … f4331894 [KI93-COMMIT] slot=2 census={'decide@0': 1}
+f4331906 [KI93-WAIT] frames=1    cb0='CompleteOnInactiveTextPrinter2' instr='BattleScript_SelectingTormentedMove' last_committed_slot=2
+f4333705 [KI93-WAIT] frames=1800 cb0='CompleteOnInactiveTextPrinter2' instr='BattleScript_SelectingTormentedMove' last_committed_slot=2
+         (no `[KI93-WAIT] ENDED` line ever — then KI-47 stops the run at 3001 frames)
+```
+
+**⛔⛔ FINDING 1 — THE HANDLER IS RE-ENTERED, SO A FUNCTION-LOCAL MEMORY CANNOT WORK. THIS KILLS THE
+"CORRECTED DESIGN FOR ATTEMPT 2" WRITTEN ABOVE.** That design says: *"this function runs for ONE
+selection phase — so a plain local `set` lives exactly one turn and needs NO clearing logic, which is
+the part that would otherwise be easy to get wrong."* **MEASURED FALSE.** The census counter resets to
+`{'decide@0': 1}` at **five separate calls** (f4328601, f4329276, f4330143, f4331061, f4331887), each
+~700-900 frames apart, each re-picking **slot 2**. ⇒ a `refused_slots` local is DESTROYED between every
+pick, so attempt 2 would have been wiped clean before it was ever consulted. **The memory must outlive
+the call.** ‼ This is why a fifth attempt built on that paragraph would have failed too — and it was
+invisible without the control line, because the design *reads* correct.
+
+**✅ FINDING 2 — THE TERMINAL STATE IS ONE UNBROKEN WAIT, NOT AN ALTERNATION.** Once the run parks at
+f4331906 it stays in the `CompleteOnInactiveTextPrinter2` branch monotonically to KI-47's cut. The
+`[KI93-CANCEL]` hits in this drive all carry ORDINARY scripts (`BattleScript_MoveEnd`,
+`FaintedMonEnd`, `ItemHealHP_RemoveItem`) — normal turn traffic, **not** part of the livelock. ⇒ the
+earlier "it alternates ChooseAction ↔ ChooseMove" picture describes the RE-PROMPT PHASE, not the
+freeze; the freeze is a single branch that never yields control back.
+
+**✅ FINDING 3 — THE DATA THE FIX NEEDS IS PRESENT AT THE FREEZE SITE.** `last_committed_slot=2` is
+known inside the wait branch, alongside `instr='BattleScript_SelectingTormentedMove'`. So the
+"do-not-re-pick" half needs no `gLastMoves` read and no `CheckMoveLimitations` mirror — the refused
+slot is simply the one we last committed when a refusal script is on screen.
+
+**⇒ NEXT STEP: implement BOTH halves, with the memory held OUTSIDE the function call** (module-level,
+scoped to the refusal episode and cleared once an ordinary battle script is seen), plus a bounded
+edge-triggered dismiss inside the wait branch. ⛔ Bar unchanged: additive argument, full suite, and —
+**unlike `KI-95`** — the ordinary-case A/B IS the right instrument here, because this change touches
+the wait branch and the committed-slot path that EVERY battle executes.
+
+*(⛔ The three attempts and their VOID verdicts are archived verbatim in `28-HANDOFF-ARCHIVE.md` (2026-09-06), moved out of this current-state file per the R3 budget rule. They are history, not evidence — treat those locations as UNTESTED.)*
+
+
+
+---

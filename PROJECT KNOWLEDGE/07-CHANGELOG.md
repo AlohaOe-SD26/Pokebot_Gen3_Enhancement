@@ -23360,3 +23360,145 @@ the user's call and was not given (this was built while the user was asleep).
 Files: `sandbox-pokebot/plugins/custom_modes/story_mode.py`,
 `tools/story-dev/probe_faint_chooser_rank.py` (new), `tools/story-dev/run_gates.py`,
 `PROJECT KNOWLEDGE/{03,04,05,29}`, `02-ARCHITECTURE.md`.
+
+## 2026-09-06 — `KI-93` FIXED: the Torment livelock is gone, and it was a CLASS of hangs
+
+**Four previous attempts were implemented, driven and reverted.** This one was built on measurement.
+
+**What the census bought (and it is the whole story).** A re-added, control-lined census
+(`POKEBOT_KI93_CENSUS=1`) measured that `handle_battle_action_selection` is **RE-ENTERED ~5 times per
+refusal episode**. The design this KI had carried for a day put the refusal memory in a FUNCTION-LOCAL
+set, explicitly reasoning that "this function runs for ONE selection phase". ⇒ **that memory would have
+been destroyed between every pick, so attempt 5 would have failed exactly like attempts 1-4.** The
+control line (`[KI93-CTL]`, fired 13x) is why this measurement can be believed where three earlier
+verdicts were VOID.
+
+**The two halves.** (a) The `CompleteOnInactiveTextPrinter*` branch was a bare `yield; continue`; a
+message ending in `\p` parks the text printer awaiting an edge-triggered button and there is no
+timeout outside link battles. It now presses **B** on one frame in twelve, gated on
+`get_text_printer(0).state == TextPrinterState.WaitForButton` — never on a frame count, because a press
+during glyph printing is eaten as a speed-up. (b) `_ki93_refused_slots` is module-level and the chooser
+re-picks any other slot with PP.
+
+**Result — same repro, same fixture:** `KI-47` battle-handler stops **3-6 → 0**;
+`SelectingTormentedMove` **present → 0**; the battle now COMPLETES instead of never finishing.
+
+⛔⛔ **CORRECTED 2026-09-07 — this paragraph originally read "the battle reaches `BattleOutcome.Lost`
+at f38534 … ⚠ It LOSES the fight". THOSE NUMBERS BELONG TO A SUPERSEDED DRIVE** (`234031`, the first
+fix, which a reviewer later proved defective). A Tier 1 reviewer caught the mis-attribution.
+⭐⭐ **ON THE FINAL CODE THE BOT WINS:** `Story-debug-20260906-235815.log`, `f35237
+outcome=BattleOutcome.Won`, `bt='NICK got $4900 for winning!'`, followed by
+`EverGrandeCity_SidneysRoom_EventScript_Defeated` and
+`PokemonLeague_EliteFour_SetAdvanceToNextRoomMetatiles` — the door to Phoebe opens. **§Ch24 FIGHT 1 IS
+WON.** Both drives are deterministic from the same save, so the only variable is the code ⇒ the stale
+vetoes were forcing bad moves and plausibly cost that battle (a matched pair, not a controlled
+experiment).
+‼ **AND WHAT IS NOW UNPROVEN:** *"the bot loses the Elite Four on levels"* has never been driven on the
+current code — the one drive of it won fight 1 and stopped there, because the probe has no
+"advance to the next room" behaviour. The ~L60 requirement for Glacia remains a SIMULATION result.
+
+**⭐ CLASS FIX:** 61 battle strings end in `\p` and every one would have hung identically. The refusal
+vocabulary covers Torment, Disable, Taunt, Imprison, Choice-lock and no-PP.
+
+**Ordinary-case A/B:** ✅ **BYTE-IDENTICAL.** `post_return.ss1 --driver ch23exit --frames 120000`, 9 decisions, every one `(TurnAction.UseMove, 1)`, md5 `fd23c131a39df57fde5130791772fa7a` on BOTH arms (baseline captured before the fix; after-arm captured 2026-09-06 with it). ‼ **That proves HARMLESSNESS, never efficacy** — efficacy is the drive above, and the two are separate claims.
+
+**⛔ Three self-inflicted bugs on the way**, all in the bookkeeping rather than the fix — recording a
+stale signal every frame (which filled the refused set with ALL FOUR slots), a guard whose `elif`
+became a fall-through that wiped the memory, and reading the wrong run's log because `ls -t` sorts by
+mtime. See `08-MISTAKES.md` that date for the three prevention rules.
+
+**⛔ SANDBOX ONLY. NOT PROMOTED** — `custom-pokebot/` still hangs on Torment. Promotion is the user's
+call and was not given.
+
+Files: `sandbox-pokebot/modules/battle_action_selection.py`,
+`PROJECT KNOWLEDGE/{05,07,06,08,29}`, `ai-research-notes/2026-09-06-emulator-throughput-UNRESOLVED.md`.
+
+## 2026-09-06 — `KI-93` follow-up: an independent reviewer found a real defect IN THE FIX, and a sequence-grader now exists
+
+**The "driven clean" claim in the entry above was too strong, and this corrects it.** The livelock
+result stands (`KI-47` battle-handler stops 3-6 → **0**; the fight reaches a real outcome). But the
+first version keyed the refusal memory by **`battler_index` alone**, so it outlived the Pokémon that
+earned it — proven in the very log I had declared clean:
+
+```
+f4348916  Swellow (battler 0) Tormented; refused={0: {0,1,3}}
+f4349501  Swellow FAINTS; Castform is sent in to battler 0
+f4349924  [KI93-REPICK] battler=0 slot 0 was REFUSED -> 2     ⬅ no preceding [KI93-WAIT]
+f4373734  battle_text='NICK whited out!'
+```
+Castform was forced into Sunny Day twice having been refused nothing. ⭐ **This broke a rule this
+project had already written down** — `CLAUDE.md` SESSION DISCIPLINE #3, *"Assert IDENTITY, never
+position or count. PIDs — never slot indices."*
+
+**Fixed with two guards.** (1) **IDENTITY** — `_ki93_owner[battler_index]` holds the
+`personality_value` that owns the memory, checked before every read and write, so a faint or switch
+drops it. (2) **LIFETIME** — Torment forbids the LAST MOVE USED, which changes whenever a turn
+executes, so an ordinary battle script in the cancel branch now clears every banked veto. Previously
+the only clearing rule lived in the parked-printer branch, which almost never coincides with an
+ordinary prompt.
+
+**⭐ NEW PERMANENT INSTRUMENT — `tools/story-dev/grade_ki93_drive.py`.** It grades a drive by its
+**sequence**, not its totals, because totals are exactly what hid this: C0 control fired, C1 livelock
+ended, **C2 every `[KI93-REPICK]` is preceded by a real refusal**, C3 the fix is still engaged
+(`DISMISS>0` with `REPICK==0` would mean the new LIFETIME guard clears too eagerly).
+⛔ **Fault-proven:** run against the drive I had called clean it returns **C2 RED with 17 unjustified
+re-picks** and `ACCEPTANCE: FAIL` while C1 still passes — separating *"the livelock is fixed"* (true)
+from *"the fix is correct"* (was not). It found 17 where the human reviewer sampled 2.
+
+Files: `sandbox-pokebot/modules/battle_action_selection.py`,
+`tools/story-dev/grade_ki93_drive.py` (new), `PROJECT KNOWLEDGE/{04,05,07,08}`.
+
+## 2026-09-07 — `KI-93` re-drive PASSES, and the grader gained two fault arms it was missing
+
+**The re-drive that the entry above left owed is done.** `grade_ki93_drive.py` on
+`Story-debug-20260906-235815.log` returns **C0-C3 all PASS, real exit 0** (read without a pipe):
+`C0 CONTROL` 32 fires · `C1 LIVELOCK` 0 `KI-47` stops · **`C2 JUSTIFIED` 0 unjustified re-picks** ·
+`C3 ENGAGED` DISMISS=8 / REPICK=12. C2 is the blocker's condition and it is clean.
+
+**⛔ THE GRADER FAILED ITS OWN FAULT TESTS TWICE MORE, AND BOTH HOLES ARE NOW CLOSED.**
+* It returned **PASS on the known-bad log** because that log predates the `owner=` field, so identity
+  was unreadable and the arming degenerated. ⇒ it now reports **INDETERMINATE** and exits non-zero:
+  *a check that cannot see its input must never say PASS.*
+* It returned **PASS on a drive containing no refusal at all** (DISMISS=0, REPICK=0) — grading a run
+  in which the code under test never executed. ⇒ **VACUOUS**, non-zero exit. *An arm that cannot
+  distinguish the arms is not an arm.*
+Fault matrix now: `234031` → INDETERMINATE (exit 1) · `232310` → VACUOUS (exit 1) · `235815` → PASS
+(exit 0).
+
+Files: `tools/story-dev/grade_ki93_drive.py`, `PROJECT KNOWLEDGE/{04,05,06,07}`.
+
+## 2026-09-07 — gate #40: the `KI-93` drive grader now carries its own five fault arms
+
+**Why the grader needed to become a gate.** It is the instrument that decides whether a `KI-93` drive
+is believable, and it **shipped three bugs in one night**, each caught by a human reviewer rather than
+by itself:
+1. it flagged CORRECT behaviour, because its invariant was keyed on the battler SLOT rather than the
+   Pokémon (the same error as the bug it grades);
+2. it returned **PASS on the known-bad log**, because that log predates the `owner=` field so identity
+   was unreadable — it cleared the very defect it was written to catch;
+3. it returned **PASS on a drive containing no refusal at all**, grading a run in which the code under
+   test never executed.
+
+**⛔ THE ARMS ARE SYNTHETIC ON PURPOSE.** Every real drive log lives under `profiles/`, which
+`sandbox-pokebot/.gitignore:12` excludes, so pointing the fault matrix at them would make it
+unreproducible on a fresh clone — and `#24-reprosweepratchet` is blunt that *what the suite does not
+run, rots*. Five embedded arms instead:
+
+```
+good drive (a mon's own veto carried across a re-entry)      -> exit 0
+⛔ cross-mon leak (a fainted mon's veto on its replacement)   -> exit 1   ⬅ the real blocker
+no `owner=` in the log            -> INDETERMINATE            -> exit 1
+no refusal at all                 -> VACUOUS                  -> exit 1
+no `[KI93-CTL]` control line      -> not evidence             -> exit 1
+```
+
+A **bare invocation runs the self-test**, because `run_gates.py` invokes each entry with no arguments.
+Suite: 39 → **40** gates (38 enforcing + 2 advisory); `--quick` 31 → **32**.
+
+**⭐ The principle, now enforced rather than written down:** an instrument gets the same discipline as
+the subject. `08-MISTAKES.md` 2026-09-06 carries the three rules this cost — *a count is not a
+reading*, *a check that cannot see its input must say INDETERMINATE, never PASS*, and *an arm that
+cannot distinguish the arms is not an arm*.
+
+Files: `tools/story-dev/grade_ki93_drive.py`, `tools/story-dev/run_gates.py`,
+`PROJECT KNOWLEDGE/{02,04,07}`.

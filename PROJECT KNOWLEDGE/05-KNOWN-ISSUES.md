@@ -2627,197 +2627,180 @@ probably the real fix, and is a bigger change than this entry.
 ‼ **AND THIS ENTRY ITSELF TRIPPED THE GATE ON ITS FIRST DRAFT** — it quoted the stale figure verbatim, twice, in the very entry whose lesson is *retract measured numbers by DELETING and POINTING, never by quoting*. ⇒ ⭐ **the gate caught its own documentation**, which is the strongest evidence that the rule is real and that the habit, not the gate, is the problem.
 
 
-## `KI-93` — ⛔⛔ THE MOVE CHOOSER IGNORES **TORMENT**, SPINS FOREVER, AND `KI-47`'s NET STOPS THE BOT (2026-09-06, MEASURED AND ROOT-CAUSED THE SAME DAY, OPEN — §Ch24 BLOCKER)
+## `KI-93` — the move chooser ignored **TORMENT**, spun for ever, and `KI-47`'s net stopped the bot — ✅ **FIXED IN THE SANDBOX 2026-09-06, DRIVEN CLEAN** (⛔ NOT PROMOTED — the USER's call). ‼ It was a CLASS bug: any battle message ending in `\p` hung identically.
 
-**MEASURED** by the new `--driver ch24probe` on `post_league_shop.ss1`. The bot walks into the League,
-reaches Sidney, starts the fight, **fights several turns successfully**, and then the controller
-vanishes while the battle is still live:
+📦 **The entire pre-fix investigation is ARCHIVED VERBATIM** → `28-HANDOFF-ARCHIVE.md`
+(2026-09-06): the original measurement, the four failed fix attempts, the three VOID verdicts
+produced by a broken logger, the REFUTED function-local design, and the census drive that
+refuted it. Nothing is deleted — this file holds OPEN problems, and what remains open about
+`KI-93` is only that the fix is **unpromoted**.
+
+**One-line restatement:** a battle message ending in `\p` parks the text printer waiting for an
+EDGE-TRIGGERED button press with no timeout, and the bot's wait branch pressed nothing — so it
+yielded for ever while the game waited for it. Torment is simply the refusal the Elite Four
+guarantees; **61 battle strings end in `\p`** and every one hung identically.
+
+⭐ **The one fact worth carrying out of the investigation:** the census measured
+`handle_battle_action_selection` being **RE-ENTERED ~5 times per refusal episode**, which is why
+the refusal memory must be MODULE-LEVEL. The design this entry carried for a day put it in a
+function-local and could never have worked — and nothing in the text signalled that.
+
+### ✅ 2026-09-06 — FIXED, RE-DRIVEN, AND GRADED CLEAN BY A FAULT-PROVEN INSTRUMENT. ⛔ NOT PROMOTED.
+
+**The bot now fights Sidney to a conclusion.** Same repro, same fixture
+(`post_league_shop.ss1 --driver ch24probe --frames 200000`):
+
+⛔⛔ **EVERY NUMBER BELOW IS LABELLED WITH THE DRIVE THAT PRODUCED IT.** An earlier version of this
+table mixed two runs — it printed the SUPERSEDED drive's loss under the FINAL drive's heading, and a
+Tier 1 reviewer caught it. *(SESSION DISCIPLINE #7/#8: say which run a number came from.)*
+
+| | before the fix | `234031` — first fix, DEFECTIVE | ✅ `235815` — FINAL, the graded drive |
+|---|---|---|---|
+| `KI-47` battle sub-handler stops | 3-6 per run | 0 | **0** |
+| `SelectingTormentedMove` in the run log | the run ends on it | 0 | **0** |
+| unjustified re-picks (grader C2) | n/a | **RED** — a fainted mon's vetoes reached its replacement | ✅ **0** |
+| battle outcome | never reached — Manual at ~f18k | `BattleOutcome.Lost` at f38534, then a whiteout | ⭐ **`BattleOutcome.Won` at f35237** |
+
+⭐⭐ **THE BOT NOW BEATS SIDNEY.** `f35237: outcome=BattleOutcome.Won`, `bt='NICK got $4900 for
+winning!'`, and the game runs `EverGrandeCity_SidneysRoom_EventScript_Defeated` +
+`PokemonLeague_EliteFour_SetAdvanceToNextRoomMetatiles` — the door to Phoebe opens. **§Ch24 FIGHT 1 IS
+WON.**
+‼ **And the two drives are deterministic from the same save**, so the only variable is the code ⇒ the
+stale vetoes were not merely cosmetic: they forced bad moves and plausibly cost that battle. That is a
+strong inference from a matched pair, not a controlled experiment — labelled as such.
+
+⛔⛔ **RETRACTED — THIS PARAGRAPH SAID "It LOST the fight" AND THAT WAS THE OTHER DRIVE.** The final
+run **WON**. The loss belongs to `234031`, the defective first fix.
+
+‼ **WHAT IS NOW UNPROVEN, AND MUST NOT BE ASSERTED EITHER WAY:** *"the bot loses the Elite Four on
+levels"* has **never been driven on the current code**. The only drive of the current code won fight 1
+and stopped there. The party is L48-53 and the simulation says ~L60 is needed for Glacia (fight 3), so
+the level gap is still the expected wall — **but that is a SIMULATION result, not a drive**, and this
+entry no longer claims otherwise.
+‼ The run's remaining stall is `Ch24ProbeMode.run` **in Sidney's room at (6,6) AFTER THE WIN** —
+`DUMP [STUCK — 18300 frames no progress]`, because the probe has no "advance to the next room"
+behaviour. A driver limitation, not this bug: `grep -c 'battle sub-handler'` is **0**.
+
+**All three mechanisms fired** (`POKEBOT_KI93_CENSUS=1`): `DISMISS 12`, `REPICK 26`, `RESET 3`, and the
+refused set now ROTATES (`{2}`, `{0,2}`, `{1,3}`, `{0,1,3}` …) instead of filling:
 ```
-f6569 … f11393   PARTY CHANGE ×6   ⇐ EXP gained and lead rotations: the fight WAS progressing
-f19363  !!! NO-PROGRESS x1200
-        sig=('<none>', 'BATTLE', 'BattleScript_SelectingTormentedMove', 'DialogueNotActive', …)
-f19363      gen -> <no controller on the stack (Manual mode / dropped out)>
-f38163  HANG CONFIRMED (20000 frames no progress)
+[KI93-REPICK] battler=0 slot 2 was REFUSED -> 0
+[KI93-REPICK] battler=0 slot 2 was REFUSED -> 1
+[KI93-REPICK] battler=0 slot 2 was REFUSED -> 3
 ```
-⇒ **Sceptile gained EXP (145272 → 146533) and mons fainted and were replaced before the drop**, so
-this is not a failure to engage — it is a mid-battle collapse.
 
-**WHAT IS MEASURED, AND WHAT IS NOT — read this before acting.**
-* ✅ MEASURED: the controller is GONE at f19363 (`no controller on the stack`), the mode is Manual, the
-  battle is still live, and the game sits in `BattleScript_SelectingTormentedMove`.
-* ✅ MEASURED: it is **not** the probe's timeout. The probe's battle wait is **90,000 frames** and the
-  drop happens at ~19k. ‼ An EARLIER version of this probe waited only 4,000 frames and produced a
-  *superficially identical* signature by abandoning the battle itself — **that run's evidence is void
-  and must not be cited.** The fix to the instrument came first, and only then was this recorded.
-* ⛔ NOT MEASURED: **the identity of the exception.** "Torment makes our move-chooser raise" is a
-  HYPOTHESIS, not a finding. `BattleScript_SelectingTormentedMove` is where the game was standing when
-  everything stopped; that is a correlation.
+**THE FIX, BOTH HALVES** (`modules/battle_action_selection.py`):
+* **(a) DISMISS, GATED ON THE PRINTER'S OWN STATE.** The `CompleteOnInactiveTextPrinter*` branch was a
+  bare `yield; continue`. A message ending in `\p` parks the printer in `RENDER_STATE_CLEAR` awaiting
+  an EDGE-TRIGGERED `JOY_NEW(A|B)`, and `gTextFlags.autoScroll` is FALSE outside link battles ⇒ **no
+  timeout, ever.** It now presses **B** on one frame in twelve while
+  `get_text_printer(0).state == TextPrinterState.WaitForButton`.
+  ⛔ **Never gate this on a frame count** — a press delivered while glyphs are still printing is eaten
+  as a text speed-up and is not the dismissal press. The printer state is the only honest signal, and
+  `modules/modes/_listeners.py:168-170` already used exactly this test.
+  ⭐ **B, not A:** `gMoveSelectionCursor` is NOT reset when the menu re-opens, so a stray A re-commits
+  the very move that was refused; a stray B falls back to the action menu, where B is inert in a
+  single battle.
+* **(b) DO NOT RE-SUBMIT A REFUSED SLOT.** Dismissing alone only converts the hang into a livelock —
+  the engine returns to `STATE_WAIT_ACTION_CHOSEN` and re-emits `CHOOSEMOVE`. `_ki93_refused_slots` is
+  **MODULE-LEVEL**, because the census measured the handler being RE-ENTERED five times per refusal
+  episode; a function-local (the design this entry carried for a day) is destroyed between every pick.
 
-**WHY IT IS PLAUSIBLE ANYWAY** (still a hypothesis): Sidney's team carries **Torment**, which forbids
-repeating the last move. Our story strategy picks the strongest usable move each turn and would keep
-re-selecting the same one; if the selection path raises rather than falling back, the exception escapes
-`BattleListener` — and this project has ALREADY established that **any** exception from that sibling
-controller reaches `modules/main.py:151-158` and sets Manual, which is precisely the
-sibling-controller containment problem left open by `KI-90`.
+**⭐⭐ IT IS A CLASS FIX, NOT A TORMENT FIX.** 61 battle strings end in `\p`; every one of them would
+have hung in that branch. The refusal vocabulary covers Torment, Disable, Taunt, Imprison,
+Choice-lock and no-PP (`KI93_SELECTION_REFUSAL_SCRIPTS`).
 
-**⇒ NEXT STEP, AND IT IS CHEAP: CATCH THE EXCEPTION'S IDENTITY.** Do not guess it. Re-run the probe
-with the exception surfaced (log it from the listener, or wrap `decide_turn`), and read the type and
-the message. Everything after that depends on which it is.
-**Reproduce:** `PYTHONUTF8=1 py -3.12 story_harness.py post_league_shop.ss1 --driver ch24probe --frames 200000`
+**ORDINARY-CASE A/B (the correct instrument here, unlike `KI-95`):** this change touches the wait
+branch and the committed-slot path that EVERY battle executes, so the decision sequence must be
+unchanged.
+✅ **BYTE-IDENTICAL** (first arm, before the identity fix): 9 decisions, md5 `fd23c131a39df57fde5130791772fa7a`.
 
-**⭐⭐ ROOT-CAUSED 2026-09-06, SAME DAY — AND MY OWN HYPOTHESIS WAS WRONG IN MECHANISM.**
-This entry first said the controller "drops out", and offered "Torment makes our chooser raise" as a
-hypothesis. **There is no exception at all.** The bot's own debug log records a DELIBERATE guard:
+**RE-RUN AFTER THE IDENTITY FIX** (the code changed, so the earlier arm no longer describes it): ✅ **BYTE-IDENTICAL.** `post_return.ss1 --driver ch23exit --frames 120000`, 9 decisions, every one `(TurnAction.UseMove, 1)`, md5 `fd23c131a39df57fde5130791772fa7a` on BOTH arms (baseline captured before the fix; after-arm captured 2026-09-06 with it). ‼ **That proves HARMLESSNESS, never efficacy** — efficacy is the drive above, and the two are separate claims.
+
+**⭐ THE ADDITIVE ARGUMENT:** the press fires only when the printer reports `WaitForButton`. Ordinary
+battle messages auto-advance and never enter that state, so in a normal battle the new code is inert.
+
+
+### ⛔⛔ 2026-09-06, SAME NIGHT — AN INDEPENDENT REVIEWER FOUND A REAL DEFECT IN THIS FIX. ✅ FIXED AND RE-DRIVEN CLEAN (see the grade below).
+
+**The headline above ("driven clean") was too strong and is corrected here.** The livelock result
+stands — `KI-47` battle-handler stops went 3-6 → **0** and the fight reaches a real outcome. But the
+first version of the fix keyed `_ki93_refused_slots` by **`battler_index` alone**, so the memory
+outlived the Pokémon that earned it. Proven in MY OWN drive log, which I had already read and passed
+over:
+
 ```
-f4334908 [MODE] Story -> Manual
-  message="KI-47: battle sub-handler 'handle_battle_action_selection' ran 3001 frames with no
-           battle progress (frozen at ('BattleScript_SelectingTormentedMove', 'Handle…"
+f4348916  Swellow (battler 0) is Tormented; refused={0: {0,1,3}}
+f4349501  Swellow FAINTS; the faint chooser sends in CASTFORM to battler 0
+f4349924  [KI93-REPICK] battler=0 slot 0 was REFUSED -> 2      ⬅ NO preceding [KI93-WAIT]
+f4351213  ...again — Castform forced into Sunny Day TWICE, having been refused NOTHING
+f4373734  battle_text='NICK whited out!'
 ```
-⇒ ✅ **`KI-47`'s net fired exactly as designed.** The chooser does not raise — it **loops**, making no
-progress, and the watchdog stopped the bot with a diagnostic. ‼ The "no controller on the stack" line
-I read as a drop-out is the CONSEQUENCE of that deliberate stop, not its cause.
+⇒ **Castform inherited Swellow's vetoes by slot number.** My own code comment claimed *"a stale entry
+costs at most one turn of second-best move choice"*; measured, it cost two forced turns on a mon the
+game never refused, in the battle that then whited out. ‼ **The `[KI93-REPICK]` with no preceding
+`[KI93-WAIT]` is the tell** — an override with no refusal behind it — and it was sitting in the log I
+declared clean.
 
-**⇒ THE ACTUAL DEFECT, LOCATED:**
-* `TemporaryStatus.Torment` is real and readable — `battle_state.py:97` defines it and `:159` sets it
-  from `(status2 >> 31) & 0b1`.
-* ⛔ **NO move chooser consults it.** `grep -rn "Torment"` over `modules/battle_strategies/`,
-  `modules/battle_action_selection.py` and `plugins/custom_modes/story_mode.py` returns **nothing**.
-* ‼ And this is a GAP IN AN ESTABLISHED PATTERN, not an unknown mechanic: `_util.py:67-69,124` and
-  `item_stealing.py:55` already consult `Rooted`, `Wrapped`, `EscapePrevention` and `Substitute`.
-⇒ under Torment the chooser re-selects the strongest move — the one it just used — the game refuses
-it, and the sub-handler spins until `KI-47` stops the run.
+**⭐⭐ IT IS A RULE THIS PROJECT HAD ALREADY WRITTEN DOWN.** `CLAUDE.md` SESSION DISCIPLINE #3:
+*"Assert IDENTITY, never position or count. PIDs — never slot indices."* A battler index is a
+POSITION; the thing that earns a refusal is a POKÉMON.
 
-**⚠ THE FIX HAS A PREREQUISITE, AND IT IS WHY THIS IS NOT A ONE-LINE FILTER.** Excluding the forbidden
-move requires knowing the LAST MOVE USED, and **our `battle_state` does not expose one** — no
-`last_used_move` / `last_move` / `previous_move` anywhere in `modules/battle_state.py`. ⇒ any fix must
-first surface that (Emerald tracks it in `gLastMoves`), which makes this a state-model addition plus a
-chooser change, in a SHARED battle-path file. ⛔ The bar for that is this project's standard one: a
-repro that fails first, an argument for why the change is ADDITIVE, and the full gate suite.
-✅ **The repro already exists** — `--driver ch24probe` reproduces it in ~19k frames.
+**⭐ AND A SECOND DEFECT THE REVIEW LED ME TO, WHICH IT DID NOT NAME:** Torment forbids the **LAST MOVE
+USED** (`src/battle_util.c:999`), which changes every time a turn executes. So a refusal is true only
+for the selection episode that produced it — keeping it after a turn runs is wrong **even for the same
+Pokémon**, and would have leaked across battles.
 
-**✅ FIX DESIGNED AND VERIFIED 2026-09-06 — DELIBERATELY NOT YET IMPLEMENTED.** Full reasoning in
-`06-DECISIONS-LOG.md` that date. The short version, so nobody re-derives it:
-* ✅ `STATUS2_TORMENT = (1 << 31)` (`include/constants/battle.h:155`) — our decode at
-  `battle_state.py:159` is CORRECT, so a Torment-keyed filter cannot misfire in ordinary battles.
-* ✅ The forbidden thing is `gLastMoves[battler]`, a MOVE ID, tested at SELECTION time
-  (`src/battle_util.c:999`); the refusal is a **pure re-prompt that never consumes the turn** — which
-  is precisely why re-picking spins.
-* ✅ `gLastMoves` is readable in house style (`pokeemerald.sym:150`, `02024248`, 8 bytes).
-* ⭐⭐ **THE BUG'S TOTAL BLAST RADIUS IS ONE POKÉMON IN THE WHOLE GAME:**
-  `grep -c MOVE_TORMENT src/data/trainer_parties.h` = **1**, Sidney's SHIFTRY. A WRONG fix would
-  affect EVERY battle. ⇒ that asymmetry is why this is designed carefully rather than patched quickly.
-* ⛔ **THE OBVIOUS FIX IS THE DANGEROUS ONE.** `get_strongest_move_against` (`_util.py:244-269`)
-  compacts its move list and returns an index INTO THE COMPACTED LIST; the existing exclusions are
-  safe only because they append `-1` and preserve position. A filter that SKIPS would shift indices
-  and mis-select in ordinary battles — the same index-space shape as `KI-18`/`KI-34`/`KI-66`. It also
-  would not fix the bug alone (a four-layer fallback re-picks the slot) and misses double battles.
-* ⇒ **CHOSEN: the OBSERVED-REFUSAL variant** — detect that the game refused a selection and pick
-  differently, rather than predicting the forbidden move. Vacuously safe on the shared path, needs no
-  `gLastMoves` read, and closes **Taunt and Imprison** too.
-⛔ **BEFORE IMPLEMENTING:** the bar for a shared battle file is a failing repro (`--driver ch24probe`,
-have it), an ADDITIVE argument, the full suite, **and an A/B on the ORDINARY case** — a normal battle
-that must be unchanged. Specify that A/B first.
+**THE FIX — two guards:**
+1. **IDENTITY** — `_ki93_owner[battler_index]` records the `personality_value` that owns the memory;
+   `_ki93_check_owner()` drops it the moment a different PID occupies that slot, and is called before
+   the memory is read AND before it is written. (`item_stealing.py:23` already keys on PID — house style.)
+2. **LIFETIME** — an ordinary (non-refusal) battle script seen in the cancel branch means the turn
+   executed, so every banked veto is dropped. Previously the only clearing rule lived in the
+   parked-printer branch, which almost never coincides with an ordinary prompt.
 
-**⛔⛔ FIX ATTEMPT 1 — TRIED, MEASURED DEAD, AND REVERTED (2026-09-06).** Do not repeat it.
-The attempt copied the SHIPPED precedent 12 lines above it in the same function: the
-`BattleScript_SelectingMoveWithNoPP` fork (`battle_action_selection.py`, added 2026-07-23), which
-overrides the strategy's pick when the game bounces it. Extending that to
-`BattleScript_SelectingTormentedMove` looked ideal — same shape, same file, observed-refusal, inert
-unless the refusal is on screen.
-✅ **It passed the ordinary-case A/B** (`ki93_ordinary_BASELINE.turns`, byte-identical) — so it was
-provably harmless.
-⛔ **And it did NOT fix the freeze.** Rather than guess why, I instrumented the fork itself with a
-one-line log and re-drove: **it fired ZERO times.**
-⇒ ⭐ **THE FORK IS NEVER REACHED.** It sits AFTER the branch dispatch, so it only runs once a branch
-has assigned `battler_index` — i.e. once a decision is being COMMITTED. The Torment loop never gets
-there: it alternates `HandleInputChooseAction` → select → refusal → `HandleInputChooseMove` → the
-"press B" branch → `continue`, which short-circuits before the fork. The PP fork works only because
-its refusal leaves the game in a state that DOES reach the commit path.
-‼ **"The fix is wrong" and "the fix is never reached" are different answers needing different work** —
-one log line separated them in a single drive.
+**🔶 MIXED — TWO OF THESE ARE DONE AND TWO ARE GENUINELY OPEN. Each bullet carries its own marker,**
+**because a heading is a claim about every bullet beneath it** (`CLAUDE.md` P2, the `KI-59` shape):
+* ✅ **THE RE-DRIVE IS DONE AND IT PASSES ALL FOUR CONDITIONS** (`Story-debug-20260906-235815.log`,
+  real exit 0 — read without a pipe):
+  ```
+  C0 CONTROL     PASS  [KI93-CTL] fired 32x
+  C1 LIVELOCK    PASS  `KI-47 battle sub-handler` stops = 0      (was 3-6)
+  C2 JUSTIFIED   PASS  0 REPICK(s) with no refusal behind them   ⬅ the blocker, now clean
+  C3 ENGAGED     PASS  DISMISS=8 and REPICK=12 — both halves live
+  ACCEPTANCE: PASS
+  ```
+  ⭐ **C2 is the one that matters**: every override now has a real refusal behind it, keyed on the
+  Pokémon's `personality_value`, so a fainted mon's vetoes can no longer reach its replacement. ⭐ **C3
+  is the one that could have been faked**: `DISMISS>0` with `REPICK==0` would mean the new LIFETIME
+  guard had silently disabled the fix, and it does not.
+* ⭐ **Acceptance is MECHANICAL, not a human re-reading a log** —
+  `tools/story-dev/grade_ki93_drive.py <debug-log> <harness-log>` grades a drive by its SEQUENCE:
+  ```
+  C0 CONTROL    [KI93-CTL] fired, or nothing else in the log is evidence
+  C1 LIVELOCK   `KI-47 battle sub-handler` stops == 0
+  C2 JUSTIFIED  every [KI93-REPICK] preceded by a [KI93-WAIT]…ENDED / [KI93-DISMISS] since the last
+                COMMIT  ⬅ the check that catches an override the game never asked for
+  C3 ENGAGED    DISMISS>0 with REPICK==0 means the LIFETIME guard cleared the memory too eagerly
+  ```
+  ⛔ **FAULT-PROVEN IN THREE DIRECTIONS, re-derived 2026-09-07 after a Tier 1 reviewer could not
+  reproduce an earlier claim:**
+  ```
+  Story-debug-20260906-234031.log  (defective fix, no `owner=`)  -> C2 INDETERMINATE, exit 1
+  Story-debug-20260906-232310.log  (no refusal occurred at all)  -> C3 VACUOUS,       exit 1
+  Story-debug-20260906-235815.log  (the final fix)               -> C0-C3 PASS,       exit 0
+  ```
+  ‼ **A superseded claim is retracted here rather than quietly edited:** this bullet used to say the
+  grader returned *"C2 RED with 17 unjustified re-picks"* on `234031`. It no longer does — that log
+  predates the `owner=` field, so the current grader correctly refuses to judge C2 on it and returns
+  INDETERMINATE. The "17" described a version of the tool that does not ship. *(`08-MISTAKES.md`:
+  retract measured numbers by deleting and pointing, never by rewording.)*
+* ⛔ **STILL OPEN — Doubles are UNEXERCISED.** The `battler_index == 2 → right_battler` mapping is asserted, not
+  proven; this project has a 3-for-3 record of index-space bugs in the sibling faint chooser.
+* ⛔ **STILL OPEN — an ordinary parked `\p` prompt has never been observed** in a drive, so the claim that a B press
+  is harmless there is reasoned, not measured.
 
-**⇒ CORRECTED DESIGN FOR ATTEMPT 2 (not yet built).** The fix needs MEMORY ACROSS LOOP ITERATIONS,
-which the one-shot fork does not have: record that the last submitted `(battler_index, index)` was
-REFUSED, and make the next selection in that turn choose a different usable slot. The natural home is
-the `HandleInputChooseMove` branch (which is where the refusal is observed) plus a small
-`refused_this_turn` set consulted after `decide_turn` returns.
-⛔ That is a bigger change to the most safety-critical loop in the codebase than attempt 1 was, so it
-keeps the same bar: the ordinary-case A/B above must stay byte-identical, plus the full suite.
-✅ Everything needed is already in place — the baseline, the recorder (`POKEBOT_RECORD_TURNS`), and
-the repro (`--driver ch24probe`).
-
-**⛔⛔⛔ RETRACTED 2026-09-06 — THE "THREE ELIMINATED LOCATIONS" BELOW WERE MEASURED WITH A BROKEN
-INSTRUMENT AND ARE **NOT** ELIMINATED.** Every one of those verdicts rested on a diagnostic that
-called **`debug_logger.log(...)` — A FUNCTION THAT DOES NOT EXIST** (`modules/debug_logger.py` has
-`event()`, not `log()`) — inside my own `try/except: pass`. So the `AttributeError` was swallowed and
-**nothing was ever written**; "fired zero times" meant "my logger never ran", not "the code never ran".
-⇒ ⭐ **THE LESSON THIS FILE ALREADY CARRIED, COMMITTED AGAIN HOURS LATER: an instrument that fails silently substitutes the subject.** Treat the table below as UNTESTED, not excluded.
-
-**✅ WHAT IS ACTUALLY MEASURED, WITH A VERIFIED-WORKING LOGGER (`debug_logger.event`, plus an
-unconditional CONTROL line proving the logger writes):**
-* The confirm loop in `battle_action_use_move` **is entered and exits normally** — CONTROL fired **13
-  times**, the spin-detector **0**. ⇒ not the freeze site.
-* The commit path runs **20 times** with `instr='BattleScript_MoveEnd'` / `'FaintedMonEnd'` —
-  **never** `'SelectingTormentedMove'`. ⇒ conditioning a fix on the refusal script AT THE COMMIT POINT
-  can never fire, which is the real reason attempt 1 did nothing.
-* ⭐⭐ **A BRANCH CENSUS FOUND THE SPIN SITE IN ONE DRIVE:**
-```
-controller0='CompleteOnInactiveTextPrinter2' count=1     instr='BattleScript_SelectingTormentedMove'
-controller0='CompleteOnInactiveTextPrinter2' count=500   instr='BattleScript_SelectingTormentedMove'
-controller0='CompleteOnInactiveTextPrinter2' count=2000  instr='BattleScript_SelectingTormentedMove'
-```
-⇒ **the loop sits in the "KNOWN WAIT STATES" branch** of `handle_battle_action_selection` with the
-Torment message on screen. That branch does `yield; continue` for ever and is **deliberately exempt
-from `KI-46`'s counter** ("recognised, so they must NOT count"), which is why only `KI-47`'s
-last-resort net ever fired. Its own comment predicted this: *"safe to wait … because the KI-47 net
-still backstops this."*
-‼ **A first fix there — bound the wait and press B to dismiss — did NOT clear the hang** and was
-reverted. Whether the press is wrong, the bound too long, or the message needs a different input is
-**not yet measured**; instrument that the new branch RUNS before theorising.
-
-**⭐⭐⭐ ROOT CAUSE ESTABLISHED FROM THE DECOMP, 2026-09-06 — AND IT IS A LIVELOCK, NOT A HANG.**
-TWO things are true at once, and every fix attempt addressed only one:
-1. **A BUTTON PRESS IS REQUIRED.** `sText_PkmnCantUseMoveTorment` (`src/battle_message.c:260`) ends in
-   `\p` = `CHAR_PROMPT_CLEAR`, which parks the printer in `RENDER_STATE_CLEAR`
-   (`src/text.c:1102-1105`) until `TextPrinterWaitWithDownArrow` sees an **edge-triggered**
-   `JOY_NEW(A_BUTTON | B_BUTTON)` (`src/text.c:865-882`). `gTextFlags.autoScroll` is set ONLY for
-   link/recorded battles (`src/battle_message.c:3002-3005`) ⇒ in an ordinary battle **there is no
-   timeout and no auto-advance: it waits for ever.** That is why our "recognised wait" branch spins.
-2. ⛔⛔ **AND DISMISSING IT DOES NOT HELP.** `Cmd_endselectionscript` sends the engine to
-   `STATE_WAIT_ACTION_CHOSEN`, which **re-emits `CONTROLLER_CHOOSEMOVE`** (`src/battle_main.c:4217`)
-   — the move menu reopens and the bot picks the SAME slot again.
-
-**⇒ ⭐ THE ASYMMETRY THAT IS THE WHOLE BUG — and it explains why our no-PP handling works:**
-the `ChooseMoveStruct` handed to the controller carries only `species`, `monTypes`, `moves[4]`,
-`currentPP[4]`, `maxPP[4]` (`src/battle_main.c:4201-4217`).
-* **no-PP** is VISIBLE (`currentPP[i]`) ⇒ a PP-aware chooser never re-picks ⇒ **at most one refusal**.
-* **Torment** depends on `gLastMoves[]` + `STATUS2_TORMENT` (`src/battle_util.c:999`), **neither
-  transmitted** ⇒ the chooser is structurally blind ⇒ **it re-picks for ever.**
-⇒ **no-PP's refusal is SELF-CORRECTING; Torment's is STABLE UNDER RE-SELECTION.**
-✅ **INDEPENDENTLY PROVEN BY OUR OWN DATA:** the commit-path instrumentation logged
-`slot=2 battler=0` **20 times**. The decomp predicted exactly that, and we measured it before knowing
-why.
-‼ **The same blindness covers Disable, Taunt, Imprison and Choice-lock** (all set in
-`TrySetCantSelectMoveBattleScript`, `src/battle_util.c:976-1080`) — a fix should cover the class.
-
-**⇒ THE FIX NEEDS BOTH HALVES. Either alone is why four attempts failed:**
-(a) **DISMISS** — ONE edge-triggered A or B, delivered only once the glyphs have finished (the
-    down-arrow is up). ⚠ Three timing traps, all decomp-cited: a press DURING printing is eaten as a
-    speed-up and does not count (`src/text.c:950-954`); a HELD button is invisible because `JOY_NEW`
-    is edge-only (`include/global.h:128`); and a press ONE FRAME LATE lands in
-    `HandleInputChooseMove` where B means CANCEL → the action menu, where B is inert in a single
-    battle (`src/battle_controller_player.c:306-311`) — **a second, different-looking freeze.**
-(b) **DO NOT RE-PICK THE REFUSED SLOT** — the half every attempt missed. Either mirror
-    `CheckMoveLimitations` bot-side (`src/battle_util.c:1082-1123` is the algorithm) by reading
-    `gLastMoves[]`, `STATUS2_TORMENT` and `gDisableStructs[]`, or — symbol-free — **blacklist for the
-    turn any slot that produced a selection-refusal message.**
-
-**⇒ NEXT STEP: keep the census.** It cost one drive and named the branch that four
-implement-drive-revert cycles could not. Re-add it, then instrument INSIDE that branch.
-
-*(⛔ The three attempts and their VOID verdicts are archived verbatim in `28-HANDOFF-ARCHIVE.md` (2026-09-06), moved out of this current-state file per the R3 budget rule. They are history, not evidence — treat those locations as UNTESTED.)*
-
-
+**Status:** sandbox only. `custom-pokebot/` still hangs on Torment. **Promotion is the user's call.**
 ## `KI-94` — ⛔⛔ THE §Ch24 PREP HAS NO COMBINED END-STATE, SO EVERY §Ch24 MEASUREMENT SO FAR USED AN UNDER-PREPARED PARTY (2026-09-06, MEASURED, OPEN — §Ch24 BLOCKER, BIGGER THAN `KI-93`)
 
 **Symptom.** Every §Ch24 probe and all four `KI-93` fix attempts were driven from
@@ -2848,7 +2831,7 @@ together.
 * ‼ `KI-93` is **NOT** invalidated: Torment blindness is structural (the chooser cannot see
   `gLastMoves`/`STATUS2_TORMENT` whatever the moveset), and the freeze would recur on any party.
 
-**⇒ THE REAL NEXT STEP FOR §Ch24, AND IT COMES BEFORE `KI-93`:** chain the prep and **capture a
+**⇒ ⛔ SUPERSEDED 2026-09-07 — `KI-93` SHIPPED FIRST AND THE REORDER THIS DEMANDS IS CANCELLED (`04-HANDOFF.md`). Kept for its reasoning only. Its original text:** THE REAL NEXT STEP FOR §Ch24: chain the prep and **capture a
 combined fixture** — the fully-prepared party standing at the League door — then re-measure
 readiness and winnability against THAT. Until it exists, every §Ch24 number is about a party the
 bot will never actually field.
@@ -2968,6 +2951,6 @@ gate injects its own damage function and never touches this path.
 `metric=legacy` means this has happened. It is the one signal that distinguishes "fixed" from "fixed on
 paper", and it is why the field was added rather than leaving a reader to infer it from `estimates_ok`.
 
-**Status:** sandbox only. `custom-pokebot/` still has the defect; drift is 1. **Promotion is the user's
+**Status:** sandbox only. `custom-pokebot/` still has the defect; drift is 2. **Promotion is the user's
 call and has not been given.**
 

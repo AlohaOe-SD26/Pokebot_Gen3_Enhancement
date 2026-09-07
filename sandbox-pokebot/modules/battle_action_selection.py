@@ -16,6 +16,89 @@ from modules.items import Item, ItemBattleUse, get_pokeblocks
 from modules.memory import read_symbol, unpack_uint32, get_game_state, GameState, get_game_state_symbol, unpack_uint16
 from modules.menuing import scroll_to_item_in_bag, scroll_to_party_menu_index
 from modules.pokemon_party import get_party, get_party_size
+from modules.text_printer import TextPrinterState, get_text_printer
+
+#: ⛔⛔ KI-93 — SELECTION REFUSALS, REMEMBERED ACROSS CALLS.
+#: The game can REFUSE a chosen move at selection time and re-prompt WITHOUT consuming the turn
+#: (`src/battle_util.c:999`). A deterministic chooser then answers identically for ever.
+#: ‼ THIS IS MODULE-LEVEL BECAUSE A FUNCTION-LOCAL PROVABLY CANNOT WORK. The 2026-09-06 census
+#: measured `handle_battle_action_selection` being RE-ENTERED five times inside one refusal episode
+#: (the per-call counter restarts at 1 each time), so a local `set` is destroyed between every pick.
+#: The documented "attempt 2" design assumed one call per selection phase and was refuted by that
+#: drive — see `KI-93` in `05-KNOWN-ISSUES.md`.
+#: Keyed by battler index; values are MOVE SLOTS the game refused this refusal-episode.
+_ki93_refused_slots: dict[int, set[int]] = {}
+#: The slot most recently COMMITTED per battler — a candidate is not an attempt, so this records
+#: only what the handler actually acted on.
+_ki93_last_committed: dict[int, int] = {}
+#: ⛔⛔ WHICH POKEMON OWNS THE MEMORY ABOVE, by `personality_value`.
+#: A battler index is a POSITION; the thing that earns a refusal is a POKEMON. Keyed by index alone,
+#: the memory outlived its owner: MEASURED 2026-09-06 — Swellow was Tormented into
+#: `refused={0: {0,1,3}}`, FAINTED, and Castform came in to the same slot and had three of its four
+#: moves vetoed for two turns having been refused nothing, in the battle that then whited out.
+#: `CLAUDE.md` SESSION DISCIPLINE #3 says this in capitals: *assert IDENTITY, never position.*
+_ki93_owner: dict[int, int] = {}
+
+#: Battle scripts that mean "the game rejected your SELECTION and is re-prompting". Torment is the
+#: one the Elite Four guarantees; the others are the rest of the class from
+#: `TrySetCantSelectMoveBattleScript` (`src/battle_util.c:976-1080`).
+KI93_SELECTION_REFUSAL_SCRIPTS = (
+    "BattleScript_SelectingTormentedMove",
+    "BattleScript_SelectingDisabledMove",
+    "BattleScript_SelectingTauntedMove",
+    "BattleScript_SelectingImprisonedMove",
+    "BattleScript_SelectingNotAllowedMoveChoiceItem",
+    "BattleScript_SelectingMoveWithNoPP",
+)
+
+
+def _ki93_forget(battler_index: int | None = None) -> None:
+    """Drop the refusal memory once the battle has moved on.
+
+    ⛔ Scoped deliberately: a STALE entry costs at most one turn of second-best move choice, while a
+    memory cleared too eagerly restores the livelock. It is cleared when an ORDINARY battle script is
+    observed, i.e. the turn actually executed.
+    """
+    if battler_index is None:
+        _ki93_refused_slots.clear()
+        _ki93_last_committed.clear()
+        _ki93_owner.clear()
+    else:
+        _ki93_refused_slots.pop(battler_index, None)
+        _ki93_last_committed.pop(battler_index, None)
+        _ki93_owner.pop(battler_index, None)
+
+
+def _ki93_battler_for(battle_state, battler_index):
+    """The `BattlePokemon` currently occupying `battler_index`, or None."""
+    try:
+        return (
+            battle_state.own_side.left_battler
+            if battler_index == 0
+            else battle_state.own_side.right_battler
+        )
+    except Exception:  # noqa: BLE001 - `_ki93_battler_for` answers 'who is in this slot?'. Returning None means UNKNOWN, and every caller treats UNKNOWN as 'do not touch the refusal memory' — the safe direction.
+        return None
+
+
+def _ki93_check_owner(battle_state, battler_index) -> None:
+    """⛔ DROP THE MEMORY IF THE POKEMON IN THIS SLOT IS NOT THE ONE THAT EARNED IT.
+
+    Called before the memory is READ and before it is WRITTEN, so a faint, a switch, or a new battle
+    can never let one Pokemon's vetoes apply to another's move list.
+    """
+    battler = _ki93_battler_for(battle_state, battler_index)
+    try:
+        pid = None if battler is None else battler.personality_value
+    except Exception:  # noqa: BLE001 - identity check. If the PID cannot be read we keep the memory UNCHANGED rather than guess; a wrong DROP would only lose a veto (bounded), and a wrong KEEP is what the caller re-checks.
+        pid = None
+    if pid is None:
+        return
+    if _ki93_owner.get(battler_index) != pid:
+        _ki93_refused_slots.pop(battler_index, None)
+        _ki93_last_committed.pop(battler_index, None)
+        _ki93_owner[battler_index] = pid
+
 
 
 @debug.track
@@ -44,7 +127,39 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
     #: counter RESETS the moment a real decision is made, so a long multi-turn battle never
     #: accumulates toward it.
     _MAX_UNRECOGNISED_FRAMES = 600
+    #: ⛔ KI-93 — press B on one frame in every N while a `\p` prompt is parked. N must be >1 so the
+    #: other frames RELEASE the button and the next press is a genuine edge; and comfortably >1 so a
+    #: single stale press cannot land on the re-opened menu before the printer state is re-read.
+    _KI93_DISMISS_PERIOD = 12
     unrecognised = 0
+
+    # ⛔⛔ KI-93 CENSUS — OBSERVE ONLY, env-gated, no behaviour change. Remove once KI-93 is closed.
+    # ‼ `os` is NOT imported at module level in this file (checked, not assumed — an instrument that
+    # raises on its first line substitutes the subject just as thoroughly as one that logs nothing).
+    import os as _os
+
+    _ki93 = _os.environ.get("POKEBOT_KI93_CENSUS", "").strip() == "1"
+    _ki93_wait = 0            # consecutive frames inside the CompleteOnInactiveTextPrinter branch
+    _ki93_recorded_park = False  # have we already banked a refusal for THIS park episode?
+    _ki93_last_slot = None    # the slot we last COMMITTED (not what the strategy considered)
+    _ki93_seen = {}           # branch -> count, so the alternation is visible
+
+    def _ki93_log(message: str) -> None:
+        # ‼ `debug_logger.event`, NOT `.log` — `.log` does not exist, and three KI-93 verdicts were
+        # VOID because an AttributeError for exactly that was swallowed by a bare except.
+        if not _ki93:
+            return
+        try:
+            from modules import debug_logger
+
+            debug_logger.event(message, category="BATTLE")
+        except Exception:  # noqa: BLE001 - instrumentation must never affect the battle
+            pass
+
+    # ⭐ THE CONTROL. Unconditional (given the env flag), before any branch is taken. A drive whose
+    # log has no `[KI93-CTL]` line proves the logger never ran, and every other conclusion from that
+    # drive must be discarded rather than believed.
+    _ki93_log("[KI93-CTL] handle_battle_action_selection entered — census armed")
 
     while battle_is_active() and get_main_battle_callback() in ("HandleTurnActionSelectionState", "sub_8012324"):
         if unrecognised >= _MAX_UNRECOGNISED_FRAMES:
@@ -91,6 +206,30 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
             battle_state.is_double_battle
             and get_battle_controller_callback(2) in ("HandleInputChooseMove", "HandleAction_ChooseMove")
         ):
+            # ⛔ KI-93 CENSUS — Q4. This branch backs out of an opened move menu with B. The
+            # earlier census suggests the Torment cycle alternates between here and the wait
+            # branch; this counts it rather than assuming it.
+            # ⛔⛔ LIFETIME. Torment forbids the LAST MOVE USED (`src/battle_util.c:999`), and that
+            # changes every time a turn actually executes — so a refusal is true only for the
+            # selection episode that produced it. Seeing an ORDINARY battle script here means the
+            # turn ran, which makes every banked veto stale. Previously the only clearing rule lived
+            # in the parked-printer branch, which almost never coincides with an ordinary prompt, so
+            # vetoes accumulated across turns and (before the identity fix) across Pokemon.
+            try:
+                _instr_cancel = get_current_battle_script_instruction() or ""
+                if _instr_cancel and _instr_cancel not in KI93_SELECTION_REFUSAL_SCRIPTS:
+                    _ki93_forget()
+            except Exception:  # noqa: BLE001 - never let bookkeeping break the battle
+                pass
+            if _ki93:
+                _ki93_seen["cancelB"] = _ki93_seen.get("cancelB", 0) + 1
+                if _ki93_seen["cancelB"] in (1, 10, 50, 200, 1000):
+                    try:
+                        _instr = get_current_battle_script_instruction()
+                    except Exception:  # noqa: BLE001 - reading the battle script for the census. `<unreadable>` is logged as itself, so a broken read can never be mistaken for a quiet one.
+                        _instr = "<unreadable>"
+                    _ki93_log(f"[KI93-CANCEL] n={_ki93_seen['cancelB']} instr={_instr!r} "
+                              f"last_committed_slot={_ki93_last_slot}")
             context.emulator.press_button("B")
             yield
             unrecognised += 1
@@ -109,6 +248,113 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
             "CompleteOnInactiveTextPrinter",
             "CompleteOnInactiveTextPrinter2",
         ):
+            # ⛔⛔ KI-93 — THIS BRANCH USED TO BE A BARE `yield; continue`, AND THAT WAS THE HANG.
+            # A battle message ending in `\p` (CHAR_PROMPT_CLEAR) parks the text printer in
+            # `RENDER_STATE_CLEAR` waiting for an EDGE-TRIGGERED `JOY_NEW(A|B)`; outside link and
+            # recorded battles `gTextFlags.autoScroll` is FALSE, so there is NO timeout and no
+            # auto-advance — it waits for ever while we politely yield. 61 battle strings end in
+            # `\p`, so this is a CLASS of hangs, not a Torment special case.
+            _ki93_wait += 1
+            if _ki93 and (_ki93_wait in (1, 30, 120, 600, 1800, 5000) or _ki93_wait % 10000 == 0):
+                try:
+                    _instr = get_current_battle_script_instruction()
+                except Exception:  # noqa: BLE001 - reading the text printer. `_parked = False` means 'do not press', i.e. a failed read leaves the PRE-FIX behaviour rather than pressing B blindly into an unknown state.
+                    _instr = "<unreadable>"
+                _ki93_log(
+                    f"[KI93-WAIT] frames={_ki93_wait} cb0={get_battle_controller_callback(0)!r} "
+                    f"instr={_instr!r} last_committed_slot={_ki93_last_slot}"
+                )
+
+            # ---- KI-93 (a): DISMISS, GATED ON THE PRINTER'S OWN STATE --------------------------
+            # ⭐ The discriminator between "parked waiting for a button" and "glyphs still printing"
+            # is memory-readable: `sTextPrinters[0].state`. `modules/modes/_listeners.py:168-170`
+            # already tests exactly this, so it is house style, not a new idea.
+            # ⛔ NEVER gate this on a frame count. A press delivered while glyphs are printing is
+            # consumed as a text SPEED-UP and is NOT the dismissal press, so a timer-driven press
+            # would burn its edge and still hang.
+            try:
+                _printer = get_text_printer(0)
+                _parked = _printer.active and _printer.state == TextPrinterState.WaitForButton
+            except Exception:  # noqa: BLE001 - reading the printer must never break the battle
+                _parked = False
+
+            if _parked:
+                _instr_now = ""
+                try:
+                    _instr_now = get_current_battle_script_instruction() or ""
+                except Exception:  # noqa: BLE001 - reading the battle script at the dismiss site. Empty string means 'no refusal recognised', so a failed read skips the RECORD and the memory stays as it was.
+                    _instr_now = ""
+
+                # ⛔⛔ THE NESTING HERE IS LOAD-BEARING AND I GOT IT WRONG ONCE (2026-09-06).
+                # Writing this as `if refusal and not recorded: … elif instr: forget()` meant that on
+                # the frame AFTER banking a refusal the first test went False, the `elif` saw a
+                # perfectly truthy `SelectingTormentedMove`, and `_ki93_forget()` WIPED the memory —
+                # measured as `refused={}` on every line and `KI93-REPICK: 0`.
+                # ⇒ the "turn moved on" test must be nested UNDER "the script is not a refusal",
+                # never made the fall-through of a guard about something else.
+                if _instr_now in KI93_SELECTION_REFUSAL_SCRIPTS:
+                    if not _ki93_recorded_park:
+                        # ---- KI-93 (b): REMEMBER THE REFUSED SLOT ------------------------------------
+                        # ⛔ Dismissing ALONE only converts the hang into a livelock: the engine returns
+                        # to STATE_WAIT_ACTION_CHOSEN and re-emits CHOOSEMOVE with the move cursor
+                        # UNMOVED, so a deterministic chooser picks the same slot again — and each pass
+                        # silently wipes Rollout / Fury Cutter / Outrage counters via
+                        # `CancelMultiTurnMoves`. Both halves or neither.
+                        # ⛔⛔ ONCE PER PARK EPISODE, NOT ONCE PER FRAME. MEASURED 2026-09-06: recording
+                        # every frame filled the set with ALL FOUR SLOTS (`refused={0: {0,1,2,3}}`), the
+                        # re-pick below then found no alternative, and the livelock returned. The cause is
+                        # that `get_current_battle_script_instruction()` still reads
+                        # `SelectingTormentedMove` during the NEXT park, so each freshly re-picked slot was
+                        # marked refused although the game had never rejected it.
+                        # ⇒ ‼ A STALE SIGNAL READ REPEATEDLY MANUFACTURES EVIDENCE. Sample a level once
+                        # per edge, never continuously.
+                        _ki93_recorded_park = True
+                        for _bi in ((0, 2) if battle_state.is_double_battle else (0,)):
+                            # ⛔ IDENTITY FIRST. If the mon in this slot changed, the old vetoes are
+                            # not ours to keep.
+                            _ki93_check_owner(battle_state, _bi)
+                            _refused_for = _ki93_last_committed.get(_bi)
+                            if _refused_for is None:
+                                continue
+                            _set = _ki93_refused_slots.setdefault(_bi, set())
+                            _set.add(_refused_for)
+                            # ⛔ A FULL SET IS DEFINITIONALLY WRONG. Torment forbids exactly ONE move (the
+                            # last used), and the engine takes the Struggle path when nothing is usable —
+                            # so it never opens the move menu with every slot blocked. If our set ever
+                            # covers every move with PP, our bookkeeping is wrong, not the game: keep only
+                            # the newest observation rather than paralysing the chooser.
+                            try:
+                                _bat = (
+                                    battle_state.own_side.left_battler
+                                    if _bi == 0
+                                    else battle_state.own_side.right_battler
+                                )
+                                _usable = {
+                                    _s for _s, _lm in enumerate(_bat.moves)
+                                    if _lm is not None and _lm.pp > 0
+                                } if _bat is not None else set()
+                            except Exception:  # noqa: BLE001 - reading the mon's usable moves for the collapse guard. An empty set disables the collapse for this pass; the guard is a safety net, and skipping it is safer than collapsing on a half-read move list.
+                                _usable = set()
+                            if _usable and _usable.issubset(_set):
+                                _ki93_log(f"[KI93-RESET] refusal set covered every usable slot "
+                                          f"{sorted(_usable)} — collapsing to {{{_refused_for}}}")
+                                _ki93_refused_slots[_bi] = {_refused_for}
+                elif _instr_now:
+                    # An ORDINARY prompt is on screen ⇒ the turn moved on ⇒ prior refusals are
+                    # history. This is the memory's only clearing rule (see `_ki93_forget`).
+                    _ki93_forget()
+
+                # ⛔ GUARANTEE AN EDGE. `newKeys = keyInput & ~heldKeysRaw`, so a HELD button is
+                # invisible — and the branch 20 lines above mashes B every frame on the move menu,
+                # which means we can arrive here mid-hold. Pressing on ONE frame out of every
+                # `_KI93_DISMISS_PERIOD` leaves the rest released, so each press is a true edge.
+                # ⭐ B, NOT A: the move cursor is not reset, so a stray A would re-commit the very
+                # move that was just refused; a stray B falls back to the action menu, where B is
+                # inert in a single battle.
+                if _ki93_wait % _KI93_DISMISS_PERIOD == 0:
+                    context.emulator.press_button("B")
+                    _ki93_log(f"[KI93-DISMISS] pressed B at frame {_ki93_wait} instr={_instr_now!r} "
+                          f"owner={_ki93_owner.get(0)}")
             yield
             continue
 
@@ -121,6 +367,62 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
         # decision was made. Clear the stall counter so a long multi-turn battle never
         # accumulates toward the KI-46 bound.
         unrecognised = 0
+
+        # ⛔⛔ KI-93 (b) — DO NOT RE-SUBMIT A SLOT THE GAME HAS ALREADY REFUSED THIS EPISODE.
+        # Without this the dismiss in the wait branch merely converts a hang into a livelock.
+        # ⭐ Excluding slots is SAFE: if every move were unusable the engine would take the Struggle
+        # path and never open the move menu at all, so this can never strand the turn.
+        # ⛔ IDENTITY FIRST — see `_ki93_check_owner`. Without this a fainted mon's vetoes silently
+        # apply to its replacement, which was MEASURED forcing Castform into Sunny Day twice.
+        _ki93_check_owner(battle_state, battler_index)
+        _ki93_refused = _ki93_refused_slots.get(battler_index)
+        if (
+            _ki93_refused
+            and isinstance(index, int)
+            and index in _ki93_refused
+            and action in (
+                TurnAction.UseMove,
+                TurnAction.UseMoveAgainstRightSideOpponent,
+                TurnAction.UseMoveAgainstPartner,
+            )
+        ):
+            _ki93_battler = (
+                battle_state.own_side.left_battler
+                if battler_index == 0
+                else battle_state.own_side.right_battler
+            )
+            _ki93_alt = None
+            try:
+                if _ki93_battler is not None:
+                    for _slot, _learned in enumerate(_ki93_battler.moves):
+                        if _learned is not None and _learned.pp > 0 and _slot not in _ki93_refused:
+                            _ki93_alt = _slot
+                            break
+            except Exception:  # noqa: BLE001 - never let the re-pick break the battle
+                _ki93_alt = None
+            if _ki93_alt is not None:
+                _ki93_log(f"[KI93-REPICK] battler={battler_index} owner={_ki93_owner.get(battler_index)} "
+                          f"slot {index} was REFUSED -> {_ki93_alt}")
+                index = _ki93_alt
+            # ⛔ If no alternative exists, fall through with the original pick rather than inventing
+            # one. The engine's Struggle path is the correct handler for "nothing is usable", and
+            # second-guessing it here would be a worse bug than the one being fixed.
+
+        # ⛔ KI-93 — record what the handler is about to ACT on (a candidate is not an attempt), in
+        # MODULE-LEVEL state so it survives the re-entry the census measured.
+        if isinstance(index, int):
+            _ki93_last_committed[battler_index] = index
+
+        if _ki93:
+            if _ki93_wait:
+                _ki93_log(f"[KI93-WAIT] ENDED after {_ki93_wait} frames -> a decision was reached")
+            _ki93_last_slot = index if isinstance(index, int) else _ki93_last_slot
+            _ki93_seen[f"decide@{battler_index}"] = _ki93_seen.get(f"decide@{battler_index}", 0) + 1
+            _ki93_log(f"[KI93-COMMIT] battler={battler_index} owner={_ki93_owner.get(battler_index)} "
+                      f"action={action!r} slot={index!r} census={_ki93_seen} "
+                      f"refused={_ki93_refused_slots}")
+        _ki93_wait = 0
+        _ki93_recorded_park = False
 
         # ‼ `#24-bosstelemetry` (2026-08-09) — ONE LINE PER DECISION. This is the instrument the
         # project has been missing. Six `--driver normancounter` arms (a Fighting counter injected
