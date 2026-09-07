@@ -9423,3 +9423,54 @@ the integration with `calculate_move_damage_range`. The integration is argued fr
 measurement, and the live confirmation is the `metric=damage estimates_ok=<n>` field now printed in the
 `[FAINT-CHOOSER]` telemetry on every real faint. ‼ **If a live log ever shows `metric=legacy`, this fix
 is NOT running** and the entry above is again true at runtime.
+
+---
+
+## `KI-63` — the full entry (archived 2026-09-07)
+
+Resolved 2026-08-13; archived for `05-KNOWN-ISSUES.md`'s line budget. Kept verbatim
+because it records how a BLOCKER was dissolved by checking rather than by building.
+
+## ✅ KI-63 — RESOLVED 2026-08-13. The bot acquires DIVE BY PLAYING. (filed 2026-08-12)
+
+> **`--driver divelearner` → `ACCEPTANCE: PASS` on the first drive.** Nothing injected: a slot was
+> freed, a **Marill L13** was hunted and caught (balls 19→17), and **Dive was taught over Defense
+> Curl** — the 0-power move, exactly what the expendability picker should pick.
+> `knows_dive=True can_dive=True surf_intact=True can_continue=True`, and **Zigzagoon kept Surf**.
+>
+> **What had to be BUILT:** `pc_trip.deposit_one_dead_weight()` — because **neither** existing
+> deposit path can free a slot *before* a catch (`withdraw_from_box` returns immediately with
+> nothing boxed; `deposit_dead_weight_if_worth_it` is a silent no-op behind
+> `POKEBOT_PC_ROTATION`). ‼ Our own handoff named the first of those as the path to use; that is
+> retracted. Wired as an opt-in `_needs_party_slot` piggyback inside `heal_in_pokemon_center`.
+>
+> **‼ ORDER:** call `ensure_hm_learner` FIRST and deposit only on the specific *"party is full"*
+> failure — `hm_learner_slot` is checked *before* the party-full check, so deposit-first would
+> spend a PC trip and a team member even when no catch was needed.
+>
+> ## ✅ WIRED INTO PRODUCTION 2026-08-13 (later) — the caveat below is now RESOLVED **in sandbox**
+> `early_game.ensure_hm_learner_making_room` sets the flag and retries once; both `story_mode.py`
+> call sites (Rock Smash HM06, Surf HM03) now use it. Driven: `ACCEPTANCE: PASS`, with the deposit
+> asserted **by PID** (`deposited_pids=[1556928702]` = Skitty). New gate
+> **`repro_hm_slot_wiring.py` (22/22, fault-injected)** keeps the chain connected.
+> **MEASURED WORTH:** 20 terminal run-kills in 1,129 runs (**0.91%** excluding a reverted
+> party-cap bundle), **#1 of 14 derail causes by frames per event (1,717k avg)** — 7.2% of all
+> derailed lane time from 3.4% of derails, every one of them five badges deep.
+> ⛔ **`custom-pokebot` IS STILL INERT** — it reads the flag but nothing there sets it, and its
+> `story_mode.py` still calls the bare function. **Promotion has NOT been asked for.**
+>
+> ### (the caveat as it stood before the wiring)
+> **The CAPABILITY is proven; PRODUCTION IS NOT WIRED.** `_needs_party_slot` has **no setter
+> anywhere in `modules/` or `plugins/`** — only `--driver divelearner` sets it (verified by grep).
+> So in a real `StoryMode` run the piggyback **never fires**, `ensure_hm_learner(HM08)` still
+> raises *"the party is full"*, and the chapter still ends there. **Wiring `story_mode.py` to
+> catch that error and set the flag is the remaining work.** Flagged by adversarial review, which
+> was right to insist it be stated rather than implied.
+> ‼ §Ch21 also still has to be BUILT as a chapter; this removes its blocker. The learner is a **Marill L13, 36 levels below the team** — an HM slave that
+> `find_dead_weight` would want to box on a later trip unless the sole-carrier exemption covers it.
+> And the ground used is Route 117 (10%, L13, 1,055 waypoints); the better Shoal Cave ground was
+> deliberately NOT adopted, because `_hm_hunting_grounds` reads `TRAINING_GRASS` and a Shoal row
+> flips `best_training_area` for every team from ~L30 up. See
+> `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md`.
+
+### (original filing, kept for its measurements)

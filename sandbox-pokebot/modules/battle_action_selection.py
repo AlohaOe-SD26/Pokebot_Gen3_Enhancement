@@ -642,12 +642,32 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                     # unreadable order can never be mistaken for a benign one.
                     _ki96_log(f"[KI96-ORDER] <unreadable: {type(_e).__name__}: {_e}>")
 
+                # ⛔ KI-96 STAGE TRACE — OBSERVE ONLY. The mapping is MEASURED CORRECT, so the fault
+                # is somewhere in this four-step sequence. Log the state after EACH step, because
+                # "the switch is refused" is a conclusion and these are the observations under it.
+                def _ki96_state():
+                    try:
+                        return (f"state={get_game_state().name} "
+                                f"actioncursor={read_symbol('gActionSelectionCursor')[0]}")
+                    except Exception as _e:  # noqa: BLE001 - a failed read names itself, so it can
+                        # never be mistaken for a healthy reading.
+                        return f"<unreadable: {type(_e).__name__}>"
+
+                _ki96_log(f"[KI96-STAGE] 0 before scroll_to_battle_action(2): {_ki96_state()}")
                 yield from scroll_to_battle_action(2)
+                _ki96_log(f"[KI96-STAGE] 1 after scroll_to_battle_action(2): {_ki96_state()}")
                 # JP roms need a little delay
                 for _ in range(5):
                     yield
                 context.emulator.press_button("A")
+                # ‼ NO EXTRA `yield` HERE. Adding one to "let the press land" would insert a FRAME and
+                # this would stop being observe-only — an instrument that changes the subject is not an
+                # instrument. Stage 2 is therefore read on the SAME frame as the press, i.e. it shows
+                # the state the press was issued INTO. Compare it with stage 1, not with stage 3.
+                _ki96_log(f"[KI96-STAGE] 2 at the A press (same frame): {_ki96_state()}")
                 yield from scroll_to_party_menu_index(in_battle_index)
+                _ki96_log(f"[KI96-STAGE] 3 after scroll_to_party_menu_index({in_battle_index}): "
+                          f"{_ki96_state()}")
                 _ki96_spins = 0
                 while get_game_state() == GameState.PARTY_MENU:
                     _ki96_spins += 1

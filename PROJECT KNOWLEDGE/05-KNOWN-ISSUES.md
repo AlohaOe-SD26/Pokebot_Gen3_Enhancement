@@ -1274,7 +1274,7 @@ Full write-ups moved to **`31-KNOWN-ISSUES-ARCHIVE.md`** to keep this file insid
 
 ## KI-61 — ✅ RESOLVED/FIXED; FULL ENTRY in `31-KNOWN-ISSUES-ARCHIVE.md` (stub compacted 2026-08-16 on the 3000-line budget)
 
-## KI-62 — the detector still names "To Lilycove" on a save long past Lilycove (2026-08-12, OPEN, LOW)
+## KI-62 — the detector still names "To Lilycove" on a save long past Lilycove (2026-08-12, OPEN, LOW — ✅ header RE-CONFIRMED 2026-09-07: still open, still low, and its "to settle it" check has not been run)
 
 Noticed while measuring KI-61 and deliberately **not** fixed, because it is a different question.
 On `post_aqua.ss1` — 6 badges, the Aqua Hideout already completed — `current_chapter()` returns
@@ -1287,49 +1287,13 @@ save has got. `probe_chapter_order.py` deliberately does not assert on this save
 **To settle it:** check `MET_RIVAL_LILYCOVE` across the anchors that have plainly passed Lilycove,
 and if it is unset on all of them, the milestone is wrong rather than the run.
 
-## ✅ KI-63 — RESOLVED 2026-08-13. The bot acquires DIVE BY PLAYING. (filed 2026-08-12)
+## ✅ KI-63 — RESOLVED 2026-08-13: the bot acquires DIVE BY PLAYING. 📦 ARCHIVED 2026-09-07
 
-> **`--driver divelearner` → `ACCEPTANCE: PASS` on the first drive.** Nothing injected: a slot was
-> freed, a **Marill L13** was hunted and caught (balls 19→17), and **Dive was taught over Defense
-> Curl** — the 0-power move, exactly what the expendability picker should pick.
-> `knows_dive=True can_dive=True surf_intact=True can_continue=True`, and **Zigzagoon kept Surf**.
->
-> **What had to be BUILT:** `pc_trip.deposit_one_dead_weight()` — because **neither** existing
-> deposit path can free a slot *before* a catch (`withdraw_from_box` returns immediately with
-> nothing boxed; `deposit_dead_weight_if_worth_it` is a silent no-op behind
-> `POKEBOT_PC_ROTATION`). ‼ Our own handoff named the first of those as the path to use; that is
-> retracted. Wired as an opt-in `_needs_party_slot` piggyback inside `heal_in_pokemon_center`.
->
-> **‼ ORDER:** call `ensure_hm_learner` FIRST and deposit only on the specific *"party is full"*
-> failure — `hm_learner_slot` is checked *before* the party-full check, so deposit-first would
-> spend a PC trip and a team member even when no catch was needed.
->
-> ## ✅ WIRED INTO PRODUCTION 2026-08-13 (later) — the caveat below is now RESOLVED **in sandbox**
-> `early_game.ensure_hm_learner_making_room` sets the flag and retries once; both `story_mode.py`
-> call sites (Rock Smash HM06, Surf HM03) now use it. Driven: `ACCEPTANCE: PASS`, with the deposit
-> asserted **by PID** (`deposited_pids=[1556928702]` = Skitty). New gate
-> **`repro_hm_slot_wiring.py` (22/22, fault-injected)** keeps the chain connected.
-> **MEASURED WORTH:** 20 terminal run-kills in 1,129 runs (**0.91%** excluding a reverted
-> party-cap bundle), **#1 of 14 derail causes by frames per event (1,717k avg)** — 7.2% of all
-> derailed lane time from 3.4% of derails, every one of them five badges deep.
-> ⛔ **`custom-pokebot` IS STILL INERT** — it reads the flag but nothing there sets it, and its
-> `story_mode.py` still calls the bare function. **Promotion has NOT been asked for.**
->
-> ### (the caveat as it stood before the wiring)
-> **The CAPABILITY is proven; PRODUCTION IS NOT WIRED.** `_needs_party_slot` has **no setter
-> anywhere in `modules/` or `plugins/`** — only `--driver divelearner` sets it (verified by grep).
-> So in a real `StoryMode` run the piggyback **never fires**, `ensure_hm_learner(HM08)` still
-> raises *"the party is full"*, and the chapter still ends there. **Wiring `story_mode.py` to
-> catch that error and set the flag is the remaining work.** Flagged by adversarial review, which
-> was right to insist it be stated rather than implied.
-> ‼ §Ch21 also still has to be BUILT as a chapter; this removes its blocker. The learner is a **Marill L13, 36 levels below the team** — an HM slave that
-> `find_dead_weight` would want to box on a later trip unless the sole-carrier exemption covers it.
-> And the ground used is Route 117 (10%, L13, 1,055 waypoints); the better Shoal Cave ground was
-> deliberately NOT adopted, because `_hm_hunting_grounds` reads `TRAINING_GRASS` and a Shoal row
-> flips `best_training_area` for every team from ~L30 up. See
-> `ai-research-notes/2026-08-13-ki63-dive-learner-acquisition-plan.md`.
+Full entry in `28-HANDOFF-ARCHIVE.md`. Closed for over three weeks and nothing in it is a live
+constraint; moved for the R3 line budget. **In one line:** the fear was that HM08 would sit in
+the bag with no party member able to learn Dive and no free slot — it does not, because the
+bot reaches Dive through ordinary play.
 
-### (original filing, kept for its measurements)
 ## KI-63 (original 2026-08-12 filing) — MOVED to `31-KNOWN-ISSUES-ARCHIVE.md` (2026-08-13)
 
 ✅ **KI-63 is RESOLVED — see its entry above.** The original filing ("no party member can learn
@@ -2826,6 +2790,33 @@ replaces.* An index-space story that merely FITS the symptom is worth nothing un
 message before the refutation existed. Worse, a line-budget compression then DELETED it from this file
 while those claims stood — *deleting text never breaks a gate's count*, so nothing flagged the
 divergence. ⇒ **when trimming for a budget, re-read what the replaced span actually contained.**
+
+**DRIVE 3 — the stage trace. EVERY STEP BEFORE THE LOOP IS CORRECT:**
+```
+f5862188 [KI96-STAGE] 0 before scroll_to_battle_action(2): state=BATTLE      actioncursor=0
+f5862194 [KI96-STAGE] 1 after  scroll_to_battle_action(2): state=BATTLE      actioncursor=2
+f5862199 [KI96-STAGE] 2 at the A press (same frame):       state=BATTLE      actioncursor=2
+f5862270 [KI96-STAGE] 3 after scroll_to_party_menu_index(0): state=PARTY_MENU actioncursor=2
+```
+⇒ the action cursor reaches **2 (POKéMON)**, the A press is issued there, and **the PARTY MENU GENUINELY
+OPENS** (`state=PARTY_MENU`). Combined with `[KI96-ORDER]` (menu slot 0 really is the target), **every
+step up to the loop is correct.**
+
+**⇒ ⭐ THE FAULT IS INSIDE THE PARTY-MENU INTERACTION, AFTER A IS PRESSED ON THE RIGHT ENTRY.** Not the
+aim, not the mapping, not the target's legality, not the menu failing to open. That is a much smaller
+box than this KI started with.
+
+**⛔ AND `bt='What will DIVER do?'` IS A RED HERRING — RETRACTED.** `gDisplayedStringBattle` retains the
+LAST battle string written; it is not proof of what is on screen. The earlier note that "the state and
+the screen disagree" rested on reading it as live. `state=PARTY_MENU` is the reliable signal, and it
+says the menu is open.
+
+**⚠ ONE LABELLED HYPOTHESIS FOR THE NEXT MEASUREMENT — IT IS A GUESS AND IS MARKED AS ONE.** In Gen 3,
+choosing a Pokémon in the battle party menu opens a small submenu (SHIFT / SUMMARY / CANCEL). The loop
+presses A blindly every other frame; if the cursor sits on SUMMARY it opens a screen, and if on CANCEL
+it backs out — either way `state` stays `PARTY_MENU` and the switch never completes. ⛔ **DO NOT ACT ON
+THIS PARAGRAPH.** Tonight a root cause that merely FIT the symptom was published and then measured
+false; log the submenu's existence and cursor before believing it.
 
 **⛔ WHAT IS GENUINELY UNKNOWN NOW — DO NOT GUESS; THE LAST GUESS WAS WRONG:**
 * Does `scroll_to_party_menu_index(0)` actually leave the cursor on entry 0? Unverified.
