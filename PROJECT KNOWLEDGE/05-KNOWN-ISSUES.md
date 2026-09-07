@@ -2956,45 +2956,45 @@ still backstops this."*
 reverted. Whether the press is wrong, the bound too long, or the message needs a different input is
 **not yet measured**; instrument that the new branch RUNS before theorising.
 
+**⭐⭐⭐ ROOT CAUSE ESTABLISHED FROM THE DECOMP, 2026-09-06 — AND IT IS A LIVELOCK, NOT A HANG.**
+TWO things are true at once, and every fix attempt addressed only one:
+1. **A BUTTON PRESS IS REQUIRED.** `sText_PkmnCantUseMoveTorment` (`src/battle_message.c:260`) ends in
+   `\p` = `CHAR_PROMPT_CLEAR`, which parks the printer in `RENDER_STATE_CLEAR`
+   (`src/text.c:1102-1105`) until `TextPrinterWaitWithDownArrow` sees an **edge-triggered**
+   `JOY_NEW(A_BUTTON | B_BUTTON)` (`src/text.c:865-882`). `gTextFlags.autoScroll` is set ONLY for
+   link/recorded battles (`src/battle_message.c:3002-3005`) ⇒ in an ordinary battle **there is no
+   timeout and no auto-advance: it waits for ever.** That is why our "recognised wait" branch spins.
+2. ⛔⛔ **AND DISMISSING IT DOES NOT HELP.** `Cmd_endselectionscript` sends the engine to
+   `STATE_WAIT_ACTION_CHOSEN`, which **re-emits `CONTROLLER_CHOOSEMOVE`** (`src/battle_main.c:4217`)
+   — the move menu reopens and the bot picks the SAME slot again.
+
+**⇒ ⭐ THE ASYMMETRY THAT IS THE WHOLE BUG — and it explains why our no-PP handling works:**
+the `ChooseMoveStruct` handed to the controller carries only `species`, `monTypes`, `moves[4]`,
+`currentPP[4]`, `maxPP[4]` (`src/battle_main.c:4201-4217`).
+* **no-PP** is VISIBLE (`currentPP[i]`) ⇒ a PP-aware chooser never re-picks ⇒ **at most one refusal**.
+* **Torment** depends on `gLastMoves[]` + `STATUS2_TORMENT` (`src/battle_util.c:999`), **neither
+  transmitted** ⇒ the chooser is structurally blind ⇒ **it re-picks for ever.**
+⇒ **no-PP's refusal is SELF-CORRECTING; Torment's is STABLE UNDER RE-SELECTION.**
+✅ **INDEPENDENTLY PROVEN BY OUR OWN DATA:** the commit-path instrumentation logged
+`slot=2 battler=0` **20 times**. The decomp predicted exactly that, and we measured it before knowing
+why.
+‼ **The same blindness covers Disable, Taunt, Imprison and Choice-lock** (all set in
+`TrySetCantSelectMoveBattleScript`, `src/battle_util.c:976-1080`) — a fix should cover the class.
+
+**⇒ THE FIX NEEDS BOTH HALVES. Either alone is why four attempts failed:**
+(a) **DISMISS** — ONE edge-triggered A or B, delivered only once the glyphs have finished (the
+    down-arrow is up). ⚠ Three timing traps, all decomp-cited: a press DURING printing is eaten as a
+    speed-up and does not count (`src/text.c:950-954`); a HELD button is invisible because `JOY_NEW`
+    is edge-only (`include/global.h:128`); and a press ONE FRAME LATE lands in
+    `HandleInputChooseMove` where B means CANCEL → the action menu, where B is inert in a single
+    battle (`src/battle_controller_player.c:306-311`) — **a second, different-looking freeze.**
+(b) **DO NOT RE-PICK THE REFUSED SLOT** — the half every attempt missed. Either mirror
+    `CheckMoveLimitations` bot-side (`src/battle_util.c:1082-1123` is the algorithm) by reading
+    `gLastMoves[]`, `STATUS2_TORMENT` and `gDisableStructs[]`, or — symbol-free — **blacklist for the
+    turn any slot that produced a selection-refusal message.**
+
 **⇒ NEXT STEP: keep the census.** It cost one drive and named the branch that four
 implement-drive-revert cycles could not. Re-add it, then instrument INSIDE that branch.
 
-*(The untested table follows, kept for the record — ⛔ its verdicts are void:)*
-**THREE FIX LOCATIONS TRIED (2026-09-06). ALL REVERTED. ⛔ Their "eliminated" verdicts are RETRACTED — see above.**
-Each was implemented, driven, and disproved by instrumenting whether the code RAN — never by argument:
-| # | where | why it is wrong |
-|---|---|---|
-| 1 | a one-shot fork AFTER the branch dispatch in `handle_battle_action_selection`, copying the shipped `BattleScript_SelectingMoveWithNoPP` precedent | fired **zero** times — that path is only reached when a decision COMMITS, and this loop never gets there |
-| 2 | remember the refused slot at the caller's `HandleInputChooseMove` "press B" branch | fired **zero** times — instrumenting the outer `while` head showed it NEVER OBSERVES the refusal |
-| 3 | bound the unbounded confirm loop in `battle_action_use_move` (`while ... press A`) and re-pick | the 90-press bound never fired: neither the re-pick nor its `BotModeError` appeared ⇒ execution is not in that loop either |
-‼ All three PASSED the ordinary-case A/B byte-identically — which proves only that they were harmless.
-⇒ ⭐ **A PASSING A/B PROVES HARMLESSNESS, NEVER EFFICACY.** Both questions must be asked separately.
+*(⛔ The three attempts and their VOID verdicts are archived verbatim in `28-HANDOFF-ARCHIVE.md` (2026-09-06), moved out of this current-state file per the R3 budget rule. They are history, not evidence — treat those locations as UNTESTED.)*
 
-**⭐⭐ THE ARTIFACT THAT SHOULD HAVE BEEN PULLED FIRST — THE GENERATOR STACK AT THE STALL:**
-```
-f18160 NO-PROGRESS x3000  sig=('BattleListener.fight','BATTLE','BattleScript_SelectingTormentedMove',…)
-    gen -> isolate_inputs.<locals>.wrapper_function   @ _util_helper.py:10
-    gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
-    gen -> BattleListener.fight                       @ _listeners.py:219
-    gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
-    gen -> handle_battle                              @ battle_handler.py:373
-    gen -> handle_battle.<locals>._watch              @ battle_handler.py:314
-f18161 *** BotModeError -> Manual: KI-47 … 'handle_battle_action_selection' ran 3001 frames …
-```
-⇒ ⛔ **`handle_battle_action_selection` IS NOT ON THE STACK.** The deepest frame is `KI-47`'s own
-`_watch` wrapper (`battle_handler.py:314`), which DRIVES the sub-handler rather than `yield from`-ing
-it — so the sub-handler's own frame never appears, and every location I guessed at was downstream of a
-frame the stack does not show.
-⇒ ⭐ **START HERE NEXT TIME:** read `handle_battle.<locals>._watch` (`battle_handler.py:~314`) and
-`handle_battle` (`:373`) and establish HOW the sub-handler is driven before choosing a fix site. The
-stall signature and this stack are already captured in
-`tools/story-dev/ki_ch24probe_ATTEMPT3.log`.
-
-**⇒ THE METHOD LESSON, worth more than the three attempts:** the harness prints a full generator stack
-on every no-progress event. **Pull it FIRST.** Three implement-drive-revert cycles cost real time and
-each only excluded one candidate; the stack excludes all of them at once and names the frame to read.
-
-**⛔ IMPLICATION FOR §Ch24 — THIS IS THE BLOCKER, NOT THE LEVEL GAP.** Planning so far has argued about
-whether the party can WIN (the analysis says it dies at Glacia, fight 3). **This says the run cannot
-finish fight 1 for reasons that have nothing to do with damage.** ⇒ ⭐ **fix the hang before spending
-anything on levels or TMs** — a stronger party hangs in exactly the same place.
