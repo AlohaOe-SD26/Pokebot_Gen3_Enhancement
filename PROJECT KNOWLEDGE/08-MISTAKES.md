@@ -13748,3 +13748,37 @@ bypass), and this is the mirror image: a false NEGATIVE teaches the reader to tr
 `EXIT=0` from `... | grep -E "C2|ACCEPTANCE"` and briefly read the grader as passing; run without the
 pipe it exits 1. `run_gates.py`'s own docstring warns about exactly this, which is why that runner
 reads `returncode` directly.
+
+## 2026-09-07 — a PERFECT 30-minute grind wrote NOTHING, and I had reproduced a trap this very file records
+
+**Symptom.** `--driver ch24grind` took all four battlers from L47/51 to **L60** — 623 battles, 0
+whiteouts, 1806 s — printed `ACCEPTANCE: PASS`, exited 0, and **left no fixture**. Every level died with
+the process.
+
+**Root cause, from the run's own log:** `*** EXCEPTION: name 'pathlib' is not defined`.
+`story_harness.py` imports `from pathlib import Path`, not the module, and my capture block wrote
+`pathlib.Path(...)`. The exception fired AFTER the ACCEPTANCE line, so the run still looked clean.
+
+**‼ THIS FILE ALREADY CONTAINED THAT TRAP, IN THAT FILE.** The turn-recorder entry records:
+*"`NameError: pathlib` — the harness imports `Path`, not the module. The exception was absorbed and the
+run continued on the fallback strategy."* I read that entry earlier the same session.
+
+**⭐ BUT THE IMPORT IS THE SHALLOW CAUSE. THE REAL ONE: I VALIDATED THE GRIND AND NEVER THE CAPTURE.**
+The L49 validation run was deliberately careful — estimate first, short target, check the levels moved —
+and it ran with `GRIND_CAPTURE` **unset**. So the single line that converts 30 minutes of work into a
+durable artefact was the one line the validation never executed.
+
+**⭐⭐ PREVENTION RULE — VALIDATE THE PATH THAT KEEPS THE RESULT, NOT ONLY THE PATH THAT PRODUCES IT.**
+A rehearsal that skips the save step has not rehearsed the run. When a long job ends in a write, the
+write is the part most worth testing first, because it is the only part whose failure costs everything
+that came before it. ⇒ **exercise the persistence path on a 90-second run before spending 30 minutes.**
+
+**⭐ SECOND RULE — A LONG JOB MUST CHECKPOINT, NOT COMMIT EVERYTHING TO ITS LAST LINE.** The capture now
+runs after EVERY step (~3 min each), so a failure costs one step rather than the night. All-or-nothing
+persistence turns any late error into total loss.
+
+**⭐ THIRD RULE — LOG THE DECISION, NOT JUST THE SUCCESS.** "No capture requested" and "the capture
+raised" were the same silence. `_checkpoint` now logs on every path, including `NOT REQUESTED` and
+`⛔ CAPTURE FAILED`, and confirms a write by RE-READING the file's size. *A guard that cannot tell "no"
+from "I broke" is worse than no guard* — the rule `repro_no_silent_except.py` enforces, which I had
+just spent an hour satisfying elsewhere in the same file.

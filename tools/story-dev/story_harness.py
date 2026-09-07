@@ -15118,7 +15118,8 @@ class Ch24GrindMode(BotMode):
             --driver ch24grind --frames 5000
         POKEBOT_GRIND_TARGET=55 PYTHONUTF8=1 py -3.12 story_harness.py post_training.ss1 \
             --driver ch24grind --frames 4000000 --log grind.log
-        # optional: GRIND_CAPTURE=post_grind_L55.ss1   (written only on PASS, never over an existing file)
+        # optional: POKEBOT_GRIND_CAPTURE=post_grind   -> writes saves/post_grind_L<n>.ss1 after
+        #           EVERY step and at the end; never overwrites; ALWAYS logs what it decided.
 
     ⛔ FIXTURE: `post_training.ss1` — VICTORY_ROAD_1F (15,39), the PROVEN encounter tile with a proven
     heal loop to the Ever Grande PC. The League fixtures cannot be used: from the League door
@@ -15181,6 +15182,31 @@ class Ch24GrindMode(BotMode):
             """(name, level) for the REAL battlers only — never the mules."""
             return sorted((s, lv) for (_pid, s), (_slot, lv) in VR.battler_identities().items())
 
+        #: ⛔⛔ CAPTURE IS CHECKPOINTED, AND IT SAYS SO EVERY TIME.
+        #: A 30-minute L60 grind once completed perfectly and wrote NOTHING: the capture raised
+        #: `NameError: pathlib` (this file imports `Path`, not the module) AFTER the ACCEPTANCE line,
+        #: so the run reported PASS, exited 0, and every level was lost with the process.
+        #: ⇒ (a) checkpoint after EVERY step, so a failure costs one step and not the night;
+        #:   (b) LOG THE DECISION UNCONDITIONALLY — silence must never mean two different things;
+        #:   (c) never overwrite an existing fixture.
+        capture_stem = _os.environ.get("POKEBOT_GRIND_CAPTURE", "").strip()
+
+        def _checkpoint(tag_suffix: str) -> None:
+            if not capture_stem:
+                log(f"[{TAG}] capture: NOT REQUESTED (POKEBOT_GRIND_CAPTURE unset) at {tag_suffix}")
+                return
+            stem = capture_stem[:-4] if capture_stem.endswith(".ss1") else capture_stem
+            path = Path(__file__).resolve().parent / "saves" / f"{stem}_{tag_suffix}.ss1"
+            if path.exists():
+                log(f"[{TAG}] capture SKIPPED — {path.name} exists; refusing to overwrite.")
+                return
+            try:
+                path.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] ✅ CAPTURED -> {path.name} ({path.stat().st_size} bytes)")
+            except Exception as error:  # noqa: BLE001 - a failed capture must be LOUD, never silent:
+                # this is the exact failure that lost a completed 30-minute grind.
+                log(f"[{TAG}] ⛔ CAPTURE FAILED at {tag_suffix}: {type(error).__name__}: {error}")
+
         yield from wait_until_truly_controllable()
         before = _battlers()
         log(f"[{TAG}] PRE at={VR._where()} target=L{target} step={STEP}")
@@ -15224,6 +15250,8 @@ class Ch24GrindMode(BotMode):
             after_step = _battlers()
             log(f"[{TAG}] STEP {_step} done: battlers={after_step} battles={self.battles} "
                 f"whiteouts={self.whiteouts}")
+            # ⭐ CHECKPOINT HERE, not only at the end. Each step is ~3 minutes; the whole grind is 30.
+            _checkpoint(f"L{min((lv for _n, lv in after_step), default=0)}")
             # ⛔ REFUSE TO SPIN. If a step raised nobody, another step will not either.
             if after_step == now:
                 log(f"[{TAG}] STEP {_step} moved NOBODY — refusing to loop.")
@@ -15246,15 +15274,9 @@ class Ch24GrindMode(BotMode):
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
             f"(needs at least one BATTLER to have gained a level)")
 
-        out = _os.environ.get("GRIND_CAPTURE", "").strip()
-        if ok and out:
-            # ⛔ Never over a pinned name — a fixture's existence is its acceptance record.
-            path = pathlib.Path(__file__).resolve().parent / "saves" / out
-            if path.exists():
-                log(f"[{TAG}] capture SKIPPED — {out} exists; refusing to overwrite.")
-            else:
-                path.write_bytes(context.emulator.get_save_state())
-                log(f"[{TAG}] captured -> {path}")
+        # ⛔ FINAL capture, in addition to the per-step ones. `_checkpoint` logs either way, so a
+        # missing fixture can never again look like a clean run.
+        _checkpoint("FINAL" if ok else "FINAL_nolevels")
         context.set_manual_mode()
 
 
