@@ -24085,3 +24085,79 @@ AFTER RESTORE:             exit=0  ALL PASS
 ```
 ⛔ **A green gate is not evidence a feature works — only a RED one, on the real defect, is evidence
 the gate works.**
+
+## 2026-09-07 — `#24-pcpingpong`: the heal DEPOSITED a mon to free a seat, then WITHDREW THE SAME MON
+
+⚠ SANDBOX, UNDRIVEN. The A/B arm ships with it (`POKEBOT_PCPINGPONG_FAULT=1`).
+
+**HOW IT WAS FOUND — and the constraint that shaped the whole investigation.** The batch's
+`No party mon can learn Surf and the party is full — needs PC box management (#24-pc)` derail names
+its own fix, and that fix is **forbidden by a user ruling**: 2026-08-06 RULING 2 — *"no party-cap
+change, **no deposit path**. Catch policy gets its own round on a clean baseline."* Per `CLAUDE.md`
+§11 I read `06-DECISIONS-LOG.md` BEFORE investigating, and tasked the workflow to find a **ruled-in**
+fix or prove none exists — never to decide for the user. It found one, and it is not a resource wall
+at all.
+
+**⭐⭐ THE ROOT CAUSE IS A PRECEDENCE COLLISION, 27 LINES APART IN ONE FUNCTION.**
+`heal_in_pokemon_center` runs two opt-in piggybacks with OPPOSED postconditions and nothing between:
+```
+higher_level_actions.py:380   _needs_party_slot    -> deposit_one_dead_weight()   frees a seat
+higher_level_actions.py:420   _hunted_counter_pids -> withdraw_from_box()         fills it back
+```
+The author's own comment at `:370-372` treats them as parallel opt-ins — *"exactly like
+`_hunted_counter_pids` below"* — so the conflict was never considered.
+
+**THE MEASUREMENT (37 stored batches, every `freeing ONE slot` attempt partitioned, 0 unresolved):**
+```
+deposit succeeded -> a withdraw fired -> `no slot was freed`   135
+deposit succeeded -> NO withdraw      -> `freed a slot (6->5)`   9
+`nothing is safe to deposit`          -> `no slot was freed`     5
+```
+**135/135 failures had a withdraw; 9/9 successes did not — zero counter-examples either way.**
+⭐ And the discriminator nobody had run: the withdrawn mon is **THE SAME MON JUST DEPOSITED, 135 of
+135**, across two batch families twelve days apart. Not "a withdraw refilled the seat" — one Pokémon
+boxed and un-boxed inside a single PC visit.
+
+**TWO ENABLING FACTS (both re-verified by me in-tree):**
+1. `plan_deposits` (`pc_trip.py:121-145`) protects `_hunted_counter_pids` under a header reading
+   *"‼ NEVER DEPOSIT A HUNTED COUNTER"*. `deposit_one_dead_weight` (`pc_trip.py:281`) does **not** —
+   the protection exists 150 lines up and was never applied to the KI-63 path.
+2. `_hunted_counter_pids` is **NEVER RETIRED**: `story_mode.py:1327` (init) and `:1876` (`.add`) are
+   its only mutations. ⇒ a counter is re-collected at EVERY later heal, long after its boss is dead.
+   Filed as `#24-counterpids-never-retired`.
+
+**THE FIX:** `withdraw_precedence(pids, needs_party_slot, fault)` — a PURE function, following the
+precedent of `counter_withdraw_outcome` beside it, whose docstring already argues the case: *"logic
+that decides an outcome must be reachable by a test."* The branch lives in a generator that needs a
+ROM, and on this same day an untestable branch is exactly how a feature shipped dead behind seven
+green checks.
+
+**⛔ WHY IT STAYS INSIDE THE RULINGS: it adds NO deposit — it removes an UNDO.**
+`deposit_one_dead_weight` already ships, is already wired to this call site, and already fires (152
+attempts corpus-wide, 9 successful). `POKEBOT_PC_ROTATION` is untouched and still 0; catch policy and
+the party cap are untouched.
+⚠ **A real cost, not rounded off:** in those 135 cases the party today ends the visit UNCHANGED AND
+DERAILED; after this it ends ONE MEMBER LIGHTER and running. That is the sanctioned KI-63 behaviour
+that already produced the 9 successes — but it is not "zero impact".
+⚠ **STATUS IS A CONTRAST, NOT AN A/B** (`CLAUDE.md` §8): 144 samples with perfect separation is not
+an executed A/B, and this project does not accept a contrast as proof. `POKEBOT_PCPINGPONG_FAULT=1`
+restores the old behaviour so the arm exists.
+
+**GATED AND FAULT-TESTED** (`repro_heal_piggyback_reporting.py`, 25 checks). All four branches are
+driven directly — including **the ordinary heal, which must not move**, since it runs on every PC
+visit in the game. And the gate is proven red on the real defect:
+```
+BASELINE (fix present):  exit=0  ALL PASS
+FAULT ARM (fix removed): exit=1  -> FAIL  a SLOT-FREEING visit DEFERS the withdraw (the fix)
+AFTER RESTORE:           exit=0  ALL PASS
+```
+
+**‼ TWO CORRECTIONS THE WORKFLOW MADE TO MY OWN BRIEF, both taken:**
+* I called this *"the TOP failure class"*. **It is third** — live tally: Victory Road 5, whiteout
+  loop 5, Surf party-full 2. I overstated it and the correction is recorded here.
+* I claimed the HM-hunt path was unobservable in batch logs. It is observable — the hunt's ACTION
+  prints (`story_mode.py:2320`), 7 firings in the live batch, including in both "blocked" lanes.
+
+**⚠ RECORD GAP, reported not resolved:** no `06-DECISIONS-LOG.md` entry names
+`ensure_hm_learner_making_room` or authorises it by name. This fix does not depend on that gap being
+closed, but per `CLAUDE.md` §11 it is noted so the next audit stops re-deriving it.

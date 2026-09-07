@@ -234,6 +234,43 @@ def main() -> int:
         check("...and there are still THREE piggyback handlers to police (none deleted)",
               len(handlers) >= 3, f"{len(handlers)} handler(s)")
 
+    # --- #24-pcpingpong: the heal must not REFILL a seat it was entered to EMPTY ---------------
+    # ⭐ These drive the REAL decision function, not a fixture. The branch lives inside a generator
+    # that needs a ROM, which is why it was extracted — on 2026-09-07 an untestable branch is
+    # exactly how a feature shipped dead behind seven green checks.
+    # MEASURED (37 batches, every `freeing ONE slot` attempt): 135/135 failures had a withdraw,
+    # 9/9 successes did not, and the withdrawn mon was THE SAME MON just deposited in 135 of 135.
+    from modules.modes.util.higher_level_actions import withdraw_precedence  # noqa: E402
+
+    _pid = {0xABCD}
+    # ‼ THE ORDINARY HEAL IS THE ONE THAT MUST NOT MOVE. This runs on every PC visit in the game;
+    # a regression here is far more expensive than the bug being fixed.
+    check("#24-pcpingpong: an ORDINARY heal still withdraws a boxed counter (shared path unchanged)",
+          withdraw_precedence(_pid, False, False)[0] is True,
+          str(withdraw_precedence(_pid, False, False)))
+    check("#24-pcpingpong: an ordinary heal with nothing boxed still skips",
+          withdraw_precedence(set(), False, False)[0] is False)
+    check("#24-pcpingpong: a SLOT-FREEING visit DEFERS the withdraw (the fix)",
+          withdraw_precedence(_pid, True, False)[0] is False,
+          str(withdraw_precedence(_pid, True, False)))
+    check("#24-pcpingpong: the deferral SAYS SO (a silent skip is how this survived)",
+          "DEFERRED" in withdraw_precedence(_pid, True, False)[1]
+          and "#24-pcpingpong" in withdraw_precedence(_pid, True, False)[1],
+          withdraw_precedence(_pid, True, False)[1])
+    # ⛔ THE A/B ARM MUST EXIST AND MUST RESTORE THE BUG. The 144-sample separation is a natural
+    # CONTRAST, not an executed A/B; without a working fault arm the fix cannot ever be proven.
+    check("#24-pcpingpong: POKEBOT_PCPINGPONG_FAULT restores the OLD behaviour (the A/B arm)",
+          withdraw_precedence(_pid, True, True)[0] is True,
+          str(withdraw_precedence(_pid, True, True)))
+    # ⛔ THE MESSAGE MUST NOT LIE WHEN THERE IS NOTHING TO DEFER. A slot-freeing visit with NO
+    # hunted counter must fall through to the accurate "SKIPPED — empty" message, not announce a
+    # pending collection for a counter that does not exist. 9 of 144 such visits had no withdraw,
+    # so this is a real branch. ‼ A guard that cannot tell "no" from "I broke" is worse than none.
+    check("#24-pcpingpong: a slot-freeing visit with NO counter says SKIPPED, never DEFERRED",
+          "DEFERRED" not in withdraw_precedence(set(), True, False)[1]
+          and "empty" in withdraw_precedence(set(), True, False)[1],
+          withdraw_precedence(set(), True, False)[1])
+
     print("\n" + BAR)
     if failures:
         print(f"FAILED — {len(failures)} of {len(performed)} check(s): {failures}")

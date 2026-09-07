@@ -2008,7 +2008,7 @@ the three refuted recon claims, and the fixture that CANNOT test this bug
   good place to end a route.
 - **The failure.** A chapter navigates underwater to a planner-chosen destination, calls
   `surface_from_dive()`, and gets
-  `BotModeError: This tile does not allow surfacing from a dive.` (`higher_level_actions.py:947`, inside `surface_from_dive`, which spans `:933-953`).
+  `BotModeError: This tile does not allow surfacing from a dive.` (`higher_level_actions.py:991`, inside `surface_from_dive`, which spans `:933-953`).
   ‼ It fails **loudly**, which is the good news. The bad news is the retry shape: re-running the
   same `navigate_to` re-derives the same destination, so a naive retry loop cannot converge — the
   KI-67 shape (signal something, retry without changing state).
@@ -2389,7 +2389,7 @@ longer current state. ⛔ **DO NOT REOPEN OR REBUILD IT.**
 ## KI-83 — ⚠ **`tasks_scripts.py` IS 8 UNBOUNDED, ABORT-BLIND WAIT LOOPS THAT EVERY CHAPTER CALLS.** ⛔ **NOT OURS AND DELIBERATELY NOT FIXED — bound it AT THE CALL SITE.** (opened 2026-09-03, MEASURED)
 
 **What.** `sandbox-pokebot/modules/modes/util/tasks_scripts.py` is 162 lines containing **8 loops with no frame cap and no `_check_abort()`**, and the file contains **ZERO** of either (counted, not estimated): `wait_until_task_is_active` (:18), `wait_until_task_is_not_active` (:33), **`wait_for_yes_no_question` (:80, a bare `while True:`)**, `wait_for_multiple_choice_question` (:112), `wait_until_script_is_active` (:130), `wait_until_script_is_no_longer_active` (:138), `wait_for_no_script_to_run` (:152), `wait_for_fade_to_finish` (:160). The only bounded loop is a cursor-movement `for` at :121.
-**Why it matters.** These sit under the most-used helpers in the tree. `heal_in_pokemon_center` (`higher_level_actions.py:340-341`) calls `wait_for_yes_no_question` then `wait_for_no_script_to_run` — **so every heal, in every chapter, runs two unbounded abort-blind waits.** If the expected task never starts, the generator spins silently forever and **`StoryAbort` cannot unwind it**, because nothing checks the latch.
+**Why it matters.** These sit under the most-used helpers in the tree. `heal_in_pokemon_center` (`higher_level_actions.py:368-341`) calls `wait_for_yes_no_question` then `wait_for_no_script_to_run` — **so every heal, in every chapter, runs two unbounded abort-blind waits.** If the expected task never starts, the generator spins silently forever and **`StoryAbort` cannot unwind it**, because nothing checks the latch.
 **The reachable trigger is already documented in our own tree:** the KI-81 comments at `higher_level_actions.py:359-366`/`:387-392` exist because **a whiteout can happen INSIDE the heal call** (field poison ticks on the walk in). After a whiteout the menus are gone, so the awaited task never starts.
 ⚠ **This is the same SHAPE as KI-47** (an unbounded `while … PARTY_MENU: press A` that wedges the battle path), which is also deliberately unfixed.
 ✅⛔ **IT IS UPSTREAM CODE, BYTE-IDENTICAL TO THE PRISTINE MIRROR — we have never modified it** (`diff` against `40cakes repo/pokebot-gen3/…` is empty). ⇒ patching it is a **DIVERGENCE decision**, needs a `DIVERGENCE-LOG` entry, and has the widest blast radius in the codebase (every chapter, every menu). **That is why it is filed rather than fixed.**
@@ -2953,7 +2953,7 @@ gate injects its own damage function and never touches this path.
 `metric=legacy` means this has happened. It is the one signal that distinguishes "fixed" from "fixed on
 paper", and it is why the field was added rather than leaving a reader to infer it from `estimates_ok`.
 
-**Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` still has the defect; drift is 2 — the four arc-2 fixes were PROMOTED 2026-09-07 and driven-verified; the remaining differences are the `KI-96` probe fix and `#24-truckleak`, both sandbox-only while a batch runs. **Promotion is the user's
+**Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` still has the defect; drift is 3 — the four arc-2 fixes were PROMOTED 2026-09-07 and driven-verified; the remaining differences are the `KI-96` probe fix, `#24-truckleak` and `#24-pcpingpong`, all sandbox-only while a batch runs. **Promotion is the user's
 call and has not been given.**
 
 ## `KI-97` — a `_play()` re-entry from a POST-Fortree position marched to MAUVILLE and fail-fast derailed (2026-09-07, MEASURED on the live batch, ✅ FIXED IN THE SANDBOX — ⚠ NOT DRIVEN, NOT PROMOTED)

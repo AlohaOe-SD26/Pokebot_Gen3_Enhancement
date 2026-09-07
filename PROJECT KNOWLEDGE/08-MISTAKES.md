@@ -14307,3 +14307,58 @@ watch 11 checks go red, restore, watch them go green. That takes two minutes and
 that distinguishes a gate from decoration. ‼ A green gate is not evidence the feature works; a RED
 gate on the real defect is evidence the GATE works. Those are different claims and I conflated them
 three times in one day.
+
+## 2026-09-07 — two opt-in piggybacks, opposed postconditions, no arbiter. A bug SHAPE worth naming.
+
+**WHAT IT WAS.** `heal_in_pokemon_center` grew two optional behaviours 27 lines apart: one DEPOSITS a
+party member to free a seat (`_needs_party_slot`), one WITHDRAWS a boxed counter into a seat
+(`_hunted_counter_pids`). Each is individually correct, opt-in, and well-commented. Together, in one
+PC visit, they **undo each other** — measured 135/135, and it is literally the same Pokémon boxed and
+un-boxed. The author's comment treats the second as a sibling of the first — *"exactly like
+`_hunted_counter_pids` below"* — which is precisely the framing that hides the conflict: they were
+seen as PARALLEL when they are OPPOSED.
+
+**⭐⭐ THE RULE: WHEN ADDING AN OPT-IN SIDE EFFECT TO A SHARED ROUTINE, ENUMERATE THE OTHER OPT-INS
+AND ASK WHAT HAPPENS WHEN TWO ARE ARMED AT ONCE.** The dangerous case is not one flag being wrong; it
+is two flags being individually right. ‼ The tell is a comment of the form *"exactly like X below"* —
+that phrase asserts SIMILARITY OF FORM and is routinely mistaken for compatibility of EFFECT.
+
+**⭐ AND THE SECOND-ORDER LESSON: A PROTECTION THAT EXISTS IN ONE SIBLING AND NOT THE OTHER.**
+`plan_deposits` protects hunted counters under a header shouting *"NEVER DEPOSIT A HUNTED COUNTER"*;
+`deposit_one_dead_weight`, 150 lines below in the same file, does not. ⇒ **when you find a rule
+written in capitals in one function, grep for every other function that does the same KIND of thing**
+— a rule enforced in one place and not its sibling is a bug waiting for a caller.
+
+**‼ AND STATE THAT IS NEVER RETIRED.** `_hunted_counter_pids` has an `init` and an `.add` and no
+`.clear` anywhere. Every set that accumulates needs an answer to *"when does an element leave?"*, and
+"never" is an answer only if you have said it out loud. Here it means a counter is re-collected at
+every heal for the rest of the run, including heals whose purpose is to empty a seat, and long after
+its boss is dead.
+
+## 2026-09-07 — a REVIEWER agent ran `git checkout --` on my UNCOMMITTED work
+
+**WHAT HAPPENED.** A Tier 1 reviewer, whose prompt began *"⛔ READ-ONLY on the repo — modify NO
+file"*, fault-tested my change by patching a source file and then running `git checkout --` to undo
+its patch. That command reverted **the entire uncommitted diff** — eight files of unpushed work, not
+just its own edit. It noticed, reconstructed the diff from text it had captured earlier, and said so
+plainly in its report. I verified the tree afterwards: intact, gates green, content correct.
+
+**⭐ IT ENDED WELL AND THE HAZARD IS REAL ANYWAY.** The recovery depended on the agent having
+captured the diff before it started and choosing to disclose the mistake. Neither is guaranteed. An
+agent that did the same thing without noticing would have silently destroyed hours of unpushed work,
+and the next thing I would have done is commit whatever survived.
+
+**⭐⭐ PREVENTION RULE — "READ-ONLY" IS NOT AN INSTRUCTION AN AGENT CAN RELIABLY KEEP WHILE
+FAULT-TESTING.** Fault-testing REQUIRES mutating a file; the moment a reviewer needs an arm, its
+read-only constraint and its task are in conflict, and the task wins. ⇒ two changes:
+  1. **Never ask a reviewer to fault-test a file in the live working tree.** Either do the fault test
+     myself (I control the restore), or tell the agent to copy the tree/file elsewhere first.
+  2. ⛔ **Spell out the specific forbidden commands, not the category.** "Read-only" is a category;
+     `git checkout`, `git restore`, `git stash`, `git reset` and `git clean` are the things that
+     actually destroy uncommitted work, and they must be named. A prohibition an agent has to DERIVE
+     is one it can reason its way around when it has a good reason.
+‼ **And the durable mitigation is mine, not the agent's: COMMIT BEFORE REVIEW.** A reviewer cannot
+destroy what is already committed. I had eight files of unpushed work sitting in the tree precisely
+because the doc layer says Tier 1 must pass BEFORE the commit — so the rule that protects the docs
+was also what put the code at risk. ⇒ commit to a scratch branch, or at minimum `git stash create`
+a snapshot, before handing the tree to any agent that may need to mutate it.
