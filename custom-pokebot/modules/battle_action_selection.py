@@ -653,9 +653,82 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                         # never be mistaken for a healthy reading.
                         return f"<unreadable: {type(_e).__name__}>"
 
+                # ⛔⛔ KI-96 — OBSERVE-ONLY. A REFUSAL USED TO LIVE HERE AND WAS WITHDRAWN.
+                # It refused any rotation where `decoded_battleorder[0] != active party index`,
+                # on the theory that this meant a STALE array. A decomp verification
+                # (pret/pokeemerald @ 5eff7864) showed that inequality ALSO holds transiently on a
+                # perfectly healthy switch — `switchhandleorder` rewrites the order BEFORE
+                # `getswitchedmondata` advances `gBattlerPartyIndexes`
+                # (`data/battle_scripts_1.s:3110-3112`) — so the guard would have REFUSED
+                # LEGITIMATE ROTATIONS. A guard with false positives is worse than no guard.
+                #
+                # ⛔⛔ MEASURED 2026-09-07 AND **REFUTED** — READ THIS BEFORE THEORISING AGAIN.
+                # The theory this telemetry was built to test was: `gBattlePartyCurrentOrder` is a
+                # 3-byte SCRATCH buffer that `PlayerHandleChoosePokemon` refills when the party menu
+                # is requested, and we compute `in_battle_index` BEFORE that happens — so we aim
+                # from a leftover. **THE FIRST DRIVE KILLED IT:**
+                #   [KI96-REREAD] party_slot=2
+                #     pre (raw=201345 decoded=[2,0,1,3,4,5] aims_at_menu_slot=0 active_was=0)
+                #     post(raw=201345 decoded=[2,0,1,3,4,5] aims_at_menu_slot=0 active_now=0)
+                #     VERDICT=AGREE
+                # pre and post are BYTE-IDENTICAL on a drive that DID reproduce the wedge
+                # (`[KI96-SPIN]` reached n=120). ⇒ moving the mapping after the menu opens would
+                # change NOTHING. ⛔ DO NOT "FIX" IT THAT WAY — that would have been the third false
+                # root cause on this KI.
+                #
+                # ⭐ WHAT THE SAME DRIVE POINTS AT, AS AN OPEN QUESTION AND NOT A NEW THEORY:
+                #   [KI96-STAGE] 3 ...: state=PARTY_MENU actioncursor=2
+                #   [KI96-SPIN] n=120 instr='BattleScript_DoTurnDmgEnd' bt='What will DIVER do?'
+                # `get_game_state()` reports PARTY_MENU while the displayed text is the ACTION-SELECT
+                # prompt and the battle script is mid-turn. The state and the screen DISAGREE, so the
+                # menu may never have opened and every A-press may land on a screen that ignores it.
+                # ‼ Three published root causes for this KI have now been measured false. The next
+                # claim gets a drive BEFORE it gets a commit.
+                #
+                # THE TELEMETRY STAYS: a negative result is a result, and it will still catch a
+                # DIFFER case elsewhere (doubles encode only the LEFT battler at slot 0).
+                #
+                # ⛔ DO NOT "FIX" THIS BY MOVING THE MAPPING WITHOUT READING THE MEASUREMENT FIRST.
+                # `08-MISTAKES.md` rule 10: an index-space conversion gets an observe-only probe
+                # against a ground truth BEFORE it is applied. `handle_fainted_pokemon` has had
+                # three index-space bugs, every one applied on reasoning that sounded this good.
+                _ki96_pre = None
+                try:
+                    _ki96_pre = (bytes(battle_state._battler_party_order),
+                                 battle_state.battling_pokemon[0].party_index,
+                                 in_battle_index)
+                except Exception:  # noqa: BLE001 - instrumentation must never affect the battle.
+                    _ki96_pre = None
+
                 _ki96_log(f"[KI96-STAGE] 0 before scroll_to_battle_action(2): {_ki96_state()}")
                 yield from scroll_to_battle_action(2)
                 _ki96_log(f"[KI96-STAGE] 1 after scroll_to_battle_action(2): {_ki96_state()}")
+                # ⭐ THE MEASUREMENT. The party menu is now OPEN, so the engine has just
+                # refilled the scratch buffer. Re-read it and recompute the cursor slot — WITHOUT
+                # using the result. If `pre` and `post` disagree, the mapping we are about to act
+                # on (`in_battle_index`, computed pre-open) is aimed by stale data, and the fix is
+                # to compute it HERE. If they always agree, this theory is dead and the wedge is
+                # something else. ‼ OBSERVE ONLY — `in_battle_index` is deliberately NOT reassigned.
+                if _ki96 and _ki96_pre is not None:
+                    try:
+                        _post_state = get_battle_state()
+                        _post_raw = bytes(_post_state._battler_party_order)
+                        _post_slot = _post_state.map_battle_party_index(index)
+                        _pre_raw, _pre_act, _pre_slot = _ki96_pre
+                        _dec = lambda b: [(b[k // 2] >> 4) if k % 2 == 0 else (b[k // 2] & 0xF)
+                                          for k in range(6)]
+                        _ki96_log(
+                            f"[KI96-REREAD] party_slot={index} "
+                            f"pre(raw={_pre_raw.hex()} decoded={_dec(_pre_raw)} aims_at_menu_slot="
+                            f"{_pre_slot} active_was={_pre_act}) "
+                            f"post(raw={_post_raw.hex()} decoded={_dec(_post_raw)} "
+                            f"aims_at_menu_slot={_post_slot} active_now="
+                            f"{_post_state.battling_pokemon[0].party_index}) "
+                            f"VERDICT={'AGREE' if _pre_slot == _post_slot else 'DIFFER'}"
+                        )
+                    except Exception as _e:  # noqa: BLE001 - a failed read NAMES itself so it can
+                        # never be mistaken for a healthy AGREE.
+                        _ki96_log(f"[KI96-REREAD] <unreadable: {type(_e).__name__}: {_e}>")
                 # JP roms need a little delay
                 for _ in range(5):
                     yield
@@ -668,9 +741,34 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                 yield from scroll_to_party_menu_index(in_battle_index)
                 _ki96_log(f"[KI96-STAGE] 3 after scroll_to_party_menu_index({in_battle_index}): "
                           f"{_ki96_state()}")
+                #: ⛔ KI-96 — A CORRECT AIM IS NOT A BOUND. A rotation can still be refused (a mon
+                #: that faints between the decision and the menu opening), and this loop had no exit
+                #: at all: it relied on `KI-47`'s net stopping the whole run 3001 frames later.
+                #: MEASURED: a healthy switch closes the menu in ~1-27 presses, so 240 is ~9x the
+                #: worst observed and cannot fire on a working rotation.
+                _KI96_MENU_BOUND = 240
                 _ki96_spins = 0
                 while get_game_state() == GameState.PARTY_MENU:
                     _ki96_spins += 1
+                    if _ki96_spins > _KI96_MENU_BOUND:
+                        # Back out with B — never A. On the move menu A re-commits; B cancels to the
+                        # action menu, which this handler already recognises.
+                        context.emulator.press_button("B")
+                        yield
+                        # ‼ Same sibling-boundary rule as the stale check above: recover, don't
+                        # raise. A bound that converts a recoverable stall into a Manual park has
+                        # made the run WORSE, not safer.
+                        from modules.battle_fault import request_mode_recovery
+                        from modules.modes import BotModeError
+
+                        _ki96_reason = (
+                            f"KI-96: the in-battle party menu would not accept party slot {index} "
+                            f"(menu slot {in_battle_index}) after {_ki96_spins} A-presses. Backed out "
+                            f"with B and refused rather than spinning until the KI-47 net fires."
+                        )
+                        if request_mode_recovery(_ki96_reason):
+                            return
+                        raise BotModeError(_ki96_reason)
                     if _ki96 and (_ki96_spins in (1, 30, 120, 600, 1800)
                                   or _ki96_spins % 5000 == 0):
                         try:

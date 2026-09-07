@@ -2160,3 +2160,53 @@ promotion had failed. ⇒ **when verifying a promotion, read the log the PROMOTE
   under-prepared `post_league_shop` party. Fights 2-5 are UNDRIVEN.
 * **§Ch24 is still not built**, and the L60 party (`post_grind_L60.ss1`) has not reached the League
   because `KI-96` stops the chain first.
+
+---
+
+## 2026-09-07 (arc 2) — `KI-97`, `#24-mossdeepstrand`, `#24-countermsg` and `KI-96`'s BOUND promoted
+
+**USER-AUTHORISED** ("promote to custom"). ⛔ The 8-lane batch was **STOPPED FIRST** — promoting under
+a running measurement would make its lanes span two codebases, which is the rule
+`08-MISTAKES.md` records from this same day. Then the deferred acceptance drives ran, and only then
+the copy.
+
+**PROMOTED (4 files, byte-identical 4/4, drift 0 both directions):**
+* `plugins/custom_modes/story_mode.py` — `KI-97`'s Segment-13a `BADGE06_GET` gate,
+  `#24-mossdeepstrand`'s Segment-18 un-strand, `#24-countermsg`'s by-species dedupe
+* `modules/story/mossdeep_gym.py` — the chapter's badge early-return now leaves the gym first
+* `modules/battle_action_selection.py` — `KI-96`'s 240-press bound + `request_mode_recovery`
+  routing + observe-only `[KI96-REREAD]` telemetry
+* `modules/story/counter_plan.py` — `answer_via` rendered in `summarise_candidates`
+
+**✅ VERIFIED BY DRIVING AGAINST `--build custom`, not by a diff:**
+```
+story_harness.py saves/post_sootopolis_arrival.ss1 --driver storyresume --frames 25000 --build custom
+  imported: custom-pokebot
+  C1 "Could not reach (19, 6) on MapRSE.MAUVILLE_CITY"        : 0   (want 0)
+  C2 "Fortree arc already complete (BADGE06) — Ch13a skipped." : 1   (want >=1, POSITIVE CONTROL)
+  grade_ki97_drive.py on that log -> PASS (exit 0), C0/C1/C2/C3 all green
+repro_box_counter_move_test.py --build custom -> exit 0
+repro_pid_identity_key.py       --build custom -> exit 0
+```
+🔖 **Rollback point:** tag `pre-promote-2026-09-07-arc2` (created AND pushed before the copy —
+`promote.py` refused until it existed).
+
+**⛔⛔ WHAT THIS DOES *NOT* MEAN — read before building on it.**
+* **`KI-96` IS STILL OPEN.** What is promoted is a BOUND (an unbounded `while PARTY_MENU: press A` is
+  now a named, diagnosable stop after 241 presses — driven-proven) and OBSERVE-ONLY telemetry. **The
+  CAUSE is not fixed.** ‼ And its round-3 root cause was **MEASURED FALSE** the same day:
+  `[KI96-REREAD]` showed the battle-order array byte-identical before and after the party menu opens
+  (`VERDICT=AGREE`) on a run that DID reproduce the wedge — so "recompute the menu slot after the menu
+  opens" would change nothing. ⛔ **Do not re-propose it.** The live thread is that
+  `get_game_state()` reports PARTY_MENU while the screen shows the ACTION-SELECT prompt.
+  *(The older note in this file citing `battle_action_selection.py:590-592` has DRIFTED — cite the
+  `TurnAction.RotateLead` symbol, not a line.)*
+* **`KI-96`'s RECOVERY routing is UNPROVEN, not disproven.** `handles_battle_faults` appears ZERO
+  times in `story_harness.py`, so `request_mode_recovery` returns False for every driver and the
+  caller raises — a harness drive dropping to Manual is the CONTRACT, not a failure. See
+  `#24-harness-faultgap`.
+* **`#24-mossdeepstrand`'s RESCUE half is UNPROVEN.** Only its safe no-op is driven; the rescue needs
+  a save on MOSSDEEP_CITY_GYM (23,8) with BADGE07 **set**, which no fixture has
+  (`#24-mossdeep-strandfixture`).
+* **§Ch24 is still not built**, and the batch's other blockers (`#24-tateliza-attrition`,
+  `#24-ballrestock-ordering`, the L03 truck fast-fail loop) are open.

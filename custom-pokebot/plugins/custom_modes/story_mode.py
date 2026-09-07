@@ -1044,9 +1044,28 @@ def _counter_catch_message(cfg: dict, losses: int, needed: list[str]) -> str:
     try:
         from modules.story import counter_plan
 
+        # ‼ ASK FOR MORE THAN WE SHOW, THEN DEDUPE BY SPECIES. Live, four of Winona's five rows
+        # were the same Geodude on four different Magma Hideout floors — one answer occupying 80%
+        # of the list while other species never appeared. ⛔ The ladder's `huntable_candidates()`
+        # dedupes by `(map, tile)` and does NOT collapse these (the floors are distinct maps); it
+        # answers "where would the executor walk?", which is a different question from "what are
+        # my options?". Different questions, different keys — so this does not reuse that helper.
+        # ⛔ DISPLAY ONLY: this function builds the text of a BotModeError and feeds nothing the
+        # ladder chooses. Ranking and huntability are untouched.
         candidates = counter_plan.find_counter_candidates(
-            needed, allow=_counter_area_allowed, max_results=5
+            needed, allow=_counter_area_allowed, max_results=12
         )
+        _seen_species: set = set()
+        _deduped = []
+        for _c in candidates or []:
+            _name = _c.get("species_name")
+            if _name in _seen_species:
+                continue
+            _seen_species.add(_name)
+            _deduped.append(_c)
+            if len(_deduped) >= 5:
+                break
+        candidates = _deduped
         if candidates:
             summary = counter_plan.summarise_candidates(candidates)
             # Full list to the debug log FIRST — it must land even if the raised
@@ -3583,38 +3602,56 @@ class StoryMode(BotMode):
         #     Weather Institute → rival (HM02 Fly) → Fortree (§Ch13 spec, flags
         #     audited; ⚠ SKELETON built 2026-07-24 overnight — the Surf crossing and
         #     interior tiles are first-run-validate leads, expect iteration). ---
-        from modules.story.early_game import (
-            do_weather_institute,
-            fight_route119_rival_and_get_fly,
-            travel_to_fortree,
-        )
+        # ⛔⛔ KI-97 — GATE THE WHOLE SEGMENT ON ITS OWN COMPLETION FLAG. Without this, every
+        # `_play()` re-entry from a POST-Fortree position (a Sootopolis/Mossdeep whiteout or
+        # derail — i.e. all of §Ch21-23) walked back into `travel_to_fortree()`, whose leg
+        # ranking returns -1 for any map not in its `order` list, ran LEG[0] = Mauville
+        # (19,6), and fail-fast derailed: no land route exists out of Sootopolis.
+        # MEASURED: 4 of the first 6 ended runs of the 2026-09-07 batch (67%) died here.
+        # ‼ The `_guard` is INSIDE the gate on purpose — it asserts we are Fortree-side, which
+        # is FALSE once we are legitimately past Fortree, so leaving it out would convert the
+        # navigation derail into a guard derail and "fix" nothing.
+        # ⛔ Do NOT instead add the two maps to `travel_to_fortree`'s `order`: that enumeration
+        # already rotted once (see its own note at early_game.py:6303-6305, written after
+        # ROUTE120 hit this) and it would only move the failure down to the `_guard`.
+        if not _done("BADGE06_GET"):
+            from modules.story.early_game import (
+                do_weather_institute,
+                fight_route119_rival_and_get_fly,
+                travel_to_fortree,
+            )
 
-        _r119_cleared = lambda: _done("HIDE_ROUTE_119_TEAM_AQUA")
-        if not _r119_cleared() or not _done("RECEIVED_HM_FLY"):
-            # Travel runs first; if Route 119's content interrupts it (institute /
-            # rival not yet done), the dedicated segments below own their pieces
-            # from wherever the navigation stopped.
-            if _cur_map() not in (MapRSE.ROUTE119.value, MapRSE.FORTREE_CITY.value):
+            _r119_cleared = lambda: _done("HIDE_ROUTE_119_TEAM_AQUA")
+            if not _r119_cleared() or not _done("RECEIVED_HM_FLY"):
+                # Travel runs first; if Route 119's content interrupts it (institute /
+                # rival not yet done), the dedicated segments below own their pieces
+                # from wherever the navigation stopped.
+                if _cur_map() not in (MapRSE.ROUTE119.value, MapRSE.FORTREE_CITY.value):
+                    yield from travel_to_fortree()
+                if not _r119_cleared():
+                    yield from do_weather_institute()
+                _guard("Weather Institute (Ch13b)", _r119_cleared)
+                if not _done("RECEIVED_HM_FLY"):
+                    yield from fight_route119_rival_and_get_fly()
+                _guard("Route 119 rival / HM02 Fly (Ch13c)", lambda: _done("RECEIVED_HM_FLY"))
                 yield from travel_to_fortree()
-            if not _r119_cleared():
-                yield from do_weather_institute()
-            _guard("Weather Institute (Ch13b)", _r119_cleared)
-            if not _done("RECEIVED_HM_FLY"):
-                yield from fight_route119_rival_and_get_fly()
-            _guard("Route 119 rival / HM02 Fly (Ch13c)", lambda: _done("RECEIVED_HM_FLY"))
-            yield from travel_to_fortree()
+            else:
+                console.print("[dim]Story: Route 119 already cleared — heading to Fortree.[/]")
+                yield from travel_to_fortree()
+            _guard(
+                "Travel to Fortree (Ch13a)",
+                lambda: _cur_map() in (
+                    MapRSE.FORTREE_CITY.value,
+                    MapRSE.FORTREE_CITY_POKEMON_CENTER_1F.value,
+                    MapRSE.FORTREE_CITY_GYM.value,
+                    MapRSE.ROUTE120.value,  # a 13d resume (Steven) is Fortree-side too
+                ),
+            )
         else:
-            console.print("[dim]Story: Route 119 already cleared — heading to Fortree.[/]")
-            yield from travel_to_fortree()
-        _guard(
-            "Travel to Fortree (Ch13a)",
-            lambda: _cur_map() in (
-                MapRSE.FORTREE_CITY.value,
-                MapRSE.FORTREE_CITY_POKEMON_CENTER_1F.value,
-                MapRSE.FORTREE_CITY_GYM.value,
-                MapRSE.ROUTE120.value,  # a 13d resume (Steven) is Fortree-side too
-            ),
-        )
+            # ‼ A POSITIVE CONTROL, not decoration. The acceptance check for this fix is that
+            # the Mauville derail vanishes — but an absence proves nothing on a run that never
+            # got here. This line is the evidence the gate actually FIRED.
+            console.print("[dim]Story: Fortree arc already complete (BADGE06) — Ch13a skipped.[/]")
 
         # --- Segments 13d/13e: Devon Scope (Route 120 Steven) → Fortree Gym
         #     (Winona, BADGE06). ⚠ SKELETONS (2026-07-24 overnight) — tiles probed,
@@ -3749,11 +3786,23 @@ class StoryMode(BotMode):
         #     so the chapter re-enters and re-solves all 117 steps. It allows three attempts.
         # ‼ Graded on the BADGE **and** controllable — `BADGE07_GET` is set mid-script, so a
         #     flag-only test would call a `lockall`ed avatar a success.
-        from modules.story.mossdeep_gym import do_mossdeep_gym_chapter
+        from modules.story.mossdeep_gym import do_mossdeep_gym_chapter, leave_the_gym
 
         if not _done("BADGE07_GET"):
             yield from do_mossdeep_gym_chapter()
         else:
+            # ⛔⛔ #24-mossdeepstrand — "ALREADY DONE" IS NOT "ALREADY OUT". Winning BADGE07 leaves
+            # the avatar on the leaders' platform (23,8): an ELEVEN-TILE COLLISION ISLAND whose only
+            # exit is a **coord_event** at (21,6) that no warp-graph solver can ever offer
+            # (`mossdeep_gym.py:460-461`). With the badge set this branch used to only PRINT, so
+            # nothing ever stepped on that exit and the run was stranded — every later segment then
+            # fail-fast derailed on a navigation it could not possibly satisfy.
+            # ‼ `leave_the_gym()` is resume-safe by construction (`mossdeep_gym.py:471-472`
+            # `if not _on_gym_map(): return`), so on every ordinary re-entry — anywhere else in
+            # Hoenn — this costs one call and changes nothing.
+            # ⇒ A "DONE" FLAG IS NOT A "TIDY" FLAG: `BADGE07_GET` answers *did we win?*, not *is
+            # there nothing left to do?*, and the gap between those two questions is this island.
+            yield from leave_the_gym()
             console.print("[dim]Story: Mossdeep Gym already done — skipping.[/]")
         _guard("Mossdeep Gym (Ch18)", lambda: _done("BADGE07_GET"))
 
