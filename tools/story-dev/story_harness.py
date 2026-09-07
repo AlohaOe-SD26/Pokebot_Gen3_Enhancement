@@ -34,7 +34,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -15110,6 +15110,154 @@ def _maybe_record(strategy):
     return _TurnRecorder(strategy, target)
 
 
+class Ch24GrindMode(BotMode):
+    """BOUNDED, RECOVERING EXP grind toward a target level, by STEPPING `train_for_victory_road`.
+
+    Run (⛔ estimate first, always):
+        POKEBOT_GRIND_ESTIMATE_ONLY=1 PYTHONUTF8=1 py -3.12 story_harness.py post_training.ss1 \
+            --driver ch24grind --frames 5000
+        POKEBOT_GRIND_TARGET=55 PYTHONUTF8=1 py -3.12 story_harness.py post_training.ss1 \
+            --driver ch24grind --frames 4000000 --log grind.log
+        # optional: GRIND_CAPTURE=post_grind_L55.ss1   (written only on PASS, never over an existing file)
+
+    ⛔ FIXTURE: `post_training.ss1` — VICTORY_ROAD_1F (15,39), the PROVEN encounter tile with a proven
+    heal loop to the Ever Grande PC. The League fixtures cannot be used: from the League door
+    `calculate_path` reaches neither grass nor a Poké Center.
+
+    ⭐ WHY STEPPED. `train_for_victory_road` is the only correct trainer here (it rotates each battler
+    to slot 0, verifies the rotation BY PID, and refuses a call that trained nothing — see `KI-84`),
+    but it refuses outright when a single call's per-mon estimate exceeds `MAX_TRAINING_FRAMES`. Small
+    steps keep every call under that ceiling WITHOUT touching it, which is what its own comment asks.
+
+    ⭐ THROUGHPUT IS MEASURED: 1032 frames/sec, so L55 is minutes and L60 ~34 min of wall clock
+    (`ai-research-notes/2026-09-07-emulator-throughput-MEASURED.md`).
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24Grind"
+
+    def on_whiteout(self) -> bool:
+        # ⭐⭐ THE LINE `Ch23TrainMode` IS MISSING (`story_harness.py`, its `on_whiteout` only counts
+        # and logs). Without latching the abort, `train_team`'s `_check_abort()` never fires, the
+        # generator keeps running against a party that is now at the Poké Center rather than in the
+        # grass, and an UNATTENDED run silently burns the night. Production `StoryMode` latches it
+        # (`story_mode.py:1350-1353`); the harness driver was the gap.
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24grind] WHITEOUT #{self.whiteouts} — abort LATCHED; this step unwinds and retries.")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        # ‼ IMPORT EVERY HELPER HERE. `Ch24ProbeMode`'s own comment records this trap three times: a
+        # helper another function imported LOCALLY is not available to yours.
+        from modules.pokemon_party import get_party
+        from modules.story import victory_road as VR
+        from modules.story.early_game import set_story_abort, wait_until_truly_controllable
+
+        TAG = "ch24grind"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+
+        target = int(_os.environ.get("POKEBOT_GRIND_TARGET", "55"))
+        estimate_only = _os.environ.get("POKEBOT_GRIND_ESTIMATE_ONLY", "").strip() == "1"
+        #: ⛔ Each STEP closes at most this many levels, so every `train_for_victory_road` call's
+        #: per-mon estimate stays under `MAX_TRAINING_FRAMES` and its refusal keeps protecting us.
+        STEP = int(_os.environ.get("POKEBOT_GRIND_STEP", "2"))
+        #: ⛔ BOUNDED TWICE: by steps, and by retries within a step. A broken re-entry after a
+        #: whiteout (the `_CAVE_ENTRANCES` gap for Victory Road) then fails LOUDLY in minutes rather
+        #: than silently eating the night.
+        MAX_STEPS, MAX_RETRIES = 24, 2
+
+        def _battlers():
+            """(name, level) for the REAL battlers only — never the mules."""
+            return sorted((s, lv) for (_pid, s), (_slot, lv) in VR.battler_identities().items())
+
+        yield from wait_until_truly_controllable()
+        before = _battlers()
+        log(f"[{TAG}] PRE at={VR._where()} target=L{target} step={STEP}")
+        log(f"[{TAG}] PRE battlers={before}   (mules are excluded by battler_identities)")
+        log(f"[{TAG}] PRE party={[(m.species.name, m.level) for m in get_party() if m is not None]}")
+        gap = [(n, target - lv) for n, lv in before if lv < target]
+        log(f"[{TAG}] PRE gap_to_target={gap}")
+
+        if estimate_only:
+            log(f"[{TAG}] ESTIMATE-ONLY — nothing trained.")
+            log(f"[{TAG}] RESULT estimate_only=True target={target} gap={gap}")
+            log(f"[{TAG}] ACCEPTANCE: PASS (estimate)")
+            context.set_manual_mode()
+            return
+
+        failure = None
+        steps_done = 0
+        for _step in range(1, MAX_STEPS + 1):
+            now = _battlers()
+            low = min((lv for _n, lv in now), default=target)
+            if low >= target:
+                break
+            sub = min(target, low + STEP)
+            log(f"[{TAG}] STEP {_step}: lowest battler is L{low} -> training to L{sub} "
+                f"(final target L{target})")
+            ok_step = False
+            for attempt in range(1, MAX_RETRIES + 1):
+                try:
+                    set_story_abort(False)
+                    yield from VR.train_for_victory_road({"readings": set(), "trace": []}, target=sub)
+                    ok_step = True
+                    break
+                except Exception as error:  # noqa: BLE001 - a refusal IS the reading; logged below
+                    failure = f"{type(error).__name__}: {error}"
+                    log(f"[{TAG}] STEP {_step} attempt {attempt} ENDED: {failure}")
+                    yield from wait_until_truly_controllable()
+            if not ok_step:
+                log(f"[{TAG}] STEP {_step} FAILED after {MAX_RETRIES} attempts — stopping.")
+                break
+            steps_done += 1
+            after_step = _battlers()
+            log(f"[{TAG}] STEP {_step} done: battlers={after_step} battles={self.battles} "
+                f"whiteouts={self.whiteouts}")
+            # ⛔ REFUSE TO SPIN. If a step raised nobody, another step will not either.
+            if after_step == now:
+                log(f"[{TAG}] STEP {_step} moved NOBODY — refusing to loop.")
+                break
+
+        after = _battlers()
+        log(f"[{TAG}] RESULT steps_done={steps_done} battles={self.battles} "
+            f"whiteouts={self.whiteouts}")
+        log(f"[{TAG}] RESULT before={before}")
+        log(f"[{TAG}] RESULT after={after}")
+        if failure:
+            log(f"[{TAG}] RESULT last_failure={failure}")
+
+        # ⛔ GRADE ON THE WORK PRODUCT (levels), never on "the call returned" — the `KI-84` shape.
+        moved = [(n, lv0, lv) for (n, lv0), (_n, lv) in zip(before, after) if lv > lv0]
+        at_target = [(n, lv) for n, lv in after if lv >= target]
+        ok = bool(moved)
+        log(f"[{TAG}] RESULT levels_that_moved={moved}")
+        log(f"[{TAG}] RESULT at_or_above_L{target}={at_target} of {len(after)} battlers")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+            f"(needs at least one BATTLER to have gained a level)")
+
+        out = _os.environ.get("GRIND_CAPTURE", "").strip()
+        if ok and out:
+            # ⛔ Never over a pinned name — a fixture's existence is its acceptance record.
+            path = pathlib.Path(__file__).resolve().parent / "saves" / out
+            if path.exists():
+                log(f"[{TAG}] capture SKIPPED — {out} exists; refusing to overwrite.")
+            else:
+                path.write_bytes(context.emulator.get_save_state())
+                log(f"[{TAG}] captured -> {path}")
+        context.set_manual_mode()
+
+
 class Ch24ProbeMode(BotMode):
     """§Ch24 PROBE — enter the League and MEASURE the Sidney fight. Sets no progress marker.
 
@@ -18023,6 +18171,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23ChapterMode()
         elif args.driver == "ch24probe":
             context.bot_mode_instance = Ch24ProbeMode()
+        elif args.driver == "ch24grind":
+            context.bot_mode_instance = Ch24GrindMode()
         elif args.driver == "ch24heal":
             context.bot_mode_instance = Ch24HealMode()
         elif args.driver == "ch24moves":

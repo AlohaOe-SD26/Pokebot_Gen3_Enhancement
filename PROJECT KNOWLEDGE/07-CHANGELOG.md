@@ -23411,7 +23411,7 @@ mtime. See `08-MISTAKES.md` that date for the three prevention rules.
 call and was not given.
 
 Files: `sandbox-pokebot/modules/battle_action_selection.py`,
-`PROJECT KNOWLEDGE/{05,07,06,08,29}`, `ai-research-notes/2026-09-06-emulator-throughput-UNRESOLVED.md`.
+`PROJECT KNOWLEDGE/{05,07,06,08,29}`, `ai-research-notes/2026-09-07-emulator-throughput-MEASURED.md`.
 
 ## 2026-09-06 — `KI-93` follow-up: an independent reviewer found a real defect IN THE FIX, and a sequence-grader now exists
 
@@ -23502,3 +23502,44 @@ cannot distinguish the arms is not an arm*.
 
 Files: `tools/story-dev/grade_ki93_drive.py`, `tools/story-dev/run_gates.py`,
 `PROJECT KNOWLEDGE/{02,04,07}`.
+
+## 2026-09-07 — `--driver ch24grind`: a BOUNDED, RECOVERING level grind, and throughput MEASURED at 1032 f/s
+
+**Throughput was the decisive unknown and it is now measured.** 99,138 frames in 96 s under clean
+conditions (logging off, single process) = **1032 frames/sec, ~17× real time**. ⇒ L60 ≈ 34 min and
+L75 ≈ 1.8 h of WALL CLOCK, where `03-PUNCH-LIST.md` prices training at "~5 hours" — a figure in
+**emulator minutes at 60 fps that was never converted**. ‼ My own earlier readings (112-148 f/s) were
+**contaminated** (census logging on, two drives overlapping) and ~9× low; they are retracted in
+`ai-research-notes/2026-09-07-emulator-throughput-MEASURED.md`.
+
+**The driver STEPS the proven trainer rather than replacing it.** `train_for_victory_road` already
+rotates each battler to slot 0, verifies by PID that the rotation landed, refuses a `train_team` call
+that returned without raising the level, restores the lead in a `finally`, and re-checks the HM
+carriers. The only thing blocking it above ~L50 is the per-mon `MAX_TRAINING_FRAMES` ceiling — whose
+own comment says *do NOT raise the ceiling to make the run start*. So `ch24grind` closes the gap in
+**2-level steps**: every underlying call stays under the ceiling and keeps its refusal, while the
+driver bounds the whole run with `--frames`, a step cap and a retry cap.
+
+**⛔ TWO WRONG DESIGNS WERE KILLED BY READING THE CODE, BEFORE ANY DRIVE:**
+* `train_team(scope="whole")` would have ground the MULES — `_battler_slots()` is "not an egg, has a
+  damaging move", so **Zigzagoon +36 levels and Castform +19** alongside the four real battlers.
+* `train_team(slots={i})` with `i != 0` is BROKEN (`KI-84`): `need` is computed BY INDEX while
+  `_rotate_lead_safely` SWAPS, so the next iteration sees the old lead, `need` empties, and the call
+  **returns as if finished** — 8 battles against an estimate of 306.
+
+**⭐ `on_whiteout` LATCHES THE ABORT — the gap that would have lost a night.**
+`Ch23TrainMode.on_whiteout` only counts and logs, so `train_team`'s `_check_abort()` can never fire:
+after a wipe the generator keeps running against a party that is at the Poké Center rather than in the
+grass. Production `StoryMode` latches it (`story_mode.py:1350-1353`); the harness driver did not.
+
+**VALIDATED END TO END (2026-09-07):** `POKEBOT_GRIND_TARGET=49` from `post_training.ss1` →
+`ACCEPTANCE: PASS`, **61 battles, 0 whiteouts**, 176k frames (~3 min wall clock), all three needy
+battlers L47 → **L49** (`Mightyena 47→49, Swellow 47→49, Wailord 47→49`; Sceptile L51 correctly
+excluded, mules correctly untouched). Rate ≈ 29k frames per level.
+
+**⛔ SAFETY:** `POKEBOT_GRIND_ESTIMATE_ONLY=1` prints party/target/gap and trains nothing — run it
+first. ACCEPTANCE grades on **levels actually gained**, never on "the call returned" (the `KI-84`
+shape). `GRIND_CAPTURE` is opt-in and **refuses to overwrite an existing fixture**.
+
+Files: `tools/story-dev/story_harness.py` (new `Ch24GrindMode` + dispatch + `--driver` choice),
+`PROJECT KNOWLEDGE/{06,07,29}`, `ai-research-notes/2026-09-07-emulator-throughput-MEASURED.md`.

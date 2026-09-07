@@ -24,7 +24,7 @@ Every banner further down is HISTORY, newest first.
 >    `grade_ki93_drive.py` (C0-C3 PASS, exit 0); ordinary-case A/B byte-identical.
 > 3. 🔜 **THE GRIND — NOT STARTED, AND DELIBERATELY SO.** See `#24-remainingarc` / the `➡➡➡` marker.
 >    Three blockers are documented, one decisive: **emulator throughput is unresolved by ~5×**
->    (`ai-research-notes/2026-09-06-emulator-throughput-UNRESOLVED.md`), which is the difference
+>    (`ai-research-notes/2026-09-07-emulator-throughput-MEASURED.md`), which is the difference
 >    between a 3-hour and a 12-hour job. ⛔ Calibrate before spending a night on it.
 >
 > ⛔ **BOTH FIXES ARE SANDBOX-ONLY — drift is 2 and PROMOTION IS THE USER'S CALL, not given.**

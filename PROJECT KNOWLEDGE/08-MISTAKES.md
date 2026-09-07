@@ -13670,7 +13670,7 @@ their start time IN THE FILENAME; that is the identity. `ls -t` answers a differ
 run produced this".
 **⭐ AND: NEVER START A SECOND ROM DRIVE WHILE ONE IS RUNNING.** Beyond the wrong-log trap, they contend
 for CPU — which silently corrupted the throughput measurement I took at the same time (see
-`ai-research-notes/2026-09-06-emulator-throughput-UNRESOLVED.md`). Wait for the completion signal.
+`ai-research-notes/2026-09-07-emulator-throughput-MEASURED.md`). Wait for the completion signal.
 
 ## 2026-09-06 — I broke `CLAUDE.md`'s OWN rule #3 ("assert IDENTITY, never position") and declared the result clean
 

@@ -4687,3 +4687,45 @@ in another costume.
 DEFECT: 61 battle strings end in `\p` and every one parks the printer identically, so the hang class
 covers Disable, Taunt, Imprison, Choice-lock and no-PP as well. The fix is keyed on a vocabulary of
 refusal scripts, not on Torment.
+
+## 2026-09-07 — the grind: STEP the proven trainer, never re-implement it, and never raise its ceiling
+
+**Context.** §Ch24 needs levels. Three things blocked an unattended grind, and only one was about speed.
+
+**Decision 1 — measure throughput before sizing the work.**
+MEASURED **1032 frames/sec** (99,138 frames / 96 s, clean: logging off, single process) ⇒ L60 ≈ 34 min,
+L75 ≈ 1.8 h of WALL CLOCK. `03-PUNCH-LIST.md` prices training at "~5 hours", which is **emulator
+minutes at 60 fps, never converted** — every training estimate in the docs carries that unit error.
+‼ My own earlier figures (112-148 f/s) were **contaminated** — census logging on and two drives
+overlapping — and were ~9× low. *A measurement taken while something else is running is not a
+measurement of the thing you meant.*
+
+**Decision 2 — reuse `train_for_victory_road`; do NOT call `train_team` directly.**
+*Rejected, and reading the code is what killed it:* my first driver called
+`train_team(scope="whole")`. That is wrong twice — `_battler_slots()` means "not an egg, has a damaging
+move", so it would have ground **Zigzagoon 36 levels and Castform 19**; and `train_team(slots={i})`
+with `i != 0` is BROKEN (`KI-84`: `need` is computed BY INDEX while `_rotate_lead_safely` SWAPS, so the
+next iteration sees the old lead, `need` empties, and the call returns AS IF FINISHED — 8 battles
+against an estimate of 306).
+*Why the wrapper:* `train_for_victory_road` already rotates each battler to slot 0, **verifies by PID
+that the rotation landed**, refuses a `train_team` call that returned without raising the level,
+restores the lead in a `finally`, and re-checks the HM carriers. Duplicating ~50 lines of measured
+logic would have been the real risk.
+
+**Decision 3 — STEP the target rather than raise `MAX_TRAINING_FRAMES`.**
+The ceiling (`victory_road.py:508`) is a PER-MON estimate checked before a frame is spent, and its own
+comment says *"do NOT raise the ceiling to make the run start"*. So the driver closes the gap in 2-level
+steps: every individual call stays under the ceiling and its refusal keeps protecting us, while the
+driver bounds the whole run with `--frames`, a step cap and a retry cap.
+*Rejected:* editing the constant (the comment forbids it) and adding an env bypass to production
+(a permanent hole for a one-night need).
+
+**Decision 4 — the driver's `on_whiteout` LATCHES THE ABORT.**
+`Ch23TrainMode.on_whiteout` only counts and logs, so `train_team`'s `_check_abort()` can never fire and
+a wipe leaves the generator running against a party that is at the Poké Center instead of in the grass.
+**That is the single most likely way an unattended grind loses a night.** Production `StoryMode` latches
+it (`story_mode.py:1350-1353`); the harness driver was the gap, and `ch24grind` closes it.
+
+**Decision 5 — grade on LEVELS, and capture nothing by default.**
+ACCEPTANCE requires a BATTLER to have actually gained a level (`train_team` returning is not evidence —
+the `KI-84` shape). `GRIND_CAPTURE` is opt-in and refuses to overwrite an existing fixture.
