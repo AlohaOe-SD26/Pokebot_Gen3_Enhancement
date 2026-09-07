@@ -2730,93 +2730,56 @@ rather than a slot.* ‼ `KI-93` took four implement-drive-revert cycles, three 
 were VOID, before one control-lined census named the site — which is why the census came first
 here too, and answered it in ONE drive.
 
-**🔶 2026-09-07 — TWO CENSUS DRIVES. THE FIRST LOOKED LIKE A ROOT CAUSE; THE SECOND REFUTED IT.**
-`[KI96-CTL]` fired in both, so both are valid measurements.
+**📦 THE THREE-DRIVE INVESTIGATION AND ITS TWO REFUTED HYPOTHESES ARE ARCHIVED** →
+`28-HANDOFF-ARCHIVE.md` (2026-09-07). What they established, and it still stands: the target is
+HEALTHY (not fainted, not the active), the party menu genuinely OPENS, every stage before the
+loop is correct, and `bt='What will X do?'` is a stale leftover string, not proof of the screen.
+⛔ Two published root causes were measured FALSE there within an hour each — read the archive
+before proposing a third.
 
-**DRIVE 1 — the refusal, and the target's identity:**
+**⛔⛔ RETRACTED WITHIN THE HOUR — "PERMUTED ⇒ WEDGE" IS FALSE.** The batch produced a PERMUTED-order
+rotation that **succeeded**:
 ```
-f5862188 [KI96-INDEX] requested party index=2 -> mapped menu in_battle_index=0
-                      | slot2=Mightyena#5C96EA9B L60 184/184 | party_size=6
-f5862270 [KI96-SPIN] n=1     instr='BattleScript_DoTurnDmgEnd' bt='What will DIVER do?'
-f5864069 [KI96-SPIN] n=1800  instr='BattleScript_DoTurnDmgEnd' bt='What will DIVER do?'   (unchanged)
+[KI96-ORDER] decoded_battleorder=[3, 1, 2, 0, 4, 5]  active_battler_party_index=3  => menu slot 2 holds party 2
+[KI96-DONE]  the party menu closed after 27 press(es) — the switch was ACCEPTED
 ```
-⛔ **THE TARGET IS NOT THE PROBLEM.** Mightyena is **L60, 184/184, not fainted, not the active mon**.
-Every "is the switch legal?" theory is dead — the game refuses a perfectly legal Pokémon.
-⇒ From `index=2 -> 0` I concluded the mapping was aiming at the ACTIVE battler (party 0). **That
-conclusion was published and it is WRONG.**
+⇒ a permuted order is NOT sufficient for the wedge. That is the SECOND hypothesis on this KI to be
+measured false, both within an hour of being written. ‼ Both were caught because the census keeps
+producing comparable samples — **the habit of re-checking a fresh claim against new data is doing more
+work here than any single insight.**
 
-**DRIVE 2 — the array dump that refuted it:**
+**✅✅ THE INVARIANT THAT ACTUALLY SEPARATES THEM — MEASURED, 262 SAMPLES, PERFECT SEPARATION:**
 ```
-f5862188 [KI96-ORDER] raw=201345  decoded_battleorder=[2, 0, 1, 3, 4, 5]  (battle_pos -> party_index)
-                      active_battler_party_index=0   => menu slot 0 holds party 2
+            decoded_battleorder[0] == active_battler_party_index
+  HOLDS    : 261 / 261  -> ALL 261 ACCEPTED, and NONE aimed at menu slot 0
+  VIOLATED :   1        -> the wedge: decoded[0]=2 while active=0, aimed at menu slot 0, hung
 ```
-⇒ **Battle position 0 holds PARTY INDEX 2 — Mightyena, the intended target.** So
-`map_battle_party_index(2) -> 0` is **CORRECT**, and the ACTIVE battler sits at position **1**, not 0.
-⭐ **The conversion is NOT the bug.** The cursor is aimed at the right entry and the game still refuses.
+⭐ **THE ARRAY WAS STALE.** Gen 3's `UpdatePartyToBattleOrder` places the ACTIVE battler at battle
+position 0, so `decoded[0]` must equal the active's party index — an invariant that held in every one
+of 261 healthy rotations. In the wedge the array claimed position 0 held party **2** while the active
+was party **0**, so `map_battle_party_index(2)` returned **0**, `scroll_to_party_menu_index(0)` parked
+the cursor on the slot the ACTIVE really occupies, and the game refused — *you cannot switch in the
+Pokémon that is already out.*
 
-**‼ THIS IS WHAT `08-MISTAKES.md` RULE 10 IS FOR, AND IT JUST PAID FOR ITSELF** — *when a fix is a
-coordinate conversion, MEASURE ITS DIRECTION FIRST; a backwards conversion is worse than the bug it
-replaces.* An index-space story that merely FITS the symptom is worth nothing until the array is read.
-⛔ **AND A DOC HAZARD TO NOTE:** the wrong conclusion reached `04-HANDOFF.md` and commit `eb5abec3`'s
-message before the refutation existed. Worse, a line-budget compression then DELETED it from this file
-while those claims stood — *deleting text never breaks a gate's count*, so nothing flagged the
-divergence. ⇒ **when trimming for a budget, re-read what the replaced span actually contained.**
+⭐ **THIS VINDICATES THE ORIGINAL ROOT CAUSE, FOR A DIFFERENT REASON.** The first published diagnosis
+said "the mapping aims at the Pokémon already fighting". It was retracted because the array appeared to
+say menu slot 0 held party 2. **The array was lying.** ⇒ the aim WAS at the active; the mechanism is a
+STALE READ, not a wrong formula. `map_battle_party_index`'s arithmetic is correct — its INPUT is not.
 
-**DRIVE 3 — the stage trace. EVERY STEP BEFORE THE LOOP IS CORRECT:**
-```
-f5862188 [KI96-STAGE] 0 before scroll_to_battle_action(2): state=BATTLE      actioncursor=0
-f5862194 [KI96-STAGE] 1 after  scroll_to_battle_action(2): state=BATTLE      actioncursor=2
-f5862199 [KI96-STAGE] 2 at the A press (same frame):       state=BATTLE      actioncursor=2
-f5862270 [KI96-STAGE] 3 after scroll_to_party_menu_index(0): state=PARTY_MENU actioncursor=2
-```
-⇒ the action cursor reaches **2 (POKéMON)**, the A press is issued there, and **the PARTY MENU GENUINELY
-OPENS** (`state=PARTY_MENU`). Combined with `[KI96-ORDER]` (menu slot 0 really is the target), **every
-step up to the loop is correct.**
+‼ **HONEST WEIGHTS, UNCHANGED:** the healthy side is n=261 across 8 independent lanes; the violation
+side is still **n=1**. What the 261 buy is not a rate but a RULE: the wedge is no longer "one odd case",
+it is *the only case that broke an invariant confirmed 261 times*. A second violation should still be
+captured before the fix is called proven.
 
-**⇒ ⭐ THE FAULT IS INSIDE THE PARTY-MENU INTERACTION, AFTER A IS PRESSED ON THE RIGHT ENTRY.** Not the
-aim, not the mapping, not the target's legality, not the menu failing to open. That is a much smaller
-box than this KI started with.
-
-**⛔ AND `bt='What will DIVER do?'` IS A RED HERRING — RETRACTED.** `gDisplayedStringBattle` retains the
-LAST battle string written; it is not proof of what is on screen. The earlier note that "the state and
-the screen disagree" rested on reading it as live. `state=PARTY_MENU` is the reliable signal, and it
-says the menu is open.
-
-**⚠ ONE LABELLED HYPOTHESIS FOR THE NEXT MEASUREMENT — IT IS A GUESS AND IS MARKED AS ONE.** In Gen 3,
-choosing a Pokémon in the battle party menu opens a small submenu (SHIFT / SUMMARY / CANCEL). The loop
-presses A blindly every other frame; if the cursor sits on SUMMARY it opens a screen, and if on CANCEL
-it backs out — either way `state` stays `PARTY_MENU` and the switch never completes. ⛔ **DO NOT ACT ON
-THIS PARAGRAPH.** Tonight a root cause that merely FIT the symptom was published and then measured
-false; log the submenu's existence and cursor before believing it.
-
-**✅✅ 2026-09-07 — THE CONTROL ARM ARRIVED FROM THE LIVE x8 BATCH, AND IT SHARPENS THE CONDITION.**
-Three census drives had produced three refusals and ZERO acceptances, so there was nothing to compare
-against. The 8-lane batch (`20260907-073620`, `--build custom`, census armed) produced **250 rotation
-attempts across all 8 lanes, and ALL 250 WERE ACCEPTED** (`[KI96-DONE]` = 250, each spinning ~1 frame).
-
-| | `_battler_party_order` | mapping observed | outcome |
-|---|---|---|---|
-| **250 accepted** (batch) | `[0, 1, 2, 3, 4, 5]` — IDENTITY | `2→2`, `1→1`, `3→3`, `4→4` | ✅ accepted, **0 mis-aims** |
-| **1 wedged** (`ch23chapter`) | `[2, 0, 1, 3, 4, 5]` — **PERMUTED** | `2→0` | ⛔ hangs |
-
-⇒ ⭐⭐ **THE CONDITION IS NOW MEASURED: `KI-96` FIRES ONLY WHEN THE BATTLE ORDER HAS BEEN PERMUTED —
-i.e. only after a PRIOR SWITCH in the same battle.** In all 250 accepted cases the order is untouched
-and the mapping is the identity, so it is trivially correct; **the wedge is the only observed case where
-`map_battle_party_index` did any real work.**
-
-‼ **HONEST WEIGHTS: the accepted side is n=250 across 8 independent lanes; the wedged side is n=1.**
-The CONDITION (permuted ⇒ wedge) is a strong lead, not an established law — one observation cannot
-establish a rate, and a second permuted case must be captured before anyone builds on it.
-
-⭐ **AND IT EXPLAINS THE STRATEGY SPLIT.** `LevelUpTravelBattleStrategy.decide_turn` never returns
-`RotateLead` in a TRAINER battle, so every one of the 250 is a WILD-battle rotation — where a prior
-switch is rare and the order stays identity. The chapter drivers bypass that mitigation and reach
-`DefaultBattleStrategy`, which rotates in long trainer fights where a prior switch is normal.
-
-⭐ **THE NEXT MEASUREMENT IS NOW CHEAP AND EXACT:** find a PERMUTED-order rotation. Either grep the
-batch for any `[KI96-ORDER]` whose decoded order is not `[0,1,2,3,4,5]`, or force a second switch in
-one battle. ⛔ Do NOT change `map_battle_party_index` until a permuted case is observed twice — this
-KI has already had one confidently-published root cause measured false.
+**⇒ THE FIX THIS IMPLIES — TWO HALVES, AND THE SECOND IS REQUIRED REGARDLESS:**
+1. ⭐ **ASSERT THE INVARIANT BEFORE TRUSTING THE MAPPING.** If `decoded[0] != active_battler_party_index`
+   the order array is STALE: do not scroll to an index derived from it. Re-read it, or refuse the
+   rotation this turn. ⛔ **Do NOT "fix" `map_battle_party_index`'s arithmetic — it is correct.** The
+   defect is that a stale input is used without a validity check, which is why every attempt to correct
+   the formula would have made things worse.
+2. **BOUND THE LOOP ANYWAY.** A correct aim can still be refused (a mon that fainted between the
+   decision and the menu). `:672` must stop pressing, back out with **B**, and raise a NAMED error into
+   `KI-47`'s channel rather than spinning 3001 frames. **A correct aim is not a bound.**
 
 **⛔ WHAT IS GENUINELY UNKNOWN NOW — DO NOT GUESS; THE LAST GUESS WAS WRONG:**
 * Does `scroll_to_party_menu_index(0)` actually leave the cursor on entry 0? Unverified.
