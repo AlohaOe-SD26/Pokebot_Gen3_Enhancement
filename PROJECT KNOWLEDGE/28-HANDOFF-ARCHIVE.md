@@ -8677,3 +8677,60 @@ multi battle was won. `FillPartnerParty` does update the count in practice, so t
 rather than merely on an error path — and it is the reason to check a "would fire immediately" claim
 against an existing log before scheduling work for it.
 
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Archived 2026-09-06 for the R3 budget after KI-91/92/93/94 were filed. Status unchanged - its correction and reasoning are preserved verbatim.
+
+## KI-50 — ‼‼ CORRECTED SAME DAY. The chapter is NOT a coin-flip: the CURRENT `magma_door.ss1` loses to Maxie DETERMINISTICALLY (2026-08-11, severity: MED, MEASURED)
+
+**What was measured.** A second driven run of `--driver magmahideout` from `saves/magma_door.ss1`
+— the identical command that produced `groudon=True, whiteouts=0` on 2026-08-10 — **lost**:
+```
+whiteouts in the run: 7      (vs 0 on 2026-08-10)
+battle_text='NICK whited out!'  instr=BattleScript_LocalBattleLostEnd
+respawn: MAUVILLE_CITY (22,6)
+floors reached: 1F -> 2F_1R -> 3F_1R -> 4F, standing at (15,21) facing Maxie (16,21)
+```
+It navigated the whole dungeon correctly and reached Maxie — the *content* works. It then lost
+the fight.
+
+‼‼ **THE "1 IN 3" READING WAS WRONG AND IS WITHDRAWN.** I recorded two losses against one win
+and wrote it up as a RATE. It is not a rate. **All three losing runs are BYTE-IDENTICAL:**
+```
+mh-anchor   41 unique [TURN] lines  md5 07f99a10ac8b
+mh-anchor2  41 unique [TURN] lines  md5 07f99a10ac8b
+mh-try1     41 unique [TURN] lines  md5 07f99a10ac8b
+diff: IDENTICAL, all pairs
+```
+Same HP, same PP, same 18 turns, same Camerupt heal on the same turn. A `.ss1` replays identical
+frame timing, so **the current `magma_door.ss1` does not sometimes lose — it always loses.**
+
+‼ **AND THE ONE WIN WAS ON A DIFFERENT SAVE.** `magma_door.ss1` is **re-captured by
+`--driver magmatravel` on every success**. The winning run of 2026-08-10 used the save as it stood
+BEFORE 22:05; a later `magmatravel` success overwrote it at 22:05 with a different party/RNG phase,
+and every hideout run since has lost the identical fight. Reaching Maxie is 3/3 and always was —
+the *content* is fine.
+
+‼‼ **THIS IS THE SAME FIXTURE-OVERWRITE HAZARD THAT KILLED THE `#24-teachmsgstall` REPRO EARLIER
+THE SAME DAY**, on a completely different question, and I walked into it again within hours of
+writing the prevention rule. **`saves/magma_door.ss1` is a CACHE, not a fixture.** The
+deterministic-loss state is now preserved as **`saves/magma_door_losing.ss1`** — nothing writes to
+that name, and it is a genuinely valuable repro: a boss fight that loses the same way every time is
+the ideal fixture for the boss-healing and frozen-PP questions below.
+
+‼ **A RETRY LOOP IS THE WRONG RESPONSE** and I ran one before checking. Eight attempts would have
+produced eight identical losses (~80 minutes). It was stopped after attempt 1 once the md5s matched.
+**The fix is a DIFFERENT SAVE, not another roll:** re-run `--driver magmatravel` from
+`saves/post_mtpyre.ss1` to mint a fresh `magma_door.ss1`, then drive the hideout from that.
+
+‼ **THIS AMENDS AN "ALREADY PROVEN" ROW.** `04-HANDOFF.md` carried
+"The Magma Hideout chapter completes — ✅ `groudon=True`, 0 whiteouts" with no sample size beside
+it. **n was 1.** The chapter reaching Maxie is reliable; the chapter *completing* is not, because
+it depends on winning a boss fight with a party that arrives worn down. Quote it as
+"1 of 2 driven runs" until there are more.
+
+**Why it matters beyond this chapter:** the post-Maxie era is the precondition for §Ch16 (the
+Slateport Harbor beat), so anchor manufacture for the next chapter inherits this coin-flip.
+

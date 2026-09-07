@@ -1188,57 +1188,9 @@ budget that protects against genuine stuck loops.
 
 ---
 
-## KI-50 — ‼‼ CORRECTED SAME DAY. The chapter is NOT a coin-flip: the CURRENT `magma_door.ss1` loses to Maxie DETERMINISTICALLY (2026-08-11, severity: MED, MEASURED)
+## KI-50 — the Magma chapter is NOT a coin-flip: the `magma_door.ss1` fixture loses to Maxie for a measured reason — ‼ CORRECTED SAME DAY it was filed. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, R3 line budget; nothing deleted, status unchanged).
 
-**What was measured.** A second driven run of `--driver magmahideout` from `saves/magma_door.ss1`
-— the identical command that produced `groudon=True, whiteouts=0` on 2026-08-10 — **lost**:
-```
-whiteouts in the run: 7      (vs 0 on 2026-08-10)
-battle_text='NICK whited out!'  instr=BattleScript_LocalBattleLostEnd
-respawn: MAUVILLE_CITY (22,6)
-floors reached: 1F -> 2F_1R -> 3F_1R -> 4F, standing at (15,21) facing Maxie (16,21)
-```
-It navigated the whole dungeon correctly and reached Maxie — the *content* works. It then lost
-the fight.
-
-‼‼ **THE "1 IN 3" READING WAS WRONG AND IS WITHDRAWN.** I recorded two losses against one win
-and wrote it up as a RATE. It is not a rate. **All three losing runs are BYTE-IDENTICAL:**
-```
-mh-anchor   41 unique [TURN] lines  md5 07f99a10ac8b
-mh-anchor2  41 unique [TURN] lines  md5 07f99a10ac8b
-mh-try1     41 unique [TURN] lines  md5 07f99a10ac8b
-diff: IDENTICAL, all pairs
-```
-Same HP, same PP, same 18 turns, same Camerupt heal on the same turn. A `.ss1` replays identical
-frame timing, so **the current `magma_door.ss1` does not sometimes lose — it always loses.**
-
-‼ **AND THE ONE WIN WAS ON A DIFFERENT SAVE.** `magma_door.ss1` is **re-captured by
-`--driver magmatravel` on every success**. The winning run of 2026-08-10 used the save as it stood
-BEFORE 22:05; a later `magmatravel` success overwrote it at 22:05 with a different party/RNG phase,
-and every hideout run since has lost the identical fight. Reaching Maxie is 3/3 and always was —
-the *content* is fine.
-
-‼‼ **THIS IS THE SAME FIXTURE-OVERWRITE HAZARD THAT KILLED THE `#24-teachmsgstall` REPRO EARLIER
-THE SAME DAY**, on a completely different question, and I walked into it again within hours of
-writing the prevention rule. **`saves/magma_door.ss1` is a CACHE, not a fixture.** The
-deterministic-loss state is now preserved as **`saves/magma_door_losing.ss1`** — nothing writes to
-that name, and it is a genuinely valuable repro: a boss fight that loses the same way every time is
-the ideal fixture for the boss-healing and frozen-PP questions below.
-
-‼ **A RETRY LOOP IS THE WRONG RESPONSE** and I ran one before checking. Eight attempts would have
-produced eight identical losses (~80 minutes). It was stopped after attempt 1 once the md5s matched.
-**The fix is a DIFFERENT SAVE, not another roll:** re-run `--driver magmatravel` from
-`saves/post_mtpyre.ss1` to mint a fresh `magma_door.ss1`, then drive the hideout from that.
-
-‼ **THIS AMENDS AN "ALREADY PROVEN" ROW.** `04-HANDOFF.md` carried
-"The Magma Hideout chapter completes — ✅ `groudon=True`, 0 whiteouts" with no sample size beside
-it. **n was 1.** The chapter reaching Maxie is reliable; the chapter *completing* is not, because
-it depends on winning a boss fight with a party that arrives worn down. Quote it as
-"1 of 2 driven runs" until there are more.
-
-**Why it matters beyond this chapter:** the post-Maxie era is the precondition for §Ch16 (the
-Slateport Harbor beat), so anchor manufacture for the next chapter inherits this coin-flip.
-
+**2026-09-06 — ARCHIVED, STATUS UNCHANGED.** Full entry verbatim in `28-HANDOFF-ARCHIVE.md`. ⛔ Archived for the R3 budget only — NOT a closure, and its same-day correction is preserved there.
 ### ✅ THE MAXIE FIGHT, READ TURN BY TURN (2026-08-11, from `mh-anchor2`'s own telemetry)
 `#24-bosstelemetry` was already in the tree, so the losing fight is on record. Maxie's team is
 **Mightyena L37 / Crobat L38 / Camerupt L39**; the party opened at full strength (Sceptile 122/122).
@@ -2994,6 +2946,44 @@ together.
 combined fixture** — the fully-prepared party standing at the League door — then re-measure
 readiness and winnability against THAT. Until it exists, every §Ch24 number is about a party the
 bot will never actually field.
+
+**⭐⭐⭐ ROOT CAUSE FOUND 2026-09-06, AND IT IS AN ORDERING CONSTRAINT, NOT A MISSING CAPTURE.**
+I built the combined fixture with existing tools and it FAILED at the last step — which is the useful
+result. What was verified along the way:
+* ✅ **The teach WORKS.** `--driver ch24teachice post_icebeam.ss1` → `ACCEPTANCE: PASS`,
+  `Wailord L47: Dive, Surf, **Ice Beam**, Waterfall`. Captured as **`post_teachice.ss1`**
+  (md5 `d1eb8736270b7486e464f23501432194`) and re-verified BY RELOADING the file.
+  ⇒ `#24-icebeamteach` is correctly closed; only the fixture was missing.
+* ✅ **Flying back works.** `CH24_FLY_DEST=EverGrandeCity --driver ch24flyto` → `ACCEPTANCE: PASS`,
+  `moved=True`, `pids_stable=True`, `whiteouts=0`, Ice Beam intact. Captured as
+  **`post_ch24ready.ss1`** (md5 `cf383b5b2567be00d7b3ba8fb3de26ac`).
+* ⛔⛔ **BUT IT LANDS ON THE WRONG SIDE OF THE PLATEAU.** MEASURED:
+```
+PathFindingError: Could not find a path from (27/49 @ EVER_GRANDE_CITY) to (18/5 @ EVER_GRANDE_CITY)
+```
+Fly deposits the party at the **Poké Center (27,49)**; the **League door is (18,5)** and there is **no
+walking route between them**. This is the same plateau split `post_vr_exit.ss1` already records from
+the other direction (*"Ever Grande Poké Center → UNREACHABLE, League door → REACHABLE in 37 wp"*).
+
+**⇒ ⭐⭐ THE CONSTRAINT: THE POKÉMON LEAGUE IS REACHABLE ONLY THROUGH VICTORY ROAD.** So the §Ch24 prep
+— which REQUIRES flying away to Slateport for TM13 — **cannot be done after Victory Road and flown
+back.** Either:
+  (a) **do the prep BEFORE §Ch23's Victory Road traverse**, so the bot arrives already prepared — this
+      is the cheap option and only reorders existing, individually-proven steps; or
+  (b) re-traverse Victory Road after the prep — expensive, and it re-runs the trainer gauntlet.
+⇒ **(a) is almost certainly right**, and it explains the fixture layout: the prep chain was built
+FROM `post_league_shop.ss1` (already at the League), flew away, and never had a way back.
+
+⚠ **PRECISION — DO NOT OVER-CLAIM THIS.** `calculate_path` "is not able to use warps or fly"
+(`modules/map_path.py` docstring), so what is measured is **no WALKING path**. A warp route has NOT
+been ruled out by measurement; the claim rests on that plus Emerald's design (the League sits beyond
+Victory Road). ⇒ **if someone wants to keep option (b) alive, the thing to check is a warp route, and
+it must be checked, not assumed.**
+
+**✅ TWO FIXTURES BANKED REGARDLESS**, both verified by reloading: `post_teachice.ss1` (the taught
+party) and `post_ch24ready.ss1` (prepared party, at Ever Grande PC). Neither is at the League, so
+neither is the §Ch24 start — but they make the prep re-runnable without repeating the ~700k-frame ship
+trip.
 
 **⭐ THE LESSON — AND IT IS A CHEAP ONE TO REUSE:** a fixture's own note is a precondition, not
 decoration. `post_league_shop.ss1` said "NOT READY" in its first sentence and I drove §Ch24 from it
