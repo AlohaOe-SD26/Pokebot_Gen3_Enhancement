@@ -13810,3 +13810,37 @@ reach the party menu.
 priced the grind (30 min) and treated the §Ch24 measurement as the payoff. The real outcome was a new
 blocker (`KI-96`) standing between the two — which is the normal shape of unblocking work, not a
 surprise. Say so in the plan, so a night that ends at a NEW wall reads as progress rather than failure.
+
+## 2026-09-07 — Tier 0 was GREEN while the STATE table named a dead frontier and a drift figure 7× the truth
+
+**Symptom.** After a night of work and a Tier 1 review and a Tier 2 audit and fixing everything they
+found, a Tier 2 **RE-audit** found FIVE more defects — all in `04-HANDOFF.md`'s STATE table, and all
+invisible to every mechanical gate:
+* the §Ch24 row: *"§Ch24 remains gated on the LEVEL GAP, not on a hang — the party is L48-53"* —
+  **both halves false**: the party was L60 and the blocker was a hang (`KI-96`);
+* the *"if stopped mid-task"* row — **the row that says of itself it is what a resuming session reads
+  FIRST** — named `#24-ch23chain` / `KI-90` as the live frontier (both closed), claimed **drift 14**
+  where `promote.py --check` measures **2**, and cited a superseded pushed commit;
+* an instruction to *"RE-READ … THE 60-SECOND DIGEST IN THE SAME EDIT"* — **no such section exists**,
+  so the instruction was unobeyable;
+* a fixture ladder written `post_grind_L{49..59}.ss1`, implying 11 files where SIX exist;
+* the daily upstream check three days overdue.
+
+**Root cause.** I edited the parts of the handoff my work TOUCHED — the banner, the queue marker, the
+KI entries — and never re-read the STATE table, because nothing I did that night changed it. But the
+world it describes had moved underneath it.
+
+**⭐ PREVENTION RULE — A GREEN TIER 0 MEANS "NO CONTRADICTION IT CAN COUNT", NOT "TRUE".**
+`lint_docs` and `audit_doc_consistency` check line budgets, gate counts, drift NUMBERS, citation
+targets and flag registration. **None of them can see a stale FACT** — "the frontier is X" and "the
+party is L48-53" are sentences no gate parses. Every one of these five passed both gates.
+⇒ **The cold-start pass is not ceremony; it is the only instrument that reads MEANING.** And this is
+exactly why the rule says *re-run Tier 2 after fixing Tier 2* — the first pass found four defects and
+the second found five DIFFERENT ones, in a region the first never reached.
+
+**⭐ SECOND RULE — WHEN AN ITEM SHIPS, RE-READ EVERY ROW THAT DESCRIBES THE WORLD, NOT ONLY THE ROWS
+YOU EDITED.** The dangerous rows are the ones your change made stale WITHOUT touching: a STATE table, a
+"live frontier" note, a "if stopped mid-task" resume pointer. Grepping for the item's own slug (the P5
+rule) does not find them, because they never mention the slug — they describe the situation the slug
+just changed. ⇒ after shipping, ask *"which sentences in this file are now false?"*, not *"which
+sentences mention what I did?"*

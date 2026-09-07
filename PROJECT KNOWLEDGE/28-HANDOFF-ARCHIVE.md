@@ -9381,3 +9381,45 @@ PYTHONUTF8=1 py -3.12 story_harness.py ch13_fortree_door.ss1 --driver partypids 
 #   it prints the REAL KI-78 twin pair: Shedinja L30 and Ninjask L29 both pid=42207D6F.
 #   Proves `debug_write_box_slot` writes a box slot the PRODUCTION reader can read. ACCEPTANCE: PASS.
 ```
+
+---
+
+## `KI-95` — the full resolution (archived 2026-09-07)
+
+Archived once the fix shipped and gate #39 was green. Kept because it records WHY the
+ranking was extracted into a pure function: this chooser had three index-space bugs and
+was untestable without a ROM, a live battle and a staged faint.
+
+### ✅ 2026-09-06 — FIXED IN THE SANDBOX, GATED, AND FAULT-TESTED. ⛔ NOT PROMOTED.
+
+**What changed** (`sandbox-pokebot/plugins/custom_modes/story_mode.py`): the ranking is extracted into
+a module-level **pure function `rank_replacement(candidates, foe_types, foes, damage_of)`**, and the
+offensive term is now **expected damage** from the SHIPPED formula
+`BattleStrategyUtil.calculate_move_damage_range` — which already accepts a party `Pokemon` as the
+attacker, and which `decide_turn` a few lines below already trusts. No second damage model was written.
+
+**Three things the fix corrects that the report above did not name:**
+* **Immunity abilities.** A Ground move against a **Levitate** foe used to score `1.0`; the shipped
+  formula returns 0 damage, so it now scores 0.
+* **`banned_moves`.** The chooser ranked a mon on moves `decide_turn` would then REFUSE to use —
+  `battle.yml:23-27` bans Fly/Dive as 2-turn moves. ⇒ *a move's value is only real if the policy can
+  deliver it* (`08-MISTAKES.md`).
+* **Ties.** Two mons holding the same-typed move used to tie regardless of power and fall through to
+  HP fraction.
+
+**Evidence — `tools/story-dev/probe_faint_chooser_rank.py`, GATE #39, offline, no ROM, 0.6 s.**
+7 cases, and the fault arm is the reason it can be believed:
+```
+clean                             -> 7/7 PASS, exit 0
+POKEBOT_KI95_PROBE_FAULT=legacy   -> EXACTLY C1 red, C2-C7 green, exit 0 ("the probe detects the defect")
+```
+The fault arm feeds the ranker the **pre-KI-95 metric** as its damage function, and C1 then picks
+`A/Ember-40` — the wrong answer this KI describes. ⇒ **the probe was RED before the fix and is GREEN
+after**, which is what makes it a measurement rather than a demonstration.
+
+⛔ **WHAT THE PROBE DOES NOT PROVE.** It injects its OWN damage function, so it tests the RANKING, not
+the integration with `calculate_move_damage_range`. The integration is argued from the fact that
+`decide_turn` already calls that method with the same argument shapes — that is an ARGUMENT, not a
+measurement, and the live confirmation is the `metric=damage estimates_ok=<n>` field now printed in the
+`[FAINT-CHOOSER]` telemetry on every real faint. ‼ **If a live log ever shows `metric=legacy`, this fix
+is NOT running** and the entry above is again true at runtime.

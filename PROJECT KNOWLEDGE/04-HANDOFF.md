@@ -39,7 +39,12 @@ Every banner further down is HISTORY, newest first.
 >    Driving §Ch23's chain with the L60 party wedges in the in-battle **PARTY MENU**, long before the
 >    League door: `battle_action_selection.py:590-592` is an unbounded `while PARTY_MENU: press A`
 >    with no check that the switch was ACCEPTED. ✅ **A/B'd as PRE-EXISTING** — reverting the entire
->    `KI-93` change reproduces it identically. ⇒ **`KI-96` IS THE NEXT JOB**, and `KI-93` is its
+>    `KI-93` change reproduces it identically. ✅✅ **AND IT IS NOW ROOT-CAUSED (2026-09-07):** the
+>    census shows `map_battle_party_index(2) -> 0` while the ACTIVE battler is party slot 0 — the
+>    bot scrolls to the Pokémon that is **already fighting**, presses A, and the game refuses for
+>    ever. The target itself is healthy (L60, 184/184), so no legality theory survives. ‼ The
+>    existing "already in battle" guard tests the PARTY index and cannot see a collision that
+>    only exists after the conversion. ⇒ **`KI-96` IS THE NEXT JOB**, and `KI-93` is its
 >    template: gate on the game's own state (never a frame count), and key any memory on
 >    `personality_value` (never a slot).
 >

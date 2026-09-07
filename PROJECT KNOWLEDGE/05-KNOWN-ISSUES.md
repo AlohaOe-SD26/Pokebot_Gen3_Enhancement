@@ -2788,43 +2788,14 @@ still shows the bug*, which is the only currency this project accepts for "not m
 (`libmgba.py:471`: *"if pressed on previous frame it will be released"*), so mashing A yields an edge
 every other frame. The presses ARE landing; **the game is refusing the switch and we keep re-asking.**
 
-**⇒ THIS IS ONE OF `KI-47`'s NAMED UNBOUNDED LOOPS, AND `KI-93` WAS ANOTHER.** The `KI-93` fix
-(shipped 2026-09-07) is the template and it is worth copying rather than re-inventing:
-1. **BOUND the loop** (`KI-93` used ~90 frames for a confirm; a menu switch needs its own measurement).
-2. **DETECT THE REFUSAL FROM THE GAME'S OWN STATE**, never from a frame count — `KI-93` gated on
-   `get_text_printer(0).state == TextPrinterState.WaitForButton`, and the same reader is available here.
-3. **BACK OUT WITH B** rather than pressing A into a menu that keeps saying no, then either pick a
-   different mon or raise a NAMED error into `KI-47`'s existing channel instead of burning 3001 frames.
-4. ⛔ **REMEMBER THE REFUSAL BY POKÉMON (`personality_value`), NEVER BY SLOT** — `KI-93`'s reviewer
-   proved a slot-keyed memory lets a fainted mon's vetoes hit its replacement.
+**⇒ THIS IS ONE OF `KI-47`'s NAMED UNBOUNDED LOOPS, AND `KI-93` WAS ANOTHER — COPY ITS FIX,
+WHICH IS DIRECTLY ABOVE IN THIS FILE.** In four words: *bound it, gate on the game's own state
+(never a frame count), back out with **B** not A, and key any memory on `personality_value`
+rather than a slot.* ‼ `KI-93` took four implement-drive-revert cycles, three of whose verdicts
+were VOID, before one control-lined census named the site — which is why the census came first
+here too, and answered it in ONE drive.
 
-**⭐⭐ THE TRIGGER IS MEASURED (from production's own `[TURN]` telemetry, `Story-debug-20260907-021148.log`):**
-```
-f5859471 [TURN 0] Wailord L61  88/307 [BadPoison] -> UseMove:Waterfall  vs Swellow L42
-f5860818 [TURN 1] Wailord L61  69/307 [BadPoison] -> UseMove:Waterfall  vs Mawile  L42
-f5862188 [TURN 2] Wailord L61  31/307 [BadPoison] -> RotateLead        vs Kadabra L42   ⬅ THE WEDGE
-```
-The lead is **badly poisoned and bleeding out** (118 → 98 → 69 → **31/307**), the strategy correctly
-decides to **switch it out**, and the party-menu switch is what hangs.
-
-**⇒ ⭐ WHY THIS SURFACED ONLY NOW, AND IT IS NOT THE GRIND'S FAULT: THE L60 PARTY *EXPOSED* THE BUG BY
-SURVIVING LONG ENOUGH TO ATTEMPT A SWITCH.** At L47 the chain lost or ended before a rotate was ever
-reached. ⇒ **levelling did not break anything; it advanced the run into code that was already broken.**
-‼ That is the general shape worth remembering: *making the bot stronger moves the failure, it does not
-remove it* — every level gained reaches states no drive has ever executed.
-
-**⭐ PRIME SUSPECT, AND IT IS A HYPOTHESIS, NOT A MEASUREMENT — `map_battle_party_index`:**
-`battle_action_selection.py:582` computes `in_battle_index = battle_state.map_battle_party_index(index)`
-and `:589` scrolls to THAT entry before mashing A. **That is an INDEX-SPACE CONVERSION, and this
-codebase has had THREE of them wrong in the sibling faint chooser (`KI-18`, `KI-34`, `KI-66`) plus a
-fourth filed (`#24-faintchooser-fourthspace`).** If the mapping mis-aims, A lands on an entry the game
-will not accept, the game re-prompts, and the unbounded loop turns a MIS-AIM into a HANG.
-⛔ **DO NOT "FIX" THE MAPPING FROM THIS PARAGRAPH.** `08-MISTAKES.md` is explicit: *when a fix is a
-coordinate conversion, MEASURE ITS DIRECTION FIRST* with an observe-only probe printing both indices
-beside an independently-derived ground truth. Log the requested `index`, the mapped `in_battle_index`,
-the PID/HP of the mon at each, and the on-screen message — then decide.
-
-**⛔ WHAT IS NOT YET MEASURED, AND MUST BE BEFORE A FIX:** *why* the switch is refused. Candidates: the
+**✅ WHAT WAS NOT MEASURED IS NOW MEASURED** — *why* the switch is refused. Candidates: the
 target is fainted, is already out, or is the mon the game just asked about. **Instrument it first** —
 log the requested `index`, the mon's PID/HP at that moment, and the on-screen message — exactly the
 census that made `KI-93` solvable after four blind attempts. ‼ `KI-93`'s history is the warning: four
@@ -2922,40 +2893,17 @@ are the two below: it is **NOT PROMOTED**, and it rests on a **deprecated CPytho
 multiplier — `base_power` was used only to test `== 0` — so a L19 Zigzagoon's 20 BP Rock Smash (2× vs
 Ice) scored `2.0` and outranked a full-HP L48 Mightyena scoring `1.0`. The mule was sent in to die.
 
-### ✅ 2026-09-06 — FIXED IN THE SANDBOX, GATED, AND FAULT-TESTED. ⛔ NOT PROMOTED.
+### ✅ 2026-09-06 — FIXED IN THE SANDBOX, GATED AS #39, FAULT-TESTED. ⛔ NOT PROMOTED.
 
-**What changed** (`sandbox-pokebot/plugins/custom_modes/story_mode.py`): the ranking is extracted into
-a module-level **pure function `rank_replacement(candidates, foe_types, foes, damage_of)`**, and the
-offensive term is now **expected damage** from the SHIPPED formula
-`BattleStrategyUtil.calculate_move_damage_range` — which already accepts a party `Pokemon` as the
-attacker, and which `decide_turn` a few lines below already trusts. No second damage model was written.
+📦 **The full resolution is ARCHIVED** → `28-HANDOFF-ARCHIVE.md` (2026-09-07), and it is also
+in `07-CHANGELOG.md` 2026-09-06. **In one line:** the offensive term now scores EXPECTED DAMAGE
+via the shipped `calculate_move_damage_range` instead of a bare type multiplier; the ranking is
+the pure `rank_replacement`, gated offline by `probe_faint_chooser_rank.py` (**gate #39**, 7
+cases, fault-tested — `POKEBOT_KI95_PROBE_FAULT=legacy` turns exactly C1 red). It also fixed two
+things the report never named: a Ground move vs a **Levitate** foe scored 1.0 and now scores 0,
+and the chooser no longer ranks mons on `banned_moves` that `decide_turn` would refuse to use.
 
-**Three things the fix corrects that the report above did not name:**
-* **Immunity abilities.** A Ground move against a **Levitate** foe used to score `1.0`; the shipped
-  formula returns 0 damage, so it now scores 0.
-* **`banned_moves`.** The chooser ranked a mon on moves `decide_turn` would then REFUSE to use —
-  `battle.yml:23-27` bans Fly/Dive as 2-turn moves. ⇒ *a move's value is only real if the policy can
-  deliver it* (`08-MISTAKES.md`).
-* **Ties.** Two mons holding the same-typed move used to tie regardless of power and fall through to
-  HP fraction.
-
-**Evidence — `tools/story-dev/probe_faint_chooser_rank.py`, GATE #39, offline, no ROM, 0.6 s.**
-7 cases, and the fault arm is the reason it can be believed:
-```
-clean                             -> 7/7 PASS, exit 0
-POKEBOT_KI95_PROBE_FAULT=legacy   -> EXACTLY C1 red, C2-C7 green, exit 0 ("the probe detects the defect")
-```
-The fault arm feeds the ranker the **pre-KI-95 metric** as its damage function, and C1 then picks
-`A/Ember-40` — the wrong answer this KI describes. ⇒ **the probe was RED before the fix and is GREEN
-after**, which is what makes it a measurement rather than a demonstration.
-
-⛔ **WHAT THE PROBE DOES NOT PROVE.** It injects its OWN damage function, so it tests the RANKING, not
-the integration with `calculate_move_damage_range`. The integration is argued from the fact that
-`decide_turn` already calls that method with the same argument shapes — that is an ARGUMENT, not a
-measurement, and the live confirmation is the `metric=damage estimates_ok=<n>` field now printed in the
-`[FAINT-CHOOSER]` telemetry on every real faint. ‼ **If a live log ever shows `metric=legacy`, this fix
-is NOT running** and the entry above is again true at runtime.
-
+**Still live below:** the fix rests on a DEPRECATED CPython behaviour, and it is unpromoted.
 
 ### ⚠ A LATENT FRAGILITY THIS FIX NOW DEPENDS ON — measured 2026-09-06, not reasoned about
 

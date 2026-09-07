@@ -15,6 +15,8 @@ from modules.debug import debug
 from modules.items import Item, ItemBattleUse, get_pokeblocks
 from modules.memory import read_symbol, unpack_uint32, get_game_state, GameState, get_game_state_symbol, unpack_uint16
 from modules.menuing import scroll_to_item_in_bag, scroll_to_party_menu_index
+import os as _os_ki96
+
 from modules.pokemon_party import get_party, get_party_size
 from modules.text_printer import TextPrinterState, get_text_printer
 
@@ -581,15 +583,78 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
 
                 in_battle_index = battle_state.map_battle_party_index(index)
 
+                # ⛔⛔ KI-96 CENSUS — OBSERVE ONLY, env-gated, NO behaviour change. Remove when KI-96
+                # is closed. The loop below is an unbounded `while PARTY_MENU: press A` with no check
+                # that the switch was ACCEPTED; it wedges §Ch23's chain with the L60 party. The
+                # refusal REASON has never been measured, and KI-93 proved that guessing costs four
+                # implement-drive-revert cycles.
+                _ki96 = _os_ki96.environ.get("POKEBOT_KI96_CENSUS", "").strip() == "1"
+
+                def _ki96_log(message: str) -> None:
+                    # ‼ `debug_logger.event`, NOT `.log` — `.log` does not exist, and three KI-93
+                    # verdicts were VOID because that AttributeError was swallowed.
+                    if not _ki96:
+                        return
+                    try:
+                        from modules import debug_logger
+
+                        debug_logger.event(message, category="BATTLE")
+                    except Exception:  # noqa: BLE001 - instrumentation must never affect the battle,
+                        # and a failure here costs only a log line; the CONTROL below reveals it.
+                        pass
+
+                def _ki96_who(slot):
+                    """species/PID/HP at a PARTY slot — the identity, never just the number."""
+                    try:
+                        mon = get_party()[slot]
+                        if mon is None:
+                            return f"slot{slot}=<empty>"
+                        return (f"slot{slot}={mon.species.name}#{mon.personality_value:08X}"
+                                f" L{mon.level} {mon.current_hp}/{mon.total_hp}")
+                    except Exception:  # noqa: BLE001 - a failed read prints as unreadable, so a
+                        # broken reader can never be mistaken for a healthy negative.
+                        return f"slot{slot}=<unreadable>"
+
+                # ⭐ THE CONTROL. Unconditional (given the flag), before anything is pressed.
+                _ki96_log(f"[KI96-CTL] RotateLead arm entered — census armed")
+                # ⭐⭐ Q1: THE TWO INDEX SPACES, SIDE BY SIDE, WITH IDENTITIES.
+                _ki96_log(f"[KI96-INDEX] requested party index={index} -> mapped menu "
+                          f"in_battle_index={in_battle_index}  |  {_ki96_who(index)}  |  "
+                          f"party_size={get_party_size()}")
+
                 yield from scroll_to_battle_action(2)
                 # JP roms need a little delay
                 for _ in range(5):
                     yield
                 context.emulator.press_button("A")
                 yield from scroll_to_party_menu_index(in_battle_index)
+                _ki96_spins = 0
                 while get_game_state() == GameState.PARTY_MENU:
+                    _ki96_spins += 1
+                    if _ki96 and (_ki96_spins in (1, 30, 120, 600, 1800)
+                                  or _ki96_spins % 5000 == 0):
+                        try:
+                            # ‼ `get_battle_text()` DOES NOT EXIST — checked before writing this.
+                            # The harness's own `bt=` field comes from this pair
+                            # (`battle_handler.py:124`); `read_symbol` is already imported here,
+                            # `decode_string` lives in `modules.game`.
+                            from modules.game import decode_string
+
+                            _bt = decode_string(read_symbol("gDisplayedStringBattle"))
+                        except Exception:  # noqa: BLE001 - the message is the point of Q2; if it
+                            # cannot be read, say so rather than printing an empty string.
+                            _bt = "<unreadable>"
+                        try:
+                            _instr = get_current_battle_script_instruction()
+                        except Exception:  # noqa: BLE001 - same reasoning as above.
+                            _instr = "<unreadable>"
+                        # ⭐ Q2/Q3/Q4 in one line: what the game SAYS, who the target IS, how long.
+                        _ki96_log(f"[KI96-SPIN] n={_ki96_spins} instr={_instr!r} bt={_bt!r} "
+                                  f"target={_ki96_who(index)}")
                     context.emulator.press_button("A")
                     yield
+                _ki96_log(f"[KI96-DONE] the party menu closed after {_ki96_spins} press(es) — "
+                          f"the switch was ACCEPTED")
 
             case TurnAction.RunAway | SafariTurnAction.RunAway:
                 if battle_state.is_trainer_battle:
