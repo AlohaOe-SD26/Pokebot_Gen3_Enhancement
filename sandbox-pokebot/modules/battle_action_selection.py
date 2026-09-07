@@ -653,38 +653,64 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                         # never be mistaken for a healthy reading.
                         return f"<unreadable: {type(_e).__name__}>"
 
-                # ⛔⛔ KI-96 — REFUSE A ROTATION COMPUTED FROM A STALE BATTLE-ORDER ARRAY.
-                # MEASURED over 262 rotations (261 healthy + the one wedge), perfect separation:
-                #     decoded_battleorder[0] == active_battler_party_index
-                # `UpdatePartyToBattleOrder` puts the ACTIVE battler at battle position 0, so that
-                # equality is an invariant of a FRESH array. When it is violated the array is STALE,
-                # `map_battle_party_index` maps onto the slot the ACTIVE really occupies, and the game
-                # refuses for ever — you cannot switch in the Pokémon already out.
-                # ⛔ The mapping's ARITHMETIC is correct; only its INPUT is stale. Do not "fix" it.
-                _ki96_stale = False
+                # ⛔⛔ KI-96 — OBSERVE-ONLY. A REFUSAL USED TO LIVE HERE AND WAS WITHDRAWN.
+                # It refused any rotation where `decoded_battleorder[0] != active party index`,
+                # on the theory that this meant a STALE array. A decomp verification
+                # (pret/pokeemerald @ 5eff7864) showed that inequality ALSO holds transiently on a
+                # perfectly healthy switch — `switchhandleorder` rewrites the order BEFORE
+                # `getswitchedmondata` advances `gBattlerPartyIndexes`
+                # (`data/battle_scripts_1.s:3110-3112`) — so the guard would have REFUSED
+                # LEGITIMATE ROTATIONS. A guard with false positives is worse than no guard.
+                #
+                # ⭐ THE LIKELIER MECHANISM, AND WHAT THIS TELEMETRY EXISTS TO TEST:
+                # `gBattlePartyCurrentOrder` is a 3-byte SCRATCH buffer that
+                # `PlayerHandleChoosePokemon` REFILLS at the moment the party menu is requested.
+                # We compute `in_battle_index` at line ~584, **before** `scroll_to_battle_action(2)`
+                # opens that menu — i.e. from the LEFTOVER contents of a previous operation.
+                # If that is the bug, the array read AFTER the menu opens will DIFFER from the one
+                # read before it, and only on the wedging rotations.
+                #
+                # ⛔ DO NOT "FIX" THIS BY MOVING THE MAPPING WITHOUT READING THE MEASUREMENT FIRST.
+                # `08-MISTAKES.md` rule 10: an index-space conversion gets an observe-only probe
+                # against a ground truth BEFORE it is applied. `handle_fainted_pokemon` has had
+                # three index-space bugs, every one applied on reasoning that sounded this good.
+                _ki96_pre = None
                 try:
-                    _raw = bytes(battle_state._battler_party_order)
-                    _pos0 = _raw[0] >> 4                      # battle position 0 -> party index
-                    _act = battle_state.battling_pokemon[0].party_index
-                    _ki96_stale = _pos0 != _act
-                except Exception:  # noqa: BLE001 - if the order cannot be read we CANNOT conclude it
-                    # is stale, and refusing on an unreadable check would break every healthy switch.
-                    _ki96_stale = False
-                if _ki96_stale:
-                    from modules.modes import BotModeError
-
-                    raise BotModeError(
-                        f"KI-96: the in-battle party order is STALE — battle position 0 holds party "
-                        f"{_pos0} but the ACTIVE battler is party {_act}. Switching to party slot "
-                        f"{index} would scroll to menu slot "
-                        f"{battle_state.map_battle_party_index(index)}, which is where the ACTIVE "
-                        f"Pokémon sits, and the game refuses that for ever. Refusing the rotation "
-                        f"instead of spinning."
-                    )
+                    _ki96_pre = (bytes(battle_state._battler_party_order),
+                                 battle_state.battling_pokemon[0].party_index,
+                                 in_battle_index)
+                except Exception:  # noqa: BLE001 - instrumentation must never affect the battle.
+                    _ki96_pre = None
 
                 _ki96_log(f"[KI96-STAGE] 0 before scroll_to_battle_action(2): {_ki96_state()}")
                 yield from scroll_to_battle_action(2)
                 _ki96_log(f"[KI96-STAGE] 1 after scroll_to_battle_action(2): {_ki96_state()}")
+                # ⭐ THE MEASUREMENT. The party menu is now OPEN, so the engine has just
+                # refilled the scratch buffer. Re-read it and recompute the cursor slot — WITHOUT
+                # using the result. If `pre` and `post` disagree, the mapping we are about to act
+                # on (`in_battle_index`, computed pre-open) is aimed by stale data, and the fix is
+                # to compute it HERE. If they always agree, this theory is dead and the wedge is
+                # something else. ‼ OBSERVE ONLY — `in_battle_index` is deliberately NOT reassigned.
+                if _ki96 and _ki96_pre is not None:
+                    try:
+                        _post_state = get_battle_state()
+                        _post_raw = bytes(_post_state._battler_party_order)
+                        _post_slot = _post_state.map_battle_party_index(index)
+                        _pre_raw, _pre_act, _pre_slot = _ki96_pre
+                        _dec = lambda b: [(b[k // 2] >> 4) if k % 2 == 0 else (b[k // 2] & 0xF)
+                                          for k in range(6)]
+                        _ki96_log(
+                            f"[KI96-REREAD] party_slot={index} "
+                            f"pre(raw={_pre_raw.hex()} decoded={_dec(_pre_raw)} aims_at_menu_slot="
+                            f"{_pre_slot} active_was={_pre_act}) "
+                            f"post(raw={_post_raw.hex()} decoded={_dec(_post_raw)} "
+                            f"aims_at_menu_slot={_post_slot} active_now="
+                            f"{_post_state.battling_pokemon[0].party_index}) "
+                            f"VERDICT={'AGREE' if _pre_slot == _post_slot else 'DIFFER'}"
+                        )
+                    except Exception as _e:  # noqa: BLE001 - a failed read NAMES itself so it can
+                        # never be mistaken for a healthy AGREE.
+                        _ki96_log(f"[KI96-REREAD] <unreadable: {type(_e).__name__}: {_e}>")
                 # JP roms need a little delay
                 for _ in range(5):
                     yield
@@ -711,13 +737,20 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                         # action menu, which this handler already recognises.
                         context.emulator.press_button("B")
                         yield
+                        # ‼ Same sibling-boundary rule as the stale check above: recover, don't
+                        # raise. A bound that converts a recoverable stall into a Manual park has
+                        # made the run WORSE, not safer.
+                        from modules.battle_fault import request_mode_recovery
                         from modules.modes import BotModeError
 
-                        raise BotModeError(
+                        _ki96_reason = (
                             f"KI-96: the in-battle party menu would not accept party slot {index} "
                             f"(menu slot {in_battle_index}) after {_ki96_spins} A-presses. Backed out "
                             f"with B and refused rather than spinning until the KI-47 net fires."
                         )
+                        if request_mode_recovery(_ki96_reason):
+                            return
+                        raise BotModeError(_ki96_reason)
                     if _ki96 and (_ki96_spins in (1, 30, 120, 600, 1800)
                                   or _ki96_spins % 5000 == 0):
                         try:

@@ -2790,9 +2790,32 @@ captured before the fix is called proven.
   sitting on the action menu, then the party menu never opened, `scroll_to_party_menu_index` scrolled
   nothing, and every A press is landing on the action menu — which would explain the refusal completely
   and has nothing to do with indices.
-⇒ **NEXT: log the live cursor position AND the game state together, frame by frame, across the
-`scroll_to_party_menu_index` call.** The census hook (`POKEBOT_KI96_CENSUS`) is already in place; this
-is a few more lines and one 6-minute drive.
+⇒ *(SUPERSEDED — that telemetry SHIPPED on 2026-09-07; see the round 1-3 record immediately below.)*
+
+**⭐ ROUNDS 1-3, 2026-09-07 — READ THIS BEFORE TOUCHING `KI-96`.**
+* **Round 1** added (a) a refusal when `decoded_battleorder[0] != active_battler_party_index`, on the
+  theory that the array was STALE, and (b) a 240-press bound on the menu loop. 262 samples separated
+  perfectly (261 healthy hold it; the 1 wedge violates it).
+* **Round 2 — an adversarial reviewer kicked it back, correctly.** Both new exits did a raw
+  `raise BotModeError`, which crosses the mode/battle **sibling** boundary (`battle_fault.py:5-11`;
+  `battle_handler.py:857` *"‼ NEVER `raise` here"*) and parks the run in **Manual**. Today's hang is
+  caught by KI-47's watchdog, which DOES route through `request_mode_recovery` — so the "fix" would
+  have traded a recoverable 3,001-frame stall for an unrecoverable lane death. Both exits now call
+  `request_mode_recovery` first, keeping the raw raise as the documented fallback.
+* **⛔⛔ Round 3 — THE REFUSAL WAS WITHDRAWN. DO NOT RE-ADD IT.** A decomp check
+  (pret/pokeemerald @ `5eff7864`) showed `switchhandleorder` rewrites the order BEFORE
+  `getswitchedmondata` advances `gBattlerPartyIndexes` (`data/battle_scripts_1.s:3110-3112`), so on a
+  **healthy** switch the array is briefly *ahead*, not stale ⇒ the guard would refuse legitimate
+  rotations. **A guard with false positives is worse than no guard.**
+* **⭐ THE STRONGER ROOT CAUSE, NOT YET PROVEN:** `gBattlePartyCurrentOrder` is a 3-byte SCRATCH
+  buffer that `PlayerHandleChoosePokemon` REFILLS at the instant the party menu is requested — and we
+  compute the cursor slot at `:584` while the menu only opens at `:699`. ⇒ **we aim from a leftover.**
+  It also explains 261-vs-1: the leftover is usually still correct, diverging only after a prior
+  switch rewrote it.
+* **WHAT SHIPPED:** observe-only **`[KI96-REREAD]`** telemetry (array + aimed slot, before AND after
+  the menu opens, with an AGREE/DIFFER verdict) plus the bound. ⛔ The fix itself is NOT applied:
+  rule 10 requires the measurement first, because `handle_fainted_pokemon` has had three index-space
+  bugs. ⇒ **NEXT: run the drive with `POKEBOT_KI96_CENSUS=1` and read `[KI96-REREAD]`.**
 
 **✅ WHAT WAS NOT MEASURED IS NOW PARTLY MEASURED** — *why* the switch is refused. Candidates: the
 target is fainted, is already out, or is the mon the game just asked about. **Instrument it first** —
@@ -2930,6 +2953,35 @@ gate injects its own damage function and never touches this path.
 `metric=legacy` means this has happened. It is the one signal that distinguishes "fixed" from "fixed on
 paper", and it is why the field was added rather than leaving a reader to infer it from `estimates_ok`.
 
-**Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` still has the defect; drift is 1. **Promotion is the user's
+**Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` still has the defect; drift is 2 (`KI-96` + the `KI-97` gate, both sandbox-only while the batch runs). **Promotion is the user's
 call and has not been given.**
 
+## `KI-97` — a `_play()` re-entry from a POST-Fortree position marched to MAUVILLE and fail-fast derailed (2026-09-07, MEASURED on the live batch, ✅ FIXED IN THE SANDBOX — ⚠ NOT DRIVEN, NOT PROMOTED)
+
+**Symptom (4 of 9 ended runs — a running figure on a partial batch, not a rate):**
+`Could not reach (19, 6) on MapRSE.MAUVILLE_CITY … Source (43/32 @ SOOTOPOLIS_CITY) … not on
+connected maps`. Sootopolis has **no land route out** (Dive/Fly only).
+
+**Root cause (✅ re-verified in-tree, not taken on report).** `_play()` re-enters from the TOP on
+every whiteout and every derail. Segment 13a's `else` branch called `travel_to_fortree()` with no
+completion gate; its `_rank()` (`early_game.py:6325-6326`) returns **-1** for maps absent from
+`order` (`:6306-6313`) — Sootopolis and Mossdeep-gym both are — and `-1 > tgt` / `-1 == tgt` are both
+False, so every leg runs from `LEGS[0] = MAUVILLE_CITY (19,6)` (`:6314`).
+
+**⭐ THE CLASS, NOT THE INSTANCE:** the same function already carries a note (`:6303-6305`) recording
+this exact failure for ROUTE120, fixed then by extending `order`. **An enumeration-based guard rots
+whenever the story grows past it** — §Ch21-23 made these maps reachable long after that fix.
+⇒ gate on the segment's own COMPLETION FLAG (`BADGE06_GET`), which cannot rot.
+
+**Fix (sandbox only):** Segment 13a — imports, body and its trailing `_guard` — wrapped in
+`if not _done("BADGE06_GET")`, with an `else` that prints a positive control.
+
+**Acceptance, gradeable from any lane log:** `Story: Route 119 already cleared — heading to Fortree.`
+and `Could not reach (19, 6) on MapRSE.MAUVILLE_CITY` → **zero** occurrences;
+`Story: Fortree arc already complete (BADGE06) — Ch13a skipped.` → at least one; a pre-BADGE06 lane
+must still print `Story: to Fortree — Mauville City...`.
+
+**Status:** ✅ FIXED IN THE SANDBOX 2026-09-07. ⚠ **NOT DRIVEN** (the acceptance drive waits for the
+batch to end — a drive now would contend with 8 live lanes) and ⛔ **NOT PROMOTED** (`custom-pokebot`
+is frozen for the batch's duration). ⚠ It does **not** rescue the MOSSDEEP_CITY_GYM (23,8) variant —
+see `#24-mossdeepstrand`. Detail: `ai-research-notes/2026-09-07-batch-blockers-RECON.md`.

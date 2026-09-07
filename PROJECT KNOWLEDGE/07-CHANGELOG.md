@@ -23580,3 +23580,109 @@ reached.** At L47 the chain lost or ended before a rotate was attempted.
 
 Files: `tools/story-dev/story_harness.py`, `tools/story-dev/saves/post_grind_L*.ss1`,
 `tools/story-dev/saves/FIXTURES.md5`, `PROJECT KNOWLEDGE/{04,05,06,08,29}`.
+
+## 2026-09-07 — `KI-96` ROOT-CAUSED over 262 samples, fixed twice, and KICKED BACK once. ⚠ UNDRIVEN.
+
+**⭐ THE ROOT CAUSE, MEASURED WITH PERFECT SEPARATION.** The live 8-lane batch was left running
+deliberately as `KI-96`'s missing CONTROL arm, and it delivered: **261 accepted rotations vs the 1
+wedge**, separated by a single invariant —
+`decoded_battleorder[0] == active_battler_party_index` (261/261 hold → all accepted; violated in the
+wedge → hung for ever). Gen 3's `UpdatePartyToBattleOrder` places the ACTIVE battler at battle
+position 0, so that equality is a property of a **FRESH** array. In the wedge it was violated ⇒ **our
+copy of the array was STALE**: `map_battle_party_index(2)` returned 0, the cursor parked on the slot
+the ACTIVE really occupies, and the game refuses that for ever — *you cannot switch in the Pokémon
+already out*.
+⛔⛔ **`map_battle_party_index`'s ARITHMETIC IS CORRECT — only its INPUT was stale.** Two earlier
+published root causes for this KI were each measured FALSE within an hour, and **both would have
+"fixed" the formula**. `08-MISTAKES.md` rule 10 (measure a coordinate/index conversion's direction
+before applying it) is what stopped a third.
+
+**⭐ THIS VINDICATED THE ORIGINAL DIAGNOSIS FOR A DIFFERENT REASON.** The first published guess said
+"the mapping aims at the Pokémon already fighting", and was retracted because the array appeared to
+say otherwise. **The array was lying.** The aim WAS at the active; the mechanism is a stale read.
+
+**THE FIX, ROUND 1 (sandbox):** (1) refuse a rotation computed from a stale array; (2) bound the
+party-menu loop at 240 presses regardless — *a correct aim is not a bound*, since a mon can faint
+between the decision and the menu opening. ⛔ **HALF (1) HAS SINCE BEEN WITHDRAWN — see round 3.**
+
+**⛔⛔ AND THEN AN ADVERSARIAL REVIEWER KICKED IT BACK — CORRECTLY, AND THE FINDING WAS SEVERE.** Both
+new exits did a raw `raise BotModeError`. Battle code is a **SIBLING** of the bot mode on a flat
+`context.controller_stack`, so that raise bypasses Story's derail recovery and reaches `main_loop`,
+which sets **Manual**. Our own tree says so twice — `modules/battle_fault.py:5-11` and, in capitals,
+`modules/battle_handler.py:857` *"‼ NEVER `raise` here"*. ⇒ the "fix" would have converted a
+**recoverable** 3,001-frame stall (KI-47's watchdog already routes through `request_mode_recovery`,
+`battle_handler.py:308-310`) into an **unrecoverable lane death** for the rest of an 8-hour unattended
+batch. Round 2 routes both exits through `request_mode_recovery` first, keeping the raw raise as the
+documented fallback for modes that never declared `handles_battle_faults`.
+⭐ **The rule this bought — "fails faster" ≠ "fails better"** — is in `08-MISTAKES.md`: whenever a
+change adds an exit path, NAME the component that catches it and say what it does next.
+
+**⛔⛔ ROUND 3 — THE REFUSAL IS WITHDRAWN, AND THE ROOT CAUSE IS RESTATED.** A decomp verification
+(pret/pokeemerald @ `5eff7864`, fetched live) established two things that the 262-sample measurement
+could not see. **First, the guard can FALSE-FIRE:** `switchhandleorder` rewrites the order BEFORE
+`getswitchedmondata` advances `gBattlerPartyIndexes` (`data/battle_scripts_1.s:3110-3112`), so on a
+perfectly healthy switch the array is briefly *ahead*, not stale — and my guard would have refused a
+legitimate rotation. **A guard with false positives is worse than no guard.** **Second, and better:**
+`gBattlePartyCurrentOrder` is a 3-byte SCRATCH buffer that `PlayerHandleChoosePokemon` REFILLS at the
+instant the party menu is requested — and ✅ (verified by me in our tree) we compute the cursor slot at
+`:584` while the menu is only opened at `:699`. ⇒ **we aim from a LEFTOVER buffer, before the game
+refills it.** That also explains the 261-vs-1 split: the leftover is usually still correct, and
+diverges only once a previous switch has rewritten it.
+⛔ **I did NOT apply the obvious fix (recompute after the menu opens).** `08-MISTAKES.md` rule 10
+requires an observe-only probe against a ground truth BEFORE an index-space conversion is changed —
+`handle_fainted_pokemon` has had **three** such bugs, each applied on reasoning that sounded this
+good. Round 3 therefore ships **observe-only `[KI96-REREAD]` telemetry** that reads the array before
+AND after the menu opens and logs whether the two aim at different slots. **The acceptance drive I owe
+anyway becomes the measurement — zero extra drives.** The 240-press bound and its recovery routing
+are KEPT: correct independent of the root cause.
+**⚠ STILL OPEN:** NOT DRIVEN. ⛔ Nothing promoted; `custom-pokebot` is frozen for the batch's duration.
+‼ The reviewer's doubles concern was checked and is **already guarded upstream** at
+`battle_action_selection.py:579-582`, for BOTH battlers.
+
+**‼ CITATION NOTE:** older entries in this append-only file cite this loop as
+`battle_action_selection.py:590-592`. That drifted — the `KI-93` fix and the `KI-96` census grew the
+file. It is the `TurnAction.RotateLead` arm, line 672 as of today. ⭐ **Cite the SYMBOL, not the
+line:** `audit_doc_citations.py` resolves `symbol`+`line` PAIRS, so a bare line number is uncheckable
+by construction — which is why no gate caught this.
+
+Files: `sandbox-pokebot/modules/battle_action_selection.py`,
+`PROJECT KNOWLEDGE/{03,04,05,08}`, `tools/story-dev/x4_headless.py`.
+
+## 2026-09-07 — `KI-97`: a `_play()` re-entry from Sootopolis/Mossdeep MARCHED TO MAUVILLE (~50% of ended runs). ⚠ FIXED IN THE SANDBOX — **UNDRIVEN, NOT PROMOTED.**
+
+**⭐ FOUND BY LEAVING THE BATCH RUNNING AND READING IT.** The live 8-lane batch's dominant failure was
+`Could not reach (19,6) on MapRSE.MAUVILLE_CITY` from `(43,32) @ SOOTOPOLIS_CITY` — a city with **no
+land route out**. A 6-agent adversarial workflow traced it, and I re-verified the chain myself.
+
+**ROOT CAUSE.** `_play()` is re-entered from the TOP on every whiteout AND every derail, walking a
+linear segment list. Segment 13a's `else` called `travel_to_fortree()` with **no completion gate**;
+inside it `_rank()` returns **-1** for any map absent from its `order` list (Sootopolis and
+Mossdeep-gym both are), and `-1 > tgt` / `-1 == tgt` are both False ⇒ **every leg runs**, starting
+with `LEGS[0] = MAUVILLE_CITY (19,6)`, and the navigator fail-fasts.
+
+**⭐⭐ THE SHAPE, WHICH IS THE PART WORTH KEEPING: THIS BUG WAS ALREADY PAID FOR ONCE, IN THIS VERY
+FUNCTION.** `early_game.py:6303-6305` carries the author's own note — *"an unranked map = rank -1 =
+'run every leg' = a backwards march to Mauville and a NO-PATH Manual"* — written after ROUTE120 hit
+it. The fix then was to add ROUTE120 to `order`. That could only cover maps that existed in the story
+build **at the time**; Sootopolis and Mossdeep became reachable later, through §Ch21-23.
+⇒ **AN ENUMERATION-BASED GUARD SILENTLY ROTS EVERY TIME THE STORY GROWS PAST IT.** The durable fix
+gates on the segment's own COMPLETION FLAG, which cannot rot.
+
+**THE FIX (sandbox):** wrap Segment 13a — imports, body **and its trailing `_guard`** — in
+`if not _done("BADGE06_GET")`, plus an `else` that prints. The `_guard` is inside deliberately: it
+asserts Fortree-side, which is FALSE once legitimately past Fortree, so excluding it would convert a
+navigation derail into a guard derail and fix nothing. ⛔ Rejected: adding the maps to `order` (moves
+the failure to the `_guard`, and the `-1` default is load-bearing for real Ch13 respawns); rejected:
+mirroring the guard at `:3597` (its set is `(ROUTE119, FORTREE_CITY)` — the copy is a **no-op**).
+⭐ The `else` print is a POSITIVE CONTROL, not decoration: the acceptance check is that a string
+DISAPPEARS, and an absence proves nothing on a run that never reached the segment.
+
+**⚠ IT DOES NOT FIX ALL FOUR.** An independent forward-walk audit confirmed Sootopolis now reaches
+`do_sootopolis_chapter()` with zero navigation in between — but **MOSSDEEP_CITY_GYM (23,8) is a
+genuine STRAND**: an 11-tile collision island whose only exit is a *coord_event* no warp solver can
+offer, reachable only via `leave_the_gym()`, which sits AFTER an early-return that fires once BADGE07
+is set. ⇒ **the bot wins the badge and locks itself in the room.** Filed as `#24-mossdeepstrand`;
+`KI-97` moves that derail from Segment 13a to Segment 19 rather than removing it.
+
+Detail, evidence and the counter-hunt findings: `ai-research-notes/2026-09-07-batch-blockers-RECON.md`.
+Files: `sandbox-pokebot/plugins/custom_modes/story_mode.py`, `PROJECT KNOWLEDGE/{03,04,05,07}`.

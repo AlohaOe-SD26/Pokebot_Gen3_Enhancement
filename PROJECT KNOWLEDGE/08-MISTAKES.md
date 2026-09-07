@@ -13907,3 +13907,89 @@ defect. Promote after the batch ends and the fix has been driven.
 **⭐ COROLLARY — DRIFT ≠ DEBT WHILE A BATCH IS LIVE.** A doc gate reporting drift 1 mid-batch is
 reporting the intended state. Record WHY in the drift row, so a cold reader does not "helpfully"
 promote to make the number zero.
+
+## 2026-09-07 — I bounded an unbounded loop and made it WORSE. "Fails faster" ≠ "fails better".
+
+**SYMPTOM.** `KI-96` is an unbounded `while get_game_state() == PARTY_MENU: press A` that hangs for
+ever when the party menu refuses a switch. I fixed it properly — refuse the rotation when the
+battle-order array is stale, and bound the loop at 240 presses regardless — then had an adversarial
+reviewer read the diff. It came back **KICK-BACK**, and the finding was not about the diagnosis (which
+holds, 262 samples, perfect separation) but about **where my new failure LANDS**.
+
+**ROOT CAUSE.** Both of my new exits did `raise BotModeError(...)`. Battle code is a **SIBLING** of the
+bot mode on a FLAT `context.controller_stack` — not nested inside it — so a raise there bypasses
+`StoryMode.run()`'s derail recovery entirely and reaches `main_loop`, which sets **Manual**.
+`modules/battle_fault.py:5-11` says this in its module docstring, and `modules/battle_handler.py:857`
+says it in capitals: *"‼ NEVER `raise` here"*. There is a designed channel — `request_mode_recovery()`
+— and the KI-47 watchdog three hundred lines away already uses it (`battle_handler.py:308-310`).
+
+**⛔ WHY THIS WAS A NET REGRESSION, NOT A STYLE NIT.** Today a KI-96 wedge spins until KI-47's watchdog
+fires at ~3001 frames — **and KI-47 recovers**, so the lane derails cleanly and ENDLESS RESET starts a
+fresh run. My "fix" would have detected the same wedge in ~0 frames and parked the lane in **Manual**:
+dead for the remaining hours of an unattended 8-hour batch. ⇒ **I would have traded a recoverable
+3,001-frame stall for an unrecoverable lane death, and the commit message called it a safety fix.**
+
+**THE FIX THAT WORKED.** `if request_mode_recovery(reason): return` **followed by** the raw raise. The
+raise stays as the documented fallback — `request_mode_recovery` returns False for any mode that never
+declared `handles_battle_faults`, and the contract requires those callers to raise exactly as before —
+so stock modes keep today's behaviour and Story gets a recoverable derail.
+
+**⭐⭐ PREVENTION RULE — "WHERE DOES THE NEW FAILURE LAND?" IS PART OF THE FIX, NOT A FOLLOW-UP.**
+Whenever a change adds an exit path — a bound, a guard, a refusal, an early return — name the component
+that CATCHES it and say what that component does next. An error path nobody catches is not a safety
+net, it is a shorter route to the floor. ‼ Concretely, in this tree: **before adding any `raise` under
+`modules/battle_*.py`, check whether the raise crosses the mode/battle sibling boundary** — if it does,
+`request_mode_recovery` first, raise second.
+
+**⭐ AND THE META-LESSON, WHICH IS THE EXPENSIVE HALF.** I had *just* written the rule that bounds are
+good and hangs are bad, and I applied it correctly. The bug was not in the rule; it was that **a rule
+about the LOOP said nothing about the ERROR**, and I never asked the second question. This is the same
+shape as `SESSION DISCIPLINE` rule 6: the rule I was following was true and insufficient. ⇒ **when a
+fix converts one failure mode into another, compare the TWO failure modes explicitly, in writing,
+before claiming an improvement.** "Unbounded → bounded" is not automatically progress; it is only
+progress if the bounded outcome is the better one, and for an unattended batch that depends entirely
+on whether anything can recover from it.
+
+**‼ HOW IT WAS CAUGHT — and the process point worth keeping.** By a fresh reviewer subagent reading
+ONLY the diff, the self-report and the evidence, with instructions to find how the change BREAKS. It
+had no stake in the diagnosis being right. My own re-reads had passed over this twice, because I was
+checking *"is the invariant correct?"* — which it is — and never *"is the raise deliverable?"*
+⇒ **the reviewer earns its cost on exactly the questions the author is not asking.**
+
+## 2026-09-07 — a fact that lives in N places gets fixed in N-1 of them. Three times in one session.
+
+**SYMPTOM.** Three separate times today I corrected a fact, verified the correction, and left another
+copy of the same fact saying the opposite.
+1. **Drift 1→2.** I found and fixed 5 sites; `audit_doc_consistency.py` then reported 3 more.
+2. **The handoff banner vs the `➡➡➡` marker.** I updated the banner at the top; the marker 300 lines
+   below — which the file's own text calls *"the live instruction"* — still told a cold agent to
+   START diagnosing `KI-96`, work that was finished. A Tier 1 reviewer caught it.
+3. **⛔ A fix that CREATED the next bug.** Correcting the drift attribution, my anchor matched line
+   860 — the FIRST LINE of a sentence WRAPPED across 860-862. I replaced line 860; lines 861-862
+   remained and attached themselves to my new text, so the block ended up asserting that `KI-93` and
+   `KI-95` are *"NOT YET PROMOTED"* — the exact opposite of the row I had just corrected. Caught only
+   by a Tier 1 RE-check.
+
+**ROOT CAUSE (mechanical).** **In wrapped prose the unit of replacement is the SENTENCE, not the
+line.** A line-anchored replacement inside a multi-line sentence leaves a continuation that now reads
+as part of whatever you wrote. Same shape as the citation fixer that matched a *range's* start token
+and produced impossible ranges like `2861-2772`.
+
+**⭐ ROOT CAUSE (why the gates did not save me).** Case 1 was caught by a COUNTING gate, because the
+defect was a number. Cases 2 and 3 were **semantic**: the number was correct and the prose around it
+was wrong, so `audit_doc_consistency.py` was green through both. ⇒ **a counting gate cannot see a
+sentence that means the opposite of its own figure.** This is precisely why the doc layer specifies
+independent agents *in addition to* gates, and today both semantic cases were found only by agents.
+
+**⭐⭐ PREVENTION RULE — GREP FOR THE FACT'S WORDS, NOT ITS NUMBER, AND READ THE LINES AFTER EACH HIT.**
+After correcting any fact: (a) grep the distinctive PHRASE (e.g. `NOT YET PROMOTED`, the KI slug), not
+the digit — the digit is what the gate already checks; (b) read the 2-3 lines FOLLOWING every hit,
+because a wrapped sentence's tail is invisible to a single-line grep; (c) when a document names one
+copy as authoritative (here: *"the live instruction is the `➡➡➡` line"*), fix THAT copy first and
+treat every summary of it as downstream.
+
+**‼ AND THE PROCESS POINT.** The Tier 1 RE-check — re-running the reviewer after fixing its findings —
+is what caught case 3, a bug that did not exist when the first review ran. ⇒ **re-review after
+fixing; a fix is a new change and deserves the same scrutiny as the original.** The doc layer already
+says this for Tier 2 (*"check WHERE the fix landed, not merely THAT it landed"*); today proved it is
+just as load-bearing at Tier 1.

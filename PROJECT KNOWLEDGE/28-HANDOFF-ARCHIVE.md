@@ -9619,3 +9619,112 @@ switch is rare and the order stays identity. The chapter drivers bypass that mit
 batch for any `[KI96-ORDER]` whose decoded order is not `[0,1,2,3,4,5]`, or force a second switch in
 one battle. ⛔ Do NOT change `map_battle_party_index` until a permuted case is observed twice — this
 KI has already had one confidently-published root cause measured false.
+
+---
+
+## 📦 ARCHIVED 2026-09-07 FROM `03-PUNCH-LIST.md` — `#24-ch23chain` (VERBATIM, nothing edited)
+
+Moved only to keep 03 inside its 3600-line budget (`lint_docs.py` R3). The item is CLOSED;
+its stub in 03 keeps the slug, the status and the do-not-redo warning.
+
+### ✅ `#24-ch23chain` — **CLOSED 2026-09-05: §Ch23 COMPLETES END TO END.** `ACCEPTANCE: PASS`, `done=True`, `battles=16`, `whiteouts=0`, `failure=None`. ⛔ DO NOT REOPEN OR RE-DRIVE TO CHECK. The five steps: repro → `KI-90` fix → chain drive (found attrition) → the (33,16) bypass (A/B-proven) → the chain re-drive, which exposed and fixed a ₽2,387 shortfall the bypass caused. (opened and closed 2026-09-05)
+
+✅ **BUILT AND WIRED (⛔ do not rebuild):** `victory_road.ch23_chapter_done()` +
+`do_victory_road_chapter()`, and the Segment 23 dispatch in
+`plugins/custom_modes/story_mode.py:3779-3795`. Driver `--driver ch23chapter`.
+
+✅ **TWO ARMS PASS, AND THE SECOND IS THE ONE THAT MATTERS:**
+* **resume-safety** — from `post_league_shop.ss1` (the chapter's END state): `ACCEPTANCE: PASS`,
+  self-skips, `neighbours_reachable=4`.
+* ⭐ **PREDICATE DISCRIMINATION** (`POKEBOT_CH23_PREDICATE_ONLY=1` on `post_wally.ss1`):
+  `inside_victory_road=True  flag_only(DEFEATED_WALLY_VICTORY_ROAD)=True  gate(ch23_chapter_done)=False`.
+  ⇒ a flag-only predicate would have declared the chapter DONE with the bot standing on
+  VICTORY_ROAD_1F and six legs to go — the §Ch15/§Ch18/§Ch19 stranding shape, **falsified by
+  measurement rather than argued away.**
+  ‼ **THE CHEAP ARM ALONE PROVES NOTHING HERE:** on the end fixture the flag and the gate AGREE, so
+  a flag-only predicate passes it identically. Keep both arms.
+
+⛔⛔ **WHAT IS *NOT* PROVEN: THE CHAIN.** The end-to-end drive from `post_wally.ss1` ran ~66k frames,
+fought its way through Victory Road, and then died on **`KI-90`** — an uncaught `RuntimeError`
+("Cannot attack the left-side opponent Pokémon because there isn't one") from the SHARED battle path
+that empties the controller stack and hangs the run. ‼ **NOT a defect in the orchestrator, and not
+catchable by it:** the raise happens inside `BattleListener.fight`, a **SIBLING** controller — and
+that is the operative fact, not the exception type. From that stack position **every** exception,
+`BotModeError` INCLUDED, unwinds to `modules/main.py`, where BOTH `except BotModeError` (`:151-153`)
+and the bare `except Exception` (`:158`) call `set_manual_mode()`.
+⇒ ⭐ **A RECOVERY LOOP ONLY CATCHES WHAT REACHES ITS OWN STACK.**
+*(superseded 2026-09-05: this read "it is a `RuntimeError` where every story recovery catches
+`BotModeError`" — which invited exactly the wrong fix, changing the exception type. See `KI-90`.)*
+
+⭐ **A REPRO SEED ALREADY EXISTS — BUT ONLY ON THE MACHINE THAT RAN THE DRIVE.** The harness
+auto-saved stall states inside the failing battle: `saves/stalls/repro-ml-f63425.ss1` (bt=`CASTFORM
+fainted!`, ~3.3k frames BEFORE the raise — **the useful one**, since a repro must fail FIRST) and
+`repro-ml-f68406.ss1` (1.7k frames AFTER, i.e. the already-hung state, which proves nothing).
+⛔⛔ **`tools/story-dev/saves/stalls/` IS GITIGNORED (`.gitignore:39`) — THESE FILES DO NOT TRAVEL.**
+This project is worked from multiple computers, so a session elsewhere will NOT have them and must
+REGENERATE them by re-running `--driver ch23chapter post_wally.ss1 --frames 600000` and reading the
+`SAVED stall state` lines. ‼ Do not treat the paths above as a fixture pin.
+
+✅✅ **STEP (2) IS DONE 2026-09-05 — THE FIX IS WRITTEN AND GATE #38 SELF-RETIRED.** `battle_action_use_move` aims at the RIGHT opponent when the left is absent; the decision and its rejected alternatives are in `06-DECISIONS-LOG.md` 2026-09-05. ⚠ **SANDBOX ONLY — promotion to `custom-pokebot/` is the USER's call.** ✅ **STEP (3) WAS RUN 2026-09-05 — AND FAILED AT THE TIME** (steps 4 and 5 then fixed it; the chain now PASSES). *(this read "RE-DRIVEN 2026-09-05 AND IT FAILS FOR A KNOWN REASON: the party LOSES the leg-9 Katelynn+Quincy DOUBLE battle on VICTORY_ROAD_1F and whites out" — **SUPERSEDED THE SAME DAY: the chain now PASSES**, `done=True`, `whiteouts=0`)* (`ACCEPTANCE: FAIL`, `battles=16`, `whiteouts=1`, `outcome=BattleOutcome.Lost` at f67819). ✅ KI-90's fix HELD — same fight, same start frame (f56544) as the previous drive, but no raise and no hang: the bot could act, and lost. ⇒ ⛔ **RETRACTED 2026-09-05 — this read "the wall moved from a BOT DEFECT to a GAME PROBLEM (levelling/strategy)" AND IT IS REFUTED BY THE DRIVE LOG.** It is still a BOT defect: the bot entered the fight with **two mons already at 0 HP** after eight battles with no heal, and **no heal ever runs on this floor**. The opposition is **L43** against our L52/L48/L47/L47. ⇒ the wall moved from ONE bot defect (a hang) to ANOTHER (unwired healing). See `06-DECISIONS-LOG.md` / `08-MISTAKES.md` 2026-09-05. ⇒ ⛔ *(This read "STEP (4) IS NOW THE LIVE ONE: make the party survive that double — level up, avoid the pair, or use items in-battle". **SUPERSEDED 2026-09-05:** "level up" is refuted — the opposition is L43 to our L52/L48/L47/L47 — and "use items in-battle" is impossible here, because in-battle items are unreachable in DOUBLE battles by MRO.)* **See STEP (4) below — ⛔ and note its option (a) (a Poké Center heal before leg 9) was BUILT, DRIVEN AND REFUTED on 2026-09-05: there is no reachable heal between leg 8 and leg 10.** ‼ Two forced 1F trainer fights previously took the party from 35% to 4% with five fainted, so this is the known-hardest stretch of the chapter.
+
+✅ **STEP (1) IS DONE 2026-09-05 — `repro_ki90_absent_left_slot.py`, GATE #38, REPRODUCES IT** (ARM A raises; ARM B proves the FLAG is the cause; ARM C proves the TARGET is). It SELF-RETIRES when the bug is fixed, and both directions of that are fault-proven, so it will not punish the fix. ⇒ ✅ **STEP (2) IS ALSO DONE** — the fix is decided (`06-DECISIONS-LOG.md` 2026-09-05) and written. **STEP (3) IS DONE — the chain was re-driven and FAILED on a lost battle (see above).**
+
+⇒ ✅✅ **STEP (4) IS DONE 2026-09-05 — THE (33,16) BYPASS IS BUILT AND A/B-PROVEN. ⛔ DO NOT REBUILD IT.** `exit_victory_road` crosses at `F1_BYPASS_WAYPOINT = (33,16)` with a guard and fault arm `POKEBOT_CH23_FAULT_NOBYPASS`. **A/B on `post_return.ss1`: bypass `battles=1` (Edgar only, the MANDATORY sight battle at (33,22) — I had wrongly predicted ZERO battles and failed to carry Edgar into the forecast); `NOBYPASS=1` `battles=2`, the extra firing at exactly `(31,17)`.** ⛔⛔ **BOTH ARMS PASSED — THIS PROVES THE BYPASS REMOVES THE ENCOUNTER, NOT THAT IT CONVERTS THE CHAIN'S LOSS INTO A WIN.** `post_return.ss1` enters that fight with Mightyena at **141/141**; the chain arrives at **23/143**. ⇒ ✅✅✅ **STEP (5) IS DONE — THE CHAIN COMPLETES.** `ACCEPTANCE: PASS`, `done=True`, `battles=16`, `whiteouts=0` (was 1), `failure=None`, ending at EVER_GRANDE (18,6). ⭐ `done=True` requires the whole basket in the bag, so the purchase is proven too. ‼ Step 5 also exposed and fixed a **₽2,387 shortfall the bypass itself caused** (two skipped Cooltrainer payouts, ₽4,128); leg 11 now sells the Nugget from an ALLOW-LIST. ⇒ **THIS ITEM IS CLOSED.** 44 wp to (33,16) + 18 wp on to the exit = **62, identical to the direct route**, and cone-free throughout. ⛔ *(This heading read "SPLIT THE PAIR INTO TWO SINGLE BATTLES … both MEASURED reachable" — superseded: the standpoints are reachable and cone-free, but the ROUTES to them both enter (31,17), so the split as specified starts the double it exists to avoid.)* ⛔ **THREE THINGS ARE MEASURED DEAD — DO NOT RE-PROPOSE:** "level up" (the opposition is L43 to our L52/L48/L47/L47), "make the party survive" (too vague, published in error), and **a HEAL before leg 9** (built, driven, REVERTED — `calculate_path` refuses it). ‼ *(This list said FOUR and included "the (33,17) bypass" — **that entry is RETRACTED**: its refusal was an instrument artifact, and the bypass via (33,16) is now the SELECTED fix.)* The root cause is MEASURED and it is ATTRITION — which this step does NOT fix, only stops worsening.** ‼ *(This heading first read "WIRE THE HEALING THAT IS ALREADY BUILT" and pointed at `heal_party_from_bag()`; corrected before commit — the bag is empty by this point and this chapter already heals at Poké Centers. See option (a).)*
+**THE MEASUREMENT** (`sandbox-pokebot/profiles/repro-ml/debug-logs/Story-debug-20260905-172610.log:318`): the bot entered the fatal fight with
+`[("Swellow",112,136), ("Zigzagoon",48,48), ("Mightyena",23,143), ("Wailord",0,226), ("Sceptile",0,145), ("Castform",103,103)]` —
+**Sceptile (L52, our best) and Wailord BOTH already at 0 HP**, after EIGHT battles with no heal. ‼ The line above this one already recorded
+*"two forced 1F trainer fights took the party from 35% to 4% with five fainted"* — **attrition was visible in our own notes and was read as difficulty.**
+⛔ **AND THE OPPOSITION IS LEVEL 43** against our L52/L48/L47/L47 (decomp, see the note below). **WE WERE NEVER UNDERLEVELLED. GRINDING WOULD NOT HAVE FIXED THIS** —
+a stronger party still walks in with its two best mons dead.
+
+**⛔ IT IS A BOT DEFECT: TWO HEALING PATHS EXIST AND NEITHER RUNS HERE** (both verified directly in our tree, not taken from an agent):
+1. **Out-of-battle healing is BUILT AND UNWIRED.** `heal_party_from_bag()` — `modules/story/pokemon_league.py:221`, documented live-validated,
+   handles Revive and status cures. Its **only** call site in the repo is `tools/story-dev/story_harness.py:14936` (the harness). **No chapter calls it.**
+2. **In-battle items are UNREACHABLE IN DOUBLES BY INHERITANCE.** `StoryItemBattleStrategy` (`story_mode.py:520`) overrides `decide_turn`
+   (`:464` → `_maybe_use_item` `:466`) but defines **no** `decide_turn_in_double_battle`; doubles resolve up the MRO to `story_mode.py:364`,
+   which never calls it. ‼ **Silent by design — no error, the method simply is not there.**
+
+**⭐ AND THE FIGHT IS ONLY A DOUBLE BECAUSE OF HOW WE APPROACH IT.** Decomp: both trainers are `trainerbattle_single` with `.doubleBattle = FALSE`
+(`src/data/trainers.h:3899`, `:3911`); it becomes a double solely because BOTH spot us on the same step (`gNoOfApproachingTrainers == 2`,
+`src/battle_setup.c:1274-1275`). ⇒ **the battle type — the very thing that disables our item policy — is a consequence of our ROUTE, not of trainer data.**
+
+**THREE OPTIONS, all decomp-verified, ⚠ none yet walked in our harness** — see `ai-research-notes/2026-09-05-ch23-LEG9-KATELYNN-QUINCY-DECOMP.md`:
+* **(a) ⛔⛔ REFUTED 2026-09-05 — MEASURED IMPOSSIBLE, DO NOT RE-PROPOSE.** `heal_before_exit()` was written (106 lines + fault arm + registry row), driven, and reverted: `UnreachableDestinationError: Could not find a path from (21/32 @ VICTORY_ROAD_1F) to (15/39 @ VICTORY_ROAD_1F)` — `ACCEPTANCE: FAIL`, `battles=0`, `whiteouts=0`. ⇒ **from the leg-8 landing the entrance arrow warp is UNREACHABLE, so NO heal exists between leg 8 and leg 10.** `#24-ch23attrition`'s *"there is NOWHERE to heal inside Victory Road"* was right and was under-read as being only about B1F/B2F. ‼ A BFS I ran over the cached layout claimed the opposite (*"one 652-tile component"*) and was WRONG — see `08-MISTAKES.md` 2026-09-05: **a flood-fill over cached data is a hint, not reachability; `calculate_path` from a real captured position is.** ⇒ **(b) AND (c) BELOW ARE NOW THE ONLY LEVERS.** *(This option formerly read: "HEAL AT A POKÉ CENTER BEFORE LEG 9 — REUSE THE MECHANISM THIS CHAPTER HAS ALREADY PROVEN TWICE".)* ⛔ **NOT `heal_party_from_bag()`** — that was this item's first prescription and it is WRONG here: `#24-ch23attrition` records the wallet **spent down to ₽1,741 with ONE Potion in the bag**, so bag-healing has almost nothing to spend, and `#24-ch23attrition` also establishes that **there is NOWHERE to heal INSIDE Victory Road**.
+  ⇒ ⭐ **THE FIGHT IS ON 1F AT (31,17) — THE SAME ARCHITECTURAL POSITION LEG 6 HEALS FROM.** `heal_before_descent()` (`victory_road.py`, `#24-ch23healdescent`, CLOSED 2026-09-04) goes 1F → south arrow-warp (15,40) → EG (18,41) → `heal_in_pokemon_center(EvergrandeCity)` → back in, and its A/B is **un-healed 32% / 3 fainted vs healed 87% / 0**. Leg 6's heal works *only* because it runs from 1F one warp from the door — **and so does leg 9.** ⇒ build the leg-9 heal as a second call of that same proven shape, not as new machinery.
+  ‼ **AND CHECK `#24-ch23wally` OPTION (b) IN THE SAME BREATH:** it records that the faint-replacement ranking *"keeps feeding the L19 Zigzagoon into fights it cannot survive, which is a real slice of the damage taken"* — and **our losing party carried Zigzagoon:L19**. That is a second, independent contributor to the same attrition, already filed.
+* **(b) ✅✅ SELECTED 2026-09-05 (late) — AND ITS EARLIER "REFUTED" VERDICT WAS MY OWN INSTRUMENT ERROR.** Re-measured from **(33,16)** (elevation 3, one tile north of the bridge): **44 wp there, cone-free; 18 wp on to the exit, cone-free; 62 total — exactly the direct route's cost.** ⇒ **the pair can be skipped for free.** ⛔ The earlier refusal came from seeding `calculate_path` at **(33,17)**, an elevation-**15** bridge tile: `map_path.py:916` seeds the search with the source tile's elevation and `:859` then forbids stepping onto any normal elevation-3 tile, so the query was malformed, not the map impassable. A real player never carries elevation 15. The probe now keeps that call as a labelled CONTROL. *(The superseded verdict read:)* ⛔⛔ **REFUTED 2026-09-05 — MEASURED DEAD, DO NOT RE-PROPOSE.** *(This read: "SKIP the pair — route via (33,17), which is outside both sight cones. BFS says 61 steps either way: +0 cost.")* `--driver ch23leg9probe` asked our planner from the real leg-8 landing: **(33,17) is reachable (43 wp) but the exit apron is NOT reachable from it** (`PathFindingError`). ⇒ **(33,17) is a dead end.** Both the decomp BFS and my own flood-fill got this wrong the same way.
+* **(c) ⚠ AVAILABLE BUT NOT CHOSEN — AND ⛔ ITS APPROACH AS ORIGINALLY SPECIFIED IS REFUTED.** MEASURED: the routes to BOTH standpoints enter the cone at **(31,17)** (`(32,16) 45 wp enters_cones [(31,17)] safe=False`, `(29,16) 46 wp … safe=False`) ⇒ **walking there starts the double the split exists to avoid.** It is rescuable by approaching via (33,16) (hop (32,16)→(29,16) is 3 wp cone-free; exit from (29,16) is 20 wp cone-free), but it then buys two L43 fights with **no heal available**, where option (b) buys none for the same 62 waypoints. ⇒ **revisit only if §Ch24 needs the EXP** — that is `#24-e4healing`/the E4 level gap, not this item. *(The superseded verdict read:)* ✅✅ **SELECTED — THE ONLY SURVIVING LEVER.** Interact from **(32,16)** (45 wp, directly north of Quincy) and **(29,16)** (46 wp, directly north of Katelynn) — both MEASURED reachable by `--driver ch23leg9probe`, neither in a sight cone. Facing South and interacting runs `trainerbattle_single` (decomp: both trainers ARE single; the double is emergent from simultaneous spotting). ⭐⭐ **AND IT IS BETTER THAN AVOIDANCE WOULD HAVE BEEN:** our in-battle item policy is unreachable in DOUBLES only, so fighting them one at a time **turns our healing items back on** — which matters because option (a), the heal, is measured impossible. Afterwards the row is safe: a defeated trainer returns 0 from `CheckTrainer` (`src/trainer_see.c:275-277`).
+  ⭐ **AND THE MECHANISM IS NOW PROVEN, NOT INFERRED:** the planner's own 62-waypoint route to the exit steps on **(31,17)** — the exact tile our fatal battle began on, and one of only two tiles both cones cover. ‼ `calculate_path` cannot see trainer sight lines at all (`avoid_scripted_events` consults only `on_enter_event_triggers`; spotting is a per-frame scan in `trainer_see.c`), so this will keep happening wherever a route grazes a cone.
+  📦 **HISTORY — NOT OPEN WORK.** *(This read "NOT A FREE WIN … still owed live are …" while option (c) was the selected plan. **Option (c) was SHELVED**: option (b), the (33,16) bypass, shipped instead and the full chain now passes `ACCEPTANCE: PASS` / `done=True` / `whiteouts=0`. ⇒ the items below are owed ONLY IF someone revives the split, and are recorded here so that reviver does not have to re-derive them:)* (i) that interacting from those tiles really starts a SINGLE, and (ii) that the party survives two singles from whatever state leg 8 leaves it in — **there is no heal available to guarantee (ii).**
+⇒ ✅✅ **(b) IS SELECTED: ROUTE AROUND VIA (33,16), AT ZERO COST** (44 + 18 = 62 wp, cone-free, identical to the direct route). **(a) is measured impossible** (no reachable heal between legs 8 and 10); **(c) is available but not chosen** — its approach routes enter the cone, and even rescued via (33,16) it buys two L43 fights with no heal for the same 62 waypoints. ‼ *(This line read "(a) AND (b) ARE BOTH REFUTED (measured). (c) IS THE WHOLE OPTION SET" — superseded the same day when (b)'s refutation turned out to be my own instrument artifact; and note it had ALREADY been rewritten once from "(a) is the fix; (b)/(c) are cheap force-multipliers". ⇒ **this one line has now been wrong three times — it is the summary of the option list, and a summary drifts every time an option changes.**)* ‼ *(This line read "(a) is the fix; (b)/(c) are cheap force-multipliers — DO (a) FIRST".)* ⭐ **DO THE PROBE BEFORE THE BUILD:** ask `calculate_path` from a real `post_return.ss1` position whether it will route to the exit apron while (30,17)/(31,17) are avoided, and whether (29,16)/(32,16) are reachable standpoints. **That single probe is what would have saved the heal**, and it is cheap. ⚠ Note attrition is NOT thereby fixed — it is merely un-fixable *here*; the party still arrives at leg 9 in whatever state leg 8 leaves it, so avoiding the fight is the only way to stop it getting worse. ⚠ **(a) does NOT make §Ch24 safe by itself:** §Ch24's gauntlet has no nurse, so the League basket (`#24-e4healing`) remains its own problem — do not let this item's success be read as closing that one.
+⛔ **PROBE (b)/(c) LIVE BEFORE BUILDING THEM.** They are decomp BFS results in decomp map-local coordinates; a live walk is cheap and decisive.
+
+*(superseded step list, kept for its reasoning:)* **NEXT STEP, IN ORDER:** (1) build a targeted repro for `KI-90` — ⭐ **A DOUBLE battle whose opponent LEFT slot is ABSENT *AND* whose RIGHT battler also reads
+`hp == 0` in the SAME frozen snapshot** — ⛔ **left-absent ALONE IS VACUOUS**: `story_mode.py:261-313`
+(`decide_turn_in_double_battle`) already returns `use_move_against_right_side_opponent` when the right
+is alive, so that arm runs GREEN and would be misread as "does not reproduce". The raise is the
+FALL-THROUGH. ‼ **COMPUTE THE DISCRIMINATOR BEFORE DRIVING:** call the strategy and PRINT the
+returned `TurnAction`; if it is `UseMoveAgainstRightSideOpponent`, the arm proves nothing.
+⚠ **THREE left-hardcoded producers exist — exercise both of the first two:**
+`story_mode.py`'s `_default_target` fall-through; `DefaultBattleStrategy._fight_on`
+(`modules/battle_strategies/default.py:345-374`, reached via `_handle_lead_cannot_battle` at
+`:243-249` when the actor is below `hp_threshold` with no healthy partner); and `catch.py:60/65`.
+⭐⭐ **AND THEIR DISCRIMINATORS DIFFER — DO NOT REPRODUCE #2 UNDER #1's CONDITION.** `_fight_on`'s only `return` is an UNCONDITIONAL `TurnAction.use_move(move)` with no left/right check at all, so **producer #2 raises on LEFT-ABSENT ALONE** — a strictly WEAKER (and cheaper) precondition than producer #1's fall-through, which additionally needs the right battler at `hp == 0`. ‼ Verified by reading `default.py:345-374`.
+⭐ **FIXTURE, ALREADY PINNED AND TRACKED:** `saves/ki90_double_absent_seed.ss1`
+(md5 `38673954cf2d0da197ccbc4e2acf5499`) — the harness's own auto-saved stall state from ~3.3k frames
+BEFORE the raise, copied off the reused `stalls/repro-ml-*.ss1` name that every driver run overwrites.
+Fallbacks, both same-map walks: `post_b1f_healed.ss1` → VICTORY_ROAD_B2F, stand on **(25,19)/(25,20)**
+between **Dianne (25,18)** and **Felix (25,21)**; or `post_wally.ss1` → VICTORY_ROAD_1F **(30,17)/(31,17)**
+between **Katelynn (29,17)** and **Quincy (32,17)**. Both trainers in every pair carry **2** Pokémon,
+so **exactly 2 KOs** empty one side (`battle_util.c:2331-2347` scans `gEnemyParty[0..2]` for battler 1).
+⚠ **UNVERIFIED — READ IT LIVE FIRST:** whether those pairs are already defeated in those fixtures; a
+beaten trainer never approaches (`trainer_see.c:255-273`), so the run would silently prove nothing.
+⇒ make it FAIL FIRST. ⛔ **DO NOT hunt a faint-during-move-selection window: that mechanism is REFUTED** (the
+`battle_state` byte is a FROZEN snapshot taken before the A-presses), and chasing it would burn a day on a
+state that cannot occur. The raise is DETERMINISTIC given an absent left slot, not stochastic; (2) only then decide the fix, and remember the file
+is shared upstream ⚠ *(and note: the "`KI-83`/`KI-88`/`KI-89` ruling: route around" this line used to cite **DOES NOT EXIST** — see `06-DECISIONS-LOG.md` 2026-09-05. The real bar is EVIDENCE, not the filename; we have modified that file 8 times, including a hang fix)*;
+(3) ✅✅✅ **DONE — the chain COMPLETES.** `--driver ch23chapter post_wally.ss1 --frames 600000` returns `ACCEPTANCE: PASS`, `done=True`, `battles=16`, `whiteouts=0`, `failure=None` (2026-09-05). *(This step read "re-run … and expect the chain to complete".)*
+⚠ Do NOT reach for a batch: this is a CORRECTNESS question, so the instrument is a repro.
+
+---
+

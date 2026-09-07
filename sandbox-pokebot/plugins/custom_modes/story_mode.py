@@ -3583,38 +3583,56 @@ class StoryMode(BotMode):
         #     Weather Institute → rival (HM02 Fly) → Fortree (§Ch13 spec, flags
         #     audited; ⚠ SKELETON built 2026-07-24 overnight — the Surf crossing and
         #     interior tiles are first-run-validate leads, expect iteration). ---
-        from modules.story.early_game import (
-            do_weather_institute,
-            fight_route119_rival_and_get_fly,
-            travel_to_fortree,
-        )
+        # ⛔⛔ KI-97 — GATE THE WHOLE SEGMENT ON ITS OWN COMPLETION FLAG. Without this, every
+        # `_play()` re-entry from a POST-Fortree position (a Sootopolis/Mossdeep whiteout or
+        # derail — i.e. all of §Ch21-23) walked back into `travel_to_fortree()`, whose leg
+        # ranking returns -1 for any map not in its `order` list, ran LEG[0] = Mauville
+        # (19,6), and fail-fast derailed: no land route exists out of Sootopolis.
+        # MEASURED: 4 of the first 6 ended runs of the 2026-09-07 batch (67%) died here.
+        # ‼ The `_guard` is INSIDE the gate on purpose — it asserts we are Fortree-side, which
+        # is FALSE once we are legitimately past Fortree, so leaving it out would convert the
+        # navigation derail into a guard derail and "fix" nothing.
+        # ⛔ Do NOT instead add the two maps to `travel_to_fortree`'s `order`: that enumeration
+        # already rotted once (see its own note at early_game.py:6303-6305, written after
+        # ROUTE120 hit this) and it would only move the failure down to the `_guard`.
+        if not _done("BADGE06_GET"):
+            from modules.story.early_game import (
+                do_weather_institute,
+                fight_route119_rival_and_get_fly,
+                travel_to_fortree,
+            )
 
-        _r119_cleared = lambda: _done("HIDE_ROUTE_119_TEAM_AQUA")
-        if not _r119_cleared() or not _done("RECEIVED_HM_FLY"):
-            # Travel runs first; if Route 119's content interrupts it (institute /
-            # rival not yet done), the dedicated segments below own their pieces
-            # from wherever the navigation stopped.
-            if _cur_map() not in (MapRSE.ROUTE119.value, MapRSE.FORTREE_CITY.value):
+            _r119_cleared = lambda: _done("HIDE_ROUTE_119_TEAM_AQUA")
+            if not _r119_cleared() or not _done("RECEIVED_HM_FLY"):
+                # Travel runs first; if Route 119's content interrupts it (institute /
+                # rival not yet done), the dedicated segments below own their pieces
+                # from wherever the navigation stopped.
+                if _cur_map() not in (MapRSE.ROUTE119.value, MapRSE.FORTREE_CITY.value):
+                    yield from travel_to_fortree()
+                if not _r119_cleared():
+                    yield from do_weather_institute()
+                _guard("Weather Institute (Ch13b)", _r119_cleared)
+                if not _done("RECEIVED_HM_FLY"):
+                    yield from fight_route119_rival_and_get_fly()
+                _guard("Route 119 rival / HM02 Fly (Ch13c)", lambda: _done("RECEIVED_HM_FLY"))
                 yield from travel_to_fortree()
-            if not _r119_cleared():
-                yield from do_weather_institute()
-            _guard("Weather Institute (Ch13b)", _r119_cleared)
-            if not _done("RECEIVED_HM_FLY"):
-                yield from fight_route119_rival_and_get_fly()
-            _guard("Route 119 rival / HM02 Fly (Ch13c)", lambda: _done("RECEIVED_HM_FLY"))
-            yield from travel_to_fortree()
+            else:
+                console.print("[dim]Story: Route 119 already cleared — heading to Fortree.[/]")
+                yield from travel_to_fortree()
+            _guard(
+                "Travel to Fortree (Ch13a)",
+                lambda: _cur_map() in (
+                    MapRSE.FORTREE_CITY.value,
+                    MapRSE.FORTREE_CITY_POKEMON_CENTER_1F.value,
+                    MapRSE.FORTREE_CITY_GYM.value,
+                    MapRSE.ROUTE120.value,  # a 13d resume (Steven) is Fortree-side too
+                ),
+            )
         else:
-            console.print("[dim]Story: Route 119 already cleared — heading to Fortree.[/]")
-            yield from travel_to_fortree()
-        _guard(
-            "Travel to Fortree (Ch13a)",
-            lambda: _cur_map() in (
-                MapRSE.FORTREE_CITY.value,
-                MapRSE.FORTREE_CITY_POKEMON_CENTER_1F.value,
-                MapRSE.FORTREE_CITY_GYM.value,
-                MapRSE.ROUTE120.value,  # a 13d resume (Steven) is Fortree-side too
-            ),
-        )
+            # ‼ A POSITIVE CONTROL, not decoration. The acceptance check for this fix is that
+            # the Mauville derail vanishes — but an absence proves nothing on a run that never
+            # got here. This line is the evidence the gate actually FIRED.
+            console.print("[dim]Story: Fortree arc already complete (BADGE06) — Ch13a skipped.[/]")
 
         # --- Segments 13d/13e: Devon Scope (Route 120 Steven) → Fortree Gym
         #     (Winona, BADGE06). ⚠ SKELETONS (2026-07-24 overnight) — tiles probed,
