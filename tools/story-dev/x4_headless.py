@@ -438,6 +438,18 @@ def ensure_lane_profile(slot: int) -> Path:
     if not meta.exists():
         template = PROFILES / TEMPLATE_PROFILE / "metadata.yml"
         if not template.exists():
+            # ⭐ FALL BACK TO ANY PROFILE IN THIS FORK. `metadata.yml` is only a ROM binding, and the
+            # two forks' bindings are byte-identical, so any profile here is a valid donor. This
+            # exists because `--build custom` FATAL'd on its first launch: the template lived only in
+            # the sandbox, since that was the only fork this runner could target before 2026-09-07.
+            # ‼ The donor is NAMED in the log — a batch whose ROM binding came from an unnamed source
+            # is a batch nobody can reproduce.
+            for candidate in sorted(PROFILES.glob("*/metadata.yml")):
+                template = candidate
+                print(f"[x4h] no `{TEMPLATE_PROFILE}` template in {PROFILES.parent.name}; "
+                      f"using the ROM binding from `{candidate.parent.name}`", flush=True)
+                break
+        if not template.exists():
             raise SystemExit(
                 f"[x4h] FATAL: no template profile at {template}. Create one lane profile "
                 f"via the GUI (or copy any profile's metadata.yml) and re-run."
