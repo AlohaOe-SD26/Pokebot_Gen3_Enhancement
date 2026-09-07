@@ -14022,3 +14022,69 @@ That was true of the common resume and asserted of every resume — and the sing
 for is the one that matters. ⇒ **when a comment asserts a property, ask which case it was verified on
 and whether it was then generalised.** A confident label suppresses exactly the scrutiny that would
 find its counter-example.
+
+## 2026-09-07 — I validated a tool against a LIVE dataset and published the snapshot as a fact
+
+**SYMPTOM.** I wrote that `grade_ki97_drive.py`, run against the batch logs, gave
+"5 FAIL / 2 PASS / 1 INDETERMINATE", and put that in `07-CHANGELOG.md` and a `run_gates.py` comment.
+A reviewer ran the identical command against the identical directory and got
+"3 PASS / 5 FAIL / 0 INDETERMINATE", and reported it as a blocker: *"offered evidence doesn't match
+reality — worse than a missing proof because it was stated with false precision."*
+
+**ROOT CAUSE. Neither reading was wrong.** The 8-lane batch was still RUNNING, so its lane logs grow
+continuously; between my measurement and the review, lanes progressed far enough to cross from
+INDETERMINATE to PASS. **I measured a moving target and quoted it as a fixed one.**
+
+**⭐⭐ PREVENTION RULE — WHEN THE EVIDENCE IS A LIVE ARTIFACT, PUBLISH THE INVARIANT, NOT THE
+SNAPSHOT.** Ask "what about this number CANNOT change?" and state that. Here the durable claim was
+available and strictly stronger: against a build WITHOUT the fix, **PASS is structurally 0**, because
+the `Ch13a skipped` line cannot appear in a build that lacks it — true no matter how long the batch
+runs. The FAIL count, by contrast, only rises, so it is quotable only as "at least N, and rising".
+‼ If a snapshot genuinely must be quoted, timestamp it AND say it moves.
+
+**‼ RELATED, SAME ROUND — THE FAULT ARMS WERE GREEN THROUGH TWO REAL DEFECTS.** The same review found
+C2 was a tautology (`bool(gate) or not sig` under a branch already requiring `not sig`) that never
+once changed a verdict — every PASS lane was approved showing `gate fired: 0` — and that C3 scanned
+past run boundaries and false-flagged healthy multi-run logs. **All six arms passed the whole time**,
+because no arm contained a clean-but-unexercised lane and none contained two runs.
+⇒ **FAULT ARMS ONLY TEST THE FAILURE MODES YOU THOUGHT OF.** They are necessary and never sufficient,
+and a green self-test is not evidence that a check can fail — only that the cases you imagined behave.
+⭐ Concretely: after writing a check, ask **"what input makes THIS check, alone, flip the verdict?"**
+If no such input exists, the check is decoration. That single question would have caught C2 instantly.
+
+**‼ AND A DESIGN RULE THE FIX NEEDED:** two exit codes could not distinguish *broken* from
+*unexercised*, and that conflation is what let the tautology hide — a vacuous lane and a clean lane
+both returned "fine". Three codes (0 PASS / 1 FAIL / 2 INDETERMINATE) made the distinction sayable,
+and the bug became obvious the moment it had a name.
+
+## 2026-09-07 — I reproduced a defect INSIDE the commit that fixed it, in the file I never re-read
+
+**SYMPTOM.** Round 2 corrected a false-precision snapshot ("5 FAIL / 2 PASS / 1 INDETERMINATE") in
+`07-CHANGELOG.md` and `run_gates.py`, and added a rule here saying never to publish a snapshot of a
+live artifact. The **same round** wrote that identical snapshot into `04-HANDOFF.md:117` — a
+CURRENT-STATE file, and the first thing a cold reader hits. A Tier 1 re-check re-ran the command, got
+`0 PASS / 5 FAIL / 3 INDETERMINATE`, and quoted my own line back at me. That line also still said
+"six fault arms" after the same round took the count to seven.
+
+**⭐ WHY THIS NEEDS ITS OWN ENTRY.** The general rule — *a fact in N places gets fixed in N-1* — was
+already written down twice THIS DAY. What is new is the shape: **the omission happened inside the fix
+for that very class of error.** Editing three files about one number, I held two of them in mind as
+"the sites"; the third was text I had CREATED minutes earlier in the same session, so it never entered
+the list of things to re-check. ⇒ **text you wrote earlier in the same session is among the LEAST
+likely to be re-read and therefore the MOST likely to be stale** — freshly-written text is remembered
+as what you INTENDED, not re-read as what is THERE. Recency feels like knowledge; here it is the
+opposite.
+
+**⭐⭐ PREVENTION RULE — WHEN CORRECTING A FACT, RE-CHECK EVERY PLACE THE SAME SESSION TOUCHED, NOT
+JUST THE PLACES THE REVIEWER NAMED.** The reviewer reported two sites; the third was mine and newer
+than both. Before committing a correction, `git diff` the session's own edits and re-read every hunk
+that mentions the fact.
+
+**‼ AND A SECOND LESSON, EARNED WHILE FIXING THE FIRST: I TRIED TO AUTOMATE THE SWEEP AND IT
+FALSE-POSITIVED TWICE.** A first pattern flagged a correctly-dated STATIC repro sweep
+("103 PASS / 0 CHECK / 1 SKIP of 104") that is not a live artifact at all; a narrowed second pattern
+then flagged legitimate sentences about OTHER tools' fault arms ("two fault arms", "SIX fault arms").
+⇒ **an ad-hoc regex over prose is not a gate, it is a gate's costume** — a real gate earns its exit
+code with a fault-test proving it stays SILENT on healthy text, and this one had none. The right check
+here was the precise one: grep for the exact stale strings I had replaced and require zero. **Match
+the instrument to the question: a one-off correction wants an exact search, not a pattern.**

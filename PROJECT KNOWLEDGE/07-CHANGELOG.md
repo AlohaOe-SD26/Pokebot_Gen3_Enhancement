@@ -23726,3 +23726,71 @@ batch to end. ⛔ Not promoted — `custom-pokebot` is frozen.
 Detail: `ai-research-notes/2026-09-07-batch-blockers-RECON.md`.
 Files: `sandbox-pokebot/plugins/custom_modes/story_mode.py`,
 `sandbox-pokebot/modules/story/mossdeep_gym.py`, `PROJECT KNOWLEDGE/{03,04,05,07,08}`.
+
+## 2026-09-07 — gate #42: `grade_ki97_drive.py`, and the grader that would have failed every healthy lane
+
+**WHY A GRADER AT ALL.** `KI-97`'s acceptance criterion is that a string **DISAPPEARS** — the weakest
+shape of evidence there is, because a run that never reached Segment 13a satisfies it vacuously. The
+grader is what converts that absence into a claim.
+
+**⛔⛔ AND THE OBVIOUS GRADER IS WRONG — MEASURED, NOT REASONED.** The natural implementation is
+"require zero `Story: Route 119 already cleared — heading to Fortree.` lines". That line is **also
+printed legitimately before BADGE06**, in the window between clearing Route 119 and beating Winona,
+where the travel then SUCCEEDS. In the live batch: **135+ benign occurrences against 23 real signature
+hits**, and the very first occurrence in L01 is followed by `Story: Devon Scope in the bag ...` — a
+perfectly healthy run. ⇒ that grader would have failed **every healthy lane**, and
+`08-MISTAKES.md` is blunt that a gate with false positives is strictly worse than no gate, because it
+teaches the reader to bypass it.
+⭐ **The defect is the SEQUENCE, not either line**: the Route-119 line followed within 3 lines by a
+Mauville `(19,6)` fail-fast. `_arm_benign_route119` exists to hold that distinction in place, and it
+is the arm that MUST PASS.
+
+**ATTRIBUTION IS ALSO CHECKED SEPARATELY.** The identical `(19,6)` destination is `LEGS[0]` of
+`travel_lavaridge_to_petalburg` too, which has fired from LAVARIDGE_TOWN before. A Mauville failure
+with no preceding Route-119 line is reported loudly (the run still died) but **never as a `KI-97`
+regression** — an adversarial review found four separate reports had asserted that attribution
+without ever quoting the preceding line.
+
+**THREE OUTCOMES, NOT TWO.** A lane that never reached Ch13a is **INDETERMINATE**, not FAIL — most
+lanes of a fresh batch are still in the early game. But INDETERMINATE can never stand in for PASS: the
+aggregate verdict is PASS only if at least one lane actually exercised the code and came back clean.
+
+**CHECKS:** C0 non-vacuous · C1 signature absent · C2 the gate FIRED (`Ch13a skipped`, the positive
+control) · C3 **not over-gated** — `Ch13a skipped` must never be followed by Winona's badge being won,
+which would mean the gate suppressed a segment still needed. C3 is the INVERSE failure, and a grader
+checking only C1 is blind to it.
+
+**⭐ VALIDATED ON REAL DATA, NOT ONLY SYNTHETICS.** Against `x4-runs/20260907-073620` — the **PRE-FIX**
+build — it exits **1**, flagging the signature in every lane that died of it. **0 PASS · 5 FAIL ·
+3 INDETERMINATE** at the time of writing. ⛔ **Quote the INVARIANT, not that snapshot:** against a
+build WITHOUT the fix, PASS is **structurally 0**, because `Ch13a skipped` cannot appear in a build
+that lacks the line; the FAIL count only rises as more runs end. Seven synthetic fault arms cover the
+rest, so it is gate-able on a fresh clone with no logs present.
+
+**⛔⛔ ROUND 2 — AN INDEPENDENT REVIEWER KICKED ROUND 1 BACK WITH THREE BLOCKERS, ALL REAL.**
+1. **C2 was a TAUTOLOGY.** `bool(gate) or not sig`, while the PASS branch already required
+   `not sig` ⇒ its value never changed a verdict, and **every PASS lane was approved showing
+   `gate fired: 0`** — the tool committed, internally, the exact vacuous pass it exists to prevent.
+   C2 is now `bool(gate)` and PASS requires it; clean-but-unexercised is INDETERMINATE.
+2. **C3 scanned to end-of-file**, so in a multi-run lane log one run's correct gate hit was blamed
+   for a LATER run's legitimate Winona badge. The reviewer built that log and reproduced the false
+   FAIL. Now bounded at the `ENDLESS RESET` marker, with arm 7 holding it.
+3. **⭐ THE MOST INSTRUCTIVE: I QUOTED A MOVING DATASET AS A FIXED FACT.** This entry originally read
+   "5 FAIL / 2 PASS / 1 INDETERMINATE"; the reviewer ran the identical command and got
+   "3 PASS / 5 FAIL / 0 INDETERMINATE". **Both were true** — the batch is LIVE, its logs are still
+   growing, and lanes crossed from INDETERMINATE to PASS during the review. I published a snapshot of
+   a moving target with false precision, into two committed files.
+
+**‼ AND THE ARMS DID NOT CATCH ANY OF IT.** All six passed green while C2 gated nothing and C3
+false-fired on healthy multi-run logs — because **no arm contained an unexercised lane and none
+contained two runs.** ⇒ *fault arms only test the failure modes you thought of; they are necessary
+and never sufficient.* Exit codes are now three (0/1/2) — two could not distinguish "broken" from
+"unexercised", and that conflation is precisely what let the tautology hide.
+
+Suite: **41 → 42** (40 ENFORCING + 2 ADVISORY); `--quick` 33 → 34. Seven fault arms. ‼ `audit_doc_consistency.py` caught
+all six stale count claims the moment the registry grew — and on one of those same lines it walked
+past a **stale DRIFT claim** (drift 2, credited to the promoted `KI-95`/`KI-93` pair) because that is
+not the pattern it looks for. ⇒ **a gate sees the pattern it was written for and nothing else.**
+
+Files: `tools/story-dev/grade_ki97_drive.py` (new), `tools/story-dev/run_gates.py`,
+`PROJECT KNOWLEDGE/{02,04}`.

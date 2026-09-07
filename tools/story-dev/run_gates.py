@@ -290,6 +290,30 @@ GATES: list[tuple[str, bool]] = [
     # batch whose own INDEX row records 36%.
     # Pure and fast: it parses fixtures and reads two source files. No ROM, no emulator.
     ("repro_x4_headless.py", False),
+    # --- #42 — `KI-97`: the Fortree-gate drive GRADER's own six fault arms
+    # APPENDED AT THE END, never inserted — the same rule #34-#41 carry.
+    # WHY A GATE: `KI-97` killed 6 of 14 ended runs in the 2026-09-07 batch, and its acceptance
+    # criterion is that a STRING DISAPPEARS — the weakest shape of evidence there is, because a run
+    # that never reached Segment 13a satisfies it vacuously. This grader is what makes the
+    # disappearance mean something, so the grader itself must be fault-tested.
+    # ⛔ THE ARM THAT MATTERS MOST IS `_arm_benign_route119`, AND IT MUST PASS. The obvious grader —
+    # "require zero `Route 119 already cleared` lines" — is WRONG: that line is also printed
+    # legitimately before BADGE06, and the live batch contains 135+ benign occurrences against 23
+    # real signature hits. Such a grader would have failed every healthy lane and taught the reader
+    # to ignore it. The defect is the SEQUENCE (that line -> a Mauville (19,6) fail-fast), not
+    # either line alone.
+    # ⭐ VALIDATED ON REAL DATA, not only synthetics: against `x4-runs/20260907-073620` (the
+    # PRE-FIX build) it exits 1, flagging the signature in the lanes that died of it.
+    # ⛔ STATE THE INVARIANT, NOT THE SNAPSHOT — that batch was LIVE while this was written, and an
+    # earlier comment here quoted "5 FAIL / 2 PASS / 1 INDETERMINATE" which a reviewer, running the
+    # same command minutes later, could not reproduce (lanes had progressed). The durable claim is:
+    # against a build WITHOUT the fix, PASS is **structurally 0** — `Ch13a skipped` cannot appear in
+    # a build that lacks the line — while the FAIL count only rises as more runs end.
+    # ‼ Three outcomes, not two: a lane that never reached Ch13a is INDETERMINATE, never FAIL, so the
+    # gate does not fire on healthy early-game lanes — but INDETERMINATE can never stand in for PASS.
+    # Bare invocation runs `--self-test`: good drive and benign-Route-119 -> 0; the signature,
+    # a vacuous log, an over-gate, and an unattributed Mauville failure -> 1.
+    ("grade_ki97_drive.py", False),
 ]
 
 
