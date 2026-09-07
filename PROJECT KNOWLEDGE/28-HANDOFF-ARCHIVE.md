@@ -9805,3 +9805,51 @@ Moved only to keep 03 inside its 3600-line budget (`lint_docs.py` R3). The item 
       Wailord fainting does not strand the run. ⇒ **do NOT "fix" `assert_carriers_survived` to reject
       fainted carriers** — it is correct as written, and that check would fire on a healthy run.
 
+---
+
+## 📦 ARCHIVED 2026-09-07 FROM `03-PUNCH-LIST.md` — `#24-waterfalltimeout` (VERBATIM)
+
+Moved only to keep 03 inside its 3600-line budget (`lint_docs.py` R3). CLOSED item; its stub keeps the slug and the do-not-redo warning.
+
+### ✅ `#24-waterfalltimeout` — **FIXED 2026-09-04 in sandbox: `[0][1]` → `[1][1]`, direction MEASURED before the edit.** ⚠ Sandbox only — promotion to `custom-pokebot` is the USER's call. (filed and fixed 2026-09-04)
+
+- [ ] ⛔ **THE DEFECT, `modules/modes/util/walking.py:227`:**
+      `frames_remaining_until_timeout += 195 + (get_player_location()[0][1] - waypoint.coordinates[1]) * 42`
+      `get_player_location()` returns **`(map_enum, (x, y))`** (`modules/player.py:291`), so `[0][1]`
+      is the **MAP NUMBER**, not the player's `y`. It must be **`[1][1]`**.
+- [ ] **WHY IT IS BOTH TOO SHORT AND TOO LONG, depending on the map:**
+      Ever Grande is map num **8**; a climb to `y=59` gives `195 + (8 − 59) × 42 = **−1947**` — a
+      **negative** allowance. VICTORY_ROAD_B2F is map num **45** against a waypoint `y` of 14, giving
+      `195 + (45 − 14) × 42 = **+1497**` where the right answer is **+69**. ⇒ the same line under- and
+      over-shoots on different maps, which is why it never produced a clean, repeatable symptom.
+      ‼ *(This bullet first said `−2142` / `+1428` — the un-based terms, one computed from the wrong
+      waypoint `y`. Corrected against the committed evidence file; the same wrong figure had been
+      copied into `walking.py`'s comment and is fixed there too.)*
+- [x] ⚠ **IT WAS LATENT, NOT DORMANT — and the prediction was CONFIRMED.** It had not bitten because
+      our legs **hand-drive** waterfall climbs instead of letting the planner emit a `Waterfall`
+      waypoint (§Ch23 leg 4 does exactly that; its `NOCLIMB` fault arm exists for it). ✅ **And
+      `ch23b2fprobe` then measured `calculate_path` emitting `{Surf: 1, Waterfall: 1}` on the route to
+      B2F's exit — so leg 7 really would have been the first planner-emitted waterfall waypoint we
+      ever rode.** Fixed before leg 7 was built, as intended.
+- [x] ✅✅ **FIXED 2026-09-04, AND THE DIRECTION WAS MEASURED FIRST — not reasoned out.**
+      Observe-only reading from `--driver ch23b1fprobe`, standing on VICTORY_ROAD_B1F (8,3):
+      `get_player_location()[0][1]` = **44** (the MAP NUMBER — VICTORY_ROAD_B1F is `(24,44)`),
+      `[1][1]` = **3** (the player's `y`), ground truth coords **(8,3)**. ⇒ `[1][1]` is correct.
+      **THE A/B, computed from those measured values** (base 195, 42 frames per tile of climb):
+      Ever Grande climb to y=59 → **old `-1947` frames (NEGATIVE — the timeout expires instantly)**,
+      new **`+573`**. VICTORY_ROAD_B2F descent → old **`+1497`**, new **`+69`** (1,428 frames of
+      false slack). ⇒ the one line was wrong in BOTH directions depending on the map, which is why
+      it never produced a clean repeatable symptom.
+      ⚠ **DRIFT 11 → 12** — `walking.py` is now divergent between sandbox and custom. Promotion is
+      the USER's call; nothing is owed until they rule.
+      ‼ Two gates caught the side effects of this one-line fix that I did not: `audit_doc_citations`
+      (my 13-line comment moved `run_in_circle` from :706 to :719) and `audit_doc_consistency` (the
+      drift count, in **nine** places across two files, found in four successive rounds).
+      ⇒ **grep the tree for the FACT, not for the line the last error named.**
+- [ ] **HOW TO PROVE IT (do not fix on inspection alone — this project has shipped three backwards
+      index/coordinate "fixes"):** ⛔ **MEASURE THE DIRECTION FIRST** with an observe-only probe that
+      logs BOTH `get_player_location()[0][1]` and `[1][1]` beside a ground truth, exactly as the
+      2026-08-17 rule requires. Then A/B the timeout value on a real waterfall waypoint.
+      ‼ Found by a recon agent auditing our Surf/Waterfall support, and confirmed by reading
+      `player.py:291` — an agent's note that turned out to be about OUR code, not the decomp.
+

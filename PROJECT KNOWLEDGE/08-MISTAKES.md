@@ -14362,3 +14362,47 @@ destroy what is already committed. I had eight files of unpushed work sitting in
 because the doc layer says Tier 1 must pass BEFORE the commit — so the rule that protects the docs
 was also what put the code at risk. ⇒ commit to a scratch branch, or at minimum `git stash create`
 a snapshot, before handing the tree to any agent that may need to mutate it.
+
+## 2026-09-07 — a chapter driven from a FIXTURE passed its tests for days while the route to it was impassable
+
+**SYMPTOM.** §Ch23 (Victory Road) was built, driven and green on 2026-09-04 — Wally beaten, legs
+proven, fixtures pinned. In the batch, **every run that reached it died on its first line**, and
+across 37 stored batches nothing had ever got past it.
+
+**ROOT CAUSE.** §Ch23's leg 1 — teach Waterfall — was implemented as a HARNESS DRIVER and never
+ported to production. Every §Ch23 fixture from leg 2 onward was captured DOWNSTREAM of that driver,
+i.e. with the move already taught. So each driven test started from a world state the production path
+can never produce.
+
+**⭐⭐ THE RULE: A FIXTURE ENCODES EVERYTHING THE STEP BEFORE IT DID — INCLUDING STEPS THAT ONLY EXIST
+IN THE HARNESS.** Driving chapter N from `post_chapter_N-1.ss1` proves chapter N works; it proves
+NOTHING about whether the shipped bot can produce that save. ⇒ **for every fixture, ask: which
+production code path creates this state?** If the answer is "the driver that captured it", the
+chapter is untested end-to-end no matter how green it is.
+‼ The tell was in writing the whole time: the chapter's own build spec said *"driver only, production
+module absent"* — a KNOWN gap, recorded, and never converted into a punch-list item. **A gap noted in
+a design document is not a tracked gap.** If it is not in `03-PUNCH-LIST.md`, nobody will do it.
+
+**⭐ AND THE CORROBORATING SHAPE: THE BUG WAS ONLY REACHABLE ONCE SOMETHING ELSE WAS FIXED.** The 8th
+badge had never been reached in 37 batches; today's `KI-97` fix got six runs there, and all six died
+here immediately. ⇒ **fixing the top blocker does not reduce the failure count — it MOVES it, and the
+new top failure is information you could not previously buy.** Expect the wall behind the wall, and
+budget for it.
+
+## 2026-09-07 — bash ate a comment: the "never a heredoc" rule is really "never through a shell"
+
+**WHAT HAPPENED.** I edited a file with `py -3.12 -c "…python…"` from bash. The Python contained
+backtick-quoted identifiers inside a COMMENT; bash, inside a double-quoted `-c` argument, ran them as
+command substitution (`ensure_strength_learner: command not found`) and deleted their text before
+Python saw it. The file was written with a mangled comment.
+
+**⭐ I READ THE EXISTING RULE TOO NARROWLY.** It says *"write file-editing Python to a FILE, never a
+heredoc (escapes mangle)"*. I used `-c`, judged that "not a heredoc", and proceeded. ⇒ **the rule is
+about the SHELL, not about heredocs**: any Python passed through a shell-quoted argument is subject
+to expansion — unquoted heredocs, `-c "…"`, and `echo "…"` alike. Write the script to a file, run the
+file.
+**‼ AND THE PART THAT MAKES IT DANGEROUS: EVERY GATE STAYED GREEN.** `repro_undefined_names`,
+`repro_no_silent_except` and the AST parse all passed, because the CODE was untouched — only the
+prose died. ⇒ **shell corruption of comments is invisible to every check we have**, so the only
+defence is not to expose the text to a shell. When it does happen, the tell is a
+`command not found` line in output that otherwise looks successful — do not skim past it.

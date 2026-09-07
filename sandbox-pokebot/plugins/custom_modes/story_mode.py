@@ -3928,6 +3928,26 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Sootopolis Gym / Juan already done — skipping.[/]")
         _guard("Gym 8 — Juan (Ch22)", ch22_chapter_done)
 
+        # --- Segment 22b: TEACH WATERFALL (§Ch23 leg 1, which existed only as a harness driver).
+        #     ⛔⛔ THIS IS WHY NO RUN HAS EVER FINISHED. Across 37 stored batches the 8th badge was
+        #     reached SIX times — all six on 2026-09-07 — and all six died on §Ch23's preflight
+        #     because nothing in production ever taught HM07. The chapter's own build spec recorded
+        #     the gap ("driver only, production module absent") and every §Ch23 fixture is
+        #     downstream of that driver's teach, so the chapter passed its driven tests for days
+        #     while the route to it was impassable.
+        #     ⭐ PLACED AT 22b, NOT 21b, DELIBERATELY: a 21b stop would fire BEFORE badge 8, and
+        #     badge 8 has been reached six times in the project's whole recorded history. Failing
+        #     earlier would erase the only evidence that §Ch21 and §Ch22 work end to end. 22b is
+        #     still strictly before the preflight — nothing between here and `depart_sootopolis`
+        #     touches the party.
+        #     ‼ HM07 is in the bag from §Ch21; only field USE needs BADGE08, the same
+        #     flag-vs-badge split Segment 10b documents for Rock Smash.
+        from modules.story.victory_road import ensure_waterfall_learner, field_move_carriers
+
+        yield from ensure_waterfall_learner()
+        _guard("Teach Waterfall (Ch22b)",
+               lambda: field_move_carriers()["Waterfall"] is not None)
+
         # --- Segment 23: VICTORY ROAD ---------------------------------------------------------------
         # ⛔⛔ GRADED ON `ch23_chapter_done()`, WHICH IS THE FLAG **AND A POSITION** — never the flag
         # alone. `chapters.py:280-286` grades Segment 23's READOUT on `DEFEATED_WALLY_VICTORY_ROAD`,

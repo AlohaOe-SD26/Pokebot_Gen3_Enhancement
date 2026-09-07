@@ -24161,3 +24161,69 @@ AFTER RESTORE:           exit=0  ALL PASS
 **⚠ RECORD GAP, reported not resolved:** no `06-DECISIONS-LOG.md` entry names
 `ensure_hm_learner_making_room` or authorises it by name. This fix does not depend on that gap being
 closed, but per `CLAUDE.md` §11 it is noted so the next audit stops re-deriving it.
+
+## 2026-09-07 — ⛔⛔ `#24-hm07teach`: THE WALL. Production never taught Waterfall, and it ended every 8-badge run ever.
+
+⚠ SANDBOX, UNDRIVEN (Change A). Change B is filed, not built.
+
+**⭐⭐ THE NUMBER THAT MAKES THIS THE PROJECT'S TOP ITEM.** Across **37 stored batches**, the 8th badge
+has been reached exactly **SIX times — all six today**, in the first batch carrying the `KI-97` fix.
+**All six died on §Ch23's preflight**, `no party member knows ['Waterfall']`. And **nothing in the
+entire corpus has ever passed it** — no Victory Road entry, no `DEFEATED_WALLY_VICTORY_ROAD`, in any
+batch log, ever. ⇒ this morning's fix produced the deepest runs in the project's history, and they
+all stopped at a missing ten-line step.
+
+**ROOT CAUSE.** §Ch23's leg 1 — teach Waterfall — exists ONLY as a harness driver
+(`story_harness.py:12678 class Ch23TeachMode`). The chapter's own build spec RECORDED the gap:
+*"teach Waterfall to Wailmer | ✅ driver only (`ch23teach`), production module absent"*. Production's
+ladder runs the §Ch21 guard → Segment 22 → the §Ch22 guard → Segment 23 with **nothing between**, and
+`depart_sootopolis`'s first statement is `assert_ch23_preflight`.
+**⛔ WHY IT NEVER SHOWED UP IN TESTING:** every §Ch23 fixture from leg 2 onward is DOWNSTREAM of that
+driver's teach (`FIXTURES.md5:49` — `post_waterfall.ss1` is *"`post_badge8.ss1` with WATERFALL
+TAUGHT"*). ⇒ **A CHAPTER DRIVEN FROM A FIXTURE CAN PASS ITS TESTS FOREVER WHILE THE ROUTE THAT
+REACHES IT IS IMPASSABLE.**
+
+**⛔ THE FIX IS TEACH, NOT RELAX THE PREFLIGHT** — decomp-mechanical.
+`data/scripts/field_move_scripts.inc:183-186` gates `EventScript_UseWaterfall` on
+`checkpartymove MOVE_WATERFALL`, so with no carrier `Task_UseWaterfall` is never created and leg 4
+burns its 3,000-frame climb budget. Relaxing converts a NAMED refusal at frame 0 into a SILENT
+timeout ~60,000 frames later, mid-ocean, on maps with `allow_escaping: false` and no Poké Center
+until Ever Grande. Walking up is impossible — waterfall tiles map to
+`ForcedMovement_PushedSouthByCurrent`.
+
+**CHANGE A (shipped):** `ensure_waterfall_learner()` in `victory_road.py`, placed beside
+`field_move_carriers()` so the gate and the preflight read the SAME predicate and cannot drift; plus
+**Segment 22b**. Idempotent on the LIVE MOVEPOOL, never on `RECEIVED_HM_WATERFALL` — the flag and the
+item are not the same fact. It prints what the teach COST, because `teach_hm_move`'s own
+`context.message` was measured appearing **0 times against 42 real teaches**.
+⭐ **It picks a learner that is compatible AND has a spendable slot.** `hm_learner_slot` alone returns
+the highest-level compatible mon *even when saturated* — on a party with a four-HM Swampert and a
+free-slotted Marill it would choose the Swampert and fail avoidably. That is 5 of the 6 measured
+parties, so those six lines are the difference between a fix and a no-op.
+⭐ **Placed at 22b, not 21b, deliberately:** a 21b stop fires BEFORE badge 8, and badge 8 has been
+reached six times in the project's whole history. Failing earlier would ERASE the only evidence that
+§Ch21 and §Ch22 work end to end.
+
+**⛔⛔ CHANGE A RESCUES ONLY 1 OF THE 6 MEASURED PARTIES — stated up front, not discovered later.**
+From `custom-pokebot/profiles/*/badge-log.json`, every Rain-badge entry:
+```
+endless-H2-mudkip   Swampert L53  [Strength, Rock Smash, Surf, Dive]   0 forgettable slots
+endless-H4-random   Swampert L63  [Strength, Surf, Rock Smash, Dive]   0
+endless-H4-random   Swampert L56  [Strength, Surf, Rock Smash, Dive]   0
+endless-H4-random   Swampert L57  [Surf, Strength, Rock Smash, Dive]   0
+endless-H6-mudkip   Swampert L55  [Strength, Surf, Rock Smash, Dive]   0
+endless-H7-treecko  Marill   L13  [Tackle, Dive, Tail Whip, Water Gun] 3
+```
+`hm_learner_slot` ranks by LEVEL ALONE, so in a Mudkip line the starter is both the highest-level mon
+and the only Surf/Dive/Waterfall-capable one; all four HMs land on it. **HMs cannot be forgotten in
+Gen 3**, so it is preventable only at the ORIGINAL teach. Filed as `#24-hm07funnel` (Change B).
+⇒ **the funnel, not the species, is the defect** — the Treecko lane is the one that would have worked,
+precisely because its HMs were spread across four mons. When Change A raises, it now names that cause
+and prints the whole roster rather than a generic failure.
+
+**‼ A STARTER HYPOTHESIS I HELD AND MEASURED FALSE:** I expected the wall to correlate with
+Treecko/Torchic (whose finals cannot learn Waterfall). **Both MUDKIP lanes hit it** — and Swampert
+can learn it. The wall is not about who is in the party; it is that nothing ever teaches it.
+
+Files: `sandbox-pokebot/modules/story/victory_road.py`,
+`sandbox-pokebot/plugins/custom_modes/story_mode.py`, `PROJECT KNOWLEDGE/{03,04,05,07,08,28}`.
