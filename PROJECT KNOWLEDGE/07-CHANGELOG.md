@@ -24329,3 +24329,45 @@ rather than shipped alongside a behaviour change.
 
 Files: `sandbox-pokebot/modules/story/early_game.py`,
 `sandbox-pokebot/plugins/custom_modes/story_mode.py`, `PROJECT KNOWLEDGE/{03,07}`.
+
+## 2026-09-07 — THE 8-HOUR BATCH ON THE FIXED BUILD: the Mauville march is GONE, 0 of 53
+
+`x4-runs/20260907-113851`, `code_commit 9e6154d6` (the arc-2 promotion), 8 lanes, **480.2 wall
+minutes, 53 ended runs, VERDICT OK.**
+
+**⭐⭐ THE RESULT `KI-97` WAS FIXED FOR:**
+```
+                              BEFORE (pre-fix, 17 ended)   AFTER (fixed build, 53 ended)
+Mauville march                     8   (47%)                    0
+whiteout recoveries                2                           14  (26%)  <- new top
+Ch23 Victory Road (Waterfall)      6                           11  (21%)
+global watchdog                    1                            7
+Surf party-full                    2                            5
+Dive party-full                    0                            2
+```
+**Zero Mauville failures in 53 runs, against 47% before.** That is the fix MEASURED, not argued.
+⚠ **HONEST ABOUT THE COMPARISON:** the "before" batch was stopped early (~3.4h, 17 ended) to free the
+emulator for the promotion, so the two are not equal-length arms. The Mauville count going 8 → 0 is
+decisive regardless of duration; the other rows are *shares of a different mix* and should not be
+read as regressions — a failure class that was previously unreachable now has runs reaching it.
+
+**⭐ AND THAT IS THE HEADLINE ABOUT THE OTHER ROWS: THE FAILURES MOVED, THEY DID NOT MULTIPLY.**
+Clearing the earliest blocker let runs travel far enough to meet the later ones. Whiteout recoveries
+and Victory Road were always there; nothing used to survive long enough to hit them.
+
+**WHAT IS NOW ON TOP, AND ITS STATUS:**
+1. **whiteout recoveries — 14 (26%). ⛔ STILL UNINVESTIGATED.** The single largest unaddressed
+   failure class in the project.
+2. **Ch23 Victory Road — 11 (21%).** Root-caused today (`#24-hm07teach`: production never taught
+   Waterfall) and FIXED IN SANDBOX, unpromoted — so this batch could not benefit from it.
+3. **global watchdog — 7.** Uninvestigated.
+4. **Surf / Dive party-full — 7 combined.** Root-caused as `#24-hm07funnel` (the HM funnel) and
+   `#24-pcpingpong`; both fixed in sandbox, unpromoted.
+
+**‼ STILL 0 FINISHED OF 53.** The bot cannot yet complete the story. But every blocker in the top
+five is now either fixed in sandbox or has a named, evidenced item — which was not true this morning.
+
+**‼ NO `build_commits` LINE IN THIS MANIFEST**, and that is expected, not a defect: the
+`#24-lane-respawn-build` provenance shipped AFTER this batch's parent process had already imported
+`x4_headless`. It takes effect from the next batch. The MANIFEST's `build ?` row is the pre-existing
+`.get('build','?')` fallback for the same reason.

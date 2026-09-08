@@ -139,34 +139,11 @@ open-vs-built sweep of all 80 open items has **not** been done.
 ### ✅ `#24-abortrecoveryresiduals` — ALL THREE RESOLVED 2026-08-23 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted).
 - [x] ⛔ DO NOT REDO. Full detail in the archive under its 2026-09-07 banner and in `07-CHANGELOG.md`.
 
-### ✅ `#24-brokenrepros` — DONE 2026-08-23 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)
+### ✅ `#24-brokenrepros` — DONE 2026-08-23 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
+- [x] ⛔ DO NOT REDO. Full detail is in the archive under its 2026-09-07 banner and in `07-CHANGELOG.md`.
 
-- [x] **Six `repro_*.py` scripts fixed — the item was filed as FIVE.** A stale line in
-      `02-ARCHITECTURE.md` (*"47 pass, 0 fail, 5 environmental"*) named the wrong five and hid them.
-      Sweep after: **103 PASS / 0 CHECK / 1 SKIP of 104** (`repro_x4_lanes` skipped — real processes).
-      Root causes, one per script: a check asserting a LEAF CLASS NAME where the code had grown a
-      subclass; THREE stale `SimpleNamespace` stubs missing `is_double_battle_with_partner`; one
-      CWD-dependent repo path; and one that was never broken (122s under a 90s cap).
-      ⛔ **The sixth was invisible because a doc said not to run it** — and that same script had been
-      written off as "environmental" once before (2026-07-30), also for a stale stub.
-      ⇒ spawned **`#24-reprosweepratchet`** (below): none of the 104 is in `run_gates.py`.
-      ‼ RETIRED 2026-08-23 from ~56 lines to this summary because `03` hit its R3 line budget. The
-      narrative, the per-script measurements and the two refuted "obvious fixes" are preserved in
-      `07-CHANGELOG.md` and `08-MISTAKES.md`. ⛔ **Retire by SUMMARISING with a pointer, never by
-      deleting** — code and other docs cite these slugs (`audit_doc_citations.py` checks that).
-
-### ✅ `#24-p2headergate` — DONE 2026-08-23 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)
-
-- [x] **TWO checks shipped, a THIRD deliberately DELETED.** (A) editing a `## KI-N` header with no
-      line added inside that KI's own section is now a finding — its fault test is the real bug, a
-      body line anchored on the header STRING landing ABOVE it. (C) a literal control character in
-      `.py` source is a hard failure, because `` compiled to a BACKSPACE twice in one day and the
-      gate still printed PASS both times; its own test then shipped VACUOUS and mutation testing
-      caught that. ⛔ **(B) ratchet-baseline claims was DELETED after a six-angle review returned 7
-      blockers — 289 lines removed.** Its exemption was written and broken THREE times; the fix that
-      mattered was asking *what does it protect* (a stale figure in a doc that says to run the probe).
-      ‼ **Two standing rules came out of it: review depth scales with BLAST RADIUS, and when a
-      predicate needs a THIRD exemption the predicate is wrong.** Suite unchanged at 30.
+### ✅ `#24-p2headergate` — DONE 2026-08-23 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
+- [x] ⛔ DO NOT REDO. Full detail is in the archive under its 2026-09-07 banner and in `07-CHANGELOG.md`.
 
 ### ‼ `#24-pluginwhiteoutnoyield` — an UPSTREAM bug: the plugin whiteout hook has NEVER run (filed 2026-08-23)
 
@@ -363,19 +340,8 @@ ARM A sentinel was strengthened 2026-08-27 — it had been value-equal to `run_a
 LANDED in BOTH post-fix batches: zero CantEscape freezes corpus-wide (baseline 3 of 8 lanes).
 **ARC CLOSED.** 📦 Diagnosis + evidence: `07-CHANGELOG.md` 2026-08-26/27 + git history.
 
-### ✅ `#26-battleitemwedge` — HANG closed 2026-08-26 AND LIVE-VALIDATED 2026-08-27 (batch `20260826-185918`: its KI-47 family 2 → 0 over 572 item flows)
-
-**Shipped:** `battle_action_use_item` no longer fires ONE blind A into `scroll_to_item_in_bag`'s
-unbounded, press-nothing first wait. It now presses, VERIFIES `GameState.BAG_MENU`, re-presses —
-3 bounded attempts (≤ ~90 frames) — and on failure logs the stage and RETURNS, letting the strategy
-re-decide: a re-decided turn beats a 3,001-frame KI-47 wedge + derail cascade. Every loop constant-
-bounded (verifiable by reading); `[ITEM-FLOW]` stages narrate each attempt.
-⚠ HONEST LIMITS: (1) no deterministic repro exists for the eaten-A itself (timing-stochastic) — the
-proof is structural boundedness + the instrumented stages, and **the live arm LANDED in batch `20260826-185918` (KI-47 family 2 → 0 over 572 item flows)**
-(the `20260826-130441` validation batch ran `dce95b4a`, BEFORE this fix — and its 3 KI-47 nets are
-all this family's action-selection signatures, so the next batch has something to measure);
-(2) items still failing to be CONSUMED is `#24-battleitems`' open work — this closes only the HANG.
-📦 Original filing (the opened-bag freeze anatomy): `07-CHANGELOG.md` 2026-08-26 + git history.
+### ✅ `#26-battleitemwedge` — HANG closed 2026-08-26 AND LIVE-VALIDATED 2026-08-27 (batch `20260826-185918`: its KI-47 family 2 → 0 over 572 item flows)  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
+- [x] ⛔ DO NOT REDO. Full detail is in the archive under its 2026-09-07 banner and in `07-CHANGELOG.md`.
 
 ### ‼ `#26-gatestartupcontention` — one gate times out IN-SUITE with an EMPTY log, passes solo (filed 2026-08-26)
 
@@ -410,51 +376,14 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
 
 ### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ✅ **Drift is 5 as of 2026-09-07 — arc 2 PROMOTED; the `KI-96` probe fix, `#24-truckleak`, `#24-pcpingpong` and `#24-hm07teach` are sandbox-only while a batch runs. *(was: `battle_action_selection.py` for `KI-96`, `mossdeep_gym.py` for `#24-mossdeepstrand`, `counter_plan.py` for `#24-countermsg`, plus `story_mode.py`, the `KI-95` fix, sandbox-only and awaiting the user's promotion call); it was 0 — PROMOTED 2026-09-06.** *(pre-promotion count now lives in `DIVERGENCE-LOG.md`; the file detail is kept:)* (`modules/story/pokemon_league.py` joined 2026-09-04 — the §Ch24 out-of-battle party heal; `modules/story/overworld_items.py` joined 2026-09-04 — the NEW pure out-of-battle healing policy for `#24-e4healing`, gate #36; `modules/modes/util/walking.py` joined on 2026-09-04 — the `#24-waterfalltimeout` fix; 2026-09-03: `chapters.py` for a §Ch23 correctness fix, plus the new sandbox-only chapter modules `sootopolis_gym.py` and `victory_road.py`) — ✅✅ **PROMOTED 2026-09-06 with USER APPROVAL, which took drift to 0** *(it went to 2 on 2026-09-06 — `story_mode.py` for `KI-95` and `battle_action_selection.py` for `KI-93` — and back to **0 on 2026-09-07** when both were PROMOTED and driven-verified)*, driven-verified against `--build custom`; see `custom-pokebot/DIVERGENCE-LOG.md`. *(this read "PROMOTION IS THE USER'S CALL and is not implied", true until that date.)* ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
 
-### ✅ `#24-ch23wally` — **CLOSED 2026-09-04: WALLY IS BEATEN.** ✅ Option (b) (the faint-replacement ranking) is **DONE 2026-09-06** — `KI-95`, gate #39, sandbox-only and unpromoted. It had been OBSERVED firing inside the winning run — see the open bullet. (filed, ruled, trained and closed 2026-09-04)
+### ✅ `#24-ch23wally` — **CLOSED 2026-09-04: WALLY IS BEATEN.** ✅ Option (b) (the faint-replacement ranking) is **DONE 2026-09-06** — `KI-95`, gate #39, sandbox-only and unpromoted. It had been OBSERVED firing inside the winning run — see the open bullet. (filed, ruled, trained and closed 2026-09-04)  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
+- [x] ⛔ DO NOT REDO. Full detail is in the archive under its 2026-09-07 banner and in `07-CHANGELOG.md`.
 
-- [x] 📦 **SUMMARISED 2026-09-04 — full narrative in `07-CHANGELOG.md` (three entries, same date).**
-      The leg's CODE was never at fault; the PARTY was. The user ruled TRAIN; the target L47 was
-      PRICED not chosen (L50 needed 793,882 frames — Wailmer alone 359,683, over the 250,000
-      per-call ceiling); the grind only ran at all after **KI-84**. Fixtures: `post_training.ss1`
-      (`2f517f1f…`) → `post_wally.ss1` (`76000aa5…`, VICTORY_ROAD_1F (9,15) = the B1F ladder apron).
-      ⭐ **THE A/B THAT CLOSES IT, same leg and same code:** untrained → `battles=5`,
-      **`whiteouts=2`**, `wally_flag=False`; trained → `battles=6`, **`whiteouts=0`**,
-      `wally_flag=True`. ⛔ The win cost 2 faints and left 67% HP.
-- [ ] ⚠ **OPTION (b) IS STILL UNTAKEN, and it is no longer theoretical — it was OBSERVED.** The
-      faint-replacement ranking (`story_mode.py:210`) weighs `hp_fraction` above LEVEL, and in the
-      winning run it fed the **L19 Zigzagoon** into a fight against L40s, where it fainted. It cost
-      nothing there because the battlers carried the fight. ⛔ Against the Elite Four — five fights,
-      one party, no heal, no escape — the same cascade is a run-ender. ‼ And leg 6 has now shown the
-      same drift: the party reached B2F at **32% with THREE fainted**. Tracked here so closing the
-      Wally half does not bury it.
 ### ✅ `#24-waterfalltimeout` — **FIXED 2026-09-04 (sandbox).** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted).
 - [x] ⛔ DO NOT REDO. `[0][1]` → `[1][1]`, direction MEASURED before the edit; detail in the archive and `07-CHANGELOG.md` for 2026-09-04.
 
-### ✅ `#24-ch23healdescent` — **CLOSED 2026-09-04: leg 6 now heals before descending, and an A/B proves it (un-healed 32% / 3 fainted vs healed 87% / 0).** (filed and closed 2026-09-04)
-
-- [ ] **MEASURED, NOT PREDICTED — the party gets worse at every stage:**
-      `post_training.ss1` 95%/0 fainted → `post_wally.ss1` **67%/2** → `post_b1f.ss1` **32%/3**
-      (Sceptile, Zigzagoon, Swellow) — the last two flagged "CANNOT SURVIVE A JOURNEY", and **leg 7
-      would start from the worst.**
-      ⚠ Leg 6 was driven UN-HEALED **on purpose** (isolate the variable under test); this item is
-      the other half of that decision, not a defect report.
-- [ ] **THE FIX: heal BEFORE the descent, while the bot is still on 1F one warp from the exit.**
-      1F → arrow-warp out (15,40) → EG (18,41) → `heal_in_pokemon_center(EvergrandeCity)` →
-      (18,42) → warp in → (9,15) → B1F. ‼ `assert_carriers_survived` after it (deposits ride along).
-      ⛔ **PROBE THE ARROW-WARP FIRST.** 1F (15,40) is `MB_SOUTH_ARROW_WARP` — fires only on
-      standing + facing South + holding Down, never a step; we have only crossed it INWARD.
-- [x] ✅✅ **DONE 2026-09-04 — `heal_before_descent()` ships in `victory_road.py`.** Measured, same
-      start fixture and same code: **un-healed → 32% HP with THREE fainted; healed → 87% with
-      ZERO.** The heal itself read `538/799 (67.3%), 2 fainted` → **`799/799 (100%), 0 fainted`**.
-      `--driver ch23descend` `ACCEPTANCE: PASS`, all 7 readings, `battles=6`, `whiteouts=0`; fixture
-      **`post_b1f_healed.ss1`** (`b2eeb15c…`) is now the leg-7 start point.
-      ⭐ **AND IT PROVED THE ARROW-WARP OUTWARD** — the untested navigation this item flagged. 1F
-      (15,40) is `MB_SOUTH_ARROW_WARP` and we had only ever crossed it inward; it works.
-      ‼ It heals from **1F, not B1F**: from below the round trip would cost the whole boulder solve
-      twice, because every warp resets the puzzle. Fault arm `POKEBOT_CH23_FAULT_NOHEAL6` keeps the
-      un-healed descent reproducible.
-- [ ] ⚠ **RELATED, NOT THE SAME:** `#24-ch23wally` option (b) (the faint ranking feeding the L19
-      into fights) is the CAUSE; healing treats the symptom. Both open.
+### ✅ `#24-ch23healdescent` — **CLOSED 2026-09-04: leg 6 now heals before descending, and an A/B proves it (un-healed 32% / 3 fainted vs healed 87% / 0).** (filed and closed 2026-09-04)  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
+- [x] ⛔ DO NOT REDO. Full detail is in the archive under its 2026-09-07 banner and in `07-CHANGELOG.md`.
 
 ### ✅ `#24-ch23attrition` — **CLOSED 2026-09-04.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 line budget; nothing deleted, nothing edited).
 - [x] ⛔ **DO NOT RE-RUN THE §Ch23 ATTRITION WORK.** The party is back to 807/807 with zero fainted; the fix and its A/B are in the archive under the 2026-09-07 banner and in `07-CHANGELOG.md` for 2026-09-04.
@@ -3595,3 +3524,14 @@ region, where "train near the gym" is actively wrong.
   mid-cave instead of at a named preflight. ⚠ Deliberately NOT bundled with `#24-hm07funnel`: adding
   requirements makes the preflight STRICTER and could turn currently-passing driven fixtures red.
   Check the §Ch23 fixtures first, then add both to `field_move_carriers()` and the preflight.
+
+### `#24-whiteoutloop` — the LARGEST unaddressed failure class: 14 of 53 runs (26%) (filed 2026-09-07)
+- [ ] ⛔ **NOW THE TOP BLOCKER BY MEASUREMENT.** `Story: too many whiteout recoveries in a row —
+  stopping so I don't loop forever. Check the team/route.` — 14 of 53 ended runs in the full 8-hour
+  batch `20260907-113851` (26%), up from 2 of 17 before, because runs now survive long enough to
+  reach it. **Never investigated.**
+- [ ] ⭐ FIRST QUESTIONS (do not guess): WHERE do the whiteouts happen — one boss, or scattered? Is
+  the cap itself reasonable, or does it fire on a run that would have recovered? Is this the same
+  "right types, too weak" shape as `#24-tateliza-attrition`, which the counter-guard cannot see
+  because it grades on TYPE coverage only? ⚠ Two of the deepest runs in the PREVIOUS batch died at
+  Tate & Liza with 24 and 11 losses, so start by checking whether these 14 share a location.
