@@ -3568,8 +3568,17 @@ region, where "train near the gym" is actively wrong.
   in LILYCOVE** (148 vs 16) because the Mossdeep Poké Center is never registered before the gym —
   the only two `heal_in_pokemon_center(PokemonCenter.MossdeepCity)` calls are in `seafloor_cavern.py`
   and `space_center.py`, both chapters that run AFTER it. Cost: a median ~8 min per retry.
-  ⚠ AGENT-REPORTED, verify the two call sites and the ratio before building.
+  ✅ **VERIFIED MYSELF 2026-09-07** (was agent-reported): `heal_in_pokemon_center(PokemonCenter.MossdeepCity)` has EXACTLY TWO call sites — `seafloor_cavern.py:884` and
+  `space_center.py:185` — and both chapters run AFTER the gym. And of **139** whiteouts that
+  STARTED on a Mossdeep map, only **13** respawn at Mossdeep: ~91% land elsewhere (my split
+  is ROUTE 124 81 / LILYCOVE 45, because ROUTE 124 is the Lilycove→Mossdeep surf corridor and
+  a 'first map after recovery' proxy catches transit; the agent read 148/16. ⇒ **the exact
+  split is proxy-dependent, the ~90% direction is not.**)
 - [ ] ⚠ ALSO REPORTED, UNVERIFIED: `story_mode.py:1995` justifies boss-training mode with *"whiteout
   money loss is level x badge-payout — cheap"*, which is the FRLG model; our own
-  `victory_road.py:446` records that Emerald's `DoWhiteOut` does `SetMoney(money / 2)`. If true, the
-  economics of deliberately farming whiteouts need re-deriving. ⛔ Check before acting.
+  `victory_road.py:446` records that Emerald's `DoWhiteOut` does `SetMoney(money / 2)`.
+  ✅ **THE INTERNAL CONTRADICTION IS VERIFIED 2026-09-07** — both lines exist as quoted, and
+  they cannot both be right. ⛔ **WHAT IS *NOT* VERIFIED IS WHICH ONE THE GAME AGREES WITH**:
+  that needs the decomp, not our own two comments. Settle it there BEFORE re-deriving the
+  economics of deliberately farming whiteouts (`story_mode.py:1996` engages boss-training
+  ~98% of the time on that premise, and each attempt spends a unit of the whiteout budget).
