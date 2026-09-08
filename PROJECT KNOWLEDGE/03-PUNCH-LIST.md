@@ -3595,6 +3595,18 @@ region, where "train near the gym" is actively wrong.
 - [ ] ⭐ **WHY FATAL ONLY AT §Ch23:** `ensure_hm_learner` CATCHES a wild mon for an HM;
   `team_policy.py:147-149` then EXEMPTS a sole carrier from deposit (correctly — boxing the only Surf
   carrier soft-locks). Created, pinned, never trained; §Ch23 is where its level is first REQUIRED.
-- [ ] ⇒ **FIX DIRECTION (unbuilt; ⛔ do NOT start at the training leg — both leg-local fixes are
-  refuted):** level a caught mon toward the team band AT CATCH TIME, while local grass still can.
-  ⚠ Check `_prepare_for_fight`'s `TRAIN_CATCHUP_GAP=6` first — it already does this for badges 1-6.
+- [x] ⭐⭐ **THE BAR IS MEASURED: L35.** Sweep (`POKEBOT_MULE_LEVEL` 13/20/26/30/35, ESTIMATE_ONLY,
+  seconds per arm): Marill needs 406,972 / 384,044 / 345,353 / 308,095 / **243,610** frames — the
+  §Ch23 refusal clears only at **L35**. (Pre-registered prediction "L34-L35" HELD.)
+- [x] ⛔⛔ **NEITHER LEVER ALONE REACHES IT.** Catch-time training buys ~+15 (L13→L28). The whole-game
+  GRASS ceiling for a water-HM carrier is Shoal Cave L26-32 / Route 120 L25-27 — **both under L34**;
+  Route 120 maps to the L26 arm at 345,353, **still refuses**. ⇒ `#24-divegroundroute120` alone does
+  NOT clear §Ch23 (it is still a real win: 236 battles vs 588, 379 wp vs 1,055).
+- [ ] ⇒ **FIX DIRECTION (unbuilt): CATCH HIGHER *AND* TRAIN THE REMAINDER.** L26 catch + 250k budget
+  at wild-28 → ~L39, clearing L35. Neither half suffices; the sum does.
+- [ ] ⚠ **SURF IS STILL UNSOLVED BY BOTH.** Best pre-Surf ground is Route 117 **L13** (every
+  higher-band Surf-learner ground is gated behind Surf itself), and L13+250k → ~L28 < L35. ⇒ the only
+  candidate is acquiring a carrier at **§Ch3 (Route 104 Marill L4-5, at team level)** so it is never
+  a mule. ⚠ HYPOTHESIS — its encounter data is UNVERIFIED; check before building.
+  ⭐ [VERIFIED] Marill learns ALL FIVE HMs (Dive/Rock Smash/Strength/Surf/Waterfall); Zigzagoon only
+  Cut/Rock Smash/Surf. Full detail: `ai-research-notes/2026-09-08-hm-mule-catch-sites-MEASURED.md`.

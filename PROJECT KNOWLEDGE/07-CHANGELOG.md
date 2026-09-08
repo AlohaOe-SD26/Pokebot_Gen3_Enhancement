@@ -24975,3 +24975,42 @@ returns BEFORE the raise, so the refusal itself will not fire — read the estim
 **PREDICTED: the refusal stops between L34 and L35 for Marill.** If the sweep disagrees, the model
 above is wrong and catch-time training may be viable after all — which is exactly why this runs
 BEFORE anything is built.
+
+## 2026-09-08 — ⭐ THE MULE-LEVEL SWEEP: the refusal clears at L35, and NEITHER lever alone reaches it
+
+**Zero new code, five arms, seconds each** — `POKEBOT_MULE_LEVEL` ∈ {13,20,26,30,35} with
+`POKEBOT_CH23_ESTIMATE_ONLY=1 --driver ch23train --inject-hmmule`, grading
+`report["train_estimates"]` for Marill against `MAX_TRAINING_FRAMES = 250_000`:
+```
+mule L     Marill frames    verdict
+L13          406,972        REFUSES
+L20          384,044        REFUSES
+L26          345,353        REFUSES
+L30          308,095        REFUSES
+L35          243,610        ✅ PASSES
+```
+**⭐ THE PRE-REGISTERED PREDICTION WAS "L34-L35" AND IT HOLDS** (recorded in `07-CHANGELOG.md` BEFORE
+the run). The growth-curve model behind the earlier pricing table is therefore validated, which
+matters because the rest of that table now carries weight.
+
+**⛔⛔ AND THE RESULT OVERTURNS "THE LEVER IS THE CATCH SITE".** The whole-game ceiling for a water-HM
+carrier in GRASS is **Shoal Cave L26-32**, then Route 120 L25-27 — **both below L34.** Route 120 maps
+to the L26 arm: **345,353 frames, still REFUSES.**
+⇒ **`#24-divegroundroute120` ALONE DOES NOT CLEAR §Ch23.** It is a real improvement (236 battles
+instead of 588, 379 waypoints instead of 1,055) and it is NOT sufficient.
+
+**⇒ WHAT THE DATA SUPPORTS IS THE COMBINATION, exactly as the adversarial pass predicted:**
+*"Catch-time training becomes a SECOND increment on top of a L26 catch (L26 + 250k @ wild-28 → L39,
+clearing the L35 bar), rather than a lone fix that lands 7 levels short."*
+⇒ **catch higher AND train the remainder.** Neither alone reaches L35; together they clear it.
+
+**⚠ AND SURF IS STILL UNSOLVED BY BOTH.** The best ground reachable BEFORE Surf is Route 117's
+**L13** Marill, and L13 + a full 250k budget reaches only ~L28 — short of L35. The circular
+dependency (every higher-band Surf-learner ground is gated behind Surf) means no catch-site change
+exists for it. ⇒ **the only candidate for the Surf mule remains acquiring a carrier at §Ch3 (Route
+104, L4-5, at team level) so it is never a mule at all** — still a HYPOTHESIS, and its encounter data
+is unverified by me.
+
+**‼ WHAT THIS COST: five arms, no new code, and it killed one plan and rescued another before a line
+was written.** The knob (`POKEBOT_MULE_LEVEL`) existed because the discriminator was built first.
+⇒ **build the instrument before the fix; it prices every candidate at once.**

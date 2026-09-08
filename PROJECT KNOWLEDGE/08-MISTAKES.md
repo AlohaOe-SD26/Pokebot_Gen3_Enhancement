@@ -14798,3 +14798,22 @@ proxying for, not by loosening the proxy.
 ‼ Corollary earned twice this session: **an automated "is this closed?" predicate cannot tell a work
 item from a reference section.** "No open bullets" matched a MIXED-status index and the file's own
 legend. When retiring content, READ THE HEADER — do not let a heuristic choose.
+
+## 2026-09-08 — I said "the lever is the catch site" one measurement too early
+
+**Symptom.** After an adversarial pass showed catch-time training lands 7-10 levels short, I reported
+that the real lever was the CATCH SITE (Route 120's L25-27 Marill instead of Route 117's L13). One
+sweep later that is refuted: the §Ch23 refusal clears at **L35**, and the whole-game grass ceiling for
+a water-HM carrier is **L26-32**. Route 120 maps to the L26 arm — **345,353 frames, still refuses.**
+
+**Root cause.** I had two priced options (train-at-catch: −7 levels; catch-higher: +13 levels) and
+picked the larger number without checking it against the BAR. +13 from L13 is L26; the bar is L35.
+⇒ **I compared the levers to each other instead of to the threshold.**
+
+**⭐ PREVENTION RULE — MEASURE EVERY CANDIDATE AGAINST THE THRESHOLD, NOT AGAINST EACH OTHER.**
+"Bigger improvement" is not "sufficient". When a guard has a numeric bar, price each option AS A
+DISTANCE TO THAT BAR and say whether it crosses. The two options here were −7 and +13 against a gap
+of 22: neither crosses, and the answer was their SUM, which no single comparison would ever surface.
+‼ The same sweep that refuted me also validated the model that predicted it (pre-registered L34-35),
+so this is not "the analysis was bad" — it is that **an analysis can be right and still be read
+wrongly if the reader skips the comparison that matters.**
