@@ -3470,51 +3470,20 @@ region, where "train near the gym" is actively wrong.
   ⚠ Likely retirement point: the boss it was hunted for is beaten. ⛔ MEASURE FIRST — a counter kept
   deliberately for a LATER boss would be lost by a naive retirement.
 
-### 🔶 `#24-hm07teach` — ⛔⛔ **THE WALL: production never taught Waterfall.** Every 8-badge run in project history died here (filed + CHANGE A fixed 2026-09-07)
-- [x] ✅ **CHANGE A SHIPPED (sandbox, UNDRIVEN):** `ensure_waterfall_learner()`
-  (`victory_road.py`, beside `field_move_carriers` so gate and preflight share one predicate) +
-  **Segment 22b** (`story_mode.py`, between the Juan guard and Segment 23).
-- [x] ⭐⭐ **THE MEASUREMENT.** Across **37 stored batches** the 8th badge was reached **six times —
-  all six on 2026-09-07**, the first batch carrying the `KI-97` fix — and **all six died on
-  `assert_ch23_preflight`**. **Nothing in the corpus has EVER passed it**: no Victory Road entry, no
-  `DEFEATED_WALLY_VICTORY_ROAD`, in any batch log.
-- [x] ⛔ **WHY IT HID:** §Ch23 leg 1 existed ONLY as a harness driver. The chapter's own build spec
-  says so — *"teach Waterfall to Wailmer | ✅ driver only (`ch23teach`), production module absent"* —
-  and every §Ch23 fixture from leg 2 on is DOWNSTREAM of that driver's teach. ⇒ **a chapter driven
-  from a fixture can pass forever while the route to it is impassable.**
-- [x] ⛔ **TEACH, not relax the preflight.** `checkpartymove MOVE_WATERFALL` gates the field script,
-  so with no carrier `Task_UseWaterfall` never starts and leg 4 burns its 3,000-frame budget —
-  turning a named refusal at frame 0 into a silent timeout ~60k frames later, mid-ocean, where
-  `allow_escaping` is false and there is no Poké Center until Ever Grande.
-- [ ] ⚠ **`#24-hm07teach-accept` — THE DRIVE IS OWED.** Positive controls that must APPEAR:
-  `Story: teaching Waterfall to <species> (slot N)...` then `<species> learned Waterfall (lost …)`,
-  and the run must reach Victory Road rather than raising the preflight. Fixture: `post_badge8.ss1`
-  (⛔ NOT `post_waterfall.ss1` — that one already has the move taught and would be vacuous).
+### ✅ `#24-hm07teach` — **CLOSED 2026-09-08, DRIVEN AT SCALE.** ⛔ DO NOT REDO.
+- [x] Production never taught Waterfall, so §Ch23's preflight killed every 8-badge run in project
+  history (six across 37 batches, all six there). `ensure_waterfall_learner()` + Segment 22b fixed
+  it. **MEASURED: the §Ch23 Waterfall preflight went 11 of 53 → 0 of 49** (batch `20260907-203713`
+  vs `20260907-113851`, equal wall time). Runs now die 16x deeper, in the TRAINING leg — see
+  `#24-ch23training`. Full detail: `07-CHANGELOG.md` 2026-09-07 and 2026-09-08.
 
-### 🔶 `#24-hm07funnel` — MIXED: the FIX is in (sandbox), the DRIVE is not — every HM funnelled onto ONE mon (filed + fixed 2026-09-07)
-- [x] ✅ **FIXED (sandbox, UNDRIVEN):** `pick_land_hm_slot()` (pure) + `land_hm_learner_slot()`,
-  used at the two LAND-HM sites only. ⛔ `hm_learner_slot` untouched — Surf and Dive must keep
-  the water mon. ⭐ **Waterfall's and Dive's species pools are strict SUBSETS of Surf's** (74
-  and 76 of 101, ZERO Surf-incapable), so the funnel is forced by the DATA, not by ranking.
-  ✅ Verified offline on the SIX REAL badge-8 parties: **8 of 8 now end with ROOM for
-  Waterfall** (today 5 of 6 had zero free slots). ⚠ Necessary condition, not a proof — the
-  roster is post-teach; the drive is owed as `#24-hm07funnel-accept`.
-- [x] ⛔ **THE ORIGINAL EVIDENCE, kept:** From
-  `custom-pokebot/profiles/*/badge-log.json`, all six Rain-badge parties:
-  **five Swamperts holding EXACTLY four HMs** (Strength, Rock Smash, Surf, Dive) — **zero forgettable
-  slots** — and one Marill L13 with three. `hm_learner_slot` ranks by **level alone**
-  (`early_game.py:4316-4332`), so in a Mudkip line the starter is both the highest-level mon AND the
-  only Surf/Dive/Waterfall-capable one, and all four HMs land on it.
-  ⇒ **the funnel, not the species, is the defect** — the Treecko lane works precisely because its HMs
-  were forced apart across four mons.
-- [ ] ⛔ **HMs CANNOT be forgotten in Gen 3** (Move Deleter only, `early_game.py:4594`), so this is
-  preventable ONLY at the ORIGINAL teach — never retroactively. **Fix shape:** at the two LAND-HM
-  sites only (`ensure_strength_learner`, and Rock Smash at Segment 10b) prefer a compatible learner
-  that CANNOT learn HM07, falling back to today's pick when none exists. Swampert needs just ONE free
-  slot (Surf + Dive + one land HM + Waterfall = 4), so moving either land HM off it suffices — and a
-  per-lane check says a suitable alternative existed in all six rosters.
-  ⛔ **Do NOT change `hm_learner_slot`'s default ranking** — Surf and Dive go through it and must keep
-  choosing the water mon. ⚠ MEASURE: party composition at the Ch10b/Ch14 teach is not in the logs.
+### ✅ `#24-hm07funnel` — **CLOSED 2026-09-08, DRIVEN AT SCALE.** ⛔ DO NOT REDO.
+- [x] Every HM funnelled onto one mon because Waterfall's and Dive's species pools are strict
+  SUBSETS of Surf's (74 and 76 of 101, ZERO Surf-incapable) — forced by the learnset DATA, not by
+  ranking. `pick_land_hm_slot()` (PURE) + `land_hm_learner_slot()` prefer a non-carrier at the two
+  LAND-HM sites only; `hm_learner_slot` untouched so Surf and Dive keep the water mon.
+  **MEASURED: Surf + Dive party-full went 7 of 53 → 0 of 49**, with 18 runs reaching Victory Road,
+  so both teach points were passed — elimination, not avoidance. Detail: `07-CHANGELOG.md`.
 
 ### `#24-ch23preflight-gap` — the §Ch23 preflight omits Strength and Rock Smash (filed 2026-09-07)
 - [ ] `assert_ch23_preflight` checks only `("Surf", "Dive", "Waterfall")`, but `chapters.py:265-274`
@@ -3582,3 +3551,23 @@ region, where "train near the gym" is actively wrong.
   that needs the decomp, not our own two comments. Settle it there BEFORE re-deriving the
   economics of deliberately farming whiteouts (`story_mode.py:1996` engages boss-training
   ~98% of the time on that premise, and each attempt spends a unit of the whiteout budget).
+
+### `#24-ch23training` — THE NEW TOP BLOCKER: §Ch23's training leg fails with one mon "alone" (filed 2026-09-08)
+- [ ] ⛔ **16 of 49 runs (32.7%) in batch `20260907-203713`** — `ChN (Victory Road) failed after N
+  attempts. attempt N: BotModeError: Ch23 training: <Mon>#<PID> alone needs ...`. ⭐ **THIS FAILURE
+  DID NOT EXIST BEFORE** and that is the good news: `#24-hm07teach` took the Waterfall PREFLIGHT from
+  11 of 53 to **0 of 49**, so runs now reach a leg nothing used to survive to.
+- [ ] ⭐ **THE SPECIES DISTRIBUTION IS THE FIRST CLUE:** Marill **9**, Slugma 3, Shedinja 1,
+  Mightyena 1, Ninjask 1, Poochyena 1. Marill dominates at 9 of 16.
+- [ ] ⚠ **DO NOT ASSUME MY FIX CAUSED THE MARILL SKEW.** `#24-hm07funnel` changed which mon carries
+  land HMs, so party composition DID change — but Marill may simply be a common catch on non-Mudkip
+  lanes. ⛔ Settle it by comparing Marill's frequency in the BEFORE batch's parties, not by reasoning.
+- [ ] FIRST QUESTIONS: what does "alone needs" actually require (read the raise site in
+  `victory_road.py`)? Is the leg asking ONE mon to train when the rest are fainted/ineligible? Is this
+  the same "right types, too weak" shape as `#24-tateliza-attrition`?
+
+### `#24-cutscenestall` — NEW in the post-fix batch: 4 of 49 runs (8.2%) (filed 2026-09-08)
+- [ ] `Cutscene did not end after N frames (controllable=False, script_active=True).` **Zero
+  occurrences in the BEFORE batch**, so this is genuinely new rather than a share-of-a-different-mix
+  artefact. ⚠ Also new: `per-run frame budget exhausted` (2 of 49). ⛔ Both are UNINVESTIGATED —
+  check whether either traces to this session's changes before assuming they are pre-existing.

@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """Move a closed block out of a current-state doc into an append-only archive — WITHOUT LOSING IT.
 
-⛔⛔ WHY THIS FILE EXISTS, AND WHY IT ENFORCES **TWO** INVARIANTS.
+⛔⛔ WHY THIS FILE EXISTS, AND WHY IT ENFORCES **FOUR** INVARIANTS (A and B 2026-09-05; C and D added
+2026-09-07/08, each after a failure that A and B both passed over — see their blocks below).
+⭐ THE PATTERN WORTH SEEING: A and B protect the MOVE; **C and D protect the CLAIM.** Every invariant
+after the first two exists because the tool did the mechanical job correctly and the resulting
+document still lied.
 On 2026-09-05 the punch list crossed its `lint_docs` R3 line budget and closed blocks were retired
 with throwaway inline scripts. That went wrong TWICE IN ONE SESSION, in two different ways, and a
 Tier 1 reviewer caught both:
@@ -174,6 +178,32 @@ def archive_block(
             "  and nothing is orphaned. The defect is that the pointer LIES."
         )
 
+    # ---- INVARIANT D — AN ARCHIVAL CLAIM REQUIRES AN ARCHIVAL MOVE ------------------------------
+    # ⛔⛔ ADDED 2026-09-08, AND A AND B BOTH PASSED OVER THE FAILURE THAT MOTIVATED IT.
+    # Called with `--starts-with "### ✅ \`#24-hm07teach\`"` on `03-PUNCH-LIST.md`, this tool reported
+    #     "moved 0 line(s) ... No loss, no orphan — both invariants verified before writing"
+    # and left a pointer reading "📦 ARCHIVED VERBATIM ... nothing deleted" with the ENTIRE BODY
+    # still sitting directly beneath it. Both other invariants are satisfied by construction when
+    # nothing moves: A has no removed lines to lose, and B's trailer is a `- [x]` bullet, which IS a
+    # legitimate boundary in this file's item format. ⇒ **the block was the HEADER ALONE.**
+    # ‼ The only signal was the words "moved 0 line(s)" in stdout — a number a human has to notice,
+    # not a check. That is the day's recurring shape: an instrument that cannot express the failure
+    # reports success.
+    # ⭐ D is deliberately about the CLAIM, not the technique: a pointer may legitimately replace a
+    # block with a summary, but it may not SAY "archived" when nothing was archived.
+    ARCHIVAL_CLAIM = ("ARCHIVED", "MOVED TO", "NOTHING DELETED", "VERBATIM")
+    if not removed and any(w in pointer.upper() for w in ARCHIVAL_CLAIM):
+        raise SystemExit(
+            "⛔ THE POINTER CLAIMS AN ARCHIVE BUT **ZERO LINES WOULD MOVE** — refusing to write.\n"
+            f"  starts-with : {starts_with[:100]!r}\n"
+            f"  pointer     : {pointer[:100]!r}\n"
+            "  The matched block is its HEADER ALONE, so the body would stay in the source under a\n"
+            "  pointer saying it was moved. ‼ Invariants A and B CANNOT catch this: with nothing\n"
+            "  removed A has nothing to lose, and B's trailer is a real boundary.\n"
+            "  ⇒ Check `--starts-with`: in a file whose items are `- [x]` bullets, a `###` heading\n"
+            "  matches only the heading, because a bullet is itself a block boundary."
+        )
+
     if not dry_run:
         archive.write_text(archive_text + "\n", encoding="utf-8")
         source.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -295,6 +325,36 @@ def self_test() -> int:
         except SystemExit as exc:
             failures.append(f"⛔ C FALSE POSITIVE — a genuinely closed block was refused: {exc}")
 
+        # --- 3e. FAULT ARM D — AN ARCHIVAL CLAIM OVER A ZERO-LINE MOVE ---------------------------
+        # ‼ REPRODUCES THE REAL 2026-09-08 MISUSE: anchor a `###` heading in a file whose items are
+        # `- [x]` bullets, so the "block" is the heading alone, and pair it with an ARCHIVED pointer.
+        # ⛔ Invariants A and B BOTH PASS on this input — that is the entire point of arm D.
+        bullet_doc = "\n".join(
+            ["# Doc", "", "### ✅ `#item` — closed", "- [x] the body that must not be orphaned",
+             "  detail line", "", "### ✅ `#next` — other", "- [x] other body"]
+        ) + "\n"
+        src, arc = fixture(tmp, "zeromove", bullet_doc)
+        try:
+            archive_block(src, arc, "### ✅ `#item`",
+                          "### ✅ `#item` — 📦 ARCHIVED VERBATIM to `28-...` (nothing deleted).",
+                          "note")
+            failures.append("⛔ FAULT ARM D DID NOT FIRE — an ARCHIVED pointer over a 0-line move "
+                            "was accepted (the body would be orphaned in the source)")
+        except SystemExit as exc:
+            if "ZERO LINES WOULD MOVE" not in str(exc):
+                failures.append(f"fault arm D raised the wrong error: {exc}")
+        if src.read_text(encoding="utf-8") != bullet_doc:
+            failures.append("⛔ a REFUSED archive (D) still modified the source")
+
+        # --- 3f. D MUST NOT FIRE on a SUMMARY pointer that makes no archival claim ----------------
+        # ⭐ Replacing a block with a summary is legitimate; D is about the CLAIM, not the technique.
+        src, arc = fixture(tmp, "summaryptr", bullet_doc)
+        try:
+            archive_block(src, arc, "### ✅ `#item`",
+                          "### ✅ `#item` — closed; see `07-CHANGELOG.md` for detail.", "note")
+        except SystemExit as exc:
+            failures.append(f"⛔ D FALSE POSITIVE — a non-archival summary pointer was refused: {exc}")
+
         # --- 4. an ambiguous anchor is refused, not guessed ---------------------------------------
         src, arc = fixture(tmp, "ambig", "\n".join(doc + doc) + "\n")
         try:
@@ -309,7 +369,7 @@ def self_test() -> int:
         for f in failures:
             print(f"  {f}")
         return 1
-    print("SELF-TEST PASS — 7 arms:")
+    print("SELF-TEST PASS — 9 arms:")
     print("  happy path keeps every line and leaves nothing behind;")
     print("  FAULT A (truncated archive)   -> refused by INVARIANT A, source untouched;")
     print("  FAULT B (header-only move)    -> refused by INVARIANT B, source untouched;")
@@ -319,6 +379,12 @@ def self_test() -> int:
     print("          OWN words — echoing the heading does not count, which once made C inert);")
     print("  C no-fire: a genuinely closed block is ACCEPTED even when its BODY says")
     print("          'STILL OPEN' / 'NOT FIXED' — C reads the HEADING, not mere mentions;")
+    print("  FAULT D (ARCHIVED pointer over a ZERO-line move) -> refused by INVARIANT D,")
+    print("          source untouched. ‼ A and B BOTH PASS on this input: with nothing removed A")
+    print("          has nothing to lose, and B's trailer is a real boundary. This is the REAL")
+    print("          2026-09-08 misuse — a `###` anchor in a file whose items are `- [x]` bullets;")
+    print("  D no-fire: a SUMMARY pointer making no archival claim is ACCEPTED (D is about the")
+    print("          CLAIM, not the technique);")
     print("  ambiguous anchor              -> refused rather than guessed.")
     return 0
 

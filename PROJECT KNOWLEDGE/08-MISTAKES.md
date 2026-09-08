@@ -14647,3 +14647,28 @@ edits them next. Before replacing an anchor inside a long line, grep that line f
 ‼ **AND: PAIR CHECKS AND SLUG SWEEPS CATCH DIFFERENT THINGS.** After fixing the reviewer's P1-P5
 findings, grepping the tree for `KI-96` found one MORE stale "STILL OPEN" claim — inside a DIFFERENT
 KI's body, where no header/body pair reaches it. Both passes are required; neither subsumes the other.
+
+## 2026-09-08 — "No loss, no orphan" was printed over two orphaned bodies
+
+**Symptom.** `archive_doc_block.py` was run on two punch-list items. It printed **"moved 0 line(s);
+… No loss, no orphan — both invariants verified before writing"** and wrote pointers saying
+*"📦 ARCHIVED VERBATIM … nothing deleted"* over bodies that had **not moved at all**.
+
+**Root cause.** The anchor was a `### ` heading in a file whose items are `- [x]` bullets, and a
+bullet is a block boundary, so the matched block was the heading alone. Invariant A had no removed
+lines to lose; invariant B's trailer was a genuine boundary. **Both checks were satisfied BY the
+failure.**
+
+**The fix that worked.** Restore the two headings (nothing had been archived, so the claim was the
+only thing to remove), delete the header-only appends from the archive, and add **INVARIANT D** —
+an archival claim requires a non-zero move — with a fault arm reproducing this exact misuse and a
+no-fire arm for a legitimate summary pointer.
+
+**⭐ PREVENTION RULE — READ THE TOOL'S NUMBER, NOT ITS VERDICT.** "moved 0 line(s)" and "no orphan"
+appeared in the SAME sentence and contradicted each other. A verdict summarises the checks that ran;
+the number describes what happened. ⛔ **When an operation reports both, the number outranks the
+verdict** — and a zero there means the operation did not occur, whatever the verdict says.
+‼ This is the fourth instance of one shape in two days: **an instrument that cannot express the
+failure will report success** (the vacuous `[KI96-REREAD]` probe; the 40-event whiteout fixture; the
+masked exit code; this). ⇒ before believing a green result, ask what it would print if the thing were
+broken. If the answer is "the same", it is not a check.

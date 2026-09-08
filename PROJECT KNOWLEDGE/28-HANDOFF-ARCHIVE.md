@@ -10335,4 +10335,3 @@ POKEBOT_R131_FAULT=stride PYTHONUTF8=1 py -3.12 probe_ch21_route131_live.py   # 
 ⛔ **Quote `ch21pocket`'s `RESULT` line, never its `ACCEPTANCE` line**: ACCEPTANCE grades *"did every
 reading happen"*; whether the walk worked is the separate `walked_out=` field. ⚠ Any driver dirties
 `party_accounting_ledger.jsonl` — expected, not damage (playbook §2b).
-

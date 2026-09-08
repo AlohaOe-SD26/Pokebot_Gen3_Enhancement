@@ -24502,3 +24502,79 @@ Files: `sandbox-pokebot/modules/story/early_game.py`,
 `sandbox-pokebot/plugins/custom_modes/story_mode.py`,
 `tools/story-dev/{probe_whiteout_budget.py,run_gates.py,fixtures/whiteout-sequences-20260907.json}`,
 `PROJECT KNOWLEDGE/{02,03,04,05,07,08}`.
+
+## 2026-09-08 — THE POST-FIX BATCH: the §Ch23 Waterfall wall is BROKEN (11 of 53 → 0 of 49)
+
+`x4-runs/20260907-203713`, **`--build sandbox`, `code_commit 8a8ae2d9`**, 8 lanes, 480.1 wall
+minutes, **49 ended runs, VERDICT OK**, 57 run headers checked, 0 violations. Compared against
+`x4-runs/20260907-113851` (custom, KI-97 only, 480.2 min, 53 ended) — **equal wall time**, which is
+what makes the comparison fair.
+
+```
+failure class                     BEFORE (53)     AFTER (49)     delta
+whiteout quota                    14 (26.4%)      4 ( 8.2%)     -18.3 pp
+Ch23 Victory Road                 11 (20.8%)     18 (36.7%)     +16.0 pp
+boss: no SE answer (honest stop)   9 (17.0%)     12 (24.5%)      +7.5 pp
+global watchdog                    7 (13.2%)      5 (10.2%)      -3.0 pp
+Surf party-full                    5 ( 9.4%)      0 ( 0.0%)      -9.4 pp
+Dive party-full                    2 ( 3.8%)      0 ( 0.0%)      -3.8 pp
+cutscene stall                     0 ( 0.0%)      4 ( 8.2%)      +8.2 pp   <- NEW
+per-run frame budget               0 ( 0.0%)      2 ( 4.1%)      +4.1 pp   <- NEW
+TOTAL ended / finished            53 / 0         49 / 0
+```
+
+**⭐⭐ THE HEADLINE IS NOT THE TOTAL, IT IS THE SHAPE OF THE §Ch23 ROW:**
+```
+BEFORE:  Ch23 preflight = 11    training-leg =  0
+AFTER:   Ch23 preflight =  0    training-leg = 16   waterfall-teach = 1
+```
+**The Waterfall PREFLIGHT went 11 → 0.** Across 37 stored batches the 8th badge had been reached six
+times and **all six died on that preflight**; nothing had ever passed it. It is now passed, and runs
+die 16× deeper, in the TRAINING leg — a failure that could not previously exist because nothing
+reached it. ⇒ **`#24-hm07teach` and `#24-hm07funnel` are CLOSED, driven at scale.**
+
+**⭐ AND THE HM FUNNEL IS PROVEN THE SAME WAY: Surf + Dive party-full went 7 of 53 → 0 of 49.** Those
+two classes were exactly what `pick_land_hm_slot` targeted. Runs demonstrably reached and passed both
+teach points (18 of them got as far as Victory Road), so this is elimination, not avoidance.
+
+**⭐ THE WHITEOUT BUDGET, LIVE: 14 → 4, and the new message is the one firing** (*"at one location
+(N without the story moving on, at (N,N))"*). ‼ **It did NOT go to zero, and that is the correct
+result** — 4 runs were genuinely stuck in one place and the guard caught them. A fix that drove this
+to 0 would have deleted the guard.
+
+**⚠ WHAT GREW, AND WHY IT IS NOT A REGRESSION.** Clearing early blockers lets runs travel far enough
+to meet later ones; the remaining rows are SHARES OF A DIFFERENT MIX. The honest-stop class
+("N losses with no super-effective answer … grinding will not fix this") growing to 24.5% is Regime
+A's diagnostic working, not a new defect. ⛔ **Two rows are genuinely NEW and are not explained by
+the mix**: `cutscene stall` (4) and `per-run frame budget` (2). Both are filed.
+
+**‼ STILL 0 FINISHED OF 49.** The bot cannot complete the story. But the wall that had stopped
+every 8-badge run in project history is gone, and the two next walls are named and evidenced.
+
+**⚠ HONEST LIMIT ON THE COMPARISON:** BEFORE is `--build custom`, AFTER is `--build sandbox`, so this
+is not a single-variable A/B — every sandbox difference is in it, not only the three fixes. The
+per-class deltas that are load-bearing (preflight 11→0, Surf/Dive 7→0) are each tied to a specific
+change with its own mechanism, which is why they are read as evidence and the aggregate is not.
+
+## 2026-09-08 — `archive_doc_block.py` INVARIANT D: an archival CLAIM requires an archival MOVE
+
+Called as `--starts-with "### ✅ \`#24-hm07teach\`"` on `03-PUNCH-LIST.md`, the tool reported
+**"moved 0 line(s) … No loss, no orphan — both invariants verified before writing"** and left a
+pointer reading *"📦 ARCHIVED VERBATIM … nothing deleted"* with **the entire body still sitting
+directly beneath it**, in two items.
+
+**Why A and B both passed.** With nothing removed, A has no lines to lose. B's trailer is a `- [x]`
+bullet — which IS a legitimate block boundary in this file's item format. The block was the **HEADER
+ALONE**, because `find_block` correctly stops at the first bullet. ⇒ the tool did the mechanical job
+right and produced a document that lied.
+
+**Root cause of the misuse:** a `###` anchor in a file whose items are `- [x]` bullets. The only
+signal was the words *"moved 0 line(s)"* in stdout — a number a human must notice, not a check.
+
+**INVARIANT D:** if the pointer makes an archival claim (`ARCHIVED` / `MOVED TO` / `NOTHING DELETED`
+/ `VERBATIM`) and **zero lines would move**, refuse. ⭐ D is about the CLAIM, not the technique —
+replacing a block with a summary pointer stays legal, and a no-fire arm proves it.
+Self-test is now **9 arms** (was 7). The file's docstring said "TWO INVARIANTS" while enforcing four;
+corrected. ⭐ The pattern worth seeing: **A and B protect the MOVE; C and D protect the CLAIM** —
+every invariant after the first two exists because the mechanics were right and the document was
+still false.
