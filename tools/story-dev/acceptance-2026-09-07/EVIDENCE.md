@@ -45,7 +45,7 @@ The RESCUE half needs a save at MOSSDEEP_CITY_GYM (23,8) with BADGE07 SET — se
 ## `KI-96` — ✅ SOLVED AND DRIVEN (2026-09-07 19:40–19:52)
 
 Same fixture (`saves/post_grind_L60.ss1`), same driver (`--driver ch23chapter`), same build
-(`sandbox`), 26 minutes apart. Each arm made **exactly one** `RotateLead` attempt, so the two are
+(`sandbox`), ~6 minutes apart. Each arm made **exactly one** `RotateLead` attempt, so the two are
 directly comparable on a single event.
 
 ```

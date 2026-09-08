@@ -2472,7 +2472,7 @@ Graded by `grade_ki93_drive.py` (C0-C3 PASS, exit 0); ordinary-case A/B byte-ide
 memory keyed on `personality_value` that expires when a turn executes. **It is a CLASS fix:
 61 battle strings end in `\p`.**
 
-‼ **`KI-96` IS THE SAME CLASS, STILL OPEN** — the in-battle PARTY-MENU switch is another of
+‼ **`KI-96` WAS THE SAME CLASS — ✅ SOLVED AND DRIVEN 2026-09-07 (evening); ⛔ NOT OPEN.** *(read "IS THE SAME CLASS, STILL OPEN". Found by grepping the tree for the slug AFTER a Tier 1 review had already passed its P1-P5 pairs — this line sits in ANOTHER KI's body, so no header/body pair covers it. ⇒ **the pair checks and the slug sweep catch different things; both are required.**)* — the in-battle PARTY-MENU switch is another of
 `KI-47`'s unbounded loops, and it now blocks the L60 party from reaching the League.
 
 ### ⛔⛔ 2026-09-06, SAME NIGHT — AN INDEPENDENT REVIEWER FOUND A REAL DEFECT IN THIS FIX. ✅ FIXED AND RE-DRIVEN CLEAN (see the grade below).
@@ -2582,7 +2582,7 @@ the mapping; that was rounds 1-3's mistake.
 ‼ BOUNDED AND FALLING BACK: if the menu never appears the pre-menu value stands and the 240-press
 bound still catches it. An unbounded wait would be a new hang — the one thing this arm must never grow.
 
-**✅ THE A/B, same fixture (`post_grind_L60.ss1`), same driver (`--driver ch23chapter`), 30 min apart:**
+**✅ THE A/B, same fixture (`post_grind_L60.ss1`), same driver (`--driver ch23chapter`), ~6 min apart:**
 ```
 BEFORE  241 presses, the bound fires, "DIVER is already in battle!" for ever   (6 battles fought)
 AFTER    27 presses, "[KI96-DONE] the party menu closed — the switch was ACCEPTED"  (12 battles)
@@ -2602,7 +2602,7 @@ This is Rule 10 (measure an index-space conversion before changing it) doing its
 the vacuous probe nearly cost the correct answer.
 
 
-**⭐⭐ WHY IT MATTERS RIGHT NOW: LEVELLING ALONE DOES NOT UNBLOCK §Ch24.** The L60 party
+**⭐⭐ WHY IT MATTERED (2026-09-07, morning — ⛔ PAST TENSE; THE WEDGE IS FIXED, see the SOLVED block above; §Ch23 now drives to `ACCEPTANCE: PASS` from this same fixture).** *(A Tier 1 reviewer caught this paragraph still reading "cannot"/"wedges"/"BLOCKED" in the present tense directly beneath a header proclaiming it solved — pair P2 exactly.)* The L60 party
 (`post_grind_L60.ss1`) cannot complete §Ch23's chain — it wedges here long before the League door, so
 the §Ch24 measurement this fixture was built for is BLOCKED on this, not on levels.
 

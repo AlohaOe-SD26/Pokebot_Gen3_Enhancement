@@ -14608,3 +14608,42 @@ usage line — it lists positionals and it is the FIRST thing printed.
 failure will report success** (see the vacuous `[KI96-REREAD]` probe and the 40-event whiteout
 fixture, both the same date). ⛔ Before believing a green result, ask what this check would print if
 the thing were broken — and if the answer is "the same", it is not a check.
+
+## 2026-09-07 — I quoted an elapsed time from memory, twice, with two different wrong numbers
+
+**Symptom.** A Tier 1 reviewer noticed the same `KI-96` A/B described as **"26 min apart"** in
+`04-HANDOFF.md` and **"30 minutes apart"** in `05-KNOWN-ISSUES.md` and `07-CHANGELOG.md`. It flagged
+only the INCONSISTENCY. Checking against the timestamps showed something worse: **both numbers were
+wrong.** The runs were 19:40:20→19:45:51 and 19:46:08→19:52:14 — **~6 minutes apart**, a figure I had
+printed in my OWN tool output earlier in the same session and then never looked at again.
+
+**Root cause.** The number was never load-bearing, so it was written from recollection while
+composing prose, and recollection produced a plausible-sounding interval. Once written it was copied
+between documents, which is why it appeared in three files and why the two variants diverged.
+
+**⭐ PREVENTION RULE — A QUANTITY IN A DOCUMENT IS COPIED FROM A MEASUREMENT, NEVER RECALLED.**
+If a number cannot be pointed at in tool output, it does not go in the document — write "see the
+log" instead. ‼ And note what saved it: the reviewer could not tell WHICH figure was right, only that
+they disagreed. **Disagreement between two copies is detectable; a single confidently-wrong figure is
+not.** ⇒ the danger is not the inconsistent number, it is the consistent one nobody cross-checked.
+
+## 2026-09-07 — the marker line told me to re-read the banner in the same edit, and I did not
+
+**Symptom.** The `➡➡➡` NEXT-ACTION marker was updated to say `KI-96` is SOLVED. A Tier 1 reviewer
+found the file's TOP orientation block — the one the header points a cold reader at — still reading
+*"`KI-96` … remains OPEN"* and *"NEXT JOB: drive with `POKEBOT_KI96_CENSUS=1`"*. A cold start would
+have been sent to re-measure an answered question. `03-PUNCH-LIST.md`'s `#24-remainingarc` row
+carried the same instruction.
+
+**Root cause.** ⛔ **The marker line ITSELF carries the instruction I needed:** *"whenever the `➡➡➡`
+marker changes, RE-READ THIS CLAUSE AND THE `🌙 OVERNIGHT RUN` BANNER AT THE TOP OF THIS FILE IN THE
+SAME EDIT."* I edited that very line — I had it open, I replaced text inside it — and did not act on
+the sentence sitting in it. A 16,590-character line hides its own instructions.
+
+**⭐ PREVENTION RULE — WHEN YOU EDIT A LINE, READ THE WHOLE LINE FIRST.** In this tree the load-bearing
+lines are tens of thousands of characters and contain maintenance instructions addressed to whoever
+edits them next. Before replacing an anchor inside a long line, grep that line for "RE-READ",
+"IN THE SAME EDIT", and "whenever" — the file has been trying to tell you.
+‼ **AND: PAIR CHECKS AND SLUG SWEEPS CATCH DIFFERENT THINGS.** After fixing the reviewer's P1-P5
+findings, grepping the tree for `KI-96` found one MORE stale "STILL OPEN" claim — inside a DIFFERENT
+KI's body, where no header/body pair reaches it. Both passes are required; neither subsumes the other.

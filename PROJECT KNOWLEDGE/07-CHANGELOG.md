@@ -24385,7 +24385,7 @@ trapped).
 `in_battle_index`. Bounded, and falls back to the pre-menu value with the 240-press bound still
 behind it.
 
-**A/B — same fixture, same driver, 30 minutes apart:** 241 presses / bound fires / wedged forever →
+**A/B — same fixture, same driver, ~6 minutes apart:** 241 presses / bound fires / wedged forever →
 **27 presses / `[KI96-DONE] the switch was ACCEPTED`**, 0 bound firings, and the run fought 12
 battles against the wedged run's 6.
 
