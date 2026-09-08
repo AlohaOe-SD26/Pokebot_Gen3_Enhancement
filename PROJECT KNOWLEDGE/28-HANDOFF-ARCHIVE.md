@@ -10158,3 +10158,181 @@ a skimmer read it as the instruction — a cold-start audit caught exactly that.
 PROBE precisely because a gate red on arrival on pre-existing debt teaches everyone to ignore gates
 (`repro_no_silent_except.py` took this exact path). Tracked as `#24-abortswallow`.
 
+---
+
+## Archived from `04-HANDOFF.md`
+
+Per-leg driver invocations for two COMPLETED chapters. Moved only for 04's 900-line budget; a cold start needs the generic run commands (kept in 04), not these.
+
+### §Ch21 + §Ch22 STORY LEGS — the runnable drivers
+*(‼ added 2026-08-27 because a Tier 1 review found every leg existed only as PROSE, so a cold agent
+could not START the shipped work from this file.)*
+```
+cd tools/story-dev
+# legs 1 / 2a / 2b — each from its own PINNED fixture. ‼ Also covered end-to-end by `ch21chapter`
+# below; these stay for isolating ONE leg, not for regression sweeps.
+PYTHONUTF8=1 py -3.12 story_harness.py post_ch20.ss1              --driver ch21dive
+PYTHONUTF8=1 py -3.12 story_harness.py post_sootopolis_arrival.ss1 --driver ch21escort
+PYTHONUTF8=1 py -3.12 story_harness.py post_steven_escort.ss1     --driver ch21cave
+# leg 3 step 0 — POCKET-EXIT probe, LIVE half (post_wallace.ss1) ~4,200 fr. ⚠ The `navigate` arm
+# is the naive one and is MEASURED IDENTICAL to `follow`.
+PYTHONUTF8=1 py -3.12 story_harness.py post_wallace.ss1           --driver ch21pocket --frames 60000
+POKEBOT_CH21_POCKET_ARM=navigate  ... same ...
+
+# leg 4 — THE SKY PILLAR climb + descent            (fixture: post_skypillar_door.ss1) ~10,100 frames
+PYTHONUTF8=1 py -3.12 story_harness.py post_skypillar_door.ss1    --driver ch21climb --frames 60000
+
+# ‼ leg 5's recipes (the PART C validation probe + its CONTROL arm, the return leg, the mid-leg
+#   NPC half, and its SIX fault arms) are ARCHIVED VERBATIM in `28-HANDOFF-ARCHIVE.md` 2026-09-03.
+#   The PART C arms are still the reference for proving KI-73 on a layout-swapped map.
+# §Ch21 AS A CHAPTER — the PRODUCTION entry point, legs 1->5   (fixture: post_ch20.ss1)
+#   MEASURED 2026-09-02: frames=95823, encounters=26, whiteouts=0, ACCEPTANCE: PASS.
+#   Expect: ROUTE128(38,24) vars (1,0) -> SOOTOPOLIS_CITY(31,34) vars (5,3), hm07_in_bag=1,
+#           wallace_state=1, gym_door(31,32)=2 wp, poke_center(43,32)=22 wp, premise_ok=True.
+PYTHONUTF8=1 py -3.12 story_harness.py post_ch20.ss1              --driver ch21chapter --frames 250000
+#   the VACUITY arm (must FAIL — it proves the grade is not satisfied by a no-op):
+PYTHONUTF8=1 py -3.12 story_harness.py post_hm07.ss1              --driver ch21chapter --frames 400
+
+# §Ch22 PART A — the read-mostly gym probe (post_hm07.ss1) ~3,958 fr. PASSED 2026-09-02; kept
+#   startable as the reference A/B for proving an instrument BLIND. Expect PASS, P0-P5, 64 thin ice
+#   in sections 7/19/38, six locked stairs, metatile_diff=1 after one ice step and collision_diff=0
+#   (the blindness proof), ICE_STEP_COUNT 1->2, re-entry resets to 1, money=67466, whiteouts=0.
+PYTHONUTF8=1 py -3.12 story_harness.py post_hm07.ss1              --driver ch22probe --frames 60000
+#   its fault arm (must FAIL — proves the grade requires the MEASUREMENT, not just the code path):
+POKEBOT_CH22_FAULT_NOSTEP=1 ... same ...
+
+# §Ch22 THE ICE PUZZLE — the 64-step route table, walked   (fixture: post_hm07.ss1) ~2,232 frames
+#   ⛔ DRIVEN 2026-09-02, and now also covered by the CHAPTER below. Production `walk_the_ice()`;
+#   the table is re-derived from the DECOMP by `solve_gym_ice.py` and re-checked LIVE every step.
+#   Expect: PASS, steps=64, sections (1,7,(8,17),9) (2,19,(8,12),29) (3,38,(8,6),68), frames=2232,
+#           `end_tile=(8,6)` BUT `at=(8,3)` — DIFFERENT FIELDS, both right: production ENDS on
+#           (8,6) and the 3-step climb to (8,3) is `climb_to_juan()`, which the CHAPTER owns.
+#   ‼ End counts are 9/29/68, NOT 8/28/67 (each unlock's `addvar` lands in the crossing step's
+#     beat). The guard tolerates +1 AND +2 — asserting +1 exactly was a real bug.
+PYTHONUTF8=1 py -3.12 story_harness.py post_hm07.ss1              --driver ch22ice   --frames 60000
+
+# §Ch22 THE STAIR COLUMN — READ-ONLY, ~2,232 fr. ⛔ RUN BEFORE TOUCHING THE DESCENT. Walks the ice,
+#   then dumps live column x=8 before AND after — an A/B in one run. Expect (8,4) and (8,5) both
+#   0x20f -> 0x207 (LOCKED -> OPEN), (8,6) -> 0x20e cracked, (8,2)=0x22b (JUAN'S OWN TILE, plain
+#   floor), VERDICT: WALK, PASS. ‼ PASS means THE READING HAPPENED — read the VERDICT line.
+PYTHONUTF8=1 py -3.12 story_harness.py post_hm07.ss1              --driver ch22stairs --frames 60000
+
+# §Ch22 THE EXIT — the ice, then the DELIBERATE FALL to B1F and out, ~19,989 frames (MEASURED)
+#   ⛔ DRIVEN 2026-09-03, the first entry into B1F ever. ‼ It re-walks the ice; the CHAPTER does not.
+#   Expect PASS: ice_steps=64, fall to B1F (8,6) in ~140 fr, b1f_steps=19, battles=3 at (8,8)
+#   (8,17) (8,19), end SOOTOPOLIS_CITY (31,33), continue=23 wp, whiteouts=0, frames=19989,
+#   PARTY 629/694 -> 332/694 with ZERO faints.
+#   ⛔⛔ 3 BATTLES IS *THIS DRIVER'S* PASS SHAPE — it runs at `badge8=False`. THE ASSEMBLED CHAPTER
+#     SEES **ZERO** (the victory script settrainerflags all ten; MEASURED live). ⇒ this leg's battle count and HP cost are NOT transferable; the FALL and the ROUTE are.
+PYTHONUTF8=1 py -3.12 story_harness.py post_hm07.ss1              --driver ch22exit  --frames 120000
+
+# §Ch22 JUAN — GYM 8, ~32,891 fr (MEASURED; the first gym-LEADER fight ever timed here). DRIVEN
+#   2026-09-03 AND WON. Expect PASS, badge8=True won=True at=GYM_1F(8, 3), city_state=6, battles=1,
+#   outcomes=['BattleOutcome.Won'], whiteouts=0, SURVIVORS 5/6, frames=32891.
+#   ⛔ RE-RUNNING THIS UNJITTERED IS A REPLAY, NOT A SAMPLE (3 identical runs proved it). New draw:
+POKEBOT_CH22JUAN_JITTER=181 PYTHONUTF8=1 py -3.12 story_harness.py post_hm07.ss1 --driver ch22juan --frames 120000
+#     Expect a DIFFERENT frame count (25508 at N=181) and two DIFFERENT RNG values across the
+#     idle — equal means the jitter moved nothing. ⇒ a LOSS is a RESULT: 6 draws, 5 WINS, 1 LOSS.
+PYTHONUTF8=1 py -3.12 story_harness.py post_hm07.ss1              --driver ch22juan  --frames 120000
+
+# §Ch22 AS A CHAPTER — the PRODUCTION entry point (Segment 22). (fixture: post_hm07.ss1) ~64,563 fr
+#   ✅ DRIVEN TO PASS 2026-09-03, INCLUDING A LOST GYM FIGHT IT RECOVERED FROM. ⛔ DO NOT REBUILD.
+#   Expect PASS: badge8=True, at=SOOTOPOLIS_CITY(31,33), city_state=6, ice_steps=64 (ice_ok=True),
+#   b1f_steps=19, battles_on_B1F=0 WITH b1f_entered=True, CONTINUE=23, RECOVERIES 1,
+#   outcomes=['BattleOutcome.Lost','BattleOutcome.Won'].
+#   ⭐ `battles_on_B1F=0` IS MEANINGLESS WITHOUT `b1f_entered=True` — drive 1 printed the same 0
+#     having never set foot on B1F.
+#   ⚠ A LOSS IS A RESULT (stochastic, 5W/1L over six draws) and the chapter RECOVERS. ⛔ A
+#     transcript with NO `ACCEPTANCE` line + `BotModeError -> Manual` is **KI-47** (which has a
+#     deterministic repro command there), not a hang and not a §Ch22 defect.
+PYTHONUTF8=1 py -3.12 story_harness.py post_hm07.ss1              --driver ch22chapter --frames 300000
+#   two fault arms, each FAILing for a DIFFERENT half of the completion predicate:
+#   POKEBOT_CH22_FAULT_{NODESCEND -> stranded on the ISLAND | STRANDED -> still on GYM_1F}=1
+#   ⭐ CH22_CAPTURE=post_badge8.ss1 ... same ...  captures §Ch23's fixture on a FULL PASS only.
+
+# §Ch23 LEG-9 ROUTING PROBE (OBSERVE-ONLY — walks nowhere, fights nothing; ~1 min):
+#   PYTHONUTF8=1 py -3.12 story_harness.py post_return.ss1 --driver ch23leg9probe --frames 3000
+#   Expect `ACCEPTANCE: PASS`, `battles=0`, readings R9P-HERE/DIRECT/CONE/BYPASS/SPLIT. It grades on
+#   HAVING ASKED, not on the answers. Measured 2026-09-05 (late): direct = 62 wp ENTERS the cone at
+#   (31,17); (33,16) bypass = 44+18 = 62 wp BOTH CONE-FREE (=> FREE); split routes enter (31,17), safe=False;
+#   CONTROL_..._33_17 = PathFindingError EXPECTED (elevation-15 seed, kept visible). Full: 07-CHANGELOG.
+# §Ch23 — VICTORY ROAD. ✅ ELEVEN LEGS BUILT AND DRIVEN (2026-09-04) **AND THE CHAPTER IS WIRED (2026-09-05)**. ⛔ DO NOT REBUILD THE LEGS OR THE ORCHESTRATOR. THE CHAPTER: `PYTHONUTF8=1 py -3.12 story_harness.py post_league_shop.ss1 --driver ch23chapter --frames 3000` — the CHEAP resume arm, expect `ACCEPTANCE: PASS`, `done=True`, `inside_victory_road=False`, `neighbours_reachable=4`. ⭐ THEN THE ARM THAT ACTUALLY PROVES THE DESIGN: `POKEBOT_CH23_PREDICATE_ONLY=1 ... post_wally.ss1 --driver ch23chapter --frames 2000` — expect `flag_only=True gate=False inside_victory_road=True`, i.e. a flag-only completion predicate would call the chapter DONE with six legs to go. ‼ The cheap arm CANNOT prove that: on the end fixture the flag and the gate agree, so a flag-only predicate passes it identically. ✅✅✅ THE FULL CHAIN (`post_wally.ss1 --driver ch23chapter --frames 600000`) **PASSES** as of 2026-09-05: `ACCEPTANCE: PASS`, `done=True`, `battles=16`, `whiteouts=0`, `failure=None`, ending at EVER_GRANDE (18,6). ⭐ `done=True` requires the whole Elite Four basket in the bag, so a pass also proves the purchase. ⛔ **DO NOT RE-DRIVE IT TO "CHECK".** *(This line read "It now LOSES the leg-9 Katelynn+Quincy double and whites out" — fixed the same day by routing leg 9 around the pair via (33,16) and, when that skipped their ₽4,128 of payouts, by selling the Nugget at leg 11.)* Fault arms for this leg: **`POKEBOT_CH23_FAULT_NOBYPASS=1`** (route direct through the sight cone — expect the pair to fire at (31,17)) and **`POKEBOT_CH23_FAULT_NOSELL=1`** (skip the top-up — expect a loud ₽2,387 shortfall). Also `POKEBOT_CH23_FAULT_STRANDED=1`, `POKEBOT_CH23_FAULT_NOLEAGUEHEAL=1`. *(This line read "THE CHAPTER IS UNBUILT" for eleven legs — a Tier 1 reviewer found the section had NO run command for any leg past leg 1.)*
+# ✅ START FIXTURE: saves/post_badge8.ss1 (md5 723d94cc899f3ad2c75fbf49f9192984), all EIGHT badges, SOOTOPOLIS_CITY (31,33). ⚠ 428/701 (61%) with ONE MEMBER FAINTED, so §Ch23 opens with a heal. Verify a fixture from the FILE: probe_anchor_inventory.py.
+# ⭐ EVERY LEG IS `PYTHONUTF8=1 py -3.12 story_harness.py <fixture>.ss1 --driver <name> --frames <N>`, run from tools/story-dev. Each fixture's md5, its state, and that leg's expected readings live in `saves/FIXTURES.md5` — THE AUTHORITY, never this line. Legs 2-11, in order:
+#   ch23depart post_waterfall 40k · ch23cross post_depart_sootopolis 60k · ch23road post_training 60k · ch23descend post_wally 120k · ch23cross2 post_b1f_healed 120k · ch23return post_b2f 120k · ch23exit post_return 120k · ch23heal post_vr_exit 120k · ch23shop post_league_heal 120k (leg 11, buys the Elite Four basket; fault arm POKEBOT_CH23_FAULT_NOBUY=1 must FAIL) ‼ AND §Ch24 TRAVEL: `ch24fly post_moveset 40k` teaches Swellow Fly (expect `LANDED ['Swellow:Fly']`), then `ch24flyto post_fly 40k` FLIES to Slateport (expect `moved=True`, `party_pids_stable=True`, `neighbours_reachable=4`; `CH24_FLY_DEST=` overrides the target; fault `POKEBOT_CH24_FAULT_NOFLY=1` must FAIL). ‼ AND §Ch24: `ch24moves post_league_shop 40k` — `#24-e4moveset`, the FOUR FREE move changes (Sceptile Slam→Aerial Ace · Swellow Peck→Facade · Mightyena Tackle→Strength · Zigzagoon Growl→Rock Smash). Expect `ACCEPTANCE: PASS`, `LANDED` 4/4, `WRONG []`; captures `post_moveset.ss1` with `CH24_CAPTURE=`. Fault arm `POKEBOT_CH24_FAULT_BADMOVE=1` must FAIL by REFUSING (a single-use TM must never be spent on a guess). ⭐ Plan + rationale: `ai-research-notes/2026-09-04-ch24-MOVESET-AND-TM-PLAN.md`. ‼ AND §Ch24: `ch24heal post_league_shop 60k` — `#24-e4healing` step 1, the OUT-OF-BATTLE party heal. It STAGES its own damage (2 fainted, 1 FROZEN, 2 hurt) because no fixture has both a hurt party and the basket, then heals to full. Expect ACCEPTANCE: PASS, heal_actions=7, heal_ready=True, REVIVE ORDER [(4,Revive),(1,Revive)] (battle value, NOT slot order), Castform untouched. Fault arm POKEBOT_CH24_FAULT_NOHEAL=1 must FAIL. ‼ AND §Ch24 ICE BEAM, BOTH HALVES DONE 2026-09-05 — ⛔ these are REPRODUCTIONS, not work to do: `ch24icebeam post_slateport 700k` sails to the Abandoned Ship, takes the Storage Key, INSERTS it (the Storage Room door is a `MB_NORMAL` WALL until it is), takes **TM13** and returns outside; expect `ACCEPTANCE: PASS`, `have_key=True`, `have_tm13=True`, `battles=2`, `whiteouts=0`, capturing `post_icebeam.ss1`. Fault arm `POKEBOT_CH24_FAULT_NOKEY=1` must refuse at the Captain's Office, BEFORE the long walk back. ‼ Boarding is a NORTH ARROW warp — stand ON (29,6) and hold Up. THEN `ch24teachice post_icebeam 6k` teaches it: expect `ACCEPTANCE: PASS`, `LANDED ['Wailord:Ice Beam']`, `wrong=[]`. ⭐ Use a SMALL frame budget — it reaches its verdict by ~f574 and then idles to the cap in Manual, so 40k wastes twelve minutes. ⚠ Its trace should print `upstream left the cursor on slot 13 (HM08); correcting to slot 3 (TM13)` — that correction IS the fix for `KI-89`; if it stops printing, upstream changed.
+# leg 1 — TEACH WATERFALL TO WAILMER. ~1,896 frames. ✅ DRIVEN 2026-09-03, ACCEPTANCE: PASS.
+#   Expect: production picks slot 3 unaided, GAINED ['Waterfall'], LOST ['Rollout'],
+#           keeps_dive=True keeps_surf=True, party intact 6->6, whiteouts=0.
+#   ⭐⭐ `keeps_dive` IS THE GRADE, not a nicety: Wailmer is the party's SOLE Dive carrier and Dive
+#     is the only exit from the Sootopolis crater (no land connections, allow_escaping false).
+#   ⚠ It is the deepest forget-menu scroll this bot has driven (slot 3; both precedents were 1).
+#     `#26-surfteachchain` D3 did NOT fire — that is NOT the same as D3 being fixed; its hazard is
+#     RE-ENTRY and this run never re-entered. D3 stays OPEN.
+PYTHONUTF8=1 py -3.12 story_harness.py post_badge8.ss1            --driver ch23teach --frames 40000
+# Victory Road's route, OFFLINE from the decomp (no emulator, seconds). ⛔ RUN --self-test FIRST:
+#   its negative/fault controls are what make the numbers mean anything.
+PYTHONUTF8=1 py -3.12 solve_victory_road.py --self-test
+PYTHONUTF8=1 py -3.12 solve_victory_road.py
+#   Expect: Q1 says the exit is **UNREACHABLE on 1F alone** (477 tiles), and prints the same query
+#           with elevation IGNORED (71 steps, 646 tiles) right beneath it — ‼ THE TWO DISAGREEING
+#           IS THE POINT: elevation is what separates the regions, and 71 was v1's artifact.
+#           Q2: on B1F only [both] opens the floor — 23 tiles with neither, 66 Strength-only,
+#           23 Rock-Smash-only, 298 + the B2F warp with both. ⇒ **STRENGTH AND ROCK SMASH ARE BOTH
+#           REQUIRED and §Ch23 DOES need a boulder solver.** Flash stays optional, but B1F/B2F are
+#           on the critical path and get walked dark. Q3: Wally's detour costs **0 steps**.
+#   ⛔ --self-test carries ONE CONTROL PER MODEL (collision leak + fault, ELEVATION leak + fault,
+#     off-grid raise). v1 had only the collision pair, it PASSED, and the bug was in elevation.
+
+# leg 3 — THE APPROACH, the PRODUCTION entry point. ~34,000 frames (MEASURED). Expect PASS,
+#   reached=True at=SKY_PILLAR_ENTRANCE(6,16) pocket_attempts=1 rest=(6,16) encounters=9
+#   whiteouts=0 frames=34122 rest_matches_prediction=True; METHOD planner_calls_on_route131=2
+#   blind_steps_taken=1 tail_tiles_confirmed=16/16 method_ok premise_ok; CONTROL control_refused
+PYTHONUTF8=1 py -3.12 story_harness.py post_wallace.ss1 --driver ch21approach --frames 120000
+
+# leg 4 — THE SKY PILLAR CLIMB + DESCENT. ~10,000 frames (MEASURED). Both one-shots, both falls.
+#   Expect: reached=True at=SKY_PILLAR_ENTRANCE(14,3) phase=full order_ok=True falls=[ascent,descent]
+#           floors_pinned=7 VARS end=(5,1,1)  METHOD premise_ok=True method_ok=True  ACCEPTANCE: PASS
+PYTHONUTF8=1 py -3.12 story_harness.py post_skypillar_door.ss1 --driver ch21climb --frames 60000
+# ‼ leg 4's SEVEN FAULT ARMS (each FAILS for its own reason) are ARCHIVED VERBATIM in
+#   `28-HANDOFF-ARCHIVE.md` 2026-09-03 — moved, not deleted, to make room for §Ch23. Restore them
+#   from there if `climb_sky_pillar` is ever touched; `--driver ch21chapter` is the end-to-end arm.
+# the Sky Pillar CLEAN layouts for all six floors, from our ROM (no network). Offline, seconds.
+PYTHONUTF8=1 py -3.12 probe_skypillar_rom_layouts.py
+POKEBOT_SPROM_FAULT=stride|noagree   ... same ...   # self-tests (both RED); anycand PASSES on purpose
+# ‼ leg 3's THREE fault arms (POCKETSTALL must still PASS with pocket_attempts=2; BLINDWALL and
+#   POCKETWALKBACK must FAIL by name) are ARCHIVED VERBATIM in `28-HANDOFF-ARCHIVE.md` 2026-09-03.
+# ⛔⛔ NONE OF THE §Ch21 PROBES IN THIS BLOCK IS READ-ONLY, WHATEVER ITS 'Offline' LABEL SAYS —
+#   ABOVE this line as well as below (a Tier 2 audit found it anchored below five of its subjects,
+#   one under 'RUN THIS FIRST'). All SEVEN boot LibmgbaEmulator on the SHARED `repro-ml` profile
+#   and write a save state + update current_state.ss1 EVERY RUN: probe_ch21_{skypillar,
+#   route131_tail,route131_live,leg3_constants,pocket_exit}, probe_live_mapgrid,
+#   ab_ch21_leg3_layoutpin. Gitignored, but it mutates shared state. `#24-skypillarprobewrites`.
+# ⛔ keep BOTH sky-pillar
+# probes: this one reads the layout WE plan on, `probe_skypillar_clean_layout.py` reads CLEAN.
+# leg 3 — the TAIL adjudication + the CONSTANTS re-check. Seconds. ⛔ NOT read-only — see above.
+PYTHONUTF8=1 py -3.12 probe_ch21_route131_tail.py
+POKEBOT_R131TAIL_FAULT=stride|swapsets|bendtail  ... same ...    # self-tests; all three must fire
+PYTHONUTF8=1 py -3.12 probe_ch21_leg3_constants.py
+# ⛔ THE INSTRUMENT FOR "the planner and the game disagree about a tile" — use it on ANY map that
+#   runs setmaplayoutindex or setmetatile. It reads gBackupMapLayout (RAM), which is the ONLY
+#   reader in this tree that can see either. Pass any save state.
+PYTHONUTF8=1 py -3.12 probe_live_mapgrid.py saves/post_skypillar_door.ss1
+# leg 3's layout-pin A/B, against drive 1's own stall state (reproduces the failure, then fixes it):
+PYTHONUTF8=1 py -3.12 ab_ch21_leg3_layoutpin.py
+
+# leg 3 step 0 — the STATIC half. Seconds. ⛔ NOT read-only (see above). RUN THIS FIRST.
+PYTHONUTF8=1 py -3.12 probe_ch21_pocket_exit.py
+POKEBOT_POCKET_FAULT=rig PYTHONUTF8=1 py -3.12 probe_ch21_pocket_exit.py   # self-test: C3 RED, exit 1
+
+# leg 3/4 — the SKY PILLAR, asked of PRODUCTION. Seconds, no network.
+PYTHONUTF8=1 py -3.12 probe_ch21_skypillar.py
+POKEBOT_SKYPILLAR_PROBE_FAULT=rig PYTHONUTF8=1 py -3.12 probe_ch21_skypillar.py  # self-test: C2 RED
+
+# leg 3 PRE-BUILD GATE — ROUTE131 SET A vs SET B, from OUR ROM. Offline, seconds. ⛔ RUN BEFORE BUILDING.
+PYTHONUTF8=1 py -3.12 probe_ch21_route131_live.py
+POKEBOT_R131_FAULT=stride PYTHONUTF8=1 py -3.12 probe_ch21_route131_live.py   # self-test: C2 RED, exit 1
+```
+⛔ **Quote `ch21pocket`'s `RESULT` line, never its `ACCEPTANCE` line**: ACCEPTANCE grades *"did every
+reading happen"*; whether the walk worked is the separate `walked_out=` field. ⚠ Any driver dirties
+`party_accounting_ledger.jsonl` — expected, not damage (playbook §2b).
+
