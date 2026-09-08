@@ -14475,3 +14475,23 @@ control, dead instrumentation, now an inverted gate). The pattern is stable enou
 instruments with the same optimism I am supposed to be guarding against.** The only defence that has
 worked every single time is external: run it on real data, in both directions, and make an
 independent reader check the claim rather than the intent.
+
+## 2026-09-07 — agents leave DEBRIS in the repo root, and a stray file is not harmless
+
+**WHAT HAPPENED.** After a workflow, `git status` showed an untracked `scratch_ctx.txt` at the repo
+root — 23KB of log excerpts an agent had written while triaging. Not mine, not gitignored, derived
+from a batch log that still exists. I identified it, confirmed it held nothing unique, and removed it.
+
+**⭐ WHY IT MATTERS MORE THAN IT LOOKS.** This project stages EXPLICIT PATHS precisely because a
+wildcard `git add` sweeps in unreviewed files — and the rule is "name every added file in the commit
+message; if you cannot say what it is, it does not belong". A stray untracked file is one careless
+`git add -A` away from being committed, and it makes every future `git status` noisier, which erodes
+the signal the whole staging discipline depends on.
+
+**⭐⭐ PREVENTION — TELL AGENTS WHERE TO WRITE, not just what not to touch.** My reviewer prompts
+already say "COPY the file to your temp dir" for FAULT-TESTING; they said nothing about scratch
+OUTPUT. ⇒ every agent prompt that might produce intermediate files should name a writable location
+outside the repo. "Read-only" constrains what an agent may CHANGE; it does not tell it where its own
+working files go, and an agent with nowhere obvious to write will use the working directory.
+‼ And the check that caught it costs nothing: **read `git status` before staging, and account for
+every line — including the `??` ones you are not staging.**
