@@ -123,3 +123,47 @@ POSITIONAL `state` argument, died in under a second on a usage error, and the ta
 text sat in this log while the drive was believed to be running. See `08-MISTAKES.md` 2026-09-07 —
 never put a command after the one whose status you care about, and confirm a long run STARTED by
 reading its log rather than trusting the launch.
+
+---
+
+## `#24-ch23training` — THE DISCRIMINATOR, BUILT AND VALIDATED (2026-09-08)
+
+The item's own gate demanded: *"STEP 1 IS THE FIXTURE, NOT THE FIX — capture a save whose party holds
+a mon 15+ levels below the max, and SHOW THE TWO ARMS DIFFER before changing `battler_identities`."*
+No save had that shape and `--inject-*` was preset-only. `--inject-hmmule` builds it.
+
+```
+both arms:  post_ever_grande.ss1 --driver ch23train --build sandbox
+            POKEBOT_CH23_ESTIMATE_ONLY=1        (returns after the estimate; seconds, not hours)
+
+CONTROL   R train_estimates = {Swellow: 144733, Wailmer: 217816, Mightyena: 75949}
+          worst 217,816  <  250,000  ceiling   ⇒ PASSES        total 438,498
+
+ARM A     R train_estimates = {Swellow: 144733, Wailmer: 217816, Mightyena: 75949,
+                               Marill#1E2702FE: 406972}
+          worst 406,972  >  250,000  ceiling   ⇒ WOULD REFUSE  total 845,470
+```
+
+**⭐ SINGLE-VARIABLE, AND THAT IS VISIBLE IN THE NUMBERS:** the three shared mons carry **identical**
+estimates in both arms (144733 / 217816 / 75949). The only difference is the injected mon.
+
+**⭐⭐ AND IT REPRODUCES PRODUCTION CHARACTER-FOR-CHARACTER.** The injected L13 Marill prices at
+**406,972** — the same figure as the real wild-caught Marills in batch `20260907-203713`
+(`'Marill#AF468E17': 406972`). ⇒ this **CONSTRUCTS** the frames→level inversion (406,972 ⇔ L13) that
+the entire root-cause analysis rested on, instead of inferring it. Wailmer's 217,816 independently
+matches the design figure quoted in `07-CHANGELOG.md`, a third corroboration.
+
+**⇒ THE ACCEPTANCE CRITERION FOR THE FIX IS NOW EXACT.** With the STEP-the-target fix
+(`06-DECISIONS-LOG.md` 2026-09-07 Decision 3, shipped as `Ch24Grind`/`POKEBOT_GRIND_STEP`):
+* **ARM A must PASS** — every individual `train_team` call's per-mon estimate stays under 250,000,
+  because the target is approached in 2-level steps rather than demanded in one call.
+* **The CONTROL must be unchanged** — it already passes, and a fix that alters it has changed
+  something it had no business touching.
+* ⛔ **A genuinely impossible case must STILL refuse.** Raise the mule far enough (`POKEBOT_MULE_LEVEL`
+  is the knob) and the run must stop loudly. A fix that never refuses has deleted the guard, which is
+  exactly what the REFUTED bench approach did via an empty battler set returning `(True, [])`.
+
+⚠ **WHAT THIS FIXTURE DOES *NOT* PROVE.** `ESTIMATE_ONLY` returns BEFORE the refusal at
+`victory_road.py:1938`, so these arms compare ESTIMATES, not the raise. That is deliberate — the
+estimate is the discriminator and it costs seconds — but a full acceptance of the fix still owes one
+non-`ESTIMATE_ONLY` run showing the wedge actually clears.
