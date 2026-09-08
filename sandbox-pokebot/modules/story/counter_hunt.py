@@ -749,8 +749,48 @@ def train_counter(slot: int, cfg: dict) -> Generator:
             f"[bold cyan]Story: training the counter — {mon.species.name} "
             f"L{mon.level} -> L{target} (team is L{team_level}, est {int(estimate)} frames).[/]"
         )
+        # ⛔⛔ KI-84 — ROTATE TO SLOT 0 OURSELVES, THEN TRAIN `slots={0}`.
+        # `train_team(slots={i})` with i != 0 builds `need` from `party[i]` BY INDEX, then
+        # `_rotate_lead_safely` SWAPS — so the next iteration reads the DISPLACED LEAD, `need` goes
+        # empty, and it returns as if finished. MEASURED over 286 production logs: of 28 counter
+        # trainings, **0 reached target**, 21 ran exactly ONE batch, 19 gained 0-1 level against a
+        # mean requirement of 13.8. That is `team_policy.py`'s "Makuhita L8 -> L9 across FIVE badges".
+        # ⭐ `slot` here is NEVER 0 (`party_counter_slot` skips pre-hunt PIDs and slot 0 is the lead),
+        # so this path was taken on EVERY hunt.
+        # ⛔ This does NOT touch `train_team` — KI-84's deferral is about that shared gym-prep path.
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import _rotate_lead_safely
+
+        pid = mon.personality_value
+        before_level = mon.level
+        if slot != 0:
+            yield from _rotate_lead_safely(slot)
+            # ⛔ ASSERT BY PID. `_rotate_lead_safely` gives up SILENTLY after 3 attempts; without
+            # this check we would grind whatever else is in slot 0 — burning the whole budget on the
+            # wrong Pokémon while every level readout still looked plausible.
+            lead = get_party()[0]
+            if lead is None or lead.personality_value != pid:
+                holder = "nothing"
+                if lead is not None:
+                    holder = f"{lead.species.name}#{lead.personality_value:08X}"
+                console.print(
+                    f"[yellow]Story: could not lead {mon.species.name}#{pid:08X} for training "
+                    f"(slot 0 holds {holder}) — continuing UNTRAINED rather than grinding the "
+                    f"wrong Pokémon.[/]"
+                )
+                return False
         yield from train_team(
-            target, slots={slot}, grass=grass, heal_center=heal
+            target, slots={0}, grass=grass, heal_center=heal
+        )
+        # ⛔ AND PROVE IT MOVED. `train_team` returning is not evidence — that is the whole KI-84
+        # shape. Report by IDENTITY, never by slot: the rotation above means slot indices lie.
+        after = next((m for m in get_party()
+                      if m is not None and m.personality_value == pid), None)
+        gained = (after.level - before_level) if after is not None else None
+        console.print(
+            f"[cyan]Story: counter training finished — {mon.species.name}#{pid:08X} "
+            f"L{before_level} -> L{after.level if after else '?'} "
+            f"(target L{target}, gained {gained if gained is not None else '?'}).[/]"
         )
         return True
     except Exception as error:

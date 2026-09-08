@@ -25060,3 +25060,67 @@ there. The single constant that forbids this today is `TRAIN_CATCHUP_GAP`, and w
 EARLY and ruinous LATE — so any change must be scoped to the early game, not applied globally.
 ⚠ NOT BUILT: an adversarial review of the §Ch3 direction is still running, and the last two fixes in
 this area were refuted after being built. The pricing above is a MODEL; the drive is owed.
+
+## 2026-09-08 — ⛔ THE STARTER HYPOTHESIS IS REFUTED, and ⭐ `KI-84` IS CONFIRMED AT `counter_hunt`
+
+### 1. Refuted: "pin the starter to Mudkip" is not the mechanism
+An adversarial pass proposed it on strong grounds — **Mudkip/Marshtomp/Swampert has IDENTICAL five-HM
+coverage to Marill** (verified), the starter is already a config value, and it is the one mon trained
+by construction (`to_train.add(strongest)`). Its cited natural experiment: Mudkip lanes 5/10 and
+8/10 finishing vs Treecko 0/6.
+
+**Discriminator PRE-REGISTERED before the numbers were read:** grade §Ch23 **mule refusals per run**
+by starter — ⛔ NOT finish rate, because Mudkip's advantage is confounded (Marshtomp is Water/Ground
+and immune to Wattson's Electric). Measured over batch `20260907-203713`:
+```
+starter    ended runs   mule refusals   rate
+treecko            13               5    38%
+torchic            12               4    33%
+random             10               3    30%
+mudkip             14               4    29%
+TOTAL              49              16    33%     <- matches the established 16 of 49 ✅
+```
+⇒ **Mudkip lanes still refuse in 29% of runs.** If "the starter self-learns Surf, so no mule is ever
+caught" were the mechanism, Mudkip would be near ZERO. It is not, and 29% vs 38% on n≈13 is not a
+mechanism. **REFUTED for zero emulator time.**
+‼ **AND THE FIRST VERSION OF THIS MEASUREMENT WAS WRONG** — it counted LINE MATCHES and produced
+refusal totals that were all exact multiples of 18 (18/36/54/72/90). That tell exposed it: one event
+echoes ~18 times. Corrected to count ENDED RUNS, which then cross-checked exactly against the known
+16-of-49. ⇒ **count the EVENT, not the lines mentioning it** — the same rule earned on the whiteout
+guard earlier today.
+
+### 2. ⭐⭐ CONFIRMED: `KI-84` makes `counter_hunt.train_counter` a near-no-op
+`train_counter`'s `slot` comes from `party_counter_slot`, which **skips every PID already in the
+party when the hunt armed** — and slot 0 holds the lead throughout ⇒ **`slot >= 1`, always.** So the
+`KI-84` path is taken on EVERY invocation.
+
+**MEASURED over 286 production logs, 46 with counter hunts:**
+```
+counter catches into the party            37
+of those, training actually started       28
+ran EXACTLY ONE spin-batch            21/28  (75%)
+REACHED the target level               0/28  (0%)
+levels needed (target - level@catch)   mean 13.8
+levels actually GAINED                 mean 2.6   — 19 of 28 gained 0 or 1
+```
+⭐ **INSTRUMENT FAULT-TESTED:** the same batch counter reads up to **25** batches on ordinary
+whole-team gym prep (606 clusters, 322 of them ≥5), so it CAN count past 1 — the counter path simply
+never gets there. Without that control the "1 batch" reading would prove nothing.
+⇒ This matches `team_policy.py`'s measured *"Makuhita carried from L8 to L9 across FIVE badges"*
+exactly, and explains it as a BUG rather than the design it was attributed to.
+
+**‼ AND `KI-84`'s OWN ENTRY NEEDS SHARPENING.** It says the loop "runs exactly ONE spin-batch". More
+precisely: the exit test reads **whatever currently occupies slot `i`**, and each iteration swaps
+again — so it ALTERNATES, training the wrong mon on alternate batches and exiting on the wrong mon's
+level. One batch is the dominant case (75%) because the displaced lead is normally the strongest and
+is already ≥ target.
+
+**SIDE FINDING (separate defect):** all 9 "never trained" runs are Numel counters derailing on
+*"Cannot reach LAVARIDGE_TOWN … not walkable from ROUTE112"* immediately after the catch — and
+because the swap has already happened, they leave an **L15 counter LEADING the party**.
+
+**⇒ THE MINIMAL FIX CLEARS `KI-84`'s DEFERRAL.** That deferral exists because `train_team` is also
+the gym-prep path; the fix does not touch `train_team`. It ports the §Ch23 workaround
+(`victory_road.py`) — rotate to slot 0, **assert by PID that it landed**, call `slots={0}`, then
+verify the mon actually moved — to `counter_hunt.py`. Caller-local ⇒ gym-prep levels untouched ⇒ no
+gym A/B required.
