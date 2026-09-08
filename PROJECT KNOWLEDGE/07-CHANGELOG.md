@@ -24882,3 +24882,96 @@ fires immediately.
 **FAULT-TESTED, 3 ARMS:** fires at a 5% threshold against 03's measured 6.8%; silent at the shipped
 25%; and fires on 05 if the exclusion is removed. The stale `R1-R5` rule list in `lint_docs.py`'s
 docstring was also corrected (R6 had existed undocumented).
+
+## 2026-09-08 — ⭐ `KI-84` IS PROBABLY THE CAUSE OF THE MAKUHITA PATHOLOGY — two call sites still exposed
+
+**A research pass on `#24-lowlevelmules` turned up a connection nobody had drawn, and it is verified
+in our own tree.**
+
+`KI-84` (OPEN, 2026-09-04): **`train_team(slots={i})` with `i != 0` runs exactly ONE spin-batch and
+returns as if finished.** Root cause: `early_game.py:2021` builds `need` from `party[i]` BY INDEX,
+then `:2034` calls `_rotate_lead_safely`, which SWAPS — so on the next iteration `party[i]` holds the
+old lead, `need` is empty, and the loop breaks. This project's own rule 3 ("assert identity, never
+position") violated inside shared code.
+
+**⭐⭐ THE CONNECTION.** `team_policy.py:8-16` records, as measured fact:
+> *"P1 caught a **Makuhita — exactly the counter Norman needs — and carried it from L8 to L9 across
+> FIVE badges** while the rest of the team went L22 → L42."*
+
+**L8 → L9 is ONE level. `KI-84`'s signature is exactly one spin-batch.** And
+`counter_hunt.train_counter` — the function whose whole job is to level a freshly-caught counter —
+calls `train_team(target, slots={slot}, ...)` at `counter_hunt.py:752` with a slot that is never 0
+(a fresh catch lands in the first EMPTY slot). ⇒ **the counter-training feature has plausibly been
+a no-op since it was written**, which would explain the pathology `team_policy` measured and
+attributed to design.
+
+**THREE `train_team(slots=...)` CALL SITES; ONE IS FIXED:**
+```
+victory_road.py:2004      slots={0} after an explicit rotate + PID verify   ✅ WORKED AROUND (§Ch23)
+counter_hunt.py:752       slots={slot}, fresh catch, never 0                ⛔ EXPOSED
+story_mode.py:1988        slots={slot}, gym-prep top-up                     ⛔ EXPOSED
+```
+`03-PUNCH-LIST.md:635` already says *"gym prep is still exposed to the same bug"* — but the
+**counter-hunt** exposure and its link to the Makuhita measurement are new here.
+
+**⛔ WHAT THE DEFERRAL DOES AND DOES NOT COVER.** `KI-84` says: *"Deliberately NOT fixed in
+`train_team` itself: it is also the gym-prep path, so a change moves every gym's levels at once and
+needs its own A/B."* ⇒ that protects **`train_team` itself** and **gym prep**. It does NOT cover
+`counter_hunt.py:752`, and the §Ch23 workaround (rotate to slot 0, VERIFY BY PID, then `slots={0}`)
+is the sanctioned pattern for a caller.
+
+**⚠ NOT YET BUILT, DELIBERATELY.** Two adversarial/recon agents are still reporting, and the previous
+fix in this area was built, driven and refuted. The claim that `train_counter` is a no-op is
+**inferred from code + a matching measured signature, not yet driven.** ⇒ the owed step is a DRIVE or
+a targeted probe showing a caught counter gains more than one level — not a patch.
+
+## 2026-09-08 — CATCH-TIME TRAINING IS PRICED AND FALLS SHORT; the lever is the CATCH SITE
+
+An adversarial pass on *"train the mule at catch time"* returned **SOUND WITH CHANGES** and then
+killed it quantitatively, using the repo's own growth curves and estimator:
+
+| mule | caught | must reach for §Ch23 to stop refusing | 250k budget at catch time buys | shortfall |
+|---|---|---|---|---|
+| Marill | L13 | **L35** | L28 full-XP / L23 half-XP | **−7** |
+| Slugma | L17 | **L38** | L28 / L23 | **−10** |
+| Mightyena | L20 | **L38** | L29 / L25 | **−9** |
+| Shedinja | L23 | **L38** | L30 / L27 | **−8** |
+
+⇒ **catch-time training is AFFORDABLE AND STILL DOESN'T WORK** — 917,120 frames (18.3% of the
+5,000,000-frame run fuse) to arrive at the same refusal. ‼ And the estimator is **optimistic by ~2x
+here**: `train_team` runs with swap-train on (half XP) whenever the trainee is ≥2 levels under the
+foe, which for a mule is always.
+
+**THREE MORE OBJECTIONS THAT STAND ON THEIR OWN:**
+* **It already exists.** `counter_hunt.train_counter` IS catch-time training, and its own comment
+  records the abandoned version of this idea: *"training all the way to the team is unaffordable for
+  essentially every fresh catch … declining outright is what made three successful Machop catches
+  worthless."* The shipped answer is `affordable_training_target` — buy what the budget covers.
+* **⭐ TRAVEL, NOT TRAINING, IS THE MEASURED KILLER.** `counter_training_ground`'s docstring records
+  *"Training failed 7 of 7, six with the bot stranded on ROUTE103 (45,7) — eight maps from the
+  catch"*, and `hunt_ground_tile` measured **TRAINING_GRASS grounds reached from a non-training
+  anchor: 0 of 28** — *"They are TRAVEL failures."*
+* **The bench refutation TRANSFERS.** "Never treat it as a battler" is not rescued by being applied
+  at catch time: benching still only means *do not train* — the mon is **still FIELDED**, and the
+  faint-chooser key `(incoming, -outgoing, -hp_fraction, -level)` puts a full-HP L13 Water mule
+  AHEAD of a L47 Sceptile against a Fire/Ground foe.
+
+**⭐⭐ THE LEVER IS THE CATCH SITE, AND IT IS ALREADY FILED.** `#24-divegroundroute120`:
+**Route 117 Marill = 10%, L13, 1,055 waypoints; Route 120 Marill = 15%, L25-27, 379 waypoints.**
+⇒ **13 free levels for ZERO grind frames on a 2.8x shorter trip** — more than the entire 250k budget
+buys. ⚠ Its blocker is real and unresolved: all 436 Route 120 tiles are **Long Grass**, and `spin()`'s
+behaviour there is undetermined. It needs one live sweep.
+
+**⭐ A USER RULING SUPERSEDES THE 2026-07-21 MECHANISM.** `story_mode.py:2103-2110` cites *"READY THE
+BATTLERS, don't grind every catch (user 2026-07-21)"*, which is why `TRAIN_CATCHUP_GAP = 6` makes a
+L13 mule structurally ineligible. But `06-DECISIONS-LOG.md:4055` (**user, 2026-09-04**) says *"I am
+fine with the bot catching and training pokemon."* ⇒ the DIRECTION is sanctioned; the 2026-07-21
+mechanism is superseded, and that supersession is recorded here rather than assumed.
+
+**⇒ RUNNING NOW, ZERO NEW CODE — and the prediction is PRE-REGISTERED so it can be wrong.**
+`POKEBOT_MULE_LEVEL` ∈ {13, 20, 26, 30, 35} with `POKEBOT_CH23_ESTIMATE_ONLY=1 --driver ch23train
+--inject-hmmule`, grading `report["train_estimates"]` per mon against 250,000 (⚠ ESTIMATE_ONLY
+returns BEFORE the raise, so the refusal itself will not fire — read the estimate).
+**PREDICTED: the refusal stops between L34 and L35 for Marill.** If the sweep disagrees, the model
+above is wrong and catch-time training may be viable after all — which is exactly why this runs
+BEFORE anything is built.
