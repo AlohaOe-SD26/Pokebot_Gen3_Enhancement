@@ -14495,3 +14495,28 @@ outside the repo. "Read-only" constrains what an agent may CHANGE; it does not t
 working files go, and an agent with nowhere obvious to write will use the working directory.
 ‼ And the check that caught it costs nothing: **read `git status` before staging, and account for
 every line — including the `??` ones you are not staging.**
+
+## 2026-09-07 — I published "root cause MEASURED FALSE" from a probe that could not see the event
+
+**Symptom.** The correct root cause for `KI-96` (a stale `gBattlePartyCurrentOrder`) was proposed,
+then retracted as measured-false, then re-confirmed hours later by the same probe placed correctly.
+The retraction had already reached a commit message, `07-CHANGELOG.md`, the DIVERGENCE-LOG and a
+**promoted code comment**.
+
+**Root cause.** The probe compared the order array before and after `scroll_to_battle_action(2)` —
+which only moves the ACTION CURSOR. Frame stamps showed both reads at `f5864245`, **five frames
+before the A press and 77 before the party menu existed**. The array is refilled by
+`PlayerHandleChoosePokemon` at menu-open, so the probe was structurally incapable of observing the
+change it reported absent. Both reads agreeing was therefore guaranteed, not informative.
+
+**The fix that worked.** Move the re-read to AFTER the stage that opens the menu, and print
+`state_now=` so the reading carries proof of WHEN it was taken. It immediately returned
+`VERDICT=DIFFER`.
+
+**⭐ PREVENTION RULE — A PROBE THAT CANNOT OBSERVE THE TRANSITION IS NOT EVIDENCE OF ITS ABSENCE.**
+Before a measurement is allowed to REFUTE a hypothesis, print the frame stamp (or state name) of each
+read beside the action it straddles, and show the reads fall on OPPOSITE sides of it. A null result
+from an instrument that never reached the event is not a null result — it is a broken instrument, and
+it is far more expensive than no measurement at all, because it is published with confidence.
+‼ Corollary: **a negative result deserves a positive control.** If the probe cannot be made to show
+the change under conditions where the change is KNOWN to happen, it may not be used to say it did not.

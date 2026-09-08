@@ -507,3 +507,5 @@
 {"when": "2026-09-07T11:27:57", "driver": "ch23chapter", "build": "sandbox", "state": "saves/post_grind_L60.ss1", "frames_run": 46333, "recomputes": 46333, "scans": 155, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-07T11:30:41", "driver": "storyresume", "build": "sandbox", "state": "saves/post_sootopolis_arrival.ss1", "frames_run": 25000, "recomputes": 25001, "scans": 84, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-07T11:35:47", "driver": "storyresume", "build": "custom", "state": "saves/post_sootopolis_arrival.ss1", "frames_run": 25000, "recomputes": 25001, "scans": 84, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-07T19:46:32", "driver": "ch23chapter", "build": "sandbox", "state": "saves/post_grind_L60.ss1", "frames_run": 46333, "recomputes": 46333, "scans": 155, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-07T19:52:42", "driver": "ch23chapter", "build": "sandbox", "state": "saves/post_grind_L60.ss1", "frames_run": 82292, "recomputes": 82292, "scans": 275, "divergences": {}, "observer_broke": false}

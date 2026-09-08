@@ -24371,3 +24371,30 @@ five is now either fixed in sandbox or has a named, evidenced item — which was
 `#24-lane-respawn-build` provenance shipped AFTER this batch's parent process had already imported
 `x4_headless`. It takes effect from the next batch. The MANIFEST's `build ?` row is the pre-existing
 `.get('build','?')` fallback for the same reason.
+
+## 2026-09-07 — `KI-96` SOLVED: the party-menu slot was read before the menu existed
+
+**Root cause, MEASURED** (not argued): `gBattlePartyCurrentOrder` is a 3-byte scratch buffer the game
+REFILLS when `PlayerHandleChoosePokemon` opens the party menu. `in_battle_index` was computed ~140
+lines before the A press, from the previous turn's leftovers (`201345`); the real in-menu array is
+identity (`012345`). Aiming at menu slot 0 under identity aims at the ACTIVE battler, so the game
+refused for ever — `'DIVER is already in battle!'`, `action=0` (an ordinary menu; the mon was never
+trapped).
+
+**Fix:** wait for `PARTY_MENU` (bounded, 120 frames) after the A press, then recompute
+`in_battle_index`. Bounded, and falls back to the pre-menu value with the 240-press bound still
+behind it.
+
+**A/B — same fixture, same driver, 30 minutes apart:** 241 presses / bound fires / wedged forever →
+**27 presses / `[KI96-DONE] the switch was ACCEPTED`**, 0 bound firings, and the run fought 12
+battles against the wedged run's 6.
+
+**‼ THE PROCESS LESSON, which outlives the bug:** this exact theory was "refuted" earlier the same day
+by a probe that read the array **five frames BEFORE the A press** — 77 frames before the menu existed
+— because `scroll_to_battle_action(2)` moves only the ACTION cursor. That false refutation was
+published into a commit, the changelog, the DIVERGENCE-LOG and a promoted code comment, and was
+reversed only when a reviewer read the frame stamps. ⇒ **a probe that cannot observe the transition is
+not evidence of its absence**; a measurement may not kill a hypothesis until the instrument is proven
+to read AFTER the event. Recorded in `08-MISTAKES.md`.
+
+Files: `sandbox-pokebot/modules/battle_action_selection.py`, `PROJECT KNOWLEDGE/{03,05,07,08}`.

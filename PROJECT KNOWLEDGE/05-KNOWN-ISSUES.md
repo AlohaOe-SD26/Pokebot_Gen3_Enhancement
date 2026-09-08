@@ -746,19 +746,9 @@ touching `handle_fainted_pokemon` again.
 - **Also worth instrumenting:** log the cursor AND the target on each press, not just the sets,
   so a press can be attributed to a position.
 
-## KI-39 — ✅ CORRECTED AND LARGELY RESOLVED 2026-07-31 — the ORIGINAL (refuted) entry now ALSO moved to `31-KNOWN-ISSUES-ARCHIVE.md` (2026-08-14)
+## KI-39 — ✅ CORRECTED AND LARGELY RESOLVED 2026-07-31 — the ORIGINAL (refuted) entry now ALSO moved to `31-KNOWN-ISSUES-ARCHIVE.md` (2026-08-14)  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
 
-⛔ **Until 2026-08-14 this file kept the 178-line ORIGINAL entry — whose stated cause the archive
-explicitly refutes — while the CORRECTION lived in the archive.** A reader absorbed the wrong
-analysis in full before reaching this stub. Backwards from the archive rule: the current-state
-file keeps the truth, the archive keeps the history. Both halves are now in
-`31-KNOWN-ISSUES-ARCHIVE.md`, refutation alongside original.
-
-
-Archived 2026-08-13 to keep this current-state file inside its 3,000-line R3 budget. Nothing was
-deleted — the full correction and its diagnosis are in the archive.
-
----
+⛔ DO NOT REDO — this issue is CLOSED. Full detail is in the archive under its 2026-09-07 banner, and in `07-CHANGELOG.md`.
 
 ## KI-41 — the Mauville→Route 112 corridor is sealed by a ROCK SMASH rock the planner treats as permanent — ✅ **FIXED 2026-07-31.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-06, to keep 05 under its R3 line budget; nothing deleted).
 
@@ -2243,126 +2233,13 @@ Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans 
 
 ---
 
-## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED (2026-08-15, ✅ FIXED, FAULT-PROVEN and PROMOTED TO BOTH FORKS — ✅ ITS RESIDUAL'S INSTRUMENTATION HALF IS DONE **AND PROMOTED TO BOTH FORKS 2026-08-17**; ⚠ THE REACTION HALF IS STILL OPEN, see below) — FULL ENTRY in `31-KNOWN-ISSUES-ARCHIVE.md`
+## KI-79 — `withdraw_from_box` PRINTED A SUCCESS IT NEVER VERIFIED (2026-08-15, ✅ FIXED, FAULT-PROVEN and PROMOTED TO BOTH FORKS — ✅ ITS RESIDUAL'S INSTRUMENTATION HALF IS DONE **AND PROMOTED TO BOTH FORKS 2026-08-17**; ⚠ THE REACTION HALF IS STILL OPEN, see below) — FULL ENTRY in `31-KNOWN-ISSUES-ARCHIVE.md`  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
 
-Moved 2026-08-16 on the 3000-line budget. ‼ **Keep only what later work leans on:**
-- **The defect:** `pc_trip.py:472-473` printed *"{name} is in the party"* after reading only
-  `len(get_party())` — **a COUNT wearing an IDENTITY's clothes.** It now verifies
-  `(personality_value, species)` **and** `contains_pokemon`, after a 2-frame yield, and prints a
-  loud named failure instead of a green lie. Permanent fault hook `POKEBOT_PCWITHDRAW_FAULT`.
-- ‼ **The method rule, which is the reusable part:** a byte-compare was NOT accepted as proof for a
-  BEHAVIOUR promotion — a **THREE-POINT A/B** was (PASS before → FAIL after faulted → PASS after
-  unfaulted), and run 1 is unrepeatable once the copy happens, so it runs and commits FIRST.
-- ⚠ **THE RESIDUAL — HALF CLOSED 2026-08-17.** ✅ **The verdict now REACHES the caller:** all five
-  exits return `(landed, code, detail)`, the ONE caller BINDS it, and a pure `withdraw_verdict_report`
-  reports it — proven by a live two-armed A/B (`landed=True code=landed` unfaulted vs
-  `landed=False code=did_not_land` faulted) and by gate #26 `repro_withdraw_verdict.py`, which
-  **FAILED against the then-unpromoted `custom` tree (exit 1, six named sites) and now PASSES it
-  (exit 0)** — that flip IS the promotion's proof.
-  ✅ **PROMOTED TO BOTH FORKS 2026-08-17, USER-APPROVED**, in the five-file round; restore point
-  `restore/2026-08-17-pre-promotion-all5`, drift 0, and verified by DRIVING custom
-  (`--driver boxcounter2 --build custom` printed `verdict landed=True code=landed`).
-  ⛔ **PROMOTION DID NOT CLOSE THE RESIDUAL:** production can now READ the verdict in BOTH forks and
-  still cannot REACT to it. That half needs the unmeasured `sStorage->messageText` heap offset AND
-  a USER ruling. *(This bullet read "⚠ SANDBOX-ONLY; a promotion is the USER's call" for one commit
-  after the promotion — a Tier 1 reviewer caught it; the drift gate cannot see PROSE about
-  promotion state, only figures.)*
-  ⛔ **STILL OPEN: production READS the verdict but does not ACT on it** — what it should DO is the
-  USER's ruling and is blocked on an unmeasured `sStorage->messageText` offset. `withdraw_from_box`
-  still never raises for a PC problem, which is deliberate and unchanged. Its ONE caller is the
-  `yield from` at `higher_level_actions.py:420` (inside the `try:` that opens at `:403`), which
-  discards the value. **Tracked as `#24-orphans` item (1)**;
-  its instrumentation half is specified, but *how* production should react needs the USER's ruling.
+⛔ DO NOT REDO — this issue is CLOSED. Full detail is in the archive under its 2026-09-07 banner, and in `07-CHANGELOG.md`.
 
-## KI-81 — KI-67's fix was applied to TWO chapters and the CLASS was never swept (2026-08-16, MEASURED by probe). ✅ **8 SITES FIXED AND PROMOTED TO BOTH FORKS** — the PC/heal path and the site that proved the sweep was incomplete. ⛔ **STILL OPEN: candidates remain (ALL in `early_game.py`)**, and ✅ **THE PROBE IS NOW GATE #27 — a RATCHET whose baselines ARE EQUAL AGAIN SINCE 2026-08-24: `{sandbox: 23, custom: 23}`** (`probe_abort_swallowing.py:218` is the authority; they DIFFERED `{31, 36}` between 2026-08-23 and the promotion, and were 36/36 before that — history, not today)**; ‼ ~64% of the original 45 were MEASURED not to be this defect, which is WHY it is a ratchet and not a zero-threshold
+## KI-81 — KI-67's fix was applied to TWO chapters and the CLASS was never swept (2026-08-16, MEASURED by probe). ✅ **8 SITES FIXED AND PROMOTED TO BOTH FORKS** — the PC/heal path and the site that proved the sweep was incomplete. ⛔ **STILL OPEN: candidates remain (ALL in `early_game.py`)**, and ✅ **THE PROBE IS NOW GATE #27 — a RATCHET whose baselines ARE EQUAL AGAIN SINCE 2026-08-24: `{sandbox: 23, custom: 23}`** (`probe_abort_swallowing.py:218` is the authority; they DIFFERED `{31, 36}` between 2026-08-23 and the promotion, and were 36/36 before that — history, not today)**; ‼ ~64% of the original 45 were MEASURED not to be this defect, which is WHY it is a ratchet and not a zero-threshold  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
 
-**2026-08-27 (deep sanity check, PASS 2):** the header above claimed the ratchet baselines
-still `DIFFER PER FORK: {sandbox: 31, custom: 36}` — REFUTED by the shipped gate itself
-(`probe_abort_swallowing.py:218` reads `{"sandbox": 23, "custom": 23}` since the 2026-08-24
-promotion). Header corrected; the 31/36 and 36/36 figures are kept above as history.
-
-**2026-08-23 — the baselines SPLIT (this entry's newest dated line; it is the body half of
-the per-fork clause in the header above).** `#24-abortrecoveryresiduals` (b) guarded the 5
-sandbox sites that `#24-loopheadabort` had newly exposed, so sandbox measures **31** and custom
-was **36** until the fix was PROMOTED on 2026-08-24 (user-approved), when it became **23** — the
-forks are EQUAL again and both read ZERO AST abort-swallowers. *(Superseded instruction: ON PROMOTION, LOWER custom
-36 -> 31 IN THE SAME COMMIT** — otherwise the ratchet silently re-permits 5 sites of debt in
-the fork that ships. ‼ Control-armed, not assumed: stripping exactly those 5 guards restores 36.
-⛔ **A TIER 1 REVIEWER CAUGHT THIS PARAGRAPH FILED UNDER KI-79** — it had been inserted directly
-ABOVE the `## KI-81` header, so by this file's own `##` convention it read as KI-79's trailing
-text and a reader opening KI-81 would never have seen it. ⇒ **Anchoring an insert on a header
-string puts it BEFORE that header. Verify WHERE a fix landed, not merely THAT it landed.**
-
-`StoryAbort` is a `BotModeError`, which is an `Exception` (`_interface.py:229`) ⇒ **every**
-`except Exception:` and `except BotModeError:` catches a whiteout. KI-67 found this and fixed the
-two CHAPTER retry loops that had been *observed* failing (`space_center.py:962-977`,
-`mossdeep_gym.py:540-556`, re-derived 2026-08-16 — it was cited as `:534-551`) with two guards — `except StoryAbort: raise` **plus**
-`reraise_if_aborting(error)`. ⛔ **The class was never swept.**
-
-**MEASURED:** `tools/story-dev/probe_abort_swallowing.py` (NEW, `--self-test` proves it fires when
-the guard is missing and stays quiet both when guarded and when the `try` drives no generator) —
-**53 candidate sites**: `early_game.py` 44, `higher_level_actions.py` 4, `pc_trip.py` 3,
-`counter_hunt.py` 1, `mossdeep_gym.py` 1.
-⚠ **CANDIDATE means "could swallow", not "does".** The probe cannot prove a `_check_abort()` is
-reachable through a given `yield from`; it narrows 500+ handlers to a triageable list.
-
-**THREE HAND-VERIFIED, and they are the bad shape, not false positives:**
-- `early_game.py:1625` — `except Exception: ok = False` around `yield from _yield_bounded(...)`,
-  then **presses B twelve times and RETRIES**. An abort here is swallowed into a retry on a dead run.
-- `early_game.py:267` and `:3241` — `except BotModeError as e:` inside retry loops. ‼ This is
-  **KI-67's failure verbatim**: *"a chapter that caught the abort and retried IN PLACE ran straight
-  into the next `_check_abort()`"* — burning the budget in a few frames and reporting invented
-  failures.
-- ‼ **All three of `heal_in_pokemon_center`'s piggybacks** (`:297`, `:316`, `:345`) catch `Exception`
-  with no guard, so a whiteout during a heal **was** swallowed and the bot walked on. ✅ **FIXED.**
-
-✅✅ **RESOLVED FOR 8 SITES, AND PROMOTED TO BOTH FORKS (2026-08-16, user-approved).** The triage
-question this entry posed — *"`mossdeep_gym.py` still shows 1 even though KI-67 fixed it; triage
-starts there, because it tells you which the probe is"* — **IS ANSWERED: the `try` at `:465`
-(handler `:471`) is a TRUE POSITIVE, and it is a DIFFERENT `try` from KI-67's, at `:540` (handlers
-`:543`/`:554`)** — the gym-exit door loop. ‼ *Both numbers re-derived from source, and note the
-units: `:465`/`:540` are TRY lines, the `Guarded:` list below gives HANDLER lines.* After a whiteout it tried the
-second door **on a dead run** and raised a FABRICATED *"could not get out of the gym"* naming doors.
-⇒ **the probe does not over-flag; KI-67's sweep was incomplete.**
-**Guarded — ‼ these nine lines were RE-DERIVED FROM SOURCE 2026-08-16, not hand-copied** (six of the
-eight I first wrote here were wrong; a Tier 1 reviewer caught it, and hand-transcribed citations are
-how this project keeps burning a day). ⇒ **Re-derive, never re-type**, with:
-`ast.walk` for every `ExceptHandler` containing a `reraise_if_aborting` call —
-  `higher_level_actions.py` `:297` / `:322` / `:357` (the three heal piggybacks, each `except
-  Exception`) and `:781` (`except BotModeError`, `talk_to_npc`'s surviving arm after the split);
-  `pc_trip.py` `:202` / `:313` / `:550` (all `except Exception`);
-  `mossdeep_gym.py` `:471` (the gym-exit door loop — **this KI's own find**) and `:554`
-  (**KI-67's pre-existing guard**, which is why the fork totals 9 guarded handlers for 8 added).
-`reraise_if_aborting(error)` is the FIRST statement of each — LATCH-keyed, so it also catches an
-abort already laundered into a plain `BotModeError`. ⚠ **Line numbers drift on every edit above
-them; the SHAPE is the durable claim** — *"guard first, latch-keyed, `PathFindingError` split out"*.
-⛔ **AN ADVERSARIAL REVIEW CAUGHT A REAL DEFECT IN THE FIRST CUT:** `talk_to_npc`
-(`modules/modes/util/higher_level_actions.py:718`, split at `:767` — ‼ it is NOT in `pc_trip.py`,
-which is where a later doc pass first misfiled it) also catches
-`PathFindingError`, a **`RuntimeError`, NOT a `BotModeError`**; re-raising one would have ESCAPED
-`StoryMode.run`'s `except BotModeError` and left the global latch **stuck TRUE**, leaking into
-`ev_train.py`/`pokecenter_loop.py`. Fixed by SPLITTING the handler. *A guard that can leak a global
-is worse than the silence it replaced.*
-✅ **Promotion proven by a MEASURED before/after, not a byte-compare:** `--build custom` fell
-**53 → 45**, guarded counts moved **0→3 / 0→4 / 1→2**, and the split survived the copy.
-
-⛔ **STILL OPEN — 36 CANDIDATES REMAIN** (ALL `early_game.py`; `counter_hunt.py`'s single
-candidate was fixed 2026-08-17, when 8 sites were swept and the probe fell 45 → 37, MEASURED).
-⛔⛔ **SUPERSEDED 2026-08-17 — REFINEMENT (2) IS REFUTED AND (1) IS SHIPPED. DO NOT BUILD EITHER FROM THIS PARAGRAPH.** It survived unmarked eight lines below its own refutation, and a cold-start audit called it the most expensive thing in the tree: acting on it rebuilds a day of refuted work and can ship a gate that HIDES real defects. *(superseded text:)* ‼‼ **AND THE TRIAGE MEASURED THAT THE PROBE OVER-FLAGS: ~64% of the original 45 are NOT this
-defect** — 25 wrap navigation primitives containing no `_check_abort()`, so no `StoryAbort`
-can arrive; `:376` IS the whiteout-recovery path; `:2305` already guards by hand in a shape
-the probe cannot see. ⛔ **DO NOT PROMOTE THE PROBE TO A GATE AS-IS** — it would be red on
-arrival for reasons that are correct as written. Two refinements cut 45 → ~16. *(A separate
-family — retry loops needing a LOOP-HEAD check, not a handler guard — was `#24-loopheadabort`,
-✅ DONE 2026-08-23: all 17 patched, gate #30. ⛔ An earlier 3-loop exclusion rested on a FALSE
-claim that the recovery path runs with the abort latch set; it is withdrawn.)* 44 sites in the largest and most timing-sensitive file here is not a
-tail-of-session sweep, and **CANDIDATE ≠ DOES** — the probe cannot prove a `_check_abort()` is
-reachable through a given `yield from`. ⇒ ⛔⛔ **SUPERSEDED 2026-08-17 — THIS IS DONE AND ITS ADVICE IS REFUTED. The probe IS gate #27, a RATCHET; refinement (2) would blind it to five already-fixed sites and must NOT be built.** *(superseded:)* triage, fix, THEN promote the probe to a gate — The
-triage MEASURED that ~64% of the candidates are not this defect, so the probe must be REFINED first;
-see the paragraph above and `#24-abortswallow` round 3. *(This line was the last thing in the KI, so
-a skimmer read it as the instruction — a cold-start audit caught exactly that.)*; it is a
-PROBE precisely because a gate red on arrival on pre-existing debt teaches everyone to ignore gates
-(`repro_no_silent_except.py` took this exact path). Tracked as `#24-abortswallow`.
+⛔ DO NOT REDO — this issue is CLOSED. Full detail is in the archive under its 2026-09-07 banner, and in `07-CHANGELOG.md`.
 
 ## KI-80 — `grass_is_fodder` CONFLATED "no training patch configured" with "the patch is too weak", and it CO-GATED the counter-ladder (with `boss_teaches`, inside `losses >= 2`) — so giving a boss a training area silently disabled its KI-23 machinery. ✅ DECOUPLED AND PROMOTED TO BOTH FORKS 2026-08-16 (this KI's own file is in both forks) (2026-08-16, ✅ **REPRODUCED AND DRIVEN** — `--driver ki80ladder` is COMPLETE and PASSING: **4 arms**, both forks, mirror-regression guard fault-tested against the real naive edit. ✅ **AND THE DECOUPLING IS NOW BUILT, DRIVEN AND REVIEWED** — `:1901` is `if boss_teaches:`, `boss_mode` sits behind its own `if grass_is_fodder:`; `repro_boss_grass_gate.py` has SELF-RETIRED. ✅ **AND PROMOTED TO BOTH FORKS 2026-08-16 (user-approved), proven by a THREE-POINT A/B against `--build custom`; that file is in BOTH forks.** ⛔ **THIS KI STAYS OPEN ONLY FOR ITS TRACKED RESIDUAL** `#24-zerokocounter`: should `boss_teaches` come off the gate too? Not shipped because no arm can discriminate it, and an audit derived that it would need TWO new arms plus a frequency measurement first)
 
@@ -2678,7 +2555,52 @@ Pokémon**, and would have leaked across battles.
   is harmless there is reasoned, not measured.
 
 **Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` still hangs on Torment. **Promotion is the user's call.**
-## `KI-96` — ⛔ THE IN-BATTLE PARTY-MENU SWITCH IS AN UNBOUNDED `while PARTY_MENU: press A`, AND IT WEDGES §Ch23'S CHAIN AT L60 (2026-09-07, MEASURED, A/B'd AS PRE-EXISTING, OPEN)
+## `KI-96` — ✅ **SOLVED AND DRIVEN 2026-09-07**: the menu slot was computed BEFORE the menu existed, from a STALE order array (root cause MEASURED; fix A/B'd 241 presses -> 27, ACCEPTED)
+
+**⭐⭐ SOLVED 2026-09-07 — THE ROOT CAUSE, MEASURED, AND THE FIX, DRIVEN.**
+The unbounded loop was the SYMPTOM. The bot was aiming at the wrong menu slot:
+```
+[KI96-REREAD] party_slot=2 state_now=PARTY_MENU
+  pre (raw=201345 decoded=[2,0,1,3,4,5] aims_at_menu_slot=0)   <- read BEFORE the menu opened
+  post(raw=012345 decoded=[0,1,2,3,4,5] aims_at_menu_slot=2)   <- the REAL in-menu array
+  VERDICT=DIFFER
+[KI96-WHY] action=0  cursor_slotId=0  order_in_menu='012345'  msg='DIVER is already in battle!'
+```
+Three facts, each closing a branch:
+* `action: 0` ⇒ an ORDINARY menu — NOT `CANT_SWITCH` (2), NOT `ABILITY_PREVENTS` (4). The mon is not
+  trapped and the refusal is PER-SLOT. That whole hypothesis is dead.
+* `order_in_menu: '012345'` is IDENTITY while the bot aimed using `201345`. ⇒ **`gBattlePartyCurrentOrder`
+  IS REFILLED WHEN THE MENU OPENS** (`PlayerHandleChoosePokemon`), and `in_battle_index` was computed
+  ~140 lines earlier, from the previous turn's leftovers.
+* Under the real identity order, menu slot 0 IS the active battler — so the game refused for ever,
+  which is the entire observed behaviour.
+⛔ **`map_battle_party_index`'s ARITHMETIC IS CORRECT — its INPUT was read too early.** Do not "fix"
+the mapping; that was rounds 1-3's mistake.
+
+**THE FIX** (`battle_action_selection.py`, `TurnAction.RotateLead`): after the A press, wait for
+`PARTY_MENU` (bounded, 120 frames) and RECOMPUTE `in_battle_index` from the fresh state.
+‼ BOUNDED AND FALLING BACK: if the menu never appears the pre-menu value stands and the 240-press
+bound still catches it. An unbounded wait would be a new hang — the one thing this arm must never grow.
+
+**✅ THE A/B, same fixture (`post_grind_L60.ss1`), same driver (`--driver ch23chapter`), 30 min apart:**
+```
+BEFORE  241 presses, the bound fires, "DIVER is already in battle!" for ever   (6 battles fought)
+AFTER    27 presses, "[KI96-DONE] the party menu closed — the switch was ACCEPTED"  (12 battles)
+```
+The 240-bound fired **0** times, and 27 presses is inside the healthy range the bound was sized
+against. `acceptance-2026-09-07/ki96-FIXED.log`.
+
+**‼ THE HISTORY IS THE LESSON, AND IT IS WORTH MORE THAN THE FIX.** This is the theory I proposed,
+then **"refuted" with a probe that read the array five frames BEFORE the A press** — 77 frames before
+the menu existed, because `scroll_to_battle_action(2)` only moves the ACTION cursor. I published
+"root cause MEASURED FALSE" into a commit, the changelog, the DIVERGENCE-LOG and a promoted code
+comment before a reviewer read the frame stamps and un-refuted it.
+⇒ **A PROBE THAT CANNOT OBSERVE THE TRANSITION IS NOT EVIDENCE OF ITS ABSENCE.** Before a
+measurement is allowed to KILL a hypothesis, prove the instrument was reading AFTER the event it
+claims did not happen — print the frame stamp of every read beside the frame of the action.
+This is Rule 10 (measure an index-space conversion before changing it) doing its job at every step;
+the vacuous probe nearly cost the correct answer.
+
 
 **⭐⭐ WHY IT MATTERS RIGHT NOW: LEVELLING ALONE DOES NOT UNBLOCK §Ch24.** The L60 party
 (`post_grind_L60.ss1`) cannot complete §Ch23's chain — it wedges here long before the League door, so

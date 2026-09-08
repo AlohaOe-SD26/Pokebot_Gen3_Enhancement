@@ -39,3 +39,50 @@ Story: Mossdeep Gym already done — skipping.
 ```
 Segment 18's else ran and `leave_the_gym()` no-oped off the gym map with no error.
 The RESCUE half needs a save at MOSSDEEP_CITY_GYM (23,8) with BADGE07 SET — see #24-mossdeep-strandfixture.
+
+---
+
+## `KI-96` — ✅ SOLVED AND DRIVEN (2026-09-07 19:40–19:52)
+
+Same fixture (`saves/post_grind_L60.ss1`), same driver (`--driver ch23chapter`), same build
+(`sandbox`), 26 minutes apart. Each arm made **exactly one** `RotateLead` attempt, so the two are
+directly comparable on a single event.
+
+```
+                       WEDGED  Story-debug-20260907-194020   FIXED  Story-debug-20260907-194608
+RotateLead attempts          1                                     1
+[KI96-FIX] fired             0                                     1
+the 240-press bound       ONCE, at 241 presses                  NEVER
+outcome                   Bot STOPPED -> Manual,                switch ACCEPTED after 27 presses
+                          VICTORY ROAD (34,12)
+battles fought               6                                    12
+frames run              46,333                                82,292
+ledger entry            19:46:32                              19:52:42
+```
+
+**The measurement that identified the root cause** (from the FIXED run, and from the corrected probe
+in the WEDGED run):
+```
+[KI96-INDEX] requested party index=2 -> mapped menu in_battle_index=0
+[KI96-FIX]   menu open after 50 frame(s): re-mapped party slot 2 from menu slot 0
+             (pre-menu, STALE) to 2 (in-menu). Aiming at 2.
+[KI96-REREAD] pre (raw=201345 decoded=[2,0,1,3,4,5] aims_at_menu_slot=0)
+              post(raw=012345 decoded=[0,1,2,3,4,5] aims_at_menu_slot=2)   VERDICT=DIFFER
+[KI96-WHY]   action=0  cursor_slotId=0  order_in_menu='012345'
+             msg='DIVER is already in battle!'
+[KI96-DONE]  the party menu closed after 27 press(es) — the switch was ACCEPTED
+```
+`action=0` is an ORDINARY menu (not `CANT_SWITCH`=2, not `ABILITY_PREVENTS`=4) ⇒ the mon was never
+trapped and the refusal was PER-SLOT. `gBattlePartyCurrentOrder` is refilled by
+`PlayerHandleChoosePokemon` at menu-open; `in_battle_index` was computed ~140 lines earlier from the
+previous turn's leftovers.
+
+⚠ **HOW TO READ THE LOG COUNTS.** `grep -c 'would not accept party slot'` returns **9** on the wedged
+run and that is **ONE firing**, not nine: the stop message is echoed by the mode switch, two STEP
+lines, the "Bot stopped" line and five subsequent `[hb]` heartbeats. Count the EVENT, not the lines
+mentioning it.
+
+‼ **AND READ THE FILE AFTER THE RUN ENDS.** These markers were first read at 19:47 while the FIXED
+run was still writing; it did not finish until 19:52:14. The verdict was unchanged, but a mid-run
+read is not a result — the stronger fact (the bound never fired across the FULL 82,292 frames, 1.8x
+the wedged run) is only visible on the completed file.

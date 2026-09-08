@@ -732,6 +732,41 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                 # instrument. Stage 2 is therefore read on the SAME frame as the press, i.e. it shows
                 # the state the press was issued INTO. Compare it with stage 1, not with stage 3.
                 _ki96_log(f"[KI96-STAGE] 2 at the A press (same frame): {_ki96_state()}")
+
+                # ⭐⭐ KI-96 ROOT FIX — RECOMPUTE THE MENU SLOT NOW THE MENU EXISTS.
+                # MEASURED 2026-09-07 (`post_grind_L60`, `--driver ch23chapter`):
+                #     pre (raw=201345 decoded=[2,0,1,3,4,5]) -> aims at menu slot 0
+                #     post(raw=012345 decoded=[0,1,2,3,4,5]) -> aims at menu slot 2   VERDICT=DIFFER
+                #     [KI96-WHY] action=0 (an ORDINARY menu, not trapped), order_in_menu='012345',
+                #                msg='DIVER is already in battle!'
+                # `in_battle_index` was computed ~140 lines above, BEFORE the menu existed, from an
+                # order array the game had not yet refilled. Under the REAL in-menu array (identity)
+                # menu slot 0 is the ACTIVE battler — so the game refused for ever, which is the
+                # whole of `KI-96`.
+                # ⛔ `map_battle_party_index`'s ARITHMETIC IS CORRECT. Its INPUT was read too early.
+                # Do not touch the mapping.
+                # ‼ BOUNDED AND FALLING BACK: if the menu never appears we keep the pre-menu value
+                # and the 240-press bound below still catches it. An unbounded wait here would be a
+                # new hang, which is the one thing this arm must never grow.
+                _ki96_wait = 0
+                while get_game_state() != GameState.PARTY_MENU and _ki96_wait < 120:
+                    _ki96_wait += 1
+                    yield
+                if get_game_state() == GameState.PARTY_MENU:
+                    try:
+                        _fresh = get_battle_state().map_battle_party_index(index)
+                        if _fresh != in_battle_index:
+                            _ki96_log(
+                                f"[KI96-FIX] menu open after {_ki96_wait} frame(s): re-mapped party "
+                                f"slot {index} from menu slot {in_battle_index} (pre-menu, STALE) "
+                                f"to {_fresh} (in-menu). Aiming at {_fresh}."
+                            )
+                        in_battle_index = _fresh
+                    except Exception as _e:  # noqa: BLE001 - an unreadable order is not a reason to
+                        # abandon the rotation; keep the pre-menu value and let the bound catch it.
+                        _ki96_log(f"[KI96-FIX] <re-map unreadable: {type(_e).__name__}> — keeping "
+                                  f"the pre-menu slot {in_battle_index}")
+
                 yield from scroll_to_party_menu_index(in_battle_index)
                 _ki96_log(f"[KI96-STAGE] 3 after scroll_to_party_menu_index({in_battle_index}): "
                           f"{_ki96_state()}")
