@@ -3542,6 +3542,29 @@ region, where "train near the gym" is actively wrong.
 - [ ] ⭐ **AND THE PREMISE IS SMALLER THAN IT LOOKS:** at the measured **1032 frames/sec**, Marill's
   406,972 frames is **~6.6 minutes**; all six mules ≈ **44 minutes**. The refusal is rejecting a
   sub-hour grind — a per-call-ceiling artefact, not an economics fact.
+- [x] ✅ **THE DISCRIMINATOR EXISTS AND IS VALIDATED (2026-09-08) — ⛔ DO NOT REBUILD IT.**
+  `--inject-hmmule` (harness) ADDS an L13 Marill to an otherwise-ready party without replacing it.
+  `POKEBOT_CH23_ESTIMATE_ONLY=1 --driver ch23train` on `post_ever_grande.ss1`, seconds per arm:
+  **CONTROL** worst `Wailmer 217,816` (passes) · **ARM A** worst `Marill 406,972` (refuses), with the
+  three shared mons byte-identical in both arms ⇒ single-variable. ⭐ 406,972 is the EXACT production
+  figure, so the frames→level inversion is CONSTRUCTED, not inferred. Evidence:
+  `acceptance-2026-09-07/EVIDENCE.md`.
+- [ ] ⭐ **ACCEPTANCE FOR THE STEP FIX, EXACTLY:** ARM A must PASS · the CONTROL must be UNCHANGED ·
+  ⛔ a genuinely impossible case must STILL refuse (raise `POKEBOT_MULE_LEVEL`). A fix that never
+  refuses has deleted the guard — which is what the refuted bench approach did.
+  ⚠ `ESTIMATE_ONLY` returns BEFORE the raise, so one non-`ESTIMATE_ONLY` run is still owed to show
+  the wedge actually clears.
+- [ ] ⛔⛔ **THE TRAP IN THE CODE YOU WILL MIRROR.** `Ch24Grind`'s step loop
+  (`story_harness.py:15236-15246`) is the reference implementation — `sub = min(target, low + STEP)`,
+  `MAX_STEPS/MAX_RETRIES = 24/2`, and a **"refuse to spin"** break when a step moves nobody. **Copy
+  those.** ⛔ **DO NOT copy its `except Exception as error:`** — that is legitimate in a HARNESS
+  driver (a refusal IS the reading) but in the CHAPTER RUNNER it would swallow `StoryAbort` and
+  re-open the abort-swallow debt that gate #27 ratchets at baseline 23. Production must
+  `reraise_if_aborting(error)` first, or not catch at all.
+- [ ] ⚠ **AND THE CALL SITE IS THE CHANGE, NOT THE FUNCTION.** `train_for_victory_road` ALREADY takes
+  `target=` (`victory_road.py:1872`), so stepping is a CALLER concern. The site is the chapter runner
+  at `victory_road.py:3290`. ⛔ Nothing about `battler_identities`, `team_is_ready` or
+  `MAX_TRAINING_FRAMES` needs to change — and Decision 3 explicitly rejected touching the constant.
 - [ ] ⚠ **NOT BUILT DELIBERATELY — THERE IS NO DISCRIMINATOR YET.** No fixture reproduces a low-level
   mule party, `--inject-*` is preset-only, and `battler_identities` feeds BOTH `team_is_ready` and
   the estimator (a shared path). ⇒ ⭐ **STEP 1 IS THE FIXTURE, NOT THE FIX:** capture a save whose
