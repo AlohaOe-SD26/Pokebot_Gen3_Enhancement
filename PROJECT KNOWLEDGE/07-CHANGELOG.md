@@ -25014,3 +25014,49 @@ is unverified by me.
 **‼ WHAT THIS COST: five arms, no new code, and it killed one plan and rescued another before a line
 was written.** The knob (`POKEBOT_MULE_LEVEL`) existed because the discriminator was built first.
 ⇒ **build the instrument before the fix; it prices every candidate at once.**
+
+## 2026-09-08 — ⭐⭐ THE MULE PROBLEM PRICED END TO END: fixing it at §Ch3 costs ~1/7th of fixing it late
+
+**[I VERIFIED] Marill's grass encounters, straight from the ROM index** (`cache/encounter_index_
+BPEE0.json`, keyed by national dex — 183):
+```
+Route 120   15%   L25-27
+Route 112   25%   L14-16     ⭐ not surfaced by the earlier research
+Route 117   10%   L13
+Route 104   20%   L4-5       ⭐ the §Ch3 site — CONFIRMED, on the mandatory path
+```
+
+**MODEL (the repo's own estimator: exp/battle = 50.2 x wild / 7, 1433 frames/battle; ⚠ assumes FULL
+XP — swap-train halves it, so double these):**
+```
+Ch3:  Marill L4  -> L13 on Route 104 (L4-5)     48 battles     68,784 frames   ✅
+Ch3:  Marill L4  -> L17 on Route 104 (L4-5)    109 battles    156,197 frames   ✅
+mid:  Marill L14 -> L25 on Route 112 (L14-16)   90 battles    128,970 frames   ✅
+late: Marill L13 -> L35 on Route 117 (L13)     350 battles    501,550 frames   ⛔
+late: Marill L26 -> L35 on Route 120 (L25-27)  105 battles    150,465 frames   ✅
+```
+
+**⇒ ⭐⭐ EARLY IS ~1/7TH THE COST — AND COST IS NOT EVEN THE MAIN POINT.** At L4-5 on Route 104's
+**L4-5** wilds the carrier is **AT the wild band**, so it SURVIVES and earns. That is exactly what the
+late fix cannot do: the 2026-09-08 drive measured a L13 mule on L36-40 wilds at **0/43 HP for 69
+battles, gaining nothing.** Even at swap-train's half XP the §Ch3 climb is ~137k frames — inside one
+budget.
+
+**⛔⛔ AND THE BLOCKER IS NOW NAMED, AND IT IS A SINGLE CONSTANT.**
+`roxanne_fight`'s band is `(13, 17)` ("user: team between Lv 13-17 before Roxanne"), and
+`_prepare_for_fight` filters with:
+```python
+catchup = target - self.TRAIN_CATCHUP_GAP      # 13..17 - 6  =  7..11
+to_train = {i for i in battlers if party[i].level >= catchup}
+```
+⇒ **a L4-5 Marill is BELOW 7-11 and is excluded at the very first gym.** Catching early WITHOUT
+changing this just makes it a mule sooner. ‼ `TRAIN_CATCHUP_GAP = 6` encodes the **2026-07-21** user
+directive *"fresh far-below catches are left to level organically"* — which **2026-09-04** superseded:
+*"I am fine with the bot catching and training pokemon."*
+
+**⇒ THE DIRECTION, STATED PRECISELY (unbuilt, review pending):** acquire the water-HM carrier EARLY
+where the gap is small and the grass is survivable, and let the catch-up machinery actually train it
+there. The single constant that forbids this today is `TRAIN_CATCHUP_GAP`, and widening it is cheap
+EARLY and ruinous LATE — so any change must be scoped to the early game, not applied globally.
+⚠ NOT BUILT: an adversarial review of the §Ch3 direction is still running, and the last two fixes in
+this area were refuted after being built. The pricing above is a MODEL; the drive is owed.
