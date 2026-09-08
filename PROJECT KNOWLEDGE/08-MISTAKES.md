@@ -14724,3 +14724,29 @@ Its killer argument was arithmetic on the chapter's OWN recorded party: the gap 
 and Swellow L42, two of the four mons the shipped run trained. ⇒ **when reviewing a predicate, RUN IT
 ON THE KNOWN-GOOD CASE FIRST.** A rule that rejects the accepted example is refuted before any theory
 about it is needed.
+
+## 2026-09-08 — I masked an exit code AGAIN, hours after writing the rule against it
+
+**Symptom.** I ran the full gate suite as `run_gates.py 2>&1 | tail -14`. The task reported
+**"completed (exit code 0)"**. The suite had actually returned **`FAILED: 1 of 44`** — `tail`'s
+status replaced it, exactly as it had for a failed drive earlier the same session.
+
+**Why this entry exists even though the outcome was harmless.** The rule
+(*"never put a command after the one whose status you care about"*) was written, committed and
+pushed **hours earlier, in this same session, for this same mistake in a different costume**
+(`; echo "EXIT=$?"` after a harness drive). Writing it down did not stop me repeating it. ⇒ the
+useful finding is not the mistake, it is that **a prose rule about a habit does not change the
+habit.**
+
+**What actually caught it.** Not the rule — the PREDICTION. `04-HANDOFF.md` says *"expect
+`run_gates.py` to cost ~15 minutes and come back RED on that one gate"*. A green result contradicted
+the handoff, and the contradiction is what made me look. **Had the suite been genuinely green I would
+have believed the masked zero.**
+
+**⭐ PREVENTION RULE — SHAPE THE COMMAND SO THE STATUS SURVIVES, DO NOT REMEMBER TO.**
+Redirect to a file and inspect it afterwards (`cmd > out.log 2>&1` then read `out.log`), rather than
+piping the command whose status you need. The pipe is the hazard; a file is not.
+‼ And the second-order rule, which is the one with teeth: **a documented EXPECTATION is a stronger
+guard than a documented RULE.** "Expect RED on gate X" catches a masked green; "remember not to pipe"
+catches nothing once you are concentrating on something else. ⇒ when a check has a known result,
+WRITE THE EXPECTED RESULT DOWN — it turns every future run into an A/B against the record.
