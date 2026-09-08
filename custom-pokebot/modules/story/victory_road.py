@@ -824,6 +824,128 @@ def departed_sootopolis() -> bool:
 
 
 # --------------------------------------------------------------------------------------------
+# LEG 1 — TEACH WATERFALL (production; the driver-only gap that stopped every 8-badge run)
+# --------------------------------------------------------------------------------------------
+def ensure_waterfall_learner() -> Generator:
+    """§Ch23 LEG 1, IN PRODUCTION. Teach HM07 from the bag if nobody knows Waterfall.
+
+    ⛔⛔ THIS STEP EXISTED ONLY AS A HARNESS DRIVER. The chapter's own build spec says it:
+    `ai-research-notes/2026-09-03-ch23-CHAPTER-BUILD-SPEC.md:204` — *"teach Waterfall to Wailmer |
+    ✅ driver only (`ch23teach`), production module absent"*. Every §Ch23 fixture from leg 2 onward
+    is downstream of that driver's teach, so the chapter passed its driven tests for days while the
+    route to it was impassable.
+    ⭐ MEASURED COST: across 37 stored batches the 8th badge was reached SIX times — all six in the
+    batch of 2026-09-07 — and all six died on `assert_ch23_preflight`. Nothing in the corpus has
+    ever passed it.
+
+    ⛔ TEACHING IS THE FIX; RELAXING THE PREFLIGHT IS NOT. `checkpartymove MOVE_WATERFALL` gates
+    `EventScript_UseWaterfall`, so with no carrier `Task_UseWaterfall` never starts and leg 4 burns
+    its 3,000-frame climb budget instead — a silent timeout ~60,000 frames later, mid-ocean, where
+    `allow_escaping` is false and there is no Poké Center until Ever Grande.
+
+    ‼ IDEMPOTENT ON THE LIVE MOVEPOOL, never on `RECEIVED_HM_WATERFALL`: the flag and the item are
+    not the same fact (`sootopolis.py:2769-2772`), and only the movepool answers "can we climb?".
+    """
+    # ‼ LOCAL IMPORTS, for consistency with `ensure_strength_learner` and this module's own habit.
+    # ⛔ AN EARLIER VERSION OF THIS COMMENT CLAIMED A MODULE-SCOPE IMPORT "would create an import
+    # cycle". THAT WAS FALSE AND IS RETRACTED: `victory_road.py:69-76` already imports six names
+    # from `early_game` at module scope, and `early_game` imports nothing from `modules.story.*`
+    # there — a cycle would already be firing. It was a plausible-sounding rationale I never
+    # checked. ‼ A false REASON is worse than no reason: the next reader inherits it as fact.
+    from modules.console import console
+    from modules.items import get_item_bag
+    from modules.story.early_game import teach_hm_move
+
+    if field_move_carriers()["Waterfall"] is not None:
+        console.print("[dim]Story: someone already knows Waterfall — teach skipped.[/]")
+        return
+
+    hm07 = next((s.item for s in get_item_bag().tms_hms if s.item.name == "HM07"), None)
+    if hm07 is None:
+        raise BotModeError(
+            "Ch23 leg 1: HM07 is not in the bag, so nobody can be taught Waterfall. It is given by "
+            "Wallace after the Sootopolis gym opens (§Ch21 leg 5), and every §Ch23 fixture already "
+            "has it."
+        )
+
+    # ⛔⛔ COMPATIBLE **AND** HAS A SLOT TO SPEND. `hm_learner_slot` alone is NOT enough: it ranks by
+    # level and returns the highest-level compatible mon EVEN WHEN SATURATED, so on a party with a
+    # four-HM Swampert and a free-slotted Marill it picks the Swampert and fails avoidably. That is
+    # not hypothetical — it is 5 of the 6 measured 8-badge parties.
+    # ‼ `_is_hm_slot` is a nested helper inside `teach_hm_move`, so the predicate is repeated here
+    # rather than imported.
+    # ⛔⛔ IT DELIBERATELY DIVERGES FROM `early_game.py:4603-4608` IN THE EXCEPTION BRANCH, and an
+    # earlier comment here wrongly claimed they were identical. They answer DIFFERENT questions and
+    # are therefore conservative in OPPOSITE directions:
+    #   * `_is_hm_slot` picks WHICH SLOT TO OVERWRITE — unreadable -> False -> treat as overwritable.
+    #   * this one decides WHETHER TO PICK THIS MON AT ALL — unreadable -> True -> treat as NOT
+    #     spendable, so a movepool we cannot read never makes a saturated mon look like a valid
+    #     learner and send us into a teach that must fail.
+    # Making them "match" would be a regression, not a tidy-up.
+    def _is_hm(learned) -> bool:
+        try:
+            m = learned.move
+            return m.tm_hm is not None and m.tm_hm.name.startswith("HM")
+        except Exception:  # noqa: BLE001 - see above: unreadable => NOT provably spendable.
+            return True
+
+    best, best_level = None, -1
+    for i, mon in enumerate(get_party()):
+        if mon is None or mon.is_egg or not mon.species.can_learn_tm_hm(hm07):
+            continue
+        spendable = any(l is None or not _is_hm(l) for l in mon.moves)
+        if spendable and mon.level > best_level:
+            best, best_level = i, mon.level
+
+    if best is None:
+        # ⛔ A NAMED REFUSAL, NOT A GENERIC FAILURE. This is the state 5 of 6 measured parties reach,
+        # and the reader needs the CAUSE, not the symptom: every HM funnelled onto one mon.
+        # ‼ THE ROSTER MUST NOT DIE WHILE EXPLAINING A FAILURE. This block exists to make the
+        # refusal NAMED rather than generic, so an unreadable move here would defeat its own
+        # purpose — the reader would get a traceback instead of the cause.
+        roster = []
+        for mon in get_party():
+            if mon is None or mon.is_egg:
+                continue
+            try:
+                moves = [l.move.name for l in mon.moves if l is not None]
+            except Exception:  # noqa: BLE001 - name the gap; never lose the whole message for it.
+                moves = ["<unreadable movepool>"]
+            try:
+                roster.append(f"{mon.species.name} L{mon.level} {moves}")
+            except Exception:  # noqa: BLE001 - same reasoning one level up.
+                roster.append(f"<unreadable mon> {moves}")
+        raise BotModeError(
+            "Ch23 leg 1: nobody can be taught Waterfall — every compatible party member has four "
+            "HM moves and HMs cannot be forgotten in Gen 3 (Move Deleter only). This is the "
+            "`#24-hm07funnel` shape: `hm_learner_slot` ranks by LEVEL alone, so in a Mudkip line "
+            "Strength, Rock Smash, Surf and Dive all land on the starter — the one mon that could "
+            "also have carried Waterfall. It can only be prevented at the ORIGINAL teach. "
+            f"Party: {'; '.join(roster)}"
+        )
+
+    learner = get_party()[best]
+    before = [l.move.name for l in learner.moves if l is not None]
+    console.print(f"[cyan]Story: teaching Waterfall to {learner.species.name} (slot {best})...[/]")
+    yield from teach_hm_move(hm07, best)
+
+    # ‼ VERIFY FROM THE WORLD, and SAY WHAT IT COST. `teach_hm_move`'s own `context.message` is not
+    # trustworthy for this: `early_game.py:5211-5216` records its `[STEP] '…learned…'` appearing
+    # ZERO times against 42 real teaches, which is why no lane log says who learned Surf or Dive.
+    if field_move_carriers()["Waterfall"] is None:
+        raise BotModeError(
+            f"Ch23 leg 1: taught HM07 to {learner.species.name} (slot {best}) but no party member "
+            "knows Waterfall afterwards."
+        )
+    after = [l.move.name for l in get_party()[best].moves if l is not None]
+    lost = [n for n in before if n not in after]
+    console.print(
+        f"[green]Story: {get_party()[best].species.name} learned Waterfall"
+        + (f" (lost {', '.join(lost)})" if lost else "") + "[/]"
+    )
+
+
+# --------------------------------------------------------------------------------------------
 # PREFLIGHT
 # --------------------------------------------------------------------------------------------
 def assert_ch23_preflight(report=None) -> None:

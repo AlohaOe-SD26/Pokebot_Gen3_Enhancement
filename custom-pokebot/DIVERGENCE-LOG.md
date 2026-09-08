@@ -2232,3 +2232,42 @@ game is actively REFUSING the switch.
 ✅ **UNAFFECTED:** the promoted BOUND is still driven-proven, `KI-97` is still driven green, and the
 promotion itself (drift 0, 4/4 byte-identical, verified against `--build custom`) stands. What changed
 is a CLAIM ABOUT A CAUSE, not the behaviour of the promoted code.
+
+---
+
+## 2026-09-08 — PROMOTION: five files, user-authorised, VERIFIED BY DRIVING
+
+`promote.py --restore-point pre-promote-2026-09-08 --go` — **5/5 byte-identical, drift 0 in both
+directions, orphaned 0.** Restore point pushed to origin before anything was copied.
+
+**WHAT MOVED, AND HOW WELL EACH IS PROVEN — stated per file, because they are NOT equal:**
+
+| file | change | evidence |
+|---|---|---|
+| `modules/battle_action_selection.py` | `KI-96` — recompute the party-menu slot AFTER the menu opens | ✅ **driven A/B**: 241 presses + a hard stop to Manual → 27 presses + ACCEPTED, bound firings 1 → 0 |
+| `modules/story/victory_road.py` | `#24-hm07teach` — `ensure_waterfall_learner()` | ✅ **driven at scale**: §Ch23 Waterfall preflight 11 of 53 → **0 of 49** |
+| `modules/story/early_game.py` | `#24-hm07funnel` (`pick_land_hm_slot`) + `whiteout_budget()` | ✅ **driven at scale**: Surf+Dive party-full 7 → **0**; whiteout quota 14 (26.4%) → **4 (8.2%)** |
+| `plugins/custom_modes/story_mode.py` | `KI-97` gate, Segment 22b, `#24-mossdeepstrand`, `#24-truckleak`, budget wiring | 🔶 **MIXED** — the gate and Segment 22b are driven; ⚠ `#24-truckleak` was never FAULT-ARMED |
+| `modules/modes/util/higher_level_actions.py` | `#24-pcpingpong` — `withdraw_precedence()` | ⚠ **UNDRIVEN** — no targeted acceptance; it ran in the batch without a new failure class, which is evidence, not proof |
+
+**THE VERIFICATION, AS THE STANDING RULE DEMANDS — a copy is not evidence:**
+```
+story_harness.py post_grind_L60.ss1 --driver ch23chapter --build custom
+ACCEPTANCE: PASS   done=True   battles=12 whiteouts=0 failure=None
+```
+This is the SAME fixture and driver that passed on sandbox before the promotion, so it is a true
+before/after **on the fork**, not a byte-compare.
+
+**⭐ AND A SECOND, INDEPENDENT DISCRIMINATOR — a gate that was RED on custom is now GREEN.**
+`probe_hm_coverage.py --build custom` passes. Its own docstring recorded that custom *"fails today
+for a KNOWN correct reason (unpromoted fix)"*, so this is a measured state change on the fork rather
+than a re-run of the same import. `probe_abort_swallowing.py --build custom` also passes.
+
+**‼ HONEST ABOUT THE TWO WEAK ROWS.** `#24-pcpingpong` and `#24-truckleak` are promoted WITHOUT their
+own fault-armed acceptance. They were exercised by **49 full story runs** in batch
+`20260907-203713` — the batch ran this exact sandbox code (`code_commit 8a8ae2d9`, and the tree was
+clean at launch, so the recorded commit is genuinely what ran) — and produced no new failure class
+attributable to either. ⇒ **that is real evidence and it is NOT a targeted acceptance.** Their owed
+drives (`#24-pcpingpong-accept`, `#24-truckleak-accept`, the latter needing `Up`+`B` held across a
+run boundary) remain OWED, and are now owed against BOTH forks.
+⛔ Rollback: `pre-promote-2026-09-08` (local + origin).

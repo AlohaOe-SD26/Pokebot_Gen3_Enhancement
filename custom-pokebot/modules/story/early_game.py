@@ -4331,6 +4331,114 @@ def hm_learner_slot(item) -> int | None:
     return best
 
 
+def whiteout_budget(recoveries, last_key, key, cap=40):
+    """PURE. Advance the whiteout budget, resetting it when the run has MOVED ON.
+
+    Returns `(new_recoveries, should_stop, reset)`.
+
+    ⛔⛔ WHY THIS EXISTS — `#24-whiteoutloop`, the batch's #1 failure class (14 of 53 ended runs, 26%).
+    `recoveries` was a LIFETIME total with **no reset site anywhere** — five references in a 4,500-line
+    file: init, increment, log, cap, message — while its own error text said *"too many whiteout
+    recoveries IN A ROW"*. It described behaviour the code did not implement.
+
+    **MEASURED over `x4-runs/20260907-113851`, all 14 killed runs, recomputed locally:**
+        every killed run reached exactly recovery #41 (the `> 40` cap)
+        distinct respawn maps per killed run : median 13
+        TERMINAL same-location streak        : median 2.5, max 20, min 1
+        longest same-location streak ANYWHERE: max 20  (the cap is 40)
+        ⇒ keying the budget to CONSECUTIVE whiteouts at one location would have saved 14 of 14.
+    One run hit #41 after a SINGLE whiteout at its terminal location; its other 40 were spread over a
+    dozen towns. Killed runs were winning 86-96% of their battles, one of them 866 of 907 with an L51
+    lead. ⇒ **it was a fuse on run LENGTH, not a diagnosis.** `MAX_FRAMES_PER_RUN` (5,000,000) is the
+    real length backstop and was never reached by ANY of the 61 runs.
+
+    ⛔⛔ THE TRAP THIS FUNCTION EXISTS TO AVOID — DO NOT "SIMPLIFY" IT TO USE `_progress_sig()`.
+    The sibling `_derails` counter resets on `_progress_sig()` change and it is tempting to mirror it
+    sixty lines away. `_progress_sig()` is `(party_size, lead_level, total_exp)`. Between whiteout N
+    and N+1 the bot walks back to the fight through wild grass, so **`total_exp` ALWAYS grows** — the
+    reset would fire every single time and SILENTLY DELETE THE GUARD. `_progress_sig` is correct for
+    derails (which fire in bursts with no battles between) and wrong for whiteouts.
+
+    ‼ THE SAFETY DIRECTION IS DELIBERATE, AND IT IS WHY `None` DOES NOT RESET. A genuinely stuck run
+    whites out at the SAME Poké Center every time, so its streak still climbs to 41 and it is still
+    stopped — the guard survives, it just stops firing on runs that are winning. If the location is
+    unreadable we do NOT reset: the counter keeps climbing, i.e. an unreadable position makes the
+    guard STRICTER, never laxer. Being wrong in that direction is safe; the other way is a hang.
+    """
+    if key is not None and last_key is not None and key != last_key:
+        return 1, 1 > cap, True
+    return recoveries + 1, recoveries + 1 > cap, False
+
+
+def pick_land_hm_slot(party, item, hm07, default_slot):
+    """PURE. Which slot should learn a LAND HM, preferring a mon that cannot carry HM07?
+
+    `party` is a sequence of mon-likes (or None); `item`/`hm07` are Items; `default_slot` is what
+    `hm_learner_slot(item)` already chose. Returns a slot index, or `default_slot` unchanged.
+
+    ⭐⭐ WHY THIS EXISTS — `#24-hm07funnel`, and the reason is in the DATA, not in a preference.
+    Derived over all 412 species in `modules/data/species.json`: **101 species can learn Surf, 74 can
+    learn Waterfall, 76 can learn Dive — and ZERO Waterfall- or Dive-capable species are
+    Surf-incapable.** Both pools are strict SUBSETS of Surf's. ⇒ the highest-level Surf learner is
+    ALWAYS also the Dive and Waterfall candidate, so `hm_learner_slot`'s level ranking hands that one
+    mon every HM it is offered.
+    On a Mudkip line that mon is the ONLY Waterfall carrier (6 of 6 measured 8-badge parties), so it
+    MUST hold Surf + Dive + Waterfall = 3 of 4 slots. Adding both land HMs makes five HMs for four
+    slots, and Waterfall — acquired last, in §Ch21 — is the one left out. HMs cannot be forgotten in
+    Gen 3 (see `teach_hm_move`), so the ONLY moment this can be prevented is the original teach.
+    MEASURED in the live batch: 27 "teaching Strength to Swampert" against 5 Blaziken and 3 Breloom.
+
+    ‼ PREFERENCE, NOT A REQUIREMENT. If no incapable learner exists the default stands, so a party is
+    never left worse off than today — the change can only ever move a land HM OFF the water mon.
+    ⛔ Never used for Surf or Dive: those MUST go to the water mon, and `hm_learner_slot` keeps them.
+    """
+    if default_slot is None or item is None or hm07 is None:
+        return default_slot
+    # ‼ IDEMPOTENCE FIRST. If the default already knows this move, re-picking would teach it twice
+    # and burn a second slot — the exact waste this function exists to prevent.
+    move = item.tm_hm_move()
+    try:
+        cur = party[default_slot]
+    except Exception:  # noqa: BLE001 - an unindexable party is not a reason to re-pick blindly.
+        return default_slot
+    if cur is not None and move is not None and any(
+        l is not None and l.move.name == move.name for l in cur.moves
+    ):
+        return default_slot
+
+    best, best_level = None, -1
+    for i, mon in enumerate(party):
+        if mon is None or getattr(mon, "is_egg", False):
+            continue
+        try:
+            if not mon.species.can_learn_tm_hm(item):
+                continue
+            if mon.species.can_learn_tm_hm(hm07):
+                continue          # this one is a Waterfall carrier — leave its slots alone
+            if mon.level > best_level:
+                best, best_level = i, mon.level
+        except Exception:  # noqa: BLE001 - an unreadable mon is simply not a candidate.
+            continue
+    return best if best is not None else default_slot
+
+
+def land_hm_learner_slot(item) -> int | None:
+    """`hm_learner_slot`, but for a LAND HM: prefer a learner that cannot also carry HM07.
+
+    ⛔ THIN WRAPPER ON PURPOSE. Everything decidable lives in `pick_land_hm_slot`, which is pure and
+    therefore reachable by a test; this half only fetches world state. `get_item_by_name` reads the
+    static item TABLE (`modules/items.py:529-530`), NOT the bag — verified — so this works at
+    Segment 10b, long before HM07 is obtained in §Ch21.
+    """
+    from modules.items import get_item_by_name
+
+    try:
+        hm07 = get_item_by_name("HM07")
+    except Exception:  # noqa: BLE001 - if HM07 cannot be resolved, behave exactly as today.
+        hm07 = None
+    return pick_land_hm_slot(get_party(), item, hm07, hm_learner_slot(item))
+
+
 def _hm_hunting_grounds(item) -> list[tuple]:
     """Training-grass areas whose LAND encounter table contains at least one species
     that can learn `item`'s move — fully data-driven (ROM encounter tables + the
@@ -7854,7 +7962,9 @@ def ensure_strength_learner() -> Generator:
             "in Rusturf Tunnel; every save this chapter was built against already had it."
         )
 
-    slot = hm_learner_slot(hm04)
+    # ⭐ `#24-hm07funnel` — prefer a learner that cannot carry HM07. Preference only; falls
+    # back to `hm_learner_slot` when no such mon exists, so no party is left worse off.
+    slot = land_hm_learner_slot(hm04)
     if slot is None:
         raise BotModeError(
             "Strength: no party member can learn HM04. ‼ Note Zigzagoon CANNOT (measured) - "

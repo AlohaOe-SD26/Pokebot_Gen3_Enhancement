@@ -1,3 +1,4 @@
+import os as _os_hla
 from enum import Enum
 from typing import Generator, Union, Callable
 
@@ -46,6 +47,56 @@ from ...map import get_map_objects, get_map_data_for_current_position
 from ...map_path import calculate_path, PathFindingError, Direction
 from ...mart import get_mart_buyable_items, get_mart_buy_menu_scroll_position, get_mart_main_menu_scroll_position
 from ...pokeblock_feeder import get_active_pokeblock_feeder_for_location
+
+
+def withdraw_precedence(pids, needs_party_slot: bool, fault: bool = False) -> "tuple[bool, str]":
+    """Should the counter-withdraw run GIVEN that this visit may have been entered to FREE a slot?
+
+    Returns `(should_withdraw, message)` — the same contract as `counter_withdraw_outcome`, which it
+    wraps rather than replaces.
+
+    ⛔⛔ `#24-pcpingpong` — THE COLLISION THIS ARBITRATES. `heal_in_pokemon_center` runs two
+    piggybacks 27 lines apart with OPPOSED postconditions and, until now, nothing between them:
+        :380  `_needs_party_slot`      -> `deposit_one_dead_weight()`  frees a seat
+        :420  `_hunted_counter_pids`   -> `withdraw_from_box()`        fills it straight back
+    MEASURED over 37 stored batches (every `freeing ONE slot` attempt, 0 unresolved):
+        deposit -> a withdraw fired -> `no slot was freed`   135
+        deposit -> NO withdraw      -> `freed a slot (6->5)`   9
+    135/135 failures had a withdraw; 9/9 successes did not; and the withdrawn mon is **the same mon
+    just deposited in 135 of 135**. One Pokemon boxed and un-boxed inside a single PC visit.
+
+    ‼ WHY THIS IS A FUNCTION AND NOT AN `if` IN THE GENERATOR — the same reason
+    `counter_withdraw_outcome` is one, and its docstring says it better than I can: *logic that
+    decides an outcome must be reachable by a test.* Inside the generator this branch needs a ROM to
+    reach, so it could only be ARGUED about — and on 2026-09-07 an untestable branch is exactly how
+    a feature shipped dead behind seven green checks.
+
+    ⚠ THE COUNTER IS NOT ABANDONED. `#24-pcoverflow`'s own design says a boxed counter is "collected
+    at the next heal"; this makes that one heal later. The deferral is REPORTED through the existing
+    `_piggyback_report` channel, because a skip nobody can see is how the collision survived.
+
+    ⛔ `fault=True` (`POKEBOT_PCPINGPONG_FAULT=1`) RESTORES THE OLD BEHAVIOUR ON PURPOSE. The 144
+    samples above are a NATURAL CONTRAST, not an executed A/B, and this project does not accept a
+    contrast as proof of a fix. This is the arm that makes the A/B possible.
+    """
+    # ⛔ `pids` LAST, AND IT IS LOAD-BEARING TWICE OVER.
+    # (1) DEFER ONLY WHAT THERE IS TO DEFER. With no hunted counter this used to answer "the counter
+    #     stays boxed and is collected at the next ordinary heal" — announcing a pending collection
+    #     for a counter that does not exist. The two flags are INDEPENDENT (the HM-learner
+    #     room-freeing path sets `_needs_party_slot`; most such visits have no counter hunt active —
+    #     9 of 144 historically), so this is a real branch, not an edge case. Falling through gives
+    #     `counter_withdraw_outcome`'s careful message, which distinguishes "normal, none hunted"
+    #     from "one WAS hunted and its registration upstream failed" — the Slugma/Winona shape.
+    #     ‼ A guard that cannot tell "no" from "I broke" is worse than no guard.
+    # (2) ORDERING: an ORDINARY heal short-circuits on `needs_party_slot` and never evaluates
+    #     `pids`, so the shared path is unchanged even for an object that raises on truthiness
+    #     (`counter_withdraw_outcome` uses a bare `if pids:` and accepts that).
+    if needs_party_slot and not fault and pids:
+        return False, (
+            "DEFERRED — this visit was entered to FREE a slot (#24-pcpingpong); a withdraw would "
+            "refill it. The counter stays boxed and is collected at the next ordinary heal."
+        )
+    return counter_withdraw_outcome(pids)
 
 
 def counter_withdraw_outcome(pids) -> "tuple[bool, str]":
@@ -405,7 +456,14 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
             from modules.story.pc_trip import withdraw_from_box
 
             _pids = getattr(_ctx.bot_mode_instance, "_hunted_counter_pids", None)
-            _should_withdraw, _why = counter_withdraw_outcome(_pids)
+            # ⛔ #24-pcpingpong — arbitrate against the KI-63 deposit 27 lines above. The
+            # decision is a PURE function so every branch is reachable by a test; see its docstring
+            # for the 135/135 measurement and why `POKEBOT_PCPINGPONG_FAULT=1` exists.
+            _should_withdraw, _why = withdraw_precedence(
+                _pids,
+                getattr(_ctx.bot_mode_instance, "_needs_party_slot", False),
+                _os_hla.environ.get("POKEBOT_PCPINGPONG_FAULT", "") == "1",
+            )
             # ‼ The SKIP goes to the run log only, not the console: most heals legitimately have no
             # hunted counter, so this on screen would be noise — and a noisy diagnostic is one that
             # gets ignored, which puts us right back where we started. In the transcript it is the

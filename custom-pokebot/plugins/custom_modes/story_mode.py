@@ -2520,11 +2520,15 @@ class StoryMode(BotMode):
         from modules.story.early_game import set_story_abort, exit_building_after_whiteout
         from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
         from modules.battle_fault import take_pending_fault, clear_pending_fault
+        from modules.story.early_game import whiteout_budget
 
         # Never inherit a fault recorded just before this mode started.
         clear_pending_fault()
 
         recoveries = 0
+        # `#24-whiteoutloop`: the respawn location at the PREVIOUS whiteout. `recoveries` is keyed to
+        # CONSECUTIVE whiteouts at one place, so this is the half that says "did we move on?".
+        last_whiteout_key = None
         while True:
             set_story_abort(False)
             self._whiteout_pending = False
@@ -2735,15 +2739,31 @@ class StoryMode(BotMode):
                         yield
                     continue  # re-run _play(): re-localise from flags + position
                 # --- WHITEOUT recovery ---
-                recoveries += 1
+                # ⭐⭐ `#24-whiteoutloop` — THE BUDGET IS KEYED TO ONE LOCATION, NOT TO THE RUN.
+                # This counter had NO reset site while its message said "in a row", so it was a
+                # LIFETIME loss quota: 14 of 53 runs (26%) died on it, every one at exactly #41,
+                # after whiteouts spread over a median of 13 different towns. Killed runs were
+                # winning 86-96% of their battles. ⇒ a fuse on run LENGTH, not a diagnosis.
+                # ⛔ See `whiteout_budget`'s docstring for the measurement AND for why
+                # `_progress_sig()` — the signal `_derails` uses forty lines up — must NOT be used
+                # here: it contains `total_exp`, which grows on the walk back, so it would reset
+                # every time and delete the guard.
+                _wo_key = self._location_key()
+                recoveries, _wo_stop, _wo_moved = whiteout_budget(
+                    recoveries, last_whiteout_key, _wo_key
+                )
+                last_whiteout_key = _wo_key
                 self._derails = 0  # reaching a fight = progress; reset the derail budget
                 try:
                     from modules import debug_logger
 
-                    debug_logger.event(f"WHITEOUT recovery #{recoveries}")
+                    debug_logger.event(
+                        f"WHITEOUT recovery #{recoveries} at {_wo_key}"
+                        + (" (moved on since the last whiteout — budget reset)" if _wo_moved else "")
+                    )
                 except Exception:
                     pass
-                if recoveries > 40:
+                if _wo_stop:
                     # ‼ CLEAR THE LATCH ON THE WAY OUT. `_STORY_ABORT` is a MODULE-GLOBAL in
                     # `early_game`, shared by every mode, probe and driver in the process — and
                     # this `raise` used to leave it SET. Whatever ran next (the endless loop's
@@ -2752,8 +2772,9 @@ class StoryMode(BotMode):
                     # The `derails > 4` exit above does not leak; this one did.
                     set_story_abort(False)
                     raise BotModeError(
-                        "Story: too many whiteout recoveries in a row — stopping so I "
-                        "don't loop forever. Check the team/route."
+                        f"Story: too many whiteout recoveries at one location "
+                        f"({recoveries} without the story moving on, at {_wo_key}) — stopping so "
+                        f"I don't loop forever. Check the team/route."
                     )
                 self._whiteout_pending = False
                 set_story_abort(False)
@@ -3377,14 +3398,40 @@ class StoryMode(BotMode):
         if not _party_knows_rock_smash():
             from modules.items import get_item_by_name
             from modules.map_data import PokemonCenter
-            from modules.story.early_game import ensure_hm_learner_making_room, teach_hm_move
+            from modules.pokemon_party import get_party
+            from modules.story.early_game import (
+                ensure_hm_learner_making_room,
+                land_hm_learner_slot,
+                teach_hm_move,
+            )
 
             _hm06 = get_item_by_name("HM06")
             # ‼ KI-63 WIRING: a FULL PARTY used to end the run here — this call site had no error
             # handling, so the raise went straight to the mode handler and derailed to Manual.
             # Centres are the ones this era already heals at, nearest-first.
-            _slot = yield from ensure_hm_learner_making_room(
-                _hm06, (PokemonCenter.MauvilleCity, PokemonCenter.SlateportCity)
+            # ⭐ `#24-hm07funnel` — PRE-PICK a learner that cannot also carry HM07.
+            # MEASURED over all 412 species: Waterfall's and Dive's pools are strict SUBSETS of
+            # Surf's (74 and 76 of 101, with ZERO Surf-incapable members), so the highest-level Surf
+            # learner is ALWAYS also the Waterfall candidate — and `hm_learner_slot` hands it every
+            # HM it is offered. On a Mudkip line that mon is the party's ONLY Waterfall carrier and
+            # must hold Surf+Dive+Waterfall = 3 of 4 slots; adding both land HMs makes five HMs for
+            # four slots and Waterfall, acquired last in §Ch21, is the one left out. HMs cannot be
+            # forgotten in Gen 3, so the ORIGINAL teach is the only moment this is preventable.
+            # ‼ REACHABILITY-IDENTICAL, and that is the safety argument: `ensure_hm_learner` opens
+            # with `slot = hm_learner_slot(item); if slot is not None: return slot` — no yields, no
+            # side effects — and `ensure_hm_learner_making_room` delegates straight to it. So
+            # `_pref is None` ⟺ `hm_learner_slot` is None ⟺ the room-making path was genuinely
+            # needed, and it is then called untouched. Only WHICH slot changes.
+            _pref = land_hm_learner_slot(_hm06)
+            if _pref is None:
+                _slot = yield from ensure_hm_learner_making_room(
+                    _hm06, (PokemonCenter.MauvilleCity, PokemonCenter.SlateportCity)
+                )
+            else:
+                _slot = _pref
+            console.print(
+                f"[cyan]Story: teaching Rock Smash to {get_party()[_slot].species.name} "
+                f"(slot {_slot})...[/]"
             )
             yield from teach_hm_move(_hm06, _slot)
         else:
@@ -3928,6 +3975,26 @@ class StoryMode(BotMode):
             console.print("[dim]Story: Sootopolis Gym / Juan already done — skipping.[/]")
         _guard("Gym 8 — Juan (Ch22)", ch22_chapter_done)
 
+        # --- Segment 22b: TEACH WATERFALL (§Ch23 leg 1, which existed only as a harness driver).
+        #     ⛔⛔ THIS IS WHY NO RUN HAS EVER FINISHED. Across 37 stored batches the 8th badge was
+        #     reached SIX times — all six on 2026-09-07 — and all six died on §Ch23's preflight
+        #     because nothing in production ever taught HM07. The chapter's own build spec recorded
+        #     the gap ("driver only, production module absent") and every §Ch23 fixture is
+        #     downstream of that driver's teach, so the chapter passed its driven tests for days
+        #     while the route to it was impassable.
+        #     ⭐ PLACED AT 22b, NOT 21b, DELIBERATELY: a 21b stop would fire BEFORE badge 8, and
+        #     badge 8 has been reached six times in the project's whole recorded history. Failing
+        #     earlier would erase the only evidence that §Ch21 and §Ch22 work end to end. 22b is
+        #     still strictly before the preflight — nothing between here and `depart_sootopolis`
+        #     touches the party.
+        #     ‼ HM07 is in the bag from §Ch21; only field USE needs BADGE08, the same
+        #     flag-vs-badge split Segment 10b documents for Rock Smash.
+        from modules.story.victory_road import ensure_waterfall_learner, field_move_carriers
+
+        yield from ensure_waterfall_learner()
+        _guard("Teach Waterfall (Ch22b)",
+               lambda: field_move_carriers()["Waterfall"] is not None)
+
         # --- Segment 23: VICTORY ROAD ---------------------------------------------------------------
         # ⛔⛔ GRADED ON `ch23_chapter_done()`, WHICH IS THE FLAG **AND A POSITION** — never the flag
         # alone. `chapters.py:280-286` grades Segment 23's READOUT on `DEFEATED_WALLY_VICTORY_ROAD`,
@@ -4125,6 +4192,30 @@ class StoryDebugResetMode(StoryMode):
             console.print(f"[bold cyan]Story (DEBUG - RESET): debug logging ON -> {path}[/]")
         except Exception:
             pass
+
+        # ⛔⛔ A HARD RESET MUST START FROM NO INPUT — `#24-truckleak`, MEASURED 2026-09-07.
+        # `_held_inputs` is PYTHON-SIDE state on the emulator wrapper (`modules/libmgba.py:157`)
+        # and `reset()` (`:198-199`) does not touch it, so any D-pad key still held when a run is
+        # KILLED is re-OR'd into the pad every frame of the NEXT run (`libmgba.py:581`).
+        # ⭐ WHAT THAT COST: batch lane L03 lost **146 runs** to
+        # "Could not step off the truck (still INSIDE OF TRUCK)". Run 2 died on the frame budget
+        # mid-walk, `GeneratorExit` unwound the navigator (which has no `finally:`), and a leaked
+        # `Up` then beat the truck loop's `press_button("Right")` for the rest of the batch.
+        # The separation is total: 867 dumps with `held_buttons=[]` exit the truck in ~67 frames;
+        # 719 dumps with `['B','Up']` sit at (2,1) facing Up — 858 failures, ZERO escapes.
+        # ‼ THIS SEAM ON PURPOSE: `StoryEndlessResetMode` reaches it through `super().run()` every
+        # iteration, and the standalone "Story (DEBUG - RESET)" menu entry gets it too — one line,
+        # both modes. It is also UPSTREAM of the main-menu drive below, which presses A/Down and is
+        # equally corrupted by a stale hold.
+        # ⛔ DO NOT move this to a per-frame or per-wait path: navigation DEPENDS on held buttons
+        # (`modules/modes/util/walking.py`), and clearing them there would stop the avatar moving
+        # and fill the batch with "Could not reach …" derails instead. That is the inverse failure.
+        # ‼ It ANNOUNCES itself — a silent release is an un-gradeable fix, and the printed mask is
+        # what makes a fault-armed acceptance run readable.
+        _leaked = context.emulator.reset_held_buttons()
+        if _leaked:
+            console.print(f"[yellow]DEBUG-RESET: released leaked held inputs (0x{_leaked:04x}) "
+                          f"before the reset — see #24-truckleak.[/]")
 
         # Hard reset to the boot screen. (State after this: copyright/intro -> title.)
         context.emulator.reset()

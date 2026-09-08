@@ -24578,3 +24578,17 @@ Self-test is now **9 arms** (was 7). The file's docstring said "TWO INVARIANTS" 
 corrected. ⭐ The pattern worth seeing: **A and B protect the MOVE; C and D protect the CLAIM** —
 every invariant after the first two exists because the mechanics were right and the document was
 still false.
+
+## 2026-09-08 — PROMOTED five files to `custom-pokebot` (user-authorised), verified by driving
+
+drift 5 → **0**, orphaned 0, 5/5 byte-identical, restore point `pre-promote-2026-09-08` pushed to
+origin BEFORE the copy. Verified with the standing rule (a copy is not evidence):
+`story_harness.py post_grind_L60.ss1 --driver ch23chapter --build custom` → **ACCEPTANCE: PASS**,
+`done=True`, `battles=12 whiteouts=0 failure=None` — the same fixture and driver that passed on sandbox, so a real before/after
+on the fork. ⭐ Second discriminator: `probe_hm_coverage.py --build custom` was RED for a known reason
+(the unpromoted fix) and is now GREEN.
+
+⚠ Stated per file rather than as one verdict, because the five are not equally proven: `KI-96` has a
+driven A/B; `#24-hm07teach` and `#24-hm07funnel` are driven at scale by the 49-run batch;
+`#24-pcpingpong` and `#24-truckleak` are **UNDRIVEN** and their owed acceptances are now owed against
+both forks. Full per-file table in `custom-pokebot/DIVERGENCE-LOG.md` 2026-09-08.
