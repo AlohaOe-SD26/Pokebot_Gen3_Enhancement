@@ -10335,3 +10335,66 @@ POKEBOT_R131_FAULT=stride PYTHONUTF8=1 py -3.12 probe_ch21_route131_live.py   # 
 ⛔ **Quote `ch21pocket`'s `RESULT` line, never its `ACCEPTANCE` line**: ACCEPTANCE grades *"did every
 reading happen"*; whether the walk worked is the separate `walked_out=` field. ⚠ Any driver dirties
 `party_accounting_ledger.jsonl` — expected, not damage (playbook §2b).
+
+---
+
+## 📦 ARCHIVED 2026-09-08 FROM `03-PUNCH-LIST.md` — `#24-dexhunt` (the ORIGINAL 2026-07-29 proposal, VERBATIM)
+
+Moved only to keep 03 inside its 3600-line budget (`lint_docs.py` R3). ⛔ Nothing deleted and
+nothing edited — it was kept in 03 for its RATIONALE, and that rationale is preserved here in
+full. The LIVE `#24-dexhunt` item (re-affirmed and widened) remains in 03, above where this
+sat, and is the one to act from.
+
+### `#24-dexhunt` (original 2026-07-29 proposal, kept for its rationale) — catch EVERY new species, and hunt between gyms
+⛔⛔ **SUPERSEDED — DO NOT ACT ON THE STATUS BELOW.** This is the ORIGINAL 2026-07-29 proposal, kept ONLY for its rationale; the LIVE entry is the `#24-dexhunt` heading ~50 lines ABOVE, which reads **"STATUS: OPEN, unblocked"**. The deferral quoted here was overtaken by the user's 2026-07-31 RULING and again by the 2026-09-04 catching directive. ‼ A Tier 1 reviewer found two headings under the SAME SLUG saying "OPEN, unblocked" and "NOT SCHEDULED" — ⇒ **retitling a superseded block is not stamping it; the STATUS LINE is the half a reader acts on.** *(historical:)* **NOT SCHEDULED — proposed, understood, and deliberately deferred by the user** ("we don't have
+to implement it now… after I send these logs we should be at a good point to continue the
+story").
+
+**The proposal.** Catch every new species the bot meets, and deliberately hunt for unseen ones
+between gyms. Rationale: (a) it is what a human player does, so runs look realistic; (b) the
+encounters generated *while* hunting are XP, so hunting doubles as training and the dex fills
+for free; (c) more encounters = more shiny chances.
+
+**‼ Why (b) is the strongest argument, with measured backing.** Training is currently a
+PURE-COST activity: bundle `20260729-151635` shows **78 heal round trips in one run** and
+training is the single largest consumer of run frames. Hunting in level-matched areas converts
+that same spend into XP **plus** dex progress **plus** shiny lottery tickets. It does not add a
+cost so much as add yield to a cost already being paid.
+
+**Most of the machinery already exists — this is assembly, not invention:**
+| piece | what it already does |
+|---|---|
+| `modules/encounter_index.py` | whole-game reverse index: species → [{map, method, rate%, level range}] |
+| `plugins/custom_modes/hunt_mode.py` | "travel to a target species' best wild spot, then hunt it" |
+| `plugins/custom_modes/living_dex_mode.py` | "work through a list of target species autonomously" (#23) |
+| `StoryShinyCatchStrategy` (`story_mode.py:78`) | already always-catches shinies, **even with a full party** (goes to the PC) |
+| `21-TEAM-POLICY-DESIGN.md` §1 | already specifies *"Drop the `BADGE01_GET` gate. Raise `_catch_team_target` 4 → 6, allow overflow to the box."* |
+
+**Exactly two gates block it today**, both in `_should_catch` (`story_mode.py`):
+1. `if get_event_flag("BADGE01_GET"): return False` — catching stops after Gym 1.
+2. `if len(party) >= self._catch_team_target: return False` — the cap of 4.
+The other gates are sound and should stay: needs the Pokédex, needs >1 ball, never a duplicate,
+never a shiny (the shiny branch pre-empts).
+
+**‼ HARD DEPENDENCIES — do NOT build this first, it will starve:**
+- **Ball + money economy.** Already failing at the current catch rate: this run logged *"out of
+  Poké Balls — fleeing this catch and moving on"* and a derail *"Cannot hunt a Surf learner: no
+  Poké Balls and no money to buy any."* Trainer battles are the ONLY income in Hoenn (no
+  scripted cash gifts). Catching everything multiplies ball spend. → `#24-provisions` first.
+- **PC / party management.** Catching everything guarantees a full party and constant box
+  traffic. `team_policy.py` is built but **unwired**, and dead weight is already at 35% of badge
+  moments. → `#24-trainmap+` item (3) first.
+- **Menu-wedge exposure.** Every catch is more party-menu and nickname-prompt interaction, and
+  **KI-34 (after-faint chooser livelock) is OPEN**. Multiplying menu traffic while a menu
+  livelock is unfixed raises the derail rate. → settle KI-34 first.
+- **Run length vs the frame budget.** A completed run is already ~3.06M frames against a
+  (just-raised) 5M cap. Hunting between gyms will add substantially. Decide deliberately
+  whether to accept fewer, richer runs per night or to cap hunting per chapter.
+
+**‼ ONE GENUINE DESIGN CHOICE FOR THE USER — this proposal and doc 21 disagree.**
+`21-TEAM-POLICY-DESIGN.md` §1 specifies a **scored, randomised** catch roll
+(`p = 0.30 + 0.50*curiosity + …`) *specifically so runs differ from one another*. The user now
+asks for **always-catch-new**, which is deterministic. Both are defensible: always-catch is more
+human and gets variety from WHICH species the RNG offers; the scored roll makes two runs on the
+same route diverge. **They cannot both be the rule — ask before building.**
+

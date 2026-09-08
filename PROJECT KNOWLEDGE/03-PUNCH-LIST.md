@@ -1588,58 +1588,9 @@ accident of what the bot happened to meet.
 
 ---
 
-### `#24-dexhunt` (original 2026-07-29 proposal, kept for its rationale) — catch EVERY new species, and hunt between gyms
-⛔⛔ **SUPERSEDED — DO NOT ACT ON THE STATUS BELOW.** This is the ORIGINAL 2026-07-29 proposal, kept ONLY for its rationale; the LIVE entry is the `#24-dexhunt` heading ~50 lines ABOVE, which reads **"STATUS: OPEN, unblocked"**. The deferral quoted here was overtaken by the user's 2026-07-31 RULING and again by the 2026-09-04 catching directive. ‼ A Tier 1 reviewer found two headings under the SAME SLUG saying "OPEN, unblocked" and "NOT SCHEDULED" — ⇒ **retitling a superseded block is not stamping it; the STATUS LINE is the half a reader acts on.** *(historical:)* **NOT SCHEDULED — proposed, understood, and deliberately deferred by the user** ("we don't have
-to implement it now… after I send these logs we should be at a good point to continue the
-story").
-
-**The proposal.** Catch every new species the bot meets, and deliberately hunt for unseen ones
-between gyms. Rationale: (a) it is what a human player does, so runs look realistic; (b) the
-encounters generated *while* hunting are XP, so hunting doubles as training and the dex fills
-for free; (c) more encounters = more shiny chances.
-
-**‼ Why (b) is the strongest argument, with measured backing.** Training is currently a
-PURE-COST activity: bundle `20260729-151635` shows **78 heal round trips in one run** and
-training is the single largest consumer of run frames. Hunting in level-matched areas converts
-that same spend into XP **plus** dex progress **plus** shiny lottery tickets. It does not add a
-cost so much as add yield to a cost already being paid.
-
-**Most of the machinery already exists — this is assembly, not invention:**
-| piece | what it already does |
-|---|---|
-| `modules/encounter_index.py` | whole-game reverse index: species → [{map, method, rate%, level range}] |
-| `plugins/custom_modes/hunt_mode.py` | "travel to a target species' best wild spot, then hunt it" |
-| `plugins/custom_modes/living_dex_mode.py` | "work through a list of target species autonomously" (#23) |
-| `StoryShinyCatchStrategy` (`story_mode.py:78`) | already always-catches shinies, **even with a full party** (goes to the PC) |
-| `21-TEAM-POLICY-DESIGN.md` §1 | already specifies *"Drop the `BADGE01_GET` gate. Raise `_catch_team_target` 4 → 6, allow overflow to the box."* |
-
-**Exactly two gates block it today**, both in `_should_catch` (`story_mode.py`):
-1. `if get_event_flag("BADGE01_GET"): return False` — catching stops after Gym 1.
-2. `if len(party) >= self._catch_team_target: return False` — the cap of 4.
-The other gates are sound and should stay: needs the Pokédex, needs >1 ball, never a duplicate,
-never a shiny (the shiny branch pre-empts).
-
-**‼ HARD DEPENDENCIES — do NOT build this first, it will starve:**
-- **Ball + money economy.** Already failing at the current catch rate: this run logged *"out of
-  Poké Balls — fleeing this catch and moving on"* and a derail *"Cannot hunt a Surf learner: no
-  Poké Balls and no money to buy any."* Trainer battles are the ONLY income in Hoenn (no
-  scripted cash gifts). Catching everything multiplies ball spend. → `#24-provisions` first.
-- **PC / party management.** Catching everything guarantees a full party and constant box
-  traffic. `team_policy.py` is built but **unwired**, and dead weight is already at 35% of badge
-  moments. → `#24-trainmap+` item (3) first.
-- **Menu-wedge exposure.** Every catch is more party-menu and nickname-prompt interaction, and
-  **KI-34 (after-faint chooser livelock) is OPEN**. Multiplying menu traffic while a menu
-  livelock is unfixed raises the derail rate. → settle KI-34 first.
-- **Run length vs the frame budget.** A completed run is already ~3.06M frames against a
-  (just-raised) 5M cap. Hunting between gyms will add substantially. Decide deliberately
-  whether to accept fewer, richer runs per night or to cap hunting per chapter.
-
-**‼ ONE GENUINE DESIGN CHOICE FOR THE USER — this proposal and doc 21 disagree.**
-`21-TEAM-POLICY-DESIGN.md` §1 specifies a **scored, randomised** catch roll
-(`p = 0.30 + 0.50*curiosity + …`) *specifically so runs differ from one another*. The user now
-asks for **always-catch-new**, which is deterministic. Both are defensible: always-catch is more
-human and gets variety from WHICH species the RNG offers; the scored roll makes two runs on the
-same route diverge. **They cannot both be the rule — ask before building.**
+### `#24-dexhunt` (original 2026-07-29 proposal) — 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-08, R3 budget; nothing deleted, nothing edited).
+- [x] ⛔ NOT A LIVE ITEM — it is the ORIGINAL proposal, kept for its rationale, which now
+  lives in the archive under its 2026-09-08 banner. **The LIVE `#24-dexhunt` is the re-affirmed and widened section ABOVE this one** — act from that, not from this pointer.
 
 ### `#24-catchcap` — the bot catches only THREE Pokémon (user-observed 2026-07-30, cause CONFIRMED)
 **NOT SCHEDULED — bundle with `#24-dexhunt`.** The user noticed the party never fills.
@@ -3552,19 +3503,46 @@ region, where "train near the gym" is actively wrong.
   economics of deliberately farming whiteouts (`story_mode.py:1996` engages boss-training
   ~98% of the time on that premise, and each attempt spends a unit of the whiteout budget).
 
-### `#24-ch23training` — THE NEW TOP BLOCKER: §Ch23's training leg fails with one mon "alone" (filed 2026-09-08)
-- [ ] ⛔ **16 of 49 runs (32.7%) in batch `20260907-203713`** — `ChN (Victory Road) failed after N
-  attempts. attempt N: BotModeError: Ch23 training: <Mon>#<PID> alone needs ...`. ⭐ **THIS FAILURE
-  DID NOT EXIST BEFORE** and that is the good news: `#24-hm07teach` took the Waterfall PREFLIGHT from
-  11 of 53 to **0 of 49**, so runs now reach a leg nothing used to survive to.
-- [ ] ⭐ **THE SPECIES DISTRIBUTION IS THE FIRST CLUE:** Marill **9**, Slugma 3, Shedinja 1,
-  Mightyena 1, Ninjask 1, Poochyena 1. Marill dominates at 9 of 16.
-- [ ] ⚠ **DO NOT ASSUME MY FIX CAUSED THE MARILL SKEW.** `#24-hm07funnel` changed which mon carries
-  land HMs, so party composition DID change — but Marill may simply be a common catch on non-Mudkip
-  lanes. ⛔ Settle it by comparing Marill's frequency in the BEFORE batch's parties, not by reasoning.
-- [ ] FIRST QUESTIONS: what does "alone needs" actually require (read the raise site in
-  `victory_road.py`)? Is the leg asking ONE mon to train when the rest are fainted/ineligible? Is this
-  the same "right types, too weak" shape as `#24-tateliza-attrition`?
+### `#24-ch23training` — TOP BLOCKER, ROOT-CAUSED 2026-09-08 (16 of 49, 32.7%) — ⛔ the guard is the MESSENGER
+- [x] ✅ **ROOT CAUSE VERIFIED.** `victory_road.py:1937` refuses when ANY single under-target battler
+  costs more than `MAX_TRAINING_FRAMES = 250_000` to reach `TRAIN_TARGET = 47` on `WILD_MAX = 40`.
+  ⚠ **"alone" does NOT mean the mon is alone in the party** (all 16 failures have 2+ members) — it
+  means *that one mon by itself*. Inverted levels: **Marill ≈L13, Slugma L17, Mightyena ≈L20,
+  Shedinja ≈L23**, against a leg calibrated on a curated party with an **L40 floor**.
+- [x] ⭐ **THE BOT CREATES THEM AND THEN PINS THEM.** `ensure_hm_learner` CATCHES a wild mon at wild
+  level to carry an HM; HMs cannot be forgotten in Gen 3; `team_policy.py:147-149` exempts a **sole
+  HM carrier** from deposit BEFORE any level test. `battler_identities` (`victory_road.py:1770`)
+  then admits it — `BENCH_SPECIES` is only `("Zigzagoon","Linoone","Castform")`, 3 hardcoded names
+  against 6 observed species. ‼ Already measured in `team_policy.py:8-16`: *"35% of badge moments
+  carried at least one mon 15+ levels below the team max"*. My recount: **86.9%/78.9% of runs.**
+- [ ] ⛔ **THREE FIXES ARE MEASURED WRONG — DO NOT PROPOSE THEM.** (1) Raising the ceiling — the
+  error text forbids it; it guards the `KI-28` 19.9M-frame shape. (2) Training elsewhere — Victory
+  Road 1F is the BEST ground reachable before Wally (**768.0 EXP/battle**, recomputed from the ROM
+  encounter table); B1F is richer but gated behind Wally, and every Fly-reachable route yields under
+  HALF — and the party has no Fly during this leg. (3) Relaxing the estimator — it is only **~18%**
+  pessimistic in exp/FRAME (the 2.6x figure is exp/BATTLE and ignores that `FRAMES_PER_WILD_BATTLE`
+  is wrong in the same direction).
+- [ ] ⇒ **THE FIX: bench by ROLE + LEVEL GAP, not by a hardcoded species list.** `dead_weight`
+  already draws the line — *">`DEAD_WEIGHT_LEVEL_GAP`(=8) is unrecoverable by construction"*.
+  ⛔ Do NOT remove the sole-carrier deposit exemption: it prevents a soft-lock and is not the defect.
+- [ ] ⚠ **NOT BUILT DELIBERATELY — THERE IS NO DISCRIMINATOR YET.** No fixture reproduces a low-level
+  mule party, `--inject-*` is preset-only, and `battler_identities` feeds BOTH `team_is_ready` and
+  the estimator (a shared path). ⇒ ⭐ **STEP 1 IS THE FIXTURE, NOT THE FIX:** capture a save whose
+  party holds a sole-HM-carrier 15+ levels below the max (or add a harness inject for one), and show
+  the two arms DIFFER on it before changing `battler_identities`.
+
+### `#24-marillskew` — ⚠ my own `#24-hm07funnel` fix appears to cost 2.7x more Marill (filed 2026-09-08)
+- [ ] **MEASURED over distinct RUNS (not log-line mentions):** Marill 4 of 61 (6.6%) → **10 of 57
+  (17.5%)**; every other species flat. Marill is the refused mon in **9 of 16** `#24-ch23training`
+  failures. ⭐ The innocent explanation is REFUTED: at the SAME depth band (party max L50+, 18 runs
+  each) it is still **3 → 8**. ⚠ n=18/cell — SUGGESTIVE, not proven (p ~ 0.1).
+- [ ] ⛔ The DIRECT mechanism is also refuted: `pick_land_hm_slot` excludes Waterfall-capable species
+  and Marill learns Waterfall, so it can never SELECT one. ⇒ the path is INDIRECT. Leading
+  hypothesis, UNVERIFIED: spreading land HMs across more mons creates more **sole-HM-carrier
+  exemptions**, and each such mon becomes permanently undepositable.
+- [ ] ⇒ **NET: the funnel fix STAYS** (preflight 11→0, Surf/Dive 7→0). This is a cost to track, not a
+  reason to revert. Settle it by correlating `teaching Rock Smash/Strength to <X>` against the
+  refused PID in `x4-runs/20260907-203713/L0*/debug-logs/`.
 
 ### `#24-cutscenestall` — NEW in the post-fix batch: 4 of 49 runs (8.2%) (filed 2026-09-08)
 - [ ] `Cutscene did not end after N frames (controllable=False, script_active=True).` **Zero

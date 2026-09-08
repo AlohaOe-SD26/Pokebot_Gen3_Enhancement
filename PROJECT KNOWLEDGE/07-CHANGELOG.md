@@ -24592,3 +24592,96 @@ on the fork. ⭐ Second discriminator: `probe_hm_coverage.py --build custom` was
 driven A/B; `#24-hm07teach` and `#24-hm07funnel` are driven at scale by the 49-run batch;
 `#24-pcpingpong` and `#24-truckleak` are **UNDRIVEN** and their owed acceptances are now owed against
 both forks. Full per-file table in `custom-pokebot/DIVERGENCE-LOG.md` 2026-09-08.
+
+## 2026-09-08 — `#24-ch23training` ROOT-CAUSED (not fixed): the guard is the messenger, the ROSTER is the bug
+
+**16 of 49 runs (32.7%).** `Ch23 training: <Mon>#<PID> alone needs N frames, over the 250,000
+per-call ceiling`. ⚠ **"alone" is a trap in the wording** — it does NOT mean the mon is alone in the
+party (all 16 failures have 2+ members). It means *that one mon, by itself,* costs more than the
+ceiling. It is a per-mon COST estimate, not a triage condition.
+
+**THE MECHANISM, VERIFIED IN OUR OWN TREE:**
+```
+victory_road.py:1937   worst = max(estimates); if worst > MAX_TRAINING_FRAMES (250_000): raise
+victory_road.py:492    TRAIN_TARGET = 47
+victory_road.py:1905   WILD_MAX = 40            (Victory Road 1F's strongest land encounter)
+victory_road.py:1770   battler_identities() — every party slot that is not None, not an egg,
+                       and not in BENCH_SPECIES. NO level, role or HM-mule filter.
+victory_road.py:503    BENCH_SPECIES = ("Zigzagoon", "Linoone", "Castform")   ← 3 hardcoded names
+```
+Inverting the observed frame counts against the repo's growth curves recovers the levels:
+**Marill ≈ L13** (406,972 frames — a wild-caught mon with zero exp since capture), **Slugma L17**
+(494,385, never battled), **Mightyena ≈ L20**, **Shedinja ≈ L23**. The leg was calibrated on a
+curated 4-mon party with a floor of **L40** (`ch23train_default.log:11`, worst 217,816 — passes).
+
+**⇒ THE BOT CREATES THESE MONS AND THEN PINS THEM.** `ensure_hm_learner` CATCHES a fresh wild mon at
+wild level to carry an HM nobody has; HMs cannot be forgotten in Gen 3; and
+`team_policy.py:147-149` exempts a **sole HM carrier** from deposit **before every level test** —
+correctly, because boxing the only Surf carrier soft-locks the run. Then `battler_identities` admits
+it and `team_is_ready` demands L47 of it.
+‼ **THIS WAS ALREADY MEASURED AND WRITTEN DOWN.** `team_policy.py:8-16`: *"35% of badge moments
+carried at least one mon 15+ levels below the team max, and parties carried up to FIVE such mons at
+once."* §Ch23 is simply where it first becomes fatal. My own recount over the batch logs: **86.9%
+(before) / 78.9% (after) of runs EVER carried a mon 15+ levels below the party max.**
+
+**⛔ THREE TEMPTING FIXES THAT ARE WRONG, EACH KILLED BY EVIDENCE:**
+1. **"Raise the ceiling."** The error message forbids it in its own text, and rightly: the ceiling is
+   what stops the `KI-28` shape (19.9M frames chasing a level the local grass cannot deliver).
+2. **"Move the training somewhere better."** ⛔ Victory Road 1F is the **best ground reachable before
+   Wally** — rate-weighted **768.0 EXP/battle** recomputed from the ROM's own encounter table
+   (`cache/encounter_index_BPEE0.json`), corroborating the hardcoded 775.6 to within 0.9%. B1F is
+   richer (959.2) but its ladder is 44 wp **past Wally's trigger** — the better ground is gated
+   behind the fight the training is for. Every Fly-reachable route yields **under half**. And ⚠ the
+   party does **not** have Fly during this leg (`#24-flyunlock` teaches it later, for §Ch24).
+3. **"The estimator is 2.6x pessimistic, so relax it."** ⚠ **TWO AGENTS DISAGREED HERE AND THE
+   RESOLUTION IS THE POINT.** One measured exp/BATTLE (286.9 model vs 768.0 real = 2.68x
+   pessimistic); the other measured exp/FRAME (0.2002 vs 0.2430 = 1.18x). **Both are arithmetically
+   right; they used different denominators.** The model underestimates exp/battle AND frames/battle
+   (`FRAMES_PER_WILD_BATTLE = 1433`, measured on Route 102, vs ~3,192 measured at Victory Road), and
+   the errors largely cancel. ⇒ **for a FRAME ceiling the exp-per-FRAME figure is the right one, so
+   the estimator is only ~18% pessimistic and relaxing it buys almost nothing.**
+   ⭐ **RULE: when two analyses of the same quantity disagree by a factor, check the DENOMINATOR
+   before believing either.** Recorded in `08-MISTAKES.md`.
+
+**⇒ THE FIX SHAPE (spec'd, NOT built — see `#24-ch23training` for why):** `battler_identities` must
+bench by ROLE + LEVEL GAP rather than by a hardcoded species list. `dead_weight` already draws the
+line and states the rationale — *"level X is N behind the team's best; >`DEAD_WEIGHT_LEVEL_GAP`(=8)
+is unrecoverable by construction"*. ⛔ Do NOT remove the sole-carrier deposit exemption: it prevents
+a soft-lock and is not the defect.
+
+## 2026-09-08 — ⚠ MY OWN `#24-hm07funnel` FIX APPEARS TO HAVE A SECOND-ORDER COST: 2.7x more Marill
+
+**Measured over both batches' debug logs, counting DISTINCT RUNS that ever carried each species
+(not log-line mentions, which scale with heartbeat verbosity and party tenure):**
+```
+              BEFORE (61 runs)   AFTER (57 runs)
+Marill          4 ( 6.6%)         10 (17.5%)   <- 2.6x
+Slugma          8 (13.1%)          8 (14.0%)   flat
+Shedinja       18 (29.5%)         18 (31.6%)   flat
+Ninjask        18 (29.5%)         18 (31.6%)   flat
+Poochyena      48 (78.7%)         39 (68.4%)
+Zigzagoon      61 (100%)          57 (100%)    flat
+```
+**Only Marill moves.** And Marill is the refused mon in **9 of the 16** `#24-ch23training` failures.
+
+**⭐ THE OBVIOUS INNOCENT EXPLANATION IS REFUTED.** "AFTER runs travel further, and Marill is caught
+late" predicts the effect vanishes once depth is controlled. It does not — at the SAME depth band,
+with the SAME number of runs:
+```
+party max L50+     BEFORE 3 of 18 (16.7%)     AFTER 8 of 18 (44.4%)
+```
+**⚠ HONEST ON THE STATISTICS: n=18 per cell; 3 vs 8 is SUGGESTIVE, not proven (p ~ 0.1).** It is
+filed as a signal to investigate, not as an established cause.
+
+**⛔ AND THE DIRECT MECHANISM IS REFUTED TOO, by case analysis an agent did and I verified:**
+`pick_land_hm_slot` EXCLUDES every Waterfall-capable species, and Marill learns Waterfall (move 127
+in `modules/data/species.json`), so the function **can never select a Marill**. It also cannot
+manufacture or destroy a `None`, so `ensure_hm_learner_making_room` — the deposit path — is called
+under exactly the old condition. ⇒ **whatever the path is, it is INDIRECT.**
+⭐ Leading hypothesis, UNVERIFIED: spreading land HMs across more mons creates more **sole-HM-carrier
+exemptions** (`team_policy.py:147-149`), and each such mon becomes permanently undepositable. More
+pinned mules ⇒ more low-level battlers ⇒ more `#24-ch23training` refusals.
+
+**⇒ NET ASSESSMENT, STATED PLAINLY: the funnel fix is strongly positive and stays.** It took the
+§Ch23 Waterfall preflight from 11 of 53 to **0 of 49** and Surf/Dive party-full from 7 to **0**. This
+is a second-order COST worth tracking, not a reason to revert. Filed as `#24-marillskew`.

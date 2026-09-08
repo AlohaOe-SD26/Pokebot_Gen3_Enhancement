@@ -14672,3 +14672,29 @@ verdict** — and a zero there means the operation did not occur, whatever the v
 failure will report success** (the vacuous `[KI96-REREAD]` probe; the 40-event whiteout fixture; the
 masked exit code; this). ⇒ before believing a green result, ask what it would print if the thing were
 broken. If the answer is "the same", it is not a check.
+
+## 2026-09-08 — I called a log "empty of species data" after reading its first four lines
+
+**Symptom.** Investigating `#24-ch23training` I ran `grep -oE "party=[^ ]{0,90}" <log> | head -4`,
+saw `party=None` and `party=[]`, and reported — to the user, and as the basis for abandoning a line
+of analysis — that *"the batch debug logs record `party=None`/`party=[]`: no species data at all"*.
+
+**It was false.** A single run log holds **688 POPULATED** party readings against 14 empty and 1
+None. The empties are the frames BEFORE the save loads, which is exactly where `head -4` looks.
+
+**A second, independent bug in the same investigation.** My first prevalence probe returned 0 runs
+for every species in BOTH batches. The real format is `party=['Torchic:L5', ...]` — quoted — and my
+parser split on `|` and kept the quote, so every lookup missed. ⇒ **I then had TWO contradicting
+measurements of my own and initially believed the wrong one.**
+
+**The fix that worked.** Parse the real format, count DISTINCT RUNS rather than log-line mentions,
+and control for depth. That produced the actual finding (Marill 2.6x, and 2.7x at fixed depth).
+
+**⭐ PREVENTION RULE — `head` IS A SAMPLE, AND THE HEAD OF A RUN LOG IS THE LEAST REPRESENTATIVE
+SAMPLE THERE IS.** A run log begins before the save loads, so its first lines are systematically
+empty of run state. Never characterise a log from its head; COUNT over the whole file and print the
+distribution (`POPULATED / empty / None`), which is what exposed this in one command.
+‼ Corollary, and the harder half: **when two of your own measurements disagree, neither is evidence
+until the disagreement is explained.** I had a Python count saying 688 populated and a grep saying
+none; the grep was wrong. Explaining the contradiction — not picking the plausible side — is what
+produced the result.
