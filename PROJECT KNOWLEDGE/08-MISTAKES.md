@@ -14777,3 +14777,24 @@ predicate contradicts a fixture it never loads. ⇒ **use both, and route the qu
 instrument that can answer it** (rule 9, restated: choose the instrument by the question).
 ⭐ Cost of getting this right: one 10-minute drive. Cost of shipping it: a permanent regression that
 burns 69 battles per run before failing exactly as before.
+
+## 2026-09-08 — I trimmed open work for an hour to satisfy a rule whose premise was false
+
+**Symptom.** `03-PUNCH-LIST.md` hit its 3600-line budget. I compressed items, archived a section,
+compressed again, archived again — and twice archived the WRONG thing (a MIXED-status index, then the
+file's own marker legend), restoring both. Net effort: most of an hour of bookkeeping, and detail
+deleted from OPEN items.
+
+**Root cause.** I treated the budget as a fact to satisfy instead of a claim to test. R3's own
+message states its premise — *"an archive is forming inside a current-state file"* — and one
+measurement refutes it: **78.5% of 03 is open sections, 6.8% is closed or archived.** The file was
+not rotting; it was a 46-item backlog. Trimming was the wrong operation from the first minute.
+
+**⭐ PREVENTION RULE — A FAILING GATE STATES A PREMISE. TEST IT BEFORE OBEYING IT.**
+Gates encode an inference (here: *many lines ⇒ stale content*). When one fires repeatedly and the fix
+feels like vandalism, that is the signal to MEASURE the premise rather than comply harder. If the
+premise holds, comply. If it does not, fix the gate — and fix it by measuring the thing it was
+proxying for, not by loosening the proxy.
+‼ Corollary earned twice this session: **an automated "is this closed?" predicate cannot tell a work
+item from a reference section.** "No open bullets" matched a MIXED-status index and the file's own
+legend. When retiring content, READ THE HEADER — do not let a heuristic choose.

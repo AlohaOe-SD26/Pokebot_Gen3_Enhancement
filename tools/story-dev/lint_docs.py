@@ -25,6 +25,9 @@ RULES ENFORCED (failures):
   R3  a CURRENT-STATE file must stay under its line budget
   R4  no two PROJECT KNOWLEDGE docs may share a leading NN- number
   R5  every file named in 00-README's reading order must exist
+  R6  every `POKEBOT_*` flag in bot code appears in 29-DISABLED-FEATURES-REGISTRY.md
+  R7  a current-state file's CLOSED/ARCHIVED share stays under its budget (R3's intent, measured
+      directly rather than by line count — see CLOSED_FRACTION_BUDGET)
 
 REPORTED AS INFO (never fails the run):
   I1  count of completed `- [x]` items sitting in the punch list
@@ -61,7 +64,21 @@ CURRENT_STATE = ("01-", "02-", "03-", "04-", "05-")
 
 # Budgets are generous — the point is to catch an ARCHIVE forming inside a current-state file, not
 # to police prose. 04-HANDOFF was 3,239 lines with only its first 163 current when this was written.
-LINE_BUDGET = {"01-": 700, "02-": 700, "03-": 3600, "04-": 900, "05-": 3000}
+#: ⛔ 03 WENT 3600 -> 4200 ON 2026-09-08, ON A MEASUREMENT, NOT A PREFERENCE. R3's message says "an
+#: archive is forming inside a current-state file"; for 03 that was measurably false — 78.5% of it is
+#: OPEN sections (46 of them) and only **6.8%** is closed-or-archived. The budget had become a proxy
+#: for staleness that was instead measuring BACKLOG, and satisfying it meant deleting detail from
+#: open items. ⭐ The intent is now enforced DIRECTLY by R7 below, so this ceiling is a backstop
+#: rather than the guard. ‼ If you are tempted to raise it again, run R7 first: if the closed
+#: fraction has grown, the file really IS becoming an archive and trimming is the right answer.
+LINE_BUDGET = {"01-": 700, "02-": 700, "03-": 4200, "04-": 900, "05-": 3000}
+
+#: R7 — the share of a current-state file that may be CLOSED or ARCHIVED content.
+#: ⛔ DELIBERATELY NOT APPLIED TO EVERY FILE. `05-KNOWN-ISSUES.md` measures **41.1%** closed and that
+#: is CORRECT: the 2026-07-29 user ruling retains fixed issues until they are PROMOTED. Adding it
+#: here would red the suite for a user-approved state — a gate that cries wolf is worse than none.
+#: 03 measures 6.8% today, so 25% is ~4x headroom and still fires long before the file rots.
+CLOSED_FRACTION_BUDGET = {"03-": 0.25}
 
 def _blank_fenced(text: str) -> str:
     """Return `text` with the CONTENTS of ``` fenced blocks blanked, line count preserved.
@@ -158,6 +175,30 @@ for p in docs:
                    f"forming inside a current-state file")
         flag = " <-"
     print(f"  {p.name:<44}{lines:>7}{budget:>8}  {len(hist):>8}{len(banners):>9}{flag}")
+
+    # ---------- R7: the CLOSED/ARCHIVED share of a current-state file ----------
+    # ⭐ THIS IS R3'S REAL INTENT, MEASURED DIRECTLY. R3 counts LINES and says "an archive is
+    # forming"; that inference only holds if the growth is stale content. On 2026-09-08 03 hit its
+    # ceiling while 78.5% of it was OPEN work and just 6.8% closed — so R3 was firing on a genuine
+    # backlog and every "fix" deleted detail from live items. R7 asks the question R3 was proxying.
+    frac_budget = next((v for k, v in CLOSED_FRACTION_BUDGET.items() if p.name.startswith(k)), None)
+    if frac_budget is not None:
+        body = p.read_text(encoding="utf-8", errors="replace").splitlines()
+        heads = [i for i, l in enumerate(body) if l.startswith("### ")]
+        closed = 0
+        for a, b in zip(heads, heads[1:] + [len(body)]):
+            sec, head = body[a:b], body[a].upper()
+            still_open = any(l.startswith(("- [ ]", "- [~]")) for l in sec)
+            hedged = any(w in head for w in ("MIXED", "STILL OPEN", "SOME ARE NOT"))
+            done = any(w in head for w in ("✅", "FIXED", "CLOSED", "RESOLVED", "DONE"))
+            if "ARCHIVED VERBATIM" in body[a] or (not still_open and done and not hedged):
+                closed += b - a
+        share = closed / len(body) if body else 0.0
+        if share > frac_budget:
+            fail("R7", f"{p.name}: {share:.1%} of the file is CLOSED or ARCHIVED content "
+                       f"({closed} of {len(body)} lines), over its {frac_budget:.0%} budget — THIS "
+                       f"is 'an archive forming in a current-state file', and here trimming IS the "
+                       f"right answer. Retire closed items with `archive_doc_block.py`.")
     if show and (hist or len(banners) > 1):
         for m in HISTORY_RE.finditer(scannable):
             print(f"      HISTORY @ line {scannable[:m.start()].count(chr(10)) + 1}: {m.group(0)[:70]}")

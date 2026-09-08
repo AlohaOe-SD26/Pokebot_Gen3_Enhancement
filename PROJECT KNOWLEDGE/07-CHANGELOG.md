@@ -24847,3 +24847,38 @@ the REVIEW showed the terminal gate cannot be satisfied below L47. **Neither cou
 other's reason** — a review cannot see a mon fainting, and a drive stopped before reaching the
 terminal gate. ⇒ route the question to the instrument that can answer it, and when the stakes are a
 production path, use both.
+
+## 2026-09-08 — R3's premise was MEASURABLY FALSE for 03; budget 3600 -> 4200 and R7 enforces the intent
+
+**THE MEASUREMENT THAT PROMPTED IT.** `03-PUNCH-LIST.md` sat at exactly 3600/3600 and every large
+section still held open bullets, so there was nothing left to retire. Measuring what the file is
+actually made of:
+```
+OPEN sections    46 sections, 2825 lines (78.5%)
+CLOSED sections  10 sections,  198 lines ( 5.5%)
+ARCHIVED stubs   15 sections,   41 lines ( 1.1%)
+REFERENCE/legend 27 sections,  514 lines (14.3%)
+⇒ closed + archived = 6.8%
+```
+R3 fails with *"an archive is forming inside a current-state file"*. **At 6.8% that is false.** The
+rule assumes SIZE implies STALENESS; here size implies a genuine **46-item backlog**, and every
+"fix" for it deleted detail from OPEN work to satisfy a proxy measuring the wrong thing.
+⭐ This is the mirror of the same day's lesson — *"before relaxing a limit, ask what physical fact it
+is standing in for"*. Asked here, and **the fact is absent.**
+
+**TWO CHANGES, AND THE PAIR IS STRICTLY STRONGER THAN BEFORE:**
+1. `LINE_BUDGET["03-"]` **3600 → 4200** — still bounded, ~600 lines for a real backlog.
+2. **NEW R7** — a current-state file's CLOSED+ARCHIVED share must stay under its budget. This is
+   R3's original intent measured DIRECTLY, so raising the line ceiling cannot let an archive form
+   unnoticed. The line budget becomes a backstop; R7 is the guard.
+
+**⛔ R7 IS SCOPED, AND THE EXCLUSION IS THE INTERESTING PART.** It applies to `03-` only.
+`05-KNOWN-ISSUES.md` measures **50.7%** closed under R7's own predicate and is legitimately so — the
+**2026-07-29 USER RULING** retains fixed issues until they are PROMOTED. Applying R7 there would red
+the suite for a user-approved state: a gate that cries wolf, which this project rates worse than no
+gate. ‼ **That exclusion is PROVEN necessary, not assumed** — fault arm 3 applies R7 to 05 and it
+fires immediately.
+
+**FAULT-TESTED, 3 ARMS:** fires at a 5% threshold against 03's measured 6.8%; silent at the shipped
+25%; and fires on 05 if the exclusion is removed. The stale `R1-R5` rule list in `lint_docs.py`'s
+docstring was also corrected (R6 had existed undocumented).
