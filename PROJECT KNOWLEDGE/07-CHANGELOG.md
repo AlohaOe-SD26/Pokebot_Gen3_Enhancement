@@ -24264,3 +24264,68 @@ Existence was the bug.**
 Suite: **42 → 43** (41 ENFORCING + 2 ADVISORY); `--quick` 34 → 35.
 Files: `tools/story-dev/probe_hm_coverage.py` (new), `tools/story-dev/run_gates.py`,
 `PROJECT KNOWLEDGE/{02,04,07}`.
+
+## 2026-09-07 — `#24-hm07funnel` (CHANGE B): stop handing every HM to the one mon that must carry the water moves
+
+⚠ SANDBOX, UNDRIVEN. Verified offline against the SIX REAL 8-badge parties (below).
+
+**⭐⭐ THE STRUCTURAL FACT, DERIVED BY ME OVER ALL 412 SPECIES in `modules/data/species.json`:**
+```
+Surf-capable      101
+Waterfall-capable  74   -> ZERO of them are Surf-incapable
+Dive-capable       76   -> ZERO of them are Surf-incapable
+```
+**Waterfall's and Dive's species pools are strict SUBSETS of Surf's.** ⇒ the highest-level Surf
+learner is ALWAYS also the Dive and Waterfall candidate, so `hm_learner_slot`'s level-only ranking
+hands that single mon every HM it is offered. **The funnel is forced by the learnset data — it is not
+bad luck, and no amount of level-tuning avoids it.**
+
+**THE ARITHMETIC.** On a Mudkip line the starter is the party's ONLY Waterfall carrier (6 of 6
+measured 8-badge parties), so it MUST hold Surf + Dive + Waterfall = **3 of its 4 slots**. Today it is
+also handed both land HMs ⇒ **five HMs into four slots**, and Waterfall — acquired last, in §Ch21 — is
+the one with nowhere to go. HMs cannot be forgotten in Gen 3, so this is preventable ONLY at the
+original teach.
+
+**⭐ THE FUNNEL PRINTS ITSELF.** My own count over the live batch's eight lanes:
+**27× `Story: teaching Strength to Swampert`** against 5× Blaziken and 3× Breloom — and those two
+appear only in the lanes that have no Swampert, exactly as the diagnosis predicts.
+
+**THE FIX.** `pick_land_hm_slot()` (PURE) + `land_hm_learner_slot()` (thin wrapper) in
+`early_game.py`; used at the two LAND-HM sites only — `ensure_strength_learner` (which covers BOTH
+its call sites) and Rock Smash at Segment 10b.
+⛔ `hm_learner_slot` itself is UNTOUCHED: Surf and Dive go through it and must keep choosing the water
+mon. ⛔ The Surf (12c) and Dive (19b) sites are UNTOUCHED — verified, they share the same import line
+as Rock Smash and only the first was changed.
+‼ **PREFERENCE, NOT REQUIREMENT:** it falls back to today's pick when no incapable learner exists, so
+no party is ever left worse off. It can only ever move a land HM OFF the water mon.
+‼ **THE DECISION IS PURE** and takes the party as an argument, following `counter_withdraw_outcome`
+and `withdraw_precedence` — the wrapper needs a ROM, and a branch left inside it could only be argued
+about.
+
+**⭐ REACHABILITY-IDENTICAL AT THE ROCK SMASH SITE, and that is the safety argument.** VERIFIED:
+`ensure_hm_learner` opens with `slot = hm_learner_slot(item); if slot is not None: return slot` — no
+yields, no side effects — and `ensure_hm_learner_making_room` delegates straight to it. So
+`_pref is None` ⟺ `hm_learner_slot` is None ⟺ the hunt/deposit path was genuinely needed, and it is
+then called untouched. **Only WHICH slot changes.**
+
+**✅ VERIFIED OFFLINE ON THE SIX REAL PARTIES** (from `custom-pokebot/profiles/*/badge-log.json`,
+compatibility from the real `species.json` — not fixtures of my own shape):
+```
+11 of 16 land-HM assignments MOVED off the Waterfall carrier
+ 8 of 8  parties end with ROOM for Waterfall (<=1 land HM on the carrier); 0 still full
+```
+The five unmoved cases are all CORRECT: Blaziken and Exploud cannot learn Waterfall so nothing needed
+moving, and one H4 case had no non-carrier able to learn Strength and correctly fell back — that
+party still ends at exactly Surf+Dive+Waterfall+Strength = 4, which fits.
+⚠ **HONEST LIMIT:** the badge-log roster is the party AT badge 8, i.e. AFTER the teaches; the real
+pick happens earlier on a smaller party. This is therefore a NECESSARY condition, not a proof. The
+drive is owed.
+
+**‼ FOUND AND DEFERRED, NOT BUNDLED:** `assert_ch23_preflight` checks only (Surf, Dive, Waterfall),
+but `chapters.py:265-274` records that Victory Road B1F needs **Strength AND Rock Smash** too — a
+2×2 boulder/rock interlock that opens only with both. Adding them would make the preflight STRICTER
+and could turn currently-passing driven fixtures red, so it is filed as `#24-ch23preflight-gap`
+rather than shipped alongside a behaviour change.
+
+Files: `sandbox-pokebot/modules/story/early_game.py`,
+`sandbox-pokebot/plugins/custom_modes/story_mode.py`, `PROJECT KNOWLEDGE/{03,07}`.

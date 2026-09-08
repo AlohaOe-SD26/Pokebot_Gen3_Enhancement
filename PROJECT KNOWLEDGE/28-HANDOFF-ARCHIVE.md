@@ -9853,3 +9853,30 @@ Moved only to keep 03 inside its 3600-line budget (`lint_docs.py` R3). CLOSED it
       ‼ Found by a recon agent auditing our Surf/Waterfall support, and confirmed by reading
       `player.py:291` — an agent's note that turned out to be about OUR code, not the decomp.
 
+---
+
+## 📦 ARCHIVED 2026-09-07 FROM `03-PUNCH-LIST.md` (VERBATIM)
+
+Moved only to keep 03 inside its 3600-line budget (`lint_docs.py` R3). CLOSED item; a stub
+in 03 keeps the slug and its do-not-redo warning.
+
+### ✅ `#24-abortrecoveryresiduals` — ALL THREE RESOLVED 2026-08-23 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)
+
+- [x] **(b) and (c): the abort-swallow class is CLOSED in sandbox.** A whiteout raises `StoryAbort`,
+      a `BotModeError`, so any broad `except BotModeError:` in story code can absorb the unwind and
+      let the bot grind on. (b) guarded the 5 sites `#24-loopheadabort` newly exposed; (c) the 8
+      that predate it. An AST pass now finds **ZERO** swallowers; guarded handlers 14 → 22; the
+      ratchet went 36 → 31 → 23, **control-armed at each step** (strip the guards and it reads back
+      up). Two-arm behavioural proof: latch CLEAR → swallowed, unchanged; latch SET → re-raised.
+      ✅ **DONE 2026-08-24: PROMOTED (user-approved) and the custom baseline WAS lowered 36 → 23 in
+      the same commit. Drift is **0 — everything is promoted** (2026-09-06, user-approved, driven against `--build custom`). *(This line previously carried the pre-promotion count; that history is in `custom-pokebot/DIVERGENCE-LOG.md` 2026-09-06 — it is NOT repeated here, because `audit_doc_consistency` measures drift and cannot tell a quoted old number from a live claim.)* Pre-promotion detail: `modules/story/pokemon_league.py` joined 2026-09-04 — the §Ch24 out-of-battle party heal; before that ⬆ from 12: `modules/story/overworld_items.py` joined 2026-09-04 — the NEW pure out-of-battle healing policy for `#24-e4healing`, gate #36; before that ⬆ from 11: `modules/modes/util/walking.py`, the `#24-waterfalltimeout` fix; previously ⬆ from 10 on 2026-09-03: `modules/story/victory_road.py`, §Ch23 legs 2-3; previously ⬆ from 8 on 2026-09-02: the NEW `modules/story/sootopolis_gym.py`, §Ch22's chapter module — a new sandbox-only chapter file, exactly as §Ch20 and §Ch21 each did. ⚠ PROMOTION IS THE USER'S CALL and is NOT implied here; run `promote.py --check`, which outranks this text) as of 2026-08-27 (`seafloor_cavern.py` + `story_mode.py` — the §Ch20 chapter and its Segment 19b/20 wiring, sandbox only, UNDER CONSTRUCTION; ⛔ NOT a promotion decision until driven); both forks now read ZERO AST abort-swallowers.**
+- [x] **(a): ASSESSED and CLOSED as VERY LOW — and the finding is that the code was NOT changed.**
+      A second whiteout during recovery would be fatal, but it cannot realistically occur: the whole
+      window is spent on maps whose land-encounter rate is **0** (all 17 towns + all 32 Poké Center
+      maps, with routes as positive controls), `on_whiteout()` cannot fire
+      twice on Emerald, and across **16,688 recorded recoveries** it has never once happened.
+      ‼ The window is entered 23-36 times per run — this is closed on IMPOSSIBILITY, not rarity.
+      ⚠ **RE-OPEN for FireRed/LeafGreen** (a live duplicate-callback path exists there) or if
+      respawn moves to a map with a non-zero encounter rate. The proposed fix is recorded in the
+      changelog as correct-in-shape and UNPROVEN — **do not ship it without a driven double whiteout.**
+

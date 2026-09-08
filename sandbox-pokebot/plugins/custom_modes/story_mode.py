@@ -3377,14 +3377,40 @@ class StoryMode(BotMode):
         if not _party_knows_rock_smash():
             from modules.items import get_item_by_name
             from modules.map_data import PokemonCenter
-            from modules.story.early_game import ensure_hm_learner_making_room, teach_hm_move
+            from modules.pokemon_party import get_party
+            from modules.story.early_game import (
+                ensure_hm_learner_making_room,
+                land_hm_learner_slot,
+                teach_hm_move,
+            )
 
             _hm06 = get_item_by_name("HM06")
             # ‼ KI-63 WIRING: a FULL PARTY used to end the run here — this call site had no error
             # handling, so the raise went straight to the mode handler and derailed to Manual.
             # Centres are the ones this era already heals at, nearest-first.
-            _slot = yield from ensure_hm_learner_making_room(
-                _hm06, (PokemonCenter.MauvilleCity, PokemonCenter.SlateportCity)
+            # ⭐ `#24-hm07funnel` — PRE-PICK a learner that cannot also carry HM07.
+            # MEASURED over all 412 species: Waterfall's and Dive's pools are strict SUBSETS of
+            # Surf's (74 and 76 of 101, with ZERO Surf-incapable members), so the highest-level Surf
+            # learner is ALWAYS also the Waterfall candidate — and `hm_learner_slot` hands it every
+            # HM it is offered. On a Mudkip line that mon is the party's ONLY Waterfall carrier and
+            # must hold Surf+Dive+Waterfall = 3 of 4 slots; adding both land HMs makes five HMs for
+            # four slots and Waterfall, acquired last in §Ch21, is the one left out. HMs cannot be
+            # forgotten in Gen 3, so the ORIGINAL teach is the only moment this is preventable.
+            # ‼ REACHABILITY-IDENTICAL, and that is the safety argument: `ensure_hm_learner` opens
+            # with `slot = hm_learner_slot(item); if slot is not None: return slot` — no yields, no
+            # side effects — and `ensure_hm_learner_making_room` delegates straight to it. So
+            # `_pref is None` ⟺ `hm_learner_slot` is None ⟺ the room-making path was genuinely
+            # needed, and it is then called untouched. Only WHICH slot changes.
+            _pref = land_hm_learner_slot(_hm06)
+            if _pref is None:
+                _slot = yield from ensure_hm_learner_making_room(
+                    _hm06, (PokemonCenter.MauvilleCity, PokemonCenter.SlateportCity)
+                )
+            else:
+                _slot = _pref
+            console.print(
+                f"[cyan]Story: teaching Rock Smash to {get_party()[_slot].species.name} "
+                f"(slot {_slot})...[/]"
             )
             yield from teach_hm_move(_hm06, _slot)
         else:

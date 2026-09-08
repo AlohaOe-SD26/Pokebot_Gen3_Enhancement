@@ -502,7 +502,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 - **Symptom:** bundle `20260727-063751`, P3 run 1: `state=3 controllable=False`, position
   frozen at **ROUTE 119(32,1) (10,10)**, for **27 million frames / ~6.5 h** — and **not one
   STUCK dump fired in that entire stretch**, so the no-progress watchdog never saw it.
-- **Last known stack:** `do_weather_institute` (`early_game.py:6361`) → its TWO calls to
+- **Last known stack:** `do_weather_institute` (`early_game.py:6430`) → its TWO calls to
   `_ride_out_all_scenes` (`early_game.py:437`), which sit at `do_weather_institute`
   `early_game.py:6364` and `early_game.py:6387`.
   ‼ *Re-derived from source 2026-08-16 — it read `:5548`, which is unrelated prose in another
@@ -2953,7 +2953,7 @@ gate injects its own damage function and never touches this path.
 `metric=legacy` means this has happened. It is the one signal that distinguishes "fixed" from "fixed on
 paper", and it is why the field was added rather than leaving a reader to infer it from `estimates_ok`.
 
-**Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` still has the defect; drift is 4 — the four arc-2 fixes were PROMOTED 2026-09-07 and driven-verified; the remaining differences are the `KI-96` probe fix, `#24-truckleak`, `#24-pcpingpong` and `#24-hm07teach`, all sandbox-only while a batch runs. **Promotion is the user's
+**Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` still has the defect; drift is 5 — the four arc-2 fixes were PROMOTED 2026-09-07 and driven-verified; the remaining differences are the `KI-96` probe fix, `#24-truckleak`, `#24-pcpingpong` and `#24-hm07teach`, all sandbox-only while a batch runs. **Promotion is the user's
 call and has not been given.**
 
 ## `KI-97` — a `_play()` re-entry from a POST-Fortree position marched to MAUVILLE and fail-fast derailed (2026-09-07, MEASURED on the live batch, ✅ FIXED IN THE SANDBOX — ⚠ NOT DRIVEN, NOT PROMOTED)
