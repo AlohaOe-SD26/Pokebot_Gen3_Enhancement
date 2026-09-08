@@ -335,6 +335,19 @@ GATES: list[tuple[str, bool]] = [
     # for a KNOWN correct reason (unpromoted fix), and a gate red for a good reason gets ignored.
     # Pure and fast: parses Python, reads no ROM.
     ("probe_hm_coverage.py", False),
+    # `#24-whiteoutloop` — the batch's #1 failure class (14 of 53 ended runs, 26%). The whiteout
+    # counter had NO reset site while its message said "in a row", so it was a LIFETIME loss quota
+    # that killed runs winning 86-96% of their battles, after whiteouts spread over a median of 13
+    # different towns. Now keyed to CONSECUTIVE whiteouts at ONE location.
+    # ‼ A GATE, NOT A DRIVE, AND DELIBERATELY: reproducing this needs 41 whiteouts — many hours of
+    # emulation. The decision is PURE, so the gate replays the 14 REAL killed sequences (frozen in
+    # `fixtures/whiteout-sequences-20260907.json`) instead. Rule 9: choose the instrument by the
+    # question.
+    # ⭐ ITS FAULT ARM 1 IS THE POINT — it replays the OLD counter and requires it to kill 14 of 14.
+    # Without that control CHECK 1 was VACUOUS: the first fixture held 40 events, one short, so no
+    # budget could trip a `> 40` cap and "0 of 14 killed" meant nothing. The arm caught it.
+    # Pure and fast: replays a JSON fixture, reads no ROM.
+    ("probe_whiteout_budget.py", False),
 ]
 
 

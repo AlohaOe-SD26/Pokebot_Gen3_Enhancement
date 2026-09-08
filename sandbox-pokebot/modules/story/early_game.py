@@ -4331,6 +4331,45 @@ def hm_learner_slot(item) -> int | None:
     return best
 
 
+def whiteout_budget(recoveries, last_key, key, cap=40):
+    """PURE. Advance the whiteout budget, resetting it when the run has MOVED ON.
+
+    Returns `(new_recoveries, should_stop, reset)`.
+
+    ⛔⛔ WHY THIS EXISTS — `#24-whiteoutloop`, the batch's #1 failure class (14 of 53 ended runs, 26%).
+    `recoveries` was a LIFETIME total with **no reset site anywhere** — five references in a 4,500-line
+    file: init, increment, log, cap, message — while its own error text said *"too many whiteout
+    recoveries IN A ROW"*. It described behaviour the code did not implement.
+
+    **MEASURED over `x4-runs/20260907-113851`, all 14 killed runs, recomputed locally:**
+        every killed run reached exactly recovery #41 (the `> 40` cap)
+        distinct respawn maps per killed run : median 13
+        TERMINAL same-location streak        : median 2.5, max 20, min 1
+        longest same-location streak ANYWHERE: max 20  (the cap is 40)
+        ⇒ keying the budget to CONSECUTIVE whiteouts at one location would have saved 14 of 14.
+    One run hit #41 after a SINGLE whiteout at its terminal location; its other 40 were spread over a
+    dozen towns. Killed runs were winning 86-96% of their battles, one of them 866 of 907 with an L51
+    lead. ⇒ **it was a fuse on run LENGTH, not a diagnosis.** `MAX_FRAMES_PER_RUN` (5,000,000) is the
+    real length backstop and was never reached by ANY of the 61 runs.
+
+    ⛔⛔ THE TRAP THIS FUNCTION EXISTS TO AVOID — DO NOT "SIMPLIFY" IT TO USE `_progress_sig()`.
+    The sibling `_derails` counter resets on `_progress_sig()` change and it is tempting to mirror it
+    sixty lines away. `_progress_sig()` is `(party_size, lead_level, total_exp)`. Between whiteout N
+    and N+1 the bot walks back to the fight through wild grass, so **`total_exp` ALWAYS grows** — the
+    reset would fire every single time and SILENTLY DELETE THE GUARD. `_progress_sig` is correct for
+    derails (which fire in bursts with no battles between) and wrong for whiteouts.
+
+    ‼ THE SAFETY DIRECTION IS DELIBERATE, AND IT IS WHY `None` DOES NOT RESET. A genuinely stuck run
+    whites out at the SAME Poké Center every time, so its streak still climbs to 41 and it is still
+    stopped — the guard survives, it just stops firing on runs that are winning. If the location is
+    unreadable we do NOT reset: the counter keeps climbing, i.e. an unreadable position makes the
+    guard STRICTER, never laxer. Being wrong in that direction is safe; the other way is a hang.
+    """
+    if key is not None and last_key is not None and key != last_key:
+        return 1, 1 > cap, True
+    return recoveries + 1, recoveries + 1 > cap, False
+
+
 def pick_land_hm_slot(party, item, hm07, default_slot):
     """PURE. Which slot should learn a LAND HM, preferring a mon that cannot carry HM07?
 

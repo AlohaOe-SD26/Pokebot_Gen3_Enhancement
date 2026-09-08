@@ -14548,3 +14548,31 @@ how the operation lost the two invariants that tool already enforced.
 ‼ Second-order lesson, from building the gate: **C did not fire on its own fault arm**, because a
 pointer repeats the heading it replaces and the echo satisfied the honesty exclusion. A gate is not
 finished when it is written; it is finished when it has been SEEN to fail.
+
+## 2026-09-07 — I concluded "the cap is correctly reporting a real wall" and the data said the opposite
+
+**Symptom.** Two subagents established that the back half of the game has no loss-adaptation, and I
+verified every code fact myself (8 fight configs ending at Winona; six late chapters with zero
+`_prepare_for_fight`). From that I concluded the whiteout cap was *correctly* reporting a real wall,
+and that a progress-gated reset would only make runs "die slower, not better". **Both halves of that
+were wrong**, and an adversarial agent's measurement refuted them.
+
+**Root cause of the error.** A log agent answered exactly what I asked — *"the LAST map before the
+stop"* — and reported Tate & Liza at 50%. I read a **terminal-state observation** as a **root-cause
+distribution**. The 41st whiteout's location says nothing about where the other 40 came from; those
+were spread over a median of **13 different towns**. Killed runs were winning 86-96% of their battles.
+
+**Why the usual defence failed.** Two agents AGREED on the two-regime framing and every code fact
+they gave me was TRUE. I verified the facts and still drew a false conclusion — the error was in the
+INFERENCE, not the evidence. ⇒ **verifying an agent's facts does not verify its framing, and
+agreement between agents is not a confidence signal even when both are right.**
+
+**The fix that worked.** The adversarial agent — deliberately tasked to REFUTE, not to confirm —
+measured the distribution nobody had asked for. I then recomputed its load-bearing counterfactual
+myself before building on it.
+
+**⭐ PREVENTION RULE — ASK "WHERE DID THE OTHER FORTY COME FROM?"** When a failure has a COUNT and a
+LOCATION, the terminal location is a sample of size ONE. Before concluding "the run was stuck at X",
+plot the whole distribution, not the last element. ‼ And when an agent's answer would change your
+conclusion, check whether it answered the question you *asked* or the question you *meant* — mine
+answered the former, correctly, and I over-read it.

@@ -474,7 +474,7 @@ Wailord and **Dragon Claw (TM02)** for Sceptile, both confirmed still available 
 ⛔⛔⛔ **AND IT IS WORSE THAN A RE-BUY — VERIFIED IN CODE 2026-09-06.** The §Ch23 dispatch is:
 `story_mode.py:3791` `if not ch23_chapter_done():` → `:3792` runs the chapter, `:3793` else-skips —
 and `:3795` `_guard("Victory Road (Ch23)", ch23_chapter_done)` sits **OUTSIDE the if/else**.
-`_guard` (`story_mode.py:2880-2878`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
+`_guard` (`story_mode.py:2901-2878`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
 §Ch24 spends the basket, the next pass through `_play()` does all three of these:
 (1) re-enters the WHOLE Victory Road chapter, because `:3791` is now True;
 (2) reaches leg 11 and tries to re-buy a **₽54,300** basket holding **₽1,741** — leg 11 refuses
@@ -626,7 +626,7 @@ right place is a NEW out-of-battle path.
       un-healed → **32% HP, THREE fainted**; healed → **87%, ZERO**. ⭐ **LEG 7 STARTS FROM
       `post_b1f_healed.ss1`** (`b2eeb15c…`), ⛔ **NOT `post_b1f.ss1`**, which is kept only as that
       A/B's un-healed arm.*
-      ⭐⭐ **STUB MARKER — READ BEFORE ANY BOULDER CODE:** `ai-research-notes/2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` (3 independent agents) + `...-ch24-POKEMON-LEAGUE.md`. ⛔ NOTES, not truth — the reachability is MODELED and 3 live checks are OWED. Headlines: (1) **the route is `1F→B1F→B2F→B1F→1F`** — 1F's entrance and exit are in DIFFERENT walk-regions, so "walk across 1F" is impossible; (2) **TWO boulders are mandatory, (4,7) WEST and (9,10) EAST** — a "delete it and re-path" model finds only (9,10) and misses (4,7); (3) ⛔ **pushing either SOUTH kills the route irreversibly** — exactly what a greedy push-toward-goal router does; (4) **every warp RESETS the puzzle** (`FLAG_TEMP_*` cleared, boulders revert — also the recovery from a trap push) and **`FLAG_SYS_USE_STRENGTH` clears on every map load**; (5) minimal HMs = **{Surf, Strength, Rock Smash}** — **Waterfall and Flash NOT required**; (6) ✅ `strength_push` exists (`early_game.py:7955`, Magma-Hideout-proven) ⇒ **the machinery exists; only the route is missing.**
+      ⭐⭐ **STUB MARKER — READ BEFORE ANY BOULDER CODE:** `ai-research-notes/2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` (3 independent agents) + `...-ch24-POKEMON-LEAGUE.md`. ⛔ NOTES, not truth — the reachability is MODELED and 3 live checks are OWED. Headlines: (1) **the route is `1F→B1F→B2F→B1F→1F`** — 1F's entrance and exit are in DIFFERENT walk-regions, so "walk across 1F" is impossible; (2) **TWO boulders are mandatory, (4,7) WEST and (9,10) EAST** — a "delete it and re-path" model finds only (9,10) and misses (4,7); (3) ⛔ **pushing either SOUTH kills the route irreversibly** — exactly what a greedy push-toward-goal router does; (4) **every warp RESETS the puzzle** (`FLAG_TEMP_*` cleared, boulders revert — also the recovery from a trap push) and **`FLAG_SYS_USE_STRENGTH` clears on every map load**; (5) minimal HMs = **{Surf, Strength, Rock Smash}** — **Waterfall and Flash NOT required**; (6) ✅ `strength_push` exists (`early_game.py:7994`, Magma-Hideout-proven) ⇒ **the machinery exists; only the route is missing.**
       ⛔ *(This item's header read "PRODUCTION CODE IS ZERO" and its first line "`victory_road.py`
       DOES NOT EXIST" for a day AFTER legs 2-4 shipped from that very file — the heading-vs-body rot
       this tree keeps paying for. Rewritten 2026-09-04.)*
@@ -3525,8 +3525,22 @@ region, where "train near the gym" is actively wrong.
   requirements makes the preflight STRICTER and could turn currently-passing driven fixtures red.
   Check the §Ch23 fixtures first, then add both to `field_move_carriers()` and the preflight.
 
-### `#24-whiteoutloop` — the LARGEST unaddressed failure class: 14 of 53 runs (26%) (filed 2026-09-07)
-- [ ] ⛔ **NOW THE TOP BLOCKER BY MEASUREMENT.** `Story: too many whiteout recoveries in a row —
+### 🔶 `#24-whiteoutloop` — MIXED: the COUNTER is fixed and gated; the bot still cannot WIN the fights (filed + half-fixed 2026-09-07)
+- [x] ✅ **THE COUNTER — ROOT-CAUSED, FIXED, GATED (sandbox).** `recoveries` had **no reset
+  site anywhere** while its message said *"in a row"*: a LIFETIME loss quota. All 14 killed
+  runs reached exactly #41 after whiteouts spread over a **median of 13 different towns**,
+  while winning **86-96%** of their battles (one won 866 of 907 with an L51 lead). ⇒ a fuse
+  on run LENGTH — kill rate 0% under 1.5M frames, 62% above 3.5M, and `MAX_FRAMES_PER_RUN`
+  (5,000,000) was never reached by ANY of the 61 runs. FIX: `whiteout_budget()` (PURE) keys
+  it to CONSECUTIVE whiteouts at ONE location. GATE #44 `probe_whiteout_budget.py` replays
+  the 14 real sequences: **0 of 14 still killed**, a stuck run and a blind run both STILL
+  stopped at #41, and three fault arms fire. ⛔ DO NOT rewrite it to use `_progress_sig()` —
+  that contains `total_exp`, which grows on the walk back, so it would reset every time and
+  DELETE the guard (FAULT ARM 3 fails exactly that).
+- [ ] ⛔ **THE OTHER HALF IS OPEN — see `#24-regimeb-noescalation`.** The counter fix stops
+  runs being killed for playing long; it does NOT make the bot win. ⚠ EXPECT the failure to
+  MOVE, not vanish: runs that used to die at #41 will now run on to some later blocker.
+- [x] ⭐ ORIGINAL QUESTIONS, ANSWERED (kept as history): `Story: too many whiteout recoveries in a row —
   stopping so I don't loop forever. Check the team/route.` — 14 of 53 ended runs in the full 8-hour
   batch `20260907-113851` (26%), up from 2 of 17 before, because runs now survive long enough to
   reach it. **Never investigated.**
@@ -3535,3 +3549,27 @@ region, where "train near the gym" is actively wrong.
   "right types, too weak" shape as `#24-tateliza-attrition`, which the counter-guard cannot see
   because it grades on TYPE coverage only? ⚠ Two of the deepest runs in the PREVIOUS batch died at
   Tate & Liza with 24 and 11 losses, so start by checking whether these 14 share a location.
+
+### `#24-regimeb-noescalation` — the back half of the game has NO loss-adaptation at all (filed 2026-09-07)
+- [ ] ⛔ **VERIFIED IN OUR OWN TREE, not taken from an agent.** There are **8** `*_fight` configs and
+  **8** `_prepare_for_fight` call sites; the last is `winona_fight` (badge 6, `story_mode.py:3729`).
+  Every chapter after it is dispatched as a bare `if not _done(...): yield from chapter()`. All six
+  late chapter modules — `mossdeep_gym`, `sootopolis_gym`, `victory_road`, `pokemon_league`,
+  `seafloor_cavern`, `space_center` — contain **ZERO** uses of `_prepare_for_fight`, `_defeat_counts`
+  or `_boss_plan_is_hopeless`.
+- [ ] ⇒ **From badge 7 on, N whiteouts is N IDENTICAL losses.** No level escalation, no plateau
+  detector, no counter-hunt, no second wind, no honest stop — the machinery that badges 1-6 get.
+  Survival mode cannot help: it is gated on `encounter is not None`, i.e. WILD battles only, and a
+  gym leader is a trainer battle by construction.
+- [ ] ⚠ **DO NOT SCOPE THIS FROM THE TERMINAL-LOCATION STATISTIC.** "Tate & Liza is 50% of the last
+  maps" is a sample of size one per run (`08-MISTAKES.md` 2026-09-07). Plot the whole distribution
+  of loss sites first.
+- [ ] ⭐ CHEAPEST FIRST SLICE, and it is not the escalation: **90% of Mossdeep Gym whiteouts respawn
+  in LILYCOVE** (148 vs 16) because the Mossdeep Poké Center is never registered before the gym —
+  the only two `heal_in_pokemon_center(PokemonCenter.MossdeepCity)` calls are in `seafloor_cavern.py`
+  and `space_center.py`, both chapters that run AFTER it. Cost: a median ~8 min per retry.
+  ⚠ AGENT-REPORTED, verify the two call sites and the ratio before building.
+- [ ] ⚠ ALSO REPORTED, UNVERIFIED: `story_mode.py:1995` justifies boss-training mode with *"whiteout
+  money loss is level x badge-payout — cheap"*, which is the FRLG model; our own
+  `victory_road.py:446` records that Emerald's `DoWhiteOut` does `SetMoney(money / 2)`. If true, the
+  economics of deliberately farming whiteouts need re-deriving. ⛔ Check before acting.

@@ -2520,11 +2520,15 @@ class StoryMode(BotMode):
         from modules.story.early_game import set_story_abort, exit_building_after_whiteout
         from modules.modes.util.walking import wait_for_player_avatar_to_be_controllable
         from modules.battle_fault import take_pending_fault, clear_pending_fault
+        from modules.story.early_game import whiteout_budget
 
         # Never inherit a fault recorded just before this mode started.
         clear_pending_fault()
 
         recoveries = 0
+        # `#24-whiteoutloop`: the respawn location at the PREVIOUS whiteout. `recoveries` is keyed to
+        # CONSECUTIVE whiteouts at one place, so this is the half that says "did we move on?".
+        last_whiteout_key = None
         while True:
             set_story_abort(False)
             self._whiteout_pending = False
@@ -2735,15 +2739,31 @@ class StoryMode(BotMode):
                         yield
                     continue  # re-run _play(): re-localise from flags + position
                 # --- WHITEOUT recovery ---
-                recoveries += 1
+                # ⭐⭐ `#24-whiteoutloop` — THE BUDGET IS KEYED TO ONE LOCATION, NOT TO THE RUN.
+                # This counter had NO reset site while its message said "in a row", so it was a
+                # LIFETIME loss quota: 14 of 53 runs (26%) died on it, every one at exactly #41,
+                # after whiteouts spread over a median of 13 different towns. Killed runs were
+                # winning 86-96% of their battles. ⇒ a fuse on run LENGTH, not a diagnosis.
+                # ⛔ See `whiteout_budget`'s docstring for the measurement AND for why
+                # `_progress_sig()` — the signal `_derails` uses forty lines up — must NOT be used
+                # here: it contains `total_exp`, which grows on the walk back, so it would reset
+                # every time and delete the guard.
+                _wo_key = self._location_key()
+                recoveries, _wo_stop, _wo_moved = whiteout_budget(
+                    recoveries, last_whiteout_key, _wo_key
+                )
+                last_whiteout_key = _wo_key
                 self._derails = 0  # reaching a fight = progress; reset the derail budget
                 try:
                     from modules import debug_logger
 
-                    debug_logger.event(f"WHITEOUT recovery #{recoveries}")
+                    debug_logger.event(
+                        f"WHITEOUT recovery #{recoveries} at {_wo_key}"
+                        + (" (moved on since the last whiteout — budget reset)" if _wo_moved else "")
+                    )
                 except Exception:
                     pass
-                if recoveries > 40:
+                if _wo_stop:
                     # ‼ CLEAR THE LATCH ON THE WAY OUT. `_STORY_ABORT` is a MODULE-GLOBAL in
                     # `early_game`, shared by every mode, probe and driver in the process — and
                     # this `raise` used to leave it SET. Whatever ran next (the endless loop's
@@ -2752,8 +2772,9 @@ class StoryMode(BotMode):
                     # The `derails > 4` exit above does not leak; this one did.
                     set_story_abort(False)
                     raise BotModeError(
-                        "Story: too many whiteout recoveries in a row — stopping so I "
-                        "don't loop forever. Check the team/route."
+                        f"Story: too many whiteout recoveries at one location "
+                        f"({recoveries} without the story moving on, at {_wo_key}) — stopping so "
+                        f"I don't loop forever. Check the team/route."
                     )
                 self._whiteout_pending = False
                 set_story_abort(False)

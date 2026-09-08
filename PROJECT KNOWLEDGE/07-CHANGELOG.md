@@ -24439,3 +24439,66 @@ core battle module would invert the dependency direction.
 
 Files: `tools/story-dev/archive_doc_block.py`,
 `sandbox-pokebot/modules/battle_action_selection.py`, `PROJECT KNOWLEDGE/{07,08}`.
+
+## 2026-09-07 — `#24-whiteoutloop` ROOT-CAUSED AND FIXED: the whiteout budget was a lifetime loss quota
+
+**THE #1 FAILURE CLASS — 14 of 53 ended runs (26%) — and the counter was measuring the wrong thing.**
+
+`recoveries` had **no reset site anywhere**: five references in a 4,500-line file (init at 2527,
+increment, debug log, the `> 40` cap, the message). Its own error text said *"too many whiteout
+recoveries **in a row**"*. ⇒ **it described behaviour the code did not implement.**
+
+**MEASURED over `x4-runs/20260907-113851`, recomputed locally from the raw logs:**
+```
+every killed run reached exactly recovery #41 (the > 40 cap)        14 of 14
+distinct respawn maps per killed run                               median 13
+longest same-location streak ANYWHERE                              max 21   (cap is 40)
+terminal same-location streak at death                             median 2.5, min 1
+killed runs' battle win-rate                                       86-96%
+```
+One run hit #41 after a SINGLE whiteout at its terminal location; its other 40 were spread over a
+dozen towns. One won **866 of 907** battles with an L51 lead and was killed anyway. Survivors' win
+rates go *lower* (down to 0.896) than five of the fourteen killed. ⇒ **it was a fuse on run LENGTH,
+not a diagnosis** — kill rate by run length runs 0% under 1.5M frames to 62% above 3.5M, and
+`MAX_FRAMES_PER_RUN` (5,000,000) was never reached by ANY of the 61 runs.
+
+**THE FIX.** `whiteout_budget()` — PURE, beside `pick_land_hm_slot` — keys the budget to CONSECUTIVE
+whiteouts at ONE respawn location. Wired into `StoryMode.run`; the message now states the location
+and the count. ‼ The `"too many whiteout recoveries"` PREFIX is preserved because `compare_runs.py:91`
+and `endless_runs.py:67` classify runs by it. (`repro_x4_headless.py:401` also holds the old wording
+but is a FIXTURE copied from a real 2026-08-26 batch — history, correctly left alone.)
+
+**⛔⛔ THE TRAP, WRITTEN DOWN BECAUSE I NEARLY SHIPPED IT.** The sibling `_derails` counter resets on
+`_progress_sig()` change forty lines away, and mirroring it looks obviously right. `_progress_sig()`
+is `(party_size, lead_level, total_exp)` — and between whiteout N and N+1 the bot walks back to the
+fight through wild grass, so **`total_exp` ALWAYS grows**. That reset would have fired every single
+time and **silently deleted the guard**. It is correct for derails (which fire in bursts with no
+battles between) and wrong for whiteouts. `probe_whiteout_budget.py` FAULT ARM 3 fails that rewrite.
+
+**GATE #44 — `probe_whiteout_budget.py`, and why a gate rather than a drive.** Reproducing this needs
+**41 whiteouts**, i.e. many hours of emulation (session-discipline rule 9: choose the instrument by
+the question). The decision is pure, so the gate replays the 14 REAL killed sequences, frozen into
+`fixtures/whiteout-sequences-20260907.json`:
+```
+CHECK 1      0 of 14 still killed              (worst real peak 21 vs cap 40)
+CHECK 2      a genuinely STUCK run (45 at one place) is STILL stopped at #41
+CHECK 3      an UNREADABLE location does NOT reset — strict, never lax
+FAULT ARM 1  the OLD lifetime counter, replayed, kills 14 of 14
+FAULT ARM 2  an always-reset budget fails to stop a stuck run
+FAULT ARM 3  the `_progress_sig()` rewrite fails to stop a stuck run
+```
+**⭐⭐ FAULT ARM 1 IS THE REASON THIS RESULT CAN BE BELIEVED, AND IT CAUGHT THE GATE BEING VACUOUS.**
+The first fixture held **40** events per run, not 41 — the final recovery has no following `map=`
+line because the run stops there. A 40-event sequence cannot trip a `> 40` cap under ANY budget, so
+"0 of 14 killed" was true of every possible implementation and proved nothing. The arm required the
+OLD counter to kill 14 of 14, it killed 0, and the fixture was corrected. ‼ The padding repeats the
+last known location, which LENGTHENS the terminal streak and biases AGAINST the conclusion — the
+result survives the harder test.
+
+**⚠ WHAT THIS FIX DOES NOT DO.** It does not make the bot win the fights. A second, independent
+defect is confirmed and NOT addressed here — see `#24-regimeb-noescalation`.
+
+Files: `sandbox-pokebot/modules/story/early_game.py`,
+`sandbox-pokebot/plugins/custom_modes/story_mode.py`,
+`tools/story-dev/{probe_whiteout_budget.py,run_gates.py,fixtures/whiteout-sequences-20260907.json}`,
+`PROJECT KNOWLEDGE/{02,03,04,05,07,08}`.
