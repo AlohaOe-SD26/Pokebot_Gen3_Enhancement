@@ -14576,3 +14576,35 @@ LOCATION, the terminal location is a sample of size ONE. Before concluding "the 
 plot the whole distribution, not the last element. ‼ And when an agent's answer would change your
 conclusion, check whether it answered the question you *asked* or the question you *meant* — mine
 answered the former, correctly, and I over-read it.
+
+## 2026-09-07 — a failed drive reported "exit code 0", and a `--help` grep hid a required argument
+
+**Symptom.** A 45-minute background drive was launched, reported **"completed (exit code 0)"**, and
+had in fact died in under a second with
+`story_harness.py: error: the following arguments are required: state`. Nine lines of usage text sat
+in the acceptance log while I moved on believing a drive was running.
+
+**Two root causes, one shape.**
+1. **The exit code was MASKED BY MY OWN COMMAND.** The invocation ended `> log 2>&1; echo "EXIT=$?"`.
+   `echo` succeeds, so the *shell's* status is 0 no matter what the program did, and the harness's
+   real exit 2 never reached the task runner. ⇒ **the success report was manufactured by the
+   instrument, not observed from the subject.**
+2. **The argument was invisible because of how I read `--help`.** I filtered with
+   `grep -E "^\s+--"`, which by construction can only show OPTIONAL flags. Seeing no `--state` I
+   concluded *"the driver selects the fixture itself"* — an inference from an instrument
+   structurally incapable of showing positional arguments, stated as if established.
+
+**The fix that worked.** Pass the fixture positionally (`story_harness.py post_grind_L60.ss1
+--driver ch23chapter ...`), never mask the status, and CONFIRM a long run actually started by
+reading the first lines of its log (`Running mGBA 0.10.2`) instead of trusting the launch.
+
+**⭐ PREVENTION RULE — NEVER PUT A COMMAND AFTER THE ONE WHOSE STATUS YOU CARE ABOUT.** No trailing
+`echo "EXIT=$?"`, no `; true`, no `| tail` on the call itself — each replaces the subject's status
+with the reporter's. Let the command be last, and read its status from the runner.
+‼ **AND: A FILTERED `--help` IS NOT `--help`.** A grep that selects `^--` answers "which optional
+flags exist", never "what does this take". Before concluding an argument does not exist, read the
+usage line — it lists positionals and it is the FIRST thing printed.
+⇒ Both are the day's recurring shape in a new costume: **an instrument that cannot express the
+failure will report success** (see the vacuous `[KI96-REREAD]` probe and the 40-event whiteout
+fixture, both the same date). ⛔ Before believing a green result, ask what this check would print if
+the thing were broken — and if the answer is "the same", it is not a check.
