@@ -30,6 +30,7 @@ ap.add_argument("--inject-weak", action="store_true", help="inject a lone Lv3 Po
 ap.add_argument("--inject-faintbench", action="store_true", help="inject Lv3 lead + Lv4 bench (forces the after-faint party menu â€” KI-12 repro)")
 ap.add_argument("--inject-shedinja-faint", action="store_true", help="inject an all-BURNED 1-HP party (Shedinja lead + bench) — rapid in-battle faints for the KI-15 after-faint chooser repro; pair with --driver faintrepro")
 ap.add_argument("--set-balls", type=int, default=None, help="force the PokÃ© Ball count (test out-of-balls provisioning)")
+ap.add_argument("--inject-hmmule", action="store_true", help="ADD a low-level mon (default Marill L13, carrying Surf) to an otherwise-ready party WITHOUT replacing it — the #24-ch23training discriminator. Override with POKEBOT_MULE_SPECIES / POKEBOT_MULE_LEVEL. Pair with --driver ch23train + POKEBOT_CH23_ESTIMATE_ONLY=1 for a seconds-long A/B.")
 ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the party at")
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
@@ -17710,6 +17711,68 @@ def inject_treecko():
     log(f"[inject] Treecko Lv15 exp={exp16 - 1} (exp_for_16={exp16}) moves=Pound/Leer/Absorb/QuickAttack")
 
 
+def inject_hmmule():
+    """ADD a low-level mon to an otherwise-ready party — the `#24-ch23training` DISCRIMINATOR.
+
+    ⛔⛔ WHY THIS EXISTS. `#24-ch23training` ended **16 of 49** runs in batch `20260907-203713`:
+    §Ch23's training leg prices every under-target battler and REFUSES when one ALONE exceeds
+    `MAX_TRAINING_FRAMES = 250_000` (`victory_road.py:1937`). The refused mons are **L13-L23
+    wild-caught mules the bot caught ITSELF** to carry HMs — Marill ~L13, Slugma L17, Mightyena
+    ~L20, Shedinja ~L23 — against a leg calibrated on a curated party with an **L40 floor**.
+    ‼ **NO SAVED FIXTURE HAS THAT SHAPE**, so the fix had no discriminator and was deliberately not
+    built. This function IS the discriminator.
+
+    ⭐ THE SIMPLIFICATION THAT MAKES IT CHEAP: `battler_identities` (`victory_road.py:1770`) does
+    **not** look at HMs at all — it admits every slot that is not an egg and not in `BENCH_SPECIES`.
+    So reproducing the refusal needs only a LOW-LEVEL NON-BENCHED mon. The HM move is set anyway, so
+    the SAME fixture can also exercise a role-aware fix (bench a sole HM carrier) later.
+    ⛔ Marill is deliberate: it is the refused mon in **9 of 16** real failures.
+
+    ‼ PRESERVES THE REST OF THE PARTY — unlike `inject_treecko`/`inject_weak`, which replace it
+    wholesale. A repro needs the strong members intact, because the defect is one weak mon among
+    strong ones, not a weak party.
+
+    ⭐ PAIR IT WITH `POKEBOT_CH23_ESTIMATE_ONLY=1` and `--driver ch23train`: the leg then takes the
+    estimate and STOPS without spending grind frames, so the A/B costs seconds rather than hours.
+    """
+    # ‼ IMPORT `os` LOCALLY. This module binds it as `_os` at module scope, so a bare `os` here is a
+    # NameError that only fires on the injection path — which is exactly the path nobody drives.
+    # A `grep -c "^import os"` "confirmed" it was available and was wrong: the check could not see
+    # WHICH NAME was bound. (08-MISTAKES 2026-09-08 — verify the binding, not the import line.)
+    import os
+
+    from modules.debug_utilities import debug_create_pokemon, debug_write_party
+    from modules.pokemon import get_species_by_name, get_move_by_name, LearnedMove
+    from modules.pokemon_party import get_party
+
+    party = [m for m in get_party() if m is not None]
+    if not party:
+        log("[inject] ⛔ hmmule: the party is EMPTY — refusing to inject. "
+            "This injection ADDS to a real party; run it against a mid-game save.")
+        return
+    level = int(os.environ.get("POKEBOT_MULE_LEVEL", "13"))
+    species = get_species_by_name(os.environ.get("POKEBOT_MULE_SPECIES", "Marill"))
+    exp = species.level_up_type.get_experience_needed_for_level(level)
+    moves = [LearnedMove.create(get_move_by_name("Surf")),
+             LearnedMove.create(get_move_by_name("Water Gun")),
+             LearnedMove.create(get_move_by_name("Tackle")),
+             LearnedMove.create(get_move_by_name("Defense Curl"))]
+    mule = debug_create_pokemon(species=species, level=level, experience=exp, moves=moves,
+                                nickname="MULE", current_hp=None)
+    before = [f"{m.species.name}:L{m.level}" for m in party]
+    if len(party) < 6:
+        new_party, displaced = party + [mule], None
+    else:
+        displaced = f"{party[-1].species.name}:L{party[-1].level}"
+        new_party = party[:-1] + [mule]
+    debug_write_party(new_party)
+    log(f"[inject] hmmule: {species.name} L{level} (Surf) added — party was {before}"
+        + (f", DISPLACED {displaced} (party was full)" if displaced else "")
+        + f" -> {[f'{m.species.name}:L{m.level}' for m in new_party]}")
+    log(f"[inject] hmmule: expect `Ch23 training: {species.name}#... alone needs ...` from "
+        f"`--driver ch23train`; with a level-gap bench it should instead proceed.")
+
+
 def inject_weak():
     from modules.debug_utilities import debug_create_pokemon, debug_write_party
     from modules.pokemon import get_species_by_name, get_move_by_name, LearnedMove
@@ -17893,7 +17956,8 @@ trace_active = False  # verbose trace while a move-learn/evo is happening
 no_progress = 0
 last_sig = None
 last_heartbeat = 0
-injected = not (args.inject_treecko or args.inject_weak or args.inject_faintbench or args.inject_shedinja_faint)
+injected = not (args.inject_treecko or args.inject_weak or args.inject_faintbench
+                or args.inject_shedinja_faint or args.inject_hmmule)
 
 CH5_FLAGS = (
     "DEVON_GOODS_STOLEN", "RECOVERED_DEVON_GOODS", "RETURNED_DEVON_GOODS",
@@ -17965,7 +18029,9 @@ for step in range(args.frames):
             pass
 
     if not injected and step >= args.inject_at:
-        if args.inject_weak:
+        if args.inject_hmmule:
+            inject_hmmule()
+        elif args.inject_weak:
             inject_weak()
         elif args.inject_faintbench:
             inject_faintbench()
