@@ -14520,3 +14520,31 @@ from an instrument that never reached the event is not a null result — it is a
 it is far more expensive than no measurement at all, because it is published with confidence.
 ‼ Corollary: **a negative result deserves a positive control.** If the probe cannot be made to show
 the change under conditions where the change is KNOWN to happen, it may not be used to say it did not.
+
+## 2026-09-07 — I archived a MIXED-STATUS index under "⛔ DO NOT REDO — this issue is CLOSED"
+
+**Symptom.** Clearing a line-budget overrun, a bulk archiver moved four `05-KNOWN-ISSUES.md`
+sections. Three were genuinely closed KIs. The fourth was
+`## ‼ ARCHIVED ISSUES WORTH RE-READING — ⛔ MIXED STATUS: SOME ARE FIXED, SOME ARE NOT` — a
+navigational index cold starts follow — and it was stamped *"⛔ DO NOT REDO — this issue is CLOSED."*
+
+**Root cause.** The predicate was `"FIXED" in header`. The heading contains the word FIXED inside the
+phrase *"SOME ARE FIXED, SOME ARE NOT"*, i.e. it says the OPPOSITE of closed. **A substring test on a
+status word cannot distinguish a status from its negation.**
+
+**Why nothing caught it.** All ten doc gates went green, and `archive_doc_block.py`'s invariants A
+(no loss) and B (no orphan) would BOTH have passed — nothing was lost, nothing orphaned. The tool's
+docstring had already named the gap: *"it cannot know whether the pointer you wrote is honest."*
+
+**The fix that worked.** Restored the section verbatim (⛔ NOT with `git checkout --`, which would
+also have destroyed uncommitted `KI-96` work in the same file — surgical restore, byte-verified both
+ways), then added **INVARIANT C** to `archive_doc_block.py` with three fault arms.
+
+**⭐ PREVENTION RULE — A STATUS WORD IS NOT A STATUS. Never decide "is this closed?" by substring.**
+Read the heading as a whole and treat any negation marker (`MIXED`, `SOME ARE NOT`, `STILL OPEN`,
+`NOT FIXED`) as decisive against closure. ‼ And when a tool exists for an operation, USE IT — this
+was a hand-rolled archiver written while `archive_doc_block.py` sat in the same directory, which is
+how the operation lost the two invariants that tool already enforced.
+‼ Second-order lesson, from building the gate: **C did not fire on its own fault arm**, because a
+pointer repeats the heading it replaces and the echo satisfied the honesty exclusion. A gate is not
+finished when it is written; it is finished when it has been SEEN to fail.

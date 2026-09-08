@@ -689,18 +689,40 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                 # `tasks=['Task_ReturnToChooseMonAfterText', 'Task_PrintAndWaitForText']`, which is
                 # the `TrySwitchInPokemon() == FALSE` branch of `CursorCb_SendMon`.
                 #
-                # ⭐ TWO LIVE HYPOTHESES — `[KI96-WHY]`'s `action` byte separates them in one drive:
-                #   (1) `gPartyMenu.action` is 2 (CANT_SWITCH: Wrap family/Mean Look/Ingrain) or 4
+                # ✅✅ RESOLVED 2026-09-07 — HYPOTHESIS (2), CONFIRMED BY DRIVE. Kept in full because
+                # the reasoning below PREDICTED the measurement exactly, down to the refusal string,
+                # and because three earlier root causes for this KI were published and withdrawn.
+                #     [KI96-WHY] action=0  cursor_slotId=0  order_in_menu='012345'
+                #                msg='DIVER is already in battle!'
+                #     [KI96-REREAD] pre(raw=201345 aims_at_menu_slot=0) post(raw=012345
+                #                   aims_at_menu_slot=2)  VERDICT=DIFFER
+                # ⇒ `gBattlePartyCurrentOrder` is REFILLED by `PlayerHandleChoosePokemon` at
+                # menu-open. The aim was computed from the previous turn's leftovers. THE FIX is the
+                # bounded re-map below (search `[KI96-FIX]`); the A/B is 241 presses + a hard stop ->
+                # 27 presses + ACCEPTED, in `acceptance-2026-09-07/EVIDENCE.md`.
+                # ⛔ The two hypotheses are kept as HISTORY. Hypothesis (1) is DEAD — `action` is 0.
+                #
+                # ⭐ TWO HYPOTHESES, as they stood before the drive — `[KI96-WHY]`'s `action` byte
+                # separated them in one run:
+                #   (1) ⛔ DEAD (measured `action=0`). `gPartyMenu.action` is 2 (CANT_SWITCH: Wrap
+                #       family/Mean Look/Ingrain) or 4
                 #       (ABILITY_PREVENTS: Shadow Tag/Arena Trap/Magnet Pull). The engine sets these
                 #       BEFORE the menu opens, and then NO slot can ever be accepted — the A-mash is
                 #       unwinnable by construction and the 240-bound is exactly right.
-                #   (2) `action` is 0/1 — an ordinary menu — so the refusal is PER-SLOT and the AIM is
+                #   (2) ✅ CONFIRMED. `action` is 0/1 — an ordinary menu — so the refusal is PER-SLOT and the AIM is
                 #       wrong. ‼ A STUCK dump taken at PARTY_MENU showed the party in FIELD order
                 #       (Wailord, Zigzagoon, Mightyena, ...) while the aim assumed [2,0,1,3,4,5]; if
                 #       the in-menu array is identity then menu slot 0 is the ACTIVE battler and the
                 #       refusal is literally "DIVER is already in battle!".
-                # ⛔ DO NOT PICK ONE FROM THE ARMCHAIR. Three published root causes for this KI have
-                # been measured false, and a fourth was published on a probe that measured nothing.
+                # ⛔ THE ANSWER WAS MEASURED, NOT PICKED — and that mattered: three published root
+                # causes for this KI were measured false, and a fourth ("the stale array is NOT the
+                # cause") was published on a probe that measured NOTHING, because it read the order
+                # array five frames BEFORE the A press — 77 frames before the menu existed. It was
+                # withdrawn only when a reviewer read the frame stamps, and it had by then reached a
+                # commit, the changelog, the DIVERGENCE-LOG and a promoted code comment.
+                # ⭐ RULE (08-MISTAKES 2026-09-07): a probe that cannot observe the transition is not
+                # evidence of its absence. Print each read's frame/state beside the action it
+                # straddles, and give any negative result a positive control.
                 #
                 # ‼ A RELATED DEFECT, WORTH FIXING WHATEVER THE ANSWER: this arm has NO precondition.
                 # `battle_action_use_move` presses ONLY while `get_battle_controller_callback` is an
@@ -764,6 +786,15 @@ def handle_battle_action_selection(strategy: BattleStrategy) -> Generator:
                         in_battle_index = _fresh
                     except Exception as _e:  # noqa: BLE001 - an unreadable order is not a reason to
                         # abandon the rotation; keep the pre-menu value and let the bound catch it.
+                        # ⛔ DELIBERATELY NO `reraise_if_aborting` HERE, and this is not an oversight
+                        # (the diff-rule hook flags every new broad `except`, correctly). That guard
+                        # protects handlers wrapped around a `yield from`, where a whiteout unwind
+                        # can be injected and then swallowed. THIS `try` contains NO yield — it is a
+                        # pure memory read plus arithmetic, so no unwind can pass through it. And
+                        # `reraise_if_aborting` lives in `modules/story/early_game.py`: importing it
+                        # into a CORE battle module would invert the dependency direction (core must
+                        # not depend on story). ‼ If a `yield` is ever added inside this `try`, that
+                        # reasoning dies with it — add the guard, or move the yield out.
                         _ki96_log(f"[KI96-FIX] <re-map unreadable: {type(_e).__name__}> — keeping "
                                   f"the pre-menu slot {in_battle_index}")
 

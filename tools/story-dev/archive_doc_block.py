@@ -138,6 +138,42 @@ def archive_block(
             "  was taken and the rest now sits under a pointer that says it was moved."
         )
 
+    # ---- INVARIANT C — NO FALSE CLOSURE ---------------------------------------------------------
+    # ⛔ ADDED 2026-09-07, and this file's own docstring PREDICTED the gap: *"it cannot know whether
+    # the pointer you wrote is honest."* That day a bulk archiver matched sections on the bare word
+    # "FIXED" and moved
+    #     "## ‼ ARCHIVED ISSUES WORTH RE-READING — ⛔ MIXED STATUS: SOME ARE FIXED, SOME ARE NOT"
+    # under the pointer "⛔ DO NOT REDO — this issue is CLOSED." It is a NAVIGATIONAL INDEX cold
+    # starts follow (pair P4), and its heading says the OPPOSITE of closed.
+    # ‼ INVARIANTS A AND B BOTH PASSED: nothing was lost, nothing was orphaned — and the document was
+    # still wrong. That is exactly why C is a THIRD invariant and not a tightening of the other two.
+    # ⭐ CLAUDE.md pair P2: "a heading is a claim about every bullet beneath it; if their statuses
+    # differ the heading must say MIXED." So a MIXED heading is legal — what is illegal is covering
+    # it with a pointer asserting UNCONDITIONAL closure. An honestly-mixed pointer passes.
+    heading = block.lstrip().splitlines()[0] if block.strip() else ""
+    heading_up, pointer_up = heading.upper(), pointer.upper()
+    NOT_CLOSED = ("MIXED STATUS", "SOME ARE NOT", "SOME ARE FIXED, SOME", "STILL OPEN", "NOT FIXED")
+    CLAIMS_CLOSED = ("DO NOT REDO", "DO NOT REOPEN", "IS CLOSED", "CLOSED.", "RESOLVED")
+    # ‼ THE CAVEAT MUST BE THE POINTER'S OWN WORDS, NOT AN ECHO OF THE HEADING. A pointer
+    # conventionally REPEATS the heading it replaces, so testing the whole pointer for "MIXED" let
+    # the heading's own text satisfy the honesty exclusion — and this gate shipped INERT until its
+    # fault arm caught it. Strip the heading first; only what the author ADDED counts as a caveat.
+    pointer_extra = pointer_up.replace(heading_up, " ")
+    hit = [m for m in NOT_CLOSED if m in heading_up]
+    if hit and any(c in pointer_extra for c in CLAIMS_CLOSED) and not any(
+        m in pointer_extra for m in NOT_CLOSED
+    ):
+        raise SystemExit(
+            "⛔ THE POINTER CLAIMS CLOSURE OVER A HEADING THAT SAYS OTHERWISE — refusing to write.\n"
+            f"  heading : {heading[:110]!r}\n"
+            f"  says    : {', '.join(hit)}\n"
+            f"  pointer : {pointer[:110]!r}\n"
+            "  A heading is a claim about everything beneath it (CLAUDE.md pair P2). Either this\n"
+            "  block is NOT closed and must not be archived, or the pointer must carry the same\n"
+            "  MIXED caveat the heading does. ‼ Note invariants A and B pass here — nothing is lost\n"
+            "  and nothing is orphaned. The defect is that the pointer LIES."
+        )
+
     if not dry_run:
         archive.write_text(archive_text + "\n", encoding="utf-8")
         source.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -213,6 +249,52 @@ def self_test() -> int:
         if src.read_text(encoding="utf-8") != original:
             failures.append("⛔ a REFUSED archive (B) still modified the source")
 
+        # --- 3b. FAULT ARM C — FALSE CLOSURE. The real 2026-09-07 defect, reproduced exactly. -----
+        # ‼ Note what makes this arm worth having: invariants A and B BOTH PASS on it. Nothing is
+        # lost and nothing is orphaned — the pointer simply lies about the block's status.
+        MIXED_HDR = "## ‼ ARCHIVED ISSUES WORTH RE-READING — ⛔ MIXED STATUS: SOME ARE FIXED, SOME ARE NOT"
+        mixed_doc = "\n".join(
+            ["# Doc", "", MIXED_HDR, "  a pointer to a fixed thing", "  a pointer to an OPEN thing",
+             "", "## `KI-99` — next", "  body"]
+        ) + "\n"
+        src, arc = fixture(tmp, "falseclosure", mixed_doc)
+        try:
+            archive_block(src, arc, MIXED_HDR,
+                          f"{MIXED_HDR}  📦 ARCHIVED VERBATIM.\n⛔ DO NOT REDO — this issue is CLOSED.",
+                          "note")
+            failures.append("⛔ FAULT ARM C DID NOT FIRE — a CLOSED pointer over a MIXED heading was accepted")
+        except SystemExit as exc:
+            if "CLAIMS CLOSURE" not in str(exc):
+                failures.append(f"fault arm C raised the wrong error: {exc}")
+        if src.read_text(encoding="utf-8") != mixed_doc:
+            failures.append("⛔ a REFUSED archive (C) still modified the source")
+
+        # --- 3c. C MUST NOT FIRE on an honestly-MIXED pointer -------------------------------------
+        # ⭐ CLAUDE.md P2 allows a MIXED heading outright; what it forbids is hiding the caveat. A
+        # gate with false positives teaches the reader to bypass it, which is worse than no gate.
+        src, arc = fixture(tmp, "honestmixed", mixed_doc)
+        try:
+            archive_block(src, arc, MIXED_HDR,
+                          f"{MIXED_HDR}  📦 ARCHIVED VERBATIM — ⛔ MIXED STATUS, read each entry.",
+                          "note")
+        except SystemExit as exc:
+            failures.append(f"⛔ C FALSE POSITIVE — an honestly-mixed pointer was refused: {exc}")
+
+        # --- 3d. C MUST NOT FIRE on a genuinely closed block, nor on a MERE MENTION in the body ----
+        CLOSED_HDR = "## `KI-79` — ✅ FIXED, FAULT-PROVEN AND PROMOTED TO BOTH FORKS"
+        closed_doc = "\n".join(
+            ["# Doc", "", CLOSED_HDR,
+             "  before the fix this was STILL OPEN for three weeks and NOT FIXED anywhere",
+             "  now closed", "", "## `KI-99` — next", "  body"]
+        ) + "\n"
+        src, arc = fixture(tmp, "genuinelyclosed", closed_doc)
+        try:
+            archive_block(src, arc, CLOSED_HDR,
+                          f"{CLOSED_HDR}  📦 ARCHIVED VERBATIM.\n⛔ DO NOT REDO — this issue is CLOSED.",
+                          "note")
+        except SystemExit as exc:
+            failures.append(f"⛔ C FALSE POSITIVE — a genuinely closed block was refused: {exc}")
+
         # --- 4. an ambiguous anchor is refused, not guessed ---------------------------------------
         src, arc = fixture(tmp, "ambig", "\n".join(doc + doc) + "\n")
         try:
@@ -227,11 +309,17 @@ def self_test() -> int:
         for f in failures:
             print(f"  {f}")
         return 1
-    print("SELF-TEST PASS — 4 arms:")
+    print("SELF-TEST PASS — 7 arms:")
     print("  happy path keeps every line and leaves nothing behind;")
-    print("  FAULT A (truncated archive) -> refused by INVARIANT A, source untouched;")
-    print("  FAULT B (header-only move)  -> refused by INVARIANT B, source untouched;")
-    print("  ambiguous anchor            -> refused rather than guessed.")
+    print("  FAULT A (truncated archive)   -> refused by INVARIANT A, source untouched;")
+    print("  FAULT B (header-only move)    -> refused by INVARIANT B, source untouched;")
+    print("  FAULT C (CLOSED pointer over a MIXED heading) -> refused by INVARIANT C, source")
+    print("          untouched. ‼ A and B BOTH PASS on this input — the pointer just lies;")
+    print("  C no-fire: an honestly-MIXED pointer is ACCEPTED (the caveat must be the pointer's")
+    print("          OWN words — echoing the heading does not count, which once made C inert);")
+    print("  C no-fire: a genuinely closed block is ACCEPTED even when its BODY says")
+    print("          'STILL OPEN' / 'NOT FIXED' — C reads the HEADING, not mere mentions;")
+    print("  ambiguous anchor              -> refused rather than guessed.")
     return 0
 
 

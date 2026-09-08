@@ -24398,3 +24398,44 @@ not evidence of its absence**; a measurement may not kill a hypothesis until the
 to read AFTER the event. Recorded in `08-MISTAKES.md`.
 
 Files: `sandbox-pokebot/modules/battle_action_selection.py`, `PROJECT KNOWLEDGE/{03,05,07,08}`.
+
+## 2026-09-07 — `archive_doc_block.py` INVARIANT C: a pointer may not claim closure a heading denies
+
+**The tool's own docstring predicted this gap** — *"it cannot know whether the pointer you wrote is
+honest."* Today it was paid for. A bulk archiver matched sections on the bare word `FIXED` and moved
+
+    ## ‼ ARCHIVED ISSUES WORTH RE-READING — ⛔ MIXED STATUS: SOME ARE FIXED, SOME ARE NOT
+
+— a NAVIGATIONAL INDEX that cold starts follow (pair P4) — under the pointer
+*"⛔ DO NOT REDO — this issue is CLOSED."*
+
+**‼ INVARIANTS A AND B BOTH PASSED.** Nothing was lost, nothing was orphaned, and all ten doc gates
+went green. The document was still wrong. ⇒ **C is a THIRD invariant, not a tightening of the other
+two**: A and B protect the MOVE, C protects the CLAIM.
+
+**What C checks, and what it deliberately allows.** It fires only when the block's HEADING carries an
+unambiguous non-closure marker (`MIXED STATUS`, `SOME ARE NOT`, `STILL OPEN`, `NOT FIXED`) AND the
+pointer asserts unconditional closure. ⭐ CLAUDE.md pair P2 says a MIXED heading is legal — what is
+illegal is covering it with a pointer that hides the caveat — so an honestly-mixed pointer passes.
+
+**⭐⭐ THE FAULT TEST CAUGHT THE GATE SHIPPING INERT, which is the part worth remembering.** C did not
+fire on its own fault arm. Cause: **a pointer conventionally REPEATS the heading it replaces**, so
+testing the whole pointer for "MIXED" let the heading's own echoed text satisfy the honesty
+exclusion. Fixed by stripping the heading before the test — only what the author ADDED counts as a
+caveat. ⇒ *"prove it fails when the thing it guards is broken"* is not ceremony; without it this
+would have been a gate that could never fire, committed green.
+
+Self-test is now **7 arms** (was 4): happy path, A, B, **C fires**, **C does not fire on an honestly
+mixed pointer**, **C does not fire on a genuinely closed block whose BODY says "STILL OPEN"**, and
+ambiguous-anchor. Run `py -3.12 archive_doc_block.py --self-test`.
+
+Also this commit: `battle_action_selection.py`'s `KI-96` investigation banner was STALE in a pair-P2
+shape *inside code* — it still read "TWO LIVE HYPOTHESES / DO NOT PICK ONE FROM THE ARMCHAIR" while
+the answer sat committed 20 lines below. Hypothesis (2) is marked CONFIRMED (it predicted the
+measurement exactly, down to the refusal string) and (1) DEAD. A note records why
+`reraise_if_aborting` is deliberately absent from the new handler: the `try` contains no `yield`, so
+no whiteout unwind can pass through it, and the guard lives in `modules/story/` — importing it into a
+core battle module would invert the dependency direction.
+
+Files: `tools/story-dev/archive_doc_block.py`,
+`sandbox-pokebot/modules/battle_action_selection.py`, `PROJECT KNOWLEDGE/{07,08}`.
