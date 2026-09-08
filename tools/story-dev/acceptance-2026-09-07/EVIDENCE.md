@@ -86,3 +86,40 @@ mentioning it.
 run was still writing; it did not finish until 19:52:14. The verdict was unchanged, but a mid-run
 read is not a result — the stronger fact (the bound never fired across the FULL 82,292 frames, 1.8x
 the wedged run) is only visible on the completed file.
+
+---
+
+## §Ch23 REGRESSION CHECK on the fully-fixed sandbox (2026-09-07 20:28)
+
+`story_harness.py post_grind_L60.ss1 --driver ch23chapter --build sandbox --frames 600000`
+
+```
+ACCEPTANCE: PASS    done=True   battles=12   whiteouts=0   failure=None
+neighbours_reachable=4
+leg5_entry    ((24,43), (15,39))
+ladder_apron  {'tile': (21,21), 'step': 'Left'}
+b2f_arrival   ((24,45), (30,25))
+heal_before   602/1000, fainted [Wailord], hurt [Mightyena, Swellow]
+```
+
+**⚠ WHAT THIS PROVES, AND WHAT IT DOES NOT.** The run never took the `RotateLead` path
+(`KI96-FIX` 0, `KI96-DONE` 0, bound firings 0) and never whited out (`WHITEOUT recovery` 0). ⇒ **it
+is NOT an acceptance of either the `KI-96` re-map or the location-keyed whiteout budget.** Neither
+code path executed.
+
+**⭐ IT IS A REGRESSION CHECK ON THE ORDINARY CASE, AND THAT IS EXACTLY THE RIGHT INSTRUMENT HERE.**
+Both changes sit on paths that EVERY battle and EVERY whiteout traverses, and session-discipline
+rule 9 says: *"when a change touches a shared path, the cheap decisive test is an A/B on the ORDINARY
+case, not more samples of the exotic one."* §Ch23 passed before these changes and still passes after,
+with the same shape of result. That is the claim, and it is the whole claim.
+
+The exotic cases are covered separately and deliberately: `KI-96` by its own driven A/B above, and
+the whiteout budget by gate #44 replaying the 14 real killed sequences (a drive would need 41
+whiteouts — hours of emulation — for a decision that is pure).
+
+‼ **AND THIS RUN'S FIRST ATTEMPT SILENTLY DID NOT HAPPEN.** It was launched without the harness's
+POSITIONAL `state` argument, died in under a second on a usage error, and the task runner reported
+**"completed (exit code 0)"** because the invocation ended `; echo "EXIT=$?"`. Nine lines of usage
+text sat in this log while the drive was believed to be running. See `08-MISTAKES.md` 2026-09-07 —
+never put a command after the one whose status you care about, and confirm a long run STARTED by
+reading its log rather than trusting the launch.
