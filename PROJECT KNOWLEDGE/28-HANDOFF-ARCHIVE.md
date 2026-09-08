@@ -10398,3 +10398,35 @@ asks for **always-catch-new**, which is deterministic. Both are defensible: alwa
 human and gets variety from WHICH species the RNG offers; the scored roll makes two runs on the
 same route diverge. **They cannot both be the rule — ask before building.**
 
+---
+
+## 📦 ARCHIVED 2026-09-08 FROM `03-PUNCH-LIST.md` — the 2026-08-10 ID CONSOLIDATION (VERBATIM)
+
+Moved only to keep 03 inside its 3600-line budget (`lint_docs.py` R3). CLOSED and user-approved bookkeeping: the record of which duplicate/overlapping punch-list IDs were
+merged. ⛔ Nothing deleted, nothing edited. Its stub in 03 keeps the pointer.
+
+### 5. ✅ DUPLICATE / OVERLAPPING IDS — CONSOLIDATED 2026-08-10 (user-approved)
+Each group now has ONE canonical entry; the duplicates were converted into **pointers** with all
+their original text kept underneath, because IDs are never reused here and the reasoning trail is
+worth more than the tidiness.
+| group | canonical (still open) | why it wins |
+|---|---|---|
+| the `#24` umbrella (was 3 entries) | **"STORY AUTO-PLAYER"** | the umbrella header; ⛔ its "cold start reaches Badge 6" body went FIVE CHAPTERS stale and was corrected 2026-08-13 — **the live head is `#24-remainingarc` at the TOP of this file**, not this entry |
+| PC / box team management | **`#24-roster`** | the user APPROVED it 2026-08-06 and lifted its gate, which outranks the older `#24-pc` design entry |
+| organic team building | **`#24-organicteam`** | ⛔ **CORRECTED 2026-08-14** — this cell used to read *"it carries the user's 2026-08-05 DEFERRAL, i.e. the live instruction"*, which was **already false when written on 2026-08-10**: the user reversed that deferral on 2026-08-06 (`06-DECISIONS-LOG.md` RULING 1) and re-confirmed the lift on 2026-08-14. The entry is canonical because it is the concept's home, NOT because it carries a deferral. **The gate is LIFTED.** |
+‼ **`#24-pc` (Surf resource walls) REMAINS OPEN and was not touched** — it is a derail class, a
+different thing from the PC/box *feature* that shares its id.
+Counts: ⛔ **DELIBERATELY NOT QUOTED — run `lint_docs.py`; its `I1`/`I2` lines ARE the authority.**
+*(This line used to carry three figures and a cold-start audit measured TWO of them wrong within
+a day — and the caveat it ALREADY carried, "this prose goes stale every session", did not stop anyone
+believing the digits. ⇒ the only fix that works is to remove the number, not to warn about it.)*
+
+HISTORY — originally flagged as: duplicate / overlapping ids, not merged
+* **`#24` appears three times** as the umbrella (L≈1828 "STORY AUTO-PLAYER", L≈2040 "STORY-MODE
+  BOT", L≈2292 "Story auto-player"). Two are roadmap-era restatements of the third.
+* **`#24-pc` appears twice** (the resource-wall entry and the PC/box team-management entry) and
+  **overlaps `#24-roster`**, which is the approved PC-roster feature.
+* **`#24-organicteam` and `#24-team`** are the same concept under two IDs.
+⇒ Recommend consolidating each group under its newest ID with the older ones pointing at it.
+**Not done unilaterally — it rewrites history in a current-state file.**
+

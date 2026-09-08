@@ -75,30 +75,8 @@ scheduled (`#24-ui`, `#24-shops`, `#24-autosave`, `#24-defeat`, `#24-personality
 `#24-badges*`, `#24-gymtrainers`, `#24-partyvariety`). ‼ Several are marked "BUILT IN SANDBOX
 2026-07-19" and were never verified or closed.
 
-### 5. ✅ DUPLICATE / OVERLAPPING IDS — CONSOLIDATED 2026-08-10 (user-approved)
-Each group now has ONE canonical entry; the duplicates were converted into **pointers** with all
-their original text kept underneath, because IDs are never reused here and the reasoning trail is
-worth more than the tidiness.
-| group | canonical (still open) | why it wins |
-|---|---|---|
-| the `#24` umbrella (was 3 entries) | **"STORY AUTO-PLAYER"** | the umbrella header; ⛔ its "cold start reaches Badge 6" body went FIVE CHAPTERS stale and was corrected 2026-08-13 — **the live head is `#24-remainingarc` at the TOP of this file**, not this entry |
-| PC / box team management | **`#24-roster`** | the user APPROVED it 2026-08-06 and lifted its gate, which outranks the older `#24-pc` design entry |
-| organic team building | **`#24-organicteam`** | ⛔ **CORRECTED 2026-08-14** — this cell used to read *"it carries the user's 2026-08-05 DEFERRAL, i.e. the live instruction"*, which was **already false when written on 2026-08-10**: the user reversed that deferral on 2026-08-06 (`06-DECISIONS-LOG.md` RULING 1) and re-confirmed the lift on 2026-08-14. The entry is canonical because it is the concept's home, NOT because it carries a deferral. **The gate is LIFTED.** |
-‼ **`#24-pc` (Surf resource walls) REMAINS OPEN and was not touched** — it is a derail class, a
-different thing from the PC/box *feature* that shares its id.
-Counts: ⛔ **DELIBERATELY NOT QUOTED — run `lint_docs.py`; its `I1`/`I2` lines ARE the authority.**
-*(This line used to carry three figures and a cold-start audit measured TWO of them wrong within
-a day — and the caveat it ALREADY carried, "this prose goes stale every session", did not stop anyone
-believing the digits. ⇒ the only fix that works is to remove the number, not to warn about it.)*
-
-HISTORY — originally flagged as: duplicate / overlapping ids, not merged
-* **`#24` appears three times** as the umbrella (L≈1828 "STORY AUTO-PLAYER", L≈2040 "STORY-MODE
-  BOT", L≈2292 "Story auto-player"). Two are roadmap-era restatements of the third.
-* **`#24-pc` appears twice** (the resource-wall entry and the PC/box team-management entry) and
-  **overlaps `#24-roster`**, which is the approved PC-roster feature.
-* **`#24-organicteam` and `#24-team`** are the same concept under two IDs.
-⇒ Recommend consolidating each group under its newest ID with the older ones pointing at it.
-**Not done unilaterally — it rewrites history in a current-state file.**
+### 5. ✅ DUPLICATE / OVERLAPPING IDS — CONSOLIDATED 2026-08-10 (user-approved) — 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-08, R3 budget).
+- [x] ⛔ CLOSED bookkeeping — which duplicate IDs were merged, and why. Not a live item.
 
 ### 6. CLOSED BY THIS TRIAGE (evidence in each entry)
 * `#24-leadcounter` — shipped; `is_hunted_counter` is in `team_policy.lead_rank_key`.
@@ -3589,3 +3567,26 @@ region, where "train near the gym" is actively wrong.
   occurrences in the BEFORE batch**, so this is genuinely new rather than a share-of-a-different-mix
   artefact. ⚠ Also new: `per-run frame budget exhausted` (2 of 49). ⛔ Both are UNINVESTIGATED —
   check whether either traces to this session's changes before assuming they are pre-existing.
+### `#24-tier2audit-residue` — 10 doc defects a cold-start audit found and I did NOT fix (filed 2026-09-08)
+- [ ] ⭐ **THE SYSTEMIC CAUSE, worth more than the list:** *a status change gets written where the
+  WRITER is looking and not where the READER will look.* Four instances were fixed 2026-09-08 (the
+  `➡➡➡` headline, `KI-81`'s header, "live frontier is `KI-96`", `KI-97`'s header). These remain:
+- [ ] **(a) THREE "ARCHIVED VERBATIM … nothing deleted" claims where ~399 lines NEVER MOVED** — `05`
+  `KI-76` (~165), `KI-66` (~163), `KI-50` (~80). The archive holds copies (`28`), so this is
+  DUPLICATION, not archival, and the stated R3 budget relief never happened. ⭐ This is exactly
+  `archive_doc_block.py`'s **INVARIANT D** class, in history predating it. Either move them or
+  retract the claim.
+- [ ] **(b) `05:430-431` a KI-26 header wrapped across two `##` lines** ⇒ a PHANTOM section that
+  structurally owns KI-26's body; any tool walking `##` boundaries mis-attributes it.
+- [ ] **(c) `05:28-29` the file's own navigation grep is wrong for the 3rd time** — it prescribes
+  `^## KI-[0-9]+` (66) and misses 10 backticked headings (`^## \`KI-`); true total ~75.
+- [ ] **(d) promotion-paste residue in `KI-93` / `KI-95` / `KI-79`** — headers say PROMOTED while
+  bodies still say "unpromoted / still open"; `KI-95` has a runaway parenthetical whose last rendered
+  words are the opposite of its Status line. **(e)** `KI-47:890` + `KI-8:136-137` still commission a
+  probe `KI-96` ANSWERED; `05:2738-2740` is a 4th live copy of the KI-96 census instruction.
+  **(f)** `05:16/:22` claims everything from KI-6 on is our own code — refuted by KI-83/88/89
+  ("upstream helper"). **(g)** `05:1509` MIXED heading has an unmarked bullet (`KI-60`).
+  **(h)** `KI-35` header carries no status in a file whose preamble says "open problems only".
+  **(i)** `KI-73`'s sub-heading asserts what the line beneath it corrects. **(j)** the preamble says
+  fixed issues are removed, but the 2026-07-29 ruling retains sandbox-only fixes — ≥16 promoted
+  entries are retained; the file asserts both.
