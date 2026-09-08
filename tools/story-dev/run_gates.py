@@ -348,6 +348,21 @@ GATES: list[tuple[str, bool]] = [
     # budget could trip a `> 40` cap and "0 of 14 killed" meant nothing. The arm caught it.
     # Pure and fast: replays a JSON fixture, reads no ROM.
     ("probe_whiteout_budget.py", False),
+    # ⛔ A `NameError` only fires on the branch nobody drives, so it survives every green suite until
+    # an emulator run finds it. That happened THREE times on 2026-09-08 in one session:
+    #   `os`      — `story_harness.py` binds it as `_os`;      `grep -c "^import os"` said "fine".
+    #   `console` — `victory_road.py` binds it FUNCTION-LOCALLY; `grep -c "console.print"` said "fine".
+    # ⭐ A usage grep cannot see WHERE a name is BOUND. Only scope analysis can, so this gate walks
+    # the real scope chain: builtins + MODULE-LEVEL bindings (⛔ not descending into other functions)
+    # + the function's own + every enclosing function's (closures are legal).
+    # ‼ Its self-test has 5 arms — 2 fault, 3 no-fire — and it was ALSO fault-tested against the real
+    # `victory_road.py` with that one import line deleted, where it correctly reports ['console'].
+    # ⭐ MEASURED CLEAN BEFORE SHIPPING (rule 6 — a noisy gate teaches bypass): 6,540 functions across
+    # both forks, 0 findings. Three earlier drafts were discarded at 32 and 8 false positives, and a
+    # fourth reported 0 for the WRONG REASON (its module scope swallowed function-local imports, so
+    # it would have missed the very bug it was built for — its own arm caught that).
+    # Pure and fast: parses Python, reads no ROM.
+    ("probe_name_resolution.py", False),
 ]
 
 

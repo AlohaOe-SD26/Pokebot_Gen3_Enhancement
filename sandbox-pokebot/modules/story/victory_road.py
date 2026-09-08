@@ -3288,6 +3288,15 @@ def do_victory_road_chapter(report: dict | None = None) -> Generator:
             # ⛔ ONLY BEFORE WALLY. After the flag is set, levels gate nothing and `train_team` has
             # burned 19.9M frames on a target local grass could not deliver (KI-28).
             if not inside_vr and not wally_beaten() and not team_is_ready(TRAIN_TARGET)[0]:
+                # ⛔⛔ THIS IS THE BARE CALL ON PURPOSE. `#24-ch23training`'s stepping fix was
+                # BUILT, DRIVEN AND REFUTED on 2026-09-08: stepping a L13 mule toward L47 ran 69
+                # battles on VICTORY_ROAD_1F's L36-40 wilds with the mule as lead at 0/43 HP the
+                # whole time and it NEVER GAINED A LEVEL — a fainted mon earns nothing.
+                # ⇒ the refusal below is CORRECT, for a reason its own message does not state: a mon
+                # whose grind exceeds the per-call ceiling is ~20+ levels under the wild band, which
+                # is exactly the gap at which it cannot SURVIVE that band. The ceiling is a proxy for
+                # survivability, so relaxing it only buys wasted battles before the same stop.
+                # See `07-CHANGELOG.md` 2026-09-08 and `#24-ch23training`.
                 yield from train_for_victory_road(report)
 
             # --- LEG 5 — INTO VICTORY ROAD AND THROUGH WALLY ------------------------------------

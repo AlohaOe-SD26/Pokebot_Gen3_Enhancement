@@ -24748,3 +24748,102 @@ grind.** "These mons are unaffordable" is a per-call-ceiling ARTEFACT, not an ec
 
 **⇒ `#24-ch23training`'s fix is retargeted to STEPPING.** The bench approach is recorded as REFUTED so
 it is not re-proposed.
+
+## 2026-09-08 — ⛔ THE `#24-ch23training` STEPPING FIX WAS BUILT, DRIVEN AND **REFUTED**. The guard was right.
+
+**It is reverted.** What survives is the discriminator, a new gate, and — the part worth keeping — a
+correct explanation of a guard that has been firing for the right reason and saying the wrong thing.
+
+**WHAT WAS BUILT.** `train_in_steps()` closed the gap to `TRAIN_TARGET = 47` in `TRAIN_STEP = 2`
+level increments, so every `train_for_victory_road` call's per-mon estimate stayed under
+`MAX_TRAINING_FRAMES = 250_000`. This was `06-DECISIONS-LOG.md` 2026-09-07 **Decision 3**, already
+shipped for §Ch24 as `Ch24Grind` — not a new design. It was bounded, it kept `StoryAbort`
+propagating (no `except`), and it raised rather than walking on under-levelled.
+
+**WHAT THE DRIVE SAID** (`--driver ch23train --inject-hmmule`, `post_ever_grande.ss1`):
+```
+Story: Ch23 training STEP 1/24 — lowest battler is L13, training to L15
+...69 battles later:  lead = Marill:L13,  HP 0/43 in 42 of 47 readings,  STILL L13.
+```
+**A L13 Marill (43 max HP) cannot survive VICTORY_ROAD_1F's L36-40 wilds.** It is one-shot every
+encounter, and a fainted mon earns nothing. It can never gain a level there — **at any step size.**
+
+**⭐⭐ THEREFORE THE ORIGINAL REFUSAL IS CORRECT, FOR A REASON ITS OWN MESSAGE DOES NOT STATE.**
+The message says *"too expensive"*. The truth is *"not survivable here"* — and **the two coincide by
+construction**: a mon whose grind exceeds the 250k ceiling is ~20+ levels below the wild band, which
+is precisely the gap at which it cannot survive that band. **The frame ceiling is a proxy for
+survivability.** That is why relaxing it buys only wasted battles before the same stop.
+
+**⇒ THE STEPPING FIX WAS STRICTLY WORSE**: it turned a fast, correct refusal into 69 wasted battles
+and the same refusal. Reverted; the call site now carries the refutation so it is not rebuilt.
+
+**‼ AND THIS REFRAMES THE WHOLE ITEM.** `#24-ch23training` is NOT a training-leg defect. Both
+candidate fixes at the leg are now refuted — **benching** (2026-09-08, adversarial review: it benches
+two of the four mons the shipped run trained, and turns a loud refusal silent) and **stepping** (this
+entry, by drive). ⇒ **the defect is UPSTREAM and it is already documented**: `team_policy.py:8-16`
+records that *"35% of badge moments carried at least one mon 15+ levels below the team max"* and that
+*"the answer was in the party the whole time and never became usable."* The bot catches HM mules and
+counters at wild level and never trains them; by Victory Road it is too late for ANY local remedy.
+⇒ retargeted to `#24-lowlevelmules`.
+
+**WHAT SURVIVES, AND IT IS NOT NOTHING:**
+* `--inject-hmmule` — the discriminator, which produced this refutation in one run.
+* `probe_name_resolution.py` — gate #45 (below).
+* A guard that is now EXPLAINED rather than merely obeyed.
+
+## 2026-09-08 — GATE #45 `probe_name_resolution.py`: a function may not LOAD a name nothing BINDS
+
+**Three `NameError`s shipped in one session**, each found only by an emulator run, because a
+`NameError` fires only on the branch nobody drives:
+```
+os      — story_harness.py binds it as `_os`;        my check: grep -c "^import os"     -> "fine". WRONG.
+console — victory_road.py binds it FUNCTION-LOCALLY; my check: grep -c "console.print"  -> "fine". WRONG.
+```
+⭐ **A USAGE GREP CANNOT SEE WHERE A NAME IS BOUND.** Both checks counted appearances and concluded
+availability; neither could tell "bound at module scope" from "bound inside some other function".
+
+The gate walks the real scope chain: builtins + MODULE-LEVEL bindings (⛔ **not** descending into
+other functions) + the function's own + every enclosing function's (closures are legal).
+
+**‼ THREE DRAFTS WERE DISCARDED, AND THE FOURTH FAILED FOR A WORSE REASON.** v1 flagged 32 false
+positives (missed lambda args), v2 flagged 8 (missed closures), v3 was clean — and v4's self-test
+caught that computing module scope with a whole-tree walk let a function-local import count as
+module-level, **so it reported 0 findings over 6,540 functions while being unable to detect the very
+bug it was built for.** Only after fixing that is the 0 meaningful.
+⭐ Fault-tested on the REAL file, not only synthetic arms: delete the one local `console` import from
+`victory_road.py` and it reports `['console']`.
+**MEASURED: 402 files, 6,540 functions, both forks, 0 findings; 10 star-import files SKIPPED and
+COUNTED** — a gate that silently ignores what it cannot read is indistinguishable from one that found
+nothing wrong.
+
+## 2026-09-08 — the SECOND refutation of stepping: `team_is_ready` is not safely callable with a sub-target
+
+A 4-dimension adversarial workflow (20 agents, each finding independently verified) found a defect
+the drive had not yet reached, and it is the more decisive of the two.
+
+**`team_is_ready(target)` (`victory_road.py`) has TWO loops.** The level loop uses `target`. The
+**Crunch loop does not** — it tests `mon.level < CRUNCH_LEVEL` (=47) unconditionally.
+AST-verified: *`For at 1806 -> uses target? True`; `For at 1809 -> uses target? False`.*
+
+`train_for_victory_road`'s terminal gate is `ready, reasons = team_is_ready(target); if not ready:
+raise`. ⇒ **for ANY sub-target below 47, a Mightyena under 47 without Crunch makes that gate raise no
+matter how well the levels went.** Crunch is learned at exactly L47, so a sub-47 Mightyena
+necessarily lacks it; the only escape is having no Mightyena at all.
+
+**⇒ THE FIX WOULD HAVE BROKEN THE CONTROL.** The no-mule fixture carries `Mightyena L44: Tackle,
+Taunt, Take Down, Bite` and passes today under the single call (`ch23train_fix.log`: `train_post =
+{Sceptile 51, Swellow 47, Wailord 47, Mightyena 47}`, `battles=132`, ACCEPTANCE: PASS). Under
+stepping it would raise at step 1 — violating this item's own stated criterion, *"the CONTROL must be
+unchanged"*.
+
+**⭐ THE REUSABLE FINDING, INDEPENDENT OF THE REVERTED FIX: `team_is_ready` IS NOT SAFELY CALLABLE
+WITH A SUB-TARGET.** Its signature says `target: int = None` and invites it; one of its two clauses
+silently ignores the argument. Any future caller that passes anything but `TRAIN_TARGET` inherits a
+gate that can never be satisfied. Recorded in `#24-ch23training` as a standing trap.
+
+**‼ AND THE PROCESS POINT.** Two independent instruments killed the same fix for two different
+reasons: the DRIVE showed a L13 mule cannot survive L36-40 grass (69 battles, 0/43 HP, no level), and
+the REVIEW showed the terminal gate cannot be satisfied below L47. **Neither could have found the
+other's reason** — a review cannot see a mon fainting, and a drive stopped before reaching the
+terminal gate. ⇒ route the question to the instrument that can answer it, and when the stakes are a
+production path, use both.

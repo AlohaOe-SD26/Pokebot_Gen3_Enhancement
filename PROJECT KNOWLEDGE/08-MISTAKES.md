@@ -14750,3 +14750,30 @@ piping the command whose status you need. The pipe is the hazard; a file is not.
 guard than a documented RULE.** "Expect RED on gate X" catches a masked green; "remember not to pipe"
 catches nothing once you are concentrating on something else. ⇒ when a check has a known result,
 WRITE THE EXPECTED RESULT DOWN — it turns every future run into an A/B against the record.
+
+## 2026-09-08 — I fixed a guard that was right, and the drive told me so
+
+**Symptom.** `#24-ch23training` refuses 16 of 49 runs with *"<mon> alone needs N frames, over the
+250,000 per-call ceiling"*. I root-caused it, had one candidate fix refuted by review, implemented
+the surviving candidate (stepping — a logged decision, already shipped elsewhere), drove it, and the
+drive showed the mule fainting on every encounter and gaining **nothing across 69 battles**.
+
+**Root cause of MY error.** I read the message as an accounting statement (*"the estimate exceeds a
+budget"*) and never asked the physical question: **can this mon survive the grass it would be trained
+in?** A L13 mon with 43 HP in an L36-40 band cannot. The ceiling and the survivability limit are the
+same line drawn twice, so "relax the accounting" could never work.
+
+**⭐ PREVENTION RULE — BEFORE RELAXING A LIMIT, ASK WHAT PHYSICAL FACT IT IS STANDING IN FOR.**
+A numeric guard is often a PROXY for a constraint nobody wrote down. `MAX_TRAINING_FRAMES` reads like
+a budget and behaves like a survivability test, because cost scales with the level gap and so does
+lethality. ⇒ when a limit looks arbitrary, find the physical quantity it correlates with BEFORE
+concluding it is arbitrary — and if it has one, the limit is not the defect.
+
+**‼ AND THE PROCESS NOTE, WHICH IS THE REUSABLE PART.** Two independent candidate fixes were killed
+by two different instruments: benching by an ADVERSARIAL REVIEW (it benched mons the shipped run had
+trained), stepping by a DRIVE (the mule could not gain a level). **Neither would have been caught by
+the other.** A review cannot see that a L13 mon faints in L40 grass; a drive cannot see that a
+predicate contradicts a fixture it never loads. ⇒ **use both, and route the question to the
+instrument that can answer it** (rule 9, restated: choose the instrument by the question).
+⭐ Cost of getting this right: one 10-minute drive. Cost of shipping it: a permanent regression that
+burns 69 battles per run before failing exactly as before.
