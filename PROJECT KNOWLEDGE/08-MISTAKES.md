@@ -14698,3 +14698,29 @@ distribution (`POPULATED / empty / None`), which is what exposed this in one com
 until the disagreement is explained.** I had a Python count saying 688 populated and a grep saying
 none; the grep was wrong. Explaining the contradiction — not picking the plausible side — is what
 produced the result.
+
+## 2026-09-08 — I designed a fix for a question the decisions log had already answered
+
+**Symptom.** I root-caused `#24-ch23training`, spec'd a fix (*bench by role + level gap*), briefed an
+adversarial reviewer on it, and was told **UNSAFE** — partly because the correct approach was decided
+**the previous day** and had already shipped: `06-DECISIONS-LOG.md` 2026-09-07 Decision 3, *"STEP the
+target rather than raise `MAX_TRAINING_FRAMES`"*.
+
+**Root cause.** CLAUDE.md session-discipline **rule 11** says: *"BEFORE ESCALATING ANYTHING TO THE
+USER, `grep -i` `06-DECISIONS-LOG.md` FIRST — that file exists so a question never has to be asked
+TWICE, and it is NOT in the session-start reading set, so it gets written to and never read from."*
+I read `team_policy.py`, `victory_road.py`, the punch list and two batches of logs. **I never grepped
+the decisions log.** The rule names its own failure mode and I walked into it.
+
+**⭐ PREVENTION RULE — RULE 11 IS NOT ONLY FOR ESCALATIONS. GREP `06-DECISIONS-LOG.md` BEFORE
+DESIGNING, TOO.** A design is a decision; the log is the register of decisions. The trigger is not
+"am I about to ask the user?" but **"am I about to choose between approaches?"** — and the cost of
+missing it is not a repeated question, it is a repeated (and here, WORSE) design.
+‼ Cheap and specific: before proposing any fix, `grep -i` the decisions log for the SYMBOL and the
+CONSTANT you intend to change (here `MAX_TRAINING_FRAMES` would have found it in one command).
+
+**⭐ SECOND LESSON, WORTH AS MUCH — THE REVIEWER'S BEST FINDING CAME FROM THE FIXTURE, NOT THE CODE.**
+Its killer argument was arithmetic on the chapter's OWN recorded party: the gap benches Wailmer L40
+and Swellow L42, two of the four mons the shipped run trained. ⇒ **when reviewing a predicate, RUN IT
+ON THE KNOWN-GOOD CASE FIRST.** A rule that rejects the accepted example is refuted before any theory
+about it is needed.

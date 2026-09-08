@@ -24685,3 +24685,66 @@ pinned mules ⇒ more low-level battlers ⇒ more `#24-ch23training` refusals.
 **⇒ NET ASSESSMENT, STATED PLAINLY: the funnel fix is strongly positive and stays.** It took the
 §Ch23 Waterfall preflight from 11 of 53 to **0 of 49** and Surf/Dive party-full from 7 to **0**. This
 is a second-order COST worth tracking, not a reason to revert. Filed as `#24-marillskew`.
+
+## 2026-09-08 — ⛔ THE `#24-ch23training` BENCH FIX IS REFUTED BEFORE A LINE SHIPPED
+
+An adversarial review of my own proposed fix — *"make `battler_identities` bench by role + level gap
+instead of by a hardcoded species list"* — returned **UNSAFE**, with a refutation on the chapter's own
+fixture. ⭐ **Nothing was built, so nothing had to be unbuilt.** This is the review layer working.
+
+**F1 — IT BENCHES THE MONS THE SHIPPED RUN ACTUALLY TRAINED.** The §Ch23 fixture party is
+`Sceptile L51 / Zigzagoon L19 / Swellow L42 / Wailmer L40 / Mightyena L44 / Castform L36`. Applying
+`dead_weight`'s own expression (`team_policy.py:154`, `level < lead_level - DEAD_WEIGHT_LEVEL_GAP`)
+with `lead_level = 51` benches everything below **L43** ⇒ it benches **Wailmer L40 and Swellow L42** —
+two of the FOUR battlers the verified run took to L47 — and Wailmer is flagged at
+`victory_road.py:760` as **the sole carrier of Dive AND Waterfall**.
+
+**F2 — IT CONVERTS A LOUD REFUSAL INTO A SILENT FAILURE.** `team_is_ready`'s Crunch check iterates
+`get_party()`, not `battler_identities()`, and keys on `species.name == "Mightyena"`
+(`victory_road.py:1810`). Bench a **Poochyena** and it is never trained, never evolves, so the guard
+**never fires** ⇒ `team_is_ready` returns True ⇒ the run reaches Phoebe's all-Ghost team with no Dark
+move, and `:494-496` records there is **no Dark TM in Emerald at all**.
+
+**F3 — THE PREDICATE WAS ALREADY MEASURED AND CAPPED FOR EXACTLY THIS REASON.**
+`team_policy.py:42-59` tested it against **363 real badge parties**: *"59% of parties would be left
+with FEWER THAN 3 mons … 132 parties of four would be cut to a SINGLE Pokémon … the 'lone starter
+can't rotate' condition that produced the Roxanne party-menu hang (`KI-8`)."* Which is why that module
+caps it (`MIN_PARTY_AFTER_ROTATION = 3`, `MAX_DEPOSITS_PER_ROTATION = 2`, `is_favourite`,
+`_only_hm_carrier`). **My proposal took clause `:154` alone — uncapped and unexempted.**
+‼ And the irony is load-bearing: `_only_hm_carrier` **exempts precisely the mules the fix wanted to
+bench**, so two modules would read the same constant to opposite conclusions.
+
+**F4 — AN EMPTY BATTLER SET IS A SILENT PASS, NOT A CRASH.** `team_is_ready` over an empty dict
+returns `(True, [])`; `:1937`'s `default=(None, 0)` makes `0 > 250_000` False; `:3290` then SKIPS the
+leg entirely. Every required reading is still taken and the drive grades PASS. ⇒ **the fix could make
+a broken run look green.**
+
+**F5 — MEMBERSHIP WOULD DEPEND ON A VALUE THE GRIND MUTATES.** The bench line is `party_max - 8`, so
+training one mon raises the max and moves the line, dropping mons out of the set mid-grind — firing
+`:1959`'s *"vanished from the battler set mid-grind"* guard, which blames a PC deposit that never
+happened.
+
+**F6 — THE SAFETY PRECONDITION I QUOTED IS ALREADY FALSE.** `BENCH_SPECIES`'s comment
+(`victory_road.py:501-502`) claims a full-HP party makes the faint ranking fall through `hp_fraction`
+to `-level`. The real key is `(incoming, -outgoing, -hp_fraction, -level)`
+(`story_mode.py:181`) — `hp_fraction` is **third**, not the fall-through. ⭐ And decisively:
+**"bench" means only "do not train" — the mon is still FIELDED** (`story_mode.py:273-280` filters only
+on None/egg/fainted/excluded). ⇒ the fix would field an untrained mon having removed it from the only
+check that would have noticed.
+
+**⇒ ⭐⭐ THE RIGHT FIX ALREADY EXISTS AS A LOGGED DECISION, AND I FAILED TO LOOK.**
+`06-DECISIONS-LOG.md` 2026-09-07 **Decision 3 — "STEP the target rather than raise
+`MAX_TRAINING_FRAMES`"**: the ceiling bounds ONE CALL, so the driver closes the gap in **2-level
+steps** — every individual call stays under the ceiling, its refusal keeps protecting us, and **every
+battler still reaches the target**. It SHIPPED as `Ch24Grind` (`story_harness.py:15125+`,
+`POKEBOT_GRIND_STEP`). *Rejected there, explicitly:* editing the constant and adding an env bypass.
+**THE FRAMING ERROR:** `MAX_TRAINING_FRAMES` bounds a CALL; my proposal shrank the SET OF MONS instead
+of the STEP. Only one of those preserves the contract.
+
+**⭐ AND THE ECONOMICS DISSOLVE THE PREMISE.** At the measured **1032 frames/sec**
+(`ai-research-notes/2026-09-07-emulator-throughput-MEASURED.md`), Marill's 406,972 frames is
+**~6.6 minutes**; all six mules together ≈ **44 minutes**. ⇒ **the refusal is rejecting a sub-hour
+grind.** "These mons are unaffordable" is a per-call-ceiling ARTEFACT, not an economics fact.
+
+**⇒ `#24-ch23training`'s fix is retargeted to STEPPING.** The bench approach is recorded as REFUTED so
+it is not re-proposed.

@@ -3522,9 +3522,26 @@ region, where "train near the gym" is actively wrong.
   HALF — and the party has no Fly during this leg. (3) Relaxing the estimator — it is only **~18%**
   pessimistic in exp/FRAME (the 2.6x figure is exp/BATTLE and ignores that `FRAMES_PER_WILD_BATTLE`
   is wrong in the same direction).
-- [ ] ⇒ **THE FIX: bench by ROLE + LEVEL GAP, not by a hardcoded species list.** `dead_weight`
-  already draws the line — *">`DEAD_WEIGHT_LEVEL_GAP`(=8) is unrecoverable by construction"*.
-  ⛔ Do NOT remove the sole-carrier deposit exemption: it prevents a soft-lock and is not the defect.
+- [x] ⛔⛔ **THE BENCH FIX IS REFUTED — DO NOT RE-PROPOSE IT.** An adversarial review returned
+  UNSAFE: on the chapter's OWN fixture (`Sceptile L51 / Swellow L42 / Wailmer L40 / Mightyena L44`)
+  a `party_max - 8` line benches **Wailmer and Swellow — two of the four mons the shipped run
+  trained to L47** — and Wailmer is the sole carrier of Dive AND Waterfall (`victory_road.py:760`).
+  It also turns a LOUD refusal SILENT (a benched Poochyena never evolves, so the Crunch guard keyed
+  on `species.name == "Mightyena"` never fires ⇒ Phoebe's all-Ghost team with no Dark move, and
+  there is no Dark TM in Emerald), and an empty battler set returns `(True, [])` ⇒ a broken run
+  grades PASS. `team_policy.py:42-59` had ALREADY measured this predicate over 363 parties: *"59%
+  would be left with FEWER THAN 3 mons"* — which is why that module CAPS it and my proposal did not.
+  Full detail: `07-CHANGELOG.md` 2026-09-08.
+- [ ] ⇒ ⭐⭐ **THE FIX IS TO STEP THE TARGET** — already decided and already shipped elsewhere:
+  `06-DECISIONS-LOG.md` 2026-09-07 **Decision 3**, *"STEP the target rather than raise
+  `MAX_TRAINING_FRAMES`"*, implemented as `Ch24Grind` (`story_harness.py:15125+`,
+  `POKEBOT_GRIND_STEP`). The ceiling bounds **ONE CALL**, so closing the gap in 2-level steps keeps
+  every call under it, keeps the refusal protecting us, and still gets **every** battler to target.
+  ⇒ apply the same stepping to `train_for_victory_road`. ⛔ Do NOT edit `MAX_TRAINING_FRAMES` and do
+  NOT add an env bypass — Decision 3 rejected both explicitly.
+- [ ] ⭐ **AND THE PREMISE IS SMALLER THAN IT LOOKS:** at the measured **1032 frames/sec**, Marill's
+  406,972 frames is **~6.6 minutes**; all six mules ≈ **44 minutes**. The refusal is rejecting a
+  sub-hour grind — a per-call-ceiling artefact, not an economics fact.
 - [ ] ⚠ **NOT BUILT DELIBERATELY — THERE IS NO DISCRIMINATOR YET.** No fixture reproduces a low-level
   mule party, `--inject-*` is preset-only, and `battler_identities` feeds BOTH `team_is_ready` and
   the estimator (a shared path). ⇒ ⭐ **STEP 1 IS THE FIXTURE, NOT THE FIX:** capture a save whose
