@@ -1992,8 +1992,24 @@ class StoryMode(BotMode):
         #     consult): when we're LOSING here but the local grass is far below our
         #     level, wild grinding is the wrong tool — a L13 wild pays ~145 XP while
         #     KO'ing even two of the boss's mons in a LOST attempt pays ~1,200 XP
-        #     (Gen 3 keeps mid-battle XP through a whiteout; whiteout money loss is
-        #     level x badge-payout — cheap; there is no re-challenge limit). So: if
+        #     (Gen 3 keeps mid-battle XP through a whiteout; there is no re-challenge
+        #     limit). So: if
+        #     ⛔⛔ CORRECTED 2026-09-08 FROM THE DECOMP — THIS COMMENT USED TO READ
+        #     "whiteout money loss is level x badge-payout — cheap", WHICH IS **FIRERED'S**
+        #     MODEL, NOT EMERALD'S, AND IT IS THE STATED JUSTIFICATION FOR THIS WHOLE
+        #     STRATEGY. Emerald `src/overworld.c:358`:
+        #         void DoWhiteOut(void) { ... SetMoney(&money, GetMoney(&money) / 2); ... }
+        #     ⇒ **EVERY DELIBERATE LOSS HALVES ALL MONEY.** `MoneyLoss` has ZERO hits in
+        #     `pret/pokeemerald`; the `sWhiteOutMoneyLossMultipliers` table this comment
+        #     described lives in `pokefirered/src/overworld.c:227`. Our own
+        #     `victory_road.py:446` already had it right — the two contradicted each other
+        #     and THIS was the wrong half (`#24-regimeb-noescalation` recorded the
+        #     contradiction as OPEN; it is now settled).
+        #     ⚠ WHAT IS **NOT** ESTABLISHED: whether that cost actually hurts. Money is not
+        #     logged, so the 1,477 measured boss-training engagements could not be priced.
+        #     ⛔ DO NOT change this strategy on the strength of the corrected fact alone —
+        #     see `#24-bosstrainingeconomics`. The premise is now honest; the decision is not
+        #     yet made.
         #     recent lost attempts each KO'd at least one boss mon, keep re-attempting
         #     the boss as the PRIMARY training vehicle, with only a LIGHT top-up
         #     between attempts (+1 level cap, not the +5 escalation). The moment two

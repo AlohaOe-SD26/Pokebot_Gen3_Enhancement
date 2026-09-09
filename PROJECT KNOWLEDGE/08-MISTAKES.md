@@ -15072,3 +15072,59 @@ before any analysis.**
 completely different subsystem 1,846 times. When counting log events, anchor on enough of the line to
 identify the CALL SITE — and when a count looks dramatic, print the distinct line shapes behind it
 before believing the total.
+
+## 2026-09-08 — Third time: I priced a mechanism without checking whether its cost is what kills the run
+
+**Symptom.** I proposed arming the Mossdeep respawn, measured the journey it would remove (186 trips,
+~2 min median, ~360 minutes across two batches), and presented that as the value. An adversarial pass
+killed it in one line: **the runs are killed by a COUNT guard (`whiteout_budget(cap=40)`), and
+`MAX_FRAMES_PER_RUN` was never reached by any of 61 runs.** Frames are not the binding constraint, so
+saving 360 of them buys exactly nothing.
+
+**Root cause — and it is the SAME error as the previous two kills, which I had already written up.**
+`08-MISTAKES.md`, hours earlier: *"WHEN A PLAN DEPENDS ON A REPEATED MECHANISM, COUNT THE REPETITIONS
+BEFORE PRICING THE MECHANISM… I keep validating the mechanism and forgetting to check its DOMAIN."*
+I then validated a mechanism (the respawn) and forgot its domain (does anything die of time?).
+⇒ **writing a prevention rule does not make it fire.** It fired for the reviewer, not for me.
+
+**⭐ PREVENTION RULE — BEFORE MEASURING WHAT A FIX SAVES, MEASURE WHAT ACTUALLY ENDS THE RUN.**
+Name the terminating condition FIRST, in one sentence, with the line of code that raises it. If the
+resource your fix saves is not the resource in that line, stop. Here the line is
+`whiteout_budget(...) -> stop`, which counts RECOVERIES; my fix saved FRAMES; the two never meet.
+‼ This subsumes the earlier rule and is cheaper to apply: *what kills it?* is one grep, and it comes
+before any pricing.
+
+**⛔ AND A WORSE HALF I MISSED ENTIRELY: the fix was NET NEGATIVE.** `whiteout_budget`'s dedup key IS
+`get_last_heal_location()`, and the budget RESETS when that key changes. Arming a new respawn hands
+the run **one free reset — up to 40 extra losses.** I had read `whiteout_budget` this same session
+(I wrote its gate) and still did not connect it. ⇒ **when a change alters a value that any GUARD keys
+on, that guard is part of the diff.** Grep for the value you are changing, not only for the function
+you are changing.
+
+**‼ Method note that DID work, and is worth keeping:** the same round produced two decomp-verified
+corrections (the respawn is armed by walking in; Emerald halves money on whiteout) that survive the
+refutation intact, because they were read from `pret/pokeemerald` rather than reasoned about. ⇒ a
+refuted PROPOSAL and a sound INVESTIGATION are different things; do not throw away the second with
+the first.
+
+## 2026-09-08 — Expanding two DOCSTRINGS broke ten documentation citations
+
+**Symptom.** After two comment-only corrections (`early_game.py` +17 lines, `story_mode.py` +16),
+`audit_doc_citations.py` went red with **10** drifted citations across `03`, `04` and `05` — every
+`file.py:NNNN` reference BELOW the edits now pointed into the wrong function.
+
+**Root cause.** A comment-only change is behaviour-neutral but **not line-neutral**, and this tree's
+docs cite code by line number in hundreds of places.
+
+**⭐ PREVENTION RULE — A COMMENT EDIT IS NOT A NO-OP FOR THE DOCS. Before expanding a comment or
+docstring in a heavily-cited file, decide deliberately between two options, and say which you took:**
+(a) make it **net-zero on line count** — the project has done this before, explicitly *"so it did not
+shift the `story_mode.py:NNNN` citations that fill the append-only logs"* — or (b) take the shift and
+run `audit_doc_citations.py` in the SAME commit, re-pointing everything it names.
+⇒ (a) for a one-line correction; (b) when compressing would delete the evidence that makes the
+correction worth having, which was the case here. **What is not acceptable is choosing neither.**
+
+**‼ The gate made this a two-minute mechanical fix rather than a hunt** — it printed the doc file, the
+doc line, the stale reference AND the function's true span, so the repair could be driven straight
+from its own output. ⭐ That is what a good gate buys: not just detection, but a repair recipe.
+⇒ when writing a gate, print what the FIX needs, not only that something is wrong.

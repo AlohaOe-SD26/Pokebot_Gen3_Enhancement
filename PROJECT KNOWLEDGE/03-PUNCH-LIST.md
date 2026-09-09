@@ -452,7 +452,7 @@ Wailord and **Dragon Claw (TM02)** for Sceptile, both confirmed still available 
 ⛔⛔⛔ **AND IT IS WORSE THAN A RE-BUY — VERIFIED IN CODE 2026-09-06.** The §Ch23 dispatch is:
 `story_mode.py:3791` `if not ch23_chapter_done():` → `:3792` runs the chapter, `:3793` else-skips —
 and `:3795` `_guard("Victory Road (Ch23)", ch23_chapter_done)` sits **OUTSIDE the if/else**.
-`_guard` (`story_mode.py:2901-2878`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
+`_guard` (`story_mode.py:2917-2878`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
 §Ch24 spends the basket, the next pass through `_play()` does all three of these:
 (1) re-enters the WHOLE Victory Road chapter, because `:3791` is now True;
 (2) reaches leg 11 and tries to re-buy a **₽54,300** basket holding **₽1,741** — leg 11 refuses
@@ -604,7 +604,7 @@ right place is a NEW out-of-battle path.
       un-healed → **32% HP, THREE fainted**; healed → **87%, ZERO**. ⭐ **LEG 7 STARTS FROM
       `post_b1f_healed.ss1`** (`b2eeb15c…`), ⛔ **NOT `post_b1f.ss1`**, which is kept only as that
       A/B's un-healed arm.*
-      ⭐⭐ **STUB MARKER — READ BEFORE ANY BOULDER CODE:** `ai-research-notes/2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` (3 independent agents) + `...-ch24-POKEMON-LEAGUE.md`. ⛔ NOTES, not truth — the reachability is MODELED and 3 live checks are OWED. Headlines: (1) **the route is `1F→B1F→B2F→B1F→1F`** — 1F's entrance and exit are in DIFFERENT walk-regions, so "walk across 1F" is impossible; (2) **TWO boulders are mandatory, (4,7) WEST and (9,10) EAST** — a "delete it and re-path" model finds only (9,10) and misses (4,7); (3) ⛔ **pushing either SOUTH kills the route irreversibly** — exactly what a greedy push-toward-goal router does; (4) **every warp RESETS the puzzle** (`FLAG_TEMP_*` cleared, boulders revert — also the recovery from a trap push) and **`FLAG_SYS_USE_STRENGTH` clears on every map load**; (5) minimal HMs = **{Surf, Strength, Rock Smash}** — **Waterfall and Flash NOT required**; (6) ✅ `strength_push` exists (`early_game.py:7994`, Magma-Hideout-proven) ⇒ **the machinery exists; only the route is missing.**
+      ⭐⭐ **STUB MARKER — READ BEFORE ANY BOULDER CODE:** `ai-research-notes/2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` (3 independent agents) + `...-ch24-POKEMON-LEAGUE.md`. ⛔ NOTES, not truth — the reachability is MODELED and 3 live checks are OWED. Headlines: (1) **the route is `1F→B1F→B2F→B1F→1F`** — 1F's entrance and exit are in DIFFERENT walk-regions, so "walk across 1F" is impossible; (2) **TWO boulders are mandatory, (4,7) WEST and (9,10) EAST** — a "delete it and re-path" model finds only (9,10) and misses (4,7); (3) ⛔ **pushing either SOUTH kills the route irreversibly** — exactly what a greedy push-toward-goal router does; (4) **every warp RESETS the puzzle** (`FLAG_TEMP_*` cleared, boulders revert — also the recovery from a trap push) and **`FLAG_SYS_USE_STRENGTH` clears on every map load**; (5) minimal HMs = **{Surf, Strength, Rock Smash}** — **Waterfall and Flash NOT required**; (6) ✅ `strength_push` exists (`early_game.py:8011`, Magma-Hideout-proven) ⇒ **the machinery exists; only the route is missing.**
       ⛔ *(This item's header read "PRODUCTION CODE IS ZERO" and its first line "`victory_road.py`
       DOES NOT EXIST" for a day AFTER legs 2-4 shipped from that very file — the heading-vs-body rot
       this tree keeps paying for. Rewritten 2026-09-04.)*
@@ -1487,7 +1487,7 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
 
 - [x] `#24-x4-framebudget` — ✅ **DONE** — the per-run frame cap could not stop a runaway run; now it can. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 - [ ] `#24-weatherinstitute-hang` — the specific hang P3 hit: `do_weather_institute` →
-      `_ride_out_all_scenes` (`early_game.py:436`), then `state=3 controllable=False` for
+      `_ride_out_all_scenes` (`early_game.py:454`), then `state=3 controllable=False` for
       27M frames. The frame budget now BOUNDS it (the run derails and the batch continues),
       but the underlying scene wait is still wrong. Needs the first post-fix batch to see
       whether it recurs and how often before spending time on it.
@@ -1975,7 +1975,7 @@ region, where "train near the gym" is actively wrong.
 - `modules/story/counter_plan.py` — already ranks reachable, cost-priced counter encounters.
 
 **The three concrete gaps:**
-- [ ] **(1) `train_team` never picks an area.** `early_game.py:1979` —
+- [ ] **(1) `train_team` never picks an area.** `early_game.py:1998` —
       `grass: tuple = RUSTBORO_TRAINING_GRASS` is a caller-supplied constant; it never calls
       `best_training_area`. Its own docstring admits this. **Wire it.**
 - [~] **(2) `FODDER_LEVEL_GAP = 12` compares the WRONG QUANTITIES — ANALYSED 2026-07-29,
@@ -2168,7 +2168,7 @@ region, where "train near the gym" is actively wrong.
 
 **STILL OPEN from the same review — design calls, NOT yet built (need the user's ruling):**
 - [ ] `#24-leadpolicy` — **the matchup lead is purely defensive and benches the winner.**
-      `_lead_best_matchup` (`early_game.py:1659`) picks `min(incoming_multiplier, -level)` —
+      `_lead_best_matchup` (`early_game.py:1677`) picks `min(incoming_multiplier, -level)` —
       it models only the foe ace's STAB types, and ignores whether the chosen lead can deal
       damage or survive a level gap. Verified to reproduce every observed lead exactly:
       P2 led **Whismur L15** into the Route 110 rival **13 times** while **Marshtomp L24**
@@ -3470,6 +3470,34 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   gym leader is a trainer battle by construction.
 - [ ] ⚠ **DO NOT SCOPE FROM THE TERMINAL-LOCATION STATISTIC** — it is a sample of size one per run
   (`08-MISTAKES.md` 2026-09-07). Plot the whole distribution of loss sites first.
+- [x] ⛔⛔ **THE 'CHEAPEST FIRST SLICE' BELOW IS REFUTED 2026-09-08 — DO NOT BUILD IT.** Arming the
+  Mossdeep respawn would make retries CHEAPER; it cannot make them SUCCEED, and cheapness is not what
+  kills these runs. **(1) The runs die on a COUNT, not on time** — `whiteout_budget(cap=40)` — and
+  this file already records that `MAX_FRAMES_PER_RUN` (5,000,000) **was never reached by ANY of the
+  61 runs**. Saved frames buy nothing. **(2) From badge 7 on, attempt N+1 is BYTE-IDENTICAL to
+  attempt N** (this very item's own finding), so a cheaper loop is the same loop.
+  ⛔⛔ **(3) IT IS ACTIVELY HARMFUL:** `whiteout_budget`'s `key` **is** `get_last_heal_location()`,
+  and the budget RESETS to 1 when the key changes ⇒ re-arming Lilycove→Mossdeep grants **one free
+  reset, i.e. up to 40 EXTRA Tate & Liza losses** before the honest stop. The fix would make runs die
+  SLOWER, not better.
+  ⭐ **Also: the mechanic in the slice below is wrong.** `setrespawn` lives in the Poké Center's
+  `MAP_SCRIPT_ON_TRANSITION` (`data/maps/MossdeepCity_PokemonCenter_1F/scripts.inc`), so **walking in
+  arms it — healing is irrelevant**; `data/scripts/pkmn_center_nurse.inc` contains no `setrespawn`.
+  And `heal_in_pokemon_center` would be the wrong tool anyway: it runs the chapter's hardest journey
+  on the WEAKER navigator (`navigate_to_anywhere`, `avoid_scripted_events=True`, no retry) where
+  `_navigate_riding_out` retries 10x with obstacle clearing.
+  ⭐⭐ **AND THE MEASUREMENT BELOW IS A PROXY, NOT A READING** — its largest bucket (ROUTE 124, 58%)
+  is IMPOSSIBLE: `src/data/heal_locations.json` contains **zero routes**. ⇒ **read the real value:**
+  `get_last_heal_location()` (`modules/save_data.py:14`, SaveBlock1 +0x1C), already wrapped as
+  `respawn_reading()` / `respawn_is_armed()` (`victory_road.py:666`, `:680`) and used at 8 sites in
+  §Ch23. ‼ The item below carried the hedge *"the exact split is proxy-dependent"*; my proposal
+  deleted it. **The hedge was the honest part.**
+- [x] ✅ **THE MONEY CONTRADICTION THIS ITEM RECORDED AS OPEN IS NOW SETTLED, FROM THE DECOMP.**
+  `src/overworld.c:358` — `DoWhiteOut()` does `SetMoney(&money, GetMoney(&money) / 2)`. `MoneyLoss`
+  has **zero** hits in `pret/pokeemerald`; the `sWhiteOutMoneyLossMultipliers` table is FireRed's
+  (`pokefirered/src/overworld.c:227`). ⇒ **`victory_road.py:446` was RIGHT; `story_mode.py`'s
+  boss-training comment was WRONG** and has been corrected in sandbox. ⚠ The CONSEQUENCE is filed
+  separately as `#24-bosstrainingeconomics` — the fact is settled, the decision is not.
 - [ ] ⭐ CHEAPEST FIRST SLICE, and it is not the escalation: **90% of Mossdeep Gym whiteouts respawn
   in LILYCOVE** (148 vs 16) because the Mossdeep Poké Center is never registered before the gym —
   the only two `heal_in_pokemon_center(PokemonCenter.MossdeepCity)` calls are in `seafloor_cavern.py`
@@ -3488,6 +3516,30 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   that needs the decomp, not our own two comments. Settle it there BEFORE re-deriving the
   economics of deliberately farming whiteouts (`story_mode.py:1996` engages boss-training
   ~98% of the time on that premise, and each attempt spends a unit of the whiteout budget).
+
+
+### `#24-bosstrainingeconomics` — boss-training re-loses on purpose, and EVERY loss halves all money (filed 2026-09-08)
+- [ ] ⛔ **THE PREMISE WAS FALSE AND IS NOW CORRECTED IN CODE.** `story_mode.py`'s boss-training
+  comment justified deliberately re-attempting a boss as a training vehicle with *"whiteout money
+  loss is level x badge-payout — cheap"*. That is **FireRed's** model. Emerald halves ALL money on
+  every whiteout (`src/overworld.c:358`, decomp-read 2026-09-08). The comment is fixed; the STRATEGY
+  is untouched.
+- [ ] ⭐ **MEASURED EXPOSURE:** the *"boss-training mode — local wilds …"* line fires **1,477 times**
+  across `20260907-203713` + `20260907-113851` (16 lane files, total occurrences). Each engagement is
+  a deliberate loss, i.e. a halving.
+- [ ] ⛔⛔ **DO NOT ACT ON THIS YET — THE COST IS UNMEASURED AND THE INSTRUMENT DOES NOT EXIST.**
+  Money is not written to any log, and the natural proxy is unusable: `provision_poke_balls`'s
+  *"too low on money to restock"* goes to `context.message` (a UI field), **not** `console.print`, so
+  it never reaches `stdout.txt`. A zero count there means NOT LOGGED, not NEVER HAPPENED.
+  ⇒ **FIRST DELIVERABLE IS AN INSTRUMENT, NOT A FIX**: log money at run start, at each whiteout, and
+  at each mart visit. Only then is "boss-training is too expensive" a claim rather than an inference.
+- [ ] ⚠ **THE ONE HARD DATA POINT SO FAR:** 5 runs derailed on *"Cannot hunt a Surf learner: no Poké
+  Balls and no money to buy any."* Real, but 5 — nowhere near enough to indict a strategy that fires
+  1,477 times. ⛔ Do not scope this from that number.
+- [ ] ⭐ **AND THE COUNTER-ARGUMENT, so it is not re-derived:** boss-training exists because a lost
+  attempt that KOs two of the boss's mons pays ~1,200 XP against ~145 XP for a local wild, and Gen 3
+  **does** keep mid-battle XP through a whiteout (that half of the comment is true). The strategy may
+  well still be correct at half-money. **Price it; do not assume either way.**
 
 ### `#24-ch23training` — TOP BLOCKER, ROOT-CAUSED 2026-09-08 (16 of 49, 32.7%) — ⛔ the guard is the MESSENGER
 - [x] ✅ **ROOT CAUSE VERIFIED.** `victory_road.py:1937` refuses when ANY single under-target battler

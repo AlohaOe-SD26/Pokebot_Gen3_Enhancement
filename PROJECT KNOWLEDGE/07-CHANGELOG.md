@@ -25370,3 +25370,42 @@ genuinely ready team must still pass"* — because a guard that makes everything
 had been described in four live places as **COMMENT-ONLY** and *"promoting it is optional and
 cosmetic"*. That is now FALSE — it carries a real behaviour change. All four were corrected; two
 further hits are dated history and were correctly left alone.
+
+## 2026-09-08 — Mossdeep respawn fix REFUTED before build; two decomp-verified false premises corrected
+
+Four agents (chapter recon, decomp verification, log measurement, adversarial) on
+`#24-regimeb-noescalation`'s *"cheapest first slice"*. **The slice is refuted and nothing was built
+for it** — but the round settled two Gen-3 facts and found a third defect.
+
+**⛔ REFUTED — arming the Mossdeep respawn.** Three independent reasons, any one fatal:
+1. **The runs die on a COUNT, not on time.** `whiteout_budget(cap=40)`, and this project's own data
+   says `MAX_FRAMES_PER_RUN` (5,000,000) **was never reached by ANY of 61 runs**. Cheaper retries
+   buy nothing.
+2. **From badge 7 on, attempt N+1 is byte-identical to attempt N** — the same item's own finding. A
+   cheaper loop is the same loop.
+3. ⛔⛔ **It is actively harmful.** `whiteout_budget`'s key IS `get_last_heal_location()`, and the
+   budget resets when the key changes ⇒ re-arming grants **one free reset, up to 40 extra losses**.
+   The "fix" would make runs die slower, not better.
+‼ And my headline number was a PROXY whose largest bucket is impossible (ROUTE 124 = 58%;
+`heal_locations.json` has zero routes), while `get_last_heal_location()` has been in
+`modules/save_data.py:14` all along, wrapped as `respawn_is_armed()` and used at 8 sites in §Ch23.
+
+**✅ SETTLED FROM THE DECOMP — the respawn is armed by WALKING IN.** `setrespawn` is the first
+statement of each Center's `MAP_SCRIPT_ON_TRANSITION`; the nurse script has none. Healing is
+irrelevant. (Our §Ch23 build spec already said so; `concept-notes-c10.md` says the opposite and is
+wrong.)
+
+**✅ SETTLED FROM THE DECOMP — Emerald halves all money on a whiteout.** `src/overworld.c:358`
+`SetMoney(&money, GetMoney(&money) / 2)`. The level×badge model is FireRed's. This resolves a
+contradiction `#24-regimeb-noescalation` had recorded as OPEN, in favour of `victory_road.py:446`.
+⇒ `story_mode.py`'s boss-training comment CORRECTED; the strategy untouched and filed as
+`#24-bosstrainingeconomics` (first deliverable: an instrument, because money is not logged).
+
+**✅ THIRD DEFECT, found by the adversarial pass en route.**
+`early_game.py::exit_building_after_whiteout` opens *"After a whiteout the player respawns INSIDE a
+Poké Center"* and early-returns unless the map name contains `POKEMON_CENTER`. Emerald respawns
+**outdoors** at the door tile (`src/data/heal_locations.json`; `warpId = WARP_ID_NONE` so raw coords
+are used, `src/overworld.c:611`) ⇒ **the function is inert on the path it was written for.** It is
+KEPT — the guard is sound even though the premise was not, and deleting it would be a behaviour
+change justified by an argument. Its docstring now carries the correction and points readers at
+`get_last_heal_location()`.

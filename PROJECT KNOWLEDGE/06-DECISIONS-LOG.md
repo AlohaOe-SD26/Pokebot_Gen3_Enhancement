@@ -4810,3 +4810,38 @@ Its no-fire arm ("a genuinely ready team must still pass") is the one that prove
 ```
 **Fault test (the arm that matters):** with `if not battlers:` replaced by `if False:` the gate exits
 **1**; with the file restored byte-identical it exits **0**. ⇒ the gate is not inert.
+
+## 2026-09-08 — Two Gen-3 facts settled FROM THE DECOMP, and what we did NOT do with them
+
+**Decision.** Correct two false premises in sandbox code (comment/docstring only) and change NO
+behaviour on the strength of them.
+
+**Fact 1 — the whiteout respawn is armed by ENTERING a Poké Center, not by healing.**
+`setrespawn HEAL_LOCATION_*` is the first statement of every Center's `MAP_SCRIPT_ON_TRANSITION`
+handler, which `LoadMapFromWarp` runs during map load before the player can move
+(`src/overworld.c:807/860`). `data/scripts/pkmn_center_nurse.inc` contains **no** `setrespawn` — the
+nurse only does `HealPlayerParty`. There is no "registration" concept and no badge/flag gate.
+⇒ our `ai-research-notes/2026-09-03-ch23-CHAPTER-BUILD-SPEC.md` already had this right;
+`ai-research-notes/concept-notes-c10.md` has it WRONG (*"Set by healing at a Pokémon Center or Mom"*).
+
+**Fact 2 — Emerald HALVES all money on a whiteout.** `src/overworld.c:358`
+`DoWhiteOut() { ... SetMoney(&money, GetMoney(&money) / 2); ... }`. `MoneyLoss` has zero hits in
+`pret/pokeemerald`; the level×badge multiplier table is FireRed's
+(`pokefirered/src/overworld.c:227`). ⇒ `victory_road.py:446` was right, `story_mode.py`'s
+boss-training comment was wrong, and `#24-regimeb-noescalation` recorded the contradiction as OPEN.
+It is now settled.
+
+**⛔ WHAT WE DELIBERATELY DID NOT DO, and why it is the whole decision.** Fact 2 is the stated
+justification for boss-training mode, which fires **1,477 times** across two batches — each firing a
+deliberate loss, i.e. a halving. It is *tempting* to conclude the strategy is ruinous and disable it.
+**Rejected:** money is not logged anywhere, and the obvious proxy is unusable (`provision_poke_balls`
+writes *"too low on money"* to `context.message`, a UI field, not to `console.print` — a zero count
+means NOT LOGGED). The other half of the same comment is TRUE (a lost attempt that KOs two boss mons
+really does pay ~1,200 XP vs ~145 for a local wild, and Gen 3 keeps mid-battle XP through a whiteout),
+so the strategy may still be correct at half money.
+⇒ **A corrected fact is not a licence to act. Filed as `#24-bosstrainingeconomics`, whose FIRST
+deliverable is an instrument (log money at run start / whiteout / mart), not a fix.**
+
+**Alternatives rejected for Fact 2:** *disable boss-training* — unmeasured, and it is the only
+loss-adaptation the late game has. *Cap it at N engagements* — a number with no evidence behind it is
+the same guess wearing a threshold.
