@@ -3553,6 +3553,48 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   then admits it — `BENCH_SPECIES` is only `("Zigzagoon","Linoone","Castform")`, 3 hardcoded names
   against 6 observed species. ‼ Already measured in `team_policy.py:8-16`: *"35% of badge moments
   carried at least one mon 15+ levels below the team max"*. My recount: **86.9%/78.9% of runs.**
+- [x] ⛔⛔ **SIX NOW — "ROUTE THE MULE TO A LEVEL-MATCHED AREA" IS KILLED ON ARITHMETIC (2026-09-09).**
+  Adversarial pass, five angles. **No ground in Emerald can clear the ceiling from L13.** The per-call
+  budget is `250,000 / FRAMES_PER_WILD_BATTLE(1433)` = **174 battles**; L13→L47 needs 81,301 exp, i.e.
+  **467 xp/battle, i.e. a wild level of ≥65**. The highest wild level the project's own encounter cache holds is **50**
+  (⚠ *this said 44 — an undercount; corrected 2026-09-09 by a reviewer*). **Either way it is far short of 65**, so the conclusion is untouched.
+  ‼ **AND A SEPARATE DEFECT SURFACED WHILE CHECKING IT — FILED, NOT FIXED:** those high entries carry **FRLG-only map names** (*"Artisan Cave"*, *"Desert Underpass"*) inside a **BPEE0 Emerald** cache, which points at a map-name lookup mismatch for high bank/map indices (`modules/pokemon.py`'s shared gen3 name list). ⇒ any analysis that trusts `map_name` from `cache/encounter_index_BPEE0.json` may be reading a wrong label. Not this item's bug; do not fix it here. Relocating moves the number the WRONG way — VR1F 406,972 → ROUTE121 580,365 →
+  ROUTE117 **1,160,730**, all against an unchanged 250,000.
+  ‼ **AND THE PREMISE WAS WRONG:** `best_training_area(13)` returns **ROUTE117 (L13-14)**, never a
+  L25-28 area — `if team_level < lo - 1: continue` rejects every higher band. The picker is
+  level-matched by construction, so it can only ever pick something POORER than Victory Road.
+- [x] ⛔⛔ **THE ESTIMATOR IGNORES THE EXP SPLIT — ‼ ALREADY FILED 2026-09-08 (see the "UNDERSTATES TRAINEE COST ~2x" bullet above); WHAT IS NEW IS THE CONSEQUENCE NOBODY APPLIED.** That bullet ends *"any future costing of a catch-time top-up must double the estimate"* — and this item's own FIX DIRECTION below never did. ⇒ do not re-file this fact; the value here is the arithmetic it implies:
+  `training_areas.estimate_frames_to_level` computes `xp_per_battle = CAL * wild_level / 7` with **no
+  division by participants** (verified in source), i.e. it models a SOLO fight — while its own caller
+  `train_team` sets `set_swap_train(True)` (`early_game.py:2026`), putting TWO mons in the battle and
+  halving the share. ⇒ **every training cost estimate is up to 2x optimistic about the path that
+  calls it.**
+  ⭐⭐ **CONSEQUENCE FOR THIS ITEM: THE "BAR IS L35" MAY BE WRONG.** Recomputed with a model that
+  reproduces all five published figures EXACTLY (L13=406,972 / L20=384,044 / L26=345,353 /
+  L30=308,095 / L35=243,610), then halved for two participants:
+  ```
+  arrival   SOLO (modelled)   2-WAY SPLIT      ceiling 250,000
+    L35           243,610         487,220      REFUSE
+    L40           160,496         319,559      REFUSE
+    L42           118,939         237,878      PASS
+  ```
+  ⇒ L35 is the SOLO bar; the real bar looks like **L42**, and this item's planned *"catch at L26 AND
+  train the remainder to ~L39"* would **still refuse**.
+  ⚠ **NOT PROVEN, AND THE LIMIT IS HONEST:** the split is 2 only when swap-training actually fires; it
+  does not fire when no capable finisher exists, and then the solo model is right. The true cost lies
+  BETWEEN the two columns.
+- [ ] ⛔ **THE DECIDING MEASUREMENT IS NOT AVAILABLE FROM EXISTING LOGS — IT NEEDS INSTRUMENTATION.**
+  I looked: **0** logs in `sandbox-pokebot/profiles` + `tools/story-dev/x4-runs` contain BOTH
+  `-> RotateLead` telemetry AND an exp readout. Production rotation logs carry `party=None` and no exp
+  field at all. ⇒ **NEXT DELIVERABLE IS ONE LOG LINE, NOT AN ANALYSIS**: record the trainee's
+  `total_exp` BY PID before and after each wild battle in a run where swap-training fires, and divide.
+  That single number decides whether this item targets **L35 or L42** — i.e. whether its next build
+  works or repeats this failure one level up.
+- [ ] ⚠ **CARRY-FORWARD HAZARD FOR WHOEVER TOUCHES §Ch23's TRAINING:** `WILD_MAX = 40`
+  (`victory_road.py`) and `grass=TRAIN_SPOT_1F` are **independent hardcodes**. A relocation that edits
+  one and not the other prices the grind at L40 while grinding at L14 — that is `KI-28`'s 19.9M-frame
+  livelock with its only guard blinded. Also `_MAX_TRAINING_TRAVEL_LEGS` (4) is never referenced by
+  `victory_road.py` or `early_game.py`, so a relocation bypasses the travel cap silently.
 - [ ] ⛔ **FIVE FIXES ARE MEASURED WRONG — DO NOT PROPOSE ANY OF THEM:** benching low mons,
   stepping the target, raising the ceiling, training elsewhere, relaxing the estimator. Each was
   killed by evidence, not opinion; the reasons are in `07-CHANGELOG.md` 2026-09-07/08.
@@ -3721,8 +3763,15 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   GRASS ceiling for a water-HM carrier is Shoal Cave L26-32 / Route 120 L25-27 — **both under L34**;
   Route 120 maps to the L26 arm at 345,353, **still refuses**. ⇒ `#24-divegroundroute120` alone does
   NOT clear §Ch23 (it is still a real win: 236 battles vs 588, 379 wp vs 1,055).
-- [ ] ⇒ **FIX DIRECTION (unbuilt): CATCH HIGHER *AND* TRAIN THE REMAINDER.** L26 catch + 250k budget
-  at wild-28 → ~L39, clearing L35. Neither half suffices; the sum does.
+- [ ] ⇒ ⛔⛔ **FIX DIRECTION — ITS ARITHMETIC IS STALE AND IT FAILS ONCE CORRECTED (2026-09-09).**
+  It reads *"L26 catch + 250k budget at wild-28 → ~L39, clearing L35"* — computed at FULL xp,
+  ignoring the *"must double the estimate"* instruction in this item's OWN bullet above.
+  ‼ Redone with the split applied (model reproduces all five published figures exactly): the
+  first arrival level clearing the 250,000 ceiling is **L42, not L35**, and 250k at wild-28
+  from L26 buys far less than the ~L39 claimed. ⇒ **CATCH-HIGHER + TRAIN-THE-REMAINDER, AS
+  SPEC'D, WOULD STILL REFUSE.** ⚠ Not proven: the split is 2 only when swap-training FIRES,
+  so the true cost is between the solo and 2-way columns — which is exactly why the blocked
+  measurement below (log `total_exp` by PID either side of a battle) is the next deliverable.
 - [ ] ⚠ **SURF IS STILL UNSOLVED BY BOTH.** Best pre-Surf ground is Route 117 **L13** (every
   higher-band Surf-learner ground is gated behind Surf itself), and L13+250k → ~L28 < L35. ⇒ the only
   candidate is acquiring a carrier at **§Ch3 (Route 104 Marill L4-5, at team level)** so it is never

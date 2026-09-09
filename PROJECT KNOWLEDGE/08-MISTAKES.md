@@ -15275,3 +15275,64 @@ reviewer landed within ~1% of the permissive counts, which is what settled which
 because the script that produced it lived in a scratch directory. A number whose command is not in the
 repo cannot satisfy this file's own rule that a reader should be able to re-run it "without trusting
 me at all". ⇒ **if a measurement is worth publishing, its script is worth checking in.**
+
+## 2026-09-09 — My retracted claim propagated INTO the next investigation and nearly corrupted a second doc
+
+**Symptom.** I launched a five-angle investigation whose brief included my own (wrong) correction that
+a `0/43` HP figure had been *fabricated*. Three of the five angles duly reported that the punch list
+"carries a fabricated statistic" and recommended editing it out. The adjudicator measured instead of
+trusting, found **51 genuine zero-HP readings**, and wrote: *"Do not action the 'punch-list carries a
+fabricated 0/43' doc fix — it is wrong."*
+
+**Root cause.** A brief is not neutral. Everything I assert in it is inherited by every agent as
+established fact, *with my confidence attached and none of my doubts*. My error had a one-hop
+multiplier: one wrong sentence in a prompt became three agents recommending a destructive edit.
+
+**⭐⭐ PREVENTION RULE — LABEL EVERY CLAIM IN AN AGENT BRIEF AS *MEASURED* OR *BELIEVED*, AND INVITE
+REFUTATION OF THE BELIEVED ONES.** This project already tells agents what is RULED OUT so they do not
+re-derive it; the missing half is telling them **which of my "facts" are load-bearing but unverified**.
+⇒ a brief should carry an explicit line: *"the following are my beliefs, not measurements — check them
+first and say so if they are wrong."* The adjudicator did that unprompted and it is the only reason
+this was caught.
+
+**‼ AND THE STRUCTURAL POINT: A RETRACTION MUST CHASE ITS CITATIONS.** When I retracted the fabricated
+figure I fixed the four documents. I did not think about the investigation that was ALREADY RUNNING on
+a brief containing it. ⇒ **when you retract something, ask what is in flight that was built on it** —
+a correction that does not reach the work already downstream of the error is only half a correction.
+
+**⭐ What worked, and is worth copying:** the adjudicator was instructed that "agreement between agents
+is NOT evidence" and that it must verify load-bearing claims itself. It did, against three agents
+saying the same wrong thing. **Majority agreement among agents fed the same brief measures the brief,
+not the world.**
+
+## 2026-09-09 — FOURTH re-discovery in one session. The rule I keep writing does not fire; here is one that can.
+
+**The four.** Each was presented as a new finding and each was already in this tree:
+
+| # | I "found" | already at |
+|---|---|---|
+| 1 | the B1F training ground is richer | `07-CHANGELOG.md`, refuted **the same morning** |
+| 2 | there is no team training after Winona | `#24-regimeb-noescalation`, same 8-and-8 count |
+| 3 | stale drift claims | an audit had listed three; I treated the list as the population |
+| 4 | the estimator understates trainee cost ~2x | `03-PUNCH-LIST.md:3747`, filed **one day earlier, same file** |
+
+**Why "grep the docs first" keeps failing.** It is a rule about *diligence*, and diligence is exactly
+what is missing at the moment of discovery: finding something feels like the end of a search, not the
+start of one. Three times I wrote the rule down and three times the next finding walked straight past
+it — because the rule names no ACTION, only an intention.
+
+**⭐⭐ THE MECHANICAL VERSION, which is checkable in ten seconds:** before writing a finding down,
+**pull the two or three most distinctive NOUNS out of your own sentence and grep `PROJECT KNOWLEDGE`
+for each.** Not "search the docs" — grep `estimator`, grep `Winona`, grep `B1F`, grep `drift`. Every
+one of the four above would have returned its own prior filing on the first term. ⇒ **the finding's
+own vocabulary is the query; you do not have to know what to look for.**
+
+**‼ AND THE HALF THAT REDEEMS IT, which is worth as much as the rule.** On #4 the reviewer that caught
+the duplication also identified what WAS genuinely new, and it was better than my claim: the prior
+entry ended *"any future costing of a catch-time top-up must double the estimate"* — and the item's
+own FIX DIRECTION two bullets later never did, still pricing at full XP. ⇒ **a re-discovery is not
+worthless; it is a signal that a known fact was never APPLIED.** When you find you have re-derived
+something, do not just cross-reference and move on — **ask what the original filing told the project
+to do, and check whether anything did it.** That question turned an embarrassing duplicate into the
+actual defect: the item instructed itself to double and then didn't, so its planned fix would have
+failed for a reason it had already written down.

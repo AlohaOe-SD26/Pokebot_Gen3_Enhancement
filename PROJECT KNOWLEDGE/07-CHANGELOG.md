@@ -25575,3 +25575,41 @@ works. The plan does not depend on the unobserved +27 case.
 ignoring its `target`. Both were independently re-verified by the reviewer.
 ⚠ **NOW EXPLICITLY UNTESTED:** whether the mule would survive *with* swap-training. It fainted while
 fighting ALONE; the mechanism never ran. Do not state either outcome as known.
+
+## 2026-09-09 — §Ch23 relocation KILLED on arithmetic, and it uncovered a 2x error in the cost estimator
+
+Five adversarial angles plus an adjudicator on *"should §Ch23 send an under-levelled mon to a
+LEVEL-MATCHED area instead of its hardcoded Victory Road tile?"*
+
+**⛔ KILLED, and cleanly.** The per-call ceiling allows `250,000 / 1433` = **174 battles**. L13→L47
+needs 81,301 exp ⇒ **467 xp/battle** ⇒ a **wild level of ≥65**. Emerald's highest wild level is **44**.
+**No ground in the game fits**, and every level-matched alternative is worse than the status quo:
+VR1F 406,972 → ROUTE121 580,365 → ROUTE117 1,160,730.
+‼ My premise was also simply wrong: `best_training_area(13)` returns **ROUTE117 (L13-14)**, not a
+L25-28 area — the picker rejects every band whose low end exceeds the trainee, so it can only pick
+something POORER. ⇒ **six refuted fixes on this item now.**
+
+**⭐⭐ THE VALUABLE FINDING — `estimate_frames_to_level` MODELS A SOLO FIGHT AND ITS CALLER IS NOT ONE.**
+```python
+xp_per_battle = _CALIBRATED_AVG_WILD_BASE_EXP_YIELD * wild_level / 7   # no participant division
+```
+while `train_team` sets `set_swap_train(True)` (`early_game.py:2026`), which puts a second mon in the
+battle and halves the share. **Every training cost the bot predicts is up to 2x optimistic about the
+path that calls it.** Recomputed with a model that reproduces all five of this item's published
+figures exactly, the first arrival level that clears the ceiling moves **L35 (solo) → L42 (2-way)** —
+so `#24-lowlevelmules`'s recorded bar is the solo number, and its planned *"catch at L26 + train to
+~L39"* would still refuse.
+⚠ **Stated limit:** the split is 2 only when swap-training actually FIRES. When no capable finisher
+exists the trainee fights alone and the solo model is right, so the truth is between the columns.
+
+**⛔ AND THE DECIDING MEASUREMENT IS BLOCKED — it needs one log line, not more analysis.** I searched:
+**zero** logs across `profiles` + `x4-runs` carry BOTH `-> RotateLead` telemetry AND an exp readout;
+production rotation logs have `party=None` and no exp field. ⇒ the next deliverable is instrumentation
+— log the trainee's `total_exp` BY PID either side of a wild battle where swap-training fires.
+
+**‼ AND A CONTAMINATION WARNING WORTH RECORDING.** Three of the five angles read my (since-retracted)
+claim that the `0/43` figure was fabricated and recommended "fixing" the punch list to remove it. The
+adjudicator measured, found **51 genuine zero-HP readings**, and refused: *"Do not action the
+'punch-list carries a fabricated 0/43' doc fix — it is wrong."* ⇒ **a wrong correction of mine
+propagated into the next investigation and was one adjudication away from causing a second, worse doc
+corruption.** Agents inherit our errors with our confidence attached.
