@@ -15040,3 +15040,35 @@ that grepping first would have changed what I wrote (the B1F "surviving lead" th
 refuted; the drift instances I took from an audit list; this). The pattern is consistent: **I search
 the CODE thoroughly and the DOCS not at all**, then present the result as novel. The docs are a
 search target, not just a write target.
+
+## 2026-09-08 — FOUR measurement instruments failed in one session. None reached a conclusion. Here is why.
+
+Recorded as a SET, because the individual bugs are unremarkable and the pattern is not.
+
+| # | The reading | What was actually wrong |
+|---|---|---|
+| 1 | "0 ground-obtainable Surf learners" | learnsets store **move IDs**, not names — a string search for `"Surf"` can never hit |
+| 2 | "Sealeo and Aggron in Petalburg Woods at L5-6" | encounter-index keys are **internal species indices**, not National Dex |
+| 3 | "Swellow gained **−19 levels**" | one lane log holds **multiple sequential runs**; I compared across a restart |
+| 4 | "top-up rejected by the frame gate **1,846×**" | substring collision — they were **counter-gate** messages (`... rejected — needs Waterfall`) |
+
+**⭐ WHAT CAUGHT EACH ONE, AND IT WAS NEVER REVIEW.** #1 and #2 were caught because the result was
+*impossible* (a species I had just verified was absent; evolved forms on starter routes). #3 because
+levels cannot decrease. #4 because a follow-up regex written against the message I *believed* I had
+counted matched **zero** lines — the two counts disagreed, and that disagreement was the alarm.
+
+**⭐⭐ PREVENTION RULE — EVERY COUNT NEEDS A SECOND, DIFFERENTLY-SHAPED READING BEFORE IT IS QUOTED.**
+Not a re-run (that only tests determinism — the rule already on record). A DIFFERENT shape: if you
+counted with a substring, re-count with a structured regex and require the totals to agree; if you
+looked up by key, spot-check a value you can independently name. ‼ **A count that agrees with itself
+is not evidence; a count that survives a differently-shaped instrument is.**
+
+**⭐ AND THE CHEAPEST GUARD OF ALL, which caught two of the four: ASK "COULD THIS NUMBER EXIST?"**
+before asking what it means. Levels cannot fall. A species cannot be absent from a table you just read
+it in. Evolved forms do not appear on Route 101. **Plausibility is a free instrument check and it runs
+before any analysis.**
+
+‼ Corollary earned on #4 specifically: **a substring is not a message.** `"rejected —"` matched a
+completely different subsystem 1,846 times. When counting log events, anchor on enough of the line to
+identify the CALL SITE — and when a count looks dramatic, print the distinct line shapes behind it
+before believing the total.
