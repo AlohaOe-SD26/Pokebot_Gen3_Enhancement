@@ -13251,15 +13251,20 @@ class Ki84CounterMode(BotMode):
         from modules.pokemon_party import get_party
         from modules.story import early_game as EG
         from modules.story import victory_road as VR
-        from modules.modes.util.walking import wait_until_truly_controllable
 
+        # ‼ `wait_until_truly_controllable` lives in `modules.story.early_game` (`:1152`), NOT in
+        # `modules.modes.util.walking`. The first version imported it from walking and the run died
+        # at f0 with `cannot import name ...`, dropping to Manual — which looked like "the driver
+        # never engaged". ⛔ GATE #45 CANNOT CATCH THIS: it verifies a name is BOUND, and
+        # `from x import y` binds `y` whether or not `x` provides it. Import-resolution is a
+        # different check from name-resolution.
         TAG = "ki84counter"
         self.battles = getattr(self, "battles", 0)
         self.whiteouts = getattr(self, "whiteouts", 0)
         arm = (_os.environ.get("POKEBOT_KI84_ARM") or "A").strip().upper()
         target = int(_os.environ.get("POKEBOT_KI84_TARGET", "20"))
 
-        yield from wait_until_truly_controllable()
+        yield from EG.wait_until_truly_controllable()
         party = [m for m in get_party() if m is not None]
         log(f"[{TAG}] ARM={arm} target=L{target}")
         log(f"[{TAG}] PARTY {[(m.species.name, m.level) for m in party]}")

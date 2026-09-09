@@ -18,6 +18,13 @@ WHAT IT CHECKS. For every function, the set of names it LOADS must be covered by
 builtins + module-level bindings + its own bindings (params, assignments, imports, except-as,
 comprehension targets, nested defs) + **every enclosing function's bindings** (closures are legal).
 
+⛔⛔ WHAT IT CANNOT DO, AND THIS BIT A REAL RUN (2026-09-08): it does NOT verify that an IMPORT
+RESOLVES. `from modules.modes.util.walking import wait_until_truly_controllable` BINDS that name in
+the scope, so this gate is satisfied — while at runtime the import raises `cannot import name ...`
+because the function actually lives in `modules.story.early_game`. A driver died at frame 0 that way
+and it LOOKED like "the mode never engaged". ⇒ **name-resolution and import-resolution are different
+checks**; for the second, read the run log's first EXCEPTION line.
+
 ⛔ WHAT IT DELIBERATELY DOES NOT DO — and says so rather than guessing:
 A module containing `from x import *` is UNANALYSABLE statically (the star's contents are unknown
 without importing, and importing a bot module here would need a ROM). Such files are SKIPPED and

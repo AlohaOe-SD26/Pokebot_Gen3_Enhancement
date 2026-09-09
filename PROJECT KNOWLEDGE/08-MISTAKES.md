@@ -14817,3 +14817,41 @@ of 22: neither crosses, and the answer was their SUM, which no single comparison
 ‼ The same sweep that refuted me also validated the model that predicted it (pre-registered L34-35),
 so this is not "the analysis was bad" — it is that **an analysis can be right and still be read
 wrongly if the reader skips the comparison that matters.**
+
+## 2026-09-08 — gate #45 cannot catch a WRONG IMPORT PATH, and I assumed it could
+
+**Symptom.** The new `--driver ki84counter` died at frame 0 with
+`cannot import name 'wait_until_truly_controllable' from 'modules.modes.util.walking'`. The harness
+caught it, dropped to Manual, and the run idled to its frame cap — so the surface appearance was
+*"the driver never engaged"*, and I spent three probes checking the class definition, the argparse
+choices and the dispatch chain (all of which were correct) before reading the log's own EXCEPTION
+line.
+
+**Root cause of the misdiagnosis.** I had just run `probe_name_resolution.py` (gate #45) against
+`story_harness.py`, got **0 findings**, and treated that as "the driver's names are fine".
+⛔ **The gate verifies a name is BOUND, not that an import RESOLVES.** `from x import y` binds `y` in
+the scope whether or not `x` actually provides it — the failure is at RUNTIME, in the importer, and
+no static scope analysis can see it without importing (which would need a ROM here).
+
+**⭐ PREVENTION RULE — NAME-RESOLUTION AND IMPORT-RESOLUTION ARE DIFFERENT CHECKS.** Gate #45 covers
+the first. For the second, the cheapest instrument is the run itself — so **read the log's first
+EXCEPTION line BEFORE investigating structure.** A driver that "never engaged" and a driver that
+"engaged and threw at frame 0" look identical from the outside and have completely different causes.
+‼ Recorded in the gate's own docstring too, so its green is not over-read again.
+
+## 2026-09-08 — I designed around one confound and my own selection logic reintroduced it
+
+**Symptom.** For the KI-84 A/B I deliberately injected a **L35** trainee so it would sit inside
+VICTORY_ROAD_1F's L36-40 band — specifically to avoid the survivability confound that a L13 mule
+would create. The driver then selected *"the lowest-level non-lead mon"*, which is **Zigzagoon L19**,
+not the injected Marill. So arm A's `batches=1, no level gained` is explainable by KI-84 **or** by the
+trainee fainting — the exact ambiguity the L35 choice existed to remove.
+
+**⭐ PREVENTION RULE — WHEN A FIXTURE IS BUILT TO HAVE A PROPERTY, SELECT ON THAT PROPERTY.**
+I injected a mon *because* of its level and then picked a mon by a different rule. If a run needs
+"the mon I placed", address it by **identity** (PID/species), never by a heuristic that could match
+something else — the same "assert identity, never position" rule this project already applies to
+party slots, extended to fixture selection.
+‼ The pair may still be valid: arm B trains the SAME Zigzagoon with the rotation as the only
+difference, so if B reaches the target the mechanism is proven regardless. If B also fails, the
+result is INCONCLUSIVE — and must be reported as such rather than read as support.
