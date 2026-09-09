@@ -1491,7 +1491,54 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
       27M frames. The frame budget now BOUNDS it (the run derails and the batch continues),
       but the underlying scene wait is still wrong. Needs the first post-fix batch to see
       whether it recurs and how often before spending time on it.
-- [ ] `#24-grindconverge` — P1/P2 ground for 13-20M frames without reaching a level floor
+- [ ] ⭐ `#24-grindconverge` — **RE-SCOPED 2026-09-09 AFTER AN ADVERSARIAL PASS KILLED THE OBVIOUS
+  READING.** P1/P2 ground for 13-20M frames without reaching a level floor.
+  ⛔⛔ **DO NOT BUILD IT AS "REPLACE THE FRAME CEILING WITH A CONVERGENCE TEST" — THAT IS KILLED.**
+  At §Ch23 the test is **VACUOUS**: `estimate_frames_to_level` returns `None` only when
+  `wild_level is None or wild_level <= 0`, and §Ch23 hardcodes `WILD_MAX = 40`, so the estimate is
+  ALWAYS finite and positive. A predicate *"will this grind reach the target?"* returns TRUE for
+  every one of the 16 refusals. ⇒ it does not RAISE the ceiling, it **DELETES** it and substitutes a
+  tautology — strictly worse than *"raise the ceiling"*, which is already measured wrong.
+  ‼ **AND THIS ITEM'S OWN TEXT IS A COST TEST:** *"a training target that the local grass cannot
+  deliver **in reasonable time**"*. *In reasonable time* IS cost. The item cannot be cited as
+  authority for replacing cost with convergence.
+  ⭐⭐ **ITS REAL SHAPE IS ALREADY DESCRIBED IN CODE AND IS NARROW AND BUILDABLE** —
+  `victory_road.py:474-476`: a spin parked on an `MB_NORMAL` tile **generates ZERO battles while
+  looking perfectly healthy**. ⇒ the failure is *no encounters*, not *slow encounters*. The DETECTOR
+  already exists (`_story_spin`'s xp watchdog, `_STORY_SPIN_NO_PROGRESS_FRAMES = 2400`,
+  `early_game.py:168/217`); **its defect is DISPOSITION, not detection** — it bails into the
+  500-round retry loop instead of abandoning the target. ⇒ **build the disposition, and make it
+  SUPPLEMENT the ceiling, never replace it.**
+- [ ] ⛔⛔ **STRUCTURAL FACT THAT CHANGES EVERY "BUDGET HEADROOM" ARGUMENT — VERIFIED 2026-09-09.**
+  `MAX_FRAMES_PER_RUN = 5_000_000` sits at `story_mode.py:4329`, **inside `StoryEndlessResetMode`
+  (`:4283`) — the BATCH HARNESS.** Production `StoryMode` (`:1123`) has **no total-frame budget at
+  all**; `train_team` has only a 500-*round* guard. ⇒ **in a real run the per-call
+  `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence**, and removing or
+  loosening it re-opens the `KI-28` shape with nothing behind it.
+- [ ] ⛔ **AND THE HEADROOM ITSELF IS NOT THERE.** Measured at the 16 Ch23 refusals from debug-log
+  `f`-stamps: median run had burned **85.8%** of the harness budget (median spare **710,600**, range
+  78,800-1,932,800). The FULL bill — every battler under L47, not just the worst — exceeds the
+  run's own remaining budget in **10 of 16** runs on the solo model and **14 of 16** with the
+  2-way split, before the seven §Ch23 legs after training (declared caps ≥720,000).
+  ⭐ **RE-RUNNABLE:** `py -3.12 tools/story-dev/probe_ch23_headroom.py` prints the 16-row table.
+  ‼ These numbers were first published from an agent's report with no command behind them and a
+  reviewer refused them; re-measured, two reproduced and **three did not** (median battlers 3.5
+  → **3.0**, 9/16 → 10/16, 13/16 → 14/16). ⚠ Erratic/Fluctuating growth curves are approximated
+  as Medium Fast in that tool, so species on those curves may be mis-costed.
+- [ ] ⛔⛔ **"ONE UNDER-LEVELLED MULE" IS FALSE — IT IS 2-5 BATTLERS, MEDIAN 3.5.** Excluding
+  `BENCH_SPECIES`, the count of battlers under L47 at the refusal is **2 to 5 (median 3.0)** (e.g. one run:
+  `Swampert:L57 / Mightyena:L33 / Ninjask:L23 / Dustox:L29 / Machoke:L30 / Shedinja:L29` — **five**).
+  The error message prints only `max(estimates)`, **which is why this tree believes it is one mon**.
+  ⇒ every plan scoped to "the mule" is scoped to roughly a third of the real debt.
+- [ ] ⚠ **`best_training_grass(mon_level)` — the per-mon, trainee-keyed picker requested 2026-07-21 —
+  HAS ZERO CALL SITES** (`training_areas.py:102`; the only other hits are two comments). And
+  `grep -c VICTORY_ROAD modules/story/training_areas.py` = **0**, so the picker cannot even compare
+  against the ground §Ch23 uses. That is a `#24-trainmap+` gap, not a new concept.
+- [ ] ⚠ **NEW, PREVIOUSLY UNFILED:** the post-hoc frame REPORT at `story_mode.py:4535`
+  (`raw_frames = get_frame_count() - start_frame`) does **not** re-base across the reset performed
+  inside `super().run()` at `:4506`, so **printed per-run frame totals are wrong**. The live
+  enforcement path DOES re-base (`:4386-4388`), so the budget itself is correct — it is the REPORT
+  that lies. ⇒ derive frames from debug-log `f`-stamps, never from the printed summary.
       (Route 103 wilds are L2-3; Route 116 L6-7). A training target that the local grass
       cannot deliver in reasonable time should be detected and abandoned, not pursued
       forever. Related to `#24-route110cap`: both are "the bot will not give up" bugs.
@@ -3438,7 +3485,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   runs reached exactly #41 after whiteouts spread over a **median of 13 different towns**,
   while winning **86-96%** of their battles (one won 866 of 907 with an L51 lead). ⇒ a fuse
   on run LENGTH — kill rate 0% under 1.5M frames, 62% above 3.5M, and `MAX_FRAMES_PER_RUN`
-  (5,000,000) was never reached by ANY of the 61 runs. FIX: `whiteout_budget()` (PURE) keys
+  (5,000,000) was never reached by ANY of the 61 runs. ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4329`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split). FIX: `whiteout_budget()` (PURE) keys
   it to CONSECUTIVE whiteouts at ONE location. GATE #44 `probe_whiteout_budget.py` replays
   the 14 real sequences: **0 of 14 still killed**, a stuck run and a blind run both STILL
   stopped at #41, and three fault arms fire. ⛔ DO NOT rewrite it to use `_progress_sig()` —
@@ -3474,7 +3521,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   Mossdeep respawn would make retries CHEAPER; it cannot make them SUCCEED, and cheapness is not what
   kills these runs. **(1) The runs die on a COUNT, not on time** — `whiteout_budget(cap=40)` — and
   this file already records that `MAX_FRAMES_PER_RUN` (5,000,000) **was never reached by ANY of the
-  61 runs**. Saved frames buy nothing. **(2) From badge 7 on, attempt N+1 is BYTE-IDENTICAL to
+  61 runs** ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4329`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split).. Saved frames buy nothing. **(2) From badge 7 on, attempt N+1 is BYTE-IDENTICAL to
   attempt N** (this very item's own finding), so a cheaper loop is the same loop.
   ⛔⛔ **(3) IT IS ACTIVELY HARMFUL:** `whiteout_budget`'s `key` **is** `get_last_heal_location()`,
   and the budget RESETS to 1 when the key changes ⇒ re-arming Lilycove→Mossdeep grants **one free
@@ -3618,7 +3665,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   fainted mon earns nothing ⇒ it can never level there **at any step size**.
 - [x] ⭐⭐ **⇒ THE GUARD IS CORRECT, FOR A REASON ITS MESSAGE DOES NOT STATE.** It says "too
   expensive"; the truth is "not survivable here", and the two coincide BY CONSTRUCTION — a mon over
-  the 250k ceiling is ~20+ levels under the wild band. **The ceiling is a PROXY for survivability.**
+  the 250k ceiling is ~20+ levels under the wild band. **The ceiling is a PROXY for survivability.** ⛔⛔ **WITHDRAWN 2026-09-09 — THIS RESTED ON A FABRICATED MEASUREMENT.** The mule was NOT one-shot: measured, it started **66 of 72** battles at full 43/43 and fought 2.3 turns each. It gained nothing because the DRIVER never installed swap-training (`Ch23TrainMode` returns `StoryItemBattleStrategy`; 232 turn decisions, 0 RotateLead), not because it could not survive. ⇒ **the ceiling is a COST test, not a survivability proxy.** See `07-CHANGELOG.md` 2026-09-09.
 - [ ] ⇒ **BOTH LEG-LOCAL FIXES ARE DEAD; THE DEFECT IS UPSTREAM — see `#24-lowlevelmules`.** The bot
   catches HM mules and counters at wild level and never trains them; by Victory Road no local remedy
   exists.

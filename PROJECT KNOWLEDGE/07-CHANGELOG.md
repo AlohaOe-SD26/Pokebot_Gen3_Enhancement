@@ -25613,3 +25613,52 @@ adjudicator measured, found **51 genuine zero-HP readings**, and refused: *"Do n
 'punch-list carries a fabricated 0/43' doc fix — it is wrong."* ⇒ **a wrong correction of mine
 propagated into the next investigation and was one adjudication away from causing a second, worse doc
 corruption.** Agents inherit our errors with our confidence attached.
+
+## 2026-09-09 — `#24-grindconverge` as "replace the ceiling with a convergence test": KILLED, and five beliefs went with it
+
+The user stated a training policy — *solo when the trainee can win, swap when it cannot, fall back to
+a lower area if swapping is impossible, and let efficiency guide but not hard-block*. That pointed at
+`#24-grindconverge`, a one-line stub filed by `KI-28` and never specified. Six agents; adversarial
+first. **The proposal is dead and the round is still the most valuable of the day.**
+
+**⛔ WHY IT IS DEAD — the test is VACUOUS at the site it was aimed at.** `estimate_frames_to_level`
+returns `None` only for `wild_level is None or wild_level <= 0`; §Ch23 hardcodes `WILD_MAX = 40`.
+So *"will this grind reach the target?"* is TRUE for all 16 refusals. It does not raise the ceiling —
+**it deletes it and substitutes a tautology**, which is worse than the already-refuted "raise the
+ceiling". ‼ And the item's own text (*"cannot deliver in reasonable time"*) is itself a COST test, so
+it cannot be cited as authority for replacing cost with convergence.
+
+**⛔⛔ THE STRUCTURAL FACT THAT SETTLES IT FROM THE OTHER SIDE.** `MAX_FRAMES_PER_RUN` lives inside
+**`StoryEndlessResetMode` — the batch harness**. **Production `StoryMode` has no total-frame budget at
+all.** ⇒ in a real run the per-call ceiling is the ONLY pre-emptive bound that exists. Loosening it
+re-opens `KI-28` with nothing behind it.
+
+**FIVE BELIEFS THIS TREE HELD, NOW REFUTED — each verified by a command I ran:**
+| belief | measured |
+|---|---|
+| `MAX_FRAMES_PER_RUN` "never reached by ANY of the 61 runs" | **6 firings** (`grep -rho "per-run frame budget exhausted" \| wc -l`), overshoot ≤0.2% |
+| there is ~3.8M frames of headroom at the refusal | median run had burned **85.8%**; median spare **710,600** — `probe_ch23_headroom.py` |
+| the blocker is "one under-levelled mule" | **2-5 battlers** under L47, median **3.0**; one run had five |
+| the ceiling is a "proxy for survivability" | withdrawn — it rested on a fabricated HP figure; it is a COST test |
+| swap-training's observed +6 gap ceiling is a behavioural limit | **CONFOUNDED**: `grep -c SwapTrainBattleStrategy story_harness.py` = **0** — no harness driver has EVER installed it, so every harness measurement of the mechanism is vacuous |
+
+**⭐ WHAT SURVIVES AND IS WORTH BUILDING:**
+* `#24-grindconverge` **re-scoped to its real shape** — `victory_road.py:474-476`: a spin parked on an
+  `MB_NORMAL` tile generates ZERO battles while looking healthy. The detector already exists; its
+  defect is **disposition, not detection**. It must SUPPLEMENT the ceiling, never replace it.
+* The estimator's missing participant divisor is real and **direction-safe to fix** (it makes refusals
+  fire MORE, never less). ⇒ ship it as truth-in-accounting, not as a fix; it unblocks nothing.
+* `best_training_grass(mon_level)` — the trainee-keyed picker the user asked for in July — **has zero
+  call sites**, and `training_areas.py` never mentions VICTORY_ROAD, so it cannot even compare against
+  the ground §Ch23 uses.
+* **The user's policy belongs upstream, not here.** It is satisfiable where gaps are ≤+6, swap-training
+  measurably fires, and **full-XP solo is still available** — the mode the user explicitly prefers.
+  Concentrating a 34-level debt at §Ch23 forces 100% half-XP: the most expensive possible way to obey
+  the policy.
+
+**‼ AND A DOC BUG THIS ROUND PAID FOR IN REAL WORK.** My 2026-09-08 fabrication (*"0/43 HP in 42 of 47
+readings"*) and the *"proxy for survivability"* conclusion built on it were retracted on 2026-09-09 —
+but the retraction reached `07-CHANGELOG.md` and the code, **not the two current-state files agents
+open first**. My annotation had landed on the SECOND mention in a 3,000-character line while the
+first, carrying the invented number, went untouched. ⇒ **this investigation re-derived a killed
+argument from those exact lines.** All four sites are now corrected.

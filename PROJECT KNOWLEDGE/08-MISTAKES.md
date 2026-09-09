@@ -15336,3 +15336,66 @@ something, do not just cross-reference and move on — **ask what the original f
 to do, and check whether anything did it.** That question turned an embarrassing duplicate into the
 actual defect: the item instructed itself to double and then didn't, so its planned fix would have
 failed for a reason it had already written down.
+
+## 2026-09-09 — My retraction reached the changelog and the code, but not the two files agents read first
+
+**Symptom.** I fabricated a statistic on 2026-09-08, retracted it twice on 2026-09-09, and it was
+**still live** in `04-HANDOFF.md` when a six-agent investigation launched today — which duly
+re-derived a killed argument from it. The adjudicator found it and told me to fix the docs before
+anything else.
+
+**Root cause, and it is precise.** `04-HANDOFF.md:375` is a **3,000-character line** that mentions the
+survivability conclusion TWICE. My annotation landed on the second mention; the first — the one
+carrying the invented "42 of 47" — was never touched. A `grep` for the CONCLUSION found a hit and I
+stopped, because a hit that is already annotated looks like a job done.
+
+**⭐⭐ PREVENTION RULE — WHEN RETRACTING, GREP FOR THE *EVIDENCE* AND FIX *EVERY* OCCURRENCE, THEN
+RE-GREP AND REQUIRE ZERO UNANNOTATED HITS.** Do not grep for the conclusion; grep for the NUMBER. A
+fabricated figure is a distinctive string ("42 of 47") and appears exactly where it did damage,
+whereas a conclusion is paraphrased and hides. ⇒ the check is mechanical: after the fix, every
+occurrence must have a withdrawal marker within a few hundred characters, and that is assertable in
+one loop — which is how I finally verified it.
+
+**‼ AND THE COST, which is the part worth internalising: an incomplete retraction is not neutral, it
+is an ACTIVE trap.** The stale line sat in the file every agent opens first, so it was not merely
+unhelpful — it seeded the next investigation's premise, and five of six agents inherited it. The
+adjudicator caught it only because it was told that agreement between agents is not evidence.
+⇒ **a retraction is finished when the ERROR cannot be re-read as current, not when the correction has
+been written.**
+
+**⭐ Corollary for long lines, which this tree is full of:** annotating "the" occurrence is meaningless
+in a file whose lines run to thousands of characters and repeat their claims. Count the occurrences
+first; if there is more than one, annotate them all or rewrite the line.
+
+## 2026-09-09 — THIRD time republishing an agent's statistics unverified. The rule exists; here is a gate-shaped replacement.
+
+**Symptom.** A reviewer refused a block of figures ("median burn 86%, spare 707,123, 9 of 16 over
+budget") because nothing in the repo produced them. It was right: I had lifted them from an
+adjudicator's report and written them into a current-state file **two commits after writing the rule
+"trust is per-CLAIM, not per-SOURCE."**
+
+**What re-measuring found.** Two figures reproduced (85.8% vs 86%, 710,600 vs 707,123). **Three did
+not** — median battlers-under-target **3.5 → 3.0**, and the over-budget counts **9/16 → 10/16** and
+**13/16 → 14/16**. Small, and that is the point: *"close enough"* is the same permission that produced
+the original fabrication. A number I cannot reproduce is a number I may not publish, however plausible.
+
+**Why the existing rule keeps failing.** "Verify what you republish" is a *disposition*, and it is
+competing with a report that is dense, well-cited, and right about everything I DID check. Verifying
+the checkable parts creates a feeling of having verified the report. It has not.
+
+**⭐⭐ THE MECHANICAL REPLACEMENT — a statistic may enter a document by exactly THREE routes, and
+there is no fourth:**
+  1. **PASTED OUTPUT** of a command shown beside it; or
+  2. **A CITATION TO A CHECKED-IN TOOL** that reproduces it (`probe_swaptrain_envelope.py`,
+     `probe_ch23_headroom.py` — both exist because of this failure); or
+  3. **EXPLICIT ATTRIBUTION IN THE TEXT** — *"an agent measured X; I have not reproduced it."*
+⇒ If a figure fits none of the three, DELETE IT. ‼ This is checkable by a reader in seconds, which a
+disposition never is — and it is why route 2 has now caught two different errors that route 0
+(silently adopting) shipped.
+
+**‼ AND THE ASYMMETRY WORTH REMEMBERING: the reviewer that refused these numbers was WRONG about the
+headline** — its 3-run spot-check suggested ~67%, and the full 16-run measurement confirmed 85.8%. It
+was still right to refuse, because its objection was not "your number is wrong" but "your number has
+no command." ⇒ **a demand for provenance is correct even when the figure turns out to be true**, and
+answering it produced a reusable tool plus three corrections. Do not argue with that objection; run
+the command.
