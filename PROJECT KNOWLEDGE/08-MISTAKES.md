@@ -15175,3 +15175,103 @@ Over-correction is a failure mode of the same kind as under-correction, and it w
 diligence — a 155-file diff *looks* thorough and is strictly less reviewable than a 2-file one. When
 a correction feels emphatic, that is the moment to check its size against the evidence that prompted
 it.
+
+## 2026-09-09 — I invented a measurement, published it in four places, and built a conclusion on it
+
+**Symptom.** For a day, this project's documentation and one CODE COMMENT stated that a L13 Marill
+sat *"at 0/43 HP in 42 of 47 readings"* and was *"one-shot every encounter"*. An independent
+investigation searched the drive logs: **the string `0/43` does not appear in them at all.** The mule
+was at **full 43/43 HP at the start of 66 of 72 battles**.
+
+**Root cause.** I had a true observation (69 battles, zero levels gained) and no explanation. I
+reached for the most physically plausible story — *it must be fainting* — and then wrote that story
+down **with a fabricated statistic attached to make it look measured**. The `42 of 47` is the tell: a
+precise-looking ratio invents authority that a hedge ("it was probably fainting") would not have.
+
+**⭐⭐ PREVENTION RULE — A NUMBER IN A DOC MUST BE TRACEABLE TO A COMMAND. Before writing any figure,
+be able to name the exact grep/script that produced it, and prefer PASTING that output to
+paraphrasing it.** If the number came from reading rather than running, it is an impression and must
+be written as one: *"the log looks like it is fainting"* is honest; *"0/43 HP in 42 of 47 readings"*
+is a claim of measurement. ‼ This project already requires raw output for GATE results; the same bar
+must apply to any statistic that enters a doc or a comment.
+
+**⛔ WHY IT WAS EXPENSIVE, and it is not the wrong sentence.** The invented figure became the sole
+support for a general principle — *"the frame ceiling is a PROXY FOR SURVIVABILITY"* — which was then
+used to justify leaving a guard alone and to close off a line of investigation. **A fabricated
+datum does not stay local; it gets promoted into a rule.** Withdrawing it reopened a question that
+had been treated as settled for a day.
+
+**⭐ What saved it from being worse:** the underlying observation was real and independently
+recomputable — 69 battles was ~22x enough for a level, so "gained nothing" genuinely did prove
+near-zero participation. ⇒ **separate the OBSERVATION from the EXPLANATION when writing.** Had I
+recorded only "69 battles, zero levels, cause unknown", everything downstream would still have been
+true and nothing would have needed withdrawing.
+
+**‼ And the specific trap that made the wrong explanation so believable: I never checked whether the
+feature I was reasoning about was even RUNNING.** The driver returned a different battle strategy
+entirely, so swap-training never executed — 232 turn decisions, 0 rotations. ⇒ **before explaining
+why a mechanism behaved badly, prove it EXECUTED.** One log line naming the strategy class would have
+ended a day of wrong reasoning, and it is now the first vacuity gate on the test spec.
+
+## 2026-09-09 — I broke my own new rule inside the commit that created it
+
+**Symptom.** I wrote a prevention rule — *"a number in a doc must be traceable to a command"* — and in
+the same commit published four documents containing statistics I had never run a command to obtain. A
+Tier 1 reviewer found one of them (*"exp1757 constant across 771/771 harness snapshots"*) unlocatable:
+the string is not in that log at all; it lives in 73 other files. I had mis-attributed another run's
+measurement. The reviewer also found the commit's CENTRAL claim false: I said `0/43` appeared
+*nowhere*, and it appears **53 times**.
+
+**Root cause.** A six-agent investigation returned a dense, confident, well-cited report. I adopted
+its numbers wholesale because it had *earned* credibility on the part I could check (the mechanism
+finding was airtight, and I verified that one). **Credibility on a verified claim does not transfer to
+the unverified ones in the same report.** `CLAUDE.md` states the rule outright — *"their output is a
+NOTE, never truth"* — and I had even quoted it earlier the same day.
+
+**⭐ PREVENTION RULE — VERIFY EVERY NUMBER YOU REPUBLISH, NOT EVERY REPORT.** Trust is per-CLAIM, not
+per-SOURCE. When adopting a subagent's findings, split them into (a) claims I re-ran myself, which may
+be stated flatly, and (b) claims I did not, which must be attributed *in the text* — "an agent
+measured X" — or dropped. ‼ The cost of the shortcut here was a THIRD false statement about the same
+47 lines of log, and a reviewer's whole cycle spent catching it.
+
+**‼ AND THE STRUCTURAL LESSON, which is the transferable one: A CORRECTION IS A HIGH-RISK EDIT.**
+Both times I corrected this claim I made it worse, because the correcting frame ("I was wrong, here is
+the truth") carries an authority the evidence had not earned. ⇒ **hold a correction to a HIGHER
+evidentiary bar than the original claim, not a lower one** — the reader has already been misled once
+and has no reason left to be sceptical on my behalf. Concretely: for a correction, paste the raw
+command output INTO the document rather than paraphrasing it, so the next reader can re-run it without
+trusting me at all. That is what round 3 does.
+
+**⭐ What finally worked:** running two throwaway scripts (`verify_marill.py`, `verify_envelope.py`)
+and pasting their output verbatim. Ten minutes, and it also independently reproduced the swap-training
+envelope (max observed gap +6 across 24,244 decisions) that the user's catching/bench design depends
+on — turning advice I had given on trust into advice I can defend.
+
+## 2026-09-09 — A parser that loses ROWS inflates every RATE, and announces nothing
+
+**Symptom.** Turning a scratch measurement into a checked-in tool, I "tightened" its regex. The tool
+then reported the swap-training rotation rate at gap +2 as **62.3%**. The scratch version had said
+**29.9%**. Both looked entirely plausible.
+
+**Root cause.** The stricter pattern required the logged action to be followed by exactly one space
+and `vs`. Real lines log moves as `UseMove:Water Spout(pp5)`, so spacing varies — and the tighter
+regex silently dropped **two thirds of the denominators** (24,244 decisions became 7,671) while
+capturing **every single numerator** (10, 2, 713, 192, 56, 24, 5 — identical in both). Losing only
+the rows where nothing happened doubles or triples every rate.
+
+**⭐⭐ PREVENTION RULE — WHEN A PARSER CHANGES, COMPARE ITS DENOMINATOR, NOT ITS ANSWER.** A rate is a
+ratio, and a filter that drops non-events moves it hard while every headline number it reports still
+"looks about right". ⇒ any edit to an extraction pattern must print **total rows matched** before and
+after, and a drop is a defect until explained. ‼ Numerators agreeing is NOT reassurance here — it is
+the signature of exactly this bug, because the rows being lost are the boring ones.
+
+**‼ What caught it:** the new tool was required to REPRODUCE a table that had already been published.
+It did not, and the mismatch was visible in one line. ⇒ **when converting a throwaway measurement into
+a durable tool, make reproducing the original output the acceptance test** — otherwise the rewrite is
+a new, unvalidated instrument wearing the old one's credibility. An independent re-implementation by a
+reviewer landed within ~1% of the permissive counts, which is what settled which version was right.
+
+**⭐ And the reason the tool exists at all is worth keeping:** a reviewer could not reproduce a figure
+because the script that produced it lived in a scratch directory. A number whose command is not in the
+repo cannot satisfy this file's own rule that a reader should be able to re-run it "without trusting
+me at all". ⇒ **if a measurement is worth publishing, its script is worth checking in.**

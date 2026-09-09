@@ -3312,13 +3312,41 @@ def do_victory_road_chapter(report: dict | None = None) -> Generator:
             # burned 19.9M frames on a target local grass could not deliver (KI-28).
             if not inside_vr and not wally_beaten() and not team_is_ready(TRAIN_TARGET)[0]:
                 # ⛔⛔ THIS IS THE BARE CALL ON PURPOSE. `#24-ch23training`'s stepping fix was
-                # BUILT, DRIVEN AND REFUTED on 2026-09-08: stepping a L13 mule toward L47 ran 69
-                # battles on VICTORY_ROAD_1F's L36-40 wilds with the mule as lead at 0/43 HP the
-                # whole time and it NEVER GAINED A LEVEL — a fainted mon earns nothing.
-                # ⇒ the refusal below is CORRECT, for a reason its own message does not state: a mon
-                # whose grind exceeds the per-call ceiling is ~20+ levels under the wild band, which
-                # is exactly the gap at which it cannot SURVIVE that band. The ceiling is a proxy for
-                # survivability, so relaxing it only buys wasted battles before the same stop.
+                # BUILT, DRIVEN AND REFUTED on 2026-09-08 — but ⚠⚠ **THE REASON RECORDED HERE WAS
+                # WRONG AND IS CORRECTED 2026-09-09 (twice; read the whole note).** It first said the
+                # mule sat "at 0/43 HP the whole time"; a first correction then claimed `0/43`
+                # "appears NOWHERE in the logs". ⛔ **BOTH WERE WRONG.** Measured in
+                # `profiles/repro-ml/debug-logs/Story-debug-20260908-081133.log` (one run):
+                #     `0/43` x53, of which 51 are overworld `party=[...]` dumps  -> IT DID FAINT
+                #     72 battle-start HP readings, 66 of them full 43/43         -> healed between
+                #     232 turn decisions: 231 UseMove, 1 RunAway, 0 RotateLead
+                #     only Marill level ever recorded: 13
+                # ⇒ THE REAL MECHANISM: the DRIVER NEVER INSTALLED SWAP-TRAINING.
+                # `Ch23TrainMode.on_battle_started` returns `StoryItemBattleStrategy()`, and
+                # `SwapTrainBattleStrategy` is constructed ONLY at `story_mode.py:2513` inside
+                # `StoryMode.on_battle_started` — and `Ch23TrainMode` is not a `StoryMode`. The run
+                # recorded **232 turn decisions and 0 RotateLead**. ⇒ the mule fought EVERY battle
+                # ALONE because the feature was ABSENT — and fighting alone at a +27 gap is why it
+                # fainted. ⚠ **WHETHER IT WOULD SURVIVE *WITH* SWAP-TRAINING IS UNTESTED**: the
+                # mechanism never ran here, and corpus-wide it has NEVER been observed firing above a
+                # +6 gap (0 of 510 at +7, 0 of 4,950 at >=+8, out of 24,244 turn-0 full-HP decisions,
+                # of which 1,002 ARE rotations — so the logger can certainly print one).
+                # ⭐ Re-run it: `tools/story-dev/probe_swaptrain_envelope.py`.
+                # ⚠ A zero at a gap means NOT OBSERVED, not REFUSED: the strategy may never have been
+                # installed in the runs that reached it — which is exactly what happened here.
+                # ⛔ WITHDRAWN: "the ceiling is a proxy for survivability" — that rested on the
+                # fabricated HP figure. ✅ STILL STANDS: stepping is refuted by its INDEPENDENT
+                # reason — `team_is_ready`'s CRUNCH loop ignores its `target`, so any sub-47 target
+                # breaks the control. One reason, not two.
+                # ⭐ AND THE ZERO WAS STILL SOUND EVIDENCE: a L13 Marill (Fast curve) needs 438 EXP
+                # per level and the WORST foe here pays 138 after a 2-way split — 3.2 battles per
+                # level, so 69 battles was ~22x enough. "Gained nothing" did prove near-zero
+                # participation; only the explanation was invented.
+                # ‼ ⇒ WHETHER A LEVEL-MATCHED GROUND WOULD WORK IS NOW REOPENED AND UNTESTED —
+                # `best_training_area()` refuses any band whose LOW end exceeds the trainee, and
+                # §Ch23's hardcoded `TRAIN_SPOT_1F` is the one path that bypasses it. ⛔ Do NOT act
+                # on that without an adversarial pass: "training elsewhere" is one of the five
+                # MEASURED-WRONG fixes on `#24-ch23training`, and this is adjacent to it.
                 # See `07-CHANGELOG.md` 2026-09-08 and `#24-ch23training`.
                 yield from train_for_victory_road(report)
 
