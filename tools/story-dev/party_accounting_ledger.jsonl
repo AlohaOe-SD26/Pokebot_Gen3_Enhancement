@@ -520,3 +520,6 @@
 {"when": "2026-09-08T11:25:22", "driver": "ch23train", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 20032, "recomputes": 20032, "scans": 67, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-08T11:30:58", "driver": "ch23train", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 20032, "recomputes": 20032, "scans": 67, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-08T11:36:33", "driver": "ch23train", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 20032, "recomputes": 20032, "scans": 67, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-08T18:56:11", "driver": "ki84counter", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 20010, "recomputes": 20010, "scans": 67, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-08T19:03:51", "driver": "ki84counter", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 33936, "recomputes": 33936, "scans": 114, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-08T19:08:19", "driver": "ki84counter", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 300000, "recomputes": 300001, "scans": 1001, "divergences": {}, "observer_broke": false}

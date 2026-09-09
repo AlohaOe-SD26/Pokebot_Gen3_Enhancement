@@ -25124,3 +25124,41 @@ the gym-prep path; the fix does not touch `train_team`. It ports the §Ch23 work
 (`victory_road.py`) — rotate to slot 0, **assert by PID that it landed**, call `slots={0}`, then
 verify the mon actually moved — to `counter_hunt.py`. Caller-local ⇒ gym-prep levels untouched ⇒ no
 gym A/B required.
+
+## 2026-09-08 — ⭐ THE `KI-84` A/B: mechanism CONFIRMED (1 batch vs 44); attainment NOT shown, and why
+
+`--driver ki84counter`, `post_ever_grande.ss1`, same trainee and target in both arms, rotation the
+ONLY variable:
+```
+ARM A (today: slots={1})              batches= 1   battles= 3   L19 -> L19   reached=False
+ARM B (fix: rotate + slots={0})       batches=44   battles=61   L19 -> L19   (hit the 300k frame cap)
+```
+
+**⭐⭐ THE MECHANISM IS CONFIRMED. 1 batch versus 44.** Arm A's loop BREAKS after a single spin-batch
+— exactly `KI-84`'s predicted signature — while arm B keeps running. Nothing else differed.
+⭐ **And this settles the confound I had introduced:** the driver selected the party's lowest non-lead
+mon (Zigzagoon L19) rather than the L35 Marill injected precisely to sit inside the wild band. If the
+failure were SURVIVABILITY, both arms would have ground many batches and failed. **Arm A stopped
+after ONE** — that is the loop breaking, not the mon fainting.
+
+**⛔ ATTAINMENT IS NOT DEMONSTRATED, AND THE REASON IS MY FIXTURE, NOT THE FIX.** Arm B fought 61
+battles for **zero levels**, because the driver hardcodes `VR.TRAIN_SPOT_1F` — VICTORY_ROAD_1F's
+**L36-40** wilds — and a L19 trainee cannot survive them (the same effect measured on 2026-09-08 at
+69 battles / 0 levels).
+‼ **PRODUCTION WOULD NEVER USE THAT GROUND.** `counter_hunt` calls
+`counter_training_ground(mon.level, cfg)` — which exists precisely because of `KI-44`, where Norman's
+config sent a FIERY_PATH Machop to ROUTE102's L3-4 grass and *"training failed 7 of 7, six with the
+bot stranded eight maps from the catch"*. It picks the ground FOR THE COUNTER'S LEVEL.
+⇒ **the regression risk I flagged when committing the fix ("it converts a no-op into real frame
+spend") is real in my fixture and MITIGATED in production by `KI-44`'s ground selection.**
+
+**⇒ WHAT IS AND IS NOT PROVEN, stated exactly:**
+* ✅ `KI-84` is real, and the ported rotation fixes it — the loop continues instead of breaking.
+* ✅ The fix is safe in shape: rotation verified BY PID, failure returns False, `train_team` untouched.
+* ⛔ **NOT shown: that a counter now REACHES its target.** That needs one more arm on a
+  level-appropriate ground (what `counter_training_ground` would actually pick), not Victory Road.
+* ⇒ **`KI-84` alone does not fix `#24-lowlevelmules`.** It makes the loop run; a trainee that cannot
+  survive its grass still gains nothing. The two problems are independent and both must be solved.
+
+**‼ THE OWED FOLLOW-UP IS SMALL:** parameterise the driver's grass (or call
+`counter_training_ground`) and re-run arm B. The mechanism result above does not need repeating.
