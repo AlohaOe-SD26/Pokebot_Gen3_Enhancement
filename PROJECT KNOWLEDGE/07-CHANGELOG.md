@@ -25733,3 +25733,33 @@ a 28.7% failure rate that all three aggregate stories missed in opposite directi
 two lines above the entry saying that claim was wrong. It has no PRODUCTION caller but one TEST
 caller (`repro_no_return_grounds.py`). My original grep was scoped to `sandbox-pokebot/` and
 `PROJECT KNOWLEDGE/`, so `tools/` was invisible — **a MEASURED claim must carry its SCOPE.**
+
+## 2026-09-09 — The telemetry could not follow a Pokémon across a run. One field fixes it, and it unblocks two stalled questions.
+
+**A measured NEGATIVE result first.** Chasing the claim that *"88.8% of laggards are already behind
+when first observed"* — the justification for putting effort at CATCH time rather than at TRAINING
+time — I could not reproduce it, and then found out why.
+**[MEASURED, scope: `x4-runs` 298 `stdout.txt` + its `debug-logs/*.log`, `sandbox-pokebot/profiles` 500 `*.log`, `tools/story-dev` 500 `*.log`]** `Species#PID` occurs in exactly **96** stdout lines, **all of them §Ch23 training
+refusals**, plus ~15 lines from one-off probe drivers. Party snapshots carry `Species:L<level>` and
+nothing else — no PID, no nature, no per-mon exp.
+⇒ **a Pokémon cannot be followed across readings**, so the claim is not reproducible from existing
+data. It stays `[AGENT, UNVERIFIED]` and must not be prioritised from.
+
+**The same gap blocked a second, unrelated question.** The swap-training EXP split (solo vs 2-way) —
+which decides whether §Ch23's bar is **L35 or L42**, and therefore whether `#24-lowlevelmules`'s
+planned fix works — was already filed as needing *"one log line, not more analysis"*. It needed the
+same field.
+
+**✅ SHIPPED — `party_ids` in `modules/debug_logger.py`:** `ids=[Species#PID:L<lv>:exp<n>, …]` per
+heartbeat.
+⛔ **Deliberately a SEPARATE field.** `_party_key` is `["Species:L<lv>"]` and is consumed by
+`_detect_events` — a size change reads as a CATCH, a per-slot change as a LEVEL-UP or EVOLUTION.
+Folding identity or exp into it would change which frames count as a party change: **a behaviour
+change wearing telemetry clothes.** `party_ids` is written to the log and read by nothing.
+⭐ **Cost checked rather than assumed:** `_party_exp` already walks the whole party every frame for
+`total_exp`, so this adds one attribute read per mon; heartbeats fire ~1 per 3,600 frames (measured
+from real f-stamps) ⇒ a few KB per hour, not per frame.
+⭐ **Proven with stubs before shipping:** `Marill#30AD95BD:L13:exp1757`; `None` slots skipped; an
+unreadable PID degrades to `#????????` instead of raising (telemetry must never break a run).
+
+⇒ **One ordinary batch now answers both questions** — no new driver, no fixture, no A/B.

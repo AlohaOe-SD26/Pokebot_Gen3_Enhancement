@@ -391,7 +391,8 @@ def on_frame(frame_info=None) -> None:
             fc,
             f"[hb] mode={st.get('mode')} state={st.get('game_state')} "
             f"controllable={st.get('controllable')} map={_fmt_map(st.get('map'))} "
-            f"pos={st.get('pos')} party={st.get('party_key')} msg={st.get('message')!r}",
+            f"pos={st.get('pos')} party={st.get('party_key')} "
+            f"ids={st.get('party_ids')} msg={st.get('message')!r}",
         )
 
     _prev = st
@@ -582,6 +583,48 @@ def _party_exp():
     return sum(getattr(p, "total_exp", 0) for p in get_party())
 
 
+def _party_ids():
+    """Per-slot IDENTITY + EXP: ``["Species#PID:L<lv>:exp<n>", ...]``.
+
+    ⛔⛔ THIS IS DELIBERATELY **NOT** `_party_key`, AND MUST NEVER BE MERGED INTO IT.
+    `_party_key` is `["Species:L<lv>"]` and is consumed by `_detect_events` — a size change is read
+    as a CATCH and a per-slot change as a LEVEL-UP/EVOLUTION. Folding PIDs or exp into it would
+    change which frames count as a party change: a behaviour change wearing telemetry clothes.
+    This field is written to the heartbeat and read by nothing.
+
+    ⭐ WHY IT EXISTS (measured 2026-09-09; scope: `x4-runs` 298 `stdout.txt` + its
+    `debug-logs/*.log`, `sandbox-pokebot/profiles` + `tools/story-dev` 500 `*.log` each):
+    **no continuous PID-bearing party telemetry existed
+    anywhere.** `Species#PID` appeared in 96 stdout lines, ALL of them §Ch23 refusal messages, plus
+    ~15 from one-off probes. A Pokemon therefore could not be followed across a run, which blocked
+    TWO separate questions that had each already stalled an investigation:
+      * whether laggards are BORN behind (reported 88.8%, never reproducible) — this decides whether
+        the fix belongs at CATCH time or at TRAINING time;
+      * the real EXP split during swap-training (solo vs 2-way), which decides whether §Ch23's bar is
+        L35 or L42 — filed as needing "one log line, not more analysis".
+    ⇒ identity + exp per slot answers both, from ordinary runs, with no new driver.
+
+    ‼ PID, NOT SLOT. Slots are reshuffled by lead rotation and by `_rotate_lead_safely`, so a
+    slot index names a different Pokemon after a swap — this project has three logged bugs from
+    asserting on slot indices.
+    Cost: `_party_exp` already walks the party every frame for `total_exp`; this adds one attribute
+    read per mon, and heartbeats are ~1/3,600 frames.
+    """
+    from modules.pokemon_party import get_party
+
+    out = []
+    for p in get_party():
+        if p is None:
+            continue
+        try:
+            pid = getattr(p, "personality_value", None)
+            pid_s = f"{pid:08X}" if isinstance(pid, int) else "????????"
+            out.append(f"{p.species.name}#{pid_s}:L{p.level}:exp{getattr(p, 'total_exp', 0)}")
+        except Exception:  # noqa: BLE001 - telemetry must never break a run
+            out.append("<unreadable>")
+    return out
+
+
 def _light_state() -> dict:
     """Cheap per-frame read: everything needed for stall detection + event
     detection. Heavier reads (tasks, battle text, generator stack) happen only
@@ -602,6 +645,8 @@ def _light_state() -> dict:
     d["learn_state"] = _safe(_learn_state)
     d["party_key"] = _safe(_party_key)
     d["party_exp"] = _safe(_party_exp)
+    # ⛔ SEPARATE FROM `party_key` ON PURPOSE — see `_party_ids`. Read by nothing; logged only.
+    d["party_ids"] = _safe(_party_ids)
     d["balls"] = _safe(_ball_count)
     return d
 

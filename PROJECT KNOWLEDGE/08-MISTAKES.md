@@ -15451,3 +15451,55 @@ two. ⇒ the durable fix was not another rule but a CHECKED-IN TOOL that (a) anc
 shape and (b) **prints the look-alike it excludes**, so the filter is auditable instead of trusted.
 **When a question has produced more than two conflicting answers, stop answering it and build the
 instrument** — the third grep is not more likely to be right than the first two.
+
+## 2026-09-09 — "I cannot verify this" is a finding, and it pointed at a better deliverable than the one I was chasing
+
+**Symptom.** I set out to verify a figure I had published as `[AGENT, UNVERIFIED]` — *"88.8% of
+laggards are already behind when first seen"* — because it was the justification for choosing what
+to work on next. I could not reproduce it. The instinct was to try harder or to accept the number.
+
+**What the failure actually meant.** The data could not support the question **at all**: party
+telemetry records `Species:L<level>` and nothing stable, so no Pokémon can be followed across
+readings. `Species#PID` existed in 96 lines, all of them one error message. ⇒ the claim was not
+merely unverified, it was **unverifiable with current instrumentation** — and so was a *second*,
+unrelated question that had stalled days earlier for what looked like a different reason.
+
+**⭐⭐ PREVENTION RULE — WHEN A NUMBER CANNOT BE REPRODUCED, ASK WHETHER THE DATA COULD PRODUCE IT AT
+ALL BEFORE ASKING WHETHER IT IS TRUE.** A failed reproduction has two very different causes: the
+claim is wrong, or the measurement was never possible. They call for opposite responses — argue with
+the claim, or **build the instrument**. ⇒ check the SCHEMA before re-running the query.
+‼ And the payoff for asking: two blocked investigations turned out to share one missing field. **A
+gap that blocks two unrelated questions is not a side quest; it is the highest-value thing on the
+board** — and it was invisible while each question was treated on its own.
+
+**⭐ The shape of the fix is worth copying too.** The obvious move was to add identity to the existing
+`party_key`. That key drives event detection, so enriching it would have silently changed which
+frames count as a catch or a level-up — a behaviour change disguised as telemetry. **Adding a
+SEPARATE field that nothing reads costs one line and cannot regress anything.** When instrumenting,
+prefer a new field over enriching a load-bearing one.
+
+### 2026-09-09 (same day, caught by review) — I cited two green gates as validating a file neither gate reads
+
+**Symptom.** Shipping a new `except Exception` in `modules/debug_logger.py`, I listed
+`repro_no_silent_except.py` and `repro_undefined_names.py` among the gates that passed, and let that
+stand as evidence the handler was acceptable. Both **do** pass. **Neither scans that file** —
+`repro_no_silent_except.py`'s budgets cover `modules/story`, `modules/battle_strategies`,
+`modules/battle_action_selection.py` and `modules/modes/util`; `debug_logger.py` is not in `BUDGETS`
+at all, and `repro_undefined_names.py`'s scope is `modules/story` + `plugins/custom_modes` +
+`story_harness.py`. The green was true and **irrelevant**.
+
+**⭐⭐ PREVENTION RULE — A GREEN GATE IS EVIDENCE ONLY ABOUT THE FILES IT ACTUALLY READS. Before
+citing a gate as validation, read its SCOPE/BUDGETS and confirm the file under test is in it.** This
+trap is nastier than a broken gate: a broken gate eventually fails on something, whereas an
+out-of-scope gate passes *identically* whether the code is clean or catastrophic. ⇒ **"the gates are
+green" is not a safety argument for a file outside them** — the argument has to be the code, read
+directly. *(Here it holds: `None` slots skipped, unreadable PID degraded, per-mon `except`, and the
+whole call wrapped again by `_safe()`. That is a real property; it just was not gate-certified, and
+saying so is the difference between an argument and a rubber stamp.)*
+
+**‼ AND A SECOND, SMALLER ONE FROM THE SAME REVIEW: a scope note has to be TRUE, not merely present.**
+I labelled a measurement *"`*.log` only"* when the figure came from `stdout.txt`. The project rule was
+already *"a MEASURED claim must carry its SCOPE"* — I carried one and it was wrong, which is worse
+than none, because a stated scope is the thing a future reader uses to reproduce. ⇒ **paste the scope
+from the command you ran, never from memory of what you meant to run.**
+

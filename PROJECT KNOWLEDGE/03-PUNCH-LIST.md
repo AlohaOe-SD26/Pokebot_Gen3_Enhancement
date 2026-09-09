@@ -1661,6 +1661,17 @@ accident of what the bot happened to meet.
    the new dex numbers. ⚠ And do NOT grade party ORDER: `choose_new_lead_after_battle` legitimately
    rotates the lead after a faint, which catch battles cause often.
 
+- [ ] ⚠ **THE "88.8% ARE BORN BEHIND" FIGURE — WHICH IS THIS ITEM'S PRIORITY ARGUMENT — IS
+  `[AGENT, UNVERIFIED]` AND WAS *UNVERIFIABLE* UNTIL 2026-09-09.** **[MEASURED BY ME — scope:
+  `x4-runs` 298 `stdout.txt` + its `debug-logs/*.log`, `sandbox-pokebot/profiles` 500 `*.log`,
+  `tools/story-dev` 500 `*.log`]** party telemetry recorded `Species:L<level>` and nothing stable:
+  `Species#PID` appeared in **96** stdout lines, **all §Ch23 refusal messages**, plus ~15 lines from
+  one-off probe drivers. ⇒ **a Pokémon could not be followed across a run.**
+  ✅ **FIXED — `modules/debug_logger.py` now emits `ids=[Species#PID:L<lv>:exp<n>, …]` per
+  heartbeat.** Full record under **`#24-lowlevelmules`** (that item owns the measurement); it is
+  noted here only because the same field is what will finally test THIS item's priority argument.
+  ⛔ **Until a run with `party_ids` exists, do not cite 88.8% and do not prioritise from it.**
+
 **STATUS: OPEN, unblocked, and the constraints above are the build spec.**
 
 ---
@@ -3869,8 +3880,27 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   first arrival level clearing the 250,000 ceiling is **L42, not L35**, and 250k at wild-28
   from L26 buys far less than the ~L39 claimed. ⇒ **CATCH-HIGHER + TRAIN-THE-REMAINDER, AS
   SPEC'D, WOULD STILL REFUSE.** ⚠ Not proven: the split is 2 only when swap-training FIRES,
-  so the true cost is between the solo and 2-way columns — which is exactly why the blocked
-  measurement below (log `total_exp` by PID either side of a battle) is the next deliverable.
+  so the true cost is between the solo and 2-way columns — which is exactly why the measurement
+  below (log `total_exp` by PID either side of a battle) was the next deliverable.
+  ✅✅ **THAT BLOCKER IS CLEARED 2026-09-09 — THE TELEMETRY NOW EXISTS.**
+  **[MEASURED BY ME — scope: `x4-runs` 298 `stdout.txt` + its `debug-logs/*.log`,
+  `sandbox-pokebot/profiles` 500 `*.log`, `tools/story-dev` 500 `*.log`]** there was **no continuous
+  PID-bearing party telemetry anywhere**: `Species#PID` occurred in **96** stdout lines, **all of
+  them §Ch23 refusal messages**, plus ~15 from one-off probes. Party snapshots carried
+  `Species:L<level>` and nothing stable ⇒ **a mon could not be followed across readings**, which is
+  why this measurement was blocked and why the *"88.8% born behind"* figure on `#24-dexhunt` is
+  still unverifiable.
+  ✅ **`modules/debug_logger.py` now emits `ids=[Species#PID:L<lv>:exp<n>, …]` in the heartbeat.**
+  ⛔ It is a **SEPARATE field**: `_party_key` is untouched because it drives `_detect_events` (size
+  change ⇒ CATCH, slot change ⇒ LEVEL-UP/EVOLUTION), and folding identity into it would change which
+  frames count as party events — a behaviour change wearing telemetry clothes. Nothing reads the new
+  field. Per-mon safety: `None` slots skipped, an unreadable PID degrades to `#????????`, each mon
+  wrapped in its own `except`, and the whole call wrapped again by the file's `_safe()`.
+  ‼ **NOT GATE-CERTIFIED, and say so honestly:** `repro_no_silent_except.py` and
+  `repro_undefined_names.py` **do not scan `modules/debug_logger.py`**, so their green exits are NOT
+  evidence for that handler; the safety case is the code, read directly.
+  ⇒ **NEXT: one ORDINARY batch answers it** — pair `total_exp` by PID either side of a wild battle
+  where swap-training fires, and the L35-vs-L42 question is settled. No new driver, no fixture.
 - [ ] ⚠ **SURF IS STILL UNSOLVED BY BOTH.** Best pre-Surf ground is Route 117 **L13** (every
   higher-band Surf-learner ground is gated behind Surf itself), and L13+250k → ~L28 < L35. ⇒ the only
   candidate is acquiring a carrier at **§Ch3 (Route 104 Marill L4-5, at team level)** so it is never
