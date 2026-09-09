@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -13213,6 +13213,124 @@ class Ch23RoadMode(BotMode):
         context.set_manual_mode()
 
 
+class Ki84CounterMode(BotMode):
+    """A/B `KI-84`: `train_team(slots={i != 0})` vs ROTATE-then-`train_team(slots={0})`.
+
+    ⛔⛔ WHY: measured over 286 production logs, `counter_hunt.train_counter` reached its target in
+    **0 of 28** calls and ran exactly ONE spin-batch in 21 of them, because
+    `train_team(slots={i})` with `i != 0` builds `need` from `party[i]` BY INDEX and then SWAPS.
+    The fix (ported from §Ch23) rotates to slot 0 first. This driver is the proof.
+
+    Run BOTH arms on the same fixture:
+        POKEBOT_KI84_ARM=A py -3.12 story_harness.py post_ever_grande.ss1 --driver ki84counter \
+            --inject-hmmule --frames 150000
+        POKEBOT_KI84_ARM=B  ... (same)
+    Knobs: `POKEBOT_KI84_TARGET` (default 20), `POKEBOT_MULE_LEVEL` (default 13 — 15 is a good arm).
+
+    ⭐ READ TWO NUMBERS: `batches` and `level_end` (BY PID). Predicted A: batches=1, reached=False.
+    Predicted B: batches>=4, reached=True.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ki84Counter"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log(f"[ki84counter] WHITEOUT #{self.whiteouts}")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        from modules.map_data import PokemonCenter
+        from modules.pokemon_party import get_party
+        from modules.story import early_game as EG
+        from modules.story import victory_road as VR
+        from modules.modes.util.walking import wait_until_truly_controllable
+
+        TAG = "ki84counter"
+        self.battles = getattr(self, "battles", 0)
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        arm = (_os.environ.get("POKEBOT_KI84_ARM") or "A").strip().upper()
+        target = int(_os.environ.get("POKEBOT_KI84_TARGET", "20"))
+
+        yield from wait_until_truly_controllable()
+        party = [m for m in get_party() if m is not None]
+        log(f"[{TAG}] ARM={arm} target=L{target}")
+        log(f"[{TAG}] PARTY {[(m.species.name, m.level) for m in party]}")
+
+        # ---- pick the trainee: the LOWEST-level mon that is not the lead ------------------------
+        cands = [(i, m) for i, m in enumerate(get_party()) if m is not None and i != 0]
+        if not cands:
+            log(f"[{TAG}] ⛔ no non-lead party member — nothing to train."); context.set_manual_mode(); return
+        slot, mon = min(cands, key=lambda p: p[1].level)
+        pid, start_level = mon.personality_value, mon.level
+
+        # ---- ⛔ THE VACUITY GATE, computed BEFORE any frames are spent --------------------------
+        lead = get_party()[0]
+        log(f"[{TAG}] TRAINEE {mon.species.name}#{pid:08X} slot={slot} L{start_level}")
+        log(f"[{TAG}] LEAD    {lead.species.name} L{lead.level}")
+        if not (lead.level >= target > start_level):
+            log(f"[{TAG}] ⛔ VACUOUS: need party[0].level >= target > trainee.level, got "
+                f"{lead.level} >= {target} > {start_level}. ARM A would OSCILLATE rather than exit "
+                f"early, so the arms need not differ. ACCEPTANCE: ABORT")
+            context.set_manual_mode(); return
+        if slot == 0:
+            log(f"[{TAG}] ⛔ VACUOUS: trainee is already the lead, so both arms are identical. "
+                f"ACCEPTANCE: ABORT")
+            context.set_manual_mode(); return
+        log(f"[{TAG}] DISCRIMINATOR OK: {lead.level} >= {target} > {start_level}, slot {slot} != 0")
+
+        # ---- count SPIN BATCHES: the action, not a log line --------------------------------------
+        real_spin = EG._story_spin
+        counter = {"n": 0}
+
+        def counting_spin(*a, **kw):
+            counter["n"] += 1
+            log(f"[{TAG}] BATCH {counter['n']}")
+            return real_spin(*a, **kw)
+
+        EG._story_spin = counting_spin
+        failure = None
+        try:
+            if arm == "B":
+                # THE FIX: rotate to slot 0, ASSERT BY PID, then slots={0}
+                yield from EG._rotate_lead_safely(slot)
+                now = get_party()[0]
+                if now is None or now.personality_value != pid:
+                    log(f"[{TAG}] ⛔ rotation did not land (slot 0 holds "
+                        f"{now.species.name if now else 'nothing'}). ACCEPTANCE: ABORT")
+                    context.set_manual_mode(); return
+                log(f"[{TAG}] rotated {mon.species.name}#{pid:08X} to slot 0 (verified by PID)")
+                yield from EG.train_team(target, slots={0}, grass=VR.TRAIN_SPOT_1F,
+                                         heal_center=PokemonCenter.EvergrandeCity)
+            else:
+                # TODAY'S SHAPE: slots={non-zero}
+                yield from EG.train_team(target, slots={slot}, grass=VR.TRAIN_SPOT_1F,
+                                         heal_center=PokemonCenter.EvergrandeCity)
+        except Exception as error:  # noqa: BLE001 - a refusal IS a reading for this experiment
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+        finally:
+            EG._story_spin = real_spin
+
+        # ---- grade BY PID; the rotation makes slot indices lie -----------------------------------
+        after = next((m for m in get_party() if m is not None and m.personality_value == pid), None)
+        end_level = after.level if after is not None else None
+        reached = end_level is not None and end_level >= target
+        log(f"[{TAG}] RESULT arm={arm} batches={counter['n']} level_start={start_level} "
+            f"level_end={end_level} target={target} reached={reached} "
+            f"battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if reached else 'FAIL'} "
+            f"(arm B must reach the target; arm A is EXPECTED to fail — that is the bug)")
+        context.set_manual_mode()
+
+
 class Ch23TrainMode(BotMode):
     """§Ch23 TRAINING — raise the battlers on VICTORY_ROAD_1F before attempting Wally.
 
@@ -18250,6 +18368,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23RoadMode()
         elif args.driver == "ch23train":
             context.bot_mode_instance = Ch23TrainMode()
+        elif args.driver == "ki84counter":
+            context.bot_mode_instance = Ki84CounterMode()
         elif args.driver == "ch23b1fprobe":
             context.bot_mode_instance = Ch23B1fProbeMode()
         elif args.driver == "ch23push":
