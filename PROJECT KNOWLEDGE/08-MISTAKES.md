@@ -15503,3 +15503,103 @@ already *"a MEASURED claim must carry its SCOPE"* — I carried one and it was w
 than none, because a stated scope is the thing a future reader uses to reproduce. ⇒ **paste the scope
 from the command you ran, never from memory of what you meant to run.**
 
+## 2026-09-09 — "Copy the pattern that worked" is not a cost argument (and a spec's symbol was invented)
+
+**Symptom (avoided, not suffered).** Having just shipped `party_ids` — collected in `_light_state`,
+which runs **every frame** — I was about to add dex telemetry the same way. Pricing it first showed
+the two are not comparable: `party_ids` is free because `_party_exp` **already** walks the party every
+frame, whereas `Pokedex.owned_species` (`modules/pokedex.py:42-52`) loops **412 indices** building a
+`Species` per hit, with `get_pokedex()` re-reading on a stale cache. ⇒ the copy would have put a
+412-iteration scan on the hot path.
+
+**⭐⭐ PREVENTION RULE — TWO FIELDS THAT LOOK IDENTICAL IN THE LOG CAN DIFFER BY ORDERS OF MAGNITUDE IN
+WHAT THEY COST TO PRODUCE. Price the READ, never the output line.** The tell is not the shape of the
+value but whether the surrounding code was *already* paying for it. ⇒ the dex read went in the
+**heartbeat** (~1/minute), and its docstring says why it must never move.
+
+**‼ SEPARATELY, FROM THE SAME ITEM: a design spec named a function that does not exist.**
+It fenced the new path with `counter_hunt.hunt_active()`; the tree has **zero** mentions — the real
+name is `is_armed()`. The cited *line number was right*, which is exactly what makes this shape
+dangerous: precise-looking citation, invented symbol. ⛔ And it would have failed **silently**,
+because the call site wraps everything in `except Exception: return False` ⇒ feature never fires,
+A/B reports "no difference", and the result reads as a **refutation of a feature that never ran**.
+**⭐ RULE: before implementing any spec, grep EVERY symbol it names — a spec is a claim, and a symbol
+name is the cheapest possible claim to check.** *(One invented in six here.)* This generalises the
+existing "grade the NAMES highly and the ARCHITECTURE ADVICE not at all" rule from Gemini to **any**
+agent output, including a multi-agent adversarial pass that had already refuted its own weakest
+angles.
+
+**‼ AND A THIRD, ABOUT MY OWN INSTRUMENT.** To check the pass's run-end frequencies I grepped for
+phrase PRESENCE per run segment and got wildly different numbers (79.6% vs 32.7%) — then realised I
+was measuring *"does this phrase appear anywhere"* while they measured *"what ENDED the run"*.
+`is fodder for a L18 team` is a mid-run relocation message, not a terminal cause. **Neither number
+refutes the other; they are different questions.** ⇒ **PRESENCE CANNOT ATTRIBUTE A TERMINAL CAUSE** —
+the same "an aggregate cannot attribute" error wearing a new costume, and I nearly published it as a
+contradiction. *(What did validate: my segment counts, 53 and 49, matched theirs exactly ⇒ same
+corpus, same boundaries, so the divergence was purely presence-vs-cause.)*
+
+## 2026-09-09 — Five green test arms, none of which called the function under test
+
+**Symptom.** I added dex telemetry, proved it with a stub suite, and shipped. Five arms passed:
+correct dex set, correct delta wording, an unreadable dex degrading to `owned=?`, a shrinking set
+emitting nothing, and the first beat staying silent. **Every arm was true.** A Tier 1 reviewer then
+drove the *real* `on_frame()` and it raised `UnboundLocalError` on the first healthy heartbeat.
+
+**Root cause (mine, and a repeat).** I inserted the `global _last_owned` declaration with a regex
+anchored on `_stall_frames` — a substring that appears in the `global` line of **both** `enable()`
+and `on_frame()`. `re.search` returns the first, so the declaration landed in the function that never
+assigns the name, while the function that does kept treating it as a **local**.
+⛔ **And it would not have failed loudly:** `main.py:101-107` wraps the call in `except Exception:
+pass`, so the result was **every heartbeat line gone, on every run, forever** — including the
+`party_ids` field shipped hours earlier that the next queued measurement depends on. **A telemetry
+change that disables telemetry, invisibly.**
+
+**⭐⭐ PREVENTION RULE — TEST THE FUNCTION THE PRODUCTION LOOP CALLS, NOT THE HELPERS IT CALLS.** My
+five arms exercised `_owned_dex()` and the delta arithmetic *in isolation*; the integration — the
+`global` scoping, the heartbeat condition, the write — was never executed. ⇒ **a suite that never
+invokes the production entry point cannot detect an integration bug, no matter how many arms it
+has.** This is project rule §7 (*instrument the ACTION, not the input to the action*) restated for
+tests, and it is the SAME shape as the gate error logged hours earlier the same day: **a green check
+on something adjacent to the thing under test.** ⇒ before believing a suite, ask *"which line of
+production code does this actually run?"*
+
+**⭐ Second rule, narrower and mechanical: AN EDIT ANCHOR MUST BE UNIQUE — ASSERT THE COUNT.** Every
+doc edit in this project asserts `t.count(OLD) == 1`; I used a bare `re.search` for a *code* edit and
+it silently took the first of two matches. **Same discipline, both file types.** ⇒ this is the third
+"a substring is not a message" failure logged this session, and the first one in a code edit rather
+than a log grep — the pattern is not about logs, it is about **anchoring on something that does not
+uniquely identify the target.**
+
+**✅ THE DURABLE FIX IS A GATE, NOT A RULE: `tools/story-dev/repro_heartbeat_emits.py`** drives the
+real `on_frame()` across two heartbeats and asserts on the real log file. Fault-tested: with the
+`global` removed it reports `UnboundLocalError` and **0** heartbeat lines.
+‼ Its own first version produced a **FALSE FAIL** on correct code — it passed the frame count as an
+argument, but `on_frame` reads it from `_light_state()["frame"]`. The existing rule *"when a probe
+FAILS, read the failing line before touching the thing under test"* is what prevented me from
+'fixing' code that was already right. **That rule has now paid for itself four times.**
+
+## 2026-09-09 — A new gate's self-tests passed; the real tree failed it on the first run
+
+**Symptom.** I wrote `check_gate_arithmetic` to catch a self-contradicting sentence (*"49 gates
+(46 ENFORCING + 2 ADVISORY)"*), gave it five self-tests, and all five passed — including a
+deliberate no-false-positive case. Run against the actual documentation it **immediately fired on
+correct text**: `gates|entries` was optional in the pattern, so the leading `(\d+)` captured the `0`
+from *"must exit 0; the suite is 49 gates …"*.
+
+**⭐⭐ PREVENTION RULE — RUN A NEW GATE OVER THE REAL CORPUS BEFORE TRUSTING ITS SELF-TESTS.**
+Synthetic cases are written from the same mental model as the pattern, so they share its blind spots:
+not one of my five had a number earlier in the line, because I was not *thinking* about preceding
+numbers. **The corpus contains shapes the author did not imagine — that is the entire reason it is
+worth checking.** ⇒ every new gate gets one real-tree run before it is believed, and any false
+positive found there becomes a permanent self-test (here, **GA6**).
+‼ This is the same shape as the failure logged hours earlier — *five test arms that never called the
+function under test*. **Both are "the test exercised what I was already thinking about."**
+
+**‼ AND A RULE I BROKE WHILE FIXING IT.** I edited `audit_doc_consistency.py` by piping Python
+through a shell, against this project's explicit rule to *write file-editing Python to a FILE*. The
+shell expanded a `\n` inside a nested string, producing an unterminated literal — and because the
+write happened before the `ast.parse` check, **it left the gate file broken on disk**.
+⇒ **A RULE I CAN RECITE IS NOT A RULE I FOLLOW UNDER MOMENTUM.** I quoted a different rule at myself
+one command earlier. The protection is structural, not mental: **the edit goes in a file, and the
+file parses before it is written** — order matters, `ast.parse` BEFORE `write_text`, not after.
+

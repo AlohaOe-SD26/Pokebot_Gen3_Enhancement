@@ -241,7 +241,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 48 entries = 46 ENFORCING + 2 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 49 entries = 47 ENFORCING + 2 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips 8 ROM gates and is NOT a green suite.
 #   ⏱ MEASURED 2026-09-05: `--quick` ~31-40s for its 33 gates *(the TIMING is from 2026-09-05; the COUNT is now 36 — `run_gates.py` is the authority, and line 244 above carries the current figure)*; the FULL suite is dominated by

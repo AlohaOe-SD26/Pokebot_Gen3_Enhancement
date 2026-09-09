@@ -109,6 +109,10 @@ GATES: list[tuple[str, bool]] = [
     ("audit_encoding.py", False),
     ("repro_box_counter_move_test.py", False),
     ("repro_pid_identity_key.py", False),
+    # ⛔ ADDED 2026-09-09 after a telemetry change put `_last_owned` in the WRONG function's
+    # `global`, making every heartbeat raise UnboundLocalError INSIDE main.py's `except: pass`
+    # ⇒ all telemetry silently dead. A stub suite passed 5 arms and never called `on_frame()`.
+    ("repro_heartbeat_emits.py", False),
     # ‼ KI-80. A boss cfg may not gain a `"grass"` key while `grass_is_fodder` is still the sole
     # gate on `_boss_plan_is_hopeless`/`_counter_ladder` — doing so SKIPS the counter machinery
     # for teams above the patch's band + 8, silently, behind a healthy-looking log line. The

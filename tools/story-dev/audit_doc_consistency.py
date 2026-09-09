@@ -1417,6 +1417,18 @@ def self_test() -> int:
     # sandbox-only. ⛔ Scoped to drift == 0, so these only mean anything when nothing is pending;
     # if the tree ever has real drift, P26a is EXPECTED to go quiet and that is correct, not a
     # broken test — hence the guard below rather than a bare assertion.
+    expect("GA1 a self-contradicting triple -> fires",
+           check_gate_arithmetic({"T": "the suite is 49 gates (46 ENFORCING + 2 ADVISORY)\n"}), True)
+    expect("GA2 a consistent triple -> quiet",
+           check_gate_arithmetic({"T": "the suite is 49 gates (47 ENFORCING + 2 ADVISORY)\n"}), False)
+    expect("GA3 the fenced command form, consistent -> quiet",
+           check_gate_arithmetic({"T": "run_gates.py  # 49 entries = 47 ENFORCING + 2 ADVISORY\n"}), False)
+    expect("GA4 the fenced command form, broken -> fires",
+           check_gate_arithmetic({"T": "run_gates.py  # 48 entries = 47 ENFORCING + 2 ADVISORY\n"}), True)
+    expect("GA5 prose that merely MENTIONS the words -> quiet (no false positive)",
+           check_gate_arithmetic({"T": "every ENFORCING gate and each ADVISORY one must be listed\n"}), False)
+    expect("GA6 a PRECEDING number on the same line -> quiet (the real-tree false positive)",
+           check_gate_arithmetic({"T": "must exit 0; the suite is 49 gates (47 ENFORCING + 2 ADVISORY)\n"}), False)
     _dr, _ = real_drift()
     if _dr == 0:
         expect("P26a `SANDBOX-ONLY; a promotion is the USER's call` while drift is 0 -> fires",
@@ -1513,6 +1525,34 @@ def self_test() -> int:
 
 
 # ---------------------------------------------------------------------------- main
+def check_gate_arithmetic(raw_files) -> list[str]:
+    """`N gates = E ENFORCING + A ADVISORY` must satisfy N == E + A.
+
+    ⛔ ADDED 2026-09-09 BECAUSE `check_gate_counts` PASSED CLEAN OVER A SELF-CONTRADICTING SENTENCE.
+    That check compares the stated TOTAL against `run_gates.py` — and the total was correct. Nothing
+    compared the total to its own breakdown, so *"the suite is 49 gates (46 ENFORCING + 2
+    ADVISORY)"* was green. A correction that bumps one number of a triple and not the others is the
+    likeliest way this drifts, and it is pure arithmetic ⇒ it belongs in a gate, not in review.
+
+    ‼ TAKES `raw_files`: `_read()` blanks code fences and one of these sentences is a fenced command
+    comment. Wiring it to the fence-stripped text would make it silently blind — the same bug this
+    file already logged for `check_gate_count_in_commands`.
+    """
+    out = []
+    # ‼ `gates|entries` is REQUIRED, not optional. The first draft made it optional and the
+    # leading `(\d+)` then captured the `0` of "exit 0; the suite is 49 gates …" ⇒ a FALSE
+    # POSITIVE on correct text, found by running against the real tree, not by the self-tests.
+    pat = re.compile(r"(\d+)\s*(?:gates|entries)\b[^.\n]{0,44}?(\d+)\s+ENFORCING\s*\+\s*(\d+)\s+ADVISORY")
+    for name, text in raw_files.items():
+        for i, line in enumerate(text.splitlines(), 1):
+            for m in pat.finditer(line):
+                total, enf, adv = (int(x) for x in m.groups())
+                if total != enf + adv:
+                    out.append(f"  ‼ FAIL  {name}:{i} says {total} = {enf} ENFORCING + {adv} "
+                               f"ADVISORY, but {enf}+{adv}={enf + adv}: {m.group(0)[:70]!r}")
+    return out
+
+
 def main() -> int:
     if "--self-test" in sys.argv:
         return self_test()
@@ -1525,6 +1565,7 @@ def main() -> int:
     raw_files = {name: (DOCS / name).read_text(encoding="utf-8", errors="replace")
                  for name in CURRENT_STATE if (DOCS / name).exists()}
     failures += check_gate_count_in_commands(raw_files)
+    failures += check_gate_arithmetic(raw_files)
     # ‼ BOTH texts: the legacy rules need fences STRIPPED, the claim-shape rules need them KEPT.
     # See check_drift's docstring — the authoritative `Expect …: 0 differing` line lives in a fence.
     failures += check_drift(files, raw_files)

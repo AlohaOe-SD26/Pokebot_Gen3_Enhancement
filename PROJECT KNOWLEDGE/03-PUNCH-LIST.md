@@ -1672,7 +1672,43 @@ accident of what the bot happened to meet.
   noted here only because the same field is what will finally test THIS item's priority argument.
   ⛔ **Until a run with `party_ids` exists, do not cite 88.8% and do not prioritise from it.**
 
-**STATUS: OPEN, unblocked, and the constraints above are the build spec.**
+- [x] ⭐⭐ **DESIGNED 2026-09-09 (6-agent adversarial pass) — VERDICT: BUILD A NARROWER VERSION,
+  AND ONE PREREQUISITE MUST SHIP FIRST.** The shape that survived: post-badge catching allowed
+  **only at a FULL party** (so the game stores it via `CopyMonToPC` and it cannot consume the
+  HM/counter runway `#24-partycap` measured as load-bearing) **and only when no hunt is armed**.
+  ✅ **STRUCTURAL CLAIMS I VERIFIED MYSELF** (static reads — these are what the build rests on):
+    * `ensure_hm_learner` is **SELF-FENCED**: `early_game.py:4505-4506` raises at `party_count >= 6`
+      *before* its spin ⇒ **a party==6 dex gate can never fire during an HM hunt.**
+    * `counter_hunt.catch_confirmed` is **SPECIES-BLIND on the box path**: `counter_hunt.py:363-365`
+      returns True for **any** new box PID ⇒ an unrelated dex catch at party 6 would END the spin,
+      the species-aware verdict would then find nothing, and the ladder fails. ⛔ **This is the real
+      landmine and it is why the "no armed hunt" half of the fence is not optional.**
+  ⛔⛔ **THE SPEC AS DRAFTED WOULD NOT HAVE WORKED — AND WOULD HAVE FAILED SILENTLY.** It calls
+  `counter_hunt.hunt_active()`. **That function does not exist** (0 mentions); the real name is
+  **`is_armed()`** — the cited line `:73` is correct, the NAME is invented. Because `_should_catch`
+  wraps its body in `except Exception: return False`, the `AttributeError` would have been
+  **swallowed**: the feature would never fire, and the A/B would have read "no difference" ⇒ **a
+  REFUTATION of a feature that was never running.** ‼ Five other symbols checked out (`is_armed`,
+  `HM_CATCH_TARGET_DEX` `early_game.py:4330`, `number_of_balls_except_master_ball` `items.py:447`,
+  `_should_catch`'s single call site, `StoryCatchStrategy`). **One invented in six.**
+  ✅ **PREREQUISITE NOW SHIPPED — dex telemetry** (`modules/debug_logger.py`): `owned=<n>` on every
+  heartbeat plus `[DEX] owned N -> M: +#<dex>…` when the set grows. Before this there was **zero**
+  dex telemetry — the only story-path read of `owned_species` was `_should_catch`'s own gate ⇒
+  every arm of the A/B graded on nothing.
+  ⛔ **THE FIRST VERSION OF THAT PREREQUISITE WAS BROKEN AND TIER 1 CAUGHT IT**: `_last_owned`'s
+  `global` landed in `enable()` instead of `on_frame()` (my regex anchored on `_stall_frames`, which
+  is in BOTH), so every heartbeat raised `UnboundLocalError` inside `main.py`'s `except: pass` ⇒
+  **all telemetry silently dead, including `party_ids`.** Fixed in both functions (`enable()` also
+  gained the missing per-run `_last_owned = None` reset, or run 2 of a batch would diff against run
+  1's dex), and now GATED by `tools/story-dev/repro_heartbeat_emits.py`, which drives the **real
+  `on_frame()`** and is fault-tested (arm B: 0 heartbeat lines).
+  ⇒ **NEXT: write the fence using `is_armed()`, and grade on `owned` strictly increasing.**
+  ⚠ Also required by the build (not yet done): `story_mode.py:2500` prints *"for the team!"* — at
+  party 6 the mon goes to a BOX. It does **not** lie today (the gate requires party < 4); it would
+  begin lying the moment the fence lands, so it changes **in the same commit**.
+
+**STATUS: OPEN — the fence is specified and its prerequisite is shipped; `hunt_active()` must be
+written as `is_armed()`.**
 
 ---
 

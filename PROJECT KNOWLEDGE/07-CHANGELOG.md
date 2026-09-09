@@ -25763,3 +25763,92 @@ from real f-stamps) ⇒ a few KB per hour, not per frame.
 unreadable PID degrades to `#????????` instead of raising (telemetry must never break a run).
 
 ⇒ **One ordinary batch now answers both questions** — no new driver, no fixture, no A/B.
+
+## 2026-09-09 — `#24-dexhunt` designed adversarially: the spec called a function that does not exist
+
+**A 6-agent adversarial design pass returned a build spec, and the single most valuable thing about
+it was a symbol I checked.** The spec fences the new catching path with `counter_hunt.hunt_active()`.
+**That function does not exist** — 0 mentions in the tree. The real name is `is_armed()`, and the
+line number the spec cited (`counter_hunt.py:73`) is *correct*: the location was right, the NAME was
+invented.
+
+⛔ **Why that would have been expensive rather than obvious.** `_should_catch` wraps its body in
+`except Exception: return False`. An `AttributeError` there is **swallowed** ⇒ the dex catch never
+fires, no error is logged, and the A/B reports "no difference" — which reads as a **refutation of the
+feature**. A vacuous arm, in code instead of in a fixture, and invisible because it fails CLOSED.
+‼ Five other symbols checked out (`is_armed`, `HM_CATCH_TARGET_DEX`, `number_of_balls_except_master_ball`
+at `items.py:447`, `_should_catch`'s single call site, `StoryCatchStrategy`). **One invented in six.**
+
+**Two structural claims verified by direct read, because the build rests on them:**
+* `ensure_hm_learner` is **self-fenced** — `early_game.py:4505-4506` raises at `party_count >= 6`
+  *before* its spin ⇒ a party==6 dex gate **can never** collide with an HM hunt.
+* `counter_hunt.catch_confirmed` is **species-blind on the box path** — `counter_hunt.py:363-365`
+  returns True for *any* new box PID ⇒ an unrelated catch at party 6 ends the spin and the ladder
+  then reports "found nothing". **That is the real landmine**, and it is why the fence needs its
+  "no armed hunt" half.
+
+**✅ SHIPPED — the prerequisite the design pass named as its cheapest next action: dex telemetry.**
+`modules/debug_logger.py` now prints `owned=<n>` on each heartbeat and `[DEX] owned N -> M: +#<dex>`
+when the set grows. There was **zero** dex telemetry before: the only story-path read of
+`owned_species` was `_should_catch`'s own gate, so every arm of the proposed A/B graded on nothing.
+
+⭐⭐ **AND IT IS NOT A COPY OF `party_ids`, WHICH IS THE INTERESTING PART.** `party_ids` sits in
+`_light_state` (every frame) and that is free — `_party_exp` already walks the party every frame.
+**A dex read is not free:** `Pokedex.owned_species` (`modules/pokedex.py:42-52`) loops **412 indices**
+and constructs a `Species` per hit, and `get_pokedex()` re-reads when the state cache is stale. ⇒ it
+went in the **heartbeat block instead — ~1 read/minute rather than 3,600.**
+⛔⛔ **AND THE FIRST VERSION OF THIS SHIPPED A BUG THAT WOULD HAVE SILENTLY KILLED ALL TELEMETRY —
+CAUGHT BY TIER 1, NOT BY ME.** The `global` declaration for `_last_owned` landed in **`enable()`**
+instead of **`on_frame()`**, because the regex I anchored it with matched `_stall_frames`, which
+appears in BOTH functions' `global` lines, and `re.search` returns the first. Since `on_frame`
+*assigns* that name, Python made it a **local for the whole function** ⇒ `UnboundLocalError` on the
+first healthy heartbeat. ‼ `main.py:101-107` wraps the call in `except Exception: pass`, so it would
+not have crashed — it would have **silently removed every `[hb]` line from every run, forever**,
+including the `party_ids` field shipped hours earlier that the next queued measurement depends on.
+**A telemetry change that disables telemetry, invisibly.**
+
+⭐⭐ **THE STUB SUITE THAT PASSED IS THE REAL LESSON.** Five arms went green — correct set, correct
+delta wording, unreadable dex degrades, shrinking set silent, first beat silent. **Every arm was
+true. Not one called `on_frame()`.** They exercised `_owned_dex()` and the delta arithmetic in
+isolation ⇒ the PIECES were proven and the PATH was never run. *(An earlier DRAFT of this entry — rewritten before any commit, so git cannot show it — claimed "proven with stubs, 5 arms" as evidence the field worked. That claim was true of the helpers and false of the shipped code.)*
+
+✅ **REPLACED BY A CHECKED-IN GATE: `tools/story-dev/repro_heartbeat_emits.py`** — it stubs only the
+two emulator-touching readers and drives the **real `on_frame()`** across two heartbeat intervals,
+asserting on the real log file. **Fault-tested, both arms pasted:**
+```
+ARM A — the tree as it stands          ARM B — FAULT-INJECTED (global removed)
+  exception   : None                     exception  : UnboundLocalError: cannot access local
+  [hb] lines  : 2                                     variable '_last_owned' ...
+  f3600 [hb] ... ids=['Torchic#...']     [hb] lines : 0   ⇐ telemetry SILENTLY DEAD
+  f7200 [DEX] owned 2 -> 3: +#183
+```
+‼ **And the first version of that repro produced a FALSE FAIL on correct code** — it passed the frame
+count as an argument, but `on_frame` reads it from `_light_state()["frame"]`, so `_start_frame` stayed
+`None` and the heartbeat could never fire. The project rule *"when a probe FAILS, read the failing
+line before touching the thing under test"* is what stopped me from 'fixing' working code.
+
+### 2026-09-09 (kick-back #2) — a sentence that contradicted itself, and the gate that now forbids it
+
+**Tier 1 refused the fix, correctly.** Correcting the suite size I replaced "48" with "49" and left
+the paired breakdown alone ⇒ **"the suite is 49 gates (46 ENFORCING + 2 ADVISORY)"** — 46+2=48, in
+the two most prominent *"run_gates.py must exit 0"* lines in the handoff.
+
+⭐⭐ **AND `audit_doc_consistency.py` PASSED CLEAN OVER IT.** That gate compares the stated TOTAL
+against `run_gates.py`; the total was right. **Nothing compared the total to its own breakdown.**
+⇒ that is the THIRD time in one day a green check sat *adjacent* to the thing under test — the
+others being two gates cited as validating a file neither scans, and five test arms that never
+called the function under test. **The pattern is not "gates are unreliable": it is that a gate's
+SCOPE is invisible at the place its PASS gets quoted.**
+
+**✅ SO IT IS NOW A GATE, not a rule.** `check_gate_arithmetic` in `audit_doc_consistency.py`: any
+sentence of the form `N gates = E ENFORCING + A ADVISORY` must satisfy `N == E + A`. Wired to
+`raw_files`, not the parsed text, because `_read()` blanks code fences and one of these sentences is
+a fenced command comment — the exact blindness this file already logged once for
+`check_gate_count_in_commands`. **Six self-tests**, including two that must stay QUIET (prose that
+merely mentions the words; a line with a preceding unrelated number).
+
+‼ **AND ITS FIRST VERSION HAD A FALSE POSITIVE THE SELF-TESTS COULD NOT SEE.** `gates|entries` was
+optional, so the leading `(\d+)` captured the `0` of *"must exit 0; the suite is 49 gates …"* and
+fired on correct text. Five synthetic tests passed; **the real tree failed on the first run**, because
+no synthetic case had a number earlier in the line. ⇒ tightened to require the noun, and the real-tree
+shape is now self-test **GA6**.
