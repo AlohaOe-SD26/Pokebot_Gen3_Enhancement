@@ -15603,3 +15603,30 @@ write happened before the `ast.parse` check, **it left the gate file broken on d
 one command earlier. The protection is structural, not mental: **the edit goes in a file, and the
 file parses before it is written** — order matters, `ast.parse` BEFORE `write_text`, not after.
 
+## 2026-09-09 — The queued next action would have run the wrong fork and produced a false negative
+
+**Symptom (caught before spending it, not after).** Three documents — the handoff banner, the live
+queue, and the owning punch-list item — instructed the next session to *"run ONE ORDINARY batch"* to
+settle two questions I had just unblocked with new telemetry. Before starting it I checked which fork
+the batch runner drives: **`x4_headless.py` sets `BUILD_NAME = "custom"`**, deliberately, so that a
+batch measures the fork that holds still. **Both new fields are sandbox-only** — measured:
+`custom-pokebot/modules/debug_logger.py` contains `party_ids` **0** times and `_owned_dex` **0** times.
+
+⇒ the instruction as written burns hours of runtime and emits **no `ids=`, no `owned=`, no `[DEX]`**.
+⛔ **And the failure would not have looked like a failure.** The natural reading of an empty result is
+*"the data does not support the claim"* — a **FALSE NEGATIVE wearing the costume of an answer**, on
+the exact figure (*"88.8% born behind"*) that decides where the next month of work goes.
+
+**⭐⭐ PREVENTION RULE — AN INSTRUCTION TO "RUN X" MUST NAME THE BUILD IT RUNS AGAINST WHENEVER THE
+THING BEING MEASURED IS NOT YET PROMOTED.** New instrumentation lives in the sandbox by definition,
+and the batch runner defaults to custom by design; those two correct decisions compose into a silent
+trap **every single time**, so the flag belongs in the instruction, not in the reader's memory.
+
+**‼ AND THE PART THAT SHOULD WORRY A FUTURE AGENT: THIS PASSED EVERYTHING.** P1-P5 all agreed, three
+gates were green, and two Tier 1 reviews had read the surrounding text. **Consistency checks cannot
+see a missing flag** — every document said the same true-but-unusable thing. It is the same class as
+the handed-off A/B whose named fixture made both arms identical: *perfectly self-consistent and
+perfectly vacuous*. ⇒ **the strongest test of a handoff is not "do its halves agree?" but "does
+following it literally produce the measurement it promises?"** — which is exactly what Tier 2's
+"try to BEGIN the next item" clause is for, and why that clause outranks the pair checks.
+

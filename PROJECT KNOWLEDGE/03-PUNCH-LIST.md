@@ -3935,7 +3935,9 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   ‼ **NOT GATE-CERTIFIED, and say so honestly:** `repro_no_silent_except.py` and
   `repro_undefined_names.py` **do not scan `modules/debug_logger.py`**, so their green exits are NOT
   evidence for that handler; the safety case is the code, read directly.
-  ⇒ **NEXT: one ORDINARY batch answers it** — pair `total_exp` by PID either side of a wild battle
+  ⇒ **NEXT: one ORDINARY batch answers it — `PYTHONUTF8=1 py -3.12 x4_headless.py --build sandbox`.**
+  ⛔ **`--build sandbox` IS MANDATORY** (`x4_headless.py` defaults to `custom`, and BOTH fields are sandbox-only — `custom-pokebot/modules/debug_logger.py` has `party_ids` 0x, `_owned_dex` 0x, measured 2026-09-09) ⇒ a default batch emits NOTHING and reads as a refutation.
+  Pair `total_exp` by PID either side of a wild battle
   where swap-training fires, and the L35-vs-L42 question is settled. No new driver, no fixture.
 - [ ] ⚠ **SURF IS STILL UNSOLVED BY BOTH.** Best pre-Surf ground is Route 117 **L13** (every
   higher-band Surf-learner ground is gated behind Surf itself), and L13+250k → ~L28 < L35. ⇒ the only
