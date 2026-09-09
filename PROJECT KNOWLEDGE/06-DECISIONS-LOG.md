@@ -4767,3 +4767,46 @@ meaningless.
 ⚠ **HONEST SCOPE:** this decision is about WHERE and WHETHER to teach. It does not address the HM
 funnel that leaves 5 of 6 measured parties with no spendable slot — that is `#24-hm07funnel`, filed
 and unbuilt, and it is the reason Change A alone rescues only one of the six.
+
+## 2026-09-08 — An accumulate-reasons predicate must handle the EMPTY input EXPLICITLY (`team_is_ready`)
+
+**Decision.** `victory_road.team_is_ready` now REFUSES (returns `(False, [...])`) when
+`battler_identities()` is empty, instead of falling out of its loop and returning `(True, [])`.
+
+**Why this was a real defect and not a hypothetical.** The function decides readiness by APPENDING to
+`reasons` while iterating the battler set. An empty set means the loop never runs, so `reasons` stays
+empty, so the party is certified READY — **absence of evidence read as evidence of absence.** §Ch23
+would then return early having trained nobody.
+⭐ It is the **THIRD** defect of that exact shape in this one function, both others already recorded in
+its own comments: the `POKEBOT_CH23_TRAIN_TARGET=53` parameter that reached only half the function,
+and the Crunch test that stopped asking at exactly L47. **All three grade PASS by never evaluating.**
+
+**Alternatives rejected.**
+* *Leave it — an empty battler set "cannot happen".* Rejected: it is reachable today (a party of only
+  eggs or only `BENCH_SPECIES`), and more importantly the ONLY untested fix direction left on
+  `#24-lowlevelmules` is benching by ROLE in `battler_identities`. A role predicate one clause too
+  broad empties the set, and the bug would then surface as a **PASSING run** — this project's most
+  expensive failure mode (§Ch15/§Ch18/§Ch19 all PASSED their own acceptance tests while stranding the
+  bot). ⇒ the guard must exist BEFORE that predicate is touched, not alongside it.
+* *Raise instead of returning `(False, reasons)`.* Rejected: the caller's contract is a
+  `(bool, list)` tuple and callers already render `reasons`; raising would bypass their reporting.
+* *Warn and continue.* Rejected: that is the silent-pass this fixes, with extra text.
+
+**Why it is safe to ship without a drive.** The change is **fail-safe by construction** — it can only
+convert a silent `True` into a loud `False`, never the reverse, so it cannot mask a real readiness.
+Its no-fire arm ("a genuinely ready team must still pass") is the one that proves this.
+
+**Evidence — raw output of `py -3.12 probe_empty_battler_guard.py`, gate #48:**
+```
+    ==============================================================================================
+    GATE — `team_is_ready` must never grade READY on an empty battler set
+    ==============================================================================================
+    
+      arms: 4 (1 fault, 3 no-fire — incl. 'a ready team still passes')
+    
+    ----------------------------------------------------------------------------------------------
+    ✅ PASS — an empty battler set refuses loudly; real verdicts are unchanged.
+    ==============================================================================================
+```
+**Fault test (the arm that matters):** with `if not battlers:` replaced by `if False:` the gate exits
+**1**; with the file restored byte-identical it exits **0**. ⇒ the gate is not inert.

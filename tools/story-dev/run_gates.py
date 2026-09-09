@@ -393,6 +393,21 @@ GATES: list[tuple[str, bool]] = [
     # the SAME key, which a single-string arm cannot see.
     # Pure and fast: imports one function, reads no ROM.
     ("probe_derail_grouping.py", False),
+    # ⛔⛔ `team_is_ready` builds its verdict by APPENDING to `reasons` while looping over
+    # `battler_identities()`. An EMPTY dict means the loop never runs, `reasons` stays [], and it
+    # returns **(True, [])** — a party with nothing that can fight the Elite Four is certified READY,
+    # silently, and §Ch23 returns early having trained nobody.
+    # ⭐ A CHECK THAT ANSWERS WITHOUT ASKING — the third of that shape in this one function (the
+    # `POKEBOT_CH23_TRAIN_TARGET=53` flag that reached half the function; the Crunch test that
+    # stopped asking at exactly L47). All three grade PASS by never evaluating.
+    # ‼ GATED NOW, BEFORE IT IS NEEDED: the only untested fix direction left on `#24-lowlevelmules`
+    # is benching by ROLE in `battler_identities`, and a predicate one clause too broad EMPTIES the
+    # set — surfacing as a PASSING run, this project's most expensive failure mode.
+    # ⭐ 4 arms (1 fault, 3 no-fire, incl. "a genuinely ready team still passes"), run against the
+    # REAL function with `battler_identities`/`get_party` monkeypatched. Fault-tested: disable the
+    # guard and it exits 1; restored (byte-identical) it exits 0.
+    # Pure and fast: imports one bot module, reads no ROM.
+    ("probe_empty_battler_guard.py", False),
 ]
 
 

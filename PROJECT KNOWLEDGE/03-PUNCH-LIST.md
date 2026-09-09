@@ -352,7 +352,7 @@ stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in
       flipped to `2` turned the gate red at `04-HANDOFF.md:209` naming both figures, file restored
       byte-identical. Narrative: `07-CHANGELOG.md` 2026-08-26.
 
-### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ⚠ **Drift: run `promote.py --check` (the authority; never restated here)** — `modules/story/victory_road.py` (COMMENT-ONLY, the refuted-stepping note) and `modules/story/counter_hunt.py` (the `KI-84` workaround, ⚠ **UNDRIVEN** — its A/B is `--driver ki84counter`). SANDBOX-ONLY; ⛔ do NOT promote `counter_hunt.py` before that A/B. *(was 1 as of 2026-09-08 — `modules/story/victory_road.py`, and it is COMMENT-ONLY** (9 insertions, 0 deletions: the note recording that the stepping fix was DRIVEN AND REFUTED, so it is not rebuilt). ⛔ Not a behaviour difference; promoting it is optional and cosmetic. *(was 0 as of 2026-09-08 — ALL FIVE PROMOTED (`KI-96`, `#24-truckleak`, `#24-pcpingpong`, `#24-hm07teach`, `#24-hm07funnel` + the whiteout budget), **PROMOTED 2026-09-08, user-authorised, verified by driving `--build custom` (`ACCEPTANCE: PASS`, `done=True`, `battles=12`, `whiteouts=0`); rollback tag `pre-promote-2026-09-08`**. *(was: drift 5, sandbox-only — ⛔ **the batch that blocked promotion FINISHED 2026-09-08 (`x4-runs/20260907-203713`), so nothing is waiting on it; PROMOTING IS THE USER'S CALL**. *(was: `battle_action_selection.py` for `KI-96`, `mossdeep_gym.py` for `#24-mossdeepstrand`, `counter_plan.py` for `#24-countermsg`, plus `story_mode.py`, the `KI-95` fix, sandbox-only and awaiting the user's promotion call); it was 0 — PROMOTED 2026-09-06.** *(pre-promotion count now lives in `DIVERGENCE-LOG.md`; the file detail is kept:)* (`modules/story/pokemon_league.py` joined 2026-09-04 — the §Ch24 out-of-battle party heal; `modules/story/overworld_items.py` joined 2026-09-04 — the NEW pure out-of-battle healing policy for `#24-e4healing`, gate #36; `modules/modes/util/walking.py` joined on 2026-09-04 — the `#24-waterfalltimeout` fix; 2026-09-03: `chapters.py` for a §Ch23 correctness fix, plus the new sandbox-only chapter modules `sootopolis_gym.py` and `victory_road.py`) — ✅✅ **PROMOTED 2026-09-06 with USER APPROVAL, which took drift to 0** *(it went to 2 on 2026-09-06 — `story_mode.py` for `KI-95` and `battle_action_selection.py` for `KI-93` — and back to **0 on 2026-09-07** when both were PROMOTED and driven-verified)*, driven-verified against `--build custom`; see `custom-pokebot/DIVERGENCE-LOG.md`. *(this read "PROMOTION IS THE USER'S CALL and is not implied", true until that date.)* ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
+### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ⚠ **Drift: run `promote.py --check` (the authority; never restated here)** — `modules/story/victory_road.py` (⚠ **NO LONGER COMMENT-ONLY as of 2026-09-08** — it now also carries the `team_is_ready` EMPTY-BATTLER GUARD, a real behaviour change: an empty battler set used to return `(True, [])` and certify a broken run READY. Gate #48 `probe_empty_battler_guard.py` locks it, fault-tested) and `modules/story/counter_hunt.py` (the `KI-84` workaround, ⚠ **UNDRIVEN** — its A/B is `--driver ki84counter`). SANDBOX-ONLY; ⛔ do NOT promote `counter_hunt.py` before that A/B. *(was 1 as of 2026-09-08 — `modules/story/victory_road.py`, and it is COMMENT-ONLY** (9 insertions, 0 deletions: the note recording that the stepping fix was DRIVEN AND REFUTED, so it is not rebuilt). ⛔ Not a behaviour difference; promoting it is optional and cosmetic. *(was 0 as of 2026-09-08 — ALL FIVE PROMOTED (`KI-96`, `#24-truckleak`, `#24-pcpingpong`, `#24-hm07teach`, `#24-hm07funnel` + the whiteout budget), **PROMOTED 2026-09-08, user-authorised, verified by driving `--build custom` (`ACCEPTANCE: PASS`, `done=True`, `battles=12`, `whiteouts=0`); rollback tag `pre-promote-2026-09-08`**. *(was: drift 5, sandbox-only — ⛔ **the batch that blocked promotion FINISHED 2026-09-08 (`x4-runs/20260907-203713`), so nothing is waiting on it; PROMOTING IS THE USER'S CALL**. *(was: `battle_action_selection.py` for `KI-96`, `mossdeep_gym.py` for `#24-mossdeepstrand`, `counter_plan.py` for `#24-countermsg`, plus `story_mode.py`, the `KI-95` fix, sandbox-only and awaiting the user's promotion call); it was 0 — PROMOTED 2026-09-06.** *(pre-promotion count now lives in `DIVERGENCE-LOG.md`; the file detail is kept:)* (`modules/story/pokemon_league.py` joined 2026-09-04 — the §Ch24 out-of-battle party heal; `modules/story/overworld_items.py` joined 2026-09-04 — the NEW pure out-of-battle healing policy for `#24-e4healing`, gate #36; `modules/modes/util/walking.py` joined on 2026-09-04 — the `#24-waterfalltimeout` fix; 2026-09-03: `chapters.py` for a §Ch23 correctness fix, plus the new sandbox-only chapter modules `sootopolis_gym.py` and `victory_road.py`) — ✅✅ **PROMOTED 2026-09-06 with USER APPROVAL, which took drift to 0** *(it went to 2 on 2026-09-06 — `story_mode.py` for `KI-95` and `battle_action_selection.py` for `KI-93` — and back to **0 on 2026-09-07** when both were PROMOTED and driven-verified)*, driven-verified against `--build custom`; see `custom-pokebot/DIVERGENCE-LOG.md`. *(this read "PROMOTION IS THE USER'S CALL and is not implied", true until that date.)* ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
 
 ### ✅ `#24-ch23wally` — **CLOSED 2026-09-04: WALLY IS BEATEN.** ✅ Option (b) (the faint-replacement ranking) is **DONE 2026-09-06** — `KI-95`, gate #39, sandbox-only and unpromoted. It had been OBSERVED firing inside the winning run — see the open bullet. (filed, ruled, trained and closed 2026-09-04)  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
 - [x] ⛔ DO NOT REDO. Full detail is in the archive under its 2026-09-07 banner and in `07-CHANGELOG.md`.
@@ -3515,7 +3515,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   trained to L47** — and Wailmer is the sole carrier of Dive AND Waterfall (`victory_road.py:760`).
   It also turns a LOUD refusal SILENT (a benched Poochyena never evolves, so the Crunch guard keyed
   on `species.name == "Mightyena"` never fires ⇒ Phoebe's all-Ghost team with no Dark move, and
-  there is no Dark TM in Emerald), and an empty battler set returns `(True, [])` ⇒ a broken run
+  there is no Dark TM in Emerald), and an empty battler set returns `(True, [])` ⇒ a broken run ✅✅ **CLOSED 2026-09-08 — FIXED AND GATED BEFORE THE PREDICATE IS TOUCHED.** `team_is_ready` now refuses loudly on an empty battler set (`victory_road.py`, +24/−1), locked by **gate #48 `probe_empty_battler_guard.py`** (4 arms; fault-tested — disable the guard and it exits 1, restore byte-identical and it exits 0). ⛔ This does NOT advance the item: the ROLE predicate is still unbuilt. It removes the trap that would have made a bad predicate look like a SUCCESS. Rationale + raw evidence: `06-DECISIONS-LOG.md` 2026-09-08.
   grades PASS. `team_policy.py:42-59` had ALREADY measured this predicate over 363 parties: *"59%
   would be left with FEWER THAN 3 mons"* — which is why that module CAPS it and my proposal did not.
   Full detail: `07-CHANGELOG.md` 2026-09-08.
@@ -3598,6 +3598,64 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   entries are retained; the file asserts both.
 
 ### `#24-lowlevelmules` — the REAL defect behind `#24-ch23training`: caught mons are never trained (filed 2026-09-08)
+
+- [x] ⭐⭐⭐ **ROOT CAUSE FOUND AND VERIFIED IN CODE 2026-09-08 — IT IS AN ABSORBING STATE, AND THIS
+  ITEM'S TITLE UNDERSTATES IT.** `story_mode.py:2119-2121` (`TRAIN_CATCHUP_GAP = 6`, `:1136`):
+  `to_train = {i for i in battlers if party[i].level >= target - 6}`, with `target` drawn from the
+  fight's own band (`:1945`). ⇒ a battler more than 6 below the band is excluded from training, so it
+  gains nothing, so it is further below the NEXT band, so it is excluded again — **permanently, with
+  nothing in the tree pulling it back**. `team_policy.py:11-14` had already recorded the symptom
+  (*Makuhita L8 → L9 across FIVE badges*) without naming the mechanism.
+  ⇒ **the HM mule is not special — it is the most FREQUENT victim of a general trap.**
+- [x] ⭐⭐⭐ **AND THE BIGGER STRUCTURAL FINDING: THERE IS NO TEAM TRAINING AFTER WINONA.** Verified by
+  exhaustive grep: **8** `"band"` configs and **8** `_prepare_for_fight` call sites, the last being
+  `winona_fight` (`story_mode.py:3753`, `:3758`). **No band, no prep, and no `train_team` call exists
+  for Tate & Liza, Juan, the E4, or §Ch16-§Ch22.** The only `train_team` callers in the tree are
+  `counter_hunt.py:782` (the hunted counter only), `victory_road.py:2004` (§Ch23 itself),
+  `story_mode.py:1988` (single-mon top-up), `:2240` (band prep) and `:3145` (§Ch6 rival).
+  ⇒ **the party crosses ~9 chapters from Winona's L29-33 band to §Ch23's L47 requirement with NO
+  training mechanism at all** — the max climbs organically to L49-59 while any laggard receives
+  nothing. §Ch23 is simply the first place that requires the WHOLE team.
+- [x] ⭐ **MEASURED — what §Ch23 sees** (18 runs of `20260907-203713` that reached it, using the code's
+  own bench predicate): lowest battler **median L13 (L12-23)** against party max **L49-59**;
+  **0 of 18** clear L35 on every battler. Lowest-battler species: **Marill 9**, Slugma 2, Abra 2,
+  Shedinja 1, Ninjask 1, Mightyena 1, Kadabra 1, Poochyena 1. ⇒ Marill is exactly HALF; the rest are
+  **late catches, not HM mules**, so an HM-scoped fix can address at most half the population.
+- [x] ⛔⛔ **REFUTED — "acquire a Marill on Route 104 at §Ch3 so it is never a mule".** Killed by
+  adversarial review on six counts, each verified in code. The two that are fatal on their own:
+  (a) `pick_land_hm_slot` (`early_game.py:4416-4417`) **skips any species that can learn Waterfall**
+  — Marill does, so it is **structurally ineligible for Strength/Rock Smash forever**; and
+  (b) Route 104 is in **`PENDING_GRASS` with spin tile `None`** (`training_areas.py:57-58`), never
+  swept, and `_hm_hunting_grounds` skips `tile is None`. Also: no ball supply at §Ch3
+  (`provision_poke_balls` → `RUSTBORO_MART`, §Ch4); until it holds an HM it has **no deposit
+  exemption** (`team_policy.py:147-149`) and is sorted FIRST for boxing; and on Mudkip runs the
+  starter wins Surf (`hm_learner_slot` ranks by LEVEL) so the slot is a passenger.
+- [x] ⛔⛔ **REFUTED — "the earlier catch-time refutation used the wrong bar".** The reasoning was that
+  a fresh catch need not reach L35, only `target - 6` of the NEXT fight, after which `to_train`
+  carries it. **The next fight is WINONA AND THERE IS NOTHING AFTER IT** (finding above), so the
+  ceiling this mechanism can deliver is `randint(29,33)` = **L33**. Reproducing the project's own
+  measured sweep from `estimate_frames_to_level` (5 of 5 exact matches at L13/L26/L30/L35) and filling
+  the gap: **L33 needs 272,270 frames against the 250,000 ceiling — it STILL REFUSES, by 22,270.**
+  ‼ My "rides to ~L47" was a misreading: **L47 is `TRAIN_TARGET`** (`victory_road.py:492`), the level
+  §Ch23 trains *to*, not one the band curve delivers.
+- [x] ⛔⛔ **THE B1F 'LEAD' IS ALSO REFUTED — I RECORDED IT AS LIVE WITHOUT CHECKING THE HISTORY FIRST.** `07-CHANGELOG.md` (2026-09-08, earlier the same day) already killed it under *"move the training somewhere better"*: **B1F is richer (959.2 vs 768.0) but its ladder is 44 wp PAST WALLY'S TRIGGER — the better ground is gated behind the fight the training is for**, and readiness must pass BEFORE Wally. ⇒ **seven refuted fixes; no cheap lead remains.**
+  `victory_road.py:1942-1943`'s refusal message already says: *"train on B1F AFTER Wally (950.8
+  EXP/battle vs 1F's 775.6)"* — a **1.226x** economy. At B1F rates L33 costs ~222k, which **passes**.
+  ⛔ It is NOT free: it depends on (1) KI-84 being fixed for the gym-prep path, (2) the carrier being
+  a Fast-curve species (Marill yes; a **Lotad** carrier is Medium-Slow and raises the bar L35 → L38),
+  and (3) drawing L33 rather than the L31 expectation. ⚠ Check first whether this is the already-
+  refuted *"training elsewhere"* before proposing it.
+- [x] ⛔ **KI-84 FIRES ON THE GYM-PREP PATH, and this corrects an attribution.** At Winona the
+  established battlers are all >= target, so `need` (`story_mode.py:2126`) collapses to the single
+  mule slot, i != 0 — literally the documented-broken `train_team(slots={i})` case
+  (`victory_road.py:1970-1982`). ⇒ the *Makuhita L8 → L9* evidence is the **KI-84 +1-level
+  signature**, not purely the catchup gap. ⭐ The multi-slot case DOES converge while slot 0 is also
+  below target (the swap keeps the member set closed) — that is the early game, not Winona.
+- [x] ⛔ **THE ESTIMATOR UNDERSTATES TRAINEE COST ~2x.** `estimate_frames_to_level`
+  (`training_areas.py:571-580`) models FULL XP, but `train_team` enables swap-train
+  (`early_game.py:2009`) which this project's own comment calls *"half-XP swap-training"*
+  (`story_mode.py:2106-2107`). Any future costing of a catch-time top-up must double the estimate.
+  ‼ And `story_mode.py:2240` (band prep) has **no estimate gate at all**.
 - [ ] ⛔ **UPSTREAM, AND ALREADY MEASURED — `team_policy.py:8-16`:** *"35% of badge moments carried a
   mon 15+ levels below the team max… the answer was in the party the whole time and never became
   usable."* My recount over two batches: **86.9% / 78.9% of runs** ever carried such a mon.
@@ -3616,6 +3674,6 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
 - [ ] ⚠ **SURF IS STILL UNSOLVED BY BOTH.** Best pre-Surf ground is Route 117 **L13** (every
   higher-band Surf-learner ground is gated behind Surf itself), and L13+250k → ~L28 < L35. ⇒ the only
   candidate is acquiring a carrier at **§Ch3 (Route 104 Marill L4-5, at team level)** so it is never
-  a mule. ⚠ HYPOTHESIS — its encounter data is UNVERIFIED; check before building.
+  a mule. ✅ **VERIFIED 2026-09-08** from our own ROM-derived cache `sandbox-pokebot/cache/encounter_index_BPEE0.json`: **Route 104 Grass, Marill, 20% of encounters, L4-5.** ⛔⛔ BUT THE §Ch3 ACQUISITION IS **REFUTED** — see the block below; the encounter data was never the weak link.
   ⭐ [VERIFIED] Marill learns ALL FIVE HMs (Dive/Rock Smash/Strength/Surf/Waterfall); Zigzagoon only
   Cut/Rock Smash/Surf. Full detail: `ai-research-notes/2026-09-08-hm-mule-catch-sites-MEASURED.md`.

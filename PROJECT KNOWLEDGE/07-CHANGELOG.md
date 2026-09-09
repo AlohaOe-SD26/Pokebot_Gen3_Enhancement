@@ -25288,3 +25288,85 @@ restored (verified byte-identical), it exits 0.
 ‼ Caveat recorded for readers: the **37 `summary.json` files already on disk were written with the
 OLD grouping** and still carry the wrong ranking. They are historical artifacts and were NOT
 regenerated — do not trust the top row of a pre-2026-09-08 batch summary.
+
+## 2026-09-08 — `#24-lowlevelmules` RECON: root cause found, TWO proposals refuted before a line was written
+
+Five parallel recon agents plus two adversarial passes. **No code shipped, and that is the correct
+outcome** — both candidate fixes were killed by evidence, and the round produced the first verified
+mechanism this item has had.
+
+**⭐⭐ ROOT CAUSE (verified in code).** `story_mode.py:2119-2121` with `TRAIN_CATCHUP_GAP = 6`:
+`to_train = {i for i in battlers if party[i].level >= target - 6}`. A battler more than 6 below the
+fight band is excluded from training ⇒ gains nothing ⇒ is further below the next band ⇒ excluded
+again. **An absorbing state**, and `team_policy.py:11-14` had already recorded its symptom
+(*Makuhita L8 → L9 across five badges*) without attributing it.
+
+**⭐⭐⭐ AND THE STRUCTURAL FINDING THAT REFRAMES THE ITEM: THERE IS NO TEAM TRAINING AFTER WINONA.**
+Exhaustive grep: 8 `"band"` configs, 8 `_prepare_for_fight` call sites, last is Winona. Nothing for
+Tate & Liza, Juan, the E4 or §Ch16-22. ⇒ the party crosses ~9 chapters from a L29-33 band to §Ch23's
+L47 requirement **with no training mechanism at all**; the max climbs organically to L49-59 while a
+laggard gets nothing. §Ch23 is merely the first place that requires the whole team.
+
+**MEASURED (18 runs that reached §Ch23):** lowest battler median **L13** vs party max **L49-59**;
+**0 of 18** clear L35 on every battler. Marill is the lowest battler in **exactly half**; the rest
+are late catches, not HM mules — so an HM-scoped fix caps out at ~50% of the population.
+
+**⛔ REFUTED #1 — "acquire a Marill on Route 104 at §Ch3."** Its encounter data was VERIFIED (20%,
+L4-5) and was never the weak link. Killed because `pick_land_hm_slot` **skips Waterfall-capable
+species by design**, so Marill can never carry Strength/Rock Smash; and Route 104 is in
+`PENDING_GRASS` with an unmapped spin tile. Four further independent objections are in the punch list.
+
+**⛔ REFUTED #2 — "the earlier catch-time refutation used the wrong bar."** Correct that L35-at-catch
+was the wrong test; wrong about the consequence. Because Winona is the LAST prep, the ceiling is
+L33, and **L33 needs 272,270 frames against a 250,000 ceiling** — still refuses. The reviewer
+reproduced our own sweep at 5 of 5 exact points before concluding.
+
+**⛔ AND THE LEAD DID NOT SURVIVE EITHER — I wrote it up as live and then found it already refuted, in this same file, from earlier the same day: B1F's ladder is 44 wp PAST WALLY'S TRIGGER and readiness must pass BEFORE Wally. ⇒ SEVEN refuted fixes. The only untested direction left is ROLE-BASED benching in `battler_identities` (the LEVEL-GAP-only form is refuted; hazard: an empty battler set grades a broken run PASS). *(superseded text follows)* ⚠ ONE LEAD SURVIVES, from the code's own refusal message** (`victory_road.py:1942-1943`): train on
+**B1F after Wally** — 950.8 vs 775.6 EXP/battle, a 1.226x economy that makes L33 cost ~222k and PASS.
+⛔ Conditional on KI-84 being fixed for gym prep, on a Fast-curve carrier, and on the L33 draw — and
+it must first be checked against the already-refuted *"training elsewhere"*.
+
+**Two data traps found and written up** (`ai-research-notes/2026-09-08-lowlevelmules-absorbing-state-MEASURED.md`):
+the encounter cache is keyed by **internal species indices, not National Dex** (and `species.json` is
+a LIST indexed by those — mapping them wrongly yields "Sealeo in Petalburg Woods at L5-6"), and
+learnsets store **move IDs, not names** (a search for `"Surf"` returns zero, indistinguishable from
+absence). ‼ Indices <= 251 are identical under both schemes, so a spot-check landing on a Gen-1/2
+species proves nothing.
+
+## 2026-09-08 — `team_is_ready` could certify a party with NO battlers as READY. Fixed + gate #48.
+
+**The defect.** `victory_road.team_is_ready` builds its verdict by APPENDING to `reasons` while
+looping over `battler_identities()`. An empty dict means the loop body never executes, `reasons` stays
+`[]`, and the function returns **`(True, [])`** — a party containing nothing that can fight the Elite
+Four is certified READY, silently, and §Ch23 returns early having trained nobody.
+
+**⭐ A CHECK THAT ANSWERS WITHOUT ASKING — and it is the THIRD of that exact shape in this one
+function.** The other two are already documented in its own comments: the
+`POKEBOT_CH23_TRAIN_TARGET=53` parameter that reached only half the function (*"a flag that silently
+did nothing"*), and the Crunch test that stopped asking at exactly L47. **All three grade PASS by
+never evaluating.** ⇒ when a predicate accumulates reasons, the EMPTY input is a distinct case and
+must be handled explicitly — absence of evidence is being read as evidence of absence.
+
+**The fix** (`victory_road.py`, +24/−1): bind `battlers = battler_identities()` and refuse loudly with
+the party contents and the active `BENCH_SPECIES` when it is empty. ⭐ **Fail-safe by construction** —
+it can only turn a silent `True` into a loud `False`, never the reverse, so it cannot mask a real
+readiness.
+
+**‼ WHY NOW, BEFORE ANYTHING NEEDS IT.** The only untested fix direction left on `#24-lowlevelmules`
+is making `battler_identities` bench by ROLE rather than by the hardcoded `BENCH_SPECIES` triple. A
+role predicate one clause too broad EMPTIES the set — and without this guard that bug would surface
+as a **PASSING run**, which is this project's most expensive failure mode (§Ch15 ended four floors
+underground, §Ch18 on an eleven-tile island, §Ch19 in a living room — *all three PASSED their own
+acceptance tests*). ⇒ the guard has to exist BEFORE the predicate is touched, not alongside it.
+
+**GATE #48 `probe_empty_battler_guard.py`** — 4 arms (1 fault, 3 no-fire) run against the REAL
+function with `battler_identities`/`get_party` monkeypatched; `victory_road` imports without a ROM, so
+this is a millisecond unit check rather than a drive. ⭐ Its most important arm is a NO-FIRE one — *"a
+genuinely ready team must still pass"* — because a guard that makes everything fail is not a guard.
+✅ **FAULT-TESTED, not merely written:** with `if not battlers:` disabled the gate exits 1; restored
+(verified byte-identical) it exits 0.
+
+⚠ **AND A DOC CONSEQUENCE, recorded because it was nearly missed:** `victory_road.py`'s sandbox drift
+had been described in four live places as **COMMENT-ONLY** and *"promoting it is optional and
+cosmetic"*. That is now FALSE — it carries a real behaviour change. All four were corrected; two
+further hits are dated history and were correctly left alone.

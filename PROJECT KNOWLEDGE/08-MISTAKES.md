@@ -14950,3 +14950,93 @@ the tool.
 BEFORE an independent check had tried to break it — for the second time in one session.** Both times
 the announcement was false within minutes. ⇒ **a "class closed" claim is exactly the kind of claim
 that needs an adversarial pass before it is written down**, not after.
+
+## 2026-09-08 — Two fix proposals, two adversarial kills, zero lines shipped — and that is the win
+
+**Symptom.** I proposed a fix for the measured #1 blocker, had it refuted; proposed a second built on
+the refutation's own gap, had that refuted too. Both reviews were right, and I verified both kills in
+the code myself rather than taking the agents' word.
+
+**What I got wrong, twice, and it is the SAME error in two costumes:**
+1. *"Acquire the HM carrier early so it grows with the team."* I checked that Marill learns all five
+   HMs and that Route 104 has it — then never checked whether the CODE would let a Marill carry those
+   HMs. `pick_land_hm_slot` skips Waterfall-capable species **by design**. ⇒ I verified the GAME
+   mechanic and skipped the CODE mechanic.
+2. *"It only needs to clear the next fight's catchup line, then it rides the curve."* I verified the
+   gate, verified the band deltas, and never asked **how many fights remain**. There is exactly one.
+
+**⭐ PREVENTION RULE — WHEN A PLAN DEPENDS ON A REPEATED MECHANISM, COUNT THE REPETITIONS BEFORE
+PRICING THE MECHANISM.** "Every subsequent prep carries it" is a quantitative claim wearing
+qualitative clothes. One `grep -c` for the call site would have killed proposal 2 in ten seconds, and
+I instead spent the effort computing band-to-band deltas — which were *correct and irrelevant*.
+‼ The same shape as the earlier lesson *"measure every candidate against the THRESHOLD, not against
+each other"*: I keep validating the mechanism and forgetting to check its DOMAIN.
+
+**⭐ And the counterpart rule that made this round cheap: ADVERSARIAL REVIEW BEFORE BUILD, NOT AFTER.**
+Both proposals looked strong, were supported by real measurements, and were wrong. Cost of finding
+out: two reviews. Cost of not: two builds plus two drives plus the doc churn of un-shipping them.
+⇒ **when a proposal targets an item with a history of refuted fixes, the review IS the first
+implementation step.**
+
+**‼ Instrument note, third failure of the same family this session.** A trajectory measurement
+reported *"Swellow gained −19 levels"*. Levels cannot decrease ⇒ instrument, not data: **one lane log
+holds MULTIPLE SEQUENTIAL RUNS**, so the "last snapshot" came from a later restarted run. Discarded
+without reporting. ⇒ **when parsing lane logs, segment by RUN boundary — a log file is not a run** —
+and keep asking *"could this number exist?"* before *"what does this number mean?"*
+
+## 2026-09-08 — I flagged a lead as "check this against the refuted list", then published it as LIVE
+
+**Symptom.** An adversarial review ended by offering one surviving lead: train on Victory Road **B1F**
+(950.8 vs 775.6 EXP/battle). I wrote it into `03-PUNCH-LIST.md`, `04-HANDOFF.md` AND `07-CHANGELOG.md`
+as *"the one surviving lead"* — with a parenthetical telling the reader to *"check it against the
+already-refuted 'training elsewhere' first."* Then I ran that check myself and it was **already dead**,
+in `07-CHANGELOG.md`, from **earlier the same day**: *"B1F is richer but its ladder is 44 wp PAST
+WALLY'S TRIGGER — the better ground is gated behind the fight the training is for."*
+
+**Root cause.** I treated "flag it for checking" as a substitute for checking. The caveat made the
+sentence feel honest, so it shipped — into three files, one of which is the queue a cold session acts
+from. ⭐ **A caveat is not a check. If I can name the exact query that would settle a claim, I am
+already close enough to run it — and if I do not, I have shipped an unverified claim wearing a
+disclaimer.**
+
+**⭐ PREVENTION RULE — RUN THE CHECK YOU JUST NAMED, BEFORE THE SENTENCE GOES IN.** This project
+already has the rule in its strongest form for escalations (*"grep `06-DECISIONS-LOG.md` FIRST"*,
+2026-08-23, earned when a settled question was re-raised five weeks later). It generalises:
+**before recording anything as OPEN, LIVE, or SURVIVING, grep the append-only history for it.**
+A refuted idea re-entering the docs as a live lead is worse than never finding it — it spends the next
+session's time and carries my endorsement.
+
+‼ **Note what did work:** the round's discipline caught it within minutes, because the next thing I did
+was the check itself. The cost was one correction commit instead of a wasted build. ⇒ the failure was
+in ORDER, not in method — do the grep before the write-up, not after.
+
+## 2026-09-08 — I handed a reviewer the claim "NO code was shipped", then shipped code while it reviewed
+
+**Symptom.** Tier 1 KICK-BACK. Its blocker was not a defect in the work — it was that the work MOVED:
+*"`git status --short` grew from the reported set to include real, uncommitted PRODUCTION-CODE
+changes… `03-PUNCH-LIST.md` went from 59+/1- to 60+/2- and `04-HANDOFF.md` from 1+/1- to 9+/9- between
+my first and second `git diff --numstat`, same review session."* It was right on every count.
+
+**Root cause.** I treated the review as a background task to fill time against, and kept working on
+the very tree under review. The claim paragraph ("no code was shipped") was TRUE when written and
+FALSE by the time the verdict came back — so the reviewer could not certify anything, and ~9 minutes
+of its work was spent on a snapshot that no longer existed.
+
+**⭐ PREVENTION RULE — FREEZE THE TREE BEFORE REQUESTING A REVIEW, AND DO NOT TOUCH IT UNTIL THE
+VERDICT LANDS.** A Tier 1 reviewer certifies A DIFF, not an intention. If new work appears mid-review,
+the correct move is to abandon that review and re-request it — not to let the verdict arrive against a
+tree that has moved on. ⇒ **either finish editing and then review, or review and then edit. Never
+both at once.** ‼ Corollary: "keep working while agents run" (a standing efficiency rule here) applies
+to RESEARCH agents reading a stable tree — it does NOT apply to a REVIEWER whose subject is my
+uncommitted diff.
+
+**‼ AND A SECOND, WORSE ERROR THE SAME ROUND: I published a RE-DISCOVERY as a discovery.**
+I wrote up *"THERE IS NO TEAM TRAINING AFTER WINONA"* as the round's headline structural finding.
+`04-HANDOFF.md` already carried the identical 8-and-8 count under `#24-regimeb-noescalation`. My
+actual contribution was the CONSEQUENCE nobody had drawn (the same absence means no LEVELLING path,
+which is why a laggard never recovers) — worth recording, but not a new observation.
+⇒ **⭐ BEFORE CALLING A FINDING NEW, GREP THE TREE FOR IT.** This is the THIRD time in one session
+that grepping first would have changed what I wrote (the B1F "surviving lead" that was already
+refuted; the drift instances I took from an audit list; this). The pattern is consistent: **I search
+the CODE thoroughly and the DOCS not at all**, then present the result as novel. The docs are a
+search target, not just a write target.

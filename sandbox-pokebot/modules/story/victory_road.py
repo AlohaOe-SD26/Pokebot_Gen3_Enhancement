@@ -1803,7 +1803,30 @@ def team_is_ready(target: int = None) -> tuple[bool, list]:
     # ⇒ **A PARAMETER THAT ONLY REACHES HALF THE FUNCTION IS NOT A PARAMETER.**
     target = TRAIN_TARGET if target is None else target
     reasons = []
-    for (pid, species), (_slot, level) in battler_identities().items():
+
+    # ⛔⛔ AN EMPTY BATTLER SET MUST NEVER GRADE READY. Without this, the loop below simply does not
+    # execute, `reasons` stays empty, and the function returns `(True, [])` — a party with NOTHING
+    # that can fight the Elite Four is certified READY, silently, and §Ch23 returns early having
+    # trained nobody. That is the same shape as the `POKEBOT_CH23_TRAIN_TARGET=53` defect recorded
+    # above (a check that answers without ever asking) and as the six dead fault arms.
+    # ‼ THIS IS ALSO A HARD PREREQUISITE FOR THE ONLY UNTESTED FIX DIRECTION LEFT ON
+    # `#24-lowlevelmules`: making `battler_identities` bench by ROLE would let a bad predicate empty
+    # the set, and the failure would surface as a PASSING run rather than as an error. ⇒ the guard
+    # has to exist BEFORE that predicate is touched, not alongside it.
+    # ⭐ Fail-safe direction: it can only turn a silent TRUE into a loud FALSE, never the reverse.
+    battlers = battler_identities()
+    if not battlers:
+        party_desc = [
+            f"{m.species.name}:L{m.level}" for m in get_party()
+            if m is not None and not m.is_egg
+        ]
+        return False, [
+            "⛔ NO BATTLERS: `battler_identities()` is empty, so readiness could not be assessed. "
+            f"Party: {party_desc or 'EMPTY'}. Every member is an egg, unreadable, or excluded by "
+            f"BENCH_SPECIES={BENCH_SPECIES}. Refusing rather than reporting READY."
+        ]
+
+    for (pid, species), (_slot, level) in battlers.items():
         if level < target:
             reasons.append(f"{species}#{pid:08X} is L{level} < {target}")
     for mon in get_party():
