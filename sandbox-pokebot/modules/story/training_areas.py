@@ -499,8 +499,17 @@ def local_patch_is_fodder(local_max, team_max, fodder_level_gap, *,
     """Is the LOCAL grass not worth grinding? PURE — no ROM, no emulator, no walking.
 
     Extracted from `story_mode._prepare_for_fight` so the decision can be tested
-    exhaustively off-emulator (KI-31). Behaviour under the default ``rule`` is byte-for-byte
-    the legacy expression it replaced.
+    exhaustively off-emulator (KI-31).
+
+    ⛔⛔ THE DEFAULT IS ``"xp_rate"``, NOT ``"legacy"`` — CORRECTED 2026-09-09. This docstring used to
+    say *"behaviour under the default rule is byte-for-byte the legacy expression it replaced"*, and
+    the branch comment below still said ``"legacy" (default)``. **Both were false**:
+    ``FODDER_RULE = _os.environ.get("POKEBOT_FODDER_RULE", "xp_rate")`` (see the constant above).
+    ‼ The two rules are NOT equivalent. ``"xp_rate"`` returns **False (not fodder)** whenever
+    ``best_available_max`` is falsy, so a caller that has not yet looked for an alternative gets NO
+    relocation at all — where ``"legacy"`` would have compared levels and possibly relocated.
+    ⇒ anyone reasoning about when this bot relocates from the old wording got it backwards; that
+    misled a design brief on 2026-09-09 and three reviewers had to correct it.
 
     `best_available_max` is the HIGH band of the best reachable alternative, or None if the
     caller has not looked yet — the ``"xp_rate"`` rule needs it; ``"legacy"`` ignores it.
@@ -515,7 +524,9 @@ def local_patch_is_fodder(local_max, team_max, fodder_level_gap, *,
         if local_rate <= 0:
             return True
         return xp_per_battle(best_available_max) / local_rate >= XP_RATE_RELOCATE_RATIO
-    # "legacy" (default) — the exact original test.
+    # ⛔ "legacy" is NOT the default (the default is "xp_rate" — see FODDER_RULE above and
+    # the docstring). This is the exact ORIGINAL test, kept and reachable via
+    # POKEBOT_FODDER_RULE=legacy, which is the documented way to A/B a regression.
     return local_max + fodder_level_gap < team_max
 
 

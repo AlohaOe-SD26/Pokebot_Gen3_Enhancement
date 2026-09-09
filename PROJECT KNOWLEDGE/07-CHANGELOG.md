@@ -25662,3 +25662,74 @@ but the retraction reached `07-CHANGELOG.md` and the code, **not the two current
 open first**. My annotation had landed on the SECOND mention in a 3,000-character line while the
 first, carrying the invented number, went untouched. ⇒ **this investigation re-derived a killed
 argument from those exact lines.** All four sites are now corrected.
+
+## 2026-09-09 — Wiring the trainee-keyed picker: KILLED. The 2026-07-21 directive's premise is not generally true.
+
+The user restated their July training policy, which pointed at `best_training_grass` — written that
+month, documented with the directive quoted verbatim, marked *"NOT yet wired"*, and never called from
+production. Six agents, adversarial first. **It is killed, and the reason is the directive's own
+premise rather than any of the seven fixes already refuted nearby.**
+
+**⛔ [AGENT, UNVERIFIED] THE MONS ARE BORN DEAD WEIGHT.** Of 1,496 mons that ever fell 15+ behind,
+**88.8% were already more than 6 behind the FIRST time they were seen**. `TRAIN_CATCHUP_GAP = 6`
+excludes them from the training set **before** grass is chosen — so a better picker operates
+downstream of a set they were never in. There is no early small-gap window to maintain.
+
+**⛔ [AGENT, UNVERIFIED] AND THE ECONOMICS INVERT.** `xp/battle` depends only on the DEFEATED wild's
+level, so a level-matched (lower) band pays LESS per battle; the only gain is full-vs-half share,
+capped at 2x. Reported: a L12 mon soloing its matched ROUTE117 earns **71.7 xp/battle** vs **78.9**
+swap-training on ROUTE111 — **0.91x, worse**. And at L18 the picker's own choice still swap-trains on
+**75%** of its band, so it does not deliver the "FULL XP" the directive asks for.
+⇒ **The directive is right about the goal and wrong about the mechanism.**
+
+**⭐ THE DISTINCTION FROM THE KILLED §Ch23 RELOCATION IS REAL, THOUGH** — reported cost of maintenance
+is ~1.2% of a lane budget at the first badge against ~33% at Feather, so "early and small" genuinely
+differs in kind from "one 34-level debt at the end". This idea fails on its own mechanism, not by
+being that fix again. That matters for anyone tempted to re-propose either.
+
+**⚠ A LEAD I COULD NOT REPRODUCE — recorded as unverified, deliberately.** An agent reported 114
+relocations and 114 unreachable drops, 1:1, zero battles delivered. **[MEASURED BY ME]** relocations
+reproduce exactly (114); unreachable is **128**; and per-run pairing over 428 segments gives
+**24 dropped / 4 trained / 88 no-signal**. The "100% failure" headline is **not established**.
+‼ My first pairing script reported **116/116 SUCCESS** — its regex captured `"S"` from `"Story:"`
+rather than the map name, and its fallback matched the word *"training"*, which appears in the DROP
+message. A result of exactly 100.0% is what made me look.
+
+**✅ WHAT SHIPPED — a real defect in the function that decides relocation.**
+`FODDER_RULE` defaults to **`"xp_rate"`** (`training_areas.py:432`), but `_local_grass_is_fodder`'s
+docstring claimed the default was byte-for-byte the LEGACY expression, and its branch comment said
+`# "legacy" (default)`. Both false. The rules are not equivalent — `xp_rate` returns NOT-fodder when
+no alternative has been computed, so it can suppress relocation entirely where `legacy` would compare
+levels. **This misled my own agent brief**, which asserted the legacy rule as MEASURED and had to be
+corrected by three separate angles. Comment-only fix; drift 4 → 5.
+
+### 2026-09-09 (same item, KICK-BACK then SETTLED) — the relocation question, answered wrong three times
+
+**A reviewer refused my refutation, and was right about the contamination.** My *"unreachable is 128,
+not 114"* folded in **14 `FIERY_PATH` COUNTER-HUNT lines** that merely name ROUTE111 as the bot's
+CURRENT position — the same substring-is-not-a-message failure this very investigation had already
+documented catching once (the `116/116` bug where a regex captured `S` from `Story:`). **Caught once,
+repeated once, in one investigation.**
+
+**But the reviewer's own correction was aggregate reasoning too**, and so was the original agent
+claim. `tools/story-dev/probe_training_relocation.py` (checked in) anchors on the full message shape,
+excludes the look-alike **visibly**, and pairs each decision with its outcome inside its own run:
+```
+453 relocation decisions   (613 training drops, 162 counter-hunt look-alikes EXCLUDED)
+  252  (55.6%)  battles delivered
+  130  (28.7%)  DROPPED as unreachable
+   71  (15.7%)  no signal in window
+```
+⇒ **"zero battles delivered" is FALSE.** Relocation succeeds most of the time.
+⭐⭐ **The real finding survives at a defensible size: ~29% of training relocations end in an
+unreachable drop.** Reproducible in one command.
+
+**‼ THE LESSON, and it is the transferable part: TWO TOTALS MATCHING IS NOT PAIRING.** 114-vs-114
+read as proof of causation; 453-vs-613 reads as nothing at all. Both are the same mistake — an
+aggregate cannot say which decision led to which outcome. **Only per-event pairing can, and it found
+a 28.7% failure rate that all three aggregate stories missed in opposite directions.**
+
+**Also corrected:** `03-PUNCH-LIST.md` still asserted *"`best_training_grass` HAS ZERO CALL SITES"*
+two lines above the entry saying that claim was wrong. It has no PRODUCTION caller but one TEST
+caller (`repro_no_return_grounds.py`). My original grep was scoped to `sandbox-pokebot/` and
+`PROJECT KNOWLEDGE/`, so `tools/` was invisible — **a MEASURED claim must carry its SCOPE.**

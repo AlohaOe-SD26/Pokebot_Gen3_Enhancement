@@ -15399,3 +15399,55 @@ was still right to refuse, because its objection was not "your number is wrong" 
 no command." ⇒ **a demand for provenance is correct even when the figure turns out to be true**, and
 answering it produced a reusable tool plus three corrections. Do not argue with that objection; run
 the command.
+
+## 2026-09-09 — I put two WRONG "MEASURED" claims into an agent brief, and labelling them did not save me
+
+**Symptom.** I had just adopted the rule *"label every claim in a brief as MEASURED or BELIEVED"*, and
+did so. Two of the things I labelled **MEASURED** were wrong:
+  * *"`best_training_grass` has ZERO call sites"* — it is imported and called by
+    `tools/story-dev/repro_no_return_grounds.py`. My grep had been scoped to `sandbox-pokebot/` and
+    `PROJECT KNOWLEDGE/`, so `tools/` was invisible to it.
+  * *"`_prepare_for_fight` relocates only when `local_max + FODDER_LEVEL_GAP < team_max`"* — that is
+    the LEGACY branch; `FODDER_RULE` has defaulted to `"xp_rate"` since a later change. I took it from
+    `06-DECISIONS-LOG.md`, which was accurate when written.
+
+**Root cause.** Labelling protects a reader from a claim I KNOW is soft. It does nothing for a claim I
+believe *because I once ran a command whose scope I have forgotten*. The first was a **stale
+measurement** — right when taken, wrong now; the second was a **narrow measurement** presented as a
+general one.
+
+**⭐⭐ PREVENTION RULE — A "MEASURED" LABEL MUST CARRY ITS SCOPE AND ITS DATE, OR IT IS NOT A
+MEASUREMENT.** Write *"zero call sites in `sandbox-pokebot/` as of today"*, not *"zero call sites"*.
+The scope is where staleness and over-generalisation both hide, and it costs four words. ⇒ when
+re-using a figure from a decisions log or an older entry, **re-run it or date it** — a decisions log
+records what was true when the decision was made, which is exactly the wrong thing to quote as
+current.
+
+**‼ WHAT WORKED, and is the reason to keep briefing this way:** because the claims were labelled at
+all, three angles knew they were allowed to contradict me and did — flagging both errors explicitly
+rather than building on them. **A brief that invites refutation gets refuted; one that asserts gets
+obeyed.** The labelling was not sufficient, but it was load-bearing.
+
+## 2026-09-09 — Two totals matching is not pairing (and I made the substring mistake twice in one round)
+
+**Symptom.** *"Does a training relocation deliver battles?"* got four answers. Three were wrong:
+| # | answer | why it was wrong |
+|---|---|---|
+| 1 | agent: 114 relocations / 114 drops, **1:1, zero battles delivered** | aggregate totals, no pairing |
+| 2 | me: **128 not 114**, so "not established" | contaminated grep — 14 counter-hunt lines that merely NAME the map |
+| 3 | reviewer: anchored count is **exactly 114**, so the 1:1 **holds** | correct about my contamination, still aggregate |
+| 4 | per-run pairing: **252 delivered / 130 dropped / 71 unknown** | the actual answer |
+
+**⭐⭐ PREVENTION RULE — AN AGGREGATE CANNOT ATTRIBUTE. If a claim is of the form "X causes Y", count
+(X,Y) PAIRS WITHIN THE SAME UNIT, never totals of X and totals of Y.** Two equal totals feel like
+proof and are not: 114-vs-114 read as certainty, 453-vs-613 read as nothing, and both hid the same
+28.7% failure rate. ⇒ **matching totals are the weakest possible evidence for causation and the most
+persuasive-looking.**
+
+**‼ AND THE HUMBLING PART: I made the substring-is-not-a-message error TWICE IN ONE INVESTIGATION** —
+once with a regex that captured `S` from `Story:`, then again with a filter that swept in a different
+subsystem's failures because both mentioned the same map name. I had written the rule up between the
+two. ⇒ the durable fix was not another rule but a CHECKED-IN TOOL that (a) anchors on the full message
+shape and (b) **prints the look-alike it excludes**, so the filter is auditable instead of trusted.
+**When a question has produced more than two conflicting answers, stop answering it and build the
+instrument** — the third grep is not more likely to be right than the first two.

@@ -1530,8 +1530,60 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
   `Swampert:L57 / Mightyena:L33 / Ninjask:L23 / Dustox:L29 / Machoke:L30 / Shedinja:L29` — **five**).
   The error message prints only `max(estimates)`, **which is why this tree believes it is one mon**.
   ⇒ every plan scoped to "the mule" is scoped to roughly a third of the real debt.
+- [x] ⛔⛔ **WIRING THE PICKER IS KILLED 2026-09-09 — AND THE PREMISE OF THE 2026-07-21 DIRECTIVE IS
+  NOT GENERALLY TRUE.** Six-agent adversarial pass. ⇒ **do NOT wire `best_training_grass` into
+  training as a maintenance pass.** Three independent reasons:
+  1. ⛔ **[AGENT, UNVERIFIED — worth re-measuring before anyone re-proposes this] THE MONS ARE BORN
+     DEAD WEIGHT, so there is no early small-gap window to maintain.** Reported: of 1,496 mons that
+     ever reached 15+ behind, **88.8% were ALREADY more than 6 behind the FIRST time they were
+     observed** (median first-seen gap 11). `TRAIN_CATCHUP_GAP = 6` excludes them from `to_train`
+     **before** the grass choice is ever read — so area selection is downstream of a set they are not
+     in, and a better picker cannot reach them.
+  2. ⛔ **[AGENT, UNVERIFIED] THE ECONOMICS ARE SOMETIMES NEGATIVE.** `xp/battle = 50.2 * wild_level
+     / 7` depends ONLY on the DEFEATED wild's level, so a level-matched (lower) band pays LESS per
+     battle and can only win via the full-vs-half share — capped at 2.0x. Reported example: a L12 mon
+     soloing its matched ROUTE117 earns **71.7 xp/battle** against **78.9** swap-training on
+     ROUTE111 — **0.91x, i.e. WORSE**. ⇒ *"a matched area beats swap-training"* is not a general
+     truth under this codebase's own XP model.
+  3. ⛔ **[AGENT, UNVERIFIED] IT DOES NOT EVEN DELIVER "FULL XP".** The picker's winnability boundary
+     (`mon_level >= lo - 1`) OVERLAPS the swap trigger (`level + 2 <= foe.level`): at L18 its own
+     pick still swap-trains on **75%** of the band.
+  ⭐ **WHAT THE ROUND DID ESTABLISH, AND IT IS NOT NOTHING:** early maintenance would be far cheaper
+  than late payoff (**[AGENT, UNVERIFIED]** ~1.2% of a lane budget at Stone vs ~33% at Feather), so the distinction
+  from the killed §Ch23 relocation is REAL — the idea fails on its own mechanism, not by being that
+  fix again.
+- [x] ✅ **SETTLED 2026-09-09 BY A CHECKED-IN TOOL — AND THREE EARLIER ANSWERS WERE ALL WRONG.**
+  The question *"does a training relocation ever deliver battles?"* was answered three times before
+  this: an agent said **114/114, 1:1, ZERO battles delivered**; I "refuted" it with **128 not 114**
+  (contaminated — 14 of my 128 were `FIERY_PATH` COUNTER-HUNT lines that merely name ROUTE111 as the
+  bot's CURRENT position); a reviewer corrected my contamination and concluded the 1:1 **holds**.
+  ⭐ **All three were aggregate reasoning.** `tools/story-dev/probe_training_relocation.py` anchors on
+  the FULL message shape, excludes the counter-hunt look-alike explicitly, and pairs each decision
+  with its own outcome **inside its own run**:
+  ```
+  453 relocation decisions   (613 training drops, 162 counter-hunt look-alikes EXCLUDED)
+    252  (55.6%)  battles delivered
+    130  (28.7%)  DROPPED as unreachable
+     71  (15.7%)  no signal in window
+  ```
+  ⇒ **"zero battles delivered" is FALSE — relocation succeeds most of the time.**
+  ⭐⭐ **BUT THE REAL FINDING SURVIVES AND IS WORTH AN ITEM: ~29% of training relocations end in an
+  unreachable drop.** That is the honest number, it is reproducible in one command, and it is a real
+  defect — just not the catastrophe three earlier answers described.
+  ‼ **THE LESSON: TWO TOTALS MATCHING IS NOT PAIRING.** 453-vs-613 looks like nothing in aggregate;
+  only per-run pairing exposed the 28.7%. Aggregate agreement is coincidence until each event is
+  matched to its own outcome.
+- [x] ✅ **FIXED 2026-09-09 — TWO FALSE STATEMENTS IN THE FUNCTION THAT DECIDES RELOCATION.**
+  **[MEASURED BY ME]** `training_areas.py:432` is
+  `FODDER_RULE = _os.environ.get("POKEBOT_FODDER_RULE", "xp_rate")` — the default is **xp_rate** —
+  while `_local_grass_is_fodder`'s docstring claimed *"behaviour under the default rule is
+  byte-for-byte the legacy expression"* and its branch comment read `# "legacy" (default)`. **Both
+  false, and not equivalent:** `xp_rate` returns NOT-fodder whenever `best_available_max` is falsy,
+  so a caller that has not looked for an alternative gets NO relocation, where `legacy` would compare
+  levels. ⇒ anyone reasoning about when this bot relocates got it backwards — **including my own
+  agent brief, which three reviewers had to correct.** Comment-only fix; it adds one file to the sandbox drift (run `promote.py --check` — the authority, never restated here).
 - [ ] ⚠ **`best_training_grass(mon_level)` — the per-mon, trainee-keyed picker requested 2026-07-21 —
-  HAS ZERO CALL SITES** (`training_areas.py:102`; the only other hits are two comments). And
+  HAS NO **PRODUCTION** CALL SITE** (`training_areas.py:102`) — ⚠ it DOES have one TEST caller, `tools/story-dev/repro_no_return_grounds.py` (import :49, call :75), which exercises its no-return-ground refusal. *(This bullet read "ZERO CALL SITES" until 2026-09-09; my grep had been scoped to `sandbox-pokebot/` and `PROJECT KNOWLEDGE/`, so `tools/` was invisible to it. ⇒ a MEASURED claim must carry its SCOPE.)*. And
   `grep -c VICTORY_ROAD modules/story/training_areas.py` = **0**, so the picker cannot even compare
   against the ground §Ch23 uses. That is a `#24-trainmap+` gap, not a new concept.
 - [ ] ⚠ **NEW, PREVIOUSLY UNFILED:** the post-hoc frame REPORT at `story_mode.py:4535`
