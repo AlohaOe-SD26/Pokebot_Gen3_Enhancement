@@ -236,12 +236,30 @@ def _derail_reason(outcome: str) -> str:
     chain correctly names its answer and then ENDS THE RUN, and that 4 of 6 remaining
     hangs are that. Grouping raw outcome strings would scatter it across every distinct
     boss/level/type combination, so trim to the stable prefix.
+
+    ⛔⛔ THE PID PASS BELOW IS LOAD-BEARING AND WAS MISSING UNTIL 2026-09-08. The digit pass
+    normalises DECIMAL runs only, and **a PID is HEX** — so `Marill#30AD95BD` became
+    `Marill#NADNBD` (the letters survive) and EVERY DISTINCT PID BECAME ITS OWN KEY. Because
+    `summary.json` is written through `.most_common()`, that scattered the single biggest
+    blocker into a pile of count-1 rows at the BOTTOM of the file while a genuinely smaller
+    cause sat at the top.
+    ⭐ MEASURED on batch `20260907-203713`, re-aggregating its 49 real outcome strings:
+        as shipped : Ch23 training = 16 events across **16 separate keys**; displayed #1 was
+                     "this boss: N losses ... Normal" at 6.
+        with fix   : Ch23 training = 16 events across 6 keys; #1 becomes the Victory Road
+                     training failure at 9.
+    ⇒ the ranking INVERTS, and every reader — agent, gate or human — who trusted the top of
+    `summary.json` was handed the wrong blocker, low by ~3x. This is SESSION DISCIPLINE rule 7
+    (instrument the ACTION, not the input) applied to the summariser itself.
+    ‼ Order matters: collapse the hex PID BEFORE the digit pass, or the digits inside it are
+    already gone and the pattern no longer matches.
     """
     o = outcome.strip()
     for prefix in ("derailed:", "stopped:", "crashed:"):
         if o.startswith(prefix):
             o = o[len(prefix):].strip()
             break
+    o = re.sub(r"#[0-9A-Fa-f]{6,}", "#PID", o)   # ⛔ BEFORE the digit pass — see docstring
     o = re.sub(r"\d[\d,]*", "N", o)          # levels, losses, frame counts
     o = re.sub(r"\s+", " ", o)
     return o[:140]

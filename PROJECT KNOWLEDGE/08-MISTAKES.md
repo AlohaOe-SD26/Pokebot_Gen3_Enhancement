@@ -14855,3 +14855,98 @@ party slots, extended to fixture selection.
 ‼ The pair may still be valid: arm B trains the SAME Zigzagoon with the rotation as the only
 difference, so if B reaches the target the mechanism is proven regardless. If B also fails, the
 result is INCONCLUSIVE — and must be reported as such rather than read as support.
+
+## 2026-09-08 — I trusted a summariser's ranking without ever auditing the summariser
+
+**Symptom.** For an entire round, work was prioritised off the top of `summary.json`. The top row said
+the leading derail cause had 6 occurrences. The true leader had **16** and sat at the bottom of the
+file, split into sixteen count-1 rows.
+
+**Root cause.** `_derail_reason` normalised variable text with `re.sub(r"\d[\d,]*", "N", o)`. Decimal
+digits only — **and a PID is hexadecimal**. `Marill#30AD95BD` became `Marill#NADNBD`: the hex LETTERS
+survived, so every PID produced a unique key, and `.most_common()` buried the biggest cause.
+
+**⭐ PREVENTION RULE — A GROUPING FUNCTION IS AN INSTRUMENT; AUDIT IT ON REAL DATA BEFORE TRUSTING ITS
+RANKING.** The cheap audit is one line: count the DISTINCT KEYS against the number of events. 28 keys
+for 49 events with a "stable prefix" docstring is the smell — a grouper that barely groups is not
+grouping. ⇒ whenever a summary drives a decision, re-aggregate its raw inputs once and check that the
+#1 row survives.
+
+**‼ AND THE SHARPER VERSION, because this is SESSION DISCIPLINE rule 7 turned on myself.** That rule
+says *instrument the ACTION, not the input to the action*. I had applied it to bot code all week and
+never to the tool that measures the bot. The function's own docstring stated the intent it violated
+(*"Grouping raw outcome strings would scatter it across every distinct boss/level/type combination,
+so trim to the stable prefix"*) — **a docstring asserting a property is not a test of that property.**
+
+**⭐ What actually caught it:** an adjudicating agent re-counting the batch by hand and noticing the
+displayed #1 disagreed with its own tally. Not a gate, not a review of the diff — a recount. ⇒ when
+three audits agree on a conclusion, the cheapest remaining check is to re-derive the NUMBER they all
+took for granted. All three had read `summary.json`; none had questioned it.
+
+**⛔ Second lesson, same round: a document can be perfectly gate-green and still command work the
+project has proven wrong.** The handoff's queue head both refuted and prescribed the same fix, on ONE
+line, prescription last. P1-P5 compare separate halves of a pair, so an intra-line contradiction is
+invisible to every check we own. ⇒ **the pair checks assume the two halves are in two places.** When
+a single line is long enough to hold both a refutation and a prescription, it needs reading, not
+diffing — and the honest mitigation is to keep queue items SHORT enough that the last imperative is
+the only imperative.
+
+## 2026-09-08 — My new gate reported real findings while being INERT against the bug it was built for
+
+**Symptom.** `probe_drift_restatement.py`, first run: `findings : 2`, both genuine. It looked like a
+working gate. **Both fault arms had silently failed to fire.**
+
+**Root cause.** The pattern was `(?<![\w-])[Dd]rift(?![\w-])\W{0,12}?(\d+)`. `\W` matches
+NON-word characters, and the connector in the real defect is `" is "` — `i` and `s` are WORD
+characters. So it matched `drift 0` and `drift: 0` and **could not match `Drift is 0`, which is the
+exact form of the two recurrences it was written to catch.** Fixed by spanning `[^.\n]{0,14}?`
+instead (any character except a sentence break).
+
+**⭐ PREVENTION RULE — A NON-ZERO FINDING COUNT IS NOT EVIDENCE THAT A GATE WORKS.** A gate can be
+simultaneously RIGHT about what it finds and BLIND to what it was built for; the two are independent.
+⇒ **read the ARM LINE, never the findings line**, and treat "self-test: FAILED" as fatal even when
+the scan below it looks productive. This is the third gate in this tree to ship or nearly ship inert
+(`archive_doc_block.py` invariant C, `probe_name_resolution.py` v4, this one) — in all three the
+fault arm was the only thing that noticed.
+
+**‼ SECOND LESSON, and it is the more expensive one: I TREATED AN AUDIT'S LIST AS A POPULATION.**
+An independent audit listed three stale drift claims. I fixed exactly those three and wrote a
+changelog entry announcing the class was remediated. A Tier 1 reviewer immediately found a fourth —
+in the row that self-describes as *"the row a resuming session reads FIRST"* — and a grep found a
+fifth, and the eventual gate found six more. **The audit never claimed to be exhaustive; I assumed it
+was.** ⇒ this is `CLAUDE.md`'s *"A CHECKLIST PROTECTS EXACTLY WHAT IT ENUMERATES"* earned a second
+time in one day. **When you fix instances from someone else's list, the LAST step is to grep for the
+PATTERN and prove the list was complete** — and `03-PUNCH-LIST.md:355` already held the correct figure
+while I was writing the wrong one into a sibling file, so the evidence was in the tree the whole time.
+
+**⭐ Cheap tell for next time:** if a defect is described as *"the Nth recurrence"*, N > 3 means prose
+has already failed and the only remaining move is a gate. Do not do an (N+1)th sweep.
+
+## 2026-09-08 — Two instances on one line, one found and one not: I read a POSITIONAL bug as a short list
+
+**Symptom.** I shipped `probe_drift_restatement.py` announcing "13 instances found, all remediated,
+0 findings, no exemptions". A Tier 1 reviewer immediately produced a **14th** — live, present-tense,
+wrong — that the gate scanned and did not see.
+
+**Root cause.** The quote exclusion computed `line[:i].count('"') % 2 == 1`: parity **from the start
+of the line**. `03-PUNCH-LIST.md:47` is 30,045 characters with 47 unrelated `"` before the match, so
+odd parity read as "inside a quotation". Fixed with a bounded local scan (`_enclosed_by`).
+
+**⭐ PREVENTION RULE — A LINE IS NOT A UNIT OF CONTEXT IN THIS TREE. Any property derived by scanning
+FROM THE START OF A LINE is unreliable here, and it fails as a SILENT FALSE NEGATIVE.** Quote parity,
+backtick parity, code-block membership, nesting depth — all of them. Lines here reach 40,000
+characters. ⇒ scope every such check to a bounded window around the match, and put a MEGA-LINE case
+in the arms, because short synthetic arms cannot exercise the failure at all.
+
+**‼ THE DIAGNOSTIC I MISSED, which is the transferable part.** A sibling `drift is 5` EARLIER ON THE
+SAME LINE *was* caught and fixed one commit before. **When one instance on a line is found and another
+on the same line is not, that is the signature of a POSITIONAL bug in the finder — not evidence that
+the list was merely short.** I had just written the lesson "a list is not a population" and applied it
+by looking for MORE PLACES, when the evidence was pointing at the INSTRUMENT. ⇒ **ask *why this one
+and not that one*, not just *are there more*.** The distribution of what a tool misses is data about
+the tool.
+
+**⛔ And the meta-lesson on my own claims: I announced remediation of a defect class in a changelog
+BEFORE an independent check had tried to break it — for the second time in one session.** Both times
+the announcement was false within minutes. ⇒ **a "class closed" claim is exactly the kind of claim
+that needs an adversarial pass before it is written down**, not after.

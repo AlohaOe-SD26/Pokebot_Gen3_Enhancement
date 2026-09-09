@@ -25162,3 +25162,129 @@ spend") is real in my fixture and MITIGATED in production by `KI-44`'s ground se
 
 **‼ THE OWED FOLLOW-UP IS SMALL:** parameterise the driver's grass (or call
 `counter_training_ground`) and re-run arm B. The mechanism result above does not need repeating.
+
+## 2026-09-08 — HEALTH CHECK: the batch summariser was ranking the WRONG blocker, by ~3x
+
+A user-requested review, audited by three independent agents (code-health, doc-health, trajectory)
+plus an adjudicator. The code came back **HEALTHY**; the two defects were in a measuring instrument
+and in the line that decides what gets worked on next.
+
+**⛔⛔ 1. `x4_headless.py::_derail_reason` fragmented hex PIDs — FIXED, A/B PROVEN.**
+The grouping pass was `re.sub(r"\d[\d,]*", "N", o)` — **decimal only, and a PID is HEX**. So
+`Marill#30AD95BD` normalised to `Marill#NADNBD` (the letters survive) and every distinct PID became
+its own key. `summary.json` is written through `.most_common()`, so the single biggest blocker was
+scattered into count-1 rows at the BOTTOM of the file while a smaller cause sat at the top.
+Re-aggregating batch `20260907-203713`'s 49 real outcome strings, before vs after:
+```
+as shipped : Ch23 training = 16 events across 16 KEYS;  displayed #1 = "this boss: N losses" (6)
+with fix   : Ch23 training = 16 events across  6 keys;  #1 = Victory Road training failure (9)
+```
+⇒ **the ranking INVERTS.** Every agent, gate or human who trusted the top of `summary.json` was
+handed the wrong blocker, low by nearly 3x — and that is the most likely cause of the round's
+mis-prioritisation. The fix is one line, placed BEFORE the digit pass (after it, the digits inside
+the PID are already gone and the pattern cannot match). No-fire arm checked: `"no hash here 123"`
+still normalises to `"no hash here N"`.
+
+**⛔ 2. `04-HANDOFF.md` queue item (0) REFUTED and then PRESCRIBED the same fix — FIXED.**
+One line, 3,091 chars. Front: *"BOTH LEG-LOCAL FIXES ARE NOW REFUTED — DO NOT RE-PROPOSE EITHER …
+STEPPING was BUILT, DRIVEN AND REVERTED 2026-09-08"*. Tail of the SAME line: *"⇒ ⭐⭐ **THE FIX IS TO
+STEP THE TARGET** … "* with a ready-to-paste command. The revert commit `eeeb6e79` edited the front
+of the bullet and left the prescriptive tail byte-identical — a half-applied edit.
+‼ It is also a CROSS-FILE contradiction: `03-PUNCH-LIST.md:3495` lists *"stepping the target"* among
+five fixes that are MEASURED WRONG and must not be proposed. The handoff commanded it anyway, as
+**item (0)** of "DO THESE, IN ORDER".
+⛔ **NO GATE CAUGHT IT** — `lint_docs.py` and `audit_doc_consistency.py` were both green, because the
+contradiction lives INSIDE ONE LINE and P1-P5 compare SEPARATE halves (banner vs queue, header vs
+body). A genuine blind spot in the consistency layer, now recorded.
+⭐ The `--inject-hmmule` fixture sentence was KEPT and strengthened: all 16 production failures report
+the IDENTICAL `406,972 frames`, so this is ONE deterministic outcome hit 16 times — the item is
+reproducible in seconds and needs no batch.
+
+**⛔ 3. The drift figure went stale for the ELEVENTH time — remedy transplanted.**
+`promote.py --check` measures **2**; the docs claimed **0** in three live places and **5** in a
+fourth. `04-HANDOFF.md:64` already self-documents the recurrence (*"the 10th STALE COPY … survived
+both a nine-site sweep AND a green gate"*) — and the edit that fixed it to `0` is now itself wrong.
+⭐ The project had ALREADY solved this class for line budgets (*"NO COUNTS ARE QUOTED HERE — RUN
+`lint_docs.py`"*, because *"a line-count written into the file it counts is stale the moment it is
+written"*) and never transplanted it. Now transplanted: every live claim points at
+`promote.py --check`, and exactly one place — the STATE table's drift row — keeps a dated digit.
+‼‼ **AND THIS ENTRY FIRST SAID "THE THREE LIVE CLAIMS", WHICH WAS FALSE — A TIER 1 REVIEWER KICKED IT BACK.** There were **five**: the two the reviewer and a follow-up grep found are the `if stopped mid-task` row (which self-describes as *"the row a resuming session reads FIRST"* and said *"Drift is 0 as of 2026-09-08"* while the STATE row three lines above it correctly said 2) and a `— drift is 5)` clause. ⭐ **ROOT CAUSE OF THE MISS: I took a defect LIST from an audit and treated it as a defect POPULATION.** The audit never claimed to be exhaustive. `03-PUNCH-LIST.md:355` already held the correct figure while I wrote the wrong one into a sibling file. ⇒ this is `CLAUDE.md`'s *"A CHECKLIST PROTECTS EXACTLY WHAT IT ENUMERATES"* earned a second time in one day — **grep for the PATTERN, never for the listed instances.**
+⛔ Dated history (*"was: drift 5"*, *"drift 8 as of 2026-08-27"*) was deliberately LEFT ALONE; only
+present-tense claims are the defect.
+
+**⭐ TRAJECTORY, corrected by measurement.** My working verdict — *"§Ch24 is the binding constraint"* —
+was **wrong**, and so was the opposite reflex. Measured on `20260907-203713`: 18 of 49 runs reach
+§Ch23, **0 exit it**, 0 reach the League door. §Ch23 binds FIRST. But §Ch24 can still be built now
+from `saves/post_league_shop.ss1` (pinned 2026-09-04, unused), fixture-driven exactly as §Ch23's
+eleven legs were — so the two do not compete for the same instrument (rule 9). Also corrected:
+Victory Road "reach" is ~32-37%, not 40%, and it measures ENTRY, not completion.
+
+## 2026-09-08 — GATE #46 `probe_drift_restatement.py`, and the number that says why gates beat sweeps
+
+**The drift figure has now gone stale THIRTEEN times.** `04-HANDOFF.md` self-documents recurrence #10
+(*"the 10th STALE COPY … survived both a nine-site sweep AND a green gate"*) and the edit that fixed
+it to `0` was wrong by the next day. This entry is what finally closed the class.
+
+**⭐⭐ THE NUMBERS ARE THE ARGUMENT.** Four successive instruments were pointed at the same defect:
+```
+an independent doc audit listed .... 3 instances
+a Tier 1 reviewer then found ....... a 4th   (in the row that says "read me FIRST")
+a hand grep then found ............. a 5th
+THE GATE then found ................ SIX MORE           => 13 total
+```
+Among the six only the gate saw: `03-PUNCH-LIST.md:47`, reading a live and wrong **"drift is 5"**
+inside a sentence describing *"the next job"*. ⇒ **every human- and agent-authored LIST of this defect
+was incomplete; only the PATTERN was complete.** That is the case for `CLAUDE.md` rule 6 — *anything
+enforceable belongs in a gate, not in prose* — restated with a measurement instead of an assertion.
+
+**THE RULE.** A digit adjacent to whole-word "drift" in `01`-`05` is a violation unless it is (1) the
+STATE row, (2) inside a quotation, (3) inside a `code span` (a FILENAME, not a measurement), or
+(4) preceded by a past-tense marker. ⛔ Dated history is HONEST and survives untouched; only
+present-tense claims are the defect. All 13 instances were remediated — live claims now point at
+`promote.py --check`, historical ones keep their number plus an explicit marker — so the gate ships
+at **0 findings with no per-file exemptions**.
+⭐ The remedy was **transplanted, not invented**: line budgets already carried *"NO COUNTS ARE QUOTED
+HERE — RUN `lint_docs.py`"*, justified by *"a line-count written into the file it counts is stale the
+moment it is written."* Drift is the identical shape and had never been given the identical cure.
+‼ Fittingly, the suite's own gate COUNT was quoted in three places and had to be bumped 45 -> 46 in
+this same commit — the same class, one directory over.
+
+## 2026-09-08 — The drift gate shipped with a FALSE NEGATIVE; a reviewer found the 14th instance by hand
+
+**`probe_drift_restatement.py` reported "0 findings" over a live, wrong, present-tense claim.**
+`03-PUNCH-LIST.md:47` — a **30,045-character** line — read `**drift is 7 (...)`. The gate's quote
+exclusion asked `line[:i].count('"') % 2 == 1`, i.e. **parity from the START OF THE LINE**, and that
+line carries **47** unrelated `"` before the match. Odd parity ⇒ "inside a quotation" ⇒ invisible.
+
+⭐ **THE TELL THAT SHOULD HAVE CAUGHT IT EARLIER:** a sibling `drift is 5` EARLIER ON THE SAME LINE
+*was* found and fixed in the previous commit. **Two instances on one line, one seen and one not, is
+the signature of a POSITIONAL bug** — not of an incomplete list. I read it as the latter.
+
+**THE FIX:** `_enclosed_by(line, i, delim, radius)` — a delimiter pair must OPEN AND CLOSE within a
+bounded window of the match. An unrelated quote 29,000 characters away can no longer flip a verdict.
+⛔ The mega-line case is now **fault arm 3**, built from the real shape (47 stray quotes + 3,000 words
+of filler); shrink either the quote count or the length and the OLD implementation passes, which is
+exactly why the original seven short synthetic arms could not see it.
+
+**⇒ 14 instances, and the class is `KI-92` recurring.** `05-KNOWN-ISSUES.md` records KI-92 as
+*"`audit_doc_consistency` is BLIND to drift claims buried in the banner line"* — a 10th claim that
+survived ~17,400 chars into a 39,825-character line. **My gate reproduced that bug before it caught
+it.** KI-92 stays OPEN (that tool is unchanged); a dated mitigation note was added to its body.
+
+**⭐⭐ THE GENERAL RULE THIS EARNS:** in this tree a "line" is not a unit of context. **Any check that
+derives a property by scanning from the start of a line — quote parity, backtick parity, code-block
+membership, nesting depth — is unreliable at 40,000 characters and fails as a SILENT FALSE NEGATIVE.**
+Scope such checks to a bounded window.
+
+## 2026-09-08 — GATE #47 `probe_derail_grouping.py`: the PID fix now has an executable arm
+
+A Tier 1 reviewer asked where the executable coverage for the `_derail_reason` PID fix was. There was
+none — it had been validated only by a one-off manual re-aggregation quoted in a changelog, and **a
+number in a changelog cannot fail when someone edits the regex back.**
+⭐ Its load-bearing check is the GROUPING one: two outcomes differing ONLY by PID must produce the
+SAME key. A single-string arm cannot see a grouping bug; this can.
+✅ **FAULT-TESTED, not merely written:** with the `#[0-9A-Fa-f]{6,}` line deleted the gate exits 1;
+restored (verified byte-identical), it exits 0.
+‼ Caveat recorded for readers: the **37 `summary.json` files already on disk were written with the
+OLD grouping** and still carry the wrong ranking. They are historical artifacts and were NOT
+regenerated — do not trust the top row of a pre-2026-09-08 batch summary.

@@ -363,6 +363,36 @@ GATES: list[tuple[str, bool]] = [
     # it would have missed the very bug it was built for — its own arm caught that).
     # Pure and fast: parses Python, reads no ROM.
     ("probe_name_resolution.py", False),
+    # ⛔⛔ THE DRIFT FIGURE IS THE MOST PERSISTENT DOC DEFECT IN THIS TREE — 13 instances, 12 of them
+    # recurrences. `04-HANDOFF.md` self-documents #10 (*"the 10th STALE COPY … survived both a
+    # nine-site sweep AND a green gate"*), and the edit that "fixed" it to 0 was wrong the next day.
+    # ⭐ THE REMEDY IS TRANSPLANTED, NOT INVENTED: line budgets already solved this exact class with
+    # *"NO COUNTS ARE QUOTED HERE — RUN `lint_docs.py`"*, because a count written into the file it
+    # describes is stale the moment it is written. Drift never got that treatment; now it has one.
+    # A drift digit is a violation unless it is (1) the STATE row, (2) inside a quotation, (3) inside
+    # a `code span` (a FILENAME, not a measurement), or (4) preceded by a past-tense marker.
+    # ‼ WHY IT IS A GATE AND NOT A SWEEP, with numbers: an audit listed 3 instances, a Tier 1 reviewer
+    # found a 4th, a hand grep found a 5th — and this gate found SIX MORE, including a live, wrong
+    # *"drift is 5"* in `03-PUNCH-LIST.md`. Every authored LIST was incomplete; only the pattern was.
+    # ⭐ 7 arms (2 fault, 5 no-fire). Its first draft used `\W{0,12}` and could not cross `" is "`,
+    # so it reported real findings while BOTH fault arms silently failed — inert against its own
+    # purpose, exactly like `archive_doc_block.py`'s invariant C. Read the arms, never the count.
+    # Pure and fast: reads Markdown, reads no ROM.
+    ("probe_drift_restatement.py", False),
+    # ⛔⛔ `_derail_reason` grouped with a DECIMAL-only `\d[\d,]*` pass while a PID is HEX, so
+    # `Marill#30AD95BD` -> `Marill#NADNBD` and EVERY PID BECAME ITS OWN KEY. `summary.json` is written
+    # through `.most_common()`, so the biggest blocker scattered into count-1 rows at the BOTTOM.
+    # ⭐ MEASURED on batch `20260907-203713` (49 real outcomes): Ch23 training went 16 keys -> 6, and
+    # the displayed #1 changed from a 6-count cause to the true 9-count one. THE RANKING INVERTED —
+    # every agent, gate and human reading the top of that file got the wrong blocker, low by ~3x.
+    # ‼ THIS GATE EXISTS BECAUSE A TIER 1 REVIEWER ASKED WHERE THE EXECUTABLE ARM WAS: the fix had
+    # been validated only by a one-off manual re-aggregation quoted in the changelog, and a number in
+    # a changelog cannot fail when someone edits the regex back.
+    # ⭐ Its own fault test is recorded: with the PID line deleted it exits 1; restored, 0.
+    # Its load-bearing check is the GROUPING one — two outcomes differing ONLY by PID must produce
+    # the SAME key, which a single-string arm cannot see.
+    # Pure and fast: imports one function, reads no ROM.
+    ("probe_derail_grouping.py", False),
 ]
 
 

@@ -2396,6 +2396,24 @@ and watch for the same `ReturnFromBattleToOverworld` tail.
 
 ## `KI-92` — `audit_doc_consistency` is BLIND to drift claims buried in `04-HANDOFF.md`'s banner line (2026-09-06, ⛔ FAULT-PROVEN, OPEN)
 
+**2026-09-08 — ⭐ THE CLASS IS NOW GATED, BUT THIS ISSUE STAYS OPEN, AND THE DISTINCTION MATTERS.**
+`probe_drift_restatement.py` (gate #46) scans the same mega-lines with BOUNDED LOCAL scans instead of
+line-global parity, and it caught a live drift restatement (‼ *the figure itself is deliberately NOT reproduced
+here* — same rule as above) sitting ~29,000 characters into a 30,045-character line in
+`03-PUNCH-LIST.md` — the exact shape described above, one file over.
+⛔ **KI-92's own statement is still TRUE and is NOT fixed:** `audit_doc_consistency.py` is unchanged
+and remains blind to claims buried in long lines. What has changed is that a DIFFERENT gate now
+covers the drift-claim case, so the practical risk is mitigated while the underlying blindness is not.
+‼ **AND THE NEW GATE REPRODUCED THIS BUG BEFORE IT CAUGHT IT.** Its first version asked
+`line[:i].count('"') % 2 == 1` — parity from the START of the line — and `03-PUNCH-LIST.md:47` carries
+**47** unrelated `"` before the match, so odd parity read as "inside a quotation" and the gate
+reported **0 findings** over a live violation. A Tier 1 reviewer found it by hand.
+⇒ ⭐ **THE REUSABLE LESSON, and it generalises past drift:** in this tree a "line" is not a unit of
+context. Any check that computes a property by scanning FROM THE START OF A LINE — quote parity,
+backtick parity, "is this inside a code block", nesting depth — is unreliable on a 40,000-character
+line and will fail SILENTLY, as a false negative, which is the failure mode no green suite reveals.
+**Scope such checks to a bounded window around the match.**
+
 **Symptom.** The §Ch19→§Ch23 promotion took drift 14 → 0. A sweep corrected nine sites and the gate
 returned **PASS** — yet a **10th** live claim survived, ~17,400 characters into `04-HANDOFF.md`'s
 YOU-ARE-HERE banner (a **single line of 39,825 characters**):
@@ -2878,7 +2896,7 @@ gate injects its own damage function and never touches this path.
 `metric=legacy` means this has happened. It is the one signal that distinguishes "fixed" from "fixed on
 paper", and it is why the field was added rather than leaving a reader to infer it from `estimates_ok`.
 
-**Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` NO LONGER has the defect — **PROMOTED 2026-09-08, user-authorised, verified by driving `--build custom` (`ACCEPTANCE: PASS`, `done=True`, `battles=12`, `whiteouts=0`); rollback tag `pre-promote-2026-09-08`**; drift is 2 (`victory_road.py` COMMENT-ONLY; `counter_hunt.py` the KI-84 workaround, UNDRIVEN). *(was: still has the defect, drift 5 — the four arc-2 fixes were PROMOTED 2026-09-07 and driven-verified; the remaining differences are the `KI-96` probe fix, `#24-truckleak`, `#24-pcpingpong` and `#24-hm07teach`, all sandbox-only — ⛔ **the batch that blocked promotion FINISHED 2026-09-08 (`x4-runs/20260907-203713`), so nothing is waiting on it; PROMOTING IS THE USER'S CALL**. **Promotion is the user's
+**Status:** ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`). `custom-pokebot/` NO LONGER has the defect — **PROMOTED 2026-09-08, user-authorised, verified by driving `--build custom` (`ACCEPTANCE: PASS`, `done=True`, `battles=12`, `whiteouts=0`); rollback tag `pre-promote-2026-09-08`**; for the live drift run `promote.py --check` (the authority; never restated here) — as of 2026-09-08 the drifting files were (`victory_road.py` COMMENT-ONLY; `counter_hunt.py` the KI-84 workaround, UNDRIVEN). *(was: still has the defect, drift 5 — the four arc-2 fixes were PROMOTED 2026-09-07 and driven-verified; the remaining differences are the `KI-96` probe fix, `#24-truckleak`, `#24-pcpingpong` and `#24-hm07teach`, all sandbox-only — ⛔ **the batch that blocked promotion FINISHED 2026-09-08 (`x4-runs/20260907-203713`), so nothing is waiting on it; PROMOTING IS THE USER'S CALL**. **Promotion is the user's
 call and has not been given.**
 
 ## `KI-97` — a `_play()` re-entry from a POST-Fortree position marched to MAUVILLE and fail-fast derailed (2026-09-07, MEASURED on the live batch, ✅ FIXED, **DRIVEN GREEN AND PROMOTED 2026-09-07** *(this header read "NOT DRIVEN, NOT PROMOTED" until 2026-09-08 while `07-CHANGELOG.md` recorded it DRIVEN GREEN and the handoff recorded it promoted — internally consistent and externally false, the class the P2 pair check is structurally blind to)*. ⚠ Historic text follows: NOT PROMOTED)
