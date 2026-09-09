@@ -38,6 +38,11 @@ Exit: 0 = all assertions hold; 1 = a mismatch (or the gate went vacuous).
 
 import pathlib
 import sys
+# ⛔ A default Windows console is cp1252. This file PRINTS non-ASCII, and without this the
+# crash lands AFTER the work is done — so it looks like a real failure. Swept 2026-09-08
+# after `run_gates.py` itself shipped with this bug while fixing it in three other files.
+sys.stdout.reconfigure(encoding="utf-8")
+
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 BUILD = REPO / "sandbox-pokebot"

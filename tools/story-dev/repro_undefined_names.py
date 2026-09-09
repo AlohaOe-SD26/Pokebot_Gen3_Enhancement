@@ -32,6 +32,11 @@ import pathlib
 import re
 import subprocess
 import sys
+# ⛔ A default Windows console is cp1252. This file PRINTS non-ASCII, and without this the
+# crash lands AFTER the work is done — so it looks like a real failure. Swept 2026-09-08
+# after `run_gates.py` itself shipped with this bug while fixing it in three other files.
+sys.stdout.reconfigure(encoding="utf-8")
+
 
 # ‼ `--build` — added 2026-08-23 (`#24-p4residuals` (e)). This gate hardcoded
 # `sandbox-pokebot`, so the identical defect landing in `custom-pokebot` — THE FORK THAT

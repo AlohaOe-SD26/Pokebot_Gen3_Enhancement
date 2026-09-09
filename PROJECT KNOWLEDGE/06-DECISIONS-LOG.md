@@ -4845,3 +4845,31 @@ deliverable is an instrument (log money at run start / whiteout / mart), not a f
 **Alternatives rejected for Fact 2:** *disable boss-training* — unmeasured, and it is the only
 loss-adaptation the late game has. *Cap it at N engagements* — a number with no evidence behind it is
 the same guess wearing a threshold.
+
+## 2026-09-08 — Where the "run it bare" guarantee stops: the runner and its REGISTERED gates
+
+**Decision.** Guard stdout in `run_gates.py` and in every gate it registers (plus `audit_encoding.py`),
+and NOT in the ~120 other tools under `tools/story-dev`.
+
+**Why a boundary at all.** A first attempt swept every file that prints non-ASCII — **155 of them** —
+which is an unreviewable diff and touches dozens of one-off recon probes that only ever run from an
+agent's shell with `PYTHONUTF8=1` already set. Rigour that produces a 155-file diff for a two-file
+blocker is not rigour.
+
+**Why THIS boundary.** The tree already draws it: `run_gates.py`'s `GATES` list *is* the set of tools
+meant to be run by someone other than their author — by the suite, by a reviewer, by a future agent
+following the handoff. Those must survive a bare invocation. An ad-hoc probe written for one
+investigation has an author who is present and a shell that is configured.
+
+**Alternatives rejected.**
+* *Sweep everything* — rejected above. ⛔ It also hides the signal: 155 changed files means nobody
+  reads any of them.
+* *Fix only `run_gates.py`* (the literal blocker) — rejected: the same bug was already measured in
+  three registered gates, so the instance-only fix had just been demonstrated to fail. The registered
+  set is the smallest scope that closes the class for anyone who is not me.
+* *Rely on `_GATE_ENV` alone* — rejected, and this is what the kick-back proved: a child environment
+  cannot help the parent, and the parent is the thing a human runs.
+
+**Verification standard adopted with it:** a tool claimed to work bare is tested bare —
+`env -u PYTHONUTF8 PYTHONIOENCODING=cp1252` — not with the author's habitual flags. That is now the
+settling command for anything in this class.

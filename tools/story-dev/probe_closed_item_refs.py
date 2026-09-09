@@ -42,6 +42,11 @@ import os
 import pathlib
 import re
 import sys
+# ⛔ A default Windows console is cp1252 and this file prints ‼/⛔ — without this the gate
+# dies with UnicodeEncodeError AFTER its checks pass, i.e. it FALSELY REDS. Found by a
+# Tier 1 reviewer running it bare; invisible to anyone who habitually sets PYTHONUTF8=1.
+sys.stdout.reconfigure(encoding="utf-8")
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 #: Optional path argument, so the gate can be pointed at a HISTORICAL copy of the file — that is

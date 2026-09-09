@@ -26,6 +26,11 @@ Exit: 0 clean; 1 if any definition-citation points at the wrong line.
 import pathlib
 import re
 import sys
+# ⛔ A default Windows console is cp1252 and this file prints ‼/⛔ — without this the gate
+# dies with UnicodeEncodeError AFTER its checks pass, i.e. it FALSELY REDS. Found by a
+# Tier 1 reviewer running it bare; invisible to anyone who habitually sets PYTHONUTF8=1.
+sys.stdout.reconfigure(encoding="utf-8")
+
 
 HERE = pathlib.Path(__file__).resolve().parent
 REPO = HERE.parents[1]

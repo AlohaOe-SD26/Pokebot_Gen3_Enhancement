@@ -15128,3 +15128,50 @@ correction worth having, which was the case here. **What is not acceptable is ch
 doc line, the stale reference AND the function's true span, so the repair could be driven straight
 from its own output. ⭐ That is what a good gate buys: not just detection, but a repair recipe.
 ⇒ when writing a gate, print what the FIX needs, not only that something is wrong.
+
+## 2026-09-08 — My own habit hid a defect: three gates falsely failed for everyone but me
+
+**Symptom.** A Tier 1 reviewer, checking something unrelated, ran `audit_doc_citations.py` bare and
+got exit 1 with a `UnicodeEncodeError`. I had run that gate dozens of times and always seen PASS.
+
+**Root cause.** I invoke everything as `PYTHONUTF8=1 py -3.12 ...`. That flag is not in the gate; it
+is in **my muscle memory**. On a default Windows cp1252 console the gate finishes its checks and then
+dies printing a `‼`. Reproducing it properly showed **three** gates in that state, not one.
+
+**⭐ PREVENTION RULE — TEST A TOOL THE WAY ITS NEXT USER WILL INVOKE IT, NOT THE WAY YOU DO.**
+A habitual flag is an invisible dependency: it makes the tool work for you and fail for everyone
+else, and no amount of re-running it YOUR way will reveal that. ⇒ for anything meant to be run by
+someone else (gates, probes, drivers), run it once with a BARE invocation and an empty-ish
+environment before calling it done.
+‼ Corollary: **when a reviewer reports a failure you cannot reproduce, the difference is probably in
+your environment, not in their competence.** My first instinct was that the reviewer had run it
+wrong. It had run it *right* — more faithfully than I ever had.
+
+**⭐ And the fix shape worth copying: TWO LEVELS.** Per-gate `sys.stdout.reconfigure` so a bare run
+works, AND a UTF-8 child environment in `run_gates.py` so every FUTURE gate is immune without anyone
+having to remember. Fixing only the three known-bad files would have left the next new gate to
+rediscover the same bug — **fix the instance and the class.**
+
+## 2026-09-08 — Told to "fix the class", I changed 155 files for a two-file blocker
+
+**Symptom.** A Tier 1 reviewer's blocker named ONE file (`run_gates.py`) and one RISK
+(`audit_encoding.py`). I had just written the lesson *"fix the instance and the class"*, so I wrote a
+sweep over every tool that prints non-ASCII. It matched **155 files** and I applied all of them.
+
+**Root cause.** I took "the class" to mean *every file exhibiting the pattern* rather than *every file
+where the pattern MATTERS*. The bug only bites a tool invoked by someone who is not its author; the
+tree already names that set — the gates `run_gates.py` registers. Dozens of one-off recon probes were
+never in scope. **Reverted to HEAD; 155 → 37.**
+
+**⭐ PREVENTION RULE — "FIX THE CLASS" MEANS THE CLASS OF SITUATIONS, NOT THE CLASS OF SYNTAX.**
+Before applying a sweep, write down the PREDICATE that makes an instance matter, and count the
+matches *before* editing. If the count is an order of magnitude past the reported problem, the
+predicate is wrong — a grep pattern is not a scope. ⇒ **print the match list, read it, THEN edit.**
+‼ My sweep printed all 155 names and I applied the edit in the same run, so I read the list only
+after the damage. **Separate the survey from the change.**
+
+**‼ AND THE UNCOMFORTABLE PART: this happened in the same breath as a lesson about rigour.**
+Over-correction is a failure mode of the same kind as under-correction, and it wears the costume of
+diligence — a 155-file diff *looks* thorough and is strictly less reviewable than a 2-file one. When
+a correction feels emphatic, that is the moment to check its size against the evidence that prompted
+it.

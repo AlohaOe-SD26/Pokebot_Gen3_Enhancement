@@ -725,6 +725,11 @@ PYTHONUTF8=1 py -3.12 repro_box_counter_move_test.py --build custom  #   the oth
 #   sandbox cannot tell you whether a promoted fix actually landed.
 ```
 
+⭐ **THE SUITE IS SAFE TO RUN BARE AS OF 2026-09-08** — `run_gates.py` and every REGISTERED gate reconfigure stdout to UTF-8, and the runner launches its children with `PYTHONUTF8=1`. Three gates used to exit 1 with a `UnicodeEncodeError` on a default Windows cp1252 console **after their checks had passed**, so they looked like real failures.
+⛔ **When you claim a tool works bare, TEST IT BARE** — the settling command is
+`env -u PYTHONUTF8 PYTHONIOENCODING=cp1252 py -3.12 run_gates.py --quick` (must exit 0).
+⚠ Ad-hoc probes NOT in the `GATES` list are deliberately left unguarded; `06-DECISIONS-LOG.md` 2026-09-08 records where that boundary is and why.
+
 ‼ **A driver keeps running after it prints ACCEPTANCE** — it drops to Manual and the harness only
 exits on its own 20,000-idle-frame detector, logging **"HANG CONFIRMED"** on a run that SUCCEEDED.
 **Read the `ACCEPTANCE:` line, not the last line.** Full transcripts land in

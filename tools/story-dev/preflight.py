@@ -29,6 +29,11 @@ from __future__ import annotations
 import pathlib
 import subprocess
 import sys
+# ⛔ A default Windows console is cp1252. This file PRINTS non-ASCII, and without this the
+# crash lands AFTER the work is done — so it looks like a real failure. Swept 2026-09-08
+# after `run_gates.py` itself shipped with this bug while fixing it in three other files.
+sys.stdout.reconfigure(encoding="utf-8")
+
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent

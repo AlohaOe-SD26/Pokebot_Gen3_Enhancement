@@ -43,6 +43,11 @@ Self-test:  PYTHONUTF8=1 py -3.12 audit_handoff_invariants.py --self-test
 import pathlib
 import re
 import sys
+# ⛔ A default Windows console is cp1252. This file PRINTS non-ASCII, and without this the
+# crash lands AFTER the work is done — so it looks like a real failure. Swept 2026-09-08
+# after `run_gates.py` itself shipped with this bug while fixing it in three other files.
+sys.stdout.reconfigure(encoding="utf-8")
+
 
 # This gate prints U+26D4/U+203C markers on BOTH its PASS epilogue and its H1-H5 failure
 # messages. On a bare Windows console (cp1252) an unconfigured stdout raises

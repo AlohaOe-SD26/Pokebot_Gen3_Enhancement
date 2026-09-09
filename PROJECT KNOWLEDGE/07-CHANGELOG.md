@@ -25409,3 +25409,65 @@ are used, `src/overworld.c:611`) ⇒ **the function is inert on the path it was 
 KEPT — the guard is sound even though the premise was not, and deleting it would be a behaviour
 change justified by an argument. Its docstring now carries the correction and points readers at
 `get_last_heal_location()`.
+
+## 2026-09-08 — THREE gates were FALSELY FAILING on a default Windows console. Fixed at both levels.
+
+**Found by a Tier 1 reviewer running a gate the way a human would** — bare, with no environment
+set — while checking something else entirely. It reported `audit_doc_citations.py` exiting 1 with a
+`UnicodeEncodeError` and correctly called it pre-existing and unrelated to the diff under review.
+
+**Reproduced before fixing, and it was worse than reported.** Simulating the default cp1252 console
+(`PYTHONIOENCODING=cp1252`) across the doc gates:
+```
+audit_doc_citations.py     exit 1  UnicodeEncodeError      probe_item_header_body.py  exit 1
+probe_closed_item_refs.py  exit 1  UnicodeEncodeError      (five other doc gates: exit 0)
+```
+**Three gates, not one.** In each, the crash is in the PRINT, not the check: the gate completes its
+work and then dies emitting a `‼`.
+
+**⭐ WHY THIS IS NOT COSMETIC.** A gate that reds for a reason unrelated to what it guards is this
+project's stated worst case — *"a gate with false positives teaches the reader to bypass it, which is
+strictly worse than no gate"*. A future agent running the suite bare on Windows sees three doc gates
+FAIL, finds nothing wrong with the docs, and learns to discount them.
+‼ **I never saw it because I invoke everything with `PYTHONUTF8=1`.** My own habit was hiding a
+defect from me — the reviewer's "naive" invocation was the more faithful test.
+
+**FIXED AT TWO LEVELS, deliberately:**
+* each of the three gates now calls `sys.stdout.reconfigure(encoding="utf-8")` — so a BARE
+  invocation works, which is how a human or a reviewer will run it;
+* `run_gates.py` launches every child with `PYTHONUTF8=1` / `PYTHONIOENCODING=utf-8` — so every
+  gate, **including ones not yet written**, is immune inside the suite. The per-gate guard alone
+  would have left the next new gate to rediscover this.
+
+**PROVEN, A/B, under the same cp1252 simulation that reproduced it:** all three went **exit 1 → exit
+0**. Full suite re-run afterwards: **ALL 40 ENFORCING GATES PASS** (`--quick`, 51.3s).
+⚠ En route the suite's own PREFLIGHT correctly blocked on *"git is AHEAD of the remote"* — the guard
+working as designed, on me.
+
+### 2026-09-08 (same item, KICK-BACK) — the runner shipped with the very bug it was fixing
+
+**A Tier 1 reviewer refused the entry above.** `run_gates.py` — the file the fix edits — **still
+crashed bare**, because `_GATE_ENV` reaches subprocess CHILDREN and does nothing for the PARENT's own
+stdout. It prints an unguarded `‼` at two sites, one of them the *"THIS IS NOT A GREEN SUITE"* caveat
+the project calls critical. Reproduced: all 40 children PASS, the success line prints, and the NEXT
+print kills it — exit 1.
+‼ **And my verification repeated the original sin.** The entry above says *"Full suite re-run:
+ALL 40 ENFORCING GATES PASS"* — run **my habitual way**, with `PYTHONUTF8=1`, never bare. The habit
+that hid the bug also hid the hole in my fix for it.
+
+**⛔ THEN I OVER-CORRECTED, AND THAT IS THE MORE INSTRUCTIVE HALF.** Told to fix "the class", I wrote
+a sweep that matched **155 files** and applied it — every one-off recon probe in the directory, in the
+name of rigour. That is an unreviewable diff, not a fix. **Reverted to HEAD** and rescoped to the
+boundary the tree already defines: **`run_gates.py` + the gates it REGISTERS** (the tools anyone runs
+bare) **+ `audit_encoding.py`** (the reviewer's named risk — its `‼` sits in the FAIL branch, so it
+would crash exactly when it finally has something to report). **155 → 37 files.**
+
+**✅ THE SETTLING EVIDENCE, run the way the reviewer specified rather than the way I prefer:**
+```
+env -u PYTHONUTF8 PYTHONIOENCODING=cp1252 py -3.12 run_gates.py --quick
+  ==> EXIT CODE = 0
+  ALL 40 ENFORCING GATES PASS  (51.5s total)
+  ‼ --quick RAN 40 OF 48 — 8 ROM GATE(S) WERE NOT RUN. THIS IS NOT A GREEN SUITE.
+```
+The caveat line now prints intact instead of killing the run. ⚠ Still `--quick`: 8 ROM gates did not
+run, and that is not a green suite.

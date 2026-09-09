@@ -24,10 +24,25 @@ mistake `04-HANDOFF.md` warns about, made impossible here.
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
+# ⛔ A default Windows console is cp1252. This file PRINTS non-ASCII, and without this the
+# crash lands AFTER the work is done — so it looks like a real failure. Swept 2026-09-08
+# after `run_gates.py` itself shipped with this bug while fixing it in three other files.
+sys.stdout.reconfigure(encoding="utf-8")
+
 import time
 from pathlib import Path
+
+# ⛔⛔ EVERY GATE RUNS IN A UTF-8 CHILD, ALWAYS. Three gates (`audit_doc_citations`,
+# `probe_item_header_body`, `probe_closed_item_refs`) were measured FALSELY FAILING on a default
+# Windows cp1252 console: they finished their checks and then died with UnicodeEncodeError while
+# PRINTING a `‼`. A gate that reds for a reason unrelated to what it guards teaches the reader to
+# bypass it — CLAUDE.md rule 6, and the reason this is fixed here as well as in each gate.
+# ⭐ Belt AND braces on purpose: the per-gate guard makes a BARE invocation work (how a human runs
+# it); this makes every FUTURE gate immune without having to remember.
+_GATE_ENV = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
 
 HERE = Path(__file__).resolve().parent
 
@@ -462,6 +477,7 @@ def main() -> int:
                     [sys.executable, name],
                     cwd=HERE, stdout=handle, stderr=subprocess.STDOUT,
                     timeout=TIMEOUT_SLOW if _slow else TIMEOUT_FAST,
+                    env=_GATE_ENV,
                 ).returncode
             except subprocess.TimeoutExpired:
                 rc = 124   # the conventional timeout code; must land in `failed`, never in PASS
