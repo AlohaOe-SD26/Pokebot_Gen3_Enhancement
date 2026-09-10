@@ -26096,3 +26096,36 @@ of a proposed change, it sweeps `03/05/06/07/08` and flags every hit sitting nea
 (rejected / unsafe / refuted / killed / do not / decided / superseded). **Fault-tested on the
 argument I actually missed:** `precheck_prior_art.py "still FIELDED" "do not train"` returns
 `07-CHANGELOG.md:24731 ⛔ VERDICT WORD NEARBY`.
+
+## 2026-09-10 — A better Dive ground would NOT fix the refusal: the 2026-08-13 ruling is vindicated
+
+**The tempting re-prioritisation, and why it was wrong.** `Marill` is the named offender in **11 of
+23** §Ch23 refusal events, and it is the Dive carrier acquired at ROUTE117 **L13**.
+`#24-divegroundroute120` (filed 2026-08-24, never built) offers the same species at **L25-27** on a
+2.8x shorter trip. It was filed as a QUALITY upgrade, and the 2026-08-13 ruling that kept Route 117
+called the L13 learner *"quality, not capability"*. My measurement seemed to contradict that.
+
+**It does not. [MEASURED — `tools/story-dev/probe_dive_carrier_level.py`]**, constants read from
+source, growth curve validated against real logs:
+```
+  acquired at            exp still needed   battles      frames    vs the 250,000 ceiling
+  L13  ROUTE117 (wired)           81,301       284      406,972    ⛔ REFUSES
+  L25  ROUTE120 (proposed)        70,558       246      352,518    ⛔ REFUSES
+  L27  ROUTE120 (proposed)        67,312       235      336,755    ⛔ REFUSES
+```
+⇒ **even a L27 carrier refuses.** No reachable acquisition level clears the gate, so the ground
+change is genuinely a quality upgrade and **the ruling's premise holds.** ⭐ The tool printed the
+branch that says so — I wrote the disconfirming branch before running it.
+
+**⭐ THE VALIDATION FOUND SOMETHING SHARPER THAN THE CALCULATION.** Checking the growth curve against
+real data: **all 521 logged Marill sightings read `L13:exp1757`**, and `4*13³/5 = 1757` exactly.
+**The carrier never gains a single point of experience.** It is not training slowly — it is inert,
+caught and carried purely for Dive, never fighting.
+
+**⇒ THE SOLUTION SPACE IS NOW NARROW AND MEASURED.** Three directions are dead: widening
+`TRAIN_CATCHUP_GAP` (+2 mons from G=6 to G=∞), benching the mule (benching is *do not train*, not
+*do not field* — it deletes the only gate and still fields the mon), and a better acquisition ground
+(above). What survives must change **whether the tool is in the party at the gate**, or **whether the
+gate counts it** — not how much it is trained. ⚠ A PC deposit is the obvious shape and is explicitly
+flagged hazardous (`victory_road.py:500`); whether Dive is still needed after the water legs is a
+story-routing question and is unanswered.

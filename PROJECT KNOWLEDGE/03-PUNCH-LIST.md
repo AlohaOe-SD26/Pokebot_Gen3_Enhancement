@@ -816,6 +816,29 @@ from the driver's log** — the probe caught the fainted member the driver's log
       feeds the counter planner and would widen a second consumer.
       ⛔ **DO NOT RE-PROPOSE SHOAL CAVE.** Ruled out 2026-08-13 (user-delegated): at HIGH TIDE its
       reachable on-foot encounter tiles are **0**, so the hunt silently burns its whole budget.
+- [ ] ⛔⛔ **2026-09-10 — THIS ITEM IS *NOT* A FIX FOR THE §Ch23 REFUSAL, AND I TESTED THAT BEFORE
+      PROPOSING IT.** `Marill` is the named offender in **11 of 23** Victory Road refusal events
+      (47.8%), and it is the Dive carrier acquired at ROUTE117 **L13**. It was therefore tempting to
+      re-prioritise this item from "quality upgrade" to "the capability fix". **[MEASURED BY ME —
+      `tools/story-dev/probe_dive_carrier_level.py`, constants read from source, growth curve
+      validated against 521 real logged sightings]** it is not:
+      ```
+        acquired at              exp still needed   battles      frames    vs 250,000 ceiling
+        L13  ROUTE117 (wired)             81,301       284      406,972    ⛔ REFUSES
+        L25  ROUTE120 (proposed)          70,558       246      352,518    ⛔ REFUSES
+        L27  ROUTE120 (proposed)          67,312       235      336,755    ⛔ REFUSES
+      ```
+      ⇒ **even a L27 carrier refuses.** A better ground does not clear the gate, so this item stays a
+      QUALITY upgrade — exactly as the 2026-08-13 ruling said.
+      ✅ **THAT RULING IS VINDICATED, NOT UNDERMINED.** `06-DECISIONS-LOG.md:1805-1808` judged the L13
+      learner *"quality, not capability"*. New evidence appeared to contradict it (Marill causes half
+      the refusals); measured, the ruling's premise **holds** — the refusal is not caused by the
+      carrier's ACQUISITION level, because no reachable acquisition level clears the ceiling.
+      ⭐ **AND THE VALIDATION FOUND SOMETHING SHARPER: THE MARILL IS INERT.** All **521** logged
+      Marill sightings read `L13:exp1757`, and `4*13³/5 = 1757` exactly — **it never gains a single
+      point of experience, ever.** It is not training slowly; it is carried and never fights.
+      ⇒ the defect is not the ground, the threshold, or the bench list. **The bot carries an inert
+      field-move tool that the readiness gate counts as a battler.**
 
 ### ‼ `#24-hmgroundwatertiles` — two HM hunting grounds are WATER tiles priced off the LAND table (filed 2026-08-24)
 
@@ -1588,45 +1611,21 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
      ```
      **46% of arrivals land in gaps 6-8 while gaps 1-5 are nearly empty, and the window is gap <= 5.**
      ⇒ mons arrive SYSTEMATICALLY JUST OUTSIDE the training window.
-     ⛔⛔ **AND THAT LEAD IS DEAD — KILLED 2026-09-09 BY A 10-AGENT ADVERSARIAL PASS PLUS MY OWN
-     RE-DERIVATION. DO NOT RE-PROPOSE WIDENING `TRAIN_CATCHUP_GAP`.** Four independent reasons:
-     1. ⛔ **MY HISTOGRAM WAS CONTAMINATED.** 95 of the 184 "arrivals" are **not catches**:
-        starters, the 24 Wally-tutorial Zigzagoon:L7 handouts, **27 of Steven's allies merged into
-        the party by the §Ch19 multi-battle**, gift Castform, PC withdrawals, Shedinja evo-spawns.
-        **All 48 gap-0 arrivals were non-catches.** Genuine catches only (n=89, mine):
-        `0-5: 2 | 6-8: 69 | 9-15: 2 | 16+: 16` — the cluster is REAL and *stronger*, but the gap-0
-        spike that made it look bimodal was an artifact of counting non-catches.
-     2. ⛔ **THE MECHANISM IS REFUTED.** *"They never enter `to_train`, gain nothing, and fall
-        further behind"* is false: **[MEASURED BY ME] 79/89 = 89% of caught mons GAINED EXP (median
-        +20 levels) and 59/89 = 66% REACHED gap <= 5**, i.e. they do get inside the window.
-     3. ⛔ **THE FIX IS WORTHLESS EVEN IF THE MECHANISM HELD — [MEASURED BY ME], re-runnable:
-        `tools/story-dev/probe_catchup_threshold_sweep.py`.** It anchors on the 1,673 real training
-        episodes (`Story: training the team to Lv <T> in the grass…`) and reads the **real `target`
-        out of the production line**, so it evaluates `level >= target - G` exactly as `:2135-2136`
-        does — no modelling assumption:
-        ```
-          G      mons admitted at >=1 episode      of the 69 gap-6-8 catches
-          5              95 / 184                        65 / 69
-          6  (shipped)   95 / 184                        65 / 69
-          8              96 / 184                        66 / 69
-          ∞              97 / 184                        66 / 69
-        ```
-        ⇒ **G=6 → G=∞ admits +2 mons overall and +1 of the 69 gap-6-8 catches**, and **65 of those
-        69 are ALREADY admitted at the shipped value.** The curve is flat from 5 to infinity ⇒ the
-        threshold is not the binding constraint at all.
-        ‼ **NEAR-MISS WORTH KEEPING:** the first version of that tool swept EVERY heartbeat and
-        reported "+66 mons", which reads as a refutation. Admission only matters when a training
-        episode evaluates it — *"could it ever be inside the window?"* is a different question from
-        *"is it inside when the code looks?"*
-     4. ⭐ **THE GAP IS PURE GEOGRAPHY, NOT A DECISION.** ⚠ **[AGENT-MEASURED, NOT RE-DERIVED BY
-        ME — treat as a strong note, not as settled]** — independently reproduced
-        by its own refuter] for all 90 catches the realised gap falls inside
-        `[team_max - band_max, team_max - band_min]` — **90/90, residual +0.20 ± 0.54** — and a
-        within-map permutation null predicts 70.2 gap-6-8 catches against 71 observed. On the four
-        maps supplying 80% of catches, `team_max - wild_band_mean` is **6.3 / 6.5 / 6.6 / 6.5**.
-        ‼ And the bot is already catching at its **FLOOR**: of 8,401 catch-capable heartbeat-minutes
-        (free slot AND >=1 ball AND on wild grass), only **40 minutes** across all 24 runs offered a
-        gap-0-5 catch at all, while 78.5% of that time would have produced gap 9-15.
+     ⛔⛔ **AND THAT LEAD IS DEAD — KILLED 2026-09-09. DO NOT RE-PROPOSE WIDENING
+     `TRAIN_CATCHUP_GAP`.** Four reasons, in one line each; **the full record with all raw output is
+     in `07-CHANGELOG.md`, "I killed my own most promising lead, with evidence"**:
+     1. **The histogram was contaminated** — 95 of 184 "arrivals" are not catches (starters, the
+        Wally tutorial, **27 of Steven's allies merged by the §Ch19 multi-battle**, gifts, PC
+        withdrawals, Shedinja spawns). All 48 gap-0 arrivals were non-catches. Genuine catches
+        (n=89): `0-5: 2 | 6-8: 69 | 9-15: 2 | 16+: 16`.
+     2. **The mechanism is refuted** — [MEASURED BY ME] 79/89 = **89%** of caught mons gain exp
+        (median **+20 levels**); 59/89 = **66%** reach gap <= 5. They are not stuck outside it.
+     3. **The fix does nothing** — `tools/story-dev/probe_catchup_threshold_sweep.py`: G=6 → G=∞
+        admits **+2 mons** overall and **+1** of the 69 gap-6-8 catches; 65 of those 69 are already
+        admitted at the shipped value. Flat from 5 to ∞ ⇒ the threshold binds nothing.
+     4. **The gap is geography** — ⚠ [AGENT-MEASURED, NOT RE-DERIVED BY ME] all 90 catches fall
+        inside the wild-band prediction (90/90, residual +0.20 ± 0.54); the bot already catches at
+        its floor (only 40 of 8,401 catch-capable minutes offered a lower-gap catch).
      ⭐ **AND THE SAME REASONING WAS APPLIED TO A NEIGHBOURING CONSTANT ON 2026-07-24** —
      `06-DECISIONS-LOG.md:267-269`, rejecting an alternative:
      > *"3. Raise/lower the level window. Any level-denominated threshold is wrong for the same
@@ -1679,8 +1678,22 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
      Surf carrier and sits at **L13 in 100% of 521 sightings**. The refusal is the MESSENGER, not the
      defect. ⇒ any real fix is UPSTREAM of both benching and training, and must answer *"what should
      happen to a mon that is carried for a field move and can never reach the battle bar?"*
-     ⛔ **NOT YET INVESTIGATED, AND DO NOT BUILD ON IT WITHOUT ONE:** the faint-chooser could consult
-     a do-not-field set — but that is a NEW design, and this item has now killed two in two days.
+     ⛔⛔ **THE SOLUTION SPACE, NARROWED BY MEASUREMENT — THREE DIRECTIONS ARE DEAD:**
+     | direction | why it is dead | evidence |
+     |---|---|---|
+     | widen `TRAIN_CATCHUP_GAP` | admits **+2 mons** from G=6 to G=∞ | `probe_catchup_threshold_sweep.py` |
+     | add the mule to `BENCH_SPECIES` | benching is *do not train*, **not do not field** — deletes the only gate and still fields it | `story_mode.py:273-274`; `07-CHANGELOG.md` F6 |
+     | acquire the carrier at a better ground | **L27 still refuses** (336,755 vs a 250,000 ceiling) | `probe_dive_carrier_level.py` |
+     ⭐ **WHAT THE MEASUREMENTS AGREE ON:** the carrier is **INERT** — 521/521 sightings at
+     `L13:exp1757`, never one point of exp — and the gate counts it as a battler. ⇒ any surviving fix
+     must change **whether it is in the party at the gate**, or **whether the gate counts it**, not
+     how much it is trained.
+     ⚠ **A PC DEPOSIT IS THE OBVIOUS SHAPE AND IS EXPLICITLY HAZARDOUS** — `victory_road.py:500`
+     warns *"a PC deposit is the hazard `assert_carriers_survived` exists to catch"*. Whether Dive is
+     still needed after the water legs is a STORY-ROUTING question and is **unanswered**.
+     ⛔ **DO NOT BUILD A FOURTH DESIGN WITHOUT RUNNING `tools/story-dev/precheck_prior_art.py` FIRST**
+     — three have died here in two days, and two of the three were killed by arguments already in
+     this repo.
      ⚠ **SIDE FINDING, load-bearing if anything here is ever promoted:**
      `custom-pokebot/modules/story/victory_road.py:1806` has **NO empty-battler guard**; it exists
      only in sandbox (`:1817-1827`). `06-DECISIONS-LOG.md` shipped that guard as a hard prerequisite

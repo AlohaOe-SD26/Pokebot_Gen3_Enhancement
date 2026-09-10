@@ -15910,3 +15910,34 @@ exactly as stated, correctly scoped to "all of x4-runs"). But each refusal event
 in stdout and 15 in debug-logs ⇒ the decision unit is **23 events**. **A correct count of the wrong
 unit is still the wrong number for the decision** — state the unit beside every count.
 
+## 2026-09-10 — New evidence appeared to overturn a settled ruling; measured, it confirmed it
+
+**Symptom (a good outcome, recorded so the METHOD is repeatable).** I measured that `Marill` causes
+11 of 23 §Ch23 refusals, and a 2026-08-13 user-delegated ruling had kept the Route 117 hunting
+ground while calling its L13 learner *"quality, not capability"*. That looked like a settled decision
+resting on a premise I had just refuted — the strongest legitimate ground for re-opening one.
+
+**⭐⭐ WHAT I DID INSTEAD OF RE-OPENING IT: PRICED THE PREMISE FIRST.** The ruling's claim is
+falsifiable in one calculation — does a higher-level carrier clear the gate? Using the bot's own
+estimator with constants read from source: **L13 → 406,972 frames, L25 → 352,518, L27 → 336,755,
+against a 250,000 ceiling. All three refuse.** The premise holds; the ruling stands; my
+re-prioritisation was wrong before I proposed it.
+⇒ **PREVENTION RULE — WHEN NEW EVIDENCE SEEMS TO OVERTURN A SETTLED DECISION, TEST THE DECISION'S
+OWN STATED PREMISE BEFORE RE-OPENING IT.** A ruling usually names the belief it rests on; that belief
+is a claim, and claims are cheaper to check than decisions are to re-litigate. ‼ And write the
+disconfirming branch INTO the tool — mine printed *"the ruling's premise stands"* on its own, which
+is far harder to argue with than a conclusion I reasoned to afterwards.
+
+**⭐ THE VALIDATION STEP EARNED MORE THAN THE MEASUREMENT.** I checked the growth curve against real
+logged values rather than trusting the formula, and found **521 of 521 Marill sightings at
+`L13:exp1757`** — an exact curve match AND the discovery that the carrier **never gains any exp at
+all**. ⇒ **validate a model against real data even when you are confident, because the validation
+sees things the model was not asked about.** The calculation answered "would a better ground help?";
+the validation answered "what IS this mon?", which is the more useful question.
+
+**‼ AND THE PRIOR-ART TOOL PAID FOR ITSELF ON ITS FIRST REAL USE.** `precheck_prior_art.py "Marill"
+"carrier" "Route 104"` surfaced **7 decisions-log hits** — including the binding ruling — that no
+grep for the symbol I intended to change (`BENCH_SPECIES`) would ever have reached. It also surfaced
+`#24-divegroundroute120`, a filed, spec'd, unbuilt item that was exactly the idea I was forming.
+⇒ **the tool did not just prevent a mistake; it found the prior work I was about to duplicate.**
+
