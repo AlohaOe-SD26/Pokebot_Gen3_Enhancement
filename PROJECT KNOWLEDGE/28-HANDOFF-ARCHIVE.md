@@ -10430,3 +10430,72 @@ HISTORY — originally flagged as: duplicate / overlapping ids, not merged
 ⇒ Recommend consolidating each group under its newest ID with the older ones pointing at it.
 **Not done unilaterally — it rewrites history in a current-state file.**
 
+
+---
+
+## 2026-09-10 — THREE CLOSED PUNCH-LIST ITEMS RETIRED VERBATIM (R3 budget: 03 was at 4200/4200)
+
+Moved out of `03-PUNCH-LIST.md` to reclaim headroom before new work was written into it, per the
+handoff’s standing “ARCHIVE FIRST, WRITE SECOND” instruction. **Nothing was edited and nothing was
+deleted** — the three blocks below are byte-identical to what stood in `03`, and each left a
+one-line stub behind pointing here.
+
+‼ **ONE LIVE RESIDUAL WAS *NOT* ARCHIVED.** `#24-e4moveset`’s closing paragraph was the only place
+in the tree tracking the still-un-fetched **Dragon Claw (TM02) for Sceptile**. That sentence was
+hoisted into the stub in `03` rather than retired with the block — **a closed item can still be the
+sole owner of an open fact; check for residuals before retiring one.**
+
+### ✅ `#24-icebeamtrip` — **CLOSED 2026-09-05: TM13 ICE BEAM IS IN THE BAG.** ⛔ DO NOT REDO THE TRIP.
+
+`--driver ch24icebeam` `ACCEPTANCE: PASS` from `post_slateport.ss1` → fixture **`post_icebeam.ss1`**
+(md5 `5515f893a2aa1a1e7e60d6741a3d8497`): `have_key=True`, `have_tm13=True`, `missing=[]`,
+`battles=2`, `whiteouts=0`. Fault arm `POKEBOT_CH24_FAULT_NOKEY=1` refuses at the Captain's Office.
+
+⛔⛔ **FOUR BLOCKERS, AND NOT ONE WAS VISIBLE IN THE WARP TABLES I TRUSTED:**
+1. **Boarding is a NORTH ARROW WARP** (`MB_STAIRS_OUTSIDE_ABANDONED_SHIP`). Stand ON (29,6), hold Up.
+   ⭐ Proven before the decomp arrived: a hand-step WEST walked straight *through* the tile to (28,6)
+   without firing it — which no step-on warp can do.
+2. **The DECK is split in two.** The Captain's Office is UNREACHABLE from the boarding tile — the
+   decomp found it by collision BFS and **our own planner confirmed it independently** by refusing
+   `(13,15) → (12,5)`.
+3. **`CORRIDORS_B1F` ROW 5 is the ONLY crossover in the entire ship.** Reaching the key requires
+   board → down → cross → up the WEST stair → deck west half.
+4. **The Storage Room door is METATILE-GATED**, not warp-gated: `OnLoad` stamps (11,4) as
+   `MB_NORMAL` — a WALL — until `FLAG_USED_STORAGE_KEY` is set. **Holding the key does nothing; it
+   must be INSERTED with A.**
+
+📦 Full evidence: `ai-research-notes/2026-09-05-ch24-ABANDONED-SHIP-ROUTE.md`.
+
+---
+
+### ✅ `#24-icebeamteach` — **CLOSED 2026-09-05: WAILORD KNOWS ICE BEAM.** ⛔ DO NOT REOPEN. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-05, to keep 03 under its R3 line budget).
+### ✅ `#24-flyunlock` — **CLOSED 2026-09-05: FLY IS TAUGHT AND FLOWN. THE EVER GRANDE PLATEAU IS SOLVED.** ⛔ DO NOT REDO.
+
+⛔⛔ **THE PROBLEM WAS GEOGRAPHY, NOT POLICY:** from EVER_GRANDE (18,6) only the League door and the
+Victory Road exit landing were reachable — the Poké Center, the VR apron, the shore and every water
+tile returned `PathFindingError`, so **the bot could not walk to a single wild encounter.**
+✅ `ch24fly` → `post_fly.ss1` (`a45283a669e7ee36776b43acec3a8580`) teaches Swellow **Fly** over Wing
+Attack (dominated by its own Aerial Ace); ✅ `ch24flyto` → `post_slateport.ss1`
+(`171460626f5f6fead942aa88a85b2050`) FLIES to SLATEPORT (19,20), graded on ARRIVAL with
+`party_pids_stable=True`. 16/17 destinations unlocked. 📦 `07-CHANGELOG.md` 2026-09-05.
+
+---
+
+### ✅ `#24-e4moveset` — **CLOSED 2026-09-05: the four FREE move changes are applied and driven.** ⛔ DO NOT REDO THEM.
+
+`--driver ch24moves` `ACCEPTANCE: PASS`, fixture `post_moveset.ss1` (md5 `36e4510ecccf06957a7c3cb38ce2a967`),
+fault arm `POKEBOT_CH24_FAULT_BADMOVE=1` correctly FAILS by refusing.
+
+**Sceptile** Slam→**Aerial Ace** (four opponents run Double Team; Grass resists Grass) ·
+**Swellow** Peck(35 BP)→**Facade** (Toxic makes Guts ×1.5 *and* Facade stack) · **Mightyena**
+Tackle→**Strength** (35→80 BP; HMs reusable) · **Zigzagoon** Growl→**Rock Smash**.
+⭐ All four were already in the bag — zero travel, zero money; compatibility read from
+`tmhm_learnsets.h` at two revisions and diffed (Gen-3 TMs are SINGLE-USE).
+‼ **I had this wrong first:** Rock Smash + Strength were NOT "two dead slots" — **Slam** (80/75%) is
+worse than **Strength** (80/100%). 📦 Full detail: `07-CHANGELOG.md` 2026-09-05.
+
+**WHAT REMAINS (not this item):** the two free PICKUPS that win Drake — **Ice Beam (TM13)** for
+Wailord and **Dragon Claw (TM02)** for Sceptile, both confirmed still available by
+`probe_ch24_readiness.py`. And **Wallace is still a loss** — see the note.
+
+---

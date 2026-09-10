@@ -26238,3 +26238,24 @@ headlines were refuted by their own refuter while the arithmetic survived** — 
 right and the sentences around them overreached, which a second measurer would reproduce and only a
 refuter catches. Five Tier 1 reviews returned KICK-BACK; every one found something real, including
 a `global` in the wrong function that would have **silently killed all telemetry on every run**.
+
+---
+
+## 2026-09-10 — `03-PUNCH-LIST.md` was at 4200/4200; three CLOSED items retired to make room
+
+**Why now:** the handoff carries a standing instruction — *“ARCHIVE FIRST, WRITE SECOND”* — naming a
+nearly-full current-state file plus a multi-agent finding generator as the likeliest way a session
+does damage. `lint_docs.py` measured `03` at **exactly its 4,200-line R3 cap**, so the next line
+written into it would have turned the Tier 0 gate RED mid-commit. Measured, not recalled.
+
+**What moved** (verbatim, to `28-HANDOFF-ARCHIVE.md`, each leaving a one-line stub):
+`#24-icebeamtrip`, `#24-flyunlock`, `#24-e4moveset` — all three CLOSED 2026-09-05. **4200 → 4156.**
+
+‼ **THE FINDING WORTH KEEPING: a CLOSED item was the SOLE OWNER of an OPEN fact.**
+`#24-e4moveset`’s closing paragraph carried the only mention anywhere in the tree of the still-
+un-fetched **Dragon Claw (TM02) for Sceptile** — verified by grepping `03`/`04`/`05` for “TM02” and
+“Dragon Claw”, which returned **exactly one hit, inside the block queued for archiving.** Retiring
+the block as “closed” would have silently dropped a live to-do. The sentence was hoisted into the
+stub instead.
+⇒ **Prevention rule:** *before retiring a closed item, grep its body for facts it is the only owner
+of — “closed” describes the WORK, not every sentence in the block.*

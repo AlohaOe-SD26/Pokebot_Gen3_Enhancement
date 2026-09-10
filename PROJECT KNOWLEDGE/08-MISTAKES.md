@@ -15999,3 +15999,33 @@ lines above it. The convention never covered it because it was written about one
 stale instruction will use the shape your rule forgot. Fixed by marking that list SUPERSEDED rather
 than deleting it (its citations are still good).
 
+
+---
+
+## 2026-09-10 — I nearly archived a CLOSED item that was the only tracker of an OPEN task
+
+**Symptom (caught before it shipped, not after).** `03-PUNCH-LIST.md` sat at exactly its 4,200-line
+R3 cap, so the handoff’s “ARCHIVE FIRST, WRITE SECOND” instruction applied. I selected archive
+candidates by a property that sounded sufficient: **`###` sections containing zero `- [ ]` / `- [~]`
+boxes.** `#24-e4moveset` qualified — header says CLOSED, every checkbox ticked, work genuinely done.
+
+**The assumption that proved wrong.** *“An item with no open checkboxes owns no open facts.”* Its
+final paragraph, headed “**WHAT REMAINS (not this item)**”, named the un-fetched **Dragon Claw
+(TM02) for Sceptile**. A `grep -n “Dragon Claw|TM02”` across `03`/`04`/`05` returned **exactly one
+hit — that line.** The tree had no other record of it. Archiving on the checkbox rule would have
+retired the sole tracker of a live §0 pickup that the §Ch24 Drake fight is argued to need.
+
+**Root cause.** A checkbox is a claim about the ITEM’S OWN work. Prose inside the block can be a
+claim about SOMEONE ELSE’S — and the phrase that marks it (“not this item”) is precisely the phrase
+that makes it invisible to any per-item status scan. The scan and the hazard are orthogonal.
+
+**The fix that worked.** Grep the block for its own nouns BEFORE retiring it, and count hits
+**outside** the block. Zero outside hits = the block is the sole owner = hoist that sentence into
+the stub. Done here: the residual now lives in `03`, the rest is verbatim in `28`.
+
+⭐ **Prevention rule (one line):** *“Closed” describes the work, not every sentence in the block —
+before archiving an item, grep its body’s nouns tree-wide and hoist anything it solely owns.*
+
+‼ **Generalises past archiving.** This is the same shape as P5 (a fact living in three places, two
+updated): **a per-item check protects exactly what it enumerates.** A checkbox scan enumerates
+checkboxes. It was never going to see a prose to-do, and its PASS reads as safety.
