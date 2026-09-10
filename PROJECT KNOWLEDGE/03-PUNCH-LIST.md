@@ -1640,7 +1640,7 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
        Marill is named in **11 of 23 events = 47.8%** — the proportion HOLDS at event level.
      ```
      ⭐ **AND THE BENCH MECHANISM DEMONSTRABLY WORKS — THE LIST IS MERELY INCOMPLETE:**
-     `Castform` has a **92.3%** laggard rate and **0** refusals *because it is benched*; `Zigzagoon`
+     **[MEASURED BY ME, batch `20260909-160339`, n=13 Castform / 34 Zigzagoon]** `Castform` has a **92.3%** laggard rate and **0** refusals *because it is benched*; `Zigzagoon`
      20.6% and 0 refusals, benched. `Marill` (100% laggard, peak **L14 across 15 runs**, never once
      above L15 in 33 runs corpus-wide; `Azumarill` NEVER OBSERVED) and `Slugma` are the same shape
      and are NOT on the list.
@@ -1653,11 +1653,11 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
         `victory_road.py`. ⇒ it deletes the only gate refusing to enter the E4 with a L13 Marill
         **and still fields it there**. ‼ A no-op on the estimate is not a no-op on the run.
      2. **The refusal is an ARGMAX** (`worst = max(estimates)` vs 250,000), so removing the named mon
-        promotes the next: **6-10 of 23 events clear**, and the top residual is **Mightyena, the
+        promotes the next: **6-10 of 23 events clear** *(four agents re-priced every event independently; conservative count 6)*, and the top residual is **Mightyena, the
         CRUNCH carrier that can never be benched**.
      ⭐ **THE DIAGNOSIS THAT SURVIVES, AND IT IS WORTH KEEPING:** the bot acquires **HM carriers it
      can neither train to the bar nor safely field** — Marill is caught purely as a Dive/Waterfall/
-     Surf carrier and sits at **L13 in 100% of 521 sightings**. The refusal is the MESSENGER, not the
+     Surf carrier and sits at **L13 in 100% of 521 sightings in the one exp-bearing batch** ⚠ **(corpus-wide it DOES level: 1,492 readings above L13 across 33 logs — see the correction below)**. The refusal is the MESSENGER, not the
      defect. ⇒ any real fix is UPSTREAM of both benching and training, and must answer *"what should
      happen to a mon that is carried for a field move and can never reach the battle bar?"*
      ⛔⛔ **THE SOLUTION SPACE, NARROWED BY MEASUREMENT — THREE DIRECTIONS ARE DEAD:**
@@ -1666,8 +1666,8 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
      | widen `TRAIN_CATCHUP_GAP` | admits **+2 mons** from G=6 to G=∞ | `probe_catchup_threshold_sweep.py` |
      | add the mule to `BENCH_SPECIES` | benching is *do not train*, **not do not field** — deletes the only gate and still fields it | `story_mode.py:273-274`; `07-CHANGELOG.md` F6 |
      | acquire the carrier at a better ground | **L27 still refuses** (336,755 vs a 250,000 ceiling) | `probe_dive_carrier_level.py` |
-     ⭐ **WHAT THE MEASUREMENTS AGREE ON:** the carrier is **INERT** — 521/521 sightings at
-     `L13:exp1757`, never one point of exp — and the gate counts it as a battler. ⇒ any surviving fix
+     ⭐ **WHAT THE MEASUREMENTS AGREE ON:** the carrier is **INERT IN THAT BATCH** — 521/521 sightings at
+     `L13:exp1757` ⚠ **(NOT corpus-wide: 1,492 readings above L13 across 33 logs, and "never" was also CENSORING — 25 of 28 non-gainers were observed for less time than the slowest gainer needed)** — and the gate counts it as a battler. ⇒ any surviving fix
      must change **whether it is in the party at the gate**, or **whether the gate counts it**, not
      how much it is trained.
      ⛔⛔ **AND A PC DEPOSIT IS THE FOURTH DEAD DIRECTION — found by `precheck_prior_art.py` in two
@@ -1682,7 +1682,7 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
      `except Exception` has no `StoryAbort` guard, so **a whiteout during a PC visit is being
      LAUNDERED today**. ⇒ depositing the carrier is not a quick win, it is four prerequisites deep.
      ⛔⛔ **AND THE FIFTH DIRECTION IS DEAD TOO — "bench a mon that has never gained exp since
-     capture". KILLED 2026-09-10 BEFORE ANY CODE, BY A PROOF.** Four `Abra` were caught
+     capture". KILLED 2026-09-10 BEFORE ANY CODE, BY A PROOF.** **Four CATCH-OBSERVATIONS across THREE distinct `Abra`** (one PID recurs in two separate reset-runs of the same lane — deterministic RNG, not two mons) were caught
      byte-identical at `L7:exp236` (the exact MediumSlow curve minimum); **three trained on to
      Kadabra L17-L20 and one never gained a point** — *verified by me*:
      ```
@@ -1875,7 +1875,7 @@ accident of what the bot happened to meet.
   `[AGENT, UNVERIFIED]` AND WAS *UNVERIFIABLE* UNTIL 2026-09-09.** **[MEASURED BY ME — scope:
   `x4-runs` 298 `stdout.txt` + its `debug-logs/*.log`, `sandbox-pokebot/profiles` 500 `*.log`,
   `tools/story-dev` 500 `*.log`]** party telemetry recorded `Species:L<level>` and nothing stable:
-  `Species#PID` appeared in **96** stdout lines, **all §Ch23 refusal messages**, plus ~15 lines from
+  `Species#PID` appeared in **96** stdout lines, **all §Ch23 refusal messages AT THE TIME OF MEASUREMENT** ⚠ **RE-MEASURED 2026-09-10: the corpus has since grown to 140 such lines across 14 files and 2 are "counter training finished" lines, so the "all" NO LONGER HOLDS. The finding it supported — that no CONTINUOUS PID-bearing telemetry existed — is unaffected.**, plus ~15 lines from
   one-off probe drivers. ⇒ **a Pokémon could not be followed across a run.**
   ✅ **FIXED — `modules/debug_logger.py` now emits `ids=[Species#PID:L<lv>:exp<n>, …]` per
   heartbeat.** Full record under **`#24-lowlevelmules`** (that item owns the measurement); it is
@@ -1883,7 +1883,7 @@ accident of what the bot happened to meet.
   ✅ **BAN LIFTED 2026-09-09 — IT HAS BEEN MEASURED.** Cite it as: *"~84% of mons that reach 15+
   behind were already >6 behind when first seen (measured, n=63)"*. ⛔ **DO NOT cite the conclusion
   that used to accompany it** — *"born dead weight, no early window to maintain"* is **REFUTED**:
-  **39.7% had a <=6 window** — median **163 minutes (~2.7 HOURS)** of emulated time — of which **33.3% of the population was TRAINING-REACHABLE** (the rest recovered only because the party max fell). See bullet 1 and `tools/story-dev/probe_laggard_origin.py`.
+  **39.7% had a <=6 window** — median **163 minutes (~2.7 HOURS)** of emulated time — of which **33.3% of the population was TRAINING-REACHABLE** ⚠ **(SUPERSEDED — use 20.6%; the code's real window is `gap <= 5`, see bullet 1)** (the rest recovered only because the party max fell). See bullet 1 and `tools/story-dev/probe_laggard_origin.py`.
 
 - [x] ⭐⭐ **DESIGNED 2026-09-09 (6-agent adversarial pass) — VERDICT: BUILD A NARROWER VERSION,
   AND ONE PREREQUISITE MUST SHIP FIRST.** The shape that survived: post-badge catching allowed
@@ -4053,7 +4053,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
 ### `#24-lowlevelmules` — the REAL defect behind `#24-ch23training`: caught mons are never trained (filed 2026-09-08)
 
 - [x] ⭐⭐⭐ **ROOT CAUSE FOUND AND VERIFIED IN CODE 2026-09-08 — IT IS AN ABSORBING STATE, AND THIS
-  ITEM'S TITLE UNDERSTATES IT.** `story_mode.py:2119-2121` (`TRAIN_CATCHUP_GAP = 6`, `:1136`):
+  ITEM'S TITLE UNDERSTATES IT.** `story_mode.py:2135-2137 (SANDBOX; the same logic sits at ~:2119 in custom-pokebot — a fork mixup, corrected 2026-09-10)` (`TRAIN_CATCHUP_GAP = 6`, `:1136`):
   `to_train = {i for i in battlers if party[i].level >= target - 6}`, with `target` drawn from the
   fight's own band (`:1945`). ⇒ a battler more than 6 below the band is excluded from training, so it
   gains nothing, so it is further below the NEXT band, so it is excluded again — **permanently, with
@@ -4174,7 +4174,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   ✅✅ **THAT BLOCKER IS CLEARED 2026-09-09 — THE TELEMETRY NOW EXISTS.**
   **[MEASURED BY ME — scope: `x4-runs` 298 `stdout.txt` + its `debug-logs/*.log`,
   `sandbox-pokebot/profiles` 500 `*.log`, `tools/story-dev` 500 `*.log`]** there was **no continuous
-  PID-bearing party telemetry anywhere**: `Species#PID` occurred in **96** stdout lines, **all of
+  PID-bearing party telemetry anywhere**: `Species#PID` occurred in **96** stdout lines, **AT THE TIME OF MEASUREMENT all of
   them §Ch23 refusal messages**, plus ~15 from one-off probes. Party snapshots carried
   `Species:L<level>` and nothing stable ⇒ **a mon could not be followed across readings**, which is
   why this measurement was blocked and why the *"88.8% born behind"* figure on `#24-dexhunt` is

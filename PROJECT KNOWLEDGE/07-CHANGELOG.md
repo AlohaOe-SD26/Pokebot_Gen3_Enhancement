@@ -25295,7 +25295,7 @@ Five parallel recon agents plus two adversarial passes. **No code shipped, and t
 outcome** — both candidate fixes were killed by evidence, and the round produced the first verified
 mechanism this item has had.
 
-**⭐⭐ ROOT CAUSE (verified in code).** `story_mode.py:2119-2121` with `TRAIN_CATCHUP_GAP = 6`:
+**⭐⭐ ROOT CAUSE (verified in code).** `story_mode.py:2135-2137 (SANDBOX; the same logic sits at ~:2119 in custom-pokebot — a fork mixup, corrected 2026-09-10)` with `TRAIN_CATCHUP_GAP = 6`:
 `to_train = {i for i in battlers if party[i].level >= target - 6}`. A battler more than 6 below the
 fight band is excluded from training ⇒ gains nothing ⇒ is further below the next band ⇒ excluded
 again. **An absorbing state**, and `team_policy.py:11-14` had already recorded its symptom
@@ -26068,7 +26068,7 @@ training refusal names its offender, and one species dominates:
   ⚠ DECISION UNIT = 23 DISTINCT REFUSAL EVENTS (each renders 18x in stdout, 15x in debug-logs).
   Marill is named in 11 of 23 = 47.8% — the proportion HOLDS; the 414 does not mean 414 observations.
 ```
-**The bench mechanism works and the list is merely incomplete:** Castform has a **92.3%** laggard
+**The bench mechanism works and the list is merely incomplete:** **[MEASURED BY ME, batch `20260909-160339`, n=13 Castform / 34 Zigzagoon]** Castform has a **92.3%** laggard
 rate and **zero** refusals *because it is benched*; Zigzagoon likewise. Marill (100% laggard, **L13
 in 100% of 521 sightings**, peak L15 corpus-wide, `Azumarill` never observed) and Slugma are the same
 shape and are absent from the list.
@@ -26155,7 +26155,7 @@ exact curve match — the carrier has never gained a single point of experience.
 exp since capture"* is measurable, role-agnostic and not level-denominated.
 ⛔ **It is UNTESTED and must not be built before**: the known-good fixture test, an empty-set check,
 a false-positive check against freshly-caught mons the bot intends to train, and a look at
-`03-PUNCH-LIST.md:3782` (a `total_exp` caveat about `_progress_sig`, party-level rather than per-mon
+`03-PUNCH-LIST.md:3803-3805` (a `total_exp` caveat about `_progress_sig`, party-level rather than per-mon
 — the distinction must hold in code).
 
 ## 2026-09-10 — The fifth direction dies to a four-Abra proof, and it corrects my own claim
@@ -26210,7 +26210,7 @@ from another predicate over party state.
 
 ### What was settled
 * **The exp payout IS divided among participants.** Decomp `Cmd_getexp`/`viaSentIn` predicts **0.500**;
-  measured **0.501** (matched on foe species+level, 3,446 battles). ⇒ `estimate_frames_to_level` has
+  measured **0.501** (matched on foe species+level; denominators as the tool prints them: **3,290** one-participant vs **401** two-participant observations) ⚠ *(this read "3,446 battles" — the PRE-parser-fix denominator 3,075+371. The status-tolerant regex added later the same day recovered 13.5% more rows and I updated the ladder but not this sentence.)*. ⇒ `estimate_frames_to_level` has
   no participant divisor and is up to **2x optimistic**; `#24-lowlevelmules`'s bar is **L42, not L35**.
 * **The "88.8% born behind" figure.** The PROPORTION replicates (**84.1%**, n=63, median 10). Its
   CONCLUSION — *"no early small-gap window to maintain"* — is **FALSE**: 39.7% had a window, median
@@ -26228,7 +26228,7 @@ from another predicate over party state.
 | add the mule to `BENCH_SPECIES` | benching is *do not train*, **not do not field** — deletes the only gate and still fields the mon |
 | a better acquisition ground | L27 still needs 336,755 frames against a 250,000 ceiling |
 | PC deposit | `POKEBOT_PC_ROTATION` is disabled for costing **−19 points**; four live defects in the machinery |
-| an inert-mon predicate | four Abra caught byte-identical at `L7:exp236`; three reached Kadabra L17-20, one never gained a point ⇒ **non-separable** |
+| an inert-mon predicate | four catch-observations across three distinct Abra (one PID recurs across two reset-runs) caught byte-identical at `L7:exp236`; three reached Kadabra L17-20, one never gained a point ⇒ **non-separable** |
 **There is no surviving candidate.** The open thread is ROUTING — *is the Dive carrier needed at
 §Ch23 at all?* — not another predicate over party state.
 

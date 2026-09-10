@@ -38,8 +38,16 @@ HERE = pathlib.Path(__file__).resolve().parent
 
 HB = re.compile(r"^f(\d+)\s+\[hb\].*?\bids=(\[[^\]]*\])")
 ONE = re.compile(r"^(\w+)#([0-9A-F?]{8}):L(\d+):exp(\d+)$")
-#: the code's own window, verified at story_mode.py:2135-2136 -> `level >= target - TRAIN_CATCHUP_GAP`
-TRAIN_CATCHUP_GAP = 6
+#: ⛔⛔ TWO WINDOWS, AND THE DIFFERENCE IS MATERIAL — PRINT BOTH.
+#: `story_mode.py:2135-2136` is `catchup = target - TRAIN_CATCHUP_GAP; level >= catchup`, and in the
+#: boss-fodder branch `target = team_max + 1` (`:2095`) ⇒ the REAL condition is **gap <= 5**, not 6.
+#: Reporting only the `gap <= 6` figure overstates training-reachability 33.3% vs **20.6%**, and the
+#: "arrived already inside" cohort collapses 10 -> 1 because nine of those ten arrived at EXACTLY
+#: gap 6 — the one value the predicate excludes.
+#: ‼ An earlier version of this tool printed only the 6 figure while the docs claimed it printed
+#: both. That is why both are emitted here: **a correction is not complete until the TOOL emits it.**
+GAP_WINDOWS = (6, 5)      # (as-published, THE CODE'S REAL WINDOW)
+TRAIN_CATCHUP_GAP = 6     # kept for the headline row; see GAP_WINDOWS
 
 
 def main() -> int:
@@ -157,6 +165,33 @@ def main() -> int:
         med = statistics.median(window_lens)
         print(f"    median time spent inside the window: {med:.0f} heartbeats = "
               f"{med:.0f} min (~{med / 60:.1f} HOURS of emulated time)")
+    # ---- ⭐ BOTH WINDOWS, so the published figure and the code's real one are never confused ----
+    print(f"\n  ⭐ TRAINING-REACHABLE UNDER EACH WINDOW (the code's real one is gap <= 5):")
+    print(f"    {'window':>12}{'A inside':>10}{'B level-rose':>14}{'B top-fell':>12}"
+          f"{'reachable':>11}{'%':>8}")
+    for thr in GAP_WINDOWS:
+        a2 = rose2 = fell2 = 0
+        for v in pop.values():
+            g2 = [g for _f, _l, g in v]
+            l2 = [l for _f, l, _g in v]
+            t2 = [l + g for (_f, l, g) in v]
+            ins = [i for i, g in enumerate(g2) if g <= thr]
+            if g2[0] <= thr:
+                a2 += 1
+            elif ins:
+                j = ins[0]
+                if l2[j] > l2[j - 1]:
+                    rose2 += 1
+                elif t2[j] < t2[j - 1]:
+                    fell2 += 1
+                else:
+                    rose2 += 1
+        act2 = a2 + rose2
+        tag = "  <- THE CODE" if thr == 5 else "  (as published)"
+        print(f"    {('gap <= %d' % thr):>12}{a2:>10}{rose2:>14}{fell2:>12}"
+              f"{act2:>11}{100 * act2 / len(pop):>7.1f}%{tag}")
+    print("    ‼ USE THE gap <= 5 ROW when pricing a fix. The gap <= 6 row is the SUPERSEDED")
+    print("      published figure, kept only so the two are never confused again.")
     print("  " + "-" * 96)
     if had / len(pop) > 0.25:
         print(f"  ⇒ ⛔ **\"BORN DEAD WEIGHT, NO WINDOW\" IS REFUTED FOR {100 * had / len(pop):.0f}% OF "

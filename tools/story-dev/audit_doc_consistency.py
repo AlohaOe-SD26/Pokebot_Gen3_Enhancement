@@ -1445,6 +1445,10 @@ def self_test() -> int:
            check_batch_build_flag({"T": "$ PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8\n"}), True)
     expect("BB8 `--build` only in a trailing COMMENT -> fires (was a FALSE NEGATIVE)",
            check_batch_build_flag({"T": "py -3.12 x4_headless.py --lanes 8  # remember --build later\n"}), True)
+    expect("BB9 a BARE ./x4_headless.py with no interpreter -> fires (was a coverage gap)",
+           check_batch_build_flag({"T": "./x4_headless.py --lanes 8 --minutes 30\n"}), True)
+    expect("BB10 the same bare form WITH --build -> quiet",
+           check_batch_build_flag({"T": "./x4_headless.py --build sandbox --lanes 8\n"}), False)
     _dr, _ = real_drift()
     if _dr == 0:
         expect("P26a `SANDBOX-ONLY; a promotion is the USER's call` while drift is 0 -> fires",
@@ -1544,7 +1548,11 @@ def self_test() -> int:
 #: a RUNNABLE `x4_headless.py` invocation (python, any spelling, then the script).
 #: ‼ tolerate a shell-prompt `$ ` and a blockquote `> ` prefix — a review found both as FALSE
 #: NEGATIVES (a `$ `-prefixed command slipped through un-flagged).
-_X4_INVOKE = re.compile(r"^\s*(?:[>$]\s*)*(?:PYTHONUTF8=1\s+)?(?:py|python3?)\b[^\n]*?x4_headless\.py")
+#: ‼ THE INTERPRETER PREFIX IS OPTIONAL — a bare `./x4_headless.py --lanes 8` is still a
+#: runnable batch command. A health audit found this gap and named the precedent: the sibling
+#: `check_gate_count_in_commands` was hardened against the identical bare-invocation shape
+#: (its self-test `D1n`). ⇒ when you copy a check's shape, copy its hardening too.
+_X4_INVOKE = re.compile(r"^\s*(?:[>$]\s*)*(?:PYTHONUTF8=1\s+)?(?:(?:py|python3?)\b[^\n]*?)?\.?/?x4_headless\.py")
 #: modes that start NO batch, and therefore have no build to name.
 _X4_READ_ONLY = re.compile(r"--(?:status|resummarise|resummarize|list|help)\b")
 

@@ -3,7 +3,7 @@
 > context must be able to resume from this file alone.
 
 **Repository:** https://github.com/AlohaOe-SD26/Pokebot_Gen3_Enhancement.git
-**Last updated:** 2026-09-09 — start at the single orientation block immediately below.
+**Last updated:** 2026-09-10 — start at the single orientation block immediately below.
 Every banner further down is HISTORY, newest first.
 
 ---
@@ -62,7 +62,7 @@ Every banner further down is HISTORY, newest first.
 > two ROM drives at once** (they contend, and `ls -t` then hands you the wrong run's log).
 >
 > ⭐⭐ **2026-09-09 — TWO INSTRUMENTATION GAPS CLOSED, AND BOTH WERE BLOCKING MEASUREMENTS THIS FILE ALREADY COMMANDED.**
-> * **`party_ids`** (`modules/debug_logger.py`, commit `070854a7`) — a Pokémon **could not be followed across a run**: party snapshots carried `Species:L<lv>` and nothing stable, and `Species#PID` appeared in 96 lines, all of them §Ch23 refusals. This unblocks the L35-vs-L42 question in `NEXT ACTIONS` item 0 **and** the *"88.8% born behind"* figure.
+> * **`party_ids`** (`modules/debug_logger.py`, commit `070854a7`) — a Pokémon **could not be followed across a run**: party snapshots carried `Species:L<lv>` and nothing stable, and `Species#PID` appeared in 96 lines, all of them §Ch23 refusals AT THE TIME OF MEASUREMENT ⚠ **RE-MEASURED 2026-09-10: the corpus has since grown to 140 such lines across 14 files and 2 are "counter training finished" lines, so the "all" NO LONGER HOLDS. The finding it supported — that no CONTINUOUS PID-bearing telemetry existed — is unaffected.**. This unblocks the L35-vs-L42 question in `NEXT ACTIONS` item 0 **and** the *"88.8% born behind"* figure.
 > * **dex telemetry** (`owned=<n>` + `[DEX] owned N -> M: +#<dex>`) — there was **zero** dex telemetry, so every arm of `#24-dexhunt`'s A/B graded on nothing.
 > ✅ **THE BATCH RAN (2026-09-09, `20260909-160339`, 8 lanes, 3h, `--build sandbox`) AND ANSWERED ONE OF THE TWO.** The exp payout **is divided among participants** — decomp-verified (`Cmd_getexp`, `viaSentIn`) and measured at **0.504** (n2>=10) / **0.501** (n2>=20) ⇒ `estimate_frames_to_level` is up to 2x optimistic and **L42, not L35** stands.
 > ✅✅ **BOTH QUESTIONS ARE NOW ANSWERED (2026-09-09).** The *"88.8% born behind"* half was measured with `probe_laggard_origin.py`: **the PROPORTION holds (84.1%, n=63, median 10)** but **the INFERENCE is REFUTED — 39.7% of those mons HAD a <=6 window**, and the window is LONG: median **163 heartbeats = 163 MINUTES (~2.7 HOURS emulated)**. So *"born dead weight, no window to maintain"* is false for 40% of them. ⚠ **But price a fix against 20.6%, not 39.7%** — the code's real predicate is `gap <= 5` (not 6), and 4 of the 15 "recoveries" were the party MAX FALLING rather than the laggard training.
