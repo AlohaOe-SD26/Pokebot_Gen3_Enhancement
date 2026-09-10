@@ -26157,3 +26157,37 @@ exp since capture"* is measurable, role-agnostic and not level-denominated.
 a false-positive check against freshly-caught mons the bot intends to train, and a look at
 `03-PUNCH-LIST.md:3782` (a `total_exp` caveat about `_progress_sig`, party-level rather than per-mon
 — the distinction must hold in code).
+
+## 2026-09-10 — The fifth direction dies to a four-Abra proof, and it corrects my own claim
+
+**THE PREDICATE:** *"bench a mon that has never gained exp since capture"* — attractive because it is
+neither level-denominated (a 2026-07-24 ruling forbids that) nor a species list (benching does not
+stop fielding). **Dead before any code.**
+
+**⭐ THE KILL IS A PROOF, NOT A STATISTIC — and I verified it myself.** Four `Abra` were caught
+byte-identical at `L7:exp236` (the exact MediumSlow curve minimum):
+```
+  A5FC8AAC  L7:exp236 -> Kadabra L20        BCE77DD9  L7:exp236 -> L7:exp236   (never gained)
+  A5FC8AAC  L7:exp236 -> Kadabra L17        51A86B58  L7:exp236 -> Kadabra L17
+```
+Three trained on; one stayed inert. **At any moment before the divergence all four are identical**, so
+no predicate reading current state can separate them. Supporting it: minutes-to-first-exp-gain over
+89 genuine catches is **continuous, not bimodal** — `1,1,1,1,2,2,2,3…44,47,128,256,397,420,459`, no
+gap anywhere — and misclassification never falls below **65%** at any threshold.
+
+**⛔ IT WOULD ALSO HAVE MADE THINGS WORSE.** The predicate is monotone (false→true only) and
+`team_is_ready` re-runs `battler_identities()` AFTER the grind (`victory_road.py:2055`). A mule
+excluded at the estimate that later gains one point re-enters at L13 and raises **after** the budget
+is spent — moving the refusal from before the cost to after it.
+
+**⛔⛔ AND IT CORRECTS MY OWN PUBLISHED CLAIM.** I wrote *"all 521 Marill sightings read `L13:exp1757`
+— the carrier never gains a single point of experience"*. True of **one batch**; false of the corpus.
+Across all **33** Marill-carrying logs: `L13: 5,951 | L14: 926 | L15: 566` ⇒ **1,492 readings above
+L13**, 5 of 33 runs showing it level. ‼ And "never gains" is substantially **CENSORING**: the slowest
+observed gainer needed **157 minutes**, and **25 of 28 non-gainers were observed for less time than
+that**.
+
+**⇒ FIVE DIRECTIONS ARE NOW DEAD ON THIS PROBLEM AND THERE IS NO SURVIVING CANDIDATE.** widen the
+threshold · bench the mule · a better acquisition ground · PC deposit · an inert-mon predicate. The
+honest next move starts from the ROUTING question — *is the carrier needed at §Ch23 at all?* — not
+from another predicate over party state.

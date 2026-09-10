@@ -15941,3 +15941,38 @@ grep for the symbol I intended to change (`BENCH_SPECIES`) would ever have reach
 `#24-divegroundroute120`, a filed, spec'd, unbuilt item that was exactly the idea I was forming.
 ⇒ **the tool did not just prevent a mistake; it found the prior work I was about to duplicate.**
 
+## 2026-09-10 — I made a test MANDATORY and it was vacuous for the thing it was testing
+
+**Symptom.** Having learned that the 2026-09-08 design died because nobody ran it on the known-good
+fixture, I made that test process-mandatory in my next investigation — any refuter that skipped it
+returned REFUTED. **For the predicate under test it was vacuous.** Every member of that fixture sits
+far above its capture level, so *"has never gained exp since capture"* benches nobody there and
+"passes" while discriminating nothing.
+
+**⭐⭐ PREVENTION RULE — A MANDATORY CHECK MUST BE ONE THE CANDIDATE COULD FAIL. BEFORE REQUIRING A
+TEST, ASK WHAT RESULT WOULD COUNT AS FAILING IT.** I imported a check that had real discriminating
+power against a LEVEL-GAP predicate (which does bench L40/L42 mons) and applied it to an
+EXP-SINCE-CAPTURE predicate, where it cannot fire. ⇒ **a test inherits its power from the candidate,
+not from its history** — "this killed the last design" is not a reason to expect it to test the next
+one. The generalisation of the project's own vacuous-A/B rule, now demonstrated on a check I wrote
+myself, one day after writing the rule.
+
+**⭐ SECOND — AND THIS ONE IS A SCOPE ERROR I HAVE NOW LOGGED THREE TIMES IN TWO DAYS.** I published
+*"all 521 Marill sightings read L13:exp1757 — the carrier NEVER gains a point"*. It was true of the
+**one batch that carries per-mon exp**, and false of the corpus: across all 33 Marill-carrying logs
+there are **1,492 readings above L13**. I had the corpus available and measured the sample.
+⇒ **when a finding says NEVER, widen the corpus before writing the word.** "Never" is the single
+most scope-sensitive claim available, and the cost of checking it was one grep.
+
+**⭐ THIRD — CENSORING MASQUERADING AS A PROPERTY.** "The carrier never gains exp" was also an
+artifact of the observation window: the slowest observed gainer needed **157 minutes**, and **25 of
+28 non-gainers were watched for less time than that**. ⇒ **before calling an absence a property, ask
+how long you would have had to watch to see it** — a run that ends early makes every slow process
+look like no process.
+
+**⭐ WHAT WENT RIGHT, AND IS WORTH REPEATING: THE KILL WAS A PROOF, NOT A STATISTIC.** Four mons
+caught byte-identical (`Abra L7:exp236`), three trained to Kadabra L17-L20, one inert. **A single
+counter-example quartet settled a question that no amount of aggregate measurement would have** —
+because it demonstrates non-separability directly rather than estimating it. ⇒ when assessing a
+predicate, look first for two items it must treat identically and that the world treats differently.
+

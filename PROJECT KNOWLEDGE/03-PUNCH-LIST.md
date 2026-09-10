@@ -816,29 +816,17 @@ from the driver's log** — the probe caught the fainted member the driver's log
       feeds the counter planner and would widen a second consumer.
       ⛔ **DO NOT RE-PROPOSE SHOAL CAVE.** Ruled out 2026-08-13 (user-delegated): at HIGH TIDE its
       reachable on-foot encounter tiles are **0**, so the hunt silently burns its whole budget.
-- [ ] ⛔⛔ **2026-09-10 — THIS ITEM IS *NOT* A FIX FOR THE §Ch23 REFUSAL, AND I TESTED THAT BEFORE
-      PROPOSING IT.** `Marill` is the named offender in **11 of 23** Victory Road refusal events
-      (47.8%), and it is the Dive carrier acquired at ROUTE117 **L13**. It was therefore tempting to
-      re-prioritise this item from "quality upgrade" to "the capability fix". **[MEASURED BY ME —
-      `tools/story-dev/probe_dive_carrier_level.py`, constants read from source, growth curve
-      validated against 521 real logged sightings]** it is not:
-      ```
-        acquired at              exp still needed   battles      frames    vs 250,000 ceiling
-        L13  ROUTE117 (wired)             81,301       284      406,972    ⛔ REFUSES
-        L25  ROUTE120 (proposed)          70,558       246      352,518    ⛔ REFUSES
-        L27  ROUTE120 (proposed)          67,312       235      336,755    ⛔ REFUSES
-      ```
-      ⇒ **even a L27 carrier refuses.** A better ground does not clear the gate, so this item stays a
-      QUALITY upgrade — exactly as the 2026-08-13 ruling said.
-      ✅ **THAT RULING IS VINDICATED, NOT UNDERMINED.** `06-DECISIONS-LOG.md:1805-1808` judged the L13
-      learner *"quality, not capability"*. New evidence appeared to contradict it (Marill causes half
-      the refusals); measured, the ruling's premise **holds** — the refusal is not caused by the
-      carrier's ACQUISITION level, because no reachable acquisition level clears the ceiling.
-      ⭐ **AND THE VALIDATION FOUND SOMETHING SHARPER: THE MARILL IS INERT.** All **521** logged
-      Marill sightings read `L13:exp1757`, and `4*13³/5 = 1757` exactly — **it never gains a single
-      point of experience, ever.** It is not training slowly; it is carried and never fights.
-      ⇒ the defect is not the ground, the threshold, or the bench list. **The bot carries an inert
-      field-move tool that the readiness gate counts as a battler.**
+- [ ] ⛔⛔ **2026-09-10 — THIS ITEM IS *NOT* A FIX FOR THE §Ch23 REFUSAL, AND THAT WAS TESTED BEFORE
+      IT WAS PROPOSED.** `Marill` is the named offender in 11 of 23 refusal events and is the Dive
+      carrier acquired at ROUTE117 **L13**, so re-prioritising this from "quality" to "capability"
+      looked obvious. **[MEASURED — `tools/story-dev/probe_dive_carrier_level.py`]** it is not:
+      L13 → **406,972** frames · L25 → **352,518** · L27 → **336,755**, against a **250,000** ceiling.
+      ⇒ **every reachable acquisition level REFUSES**, so this stays a QUALITY upgrade and the
+      2026-08-13 ruling is **VINDICATED**, not undermined.
+      ⭐ The validation also found the carrier is **inert in the exp-bearing batch** (521/521 at
+      `L13:exp1757`) — ⚠ but see `#24-lowlevelmules`: corpus-wide it DOES level (1,492 readings
+      above L13), so "never gains" was a one-batch scope error of mine plus observation censoring.
+      **Full record: `07-CHANGELOG.md`, "A better Dive ground would NOT clear the gate".**
 
 ### ‼ `#24-hmgroundwatertiles` — two HM hunting grounds are WATER tiles priced off the LAND table (filed 2026-08-24)
 
@@ -1466,7 +1454,6 @@ from the driver's log** — the probe caught the fainted member the driver's log
 justified by counting failures without counting successes. Do not re-enable without a batch.
 
 
-
 ### ~~READY TO APPLY THE MOMENT BATCH `20260802-160603` LANDS~~ — ✅ APPLIED; header stale  — 📦 **ARCHIVED 2026-08-22 (PASS 5, R3 budget) → `28-HANDOFF-ARCHIVE.md`. CLOSED; moved verbatim, nothing deleted.**
 
 ### ‼ BATCH 5 LANDED — the blocker moved a THIRD time, to the LEAD  — 📦 **ARCHIVED 2026-08-22 (PASS 5, R3 budget) → `28-HANDOFF-ARCHIVE.md`. CLOSED; moved verbatim, nothing deleted.**
@@ -1657,22 +1644,17 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
      20.6% and 0 refusals, benched. `Marill` (100% laggard, peak **L14 across 15 runs**, never once
      above L15 in 33 runs corpus-wide; `Azumarill` NEVER OBSERVED) and `Slugma` are the same shape
      and are NOT on the list.
-     ⛔⛔ **BUT DO NOT ADD THEM. THE CANDIDATE IS DEAD, AND THE ARGUMENT WAS ALREADY IN THIS REPO**
-     — `07-CHANGELOG.md` F6 (~:24731), which I failed to find and an agent did:
-     > *"'bench' means only 'do not train' — **the mon is still FIELDED** … the fix would field an
-     > untrained mon having removed it from the only check that would have noticed."*
-     ✅ **VERIFIED BY ME IN CODE:** the faint-replacement chooser (`story_mode.py:273-274`) filters on
-     `None / is_egg / current_hp <= 0 / _excluded`, and `_excluded` (`:262-270`) is ally-and-
-     already-battling only. **`BENCH_SPECIES` has exactly two consumers, both in `victory_road.py`
-     (`:1781`, `:1826`).** ⇒ benching Marill removes it from `team_is_ready` — the ONLY gate refusing
-     to enter the Elite Four with a L13 Marill — while leaving it fully eligible as a faint
-     replacement **in that same Elite Four**. ‼ **A no-op on the estimate is not a no-op on the run.**
-     ⚠ **AND IT WOULD NOT EVEN WORK WELL.** The refusal is an **ARGMAX** — `worst = max(estimates)`
-     against `MAX_TRAINING_FRAMES = 250,000` — so removing the named mon merely promotes the next.
-     Re-priced per event by four independent agents: benching the Marill line clears **6-10 of 23**
-     (26-43%; conservative 6/23), and the top residual is **Mightyena, the CRUNCH carrier that can
-     never be benched** (`CRUNCH_LEVEL = 47`, no Dark TM in Emerald). Extending the list to absorb
-     the remainder walks straight back into the design already ruled UNSAFE on 2026-09-08.
+     ⛔⛔ **BUT DO NOT ADD THEM — THE CANDIDATE IS DEAD.** Two reasons; **full record in
+     `07-CHANGELOG.md`, "The §Ch23 refusal is diagnosed (HM carriers), and the obvious fix is dead"**:
+     1. **Benching is "do not train", NOT "do not field"** (`07-CHANGELOG.md` F6, verified by me in
+        code): the faint-replacement chooser (`story_mode.py:273-274`) filters on
+        `None / is_egg / current_hp <= 0 / _excluded`, and `_excluded` (`:262-270`) is
+        ally-and-already-battling only; `BENCH_SPECIES` has exactly two consumers, both in
+        `victory_road.py`. ⇒ it deletes the only gate refusing to enter the E4 with a L13 Marill
+        **and still fields it there**. ‼ A no-op on the estimate is not a no-op on the run.
+     2. **The refusal is an ARGMAX** (`worst = max(estimates)` vs 250,000), so removing the named mon
+        promotes the next: **6-10 of 23 events clear**, and the top residual is **Mightyena, the
+        CRUNCH carrier that can never be benched**.
      ⭐ **THE DIAGNOSIS THAT SURVIVES, AND IT IS WORTH KEEPING:** the bot acquires **HM carriers it
      can neither train to the bar nor safely field** — Marill is caught purely as a Dive/Waterfall/
      Surf carrier and sits at **L13 in 100% of 521 sightings**. The refusal is the MESSENGER, not the
@@ -1699,19 +1681,38 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
      guard tests `get_party_size()` when the game uses `CalculatePlayerPartyCount()`; and its blanket
      `except Exception` has no `StoryAbort` guard, so **a whiteout during a PC visit is being
      LAUNDERED today**. ⇒ depositing the carrier is not a quick win, it is four prerequisites deep.
-     ⭐⭐ **WHAT SURVIVES — ONE PREDICATE SHAPE, AND IT IS NOVEL HERE (untested, do not build yet).**
-     The gate must stop counting a field-move tool as a battler, without a LEVEL test (refuted on the
-     known-good fixture 2026-09-08) and without a SPECIES LIST (benching does not stop fielding).
-     ‼ **[MEASURED BY ME] all 521 logged `Marill` sightings read `L13:exp1757`, and `4*13³/5 = 1757`
-     exactly — the carrier has NEVER GAINED A SINGLE POINT OF EXPERIENCE.** ⇒ *"has never gained exp
-     since capture"* is measurable, role-agnostic, not level-denominated, and distinguishes an inert
-     tool from a battler that is merely behind.
-     ⚠ **UNTESTED. Before anyone builds it:** (a) run it on the known-good fixture — the test that
-     killed the 2026-09-08 design; (b) confirm it cannot empty `battler_identities()`; (c) confirm it
-     does not also catch a freshly-caught mon the bot INTENDS to train; (d) note
-     `03-PUNCH-LIST.md:3782` warns `total_exp` grows on the walk back — that is about `_progress_sig`
-     (a PARTY-level signature), not a per-mon since-capture test, but the distinction must hold in
-     code. ⛔ Run `tools/story-dev/precheck_prior_art.py` first: it has now killed four directions.
+     ⛔⛔ **AND THE FIFTH DIRECTION IS DEAD TOO — "bench a mon that has never gained exp since
+     capture". KILLED 2026-09-10 BEFORE ANY CODE, BY A PROOF.** Four `Abra` were caught
+     byte-identical at `L7:exp236` (the exact MediumSlow curve minimum); **three trained on to
+     Kadabra L17-L20 and one never gained a point** — *verified by me*:
+     ```
+       A5FC8AAC  L7:exp236 -> Kadabra L20      BCE77DD9  L7:exp236 -> L7:exp236  (inert)
+       A5FC8AAC  L7:exp236 -> Kadabra L17      51A86B58  L7:exp236 -> Kadabra L17
+     ```
+     ⇒ **at capture every mon satisfies the predicate**, and minutes-to-first-exp-gain across 89
+     genuine catches is **continuous, not bimodal** (1,1,1,1,2,2,2,3…44,47,128,256,397,420,459 — no
+     gap). Misclassification never falls below **65%** at any threshold. **No predicate reading
+     current state can separate a tool from a future battler.**
+     ⛔ **AND IT WOULD MAKE THINGS WORSE.** The predicate is MONOTONE (false→true only) and
+     `team_is_ready` re-runs `battler_identities()` AFTER the grind (`victory_road.py:2055`): a mule
+     excluded at the estimate that later gains one point **re-enters at L13 and raises after the
+     budget is spent** — moving the refusal from before the cost to after it.
+     ⛔⛔ **AND MY OWN LOAD-BEARING CLAIM WAS WRONG AT CORPUS SCOPE — CORRECTED HERE.** I published
+     *"all 521 Marill sightings read `L13:exp1757`; the carrier NEVER gains a point"*. That is true
+     of **one batch** and false of the corpus: across all **33** Marill-carrying logs the levels are
+     `L13: 5,951 | L14: 926 | L15: 566` ⇒ **1,492 readings above L13**, and 5 of 33 runs show it
+     levelling. ‼ It is also **CENSORING**: the slowest observed gainer needed 157 minutes, and
+     **25 of 28 non-gainers were observed for less time than that**. ⇒ "inert" was an artifact of the
+     observation window as much as a property of the mon.
+     ⭐⭐ **AND THE PROCESS LESSON — THE MANDATORY FIXTURE TEST WAS VACUOUS.** Every member of the
+     known-good fixture sits far above its capture level, so this predicate benches NOBODY there and
+     "passes" while discriminating nothing. **Passing the test that killed the 2026-09-08 design was
+     NOT evidence for this one.** A mandatory check that a candidate satisfies trivially proves
+     nothing — the check must be one the candidate could FAIL.
+     ⇒ **FIVE DIRECTIONS ARE NOW DEAD AND THERE IS NO SURVIVING CANDIDATE.** That is the honest
+     state. The next attempt should start from the ROUTING question (is the carrier needed at
+     §Ch23 at all?) rather than from another predicate over party state.
+     ⛔ Run `tools/story-dev/precheck_prior_art.py` first: it has now killed four directions.
      ⛔ **DO NOT BUILD A FOURTH DESIGN WITHOUT RUNNING `tools/story-dev/precheck_prior_art.py` FIRST**
      — three have died here in two days, and two of the three were killed by arguments already in
      this repo.
