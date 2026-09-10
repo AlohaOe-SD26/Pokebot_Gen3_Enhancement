@@ -26129,3 +26129,31 @@ caught and carried purely for Dive, never fighting.
 gate counts it** — not how much it is trained. ⚠ A PC deposit is the obvious shape and is explicitly
 flagged hazardous (`victory_road.py:500`); whether Dive is still needed after the water legs is a
 story-routing question and is unanswered.
+
+## 2026-09-10 — A fourth direction killed in two minutes, and the one predicate shape that survives
+
+**`precheck_prior_art.py "assert_carriers_survived" "HM08" "deposit"`** returned 15 decisions-log
+hits and killed the PC-deposit idea before I wrote a line of design:
+* `06-DECISIONS-LOG.md:1313-1316` — *"Deposit to make room… Rejected FOR NOW because it is the shape
+  of `POKEBOT_PC_ROTATION`, **which is disabled for costing ~19 points by depositing team members**."*
+  ⇒ it was tried, and it lost 19 points of finish rate.
+* `06-DECISIONS-LOG.md:2694-2716` — **four documented live defects** in the PC machinery: an
+  egg-exclusion bug in `withdraw_from_box` (whose own sibling fixed exactly that), **unbounded
+  `while … press A` loops** waiting on a state the decomp says a full party never reaches, a capacity
+  guard using the wrong party count, and a blanket `except Exception` with no `StoryAbort` guard that
+  **launders whiteouts today**.
+
+**⇒ FOUR DIRECTIONS ARE NOW DEAD ON THIS PROBLEM, EACH WITH EVIDENCE:** widen the threshold (+2 mons
+from G=6 to G=∞), bench the mule (benching is *do not train*, not *do not field*), a better
+acquisition ground (L27 still refuses a 250,000 ceiling), and deposit (disabled, −19 points, four
+prerequisites).
+
+**⭐⭐ ONE PREDICATE SHAPE SURVIVES, AND IT IS NOVEL HERE.** The gate must stop counting a field-move
+tool as a battler — without a LEVEL test (refuted on the known-good fixture) and without a SPECIES
+LIST (does not stop fielding). **[MEASURED] all 521 logged Marill sightings read `L13:exp1757`, an
+exact curve match — the carrier has never gained a single point of experience.** *"Has never gained
+exp since capture"* is measurable, role-agnostic and not level-denominated.
+⛔ **It is UNTESTED and must not be built before**: the known-good fixture test, an empty-set check,
+a false-positive check against freshly-caught mons the bot intends to train, and a look at
+`03-PUNCH-LIST.md:3782` (a `total_exp` caveat about `_progress_sig`, party-level rather than per-mon
+— the distinction must hold in code).

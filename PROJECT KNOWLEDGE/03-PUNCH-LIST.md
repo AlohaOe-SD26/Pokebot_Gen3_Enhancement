@@ -1688,9 +1688,30 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
      `L13:exp1757`, never one point of exp — and the gate counts it as a battler. ⇒ any surviving fix
      must change **whether it is in the party at the gate**, or **whether the gate counts it**, not
      how much it is trained.
-     ⚠ **A PC DEPOSIT IS THE OBVIOUS SHAPE AND IS EXPLICITLY HAZARDOUS** — `victory_road.py:500`
-     warns *"a PC deposit is the hazard `assert_carriers_survived` exists to catch"*. Whether Dive is
-     still needed after the water legs is a STORY-ROUTING question and is **unanswered**.
+     ⛔⛔ **AND A PC DEPOSIT IS THE FOURTH DEAD DIRECTION — found by `precheck_prior_art.py` in two
+     minutes, before any design.** `06-DECISIONS-LOG.md:1313-1316`: *"**Deposit to make room** — the
+     real fix… Rejected FOR NOW because it is the shape of `POKEBOT_PC_ROTATION`, **which is disabled
+     for costing ~19 points by depositing team members**."* ⇒ it was TRIED and it LOST 19 points.
+     ‼ And the machinery carries **four documented live defects** (`06-DECISIONS-LOG.md:2694-2716`):
+     `withdraw_from_box` counts `alive` EXCLUDING EGGS (its own sibling fixed exactly that bug);
+     `interact_with_pc` has **unbounded `while … press A` loops** (`:424-433` plus four more), and per
+     the decomp `Task_WithdrawMon` on a full party never reaches the state they wait for; the capacity
+     guard tests `get_party_size()` when the game uses `CalculatePlayerPartyCount()`; and its blanket
+     `except Exception` has no `StoryAbort` guard, so **a whiteout during a PC visit is being
+     LAUNDERED today**. ⇒ depositing the carrier is not a quick win, it is four prerequisites deep.
+     ⭐⭐ **WHAT SURVIVES — ONE PREDICATE SHAPE, AND IT IS NOVEL HERE (untested, do not build yet).**
+     The gate must stop counting a field-move tool as a battler, without a LEVEL test (refuted on the
+     known-good fixture 2026-09-08) and without a SPECIES LIST (benching does not stop fielding).
+     ‼ **[MEASURED BY ME] all 521 logged `Marill` sightings read `L13:exp1757`, and `4*13³/5 = 1757`
+     exactly — the carrier has NEVER GAINED A SINGLE POINT OF EXPERIENCE.** ⇒ *"has never gained exp
+     since capture"* is measurable, role-agnostic, not level-denominated, and distinguishes an inert
+     tool from a battler that is merely behind.
+     ⚠ **UNTESTED. Before anyone builds it:** (a) run it on the known-good fixture — the test that
+     killed the 2026-09-08 design; (b) confirm it cannot empty `battler_identities()`; (c) confirm it
+     does not also catch a freshly-caught mon the bot INTENDS to train; (d) note
+     `03-PUNCH-LIST.md:3782` warns `total_exp` grows on the walk back — that is about `_progress_sig`
+     (a PARTY-level signature), not a per-mon since-capture test, but the distinction must hold in
+     code. ⛔ Run `tools/story-dev/precheck_prior_art.py` first: it has now killed four directions.
      ⛔ **DO NOT BUILD A FOURTH DESIGN WITHOUT RUNNING `tools/story-dev/precheck_prior_art.py` FIRST**
      — three have died here in two days, and two of the three were killed by arguments already in
      this repo.
