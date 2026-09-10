@@ -1133,6 +1133,13 @@ def main() -> int:
     batch = {
         "stamp": stamp,
         "code_commit": commit,
+        # ⛔ PROVENANCE, NOT DECORATION (added 2026-09-09). `render_manifest` has always printed
+        # `batch.get("build", "?")` while this dict never set the key, so EVERY manifest ever
+        # produced read `build ?` — and a batch whose fork is unknown cannot be compared, which is
+        # exactly what this file's own docstring says the manifest exists to prevent. The resolved
+        # ROOT is recorded beside the name so a reader never has to infer the fork from log content.
+        "build": BUILD_NAME,
+        "build_root": str(BUILD_ROOT),
         "bot_mode": BOT_MODE,
         "lanes": args.lanes,
         "runs_per_lane": args.runs,

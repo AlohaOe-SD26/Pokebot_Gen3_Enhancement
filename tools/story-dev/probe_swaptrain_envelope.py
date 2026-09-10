@@ -52,8 +52,17 @@ ROOT = HERE.parent.parent
 #: and the lazy `.*?` skips whatever follows, so a move's shape can never cost us a row. An
 #: independent re-implementation landed within ~1% of the permissive counts, which is the check that
 #: settled it.
+#: ⛔⛔ THE `(?:\[[^\]]*\]\s*)?` IS LOAD-BEARING (added 2026-09-09). A battler carrying a
+#: status logs `3/23 [Paralysis] -> RotateLead`. WITHOUT it this pattern parsed only 48,719 of
+#: 56,339 `[TURN]` lines — dropping **7,620 (13.5%)**, and NOT at random: the dropped rows are
+#: Paralysis/Confusion/Sleep/Poison, i.e. the battles going BADLY, which is exactly where a
+#: rotation is likeliest. ⇒ every rate published from the old pattern is biased.
+#: ‼ The docstring above already warned that a parser losing rows inflates every rate — that
+#: warning was written after fixing a DIFFERENT over-tightening in this same pattern. One was
+#: fixed and one was left. **Re-measure a corrected parser against the RAW line count, never
+#: against the previous parse.**
 TURN = re.compile(
-    r"\[TURN (\d+)\]\s+(\w+)\s+L(\d+)\s+(\d+)/(\d+)\s*->\s*(\w+).*?vs\s+(\w+)\s+L(\d+)"
+    r"\[TURN (\d+)\]\s+(\w+)\s+L(\d+)\s+(\d+)/(\d+)\s*(?:\[[^\]]*\]\s*)?->\s*(\w+).*?vs\s+(\w+)\s+L(\d+)"
 )
 
 

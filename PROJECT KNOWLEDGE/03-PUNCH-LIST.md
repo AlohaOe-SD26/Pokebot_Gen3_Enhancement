@@ -3915,7 +3915,38 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   ‼ Redone with the split applied (model reproduces all five published figures exactly): the
   first arrival level clearing the 250,000 ceiling is **L42, not L35**, and 250k at wild-28
   from L26 buys far less than the ~L39 claimed. ⇒ **CATCH-HIGHER + TRAIN-THE-REMAINDER, AS
-  SPEC'D, WOULD STILL REFUSE.** ⚠ Not proven: the split is 2 only when swap-training FIRES,
+  SPEC'D, WOULD STILL REFUSE.**   ✅✅ **DECOMP-VERIFIED AND MEASURED 2026-09-09 — THE PAYOUT IS DIVIDED AMONG PARTICIPANTS.**
+  ⭐ **THE MECHANISM, from the decomp (settles it independently of any log):** `Cmd_getexp`,
+  `pret/pokeemerald` `src/battle_script_commands.c:3292-3324` —
+  ```c
+  for (viaSentIn = 0, i = 0; i < PARTY_SIZE; i++)   ...   viaSentIn++;   // mon that were SENT IN
+  calculatedExp = gSpeciesInfo[...].expYield * gBattleMons[gBattlerFainted].level / 7;
+  *exp = SAFE_DIV(calculatedExp, viaSentIn);            // no EXP Share
+  *exp = SAFE_DIV(calculatedExp / 2, viaSentIn);        // with EXP Share  ⇒ a SECOND regime
+  ```
+  ‼ **`viaSentIn` counts "was sent in", NOT "why".** A deliberate swap-training rotation and an
+  emergency survival rotation increment the same counter ⇒ **the divisor is mechanism-independent**,
+  which is why a general-population measurement legitimately stands in for swap-training.
+  ⭐ **MEASURED, and it agrees to three decimal places** (batch `20260909-160339`, 8 lanes, 3h,
+  `--build sandbox`; `tools/story-dev/probe_exp_participant_divisor.py`, matched on (foe species,
+  foe level) so the divisor is not confounded with which foes get fought):
+  ```
+    min n2   groups   median ratio      pooled sanity check (confounded by foe mix):
+         1       88          0.829        1 participant  median 205 exp  (n=3,290)
+         5       27          0.592        2 participants median 123 exp  (n=  401)
+        10       11          0.504        ratio 0.60
+        20        2          0.501      ⇐ decomp predicts exactly 0.500
+  ```
+  ⇒ **`estimate_frames_to_level` HAS NO PARTICIPANT DIVISOR, so every estimate where a second mon
+  participates is up to 2x OPTIMISTIC — and this item's corrected arithmetic (L42, not L35) STANDS.**
+  ⚠ **SCOPE, STATED:** the 401 two-participant observations are **mostly NOT deliberate
+  swap-training** — this batch holds only **14** turn-0 full-HP rotation windows (11 of which showed
+  two mon gaining). The decomp is what licenses generalising from one to the other; the log evidence
+  alone would not.
+  ⚠ **HETEROGENEITY IS REAL:** `Poochyena L6` (0.83, n2=13) and `Nincada L6` (0.81, n2=13) sit far
+  from 0.5 — the `calculatedExp / 2 / viaExpShare` branch above is a plausible second regime and is
+  **not** separated by this tool.
+  ⚠ Previously (superseded by the measurement above): the split is 2 only when swap-training FIRES,
   so the true cost is between the solo and 2-way columns — which is exactly why the measurement
   below (log `total_exp` by PID either side of a battle) was the next deliverable.
   ✅✅ **THAT BLOCKER IS CLEARED 2026-09-09 — THE TELEMETRY NOW EXISTS.**

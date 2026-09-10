@@ -25852,3 +25852,62 @@ optional, so the leading `(\d+)` captured the `0` of *"must exit 0; the suite is
 fired on correct text. Five synthetic tests passed; **the real tree failed on the first run**, because
 no synthetic case had a number earlier in the line. ⇒ tightened to require the noun, and the real-tree
 shape is now self-test **GA6**.
+
+## 2026-09-09 — The exp payout IS divided among participants: decomp-verified, then measured to 0.501
+
+**A question this project carried as "⚠ Not proven" for weeks is settled.** It was blocked on
+instrumentation, not analysis — no mon could be followed across readings — which `party_ids` fixed
+this morning.
+
+**⭐ THE MECHANISM, FROM THE DECOMP** (`pret/pokeemerald`, `src/battle_script_commands.c:3292-3324`,
+`Cmd_getexp`) — this is what makes the result general rather than anecdotal:
+```c
+for (viaSentIn = 0, i = 0; i < PARTY_SIZE; i++)  ...  viaSentIn++;   // mon that were SENT IN
+calculatedExp = gSpeciesInfo[...].expYield * gBattleMons[gBattlerFainted].level / 7;
+*exp = SAFE_DIV(calculatedExp, viaSentIn);          // no EXP Share
+*exp = SAFE_DIV(calculatedExp / 2, viaSentIn);      // with EXP Share  => a SECOND regime
+```
+‼ **`viaSentIn` counts "was sent in", not "why".** Deliberate swap-training and emergency survival
+rotations increment the same counter ⇒ **the divisor is mechanism-independent.** *(It also
+cross-checks this project's known `xp/battle = expYield x level / 7`.)*
+
+**⭐ THE MEASUREMENT** — batch `20260909-160339` (8 lanes, 3h, `--build sandbox`), 17,302 heartbeats,
+matched on (foe species, foe level) so the divisor is not confounded with which foes get fought:
+```
+  min n2   groups   median ratio      pooled sanity check (confounded by foe mix):
+       1       88          0.829        1 participant  median 205 exp   (n=3,290)
+       5       27          0.592        2 participants median 123 exp   (n=  401)
+      10       11          0.504        ratio 0.60
+      20        2          0.501      <- the decomp predicts exactly 0.500
+```
+⇒ **`estimate_frames_to_level` has no participant divisor, so every estimate where a second mon
+participates is up to 2x optimistic, and `#24-lowlevelmules`'s corrected arrival level — L42, not
+L35 — stands.** Its planned "catch higher + train the remainder" fix still refuses on its own
+arithmetic.
+⚠ **Scope, stated:** the 401 two-participant observations are **mostly not deliberate
+swap-training** (this batch holds only **14** turn-0 full-HP rotation windows). **The decomp is what
+licenses the generalisation; the logs alone would not.** ⚠ And the heterogeneity is real —
+`Poochyena L6` 0.83 and `Nincada L6` 0.81 at n2=13 are plausibly the EXP-Share branch, which this
+tool does not separate.
+
+**⛔⛔ AND THE MEASUREMENT EXPOSED A SHARED PARSER BUG WORTH MORE THAN THE RESULT.** A Tier 1 reviewer
+refused a "30 of 31 rotations" figure that was really **31 of 32**. Root cause: the `[TURN]` pattern
+did not allow a STATUS TAG between HP and the arrow, so `[TURN 3] Poochyena L7 3/23 [Infatuated] ->
+RotateLead` was silently dropped. Across the batch that shape discards **7,620 of 56,339 turn lines
+— 13.5%**:
+```
+  2,490 [Paralysis]   2,014 [Confused]   849 [Sleep]   600 [Poison]
+    560 [Sleep/Confused]   283 [Infatuated]   138 [Foresight]   137 [Yawning]
+```
+⛔ **and NOT at random — the dropped rows are the battles going badly, exactly where a rotation is
+likeliest.** Fixed in all three consumers.
+✅ **Impact, measured per tool rather than assumed:** the divisor result got *cleaner*
+(n2>=10: 0.586 → **0.504**), because it uses all battles. `probe_swaptrain_envelope.py`'s published
+figures barely moved (decisions 24,244 → **25,914**, gap +2 rate 29.9% → **30.1%**, ceiling still +6,
+still 0 of 560 at +7) — because it already filtered to turn-0 **full-HP**, where a status is rare.
+**The same 13.5% hole was material for one tool and negligible for the other.**
+
+**Also fixed — `x4_headless.py` never recorded which fork a batch ran.** `render_manifest` prints
+`batch.get("build", "?")` and the batch dict never set the key, so **every manifest ever produced
+read `build ?`** — while the file's own docstring says the manifest exists because "a finish rate
+whose build is unknown is not a measurement". Now records `build` and `build_root`.

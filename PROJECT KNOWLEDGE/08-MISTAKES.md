@@ -15630,3 +15630,65 @@ perfectly vacuous*. ⇒ **the strongest test of a handoff is not "do its halves 
 following it literally produce the measurement it promises?"** — which is exactly what Tier 2's
 "try to BEGIN the next item" clause is for, and why that clause outranks the pair checks.
 
+## 2026-09-09 — I measured a proxy, then let an unweighted median hide the answer
+
+**Two errors in one measurement, both caught before publication, both worth the entry.**
+
+**(1) THE PROXY.** Asked *"does swap-training split the exp?"*, my first tool counted **how many mon
+gained** per swap-training window and found 2 in 11 of 14. That number is real and **cannot answer
+the question**: two mon gaining the same amount is equally consistent with *"each banks a full
+share"* and *"each banks half"*. ⇒ **the action is the AMOUNT; the count is a proxy for it.** The
+honest test was a controlled comparison — same foe species AND level, 1 participant vs 2 — which
+used **3,446 ordinary battles** instead of the 14 rare windows.
+⭐ **PREVENTION RULE — WHEN A MEASUREMENT IS ABOUT A MAGNITUDE, COUNTING THE EVENTS IS NOT MEASURING
+IT.** And note where the evidence came from: **the rare event was not the evidence.** If the
+interesting case is rare, look for an ORDINARY case that discriminates the same hypotheses — it will
+have hundreds of times the sample.
+
+**(2) THE STATISTIC ATE THE RESULT.** The corrected tool then printed **0.838 — INCONCLUSIVE**, while
+its own table showed the largest-sample groups at 0.50-0.54. *(⚠ NOT 'every' large-sample group — a
+Tier 1 reviewer was right to refuse that word: `Poochyena L6` 0.83 and `Nincada L6` 0.81 both carry
+n2=13. Real heterogeneity, plausibly the decomp's `calculatedExp / 2 / viaExpShare` second regime.)*
+Cause: it took an **unweighted median across 87 foe-groups**, so a group with n2=7 outvoted one with n2=29, and a stratum of 30 tiny
+noisy groups (ratio 1.18, none surviving n2>=10) dragged the headline up.
+⭐⭐ **PREVENTION RULE — AN UNWEIGHTED MEDIAN OVER GROUPS SUMMARISES THE GROUPS, NOT THE
+OBSERVATIONS.** Stratify and show the CONVERGENCE (0.838 → 0.624 → 0.586 → 0.520 as min n2 rises);
+a single number that can be dominated by the noisiest cells is not a summary, it is a coin flip with
+a decimal point. ⇒ **when a headline contradicts the table above it, the headline is the bug.**
+‼ This is the same family as the sampling error logged an hour earlier (`logs[:400]` of a sorted
+list) — **three times in one day the DATA was fine and the way I reduced it was not.**
+
+## 2026-09-09 — A regex that dropped every status-afflicted battler: 13.5% of rows, and not at random
+
+**Symptom.** A Tier 1 reviewer refused a published figure — I wrote *"30 of 31 rotations were turn>0
+and hurt"*; a direct `grep` found **32** rotations (31 hurt + 1 full-HP). One row off, in a 32-row
+sample.
+
+**Root cause, and it was far larger than the symptom.** My `[TURN]` pattern required
+`(\d+)/(\d+)\s*->`, but a battler carrying a status logs `3/23 [Infatuated] -> RotateLead`. Across
+the batch that shape silently discards **7,620 of 56,339 turn lines — 13.5%**: 2,490 Paralysis,
+2,014 Confused, 849 Sleep, 600 Poison, 560 Sleep/Confused, 283 Infatuated...
+⛔ **The dropped rows are NOT random. They are the battles going badly — precisely where a rotation
+is likeliest** — so every rate computed from that pattern was biased in the direction that mattered.
+
+**‼ THE PATTERN LIVED IN A FILE WHOSE OWN DOCSTRING WARNS ABOUT THIS.**
+`probe_swaptrain_envelope.py` says *"A PARSER THAT LOSES ROWS INFLATES EVERY RATE AND ANNOUNCES
+NOTHING"* — written after fixing a **different** over-tightening in the **same** pattern. **One hole
+was found and fixed; the other sat beside it untouched.**
+
+**⭐⭐ PREVENTION RULE — WHEN YOU CORRECT A PARSER, RE-MEASURE ITS DENOMINATOR AGAINST THE RAW LINE
+COUNT, NOT AGAINST THE PREVIOUS PARSE.** `48,719 parsed of 56,339 raw` was computable at any moment
+by anyone who compared the two numbers; nobody did, because a parse that returns tens of thousands of
+rows looks healthy **on its own**. ⇒ a parser's health is a RATIO to the unfiltered corpus, and it
+belongs in the tool's own output.
+
+**⭐ AND THE SECOND LESSON — IMPACT IS PER-TOOL, SO MEASURE IT PER TOOL.** The same 13.5% hole:
+* **material** for the divisor tool (uses all battles): n2>=10 went 0.586 → **0.504**, i.e. the bug
+  had been *hiding* the true 0.5;
+* **negligible** for the envelope tool: 24,244 → 25,914 decisions, gap +2 rate 29.9% → **30.1%**, and
+  every published conclusion survived — because it already filtered to turn-0 **full-HP**, where a
+  status is rare.
+⇒ **"a shared parser was wrong" does not imply "every result from it was wrong".** Re-run each
+consumer and report the delta; announcing a blanket invalidation would have been as inaccurate as
+the bug, and would have thrown away sound measurements.
+
