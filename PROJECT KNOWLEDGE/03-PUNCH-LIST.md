@@ -340,6 +340,16 @@ immune (`audio=False speed=0` enforced). ⚠ The "sibling passes solo" control w
 (`probe_chapter_order` never drives frames). **FIX CANDIDATES (one drive each): (a) run the gate
 stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in `libmgba.py`
 (production internals — careful).** Narrative: `07-CHANGELOG.md` 2026-08-26.
+‼ **RECURRED 2026-09-10 — 4th in-suite, 3rd solo, both at the documented freeze point.** In-suite
+`exit=124` at exactly `900.0s` ⇒ the suite ran **50 of 51**. Solo, same hour and tree: printed the
+`[1]+[2] FAULT INJECTION` header, then nothing. ⛔ **A TIMEOUT, never an assertion failure** — no
+check went red; the process never reached one.
+⭐ **EXONERATED STRUCTURALLY, not by "it passes solo" — which is FALSE, it hangs solo too.** The
+concurrent `#24-dexhunt` fence lives in `_should_catch`, reachable ONLY via `on_battle_started`, a
+LISTENER hook; this gate drives a mode generator **BY HAND with no listeners** (its own docstring
+says so) and greps **0 code references** to that path. ⇒ structurally unreachable.
+⇒ **LESSON: beside your own change, "it is the known issue" is an EXPLANATION, not an ALIBI** —
+only a reachability argument or an arm with the change removed tells them apart.
 
 ### ✅ `#24-driftheadlineshape` — DONE 2026-08-26: `check_drift` PASS 3 reads the drift-row HEADLINE (filed 2026-08-24)
 
@@ -408,7 +418,7 @@ AN OPEN FACT — sweep for residuals before retiring one.
 ⛔⛔⛔ **AND IT IS WORSE THAN A RE-BUY — VERIFIED IN CODE 2026-09-06.** The §Ch23 dispatch is:
 `story_mode.py:3791` `if not ch23_chapter_done():` → `:3792` runs the chapter, `:3793` else-skips —
 and `:3795` `_guard("Victory Road (Ch23)", ch23_chapter_done)` sits **OUTSIDE the if/else**.
-`_guard` (`story_mode.py:2917-2878`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
+`_guard` (`story_mode.py:3187-2878`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
 §Ch24 spends the basket, the next pass through `_play()` does all three of these:
 (1) re-enters the WHOLE Victory Road chapter, because `:3791` is now True;
 (2) reaches leg 11 and tries to re-buy a **₽54,300** basket holding **₽1,741** — leg 11 refuses
@@ -1476,7 +1486,7 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
   500-round retry loop instead of abandoning the target. ⇒ **build the disposition, and make it
   SUPPLEMENT the ceiling, never replace it.**
 - [ ] ⛔⛔ **STRUCTURAL FACT THAT CHANGES EVERY "BUDGET HEADROOM" ARGUMENT — VERIFIED 2026-09-09.**
-  `MAX_FRAMES_PER_RUN = 5_000_000` sits at `story_mode.py:4329`, **inside `StoryEndlessResetMode`
+  `MAX_FRAMES_PER_RUN = 5_000_000` sits at `story_mode.py:4553`, **inside `StoryEndlessResetMode`
   (`:4283`) — the BATCH HARNESS.** Production `StoryMode` (`:1123`) has **no total-frame budget at
   all**; `train_team` has only a 500-*round* guard. ⇒ **in a real run the per-call
   `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence**, and removing or
@@ -1781,7 +1791,7 @@ below); `#24-leadpolicy` → **A+C**; `#24-route110cap` → **A** (prep, NO cap)
 KI-24b → **A** (fix the mock, re-baseline, show the diff); `#doc-policy-05` → **A**
 (keep-and-mark until promotion); repo size → **leave it**.
 
-### 🔜 `#24-dexhunt` — catch EVERY new species, and hunt for unseen ones — **RE-AFFIRMED AND WIDENED BY A NEW USER DIRECTIVE 2026-09-04; NOW UNBLOCKED** (user proposal 2026-07-29, ruled 2026-07-31)
+### 🔶 `#24-dexhunt` — catch EVERY new species, and hunt for unseen ones — **MIXED as of 2026-09-10: the CATCHING FENCE is BUILT, PURE AND GATED (#50) — ⛔ DO NOT REBUILD IT — but its A/B is UNRUN, so EFFICACY is unproven, and the fence is deliberately NARROWER than the ruling. READ EACH BULLET'S OWN MARKER; THIS HEADING DOES NOT CLOSE THE ITEM.** (user proposal 2026-07-29, ruled 2026-07-31; re-affirmed and widened by a new user directive 2026-09-04)
 
 ⛔⛔ **THIS IS THE ITEM THAT SERVES THE 2026-09-04 CATCHING DIRECTIVE. DO NOT OPEN A SECOND ONE.**
 *(I opened `#24-dexcatch` on 2026-09-05 with a fresh guard list before an adversarial reviewer found
@@ -1805,7 +1815,7 @@ accident of what the bot happened to meet.
 * **`#24-flyunlock` is CLOSED**, so the bot can finally REACH wild encounters at all.
 
 **⛔ THE FIVE CONSTRAINTS AN ADVERSARIAL REVIEW FOUND — build against these, they are measured:**
-1. **`_should_catch` already implements the right dex test** (`story_mode.py:1423`, comparing
+1. **`_should_catch` already implements the right dex test** (`story_mode.py:1624`, comparing
    `owned_species` by national dex number). It is gated off by conditions written for the NARROWER
    pre-Gym-1 team-building purpose: `if get_event_flag("BADGE01_GET"): return False` and a
    party-full check. ⇒ **relax those two; do not rewrite the predicate.**
@@ -1871,13 +1881,80 @@ accident of what the bot happened to meet.
   gained the missing per-run `_last_owned = None` reset, or run 2 of a batch would diff against run
   1's dex), and now GATED by `tools/story-dev/repro_heartbeat_emits.py`, which drives the **real
   `on_frame()`** and is fault-tested (arm B: 0 heartbeat lines).
-  ⇒ **NEXT: write the fence using `is_armed()`, and grade on `owned` strictly increasing.**
-  ⚠ Also required by the build (not yet done): `story_mode.py:2500` prints *"for the team!"* — at
-  party 6 the mon goes to a BOX. It does **not** lie today (the gate requires party < 4); it would
-  begin lying the moment the fence lands, so it changes **in the same commit**.
+- [x] ✅✅ **THE FENCE IS BUILT AND GATED 2026-09-10 (gate #50, 20 cases, fault-armed). ⛔ DO NOT
+  REBUILD IT.** `decide_dex_catch` (`story_mode.py:1188`) is PURE; `_should_catch`
+  (`story_mode.py:1624`) is now a read-and-report ADAPTER that decides nothing. It was written with
+  `is_armed()`, and the *"for the team!"* message now DERIVES its destination from the slot count
+  the game reads. ⭐ **FOUR THINGS THE SPEC DID NOT HAVE, each verified in code before it was built:**
+  1. ⛔ **THE BALL GATE HAD TO BECOME A LEVEL, NOT A BOOLEAN — and this one was FATAL.**
+     `counter_hunt.hunt()` checks balls at `counter_hunt.py:471` **BEFORE** its journey and only
+     calls `arm()` at `:510` **AFTER** arriving, with `_navigate_riding_out(..., tries=24)` at `:488`
+     between them — a trek its own comment calls *"the LONGEST journey the bot ever makes … 8
+     map-hops"*. ⇒ `is_armed()` is **FALSE for the entire journey**, so a fence gated only on the
+     boolean would spend the hunt's balls en route; the hunt never re-checks, arms, spins all
+     120,000 frames and reports *"found nothing"* while standing on the answer. Hence
+     `DEX_CATCH_BALL_RESERVE = 10`, kept separate from `resource_blocker()`'s floor of 1.
+  2. **`not swap_train_active()`.** A catch earns ZERO exp while `train_team` exists only to gain it,
+     and `#24-ch23training` is the top run-ender for exceeding a frame ceiling.
+  3. **BOTH arming systems.** `is_armed()` reads only `COUNTER_CATCH_TARGET_DEX`;
+     `early_game.HM_CATCH_TARGET_DEX` is a second one with no reader.
+  4. **Eggs count toward fullness** (the game's own convention), but NOT toward the dup check — two
+     party counts, deliberately. Counting egg-filtered would fire the fence at 5 mons + 1 egg and
+     consume the sixth PARTY slot: the `#24-partycap` regression exactly.
+  ⛔ **A REFUTER CORRECTED ME ON THE HUNT COLLISION AND THE CORRECTION IS IN THE CODE:** an off-type
+  dex catch is **NOT** mis-registered as the counter — the verdict is type-aware
+  (`party_counter_slot`/`box_counter_pid`). It is worse in a quieter way: `catch_confirmed`'s box
+  path is species-BLIND (`:363-365`), so the spin **ENDS EARLY** and the verdict then finds nothing.
+- [x] ✅ **THE VACUITY QUESTION IS ANSWERED — MEASURED, NOT ARGUED.** The handoff's *"no cheap test
+  exists"* is true of EFFICACY and false of the PRECONDITION. `probe_dexfence_opportunity.py`
+  (offline, no ROM): window **4,286 of 17,592 heartbeats (24.4%) ~= 4,286 emulated minutes**, **8 of
+  10 lanes** reach a full party, first at f1.78M-3.28M on ROUTE 119 (x5) / FIERY PATH / MOSSDEEP /
+  ROUTE 103, `owned` 8-14. An independent agent re-derived it on the stricter FULL conjunction:
+  **13 of 24 runs, 926 qualifying samples**, existence proof `20260909-160339/L01` debug log line
+  16774 (f3337201, Pelipper #279 unowned, `owned=11`, badge 1 set at f162766). ⇒ **an A/B here will
+  not be measuring nothing.**
+  ⚠ `balls=` is now on the heartbeat because it was the ONE fence condition the corpus could not
+  confirm — `[BALLS]` fires only on a CHANGE, so a run parked at 1 ball read like one at 30.
 
-**STATUS: OPEN — the fence is specified and its prerequisite is shipped; `hunt_active()` must be
-written as `is_armed()`.**
+**STATUS: OPEN — ⛔ MIXED, AND THE HEADING SAYS SO. The FENCE half is BUILT, GATED AND FAULT-ARMED
+(⛔ do not rebuild). TWO things remain, and neither is a rebuild:**
+1. ⭐ **THE A/B HAS NOT BEEN RUN.** Correctness is proven offline; **EFFICACY IS NOT**. It needs
+   `x4_headless.py --build sandbox` (⛔ `custom` has no telemetry and reads as a refutation), arms
+   fence-ON vs `POKEBOT_DEXFENCE_FAULT` is *not* the arm — that is the PROBE's arm. The run arm is
+   the code as shipped vs. `git revert` of the fence commit. Grade on **`owned` strictly increasing**
+   plus the new `[DEXCATCH]`/`[DEXFENCE]` lines, **never** on party PIDs (vacuous at party 6).
+2. **THE FENCE IS DELIBERATELY NARROWER THAN THE 2026-07-31 RULING** — it refuses every post-badge
+   catch at party 4 and 5, where `resource_blocker()` returns None and nothing blocks. That is a
+   CHOICE, priced against `#24-partycap`'s measured 36-point collapse, ⛔ **not** the ruling fully
+   implemented. Filed so nobody reads this item as shipped: `#24-dexcatch-battlebail` (below) and the
+   party<6 case are the residual.
+
+---
+
+### 🔜 `#24-dexcatch-battlebail` — a catch battle NEVER fights back, and the fence just exported it to L30-45 routes (filed 2026-09-10)
+
+**FOUND WHILE BUILDING `#24-dexhunt`'s FENCE, verified in code, NOT shipped with it.**
+`CatchStrategy.decide_turn` (`catch.py:41-62`) only ever throws a ball or applies a status move —
+**never a damaging move** — and `should_flee_after_faint` returns **False unconditionally**
+(`catch.py:38-39`), which removes the base strategy's *"party can't battle → flee"* escape. So the
+wild attacks for free and the bot does not leave until the balls run out.
+
+⚠ **WHY THIS IS NEW RATHER THAN PRE-EXISTING:** pre-gym-1 it was bounded by L3-6 wilds and a party
+of ≤4. The fence runs at party 6 on post-badge routes, where the corpus puts the bot on ROUTE 119
+and MOSSDEEP against **L30-45** wilds.
+
+✅ **WHAT THE FENCE ALREADY DOES:** it bounds ENTRY — `party_healthy` in `decide_dex_catch` refuses
+unless every battler is at full HP. A pure predicate can do that much.
+⛔ **WHAT IT CANNOT DO:** bound MID-BATTLE degradation. Six mons can still faint one at a time.
+
+⛔⛔ **DO NOT FIX IT BY EDITING `StoryCatchStrategy`.** `StoryShinyCatchStrategy` **INHERITS** from
+it, and the shiny rule is an explicit user directive (2026-07-22): *attempt until success, whiteout,
+or out of balls*. A bail-out there would silently overrule a user directive.
+⇒ **The shape that survives: a dex-ONLY subclass** (`StoryDexCatchStrategy`) returned by the fence's
+call site, which abandons the catch on a faint threshold. Pre-gym-1 and shiny paths stay
+byte-identical.
+‼ It is **battle-strategy internals**, which is where this project's index-space bugs live
+(`KI-18`/`KI-34`/`KI-66`/`KI-95`) — build it with a probe first, not a drive.
 
 ---
 
@@ -2605,7 +2682,7 @@ region, where "train near the gym" is actively wrong.
       asked and the data is now free, but it is not where the failures are.
 - [ ] #24-partyvariety — **Fill the party and vary what is caught; PC deposit/withdraw.**
       ‼ **ROOT CAUSE FOUND (recon 2026-07-26) — it is not emergent, it is two conditions.**
-      `_should_catch` (`story_mode.py:1423-1442`) requires `not BADGE01_GET` AND
+      `_should_catch` (`story_mode.py:1624-1442`) requires `not BADGE01_GET` AND
       `len(party) < _catch_team_target` where **`_catch_team_target = 4`** (`:811`). So the
       bot catches FOUR mons before the Stone Badge and then never catches again for the
       rest of the run. Part 1 is nearly a one-line change.
@@ -3537,22 +3614,8 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
       ⚠ The audit also relayed ~9 further suspected items it did NOT personally re-verify. Treat
       those as UNCONFIRMED and re-check before acting.
 
-### `#24-mossdeepstrand` — winning BADGE07 LOCKS THE BOT INSIDE the Mossdeep gym (filed 2026-09-07, ✅ FIXED IN THE SANDBOX same day — ⚠ UNDRIVEN, NOT PROMOTED)
-- [x] ✅ **FIXED 2026-09-07 (sandbox, UNDRIVEN).** Two halves, each a no-op off the gym map:
-  Segment 18's `else` now calls `leave_the_gym()` before printing (`story_mode.py:3774`), and
-  the chapter's own badge early-return leaves first (`mossdeep_gym.py:549`). ⛔ The IDENTICAL
-  early-return in `fight_the_leaders()` (`:382`) was deliberately LEFT ALONE — that one is a
-  SUB-STEP and is correct: leaving is the chapter's job, and the fight is retried 3x.
-  ⚠ Acceptance still owed: a drive from a save standing on (23,8) with BADGE07 set.
-- [x] `(23,8)` is an 11-tile collision island whose only exit is a **coord_event** at `(21,6)` no warp
-  solver can offer (`mossdeep_gym.py:460-461`). Its sole stepper, `leave_the_gym()`, is called only at
-  `:596` — **after** the badge early-return (`:548-549`, `:556-557`) — and Segment 18 skips the
-  chapter once BADGE07 is set (`story_mode.py:3772`). ⇒ **double bypass: with BADGE07 set and the
-  avatar on (23,8), nothing in the tree can move it.** The chapter's own `:590-593` comment warns of
-  exactly this; a later early-return re-opened it. `KI-97` moves this derail from Segment 13a to 19,
-  not away. ✅ **That is exactly what was done** (bullet above): `leave_the_gym()` is resume-safe
-  (`:471-474`), so calling it at Segment 18 and before the chapter's early-return costs nothing
-  anywhere else. Detail: `ai-research-notes/2026-09-07-batch-blockers-RECON.md`.
+### ✅ `#24-mossdeepstrand` — **CLOSED 2026-09-07 (sandbox): winning BADGE07 no longer locks the bot on the (23,8) collision island — `leave_the_gym()` now runs before BOTH badge early-returns.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-10, R3 budget).
+‼ **ITS LIVE RESIDUAL IS HERE, NOT IN THE ARCHIVE:** the fix is **UNDRIVEN** — acceptance is still owed, and it is a drive from a save standing on **(23,8) with BADGE07 set**. Every checkbox in the retired block is `[x]`; the owed drive lived in prose, which is why a checkbox scan cannot be the archiving test. ⛔ Do not read the ✅ as "driven".
 
 ### `#24-ballrestock-ordering` — the counter hunt's ball restock is DEAD CODE from its only caller (filed 2026-09-07)
 - [ ] ✅ `hunt()` holds the contingency (`counter_hunt.py:471-475`) but the ladder calls
@@ -3593,24 +3656,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
 - [ ] ⚠ Also worth pricing: a whiteout here costs the 117-step puzzle re-solve, so attrition at this
   boss is far more expensive per attempt than at any other. Detail: `ai-research-notes/2026-09-07-batch-blockers-RECON.md`.
 
-### ✅ `#24-countermsg` — the counter guard's CORRECT diagnosis read as WRONG (filed + fixed 2026-09-07, sandbox, display-only)
-- [x] ⭐ **This cost a false defect report, which is the justification.** From a live batch log I read
-  *"Winona: Need one of: Rock, Ice, Dragon. Nearest reachable counters: Slugma (Fire)..."* and
-  reported the recommender as violating its own constraint. **It was not.**
-  `counter_plan.py:156,185-205` admits a species by TYPES **or** by a level-up move of a needed type
-  (`#24-movepoolcounters`, user directive) — Slugma learns **Rock Throw at L15** and Fiery Path
-  Slugma is L15. ⇒ the list was right and the LINE was unreadable. ‼ **A message that makes correct
-  behaviour look broken costs what a bug costs: someone investigates it.**
-- [x] The explanation was already computed and discarded: `counter_plan.py:331-335` builds
-  `answer_via` (`"type"` vs `"move:Rock Throw@L15"`) under a comment demanding the log say which rule
-  fired — with ZERO production consumers. Now rendered, verified by direct call:
-  `Slugma (Fire) via move:Rock Throw@L15 on Fiery Path (tile (18, 19), L15-15, 10% rate) — reachable`
-- [x] The printed top-5 is now deduped **BY SPECIES** (5 of up to 12). Live, four of Winona's five
-  rows were the same Geodude across four Magma Hideout floors. ⛔ The ladder's `huntable_candidates()`
-  dedupes by `(map, tile)` and does NOT collapse those — the floors are distinct maps. A reader wants
-  SPECIES; the executor wants DESTINATION. Different questions, different keys, deliberately not
-  shared. ⛔ **DISPLAY ONLY** — `_counter_catch_message` builds a `BotModeError` string
-  (`story_mode.py:2053`) and feeds nothing the ladder chooses.
+### ✅ `#24-countermsg` — **CLOSED 2026-09-07: the counter guard now names WHICH rule admitted a species (`via move:Rock Throw@L15`); display-only.** ⛔ DO NOT REDO. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-10, R3 budget).
 
 ### `#24-counterprobe-rotted` — an offline counter-planner probe fails its OWN positive control (filed 2026-09-07)
 - [ ] `probe_counter_candidates_offline.py` exits 1 with *"POSITIVE CONTROL — Norman finds Machop @
@@ -3681,22 +3727,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   AND the fix acted) and a truck exit (`INSIDE OF TRUCK(25,40) -> LITTLEROOT TOWN`) within 300
   frames. ⛔ Do not close `#24-truckleak` until this runs.
 
-### ✅ `#24-lane-respawn-build` — a respawned lane loads the ON-DISK build (filed + fixed 2026-09-07)
-- [x] ✅ **FIXED AND GATED — after shipping DEAD once.** `Lane.build_commits` records
-  `git_commit()` at EVERY spawn, and `lane_summary()` (extracted for exactly this reason)
-  carries it into the report. ⛔ The FIRST version recorded it on the Lane and never copied
-  it into the summary dict — a mixed batch would have printed `(not recorded)` — and SEVEN
-  green checks missed it because each called the reporting function on a HAND-TYPED dict.
-  The gate now drives the REAL path (a real `Lane` through the real assembly), separates
-  UNVERIFIED (a git hiccup) from MIXED, and is **fault-tested against the actual defect**:
-  deleting the wiring line turns 11 checks red and exits 1; restoring it returns ALL PASS.
-  ⭐ Detection does NOT replace the rule — it makes it auditable.
-- [x] ⚠ `x4_headless.py` respawns a dead lane, and the new process imports whatever is on disk **at
-  that moment**. ⇒ promoting mid-batch can put **two builds inside one batch**, not merely stale the
-  MANIFEST — a finish rate whose build is ambiguous is not a measurement. This is the concrete
-  mechanism behind the "never promote while a batch runs" rule. **Options:** snapshot the build per
-  batch, or record each lane's load-time commit in the MANIFEST so a mixed batch is at least
-  DETECTABLE. ⛔ Prefer detectable over forbidden — a rule nobody can verify is prose.
+### ✅ `#24-lane-respawn-build` — **CLOSED 2026-09-07: a respawned lane records its ON-DISK build commit; fixed, gated, fault-tested.** ⛔ DO NOT REDO. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-10, R3 budget). ‼ Its live rule survives in `04-HANDOFF.md`: never promote or edit `sandbox-pokebot/` while a batch runs.
 
 ### 🔶 `#24-pcpingpong` — MIXED: the FIX is in (sandbox), its DRIVE is not — the heal deposited a mon then withdrew the SAME mon (filed + fixed 2026-09-07)
 - [x] ✅ **FIXED + GATED + FAULT-TESTED.** `withdraw_precedence()` (pure, testable) defers the
@@ -3753,7 +3784,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   runs reached exactly #41 after whiteouts spread over a **median of 13 different towns**,
   while winning **86-96%** of their battles (one won 866 of 907 with an L51 lead). ⇒ a fuse
   on run LENGTH — kill rate 0% under 1.5M frames, 62% above 3.5M, and `MAX_FRAMES_PER_RUN`
-  (5,000,000) was never reached by ANY of the 61 runs. ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4329`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split). FIX: `whiteout_budget()` (PURE) keys
+  (5,000,000) was never reached by ANY of the 61 runs. ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4553`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split). FIX: `whiteout_budget()` (PURE) keys
   it to CONSECUTIVE whiteouts at ONE location. GATE #44 `probe_whiteout_budget.py` replays
   the 14 real sequences: **0 of 14 still killed**, a stuck run and a blind run both STILL
   stopped at #41, and three fault arms fire. ⛔ DO NOT rewrite it to use `_progress_sig()` —
@@ -3789,7 +3820,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   Mossdeep respawn would make retries CHEAPER; it cannot make them SUCCEED, and cheapness is not what
   kills these runs. **(1) The runs die on a COUNT, not on time** — `whiteout_budget(cap=40)` — and
   this file already records that `MAX_FRAMES_PER_RUN` (5,000,000) **was never reached by ANY of the
-  61 runs** ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4329`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split).. Saved frames buy nothing. **(2) From badge 7 on, attempt N+1 is BYTE-IDENTICAL to
+  61 runs** ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4553`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split).. Saved frames buy nothing. **(2) From badge 7 on, attempt N+1 is BYTE-IDENTICAL to
   attempt N** (this very item's own finding), so a cheaper loop is the same loop.
   ⛔⛔ **(3) IT IS ACTIVELY HARMFUL:** `whiteout_budget`'s `key` **is** `get_last_heal_location()`,
   and the budget RESETS to 1 when the key changes ⇒ re-arming Lilycove→Mossdeep grants **one free

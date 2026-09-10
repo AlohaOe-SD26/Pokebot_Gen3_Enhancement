@@ -26259,3 +26259,71 @@ the block as “closed” would have silently dropped a live to-do. The sentence
 stub instead.
 ⇒ **Prevention rule:** *before retiring a closed item, grep its body for facts it is the only owner
 of — “closed” describes the WORK, not every sentence in the block.*
+
+---
+
+## 2026-09-10 — `#24-dexhunt`: THE CATCHING FENCE IS BUILT, PURE AND GATED (#50)
+
+**What shipped.** `decide_dex_catch` (`story_mode.py:1188`) — a PURE predicate returning
+`(catch, reason)` — plus `_should_catch` (`:1612`) reduced to a read-and-report ADAPTER that
+decides nothing, an explicit `[DEXCATCH]`/`[DEXFENCE]` telemetry pair, a destination-derived catch
+message, and gate **#50** `probe_dex_catch_fence.py` (18 cases, fault-armed).
+
+**The fence admits a post-badge catch only when:** party is FULL (so the game boxes it via
+`CopyMonToPC` and no party runway is consumed) · no hunt armed (BOTH arming systems) · not inside a
+training grind · spare balls (excl. Master) above a RESERVE · party at full strength · PC not full ·
+species unowned and not in the party · under a per-species attempt cap. Pre-gym-1 behaviour is
+unchanged, which `#24-partycap` (36 measured points) requires.
+
+### ⛔ The finding that changed the design: A BOOLEAN GUARD WAS NOT ENOUGH, AND IT WAS FATAL
+The spec said *"only when no hunt is armed"*, i.e. `not counter_hunt.is_armed()`. Read in code:
+`counter_hunt.hunt()` checks its balls at `counter_hunt.py:471` **BEFORE** the journey and only calls
+`arm()` at `:510` **AFTER** arriving — with `_navigate_riding_out(..., tries=24)` at `:488` between
+them, which that function’s own comment calls *"the LONGEST journey the bot ever makes … 8 map-hops
+away across several warp chains"*.
+⇒ **`is_armed()` is FALSE for the entire trek.** A fence gated on the boolean would spend the
+hunt’s balls en route; the hunt never re-checks on arrival, arms, spins all 120,000 frames and
+reports *"found nothing"* while standing on the answer — the exact failure its own comment says the
+feature suffered once already.
+⇒ `DEX_CATCH_BALL_RESERVE = 10`, deliberately NOT collapsed into `resource_blocker()`’s floor of 1:
+that floor is right for a MANDATORY catch and wrong for a DISCRETIONARY one.
+‼ The 10 is a JUDGEMENT sized to `HUNT_SPIN_BUDGET_FRAMES`’ own "roughly 12 expected meetings",
+**not** a measurement — balls-per-catch has never been logged. Re-derive it once `balls=` has a
+batch behind it.
+
+### Three more the spec did not have, each read in code first
+* **`not swap_train_active()`** — a catch earns ZERO exp while `train_team` exists only to gain it,
+  and `#24-ch23training` is the top run-ender for exceeding a frame ceiling. ‼ The no-progress
+  watchdog counts OVERWORLD frames with unchanged party EXP (`early_game.py:202-218`) and resets
+  ONLY on an EXP change, so catches lengthen the un-reset window without ever moving it.
+* **BOTH arming systems** — `is_armed()` reads only `COUNTER_CATCH_TARGET_DEX`;
+  `early_game.HM_CATCH_TARGET_DEX` is a second one with no `is_armed`-style reader.
+* **Eggs count toward FULLNESS but not toward the DUP check** — two party counts, deliberately.
+  Counting egg-filtered would fire at 5 mons + 1 egg and take the sixth PARTY slot: `#24-partycap`.
+
+### A refuter corrected me, and the correction is in the code
+I wrote that an off-type dex catch during an armed hunt would be REGISTERED as the counter. **Refuted.**
+The verdict is type-aware (`party_counter_slot`/`box_counter_pid`, `counter_hunt.py:546`/`:559`).
+The real harm is quieter: `catch_confirmed`’s box path is species-BLIND (`:363-365`), so the spin
+**ENDS EARLY** and the verdict then finds nothing. Fence half (B) is still required — for a
+different reason than the one I first wrote down.
+
+### The vacuity question, answered offline
+`04-HANDOFF.md` warned *"no cheap fixture test exists"*. True of EFFICACY; false of the PRECONDITION.
+`probe_dexfence_opportunity.py`: window **4,286 of 17,592 heartbeats (24.4%)**, **8 of 10 lanes**,
+first party-6 at f1.78M-3.28M on post-badge maps, `owned` 8-14. An independent agent re-derived it on
+the stricter full conjunction: **13 of 24 runs, 926 qualifying samples**, existence proof
+`20260909-160339/L01` line 16774. ⇒ an A/B here will not be measuring nothing.
+
+⛔ **WHAT IS *NOT* DONE, so nobody reads this as shipped:** the A/B has not been run (correctness
+≠ efficacy); the fence is deliberately NARROWER than the 2026-07-31 ruling (it refuses at party 4/5
+where nothing blocks); and `#24-dexcatch-battlebail` is filed — a catch battle never fights back
+(`catch.py:41-62`, `:38-39`), which the fence bounds at ENTRY only.
+### ‼ ADDENDUM — a regression I introduced in the refactor and caught with an A/B
+Collapsing three party figures into one parameter made the pre-gym-1 target read the RAW slot count,
+so **3 battlers + 1 EGG** refused a catch the old code allowed — a silent change to the ordinary
+case, which `#24-partycap` prices at 36 points. Fixed with two parameters (`party_slots_used`, raw,
+for FULLNESS; `battler_count`, egg-filtered, for the TEAM TARGET) and **PROVEN, not re-read**: 5,760
+pre-gym-1 input combinations compared against the old logic transcribed from git history —
+**0 divergences**. Cases C19/C20 keep that A/B as a permanent regression test; C15 is deliberately the
+same party shape read by the other convention. Full entry in `08-MISTAKES.md` 2026-09-10.

@@ -83,6 +83,11 @@ TIMEOUT_SLOW = 900
 ADVISORY: frozenset[str] = frozenset({
     "probe_regi_capabilities.py",
     "probe_dive_routing.py",
+    #: `#24-dexhunt`'s vacuity check. ADVISORY because it measures a CORPUS, not the code: a batch
+    #: run with `--build custom` carries no `ids=`/`owned=` telemetry, so it correctly reports a
+    #: zero window — a fact about the corpus, not a regression. Failing the suite over that would
+    #: teach the reader to bypass it, which is strictly worse than no gate.
+    "probe_dexfence_opportunity.py",
 })
 
 #: The standing suite. `slow=True` means it boots a ROM/emulator and takes real time.
@@ -427,6 +432,35 @@ GATES: list[tuple[str, bool]] = [
     # guard and it exits 1; restored (byte-identical) it exits 0.
     # Pure and fast: imports one bot module, reads no ROM.
     ("probe_empty_battler_guard.py", False),
+    # `#24-dexhunt` — THE CATCHING FENCE, 2026-09-10. `decide_dex_catch` is PURE, so all 18
+    # conditions are interrogated offline in milliseconds.
+    # ⛔⛔ IT IS GATED BECAUSE THE DRAFT SPEC FOR THIS FEATURE CALLED A FUNCTION THAT DOES NOT EXIST
+    # (`counter_hunt.hunt_active()`; the real name is `is_armed()`). `_should_catch` wraps its body
+    # in `except Exception`, so the `AttributeError` would have been SWALLOWED: the fence would
+    # never fire, and the 8-hour A/B would print "no difference" — reading as a REFUTATION of a
+    # feature that never ran. A pure predicate plus this gate makes that class unshippable.
+    # ⭐ The load-bearing cases are the ones a "just relax the badge gate" patch would fail: C3
+    # (party 4/6 refuses — the runway `#24-partycap` measured at 36 points), C8 (the ball reserve is
+    # a LEVEL, not a boolean, because `counter_hunt.hunt()` checks balls at :471 and only arms at
+    # :510, leaving `is_armed()` False across its whole journey), and C15 (an EGG occupies a slot,
+    # so 5 mons + 1 egg is FULL — the two party-count conventions are built to DISAGREE there).
+    # ⛔ It proves CORRECTNESS, never EFFICACY — that needs a batch. `probe_dexfence_opportunity.py`
+    # is the (measured) proof such a batch would not be vacuous.
+    # Fault-tested: `POKEBOT_DEXFENCE_FAULT=nofence` restores pre-fence behaviour and C3/C5-C9/C14/
+    # C16 all go RED, exit 1. Pure and fast: imports one bot module, reads no ROM.
+    ("probe_dex_catch_fence.py", False),
+    # `#24-dexhunt` — THE VACUITY CHECK for the batch that will grade the fence, 2026-09-10.
+    # Answers OFFLINE, from the recorded corpus, whether the fence can EVER fire; a feature that
+    # cannot fire makes its own A/B print "no difference".
+    # ⚠ ADVISORY, DELIBERATELY: it measures a CORPUS, not the code. A batch run with `--build custom`
+    # (no `ids=`/`owned=` telemetry) correctly reports zero, and that is a fact about the corpus, not
+    # a regression — failing the suite over it would teach the reader to bypass the gate.
+    # Fault-tested: `POKEBOT_DEXFENCE_PROBE_FAULT=1` raises FULL_PARTY to an impossible 7 and the
+    # window collapses 4286 -> 0, exit 1.
+    # ‼ `slow=False`: it boots no ROM. MEASURED at 10.8s (it walks ~1,400 corpus logs), which is
+    # real but well inside the no-ROM tier — quoted here because an unmeasured "it's fast" is how
+    # a suite acquires a time bound it cannot keep.
+    ("probe_dexfence_opportunity.py", False),
 ]
 
 

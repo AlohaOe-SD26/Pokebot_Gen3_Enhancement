@@ -10499,3 +10499,84 @@ Wailord and **Dragon Claw (TM02)** for Sceptile, both confirmed still available 
 `probe_ch24_readiness.py`. And **Wallace is still a loss** — see the note.
 
 ---
+
+---
+
+## 2026-09-10 (second pass) — TWO MORE CLOSED ITEMS RETIRED (R3 budget: `03` hit 4223/4200 while `#24-dexhunt` was being written up)
+
+Same rule as the first pass this date, and the residual check was RUN, not assumed: every noun in
+both blocks (`#24-movepoolcounters`, `answer_via`, `build_commits`, "never promote while a batch")
+was grepped tree-wide and found in at least one other file, so neither block SOLELY owns a live
+fact. `#24-lane-respawn-build`’s operational rule is additionally restated in its stub.
+
+### ✅ `#24-lane-respawn-build` — a respawned lane loads the ON-DISK build (filed + fixed 2026-09-07)
+- [x] ✅ **FIXED AND GATED — after shipping DEAD once.** `Lane.build_commits` records
+  `git_commit()` at EVERY spawn, and `lane_summary()` (extracted for exactly this reason)
+  carries it into the report. ⛔ The FIRST version recorded it on the Lane and never copied
+  it into the summary dict — a mixed batch would have printed `(not recorded)` — and SEVEN
+  green checks missed it because each called the reporting function on a HAND-TYPED dict.
+  The gate now drives the REAL path (a real `Lane` through the real assembly), separates
+  UNVERIFIED (a git hiccup) from MIXED, and is **fault-tested against the actual defect**:
+  deleting the wiring line turns 11 checks red and exits 1; restoring it returns ALL PASS.
+  ⭐ Detection does NOT replace the rule — it makes it auditable.
+- [x] ⚠ `x4_headless.py` respawns a dead lane, and the new process imports whatever is on disk **at
+  that moment**. ⇒ promoting mid-batch can put **two builds inside one batch**, not merely stale the
+  MANIFEST — a finish rate whose build is ambiguous is not a measurement. This is the concrete
+  mechanism behind the "never promote while a batch runs" rule. **Options:** snapshot the build per
+  batch, or record each lane's load-time commit in the MANIFEST so a mixed batch is at least
+  DETECTABLE. ⛔ Prefer detectable over forbidden — a rule nobody can verify is prose.
+
+---
+
+## 2026-09-10 (second pass) — TWO MORE CLOSED ITEMS RETIRED (R3 budget: `03` hit 4223/4200 while `#24-dexhunt` was being written up)
+
+Same rule as the first pass this date, and the residual check was RUN, not assumed: every noun in
+both blocks (`#24-movepoolcounters`, `answer_via`, `build_commits`, "never promote while a batch")
+was grepped tree-wide and found in at least one other file, so neither block SOLELY owns a live
+fact. `#24-lane-respawn-build`’s operational rule is additionally restated in its stub.
+
+### ✅ `#24-countermsg` — the counter guard's CORRECT diagnosis read as WRONG (filed + fixed 2026-09-07, sandbox, display-only)
+- [x] ⭐ **This cost a false defect report, which is the justification.** From a live batch log I read
+  *"Winona: Need one of: Rock, Ice, Dragon. Nearest reachable counters: Slugma (Fire)..."* and
+  reported the recommender as violating its own constraint. **It was not.**
+  `counter_plan.py:156,185-205` admits a species by TYPES **or** by a level-up move of a needed type
+  (`#24-movepoolcounters`, user directive) — Slugma learns **Rock Throw at L15** and Fiery Path
+  Slugma is L15. ⇒ the list was right and the LINE was unreadable. ‼ **A message that makes correct
+  behaviour look broken costs what a bug costs: someone investigates it.**
+- [x] The explanation was already computed and discarded: `counter_plan.py:331-335` builds
+  `answer_via` (`"type"` vs `"move:Rock Throw@L15"`) under a comment demanding the log say which rule
+  fired — with ZERO production consumers. Now rendered, verified by direct call:
+  `Slugma (Fire) via move:Rock Throw@L15 on Fiery Path (tile (18, 19), L15-15, 10% rate) — reachable`
+- [x] The printed top-5 is now deduped **BY SPECIES** (5 of up to 12). Live, four of Winona's five
+  rows were the same Geodude across four Magma Hideout floors. ⛔ The ladder's `huntable_candidates()`
+  dedupes by `(map, tile)` and does NOT collapse those — the floors are distinct maps. A reader wants
+  SPECIES; the executor wants DESTINATION. Different questions, different keys, deliberately not
+  shared. ⛔ **DISPLAY ONLY** — `_counter_catch_message` builds a `BotModeError` string
+  (`story_mode.py:2053`) and feeds nothing the ladder chooses.
+
+---
+
+## 2026-09-10 (third pass) — `#24-mossdeepstrand` retired, residual hoisted
+
+Retired for R3 line budget while `#24-dexhunt` was written up. ‼ **This block is the clearest
+example yet of the rule filed earlier the same day:** every one of its checkboxes is `[x]`, and it
+still owned a LIVE to-do — *“Acceptance still owed: a drive from a save standing on (23,8) with
+BADGE07 set”*. The fix is real but **UNDRIVEN**. That sentence was hoisted into the stub in `03`
+rather than retired with the block.
+
+### `#24-mossdeepstrand` — winning BADGE07 LOCKS THE BOT INSIDE the Mossdeep gym (filed 2026-09-07, ✅ FIXED IN THE SANDBOX same day — ⚠ UNDRIVEN, NOT PROMOTED)
+- [x] ✅ **FIXED 2026-09-07 (sandbox, UNDRIVEN).** Two halves, each a no-op off the gym map:
+  Segment 18's `else` now calls `leave_the_gym()` before printing (`story_mode.py:3774`), and
+  the chapter's own badge early-return leaves first (`mossdeep_gym.py:549`). ⛔ The IDENTICAL
+  early-return in `fight_the_leaders()` (`:382`) was deliberately LEFT ALONE — that one is a
+  SUB-STEP and is correct: leaving is the chapter's job, and the fight is retried 3x.
+  ⚠ Acceptance still owed: a drive from a save standing on (23,8) with BADGE07 set.
+- [x] `(23,8)` is an 11-tile collision island whose only exit is a **coord_event** at `(21,6)` no warp
+  solver can offer (`mossdeep_gym.py:460-461`). Its sole stepper, `leave_the_gym()`, is called only at
+  `:596` — **after** the badge early-return (`:548-549`, `:556-557`) — and Segment 18 skips the
+  chapter once BADGE07 is set (`story_mode.py:3772`). ⇒ **double bypass: with BADGE07 set and the
+  avatar on (23,8), nothing in the tree can move it.** The chapter's own `:590-593` comment warns of
+  exactly this; a later early-return re-opened it. `KI-97` moves this derail from Segment 13a to 19,
+  not away. ✅ **That is exactly what was done** (bullet above): `leave_the_gym()` is resume-safe
+  (`:471-474`), so calling it at Segment 18 and before the chapter's early-return costs nothing
+  anywhere else. Detail: `ai-research-notes/2026-09-07-batch-blockers-RECON.md`.

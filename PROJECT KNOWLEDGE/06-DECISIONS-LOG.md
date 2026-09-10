@@ -4873,3 +4873,55 @@ investigation has an author who is present and a shell that is configured.
 **Verification standard adopted with it:** a tool claimed to work bare is tested bare —
 `env -u PYTHONUTF8 PYTHONIOENCODING=cp1252` — not with the author's habitual flags. That is now the
 settling command for anything in this class.
+
+---
+
+## 2026-09-10 — `#24-dexhunt`: four design rulings on the catching fence
+
+**1. THE DEX-CATCH BALL FLOOR IS A SEPARATE CONSTANT FROM `resource_blocker()`'S, AND MUST STAY SO.**
+*Chosen:* `DEX_CATCH_BALL_RESERVE = 10`, checked in addition to (never instead of) the pinned
+`counter_hunt.resource_blocker()` verdict.
+*Rejected:* reusing the pinned floor of 1 alone. The 2026-07-31 ruling says reuse that predicate
+rather than writing a second one that can drift — and this DOES reuse it, passing its verdict
+through verbatim. But the floor of 1 encodes *"the last ball is reserved"* for a catch the run
+CANNOT PROCEED WITHOUT. A dex catch is discretionary. Sharing one floor between a mandatory and a
+discretionary consumer lets the discretionary one starve the mandatory one, and `counter_hunt.hunt()`
+arms only AFTER its journey (`:471` check, `:488` travel, `:510` arm) so no boolean can see it coming.
+‼ *Honest limit:* 10 is sized to `HUNT_SPIN_BUDGET_FRAMES`' own "roughly 12 expected meetings"; it is
+a JUDGEMENT, not a measurement — balls-per-catch has never been logged here. Re-derive it once
+`balls=` telemetry has a batch behind it.
+
+**2. THE FENCE IS DELIBERATELY NARROWER THAN THE RULING IT SERVES.**
+*Chosen:* admit post-badge catches ONLY at a full party.
+*Rejected:* the ruled policy in full (catch every unseen species unless something blocks), which
+would admit at party 4 and 5, where `resource_blocker()` returns None and nothing blocks.
+*Why:* `#24-partycap` MEASURED that consuming party slots costs 36 points of finish rate
+(52.0% -> 15.8%), the entire loss on one badge rung, with 10 of 16 non-finishes reading *"No party
+mon can learn Surf and the party is full"*. The empty slots are the RUNWAY that HM and counter
+catches land on. At a FULL party there is no runway left to consume, so the catch is pure upside.
+⛔ Recorded as a NARROWING, not as the ruling implemented — `#24-dexhunt` stays OPEN with the
+party<6 case named as unbuilt, so nobody reads the item as shipped and drops the residual.
+
+**3. THE DECISION IS A PURE FUNCTION; THE ADAPTER DECIDES NOTHING.**
+*Chosen:* `decide_dex_catch(...) -> (catch, reason)`, with `_should_catch` reduced to reading live
+state and reporting.
+*Rejected:* an `if` chain inside `_should_catch` (the shape it had).
+*Why:* the handoff says no cheap fixture test exists for this item. That is true of EFFICACY only.
+Purity makes CORRECTNESS provable offline in milliseconds — the same move that made
+`rank_replacement` testable after `choose_new_lead_after_faint` had shipped THREE index-space bugs
+that each needed a ROM, a live battle and a staged faint to see. It also makes unshippable the
+failure this feature nearly had: the draft spec called `counter_hunt.hunt_active()`, which does not
+exist, and the blanket `except` would have swallowed that `AttributeError` forever.
+*Corollary ruled at the same time:* the predicate returns a REASON, never a bare bool — the
+2026-07-31 ruling requires that a skip SAY SO, and a bare bool makes "declined" and "crashed" the
+same observation.
+
+**4. THE MID-BATTLE BAIL-OUT IS DEFERRED, AND MUST NOT BE BUILT INTO `StoryCatchStrategy`.**
+*Chosen:* bound ENTRY with a pure `party_healthy` conjunct now; file `#24-dexcatch-battlebail`.
+*Rejected:* adding a faint-aware bail-out to `StoryCatchStrategy` in this commit.
+*Why:* `StoryShinyCatchStrategy` INHERITS from it, and the shiny rule is an explicit user directive
+(2026-07-22): attempt until success, whiteout, or out of balls. A bail-out there would silently
+overrule a user directive. The surviving shape is a dex-ONLY subclass returned by the fence's call
+site, leaving pre-gym-1 and shiny paths byte-identical. It is battle-strategy internals — where
+`KI-18`/`KI-34`/`KI-66`/`KI-95` all lived — so it gets a probe first, never a drive first.
+⛔ Recorded so it is not re-litigated: this deferral is a claim with an expiry, not a dismissal.

@@ -16029,3 +16029,88 @@ before archiving an item, grep its body’s nouns tree-wide and hoist anything i
 ‼ **Generalises past archiving.** This is the same shape as P5 (a fact living in three places, two
 updated): **a per-item check protects exactly what it enumerates.** A checkbox scan enumerates
 checkboxes. It was never going to see a prose to-do, and its PASS reads as safety.
+
+---
+
+## 2026-09-10 — A guard that reads a FLAG cannot see a resource being spent BEFORE the flag is set
+
+**Symptom (caught in code review, before any drive).** `#24-dexhunt`'s fence was specified as
+*"catch only when no hunt is armed"* — `not counter_hunt.is_armed()`. It reads as airtight: the hunt
+owns a shared resource, so gate on "is the hunt running?".
+
+**The assumption that proved wrong.** *"A subsystem is protected while its own ARMED flag is set."*
+`counter_hunt.hunt()` verifies its Poke Balls at `counter_hunt.py:471`, TRAVELS at `:488`
+(`_navigate_riding_out(..., tries=24)`, which that function's own comment calls *"the LONGEST journey
+the bot ever makes ... 8 map-hops away across several warp chains"*), and only calls `arm()` at `:510`.
+=> **The window in which the hunt is most vulnerable is exactly the window in which its flag is
+FALSE.** The fence would have been free to spend the balls the hunt had already counted, all the way
+down to its own floor, during the trek. The hunt does not re-check on arrival: it arms, spins the
+full `HUNT_SPIN_BUDGET_FRAMES` (120,000) and reports *"found nothing"* while standing on the answer —
+the exact failure that block's own comment says the feature suffered once already.
+
+**Root cause.** A boolean flag records that a subsystem is IN ITS CRITICAL SECTION. It says nothing
+about that subsystem having ALREADY COMMITTED to a resource. Verification and arming were separated
+by the single longest journey in the program, and nothing in between held a claim on the balls.
+
+**The fix that worked.** Make the guard a LEVEL, not a flag: `DEX_CATCH_BALL_RESERVE = 10`, kept
+deliberately separate from `resource_blocker()`'s floor of 1 (correct for a MANDATORY catch, wrong
+for a discretionary one). A reserve is true across the whole journey; a flag is not.
+
+⭐ **Prevention rule (one line):** *When a guard protects a shared resource, gate on the RESOURCE
+LEVEL, not on a flag saying someone is using it — find where the flag is SET relative to where the
+resource is CLAIMED, and ask what runs in between.*
+
+‼ **The shape generalises past balls.** Before trusting any `is_X_active()` guard, locate the SET
+site and the COMMIT site. Here they were ~40 lines and one cross-Hoenn walk apart.
+
+⛔ **AND A SECOND LESSON FROM THE SAME ROUND: my first write-up of the collision was WRONG, and a
+refuter caught it.** I wrote that an off-type dex catch during an armed hunt would be REGISTERED as
+the counter. It would not — the hunt's verdict is TYPE-AWARE (`party_counter_slot` /
+`box_counter_pid`, `counter_hunt.py:546`/`:559`). The harm is real but quieter: the species-BLIND box
+path in `catch_confirmed` (`:363-365`) ENDS THE SPIN EARLY, and the type-aware verdict then finds
+nothing — losing a 120,000-frame hunt and a ball.
+=> **The guard was right and my REASON for it was wrong.** That would have shipped a correct fence
+carrying a comment that misleads the next reader into deleting it. A refuter is the only reviewer
+that catches a true conclusion resting on a false mechanism, because a second measurer reproduces
+the conclusion and stops.
+
+---
+
+## 2026-09-10 — I refactored a predicate into a pure function and silently changed the case I had just promised not to touch
+
+**Symptom (caught by MY OWN A/B, before commit — but only because I ran one).** Extracting
+`_should_catch`'s logic into the pure `decide_dex_catch` collapsed three different party figures into
+one parameter, `party_slots_used`. The pre-gym-1 branch then tested that RAW count against
+`_catch_team_target`. The old code tested an EGG-FILTERED count.
+=> **3 battlers + 1 egg** read as a full team of 4 and REFUSED a catch the old code ALLOWED.
+
+**Why it survived review — mine and the design's.** The two counts are *identical* unless an egg is in
+the party. Every case I had written, every case a reviewer would think to write, and all 18 cases of
+the new gate used egg-free parties. The refactor looked like a pure move of existing logic, and it
+read like one. **The divergence had exactly one witness and I had not invited it.**
+
+**Root cause.** One name, `party_slots_used`, was serving three questions that an egg answers
+differently:
+  * *"will the game box this catch?"* — eggs COUNT (the game counts an occupied slot);
+  * *"how big is the TEAM?"* — eggs DO NOT (a target for things that can fight);
+  * *"do we already own this species?"* — eggs DO NOT.
+A refactor that unifies parameters is exactly where such a distinction dies, because the collapsing
+is the point of the refactor.
+
+**The fix that worked.** Two parameters, `party_slots_used` (raw) and `battler_count` (egg-filtered),
+each documented with the question it answers — plus, crucially, a PROOF rather than a re-read:
+
+    5,760 pre-gym-1 input combinations compared against the OLD logic transcribed from git
+    history (wild/shiny/dex-flag x balls x battlers x EGGS x species x owned x party) => 0 divergences.
+
+Cases C19/C20 in `probe_dex_catch_fence.py` are that A/B kept as a permanent regression test, and
+C15 is deliberately the SAME party shape read by the other convention.
+
+⭐ **Prevention rule (one line):** *When a refactor unifies two parameters into one, find the input
+on which they DISAGREE and make it a test case — if you cannot name one, they were not two
+parameters.*
+
+‼ **The wider rule this cost me:** "behaviour is unchanged" is a CLAIM, and this project's currency
+for a claim is an arm. I wrote "the ordinary case must stay byte-identical" in the code comments
+BEFORE I had run anything that could tell. A comment asserting equivalence is worth nothing next to
+a grid that demonstrates it — and the grid took under a minute.
