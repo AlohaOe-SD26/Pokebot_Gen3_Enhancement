@@ -15976,3 +15976,26 @@ counter-example quartet settled a question that no amount of aggregate measureme
 because it demonstrates non-separability directly rather than estimating it. ⇒ when assessing a
 predicate, look first for two items it must treat identically and that the world treats differently.
 
+## 2026-09-10 — I wrote "the tree is clean and pushed" inside an uncommitted edit
+
+**Symptom.** The session-end Tier 2 cold-start audit ran `git status`, found
+` M "PROJECT KNOWLEDGE/04-HANDOFF.md"`, and pointed out that the uncommitted block's own text read
+*"Nothing is parked mid-task; the tree is clean and pushed."* **The sentence was false at the moment
+it was read, because the sentence WAS the uncommitted change.**
+
+**⭐⭐ PREVENTION RULE — A CLAIM ABOUT THE WORKING TREE CANNOT LIVE UN-ANCHORED IN THE WORKING TREE.**
+Any "clean / pushed / nothing parked" statement must either name the COMMIT it is true as of, or
+tell the reader to check `git status` instead of believing it. ⇒ the handoff now says *"state is
+true as of the commit carrying this line — verify with `git status`, never from this sentence."*
+‼ The general form: **a document asserting a fact about its own storage is self-refuting while it is
+unsaved.** The same shape would bite any "all gates green" line written before the gates are re-run.
+
+**⭐ SECOND FINDING FROM THE SAME AUDIT — A CONVENTION THAT GUARDS ONE MARKER SHAPE DOES NOT GUARD THE
+OTHERS.** The handoff has a rule that *"more than one `➡➡➡` here is a DEFECT"*, and it holds — there
+is exactly one. But a SECOND imperative list, written with a single `➡`, still commanded
+`#24-ch23training`, work that is now diagnosed and whose upstream target is declared dead-ended six
+lines above it. The convention never covered it because it was written about one glyph.
+⇒ **when you invent a marker convention, enumerate every marker shape already in the file** — the
+stale instruction will use the shape your rule forgot. Fixed by marking that list SUPERSEDED rather
+than deleting it (its citations are still good).
+

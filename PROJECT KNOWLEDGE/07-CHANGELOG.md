@@ -26191,3 +26191,50 @@ that**.
 threshold · bench the mule · a better acquisition ground · PC deposit · an inert-mon predicate. The
 honest next move starts from the ROUTING question — *is the carrier needed at §Ch23 at all?* — not
 from another predicate over party state.
+
+## 2026-09-10 — SESSION WRAP-UP: two telemetry fields, one settled measurement, five killed directions
+
+**Thirteen commits, `070854a7` → `c08f0ddc`, all pushed. Nothing parked mid-task.**
+
+### What shipped
+| | |
+|---|---|
+| `party_ids` | `ids=[Species#PID:L<lv>:exp<n>]` per heartbeat. Before it, **a Pokémon could not be followed across a run** — which is why two separate questions had been stuck. `_party_key` untouched (it drives event detection). |
+| dex telemetry | `owned=<n>` + `[DEX] owned N -> M: +#<dex>`. Heartbeat-sampled, NOT per-frame: `Pokedex.owned_species` scans 412 indices. |
+| `repro_heartbeat_emits.py` | GATE. Drives the **real** `on_frame()` across two heartbeats; fault arm proves it fails without the fix. |
+| `check_batch_build_flag` | GATE. A documented `x4_headless.py` BATCH command must name `--build` (the default `custom` lacks the new telemetry). |
+| `check_gate_arithmetic` | GATE. `N gates = E ENFORCING + A ADVISORY` must satisfy `N == E + A`. |
+| `precheck_prior_art.py` | ⭐ Sweeps `03/05/06/07/08` for a proposed change's symbols AND mechanism words, flagging hits near verdict words. **It killed two of the five dead directions.** |
+| `probe_*` (4 new) | `swaptrain_exp_split`, `exp_participant_divisor`, `laggard_origin`, `catchup_threshold_sweep`, `dive_carrier_level`. |
+| `x4_headless.py` | The MANIFEST never recorded which fork a batch ran — **every manifest ever produced read `build ?`**. Now records `build` + `build_root`. |
+
+### What was settled
+* **The exp payout IS divided among participants.** Decomp `Cmd_getexp`/`viaSentIn` predicts **0.500**;
+  measured **0.501** (matched on foe species+level, 3,446 battles). ⇒ `estimate_frames_to_level` has
+  no participant divisor and is up to **2x optimistic**; `#24-lowlevelmules`'s bar is **L42, not L35**.
+* **The "88.8% born behind" figure.** The PROPORTION replicates (**84.1%**, n=63, median 10). Its
+  CONCLUSION — *"no early small-gap window to maintain"* — is **FALSE**: 39.7% had a window, median
+  **163 minutes (~2.7 hours)**. ⚠ Price a fix against **20.6%** (the code's real `gap <= 5`).
+* **The §Ch23 refusal is diagnosed: HM CARRIERS.** 23 distinct refusal events; `Marill` named in
+  **11 (47.8%)**, caught purely as the Dive/Waterfall/Surf carrier. It is an **ARGMAX**.
+* **A parser bug worth its own line:** the shared `[TURN]` regex dropped **7,620 of 56,339** turn
+  lines (13.5%) — every status-afflicted battler, and **not at random**. Fixed in three tools;
+  impact measured per tool (material for one, negligible for another).
+
+### ⛔ Five directions killed, with evidence — read before proposing a sixth
+| direction | why it is dead |
+|---|---|
+| widen `TRAIN_CATCHUP_GAP` | +2 mons from G=6 to G=∞ (`probe_catchup_threshold_sweep.py`) |
+| add the mule to `BENCH_SPECIES` | benching is *do not train*, **not do not field** — deletes the only gate and still fields the mon |
+| a better acquisition ground | L27 still needs 336,755 frames against a 250,000 ceiling |
+| PC deposit | `POKEBOT_PC_ROTATION` is disabled for costing **−19 points**; four live defects in the machinery |
+| an inert-mon predicate | four Abra caught byte-identical at `L7:exp236`; three reached Kadabra L17-20, one never gained a point ⇒ **non-separable** |
+**There is no surviving candidate.** The open thread is ROUTING — *is the Dive carrier needed at
+§Ch23 at all?* — not another predicate over party state.
+
+### The method that produced most of the value
+Five multi-agent rounds, each angle handed to a SEPARATE agent told to REFUTE it. **Three of five
+headlines were refuted by their own refuter while the arithmetic survived** — the measurements were
+right and the sentences around them overreached, which a second measurer would reproduce and only a
+refuter catches. Five Tier 1 reviews returned KICK-BACK; every one found something real, including
+a `global` in the wrong function that would have **silently killed all telemetry on every run**.
