@@ -10580,3 +10580,22 @@ rather than retired with the block.
   not away. ✅ **That is exactly what was done** (bullet above): `leave_the_gym()` is resume-safe
   (`:471-474`), so calling it at Segment 18 and before the chapter's early-return costs nothing
   anywhere else. Detail: `ai-research-notes/2026-09-07-batch-blockers-RECON.md`.
+
+---
+
+## 2026-09-10 (fourth pass) — `#24-driftheadlineshape` retired (R3 budget)
+
+Fully DONE, no open boxes, no owed drive. Residual check RUN, not assumed: `driftheadlineshape`,
+`check_drift` and `D28a` each appear in at least two other files, so the block solely owns
+nothing. Retired to make room for `#24-barecitationblindspot`, filed the same day.
+
+### ✅ `#24-driftheadlineshape` — DONE 2026-08-26: `check_drift` PASS 3 reads the drift-row HEADLINE (filed 2026-08-24)
+
+- [x] **SHIPPED 2026-08-26 — ⛔ do not rebuild.** `check_drift` PASS 3: the FIRST `N as of <date>`
+      in any drift-labelled table row is compared to `real_drift()`; history deeper in the cell is
+      exempt **BY POSITION** (the cell's own documented "today's number is at the TOP" convention —
+      a declared exemption, not vocabulary). Fault-tested BOTH ways (D28a-e: fires on a wrong
+      headline incl. word-form; quiet on right-headline-wrong-history — the inverted incident —
+      non-drift rows, and fenced quotes) **plus a live INCIDENT REPLAY**: the real cell's `7`
+      flipped to `2` turned the gate red at `04-HANDOFF.md:209` naming both figures, file restored
+      byte-identical. Narrative: `07-CHANGELOG.md` 2026-08-26.

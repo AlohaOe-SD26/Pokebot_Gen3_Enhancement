@@ -26265,9 +26265,18 @@ of — “closed” describes the WORK, not every sentence in the block.*
 ## 2026-09-10 — `#24-dexhunt`: THE CATCHING FENCE IS BUILT, PURE AND GATED (#50)
 
 **What shipped.** `decide_dex_catch` (`story_mode.py:1188`) — a PURE predicate returning
-`(catch, reason)` — plus `_should_catch` (`:1612`) reduced to a read-and-report ADAPTER that
-decides nothing, an explicit `[DEXCATCH]`/`[DEXFENCE]` telemetry pair, a destination-derived catch
-message, and gate **#50** `probe_dex_catch_fence.py` (18 cases, fault-armed).
+`(catch, reason)` — plus `_should_catch` (`story_mode.py:1624`) reduced to a read-and-report ADAPTER
+that decides nothing, an explicit `[DEXCATCH]`/`[DEXFENCE]` telemetry pair, a destination-derived
+catch message, and gate **#50** `probe_dex_catch_fence.py` (20 cases, fault-armed).
+‼ *(Two values in the paragraph above were CORRECTED in the following commit, and the correction is
+recorded rather than silently applied because `07` is append-only: it read `_should_catch (:1612)`
+and `(18 cases)`. Both were true when first typed and false by the time the commit landed — the
+function moved when I fixed an egg-count bug, and that same fix ADDED cases C19/C20. A Tier 1
+re-review found them here after I had corrected the identical two values in `03-PUNCH-LIST.md` and
+`04-HANDOFF.md`. ⇒ **P5, exactly: a fact in THREE places, the two named ones updated, so the pair
+check returned PASS.** ⛔ And note WHY the citation gate missed it — `audit_doc_citations.py` matches
+`identifier` + `file.py:LINE`, so a BARE `:1612` with no filename prefix is invisible to it. Filed as
+`#24-barecitationblindspot`.)*
 
 **The fence admits a post-badge catch only when:** party is FULL (so the game boxes it via
 `CopyMonToPC` and no party runway is consumed) · no hunt armed (BOTH arming systems) · not inside a

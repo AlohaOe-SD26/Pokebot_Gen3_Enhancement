@@ -351,16 +351,7 @@ says so) and greps **0 code references** to that path. ⇒ structurally unreacha
 ⇒ **LESSON: beside your own change, "it is the known issue" is an EXPLANATION, not an ALIBI** —
 only a reachability argument or an arm with the change removed tells them apart.
 
-### ✅ `#24-driftheadlineshape` — DONE 2026-08-26: `check_drift` PASS 3 reads the drift-row HEADLINE (filed 2026-08-24)
-
-- [x] **SHIPPED 2026-08-26 — ⛔ do not rebuild.** `check_drift` PASS 3: the FIRST `N as of <date>`
-      in any drift-labelled table row is compared to `real_drift()`; history deeper in the cell is
-      exempt **BY POSITION** (the cell's own documented "today's number is at the TOP" convention —
-      a declared exemption, not vocabulary). Fault-tested BOTH ways (D28a-e: fires on a wrong
-      headline incl. word-form; quiet on right-headline-wrong-history — the inverted incident —
-      non-drift rows, and fenced quotes) **plus a live INCIDENT REPLAY**: the real cell's `7`
-      flipped to `2` turned the gate red at `04-HANDOFF.md:209` naming both figures, file restored
-      byte-identical. Narrative: `07-CHANGELOG.md` 2026-08-26.
+### ✅ `#24-driftheadlineshape` — **DONE 2026-08-26: `check_drift` PASS 3 reads the drift-row HEADLINE, fault-tested both ways plus a live incident replay.** ⛔ DO NOT REBUILD. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-10, R3 budget). Narrative: `07-CHANGELOG.md` 2026-08-26.
 
 ### ✅ `#24-ch22juan` — §Ch22, GYM 8 (JUAN): **DONE AND CLOSED 2026-09-03.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 line budget; nothing deleted). ⛔ Nothing here is outstanding — the badge is won, the chapter is assembled and wired as Segment 22, and `#24-ch22chapter` carries the live detail. ⚠ **Drift: run `promote.py --check` (the authority; never restated here)** — `modules/story/victory_road.py` (⚠ **NO LONGER COMMENT-ONLY as of 2026-09-08** — it now also carries the `team_is_ready` EMPTY-BATTLER GUARD, a real behaviour change: an empty battler set used to return `(True, [])` and certify a broken run READY. Gate #48 `probe_empty_battler_guard.py` locks it, fault-tested) and `modules/story/counter_hunt.py` (the `KI-84` workaround, ⚠ **UNDRIVEN** — its A/B is `--driver ki84counter`). SANDBOX-ONLY; ⛔ do NOT promote `counter_hunt.py` before that A/B. *(was 1 as of 2026-09-08 — `modules/story/victory_road.py`, and it is COMMENT-ONLY** (9 insertions, 0 deletions: the note recording that the stepping fix was DRIVEN AND REFUTED, so it is not rebuilt). ⛔ Not a behaviour difference; promoting it is optional and cosmetic. *(was 0 as of 2026-09-08 — ALL FIVE PROMOTED (`KI-96`, `#24-truckleak`, `#24-pcpingpong`, `#24-hm07teach`, `#24-hm07funnel` + the whiteout budget), **PROMOTED 2026-09-08, user-authorised, verified by driving `--build custom` (`ACCEPTANCE: PASS`, `done=True`, `battles=12`, `whiteouts=0`); rollback tag `pre-promote-2026-09-08`**. *(was: drift 5, sandbox-only — ⛔ **the batch that blocked promotion FINISHED 2026-09-08 (`x4-runs/20260907-203713`), so nothing is waiting on it; PROMOTING IS THE USER'S CALL**. *(was: `battle_action_selection.py` for `KI-96`, `mossdeep_gym.py` for `#24-mossdeepstrand`, `counter_plan.py` for `#24-countermsg`, plus `story_mode.py`, the `KI-95` fix, sandbox-only and awaiting the user's promotion call); it was 0 — PROMOTED 2026-09-06.** *(pre-promotion count now lives in `DIVERGENCE-LOG.md`; the file detail is kept:)* (`modules/story/pokemon_league.py` joined 2026-09-04 — the §Ch24 out-of-battle party heal; `modules/story/overworld_items.py` joined 2026-09-04 — the NEW pure out-of-battle healing policy for `#24-e4healing`, gate #36; `modules/modes/util/walking.py` joined on 2026-09-04 — the `#24-waterfalltimeout` fix; 2026-09-03: `chapters.py` for a §Ch23 correctness fix, plus the new sandbox-only chapter modules `sootopolis_gym.py` and `victory_road.py`) — ✅✅ **PROMOTED 2026-09-06 with USER APPROVAL, which took drift to 0** *(it went to 2 on 2026-09-06 — `story_mode.py` for `KI-95` and `battle_action_selection.py` for `KI-93` — and back to **0 on 2026-09-07** when both were PROMOTED and driven-verified)*, driven-verified against `--build custom`; see `custom-pokebot/DIVERGENCE-LOG.md`. *(this read "PROMOTION IS THE USER'S CALL and is not implied", true until that date.)* ‼ The one rule worth carrying out of it: *a pre-step check that REFUSES is worth more than a post-hoc assertion that explains* — the guards caught five faults here, including a `+1`-per-step counter that is really `+2` on a threshold crossing, and a fall direction reversed because y increases SOUTHWARD.
 
@@ -1928,6 +1919,21 @@ accident of what the bot happened to meet.
    CHOICE, priced against `#24-partycap`'s measured 36-point collapse, ⛔ **not** the ruling fully
    implemented. Filed so nobody reads this item as shipped: `#24-dexcatch-battlebail` (below) and the
    party<6 case are the residual.
+
+---
+
+### 🔜 `#24-barecitationblindspot` — `audit_doc_citations.py` cannot see a BARE `:LINE` citation (filed 2026-09-10)
+
+**FOUND BY A TIER 1 RE-REVIEW, not by the gate.** It matches `identifier` + `file.py:LINE`, so the FULL
+citation form resolves and drift is caught. Elide the filename — natural when the file was named a
+clause earlier — and the token carries no `file.py`, so the gate never looks. It reported **"all
+definition-citations resolve"** over a `_should_catch` line number that was wrong. ⇒ **a stale line
+hides in the SHORTER citation form, which is the form a careful writer prefers.**
+‼ **AND THIS ITEM CANNOT SPELL ITS OWN EXAMPLE** — writing the bad citation literally made the gate
+flag THIS FILE. The fix must tell a citation from a QUOTATION of one.
+- [ ] Resolve a bare line token against the symbol named beside it. ⚠ **FAULT-TEST BOTH WAYS** — never
+      on ranges, dates, or `07`/`08` history preserving an old figure as evidence. ⛔ A gate with false
+      positives teaches the reader to bypass it.
 
 ---
 
