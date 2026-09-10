@@ -3924,9 +3924,18 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   *exp = SAFE_DIV(calculatedExp, viaSentIn);            // no EXP Share
   *exp = SAFE_DIV(calculatedExp / 2, viaSentIn);        // with EXP Share  ⇒ a SECOND regime
   ```
-  ‼ **`viaSentIn` counts "was sent in", NOT "why".** A deliberate swap-training rotation and an
-  emergency survival rotation increment the same counter ⇒ **the divisor is mechanism-independent**,
-  which is why a general-population measurement legitimately stands in for swap-training.
+    ‼ **`viaSentIn` counts "was sent in AND IS STILL ALIVE", not "why".** Verified by reading the loop:
+  ```c
+  if (GetMonData(&gPlayerParty[i], MON_DATA_SPECIES) == SPECIES_NONE
+      || GetMonData(&gPlayerParty[i], MON_DATA_HP) == 0)   continue;   // ⇐ a FAINTED participant
+  if (gBitTable[i] & sentIn)  viaSentIn++;                             //    does NOT dilute
+  ```
+  ⇒ two consequences: (1) the divisor is **mechanism-independent** — a deliberate swap-training
+  rotation and an emergency survival rotation increment the same counter, which is what licenses a
+  general-population measurement standing in for swap-training; (2) **a participant that FAINTED is
+  excluded**, so a trainee that goes down does not cost the survivor half its payout.
+  *(This passage read "counts 'was sent in', NOT 'why'" until a verification pass caught the missing
+  ALIVE condition — correct about the part that mattered, incomplete about the mechanic.)*
   ⭐ **MEASURED, and it agrees to three decimal places** (batch `20260909-160339`, 8 lanes, 3h,
   `--build sandbox`; `tools/story-dev/probe_exp_participant_divisor.py`, matched on (foe species,
   foe level) so the divisor is not confounded with which foes get fought):

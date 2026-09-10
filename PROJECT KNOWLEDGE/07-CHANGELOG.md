@@ -25867,9 +25867,18 @@ calculatedExp = gSpeciesInfo[...].expYield * gBattleMons[gBattlerFainted].level 
 *exp = SAFE_DIV(calculatedExp, viaSentIn);          // no EXP Share
 *exp = SAFE_DIV(calculatedExp / 2, viaSentIn);      // with EXP Share  => a SECOND regime
 ```
-‼ **`viaSentIn` counts "was sent in", not "why".** Deliberate swap-training and emergency survival
-rotations increment the same counter ⇒ **the divisor is mechanism-independent.** *(It also
-cross-checks this project's known `xp/battle = expYield x level / 7`.)*
+‼ **`viaSentIn` counts "was sent in AND IS STILL ALIVE", not "why".** Verified by reading the loop:
+  ```c
+  if (GetMonData(&gPlayerParty[i], MON_DATA_SPECIES) == SPECIES_NONE
+      || GetMonData(&gPlayerParty[i], MON_DATA_HP) == 0)   continue;   // ⇐ a FAINTED participant
+  if (gBitTable[i] & sentIn)  viaSentIn++;                             //    does NOT dilute
+  ```
+  ⇒ two consequences: (1) the divisor is **mechanism-independent** — a deliberate swap-training
+  rotation and an emergency survival rotation increment the same counter, which is what licenses a
+  general-population measurement standing in for swap-training; (2) **a participant that FAINTED is
+  excluded**, so a trainee that goes down does not cost the survivor half its payout.
+  *(This passage read "counts 'was sent in', NOT 'why'" until a verification pass caught the missing
+  ALIVE condition — correct about the part that mattered, incomplete about the mechanic.)*
 
 **⭐ THE MEASUREMENT** — batch `20260909-160339` (8 lanes, 3h, `--build sandbox`), 17,302 heartbeats,
 matched on (foe species, foe level) so the divisor is not confounded with which foes get fought:
@@ -25905,6 +25914,7 @@ likeliest.** Fixed in all three consumers.
 (n2>=10: 0.586 → **0.504**), because it uses all battles. `probe_swaptrain_envelope.py`'s published
 figures barely moved (decisions 24,244 → **25,914**, gap +2 rate 29.9% → **30.1%**, ceiling still +6,
 still 0 of 560 at +7) — because it already filtered to turn-0 **full-HP**, where a status is rare.
+‼ **Two cells DID move and are named here rather than glossed:** gap +5 `2.5% → 2.3%` and gap +6 `0.8% → 0.7%`. Neither changes a conclusion, but *"every published conclusion survives"* was a broader sentence than the four figures actually re-checked — a verification pass was right to say so.
 **The same 13.5% hole was material for one tool and negligible for the other.**
 
 **Also fixed — `x4_headless.py` never recorded which fork a batch ran.** `render_manifest` prints

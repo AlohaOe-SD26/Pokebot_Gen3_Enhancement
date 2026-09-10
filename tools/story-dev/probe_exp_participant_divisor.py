@@ -102,7 +102,12 @@ def main() -> int:
             gains = [d1[p] - d0[p] for p in d0 if p in d1 and d1[p] > d0[p]]
             if not gains or len(gains) > 2:
                 continue
-            # every participant should bank the same amount; use the max as the per-mon figure
+            # ⭐ BIAS DIRECTION, STATED (it is CONSERVATIVE): participants should bank the
+            # same amount, and `max` is used as the per-mon figure. If shares were ever
+            # UNEQUAL this pushes the 2p median UP, i.e. the ratio toward 1.0 — AGAINST
+            # finding a split. So it cannot manufacture the ~0.5 result; it can only
+            # understate one. *(Traced by a verification pass; recorded here because the
+            # reasoning previously lived only in a review exchange.)*
             groups[foe][len(gains)].append(max(gains))
 
     print(f"  heartbeats with ids=: {ids_lines:,}")
