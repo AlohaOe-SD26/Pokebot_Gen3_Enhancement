@@ -20,9 +20,17 @@
 - **Upstream commit:** `5dd898f8` (40Cakes/pokebot-gen3 `main`)
 - Mirrored via `git subtree add --squash` at `40cakes repo/pokebot-gen3/`.
 - DOCUMENTATION/ 00–05 written against this commit (docs v1).
-- Last daily check: **2026-09-07** (`git fetch upstream-pokebot` → `upstream-pokebot/main` still
-  `5dd898f8`, unchanged, tree hash still `fa3504a285eb62fa`; nothing to pull, nothing appended
-  per the standing directive). Prior 2026-09-02, 2026-09-01 (no changes).
+- Last daily check: **2026-09-10** (`git fetch upstream-pokebot` → `upstream-pokebot/main` still
+  `5dd898f8`, unchanged; tree hash RE-DERIVED both sides this date and equal at
+  `fa3504a285eb62fa` — mirror `HEAD:40cakes repo/pokebot-gen3` vs `upstream-pokebot/main^{tree}`;
+  nothing to pull, nothing appended per the standing directive).
+  ⚠ **2026-09-08 AND 2026-09-09 WERE MISSED** — those sessions ran long on `#24-lowlevelmules`
+  telemetry and the batch, and never performed the check. Recorded rather than quietly backfilled,
+  for the same reason the 2026-09-03 gap below is: the directive is once per CALENDAR DAY, so a gap
+  is a fact about our process. Nothing was lost (upstream did not move across the gap — the commit
+  and the tree hash are unchanged from 2026-09-07), but a silently-skipped check would make the
+  next real upstream move look like it landed overnight.
+  Prior 2026-09-07 (no changes). Prior 2026-09-02, 2026-09-01 (no changes).
   ⚠ **2026-09-03 WAS MISSED** — that session ran long on §Ch23 and never performed the check.
   Recorded rather than quietly backfilled: the directive is once per CALENDAR DAY, and a gap is a
   fact about our process, not about upstream. Nothing was lost (upstream did not move), but a
