@@ -25921,3 +25921,77 @@ still 0 of 560 at +7) — because it already filtered to turn-0 **full-HP**, whe
 `batch.get("build", "?")` and the batch dict never set the key, so **every manifest ever produced
 read `build ?`** — while the file's own docstring says the manifest exists because "a finish rate
 whose build is unknown is not a measurement". Now records `build` and `build_root`.
+
+## 2026-09-09 — The last blocked question, answered: the number was right and its conclusion was wrong
+
+**A claim that had been routing decisions is measured.** `03-PUNCH-LIST.md` carried, as
+`[AGENT, UNVERIFIED]`, *"of 1,496 mons that ever reached 15+ behind, 88.8% were ALREADY more than 6
+behind the FIRST time they were observed"*, concluding **"THE MONS ARE BORN DEAD WEIGHT, so there is
+no early small-gap window to maintain."** It was unmeasurable until `party_ids` shipped this morning.
+Method: **5 independent angles, each then handed to a separate agent told to REFUTE it** — three of
+the five headlines were refuted by their own refuters, which is the point of running it that way.
+
+**✅ THE PROPORTION HOLDS.** `tools/story-dev/probe_laggard_origin.py` (mine, re-derived
+independently of the agents): **84.1%** (53/63), median first-seen gap **10** — against 88.8% and 11.
+88.8% sits inside the measurement's own 95% CI. A **sampling-independent** angle anchored on the
+party-entry event agreed (median 8 behind, ~80% >6 at the instant of arrival) and thereby proved the
+heartbeat lag hides nothing: median delta **0**, identical for ~94% of paired mons.
+
+**⛔⛔ THE CONCLUSION IS FALSE, AND IT IS THE HALF THAT ROUTED THE DECISION.**
+```
+  A arrived already INSIDE the <=6 window : 10       C never inside it at all : 38
+  B arrived outside, LATER got inside it  : 15       => HAD a window : 25/63 = 39.7%
+      of which the LAGGARD LEVELLED UP    : 11       => TRAINING-REACHABLE : 21/63 = 33.3%
+      of which the PARTY MAX FELL         :  4
+  median time inside the window : 163 heartbeats = 163 MINUTES (~2.7 HOURS emulated)
+```
+⇒ *"no early small-gap window to maintain"* is refuted for **40%** of the population, and the window
+is **~2.7 HOURS of emulated time** at the median — not a sliver.
+⛔ **Price a fix against 33.3%, not 39.7%.** A gap closes from either end: 4 of the 15 recoveries
+were the party MAX FALLING (a deposit/swap — level never drops on a faint), which the bot did not
+earn. **The problem is that a long window existed and was not used** — a different defect with a
+different fix, reachable at TRAINING time rather than only at catch time.
+
+**⚠ The 1,496 denominator is not reproducible** — 17 unit definitions x 39 batches found nothing at
+1,496, and nothing within +-5% of it at +-3pp of 88.8%. ⭐ The likeliest explanation is benign and
+came from the adversarial pass: keying `party=` by **species + re-entry generation** (the natural
+pre-`ids=` method) gives **81.9% / median 11 on story runs alone — the claimed median exactly.**
+And the direction matters: species keying **UNDERSTATES** born-behind (72.9% vs 84.1%), so a
+pre-`ids=` instrument cannot explain a too-HIGH number.
+
+**⛔ TWO CODE CORRECTIONS FELL OUT, both verified by reading the source, not reported:**
+* **`TRAIN_CATCHUP_GAP = 6` does not gate on the team max.** `story_mode.py:2135-2137` is
+  `catchup = target - TRAIN_CATCHUP_GAP; to_train = {i for i in battlers if level >= catchup}` with
+  `need = [i for i in to_train if level < target]` at `:2142` ⇒ the window is
+  **`target - 6 <= level < target`**, and `target` is `team_max + 1` in boss-fodder mode (`:2095`)
+  but the **boss band** otherwise. The exclusion is real; the framing was imprecise.
+  ‼ `to_train.add(strongest)` means the set is **not purely gap-based** either.
+* ⛔⛔ **PID IS NOT UNIQUE — a defect in the field shipped this morning.** Gen 3 creates **Shedinja
+  as a copy of Nincada**, inheriting its personality value, so `Ninjask#X` and `Shedinja#X` sit in
+  one party sharing a PID. **Measured: 1,360 heartbeats (7.9%) in this batch.** Keying on PID alone
+  silently merges them (population 63 -> 61). ⇒ key on **`(run, PID, species-lineage)`**;
+  `_party_ids`'s docstring now says so.
+
+**✅ ALSO SHIPPED — the `--build` near-miss is now a gate.** `check_batch_build_flag` in
+`audit_doc_consistency.py`: a documented `x4_headless.py` BATCH command must name `--build`
+(read-only modes exempt). Proven 8/8 including 5 no-false-positive cases, clean on the real tree,
+and it **fires on a replay of the actual pre-fix text**.
+
+### 2026-09-09 (late) — the "run a batch" near-miss is now a GATE, not a memory
+
+**`check_batch_build_flag` in `audit_doc_consistency.py`**: a runnable `x4_headless.py` BATCH command
+in a current-state doc must pass `--build`. Read-only modes (`--status`, `--resummarise`, `--list`,
+`--help`) are exempt — they start no batch and have no build to name.
+
+**Why it earns a gate rather than a rule.** The runner defaults to `custom` *deliberately* (a batch
+must measure the fork that holds still), and new instrumentation lives in `sandbox` *by definition*.
+**Two correct decisions compose into a silent trap every single time.** The instruction that nearly
+shipped would have burned hours and emitted nothing — and an empty result reads as *"the data does
+not support the claim"*, a false negative wearing the costume of an answer.
+‼ **It passed P1-P5, three gates, and two Tier 1 reviews.** Consistency checks cannot see a MISSING
+FLAG: every document agreed, and every document was unusable.
+
+**Proven three ways before install** — 8/8 synthetic cases (5 of them no-false-positive), **clean on
+the real tree**, and it **FIRES on a replay of the actual pre-fix text**. ⭐ That last one is worth
+more than the synthetic cases: a historical replay proves the gate catches the bug it was written
+for, not merely a bug of that shape.

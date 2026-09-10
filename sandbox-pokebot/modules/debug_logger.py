@@ -640,6 +640,18 @@ def _party_ids():
     ‼ PID, NOT SLOT. Slots are reshuffled by lead rotation and by `_rotate_lead_safely`, so a
     slot index names a different Pokemon after a swap — this project has three logged bugs from
     asserting on slot indices.
+
+    ⛔⛔ BUT PID IS **NOT UNIQUE**, AND A CONSUMER THAT ASSUMES IT IS WILL SILENTLY MERGE TWO MONS.
+    Gen 3 creates **Shedinja as a COPY of Nincada**, so it inherits the parent's personality value:
+    after a Nincada evolves, `Ninjask#XXXXXXXX` and `Shedinja#XXXXXXXX` sit in the party carrying
+    the SAME PID. **Measured in batch `20260909-160339`: 1,360 heartbeats (7.9%) contain exactly
+    this collision** — the only one in that corpus, but a real one.
+    ⇒ **key on `(run, PID, species-lineage)`, never on PID alone.** `tools/story-dev/
+    probe_laggard_origin.py` shows the pattern; keying on PID alone changes its population from
+    63 mons to 61 and shifts every downstream figure.
+    ‼ PID still survives EVOLUTION (`Wurmple#AB` -> `Silcoon#AB` is the SAME mon), which is exactly
+    why species-name keying is wrong in the other direction: it SPLITS one mon across its
+    evolutions and MERGES two mons of one species. Neither key alone is identity; the pair is.
     Cost: `_party_exp` already walks the party every frame for `total_exp`; this adds one attribute
     read per mon, and heartbeats are ~1/3,600 frames.
     """

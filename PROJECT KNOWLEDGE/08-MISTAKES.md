@@ -15692,3 +15692,101 @@ belongs in the tool's own output.
 consumer and report the delta; announcing a blanket invalidation would have been as inaccurate as
 the bug, and would have thrown away sound measurements.
 
+## 2026-09-09 — The number replicated and the sentence built on it was false
+
+**Symptom.** I set out to check a figure — *"88.8% of laggards were already >6 behind when first
+seen"* — because it was deciding where effort went. It replicated: I measured **84.1%**, and 88.8%
+sits inside the measurement's own CI. Had I stopped there I would have written *"claim confirmed"*
+and moved on. **The sentence the number supported — "so there is no early small-gap window to
+maintain" — is false: 39.7% of that very population HAD a window**, median 163 heartbeats.
+
+**⭐⭐ PREVENTION RULE — A STATISTIC AND THE INFERENCE DRAWN FROM IT ARE TWO CLAIMS, AND VERIFYING
+THE FIRST SAYS NOTHING ABOUT THE SECOND.** "Most arrive past the threshold" and "there was never a
+window" are compatible-sounding and independently checkable, and only the second one routed the
+decision. ⇒ **when a claim is cited to justify an action, test the SENTENCE THAT JUSTIFIES THE
+ACTION, not the number in front of it.** The number is usually the easy half and rarely the load-
+bearing one.
+
+**⭐ WHAT MADE THIS WORK: refuters, not more measurers.** Five angles each got a separate agent whose
+only job was to refute it; **three of five headlines were refuted by their own refuter** while their
+arithmetic survived intact. That asymmetry is the finding — *the measurements were right and the
+sentences around them overreached*, which is exactly the failure a second measurer would have
+reproduced rather than caught.
+
+**⭐⭐ AND A UNIT-CHOICE TRAP WORTH ITS OWN LINE.** One angle reported *"roughly half the debt is
+accrued AFTER arrival (44.8%)"*. Its refuter re-ran the identical windows in different units:
+**44.8% in levels, 71.9% in absolute exp, 4.3% in relative exp.** Same mons, same windows, three
+answers spanning the entire range. ⇒ **when a quantity can be measured in more than one unit, the
+unit IS the finding** — report it in every unit that a reader might assume, or the number means
+nothing. Levels are not linear in experience, and any "how much of the gap" claim measured in levels
+is a statement about the level curve as much as about the bot.
+
+**‼ A defect in my own week-old work, found the same way:** `party_ids` treats PID as identity, and
+**PID is not unique** — Shedinja is created as a copy of Nincada and inherits its personality value
+(1,360 heartbeats measured). A field I shipped this morning promised an identity it does not have.
+⇒ **before shipping an identity key, ask what the GAME does that can duplicate it** — evolution,
+cloning, trades — rather than assuming a value called "personality" is one.
+
+## 2026-09-09 (late) — Three failures in one day, one cause: I read the verdict and not the output
+
+**Refining a rule I wrote earlier today, because I diagnosed it wrongly.** I logged *"a green gate is
+evidence only about the files it READS — before citing a gate, read its SCOPE/BUDGETS."* True, but it
+blames the tools, and the tools were innocent: **both gates I mis-cited ALREADY PRINT their scope.**
+`repro_no_silent_except.py` prints a per-root budget table; `repro_undefined_names.py` prints
+*"‼ Note the deliberate scope: ..."*. The information was on screen. I quoted the exit code.
+
+**The same shape happened three times today:**
+
+| what I quoted | what the output actually said |
+|---|---|
+| two gates' PASS, as validating a new handler | their scope table — the file was not in it |
+| a background task's "exit code 0" | the suite's own `exit=1` (0 was the shell WRAPPER's) |
+| my own tool's headline "INCONCLUSIVE" | its table, showing 0.50 in every large-sample group |
+
+**⭐⭐ PREVENTION RULE — A VERDICT IS A SUMMARY, AND THE SUMMARY IS NOT THE EVIDENCE. READ THE OUTPUT
+THAT QUALIFIES IT BEFORE QUOTING IT.** Specifically: an exit code says a process ended, not what it
+checked; a PASS says the checks that RAN passed; a headline says what its author's statistic
+concluded, not what the table shows. ⇒ **when you cite a tool, cite a LINE OF ITS OUTPUT, not its
+status** — and if the line you would quote does not exist, you have not actually verified anything.
+‼ Corollary earned the same day: **when a tool prints two verdicts, say out loud which one your claim
+rests on.** In the wrapper case both were visible in the same scrollback and I picked the wrong one
+twice before noticing.
+
+**⭐ AND WHY THIS ONE MATTERS MORE THAN A NORMAL RULE: it is cheap to follow and it caught real bugs
+every time it was applied.** Reading the failing line (rather than assuming the subject was broken)
+is what prevented me from "fixing" correct code twice today — once when a probe reported a false
+FAIL because it passed the frame count as an argument, and once when a gate's own table refuted its
+headline.
+
+## 2026-09-09 — I shipped a units bug in the same commit where I wrote "the unit IS the finding"
+
+**Symptom.** My tool printed *"median time spent inside the window: 163 heartbeats (~2.7 min)"*. One
+heartbeat is `_HEARTBEAT_EVERY = 3600` frames, and at 60fps that is **one minute** — so 163
+heartbeats is **163 minutes ≈ 2.7 HOURS**. I had divided by 60 (minutes → hours) and labelled the
+result "min". Every digit was correct; only the word was wrong.
+
+**⛔ AND IT INVERTED THE ARGUMENT.** The finding is that laggards had an unused window. *"2.7
+minutes"* reads as a window too brief to exploit — evidence AGAINST my own conclusion. *"2.7 hours"*
+is an enormous, obviously-actionable window. **A units bug can flip what a result means while
+leaving the arithmetic untouched**, which is why it survives every check that looks at numbers.
+
+**⭐⭐ PREVENTION RULE — WHEN A TOOL CONVERTS A UNIT, PRINT BOTH THE RAW COUNT AND THE CONVERSION, AND
+NAME THE CONVERSION FACTOR IN THE LINE ABOVE IT.** `163 heartbeats = 163 min (~2.7 hours)` is
+self-checking; `~2.7 min` is not, because nothing in it can be compared against anything. ⇒ a lone
+converted number is unverifiable by construction — the reader cannot see the factor you used.
+
+**‼ THE PART WORTH SITTING WITH: I WROTE THE RULE AND BROKE IT IN THE SAME COMMIT.** That commit's own
+mistakes entry says *"when a quantity can be measured in more than one unit, the unit IS the
+finding"* — a lesson from a refuter showing that "half the debt" was 44.8% in levels, 71.9% in
+absolute exp and 4.3% in relative exp. **Writing a rule is not installing it.** The rule that
+actually caught this was not prose at all: it was an independent reviewer with a mandate to attack,
+and the fix that persists is the tool printing its own conversion factor.
+
+**⭐ SECOND FINDING FROM THE SAME REVIEW, AND IT IS A REAL METHOD RULE: A GAP CLOSES FROM EITHER END.**
+I counted 15 mons that "recovered into the training window". Decomposed: **11 levelled up into it**
+(actionable — training reached them) and **4 had the party MAX FALL** (the leader was deposited or
+swapped; level never drops on a faint), which opens a window the bot did nothing to earn. ⇒ the
+headline 39.7% stands as "had a window", but the number a FIX can act on is **33.3%**. **When a
+difference narrows, always ask WHICH side moved** — only one of them is usually something you can
+cause.
+

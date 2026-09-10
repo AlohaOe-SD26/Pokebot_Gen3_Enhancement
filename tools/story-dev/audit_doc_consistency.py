@@ -1429,6 +1429,22 @@ def self_test() -> int:
            check_gate_arithmetic({"T": "every ENFORCING gate and each ADVISORY one must be listed\n"}), False)
     expect("GA6 a PRECEDING number on the same line -> quiet (the real-tree false positive)",
            check_gate_arithmetic({"T": "must exit 0; the suite is 49 gates (47 ENFORCING + 2 ADVISORY)\n"}), False)
+    expect("BB1 a bare batch command -> fires",
+           check_batch_build_flag({"T": "PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8 --minutes 180\n"}), True)
+    expect("BB2 the same command WITH --build -> quiet",
+           check_batch_build_flag({"T": "PYTHONUTF8=1 py -3.12 x4_headless.py --build sandbox --lanes 8\n"}), False)
+    expect("BB3 --status is read-only -> quiet (no build to name)",
+           check_batch_build_flag({"T": "py -3.12 x4_headless.py --status latest\n"}), False)
+    expect("BB4 PROSE merely NAMING the script -> quiet (no false positive)",
+           check_batch_build_flag({"T": "the runner `x4_headless.py` defaults to custom, hence the flag\n"}), False)
+    expect("BB5 a BLOCKQUOTED command in a handoff -> fires",
+           check_batch_build_flag({"T": ">    PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 4 --minutes 30\n"}), True)
+    expect("BB6 an EXPLICIT --build custom -> quiet (naming it is the point)",
+           check_batch_build_flag({"T": "py -3.12 x4_headless.py --build custom --lanes 8\n"}), False)
+    expect("BB7 a `$ ` shell-prompt prefix -> fires (was a FALSE NEGATIVE)",
+           check_batch_build_flag({"T": "$ PYTHONUTF8=1 py -3.12 x4_headless.py --lanes 8\n"}), True)
+    expect("BB8 `--build` only in a trailing COMMENT -> fires (was a FALSE NEGATIVE)",
+           check_batch_build_flag({"T": "py -3.12 x4_headless.py --lanes 8  # remember --build later\n"}), True)
     _dr, _ = real_drift()
     if _dr == 0:
         expect("P26a `SANDBOX-ONLY; a promotion is the USER's call` while drift is 0 -> fires",
@@ -1525,6 +1541,51 @@ def self_test() -> int:
 
 
 # ---------------------------------------------------------------------------- main
+#: a RUNNABLE `x4_headless.py` invocation (python, any spelling, then the script).
+#: ‼ tolerate a shell-prompt `$ ` and a blockquote `> ` prefix — a review found both as FALSE
+#: NEGATIVES (a `$ `-prefixed command slipped through un-flagged).
+_X4_INVOKE = re.compile(r"^\s*(?:[>$]\s*)*(?:PYTHONUTF8=1\s+)?(?:py|python3?)\b[^\n]*?x4_headless\.py")
+#: modes that start NO batch, and therefore have no build to name.
+_X4_READ_ONLY = re.compile(r"--(?:status|resummarise|resummarize|list|help)\b")
+
+def check_batch_build_flag(raw_files) -> list[str]:
+    """A runnable `x4_headless.py` BATCH command must pass `--build`.
+
+    ⛔ WHY (2026-09-09, a near-miss that every other check passed over). Three current-state docs
+    instructed the next session to *"run ONE ORDINARY batch"* to settle two questions. The runner
+    defaults to `BUILD_NAME = "custom"` — deliberately, so a batch measures the fork that HOLDS
+    STILL — while ALL new instrumentation lives in `sandbox-pokebot` first. Measured that day:
+    `custom-pokebot/modules/debug_logger.py` contained `party_ids` **0** times.
+    ⇒ following the instruction literally burns hours and emits NOTHING, and an empty result reads
+    as *"the data does not support the claim"* — **a FALSE NEGATIVE that looks exactly like an
+    answer**, on the figure that was deciding where the next stretch of work went.
+
+    ‼ IT PASSED EVERYTHING: P1-P5 agreed, three gates were green, two Tier 1 reviews had read the
+    surrounding text. **Consistency cannot see a MISSING FLAG** — every document said the same
+    true-but-unusable thing. That is precisely the class that belongs in a gate.
+
+    ‼ RAW TEXT, NOT `_read()`'s OUTPUT — a runnable command lives inside a ```fence, and fence
+    stripping made `check_gate_count_in_commands` permanently blind in its first version.
+    ⛔ READ-ONLY MODES ARE EXEMPT AND MUST BE (`--status`, `--resummarise`, `--list`, `--help`):
+    they start no batch and have no build to name. A gate with false positives teaches the reader
+    to bypass it, which is strictly worse than no gate.
+    """
+    out = []
+    for name, text in raw_files.items():
+        for i, line in enumerate(text.splitlines(), 1):
+            if not _X4_INVOKE.match(line):
+                continue
+            # ⛔ `--build` must be an ARGUMENT, not a mention in a trailing comment — a
+            # review found `x4_headless.py --lanes 8  # remember --build later` passing.
+            cmd = line.split("#", 1)[0]
+            if _X4_READ_ONLY.search(cmd) or "--build" in cmd:
+                continue
+            out.append(f"  ‼ FAIL  {name}:{i} runs a BATCH without `--build` — the default is "
+                       f"`custom`, where new instrumentation does not exist: "
+                       f"{line.strip()[:78]!r}")
+    return out
+
+
 def check_gate_arithmetic(raw_files) -> list[str]:
     """`N gates = E ENFORCING + A ADVISORY` must satisfy N == E + A.
 
@@ -1566,6 +1627,7 @@ def main() -> int:
                  for name in CURRENT_STATE if (DOCS / name).exists()}
     failures += check_gate_count_in_commands(raw_files)
     failures += check_gate_arithmetic(raw_files)
+    failures += check_batch_build_flag(raw_files)
     # ‼ BOTH texts: the legacy rules need fences STRIPPED, the claim-shape rules need them KEPT.
     # See check_drift's docstring — the authoritative `Expect …: 0 differing` line lives in a fence.
     failures += check_drift(files, raw_files)

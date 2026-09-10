@@ -1533,12 +1533,64 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
 - [x] ⛔⛔ **WIRING THE PICKER IS KILLED 2026-09-09 — AND THE PREMISE OF THE 2026-07-21 DIRECTIVE IS
   NOT GENERALLY TRUE.** Six-agent adversarial pass. ⇒ **do NOT wire `best_training_grass` into
   training as a maintenance pass.** Three independent reasons:
-  1. ⛔ **[AGENT, UNVERIFIED — worth re-measuring before anyone re-proposes this] THE MONS ARE BORN
-     DEAD WEIGHT, so there is no early small-gap window to maintain.** Reported: of 1,496 mons that
-     ever reached 15+ behind, **88.8% were ALREADY more than 6 behind the FIRST time they were
-     observed** (median first-seen gap 11). `TRAIN_CATCHUP_GAP = 6` excludes them from `to_train`
-     **before** the grass choice is ever read — so area selection is downstream of a set they are not
-     in, and a better picker cannot reach them.
+  1. ✅⛔ **MEASURED 2026-09-09 — THE PROPORTION HOLDS, THE INFERENCE IS REFUTED.** *(Was
+     `[AGENT, UNVERIFIED]`: "of 1,496 mons that ever reached 15+ behind, 88.8% were ALREADY more
+     than 6 behind the FIRST time they were observed (median 11)", concluding **"THE MONS ARE BORN
+     DEAD WEIGHT, so there is no early small-gap window to maintain."*)*
+     **[MEASURED BY ME — `tools/story-dev/probe_laggard_origin.py`, batch `20260909-160339`,
+     24 logs / 17,302 heartbeats / 78,113 id elements / 0 dropped]**
+     ```
+       population (ever >= 15 behind) : 63          first-seen gap > 6 : 53/63 = 84.1%  [claimed 88.8%]
+       median first-seen gap          : 10          [claimed 11]
+     ```
+     ⇒ ✅ **THE PROPORTION IS ESSENTIALLY RIGHT** — most laggards DO arrive already past the
+     threshold. A 5-angle adversarial pass put 88.8% inside the measurement's own 95% CI
+     (74.3%-92.0%), and a **sampling-independent** arrival-anchored angle agreed (median 8 behind,
+     ~80% > 6 at the instant of entry), which also proves heartbeat lag hides nothing here
+     (median delta 0; identical for ~94% of paired mons).
+     ⛔⛔ **BUT THE CONCLUSION DRAWN FROM IT IS FALSE, AND THAT IS THE HALF THAT ROUTED THE
+     DECISION:**
+     ```
+       A arrived already INSIDE the <=6 window : 10        C never inside it at all : 38
+       B arrived outside, LATER got inside it  : 15        => HAD a window (A+B) : 25/63 = 39.7%
+           of which the LAGGARD LEVELLED UP    : 11  <= actionable
+           of which the PARTY MAX FELL         :  4  (a deposit/swap — the bot did not earn it)
+       median time inside the window : 163 heartbeats = 163 MINUTES (~2.7 HOURS emulated)
+     ```
+     ⇒ **"no early small-gap window to maintain" is refuted for 40% of the population**, and the
+     window is not a sliver: the median mon spends **~2.7 HOURS of emulated time inside it**.
+     ⛔ **BUT USE 33.3%, NOT 39.7%, WHEN PRICING A FIX.** A gap closes from either end, and only one
+     end is actionable: 4 of the 15 recoveries happened because the party MAX FELL (the leader was
+     deposited or swapped out — level never drops on a faint), not because the laggard improved.
+     ⇒ **TRAINING-REACHABLE = A + B/level-rose = 21/63 = 33.3%.** *(Found by an adversarial review
+     that was asked to attack exactly this claim; the tool now prints both numbers so the
+     distinction cannot be lost again.)*
+     ⇒ the problem is not only that they arrive behind — **a long window existed and was not used**,
+     which is a different defect with a different fix, reachable at TRAINING time.
+     ⚠ **DENOMINATOR: 1,496 IS NOT REPRODUCIBLE.** An adversarial sweep of 17 unit definitions x 39
+     batches found no population of 1,496 anywhere, and none within +-5% of it at +-3pp of 88.8%.
+     ⭐ The likeliest explanation is benign and was found by the same pass: keying `party=` by
+     **species + re-entry generation** (the natural pre-PID method) yields **81.9% / median 11 on
+     story runs alone — the claimed median exactly**. ⇒ treat 1,496 as an artifact of a pre-`ids=`
+     instrument, not as evidence of bad faith; and note the direction — species keying
+     **UNDERSTATES** born-behind (72.9% vs 84.1%), so the instrument cannot explain a too-HIGH
+     number.
+     ⛔⛔ **AND THE MECHANISM SENTENCE WAS WRONG — VERIFIED IN THE CODE, NOT REPORTED.** This bullet
+     used to say *"`TRAIN_CATCHUP_GAP = 6` excludes them from `to_train`"* keyed on the TEAM MAX.
+     `story_mode.py:2135-2137` actually reads:
+     ```python
+     catchup  = target - self.TRAIN_CATCHUP_GAP        # target - 6, NOT team_max - 6
+     to_train = {i for i in battlers if party[i].level >= catchup}
+     to_train.add(strongest)                            # <- the strongest is ALWAYS included
+     ```
+     with `need = [i for i in to_train if party[i].level < target]` at `:2142`. ⇒ the window is
+     **`target - 6 <= level < target`**, and `target` is **`team_max + 1`** in boss-fodder mode
+     (`:2095`) but the **BOSS BAND** otherwise. So the exclusion is REAL and the framing was
+     imprecise: in the team-keyed branch it is ">5 behind team max", near enough that the original
+     conclusion survives — but a reader planning against "6 behind the team max" is planning
+     against the wrong quantity in the branch that does not use it.
+     ‼ `to_train.add(strongest)` and the `losses >= 2` top-up mean the set is **not purely
+     gap-based** — another reason a plan keyed on a single gap number can miss.
   2. ⛔ **[AGENT, UNVERIFIED] THE ECONOMICS ARE SOMETIMES NEGATIVE.** `xp/battle = 50.2 * wild_level
      / 7` depends ONLY on the DEFEATED wild's level, so a level-matched (lower) band pays LESS per
      battle and can only win via the full-vs-half share — capped at 2.0x. Reported example: a L12 mon
@@ -1661,7 +1713,7 @@ accident of what the bot happened to meet.
    the new dex numbers. ⚠ And do NOT grade party ORDER: `choose_new_lead_after_battle` legitimately
    rotates the lead after a faint, which catch battles cause often.
 
-- [ ] ⚠ **THE "88.8% ARE BORN BEHIND" FIGURE — WHICH IS THIS ITEM'S PRIORITY ARGUMENT — IS
+- [x] ✅ **THE "88.8% ARE BORN BEHIND" FIGURE — WHICH IS THIS ITEM'S PRIORITY ARGUMENT — IS
   `[AGENT, UNVERIFIED]` AND WAS *UNVERIFIABLE* UNTIL 2026-09-09.** **[MEASURED BY ME — scope:
   `x4-runs` 298 `stdout.txt` + its `debug-logs/*.log`, `sandbox-pokebot/profiles` 500 `*.log`,
   `tools/story-dev` 500 `*.log`]** party telemetry recorded `Species:L<level>` and nothing stable:
@@ -1670,7 +1722,10 @@ accident of what the bot happened to meet.
   ✅ **FIXED — `modules/debug_logger.py` now emits `ids=[Species#PID:L<lv>:exp<n>, …]` per
   heartbeat.** Full record under **`#24-lowlevelmules`** (that item owns the measurement); it is
   noted here only because the same field is what will finally test THIS item's priority argument.
-  ⛔ **Until a run with `party_ids` exists, do not cite 88.8% and do not prioritise from it.**
+  ✅ **BAN LIFTED 2026-09-09 — IT HAS BEEN MEASURED.** Cite it as: *"~84% of mons that reach 15+
+  behind were already >6 behind when first seen (measured, n=63)"*. ⛔ **DO NOT cite the conclusion
+  that used to accompany it** — *"born dead weight, no early window to maintain"* is **REFUTED**:
+  **39.7% had a <=6 window** — median **163 minutes (~2.7 HOURS)** of emulated time — of which **33.3% of the population was TRAINING-REACHABLE** (the rest recovered only because the party max fell). See bullet 1 and `tools/story-dev/probe_laggard_origin.py`.
 
 - [x] ⭐⭐ **DESIGNED 2026-09-09 (6-agent adversarial pass) — VERDICT: BUILD A NARROWER VERSION,
   AND ONE PREREQUISITE MUST SHIP FIRST.** The shape that survived: post-badge catching allowed
