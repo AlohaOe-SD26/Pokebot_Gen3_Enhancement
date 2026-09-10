@@ -26017,3 +26017,43 @@ band, so "gap from team max" is not the code's coordinate there at all.
 **46% of arrivals land in gaps 6-8 and the training window ends at gap 5** ⇒ mons arrive
 SYSTEMATICALLY JUST OUTSIDE it. A candidate design mismatch between where the bot catches and where
 `TRAIN_CATCHUP_GAP` sits — ⚠ **not yet a diagnosis**; why arrivals cluster there is unmeasured.
+
+## 2026-09-09 — I killed my own most promising lead, with evidence, before writing a line of code
+
+**The lead:** caught mons arrive at gaps 6-8; the training window ends at gap 5; therefore they never
+enter `to_train`, gain nothing, and fall further behind — the absorbing state behind the project's #1
+run-killer. It looked strong: 46% of arrivals in a three-level band immediately outside the window,
+with a near-empty hole at gaps 1-5.
+
+**It is dead. Four independent reasons, three of them measured.**
+
+**1. ⛔ MY HISTOGRAM WAS CONTAMINATED.** 95 of the 184 "arrivals" are not catches: starters, 24
+Wally-tutorial `Zigzagoon:L7` handouts, **27 of Steven's allies merged into the party by the §Ch19
+multi-battle**, 13 gift Castform, PC withdrawals, Shedinja evo-spawns. **All 48 gap-0 arrivals were
+non-catches.** Genuine catches (n=89, re-derived by me): `0-5: 2 | 6-8: 69 | 9-15: 2 | 16+: 16`. The
+cluster is real and *stronger* — but the gap-0 spike that made it look bimodal was an artifact.
+
+**2. ⛔ THE MECHANISM IS REFUTED.** **[MEASURED BY ME]** 79/89 = **89% of caught mons gained exp**
+(median **+20 levels**) and 59/89 = **66% reached gap <= 5**. They are not stuck outside the window;
+they get in.
+
+**3. ⛔ THE FIX WOULD DO NOTHING.** **[AGENT-MEASURED]** widening the threshold 6 → 25 moves mons ever
+admitted from 88 to 90 of 181; an adversarial re-run at **G = infinity** returns the **identical
+90/181 and zero extra gap-6-8 mons.** There is nothing for a wider window to admit.
+
+**4. ⭐ THE GAP IS ARITHMETIC, NOT A DECISION.** **[AGENT-MEASURED, reproduced by its own refuter]**
+all 90 catches fall inside `[team_max − band_max, team_max − band_min]` — **90/90, residual
++0.20 ± 0.54**; a within-map permutation null predicts 70.2 gap-6-8 catches against 71 observed.
+`team_max − wild_band_mean` on the four maps supplying 80% of catches: **6.3 / 6.5 / 6.6 / 6.5**.
+‼ **And the bot already catches at its FLOOR** — of 8,401 catch-capable heartbeat-minutes (free slot
+AND a ball AND wild grass), only **40 minutes** in the whole batch offered a gap-0-5 catch, while
+78.5% of that time would have produced gap 9-15.
+
+**⭐ AND THE SAME REASONING WAS APPLIED TO A NEIGHBOURING CONSTANT** — `06-DECISIONS-LOG.md:267-269`, 2026-07-24 (⚠ its subject is `mon.level + 3`, the evo-lookahead gate — **NOT** `TRAIN_CATCHUP_GAP`; an analogy, not a ruling on this constant):
+> *"Raise/lower the level window. Any level-denominated threshold is wrong for the same reason the
+> current one is: it cannot see the XP rate. Tuning it just moves which map it is wrong on."*
+⇒ reasoned there five weeks ago; this round supplies the measurement.
+
+**⭐⭐ WHAT REOPENS, AND IT IS THE REAL QUESTION:** if caught mons DO train and DO reach the window,
+**why is `#24-lowlevelmules` still roughly a third of run-ends?** "They cannot get into training" is
+now ruled out with evidence. The next investigation starts from what happens AFTER admission.

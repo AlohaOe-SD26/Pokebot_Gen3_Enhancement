@@ -1587,9 +1587,66 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
        gap 0: 48   gaps 1-5: 12 TOTAL   gap 6: 23   gap 7: 36   gap 8: 26   gaps 9-15: 16   16+: 23
      ```
      **46% of arrivals land in gaps 6-8 while gaps 1-5 are nearly empty, and the window is gap <= 5.**
-     ⇒ mons arrive SYSTEMATICALLY JUST OUTSIDE the training window. That is a candidate design
-     mismatch between where the bot catches and where `TRAIN_CATCHUP_GAP` sits — **not yet a
-     diagnosis**, and it is the open question this item now points at.
+     ⇒ mons arrive SYSTEMATICALLY JUST OUTSIDE the training window.
+     ⛔⛔ **AND THAT LEAD IS DEAD — KILLED 2026-09-09 BY A 10-AGENT ADVERSARIAL PASS PLUS MY OWN
+     RE-DERIVATION. DO NOT RE-PROPOSE WIDENING `TRAIN_CATCHUP_GAP`.** Four independent reasons:
+     1. ⛔ **MY HISTOGRAM WAS CONTAMINATED.** 95 of the 184 "arrivals" are **not catches**:
+        starters, the 24 Wally-tutorial Zigzagoon:L7 handouts, **27 of Steven's allies merged into
+        the party by the §Ch19 multi-battle**, gift Castform, PC withdrawals, Shedinja evo-spawns.
+        **All 48 gap-0 arrivals were non-catches.** Genuine catches only (n=89, mine):
+        `0-5: 2 | 6-8: 69 | 9-15: 2 | 16+: 16` — the cluster is REAL and *stronger*, but the gap-0
+        spike that made it look bimodal was an artifact of counting non-catches.
+     2. ⛔ **THE MECHANISM IS REFUTED.** *"They never enter `to_train`, gain nothing, and fall
+        further behind"* is false: **[MEASURED BY ME] 79/89 = 89% of caught mons GAINED EXP (median
+        +20 levels) and 59/89 = 66% REACHED gap <= 5**, i.e. they do get inside the window.
+     3. ⛔ **THE FIX IS WORTHLESS EVEN IF THE MECHANISM HELD — [MEASURED BY ME], re-runnable:
+        `tools/story-dev/probe_catchup_threshold_sweep.py`.** It anchors on the 1,673 real training
+        episodes (`Story: training the team to Lv <T> in the grass…`) and reads the **real `target`
+        out of the production line**, so it evaluates `level >= target - G` exactly as `:2135-2136`
+        does — no modelling assumption:
+        ```
+          G      mons admitted at >=1 episode      of the 69 gap-6-8 catches
+          5              95 / 184                        65 / 69
+          6  (shipped)   95 / 184                        65 / 69
+          8              96 / 184                        66 / 69
+          ∞              97 / 184                        66 / 69
+        ```
+        ⇒ **G=6 → G=∞ admits +2 mons overall and +1 of the 69 gap-6-8 catches**, and **65 of those
+        69 are ALREADY admitted at the shipped value.** The curve is flat from 5 to infinity ⇒ the
+        threshold is not the binding constraint at all.
+        ‼ **NEAR-MISS WORTH KEEPING:** the first version of that tool swept EVERY heartbeat and
+        reported "+66 mons", which reads as a refutation. Admission only matters when a training
+        episode evaluates it — *"could it ever be inside the window?"* is a different question from
+        *"is it inside when the code looks?"*
+     4. ⭐ **THE GAP IS PURE GEOGRAPHY, NOT A DECISION.** ⚠ **[AGENT-MEASURED, NOT RE-DERIVED BY
+        ME — treat as a strong note, not as settled]** — independently reproduced
+        by its own refuter] for all 90 catches the realised gap falls inside
+        `[team_max - band_max, team_max - band_min]` — **90/90, residual +0.20 ± 0.54** — and a
+        within-map permutation null predicts 70.2 gap-6-8 catches against 71 observed. On the four
+        maps supplying 80% of catches, `team_max - wild_band_mean` is **6.3 / 6.5 / 6.6 / 6.5**.
+        ‼ And the bot is already catching at its **FLOOR**: of 8,401 catch-capable heartbeat-minutes
+        (free slot AND >=1 ball AND on wild grass), only **40 minutes** across all 24 runs offered a
+        gap-0-5 catch at all, while 78.5% of that time would have produced gap 9-15.
+     ⭐ **AND THE SAME REASONING WAS APPLIED TO A NEIGHBOURING CONSTANT ON 2026-07-24** —
+     `06-DECISIONS-LOG.md:267-269`, rejecting an alternative:
+     > *"3. Raise/lower the level window. Any level-denominated threshold is wrong for the same
+     > reason the current one is: it cannot see the XP rate. Tuning it just moves which map it is
+     > wrong on."*
+     ⚠ **THAT ENTRY IS ABOUT `mon.level + 3`** (the evo-lookahead sufficiency gate, `story_mode.py:1563`,
+     commit `e8d133be`), **NOT about `TRAIN_CATCHUP_GAP`** (`:1136`, commit `395c392d`, three days
+     earlier). ⇒ it is an **ANALOGY whose reasoning transfers**, *not* a prior ruling on this
+     constant. *(Recorded this way after a Tier 1 reviewer caught the overreach — the kill above
+     rests on the measurements, not on borrowed authority.)*
+     ⭐⭐ **AND THE FLAT SWEEP POINTS AT THE REAL CONSTRAINT.** If admission is unchanged from G=5
+     to G=∞, then *what decides who trains is not the gap threshold*. A Tier 1 reviewer proposed
+     bench membership — `_battler_slots()` (`modules/story/early_game.py:1894`) admits only a
+     non-egg mon **holding a damaging move**. ⛔ **THAT IS UNTESTED AND CURRENTLY UNTESTABLE:
+     `ids=` records no moves.** Reading the predicate suggests it is permissive, but that is a READ,
+     not a measurement — and this project has a logged habit of those diverging.
+     ⭐⭐ **THE QUESTION THAT REOPENS, AND IT IS THE REAL ONE:** if caught mons DO train and DO reach
+     the window, **why is `#24-lowlevelmules` still ~a third of run-ends?** The cause is NOT "they
+     cannot get into training". That is now ruled out with evidence, and the next investigation
+     should start from what happens AFTER they are admitted.
      ⚠ **DENOMINATOR: 1,496 IS NOT REPRODUCIBLE.** An adversarial sweep of 17 unit definitions x 39
      batches found no population of 1,496 anywhere, and none within +-5% of it at +-3pp of 88.8%.
      ⭐ The likeliest explanation is benign and was found by the same pass: keying `party=` by

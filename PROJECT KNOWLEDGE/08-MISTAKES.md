@@ -15813,3 +15813,66 @@ the arrival distribution: **48 mons arrive at gap 0, only 12 across gaps 1-5, th
 mass is, and an off-by-one at a threshold is never a rounding detail — **it is the difference between
 capturing the mode and missing it entirely.**
 
+## 2026-09-09 — A strong-looking lead, killed by the angle I told to disbelieve it
+
+**Symptom.** I found what looked like a real defect: 46% of party arrivals cluster at gaps 6-8, the
+training window ends at gap 5, so mons land systematically just outside the door. Clean histogram,
+obvious mechanism, an actionable one-constant fix. **All of it was wrong**, and the parts that were
+right were already known.
+
+**⭐⭐ WHAT SAVED IT: I built the disconfirming angle INTO the investigation rather than hoping to
+notice later.** One of the five agents was told *"you are the designated skeptic; default to 'the
+premise is an artifact' and make the evidence force you off it"*, and it is the one that landed —
+along with a counterfactual angle whose only job was to PRICE the fix rather than argue for it. ⇒
+**when you have a hypothesis you like, commission its refutation in the same breath as its
+investigation.** Adding a skeptic afterwards costs a build; adding one upfront costs one agent.
+
+**⭐ THE SPECIFIC ERROR WORTH REMEMBERING: I counted "party arrivals" and called them "catches".**
+95 of my 184 were starters, tutorial handouts, gift mons, PC withdrawals — and **27 were an
+opponent's allies merged into the party by a multi-battle**, which I had not imagined as a way for a
+Pokémon to appear. The gap-0 spike that made the distribution look bimodal was entirely
+non-catches. ⇒ **when a population is defined by an EVENT, anchor on the event's own log line, never
+on the state change it usually causes.** "The party grew" has at least six causes here; "a Caught
+line fired" has one.
+
+**⛔⛔ AND THE RULE I ALREADY HAD AND STILL DID NOT FOLLOW: GREP `06-DECISIONS-LOG.md` FIRST.** *(⚠ and when I finally did, I OVERCLAIMED it: the entry's subject is `mon.level + 3`, a different constant — the reasoning transfers, the ruling does not. A reviewer had flagged that caveat and I dropped it while summarising, which is the same 'degraded in transit' failure I had criticised an agent for hours earlier.)* A dated
+entry (`:267-269`, five weeks old) rejects exactly this class of fix — *"any level-denominated
+threshold is wrong… it cannot see the XP rate; tuning it just moves which map it is wrong on"*. My
+own standing rule says to search that file before escalating or proposing, precisely because it
+exists so a question is never answered twice. An agent found it, not me.
+⇒ the rule needs a **trigger**, not more emphasis: **before investigating any CONSTANT, grep the
+decisions log for the constant's name AND for its class ("threshold", "window", "level").** The cost
+of not doing it here was one workflow; the value recovered was that a reasoned ruling now has a
+measurement behind it, which is not nothing — but it was not the plan.
+
+## 2026-09-09 — I promoted an unverifiable agent number to a permanent "DO NOT RE-PROPOSE"
+
+**Symptom.** I recorded one of my own leads as dead and wrote *"DO NOT RE-PROPOSE WIDENING
+`TRAIN_CATCHUP_GAP`"* into the punch list. Two of the four supporting reasons came from agents whose
+tools lived in a scratchpad — **nothing a future reader could run**. A Tier 1 reviewer refused it on
+exactly the project's own rule: agent output is a NOTE, never truth, and a note must not become a
+permanent foreclosure.
+
+**⭐⭐ PREVENTION RULE — A FORECLOSURE NEEDS A HIGHER EVIDENCE BAR THAN A FINDING, NOT A LOWER ONE.**
+A wrong "we measured this, it's fine" costs one re-measurement. A wrong "never try this again"
+costs the fix itself, permanently, and nobody re-opens it because the doc says not to. ⇒ **anything
+that tells a future session NOT to do something must cite a re-runnable command in the repo.** I
+have now re-derived the decisive half into `tools/story-dev/probe_catchup_threshold_sweep.py` and
+downgraded the half I did not to `[AGENT-MEASURED, NOT RE-DERIVED]`.
+
+**‼ AND THE NEAR-MISS INSIDE THE FIX.** My first version of that tool swept the predicate at EVERY
+heartbeat and reported that widening admits **+66 mons** — apparently refuting the agent. It does
+not: admission only matters at a moment when a training episode actually evaluates it. Anchored on
+the 1,673 real episodes (and reading the real `target` out of the production log line rather than
+modelling it), the answer is **+2**. ⇒ **"could this ever be true?" and "is it true when the code
+looks?" are different questions, and only the second one prices a change.** I nearly published the
+first as a refutation of the second.
+
+**‼ A SECOND ERROR IN THE SAME COMMIT: I OVERCLAIMED A DECISIONS-LOG ENTRY.** I cited `:267-269` as a
+settled ruling foreclosing `TRAIN_CATCHUP_GAP`. Its subject is `mon.level + 3` — a different
+constant, different branch, different commit. The reasoning transfers; the ruling does not.
+⛔ **An agent had already flagged that caveat and I dropped it while summarising** — the identical
+"degraded in transit" failure I had criticised an agent for hours earlier. ⇒ **when a source you are
+compressing carries a caveat about its own scope, the caveat travels with the claim or the claim does
+not travel.**
+
