@@ -4925,3 +4925,61 @@ overrule a user directive. The surviving shape is a dex-ONLY subclass returned b
 site, leaving pre-gym-1 and shiny paths byte-identical. It is battle-strategy internals — where
 `KI-18`/`KI-34`/`KI-66`/`KI-95` all lived — so it gets a probe first, never a drive first.
 ⛔ Recorded so it is not re-litigated: this deferral is a claim with an expiry, not a dismissal.
+
+---
+
+## 2026-09-10 — §Ch24's entry marker: THREE DESIGNS KILLED, and the question was the wrong one
+
+**Context.** §Ch24 (Elite Four) is defined (`chapters.py:287`) but NOT wired. `victory_road.py`'s
+`ch23_chapter_done()` and `06-DECISIONS-LOG.md` 2026-09-05 both record a forward dependency: *"when
+§Ch24 is built it MUST set its own progress marker so §Ch23 is not re-entered."* A 4-angle decomp +
+code + routing round with adversarial verification was run to settle what that marker should be.
+
+### ⛔ D1 — gate on `FLAG_SYS_GAME_CLEAR`. **KILLED, twice over.**
+Decomp: set in exactly ONE place (`src/post_battle_event_funcs.c:30`, inside `GameClear()`), never
+cleared anywhere in the tree — genuinely write-once. **But only reachable via `special GameClear` at
+`EverGrandeCity_HallOfFame/scripts.inc:54`/`:61`**, i.e. after Wallace AND after the Hall of Fame
+cutscene. During Sidney→Drake→Wallace it is False. ⇒ it cannot gate the window that matters.
+‼ **AND IT IS ALREADY THE READOUT MILESTONE** — `chapters.py:288` grades §Ch24's readout on it. Using
+it as the GATE would collapse the distinction `ch23_chapter_done`'s own docstring forbids collapsing:
+*"the readout answers 'which chapter is this run in'; the gate answers 'may the next segment start'.
+Both are correct. Do not collapse them."*
+
+### ⛔ D5 — gate on `FLAG_DEFEATED_ELITE_4_*`. **KILLED — decomp-confirmed whiteout-fragile.**
+`EverGrandeCity_HallOfFame_EventScript_ResetEliteFour` (`data/event_scripts.s:628-634`) clears all
+four flags AND `setvar VAR_ELITE_4_STATE, 0`. It is called from exactly TWO sites: the WIN path
+(`data/scripts/hall_of_fame.inc:7`) and the LOSS path (`EventScript_WhiteOut`,
+`data/event_scripts.s:586`, reached unconditionally from `DoWhiteOut`, `src/overworld.c:358-365`).
+⇒ the punch list's warning was right, and is now decomp-cited rather than agent-reported.
+
+### ⛔⛔ D-NEW — gate on `FLAG_ENTERED_ELITE_FOUR`. **THE RECOMMENDED SURVIVOR, AND THE ADVERSARY KILLED IT.**
+Its decomp credentials are perfect and were verified twice: `0x107`, set at
+`EverGrandeCity_PokemonLeague_1F/scripts.inc:70` when the door guards step aside, with **zero**
+clear sites tree-wide. It is the one permanently-set marker in the whole league.
+⛔ **And it is the WRONG SHAPE, by this project's own ⭐ rule.** It is set *before the first fight*,
+and a mid-gauntlet whiteout leaves it SET. ⇒ **it is REACHED BY FAILING.** Gating on it re-creates
+the exact 2026-09-05 defect — the bot advances with the basket spent — **relocated into the
+five-fight no-nurse gauntlet, where it is strictly worse than the original.**
+⇒ *A POSITION CAN BE REACHED BY SUCCEEDING OR BY FAILING. A WORK PRODUCT CANNOT* — and a flag set by
+walking through a door is a position wearing a flag's clothing.
+‼ **THIS DESIGN WAS ALREADY WRITTEN DOWN** (`ai-research-notes/2026-09-07-ch24-elite-four-BUILD-SPEC.md:70`,
+`2026-09-08-ch24-league-RECON.md:39`) and my prior-art check reported NO prior art — because
+`precheck_prior_art.py` did not search `ai-research-notes/`. Fixed the same day; see `07-CHANGELOG.md`.
+
+### ⭐⭐ THE REFRAMING — the question itself was wrong
+Chasing a marker assumes §Ch23 re-entry after a mid-gauntlet whiteout is a BUG TO SUPPRESS. Trace the
+state a whiteout actually leaves: party healed, half the money gone (`DoWhiteOut` → `SetMoney(.../2)`),
+items partly spent, all four E4 flags cleared, `VAR_ELITE_4_STATE` zeroed, respawn OUTSIDE the League.
+⇒ **that run genuinely needs §Ch23's leg 10 (heal) and leg 11 (restock) again.** Re-entry is CORRECT.
+⇒ **What is actually broken is not the predicate. It is that the re-entry cannot succeed:**
+  * leg 11 cannot afford the basket (₽54,300 needed; the gauntlet leaves ~₽1,741, then a whiteout
+    halves it again), and
+  * leg 4 FIRES on re-entry and attempts an ocean crossing *from inside the League*, because
+    `at_ever_grande_top()` is False at the League door — a latent routing bug the marker would have
+    HIDDEN rather than fixed.
+⇒ **DECISION: do NOT ship an entry marker yet.** The next work on §Ch24 is (a) make §Ch23 re-entry
+survivable from the League door (leg 4's precondition), and (b) decide the MONEY policy for a
+post-whiteout re-stock. A marker chosen now would paper over both.
+⚠ Recorded so it is not re-litigated: `FLAG_ENTERED_ELITE_FOUR` is still the right marker for
+*"the gauntlet was begun"* if a future design needs that fact — it is only wrong as a **completion
+gate**. Do not re-derive its decomp credentials; they are above.

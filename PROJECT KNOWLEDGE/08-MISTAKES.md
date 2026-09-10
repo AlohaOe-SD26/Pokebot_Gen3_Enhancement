@@ -16114,3 +16114,43 @@ parameters.*
 for a claim is an arm. I wrote "the ordinary case must stay byte-identical" in the code comments
 BEFORE I had run anything that could tell. A comment asserting equivalence is worth nothing next to
 a grid that demonstrates it — and the grid took under a minute.
+
+---
+
+## 2026-09-10 — The tool that enforces "check prior art" had a blind spot, and reported "none" over an existing answer
+
+**Symptom.** Before proposing a §Ch24 entry marker I ran the project's own
+`tools/story-dev/precheck_prior_art.py` — the tool CLAUDE.md requires before any new design — on
+`SYS_GAME_CLEAR`, "progress marker", `ResetEliteFour` and "re-entered". It reported essentially
+nothing, so I commissioned a four-agent decomp round to work the design out from scratch.
+An adversarial refuter then found the identical recommendation ALREADY WRITTEN DOWN, in two places:
+`ai-research-notes/2026-09-07-ch24-elite-four-BUILD-SPEC.md:70` and
+`2026-09-08-ch24-league-RECON.md:39`.
+
+**Root cause, verified in one line.** `precheck_prior_art.py:36` —
+`FILES = ("05-KNOWN-ISSUES.md", "06-DECISIONS-LOG.md", "07-CHANGELOG.md", "08-MISTAKES.md",
+"03-PUNCH-LIST.md")`. Five files. **`ai-research-notes/` held 129 more, and the tool never opened
+one of them.** It did not disagree with those notes; it could not see them.
+
+**Why it went unnoticed for so long.** The tool answers CONFIDENTLY either way. "0 hits" reads as
+*"nobody has been here"*, never as *"I did not look there"* — coverage was invisible in the output,
+so there was nothing to be suspicious of.
+
+⭐ **THE IRONY IS THE LESSON.** This tool's own header records that it exists because a previous
+search was TOO NARROW: *"the rule was not wrong, my SEARCH was too narrow."* It then shipped with a
+too-narrow search of its own.
+⇒ **A TOOL THAT ENFORCES A RULE IS NOT EXEMPT FROM THAT RULE.**
+
+**The fix that worked, PROVEN not asserted.** The tool now scans the five ruling files first, then
+every `ai-research-notes/*.md`, and prints its COVERAGE in the footer so "0 hits" can never again be
+read without knowing what was searched. A/B on a phrase that exists only in a note
+("no A-press trigger"): OLD scope = **0 hits across all five files**; NEW = found, and flagged as
+sitting near a verdict word.
+
+⭐ **Prevention rule (one line):** *A search tool must print WHAT IT SEARCHED beside what it found —
+"0 hits" without coverage is indistinguishable from "I did not look".*
+
+‼ **And a second-order rule, because this cost a four-agent round:** research notes are where a
+design gets WORKED OUT before it is ruled on, so they are the likeliest place to hold the argument
+that kills a proposal. They remain NOTES, never truth — but a note you have not read cannot be
+weighed at all.

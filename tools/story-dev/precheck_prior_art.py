@@ -35,6 +35,26 @@ sys.stdout.reconfigure(encoding="utf-8")
 DOCS = pathlib.Path(__file__).resolve().parent.parent.parent / "PROJECT KNOWLEDGE"
 FILES = ("05-KNOWN-ISSUES.md", "06-DECISIONS-LOG.md", "07-CHANGELOG.md", "08-MISTAKES.md",
          "03-PUNCH-LIST.md")
+
+#: ⛔⛔ `ai-research-notes/` IS SEARCHED TOO, AND IT WAS THE TOOL'S OWN BLIND SPOT (fixed 2026-09-10).
+#:
+#: MEASURED: I ran this tool on the §Ch24 entry-marker question, got **0 hits across all five files**,
+#: reported "no prior art", and commissioned a four-agent decomp round. A refuter then found the
+#: identical recommendation ALREADY WRITTEN DOWN in
+#:   `ai-research-notes/2026-09-07-ch24-elite-four-BUILD-SPEC.md:70`  and
+#:   `ai-research-notes/2026-09-08-ch24-league-RECON.md:39`
+#: ⇒ the tool did not disagree with those notes; **it could not see them.**
+#:
+#: ‼ THE IRONY IS THE LESSON, AND IT IS WHY THIS COMMENT IS LONG. This file's own header records that
+#: it exists because a search was TOO NARROW ("the rule was not wrong, my SEARCH was too narrow").
+#: It then shipped with a too-narrow search of its own. ⇒ **A TOOL THAT ENFORCES A RULE IS NOT
+#: EXEMPT FROM THAT RULE**, and the exemption is invisible precisely because the tool answers
+#: confidently either way — 0 hits reads as "nobody has been here", never as "I did not look there".
+#:
+#: ⭐ Research notes are exactly where a design gets WORKED OUT before it is ruled on, so they are the
+#: likeliest place to hold the argument that kills a proposal. They are NOTES, never truth (that rule
+#: is unchanged) — but a note you have not read cannot be weighed at all.
+NOTES_DIR = "ai-research-notes"
 #: phrasings that mean "someone already ruled on this" — a hit carrying one of these is a VERDICT,
 #: not a mention, and is what the reader must not skim past.
 VERDICT = re.compile(
@@ -52,8 +72,16 @@ def main() -> int:
     print("=" * 100)
 
     total = verdicts = 0
-    for name in FILES:
-        p = DOCS / name
+    # ⛔ The five current-state/history files FIRST (a ruling outranks a note), then every research
+    # note — sorted so the output order is stable and a newer note is not silently preferred.
+    targets = [(n, DOCS / n) for n in FILES]
+    notes_dir = DOCS / NOTES_DIR
+    note_files = sorted(notes_dir.glob("*.md")) if notes_dir.is_dir() else []
+    targets += [(f"{NOTES_DIR}/{p.name}", p) for p in note_files]
+    if not note_files:
+        print(f"\n⚠ {NOTES_DIR}/ HAS NO NOTES (or is missing) — the search is NARROWER than it looks.")
+
+    for name, p in targets:
         if not p.exists():
             continue
         lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
@@ -64,7 +92,13 @@ def main() -> int:
             if matched:
                 hits.append((i, line, matched))
         if not hits:
-            print(f"\n--- {name}: no hits")
+            # ⛔ A SILENT MISS IS THE DEFECT THIS FIX EXISTS FOR, so the five ruling files ALWAYS
+            # report "no hits" explicitly. The research notes do not: there are dozens, and thirty
+            # "no hits" lines would bury the one that matters — the noise would teach the reader to
+            # skim, which is how a tool with a blind spot and a tool nobody reads end up equivalent.
+            # The scanned-notes COUNT is printed in the footer instead, so coverage stays visible.
+            if not name.startswith(NOTES_DIR):
+                print(f"\n--- {name}: no hits")
             continue
         print(f"\n--- {name}: {len(hits)} hit(s)")
         for i, line, matched in hits[:40]:
@@ -82,6 +116,14 @@ def main() -> int:
 
     print("\n" + "=" * 100)
     print(f"  {total} hit(s) shown, {verdicts} sitting near a VERDICT word.")
+    # ⛔ COVERAGE IS PART OF THE ANSWER. "0 hits" means nothing unless you know WHAT WAS SEARCHED —
+    # that ambiguity is exactly what let this tool report "no prior art" over a recommendation that
+    # was already written down in a directory it never opened (2026-09-10).
+    print(f"  scanned: {len(FILES)} ruling file(s) + {len(note_files)} research note(s) "
+          f"in {NOTES_DIR}/.")
+    if note_files:
+        print("  ⚠ A RESEARCH NOTE IS A NOTE, NEVER TRUTH — but an argument you have not READ")
+        print("     cannot be weighed. A hit there means someone already worked this out.")
     print("  ⛔ SEARCH THE MECHANISM, NOT ONLY THE SYMBOL. The argument that kills a design is")
     print("     usually phrased in terms of what the design RELIES ON, not what it CHANGES —")
     print("     'still FIELDED' killed a bench fix that no `BENCH_SPECIES` grep would ever find.")

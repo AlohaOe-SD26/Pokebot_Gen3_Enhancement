@@ -27,6 +27,36 @@
 
 ---
 
+## 0a. ‼ HOW TO RUN A MULTI-AGENT ROUND (hoisted here 2026-09-10 — it was stranded in a punch-list stub)
+
+**This is the method that produced the 5-pass deep audit and every good recon round since.** It lived
+only inside `#24-sanitycheck`'s closed entry in `03-PUNCH-LIST.md`, where no agent looking for *method*
+would ever find it. ⇒ **a closed item is not where a reusable technique should live.**
+
+1. **N agents, ONE ANGLE EACH, sent in ONE message** so they run concurrently. Different ANGLES, never
+   the same question asked N times — asking twice buys a second guess, not a second opinion.
+2. ⭐ **REQUIRE EVERY AGENT TO FAULT-INJECT OR RE-DERIVE, NEVER TO REASON.** That single instruction is
+   what found *a gate that could not fail* and *a control that could not fail*. Make it a hard rule in
+   the prompt, and give them an `unverified` field so an honest "I could not check this" has somewhere
+   to go other than being dressed up as a finding.
+3. ⭐⭐ **PAIR EVERY ANGLE WITH A REFUTER** that is handed the first agent's claims and told to FIND
+   ERRORS, defaulting to REFUTED/UNPROVEN when a citation does not establish its claim. Measured
+   repeatedly: the refuter is the only reviewer that catches **a true conclusion resting on a false
+   mechanism** — a second measurer reproduces the conclusion and stops.
+4. **TELL THEM WHAT IS ALREADY RULED OUT**, with citations, so they do not re-derive it — and invite
+   them to say if a ruled-out item is wrong.
+5. ⛔ **VERIFY EVERY LOAD-BEARING FINDING YOURSELF** before building on it. Across the five passes,
+   agent claims failed that check three times and one arrived already STALE.
+6. **Output contract:** `SEVERITY | what | what you RAN | result | smallest fix`, terse, anything
+   unexecuted labelled CANNOT-REPRODUCE.
+
+⚠ **AND THE COST IS REAL.** A four-angle round with refuters is ~8 agents and ~900k tokens. Use it for
+a genuine design fork or a blocked diagnosis — not for a lookup you could grep in ten seconds.
+‼ **Freeze the tree while an auditor reads it.** A reviewer handed a diff that shifts underneath it
+will (correctly) return KICK-BACK on staleness, and you pay for the whole round twice.
+
+---
+
 ## 0b. ‼ BEFORE YOU BELIEVE A RESULT — the eight-question pre-flight (added 2026-08-10)
 
 **Read this before writing a conclusion into any file, and before starting work on any item.**

@@ -416,10 +416,26 @@ and `:3795` `_guard("Victory Road (Ch23)", ch23_chapter_done)` sits **OUTSIDE th
 loudly, exactly as designed; and
 (3) `_guard` raises anyway, because the predicate is still False.
 ⇒ ⭐ **BOTH HALVES MUST BE RELAXED IN THE SAME COMMIT — a fix aimed only at the `if` leaves the
-unconditional `_guard` and turns a wasteful re-buy into a HARD FAILURE.** ‼ Research suggests
-short-circuiting on `SYS_GAME_CLEAR` (claimed whiteout-proof, unlike the `DEFEATED_ELITE_4_*` flags
-which `ResetEliteFour` clears) — ⚠ **that is AGENT-REPORTED and NOT yet measured here; verify it
-before relying on it.**
+unconditional `_guard` and turns a wasteful re-buy into a HARD FAILURE.**
+⛔⛔ **CORRECTED 2026-09-10 BY AN ADVERSARIAL ROUND — THE SENTENCE ABOVE IS RIGHT BUT ITS DETAIL AND
+ITS PROPOSED FIX ARE BOTH WRONG. Read `06-DECISIONS-LOG.md` 2026-09-10 before touching this.**
+1. **`SYS_GAME_CLEAR` IS DEAD AS THE GATE.** Decomp-verified: set once (`post_battle_event_funcs.c:30`)
+   and never cleared — but only reachable via `special GameClear` AFTER Wallace and the Hall of Fame,
+   so it is False for the whole gauntlet. ‼ And it is **already the READOUT milestone**
+   (`chapters.py:288`), so gating on it collapses the readout≠gate rule this tree already has.
+2. **`FLAG_ENTERED_ELITE_FOUR` — the "obvious" replacement — IS ALSO DEAD**, and it is the more
+   valuable kill: decomp-clean (never cleared anywhere), but set when the door guards step aside,
+   i.e. **BEFORE the first fight**, and still SET after a mid-gauntlet whiteout ⇒ **REACHED BY
+   FAILING.** It re-creates the 2026-09-05 defect inside the no-nurse gauntlet.
+3. ⛔ **THE FAILURE MODE ABOVE IS NOT THE ONE THAT FIRES.** On re-entry **leg 4 fires first** and
+   attempts an ocean crossing *from inside the League* (`at_ever_grande_top()` is False at the League
+   door); the hard raise then comes from the chapter's **own 3-attempt loop**
+   (`victory_road.py:3400-3403`), never reaching `_guard`. ‼ And `ch23_chapter_done` has **FIVE call
+   sites, not two** — a two-site fix is incomplete.
+4. ⭐⭐ **THE QUESTION WAS WRONG.** A whiteout leaves the run genuinely NEEDING legs 10-11 again (party
+   healed, money HALVED, E4 flags cleared, respawn outside the League) ⇒ **re-entry is CORRECT**; what
+   is broken is that it cannot SUCCEED. ⇒ next §Ch24 work is (a) leg 4's precondition at the League
+   door and (b) the money policy for a post-whiteout re-stock — **not a marker**, which hides both.
 
 ⛔⛔ **READ THIS BEFORE BUILDING ANY §Ch24 STEP — A HARD DEPENDENCY §Ch23 NOW PLACES ON YOU.** `ch23_chapter_done()` requires the **Elite Four basket in the bag** (it was position-only until 2026-09-05, and a WHITEOUT respawn at Ever Grande satisfied it — the predicate called a WIPED party "chapter complete"; see `06-DECISIONS-LOG.md` 2026-09-05). ⇒ **THE MOMENT §Ch24 SPENDS THE BASKET, `ch23_chapter_done()` FLIPS FALSE and the dispatch will RE-ENTER §Ch23** and re-buy it. ‼ **§Ch24 MUST THEREFORE SET ITS OWN PROGRESS MARKER** (a flag/var its own predicate reads) so Segment 23 is not re-entered mid-gauntlet. ⭐ This line exists here, and not only in the decisions log, because this project has repeatedly lost facts that lived in exactly one place a builder does not open.
 
@@ -2203,16 +2219,7 @@ owed / not built / residual"* sentence written that session, ask **"where would 
 FIND this?"** If the only answer is an append-only log, a CLOSED KI's body, or a research note, it
 is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
 
-### ✅✅ `#24-sanitycheck` — the 5-PASS DEEP AUDIT — **COMPLETE (5/5)**, ARCHIVED 2026-08-23 → `28-HANDOFF-ARCHIVE.md`
-
-- [x] **All five passes done and committed. ⛔ DO NOT RE-RUN ANY OF THEM.**
-      ‼ **THE METHOD, which is the reusable part:** 8 agents per pass, ONE ANGLE EACH, sent in
-      ONE message so they run concurrently, and **every agent required to FAULT-INJECT or
-      RE-DERIVE, never to reason** — that single instruction is what found a gate that could
-      not fail and a control that could not fail. ⛔ **VERIFY EVERY FINDING YOURSELF** (across
-      the five passes, agent claims failed my check three times, and one arrived already
-      STALE). Output contract: `SEVERITY | what | what you RAN | result | smallest fix`,
-      ~16 lines, anything unexecuted labelled CANNOT-REPRODUCE. Full record in the archive.
+### ✅✅ `#24-sanitycheck` — the 5-PASS DEEP AUDIT — **COMPLETE (5/5). ⛔ DO NOT RE-RUN ANY PASS.** 📦 Full record in `28-HANDOFF-ARCHIVE.md`; ⭐ **its reusable METHOD was hoisted 2026-09-10 to `14-AGENT-PLAYBOOK.md` §0a** — a closed item is not where a technique should live.
 
 ### ‼ `#24-ki76correctness` — KI-76's CORRECTNESS half: the slide model's ENDPOINT is wrong (filed 2026-08-17 from `#24-orphans` (6), which existed because this had NO item of its own)
 

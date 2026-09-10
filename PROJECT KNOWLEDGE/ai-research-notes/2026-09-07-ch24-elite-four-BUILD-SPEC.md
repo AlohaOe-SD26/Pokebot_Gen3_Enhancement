@@ -55,7 +55,26 @@ script sets `impassable=FALSE` on (6,1)/(6,2) and **seals (5..7,12..13) behind y
 2. **DO NOT HARDCODE THE LANDING TILE.** The auto-walk end-state is (6,7), but a **re-entry has no
    auto-walk at all** — the player stands at (6,13). Locate live, every time.
 3. **The five fights are not alike.** Hall5 is the entrance (not Hall1); Hall4 is 31 tiles; the four
-   E4 members have **no sight line** (approach + A), while **Wallace has no A-press trigger**.
+   E4 members have **no sight line** (approach + A).
+   ⛔⛔ **CORRECTED 2026-09-10 — THIS READ "while **Wallace has no A-press trigger**" AND IT IS FALSE.
+   A BOT BUILT ON IT HANGS FOREVER AT THE LAST FIGHT OF THE GAME.** Read from the decomp, twice, by
+   two independent readers:
+   ```
+   EverGrandeCity_ChampionsRoom_EventScript_Wallace::
+       playbgm MUS_ENCOUNTER_CHAMPION, FALSE
+       msgbox EverGrandeCity_ChampionsRoom_Text_IntroSpeech, MSGBOX_DEFAULT   ← A PRESS REQUIRED
+       trainerbattle_no_intro TRAINER_WALLACE, ..._Text_Defeat
+   ```
+   and `data/scripts/std_msgbox.inc:18-22` — `Std_MsgboxDefault: message NULL / waitmessage /
+   **waitbuttonpress** / return`. ⇒ Wallace's intro speech parks on an **EDGE-TRIGGERED** press with
+   **no timeout**. `trainerbattle_no_intro` means "no trainer-INTRO text", **not** "no dialogue".
+   ‼ **AND THE WIN NEEDS ANOTHER ONE**: `..._EventScript_Defeated` opens the door then runs
+   `msgbox ..._Text_PostBattleSpeech, MSGBOX_DEFAULT` — a second `waitbuttonpress` between beating
+   Wallace and reaching the Hall of Fame.
+   ⭐ **THIS IS `KI-93` VERBATIM, AND THE FIX ALREADY EXISTS** — *"a message ending in `\p` parks the
+   text printer awaiting an EDGE-TRIGGERED press with no timeout, and the wait branch pressed
+   nothing"*. ⛔ Dismiss on `get_text_printer(0).state == WaitForButton`, **never** on a frame count,
+   and ⛔ never by mashing A (a held button is not an edge — the same trap `story-drive` §5 names).
 
 ---
 
