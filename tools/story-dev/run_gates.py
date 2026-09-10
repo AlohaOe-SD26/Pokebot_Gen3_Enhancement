@@ -461,6 +461,20 @@ GATES: list[tuple[str, bool]] = [
     # real but well inside the no-ROM tier — quoted here because an unmeasured "it's fast" is how
     # a suite acquires a time bound it cannot keep.
     ("probe_dexfence_opportunity.py", False),
+    # §Ch23 leg 4 vs the League interior, 2026-09-10. `at_ever_grande_top()` required
+    # `_on_map(EVER_GRANDE_CITY)`, but every League room is its OWN map and the League is not in
+    # `VICTORY_ROAD_MAPS` — so from inside the building BOTH of leg 4's guards read False and the
+    # chapter fired an OCEAN CROSSING from indoors, burning all three attempts and RAISING.
+    # ⛔ A DERAIL AMPLIFIER: it turns one recoverable §Ch24 fault into a hard §Ch23 failure.
+    # ⭐ Two arms, each attacking a different claim, and BOTH are load-bearing:
+    #   `=nofix`  restores the pre-fix predicate -> C1+C2 red and NOTHING ELSE. That second half is
+    #             the finding: the bug was ONLY the interior, so the report claiming it "returns
+    #             False at the League door" had the mechanism wrong (6 <= 55 was already True).
+    #   `=prefix` swaps the explicit map set for `startswith("EVER_GRANDE_CITY_")` -> C6 red,
+    #             because that swallows the POKÉ CENTER, which shares the prefix and is not the
+    #             League. Not a strawman: it is the simplification a maintainer would reach for.
+    # Pure and fast: imports two bot modules, reads no ROM, drives no emulator.
+    ("probe_league_leg4_guard.py", False),
 ]
 
 

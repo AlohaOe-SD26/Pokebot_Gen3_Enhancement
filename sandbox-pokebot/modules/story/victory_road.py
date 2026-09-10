@@ -1361,8 +1361,62 @@ def _sampling(gen: Generator, report: dict) -> Generator:
         yield
 
 
+#: The Pokémon League BUILDING's interior — every map you can only stand on by having already
+#: crossed the ocean and climbed the falls.
+#:
+#: ⛔⛔ AN EXPLICIT SET, NEVER A `startswith("EVER_GRANDE_CITY_")` PREFIX MATCH. Two maps carry that
+#: prefix and are NOT the League: `EVER_GRANDE_CITY_POKEMON_CENTER_1F` and `..._2F`. A prefix test
+#: would silently swallow the Poké Center, which is exactly the map §Ch23's leg 10 heal and the
+#: whiteout respawn care about — so the convenient version of this constant breaks the two things
+#: most likely to be true when it is consulted.
+LEAGUE_INTERIOR_MAPS = (
+    MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_1F,
+    MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_2F,
+    MapRSE.EVER_GRANDE_CITY_HALL1,
+    MapRSE.EVER_GRANDE_CITY_HALL2,
+    MapRSE.EVER_GRANDE_CITY_HALL3,
+    MapRSE.EVER_GRANDE_CITY_HALL4,
+    MapRSE.EVER_GRANDE_CITY_HALL5,
+    MapRSE.EVER_GRANDE_CITY_SIDNEYS_ROOM,
+    MapRSE.EVER_GRANDE_CITY_PHOEBES_ROOM,
+    MapRSE.EVER_GRANDE_CITY_GLACIAS_ROOM,
+    MapRSE.EVER_GRANDE_CITY_DRAKES_ROOM,
+    MapRSE.EVER_GRANDE_CITY_CHAMPIONS_ROOM,
+    MapRSE.EVER_GRANDE_CITY_HALL_OF_FAME,
+)
+
+
+def inside_league() -> bool:
+    """Is the bot inside the Pokémon League building (any Elite Four room, hall, or lobby)?"""
+    return any(_on_map(m) for m in LEAGUE_INTERIOR_MAPS)
+
+
 def at_ever_grande_top() -> bool:
-    """Leg 4's completion predicate — ⛔ a POSITIVE whitelist, never `not _on_map(R126)`."""
+    """Leg 4's completion predicate — ⛔ a POSITIVE whitelist, never `not _on_map(R126)`.
+
+    ⛔⛔ THE LEAGUE INTERIOR COUNTS, AND OMITTING IT WAS A LATENT DERAIL-AMPLIFIER (fixed 2026-09-10).
+    This used to be `_on_map(EG) and y <= EG_LANDING[1]` alone. From INSIDE the League building
+    `_on_map(EG)` is False (the rooms are their own maps, `map_data.py:1037-1051`) and the League is
+    not in `VICTORY_ROAD_MAPS` either — so BOTH of leg 4's guards read False and the chapter fired
+    **an ocean crossing from inside a building**. `cross_to_ever_grande` then aims
+    `_navigate_riding_out(EG, EG_LANDING)` at a surf landing it cannot plan to, burns all three of
+    the chapter's attempts, and RAISES. ⇒ one recoverable §Ch24 error became a HARD §Ch23 failure.
+    ‼ Being in the League is unambiguously PAST the crossing — the building has no other entrance —
+    so True is the honest answer, not a special case.
+
+    ⚠ MEASURED, because the report that sent me here had the mechanism WRONG and the fix would have
+    landed in the wrong place: an agent said this returns False "at the League door". It does not.
+    `EG_LANDING = (18, 55)` and the door apron is `(18, 6)`; **6 <= 55, so it already returned True
+    there** and leg 4 correctly skipped. The real hole was one map further in. ⇒ **a conclusion can
+    be right while its stated mechanism is wrong, and the mechanism is what you build against.**
+
+    ⛔ Both call sites MIRROR each other by design (the leg's own self-skip at `cross_to_ever_grande`
+    and the chapter's guard) — the chapter docstring requires it, so no anti-vacuity guard can fire
+    from the chapter path. Fixing this HERE keeps them mirrored by construction; patching one guard
+    would have split them.
+    """
+    if inside_league():
+        return True
     return _on_map(EG) and _here_tile()[1] <= EG_LANDING[1]
 
 

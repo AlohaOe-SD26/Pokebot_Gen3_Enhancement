@@ -26336,3 +26336,47 @@ for FULLNESS; `battler_count`, egg-filtered, for the TEAM TARGET) and **PROVEN, 
 pre-gym-1 input combinations compared against the old logic transcribed from git history —
 **0 divergences**. Cases C19/C20 keep that A/B as a permanent regression test; C15 is deliberately the
 same party shape read by the other convention. Full entry in `08-MISTAKES.md` 2026-09-10.
+
+---
+
+## 2026-09-10 — §Ch23 leg 4 fired an OCEAN CROSSING from inside the Pokémon League (gate #52)
+
+**The defect.** `at_ever_grande_top()` was `_on_map(EVER_GRANDE_CITY) and y <= EG_LANDING[1]`. Every
+League room is its OWN map (`map_data.py:1037-1051`), and the League is not in `VICTORY_ROAD_MAPS`
+either — so from inside the building BOTH of leg 4's guards read False:
+
+    if not inside_vr and not at_ever_grande_top():     # -> True and True  => FIRES
+        yield from cross_to_ever_grande(report)
+
+`cross_to_ever_grande` then aims `_navigate_riding_out(EG, EG_LANDING)` — a SURF LANDING — at a bot
+standing indoors. It cannot plan, all three of the chapter's attempts burn, and the chapter RAISES.
+⇒ ⛔ **A DERAIL AMPLIFIER: one recoverable §Ch24 fault became a HARD §Ch23 failure.** That is the
+class of bug worth hunting — it converts a retryable error into a run-ender.
+
+**Why the fix is in the PREDICATE, not the guard.** `at_ever_grande_top()` has exactly two call sites
+— leg 4's own self-skip and the chapter's guard — and `do_victory_road_chapter`'s docstring REQUIRES
+they mirror, so that no anti-vacuity guard can fire from the chapter path. Fixing the predicate keeps
+them mirrored by construction; patching one guard would have split them silently.
+
+**The fix.** An explicit `LEAGUE_INTERIOR_MAPS` (13 maps) + `inside_league()`, and
+`at_ever_grande_top()` returns True inside the League — being in the building is unambiguously past
+the crossing, since it has no other entrance.
+⛔ **EXPLICIT SET, NEVER `startswith("EVER_GRANDE_CITY_")`** — that prefix also matches
+`EVER_GRANDE_CITY_POKEMON_CENTER_1F/2F`, i.e. exactly the map leg 10's heal and the whiteout respawn
+care about. The convenient version breaks the two things most likely to be true when it is consulted.
+
+**Gate #52** `probe_league_leg4_guard.py` — 8 cases, **TWO** fault arms, each attacking a different
+claim:
+| arm | restores | must go red | proves |
+|---|---|---|---|
+| `=nofix`  | the pre-fix predicate | **C1+C2 only** | the fix is load-bearing |
+| `=prefix` | the `startswith` version | **C6** | the explicit map set is load-bearing |
+Clean: 8/8, EXIT=0.
+
+### ⛔ AND THE BUG REPORT THAT SENT ME HERE HAD THE MECHANISM WRONG
+An agent reported leg 4 fires *"because `at_ever_grande_top()` is False **at the League door**"*.
+**It is not.** `EG_LANDING = (18, 55)`; the door apron is `(18, 6)`; `6 <= 55` was ALREADY True, so
+leg 4 correctly skipped there. The hole was **one map further in** — inside the building.
+⇒ Had I built against the reported mechanism I would have "fixed" a working case and left the real
+one open, with a green probe over it. **C3 exists so that can never be re-derived from this file**,
+and the `=nofix` arm pins it: C1+C2 red, **C3–C7 green**.

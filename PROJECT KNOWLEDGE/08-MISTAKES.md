@@ -16154,3 +16154,71 @@ sitting near a verdict word.
 design gets WORKED OUT before it is ruled on, so they are the likeliest place to hold the argument
 that kills a proposal. They remain NOTES, never truth — but a note you have not read cannot be
 weighed at all.
+
+---
+
+## 2026-09-10 — An agent's conclusion was right, its mechanism was wrong, and I had already copied the mechanism into the docs
+
+**Symptom.** An adversarial refuter reported that §Ch23's leg 4 fires an ocean crossing on re-entry,
+*"because `at_ever_grande_top()` is False at the League door"*. The CONCLUSION is correct and it is a
+real, serious bug. The **because** is false.
+
+**What was actually true.** `EG_LANDING = (18, 55)`, so the predicate is `y <= 55`. The League door
+apron is `(18, 6)`. **6 <= 55, so it already returned True there** — leg 4 skipped correctly at the
+door, and always had. The real hole is ONE MAP FURTHER IN: each League room is its own map
+(`map_data.py:1037-1051`), so `_on_map(EVER_GRANDE_CITY)` is False *inside the building*, and the
+League is not in `VICTORY_ROAD_MAPS` either ⇒ both guards read False.
+
+**The cost, and it had already been incurred.** I did not merely receive the wrong mechanism — I
+**wrote it into `03-PUNCH-LIST.md` in the preceding commit**, verbatim, inside a correction block
+whose whole purpose was fixing other people's wrong claims. A fix aimed at "the League door" would
+have changed a case that was never broken, shipped a green probe over it, and left the real defect
+live — the worst of the three possible outcomes, because it looks finished.
+
+**Root cause.** A conclusion and its mechanism are SEPARATE claims with separate evidence. Agreement
+on the conclusion (leg 4 fires — true) carries no information about the mechanism (which guard, on
+which map, for which reason). I verified the conclusion, found it correct, and let that stand in for
+verifying the *reason* — the cheapest possible substitution, and invisible because the headline
+checked out.
+
+**The fix that worked.** Read the constant. One `grep` for `EG_LANDING` settled it in seconds, and it
+inverted the diagnosis. Then the fix went in the PREDICATE (both call sites mirror by design), and
+the probe pins BOTH facts: C1/C2 are the real defect, **C3 is the door apron that was never broken**.
+The `=nofix` arm proves both halves at once — C1+C2 red, C3-C7 GREEN.
+
+⭐ **Prevention rule (one line):** *A conclusion and its mechanism are two claims — verifying the
+conclusion does not verify the "because", and the "because" is what you build against.*
+
+‼ **The tell to watch for:** when a report says "X fails **because** Y", the cheapest check is almost
+always to read Y's actual value, not to re-test X. Here that was one grep against one constant.
+
+---
+
+## 2026-09-10 — P5 fired THREE times in one session; the fix was a skill I already had and was not running
+
+**The pattern, all three the same shape.** A fact lived in N places, I corrected the ones I could
+NAME, and the pair check then returned PASS over the one I could not:
+1. `18 cases` / `:1612` — fixed in `03-PUNCH-LIST.md` + `04-HANDOFF.md`, **missed `07-CHANGELOG.md`**.
+2. the leg-4 mechanism — fixed in `03` + appended to `07`/`08`, **missed `06-DECISIONS-LOG.md`**,
+   which is the file `03` explicitly tells the reader to open first.
+3. (earlier) a closed punch-list item that solely owned an open fact.
+
+**Why my own greps kept missing it.** I grepped for what I had CHANGED — the numbers, the symbol
+names. The survivor each time was the same claim in DIFFERENT WORDS, or the same words 3,000 lines
+away under a pointer. ⛔ **A literal grep proves the absence of a SPELLING, not of a CLAIM.**
+
+**The fix, and it is not another prose rule.** This repo already ships a `staleness-sweep` skill
+built for exactly this — proximity search over topic-words × staleness-cues across EVERY
+`PROJECT KNOWLEDGE/*.md`, judged by hand. I had not been invoking it.
+✅ **RUN IT ON OCCURRENCE 3 AND IT WORKED FIRST TIME:** it surfaced the `06-DECISIONS-LOG.md`
+survivor (plus 6 legitimate hits I dismissed by hand — my own refuting quotes, and a DIFFERENT
+chapter's "leg 4"). A hand-grep for my changed numbers would never have reached it.
+
+⭐ **STANDING RULE, ADOPTED:** *after correcting a CLAIM (not just a number), run `staleness-sweep`
+before the commit — and judge every hit by hand, because roughly half are legitimate.*
+
+‼ **And the append-only wrinkle this exposed.** The survivor sat in `06`, which is append-only. The
+resolution: **mark in place, rewrite nothing.** Not one word of the original entry changed; a
+forward-pointing marker was added beneath it. Append-only protects the RECORD — it does not licence
+a file to silently mislead the reader who lands on the wrong claim, especially when another file
+points at that exact entry.

@@ -4977,9 +4977,51 @@ items partly spent, all four E4 flags cleared, `VAR_ELITE_4_STATE` zeroed, respa
   * leg 4 FIRES on re-entry and attempts an ocean crossing *from inside the League*, because
     `at_ever_grande_top()` is False at the League door — a latent routing bug the marker would have
     HIDDEN rather than fixed.
+    ⛔⛔ **THE "because" IN THE LINE ABOVE IS WRONG — SEE THE CORRECTION ENTRY AT THE END OF THIS
+    FILE (2026-09-10, later).** `at_ever_grande_top()` was **already True at the League door**
+    (`EG_LANDING = (18,55)`, apron `(18,6)`, `6 <= 55`). The real hole was the League INTERIOR maps.
+    The bug and the DECISION below are unaffected; only the mechanism was wrong. FIXED + gated #52.
+    ‼ *Marked in place rather than rewritten: `06` is append-only, so not one word above was
+    changed — but an append-only file still must not silently mislead the reader who lands HERE,
+    and `03-PUNCH-LIST.md` points people at this very entry.*
 ⇒ **DECISION: do NOT ship an entry marker yet.** The next work on §Ch24 is (a) make §Ch23 re-entry
 survivable from the League door (leg 4's precondition), and (b) decide the MONEY policy for a
 post-whiteout re-stock. A marker chosen now would paper over both.
 ⚠ Recorded so it is not re-litigated: `FLAG_ENTERED_ELITE_FOUR` is still the right marker for
 *"the gauntlet was begun"* if a future design needs that fact — it is only wrong as a **completion
 gate**. Do not re-derive its decomp credentials; they are above.
+
+---
+
+## 2026-09-10 (later) — CORRECTION to the §Ch24 entry-marker entry above: its leg-4 mechanism was wrong
+
+⛔ **READ THIS BEFORE ACTING ON THE PRECEDING ENTRY.** That entry (same date) closes with:
+
+> "leg 4 FIRES on re-entry and attempts an ocean crossing *from inside the League*, because
+> `at_ever_grande_top()` is False at the League door — a latent routing bug the marker would have
+> HIDDEN rather than fixed."
+
+**The conclusion is right. The "because" is FALSE, and the "because" is what a builder acts on.**
+
+MEASURED, from the constants: `EG_LANDING = (18, 55)` (`victory_road.py:130`) and the League door
+apron is `(18, 6)` (`victory_road.py:374`). The predicate was `_on_map(EG) and y <= 55`, and
+**`6 <= 55` was ALREADY True** — so leg 4 skipped correctly at the door, and always had.
+
+**The real hole is one map further in.** Every League room is its OWN map
+(`map_data.py:1037-1051`), so `_on_map(EVER_GRANDE_CITY)` is False *inside the building*, and the
+League is not in `VICTORY_ROAD_MAPS` either ⇒ both of leg 4's guards read False and the chapter aimed
+a SURF LANDING at a bot standing indoors. FIXED 2026-09-10 in the PREDICATE (its two call sites must
+mirror), gated as **#52** `probe_league_leg4_guard.py`, whose `=nofix` arm pins BOTH halves: **C1+C2
+red, C3-C7 GREEN** — i.e. the interior was broken and the door never was.
+
+‼ **WHY THIS CORRECTION EXISTS AT ALL, and it is the reusable part.** `03-PUNCH-LIST.md` tells the
+reader *"Read `06-DECISIONS-LOG.md` 2026-09-10 before touching this."* I corrected the punch list and
+appended the corrected mechanism to `07-CHANGELOG.md` and `08-MISTAKES.md` — and left the wrong claim
+standing in the one file my own pointer sends people to. A Tier 1 reviewer caught it.
+⇒ **P5, for the THIRD time in one session: a fact lived in FOUR places, I updated three, and the
+missed one was the one under a "read this first" pointer.** Updating the halves you can NAME is the
+most dangerous state, because the pair check then returns PASS.
+⇒ ⭐ **STANDING RULE, ADOPTED NOW: when a claim is CORRECTED, run the `staleness-sweep` skill before
+committing.** It searches the whole tree by MEANING rather than by exact wording, which is precisely
+what a hand-grep for my own phrasing cannot do — I grepped for the numbers I had changed, not for the
+sentence that asserted the old mechanism in different words.
