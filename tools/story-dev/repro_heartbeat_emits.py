@@ -99,7 +99,24 @@ def main() -> int:
     print(f"    [DEX] lines    : {len(dexA)}")
     for l in dexA:
         print(f"        {l.strip()[:118]}")
-    okA = errA is None and len(hbA) >= 2 and len(dexA) == 1 and "+#183" in "".join(dexA)
+    # ‼ FIELD ASSERTION, ADDED 2026-09-10 — the gate used to check only that heartbeats EXISTED.
+    # Every load-bearing field could have been deleted from the f-string and this stayed GREEN,
+    # which is the "a checklist protects exactly what it enumerates" shape: it enumerated LINES,
+    # so it could not see a missing FIELD. Each name below is depended on by a shipped tool:
+    #   party= / ids=  -> `probe_laggard_origin.py`, `probe_dexfence_opportunity.py` (party size)
+    #   owned=         -> the `#24-dexhunt` A/B grade (dex strictly increasing)
+    #   balls=         -> `#24-dexhunt`'s ball clause; a `[BALLS]` delta only fires on a CHANGE,
+    #                     so a run parked at 1 ball emits nothing and reads like one at 30.
+    REQUIRED_HB_FIELDS = ("party=", "ids=", "owned=", "balls=")
+    missingA = sorted({f for f in REQUIRED_HB_FIELDS if any(f not in l for l in hbA)})
+    print(f"    required fields: {'all present' if not missingA else 'MISSING ' + ', '.join(missingA)}")
+    okA = (
+        errA is None
+        and len(hbA) >= 2
+        and len(dexA) == 1
+        and "+#183" in "".join(dexA)
+        and not missingA
+    )
 
     # ---- ARM B: FAULT-INJECT the original bug -----------------------------------------------------
     broken = original.replace("    global _prev, _stall_frames, _last_sig, _last_dump_stall, _start_frame\n"
@@ -116,10 +133,31 @@ def main() -> int:
     print(f"    [hb] lines     : {len(hbB)}   ⇐ 0 means telemetry is SILENTLY DEAD")
     okB = injected and errB is not None and len(hbB) < len(hbA)
 
+    # ---- ARM C: prove the FIELD assertion itself can fail -----------------------------------------
+    # ⛔ AN ASSERTION ADDED WITHOUT AN ARM IS DECORATION. ARM B proves the gate catches telemetry
+    # that is DEAD; it cannot prove the gate catches telemetry that is ALIVE BUT INCOMPLETE — the
+    # heartbeats still emit, no exception is raised, and every one of ARM B's checks passes. So
+    # this arm deletes exactly one field from the f-string and requires ARM A's check to go RED.
+    dropped = original.replace('f"balls={st.get(\'balls\')} "\n', "", 1)
+    dropped_ok = dropped != original
+    hbC: list[str] = []
+    if dropped_ok:
+        with tempfile.TemporaryDirectory() as td:
+            mC, _ = _load(dropped, "C")
+            logC, _errC = _drive(mC, pathlib.Path(td), [[1, 4], [1, 4], [1, 4, 183]])
+        hbC = [l for l in logC.splitlines() if "[hb]" in l]
+    missingC = sorted({f for f in REQUIRED_HB_FIELDS if any(f not in l for l in hbC)})
+    okC = dropped_ok and len(hbC) >= 2 and missingC == ["balls="]
+    print("\n  ARM C — FIELD-DROP (`balls=` deleted from the heartbeat f-string)")
+    print(f"    dropped        : {dropped_ok}")
+    print(f"    [hb] lines     : {len(hbC)}   ⇐ still emitting: this is the ALIVE-BUT-INCOMPLETE case")
+    print(f"    detected as    : {'MISSING ' + ', '.join(missingC) if missingC else 'nothing missing ⇒ GATE IS BLIND'}")
+
     print("\n" + "=" * 100)
-    print(f"  [{'OK  ' if okA else 'FAIL'}] ARM A: heartbeats emit, dex gain reported once")
+    print(f"  [{'OK  ' if okA else 'FAIL'}] ARM A: heartbeats emit, dex gain reported once, all fields present")
     print(f"  [{'OK  ' if okB else 'FAIL'}] ARM B: removing the fix BREAKS it ⇒ this repro can fail")
-    good = okA and okB
+    print(f"  [{'OK  ' if okC else 'FAIL'}] ARM C: dropping ONE field is CAUGHT ⇒ the field check is live")
+    good = okA and okB and okC
     print(("  PASS — the heartbeat path is exercised end to end." if good
            else "  ⛔ FAIL — see the arms above."))
     print("=" * 100)

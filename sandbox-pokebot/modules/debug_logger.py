@@ -413,6 +413,15 @@ def on_frame(frame_info=None) -> None:
             f"controllable={st.get('controllable')} map={_fmt_map(st.get('map'))} "
             f"pos={st.get('pos')} party={st.get('party_key')} "
             f"ids={st.get('party_ids')} owned={len(owned) if owned is not None else '?'} "
+            # ‼ `balls` was ALREADY computed every frame (`_light_state`) and already drove the
+            # `[BALLS]` delta event — it was simply absent from the heartbeat, so it cost one
+            # word to add and ZERO extra reads. It is here because `#24-dexhunt`'s fence has a
+            # ball clause, and a corpus scan for "could the fence have fired?" could confirm
+            # every OTHER condition (badge, party size, species, map) and not that one:
+            # a delta event only fires when the count CHANGES, so a run that sits at 1 ball for
+            # an hour emits nothing and reads identical to a run sitting at 30.
+            # ⇒ a CONDITION THE GRADER MUST TEST NEEDS A LEVEL, NOT ONLY AN EDGE.
+            f"balls={st.get('balls')} "
             f"msg={st.get('message')!r}",
         )
 
