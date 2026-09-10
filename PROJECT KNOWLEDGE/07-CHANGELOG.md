@@ -26057,3 +26057,42 @@ AND a ball AND wild grass), only **40 minutes** in the whole batch offered a gap
 **⭐⭐ WHAT REOPENS, AND IT IS THE REAL QUESTION:** if caught mons DO train and DO reach the window,
 **why is `#24-lowlevelmules` still roughly a third of run-ends?** "They cannot get into training" is
 now ruled out with evidence. The next investigation starts from what happens AFTER admission.
+
+## 2026-09-10 — The §Ch23 refusal is diagnosed (HM carriers), and the obvious fix is dead
+
+**THE DIAGNOSIS.** **[MEASURED BY ME, reproduced independently by 10 agents]** the Victory Road
+training refusal names its offender, and one species dominates:
+```
+  all of x4-runs, stdout.txt: 414 occurrences = 198 Marill · 72 Slugma · 36 Mightyena · 36 Nincada
+                                                · 18 each Shedinja / Ninjask / Poochyena / Kadabra
+  ⚠ DECISION UNIT = 23 DISTINCT REFUSAL EVENTS (each renders 18x in stdout, 15x in debug-logs).
+  Marill is named in 11 of 23 = 47.8% — the proportion HOLDS; the 414 does not mean 414 observations.
+```
+**The bench mechanism works and the list is merely incomplete:** Castform has a **92.3%** laggard
+rate and **zero** refusals *because it is benched*; Zigzagoon likewise. Marill (100% laggard, **L13
+in 100% of 521 sightings**, peak L15 corpus-wide, `Azumarill` never observed) and Slugma are the same
+shape and are absent from the list.
+
+**⛔⛔ AND THE FIX IS DEAD — the argument was already in this repo and I did not find it.**
+`07-CHANGELOG.md` F6 (~:24731): *"'bench' means only 'do not train' — the mon is still FIELDED…"*
+✅ **Verified in code:** the faint-replacement chooser (`story_mode.py:273-274`) filters on
+`None / is_egg / current_hp <= 0 / _excluded`; `_excluded` (`:262-270`) is ally-and-already-battling
+only; **`BENCH_SPECIES` has exactly two consumers, both in `victory_road.py`.** ⇒ benching Marill
+deletes the only gate refusing to enter the Elite Four with a L13 Marill **and still fields it there**.
+‼ **A no-op on the estimate is not a no-op on the run.**
+
+**⚠ It would not even work well.** The refusal is an **ARGMAX** (`worst = max(estimates)` vs
+`MAX_TRAINING_FRAMES = 250,000`), so removing the named mon promotes the next. Four agents re-priced
+every event: **6-10 of 23 cleared** (conservative 6). The top residual is **Mightyena — the Crunch
+carrier that can never be benched.**
+
+**⭐ WHAT SURVIVES:** the bot acquires **HM carriers it can neither train to the bar nor safely
+field**. The refusal is the messenger, not the defect. The real question is *"what should happen to
+a mon carried for a field move that can never reach the battle bar?"* — upstream of both benching
+and training, and **not yet investigated**.
+
+**✅ ALSO SHIPPED — `tools/story-dev/precheck_prior_art.py`.** Given the symbols AND mechanism words
+of a proposed change, it sweeps `03/05/06/07/08` and flags every hit sitting near a verdict word
+(rejected / unsafe / refuted / killed / do not / decided / superseded). **Fault-tested on the
+argument I actually missed:** `precheck_prior_art.py "still FIELDED" "do not train"` returns
+`07-CHANGELOG.md:24731 ⛔ VERDICT WORD NEARBY`.

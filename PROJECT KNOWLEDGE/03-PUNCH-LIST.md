@@ -1643,6 +1643,49 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
      non-egg mon **holding a damaging move**. ⛔ **THAT IS UNTESTED AND CURRENTLY UNTESTABLE:
      `ids=` records no moves.** Reading the predicate suggests it is permissive, but that is a READ,
      not a measurement — and this project has a logged habit of those diverging.
+     ⭐⭐⭐ **2026-09-10 — THE REFUSAL'S DRIVERS ARE NOW NAMED, AND THE OBVIOUS FIX IS DEAD.**
+     **[MEASURED BY ME, reproduced by 10 agents]** the §Ch23 refusal message
+     (`<Species>#<PID> alone needs <N> frames`) is dominated by ONE species:
+     ```
+       occurrences (all of x4-runs, stdout.txt): 414 = 198 Marill · 72 Slugma · 36 Mightyena ·
+                                                  36 Nincada · 18 each Shedinja/Ninjask/Poochyena/Kadabra
+       ⚠ BUT THE DECISION UNIT IS **23 DISTINCT REFUSAL EVENTS**, not 414 lines: each event renders
+         18x in stdout and 15x in debug-logs (both counts correct, same events).
+       Marill is named in **11 of 23 events = 47.8%** — the proportion HOLDS at event level.
+     ```
+     ⭐ **AND THE BENCH MECHANISM DEMONSTRABLY WORKS — THE LIST IS MERELY INCOMPLETE:**
+     `Castform` has a **92.3%** laggard rate and **0** refusals *because it is benched*; `Zigzagoon`
+     20.6% and 0 refusals, benched. `Marill` (100% laggard, peak **L14 across 15 runs**, never once
+     above L15 in 33 runs corpus-wide; `Azumarill` NEVER OBSERVED) and `Slugma` are the same shape
+     and are NOT on the list.
+     ⛔⛔ **BUT DO NOT ADD THEM. THE CANDIDATE IS DEAD, AND THE ARGUMENT WAS ALREADY IN THIS REPO**
+     — `07-CHANGELOG.md` F6 (~:24731), which I failed to find and an agent did:
+     > *"'bench' means only 'do not train' — **the mon is still FIELDED** … the fix would field an
+     > untrained mon having removed it from the only check that would have noticed."*
+     ✅ **VERIFIED BY ME IN CODE:** the faint-replacement chooser (`story_mode.py:273-274`) filters on
+     `None / is_egg / current_hp <= 0 / _excluded`, and `_excluded` (`:262-270`) is ally-and-
+     already-battling only. **`BENCH_SPECIES` has exactly two consumers, both in `victory_road.py`
+     (`:1781`, `:1826`).** ⇒ benching Marill removes it from `team_is_ready` — the ONLY gate refusing
+     to enter the Elite Four with a L13 Marill — while leaving it fully eligible as a faint
+     replacement **in that same Elite Four**. ‼ **A no-op on the estimate is not a no-op on the run.**
+     ⚠ **AND IT WOULD NOT EVEN WORK WELL.** The refusal is an **ARGMAX** — `worst = max(estimates)`
+     against `MAX_TRAINING_FRAMES = 250,000` — so removing the named mon merely promotes the next.
+     Re-priced per event by four independent agents: benching the Marill line clears **6-10 of 23**
+     (26-43%; conservative 6/23), and the top residual is **Mightyena, the CRUNCH carrier that can
+     never be benched** (`CRUNCH_LEVEL = 47`, no Dark TM in Emerald). Extending the list to absorb
+     the remainder walks straight back into the design already ruled UNSAFE on 2026-09-08.
+     ⭐ **THE DIAGNOSIS THAT SURVIVES, AND IT IS WORTH KEEPING:** the bot acquires **HM carriers it
+     can neither train to the bar nor safely field** — Marill is caught purely as a Dive/Waterfall/
+     Surf carrier and sits at **L13 in 100% of 521 sightings**. The refusal is the MESSENGER, not the
+     defect. ⇒ any real fix is UPSTREAM of both benching and training, and must answer *"what should
+     happen to a mon that is carried for a field move and can never reach the battle bar?"*
+     ⛔ **NOT YET INVESTIGATED, AND DO NOT BUILD ON IT WITHOUT ONE:** the faint-chooser could consult
+     a do-not-field set — but that is a NEW design, and this item has now killed two in two days.
+     ⚠ **SIDE FINDING, load-bearing if anything here is ever promoted:**
+     `custom-pokebot/modules/story/victory_road.py:1806` has **NO empty-battler guard**; it exists
+     only in sandbox (`:1817-1827`). `06-DECISIONS-LOG.md` shipped that guard as a hard prerequisite
+     for touching this predicate ⇒ promote the guard WITH any change, or the prerequisite is
+     silently unmet.
      ⭐⭐ **THE QUESTION THAT REOPENS, AND IT IS THE REAL ONE:** if caught mons DO train and DO reach
      the window, **why is `#24-lowlevelmules` still ~a third of run-ends?** The cause is NOT "they
      cannot get into training". That is now ruled out with evidence, and the next investigation

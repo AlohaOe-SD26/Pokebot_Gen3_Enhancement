@@ -15876,3 +15876,37 @@ constant, different branch, different commit. The reasoning transfers; the rulin
 compressing carries a caveat about its own scope, the caveat travels with the claim or the claim does
 not travel.**
 
+## 2026-09-10 — Twice in two days the argument that killed my design was already in the repo
+
+**Symptom.** I diagnosed the §Ch23 refusal (HM carriers, Marill 11/23 events), proposed the obvious
+narrow fix (add Marill to `BENCH_SPECIES`), and ran the prior-art rule I had written the day before.
+**I still missed the argument that kills it** — `07-CHANGELOG.md` F6: *"'bench' means only 'do not
+train' — the mon is still FIELDED"*. An agent found it. That is the SECOND consecutive design killed
+by something already written down here.
+
+**⛔ AND THE RULE WAS NOT THE PROBLEM — MY SEARCH WAS.** I grepped `06-DECISIONS-LOG.md` for
+`BENCH_SPECIES` and for "bench by role", and got one hit each. The killing argument lived in a
+**different file** under **different words**. ⇒ I searched for the SYMBOL I intended to CHANGE, and
+the objection was phrased in terms of the MECHANISM I intended to RELY ON.
+
+**⭐⭐ PREVENTION — MADE A TOOL, NOT A RULE, BECAUSE THE RULE HAD ALREADY FAILED ONCE:**
+`tools/story-dev/precheck_prior_art.py` sweeps all five history/status files for any number of terms
+and flags hits sitting within a few lines of a verdict word. **Fault-tested against the real miss**:
+`precheck_prior_art.py "still FIELDED" "do not train"` → `07-CHANGELOG.md:24731 ⛔ VERDICT WORD NEARBY`.
+‼ The habit it encodes: **list what your fix RELIES ON, not only what it CHANGES, and search both.**
+A bench fix relies on "benched mons stay out of battles" — that sentence is where its refutation
+lives, and no `BENCH_SPECIES` grep will ever reach it.
+
+**⭐ SECOND LESSON, FROM THE SAME ROUND — AN ARGMAX CANNOT BE COUNTED BY NAME.** I counted which
+species the refusal names (Marill 48%) and inferred what removing it would fix. But the refusal takes
+`max(estimates)`: it names exactly ONE mon, so the name-count says nothing about what removal clears.
+Measured properly it clears **6-10 of 23**, not 48%, and the residual is a mon that can never be
+benched. ⇒ **when a check reports an ARGMAX, the population it names is not the population it
+blocks** — re-price the whole set with the candidate applied, per event.
+
+**⭐ THIRD, SMALLER: MY 414 WAS RIGHT AND STILL MISLEADING.** An agent accused the figure of being
+irreproducible; its own refuter defended it (`grep -ro "alone needs" */*/stdout.txt | wc -l` → 414,
+exactly as stated, correctly scoped to "all of x4-runs"). But each refusal event renders **18 times**
+in stdout and 15 in debug-logs ⇒ the decision unit is **23 events**. **A correct count of the wrong
+unit is still the wrong number for the decision** — state the unit beside every count.
+

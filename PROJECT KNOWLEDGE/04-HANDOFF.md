@@ -67,6 +67,22 @@ Every banner further down is HISTORY, newest first.
 > ✅ **THE BATCH RAN (2026-09-09, `20260909-160339`, 8 lanes, 3h, `--build sandbox`) AND ANSWERED ONE OF THE TWO.** The exp payout **is divided among participants** — decomp-verified (`Cmd_getexp`, `viaSentIn`) and measured at **0.504** (n2>=10) / **0.501** (n2>=20) ⇒ `estimate_frames_to_level` is up to 2x optimistic and **L42, not L35** stands.
 > ✅✅ **BOTH QUESTIONS ARE NOW ANSWERED (2026-09-09).** The *"88.8% born behind"* half was measured with `probe_laggard_origin.py`: **the PROPORTION holds (84.1%, n=63, median 10)** but **the INFERENCE is REFUTED — 39.7% of those mons HAD a <=6 window**, and the window is LONG: median **163 heartbeats = 163 MINUTES (~2.7 HOURS emulated)**. So *"born dead weight, no window to maintain"* is false for 40% of them. ⚠ **But price a fix against 20.6%, not 39.7%** — the code's real predicate is `gap <= 5` (not 6), and 4 of the 15 "recoveries" were the party MAX FALLING rather than the laggard training.
 > ⇒ **the open problem is no longer "they arrive useless" but "a LONG window existed and was not used"** — reachable at TRAINING time, not only at catch time.
+> ⭐⭐⭐ **2026-09-10 — THE §Ch23 REFUSAL IS NOW DIAGNOSED: it is dominated by HM CARRIERS.**
+> `<Species>#<PID> alone needs <N> frames` across all of x4-runs = **23 distinct refusal
+> events** (414 stdout lines = 18 renderings each). **Marill is named in 11 of 23 (47.8%)**,
+> and Marill is caught purely as a Dive/Waterfall/Surf carrier — **L13 in 100% of 521
+> sightings, peak L15 corpus-wide.** The bench mechanism works (Castform: 92.3% laggard rate,
+> **0** refusals, because it IS benched); the list is just incomplete.
+> ⛔⛔ **BUT DO NOT ADD MARILL TO `BENCH_SPECIES` — THE CANDIDATE IS DEAD.** `07-CHANGELOG.md`
+> F6 already recorded it and I verified it in code: benching means *do not train*, **not do
+> not field** (`story_mode.py:273-274`; `_excluded` is ally-only) ⇒ it removes the only gate
+> that refuses to enter the E4 with a L13 Marill while leaving it eligible as a faint
+> replacement there. And the refusal is an ARGMAX, so it clears only **6-10 of 23** anyway;
+> the residual is **Mightyena**, the Crunch carrier that can never be benched.
+> ⇒ **the real question: what should happen to a mon carried for a FIELD MOVE that can never
+> reach the battle bar?** ⛔ Two designs have died here in two days — run
+> `tools/story-dev/precheck_prior_art.py` before proposing a third.
+>
 > ⛔⛔ **THE ARRIVAL-DISTRIBUTION LEAD IS DEAD (killed 2026-09-09, same day it was raised) — DO NOT RE-PROPOSE WIDENING `TRAIN_CATCHUP_GAP`.** 95 of the 184 "arrivals" were not catches (starters, Wally tutorial, **Steven's allies merged by the §Ch19 multi-battle**, gifts, withdrawals); caught mons DO train (**89% gain exp, median +20 levels, 66% reach gap <= 5**); widening the threshold to INFINITY admits **zero** extra gap-6-8 mons; and the gap is pure geography (90/90 inside the wild-band prediction). `06-DECISIONS-LOG.md:267-269` had already ruled level-denominated thresholds wrong. ⇒ **the real question reopens: if they DO train, why is `#24-lowlevelmules` still ~a third of run-ends? Start from what happens AFTER admission.** *(superseded lead, kept for its data:)* first-seen gap over all 184 mons is `gap 0: 48 | gaps 1-5: 12 TOTAL | gap 6: 23, gap 7: 36, gap 8: 26 | 16+: 23`. **46% of arrivals land in gaps 6-8 and the training window ends at gap 5** ⇒ mons arrive SYSTEMATICALLY JUST OUTSIDE it. ⚠ a candidate design mismatch, **not yet a diagnosis** — why arrivals cluster there is unmeasured.
 > ‼ Two corrections fell out of it: `TRAIN_CATCHUP_GAP = 6` gates on **`target`**, not the team max (`story_mode.py:2135`), and **PID IS NOT UNIQUE** — Ninjask and Shedinja share one (1,360 heartbeats measured), so key on `(run, PID, lineage)`.
 > ⛔ **`--build sandbox` IS MANDATORY** (`x4_headless.py` defaults to `custom`, and BOTH fields are sandbox-only — `custom-pokebot/modules/debug_logger.py` has `party_ids` 0x, `_owned_dex` 0x, measured 2026-09-09) ⇒ a default batch emits NOTHING and reads as a refutation.
