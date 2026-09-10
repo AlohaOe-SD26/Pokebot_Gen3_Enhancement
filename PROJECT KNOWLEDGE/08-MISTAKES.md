@@ -15790,3 +15790,26 @@ headline 39.7% stands as "had a window", but the number a FIX can act on is **33
 difference narrows, always ask WHICH side moved** — only one of them is usually something you can
 cause.
 
+## 2026-09-09 — My measurement used a window one level wider than the code it was measuring
+
+**Symptom.** I published "33.3% of laggards were TRAINING-REACHABLE" hours after correcting, in the
+same commit, the very predicate it depends on. My tool called a mon inside the window at `gap <= 6`;
+the code is `level >= target - 6` with `target = team_max + 1`, i.e. **`gap <= 5`**. Re-measured:
+**20.6%, not 33.3%** — and the "arrived already inside" cohort collapsed from 10 to 1, because nine
+of those ten arrived at *exactly* gap 6, the single value the predicate excludes.
+
+**⭐⭐ PREVENTION RULE — WHEN YOU CORRECT A PREDICATE, RE-DERIVE EVERY NUMBER THAT WAS MEASURED WITH
+THE OLD ONE, IN THE SAME COMMIT.** I did the hard half (reading the source, finding that
+`TRAIN_CATCHUP_GAP` keys on `target` and not the team max) and then reported a statistic built on the
+version I had just disproved. ⇒ **a correction is not complete until its consequences are propagated
+into the measurements, not merely into the prose.** The tell: my own tool's constant was named
+`TRAIN_CATCHUP_GAP` and used as a gap threshold — the name matched the code while the *semantics*
+did not, which is exactly why it read as correct.
+
+**⭐ AND THE ERROR WAS PRODUCTIVE, WHICH IS WORTH NOTING HONESTLY.** Chasing the off-by-one produced
+the arrival distribution: **48 mons arrive at gap 0, only 12 across gaps 1-5, then 23/36/26 at gaps
+6/7/8.** 46% of arrivals land in a three-level band immediately OUTSIDE a window that ends at 5.
+⇒ a boundary discrepancy of one level is worth chasing precisely because thresholds sit where the
+mass is, and an off-by-one at a threshold is never a rounding detail — **it is the difference between
+capturing the mode and missing it entirely.**
+

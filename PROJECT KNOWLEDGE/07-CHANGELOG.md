@@ -25995,3 +25995,25 @@ FLAG: every document agreed, and every document was unusable.
 the real tree**, and it **FIRES on a replay of the actual pre-fix text**. ⭐ That last one is worth
 more than the synthetic cases: a historical replay proves the gate catches the bug it was written
 for, not merely a bug of that shape.
+
+### 2026-09-09 (correction to the entry above, appended not rewritten) — 33.3% should read 20.6%
+
+⛔ The entry above states **"TRAINING-REACHABLE : 21/63 = 33.3%"** (line ~25944) and **"Price a fix
+against 33.3%"** (~25950). **Both are superseded.** The tool measured "inside the window" as
+`gap <= 6`, but the predicate it was modelling is `level >= target - 6` with `target = team_max + 1`
+in boss-fodder mode ⇒ the real condition is **`gap <= 5`**. Re-measured on the same population:
+```
+  threshold                A inside   B rose   B topfell   TRAINING-REACHABLE
+  gap <= 6  (as published)       10       11           4      21/63 = 33.3%   <- superseded
+  gap <= 5  (the CODE)            1       12           7      13/63 = 20.6%   <- correct
+```
+‼ `A inside` collapses **10 -> 1** — nine of those ten arrived at **exactly gap 6**, the one value the
+predicate excludes. ⚠ 20.6% is itself an UPPER BOUND: outside boss-fodder mode `target` is the boss
+band, so "gap from team max" is not the code's coordinate there at all.
+⭐⭐ **AND THE CORRECTION EXPOSED THE REAL LEAD.** First-seen gap across all 184 mons:
+```
+  gap 0: 48  |  gaps 1-5: 12 TOTAL  |  gap 6: 23, gap 7: 36, gap 8: 26  |  gaps 9-15: 16  |  16+: 23
+```
+**46% of arrivals land in gaps 6-8 and the training window ends at gap 5** ⇒ mons arrive
+SYSTEMATICALLY JUST OUTSIDE it. A candidate design mismatch between where the bot catches and where
+`TRAIN_CATCHUP_GAP` sits — ⚠ **not yet a diagnosis**; why arrivals cluster there is unmeasured.

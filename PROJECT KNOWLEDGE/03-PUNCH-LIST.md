@@ -1567,6 +1567,29 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
      distinction cannot be lost again.)*
      ⇒ the problem is not only that they arrive behind — **a long window existed and was not used**,
      which is a different defect with a different fix, reachable at TRAINING time.
+     ⛔⛔ **CORRECTED — THE 33.3% USED A WINDOW ONE LEVEL WIDER THAN THE CODE'S (found 2026-09-09,
+     hours after publishing it).** My tool called a mon "inside the window" at `gap <= 6`, but the
+     predicate is `level >= target - 6` with `target = team_max + 1` in boss-fodder mode ⇒ the real
+     condition is **`gap <= 5`**. Re-measured on the same population:
+     ```
+       threshold                A inside   B rose   B topfell   TRAINING-REACHABLE
+       gap <= 6  (my tool)            10       11           4      21/63 = 33.3%   <- overstated
+       gap <= 5  (the CODE)            1       12           7      13/63 = 20.6%   <- USE THIS
+     ```
+     ‼ `A inside` collapses **10 -> 1**: nine of the ten mons that "arrived inside the window"
+     arrived at **exactly gap 6**, the single value the predicate excludes.
+     ⚠ **AND 20.6% IS ITSELF AN UPPER BOUND.** Outside boss-fodder mode `target` is the BOSS BAND,
+     not `team_max + 1`, so "gap from team max" is not the code's coordinate there at all — this
+     window only maps onto the predicate in the fodder branch.
+     ⭐⭐ **THE FINDING THIS EXPOSED, AND IT IS BIGGER THAN THE CORRECTION.** First-seen gap over all
+     184 mons in the batch:
+     ```
+       gap 0: 48   gaps 1-5: 12 TOTAL   gap 6: 23   gap 7: 36   gap 8: 26   gaps 9-15: 16   16+: 23
+     ```
+     **46% of arrivals land in gaps 6-8 while gaps 1-5 are nearly empty, and the window is gap <= 5.**
+     ⇒ mons arrive SYSTEMATICALLY JUST OUTSIDE the training window. That is a candidate design
+     mismatch between where the bot catches and where `TRAIN_CATCHUP_GAP` sits — **not yet a
+     diagnosis**, and it is the open question this item now points at.
      ⚠ **DENOMINATOR: 1,496 IS NOT REPRODUCIBLE.** An adversarial sweep of 17 unit definitions x 39
      batches found no population of 1,496 anywhere, and none within +-5% of it at +-3pp of 88.8%.
      ⭐ The likeliest explanation is benign and was found by the same pass: keying `party=` by
