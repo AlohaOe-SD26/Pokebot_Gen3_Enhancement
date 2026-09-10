@@ -245,7 +245,8 @@ PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 51 entries = 48 
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips 8 ROM gates and is NOT a green suite.
 #   ⏱ MEASURED 2026-09-05: `--quick` ~31-40s for its 33 gates *(the TIMING is from 2026-09-05; the COUNT is now 36 — `run_gates.py` is the authority, and line 244 above carries the current figure)*; the FULL suite is dominated by
-#   `repro_gym_whiteout_guard.py`, which is a KNOWN-RED ~900s timeout (`#24-gymwhiteoutgatehang`),
+#   `repro_gym_whiteout_guard.py`, which is a KNOWN-RED ~900s timeout (`#26-gatestartupcontention`
+#   — the LIVE tracker; the older `#24-gymwhiteoutgatehang` names the same hang and is archived),
 #   so budget ~15 MINUTES, not seconds. *(This comment read "~150s" until 2026-09-05, which a Tier 1
 #   reviewer read as the total runtime and under-estimated the wall clock by two orders of
 #   magnitude. 150s is a TIMEOUT CAP discussed further down, not a duration — ⇒ never put a bare

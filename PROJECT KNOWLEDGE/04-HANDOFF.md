@@ -203,7 +203,16 @@ Every banner further down is HISTORY, newest first.
 
 > ⛔⛔ **ONE ENFORCING GATE IS KNOWN RED: `repro_gym_whiteout_guard.py` HANGS** (killed at the
 > suite's 900s bound; re-run standalone it produced nothing for ~36 minutes). It is FILED as
-> `#24-gymwhiteoutgatehang` and it is **NOT a regression from §Ch21 leg 3** — it imports neither
+> `#26-gatestartupcontention` in `03-PUNCH-LIST.md` — ⛔ **THAT is the LIVE tracker, and it carries the
+> diagnosis (an unbounded `sounddevice.write` at `libmgba.py:621`) plus every recurrence.**
+> ‼ *(This line named `#24-gymwhiteoutgatehang` until 2026-09-10. **TWO SLUGS WERE TRACKING ONE HANG**:
+> that one was opened 2026-09-01 and then ARCHIVED to `28-HANDOFF-ARCHIVE.md` **with its `- [ ]` box
+> still open**, while `#26-gatestartupcontention` (opened 2026-08-26) stayed live in the punch list.
+> So the current-state files pointed a reader INTO THE ARCHIVE, and a recurrence logged against the
+> live slug never met the evidence filed under the archived one. Found by a Tier 2 cold-start
+> auditor, which used the archived name because this file told it to. ⇒ **an OPEN box must never
+> live in an append-only archive**, and when two slugs name one defect the current-state files must
+> point at the live one.)* It is **NOT a regression from §Ch21 leg 3** — it imports neither
 > `sootopolis` nor `story_harness`. ⇒ **expect `run_gates.py` to cost ~15 minutes and come back
 > RED on that one gate. Do not go hunting a regression.** ✅ **RE-CONFIRMED 2026-09-03 AFTER §Ch23 legs 2-3 SHIPPED: `FAILED: 1 of 33` — that gate and ONLY that gate** (exit 124 at exactly 900.0s, reproducing its filed description). ⚠ It was briefly **2 of 33**: `repro_no_silent_except.py` went `modules/story 124 > 123` because the new `victory_road.py` added one silent handler. ✅ Fixed by WRITING THE JUSTIFICATION the gate asks for (that gate accepts a re-raise, a report, **or** a real explanation) rather than raising the baseline — back to 123/123, zero new debt. ⛔⛔ **AND READ `run_gates.py`'s VERDICT FROM THE ARTIFACT, NEVER FROM THE HARNESS'S "exit code":** a `;`-chain reports the LAST command's status, so `run_gates.py > f; tail f` hands you `tail`'s success and I reported a RED suite as green because of it. ⇒ **`run_gates.py > f 2>&1; echo "GATES_EXIT=$?" >> f`** and grep the file (`08-MISTAKES.md` 2026-09-03).
 > ⛔ **AND EXPECT A SECOND RED IF THIS TREE IS AHEAD OF THE REMOTE:** `preflight.py` is
@@ -461,6 +470,20 @@ Moved for the R3 budget; the arc is **NOT STARTED**. ⛔ *(This read "the arc is
 >    ⛔⛔ **THE ARMS ARE NOT WHAT THIS FILE USED TO SAY.** It named `POKEBOT_DEXHUNT_NOFENCE=1`;
 >    **no such flag exists and none was built.** `POKEBOT_DEXFENCE_FAULT=nofence` is the *probe's*
 >    self-test, NOT a run arm — using it as one would measure the gate, not the bot.
+>    ⭐ **THE EXACT INVOCATION — a Tier 2 cold-start auditor answered "could I start RIGHT NOW?" with
+>    NO, and this clause is why it can now say YES.** It had the arms, the build flag and the grade,
+>    and was still missing the one thing a batch cannot be launched without: its SIZE.
+>    ```
+>    cd tools/story-dev
+>    PYTHONUTF8=1 py -3.12 x4_headless.py --build sandbox --lanes 8 --minutes 180
+>    PYTHONUTF8=1 py -3.12 x4_headless.py --status latest      # read-only, safe at any time
+>    ```
+>    **8 lanes / 180 minutes** matches `20260909-160339`, the ONLY prior batch carrying the
+>    `owned=`/`ids=` telemetry this A/B grades on, so arm A is directly comparable to it. ⛔ Both arms
+>    must use the SAME lanes and minutes. ⚠ **A batch takes hours and LOCKS THE SANDBOX** — while one
+>    runs, do NOT edit `sandbox-pokebot/` and do NOT promote (lanes RESPAWN against ON-DISK code, so a
+>    mid-batch edit puts two builds in one batch). ⇒ **it is a USER-authorised action, not a
+>    self-serve one.**
 >    ➡ **THE RUN ARM IS A REVERT:** `--build sandbox` as shipped **vs** the same tree with the fence
 >    commit reverted. ‼ `--build sandbox` IS MANDATORY (`custom` has no `owned=`/`ids=`/`balls=`
 >    telemetry, so it emits nothing and reads as a refutation).
