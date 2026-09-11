@@ -26585,3 +26585,53 @@ introduced by either change** — the end-reason profiles are the same shape.
 ⇒ **NEXT, AND IT IS NOW EVIDENCED RATHER THAN INFERRED: map a spin tile for METEOR_FALLS_B1F_1R/2R.**
 It unblocks the counter-hunt at Juan (Bagon/Altaria are Dragon answers to his Kingdra) AND it is the
 first entry that would raise `TRAINING_GRASS`'s L28 ceiling. One datum, two blocked systems.
+
+---
+
+## 2026-09-11 — It was never a CEILING problem. It is a WINNABILITY problem — and that corrects me twice.
+
+**The two-horned trap, both horns measured, for the laggard that triggers §Ch23's refusal:**
+| ground | xp/battle (`50.2 x wild / 7`) | what actually happens to a L13 mon |
+|---|---|---|
+| L28 — `ROUTE121`, the table's ceiling | **201** | it CAN win, but the grind exceeds `MAX_TRAINING_FRAMES = 250_000` ⇒ §Ch23 REFUSES before spending a frame |
+| L40 — `METEOR_FALLS_B1F_1R` / Victory Road | **287** | it CANNOT win. **MEASURED: 69 battles, lead at 0/43 HP in 42 of 47 readings, STILL L13** (`03-PUNCH-LIST.md` §`#24-ch23training`, the reverted stepping fix) |
+⇒ ⭐⭐ **NO GROUND IN THE GAME SERVES A MON THAT IS 30 LEVELS BEHIND.** Raise the ground and it cannot
+win (xp depends ONLY on the defeated wild, so it earns ZERO); lower the ground and the grind is
+unaffordable. **The L28 ceiling was never the binding constraint.**
+
+### ⛔ CORRECTION 1 — to my own marker, written hours earlier the same day
+It claimed mapping a `METEOR_FALLS_B1F` spin tile "unblocks TWO systems: the counter-hunt AND the
+L28 ceiling". **The second half is wrong.** A L33-40 ground cannot train the laggard — that is the
+very measurement above. What it CAN do is serve the **counter-hunt**, which does not train a laggard:
+it CATCHES A NEW MON at the ground's own level (Bagon L25-35), which is appropriate by construction.
+⇒ the Meteor Falls work is still worth doing, for ONE system, not two.
+
+### ⛔ CORRECTION 2 — to my own "the premise is dead" verdict on `#24-maintain`, same day
+I wrote that `#24-maintain`'s relocate-to-a-matched-ground shape "cannot work" because nothing exists
+above L28. That is true for CLOSING a 30-level gap late, and **false for the thing the item actually
+proposes**, which is *maintaining* so the gap never opens. Maintenance happens while the laggard is
+**L8-28** — precisely the range the CURRENT table already covers, verified by calling the primitive:
+```
+best_training_grass(8)  -> ROUTE116      best_training_grass(25) -> ROUTE115
+best_training_grass(13) -> ROUTE117      best_training_grass(28) -> ROUTE121
+best_training_grass(20) -> ROUTE111      best_training_grass(47) -> ROUTE121  <- the failure mode
+```
+⇒ ⭐⭐⭐ **`#24-maintain` IS BUILDABLE TODAY, WITH NO NEW MAP DATA**, and `best_training_grass` — which
+has **zero production call sites** — already returns the right ground for every level a laggard
+actually occupies while it is still catchable-up. The L47 row is the bug in one line: it returns L28
+grass, because by then no correct answer exists.
+
+### Why this is not a sixth dead direction
+`#24-lowlevelmules` has five killed directions: widen `TRAIN_CATCHUP_GAP` · bench the mule · a better
+acquisition ground · PC deposit · an inert-mon predicate. **None of them is "call the per-mon
+maintenance primitive during the early game".** All five attacked the moment the bill arrives; this
+attacks the borrowing. And the window is already measured: **39.7% of laggards had a <=6 window with a
+median of 163 heartbeats = ~2.7 HOURS of emulated time** — long, and currently unused.
+⚠ Price a fix against **20.6%**, not 39.7% (the code's real predicate is `gap <= 5`), and remember 4
+of 15 "recoveries" in that sample were the party MAX falling rather than the laggard training.
+
+⇒ **NEXT: wire `best_training_grass` per-mon during the early/mid game.** ⛔ Not via
+`train_team(slots={i})` — that path computes `need` from slot indices and then REORDERS the party via
+`_rotate_lead_safely` (KI-84, the same index-space class as KI-18/34/66/95), so it silently no-ops.
+Rotate the mon to lead and call `scope="lead"`, which stops on `_lead_level()` and never touches the
+broken path.
