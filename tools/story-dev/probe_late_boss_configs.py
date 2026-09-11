@@ -40,6 +40,10 @@ sets Juan's band to the roster bulk (41,43) — the exact mistake of reading pas
     POKEBOT_LATEBOSS_FAULT=wiring PYTHONUTF8=1 py -3.12 probe_late_boss_configs.py
 removes `_lead_best_matchup` from the source the probe reads — i.e. reproduces the FIRST DRAFT this
 review rejected; **C7 must go RED** and the script exits 1.
+    POKEBOT_LATEBOSS_FAULT=unbound PYTHONUTF8=1 py -3.12 probe_late_boss_configs.py
+⭐ reproduces THE DEFECT THAT ACTUALLY SHIPPED — the config referencing `PokemonCenter` without
+importing it in its own block, which crashed **11 runs at ~1.6M frames each** in batch
+`20260910-203458`. **C7 must go RED.** This arm is not hypothetical; it is a regression test.
 ⛔ No arm is a strawman: both are the mistakes a maintainer would plausibly make.
 
 ⚠ WHAT THIS DOES NOT PROVE: that wiring the machinery here HELPS. That is a frequency question and
@@ -113,11 +117,22 @@ def main() -> int:
     if FAULT == "wiring":
         # Reproduce the FIRST DRAFT exactly: prep called, counter never fielded.
         src = src.replace("_lead_best_matchup(", "_LEADMATCH_REMOVED(")
+    if FAULT == "unbound":
+        # ⛔ REPRODUCE THE DEFECT THAT ACTUALLY SHIPPED AND CRASHED 11 RUNS (batch 20260910-203458):
+        # the config referenced `PokemonCenter` without importing it in its own block.
+        # ⛔ ANCHOR ON *MY* BLOCKS, NOT ON THE BARE IMPORT LINE. The first version of this arm did
+        # `src.replace("from modules.map_data import PokemonCenter", "", 2)` — and that string occurs
+        # **14 times** in `story_mode.py`, so it stripped two OTHER segments' imports and left the
+        # late-boss blocks untouched. The arm then exited 1 while reporting "did not reach the code",
+        # which is the self-check doing its job: an arm that mutates the wrong thing is not an arm.
+        _marker = ("meant to measure the dex fence caught this instead, which is what an A/B is for.\n"
+                   "            from modules.map_data import PokemonCenter")
+        src = src.replace(_marker, _marker.split("\n")[0])
 
     print("=" * 100)
     print("LATE-BOSS FIGHT CONFIGS — post-Winona loss adaptation (`#24-regimeb-noescalation`)")
     if FAULT:
-        _w = {"grass": "C2", "band": "C4", "wiring": "C7"}.get(FAULT, "?")
+        _w = {"grass": "C2", "band": "C4", "wiring": "C7", "unbound": "C7"}.get(FAULT, "?")
         print(f"  ⛔ FAULT ARM ACTIVE: {FAULT!r} — {_w} MUST go RED")
     print("=" * 100)
 
@@ -189,8 +204,32 @@ def main() -> int:
     # ‼ It also pins the LOCAL IMPORT: every binding of `_lead_best_matchup` in `_play` sits inside
     # an `if not _done("BADGEnn_GET")` branch, so a RESUMED run executes none of them and the call
     # would raise `UnboundLocalError` — on exactly the runs this change exists to help.
+    # ⛔⛔ AST, NOT A STRING WINDOW — and the reason is a measured failure of the string version.
+    # v2 anchored its window at `self._prepare_for_fight(<name>)`. The fix for the UnboundLocalError
+    # moved the imports ABOVE that call (they must precede the dict), so the window no longer
+    # contained them and C7 false-failed on correct code. A character window cannot express "the
+    # same `if` block"; the AST can, and BLOCK SCOPE is exactly what an UnboundLocalError is about.
+    _tree = ast.parse(src)
+    _play = next((n for n in ast.walk(_tree)
+                  if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == "_play"), None)
+    _blocks = {}
+    if _play is not None:
+        for _node in ast.walk(_play):
+            if not isinstance(_node, ast.If):
+                continue
+            for _st in _node.body:
+                if isinstance(_st, ast.Assign) and getattr(_st.targets[0], "id", None) in late:
+                    _blocks[_st.targets[0].id] = _node
+
     wiring_bad = []
     for _name in late:
+        _blk = _blocks.get(_name)
+        if _blk is None:
+            wiring_bad.append(f"{_name}: not assigned inside an `if` guard — a dict built OUTSIDE the "
+                              f"guard constructs on EVERY pass, including resumed runs (this is the "
+                              f"exact shape that crashed 11 runs in batch 20260910-203458)")
+            continue
+        window = ast.get_source_segment(src, _blk) or ""
         i = src.find(f"self._prepare_for_fight({_name})")
         if i < 0:
             wiring_bad.append(f"{_name}: no `_prepare_for_fight({_name})` call site")
@@ -202,13 +241,24 @@ def main() -> int:
         # project rates worse than no gate at all.
         # ⇒ the prep sequence ends where the CHAPTER DISPATCH begins, so bound the search there.
         # That is immune to comment length and cannot bleed into the NEXT boss's block.
-        _end = src.find("yield from do_", i)
-        window = src[i:_end] if _end > i else src[i:i + 4000]
         if "_lead_best_matchup(" not in window:
             wiring_bad.append(f"{_name}: `_prepare_for_fight` not followed by `_lead_best_matchup` "
                               f"⇒ a hunted counter would never be FIELDED")
-        if "import _lead_best_matchup" not in window:
-            wiring_bad.append(f"{_name}: missing the LOCAL import ⇒ UnboundLocalError on a resumed run")
+        # ⛔⛔ EVERY FUNCTION-LOCAL NAME THE BLOCK TOUCHES, NOT JUST THE ONE I WAS THINKING ABOUT.
+        # v2 of this check asserted only `_lead_best_matchup` and went GREEN over a live crash:
+        # `PokemonCenter` is bound at TWELVE places inside `_play`, all inside
+        # `if not _done("BADGEnn_GET")` branches, and the config dict referenced it from OUTSIDE the
+        # guard ⇒ `UnboundLocalError` on any RESUMED run. **11 runs died at ~1.6M frames each** in
+        # batch `20260910-203458` before the A/B could measure anything.
+        # ⭐ THE LESSON: a name-by-name check protects exactly the names you enumerate. Derive the
+        # list from what the block USES, then require each to be imported in the SAME block.
+        imported = set()
+        for _line in re.findall(r"from [\w.]+ import ([^\n]+)", window):
+            imported |= {p.strip() for p in _line.split(",")}
+        for _needed in ("_lead_best_matchup", "heal_in_pokemon_center", "PokemonCenter"):
+            if _needed in window and _needed not in imported:
+                wiring_bad.append(f"{_name}: uses `{_needed}` but does NOT import it in the same "
+                                  f"block ⇒ UnboundLocalError on a RESUMED run")
     ok7 = not wiring_bad
     print(f"  [{'OK  ' if ok7 else 'FAIL'}] C7  each call site FIELDS the counter "
           f"(`_lead_best_matchup`) and imports it locally")
@@ -219,7 +269,7 @@ def main() -> int:
 
     print("\n" + "=" * 100)
     if FAULT:
-        want = {"grass": "C2", "band": "C4", "wiring": "C7"}.get(FAULT, "?")
+        want = {"grass": "C2", "band": "C4", "wiring": "C7", "unbound": "C7"}.get(FAULT, "?")
         if want in fails:
             print(f"  FAULT ARM OK — {want} went RED under {FAULT!r}.")
             return 1

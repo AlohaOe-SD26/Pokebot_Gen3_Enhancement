@@ -16302,3 +16302,62 @@ claims.
 ⇒ **A mechanical gate is how you find the halves of a fact you did not know existed.** This is the
 same P5 shape as the `18 cases` / `:1612` miss earlier today — a fact living in four places, and I
 knew about one.
+
+---
+
+## 2026-09-10 — I shipped a crash to BOTH forks, and the A/B I ran to measure something else caught it
+
+**Symptom, measured.** Batch `20260910-203458` (8 lanes, 180.1 min, VERDICT OK, `code_commit
+b0841b7e`): **11 runs crashed** with
+`UnboundLocalError: cannot access local variable 'PokemonCenter' where it is not associated with a
+value`, at ~1.6M frames each — i.e. hours into the game, at badge 7. `[DEXCATCH]`/`[DEXFENCE]` lines:
+**0**. The fence never fired once, so the A/B measured **nothing** about the thing it was run for.
+
+**Root cause, and it is placement, not the import.** `PokemonCenter` is bound at **twelve** places
+inside `_play`, every one of them inside an `if not _done("BADGEnn_GET")` branch. I built
+`tate_liza_fight` / `juan_fight` at **indent 8 — OUTSIDE the guard** — so the dicts construct on
+EVERY pass through `_play`, including resumed runs where no badge branch ran and `PokemonCenter` is
+therefore unbound. `winona_fight`, the precedent I copied from, is at **indent 12 — INSIDE its
+guard**.
+⇒ ⭐ **I COPIED THE DICT'S CONTENT AND NOT ITS PLACEMENT.** That is the *"copy a pattern WHOLE"* rule
+from earlier the same day, failing a second time in a form the rule as written did not cover: I was
+watching which LINES accompany the call, not which BLOCK they live in.
+
+**Why every safety net missed it.**
+* My own review caught the conditional-import trap and I added a local import — for
+  `_lead_best_matchup` and `heal_in_pokemon_center`. **`PokemonCenter` was in the line I had written
+  FIRST and was not in the set I was thinking about.** A name-by-name fix protects exactly the names
+  you enumerate.
+* Gate #53's C7 asserted `import _lead_best_matchup` was present. It was. C7 passed.
+* A Tier 1 reviewer read the diff and did not catch it either.
+* ⇒ **Nothing that reads SOURCE caught it, because the code is valid Python.** It only fails on a
+  path — a RESUMED run — that no probe drives and no fixture starts from.
+
+**What actually caught it: the batch.** This is the clearest case this project has for the
+distinction it already records — *drivers answer CORRECTNESS questions; batches answer FREQUENCY
+questions*. Add a third: **only a real run answers "does this path ever execute?"**
+
+**The fixes.**
+1. Both dicts moved INSIDE their guards (indent 8 → 12), matching `winona_fight`.
+2. Every function-local name the block touches is imported in that same block.
+3. C7 rewritten to check **every** name the block uses (derived from the block, not from a list I
+   remember), and to use the **AST** rather than a character window — a window cannot express "the
+   same `if` block", which is precisely what an `UnboundLocalError` is about.
+4. A new `POKEBOT_LATEBOSS_FAULT=unbound` arm reproduces the shipped defect exactly, so this
+   regression now has a permanent test.
+
+‼ **AND THE FIRST VERSION OF THAT ARM WAS ITSELF WRONG** — `src.replace("from modules.map_data
+import PokemonCenter", "", 2)` stripped two of the **fourteen** occurrences elsewhere in the file and
+left my blocks untouched. The arm exited 1 while printing *"FAULT ARM DID NOT REACH THE CODE"* — the
+self-check catching a bad arm. ⇒ **an arm that mutates the wrong thing is not an arm**, and a fault
+arm needs its own anchor check.
+
+⭐ **Prevention rule (one line):** *When you copy a code pattern, copy its PLACEMENT as well as its
+content — check the indent level against the precedent, because scope is invisible in a diff.*
+
+⛔ **AND THE PROCESS LESSON, which is the expensive one:** I PROMOTED this to `custom-pokebot`
+before the A/B ran. The promotion was verified by a DRIVE — `ACCEPTANCE: PASS` — but that drive
+started from `post_vr_exit.ss1`, a fixture whose badges are already earned, and it never re-entered
+`_play` from the top. A green drive proved the promoted code LOADS, not that it SURVIVES a resume.
+⇒ **Do not promote code whose first real exercise is still ahead of it.** Promote after the batch,
+not before — the rollback tag existed for exactly this and it is why the cost was recoverable.
