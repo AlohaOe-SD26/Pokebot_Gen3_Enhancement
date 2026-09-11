@@ -2372,14 +2372,47 @@ class StoryMode(BotMode):
         # story-surface generator yields from a `finally` any more (gate #56). The two fixes are
         # load-bearing for each other.
         finished = True
+        landed = False
         try:
             yield from _rotate_lead_safely(slot)
-            finished = yield from _yield_bounded(
-                train_team(
-                    catchup, scope="lead", grass=(grass_map, grass_tile), heal_center=heal_center
-                ),
-                budget,
-            )
+            # ⛔⛔ VERIFY BY PID THAT THE ROTATION LANDED — the defence `victory_road.py:2062-2081`
+            # already carries and this method did not copy. `_rotate_lead_safely` "gives up
+            # gracefully" after 3 attempts: it sets `context.message` and returns NORMALLY
+            # (`early_game.py:1660`) — no exception, no return value. Without this check the
+            # failure is SILENT AND MISREPORTED:
+            #   slot 0 still holds the old lead (a high-level mon), so `train_team(scope="lead")`
+            #   computes `need = [0] if party[0].level < target_level else []` (`early_game.py:2040`)
+            #   → EMPTY → it returns at once → we would log `done … L13->L13 (wanted L14, SHORT)`,
+            #   which is **byte-indistinguishable from "it trained and the ground was wrong"**.
+            # ‼ Found by an adversarial agent BEFORE the first drive, i.e. before it could produce a
+            # false reading. ⇒ two different diagnoses, one log line: that is the bug.
+            # ⚠ We ABANDON maintenance rather than raising, unlike §Ch23. There it is the chapter's
+            # whole purpose, so a wrong-mon grind must abort; here it is a best-effort errand before
+            # a boss, and taking the run down over a missed optimisation would be worse than the
+            # laggard it is trying to help. The log says ABANDONED so the two are never confused.
+            lead = get_party()[0]
+            landed = lead is not None and lead.personality_value == pid
+            if not landed:
+                holder = "nothing"
+                if lead is not None:
+                    holder = f"{lead.species.name}#{lead.personality_value:08X}"
+                _log_story_event(
+                    f"ABANDONED pid={pid:08X} — rotation did NOT land, slot 0 holds {holder}. "
+                    f"Training now would grind the WRONG mon and report SHORT.",
+                    "MAINTAIN",
+                )
+                console.print(
+                    f"[yellow]Story: could not put {name} in the lead (slot 0 holds {holder}) — "
+                    f"skipping maintenance rather than training the wrong Pokémon.[/]"
+                )
+            else:
+                finished = yield from _yield_bounded(
+                    train_team(
+                        catchup, scope="lead", grass=(grass_map, grass_tile),
+                        heal_center=heal_center,
+                    ),
+                    budget,
+                )
         except GeneratorExit:
             # ⛔ We are being closed. Yielding now is exactly the RuntimeError above. Let it go.
             raise
@@ -2396,13 +2429,19 @@ class StoryMode(BotMode):
         # permuted twice, and a count that nets to zero reads TRUE when nothing happened.
         after = next((p for p in get_party() if p.personality_value == pid), None)
         reached = after is not None and after.level >= catchup
-        # ⛔ REPORT THE BUDGET OUTCOME EXPLICITLY. "SHORT" alone cannot distinguish "trained as far
-        # as it could and the ground was wrong" from "ran out of frames" — different diagnoses,
-        # different fixes, and the second one means the ESTIMATE was too optimistic (it has no term
-        # for heal round-trips). Say which.
+        # ⛔⛔ ONE LINE MUST DISTINGUISH EVERY WAY THIS CAN END, or the reader picks the wrong fix.
+        # There are THREE distinct failures and they are not interchangeable:
+        #   rotation=NO      → we never trained this mon at all (the silent give-up above)
+        #   BUDGET EXHAUSTED → we trained it and ran out of frames ⇒ the ESTIMATE was optimistic
+        #                      (it has no heal-round-trip term); the ground was fine
+        #   SHORT, rotated, in budget → we trained it and the GROUND was wrong
+        # ‼ Until 2026-09-11 all three printed the same `SHORT`. An adversarial review showed the
+        # first is byte-indistinguishable from the third, which would have sent a reader to fix the
+        # ground table for a bug that lives in the rotation.
         _log_story_event(
             f"done pid={pid:08X} L{level}->L{after.level if after else '?'} "
             f"(wanted L{catchup}, {'REACHED' if reached else 'SHORT'}"
+            f", rotation={'landed' if landed else 'NO — never trained'}"
             f"{'' if finished else f', ⛔ LIVE BUDGET {budget} FRAMES EXHAUSTED'})",
             "MAINTAIN",
         )

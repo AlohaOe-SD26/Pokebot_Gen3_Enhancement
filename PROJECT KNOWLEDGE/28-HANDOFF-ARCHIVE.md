@@ -10850,3 +10850,41 @@ ARM A sentinel was strengthened 2026-08-27 — it had been value-equal to `run_a
 LANDED in BOTH post-fix batches: zero CantEscape freezes corpus-wide (baseline 3 of 8 lanes).
 **ARC CLOSED.** 📦 Diagnosis + evidence: `07-CHANGELOG.md` 2026-08-26/27 + git history.
 
+
+
+---
+
+## 📦 ARCHIVED 2026-09-11 (third pass) from `03-PUNCH-LIST.md` — R3 line budget
+
+⛔ **VERBATIM. Nothing deleted, nothing edited.** Each was fully CLOSED with zero open boxes,
+so nothing needed hoisting. Slugs preserved: `#24-hm07teach`, `#26-mossdeeppuzzlespeed`.
+
+### ✅ USER RULINGS 2026-07-29 — all six open questions answered
+Full text + rationale: `06-DECISIONS-LOG.md` 2026-07-29. Summary:
+`#24-counters` phase 2 → **A+C** (price both, then catch-and-train a Fighting type)
+**plus new scope: area/species/level mapping + party>4 + PC rotation** (see `#24-trainmap+`
+below); `#24-leadpolicy` → **A+C**; `#24-route110cap` → **A** (prep, NO cap);
+KI-24b → **A** (fix the mock, re-baseline, show the diff); `#doc-policy-05` → **A**
+(keep-and-mark until promotion); repo size → **leave it**.
+
+### ✅ ALL FOUR HARNESS FIXES VALIDATED LIVE — 2026-07-29 (five bundles)
+`#24-x4-staleslate`, `#24-x4-honestoutcome`, `#24-x4-runindex`, `#24-x4-framebudget` are
+confirmed working in production. `couldn't beat the Rustboro rival` went **31 → 0**; max
+single-run frames now 1.9M–3.1M (all under the 3.5M cap, the 27M/30M hangs are gone);
+`run_index` stride 1 in all four lanes. **16 runs reached the Feather Badge in one batch**
+(P1×5, P2×5, P4×4, P3×2) — previously a once-per-batch event. Detail: `07-CHANGELOG.md`
+2026-07-29.
+
+### ✅ `#24-hm07teach` — **CLOSED 2026-09-08, DRIVEN AT SCALE.** ⛔ DO NOT REDO.
+- [x] Production never taught Waterfall, so §Ch23's preflight killed every 8-badge run in project
+  history (six across 37 batches, all six there). `ensure_waterfall_learner()` + Segment 22b fixed
+  it. **MEASURED: the §Ch23 Waterfall preflight went 11 of 53 → 0 of 49** (batch `20260907-203713`
+  vs `20260907-113851`, equal wall time). Runs now die 16x deeper, in the TRAINING leg — see
+  `#24-ch23training`. Full detail: `07-CHANGELOG.md` 2026-09-07 and 2026-09-08.
+
+### ✅ `#26-mossdeeppuzzlespeed` — FIXED 2026-08-26, A/B-PROVEN ~2.9x: ~62k → ~21k frames (~17.2 → ~5.8 min)
+
+Bounded PRE-TURN (`TURN_TIMEOUT_FRAMES=32`) removed the 58% sink; all five safety checks kept and
+silent on both arms. Evidence `evidence/2026-08-26-mossdeep-speed-AB.txt`; narrative + original
+filing in `07-CHANGELOG.md` 2026-08-26. ⛔ Fixes B/C deliberately NOT taken.
+

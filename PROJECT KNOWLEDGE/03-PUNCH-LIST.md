@@ -274,11 +274,8 @@ party (PC trip), before the story needs Surf. ‼ The Dive equivalent already ex
 to copy, ⛔ not as work to run) — establish whether Surf has an equivalent, and if not, build one
 shaped like the Dive one. Anchors: `norman_done.ss1`, `prenorman_fodder_grind.ss1`.
 
-### ✅ `#26-mossdeeppuzzlespeed` — FIXED 2026-08-26, A/B-PROVEN ~2.9x: ~62k → ~21k frames (~17.2 → ~5.8 min)
-
-Bounded PRE-TURN (`TURN_TIMEOUT_FRAMES=32`) removed the 58% sink; all five safety checks kept and
-silent on both arms. Evidence `evidence/2026-08-26-mossdeep-speed-AB.txt`; narrative + original
-filing in `07-CHANGELOG.md` 2026-08-26. ⛔ Fixes B/C deliberately NOT taken.
+### ✅ `#26-mossdeeppuzzlespeed` — CLOSED. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-11, R3 budget; zero open boxes).
+- [x] ⛔ DO NOT REDO. Detail in the archive and `07-CHANGELOG.md`.
 
 ### ✅ `#26-fleefreeze` — CLOSED. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-11, R3 budget; nothing deleted, zero open boxes).
 - [x] ⛔ DO NOT REDO. Full detail in the archive under its 2026-09-11 banner and in `07-CHANGELOG.md`.
@@ -1766,21 +1763,11 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
       whiteout crossing a run boundary rather than poison damage; the new per-run reset may
       already cover it. RE-CHECK on the first post-fix batch before investigating.
 
-### ✅ ALL FOUR HARNESS FIXES VALIDATED LIVE — 2026-07-29 (five bundles)
-`#24-x4-staleslate`, `#24-x4-honestoutcome`, `#24-x4-runindex`, `#24-x4-framebudget` are
-confirmed working in production. `couldn't beat the Rustboro rival` went **31 → 0**; max
-single-run frames now 1.9M–3.1M (all under the 3.5M cap, the 27M/30M hangs are gone);
-`run_index` stride 1 in all four lanes. **16 runs reached the Feather Badge in one batch**
-(P1×5, P2×5, P4×4, P3×2) — previously a once-per-batch event. Detail: `07-CHANGELOG.md`
-2026-07-29.
+### ✅ ALL FOUR HARNESS FIXES VALIDATED LIVE — CLOSED. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-11, R3 budget; zero open boxes).
+- [x] ⛔ DO NOT REDO. Detail in the archive and `07-CHANGELOG.md`.
 
-### ✅ USER RULINGS 2026-07-29 — all six open questions answered
-Full text + rationale: `06-DECISIONS-LOG.md` 2026-07-29. Summary:
-`#24-counters` phase 2 → **A+C** (price both, then catch-and-train a Fighting type)
-**plus new scope: area/species/level mapping + party>4 + PC rotation** (see `#24-trainmap+`
-below); `#24-leadpolicy` → **A+C**; `#24-route110cap` → **A** (prep, NO cap);
-KI-24b → **A** (fix the mock, re-baseline, show the diff); `#doc-policy-05` → **A**
-(keep-and-mark until promotion); repo size → **leave it**.
+### ✅ USER RULINGS 2026-07-29 — CLOSED. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-11, R3 budget; zero open boxes).
+- [x] ⛔ DO NOT REDO. Detail in the archive and `07-CHANGELOG.md`.
 
 ### 🔶 `#24-dexhunt` — catch EVERY new species, and hunt for unseen ones — **MIXED as of 2026-09-10: the CATCHING FENCE is BUILT, PURE AND GATED (#50) — ⛔ DO NOT REBUILD IT — but its A/B is UNRUN, so EFFICACY is unproven, and the fence is deliberately NARROWER than the ruling. READ EACH BULLET'S OWN MARKER; THIS HEADING DOES NOT CLOSE THE ITEM.** (user proposal 2026-07-29, ruled 2026-07-31; re-affirmed and widened by a new user directive 2026-09-04)
 
@@ -2105,7 +2092,13 @@ Gate #55 proves the DECISION. The ACTION — `_rotate_lead_safely` → `train_te
 rule 7: **a candidate is not an attempt**, and a decision is not an action.
 - [ ] **NEXT: drive it.** `--inject-hmmule` already stages exactly the laggard this needs
       (Marill L13 ADDED to a ready party; `POKEBOT_MULE_LEVEL` tunes it). The A/B is
-      ARM-ON (default) vs **`POKEBOT_MAINTAIN_FAULT=off`**, graded on the mule's level BY PID.
+      **ARM-ON `POKEBOT_MAINTAIN=1`** vs **ARM-OFF: `POKEBOT_MAINTAIN` unset** (the shipped
+      default), graded on the mule's level BY PID — resolved from `nickname == "MULE"`, which
+      `--inject-hmmule` already sets, and compared WITHIN one arm (the PID is drawn from an
+      unseeded RNG per run, so it must never be compared ACROSS arms).
+      ⛔ **`POKEBOT_MAINTAIN_FAULT=off` NO LONGER EXISTS** — the fault flag knows only
+      `nobudget`. Running this item as it read until 2026-09-11 gives **dormant-vs-dormant**,
+      i.e. a vacuous A/B that would read as a REFUTATION of a true finding.
       ⛔ Compute the discriminator on the fixture FIRST and show the arms differ — a handed-off
       spec in this project once named a fixture that made its own A/B vacuous.
 - [ ] Grade prediction **P6** (the boss is handed a STRONG lead, not the laggard) — it is a
@@ -3772,12 +3765,8 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   ⚠ Likely retirement point: the boss it was hunted for is beaten. ⛔ MEASURE FIRST — a counter kept
   deliberately for a LATER boss would be lost by a naive retirement.
 
-### ✅ `#24-hm07teach` — **CLOSED 2026-09-08, DRIVEN AT SCALE.** ⛔ DO NOT REDO.
-- [x] Production never taught Waterfall, so §Ch23's preflight killed every 8-badge run in project
-  history (six across 37 batches, all six there). `ensure_waterfall_learner()` + Segment 22b fixed
-  it. **MEASURED: the §Ch23 Waterfall preflight went 11 of 53 → 0 of 49** (batch `20260907-203713`
-  vs `20260907-113851`, equal wall time). Runs now die 16x deeper, in the TRAINING leg — see
-  `#24-ch23training`. Full detail: `07-CHANGELOG.md` 2026-09-07 and 2026-09-08.
+### ✅ `#24-hm07teach` — CLOSED. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-11, R3 budget; zero open boxes).
+- [x] ⛔ DO NOT REDO. Detail in the archive and `07-CHANGELOG.md`.
 
 ### ✅ `#24-hm07funnel` — **CLOSED 2026-09-08, DRIVEN AT SCALE: Surf+Dive party-full went 7 of 53 → 0 of 49.** ⛔ DO NOT REDO. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-10, R3 budget). Detail: `07-CHANGELOG.md`.
 

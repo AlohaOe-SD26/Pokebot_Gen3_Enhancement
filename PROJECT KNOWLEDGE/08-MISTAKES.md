@@ -16666,3 +16666,32 @@ directions (S9 the false positive, S10 that the fix did not over-correct, S13 `e
 ⛔ **The meta-lesson: a gate is CODE, and new code is where defects live.** I wrote #56 to stop a
 class of bug and shipped a bug inside it on the first try. The gate had already been proven against
 the real defect it was written for — which is necessary and, on its own, not sufficient.
+
+---
+
+## 2026-09-11 — A solved problem is only solved WHERE it was solved
+
+**Symptom.** `_maintain_lagging_battler` called `_rotate_lead_safely(slot)` and never checked it
+landed. That function gives up after 3 attempts by setting `context.message` and returning NORMALLY
+(`early_game.py:1660`). On a give-up, `train_team(scope="lead")` finds a high-level mon in slot 0,
+computes an EMPTY `need`, returns instantly — and the code logged
+`done ... L13->L13 (wanted L14, SHORT)`, which is **byte-identical to a real training failure**.
+
+**Root cause.** Not ignorance of the hazard — this tree already carries the defence.
+`victory_road.py:2062-2081` asserts by PID that the rotation landed, under a comment spelling out
+this exact failure. I wrote a new caller of the same helper and did not carry the guard across.
+
+⭐ **Prevention rule (one line):** *Before calling a helper that "gives up gracefully", grep for an
+EXISTING caller of it — if one asserts something afterwards, that assertion is part of the calling
+convention, not that caller's private business.*
+
+‼ Note what this is NOT: it is not "read the mistakes file". The hazard was documented in a CODE
+COMMENT at the only other call site, which is the best possible place for it, and it still did not
+travel. => the durable version of this lesson is that **a helper whose failure is silent should carry
+its guard INSIDE itself, or return a value the caller cannot ignore.** Logged as a candidate
+improvement to `_rotate_lead_safely` rather than done here, because changing a helper used across the
+story surface deserves its own item and its own drive.
+
+⛔ **And the discovery route matters more than the bug.** It was found by an ADVERSARIAL agent asked
+to refute a plan, before the experiment existed — not by running anything. The experiment as planned
+would have printed a plausible number and hidden it.

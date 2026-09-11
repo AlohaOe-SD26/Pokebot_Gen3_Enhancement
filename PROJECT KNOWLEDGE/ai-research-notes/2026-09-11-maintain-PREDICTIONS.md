@@ -74,9 +74,12 @@ named a fixture that made its own A/B vacuous, and the run would have read as a 
 finding.
 
 ## FAULT ARMS (each must fail for its OWN reason)
-- `POKEBOT_MAINTAIN_FAULT=off` — skip the maintenance call entirely ⇒ P1 must go RED, P2 GREEN.
-  *(This is the CLAUDE.md rule 8 arm: "without X the bug survives" is a claim whose only currency is
-  an arm with X removed.)*
+- **`POKEBOT_MAINTAIN` unset** — the shipped default; the method returns before any yield ⇒ P1 must
+  go RED, P2 GREEN. *(This IS the CLAUDE.md rule 8 arm — "without X the bug survives" is a claim
+  whose only currency is an arm with X removed — and it is the PRODUCTION flag, so the A/B reads as
+  "on vs off" rather than "on vs on-but-sabotaged".)*
+  ‼ *A separate `POKEBOT_MAINTAIN_FAULT=off` arm existed when this note was written and was DELETED
+  on 2026-09-11: two switches controlling one behaviour is its own bug shape.*
 - `POKEBOT_MAINTAIN_FAULT=bossground` — use `cfg["grass"]` instead of `best_training_grass` ⇒ P3 RED.
 - `POKEBOT_MAINTAIN_FAULT=nobudget` — bypass the estimate gate ⇒ P4/P5 RED.
 

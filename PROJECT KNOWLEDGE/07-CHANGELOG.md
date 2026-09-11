@@ -26923,3 +26923,71 @@ Evidence committed: `tools/story-dev/evidence/2026-09-11-PROMOTION-VERIFY-custom
 ### What custom now carries that is NOT proven
 ⛔ `#24-maintain`'s ACTION — dormant, so it is latent code rather than behaviour. **Do not flip
 `POKEBOT_MAINTAIN` on until the sandbox drive passes, and flip it in its own reviewable change.**
+
+---
+
+## 2026-09-11 (night) — A 5-agent pre-drive recon found a REAL defect, before a single frame was spent
+
+**Nothing was driven.** A workflow (4 independent angles + an adjudicator) examined the planned
+`#24-maintain` A/B. It returned GO-WITH-CHANGES and four defects, each verified in code. ⭐ This is
+the cheapest defect this project has ever found: the bug was in code that had never run, and the
+experiment that would have MISREPORTED it had not yet been built.
+
+### ⛔ (1) THE PRODUCTION DEFECT — a silent rotation failure that reports as a training failure
+`_rotate_lead_safely` "gives up gracefully" after 3 attempts: it sets `context.message` and
+**returns NORMALLY** (`early_game.py:1660`) — no exception, no return value.
+`_maintain_lagging_battler` discarded that and never checked the rotation landed. The consequence is
+not a crash, it is a LIE:
+* slot 0 still holds the old (high-level) lead, so `train_team(scope="lead")` computes
+  `need = [0] if party[0].level < target_level else []` (`early_game.py:2040`) -> **EMPTY**;
+* it returns at once, `_yield_bounded` reports success, and we logged
+  `done ... L13->L13 (wanted L14, SHORT)`.
+=> **byte-indistinguishable from "it trained and the ground was wrong"** — two different diagnoses,
+one log line. A reader would have gone to fix the ground table for a bug living in the rotation.
+
+‼ **THE DEFENCE ALREADY EXISTED IN THIS TREE AND I DID NOT COPY IT.** `victory_road.py:2062-2081`
+asserts by PID that the rotation landed, under a comment that describes this exact failure
+("training the wrong Pokemon would burn the whole budget while every level readout still looked
+plausible"). => **a solved problem is only solved where it was solved.**
+**FIXED:** assert `get_party()[0].personality_value == pid` after rotating. ⚠ Unlike §Ch23 this
+ABANDONS maintenance rather than raising — there it is the chapter's purpose, here it is a
+best-effort errand before a boss, and taking a run down over a missed optimisation would be worse
+than the laggard it is helping. The completion line now distinguishes all THREE endings:
+`rotation=NO - never trained` / `LIVE BUDGET EXHAUSTED` / plain `SHORT`.
+
+### ⛔ (2) THE PUNCH LIST COMMANDED A VACUOUS A/B (a live P5 break)
+Its queue head read *"ARM-ON (default) vs `POKEBOT_MAINTAIN_FAULT=off`"*. **Both halves are dead in
+code**: `POKEBOT_MAINTAIN` defaults OFF (so ARM-ON is not the default), and the fault flag knows only
+`nobudget` (`off` was deleted the same day). Running it literally gives **dormant-vs-dormant** — a
+vacuous A/B that would have read as a REFUTATION of a true finding. `04-HANDOFF.md` was correct and
+disagreed with it, which is exactly the disagreement pair P5 exists to catch. Both live specs fixed;
+`07-CHANGELOG` left alone (append-only history).
+
+### ⭐ (3) TWO UNIT FINDINGS THAT CHANGE HOW THE DRIVE MUST BE RUN
+* **`MAINTAIN_MAX_FRAMES` is denominated in STORY-ADVANCED frames, not real ones.**
+  `modules/main.py:148` advances only the TOP of a flat controller stack, and during a battle that
+  top is `BattleListener.fight` — measured at ~8,022 of ~8,200 samples (KI-36). `_yield_bounded`'s
+  counter ticks only when the STORY generator is stepped, so battle frames are invisible to it while
+  `estimate_frames_to_level` counts them. **A unit mismatch inside the code under test.** => the
+  drive's `--frames` must come from measured travel, not from the 150,000 budget.
+* **The driver must be a `StoryMode` SUBCLASS.** `SwapTrainBattleStrategy` is instantiated at exactly
+  one site (`story_mode.py`, inside `StoryMode.on_battle_started`, under `if swap_train_active()`),
+  and `train_team` sets that flag but nothing else consults it. A bare-`BotMode` driver defining its
+  own `on_battle_started` would **silently disable swap-training**, make a L13 Marill fight L14 wilds
+  alone, change the XP model, and measure a path production never takes.
+
+### ⚠ (4) TWO PREDICTIONS ARE UNTESTABLE ON THIS FIXTURE — recorded so they are not graded PASS
+* **P3 (ground keyed to the LAGGARD, not the boss) is UNTESTED here.** Wattson's `cfg["grass"]` IS
+  `ROUTE117_TRAINING_GRASS`, and `best_training_grass(13)` returns the identical pair — they
+  coincide by coincidence of table values. The `bossground` falsifier named in the predictions note
+  was never implemented. Grading P3 off the `on ROUTE117` substring would certify nothing.
+* **P6 (the boss is handed a strong lead) is testable ONLY with a direct-call driver.** Under
+  `--driver story`, `_lead_best_matchup(["Electric"])` runs one line later and fixes the lead
+  regardless, making P6 vacuous. The driver choice DECIDES whether the prediction is measurable.
+
+⭐ **Also built: `probe_maintain_discriminator.py`** — it calls the REAL `decide_maintenance` and
+answers, before any drive, *"for every target the band can roll, is the mule ADMITTED?"* On this
+fixture: slot 4, ROUTE117, 7,165-41,557 frames, **admitted for all five targets**. Two-sided: a mule
+that is NOT behind reports VACUOUS and exits 1. ‼ It also caught my own stand-in — I had computed
+with Zigzagoon's MediumFast curve; **Marill is Fast**, so the real cost is lower. Read the value,
+never recall it.
