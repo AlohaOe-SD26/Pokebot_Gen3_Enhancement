@@ -16458,3 +16458,43 @@ lines/sec, bytes/sec. "Stuck" and "slow" produce the same empty log and have opp
    `emulation_speed = 0` at `:126`). A list of files matching a grep is a list of CANDIDATES.
 
 ⇒ Closed as `#26-gatestartupcontention`, gated as #54 `probe_gate_unthrottled.py`.
+
+---
+
+## 2026-09-11 — My vacuity check "rejected" four stubs with an AttributeError and I nearly believed it
+
+**Symptom.** To answer *"could a stub that ignores its inputs pass gate #55?"* I ran four stubs
+through the probe and got:
+```
+  always None        -> rc=raised AttributeError  failing cases=0  ✅ rejected
+  always slot 1      -> rc=raised AttributeError  failing cases=0  ✅ rejected
+```
+Four ✅s. The conclusion I wanted — *"no stub survives"* — was right there, and every line was green.
+
+**Root cause.** My harness redirected stdout into a `StringIO`, but the probe calls
+`sys.stdout.reconfigure(encoding="utf-8")` (which this project added everywhere after three gates
+falsely failed on a cp1252 console). `StringIO` has no `.reconfigure`, so the probe blew up during
+IMPORT — before a single case ran. `failing cases=0` was not "it passed nothing"; it was
+**"nothing executed"**. ⇒ my harness was broken, and the stubs were never tested at all.
+
+⭐ **Prevention rule (one line):** *A rejection for the WRONG REASON is not a rejection — when a
+check reports failure, read WHY it failed before recording the verdict it happens to agree with.*
+
+‼ This is the same shape as `#26-gatestartupcontention` earlier the same day (an empty log read as
+"stuck" when it meant "slow") and as the project's standing rule *"when a probe FAILS, read the
+failing line before touching the thing under test"*. **The dangerous version is the one here: the
+broken instrument AGREED WITH ME.** A disagreeing instrument gets investigated; an agreeing one gets
+quoted.
+
+**The fix, and the real answer.** Gave the capture object a no-op `reconfigure`, then re-ran FIVE
+stubs including the strongest one (right predicate, but skipping the cost and heal checks):
+```
+  always None                                rc=1  fails= 6  ✅ rejected
+  always slot 1                              rc=1  fails=13  ✅ rejected
+  always weakest                             rc=1  fails= 9  ✅ rejected
+  weakest below target                       rc=1  fails= 9  ✅ rejected
+  weakest below floor (no cost/heal check)   rc=1  fails= 6  ✅ rejected
+```
+⇒ the conclusion survived — **fewest failures by any stub: 6** — but it is now EARNED. Had the
+harness stayed broken it would have certified a vacuous gate as discriminating, which is precisely
+the failure gate #55's own C13 exists to prevent, one level up.

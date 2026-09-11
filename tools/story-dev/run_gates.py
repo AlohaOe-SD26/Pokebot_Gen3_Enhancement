@@ -501,6 +501,17 @@ GATES: list[tuple[str, bool]] = [
     # purely because their routes are short. Proven against the REAL pre-fix file, not only its own
     # `=1` arm. Pure: reads the registry + source text, no ROM.
     ("probe_gate_unthrottled.py", False),
+    # 55 — `#24-maintain`'s decision, every branch, plus the predictions filed before it was built.
+    # ⛔ THE BOUNDARY IT DEFENDS: `06-DECISIONS-LOG.md` 2026-09-10 REJECTED training a lagging mon to
+    # the BOSS's level (L40→L47 = 285,167 frames vs a 250,000 ceiling; and a L33-40 ground cannot be
+    # won at — 69 battles, 0/43 HP, still L13). This item survives only by changing the two variables
+    # that arithmetic is sensitive to: the target is `boss_target - TRAIN_CATCHUP_GAP`, and the
+    # ground is keyed to the LAGGARD's level. C7/C8 assert exactly that, so a future "why not train
+    # it to the boss level?" edit must argue with the measurement.
+    # ⭐ C13 is the VACUITY conjunct and it earned its keep: the `=gap` arm (decide on a gap vs party
+    # MAX) leaves every single-party case GREEN and is caught ONLY by C13, which holds the party
+    # fixed and varies the boss target. Three arms, each reds exactly its own cases. Pure: no ROM.
+    ("probe_maintenance_decision.py", False),
 ]
 
 

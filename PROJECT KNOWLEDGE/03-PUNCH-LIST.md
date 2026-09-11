@@ -2093,7 +2093,25 @@ battler position rather than reordering the party. Hardcoding "slots 0-1 are act
 recreate the KI-34 bug in a new place: inferring an index relationship instead of reading it.
 Always read it via `BattleState.map_battle_party_index()` / `gBattlerPartyIndexes`.
 
-### 🔶 `#24-maintain` — MAINTAIN, not cram — **⛔ HALF OF IT IS DEAD, HALF IS THE CURRENT NEXT ACTION. READ BOTH HALVES.** (user proposal 2026-07-29)
+### 🔶 `#24-maintain` — MAINTAIN, not cram — **DECISION BUILT AND GATED 2026-09-11 (#55); ⛔ THE LIVE PATH IS UNDRIVEN. The late-game half stays DEAD.** (user proposal 2026-07-29)
+✅ **BUILT 2026-09-11 (sandbox only, UNPROMOTED):** `decide_maintenance` (a PURE predicate beside
+`decide_dex_catch`) + `_maintain_lagging_battler`, called from ONE seam — the top of
+`_prepare_for_fight`, before the sufficiency gate that can `return` early. It lifts any battler
+the exclusion is about to abandon up to `catchup` (= `target - TRAIN_CATCHUP_GAP`), on a ground
+keyed to **its own** level. Gate **#55 `probe_maintenance_decision.py`**: 13 cases, 3 fault arms.
+⛔⛔ **WHAT IS *NOT* PROVEN, AND THE HEADLINE SAYS SO ON PURPOSE: the GENERATOR HAS NEVER RUN.**
+Gate #55 proves the DECISION. The ACTION — `_rotate_lead_safely` → `train_team(scope="lead")` →
+`_lead_strongest_battler` in a `finally` — has not executed a single frame. ‼ This project's own
+rule 7: **a candidate is not an attempt**, and a decision is not an action.
+- [ ] **NEXT: drive it.** `--inject-hmmule` already stages exactly the laggard this needs
+      (Marill L13 ADDED to a ready party; `POKEBOT_MULE_LEVEL` tunes it). The A/B is
+      ARM-ON (default) vs **`POKEBOT_MAINTAIN_FAULT=off`**, graded on the mule's level BY PID.
+      ⛔ Compute the discriminator on the fixture FIRST and show the arms differ — a handed-off
+      spec in this project once named a fixture that made its own A/B vacuous.
+- [ ] Grade prediction **P6** (the boss is handed a STRONG lead, not the laggard) — it is a
+      generator property and gate #55 explicitly does NOT cover it.
+⚠ Drift: `plugins/custom_modes/story_mode.py` is now a REAL behaviour difference and is
+UNPROMOTED — ⛔ promoting is the USER's call and needs a driven `--build custom` verification.
 ⛔⛔ **CORRECTED 2026-09-11 — THE “PREMISE IS DEAD” HEADLINE I PUT HERE ON 2026-09-10 WAS TOO BROAD.** Dead: using a level-matched ground to CLOSE a 30-level gap late — no such ground exists above L28, and the L33-40 ones cannot be WON at (**69 battles, 0/43 HP, still L13**). **ALIVE, and now the `➡➡➡` NEXT ACTION:** maintaining so the gap never opens. That happens while the mon is **L8-28**, which the CURRENT table already covers (L13→ROUTE117, L20→ROUTE111, L25→ROUTE115). ⇒ buildable today with NO new map data.
 **NOT SCHEDULED.** ⛔⛔ **AND THE RELOCATE-TO-A-MATCHED-GROUND SHAPE CANNOT WORK — not for want of searching, but by the GAME's design.** Measured against the decomp: every `MAP_ROUTE*` land table tops out at **L28** (ROUTE121/ROUTE123 joint-highest; ROUTE121 is already in `TRAINING_GRASS`), and **no land table anywhere in Hoenn has a max level of 34, 35, 37, 41, 43, 46, 47, 48 or 49** — so §Ch23's `TRAIN_TARGET = 47` has no ground at its level in the entire game. Every L30+ ground is a cave, a dungeon, the Safari Zone (ZERO EXP — `BATTLE_TYPE_SAFARI`) or Victory Road.
 ⇒ ⭐ **THE SURVIVING SHAPE IS “TRAIN IN THE DUNGEON YOU ARE ALREADY CLEARING”**, which §Ch23's own note already prefers (Victory Road B1F, *950.8 EXP/battle vs 1F's 775.6*) — never a `best_training_grass` pick from across Hoenn. Candidates + blockers are staged in `PENDING_GRASS`; the full proof is a header block in `training_areas.py` and `07-CHANGELOG.md` 2026-09-10.

@@ -26742,3 +26742,63 @@ REGISTRY (deliberately not the ~120 one-off recon probes — a noisy gate gets b
 merely its own `POKEBOT_UNTHROTTLED_FAULT=1` arm.
 
 **Suite: 53 → 54 (51 ENFORCING + 3 ADVISORY), `--quick` 45 → 46.**
+
+---
+
+## 2026-09-11 — `#24-maintain`, first half: the laggard's decision is built and gated (the action is not)
+
+**The laggard is the measured #1 run-ender**, and the mechanism is two lines
+(`plugins/custom_modes/story_mode.py`, inside `_prepare_for_fight`):
+```python
+catchup = target - self.TRAIN_CATCHUP_GAP        # 6
+to_train = {i for i in battlers if party[i].level >= catchup}
+```
+A mon more than 6 levels below the boss target is dropped from prep training ENTIRELY — and the
+target rises with every badge, so **once it falls out it can never climb back in**. 35% of badge
+moments carried a mon 15+ levels behind; §Ch23 then REFUSES to train it because the estimated grind
+exceeds `MAX_TRAINING_FRAMES`, ending the run without spending a frame.
+
+⭐ **THE EXCLUSION IS CORRECT AND WAS NOT TOUCHED.** Training a 30-behind mon to the boss's level is
+the unwinnable grind `06-DECISIONS-LOG.md` rejected on 2026-09-10. The fix is to stop the mon ever
+REACHING that state — top it up to `catchup` (just enough to be re-admitted, after which the
+existing budgeted path finishes) on a ground keyed to ITS level, so the fight is winnable.
+
+### Why this is not reopening a settled decision
+The 2026-09-10 ruling REJECTS building `#24-maintain`, ending *"Recorded so the next agent does not
+re-derive 'just call the function'."* It was found by running `precheck_prior_art.py`, read in full,
+and it **stands** — for the case it measured. This is the other half of the same slug:
+
+| | target | ground | frames | vs 250,000 |
+|---|---|---|---|---|
+| ruled DEAD 2026-09-10 | the BOSS's level (L47) | ROUTE121, wild 28 | **285,167** | ⛔ over |
+| built here | `target - 6` | keyed to the LAGGARD's level | **5,732 – 146,166** | ✅ under |
+
+⭐ **The estimator was CONTROLLED before it was believed** — it reproduces that entry's own figure
+(285,167 vs its stated "~285,000", 0.06%) using the same constants `estimate_frames_to_level` uses.
+A model that could not reproduce the ruling would have been the thing to doubt. Scope recorded in
+`06-DECISIONS-LOG.md` (the old entry ANNOTATED in place; it is append-only, nothing rewritten).
+
+### Shape
+`decide_maintenance` is a **PURE predicate** beside `decide_dex_catch`, for the reason that one is
+pure: a decision entangled with `yield from` needs a ROM, a save state and ~100k frames to exercise
+ONE branch; extracted, all of them are a table that runs in 0.6s. `_maintain_lagging_battler` is a
+read-and-report adapter. ⚠ `scope="lead"`, never `train_team(slots={i})` — KI-84: the slots path
+computes `need` from SLOT INDICES then permutes the party, so it silently no-ops.
+
+### Gate #55 — and the fault arm that refuted my own prediction
+13 cases, 3 arms. ⭐⭐ **I predicted `=gap` (decide on a gap vs the party MAX) would red C1/C4. IT
+DOES NOT.** With a fixed party, "gap vs party max" and "target − 6" usually pick the SAME mon, so
+every single-party case stays green. Only **C13 — the VACUITY conjunct, same party at two different
+boss targets** — can see the difference. ⇒ a plausible-looking wrong implementation would have
+survived 12 of 13 cases. The prediction was wrong; the conjunct was right, and it is exactly why
+this project insists on one.
+
+### ⛔ WHAT IS NOT PROVEN
+**The generator has never run.** Gate #55 proves the DECISION; the ACTION (`_rotate_lead_safely` →
+`train_team` → `_lead_strongest_battler`) has not executed a frame, and prediction **P6** (the boss
+is handed a strong lead, not the laggard) is a generator property the gate explicitly does not
+cover. ‼ **A candidate is not an attempt, and a decision is not an action** — this project's rule 7.
+⇒ NEXT: drive it with `--inject-hmmule` (which already stages this exact laggard), ARM-ON vs
+`POKEBOT_MAINTAIN_FAULT=off`, graded on the mule's level BY PID.
+
+Suite 54 → 55 (52 ENFORCING + 3 ADVISORY), `--quick` 46 → 47. Full suite green: 184.5s.

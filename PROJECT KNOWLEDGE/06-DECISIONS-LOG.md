@@ -5045,6 +5045,8 @@ with `set_swap_train(True)`, against a **250,000** ceiling.
 `TRAINING_GRASS` gaining entries above L28 — a DATA task (sweep + verify late-game grounds), not a
 wiring task. Recorded so the next agent does not re-derive "just call the function".
 
+⚠ **SCOPE CLARIFIED 2026-09-11 — THIS RULING STANDS; see the dated entry at the END of this file.** In short: what is rejected above is LATE relocation to the BOSS's target level, and that stays rejected. A second, cheaper case (EARLY maintenance to `target - TRAIN_CATCHUP_GAP`, on a ground keyed to the LAGGARD's level) was measured separately and built. ⛔ This is NOT permission to add a `grass` key to a late-boss config — gate #53 case C2 exists to make that argue with the data first.
+
 **Rejected: `grass` keys on the new configs.** Same measurement. ⛔ And do not "helpfully" add one
 later — gate #53 case C2 exists to make that argue with the data first.
 
@@ -5055,3 +5057,49 @@ have to be re-fetched.
 
 ⚠ **What this does NOT decide:** whether adaptation raises the finish rate. Correctness is gated;
 efficacy is a frequency question and needs a batch.
+
+
+---
+
+## 2026-09-11 — `#24-maintain` is TWO items in one slug; the early half is buildable and the late half stays dead
+
+**Decision.** Build **early/mid-game per-mon maintenance**: at the top of `_prepare_for_fight`, lift
+any battler the exclusion at `story_mode.py:2377` is about to abandon back up to `catchup`, training
+it at a ground keyed to **its own** level. ⛔ Do NOT touch the late-game case — the 2026-09-10
+rejection above stands unaltered.
+
+**Why this is not reopening a settled question.** I found that ruling by running
+`precheck_prior_art.py`, which is what it is for. The ruling's case and this one differ in the two
+variables its arithmetic is most sensitive to, and the difference is MEASURED, not argued:
+
+| | target | ground | frames | vs 250,000 |
+|---|---|---|---|---|
+| **ruled DEAD 2026-09-10** | the BOSS's level (L47) | the only tabled ground, ROUTE121 wild 28 | **285,167** | ⛔ over |
+| **built 2026-09-11** | `target - 6` (`TRAIN_CATCHUP_GAP`) | keyed to the laggard's level | **5,732 – 146,166** | ✅ under |
+
+⭐ **The instrument was CONTROLLED before it was believed:** it reproduces the 2026-09-10 entry's own
+figure (285,167 vs "~285,000") using the same constants `estimate_frames_to_level` uses. A model that
+could not reproduce the ruling would have been the thing to doubt.
+
+**Why the seam is `_prepare_for_fight` and not a chapter loop.** `story_mode.py:2376-2377` is where
+the laggard is abandoned:
+```python
+catchup = target - self.TRAIN_CATCHUP_GAP        # 6
+to_train = {i for i in battlers if party[i].level >= catchup}
+```
+A mon more than 6 below the boss target is excluded from prep training entirely, so it can never
+close the gap while the target rises with every badge. ‼ **That exclusion is CORRECT** — training it
+to the boss's level is the unwinnable grind the 2026-09-10 ruling killed. ⇒ the fix is not to relax
+it but to stop the mon reaching it, at the one place that already knows the number.
+
+**Rejected: `train_team(slots={i})`.** KI-84 — that path computes `need` from SLOT INDICES and then
+permutes the party via `_rotate_lead_safely`, so it silently no-ops. Use `scope="lead"`
+(`early_game.py:2040`), which stops on `_lead_level()` and never touches the broken path.
+
+**Rejected: a gap measured against the party MAX.** The exclusion's own quantity (`target - 6`) is
+available at the seam, is the number that actually decides, and needs no new constant.
+
+**Rejected: mapping a Meteor Falls spin tile to raise the table.** Separately refuted 2026-09-11 —
+B1F is sealed behind Waterfall, which is badge 8. See `07-CHANGELOG.md` "METEOR FALLS B1F IS SEALED".
+⇒ **`TRAINING_GRASS` above L28 remains a genuine DATA task and remains unstarted**; the 2026-09-10
+ruling's closing sentence is still the live guidance for the LATE case.
