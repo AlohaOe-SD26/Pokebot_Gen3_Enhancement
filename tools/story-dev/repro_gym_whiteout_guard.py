@@ -71,6 +71,25 @@ context.emulator = LibmgbaEmulator(profile, lambda: None, is_test_run=True)  # �
     # 2,820 files / 160 MB. A probe that mutates shared state is not observe-only.
 context.audio = False
 context.video = False
+# ⛔⛔ `context.audio = False` IS NOT ENOUGH, AND THAT IS WHY THIS GATE TIMED OUT (fixed 2026-09-11,
+# `#26-gatestartupcontention`). It sets `_audio_enabled`, which only decides whether real samples or
+# SILENCE are copied (`libmgba.py:593`). The write itself is guarded by `if self._throttled:` alone
+# (`libmgba.py:618-621`) — so a "silent" emulator still writes a frame of silence to the sound device
+# every frame, and **that blocking write IS the 1× throttle** (the file says so at `:606-608`).
+# ⇒ this gate was walking a long gym route AT REAL TIME. At 60fps the suite's 900s bound is only
+# ~54,000 frames — and THIS gate's own drive budgets total **46,000** (`limit=6_000` + `20_000` +
+# `20_000` below) = **766.7s at 1×** before ROM load, save-state loads and audio overhead. That is
+# why it sat right ON the bound and behaved MARGINALLY. It was killed for being PACED, not for
+# being stuck — and on this machine the
+# output device is an HDMI TV, whose `PortAudioError`s then added a `_reset_audio()` per frame on top.
+# ‼ The missing line is the THIRD of a triple. `story_harness.py:126` and every batch lane
+# (`x4_headless.py:621`, `-s 0`) already set it; this gate set only the first two. `emulation_speed = 0`
+# routes to `set_throttle(False)` (`context.py:101-102`), which is the ONLY one of the three that
+# CLOSES the audio stream (`libmgba.py:342-345`) — so it removes the pacing and the audio dependency
+# together. A headless gate has no reason to pace itself to 60fps.
+# ⭐ MEASURED A/B: throttled → killed at the suite's 900s bound (3 occurrences); unthrottled →
+# **107s, EXIT=0, 5/5 checks pass**, which matches this gate's own documented 114s runtime.
+context.emulation_speed = 0
 
 from modules.modes import BotModeError
 from modules.story import mossdeep_gym

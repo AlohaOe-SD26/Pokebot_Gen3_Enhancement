@@ -524,3 +524,4 @@
 {"when": "2026-09-08T19:03:51", "driver": "ki84counter", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 33936, "recomputes": 33936, "scans": 114, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-08T19:08:19", "driver": "ki84counter", "build": "sandbox", "state": "post_ever_grande.ss1", "frames_run": 300000, "recomputes": 300001, "scans": 1001, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-10T20:27:52", "driver": "ch23leagueprobe", "build": "custom", "state": "post_vr_exit.ss1", "frames_run": 2000, "recomputes": 2001, "scans": 7, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-11T07:25:04", "driver": "spin", "build": "sandbox", "state": "at_mossdeep_leaders.ss1", "frames_run": 1200, "recomputes": 1201, "scans": 5, "divergences": {}, "observer_broke": false}

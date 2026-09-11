@@ -241,13 +241,17 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 53 entries = 50 ENFORCING + 3 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 54 entries = 51 ENFORCING + 3 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips 8 ROM gates and is NOT a green suite.
-#   ⏱ MEASURED 2026-09-05: `--quick` ~31-40s for its 33 gates *(the TIMING is from 2026-09-05; the COUNT is now 36 — `run_gates.py` is the authority, and line 244 above carries the current figure)*; the FULL suite is dominated by
-#   `repro_gym_whiteout_guard.py`, which is a KNOWN-RED ~900s timeout (`#26-gatestartupcontention`
-#   — the LIVE tracker; the older `#24-gymwhiteoutgatehang` names the same hang and is archived),
-#   so budget ~15 MINUTES, not seconds. *(This comment read "~150s" until 2026-09-05, which a Tier 1
+#   ⏱ MEASURED 2026-09-11: the FULL suite is **~183s** and `repro_gym_whiteout_guard.py` is
+#   **~108s** of it — still the single dominant gate, but no longer a timeout. ✅ `--quick` ~31-40s
+#   *(that timing is from 2026-09-05; for the COUNT, line 244 above and `run_gates.py` are the
+#   authority — never this line)*. ⭐ **Budget ~3 MINUTES for the full suite, not 15.**
+#   ‼ *(This comment read "a KNOWN-RED ~900s timeout (`#26-gatestartupcontention`) … so budget
+#   ~15 MINUTES, not seconds" from 2026-08-26 until 2026-09-11. That item is now CLOSED: the gate
+#   was never hanging, it was PACED to 60fps by a per-frame audio write because it never set
+#   `context.emulation_speed = 0`. Gate #54 `probe_gate_unthrottled.py` enforces the fix.)* *(This comment read "~150s" until 2026-09-05, which a Tier 1
 #   reviewer read as the total runtime and under-estimated the wall clock by two orders of
 #   magnitude. 150s is a TIMEOUT CAP discussed further down, not a duration — ⇒ never put a bare
 #   number next to a command without saying what it MEASURES.)*

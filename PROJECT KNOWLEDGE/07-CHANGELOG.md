@@ -26688,3 +26688,57 @@ INSIDE B1F_1R on top of Waterfall.
    `story_mode.py:1094`: *"Nearest **reachable** counters:"* printed over entries marked UNREACHABLE.
 4. Drift went 0 → 1 (`training_areas.py`), **COMMENT-ONLY and AST-proven** — now provable on demand
    by the committed `tools/story-dev/probe_comment_only_drift.py` rather than by an unlogged check.
+
+---
+
+## 2026-09-11 — The 16-day red gate was never hanging. It was paced to 60fps.
+
+`repro_gym_whiteout_guard.py` had been red since **2026-08-26** — three logged 900s timeouts, a
+recorded ~36-minute solo run, and an empty log every time. **No full suite run could be green for 16
+days.** Filed as `#26-gatestartupcontention`; three diagnoses had been tried and refuted (gate
+parallelism — the runner is sequential; machine load — it reproduces on a quiet box; an unbounded
+`sounddevice.write`).
+
+### The actual cause
+The gate sets a familiar pair and stops one short:
+```python
+context.audio = False
+context.video = False
+#  ← MISSING: context.emulation_speed = 0
+```
+`context.audio = False` sets `_audio_enabled`, which only decides whether **real samples or SILENCE**
+are copied (`libmgba.py:593`). The write itself is guarded by `if self._throttled:` **alone**
+(`:618-621`) — and that blocking write **IS** the 1× throttle; `libmgba.py:606-608` says so in its
+own comment. So a "silent" emulator still writes a frame of silence to the sound device every frame
+and paces itself to 60fps. ⇒ **the suite's 900s bound is only ~54,000 frames at 1× — and this
+gate's own drive budgets total 46,000** (`limit=6_000` + `20_000` + `20_000`), i.e. **766.7s at 1×**
+before ROM load, save-state loads and the audio overhead. ⇒ it sat right ON the bound, which is
+exactly why it behaved MARGINALLY — the "hangs in-suite, passes solo" pattern that made it look
+like contention for 16 days. It was killed for being PACED, never for being stuck.
+
+⭐ **A/B, measured:** throttled → killed at 900s (×3); `context.emulation_speed = 0` → **107s,
+EXIT=0, 5/5 checks pass** — matching the gate's own documented 114s runtime.
+
+### Why `emulation_speed = 0` and not the other two
+It routes to `set_throttle(False)` (`context.py:101-102`), which is the **only** one of the three
+that CLOSES the audio stream (`libmgba.py:342-345`) — removing the pacing and the audio dependency
+together. It is also the project idiom: `story_harness.py:126` sets it, and every batch lane gets it
+via `x4_headless.py`'s `-s 0`. ✅ I MEASURED that the harness is already unthrottled (**491 fps over
+1,200 frames**) rather than assuming it shared the bug — it does not.
+
+### The symptom that was real but innocent
+The `PaErrorCode -9999 … no driver installed` lines are genuine: this machine's output device is
+**"SONY TV (NVIDIA High Definition Audio)"**, an HDMI sink that fails writes when the TV sleeps.
+Each failure triggers `_reset_audio()`, which SUCCEEDS in re-opening a stream, so the next frame
+fails again — a per-frame exception storm layered ON TOP of the pacing. ‼ That is why the earlier
+diagnosis stopped there: it found something genuinely wrong and treated it as sufficient.
+
+### Generalised, because five more were one long route away
+`probe_chapter_order`, `probe_dive_routing`, `probe_regi_capabilities`, `probe_slot_free_plan` and
+`repro_impassable_dirs` had the **same omission** and were passing purely because their routes are
+short. All five fixed, and **gate #54 `probe_gate_unthrottled.py`** now enforces it over the
+REGISTRY (deliberately not the ~120 one-off recon probes — a noisy gate gets bypassed).
+‼ It was proven against the **real pre-fix file** (`git show HEAD:…` → RED, restore → GREEN), not
+merely its own `POKEBOT_UNTHROTTLED_FAULT=1` arm.
+
+**Suite: 53 → 54 (51 ENFORCING + 3 ADVISORY), `--quick` 45 → 46.**

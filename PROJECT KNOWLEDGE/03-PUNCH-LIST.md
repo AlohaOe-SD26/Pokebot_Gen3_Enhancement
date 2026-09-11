@@ -291,7 +291,26 @@ LANDED in BOTH post-fix batches: zero CantEscape freezes corpus-wide (baseline 3
 ### ✅ `#26-battleitemwedge` — HANG closed 2026-08-26 AND LIVE-VALIDATED 2026-08-27 (batch `20260826-185918`: its KI-47 family 2 → 0 over 572 item flows)  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
 - [x] ⛔ DO NOT REDO. Full detail is in the archive under its 2026-09-07 banner and in `07-CHANGELOG.md`.
 
-### ‼ `#26-gatestartupcontention` — one gate times out IN-SUITE **and now SOLO too** (filed 2026-08-26; headline corrected 2026-09-11)
+### ✅ `#26-gatestartupcontention` — **CLOSED 2026-09-11: it was never contention and never a hang — the gate was PACED TO 60fps.** ⛔ DO NOT REOPEN. (filed 2026-08-26, closed 2026-09-11)
+⭐ **ROOT CAUSE, in one line:** the gate set `context.audio`/`context.video` but not
+`context.emulation_speed = 0`, so the emulator stayed THROTTLED and paced itself by BLOCKING on
+an audio write every frame. `audio = False` only silences the samples (`libmgba.py:593`); the
+write is guarded by `if self._throttled:` alone (`:618-621`). The suite's 900s bound is ~54,000
+frames at 1×, and this gate walks a long gym route. ⭐ **A/B: 900s kill (×3) → 107s, EXIT=0,
+5/5 pass** — its own documented 114s runtime.
+- [x] Fixed in `repro_gym_whiteout_guard.py` **and in the five other registered gates that had
+      the same omission** (`probe_chapter_order`, `probe_dive_routing`, `probe_regi_capabilities`,
+      `probe_slot_free_plan`, `repro_impassable_dirs`) — they passed only because their routes
+      are short.
+- [x] **GATED as #54 `probe_gate_unthrottled.py`** (rule 6: a rule already broken belongs in a
+      gate). Proven against the REAL pre-fix file via `git show HEAD:…`, not only its own
+      `POKEBOT_UNTHROTTLED_FAULT=1` arm.
+⚠ **The three earlier diagnoses were each partly right and none was the cause.** Not gate
+parallelism (`run_gates.py` is sequential — correctly refuted 2026-08-26). Not machine load
+(reproduced on a quiet machine — correctly refuted). The `PaErrorCode -9999 / no driver`
+errors are REAL but a SYMPTOM: this machine's output device is an HDMI TV, and failing writes
+added a `_reset_audio()` per frame ON TOP of the pacing. ⇒ **the empty log was the tell — a
+process producing nothing for 900s can be stuck OR merely slow, and nobody had measured which.**
 ⛔⛔ **"PASSES SOLO" IS REFUTED — DO NOT PLAN AROUND IT.** Measured 2026-09-11: three suite runs in one session each killed `repro_gym_whiteout_guard.py` at the 900s bound, **and a SOLO re-run produced nothing for 600s** before I stopped it. That agrees with `04-HANDOFF.md`'s record of a ~36-minute standalone hang and disagrees with this item's own former title. ‼ *(The title read "passes solo" from 2026-08-26 until 2026-09-11 — P2 in miniature: the half that gets skimmed said the opposite of the body's newest evidence.)*
 ⭐ **AND THE MECHANISM IS PROBABLY NOT A HANG AT ALL — it is a per-frame exception storm.** `libmgba.py:617-623`: when throttled, every frame calls `self._audio_stream.write(...)`; with no audio driver that raises `PortAudioError`, which is caught and answered with `self._reset_audio()` — **and then the next frame does it again**. The file's own comment describes the intended escape (*"in case audio could not be initialised, we fall back to a sleep-based throttling mechanism"*), but that branch is only reached when `_audio_stream` is falsy, and the error path never permanently clears it. ⇒ the emulator does not stop, it CRAWLS. That fits an empty log, a 36-minute solo run, and the repeated `PaErrorCode -9999 ... no driver installed` lines seen in all three of this session's runs.
 - [ ] **Candidate fix (cheapest first): make the fallback STICK** — after N consecutive `PortAudioError`s, set `_audio_stream = None` permanently so throttling uses the documented sleep path. ⚠ `libmgba.py` is UPSTREAM code, so this is a DIVERGENCE and needs a `DIVERGENCE-LOG.md` entry; prefer running gates UNTHROTTLED if that is sufficient, since a headless gate has no reason to pace itself to 60fps.

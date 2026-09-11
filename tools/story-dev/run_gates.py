@@ -486,6 +486,21 @@ GATES: list[tuple[str, bool]] = [
     # roster bulk, so a band read off the bulk misses the mon that wins the fight.
     # Two arms (`=grass`, `=band`), both real maintainer mistakes. Pure: AST + regex, no ROM.
     ("probe_late_boss_configs.py", False),
+    # 54 — EVERY REGISTERED GATE THAT BOOTS AN EMULATOR MUST UNTHROTTLE IT.
+    # ⛔ Written after a MEASURED 16-day outage, not as a precaution. `repro_gym_whiteout_guard.py`
+    # set `context.audio`/`context.video` but not the third line of that triple,
+    # `context.emulation_speed = 0` — and `audio = False` only silences the SAMPLES, while the
+    # per-frame `_audio_stream.write()` that PACES the emulator to 60fps is guarded by
+    # `if self._throttled:` alone (`libmgba.py:593` vs `:618-621`). So the gate walked a long gym
+    # route at REAL TIME and was killed at this runner's 900s bound. Its own drive budgets total
+    # 46,000 frames = 766.7s at 1× before ROM/save-state load, so it sat right ON the bound. It was
+    # PACED, never stuck. Filed 2026-08-26 as `#26-gatestartupcontention`; red until 2026-09-11,
+    # so no full suite run could be green in between.
+    # ⭐ A/B: throttled → 900s kill (×3); unthrottled → 107s, EXIT=0, 5/5 — its documented runtime.
+    # ‼ The gate exists because FIVE MORE registered gates had the same omission and were passing
+    # purely because their routes are short. Proven against the REAL pre-fix file, not only its own
+    # `=1` arm. Pure: reads the registry + source text, no ROM.
+    ("probe_gate_unthrottled.py", False),
 ]
 
 

@@ -53,6 +53,13 @@ context.emulator = LibmgbaEmulator(profile, lambda: None, is_test_run=True)  # �
     # 2,820 files / 160 MB. A probe that mutates shared state is not observe-only.
 context.audio = False
 context.video = False
+# ‼ THE THIRD LINE OF THE TRIPLE (added 2026-09-11, `#26-gatestartupcontention`). Without it the
+# emulator stays THROTTLED and paces itself to 60fps by BLOCKING on an audio write every frame
+# (`libmgba.py:618-621`) — `context.audio = False` only silences the samples, it does not stop the
+# write. `emulation_speed = 0` routes to `set_throttle(False)` (`context.py:101-102`), the only one
+# that CLOSES the stream. ⛔ This gate is short TODAY, which is exactly how the omission hid in
+# `repro_gym_whiteout_guard.py` until its route grew: 900s bound = only ~54,000 frames at 1x.
+context.emulation_speed = 0
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--anchor", default="post_dive.ss1")

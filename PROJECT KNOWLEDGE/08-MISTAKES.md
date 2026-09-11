@@ -16422,3 +16422,39 @@ the logged value and check whether anything acts on it — a list the executor f
 not a recommendation.*
 ⇒ Filed as `#24-countermsg2` (fix the misleading LABEL at `story_mode.py:1094`), with the retraction
 kept in the item so the phantom is not re-filed a third time.
+
+---
+
+## 2026-09-11 — "It hangs" was never measured. It was slow, and that cost 16 days of a red suite.
+
+**Symptom.** `repro_gym_whiteout_guard.py` produced an EMPTY log and got killed at the suite's 900s
+bound, repeatedly, from 2026-08-26. Everyone (me included) called it a HANG.
+
+**Root cause.** It was PACED. The gate never set `context.emulation_speed = 0`, so the emulator
+throttled itself to 60fps by BLOCKING on an audio write every frame — and 900s at 1× is only
+~54,000 frames, which a long gym route exceeds. Unthrottled: **107s, 5/5 pass.**
+
+⛔ **THE DIAGNOSTIC ERROR, AND IT IS THE REUSABLE PART: nobody asked whether the process was STUCK or
+merely SLOW.** An empty log is consistent with BOTH, and the two have opposite fixes. Three
+successive diagnoses (gate parallelism, machine load, an unbounded `sounddevice.write`) all assumed
+"stuck" and went looking for what was blocking. The first two were correctly refuted by measurement;
+the third found something genuinely wrong — the audio errors ARE real — and stopped there.
+⭐ **A TRUE SYMPTOM IS THE MOST EXPENSIVE PLACE TO STOP**, because it feels like an answer.
+
+**Prevention rule (one line):** *Before calling anything a hang, measure its RATE — frames/sec,
+lines/sec, bytes/sec. "Stuck" and "slow" produce the same empty log and have opposite fixes.*
+
+‼ **And I made the same class of error inside the fix itself**, twice, both caught by checking:
+1. I wrote in the punch list that `_reset_audio`'s fallback "is only reached when `_audio_stream` is
+   falsy, and the error path never permanently clears it". Reading it properly: `_reset_audio`
+   **succeeds** in re-opening a stream each time, so there is no failure counter. Same conclusion,
+   wrong mechanism — the thing this project already has a rule about.
+2. I asserted `context.audio = False` was decorative because libmgba never reads `context.audio`.
+   It is a **property whose setter calls `set_audio_enabled`** (`context.py:153-156`). One grep is
+   not a reading. ⇒ the line is not decorative, it is merely INSUFFICIENT — which is a different
+   and more interesting fact.
+3. I assumed `story_harness.py` shared the bug because it appeared in the same "no `set_throttle`"
+   list. **MEASURED instead: 491 fps over 1,200 frames — already unthrottled** (it sets
+   `emulation_speed = 0` at `:126`). A list of files matching a grep is a list of CANDIDATES.
+
+⇒ Closed as `#26-gatestartupcontention`, gated as #54 `probe_gate_unthrottled.py`.
