@@ -280,13 +280,8 @@ Bounded PRE-TURN (`TURN_TIMEOUT_FRAMES=32`) removed the 58% sink; all five safet
 silent on both arms. Evidence `evidence/2026-08-26-mossdeep-speed-AB.txt`; narrative + original
 filing in `07-CHANGELOG.md` 2026-08-26. ⛔ Fixes B/C deliberately NOT taken.
 
-### ✅ `#26-fleefreeze` — FIXED 2026-08-26, GATED as #32 — and the LIVE arm LANDED: confirmed in batch `20260826-130441`
-
-`_escape` delegates to the inherited KI-52 `_handle_flee` on the escape-impossible branch instead
-of blindly returning `run_away()`. Gate #32 `repro_flee_trap_delegate.py` proves it 3 ways (⚠ its
-ARM A sentinel was strengthened 2026-08-27 — it had been value-equal to `run_away()`). LIVE ARM
-LANDED in BOTH post-fix batches: zero CantEscape freezes corpus-wide (baseline 3 of 8 lanes).
-**ARC CLOSED.** 📦 Diagnosis + evidence: `07-CHANGELOG.md` 2026-08-26/27 + git history.
+### ✅ `#26-fleefreeze` — CLOSED. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-11, R3 budget; nothing deleted, zero open boxes).
+- [x] ⛔ DO NOT REDO. Full detail in the archive under its 2026-09-11 banner and in `07-CHANGELOG.md`.
 
 ### ✅ `#26-battleitemwedge` — HANG closed 2026-08-26 AND LIVE-VALIDATED 2026-08-27 (batch `20260826-185918`: its KI-47 family 2 → 0 over 572 item flows)  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
 - [x] ⛔ DO NOT REDO. Full detail is in the archive under its 2026-09-07 banner and in `07-CHANGELOG.md`.
@@ -402,7 +397,7 @@ AN OPEN FACT — sweep for residuals before retiring one.
 ⛔⛔⛔ **AND IT IS WORSE THAN A RE-BUY — VERIFIED IN CODE 2026-09-06.** The §Ch23 dispatch is:
 `story_mode.py:3791` `if not ch23_chapter_done():` → `:3792` runs the chapter, `:3793` else-skips —
 and `:3795` `_guard("Victory Road (Ch23)", ch23_chapter_done)` sits **OUTSIDE the if/else**.
-`_guard` (`story_mode.py:3187-2878`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
+`_guard` (`story_mode.py:3374-2878`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
 §Ch24 spends the basket, the next pass through `_play()` does all three of these:
 (1) re-enters the WHOLE Victory Road chapter, because `:3791` is now True;
 (2) reaches leg 11 and tries to re-buy a **₽54,300** basket holding **₽1,741** — leg 11 refuses
@@ -752,16 +747,8 @@ Full narrative: `07-CHANGELOG.md` 2026-09-01 and 2026-09-02.
 REFUTED markers stacked on one another — a reader who stopped at any one of them got a different
 answer. ⇒ *when an item's claim is refuted AND its work has shipped, COMPRESS it to what survives;
 stacking another correction on top is how it became unreadable.*
-### ✅ `#24-ch21anchor` — DONE 2026-08-24 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)
-
-⛔ **`saves/post_ch20.ss1` EXISTS — DO NOT RE-CAPTURE IT.** Captured by `--driver ch20chapter`
-with `CH20_CAPTURE=`, which writes ONLY on `ACCEPTANCE: PASS`, so the file's existence IS the
-acceptance record. Probe-verified `OVERWORLD ROUTE128 (38,24)`, badges 1-7, `ROUTE128_STATE=2`,
-`SOOTOPOLIS_CITY_STATE=1` — §Ch21's entry condition, measured live.
-⚠ It carries **1 FAINTED party member at 80% HP** — faithful, but a §Ch21 leg started from it
-can whiteout; heal first and do NOT read an early whiteout as a Ch21 bug.
-‼ The lesson that outlived the item: **verify an anchor with `probe_anchor_inventory.py`, never
-from the driver's log** — the probe caught the fainted member the driver's log did not report.
+### ✅ `#24-ch21anchor` — CLOSED. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-11, R3 budget; nothing deleted, zero open boxes).
+- [x] ⛔ DO NOT REDO. Full detail in the archive under its 2026-09-11 banner and in `07-CHANGELOG.md`.
 
 ### ‼ `#24-divegroundroute120` — a MEASURABLY better Dive-learner ground nobody had evaluated (filed 2026-08-24)
 
@@ -1490,7 +1477,7 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
   500-round retry loop instead of abandoning the target. ⇒ **build the disposition, and make it
   SUPPLEMENT the ceiling, never replace it.**
 - [ ] ⛔⛔ **STRUCTURAL FACT THAT CHANGES EVERY "BUDGET HEADROOM" ARGUMENT — VERIFIED 2026-09-09.**
-  `MAX_FRAMES_PER_RUN = 5_000_000` sits at `story_mode.py:4677`, **inside `StoryEndlessResetMode`
+  `MAX_FRAMES_PER_RUN = 5_000_000` sits at `story_mode.py:4864`, **inside `StoryEndlessResetMode`
   (`:4283`) — the BATCH HARNESS.** Production `StoryMode` (`:1123`) has **no total-frame budget at
   all**; `train_team` has only a 500-*round* guard. ⇒ **in a real run the per-call
   `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence**, and removing or
@@ -1819,7 +1806,7 @@ accident of what the bot happened to meet.
 * **`#24-flyunlock` is CLOSED**, so the bot can finally REACH wild encounters at all.
 
 **⛔ THE FIVE CONSTRAINTS AN ADVERSARIAL REVIEW FOUND — build against these, they are measured:**
-1. **`_should_catch` already implements the right dex test** (`story_mode.py:1624`, comparing
+1. **`_should_catch` already implements the right dex test** (`story_mode.py:1689`, comparing
    `owned_species` by national dex number). It is gated off by conditions written for the NARROWER
    pre-Gym-1 team-building purpose: `if get_event_flag("BADGE01_GET"): return False` and a
    party-full check. ⇒ **relax those two; do not rewrite the predicate.**
@@ -1886,8 +1873,8 @@ accident of what the bot happened to meet.
   1's dex), and now GATED by `tools/story-dev/repro_heartbeat_emits.py`, which drives the **real
   `on_frame()`** and is fault-tested (arm B: 0 heartbeat lines).
 - [x] ✅✅ **THE FENCE IS BUILT AND GATED 2026-09-10 (gate #50, 20 cases, fault-armed). ⛔ DO NOT
-  REBUILD IT.** `decide_dex_catch` (`story_mode.py:1188`) is PURE; `_should_catch`
-  (`story_mode.py:1624`) is now a read-and-report ADAPTER that decides nothing. It was written with
+  REBUILD IT.** `decide_dex_catch` (`story_mode.py:1253`) is PURE; `_should_catch`
+  (`story_mode.py:1689`) is now a read-and-report ADAPTER that decides nothing. It was written with
   `is_armed()`, and the *"for the team!"* message now DERIVES its destination from the slot count
   the game reads. ⭐ **FOUR THINGS THE SPEC DID NOT HAVE, each verified in code before it was built:**
   1. ⛔ **THE BALL GATE HAD TO BECOME A LEVEL, NOT A BOOLEAN — and this one was FATAL.**
@@ -1932,6 +1919,39 @@ accident of what the bot happened to meet.
    CHOICE, priced against `#24-partycap`'s measured 36-point collapse, ⛔ **not** the ruling fully
    implemented. Filed so nobody reads this item as shipped: `#24-dexcatch-battlebail` (below) and the
    party<6 case are the residual.
+
+---
+
+### ‼ `#24-prechecksentence` — `precheck_prior_art.py` answers a SENTENCE with a confident `0 hit(s)` (filed 2026-09-11)
+
+⛔⛔ **ITS FAILURE MODE IS A REASSURING SILENCE, WHICH IS WORSE THAN NO TOOL** — and the handoff's
+`➡➡➡` marker instructs every future session to run it.
+
+**MEASURED 2026-09-11.** `main()` does `terms = [t for t in sys.argv[1:] if t.strip()]` and matches
+`t.lower() in line.lower()` — so **each argv element is ONE WHOLE-PHRASE term** tested as a substring
+of a SINGLE LINE. A natural-language query in quotes therefore cannot match anything:
+```
+precheck_prior_art.py "call best_training_grass per-mon during the early game"   -> 0 hit(s)
+precheck_prior_art.py TRAIN_CATCHUP_GAP best_training_grass                      -> 30 hit(s)
+```
+⭐ **The second form surfaces a 2026-09-10 DECISIONS-LOG ruling that explicitly rejects the work the
+marker was sending the reader to do.** Three sentence-shaped queries had returned clean first; the
+ruling appeared only after a CONTROL query for something already known to be documented
+(`widen TRAIN_CATCHUP_GAP`) ALSO returned 0 — proving the INSTRUMENT was quiet, not the tree.
+‼ Nothing in the output hints at this: `0 hit(s) shown, 0 sitting near a VERDICT word` plus a
+coverage footer reads like a thorough search that found nothing.
+
+- [ ] **Warn on sentence-shaped terms.** If a term contains a space AND is longer than ~24 chars,
+      print a loud banner: *"this looks like a sentence; each argument is matched as one whole phrase
+      against a single line — pass SPACE-SEPARATED SYMBOLS instead"*, and show what the symbol-split
+      form would have found. ⚠ Warn, do not silently re-split: a caller who MEANT an exact phrase
+      must still be able to ask for one.
+- [ ] **Make `0 hits` across ALL files say so loudly**, since that is the outcome that gets
+      misread as clearance.
+- [ ] ⛔ Fault-test it: a query that SHOULD hit (`TRAIN_CATCHUP_GAP`) must hit, and a query that
+      should not must stay quiet — the same two-sided bar every gate here meets.
+⚠ The docstring's own USAGE text should show the symbol form FIRST; the marker's phrasing
+("run `precheck_prior_art.py` anyway") invites the sentence form.
 
 ---
 
@@ -2657,7 +2677,7 @@ region, where "train near the gym" is actively wrong.
       asked and the data is now free, but it is not where the failures are.
 - [ ] #24-partyvariety — **Fill the party and vary what is caught; PC deposit/withdraw.**
       ‼ **ROOT CAUSE FOUND (recon 2026-07-26) — it is not emergent, it is two conditions.**
-      `_should_catch` (`story_mode.py:1624-1442`) requires `not BADGE01_GET` AND
+      `_should_catch` (`story_mode.py:1689-1442`) requires `not BADGE01_GET` AND
       `len(party) < _catch_team_target` where **`_catch_team_target = 4`** (`:811`). So the
       bot catches FOUR mons before the Stone Badge and then never catches again for the
       rest of the run. Part 1 is nearly a one-line change.
@@ -3753,7 +3773,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   runs reached exactly #41 after whiteouts spread over a **median of 13 different towns**,
   while winning **86-96%** of their battles (one won 866 of 907 with an L51 lead). ⇒ a fuse
   on run LENGTH — kill rate 0% under 1.5M frames, 62% above 3.5M, and `MAX_FRAMES_PER_RUN`
-  (5,000,000) was never reached by ANY of the 61 runs. ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4677`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split). FIX: `whiteout_budget()` (PURE) keys
+  (5,000,000) was never reached by ANY of the 61 runs. ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4864`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split). FIX: `whiteout_budget()` (PURE) keys
   it to CONSECUTIVE whiteouts at ONE location. GATE #44 `probe_whiteout_budget.py` replays
   the 14 real sequences: **0 of 14 still killed**, a stuck run and a blind run both STILL
   stopped at #41, and three fault arms fire. ⛔ DO NOT rewrite it to use `_progress_sig()` —
@@ -3789,7 +3809,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   Mossdeep respawn would make retries CHEAPER; it cannot make them SUCCEED, and cheapness is not what
   kills these runs. **(1) The runs die on a COUNT, not on time** — `whiteout_budget(cap=40)` — and
   this file already records that `MAX_FRAMES_PER_RUN` (5,000,000) **was never reached by ANY of the
-  61 runs** ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4677`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split).. Saved frames buy nothing. **(2) From badge 7 on, attempt N+1 is BYTE-IDENTICAL to
+  61 runs** ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4864`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split).. Saved frames buy nothing. **(2) From badge 7 on, attempt N+1 is BYTE-IDENTICAL to
   attempt N** (this very item's own finding), so a cheaper loop is the same loop.
   ⛔⛔ **(3) IT IS ACTIVELY HARMFUL:** `whiteout_budget`'s `key` **is** `get_last_heal_location()`,
   and the budget RESETS to 1 when the key changes ⇒ re-arming Lilycove→Mossdeep grants **one free

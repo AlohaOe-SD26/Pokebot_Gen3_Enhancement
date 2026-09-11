@@ -10822,3 +10822,31 @@ into the stub that replaced it** — they are NOT only here. Slug preserved and 
 owed / not built / residual"* sentence written that session, ask **"where would a future session
 FIND this?"** If the only answer is an append-only log, a CLOSED KI's body, or a research note, it
 is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
+
+
+---
+
+## 📦 ARCHIVED 2026-09-11 (second pass) from `03-PUNCH-LIST.md` — R3 line budget
+
+⛔ **VERBATIM. Nothing deleted, nothing edited.** Both were fully CLOSED with zero open boxes,
+so nothing needed hoisting. Slugs preserved and findable: `#24-ch21anchor`, `#26-fleefreeze`.
+
+### ✅ `#24-ch21anchor` — DONE 2026-08-24 (RETIRED to a summary; full detail in `07-CHANGELOG.md`)
+
+⛔ **`saves/post_ch20.ss1` EXISTS — DO NOT RE-CAPTURE IT.** Captured by `--driver ch20chapter`
+with `CH20_CAPTURE=`, which writes ONLY on `ACCEPTANCE: PASS`, so the file's existence IS the
+acceptance record. Probe-verified `OVERWORLD ROUTE128 (38,24)`, badges 1-7, `ROUTE128_STATE=2`,
+`SOOTOPOLIS_CITY_STATE=1` — §Ch21's entry condition, measured live.
+⚠ It carries **1 FAINTED party member at 80% HP** — faithful, but a §Ch21 leg started from it
+can whiteout; heal first and do NOT read an early whiteout as a Ch21 bug.
+‼ The lesson that outlived the item: **verify an anchor with `probe_anchor_inventory.py`, never
+from the driver's log** — the probe caught the fainted member the driver's log did not report.
+
+### ✅ `#26-fleefreeze` — FIXED 2026-08-26, GATED as #32 — and the LIVE arm LANDED: confirmed in batch `20260826-130441`
+
+`_escape` delegates to the inherited KI-52 `_handle_flee` on the escape-impossible branch instead
+of blindly returning `run_away()`. Gate #32 `repro_flee_trap_delegate.py` proves it 3 ways (⚠ its
+ARM A sentinel was strengthened 2026-08-27 — it had been value-equal to `run_away()`). LIVE ARM
+LANDED in BOTH post-fix batches: zero CantEscape freezes corpus-wide (baseline 3 of 8 lanes).
+**ARC CLOSED.** 📦 Diagnosis + evidence: `07-CHANGELOG.md` 2026-08-26/27 + git history.
+
