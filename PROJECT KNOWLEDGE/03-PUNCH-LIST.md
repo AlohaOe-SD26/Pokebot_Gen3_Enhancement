@@ -397,7 +397,7 @@ AN OPEN FACT — sweep for residuals before retiring one.
 ⛔⛔⛔ **AND IT IS WORSE THAN A RE-BUY — VERIFIED IN CODE 2026-09-06.** The §Ch23 dispatch is:
 `story_mode.py:3791` `if not ch23_chapter_done():` → `:3792` runs the chapter, `:3793` else-skips —
 and `:3795` `_guard("Victory Road (Ch23)", ch23_chapter_done)` sits **OUTSIDE the if/else**.
-`_guard` (`story_mode.py:3424-2878`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
+`_guard` (defined in `story_mode.py`; ⛔ no line cited ON PURPOSE — this names a DEFINITION, and a line number here has drifted four times in one session) **RAISES `BotModeError`** when its check fails. ⇒ the moment
 §Ch24 spends the basket, the next pass through `_play()` does all three of these:
 (1) re-enters the WHOLE Victory Road chapter, because `:3791` is now True;
 (2) reaches leg 11 and tries to re-buy a **₽54,300** basket holding **₽1,741** — leg 11 refuses
@@ -1477,7 +1477,7 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
   500-round retry loop instead of abandoning the target. ⇒ **build the disposition, and make it
   SUPPLEMENT the ceiling, never replace it.**
 - [ ] ⛔⛔ **STRUCTURAL FACT THAT CHANGES EVERY "BUDGET HEADROOM" ARGUMENT — VERIFIED 2026-09-09.**
-  `MAX_FRAMES_PER_RUN = 5_000_000` sits at `story_mode.py:4914`, **inside `StoryEndlessResetMode`
+  `MAX_FRAMES_PER_RUN = 5_000_000` sits in `story_mode.py`, **inside `StoryEndlessResetMode`
   (`:4283`) — the BATCH HARNESS.** Production `StoryMode` (`:1123`) has **no total-frame budget at
   all**; `train_team` has only a 500-*round* guard. ⇒ **in a real run the per-call
   `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence**, and removing or
@@ -2110,8 +2110,13 @@ rule 7: **a candidate is not an attempt**, and a decision is not an action.
       spec in this project once named a fixture that made its own A/B vacuous.
 - [ ] Grade prediction **P6** (the boss is handed a STRONG lead, not the laggard) — it is a
       generator property and gate #55 explicitly does NOT cover it.
-⚠ Drift: `plugins/custom_modes/story_mode.py` is now a REAL behaviour difference and is
-UNPROMOTED — ⛔ promoting is the USER's call and needs a driven `--build custom` verification.
+✅ **PROMOTED 2026-09-11 (user-authorised), BUT SHIPPED DORMANT.** `POKEBOT_MAINTAIN` defaults
+OFF, so custom carries this as LATENT CODE, not behaviour — which is how the urgent gate-#56
+crash fix in the same file could ship without waiting for this drive. Verified by driving
+220,000 frames `--build custom` (exit 0, crash scan 0); the promoted `[MAINTAIN] dormant` log
+line proves the code was REACHED, not merely loaded. Rollback `pre-promote-2026-09-11b`.
+⛔ **Do NOT flip `POKEBOT_MAINTAIN` on until the drive below passes**, and flip it in its own
+reviewable change — never as a side effect of another edit.
 ⛔⛔ **CORRECTED 2026-09-11 — THE “PREMISE IS DEAD” HEADLINE I PUT HERE ON 2026-09-10 WAS TOO BROAD.** Dead: using a level-matched ground to CLOSE a 30-level gap late — no such ground exists above L28, and the L33-40 ones cannot be WON at (**69 battles, 0/43 HP, still L13**). **ALIVE, and now the `➡➡➡` NEXT ACTION:** maintaining so the gap never opens. That happens while the mon is **L8-28**, which the CURRENT table already covers (L13→ROUTE117, L20→ROUTE111, L25→ROUTE115). ⇒ buildable today with NO new map data.
 **NOT SCHEDULED.** ⛔⛔ **AND THE RELOCATE-TO-A-MATCHED-GROUND SHAPE CANNOT WORK — not for want of searching, but by the GAME's design.** Measured against the decomp: every `MAP_ROUTE*` land table tops out at **L28** (ROUTE121/ROUTE123 joint-highest; ROUTE121 is already in `TRAINING_GRASS`), and **no land table anywhere in Hoenn has a max level of 34, 35, 37, 41, 43, 46, 47, 48 or 49** — so §Ch23's `TRAIN_TARGET = 47` has no ground at its level in the entire game. Every L30+ ground is a cave, a dungeon, the Safari Zone (ZERO EXP — `BATTLE_TYPE_SAFARI`) or Victory Road.
 ⇒ ⭐ **THE SURVIVING SHAPE IS “TRAIN IN THE DUNGEON YOU ARE ALREADY CLEARING”**, which §Ch23's own note already prefers (Victory Road B1F, *950.8 EXP/battle vs 1F's 775.6*) — never a `best_training_grass` pick from across Hoenn. Candidates + blockers are staged in `PENDING_GRASS`; the full proof is a header block in `training_areas.py` and `07-CHANGELOG.md` 2026-09-10.

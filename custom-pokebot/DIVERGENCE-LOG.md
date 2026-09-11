@@ -2333,3 +2333,57 @@ guard imports `PokemonCenter`, `_lead_best_matchup` and `heal_in_pokemon_center`
 the top. **A green drive proved the code LOADS, not that it SURVIVES A RESUME.**
 ⇒ **Do not promote code whose first real exercise is still ahead of it.** Promote AFTER the batch.
 The rollback tag is why this cost a re-promotion instead of a bad day.
+
+
+---
+
+## 2026-09-11 — PROMOTION: three files, user-authorised — a latent CRASH FIX, shipped with the unproven part DORMANT
+
+**Rollback tag: `pre-promote-2026-09-11b`** (local + origin, at `143b7d4f`).
+Drift 3 → **0**, 3/3 byte-identical.
+
+| file | what | kind |
+|---|---|---|
+| `modules/story/victory_road.py` | `yield` inside a `finally` → latent `RuntimeError` | ⛔ **CRASH FIX to code THIS FORK was already running** |
+| `plugins/custom_modes/story_mode.py` | same crash fix, + `#24-maintain` **shipped DORMANT** | fix live, feature inert |
+| `modules/story/training_areas.py` | Meteor Falls sealed-pocket evidence | comment-only (AST-identical) |
+
+### Why this fork needed it
+A generator that yields from a `finally` raises `RuntimeError: generator ignored GeneratorExit` when
+closed while suspended in the matching `try`. CPython closes abandoned generators at GC time, and
+**this fork has two live `.close()` sites that reach the affected code** — `_play_gen.close()` (fired
+on any recoverable battle fault) and `inner.close()` (per-run frame budget). `train_team` can sit
+suspended inside that `try` for ~100k frames, so the exposure was most of a training run.
+‼ `victory_road.py` carried the bug under the comment *"⛔ IN A `finally` ON PURPOSE"* — the intent
+was right, the mechanism was a crash. **A deliberate-looking comment is not evidence of safety.**
+
+### ⭐⭐ HOW THIS PROMOTION ANSWERS THIS FORK'S OWN 2026-09-10 LESSON
+That entry ends: *"A green drive proved the code LOADS, not that it SURVIVES A RESUME … **Do not
+promote code whose first real exercise is still ahead of it.** Promote AFTER the batch."*
+That lesson applies squarely to `#24-maintain`, whose ACTION has never executed a frame. It is
+answered TWO ways rather than argued around:
+1. **The feature ships INERT.** `POKEBOT_MAINTAIN` defaults OFF; unset ⇒ the method logs `dormant`
+   and returns *before any yield*. Its first real exercise is therefore NOT in this fork. The crash
+   fix — which is urgent and IS proven — did not have to wait for it.
+2. **The drive re-entered `_play` FROM THE TOP**, which is exactly what the failed 2026-09-10
+   verification did not do (it started from `post_vr_exit.ss1`, badges already earned).
+
+### Verification — DRIVEN, not diffed
+`story_harness.py mauville_prewattson.ss1 --driver story --build custom --frames 220000` → **exit 0**,
+ledger row `"build": "custom"`, `frames_run: 220000`.
+⭐ **The new code was REACHED, not merely loaded** — the debug log carries
+`f1006807 [MAINTAIN] dormant (POKEBOT_MAINTAIN unset) — decision gated, action UNDRIVEN`, i.e. a real
+`_prepare_for_fight` called it and it correctly did nothing.
+**Crash scan: 0** matches for traceback / UnboundLocal / RuntimeError / "generator ignored".
+⛔ **And the gate figure MOVED ACROSS THE COPY**, which a byte-compare can never show: the same gate
+on the same file read **1 offender before** (`victory_road.py:2099`) and **0 after**. A copy proves a
+file moved; this proves the FORK's own generators are free of the shape.
+Build-aware gates against custom: `repro_box_counter_move_test` ✓ `repro_pid_identity_key` ✓
+`probe_abort_swallowing` ✓ (23 sites, at baseline) `probe_yield_in_finally` ✓ (31 files, 0 offenders).
+Evidence: `tools/story-dev/evidence/2026-09-11-PROMOTION-VERIFY-custom.txt`.
+
+### What this fork now carries that is NOT proven
+⛔ **`#24-maintain`'s ACTION.** Gate #55 proves the DECISION (13 cases, 3 fault arms); rotate → train
+→ restore-lead has never run. It is dormant, so that is a statement about latent code, not about
+behaviour. ⇒ **Do not flip `POKEBOT_MAINTAIN` on in this fork until the sandbox drive passes**, and
+flip it in its own reviewable change — never as a side effect of something else.

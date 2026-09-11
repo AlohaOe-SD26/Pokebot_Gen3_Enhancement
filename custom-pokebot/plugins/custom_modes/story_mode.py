@@ -1185,6 +1185,71 @@ PARTY_CAPACITY = 6
 PC_STORAGE_SLOTS = 14 * 30
 
 
+def decide_maintenance(
+    *,
+    battler_levels: "dict[int, int]",
+    boss_target: int,
+    catchup_gap: int,
+    ground_for: "callable",
+    wild_max_for: "callable",
+    estimate_for: "callable",
+    heal_for: "callable",
+    budget: int,
+) -> "tuple[int | None, str]":
+    """PURE. Which battler should be maintained before this fight, and to what? `(slot, reason)`.
+
+    ⛔⛔ WHY THIS IS PURE AND NOT AN `if` CHAIN INSIDE THE GENERATOR. The same argument that made
+    `decide_dex_catch` pure: the decision is the thing worth gating, and a decision entangled with
+    `yield from` needs a ROM, a save state and ~100k frames to exercise ONE branch. Extracted, all
+    of its branches are a table in `probe_maintenance_decision.py` that runs in milliseconds.
+    ‼ The callables are injected for the same reason - `best_training_grass`,
+    `estimate_frames_to_level` and the heal map are all real here, but a test can hand this
+    function a two-line stub and ask what it would DO.
+
+    Returns `(None, reason)` when nothing should happen, or `(slot, reason)` when `slot` should be
+    rotated to lead and trained to `boss_target - catchup_gap`.
+
+    THE RULES, in order, each answering a failure this project has already paid for:
+      1. No battlers -> nothing. (An empty battler set once certified a broken run READY; gate #48.)
+      2. Nobody below `catchup` -> nothing. ⛔ The predicate is the EXCLUSION's own quantity
+         (`boss_target - catchup_gap`), not a gap against the party max: that is the number
+         `_prepare_for_fight` actually decides on, so maintaining to it is exactly sufficient.
+      3. Weakest excluded mon first. It is the one that will trigger §Ch23's refusal.
+      4. No ground for its level -> SKIP with a reason (honest stop, never a guess).
+      5. Unknown or over-budget estimate -> SKIP. ⛔ `estimate_frames_to_level` documents that a
+         `None` means UNKNOWN and must never be read as cheap.
+      6. No heal centre for that ground -> SKIP. Training somewhere unhealable is how an errand
+         becomes a whiteout.
+    """
+    if not battler_levels:
+        return None, "no battlers"
+
+    catchup = boss_target - catchup_gap
+    excluded = {slot: lvl for slot, lvl in battler_levels.items() if lvl < catchup}
+    if not excluded:
+        return None, f"every battler is already at or above the L{catchup} prep floor"
+
+    slot = min(excluded, key=lambda s: (excluded[s], s))
+    level = excluded[slot]
+
+    ground = ground_for(level)
+    if ground is None:
+        return None, f"slot {slot} is L{level} (needs L{catchup}) but no ground serves that level"
+
+    grass_map = ground[0]
+    wild_level = wild_max_for(grass_map)
+    est = estimate_for(slot, catchup, wild_level)
+    if est is None:
+        return None, f"slot {slot} L{level}->L{catchup}: cost UNKNOWN — refusing (fail safe)"
+    if est > budget:
+        return None, f"slot {slot} L{level}->L{catchup}: est {est} > budget {budget} — refusing"
+
+    if heal_for(grass_map) is None:
+        return None, f"slot {slot}: no heal centre mapped for {grass_map} — refusing"
+
+    return slot, f"maintain slot {slot} L{level}->L{catchup} (est {est} <= budget {budget})"
+
+
 def decide_dex_catch(
     *,
     is_wild: bool,
@@ -2170,6 +2235,183 @@ class StoryMode(BotMode):
             return False
         return (here, tuple(map_enum.value), tuple(tile)) in self._training_unreachable
 
+    #: `#24-maintain`. Frames one maintenance top-up may spend. Deliberately a FRACTION of
+    #: `MAX_PREP_TRAINING_FRAMES` (250k): maintenance is a SIDE ERRAND before a boss, not the main
+    #: event, and it may fire once per boss. MEASURED against the REAL bands read from the configs
+    #: below (`(13,17) (14,16) (20,24) (24,29) (27,31) (29,33)`): the early/mid cases cost
+    #: **4,299 - 63,052** frames, so this admits all of them comfortably.
+    #: ⛔ AND IT REFUSES THE TAIL, WHICH IS THE POINT: a laggard facing Tate & Liza (41,42) or Juan
+    #: (41,46) needs `catchup` 35-40 on the only ground its level allows, costing **581k-882k** —
+    #: all four late cases REFUSED. That is the grind `06-DECISIONS-LOG.md` rejected on 2026-09-10,
+    #: and this budget is what stops this design re-creating it.
+    MAINTAIN_MAX_FRAMES = 150_000
+
+    def _maintain_lagging_battler(self, target: int) -> Generator:
+        """Lift any battler `_prepare_for_fight` is about to EXCLUDE back up to `catchup`.
+
+        ‼ WHY THIS EXISTS (`#24-maintain`, measured). `_prepare_for_fight` builds `to_train` from
+        ``party[i].level >= target - TRAIN_CATCHUP_GAP``, so a mon more than 6 levels below the
+        boss target is dropped from prep training ENTIRELY. The target rises with every badge, so
+        once a mon falls out it can never climb back in - 35% of badge moments were measured
+        carrying a mon 15+ levels behind, and §Ch23 then REFUSES to train it at all because the
+        estimated grind exceeds `MAX_TRAINING_FRAMES`.
+
+        ⛔ THE EXCLUSION IS CORRECT AND IS NOT RELAXED HERE. Training a 30-levels-behind mon to the
+        BOSS's level is the unwinnable grind rejected in `06-DECISIONS-LOG.md` 2026-09-10 (L40->L47
+        on the only tabled ground = 285,167 frames against a 250,000 ceiling; and on a L33-40
+        ground it cannot win at all - measured 69 battles, 0/43 HP, still L13). ⇒ this does the
+        opposite: it stops the mon ever REACHING that state, by topping it up
+          * to **`catchup`**, not to the boss's level - just enough to be re-admitted, after which
+            the existing, already-budgeted prep path finishes the job; and
+          * on a ground keyed to **its own** level via `best_training_grass`, so the fight is
+            winnable. Measured across Roxanne->Winona, against the REAL bands: **4,299 - 63,052 frames**.
+
+        ⚠ `scope="lead"`, NEVER `train_team(slots={i})` - KI-84: the slots path computes `need`
+        from SLOT INDICES and then permutes the party via `_rotate_lead_safely`, so it silently
+        no-ops. `scope="lead"` stops on `_lead_level()` and never touches that path.
+        """
+        import os as _os          # module convention here - `os` is not imported at module scope
+
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import (
+            _battler_slots,
+            _lead_strongest_battler,
+            _rotate_lead_safely,
+            _yield_bounded,
+            train_team,
+        )
+        from modules.story.training_areas import best_training_grass, estimate_frames_to_level
+
+        # ⛔⛔ DEFAULT OFF UNTIL THE ACTION HAS BEEN DRIVEN. Gate #55 proves the DECISION; the code
+        # below — rotate, train, restore lead — has never executed a frame. This project's promotion
+        # standard is "verified by DRIVING", and `story_mode.py` also carries an urgent latent-crash
+        # fix (gate #56) that should not wait. Those two facts conflict only if this feature is LIVE
+        # on promotion, so it is not: unset ⇒ dormant, and promoting is behaviour-neutral for it.
+        # ⭐ ONE FLAG, NOT TWO. `POKEBOT_MAINTAIN` unset IS the "remove X" arm CLAUDE.md rule 8 asks
+        # for, so the separate `POKEBOT_MAINTAIN_FAULT=off` arm was deleted rather than kept beside
+        # it — two switches controlling one behaviour is its own bug shape, and the A/B reads better
+        # as "the production flag, on vs off" than as "on, vs on-but-sabotaged".
+        # ⇒ FLIP THE DEFAULT TO ON in its own reviewable change once the drive passes; until then a
+        # run that wants it must ask: `POKEBOT_MAINTAIN=1`.
+        if _os.environ.get("POKEBOT_MAINTAIN", "0").strip() not in ("1", "true", "yes", "on"):
+            _log_story_event("dormant (POKEBOT_MAINTAIN unset) — decision gated, action UNDRIVEN",
+                             "MAINTAIN")
+            return
+
+        catchup = target - self.TRAIN_CATCHUP_GAP
+        party = get_party()
+        battlers = _battler_slots()
+        heal_map = _training_area_heal_map()
+        budget = self.MAINTAIN_MAX_FRAMES
+        if _os.environ.get("POKEBOT_MAINTAIN_FAULT") == "nobudget":
+            budget = 10_000_000          # arm: proves the budget gate is what refuses the tail
+
+        # ⛔ THE DECISION IS A PURE PREDICATE (`decide_maintenance`), for the reason its docstring
+        # gives: a decision entangled with `yield from` needs a ROM and ~100k frames to exercise ONE
+        # branch. This adapter only READS state, hands it over, and REPORTS - gate
+        # `probe_maintenance_decision.py` owns the branches.
+        slot, reason = decide_maintenance(
+            battler_levels={i: party[i].level for i in battlers},
+            boss_target=target,
+            catchup_gap=self.TRAIN_CATCHUP_GAP,
+            ground_for=best_training_grass,
+            wild_max_for=_wild_land_max,
+            estimate_for=lambda s, to, wild: estimate_frames_to_level(party[s], to, wild),
+            heal_for=heal_map.get,
+            budget=budget,
+        )
+        if slot is None:
+            # ‼ Only NOISY when something was actually refused. "nobody is behind" is the common
+            # case and must not spam a log that a human reads for anomalies.
+            if "already at or above" not in reason and "no battlers" not in reason:
+                _log_story_event(f"SKIPPED - {reason}", "MAINTAIN")
+                console.print(f"[dim]Story: skipping maintenance - {reason}.[/]")
+            return
+
+        mon = party[slot]
+        # ⛔ Capture IDENTITY now. The slot index is used only to rotate and is meaningless
+        # afterwards; the PID is what the completion line asserts on.
+        pid, name, level = mon.personality_value, mon.species.name, mon.level
+        grass_map, grass_tile = best_training_grass(level)
+        wild_level = _wild_land_max(grass_map)
+        est = estimate_frames_to_level(mon, catchup, wild_level)
+        heal_center = heal_map.get(grass_map)
+
+        _log_story_event(
+            f"start {name} pid={pid:08X} L{level}->L{catchup} on {grass_map.name}{grass_tile} "
+            f"wild={wild_level} est={est} budget={budget} boss_target={target}",
+            "MAINTAIN",
+        )
+        console.print(
+            f"[cyan]Story: {name} (Lv {level}) is below the Lv {catchup} prep floor - "
+            f"maintaining it at {grass_map.name} before this fight.[/]"
+        )
+        # ⛔⛔ NEVER `yield from` INSIDE A `finally` — MEASURED 2026-09-11, BEFORE THIS EVER RAN.
+        # The obvious shape here is try/finally, so that the lead is restored whatever happens. It
+        # is WRONG in a generator. When a generator is closed — which CPython does automatically
+        # when an abandoned one is garbage-collected, e.g. after a mode switch or a discarded story
+        # run — `GeneratorExit` is raised at the suspended yield, and a `finally` that yields again
+        # gets **`RuntimeError: generator ignored GeneratorExit`**. Verified directly:
+        #     normal completion            -> fine
+        #     closed while suspended       -> RuntimeError: generator ignored GeneratorExit
+        #     exception propagating out    -> fine
+        # ‼ And the exposure is NOT a narrow window: `train_team` can run ~100k frames, so almost
+        # all of this method's wall-clock is spent suspended inside that `try`.
+        # ⇒ Restore the lead on BOTH paths explicitly, and let `GeneratorExit` through UNTOUCHED —
+        # catching it and then yielding reproduces the very fault this avoids.
+        # Gate #56 `probe_yield_in_finally.py` now forbids this shape across the story surface.
+        # ⛔⛔ THE BUDGET IS ENFORCED AGAINST REAL FRAMES, NOT ONLY AGAINST THE ESTIMATE.
+        # An adversarial review caught this: `MAINTAIN_MAX_FRAMES` above gates only the PRE-FLIGHT
+        # `estimate_frames_to_level`, and that estimator is `battles * FRAMES_PER_WILD_BATTLE` with
+        # **no term for heal round-trips** — a cost this very file measures elsewhere as dominant
+        # ("78 heal round trips in one run … every HP dip is a full Poké Center walk"). So an
+        # admitted-but-underestimated case had NO live ceiling: `train_team`'s own `guard > 500`
+        # bounds ROUNDS, not frames. ⇒ a "budget" nothing checks at runtime is aspirational.
+        # `_yield_bounded` drives it with a HARD frame cap and closes it on timeout.
+        # ‼ That close is a `GeneratorExit` into `train_team` — which is safe only because no
+        # story-surface generator yields from a `finally` any more (gate #56). The two fixes are
+        # load-bearing for each other.
+        finished = True
+        try:
+            yield from _rotate_lead_safely(slot)
+            finished = yield from _yield_bounded(
+                train_team(
+                    catchup, scope="lead", grass=(grass_map, grass_tile), heal_center=heal_center
+                ),
+                budget,
+            )
+        except GeneratorExit:
+            # ⛔ We are being closed. Yielding now is exactly the RuntimeError above. Let it go.
+            raise
+        except BaseException:
+            # ⛔ Hand the boss a strong lead on the FAILURE path too — leaving the laggard in slot 0
+            # would send it out FIRST against the gym leader, strictly worse than not maintaining.
+            # ‼ Re-raised unconditionally: this must never SWALLOW a StoryAbort/whiteout (gate #27).
+            yield from _lead_strongest_battler()
+            raise
+        else:
+            yield from _lead_strongest_battler()
+
+        # ⛔ Assert on IDENTITY (PID), never a slot index or a party count: the party has just been
+        # permuted twice, and a count that nets to zero reads TRUE when nothing happened.
+        after = next((p for p in get_party() if p.personality_value == pid), None)
+        reached = after is not None and after.level >= catchup
+        # ⛔ REPORT THE BUDGET OUTCOME EXPLICITLY. "SHORT" alone cannot distinguish "trained as far
+        # as it could and the ground was wrong" from "ran out of frames" — different diagnoses,
+        # different fixes, and the second one means the ESTIMATE was too optimistic (it has no term
+        # for heal round-trips). Say which.
+        _log_story_event(
+            f"done pid={pid:08X} L{level}->L{after.level if after else '?'} "
+            f"(wanted L{catchup}, {'REACHED' if reached else 'SHORT'}"
+            f"{'' if finished else f', ⛔ LIVE BUDGET {budget} FRAMES EXHAUSTED'})",
+            "MAINTAIN",
+        )
+        if not finished:
+            console.print(
+                f"[yellow]Story: maintenance for {name} hit its {budget}-frame ceiling before "
+                f"reaching Lv {catchup} — stopping here rather than grinding on.[/]"
+            )
+
     def _prepare_for_fight(self, cfg: dict) -> Generator:
         """Before a major fight, train the team to a sensible level (user directive
         2026-07-21). PROACTIVE: a target within the fight's level band (organic,
@@ -2184,6 +2426,11 @@ class StoryMode(BotMode):
         losses = max((self._defeat_counts.get(k, 0) for k in cfg["keys"]), default=0)
         lo, hi = cfg["band"]
         target = random.randint(lo, hi)  # organic proactive target within the band
+
+        # ‼ `#24-maintain` — MAINTAIN THE LAGGARD BEFORE THE EXCLUSION ABANDONS IT.
+        # ⛔ Must run BEFORE the sufficiency gate below, which `return`s early whenever a sweeper
+        # answers this gym: that verdict is about the SWEEPER, and the laggard rots regardless.
+        yield from self._maintain_lagging_battler(target)
 
         # --- SWEEPER-SUFFICIENCY GATE (proactive attempts only — once we are LOSING
         #     here, the reactive logic below owns the decision). ---

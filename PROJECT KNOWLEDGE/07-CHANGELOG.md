@@ -26886,3 +26886,40 @@ Suite 55 → 56 (53 ENFORCING + 3 ADVISORY), `--quick` 47 → 48.
 ⚠ Drift 2 → 3, and TWO are now REAL: `story_mode.py` (`#24-maintain`) and `victory_road.py` (this
 crash fix). ‼ The second is a latent-crash fix in ALREADY-PROMOTED code, so it is the more urgent of
 the two — but promotion remains the USER's call and needs a driven `--build custom` verification.
+
+---
+
+## 2026-09-11 — PROMOTION (user-authorised): the crash fix ships NOW, the unproven feature ships INERT
+
+**Drift 3 → 0, 3/3 byte-identical. Rollback `pre-promote-2026-09-11b` (local + origin).**
+
+### The problem this promotion had to solve
+`story_mode.py` carried BOTH an urgent latent-crash fix (gate #56) AND `#24-maintain`, whose ACTION
+has never executed a frame. One file, so they could not be separated — and this project promotes
+only what has been DRIVEN. This fork's OWN 2026-09-10 entry says it plainly:
+> *"A green drive proved the code LOADS, not that it SURVIVES A RESUME … **Do not promote code whose
+> first real exercise is still ahead of it.**"*
+
+⭐ **They only conflict if the feature is LIVE on promotion.** `POKEBOT_MAINTAIN` now defaults OFF:
+unset ⇒ `_maintain_lagging_battler` logs `dormant` and returns **before any yield**. The crash fix —
+urgent, and affecting code this fork was already running — went immediately; the unproven part went
+inert. ⇒ the rule was ANSWERED, not argued around.
+‼ One flag, not two: `POKEBOT_MAINTAIN_FAULT=off` was DELETED, because unset IS the "remove X" arm
+rule 8 asks for and two switches controlling one behaviour is its own bug shape.
+
+### Verified by DRIVING, and by a figure that MOVED
+`story_harness.py mauville_prewattson.ss1 --driver story --build custom --frames 220000` → exit 0,
+ledger `"build": "custom"`, `frames_run: 220000`, **crash scan 0**.
+⭐ **The new code was REACHED, not merely loaded:** `f1006807 [MAINTAIN] dormant (POKEBOT_MAINTAIN
+unset)` — a real `_prepare_for_fight` called it and it correctly did nothing. And the drive used
+`--driver story`, which re-enters `_play` FROM THE TOP — precisely what the failed 2026-09-10
+verification did not do.
+⛔ **The gate figure MOVED ACROSS THE COPY**, which a byte-compare can never show: the same gate on
+the same file read **1 offender before** (`victory_road.py:2099`) and **0 after**.
+‼ To make that possible, `probe_yield_in_finally.py` gained `--build custom` — at `promote.py`'s own
+prompting: *"a gate that only ever imports sandbox cannot see whether the fix landed here."*
+Evidence committed: `tools/story-dev/evidence/2026-09-11-PROMOTION-VERIFY-custom.txt`.
+
+### What custom now carries that is NOT proven
+⛔ `#24-maintain`'s ACTION — dormant, so it is latent code rather than behaviour. **Do not flip
+`POKEBOT_MAINTAIN` on until the sandbox drive passes, and flip it in its own reviewable change.**

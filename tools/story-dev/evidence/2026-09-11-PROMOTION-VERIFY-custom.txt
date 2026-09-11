@@ -1,0 +1,19 @@
+=== PROMOTION VERIFICATION 2026-09-11 — DRIVEN AGAINST --build custom ===
+fixture : mauville_prewattson.ss1   driver: story   frames: 220000
+ledger  : "build": "custom"  frames_run": 220000
+
+--- the NEW code was REACHED in the promoted fork, not merely loaded ---
+f1006807 [MAINTAIN] dormant (POKEBOT_MAINTAIN unset) — decision gated, action UNDRIVEN
+
+--- crash scan (traceback / UnboundLocal / RuntimeError / generator ignored) ---
+matches: 0
+
+--- gate #56 before/after the copy, same gate, same file ---
+BEFORE (pre-promotion custom victory_road.py): 1 offender [(2099, 'yield from')]
+AFTER  (post-promotion custom)              : 0 offenders
+
+--- build-aware gates against custom ---
+repro_box_counter_move_test.py --build custom : exit 0
+repro_pid_identity_key.py      --build custom : exit 0
+probe_abort_swallowing.py      --build custom : exit 0 (23 sites, at baseline)
+probe_yield_in_finally.py      --build custom : exit 0 (31 files, 0 offenders)

@@ -55,7 +55,16 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parents[2]
-SANDBOX = ROOT / "sandbox-pokebot"
+
+#: ‼ `--build custom` EXISTS SO A PROMOTION CAN BE VERIFIED, NOT ASSUMED (added 2026-09-11, at
+#: `promote.py`'s own prompting: *"a gate that only ever imports sandbox cannot see whether the fix
+#: landed here"*). A byte-compare proves a file was COPIED; running THIS gate against
+#: `custom-pokebot` proves the fork's OWN generators are free of the crash shape. That distinction
+#: is the whole reason this project drives a promotion instead of diffing it.
+_BUILD = "custom" if ("--build" in sys.argv
+                      and sys.argv.index("--build") + 1 < len(sys.argv)
+                      and sys.argv[sys.argv.index("--build") + 1] == "custom") else "sandbox"
+SANDBOX = ROOT / f"{_BUILD}-pokebot"
 SCOPE = ("modules/story", "plugins/custom_modes")
 
 FAULT = os.environ.get("POKEBOT_YIELDFINALLY_FAULT", "")
@@ -228,7 +237,7 @@ def main() -> int:
             for line, kind in offenders(src):
                 found.append((p.relative_to(SANDBOX).as_posix(), line, kind))
 
-    print(f"  scanned {scanned} file(s) under {', '.join(SCOPE)}")
+    print(f"  scanned {scanned} file(s) under {_BUILD}-pokebot/{{{', '.join(SCOPE)}}}")
     if found:
         print(f"\n  ❌ FAIL — {len(found)} `yield` inside a `finally`:")
         for rel, line, kind in found:
