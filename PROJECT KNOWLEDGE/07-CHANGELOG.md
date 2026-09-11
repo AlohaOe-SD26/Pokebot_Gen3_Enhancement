@@ -27062,3 +27062,45 @@ the finish rate is a FREQUENCY question and needs a batch — rule 9: *drivers a
 questions; batches answer frequency questions.*
 ⛔ `POKEBOT_MAINTAIN` therefore stays **default OFF** in both forks. Flipping it is its own
 reviewable change, and it should be argued from a batch, not from this drive.
+
+---
+
+## 2026-09-11 (night) — SIZING THE PRIZE BEFORE PAYING FOR THE BATCH: the window is real, and it is two problems
+
+**Measured from heartbeats in a batch ALREADY ON DISK** (`x4-runs/20260910-234959`, 8 lanes), so it
+cost nothing to run. `probe_maintain_window.py` reconstructs every laggard's whole history from the
+`party=[...]` heartbeat field and asks the one question the feature lives or dies on: *when a mon
+first falls more than `TRAIN_CATCHUP_GAP` behind, is closing that gap still CHEAP?*
+
+**124 laggard episodes. They are TWO DIFFERENT PROBLEMS and lumping them would have misled us:**
+
+| | episodes | affordable when it FIRST fell behind | still affordable at run END |
+|---|---|---|---|
+| **DRIFT** (first seen ≤15 behind) — what maintenance is FOR | 103 (83%) | **99/103 (96%)** | 68/103 (66%) |
+| **ACQUIRED-BEHIND** (first seen >15 behind) — a different defect | 21 (17%) | **0/21** | 4/21 |
+
+DRIFT median cost: **15,763 frames when the gap opens → 28,660 by the end.**
+
+⭐⭐ **THE WINDOW IS REAL AND LARGE: 96% of drift laggards are cheap to fix at the moment the gap
+opens.** That is the case `#24-maintain` was built for, and it means a batch with
+`POKEBOT_MAINTAIN=1` has something to measure rather than nothing.
+
+⛔ **AND THE 21 ACQUIRED-BEHIND EPISODES ARE NOT A MAINTENANCE FAILURE — they are BORN unaffordable.**
+`Zigzagoon L4 vs 39` costs 1,434,433 frames the FIRST time it is seen behind; `Marill L13 vs 48`
+costs 821,109. No amount of early action helps a mon that ARRIVES 35 levels down. ⇒ maintenance will
+correctly REFUSE all 21 on cost, and a reader who sees those refusals in a batch log must not read
+them as the feature failing. They belong to `#24-lowlevelmules` (acquisition), which is a separate,
+still-open problem.
+
+### Why this was done BEFORE asking for batch time
+A 3-hour batch is an expensive way to discover "it never fires". ‼ This project has burned four
+batches on questions a targeted measurement could have answered (rule 9). The heartbeats already
+carried every party level ever recorded; the answer was on disk the whole time.
+⚠ **Stated limitation, not hidden:** heartbeats do not record the boss target, so the proxy is *gap
+to PARTY MAX*. That runs slightly AHEAD of the real `catchup`, so it over-counts opportunity — which
+means a "no window" result would have been conclusive, while this "window exists" result is an upper
+bound. Good enough to justify the batch; not good enough to claim an effect size.
+
+⛔ **What it still does NOT show:** that maintenance improves the FINISH RATE. These runs were
+recorded with the feature OFF, so this bounds the OPPORTUNITY only. `POKEBOT_MAINTAIN` stays
+default-OFF until a batch with the feature ON says otherwise.
