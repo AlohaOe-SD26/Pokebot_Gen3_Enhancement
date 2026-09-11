@@ -26523,3 +26523,65 @@ L13→ROUTE117, L20→ROUTE111, L28/35/40/**47**→ROUTE121.
 are [60,30,5,4,1], so ROUTE126's water weights to a mean of **20.4** against a nominal max of 35 —
 feeding `hi` into `xp_per_battle` overstates it ~1.7x. Land weights are flatter, which is why this
 table is land-only.
+
+---
+
+## 2026-09-11 — THE A/B RAN. The fence works, the post-Winona adaptation works, the finish rate does not move.
+
+**Batch `20260910-234959`** — 8 lanes, 180.1 min, VERDICT OK, `code_commit a0f2151f`, 17 ended runs.
+Control: **`20260909-160339`** (16 ended runs, same lanes/minutes, NO fence).
+⚠ **NOT A CLEAN A/B, AND SAYING SO IS PART OF THE RESULT:** different batches and a multi-variable
+build (the fence, the late-boss configs and the leg-4 fix all landed together). A true single-
+variable arm would revert only the fence. What follows is strong directional evidence with a
+verified mechanism, not a controlled experiment.
+
+### ⭐ 1. THE DEX FENCE FIRES, AND EVERY GUARD IS OBSERVABLY DOING ITS JOB
+`[DEXCATCH]` **276** actions · `[DEXFENCE]` **4,382** verdicts. The verdict census is the design,
+read back from a real run:
+| count | verdict |
+|---|---|
+| 1289 | skip — party is 4/6 — a catch would consume the HM/counter runway |
+| 243 | skip — party is 5/6 — same |
+| 174 | skip — no spare Poké Balls (the last ball is reserved) |
+| 87 | skip — party is not at full strength |
+| 71 | **CATCH** — pre-gym-1 team building (the ordinary path, unchanged) |
+| 55 | skip — pre-gym-1 team already at its target of 4 |
+| 49 | skip — a training grind is in progress |
+| 48 | **CATCH** — dex catch (goes to the PC box) ← **the fence's whole purpose** |
+
+### ⭐ 2. `owned` MOVED — decisively in the upper tail, not in the mean
+| | control (no fence) | arm A (fence) |
+|---|---|---|
+| lanes reaching `owned >= 15` | **0 of 24** | **11 of 25** |
+| max `owned` | 14 | **19** |
+| mean | 9.96 | 12.08 (+2.12) |
+**Fisher exact on the `>=15` split: p = 1.5e-4.** That is not noise.
+⚠ **BUT THE WHOLE-DISTRIBUTION TEST DISAGREES: Mann-Whitney z = -1.37, NOT significant.** Arm A is
+more SPREAD — it has more low lanes too (7 below 8 vs 4). Both statements are true and they answer
+different questions: the fence helps runs that get far enough to use it, and does nothing for runs
+that die early. ⛔ Quoting only the mean, or only the Fisher result, would misrepresent this.
+⭐ **INTERNAL CONSISTENCY — the ACTION count predicts the OUTCOME shift:** 48 post-badge dex catches
+observed; the mean shift implies **53** extra species across 25 lanes. A mechanism, not a correlation.
+
+### ⭐⭐ 3. THE POST-WINONA ADAPTATION WORKS — FIRST EVIDENCE, AND IT NAMES ITS OWN BLOCKER
+A diagnosis that could not have existed yesterday, from a real run:
+> *"Juan: **12 losses** with no super-effective answer to Water/Dragon. **Need one of: Dragon.
+> Grinding levels will not fix this.** Nearest reachable counters: Bagon (Dragon) on **Meteor Falls
+> (B1F) 2R (tile unmapped, NOT HUNTABLE, L25-35, 25% rate) — UNREACHABLE**…"*
+Before today, `_prepare_for_fight`'s last call site was Winona, so those 12 losses would have been
+**12 identical losses** with no count, no diagnosis and no honest stop. Also observed 5x per boss:
+*"Tate & Liza this run (blocked: no huntable counter candidate (nothing reachable with a proven spin
+tile))"*.
+⇒ ⭐⭐⭐ **TWO INDEPENDENT LINES OF WORK CONVERGED ON ONE MISSING DATUM.** The counter-hunt wants
+**Meteor Falls B1F** and is blocked because its **spin tile is unmapped** — exactly the blocker
+recorded in `PENDING_GRASS` the same day from the decomp survey. The machinery is correct and idle
+for want of one verified tile.
+
+### ⛔ 4. THE FINISH RATE DID NOT MOVE: 0 of 17 (control 0 of 16)
+Expected, and worth stating plainly: neither change targets the top run-ender. Both batches still die
+on §Ch23's training refusal, the global watchdog and cutscene stalls. ‼ **No new failure class was
+introduced by either change** — the end-reason profiles are the same shape.
+
+⇒ **NEXT, AND IT IS NOW EVIDENCED RATHER THAN INFERRED: map a spin tile for METEOR_FALLS_B1F_1R/2R.**
+It unblocks the counter-hunt at Juan (Bagon/Altaria are Dragon answers to his Kingdra) AND it is the
+first entry that would raise `TRAINING_GRASS`'s L28 ceiling. One datum, two blocked systems.

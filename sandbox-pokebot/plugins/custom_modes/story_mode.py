@@ -1698,7 +1698,7 @@ class StoryMode(BotMode):
         if self._dex_catch_last_reason != reason:
             self._dex_catch_last_reason = reason
             if not (reason.endswith("already owned") or reason == "trainer battle"):
-                _log_story_event(f"[DEXFENCE] {'CATCH' if catch else 'skip'} — {reason}", "DEXFENCE")
+                _log_story_event(f"{'CATCH' if catch else 'skip'} — {reason}", "DEXFENCE")
         return catch
 
     # ------------------------------------------------------------------
