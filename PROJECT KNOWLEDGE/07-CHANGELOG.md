@@ -27181,3 +27181,57 @@ Both detours above were reproduced and re-measured with it in seconds rather tha
 **A/B'd against HEAD: it happens in BOTH arms** (94 vs 128 stuck frames, neither leaving Littleroot),
 so it is a property of that unpinned fixture, not of this change. It does mean that fixture cannot
 verify these fixes — the path dumps and a live batch do that instead.
+
+---
+
+## 2026-09-11 (night) — The 22-26x-per-batch derail was THREE LINES from code that already knew the answer
+
+**Found by running a 25-minute verification batch and reading what it complained about** — not by
+looking for it. Every lane derailed once, identically.
+
+### The line, and the thing I got wrong reading it
+```
+Story localization — derail #1: We unexpectedly triggered a scripted event
+while trying to reach (19, 19) @ (0, 1).
+Switching to manual mode. | stage: 9: Mauville & the Bike | map (0, 1)
+```
+⛔ **I FILED THIS AS A *MAUVILLE* DEFECT AND THAT WAS WRONG.** I read the `stage:` label as the
+location. It is the CHAPTER the run is in. **`(0, 1)` is SLATEPORT_CITY** — resolved from `MapRSE`,
+not recalled — and `(19,19)` is `PokemonCenter.SlateportCity` (`map_data.py:1529`).
+⭐ **Prevention rule: a map id is a fact to RESOLVE, never to infer from a nearby label.**
+
+### Root cause — and the code three lines above already handled it
+`sail_to_slateport` Leg 3 walks into Slateport with **exactly** the right precaution:
+```python
+navigate_to_anywhere(MapRSE.SLATEPORT_CITY, (19, 21), avoid_encounters=True,
+                     avoid_scripted_events=False)
+...
+except BotModeError:
+    yield from _ride_out_scripted_scene("B")
+```
+Then **Leg 4**, three lines later, calls `heal_in_pokemon_center(PokemonCenter.SlateportCity)` —
+which ends in a **bare** `navigate_to_anywhere` (`higher_level_actions.py:377`): no flag, no retry,
+no ride-out. Slateport's coord events are still armed, so the walk to the door at (19,19) — **two
+tiles from the one Leg 3 protected** — steps on one and `walking.py:499-505` derails to Manual.
+
+⭐ **MEASURED, which is why it was worth fixing before a long batch:** the identical line appears
+**22 (20260909-160339), 26 (20260910-203458), 22 (20260910-234959)** times per batch, and once per
+lane in the 25-minute verification batch. Routine, not an edge case.
+
+**FIX:** Leg 4 now carries the same bounded ride-out retry Leg 3 has. ⚠ Wrapped at the CALL SITE,
+not in the helper — `heal_in_pokemon_center` is the shared path for every heal in the project, and
+changing it hours before a measurement batch is the shape rule 9 warns about. The helper's own bare
+navigate is filed separately as `#26-healnavbare`, with an A/B on an ORDINARY heal as its first step.
+⛔ NOT `expecting_script=True` — that suppresses the error WITHOUT riding the scene out, converting
+a visible derail into a silent wedge.
+
+### ‼ AND THE RATCHETS CAUGHT MY FIRST VERSION OF THE FIX
+I wrote the handler as a bare `except BotModeError:`. Gates #27 (`probe_abort_swallowing.py`) and
+`repro_no_silent_except.py` BOTH went red within a minute. They were right: **`StoryAbort` IS a
+`BotModeError`**, so that handler would have swallowed a whiteout and retried the heal up to 12
+times — and since the abort latch is cleared only by `StoryMode.run`, every retry runs straight into
+the next `_check_abort()` and burns the budget in a few frames, reporting failures that never
+happened. That is KI-67 exactly. `reraise_if_aborting(error)` is now the handler's first statement.
+⇒ **the ratchets are the reason this fix is correct rather than merely plausible.**
+
+**VERIFICATION:** ⛔ NOT YET PROVEN, AND THE SHORT BATCH DID NOT PROVE IT. A 4-lane/25-minute batch after the fix showed 0 derails, 0 manual, 0 tracebacks — but it also showed **0 Slateport mentions**: the runs never reached the leg. That zero is the VACUOUS case, not a pass, and reporting it as one would have been the exact failure this project's vacuity rule exists to prevent. ⚠ A path dump from Leg 3's tile (19,21) to the door (19,19) is 2 waypoints and BYTE-IDENTICAL with the trigger penalty on and off — so this is NOT a routing defect: a scene fires during the walk, and the fix rides it out rather than routing around it. ⇒ THE VERIFICATION IS THE LONG BATCH: the line 'trying to reach (19, 19)' appeared 22-26x in every batch on disk. If it reads 0 there while Slateport is still being reached, that is the proof. Until then: mechanism identified, fix is the pattern Leg 3 already proves, ratchets green — but UNVERIFIED.

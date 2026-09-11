@@ -10959,3 +10959,59 @@ LISTENER hook; this gate drives a mode generator **BY HAND with no listeners** (
 says so) and greps **0 code references** to that path. ⇒ structurally unreachable.
 ⇒ **LESSON: beside your own change, "it is the known issue" is an EXPLANATION, not an ALIBI** —
 only a reachability argument or an arm with the change removed tells them apart.
+
+
+---
+
+## 📦 ARCHIVED 2026-09-11 (sixth pass) from `03-PUNCH-LIST.md` — R3 budget
+
+⛔ **VERBATIM.** Filed AND fixed the same day, zero open boxes. Its shared-helper residual is
+tracked separately as `#26-healnavbare` and is NOT in here. Slug: `#26-slateportpcderail`.
+
+### ✅ `#26-slateportpcderail` — **SLATEPORT** Poké Center (19,19): a scripted-event derail to MANUAL, **22-26x PER BATCH** — **FIXED 2026-09-11** (filed and fixed same day)
+⛔⛔ **THE SLUG AND TITLE SAID "MAUVILLE" FOR ONE COMMIT AND THAT WAS WRONG.** The derail line
+reads `… (19, 19) @ (0, 1) … | stage: 9: Mauville & the Bike`, and I read the STAGE label as the
+location. **`(0, 1)` is SLATEPORT_CITY** (resolved from `MapRSE`, not recalled) and `(19,19)` is
+`PokemonCenter.SlateportCity` (`map_data.py:1529`). The stage text is the CHAPTER the run is in,
+not where it broke. ⇒ **a map id is a fact to resolve, never to infer from a nearby label.**
+
+**THE LINE, identical in every occurrence:**
+> `Story localization — derail #1: We unexpectedly triggered a scripted event while trying to reach`
+> `(19, 19) @ (0, 1).` / `Switching to manual mode. | stage: 9: Mauville & the Bike | map (0, 1)`
+
+**MEASURED FREQUENCY — four batches, all on disk:**
+| batch | occurrences |
+|---|---|
+| `20260909-160339` | 22 |
+| `20260910-203458` | 26 |
+| `20260910-234959` | 22 |
+| `20260911-145915` (4 lanes, 25 min) | 3 |
+⇒ this is not a rare edge; it is a **routine** outcome of the Mauville leg.
+
+⛔ **IT IS PRE-EXISTING AND NOT CAUSED BY THE 2026-09-11 ROUTING FIXES.** That was checked before
+claiming it: the same string appears 22-26 times in every batch that predates those fixes. ‼ Filed
+BECAUSE it will be visible in the user's overnight batch, and a reader who sees it there must not
+attribute it to the detour work.
+
+**WHAT IT IS.** `walking.py:499-505` raises when a navigation walks onto a live scripted event and
+the caller did not say `expecting_script=True`:
+```
+if get_global_script_context().is_active:
+    if expecting_script: return
+    else: raise BotModeError("We unexpectedly triggered a scripted event ... Switching to manual mode.")
+```
+⇒ same CLASS as the Littleroot running-shoes detour, but the opposite symptom: Littleroot PAID
++10000 to route around its trigger (cosmetic), while this one walks into a Mauville trigger and
+derails (costly — `#26-manualderails` measured the user's manual flip-back usually just working).
+
+- [x] **ROOT CAUSE + FIX.** `heal_in_pokemon_center` ends in a bare `navigate_to_anywhere`
+      (`higher_level_actions.py:377`) with no `avoid_scripted_events=False` and no retry. Leg 4 of
+      `sail_to_slateport` calls it while Slateport's coord events are still armed — **three lines
+      after Leg 3 took exactly that precaution for a tile two squares away at (19,21)**. Leg 4 now
+      carries the same bounded ride-out retry.
+- [x] ⛔ Did NOT use `expecting_script=True` — it suppresses the error without riding the scene
+      out, converting a visible derail into a silent wedge.
+↪ The shared-helper half of this is tracked separately as `#26-healnavbare` — it is a different
+defect (one helper, every heal site) from the one fixed here (one call site, one leg).
+
+---

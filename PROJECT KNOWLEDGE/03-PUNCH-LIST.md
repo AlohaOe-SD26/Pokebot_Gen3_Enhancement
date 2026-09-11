@@ -516,7 +516,7 @@ right place is a NEW out-of-battle path.
       un-healed → **32% HP, THREE fainted**; healed → **87%, ZERO**. ⭐ **LEG 7 STARTS FROM
       `post_b1f_healed.ss1`** (`b2eeb15c…`), ⛔ **NOT `post_b1f.ss1`**, which is kept only as that
       A/B's un-healed arm.*
-      ⭐⭐ **STUB MARKER — READ BEFORE ANY BOULDER CODE:** `ai-research-notes/2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` (3 independent agents) + `...-ch24-POKEMON-LEAGUE.md`. ⛔ NOTES, not truth — the reachability is MODELED and 3 live checks are OWED. Headlines: (1) **the route is `1F→B1F→B2F→B1F→1F`** — 1F's entrance and exit are in DIFFERENT walk-regions, so "walk across 1F" is impossible; (2) **TWO boulders are mandatory, (4,7) WEST and (9,10) EAST** — a "delete it and re-path" model finds only (9,10) and misses (4,7); (3) ⛔ **pushing either SOUTH kills the route irreversibly** — exactly what a greedy push-toward-goal router does; (4) **every warp RESETS the puzzle** (`FLAG_TEMP_*` cleared, boulders revert — also the recovery from a trap push) and **`FLAG_SYS_USE_STRENGTH` clears on every map load**; (5) minimal HMs = **{Surf, Strength, Rock Smash}** — **Waterfall and Flash NOT required**; (6) ✅ `strength_push` exists (`early_game.py:8054`, Magma-Hideout-proven) ⇒ **the machinery exists; only the route is missing.**
+      ⭐⭐ **STUB MARKER — READ BEFORE ANY BOULDER CODE:** `ai-research-notes/2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` (3 independent agents) + `...-ch24-POKEMON-LEAGUE.md`. ⛔ NOTES, not truth — the reachability is MODELED and 3 live checks are OWED. Headlines: (1) **the route is `1F→B1F→B2F→B1F→1F`** — 1F's entrance and exit are in DIFFERENT walk-regions, so "walk across 1F" is impossible; (2) **TWO boulders are mandatory, (4,7) WEST and (9,10) EAST** — a "delete it and re-path" model finds only (9,10) and misses (4,7); (3) ⛔ **pushing either SOUTH kills the route irreversibly** — exactly what a greedy push-toward-goal router does; (4) **every warp RESETS the puzzle** (`FLAG_TEMP_*` cleared, boulders revert — also the recovery from a trap push) and **`FLAG_SYS_USE_STRENGTH` clears on every map load**; (5) minimal HMs = **{Surf, Strength, Rock Smash}** — **Waterfall and Flash NOT required**; (6) ✅ `strength_push` exists (`early_game.py:8097`, Magma-Hideout-proven) ⇒ **the machinery exists; only the route is missing.**
       ⛔ *(This item's header read "PRODUCTION CODE IS ZERO" and its first line "`victory_road.py`
       DOES NOT EXIST" for a day AFTER legs 2-4 shipped from that very file — the heading-vs-body rot
       this tree keeps paying for. Rewritten 2026-09-04.)*
@@ -1784,7 +1784,7 @@ accident of what the bot happened to meet.
   **only at a FULL party** (so the game stores it via `CopyMonToPC` and it cannot consume the
   HM/counter runway `#24-partycap` measured as load-bearing) **and only when no hunt is armed**.
   ✅ **STRUCTURAL CLAIMS I VERIFIED MYSELF** (static reads — these are what the build rests on):
-    * `ensure_hm_learner` is **SELF-FENCED**: `early_game.py:4519-4520` raises at `party_count >= 6`
+    * `ensure_hm_learner` is **SELF-FENCED**: `early_game.py:4562-4563` raises at `party_count >= 6`
       *before* its spin ⇒ **a party==6 dex gate can never fire during an HM hunt.**
     * `counter_hunt.catch_confirmed` is **SPECIES-BLIND on the box path**: `counter_hunt.py:363-365`
       returns True for **any** new box PID ⇒ an unrelated dex catch at party 6 would END the spin,
@@ -1859,46 +1859,31 @@ accident of what the bot happened to meet.
 
 ---
 
-### ‼ `#26-mauvillederail` — MAUVILLE (19,19): a scripted-event derail to MANUAL, **22-26x PER BATCH** (filed 2026-09-11)
+### ‼ `#26-healnavbare` — `heal_in_pokemon_center` walks to the PC door with NO ride-out, at EVERY heal site (filed 2026-09-11)
 
-**THE LINE, identical in every occurrence:**
-> `Story localization — derail #1: We unexpectedly triggered a scripted event while trying to reach`
-> `(19, 19) @ (0, 1).` / `Switching to manual mode. | stage: 9: Mauville & the Bike | map (0, 1)`
+**`higher_level_actions.py:377`** — the helper ends in a bare
+`navigate_to_anywhere(door_map, door_tile)`: no `avoid_scripted_events=False`, no retry, no
+ride-out. If ANY coord event is armed on the way to a Poké Center door, `walking.py:499-505` raises
+*"We unexpectedly triggered a scripted event … Switching to manual mode"* and the run derails.
 
-**MEASURED FREQUENCY — four batches, all on disk:**
-| batch | occurrences |
-|---|---|
-| `20260909-160339` | 22 |
-| `20260910-203458` | 26 |
-| `20260910-234959` | 22 |
-| `20260911-145915` (4 lanes, 25 min) | 3 |
-⇒ this is not a rare edge; it is a **routine** outcome of the Mauville leg.
+⭐ **THIS IS THE GENERAL CASE OF A DEFECT ALREADY MEASURED AT 22-26x PER BATCH.** Its Slateport
+instance (`#26-slateportpcderail`) was fixed 2026-09-11 by wrapping THAT call site. The helper itself
+was deliberately left alone: it is the shared path for every heal in the project, and changing it
+hours before a measurement batch is exactly the shape rule 9 warns about — *when a change touches a
+shared path, the cheap decisive test is an A/B on the ORDINARY case, not more samples of the exotic one.*
 
-⛔ **IT IS PRE-EXISTING AND NOT CAUSED BY THE 2026-09-11 ROUTING FIXES.** That was checked before
-claiming it: the same string appears 22-26 times in every batch that predates those fixes. ‼ Filed
-BECAUSE it will be visible in the user's overnight batch, and a reader who sees it there must not
-attribute it to the detour work.
-
-**WHAT IT IS.** `walking.py:499-505` raises when a navigation walks onto a live scripted event and
-the caller did not say `expecting_script=True`:
-```
-if get_global_script_context().is_active:
-    if expecting_script: return
-    else: raise BotModeError("We unexpectedly triggered a scripted event ... Switching to manual mode.")
-```
-⇒ same CLASS as the Littleroot running-shoes detour, but the opposite symptom: Littleroot PAID
-+10000 to route around its trigger (cosmetic), while this one walks into a Mauville trigger and
-derails (costly — `#26-manualderails` measured the user's manual flip-back usually just working).
-
-- [ ] Identify the Mauville trigger at/near `(19,19)` and which leg targets it. The fix is probably
-      the same shape that fixed Littleroot: route the hop through a wrapper that rides the scene out
-      (`_navigate_leg` / `_navigate_riding_out`) rather than a bare `navigate_to`.
-- [ ] ⛔ Do NOT just add `expecting_script=True` — that suppresses the error without riding the
-      scene out, which converts a visible derail into a silent wedge. The wrapper is the fix.
-- [ ] Reproduce cheaply first with `probe_path_dump.py --map MAUVILLE_CITY --to 19,19` from a
-      Mauville-era fixture, and compare `--through-scripts` against the default.
+- [ ] A/B the helper on an ORDINARY heal (one with no armed events anywhere near the door) BEFORE
+      changing it — prove the wrapper costs nothing on the common path.
+- [ ] Then move the ride-out INTO the helper and delete the per-site wrapper added at
+      `sail_to_slateport` Leg 4, so the protection is not something each new caller must remember.
+- [ ] ⛔ Do NOT use `expecting_script=True`: it suppresses the error WITHOUT riding the scene out,
+      converting a visible derail into a silent wedge.
+⚠ Until then, any NEW `heal_in_pokemon_center` call on a map with armed coord events inherits this.
 
 ---
+
+### ✅ `#26-slateportpcderail` — **FIXED 2026-09-11**: the Slateport Poké-Center walk derailed to MANUAL 22-26x per batch. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 budget).
+- [x] ⛔ DO NOT REDO. `sail_to_slateport` Leg 4 now rides out the scene like Leg 3 already did. ↪ The shared-helper half is `#26-healnavbare`.
 
 ### ‼ `#24-prechecksentence` — `precheck_prior_art.py` answers a SENTENCE with a confident `0 hit(s)` (filed 2026-09-11)
 
@@ -4067,7 +4052,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   **late catches, not HM mules**, so an HM-scoped fix can address at most half the population.
 - [x] ⛔⛔ **REFUTED — "acquire a Marill on Route 104 at §Ch3 so it is never a mule".** Killed by
   adversarial review on six counts, each verified in code. The two that are fatal on their own:
-  (a) `pick_land_hm_slot` (`early_game.py:4419-4420`) **skips any species that can learn Waterfall**
+  (a) `pick_land_hm_slot` (`early_game.py:4462-4463`) **skips any species that can learn Waterfall**
   — Marill does, so it is **structurally ineligible for Strength/Rock Smash forever**; and
   (b) Route 104 is in **`PENDING_GRASS` with spin tile `None`** (`training_areas.py:57-58`), never
   swept, and `_hm_hunting_grounds` skips `tile is None`. Also: no ball supply at §Ch3
