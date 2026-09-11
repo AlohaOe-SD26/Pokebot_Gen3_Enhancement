@@ -283,58 +283,8 @@ shaped like the Dive one. Anchors: `norman_done.ss1`, `prenorman_fodder_grind.ss
 ### ✅ `#26-battleitemwedge` — CLOSED. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-11, R3 budget; zero open boxes).
 - [x] ⛔ DO NOT REDO. Detail in the archive and `07-CHANGELOG.md`.
 
-### ✅ `#26-gatestartupcontention` — **CLOSED 2026-09-11: it was never contention and never a hang — the gate was PACED TO 60fps.** ⛔ DO NOT REOPEN. (filed 2026-08-26, closed 2026-09-11)
-⭐ **ROOT CAUSE, in one line:** the gate set `context.audio`/`context.video` but not
-`context.emulation_speed = 0`, so the emulator stayed THROTTLED and paced itself by BLOCKING on
-an audio write every frame. `audio = False` only silences the samples (`libmgba.py:593`); the
-write is guarded by `if self._throttled:` alone (`:618-621`). The suite's 900s bound is ~54,000
-frames at 1×, and this gate walks a long gym route. ⭐ **A/B: 900s kill (×3) → 107s, EXIT=0,
-5/5 pass** — its own documented 114s runtime.
-- [x] Fixed in `repro_gym_whiteout_guard.py` **and in the five other registered gates that had
-      the same omission** (`probe_chapter_order`, `probe_dive_routing`, `probe_regi_capabilities`,
-      `probe_slot_free_plan`, `repro_impassable_dirs`) — they passed only because their routes
-      are short.
-- [x] **GATED as #54 `probe_gate_unthrottled.py`** (rule 6: a rule already broken belongs in a
-      gate). Proven against the REAL pre-fix file via `git show HEAD:…`, not only its own
-      `POKEBOT_UNTHROTTLED_FAULT=1` arm.
-⚠ **The three earlier diagnoses were each partly right and none was the cause.** Not gate
-parallelism (`run_gates.py` is sequential — correctly refuted 2026-08-26). Not machine load
-(reproduced on a quiet machine — correctly refuted). The `PaErrorCode -9999 / no driver`
-errors are REAL but a SYMPTOM: this machine's output device is an HDMI TV, and failing writes
-added a `_reset_audio()` per frame ON TOP of the pacing. ⇒ **the empty log was the tell — a
-process producing nothing for 900s can be stuck OR merely slow, and nobody had measured which.**
-⛔⛔ **"PASSES SOLO" IS REFUTED — DO NOT PLAN AROUND IT.** Measured 2026-09-11: three suite runs in one session each killed `repro_gym_whiteout_guard.py` at the 900s bound, **and a SOLO re-run produced nothing for 600s** before I stopped it. That agrees with `04-HANDOFF.md`'s record of a ~36-minute standalone hang and disagrees with this item's own former title. ‼ *(The title read "passes solo" from 2026-08-26 until 2026-09-11 — P2 in miniature: the half that gets skimmed said the opposite of the body's newest evidence.)*
-⭐ **AND THE MECHANISM IS PROBABLY NOT A HANG AT ALL — it is a per-frame exception storm.** `libmgba.py:617-623`: when throttled, every frame calls `self._audio_stream.write(...)`; with no audio driver that raises `PortAudioError`, which is caught and answered with `self._reset_audio()` — **and then the next frame does it again**. The file's own comment describes the intended escape (*"in case audio could not be initialised, we fall back to a sleep-based throttling mechanism"*), but that branch is only reached when `_audio_stream` is falsy, and the error path never permanently clears it. ⇒ the emulator does not stop, it CRAWLS. That fits an empty log, a 36-minute solo run, and the repeated `PaErrorCode -9999 ... no driver installed` lines seen in all three of this session's runs.
-- [ ] **Candidate fix (cheapest first): make the fallback STICK** — after N consecutive `PortAudioError`s, set `_audio_stream = None` permanently so throttling uses the documented sleep path. ⚠ `libmgba.py` is UPSTREAM code, so this is a DIVERGENCE and needs a `DIVERGENCE-LOG.md` entry; prefer running gates UNTHROTTLED if that is sufficient, since a headless gate has no reason to pace itself to 60fps.
-- [ ] ⛔ Do NOT "fix" it by raising the 900s bound. A bound that is raised to accommodate a defect stops being a bound.
-
-`repro_gym_whiteout_guard.py` hangs IN-SUITE and passes solo. ⛔ **THE FIRST FILING OF THIS ITEM GOT
-THREE DETAILS WRONG, AND A TIER 1 REVIEW CORRECTED ALL THREE WITH A LIVE OBSERVATION** (it caught the
-gate mid-hang in a running suite): (1) the freeze is just AFTER phase [1]'s header prints, not
-before it; (2) `run_gates.py` is strictly SEQUENTIAL — "~30 parallel gates" was wrong, so
-gate-parallelism is not the mechanism; (3) it reproduces on a QUIET machine, so batch load is
-refuted too. What stands: in-suite hang (≥3 occurrences: two 900s timeouts + one live-observed),
-solo PASS the same hour, audio-host errors (`PaErrorCode -9999, no driver installed`) present at the
-freeze point. ⛔ **A 900→2400 bound raise was tried and REVERTED — more time cannot fix a hang.**
-➡➡ **DIAGNOSED 2026-08-26 — THE HANG SITE IS CAPTURED; THE PLANNED BISECT IS MOOT.** Stack dump
-(`evidence/2026-08-26-gatecontention-stackdump.txt`): **`sounddevice.write` ← `libmgba.py:621
-run_single_frame`** — the FPS limiter is a blocking audio write with NO BOUND; a wedged PortAudio
-host blocks it forever. Reproduced **SOLO, twice, deterministically, 0 bytes out** (buffered
-stdout — "after the header" and "empty log" are the SAME hang); host-state-dependent, batch lanes
-immune (`audio=False speed=0` enforced). ⚠ The "sibling passes solo" control was WEAK
-(`probe_chapter_order` never drives frames). **FIX CANDIDATES (one drive each): (a) run the gate
-stream-free/unthrottled at EMULATOR level like the lanes; (b) bound the write in `libmgba.py`
-(production internals — careful).** Narrative: `07-CHANGELOG.md` 2026-08-26.
-‼ **RECURRED 2026-09-10 — 4th in-suite, 3rd solo, both at the documented freeze point.** In-suite
-`exit=124` at exactly `900.0s` ⇒ the suite ran **50 of 51**. Solo, same hour and tree: printed the
-`[1]+[2] FAULT INJECTION` header, then nothing. ⛔ **A TIMEOUT, never an assertion failure** — no
-check went red; the process never reached one.
-⭐ **EXONERATED STRUCTURALLY, not by "it passes solo" — which is FALSE, it hangs solo too.** The
-concurrent `#24-dexhunt` fence lives in `_should_catch`, reachable ONLY via `on_battle_started`, a
-LISTENER hook; this gate drives a mode generator **BY HAND with no listeners** (its own docstring
-says so) and greps **0 code references** to that path. ⇒ structurally unreachable.
-⇒ **LESSON: beside your own change, "it is the known issue" is an EXPLANATION, not an ALIBI** —
-only a reachability argument or an arm with the change removed tells them apart.
+### ✅ `#26-gatestartupcontention` — **CLOSED 2026-09-11: never contention, never a hang — the gate was PACED to 60fps.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (R3 budget).
+- [x] ⛔ DO NOT REOPEN. Root cause + the A/B (900s kill → 107s) in `07-CHANGELOG.md` 2026-09-11; gate #54 `probe_gate_unthrottled.py` enforces it.
 
 ### ✅ `#24-driftheadlineshape` — **DONE 2026-08-26: `check_drift` PASS 3 reads the drift-row HEADLINE, fault-tested both ways plus a live incident replay.** ⛔ DO NOT REBUILD. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-10, R3 budget). Narrative: `07-CHANGELOG.md` 2026-08-26.
 
@@ -1906,6 +1856,47 @@ accident of what the bot happened to meet.
    CHOICE, priced against `#24-partycap`'s measured 36-point collapse, ⛔ **not** the ruling fully
    implemented. Filed so nobody reads this item as shipped: `#24-dexcatch-battlebail` (below) and the
    party<6 case are the residual.
+
+---
+
+### ‼ `#26-mauvillederail` — MAUVILLE (19,19): a scripted-event derail to MANUAL, **22-26x PER BATCH** (filed 2026-09-11)
+
+**THE LINE, identical in every occurrence:**
+> `Story localization — derail #1: We unexpectedly triggered a scripted event while trying to reach`
+> `(19, 19) @ (0, 1).` / `Switching to manual mode. | stage: 9: Mauville & the Bike | map (0, 1)`
+
+**MEASURED FREQUENCY — four batches, all on disk:**
+| batch | occurrences |
+|---|---|
+| `20260909-160339` | 22 |
+| `20260910-203458` | 26 |
+| `20260910-234959` | 22 |
+| `20260911-145915` (4 lanes, 25 min) | 3 |
+⇒ this is not a rare edge; it is a **routine** outcome of the Mauville leg.
+
+⛔ **IT IS PRE-EXISTING AND NOT CAUSED BY THE 2026-09-11 ROUTING FIXES.** That was checked before
+claiming it: the same string appears 22-26 times in every batch that predates those fixes. ‼ Filed
+BECAUSE it will be visible in the user's overnight batch, and a reader who sees it there must not
+attribute it to the detour work.
+
+**WHAT IT IS.** `walking.py:499-505` raises when a navigation walks onto a live scripted event and
+the caller did not say `expecting_script=True`:
+```
+if get_global_script_context().is_active:
+    if expecting_script: return
+    else: raise BotModeError("We unexpectedly triggered a scripted event ... Switching to manual mode.")
+```
+⇒ same CLASS as the Littleroot running-shoes detour, but the opposite symptom: Littleroot PAID
++10000 to route around its trigger (cosmetic), while this one walks into a Mauville trigger and
+derails (costly — `#26-manualderails` measured the user's manual flip-back usually just working).
+
+- [ ] Identify the Mauville trigger at/near `(19,19)` and which leg targets it. The fix is probably
+      the same shape that fixed Littleroot: route the hop through a wrapper that rides the scene out
+      (`_navigate_leg` / `_navigate_riding_out`) rather than a bare `navigate_to`.
+- [ ] ⛔ Do NOT just add `expecting_script=True` — that suppresses the error without riding the
+      scene out, which converts a visible derail into a silent wedge. The wrapper is the fix.
+- [ ] Reproduce cheaply first with `probe_path_dump.py --map MAUVILLE_CITY --to 19,19` from a
+      Mauville-era fixture, and compare `--through-scripts` against the default.
 
 ---
 
