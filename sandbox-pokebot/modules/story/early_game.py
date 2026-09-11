@@ -1161,9 +1161,18 @@ def travel_to_route103() -> Generator:
     END STATE: standing on a tall-grass tile on Route 103 (0,18)."""
     context.message = "Story: heading north to Route 103 (training on the way)..."
     yield from navigate_to_anywhere(MAP_LITTLEROOT_TOWN, (6, 9))  # out of the lab, into town
-    yield from navigate_to(MapRSE.ROUTE101, (9, 9), avoid_encounters=False)
-    yield from navigate_to(MapRSE.OLDALE_TOWN, (9, 9), avoid_encounters=False)
-    yield from navigate_to(MapRSE.ROUTE103, ROUTE103_GRASS_TILE, avoid_encounters=False)
+    # ⛔ `_navigate_leg`, NOT a bare `navigate_to` (2026-09-11). These three hops run while the SIX
+    # running-shoes coord-events are armed (`VAR_LITTLEROOT_TOWN_STATE == 3`), and a bare
+    # `navigate_to` is exposed on BOTH counts:
+    #   · it keeps `avoid_scripted_events=True`, so the planner pays +10000/armed tile and laps the
+    #     house — MEASURED 23 waypoints vs 13 on `pokedex_done.ss1`; and
+    #   · it has NO ride-out, so the moment the scene DOES fire (it always does — the only north
+    #     exit is armed too) `walking.py:499-505` raises "Switching to manual mode".
+    # `_navigate_leg` fixes both: it passes the flag and catches/rides out the scene, which is what
+    # this leg has needed since it was written.
+    yield from _navigate_leg(MapRSE.ROUTE101, (9, 9), avoid_encounters=False)
+    yield from _navigate_leg(MapRSE.OLDALE_TOWN, (9, 9), avoid_encounters=False)
+    yield from _navigate_leg(MapRSE.ROUTE103, ROUTE103_GRASS_TILE, avoid_encounters=False)
 
 
 def wait_until_truly_controllable(*, stable_frames: int = 30, timeout_frames: int = 1800) -> Generator:
@@ -1323,7 +1332,27 @@ def _navigate_leg(dest_map, coordinates, *, avoid_encounters: bool = True, max_r
         if rounds > max_rounds:
             raise BotModeError(f"Stuck trying to reach {dest} (too many interruptions).")
         try:
-            yield from navigate_to(dest_map, coordinates, avoid_encounters=avoid_encounters)
+            # ⛔⛔ `avoid_scripted_events=False` IS LOAD-BEARING, NOT A TIDY-UP (2026-09-11).
+            # `calculate_path` charges **+10000 per ARMED coord-event tile** (`map_path.py:1034-1037`)
+            # against a base step cost of 1 (`:974`) — so ONE armed tile buys up to ten thousand
+            # steps of detour. After the Pokédex, `VAR_LITTLEROOT_TOWN_STATE == 3` arms all SIX
+            # running-shoes triggers — (8,9) (9,9) (10,9) (11,9) across the main street and
+            # (10,2) (11,2) at the north exit — and the y=9 row IS the whole southern approach.
+            # MEASURED with `probe_path_dump.py` on `pokedex_done.ss1`, Littleroot (6,9) -> (11,1):
+            #     avoid_scripted_events=True  -> **23 waypoints** (the lap around the house)
+            #     avoid_scripted_events=False -> **13 waypoints** (straight up the street)
+            # ⭐ AND THE DETOUR BUYS NOTHING: the only north exit is the x=10,11 corridor, whose
+            # tiles are ALSO armed, so the scene fires either way. It merely moved WHERE Mom
+            # catches us, for ten extra steps.
+            # ‼ THIS IS SAFE *HERE* AND NOT EVERYWHERE. Walking onto an armed trigger freezes the
+            # avatar mid-navigation and `walking.py:499-505` raises "We unexpectedly triggered a
+            # scripted event … Switching to manual mode" unless the caller expects it. THIS
+            # function already catches that and rides the scene out (below) — which is exactly why
+            # the flag belongs on THIS call and not on a bare `navigate_to` elsewhere.
+            # ⇒ the docstring above already promised this behaviour ("retrying around any scripted
+            # scene … running-shoes gift"); only the cost side was missing.
+            yield from navigate_to(dest_map, coordinates, avoid_encounters=avoid_encounters,
+                                   avoid_scripted_events=False)
             return
         except BotModeError:
             yield from _ride_out_scripted_scene("B")
@@ -6212,7 +6241,21 @@ def travel_lavaridge_to_petalburg() -> Generator:
     # Route 116 → Rustboro → Route 104 north.
     if _map_group_number() == MapRSE.ROUTE116.value:
         context.message = "Story: to Petalburg — Route 116 → Rustboro..."
-        yield from _navigate_riding_out(MapRSE.RUSTBORO_CITY, (23, 55), tries=8)
+        # ⛔⛔ (23,55) WAS A TILE INSIDE RUSTBORO'S FENCED SOUTH-EAST DEAD-END LANE (fixed
+        # 2026-09-11, user-reported as a visible detour). That lane has NO entrance from Rustboro:
+        # its only door is `ROUTE104 (33,0) -> RUSTBORO (33,59)`. So the planner, behaving
+        # perfectly correctly, walked us OUT of the city at (19,59), EAST along Route 104's top
+        # row, back UP into Rustboro at (33,59), and west into the lane — then the very next
+        # statement below walked all the way back out again.
+        # MEASURED with `probe_path_dump.py` on `rustboro.ss1`, from (20,42):
+        #     -> (23,55)  **52 waypoints, 15 of them on ROUTE104** (it leaves the city)
+        #     -> (19,58)  **17 waypoints, 0 on ROUTE104**, and it never enters the lane box
+        # ‼ The X Defend item ball sits at the lane's terminus (36,51), ~16 steps further on —
+        # which is exactly why this looked like "it goes for the item and backtracks". It never
+        # wanted the item; it was sent to a tile that only that lane contains.
+        # ⇒ (19,58) is the south-exit approach this hop actually needs: on the direct way to the
+        # next waypoint (ROUTE104 (24,12)), inside the city, no excursion.
+        yield from _navigate_riding_out(MapRSE.RUSTBORO_CITY, (19, 58), tries=8)
         yield from wait_until_truly_controllable()
     if _map_group_number() == MapRSE.RUSTBORO_CITY.value:
         yield from _navigate_riding_out(MapRSE.ROUTE104, (24, 12), tries=8)

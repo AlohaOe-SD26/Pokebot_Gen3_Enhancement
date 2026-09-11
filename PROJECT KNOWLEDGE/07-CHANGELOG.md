@@ -27104,3 +27104,80 @@ bound. Good enough to justify the batch; not good enough to claim an effect size
 ⛔ **What it still does NOT show:** that maintenance improves the FINISH RATE. These runs were
 recorded with the feature OFF, so this bounds the OPPORTUNITY only. `POKEBOT_MAINTAIN` stays
 default-OFF until a batch with the feature ON says otherwise.
+
+---
+
+## 2026-09-11 (night) — TWO USER-REPORTED ROUTING DETOURS, both root-caused and MEASURED, not patched
+
+Both were reported as visual irritants + wasted frames, not game-breakers. Both turned out to have a
+real mechanical cause, and neither needed a hardcoded waypoint.
+
+### DETOUR 1 — Littleroot: the bot laps around the house instead of walking past Mom
+**ROOT CAUSE:** `map_path.py:1034-1037` charges **+10000 per ARMED coord-event tile** against a base
+step cost of 1 (`:974`). After the Pokédex, `VAR_LITTLEROOT_TOWN_STATE == 3` arms all SIX
+running-shoes triggers — **(8,9) (9,9) (10,9) (11,9)** across the main street and **(10,2) (11,2)**
+at the north exit — and the y=9 row IS the entire southern approach. So the planner buys a lap
+around the player's house to dodge a tile worth 10,000 steps.
+
+⭐ **MEASURED, with our own planner, on `pokedex_done.ss1`, Littleroot (6,9) → (11,1):**
+| `avoid_scripted_events` | waypoints |
+|---|---|
+| `True` (what production ran) | **23** |
+| `False` | **13** |
+‼ Three independent agents and my own run of `probe_path_dump.py` produced the SAME two numbers.
+
+⛔ **AND THE DETOUR BOUGHT NOTHING.** The only north exit is the x=10,11 corridor, whose tiles are
+ALSO armed — so the scene fires either way. The lap only moved WHERE Mom catches us, for ten extra
+steps.
+
+**FIX — and the obvious one-liner was a TRAP.** Simply passing `avoid_scripted_events=False` at a
+bare `navigate_to` makes the bot walk onto the trigger, which freezes the avatar mid-navigation and
+`walking.py:499-505` raises *"We unexpectedly triggered a scripted event … Switching to manual
+mode"* — converting a cosmetic detour into a **DERAIL TO MANUAL on every run**.
+⇒ the flag went on `_navigate_leg`'s internal call instead, because that function ALREADY catches
+that error and rides the scene out (its docstring even names "running-shoes gift" — it handled the
+SCENE and was still paying for the DETOUR). And `travel_to_route103`'s three bare `navigate_to`
+hops, which had neither the flag nor a ride-out, now go through `_navigate_leg` too.
+⛔ **NO HARDCODED WAYPOINT, deliberately:** `SetMomInFrontOfDoorMale` puts Mom at **(5,9)** and
+`SetMomInFrontOfDoorFemale` at **(14,9)**. All profiles read `gender: boy` today, but `girl` is
+fully supported — a waypoint pinned to her position is a latent landmine, and `follow_path` states
+outright that it "does not check for obstacles".
+
+### DETOUR 2 — Rustboro: a swing through a fenced lane toward an item, then back out
+**ROOT CAUSE:** `early_game.py` asked `_navigate_riding_out(RUSTBORO_CITY, (23, 55))` — a tile
+**inside Rustboro's fenced south-east dead-end lane**, which has NO entrance from Rustboro. Its only
+door is `ROUTE104 (33,0) → RUSTBORO (33,59)`. The planner, behaving perfectly correctly, walked OUT
+of the city, EAST along Route 104's top row, back UP into Rustboro further east, and west into the
+lane — and the very next statement walked all the way back out.
+
+⭐ **MEASURED on `rustboro.ss1` from (20,42):**
+| target | waypoints | on ROUTE104 |
+|---|---|---|
+| `(23,55)` (was) | **52** | **15** — it leaves the city |
+| `(19,58)` (now) | **17** | **0**, and never enters the lane box |
+
+‼ **The X Defend item ball sits at the lane's terminus (36,51)**, ~16 steps further on — which is
+exactly why this looked like *"it goes for the item and backtracks before reaching it"*. It never
+wanted the item. It was sent to a tile that only that lane contains.
+⛔ **NOT an item-pickup feature** — the only `collect_item_ball` call sites in the tree are the
+Magma and Aqua Hideouts. I checked that myself and it refuted my own first hypothesis.
+
+⚠ **ATTRIBUTION CAVEAT, STATED PLAINLY.** `(23,55)` is in `travel_lavaridge_to_petalburg()` — the
+Route 116 → Rustboro → Route 104 SOUTHBOUND BACKTRACK — **not the leg that runs immediately after
+`DEFEATED_RIVAL_RUSTBORO`.** Two independent angles verified the post-rival leg itself is clean
+(byte-identical across all four flag combinations). `(23,55)` is nevertheless the ONLY tile in the
+whole tree that lands in a fenced dead-end lane with an item at its end, and its symptom matches the
+report tile for tile. ⇒ **fixed, and flagged for the user to confirm it is the one they saw.**
+
+### NEW TOOL — `probe_path_dump.py`
+Asks `calculate_path` — the planner production actually uses — for the route between two tiles and
+prints every waypoint. `--through-scripts` / `--through-grass` are the A/B arms; `--avoid x1,y1,x2,y2`
+names a box the route must NOT enter and exits 1 if it does. ⭐ **That last reading cannot be
+satisfied by a no-op**: if nothing changed, the route still enters the box and the check still fails.
+Both detours above were reproduced and re-measured with it in seconds rather than by driving.
+
+⚠ **One observation, pre-existing and NOT caused by these fixes:** a short drive from
+`pokedex_done.ss1` wedges in a battle-return text printer (`STUCK-OW`, `cb=ReturnFromBattleToOverworld`).
+**A/B'd against HEAD: it happens in BOTH arms** (94 vs 128 stuck frames, neither leaving Littleroot),
+so it is a property of that unpinned fixture, not of this change. It does mean that fixture cannot
+verify these fixes — the path dumps and a live batch do that instead.
