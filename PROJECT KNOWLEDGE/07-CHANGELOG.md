@@ -26473,3 +26473,53 @@ Gardevoir 45 — but Wally lives INSIDE §Ch23, not `_play()`, so he is delibera
 
 ⚠ **WHAT IS NOT PROVEN: that this HELPS.** The configs are proven correct and the path is proven
 live; whether adaptation raises the finish rate is a frequency question and needs a batch.
+
+---
+
+## 2026-09-10 — The L28 training ceiling is THE GAME, not a gap in our table (a proof, not a search)
+
+**Measured against the decomp** (`src/data/wild_encounters.json`, `gWildMonHeaders`, 124 entries /
+116 maps), re-derived independently by me after an 8-agent survey:
+
+* **EVERY `MAP_ROUTE*` land table by max level:** ROUTE130 **50**, then ROUTE123 **28**, ROUTE121
+  **28**, ROUTE120 27, ROUTE119 27, ROUTE118 27, ROUTE115 26, ROUTE111 22 … ROUTE116 8.
+  `TRAINING_GRASS` already holds ROUTE121. ⇒ **no route can raise the ceiling.**
+  ⛔ ROUTE130's 50 is MIRAGE ISLAND — Wynaut-only behind a 1/256 daily RNG gate. A trap, and the most
+  inviting row in the file.
+* **No land table anywhere in Hoenn has a max level of 34, 35, 37, 41, 43, 46, 47, 48 or 49.**
+  ⇒ §Ch23's `TRAIN_TARGET = 47` has **no ground at its level in the entire game**.
+* ⇒ ⭐⭐ **EVERY L30+ WILD GROUND IS A CAVE, A DUNGEON, THE SAFARI ZONE, OR VICTORY ROAD.** There is no
+  such thing as high-level grass in Emerald.
+
+### What this SETTLES
+* **`#24-lowlevelmules` direction 3 — "a better acquisition ground" — is now DEAD BY PROOF, not by a
+  failed search.** It was previously closed on one measurement (L27 still needs 336,755 frames
+  against a 250,000 ceiling). It is now closed because **no better ground exists in the game**.
+* **`#24-maintain` cannot work as designed.** Its premise is relocating an under-levelled mon to a
+  LEVEL-MATCHED ground; above L28 there is nowhere to relocate TO. ⇒ the surviving shape is **train
+  IN the dungeon you are already clearing** — which §Ch23's own note already prefers ("Victory Road
+  B1F, 950.8 EXP/battle vs 1F's 775.6") — never a `best_training_grass` pick from across Hoenn.
+* **It independently vindicates today's grass-less Tate & Liza / Juan configs.** Between badge 6 and
+  badge 8 the game offers NOTHING above L28: Meteor Falls' L33-40 rooms are the deep ones behind
+  Waterfall (`METEOR_FALLS_1F_1R`, the room §Ch11 visits, is **L14-20**), and Sky Pillar is §Ch21.
+  ⇒ a `grass` key for those two fights was never merely unwise — it was **impossible**.
+
+### ⛔ The trap that would have been promoted
+`SAFARI_ZONE_NORTHEAST`/`_SOUTHEAST` are L33-40 at rate **25** — the highest-rate high-level land
+tables in the game. `BattleSetup_StartWildBattle` branches to `DoSafariBattle()` on
+`GetSafariZoneFlag()`, setting `BATTLE_TYPE_SAFARI`: **cannot attack, ZERO EXP.** Six high-level
+tables die to that one fact, and `modules/story/` has no Safari handling at all.
+
+### Shipped, and deliberately BEHAVIOUR-NEUTRAL
+The ceiling proof is now a header block in `training_areas.py` — where the next agent looks — so the
+survey is never re-run. Six real candidates are staged in `PENDING_GRASS` with decomp-exact bands and
+their blockers (Meteor Falls 1F_2R/B1F_1R, Sky Pillar 1F, Victory Road 1F/B1F/B2F), plus an explicit
+REJECTED list. ⭐ Every entry has `tile=None`, and `best_training_grass` does `if tile is None:
+continue`, so **the picker's output is unchanged at every level** — verified: L5→ROUTE102,
+L13→ROUTE117, L20→ROUTE111, L28/35/40/**47**→ROUTE121.
+‼ That last one is the bug in a single line: a L47 mon is sent to L28 grass.
+
+‼ ONE MODELLING CAVEAT FOUND EN ROUTE: a table's `max` is not its effective level. Water slot rates
+are [60,30,5,4,1], so ROUTE126's water weights to a mean of **20.4** against a nominal max of 35 —
+feeding `hi` into `xp_per_battle` overstates it ~1.7x. Land weights are flatter, which is why this
+table is land-only.

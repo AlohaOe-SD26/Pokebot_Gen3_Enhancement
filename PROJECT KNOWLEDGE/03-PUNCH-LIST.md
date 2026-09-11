@@ -2014,8 +2014,9 @@ battler position rather than reordering the party. Hardcoding "slots 0-1 are act
 recreate the KI-34 bug in a new place: inferring an index relationship instead of reading it.
 Always read it via `BattleState.map_battle_party_index()` / `gBattlerPartyIndexes`.
 
-### `#24-maintain` — the bot should MAINTAIN its team, not cram before exams (user proposal 2026-07-29)
-**NOT SCHEDULED — noted as a potential, to discuss after the next log batch.**
+### 🔶 `#24-maintain` — MAINTAIN, not cram — **⛔ ITS PREMISE IS DEAD AS DESIGNED (PROVEN 2026-09-10). READ THIS BEFORE PROPOSING IT AGAIN.** (user proposal 2026-07-29)
+**NOT SCHEDULED.** ⛔⛔ **AND THE RELOCATE-TO-A-MATCHED-GROUND SHAPE CANNOT WORK — not for want of searching, but by the GAME's design.** Measured against the decomp: every `MAP_ROUTE*` land table tops out at **L28** (ROUTE121/ROUTE123 joint-highest; ROUTE121 is already in `TRAINING_GRASS`), and **no land table anywhere in Hoenn has a max level of 34, 35, 37, 41, 43, 46, 47, 48 or 49** — so §Ch23's `TRAIN_TARGET = 47` has no ground at its level in the entire game. Every L30+ ground is a cave, a dungeon, the Safari Zone (ZERO EXP — `BATTLE_TYPE_SAFARI`) or Victory Road.
+⇒ ⭐ **THE SURVIVING SHAPE IS “TRAIN IN THE DUNGEON YOU ARE ALREADY CLEARING”**, which §Ch23's own note already prefers (Victory Road B1F, *950.8 EXP/battle vs 1F's 775.6*) — never a `best_training_grass` pick from across Hoenn. Candidates + blockers are staged in `PENDING_GRASS`; the full proof is a header block in `training_areas.py` and `07-CHANGELOG.md` 2026-09-10.
 
 **The proposal.** The bot should level its Pokémon "logically and organically" — keep the team
 growing together, rather than only grinding to a floor immediately before a boss.
