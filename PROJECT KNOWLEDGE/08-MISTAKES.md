@@ -16222,3 +16222,52 @@ resolution: **mark in place, rewrite nothing.** Not one word of the original ent
 forward-pointing marker was added beneath it. Append-only protects the RECORD — it does not licence
 a file to silently mislead the reader who lands on the wrong claim, especially when another file
 points at that exact entry.
+
+---
+
+## 2026-09-10 — I copied HALF a pattern, and the half I dropped was the half that does the work
+
+**Symptom (caught by a Tier 1 review, before any drive).** Wiring loss-adaptation to two late bosses,
+I called `self._prepare_for_fight(cfg)` and stopped. Every other boss wired through that function
+since the design matured uses a THREE-line shape:
+
+    yield from self._prepare_for_fight(cfg)
+    yield from _lead_best_matchup([...ace_types...], hunted_pids=self._hunted_counter_pids)
+    yield from heal_in_pokemon_center(cfg["heal"])
+
+**Why dropping lines 2-3 is worse than shipping nothing.** `_lead_best_matchup` is the SOLE consumer
+of `_hunted_counter_pids` — the only thing that FIELDS a hunted counter by moving it to slot 0. So
+the counter ladder could spend its one-per-run hunt, cross Hoenn, catch and train a real answer…
+and never send it in. Then on the NEXT loss `_boss_plan_is_hopeless`'s party-wide type scan sees that
+BENCHED counter as a "credible answer", returns not-hopeless, and **suppresses further escalation and
+the honest stop** — while the unchanged lead keeps losing the same way.
+⇒ the hunt's entire payoff discarded AND the safety valve disabled: the "guard that now fires on the
+healthy path" shape. The party scan looks healthy; the battle is not.
+
+**The assumption that produced it.** I reasoned *"these configs are grass-less, so they only need the
+prep call"* — a plausible-sounding inference I never checked. ⛔ **Flannery is ALSO grass-less and
+still gets all three lines.** One grep of the precedent would have settled it.
+⇒ ⭐ **Prevention rule: when you copy a pattern, copy it WHOLE, or state in writing which part you
+dropped and why. A pattern is a claim about what must happen together.**
+
+**And a second defect I found while fixing the first, which the review had not reached.** Every
+binding of `_lead_best_matchup`/`heal_in_pokemon_center` inside `_play` sits INSIDE an
+`if not _done("BADGEnn_GET")` branch. A run RESUMING at badge 7 executes none of them, and a
+function-local import makes the name function-local for the WHOLE function ⇒ my new calls would have
+raised `UnboundLocalError` **on exactly the runs the change exists to help**. Fixed with a local
+import at each site, which is why every existing site has one.
+⇒ ‼ *The conditional-import trap has now bitten this file four times (three on `console`).*
+
+⛔ **AND THE GATE I WROTE TO PROVE THIS DID NOT CATCH IT.** `probe_late_boss_configs.py` v1 checked
+only the config DICT LITERALS and reported 6/6 PASS while the call sites were wrong.
+⇒ ⭐⭐ **A GATE OVER DATA CANNOT VOUCH FOR THE CODE THAT USES THE DATA.** Fixed by adding case C7
+(call-site wiring + the local import) with its own `=wiring` arm that reproduces the rejected draft.
+‼ C7's FIRST implementation then false-failed on the block with the longer comment — a 1,800-char
+window — i.e. it punished documentation. Now bounded structurally at the chapter dispatch.
+
+**Also corrected the same day, same root cause (asserting a mechanism unverified):** I wrote in the
+changelog that `grass_is_fodder` "is the sole gate on `_boss_plan_is_hopeless`/`_counter_ladder`".
+FALSE — `story_mode.py:2284` reads `if boss_teaches:  # ⛔ KI-80: NOT `grass_is_fodder and …``; that
+coupling was removed on 2026-08-16. I read gate #14's PURPOSE and inferred its CURRENT mechanism.
+⇒ the "two independent arguments" for grass-less collapse to ONE (the L28 ceiling), which is
+sufficient alone — and that sufficiency is exactly why the false second argument was easy to believe.

@@ -475,6 +475,17 @@ GATES: list[tuple[str, bool]] = [
     #             League. Not a strawman: it is the simplification a maintainer would reach for.
     # Pure and fast: imports two bot modules, reads no ROM, drives no emulator.
     ("probe_league_leg4_guard.py", False),
+    # `#24-regimeb-noescalation` — the FIRST loss adaptation after Winona, 2026-09-10.
+    # `_prepare_for_fight` was last called at badge 6; from badge 7 on, N whiteouts was N
+    # IDENTICAL losses. Two grass-less configs (Tate & Liza, Juan) wire the existing
+    # machinery to badges 7-8.
+    # ⛔ GRASS-LESS IS THE MEASURED DESIGN, NOT AN OVERSIGHT: `TRAINING_GRASS` tops out at
+    # ROUTE121 L25-28 while the opposition is L41-46, so no tabled ground can train for
+    # these fights. C2 asserts the omission so a later "helpful" addition must argue with it.
+    # ⭐ C4 pins the bands to the DECOMP — Juan's ace (Kingdra L46) is FIVE levels above his
+    # roster bulk, so a band read off the bulk misses the mon that wins the fight.
+    # Two arms (`=grass`, `=band`), both real maintainer mistakes. Pure: AST + regex, no ROM.
+    ("probe_late_boss_configs.py", False),
 ]
 
 

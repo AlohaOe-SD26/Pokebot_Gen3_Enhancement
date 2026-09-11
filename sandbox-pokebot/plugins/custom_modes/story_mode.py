@@ -4032,7 +4032,14 @@ class StoryMode(BotMode):
             # Flying, Shedinja has 1 HP). Wiring her in gives that run a bounded, diagnosed
             # stop instead of an unbounded whiteout loop.
             #   `ace_types`: Altaria L33 is the ace — Dragon/Flying, and 4x weak to Ice.
-            #   `grass`/`heal`: Route 119 is the Fortree-side band; Fortree has the PC.
+            #   `heal`: Fortree has the PC.
+            # ‼ CORRECTED 2026-09-10 — this comment read "`grass`/`heal`: Route 119 is the
+            # Fortree-side band" and **there is no `grass` key in the dict below**. The comment
+            # documented a key that does not exist, so Winona's prep has ALWAYS been the GRASS-LESS
+            # shape in production — not a Lavaridge special case. That matters: it means the
+            # grass-less path (detection + escalation + counter ladder + honest stop, no grinding)
+            # is the one actually proven at badge 6, and it is the shape the late-boss configs below
+            # deliberately copy.
             winona_fight = {
                 "name": "Winona",
                 "keys": [MapRSE.FORTREE_CITY_GYM.value, MapRSE.FORTREE_CITY.value],
@@ -4121,7 +4128,67 @@ class StoryMode(BotMode):
         #     flag-only test would call a `lockall`ed avatar a success.
         from modules.story.mossdeep_gym import do_mossdeep_gym_chapter, leave_the_gym
 
+        # ‼‼ `#24-regimeb-noescalation` — THE FIRST LOSS-ADAPTATION AFTER WINONA (2026-09-10).
+        # MEASURED: `_prepare_for_fight`'s last call site was Winona (badge 6), and all six late
+        # chapter modules contain ZERO uses of it ⇒ from badge 7 on, **N whiteouts was N IDENTICAL
+        # losses** — no escalation, no counter ladder, no honest stop.
+        # ⛔ GRASS-LESS ON PURPOSE, AND THE OMISSION IS THE DESIGN, NOT AN OVERSIGHT.
+        # `training_areas.TRAINING_GRASS` tops out at ROUTE121 **L25-28** while Tate & Liza are
+        # L41-42, so there is no ground in the table that can train for this fight — a `grass` key
+        # here would send a L40 mon to L28 grass. Without it `_prepare_for_fight` still buys
+        # everything that was missing: defeat detection (`_defeat_counts` already increments here —
+        # the loss corpus records 973 losses on this very map), target escalation, the counter-hunt
+        # ladder, and the bounded honest stop instead of an unbounded whiteout loop.
+        # ⭐ The shape is copied from `winona_fight`, which has NO `grass` key either — i.e. this is
+        # the badge-6 production path, not a new pattern.
+        # Levels read from the DECOMP (`src/data/trainer_parties.h::sParty_TateAndLiza1`), never recalled:
+        # Claydol 41 / Xatu 41 / Lunatone 42 / Solrock 42. ‼ It is a DOUBLE battle.
+        tate_liza_fight = {
+            "name": "Tate & Liza",
+            "keys": [MapRSE.MOSSDEEP_CITY_GYM.value, MapRSE.MOSSDEEP_CITY.value],
+            "band": (41, 42),
+            "ace_types": ("Rock", "Psychic"), "ace_level": 42,
+            "heal": PokemonCenter.MossdeepCity,
+            # ⛔ `"double": True` IS LOAD-BEARING, NOT DECORATION. `_sufficiency_verdict` excludes
+            # double battles explicitly (`if "ace_types" not in cfg or cfg.get("double"): return None`)
+            # because a single sweeper cannot answer a 2v2. Omitting it is INERT TODAY — grass-less
+            # already no-ops every branch it gates — but it becomes a live misjudgement the moment
+            # `TRAINING_GRASS` gains an entry above L28, which `#24-maintain` is explicitly waiting on.
+            # ⇒ a flag that is only correct because a NEIGHBOURING limitation hides it is a latent bug.
+            "double": True,
+        }
         if not _done("BADGE07_GET"):
+            if _cur_map() != MapRSE.MOSSDEEP_CITY_GYM.value:
+                yield from self._prepare_for_fight(tate_liza_fight)
+                # ⛔⛔ THESE TWO LINES ARE NOT OPTIONAL, AND OMITTING THEM IS WORSE THAN NO ADAPTATION.
+                # A Tier 1 review caught the first draft calling ONLY `_prepare_for_fight`.
+                # `_lead_best_matchup` is the SOLE consumer of `_hunted_counter_pids` — the only thing
+                # that FIELDS a hunted counter by moving it to slot 0. Without it the counter ladder
+                # can spend its one-per-run hunt, catch and train a real answer, and never send it in;
+                # then on the NEXT loss `_boss_plan_is_hopeless`'s party-wide type scan sees that
+                # BENCHED counter as a "credible answer", returns not-hopeless, and SUPPRESSES further
+                # escalation and the honest stop — while the unchanged lead keeps losing the same way.
+                # ⇒ the counter-hunt's entire payoff discarded AND the safety valve disabled.
+                # ⭐ Flannery is ALSO grass-less and still gets all three lines (`:3842-3844`) — so
+                # "grass-less" never implied "prep alone". Precedent, not preference.
+                # ⛔⛔ LOCAL IMPORT REQUIRED — NOT STYLE. Every binding of these two names inside
+                # `_play` sits INSIDE an `if not _done("BADGEnn_GET")` branch, so a run that
+                # RESUMES at badge 7 (a pinned fixture, an ENDLESS-RESET continuation, or simply
+                # earlier badges already held) executes NONE of them — and a function-local import
+                # makes the name function-local for the WHOLE of `_play`, so the call below would
+                # raise `UnboundLocalError` on exactly the runs this change exists to help.
+                # ‼ Same shadowing/scope trap that has bitten `console` three times in this file.
+                from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+
+                yield from _lead_best_matchup(
+                    list(tate_liza_fight["ace_types"]), hunted_pids=self._hunted_counter_pids
+                )
+                # ‼ AND THE HEAL IS OWED FROM HERE, not from the chapter. `mossdeep_gym.py` contains
+                # ZERO `heal_in_pokemon_center`/`PokemonCenter` references; its own comment calls
+                # "heal before challenging them" an externally-owed precondition. Unlike Sootopolis,
+                # which heals itself, nothing else on this path does — so without this the bot enters
+                # the hardest scripted DOUBLE battle in the game at whatever HP it arrived with.
+                yield from heal_in_pokemon_center(PokemonCenter.MossdeepCity)
             yield from do_mossdeep_gym_chapter()
         else:
             # ⛔⛔ #24-mossdeepstrand — "ALREADY DONE" IS NOT "ALREADY OUT". Winning BADGE07 leaves
@@ -4255,7 +4322,44 @@ class StoryMode(BotMode):
         # the victory script `settrainerflag`s all ten B1F trainers, that descent is BATTLE-FREE.
         from modules.story.sootopolis_gym import ch22_chapter_done, do_sootopolis_gym_chapter
 
+        # ‼‼ `#24-regimeb-noescalation` — loss adaptation for badge 8, same shape as Tate & Liza.
+        # GRASS-LESS for the same measured reason: the training table's ceiling is L28 and Juan's
+        # ace is **Kingdra L46**, so no tabled ground can prepare for this fight.
+        # Levels from the DECOMP (`src/data/trainer_parties.h::sParty_Juan1`), never recalled:
+        # Luvdisc 41 / Whiscash 41 / Sealeo 43 / Crawdaunt 43 / **Kingdra 46**.
+        # ⚠ The band's TOP is the ace, five levels above the rest — a band of (41, 43) would read
+        # the roster's bulk and miss the mon that actually wins the fight.
+        juan_fight = {
+            "name": "Juan",
+            "keys": [MapRSE.SOOTOPOLIS_CITY_GYM_1F.value, MapRSE.SOOTOPOLIS_CITY.value],
+            "band": (41, 46),
+            "ace_types": ("Water", "Dragon"), "ace_level": 46,
+            "heal": PokemonCenter.SootopolisCity,
+        }
         if not ch22_chapter_done():
+            if _cur_map() != MapRSE.SOOTOPOLIS_CITY_GYM_1F.value:
+                yield from self._prepare_for_fight(juan_fight)
+                # ⛔ SAME REASON AS TATE & LIZA: `_lead_best_matchup` is the only consumer of
+                # `_hunted_counter_pids`, so without it a hunted counter is caught, trained, and
+                # never fielded — and the benched mon then makes `_boss_plan_is_hopeless` read
+                # not-hopeless, suppressing escalation. Caught by a Tier 1 review.
+                # ⛔⛔ LOCAL IMPORT REQUIRED — NOT STYLE. Every binding of these two names inside
+                # `_play` sits INSIDE an `if not _done("BADGEnn_GET")` branch, so a run that
+                # RESUMES at badge 7 (a pinned fixture, an ENDLESS-RESET continuation, or simply
+                # earlier badges already held) executes NONE of them — and a function-local import
+                # makes the name function-local for the WHOLE of `_play`, so the call below would
+                # raise `UnboundLocalError` on exactly the runs this change exists to help.
+                # ‼ Same shadowing/scope trap that has bitten `console` three times in this file.
+                from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+
+                yield from _lead_best_matchup(
+                    list(juan_fight["ace_types"]), hunted_pids=self._hunted_counter_pids
+                )
+                # ‼ NO `heal_in_pokemon_center` HERE, AND THAT IS DELIBERATE — the one place this
+                # block differs from Tate & Liza. `sootopolis_gym.py:872` calls `_heal_before_the_gym`
+                # internally on every non-resumed entry, so an external heal would be a REDUNDANT
+                # round trip across Sootopolis. ⇒ copying the precedent's third line here would be
+                # cargo-culting: the precedent exists because the chapter does NOT heal itself.
             yield from do_sootopolis_gym_chapter()
         else:
             console.print("[dim]Story: Sootopolis Gym / Juan already done — skipping.[/]")

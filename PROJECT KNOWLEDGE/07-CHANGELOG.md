@@ -26412,3 +26412,64 @@ training leg or the mule it names. The measurement says the leg is not the defec
 training mechanism in **nine chapters**, asked to repay a debt accumulated since badge 6 in one call,
 against a frame ceiling. ⛔ Not "train the mule better"; **"nothing trained anything for nine
 chapters."** The five dead directions all attacked the symptom's last mile.
+
+---
+
+## 2026-09-10 — The first loss-adaptation after Winona, and the maintenance design died on DATA
+
+**Shipped.** Two grass-less `*_fight` configs — **Tate & Liza** (badge 7) and **Juan** (badge 8) —
+called from `_play()` before their chapters, exactly as Winona is. Gate **#53**
+`probe_late_boss_configs.py` (6 cases, two fault arms). This is the first loss-adaptation machinery
+anywhere after badge 6.
+
+**The gap it closes** (`#24-regimeb-noescalation`, verified): `_prepare_for_fight`'s last call site
+was Winona, and all six late chapter modules contain ZERO uses of it ⇒ from badge 7 on, **N whiteouts
+was N IDENTICAL losses** — no escalation, no counter ladder, no honest stop.
+
+### ⛔ The design I started with is DEAD, and it died on data rather than on wiring
+I set out to wire `best_training_grass(mon_level)` — the per-mon maintenance primitive that
+`#24-maintain` records as built-but-never-called. **Verified: it has zero production call sites.**
+Then the routing recon killed it: **`TRAINING_GRASS` tops out at ROUTE121, L25-28**, while the
+post-Winona opposition is **L41-46** and §Ch23's target is **L47**.
+⇒ Wiring it would send a L40 mon to L28 grass. Arithmetic on the only tabled ground a post-Winona
+picker could choose: one mon L40→L47 costs ~285,000 frames solo, and `train_team` runs with
+`set_swap_train(True)` (two participants) ⇒ ~570,000, against a **250,000** ceiling.
+⇒ **The primitive is not the blocker; the TABLE is.** `#24-maintain` cannot be built for the back
+half of the game until `TRAINING_GRASS` has entries above L28.
+
+### ⭐ What survived, and why grass-less is a measurement not a preference
+Grass-less `_prepare_for_fight` still buys defeat detection, escalation, **the counter-hunt ladder**
+and a bounded honest stop — everything the item lists as missing. Only grinding is skipped.
+⛔⛔ **THE PARAGRAPH THAT STOOD HERE IS RETRACTED — I ASSERTED A MECHANISM WITHOUT VERIFYING IT.**
+It read: *"a second, independent reason to omit `grass` … `grass_is_fodder` … is the sole gate on
+`_boss_plan_is_hopeless`/`_counter_ladder` ⇒ grass-less is what KEEPS the counter-hunt alive … Two
+unrelated arguments landing on the same choice is the strongest signal this design got."*
+**FALSE.** `story_mode.py:2284` reads `if boss_teaches:  # ⛔ KI-80: NOT `grass_is_fodder and …`` —
+the counter ladder is gated on **`boss_teaches`**; `grass_is_fodder` gates `boss_mode` (`:2334`).
+That coupling was deliberately REMOVED on 2026-08-16 (`06-DECISIONS-LOG.md`, KI-80's decoupling), and
+gate #14's own output says so: *"the coupling this gate guards is GONE … this gate now enforces
+nothing."* I read the gate's PURPOSE and inferred its CURRENT mechanism instead of reading the code.
+⇒ **There is ONE argument for grass-less, not two:** the measured `TRAINING_GRASS` L28 ceiling. It is
+sufficient on its own — which is exactly why the false second argument was easy to believe and easy
+to miss. Caught by a Tier 1 review. (Retracted in place; `07` is append-only, so nothing above was
+reworded.)
+
+### Facts pinned from the DECOMP, never recalled
+`src/data/trainer_parties.h` — Tate & Liza: Claydol 41 / Xatu 41 / Lunatone 42 / Solrock 42 ⇒
+band (41,42), ace L42 Rock/Psychic. Juan: Luvdisc 41 / Whiscash 41 / Sealeo 43 / Crawdaunt 43 /
+**Kingdra 46** ⇒ band (41,46), ace L46 Water/Dragon. ⚠ Juan's ace is **five levels above his roster
+bulk**, so a band read off the bulk misses the mon that wins the fight — that is fault arm `=band`.
+(Wally VR was also pinned — `sParty_WallyVR1`: Altaria 44 / Delcatty 43 / Roselia 44 / Magneton 41 /
+Gardevoir 45 — but Wally lives INSIDE §Ch23, not `_play()`, so he is deliberately out of scope here.)
+
+### Two corrections found on the way
+* `winona_fight`'s comment documented a `grass`/`heal` pair and **the dict has no `grass` key** —
+  so the grass-less shape has ALWAYS been the badge-6 production path, not a Lavaridge special case.
+  Corrected; gate case C5 now pins it so the claim cannot rot again.
+* The hidden prerequisite CHECKED rather than assumed: `_defeat_counts` increments at
+  `story_mode.py:1543`, and the loss corpus records **973 losses on MOSSDEEP_CITY_GYM** ⇒ defeat
+  counting already worked post-Winona. Only the CONSUMER was missing. Had it not, escalation could
+  never have fired and these configs would have been decoration.
+
+⚠ **WHAT IS NOT PROVEN: that this HELPS.** The configs are proven correct and the path is proven
+live; whether adaptation raises the finish rate is a frequency question and needs a batch.

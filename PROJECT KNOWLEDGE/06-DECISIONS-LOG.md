@@ -5025,3 +5025,33 @@ most dangerous state, because the pair check then returns PASS.
 committing.** It searches the whole tree by MEANING rather than by exact wording, which is precisely
 what a hand-grep for my own phrasing cannot do — I grepped for the numbers I had changed, not for the
 sentence that asserted the old mechanism in different words.
+
+---
+
+## 2026-09-10 — Post-Winona loss adaptation: grass-less configs, and why `#24-maintain` cannot be built yet
+
+**Decision.** Wire the EXISTING `_prepare_for_fight` machinery to Tate & Liza (badge 7) and Juan
+(badge 8) with **grass-less** `*_fight` configs, copying the full three-line call shape every other
+boss uses. Gate #53.
+
+**Rejected: wiring `best_training_grass(mon_level)` (i.e. building `#24-maintain`).** It is the
+per-mon maintenance primitive, it is already written and gate-tested, and it has **zero production
+call sites** — so it looks like the cheapest possible fix. It is not buildable:
+`training_areas.TRAINING_GRASS` tops out at **ROUTE121, L25-28**, while the post-Winona opposition is
+**L41-46** and §Ch23's target is **L47**. Wiring it would send a L40 mon to L28 grass. Arithmetic on
+the only tabled ground a post-Winona picker could choose: L40→L47 costs ~285,000 frames solo, ~570,000
+with `set_swap_train(True)`, against a **250,000** ceiling.
+⇒ ⭐ **THE PRIMITIVE IS NOT THE BLOCKER; THE TABLE IS.** `#24-maintain` is blocked on
+`TRAINING_GRASS` gaining entries above L28 — a DATA task (sweep + verify late-game grounds), not a
+wiring task. Recorded so the next agent does not re-derive "just call the function".
+
+**Rejected: `grass` keys on the new configs.** Same measurement. ⛔ And do not "helpfully" add one
+later — gate #53 case C2 exists to make that argue with the data first.
+
+**Scope: Wally is deliberately NOT included.** His party was pinned from the decomp at the same time
+(`sParty_WallyVR1`: Altaria 44 / Delcatty 43 / Roselia 44 / Magneton 41 / Gardevoir 45) but he lives
+INSIDE §Ch23, not `_play()`, so wiring him needs a different mechanism. Recorded so the band does not
+have to be re-fetched.
+
+⚠ **What this does NOT decide:** whether adaptation raises the finish rate. Correctness is gated;
+efficacy is a frequency question and needs a batch.
