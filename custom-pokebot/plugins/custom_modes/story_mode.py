@@ -4143,21 +4143,33 @@ class StoryMode(BotMode):
         # the badge-6 production path, not a new pattern.
         # Levels read from the DECOMP (`src/data/trainer_parties.h::sParty_TateAndLiza1`), never recalled:
         # Claydol 41 / Xatu 41 / Lunatone 42 / Solrock 42. ‼ It is a DOUBLE battle.
-        tate_liza_fight = {
-            "name": "Tate & Liza",
-            "keys": [MapRSE.MOSSDEEP_CITY_GYM.value, MapRSE.MOSSDEEP_CITY.value],
-            "band": (41, 42),
-            "ace_types": ("Rock", "Psychic"), "ace_level": 42,
-            "heal": PokemonCenter.MossdeepCity,
-            # ⛔ `"double": True` IS LOAD-BEARING, NOT DECORATION. `_sufficiency_verdict` excludes
-            # double battles explicitly (`if "ace_types" not in cfg or cfg.get("double"): return None`)
-            # because a single sweeper cannot answer a 2v2. Omitting it is INERT TODAY — grass-less
-            # already no-ops every branch it gates — but it becomes a live misjudgement the moment
-            # `TRAINING_GRASS` gains an entry above L28, which `#24-maintain` is explicitly waiting on.
-            # ⇒ a flag that is only correct because a NEIGHBOURING limitation hides it is a latent bug.
-            "double": True,
-        }
         if not _done("BADGE07_GET"):
+            # ⛔⛔ LOCAL IMPORT REQUIRED, AND IT MUST COVER **EVERY** NAME THE CONFIG TOUCHES.
+            # `PokemonCenter` is bound at TWELVE places inside `_play`, every one of them inside an
+            # `if not _done("BADGEnn_GET")` branch, so a RESUMED run (badges already held) executes
+            # none of them. A function-local import makes the name function-local for the WHOLE of
+            # `_play`, so touching it here without importing is an `UnboundLocalError`.
+            # ‼ MEASURED, NOT HYPOTHETICAL: the first version of this block built the dict OUTSIDE
+            # the guard below and crashed **11 runs at ~1.6M frames each** in batch `20260910-203458`
+            # — `UnboundLocalError: cannot access local variable 'PokemonCenter'`. The A/B that was
+            # meant to measure the dex fence caught this instead, which is what an A/B is for.
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+
+            tate_liza_fight = {
+                "name": "Tate & Liza",
+                "keys": [MapRSE.MOSSDEEP_CITY_GYM.value, MapRSE.MOSSDEEP_CITY.value],
+                "band": (41, 42),
+                "ace_types": ("Rock", "Psychic"), "ace_level": 42,
+                "heal": PokemonCenter.MossdeepCity,
+                # ⛔ `"double": True` IS LOAD-BEARING, NOT DECORATION. `_sufficiency_verdict` excludes
+                # double battles explicitly (`if "ace_types" not in cfg or cfg.get("double"): return None`)
+                # because a single sweeper cannot answer a 2v2. Omitting it is INERT TODAY — grass-less
+                # already no-ops every branch it gates — but it becomes a live misjudgement the moment
+                # `TRAINING_GRASS` gains an entry above L28, which `#24-maintain` is explicitly waiting on.
+                # ⇒ a flag that is only correct because a NEIGHBOURING limitation hides it is a latent bug.
+                "double": True,
+            }
             if _cur_map() != MapRSE.MOSSDEEP_CITY_GYM.value:
                 yield from self._prepare_for_fight(tate_liza_fight)
                 # ⛔⛔ THESE TWO LINES ARE NOT OPTIONAL, AND OMITTING THEM IS WORSE THAN NO ADAPTATION.
@@ -4178,8 +4190,6 @@ class StoryMode(BotMode):
                 # makes the name function-local for the WHOLE of `_play`, so the call below would
                 # raise `UnboundLocalError` on exactly the runs this change exists to help.
                 # ‼ Same shadowing/scope trap that has bitten `console` three times in this file.
-                from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
-
                 yield from _lead_best_matchup(
                     list(tate_liza_fight["ace_types"]), hunted_pids=self._hunted_counter_pids
                 )
@@ -4329,14 +4339,26 @@ class StoryMode(BotMode):
         # Luvdisc 41 / Whiscash 41 / Sealeo 43 / Crawdaunt 43 / **Kingdra 46**.
         # ⚠ The band's TOP is the ace, five levels above the rest — a band of (41, 43) would read
         # the roster's bulk and miss the mon that actually wins the fight.
-        juan_fight = {
-            "name": "Juan",
-            "keys": [MapRSE.SOOTOPOLIS_CITY_GYM_1F.value, MapRSE.SOOTOPOLIS_CITY.value],
-            "band": (41, 46),
-            "ace_types": ("Water", "Dragon"), "ace_level": 46,
-            "heal": PokemonCenter.SootopolisCity,
-        }
         if not ch22_chapter_done():
+            # ⛔⛔ LOCAL IMPORT REQUIRED, AND IT MUST COVER **EVERY** NAME THE CONFIG TOUCHES.
+            # `PokemonCenter` is bound at TWELVE places inside `_play`, every one of them inside an
+            # `if not _done("BADGEnn_GET")` branch, so a RESUMED run (badges already held) executes
+            # none of them. A function-local import makes the name function-local for the WHOLE of
+            # `_play`, so touching it here without importing is an `UnboundLocalError`.
+            # ‼ MEASURED, NOT HYPOTHETICAL: the first version of this block built the dict OUTSIDE
+            # the guard below and crashed **11 runs at ~1.6M frames each** in batch `20260910-203458`
+            # — `UnboundLocalError: cannot access local variable 'PokemonCenter'`. The A/B that was
+            # meant to measure the dex fence caught this instead, which is what an A/B is for.
+            from modules.map_data import PokemonCenter
+            from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+
+            juan_fight = {
+                "name": "Juan",
+                "keys": [MapRSE.SOOTOPOLIS_CITY_GYM_1F.value, MapRSE.SOOTOPOLIS_CITY.value],
+                "band": (41, 46),
+                "ace_types": ("Water", "Dragon"), "ace_level": 46,
+                "heal": PokemonCenter.SootopolisCity,
+            }
             if _cur_map() != MapRSE.SOOTOPOLIS_CITY_GYM_1F.value:
                 yield from self._prepare_for_fight(juan_fight)
                 # ⛔ SAME REASON AS TATE & LIZA: `_lead_best_matchup` is the only consumer of
@@ -4350,8 +4372,6 @@ class StoryMode(BotMode):
                 # makes the name function-local for the WHOLE of `_play`, so the call below would
                 # raise `UnboundLocalError` on exactly the runs this change exists to help.
                 # ‼ Same shadowing/scope trap that has bitten `console` three times in this file.
-                from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
-
                 yield from _lead_best_matchup(
                     list(juan_fight["ace_types"]), hunted_pids=self._hunted_counter_pids
                 )

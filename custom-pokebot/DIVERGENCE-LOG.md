@@ -2310,3 +2310,26 @@ Every promoted change is gated for **CORRECTNESS** and none is proven to **HELP*
   ground at every level — L5→ROUTE102, L13→ROUTE117, L20→ROUTE111, L28/35/40/47→ROUTE121).
 ⇒ **This promotion moves proven-correct code, not proven-useful code.** Both forks now carry the same
 risk, which is exactly why the rollback tag exists.
+
+
+---
+
+## 2026-09-10 (later) — RE-PROMOTED: `story_mode.py` only, fixing a crash the earlier promotion shipped
+
+⛔ **THE EARLIER PROMOTION THIS SAME DAY SHIPPED A CRASH TO THIS FORK.** Batch `20260910-203458`
+(8 lanes, 180.1 min, VERDICT OK) crashed **11 runs at ~1.6M frames each**:
+`UnboundLocalError: cannot access local variable 'PokemonCenter'`. The late-boss config dicts were
+built at indent 8 — OUTSIDE their `if not _done("BADGEnn_GET")` guard — so they construct on every
+pass through `_play`, and on a RESUMED run none of the twelve conditional `PokemonCenter` imports has
+executed. `winona_fight`, the precedent, is at indent 12, inside its guard.
+
+**Fixed and re-promoted** (drift 1 → 0, 1/1 byte-identical). Rollback: `pre-promote-2026-09-10b`.
+Verified in THIS fork by AST rather than by a diff: both configs are inside an `if` guard, and each
+guard imports `PokemonCenter`, `_lead_best_matchup` and `heal_in_pokemon_center`.
+
+⭐⭐ **THE LESSON THIS FORK SHOULD CARRY: the first promotion's DRIVE PASSED.**
+`--driver ch23leagueprobe --build custom` returned `ACCEPTANCE: PASS` — but it started from
+`post_vr_exit.ss1`, a fixture whose badges are already earned, and it never re-entered `_play` from
+the top. **A green drive proved the code LOADS, not that it SURVIVES A RESUME.**
+⇒ **Do not promote code whose first real exercise is still ahead of it.** Promote AFTER the batch.
+The rollback tag is why this cost a re-promotion instead of a bad day.
