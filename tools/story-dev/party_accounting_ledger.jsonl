@@ -532,3 +532,5 @@
 {"when": "2026-09-11T13:31:08", "driver": "maintain", "build": "sandbox", "state": "mauville_prewattson.ss1", "frames_run": 103240, "recomputes": 103240, "scans": 345, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-11T13:33:48", "driver": "maintain", "build": "sandbox", "state": "mauville_prewattson.ss1", "frames_run": 66553, "recomputes": 66553, "scans": 222, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-11T13:39:55", "driver": "maintain", "build": "sandbox", "state": "mauville_prewattson.ss1", "frames_run": 20032, "recomputes": 20032, "scans": 67, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-11T14:43:42", "driver": "story", "build": "sandbox", "state": "pokedex_done.ss1", "frames_run": 30000, "recomputes": 30001, "scans": 101, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-11T14:44:39", "driver": "story", "build": "sandbox", "state": "pokedex_done.ss1", "frames_run": 30000, "recomputes": 30001, "scans": 101, "divergences": {}, "observer_broke": false}
