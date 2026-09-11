@@ -286,11 +286,7 @@ Every banner further down is HISTORY, newest first.
 
 ## ✅ §Ch20 — SHIPPED AS A CHAPTER 2026-08-24 — ⛔ DO NOT REBUILD — DETAIL in `28-HANDOFF-ARCHIVE.md`
 
-‼ **The rules later work still leans on, kept here on purpose:** grade on
-**`VAR_ROUTE128_STATE == 2`**, never the Kyogre flag (set BEFORE a forced warp);
-**`FLAG_SYS_USE_STRENGTH` is cleared on EVERY WARP**; press **A only when a text printer is
-waiting, B otherwise**; **copy upstream's ROUTE, never its CONTROL FLOW**; **KI-59** is FIXED,
-PROVEN and GATED (`repro_impassable_dirs.py`) — ⚠ KI-76's correctness half is still OPEN.
+‼ **The rules later work still leans on, kept here on purpose:** grade on **`VAR_ROUTE128_STATE == 2`**, never the Kyogre flag (set BEFORE a forced warp); **`FLAG_SYS_USE_STRENGTH` is cleared on EVERY WARP**; press **A only when a text printer is waiting, B otherwise**; **copy upstream's ROUTE, never its CONTROL FLOW**; **KI-59** is FIXED, PROVEN and GATED (`repro_impassable_dirs.py`) — ⚠ KI-76's correctness half is still OPEN.
 
 ## ⛔ NAMING: "§Ch21" IN TEXT DATED ON OR BEFORE 2026-08-13 MEANS **CHAPTER 20** (Seafloor Cavern)
 ✅ Rename DONE 2026-08-13; the old `ch21*` names survive ON PURPOSE in the append-only `06`/`07`/`08`.
@@ -393,6 +389,7 @@ burden here is so heavy, and why negative results are treated as the most valuab
 * 🛡 **The hardening round** (advisory rules → code that refuses) came from **≥12 of 164 logged mistakes being self-admitted REPEATS**, several committed while the author knew the rule — and **three of those tools found real problems on their first run** (six competing START-HERE banners, an 11th undocumented flag that turned out to be the roster blocker, 140 silent handlers). **Run `preflight.py` before touching anything**; read `29-DISABLED-FEATURES-REGISTRY.md` before proposing any `POKEBOT_*` flag.
 * 🛠 **TWO GATES WERE BLIND, AND FIXING THEM FOUND A REAL BUG.** `audit_flag_names.py` checked **two files** and saw only names written as literals AT the call site, while the house idiom is a module constant — **blindest exactly at the completion markers**; now 19 files / 144 names, **exits 1** on a phantom. And **`pyflakes` was installed and had never been run**: the new `repro_undefined_names.py` found a `NameError` on the Magma Hideout's *success* path, plus KI-65. ⇒ *a gate that has never failed may simply not be looking.*
 * ‼‼ **THE ADVERSARIAL REVIEW THAT FOUND MY §Ch19 FIX WRONG TWICE:** (1) **print the MRO before "fixing" a strategy method** — the first fix guarded the base class and was DEAD CODE on the story path; (2) **never identify a Pokémon by party INDEX across a battle-menu boundary** — opening it runs `UpdatePartyToBattleOrder`, which PHYSICALLY PERMUTES `gPlayerParty`, so the `index >= 3` cut offered the ALLY's mon and hid one of ours; key on **original trainer ID**. ‼ Meta-lesson: **my fault-injected A/B passed it anyway** — all three arms modelled the un-permuted order, and *a control arm does not save you if every arm measures the wrong thing.*
+* 📌 **FOLDED HERE 2026-09-10 (R3 budget) — two more pointer-only `##` sections, nothing deleted:** **THE REGI ARC** (user-requested) — detail in `28-HANDOFF-ARCHIVE.md` 2026-08-13, see **KI-69**; the arc is **NOT STARTED** ⛔ *(an old clause called it “item 4 in NEXT ACTIONS” — that pointer is dead)*. And **§Ch19 pre-build planning notes** → `28-HANDOFF-ARCHIVE.md`; its four gotchas live ONCE, in the “§Ch19 IS DONE” bullet above.
 
 ## ‼‼ §Ch19-ERA ISSUES — **MIXED: KI-64/65/67 CLOSED; `KI-66` IS *PARTLY FIXED* (its `_on_field` half is FIXED AND PROMOTED; its OWNER filter is OPEN)**
 *(the CLOSED detail moved to `28-HANDOFF-ARCHIVE.md` 2026-08-13; ⛔ the heading used to read just
@@ -400,10 +397,6 @@ burden here is so heavy, and why negative results are treated as the most valuab
 reader skips — a cold-start audit caught it 2026-08-16, and it is the exact `#24-orphans` shape.)*
 
 Moved for the R3 budget; all four are in `05-KNOWN-ISSUES.md` or its archive with full detail. ‼ **Keep only what is still live:** ✅✅ **KI-65 is NO LONGER LIVE — REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25) ON 2026-08-16; ⛔ DO NOT REBUILD OR REOPEN IT** (and PROMOTED to both forks 2026-08-16, user-approved). *(It was: `battle_move_replacing.py:280` binds `party_index` on a path a silent `except` can skip, so a later `CantForgetHM` raised `UnboundLocalError` into a SECOND silent `except` that declined — two invisible failures compounding. Both reads now carry explicit `is None` guards.)* **KI-66 — OPEN and CODE-VERIFIED** (⛔ an older half of this line said "unverified"; the four sites were read and confirmed live): the multi-battle hazard is broader than the faint chooser — four more full-party scans on the same paths (`battle_handler.py:541-545`, `:588-598`, `:630-636`, `_util.py:522-587`). ⛔⛔ **THE `IndexError`-ON-TURN-1 SUB-CLAIM IS *REFUTED*, NOT PENDING — DO NOT "CHECK THAT FIRST".** `05-KNOWN-ISSUES.md` refuted it on 2026-08-12 from our own driven run (`ch19d.log` f23255: a SIX-entry party with the multi battle WON — `FillPartnerParty` does update the count). *(This line ordered "check that FIRST" for four days after its own KI file refuted it; a cold-start audit priced that at an hour of re-refuting.)* ‼ The right fix is ONE choke point (`ally_party_indices()`, which EXISTS at `battle_strategies/default.py:12` and is called from `default.py:189` / `level_up.py:53` / `story_mode.py:171` — and from NONE of the four sites). ✅✅ **BUILD IS NO LONGER BLOCKED — SUPERSEDED 2026-08-17.** *(It read: "no anchor save reaches a partner double battle with a player faint, and no fault hook forces one".)* **BOTH EXIST NOW:** `--driver ki66faint` on `saves/at_steven_2f.ss1`, with the faint produced by staging one of our picks at 1 HP before the battle. Driven three times. ⛔ The headline is REFUTED and the `_on_field` index-space defect it exposed is **FIXED AND PROMOTED TO BOTH FORKS (2026-08-17)** — ⛔ do NOT redo it. What stays LIVE is the OWNER filter (measured INERT on our one fixture), `:541-545` and `_util.py:522-587`. See KI-66's DRIVEN block. KI-64 and KI-67 are CLOSED.
-
-## 🆕 THE REGI ARC (user-requested) — DETAIL MOVED to `28-HANDOFF-ARCHIVE.md` (2026-08-13). See **KI-69**.
-
-Moved for the R3 budget; the arc is **NOT STARTED**. ⛔ *(This read "the arc is item 4 in NEXT ACTIONS"; that pointer is DANGLING — this file's own queue preamble says the surviving items are only `0`, `1` and `3b`, and that **item 4 never existed**. Caught by the 2026-09-02 Tier 2 cold-start audit.)* ‼ **Keep these four, every one of which fails SILENTLY if got wrong:** (1) **Emerald REVERSED the party order — WAILORD first (slot 0), RELICANTH last** (`braille_puzzles.c:92-104`); the R/S order everyone remembers is wrong and the wrong order gives no message and no error. (2) ⛔ **The Regi battle is UNRECOVERABLE** — level 40, catch rate 3, and the fall-through case **including `B_OUTCOME_LOST`** sets `FLAG_DEFEATED_*`, so **a KO *or* a whiteout deletes the encounter permanently**; the only safe non-catch exit is fleeing. (3) **REGICE IS NOT A TIMED WAIT** — Emerald wants a **36-tile perimeter lap in ONE visit** ending exactly on `(8,21)`, reset by any map transition and by one wrong tile. (4) Measured capability gaps: **no rod at all**, no TM28 Dig, and nobody knows Dive, Dig or Flash — and **Relicanth is underwater-only, so Dive is upstream of the whole arc.** Ground truth: `ai-research-notes/2026-08-13-regi-arc-decomp-ground-truth.md`.
 
 ## ⏭ NEXT ACTIONS, IN ORDER
 
@@ -458,7 +451,29 @@ Moved for the R3 budget; the arc is **NOT STARTED**. ⛔ *(This read "the arc is
 >    ‼ **THE RULE, FOR THE NEXT BATCH:** while one RUNS, do not edit `sandbox-pokebot/` and do not promote — lanes RESPAWN against ON-DISK code, so a mid-batch edit puts two builds in one batch. *(This batch is DONE, so the rule is not currently binding.)*
 >    ⭐ **THIS IS THE FIRST BATCH WITH VERIFIABLE BUILD PROVENANCE.** `code=8a8ae2d9` is recorded AND the sandbox tree was clean at launch (checked), so the commit named is genuinely what ran. All three of today's fixes are ancestors of it (verified with `git merge-base --is-ancestor`).
 >    ⭐ **WHAT IT IS MEASURING:** whether `#24-whiteoutloop` (was 14 of 53 = 26%) and §Ch23 (11 of 53 = 21%) actually shrink. ⚠ **EXPECT THE FAILURE TO MOVE, NOT VANISH** — see the next line. The previous batch for comparison is `x4-runs/20260907-113851` (53 ended runs, 0 finished).
->    ➡➡➡ **NEXT ACTION (2026-09-10) — RUN THE `#24-dexhunt` A/B. ⛔ THE FENCE ITSELF IS BUILT, PURE AND GATED (#50, 20 cases, fault-armed) — DO NOT REBUILD IT.** `decide_dex_catch` (`story_mode.py:1188`) decides; `_should_catch` (`story_mode.py:1624`) only reads and reports. What is proven is CORRECTNESS; what is **NOT** proven is EFFICACY — whether dex catching actually raises `owned`. That needs the batch.
+>    ➡➡➡ **NEXT ACTION (2026-09-10, RE-POINTED BY A HEALTH AUDIT) — CLOSE THE POST-WINONA ADAPTATION GAP (`#24-regimeb-noescalation`). ⛔ THIS MARKER PREVIOUSLY SENT THE NEXT SESSION TO THE `#24-dexhunt` A/B — a multi-hour batch measuring pokédex `owned`, pointed at from six lines below this file's own `⛔ STILL 0 FINISHED OF 49`. The dex A/B is a legitimate USER objective and it is NOT the critical path; nothing that cannot raise a 0% completion rate belongs on this line. Fold it into a batch that is already running for a critical-path reason.**
+>    ⭐⭐ **THE MEASUREMENT THAT DECIDES IT (run it, do not re-derive it):**
+>    `PYTHONUTF8=1 py -3.12 tools/story-dev/probe_loss_site_distribution.py`
+>    **95.0% of the 23,564 recorded battle losses are PRE-Winona** — and those are the machinery
+>    WORKING (lose → escalate → train → win). **But ~56% of run ENDINGS are POST-Winona**, where
+>    `_prepare_for_fight` is never called — its LAST CALL SITE is line 4044 of `story_mode.py` (Winona); ⛔ that is a CALL, not the definition and all six late
+>    chapter modules contain ZERO uses of it. ⇒ **a loss count measures DIFFICULTY; a run-end count
+>    measures what is UNSURVIVABLE.** Scope from the second.
+>    ⭐ **THE SINGLE BIGGEST RUN-ENDER: §Ch23's training refusal — 7 of 16 runs in the newest batch.**
+>    ⛔⛔ **AND THIS REFRAMES `#24-lowlevelmules`' FIVE DEAD DIRECTIONS — READ THIS BEFORE PROPOSING A SIXTH.**
+>    All five attacked §Ch23's training leg or the mule it names. The measurement says that leg is
+>    not the defect: it is the ONLY training mechanism in NINE chapters, asked to repay a debt run up
+>    since badge 6 in one call, against a frame ceiling. ⇒ the target is **"nothing trains anything
+>    between Winona and Victory Road"**, not "train the mule better".
+>    ‼ **FIRST, OBEY THE ITEM'S OWN GUARDRAILS** (`03-PUNCH-LIST.md` `#24-regimeb-noescalation`):
+>    its “cheapest first slice” (arming the Mossdeep respawn) is **REFUTED — do not build it**; and
+>    `precheck_prior_art.py` now searches `ai-research-notes/` (129 notes it was blind to) — run it.
+>    ⚠ **§Ch24 IS NOT THE BOTTLENECK AND MUST NOT BE BUILT FIRST.** Measured 2026-09-10: **ZERO of
+>    the 8 lanes ever set foot on a VICTORY_ROAD map**, so a perfect §Ch24 buys a completion rate of
+>    exactly 0. *(An earlier reading here claimed “6 of 8 lanes reach the League doorstep” — WRONG:
+>    `EVER_GRANDE_CITY` spans both the waterfall landing (y≈55) and the League steps (y≈6), so the
+>    map NAME cannot tell arrival from completion. Re-measured on the y-coordinate.)* Keep §Ch24's
+>    corrected build spec and the leg-4 guard as cheap insurance; advance it only from fixtures.
 >    ✅ **AND THE OLD WARNING HERE IS HALF-RETIRED, MEASURED, NOT ARGUED.** It read *“NO CHEAP
 >    FIXTURE TEST EXISTS — a Tier 2 auditor tried and could not compute a discriminator.”* That is
 >    true of EFFICACY and **false of the PRECONDITION**: `probe_dexfence_opportunity.py` answers
@@ -688,10 +703,6 @@ Moved for the R3 budget; the arc is **NOT STARTED**. ⛔ *(This read "the arc is
 >    **`VAR_ROUTE128_STATE == 2`**, never the Kyogre flag. Full 11-leg spec:
 >    `ai-research-notes/2026-08-13-ch20-seafloor-cavern-build-spec.md`. ⛔ Everything retracted
 >    there is DONE or RETRACTED — nothing in the archived block is a live instruction.
-## 📌 §Ch19 pre-build planning notes → `28-HANDOFF-ARCHIVE.md`; its four gotchas live ONCE, in the "§Ch19 IS DONE" section above.
-
----
-
 # HOW TO RUN / TEST
 
 ### §Ch21 recon instruments (both NEW 2026-08-24, both fault-tested)

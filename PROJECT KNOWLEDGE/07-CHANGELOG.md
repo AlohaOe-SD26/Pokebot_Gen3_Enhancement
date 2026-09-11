@@ -26380,3 +26380,35 @@ leg 4 correctly skipped there. The hole was **one map further in** — inside th
 ⇒ Had I built against the reported mechanism I would have "fixed" a working case and left the real
 one open, with a green probe over it. **C3 exists so that can never be re-derived from this file**,
 and the `=nofix` arm pins it: C1+C2 red, **C3–C7 green**.
+
+---
+
+## 2026-09-10 — WHERE runs lose vs WHERE runs DIE: two statistics, both true, opposite answers
+
+**Measured** by `tools/story-dev/probe_loss_site_distribution.py` (new, offline, reads every
+`stdout.txt` under `x4-runs/` — 304 run files, 23,564 battle losses), plus a count of run-END reasons
+from the newest batch (`20260909-160339`, 16 runs).
+
+| statistic | answer |
+|---|---|
+| where battles are LOST | **95.0% pre-Winona** (Petalburg 21.1%, Route 110 20.9%, Fortree 14.0%, Mauville 12.1%, Lavaridge 8.8%); post-Winona just **5.0%** |
+| where runs END | **~56% post-Winona** — §Ch23's training refusal alone is **7 of 16**, plus 1 §Ch23 unreachable and 1 Mossdeep badge-7 |
+
+⭐ **THEY ARE NOT IN CONFLICT, AND THE RECONCILIATION IS THE FINDING.** Pre-Winona the bot loses
+constantly and wins anyway — that is `_prepare_for_fight`, loss escalation, plateau detection and
+the counter-hunt DOING THEIR JOB. Those 22,388 losses are the machinery working. Post-Winona there
+is no machinery (`_prepare_for_fight` is last called at Winona, `story_mode.py:4044`; the six late
+chapter modules contain zero uses of it), so a loss there is not absorbed — it is terminal.
+⇒ **A LOSS COUNT MEASURES DIFFICULTY. A RUN-END COUNT MEASURES WHAT IS UNSURVIVABLE. Scope a fix
+from the second; scope a difficulty estimate from the first.**
+
+‼ **THIS IS WHY `#24-regimeb-noescalation`'S OWN WARNING EXISTS** — *"DO NOT SCOPE FROM THE
+TERMINAL-LOCATION STATISTIC ... plot the whole distribution of loss sites first."* Both halves were
+needed: the distribution alone would have sent the work pre-Winona (95%!), and the terminal statistic
+alone previously produced a 58% bucket for a map `heal_locations.json` does not contain.
+
+⇒ ⭐⭐ **AND IT REFRAMES `#24-lowlevelmules`' FIVE DEAD DIRECTIONS.** All five tried to fix §Ch23's
+training leg or the mule it names. The measurement says the leg is not the defect — it is the only
+training mechanism in **nine chapters**, asked to repay a debt accumulated since badge 6 in one call,
+against a frame ceiling. ⛔ Not "train the mule better"; **"nothing trained anything for nine
+chapters."** The five dead directions all attacked the symptom's last mile.
