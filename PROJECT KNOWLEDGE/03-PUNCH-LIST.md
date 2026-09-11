@@ -397,7 +397,7 @@ AN OPEN FACT — sweep for residuals before retiring one.
 ⛔⛔⛔ **AND IT IS WORSE THAN A RE-BUY — VERIFIED IN CODE 2026-09-06.** The §Ch23 dispatch is:
 `story_mode.py:3791` `if not ch23_chapter_done():` → `:3792` runs the chapter, `:3793` else-skips —
 and `:3795` `_guard("Victory Road (Ch23)", ch23_chapter_done)` sits **OUTSIDE the if/else**.
-`_guard` (`story_mode.py:3374-2878`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
+`_guard` (`story_mode.py:3424-2878`) **RAISES `BotModeError`** when its check fails. ⇒ the moment
 §Ch24 spends the basket, the next pass through `_play()` does all three of these:
 (1) re-enters the WHOLE Victory Road chapter, because `:3791` is now True;
 (2) reaches leg 11 and tries to re-buy a **₽54,300** basket holding **₽1,741** — leg 11 refuses
@@ -1477,7 +1477,7 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
   500-round retry loop instead of abandoning the target. ⇒ **build the disposition, and make it
   SUPPLEMENT the ceiling, never replace it.**
 - [ ] ⛔⛔ **STRUCTURAL FACT THAT CHANGES EVERY "BUDGET HEADROOM" ARGUMENT — VERIFIED 2026-09-09.**
-  `MAX_FRAMES_PER_RUN = 5_000_000` sits at `story_mode.py:4864`, **inside `StoryEndlessResetMode`
+  `MAX_FRAMES_PER_RUN = 5_000_000` sits at `story_mode.py:4914`, **inside `StoryEndlessResetMode`
   (`:4283`) — the BATCH HARNESS.** Production `StoryMode` (`:1123`) has **no total-frame budget at
   all**; `train_team` has only a 500-*round* guard. ⇒ **in a real run the per-call
   `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence**, and removing or
@@ -2101,7 +2101,7 @@ the exclusion is about to abandon up to `catchup` (= `target - TRAIN_CATCHUP_GAP
 keyed to **its own** level. Gate **#55 `probe_maintenance_decision.py`**: 13 cases, 3 fault arms.
 ⛔⛔ **WHAT IS *NOT* PROVEN, AND THE HEADLINE SAYS SO ON PURPOSE: the GENERATOR HAS NEVER RUN.**
 Gate #55 proves the DECISION. The ACTION — `_rotate_lead_safely` → `train_team(scope="lead")` →
-`_lead_strongest_battler` in a `finally` — has not executed a single frame. ‼ This project's own
+`_lead_strongest_battler` on BOTH the success and failure paths, with `train_team` under a HARD frame cap (`_yield_bounded`) — has not executed a single frame. *(This read "in a `finally`" until 2026-09-11; that shape was a latent `RuntimeError` and gate #56 now forbids it.)* ‼ This project's own
 rule 7: **a candidate is not an attempt**, and a decision is not an action.
 - [ ] **NEXT: drive it.** `--inject-hmmule` already stages exactly the laggard this needs
       (Marill L13 ADDED to a ready party; `POKEBOT_MULE_LEVEL` tunes it). The A/B is
@@ -3791,7 +3791,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   runs reached exactly #41 after whiteouts spread over a **median of 13 different towns**,
   while winning **86-96%** of their battles (one won 866 of 907 with an L51 lead). ⇒ a fuse
   on run LENGTH — kill rate 0% under 1.5M frames, 62% above 3.5M, and `MAX_FRAMES_PER_RUN`
-  (5,000,000) was never reached by ANY of the 61 runs. ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4864`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split). FIX: `whiteout_budget()` (PURE) keys
+  (5,000,000) was never reached by ANY of the 61 runs. ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4914`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split). FIX: `whiteout_budget()` (PURE) keys
   it to CONSECUTIVE whiteouts at ONE location. GATE #44 `probe_whiteout_budget.py` replays
   the 14 real sequences: **0 of 14 still killed**, a stuck run and a blind run both STILL
   stopped at #41, and three fault arms fire. ⛔ DO NOT rewrite it to use `_progress_sig()` —
@@ -3827,7 +3827,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   Mossdeep respawn would make retries CHEAPER; it cannot make them SUCCEED, and cheapness is not what
   kills these runs. **(1) The runs die on a COUNT, not on time** — `whiteout_budget(cap=40)` — and
   this file already records that `MAX_FRAMES_PER_RUN` (5,000,000) **was never reached by ANY of the
-  61 runs** ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4864`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split).. Saved frames buy nothing. **(2) From badge 7 on, attempt N+1 is BYTE-IDENTICAL to
+  61 runs** ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4914`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split).. Saved frames buy nothing. **(2) From badge 7 on, attempt N+1 is BYTE-IDENTICAL to
   attempt N** (this very item's own finding), so a cheaper loop is the same loop.
   ⛔⛔ **(3) IT IS ACTIVELY HARMFUL:** `whiteout_budget`'s `key` **is** `get_last_heal_location()`,
   and the budget RESETS to 1 when the key changes ⇒ re-arming Lilycove→Mossdeep grants **one free

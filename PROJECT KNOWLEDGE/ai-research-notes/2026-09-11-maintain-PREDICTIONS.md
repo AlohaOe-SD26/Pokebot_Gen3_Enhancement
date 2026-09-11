@@ -93,7 +93,7 @@ sensitive to:
 | | target | ground | frames | vs 250,000 |
 |---|---|---|---|---|
 | ruled DEAD 2026-09-10 | the BOSS's level (L47) | ROUTE121, wild 28 | **285,167** | ⛔ over |
-| this item | `target - 6` (`TRAIN_CATCHUP_GAP`) | keyed to the LAGGARD's level | **5,732 – 146,166** | ✅ under |
+| this item | `target - 6` (`TRAIN_CATCHUP_GAP`) | keyed to the LAGGARD's level | **4,299 – 63,052** | ✅ under |
 
 ⭐ **The estimator was CONTROLLED before it was believed:** it reproduces the 2026-09-10 entry's own
 figure — model **285,167** vs that entry's stated "~285,000", within 0.06% — using the same constants

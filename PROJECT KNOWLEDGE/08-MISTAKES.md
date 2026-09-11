@@ -16498,3 +16498,171 @@ stubs including the strongest one (right predicate, but skipping the cost and he
 ⇒ the conclusion survived — **fewest failures by any stub: 6** — but it is now EARNED. Had the
 harness stayed broken it would have certified a vacuous gate as discriminating, which is precisely
 the failure gate #55's own C13 exists to prevent, one level up.
+
+---
+
+## 2026-09-11 — `yield` inside `finally`: the obvious cleanup shape is a latent crash in a generator
+
+**Symptom (never observed in the wild — found by audit, which is the point).** A generator that
+yields from a `finally` raises `RuntimeError: generator ignored GeneratorExit` when closed while
+suspended inside the matching `try`. CPython closes abandoned generators at GC time, so a mode
+switch or a discarded story run is enough.
+
+**Root cause.** `try/finally` is the *obvious* way to guarantee "restore the lead whatever happens",
+and in ordinary code it is correct. In a generator it is not. I wrote it in `#24-maintain`'s new
+step, and `victory_road.py:2099` had already shipped it to production with the comment
+*"⛔ IN A `finally` ON PURPOSE"*.
+
+⭐ **Prevention rule (one line):** *In a generator, never `yield` from a `finally` — use
+`except GeneratorExit: raise` / `except BaseException: <cleanup>; raise` / `else: <cleanup>`.*
+✅ ENFORCED, not requested: gate #56 `probe_yield_in_finally.py`, which reproduces the RuntimeError
+at runtime on every run rather than trusting the rule.
+
+‼ **The second lesson is about the comment.** `victory_road.py`'s read *"IN A `finally` ON PURPOSE"*
+— emphatic, dated, reasoned. It is why nobody looked again. ⇒ **a deliberate-looking comment is not
+evidence of safety; it is evidence that someone THOUGHT about it once, with whatever they knew then.**
+
+---
+
+## 2026-09-11 — I nearly shipped a gate BYPASS while fixing a gate, and equal totals hid it
+
+**Symptom.** The correct generator-cleanup shape uses `except BaseException`, so gate #27's ratchet
+counted it as new abort-swallowing debt (24 vs baseline 23). I taught the detector that a handler
+ending in a bare `raise` cannot swallow — correct in itself — and the gate went back to **exactly
+23, PASS**.
+
+⛔ **23 = 23 WAS A COINCIDENCE.** My exemption returned True if ANY handler in the `try` re-raised.
+The shape it wrongly exempted is real — `story_mode.py` has `except BotModeError: raise` beside
+`except Exception: yield`, one handler re-raising while its SIBLING swallows.
+‼ **PRECISION, ADDED AFTER A TIER 1 REVIEWER CHECKED MY CLAIM AND NARROWED IT:** that file is NOT in
+`probe_abort_swallowing.py`'s `SCAN` (the gate covers `modules/story/` plus one helper), so within
+the gate's OWN corpus the ANY-vs-ALL distinction currently changes **nothing** — both detectors
+return the same 23 sites. My whole-tree control arm is what surfaced it. ⇒ the bug in my exemption
+was real and the shape it admits is real, but I over-stated the blast radius by not checking the
+gate's scope before describing the finding. **A defect found by a tool run OUTSIDE a gate's scope
+is a defect in the code, not evidence about what the gate was counting.**
+
+**How it was caught.** Not by the total — by diffing the SITE LISTS under the old and new detectors
+and requiring that the exempted set contain *only my own two handlers*. It contained a third.
+
+⭐ **Prevention rule (one line):** *When you change what a ratchet COUNTS, diff the SET, never the
+TOTAL — equal counts routinely hide an equal-sized swap.*
+‼ This is the same shape as the project's standing rule that a count netting to zero reads TRUE when
+nothing happened (one deposited, one caught). Here it was one exempted, one added. ⇒ the exemption is
+now ALL-quantified over the broad handlers, with a self-test carrying that exact sibling shape.
+
+---
+
+## 2026-09-11 — I published an affordability table computed against boss bands I never read
+
+**Symptom.** I documented "5,732 – 146,166 frames" as the cost of early-game maintenance, in four
+files, and used it to argue that a settled 2026-09-10 ruling did not cover this case.
+
+**Root cause.** The targets in that table (15/20/26/31/34/38) were my ASSUMPTIONS about the gym
+bands. The code's actual bands are `(13,17) (14,16) (20,24) (24,29) (27,31) (29,33)`. I read them
+only when a recon agent quoted them back with line numbers.
+
+**Direction of the error.** Favourable — real targets are LOWER, so the real range is **4,299 –
+63,052** and the conclusion strengthens. ⛔ That is not a defence. A number published without being
+read out of the code is wrong whichever way it later moves, and this one was load-bearing in an
+argument against a DO-NOT-REOPEN ruling.
+
+⭐ **Prevention rule (one line):** *A constant used in an argument must be READ from the code and
+cited `file:line` in the same edit that uses it — never recalled.*
+⭐ **And the recompute paid for itself immediately:** with the real bands, a laggard facing Tate &
+Liza or Juan needs `catchup` 35-40, i.e. exactly the late grind the ruling killed. Measuring that
+showed **all 4 late cases are REFUSED on cost (581k-882k vs a 150k budget)** — the single most
+important property of the design, and the guessed table could not have shown it.
+
+---
+
+## 2026-09-11 — The yield-in-`finally` rule was written on 2026-07-26. It did not stop the bug in September.
+
+**Found by an adversarial agent, not by me.** While I was congratulating myself on catching a latent
+crash, it pointed at `08-MISTAKES.md` (2026-07-26), which already said:
+> *"Call `_lead_strongest_battler()` at the end of `train_team`, after the loop and before the
+> `finally` (a `yield` inside `finally` raises if the generator is being closed…)"*
+— with the prevention rule *"when you write a helper whose docstring names a hazard, grep for every
+path that hazard can reach, not just the one you were looking at."*
+
+And `early_game.py:2108-2111` obeys it: `train_team` deliberately places its cleanup AFTER the loop,
+citing exactly this reasoning.
+
+⛔⛔ **SIX WEEKS LATER `victory_road.py:2099` SHIPPED THE BUG ANYWAY** — to production — under the
+comment *"⛔ IN A `finally` ON PURPOSE"*. The rule existed, was correct, was written down, was obeyed
+in one file, and the very next author to reach for a cleanup guard reached for `finally`.
+
+⭐⭐ **THE LESSON IS NOT "read the mistakes file harder."** It is the project's own rule 6, confirmed
+with a six-week natural experiment: **a rule that can be expressed as a gate MUST be, because prose
+does not fire when you are thinking about something else.** The 2026-07-26 entry even anticipated the
+failure mode ("grep for every path that hazard can reach") and still did not prevent it, because
+grepping is something you have to REMEMBER to do.
+⇒ Gate #56 `probe_yield_in_finally.py` now does the grep on every commit, and re-derives the
+RuntimeError at runtime so it cannot quietly guard nothing.
+
+‼ **AND THE HAZARD WAS REACHABLE, not theoretical** — the same review found two live `.close()` call
+sites that would have triggered it: `story_mode.py:3052` (`_play_gen.close()`, fired on any
+recoverable battle fault — entirely plausible mid-training, since maintenance trains via real wild
+battles) and `story_mode.py:4999` (`inner.close()` when a per-run frame budget is exceeded).
+⇒ I had called the exposure "large but unobserved". It was large AND reachable by two named paths.
+
+---
+
+## 2026-09-11 — A "budget" that nothing checks at runtime is a wish, not a budget
+
+**Symptom.** `MAINTAIN_MAX_FRAMES = 150_000` read like a safety ceiling. An adversarial review showed
+it gated only the PRE-FLIGHT `estimate_frames_to_level(...)`. Once a case was admitted, the only live
+bound was `train_team`'s `guard > 500`, which counts **rounds, not frames**.
+
+**Why that matters here specifically.** The estimator is `battles * FRAMES_PER_WILD_BATTLE` and has
+**no term for heal round-trips** — a cost this same file measures elsewhere as dominant (*"78 heal
+round trips in one run … every HP dip is a full Poké Center walk"*). So the estimate is
+systematically optimistic in exactly the direction that matters, and the headroom was 2.6%
+(150,000 vs a 146,166 worst case) before the figures were even corrected.
+
+**Fix.** Drive the training through `_yield_bounded(gen, budget)` — a HARD frame cap that closes the
+sub-generator on timeout — and REPORT which outcome occurred. "SHORT" alone cannot distinguish *"the
+ground was wrong"* from *"it ran out of frames"*; those have different fixes, and the second means the
+estimate was too optimistic.
+
+⭐ **Prevention rule (one line):** *If a constant is called a budget, find the line that STOPS work
+when it is exceeded — if there isn't one, it is an estimate with a reassuring name.*
+‼ Note the two fixes are load-bearing for each other: `_yield_bounded` closes the sub-generator on
+timeout, which is a `GeneratorExit` into `train_team` — safe only because gate #56 now guarantees no
+story-surface generator yields from a `finally`. Adding this bound BEFORE that fix would have
+converted a timeout into a `RuntimeError`.
+
+---
+
+## 2026-09-11 — The gate I wrote to catch a real bug had a false positive, found by attacking it
+
+**Symptom.** Gate #56 (`probe_yield_in_finally.py`) flagged this as an offender:
+```python
+try:
+    yield 1
+finally:
+    def inner():
+        yield 2          # <- belongs to `inner`, not to the enclosing generator
+    register(inner)
+```
+Defining a nested generator during cleanup yields nothing from the outer one. **Not the hazard.**
+
+**Root cause.** `ast.walk` descends into nested function bodies, so any `yield` lexically under the
+`finally` matched — including ones in a different function's scope.
+
+**How it was found — and this is the reusable part.** Not by running the gate (it was green: no
+story-surface file happens to contain that shape). I went looking for ways to **DEFEAT** it: nested
+functions, a `try` inside the `finally`, a `with` inside the `finally`, a lambda, an async generator.
+Four were correctly handled; the nested `def` was not.
+⭐ **Prevention rule (one line):** *After writing a gate, spend five minutes trying to DEFEAT it — in
+both directions. A gate you only ever tried to satisfy has been tested on one side.*
+
+‼ And a Tier 1 reviewer then found a SECOND hole the same way: `try/except*` (PEP 654) parses to
+`ast.TryStar`, which is **not** an `ast.Try`, so an exception-group `try` with a yielding `finally`
+was invisible. Inert today — there is no `except*` anywhere in the tree — and fixed anyway, because
+*"nothing uses it yet"* is a statement about today. ⇒ self-tests now run **13** cases pinning both
+directions (S9 the false positive, S10 that the fix did not over-correct, S13 `except*`).
+
+⛔ **The meta-lesson: a gate is CODE, and new code is where defects live.** I wrote #56 to stop a
+class of bug and shipped a bug inside it on the first try. The gate had already been proven against
+the real defect it was written for — which is necessary and, on its own, not sufficient.

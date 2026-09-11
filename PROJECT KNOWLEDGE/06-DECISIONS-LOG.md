@@ -5075,7 +5075,7 @@ variables its arithmetic is most sensitive to, and the difference is MEASURED, n
 | | target | ground | frames | vs 250,000 |
 |---|---|---|---|---|
 | **ruled DEAD 2026-09-10** | the BOSS's level (L47) | the only tabled ground, ROUTE121 wild 28 | **285,167** | ⛔ over |
-| **built 2026-09-11** | `target - 6` (`TRAIN_CATCHUP_GAP`) | keyed to the laggard's level | **5,732 – 146,166** | ✅ under |
+| **built 2026-09-11** | `target - 6` (`TRAIN_CATCHUP_GAP`) | keyed to the laggard's level | **4,299 – 63,052** | ✅ under |
 
 ⭐ **The instrument was CONTROLLED before it was believed:** it reproduces the 2026-09-10 entry's own
 figure (285,167 vs "~285,000") using the same constants `estimate_frames_to_level` uses. A model that

@@ -16,12 +16,13 @@ Why it matters, in KI-67's own words: the abort latch is cleared ONLY by `StoryM
 that catches the abort and retries IN PLACE runs straight into the next `_check_abort()` — burning
 its whole retry budget in a handful of frames and reporting failures that never happened.
 
-⛔⛔ THIS IS A PROBE, NOT A GATE, AND THAT IS DELIBERATE. ⛔ NO COUNT IS QUOTED IN THIS DOCSTRING —
-it said ~53 for a day after the real figure was 37, and a cold-start audit caught it. RUN THE PROBE.
-Adding it to `run_gates.py` today would make the suite red on pre-existing debt, and a gate that is
-red on arrival teaches everyone to ignore it. ⇒ **triage the sites, fix them, THEN promote this to a
-gate** (the same path `repro_no_silent_except.py` took, which records its own pre-existing count and
-enforces "no worse than").
+✅✅ IT IS NOW A GATE — registered in `run_gates.py` and ENFORCING as a RATCHET. *(This block read
+"THIS IS A PROBE, NOT A GATE, AND THAT IS DELIBERATE … triage the sites, fix them, THEN promote this
+to a gate" until 2026-09-11. That promotion HAPPENED — the triage was done and the baseline locked
+the gain in — and the text was never updated, so it told readers the opposite of the truth while the
+gate was live. Corrected after it exited 1 on new debt and I had to check whether that was even
+possible.)* ⛔ NO COUNT IS QUOTED IN THIS DOCSTRING — it said ~53 for a day after the real figure was
+37, and a cold-start audit caught it. RUN THE GATE; `BASELINE` below is the authority.
 
 THE RULE, AND ITS LIMITS — read before believing a number:
   FLAGGED when a `try` block (a) contains a `yield from`, i.e. it DRIVES A GENERATOR and can
@@ -41,7 +42,9 @@ Run:  cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_abort_swallowing.py
 ‼ `--build custom` is what makes a PROMOTION MEASURABLE instead of assumed: a byte-compare only ever
 proves a file was COPIED, never that the fork's OWN handlers gained the guard. Run it before and
 after the copy and the number must MOVE. (2026-08-16: custom read 53 before, 45 after.)
-Exit codes: 0 always (it is a PROBE — it measures, it does not fail the build).
+Exit codes: **0 at or below `BASELINE`, 1 ABOVE it** — it is a ratchet and it DOES fail the build.
+  *(This line read "0 always (it is a PROBE — it measures, it does not fail the build)" until
+  2026-09-11, which was false from the day it was registered in `run_gates.py`.)*
 """
 
 from __future__ import annotations
@@ -100,6 +103,34 @@ def _drives_generator(try_node: ast.Try) -> bool:
 _GUARD_CALLS = {"reraise_if_aborting", "story_should_abort"}
 
 
+def _reraises_unconditionally(h: ast.ExceptHandler) -> bool:
+    """Does this handler end in a bare `raise`, on every path out of it?
+
+    ⛔⛔ ADDED 2026-09-11. This is the STRONGEST possible abort guard and the probe was blind to it.
+    `reraise_if_aborting(error)` re-raises only if the in-flight error is an abort; a handler whose
+    LAST statement is a bare `raise` re-raises **everything**, aborts included — so it cannot swallow
+    by construction. Without this, the correct generator-cleanup shape
+
+        except GeneratorExit:
+            raise
+        except BaseException:
+            yield from cleanup()
+            raise                      # <- unconditional
+
+    counted as new abort-swallowing debt and pushed the ratchet ABOVE its baseline, which would have
+    left two choices, both wrong: raise the baseline (this file forbids it, rightly), or drop the
+    cleanup that makes the generator safe to close.
+    ‼ DELIBERATELY NARROW — the LAST statement only, and only a BARE `raise`. `raise Other(...)`
+    re-raises something else and does NOT count; `if x: raise` is conditional and does NOT count.
+    A guard that is easy to satisfy accidentally is a bypass, and this gate exists because bypasses
+    are expensive here.
+    """
+    if not h.body:
+        return False
+    last = h.body[-1]
+    return isinstance(last, ast.Raise) and last.exc is None
+
+
 def _guards_abort(try_node: ast.Try) -> bool:
     for h in try_node.handlers:
         if "StoryAbort" in _handler_names(h):
@@ -107,6 +138,22 @@ def _guards_abort(try_node: ast.Try) -> bool:
         for n in ast.walk(h):
             if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in _GUARD_CALLS:
                 return True
+    # ⛔⛔ THE UNCONDITIONAL-RE-RAISE EXEMPTION IS **ALL-QUANTIFIED**, AND THAT IS THE WHOLE POINT.
+    # My first version returned True if ANY handler ended in a bare `raise`, and a control arm
+    # immediately caught it exempting a PRE-EXISTING site that still swallows:
+    #     except BotModeError:
+    #         raise            # <- re-raises
+    #     except Exception:
+    #         yield            # <- and this one SWALLOWS
+    # One safe handler says nothing about its siblings. ⇒ a try is exempt only when EVERY BROAD
+    # handler re-raises unconditionally; a narrow handler beside them is irrelevant, because a
+    # broad one is what can catch an abort.
+    # ‼ Caught only because the change was measured site-by-site against the old detector rather
+    # than by reading the total — the totals were EQUAL (23 = 23) while the SET had shifted.
+    broad_handlers = [h for h in try_node.handlers
+                      if any(n in BROAD or n == "<bare>" for n in _handler_names(h))]
+    if broad_handlers and all(_reraises_unconditionally(h) for h in broad_handlers):
+        return True
     return False
 
 
@@ -146,6 +193,53 @@ def f():
     except Exception as error:
         report(error)
 """
+#: ‼ REFINEMENT (2), 2026-09-11: the UNCONDITIONAL RE-RAISE. A handler whose LAST statement is a
+#: bare `raise` re-raises EVERYTHING, aborts included -- a stronger guard than `reraise_if_aborting`,
+#: and the probe was blind to it. It appears in the only correct generator-cleanup shape (see
+#: `probe_yield_in_finally.py`, gate #56), so without this the safe shape read as new debt.
+_UNCOND_RERAISE = """
+def f():
+    try:
+        yield from thing()
+    except GeneratorExit:
+        raise
+    except BaseException:
+        yield from cleanup()
+        raise
+    else:
+        yield from cleanup()
+"""
+#: ⛔⛔ THE CONTROL THAT CAUGHT A REAL BYPASS. My first version exempted a try if ANY handler
+#: re-raised; this shape has one that does AND one that SWALLOWS, and it is REAL CODE
+#: (`story_mode.py:3279`). It must still FIRE -- one safe handler says nothing about its siblings.
+_RERAISE_PLUS_SWALLOW = """
+def f():
+    try:
+        yield from thing()
+    except BotModeError:
+        raise
+    except Exception:
+        yield
+"""
+#: And a CONDITIONAL re-raise is not unconditional -- must still fire.
+_COND_RERAISE = """
+def f():
+    try:
+        yield from thing()
+    except BaseException:
+        if x:
+            raise
+        report()
+"""
+#: Re-raising a DIFFERENT exception is not a re-raise of the one in flight -- must still fire.
+_RERAISE_OTHER = """
+def f():
+    try:
+        yield from thing()
+    except BaseException as error:
+        raise BotModeError("wrapped") from error
+"""
+
 #: ‼ REFINEMENT (1), 2026-08-17: the HAND-WRITTEN guard. `early_game.py:2305` reads
 #: `if story_should_abort(): raise` — semantically identical to `reraise_if_aborting`, and the probe
 #: could not see it. ⛔ Note WHERE it sits: in the HANDLER. A cold-start audit measured that searching
@@ -182,6 +276,11 @@ def self_test() -> int:
         ("broad except with NO `yield from` -> quiet (not our business)", _NO_YIELD, 0),
         ("HAND-WRITTEN guard `if story_should_abort(): raise` -> quiet", _HAND_GUARD, 0),
         ("the same shape with an UNRELATED condition -> still FIRES", _HAND_GUARD_ABSENT, 1),
+        # ‼ REFINEMENT (2), 2026-09-11 -- the unconditional re-raise and its three controls.
+        ("handler ENDS in a bare `raise` (the safe cleanup shape) -> quiet", _UNCOND_RERAISE, 0),
+        ("⛔ one handler re-raises, a SIBLING swallows -> still FIRES", _RERAISE_PLUS_SWALLOW, 1),
+        ("a CONDITIONAL `if x: raise` is not unconditional -> still FIRES", _COND_RERAISE, 1),
+        ("`raise Other(...) from error` is not a re-raise -> still FIRES", _RERAISE_OTHER, 1),
     ]
     bad = 0
     print("=" * 92)

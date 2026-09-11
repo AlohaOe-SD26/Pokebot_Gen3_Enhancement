@@ -512,6 +512,18 @@ GATES: list[tuple[str, bool]] = [
     # MAX) leaves every single-party case GREEN and is caught ONLY by C13, which holds the party
     # fixed and varies the boss target. Three arms, each reds exactly its own cases. Pure: no ROM.
     ("probe_maintenance_decision.py", False),
+    # 56 — NO `yield` INSIDE A `finally` ON THE STORY SURFACE. It is a latent crash, not a style
+    # rule: closing a generator that is suspended inside the matching `try` raises
+    # **RuntimeError: generator ignored GeneratorExit**, and CPython closes abandoned generators at
+    # GC time — so a mode switch or a discarded story run is enough. This gate REPRODUCES that at
+    # runtime on every invocation rather than asserting it, so the day the semantics change it says
+    # so instead of quietly guarding nothing.
+    # ⛔ TWO REAL INSTANCES existed the day it was written: `#24-maintain`'s new step (caught before
+    # it ever ran) and `victory_road.py:2099` — ALREADY-PROMOTED production code whose comment read
+    # "⛔ IN A `finally` ON PURPOSE". The intent was right, the mechanism was a crash ⇒ a
+    # deliberate-looking comment is not evidence of safety. Proven against that real pre-fix file,
+    # not only its own arm. Pure: AST + a 6-line runtime demo, no ROM.
+    ("probe_yield_in_finally.py", False),
 ]
 
 

@@ -2094,8 +2094,28 @@ def train_for_victory_road(report=None, *, target: int = TRAIN_TARGET) -> Genera
                     f"past L{level_now} (still L{after[1]}, target L{target}). ⛔ Refusing to loop "
                     f"— a call that trains nothing would spin the budget away silently."
                 )
-    finally:
-        # ⛔ IN A `finally` ON PURPOSE — this is the guard `train_team` does not give us.
+    except GeneratorExit:
+        # ⛔⛔ CORRECTED 2026-09-11 — THIS WAS A `finally` AND THAT IS UNSAFE IN A GENERATOR.
+        # The old comment read *"IN A `finally` ON PURPOSE — this is the guard `train_team` does not
+        # give us"*, and the INTENT was right: the lead must be restored on every path. But a
+        # `finally` that YIELDS is a latent crash. When a generator is closed — which CPython does
+        # automatically when an abandoned one is garbage-collected, e.g. after a mode switch or a
+        # discarded story run — `GeneratorExit` is raised at the suspended yield, and yielding again
+        # from the `finally` raises **`RuntimeError: generator ignored GeneratorExit`**. Measured:
+        #     normal completion         -> fine
+        #     closed while suspended    -> RuntimeError: generator ignored GeneratorExit
+        #     exception propagating out -> fine
+        # ‼ The exposure is the whole training run — `train_team` can spend ~100k frames suspended
+        # inside that `try`. ⇒ let a close pass through UNTOUCHED; never yield while being closed.
+        # Found 2026-09-11 while auditing the same shape in `#24-maintain`'s new code, and gated as
+        # #56 `probe_yield_in_finally.py` so neither can come back.
+        raise
+    except BaseException:
+        # The guard `train_team` does not give us, on the FAILURE path.
+        # ‼ Re-raised unconditionally — this must never SWALLOW a StoryAbort/whiteout (gate #27).
+        yield from _lead_strongest_battler()
+        raise
+    else:
         yield from _lead_strongest_battler()
 
     report["train_post"] = {f"{s}#{p:08X}": lv for (p, s), (_sl, lv) in battler_identities().items()}

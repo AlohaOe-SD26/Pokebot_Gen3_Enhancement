@@ -26771,7 +26771,7 @@ and it **stands** — for the case it measured. This is the other half of the sa
 | | target | ground | frames | vs 250,000 |
 |---|---|---|---|---|
 | ruled DEAD 2026-09-10 | the BOSS's level (L47) | ROUTE121, wild 28 | **285,167** | ⛔ over |
-| built here | `target - 6` | keyed to the LAGGARD's level | **5,732 – 146,166** | ✅ under |
+| built here | `target - 6` | keyed to the LAGGARD's level | **4,299 – 63,052** | ✅ under |
 
 ⭐ **The estimator was CONTROLLED before it was believed** — it reproduces that entry's own figure
 (285,167 vs its stated "~285,000", 0.06%) using the same constants `estimate_frames_to_level` uses.
@@ -26802,3 +26802,87 @@ cover. ‼ **A candidate is not an attempt, and a decision is not an action** �
 `POKEBOT_MAINTAIN_FAULT=off`, graded on the mule's level BY PID.
 
 Suite 54 → 55 (52 ENFORCING + 3 ADVISORY), `--quick` 46 → 47. Full suite green: 184.5s.
+
+---
+
+## 2026-09-11 (evening) — A latent crash in code that had never run, and in code that has run for weeks
+
+**Found by auditing my own new code before driving it**, which is the cheapest place this project has
+ever found a defect.
+
+### The defect
+A generator that `yield`s from inside a `finally` raises **`RuntimeError: generator ignored
+GeneratorExit`** when it is closed while suspended in the matching `try`. Reproduced directly:
+```
+normal completion         -> fine
+closed while suspended    -> RuntimeError: generator ignored GeneratorExit
+exception propagating out -> fine
+```
+CPython closes an abandoned generator automatically at GC time, so this fires on ordinary paths — a
+mode switch, a discarded story run, an abort that drops the generator. ‼ And the exposure is not a
+narrow window: `train_team` can sit suspended inside that `try` for ~100k frames.
+
+### Two instances, and the second is the interesting one
+1. `#24-maintain`'s new maintenance step — caught **before it ever ran**.
+2. ⛔ `modules/story/victory_road.py:2099` — **already-promoted production code**, whose comment read
+   *"⛔ IN A `finally` ON PURPOSE — this is the guard `train_team` does not give us."* The INTENT was
+   right (restore the lead on every path); the MECHANISM was a latent crash.
+   ⭐ **A deliberate-looking comment is not evidence of safety.** That comment is exactly why nobody
+   looked again.
+
+### The correct shape
+```python
+try:
+    yield from work()
+except GeneratorExit:
+    raise                        # ⛔ never yield while being closed
+except BaseException:
+    yield from cleanup()
+    raise                        # ‼ never SWALLOW an abort (gate #27)
+else:
+    yield from cleanup()
+```
+
+### Gated as #56, and it re-derives its own premise
+`probe_yield_in_finally.py` REPRODUCES the RuntimeError at runtime on every invocation rather than
+asserting it — so if the language semantics ever change, the gate says so instead of quietly
+guarding nothing. **13 self-tests** (7 must-detect, 5 must-stay-quiet, 1 runtime proof) — S9-S13 came from ATTACKING the gate after writing it, and S9 was a genuine FALSE POSITIVE (a nested `def` inside a `finally`; its yield belongs to the inner generator). S13 covers `except*`. ⭐ Proven against
+the REAL pre-fix `victory_road.py` via `git show HEAD:…`, not only its own fault arm.
+
+### ⛔ AND IT FORCED A FIX TO GATE #27, WHICH NEARLY BECAME A BYPASS
+The correct shape uses a broad `except BaseException`, so `probe_abort_swallowing.py`'s ratchet
+counted it as new abort-swallowing debt (24 vs a baseline of 23). Both obvious responses were wrong:
+raising the baseline (that file forbids it, rightly) or dropping the cleanup. The right fix was to
+teach the detector that **a handler ending in a bare `raise` re-raises everything, aborts included**
+— a stronger guard than `reraise_if_aborting`.
+‼‼ **My first version of that exemption was a BYPASS, and my own control arm caught it.** It returned
+True if ANY handler re-raised; real code at `story_mode.py:3279` is
+```python
+except BotModeError:
+    raise            # re-raises
+except Exception:
+    yield            # ← and this one SWALLOWS
+```
+so one safe handler was exempting a sibling that still swallows. ⇒ the exemption is now
+**ALL-quantified over the BROAD handlers**. ⭐ **The totals were EQUAL (23 = 23) while the SET had
+shifted** — caught only by diffing the site lists old-detector vs new, never by reading the count.
+Four new self-tests pin it, including that exact sibling-swallower shape.
+
+### Also corrected here
+* ⛔ **My published affordability figures were computed against GUESSED boss bands.** The real bands
+  read out of the code are `(13,17) (14,16) (20,24) (24,29) (27,31) (29,33) (41,42) (41,46)`; I had
+  used 15/20/26/31/34/38. Recomputed: **4,299 – 63,052 frames** across 24 realistic cases (was
+  published as 5,732 – 146,166). The direction is favourable and the conclusion strengthens — but a
+  number published without reading it out of the code is wrong whichever way it moves.
+  ⭐ **AND THE RECOMPUTE ANSWERED A QUESTION THE FIRST TABLE COULD NOT:** with the real bands, a
+  laggard facing Tate & Liza or Juan needs `catchup` 35-40, which is squarely the late grind the
+  2026-09-10 ruling killed. **All 4 late cases are REFUSED on cost (581k-882k frames vs a 150k
+  budget)** — so the budget demonstrably prevents this design from re-creating that failure.
+* `probe_abort_swallowing.py`'s docstring said *"THIS IS A PROBE, NOT A GATE"* and *"Exit codes: 0
+  always"*. It has been a registered ENFORCING gate at `run_gates.py:182` for weeks. Both claims
+  corrected — they told a reader the opposite of the truth, and I only checked because it exited 1.
+
+Suite 55 → 56 (53 ENFORCING + 3 ADVISORY), `--quick` 47 → 48.
+⚠ Drift 2 → 3, and TWO are now REAL: `story_mode.py` (`#24-maintain`) and `victory_road.py` (this
+crash fix). ‼ The second is a latent-crash fix in ALREADY-PROMOTED code, so it is the more urgent of
+the two — but promotion remains the USER's call and needs a driven `--build custom` verification.

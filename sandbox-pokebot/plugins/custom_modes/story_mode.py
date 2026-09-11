@@ -2237,9 +2237,13 @@ class StoryMode(BotMode):
 
     #: `#24-maintain`. Frames one maintenance top-up may spend. Deliberately a FRACTION of
     #: `MAX_PREP_TRAINING_FRAMES` (250k): maintenance is a SIDE ERRAND before a boss, not the main
-    #: event, and it may fire once per boss. The measured early/mid cases cost 5,732 - 146,166
-    #: frames, so this admits the great majority while refusing the tail that is really the
-    #: late-game grind `06-DECISIONS-LOG.md` rejected on 2026-09-10.
+    #: event, and it may fire once per boss. MEASURED against the REAL bands read from the configs
+    #: below (`(13,17) (14,16) (20,24) (24,29) (27,31) (29,33)`): the early/mid cases cost
+    #: **4,299 - 63,052** frames, so this admits all of them comfortably.
+    #: ⛔ AND IT REFUSES THE TAIL, WHICH IS THE POINT: a laggard facing Tate & Liza (41,42) or Juan
+    #: (41,46) needs `catchup` 35-40 on the only ground its level allows, costing **581k-882k** —
+    #: all four late cases REFUSED. That is the grind `06-DECISIONS-LOG.md` rejected on 2026-09-10,
+    #: and this budget is what stops this design re-creating it.
     MAINTAIN_MAX_FRAMES = 150_000
 
     def _maintain_lagging_battler(self, target: int) -> Generator:
@@ -2260,7 +2264,7 @@ class StoryMode(BotMode):
           * to **`catchup`**, not to the boss's level - just enough to be re-admitted, after which
             the existing, already-budgeted prep path finishes the job; and
           * on a ground keyed to **its own** level via `best_training_grass`, so the fight is
-            winnable. Measured across Roxanne->Winona: **5,732 - 146,166 frames**.
+            winnable. Measured across Roxanne->Winona, against the REAL bands: **4,299 - 63,052 frames**.
 
         ⚠ `scope="lead"`, NEVER `train_team(slots={i})` - KI-84: the slots path computes `need`
         from SLOT INDICES and then permutes the party via `_rotate_lead_safely`, so it silently
@@ -2273,6 +2277,7 @@ class StoryMode(BotMode):
             _battler_slots,
             _lead_strongest_battler,
             _rotate_lead_safely,
+            _yield_bounded,
             train_team,
         )
         from modules.story.training_areas import best_training_grass, estimate_frames_to_level
@@ -2331,26 +2336,71 @@ class StoryMode(BotMode):
             f"[cyan]Story: {name} (Lv {level}) is below the Lv {catchup} prep floor - "
             f"maintaining it at {grass_map.name} before this fight.[/]"
         )
+        # ⛔⛔ NEVER `yield from` INSIDE A `finally` — MEASURED 2026-09-11, BEFORE THIS EVER RAN.
+        # The obvious shape here is try/finally, so that the lead is restored whatever happens. It
+        # is WRONG in a generator. When a generator is closed — which CPython does automatically
+        # when an abandoned one is garbage-collected, e.g. after a mode switch or a discarded story
+        # run — `GeneratorExit` is raised at the suspended yield, and a `finally` that yields again
+        # gets **`RuntimeError: generator ignored GeneratorExit`**. Verified directly:
+        #     normal completion            -> fine
+        #     closed while suspended       -> RuntimeError: generator ignored GeneratorExit
+        #     exception propagating out    -> fine
+        # ‼ And the exposure is NOT a narrow window: `train_team` can run ~100k frames, so almost
+        # all of this method's wall-clock is spent suspended inside that `try`.
+        # ⇒ Restore the lead on BOTH paths explicitly, and let `GeneratorExit` through UNTOUCHED —
+        # catching it and then yielding reproduces the very fault this avoids.
+        # Gate #56 `probe_yield_in_finally.py` now forbids this shape across the story surface.
+        # ⛔⛔ THE BUDGET IS ENFORCED AGAINST REAL FRAMES, NOT ONLY AGAINST THE ESTIMATE.
+        # An adversarial review caught this: `MAINTAIN_MAX_FRAMES` above gates only the PRE-FLIGHT
+        # `estimate_frames_to_level`, and that estimator is `battles * FRAMES_PER_WILD_BATTLE` with
+        # **no term for heal round-trips** — a cost this very file measures elsewhere as dominant
+        # ("78 heal round trips in one run … every HP dip is a full Poké Center walk"). So an
+        # admitted-but-underestimated case had NO live ceiling: `train_team`'s own `guard > 500`
+        # bounds ROUNDS, not frames. ⇒ a "budget" nothing checks at runtime is aspirational.
+        # `_yield_bounded` drives it with a HARD frame cap and closes it on timeout.
+        # ‼ That close is a `GeneratorExit` into `train_team` — which is safe only because no
+        # story-surface generator yields from a `finally` any more (gate #56). The two fixes are
+        # load-bearing for each other.
+        finished = True
         try:
             yield from _rotate_lead_safely(slot)
-            yield from train_team(
-                catchup, scope="lead", grass=(grass_map, grass_tile), heal_center=heal_center
+            finished = yield from _yield_bounded(
+                train_team(
+                    catchup, scope="lead", grass=(grass_map, grass_tile), heal_center=heal_center
+                ),
+                budget,
             )
-        finally:
-            # ⛔ ALWAYS hand the boss a strong lead, even if maintenance raised. Leaving the
-            # laggard in slot 0 would send it out FIRST against the gym leader - strictly worse
-            # than not maintaining at all.
+        except GeneratorExit:
+            # ⛔ We are being closed. Yielding now is exactly the RuntimeError above. Let it go.
+            raise
+        except BaseException:
+            # ⛔ Hand the boss a strong lead on the FAILURE path too — leaving the laggard in slot 0
+            # would send it out FIRST against the gym leader, strictly worse than not maintaining.
+            # ‼ Re-raised unconditionally: this must never SWALLOW a StoryAbort/whiteout (gate #27).
+            yield from _lead_strongest_battler()
+            raise
+        else:
             yield from _lead_strongest_battler()
 
         # ⛔ Assert on IDENTITY (PID), never a slot index or a party count: the party has just been
         # permuted twice, and a count that nets to zero reads TRUE when nothing happened.
         after = next((p for p in get_party() if p.personality_value == pid), None)
         reached = after is not None and after.level >= catchup
+        # ⛔ REPORT THE BUDGET OUTCOME EXPLICITLY. "SHORT" alone cannot distinguish "trained as far
+        # as it could and the ground was wrong" from "ran out of frames" — different diagnoses,
+        # different fixes, and the second one means the ESTIMATE was too optimistic (it has no term
+        # for heal round-trips). Say which.
         _log_story_event(
             f"done pid={pid:08X} L{level}->L{after.level if after else '?'} "
-            f"(wanted L{catchup}, {'REACHED' if reached else 'SHORT'})",
+            f"(wanted L{catchup}, {'REACHED' if reached else 'SHORT'}"
+            f"{'' if finished else f', ⛔ LIVE BUDGET {budget} FRAMES EXHAUSTED'})",
             "MAINTAIN",
         )
+        if not finished:
+            console.print(
+                f"[yellow]Story: maintenance for {name} hit its {budget}-frame ceiling before "
+                f"reaching Lv {catchup} — stopping here rather than grinding on.[/]"
+            )
 
     def _prepare_for_fight(self, cfg: dict) -> Generator:
         """Before a major fight, train the team to a sensible level (user directive
