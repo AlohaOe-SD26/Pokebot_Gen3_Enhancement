@@ -2282,10 +2282,20 @@ class StoryMode(BotMode):
         )
         from modules.story.training_areas import best_training_grass, estimate_frames_to_level
 
-        if _os.environ.get("POKEBOT_MAINTAIN_FAULT") == "off":
-            # Fault arm: proves the call is load-bearing (CLAUDE.md rule 8 - "without X the bug
-            # survives" is a CLAIM whose only currency is an arm with X removed).
-            _log_story_event("skipped by POKEBOT_MAINTAIN_FAULT=off", "MAINTAIN")
+        # ⛔⛔ DEFAULT OFF UNTIL THE ACTION HAS BEEN DRIVEN. Gate #55 proves the DECISION; the code
+        # below — rotate, train, restore lead — has never executed a frame. This project's promotion
+        # standard is "verified by DRIVING", and `story_mode.py` also carries an urgent latent-crash
+        # fix (gate #56) that should not wait. Those two facts conflict only if this feature is LIVE
+        # on promotion, so it is not: unset ⇒ dormant, and promoting is behaviour-neutral for it.
+        # ⭐ ONE FLAG, NOT TWO. `POKEBOT_MAINTAIN` unset IS the "remove X" arm CLAUDE.md rule 8 asks
+        # for, so the separate `POKEBOT_MAINTAIN_FAULT=off` arm was deleted rather than kept beside
+        # it — two switches controlling one behaviour is its own bug shape, and the A/B reads better
+        # as "the production flag, on vs off" than as "on, vs on-but-sabotaged".
+        # ⇒ FLIP THE DEFAULT TO ON in its own reviewable change once the drive passes; until then a
+        # run that wants it must ask: `POKEBOT_MAINTAIN=1`.
+        if _os.environ.get("POKEBOT_MAINTAIN", "0").strip() not in ("1", "true", "yes", "on"):
+            _log_story_event("dormant (POKEBOT_MAINTAIN unset) — decision gated, action UNDRIVEN",
+                             "MAINTAIN")
             return
 
         catchup = target - self.TRAIN_CATCHUP_GAP
