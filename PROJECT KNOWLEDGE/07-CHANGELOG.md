@@ -26991,3 +26991,74 @@ fixture: slot 4, ROUTE117, 7,165-41,557 frames, **admitted for all five targets*
 that is NOT behind reports VACUOUS and exits 1. ‼ It also caught my own stand-in — I had computed
 with Zigzagoon's MediumFast curve; **Marill is Fast**, so the real cost is lower. Read the value,
 never recall it.
+
+---
+
+## 2026-09-11 (night) — THE `#24-maintain` A/B RAN. The laggard is maintained; 3 of 6 predictions are UNTESTED.
+
+**Both arms, same fixture, same `--frames 400000`, same pinned target, separate profiles.**
+Evidence committed: `tools/story-dev/evidence/2026-09-11-maintain-ARM-{ON,OFF}.log` (+ `.stdout.txt`).
+
+| | ARM-ON (`POKEBOT_MAINTAIN=1`) | ARM-OFF (unset — the shipped default) |
+|---|---|---|
+| MAINTAIN line | `start Marill pid=6A767BDA L13->L14 on ROUTE117(31,16) wild=14 est=7165 budget=150000` | `dormant (POKEBOT_MAINTAIN unset)` |
+| rotation | `ROTATE slot=4 lead_after=6A767BDA want=6A767BDA landed=True` | never attempted |
+| mule level | **L13 → L14** | **L13 → L13** |
+| verdict | `ACCEPTANCE: PASS` | `ACCEPTANCE: PASS` |
+
+⭐ **THE DISCRIMINATOR FIRED EXACTLY AS PRE-REGISTERED** (`ai-research-notes/2026-09-11-maintain-PREDICTIONS.md`,
+filed before any code existed) and was COMPUTED BEFORE THE DRIVE by
+`probe_maintain_discriminator.py` — which predicted `slot 4, ROUTE117, est 7,165` at target 20. The
+run logged `slot 4 … est=7165`. Prediction and observation agree to the frame.
+
+### Grading — 3 PASS, 3 UNTESTED. ⛔ UNTESTED IS NOT PASS.
+| | prediction | verdict |
+|---|---|---|
+| P1 | a staged laggard is maintained | ✅ **PASS** — L13→L14, `reached=True` |
+| P2 | ⛔ the VACUITY conjunct: the arms must DIFFER | ✅ **PASS** — 14 vs 13 |
+| P3 | the ground is the LAGGARD's, not the boss's | ⚠ **UNTESTED** |
+| P4 | a 30-behind mon is SKIPPED on cost | ⚠ **UNTESTED** |
+| P5 | an UNKNOWN/over-budget cost fails safe | ⚠ **UNTESTED** |
+| P6 | the boss is handed a STRONG lead | ✅ **PASS** |
+
+**Why P3 is UNTESTED and must never be graded off the log text.** Wattson's own `cfg["grass"]` IS
+`ROUTE117_TRAINING_GRASS`, and `best_training_grass(13)` returns the identical pair — they coincide
+by coincidence of table values. The `start … on ROUTE117(31, 16)` line is therefore consistent with
+BOTH a laggard-keyed and a boss-keyed implementation, and the `bossground` falsifier named in the
+predictions note was never built. ⇒ **a reading that both hypotheses predict is not evidence.**
+**P4/P5 are UNTESTED** because no over-budget laggard was staged: est 7,165 against a 150,000 budget
+never approached the ceiling.
+
+### ⭐ P6 IS PASS, AND ONLY BECAUSE THE READING WAS RE-DERIVABLE
+The first ARM-ON run reported `p6_lead_is_strongest=True` with a **L18** Taillow leading while two
+**L20** mons sat in the party. I could not explain that from the log, **so I did not accept it** — the
+driver had recorded a CONCLUSION without the STATE it was computed from. Added a FINAL party dump and
+re-ran:
+```
+FINAL slot=0 Taillow  L21  battler+STRONGEST+LEAD
+FINAL slot=1 Marshtomp L20
+FINAL slot=2 Marill   L14   <- the mule, moved from slot 4
+FINAL slot=4 Dustox   L20  hp=56/56   <- revived; it started the run FAINTED at 0/56
+```
+Taillow went **L18 → L21** during swap-training, so it genuinely outranks both L20s. ‼ **The verdict
+was right and unverifiable; those are different properties.** A verdict you cannot re-derive from its
+own log is not evidence.
+⭐ And note slot 2: **the mule MOVED from slot 4**. Grading by PID was not caution, it was necessary —
+a slot-indexed grade would have read Marill's level off Taillow.
+
+### Two observations recorded, neither a defect of this feature
+* **Swap-training levels the PARTNER too** — Taillow gained 3 levels while the mule gained 1. That is
+  `SwapTrainBattleStrategy` working as designed, but it means maintenance has a side effect on the
+  bench, and a future "why did Taillow grow?" is answered here.
+* **`_lead_strongest_battler` ignores HP.** In ARM-OFF the lead is `A735D162` — Dustox, at 0/56.
+  `_battler_slots()` filters eggs and no-damaging-move, never fainting, so a FAINTED mon can be
+  chosen as "strongest". Pre-existing and untouched by this work; recorded because the ARM-OFF log
+  shows it plainly.
+
+### What this does NOT establish
+⛔ That maintenance IMPROVES A RUN. It establishes that the mechanism works on one boss, one
+fixture, one laggard, at one pinned target. Whether keeping the bench within `catchup` actually moves
+the finish rate is a FREQUENCY question and needs a batch — rule 9: *drivers answer correctness
+questions; batches answer frequency questions.*
+⛔ `POKEBOT_MAINTAIN` therefore stays **default OFF** in both forks. Flipping it is its own
+reviewable change, and it should be argued from a batch, not from this drive.

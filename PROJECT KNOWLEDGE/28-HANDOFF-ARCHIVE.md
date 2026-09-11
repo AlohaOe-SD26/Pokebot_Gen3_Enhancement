@@ -10888,3 +10888,13 @@ Bounded PRE-TURN (`TURN_TIMEOUT_FRAMES=32`) removed the 58% sink; all five safet
 silent on both arms. Evidence `evidence/2026-08-26-mossdeep-speed-AB.txt`; narrative + original
 filing in `07-CHANGELOG.md` 2026-08-26. ⛔ Fixes B/C deliberately NOT taken.
 
+
+
+---
+
+## 📦 ARCHIVED 2026-09-11 (fourth pass) from `03-PUNCH-LIST.md` — R3 budget
+
+⛔ **VERBATIM.** Fully CLOSED, zero open boxes, nothing hoisted. Slug: `#26-battleitemwedge`.
+
+### ✅ `#26-battleitemwedge` — HANG closed 2026-08-26 AND LIVE-VALIDATED 2026-08-27 (batch `20260826-185918`: its KI-47 family 2 → 0 over 572 item flows)  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
+- [x] ⛔ DO NOT REDO. Full detail is in the archive under its 2026-09-07 banner and in `07-CHANGELOG.md`.

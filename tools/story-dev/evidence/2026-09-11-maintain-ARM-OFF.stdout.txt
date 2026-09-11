@@ -1,0 +1,63 @@
+[setup] LOG -> evidence\2026-09-11-maintain-ARM-OFF.log
+[setup] created profile mt-off2
+Running mGBA 0.10.2
+[setup] loaded save state mauville_prewattson.ss1; build=sandbox
+[run] starting faithful loop for up to 400000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[maintain] ARM=OFF target=20 catchup=14 (TRAIN_CATCHUP_GAP=6)
+f1: CONTROLLER -> _MaintainDrive.run   (state=OVERWORLD)
+[inject] hmmule: Marill L13 (Surf) added — party was ['Dustox:L20', 'Marshtomp:L20', 'Taillow:L18', 'Poochyena:L16'] -> ['Dustox:L20', 'Marshtomp:L20', 'Taillow:L18', 'Poochyena:L16', 'Marill:L13']
+[inject] hmmule: expect `Ch23 training: Marill#... alone needs ...` from `--driver ch23train`; with a level-gap bench it should instead proceed.
+f9: PARTY CHANGE [Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513] -> [Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757]
+[maintain] PARTY slot=0 Dustox L20 pid=A735D162 nick='DUSTOX' hp=0/56
+[maintain] PARTY slot=1 Marshtomp L20 pid=550A9BE6 nick='MARSHTOMP' hp=56/64
+[maintain] PARTY slot=2 Taillow L18 pid=A8DBCF1B nick='TAILLOW' hp=10/47
+[maintain] PARTY slot=3 Poochyena L16 pid=2B19CA91 nick='POOCHYENA' hp=42/42
+[maintain] PARTY slot=4 Marill L13 pid=4A2CE08A nick='MULE' hp=43/43
+[maintain] MULE pid=4A2CE08A L13
+[maintain] MAINTAIN dormant (POKEBOT_MAINTAIN unset) — decision gated, action UNDRIVEN
+[maintain] FINAL slot=0 Dustox L20 pid=A735D162 hp=0/56 moves=['Tackle', 'Confusion', 'Moonlight', 'Gust'] battler+STRONGEST+LEAD
+[maintain] FINAL slot=1 Marshtomp L20 pid=550A9BE6 hp=56/64 moves=['Tackle', 'Growl', 'Foresight', 'Water Gun'] battler
+[maintain] FINAL slot=2 Taillow L18 pid=A8DBCF1B hp=10/47 moves=['Peck', 'Wing Attack', 'Focus Energy', 'Quick Attack'] battler
+[maintain] FINAL slot=3 Poochyena L16 pid=2B19CA91 hp=42/42 moves=['Tackle', 'Howl', 'Sand-attack', 'Bite'] battler
+[maintain] FINAL slot=4 Marill L13 pid=4A2CE08A hp=43/43 moves=['Surf', 'Water Gun', 'Tackle', 'Defense Curl'] battler
+[maintain] FINAL battler_slots=[0, 1, 2, 3, 4] lead_pid=A735D162
+[maintain] RESULT arm=OFF started=False dormant=True rotation_landed=None level_start=13 level_end=13 catchup=14 reached=False p6_lead_is_strongest=True failure=None lines=['dormant (POKEBOT_MAINTAIN unset) — decision gated, action UNDRIVEN']
+[maintain] ACCEPTANCE: PASS (ARM-OFF must: log dormant, never start, leave the mule at L13)
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+f931: SAVED stall state #1 to stalls/mt-off2-f931.ss1 (bt='MARSHTOMP gained 94 EXP. Points!')
+f1231: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757', (19, 15)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MARSHTOMP gained 94 EXP. Points!' bot_mode=Manual
+f1231:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757]
+f3031: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757', (19, 15)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MARSHTOMP gained 94 EXP. Points!' bot_mode=Manual
+f3031:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[backup] backed up 'mt-off2' (3 files, 1 KB, reason: auto)
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757]
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757]
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757]
+f8031: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757', (19, 15)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MARSHTOMP gained 94 EXP. Points!' bot_mode=Manual
+f8031:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757]
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757]
+f15031: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757', (19, 15)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MARSHTOMP gained 94 EXP. Points!' bot_mode=Manual
+f15031:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757]
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757]
+f20000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757]
+f20031: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 20032 frames; final mode=Manual party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Dustox L20: Tackle, Confusion, Moonlight, Gust
+[moveset] Marshtomp L20: Tackle, Growl, Foresight, Water Gun
+[moveset] Taillow L18: Peck, Wing Attack, Focus Energy, Quick Attack
+[moveset] Poochyena L16: Tackle, Howl, Sand-attack, Bite
+[moveset] Marill L13: Surf, Water Gun, Tackle, Defense Curl
+[PARTY-ACCT] STAGE 0 SUMMARY — 20032 get_party() recomputes, 67 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += maintain 20032 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\mt-off2\states\2026-
+09-11_13-39-55.ss1 created!
+Updated `current_state.ss1`!

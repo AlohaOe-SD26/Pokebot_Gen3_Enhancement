@@ -1,0 +1,763 @@
+[setup] LOG -> evidence\2026-09-11-maintain-ARM-ON.log
+[setup] created profile mt-on2
+Running mGBA 0.10.2
+[setup] loaded save state mauville_prewattson.ss1; build=sandbox
+[run] starting faithful loop for up to 400000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[maintain] ARM=ON target=20 catchup=14 (TRAIN_CATCHUP_GAP=6)
+f1: CONTROLLER -> _MaintainDrive.run   (state=OVERWORLD)
+[inject] hmmule: Marill L13 (Surf) added — party was ['Dustox:L20', 'Marshtomp:L20', 'Taillow:L18', 'Poochyena:L16'] -> ['Dustox:L20', 'Marshtomp:L20', 'Taillow:L18', 'Poochyena:L16', 'Marill:L13']
+[inject] hmmule: expect `Ch23 training: Marill#... alone needs ...` from `--driver ch23train`; with a level-gap bench it should instead proceed.
+f9: PARTY CHANGE [Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513] -> [Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757]
+[maintain] PARTY slot=0 Dustox L20 pid=A735D162 nick='DUSTOX' hp=0/56
+[maintain] PARTY slot=1 Marshtomp L20 pid=550A9BE6 nick='MARSHTOMP' hp=56/64
+[maintain] PARTY slot=2 Taillow L18 pid=A8DBCF1B nick='TAILLOW' hp=10/47
+[maintain] PARTY slot=3 Poochyena L16 pid=2B19CA91 nick='POOCHYENA' hp=42/42
+[maintain] PARTY slot=4 Marill L13 pid=6A767BDA nick='MULE' hp=43/43
+[maintain] MULE pid=6A767BDA L13
+[maintain] MAINTAIN start Marill pid=6A767BDA L13->L14 on ROUTE117(31, 16) wild=14 est=7165 budget=150000 boss_target=20
+Story: Marill (Lv 13) is below the Lv 14 prep floor - maintaining it at 
+ROUTE117 before this fight.
+f157: PARTY CHANGE [Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Marill:L13:exp1757] -> [Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f229: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeShowStartMenu'] ctrl=_MaintainDrive.run bt='MARSHTOMP gained 94 EXP. Points!' scripts=[] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+[maintain] ROTATE slot=4 lead_after=6A767BDA want=6A767BDA landed=True
+f897: CONTROLLER -> TrainerApproachListener.handle_trainer_approach   (state=OVERWORLD)
+f1033: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_EndTrainerApproach'] ctrl=TrainerApproachListener.handle_trainer_approach bt='MARSHTOMP gained 94 EXP. Points!' scripts=['EventScript_TrainerApproach'] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f1035: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] ctrl=TrainerApproachListener.handle_trainer_approach bt='MARSHTOMP gained 94 EXP. Points!' scripts=['EventScript_ShowTrainerIntroMsg'] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f1195: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=TrainerApproachListener.handle_trainer_approach bt='MARSHTOMP gained 94 EXP. Points!' scripts=['EventScript_ShowTrainerIntroMsg'] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f1368: battle_is_active -> True  party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f1369: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f2000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f3591: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Taillow:L18:exp4538|Marshtomp:L20:exp5575|Marill:L13:exp1757|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+[backup] backed up 'mt-on2' (3 files, 1 KB, reason: auto)
+f3613: PARTY CHANGE [Taillow:L18:exp4538|Marshtomp:L20:exp5575|Marill:L13:exp1757|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f4000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f4350: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4575|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f4487: === MOVE-LEARN/EVO WINDOW OPEN === party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4575|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+  f4487 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW grew to LV. 19!'
+  f4488 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW grew to LV. 19!'
+  f4489 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4490 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4491 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4492 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4493 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4494 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4495 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4496 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4497 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4498 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4499 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4500 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4501 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4502 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4503 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4504 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4505 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4506 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4507 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4508 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4509 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4510 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4511 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4512 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4513 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4514 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4515 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4516 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4517 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4518 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4519 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4520 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4521 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4522 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4523 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4524 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4525 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4526 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4527 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4528 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4529 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4530 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4531 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4532 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4533 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4534 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4535 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4536 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4537 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4538 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4539 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4540 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4541 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4542 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4543 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4544 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4545 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4546 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4547 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4548 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4549 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4550 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4551 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4552 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4553 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4554 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4555 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4556 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4557 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4558 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4559 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4560 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4561 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4562 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4563 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4564 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4565 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4566 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4567 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4568 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4569 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW is trying to learn DOUBLE TEAM.'
+  f4570 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4571 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4572 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4573 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4574 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4575 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4576 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4577 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4578 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4579 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4580 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4581 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4582 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4583 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4584 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4585 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4586 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4587 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4588 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4589 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4590 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4591 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4592 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4593 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4594 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4595 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4596 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4597 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4598 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4599 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4600 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4601 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4602 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4603 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4604 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4605 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4606 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4607 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4608 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4609 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4610 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4611 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4612 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4613 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4614 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4615 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4616 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4617 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4618 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4619 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4620 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4621 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4622 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4623 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4624 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4625 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4626 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4627 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4628 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4629 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4630 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4631 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4632 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4633 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4634 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4635 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4636 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4637 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4638 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4639 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4640 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4641 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4642 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4643 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4644 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4645 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4646 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4647 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4648 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4649 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4650 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4651 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4652 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4653 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4654 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4655 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4656 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4657 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4658 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4659 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4660 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4661 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4662 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4663 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4664 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4665 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='But, TAILLOW can’t learn more than four moves.'
+  f4666 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4667 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4668 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4669 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4670 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4671 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4672 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4673 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4674 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4675 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4676 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4677 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4678 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4679 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4680 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4681 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4682 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4683 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4684 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4685 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4686 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4687 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4688 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4689 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4690 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4691 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4692 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4693 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4694 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4695 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4696 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4697 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4698 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4699 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4700 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4701 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4702 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4703 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4704 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4705 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4706 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4707 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4708 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4709 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4710 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4711 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4712 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4713 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4714 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4715 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4716 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4717 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4718 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4719 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4720 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4721 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4722 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4723 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4724 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4725 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4726 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4727 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4728 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4729 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4730 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4731 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4732 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4733 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4734 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4735 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4736 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4737 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4738 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4739 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4740 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4741 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4742 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4743 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4744 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4745 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4746 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4747 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4748 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4749 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4750 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4751 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4752 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4753 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4754 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4755 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4756 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4757 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4758 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4759 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4760 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4761 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4762 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4763 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4764 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4765 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4766 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4767 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4768 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4769 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4770 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4771 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4772 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4773 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4774 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4775 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4776 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4777 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4778 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4779 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4780 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4781 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4782 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4783 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4784 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4785 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4786 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4787 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4788 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4789 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4790 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4791 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4792 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4793 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4794 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4795 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4796 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4797 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4798 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4799 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4800 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4801 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4802 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4803 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4804 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4805 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4806 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4807 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4808 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4809 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4810 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4811 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4812 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4813 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4814 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4815 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4816 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4817 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4818 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4819 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4820 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4821 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4822 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4823 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4824 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4825 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4826 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=SelectMoveToReplace wfi=True tasks=['Task_HandleReplaceMoveInput'] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4827 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4828 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4829 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4830 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4831 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4832 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4833 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4834 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4835 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4836 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4837 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4838 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4839 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4840 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4841 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4842 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4843 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4844 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4845 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4846 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4847 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4848 st=POKEMON_SUMMARY_SCREEN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4849 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4850 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4851 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4852 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4853 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4854 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4855 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4856 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4857 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4858 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4859 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4860 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4861 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4862 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4863 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4864 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4865 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4866 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4867 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4868 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4869 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4870 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4871 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4872 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4873 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='Delete a move to make room for DOUBLE TEAM?'
+  f4874 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW♀'
+  f4875 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='TAILLOW♀'
+  f4876 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4877 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4878 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4879 st=UNKNOWN instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4880 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4881 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4882 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4883 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4884 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4885 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4886 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4887 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4888 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4889 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4890 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4891 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4892 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4893 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4894 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4895 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4896 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4897 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4898 st=BATTLE instr=BattleScript_AskToLearnMove cb=RunBattleScriptCommands_PopCallbacksStack ml=AskWhetherToLearn wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4899 st=BATTLE instr=BattleScript_ForgotAndLearnedNewMove cb=RunBattleScriptCommands_PopCallbacksStack ml=Unknown wfi=True tasks=[] ctrl='BattleListener.fight' bt='DODUO♀'
+  f4900 st=BATTLE instr=BattleScript_ForgotAndLearnedNewMove cb=RunBattleScriptCommands_PopCallbacksStack ml=DialogueNotActive wfi=True tasks=[] ctrl='BattleListener.fight' bt='1, 2, and… … … Poof!'
+f4900: === window closed === party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4575|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f5333: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4575|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f5723: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f5735: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeAndEnableScriptCtx'] ctrl=BattleListener.fight bt='NICK got $680 for winning!' scripts=['EventScript_DoTrainerBattle'] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f5761: CONTROLLER -> TrainerApproachListener.handle_trainer_approach   (state=OVERWORLD)
+f5761: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $680 for winning!' scripts=['Route117_EventScript_RegisterMaria'] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f5763: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $680 for winning!' scripts=['Route117_EventScript_RegisterMaria', 'Std_MsgboxDefault'] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f5908: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $680 for winning!' scripts=['Route117_EventScript_RegisterMaria', 'Std_MsgboxDefault'] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f5944: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_Fanfare', 'Task_DrawFieldMessage'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $680 for winning!' scripts=['Route117_EventScript_RegisterMaria', 'Std_RegisteredInMatchCall', 'Std_MsgboxDefault'] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f6000: heartbeat mode=Story ctrl=TrainerApproachListener.handle_trainer_approach state=OVERWORLD party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f6030: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_Fanfare'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $680 for winning!' scripts=['Route117_EventScript_RegisterMaria', 'Std_RegisteredInMatchCall', 'Std_MsgboxDefault'] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f6113: CONTROLLER -> _MaintainDrive.run   (state=OVERWORLD)
+f6254: CONTROLLER -> TrainerApproachListener.handle_trainer_approach   (state=OVERWORLD)
+f6376: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $680 for winning!' scripts=['EventScript_ShowTrainerIntroMsg'] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f6458: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $680 for winning!' scripts=['EventScript_ShowTrainerIntroMsg'] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f6460: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $680 for winning!' scripts=['EventScript_ShowTrainerIntroMsg'] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f6544: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $680 for winning!' scripts=['EventScript_ShowTrainerIntroMsg'] party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f6731: battle_is_active -> True  party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f6732: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f8000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f10000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f11913: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp5575|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f12000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f13330: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marshtomp:L20:exp6122|Marill:L13:exp1757|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f13388: PARTY CHANGE [Marshtomp:L20:exp6122|Marill:L13:exp1757|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Taillow:L19:exp4887|Marill:L13:exp1757|Marshtomp:L20:exp6122|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f13410: PARTY CHANGE [Taillow:L19:exp4887|Marill:L13:exp1757|Marshtomp:L20:exp6122|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f14000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f14279: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp4887|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp5439|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f14661: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp5439|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f14673: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeAndEnableScriptCtx'] ctrl=BattleListener.fight bt='NICK got $960 for winning!' scripts=['EventScript_DoTrainerBattle'] party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp5439|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f14700: CONTROLLER -> TrainerApproachListener.handle_trainer_approach   (state=OVERWORLD)
+f14701: CONTROLLER -> _MaintainDrive.run   (state=OVERWORLD)
+f14776: CONTROLLER -> TrainerApproachListener.handle_trainer_approach   (state=OVERWORLD)
+f14864: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_EndTrainerApproach'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $960 for winning!' scripts=['EventScript_TrainerApproach'] party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp5439|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f14866: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DrawFieldMessage'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $960 for winning!' scripts=['EventScript_ShowTrainerIntroMsg'] party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp5439|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f15006: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $960 for winning!' scripts=['EventScript_ShowTrainerIntroMsg'] party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp5439|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f15202: battle_is_active -> True  party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp5439|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f15203: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f16000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp5439|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f16354: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L19:exp5439|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L20:exp5460|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f16517: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L20:exp5460|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L20:exp5589|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f18000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L20:exp5589|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f18273: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L20:exp5589|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L20:exp5725|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f19337: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L20:exp5725|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L20:exp5986|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f20000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L20:exp5986|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f20533: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L20:exp5986|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L20:exp6139|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f21663: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L20:exp6139|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6458|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f21819: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6458|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6496|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f22000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6496|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f22786: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6496|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f23159: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f23171: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeAndEnableScriptCtx'] ctrl=BattleListener.fight bt='NICK got $440 for winning!' scripts=['EventScript_DoTrainerBattle'] party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f23197: CONTROLLER -> TrainerApproachListener.handle_trainer_approach   (state=OVERWORLD)
+f23197: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $440 for winning!' scripts=['Route117_EventScript_RegisterLydia'] party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f23199: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $440 for winning!' scripts=['Route117_EventScript_RegisterLydia', 'Std_MsgboxDefault'] party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f23326: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $440 for winning!' scripts=['Route117_EventScript_RegisterLydia', 'Std_MsgboxDefault'] party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f23362: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_Fanfare', 'Task_DrawFieldMessage'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $440 for winning!' scripts=['Route117_EventScript_RegisterLydia', 'Std_RegisteredInMatchCall', 'Std_MsgboxDefault'] party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f23448: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_Fanfare'] ctrl=TrainerApproachListener.handle_trainer_approach bt='NICK got $440 for winning!' scripts=['Route117_EventScript_RegisterLydia', 'Std_RegisteredInMatchCall', 'Std_MsgboxDefault'] party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f23531: CONTROLLER -> _MaintainDrive.run   (state=OVERWORLD)
+f23707: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DoDoorWarp', 'Task_AnimateDoor'] ctrl=_MaintainDrive.run bt='NICK got $440 for winning!' scripts=[] party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f24000: heartbeat mode=Story ctrl=_MaintainDrive.run state=OVERWORLD party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f24765: SAVED stall state #1 to stalls/mt-on2-f24765.ss1 (bt='NICK got $440 for winning!')
+f25879: battle_is_active -> True  party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f25880: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f26000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+┌───────────────────── Marill♂ encountered at Route 117 ──────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 60814AE0        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 13              ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 25  │ 11  │ 28  │ 9↓  │ 1… │ 13  │ 98 │ │
+│ │       Nature │ Careful         │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Thick Fat       │                                          │
+│ │ Hidden Power │ Ghost (31)      │Moves: Tackle, Defense Curl, Tail Whip,   │
+│ │  Shiny Value │ 43,980          │Water Gun                                 │
+│ └──────────────┴─────────────────┘EV Yield: 2 HP                            │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Marill │  98 /  │  43,980 /   │     1 │ 100.0… │     0 │      1 │   N/A │ │
+│ │        │   98   │   43,980    │       │        │       │        │       │ │
+│ │ Total  │  98 /  │  43,980 /   │     1 │   100% │     0 │      1 │   N/A │ │
+│ │        │   98   │   43,980    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+f28000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f30000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f32000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f32756: PARTY CHANGE [Marill:L13:exp1757|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp1917|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f32821: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Marill:L13:exp1917|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f32832: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='MULE gained a boosted 160 EXP. Points!' scripts=[] party=[Marill:L13:exp1917|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f32858: CONTROLLER -> _MaintainDrive.run   (state=OVERWORLD)
+f33130: battle_is_active -> True  party=[Marill:L13:exp1917|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f33131: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+┌───────────────────── Oddish♂ encountered at Route 117 ──────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 973823CB        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 14              ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 28  │ 19↓ │ 21  │ 31  │ 1… │ 27  │ 1… │ │
+│ │       Nature │ Calm            │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Chlorophyll     │                                          │
+│ │ Hidden Power │ Steel (66)      │Moves: Absorb, Sweet Scent, Poisonpowder  │
+│ │  Shiny Value │ 13,662          │EV Yield: 1 Special Attack                │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Marill │  98 /  │  43,980 /   │     1 │ 50.00% │     0 │      1 │   N/A │ │
+│ │        │   98   │   43,980    │       │        │       │        │       │ │
+│ │ Oddish │ 144 /  │  13,662 /   │     1 │ 50.00% │     0 │      1 │   N/A │ │
+│ │        │  144   │   13,662    │       │        │       │        │       │ │
+│ │ Total  │  98 /  │  13,662 /   │     2 │   100% │     0 │      2 │   N/A │ │
+│ │        │  144   │   43,980    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+f34000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp1917|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f35476: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Marill:L13:exp1917|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f35487: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='Got away safely!' scripts=[] party=[Marill:L13:exp1917|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f35513: CONTROLLER -> _MaintainDrive.run   (state=OVERWORLD)
+f35938: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DoDoorWarp', 'Task_AnimateDoor'] ctrl=_MaintainDrive.run bt='Got away safely!' scripts=[] party=[Marill:L13:exp1917|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f36000: heartbeat mode=Story ctrl=_MaintainDrive.run state=OVERWORLD party=[Marill:L13:exp1917|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f36996: SAVED stall state #2 to stalls/mt-on2-f36996.ss1 (bt='Got away safely!')
+f38000: heartbeat mode=Story ctrl=_MaintainDrive.run state=BATTLE_STARTING party=[Marill:L13:exp1917|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f38090: battle_is_active -> True  party=[Marill:L13:exp1917|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f38091: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+┌──────────────────── Poochyena♀ encountered at Route 117 ────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ B05F6413        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 13              ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Female ♀        │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││ 18  │ 26↓ │ 14↑ │  9  │ 8  │ 31  │ 1… │ │
+│ │       Nature │ Bold            │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Run Away        │                                          │
+│ │ Hidden Power │ Bug (39)        │Moves: Tackle, Howl, Sand-attack, Bite    │
+│ │  Shiny Value │ 21,985          │EV Yield: 1 Attack                        │
+│ └──────────────┴─────────────────┘                                          │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Marill │  98 /  │  43,980 /   │     1 │ 33.33% │     0 │      1 │   N/A │ │
+│ │        │   98   │   43,980    │       │        │       │        │       │ │
+│ │ Oddish │ 144 /  │  13,662 /   │     1 │ 33.33% │     0 │      1 │   N/A │ │
+│ │        │  144   │   13,662    │       │        │       │        │       │ │
+│ │ Pooch… │ 106 /  │  21,985 /   │     1 │ 33.33% │     0 │      1 │   N/A │ │
+│ │        │  106   │   21,985    │       │        │       │        │       │ │
+│ │ Total  │  98 /  │  13,662 /   │     3 │   100% │     0 │      3 │   N/A │ │
+│ │        │  144   │   43,980    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+f39903: PARTY CHANGE [Marill:L13:exp1917|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp2070|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f39967: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Marill:L13:exp2070|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f39978: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='MULE gained a boosted 153 EXP. Points!' scripts=[] party=[Marill:L13:exp2070|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f40000: heartbeat mode=Story ctrl=BattleListener.fight state=OVERWORLD party=[Marill:L13:exp2070|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f40004: CONTROLLER -> _MaintainDrive.run   (state=OVERWORLD)
+f40277: battle_is_active -> True  party=[Marill:L13:exp2070|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f40278: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+┌───────────────────── Marill♂ encountered at Route 117 ──────────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ 4A6543FA        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 13              ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  6  │  8  │  8  │  1  │ 1… │ 3↓  │ 38 │ │
+│ │       Nature │ Sassy           │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Thick Fat       │                                          │
+│ │ Hidden Power │ Bug (35)        │Moves: Tackle, Defense Curl, Tail Whip,   │
+│ │  Shiny Value │ 34,866          │Water Gun                                 │
+│ └──────────────┴─────────────────┘EV Yield: 2 HP                            │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Marill │  38 /  │  34,866 /   │     2 │ 50.00% │     0 │      2 │   N/A │ │
+│ │        │   98   │   43,980    │       │        │       │        │       │ │
+│ │ Oddish │ 144 /  │  13,662 /   │     1 │ 25.00% │     0 │      1 │   N/A │ │
+│ │        │  144   │   13,662    │       │        │       │        │       │ │
+│ │ Pooch… │ 106 /  │  21,985 /   │     1 │ 25.00% │     0 │      1 │   N/A │ │
+│ │        │  106   │   21,985    │       │        │       │        │       │ │
+│ │ Total  │  38 /  │  13,662 /   │     4 │   100% │     0 │      4 │   N/A │ │
+│ │        │  144   │   43,980    │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+f42000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp2070|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f44000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp2070|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f46000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp2070|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f46058: PARTY CHANGE [Marill:L13:exp2070|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L14:exp2195|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f46216: PARTY CHANGE [Marill:L14:exp2195|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L14:exp2230|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f46282: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Marill:L14:exp2230|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f46293: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='MULE grew to LV. 14!' scripts=[] party=[Marill:L14:exp2230|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f46319: CONTROLLER -> _MaintainDrive.run   (state=OVERWORLD)
+f46442: PARTY CHANGE [Marill:L14:exp2230|Marshtomp:L20:exp6122|Taillow:L21:exp6649|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f46515: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeShowStartMenu'] ctrl=_MaintainDrive.run bt='MULE grew to LV. 14!' scripts=[] party=[Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+[maintain] ROTATE slot=2 lead_after=A8DBCF1B want=6A767BDA landed=False
+[maintain] MAINTAIN done pid=6A767BDA L13->L14 (wanted L14, REACHED, rotation=landed)
+[maintain] FINAL slot=0 Taillow L21 pid=A8DBCF1B hp=54/54 moves=['Peck', 'Wing Attack', 'Double Team', 'Quick Attack'] battler+STRONGEST+LEAD
+[maintain] FINAL slot=1 Marshtomp L20 pid=550A9BE6 hp=64/64 moves=['Tackle', 'Growl', 'Foresight', 'Water Gun'] battler
+[maintain] FINAL slot=2 Marill L14 pid=6A767BDA hp=25/45 moves=['Surf', 'Water Gun', 'Tackle', 'Defense Curl'] battler
+[maintain] FINAL slot=3 Poochyena L16 pid=2B19CA91 hp=42/42 moves=['Tackle', 'Howl', 'Sand-attack', 'Bite'] battler
+[maintain] FINAL slot=4 Dustox L20 pid=A735D162 hp=56/56 moves=['Tackle', 'Confusion', 'Moonlight', 'Gust'] battler
+[maintain] FINAL battler_slots=[0, 1, 2, 3, 4] lead_pid=A8DBCF1B
+[maintain] RESULT arm=ON started=True dormant=False rotation_landed=True level_start=13 level_end=14 catchup=14 reached=True p6_lead_is_strongest=True failure=None lines=['start Marill pid=6A767BDA L13->L14 on ROUTE117(31, 16) wild=14 est=7165 budget=150000 boss_target=20', 'done pid=6A767BDA L13->L14 (wanted L14, REACHED, rotation=landed)']
+[maintain] ACCEPTANCE: PASS (ARM-ON must: start, rotation land, reach L14)
+f46552: CONTROLLER -> <none>   (state=OVERWORLD)
+f47452: SAVED stall state #3 to stalls/mt-on2-f47452.ss1 (bt='MULE grew to LV. 14!')
+f47752: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100', (31, 16)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MULE grew to LV. 14!' bot_mode=Manual
+f47752:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f48000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f49552: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100', (31, 16)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MULE grew to LV. 14!' bot_mode=Manual
+f49552:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f50000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f52000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f54000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f54552: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100', (31, 16)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MULE grew to LV. 14!' bot_mode=Manual
+f54552:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f56000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f58000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f60000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f61552: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100', (31, 16)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MULE grew to LV. 14!' bot_mode=Manual
+f61552:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f62000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f64000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f66000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f66552: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 66553 frames; final mode=Manual party=[Taillow:L21:exp6649|Marshtomp:L20:exp6122|Marill:L14:exp2230|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Taillow L21: Peck, Wing Attack, Double Team, Quick Attack
+[moveset] Marshtomp L20: Tackle, Growl, Foresight, Water Gun
+[moveset] Marill L14: Surf, Water Gun, Tackle, Defense Curl
+[moveset] Poochyena L16: Tackle, Howl, Sand-attack, Bite
+[moveset] Dustox L20: Tackle, Confusion, Moonlight, Gust
+[PARTY-ACCT] STAGE 0 SUMMARY — 66553 get_party() recomputes, 222 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += maintain 66553 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\mt-on2\states\2026-0
+9-11_13-33-48.ss1 created!
+Updated `current_state.ss1`!
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            f76000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp2119|Marshtomp:L20:exp6122|Taillow:L21:exp6784|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f78000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp2119|Marshtomp:L20:exp6122|Taillow:L21:exp6784|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f80000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp2119|Marshtomp:L20:exp6122|Taillow:L21:exp6784|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f81186: PARTY CHANGE [Marill:L13:exp2119|Marshtomp:L20:exp6122|Taillow:L21:exp6784|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Taillow:L21:exp6784|Marshtomp:L20:exp6122|Marill:L13:exp2119|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f81208: PARTY CHANGE [Taillow:L21:exp6784|Marshtomp:L20:exp6122|Marill:L13:exp2119|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L13:exp2119|Marshtomp:L20:exp6122|Taillow:L21:exp6784|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f82000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Marill:L13:exp2119|Marshtomp:L20:exp6122|Taillow:L21:exp6784|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f82682: PARTY CHANGE [Marill:L13:exp2119|Marshtomp:L20:exp6122|Taillow:L21:exp6784|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L14:exp2195|Marshtomp:L20:exp6122|Taillow:L21:exp6784|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f82816: PARTY CHANGE [Marill:L14:exp2195|Marshtomp:L20:exp6122|Taillow:L21:exp6784|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L14:exp2227|Marshtomp:L20:exp6122|Taillow:L21:exp6784|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f82907: PARTY CHANGE [Marill:L14:exp2227|Marshtomp:L20:exp6122|Taillow:L21:exp6784|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Marill:L14:exp2227|Marshtomp:L20:exp6122|Taillow:L21:exp6856|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f82969: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Marill:L14:exp2227|Marshtomp:L20:exp6122|Taillow:L21:exp6856|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f82980: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='TAILLOW gained 72 EXP. Points!' scripts=[] party=[Marill:L14:exp2227|Marshtomp:L20:exp6122|Taillow:L21:exp6856|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f83006: CONTROLLER -> _MaintainDrive.run   (state=OVERWORLD)
+f83129: PARTY CHANGE [Marill:L14:exp2227|Marshtomp:L20:exp6122|Taillow:L21:exp6856|Poochyena:L16:exp4513|Dustox:L20:exp9100] -> [Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f83202: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeShowStartMenu'] ctrl=_MaintainDrive.run bt='TAILLOW gained 72 EXP. Points!' scripts=[] party=[Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+[maintain] ROTATE slot=2 lead_after=A8DBCF1B want=FA767997 landed=False
+[maintain] MAINTAIN done pid=FA767997 L13->L14 (wanted L14, REACHED, rotation=landed)
+[maintain] RESULT arm=ON started=True dormant=False rotation_landed=True level_start=13 level_end=14 catchup=14 reached=True p6_lead_is_strongest=True failure=None lines=['start Marill pid=FA767997 L13->L14 on ROUTE117(31, 16) wild=14 est=7165 budget=150000 boss_target=20', 'done pid=FA767997 L13->L14 (wanted L14, REACHED, rotation=landed)']
+[maintain] ACCEPTANCE: PASS (ARM-ON must: start, rotation land, reach L14)
+f83239: CONTROLLER -> <none>   (state=OVERWORLD)
+f84000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f84139: SAVED stall state #5 to stalls/mt-on-f84139.ss1 (bt='TAILLOW gained 72 EXP. Points!')
+f84439: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100', (31, 16)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='TAILLOW gained 72 EXP. Points!' bot_mode=Manual
+f84439:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f86000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f86239: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100', (31, 16)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='TAILLOW gained 72 EXP. Points!' bot_mode=Manual
+f86239:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f88000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f90000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+Error while playing audio: Unanticipated host error [PaErrorCode -9999]: 'There
+is no driver installed on your system.' [MME error 6]
+f91239: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100', (31, 16)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='TAILLOW gained 72 EXP. Points!' bot_mode=Manual
+f91239:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f92000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f94000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f96000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f98000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f98239: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100', (31, 16)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='TAILLOW gained 72 EXP. Points!' bot_mode=Manual
+f98239:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f100000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f102000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+f103239: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 103240 frames; final mode=Manual party=[Taillow:L21:exp6856|Marshtomp:L20:exp6122|Marill:L14:exp2227|Poochyena:L16:exp4513|Dustox:L20:exp9100]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Taillow L21: Peck, Wing Attack, Double Team, Quick Attack
+[moveset] Marshtomp L20: Tackle, Growl, Foresight, Water Gun
+[moveset] Marill L14: Surf, Water Gun, Tackle, Defense Curl
+[moveset] Poochyena L16: Tackle, Howl, Sand-attack, Bite
+[moveset] Dustox L20: Tackle, Confusion, Moonlight, Gust
+[PARTY-ACCT] STAGE 0 SUMMARY — 103240 get_party() recomputes, 345 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += maintain 103240 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\mt-on\states\2026-09
+-11_13-31-08.ss1 created!
+Updated `current_state.ss1`!

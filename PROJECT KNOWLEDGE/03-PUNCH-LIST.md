@@ -280,8 +280,8 @@ shaped like the Dive one. Anchors: `norman_done.ss1`, `prenorman_fodder_grind.ss
 ### ✅ `#26-fleefreeze` — CLOSED. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-11, R3 budget; nothing deleted, zero open boxes).
 - [x] ⛔ DO NOT REDO. Full detail in the archive under its 2026-09-11 banner and in `07-CHANGELOG.md`.
 
-### ✅ `#26-battleitemwedge` — HANG closed 2026-08-26 AND LIVE-VALIDATED 2026-08-27 (batch `20260826-185918`: its KI-47 family 2 → 0 over 572 item flows)  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
-- [x] ⛔ DO NOT REDO. Full detail is in the archive under its 2026-09-07 banner and in `07-CHANGELOG.md`.
+### ✅ `#26-battleitemwedge` — CLOSED. 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-11, R3 budget; zero open boxes).
+- [x] ⛔ DO NOT REDO. Detail in the archive and `07-CHANGELOG.md`.
 
 ### ✅ `#26-gatestartupcontention` — **CLOSED 2026-09-11: it was never contention and never a hang — the gate was PACED TO 60fps.** ⛔ DO NOT REOPEN. (filed 2026-08-26, closed 2026-09-11)
 ⭐ **ROOT CAUSE, in one line:** the gate set `context.audio`/`context.video` but not
@@ -2080,7 +2080,19 @@ battler position rather than reordering the party. Hardcoding "slots 0-1 are act
 recreate the KI-34 bug in a new place: inferring an index relationship instead of reading it.
 Always read it via `BattleState.map_battle_party_index()` / `gBattlerPartyIndexes`.
 
-### 🔶 `#24-maintain` — MAINTAIN, not cram — **DECISION BUILT AND GATED 2026-09-11 (#55); ⛔ THE LIVE PATH IS UNDRIVEN. The late-game half stays DEAD.** (user proposal 2026-07-29)
+### 🔶 `#24-maintain` — MAINTAIN, not cram — **DRIVEN 2026-09-11: THE MECHANISM WORKS (L13→L14 vs L13→L13). ⛔ STILL DEFAULT-OFF — the VALUE question is open and needs a BATCH. The late-game half stays DEAD.** (user proposal 2026-07-29)
+✅ **A/B RAN 2026-09-11** (same fixture/frames/pinned target, separate profiles). ARM-ON:
+`start Marill pid=6A767BDA L13->L14 on ROUTE117(31,16) est=7165`, `rotation=landed`. ARM-OFF:
+`dormant`. **P1, P2 (the vacuity conjunct) and P6 PASS; P3/P4/P5 UNTESTED — ⛔ UNTESTED IS NOT PASS.**
+P3 is ungradeable HERE: Wattson's `cfg["grass"]` and `best_training_grass(13)` are the SAME pair, so
+the log line fits a boss-keyed implementation too. Evidence: `evidence/2026-09-11-maintain-ARM-*.log`.
+- [ ] **NEXT — THE VALUE QUESTION; IT NEEDS A BATCH, NOT A DRIVER** (rule 9). This proves the
+      mechanism fires on ONE boss/fixture/laggard, NOT that the finish rate moves. `x4_headless.py
+      --build sandbox` with `POKEBOT_MAINTAIN=1` vs a matched control; compare badge-moment level
+      GAPS and run-enders, not just completion.
+- [ ] P3 needs the `bossground` falsifier BUILT (it never was) **and** a boss whose `cfg["grass"]`
+      differs from `best_training_grass(laggard_level)`; on Wattson they coincide.
+- [ ] P4/P5 need an over-budget laggard staged (`POKEBOT_MULE_LEVEL` far below `catchup`).
 ✅ **BUILT 2026-09-11 (sandbox only, UNPROMOTED):** `decide_maintenance` (a PURE predicate beside
 `decide_dex_catch`) + `_maintain_lagging_battler`, called from ONE seam — the top of
 `_prepare_for_fight`, before the sufficiency gate that can `return` early. It lifts any battler

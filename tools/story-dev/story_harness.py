@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -18375,6 +18375,190 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23TrainMode()
         elif args.driver == "ki84counter":
             context.bot_mode_instance = Ki84CounterMode()
+        elif args.driver == "maintain":
+            # ‼ `#24-maintain`'s A/B. ARM-ON `POKEBOT_MAINTAIN=1` vs ARM-OFF (unset, the shipped
+            # default). Graded on the MULE's level, resolved by IDENTITY and compared WITHIN one arm.
+            #
+            # ⛔⛔ WHY THIS SUBCLASSES `StoryMode` AND DEFINES *ONLY* `run()`. `SwapTrainBattleStrategy`
+            # is instantiated at exactly ONE site in the tree — inside `StoryMode.on_battle_started`,
+            # under `if swap_train_active() and encounter is not None:`. `train_team` sets that flag
+            # and NOTHING else consults it. A bare `BotMode` driver that defined its own
+            # `on_battle_started` would therefore SILENTLY DISABLE swap-training, make the L13 Marill
+            # fight L14 wilds alone, change the XP model from half to full, raise the faint risk, and
+            # measure a code path production never takes. ⇒ inherit the handler untouched. Same for
+            # `on_whiteout`, which `StoryMode` already defines.
+            from plugins.custom_modes import story_mode as _SMOD
+            from plugins.custom_modes.story_mode import StoryMode as _SM
+
+            class _MaintainDrive(_SM):
+                """Call `_maintain_lagging_battler` DIRECTLY, with the target PINNED."""
+
+                def run(self):
+                    import os as _os
+
+                    from modules.pokemon_party import get_party as _gp
+                    from modules.story import early_game as _EG
+
+                    arm = "ON" if _os.environ.get(
+                        "POKEBOT_MAINTAIN", "0").strip() in ("1", "true", "yes", "on") else "OFF"
+                    target = int(_os.environ.get("POKEBOT_MAINTAIN_TARGET", "20"))
+                    catchup = target - _SM.TRAIN_CATCHUP_GAP
+                    log(f"[maintain] ARM={arm} target={target} catchup={catchup} "
+                        f"(TRAIN_CATCHUP_GAP={_SM.TRAIN_CATCHUP_GAP})")
+
+                    # ⛔ `run()` IS OVERRIDDEN, SO NOTHING ELSE CLEARS THE ABORT LATCH.
+                    # `StoryAbort` is cleared ONLY by `StoryMode.run`, and `_check_abort()` runs every
+                    # round inside `train_team`. A latch left set by earlier activity would kill this
+                    # drive instantly and read as a FEATURE failure.
+                    _EG.set_story_abort(False)
+
+                    seen = []
+                    real_event = _SMOD._log_story_event
+                    real_rotate = _EG._rotate_lead_safely
+                    rotation_landed = None
+                    failure = None
+                    start_level = end_level = None
+                    pid = None
+
+                    def mirroring_event(message, category="STORY"):
+                        # ⛔ THE EVIDENCE LIVES IN A DIFFERENT STREAM. `_log_story_event` writes to
+                        # `modules.debug_logger` -> `profiles/<p>/debug-logs/` ONLY; the harness
+                        # `--log` file is written by `log()` alone. Without this mirror the
+                        # discriminator is UNREADABLE from the drive's own log.
+                        if category == "MAINTAIN":
+                            seen.append(message)
+                            log(f"[maintain] MAINTAIN {message}")
+                        return real_event(message, category)
+
+                    def observing_rotate(target_slot, **kw):
+                        # ⛔ INSTRUMENT THE ACTION. `_rotate_lead_safely` gives up after 3 attempts by
+                        # setting `context.message` and returning NORMALLY, so "it was called" says
+                        # nothing about whether it LANDED. Read slot 0 afterwards and say.
+                        nonlocal rotation_landed
+                        yield from real_rotate(target_slot, **kw)
+                        lead = _gp()[0]
+                        got = lead.personality_value if lead is not None else None
+                        landed = got == pid
+                        if rotation_landed is None:
+                            rotation_landed = landed
+                        # ⛔ BUILD THE DESCRIPTION FIRST, NEVER a ternary at the end of an implicit
+                        # string concatenation — it binds to the WHOLE concatenation, not the last
+                        # fragment. `victory_road.py:2068-2072` carries this exact warning, and the
+                        # first draft of THIS function reproduced the bug anyway.
+                        lead_txt = "None" if got is None else f"{got:08X}"
+                        log(f"[maintain] ROTATE slot={target_slot} lead_after={lead_txt} "
+                            f"want={pid:08X} landed={landed}")
+
+                    try:
+                        # (a) ⛔ THE INJECTION HAS NOT HAPPENED YET AT FRAME 0. `--inject-at` defaults
+                        # to 8, so a party read before the first yield sees the PRE-injection party.
+                        yield from _EG.wait_until_truly_controllable()
+
+                        # (b) Dump the party so the log is self-sufficient if the lookup ever fails.
+                        for i, p in enumerate(_gp()):
+                            if p is None:
+                                continue
+                            log(f"[maintain] PARTY slot={i} {p.species.name} L{p.level} "
+                                f"pid={p.personality_value:08X} nick={p.nickname!r} "
+                                f"hp={p.current_hp}/{p.total_hp}")
+
+                        # (c) Resolve identity ONCE, by NICKNAME. `inject_hmmule` sets
+                        # `nickname="MULE"`. ⛔ The PID itself is drawn from an unseeded RNG per run,
+                        # so it is an anchor WITHIN one arm and must NEVER be compared across arms.
+                        mule = next((m for m in _gp()
+                                     if m is not None and m.nickname == "MULE"), None)
+                        if mule is None:
+                            log("[maintain] ⛔ no MULE in the party — --inject-hmmule did not run.")
+                            log("[maintain] ACCEPTANCE: ABORT (instrument, not a result)")
+                            context.set_manual_mode()
+                            return
+                        pid, start_level = mule.personality_value, mule.level
+                        log(f"[maintain] MULE pid={pid:08X} L{start_level}")
+
+                        # (d) ⛔ VACUITY GATE. If the mule is already at/above the floor, BOTH arms do
+                        # nothing and the run would read as a refutation of a true finding.
+                        if start_level >= catchup:
+                            log(f"[maintain] ⛔ VACUOUS: mule L{start_level} >= catchup L{catchup} — "
+                                f"neither arm can act. ACCEPTANCE: ABORT (instrument, not a result)")
+                            context.set_manual_mode()
+                            return
+
+                        # (e)/(f) install the observers only now, so nothing above is mirrored.
+                        _SMOD._log_story_event = mirroring_event
+                        _EG._rotate_lead_safely = observing_rotate
+
+                        yield from self._maintain_lagging_battler(target)
+
+                    except Exception as error:  # noqa: BLE001 - reported, never swallowed
+                        failure = f"{type(error).__name__}: {error}"
+                        log(f"[maintain] ⛔ EXCEPTION {failure}")
+                    finally:
+                        # ⛔ NO `yield` IN THIS `finally` — gate #56. Plain assignments only.
+                        _SMOD._log_story_event = real_event
+                        _EG._rotate_lead_safely = real_rotate
+                        _EG.set_story_abort(False)
+
+                    now = next((m for m in _gp()
+                                if m is not None and m.personality_value == pid), None)
+                    end_level = now.level if now is not None else None
+                    started = any(m.startswith("start ") for m in seen)
+                    dormant = any("dormant" in m for m in seen)
+                    reached = end_level is not None and end_level >= catchup
+                    lead_pid = None
+                    lead_now = _gp()[0]
+                    if lead_now is not None:
+                        lead_pid = lead_now.personality_value
+                    strongest = None
+                    party_now = _gp()
+                    slots = [i for i in _EG._battler_slots()]
+                    if slots:
+                        strongest = party_now[max(slots, key=lambda i: party_now[i].level)]
+                    p6_ok = (strongest is not None and lead_pid == strongest.personality_value)
+                    # ⛔ DUMP THE FINAL PARTY, NOT JUST THE VERDICT. The first ARM-ON run reported
+                    # `p6_lead_is_strongest=True` with a L18 Taillow in the lead while two L20 mons
+                    # were in the party — a reading I could not explain from the log, because the
+                    # driver recorded the CONCLUSION and not the STATE it was computed from.
+                    # ‼ A verdict you cannot re-derive from its own log is not evidence.
+                    for i, p in enumerate(party_now):
+                        if p is None:
+                            continue
+                        mark = []
+                        if i in slots:
+                            mark.append("battler")
+                        if strongest is not None and p.personality_value == strongest.personality_value:
+                            mark.append("STRONGEST")
+                        if p.personality_value == lead_pid:
+                            mark.append("LEAD")
+                        log(f"[maintain] FINAL slot={i} {p.species.name} L{p.level} "
+                            f"pid={p.personality_value:08X} hp={p.current_hp}/{p.total_hp} "
+                            f"moves={[m.move.name for m in p.moves if m is not None]} "
+                            f"{'+'.join(mark) if mark else '-'}")
+                    # ⛔ BUILD IT FIRST. `f"{x:08X if x is not None else 0}"` is not valid — a
+                    # conditional cannot live inside a FORMAT SPEC. Same family as the ternary-at-
+                    # the-end-of-a-concatenation trap two functions up; both are "keep expressions
+                    # out of f-string machinery".
+                    lead_txt2 = "None" if lead_pid is None else f"{lead_pid:08X}"
+                    log(f"[maintain] FINAL battler_slots={slots} lead_pid={lead_txt2}")
+
+                    log(f"[maintain] RESULT arm={arm} started={started} dormant={dormant} "
+                        f"rotation_landed={rotation_landed} level_start={start_level} "
+                        f"level_end={end_level} catchup={catchup} reached={reached} "
+                        f"p6_lead_is_strongest={p6_ok} failure={failure} lines={seen}")
+
+                    if failure is not None:
+                        log("[maintain] ACCEPTANCE: ABORT (instrument, not a result)")
+                    elif arm == "ON":
+                        ok = bool(started and rotation_landed and reached)
+                        log(f"[maintain] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+                            f"(ARM-ON must: start, rotation land, reach L{catchup})")
+                    else:
+                        ok = bool(dormant and not started and end_level == start_level)
+                        log(f"[maintain] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+                            f"(ARM-OFF must: log dormant, never start, leave the mule at "
+                            f"L{start_level})")
+                    context.set_manual_mode()
+
+            context.bot_mode_instance = _MaintainDrive()
         elif args.driver == "ch23b1fprobe":
             context.bot_mode_instance = Ch23B1fProbeMode()
         elif args.driver == "ch23push":
