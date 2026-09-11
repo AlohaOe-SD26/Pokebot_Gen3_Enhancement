@@ -291,7 +291,11 @@ LANDED in BOTH post-fix batches: zero CantEscape freezes corpus-wide (baseline 3
 ### ✅ `#26-battleitemwedge` — HANG closed 2026-08-26 AND LIVE-VALIDATED 2026-08-27 (batch `20260826-185918`: its KI-47 family 2 → 0 over 572 item flows)  📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-07, R3 budget; nothing deleted, nothing edited).
 - [x] ⛔ DO NOT REDO. Full detail is in the archive under its 2026-09-07 banner and in `07-CHANGELOG.md`.
 
-### ‼ `#26-gatestartupcontention` — one gate times out IN-SUITE with an EMPTY log, passes solo (filed 2026-08-26)
+### ‼ `#26-gatestartupcontention` — one gate times out IN-SUITE **and now SOLO too** (filed 2026-08-26; headline corrected 2026-09-11)
+⛔⛔ **"PASSES SOLO" IS REFUTED — DO NOT PLAN AROUND IT.** Measured 2026-09-11: three suite runs in one session each killed `repro_gym_whiteout_guard.py` at the 900s bound, **and a SOLO re-run produced nothing for 600s** before I stopped it. That agrees with `04-HANDOFF.md`'s record of a ~36-minute standalone hang and disagrees with this item's own former title. ‼ *(The title read "passes solo" from 2026-08-26 until 2026-09-11 — P2 in miniature: the half that gets skimmed said the opposite of the body's newest evidence.)*
+⭐ **AND THE MECHANISM IS PROBABLY NOT A HANG AT ALL — it is a per-frame exception storm.** `libmgba.py:617-623`: when throttled, every frame calls `self._audio_stream.write(...)`; with no audio driver that raises `PortAudioError`, which is caught and answered with `self._reset_audio()` — **and then the next frame does it again**. The file's own comment describes the intended escape (*"in case audio could not be initialised, we fall back to a sleep-based throttling mechanism"*), but that branch is only reached when `_audio_stream` is falsy, and the error path never permanently clears it. ⇒ the emulator does not stop, it CRAWLS. That fits an empty log, a 36-minute solo run, and the repeated `PaErrorCode -9999 ... no driver installed` lines seen in all three of this session's runs.
+- [ ] **Candidate fix (cheapest first): make the fallback STICK** — after N consecutive `PortAudioError`s, set `_audio_stream = None` permanently so throttling uses the documented sleep path. ⚠ `libmgba.py` is UPSTREAM code, so this is a DIVERGENCE and needs a `DIVERGENCE-LOG.md` entry; prefer running gates UNTHROTTLED if that is sufficient, since a headless gate has no reason to pace itself to 60fps.
+- [ ] ⛔ Do NOT "fix" it by raising the 900s bound. A bound that is raised to accommodate a defect stops being a bound.
 
 `repro_gym_whiteout_guard.py` hangs IN-SUITE and passes solo. ⛔ **THE FIRST FILING OF THIS ITEM GOT
 THREE DETAILS WRONG, AND A TIER 1 REVIEW CORRECTED ALL THREE WITH A LIVE OBSERVATION** (it caught the
@@ -1912,6 +1916,42 @@ accident of what the bot happened to meet.
 
 ---
 
+### 🔜 `#24-countermsg2` — "Nearest **reachable** counters:" is printed over a list containing UNREACHABLE entries (filed 2026-09-11)
+
+⛔⛔ **READ THIS BEFORE RE-FILING THE BIGGER BUG. I FILED IT AND IT DOES NOT EXIST.**
+On 2026-09-11 I read this line out of batch `20260910-234959`:
+> *"Juan: 12 losses … Need one of: Dragon. Nearest reachable counters: **Bagon (Dragon)** on Meteor
+> Falls (B1F) 2R (tile unmapped, NOT HUNTABLE, L25-35, 25% rate) — UNREACHABLE…"*
+
+— and filed it as *"`counter_plan` recommends HM-gated grounds it cannot reach, and the Juan
+suggestion is CIRCULAR because badge 8 IS Juan."* **The circularity is real** (Waterfall is gated on
+`FLAG_BADGE08_GET`, decomp `src/field_control_avatar.c:455`, which I read myself; Bagon is in
+`B1F_2R` only). ‼ **But the bot never ACTED on it, so there is no behavioural defect:**
+- `counter_plan.py:435` — `best_huntable`, *"the ONLY function an executor should use to pick where
+  to go. Reading `cands[0]` instead is the bug this exists to prevent"* — returns a candidate only
+  when `huntable AND hunt_tile is not None`.
+- `counter_plan.py:345` — `huntable = bool(reachable and hunt_tile is not None)`.
+- Meteor Falls is `PENDING_GRASS` with **`tile=None`**, so it is unhuntable by construction, and the
+  log printed **both** markers (`NOT HUNTABLE`, `UNREACHABLE`) exactly as designed.
+⇒ the candidate list is a **DIAGNOSIS**, not a plan. `AREA_PREREQ` already handles this class
+(`training_areas.py:246`; its own comment records the identical Numel/FIERY_PATH circularity for
+Wattson). **Nothing is broken. Do not "fix" the ranking.**
+
+**WHAT IS ACTUALLY WRONG — one sentence, one file:**
+- [ ] `plugins/custom_modes/story_mode.py:1094` builds
+      `base_msg += " Nearest reachable counters: " + summary` — but `summarise_candidates`
+      (`counter_plan.py:457`) emits `— UNREACHABLE` per entry. **The prefix contradicts its own
+      list.** Say *"Nearest counters (reachability marked per entry):"*, or filter to reachable ones
+      before printing. ⚠ Keep printing the unreachable ones somewhere — they are the diagnosis that
+      explains an honest stop; the fix is the LABEL, not the content.
+⭐ **MEASURED COST OF THIS LABEL: one phantom punch-list item (this one), filed and retracted the
+same hour.** `counter_plan.py:477` already records a 2026-09-07 incident of the same shape — *"I read
+‘Need Rock/Ice/Dragon … Slugma (Fire)’ off a live log and reported the recommender as broken. It was
+correct… The line, not the logic, was the defect."* ⇒ **that is TWICE. The log line is the defect
+surface; fix the label.**
+
+---
+
 ### 🔜 `#24-egpc-leg4gap` — the LAST instance of the leg-4 guard class: the Ever Grande Poké Center (filed 2026-09-10)
 
 **FOUND BY THE TIER 1 REVIEW OF THE FIX FOR THE SAME CLASS — not by the fix.** Gate #52 closed the
@@ -2058,157 +2098,69 @@ criterion**, and the honest way to test the pair against each other.
 **Interacts with `#24-dexhunt` above:** hunting for new species generates exactly the
 level-matched encounters maintenance needs. Done together they are one activity, not two.
 
-### ‼‼ `#24-orphans` — SIX REAL RESIDUALS THAT WERE WRITTEN DOWN BUT NEVER TRACKED — **MIXED STATUS (2026-08-17, LATEST): 4 DONE `[x]` ((2) KI-65, (4) log collision, (5) compare_runs A/B axis, (6) the KI-76 shelving), 2 PARTLY DONE `[~]` ((1) — instrumentation SHIPPED, REACTION half open; (3) KI-66 — `_on_field` half FIXED+PROMOTED, OWNER-filter half open), and ⛔ NOTHING plain OPEN `[ ]`** (filed 2026-08-15; last updated 2026-08-17)
-> ⛔ **(6) CLOSED THE ORPHANING, NOT THE DEFECTS** — KI-76's two defects are OPEN and live in
-> `#24-ki76correctness`. ‼ This heading said *"1 OPEN `[ ]` ((6) …)"* for one commit after (6)'s own
-> box became `[x]`; a Tier 2 cold-start audit counted the boxes and caught it. **Count the boxes,
-> do not re-type the tally.**
-> ⛔ **THE CHECKBOX AND THE HEADER MUST SAY THE SAME THING — corrected 2026-08-17 by a Tier 1
-> reviewer.** This header called (1) *OPEN* while its box was `[~]` and its body opened
-> *"✅ INSTRUMENTATION HALF DONE"*, and called (3) *PARTLY DONE* while its box was `[ ]`. Both are
-> now `[~]`, which is what a half-done item is. ‼ It is the P2 header-vs-body pair in miniature:
-> the marker is what gets skimmed, so a marker that disagrees with the prose IS the bug.
+### 🔶 `#24-orphans` — **MIXED — NOT CLOSED: 4 of 6 done, 2 LIVE HALVES HOISTED BELOW.** 📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md`** (2026-09-11, R3 budget; nothing deleted, nothing edited).
+⛔ **THE TWO LIVE HALVES ARE RESTATED HERE ON PURPOSE, NOT POINTED AT.** This block was the SOLE
+OWNER of both, and an archived block takes its open facts with it — that is exactly how
+`#24-e4moveset` went missing earlier today. The closed four ((2) KI-65, (4) log collision,
+(5) `compare_runs` A/B axis, (6) the KI-76 shelving) are in the archive; ⛔ do not redo them.
+- [~] **(1) `withdraw_from_box`'s VERDICT — the REACTION POLICY is still open.** Production can now
+      READ the verdict (instrumentation shipped 2026-08-17: returned, BOUND, reported, gated,
+      two-armed A/B); **it still does not ACT on it.** ⚠ Blocked on an UNMEASURED heap offset, and
+      the choice of reaction **needs the USER**. ⚠ The measurement itself is ESTABLISHED, not
+      novel — `pc_interaction.py:135-182` already reads that same struct at
+      `+0xC74`/`+0x6FA`/`+0x20A0`, and `menu_parsers.py:357` is the pattern for comparing **ROM
+      bytes against the live buffer** (⛔ never hardcode English text).
+      ‼‼ **TWO PREREQUISITE BUGS ARE OPEN ON THEIR OWN MERITS — restored here 2026-09-11 because they
+      existed ONLY inside the archived block and a Tier 1 reviewer caught the loss. They do NOT wait
+      on the heap offset or on the user:**
+      - [ ] **P1 ⛔ `withdraw_from_box` (`pc_trip.py:481-482`, gate at `:489`) counts `alive`
+            EXCLUDING EGGS — a live latent bug.** On **5 mons + 1 egg** the make-room block is
+            SKIPPED and `pc_interaction.py:418` then raises. ‼ **A retry over this ping-pongs
+            forever.**
+      - [ ] **P3 ⛔ the capacity guard uses the WRONG QUANTITY** — `pc_interaction.py:418` tests
+            `get_party_size()` (**B**) while the game uses **A**; `pokemon_party.py:184-193` is the
+            authority saying capacity questions must use A. With a **HOLE** (A=6, B=5 — already
+            OBSERVED 30x in `boxcounter2`) the bot proceeds and the GAME refuses.
+      - [ ] **P2 ⛔ `interact_with_pc` has UNBOUNDED `while … press A` loops — FOUR sites, not one**:
+            `pc_interaction.py:424-433` plus **`:466-492`, `:332-344`, `:363-376`**. Per decomp,
+            `Task_WithdrawMon` on a full party sets `state = 1` and **never reaches the state 4 that
+            loop waits for**; wrapping a retry around an unbounded wait MULTIPLIES a hang.
+            *(Loop behaviour under repeated A is decomp INFERENCE, not observed — but "no bound + a
+            state that may never arrive" is enough to bound it first.)*
+      ⛔⛔ **AND ONE POLICY QUESTION THAT IS THE USER'S, NOT AN AGENT'S — restored live 2026-09-11;
+      `06-DECISIONS-LOG.md` was grepped first (rule 11) and carries NO ruling on it, so it is
+      genuinely open:** when only ALLY mons are alive, ARM B's correct behaviour is *"ride out the
+      loss"* — but that contradicts `ally_party_indices`'s own documented fail-closed rationale
+      (`default.py:31-34`, which fails closed to an empty set precisely to avoid pushing the caller
+      into the full-party fallback). **Deliberately losing a battle is a behaviour choice**, so it
+      needs a ruling before anything is built on it.
+      ‼ The `IndexError`-on-turn-1 sub-claim is **REFUTED (2026-08-12), not pending** — do not
+      re-check it. *(P4 is ✅ FIXED AND PROMOTED 2026-08-16, KI-81 — do not redo.)*
+- [~] **(3) `KI-66` — the OWNER-FILTER half is still open.** The `_on_field` half is FIXED AND
+      PROMOTED; the owner-filter half is not built.
+      ‼‼ **AND THE HAZARD IS BROADER THAN THE FAINT CHOOSER — restored here 2026-09-11, it existed
+      ONLY in the archived block:** **FOUR more full-party scans are unguarded, one feeding an
+      UNBOUNDED `while … press A`** — `battle_handler.py:541-545`, `:588-598`, `:630-636`, and
+      `_util.py:522-587`. OPEN and code-verified, never live-run. ⚠ The choke point
+      `ally_party_indices()` already EXISTS (`battle_strategies/default.py:12`) and is called
+      from `default.py:189` / `level_up.py:53` / `story_mode.py:171` — and from **NONE** of the
+      four sites above. ⇒ they have a single natural fix site, already written.
+      - [ ] Guard the four scans; bound the `press A` loop (this project never ships an unbounded one).
+      ⚠ **Whoever builds it: `handle_fainted_pokemon` has shipped THREE index-space bugs
+      (KI-18/34/66), so measure the direction of any coordinate conversion BEFORE applying it**
+      (SESSION DISCIPLINE rule 10) — an OBSERVE-ONLY probe printing both coordinate spaces beside an
+      independently-derived ground truth, then the edit.
+      ⛔ And heed KI-66's own refuted headline: **a CANDIDATE IS NOT AN ATTEMPT.** An A/B that fixes
+      only the owner filter showed NO DIFFERENCE on the one fixture and could make things WORSE (it
+      empties `alive_slots` and trips a FALSE "no eligible replacement"). It needs its OWN
+      discriminator.
+      - 📦 *History, not live work: a fourth bug in that same function was filed as
+        `#24-faintchooser-fourthspace` and CLOSED 2026-08-17 (archived 2026-08-22). ⛔ Do not reopen
+        it. It is named here only so the count "three shipped" above is not read as the whole story.*
+⭐ The reusable lesson, kept out of the archive because it is still true: *for every "still open /
+still owed / not built" sentence you write, ask whether a future session would ever FIND it.* Four
+of these six were live residuals recorded inside a document half marked DONE or ARCHIVED.
 
-> ⛔ **THE HEADING IS A CLAIM ABOUT EVERY BULLET BENEATH IT (P2).** These six do NOT share a status —
-> read each bullet's own marker. Three are closed; three are live.
-
-> ⛔ **WHY THIS ITEM EXISTS.** An audit asked a question nobody had asked: *for every "still open /
-> still owed / not built" sentence written this session, would a future session ever FIND it?* Six
-> would not. ‼ **Four of the six share one shape — a live residual recorded inside a document half
-> that is marked DONE or ARCHIVED** (a CLOSED KI's body, an "older framing" queue block, an
-> archived handoff section, a research note). That is the P2 header-vs-body failure applied to
-> TRACKING rather than to STATUS, and prose alone did not catch it — the question did.
-
-- [~] **(1) `withdraw_from_box`'s VERDICT — ✅ INSTRUMENTATION HALF DONE 2026-08-17 (returned,
-      BOUND, reported, gated, two-armed A/B). ⛔ REMAINING: the REACTION POLICY — still blocked on
-      an UNMEASURED heap offset, and it needs the USER.**
-      ⛔ **STATUS IN ONE LINE: production can now READ the verdict; it still does not ACT on it.**
-      That split is deliberate and is the whole shape of this item.
-      ✅✅ **WHAT SHIPPED (⚠ was sandbox-only; ✅ PROMOTED 2026-08-17, user-approved — drift was 0 then; ⚠ it is 1 as of 2026-08-23, see the STATE row):**
-      all five exits of `withdraw_from_box` return `(landed, code, detail)` — the shape the recorded
-      design asked for — its ONE caller (`modules/modes/util/higher_level_actions.py:420`) BINDS the
-      result, and a new PURE function `withdraw_verdict_report` turns it into a reported line.
-      ‼ **The codes distinguish ATTEMPTED-AND-FAILED from NEVER-ATTEMPTED** (`landed`, `not_in_box`,
-      `party_full_no_deposit`, `did_not_land`, `error`). ⛔ Collapsing the no-attempt cases into a
-      failure would manufacture one out of the commonest case — the same shape as the count-based
-      lie KI-79 removed. ⛔ An UNRECOGNISED code and a MISSING verdict both read as FAILED.
-      ✅ **PROVEN TWO WAYS, both MEASURED:**
-      (a) **LIVE TWO-ARMED A/B**, `--driver boxcounter2` on `fortree_gym_wedge.ss1`:
-          ARM B unfaulted → `verdict landed=True code=landed`, `ACCEPTANCE: PASS`, 0 fault lines;
-          ARM A `POKEBOT_PCWITHDRAW_FAULT=1` → `verdict landed=False code=did_not_land` (×2), fault
-          provably armed (2 `SKIPPING the PC interaction` lines), `ACCEPTANCE: FAIL` — which is the
-          REGISTRY'S DOCUMENTED EXPECTATION for the faulted arm, not a regression.
-          Transcripts: `evidence/2026-08-17-withdrawverdict-ARM{A,B}-*.stdout.txt`.
-      (b) **THE GATE FIRES ON THE REAL BEFORE-CODE, not a synthetic one:**
-          `repro_withdraw_verdict.py --build custom` (the unpromoted tree) FAILS on exactly the bare
-          returns and the discarded result; the same gate passes on sandbox. Gate #26, 7 self-tests.
-      ⛔ **DO NOT REBUILD ANY OF THAT.**
-      🔜 **WHAT REMAINS — the REACTION half, and every constraint below still applies to it.**
-      ⛔ **Do not open THAT half expecting to write mode code.** Its next action is a live probe for
-      one heap offset. ‼ Header and body disagreeing on that was itself a P2 finding (2026-08-16).
-      ✅ **DESIGN RULED 2026-08-16 — THE USER RULED** (`06-DECISIONS-LOG.md`): *"reattempt but after
-      intelligently processing the data (text boxes it reads to determine why it failed)"*.
-      ‼ **That is TWO requirements and the second is load-bearing:** reattempt, but **NOT blindly** —
-      the retry must be informed by a DIAGNOSIS read from the on-screen TEXT. ⛔ A retry that repeats
-      the same failing action without knowing why is the PING-PONG this project has been burned by
-      twice (`#24-movelearn-recovery`; KI-65's recon). ⛔ **Bound it**, ⛔ **an UNKNOWN reason must
-      NOT retry** (stop loudly instead), and ⛔ **the reason must be READ, not inferred from internal
-      state** — inferring it is the same class of error as the original bug, which announced an
-      identity derived from a COUNT. Taxonomy, bound and retryability follow from MEASUREMENT.
-      ✅✅ **RECON DONE 2026-08-16 — READ `06-DECISIONS-LOG.md`'s DESIGN ENTRY BEFORE CODING.**
-      It found a BLOCKER and FOUR PREREQUISITES, each of which a naive retry would AMPLIFY:
-      ⛔ **BLOCKER — the text the ruling depends on is not where any existing reader looks.** PC
-      messages go to `sStorage->messageText` (heap-allocated); every text reader in this repo reads
-      `gStringVar4` or `gDisplayedStringBattle`. **The struct offset is unknown here and MUST BE
-      MEASURED** (the technique is established — `pc_interaction.py:135-182` reads that same struct
-      at `+0xC74`/`+0x6FA`/`+0x20A0` — but ⛔ do NOT guess the number). Until then every failure is
-      `UNKNOWN`, and UNKNOWN must not retry ⇒ **the feature would ship INERT.** Measure first.
-      ✅ The refusal STRINGS are already verified against our own symbol table's byte sizes
-      (`gText_YourPartysFull` 0x13, `gText_BoxIsFull2` 0x11, `gText_ThatsYourLastPkmn` 0x1a …) ⇒
-      compare **ROM bytes vs the live buffer** like `menu_parsers.py:357`; ⛔ never hardcode English.
-      **PREREQUISITES (each is its own defect, and each is now tracked here rather than orphaned):**
-      **P1 ⛔ `withdraw_from_box` (`pc_trip.py:481-482` (the gate is `:489`)) counts `alive` EXCLUDING EGGS — a live latent bug.** Its
-      own sibling `deposit_one_dead_weight._occupied` (`pc_trip.py:248-263`) documents that exact
-      exclusion as *"a REAL bug (found by adversarial review 2026-08-13)"* and was fixed; this
-      function never got the fix. On **5 mons + 1 egg** the make-room block is SKIPPED and
-      `pc_interaction.py:418` then raises. ‼ **A retry over this ping-pongs forever.**
-      **P2 ⛔ `interact_with_pc` has UNBOUNDED `while … press A` loops** (`pc_interaction.py:424-433`
-      plus `:466-492`, `:332-344`, `:363-376`). Per decomp, `Task_WithdrawMon` on a full party sets
-      `state = 1` and **never reaches the state 4 that loop waits for**. Wrapping a retry around an
-      unbounded wait MULTIPLIES a hang. *(Loop behaviour under repeated A is decomp INFERENCE, not
-      observed — but "no bound + a state that may never arrive" is enough to bound it first.)*
-      **P3 ⛔ the capacity guard uses the WRONG QUANTITY** — `pc_interaction.py:418` tests
-      `get_party_size()` (**B**) while the game uses **A**; `pokemon_party.py:184-193` says capacity
-      questions must use A. With a **HOLE** (A=6,B=5 — already OBSERVED 30x in `boxcounter2`) the
-      bot proceeds and the GAME refuses. ‼ This is the case proving the ruling's second clause: the
-      diagnosis must change the **ACTION** (deposit), not repeat it.
-      **P4 ✅ FIXED AND PROMOTED 2026-08-16 (KI-81) — was: the blanket `except` had no `StoryAbort`
-      guard, so a WHITEOUT during a PC visit was laundered.** `reraise_if_aborting(error)` is now the
-      FIRST statement of all 8 handlers in `pc_trip.py` / `mossdeep_gym.py` / `higher_level_actions.py`
-      in **both** forks; probe reads **53 → 45** on custom. ⚠ **This removes a hazard, it does not
-      supply the retry** — a retry loop still must not re-enter a dead run, so keep the guard the
-      first statement of any new handler this item adds. Precedents (TRY lines, re-derived from source
-      2026-08-16 — ⛔ re-derive, never re-type; six of eight hand-copied citations in the KI-81 entry
-      were wrong): `space_center.py:955` (handlers `:962`/`:971`), `mossdeep_gym.py:540` (handlers
-      `:543`/`:554`).
-      ‼ **P1 and P4 are worth fixing on their own merits even if the retry never ships.**
-      KI-79 made the *message* honest (identity-verified, loud on failure) but production still
-      cannot REACT:
-      the function returns nothing and never raises, so a failed withdraw is now *reported* and
-      still silently tolerated. ⛔ It was filed in the body of a KI whose header read only
-      "CLOSED" — any session scanning for open issues skips it. (KI-79's header now carries the
-      caveat.) The next Slugma-class derail is still invisible to callers.
-- [x] **(2) ✅✅ DONE 2026-08-16 — KI-65 REPRODUCED, FIXED, A/B-PROVEN AND GATED (#25).**
-      ⛔ DO NOT REOPEN. Retired to a summary 2026-09-03 (line budget) — the reproduction, the A/B
-      and the gate are all in `07-CHANGELOG.md` 2026-08-16 and `31-KNOWN-ISSUES-ARCHIVE.md` KI-65.
-
-- [~] **(3) KI-66 — PARTLY DONE: `_on_field`'s index space is FIXED AND PROMOTED; what REMAINS is
-      the OWNER filter (measured INERT on our one fixture) plus `:541-545` and `_util.py:522-587`.**
-      The multi-battle hazard is BROADER than the faint chooser: four more
-      full-party scans are unguarded, one feeding an UNBOUNDED `while … press A`. OPEN,
-      code-verified, never live-run, and untracked until now.
-      ✅✅ **DRIVEN 2026-08-17 — `--driver ki66faint` IS BUILT AND WORKS. ⛔ DO NOT REBUILD IT.** It subclasses `SpaceCenter2Mode`, stages one of our own picks at 1 HP (two bytes, `data[86:88]`) so it faints in real combat, and carries a PROVEN guard against overwriting the unpinned fixture `post_space_center.ss1`. ⛔⛔ **AND THE HEADLINE IS REFUTED: the bot NEVER ATTEMPTED an ally slot.** Ally slots sat in `alive_slots` on both faints, but the chooser ASKED FOR slots 2 then 3 — both ours — because `choose_new_lead_after_faint` already filters allies. ‼ **A CANDIDATE IS NOT AN ATTEMPT**, so an A/B fixing only the owner filter shows NO DIFFERENCE here and could make it WORSE (it empties `alive_slots` and trips a FALSE 'no eligible replacement'). ‼‼ **THE REAL DEFECT IS `_on_field`'S INDEX SPACE** — field-order `gBattlerPartyIndexes` compared against a party `UpdatePartyToBattleOrder` has already permuted; it excluded Swellow while Swellow was on the BENCH (proven by its send-out at `f21009`), costing **1263 frames vs 59** on a clean faint. ⇒ **✅✅ **`_on_field`'s INDEX SPACE IS FIXED AND PROMOTED TO BOTH FORKS (2026-08-17, user-approved). ⛔ DO NOT REDO IT.** Direction MEASURED first by an observe-only probe, then applied; all gates PASSED when that landed (**25** at the time — ⛔ the CURRENT count is deliberately not repeated here; `run_gates.py` prints it and IS the authority. This sentence has now been stale at 25 AND at 26 — `run_gates.py` IS the authority) (measured). ➡ **NEXT: the OWNER filter is still unfixed and proved INERT on this fixture — it needs its OWN discriminator, not this one. `:541-545` and `_util.py:522-587` are also untouched.** Read KI-66's DRIVEN block first.
-      ✅✅ *(superseded: "BUILD-READY" — the driver now EXISTS.)* Earlier: both blockers CLOSED by recon (a cold-start agent first found them
-      by TRYING to begin it, then a follow-up recon closed them).
-      ✅✅ **BUILD-READY AS OF 2026-08-16 — the two blockers are CLOSED by recon; read KI-66's `RECON 2026-08-16` block FIRST.** The FIXTURE existed all along and was merely undocumented: **`--driver spacecenter2`, anchor `saves/at_steven_2f.ss1`**, drives the real six-mon multi battle. The FAINT needs no new capability and no `gBattleMons` writer: **pre-stage one selected mon at 1 HP before the battle** (1, not 0 — a 0-HP mon is never SELECTED) and it faints in real combat. ⛔⛔ **REFUTED 2026-08-17 BY THE LIVE RUN — this block used to claim the ally case "needs all three of ours down = the LOSS condition". BOTH HALVES ARE FALSE:** only TWO of ours were down (Swellow was alive on the BENCH, sent out at `f21009`), and in a multi battle the side is `gPlayerParty[0..5]` — ours AND Steven's — so that is not the loss condition at all. The run WON, `whiteouts=0`. See KI-66's DRIVEN block. ✅ **Grade instead on the ATTEMPTED SLOT INDICES + refusal count on a SINGLE faint**, which `:630-636` reaches while two of ours are still alive. ⚠ ARM B's behaviour when only ally mons remain is a USER POLICY call.
-      *(Superseded: "RECON IS STARTABLE; THE BUILD IS NOT".)* Same correction item (1) already carries. What it confirmed by
-      reading: all four sites are live (`battle_handler.py:541-545`, `:588-598`, `:630-636`,
-      `_util.py:522-587`), and the choke point `ally_party_indices()` EXISTS
-      (`battle_strategies/default.py:12`), called from `default.py:189` / `level_up.py:53` /
-      `story_mode.py:171` — and from **none** of the four. What BLOCKS the build:
-      **(i) no anchor save is named anywhere that reaches a partner double battle, and
-      (ii) no fault hook forces the PLAYER FAINT that is the sole trigger for all four sites.**
-      ‼ **Without both, the obvious before/after A/B IS VACUOUS** — the entry's own words are
-      *"none has ever run live (every §Ch19 drive had zero faints)"*, so both arms are
-      byte-identical and read as *"the fix is unnecessary"*. ⇒ **first deliverable is a FIXTURE +
-      a faint hook, not a patch.** *(Undocumented candidates a future session may evaluate — found
-      by listing directories, NOT cited by any doc, so verify before trusting:
-      `saves/at_steven_2f.ss1`, `saves/post_space_center.ss1`, drivers `spacecenter1/2`,
-      `faintrepro`.)*
-      ⛔ **AND ONE POLICY QUESTION FOR THE USER, not for an agent:** when only ALLY mons are
-      alive, ARM B's correct behaviour is *"ride out the loss"* — but that contradicts
-      `ally_party_indices`'s own documented fail-closed rationale (`default.py:31-34`, which
-      fails closed to an empty set precisely to avoid pushing the caller into the full-party
-      fallback). Deliberately losing a battle is a behaviour choice.
-      ‼ **The `IndexError`-on-turn-1 sub-claim is REFUTED (2026-08-12), not pending.** Do not
-      re-check it; `05-KNOWN-ISSUES.md` cites the driven run (`ch19d.log` f23255, six-entry party,
-      multi battle WON).
-- [x] **(4) ✅ DONE 2026-08-16 — `story_harness.py` no longer overwrites its log.** — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
-- [x] (5) ✅ DONE 2026-08-17 — and the item's own premise was REFUTED — 📦 **ARCHIVED 2026-08-26 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
-- [x] **(6) ✅ DONE 2026-08-17 — SHELVED (it now has its own item, `#24-ki76correctness`) AND
-      MEASURED. ⛔ The DEFECTS remain open; what closed is the ORPHANING, which is what this bullet
-      was about.** *(Was: "KI-76's CORRECTNESS half is OPEN and MIS-SHELVED. Its only queue mention
-      sits inside a block the handoff brackets as 'older framing … ⛔ also NOT next'.")*
-      ‼ **Verified before acting:** KI-76 had **no punch-list entry of any kind** — its sole
-      appearance in this file was this bullet saying it was mis-shelved, and its sole handoff
-      appearance was buried at `04-HANDOFF.md:610` inside a §Ch20-era block. It is now a first-class
-      item with the measurement attached; the numbers live THERE, not here, so they cannot drift
-      into a second copy.
-
-‼ **PREVENTION, and it is a question rather than a rule:** at wrap-up, for every *"still open /
-owed / not built / residual"* sentence written that session, ask **"where would a future session
-FIND this?"** If the only answer is an append-only log, a CLOSED KI's body, or a research note, it
-is ORPHANED — put it here. ⇒ `08-MISTAKES.md`, 2026-08-15.
 
 ### ✅✅ `#24-sanitycheck` — the 5-PASS DEEP AUDIT — **COMPLETE (5/5). ⛔ DO NOT RE-RUN ANY PASS.** 📦 Full record in `28-HANDOFF-ARCHIVE.md`; ⭐ **its reusable METHOD was hoisted 2026-09-10 to `14-AGENT-PLAYBOOK.md` §0a** — a closed item is not where a technique should live.
 

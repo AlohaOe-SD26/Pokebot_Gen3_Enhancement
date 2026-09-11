@@ -26586,6 +26586,17 @@ introduced by either change** — the end-reason profiles are the same shape.
 It unblocks the counter-hunt at Juan (Bagon/Altaria are Dragon answers to his Kingdra) AND it is the
 first entry that would raise `TRAINING_GRASS`'s L28 ceiling. One datum, two blocked systems.
 
+⛔⛔ **SUPERSEDED 2026-09-11 — DO NOT ACT ON THE THREE LINES ABOVE. BOTH halves are now refuted, each
+for its own reason; see this file's 2026-09-11 entry "METEOR FALLS B1F IS SEALED".**
+• *"raises the L28 ceiling"* — refuted the same day by the WINNABILITY measurement (a L33-40 ground
+  cannot be won at by the mon that needs it: 69 battles, 0/43 HP, still L13).
+• *"unblocks the counter-hunt at Juan"* — refuted twice over. (a) **CIRCULAR**: B1F needs field
+  Waterfall, gated on `FLAG_BADGE08_GET` (`src/field_control_avatar.c:455`), and badge 8 IS Juan.
+  (b) **There was no defect to unblock**: `best_huntable` (`counter_plan.py:435`) only ever returns a
+  candidate with `huntable AND hunt_tile is not None`, so the bot never acted on it — the log line
+  that looked like a bad recommendation was a DIAGNOSIS, correctly marked.
+⇒ **A spin tile in Meteor Falls buys NOTHING before badge 8.** Mapping one is not "next".
+
 ---
 
 ## 2026-09-11 — It was never a CEILING problem. It is a WINNABILITY problem — and that corrects me twice.
@@ -26605,6 +26616,9 @@ L28 ceiling". **The second half is wrong.** A L33-40 ground cannot train the lag
 very measurement above. What it CAN do is serve the **counter-hunt**, which does not train a laggard:
 it CATCHES A NEW MON at the ground's own level (Bagon L25-35), which is appropriate by construction.
 ⇒ the Meteor Falls work is still worth doing, for ONE system, not two.
+⛔ **SUPERSEDED 2026-09-11 — it is worth doing for ZERO systems before badge 8.** The surviving
+half (the counter-hunt) is CIRCULAR: B1F needs Waterfall, which needs badge 8, which IS Juan.
+And the counter-hunt had no defect to fix — see the 2026-09-11 entry below.
 
 ### ⛔ CORRECTION 2 — to my own "the premise is dead" verdict on `#24-maintain`, same day
 I wrote that `#24-maintain`'s relocate-to-a-matched-ground shape "cannot work" because nothing exists
@@ -26635,3 +26649,42 @@ of 15 "recoveries" in that sample were the party MAX falling rather than the lag
 `_rotate_lead_safely` (KI-84, the same index-space class as KI-18/34/66/95), so it silently no-ops.
 Rotate the mon to lead and call `scope="lead"`, which stops on `_lead_level()` and never touches the
 broken path.
+
+---
+
+## 2026-09-11 — METEOR FALLS B1F IS SEALED: the warp table says reachable, the floor says no
+
+**An 8-agent recon decoded `map.bin` + `metatile_attributes.bin` and flood-filled with the game's own
+elevation rules, from the REAL story anchor (27,18).** ‼ Its decoder was CONTROLLED before it was
+believed: it re-derived this project's own documented Granite Cave B1F result (126-tile arrival
+region, zero cracked floors, muddy slope at (9,9)/(9,10), promoted tile (3,18)).
+
+| capability | tiles reached | contains (5,4)? | contains (26,28)? |
+|---|---|---|---|
+| on foot | **262** | no | no |
+| + Surf | **299** | no | no |
+| + Waterfall | **404** | — a B1F route finally opens, via (10,3) → 1F_2R |
+
+`(5,4)` and `(26,28)` are the two warps in `MeteorFalls_1F_1R/map.json` that lead to B1F_1R, and a
+warp needs no HM — which is exactly why this looked reachable. **Flooding outward FROM them shows
+they are sealed pockets of 32 and 29 tiles**: they are where you come UP from B1F, not where you go
+down. (The STEVENS_CAVE warp sits inside the (5,4) pocket — the vanilla "emerge onto Steven's ledge"
+structure, an independent corroboration of the decode.)
+
+⭐ **The conclusion "behind Waterfall" was RIGHT; the obvious reason I gave for overturning it was
+WRONG.** I verified the gate myself rather than taking it on report: `src/field_control_avatar.c:455`
+reads `if (FlagGet(FLAG_BADGE08_GET) == TRUE && IsPlayerSurfingNorth() == TRUE)`. Our own pathfinder
+already models it (`map_path.py:802`). And I verified the payload myself too: **Bagon is in `B1F_2R`
+only** — `B1F_1R` land is Golbat/Solrock — so the Dragon counter is four maps deep, needing Surf
+INSIDE B1F_1R on top of Waterfall.
+
+⇒ **CONSEQUENCES, all recorded where the tempting evidence lives:**
+1. The counter-evidence is written into `training_areas.py` itself, beside the entries, because the
+   recon flagged the obvious risk — *anyone re-checking only the warp table will overturn this again*.
+2. The earlier same-day instruction to "map a spin tile" is marked **SUPERSEDED** at BOTH of its
+   sites above, not merely contradicted down here.
+3. ⛔ **I also filed a phantom defect off a log line and retracted it the same hour** — see
+   `08-MISTAKES.md` 2026-09-11 and `#24-countermsg2`. The real (small) defect is the LABEL at
+   `story_mode.py:1094`: *"Nearest **reachable** counters:"* printed over entries marked UNREACHABLE.
+4. Drift went 0 → 1 (`training_areas.py`), **COMMENT-ONLY and AST-proven** — now provable on demand
+   by the committed `tools/story-dev/probe_comment_only_drift.py` rather than by an unlogged check.

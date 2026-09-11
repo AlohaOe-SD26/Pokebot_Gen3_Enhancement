@@ -114,8 +114,28 @@ PENDING_GRASS: list[tuple] = [
     # Waterfall — `METEOR_FALLS_1F_1R`, the room §Ch11 already visits at badge 3-4, is **L14-20**.
     # Sky Pillar is §Ch21. ⇒ between badge 6 and badge 8 the game offers NOTHING above L28, which is
     # why the Tate & Liza and Juan fight configs are grass-less by necessity rather than by choice.
+    # ⛔⛔ POST-BADGE-8 ONLY, AND THE WARP TABLE WILL TELL YOU OTHERWISE — IT IS A TRAP.
+    # `data/maps/MeteorFalls_1F_1R/map.json` shows warps **(5,4) → B1F_1R[4]** and
+    # **(26,28) → B1F_1R[5]**, and a warp needs no HM. Reading only that, B1F looks reachable from
+    # the §Ch11 anchor at badge 3-4. **IT IS NOT.** MEASURED 2026-09-11 by decoding `map.bin` +
+    # `metatile_attributes.bin` and flood-filling with the game's own elevation rules, from the real
+    # story anchor (27,18):
+    #     ON FOOT      262 tiles — contains NEITHER (5,4) nor (26,28)
+    #     WITH SURF    299 tiles — still NEITHER
+    #     +WATERFALL   404 tiles — only now does a B1F route open (via (10,3) → 1F_2R)
+    # ⇒ **BOTH B1F WARP TILES SIT IN SEALED POCKETS** — flooding outward FROM (5,4) gives a closed
+    # 32-tile pocket and FROM (26,28) a closed 29-tile pocket. They are where you come UP from B1F,
+    # not where you go down. (The STEVENS_CAVE warp (4,2) sits inside the (5,4) pocket — the vanilla
+    # "emerge onto Steven's ledge" structure, an independent corroboration of the decode.)
+    # ‼ The decoder was CONTROLLED before it was believed: re-deriving GRANITE_CAVE_B1F reproduced
+    # this file's own documented 126-tile arrival region, its zero cracked floors, the muddy slope at
+    # (9,9)/(9,10), and the promoted tile (3,18).
+    # ⇒ ⭐ **THE CONCLUSION "behind Waterfall" IS RIGHT; THE OBVIOUS REASON FOR IT IS WRONG.** Anyone
+    # who re-checks only the warp table will "overturn" this again — that already happened once.
     (MapRSE.METEOR_FALLS_1F_2R, None, (33, 40)),   # Golbat/Solrock, rate 10. Behind Waterfall+Surf.
-    (MapRSE.METEOR_FALLS_B1F_1R, None, (33, 40)),  # Golbat/Solrock, rate 10. Deeper still.
+    (MapRSE.METEOR_FALLS_B1F_1R, None, (33, 40)),  # Golbat/Solrock, rate 10. ⛔ NO Bagon here —
+    # Bagon (the Dragon counter the ladder wants) is in **B1F_2R** only, four maps deep and needing
+    # Surf INSIDE B1F_1R on top of Waterfall. Decomp-verified: B1F_1R land = Golbat/Solrock alone.
     (MapRSE.SKY_PILLAR_1F, None, (33, 38)),        # Banette/Claydol/Golbat/Sableye, rate 10.
     # ⛔ SKY_PILLAR 3F/5F are DELIBERATELY OMITTED even as candidates: §Ch21's own atlas records that
     # the climb runs on CRACKED FLOORS the planner cannot model (`map_path.py` has no "Cracked Floor"

@@ -687,6 +687,49 @@ _PROMO_PENDING = re.compile(
 #: FIVE unambiguous phrasings above, not every way English can say "not promoted yet".**
 
 
+#: ⛔⛔ THE STATE ROW MUST CARRY A CURRENCY MARKER — ADDED 2026-09-11, AFTER A MEASURED MISS.
+#: `check_drift` grades a figure only when a currency marker is attached to the NUMBER ITSELF
+#: (`_CURRENCY`). That rule is right and must not be loosened: anchoring on LOCATION was rejected
+#: in 2026-08-17 because the STATE cell deliberately carries dated HISTORICAL figures inline, and a
+#: gate that red-flags the docs' own history is bypassed within a day (`CLAUDE.md` rule 6).
+#:
+#: ‼ BUT ON 2026-09-11 THAT LEFT THE AUTHORITATIVE CELL UNGUARDED. Three passages were corrected to
+#: "1 differing, COMMENT-ONLY" while the STATE row still read `✅ **0 — PROMOTED 2026-09-10…**` — a
+#: bare figure with NO marker, so `check_drift` stayed silent BY DESIGN. Four statements of one
+#: fact, three updated; the one the file itself calls authoritative was the stale one. A Tier 1
+#: reviewer caught it, which means prose-and-review caught what a gate should have.
+#:
+#: ⇒ THE FIX IS A SHAPE RULE, NOT A SECOND DRIFT CHECK: the STATE drift row's LEADING figure must
+#: carry a currency marker, so that `check_drift` — which is already exhaustively fault-tested —
+#: can see it. This check never grades the number; it only refuses an ungradeable row.
+#: ⚠ It reads ONLY the leading figure (up to the first sentence break), so the inline history that
+#: motivated the 2026-08-17 rejection stays untouched.
+_STATE_DRIFT_ROW = re.compile(r"^\|\s*sandbox\s*(?:↔|<->|->)\s*custom\s+drift\s*\|(?P<cell>[^\n]*)$",
+                              re.I | re.M)
+
+
+def check_state_drift_row_currency(raw: dict[str, str]) -> list[str]:
+    """The STATE table's drift row must state its figure in a shape `check_drift` can grade."""
+    out: list[str] = []
+    for name, text in raw.items():
+        for m in _STATE_DRIFT_ROW.finditer(text or ""):
+            cell = m.group("cell")
+            # The LEADING claim only — the first sentence of the cell. Everything after it is the
+            # deliberately-preserved history and is none of this check's business.
+            head = re.split(r"(?<=[.!])\s|\*\(was\b", cell, maxsplit=1)[0]
+            if not re.search(_NUM, head):
+                continue                                  # no figure at all — nothing to grade
+            if _CURRENCY.search(head) or _NEGATED.search(head):
+                continue                                  # gradeable: check_drift owns it from here
+            out.append(
+                f"{name}: the STATE table's `sandbox ↔ custom drift` row states a figure with NO "
+                f"currency marker, so `check_drift` cannot grade it and it can go stale unseen "
+                f"(this is exactly what happened on 2026-09-11). Attach a marker to the NUMBER — "
+                f"e.g. `**1 as of <date> (LATEST)**` — keeping any history in a `*(was …)*` tail.\n"
+                f"        row reads: {head.strip()[:140]}")
+    return out
+
+
 def check_promotion_prose(files: dict[str, str]) -> list[str]:
     """When drift is 0, no current-state file may say work is still WAITING to be promoted.
 
@@ -1235,6 +1278,34 @@ def self_test() -> int:
            check_gate_count_in_commands({"T": f"py3 run_gates.py   # all {total + 1} gates\n"}), True)
     expect("D1n a bare `./run_gates.py` with no interpreter",
            check_gate_count_in_commands({"T": f"./run_gates.py   # all {total + 1} gates\n"}), True)
+    # ‼‼ S1 — THE STATE-ROW SHAPE RULE (2026-09-11). ⛔ S1a is the REAL defect, verbatim: it survived
+    # `check_drift` and three hand corrections, and only a Tier 1 reviewer saw it. A gate is not
+    # proven by its own fault arm — it is proven against the actual text that got through.
+    expect("S1a the VERBATIM stale row (bare figure, no marker) -> fires",
+           check_state_drift_row_currency(
+               {"T": "| sandbox ↔ custom drift | ✅ **0 — PROMOTED 2026-09-10, USER-AUTHORISED, AND "
+                     "VERIFIED BY DRIVING.** All six files moved |\n"}), True)
+    expect("S1b the corrected row (marker attached to the number) -> quiet",
+           check_state_drift_row_currency(
+               {"T": "| sandbox ↔ custom drift | ⚠ **1 as of 2026-09-11 (LATEST) — comment-only.** "
+                     "*(was 0 — PROMOTED 2026-09-10.)* |\n"}), False)
+    # ⛔ THE FALSE-POSITIVE HALF. The 2026-08-17 ruling rejected location-anchoring precisely because
+    # this cell carries dated history inline; if S1c ever fires, this check has become the thing
+    # that ruling forbade and must be reverted, not tuned.
+    expect("S1c history in the TAIL after a marked leading figure -> quiet",
+           check_state_drift_row_currency(
+               {"T": "| sandbox ↔ custom drift | **0 as of 2026-09-11 (LATEST)** *(was 6 on "
+                     "2026-09-07, 5 on 2026-09-06, 2 on 2026-09-05)* |\n"}), False)
+    expect("S1d a row with no figure at all claims nothing -> quiet",
+           check_state_drift_row_currency(
+               {"T": "| sandbox ↔ custom drift | run `promote.py --check` — it is the authority |\n"}),
+           False)
+    expect("S1e a NEGATED leading figure is check_drift's job, not this one -> quiet",
+           check_state_drift_row_currency(
+               {"T": "| sandbox ↔ custom drift | it is **not 0** today; a ruling is owed |\n"}), False)
+    expect("S1f a DIFFERENT state row that happens to mention drift -> quiet (row-anchored)",
+           check_state_drift_row_currency(
+               {"T": "| batch status | 3 lanes running, drift unchanged |\n"}), False)
     expect("D1o a command whose comment states NO count claims nothing and stays quiet",
            check_gate_count_in_commands(
                {"T": "py -3.12 run_gates.py --list    # what is in the suite\n"}), False)
@@ -1636,6 +1707,8 @@ def main() -> int:
     failures += check_gate_count_in_commands(raw_files)
     failures += check_gate_arithmetic(raw_files)
     failures += check_batch_build_flag(raw_files)
+    # ‼ Guards the SHAPE of the authoritative drift cell so check_drift can grade it (2026-09-11).
+    failures += check_state_drift_row_currency(raw_files)
     # ‼ BOTH texts: the legacy rules need fences STRIPPED, the claim-shape rules need them KEPT.
     # See check_drift's docstring — the authoritative `Expect …: 0 differing` line lives in a fence.
     failures += check_drift(files, raw_files)

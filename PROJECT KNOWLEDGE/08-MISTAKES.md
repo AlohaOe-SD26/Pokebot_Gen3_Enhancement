@@ -16361,3 +16361,64 @@ started from `post_vr_exit.ss1`, a fixture whose badges are already earned, and 
 `_play` from the top. A green drive proved the promoted code LOADS, not that it SURVIVES a resume.
 ⇒ **Do not promote code whose first real exercise is still ahead of it.** Promote after the batch,
 not before — the rollback tag existed for exactly this and it is why the cost was recoverable.
+
+---
+
+## 2026-09-11 — I "overturned" my own correct conclusion by reading a warp table, and an agent refuted me
+
+**What I claimed.** Earlier the same day I wrote that Meteor Falls' L33-40 rooms are "the deep ones
+behind Waterfall", so unavailable before badge 8. Hours later I read
+`data/maps/MeteorFalls_1F_1R/map.json`, found **`(5,4) → B1F_1R` and `(26,28) → B1F_1R`**, and
+announced a "major finding": a warp needs no HM, so B1F is reachable early and my earlier claim was
+wrong. I even flagged it as correcting myself — which made it sound MORE reliable, not less.
+
+**What is actually true.** The warps are real; the warp TILES are not reachable. A flood fill from the
+real §Ch11 anchor (27,18), using the game's own elevation rules, reaches **262 tiles on foot and 299
+with Surf, and contains NEITHER warp tile**. Flooding outward FROM them shows why: **(5,4) sits in a
+closed 32-tile pocket and (26,28) in a closed 29-tile pocket** — they are where you come UP from B1F.
+Only Waterfall (badge 8) opens a route at all.
+
+**So the original conclusion was RIGHT and my reason for overturning it was WRONG.** That is the
+mirror image of the mistake I recorded that same morning ("a conclusion can be right while its
+mechanism is wrong") — here a *correct* conclusion was nearly discarded because the *obvious* mechanism
+for it did not hold and I mistook that for a refutation.
+
+⭐ **Prevention rule (one line):** *A warp table proves an edge EXISTS, never that the player can STAND
+on its tile — reachability is a flood fill, not an adjacency list.*
+
+‼ **AND THE DURABLE PART: I wrote the counter-evidence into `training_areas.py` itself**, beside the
+entries, because the agent flagged the obvious risk — *"anyone re-checking only the warp table will
+overturn this again"*. A conclusion whose supporting evidence lives somewhere else gets re-litigated
+by the next reader who finds the same seductive half-fact. ⇒ **put the refutation where the tempting
+evidence is.**
+
+⚠ Credit where due: the finding came from an agent whose decoder was CONTROLLED first — it re-derived
+this project's own documented Granite Cave region (126 tiles, zero cracked floors, muddy slope at
+(9,9)/(9,10), promoted tile (3,18)) before it was allowed to answer anything about Meteor Falls. That
+control is why I believed a coordinate I could not cheaply re-derive myself.
+
+---
+
+## 2026-09-11 — I filed a behavioural defect off a LOG LINE; the code was correct (rule 7, again)
+
+**Symptom.** I read `"Nearest reachable counters: Bagon (Dragon) on Meteor Falls (B1F) 2R (tile
+unmapped, NOT HUNTABLE, …) — UNREACHABLE"` in a batch log and filed `#24-counterhmgate`: *"the
+counter recommender offers grounds it cannot reach."*
+
+**Root cause.** I graded the CANDIDATE LIST instead of the ACTION. `best_huntable`
+(`counter_plan.py:435`) is the only function an executor may use and requires
+`huntable AND hunt_tile is not None`; Meteor Falls carries `tile=None`, so it could never be chosen.
+The log had already printed **both** disqualifying markers on that very line.
+
+**Why it is worth an entry even though nothing shipped.** This is **SESSION DISCIPLINE rule 7** —
+*"INSTRUMENT THE ACTION, NOT THE INPUT TO THE ACTION. ⛔ A CANDIDATE IS NOT AN ATTEMPT"* — and I
+violated it while holding the rule in context. Worse, `counter_plan.py:477` carries a comment
+recording the **same misreading of the same log line** on 2026-09-07 (*"reported the recommender as
+broken. It was correct… The line, not the logic, was the defect"*). ‼ Two people, same log, same
+wrong conclusion ⇒ the log line is a defect surface, not a coincidence.
+
+⭐ **Prevention rule (one line):** *Before filing a defect from a log, open the function that CONSUMES
+the logged value and check whether anything acts on it — a list the executor filters is a diagnosis,
+not a recommendation.*
+⇒ Filed as `#24-countermsg2` (fix the misleading LABEL at `story_mode.py:1094`), with the retraction
+kept in the item so the phantom is not re-filed a third time.
