@@ -1361,8 +1361,62 @@ def _sampling(gen: Generator, report: dict) -> Generator:
         yield
 
 
+#: The Pokémon League BUILDING's interior — every map you can only stand on by having already
+#: crossed the ocean and climbed the falls.
+#:
+#: ⛔⛔ AN EXPLICIT SET, NEVER A `startswith("EVER_GRANDE_CITY_")` PREFIX MATCH. Two maps carry that
+#: prefix and are NOT the League: `EVER_GRANDE_CITY_POKEMON_CENTER_1F` and `..._2F`. A prefix test
+#: would silently swallow the Poké Center, which is exactly the map §Ch23's leg 10 heal and the
+#: whiteout respawn care about — so the convenient version of this constant breaks the two things
+#: most likely to be true when it is consulted.
+LEAGUE_INTERIOR_MAPS = (
+    MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_1F,
+    MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_2F,
+    MapRSE.EVER_GRANDE_CITY_HALL1,
+    MapRSE.EVER_GRANDE_CITY_HALL2,
+    MapRSE.EVER_GRANDE_CITY_HALL3,
+    MapRSE.EVER_GRANDE_CITY_HALL4,
+    MapRSE.EVER_GRANDE_CITY_HALL5,
+    MapRSE.EVER_GRANDE_CITY_SIDNEYS_ROOM,
+    MapRSE.EVER_GRANDE_CITY_PHOEBES_ROOM,
+    MapRSE.EVER_GRANDE_CITY_GLACIAS_ROOM,
+    MapRSE.EVER_GRANDE_CITY_DRAKES_ROOM,
+    MapRSE.EVER_GRANDE_CITY_CHAMPIONS_ROOM,
+    MapRSE.EVER_GRANDE_CITY_HALL_OF_FAME,
+)
+
+
+def inside_league() -> bool:
+    """Is the bot inside the Pokémon League building (any Elite Four room, hall, or lobby)?"""
+    return any(_on_map(m) for m in LEAGUE_INTERIOR_MAPS)
+
+
 def at_ever_grande_top() -> bool:
-    """Leg 4's completion predicate — ⛔ a POSITIVE whitelist, never `not _on_map(R126)`."""
+    """Leg 4's completion predicate — ⛔ a POSITIVE whitelist, never `not _on_map(R126)`.
+
+    ⛔⛔ THE LEAGUE INTERIOR COUNTS, AND OMITTING IT WAS A LATENT DERAIL-AMPLIFIER (fixed 2026-09-10).
+    This used to be `_on_map(EG) and y <= EG_LANDING[1]` alone. From INSIDE the League building
+    `_on_map(EG)` is False (the rooms are their own maps, `map_data.py:1037-1051`) and the League is
+    not in `VICTORY_ROAD_MAPS` either — so BOTH of leg 4's guards read False and the chapter fired
+    **an ocean crossing from inside a building**. `cross_to_ever_grande` then aims
+    `_navigate_riding_out(EG, EG_LANDING)` at a surf landing it cannot plan to, burns all three of
+    the chapter's attempts, and RAISES. ⇒ one recoverable §Ch24 error became a HARD §Ch23 failure.
+    ‼ Being in the League is unambiguously PAST the crossing — the building has no other entrance —
+    so True is the honest answer, not a special case.
+
+    ⚠ MEASURED, because the report that sent me here had the mechanism WRONG and the fix would have
+    landed in the wrong place: an agent said this returns False "at the League door". It does not.
+    `EG_LANDING = (18, 55)` and the door apron is `(18, 6)`; **6 <= 55, so it already returned True
+    there** and leg 4 correctly skipped. The real hole was one map further in. ⇒ **a conclusion can
+    be right while its stated mechanism is wrong, and the mechanism is what you build against.**
+
+    ⛔ Both call sites MIRROR each other by design (the leg's own self-skip at `cross_to_ever_grande`
+    and the chapter's guard) — the chapter docstring requires it, so no anti-vacuity guard can fire
+    from the chapter path. Fixing this HERE keeps them mirrored by construction; patching one guard
+    would have split them.
+    """
+    if inside_league():
+        return True
     return _on_map(EG) and _here_tile()[1] <= EG_LANDING[1]
 
 
@@ -1803,7 +1857,30 @@ def team_is_ready(target: int = None) -> tuple[bool, list]:
     # ⇒ **A PARAMETER THAT ONLY REACHES HALF THE FUNCTION IS NOT A PARAMETER.**
     target = TRAIN_TARGET if target is None else target
     reasons = []
-    for (pid, species), (_slot, level) in battler_identities().items():
+
+    # ⛔⛔ AN EMPTY BATTLER SET MUST NEVER GRADE READY. Without this, the loop below simply does not
+    # execute, `reasons` stays empty, and the function returns `(True, [])` — a party with NOTHING
+    # that can fight the Elite Four is certified READY, silently, and §Ch23 returns early having
+    # trained nobody. That is the same shape as the `POKEBOT_CH23_TRAIN_TARGET=53` defect recorded
+    # above (a check that answers without ever asking) and as the six dead fault arms.
+    # ‼ THIS IS ALSO A HARD PREREQUISITE FOR THE ONLY UNTESTED FIX DIRECTION LEFT ON
+    # `#24-lowlevelmules`: making `battler_identities` bench by ROLE would let a bad predicate empty
+    # the set, and the failure would surface as a PASSING run rather than as an error. ⇒ the guard
+    # has to exist BEFORE that predicate is touched, not alongside it.
+    # ⭐ Fail-safe direction: it can only turn a silent TRUE into a loud FALSE, never the reverse.
+    battlers = battler_identities()
+    if not battlers:
+        party_desc = [
+            f"{m.species.name}:L{m.level}" for m in get_party()
+            if m is not None and not m.is_egg
+        ]
+        return False, [
+            "⛔ NO BATTLERS: `battler_identities()` is empty, so readiness could not be assessed. "
+            f"Party: {party_desc or 'EMPTY'}. Every member is an egg, unreadable, or excluded by "
+            f"BENCH_SPECIES={BENCH_SPECIES}. Refusing rather than reporting READY."
+        ]
+
+    for (pid, species), (_slot, level) in battlers.items():
         if level < target:
             reasons.append(f"{species}#{pid:08X} is L{level} < {target}")
     for mon in get_party():
@@ -3288,6 +3365,43 @@ def do_victory_road_chapter(report: dict | None = None) -> Generator:
             # ⛔ ONLY BEFORE WALLY. After the flag is set, levels gate nothing and `train_team` has
             # burned 19.9M frames on a target local grass could not deliver (KI-28).
             if not inside_vr and not wally_beaten() and not team_is_ready(TRAIN_TARGET)[0]:
+                # ⛔⛔ THIS IS THE BARE CALL ON PURPOSE. `#24-ch23training`'s stepping fix was
+                # BUILT, DRIVEN AND REFUTED on 2026-09-08 — but ⚠⚠ **THE REASON RECORDED HERE WAS
+                # WRONG AND IS CORRECTED 2026-09-09 (twice; read the whole note).** It first said the
+                # mule sat "at 0/43 HP the whole time"; a first correction then claimed `0/43`
+                # "appears NOWHERE in the logs". ⛔ **BOTH WERE WRONG.** Measured in
+                # `profiles/repro-ml/debug-logs/Story-debug-20260908-081133.log` (one run):
+                #     `0/43` x53, of which 51 are overworld `party=[...]` dumps  -> IT DID FAINT
+                #     72 battle-start HP readings, 66 of them full 43/43         -> healed between
+                #     232 turn decisions: 231 UseMove, 1 RunAway, 0 RotateLead
+                #     only Marill level ever recorded: 13
+                # ⇒ THE REAL MECHANISM: the DRIVER NEVER INSTALLED SWAP-TRAINING.
+                # `Ch23TrainMode.on_battle_started` returns `StoryItemBattleStrategy()`, and
+                # `SwapTrainBattleStrategy` is constructed ONLY at `story_mode.py:2513` inside
+                # `StoryMode.on_battle_started` — and `Ch23TrainMode` is not a `StoryMode`. The run
+                # recorded **232 turn decisions and 0 RotateLead**. ⇒ the mule fought EVERY battle
+                # ALONE because the feature was ABSENT — and fighting alone at a +27 gap is why it
+                # fainted. ⚠ **WHETHER IT WOULD SURVIVE *WITH* SWAP-TRAINING IS UNTESTED**: the
+                # mechanism never ran here, and corpus-wide it has NEVER been observed firing above a
+                # +6 gap (0 of 510 at +7, 0 of 4,950 at >=+8, out of 24,244 turn-0 full-HP decisions,
+                # of which 1,002 ARE rotations — so the logger can certainly print one).
+                # ⭐ Re-run it: `tools/story-dev/probe_swaptrain_envelope.py`.
+                # ⚠ A zero at a gap means NOT OBSERVED, not REFUSED: the strategy may never have been
+                # installed in the runs that reached it — which is exactly what happened here.
+                # ⛔ WITHDRAWN: "the ceiling is a proxy for survivability" — that rested on the
+                # fabricated HP figure. ✅ STILL STANDS: stepping is refuted by its INDEPENDENT
+                # reason — `team_is_ready`'s CRUNCH loop ignores its `target`, so any sub-47 target
+                # breaks the control. One reason, not two.
+                # ⭐ AND THE ZERO WAS STILL SOUND EVIDENCE: a L13 Marill (Fast curve) needs 438 EXP
+                # per level and the WORST foe here pays 138 after a 2-way split — 3.2 battles per
+                # level, so 69 battles was ~22x enough. "Gained nothing" did prove near-zero
+                # participation; only the explanation was invented.
+                # ‼ ⇒ WHETHER A LEVEL-MATCHED GROUND WOULD WORK IS NOW REOPENED AND UNTESTED —
+                # `best_training_area()` refuses any band whose LOW end exceeds the trainee, and
+                # §Ch23's hardcoded `TRAIN_SPOT_1F` is the one path that bypasses it. ⛔ Do NOT act
+                # on that without an adversarial pass: "training elsewhere" is one of the five
+                # MEASURED-WRONG fixes on `#24-ch23training`, and this is adjacent to it.
+                # See `07-CHANGELOG.md` 2026-09-08 and `#24-ch23training`.
                 yield from train_for_victory_road(report)
 
             # --- LEG 5 — INTO VICTORY ROAD AND THROUGH WALLY ------------------------------------

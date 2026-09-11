@@ -58,12 +58,29 @@ class StoryFleeStrategy(RunAwayStrategy):
 class StoryCatchStrategy(CatchStrategy):
     """Catch strategy for the Story bot that NEVER drops to Manual when out of Poké
     Balls. The stock CatchStrategy calls `switch_to_manual()` the moment it can't
-    throw a ball — but opportunistic pre-gym catching can burn through the 5 starter
-    balls on bad catch RNG before the team is full, which stranded the bot in Manual
-    (user-seen). Here, if no ball can be thrown, we FLEE and carry on instead; the
-    story then stops catching (the `_should_catch` floor) until balls are restocked
-    at a mart before the gym. (User directive: out of balls → finish the battle,
-    never break.)"""
+    throw a ball — but opportunistic catching can burn through the balls on bad catch
+    RNG, which stranded the bot in Manual (user-seen). Here, if no ball can be thrown,
+    we FLEE and carry on instead; the story then stops catching (the `_should_catch`
+    floor) until balls are restocked. (User directive: out of balls → finish the
+    battle, never break.)
+
+    ‼ SCOPE WIDENED 2026-09-10 (`#24-dexhunt`). This docstring said "pre-gym catching"
+    and "restocked at a mart BEFORE THE GYM"; both are now false. `_should_catch` also
+    admits POST-badge dex catches at a full party, so this strategy runs on L30-45
+    routes, not only L3-6 ones.
+
+    ⛔⛔ AND THAT MATTERS, BECAUSE A CATCH BATTLE NEVER FIGHTS BACK. `CatchStrategy.decide_turn`
+    (`catch.py:41-62`) only ever throws a ball or applies a status move — never a damaging
+    move — and `should_flee_after_faint` is unconditionally False (`catch.py:38-39`), which
+    removes the base strategy's "party can't battle → flee" escape. So the wild attacks for
+    free and the bot does not leave until the balls run out. Pre-gym-1 that was bounded by
+    weak wilds; it is not any more.
+    ⇒ The fence bounds ENTRY (`party_healthy` in `decide_dex_catch`), so a dex catch only ever
+    STARTS from full strength. It does NOT bound mid-battle degradation — that needs a
+    faint-aware bail-out in a dex-only subclass, filed as `#24-dexcatch-battlebail`.
+    ⛔ DO NOT "fix" it by editing this class: `StoryShinyCatchStrategy` INHERITS from it, and the
+    shiny rule is an explicit user directive (2026-07-22) to attempt until success, whiteout or
+    out of balls. A bail-out here would silently overrule that."""
 
     def decide_turn(self, battle_state):
         try:
@@ -1120,6 +1137,182 @@ def _training_area_heal_map() -> dict:
     }
 
 
+# ======================================================================================================
+# `#24-dexhunt` — THE CATCHING FENCE (user directive 2026-09-04, ruled 2026-07-31)
+# ======================================================================================================
+#: Poké Balls (EXCLUDING the Master Ball) that a DISCRETIONARY dex catch must leave behind.
+#:
+#: ⛔⛔ THIS IS NOT `resource_blocker()`'s FLOOR AND MUST NOT BE COLLAPSED INTO IT. That floor is 1 —
+#: "the last ball is reserved" — and it is the right floor for a MANDATORY catch (an HM learner, a
+#: boss counter): those are catches the run cannot proceed without.
+#:
+#: A dex catch is discretionary, and a boolean floor of 1 is measurably unsafe for it. MEASURED IN
+#: CODE 2026-09-10: `counter_hunt.hunt()` checks its balls at `counter_hunt.py:471` BEFORE the
+#: journey and only calls `arm()` at `:510` AFTER arriving — with `_navigate_riding_out(..., tries=24)`
+#: at `:488` in between, which that function's own comment calls "the LONGEST journey the bot ever
+#: makes … 8 map-hops away across several warp chains". So `is_armed()` is FALSE for the whole trek,
+#: and a fence gated only on a boolean would happily spend the hunt's balls down to 2 en route. The
+#: hunt does not re-check on arrival: it arms, spins its full `HUNT_SPIN_BUDGET_FRAMES` (120,000) and
+#: reports "found nothing" while standing on the answer — the exact failure its own comment says the
+#: feature already suffered once.
+#: ⇒ THE FENCE MUST LEAVE A HUNT'S WORTH OF BALLS BEHIND, NOT A TOKEN.
+#:
+#: ‼ HOW THE NUMBER WAS CHOSEN, stated honestly because this project does not accept guessed
+#: constants dressed as measurements: `HUNT_SPIN_BUDGET_FRAMES`' own comment sizes a hunt at
+#: "roughly 12 expected meetings plus catch failures". Balls-per-successful-catch has NEVER been
+#: measured here — nothing logs it — so 10 is a JUDGEMENT sized to that budget, deliberately below
+#: 12 (a hunt that meets its target does not need a ball for every meeting) and far above 1.
+#: ⇒ RE-DERIVE IT once `balls=` heartbeat telemetry (shipped 2026-09-10) has a batch behind it.
+DEX_CATCH_BALL_RESERVE = 10
+
+#: Attempts per species per run before the fence gives up on it.
+#: ⛔ ATTEMPTS, NOT SUCCESSES. A catch that fails (break-out, the wild flees, our lead faints) leaves
+#: the species un-owned, so the predicate that admitted it is TRUE again on the very next encounter —
+#: and nothing else in this codebase remembers. Without a cap the only terminating condition is
+#: draining the ball pool, which is precisely the resource the mandatory hunts share. 2 is one retry.
+DEX_CATCH_MAX_ATTEMPTS = 2
+
+#: Gen 3's party size. Named rather than inlined as `6` because this file already carries FOUR
+#: separate hand-written `< 6` party tests and the fence's whole correctness rests on meaning the
+#: same thing they do.
+PARTY_CAPACITY = 6
+
+#: 14 boxes x 30. Past this the game shows `gText_BoxFull`, does NOT consume the ball, and returns to
+#: the bag menu — a state no caller here inspects, so the strategy would simply throw again.
+#: ⛔ Unreachable from this feature alone (420 slots vs ~200 species) — it is guarded anyway because
+#: the cost is one comparison and the failure mode is an in-battle loop that the frame budget cannot
+#: see (KI-36: battles hold control, so the budget reports `frame-cap=0`).
+PC_STORAGE_SLOTS = 14 * 30
+
+
+def decide_dex_catch(
+    *,
+    is_wild: bool,
+    is_shiny: bool,
+    has_pokedex: bool,
+    pre_badge1: bool,
+    party_slots_used: int,
+    battler_count: int,
+    party_target: int,
+    resource_block: "str | None",
+    spare_balls: int,
+    hunt_armed: bool,
+    training: bool,
+    boxed_count: int,
+    party_healthy: bool,
+    species_dex: "int | None",
+    owned_dex: "frozenset[int]",
+    party_dex: "frozenset[int]",
+    attempts: int,
+) -> "tuple[bool, str]":
+    """PURE. Should this wild encounter become a catch attempt? Returns `(catch, reason)`.
+
+    ⛔⛔ WHY THIS IS A PURE FUNCTION AND NOT AN `if` CHAIN INSIDE THE ADAPTER. `04-HANDOFF.md` says of
+    this item: *"NO CHEAP FIXTURE TEST EXISTS — a Tier 2 auditor tried and could not compute a
+    discriminator."* That is true of the fence's EFFICACY and stays true: only an hours-long batch
+    can say whether catching raises the dex. It is NOT true of the fence's CORRECTNESS. Every input
+    below is a plain value, so `probe_dex_catch_fence.py` can interrogate all sixteen conditions in
+    milliseconds — which is the same move that made `rank_replacement` testable after
+    `choose_new_lead_after_faint` had shipped THREE index-space bugs that each needed a ROM, a live
+    battle and a staged faint to see.
+
+    ‼ IT RETURNS A REASON, NOT A BARE BOOL, AND THAT IS LOAD-BEARING. The 2026-07-31 ruling requires
+    that a skip SAY SO. The old `_should_catch` returned `bool` from inside a blanket
+    `except Exception: return False`, so "the fence declined" and "the fence crashed" were the same
+    observation — which is exactly how the draft spec's invented `counter_hunt.hunt_active()` would
+    have failed: `AttributeError`, swallowed, feature never fires, and the A/B reads "no difference"
+    as a REFUTATION of a feature that never ran.
+
+    ⛔⛔ THREE PARTY FIGURES, DELIBERATELY, AND THEY ARE NOT INTERCHANGEABLE. Each answers a DIFFERENT
+    question, and an egg is counted by one and not the others:
+      * `party_slots_used` — RAW slots, EGGS INCLUDED. Answers *"will the game store this catch in
+        the PC?"*, and the game's own answer counts an egg as an occupied slot. Same convention as
+        `ensure_hm_learner` (`early_game.py:4505`) and the counter branch (`:2327`).
+      * `battler_count` — EGG-FILTERED. Answers *"how big is the TEAM?"* for the pre-gym-1 target,
+        which is a target for things that can FIGHT. An egg cannot.
+      * `party_dex` — EGG-FILTERED. Answers *"do we already have this species?"*.
+    ‼ THE FIRST DRAFT USED ONE COUNT FOR ALL THREE AND IT SILENTLY CHANGED THE ORDINARY CASE. Feeding
+    the RAW count to the pre-gym-1 target made *3 battlers + 1 egg* read as a full team of 4 and
+    refuse a catch the old code ALLOWED — a behaviour change in the one path this work promised not
+    to touch, in a game where a Day-Care egg rides in a party slot. Caught by A/B-ing the new
+    predicate against the old logic (`probe_dex_catch_fence.py` C19/C20 are that A/B, kept as a
+    permanent regression test), NOT by reading it — the two counts differ only when an egg is aboard,
+    which no amount of re-reading makes obvious.
+    ⇒ And the mirror error is just as real: using the EGG-FILTERED count for FULLNESS would fire the
+    fence at five mons + an egg, where the catch takes the sixth PARTY slot and consumes the
+    HM/counter runway `#24-partycap` MEASURED as worth 36 points of finish rate.
+    """
+    # ---- gates that are true of any catch, at any stage -------------------------------------------
+    if not is_wild:
+        return False, "trainer battle"
+    if is_shiny:
+        # Pre-empted upstream by `StoryShinyCatchStrategy` (`on_battle_started`, the FIRST branch).
+        # Returning False here is not a refusal to catch shinies — it is refusing to catch them TWICE.
+        return False, "shiny — already handled by the shiny branch"
+    if not has_pokedex:
+        return False, "no Pokédex yet"
+    if species_dex is None:
+        return False, "species could not be read"
+    if species_dex in owned_dex:
+        return False, f"#{species_dex} already owned"
+    if species_dex in party_dex:
+        return False, f"#{species_dex} already in the party"
+    # ‼ THE PINNED RESOURCE PREDICATE (2026-07-31 ruling: "reuse it rather than writing a second one
+    # that can drift"). `counter_hunt.resource_blocker()` is the authority on whether ANY catch can be
+    # attempted; the caller passes its verdict straight through, so this function cannot drift from it.
+    if resource_block:
+        return False, resource_block
+
+    # ---- PRE-GYM-1: organic team building (user directive 2026-07-21) — UNCHANGED ------------------
+    # ⛔ This branch must stay behaviourally identical. It is the ordinary case, it runs in every run,
+    # and `#24-partycap` measured that disturbing the early party costs 36 points.
+    if pre_badge1:
+        # ⛔ `battler_count`, NOT `party_slots_used` — the target counts things that can FIGHT, and
+        # this is the ordinary case that `#24-partycap` costs 36 points to disturb. See the docstring.
+        if battler_count < party_target:
+            return True, "pre-gym-1 team building (joins the party)"
+        return False, f"pre-gym-1 team already at its target of {party_target}"
+
+    # ---- POST-GYM-1: THE DEX FENCE ----------------------------------------------------------------
+    if party_slots_used < PARTY_CAPACITY:
+        # THE HEART OF THE FENCE. Below a full party the catch would take a PARTY slot, and the empty
+        # slots are the runway HM and counter catches land on — `#24-partycap`, MEASURED: 52.0% ->
+        # 15.8% finish rate, the ENTIRE loss on one badge rung, 10 of 16 non-finishes being
+        # "No party mon can learn Surf and the party is full". At a FULL party there is no runway left
+        # to consume, so `Cmd_givecaughtmon -> GiveMonToPlayer -> CopyMonToPC` stores it instead.
+        return False, f"party is {party_slots_used}/{PARTY_CAPACITY} — a catch would consume the HM/counter runway"
+    if hunt_armed:
+        # ⛔ A catch-on-sight hunt is running. `counter_hunt.catch_confirmed`'s BOX path
+        # (`counter_hunt.py:363-365`) is SPECIES-BLIND — any new box PID ends the spin. The hunt's
+        # VERDICT is type-aware (`party_counter_slot`/`box_counter_pid` at `:546`/`:559`), so an
+        # off-type dex catch is NOT mis-registered as the counter; it is worse in a quieter way: the
+        # spin ENDS EARLY, the verdict finds nothing, and the ladder loses a 120,000-frame hunt and a
+        # ball having caught the wrong thing.
+        return False, "a catch-on-sight hunt is armed"
+    if training:
+        # A catch earns ZERO exp, and `train_team` exists only to gain exp. Worse, `#24-ch23training`
+        # is the top run-ender (16 of 49 = 32.7%) precisely because a grind exceeds its frame ceiling.
+        # ‼ And the no-progress watchdog counts OVERWORLD frames with unchanged party EXP
+        # (`early_game.py:202-218`), resetting ONLY on an EXP change — so catches lengthen the
+        # un-reset window without ever moving it.
+        return False, "a training grind is in progress"
+    if spare_balls <= DEX_CATCH_BALL_RESERVE:
+        return False, f"only {spare_balls} spare balls — below the dex reserve of {DEX_CATCH_BALL_RESERVE}"
+    if boxed_count >= PC_STORAGE_SLOTS:
+        return False, "PC storage is full"
+    if not party_healthy:
+        # ⛔ A CATCH BATTLE NEVER FIGHTS BACK. `CatchStrategy.decide_turn` (`catch.py:41-62`) only ever
+        # throws a ball or applies a status move, and `should_flee_after_faint` is unconditionally
+        # False (`:38-39`) — so the wild attacks freely and the bot does not leave until the balls run
+        # out. Pre-gym-1 that was bounded by L3-6 wilds; post-badge it runs against L30-45 ones.
+        # Entering only from full strength is the part of that exposure a PURE predicate can bound.
+        # ⚠ It does NOT bound mid-battle degradation — see `#24-dexcatch-battlebail`.
+        return False, "party is not at full strength"
+    if attempts >= DEX_CATCH_MAX_ATTEMPTS:
+        return False, f"already attempted #{species_dex} {attempts}x this run"
+    return True, f"dex catch #{species_dex} (goes to the PC box)"
+
+
 class StoryMode(BotMode):
     #: OPT IN to the battle-handler fault channel (#24-movelearn-recovery, 2026-07-25).
     #: A sub-handler that gives up (e.g. an unanswerable move-learn offer) records the
@@ -1308,6 +1501,14 @@ class StoryMode(BotMode):
         # land on. Measured: at cap 4 the team still reaches a mean of 5.85 by the Feather
         # Badge. It fills up either way; letting wilds take the seats first is what breaks it.
         self._catch_team_target = 4
+        # `#24-dexhunt`: national-dex number -> ATTEMPTS this run (not successes).
+        # ⛔ ATTEMPTS IS THE ONLY COUNT THAT TERMINATES. A failed catch leaves the species un-owned,
+        # so the predicate that admitted it is TRUE again on the very next encounter and nothing else
+        # in this codebase remembers — without this dict the fence's only stopping condition is
+        # draining the ball pool the MANDATORY hunts share.
+        self._dex_catch_attempts: dict[int, int] = {}
+        #: Last fence verdict string, so the log reports a CHANGE rather than every encounter.
+        self._dex_catch_last_reason = ""
         # #24-counters phase 2: boss key -> what the counter hunt did, ONE entry per boss
         # per run. This dict IS the bound (see `_counter_ladder`) — a retry or frame
         # budget cannot bound it, because `_prepare_for_fight` is re-entered by the run
@@ -1421,44 +1622,84 @@ class StoryMode(BotMode):
         console.print(f"[yellow]Story localization — {note} | stage: {stage} | map {self._location_key()}[/]")
 
     def _should_catch(self, encounter) -> bool:
-        """Pre-Gym-1 organic team-building (user directive 2026-07-21): catch a wild
-        of a NEW species (never a dup we've already caught, never one already in the
-        party) while there's room in the party. Only before the first gym, only once
-        we have the Pokédex + Poké Balls. Shinies return False here only because the
-        SHINY branch in on_battle_started pre-empts this entirely (always-catch, user
-        directive 2026-07-22) — this filter is for ordinary team-building catches."""
+        """ADAPTER: read live state, hand it to the PURE `decide_dex_catch`, log the reason.
+
+        Two catching regimes live behind this one call, and the pure predicate keeps them apart:
+          * PRE-GYM-1 organic team-building (user directive 2026-07-21) — catch a NEW species into
+            the PARTY while there is room. Unchanged, and it must STAY unchanged.
+          * POST-GYM-1 THE DEX FENCE (`#24-dexhunt`, user directive 2026-09-04) — catch a NEW species
+            into the PC BOX, and ONLY at a full party, with no hunt armed, outside a training grind,
+            above a ball reserve, from full strength, capped per species.
+
+        ⛔ ALL DECISION LOGIC LIVES IN `decide_dex_catch`. Nothing here may decide anything: this
+        function's ONLY jobs are reading the game and reporting. A condition added here instead of
+        there is a condition `probe_dex_catch_fence.py` cannot see, and the reason the old version
+        was untestable is that its sixteen conditions were welded to sixteen live reads.
+
+        ‼ THE BLANKET `except` STAYS, BUT IT NO LONGER HIDES. It used to return a bare False, making
+        "declined" and "crashed" indistinguishable — the shape that would have let the draft spec's
+        invented `counter_hunt.hunt_active()` fail silently forever. It now SAYS so.
+        """
+        reason = "unevaluated"
         try:
             from modules.memory import get_event_flag
             from modules.pokemon_party import get_party
             from modules.pokedex import get_pokedex
             from modules.items import get_item_bag
+            from modules.story import counter_hunt as _chunt
+            from modules.story import early_game as _eg
 
-            if encounter is None:  # trainer battle — never "catch"
-                return False
-            if getattr(encounter, "is_shiny", False):
-                return False
-            if get_event_flag("BADGE01_GET"):  # only before the first gym
-                return False
-            if not get_event_flag("RECEIVED_POKEDEX_FROM_BIRCH"):  # need balls + dex
-                return False
-            # RESOURCE-AWARE (planning doc §3): never ATTEMPT a catch without balls —
-            # that's what broke the bot. Keep 1 in reserve; the catch phase restocks
-            # (buys) or stops gracefully. Fight the wild instead when out of balls.
-            if sum(s.quantity for s in get_item_bag().poke_balls) <= 1:
-                return False
-            party = [p for p in get_party() if p is not None and not p.is_egg]
-            if len(party) >= self._catch_team_target:
-                return False
+            raw_party = [p for p in get_party() if p is not None]
+            battlers = [p for p in raw_party if not p.is_egg]
             species = getattr(getattr(encounter, "pokemon", None), "species", None)
-            if species is None:
-                return False
-            # Species objects aren't hashable — compare by national dex number.
-            owned = {s.national_dex_number for s in get_pokedex().owned_species}
-            party_dex = {p.species.national_dex_number for p in party}
-            dex = species.national_dex_number
-            return dex not in owned and dex not in party_dex
-        except Exception:
-            return False
+            dex = species.national_dex_number if species is not None else None
+            bag = get_item_bag()
+
+            catch, reason = decide_dex_catch(
+                is_wild=encounter is not None,
+                is_shiny=bool(getattr(encounter, "is_shiny", False)),
+                has_pokedex=bool(get_event_flag("RECEIVED_POKEDEX_FROM_BIRCH")),
+                pre_badge1=not get_event_flag("BADGE01_GET"),
+                # RAW slots (eggs included) — this decides party-vs-box; see the pure docstring.
+                party_slots_used=len(raw_party),
+                # EGG-FILTERED — the pre-gym-1 target counts BATTLERS. Feeding the raw count here
+                # changed the ordinary case (3 battlers + 1 egg read as a full team of 4).
+                battler_count=len(battlers),
+                party_target=self._catch_team_target,
+                # ‼ THE PINNED PREDICATE, passed through rather than re-implemented (2026-07-31).
+                resource_block=_chunt.resource_blocker(),
+                # ⛔ EXCLUDES THE MASTER BALL (`items.py:447`). `poke_balls` is the whole pocket, so a
+                # bag holding one Master Ball and one Poké Ball satisfies every `> 1` test in this
+                # file — and a DISCRETIONARY dex catch must never be the thing that burns it.
+                spare_balls=bag.number_of_balls_except_master_ball,
+                # ⛔ BOTH ARMING SYSTEMS. `is_armed()` reads only `COUNTER_CATCH_TARGET_DEX`;
+                # `early_game.HM_CATCH_TARGET_DEX` is a SECOND, independent one with no is_armed-style
+                # reader. Today the HM hunt cannot arm at a full party (`early_game.py:4506` raises
+                # before `:4566` assigns), so this OR is belt-and-braces — but that safety is an
+                # accident of another function's control flow, not an assertion, and
+                # `ensure_hm_learner_making_room` (`:4599`) exists specifically to reach party 6,
+                # free a slot and retry.
+                hunt_armed=bool(_chunt.is_armed()) or bool(_eg.HM_CATCH_TARGET_DEX),
+                training=bool(_eg.swap_train_active()),
+                boxed_count=_chunt._box_count(),
+                party_healthy=all(p.current_hp == p.total_hp for p in battlers) if battlers else False,
+                species_dex=dex,
+                owned_dex=frozenset(s.national_dex_number for s in get_pokedex().owned_species),
+                party_dex=frozenset(p.species.national_dex_number for p in battlers),
+                attempts=self._dex_catch_attempts.get(dex, 0),
+            )
+        except Exception as error:  # noqa: BLE001
+            # ⛔ NEVER let a read failure break a battle — but never let it be SILENT either.
+            reason = f"fence errored ({type(error).__name__}: {error})"
+            catch = False
+
+        # Report only when the answer CHANGES for this species, so a route full of owned mons does
+        # not spam the log while a genuine refusal is still visible exactly once.
+        if self._dex_catch_last_reason != reason:
+            self._dex_catch_last_reason = reason
+            if not (reason.endswith("already owned") or reason == "trainer battle"):
+                _log_story_event(f"[DEXFENCE] {'CATCH' if catch else 'skip'} — {reason}", "DEXFENCE")
+        return catch
 
     # ------------------------------------------------------------------
     # Sweeper-sufficiency gate (user directive 2026-07-23; two-agent Gemini
@@ -1992,8 +2233,24 @@ class StoryMode(BotMode):
         #     consult): when we're LOSING here but the local grass is far below our
         #     level, wild grinding is the wrong tool — a L13 wild pays ~145 XP while
         #     KO'ing even two of the boss's mons in a LOST attempt pays ~1,200 XP
-        #     (Gen 3 keeps mid-battle XP through a whiteout; whiteout money loss is
-        #     level x badge-payout — cheap; there is no re-challenge limit). So: if
+        #     (Gen 3 keeps mid-battle XP through a whiteout; there is no re-challenge
+        #     limit). So: if
+        #     ⛔⛔ CORRECTED 2026-09-08 FROM THE DECOMP — THIS COMMENT USED TO READ
+        #     "whiteout money loss is level x badge-payout — cheap", WHICH IS **FIRERED'S**
+        #     MODEL, NOT EMERALD'S, AND IT IS THE STATED JUSTIFICATION FOR THIS WHOLE
+        #     STRATEGY. Emerald `src/overworld.c:358`:
+        #         void DoWhiteOut(void) { ... SetMoney(&money, GetMoney(&money) / 2); ... }
+        #     ⇒ **EVERY DELIBERATE LOSS HALVES ALL MONEY.** `MoneyLoss` has ZERO hits in
+        #     `pret/pokeemerald`; the `sWhiteOutMoneyLossMultipliers` table this comment
+        #     described lives in `pokefirered/src/overworld.c:227`. Our own
+        #     `victory_road.py:446` already had it right — the two contradicted each other
+        #     and THIS was the wrong half (`#24-regimeb-noescalation` recorded the
+        #     contradiction as OPEN; it is now settled).
+        #     ⚠ WHAT IS **NOT** ESTABLISHED: whether that cost actually hurts. Money is not
+        #     logged, so the 1,477 measured boss-training engagements could not be priced.
+        #     ⛔ DO NOT change this strategy on the strength of the corrected fact alone —
+        #     see `#24-bosstrainingeconomics`. The premise is now honest; the decision is not
+        #     yet made.
         #     recent lost attempts each KO'd at least one boss mon, keep re-attempting
         #     the boss as the PRIMARY training vehicle, with only a LIGHT top-up
         #     between attempts (+1 level cap, not the +5 escalation). The moment two
@@ -2474,14 +2731,43 @@ class StoryMode(BotMode):
                 return StoryFleeStrategy()
         except Exception:
             pass
-        # PRE-GYM-1 CATCHING (user directive 2026-07-21): build an organic team by
-        # catching NEW species (never a dup) while travelling to the first gym.
+        # CATCHING — two regimes, one predicate (`decide_dex_catch`):
+        #   PRE-GYM-1  organic team building (user directive 2026-07-21) -> joins the PARTY
+        #   POST-GYM-1 the `#24-dexhunt` fence (user directive 2026-09-04) -> goes to the PC BOX
         try:
             if self._should_catch(encounter):
                 from modules.console import console
+                from modules.pokemon_party import get_party as _gp_dex
 
                 sp = getattr(getattr(encounter, "pokemon", None), "species", None)
-                console.print(f"[bold green]Story: catching a new {getattr(sp, 'name', '?')} for the team![/]")
+                dex = getattr(sp, "national_dex_number", None)
+                # ‼ INSTRUMENT THE ACTION, NOT THE INPUT TO IT (CLAUDE.md rule 7). Count the attempt
+                # HERE — at the point the bot actually commits to a catch — not inside the predicate,
+                # which is called for evaluation and must stay pure.
+                if dex is not None:
+                    self._dex_catch_attempts[dex] = self._dex_catch_attempts.get(dex, 0) + 1
+                # ⛔ THE DESTINATION IS DERIVED, NOT ASSUMED. This line read "for the team!" until
+                # 2026-09-10; at a full party the game stores the catch via
+                # `Cmd_givecaughtmon -> GiveMonToPlayer -> CopyMonToPC` and the message was about to
+                # start lying on the exact path the fence adds. Read the slot count the game reads.
+                try:
+                    _full = len([m for m in _gp_dex() if m is not None]) >= PARTY_CAPACITY
+                except Exception:
+                    _full = False
+                _where = "into the PC box" if _full else "for the team"
+                console.print(
+                    f"[bold green]Story: catching a new {getattr(sp, 'name', '?')} {_where}![/]"
+                )
+                # ‼ A BOX CATCH IS INVISIBLE TO EVERY EXISTING INSTRUMENT: it changes neither the
+                # party length nor its PID set, so `debug_logger`'s `[PARTY]` event never fires, and
+                # the only other positive signal is the `[DEX]` delta computed once per 3,600-frame
+                # heartbeat. An A/B grading "did the fence act?" would be reading a coarse, indirect
+                # instrument on the one path it exists to measure.
+                _log_story_event(
+                    f"[DEXCATCH] attempt #{self._dex_catch_attempts.get(dex, 0)} on "
+                    f"{getattr(sp, 'name', '?')} (#{dex}) -> {'box' if _full else 'party'}",
+                    "DEXCATCH",
+                )
                 # Use the story catch strategy (flees when out of balls instead of
                 # dropping to Manual — see StoryCatchStrategy).
                 return StoryCatchStrategy()
@@ -3746,7 +4032,14 @@ class StoryMode(BotMode):
             # Flying, Shedinja has 1 HP). Wiring her in gives that run a bounded, diagnosed
             # stop instead of an unbounded whiteout loop.
             #   `ace_types`: Altaria L33 is the ace — Dragon/Flying, and 4x weak to Ice.
-            #   `grass`/`heal`: Route 119 is the Fortree-side band; Fortree has the PC.
+            #   `heal`: Fortree has the PC.
+            # ‼ CORRECTED 2026-09-10 — this comment read "`grass`/`heal`: Route 119 is the
+            # Fortree-side band" and **there is no `grass` key in the dict below**. The comment
+            # documented a key that does not exist, so Winona's prep has ALWAYS been the GRASS-LESS
+            # shape in production — not a Lavaridge special case. That matters: it means the
+            # grass-less path (detection + escalation + counter ladder + honest stop, no grinding)
+            # is the one actually proven at badge 6, and it is the shape the late-boss configs below
+            # deliberately copy.
             winona_fight = {
                 "name": "Winona",
                 "keys": [MapRSE.FORTREE_CITY_GYM.value, MapRSE.FORTREE_CITY.value],
@@ -3835,7 +4128,67 @@ class StoryMode(BotMode):
         #     flag-only test would call a `lockall`ed avatar a success.
         from modules.story.mossdeep_gym import do_mossdeep_gym_chapter, leave_the_gym
 
+        # ‼‼ `#24-regimeb-noescalation` — THE FIRST LOSS-ADAPTATION AFTER WINONA (2026-09-10).
+        # MEASURED: `_prepare_for_fight`'s last call site was Winona (badge 6), and all six late
+        # chapter modules contain ZERO uses of it ⇒ from badge 7 on, **N whiteouts was N IDENTICAL
+        # losses** — no escalation, no counter ladder, no honest stop.
+        # ⛔ GRASS-LESS ON PURPOSE, AND THE OMISSION IS THE DESIGN, NOT AN OVERSIGHT.
+        # `training_areas.TRAINING_GRASS` tops out at ROUTE121 **L25-28** while Tate & Liza are
+        # L41-42, so there is no ground in the table that can train for this fight — a `grass` key
+        # here would send a L40 mon to L28 grass. Without it `_prepare_for_fight` still buys
+        # everything that was missing: defeat detection (`_defeat_counts` already increments here —
+        # the loss corpus records 973 losses on this very map), target escalation, the counter-hunt
+        # ladder, and the bounded honest stop instead of an unbounded whiteout loop.
+        # ⭐ The shape is copied from `winona_fight`, which has NO `grass` key either — i.e. this is
+        # the badge-6 production path, not a new pattern.
+        # Levels read from the DECOMP (`src/data/trainer_parties.h::sParty_TateAndLiza1`), never recalled:
+        # Claydol 41 / Xatu 41 / Lunatone 42 / Solrock 42. ‼ It is a DOUBLE battle.
+        tate_liza_fight = {
+            "name": "Tate & Liza",
+            "keys": [MapRSE.MOSSDEEP_CITY_GYM.value, MapRSE.MOSSDEEP_CITY.value],
+            "band": (41, 42),
+            "ace_types": ("Rock", "Psychic"), "ace_level": 42,
+            "heal": PokemonCenter.MossdeepCity,
+            # ⛔ `"double": True` IS LOAD-BEARING, NOT DECORATION. `_sufficiency_verdict` excludes
+            # double battles explicitly (`if "ace_types" not in cfg or cfg.get("double"): return None`)
+            # because a single sweeper cannot answer a 2v2. Omitting it is INERT TODAY — grass-less
+            # already no-ops every branch it gates — but it becomes a live misjudgement the moment
+            # `TRAINING_GRASS` gains an entry above L28, which `#24-maintain` is explicitly waiting on.
+            # ⇒ a flag that is only correct because a NEIGHBOURING limitation hides it is a latent bug.
+            "double": True,
+        }
         if not _done("BADGE07_GET"):
+            if _cur_map() != MapRSE.MOSSDEEP_CITY_GYM.value:
+                yield from self._prepare_for_fight(tate_liza_fight)
+                # ⛔⛔ THESE TWO LINES ARE NOT OPTIONAL, AND OMITTING THEM IS WORSE THAN NO ADAPTATION.
+                # A Tier 1 review caught the first draft calling ONLY `_prepare_for_fight`.
+                # `_lead_best_matchup` is the SOLE consumer of `_hunted_counter_pids` — the only thing
+                # that FIELDS a hunted counter by moving it to slot 0. Without it the counter ladder
+                # can spend its one-per-run hunt, catch and train a real answer, and never send it in;
+                # then on the NEXT loss `_boss_plan_is_hopeless`'s party-wide type scan sees that
+                # BENCHED counter as a "credible answer", returns not-hopeless, and SUPPRESSES further
+                # escalation and the honest stop — while the unchanged lead keeps losing the same way.
+                # ⇒ the counter-hunt's entire payoff discarded AND the safety valve disabled.
+                # ⭐ Flannery is ALSO grass-less and still gets all three lines (`:3842-3844`) — so
+                # "grass-less" never implied "prep alone". Precedent, not preference.
+                # ⛔⛔ LOCAL IMPORT REQUIRED — NOT STYLE. Every binding of these two names inside
+                # `_play` sits INSIDE an `if not _done("BADGEnn_GET")` branch, so a run that
+                # RESUMES at badge 7 (a pinned fixture, an ENDLESS-RESET continuation, or simply
+                # earlier badges already held) executes NONE of them — and a function-local import
+                # makes the name function-local for the WHOLE of `_play`, so the call below would
+                # raise `UnboundLocalError` on exactly the runs this change exists to help.
+                # ‼ Same shadowing/scope trap that has bitten `console` three times in this file.
+                from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+
+                yield from _lead_best_matchup(
+                    list(tate_liza_fight["ace_types"]), hunted_pids=self._hunted_counter_pids
+                )
+                # ‼ AND THE HEAL IS OWED FROM HERE, not from the chapter. `mossdeep_gym.py` contains
+                # ZERO `heal_in_pokemon_center`/`PokemonCenter` references; its own comment calls
+                # "heal before challenging them" an externally-owed precondition. Unlike Sootopolis,
+                # which heals itself, nothing else on this path does — so without this the bot enters
+                # the hardest scripted DOUBLE battle in the game at whatever HP it arrived with.
+                yield from heal_in_pokemon_center(PokemonCenter.MossdeepCity)
             yield from do_mossdeep_gym_chapter()
         else:
             # ⛔⛔ #24-mossdeepstrand — "ALREADY DONE" IS NOT "ALREADY OUT". Winning BADGE07 leaves
@@ -3969,7 +4322,44 @@ class StoryMode(BotMode):
         # the victory script `settrainerflag`s all ten B1F trainers, that descent is BATTLE-FREE.
         from modules.story.sootopolis_gym import ch22_chapter_done, do_sootopolis_gym_chapter
 
+        # ‼‼ `#24-regimeb-noescalation` — loss adaptation for badge 8, same shape as Tate & Liza.
+        # GRASS-LESS for the same measured reason: the training table's ceiling is L28 and Juan's
+        # ace is **Kingdra L46**, so no tabled ground can prepare for this fight.
+        # Levels from the DECOMP (`src/data/trainer_parties.h::sParty_Juan1`), never recalled:
+        # Luvdisc 41 / Whiscash 41 / Sealeo 43 / Crawdaunt 43 / **Kingdra 46**.
+        # ⚠ The band's TOP is the ace, five levels above the rest — a band of (41, 43) would read
+        # the roster's bulk and miss the mon that actually wins the fight.
+        juan_fight = {
+            "name": "Juan",
+            "keys": [MapRSE.SOOTOPOLIS_CITY_GYM_1F.value, MapRSE.SOOTOPOLIS_CITY.value],
+            "band": (41, 46),
+            "ace_types": ("Water", "Dragon"), "ace_level": 46,
+            "heal": PokemonCenter.SootopolisCity,
+        }
         if not ch22_chapter_done():
+            if _cur_map() != MapRSE.SOOTOPOLIS_CITY_GYM_1F.value:
+                yield from self._prepare_for_fight(juan_fight)
+                # ⛔ SAME REASON AS TATE & LIZA: `_lead_best_matchup` is the only consumer of
+                # `_hunted_counter_pids`, so without it a hunted counter is caught, trained, and
+                # never fielded — and the benched mon then makes `_boss_plan_is_hopeless` read
+                # not-hopeless, suppressing escalation. Caught by a Tier 1 review.
+                # ⛔⛔ LOCAL IMPORT REQUIRED — NOT STYLE. Every binding of these two names inside
+                # `_play` sits INSIDE an `if not _done("BADGEnn_GET")` branch, so a run that
+                # RESUMES at badge 7 (a pinned fixture, an ENDLESS-RESET continuation, or simply
+                # earlier badges already held) executes NONE of them — and a function-local import
+                # makes the name function-local for the WHOLE of `_play`, so the call below would
+                # raise `UnboundLocalError` on exactly the runs this change exists to help.
+                # ‼ Same shadowing/scope trap that has bitten `console` three times in this file.
+                from modules.story.early_game import _lead_best_matchup, heal_in_pokemon_center
+
+                yield from _lead_best_matchup(
+                    list(juan_fight["ace_types"]), hunted_pids=self._hunted_counter_pids
+                )
+                # ‼ NO `heal_in_pokemon_center` HERE, AND THAT IS DELIBERATE — the one place this
+                # block differs from Tate & Liza. `sootopolis_gym.py:872` calls `_heal_before_the_gym`
+                # internally on every non-resumed entry, so an external heal would be a REDUNDANT
+                # round trip across Sootopolis. ⇒ copying the precedent's third line here would be
+                # cargo-culting: the precedent exists because the chapter does NOT heal itself.
             yield from do_sootopolis_gym_chapter()
         else:
             console.print("[dim]Story: Sootopolis Gym / Juan already done — skipping.[/]")

@@ -87,6 +87,14 @@ _BATTLE_STALL_DUMP_AFTER = 18_000
 _BATTLE_STALL_FAULT_AFTER = 60_000
 _HEARTBEAT_EVERY = 3600               # periodic state line even without events
 
+#: last observed National-Dex OWNED set, sampled on the heartbeat only. `None` = never read.
+#: ⛔ SAMPLED, NOT HOOKED: `Pokedex.owned_species` scans 412 indices and builds a Species per hit
+#: (`modules/pokedex.py:42-52`), so this must never move into `_light_state`, which runs EVERY
+#: FRAME. At heartbeat cadence it is ~1 read/minute; per-frame it would be a 412-iteration scan on
+#: the hot path. ‼ Consequence, stated honestly: a `[DEX]` line can be up to a minute late, and two
+#: catches inside one interval are reported together.
+_last_owned: "set[int] | None" = None
+
 
 # ===========================================================================
 # Public API
@@ -260,7 +268,7 @@ def enable(profile=None, name_prefix: str | None = None) -> str:
     `name_prefix` is prepended to the filename — ENDLESS LOOP x4 passes the lane tag
     ("P1-", "P2-", ...) so that logs handed over for review say which bot produced
     them without having to open them."""
-    global _enabled, _file, _path, _prev, _stall_frames, _last_sig, _last_dump_stall
+    global _enabled, _file, _path, _prev, _stall_frames, _last_sig, _last_dump_stall, _last_owned
     global _start_frame, _bytes_written, _capped
     disable()
     try:
@@ -282,6 +290,9 @@ def enable(profile=None, name_prefix: str | None = None) -> str:
         _last_sig = None
         _last_dump_stall = 0
         _start_frame = None
+        # ⛔ PER-RUN, NOT PER-PROCESS: an endless-reset batch calls enable() for every run. Without
+        # this, run 2's first heartbeat diffs against run 1's dex and its early catches go unlogged.
+        _last_owned = None
         _bytes_written = 0
         _capped = False
         _raw(f"=== DEBUG LOG START {now.isoformat(timespec='seconds')} ===")
@@ -322,6 +333,7 @@ def on_frame(frame_info=None) -> None:
     """Called every frame from the main loop (guarded by is_enabled()). Detects
     events, tracks progress, and emits stuck dumps + heartbeats."""
     global _prev, _stall_frames, _last_sig, _last_dump_stall, _start_frame
+    global _last_owned
     if not _enabled or _file is None:
         return
     try:
@@ -387,11 +399,30 @@ def on_frame(frame_info=None) -> None:
 
     # --- heartbeat ---
     if fc is not None and _start_frame is not None and (fc - _start_frame) % _HEARTBEAT_EVERY == 0 and fc != _start_frame:
+        # ⛔ THE DEX READ LIVES HERE, NOT IN `_light_state` — it scans 412 indices; see `_last_owned`.
+        owned = _safe(_owned_dex, None)
+        if owned is not None:
+            if _last_owned is not None and owned - _last_owned:
+                gained = sorted(owned - _last_owned)
+                _event(fc, f"[DEX] owned {len(_last_owned)} -> {len(owned)}: "
+                           f"+{', '.join('#%d' % d for d in gained)}")
+            _last_owned = owned
         _event(
             fc,
             f"[hb] mode={st.get('mode')} state={st.get('game_state')} "
             f"controllable={st.get('controllable')} map={_fmt_map(st.get('map'))} "
-            f"pos={st.get('pos')} party={st.get('party_key')} msg={st.get('message')!r}",
+            f"pos={st.get('pos')} party={st.get('party_key')} "
+            f"ids={st.get('party_ids')} owned={len(owned) if owned is not None else '?'} "
+            # ‼ `balls` was ALREADY computed every frame (`_light_state`) and already drove the
+            # `[BALLS]` delta event — it was simply absent from the heartbeat, so it cost one
+            # word to add and ZERO extra reads. It is here because `#24-dexhunt`'s fence has a
+            # ball clause, and a corpus scan for "could the fence have fired?" could confirm
+            # every OTHER condition (badge, party size, species, map) and not that one:
+            # a delta event only fires when the count CHANGES, so a run that sits at 1 ball for
+            # an hour emits nothing and reads identical to a run sitting at 30.
+            # ⇒ a CONDITION THE GRADER MUST TEST NEEDS A LEVEL, NOT ONLY AN EDGE.
+            f"balls={st.get('balls')} "
+            f"msg={st.get('message')!r}",
         )
 
     _prev = st
@@ -582,6 +613,72 @@ def _party_exp():
     return sum(getattr(p, "total_exp", 0) for p in get_party())
 
 
+def _owned_dex():
+    """National-Dex numbers currently OWNED, or `None` if the dex cannot be read.
+
+    ⛔ CALL ONLY FROM THE HEARTBEAT — see `_last_owned` for why this is not per-frame safe.
+    Returns a set of ints so the caller can name exactly which numbers are NEW, which is what makes
+    a catching A/B gradeable: a bare count says "something happened", a set says WHAT.
+    """
+    from modules.pokedex import get_pokedex
+
+    return {s.national_dex_number for s in get_pokedex().owned_species}
+
+
+def _party_ids():
+    """Per-slot IDENTITY + EXP: ``["Species#PID:L<lv>:exp<n>", ...]``.
+
+    ⛔⛔ THIS IS DELIBERATELY **NOT** `_party_key`, AND MUST NEVER BE MERGED INTO IT.
+    `_party_key` is `["Species:L<lv>"]` and is consumed by `_detect_events` — a size change is read
+    as a CATCH and a per-slot change as a LEVEL-UP/EVOLUTION. Folding PIDs or exp into it would
+    change which frames count as a party change: a behaviour change wearing telemetry clothes.
+    This field is written to the heartbeat and read by nothing.
+
+    ⭐ WHY IT EXISTS (measured 2026-09-09; scope: `x4-runs` 298 `stdout.txt` + its
+    `debug-logs/*.log`, `sandbox-pokebot/profiles` + `tools/story-dev` 500 `*.log` each):
+    **no continuous PID-bearing party telemetry existed
+    anywhere.** `Species#PID` appeared in 96 stdout lines, ALL of them §Ch23 refusal messages, plus
+    ~15 from one-off probes. A Pokemon therefore could not be followed across a run, which blocked
+    TWO separate questions that had each already stalled an investigation:
+      * whether laggards are BORN behind (reported 88.8%, never reproducible) — this decides whether
+        the fix belongs at CATCH time or at TRAINING time;
+      * the real EXP split during swap-training (solo vs 2-way), which decides whether §Ch23's bar is
+        L35 or L42 — filed as needing "one log line, not more analysis".
+    ⇒ identity + exp per slot answers both, from ordinary runs, with no new driver.
+
+    ‼ PID, NOT SLOT. Slots are reshuffled by lead rotation and by `_rotate_lead_safely`, so a
+    slot index names a different Pokemon after a swap — this project has three logged bugs from
+    asserting on slot indices.
+
+    ⛔⛔ BUT PID IS **NOT UNIQUE**, AND A CONSUMER THAT ASSUMES IT IS WILL SILENTLY MERGE TWO MONS.
+    Gen 3 creates **Shedinja as a COPY of Nincada**, so it inherits the parent's personality value:
+    after a Nincada evolves, `Ninjask#XXXXXXXX` and `Shedinja#XXXXXXXX` sit in the party carrying
+    the SAME PID. **Measured in batch `20260909-160339`: 1,360 heartbeats (7.9%) contain exactly
+    this collision** — the only one in that corpus, but a real one.
+    ⇒ **key on `(run, PID, species-lineage)`, never on PID alone.** `tools/story-dev/
+    probe_laggard_origin.py` shows the pattern; keying on PID alone changes its population from
+    63 mons to 61 and shifts every downstream figure.
+    ‼ PID still survives EVOLUTION (`Wurmple#AB` -> `Silcoon#AB` is the SAME mon), which is exactly
+    why species-name keying is wrong in the other direction: it SPLITS one mon across its
+    evolutions and MERGES two mons of one species. Neither key alone is identity; the pair is.
+    Cost: `_party_exp` already walks the party every frame for `total_exp`; this adds one attribute
+    read per mon, and heartbeats are ~1/3,600 frames.
+    """
+    from modules.pokemon_party import get_party
+
+    out = []
+    for p in get_party():
+        if p is None:
+            continue
+        try:
+            pid = getattr(p, "personality_value", None)
+            pid_s = f"{pid:08X}" if isinstance(pid, int) else "????????"
+            out.append(f"{p.species.name}#{pid_s}:L{p.level}:exp{getattr(p, 'total_exp', 0)}")
+        except Exception:  # noqa: BLE001 - telemetry must never break a run
+            out.append("<unreadable>")
+    return out
+
+
 def _light_state() -> dict:
     """Cheap per-frame read: everything needed for stall detection + event
     detection. Heavier reads (tasks, battle text, generator stack) happen only
@@ -602,6 +699,8 @@ def _light_state() -> dict:
     d["learn_state"] = _safe(_learn_state)
     d["party_key"] = _safe(_party_key)
     d["party_exp"] = _safe(_party_exp)
+    # ⛔ SEPARATE FROM `party_key` ON PURPOSE — see `_party_ids`. Read by nothing; logged only.
+    d["party_ids"] = _safe(_party_ids)
     d["balls"] = _safe(_ball_count)
     return d
 

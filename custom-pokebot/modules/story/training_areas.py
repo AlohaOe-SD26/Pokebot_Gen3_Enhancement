@@ -23,6 +23,43 @@ import os as _os
 
 from modules.map_data import MapRSE
 
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+# ⛔⛔ THE L28 CEILING IS THE GAME, NOT A GAP IN THIS TABLE. PROVEN 2026-09-10 — DO NOT RE-SURVEY.
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+# This table tops out at ROUTE121 (25, 28). That has repeatedly been read as "the survey is
+# incomplete" — most recently while trying to build `#24-maintain`, whose whole premise is sending an
+# under-levelled mon to a LEVEL-MATCHED ground. It is not incomplete. Measured against the decomp's
+# own `src/data/wild_encounters.json` (group `gWildMonHeaders`, 124 entries / 116 maps):
+#
+#   * EVERY `MAP_ROUTE*` land table, sorted by max level: ROUTE130 **50**, then ROUTE123 **28**,
+#     ROUTE121 **28**, ROUTE120 27, ROUTE119 27, ROUTE118 27, ROUTE115 26, ROUTE111 22, ROUTE114 18,
+#     ROUTE113 16, ROUTE112 16, ROUTE117 14, ROUTE110 13, ROUTE116 8.
+#     ⇒ ROUTE121 (held here) and ROUTE123 are JOINT-HIGHEST. **No route can raise this ceiling.**
+#     ⛔ ROUTE130's 50 is MIRAGE ISLAND — a WYNAUT-only table behind a 1/256 daily RNG gate. Not a
+#       training ground; it is the single most inviting-looking row in the file and it is a trap.
+#   * NO land table ANYWHERE in Hoenn has a max level of **34, 35, 37, 41, 43, 46, 47, 48 or 49**.
+#     ⇒ §Ch23's `TRAIN_TARGET = 47` has NO ground at its level anywhere in the game.
+#
+# ⇒ ⭐⭐ EVERY L30+ WILD GROUND IN EMERALD IS A CAVE, A DUNGEON, THE SAFARI ZONE, OR VICTORY ROAD.
+#   There is no such thing as "high-level grass". `#24-maintain`'s relocate-to-a-matched-ground shape
+#   therefore CANNOT close the L28→L47 gap — not for want of searching, but by the game's design.
+#   ⇒ the surviving lever is **train IN the dungeon you are already clearing** (which §Ch23 already
+#   knows: its own note prefers Victory Road B1F "950.8 EXP/battle vs 1F's 775.6"), never relocation.
+#
+# ⛔⛔ AND THE HIGHEST-RATE HIGH-LEVEL TABLES IN THE GAME ARE USELESS — THE SAFARI ZONE.
+#   SAFARI_ZONE_NORTHEAST / _SOUTHEAST are L33-40 at rate **25** — by far the most attractive rows in
+#   the file. `BattleSetup_StartWildBattle` branches to `DoSafariBattle()` whenever
+#   `GetSafariZoneFlag()`, which sets `BATTLE_TYPE_SAFARI`: **you cannot attack and you gain ZERO
+#   EXP.** Six high-level tables are disqualified by this one fact, and nothing in `modules/story/`
+#   handles Safari battles at all. ⇒ never add a SAFARI_ZONE_* entry to either list below.
+#
+# ‼ ONE MODELLING CAVEAT FOUND IN THE SAME PASS: a table's `max` is NOT its effective level for
+#   `xp_per_battle`. Slot rates are weighted [60,30,5,4,1] for water, so ROUTE126's water weights to a
+#   mean level of **20.4** against a nominal max of 35 — feeding `hi` into the xp model overstates
+#   that patch by ~1.7x. The LAND weights [20,20,10,10,10,10,5,5,4,4,1,1] are flatter, so land bands
+#   are far less distorted, which is why this table is land-only.
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+
 # Areas with a VERIFIED spin tile — usable for area-appropriate training today.
 TRAINING_GRASS: list[tuple] = [
     (MapRSE.ROUTE101, (9, 9), (2, 3)),   # tile used by travel_to_route103()
@@ -54,7 +91,53 @@ TRAINING_GRASS: list[tuple] = [
 ]
 
 # Level ranges known, spin tile still to be MAPPED (fill tile as the map is reached):
+# ⛔ A `None` tile is skipped by `best_training_grass` (`if tile is None: continue`), so everything
+# here is BEHAVIOUR-NEUTRAL until a tile is verified live. That is what makes it safe to stage
+# research findings in this list rather than in prose.
 PENDING_GRASS: list[tuple] = [
+    # ── THE L30+ TIER, surveyed 2026-09-10 against the decomp. Bands are decomp-exact. ───────────
+    # ⛔ NONE of these is promotable today, and the blocker is the SAME for all of them: a promoted
+    # entry needs a spin tile TWO-WAY SWEPT FROM A REAL STORY ANCHOR (ROUTE114 was DEMOTED for
+    # passing a same-map check while being unreachable from every real anchor), and these are all
+    # dungeon interiors whose anchors do not exist until late.
+    # ‼ AND A SECOND, HARDER BLOCKER FOR THE CAVES: `_CAVE_EXITS`/`_CAVE_ENTRANCES` in
+    # `early_game.py` are SINGLE-HOP tables, so a multi-hop interior breaks the post-training HEAL —
+    # the same reason GRANITE_CAVE B1F/B2F below are still pending. Make that threading chain-aware
+    # FIRST. (That exact failure dropped two real-hardware runs to Manual, 2026-07-22.)
+    #
+    # ⭐ WHAT THESE ARE ACTUALLY FOR: not relocation (see the ceiling proof above — there is no
+    # high-level grass to relocate TO). They are the grounds the bot is ALREADY STANDING IN during
+    # §Ch21/§Ch23, so the realistic use is "train where you are", i.e. a `grass` key on a LATE
+    # chapter's own prep, never a `best_training_grass` pick from across Hoenn.
+    #
+    # ⚠ POST-BADGE-8 ONLY, ALL OF THEM. Meteor Falls' L33-40 rooms are the DEEP ones behind
+    # Waterfall — `METEOR_FALLS_1F_1R`, the room §Ch11 already visits at badge 3-4, is **L14-20**.
+    # Sky Pillar is §Ch21. ⇒ between badge 6 and badge 8 the game offers NOTHING above L28, which is
+    # why the Tate & Liza and Juan fight configs are grass-less by necessity rather than by choice.
+    (MapRSE.METEOR_FALLS_1F_2R, None, (33, 40)),   # Golbat/Solrock, rate 10. Behind Waterfall+Surf.
+    (MapRSE.METEOR_FALLS_B1F_1R, None, (33, 40)),  # Golbat/Solrock, rate 10. Deeper still.
+    (MapRSE.SKY_PILLAR_1F, None, (33, 38)),        # Banette/Claydol/Golbat/Sableye, rate 10.
+    # ⛔ SKY_PILLAR 3F/5F are DELIBERATELY OMITTED even as candidates: §Ch21's own atlas records that
+    # the climb runs on CRACKED FLOORS the planner cannot model (`map_path.py` has no "Cracked Floor"
+    # concept), and a spin there would fall through to the floor below. 1F is the only safe storey.
+    #
+    # ── VICTORY ROAD: the highest real bands in the game, and the bot walks all three. ────────────
+    # ⭐ §Ch23's own training note already prefers B1F — "950.8 EXP/battle vs 1F's 775.6" — so this
+    # is not a new idea, it is the existing idea with its numbers finally written down.
+    # ⚠ B1F/B2F are AFTER the Wally fight in the leg order, so they are prep for the EXIT climb and
+    # the Elite Four, never for Wally himself.
+    (MapRSE.VICTORY_ROAD_1F, None, (36, 40)),      # Aron/Golbat/Hariyama/Lairon/Loudred/…, rate 10.
+    (MapRSE.VICTORY_ROAD_B1F, None, (38, 42)),     # rate 10; ALSO a rock-smash table L30-40 rate 20.
+    (MapRSE.VICTORY_ROAD_B2F, None, (40, 44)),     # Golbat/Lairon/Mawile/Sableye, rate 10.
+    #
+    # ⛔ EXPLICITLY REJECTED CANDIDATES — recorded so the next survey does not re-propose them:
+    #   SAFARI_ZONE_* (L33-40 @ rate 25) — ZERO EXP, cannot attack. See the ceiling block above.
+    #   ARTISAN_CAVE_1F/B1F (L40-50)     — Battle Frontier, post-game; unreachable during the story.
+    #   DESERT_UNDERPASS (L35-45)        — post-game (Fossil Maniac), and Ditto/Whismur/Loudred.
+    #   ROUTE130 (L5-50)                 — Mirage Island, Wynaut-only behind a 1/256 daily RNG gate.
+    #   SEAFLOOR_CAVERN_*, CAVE_OF_ORIGIN_* (L28-36) — rate **4**: ~6x fewer encounters per step
+    #     than a rate-25 route, so the band flatters a patch that barely triggers battles.
+
     (MapRSE.ROUTE104, None, (4, 6)),
     (MapRSE.PETALBURG_WOODS, None, (5, 6)),
     (MapRSE.RUSTURF_TUNNEL, None, (5, 6)),  # Whismur (no grass — cave; here for ref)
@@ -499,8 +582,17 @@ def local_patch_is_fodder(local_max, team_max, fodder_level_gap, *,
     """Is the LOCAL grass not worth grinding? PURE — no ROM, no emulator, no walking.
 
     Extracted from `story_mode._prepare_for_fight` so the decision can be tested
-    exhaustively off-emulator (KI-31). Behaviour under the default ``rule`` is byte-for-byte
-    the legacy expression it replaced.
+    exhaustively off-emulator (KI-31).
+
+    ⛔⛔ THE DEFAULT IS ``"xp_rate"``, NOT ``"legacy"`` — CORRECTED 2026-09-09. This docstring used to
+    say *"behaviour under the default rule is byte-for-byte the legacy expression it replaced"*, and
+    the branch comment below still said ``"legacy" (default)``. **Both were false**:
+    ``FODDER_RULE = _os.environ.get("POKEBOT_FODDER_RULE", "xp_rate")`` (see the constant above).
+    ‼ The two rules are NOT equivalent. ``"xp_rate"`` returns **False (not fodder)** whenever
+    ``best_available_max`` is falsy, so a caller that has not yet looked for an alternative gets NO
+    relocation at all — where ``"legacy"`` would have compared levels and possibly relocated.
+    ⇒ anyone reasoning about when this bot relocates from the old wording got it backwards; that
+    misled a design brief on 2026-09-09 and three reviewers had to correct it.
 
     `best_available_max` is the HIGH band of the best reachable alternative, or None if the
     caller has not looked yet — the ``"xp_rate"`` rule needs it; ``"legacy"`` ignores it.
@@ -515,7 +607,9 @@ def local_patch_is_fodder(local_max, team_max, fodder_level_gap, *,
         if local_rate <= 0:
             return True
         return xp_per_battle(best_available_max) / local_rate >= XP_RATE_RELOCATE_RATIO
-    # "legacy" (default) — the exact original test.
+    # ⛔ "legacy" is NOT the default (the default is "xp_rate" — see FODDER_RULE above and
+    # the docstring). This is the exact ORIGINAL test, kept and reachable via
+    # POKEBOT_FODDER_RULE=legacy, which is the documented way to A/B a regression.
     return local_max + fodder_level_gap < team_max
 
 

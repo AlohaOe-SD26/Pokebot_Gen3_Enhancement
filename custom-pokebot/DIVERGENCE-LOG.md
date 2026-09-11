@@ -2271,3 +2271,42 @@ attributable to either. ⇒ **that is real evidence and it is NOT a targeted acc
 drives (`#24-pcpingpong-accept`, `#24-truckleak-accept`, the latter needing `Up`+`B` held across a
 run boundary) remain OWED, and are now owed against BOTH forks.
 ⛔ Rollback: `pre-promote-2026-09-08` (local + origin).
+
+
+---
+
+## 2026-09-10 — SIX FILES PROMOTED (user-authorised): the dex fence, the late-boss configs, the leg-4 League fix
+
+**Authorised by the user 2026-09-10** ("promote, then do A/B"). Rollback: **`pre-promote-2026-09-10`**
+(local + origin, created BEFORE the copy — `promote.py` REFUSED the first attempt because the tag did
+not exist yet, which is the tool working).
+
+**What moved (drift 6 → 0, 6/6 byte-identical):**
+| file | what it carries |
+|---|---|
+| `plugins/custom_modes/story_mode.py` | `#24-dexhunt`'s catching fence (`decide_dex_catch`, PURE) + the first post-Winona loss adaptation (`tate_liza_fight`, `juan_fight`, grass-less) |
+| `modules/story/victory_road.py` | §Ch23 leg 4 can no longer fire an OCEAN CROSSING from inside the League (`LEAGUE_INTERIOR_MAPS` + `inside_league()`) |
+| `modules/story/training_areas.py` | the L28 ceiling PROOF + 6 staged `PENDING_GRASS` candidates — ⛔ **comment/data only, `tile=None`, behaviour-neutral** |
+| `modules/debug_logger.py` | `balls=` on the heartbeat |
+| `modules/story/counter_hunt.py`, `modules/story/early_game.py` | older sandbox work carried along |
+
+### ⭐ VERIFIED BY DRIVING, NOT BY A DIFF — the standing rule
+`post_vr_exit.ss1` (md5 asserted `0ad243164fd6` BEFORE the run) → `--driver ch23leagueprobe
+--frames 2000 --build custom`:
+**`ACCEPTANCE: PASS`**, `readings=['RL-BAG','RL-DANGER','RL-DOOR','RL-PARTY','RL-PATH','RL-TILES']`,
+`missing=[]`, `failure=None`, League door path **37 wp** from the landing (18,28).
+⭐ **THE DISCRIMINATOR THAT PROVES IT WAS THE CUSTOM FORK:** the run wrote its state to
+`custom-pokebot\profilesepro-ml\states\…` — a sandbox run cannot produce that path. A drive that
+cannot name which fork it ran is not evidence of a promotion.
+Evidence committed: `tools/story-dev/evidence/2026-09-10-promotion-ch23leagueprobe-custom.{log,stdout.txt}`.
+Build-aware gates against custom: `repro_box_counter_move_test.py`, `repro_pid_identity_key.py`,
+`probe_abort_swallowing.py` — all PASS.
+
+### ‼ HONEST ABOUT WHAT IS *NOT* PROVEN
+Every promoted change is gated for **CORRECTNESS** and none is proven to **HELP**:
+* the dex fence has never run an A/B (that batch is next, and it is the reason for this promotion);
+* the late-boss configs have never seen a live badge-7/8 loss;
+* `training_areas.py` changes NO behaviour at all (verified: `best_training_grass` returns the same
+  ground at every level — L5→ROUTE102, L13→ROUTE117, L20→ROUTE111, L28/35/40/47→ROUTE121).
+⇒ **This promotion moves proven-correct code, not proven-useful code.** Both forks now carry the same
+risk, which is exactly why the rollback tag exists.

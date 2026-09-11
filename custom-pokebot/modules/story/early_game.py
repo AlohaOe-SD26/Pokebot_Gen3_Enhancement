@@ -350,11 +350,28 @@ POKEMON_CENTER_1F_EXIT = (7, 8)
 
 
 def exit_building_after_whiteout() -> Generator:
-    """After a whiteout the player respawns INSIDE a Poké Center (its healing spot).
-    Step back out to the overworld town so the segmented resume's map-based checks
-    work again (otherwise, being on the PC INTERIOR map, a segment thinks we haven't
-    reached the town yet and backtracks — the user-seen derail). Only acts if we're
-    actually inside a Poké Center; a no-op otherwise."""
+    """Step out to the overworld if we are standing inside a Poké Center.
+
+    ⛔⛔ THIS DOCSTRING USED TO SAY "After a whiteout the player respawns INSIDE a Poké Center
+    (its healing spot)". **THAT IS FALSE IN EMERALD, decomp-verified 2026-09-08.**
+    `src/data/heal_locations.json` puts every Center's heal location on the **OUTDOOR town map**
+    at the door tile (PETALBURG_CITY 20,17; OLDALE_TOWN 6,17; MOSSDEEP_CITY 28,17 — one tile below
+    the PC door at 28,16), and because `warpId` is `WARP_ID_NONE` the raw coords are used verbatim
+    (`src/overworld.c:611`). The only indoor heal locations are the two Littleroot bedrooms.
+    ⇒ **after a whiteout this function's own guard can never pass**, so on the path it was written
+    for it is INERT.
+
+    ⭐ IT IS KEPT, NOT DELETED, AND THE DISTINCTION MATTERS: the GUARD is correct even though the
+    PREMISE was not. If the bot is ever genuinely inside a Center (a resume from a save made there,
+    a mid-heal derail), stepping out is still the right move and still works. Removing it would be a
+    BEHAVIOUR change justified by an argument rather than a measurement.
+    ‼ What is now known to be wrong is the STORY the comment told about why it runs — and a reader
+    who believed it would conclude the post-whiteout interior case is handled when nothing handles
+    it, because nothing needs to.
+
+    ⇒ If you are reasoning about where a whiteout lands, READ IT: `get_last_heal_location()`
+    (`modules/save_data.py:14`, SaveBlock1 +0x1C), already wrapped as `respawn_reading()` /
+    `respawn_is_armed()` (`victory_road.py:666`, `:680`). Never infer it from a map proxy."""
     from modules.map import get_map_data_for_current_position
 
     try:

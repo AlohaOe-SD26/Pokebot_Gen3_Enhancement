@@ -1,0 +1,44 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\c7250248-8044-425a-b2b0-937f47e935f3\scratchpad\promote_drive.log
+Running mGBA 0.10.2
+[setup] loaded save state post_vr_exit.ss1; build=custom
+[run] starting faithful loop for up to 2000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ch23leagueprobe] PRE at=((0, 8), (18, 28))
+f1: CONTROLLER -> Ch23LeagueProbeMode.run   (state=OVERWORLD)
+[ch23leagueprobe] R here = (18, 28)
+[ch23leagueprobe] R party = [{'who': 'Sceptile#863B0917', 'hp': '0/147', 'conscious': False}, {'who': 'Zigzagoon#33CB74C3', 'hp': '0/48', 'conscious': False}, {'who': 'Swellow#0B30A747', 'hp': '0/139', 'conscious': False}, {'who': 'Wailord#FA51ECF3', 'hp': '0/226', 'conscious': False}, {'who': 'Mightyena#5C96EA9B', 'hp': '36/144', 'conscious': True}, {'who': 'Castform#C978D14E', 'hp': '0/103', 'conscious': False}]
+[ch23leagueprobe] R conscious_count = 1
+[ch23leagueprobe] R path_wp = 37
+[ch23leagueprobe] R path_last = {'coords': (9, 11), 'is_warp': True}
+[ch23leagueprobe] R waypoint_tile_behaviours = {'Normal': 37}
+[ch23leagueprobe] R encounter_bearing_waypoints = []
+[ch23leagueprobe] R note = 'waypoint landing tiles only — a LOWER BOUND on what the walk crosses, not a full per-tile trace'
+[ch23leagueprobe] R doors = {'league_door_18_5': {'xy': (18, 5), 'type': 'Door Warp', 'coll': 1, 'elev': 0}, 'door_apron_18_6': {'xy': (18, 6), 'type': 'Normal', 'coll': 0, 'elev': 7}, 'landing_18_28': {'xy': (18, 28), 'type': 'Normal', 'coll': 0, 'elev': 7}}
+[ch23leagueprobe] R money = 56041
+[ch23leagueprobe] R items_pocket = {'Nugget': 1, 'X Attack': 2, 'Potion': 1, 'Escape Rope': 2, 'Repel': 2, 'Antidote': 4, 'Super Potion': 1}
+[ch23leagueprobe] R key_items = {'Itemfinder': 1, 'Meteorite': 1, 'Go-Goggles': 1, 'Devon Scope': 1, 'Magma Emblem': 1}
+[ch23leagueprobe] R poke_balls = {'Poké Ball': 16, 'Premier Ball': 1, 'Great Ball': 5, 'Master Ball': 1, 'Ultra Ball': 1}
+[ch23leagueprobe] RESULT readings=['RL-BAG', 'RL-DANGER', 'RL-DOOR', 'RL-PARTY', 'RL-PATH', 'RL-TILES'] missing=[]
+[ch23leagueprobe] RESULT battles=0 whiteouts=0
+[ch23leagueprobe] GRADE missing=[] failure=None
+[ch23leagueprobe] ACCEPTANCE: PASS
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+f931: SAVED stall state #1 to stalls/repro-ml-f931.ss1 (bt='NICK got $4128 for winning!')
+f1231: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (18, 28)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $4128 for winning!' bot_mode=Manual
+f1231:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[done] ran 2000 frames; final mode=Manual party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L53: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Swellow L48: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Wailord L47: Dive, Surf, Water Spout, Waterfall
+[moveset] Mightyena L48: Tackle, Crunch, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 2001 get_party() recomputes, 7 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch23leagueprobe 2001 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\custom-pokebot\profiles\repro-ml\states\2026-
+09-10_20-27-52.ss1 created!
+Updated `current_state.ss1`!

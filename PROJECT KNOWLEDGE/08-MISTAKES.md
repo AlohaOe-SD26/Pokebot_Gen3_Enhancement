@@ -16271,3 +16271,34 @@ FALSE — `story_mode.py:2284` reads `if boss_teaches:  # ⛔ KI-80: NOT `grass_
 coupling was removed on 2026-08-16. I read gate #14's PURPOSE and inferred its CURRENT mechanism.
 ⇒ the "two independent arguments" for grass-less collapse to ONE (the L28 ceiling), which is
 sufficient alone — and that sufficiency is exactly why the false second argument was easy to believe.
+
+---
+
+## 2026-09-10 — The same bash/backtick trap, TWICE in one session, and the second time I had already fixed it once
+
+**Symptom.** Writing markdown into a doc via
+`bash -c 'py -3.12 -c "...text with `code spans`..."'`, BASH command-substitutes every backtick span
+before Python ever sees the string. The file lands with each code span silently EXECUTED and
+replaced by empty output: *"the  fence, the post-Winona / configs, ...  is the AUTHORITY"*.
+
+**It happened twice today.** First on `07-CHANGELOG.md` (repaired with a `fix_changelog.py` script),
+then again on `04-HANDOFF.md`'s STATE drift row — after I had already diagnosed it, written the
+repair, and moved on. The fix I applied the first time was to that INSTANCE, not to my HABIT.
+
+**Root cause.** Two write styles were in use and only one is safe:
+* `py -3.12 - <<'PY' … PY`  (quoted heredoc) — safe, bash expands nothing. Used successfully ~8 times.
+* `py -3.12 -c "…"`         — UNSAFE for any text containing backticks. Used twice; failed twice.
+The two look equally routine at the call site, which is exactly why the unsafe one kept getting
+picked — nothing distinguishes them until the damage is in the file.
+
+⭐ **Prevention rule (one line):** *Markdown containing backticks is written from a FILE or a quoted
+heredoc — NEVER from `-c "..."`. If the text has a code span, the double-quoted form is wrong.*
+
+‼ **AND THE PART WORTH MORE THAN THE RULE: a gate caught the blast radius I did not look for.**
+Repairing the row, `audit_doc_consistency.py` failed with THREE *other* cells still claiming
+`drift=6` (`04-HANDOFF.md:677`, `:855`, `:891`) — stale the moment the promotion landed, and none of
+them anywhere near the row I was editing. I would have fixed my own damage and shipped three false
+claims.
+⇒ **A mechanical gate is how you find the halves of a fact you did not know existed.** This is the
+same P5 shape as the `18 cases` / `:1612` miss earlier today — a fact living in four places, and I
+knew about one.
