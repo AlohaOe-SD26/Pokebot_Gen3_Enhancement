@@ -202,10 +202,29 @@ PENDING_GRASS: list[tuple] = [
 ]
 
 
-def best_training_grass(mon_level: int):
+def best_training_grass(mon_level: int, *, allow=None):
     """Return the ``(map, spin_tile)`` best suited to levelling a mon of ``mon_level``
     for FULL XP, or ``None`` if no MAPPED area fits (caller then falls back to
     swap-training wherever it already is).
+
+    ``allow`` is the same REACHABILITY predicate ``(map_enum, tile, prereq_or_None) -> bool``
+    that `best_training_area` takes — see its docstring and AREA_PREREQ.
+
+    ‼ STRICTLY ADDITIVE, AND DELIBERATELY *NOT* IDENTICAL TO THE SIBLING (2026-09-12).
+    `best_training_area` treats ``allow=None`` as "refuse every area that HAS a prereq" (the
+    conservative default). This one keeps its historical behaviour when ``allow is None`` —
+    no filtering at all — because the function is ALSO injected as `decide_maintenance`'s
+    `ground_for`, and quietly narrowing the default would change that pure decision's answers
+    (and gate #55's expectations) as a side effect of a bug fix. ⇒ callers that can evaluate
+    story state OPT IN by passing ``allow``; nothing changes for callers that do not.
+
+    ⛔ WHY THIS PARAMETER EXISTS — MEASURED, 2026-09-12 (`#24-maintain` A/B, 32 lanes x 310 min).
+    Without it this picker chose on LEVEL FIT ALONE, with no notion of where the bot was
+    STANDING, and the maintenance errand walked into grounds it could not reach: **319 runs**
+    died on `ROUTE102 (9,2)` alone (plus ROUTE117/103/101), every one of them absent from the
+    control arm. The bot was on Route 104 NORTH — the far side of Petalburg Woods — being sent
+    to a ground on the SOUTH side. ⇒ a picker that cannot see the player's position must be
+    given a predicate that can.
 
     Heuristic: a mon trains well where it can WIN yet the wilds still give worthwhile
     XP — roughly, where the wild band tops out at or just above the mon's level. We
@@ -222,6 +241,11 @@ def best_training_grass(mon_level: int):
         # reachability predicate because `allow` answers "can I get there", which is TRUE
         # for these — being reachable is exactly what makes them dangerous.
         if _return_blocked(map_enum) is not None:
+            continue
+        # ‼ The reachability gate, when the caller supplied one. Placed AFTER `_return_blocked`
+        # for the reason stated above (those grounds are reachable — that is what makes them
+        # dangerous) and BEFORE the level test only to keep the cheap refusals together.
+        if allow is not None and not allow(map_enum, tile, AREA_PREREQ.get(map_enum)):
             continue
         if mon_level < lo - 1:
             continue  # wilds too strong — the mon would lose here

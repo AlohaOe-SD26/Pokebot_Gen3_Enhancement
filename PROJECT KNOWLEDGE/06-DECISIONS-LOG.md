@@ -5103,3 +5103,32 @@ available at the seam, is the number that actually decides, and needs no new con
 B1F is sealed behind Waterfall, which is badge 8. See `07-CHANGELOG.md` "METEOR FALLS B1F IS SEALED".
 ⇒ **`TRAINING_GRASS` above L28 remains a genuine DATA task and remains unstarted**; the 2026-09-10
 ruling's closing sentence is still the live guidance for the LATE case.
+
+---
+
+## 2026-09-12 — `#24-maintain` stays DEFAULT-OFF after its A/B, and the A/B is kept rather than re-run
+
+**Decision.** `POKEBOT_MAINTAIN` remains `0`. The unreachable-ground fix and gate #57 ship anyway.
+
+**Why.** The 2026-09-12 two-arm batch measured the feature as net-harmful (median run duration **5.35 min
+ON vs 35.18 min OFF**; **0.72 badges won per run vs 2.25** (n=945 badge events); 406 ARM-ON-only run deaths). The fix removes the
+mechanism that caused those deaths, but *removing a harm is not the same as showing a benefit*, and
+the benefit case now rests on a metric the same batch showed to be **confounded** (laggard-gap
+episodes are not comparable across arms with different run lifetimes).
+
+**Alternatives rejected.**
+* *Flip it ON now that the cause is fixed.* Rejected: that reasons from a repaired mechanism to an
+  outcome, which is exactly the inference this batch just falsified. The flip is its own reviewable
+  change with its own A/B — never a side effect of a bug fix.
+* *Delete the feature.* Rejected: the laggard it targets is real and measured (35% of badge moments
+  carried a mon 15+ levels behind). The A/B indicted the *implementation*, not the premise.
+* *Re-run the A/B immediately with the fix in.* Deferred, not rejected — and deliberately NOT
+  started unattended. ⛔ **The next A/B must not reuse the old primary metric.** Run length and
+  badge-rate are the honest comparators; laggard-gap-per-batch is not, until it is normalised
+  per-run. Filing that as the precondition so the next session does not re-run a confounded design.
+
+**Expiry.** This deferral expires the moment someone wants the flag ON: that request requires a
+fresh two-arm batch reporting **median run length and badge rate**, not episode counts.
+
+**⛔ DO NOT RE-RAISE "why not just train the laggard to the boss's level?"** — ruled 2026-09-10,
+with arithmetic (L40→L47 = 285,167 frames against a 250,000 ceiling). Unchanged by this entry.

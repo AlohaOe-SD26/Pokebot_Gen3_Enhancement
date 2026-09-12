@@ -2281,6 +2281,10 @@ class StoryMode(BotMode):
             train_team,
         )
         from modules.story.training_areas import best_training_grass, estimate_frames_to_level
+        # ‼ Both needed by the fail-soft handler below. `reraise_if_aborting` was NOT imported
+        # anywhere in this file — using it without this line is a `NameError` raised while
+        # ALREADY handling an exception, which would have turned a skippable errand into a crash.
+        from modules.story.early_game import UnreachableDestinationError, reraise_if_aborting
 
         # ⛔⛔ DEFAULT OFF UNTIL THE ACTION HAS BEEN DRIVEN. Gate #55 proves the DECISION; the code
         # below — rotate, train, restore lead — has never executed a frame. This project's promotion
@@ -2306,6 +2310,18 @@ class StoryMode(BotMode):
         if _os.environ.get("POKEBOT_MAINTAIN_FAULT") == "nobudget":
             budget = 10_000_000          # arm: proves the budget gate is what refuses the tail
 
+        # ⛔⛔ ONE PREDICATE, SHARED BY THE DECISION AND THE PICK — they must never disagree.
+        # `decide_maintenance` uses `ground_for` to ESTIMATE the cost (band → frames → budget).
+        # If the decision saw an unfiltered ground and the pick then refused it, the errand would
+        # be approved against ROUTE111's rich L19-22 band yet actually run on a poorer one, blowing
+        # the very budget the decision had just checked. ⇒ both take `_maint_allow`.
+        # ‼ It is the SAME lambda the relocation path uses (`_training_area_allowed` + the per-run
+        # `_training_blocked` memory), NOT a second mechanism — see `_note_training_unreachable`.
+        _maint_allow = lambda m, t, p: (  # noqa: E731 - shared by the decision and the pick
+            _training_area_allowed(m, t, p) and not self._training_blocked(m, t)
+        )
+        _maint_ground = lambda lv: best_training_grass(lv, allow=_maint_allow)  # noqa: E731
+
         # ⛔ THE DECISION IS A PURE PREDICATE (`decide_maintenance`), for the reason its docstring
         # gives: a decision entangled with `yield from` needs a ROM and ~100k frames to exercise ONE
         # branch. This adapter only READS state, hands it over, and REPORTS - gate
@@ -2314,7 +2330,7 @@ class StoryMode(BotMode):
             battler_levels={i: party[i].level for i in battlers},
             boss_target=target,
             catchup_gap=self.TRAIN_CATCHUP_GAP,
-            ground_for=best_training_grass,
+            ground_for=_maint_ground,
             wild_max_for=_wild_land_max,
             estimate_for=lambda s, to, wild: estimate_frames_to_level(party[s], to, wild),
             heal_for=heal_map.get,
@@ -2332,7 +2348,17 @@ class StoryMode(BotMode):
         # ⛔ Capture IDENTITY now. The slot index is used only to rotate and is meaningless
         # afterwards; the PID is what the completion line asserts on.
         pid, name, level = mon.personality_value, mon.species.name, mon.level
-        grass_map, grass_tile = best_training_grass(level)
+        # ‼ THE SAME predicate the decision just used — see `_maint_ground` above.
+        _ground = _maint_ground(level)
+        if _ground is None:
+            # ⛔ Cannot happen while the predicate is deterministic within one tick (the decision
+            # only returned a slot because this same call answered non-None). Guarded anyway: the
+            # old code unpacked the result directly, so a None here was a `TypeError` INSIDE a
+            # best-effort errand — i.e. a crash where the honest answer is "skip it".
+            _log_story_event(f"SKIPPED - ground vanished between decision and pick for {name}",
+                             "MAINTAIN")
+            return
+        grass_map, grass_tile = _ground
         wild_level = _wild_land_max(grass_map)
         est = estimate_frames_to_level(mon, catchup, wild_level)
         heal_center = heal_map.get(grass_map)
@@ -2416,6 +2442,40 @@ class StoryMode(BotMode):
         except GeneratorExit:
             # ⛔ We are being closed. Yielding now is exactly the RuntimeError above. Let it go.
             raise
+        except UnreachableDestinationError as error:
+            # ⛔⛔ ABANDON THE ERRAND — DO NOT TAKE THE RUN DOWN. MEASURED 2026-09-12.
+            # This method already argues the case for the ROTATION failure twelve lines up:
+            # *"here it is a best-effort errand before a boss, and taking the run down over a
+            # missed optimisation would be worse than the laggard it is trying to help."* That
+            # reasoning was simply never applied to the NAVIGATION failure, which re-raised into
+            # `_play`'s derail recovery and killed the run. The A/B priced the omission:
+            #   ARM-ON  552 runs, median run 99 KB, badge-7 in 0.9% of runs
+            #   ARM-OFF 243 runs, median run 537 KB, badge-7 in 3.7% of runs
+            # with **319** ROUTE102 deaths (plus ROUTE117/103/101) that the control never suffered.
+            # ⇒ the feature was net-HARMFUL purely through this handler.
+            # ‼ NARROW ON PURPOSE. `UnreachableDestinationError` is the specific "that tile cannot
+            # be walked to from here" signal (`early_game.py:333`) — the same type the relocation
+            # path catches at the bottom of `_prepare_for_fight`. A broad `except BotModeError`
+            # here would swallow a whiteout, because `StoryAbort` IS a `BotModeError` (KI-67) —
+            # that is gate #27's whole subject, and it is why the latch is re-checked first anyway.
+            reraise_if_aborting(error)
+            # Remember it, so the run SELF-HEALS: `_training_blocked` now refuses this ground for
+            # the rest of the run FROM THIS MAP, `_maint_allow` filters it out of the very next
+            # pick, and `decide_maintenance` then answers a clean "no ground serves that level"
+            # instead of walking into the same wall. Without the memory this is the deterministic
+            # death loop the relocation path documents.
+            self._note_training_unreachable(grass_map, grass_tile)
+            yield from _lead_strongest_battler()
+            _log_story_event(
+                f"ABANDONED pid={pid:08X} — {grass_map.name}{grass_tile} unreachable from here "
+                f"({error}). Story continues WITHOUT this top-up.",
+                "MAINTAIN",
+            )
+            console.print(
+                f"[yellow]Story: could not reach {grass_map.name} to top up {name} — "
+                f"skipping maintenance and carrying on.[/]"
+            )
+            return
         except BaseException:
             # ⛔ Hand the boss a strong lead on the FAILURE path too — leaving the laggard in slot 0
             # would send it out FIRST against the gym leader, strictly worse than not maintaining.

@@ -524,6 +524,19 @@ GATES: list[tuple[str, bool]] = [
     # deliberate-looking comment is not evidence of safety. Proven against that real pre-fix file,
     # not only its own arm. Pure: AST + a 6-line runtime demo, no ROM.
     ("probe_yield_in_finally.py", False),
+    # #57 — `#24-maintain` must REFUSE training grounds it cannot walk to, and ABANDON the errand
+    # rather than kill the run when it finds one anyway.
+    # ⛔ THE ONLY GATE IN THIS SUITE WHOSE JUSTIFICATION IS A COMPLETED A/B THAT SAID "SHIP NOTHING".
+    # The 2026-09-12 batch (32 lanes x 310 min per arm) measured the feature as net-HARMFUL: median
+    # run length 99 KB with maintenance ON vs 537 KB OFF, badge-7 rate 0.9% vs 3.7%, and 406 runs
+    # killed by a family of `Could not reach (X,Y) on ROUTE<N>` derails that the control arm never
+    # suffered ONCE. All of it flowed from one picker that chose on level fit with no idea where the
+    # player stood, plus a handler that re-raised a best-effort errand's failure into the run.
+    # ‼ Gates the ADDITIVE guarantee too (`allow=None` filters nothing), because `best_training_grass`
+    # is ALSO injected as `decide_maintenance`'s `ground_for` — narrowing its default would have
+    # moved gate #55's answers as a silent side effect of a bug fix.
+    # Pure: AST + the real picker, no ROM. Four fault arms, each measured to red only its own cases.
+    ("probe_maintain_unreachable.py", False),
 ]
 
 

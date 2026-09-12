@@ -16695,3 +16695,73 @@ story surface deserves its own item and its own drive.
 ⛔ **And the discovery route matters more than the bug.** It was found by an ADVERSARIAL agent asked
 to refute a plan, before the experiment existed — not by running anything. The experiment as planned
 would have printed a plausible number and hidden it.
+
+---
+
+## 2026-09-12 — I diagnosed the loudest log line, then the wrong route, before reading the verbatim log
+
+**Symptom.** An overnight A/B showed 1,745 occurrences of `Cannot reach PETALBURG_CITY: it is not
+walkable from ROUTE104` in ARM-ON and 0 in ARM-OFF. I reported that as the feature's root cause,
+and separately reported "all 27 manual derails are ROUTE111 `(25,55)`" as *the* defect to fix.
+
+**Both were wrong, for two DIFFERENT reasons — and that is the useful part.**
+1. **The PETALBURG line is `derail #2`.** It is what the run hits *after* the auto-restart, having
+   already been knocked off course by `derail #1`. Counting it measured a **consequence**. The
+   project already had a rule for instrumenting the ACTION rather than its inputs; this is the same
+   error pointed at *outputs* — a downstream symptom is no more the cause than an upstream candidate.
+   ⇒ **Rule: when a system retries after failure, count PRIMARY failures. Every post-restart error
+   is downstream of the first one and will out-number it.**
+2. **ROUTE111 appears in BOTH arms** (145 ON / 79 OFF). A cause that is present in the control
+   cannot be what the treatment broke. I had read a large ARM-ON number without checking the same
+   number in ARM-OFF — the one comparison the whole experiment existed to make.
+   ⇒ **Rule: in a two-arm experiment, no single-arm count is a finding. Quote both arms or say nothing.**
+
+**Root cause of my error:** I ran `sort | uniq -c | sort -rn` and reported the top row. The ranking
+was correct and the *question* was wrong. Reading three verbatim log excerpts — which took one tool
+call — produced the real chain immediately, including the `stage:` and `map (0,19)` fields that name
+Route 104 north.
+
+**The actual defect** (now fixed, gate #57): `best_training_grass` chose a training ground on level
+fit alone with no notion of the player's position, and the errand re-raised the resulting
+`UnreachableDestinationError` into the run instead of abandoning a best-effort side quest.
+
+**⭐ The most valuable thing in the whole round:** the fix's justification was *already written in
+the file*, twelve lines above the bug, applied to a different failure path in the same function.
+⇒ **Prevention rule: when you write "we abandon rather than raise, because this is best-effort",
+grep that same function for every other `raise` and make them agree — a policy that holds on one
+path and not its neighbour is a bug with a comment defending it.**
+
+**Second prevention rule, from the metric:** `probe_maintain_window.py` made the harmful arm look
+BETTER (fewer laggard episodes, lower median gap) because its runs died before they could
+accumulate gap. ⇒ **Any per-batch count is uninterpretable across arms whose runs have different
+lifetimes. Normalise per run, or compare only lifetime-independent quantities.**
+
+---
+
+## 2026-09-12 — I reported a metric with n=14 while a metric with n=945 sat in the same log files
+
+**Symptom.** Grading the maintenance A/B, I counted `BADGE07_GET` and reported *“badge 7 reached:
+5 (0.9%%) vs 9 (3.7%%) — 4x worse”*, and wrote that figure into the changelog, the handoff banner,
+the punch list, the decisions log, the flag registry AND the new gate's docstring.
+
+**What was wrong with it.** `BADGE07_GET` is a **Ch18-only STEP line**, not a badge-progress
+marker — which is why badges 1-6 all counted **ZERO** in both arms. I saw those zeros, noted they
+were “suspicious”, and *still published the derived percentage first*. A run cannot reach badge 7
+without earning 1-6, so the zeros were proof the metric did not mean what I called it.
+⇒ **Rule: an impossible zero beside your metric is a REFUTATION of the metric, not a curiosity to
+mention. Stop and re-derive before any number built on it is written down.**
+
+**What was actually available**, in the same files, found one tool call later: `BADGE: <name>
+(<leader>, <city>)` — the real per-badge line. **945 events** instead of 14:
+ARM-ON **398 badges over 552 runs = 0.72/run**; ARM-OFF **547 over 243 = 2.25/run** (3.1x better),
+with every single tier lower in ARM-ON in ABSOLUTE terms despite 2.3x the runs.
+
+**Why it matters even though the conclusion held.** The verdict (net-harmful) was unchanged and in
+fact strengthened — which is exactly the trap. **A correct conclusion reached on weak evidence is
+indistinguishable, to the next reader, from a correct conclusion reached on strong evidence**, and
+this project's own playbook already warns against quoting an underpowered rate from one batch
+(`14-AGENT-PLAYBOOK.md`). I had the rule and did not apply it to a metric I had just invented.
+
+**Prevention rule:** *before publishing a derived rate, count the EVENTS behind it and say the n out
+loud.* If n is small, grep the logs for a denser signal first — and if a sibling value in the same
+table is impossible, treat the whole metric as unproven until re-derived.

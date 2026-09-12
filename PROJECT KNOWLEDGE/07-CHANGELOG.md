@@ -27280,3 +27280,139 @@ now (proven by where the call comes from) but has NOT been observed working. The
 test: `trying to reach (19, 19)` appeared **22 / 26 / 22** times per batch before, and 3 times in a
 25-minute batch after the WRONG fix. ⇒ **read it only on a FINISHED batch, and check Slateport was
 reached in the same breath.**
+
+---
+
+## 2026-09-12 — The overnight A/B said SHIP NOTHING, and that is the most valuable result this feature has produced
+
+**The experiment the user ran overnight** (`Run-Maintain-AB-Batch.bat 32 310`, two arms, 32 lanes ×
+310 min each, `--build sandbox`): ARM-ON `x4-runs/20260911-175201`, ARM-OFF `x4-runs/20260911-230219`.
+Arms verified separated before anything was read — ARM-ON 901 maintenance starts / 0 dormant,
+ARM-OFF 2,644 dormant / 0 starts. Commit difference between the arms confirmed **docs-only**
+(`04-HANDOFF.md`, zero `.py`), so the comparison is valid.
+
+### THE VERDICT: `POKEBOT_MAINTAIN=1` was NET-HARMFUL
+
+| metric | ARM-ON | ARM-OFF |
+|---|---|---|
+| runs completed in equal wall-clock | 552 | 243 |
+| **MEDIAN run duration** (wall-clock) | **5.35 min** | **35.18 min** (6.6× longer) |
+| **badges won per run** | **0.72** (398 over 552) | **2.25** (547 over 243) |
+| `Could not reach (9,2) on ROUTE102` | **319** | **0** |
+| `… ROUTE117 / ROUTE103 / ROUTE101` | 40 / 27 / 20 | **0 / 0 / 0** |
+
+⛔ **MORE RUNS IS NOT MORE PROGRESS.** ARM-ON's 552-vs-243 looked like throughput and is the
+opposite: identical wall-clock with 2.3× the runs means each run **died sooner**. The median is the
+honest statistic here (5.35 vs 35.18 min); the mean (17.1 vs 40.5) understates it because a handful of
+long ARM-ON runs drag it up.
+⚠ **This row first read “median log size 99 KB vs 537 KB” — a BYTE PROXY.** Replaced the same day with wall-clock duration derived from the `debug-YYYYMMDD-HHMMSS.log` start stamps (n=520 / 211). The proxy gave 5.4× and the real measure gives **6.6×** — it understated the effect, which is the favourable direction and still not a reason to ship a proxy when the direct measure is one tool call away.
+
+### ‼ THE GAP METRIC IS CONFOUNDED AND MUST NOT BE QUOTED AS FAVOURABLE
+`probe_maintain_window.py` reports ARM-ON with FEWER laggard episodes (380 vs 402) and a LOWER
+median first gap (7 vs 8) — i.e. it *appears* to show the feature working. It does not. Per RUN,
+ARM-ON has 0.69 episodes and ARM-OFF 1.65, because **an ARM-ON run does not live long enough to
+accumulate gap**. ⇒ the "better" number is an artifact of dying early. **A metric computed
+per-batch is uninterpretable when the arms have different run lifetimes** — this is the same
+vacuity shape as a count that nets to zero reading TRUE.
+
+### ROOT CAUSE — and I got it wrong twice before I got it right
+1. ⛔ **First I blamed `Cannot reach PETALBURG_CITY … from ROUTE104` (1,745 hits).** That line is
+   **derail #2** — a consequence of the auto-restart *after* the real failure. I had counted the
+   loudest line, not the causal one. ⇒ **count PRIMARY derails (`derail #1`).**
+2. ⛔ **Then I blamed ROUTE111 `(25,55)`**, the known Go-Goggles-gated tile. But ROUTE111 appears in
+   **both** arms (145 ARM-ON vs 79 ARM-OFF) ⇒ it is pre-existing and is NOT what the feature broke.
+   ⇒ **a cause present in the control is not the cause under test.**
+3. ✅ **The real mechanism**, read out of the verbatim log rather than inferred: the bot stood on
+   **ROUTE104 NORTH** — the far side of Petalburg Woods — at `stage: 3: Woods (rescue) & Cut`, and
+   maintenance sent it to `ROUTE102 (9,2)` on the **south** side. `best_training_grass(level)` chose
+   on **level fit alone, with no idea where the player was standing**.
+   ‼ And the existing story-stage predicate could never have caught it: `region_reach.is_map_reachable`
+   is **MAP-granular**, Route 104 is ONE map split in two by the woods, so it correctly answers
+   "yes". What closes this hole is the per-run `_training_blocked` **memory** — which maintenance
+   simply never wrote to.
+
+### THE FIX (three parts, all in the sandbox, all gated)
+* `modules/story/training_areas.py` — `best_training_grass(mon_level, *, allow=None)` now accepts
+  the same reachability predicate its sibling `best_training_area` has always had.
+  ⛔ **STRICTLY ADDITIVE:** `allow=None` filters nothing, because this function is ALSO injected as
+  `decide_maintenance`'s `ground_for`, and narrowing its default would have moved **gate #55**'s
+  answers as a silent side effect of a bug fix.
+* `plugins/custom_modes/story_mode.py` — the decision and the pick now share **one** predicate
+  (`_maint_ground`), so the errand can never be approved against a band the pick will then refuse.
+* `plugins/custom_modes/story_mode.py` — **the errand now ABANDONS instead of killing the run.**
+  A narrow `except UnreachableDestinationError` re-checks the abort latch first (gate #27 / KI-67 —
+  `StoryAbort` IS a `BotModeError`), records the ground via `_note_training_unreachable` so the run
+  **self-heals**, restores the strong lead, and `return`s.
+  ⭐ **The file already contained the argument for this, twelve lines above, applied to the ROTATION
+  failure:** *"here it is a best-effort errand before a boss, and taking the run down over a missed
+  optimisation would be worse than the laggard it is trying to help."* The reasoning was written,
+  agreed, and simply never applied to the NAVIGATION failure. ⇒ **a policy stated for one failure
+  path is not a policy until every path in that function obeys it.**
+
+**GATE #57 `probe_maintain_unreachable.py`** — 16 cases, no ROM: the additive guarantee, the filter
+biting, total-refusal → `None`, and the handler's shape read out of the AST (narrow type, latch
+first, records the ground, returns instead of re-raising, `GeneratorExit` still first, broad
+`BaseException` still re-raises). Four fault arms, each measured to red only its own cases.
+⭐ **B1 independently re-derives the diagnosis from the code**: the unfiltered L4 pick really is
+ROUTE102 — the ground 319 runs died walking to — computed from `TRAINING_GRASS`, not from the logs.
+
+### ⭐ SIDE RESULT — the user's two ROUTING fixes, checked against the same batch
+* **Rustboro fenced-lane detour (fix #2): CORROBORATED.** ARM-OFF won **239 Stone Badges** — every
+  one of which requires walking Rustboro and Route 104 — with **0 derails in RUSTBORO and 0 in
+  ROUTE104**. (ARM-ON's 21 / 2,094 are all downstream of the maintenance bug above, not of routing.)
+* **Littleroot running-shoes lap (fix #1): NO EVIDENCE EITHER WAY.** The batch logs contain zero
+  `LITTLEROOT` and zero `running shoes` strings, so this batch neither confirms nor refutes it.
+  ⛔ Said explicitly rather than folded into the Rustboro result: **a fix verified by a measured
+  before/after waypoint count at the time it was made does not become batch-verified by sitting in
+  the same commit as one that was.**
+
+**STATUS:** `POKEBOT_MAINTAIN` **stays default-OFF.** The fix removes the measured harm; it does not
+yet demonstrate benefit, and this project promotes what has been driven, not what has been argued.
+
+---
+
+## 2026-09-12 — `#26-healnavbare` is VERIFIED EFFECTIVE by the same batch (and the residue is named)
+
+The heal-walk ride-out shipped 2026-09-11 UNVERIFIED. This batch grades it, and the grade is good.
+
+| reading | ARM-ON | ARM-OFF |
+|---|---|---|
+| ride-out reports fired (debug logs) | — | **323** |
+| `trying to reach (19, 19)` — the Slateport derail it targeted | **0** | **0** |
+| Slateport mentions (the NON-VACUITY conjunct) | 1,337 | 1,642 |
+| `kept interrupting … after 8 ride-outs` (residual) | 15 | 13 |
+
+⭐ **The zero is NOT vacuous, and that conjunct is the whole point of reading it this way.** The same
+line was **22 / 26 / 22** per batch before the fix. A zero beside 1,642 Slateport mentions means the
+runs went there and the derail did not happen; a zero beside a zero would have meant nothing. *(This
+project already burned a reading on exactly that — a premature zero from a mid-run batch.)*
+
+**THE RESIDUE, stated rather than buried:** 13 ARM-OFF cases exhausted all **8** ride-outs and raised
+`heal_in_pokemon_center: a scripted event kept interrupting the walk to X after 8 ride-outs` —
+**FortreeCity ×6, PetalburgCity ×6, LavaridgeTown ×2**. So the mechanism works and is not universal.
+⇒ 8 rounds is empirically enough for Slateport and not always enough elsewhere. ⛔ Do NOT simply
+raise the bound: a retry ceiling that is too high converts a fast visible failure into a slow one.
+The next question is *why those three centres differ*, not *how many more tries*.
+
+### ‼ THE ADVERSARIAL REVIEW FOUND ANOTHER INSTANCE OF THE RULE I HAD JUST WRITTEN
+
+An independent reviewer (which reproduced the gate 16/16, all four fault arms, and the 48/48 quick
+suite itself before commenting) returned **APPROVE, no blockers**, and three risks:
+
+1. ⛔ **A heal-nav failure DURING the maintenance errand still kills the run.** `heal_in_pokemon_center`
+   raises a plain `BotModeError`, which the new narrow `except UnreachableDestinationError` does not
+   catch — so it falls to `except BaseException` and re-raises, exactly the pre-fix behaviour.
+   ⇒ **This is the SAME defect shape the fix just repaired, on the neighbouring path**, and this
+   session's own new prevention rule says to grep the function for every other `raise` and make them
+   agree. I wrote that rule and did not fully apply it; the reviewer applied it for me.
+   **FILED, NOT FIXED TODAY — deliberately.** Broadening to `except BotModeError` is precisely the
+   shape gate #27 and `repro_no_silent_except.py` exist to police (`StoryAbort` IS a `BotModeError`,
+   KI-67), it was NOT part of the measured 406-death family, and shipping a widened handler hours
+   after a fix with no measurement is the rule-9 shape this project keeps paying for. It needs its
+   own narrow exception type or an explicit errand-scoped wrapper, plus its own gate.
+2. ⚠ **`custom-pokebot` already holds the PRE-FIX `_maintain_lagging_battler`** (promoted
+   2026-09-11, still the run-killing re-raise). Inert only because `POKEBOT_MAINTAIN` defaults OFF in
+   both forks. ⛔ **Do not promote the drifted files piecemeal** — promoting `story_mode.py` without
+   `training_areas.py` would ship the fail-soft handler with no `allow` predicate to feed it.
+3. ⚠ The abandonment path logs `ABANDONED pid=…`, a different shape from the normal `done pid=…
+   REACHED/SHORT`. Nothing parses either today; future batch tooling must not treat one as the other.

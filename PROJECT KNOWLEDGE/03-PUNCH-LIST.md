@@ -1859,7 +1859,9 @@ accident of what the bot happened to meet.
 
 ---
 
-### ‼ `#26-healnavbare` — `heal_in_pokemon_center` walks to the PC door with NO ride-out, at EVERY heal site (filed 2026-09-11)
+### ✅ `#26-healnavbare` — FIXED 2026-09-11, **VERIFIED EFFECTIVE BY BATCH 2026-09-12**: 323 ride-outs fired, the targeted Slateport derail went **22/26/22 per batch → 0** beside 1,642 Slateport mentions (non-vacuous). ⚠ RESIDUE: 13 cases exhausted all 8 ride-outs (Fortree ×6, Petalburg ×6, Lavaridge ×2) — the mechanism works and is not universal. (filed 2026-09-11)
+
+⛔ **DO NOT SIMPLY RAISE THE 8-ROUND BOUND.** A ceiling that is too high turns a fast visible failure into a slow one. The open question is *why Fortree/Petalburg/Lavaridge differ from Slateport*, not *how many more tries*. — **Everything below this line is the ORIGINAL 2026-09-11 filing, kept for the diagnosis; the bare-navigate it describes is FIXED.**
 
 **`higher_level_actions.py:377`** — the helper ends in a bare
 `navigate_to_anywhere(door_map, door_tile)`: no `avoid_scripted_events=False`, no retry, no
@@ -2056,16 +2058,23 @@ battler position rather than reordering the party. Hardcoding "slots 0-1 are act
 recreate the KI-34 bug in a new place: inferring an index relationship instead of reading it.
 Always read it via `BattleState.map_battle_party_index()` / `gBattlerPartyIndexes`.
 
-### 🔶 `#24-maintain` — MAINTAIN, not cram — **DRIVEN 2026-09-11: THE MECHANISM WORKS (L13→L14 vs L13→L13). ⛔ STILL DEFAULT-OFF — the VALUE question is open and needs a BATCH. The late-game half stays DEAD.** (user proposal 2026-07-29)
+### 🔶 `#24-maintain` — MAINTAIN, not cram — **⛔ BATCH RAN 2026-09-12 AND THE VERDICT WAS *NET-HARMFUL*: **median run 5.35 min ON vs 35.18 min OFF**, **0.72 badges/run vs 2.25** (3.1× worse), 406 ARM-ON-only run deaths. CAUSE FOUND AND FIXED (gate #57); STILL DEFAULT-OFF — removing a harm is not showing a benefit. The late-game half stays DEAD.** (user proposal 2026-07-29)
 ✅ **A/B RAN 2026-09-11** (same fixture/frames/pinned target, separate profiles). ARM-ON:
 `start Marill pid=6A767BDA L13->L14 on ROUTE117(31,16) est=7165`, `rotation=landed`. ARM-OFF:
 `dormant`. **P1, P2 (the vacuity conjunct) and P6 PASS; P3/P4/P5 UNTESTED — ⛔ UNTESTED IS NOT PASS.**
 P3 is ungradeable HERE: Wattson's `cfg["grass"]` and `best_training_grass(13)` are the SAME pair, so
 the log line fits a boss-keyed implementation too. Evidence: `evidence/2026-09-11-maintain-ARM-*.log`.
-- [ ] **NEXT — THE VALUE QUESTION; IT NEEDS A BATCH, NOT A DRIVER** (rule 9). This proves the
-      mechanism fires on ONE boss/fixture/laggard, NOT that the finish rate moves. `x4_headless.py
-      --build sandbox` with `POKEBOT_MAINTAIN=1` vs a matched control; compare badge-moment level
-      GAPS and run-enders, not just completion.
+- [x] **THE VALUE QUESTION — BATCH RAN 2026-09-12, AND IT ANSWERED “NO”.** 32 lanes × 310 min per
+      arm (`x4-runs/20260911-175201` ARM-ON vs `x4-runs/20260911-230219` ARM-OFF; arms verified
+      separated — 901 starts/0 dormant vs 0 starts/2,644 dormant; commit delta docs-only).
+      **Median run duration 5.35 min ON vs 35.18 min OFF (wall-clock, n=520/211); badges won per run 0.72 vs 2.25** — ARM-OFF won **547 badges from 243 runs**, ARM-ON only **398 from 552**. ⭐ Every tier is lower in ARM-ON in ABSOLUTE terms despite 2.3× the runs (Stone 171 vs 239 … Rain 3 vs 8).
+      ⚠ An earlier draft quoted “badge 7: 0.9% vs 3.7%” — a Ch18-only STEP line with **n=14**. Superseded by badges/run (**n=945**); same direction, far better powered. ARM-ON-only
+      run-enders: ROUTE102 ×319, ROUTE117 ×40, ROUTE103 ×27, ROUTE101 ×20.
+      ⛔⛔ **AND THE METRIC THIS ITEM NAMED IS CONFOUNDED — DO NOT REUSE IT.** “badge-moment level
+      GAPS” made the HARMFUL arm look better (380 episodes vs 402, median first gap 7 vs 8) purely
+      because ARM-ON runs died before they could accumulate gap (0.69 episodes/run vs 1.65).
+      ⇒ the next A/B compares **median run length and badge rate**, not per-batch episode counts.
+      Cause + fix + gate #57: `07-CHANGELOG.md` 2026-09-12. Ruling: `06-DECISIONS-LOG.md` 2026-09-12.
 - [ ] P3 needs the `bossground` falsifier BUILT (it never was) **and** a boss whose `cfg["grass"]`
       differs from `best_training_grass(laggard_level)`; on Wattson they coincide.
 - [ ] P4/P5 need an over-budget laggard staged (`POKEBOT_MULE_LEVEL` far below `catchup`).
