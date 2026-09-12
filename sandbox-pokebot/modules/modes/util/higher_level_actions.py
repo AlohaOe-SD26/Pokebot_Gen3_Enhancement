@@ -374,7 +374,51 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
     # exactly the old navigate_to.
     from .global_navigation import navigate_to_anywhere
 
-    yield from navigate_to_anywhere(pokemon_center_door_location.value[0], pokemon_center_door_location.value[1])
+    # ⛔⛔ THE WALK TO THE DOOR MUST RIDE OUT A SCRIPTED SCENE (`#26-healnavbare`, 2026-09-11).
+    # This was a BARE `navigate_to_anywhere`. If any coord event is armed on the way to the door,
+    # `walking.py:499-505` raises *"We unexpectedly triggered a scripted event … Switching to manual
+    # mode"* and the whole run derails.
+    # ⭐ MEASURED, not theorised: the single line `…trying to reach (19, 19) @ (0, 1)` — the Slateport
+    # Poké Center — appears **22 / 26 / 22 times** in the three batches on disk, and it is reached
+    # from `train_team`'s mid-grind heal (`early_game.py:2116`), not from any one chapter leg.
+    # ‼ I FIRST WRAPPED A SINGLE CALL SITE (`sail_to_slateport` Leg 4) AND IT DID NOT WORK — the
+    # very next batch reproduced the derail 3 times. The defect is in the HELPER, reachable from
+    # every heal, which is why fixing one caller could not fix it.
+    # ⚠ SAFE ON THE ORDINARY PATH BY CONSTRUCTION: when no scene fires, the first attempt succeeds
+    # and this costs one `try`. The retry only engages on the failure that used to be fatal.
+    # ⛔ NOT `expecting_script=True`: that would SUPPRESS the error without riding the scene out,
+    # turning a visible derail into a silent wedge.
+    _heal_nav_rounds = 0
+    while True:
+        _heal_nav_rounds += 1
+        if _heal_nav_rounds > 8:
+            raise BotModeError(
+                f"heal_in_pokemon_center: a scripted event kept interrupting the walk to "
+                f"{pokemon_center_door_location.name} after 8 ride-outs."
+            )
+        try:
+            yield from navigate_to_anywhere(
+                pokemon_center_door_location.value[0], pokemon_center_door_location.value[1]
+            )
+            break
+        except BotModeError as error:
+            # ⛔ `reraise_if_aborting` FIRST. `StoryAbort` IS a `BotModeError`, so without this a
+            # whiteout would be swallowed and retried — and the latch is cleared only by
+            # `StoryMode.run`, so each retry runs straight into the next `_check_abort()` and burns
+            # the budget reporting failures that never happened (KI-67).
+            from modules.story.early_game import _ride_out_scripted_scene, reraise_if_aborting
+
+            reraise_if_aborting(error)
+            # ‼ SAY SO. `repro_heal_piggyback_reporting.py` refuses any handler in this function
+            # that swallows without reporting — and it is right: this retry is precisely the event
+            # that used to end a run, so a run log that does not mention it hides the thing we most
+            # want to count. `console_too=False` keeps it out of the console like the other three.
+            _piggyback_report(
+                "the walk to the Poké Center door",
+                f"a scripted event interrupted it (attempt {_heal_nav_rounds}/8) — riding it out "
+                f"and retrying ({error!r})",
+            )
+            yield from _ride_out_scripted_scene("B")
 
     if pokemon_center_door_location is PokemonCenter.PalletTown:
         # Player's house in Pallet Town, where Mum can heal us.

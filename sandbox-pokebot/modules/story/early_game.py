@@ -3624,51 +3624,13 @@ def sail_to_slateport() -> Generator:
                 yield from _ride_out_scripted_scene("B")
 
     # --- Leg 4: heal at the Slateport PC (respawn anchor + fresh team for the city arc). ---
-    # ⛔⛔ THE RIDE-OUT IS LOAD-BEARING, AND LEG 3 ABOVE ALREADY KNEW IT (fixed 2026-09-11).
-    # `heal_in_pokemon_center` ends in a bare `navigate_to_anywhere` (`higher_level_actions.py:377`)
-    # with NO `avoid_scripted_events=False` and NO retry. Slateport's coord events are still armed
-    # at this point in the arc, so the walk to the Poké Center door (19,19) walks onto one, and
-    # `walking.py:499-505` raises *"We unexpectedly triggered a scripted event … Switching to manual
-    # mode"* — a DERAIL, three lines after Leg 3 took exactly this precaution for the tile two
-    # squares away at (19,21).
-    # ⭐ MEASURED, and this is why it is worth fixing before a long batch: the identical line
-    #   `…trying to reach (19, 19) @ (0, 1)` appears **22-26 times per batch**, in EVERY batch on
-    #   disk (20260909-160339: 22, 20260910-203458: 26, 20260910-234959: 22). It is routine, not an
-    #   edge case. ‼ `(0, 1)` is SLATEPORT_CITY — the "stage 9: Mauville & the Bike" text on that
-    #   line is the CHAPTER the run is in, not where it derailed. That mis-read cost me a wrong
-    #   filing before the map id was actually resolved.
-    # ⚠ WRAPPED HERE, NOT FIXED IN `heal_in_pokemon_center`, ON PURPOSE. That helper is on the
-    # shared path for every heal in the project; changing it hours before a measurement batch is the
-    # shape this project has been burned by (rule 9: a shared path needs its own A/B on the ORDINARY
-    # case). This call site is the one that measurably derails. ⇒ smallest blast radius that fixes
-    # the observed defect; the helper's own bare navigate is filed separately.
-    # ⛔ NOT `expecting_script=True`: that would SUPPRESS the error without riding the scene out,
-    # turning a visible derail into a silent wedge. Riding it out is the fix.
+    # ‼ THE RIDE-OUT LIVES IN `heal_in_pokemon_center` NOW (`#26-healnavbare`, 2026-09-11), not here.
+    # A wrapper WAS added around this one call site first, and the very next batch reproduced the
+    # derail 3 times — because the `(19,19)` failure is reached from `train_team`'s mid-grind heal
+    # (`:2116`), not from this leg. ⇒ fixing one caller could never fix a defect that lives in the
+    # helper, and keeping a second mechanism here would only imply it does something.
     yield from wait_until_truly_controllable()
-    rounds = 0
-    while True:
-        _check_abort()
-        rounds += 1
-        if rounds > 12:
-            raise BotModeError(
-                "Sail to Slateport: could not reach the Poké Center — a scripted event kept "
-                "interrupting the walk to (19,19) after 12 ride-outs."
-            )
-        try:
-            yield from heal_in_pokemon_center(PokemonCenter.SlateportCity)
-            break
-        except BotModeError as error:
-            # ⛔⛔ `reraise_if_aborting` FIRST, ALWAYS. `StoryAbort` IS a `BotModeError`, so a bare
-            # `except BotModeError` here would SWALLOW a whiteout and retry the heal up to 12 times
-            # — and the abort latch is cleared only by `StoryMode.run`, so every retry would run
-            # straight into the next `_check_abort()` and burn the whole budget in a few frames,
-            # reporting failures that never happened. That is KI-67 exactly.
-            # ‼ I wrote this handler WITHOUT the guard first, and gates #27
-            # (`probe_abort_swallowing.py`) and `repro_no_silent_except.py` both went red on it
-            # within a minute. The ratchets are the reason this is correct rather than plausible.
-            reraise_if_aborting(error)
-            yield from _ride_out_scripted_scene("B")
-            yield from wait_until_truly_controllable()
+    yield from heal_in_pokemon_center(PokemonCenter.SlateportCity)
     yield from wait_until_truly_controllable()
     if _map_group_number() != SLATEPORT:
         raise BotModeError("Sail to Slateport: expected to finish at the Slateport Poké Center.")

@@ -27235,3 +27235,48 @@ happened. That is KI-67 exactly. `reraise_if_aborting(error)` is now the handler
 ⇒ **the ratchets are the reason this fix is correct rather than merely plausible.**
 
 **VERIFICATION:** ⛔ NOT YET PROVEN, AND THE SHORT BATCH DID NOT PROVE IT. A 4-lane/25-minute batch after the fix showed 0 derails, 0 manual, 0 tracebacks — but it also showed **0 Slateport mentions**: the runs never reached the leg. That zero is the VACUOUS case, not a pass, and reporting it as one would have been the exact failure this project's vacuity rule exists to prevent. ⚠ A path dump from Leg 3's tile (19,21) to the door (19,19) is 2 waypoints and BYTE-IDENTICAL with the trigger penalty on and off — so this is NOT a routing defect: a scene fires during the walk, and the fix rides it out rather than routing around it. ⇒ THE VERIFICATION IS THE LONG BATCH: the line 'trying to reach (19, 19)' appeared 22-26x in every batch on disk. If it reads 0 there while Slateport is still being reached, that is the proof. Until then: mechanism identified, fix is the pattern Leg 3 already proves, ratchets green — but UNVERIFIED.
+
+---
+
+## 2026-09-11 (night) — MY FIRST FIX FOR THE DERAIL DID NOT WORK, and the batch said so within 25 minutes
+
+⛔⛔ **THE CORRECTION MATTERS MORE THAN THE FIX.** I wrapped ONE call site
+(`sail_to_slateport` Leg 4) and shipped it saying "UNVERIFIED". The very next 25-minute batch
+reproduced the identical derail **3 times**, on lanes that DID reach Slateport.
+
+**Why it could not have worked.** The `(19,19)` walk is reached from **`train_team`'s mid-grind
+heal** (`early_game.py:2116` — `heal_in_pokemon_center(heal_center)`), not from the chapter leg I
+wrapped. During chapter 9 the bot trains near Route 110 with `heal_center = SlateportCity`, and THAT
+walk derails. ⇒ **fixing one caller can never fix a defect that lives in the helper**, and
+`#26-healnavbare` had already said so in writing — I filed it, then fixed the wrong thing anyway.
+
+**THE REAL FIX:** the bounded ride-out now lives INSIDE `heal_in_pokemon_center`
+(`higher_level_actions.py`), so every heal site inherits it. The Leg-4 wrapper was REMOVED — two
+mechanisms doing one job is its own bug shape, and leaving a wrapper that demonstrably fixed nothing
+would imply it did something.
+
+### ‼ THREE FALSE READINGS IN ONE BATCH, ALL FROM CHECKING TOO EARLY OR TOO NARROWLY
+1. Mid-run I read `manual=0` on all four lanes and nearly called it fixed. The derails had not
+   happened **yet** — the final output showed `manual=1` on three.
+2. I then read `Slateport mentions = 0` and correctly called the result VACUOUS — but that zero was
+   also premature; the finished batch shows 3 and 1 mentions on two lanes.
+3. Only the COMPLETED batch gives either number honestly.
+⭐ **Prevention rule (one line):** *A batch's numbers are meaningless until the batch has FINISHED —
+a mid-run zero is an absence of evidence, not evidence of absence.*
+‼ The vacuity check still earned its keep: it stopped me reporting reading (1) as a pass. It was the
+right instinct applied to a number that was itself premature.
+
+### The gates caught two more things on the way
+* A bare `except BotModeError:` — `probe_abort_swallowing.py` and `repro_no_silent_except.py` both
+  went red. `StoryAbort` IS a `BotModeError`, so it would have swallowed whiteouts and retried 12
+  times (KI-67). `reraise_if_aborting(error)` is now the handler's first statement.
+* A handler in the heal that did not REPORT — `repro_heal_piggyback_reporting.py` refuses any
+  silent handler in that function, and it is right: this retry is exactly the event that used to end
+  a run, so a log that omits it hides the thing we most want to count. It now calls
+  `_piggyback_report`.
+
+⚠ **STILL UNVERIFIED, and this time I have already been wrong once.** The fix is in the right place
+now (proven by where the call comes from) but has NOT been observed working. The long batch is the
+test: `trying to reach (19, 19)` appeared **22 / 26 / 22** times per batch before, and 3 times in a
+25-minute batch after the WRONG fix. ⇒ **read it only on a FINISHED batch, and check Slateport was
+reached in the same breath.**
