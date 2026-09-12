@@ -79,3 +79,20 @@ whose runs have different lifetimes.
 ⛔ **A ZERO IS ONLY MEANINGFUL BESIDE ITS NON-VACUITY CONJUNCT.** Report "0 heal-nav derails" only
 together with the count of heals actually attempted; a zero beside a zero means nothing. This
 project has already been fooled twice by exactly that.
+
+---
+
+# GRADED 2026-09-12 14:45 — ARM-ON `x4-runs/20260912-104105`, ARM-OFF `x4-runs/20260912-124117`
+
+| # | prediction | outcome |
+|---|---|---|
+| P0 | fixing the aggravated bugs BEFORE the flip is the right order | ✅ **VINDICATED** — the pre-flip review caught a BLOCKER (unguarded slot-0 lead rotation = a destructive SWAP) that would have shipped ON to users. |
+| P1 | the heal fix removes the ELEVATION, not the failure; the raw message still appears | ⚠ **HALF RIGHT, AND THE HALF THAT MATTERS IS THE MISS.** The 8-ride-out class is GONE (15/3 → **0/0**) — better than predicted. But heal derails went **15 → 19** in ARM-ON, not → ~3. The REASONING was right (18 of 19 fire OUTSIDE the errand, in the second non-best-effort `train_team` exactly as named) and the MAGNITUDE was wrong. ⇒ **a prediction that names the right mechanism and the wrong number is still a miss, because the number is what a reader acts on.** |
+| P2 | a narrow subclass changes nothing for the other ~37 callers | ✅ No non-maintenance heal behaviour changed; full suite green throughout. |
+| P3 | the ROUTE111 driver is HOW OFTEN the seam is reached, not WHAT is chosen there | ✅ **CONFIRMED AND THEN SOME.** Relocations held (77 ON / 27 OFF, vs 74/37 before) while FAILURES collapsed 74 → **1**, because the errand's blocklist is SHARED with the prep path. Predicted the decision was not at fault; did NOT predict the errand would start protecting that path. |
+| P4 | promotion is separate and the fork hazard is real | ✅ Unchanged — still UNPROMOTED, still 4 drifted `.py` files, still must move together. |
+| BAR | **ON ≤ OFF on run-enders** | ✅ **MET: 68.6% vs 69.5%.** |
+
+⛔ **WHAT THE GRADE DOES NOT SAY:** the heal fail-soft handler fired **ZERO** times — gate #57
+proves its shape, production has never executed it. And badges/run came in at **1.922 vs 2.067**, the
+second batch running where ON is at or below OFF on the benefit metric.

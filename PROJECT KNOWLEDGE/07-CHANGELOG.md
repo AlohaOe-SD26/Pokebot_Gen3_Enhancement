@@ -27623,3 +27623,74 @@ so the AST still parses.
 ⇒ **This is why the flip waited for a review.** The feature now ships ON; had it shipped ON with
 this live, the first user with a one-Pokémon party would have had their party order scrambled by a
 feature that then reported it had done nothing.
+
+---
+
+## 2026-09-12 (14:45) — SAFETY BATCH: the bar is MET, and the heal fail-soft is UNPROVEN
+
+ARM-ON `x4-runs/20260912-104105`, ARM-OFF `x4-runs/20260912-124117`; 32 lanes × 120 min per arm.
+⭐ **BOTH ARMS: `build_commits bda41d45 (every lane, every spawn — SINGLE BUILD)`** — no MIXED-BUILD
+caveat this time, because nothing touched the tree while it ran. The prevention rule written this
+morning worked the first time it was applied.
+⭐ **AND THE ARMS ARE SEPARATED:** ARM-ON 303 starts / **0 dormant**; ARM-OFF **1003 dormant** / 0
+starts. ‼ That check is not ceremony — the flip to default-ON had silently turned the script's
+"remove the variable" control arm INTO a second ON arm, and this is the reading that would have
+caught it had the sweep not.
+
+### THE ACCEPTANCE BAR (pre-registered, `ai-research-notes/2026-09-12-maintain-enable-PREDICTIONS.md`)
+
+| reading | ARM-ON | ARM-OFF | verdict |
+|---|---|---|---|
+| runs | 102 | 105 | — |
+| **derail rate (THE SAFETY BAR: ON ≤ OFF)** | **68.6%** (70/102) | **69.5%** (73/105) | ✅ **MET** |
+| median run duration | **37.71 min** | 34.55 min | ✅ ON longer |
+| pointless 8-ride-out retries | **0** | **0** | ✅ was 15 / 3 |
+| `Could not reach … ROUTE111` | **1** | 5 | ✅ was **74** / 36 |
+| ground fail-soft abandonments | **83** | 0 | ✅ mechanism live |
+| badges won per run | 1.922 | **2.067** | ⚠ ON −7% |
+| heal-nav derails | **19** | 9 | ⚠ ON 2.1× |
+| `ROUTE102/117/103/101` family | 6 | 0 | ⚠ ON-only (was 0/0) |
+
+### ⭐ AN UNLOOKED-FOR BENEFIT, AND IT IS THE BIGGEST NUMBER HERE: ROUTE111 74 → 1
+The relocations still happen — **77 in ARM-ON vs 27 in ARM-OFF**, in line with the 74/37 measured
+before. What changed is that they now **succeed**: 1 failure per 77 attempts (**1.3%**) against
+ARM-OFF's 5 per 27 (**18.5%**).
+**Mechanism:** `_note_training_unreachable` writes to `_training_blocked`, and that memory is
+**SHARED** with the ordinary prep-relocation path's `allow` predicate. The errand's 83 abandonments
+warm the blocklist early, so the prep path stops proposing grounds it cannot reach.
+⇒ **maintenance is now PROTECTING the very path it was previously feeding derails into.** That is
+the opposite of the 2026-09-12 morning finding, and it is a direct consequence of the fail-soft fix.
+⚠ Stated as MEASURED, not as designed — nobody built this on purpose, and it should not be relied
+on until something asserts it.
+
+### ⛔⛔ THE HONEST CAVEAT: THE HEAL FAIL-SOFT PATH FIRED **ZERO** TIMES
+All **83** `MAINTAIN ABANDONED` lines are `unreachable from here` — the GROUND handler.
+**`ABANDONED … heal walk` = 0.** So `HealWalkFailedError`'s handler in `_maintain_lagging_battler`
+is **UNEXERCISED IN PRODUCTION**: gate #57 (F1-F8) proves its SHAPE; no run has executed it.
+⇒ **A candidate is not an attempt, and a gated shape is not a driven path.** Do not describe the
+heal fail-soft as verified.
+
+**Why it never fired, measured rather than assumed:** of the 19 heal derails in ARM-ON, **18 occur
+OUTSIDE the errand** — ordinary chapter heals and the second, non-best-effort `train_team`
+(`story_mode.py:2843`). My pre-registered prediction said exactly this would keep dying
+(*"predict 15 → ~3, NOT → 0"*); the REASONING held and the NUMBER did not — it went UP, to 19.
+⚠ **Recorded as a MISS.** The prediction named the right mechanism and the wrong magnitude, and the
+magnitude is what a reader would act on.
+
+**Why ON has 2.1× the heal derails:** maintenance trains → mons take damage → more heals happen →
+more chances to hit a blocked Poké-Center walk (ARM-ON attempted 67 heal-walk retries vs ARM-OFF 83
+— so this is NOT more retries, it is more *exposure* at a higher failure rate). ⚠ HYPOTHESIS, not
+measured: the decisive instrument would be heals-attempted per run, per arm.
+
+### ⚠ THE TWO READINGS THAT WENT THE WRONG WAY, STATED PLAINLY
+1. **badges/run 1.922 vs 2.067 (−7%).** Second batch running where ON lands at or below OFF on
+   badges (previously 2.055 vs 2.030). ⇒ the feature still shows **no benefit** on the metric the
+   user's decision was about. The user has ruled; this is recorded so nobody claims otherwise.
+2. **ROUTE102/117/103/101 = 6 in ARM-ON, 0 in ARM-OFF** (was 0/0 in the previous post-fix batch).
+   Small, ON-only, and it is the family that once killed 406 runs. ⚠ Not a regression of the fix —
+   the fix makes them abandon rather than die — but it is the family to watch.
+
+**VERDICT: SAFE TO RUN WITH THE FEATURE ON.** The pre-registered bar (ON ≤ OFF on run-enders) is met
+(68.6% vs 69.5%), run duration is longer, the pointless-retry class is eliminated, and the ROUTE111
+failure class collapsed. ⛔ It is NOT "proven good": badges/run is slightly lower, and the heal
+fail-soft handler has still never executed.
