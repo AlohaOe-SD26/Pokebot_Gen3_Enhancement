@@ -18399,8 +18399,16 @@ for step in range(args.frames):
                     from modules.pokemon_party import get_party as _gp
                     from modules.story import early_game as _EG
 
+                    # ⛔ THE DEFAULT HERE MUST MIRROR PRODUCTION'S, OR THIS LABEL LIES.
+                    # It read `"0"` until 2026-09-12, when the shipped default flipped to `"1"`
+                    # (user ruling). With the old value an UNSET run behaved ON in production while
+                    # this driver printed `ARM=OFF` — a mislabelled arm, which is worse than a
+                    # missing one because every downstream reading inherits the wrong name.
+                    # ‼ Same failure class as `Run-Maintain-AB-Batch.bat`'s control arm the same day:
+                    # anything that consumes a flag BY ABSENCE breaks silently when the default moves.
+                    # ⇒ when you change a default, grep for the consumers that never name its value.
                     arm = "ON" if _os.environ.get(
-                        "POKEBOT_MAINTAIN", "0").strip() in ("1", "true", "yes", "on") else "OFF"
+                        "POKEBOT_MAINTAIN", "1").strip() in ("1", "true", "yes", "on") else "OFF"
                     target = int(_os.environ.get("POKEBOT_MAINTAIN_TARGET", "20"))
                     catchup = target - _SM.TRAIN_CATCHUP_GAP
                     log(f"[maintain] ARM={arm} target={target} catchup={catchup} "

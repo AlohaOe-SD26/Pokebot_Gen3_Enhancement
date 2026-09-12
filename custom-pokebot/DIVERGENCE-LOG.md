@@ -2296,7 +2296,8 @@ not exist yet, which is the tool working).
 **`ACCEPTANCE: PASS`**, `readings=['RL-BAG','RL-DANGER','RL-DOOR','RL-PARTY','RL-PATH','RL-TILES']`,
 `missing=[]`, `failure=None`, League door path **37 wp** from the landing (18,28).
 ⭐ **THE DISCRIMINATOR THAT PROVES IT WAS THE CUSTOM FORK:** the run wrote its state to
-`custom-pokebot\profilesepro-ml\states\…` — a sandbox run cannot produce that path. A drive that
+`custom-pokebot\profiles
+epro-ml\states\…` — a sandbox run cannot produce that path. A drive that
 cannot name which fork it ran is not evidence of a promotion.
 Evidence committed: `tools/story-dev/evidence/2026-09-10-promotion-ch23leagueprobe-custom.{log,stdout.txt}`.
 Build-aware gates against custom: `repro_box_counter_move_test.py`, `repro_pid_identity_key.py`,
@@ -2387,3 +2388,69 @@ Evidence: `tools/story-dev/evidence/2026-09-11-PROMOTION-VERIFY-custom.txt`.
 → restore-lead has never run. It is dormant, so that is a statement about latent code, not about
 behaviour. ⇒ **Do not flip `POKEBOT_MAINTAIN` on in this fork until the sandbox drive passes**, and
 flip it in its own reviewable change — never as a side effect of something else.
+
+
+---
+
+## 2026-09-12 — PROMOTED: the `#24-maintain` top-up, ENABLED, plus the three fixes that made it safe
+
+**USER-AUTHORISED** (the user chose "promote all four files" after being shown the safety result).
+Restore point **`pre-promote-2026-09-12`** — created AND pushed to origin before anything moved.
+Sandbox HEAD at promotion: `be3c283e`. Four files, promoted TOGETHER:
+
+    modules/modes/util/higher_level_actions.py
+    modules/story/early_game.py
+    modules/story/training_areas.py
+    plugins/custom_modes/story_mode.py
+
+⛔ **WHY "TOGETHER" IS NOT A STYLE PREFERENCE.** `story_mode.py` alone would ship the fail-soft
+handler with no `allow` predicate to feed it; and with the flag now defaulting ON, shipping it
+without the fixes is precisely the combination that killed **406 runs** on 2026-09-12 morning.
+
+### What this fork now DOES that it did not before
+1. **The top-up runs by DEFAULT** — `POKEBOT_MAINTAIN` defaults `"1"` (was `"0"`). USER RULING; it
+   overruled my recommendation. `06-DECISIONS-LOG.md` 2026-09-12 (user ruling) carries the
+   DO-NOT-REOPEN and the measurements it was made against.
+2. **The training-ground picker refuses grounds it cannot walk to** (`best_training_grass(..., allow=)`),
+   and the errand ABANDONS instead of killing the run when it finds one anyway.
+3. **The heal walk fails FAST and HONESTLY** — it rides out only genuine scripted events. Measured:
+   63 real interruptions (all cleared on attempt 1) vs **128 deterministic reachability refusals**
+   that were being retried 8× and reported as "a scripted event kept interrupting" — false every time.
+4. **The lead rotation is guarded for slot 0.** Rotating TO slot 0 is a destructive SWAP
+   (`range(slot-1)` = `range(-1)`), and slot 0 wins ties in `decide_maintenance`. Five other call
+   sites already guarded it; this one did not. Caught by adversarial review BEFORE shipping.
+
+### Verification — DRIVEN, not diffed
+`story_harness.py mauville_prewattson.ss1 --driver maintain --build custom --inject-hmmule
+--frames 400000` → **`ACCEPTANCE: PASS`**, exit 0.
+```
+[maintain] RESULT arm=ON started=True dormant=False rotation_landed=True
+           level_start=13 level_end=14 catchup=14 reached=True
+           p6_lead_is_strongest=True failure=None
+```
+⭐ **Every word of that line is load-bearing.** `arm=ON` **with no env var set** proves the new
+default took effect IN THIS FORK. `dormant=False` proves the code was REACHED, not merely copied —
+the previous promotion could only show `[MAINTAIN] dormant`. `level_start=13 level_end=14` proves it
+actually TRAINED. `p6_lead_is_strongest=True` proves the lead was restored afterwards.
+Crash scan: **0** (traceback / UnboundLocal / RuntimeError / "generator ignored").
+Build-aware gates against custom: `probe_abort_swallowing` ✓ (23 sites, **exactly at baseline** —
+the new handlers added no swallow debt), `probe_yield_in_finally` ✓ (31 files, 0 offenders),
+`repro_pid_identity_key` ✓, `repro_box_counter_move_test` ✓.
+Evidence: **`tools/story-dev/evidence/2026-09-12-promotion-maintain-custom.stdout.txt`** — the ACCEPTANCE line is IN that committed file (verified by grepping it, not by remembering it). ⚠ The paired `.log` is **NOT in the repo**: `tools/story-dev/.gitignore:2` ignores `*.log`, so no evidence `.log` has ever been tracked (0 tracked, vs 97 tracked `.stdout.txt`). ⇒ when a claim must survive in the repo, it has to rest on the STDOUT capture.
+
+✅ **THE PREVIOUS ENTRY'S STANDING INSTRUCTION IS NOW SATISFIED AND CLOSED.** It read: *"Do not flip
+`POKEBOT_MAINTAIN` on in this fork until the sandbox drive passes, and flip it in its own reviewable
+change."* The sandbox drive passed, two A/Bs ran, the flip was its own reviewable change, and the
+user ruled. ⇒ that sentence is HISTORY, not a live prohibition.
+
+### ⛔ What this fork carries that is STILL NOT PROVEN — read this before trusting it
+1. **The HEAL fail-soft handler has NEVER EXECUTED.** Across 102 ARM-ON runs, all 83
+   `MAINTAIN ABANDONED` lines were the GROUND handler; `ABANDONED … heal walk` = **0**. Gate #57
+   F1-F8 proves its SHAPE; production has never taken the path. ⇒ **a gated shape is not a driven
+   path.** 18 of the 19 heal derails fire OUTSIDE the errand, where this fix does not reach.
+2. **The slot-0 guard is UNDRIVEN.** The verification drive injected a mule at a non-zero slot, so
+   the guard was never the branch taken. It is gated (#57 H1) and reasoned from the menu driver's
+   own arithmetic — not observed.
+3. **NO BENEFIT HAS BEEN MEASURED.** Two A/Bs: badges/run 2.055 vs 2.030, then **1.922 vs 2.067**.
+   The feature is on because the USER RULED, not because it measured better. ⛔ Do not re-open that;
+   do not claim otherwise either.

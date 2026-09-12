@@ -364,6 +364,46 @@ def spin(stop_condition: Callable[[], bool] | None = None, counter_clockwise: bo
         yield
 
 
+#: The phrase that identifies a RETRYABLE navigation failure — a cutscene fired on the way.
+#: ⛔ COUPLED BY TEXT TO ITS RAISE SITE (`modules/modes/util/walking.py:502`) because that site
+#: raises a plain `BotModeError`, the same base type a DETERMINISTIC "cannot reach" refusal uses
+#: (`global_navigation.py:595`). Text is the only thing that separates them today.
+#: ‼ A text coupling that nobody checks is a silent time-bomb, so it is GATED, not trusted:
+#: `tools/story-dev/probe_maintain_unreachable.py` asserts this exact substring still appears in
+#: walking.py's raise. If someone rewords that message, the gate goes red instead of this check
+#: quietly classifying every scripted event as "blocked" and never riding one out again.
+_SCRIPTED_EVENT_MARKER = "unexpectedly triggered a scripted event"
+
+
+class HealWalkFailedError(BotModeError):
+    """The walk TO the Poké Center door gave up after its 8 ride-outs.
+
+    ‼ A `BotModeError` SUBCLASS on purpose — the same reason `UnreachableDestinationError` is one
+    (`modules/story/early_game.py:25-42`): every existing `except BotModeError` in the tree keeps
+    handling it byte-identically, so this type is OPT-IN and changes nothing for the other ~37 call
+    sites of `heal_in_pokemon_center`. It exists so a BEST-EFFORT caller can tell *"the heal walk
+    broke"* apart from *"training itself went wrong"* and abandon its errand instead of killing the
+    whole run.
+
+    ⛔ WHY A NEW TYPE AND NOT `UnreachableDestinationError` — this is the trap, and it is subtle.
+    That type means *"this TILE cannot be walked to"*, and `_maintain_lagging_battler`'s handler
+    acts on it by calling `_note_training_unreachable(grass_map, grass_tile)`
+    (`plugins/custom_modes/story_mode.py:2467`), which blacklists the **TRAINING GROUND** for the
+    rest of the run. Blaming the grass for a POKÉ CENTER failure is a false diagnosis with a
+    run-long cost — an innocent tile struck out of `best_training_grass`'s option set.
+    (Also: subclassing it would need a module-level `modules.story` import here, which this file
+    deliberately does not have — every story import in it is local, to avoid a circular import.)
+
+    ⛔ WHY THE LAUNDERING MADE THIS NECESSARY. The retry loop below catches **every** `BotModeError`
+    the walk raises and, after 8 ride-outs, raises a FRESH error — so the original type is GONE by
+    the time a caller sees it. `heal_in_pokemon_center` can therefore NEVER raise
+    `UnreachableDestinationError`, which is exactly why the errand's existing narrow handler could
+    not see this failure and the run died instead. MEASURED 2026-09-12: 15 run-killing heal derails
+    with maintenance ON vs 3 with it OFF (~5x), because maintenance trains, mons take damage, and
+    more heals happen.
+    """
+
+
 @debug.track
 def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Generator:
     # Walk to and enter the Pokémon centre.
@@ -374,7 +414,73 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
     # exactly the old navigate_to.
     from .global_navigation import navigate_to_anywhere
 
-    yield from navigate_to_anywhere(pokemon_center_door_location.value[0], pokemon_center_door_location.value[1])
+    # ⛔⛔ THE WALK TO THE DOOR MUST RIDE OUT A SCRIPTED SCENE (`#26-healnavbare`, 2026-09-11).
+    # This was a BARE `navigate_to_anywhere`. If any coord event is armed on the way to the door,
+    # `walking.py:499-505` raises *"We unexpectedly triggered a scripted event … Switching to manual
+    # mode"* and the whole run derails.
+    # ⭐ MEASURED, not theorised: the single line `…trying to reach (19, 19) @ (0, 1)` — the Slateport
+    # Poké Center — appears **22 / 26 / 22 times** in the three batches on disk, and it is reached
+    # from `train_team`'s mid-grind heal (`early_game.py:2116`), not from any one chapter leg.
+    # ‼ I FIRST WRAPPED A SINGLE CALL SITE (`sail_to_slateport` Leg 4) AND IT DID NOT WORK — the
+    # very next batch reproduced the derail 3 times. The defect is in the HELPER, reachable from
+    # every heal, which is why fixing one caller could not fix it.
+    # ⚠ SAFE ON THE ORDINARY PATH BY CONSTRUCTION: when no scene fires, the first attempt succeeds
+    # and this costs one `try`. The retry only engages on the failure that used to be fatal.
+    # ⛔ NOT `expecting_script=True`: that would SUPPRESS the error without riding the scene out,
+    # turning a visible derail into a silent wedge.
+    _heal_nav_rounds = 0
+    while True:
+        _heal_nav_rounds += 1
+        if _heal_nav_rounds > 8:
+            raise HealWalkFailedError(
+                f"heal_in_pokemon_center: a scripted event kept interrupting the walk to "
+                f"{pokemon_center_door_location.name} after 8 ride-outs."
+            )
+        try:
+            yield from navigate_to_anywhere(
+                pokemon_center_door_location.value[0], pokemon_center_door_location.value[1]
+            )
+            break
+        except BotModeError as error:
+            # ⛔ `reraise_if_aborting` FIRST. `StoryAbort` IS a `BotModeError`, so without this a
+            # whiteout would be swallowed and retried — and the latch is cleared only by
+            # `StoryMode.run`, so each retry runs straight into the next `_check_abort()` and burns
+            # the budget reporting failures that never happened (KI-67).
+            from modules.story.early_game import _ride_out_scripted_scene, reraise_if_aborting
+
+            reraise_if_aborting(error)
+            # ⛔⛔ ONLY A SCRIPTED-EVENT INTERRUPTION IS RETRYABLE. MEASURED 2026-09-12.
+            # This handler USED to catch every `BotModeError` and ride out a scene for all of them.
+            # But `navigate_to_anywhere` raises the SAME base type for a DETERMINISTIC refusal —
+            # `"Cannot reach X: it is not walkable from Y"` (`global_navigation.py:595`) and
+            # `"…are not on connected maps"` — and **riding out a cutscene cannot change map
+            # geometry**, so those were retried 8 times, ~255 frames apart, and then reported under
+            # a headline that was FALSE.
+            # ‼ THE NUMBERS, from the 2026-09-12 A/B debug logs (ARM-ON): 63 genuine scripted-event
+            # interruptions — of which **every single one cleared on attempt 1** — against **128
+            # reachability refusals** (PETALBURG_CITY ×77, LAVARIDGE_TOWN ×29, not-connected ×14,
+            # FORTREE_CITY ×7, no-progress ×1) that could never clear and burned ~7 retries each.
+            # ⇒ the retry is excellent at its real job and was being asked to do an impossible one.
+            # ⇒ **Fail FAST and HONESTLY on anything that is not a scripted event.** This is rule 2
+            # (the headline carries the caveat) biting in production: the old message told a reader
+            # to hunt for a cutscene that was not there.
+            if _SCRIPTED_EVENT_MARKER not in str(error):
+                raise HealWalkFailedError(
+                    f"heal_in_pokemon_center: the walk to "
+                    f"{pokemon_center_door_location.name} is BLOCKED, not interrupted — "
+                    f"not retrying, because riding out a scene cannot change map geometry. "
+                    f"Underlying error: {error}"
+                ) from error
+            # ‼ SAY SO. `repro_heal_piggyback_reporting.py` refuses any handler in this function
+            # that swallows without reporting — and it is right: this retry is precisely the event
+            # that used to end a run, so a run log that does not mention it hides the thing we most
+            # want to count. `console_too=False` keeps it out of the console like the other three.
+            _piggyback_report(
+                "the walk to the Poké Center door",
+                f"a scripted event interrupted it (attempt {_heal_nav_rounds}/8) — riding it out "
+                f"and retrying ({error!r})",
+            )
+            yield from _ride_out_scripted_scene("B")
 
     if pokemon_center_door_location is PokemonCenter.PalletTown:
         # Player's house in Pallet Town, where Mum can heal us.

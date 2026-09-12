@@ -2281,6 +2281,15 @@ class StoryMode(BotMode):
             train_team,
         )
         from modules.story.training_areas import best_training_grass, estimate_frames_to_level
+        # ‼ Both needed by the fail-soft handler below. `reraise_if_aborting` was NOT imported
+        # anywhere in this file — using it without this line is a `NameError` raised while
+        # ALREADY handling an exception, which would have turned a skippable errand into a crash.
+        from modules.story.early_game import UnreachableDestinationError, reraise_if_aborting
+        # ‼ The OTHER navigation failure this errand can hit. `heal_in_pokemon_center` launders every
+        # walk error into a fresh exception after 8 ride-outs, so it can NEVER raise
+        # `UnreachableDestinationError` — which is why the handler above could not see it and the
+        # run died instead (MEASURED: 15 ON vs 3 OFF, 2026-09-12).
+        from modules.modes.util.higher_level_actions import HealWalkFailedError
 
         # ⛔⛔ DEFAULT OFF UNTIL THE ACTION HAS BEEN DRIVEN. Gate #55 proves the DECISION; the code
         # below — rotate, train, restore lead — has never executed a frame. This project's promotion
@@ -2291,9 +2300,27 @@ class StoryMode(BotMode):
         # for, so the separate `POKEBOT_MAINTAIN_FAULT=off` arm was deleted rather than kept beside
         # it — two switches controlling one behaviour is its own bug shape, and the A/B reads better
         # as "the production flag, on vs off" than as "on, vs on-but-sabotaged".
-        # ⇒ FLIP THE DEFAULT TO ON in its own reviewable change once the drive passes; until then a
-        # run that wants it must ask: `POKEBOT_MAINTAIN=1`.
-        if _os.environ.get("POKEBOT_MAINTAIN", "0").strip() not in ("1", "true", "yes", "on"):
+        # ⇒ FLIP THE DEFAULT TO ON in its own reviewable change once the drive passes.
+        #
+        # ‼‼ **FLIPPED TO ON, 2026-09-12 — USER RULING, and it OVERRULED MY RECOMMENDATION.**
+        # I recommended OFF and said so plainly: two A/Bs measured the feature NEUTRAL (badges/run
+        # 2.055 vs 2.030; derail rate 64.8% vs 68.0%), and it ELEVATES two other failure modes.
+        # The user was shown all of that and ruled *"I like it, lets use the top up."* ⇒ enabled.
+        # ⛔⛔ **DO NOT RE-ARGUE THE VALUE QUESTION FROM THIS LINE.** It was asked twice, measured
+        # twice, put to the user WITH the recommendation to leave it off, and answered. A future
+        # agent finding "this measures neutral, why is it on?" has found the RULING, not a defect —
+        # `06-DECISIONS-LOG.md` 2026-09-12 (user ruling) carries the DO-NOT-REOPEN and the reasoning.
+        # ⭐ SET `POKEBOT_MAINTAIN=0` to turn it OFF — the switch still works in both directions, so
+        # the A/B arm is preserved: "the production flag, on vs off" still reads exactly as before.
+        # ‼ THE PREREQUISITES THE RULING ATTACHED, both landed BEFORE this flip (not after):
+        #   1. the heal-nav run-killer — `HealWalkFailedError` + the errand's fail-soft handler, and
+        #      the retry narrowed so it no longer rides out cutscenes that were never there;
+        #   2. ROUTE111 — mechanism FOUND (a successful top-up lands the mon at exactly `catchup`,
+        #      which puts it in `need`, which is the precondition for the relocation block) and
+        #      BOUNDED: measured **max 1 per run in BOTH arms**, non-fatal, self-healing via
+        #      `_note_training_unreachable`. Bounded, not resolved — `#24-maintain-staletarget` and
+        #      the ROUTE111 note in `07-CHANGELOG.md` 2026-09-12 carry the candidate fixes.
+        if _os.environ.get("POKEBOT_MAINTAIN", "1").strip() not in ("1", "true", "yes", "on"):
             _log_story_event("dormant (POKEBOT_MAINTAIN unset) — decision gated, action UNDRIVEN",
                              "MAINTAIN")
             return
@@ -2306,6 +2333,18 @@ class StoryMode(BotMode):
         if _os.environ.get("POKEBOT_MAINTAIN_FAULT") == "nobudget":
             budget = 10_000_000          # arm: proves the budget gate is what refuses the tail
 
+        # ⛔⛔ ONE PREDICATE, SHARED BY THE DECISION AND THE PICK — they must never disagree.
+        # `decide_maintenance` uses `ground_for` to ESTIMATE the cost (band → frames → budget).
+        # If the decision saw an unfiltered ground and the pick then refused it, the errand would
+        # be approved against ROUTE111's rich L19-22 band yet actually run on a poorer one, blowing
+        # the very budget the decision had just checked. ⇒ both take `_maint_allow`.
+        # ‼ It is the SAME lambda the relocation path uses (`_training_area_allowed` + the per-run
+        # `_training_blocked` memory), NOT a second mechanism — see `_note_training_unreachable`.
+        _maint_allow = lambda m, t, p: (  # noqa: E731 - shared by the decision and the pick
+            _training_area_allowed(m, t, p) and not self._training_blocked(m, t)
+        )
+        _maint_ground = lambda lv: best_training_grass(lv, allow=_maint_allow)  # noqa: E731
+
         # ⛔ THE DECISION IS A PURE PREDICATE (`decide_maintenance`), for the reason its docstring
         # gives: a decision entangled with `yield from` needs a ROM and ~100k frames to exercise ONE
         # branch. This adapter only READS state, hands it over, and REPORTS - gate
@@ -2314,7 +2353,7 @@ class StoryMode(BotMode):
             battler_levels={i: party[i].level for i in battlers},
             boss_target=target,
             catchup_gap=self.TRAIN_CATCHUP_GAP,
-            ground_for=best_training_grass,
+            ground_for=_maint_ground,
             wild_max_for=_wild_land_max,
             estimate_for=lambda s, to, wild: estimate_frames_to_level(party[s], to, wild),
             heal_for=heal_map.get,
@@ -2332,7 +2371,17 @@ class StoryMode(BotMode):
         # ⛔ Capture IDENTITY now. The slot index is used only to rotate and is meaningless
         # afterwards; the PID is what the completion line asserts on.
         pid, name, level = mon.personality_value, mon.species.name, mon.level
-        grass_map, grass_tile = best_training_grass(level)
+        # ‼ THE SAME predicate the decision just used — see `_maint_ground` above.
+        _ground = _maint_ground(level)
+        if _ground is None:
+            # ⛔ Cannot happen while the predicate is deterministic within one tick (the decision
+            # only returned a slot because this same call answered non-None). Guarded anyway: the
+            # old code unpacked the result directly, so a None here was a `TypeError` INSIDE a
+            # best-effort errand — i.e. a crash where the honest answer is "skip it".
+            _log_story_event(f"SKIPPED - ground vanished between decision and pick for {name}",
+                             "MAINTAIN")
+            return
+        grass_map, grass_tile = _ground
         wild_level = _wild_land_max(grass_map)
         est = estimate_frames_to_level(mon, catchup, wild_level)
         heal_center = heal_map.get(grass_map)
@@ -2372,17 +2421,136 @@ class StoryMode(BotMode):
         # story-surface generator yields from a `finally` any more (gate #56). The two fixes are
         # load-bearing for each other.
         finished = True
+        landed = False
         try:
-            yield from _rotate_lead_safely(slot)
-            finished = yield from _yield_bounded(
-                train_team(
-                    catchup, scope="lead", grass=(grass_map, grass_tile), heal_center=heal_center
-                ),
-                budget,
-            )
+            # ⛔⛔ SLOT 0 IS ALREADY THE LEAD — ROTATING TO IT IS A DESTRUCTIVE NO-OP.
+            # `_rotate_lead_safely` drives the party menu's SWITCH option, which is a **SWAP**
+            # (`victory_road.py:2046-2059` documents this after it cost a 900k-frame run). And the
+            # menu driver's slot arithmetic is `for _ in range(slot - 1)` — for `slot=0` that is
+            # `range(-1)`, i.e. ZERO Downs, so it presses Right then A and **confirms a swap against
+            # whatever the cursor happens to be on** rather than doing nothing.
+            # ‼ SLOT 0 IS REACHABLE, NOT HYPOTHETICAL: `decide_maintenance` picks
+            # `min(excluded, key=lambda s: (excluded[s], s))` (`:1232`), which breaks ties toward the
+            # LOWEST slot index — so slot 0 wins any tie, and trivially wins outright whenever the
+            # lead is the weakest lagging battler (e.g. a one-Pokémon party before Roxanne).
+            # ⇒ the swap would corrupt party order AND the PID check below would then report
+            # "rotation did NOT land", misdiagnosing a self-inflicted swap as a menu failure and
+            # abandoning maintenance for exactly the mon this feature exists to help.
+            # ⭐ EVERY OTHER CALL SITE IN THE TREE ALREADY GUARDS THIS and this one did not copy it:
+            # `counter_hunt.py:767` (`if slot != 0`), `early_game.py:1703`/`:1861` (`if best != 0`),
+            # `early_game.py:2080` (`if target_slot != 0`), `victory_road.py:2061`
+            # (`if slot_now != 0`). Found by an adversarial review BEFORE the feature shipped ON.
+            if slot != 0:
+                yield from _rotate_lead_safely(slot)
+            # ⛔⛔ VERIFY BY PID THAT THE ROTATION LANDED — the defence `victory_road.py:2062-2081`
+            # already carries and this method did not copy. `_rotate_lead_safely` "gives up
+            # gracefully" after 3 attempts: it sets `context.message` and returns NORMALLY
+            # (`early_game.py:1660`) — no exception, no return value. Without this check the
+            # failure is SILENT AND MISREPORTED:
+            #   slot 0 still holds the old lead (a high-level mon), so `train_team(scope="lead")`
+            #   computes `need = [0] if party[0].level < target_level else []` (`early_game.py:2040`)
+            #   → EMPTY → it returns at once → we would log `done … L13->L13 (wanted L14, SHORT)`,
+            #   which is **byte-indistinguishable from "it trained and the ground was wrong"**.
+            # ‼ Found by an adversarial agent BEFORE the first drive, i.e. before it could produce a
+            # false reading. ⇒ two different diagnoses, one log line: that is the bug.
+            # ⚠ We ABANDON maintenance rather than raising, unlike §Ch23. There it is the chapter's
+            # whole purpose, so a wrong-mon grind must abort; here it is a best-effort errand before
+            # a boss, and taking the run down over a missed optimisation would be worse than the
+            # laggard it is trying to help. The log says ABANDONED so the two are never confused.
+            lead = get_party()[0]
+            landed = lead is not None and lead.personality_value == pid
+            if not landed:
+                holder = "nothing"
+                if lead is not None:
+                    holder = f"{lead.species.name}#{lead.personality_value:08X}"
+                _log_story_event(
+                    f"ABANDONED pid={pid:08X} — rotation did NOT land, slot 0 holds {holder}. "
+                    f"Training now would grind the WRONG mon and report SHORT.",
+                    "MAINTAIN",
+                )
+                console.print(
+                    f"[yellow]Story: could not put {name} in the lead (slot 0 holds {holder}) — "
+                    f"skipping maintenance rather than training the wrong Pokémon.[/]"
+                )
+            else:
+                finished = yield from _yield_bounded(
+                    train_team(
+                        catchup, scope="lead", grass=(grass_map, grass_tile),
+                        heal_center=heal_center,
+                    ),
+                    budget,
+                )
         except GeneratorExit:
             # ⛔ We are being closed. Yielding now is exactly the RuntimeError above. Let it go.
             raise
+        except UnreachableDestinationError as error:
+            # ⛔⛔ ABANDON THE ERRAND — DO NOT TAKE THE RUN DOWN. MEASURED 2026-09-12.
+            # This method already argues the case for the ROTATION failure twelve lines up:
+            # *"here it is a best-effort errand before a boss, and taking the run down over a
+            # missed optimisation would be worse than the laggard it is trying to help."* That
+            # reasoning was simply never applied to the NAVIGATION failure, which re-raised into
+            # `_play`'s derail recovery and killed the run. The A/B priced the omission:
+            #   ARM-ON  552 runs, median run 99 KB, badge-7 in 0.9% of runs
+            #   ARM-OFF 243 runs, median run 537 KB, badge-7 in 3.7% of runs
+            # with **319** ROUTE102 deaths (plus ROUTE117/103/101) that the control never suffered.
+            # ⇒ the feature was net-HARMFUL purely through this handler.
+            # ‼ NARROW ON PURPOSE. `UnreachableDestinationError` is the specific "that tile cannot
+            # be walked to from here" signal (`early_game.py:333`) — the same type the relocation
+            # path catches at the bottom of `_prepare_for_fight`. A broad `except BotModeError`
+            # here would swallow a whiteout, because `StoryAbort` IS a `BotModeError` (KI-67) —
+            # that is gate #27's whole subject, and it is why the latch is re-checked first anyway.
+            reraise_if_aborting(error)
+            # Remember it, so the run SELF-HEALS: `_training_blocked` now refuses this ground for
+            # the rest of the run FROM THIS MAP, `_maint_allow` filters it out of the very next
+            # pick, and `decide_maintenance` then answers a clean "no ground serves that level"
+            # instead of walking into the same wall. Without the memory this is the deterministic
+            # death loop the relocation path documents.
+            self._note_training_unreachable(grass_map, grass_tile)
+            yield from _lead_strongest_battler()
+            _log_story_event(
+                f"ABANDONED pid={pid:08X} — {grass_map.name}{grass_tile} unreachable from here "
+                f"({error}). Story continues WITHOUT this top-up.",
+                "MAINTAIN",
+            )
+            console.print(
+                f"[yellow]Story: could not reach {grass_map.name} to top up {name} — "
+                f"skipping maintenance and carrying on.[/]"
+            )
+            return
+        except HealWalkFailedError as error:
+            # ⛔⛔ ABANDON THE ERRAND — the SAME argument the handler above makes, applied to the
+            # OTHER navigation failure in this errand. Written as its own handler rather than folded
+            # into that one because the two failures need DIFFERENT remedies (see below).
+            # ‼ `reraise_if_aborting` FIRST, and here it is NOT ceremony: the 8-ride-out `raise`
+            # sits at the TOP of the retry loop, OUTSIDE any `try`, so if the abort latch was set
+            # during the preceding `_ride_out_scripted_scene("B")` the fresh error carries no abort
+            # identity at all. That is precisely the laundered abort the TYPE cannot detect and the
+            # LATCH can (`early_game.py:138-165`, KI-67).
+            reraise_if_aborting(error)
+            # ⛔ DELIBERATELY **NO** `_note_training_unreachable` HERE — and this is the whole reason
+            # `HealWalkFailedError` is a sibling of `UnreachableDestinationError` rather than a
+            # subclass of it. The GRASS was fine; the POKÉ CENTER walk broke. Recording the training
+            # ground would strike an innocent tile out of `best_training_grass` for the rest of the
+            # run — a false diagnosis with a run-long cost, and it would look like a real finding.
+            yield from _lead_strongest_battler()
+            _log_story_event(
+                f"ABANDONED pid={pid:08X} — the heal walk to {heal_center.name} failed ({error}). "
+                f"Story continues WITHOUT this top-up. ⚠ THE PARTY MAY BE AT LOW HP/PP: the heal it "
+                f"needed did not happen.",
+                "MAINTAIN",
+            )
+            console.print(
+                f"[yellow]Story: could not reach the {heal_center.name} Poké Center to heal "
+                f"mid-maintenance — skipping maintenance and carrying on.[/]"
+            )
+            # ⛔⛔ THE COST OF THIS `return`, STATED SO THE NEXT WHITEOUT IS NOT MISDIAGNOSED.
+            # `train_team` heals exactly when HP is low or PP is out (`early_game.py:2047, 2111`),
+            # so abandoning here walks a DAMAGED, possibly PP-dry party on toward the gym leader —
+            # a real whiteout risk that re-raising did not have. It is still the better trade: today
+            # the alternative is a CERTAIN derail, and 5 consecutive no-progress derails drop the run
+            # to Manual, whereas a whiteout is recoverable and budgeted. ⇒ the log line above says
+            # the party may be unhealed, so nobody debugs the resulting whiteout as a battle bug.
+            return
         except BaseException:
             # ⛔ Hand the boss a strong lead on the FAILURE path too — leaving the laggard in slot 0
             # would send it out FIRST against the gym leader, strictly worse than not maintaining.
@@ -2396,13 +2564,19 @@ class StoryMode(BotMode):
         # permuted twice, and a count that nets to zero reads TRUE when nothing happened.
         after = next((p for p in get_party() if p.personality_value == pid), None)
         reached = after is not None and after.level >= catchup
-        # ⛔ REPORT THE BUDGET OUTCOME EXPLICITLY. "SHORT" alone cannot distinguish "trained as far
-        # as it could and the ground was wrong" from "ran out of frames" — different diagnoses,
-        # different fixes, and the second one means the ESTIMATE was too optimistic (it has no term
-        # for heal round-trips). Say which.
+        # ⛔⛔ ONE LINE MUST DISTINGUISH EVERY WAY THIS CAN END, or the reader picks the wrong fix.
+        # There are THREE distinct failures and they are not interchangeable:
+        #   rotation=NO      → we never trained this mon at all (the silent give-up above)
+        #   BUDGET EXHAUSTED → we trained it and ran out of frames ⇒ the ESTIMATE was optimistic
+        #                      (it has no heal-round-trip term); the ground was fine
+        #   SHORT, rotated, in budget → we trained it and the GROUND was wrong
+        # ‼ Until 2026-09-11 all three printed the same `SHORT`. An adversarial review showed the
+        # first is byte-indistinguishable from the third, which would have sent a reader to fix the
+        # ground table for a bug that lives in the rotation.
         _log_story_event(
             f"done pid={pid:08X} L{level}->L{after.level if after else '?'} "
             f"(wanted L{catchup}, {'REACHED' if reached else 'SHORT'}"
+            f", rotation={'landed' if landed else 'NO — never trained'}"
             f"{'' if finished else f', ⛔ LIVE BUDGET {budget} FRAMES EXHAUSTED'})",
             "MAINTAIN",
         )
