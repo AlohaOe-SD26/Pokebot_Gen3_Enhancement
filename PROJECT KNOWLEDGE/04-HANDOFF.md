@@ -460,7 +460,25 @@ Moved for the R3 budget; all four are in `05-KNOWN-ISSUES.md` or its archive wit
 >    ‼ **THE RULE, FOR THE NEXT BATCH:** while one RUNS, do not edit `sandbox-pokebot/` and do not promote — lanes RESPAWN against ON-DISK code, so a mid-batch edit puts two builds in one batch. *(This batch is DONE, so the rule is not currently binding.)*
 >    ⭐ **THIS IS THE FIRST BATCH WITH VERIFIABLE BUILD PROVENANCE.** `code=8a8ae2d9` is recorded AND the sandbox tree was clean at launch (checked), so the commit named is genuinely what ran. All three of today's fixes are ancestors of it (verified with `git merge-base --is-ancestor`).
 >    ⭐ **WHAT IT IS MEASURING:** whether `#24-whiteoutloop` (was 14 of 53 = 26%) and §Ch23 (11 of 53 = 21%) actually shrink. ⚠ **EXPECT THE FAILURE TO MOVE, NOT VANISH** — see the next line. The previous batch for comparison is `x4-runs/20260907-113851` (53 ended runs, 0 finished).
->    ➡➡➡ **NEXT ACTION (2026-09-12) — THE OVERNIGHT A/B IS DONE AND IT SAID *SHIP NOTHING*. Its cause is found, FIXED and GATED (#57). ⛔ THE MACHINE IS FREE — no batch is running.**
+>    ➡➡➡ **NEXT ACTION (2026-09-12, 05:02) — ⛔⛔ A CONFIRMATORY BATCH IS RUNNING RIGHT NOW (`x4-runs/20260912-050244/`, 32 lanes, 120 min/arm, ARM-ON first, ~09:10 finish). DO NOT START EMULATOR WORK.**
+>    ⛔ **IF YOU ARE A NEW SESSION: THE MACHINE IS BUSY.** 32 lanes at ~100% CPU. Doc edits and
+>    static analysis are fine; anything that boots a ROM is not (two concurrent suites have
+>    deadlocked here before, killing a ROM gate at its 900s bound).
+>    ⚠ **HOW IT WAS STARTED, because the obvious way FAILS:** `Run-Maintain-AB-Batch.bat` has a
+>    deliberate `Start now? (Y = yes)` prompt so a double-click cannot launch a long job by
+>    accident. Unattended it reads EOF and prints *“Cancelled. Nothing was run.”* — which looks
+>    like success (exit 0, no error). ⇒ pipe the answer:
+>    `"Y" | & "<repo>\Run-Maintain-AB-Batch.bat" 32 120`  (PowerShell; from Git Bash `cmd /c`
+>    also fails — MSYS rewrites `/c` to `C:\`). ‼ **Always confirm a batch FOLDER APPEARED with
+>    32 lane dirs before believing it started.**
+>    ⭐ **WHAT IT IS TESTING:** the fix committed in `2dc1ba24`. The sharp prediction to grade:
+>    **ARM-ON's `Could not reach (X,Y) on ROUTE102/117/103/101` family must be 0** (was 406), and
+>    **ARM-ON median run duration must be ≥ ARM-OFF's** (was 5.35 min vs 35.18 min).
+>    ⛔ If run duration STILL trails with the death family at 0, the premise is wrong, not the
+>    implementation — say so and stop, rather than fixing a third mechanism.
+>    ‼ Grade with **median run duration (from the `debug-YYYYMMDD-HHMMSS.log` start stamps) and
+>    badges/run (`^BADGE: ` lines)**. ⛔ NOT laggard-gap episodes — confounded, see below.
+>    ✅ **PREVIOUS RESULT (batch of 2026-09-11, now COMPLETE and acted on):**
 >    ⭐ **READ THIS FIRST, IT OVERTURNS AN EXPECTATION:** `POKEBOT_MAINTAIN=1` was measured >    **NET-HARMFUL**, not merely unproven. 32 lanes × 310 min per arm:
 >      | metric | ARM-ON | ARM-OFF |
 >      |---|---|---|
@@ -486,7 +504,9 @@ Moved for the R3 budget; all four are in `05-KNOWN-ISSUES.md` or its archive wit
 >    benefit case rested on the metric just shown to be confounded. Flipping it is its own
 >    reviewable change with its own batch — never a side effect. (`06-DECISIONS-LOG.md` 2026-09-12.)
 >    
->    ⭐ **QUEUE ITEM 0 — START HERE:** re-run the two-arm batch WITH the fix in, and grade it on
+>    ⭐ **QUEUE ITEM 0 — IT IS ALREADY RUNNING (started 05:02, see the top of this marker).**
+>    When it finishes: READ `x4-runs/20260912-050244/` (ARM-ON) and the folder started ~2h later
+>    (ARM-OFF) — the `ARM-ON.txt`/`ARM-OFF.txt` files name the pairing, never guess it. Grade on
 >    **median run length + badge rate**. Everything needed is committed: `Run-Maintain-AB-Batch.bat
 >    <lanes> <minutes>` in the repo root (self-locating, forces `--build sandbox`, writes
 >    `ARM-ON.txt`/`ARM-OFF.txt` so the pairing is never guessed). 32 lanes saturates this box.
