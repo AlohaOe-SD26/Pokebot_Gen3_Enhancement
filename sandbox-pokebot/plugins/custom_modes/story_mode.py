@@ -2285,6 +2285,11 @@ class StoryMode(BotMode):
         # anywhere in this file — using it without this line is a `NameError` raised while
         # ALREADY handling an exception, which would have turned a skippable errand into a crash.
         from modules.story.early_game import UnreachableDestinationError, reraise_if_aborting
+        # ‼ The OTHER navigation failure this errand can hit. `heal_in_pokemon_center` launders every
+        # walk error into a fresh exception after 8 ride-outs, so it can NEVER raise
+        # `UnreachableDestinationError` — which is why the handler above could not see it and the
+        # run died instead (MEASURED: 15 ON vs 3 OFF, 2026-09-12).
+        from modules.modes.util.higher_level_actions import HealWalkFailedError
 
         # ⛔⛔ DEFAULT OFF UNTIL THE ACTION HAS BEEN DRIVEN. Gate #55 proves the DECISION; the code
         # below — rotate, train, restore lead — has never executed a frame. This project's promotion
@@ -2295,9 +2300,27 @@ class StoryMode(BotMode):
         # for, so the separate `POKEBOT_MAINTAIN_FAULT=off` arm was deleted rather than kept beside
         # it — two switches controlling one behaviour is its own bug shape, and the A/B reads better
         # as "the production flag, on vs off" than as "on, vs on-but-sabotaged".
-        # ⇒ FLIP THE DEFAULT TO ON in its own reviewable change once the drive passes; until then a
-        # run that wants it must ask: `POKEBOT_MAINTAIN=1`.
-        if _os.environ.get("POKEBOT_MAINTAIN", "0").strip() not in ("1", "true", "yes", "on"):
+        # ⇒ FLIP THE DEFAULT TO ON in its own reviewable change once the drive passes.
+        #
+        # ‼‼ **FLIPPED TO ON, 2026-09-12 — USER RULING, and it OVERRULED MY RECOMMENDATION.**
+        # I recommended OFF and said so plainly: two A/Bs measured the feature NEUTRAL (badges/run
+        # 2.055 vs 2.030; derail rate 64.8% vs 68.0%), and it ELEVATES two other failure modes.
+        # The user was shown all of that and ruled *"I like it, lets use the top up."* ⇒ enabled.
+        # ⛔⛔ **DO NOT RE-ARGUE THE VALUE QUESTION FROM THIS LINE.** It was asked twice, measured
+        # twice, put to the user WITH the recommendation to leave it off, and answered. A future
+        # agent finding "this measures neutral, why is it on?" has found the RULING, not a defect —
+        # `06-DECISIONS-LOG.md` 2026-09-12 (user ruling) carries the DO-NOT-REOPEN and the reasoning.
+        # ⭐ SET `POKEBOT_MAINTAIN=0` to turn it OFF — the switch still works in both directions, so
+        # the A/B arm is preserved: "the production flag, on vs off" still reads exactly as before.
+        # ‼ THE PREREQUISITES THE RULING ATTACHED, both landed BEFORE this flip (not after):
+        #   1. the heal-nav run-killer — `HealWalkFailedError` + the errand's fail-soft handler, and
+        #      the retry narrowed so it no longer rides out cutscenes that were never there;
+        #   2. ROUTE111 — mechanism FOUND (a successful top-up lands the mon at exactly `catchup`,
+        #      which puts it in `need`, which is the precondition for the relocation block) and
+        #      BOUNDED: measured **max 1 per run in BOTH arms**, non-fatal, self-healing via
+        #      `_note_training_unreachable`. Bounded, not resolved — `#24-maintain-staletarget` and
+        #      the ROUTE111 note in `07-CHANGELOG.md` 2026-09-12 carry the candidate fixes.
+        if _os.environ.get("POKEBOT_MAINTAIN", "1").strip() not in ("1", "true", "yes", "on"):
             _log_story_event("dormant (POKEBOT_MAINTAIN unset) — decision gated, action UNDRIVEN",
                              "MAINTAIN")
             return
@@ -2400,7 +2423,25 @@ class StoryMode(BotMode):
         finished = True
         landed = False
         try:
-            yield from _rotate_lead_safely(slot)
+            # ⛔⛔ SLOT 0 IS ALREADY THE LEAD — ROTATING TO IT IS A DESTRUCTIVE NO-OP.
+            # `_rotate_lead_safely` drives the party menu's SWITCH option, which is a **SWAP**
+            # (`victory_road.py:2046-2059` documents this after it cost a 900k-frame run). And the
+            # menu driver's slot arithmetic is `for _ in range(slot - 1)` — for `slot=0` that is
+            # `range(-1)`, i.e. ZERO Downs, so it presses Right then A and **confirms a swap against
+            # whatever the cursor happens to be on** rather than doing nothing.
+            # ‼ SLOT 0 IS REACHABLE, NOT HYPOTHETICAL: `decide_maintenance` picks
+            # `min(excluded, key=lambda s: (excluded[s], s))` (`:1232`), which breaks ties toward the
+            # LOWEST slot index — so slot 0 wins any tie, and trivially wins outright whenever the
+            # lead is the weakest lagging battler (e.g. a one-Pokémon party before Roxanne).
+            # ⇒ the swap would corrupt party order AND the PID check below would then report
+            # "rotation did NOT land", misdiagnosing a self-inflicted swap as a menu failure and
+            # abandoning maintenance for exactly the mon this feature exists to help.
+            # ⭐ EVERY OTHER CALL SITE IN THE TREE ALREADY GUARDS THIS and this one did not copy it:
+            # `counter_hunt.py:767` (`if slot != 0`), `early_game.py:1703`/`:1861` (`if best != 0`),
+            # `early_game.py:2080` (`if target_slot != 0`), `victory_road.py:2061`
+            # (`if slot_now != 0`). Found by an adversarial review BEFORE the feature shipped ON.
+            if slot != 0:
+                yield from _rotate_lead_safely(slot)
             # ⛔⛔ VERIFY BY PID THAT THE ROTATION LANDED — the defence `victory_road.py:2062-2081`
             # already carries and this method did not copy. `_rotate_lead_safely` "gives up
             # gracefully" after 3 attempts: it sets `context.message` and returns NORMALLY
@@ -2475,6 +2516,40 @@ class StoryMode(BotMode):
                 f"[yellow]Story: could not reach {grass_map.name} to top up {name} — "
                 f"skipping maintenance and carrying on.[/]"
             )
+            return
+        except HealWalkFailedError as error:
+            # ⛔⛔ ABANDON THE ERRAND — the SAME argument the handler above makes, applied to the
+            # OTHER navigation failure in this errand. Written as its own handler rather than folded
+            # into that one because the two failures need DIFFERENT remedies (see below).
+            # ‼ `reraise_if_aborting` FIRST, and here it is NOT ceremony: the 8-ride-out `raise`
+            # sits at the TOP of the retry loop, OUTSIDE any `try`, so if the abort latch was set
+            # during the preceding `_ride_out_scripted_scene("B")` the fresh error carries no abort
+            # identity at all. That is precisely the laundered abort the TYPE cannot detect and the
+            # LATCH can (`early_game.py:138-165`, KI-67).
+            reraise_if_aborting(error)
+            # ⛔ DELIBERATELY **NO** `_note_training_unreachable` HERE — and this is the whole reason
+            # `HealWalkFailedError` is a sibling of `UnreachableDestinationError` rather than a
+            # subclass of it. The GRASS was fine; the POKÉ CENTER walk broke. Recording the training
+            # ground would strike an innocent tile out of `best_training_grass` for the rest of the
+            # run — a false diagnosis with a run-long cost, and it would look like a real finding.
+            yield from _lead_strongest_battler()
+            _log_story_event(
+                f"ABANDONED pid={pid:08X} — the heal walk to {heal_center.name} failed ({error}). "
+                f"Story continues WITHOUT this top-up. ⚠ THE PARTY MAY BE AT LOW HP/PP: the heal it "
+                f"needed did not happen.",
+                "MAINTAIN",
+            )
+            console.print(
+                f"[yellow]Story: could not reach the {heal_center.name} Poké Center to heal "
+                f"mid-maintenance — skipping maintenance and carrying on.[/]"
+            )
+            # ⛔⛔ THE COST OF THIS `return`, STATED SO THE NEXT WHITEOUT IS NOT MISDIAGNOSED.
+            # `train_team` heals exactly when HP is low or PP is out (`early_game.py:2047, 2111`),
+            # so abandoning here walks a DAMAGED, possibly PP-dry party on toward the gym leader —
+            # a real whiteout risk that re-raising did not have. It is still the better trade: today
+            # the alternative is a CERTAIN derail, and 5 consecutive no-progress derails drop the run
+            # to Manual, whereas a whiteout is recoverable and budgeted. ⇒ the log line above says
+            # the party may be unhealed, so nobody debugs the resulting whiteout as a battle bug.
             return
         except BaseException:
             # ⛔ Hand the boss a strong lead on the FAILURE path too — leaving the laggard in slot 0

@@ -10,7 +10,8 @@ REM  CLAUDE.md and README.md).
 REM
 REM  WHAT IT DOES, and why each part matters:
 REM    ARM ON   POKEBOT_MAINTAIN=1   maintenance is LIVE
-REM    ARM OFF  POKEBOT_MAINTAIN     removed entirely - the shipped default
+REM    ARM OFF  POKEBOT_MAINTAIN=0   maintenance is OFF (explicit since 2026-09-12:
+REM                                  the shipped default is now 1, so "unset" means ON)
 REM
 REM  !! THE WHOLE POINT OF THIS SCRIPT IS THE ENVIRONMENT VARIABLE. In PowerShell
 REM  or a normal command window, "set POKEBOT_MAINTAIN=1" STAYS SET for the rest
@@ -99,7 +100,7 @@ echo   minutes/arm   : %MINUTES%
 echo   build         : sandbox   ^(forced - custom has no telemetry^)
 echo(
 echo   ARM 1 = ON    POKEBOT_MAINTAIN=1
-echo   ARM 2 = OFF   POKEBOT_MAINTAIN removed
+echo   ARM 2 = OFF   POKEBOT_MAINTAIN=0
 echo(
 echo   Nothing else should use the emulator while this runs.
 echo   You can leave it alone - it will not ask you anything again.
@@ -132,7 +133,16 @@ set "ARMON_DIR=%NEWEST%"
 REM ============================ ARM 2 - OFF ====================================
 REM  Cleared EXPLICITLY. Do not rely on "I never set it" - that is exactly the
 REM  mistake this script exists to make impossible.
-set "POKEBOT_MAINTAIN="
+REM
+REM  !!!! CHANGED 2026-09-12 - AND THIS IS THE WHOLE POINT OF THE SCRIPT.
+REM  This line used to be  set "POKEBOT_MAINTAIN="  (remove it, get the shipped
+REM  default). On 2026-09-12 the shipped default FLIPPED from "0" to "1" by user
+REM  ruling - so "remove it" now means ON, and BOTH ARMS WOULD HAVE BEEN ON.
+REM  That is a VACUOUS A/B: it runs for hours, exits 0, writes two folders, and
+REM  the two arms are the same experiment. Nothing in the output would say so.
+REM  => ARM-OFF must now state the value it wants, EXPLICITLY, and never lean on
+REM  a default that someone else is free to change.
+set "POKEBOT_MAINTAIN=0"
 
 echo(
 echo ----------------------------------------------------------------------------
@@ -144,7 +154,7 @@ set "RC=%ERRORLEVEL%"
 popd
 if not "%RC%"=="0" echo   [!] ARM 2 exited with code %RC% - keep the folder anyway, Claude can read it.
 
-call :stamp_newest "ARM-OFF" "POKEBOT_MAINTAIN not set"
+call :stamp_newest "ARM-OFF" "POKEBOT_MAINTAIN=0"
 set "ARMOFF_DIR=%NEWEST%"
 
 REM ================================ DONE =======================================

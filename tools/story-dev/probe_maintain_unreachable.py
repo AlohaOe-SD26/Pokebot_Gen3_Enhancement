@@ -48,6 +48,31 @@ WHAT IS GATED HERE
          `except BaseException` still re-raises unconditionally.
   E1     THE DECISION AND THE PICK SHARE ONE PREDICATE — `ground_for=` must not be the raw
          `best_training_grass`, or the errand is approved against a band it will then refuse.
+  F1-F8  THE **HEAL-WALK** FAILURE MUST ALSO ABANDON (added 2026-09-12). `heal_in_pokemon_center`
+         LAUNDERS every walk error into a fresh exception after 8 ride-outs, so it can NEVER raise
+         `UnreachableDestinationError` — which is why the D-handler could not see it and the run
+         died instead (MEASURED: 15 ON vs 3 OFF). `HealWalkFailedError` is caught, the latch is
+         re-checked first, the lead is restored, and it RETURNS. ⛔ F3/F8 forbid the trap: it must
+         NOT be a subclass of `UnreachableDestinationError` and must NOT call
+         `_note_training_unreachable` — that handler blacklists the TRAINING GROUND, so a Poké
+         Center failure would strike an innocent grass tile out for the rest of the run.
+  F9-F10 THE RETRY RIDES OUT **ONLY GENUINE SCRIPTED EVENTS**. Measured 2026-09-12 from the A/B
+         debug logs: 63 real scripted interruptions (ALL cleared on attempt 1) vs **128
+         deterministic reachability refusals** retried 8x each and then reported under a headline
+         naming a cutscene that never existed. F9 gates the TEXT COUPLING to `walking.py`'s message
+         — if it drifts, every scripted event would classify as “blocked” and none would ever be
+         ridden out again, which is strictly worse than the bug being fixed.
+  H1     ⛔⛔ THE LEAD ROTATION IS GUARDED FOR SLOT 0 (added 2026-09-12 — **this gate was FULLY
+         GREEN while the bug was live**, which is its own attack-(f) answered against itself).
+         `_rotate_lead_safely` drives the party menu SWITCH option = a **SWAP**, and the driver does
+         `for _ in range(slot - 1)` — slot 0 gives `range(-1)`, ZERO Downs, so it presses Right then
+         A and confirms a swap against whatever the cursor is on. Slot 0 IS reachable:
+         `decide_maintenance` breaks ties toward the LOWEST index. Five other call sites in the tree
+         already guarded this (`counter_hunt.py:767`, `early_game.py:1703/1861/2080`,
+         `victory_road.py:2061`); the errand did not copy it.
+  G1-G2  THE SHIPPED DEFAULT AND ITS REGISTRY ROW AGREE. ⛔ NOT “assert it is ON” — the user may rule
+         either way and the switch is also the A/B arm. What must never happen is the CODE and the
+         DOC disagreeing about what ships.
 
 Run:   cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_maintain_unreachable.py
 Fault arms — each reds EXACTLY its own case(s); ⛔ a gate nobody has fault-tested is decoration:
@@ -61,12 +86,29 @@ Fault arms — each reds EXACTLY its own case(s); ⛔ a gate nobody has fault-te
        POKEBOT_MAINTREACH_FAULT=reraise   — handler re-raises instead of      -> D3 red
                                             returning (the pre-fix behaviour)
        POKEBOT_MAINTREACH_FAULT=nomemory  — drop `_note_training_unreachable` -> D6 red
+       POKEBOT_MAINTREACH_FAULT=healbare  — revert the heal raise to a bare  -> F7 red
+                                            `BotModeError` (the pre-fix shape)
+         ⛔ THIS ARM WAS BROKEN WHEN FIRST WRITTEN AND THE GATE SAID SO. It used `replace(...,1)`,
+         and once a SECOND `HealWalkFailedError` raise site existed it reverted one and left the
+         other — F7 (“is the good type raised anywhere?”) still passed, and the gate printed
+         “⛔⛔ A FAULT ARM WAS ACTIVE AND NOTHING FAILED”. Fixed twice over: the arm replaces ALL
+         occurrences, and F7 now asserts the NEGATIVE too (no bare `BotModeError` survives).
+         ⭐ **Presence of the good thing is not absence of the bad thing.**
+       POKEBOT_MAINTREACH_FAULT=markerdrift — reword walking.py's message   -> F9 red
+       POKEBOT_MAINTREACH_FAULT=regdrift  — registry row disagrees with the -> G2 red
+                                            code's shipped default
+       POKEBOT_MAINTREACH_FAULT=norotguard — `if slot != 0:` -> `if True:`   -> H1 red
+                                            (the pre-fix shape: rotate unconditionally)
+         ⚠ A REAL SOURCE MUTATION, not a flipped verdict — the first version of this arm just set
+         the verdict variable False, which proves the ASSERTION can fail but not that the CHECK
+         detects a real change. Corrupting the source is the stronger arm here.
 """
 from __future__ import annotations
 
 import ast
 import io
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -137,6 +179,11 @@ if FAULT == "nolatch":
     _src = _src.replace("            reraise_if_aborting(error)\n", "", 1)
 elif FAULT == "nomemory":
     _src = _src.replace("            self._note_training_unreachable(grass_map, grass_tile)\n", "", 1)
+elif FAULT == "norotguard":
+    # ⛔ A REAL SOURCE MUTATION, not a flipped verdict. `if True:` keeps the block structure (so the
+    # AST still parses and the call is still inside an `If`) while destroying the thing H1 tests —
+    # which is exactly the pre-fix shape: the rotation runs unconditionally, including for slot 0.
+    _src = _src.replace("            if slot != 0:", "            if True:", 1)
 elif FAULT == "reraise":
     _src = _src.replace(
         '                f"skipping maintenance and carrying on.[/]"\n            )\n            return\n',
@@ -182,6 +229,124 @@ CASES.append(("D5 — the broad `except BaseException` STILL re-raises unconditi
               any(isinstance(m, ast.Raise) for m in ast.walk(_by["BaseException"])), True))
 CASES.append(("D6 — the handler records the ground so the run SELF-HEALS",
               bool(_ude) and "_note_training_unreachable" in _calls(_ude), True))
+
+# ---------------------------------------------------------------------------------------------
+# F — the HEAL-WALK failure must ALSO abandon (2026-09-12), and must NOT poison the grass memory
+# ---------------------------------------------------------------------------------------------
+_hw = _by.get("HealWalkFailedError")
+CASES.append(("F1 — a NARROW `except HealWalkFailedError` handler exists in the errand",
+              _hw is not None, True))
+CASES.append(("F2 — its FIRST statement re-checks the abort latch (the 8-ride-out raise is "
+              "OUTSIDE any try, so the error carries no abort identity)",
+              bool(_hw) and isinstance(_hw.body[0], ast.Expr)
+              and "reraise_if_aborting" in _calls(_hw.body[0]), True))
+CASES.append(("F3 — ⛔ it does NOT call `_note_training_unreachable` (the grass was fine; the POKÉ "
+              "CENTER broke — blaming the ground is a false diagnosis with a run-long cost)",
+              bool(_hw) and "_note_training_unreachable" not in _calls(_hw), True))
+CASES.append(("F4 — it RETURNS (abandons) and never re-raises",
+              bool(_hw)
+              and any(isinstance(m, ast.Return) for m in ast.walk(_hw))
+              and not any(isinstance(m, ast.Raise) for m in ast.walk(_hw)), True))
+CASES.append(("F5 — it restores the strong lead before returning",
+              bool(_hw) and "_lead_strongest_battler" in _calls(_hw), True))
+CASES.append(("F6 — `HealWalkFailedError` precedes `except BaseException` (first match wins)",
+              _names.index("HealWalkFailedError") < _names.index("BaseException")
+              if "HealWalkFailedError" in _names else False, True))
+
+# F7/F8 — the raise site and the hierarchy, read from the helper's own source.
+_hla_path = SANDBOX / "modules" / "modes" / "util" / "higher_level_actions.py"
+_hla = io.open(_hla_path, encoding="utf-8").read()
+if FAULT == "healbare":
+    # ⛔ REPLACE **ALL**, NOT THE FIRST. The first version of this arm passed `1` and the gate stayed
+    # GREEN under it — because `heal_in_pokemon_center` now raises `HealWalkFailedError` from TWO
+    # sites (the 8-ride-out give-up AND the not-a-scripted-event fast fail), so reverting one left
+    # the other and F7's "is it raised anywhere?" test still answered yes.
+    # ‼ This is the documented arm-misses-its-target shape (`probe_late_boss_configs.py`, 2026-09-10)
+    # and it was caught only because the arm was RUN and its verdict READ — the gate reported
+    # "A FAULT ARM WAS ACTIVE AND NOTHING FAILED", which is the line that exists for exactly this.
+    _hla = _hla.replace("raise HealWalkFailedError(", "raise BotModeError(")
+_hla_tree = ast.parse(_hla)
+_heal_fn = next((n for n in ast.walk(_hla_tree)
+                 if isinstance(n, ast.FunctionDef) and n.name == "heal_in_pokemon_center"), None)
+_raised = {getattr(m.exc.func, "id", None)
+           for m in ast.walk(_heal_fn) if isinstance(m, ast.Raise) and isinstance(m.exc, ast.Call)}
+CASES.append(("F7 — EVERY raise in `heal_in_pokemon_center` is `HealWalkFailedError`, and none is a "
+              "bare `BotModeError` (a bare one is invisible to the errand and kills the run)",
+              # ⛔ Asserted as "no bare BotModeError survives", NOT as "HealWalkFailedError appears
+              # somewhere". The weaker form passed under the `healbare` arm while one raise site had
+              # been reverted — presence of the good type says nothing about absence of the bad one.
+              "HealWalkFailedError" in _raised and "BotModeError" not in _raised, True))
+_cls = next((n for n in ast.walk(_hla_tree)
+             if isinstance(n, ast.ClassDef) and n.name == "HealWalkFailedError"), None)
+_bases = {b.id for b in (_cls.bases if _cls else []) if isinstance(b, ast.Name)}
+CASES.append(("F8 — ⛔ it subclasses `BotModeError` and NOT `UnreachableDestinationError` — a "
+              "subclass of that type would hit the handler that blacklists the training ground",
+              _bases, {"BotModeError"}))
+
+# F9/F10 — the retry must ride out ONLY genuine scripted events (measured 2026-09-12: 63 scripted
+# interruptions, ALL cleared on attempt 1, vs 128 deterministic reachability refusals retried 8x
+# each and then reported under a FALSE "a scripted event kept interrupting" headline).
+_walking = io.open(SANDBOX / "modules" / "modes" / "util" / "walking.py", encoding="utf-8").read()
+_marker = "unexpectedly triggered a scripted event"
+if FAULT == "markerdrift":
+    _walking = _walking.replace(_marker, "ran into an unexpected cutscene", 1)
+CASES.append(("F9 — the retry's marker text still matches walking.py's raise (a TEXT coupling that "
+              "drifts would classify every scripted event as 'blocked' and never ride one out)",
+              _marker in _walking and _marker in _hla, True))
+
+_heal_handlers = [h for h in ast.walk(_heal_fn) if isinstance(h, ast.ExceptHandler)
+                  if isinstance(h.type, ast.Name) and h.type.id == "BotModeError"]
+_retry_h = _heal_handlers[0] if _heal_handlers else None
+_guards_marker = bool(_retry_h) and any(
+    isinstance(m, ast.If) and "_SCRIPTED_EVENT_MARKER" in ast.dump(m.test)
+    and any(isinstance(r, ast.Raise) for r in ast.walk(m))
+    for m in ast.walk(_retry_h))
+CASES.append(("F10 — a NON-scripted failure raises immediately instead of being ridden out 8× "
+              "(riding out a scene cannot change map geometry)",
+              _guards_marker, True))
+
+# ---------------------------------------------------------------------------------------------
+# G — the SHIPPED DEFAULT and its registry entry must agree (pair discipline, in a gate)
+# ---------------------------------------------------------------------------------------------
+# ⛔ NOT "assert the default is ON". The user can rule either way and the switch must keep working
+# in BOTH directions (it is also the A/B arm). What must never happen is the CODE and the REGISTRY
+# disagreeing — that is how a reader learns the wrong shipped behaviour from the doc a reader reads.
+_default = re.search(r'environ\.get\(\s*"POKEBOT_MAINTAIN"\s*,\s*"([^"]*)"', _src)
+_reg = io.open(ROOT / "PROJECT KNOWLEDGE" / "29-DISABLED-FEATURES-REGISTRY.md",
+               encoding="utf-8").read()
+_reg_row = next((l for l in _reg.split("\n") if l.startswith("| `POKEBOT_MAINTAIN` |")), "")
+if FAULT == "regdrift":
+    _reg_row = _reg_row.replace("`1` (ON", "`0` (OFF")
+_reg_says_on = "`1` (ON" in _reg_row
+CASES.append(("G1 — the code's shipped default for POKEBOT_MAINTAIN is readable",
+              bool(_default), True))
+CASES.append(("G2 — code default and 29-DISABLED-FEATURES-REGISTRY agree on what ships "
+              "(a doc that misstates the shipped default teaches every future reader wrongly)",
+              bool(_default) and ((_default.group(1) == "1") == _reg_says_on), True))
+
+# ---------------------------------------------------------------------------------------------
+# H — the lead rotation must be GUARDED for slot 0 (added 2026-09-12 after an adversarial review
+# found this gate FULLY GREEN while the bug was live — that is attack (f) answered against itself)
+# ---------------------------------------------------------------------------------------------
+# ⛔ `_rotate_lead_safely` drives the party menu's SWITCH option, which is a SWAP. Its arithmetic is
+# `for _ in range(slot - 1)`, so slot 0 gives `range(-1)` — ZERO Downs — and it presses Right then A,
+# confirming a swap against whatever the cursor is on. Slot 0 IS reachable: `decide_maintenance`
+# breaks ties toward the lowest index. Five other call sites in the tree already guard this.
+_rot = next((m for m in ast.walk(_fn)
+             if isinstance(m, ast.Call) and getattr(m.func, "id", None) == "_rotate_lead_safely"),
+            None)
+_guarded_rot = False
+if _rot is not None:
+    for m in ast.walk(_fn):
+        if isinstance(m, ast.If) and any(c is _rot for c in ast.walk(m)):
+            t = ast.dump(m.test)
+            if "NotEq" in t and "slot" in t and "0" in t:
+                _guarded_rot = True
+                break
+# (the `norotguard` arm mutates the SOURCE above, not this verdict — see the FAULT block)
+CASES.append(("H1 — the lead rotation is guarded by `if slot != 0` (rotating TO slot 0 is a "
+              "destructive SWAP, not a no-op, and slot 0 wins ties in decide_maintenance)",
+              _guarded_rot, True))
 
 # E — one predicate for the decision and the pick.
 _decide = next((m for m in ast.walk(_fn)

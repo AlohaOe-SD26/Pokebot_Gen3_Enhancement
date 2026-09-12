@@ -27476,3 +27476,150 @@ which would have meant the memory never engaged. The code was fine; my `grep` pa
 literal `\u2014` that the shell never expanded. Third time this project has hit *"read the failing
 line before touching the thing under test"* — and the tell was the contradiction (77 abandonments
 cannot coexist with 0 self-heals), not the number itself.
+
+---
+
+## 2026-09-12 (midday) — The heal retry was riding out cutscenes that were not there
+
+Four agents were sent at this on different angles. Two of them refuted things I had written down
+today, and the refutations are the valuable part.
+
+### ⛔ CORRECTION 1 — "a scripted event kept interrupting the walk" IS FALSE IN MOST CASES
+
+The retry added yesterday catches a bare `BotModeError`. So does the DETERMINISTIC refusal
+`"Cannot reach X: it is not walkable from Y"` (`global_navigation.py:595`) and
+`"…are not on connected maps"`. **Riding out a cutscene cannot change map geometry**, so those were
+retried 8 times, ~255 frames apart, and then reported under a headline naming a cutscene that never
+existed. Classified from the 2026-09-12 debug logs (verified myself, not taken from the agent):
+
+| what the retry actually caught | ARM-ON | ARM-OFF |
+|---|---|---|
+| `unexpectedly triggered a scripted event` (the real thing) | 63 | 78 |
+| `Cannot reach PETALBURG_CITY` | **77** | 7 |
+| `Cannot reach LAVARIDGE_TOWN` | **29** | 8 |
+| `not on connected maps` | 14 | 1 |
+| `Cannot reach FORTREE_CITY` | 7 | 7 |
+
+⭐ **And the retry is EXCELLENT at its real job:** an independent classification of 884 retry events
+found all 506 genuine scripted-event interruptions cleared on **attempt 1** — never attempt 2. The
+mechanism was never the problem; it was being asked to do an impossible job and lying about it.
+
+**FIX:** the handler now rides out ONLY a genuine scripted event (matched on
+`_SCRIPTED_EVENT_MARKER`, the phrase `walking.py:502` raises) and otherwise raises immediately with
+an honest message — *"the walk to X is BLOCKED, not interrupted — not retrying, because riding out a
+scene cannot change map geometry"* — carrying the original error as `__cause__`.
+⇒ ~330 pointless retries removed and 47 derails stop lying about their own cause.
+‼ **The text coupling is GATED, not trusted** (#57 case F9): if anyone rewords `walking.py`'s
+message, the gate reds. Without that, a silent drift would classify EVERY scripted event as
+"blocked" and the bot would never ride one out again — strictly worse than the bug being fixed.
+
+### THE FAIL-SOFT FIX (the one the user's decision required)
+
+`HealWalkFailedError(BotModeError)` — a NEW narrow type raised by `heal_in_pokemon_center`, caught by
+`_maintain_lagging_battler`, which now ABANDONS the top-up instead of letting the run die.
+* ⛔ **A SIBLING of `UnreachableDestinationError`, never a subclass** — and that is the trap an agent
+  caught before I could walk into it. That type's handler calls
+  `_note_training_unreachable(grass_map, grass_tile)`, which blacklists the **TRAINING GROUND** for
+  the rest of the run. Blaming the grass for a Poké Center failure is a false diagnosis with a
+  run-long cost. Gate #57 F3/F8 now forbid both halves of that mistake.
+* ⛔ **Behaviour for the other ~37 call sites is UNCHANGED**, because a subclass still satisfies
+  every existing `except BotModeError`. Verified by enumeration: 38 call sites across 9 files.
+* ‼ The abandon path logs that **the party may be at low HP/PP** — `train_team` heals exactly when HP
+  is low or PP is out, so abandoning walks a damaged team toward the boss. That is a real new
+  whiteout risk, accepted deliberately: the alternative is a CERTAIN derail, and 5 consecutive
+  no-progress derails drop the run to Manual, whereas a whiteout is recoverable and budgeted.
+  ⇒ the log line says so, or the next reader debugs the whiteout as a battle-strategy bug.
+
+**PREDICT 15 → ~3, NOT 15 → 0.** After the errand returns, `_prepare_for_fight` continues into a
+SECOND `train_team` (`story_mode.py:2843`) that is NOT best-effort and still dies on the same
+failure. ARM-OFF already had 3 such derails with no errand at all. ⇒ filed in writing BEFORE the
+verification batch, because a 15→4 result read against an unstated expectation of zero would look
+like a failed fix.
+
+### ⛔ CORRECTION 2 — ROUTE111's derails are NOT run-ending, and I said they were
+
+I wrote "the #1 run-ending derail in ARM-ON". **All 74 are `derail #1` and all 74 runs CONTINUE** (a
+`Story Mode — resuming` follows every one). It is the most FREQUENT derail and it burns a
+derail-budget slot; it does not end the run. ⇒ **Prevention rule: "derail" and "run-ender" are
+different measurements — count run ENDS from the run-end line, never from a derail line.**
+
+### ⭐ AND THE ROUTE111 MECHANISM IS FOUND — maintenance MANUFACTURES its own downstream derail
+
+Verified by me at file:line, not taken on trust:
+```
+:2310  catchup = target - TRAIN_CATCHUP_GAP        (maintenance)
+:2442  train_team(catchup, scope="lead", …)        ⇒ the mon lands at EXACTLY catchup
+:2761  catchup = target - TRAIN_CATCHUP_GAP        (prep — the SAME formula, same target)
+:2762  to_train = {i for i in battlers if party[i].level >= catchup}   ⇒ it passes by EXACTLY 0
+:2768  need = [i for i in to_train if party[i].level < target]         ⇒ catchup < target, always in
+```
+⇒ **A successful top-up mathematically GUARANTEES `need` is non-empty**, and a non-empty `need` is
+the precondition for the fodder/relocation block that walks to ROUTE111. Without the errand the same
+mon sits *below* `catchup`, is excluded from `to_train` entirely, and the block is never entered.
+
+The arithmetic closes exactly: ARM-ON 74/91 = **0.813/run**; subtract the 40 cases where the
+maintained mon was the ONLY trainee and it is 34/91 = **0.374/run** vs ARM-OFF **0.370/run** — ratio
+**1.01**. The counterfactual is observable too: the "battlers are already ≥ Lv N — no prep training"
+line appears **40 times in ARM-ON vs 100 in ARM-OFF**.
+
+⭐ **The irony worth keeping:** all 56 maintenance-driven cases trained the laggard ON ROUTE116, and
+then the prep block — keyed to `team_max_now` (L18-20) rather than to the trainee — declared that
+exact tile fodder and walked to ROUTE111. **Two pickers, two reference levels, opposite verdicts on
+the same tile, ~60 lines apart.**
+
+⛔ **DO NOT "fix" this by blocking ROUTE111.** `AREA_ITEM_PREREQ[ROUTE111] = "Go-Goggles"` already
+exists and is deliberately OFF by default since 2026-08-04: turning it on took ROUTE111 relocations
+to zero AND dropped Balance→Feather by ~20 points. The band is genuinely good when reachable.
+
+---
+
+## 2026-09-12 (afternoon) — The flip was BLOCKED by an adversarial review, and the bug it found was already solved five times in this repo
+
+**The finding.** `_maintain_lagging_battler` called `yield from _rotate_lead_safely(slot)`
+**unconditionally**. Every other comparable call site in the tree guards it:
+
+| call site | guard |
+|---|---|
+| `counter_hunt.py:767` | `if slot != 0:` |
+| `early_game.py:1703`, `:1861` | `if best != 0:` |
+| `early_game.py:2080` | `if target_slot != 0:` |
+| `victory_road.py:2061` | `if slot_now != 0:` |
+| **`story_mode.py:2426` (the errand)** | **NONE** |
+
+**Why it is a real bug and not a no-op.** `_rotate_lead_safely` drives the party menu's SWITCH
+option — a **SWAP** — and the driver computes `for _ in range(slot - 1)`. For `slot = 0` that is
+`range(-1)`: **zero** Downs. So it presses Right, then A, and confirms a swap against whatever the
+cursor is sitting on. Verified in source at `higher_level_actions.py` (`match slot: case _ if slot
+!= 1:`), and `victory_road.py:2046-2059` already documents the same mechanism after it cost a
+900,000-frame run.
+
+**And slot 0 is reachable, not hypothetical.** `decide_maintenance` picks
+`min(excluded, key=lambda s: (excluded[s], s))` (`:1232`) — ties break toward the **LOWEST** slot
+index, so slot 0 wins any tie and wins outright whenever the lead is the weakest lagging battler
+(trivially: a one-Pokémon party before Roxanne).
+
+**The consequence, which is worse than it first looks.** The spurious swap corrupts party order AND
+the PID check immediately below then reports *“rotation did NOT land”* — misdiagnosing a
+**self-inflicted** swap as a menu failure, and abandoning maintenance for exactly the mon the
+feature exists to help. ⭐ The reviewer's own hypothesis is worth recording: this may be part of why
+both A/Bs measured the feature NEUTRAL rather than positive — it fails soft in an easy-to-hit case.
+⚠ Recorded as a HYPOTHESIS, not a finding: it has not been measured.
+
+**FIX:** `if slot != 0:` before the rotation, matching the five existing call sites. When the mon is
+already the lead the PID check then passes naturally.
+
+### ‼ THE PART THAT MATTERS MOST: THE GATE WAS FULLY GREEN WHILE THIS WAS LIVE
+Gate #57 had 28 cases covering the picker, the two abandon handlers, the retry narrowing and the
+shipped default — and **said nothing about the rotation**. It passed 28/28 against broken code.
+The review prompt had explicitly asked *“can any of its cases pass while the thing it guards is
+broken?”* and the answer was yes, by omission rather than by weakness.
+⇒ **A gate proves what it enumerates and NOTHING adjacent.** New case **H1** + fault arm
+`norotguard`; the gate is now 29 cases / 8 arms.
+⭐ And the arm was strengthened once written: the first version set the verdict variable to `False`,
+which proves the ASSERTION can fail but not that the CHECK detects a real source change. It now
+rewrites `if slot != 0:` to `if True:` in the parsed source — the pre-fix shape, structurally intact
+so the AST still parses.
+
+⇒ **This is why the flip waited for a review.** The feature now ships ON; had it shipped ON with
+this live, the first user with a one-Pokémon party would have had their party order scrambled by a
+feature that then reported it had done nothing.

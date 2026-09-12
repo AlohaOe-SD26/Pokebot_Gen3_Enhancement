@@ -16765,3 +16765,134 @@ this project's own playbook already warns against quoting an underpowered rate f
 **Prevention rule:** *before publishing a derived rate, count the EVENTS behind it and say the n out
 loud.* If n is small, grep the logs for a denser signal first — and if a sibling value in the same
 table is impossible, treat the whole metric as unproven until re-derived.
+
+---
+
+## 2026-09-12 — I quoted rates from a batch whose own manifest says "do not quote a rate from this"
+
+**Symptom.** I reported the confirmatory A/B to the user as decisive — median run duration, badges
+per run, 77 abandonments — and wrote those numbers into the changelog, the decisions log, the
+handoff and the punch list. An adversarial agent then read
+`x4-runs/20260912-050244/MANIFEST.txt:5-11` and found it begins:
+
+> ⛔⛔ **MIXED BUILD — THIS BATCH SPANS MORE THAN ONE COMMIT.** A finish rate whose build is ambiguous
+> is NOT a measurement. Do not compare this batch against another, and do not quote a rate from it.
+
+Lanes H1-H8 ran `2dc1ba24`, H9-H19 ran `2dc1ba24-dirty`, H20-H32 ran `26dc25d4`.
+
+**ROOT CAUSE — I DID IT.** I committed a docs note (`26dc25d4`) **while the batch was running**, and
+the tree was dirty mid-edit when lanes respawned. The batch tooling detected exactly that and said
+so, in a file I never opened.
+
+**Why I missed it.** I *did* check the builds — I ran a grep for `commit` against `ARM-*.txt` and
+`summary.json`, got **empty output**, and moved on. ⇒ **An empty result from a check you invented is
+not a PASS; it is a check that did not run.** The authoritative file was `MANIFEST.txt` and I never
+looked at it.
+
+**Does the conclusion survive? Yes — and that is the trap.** `git diff --name-only 2dc1ba24
+26dc25d4` = **1 file, 0 `.py`** (`04-HANDOFF.md`), and ARM-OFF was a clean SINGLE BUILD. An
+independent build-matched subset test agrees: lanes on the later commit gave 0.800/run vs 0.826/run
+on the earlier, against 0.813 for the whole arm — no confound. **But I did not know any of that when
+I published the numbers.** A correct conclusion reached without checking is indistinguishable, to
+the next reader, from one that was checked.
+
+**PREVENTION RULES (two, both new):**
+1. ⛔ **NEVER COMMIT, STAGE, OR EDIT THE TREE WHILE A BATCH IS RUNNING.** The project already had
+   "do not PROMOTE while a batch is running" (2026-09-07); this is the same hazard one step milder
+   and it bit within a week. Park doc edits until the batch ends — the batch is the only thing that
+   cannot be redone cheaply.
+2. ⛔ **READ `MANIFEST.txt` BEFORE QUOTING ANY NUMBER FROM A BATCH.** It is the batch's own verdict
+   on its own admissibility. Quoting a rate without reading it is the measurement equivalent of
+   citing a paper by its title.
+
+## 2026-09-12 — A fault arm passed because my fix gave its target a second home
+
+**Symptom.** Gate #57's `healbare` arm reverts `raise HealWalkFailedError(` to `raise BotModeError(`
+and should red case F7. After I added a SECOND `HealWalkFailedError` raise site (the fast-fail for
+non-scripted errors), the arm ran and the gate printed **"⛔⛔ A FAULT ARM WAS ACTIVE AND NOTHING
+FAILED — this gate proves nothing."**
+
+**Root cause, two compounding halves.** The arm used `str.replace(..., 1)` — first occurrence only —
+so it reverted one site and left the other. AND F7 was written as *"is `HealWalkFailedError` raised
+**anywhere** in this function?"*, which the surviving site still satisfied.
+
+**Fix.** The arm replaces ALL occurrences; F7 now asserts **`"BotModeError" not in raised`** as well
+as the good type being present.
+
+**Prevention rule:** ⇒ **presence of the good thing is not absence of the bad thing.** When a gate
+asks "does X appear?", adding a second X silently disarms it. Assert the NEGATIVE too. And the only
+reason this was caught is that the arm was RUN and its verdict READ — the "A FAULT ARM WAS ACTIVE AND
+NOTHING FAILED" line exists for exactly this, so never skip running the arms after editing the thing
+they point at.
+
+---
+
+## 2026-09-12 — A two-anchor slice deleted 58 punch-list cells, and only a SANITY NUMBER caught it
+
+**Symptom.** To free space under a line budget I replaced a span of `03-PUNCH-LIST.md` between two
+string anchors:
+```python
+start = s.index("### ‼ `#26-healmap-lavaridge`")
+end   = s.index("### 🔶 `#24-maintain`")     # ← the trap
+s = s[:start] + NEW + s[end:]
+```
+The script printed **“saved 1995 lines”** when I expected ~45. `git diff --stat` confirmed **1977
+deletions, 106 → 48 cells** — 58 punch-list items destroyed, including `#24-abortswallow`,
+`#24-ballstarve`, `#24-canary` and 55 more.
+
+**Root cause.** `str.index` returns the FIRST match. My `end` anchor appeared EARLIER in the file
+than I assumed relative to `start`— so the slice spanned almost everything between them. A
+two-anchor slice silently deletes whatever sits between the anchors, and *nothing in the operation
+itself knows how much that is*.
+
+**What saved it.** The script PRINTED the line delta. ⇒ the number looked absurd, I checked
+`git diff --stat` instead of moving on, and restored with `git checkout HEAD -- <file>` (the only
+uncommitted content in that file was the corruption itself, so nothing of value was lost).
+⛔ Had the script printed nothing, Tier 0 would have passed — **`lint_docs` measures the budget and
+would have been HAPPIER with the file 1995 lines shorter.** The gate that exists to protect this
+file would have actively rewarded the destruction.
+
+**PREVENTION RULES:**
+1. ⛔ **NEVER slice between two independently-located anchors.** Locate the start, then find the end
+   **relative to it** (`s.index(end_anchor, start)`) — or match the whole block and `replace(old,
+   new, 1)` so a wrong anchor fails LOUDLY with 0 matches instead of quietly eating the middle.
+2. ⛔ **EVERY bulk doc edit must PRINT its line delta and ASSERT a bound on it.** `assert
+   after >= before - 60`. An edit that cannot say how much it changed cannot be reviewed.
+3. ⭐ **ASSERT A STRUCTURAL INVARIANT, not just the size** — here, the `### ` cell count. Size alone
+   would have accepted 1995 lines of deletions spread thinly; the cell count would not.
+4. ‼ **A GREEN GATE IS NOT A SAFE EDIT.** A budget check rewards shrinkage. When the thing you are
+   editing is protected by a size rule, the size rule is the LAST thing that will notice you broke it.
+
+---
+
+## 2026-09-12 — Flipping a default silently turned the A/B script into a VACUOUS experiment
+
+**Symptom (caught BEFORE running, by the post-status-change staleness sweep, not by a gate).**
+`Run-Maintain-AB-Batch.bat` built its control arm as `set "POKEBOT_MAINTAIN="` — *remove the
+variable and you get the shipped default*, which was `0` (OFF). Two hours after the user ruled the
+feature ON, the shipped default became `1`. ⇒ **ARM-OFF would have been ON.** Both arms identical.
+
+**Why this was nearly invisible.** The script would have run its full duration, exited **0**, written
+`ARM-ON.txt` and `ARM-OFF.txt`, and produced two result folders with a plausible small difference
+between them. Every integrity check it has — same lanes, same minutes, forced `--build sandbox`,
+SETLOCAL so the variable cannot leak, explicit arm labels — would have PASSED. **The script's own
+header even warns about this exact failure** (*“if ARM OFF inherits it, BOTH arms are really ARM ON
+… a FALSE result, which is worse than no result at all”*) — it guarded against LEAKAGE and never
+imagined the default moving underneath it.
+
+**Root cause.** The control arm was defined RELATIVE to a default owned by other code. A control
+must be an absolute statement of the condition it holds, not a reference to someone else's choice.
+
+**FIX:** ARM-OFF is now `set "POKEBOT_MAINTAIN=0"` — explicit, in both arms.
+
+**PREVENTION RULES:**
+1. ⛔ **AN EXPERIMENTAL ARM MUST NEVER LEAN ON A DEFAULT.** “Unset”, “empty”, “whatever ships” are
+   not conditions — they are pointers to a condition someone else can change. State the value.
+2. ⛔ **WHEN YOU FLIP A DEFAULT, GREP FOR EVERY PLACE THAT CONSUMES IT BY ABSENCE** — not just the
+   places that name it. `grep POKEBOT_MAINTAIN` finds the arm that SETS it; only reading the arm
+   that UNSETS it reveals the break. The dangerous consumers are the ones that mention the flag
+   without mentioning its value.
+3. ⭐ **The sweep found this, and no gate could have.** Gate #57 G2 checks that the code default and
+   the registry agree — both were correct. The broken thing was a `.bat` file outside every scan,
+   whose failure mode is a WRONG NUMBER rather than a red check. ⇒ after any status flip, sweep the
+   TOOLING that measures the thing, not only the docs that describe it.
