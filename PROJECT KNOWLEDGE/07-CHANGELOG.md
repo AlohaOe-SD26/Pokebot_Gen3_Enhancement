@@ -27416,3 +27416,63 @@ suite itself before commenting) returned **APPROVE, no blockers**, and three ris
    `training_areas.py` would ship the fail-soft handler with no `allow` predicate to feed it.
 3. ⚠ The abandonment path logs `ABANDONED pid=…`, a different shape from the normal `done pid=…
    REACHED/SHORT`. Nothing parses either today; future batch tooling must not treat one as the other.
+
+---
+
+## 2026-09-12 (09:03) — CONFIRMATORY A/B: the fix works completely, and the feature is NEUTRAL
+
+ARM-ON `x4-runs/20260912-050244`, ARM-OFF `x4-runs/20260912-070254`; 32 lanes x 120 min per arm,
+`--build sandbox`, testing commit `2dc1ba24`. Commit delta between the arms verified **docs-only**
+(`04-HANDOFF.md`). Arms cleanly separated: ARM-ON 295 maintenance starts / 0 dormant, ARM-OFF 0 / 0.
+
+### THE THREE PRE-REGISTERED PREDICTIONS — ALL PASS
+
+| prediction | last night | now | |
+|---|---|---|---|
+| the ARM-ON-only death family (ROUTE102/117/103/101) must be **0** | 406 | **0** | ✅ |
+| ARM-ON median run duration must be **≥** ARM-OFF's | 5.35 vs 35.18 min | **38.02 vs 34.34 min** | ✅ |
+| badges won per run must recover | 0.72 vs 2.25 | **2.055 vs 2.030** | ✅ |
+
+⭐ **AND THE FAIL-SOFT PATH WAS OBSERVED EXECUTING IN PRODUCTION — 77 times in ARM-ON, 0 in ARM-OFF.**
+This is the reading the gate could not give: **#57 is static (AST), so it proves the handler's SHAPE
+and never that it RUNS.** The abandoned grounds are precisely the killers from last night —
+**`ROUTE102 (9,2)` x67**, `ROUTE117 (31,16)` x9, `ROUTE111 (25,55)` x1 — and the self-heal line
+(*"…is not reachable from here — dropping it as a training option for the rest of this run"*) fired
+**152** times. ⇒ same grounds, same situations, runs survive. That is causal closure, not correlation.
+
+### ⚖ THE HONEST VERDICT: HARM REMOVED, BENEFIT **NOT DEMONSTRATED**
+
+With the harm gone, ARM-ON and ARM-OFF are **indistinguishable on every outcome metric**:
+badges/run **2.055 vs 2.030** (+1.2%), derail rate **64.8% (59/91) vs 68.0% (68/100)**, run duration
+38.02 vs 34.34 min. ⛔ **At n=91/100 runs this batch cannot separate the feature from neutral** —
+which is NOT the same claim as "the feature is useless". It is: *no benefit has been measured, and a
+modest one would be invisible at this sample size.*
+⇒ **`POKEBOT_MAINTAIN` STAYS DEFAULT-OFF.** The 2026-09-12 deferral's expiry condition (*"a fresh
+two-arm batch reporting median run length and badge rate"*) is now MET, and the answer is *no*.
+
+### ⚠ TWO RESIDUALS, BOTH ELEVATED IN ARM-ON — the reasons this is not "done"
+
+1. ⛔ **`heal_in_pokemon_center` derails: 15 ARM-ON vs 3 ARM-OFF (~5x).** **THIS IS THE ADVERSARIAL
+   REVIEWER'S RISK 1, NOW MEASURED.** It predicted exactly this from the code alone, before the
+   batch ran: a heal-nav failure during the errand raises a PLAIN `BotModeError`, which the new
+   narrow handler does not catch, so it re-raises and kills the run — the pre-fix shape on the
+   neighbouring path. Maintenance trains, the mon takes damage, more heals happen, more of them hit
+   it. ⇒ **a review finding that predicts a number in the next experiment is worth more than a
+   review finding that describes the code**, and this one earned its keep.
+2. ⚠ **ROUTE111 primary derails: 74 ARM-ON vs 36 ARM-OFF (~2x).** ⛔ **Only ONE of those came from
+   maintenance** (one `ROUTE111 (25,55)` abandonment), so the other 73 are the ordinary
+   training/relocation path. **Mechanism UNKNOWN — AND I TESTED THE OBVIOUS ONE AND IT IS FALSE.**
+   Every ROUTE111 derail follows a `relocating to ROUTE111` decision **1:1** (74→74, 37→37), and
+   the patch judged fodder is **ROUTE116 in 100% of cases in BOTH arms**. I hypothesised
+   *“maintenance raises the team’s level profile, so the local patch reads as fodder”* — the levels
+   at that decision are the **SAME** in both arms (ARM-ON L18×31/L19×39/L20×4; ARM-OFF
+   L18×18/L19×16/L20×3). ⇒ ARM-ON simply **REACHES that decision 2.2× more often per run** (0.81 vs
+   0.37); it does not decide differently. ⭐ **Recorded because a REFUTED HYPOTHESIS IS A RESULT** —
+   the next reader must not re-derive and re-believe it. ⛔ Do not "fix" it until the real driver
+   is measured.
+
+⛔ **NOTE ON A CHECK THAT WAS WRONG BEFORE THE SUBJECT WAS.** The self-heal count first read **0**,
+which would have meant the memory never engaged. The code was fine; my `grep` pattern contained a
+literal `\u2014` that the shell never expanded. Third time this project has hit *"read the failing
+line before touching the thing under test"* — and the tell was the contradiction (77 abandonments
+cannot coexist with 0 self-heals), not the number itself.

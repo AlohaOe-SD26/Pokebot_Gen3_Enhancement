@@ -5132,3 +5132,32 @@ fresh two-arm batch reporting **median run length and badge rate**, not episode 
 
 **⛔ DO NOT RE-RAISE "why not just train the laggard to the boss's level?"** — ruled 2026-09-10,
 with arithmetic (L40→L47 = 285,167 frames against a 250,000 ceiling). Unchanged by this entry.
+
+---
+
+## 2026-09-12 (09:03) — `#24-maintain`: the benefit question is ANSWERED (no), and the flag stays OFF
+
+**Decision.** `POKEBOT_MAINTAIN` remains `0`. This supersedes the *deferral* recorded earlier today
+by ANSWERING it, not by extending it.
+
+**What changed.** That entry set an expiry: *"that request requires a fresh two-arm batch reporting
+median run length and badge rate, not episode counts."* The batch ran (32 lanes x 120 min per arm,
+2026-09-12). The fix is fully vindicated — the 406-death family is **0**, and the fail-soft handler
+was observed abandoning 77 errands in production rather than killing the runs. **But with the harm
+removed, the feature measures as NEUTRAL:** badges/run 2.055 vs 2.030, derail rate 64.8% vs 68.0%.
+
+**Why OFF rather than ON.** A neutral feature is not free: it adds a training detour, a lead
+rotation, and ~295 extra decision points per 91 runs, and it measurably ELEVATES two residual
+failure modes (heal-nav derails 15 vs 3; ROUTE111 derails 74 vs 36). ⇒ the burden of proof sits with
+turning it on, and nothing has discharged it.
+
+**⛔ WHAT WOULD CHANGE THIS RULING — stated so it is not re-litigated from intuition.** Not a longer
+batch on its own: at n≈100 runs/arm this design cannot see a modest effect, so the honest next step
+is (a) fix the heal-nav residual, then (b) a batch powered for the effect size actually worth
+having. **If the answer to "how much better should this make the bot?" is "a few percent", this
+feature is not worth turning on at any sample size** — that is the question to settle FIRST, before
+spending another machine-night.
+
+**Alternatives rejected.** *Turn it on because the fix worked* — rejected: the fix removed a harm the
+feature itself created; that is a return to baseline, not evidence of value. *Delete it* — still
+rejected: the laggard premise is measured, and the code is inert at zero cost while OFF.

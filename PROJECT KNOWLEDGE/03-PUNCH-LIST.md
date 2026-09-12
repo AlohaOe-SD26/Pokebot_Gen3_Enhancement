@@ -2058,13 +2058,14 @@ battler position rather than reordering the party. Hardcoding "slots 0-1 are act
 recreate the KI-34 bug in a new place: inferring an index relationship instead of reading it.
 Always read it via `BattleState.map_battle_party_index()` / `gBattlerPartyIndexes`.
 
-### 🔶 `#24-maintain` — MAINTAIN, not cram — **⛔ BATCH RAN 2026-09-12 AND THE VERDICT WAS *NET-HARMFUL*: **median run 5.35 min ON vs 35.18 min OFF**, **0.72 badges/run vs 2.25** (3.1× worse), 406 ARM-ON-only run deaths. CAUSE FOUND AND FIXED (gate #57); STILL DEFAULT-OFF — removing a harm is not showing a benefit. The late-game half stays DEAD.** (user proposal 2026-07-29)
+### 🔶 `#24-maintain` — MAINTAIN, not cram — **⚖ TWO A/Bs DONE 2026-09-12. The first measured it NET-HARMFUL (406 run deaths); the cause was fixed (gate #57) and the second VINDICATED the fix — death family **406 → 0**, run duration **5.35 → 38.02 min** (control 34.34), badges/run **0.72 → 2.055** (control 2.030), with the fail-soft path SEEN abandoning 77 errands in production. ⛔ BUT THE FEATURE IS NOW *NEUTRAL*, NOT GOOD, AND STAYS DEFAULT-OFF: it is indistinguishable from the control on every outcome metric while ELEVATING two residual failure modes (heal-nav 15 vs 3; ROUTE111 74 vs 36). The late-game half stays DEAD.** (user proposal 2026-07-29)
 ✅ **A/B RAN 2026-09-11** (same fixture/frames/pinned target, separate profiles). ARM-ON:
 `start Marill pid=6A767BDA L13->L14 on ROUTE117(31,16) est=7165`, `rotation=landed`. ARM-OFF:
 `dormant`. **P1, P2 (the vacuity conjunct) and P6 PASS; P3/P4/P5 UNTESTED — ⛔ UNTESTED IS NOT PASS.**
 P3 is ungradeable HERE: Wattson's `cfg["grass"]` and `best_training_grass(13)` are the SAME pair, so
 the log line fits a boss-keyed implementation too. Evidence: `evidence/2026-09-11-maintain-ARM-*.log`.
-- [x] **THE VALUE QUESTION — BATCH RAN 2026-09-12, AND IT ANSWERED “NO”.** 32 lanes × 310 min per
+- [x] **THE VALUE QUESTION — ASKED TWICE, ANSWERED “NO” BOTH TIMES (2026-09-12).** The SECOND batch (32×120/arm, ARM-ON `x4-runs/20260912-050244`, ARM-OFF `x4-runs/20260912-070254`) confirmed the FIX completely — all three pre-registered predictions pass — and then found the feature NEUTRAL: badges/run **2.055 vs 2.030**, derail rate **64.8% vs 68.0%**. ⛔ At n≈91 runs/arm that cannot separate it from neutral, which is NOT “useless”. ⇒ **Settle “how much better must it be to be worth ON?” BEFORE another machine-night** — if the answer is a few percent, no sample size justifies it. Details: `07-CHANGELOG.md` / `06-DECISIONS-LOG.md` 2026-09-12 09:03.
+- [x] **(superseded, kept for the record) THE FIRST BATCH, 2026-09-12, ANSWERED “NO”.** 32 lanes × 310 min per
       arm (`x4-runs/20260911-175201` ARM-ON vs `x4-runs/20260911-230219` ARM-OFF; arms verified
       separated — 901 starts/0 dormant vs 0 starts/2,644 dormant; commit delta docs-only).
       **Median run duration 5.35 min ON vs 35.18 min OFF (wall-clock, n=520/211); badges won per run 0.72 vs 2.25** — ARM-OFF won **547 badges from 243 runs**, ARM-ON only **398 from 552**. ⭐ Every tier is lower in ARM-ON in ABSOLUTE terms despite 2.3× the runs (Stone 171 vs 239 … Rain 3 vs 8).
