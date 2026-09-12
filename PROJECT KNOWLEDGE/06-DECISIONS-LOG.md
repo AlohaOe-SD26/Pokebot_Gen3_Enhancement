@@ -5161,3 +5161,37 @@ spending another machine-night.
 **Alternatives rejected.** *Turn it on because the fix worked* — rejected: the fix removed a harm the
 feature itself created; that is a return to baseline, not evidence of value. *Delete it* — still
 rejected: the laggard premise is measured, and the code is inert at zero cost while OFF.
+
+---
+
+## 2026-09-12 (user ruling) — ‼ `POKEBOT_MAINTAIN` WILL BE TURNED **ON**. This SUPERSEDES the two “stays OFF” entries above.
+
+**Decision (the USER’s, not mine).** After being shown the full measurement — including that the
+feature is NEUTRAL and that it aggravates two other failure modes — the user ruled: *“I like it, lets
+use the top up.”* ⇒ the feature ships ENABLED.
+
+⛔⛔ **DO NOT RE-RAISE THE VALUE QUESTION.** It was asked twice, measured twice (32×310 and 32×120 per
+arm), put to the user in plain terms WITH the recommendation to leave it off, and answered. A future
+agent rediscovering “this feature measures neutral, why is it on?” has found the RULING, not a defect.
+The reasoning is recorded here precisely so that agent stops instead of re-running a machine-night.
+
+**What I recommended and why it was overruled.** I recommended OFF: badges/run 2.055 vs 2.030 and
+derail rate 64.8% vs 68.0% cannot be separated from neutral at n≈91 runs/arm, and the feature
+elevates heal-nav derails (15 vs 3) and ROUTE111 derails (74 vs 36). The user’s call is a judgement
+about what the bot should DO — prevent a Pokémon being permanently abandoned — not a claim about the
+statistics, and that judgement is theirs. ⇒ **I argued the point once, in plain language, and then
+executed the decision.** That is the correct shape; re-arguing it in code review would not be.
+
+**‼ THE CONDITIONS I ATTACHED, AND WHY THEY ARE NOT NEGOTIABLE-AWAY.** Turning the feature on
+MULTIPLIES the two failure modes it aggravates — the heal-nav run-killer runs **5× more often** with
+maintenance enabled. Shipping ON before fixing that would knowingly ship a run-killer to the user
+who asked for the feature. ⇒ **ORDER: (1) fix the heal-nav defect; (2) resolve or bound the ROUTE111
+frequency; (3) flip the default as its OWN reviewable change; (4) verify by batch that ON is SAFE.**
+⭐ Note step 4’s question has CHANGED: it is no longer *“is the feature better?”* (asked and answered)
+but *“does enabling it make runs WORSE?”* — a safety question, with a different acceptance bar. The
+batch must show ON ≤ OFF on run-enders, not ON > OFF on badges.
+
+**Alternatives rejected.** *Flip it now and fix the residuals after* — rejected: the residuals are
+elevated BY this feature, so enabling first is the one ordering that guarantees the user experiences
+them. *Keep arguing for OFF* — rejected: the user reaffirmed after hearing the case; per this
+project’s own conduct rule, a reaffirmed instruction is a decision to execute, not to re-litigate.
