@@ -76,6 +76,18 @@ SCAN = [
     # those piggybacks and are now loud. The ratchet below absorbs the remaining 6 as recorded
     # debt and forbids a seventh.
     BUILD / "modules" / "modes" / "util",
+    # ‼ ADDED 2026-09-13 — THE STORY BOT'S OWN FILE WAS OUT OF SCOPE.
+    # `plugins/custom_modes/story_mode.py` is the largest file in the project and the one the
+    # Story bot actually runs, and NEITHER this ratchet NOR `probe_abort_swallowing` scanned it
+    # — only gate #56 did. A new silent handler could be added there with both ratchets GREEN.
+    # ⛔ I ASSERTED THE OPPOSITE on 2026-09-12 (in a gate docstring AND a commit message) and an
+    # agent disproved it by reading these SCAN lists. *A rule believed to be enforced is worse
+    # than one known not to be, because nobody checks it.*
+    # Cost of admission, MEASURED WITH THIS GATE'S OWN RULE before adding (not with a
+    # hand-rolled count, which said ~90 and was measuring something else): **79 silent** —
+    # 72 in `story_mode.py`, 7 in `living_dex_mode.py`. Absorbed as recorded debt below; an
+    # 80th is forbidden.
+    BUILD / "plugins" / "custom_modes",
 ]
 
 REPORTERS = ("log", "print", "debug_logger", "console", "logger", "warn", "_say", "_ch14_say",
@@ -239,7 +251,16 @@ if offenders and SHOW:
 # So the contract is **"no new debt"**: the count may never RISE. Lowering `BASELINE` is a
 # deliberate, reviewable one-line diff that records real cleanup. That makes this family strictly
 # non-worsening TODAY, rather than theoretically fixed some day.
-BASELINE = 138   # re-measured 2026-08-27 (was 148, 10 handlers of SLACK — the deep sanity check caught it).
+BASELINE = 217   # ‼ 138 -> 217 on 2026-09-13 is a **SCOPE WIDENING, NOT NEW DEBT**: `plugins/custom_modes`
+                 # entered scope carrying 79 pre-existing silent handlers (72 story_mode.py, 7
+                 # living_dex_mode.py). ⛔ THE ONLY REASON THIS RAISE IS LEGITIMATE is that the
+                 # PER-ROOT budget below pins each root separately — the existing roots keep
+                 # their own numbers, so this total cannot fund a regression in `modules/story`.
+                 # That is exactly what “a widened scope may not fund old debt” means, and it is
+                 # the same move the 2026-08-14 `modules/modes/util` admission made.
+                 # (was 138, re-measured 2026-08-27 from 148 — 10 handlers of SLACK.)
+                 # LOWER when handlers are cleaned up; never raise EXCEPT for a scope widening
+                 # whose new root is pinned per-root in the same commit.
                  # LOWER when handlers are cleaned up; never raise.
 #: ⛔⛔ 149 -> 148 IS A CORRECTION OF A STALE RATCHET, **NOT** A GAIN FROM `#24-abortswallow`.
 #: The first version of this comment claimed `counter_hunt.py`'s training handler "stopped being
@@ -271,6 +292,11 @@ PER_ROOT_BASELINE = {
     "modules/battle_strategies": 4,
     "modules/battle_action_selection.py": 3,
     "modules/modes/util": 8,          # inherited 2026-08-14; re-measured 2026-08-27 (was 9, slack)
+    # ‼ ADMITTED 2026-09-13 as RECORDED DEBT, measured with this gate's own rule: 72 in
+    # story_mode.py + 7 in living_dex_mode.py. ⛔ This is a SCOPE WIDENING, not new debt — the
+    # handlers always existed, nothing was scanning them. LOWER this as they are paid down;
+    # never raise it.
+    "plugins/custom_modes": 79,
 }
 
 by_file: dict[str, int] = {}

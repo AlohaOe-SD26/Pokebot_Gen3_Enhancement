@@ -3448,6 +3448,12 @@ class StoryMode(BotMode):
                         ):
                             settle += 1
                             yield
+                    # ⛔ ABORT-SWALLOW TRIAGE (gate #27, 2026-09-13): CORRECT AS WRITTEN.
+                    # This settle-loop is INSIDE the derail recovery, AFTER that recovery has deliberately
+                    # called `set_story_abort(False)` above it. There is no abort left to swallow — and adding
+                    # `reraise_if_aborting` would re-raise the very abort this block exists to recover FROM,
+                    # turning a recovered run into a dead one. It `yield`s rather than `pass`es, so the
+                    # generator stays alive. ⇒ counted in the baseline; do NOT "fix" it.
                     except Exception:
                         yield
                     continue  # re-run _play(): re-localise from flags + position
@@ -3512,6 +3518,12 @@ class StoryMode(BotMode):
                         settle += 1
                         yield
                     yield from wait_for_player_avatar_to_be_controllable()
+                # ⛔ ABORT-SWALLOW TRIAGE (gate #27, 2026-09-13): AN ABORT CANNOT REACH THE BROAD HANDLER.
+                # `except BotModeError: raise` is FIRST, and `StoryAbort` IS a `BotModeError` (KI-67) —
+                # Python takes the first matching clause, so an abort re-raises here and never reaches the
+                # `except Exception` below. The gate still flags the `try` because its exemption is
+                # ALL-QUANTIFIED (every broad handler must re-raise) — the right rule in general, and a
+                # false positive in this ORDERED case. ⇒ counted in the baseline; do NOT add a guard.
                 except BotModeError:
                     raise
                 except Exception:
@@ -5325,6 +5337,12 @@ class StoryEndlessResetMode(StoryDebugResetMode):
             try:
                 # The parent does the hard reset + NEW GAME, then hands to StoryMode.run().
                 yield from self._run_with_frame_budget(super().run(), start_frame)
+            # ⛔ ABORT-SWALLOW TRIAGE (gate #27, 2026-09-13): CATCHING IS THE WHOLE POINT.
+            # This is the ENDLESS-RESET BATCH loop, OUTSIDE `StoryMode.run`. A `StoryAbort` arriving
+            # here means the RUN ended (a whiteout), which is exactly what it records before starting
+            # the next run. Re-raising would kill the BATCH over one run's EXPECTED outcome — the
+            # opposite of what this loop exists to do.
+            # ⇒ counted in the baseline; do NOT add `reraise_if_aborting` here.
             except BotModeError as exc:
                 outcome = f"derailed: {exc}"  # EXPECTED — never ends the batch
             except Exception as exc:  # noqa: BLE001

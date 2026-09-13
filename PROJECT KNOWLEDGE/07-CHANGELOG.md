@@ -28179,3 +28179,67 @@ The defect is unreachable today only because three unrelated gates screen it. **
 loosened — most plausibly raising `MAINTAIN_MAX_FRAMES` (150,000) — this becomes reachable.**
 ⇒ re-run `probe_staletarget_cost.py` after any change to that budget, to the rotation guard, or to
 `decide_maintenance`'s refusal order.
+
+---
+
+## 2026-09-13 — The Story bot's own file was outside BOTH abort ratchets. It is not any more, and both admissions are fault-proven.
+
+`plugins/custom_modes/story_mode.py` is the largest file in the project and the one the Story bot
+actually runs. Neither `probe_abort_swallowing` (gate #27) nor `repro_no_silent_except` scanned it —
+only gate #56 did. ⇒ a new abort-swallowing or silent handler could be added there **with both
+ratchets GREEN**. ⛔ I asserted the opposite on 2026-09-12, in a gate docstring AND a commit message;
+an agent disproved it by reading the SCAN lists. *A rule believed to be enforced is worse than one
+known not to be, because nobody checks it.*
+
+### ⛔ CORRECTION FIRST — MY OWN COST ESTIMATE WAS OFF BY 20x, BECAUSE I MEASURED WITH THE WRONG RULE
+I had filed this as *"93 broad handlers, ~90 unguarded"*, from a hand-rolled AST walk. That is **not**
+either gate's definition. Measured by TEMPORARILY adding the root to each gate's own SCAN and running
+the REAL gate (backup → run → restore, restore MD5-verified):
+
+| gate | its own rule | before | with the root | admission cost |
+|---|---|---|---|---|
+| `probe_abort_swallowing` | broad `except` around a `yield from`, unguarded | 23 | **27** | **+4** |
+| `repro_no_silent_except` | handler that neither re-raises, reports, nor justifies | 138 | 217 | **+79** |
+
+⇒ **+4, not ~90**, for the gate that matters most. ‼ **Prevention rule: measure an admission with the
+GATE'S OWN LOGIC, never a hand-rolled equivalent.** A baseline measured by a different rule than the
+one that will enforce it starts life already wrong — and here it would have made a cheap, obviously
+correct admission look like a 90-handler cleanup project nobody would start.
+
+### `repro_no_silent_except` — admitted at a PER-ROOT budget of 79
+Root added with `PER_ROOT_BASELINE["plugins/custom_modes"] = 79` (72 `story_mode.py` + 7
+`living_dex_mode.py`). The global total necessarily rose 138 → 217; **that raise is only legitimate
+because the per-root budget pins every root separately**, so a widened scope cannot fund a regression
+in `modules/story`. That is exactly what the gate's own line — *"a widened scope may not fund old
+debt"* — is for, and the same move the 2026-08-14 `modules/modes/util` admission made.
+
+### `probe_abort_swallowing` — 23 → 27, via the gate's OWN documented exception
+This gate's comments say **NEVER raise the baseline**. Its FAIL message says the rest of the rule:
+> *"Add the guard, or — if an abort genuinely cannot arrive there — say so IN THE HANDLER and raise
+> BASELINE only with that reasoning written down."*
+All four sites were **TRIAGED, not assumed**, and each now carries an
+`ABORT-SWALLOW TRIAGE (gate #27, 2026-09-13)` comment. ⛔ **Three of the four would BREAK if given a
+guard:**
+1. `story_mode.py` settle-loop — inside the derail recovery, AFTER it deliberately cleared the latch.
+   A guard would re-raise the very abort the block exists to recover FROM.
+2. `story_mode.py` whiteout block — `except BotModeError: raise` comes **first**, and `StoryAbort` IS
+   a `BotModeError`, so an abort re-raises and can never reach the broad clause. A false positive of
+   the ALL-QUANTIFIED exemption — which is the right rule in general.
+3. `story_mode.py` ENDLESS-RESET batch loop — outside `StoryMode.run`; an abort here means the RUN
+   ended, which is exactly what it records. Re-raising would kill the BATCH over one run's expected
+   outcome.
+4. `living_dex_mode.py` — a different mode; it REPORTS via `_skip()` and advances to the next species.
+
+### ‼ BOTH ADMISSIONS ARE FAULT-PROVEN — an admitted baseline that does not block the next one is bookkeeping
+| arm | result |
+|---|---|
+| add ONE new silent handler to `story_mode.py` | `80 / 79 plugins/custom_modes <- OVER` → **RED** |
+| add ONE new unguarded broad `except` around a `yield from` | `28 candidate sites, ABOVE the baseline of 27` → **RED** |
+Both restored MD5-identical afterwards. ⭐ The silent-except arm is the better demonstration: its
+failure line reads *"a scan root went OVER its own budget, **even if the total did not**"* — the
+per-root budget catching precisely what a global total would have absorbed.
+
+### Drift
+3 files (was 2): `higher_level_actions.py` (REAL — the heal fault hook), plus `story_mode.py` and
+`living_dex_mode.py` — both classified **COMMENT-ONLY** by `probe_comment_only_drift.py` (ASTs
+identical, zero behaviour difference), which is what four triage comments should be.

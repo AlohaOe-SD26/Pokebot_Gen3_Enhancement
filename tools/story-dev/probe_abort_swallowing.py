@@ -71,6 +71,14 @@ BUILD = REPO / f"{_BUILD}-pokebot"
 SCAN = [
     BUILD / "modules" / "story",
     BUILD / "modules" / "modes" / "util" / "higher_level_actions.py",
+    # ‼ ADDED 2026-09-13 — THE STORY BOT'S OWN FILE WAS OUT OF SCOPE, AND I SAID IT WAS NOT.
+    # `plugins/custom_modes/story_mode.py` is the largest file in the project and the one the
+    # Story bot actually RUNS. Neither this probe nor `repro_no_silent_except` scanned it —
+    # only gate #56 did — so a new abort-swallowing handler could be added there with both
+    # ratchets GREEN. ⛔ I asserted the opposite on 2026-09-12, in a gate docstring AND a
+    # commit message; an agent disproved it by reading these SCAN lists. *A rule believed to
+    # be enforced is worse than one known not to be, because nobody checks it.*
+    BUILD / "plugins" / "custom_modes",
 ]
 
 BROAD = {"Exception", "BotModeError", "BaseException"}
@@ -319,7 +327,26 @@ def self_test() -> int:
 #: ⛔ CAUSATION PROVEN WITH A CONTROL ARM, because this file's own message demands it (a
 #: misattribution on 2026-08-17 is why): stripping exactly those 5 guards and re-running gives
 #: **36**; with them, **31**. The drop is the guards, not an unrelated cleanup.
-_BASELINES = {"sandbox": 23, "custom": 23}  # EQUAL AGAIN 2026-08-24: the guards were PROMOTED
+_BASELINES = {"sandbox": 27, "custom": 27}  # ‼ 23 -> 27 on 2026-09-13 is a SCOPE WIDENING,
+#: **NOT new debt** — `plugins/custom_modes` entered scope carrying 4 PRE-EXISTING sites
+#: (3 in `story_mode.py`, 1 in `living_dex_mode.py`). The handlers always existed; nothing was
+#: scanning them.
+#: ⛔ THIS IS THE RAISE THIS FILE'S OWN FAIL MESSAGE PERMITS, AND ONLY BECAUSE ITS CONDITION
+#: WAS MET: *"if an abort genuinely cannot arrive there — say so IN THE HANDLER and raise
+#: BASELINE only with that reasoning written down."* All four were TRIAGED, not assumed, and
+#: each now carries an `ABORT-SWALLOW TRIAGE (gate #27, 2026-09-13)` comment saying why:
+#:   `story_mode.py` settle-loop — inside the derail recovery, AFTER it cleared the latch;
+#:       a guard here would re-raise the very abort the block exists to recover FROM.
+#:   `story_mode.py` whiteout block — `except BotModeError: raise` comes FIRST, and StoryAbort
+#:       IS a BotModeError, so an abort can never reach the broad clause. The flag is a false
+#:       positive of the ALL-QUANTIFIED exemption, which is the right rule in general.
+#:   `story_mode.py` ENDLESS-RESET batch loop — outside `StoryMode.run`; an abort here means
+#:       the RUN ended, which is exactly what it records. Re-raising would kill the BATCH.
+#:   `living_dex_mode.py` — a different mode; it REPORTS via `_skip()` and advances.
+#: ⛔ NONE of the four should get `reraise_if_aborting`; three would BREAK if it were added.
+#: ‼ FAULT-TESTED the same day: adding one new unguarded broad `except` in that root takes the
+#: count to 28 and the gate goes RED. The admission blocks a 28th, which is the whole point.
+#: (was 23 both builds) EQUAL AGAIN 2026-08-24: the guards were PROMOTED
 # ‼ 2026-08-24: custom went 36 -> 23 when `early_game.py` was PROMOTED (user-approved). The forks
 #   are EQUAL again, and both now carry ZERO AST abort-swallowers. Verified by the three-point
 #   A/B this project requires instead of a byte-compare: AST 8 -> 0, probe 36 -> 23, guards

@@ -16983,3 +16983,32 @@ verified by MD5):
    needs it just as much, and I had not been applying it to drivers.
 3. ⭐ **Check the weak arm first.** The convincing one is where attention goes; the vacuous one is
    where the error hides.
+
+---
+
+## 2026-09-13 — I built text anchors from PRETTIFIED output, and separately re-ran a script by importing it
+
+Two tooling mistakes in one edit, both cheap to make and both silent.
+
+**(a) The anchors were copied out of a display, not the file.** I read the handler sites with
+`sed -n '...p' file | sed 's/^/   /'` — the second `sed` adds three spaces so the output lines up in
+a terminal. I then hand-copied those lines into a replacement script. Every multi-line anchor was
+therefore indented by **3 extra spaces** and matched nothing: the script reported
+`SKIP (0 matches)` three times and applied **0 of 3** edits while exiting successfully.
+‼ I then mis-diagnosed it as a CRLF problem, "fixed" that, and it still failed — the file is `\n`.
+The actual proof took one command: `sed -n '3449,3453p' file | cat -A`, which shows the true bytes.
+⇒ **Prevention rule: never build a match anchor from output you reformatted for reading.** Read the
+raw line, or better — **derive indentation from the file at edit time** (`raw[:len(raw)-len(raw.lstrip())]`)
+and never type it. The rewritten script does exactly that, and also verifies each target line's
+CONTENT before inserting, so a stale line number cannot write into the wrong place.
+
+**(b) `import`ing a script RE-RAN it.** Trying to reuse the edit definitions, I imported the module —
+which executed it top to bottom a second time and applied the one edit that HAD matched **twice**.
+`grep -c` showed the comment block present 2x. Caught only because I checked.
+⇒ **Prevention rule: a script that performs edits at module scope must never be imported to reuse
+its data.** Either guard it with `if __name__ == "__main__":` or parse the source as text. And after
+any re-run of an edit script, **count the marker** — an idempotent-looking edit usually is not.
+
+⭐ **The general shape behind both:** a scripted edit that matches nothing exits 0 and looks like
+success, and one that matches twice also exits 0. **Neither failure is visible without counting.**
+⇒ every bulk edit should print how many sites it changed AND assert the expected number.
