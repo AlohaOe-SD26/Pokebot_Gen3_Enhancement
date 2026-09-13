@@ -23,10 +23,13 @@ fork was unscanned, and that lesson applies here):
 ⚠ C1 is a PREMISE check, not a style rule: if the mash is ever replaced by something better this
 gate must be re-read, not silenced — it reports that case distinctly instead of failing blind.
 
-⛔ CUSTOM IS ADVISORY UNTIL PROMOTED. The fix is sandbox-only and promotion is the USER's call, so a
-missing guard in `custom-pokebot` is reported as EXPECTED-UNPROMOTED, not as a failure. When it is
-promoted, this gate starts enforcing there too — automatically, because it keys off whether the
-sandbox guard is present.
+⛔ BOTH BUILDS ARE ENFORCED (since the 2026-09-13 promotion). The gate ORIGINALLY made custom
+advisory "until promoted", deciding that by whether custom happened to have the guard. ‼ That rule
+was retired the same day as a self-defeating design: had custom ever LOST the guard, the gate would
+have flipped itself back to advisory and printed "EXPECTED while UNPROMOTED" over a real REGRESSION.
+**A gate whose strictness is derived from the state it polices cannot detect that state getting
+worse.** The fix is in custom (`DIVERGENCE-LOG.md` 2026-09-13), so a missing guard there is now a
+regression by definition.
 
 Run: cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_yesno_guard.py
 """
@@ -95,14 +98,19 @@ def main() -> int:
     sandbox_guard = results["sandbox"][0]
     fatal: list[str] = list(results["sandbox"][2])
 
+    # ⛔ BOTH BUILDS ARE ENFORCED SINCE THE 2026-09-13 PROMOTION — and the earlier "advisory until
+    # promoted" rule had to go, because it was keyed on whether custom HAPPENED to have the guard.
+    # ‼ That is self-defeating: if custom ever LOST the guard, the gate would flip itself back to
+    # advisory and print "EXPECTED while UNPROMOTED" over an actual REGRESSION. A gate whose
+    # strictness is derived from the state it is policing cannot detect that state getting worse.
+    # The fix shipped to custom on 2026-09-13 (`DIVERGENCE-LOG.md`), so a missing guard there is now
+    # a regression by definition, never an expected state.
     custom_guard, _custom_premise, custom_problems = results["custom"]
-    if custom_guard:
-        fatal.extend(custom_problems)              # promoted ⇒ enforce there too
-    elif sandbox_guard:
-        print(LINE)
-        print("  ⚠ custom-pokebot has NO guard — EXPECTED while `#24-wallydecline` is UNPROMOTED.")
-        print("    Promotion is the USER's call. This gate starts ENFORCING custom the moment the")
-        print("    guard appears there, so a half-finished promotion cannot pass quietly.")
+    fatal.extend(custom_problems)
+    if sandbox_guard and not custom_guard:
+        fatal.append(
+            "custom-pokebot has NO guard while sandbox does. `#24-wallydecline` was PROMOTED on "
+            "2026-09-13, so this is a REGRESSION in the shipping fork, not an unpromoted state.")
 
     print(LINE)
     if fatal:

@@ -1,0 +1,22 @@
+LADDER-DEPTH EVIDENCE — #24-wallydecline, derived 2026-09-13
+==============================================================================
+Counts = number of RUNS whose debug log contains the step string at least once.
+Denominator = debug logs in that batch = runs STARTED.
+SOURCE: x4-runs/<stamp>/L*/debug-logs/*.log — GITIGNORED, so this derived table is
+the committed record. Both batches single-build (see the MANIFEST beside this file).
+
+milestone                  BEFORE bda41d45 n=102  AFTER f039bffc n=42
+Gym1 Roxanne                    93 ( 91.2%)         39 ( 92.9%)
+Gym2 Brawly                     76 ( 74.5%)         36 ( 85.7%)
+Route110 rival                  75 ( 73.5%)         32 ( 76.2%)
+Wally door reached              72 ( 70.6%)         35 ( 83.3%)
+BEAT WALLY                       8 (  7.8%)         32 ( 76.2%)
+DeclineWallyBattle seen         85 ( 83.3%)          0 (  0.0%)
+Gym3 Wattson                     9 (  8.8%)         33 ( 78.6%)
+Gym4 Flannery                    8 (  7.8%)         31 ( 73.8%)
+Gym5 Norman                      7 (  6.9%)         30 ( 71.4%)
+Gym6 Winona                      5 (  4.9%)         25 ( 59.5%)
+Magma Hideout                    5 (  4.9%)         16 ( 38.1%)
+Ch20 arc                         2 (  2.0%)          5 ( 11.9%)
+Ch21 arc                         2 (  2.0%)          5 ( 11.9%)
+Victory Road                     2 (  2.0%)          3 (  7.1%)

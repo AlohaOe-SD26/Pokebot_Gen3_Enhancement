@@ -28347,3 +28347,80 @@ whiteouts/run), not another Mauville fix.
 ### ⚠ NOT PROMOTED
 `custom-pokebot/modules/story/early_game.py` — the fork that actually ships — still has the bug.
 Promotion is the USER's call and has not been requested.
+
+---
+
+## 2026-09-13 (batch) — the Wally fix VERIFIED AT SCALE: 12% → 100%, and the deaths relocated exactly where the review predicted
+
+`x4-runs/20260913-092254` — 32 lanes, 120 min, **single build `f039bffc`**, `VERDICT OK`,
+header violations 0.
+‼ **`x4-runs/` IS GITIGNORED**, so the raw batch lives only on the machine that ran it. The three files this comparison rests on are therefore COPIED into the tracked evidence dir: `evidence/2026-09-13-wallyfix-batch-MANIFEST.txt` (the single-build proof), `evidence/2026-09-13-wallyfix-batch-summary.json` and `evidence/2026-09-12-prewallyfix-baseline-summary.json`, plus the derived `evidence/2026-09-13-wallyfix-ladder-depth.txt`. ⛔ **BE PRECISE ABOUT WHAT IS AND IS NOT RE-DERIVABLE:** the two summaries carry `runs_ended`, `whiteouts` and `end_reasons`, so those are checkable from the repo. The **beat-rate and depth counts come from the per-run debug logs, which `x4-runs/` gitignores** — the derived table is therefore the committed record of them, NOT a re-derivation. *(I first wrote “every number below is re-derivable from the repo alone” here; that was an overclaim and this clause replaces it.)* Compared against `20260912-104105` (same lanes, same bound, single build
+`bda41d45`), so the comparison is legal.
+
+### The direct result
+| | BEFORE (n=102) | AFTER (n=42) |
+|---|---|---|
+| reached the Wally door | 72 | 35 |
+| **BEAT Wally** | **9 (12%)** | **35 (100%)** |
+| `DeclineWallyBattle` seen | **85** | **0** |
+| beat Wattson | 8 | **33** |
+⇒ 35 of 35. The rate is back to the ~100% of the 41 pre-regression batches, and the decline
+script does not appear even once.
+
+### ⭐ THE CONTROL IS BUILT IN, AND IT IS WHAT MAKES THIS MORE THAN A BEFORE/AFTER
+A targeted fix must move the things DOWNSTREAM of it and nothing upstream. Measured:
+| milestone | before | after | gain |
+|---|---|---|---|
+| Gym1 Roxanne | 91% | 93% | **1.0x** ← upstream, UNCHANGED |
+| Gym2 Brawly | 75% | 86% | 1.2x |
+| Route 110 rival | 74% | 76% | **1.0x** ← upstream, UNCHANGED |
+| Wally door reached | 71% | 83% | 1.2x |
+| **BEAT Wally** | 8% | **76%** | **9.7x** |
+| Gym3 Wattson | 9% | 79% | 8.9x |
+| Gym4 Flannery | 8% | 74% | 9.4x |
+| Gym5 Norman | 7% | 71% | **10.4x** |
+| Gym6 Winona | 5% | 60% | **12.1x** |
+| Magma Hideout | 5% | 38% | 7.8x |
+| Ch20 / Ch21 arcs | 2% | 12% | 6.1x |
+| Victory Road | 2% | 7% | 3.6x |
+⇒ flat upstream, 9-12x downstream. That shape is the evidence; a uniform lift would have meant
+something else changed.
+
+### ⭐ AND THE ADVERSARIAL PREDICTION WAS RIGHT — THE DEATHS RELOCATED, THEY DID NOT VANISH
+| | BEFORE | AFTER |
+|---|---|---|
+| runs ENDED in 120 min | 70 | **10** |
+| Mauville watchdog deaths | **62** | **0** |
+| whiteouts | 409 | **753** |
+| end reasons | 62x Mauville watchdog | Victory Road x2, Juan, Winona, Tate & Liza, a Normal-type boss, one routing failure |
+Runs now END far less often because they SURVIVE far longer, and when they do end it is deep in
+the late game. Whiteouts nearly doubled — that is the ~9x-bloodier post-Wally regime the review
+warned about, arriving on schedule. ‼ **The fix bought DEPTH, not survival**, exactly as filed.
+
+### ⛔ CORRECTION — `finished = 0` IS EXPECTED, AND I REPORTED IT AS A DEFECT
+I wrote that "no run has ever completed the game" and treated 2026-08-26's **12 finishes → 0** as
+a regression signal. Both are wrong, and both are verifiable in our own tree:
+1. **The endgame is not built.** `story_mode.py:4865`: *"END OF BUILT CONTENT. Next build: THE
+   POKÉMON LEAGUE — Chapter 24: the Elite Four gauntlet … and Champion Wallace."*
+2. **Those 12 "finishes" were a COUNTER BUG**, already documented in
+   `repro_endless_per_run_state.py`: *"`outcome` defaulted to 'finished' and only a raised
+   `BotModeError` changed it … All 16 P1 'finished' runs were dead runs … the batch summary read
+   ~80% success against a true ~20%."*
+3. A 120-minute lane cannot reach the end of the built ladder anyway (deepest runs hit Ch21 at
+   ~89% of the maximum frame budget).
+‼ **The Wally finding is UNAFFECTED** — it rested on step messages (`DefeatedWally`,
+`WallyAndUncleExitNorth`, `WattsonDefeated`), not on the `finished` counter. But the "12 → 0"
+framing was an artifact I quoted without asking what the counter counted. **That is the THIRD
+counter this session that measured something adjacent to the event** (`global_watchdog` 1398 vs
+637 real firings; STUCK dumps re-firing every 3,000 frames, not 300). ⇒ **Prevention rule: before
+quoting ANY counter, read its definition and its cadence. In this tree that check has paid out
+three times in one day.**
+⛔ And the honest progress metric is **LADDER DEPTH**, not `finished`.
+
+### ⛔ A SECOND BROKEN METRIC, CAUGHT BY MY OWN RULE, IN THIS VERY ANALYSIS
+My first depth table reported **Norman 0%** beside **Fortree (the NEXT gym) 60%**, which is
+impossible. Per `08-MISTAKES` 2026-09-11 — *an impossible zero beside your metric refutes the
+metric* — I did not report it: the grep key was wrong (the real step is *"entering Petalburg Gym
+to challenge Norman"*). Re-measured with keys verified to exist in the logs, Norman is **71%**.
+A badge histogram built the same careless way returned `0 badges` for 100% of runs in BOTH
+batches and was discarded for the same reason.

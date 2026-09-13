@@ -1,0 +1,2363 @@
+{
+  "stamp": "20260913-092254",
+  "code_commit": "f039bffc",
+  "build": "sandbox",
+  "build_root": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\sandbox-pokebot",
+  "bot_mode": "Story (ENDLESS RESET)",
+  "lanes": 32,
+  "runs_per_lane": 0,
+  "minutes": 120.0,
+  "started": "2026-09-13T09:22:54",
+  "ended": "2026-09-13T11:23:06",
+  "wall_minutes": 120.2,
+  "verdict": "OK",
+  "headers_checked": 42,
+  "header_violations": [],
+  "totals": {
+    "runs": 10,
+    "finished": 0,
+    "finish_rate": 0.0,
+    "global_watchdog": 26,
+    "faint_chooser_gave_up": 0,
+    "no_eligible_replacement": 0,
+    "stuck_dumps": 13448,
+    "end_reasons": {
+      "ChN (Victory Road) failed after N attempts. attempt N: BotModeError: ChN training: Marill#PID alone needs N frames, over the N per-call ceil": 2,
+      "Juan: N losses with no super-effective answer to Water/Dragon. Need one of: Dragon. Grinding levels will not fix this. Nearest reachable cou": 1,
+      "Winona: N losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest": 1,
+      "Could not reach (N N) on MapRSE.ROUTEN: the field is idle and we are still at (N N), so retrying cannot change the result (Cannot reach ROUT": 1,
+      "Tate & Liza: N losses with no super-effective answer to Rock/Psychic. Need one of: Ground, Bug, Ghost, Steel, Water, Grass, Dark. Grinding l": 1,
+      "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 1,
+      "heal_in_pokemon_center: the walk to LavaridgeTown is BLOCKED, not interrupted \u2014 not retrying, because riding out a scene cannot change map g": 1,
+      "Cutscene did not end after N frames (controllable=False, script_active=True).": 1,
+      "this boss: N losses with no super-effective answer to Fire. Need one of: Ground, Rock, Water. Grinding levels will not fix this. Nearest rea": 1
+    }
+  },
+  "lane_rows": [
+    {
+      "tag": "H1",
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H2",
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H3",
+      "starter": "treecko",
+      "profile": "endless-H3-treecko",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H4",
+      "starter": "random",
+      "profile": "endless-H4-random",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H5",
+      "starter": "torchic",
+      "profile": "endless-H5-torchic",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H6",
+      "starter": "mudkip",
+      "profile": "endless-H6-mudkip",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H7",
+      "starter": "treecko",
+      "profile": "endless-H7-treecko",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H8",
+      "starter": "random",
+      "profile": "endless-H8-random",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H9",
+      "starter": "torchic",
+      "profile": "endless-H9-torchic",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H10",
+      "starter": "mudkip",
+      "profile": "endless-H10-mudkip",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H11",
+      "starter": "treecko",
+      "profile": "endless-H11-treecko",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H12",
+      "starter": "random",
+      "profile": "endless-H12-random",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H13",
+      "starter": "torchic",
+      "profile": "endless-H13-torchic",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H14",
+      "starter": "mudkip",
+      "profile": "endless-H14-mudkip",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H15",
+      "starter": "treecko",
+      "profile": "endless-H15-treecko",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H16",
+      "starter": "random",
+      "profile": "endless-H16-random",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H17",
+      "starter": "torchic",
+      "profile": "endless-H17-torchic",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H18",
+      "starter": "mudkip",
+      "profile": "endless-H18-mudkip",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H19",
+      "starter": "treecko",
+      "profile": "endless-H19-treecko",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H20",
+      "starter": "random",
+      "profile": "endless-H20-random",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H21",
+      "starter": "torchic",
+      "profile": "endless-H21-torchic",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H22",
+      "starter": "mudkip",
+      "profile": "endless-H22-mudkip",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H23",
+      "starter": "treecko",
+      "profile": "endless-H23-treecko",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H24",
+      "starter": "random",
+      "profile": "endless-H24-random",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H25",
+      "starter": "torchic",
+      "profile": "endless-H25-torchic",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H26",
+      "starter": "mudkip",
+      "profile": "endless-H26-mudkip",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H27",
+      "starter": "treecko",
+      "profile": "endless-H27-treecko",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H28",
+      "starter": "random",
+      "profile": "endless-H28-random",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H29",
+      "starter": "torchic",
+      "profile": "endless-H29-torchic",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H30",
+      "starter": "mudkip",
+      "profile": "endless-H30-mudkip",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H31",
+      "starter": "treecko",
+      "profile": "endless-H31-treecko",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    {
+      "tag": "H32",
+      "starter": "random",
+      "profile": "endless-H32-random",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "f039bffc"
+      ]
+    }
+  ],
+  "lanes_detail": {
+    "H1": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 503,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 377,
+        "BattleScript_LocalBattleLostEnd": 32,
+        "BattleScript_GotAwaySafely": 19,
+        "BattleScript_SuccessBallThrowEnd": 12,
+        "BattleScript_MoveEnd": 6,
+        "BattleScript_SunlightContinues": 6,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_HitFromAtkAnimation": 4,
+        "BattleScript_MoveUsedIsAsleep": 4,
+        "BattleScript_ButItFailed": 3
+      },
+      "derails": 3,
+      "whiteouts": 21,
+      "losses": 21,
+      "losses_by_map": {
+        "14, 0": 10,
+        "3, 3": 2,
+        "10, 0": 2,
+        "12, 1": 2,
+        "24, 13": 1,
+        "8, 1": 1,
+        "0, 34": 1,
+        "0, 35": 1,
+        "0, 38": 1
+      },
+      "battle_outcomes": {
+        "Won": 821,
+        "RanAway": 21,
+        "OpponentTeleported": 21,
+        "Lost": 21,
+        "Caught": 10
+      },
+      "battles": 894,
+      "flee_rate": 0.023,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H2": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 397,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 306,
+        "BattleScript_LocalBattleLostEnd": 53,
+        "BattleScript_GotAwaySafely": 16,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_HitFromAtkAnimation": 2,
+        "BattleScript_StatDownPrintString": 2,
+        "BattleScript_GiveExp": 1,
+        "BattleScript_EffectEvasionDown": 1
+      },
+      "derails": 13,
+      "whiteouts": 21,
+      "losses": 21,
+      "losses_by_map": {
+        "8, 1": 11,
+        "12, 1": 5,
+        "0, 25": 1,
+        "24, 14": 1,
+        "24, 12": 1,
+        "0, 33": 1,
+        "0, 34": 1
+      },
+      "battle_outcomes": {
+        "Won": 914,
+        "RanAway": 25,
+        "OpponentTeleported": 23,
+        "Lost": 21,
+        "Caught": 5
+      },
+      "battles": 988,
+      "flee_rate": 0.025,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H3": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 345,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 273,
+        "BattleScript_LocalBattleLostEnd": 30,
+        "BattleScript_GotAwaySafely": 23,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_SuccessBallThrowEnd": 2,
+        "BattleScript_MoveEnd": 1
+      },
+      "derails": 3,
+      "whiteouts": 24,
+      "losses": 24,
+      "losses_by_map": {
+        "12, 1": 11,
+        "10, 0": 7,
+        "4, 1": 2,
+        "0, 25": 1,
+        "8, 1": 1,
+        "0, 38": 1,
+        "24, 91": 1
+      },
+      "battle_outcomes": {
+        "Won": 902,
+        "Lost": 24,
+        "OpponentTeleported": 23,
+        "RanAway": 22,
+        "Caught": 8
+      },
+      "battles": 979,
+      "flee_rate": 0.022,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H3-treecko",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H4": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 413,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 287,
+        "BattleScript_LocalBattleLostEnd": 64,
+        "BattleScript_GotAwaySafely": 42,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_PresentHealTarget": 1,
+        "BattleScript_MoveEnd": 1,
+        "BattleScript_EffectAbsorb": 1,
+        "BattleScript_FaintTarget": 1
+      },
+      "derails": 18,
+      "whiteouts": 36,
+      "losses": 36,
+      "losses_by_map": {
+        "0, 25": 18,
+        "8, 1": 6,
+        "12, 1": 6,
+        "4, 1": 2,
+        "0, 27": 1,
+        "0, 26": 1,
+        "0, 34": 1,
+        "0, 35": 1
+      },
+      "battle_outcomes": {
+        "Won": 706,
+        "RanAway": 50,
+        "Lost": 36,
+        "Caught": 10,
+        "OpponentTeleported": 9
+      },
+      "battles": 811,
+      "flee_rate": 0.062,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H4-random",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H5": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "ChN (Victory Road) failed after N attempts. attempt N: BotModeError: ChN training: Marill#PID alone needs N frames, over the N per-call ceil": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 515,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 384,
+        "BattleScript_LocalBattleLostEnd": 69,
+        "BattleScript_GotAwaySafely": 20,
+        "BattleScript_SuccessBallThrowEnd": 11,
+        "BattleScript_WallyBallThrow": 10
+      },
+      "derails": 9,
+      "whiteouts": 27,
+      "losses": 27,
+      "losses_by_map": {
+        "8, 1": 7,
+        "15, 0": 7,
+        "4, 1": 3,
+        "10, 0": 2,
+        "14, 0": 2,
+        "24, 36": 2,
+        "0, 25": 1,
+        "0, 28": 1,
+        "32, 1": 1,
+        "0, 35": 1
+      },
+      "battle_outcomes": {
+        "Won": 743,
+        "OpponentTeleported": 28,
+        "Lost": 27,
+        "RanAway": 15,
+        "Caught": 12
+      },
+      "battles": 825,
+      "flee_rate": 0.018,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Ch23 (Victory Road) failed after 3 attempts. attempt 1: BotModeError: Ch23 training: Marill#A5C1062B alone needs 404,106 frames, over the 250,000 per-call ceiling every other caller respects. Per-mon: {'Mightyena#C616B16D': 139001, 'Blaziken#5E0F94EB': 133269, 'Skitty#7 | attempt 2: BotModeError: Ch23 training: Marill#A5C1062B alone needs 404,106 frames, over the 250,000 per-call ceiling every other caller respects. Per-mon: {'Mightyena#C616B16D': 139001, 'Blaziken#5E0F94EB': 133269, 'Skitty#7 | attempt 3: BotModeError: Ch23 training: Marill#A5C1062B alone needs 404,106 frames, over the 250,000 per-call ceiling every other caller respects. Per-mon: {'Mightyena#C616B16D': 139001, 'Blaziken#5E0F94EB': 133269, 'Skitty#7",
+          "bucket": "derailed",
+          "frames": 3441917
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H5-torchic",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H6": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Juan: N losses with no super-effective answer to Water/Dragon. Need one of: Dragon. Grinding levels will not fix this. Nearest reachable cou": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 474,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 344,
+        "BattleScript_LocalBattleLostEnd": 82,
+        "BattleScript_GotAwaySafely": 12,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_HitFromAtkAnimation": 3,
+        "BattleScript_EffectCalmMind": 1,
+        "BattleScript_SunlightContinues": 1,
+        "BattleScript_PrintReflectLightScreenSafeguardString": 1,
+        "BattleScript_EffectSunnyDay": 1,
+        "BattleScript_HitFromAtkString": 1
+      },
+      "derails": 12,
+      "whiteouts": 36,
+      "losses": 35,
+      "losses_by_map": {
+        "15, 0": 12,
+        "8, 1": 10,
+        "12, 1": 2,
+        "14, 0": 2,
+        "3, 3": 1,
+        "0, 25": 1,
+        "10, 0": 1,
+        "0, 26": 1,
+        "4, 1": 1,
+        "24, 4": 1
+      },
+      "battle_outcomes": {
+        "Won": 690,
+        "Lost": 35,
+        "OpponentTeleported": 25,
+        "RanAway": 14,
+        "Caught": 5,
+        "Draw": 1
+      },
+      "battles": 770,
+      "flee_rate": 0.018,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Juan: 12 losses with no super-effective answer to Water/Dragon. Need one of: Dragon. Grinding levels will not fix this. Nearest reachable counters: Bagon (Dragon) (type match) on Meteor Falls (B1F) 2R (tile unmapped, NOT HUNTABLE, L25-35, 25% rate) \u2014 UNREACHABLE; Altaria (Dragon/Flying) (type match) on Sky Pillar (5F) (tile unmapped, NOT HUNTABLE, L38-39, 6% rate) \u2014 UNREACHABLE",
+          "bucket": "derailed",
+          "frames": 3438172
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H6-mudkip",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H7": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Winona: N losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 429,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 308,
+        "BattleScript_LocalBattleLostEnd": 55,
+        "BattleScript_GotAwaySafely": 24,
+        "BattleScript_WallyBallThrow": 10,
+        "BattleScript_MoveEnd": 7,
+        "BattleScript_SuccessBallThrowEnd": 4
+      },
+      "derails": 10,
+      "whiteouts": 34,
+      "losses": 34,
+      "losses_by_map": {
+        "12, 1": 24,
+        "10, 0": 6,
+        "4, 1": 1,
+        "8, 1": 1,
+        "0, 34": 1,
+        "11, 3": 1
+      },
+      "battle_outcomes": {
+        "Won": 655,
+        "Lost": 34,
+        "OpponentTeleported": 19,
+        "RanAway": 16,
+        "Caught": 11
+      },
+      "battles": 735,
+      "flee_rate": 0.022,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Winona: 24 losses with no super-effective answer to Dragon/Flying. Need one of: Rock, Ice, Dragon. Grinding levels will not fix this. Nearest reachable counters: Slugma (Fire) via move:Rock Throw@L15 on Fiery Path (tile (18, 19), L15-15, 10% rate) \u2014 reachable; Geodude (Ground/Rock) (type match) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Spheal (Ice/Water) (type match) on Shoal Cave (Low Tide), Entrance Room (tile unmapped, NOT HUNTABLE, L26-32, 50% rate) \u2014 reachable; Rhyhorn (Ground/Rock) (type match) on Safari Zone, North/West (tile unmapped, NOT HUNTABLE, L27-29, 30% rate) \u2014 reachable; Graveler (Ground/Rock) (type match) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L30-33, 15% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 2743420
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H7-treecko",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H8": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 373,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 293,
+        "BattleScript_LocalBattleLostEnd": 39,
+        "BattleScript_GotAwaySafely": 22,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_MoveEnd": 2,
+        "BattleScript_SuccessBallThrowEnd": 1
+      },
+      "derails": 19,
+      "whiteouts": 19,
+      "losses": 19,
+      "losses_by_map": {
+        "8, 1": 8,
+        "12, 1": 5,
+        "0, 26": 1,
+        "24, 12": 1,
+        "24, 13": 1,
+        "4, 1": 1,
+        "0, 33": 1,
+        "0, 34": 1
+      },
+      "battle_outcomes": {
+        "Won": 1010,
+        "OpponentTeleported": 27,
+        "Lost": 19,
+        "RanAway": 16,
+        "Caught": 12
+      },
+      "battles": 1084,
+      "flee_rate": 0.015,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H8-random",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H9": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 460,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 279,
+        "BattleScript_LocalBattleLostEnd": 125,
+        "BattleScript_GotAwaySafely": 15,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_SuccessBallThrowEnd": 5,
+        "BattleScript_EffectSleep": 3,
+        "BattleScript_HitFromAtkAnimation": 3,
+        "BattleScript_AlreadyConfused": 2,
+        "BattleScript_CantRaiseMultipleStats": 2,
+        "BattleScript_SunlightContinues": 2
+      },
+      "derails": 9,
+      "whiteouts": 47,
+      "losses": 47,
+      "losses_by_map": {
+        "14, 0": 23,
+        "8, 1": 17,
+        "12, 1": 2,
+        "3, 3": 1,
+        "10, 0": 1,
+        "0, 27": 1,
+        "0, 34": 1,
+        "0, 38": 1
+      },
+      "battle_outcomes": {
+        "Won": 650,
+        "Lost": 47,
+        "RanAway": 27,
+        "OpponentTeleported": 13,
+        "Caught": 11
+      },
+      "battles": 748,
+      "flee_rate": 0.036,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H9-torchic",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H10": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 360,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 282,
+        "BattleScript_LocalBattleLostEnd": 43,
+        "BattleScript_GotAwaySafely": 9,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_EffectAbsorb": 4,
+        "BattleScript_MoveEnd": 2,
+        "BattleScript_PresentHealTarget": 1,
+        "BattleScript_HitFromAtkAnimation": 1,
+        "BattleScript_FaintTarget": 1,
+        "BattleScript_HitFromAtkString": 1
+      },
+      "derails": 9,
+      "whiteouts": 15,
+      "losses": 15,
+      "losses_by_map": {
+        "8, 1": 9,
+        "10, 0": 2,
+        "0, 25": 1,
+        "4, 1": 1,
+        "24, 4": 1,
+        "0, 33": 1
+      },
+      "battle_outcomes": {
+        "Won": 1015,
+        "Lost": 15,
+        "OpponentTeleported": 11,
+        "RanAway": 8,
+        "Caught": 7
+      },
+      "battles": 1056,
+      "flee_rate": 0.008,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H10-mudkip",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H11": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 365,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 285,
+        "BattleScript_LocalBattleLostEnd": 44,
+        "BattleScript_GotAwaySafely": 17,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_SuccessBallThrowEnd": 2,
+        "BattleScript_MoveEnd": 1
+      },
+      "derails": 3,
+      "whiteouts": 22,
+      "losses": 22,
+      "losses_by_map": {
+        "8, 1": 6,
+        "12, 1": 6,
+        "10, 0": 5,
+        "3, 3": 1,
+        "0, 25": 1,
+        "0, 28": 1,
+        "4, 1": 1,
+        "32, 0": 1
+      },
+      "battle_outcomes": {
+        "Won": 1001,
+        "Lost": 22,
+        "OpponentTeleported": 20,
+        "RanAway": 15,
+        "Caught": 7
+      },
+      "battles": 1065,
+      "flee_rate": 0.014,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H11-treecko",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H12": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Could not reach (N N) on MapRSE.ROUTEN: the field is idle and we are still at (N N), so retrying cannot change the result (Cannot reach ROUT": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 446,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 387,
+        "BattleScript_LocalBattleLostEnd": 15,
+        "BattleScript_GotAwaySafely": 11,
+        "BattleScript_WallyBallThrow": 10,
+        "BattleScript_MoveEnd": 2
+      },
+      "derails": 8,
+      "whiteouts": 10,
+      "losses": 10,
+      "losses_by_map": {
+        "10, 0": 4,
+        "8, 1": 3,
+        "0, 25": 2,
+        "0, 32": 1
+      },
+      "battle_outcomes": {
+        "Won": 1193,
+        "OpponentTeleported": 28,
+        "RanAway": 12,
+        "Lost": 10,
+        "Caught": 8
+      },
+      "battles": 1251,
+      "flee_rate": 0.01,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Could not reach (9, 9) on MapRSE.ROUTE101: the field is idle and we are still at (10, 29), so retrying cannot change the result (Cannot reach ROUTE101: it is not walkable from ROUTE104, and none of the 6 candidate warp route(s) start at a tile that can be walked to from here (tried: OLDALE_TOWN(5, 7), OLDALE_TOWN(15, 16), OLDALE_TOWN(6, 16), OLDALE_TOWN(14, 6), PETALBURG_CITY(10, 19), PETALBURG_CITY(7, 5)).).",
+          "bucket": "derailed",
+          "frames": 2014787
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H12-random",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H13": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Tate & Liza: N losses with no super-effective answer to Rock/Psychic. Need one of: Ground, Bug, Ghost, Steel, Water, Grass, Dark. Grinding l": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 416,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 290,
+        "BattleScript_LocalBattleLostEnd": 75,
+        "BattleScript_GotAwaySafely": 14,
+        "BattleScript_WallyBallThrow": 10,
+        "BattleScript_SuccessBallThrowEnd": 6
+      },
+      "derails": 8,
+      "whiteouts": 35,
+      "losses": 34,
+      "losses_by_map": {
+        "14, 0": 24,
+        "8, 1": 4,
+        "10, 0": 2,
+        "0, 25": 1,
+        "12, 1": 1,
+        "0, 38": 1,
+        "24, 91": 1
+      },
+      "battle_outcomes": {
+        "Won": 791,
+        "Lost": 34,
+        "RanAway": 30,
+        "OpponentTeleported": 17,
+        "Caught": 14,
+        "Draw": 1
+      },
+      "battles": 887,
+      "flee_rate": 0.034,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Tate & Liza: 24 losses with no super-effective answer to Rock/Psychic. Need one of: Ground, Bug, Ghost, Steel, Water, Grass, Dark. Grinding levels will not fix this. Nearest reachable counters: Sableye (Dark/Ghost) (type match) on Sky Pillar (1F) (tile unmapped, NOT HUNTABLE, L33-34, 30% rate) \u2014 reachable; Shuppet (Ghost) (type match) on Route 121 (tile (44, 14), NOT HUNTABLE, L26-28, 30% rate) \u2014 reachable; Oddish (Grass/Poison) (type match) on Route 121 (tile (44, 14), NOT HUNTABLE, L26-28, 15% rate) \u2014 reachable; Mightyena (Dark) (type match) on Route 121 (tile (44, 14), NOT HUNTABLE, L26-28, 20% rate) \u2014 reachable; Wingull (Flying/Water) (type match) on Route 121 (tile (44, 14), NOT HUNTABLE, L26-28, 9% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 3235139
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H13-torchic",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H14": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 407,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 321,
+        "BattleScript_LocalBattleLostEnd": 58,
+        "BattleScript_GotAwaySafely": 6,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_SuccessForceOut": 4,
+        "BattleScript_MoveEnd": 2
+      },
+      "derails": 6,
+      "whiteouts": 23,
+      "losses": 23,
+      "losses_by_map": {
+        "8, 1": 9,
+        "12, 1": 8,
+        "10, 0": 1,
+        "24, 13": 1,
+        "0, 18": 1,
+        "0, 34": 1,
+        "0, 38": 1,
+        "14, 0": 1
+      },
+      "battle_outcomes": {
+        "Won": 759,
+        "OpponentTeleported": 34,
+        "Lost": 23,
+        "RanAway": 12,
+        "Caught": 5
+      },
+      "battles": 833,
+      "flee_rate": 0.014,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H14-mudkip",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H15": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 397,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 277,
+        "BattleScript_LocalBattleLostEnd": 78,
+        "BattleScript_GotAwaySafely": 23,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_MoveEnd": 2,
+        "BattleScript_SuccessBallThrowEnd": 1
+      },
+      "derails": 5,
+      "whiteouts": 39,
+      "losses": 39,
+      "losses_by_map": {
+        "12, 1": 17,
+        "8, 1": 8,
+        "10, 0": 7,
+        "4, 1": 2,
+        "11, 3": 1,
+        "0, 25": 1,
+        "0, 26": 1,
+        "0, 33": 1,
+        "0, 34": 1
+      },
+      "battle_outcomes": {
+        "Won": 735,
+        "Lost": 39,
+        "RanAway": 31,
+        "OpponentTeleported": 20,
+        "Caught": 12
+      },
+      "battles": 837,
+      "flee_rate": 0.037,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H15-treecko",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H16": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 428,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 306,
+        "BattleScript_LocalBattleLostEnd": 79,
+        "BattleScript_WallyBallThrow": 10,
+        "BattleScript_MoveEnd": 7,
+        "BattleScript_GotAwaySafely": 3,
+        "BattleScript_EffectAbsorb": 1,
+        "BattleScript_HitFromAtkAnimation": 1
+      },
+      "derails": 21,
+      "whiteouts": 23,
+      "losses": 23,
+      "losses_by_map": {
+        "8, 1": 18,
+        "0, 25": 2,
+        "0, 28": 1,
+        "24, 13": 1,
+        "4, 1": 1
+      },
+      "battle_outcomes": {
+        "Won": 1007,
+        "Lost": 23,
+        "OpponentTeleported": 22,
+        "RanAway": 11,
+        "Caught": 9
+      },
+      "battles": 1072,
+      "flee_rate": 0.01,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: this boss: 18 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) (type match) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) (type match) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Hariyama (Fighting) (type match) on Victory Road (B1F) (tile unmapped, NOT HUNTABLE, L38-42, 35% rate) \u2014 UNREACHABLE; Heracross (Bug/Fighting) (type match) on Safari Zone, North (tile unmapped, NOT HUNTABLE, L27-29, 5% rate) \u2014 UNREACHABLE; Pinsir (Bug) via move:Revenge@L25 on Safari Zone, North/West (tile unmapped, NOT HUNTABLE, L27-29, 5% rate) \u2014 UNREACHABLE",
+          "bucket": "derailed",
+          "frames": 2844599
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H16-random",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H17": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "heal_in_pokemon_center: the walk to LavaridgeTown is BLOCKED, not interrupted \u2014 not retrying, because riding out a scene cannot change map g": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 452,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 391,
+        "BattleScript_GotAwaySafely": 13,
+        "BattleScript_WallyBallThrow": 10,
+        "BattleScript_MoveEnd": 10,
+        "BattleScript_LocalBattleLostEnd": 7
+      },
+      "derails": 7,
+      "whiteouts": 7,
+      "losses": 7,
+      "losses_by_map": {
+        "10, 0": 2,
+        "3, 3": 2,
+        "0, 27": 1,
+        "24, 13": 1,
+        "0, 18": 1
+      },
+      "battle_outcomes": {
+        "Won": 1155,
+        "OpponentTeleported": 62,
+        "RanAway": 15,
+        "Caught": 8,
+        "Lost": 7
+      },
+      "battles": 1247,
+      "flee_rate": 0.012,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: heal_in_pokemon_center: the walk to LavaridgeTown is BLOCKED, not interrupted \u2014 not retrying, because riding out a scene cannot change map geometry. Underlying error: Source (28/28 @ ROUTE112) and destination (6/11 @ ROUTE112_CABLE_CAR_STATION) are not on connected maps (note that warps don't count.)",
+          "bucket": "derailed",
+          "frames": 1674123
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H17-torchic",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H18": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 415,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 275,
+        "BattleScript_LocalBattleLostEnd": 92,
+        "BattleScript_GotAwaySafely": 31,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_MoveEnd": 1
+      },
+      "derails": 6,
+      "whiteouts": 33,
+      "losses": 33,
+      "losses_by_map": {
+        "8, 1": 13,
+        "12, 1": 13,
+        "0, 34": 2,
+        "11, 3": 1,
+        "0, 31": 1,
+        "0, 32": 1,
+        "10, 0": 1,
+        "0, 27": 1
+      },
+      "battle_outcomes": {
+        "Won": 759,
+        "Lost": 33,
+        "OpponentTeleported": 24,
+        "RanAway": 17,
+        "Caught": 7
+      },
+      "battles": 840,
+      "flee_rate": 0.02,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H18-mudkip",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H19": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "ChN (Victory Road) failed after N attempts. attempt N: BotModeError: ChN training: Marill#PID alone needs N frames, over the N per-call ceil": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 438,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 351,
+        "BattleScript_LocalBattleLostEnd": 39,
+        "BattleScript_GotAwaySafely": 15,
+        "BattleScript_SuccessBallThrowEnd": 7,
+        "BattleScript_WallyBallThrow": 5
+      },
+      "derails": 8,
+      "whiteouts": 29,
+      "losses": 29,
+      "losses_by_map": {
+        "12, 1": 11,
+        "10, 0": 7,
+        "4, 1": 2,
+        "24, 91": 2,
+        "0, 25": 1,
+        "0, 32": 1,
+        "8, 1": 1,
+        "0, 33": 1,
+        "0, 34": 1,
+        "24, 22": 1
+      },
+      "battle_outcomes": {
+        "Won": 725,
+        "RanAway": 41,
+        "Lost": 29,
+        "OpponentTeleported": 10,
+        "Caught": 6
+      },
+      "battles": 811,
+      "flee_rate": 0.051,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Ch23 (Victory Road) failed after 3 attempts. attempt 1: BotModeError: Ch23 training: Marill#359B8CC7 alone needs 406,972 frames, over the 250,000 per-call ceiling every other caller respects. Per-mon: {'Mightyena#95D0C0C7': 267971, 'Marill#359B8CC7': 406972}. \u21d2 lower th | attempt 2: BotModeError: Ch23 training: Marill#359B8CC7 alone needs 406,972 frames, over the 250,000 per-call ceiling every other caller respects. Per-mon: {'Mightyena#95D0C0C7': 267971, 'Marill#359B8CC7': 406972}. \u21d2 lower th | attempt 3: BotModeError: Ch23 training: Marill#359B8CC7 alone needs 406,972 frames, over the 250,000 per-call ceiling every other caller respects. Per-mon: {'Mightyena#95D0C0C7': 267971, 'Marill#359B8CC7': 406972}. \u21d2 lower th",
+          "bucket": "derailed",
+          "frames": 3300731
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H19-treecko",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H20": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Cutscene did not end after N frames (controllable=False, script_active=True).": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 481,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 354,
+        "BattleScript_GotAwaySafely": 34,
+        "BattleScript_LocalBattleLostEnd": 33,
+        "BattleScript_FaintedMonTryChoose": 22,
+        "BattleScript_WallyBallThrow": 10,
+        "BattleScript_SuccessBallThrowEnd": 2,
+        "BattleScript_MoveEnd": 2,
+        "BattleScript_RanAwayUsingMonAbility": 2,
+        "BattleScript_EffectAbsorb": 1
+      },
+      "derails": 18,
+      "whiteouts": 17,
+      "losses": 17,
+      "losses_by_map": {
+        "4, 1": 11,
+        "0, 25": 2,
+        "0, 32": 1,
+        "0, 28": 1,
+        "24, 12": 1,
+        "0, 34": 1
+      },
+      "battle_outcomes": {
+        "Won": 678,
+        "RanAway": 41,
+        "OpponentTeleported": 23,
+        "Lost": 17,
+        "Caught": 9
+      },
+      "battles": 768,
+      "flee_rate": 0.053,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Cutscene did not end after 8000 frames (controllable=False, script_active=True).",
+          "bucket": "derailed",
+          "frames": 1063975
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H20-random",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H21": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 371,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 312,
+        "BattleScript_LocalBattleLostEnd": 32,
+        "BattleScript_GotAwaySafely": 8,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_SuccessForceOut": 3
+      },
+      "derails": 3,
+      "whiteouts": 27,
+      "losses": 27,
+      "losses_by_map": {
+        "14, 0": 9,
+        "10, 0": 3,
+        "8, 1": 3,
+        "12, 1": 3,
+        "24, 91": 3,
+        "0, 25": 2,
+        "4, 1": 1,
+        "0, 33": 1,
+        "0, 34": 1,
+        "0, 38": 1
+      },
+      "battle_outcomes": {
+        "Won": 876,
+        "Lost": 27,
+        "OpponentTeleported": 20,
+        "RanAway": 20,
+        "Caught": 4
+      },
+      "battles": 947,
+      "flee_rate": 0.021,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H21-torchic",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H22": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 411,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 337,
+        "BattleScript_LocalBattleLostEnd": 36,
+        "BattleScript_GotAwaySafely": 19,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_SuccessBallThrowEnd": 3
+      },
+      "derails": 25,
+      "whiteouts": 17,
+      "losses": 17,
+      "losses_by_map": {
+        "8, 1": 6,
+        "24, 12": 3,
+        "3, 3": 1,
+        "0, 27": 1,
+        "0, 28": 1,
+        "4, 1": 1,
+        "0, 34": 1,
+        "32, 1": 1,
+        "12, 1": 1,
+        "0, 35": 1
+      },
+      "battle_outcomes": {
+        "Won": 963,
+        "OpponentTeleported": 26,
+        "RanAway": 17,
+        "Lost": 17,
+        "Caught": 10
+      },
+      "battles": 1033,
+      "flee_rate": 0.016,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H22-mudkip",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H23": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 356,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 300,
+        "BattleScript_LocalBattleLostEnd": 24,
+        "BattleScript_GotAwaySafely": 8,
+        "BattleScript_SuccessBallThrowEnd": 6,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_MoveEnd": 1,
+        "BattleScript_AbsorbUpdateHp": 1
+      },
+      "derails": 3,
+      "whiteouts": 14,
+      "losses": 14,
+      "losses_by_map": {
+        "12, 1": 4,
+        "10, 0": 3,
+        "4, 1": 3,
+        "8, 1": 2,
+        "0, 25": 1,
+        "0, 34": 1
+      },
+      "battle_outcomes": {
+        "Won": 961,
+        "OpponentTeleported": 22,
+        "RanAway": 16,
+        "Lost": 14,
+        "Caught": 8
+      },
+      "battles": 1021,
+      "flee_rate": 0.016,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H23-treecko",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H24": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 407,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 324,
+        "BattleScript_LocalBattleLostEnd": 39,
+        "BattleScript_GotAwaySafely": 13,
+        "BattleScript_SuccessBallThrowEnd": 8,
+        "BattleScript_MoveEnd": 6,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_HitFromAtkAnimation": 1
+      },
+      "derails": 19,
+      "whiteouts": 19,
+      "losses": 19,
+      "losses_by_map": {
+        "8, 1": 6,
+        "12, 1": 4,
+        "14, 0": 2,
+        "0, 25": 1,
+        "0, 28": 1,
+        "24, 13": 1,
+        "4, 1": 1,
+        "0, 35": 1,
+        "0, 38": 1,
+        "0, 39": 1
+      },
+      "battle_outcomes": {
+        "Won": 805,
+        "OpponentTeleported": 21,
+        "Lost": 19,
+        "RanAway": 15,
+        "Caught": 8
+      },
+      "battles": 868,
+      "flee_rate": 0.017,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H24-random",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H25": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 381,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 310,
+        "BattleScript_LocalBattleLostEnd": 44,
+        "BattleScript_GotAwaySafely": 8,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_MoveEnd": 1,
+        "BattleScript_StatDownPrintString": 1,
+        "BattleScript_AbsorbUpdateHp": 1
+      },
+      "derails": 3,
+      "whiteouts": 29,
+      "losses": 29,
+      "losses_by_map": {
+        "12, 1": 8,
+        "4, 1": 5,
+        "24, 91": 4,
+        "14, 0": 4,
+        "0, 25": 2,
+        "0, 32": 1,
+        "10, 0": 1,
+        "0, 26": 1,
+        "8, 1": 1,
+        "0, 34": 1
+      },
+      "battle_outcomes": {
+        "Won": 705,
+        "Lost": 29,
+        "OpponentTeleported": 27,
+        "RanAway": 17,
+        "Caught": 4
+      },
+      "battles": 782,
+      "flee_rate": 0.022,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H25-torchic",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H26": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 465,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 332,
+        "BattleScript_LocalBattleLostEnd": 69,
+        "BattleScript_GotAwaySafely": 26,
+        "BattleScript_SuccessBallThrowEnd": 13,
+        "BattleScript_WallyBallThrow": 11,
+        "BattleScript_SuccessForceOut": 3
+      },
+      "derails": 7,
+      "whiteouts": 23,
+      "losses": 22,
+      "losses_by_map": {
+        "8, 1": 14,
+        "12, 1": 2,
+        "0, 27": 1,
+        "24, 13": 1,
+        "4, 1": 1,
+        "0, 35": 1,
+        "24, 91": 1,
+        "14, 0": 1
+      },
+      "battle_outcomes": {
+        "Won": 756,
+        "OpponentTeleported": 22,
+        "Lost": 22,
+        "RanAway": 21,
+        "Caught": 8
+      },
+      "battles": 829,
+      "flee_rate": 0.025,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H26-mudkip",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H27": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Fire. Need one of: Ground, Rock, Water. Grinding levels will not fix this. Nearest rea": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 438,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 340,
+        "BattleScript_LocalBattleLostEnd": 44,
+        "BattleScript_GotAwaySafely": 19,
+        "BattleScript_WallyBallThrow": 10,
+        "BattleScript_MoveEnd": 4
+      },
+      "derails": 12,
+      "whiteouts": 22,
+      "losses": 22,
+      "losses_by_map": {
+        "4, 1": 12,
+        "10, 0": 6,
+        "0, 25": 4
+      },
+      "battle_outcomes": {
+        "Won": 926,
+        "OpponentTeleported": 35,
+        "RanAway": 23,
+        "Lost": 22,
+        "Caught": 9
+      },
+      "battles": 1015,
+      "flee_rate": 0.023,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: this boss: 12 losses with no super-effective answer to Fire. Need one of: Ground, Rock, Water. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) \u2014 reachable; Slugma (Fire) via move:Rock Throw@L15 on Fiery Path (tile (18, 19), L15-15, 10% rate) \u2014 reachable; Geodude (Ground/Rock) (type match) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Graveler (Ground/Rock) (type match) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L30-33, 15% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 1925828
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H27-treecko",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H28": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 429,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 342,
+        "BattleScript_LocalBattleLostEnd": 30,
+        "BattleScript_GotAwaySafely": 22,
+        "BattleScript_SuccessBallThrowEnd": 7,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_MoveEffectSleep": 3,
+        "BattleScript_MoveUsedIsAsleep": 3,
+        "BattleScript_EffectSleep": 2,
+        "BattleScript_CantRaiseMultipleStats": 1,
+        "BattleScript_AlreadyConfused": 1
+      },
+      "derails": 7,
+      "whiteouts": 19,
+      "losses": 19,
+      "losses_by_map": {
+        "4, 1": 6,
+        "14, 0": 5,
+        "10, 0": 2,
+        "3, 3": 1,
+        "0, 28": 1,
+        "24, 4": 1,
+        "12, 1": 1,
+        "24, 15": 1,
+        "24, 91": 1
+      },
+      "battle_outcomes": {
+        "Won": 807,
+        "RanAway": 50,
+        "OpponentTeleported": 22,
+        "Lost": 19,
+        "Caught": 8
+      },
+      "battles": 906,
+      "flee_rate": 0.055,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H28-random",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H29": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 357,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 314,
+        "BattleScript_LocalBattleLostEnd": 12,
+        "BattleScript_SuccessBallThrowEnd": 7,
+        "BattleScript_GotAwaySafely": 6,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_MoveEnd": 2
+      },
+      "derails": 9,
+      "whiteouts": 13,
+      "losses": 13,
+      "losses_by_map": {
+        "10, 0": 3,
+        "0, 25": 2,
+        "12, 1": 2,
+        "0, 17": 1,
+        "0, 32": 1,
+        "0, 27": 1,
+        "24, 4": 1,
+        "32, 1": 1,
+        "0, 35": 1
+      },
+      "battle_outcomes": {
+        "Won": 989,
+        "OpponentTeleported": 34,
+        "RanAway": 15,
+        "Lost": 13,
+        "Caught": 8
+      },
+      "battles": 1059,
+      "flee_rate": 0.014,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H29-torchic",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H30": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 476,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 352,
+        "BattleScript_LocalBattleLostEnd": 59,
+        "BattleScript_GotAwaySafely": 16,
+        "BattleScript_SuccessBallThrowEnd": 6,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_MoveUsedIsAsleep": 5,
+        "BattleScript_SunlightContinues": 4,
+        "BattleScript_MoveUsedWokeUp": 3,
+        "BattleScript_HitFromAtkString": 2,
+        "BattleScript_PrintReflectLightScreenSafeguardString": 2
+      },
+      "derails": 13,
+      "whiteouts": 22,
+      "losses": 21,
+      "losses_by_map": {
+        "8, 1": 8,
+        "12, 1": 3,
+        "0, 25": 2,
+        "14, 0": 2,
+        "10, 0": 1,
+        "24, 12": 1,
+        "4, 1": 1,
+        "0, 34": 1,
+        "0, 35": 1,
+        "24, 36": 1
+      },
+      "battle_outcomes": {
+        "Won": 731,
+        "Lost": 21,
+        "RanAway": 15,
+        "Caught": 11,
+        "OpponentTeleported": 3,
+        "Draw": 1
+      },
+      "battles": 782,
+      "flee_rate": 0.019,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H30-mudkip",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H31": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 441,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 375,
+        "BattleScript_LocalBattleLostEnd": 26,
+        "BattleScript_GotAwaySafely": 15,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_MoveEnd": 5,
+        "BattleScript_SuccessBallThrowEnd": 3,
+        "BattleScript_SuccessForceOut": 1
+      },
+      "derails": 7,
+      "whiteouts": 15,
+      "losses": 15,
+      "losses_by_map": {
+        "8, 1": 4,
+        "3, 3": 2,
+        "10, 0": 2,
+        "4, 1": 2,
+        "0, 32": 1,
+        "24, 4": 1,
+        "0, 33": 1,
+        "24, 22": 1,
+        "24, 91": 1
+      },
+      "battle_outcomes": {
+        "Won": 980,
+        "OpponentTeleported": 35,
+        "RanAway": 29,
+        "Lost": 15,
+        "Caught": 5
+      },
+      "battles": 1064,
+      "flee_rate": 0.027,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H31-treecko",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    },
+    "H32": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 402,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 345,
+        "BattleScript_LocalBattleLostEnd": 26,
+        "BattleScript_GotAwaySafely": 10,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_MoveEnd": 4,
+        "BattleScript_SuccessBallThrowEnd": 1
+      },
+      "derails": 3,
+      "whiteouts": 15,
+      "losses": 15,
+      "losses_by_map": {
+        "10, 0": 5,
+        "8, 1": 3,
+        "3, 3": 2,
+        "11, 3": 1,
+        "0, 26": 1,
+        "24, 13": 1,
+        "4, 1": 1,
+        "0, 34": 1
+      },
+      "battle_outcomes": {
+        "Won": 1063,
+        "OpponentTeleported": 33,
+        "RanAway": 15,
+        "Lost": 15,
+        "Caught": 7
+      },
+      "battles": 1133,
+      "flee_rate": 0.013,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H32-random",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "f039bffc"
+      ]
+    }
+  }
+}

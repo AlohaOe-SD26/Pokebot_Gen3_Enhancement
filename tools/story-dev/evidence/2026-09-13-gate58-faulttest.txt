@@ -1,0 +1,41 @@
+GATE #58 probe_yesno_guard.py — FAULT TEST TRANSCRIPT (2026-09-13)
+========================================================================
+WHY: the gate's rule changed — custom-pokebot used to be ADVISORY 'until promoted',
+decided by whether custom HAPPENED to have the guard. A custom that LOST the guard would
+have flipped the gate back to advisory and printed 'EXPECTED while UNPROMOTED' over a real
+REGRESSION. Both builds are now enforced. This transcript proves the NEW rule fires.
+
+--- ARM 0: clean tree (expect PASS, exit 0) ---
+============================================================================================
+  sandbox  guard=YES  mash_present=True  early_game.py
+  custom   guard=YES  mash_present=True  early_game.py
+============================================================================================
+  ✅ the yes/no guard is in place where it is required.
+exit=0
+
+--- md5 BEFORE fault ---
+b5e8a2eb6b129b7446010e6037808e86 *custom-pokebot/modules/story/early_game.py
+b5e8a2eb6b129b7446010e6037808e86 *sandbox-pokebot/modules/story/early_game.py
+fault injected: guard removed from CUSTOM ONLY (sandbox untouched)
+
+--- ARM 1: guard removed from CUSTOM ONLY (expect FAILED, exit 1) ---
+============================================================================================
+  sandbox  guard=YES  mash_present=True  early_game.py
+  custom   guard=no   mash_present=True  early_game.py
+============================================================================================
+  ⛔ custom: fight_wally_mauville() mashes B/A with NO `_yes_no_menu_is_open()` guard that forces "A". At Wally's MSGBOX_YESNO a B answers NO, which sets a flag nothing clears and blocks the gym door forever (#24-wallydecline: 124 of 143 ended runs).
+  ⛔ custom-pokebot has NO guard while sandbox does. `#24-wallydecline` was PROMOTED on 2026-09-13, so this is a REGRESSION in the shipping fork, not an unpromoted state.
+  FAILED
+exit=1
+
+--- md5 AFTER restore (must match BEFORE, and match sandbox) ---
+b5e8a2eb6b129b7446010e6037808e86 *custom-pokebot/modules/story/early_game.py
+b5e8a2eb6b129b7446010e6037808e86 *sandbox-pokebot/modules/story/early_game.py
+
+--- ARM 2: re-run clean (expect PASS, exit 0) ---
+============================================================================================
+  sandbox  guard=YES  mash_present=True  early_game.py
+  custom   guard=YES  mash_present=True  early_game.py
+============================================================================================
+  ✅ the yes/no guard is in place where it is required.
+exit=0

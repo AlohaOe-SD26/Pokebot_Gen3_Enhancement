@@ -1,0 +1,2621 @@
+{
+  "stamp": "20260912-104105",
+  "code_commit": "bda41d45",
+  "build": "sandbox",
+  "build_root": "C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\sandbox-pokebot",
+  "bot_mode": "Story (ENDLESS RESET)",
+  "lanes": 32,
+  "runs_per_lane": 0,
+  "minutes": 120.0,
+  "started": "2026-09-12T10:41:05",
+  "ended": "2026-09-12T12:41:16",
+  "wall_minutes": 120.2,
+  "verdict": "OK",
+  "headers_checked": 102,
+  "header_violations": [],
+  "totals": {
+    "runs": 70,
+    "finished": 0,
+    "finish_rate": 0.0,
+    "global_watchdog": 694,
+    "faint_chooser_gave_up": 0,
+    "no_eligible_replacement": 0,
+    "stuck_dumps": 14218,
+    "end_reasons": {
+      "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 62,
+      "this boss: N losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this.": 3,
+      "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 1,
+      "this boss: N losses with no super-effective answer to Fire. Need one of: Ground, Rock, Water. Grinding levels will not fix this. Nearest rea": 1,
+      "Could not reach (N N) on MapRSE.ROUTEN: the field is idle and we are still at (N N), so retrying cannot change the result (Cannot reach ROUT": 1,
+      "ChN (Victory Road) failed after N attempts. attempt N: BotModeError: ChN training: Machop#PID alone needs N frames, over the N per-call ceil": 1,
+      "this boss: N losses with no super-effective answer to Fighting/Fire. Need one of: Flying, Ground, Water, Psychic. Grinding levels will not f": 1
+    }
+  },
+  "lane_rows": [
+    {
+      "tag": "H1",
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H2",
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "runs_ended": 2,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H3",
+      "starter": "treecko",
+      "profile": "endless-H3-treecko",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H4",
+      "starter": "random",
+      "profile": "endless-H4-random",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H5",
+      "starter": "torchic",
+      "profile": "endless-H5-torchic",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H6",
+      "starter": "mudkip",
+      "profile": "endless-H6-mudkip",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H7",
+      "starter": "treecko",
+      "profile": "endless-H7-treecko",
+      "runs_ended": 1,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H8",
+      "starter": "random",
+      "profile": "endless-H8-random",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H9",
+      "starter": "torchic",
+      "profile": "endless-H9-torchic",
+      "runs_ended": 0,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H10",
+      "starter": "mudkip",
+      "profile": "endless-H10-mudkip",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H11",
+      "starter": "treecko",
+      "profile": "endless-H11-treecko",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H12",
+      "starter": "random",
+      "profile": "endless-H12-random",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H13",
+      "starter": "torchic",
+      "profile": "endless-H13-torchic",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H14",
+      "starter": "mudkip",
+      "profile": "endless-H14-mudkip",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H15",
+      "starter": "treecko",
+      "profile": "endless-H15-treecko",
+      "runs_ended": 2,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H16",
+      "starter": "random",
+      "profile": "endless-H16-random",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H17",
+      "starter": "torchic",
+      "profile": "endless-H17-torchic",
+      "runs_ended": 2,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H18",
+      "starter": "mudkip",
+      "profile": "endless-H18-mudkip",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H19",
+      "starter": "treecko",
+      "profile": "endless-H19-treecko",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H20",
+      "starter": "random",
+      "profile": "endless-H20-random",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H21",
+      "starter": "torchic",
+      "profile": "endless-H21-torchic",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H22",
+      "starter": "mudkip",
+      "profile": "endless-H22-mudkip",
+      "runs_ended": 2,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H23",
+      "starter": "treecko",
+      "profile": "endless-H23-treecko",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H24",
+      "starter": "random",
+      "profile": "endless-H24-random",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H25",
+      "starter": "torchic",
+      "profile": "endless-H25-torchic",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H26",
+      "starter": "mudkip",
+      "profile": "endless-H26-mudkip",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H27",
+      "starter": "treecko",
+      "profile": "endless-H27-treecko",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H28",
+      "starter": "random",
+      "profile": "endless-H28-random",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H29",
+      "starter": "torchic",
+      "profile": "endless-H29-torchic",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H30",
+      "starter": "mudkip",
+      "profile": "endless-H30-mudkip",
+      "runs_ended": 3,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H31",
+      "starter": "treecko",
+      "profile": "endless-H31-treecko",
+      "runs_ended": 2,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    {
+      "tag": "H32",
+      "starter": "random",
+      "profile": "endless-H32-random",
+      "runs_ended": 2,
+      "finished": 0,
+      "header_verdict": "ok",
+      "restarts": 0,
+      "build_commits": [
+        "bda41d45"
+      ]
+    }
+  ],
+  "lanes_detail": {
+    "H1": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 430,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 280,
+        "BattleScript_LocalBattleLostEnd": 70,
+        "BattleScript_SuccessBallThrowEnd": 13,
+        "BattleScript_GotAwaySafely": 9,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_SunlightContinues": 5,
+        "BattleScript_EffectSleep": 4,
+        "BattleScript_PrintReflectLightScreenSafeguardString": 4,
+        "BattleScript_CantRaiseMultipleStats": 3,
+        "BattleScript_ButItFailed": 3
+      },
+      "derails": 3,
+      "whiteouts": 37,
+      "losses": 37,
+      "losses_by_map": {
+        "14, 0": 21,
+        "4, 1": 5,
+        "10, 0": 2,
+        "8, 1": 2,
+        "12, 1": 2,
+        "0, 18": 1,
+        "0, 27": 1,
+        "0, 33": 1,
+        "0, 38": 1,
+        "24, 91": 1
+      },
+      "battle_outcomes": {
+        "Won": 744,
+        "Lost": 37,
+        "RanAway": 34,
+        "OpponentTeleported": 18,
+        "Caught": 10
+      },
+      "battles": 843,
+      "flee_rate": 0.04,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H1-torchic",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H2": {
+      "runs_started": 3,
+      "runs_ended": 2,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable co": 1,
+        "this boss: N losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this.": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 526,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 336,
+        "BattleScript_LocalBattleLostEnd": 77,
+        "BattleScript_GotAwaySafely": 68,
+        "BattleScript_WallyBallThrow": 10,
+        "BattleScript_MoveEnd": 3,
+        "BattleScript_SuccessBallThrowEnd": 1
+      },
+      "derails": 15,
+      "whiteouts": 31,
+      "losses": 31,
+      "losses_by_map": {
+        "0, 25": 14,
+        "8, 1": 12,
+        "10, 0": 2,
+        "11, 3": 1,
+        "0, 31": 1,
+        "4, 1": 1
+      },
+      "battle_outcomes": {
+        "Won": 811,
+        "RanAway": 162,
+        "OpponentTeleported": 37,
+        "Lost": 31,
+        "Caught": 9
+      },
+      "battles": 1050,
+      "flee_rate": 0.154,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: this boss: 12 losses with no super-effective answer to Normal. Need one of: Fighting. Grinding levels will not fix this. Nearest reachable counters: Machop (Fighting) (type match) on Fiery Path (tile (18, 19), L15-16, 15% rate) \u2014 reachable; Makuhita (Fighting) (type match) on Granite Cave (B1F) (tile unmapped, NOT HUNTABLE, L10-11, 10% rate) \u2014 reachable; Hariyama (Fighting) (type match) on Victory Road (B1F) (tile unmapped, NOT HUNTABLE, L38-42, 35% rate) \u2014 UNREACHABLE; Heracross (Bug/Fighting) (type match) on Safari Zone, North (tile unmapped, NOT HUNTABLE, L27-29, 5% rate) \u2014 UNREACHABLE; Pinsir (Bug) via move:Revenge@L25 on Safari Zone, North/West (tile unmapped, NOT HUNTABLE, L27-29, 5% rate) \u2014 UNREACHABLE",
+          "bucket": "derailed",
+          "frames": 2213978
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: this boss: 13 losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) \u2014 reachable; Koffing (Poison) (type match) on Fiery Path (tile (18, 19), L15-16, 25% rate) \u2014 reachable; Torkoal (Fire) (type match) on Fiery Path (tile (18, 19), L14-16, 18% rate) \u2014 reachable; Slugma (Fire) (type match) on Fiery Path (tile (18, 19), L15-15, 10% rate) \u2014 reachable; Grimer (Poison) (type match) on Fiery Path (tile (18, 19), L14-14, 2% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 3,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H2-mudkip",
+      "debug_logs_collected": 3,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H3": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 399,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 330,
+        "BattleScript_LocalBattleLostEnd": 39,
+        "BattleScript_GotAwaySafely": 11,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_MoveEnd": 2,
+        "BattleScript_SuccessBallThrowEnd": 1
+      },
+      "derails": 3,
+      "whiteouts": 27,
+      "losses": 27,
+      "losses_by_map": {
+        "12, 1": 10,
+        "10, 0": 5,
+        "0, 25": 3,
+        "24, 11": 1,
+        "0, 32": 1,
+        "0, 26": 1,
+        "24, 12": 1,
+        "4, 1": 1,
+        "8, 1": 1,
+        "0, 34": 1
+      },
+      "battle_outcomes": {
+        "Won": 828,
+        "Lost": 27,
+        "RanAway": 25,
+        "OpponentTeleported": 19,
+        "Caught": 8
+      },
+      "battles": 907,
+      "flee_rate": 0.028,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H3-treecko",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H4": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Fire. Need one of: Ground, Rock, Water. Grinding levels will not fix this. Nearest rea": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 356,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 260,
+        "BattleScript_LocalBattleLostEnd": 45,
+        "BattleScript_GotAwaySafely": 16,
+        "BattleScript_WallyBallThrow": 10,
+        "BattleScript_SuccessBallThrowEnd": 4
+      },
+      "derails": 11,
+      "whiteouts": 24,
+      "losses": 24,
+      "losses_by_map": {
+        "4, 1": 12,
+        "10, 0": 7,
+        "0, 25": 3,
+        "11, 3": 1,
+        "0, 28": 1
+      },
+      "battle_outcomes": {
+        "Won": 942,
+        "Lost": 24,
+        "OpponentTeleported": 22,
+        "RanAway": 20,
+        "Caught": 9
+      },
+      "battles": 1017,
+      "flee_rate": 0.02,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: this boss: 12 losses with no super-effective answer to Fire. Need one of: Ground, Rock, Water. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) \u2014 reachable; Slugma (Fire) via move:Rock Throw@L15 on Fiery Path (tile (18, 19), L15-15, 10% rate) \u2014 reachable; Geodude (Ground/Rock) (type match) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L27-30, 55% rate) \u2014 reachable; Graveler (Ground/Rock) (type match) on Magma Hideout (1F) (tile unmapped, NOT HUNTABLE, L30-33, 15% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 3123257
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H4-random",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H5": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Could not reach (N N) on MapRSE.ROUTEN: the field is idle and we are still at (N N), so retrying cannot change the result (Cannot reach ROUT": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 424,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 353,
+        "BattleScript_GotAwaySafely": 16,
+        "BattleScript_LocalBattleLostEnd": 16,
+        "BattleScript_WallyBallThrow": 10,
+        "BattleScript_EffectAbsorb": 3,
+        "BattleScript_MoveEnd": 2,
+        "BattleScript_SuccessBallThrowEnd": 2,
+        "BattleScript_AbsorbUpdateHp": 1
+      },
+      "derails": 12,
+      "whiteouts": 11,
+      "losses": 11,
+      "losses_by_map": {
+        "4, 1": 5,
+        "0, 25": 2,
+        "0, 32": 1,
+        "10, 0": 1,
+        "0, 28": 1,
+        "8, 1": 1
+      },
+      "battle_outcomes": {
+        "Won": 838,
+        "OpponentTeleported": 37,
+        "RanAway": 16,
+        "Lost": 11,
+        "Caught": 8
+      },
+      "battles": 910,
+      "flee_rate": 0.018,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Could not reach (9, 9) on MapRSE.ROUTE101: the field is idle and we are still at (10, 29), so retrying cannot change the result (Cannot reach ROUTE101: it is not walkable from ROUTE104, and none of the 6 candidate warp route(s) start at a tile that can be walked to from here (tried: OLDALE_TOWN(5, 7), OLDALE_TOWN(15, 16), OLDALE_TOWN(6, 16), OLDALE_TOWN(14, 6), PETALBURG_CITY(10, 19), PETALBURG_CITY(7, 5)).).",
+          "bucket": "derailed",
+          "frames": 2559237
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H5-torchic",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H6": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "ChN (Victory Road) failed after N attempts. attempt N: BotModeError: ChN training: Machop#PID alone needs N frames, over the N per-call ceil": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 536,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 367,
+        "BattleScript_LocalBattleLostEnd": 93,
+        "BattleScript_GotAwaySafely": 43,
+        "BattleScript_WallyBallThrow": 10,
+        "BattleScript_MoveEnd": 2
+      },
+      "derails": 20,
+      "whiteouts": 38,
+      "losses": 37,
+      "losses_by_map": {
+        "8, 1": 18,
+        "0, 25": 11,
+        "24, 12": 2,
+        "10, 0": 1,
+        "0, 26": 1,
+        "0, 34": 1,
+        "12, 1": 1,
+        "24, 22": 1,
+        "0, 17": 1
+      },
+      "battle_outcomes": {
+        "Won": 721,
+        "RanAway": 49,
+        "Lost": 37,
+        "OpponentTeleported": 16,
+        "Caught": 10,
+        "Draw": 1
+      },
+      "battles": 834,
+      "flee_rate": 0.059,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Ch23 (Victory Road) failed after 3 attempts. attempt 1: BotModeError: Ch23 training: Machop#B28FFAEE alone needs 405,539 frames, over the 250,000 per-call ceiling every other caller respects. Per-mon: {'Mightyena#54644F7D': 249342, 'Skitty#BF7497DF': 339621, 'Swellow#2E | attempt 2: BotModeError: Ch23 training: Machop#B28FFAEE alone needs 405,539 frames, over the 250,000 per-call ceiling every other caller respects. Per-mon: {'Mightyena#54644F7D': 249342, 'Skitty#BF7497DF': 339621, 'Swellow#2E | attempt 3: BotModeError: Ch23 training: Machop#B28FFAEE alone needs 405,539 frames, over the 250,000 per-call ceiling every other caller respects. Per-mon: {'Mightyena#54644F7D': 249342, 'Skitty#BF7497DF': 339621, 'Swellow#2E",
+          "bucket": "derailed",
+          "frames": 3181623
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H6-mudkip",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H7": {
+      "runs_started": 2,
+      "runs_ended": 1,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 1,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Fighting/Fire. Need one of: Flying, Ground, Water, Psychic. Grinding levels will not f": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 368,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 287,
+        "BattleScript_GotAwaySafely": 28,
+        "BattleScript_LocalBattleLostEnd": 19,
+        "BattleScript_WallyBallThrow": 10,
+        "BattleScript_MoveEnd": 2,
+        "BattleScript_SuccessBallThrowEnd": 1
+      },
+      "derails": 7,
+      "whiteouts": 22,
+      "losses": 22,
+      "losses_by_map": {
+        "0, 25": 14,
+        "10, 0": 7,
+        "11, 3": 1
+      },
+      "battle_outcomes": {
+        "Won": 1016,
+        "OpponentTeleported": 31,
+        "RanAway": 29,
+        "Lost": 22,
+        "Caught": 8
+      },
+      "battles": 1106,
+      "flee_rate": 0.026,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: this boss: 14 losses with no super-effective answer to Fighting/Fire. Need one of: Flying, Ground, Water, Psychic. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) \u2014 reachable; Wingull (Flying/Water) (type match) on Route 118 (tile (29, 15), NOT HUNTABLE, L25-27, 19% rate) \u2014 reachable; Claydol (Ground/Psychic) (type match) on Sky Pillar (1F) (tile unmapped, NOT HUNTABLE, L36-38, 25% rate) \u2014 reachable; Natu (Flying/Psychic) (type match) on Safari Zone, South (tile unmapped, NOT HUNTABLE, L25-25, 10% rate) \u2014 reachable; Taillow (Flying/Normal) (type match) on Route 115 (tile (6, 53), NOT HUNTABLE, L23-25, 40% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 1620630
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 2,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H7-treecko",
+      "debug_logs_collected": 2,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H8": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 0,
+      "stuck_dumps": 390,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 309,
+        "BattleScript_LocalBattleLostEnd": 50,
+        "BattleScript_GotAwaySafely": 9,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_SuccessBallThrowEnd": 5,
+        "BattleScript_MoveEnd": 1
+      },
+      "derails": 17,
+      "whiteouts": 18,
+      "losses": 18,
+      "losses_by_map": {
+        "8, 1": 11,
+        "12, 1": 2,
+        "0, 25": 1,
+        "0, 27": 1,
+        "24, 12": 1,
+        "0, 33": 1,
+        "0, 38": 1
+      },
+      "battle_outcomes": {
+        "Won": 1016,
+        "OpponentTeleported": 25,
+        "Lost": 18,
+        "RanAway": 13,
+        "Caught": 10
+      },
+      "battles": 1082,
+      "flee_rate": 0.012,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H8-random",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H9": {
+      "runs_started": 1,
+      "runs_ended": 0,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 0,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": null,
+      "end_reasons": {},
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 2,
+      "stuck_dumps": 445,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 339,
+        "BattleScript_LocalBattleLostEnd": 60,
+        "BattleScript_GotAwaySafely": 20,
+        "BattleScript_SuccessBallThrowEnd": 6,
+        "BattleScript_WallyBallThrow": 5,
+        "BattleScript_SuccessForceOut": 3,
+        "BattleScript_EffectTeleport": 1
+      },
+      "derails": 3,
+      "whiteouts": 31,
+      "losses": 31,
+      "losses_by_map": {
+        "14, 0": 7,
+        "15, 0": 7,
+        "8, 1": 5,
+        "10, 0": 3,
+        "12, 1": 2,
+        "0, 28": 1,
+        "24, 12": 1,
+        "4, 1": 1,
+        "0, 33": 1,
+        "0, 35": 1
+      },
+      "battle_outcomes": {
+        "Won": 814,
+        "RanAway": 36,
+        "Lost": 31,
+        "OpponentTeleported": 20,
+        "Caught": 8
+      },
+      "battles": 909,
+      "flee_rate": 0.04,
+      "badges": {},
+      "runs": [],
+      "header_verdict": "ok",
+      "headers_checked": 1,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H9-torchic",
+      "debug_logs_collected": 1,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H10": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 495,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 384,
+        "BattleScript_GotAwaySafely": 26,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_LocalBattleLostEnd": 12,
+        "BattleScript_SuccessBallThrowEnd": 6,
+        "BattleScript_RanAwayUsingMonAbility": 3,
+        "BattleScript_MoveEnd": 3
+      },
+      "derails": 18,
+      "whiteouts": 17,
+      "losses": 17,
+      "losses_by_map": {
+        "0, 25": 14,
+        "0, 32": 1,
+        "0, 18": 1,
+        "0, 17": 1
+      },
+      "battle_outcomes": {
+        "Won": 760,
+        "OpponentTeleported": 48,
+        "RanAway": 32,
+        "Lost": 17,
+        "Caught": 16
+      },
+      "battles": 873,
+      "flee_rate": 0.037,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 993707
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 133939
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H10-mudkip",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H11": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 436,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 363,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_GotAwaySafely": 13,
+        "BattleScript_LocalBattleLostEnd": 3,
+        "BattleScript_MoveEnd": 1
+      },
+      "derails": 18,
+      "whiteouts": 2,
+      "losses": 2,
+      "losses_by_map": {
+        "0, 25": 2
+      },
+      "battle_outcomes": {
+        "Won": 906,
+        "OpponentTeleported": 48,
+        "RanAway": 18,
+        "Caught": 13,
+        "Lost": 2
+      },
+      "battles": 987,
+      "flee_rate": 0.018,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1044605
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 186756
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 49134
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H11-treecko",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H12": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 456,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 349,
+        "BattleScript_GotAwaySafely": 26,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 11,
+        "BattleScript_LocalBattleLostEnd": 7,
+        "BattleScript_MoveEnd": 2
+      },
+      "derails": 17,
+      "whiteouts": 8,
+      "losses": 8,
+      "losses_by_map": {
+        "0, 25": 5,
+        "24, 11": 1,
+        "11, 3": 1,
+        "0, 17": 1
+      },
+      "battle_outcomes": {
+        "Won": 951,
+        "OpponentTeleported": 50,
+        "RanAway": 23,
+        "Caught": 16,
+        "Lost": 8
+      },
+      "battles": 1048,
+      "flee_rate": 0.022,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 917555
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 212213
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H12-random",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H13": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 35,
+      "stuck_dumps": 512,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 393,
+        "BattleScript_GotAwaySafely": 43,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 9,
+        "BattleScript_MoveEnd": 3,
+        "BattleScript_LocalBattleLostEnd": 3
+      },
+      "derails": 20,
+      "whiteouts": 3,
+      "losses": 3,
+      "losses_by_map": {
+        "0, 25": 3
+      },
+      "battle_outcomes": {
+        "Won": 893,
+        "OpponentTeleported": 42,
+        "RanAway": 25,
+        "Caught": 16,
+        "Lost": 3
+      },
+      "battles": 979,
+      "flee_rate": 0.026,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1031400
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 65771
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H13-torchic",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H14": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 457,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 352,
+        "BattleScript_GotAwaySafely": 32,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_LocalBattleLostEnd": 11,
+        "BattleScript_MoveEnd": 6
+      },
+      "derails": 18,
+      "whiteouts": 8,
+      "losses": 8,
+      "losses_by_map": {
+        "0, 25": 7,
+        "3, 3": 1
+      },
+      "battle_outcomes": {
+        "Won": 875,
+        "OpponentTeleported": 60,
+        "RanAway": 24,
+        "Caught": 12,
+        "Lost": 8
+      },
+      "battles": 979,
+      "flee_rate": 0.025,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1274358
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 209216
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H14-mudkip",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H15": {
+      "runs_started": 3,
+      "runs_ended": 2,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 2
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 24,
+      "stuck_dumps": 407,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 333,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_GotAwaySafely": 14,
+        "BattleScript_SuccessBallThrowEnd": 10,
+        "BattleScript_LocalBattleLostEnd": 3,
+        "BattleScript_MoveEnd": 1
+      },
+      "derails": 14,
+      "whiteouts": 3,
+      "losses": 3,
+      "losses_by_map": {
+        "11, 3": 2,
+        "0, 25": 1
+      },
+      "battle_outcomes": {
+        "Won": 949,
+        "OpponentTeleported": 64,
+        "RanAway": 14,
+        "Caught": 12,
+        "Lost": 3
+      },
+      "battles": 1042,
+      "flee_rate": 0.013,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 956782
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 682119
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 3,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H15-treecko",
+      "debug_logs_collected": 3,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H16": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 476,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 363,
+        "BattleScript_GotAwaySafely": 38,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_MoveEnd": 8,
+        "BattleScript_SuccessBallThrowEnd": 6
+      },
+      "derails": 17,
+      "whiteouts": 3,
+      "losses": 3,
+      "losses_by_map": {
+        "0, 25": 2,
+        "0, 32": 1
+      },
+      "battle_outcomes": {
+        "Won": 894,
+        "OpponentTeleported": 51,
+        "RanAway": 24,
+        "Caught": 16,
+        "Lost": 3
+      },
+      "battles": 988,
+      "flee_rate": 0.024,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1182111
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H16-random",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H17": {
+      "runs_started": 3,
+      "runs_ended": 2,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 2
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 22,
+      "stuck_dumps": 431,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 342,
+        "BattleScript_GotAwaySafely": 27,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_MoveEnd": 12,
+        "BattleScript_LocalBattleLostEnd": 2,
+        "BattleScript_SuccessBallThrowEnd": 2
+      },
+      "derails": 13,
+      "whiteouts": 3,
+      "losses": 3,
+      "losses_by_map": {
+        "0, 18": 2,
+        "0, 17": 1
+      },
+      "battle_outcomes": {
+        "Won": 1014,
+        "OpponentTeleported": 76,
+        "RanAway": 26,
+        "Caught": 12,
+        "Lost": 3
+      },
+      "battles": 1131,
+      "flee_rate": 0.023,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1155006
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 191108
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 3,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H17-torchic",
+      "debug_logs_collected": 3,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H18": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 2,
+        "this boss: N losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this.": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 22,
+      "stuck_dumps": 436,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 322,
+        "BattleScript_GotAwaySafely": 24,
+        "BattleScript_LocalBattleLostEnd": 24,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_MoveEnd": 4,
+        "BattleScript_RanAwayUsingMonAbility": 4,
+        "BattleScript_SuccessBallThrowEnd": 2
+      },
+      "derails": 18,
+      "whiteouts": 18,
+      "losses": 18,
+      "losses_by_map": {
+        "0, 25": 17,
+        "0, 17": 1
+      },
+      "battle_outcomes": {
+        "Won": 910,
+        "OpponentTeleported": 69,
+        "RanAway": 33,
+        "Lost": 18,
+        "Caught": 12
+      },
+      "battles": 1042,
+      "flee_rate": 0.032,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: this boss: 14 losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) \u2014 reachable; Koffing (Poison) (type match) on Fiery Path (tile (18, 19), L15-16, 25% rate) \u2014 reachable; Torkoal (Fire) (type match) on Fiery Path (tile (18, 19), L14-16, 18% rate) \u2014 reachable; Slugma (Fire) (type match) on Fiery Path (tile (18, 19), L15-15, 10% rate) \u2014 reachable; Grimer (Poison) (type match) on Fiery Path (tile (18, 19), L14-14, 2% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 1410898
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 341904
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H18-mudkip",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H19": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 432,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 355,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_SuccessBallThrowEnd": 7,
+        "BattleScript_GotAwaySafely": 6,
+        "BattleScript_LocalBattleLostEnd": 6,
+        "BattleScript_MoveEnd": 2
+      },
+      "derails": 18,
+      "whiteouts": 5,
+      "losses": 5,
+      "losses_by_map": {
+        "0, 25": 2,
+        "3, 3": 2,
+        "11, 3": 1
+      },
+      "battle_outcomes": {
+        "Won": 956,
+        "OpponentTeleported": 58,
+        "Caught": 12,
+        "RanAway": 7,
+        "Lost": 5
+      },
+      "battles": 1038,
+      "flee_rate": 0.007,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1462140
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H19-treecko",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H20": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 455,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 349,
+        "BattleScript_GotAwaySafely": 29,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_LocalBattleLostEnd": 7,
+        "BattleScript_MoveEnd": 4,
+        "BattleScript_SuccessBallThrowEnd": 4,
+        "BattleScript_EffectTeleport": 1
+      },
+      "derails": 18,
+      "whiteouts": 11,
+      "losses": 11,
+      "losses_by_map": {
+        "0, 25": 9,
+        "0, 17": 2
+      },
+      "battle_outcomes": {
+        "Won": 827,
+        "OpponentTeleported": 55,
+        "RanAway": 30,
+        "Caught": 16,
+        "Lost": 11
+      },
+      "battles": 939,
+      "flee_rate": 0.032,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1214766
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 358697
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H20-random",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H21": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 482,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 376,
+        "BattleScript_GotAwaySafely": 36,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_LocalBattleLostEnd": 5,
+        "BattleScript_MoveEnd": 3,
+        "BattleScript_SuccessBallThrowEnd": 1
+      },
+      "derails": 18,
+      "whiteouts": 4,
+      "losses": 4,
+      "losses_by_map": {
+        "0, 25": 3,
+        "0, 18": 1
+      },
+      "battle_outcomes": {
+        "Won": 876,
+        "OpponentTeleported": 54,
+        "RanAway": 22,
+        "Caught": 16,
+        "Lost": 4
+      },
+      "battles": 972,
+      "flee_rate": 0.023,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1064048
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H21-torchic",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H22": {
+      "runs_started": 3,
+      "runs_ended": 2,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "this boss: N losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this.": 1,
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 1
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 11,
+      "stuck_dumps": 453,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 310,
+        "BattleScript_LocalBattleLostEnd": 41,
+        "BattleScript_GotAwaySafely": 39,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_SuccessBallThrowEnd": 12,
+        "BattleScript_MoveEnd": 5
+      },
+      "derails": 12,
+      "whiteouts": 37,
+      "losses": 37,
+      "losses_by_map": {
+        "0, 25": 35,
+        "0, 31": 2
+      },
+      "battle_outcomes": {
+        "Won": 711,
+        "OpponentTeleported": 75,
+        "RanAway": 45,
+        "Lost": 37,
+        "Caught": 12
+      },
+      "battles": 880,
+      "flee_rate": 0.051,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: this boss: 16 losses with no super-effective answer to Grass. Need one of: Flying, Poison, Bug, Fire, Ice. Grinding levels will not fix this. Nearest reachable counters: Numel (Fire/Ground) (type match) on Fiery Path (tile (18, 19), L15-16, 30% rate) \u2014 reachable; Koffing (Poison) (type match) on Fiery Path (tile (18, 19), L15-16, 25% rate) \u2014 reachable; Torkoal (Fire) (type match) on Fiery Path (tile (18, 19), L14-16, 18% rate) \u2014 reachable; Slugma (Fire) (type match) on Fiery Path (tile (18, 19), L15-15, 10% rate) \u2014 reachable; Grimer (Poison) (type match) on Fiery Path (tile (18, 19), L14-14, 2% rate) \u2014 reachable",
+          "bucket": "derailed",
+          "frames": 1386708
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 3,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H22-mudkip",
+      "debug_logs_collected": 3,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H23": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 462,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 353,
+        "BattleScript_GotAwaySafely": 32,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 8,
+        "BattleScript_MoveEnd": 5,
+        "BattleScript_LocalBattleLostEnd": 3
+      },
+      "derails": 18,
+      "whiteouts": 4,
+      "losses": 4,
+      "losses_by_map": {
+        "0, 25": 3,
+        "11, 3": 1
+      },
+      "battle_outcomes": {
+        "Won": 864,
+        "OpponentTeleported": 59,
+        "RanAway": 24,
+        "Caught": 16,
+        "Lost": 4
+      },
+      "battles": 967,
+      "flee_rate": 0.025,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1272452
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 90095
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H23-treecko",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H24": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 418,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 331,
+        "BattleScript_GotAwaySafely": 21,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_LocalBattleLostEnd": 7,
+        "BattleScript_MoveEnd": 3
+      },
+      "derails": 18,
+      "whiteouts": 6,
+      "losses": 6,
+      "losses_by_map": {
+        "0, 25": 4,
+        "0, 31": 1,
+        "3, 3": 1
+      },
+      "battle_outcomes": {
+        "Won": 951,
+        "OpponentTeleported": 45,
+        "RanAway": 13,
+        "Caught": 12,
+        "Lost": 6
+      },
+      "battles": 1027,
+      "flee_rate": 0.013,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1211236
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 396434
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H24-random",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H25": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 451,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 357,
+        "BattleScript_GotAwaySafely": 23,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 6,
+        "BattleScript_MoveEnd": 2,
+        "BattleScript_LocalBattleLostEnd": 2
+      },
+      "derails": 19,
+      "whiteouts": 1,
+      "losses": 1,
+      "losses_by_map": {
+        "0, 25": 1
+      },
+      "battle_outcomes": {
+        "Won": 1029,
+        "OpponentTeleported": 56,
+        "RanAway": 20,
+        "Caught": 16,
+        "Lost": 1
+      },
+      "battles": 1122,
+      "flee_rate": 0.018,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 747584
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 140685
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 330671
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H25-torchic",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H26": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 428,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 332,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_SuccessBallThrowEnd": 12,
+        "BattleScript_GotAwaySafely": 11,
+        "BattleScript_LocalBattleLostEnd": 11,
+        "BattleScript_MoveEnd": 1
+      },
+      "derails": 17,
+      "whiteouts": 11,
+      "losses": 11,
+      "losses_by_map": {
+        "0, 25": 8,
+        "0, 32": 1,
+        "24, 4": 1,
+        "0, 19": 1
+      },
+      "battle_outcomes": {
+        "Won": 863,
+        "OpponentTeleported": 45,
+        "RanAway": 18,
+        "Caught": 13,
+        "Lost": 11
+      },
+      "battles": 950,
+      "flee_rate": 0.019,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1168764
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 53922
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H26-mudkip",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H27": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 486,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 402,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_GotAwaySafely": 8,
+        "BattleScript_SuccessBallThrowEnd": 6,
+        "BattleScript_MoveEnd": 6,
+        "BattleScript_LocalBattleLostEnd": 3
+      },
+      "derails": 18,
+      "whiteouts": 4,
+      "losses": 4,
+      "losses_by_map": {
+        "3, 3": 2,
+        "0, 25": 1,
+        "11, 3": 1
+      },
+      "battle_outcomes": {
+        "Won": 952,
+        "OpponentTeleported": 33,
+        "Caught": 16,
+        "RanAway": 9,
+        "Lost": 4
+      },
+      "battles": 1014,
+      "flee_rate": 0.009,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 980748
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 870589
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H27-treecko",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H28": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 457,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 371,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_GotAwaySafely": 14,
+        "BattleScript_SuccessBallThrowEnd": 9,
+        "BattleScript_LocalBattleLostEnd": 4,
+        "BattleScript_MoveEnd": 3
+      },
+      "derails": 18,
+      "whiteouts": 3,
+      "losses": 3,
+      "losses_by_map": {
+        "3, 3": 2,
+        "0, 25": 1
+      },
+      "battle_outcomes": {
+        "Won": 965,
+        "OpponentTeleported": 66,
+        "RanAway": 18,
+        "Caught": 13,
+        "Lost": 3
+      },
+      "battles": 1065,
+      "flee_rate": 0.017,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1067682
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 747018
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H28-random",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H29": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 454,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 360,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_GotAwaySafely": 20,
+        "BattleScript_LocalBattleLostEnd": 6,
+        "BattleScript_SuccessBallThrowEnd": 4,
+        "BattleScript_MoveEnd": 3
+      },
+      "derails": 18,
+      "whiteouts": 4,
+      "losses": 4,
+      "losses_by_map": {
+        "0, 25": 4
+      },
+      "battle_outcomes": {
+        "Won": 979,
+        "OpponentTeleported": 49,
+        "Caught": 16,
+        "RanAway": 10,
+        "Lost": 4
+      },
+      "battles": 1058,
+      "flee_rate": 0.009,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 960076
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 359558
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "torchic",
+      "profile": "endless-H29-torchic",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H30": {
+      "runs_started": 4,
+      "runs_ended": 3,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 3,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 3
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 33,
+      "stuck_dumps": 463,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 357,
+        "BattleScript_GotAwaySafely": 21,
+        "BattleScript_WallyBallThrow": 20,
+        "BattleScript_LocalBattleLostEnd": 13,
+        "BattleScript_SuccessBallThrowEnd": 9,
+        "BattleScript_MoveEnd": 1,
+        "BattleScript_EffectTeleport": 1
+      },
+      "derails": 17,
+      "whiteouts": 10,
+      "losses": 10,
+      "losses_by_map": {
+        "0, 25": 7,
+        "0, 31": 1,
+        "11, 3": 1,
+        "3, 3": 1
+      },
+      "battle_outcomes": {
+        "Won": 843,
+        "OpponentTeleported": 39,
+        "RanAway": 32,
+        "Caught": 16,
+        "Lost": 10
+      },
+      "battles": 940,
+      "flee_rate": 0.034,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 675080
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 583221
+        },
+        {
+          "run": 3,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 130060
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 4,
+      "restarts": 0,
+      "starter": "mudkip",
+      "profile": "endless-H30-mudkip",
+      "debug_logs_collected": 4,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H31": {
+      "runs_started": 3,
+      "runs_ended": 2,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 2
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 22,
+      "stuck_dumps": 394,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 329,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_GotAwaySafely": 8,
+        "BattleScript_SuccessBallThrowEnd": 6,
+        "BattleScript_LocalBattleLostEnd": 3,
+        "BattleScript_MoveEnd": 2
+      },
+      "derails": 12,
+      "whiteouts": 4,
+      "losses": 4,
+      "losses_by_map": {
+        "11, 3": 2,
+        "0, 25": 2
+      },
+      "battle_outcomes": {
+        "Won": 1086,
+        "OpponentTeleported": 48,
+        "RanAway": 15,
+        "Caught": 12,
+        "Lost": 4
+      },
+      "battles": 1165,
+      "flee_rate": 0.013,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1127072
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 0
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 3,
+      "restarts": 0,
+      "starter": "treecko",
+      "profile": "endless-H31-treecko",
+      "debug_logs_collected": 3,
+      "build_commits": [
+        "bda41d45"
+      ]
+    },
+    "H32": {
+      "runs_started": 3,
+      "runs_ended": 2,
+      "batch_completed_naturally": false,
+      "finished": 0,
+      "derailed": 2,
+      "stopped": 0,
+      "crashed": 0,
+      "frame_cap": 0,
+      "finish_rate": 0.0,
+      "end_reasons": {
+        "Story: global watchdog \u2014 nothing progressed for N frames (the current step is wedged); derailing into recovery.": 2
+      },
+      "faint_chooser_gave_up": 0,
+      "no_eligible_replacement": 0,
+      "global_watchdog": 22,
+      "stuck_dumps": 403,
+      "stuck_battle_scripts": {
+        "BattleScript_PayDayMoneyAndPickUpItems": 316,
+        "BattleScript_GotAwaySafely": 36,
+        "BattleScript_WallyBallThrow": 15,
+        "BattleScript_SuccessBallThrowEnd": 3,
+        "BattleScript_MoveEnd": 1,
+        "BattleScript_LocalBattleLostEnd": 1
+      },
+      "derails": 13,
+      "whiteouts": 1,
+      "losses": 1,
+      "losses_by_map": {
+        "0, 25": 1
+      },
+      "battle_outcomes": {
+        "Won": 945,
+        "OpponentTeleported": 74,
+        "RanAway": 23,
+        "Caught": 14,
+        "Lost": 1
+      },
+      "battles": 1057,
+      "flee_rate": 0.022,
+      "badges": {},
+      "runs": [
+        {
+          "run": 1,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 1203158
+        },
+        {
+          "run": 2,
+          "outcome": "derailed: Story: global watchdog \u2014 nothing progressed for 18,000 frames (the current step is wedged); derailing into recovery.",
+          "bucket": "derailed",
+          "frames": 125954
+        }
+      ],
+      "header_verdict": "ok",
+      "headers_checked": 3,
+      "restarts": 0,
+      "starter": "random",
+      "profile": "endless-H32-random",
+      "debug_logs_collected": 3,
+      "build_commits": [
+        "bda41d45"
+      ]
+    }
+  }
+}

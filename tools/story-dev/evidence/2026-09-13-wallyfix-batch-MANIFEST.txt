@@ -1,0 +1,63 @@
+ENDLESS-RESET HEADLESS BATCH — MANIFEST
+========================================================================
+stamp          20260913-092254
+code_commit    f039bffc
+build_commits  f039bffc  (every lane, every spawn — SINGLE BUILD)
+build          sandbox
+bot_mode       Story (ENDLESS RESET)
+lanes          32
+bound          runs/lane=infinite  minutes=120.0
+started        2026-09-13T09:22:54
+ended          2026-09-13T11:23:06
+wall_minutes   120.2
+VERDICT        OK
+
+LANES
+------------------------------------------------------------------------
+tag   starter   profile                     runs  fin header   restarts
+H1    torchic   endless-H1-torchic             0    0 ok       0
+H2    mudkip    endless-H2-mudkip              0    0 ok       0
+H3    treecko   endless-H3-treecko             0    0 ok       0
+H4    random    endless-H4-random              0    0 ok       0
+H5    torchic   endless-H5-torchic             1    0 ok       0
+H6    mudkip    endless-H6-mudkip              1    0 ok       0
+H7    treecko   endless-H7-treecko             1    0 ok       0
+H8    random    endless-H8-random              0    0 ok       0
+H9    torchic   endless-H9-torchic             0    0 ok       0
+H10   mudkip    endless-H10-mudkip             0    0 ok       0
+H11   treecko   endless-H11-treecko            0    0 ok       0
+H12   random    endless-H12-random             1    0 ok       0
+H13   torchic   endless-H13-torchic            1    0 ok       0
+H14   mudkip    endless-H14-mudkip             0    0 ok       0
+H15   treecko   endless-H15-treecko            0    0 ok       0
+H16   random    endless-H16-random             1    0 ok       0
+H17   torchic   endless-H17-torchic            1    0 ok       0
+H18   mudkip    endless-H18-mudkip             0    0 ok       0
+H19   treecko   endless-H19-treecko            1    0 ok       0
+H20   random    endless-H20-random             1    0 ok       0
+H21   torchic   endless-H21-torchic            0    0 ok       0
+H22   mudkip    endless-H22-mudkip             0    0 ok       0
+H23   treecko   endless-H23-treecko            0    0 ok       0
+H24   random    endless-H24-random             0    0 ok       0
+H25   torchic   endless-H25-torchic            0    0 ok       0
+H26   mudkip    endless-H26-mudkip             0    0 ok       0
+H27   treecko   endless-H27-treecko            1    0 ok       0
+H28   random    endless-H28-random             0    0 ok       0
+H29   torchic   endless-H29-torchic            0    0 ok       0
+H30   mudkip    endless-H30-mudkip             0    0 ok       0
+H31   treecko   endless-H31-treecko            0    0 ok       0
+H32   random    endless-H32-random             0    0 ok       0
+
+EMULATION ASSERTION
+------------------------------------------------------------------------
+Every run's debug-log RUN HEADER must read `emulation: speed=0 video=True`.
+headers checked: 42   violations: 0
+  all clean.
+
+READ NEXT
+------------------------------------------------------------------------
+summary.json  — per-lane finish rate, end_reasons, canaries (KI-38/KI-40), outcomes
+L*/stdout.txt — run boundaries and outcomes
+L*/debug-logs — one file per run: [MAP]/[PARTY]/[BATTLE]/[STEP] + STUCK dumps
+
+!! A batch may only be compared against the code whose commit is recorded above.

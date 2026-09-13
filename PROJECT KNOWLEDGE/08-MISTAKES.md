@@ -17049,3 +17049,65 @@ satisfied by a script that asserts after writing, and is still useless.
 ⇒ **Prevention rule: compute the new content, ASSERT every invariant on it, and only then write.
 An assertion after the write is a report, not a guard.** Every edit script in this round now
 follows that order — three of them refused to write and cost nothing but a re-run.
+
+---
+
+## 2026-09-13 (batch close-out) — four wrong assumptions: a counter I never defined, an impossible zero, an overclaim, and a marker I did not move
+
+**(a) I called `finished = 0` a DEFECT, and treated "12 finishes → 0" as a REGRESSION. Both wrong.**
+Symptom: I reported *"no run has ever completed the game"* as evidence something had broken, and
+hung part of the Wally narrative on a finish count dropping from 12 to 0.
+Root cause: **I quoted a counter without reading its definition.** Two facts, both in our own tree:
+`story_mode.py:4865` says *"END OF BUILT CONTENT. Next build: THE POKÉMON LEAGUE — Chapter 24"* —
+**the endgame is not implemented, so no run CAN finish** — and
+`repro_endless_per_run_state.py` already documents the old number as a bug: *"`outcome` defaulted to
+'finished' … All 16 P1 'finished' runs were dead runs … the batch summary read ~80% success against
+a true ~20%."* A 120-minute lane cannot reach the end of the built ladder either.
+‼ This is the **THIRD** counter in one session that measured something *adjacent to* the event:
+`global_watchdog` reported 1398 for 637 real firings (one string matching three log lines), and
+STUCK dumps re-fire every **3,000** frames rather than 300, so **zero** are emitted during the
+fatal wedge the dumps were being used to explain.
+⇒ **Prevention rule: before quoting ANY counter, read its DEFINITION and its CADENCE, and say what
+it counts in the same sentence you quote it. A counter named for an event is not a count of that
+event.** And here specifically: **the progress metric for this bot is LADDER DEPTH, never
+`finished`,** until Chapter 24 exists.
+
+**(b) My own depth table contained an impossible zero, and my own rule is what caught it.**
+Symptom: the first table reported **Norman 0%** beside **Fortree 60%** — Fortree is the NEXT gym, so
+reaching it without Norman is impossible. A badge histogram built the same way returned `0 badges`
+for 100% of runs in BOTH batches.
+Root cause: hand-written `grep` keys that never existed in the logs (the real step is *"entering
+Petalburg Gym to challenge Norman"*; the badge field is not `badges=` in the debug log).
+Fix: re-measured with keys verified to OCCUR in the logs first; Norman is **71%**. The badge
+histogram was discarded, not repaired.
+⇒ **Prevention rule (already written on 2026-09-11, and it fired exactly as intended): an impossible
+zero beside your metric refutes the METRIC, not the subject. Before reporting a distribution, prove
+every key MATCHES SOMETHING — a key that matches nothing is indistinguishable from a true zero.**
+
+**(c) I wrote "every number below is re-derivable from the repo alone" — and it was not.**
+Symptom: the changelog entry claimed full re-derivability after I copied the batch MANIFEST and both
+`summary.json`s into the tracked `evidence/` dir.
+Root cause: the summaries carry `runs_ended`, `whiteouts` and `end_reasons` — but the **beat rate and
+the whole depth table come from per-run debug logs, and `x4-runs/` is gitignored.** Half the claims
+had no committed backing.
+Fix: derived `evidence/2026-09-13-wallyfix-ladder-depth.txt` as the committed record, and rewrote the
+sentence to say exactly which numbers are re-derivable and which are merely recorded — keeping the
+original wording in a parenthetical.
+⇒ **Prevention rule: "re-derivable from the repo" is a claim about EVERY number in the entry. Check
+it per number, not per file, and remember that copying a summary does not cover figures computed
+from artifacts the summary does not contain.**
+
+**(d) ⛔ I updated the queue PROSE and left the file's own LIVE-ACTION MARKER pointing at finished work.**
+Symptom: a Tier 1 reviewer failed P1. `04-HANDOFF.md` documents its own ritual — *"EXACTLY ONE LINE
+IN THIS FILE BEGINS WITH THE `➡➡➡` MARKER, AND IT IS THE LIVE NEXT ACTION"* — and that one line still
+read *"THE NEXT STEP NEEDS THE USER … the feature is ON in SANDBOX only … PROMOTED to
+`custom-pokebot`"*. The user had already been asked, had answered, and the promotion had shipped.
+⇒ a cold agent following the file's OWN documented ritual would have re-asked a settled question
+instead of starting `#24-rival110`, while the prose 60 lines below correctly said otherwise.
+Root cause: I treated "QUEUE ITEM 0" prose as the next-action pointer. **It is not — the file names
+its own pointer, and I did not grep for it.**
+⇒ **Prevention rule: when a document defines its OWN pointer convention, updating the narrative is
+not updating the pointer. On finishing an item, run the file's own documented query
+(`grep -n "^>    ➡➡➡"`) and re-read what it returns.** ‼ P1 says "banner ↔ queue item 0" — this
+failure sat in NEITHER half, which is why the reviewer had to catch it: **a pair check protects
+exactly the two things it names.**
