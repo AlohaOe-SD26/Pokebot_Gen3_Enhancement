@@ -28102,3 +28102,80 @@ starts from measurements and a named decisive test instead of the plausible stor
 heal map is keyed by MAP, and Route 111's SOUTH side — which is where Route 112's lower section exits
 to — answers **Mauville**. **One map, two correct answers, split by the desert.** Same shape as the
 bug above, and the same reason a map-keyed table cannot express it.
+
+---
+
+## 2026-09-12 (night) — `#24-maintain-staletarget` is REAL in structure and costs NOTHING in practice. Downgraded, not fixed.
+
+The ordering defect is real and confirmed at source:
+```
+:2613  yield from self._maintain_lagging_battler(target)   <- errand runs with the ORGANIC target
+:2763  target = team_max + 1                               <- boss-mode escalation
+:2780  target = max(target, team_max + 5)                  <- heavy escalation
+:2803  catchup = target - TRAIN_CATCHUP_GAP                <- exclusion floor from the NEW target
+```
+The claim was that after 2 losses the errand tops a laggard up and the same call then re-excludes it,
+burning the budget on exactly the runs with the worst laggards. **Measured across 1,298 runs, that
+costs nothing** — and the reasons are not the ones I first gave.
+
+### THE MEASUREMENT — and it is re-derivable, which the first version was NOT
+`tools/story-dev/probe_staletarget_cost.py` (committed with this entry). ‼ It exists because an
+adversarial reviewer reproduced most of my numbers from scratch and then said the quiet part: *"no
+script under `tools/story-dev` computes these; they rest on an uncommitted, now-unverifiable
+methodology."* ⇒ **a measurement that decides a ruling must be re-derivable, or the ruling rests on
+my word.**
+
+| reading | value |
+|---|---|
+| runs / lanes | 1,298 / 234 |
+| maintenance APPROVED | 1,415 |
+| …aborted within 3 lines of approval | **194** ⇒ zero training frames spent |
+| escalation `heavy :2786` | 67 events, 28 lanes |
+| escalation `boss :2763` | **3,132 events, 194 lanes** |
+| escalation with an approval ≤3 lines before — heavy | **0** |
+| escalation with an approval ≤3 lines before — boss | **23** |
+| of those 23, how many SPENT frames | **0** (22 rotation-blocked, 1 nav failure) |
+
+### ⛔ CORRECTION 1 — I MEASURED ONLY THE RARE PATH
+My first pass counted only `"lost here N× — training harder"` (`:2786`) — **67 events, 12% of lanes**.
+The other escalation, `boss-training mode` (`:2763`), is gated by the SAME `losses >= 2` and fires
+**3,132 times across 83% of lanes — 47× more common.** The filed defect names BOTH sites; my analysis
+covered one. ⇒ **an analysis that measures one of two branches is not an answer**, and the number
+looked clean precisely because it was looking at the quiet branch.
+
+### ⛔ CORRECTION 2 — MY INSTRUMENT MEASURED *APPROVAL*, NOT *COMPLETION*
+`story_mode.py:2394` prints `"… is below the Lv N prep floor - maintaining it at …"` the moment
+`decide_maintenance` APPROVES a slot — **before** the `try:` that rotates and trains. I called that
+"maintenance ACTED". It is not. Rule 7 exactly: **a candidate is not an attempt.**
+The line that proves completion, `[MAINTAIN] done pid=… REACHED`, goes to the DEBUG log and never to
+stdout, so the two streams cannot be correlated by line proximity at all. The script now reports
+APPROVED and says so in its own output.
+
+### ⛔ CORRECTION 3 — "THE BUDGET IS THE GUARD" WAS WRONG FOR THE PATH THAT MATTERS
+On the rare heavy path, 16 of 17 nearby skips are budget refusals (`est 581,798 > budget 150,000`).
+But on the **dominant** boss path, all 23 approvals were preempted by something else entirely:
+```
+Story: Numel (Lv 15) is below the Lv 18 prep floor - maintaining it at ROUTE117 before this fight.
+Story: could not put Numel in the lead (slot 0 holds Swellow#…) — skipping maintenance rather than
+       training the wrong Pokémon.
+```
+**22 of 23 are the ROTATION guard** — a stronger sweeper already leads, so the errand refuses rather
+than train the wrong mon. 1 is a navigation failure. ⇒ the real answer is "rotation-or-budget-or-
+ground", and the ordering defect is screened by **three independent gates**, none designed for it.
+
+### ⇒ THE RULING: DO NOT REORDER. And the strongest reason is not mine.
+I argued "reordering raises `catchup`, so more budget refusals, so the feature fires less". True but
+weak. The reviewer found a **certain** harm instead: `_prepare_for_fight` has early-return paths —
+the counter-ladder / second-wind block — that bypass the READY-THE-BATTLERS section entirely.
+Maintenance currently runs BEFORE all of it, so a laggard is topped up even on attempts that end in
+an early return. **Moving the call after the escalation would mean maintenance never runs at all on
+those attempts** — a silent structural regression on the hardest bosses, which are exactly the ones
+that reach counter-ladder/second-wind.
+⇒ trading a defect with **zero measured occurrences** for a regression with a **certain** mechanism
+is a bad trade, and no version of "fix it anyway" clears that bar.
+
+### ‼ THE WATCH CONDITION — this is the part a future session needs
+The defect is unreachable today only because three unrelated gates screen it. **If any of them is
+loosened — most plausibly raising `MAINTAIN_MAX_FRAMES` (150,000) — this becomes reachable.**
+⇒ re-run `probe_staletarget_cost.py` after any change to that budget, to the rotation guard, or to
+`decide_maintenance`'s refusal order.

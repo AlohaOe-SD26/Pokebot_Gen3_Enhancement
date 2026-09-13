@@ -496,24 +496,31 @@ Moved for the R3 budget; all four are in `05-KNOWN-ISSUES.md` or its archive wit
 >    ⚠ Neither proves `decide_maintenance` ever SELECTS slot 0 in production (reasoned, not observed),
 >    and NEITHER explains the residual 19-vs-9 heal derails — 18 of 19 fire OUTSIDE the errand.
 >
->    ⬇ **`#26-healmap-lavaridge` IS DOWNGRADED (2026-09-12) — do NOT start here.** It is a frame-cost
->    (~3,000 frames + 1 derail slot), NOT a run-killer: the derail re-plans via Jagged Pass and reaches
->    Lavaridge anyway. ⛔ Its "obvious" fix is a NO-OP — `_training_area_heal_map()`'s ROUTE112/
->    FIERY_PATH rows are DEAD KEYS (all 3 callers key off `TRAINING_GRASS`, which has neither map); the
->    real caller is a LITERAL at `story_mode.py:4271`. ⛔ And the replacement is DISPUTED: my
->    `calculate_path` probe says Fallarbor, a decomp BFS says Mauville and notes Fallarbor needs
->    Go-Goggles (awarded WITH Flannery's badge, i.e. after this fires). Both reproduce the control.
->    ⇒ **UNRESOLVED — change nothing.** DECISIVE TEST, named and not run: drive `_navigate_riding_out`
->    from `ROUTE112 (11,36)` to each candidate door on a PRE-FLANNERY save. Full evidence:
->    `07-CHANGELOG.md` 2026-09-12 (night).
+>    ⬇ **`#26-healmap-lavaridge` DOWNGRADED (2026-09-12) — do NOT start here.** A frame-cost
+>    (~3,000 frames + 1 derail slot) on a path that SELF-HEALS via Jagged Pass; its “obvious” fix
+>    targets DEAD KEYS (the real caller is a literal at `story_mode.py:4271`); and the replacement
+>    is DISPUTED between two instruments that both reproduce the control. ⇒ change nothing.
+>    DECISIVE TEST, named and not run: drive `_navigate_riding_out` from `ROUTE112 (11,36)` to each
+>    candidate door on a PRE-FLANNERY save. Detail: `03-PUNCH-LIST.md`, `07-CHANGELOG.md` 2026-09-12.
+
+>    ⬇ **`#24-maintain-staletarget` MEASURED AND DOWNGRADED (2026-09-12) — do NOT start here.** The
+>    ordering defect is REAL and costs **NOTHING**: over 1,298 runs and BOTH escalation paths, of the
+>    23 approvals adjacent to an escalation **0 spent frames** (22 preempted by the ROTATION guard).
+>    ⛔ **DO NOT REORDER** — `_prepare_for_fight`'s counter-ladder / second-wind early returns bypass
+>    READY-THE-BATTLERS, and maintenance runs BEFORE them today, so moving it would remove the errand
+>    from the HARDEST bosses: a CERTAIN regression for a zero-occurrence defect. ‼ WATCH CONDITION:
+>    re-run `tools/story-dev/probe_staletarget_cost.py` after any change to `MAINTAIN_MAX_FRAMES`, the
+>    rotation guard, or `decide_maintenance`'s refusal ORDER. Ruling: `06-DECISIONS-LOG.md` 2026-09-12.
 >
->    ⭐ **QUEUE ITEM 0 — `#24-maintain-staletarget`.** It is the open item that most likely COSTS the
->    user something: `_prepare_for_fight` calls `_maintain_lagging_battler(target)` BEFORE escalating
->    `target` on a reactive re-attempt (`losses>=2`), so after 2 losses the errand tops a mon to
->    *(low roll) − 6* and the same call re-excludes it moments later — the whole frame budget spent for
->    nothing, on exactly the runs with the worst laggards. ⚠ Gate #55 tests the PURE predicate and
->    cannot see it (the defect is in what the CALLER passes). ⛔ UNMEASURED: log the call-time AND the
->    final escalated `target` BEFORE changing anything (rule 7: a candidate is not an attempt).
+>    ⭐ **QUEUE ITEM 0 — `#24-ratchet-scope-gap`: the last SAFETY gap, and it is real.**
+>    `probe_abort_swallowing.py:71` and `repro_no_silent_except.py:65` do **NOT** scan
+>    `plugins/custom_modes` (only gate #56 does) ⇒ `story_mode.py` can grow a new abort-swallowing
+>    `except BotModeError` with **both ratchets GREEN**. ⛔ I asserted the opposite and an agent
+>    disproved it from the SCAN lists — *a rule believed to be enforced is worse than one known not
+>    to be.* MEASURED debt: **93 broad handlers, ~90 unguarded** (83 in `story_mode.py`) ⇒ an
+>    **ADMITTED BASELINE** like the 2026-08-14 `modules/modes/util` one, NOT a sweep: add the root
+>    with its measured budget so NEW ones are blocked, pay down after. ‼ Both ratchets budget
+>    PER-ROOT (that is what caught a silent `except` I added today) — measure the root, not the total.
 >    ⚠ **OPEN, and all three are filed at the top of `03-PUNCH-LIST.md`:** `#26-healmap-lavaridge`
 >    (our repo contradicts its own measurement), `#24-ratchet-scope-gap` (`plugins/custom_modes` is
 >    outside BOTH abort ratchets — 93 broad handlers, ~90 unguarded), `#24-maintain-staletarget`.

@@ -5195,3 +5195,39 @@ batch must show ON ≤ OFF on run-enders, not ON > OFF on badges.
 elevated BY this feature, so enabling first is the one ordering that guarantees the user experiences
 them. *Keep arguing for OFF* — rejected: the user reaffirmed after hearing the case; per this
 project’s own conduct rule, a reaffirmed instruction is a decision to execute, not to re-litigate.
+
+---
+
+## 2026-09-12 — `#24-maintain-staletarget`: leave the ordering alone (measured zero cost; reordering has a CERTAIN harm)
+
+**Decision.** Do NOT move `_maintain_lagging_battler(target)` after the reactive target escalation.
+The item is DOWNGRADED and stays open only as a watch condition.
+
+**Why.** The ordering defect is real (`story_mode.py:2613` runs the errand with the pre-escalation
+target; `:2763`/`:2780` then raise it and `:2803` recomputes the exclusion floor). But measured across
+**1,298 runs and BOTH escalation paths** (3,132 boss-mode + 67 heavy), **no approved errand ever spent
+frames that the escalation then wasted**: of the 23 approvals adjacent to an escalation, 22 were
+preempted by the ROTATION guard and 1 by a navigation failure.
+
+**The decisive argument against fixing it is a NEW harm, not the absence of an old one.**
+`_prepare_for_fight` has early-return paths (counter-ladder / second-wind) that skip the
+READY-THE-BATTLERS section. Maintenance currently runs BEFORE them, so a laggard is topped up even on
+attempts that return early. Reordering would remove maintenance from exactly those attempts — the
+hardest bosses — a silent, structural regression. ⇒ trading a zero-occurrence defect for a
+certain-mechanism regression is a bad trade.
+
+**Alternatives rejected.**
+* *Move the call after escalation* — rejected above.
+* *Pass the escalated target to the errand* — rejected for now: the escalated target is not known at
+  `:2613` without restructuring the function, and the defect it would fix has zero measured cost.
+* *Close the item outright* — rejected: it is unreachable only by accident. Three unrelated gates
+  screen it and none was designed to.
+
+**⚠ WATCH CONDITION (the reason this stays open).** Re-run
+`tools/story-dev/probe_staletarget_cost.py` after ANY change to `MAINTAIN_MAX_FRAMES` (150,000), to
+the rotation guard, or to `decide_maintenance`'s refusal ORDER. Raising the frame budget is the most
+plausible way to unmask this, and it is a change someone will reasonably want to make when arguing
+the top-up should do more.
+
+**⛔ DO NOT RE-DERIVE THIS FROM THE CODE ALONE.** Reading `:2613` against `:2780` makes the defect look
+expensive and obvious; it is neither. The measurement is what settles it, and it is committed.
