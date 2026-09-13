@@ -17254,3 +17254,38 @@ verifier is what surfaced the duplication at all, and it also caught: a stale co
 (6,13)), an omitted fifth warp, an "unknown" that was in the first 30 lines of the handoff, and a
 headline ("WORSE THAN RECORDED") that the project's own decisions log had already recorded nine days
 earlier. ⇒ **keep the adversarial pairing; move the prior-art check in front of it.**
+
+---
+
+## 2026-09-13 — I sent a diff for review and then kept editing it, so the reviewer audited a snapshot that no longer existed
+
+**Symptom.** I captured `git diff` for a code change, spawned a Tier 1 reviewer on it, and then — while
+it ran — hardened the same two files (status normalisation + four gate checks + a module comment).
+The reviewer BLOCKED, correctly, with: *"The diff under review is stale relative to the working tree
+— a material amount of unreviewed logic already exists on disk … 127 lines, roughly double the 62
+lines these two files account for in the diff."* It also caught that my self-report said "48 checks"
+while the tree actually had 52.
+
+**Why this is worse than it looks.** A review is only worth the snapshot it audited. Had it returned
+RECOMMEND-COMMIT, I would have committed a code path — the enum-normalisation branch — that **no
+reviewer ever saw**, under a self-report describing a narrower, older version of the same function.
+The reviewer would have been cited as the safety check that never examined the risky part.
+
+⇒ **Prevention rule: THE TREE IS FROZEN FROM `git diff` UNTIL THE REVIEW RETURNS.** If something must
+change, cancel the review or re-submit — never let both run at once. And **re-capture the diff AND
+the raw evidence together, at the moment of submission**, so the check counts in the report and in
+the evidence file provably describe the same bytes. ‼ Quote an MD5 of each reviewed file in the
+submission so the reviewer can detect drift itself — which is what the re-submission did, and it is
+the only reason the second review could trust its inputs.
+
+⭐ **AND THE RULE FIRED THE SAME HOUR.** While the RE-review was running I found two more edge cases
+worth fixing (a lowercase status silently declines; an object whose `.name` property raises
+propagates the exception). I did **not** apply them — applying them would have re-created the exact
+defect I had just been blocked for. They are deferred to the next pass. ⇒ *the test of a prevention
+rule is whether it stops you when it is inconvenient.*
+
+**A second, smaller thing the same review caught, worth keeping:** my self-report paraphrased the
+gate result instead of attaching raw output. *"Per the fixed rule this is an automatic fail."* The
+reviewer then ran the gate itself and got a DIFFERENT count than I had claimed — which is how the
+staleness was detected in the first place. ⇒ **attach raw stdout, never a paraphrase; a number you
+retype is a number you can retype wrongly.**

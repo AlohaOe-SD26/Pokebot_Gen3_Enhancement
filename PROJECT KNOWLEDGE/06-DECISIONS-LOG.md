@@ -5231,3 +5231,35 @@ the top-up should do more.
 
 **⛔ DO NOT RE-DERIVE THIS FROM THE CODE ALONE.** Reading `:2613` against `:2780` makes the defect look
 expensive and obvious; it is neither. The measurement is what settles it, and it is committed.
+
+
+## 2026-09-13 — `#24-e4healing` step 3: four design choices in the in-battle item policy
+
+**Decision 1 — a SIBLING function, not an extension of `choose_healing_item`.** *Rationale:* that
+policy expresses every rule in HP (`missing`, `effective_heal`, `worst_hit_taken`); a status cure
+restores no HP, so folding it in would make `effective_heal` return 0 for an item we DO want —
+teaching the HP policy to lie. *Rejected:* one function with a mode flag, putting two unrelated
+rule-sets behind one branch.
+
+**Decision 2 — cure ONLY `{Sleep, Freeze}`.** *Rationale:* both PREVENT ACTING, so the turn spent
+curing is strictly better than the turn lost — the trade is FREE. Poison/Burn/Paralysis chip but
+still let the mon attack, so curing them trades a certain attack for a little HP, which rule 1 of
+`battle_items.py` already rejects. Gen-3 freeze additionally never self-thaws. *Rejected:* curing
+any status. ⛔ Widening this set is a NEW decision — gate #59 asserts the set's exact contents so it
+cannot widen silently.
+
+**Decision 3 — `allow_revive` defaults to `False`.** *Rationale:* a cure targets the ACTIVE battler
+(the index the HP path lands 19/19 at slot 0); a REVIVE targets a FAINTED NON-ACTIVE member — the
+index space behind KI-18/KI-34/KI-66 (`KI-100`). The POLICY is sound either way; the CALLER's aim is
+unproven. A safe default costs the eventual probe-backed caller one keyword; an unsafe one costs a
+silent regression. *Rejected:* default `True` with a docstring warning — a Tier 1 reviewer noted
+nothing in the signature would then stop a future caller using the default. ⛔ The flag is checked at
+the REVIVE branch, never at the top, so it can never disable the status cure as well.
+
+**Decision 4 — accept the status as a string, an enum, or `"StatusCondition.Sleep"`.** *Rationale:*
+MEASURED that two of those three forms returned None — silently no cure, no error. *Rejected:*
+requiring `.name`, i.e. trusting a convention whose violation is invisible.
+
+⚠ **DELIBERATELY NOT DECIDED HERE:** whether to WIRE any of it. `story_mode.py:679` still filters
+`parameter > 0`; wiring changes every trainer battle in the game and needs its own reviewable change
+and its own drive. Step 3 is half-shipped and labelled as such.

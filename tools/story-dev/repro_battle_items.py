@@ -147,7 +147,26 @@ print("=" * 80)
 # unusable by any code path we have". The bot spent ₽54,300 on a basket it could not open.
 from modules.story.battle_items import (  # noqa: E402
     choose_status_or_revive_item, TURN_COSTING_STATUSES,
+    STATUS_CURE_ITEMS, SLEEP_CURE_ITEMS, FREEZE_CURE_ITEMS, REVIVE_ITEMS,
 )
+
+# ⛔⛔ EVERY NAME THE POLICY SELECTS BY MUST EXIST IN `items.json` — AND THIS IS A STATIC CHECK, SO
+# THE GATE STAYS PURE. I originally DISCLOSED this hazard instead of fixing it, claiming a pure gate
+# could not see item names; a Tier 1 reviewer pointed out that the "REAL DATA" block ~100 lines above
+# already reads `items.json` directly with no emulator. ⇒ the guard was cheap all along, and
+# "documented limitation" was the wrong answer when a fix was demonstrated in the same file.
+# ‼ WHY IT MATTERS: selection is BY NAME (the only honest way — `parameter` is a union type), so a
+# renamed item makes the policy SILENTLY INERT while all 53 FakeItem checks still pass. Not
+# hypothetical: `"Paralyze Heal"` does NOT exist in this data — the real spelling is `"Parlyz Heal"`.
+for _policy_name in (*STATUS_CURE_ITEMS, *SLEEP_CURE_ITEMS, *FREEZE_CURE_ITEMS, *REVIVE_ITEMS):
+    _entry = by_name.get(_policy_name)
+    check(f"policy name {_policy_name!r} exists in items.json and is medicine",
+          _entry is not None and _entry.get("battle_use") == "healing",
+          "MISSING from items.json — the policy would be silently inert" if _entry is None
+          else f"battle_use={_entry.get('battle_use')!r}")
+check("⛔ the misspelling that motivates this check is genuinely absent",
+      "Paralyze Heal" not in by_name and "Parlyz Heal" in by_name,
+      "if this ever flips, re-read the hazard note in battle_items.py")
 
 FULLHEAL, REVIVE, MAXREVIVE = (FakeItem(n) for n in ("Full Heal", "Revive", "Max Revive"))
 AWAKEN, ICEHEAL, ANTIDOTE = (FakeItem(n) for n in ("Awakening", "Ice Heal", "Antidote"))
@@ -183,8 +202,14 @@ for st in ("Poison", "BadPoison", "Burn", "Paralysis"):
           choose_status_or_revive_item(st, 3, BAG) is None)
 check("Healthy with mons in reserve -> no revive (rule 2)",
       choose_status_or_revive_item("Healthy", 3, BAG) is None)
-check("Healthy on the LAST mon -> revives (the alternative is a whiteout)",
-      getattr(choose_status_or_revive_item("Healthy", 1, BAG), "name", None) == "Revive")
+check("Healthy on the LAST mon, revives EXPLICITLY ENABLED -> revives",
+      getattr(choose_status_or_revive_item("Healthy", 1, BAG, allow_revive=True),
+              "name", None) == "Revive")
+# ⛔⛔ THE DEFAULT MUST BE THE SAFE ONE. A Tier 1 reviewer flagged that `allow_revive=True` by default
+# means nothing in the signature stops a future caller from silently re-entering the unproven
+# revive-TARGETING path (KI-100; the index space behind KI-18/KI-34/KI-66). Opt IN to the risky half.
+check("⛔ the DEFAULT does NOT revive — the risky half is opt-in (KI-100)",
+      choose_status_or_revive_item("Healthy", 1, BAG) is None)
 check("the per-battle cap is SHARED with the HP policy",
       choose_status_or_revive_item("Sleep", 3, BAG, uses_so_far=4) is None)
 check("asleep but holding NO cure -> None, no exception",
@@ -200,6 +225,55 @@ check("⛔ an X Attack (parameter 0, NOT medicine) is never chosen",
       choose_status_or_revive_item("Sleep", 1, opts((XATTACK, 1, 0))) is None)
 check("the turn-costing set is exactly Sleep+Freeze (widening it needs a new ruling)",
       set(TURN_COSTING_STATUSES) == {"Sleep", "Freeze"}, str(sorted(TURN_COSTING_STATUSES)))
+# --- ⛔ allow_revive: the two answers have DIFFERENT TARGETS and only one is proven ---------------
+# A status cure aims at the ACTIVE battler (the index the HP policy already lands 19/19 at slot 0).
+# A revive aims at a FAINTED, NON-ACTIVE member — the index space behind KI-18 / KI-34 / KI-66.
+# These two checks pin that the flag suppresses ONLY the revive, never the cure.
+check("allow_revive=False suppresses the revive",
+      choose_status_or_revive_item("Healthy", 1, BAG, allow_revive=False) is None)
+# --- ⛔ THE STATUS ARGUMENT ACCEPTS ALL THREE FORMS A CALLER MIGHT PASS ---------------------------
+# The codebase's status is a `StatusCondition` ENUM; this policy compares strings. Before hardening,
+# passing the enum (or `str(enum)` = "StatusCondition.Sleep") returned None — SILENTLY no cure and
+# no error. These three checks pin that all three forms work, because the failure mode was invisible.
+
+
+class _FakeStatus:  # stands in for StatusCondition.Sleep without importing the ROM-backed enum
+    name = "Sleep"
+
+    def __str__(self):
+        return "StatusCondition.Sleep"
+
+
+check("status as a plain string cures",
+      getattr(choose_status_or_revive_item("Sleep", 3, BAG), "name", None) == "Full Heal")
+check("status as an ENUM-like object (has .name) cures",
+      getattr(choose_status_or_revive_item(_FakeStatus(), 3, BAG), "name", None) == "Full Heal")
+check("status as 'StatusCondition.Sleep' cures",
+      getattr(choose_status_or_revive_item("StatusCondition.Sleep", 3, BAG), "name", None) == "Full Heal")
+check("a chip status still declines in dotted form",
+      choose_status_or_revive_item("StatusCondition.Poison", 3, BAG) is None)
+# --- the two gaps a Tier 1 reviewer named, now closed ---------------------------------------------
+check("a LOWERCASE status still cures (was silently None)",
+      getattr(choose_status_or_revive_item("sleep", 3, BAG), "name", None) == "Full Heal")
+check("mixed case too",
+      getattr(choose_status_or_revive_item("FREEZE", 3, BAG), "name", None) == "Full Heal")
+check("a lowercase CHIP status still declines (casefold must not widen the set)",
+      choose_status_or_revive_item("poison", 3, BAG) is None)
+
+
+class _RaisingStatus:
+    @property
+    def name(self):
+        raise RuntimeError("a status object whose .name blows up")
+
+
+check("⛔ a status whose .name RAISES returns None instead of propagating out of a PURE policy",
+      choose_status_or_revive_item(_RaisingStatus(), 3, BAG) is None)
+check("the folded set is DERIVED from the public one, not typed twice",
+      {s.casefold() for s in TURN_COSTING_STATUSES} == {"sleep", "freeze"})
+check("allow_revive=False STILL CURES STATUS (one flag must not disable two behaviours)",
+      getattr(choose_status_or_revive_item("Sleep", 1, BAG, allow_revive=False),
+              "name", None) == "Full Heal")
 # --- and the HP policy must be UNCHANGED by all of this ------------------------------------------
 check("REGRESSION GUARD: the HP policy still ignores parameter==0 items",
       choose_healing_item(10, 100, opts((FULLHEAL, 8, 0))) is None)

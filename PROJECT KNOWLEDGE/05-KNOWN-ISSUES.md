@@ -2975,3 +2975,22 @@ transitively gates HM04 Strength (Magma Hideout, Seafloor Cavern, Victory Road).
 checked whether this bot can fill one. **TO VERIFY:** read the script; then change the predicate to
 assert the item is **HELD**, not that the flag is set — an IDENTITY assertion, which is exactly what
 SESSION DISCIPLINE #3 asks for and what a flag check can never be.
+
+## `KI-100` — ⛔ an in-battle REVIVE aims at a DIFFERENT INDEX SPACE than a heal, and that space has produced three bugs already (2026-09-13, MED — found BEFORE shipping)
+
+`#24-e4healing` step 3 built `choose_status_or_revive_item()` (`battle_items.py`, gate #59, 66 checks, fault-proven). **It is not wired**, and when it is, the two answers must NOT be treated
+alike. `TurnAction.use_item_on(item, party_index)` takes a PARTY INDEX:
+* a **status cure** targets the **ACTIVE** battler — `mon.party_index`, which the HP policy already
+  lands reliably (`story_mode.py` records party-order landing **19 of 19** at slot 0);
+* a **REVIVE** targets a **FAINTED, NON-ACTIVE** member — a different index, where the same
+  heuristic records only **9 of 10**, each after party order had already failed and cost a turn.
+‼ This is the worst-history corner of the codebase: `handle_fainted_pokemon` has had **THREE**
+index-space bugs (**KI-18, KI-34, KI-66**), and CLAUDE.md rule 10 exists because of them — *"run an
+OBSERVE-ONLY probe printing both coordinates beside a ground truth derived independently, THEN apply
+it."*
+✅ **MITIGATED:** the policy takes `allow_revive` and **THE DEFAULT IS `False`** — the risky half is OPT-IN. *(It defaulted True for one revision; a Tier 1 reviewer noted nothing in the signature would then stop a future caller silently re-entering the unproven path. Flipped; gate #59 pins it.)* ⇒ TWO more fragilities found while building, both fixed and gated: **(a)** the status arg was ENUM-FRAGILE — passing the enum or `str(enum)` returned None, silently no cure and no error; now normalised to accept all three forms (4 checks; removing it reds exactly 2). **(b)** ✅ **a RENAME is now GATED, statically** — selection is by literal NAME (the only honest way; `parameter` is a union type), and the gate asserts all seven resolve in `items.json` as medicine. ‼ I first shipped this as a *documented blind spot*, claiming a pure gate could not see names; a reviewer pointed out the gate's own “REAL DATA” block already reads `items.json` with no emulator. ⇒ **“documented limitation” was wrong when the fix was 100 lines up.** ‼ Not hypothetical: the paralysis cure is really **"Parlyz Heal"**, not "Paralyze Heal" — had paralysis been in `TURN_COSTING_STATUSES`, the obvious spelling would have shipped dead. ⛔ It is checked at the REVIVE branch, never at the
+top, so it cannot silently disable the status cure too — gate #59 pins exactly that ("one flag must
+not disable two behaviours") and the fault arm reds when it is violated.
+**To close:** an observe-only probe on a staged battle with a fainted non-slot-0 member that prints
+BOTH candidate indices beside a ground truth derived **by PID, never by slot** (discipline #3), and
+shows which the menu actually lands on. Only then flip `allow_revive` at the caller.

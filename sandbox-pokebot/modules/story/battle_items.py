@@ -116,11 +116,30 @@ def choose_healing_item(
 #: freeze is a permanent loss of that Pokémon for the rest of the battle — which is exactly why
 #: `pokemon_league.py`'s own driver stages a FROZEN Sceptile as its discriminator.
 TURN_COSTING_STATUSES = frozenset({"Sleep", "Freeze"})
+#: The same set, casefolded — the comparison actually used. ⛔ DERIVED, never typed a second time:
+#: two hand-maintained copies of one set is how a widening lands in only one of them.
+_TURN_COSTING_FOLDED = frozenset(s.casefold() for s in TURN_COSTING_STATUSES)
 
 #: Item names that cure status. ⛔ BY NAME, NOT BY `parameter` — and that is the point of this whole
 #: function. `overworld_items.py` records the live-drive lesson: `parameter` IS A UNION TYPE (HP for
 #: a potion, **STEPS for a Repel**, 0 for a status cure), so a number alone cannot tell you what an
 #: item does. The old in-battle filter `param > 0` excluded every one of these.
+#: ✅ ALL SEVEN NAMES BELOW WERE VERIFIED AGAINST THE LIVE ITEM TABLE ON 2026-09-13 — every one
+#: resolves via `get_item_by_name` and every one reports `battle_use == healing`.
+#: ✅ AND A RENAME IS NOW GATED — statically, so the gate stays pure. `repro_battle_items.py` asserts
+#: every name below resolves in `modules/data/items.json` AND reports `battle_use == "healing"`.
+#: ‼‼ I FIRST SHIPPED THIS AS A DOCUMENTED BLIND SPOT, claiming a pure gate could not see item
+#: names. A Tier 1 reviewer pointed out that the gate's own "REAL DATA" block ALREADY reads
+#: `items.json` directly with no emulator — the guard was cheap the whole time. ⇒ **"documented
+#: limitation" was the wrong answer when a fix was demonstrated 100 lines up in the same file.**
+#: ⛔ WHY IT MATTERS: selection is BY NAME (the only honest way — `parameter` is a union type), so a
+#: rename would make this policy SILENTLY INERT while every FakeItem check still passed. Not
+#: hypothetical: **`"Paralyze Heal"` does not exist — the real spelling is `"Parlyz Heal"`**. Had
+#: paralysis been in `TURN_COSTING_STATUSES`, the obvious spelling would have shipped dead.
+#: Fault-tested: renaming one entry below reds the gate with "MISSING from items.json".
+#: ⇒ **If you add a name here, resolve it against the live table first.** The purity of the gate is
+#: worth keeping (it runs in milliseconds); the cost is that this one property is unguarded, and
+#: saying so is better than pretending the gate covers it.
 STATUS_CURE_ITEMS = ("Full Heal", "Full Restore", "Lava Cookie")
 SLEEP_CURE_ITEMS = ("Awakening",)
 FREEZE_CURE_ITEMS = ("Ice Heal",)
@@ -134,9 +153,28 @@ def choose_status_or_revive_item(
     *,
     uses_so_far: int = 0,
     max_uses: int = MAX_ITEM_USES_PER_BATTLE,
+    allow_revive: bool = False,
 ) -> "object | None":
     """Pick a STATUS CURE or a REVIVE, or None to act normally. The sibling of
     `choose_healing_item`, for the items whose `parameter` is 0.
+
+    ⛔⛔ `allow_revive=False` EXISTS BECAUSE THE TWO ANSWERS HAVE DIFFERENT TARGETS, AND ONLY ONE OF
+    THE TWO TARGETS IS PROVEN. A status cure is used on the **ACTIVE battler** — the same
+    `mon.party_index` the HP policy already lands reliably. A **REVIVE is used on a FAINTED,
+    NON-ACTIVE party member**, which is a DIFFERENT INDEX SPACE, and this is the single most
+    bug-prone corner of this codebase: `handle_fainted_pokemon` has had **three** index-space bugs
+    (KI-18, KI-34, KI-66), and CLAUDE.md rule 10 says to *"run an OBSERVE-ONLY probe printing both
+    coordinates beside a ground truth derived independently, THEN apply it"*. The in-battle caller
+    even carries an empirical heuristic for this (`story_mode.py`: party-order landed 19/19 when the
+    target was slot 0, battle-order 9/10 when it was above slot 0) — and a fainted mon is by
+    definition NOT the active one, so it falls in the half that heuristic is least sure about.
+    ⇒ **The POLICY here is sound either way; what is unproven is the CALLER's ability to aim.**
+    ⛔⛔ **THE DEFAULT IS `False`, AND THAT IS DELIBERATE.** A Tier 1 reviewer pointed out that a
+    default of `True` means *"nothing in the signature stops a future caller from using the default
+    and silently reintroducing the unproven revive-targeting path"*. A safe default costs the
+    eventual, probe-backed caller one explicit keyword; an unsafe default costs a silent regression
+    into the corner of this codebase with three prior bugs. ⇒ **opt IN to the risky half.**
+    `KI-100` records the observe-only index probe that would justify flipping it.
 
     ‼‼ WHY THIS EXISTS AND WHY IT IS SEPARATE (`#24-e4healing` step 3, 2026-09-13).
     `06-DECISIONS-LOG.md` records the measured blocker: *"the policy filters on `param > 0`
@@ -175,14 +213,33 @@ def choose_status_or_revive_item(
     if uses_so_far >= max_uses:
         return None
 
+    # ⛔ NORMALISE THE STATUS — MEASURED NECESSARY, NOT DEFENSIVE PROGRAMMING (2026-09-13).
+    # The codebase's status is a `StatusCondition` ENUM, and this policy compares plain strings. A
+    # caller that passes the enum itself, or `str(enum)` (which is "StatusCondition.Sleep"), got
+    # **None — silently no cure, no error**, verified by running all three forms. That is the exact
+    # "goes inert and every test still passes" shape this module's own comments warn about, so the
+    # function accepts all three rather than trusting the caller to remember.
+    # ⛔ `.name` IS READ INSIDE A TRY. A status object whose `.name` is a PROPERTY THAT RAISES would
+    # otherwise propagate out of a PURE policy function — measured: a raising `.name` escaped as a
+    # RuntimeError. The caller does wrap this (`decide_turn` catches Exception), but a pure policy
+    # that raises on its own input is a landmine for the next caller, which may not.
+    try:
+        raw = getattr(status_name, "name", status_name)   # StatusCondition.Sleep -> "Sleep"
+    except Exception:  # noqa: BLE001 — an unreadable status is "no status we act on", never a crash
+        return None
+    # ⛔ CASEFOLD. A caller passing "sleep" instead of "Sleep" got None — silently no cure, no error.
+    # The comparison set is two literals that collide with nothing, so matching case-insensitively
+    # closes a silent-failure path at no risk. (`.rsplit` first: "StatusCondition.Sleep" -> "Sleep".)
+    status = str(raw).rsplit(".", 1)[-1].casefold()
+
     held = {}
     for item, qty, _param in options:
         if qty > 0:
             held[str(getattr(item, "name", item))] = item
 
     # --- rule 1 — cure a turn-costing status -----------------------------------------------------
-    if status_name in TURN_COSTING_STATUSES:
-        specific = SLEEP_CURE_ITEMS if status_name == "Sleep" else FREEZE_CURE_ITEMS
+    if status in _TURN_COSTING_FOLDED:
+        specific = SLEEP_CURE_ITEMS if status == "sleep" else FREEZE_CURE_ITEMS
         # rule 3: the dedicated cure first, then the general one, then the scarce Full Restore last.
         for name in (*specific, "Full Heal", "Lava Cookie", "Full Restore"):
             if name in held:
@@ -190,7 +247,11 @@ def choose_status_or_revive_item(
         return None
 
     # --- rule 2 — revive only as the alternative to a whiteout -----------------------------------
-    if non_fainted_count <= 1:
+    # ⛔ `allow_revive` is checked HERE and not at the top, deliberately: a caller that forbids
+    # revives must still get its status cure above. Gating the whole function would silently
+    # disable rule 1 as well — the "one flag, two behaviours" shape that hid the Wonder Guard
+    # demotion inside an unrelated revert flag.
+    if allow_revive and non_fainted_count <= 1:
         for name in REVIVE_ITEMS:
             if name in held:
                 return held[name]
