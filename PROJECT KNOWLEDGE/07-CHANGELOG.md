@@ -27694,3 +27694,120 @@ measured: the decisive instrument would be heals-attempted per run, per arm.
 (68.6% vs 69.5%), run duration is longer, the pointless-retry class is eliminated, and the ROUTE111
 failure class collapsed. ⛔ It is NOT "proven good": badges/run is slightly lower, and the heal
 fail-soft handler has still never executed.
+
+---
+
+## 2026-09-12 (late) — The slot-0 guard is now PROVEN BY DRIVING, and the proof needed no staging at all
+
+The guard shipped this morning and was UNDRIVEN. Three agents were sent at the problem on different
+angles; the ADVERSARIAL one dismantled my plan before a line was written, and its objection is the
+reason this proof is both cheaper and stronger than what I intended.
+
+### ⛔ THE OBJECTION THAT REDIRECTED EVERYTHING
+My plan was to STAGE a run where `decide_maintenance` selects slot 0, then “show the guard is the
+branch taken”. The reviewer’s reply: **proving an `if` evaluated False proves nothing about harm
+prevented.** In a real errand the guarded branch is *a call that does not happen*, and “the right mon
+leads” is true either way. ⇒ what must be shown is that the call the guard SUPPRESSES is destructive.
+
+⭐ **And it showed the damage is DETERMINISTIC, which I had written down WRONGLY.** My own code
+comment said the unguarded call “confirms a swap against whatever the cursor happens to be on”.
+False. `change_lead_party_pokemon` (`higher_level_actions.py:666-679`) is:
+```
+case 1:                 Right, A
+case _ if slot != 1:    Right, (slot-1) Downs, A
+```
+For `slot=0`, `range(-1)` is EMPTY ⇒ the sequence is **byte-identical to `case 1`** ⇒ it always swaps
+slot 0 with **SLOT 1**. The comment is corrected in place.
+⇒ **Prevention rule: when you describe a failure as nondeterministic, check the arithmetic first —
+“whatever happens to be there” sends the next reader hunting for randomness that does not exist,
+and it hides the fact that the bug is cheaply REPRODUCIBLE.**
+
+### THE PROOF — `--driver rotzero`, two arms, MEASURED
+No `decide_maintenance` staging, no mule injection, no grind: call the menu action in ISOLATION and
+watch PIDs.
+
+| | `unguarded` | `guarded` |
+|---|---|---|
+| `change_lead_party_pokemon` calls | **`[0]`** | **`[]`** |
+| slots 0/1 exchanged PIDs | **True** | False |
+| party PID tuple unchanged | False | **True** |
+| verdict | **PASS** (harm observed) | **PASS** (harm suppressed) |
+
+```
+BEFORE slot=0 Dustox    pid=A735D162 | slot=1 Marshtomp pid=550A9BE6
+CALL change_lead_party_pokemon(slot=0)
+AFTER  slot=0 Marshtomp pid=550A9BE6 | slot=1 Dustox    pid=A735D162
+```
+Evidence: `tools/story-dev/evidence/2026-09-12-rotzero-{unguarded,guarded}.stdout.txt`.
+
+⭐ **NEITHER ARM MUTATES A SOURCE FILE.** That was deliberate: this repo has twice had a fault arm
+edit source text and MISS its target while the gate stayed green (`probe_late_boss_configs.py`; gate
+#57’s own `healbare`). An arm selected by env var, running the two shapes side by side, cannot miss.
+
+⛔ **VACUITY CONJUNCTS, checked before a button is pressed:** the party must hold ≥2 mons with
+DISTINCT PIDs. With one mon there is no slot 1 to corrupt — and a clean run would then read as a
+REFUTATION of a true finding. Either conjunct failing ⇒ `ACCEPTANCE: ABORT (instrument, not a
+result)`, never PASS. (The guard’s own comment cites a one-Pokémon party as the trigger case, so
+this was a live trap, not a theoretical one.)
+
+### ⛔ WHAT THIS DOES **NOT** PROVE — stated so nobody reads more into it
+The isolated call proves **the harm exists and the guard suppresses it**. It does NOT prove that
+`decide_maintenance` ever selects slot 0 in a real run. That is REASONED, not observed: slot 0 is
+selected iff `party[0]` is a battler, is the minimum battler level, and is below `catchup` (ties
+break to the lowest index, `story_mode.py:1232`). ⇒ filed, not claimed.
+‼ **And a structural finding worth keeping:** `POKEBOT_MAINTAIN_TARGET` can NEVER change WHICH slot
+is picked — `excluded` is built by a level threshold and the pick is `argmin(level, index)` over it,
+so the target only decides WHETHER the feature fires. Any future attempt to stage a slot by tuning
+the target is wasted effort.
+
+⛔ **A NOTE ON HOW THIS ENTRY WAS NEARLY CORRUPTED — the tooling lesson is worth more than the entry.**
+This text was first written through `py -3.12 -c "...">` inside a DOUBLE-QUOTED shell string. Bash
+treats a backtick as COMMAND SUBSTITUTION, so every `` `term` `` on one line was executed and
+replaced with its (empty) output: the heading became *"### THE PROOF — , two arms"*, the table header
+row collapsed to `| |  |  |`, and the call-count cells became `**** | ****`. The shell printed
+`--driver: command not found` and six siblings — the ONLY reason it was caught.
+‼ **Tier 0 did NOT catch it.** `lint_docs.py` and `audit_doc_citations.py` both passed over the
+mangled text: a table with empty cells is valid Markdown, and a citation that has been DELETED cannot
+fail a citation check. The doc gates verify structure and references, not that a sentence still says
+something.
+⇒ **Prevention rule: never pass prose containing backticks through `python -c` in a double-quoted
+shell string — write it to a scratchpad `.py` file and run that.** This project already writes its
+doc edits that way; this entry was the exception, and it is why the rule is now written down.
+⇒ **Corollary: a green Tier 0 does not mean the text is INTACT.** After any scripted doc write, read
+back the region you wrote.
+
+### ⛔⛔ A TIER 1 REVIEWER KILLED HALF OF THIS PROOF, AND WAS RIGHT
+
+The entry above described the `guarded` arm as if it proved the shipped guard. **It did not.** As
+first written it was:
+```python
+if arm == "guarded":
+    slot = 0
+    if slot != 0:
+        yield from _yield_bounded(_counted(slot), 3000)
+```
+`slot` is hardcoded **inside the test**, so the branch is False BY CONSTRUCTION and the arm never
+reads `story_mode.py`. Delete the production guard and it would have printed PASS forever.
+⇒ it proved Python's `if`, not the shipped code.
+
+⭐ **And the strong arm CAMOUFLAGED it.** The `unguarded` arm is genuinely good — it calls the real
+`change_lead_party_pokemon` and watches PIDs swap on a live emulator. Side by side the two *looked*
+symmetric. **An A/B is only as strong as its WEAKER arm, and a strong arm hides a weak one.**
+
+**FIXED:** the `guarded` arm now reads the PRODUCTION source of the build under test —
+`inspect.getsource(StoryMode._maintain_lagging_battler)`, so `--build custom` checks custom and a
+hardcoded path cannot silently check the wrong fork — asserts by AST that `if slot != 0` wraps the
+`_rotate_lead_safely` call, logs `PRODUCTION GUARD PRESENT: <bool>` with the file it read, and makes
+that a **conjunct of the verdict**.
+
+**FAULT-TESTED (backup → break → run → restore, restore verified by MD5 — the only reason it is now
+believable):**
+
+| production state | arm reports | verdict |
+|---|---|---|
+| guard present | `PRODUCTION GUARD PRESENT: True`, `calls=[]`, `unchanged=True` | **PASS** |
+| guard replaced by `if True:` | `PRODUCTION GUARD PRESENT: False` | **FAIL** |
+
+⚠ **The headline is narrowed accordingly.** What is DRIVEN: the HARM (a real PID swap), and that
+the guard is present in the running build and suppresses the call. What is still REASONED, not
+observed: that `decide_maintenance` ever SELECTS slot 0 in a real run.

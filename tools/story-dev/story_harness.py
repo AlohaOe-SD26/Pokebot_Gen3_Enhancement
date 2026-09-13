@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -5227,6 +5227,162 @@ class BoxWriteMode(BotMode):
         log(f"[boxwrite] ACCEPTANCE: {'PASS' if ok else 'FAIL'}")
         _ctx.set_manual_mode()
         return
+
+
+class RotZeroMode(BotMode):
+    """PROVE THE HARM that `story_mode.py`'s `if slot != 0:` guard prevents — by DOING it.
+
+    ⛔⛔ WHY THIS EXISTS. The guard shipped 2026-09-12 and is UNDRIVEN: in a real errand the guarded
+    branch is *a call that does not happen*, so "the right mon leads" is true whether or not the
+    guard is there. An adversarial review put it exactly right — **proving an `if` evaluated False
+    proves nothing about harm prevented.** What must be shown is that the call the guard SUPPRESSES
+    is destructive.
+
+    ⭐ AND IT IS CHEAPLY SHOWABLE, because the damage is DETERMINISTIC, not cursor-dependent.
+    `change_lead_party_pokemon` (`higher_level_actions.py:666-679`) does:
+        case 1:                 Right, A
+        case _ if slot != 1:    Right, (slot-1) Downs, A
+    For `slot=0`, `range(-1)` is EMPTY ⇒ the button sequence is **byte-identical to `case 1`** ⇒ it
+    swaps slot 0 with **SLOT 1**, every time. So this driver needs no `decide_maintenance` staging,
+    no mule injection and no grind: it calls the menu action in ISOLATION and watches two PIDs trade
+    places.
+
+    ARMS (`POKEBOT_ROTZERO_ARM`, default `unguarded`):
+      `unguarded` — call `change_lead_party_pokemon(0)` directly, as the PRE-GUARD code did.
+                    EXPECT: slots 0 and 1 EXCHANGE PIDs. That is the harm, observed.
+      `guarded`   — run the shipped guard shape (`if slot != 0: ...`). EXPECT: ZERO calls and the
+                    party PID tuple UNCHANGED.
+    ⇒ Two arms that genuinely differ, and NEITHER mutates a source file between runs — the trap that
+    has twice left a fault arm pointing at nothing in this repo.
+
+    ⛔ VACUITY CONJUNCTS, checked before anything is pressed:
+      * the party must hold >= 2 Pokémon — with one mon there is no slot 1 to corrupt and the harm
+        cannot manifest, which would make a clean run read as a refutation;
+      * slots 0 and 1 must have DISTINCT PIDs, or "they swapped" is unobservable.
+    Either failing ⇒ `ACCEPTANCE: ABORT (instrument, not a result)`, never PASS.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "RotZero"
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        set_story_abort(True)
+        return True
+
+    def run(self):
+        import os as _os
+
+        from modules.modes.util.higher_level_actions import change_lead_party_pokemon
+        from modules.pokemon_party import get_party
+        from modules.story.early_game import _yield_bounded, wait_until_truly_controllable
+
+        arm = (_os.environ.get("POKEBOT_ROTZERO_ARM", "unguarded") or "unguarded").strip().lower()
+        calls = []
+        guard_ok = None   # set by the guarded arm from the PRODUCTION source
+        verdict = "ABORT"
+        detail = "driver did not reach its verdict"
+
+        # ⛔ ONE top-level try/except so a verdict ALWAYS prints. A driver whose exception escapes
+        # discards the generator and reports nothing, which reads as "no result" rather than "broke".
+        try:
+            yield from wait_until_truly_controllable()
+
+            def pids():
+                return [
+                    (i, p.species.name, p.level, p.personality_value)
+                    for i, p in enumerate(get_party()) if p is not None
+                ]
+
+            before = pids()
+            log(f"[rotzero] ARM={arm}")
+            for i, sp, lv, pid in before:
+                log(f"[rotzero] BEFORE slot={i} {sp} L{lv} pid={pid:08X}")
+
+            if len(before) < 2:
+                detail = (f"party has {len(before)} mon(s) — no slot 1 exists, so the swap this "
+                          f"driver exists to observe CANNOT happen. Staging is wrong, not the code.")
+                raise RuntimeError(detail)
+            if before[0][3] == before[1][3]:
+                detail = "slots 0 and 1 share a PID — a swap would be unobservable."
+                raise RuntimeError(detail)
+
+            def _counted(slot):
+                calls.append(slot)
+                log(f"[rotzero] CALL change_lead_party_pokemon(slot={slot})")
+                return change_lead_party_pokemon(slot)
+
+            if arm == "guarded":
+                # ⛔⛔ THE FIRST VERSION OF THIS ARM WAS A TAUTOLOGY AND A REVIEWER KILLED IT.
+                # It read `slot = 0` then `if slot != 0:` — hardcoded INSIDE the test, so the branch
+                # was False BY CONSTRUCTION and `_counted` could never run no matter what
+                # `story_mode.py` contained. Delete the real guard and this arm would still have
+                # printed PASS forever. It proved Python's `if`, not the shipped code.
+                # ⇒ THE ARM NOW BINDS TO THE PRODUCTION SOURCE OF THE BUILD UNDER TEST, read through
+                # `inspect` (so `--build custom` checks custom, `--build sandbox` checks sandbox —
+                # a hardcoded path would check the wrong fork and never say so).
+                import ast as _ast
+                import inspect as _inspect
+
+                from plugins.custom_modes import story_mode as _SM
+
+                _src = _inspect.getsource(_SM.StoryMode._maintain_lagging_battler)
+                import textwrap as _tw
+                _fn = _ast.parse(_tw.dedent(_src)).body[0]
+                _rot = next((m for m in _ast.walk(_fn)
+                             if isinstance(m, _ast.Call)
+                             and getattr(m.func, "id", None) == "_rotate_lead_safely"), None)
+                guard_ok = False
+                if _rot is not None:
+                    for _m in _ast.walk(_fn):
+                        if isinstance(_m, _ast.If) and any(c is _rot for c in _ast.walk(_m)):
+                            _t = _ast.dump(_m.test)
+                            if "NotEq" in _t and "slot" in _t:
+                                guard_ok = True
+                                break
+                log(f"[rotzero] PRODUCTION GUARD PRESENT: {guard_ok} "
+                    f"(read from {_inspect.getsourcefile(_SM)})")
+                if guard_ok:
+                    slot = 0
+                    if slot != 0:                      # the shipped shape, now PROVEN to be shipped
+                        yield from _yield_bounded(_counted(slot), 3000)
+            else:
+                yield from _yield_bounded(_counted(0), 3000)
+
+            after = pids()
+            for i, sp, lv, pid in after:
+                log(f"[rotzero] AFTER  slot={i} {sp} L{lv} pid={pid:08X}")
+
+            swapped = (len(after) >= 2
+                       and after[0][3] == before[1][3] and after[1][3] == before[0][3])
+            unchanged = [x[3] for x in after] == [x[3] for x in before]
+            log(f"[rotzero] calls={calls} swapped={swapped} unchanged={unchanged}")
+
+            if arm == "guarded":
+                # ⛔ `guard_ok` IS THE CONJUNCT THAT MAKES THIS ARM NON-VACUOUS. Without it the
+                # arm passes even if the production guard has been deleted.
+                ok = (bool(guard_ok) and calls == [] and unchanged)
+                verdict = "PASS" if ok else "FAIL"
+                detail = ("production guard PRESENT, call suppressed, party untouched" if ok else
+                          f"expected guard_ok=True, 0 calls, unchanged party; got "
+                          f"guard_ok={guard_ok} calls={calls} unchanged={unchanged}")
+            else:
+                ok = swapped
+                verdict = "PASS" if ok else "FAIL"
+                detail = ("slots 0 and 1 EXCHANGED PIDs — this is the corruption the guard prevents"
+                          if ok else
+                          "the unguarded call did NOT swap slots 0/1 — the premise behind the guard "
+                          "is WRONG and the guard needs re-justifying, not shipping")
+        except Exception as error:  # noqa: BLE001 - the verdict must print whatever happens
+            detail = f"{type(error).__name__}: {error}"
+        finally:
+            log(f"[rotzero] RESULT arm={arm} calls={calls} detail={detail}")
+            log(f"[rotzero] ACCEPTANCE: {verdict}")
+            context.set_manual_mode()
+        return
+        yield
 
 
 class PartyPidsMode(BotMode):
@@ -18301,6 +18457,8 @@ for step in range(args.frames):
             context.bot_mode_instance = RosterMode()
         elif args.driver == "partypids":
             context.bot_mode_instance = PartyPidsMode()
+        elif args.driver == "rotzero":
+            context.bot_mode_instance = RotZeroMode()
         elif args.driver == "boxcounter":
             context.bot_mode_instance = BoxCounterMode()
         elif args.driver == "boxcounter2":

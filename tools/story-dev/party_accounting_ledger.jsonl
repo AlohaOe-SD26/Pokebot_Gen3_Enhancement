@@ -536,3 +536,10 @@
 {"when": "2026-09-11T14:44:39", "driver": "story", "build": "sandbox", "state": "pokedex_done.ss1", "frames_run": 30000, "recomputes": 30001, "scans": 101, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-12T14:55:01", "driver": "maintain", "build": "custom", "state": "mauville_prewattson.ss1", "frames_run": 400, "recomputes": 401, "scans": 2, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-12T15:01:23", "driver": "maintain", "build": "custom", "state": "mauville_prewattson.ss1", "frames_run": 60632, "recomputes": 60632, "scans": 203, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-12T15:53:51", "driver": "maintain", "build": "sandbox", "state": "mauville_prewattson.ss1", "frames_run": 96321, "recomputes": 96321, "scans": 322, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-12T16:02:24", "driver": "rotzero", "build": "sandbox", "state": "mauville_prewattson.ss1", "frames_run": 20000, "recomputes": 20001, "scans": 67, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-12T16:08:11", "driver": "rotzero", "build": "sandbox", "state": "mauville_prewattson.ss1", "frames_run": 20000, "recomputes": 20001, "scans": 67, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-12T16:38:06", "driver": "rotzero", "build": "sandbox", "state": "mauville_prewattson.ss1", "frames_run": 20000, "recomputes": 20001, "scans": 67, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-12T16:48:22", "driver": "rotzero", "build": "sandbox", "state": "mauville_prewattson.ss1", "frames_run": 20000, "recomputes": 20001, "scans": 67, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-12T16:54:37", "driver": "rotzero", "build": "sandbox", "state": "mauville_prewattson.ss1", "frames_run": 20000, "recomputes": 20001, "scans": 67, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-12T17:00:23", "driver": "rotzero", "build": "sandbox", "state": "mauville_prewattson.ss1", "frames_run": 20000, "recomputes": 20001, "scans": 67, "divergences": {}, "observer_broke": false}

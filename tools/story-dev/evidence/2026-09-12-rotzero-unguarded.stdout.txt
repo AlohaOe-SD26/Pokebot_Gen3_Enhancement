@@ -1,0 +1,54 @@
+[setup] LOG -> evidence\2026-09-12-rotzero-unguarded.log
+Running mGBA 0.10.2
+[setup] loaded save state mauville_prewattson.ss1; build=sandbox
+[run] starting faithful loop for up to 20000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> RotZeroMode.run   (state=OVERWORLD)
+[rotzero] ARM=unguarded
+[rotzero] BEFORE slot=0 Dustox L20 pid=A735D162
+[rotzero] BEFORE slot=1 Marshtomp L20 pid=550A9BE6
+[rotzero] BEFORE slot=2 Taillow L18 pid=A8DBCF1B
+[rotzero] BEFORE slot=3 Poochyena L16 pid=2B19CA91
+[rotzero] CALL change_lead_party_pokemon(slot=0)
+f143: PARTY CHANGE [Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513] -> [Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f215: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeShowStartMenu'] ctrl=RotZeroMode.run bt='MARSHTOMP gained 94 EXP. Points!' scripts=[] party=[Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+[rotzero] AFTER  slot=0 Marshtomp L20 pid=550A9BE6
+[rotzero] AFTER  slot=1 Dustox L20 pid=A735D162
+[rotzero] AFTER  slot=2 Taillow L18 pid=A8DBCF1B
+[rotzero] AFTER  slot=3 Poochyena L16 pid=2B19CA91
+[rotzero] calls=[0] swapped=True unchanged=False
+[rotzero] RESULT arm=unguarded calls=[0] detail=slots 0 and 1 EXCHANGED PIDs — this is the corruption the guard prevents
+[rotzero] ACCEPTANCE: PASS
+f252: CONTROLLER -> <none>   (state=OVERWORLD)
+f1152: SAVED stall state #1 to stalls/repro-ml-f1152.ss1 (bt='MARSHTOMP gained 94 EXP. Points!')
+f1452: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513', (19, 15)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MARSHTOMP gained 94 EXP. Points!' bot_mode=Manual
+f1452:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f3252: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513', (19, 15)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MARSHTOMP gained 94 EXP. Points!' bot_mode=Manual
+f3252:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f8252: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513', (19, 15)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MARSHTOMP gained 94 EXP. Points!' bot_mode=Manual
+f8252:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f15252: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513', (19, 15)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MARSHTOMP gained 94 EXP. Points!' bot_mode=Manual
+f15252:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+[done] ran 20000 frames; final mode=Manual party=[Marshtomp:L20:exp5575|Dustox:L20:exp9100|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Marshtomp L20: Tackle, Growl, Foresight, Water Gun
+[moveset] Dustox L20: Tackle, Confusion, Moonlight, Gust
+[moveset] Taillow L18: Peck, Wing Attack, Focus Energy, Quick Attack
+[moveset] Poochyena L16: Tackle, Howl, Sand-attack, Bite
+[PARTY-ACCT] STAGE 0 SUMMARY — 20001 get_party() recomputes, 67 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += rotzero 20001 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-12_17-00-23.ss1 created!
+Updated `current_state.ss1`!

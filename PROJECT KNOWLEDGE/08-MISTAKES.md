@@ -16896,3 +16896,90 @@ must be an absolute statement of the condition it holds, not a reference to some
    the registry agree — both were correct. The broken thing was a `.bat` file outside every scan,
    whose failure mode is a WRONG NUMBER rather than a red check. ⇒ after any status flip, sweep the
    TOOLING that measures the thing, not only the docs that describe it.
+
+---
+
+## 2026-09-12 — Backticks in a `python -c "..."` shell string silently DELETED content, and Tier 0 passed over it
+
+**Symptom.** A changelog entry was written via `py -3.12 -c "...">` inside a **double-quoted** shell
+string. Bash treats a backtick as COMMAND SUBSTITUTION, so several `` `term` `` spans were executed
+and replaced by their empty output:
+
+    written:  ### THE PROOF — `--driver rotzero`, two arms, MEASURED
+    landed:   ### THE PROOF — , two arms, MEASURED
+
+    written:  | | `unguarded` | `guarded` |
+    landed:   | |  |  |
+
+    written:  | `change_lead_party_pokemon` calls | **`[0]`** | **`[]`** |
+    landed:   |  calls | **** | **** |
+
+**What caught it.** Only the shell's own noise — `--driver: command not found` and six siblings —
+printed *beside* a line that otherwise said the write succeeded. Had the mangled terms happened to
+be valid commands, there would have been no error at all.
+
+**⛔ WHAT DID NOT CATCH IT: TIER 0.** `lint_docs.py` PASSED. `audit_doc_citations.py` PASSED.
+`audit_doc_consistency.py` failed — **for an unrelated reason** (a drift count), which is the only
+thing that sent me back to look. Why the doc gates are blind here:
+* a Markdown table with EMPTY cells is perfectly valid Markdown;
+* a citation check can only verify citations that are PRESENT — one that has been deleted cannot
+  fail anything;
+* nothing in the suite asserts that a sentence still contains words.
+⇒ **A green Tier 0 means the document is well-FORMED, never that it still SAYS anything.**
+
+**PREVENTION RULES:**
+1. ⛔ **Never pass prose containing backticks through `python -c` in a double-quoted shell string.**
+   Write it to a scratchpad `.py` file and run that file. This project already writes its doc edits
+   that way — this entry was the exception, which is why the rule is now explicit. *(Single-quoting
+   the shell string also works, but the file is the habit worth having: it is re-runnable, diffable,
+   and survives a retry.)*
+2. ⛔ **After ANY scripted write to a doc, READ BACK the region you wrote** — not the file's tail,
+   the specific region. ‼ My first read-back landed on a *quotation* of the mangled text inside the
+   very note describing it, and briefly looked like the repair had failed; the second, anchored on
+   the repaired string itself, confirmed it. **Anchor a read-back on the text you expect to find,
+   and assert the text you expect to be GONE is gone.**
+3. ⭐ Generalisation worth keeping: **the gates in this repo check STRUCTURE and REFERENCES, not
+   MEANING.** Any corruption that leaves valid syntax behind — an emptied table cell, a deleted
+   clause, a truncated sentence — passes every one of them.
+
+---
+
+## 2026-09-12 — I shipped a test arm that could not fail, and called it a proof
+
+**Symptom.** `--driver rotzero`'s `guarded` arm was written as:
+```python
+if arm == "guarded":
+    slot = 0
+    if slot != 0:
+        yield from _yield_bounded(_counted(slot), 3000)
+```
+It PASSED, I wrote *"SLOT-0 GUARD: PROVEN BY DRIVING"* in the handoff, and a Tier 1 reviewer killed it
+in one sentence: **`slot` is hardcoded inside the test, so `slot != 0` is False BY CONSTRUCTION.** The
+arm never reads `story_mode.py`. Delete the real guard tomorrow and it would print PASS forever.
+
+**What it actually proved:** that Python's `if` works. Nothing about the shipped code.
+
+**Why I did not see it.** I had just built the `unguarded` arm, which is genuinely strong — it calls
+the real `change_lead_party_pokemon` and watches PIDs swap on a live emulator. The two arms sat
+side by side and *looked* symmetric, so the rigour of one masked the vacuity of the other.
+⇒ **An A/B is only as strong as its WEAKER arm, and a strong arm actively camouflages a weak one.**
+
+**FIX.** The `guarded` arm now reads the PRODUCTION source of the build under test
+(`inspect.getsource(StoryMode._maintain_lagging_battler)` — so `--build custom` checks custom, and a
+hardcoded path cannot silently check the wrong fork), asserts by AST that the `if slot != 0` guard
+wraps the `_rotate_lead_safely` call, and makes `guard_ok` a **conjunct of the verdict**.
+
+**FAULT-TESTED, which is the only reason I now believe it** (backup → break → run → restore, restore
+verified by MD5):
+    guard removed (`if True:`)  →  `PRODUCTION GUARD PRESENT: False`  →  **ACCEPTANCE: FAIL**
+    guard present               →  `PRODUCTION GUARD PRESENT: True`   →  **ACCEPTANCE: PASS**
+
+**PREVENTION RULES:**
+1. ⛔ **A test arm that supplies its own input to the condition under test is a TAUTOLOGY.** If the
+   value that drives the branch is written in the test, the test measures the test. Bind to the
+   artefact: read the production source, import the real predicate, or call the real function.
+2. ⛔ **Ask of every arm: "what edit to PRODUCTION would make this fail?"** If the answer is "none",
+   it is decoration. This is the same question `probe_*` gates answer with fault arms — a DRIVEN arm
+   needs it just as much, and I had not been applying it to drivers.
+3. ⭐ **Check the weak arm first.** The convincing one is where attention goes; the vacuous one is
+   where the error hides.

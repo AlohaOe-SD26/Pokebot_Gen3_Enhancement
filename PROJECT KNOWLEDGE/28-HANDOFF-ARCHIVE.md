@@ -11015,3 +11015,17 @@ derails (costly — `#26-manualderails` measured the user's manual flip-back usu
 defect (one helper, every heal site) from the one fixed here (one call site, one leg).
 
 ---
+
+
+## 2026-09-12 — retired from `04-HANDOFF.md`: the 2026-09-07 batch block (`x4-runs/20260907-203713`)
+
+Superseded by three later batches (2026-09-11 overnight, 2026-09-12 confirmatory, 2026-09-12 safety). Moved to keep `04-HANDOFF.md` inside its 900-line budget.
+⚠ **ONE LINE FROM THIS BLOCK WAS DELIBERATELY LEFT BEHIND** — *“THE RULE, FOR THE NEXT BATCH: while one RUNS, do not edit `sandbox-pokebot/` and do not promote”* — because it is a LIVE rule, not history, and it was relied on again on 2026-09-12.
+
+>    ✅✅ **THE BATCH IS FINISHED — `x4-runs/20260907-203713`, 49 ended runs, VERDICT OK, 480.1 wall minutes, `--build sandbox`, `code=8a8ae2d9`. THE SANDBOX IS UNLOCKED; edit and promote freely.**
+>    ⭐⭐ **THE WALL IS BROKEN. §Ch23's Waterfall PREFLIGHT went 11 of 53 → 0 of 49.** Across 37 stored batches the 8th badge was reached six times and ALL SIX died on that preflight; nothing had ever passed it. Runs now die **16x deeper**, in the TRAINING leg. ⇒ `#24-hm07teach` and `#24-hm07funnel` are **CLOSED, driven at scale** — ⛔ DO NOT REDO EITHER, and their owed acceptance drives are ANSWERED; do not run them.
+>    ⭐ **Surf + Dive party-full: 7 of 53 → 0 of 49.** ⭐ **Whiteout quota: 14 (26.4%) → 4 (8.2%)**, firing with its new location-keyed message — ‼ it did NOT go to zero, and that is CORRECT: four runs were genuinely stuck and the guard caught them.
+>    ⛔ **STILL 0 FINISHED OF 49.** The new top blocker is **`#24-ch23training`** (16 of 49, 32.7%) — §Ch23's training leg REFUSES because one mon's grind alone exceeds the per-call frame ceiling (⚠ "alone" means *that one mon by itself*, NOT that it is alone in the party — all 16 failures have 2+ members). Marill in 9 of 16. Also NEW: `#24-cutscenestall` (4) and a per-run frame-budget class (2), neither present in the BEFORE batch.
+>    ⚠ **HONEST LIMIT:** BEFORE is `--build custom`, AFTER `--build sandbox`, so the aggregate is not a single-variable A/B. The load-bearing per-class deltas (preflight 11→0, Surf/Dive 7→0) are each tied to a specific change with its own mechanism.
+>    ⭐ **THIS IS THE FIRST BATCH WITH VERIFIABLE BUILD PROVENANCE.** `code=8a8ae2d9` is recorded AND the sandbox tree was clean at launch (checked), so the commit named is genuinely what ran. All three of today's fixes are ancestors of it (verified with `git merge-base --is-ancestor`).
+>    ⭐ **WHAT IT IS MEASURING:** whether `#24-whiteoutloop` (was 14 of 53 = 26%) and §Ch23 (11 of 53 = 21%) actually shrink. ⚠ **EXPECT THE FAILURE TO MOVE, NOT VANISH** — see the next line. The previous batch for comparison is `x4-runs/20260907-113851` (53 ended runs, 0 finished).

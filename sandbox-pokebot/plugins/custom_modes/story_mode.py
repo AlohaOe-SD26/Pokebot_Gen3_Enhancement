@@ -2427,8 +2427,14 @@ class StoryMode(BotMode):
             # `_rotate_lead_safely` drives the party menu's SWITCH option, which is a **SWAP**
             # (`victory_road.py:2046-2059` documents this after it cost a 900k-frame run). And the
             # menu driver's slot arithmetic is `for _ in range(slot - 1)` — for `slot=0` that is
-            # `range(-1)`, i.e. ZERO Downs, so it presses Right then A and **confirms a swap against
-            # whatever the cursor happens to be on** rather than doing nothing.
+            # `range(-1)`, i.e. ZERO Downs, so the button sequence it sends is **byte-identical to
+            # the `case 1:` branch** (Right, A) and therefore **deterministically swaps slot 0 with
+            # SLOT 1** (`higher_level_actions.py:666-679`).
+            # ‼ CORRECTED 2026-09-12: this comment first said "a swap against whatever the cursor
+            # happens to be on". That was vaguer than the truth and would have sent a reader looking
+            # for nondeterminism that does not exist. The victim is always slot 1 — which is what
+            # makes the harm cheaply PROVABLE: `--driver rotzero` calls
+            # `change_lead_party_pokemon(0)` in isolation and watches slots 0 and 1 exchange PIDs.
             # ‼ SLOT 0 IS REACHABLE, NOT HYPOTHETICAL: `decide_maintenance` picks
             # `min(excluded, key=lambda s: (excluded[s], s))` (`:1232`), which breaks ties toward the
             # LOWEST slot index — so slot 0 wins any tie, and trivially wins outright whenever the
