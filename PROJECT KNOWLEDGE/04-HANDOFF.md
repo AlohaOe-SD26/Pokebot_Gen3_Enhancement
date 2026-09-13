@@ -484,43 +484,34 @@ Moved for the R3 budget; all four are in `05-KNOWN-ISSUES.md` or its archive wit
 >    The mechanism named was right; the magnitude was wrong — and the magnitude is what a reader acts
 >    on. Graded in `ai-research-notes/2026-09-12-maintain-enable-PREDICTIONS.md`.
 >    
->    ✅ **SLOT-0 GUARD: PROVEN BY DRIVING, 2026-09-12** — `--driver rotzero`, two arms, both PASS and
->    OPPOSITE: `unguarded` → `calls=[0]`, slots 0/1 EXCHANGED PIDs (A735D162↔550A9BE6); `guarded` →
->    `calls=[]`, party UNCHANGED. ⛔ NO staging needed: proving an `if` evaluated False proves
->    nothing, and the damage is DETERMINISTIC (`range(slot-1)` empty at 0 ⇒ byte-identical to
->    `case 1:` ⇒ always swaps with SLOT 1), so an ISOLATED call shows the harm. Evidence:
->    `evidence/2026-09-12-rotzero-{unguarded,guarded}.stdout.txt`. ⚠ Does NOT prove
->    `decide_maintenance` ever SELECTS slot 0 (reasoned from `story_mode.py:1232`, not observed).
->    ‼ **`POKEBOT_MAINTAIN_TARGET` can NEVER change WHICH slot is picked** (`argmin(level, index)`
->    over a level-thresholded set) — staging a slot by tuning the target is wasted effort.
->    
->    ✅ **HEAL FAIL-SOFT PATH: DRIVEN 2026-09-12** — it had fired ZERO times in 102 production runs.
->    Two arms, `POKEBOT_HEALWALK_FAULT`, neither mutating a source file:
->      `blocked`   → heal CALLED, `ABANDONED … the heal walk to VerdanturfTown`, `failure=None`
->                    (run CONTINUED), strong lead restored — **PASS**
->      `nohandler` → heal CALLED, NO abandon line, `failure=BotModeError` (run DIED) — **PASS**
->    ⛔ **IT NEEDED `POKEBOT_STAGE_HP` FIRST.** `--driver maintain` reaches ZERO heals on its own
->    (measured twice; my “longer grind” hypothesis was REFUTED), so a fault arm alone would have
->    proved NOTHING. Stage one non-MULE battler below the 42% threshold (2 bytes at `data[86:88]`,
->    then `state_cache.reset()`), and the heal centre is DERIVED from the run, never hardcoded.
->    ⭐ **THE CONTROL ARM WAS DEFEATED BY PRODUCTION, AND THAT WAS EVIDENCE:** injected inside the
->    retry `try`, the plain `BotModeError` was RECLASSIFIED into `HealWalkFailedError`, caught, and
->    the run continued — which is precisely what the 2026-09-12 narrowing claims. Fixed by raising
->    BEFORE the loop. ‼ When a control behaves like the treatment, suspect production is TRANSFORMING
->    your injected input before the code under test sees it.
->    ⚠ The driver's ARM-ON grade printed a misleading **FAIL** on a working run (it requires `reached`, impossible under a deliberate abandon). Predicted by review, then observed; the fault arms now have their own verdict branch plus a FAULT-DID-NOT-REACH → ABORT guard.
->    ⛔⛔ **THIS DOES NOT EXPLAIN THE RESIDUAL.** 19 vs 9 heal derails stand; 18 of 19 fire OUTSIDE
->    the errand, and `#26-healmap-lavaridge` alone (29 vs 8) accounts for more than the whole total.
->    A green proof here says NOTHING about that number — do not read it as “heals are fixed”.
+>    ✅ **BOTH PREVIOUSLY-UNPROVEN PATHS ARE NOW DRIVEN (2026-09-12).** Full evidence in
+>    `07-CHANGELOG.md` 2026-09-12 and `03-PUNCH-LIST.md` `#24-maintain`; headlines only here:
+>      * **slot-0 guard** — `--driver rotzero`: `unguarded` reproduced the PID swap
+>        (A735D162↔550A9BE6); `guarded` reads the guard from the PRODUCTION source of the build under
+>        test and suppresses the call. ⛔ Its first version was a TAUTOLOGY (hardcoded `slot = 0`
+>        inside the test) and a reviewer killed it; now fault-tested — remove the guard and it FAILS.
+>      * **heal fail-soft** — `POKEBOT_HEALWALK_FAULT`: `blocked` → abandon + run CONTINUES;
+>        `nohandler` → run DIES. It needed `POKEBOT_STAGE_HP` first, because the driver reaches ZERO
+>        heals unaided (my "longer grind" hypothesis was REFUTED by measurement).
+>    ⚠ Neither proves `decide_maintenance` ever SELECTS slot 0 in production (reasoned, not observed),
+>    and NEITHER explains the residual 19-vs-9 heal derails — 18 of 19 fire OUTSIDE the errand.
 >
->    ⭐ **QUEUE ITEM 0 — `#26-healmap-lavaridge`: our repo CONTRADICTS ITS OWN MEASUREMENT.**
->    `training_areas.py:344` records `ROUTE112 -> Lavaridge = FAIL` (measured 2026-07-26) and lists
->    ROUTE112 in `NO_RETURN_GROUNDS`; `story_mode.py:1121/1126` map ROUTE112 **and** FIERY_PATH TO
->    LavaridgeTown anyway, under a comment calling it “a short walk”. The dict is what the heal
->    consults. ⇒ make `_training_area_heal_map()` CONSULT `NO_RETURN_GROUNDS` so the two cannot
->    diverge. ⚠ It changes COUNTER-HUNT behaviour (FIERY_PATH is the Machop ground), so it needs its
->    own arm — and the ground→failure attribution is UNVERIFIED, so INSTRUMENT the chosen
->    (grass, heal_centre) pair BEFORE fixing.
+>    ⭐ **QUEUE ITEM 0 — `#26-healmap-lavaridge`: MEASURE WHICH CENTRE IS REACHABLE, THEN FIX.**
+>    ✅ **Attribution DONE 2026-09-12 — no longer a hypothesis.** ROUTE112 = **32 of 39**
+>    `Cannot reach LAVARIDGE_TOWN` across all four batches; chain read VERBATIM: *counter-hunt in
+>    FIERY_PATH → damaged → `[MAP] FIERY PATH -> ROUTE 112` → heal → fail*. `training_areas.py:344`
+>    records `ROUTE112 -> Lavaridge = FAIL`; `story_mode.py:1121/1126` map ROUTE112 **and**
+>    FIERY_PATH there anyway, and the dict is what the heal consults. ‼ `NO_RETURN_GROUNDS`' own
+>    FIERY_PATH entry says catch-and-leave hunting *“needs no heal trip … must not go through this
+>    picker”* — the TRAINING pickers honour it, the COUNTER HUNT does not. Full evidence:
+>    `07-CHANGELOG.md` 2026-09-12 (late).
+>    ⛔⛔ **DO NOT JUST RE-MAP IT** — which centre IS reachable from Route 112's lower section is
+>    **UNMEASURED** (Mauville is plausible, i.e. exactly the guess this project gets burned by).
+>    ⇒ **NEXT: `calculate_path` from the real exit tile `ROUTE 112(0,27)/(26,36)` to each candidate
+>    PC door** — a measurement, not a table edit. Then pick: (1) consult `NO_RETURN_GROUNDS`, return
+>    `None` (an honest SKIP) ⚠ a hunt that cannot heal may stall; (2) map to a MEASURED-reachable
+>    centre; (3) stop catch-and-leave hunting healing at all — what the table already implies.
+>    ⚠ (1) and (3) change COUNTER-HUNT behaviour and need their own arm.
 >    ⚠ **OPEN, and all three are filed at the top of `03-PUNCH-LIST.md`:** `#26-healmap-lavaridge`
 >    (our repo contradicts its own measurement), `#24-ratchet-scope-gap` (`plugins/custom_modes` is
 >    outside BOTH abort ratchets — 93 broad handlers, ~90 unguarded), `#24-maintain-staletarget`.
