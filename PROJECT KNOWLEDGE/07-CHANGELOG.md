@@ -27892,3 +27892,63 @@ production debt that outlives the test.
 production standards.** A fault hook is not exempt from the ratchets — and a parser that silently
 swallows a typo is exactly the class those ratchets exist to stop (a malformed limit would have
 become `1` without ever saying so).
+
+---
+
+## 2026-09-12 (late) — `#26-healmap-lavaridge`: the attribution is no longer a hypothesis
+
+Filed this morning with an explicit caveat — *"the ground→failure attribution came from an agent and
+is **UNVERIFIED** … instrument it first, then fix."* That instrumentation is done, from the batch
+logs rather than a new probe, and it CONFIRMS the filing.
+
+### THE SOURCE MAP, ACROSS ALL FOUR 2026-09-12 BATCHES
+
+| batch | arm | `Cannot reach LAVARIDGE_TOWN` | source |
+|---|---|---|---|
+| `20260912-050244` | ARM-ON | 29 | **23 × ROUTE112**, 6 × ROUTE111 |
+| `20260912-070254` | ARM-OFF | 8 | 8 × ROUTE112 |
+| `20260912-104105` | ARM-ON | 1 | ROUTE112 |
+| `20260912-124117` | ARM-OFF | 1 | ROUTE112 |
+
+**ROUTE112 is 32 of 39 (82%)** — precisely the leg `NO_RETURN_GROUNDS` measured on 2026-07-26 as
+`ROUTE112 (11,36) -> Lavaridge (9,6) = FAIL` (against `Lavaridge -> ROUTE112 = OK, 60 waypoints`).
+
+### THE CHAIN, READ VERBATIM FROM A RUN — not inferred
+```
+[BATTLE] Numel L15 1/46 [Poison] -> RunAway        (counter-hunting inside Fiery Path)
+[BATTLE] ended (outcome=RanAway)
+[MAP]    FIERY PATH(24,14) -> ROUTE 112(0,27)      (exits the cave onto Route 112)
+[PC]     Story: PC — the walk to the Poké Center door …
+         -> Cannot reach LAVARIDGE_TOWN: it is not walkable from ROUTE112
+```
+⇒ **A COUNTER HUNT takes damage in Fiery Path, exits to Route 112, and asks to heal** —
+`_training_area_heal_map()` (`story_mode.py:1121`, `:1126`) answers **LavaridgeTown** for both
+ROUTE112 and FIERY_PATH, under a comment calling it *"a short walk rather than a trek"*.
+
+### ⭐ AND OUR OWN TABLE ALREADY SAYS THIS MUST NOT HAPPEN
+`NO_RETURN_GROUNDS`' FIERY_PATH entry (`training_areas.py`) reads:
+> *"It remains a fine CATCH-AND-LEAVE hunting ground (#24-counters phase 2), **which needs no heal
+> trip**; that is a different use and **must not go through this picker**."*
+
+The training pickers DO honour it — `best_training_grass`/`best_training_area` refuse both grounds via
+`_return_blocked` before any reachability predicate runs. **The counter hunt does not**: it heals, and
+the heal map sends it somewhere the same file measured as unreachable.
+⇒ **Three places in this repo, two of them agreeing and one contradicting** — and the contradicting
+one is the dict the heal actually consults.
+
+### ⛔ WHAT IS STILL NOT DECIDED — and why I stopped here rather than guess
+The fix is *not* simply "map it elsewhere". **Which centre is reachable from Route 112's lower
+section is UNMEASURED.** Mauville (south via Route 111) is plausible and that is exactly the kind of
+plausible-sounding map claim this project has been burned by. ⇒ the next step is a REACHABILITY
+MEASUREMENT (`calculate_path` from the real exit tile `ROUTE 112(0,27)/(26,36)` to each candidate
+Poké Center door), not a table edit.
+
+Options, in the order they should be tested:
+1. **Consult `NO_RETURN_GROUNDS` from `_training_area_heal_map()`** so the two can never diverge, and
+   return `None` for a blocked ground — `decide_maintenance` already treats `None` as an honest SKIP
+   (`story_mode.py:1247-1248`). ⚠ But a counter hunt that cannot heal may simply stall instead.
+2. **Map to a MEASURED-reachable centre.** Needs the measurement above first.
+3. **Make catch-and-leave hunting not heal at all**, which is what the table says it should already
+   be doing. ⚠ This changes counter-hunt behaviour and needs its own A/B arm.
+⇒ It is a behaviour change to a subsystem this session has not otherwise touched, so it gets its own
+increment rather than being bolted onto a maintenance round.
