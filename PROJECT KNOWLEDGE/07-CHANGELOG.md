@@ -28424,3 +28424,60 @@ metric* — I did not report it: the grep key was wrong (the real step is *"ente
 to challenge Norman"*). Re-measured with keys verified to exist in the logs, Norman is **71%**.
 A badge histogram built the same careless way returned `0 badges` for 100% of runs in BOTH
 batches and was discarded for the same reason.
+
+---
+
+## 2026-09-13 (evening) — I picked the next work item from a build I had just superseded. Re-derived, the queue head is Norman, not the Route 110 rival.
+
+### What happened
+Hours after shipping and batch-verifying `#24-wallydecline`, I filed `#24-rival110` as *"the largest
+measured defect — 530 losses = 52.3% of every whiteout"* and made it queue item 0. Those figures come
+from `x4-runs/20260912-104105` and `-124117`, **both commit `bda41d45`, i.e. PRE-Wally-fix**. I had
+already run the post-fix batch (`20260913-092254`, `f039bffc`) and used it to prove the fix worked —
+and then ranked the NEXT item against the OLD landscape anyway.
+
+### Re-derived on the current build (my own parse, independent of any agent)
+| loss site | 104105 | 124117 | **092254 (current)** |
+|---|---|---|---|
+| ROUTE 110 | 180 (44.1%) | 350 (57.9%) | **47 (6.3%) — 6th** |
+| **PETALBURG CITY (Norman)** | 50 (12.3%) | 29 (4.8%) | **180 (24.0%) — 1st** |
+| FORTREE CITY (Winona) | 17 (4.2%) | 67 (11.1%) | **141 (18.8%) — 2nd** |
+| MOSSDEEP CITY | 28 (6.9%) | — | 85 (11.3%) |
+| MAUVILLE CITY (Wattson) | 28 (6.9%) | 35 (5.8%) | 76 (10.1%) |
+⇒ **the Wally fix reshaped the entire loss landscape** — which is exactly what "deaths relocate"
+predicted, and I recorded that prediction as confirmed **in the same session** in which I then
+ignored it for ranking purposes.
+
+### ⛔ A SECOND, INDEPENDENT ERROR IN THE SAME NUMBER: I POOLED AN A/B'S TWO ARMS
+`20260912-104105` is `POKEBOT_MAINTAIN=1` and `-124117` is `=0` — the treatment and control arms of
+the maintenance A/B. They are not two samples of one population, and they **disagree** (44.1% vs
+57.9% for the same site). Pooling them produced the "52.3%" headline.
+
+### What survives about `#24-rival110`, stated honestly
+It is a real item, downgraded, not deleted. Still true: the fight has no `grass` key; `:2813-2816`
+prints *"no training grass here — re-attempting is the training"* and trains nothing; and band prep
+is **NOT vacuous** — mirroring `story_mode.py:2802-2810` over **530 real loss parties**, `need` is
+non-empty in **95.8% / 98.7% / 99.2%** of draws at target 18/19/20 (2-3 mons each). ⇒ the inherited
+warning *"the band is already satisfied by the top mon alone"* was about a DIFFERENT mechanism (the
+sufficiency gate), and is refuted for band prep.
+⛔ But its named fix is unsafe: **no legal ground exists.** Route 110's grass is
+*"Cycling-Road-walled / ledge-one-way — runs 11-13 each burned all navigation retries"*
+(`early_game.py:3906`), Route 117 sits behind open blocker **KI-48**, and adding the key flips
+`grass_is_fodder` → silently disables `boss_mode`, a KI-80-guarded path.
+
+### ⭐ A HYPOTHESIS REFUTED BEFORE IT BECAME WORK
+A prior analysis flagged *"17.4% of losses entered with a fainted lead vs 3.1% of wins — 6.6×
+enrichment"* as possibly the real defect. Measured **within ROUTE 110 battles only** (the correct
+comparison population): losses **92/530 = 17.4%**, wins **348/1170 = 29.7%**. ⇒ **the bot wins MORE
+often with a fainted lead than it loses.** The 6.6× was a confound — it compared boss losses against
+ALL wins, and 86% of battles are wild encounters the bot enters healed. That is boss-vs-wild, not
+win-vs-loss. ‼ Two numbers quoted alongside it ("55.6% of compute is grinding", "ROUTE116 is 28.2% of
+every frame") could not be sourced and are WITHDRAWN pending a shown derivation.
+
+### The new queue head, derived from the CURRENT build
+`#24-norman-lead`. Norman's gym: **180 of 749 losses = 24.0%**, 119 W / 180 L = **60.2% loss rate**.
+⛔ Not underlevelling — median TOP mon at a loss is **L35** against a **L31 Slaking**, and the party
+is 5-6 strong (94 of 180 at five, 21 at six). ⭐ The signal is the LEAD: median **L29**, six levels
+below our own best. Hypothesis (UNVERIFIED, and to be instrumented before any fix): `_lead_best_matchup`
+selects on TYPE against `ace_types`, Normal is weak only to Fighting, so it may front a low-level
+Fighting mon into a L31 Slaking. Winona is #2 at 18.8% and may share the mechanism.

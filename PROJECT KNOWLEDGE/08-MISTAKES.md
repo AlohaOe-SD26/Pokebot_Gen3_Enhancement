@@ -17111,3 +17111,75 @@ not updating the pointer. On finishing an item, run the file's own documented qu
 (`grep -n "^>    ➡➡➡"`) and re-read what it returns.** ‼ P1 says "banner ↔ queue item 0" — this
 failure sat in NEITHER half, which is why the reviewer had to catch it: **a pair check protects
 exactly the two things it names.**
+
+---
+
+## 2026-09-13 (evening) — I ranked the next work item against a build I had personally superseded, while holding the new batch
+
+**Symptom.** Within an hour of closing `#24-wallydecline` — a fix I had just proven at scale — I filed
+`#24-rival110` as *"the largest measured defect, 52.3% of every whiteout"*, made it queue item 0, set
+the handoff's single `➡➡➡` live-action marker to it, and briefed the user on it. Re-derived on the
+build that fix produced, Route 110 is **6.3% of losses and the 6th site**; the real #1 is Norman's gym
+at **24.0%**.
+
+**Root cause — three compounding errors, and the first is the one that matters.**
+1. ⛔ **I ranked on PRE-FIX data while holding the POST-FIX batch.** I had already parsed
+   `20260913-092254` to prove the fix worked. The same batch answers "what is biggest now", and I did
+   not ask it. **I had even recorded, in that same session, that the fix's whole effect was to
+   RELOCATE deaths** — so the one thing I knew for certain was that the old ranking was stale.
+2. ⛔ **I pooled the treatment and control arms of an A/B.** The two source batches are
+   `POKEBOT_MAINTAIN=1` and `=0`; they disagree on the very statistic I pooled (44.1% vs 57.9%).
+3. ⚠ **I relayed two figures I had not derived** ("55.6% of compute is grinding", "ROUTE116 is 28.2%
+   of every frame"), which could not be sourced. Both withdrawn.
+
+⇒ **Prevention rule: A PRIORITY RANKING IS A MEASUREMENT, AND IT EXPIRES WHEN THE BUILD CHANGES.
+After shipping any fix, re-derive the ranking on the FIRST batch that contains it, before choosing
+what to do next — and name the commit the ranking came from in the same sentence as the ranking.**
+‼ Corollary, because this is what made it embarrassing rather than merely wrong: **"this fix relocates
+deaths" is a statement that the ranking is about to change. If you write that sentence, you owe the
+next ranking a re-derivation.**
+⇒ **Second prevention rule: never pool two batches without checking their arm/flag declarations.**
+`MANIFEST.txt` / `ARM-*.txt` state them; two batches run back-to-back on the same commit can still be
+two different regimes.
+
+**What caught it.** An adversarial agent, told to refute the claim rather than check it. The three
+non-adversarial agents on the same subject all worked *within* the superseded frame. ‼ That is the
+standing case for the adversarial angle: the other agents answered the question I asked, and the
+question was wrong.
+
+---
+
+## 2026-09-13 (late) — I opened a second item for a defect that was already open, already diagnosed, and already RULED ON — and my instinct was the option the user had rejected
+
+**Symptom.** Having correctly re-derived that Norman's gym is the #1 loss site (24.0%), I filed
+`#24-norman-lead` as a fresh *"Hypothesis (UNVERIFIED)"* that `_lead_best_matchup` fronts a weak mon,
+made it queue item 0, moved the handoff's live-action marker to it, and briefed the user.
+
+**It was a duplicate three times over.**
+* **KI-25** (opened **2026-07-27**, severity HIGH) names the same function, quotes the same line, and
+  measures it **at the same boss**: *"P4 led Shedinja L20 vs Norman … lost to Slaking's Faint Attack"*.
+* **`#24-leadpolicy`** is OPEN in the live punch list with that diagnosis already written out.
+* **The user RULED on it on 2026-07-29**: *"`#24-leadpolicy` → OPTIONS A + C … **Level-gap weighting
+  (B) NOT adopted.**"*
+
+⛔ **And that last clause is the part that matters.** My stated signal was *"the median LEAD is L29
+while the median TOP mon is L35 — six levels below our own best."* **That is level-gap weighting. That
+is option B.** I was one step from building the thing the user had explicitly turned down fourteen
+sessions earlier.
+
+**Root cause.** I *did* run the Standing-Directive-#11 grep — for `route110|rival110`, the item I was
+leaving. I did not re-run it for the item I was ARRIVING at. The check was treated as a per-session
+ritual instead of a per-item one.
+⇒ **Prevention rule: RUN THE DECISIONS-LOG GREP FOR THE ITEM YOU ARE ABOUT TO OPEN, NOT THE ONE YOU
+ARE CLOSING — and grep `05-KNOWN-ISSUES.md` and the punch list for the FUNCTION NAME too, not just
+the slug.** A defect that has been known for seven weeks will not be filed under the slug you just
+invented for it; it will be filed under the function it lives in (`_lead_best_matchup`).
+‼ **Second prevention rule, from the same failure: when you catch yourself reasoning from a
+DIFFERENCE (a level gap, a count gap, a time gap), check whether that exact framing is a rejected
+option.** Rulings reject *approaches*, and an approach re-derived from data looks new even when it
+is not.
+
+**What caught it.** A Tier 1 reviewer, given the pair list — the same way `#24-dexcatch` was caught
+on 2026-09-05, which is itself recorded in `03-PUNCH-LIST.md` as *"⛔⛔ DO NOT OPEN A SECOND ONE."*
+‼ **That warning was already in the file I was editing.** ⇒ a prevention rule filed under one item
+does not fire when you are working on another; only a mechanical check does.
