@@ -28008,3 +28008,97 @@ hunt should take that walk, return `None` and skip, or not heal at all (which
 `NO_RETURN_GROUNDS`' own FIERY_PATH entry says should already be the case) is a BEHAVIOUR decision
 with a blast radius across counter-hunting — it is not settled by this measurement, and it is not
 being bolted onto it.
+
+---
+
+## 2026-09-12 (night) — FOUR corrections to today's `#26-healmap-lavaridge` work; the item is DOWNGRADED and its answer is UNRESOLVED
+
+Three agents were sent at this from different angles. All three found something wrong with work I had
+already **committed**. I verified each against our own source before accepting it.
+
+### ⛔ CORRECTION 1 — the heal map is NOT the culprit. Editing it would have fixed DEAD CODE.
+`_training_area_heal_map()`'s `ROUTE112` and `FIERY_PATH` rows are **unreachable keys**. Its three
+call sites all derive the key from `best_training_area`/`best_training_grass`, which iterate
+`TRAINING_GRASS` only — and that list contains **neither map**. Verified:
+```
+TRAINING_GRASS entries: FIERY_PATH 0,  ROUTE112 0   (ROUTE111 1, ROUTE117 1 — the check works)
+```
+**The real caller is a LITERAL**: `story_mode.py:4271`,
+`yield from heal_in_pokemon_center(PokemonCenter.LavaridgeTown)`, hard-coded in the Flannery segment
+one line after `_prepare_for_fight` returns. No table lookup happens on this path.
+⇒ **the punch-list's own recommended fix — "make `_training_area_heal_map()` CONSULT
+`NO_RETURN_GROUNDS`" — would have changed NOTHING**, and the 32/39 count would have stayed put.
+⭐ ‼ **MY FIRST CHECK OF THIS WAS ALSO BROKEN** and said so loudly: it reported ROUTE111/116/117 as
+absent from `TRAINING_GRASS`, which is impossible — I had read those entries an hour earlier. The
+block extractor stopped at the `]` inside the annotation `list[tuple[...]]`. ⇒ **an impossible value
+beside your result refutes the CHECK, not the subject.** Second time that rule paid out today.
+
+### ⛔ CORRECTION 2 — my probe mixed two coordinate spaces
+I read `(26,36)` off `[MAP] FIERY PATH(24,14) -> ROUTE 112(0,27) pos=(26,36)` and committed a
+docstring calling it *"the REAL tile the bot stands on, read verbatim"*. **It is a FIERY PATH tile.**
+Our own code says so:
+```
+early_game.py:1969   _CAVE_EXITS      FIERY_PATH: (26, 36)                 <- inside the cave
+early_game.py:2003   _CAVE_ENTRANCES  FIERY_PATH: (ROUTE112, (11, 36))     <- the outside landing
+```
+Both tiles share `y=36`, which is exactly why the misreading survived. Worse, the `pos=` on a `[MAP]`
+line is the **PRE-transition** position — the logger samples position beside the already-updated map
+name, so the pair is internally inconsistent.
+‼ **Prevention rule: never take a position from a MAP-TRANSITION line. Take it from a HEARTBEAT,
+which samples map and position together. And when a coordinate appears in two maps' tables, say which
+space it is in before using it.**
+Measured over every FIERY_PATH→ROUTE112 exit in the 2026-09 batches — **44 distinct landing tiles**:
+`(31,9) x117  (26,34) x106  (6,4) x22  (6,7) x11  (11,37) x8  (26,36) x5`.
+
+### ⛔ CORRECTION 3 — this is a COST, not a run-killer. The run RECOVERS.
+```
+DERAIL #1: heal_in_pokemon_center … after 8 ride-outs
+'Story: descending Jagged Pass to Lavaridge...'
+ROUTE 112 -> MT. CHIMNEY -> LAVARIDGE TOWN
+'Story: reached Lavaridge Town!'                     (~3,000 frames later)
+```
+The derail re-enters `_play()`, re-localises to the Jagged-Pass descent and **arrives anyway**, at the
+cost of ~3,000 frames and ONE derail slot. ⇒ **a careless fix could BREAK A WORKING RECOVERY.**
+⭐ And today's retry narrowing already cut this: these are reachability refusals, not scripted events,
+so they now fail on attempt 1 instead of being ridden out 8 times.
+
+### ⛔⛔ CORRECTION 4 — MY ANSWER ("Fallarbor") IS DISPUTED, AND I AM NOT RESOLVING IT BY PICKING
+Two instruments disagree, and **both reproduce the one ground truth we have**:
+
+| instrument | Lavaridge | Mauville | Fallarbor |
+|---|---|---|---|
+| my `calculate_path` probe, from `(11,37)` | FAIL | **FAIL** | **OK, 267 wp** |
+| a decomp-level BFS over the real map/collision bytes, from `(11,36)` | unreachable | **145 steps (needs Rock Smash)** | 264 steps (**needs Go-Goggles**) |
+
+* Control, my probe: `Lavaridge (9,6) -> ROUTE112 (11,36) = OK, 60 waypoints` — matches the
+  2026-07-26 record to the waypoint.
+* Control, the BFS: the same pair = 53 steps PASS, reverse FAIL — matches in direction and magnitude.
+
+⇒ **`calculate_path`'s Mauville FAIL is very likely a KI-24 FALSE NO** (it is documented to read
+dual-elevation terrain as walls), which would make Mauville the right answer and mine wrong.
+⛔ **BUT THE BFS IS A SIMULATION, EXPLICITLY "NOT PROOF"**, and I will not swap one unverified map
+claim for another — that is the exact error this item already caught me making once today.
+
+‼ **AND A TIMING FACT THAT PROBABLY SETTLES IT AGAINST FALLARBOR ANYWAY.** Fallarbor's route runs
+through the Go-Goggles desert; Go-Goggles are awarded by the rival in Lavaridge **in the same block
+that sets `FLAG_BADGE04_GET` (Flannery)**. The Fiery-Path/Machop hunt is the **pre-Norman, pre-Flannery**
+window ⇒ at the moment this actually fires, **Fallarbor may not be reachable at all**, and Mauville
+(Rock Smash — which the bot must already have to be in Fiery Path) would be the only candidate.
+
+**⇒ THE DECISIVE TEST, NAMED AND NOT RUN:** drive `_navigate_riding_out` (the instrument the bot
+ACTUALLY uses — it crosses warps, which `calculate_path` cannot) from `ROUTE112 (11,36)` to each
+candidate door, on a **pre-Flannery** save. Until that runs, the answer is UNRESOLVED and no table or
+literal should change.
+
+### ⇒ THE ITEM IS DOWNGRADED, NOT CLOSED
+A frame-cost and one derail slot, on a path that self-heals, whose "obvious" fix targets dead code,
+whose replacement destination is disputed between two instruments, and where 33 of 269 observed
+landings may have no reachable centre at all. ⇒ it does not earn a behaviour change to
+counter-hunting ahead of work that costs runs. **Re-scoped rather than fixed** — and the next session
+starts from measurements and a named decisive test instead of the plausible story I began with.
+
+### ⭐ ONE MORE DEFECT OF THE SAME SHAPE, FOUND IN PASSING — filed, not fixed
+`story_mode.py:1120` maps `ROUTE111 -> FallarborTown`, correct for Route 111's NORTH side. But the
+heal map is keyed by MAP, and Route 111's SOUTH side — which is where Route 112's lower section exits
+to — answers **Mauville**. **One map, two correct answers, split by the desert.** Same shape as the
+bug above, and the same reason a map-keyed table cannot express it.

@@ -71,9 +71,23 @@ from modules.player import get_player_avatar, player_avatar_is_controllable
 SAVES = REPO / "tools" / "story-dev" / "saves"
 ANCHOR = "lavaridge.ss1"   # verified clean + pre-Norman by probe_counter_tiles.py
 
-#: The REAL tile the bot stands on when this fails, read verbatim from a run log:
-#: `[MAP] FIERY PATH(24,14) -> ROUTE 112(0,27)` then pos (26,36).
-FROM_TILE = (MapRSE.ROUTE112, (26, 36))
+#: ⛔⛔ CORRECTED 2026-09-12 AFTER AN AGENT CAUGHT ME MEASURING FROM A TILE THE BOT BARELY USES.
+#: The first version read `(26,36)` off the `[MAP] FIERY PATH -> ROUTE 112 pos=(...)` line, calling it
+#: “the REAL tile”. **That `pos=` is the PRE-transition position** — the logger samples position
+#: alongside the ALREADY-UPDATED map name, so the pair is internally inconsistent. The truth is the
+#: next `[hb]`/`[STUCK]` heartbeat once standing on Route 112.
+#: MEASURED over every FIERY_PATH->ROUTE112 exit in the 2026-09 batches (44 distinct tiles):
+#:     (31, 9) x117    (26,34) x106    (6,4) x22    (6,7) x11    (11,37) x8    (26,36) x5
+#: ⇒ (26,36) is real but RARE. Route 112 is ledge-split, so the answer can differ per tile — which is
+#: exactly why this now measures from ALL the common ones and reports the spread instead of one.
+FROM_TILES = [
+    (MapRSE.ROUTE112, (31, 9)),    # most common landing
+    (MapRSE.ROUTE112, (26, 34)),
+    (MapRSE.ROUTE112, (6, 4)),
+    (MapRSE.ROUTE112, (6, 7)),
+    (MapRSE.ROUTE112, (11, 37)),
+    (MapRSE.ROUTE112, (26, 36)),   # the tile the first (wrong) measurement used
+]
 #: The tile NO_RETURN_GROUNDS measured from, kept so this probe can reproduce that exact reading.
 FROM_TILE_2026_07_26 = (MapRSE.ROUTE112, (11, 36))
 
@@ -150,13 +164,15 @@ print(f"    ROUTE112 (11,36) -> Lavaridge (9,6) : {text}")
 
 # --- THE QUESTION -------------------------------------------------------------------------------
 print()
-print(f"  THE QUESTION — from the REAL failing tile {FROM_TILE[0].name} {FROM_TILE[1]}:")
+print("  THE QUESTION — from EVERY common post-exit tile (Route 112 is ledge-split):")
 rows = []
-for label, centre in CANDIDATES:
-    dst = (centre.value[0], centre.value[1])
-    kind, text = path_result(FROM_TILE, dst)
-    rows.append((label, kind, text))
-    print(f"    -> {label:<36} {text}")
+for src in FROM_TILES:
+    print(f"    from {src[0].name} {src[1]}:")
+    for label, centre in CANDIDATES:
+        dst = (centre.value[0], centre.value[1])
+        kind, text = path_result(src, dst)
+        rows.append((f"{src[1]} -> {label}", kind, text))
+        print(f"       {label:<34} {text[:88]}")
 
 print()
 print("=" * 96)

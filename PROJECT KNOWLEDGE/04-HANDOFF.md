@@ -496,22 +496,24 @@ Moved for the R3 budget; all four are in `05-KNOWN-ISSUES.md` or its archive wit
 >    ⚠ Neither proves `decide_maintenance` ever SELECTS slot 0 in production (reasoned, not observed),
 >    and NEITHER explains the residual 19-vs-9 heal derails — 18 of 19 fire OUTSIDE the errand.
 >
->    ⭐ **QUEUE ITEM 0 — `#26-healmap-lavaridge`: MEASURE WHICH CENTRE IS REACHABLE, THEN FIX.**
->    ✅ **Attribution DONE 2026-09-12 — no longer a hypothesis.** ROUTE112 = **32 of 39**
->    `Cannot reach LAVARIDGE_TOWN` across all four batches; chain read VERBATIM: *counter-hunt in
->    FIERY_PATH → damaged → `[MAP] FIERY PATH -> ROUTE 112` → heal → fail*. `training_areas.py:344`
->    records `ROUTE112 -> Lavaridge = FAIL`; `story_mode.py:1121/1126` map ROUTE112 **and**
->    FIERY_PATH there anyway, and the dict is what the heal consults. ‼ `NO_RETURN_GROUNDS`' own
->    FIERY_PATH entry says catch-and-leave hunting *“needs no heal trip … must not go through this
->    picker”* — the TRAINING pickers honour it, the COUNTER HUNT does not. Full evidence:
->    `07-CHANGELOG.md` 2026-09-12 (late).
->    ⛔⛔ **DO NOT JUST RE-MAP IT** — which centre IS reachable from Route 112's lower section is
->    **UNMEASURED** (Mauville is plausible, i.e. exactly the guess this project gets burned by).
->    ⇒ **NEXT: `calculate_path` from the real exit tile `ROUTE 112(0,27)/(26,36)` to each candidate
->    PC door** — a measurement, not a table edit. Then pick: (1) consult `NO_RETURN_GROUNDS`, return
->    `None` (an honest SKIP) ⚠ a hunt that cannot heal may stall; (2) map to a MEASURED-reachable
->    centre; (3) stop catch-and-leave hunting healing at all — what the table already implies.
->    ⚠ (1) and (3) change COUNTER-HUNT behaviour and need their own arm.
+>    ⬇ **`#26-healmap-lavaridge` IS DOWNGRADED (2026-09-12) — do NOT start here.** It is a frame-cost
+>    (~3,000 frames + 1 derail slot), NOT a run-killer: the derail re-plans via Jagged Pass and reaches
+>    Lavaridge anyway. ⛔ Its "obvious" fix is a NO-OP — `_training_area_heal_map()`'s ROUTE112/
+>    FIERY_PATH rows are DEAD KEYS (all 3 callers key off `TRAINING_GRASS`, which has neither map); the
+>    real caller is a LITERAL at `story_mode.py:4271`. ⛔ And the replacement is DISPUTED: my
+>    `calculate_path` probe says Fallarbor, a decomp BFS says Mauville and notes Fallarbor needs
+>    Go-Goggles (awarded WITH Flannery's badge, i.e. after this fires). Both reproduce the control.
+>    ⇒ **UNRESOLVED — change nothing.** DECISIVE TEST, named and not run: drive `_navigate_riding_out`
+>    from `ROUTE112 (11,36)` to each candidate door on a PRE-FLANNERY save. Full evidence:
+>    `07-CHANGELOG.md` 2026-09-12 (night).
+>
+>    ⭐ **QUEUE ITEM 0 — `#24-maintain-staletarget`.** It is the open item that most likely COSTS the
+>    user something: `_prepare_for_fight` calls `_maintain_lagging_battler(target)` BEFORE escalating
+>    `target` on a reactive re-attempt (`losses>=2`), so after 2 losses the errand tops a mon to
+>    *(low roll) − 6* and the same call re-excludes it moments later — the whole frame budget spent for
+>    nothing, on exactly the runs with the worst laggards. ⚠ Gate #55 tests the PURE predicate and
+>    cannot see it (the defect is in what the CALLER passes). ⛔ UNMEASURED: log the call-time AND the
+>    final escalated `target` BEFORE changing anything (rule 7: a candidate is not an attempt).
 >    ⚠ **OPEN, and all three are filed at the top of `03-PUNCH-LIST.md`:** `#26-healmap-lavaridge`
 >    (our repo contradicts its own measurement), `#24-ratchet-scope-gap` (`plugins/custom_modes` is
 >    outside BOTH abort ratchets — 93 broad handlers, ~90 unguarded), `#24-maintain-staletarget`.
