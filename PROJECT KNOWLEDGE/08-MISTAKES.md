@@ -17220,3 +17220,37 @@ comparison **in the same population**, and it refuted my own hypothesis: the lea
 **6.0 in wins and 6.0 in losses**. That is the check I failed to run on the "fainted lead" claim
 earlier in the day, applied in time. ⇒ **a signal measured only on failures is not a signal;
 measure it on successes too, or do not report it.**
+
+---
+
+## 2026-09-13 (late) — I spent a 9-agent workflow re-deriving a build spec that had existed for six days
+
+**Symptom.** With the queue correctly pointed at story content (`#24-e4healing` steps 2-4), I
+commissioned a workflow — 4 recon angles, 4 adversarial verifiers, 1 synthesis, ~1.5M subagent
+tokens — to research the problem and produce a build spec. `PROJECT KNOWLEDGE/ai-research-notes/`
+already contained **EIGHT** Ch24 notes, including **`2026-09-07-ch24-elite-four-BUILD-SPEC.md`** (a
+12-leg chapter shape whose legs 5b-8b are literally *"heal between fights"*, i.e. step 2) and
+`2026-09-08-ch24-league-RECON.md`, which already states *"`heal_party_from_bag` IS BUILT, DRIVEN, AND
+HAS ZERO CALLERS … This is `#24-e4healing` steps 2-4"*.
+
+**What the workflow actually bought.** Three things, of which one is genuinely valuable and I
+verified it myself against the ROM (halls 1/2/3/5 have three adjacent warp tiles at the arrival end,
+so a sidestep while healing warps backward; HALL4 is the only safe hall). The rest was re-derivation,
+and its own adversarial layer said so — one verifier wrote that the recon *"re-derived a nine-day-old
+note and came back LESS accurate than it"*.
+
+**Root cause.** My recon design DID include "check `ai-research-notes/`" — as **point 4 of one of the
+four angles**. So the check ran *inside* the expensive thing it was supposed to make unnecessary.
+⇒ **Prevention rule: READ `ai-research-notes/00-READ-THIS-FIRST.md`'s INDEX BEFORE COMMISSIONING
+RESEARCH, NOT AS AN ANGLE INSIDE IT.** The index is one file and lists every note by headline. A
+prior-art check is a PRECONDITION of the spawn, not a task for the spawned.
+‼ **Corollary, because this is the second time today:** the duplicate punch-list item this morning
+(`#24-norman-lead` vs the open `#24-leadpolicy`) had the same shape — a "have we done this already?"
+check placed after the work instead of before it. **Both times the adversarial reviewer caught it,
+and both times that was too late to save the cost.**
+
+⭐ **WHAT THE DESIGN GOT RIGHT, AND IS WORTH KEEPING.** Pairing every recon agent with an adversarial
+verifier is what surfaced the duplication at all, and it also caught: a stale coordinate ((6,12) not
+(6,13)), an omitted fifth warp, an "unknown" that was in the first 30 lines of the handoff, and a
+headline ("WORSE THAN RECORDED") that the project's own decisions log had already recorded nine days
+earlier. ⇒ **keep the adversarial pairing; move the prior-art check in front of it.**

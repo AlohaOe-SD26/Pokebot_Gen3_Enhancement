@@ -109,3 +109,49 @@ script sets `impassable=FALSE` on (6,1)/(6,2) and **seals (5..7,12..13) behind y
 per room and hall, logs map+local coords every frame for 120 frames post-warp, `VAR_ELITE_4_STATE`,
 the live metatile behaviour of (6,1)/(6,2)/(5,12) **before and after** a fight, and `calculate_path` to
 (6,2) both before and after the door opens. That single drive settles items 1-2 and KI-74's direction.
+
+
+---
+
+## ⭐ ADDENDUM 2026-09-13 — two NEW constraints for `#24-e4healing` step 2, one ROM-VERIFIED by me
+
+⚠ A 9-agent workflow was commissioned for exactly this item **without first reading this file**, and
+its adversarial layer caught it re-deriving this spec and the 2026-09-08 recon. ⛔ **Most of what it
+produced was already here.** Recorded in `08-MISTAKES.md` 2026-09-13. Only these survived as new:
+
+### 1. ⛔⛔ HALLS 1/2/3/5 ARE UNSAFE TO STAND IN — **VERIFIED AGAINST OUR OWN ROM, NOT A NOTE**
+Read live via `get_map_data(...).warps` on the repro profile:
+```
+EVER_GRANDE_CITY_HALL1   warps = [(5,12), (5,2), (4,12), (6,12)]
+EVER_GRANDE_CITY_HALL2   warps = [(5,12), (5,2), (4,12), (6,12)]
+EVER_GRANDE_CITY_HALL3   warps = [(5,12), (5,2), (4,12), (6,12)]
+EVER_GRANDE_CITY_HALL4   warps = [(5,33), (5,2)]          <-- SINGLE tiles, both ends
+EVER_GRANDE_CITY_HALL5   warps = [(5,12), (5,2), (4,12), (6,12)]
+```
+The bot arrives at **(5,12)** and **BOTH neighbours — (4,12) and (6,12) — are also warps back to the
+previous room.** ⇒ **one sidestep while healing is a backward warp**, and a heal routine that moves
+at all (or that a nudge/anti-stuck shim moves) can silently undo a cleared room.
+⇒ **HALL4 IS THE ONLY HALL SAFE TO STAND IN**, and that is exactly where the Wallace heal must go.
+⇒ **Step 2 rule: heal INSIDE the arena rooms for bosses 1-4; use HALL4 for the Wallace heal.**
+‼ Do NOT heal on a hall's south tile. This is a *stronger* constraint than "heal between rooms".
+
+### 2. Wallace cannot be reached by talking — so "heal on room entry" MISSES him
+The four E4 bosses are `TRAINER_TYPE_NONE` with sight 0, so the heal window inside each arena is
+unlimited. **Champion's Room is different: Wallace's object script is literally `0x0`** and the fight
+starts from an `OnFrame` script. ⇒ there is **no window at all** once you are in the room, which is
+the same fact this spec already states as *"leg 10 — Wallace: do NOT press A"*, arriving from the
+other direction. Combined with (1): **the last heal opportunity is HALL4, before the door.**
+
+### 3. The measurement that makes step 2 worth building — and it was already in our docs
+`04-HANDOFF.md:19-26` / `KI-93`: `--driver ch24probe` **BEAT SIDNEY** (`outcome=BattleOutcome.Won`) —
+and the post-fight party was `Sceptile 0/147, Zigzagoon 0/48, Swellow 0/139, Mightyena 0/144,
+Castform 0/103`, **only `Wailord L47 226/226` still standing**, after **20 faint-chooser events**.
+⇒ the bot can win room 1 and then walks into room 2 with **one Pokémon**. That is precisely the gap
+step 2 exists to close, and it is measured, not assumed.
+‼ The workflow listed this as an "unknown". It is in the first 30 lines of the handoff.
+
+### Corrections to this spec's own details, from the same round (low cost, worth fixing)
+* Champion's Room is entered at **(6,12)**, not (6,13).
+* League 1F has a **fifth warp at (1,7)** to `POKEMON_LEAGUE_2F` (Union Room / Trade Center) that the
+  leg-2/3 chain omits — harmless if never taken, but the chain is not universally quantified.
+* Wallace's **entire six-mon party is `.iv=255`**, not "250 except the last".
