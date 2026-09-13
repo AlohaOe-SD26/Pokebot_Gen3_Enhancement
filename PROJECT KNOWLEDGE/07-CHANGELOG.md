@@ -28481,3 +28481,93 @@ is 5-6 strong (94 of 180 at five, 21 at six). ⭐ The signal is the LEAD: median
 below our own best. Hypothesis (UNVERIFIED, and to be instrumented before any fix): `_lead_best_matchup`
 selects on TYPE against `ace_types`, Normal is weak only to Fighting, so it may front a low-level
 Fighting mon into a L31 Slaking. Winona is #2 at 18.8% and may share the mechanism.
+
+---
+
+## 2026-09-13 (night) — there is no blocking defect left: runs are TIME-BOUND. And the lead-policy docs that sent me hunting one are STALE.
+
+All figures below are from `x4-runs/20260913-092254` (commit `f039bffc`, single build, VERDICT OK,
+**42 runs started**, 749 losses) — the first batch containing the Wally fix. ⚠ 32 of the 42 runs were
+CENSORED by the 120-minute bound; that is small, and it matters for everything that follows.
+
+### ⭐ THE FINDING THAT CHANGES THE TARGET: nothing is blocking
+Per-gym conversion (runs reaching gym N+1 / runs reaching gym N):
+`Gym1 93% → Gym2 92% → Gym3 92% → Gym4 94% → Gym5 Norman **97%** → Gym6 Winona 83% → Ch20 20%`
+⛔ **AND THE 20% IS NOT A WALL — IT IS CENSORING.** Of the 20 runs that reached Winona's gym but not
+the Mossdeep arc, **20 of 20 were STILL RUNNING at the 120-minute bound. ZERO ended.**
+⇒ **No gate stops runs any more.** The Wally fix removed the last hard blocker; what remains is that
+runs run out of wall-clock. **The binding constraint is TIME.**
+
+‼ **Norman is EXPENSIVE, NOT BLOCKING** — 180 of 749 losses (24.0%, the top site) and **97%
+conversion**. A site with many losses is not necessarily a site that stops anyone. ⇒ *rank gates by
+CONVERSION, not by loss count.*
+
+### Where the time goes (two independent derivations, agreeing to 0.1%)
+By `[STEP]` span: training **56,989,744** frames = **52.3%** of attributed frames (85% coverage).
+By `[MAP]` residence: **57,069,594**. And within training, **85.4% is spent IN THE GRASS**
+(ROUTE116 38.4%, ROUTE117 38.0%, GRANITE CAVE 5.8%) against 14.6% of heal-and-walk overhead.
+⇒ training is not being wasted on round-trips; the time genuinely goes into fighting wilds.
+‼ This also rehabilitates the "~55% of compute is grinding" figure I WITHDREW earlier today as
+unsourced — it was approximately right. Withdrawing it was still correct: it had no derivation
+attached. It does now.
+⛔ **A DISCARDED MEASUREMENT, RECORDED SO NOBODY REBUILDS IT.** My first cut attributed training
+frames by "last map entered" and produced RUSTBORO CITY 37% — i.e. the bot appeared to train in a
+city. It is an ARTIFACT: the `[STEP]` message is set ONCE when training starts and never changes, so
+a multi-map training loop is charged entirely to whichever map happened to be current at the end.
+The map-residence method above is the correct instrument.
+
+### ⛔ THE LEAD-POLICY DOCS ARE STALE, AND THEY COST THIS SESSION A WHOLE INVESTIGATION
+I read `_lead_best_matchup`'s docstring, concluded the selector was "purely defensive", and filed a
+new item on it. **It is not.** Verified in code:
+* The docstring paragraph at `early_game.py:1744-1746` describes the PRE-2026-08-01 rule. The BODY
+  (`:1855-1866`) delegates to `team_policy.lead_rank_key`, which carries BOTH ruled terms:
+  `(glass_wonder_guard, can_attack, incoming, is_hunted_counter, -level)`.
+* **KI-25 is equally stale** — it quotes `best = min(slots, key=lambda i: (_incoming(...), -level))`
+  at `early_game.py:1659`, code REPLACED on 2026-08-01 by commit `9252e238`.
+* `min_incoming_only` is dead code, but it has been dead **since 2026-07-21** — it is a vestige of
+  the original Rustboro wiring, NOT evidence of a reverted fix.
+⇒ **A+C SHIPPED.** What is true is narrower and better evidenced:
+  * **(a) is live but measured INERT** — `_can_attack` accepts any damaging move at ≥1.0×, and
+    against mono-Normal Norman a Shedinja's own Scratch is exactly 1.0×, so it is never demoted.
+    The changelog already recorded **0 of 723** logged lead decisions containing a `NOATK` candidate.
+  * **(c) is live but DISABLED BY DEFAULT**, and that is a USER RULING with a DO-NOT-REOPEN
+    (`06-DECISIONS-LOG.md` 2026-08-05: *"The three revert flags stay 0 regardless of what happens
+    next: POKEBOT_LEAD_DEMOTE_WONDER_GUARD, …"*). It was measured HARMFUL: finish rate
+    **47.1% → 26.9%** with (c) on; batch8 with it off recovered to 45.8%.
+⛔ **DO NOT RE-PROPOSE (c), AND DO NOT PROPOSE (b).** Level-gap weighting was rejected 2026-07-29,
+and this session MEASURED why it would not have helped anyway: at Norman the median lead is L29 and
+the median top mon L35 — **a gap of 6.0 in wins AND in losses, identically.** The gap does not
+discriminate.
+
+### Norman, measured correctly (a denominator correction of my own)
+My first figure — "Norman 119 W / 180 L = 40%" — was **all PETALBURG CITY battles**, which include
+three gym trainers before the boss. Isolated by opponent from the `[TURN]` lines:
+| foe | W | L | n | win% |
+|---|---|---|---|---|
+| Spinda (Norman's lead) | 59 | 172 | **231** | **26%** |
+| Vigoroth | 29 | 156 | 185 | 16% |
+| Slaking | 29 | 136 | 165 | 18% |
+| Linoone | 29 | 105 | 134 | 22% |
+| Zangoose / Swellow (the gym trainers) | 60 | 8 | 68 | **88%** |
+⇒ the true Norman win rate is **26%**, not 40%; the gym trainers are won 88% of the time, so the
+losses really are the boss; and the bot reaches Slaking in **71%** of attempts.
+‼ **AND AN ADVERSARIAL PASS SPLIT IT FURTHER, WHICH MATTERS MORE:** of the 119 “Petalburg wins”
+only **27 are NORMAN** — the other 92 are the gym trainers. Shedinja is **26W/5L against the trainers**
+and **13W/79L (14%) against Norman**. ⇒ the “Shedinja 40%” that motivated the whole investigation is
+**asymmetric pooling**, not a lead-quality signal. And **27 of 29 runs BEAT Norman** — he is the least
+blocking boss measured. The ceiling on a perfect lead fix is **+12.8 wins = 1.7% of losses and ZERO
+extra runs past badge 5**; Winona costs **52% more per loss** (28,575 frames vs 18,800).
+⇒ `#24-leadpolicy` is **REFUTED as a target**, not merely deprioritised. Mechanics preserved in
+`ai-research-notes/2026-09-13-norman-slaking-decomp.md`.
+‼ I also stated in passing that "Slaking is never named in the batch". **That was wrong** — a shell
+pipe failed silently and I read its empty output as a zero. Slaking appears 165 times.
+
+### ⇒ WHAT THIS MEANS FOR THE QUEUE
+The user's standing directive (`06-DECISIONS-LOG.md` **2026-08-05**) is explicit: *"I don't want to
+focus too hard on this if you keep going back and forth unless you are actually solving a logic
+breaking bug. I want to eventually get back to working on the rest of the story."*
+⇒ There is **no logic-breaking bug blocking progress** (97% conversion past the top loss site; no
+run ended short of Mossdeep). ⇒ **Back to story content: `#24-e4healing` steps 2-4** — and its own
+text already names the next piece, *"the money policy for a post-whiteout re-stock"*, which the
+Route 110 decomp note independently flagged (every loss HALVES the player's money, and leg 11
+refuses a ₽54,300 basket holding ₽1,741).

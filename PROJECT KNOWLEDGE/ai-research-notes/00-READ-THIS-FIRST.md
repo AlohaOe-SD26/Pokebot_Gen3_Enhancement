@@ -398,6 +398,7 @@ fabrications fast; agreement is **not** a confidence signal.
 | `CLAUDE-VALIDATED-concepts-round2.md` | c03, c07, c10 (+c04, c06) | Fortree re-entry recovery VERIFIED correct; daycare silently eats HMs |
 | `CLAUDE-VALIDATED-concepts-round3.md` | c05, c08 (+c02, c06) (~50 claims) | the impossible-without-event-data list; whiteout wipes E4 flags |
 | `2026-09-13-route110-rival-decomp.md` | Route 110 rival: parties, AI, trigger, loss path | ⚠ **NOT validated — its damage/level numbers are the author's CALCULATIONS.** Grovyle's 4× Absorb may HEAL more than Marshtomp can deal (attrition loss, no HP threshold); the ace is sent out SECOND not third; the trigger is a 3-tile chokepoint proven mandatory by flood fill. Commissioned for `#24-rival110`, which was DOWNGRADED the same day — read it for the MECHANISM, not the priority. |
+| `2026-09-13-norman-slaking-decomp.md` | Norman's party, Truant, Counter, Wonder Guard | ⚠ NOT validated (stat lines are CALCULATIONS). ⛔ Shedinja is STRUCTURALLY suicidal vs Norman — Faint Attack is Dark 2× and NEVER MISSES, two mons carry it, Teeter Dance bypasses Wonder Guard, and `ShouldSwitchIfWonderGuard` actively swaps in a counter at 2/3 per turn. Machoke's 18% is Counter returning 2× UNREDUCED by Fighting's own resistance. ‼ **The item it was written for was REFUTED the same day — read its closing section before acting.** |
 
 # ‼ BEST GROUNDING METHOD FOUND (adopt this by default)
 

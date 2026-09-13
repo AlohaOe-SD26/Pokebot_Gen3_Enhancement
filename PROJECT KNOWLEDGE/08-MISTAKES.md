@@ -17183,3 +17183,40 @@ is not.
 on 2026-09-05, which is itself recorded in `03-PUNCH-LIST.md` as *"⛔⛔ DO NOT OPEN A SECOND ONE."*
 ‼ **That warning was already in the file I was editing.** ⇒ a prevention rule filed under one item
 does not fire when you are working on another; only a mechanical check does.
+
+---
+
+## 2026-09-13 (night) — I hunted a defect the docs described, in code that no longer works that way; and I twice measured the wrong population
+
+**(a) ⛔ I TRUSTED A DOCSTRING AND A KNOWN-ISSUE OVER THE CODE, AND SPENT A ROUND ON IT.**
+`_lead_best_matchup`'s docstring says *"Picks the battler minimizing the foe's WORST-CASE STAB
+multiplier … breaking ties by higher level"* — purely defensive, exactly what KI-25 diagnoses. Both
+are **STALE**: the body delegates to `team_policy.lead_rank_key`, which has carried the ruled (a) and
+(c) terms since commit `9252e238` (2026-08-01). KI-25 still quotes the replaced expression and its
+old line number. I read the docstring and the top of the function, saw the defensive `_incoming`
+helper, and stopped.
+⇒ **Prevention rule: when a docstring and the body can disagree, the BODY is the fact. Read to the
+`return`/the ranking expression before concluding what a selector optimises** — a helper defined
+inside a function is not evidence that it is the only term. ‼ And: **a KNOWN-ISSUE entry that quotes
+code is a claim with an expiry date**; treat a quoted line number older than the last refactor as
+unverified until re-read.
+
+**(b) ⛔ I MEASURED "NORMAN" AND ACTUALLY MEASURED A WHOLE GYM.** I reported 119 W / 180 L = 40% for
+Norman from battles whose MAP was `PETALBURG CITY`. That map contains **three gym trainers** fought
+before the boss. Isolating by the opponent named in the `[TURN]` lines: Norman is **59 W / 172 L =
+26%**, and the trainers are won **88%**. The direction of the error flattered the bot by 14 points.
+⇒ **Prevention rule: a MAP is not an OPPONENT.** When the question is about one fight, filter by the
+foe, not by where the foe stands — the logs name it on every turn line.
+
+**(c) ⚠ AND I READ AN EMPTY SHELL PIPE AS A ZERO.** `grep -hc Slaking … | paste -sd+ | bc` produced
+nothing, and I reported *"Slaking is never named"*. It is named **165 times**. A pipeline that fails
+prints nothing, which is indistinguishable from a true zero unless you check.
+⇒ **Prevention rule: a zero from a multi-stage shell pipe must be confirmed by a positive control** —
+run the same pipe against something you KNOW is present. (This is the same shape as the earlier rule
+*"an impossible zero refutes the metric"*, but its cause is the shell, not the key.)
+
+⭐ **WHAT WENT RIGHT, AND IS WORTH KEEPING.** Before building anything I ran the win-vs-loss
+comparison **in the same population**, and it refuted my own hypothesis: the lead/top level gap is
+**6.0 in wins and 6.0 in losses**. That is the check I failed to run on the "fainted lead" claim
+earlier in the day, applied in time. ⇒ **a signal measured only on failures is not a signal;
+measure it on successes too, or do not report it.**

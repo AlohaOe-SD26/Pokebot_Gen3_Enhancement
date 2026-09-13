@@ -526,7 +526,7 @@ right place is a NEW out-of-battle path.
       un-healed → **32% HP, THREE fainted**; healed → **87%, ZERO**. ⭐ **LEG 7 STARTS FROM
       `post_b1f_healed.ss1`** (`b2eeb15c…`), ⛔ **NOT `post_b1f.ss1`**, which is kept only as that
       A/B's un-healed arm.*
-      ⭐⭐ **STUB MARKER — READ BEFORE ANY BOULDER CODE:** `ai-research-notes/2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` (3 independent agents) + `...-ch24-POKEMON-LEAGUE.md`. ⛔ NOTES, not truth — the reachability is MODELED and 3 live checks are OWED. Headlines: (1) **the route is `1F→B1F→B2F→B1F→1F`** — 1F's entrance and exit are in DIFFERENT walk-regions, so "walk across 1F" is impossible; (2) **TWO boulders are mandatory, (4,7) WEST and (9,10) EAST** — a "delete it and re-path" model finds only (9,10) and misses (4,7); (3) ⛔ **pushing either SOUTH kills the route irreversibly** — exactly what a greedy push-toward-goal router does; (4) **every warp RESETS the puzzle** (`FLAG_TEMP_*` cleared, boulders revert — also the recovery from a trap push) and **`FLAG_SYS_USE_STRENGTH` clears on every map load**; (5) minimal HMs = **{Surf, Strength, Rock Smash}** — **Waterfall and Flash NOT required**; (6) ✅ `strength_push` exists (`early_game.py:8132`, Magma-Hideout-proven) ⇒ **the machinery exists; only the route is missing.**
+      ⭐⭐ **STUB MARKER — READ BEFORE ANY BOULDER CODE:** `ai-research-notes/2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` (3 independent agents) + `...-ch24-POKEMON-LEAGUE.md`. ⛔ NOTES, not truth — the reachability is MODELED and 3 live checks are OWED. Headlines: (1) **the route is `1F→B1F→B2F→B1F→1F`** — 1F's entrance and exit are in DIFFERENT walk-regions, so "walk across 1F" is impossible; (2) **TWO boulders are mandatory, (4,7) WEST and (9,10) EAST** — a "delete it and re-path" model finds only (9,10) and misses (4,7); (3) ⛔ **pushing either SOUTH kills the route irreversibly** — exactly what a greedy push-toward-goal router does; (4) **every warp RESETS the puzzle** (`FLAG_TEMP_*` cleared, boulders revert — also the recovery from a trap push) and **`FLAG_SYS_USE_STRENGTH` clears on every map load**; (5) minimal HMs = **{Surf, Strength, Rock Smash}** — **Waterfall and Flash NOT required**; (6) ✅ `strength_push` exists (`early_game.py:8143`, Magma-Hideout-proven) ⇒ **the machinery exists; only the route is missing.**
       ⛔ *(This item's header read "PRODUCTION CODE IS ZERO" and its first line "`victory_road.py`
       DOES NOT EXIST" for a day AFTER legs 2-4 shipped from that very file — the heading-vs-body rot
       this tree keeps paying for. Rewritten 2026-09-04.)*
@@ -1794,7 +1794,7 @@ accident of what the bot happened to meet.
   **only at a FULL party** (so the game stores it via `CopyMonToPC` and it cannot consume the
   HM/counter runway `#24-partycap` measured as load-bearing) **and only when no hunt is armed**.
   ✅ **STRUCTURAL CLAIMS I VERIFIED MYSELF** (static reads — these are what the build rests on):
-    * `ensure_hm_learner` is **SELF-FENCED**: `early_game.py:4597-4563` raises at `party_count >= 6`
+    * `ensure_hm_learner` is **SELF-FENCED**: `early_game.py:4608-4563` raises at `party_count >= 6`
       *before* its spin ⇒ **a party==6 dex gate can never fire during an HM hunt.**
     * `counter_hunt.catch_confirmed` is **SPECIES-BLIND on the box path**: `counter_hunt.py:363-365`
       returns True for **any** new box PID ⇒ an unrelated dex catch at party 6 would END the spin,
@@ -2387,7 +2387,7 @@ region, where "train near the gym" is actively wrong.
 - `modules/story/counter_plan.py` — already ranks reachable, cost-priced counter encounters.
 
 **The three concrete gaps:**
-- [ ] **(1) `train_team` never picks an area.** `early_game.py:2058` —
+- [ ] **(1) `train_team` never picks an area.** `early_game.py:2069` —
       `grass: tuple = RUSTBORO_TRAINING_GRASS` is a caller-supplied constant; it never calls
       `best_training_area`. Its own docstring admits this. **Wire it.**
 - [~] **(2) `FODDER_LEVEL_GAP = 12` compares the WRONG QUANTITIES — ANALYSED 2026-07-29,
@@ -4074,7 +4074,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   **late catches, not HM mules**, so an HM-scoped fix can address at most half the population.
 - [x] ⛔⛔ **REFUTED — "acquire a Marill on Route 104 at §Ch3 so it is never a mule".** Killed by
   adversarial review on six counts, each verified in code. The two that are fatal on their own:
-  (a) `pick_land_hm_slot` (`early_game.py:4497-4463`) **skips any species that can learn Waterfall**
+  (a) `pick_land_hm_slot` (`early_game.py:4508-4463`) **skips any species that can learn Waterfall**
   — Marill does, so it is **structurally ineligible for Strength/Rock Smash forever**; and
   (b) Route 104 is in **`PENDING_GRASS` with spin tile `None`** (`training_areas.py:57-58`), never
   swept, and `_hm_hunting_grounds` skips `tile is None`. Also: no ball supply at §Ch3
