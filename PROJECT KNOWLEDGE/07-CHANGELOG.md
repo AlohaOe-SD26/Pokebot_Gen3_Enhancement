@@ -27811,3 +27811,84 @@ believable):**
 ⚠ **The headline is narrowed accordingly.** What is DRIVEN: the HARM (a real PID swap), and that
 the guard is present in the running build and suppresses the call. What is still REASONED, not
 observed: that `decide_maintenance` ever SELECTS slot 0 in a real run.
+
+---
+
+## 2026-09-12 (evening) — The heal fail-soft handler has now FIRED. It took a refuted hypothesis, a measured blocker and a control arm that production itself defeated.
+
+The handler shipped this morning and had fired **ZERO times in 102 production runs**. It is now
+driven, with a control arm that dies without it.
+
+### ⛔ FIRST, THE BLOCKER — AND IT WOULD HAVE MADE THE WHOLE TEST VACUOUS
+`--driver maintain` **never reaches a heal.** Measured, twice:
+* default (mule L13→L14): **0** `heal_in_pokemon_center` calls — the errand finishes before HP falls;
+* `POKEBOT_MULE_LEVEL=8` (a 6-level grind, my own idea): StoryAbort at L11, **still 0**.
+⇒ **my "a longer grind will reach the heal" hypothesis was REFUTED by measurement**, not by argument.
+A fault arm on an un-reached callee proves nothing and would have read as a refutation of a true
+finding. `train_team` heals only at `_min_battler_hp_pct() <= hp_threshold + 22` (= **42%**) AND
+lead < target (`early_game.py:2047, 2111`).
+
+**FIX: `POKEBOT_STAGE_HP`** — stage one non-MULE battler below the threshold using the in-tree
+technique (2 bytes at `data[86:88]`, then `state_cache.reset()`). Observe-only first, no fault armed:
+```
+STAGE-HP slot=0 Dustox 0/56 -> 11/56 (20%)
+HEAL CALLED centre=VerdanturfTown (n=1)
+ACCEPTANCE: PASS
+```
+⭐ The centre is **derived from the run**, never hardcoded — `_training_area_heal_map()` does not
+cover every ground `best_training_grass` can return, so a hardcoded name would be a latent lie.
+
+### THE PROOF — two arms, and they differ where it counts
+
+| | ARM-1 `blocked` | ARM-2 `nohandler` (control) |
+|---|---|---|
+| `heal_in_pokemon_center` CALLED | 1 | 1 |
+| `ABANDONED … the heal walk to` | **yes** | no |
+| outcome | `failure=None` — run **CONTINUED** | `failure=BotModeError` — run **DIED** |
+| strong lead restored | True | — |
+| verdict | **PASS** | **PASS** |
+
+⇒ the "without X the bug survives" arm this project's rule 8 demands, and it did not require editing
+a single source file between runs.
+
+### ⭐ THE CONTROL ARM WAS DEFEATED BY PRODUCTION, AND THAT IS EVIDENCE
+`nohandler` was first injected INSIDE the retry loop's `try`. It did **not** kill the run: production's
+own classifier saw no `_SCRIPTED_EVENT_MARKER`, took the BLOCKED fast-fail, and **reclassified the
+plain `BotModeError` into `HealWalkFailedError`** — which the narrow handler then correctly caught.
+⇒ **The control failed because the thing under test works.** Every in-loop heal failure really does
+become `HealWalkFailedError`, which is exactly what the 2026-09-12 narrowing claims. The fix was to
+raise **before** the loop, so the error never enters the conversion.
+‼ Prevention rule: **when a control arm behaves like the treatment, suspect that production is
+TRANSFORMING your injected input before the code under test sees it** — and read the transformation
+before concluding the test is broken.
+
+### ⚠ AND THE DRIVER'S OWN GRADE WAS WRONG FOR THESE ARMS — PREDICTED, THEN OBSERVED
+ARM-ON's acceptance requires `reached` (the mule hits `catchup`). Under a heal fault the errand is
+abandoned ON PURPOSE, so `reached` is False BY DESIGN and the first ARM-1 run printed
+**`ACCEPTANCE: FAIL` on a run where everything worked**. A design review had predicted exactly this
+before the arm was built. ⇒ the fault arms now have their own verdict branch, plus a
+`FAULT ARM DID NOT REACH THE CODE` → **ABORT, never PASS** guard.
+‼ **A misleading FAIL is worse than no grade** — it reads as "the fix failed" and would have sent the
+next reader to un-fix a working handler.
+
+### ⛔ WHAT THIS STILL DOES NOT EXPLAIN
+The residual **19 vs 9** heal derails measured in the safety batch. 18 of 19 fire OUTSIDE the errand,
+and `#26-healmap-lavaridge` (29 vs 8 `Cannot reach LAVARIDGE_TOWN`) alone accounts for more than the
+whole heal-derail total. ⇒ **this handler catching its own deliberately-raised type says nothing
+about that number.** Do not let a green proof here be read as "the heal problem is solved".
+
+### ⚠ THE FAULT HOOK INTRODUCED PRODUCTION DEBT, AND THE PER-ROOT RATCHET CAUGHT IT
+`_healwalk_fault_arm` parsed its `arm[:limit]` value with `try: int(lim) except ValueError: limit = 1`
+— a **silent except**, in production code, added purely to serve a test. `repro_no_silent_except.py`
+went red: `modules/modes/util: 9 > 8`.
+⭐ **And it caught it for the right reason, in the right place.** The TOTAL across all roots would
+have absorbed one more site; only the **per-root budget** saw it — which is precisely the case that
+gate's own text says a total-only ratchet misses: *"new debt in one root funded by headroom another
+root brought in."*
+**FIX: the code, not the budget.** `int(lim) if lim.isdigit() else 1` answers the same question with
+no handler at all. ⛔ Raising the budget to admit it would have paid for a test instrument with
+production debt that outlives the test.
+⇒ **Prevention rule: instrumentation added for a test is still PRODUCTION CODE and is held to
+production standards.** A fault hook is not exempt from the ratchets — and a parser that silently
+swallows a typo is exactly the class those ratchets exist to stop (a malformed limit would have
+become `1` without ever saying so).

@@ -374,6 +374,63 @@ def spin(stop_condition: Callable[[], bool] | None = None, counter_clockwise: bo
 #: quietly classifying every scripted event as "blocked" and never riding one out again.
 _SCRIPTED_EVENT_MARKER = "unexpectedly triggered a scripted event"
 
+#: ⛔ SYNTHETIC-FAULT BANNER. Every injected error carries it, so a FAULT can never be mistaken for a
+#: real map refusal in a log — and an acceptance check greps for THIS, not for the generic abandon
+#: line, because a genuine heal failure during the same drive would otherwise be indistinguishable
+#: (9 real ones occurred in 105 control runs on 2026-09-12, so the base rate is not negligible).
+_HEALWALK_FAULT_BANNER = "⛔ SYNTHETIC FAULT (POKEBOT_HEALWALK_FAULT) — NOT A REAL MAP REFUSAL"
+
+#: Process-lifetime one-shot counter. ‼ DEFAULT ONE-SHOT ON PURPOSE: ~38 call sites heal and only
+#: `_maintain_lagging_battler` catches `HealWalkFailedError`, so an always-on fault would brick every
+#: chapter that heals. One-shot is also what proves the CONTINUE half of the test — the errand is
+#: abandoned once and the run's LATER heals demonstrably still work.
+_healwalk_fault_state = {"fired": 0}
+
+
+def healwalk_fault_error(arm: str, rounds: int):
+    """Build the synthetic error for `POKEBOT_HEALWALK_FAULT`, or `None` when disarmed.
+
+    ⛔⛔ IT RETURNS A PLAIN `BotModeError` FOR THE `blocked`/`scripted` ARMS ON PURPOSE, so that
+    PRODUCTION'S OWN classifier at the `_SCRIPTED_EVENT_MARKER` check decides which raise site
+    fires. Short-circuiting straight to `HealWalkFailedError` would skip the very narrowing that
+    shipped on 2026-09-12 and test nothing about it.
+
+    ARMS:
+      `blocked`   → a deterministic refusal ⇒ production fast-fails on round 1 (the dominant
+                    real-world shape: 128 reachability refusals vs 63 scripted interruptions).
+      `scripted`  → carries `_SCRIPTED_EVENT_MARKER` ⇒ production RETRIES, exercising the 8-round
+                    bound and the abort-latch ordering that `reraise_if_aborting` exists for.
+      `nohandler` → ‼ THE CONTROL ARM, AND IT NEEDS NO SOURCE EDIT. Returns an error that stays a
+                    PLAIN `BotModeError` all the way out, so it falls THROUGH the errand's narrow
+                    `except HealWalkFailedError` to the pre-existing `except BaseException`
+                    catch-all and KILLS the run — exactly as it did before the type existed.
+                    ⇒ the "without X the bug survives" arm this project's rule 8 demands, obtained
+                    by a type switch rather than by mutating a file between runs (the shape that
+                    has twice left a fault arm in this repo pointing at nothing).
+    """
+    if arm in ("scripted",):
+        return BotModeError(f"{_HEALWALK_FAULT_BANNER}: we {_SCRIPTED_EVENT_MARKER} on the way to "
+                            f"the door (injected, round {rounds}).")
+    if arm in ("blocked", "nohandler"):
+        return BotModeError(f"{_HEALWALK_FAULT_BANNER}: injected deterministic refusal "
+                            f"(arm={arm}, round {rounds}).")
+    return None
+
+
+def _healwalk_fault_arm():
+    """Parse `POKEBOT_HEALWALK_FAULT` into `(arm, limit)`. Unset ⇒ `("", 0)` and NOTHING changes."""
+    raw = (_os_hla.environ.get("POKEBOT_HEALWALK_FAULT", "") or "").strip().lower()
+    if not raw:
+        return "", 0
+    arm, _, lim = raw.partition(":")
+    # ⛔ NO try/except HERE. `isdigit()` answers the same question without one, and the
+    # silent-except RATCHET (`repro_no_silent_except.py`, per-root budget) correctly went RED when
+    # this was `try: int(lim) except ValueError` — `modules/modes/util` 8 -> 9. A parser that
+    # swallows a typo is exactly the class that ratchet exists to stop: a malformed limit would have
+    # silently become 1 instead of saying so.
+    limit = int(lim) if lim.isdigit() else 1
+    return arm, max(1, limit)
+
 
 class HealWalkFailedError(BotModeError):
     """The walk TO the Poké Center door gave up after its 8 ride-outs.
@@ -429,6 +486,31 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
     # ⛔ NOT `expecting_script=True`: that would SUPPRESS the error without riding the scene out,
     # turning a visible derail into a silent wedge.
     _heal_nav_rounds = 0
+    # ⛔ FAULT HOOK — resolved ONCE PER HEAL CALL, not per nav round, and a no-op when unset
+    # (one `environ.get`; the happy path is otherwise byte-identical). Placed at the TOP rather than
+    # patched onto each raise site: patching two sites is exactly the shape that let gate #57's own
+    # `healbare` arm revert one and miss the other while the gate stayed green.
+    _fault_arm, _fault_limit = _healwalk_fault_arm()
+    if _fault_arm and _healwalk_fault_state["fired"] < _fault_limit:
+        _healwalk_fault_state["fired"] += 1
+        _piggyback_report("heal-walk FAULT ARM",
+                          f"ARMED ({_fault_arm}) for THIS heal — synthetic, not a real refusal",
+                          console_too=True)
+    else:
+        _fault_arm = ""   # this heal runs for real
+    if _fault_arm == "nohandler":
+        # ⛔⛔ RAISED *BEFORE* THE RETRY LOOP, AND THAT PLACEMENT IS THE WHOLE POINT.
+        # MEASURED 2026-09-12: injecting this arm INSIDE the `try` did NOT produce a plain
+        # `BotModeError` escaping — production's own classifier reclassified it into
+        # `HealWalkFailedError` (no `_SCRIPTED_EVENT_MARKER` ⇒ the BLOCKED fast-fail), the errand's
+        # narrow handler caught it, and the run CONTINUED. The control arm was defeated by the very
+        # laundering it was meant to bypass.
+        # ⭐ That failure is itself EVIDENCE: it shows every in-loop heal failure really does become
+        # `HealWalkFailedError`, which is what the 2026-09-12 narrowing claims.
+        # ⇒ To model “the narrow handler does not exist”, the error must never enter the loop.
+        _plain = healwalk_fault_error("nohandler", 0)
+        if _plain is not None:
+            raise _plain
     while True:
         _heal_nav_rounds += 1
         if _heal_nav_rounds > 8:
@@ -437,6 +519,13 @@ def heal_in_pokemon_center(pokemon_center_door_location: PokemonCenter) -> Gener
                 f"{pokemon_center_door_location.name} after 8 ride-outs."
             )
         try:
+            if _fault_arm:
+                _fault = healwalk_fault_error(_fault_arm, _heal_nav_rounds)
+                if _fault is not None:
+                    # ⛔ RAISE A NAME, NEVER `raise BotModeError(...)` INLINE. Gate #57 F7 asserts
+                    # that no `ast.Call` to `BotModeError` survives in this function; an inline
+                    # construction here would turn an ENFORCING gate red against no real defect.
+                    raise _fault
             yield from navigate_to_anywhere(
                 pokemon_center_door_location.value[0], pokemon_center_door_location.value[1]
             )

@@ -18581,6 +18581,8 @@ for step in range(args.frames):
                     seen = []
                     real_event = _SMOD._log_story_event
                     real_rotate = _EG._rotate_lead_safely
+                    real_heal = _EG.heal_in_pokemon_center
+                    heal_calls = []
                     rotation_landed = None
                     failure = None
                     start_level = end_level = None
@@ -18595,6 +18597,17 @@ for step in range(args.frames):
                             seen.append(message)
                             log(f"[maintain] MAINTAIN {message}")
                         return real_event(message, category)
+
+                    def observing_heal(centre, **kw):
+                        # ⛔⛔ INSTRUMENT THE CALLEE, NOT THE OUTCOME. A heal fault arm that never
+                        # REACHES `heal_in_pokemon_center` produces no abandon line — which is
+                        # indistinguishable from “the handler did not fire” and would read as a
+                        # REFUTATION. Two 2026-09-12 drives reached ZERO heals, so this is measured,
+                        # not hypothetical. `train_team` resolves this name as an `early_game`
+                        # module global, so patching it here intercepts the real call.
+                        heal_calls.append(getattr(centre, "name", str(centre)))
+                        log(f"[maintain] HEAL CALLED centre={heal_calls[-1]} (n={len(heal_calls)})")
+                        yield from real_heal(centre, **kw)
 
                     def observing_rotate(target_slot, **kw):
                         # ⛔ INSTRUMENT THE ACTION. `_rotate_lead_safely` gives up after 3 attempts by
@@ -18628,6 +18641,49 @@ for step in range(args.frames):
                                 f"pid={p.personality_value:08X} nick={p.nickname!r} "
                                 f"hp={p.current_hp}/{p.total_hp}")
 
+                        # (b2) ⛔ OPTIONAL HP STAGING — `POKEBOT_STAGE_HP=<percent>`.
+                        # WHY IT EXISTS, MEASURED 2026-09-12: this driver reaches ZERO heals on its
+                        # own. Two runs proved it — the default (L13→L14) finishes before HP falls,
+                        # and `POKEBOT_MULE_LEVEL=8` (a 6-level grind) hit a StoryAbort at L11, still
+                        # with zero `heal_in_pokemon_center` calls. ⇒ **a heal fault arm without
+                        # staging would prove NOTHING**, and would read as a refutation.
+                        # `train_team` heals at `_min_battler_hp_pct() <= hp_threshold + 22` (= 42%)
+                        # AND lead < target (`early_game.py:2047,2111`), so knock ONE non-mule
+                        # battler below that and the first grind round heals.
+                        # ‼ NEVER 0 HP — a fainted mon changes what counts as a battler; the in-tree
+                        # note at `story_harness.py:3336-3341` makes exactly this point.
+                        _stage_pct = _os.environ.get("POKEBOT_STAGE_HP", "").strip()
+                        if _stage_pct:
+                            try:
+                                from modules.memory import read_symbol, write_symbol
+                                from modules.state_cache import state_cache
+
+                                _pct = max(1, min(int(_stage_pct), 99))
+                                _victim = next(
+                                    (i for i, p in enumerate(_gp())
+                                     if p is not None and p.nickname != "MULE"), None)
+                                if _victim is None:
+                                    log("[maintain] STAGE-HP: no non-MULE battler to stage — SKIPPED")
+                                else:
+                                    _b = _gp()[_victim]
+                                    _hp = max(1, int(_b.total_hp * _pct / 100))
+                                    _raw = bytearray(read_symbol("gPlayerParty"))
+                                    _off = _victim * 100
+                                    _raw[_off + 86: _off + 88] = _hp.to_bytes(2, "little")
+                                    write_symbol("gPlayerParty", bytes(_raw))
+                                    # ⛔ RESET THE CACHE BEFORE READING BACK. `get_party()` is served
+                                    # from `state_cache`, and the in-tree precedent records a control
+                                    # that read the PRE-WRITE value and reported a false failure.
+                                    state_cache.reset()
+                                    _a = _gp()[_victim]
+                                    log(f"[maintain] STAGE-HP slot={_victim} {_b.species.name} "
+                                        f"pid={_b.personality_value:08X} "
+                                        f"{_b.current_hp}/{_b.total_hp} -> "
+                                        f"{_a.current_hp}/{_a.total_hp} ({_pct}%, 2 bytes at "
+                                        f"data[86:88])")
+                            except Exception as _e:  # noqa: BLE001
+                                log(f"[maintain] STAGE-HP FAILED: {type(_e).__name__}: {_e}")
+
                         # (c) Resolve identity ONCE, by NICKNAME. `inject_hmmule` sets
                         # `nickname="MULE"`. ⛔ The PID itself is drawn from an unseeded RNG per run,
                         # so it is an anchor WITHIN one arm and must NEVER be compared across arms.
@@ -18652,6 +18708,7 @@ for step in range(args.frames):
                         # (e)/(f) install the observers only now, so nothing above is mirrored.
                         _SMOD._log_story_event = mirroring_event
                         _EG._rotate_lead_safely = observing_rotate
+                        _EG.heal_in_pokemon_center = observing_heal
 
                         yield from self._maintain_lagging_battler(target)
 
@@ -18662,6 +18719,7 @@ for step in range(args.frames):
                         # ⛔ NO `yield` IN THIS `finally` — gate #56. Plain assignments only.
                         _SMOD._log_story_event = real_event
                         _EG._rotate_lead_safely = real_rotate
+                        _EG.heal_in_pokemon_center = real_heal
                         _EG.set_story_abort(False)
 
                     now = next((m for m in _gp()
@@ -18711,7 +18769,45 @@ for step in range(args.frames):
                         f"level_end={end_level} catchup={catchup} reached={reached} "
                         f"p6_lead_is_strongest={p6_ok} failure={failure} lines={seen}")
 
-                    if failure is not None:
+                    # ⛔⛔ THE HEAL-FAULT ARMS NEED THEIR OWN GRADE. Under `POKEBOT_HEALWALK_FAULT`
+                    # the errand is abandoned ON PURPOSE, so `reached` is False BY DESIGN and the
+                    # ARM-ON predicate below would print FAIL on a run where everything worked.
+                    # A misleading FAIL is worse than no grade — it reads as "the fix failed".
+                    _fault = (_os.environ.get("POKEBOT_HEALWALK_FAULT", "") or "").strip().lower()
+                    _fault_arm_name = _fault.partition(":")[0]
+                    _abandoned_heal = any("the heal walk to" in m for m in seen)
+                    _fault_seen = any("SYNTHETIC FAULT" in m for m in seen) or bool(heal_calls)
+
+                    if _fault_arm_name in ("blocked", "scripted"):
+                        # ⭐ ARM-1: the handler must ABANDON and the run must CONTINUE.
+                        # ‼ `heal_calls` is the NON-VACUITY conjunct — without it a fault that never
+                        # reached `heal_in_pokemon_center` would produce no abandon line and look
+                        # identical to "the handler did not fire". Two 2026-09-12 drives reached
+                        # ZERO heals, so this is measured, not hypothetical.
+                        ok = bool(started and heal_calls and _abandoned_heal
+                                  and failure is None and p6_ok)
+                        log(f"[maintain] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+                            f"(HEAL-FAULT ARM-1 must: start, CALL the heal ({len(heal_calls)}), "
+                            f"log `the heal walk to` ({_abandoned_heal}), CONTINUE "
+                            f"(failure={failure}), restore the strong lead ({p6_ok}). "
+                            f"⛔ `reached` is EXPECTED False here.)")
+                    elif _fault_arm_name == "nohandler":
+                        # ⭐ ARM-2 / THE CONTROL: a PLAIN `BotModeError` must fall THROUGH the narrow
+                        # handler to the `except BaseException` catch-all and KILL the run. The death
+                        # IS the result; a normal return here is a FAIL, because it would mean the
+                        # narrow handler caught something it must not.
+                        ok = bool(heal_calls and failure is not None
+                                  and not _abandoned_heal)
+                        log(f"[maintain] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+                            f"(HEAL-FAULT ARM-2 must: CALL the heal ({len(heal_calls)}), DIE "
+                            f"(failure={failure}), and NOT log the abandon line "
+                            f"({not _abandoned_heal}))")
+                    elif _fault and not _fault_seen:
+                        # ⛔ THE HOUSE `FAULT_MUST_BREAK` IDIOM: armed but never reached ⇒ ABORT,
+                        # never PASS. An arm that did not fire proves nothing about the code.
+                        log("[maintain] FAULT ARM DID NOT REACH THE CODE")
+                        log("[maintain] ACCEPTANCE: ABORT (instrument, not a result)")
+                    elif failure is not None:
                         log("[maintain] ACCEPTANCE: ABORT (instrument, not a result)")
                     elif arm == "ON":
                         ok = bool(started and rotation_landed and reached)
