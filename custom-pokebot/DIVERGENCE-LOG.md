@@ -2454,3 +2454,55 @@ user ruled. ⇒ that sentence is HISTORY, not a live prohibition.
 3. **NO BENEFIT HAS BEEN MEASURED.** Two A/Bs: badges/run 2.055 vs 2.030, then **1.922 vs 2.067**.
    The feature is on because the USER RULED, not because it measured better. ⛔ Do not re-open that;
    do not claim otherwise either.
+
+---
+
+## 2026-09-13 — PROMOTED: the bot no longer answers "NO" to Wally (`#24-wallydecline`)
+
+**USER-AUTHORISED** (asked explicitly; the answer was "promote now, then batch"). Restore point:
+`git tag pre-wallypromote-20260913` → `4e164cbe`.
+
+**ONE FILE PROMOTED — `modules/story/early_game.py`.** ⛔ NOT via `promote.py`, deliberately: that
+tool has no per-file filter and would ALSO have shipped `higher_level_actions.py` (the heal fault
+hook) and two comment-only files, none of which the user was asked about. Copied by hand, then
+MD5-verified identical to sandbox. Drift 4 → 3.
+
+### What it fixes
+`fight_wally_mauville` mashed `"B" if frames % 3 else "A"` into Wally's `MSGBOX_YESNO`, and at a
+Gen-3 yes/no **B IS "NO"** (`src/script_menu.c Task_HandleYesNoInput`: `case MENU_B_PRESSED:` falls
+through to `gSpecialVar_Result = 0`). Declining sets `FLAG_DECLINED_WALLY_BATTLE_MAUVILLE`, which
+**nothing in the decomp ever clears**, re-prompts forever, and leaves Wally standing on **(8,6) —
+the sole tile the gym door (8,5) opens from**. ⇒ **124 of 143 ENDED runs died there** (= **60% of
+the 207 STARTED**; the 87%-of-ENDED figure is length-biased). `finished` has been **0** in every
+batch since 2026-08-26.
+
+### The change is ADDITIVE and its default path is byte-identical
+`import os`, `_int_env`, `_yes_no_menu_is_open`, `_dialogue_button` delegating to that one predicate
+(same symbols, same fail-to-"B" direction), `frames = _int_env("POKEBOT_WALLY_PHASE", 0)` (unset ⇒ 0
+⇒ unchanged), and the guard itself. A `diff` of the two forks shows **no removed lines** other than
+the `_dialogue_button` body it now delegates.
+
+### ⭐ VERIFIED BY DRIVING `--build custom`, BOTH DIRECTIONS
+| arm | measured on the PROMOTED fork |
+|---|---|
+| `prod` | `ACCEPTANCE: PASS` — `reached_prompt=True declined_ever=False defeated_now=True frames=2078` (identical to sandbox) |
+| `POKEBOT_WALLY_FAULT=decline` | **WEDGES** — `HANG CONFIRMED (20000 frames no progress)`, frozen on `MauvilleCity_EventScript_DeclineWallyBattle` + `WallyRequestBattleAgain` |
+‼ The fault arm was run **on custom too, on purpose**: a PASS only means something if the arm that
+must fail still reaches production in THIS fork. A gated shape is not a driven path — the previous
+entry's own standing warning.
+Evidence (committed): `tools/story-dev/evidence/wallycustom-{prod,decline}.driver.txt|.stdout.txt`.
+
+### ⛔ What this fork carries that is STILL NOT PROVEN — read before trusting it
+1. **The fix is proven CORRECT, not BENEFICIAL.** No batch has yet measured the gain. The
+   adversarial review's point stands and is not rhetorical: `finished=0` across all 207 runs, and
+   runs that get PAST Wally average **32.8 whiteouts** against 3.6 for those that die at him. This
+   unblocks ~60% of runs to Gym 3; it will **not** produce a completion, and the freed runs will die
+   somewhere downstream. A batch follows this promotion — read its terminal-map distribution, not
+   just its pass rate.
+2. **Only the Wally site is fixed.** 14 other blind mashers remain in this file. An audit found no
+   reachable choice box at the ones it checked, but `KI-98` (a possible second site) is
+   **AGENT-REPORTED AND UNVERIFIED**, and my own read of that function's docstring did not support
+   it. ⛔ Do NOT blanket-apply the guard: forcing YES at a shop or item prompt spends money or wastes
+   an item — a NEW bug traded for a fixed one.
+3. **`KI-99` is open and unverified**: the HM06 gift may lack a bag-full guard, in which case our
+   success predicate (a flag) would read TRUE while the HM never entered the bag.

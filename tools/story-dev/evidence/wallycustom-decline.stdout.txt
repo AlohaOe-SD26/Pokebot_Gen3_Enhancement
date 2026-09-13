@@ -1,0 +1,44 @@
+[setup] LOG -> evidence\wallycustom-decline.driver.txt
+[setup] created profile wcustdecl
+Running mGBA 0.10.2
+[setup] loaded save state mauville_prewattson.ss1; build=custom
+[run] starting faithful loop for up to 30000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[wally] arm=decline start declined=False defeated=False
+f1: CONTROLLER -> WallyMauvilleMode.run   (state=OVERWORLD)
+f1187: SAVED stall state #1 to stalls/wcustdecl-f1187.ss1 (bt='MARSHTOMP gained 94 EXP. Points!')
+f1331: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=WallyMauvilleMode.run bt='MARSHTOMP gained 94 EXP. Points!' scripts=[] party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f1487: !!! NO-PROGRESS x1200 sig=('WallyMauvilleMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513', (8, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['MauvilleCity_EventScript_DeclineWallyBattle', 'Std_MsgboxDefault'] bt='MARSHTOMP gained 94 EXP. Points!' bot_mode=Story
+f1487:     gen -> WallyMauvilleMode.run  @ story_harness.py:18027
+f2000: heartbeat mode=Story ctrl=WallyMauvilleMode.run state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f3287: !!! NO-PROGRESS x3000 sig=('WallyMauvilleMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513', (8, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['MauvilleCity_EventScript_WallyRequestBattleAgain', 'Std_MsgboxYesNo'] bt='MARSHTOMP gained 94 EXP. Points!' bot_mode=Story
+f3287:     gen -> WallyMauvilleMode.run  @ story_harness.py:18027
+[backup] backed up 'wcustdecl' (3 files, 1 KB, reason: auto)
+f4000: heartbeat mode=Story ctrl=WallyMauvilleMode.run state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f6000: heartbeat mode=Story ctrl=WallyMauvilleMode.run state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f8000: heartbeat mode=Story ctrl=WallyMauvilleMode.run state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f8287: !!! NO-PROGRESS x8000 sig=('WallyMauvilleMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513', (8, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['MauvilleCity_EventScript_DeclineWallyBattle', 'Std_MsgboxDefault'] bt='MARSHTOMP gained 94 EXP. Points!' bot_mode=Story
+f8287:     gen -> WallyMauvilleMode.run  @ story_harness.py:18027
+f10000: heartbeat mode=Story ctrl=WallyMauvilleMode.run state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f12000: heartbeat mode=Story ctrl=WallyMauvilleMode.run state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f14000: heartbeat mode=Story ctrl=WallyMauvilleMode.run state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f15287: !!! NO-PROGRESS x15000 sig=('WallyMauvilleMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513', (8, 7)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['MauvilleCity_EventScript_DeclineWallyBattle', 'Std_MsgboxDefault'] bt='MARSHTOMP gained 94 EXP. Points!' bot_mode=Story
+f15287:     gen -> WallyMauvilleMode.run  @ story_harness.py:18027
+f16000: heartbeat mode=Story ctrl=WallyMauvilleMode.run state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f18000: heartbeat mode=Story ctrl=WallyMauvilleMode.run state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f20000: heartbeat mode=Story ctrl=WallyMauvilleMode.run state=OVERWORLD party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+f20287: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 20288 frames; final mode=Story party=[Dustox:L20:exp9100|Marshtomp:L20:exp5575|Taillow:L18:exp4538|Poochyena:L16:exp4513]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Dustox L20: Tackle, Confusion, Moonlight, Gust
+[moveset] Marshtomp L20: Tackle, Growl, Foresight, Water Gun
+[moveset] Taillow L18: Peck, Wing Attack, Focus Energy, Quick Attack
+[moveset] Poochyena L16: Tackle, Howl, Sand-attack, Bite
+[PARTY-ACCT] STAGE 0 SUMMARY — 20288 get_party() recomputes, 68 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += wallymauville 20288 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\custom-pokebot\profiles\wcustdecl\states\2026
+-09-13_09-09-44.ss1 created!
+Updated `current_state.ss1`!
