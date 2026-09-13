@@ -17012,3 +17012,40 @@ any re-run of an edit script, **count the marker** — an idempotent-looking edi
 ⭐ **The general shape behind both:** a scripted edit that matches nothing exits 0 and looks like
 success, and one that matches twice also exits 0. **Neither failure is visible without counting.**
 ⇒ every bulk edit should print how many sites it changed AND assert the expected number.
+
+---
+
+## 2026-09-13 — A denominator, an instrument that could not reach its own bug, and an assert written after the write
+
+**(a) I quoted a rate without its denominator, and picked the flattering one.** I reported
+*"87% of run deaths"* from 124/143 **ENDED** runs. 207 runs STARTED; 64 were censored at the batch's
+wall-clock bound. The true figure is **60% of started runs**, and the censoring is not neutral —
+watchdog deaths average 454k frames against 1.31M for boss-losses, so a fixed-time batch
+**structurally over-samples short deaths into the "ended" bucket**. Length-corrected ≈ 67%.
+⇒ **Prevention rule: state the denominator in the same sentence as the rate, and when runs are cut
+off by a time bound, say so — a survival statistic taken over completed runs only is biased toward
+whatever kills fastest.**
+
+**(b) I built an experiment knob that was structurally incapable of reaching the bug — and it
+returned GREEN, which is the dangerous direction.** `POKEBOT_WALLY_PHASE` shifts the mash phase.
+It cannot work: identical consecutive presses cancel (`libmgba.press_button:476`), so a cycle emits
+`A, B, nothing`, and shifting the phase also shifts how fast the dialogue advances — the choice
+box's open frame **co-moves with the offset**, which therefore partly cancels itself. Both swept
+phases came back `beat=True`.
+‼ Worse, the same property had ALREADY produced a false negative an hour earlier: **the very first
+repro, run against UNFIXED code, printed `ACCEPTANCE: PASS`.** Two green results, zero information.
+⇒ **Prevention rule: a fault arm must fire DETERMINISTICALLY, by construction. If whether it fires
+depends on timing, luck, or a fixture's incidental state, it is not an arm — replace it with one
+that forces the faulty ACTION directly** (here: `=decline`, which presses B at the box and asks the
+causal question outright). And the gate that says so belongs in the probe: `probe_wally_phase_sweep`
+grades G1 = *"did the fault arm decline at ANY phase?"* and prints
+*"this sweep does not demonstrate the fix repairs anything"* when it did not.
+
+**(c) I wrote the file, THEN asserted the invariant.** `reg_wally.py` did
+`write(...)` and then `assert after - before == 3`. The assert failed — **after** the bad content
+was already on disk (a stray blank line had split a markdown table in two). The earlier session
+rule *"every bulk edit must print how many sites it changed AND assert the expected number"* is
+satisfied by a script that asserts after writing, and is still useless.
+⇒ **Prevention rule: compute the new content, ASSERT every invariant on it, and only then write.
+An assertion after the write is a report, not a guard.** Every edit script in this round now
+follows that order — three of them refused to write and cost nothing but a re-run.

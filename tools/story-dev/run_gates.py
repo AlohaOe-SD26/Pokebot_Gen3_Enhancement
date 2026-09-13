@@ -537,6 +537,18 @@ GATES: list[tuple[str, bool]] = [
     # moved gate #55's answers as a silent side effect of a bug fix.
     # Pure: AST + the real picker, no ROM. Four fault arms, each measured to red only its own cases.
     ("probe_maintain_unreachable.py", False),
+    # #58 — `#24-wallydecline`: the Mauville Wally masher must never be able to press B at a
+    # yes/no box. ⛔ THIS GATE IS STATIC **BECAUSE A BEHAVIOURAL ONE CANNOT BE TRUSTED HERE.** The
+    # defect is PHASE-LOCKED: with the guard removed, a fixture whose phase lands on A still passes.
+    # It did — the pre-fix `mash` arm returns `ACCEPTANCE: PASS` on `mauville_prewattson.ss1`, and so
+    # did the very first repro against unfixed code. ⇒ a test run is not a regression detector for
+    # this; a text check is. Cost of the original: **124 of 143 ended runs** (= 60% of 207 started)
+    # died frozen at MAUVILLE (8,7), because B is "NO" at a Gen-3 yes/no, declining sets a flag
+    # nothing in the decomp clears, and Wally stands on the only tile the gym door opens from.
+    # Also checks `_dialogue_button` still DELEGATES to `_yes_no_menu_is_open`, so the two yes/no
+    # predicates cannot drift. Custom is ADVISORY until promoted, then enforced automatically.
+    # Fault-tested 2026-09-13: guard removed -> RED (exit 1), restored MD5-identical.
+    ("probe_yesno_guard.py", False),
 ]
 
 

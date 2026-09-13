@@ -1,0 +1,69 @@
+[setup] LOG -> C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\evidence\wallyfaithful-slateport-mash.log
+[setup] created profile wfmash
+Running mGBA 0.10.2
+[setup] loaded save state slateport.ss1; build=sandbox
+[run] starting faithful loop for up to 400000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[wally] arm=mash start declined=False defeated=False
+f1: CONTROLLER -> WallyMauvilleMode.run   (state=OVERWORLD)
+f104: CONTROLLER -> PokenavListener.ignore_call   (state=OVERWORLD)
+f1004: SAVED stall state #1 to stalls/wfmash-f1004.ss1 (bt='NICK got $468 for winning!')
+f1078: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] ctrl=PokenavListener.ignore_call bt='NICK got $468 for winning!' scripts=[] party=[Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513]
+f1079: CONTROLLER -> WallyMauvilleMode.run   (state=OVERWORLD)
+f1327: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DoDoorWarp', 'Task_AnimateDoor'] ctrl=WallyMauvilleMode.run bt='NICK got $468 for winning!' scripts=[] party=[Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513]
+[wally] generator raised: UnreachableDestinationError: Could not reach (8, 7) on MapRSE.MAUVILLE_CITY: the field is idle and we are still at (16, 89), so retrying cannot change the result (Cannot reach MAUVILLE_CITY: it is not walkable from ROUTE110, and none of the 6 candidate warp route(s) start at a tile that can be walked to from here (tried: MAUVILLE_CITY(8, 5), MAUVILLE_CITY(22, 5), MAUVILLE_CITY(35, 5), MAUVILLE_CITY(23, 14), MAUVILLE_CITY(32, 14), MAUVILLE_CITY(8, 13)).).
+========================================================================================
+  declined_ever    False
+  reached_prompt   False
+  start_declined   False
+  start_defeated   False
+  frames           839
+  whiteouts        0
+  defeated_now     False
+  declined_now     False
+  where            ROUTE 110 (16, 89)
+========================================================================================
+ACCEPTANCE: FAIL  missing=['R-VACUITY(never opened a yes/no — this grade measured NOTHING)', 'R-BEAT(DEFEATED_WALLY_MAUVILLE still unset)']
+========================================================================================
+f1817: CONTROLLER -> <none>   (state=OVERWORLD)
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513]
+f2717: SAVED stall state #2 to stalls/wfmash-f2717.ss1 (bt='NICK got $468 for winning!')
+f3017: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513', (16, 89)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $468 for winning!' bot_mode=Manual
+f3017:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[backup] backed up 'wfmash' (3 files, 1 KB, reason: auto)
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513]
+f4817: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513', (16, 89)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $468 for winning!' bot_mode=Manual
+f4817:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513]
+Error while playing audio: Unanticipated host error [PaErrorCode -9999]: 'There
+is no driver installed on your system.' [MME error 6]
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513]
+Error while playing audio: Unanticipated host error [PaErrorCode -9999]: 'There
+is no driver installed on your system.' [MME error 6]
+f9817: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513', (16, 89)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $468 for winning!' bot_mode=Manual
+f9817:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513]
+Error while playing audio: Unanticipated host error [PaErrorCode -9999]: 'There
+is no driver installed on your system.' [MME error 6]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513]
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513]
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513]
+f16817: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513', (16, 89)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $468 for winning!' bot_mode=Manual
+f16817:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513]
+f20000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513]
+f21817: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 21818 frames; final mode=Manual party=[Dustox:L19:exp6982|Marshtomp:L18:exp4502|Taillow:L17:exp3130|Poochyena:L16:exp4513]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Dustox L19: Tackle, Confusion, Poison Sting, Gust
+[moveset] Marshtomp L18: Tackle, Growl, Mud-slap, Water Gun
+[moveset] Taillow L17: Peck, Wing Attack, Focus Energy, Quick Attack
+[moveset] Poochyena L16: Tackle, Howl, Sand-attack, Bite
+[PARTY-ACCT] STAGE 0 SUMMARY — 21818 get_party() recomputes, 73 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += wallymauville 21818 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\wfmash\states\2026-0
+9-13_08-22-50.ss1 created!
+Updated `current_state.ss1`!

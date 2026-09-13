@@ -28243,3 +28243,107 @@ per-root budget catching precisely what a global total would have absorbed.
 3 files (was 2): `higher_level_actions.py` (REAL — the heal fault hook), plus `story_mode.py` and
 `living_dex_mode.py` — both classified **COMMENT-ONLY** by `probe_comment_only_drift.py` (ASTs
 identical, zero behaviour difference), which is what four triage comments should be.
+
+---
+
+## 2026-09-13 — The bot was answering "NO" to Wally, and that one button cost 60% of all runs
+
+### How it was found: by asking what ACTUALLY ends runs, instead of continuing the queue
+The queue said "pay down the silent handlers". Before starting it I measured the run-enders in the
+two most recent batches (`20260912-104105`, `-124117`, single-build sandbox, both `VERDICT OK`,
+`MANIFEST` read first). **124 of 143 ENDED runs died on an 18,000-frame watchdog at MAUVILLE_CITY,
+story stage 9** — and `finished` was **0**, in every batch since 2026-08-26.
+
+⛔ **TWO NUMBERS I GOT WRONG AND AN ADVERSARIAL AGENT CORRECTED — both are recorded because the
+wrong ones are the memorable ones:**
+| I said | the truth |
+|---|---|
+| "87% of run deaths" | **60% of the 207 runs STARTED** (124/207). 87% is of ENDED runs only, and that bucket is LENGTH-BIASED: watchdog deaths average 454k frames vs 1.31M for boss-losses, so a fixed-wall-clock batch over-samples the short ones. Length-corrected ≈ 67%. |
+| "`global_watchdog=1398` firings" | **637 firings.** `x4_headless.py:315` counts a STRING that matches three different log lines (637 derail + 637 localization + 124 end-reason = 1398). |
+‼ **The dump counts were nearly worthless as I first read them,** and the agent was right about that
+too: STUCK dumps fire at 300 frames then every **3,000** (not every 300), so an 18,000-frame wedge
+emits ~6, not ~60; and the gap between the last dump and the fatal watchdog is **exactly 17,746
+frames in all 124 runs** — i.e. **zero dumps are emitted during the fatal wedge**. The instrument
+never observed the event I was attributing cause to. ⇒ *Rule: before ranking by a counter, read what
+that counter counts and at what cadence.*
+
+### The regression is real, and the instrument check is what proved it
+Across **41 consecutive batches** (2026-07-31 → 2026-09-10, ~1,300 runs) the bot beat Wally on
+essentially every run that met him (e.g. 2026-09-07: reached 55, **beat 55**, Wattson 51, declines
+**0**). From commit `03b11b5b` on: reached 151, **beat 24**, declines **218**.
+⛔ Before believing that, I checked it was not an INSTRUMENTATION artifact — a new log field would
+produce the same shape. The 2026-09-10 logs DO record `scripts=[...]`, and they show
+`MauvilleCity_EventScript_DefeatedWally`, `WallyAndUncleExitNorth` and `Gym_EventScript_WattsonDefeated`.
+The capability was there and is gone. ⇒ *Rule: a metric that appears at a commit is a candidate
+REGRESSION or a candidate NEW INSTRUMENT; prove which before spending a day on the wrong one.*
+
+### Root cause (decomp-cited; two independent agents, then verified at FILE:LINE)
+`early_game.py fight_wally_mauville` mashed `"B" if frames % 3 else "A"` directly into
+`msgbox MauvilleCity_Text_WallyWillYouBattleMe, MSGBOX_YESNO`. At a Gen-3 yes/no, **B IS "NO"** —
+`src/script_menu.c Task_HandleYesNoInput`, `case MENU_B_PRESSED:` falls through to
+`gSpecialVar_Result = 0`. The cursor already defaults to YES, so **A alone would always have
+accepted**.
+
+⛔ **Declining is TERMINAL, not a retryable mistake — three independent reasons:**
+1. `DeclineWallyBattle` sets `FLAG_DECLINED_WALLY_BATTLE_MAUVILLE`; across the whole decomp that
+   flag has **one `setflag`, two `goto_if_set`, and ZERO `clearflag`**.
+2. Every later talk then routes to `WallyRequestBattleAgain` → the same `MSGBOX_YESNO` → the same
+   locked phase. A fixed point, not a race we eventually win.
+3. Wally is `removeobject`'d ONLY on the win path, and he stands on **(8,6) — the sole tile from
+   which the gym door (8,5) can be entered** ((7,5)/(9,5) are collision-1 wall, decoded from
+   `map.bin`). ⇒ no Wally → no Wattson → no BADGE03 → `EventScript_CantSmashRock` → Route 111 and
+   Rusturf Tunnel never open. **And Mauville's Rock Smash Dude is the ONLY source of HM06 in the
+   entire game**, which transitively gates HM04 Strength (Magma Hideout, Seafloor Cavern, Victory
+   Road). One declined prompt closes the rest of the game.
+
+### The fix
+Never let B ANSWER a choice: `if _yes_no_menu_is_open(): button = "A"`. The A/B alternation is kept
+because B is what safely ADVANCES the three plain msgboxes without re-initiating the conversation —
+only the CHOICE is protected. `_dialogue_button` now shares the one predicate `_yes_no_menu_is_open`
+so the two cannot drift apart. `_int_env` uses `.isdigit()`, never a bare `except`.
+
+### ⭐ THE PROOF — and the instrument I had to THROW AWAY to get it
+‼ **My first repro attempt returned `ACCEPTANCE: PASS` against UNFIXED code.** The bug is
+PHASE-LOCKED, and `mauville_prewattson.ss1`'s phase lands on A. Accepting that would have closed the
+project's largest defect as "cannot reproduce".
+
+I then built `POKEBOT_WALLY_PHASE` to walk the phase — **and it does not work.** Measured the COMPLETE sweep —
+**3 phases × 2 arms = 6/6 runs `declined=False beat=True`**; the pre-fix masher declined at NO
+phase (p0 mash and p0 prod byte-identical at `frames=2078`; p1 mash `2080`). ⛔ **WHY:** consecutive identical presses cancel in `libmgba.press_button:476`, so a cycle
+emits `A, B, nothing`; shifting the phase ALSO shifts how fast the three msgboxes advance, so the
+box's open frame **co-moves** and the offset partly cancels itself.
+⇒ **An arm whose firing depends on luck is not an arm.** Replaced with `POKEBOT_WALLY_FAULT=decline`,
+which forces B at the box and answers the CAUSAL question directly.
+
+| arm | measured |
+|---|---|
+| `decline` (force B) | **WEDGES** — `HANG CONFIRMED (20000 frames no progress)`, no verdict, frozen on `['MauvilleCity_EventScript_DeclineWallyBattle','Std_MsgboxDefault']` — **the byte-identical state all 124 production deaths sat on** — plus `['..._WallyRequestBattleAgain','Std_MsgboxYesNo']`, the re-prompt proving the livelock |
+| `mash` (pre-fix) | `ACCEPTANCE: PASS`, `beat=True`, `frames=2078` — **phase luck, and the reason a single green run at this site is worth nothing** |
+| `prod` (the fix) | `ACCEPTANCE: PASS`, `reached_prompt=True`, `declined_ever=False`, `defeated_now=True`, `frames=2078` |
+
+The driver carries a VACUITY conjunct (`reached_prompt`) so a run that navigates nowhere FAILS
+instead of printing green over zero frames — it caught exactly that when a Slateport-start arm could
+not reach Mauville (the mandatory Route 110 rival gates the path) and returned `reached=False`.
+
+### ⚠ SCOPE — this is a GATE, not the finish line
+`finished=0` across all 207 runs. Runs that get PAST Wally average **32.8 whiteouts**; runs that die
+at him average 3.6. The post-Wally regime is ~9× bloodier. Fixing this unblocks ~60% of runs to Gym
+3 and will **not** produce a single completion. Next target is the whiteout/loss regime (4.9
+whiteouts/run), not another Mauville fix.
+
+### The three new probes, and what each is FOR
+* `probe_yesno_guard.py` — **gate #58**, the standing regression defence. STATIC on purpose.
+* `probe_wally_phase_sweep.py` — the three-arm PROOF, plus the phase sweep retained as a measured
+  dead end so nobody rebuilds the useless knob.
+* `probe_wally_mauville_era.py` — **how the fixture was CHOSEN, and why its reading is trustworthy.**
+  ⛔ It exists because two traps meet here: `wally_done.ss1` *sounds* like the anchor and is the
+  PETALBURG tutorial Wally (`badges=-`), and `get_event_flag` **returns False for a name that does
+  not exist** — so a typo'd flag would read "not yet fought" on every save, i.e. it would CONFIRM
+  the hypothesis by being broken. The probe asserts the flag NAME against `_event_flags` before
+  reading anything, and reads a CONTROL save (post-Wattson, where the flag MUST be set) alongside
+  the candidates; if the control does not come back True it withholds its verdict instead of
+  reporting one. That is what established `mauville_prewattson.ss1` as a genuine pre-Wally anchor.
+
+### ⚠ NOT PROMOTED
+`custom-pokebot/modules/story/early_game.py` — the fork that actually ships — still has the bug.
+Promotion is the USER's call and has not been requested.

@@ -502,7 +502,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
 - **Symptom:** bundle `20260727-063751`, P3 run 1: `state=3 controllable=False`, position
   frozen at **ROUTE 119(32,1) (10,10)**, for **27 million frames / ~6.5 h** — and **not one
   STUCK dump fired in that entire stretch**, so the no-progress watchdog never saw it.
-- **Last known stack:** `do_weather_institute` (`early_game.py:6572`) → its TWO calls to
+- **Last known stack:** `do_weather_institute` (`early_game.py:6607`) → its TWO calls to
   `_ride_out_all_scenes` (`early_game.py:454`), which sit at `do_weather_institute`
   `early_game.py:6364` and `early_game.py:6387`.
   ‼ *Re-derived from source 2026-08-16 — it read `:5548`, which is unrelated prose in another
@@ -629,7 +629,7 @@ is simply **underlevelled** fails test (2) for ever — which is Petalburg's 32-
   measurement.
   ‼ Travel cost remains **unmeasured** — `story_mode.py:576` says so explicitly — which is why
   the proposal is deliberately conservative and only fires on large wins.
-- **Related:** `train_team` (`early_game.py:2027`) never consults `best_training_area` at all;
+- **Related:** `train_team` (`early_game.py:2058`) never consults `best_training_area` at all;
   its `grass` is a caller-supplied constant. Both belong to `#24-trainmap+`.
 
 > 📦 **KI-32 moved to `31-KNOWN-ISSUES-ARCHIVE.md` on 2026-08-13** — ✅ FIXED 2026-07-29.
@@ -2928,3 +2928,42 @@ must still print `Story: to Fortree — Mauville City...`.
 batch to end — a drive now would contend with 8 live lanes) and ⛔ **NOT PROMOTED** (`custom-pokebot`
 is frozen for the batch's duration). ⚠ It does **not** rescue the MOSSDEEP_CITY_GYM (23,8) variant —
 see `#24-mossdeepstrand`. Detail: `ai-research-notes/2026-09-07-batch-blockers-RECON.md`.
+
+## `KI-98` — ‼ AGENT-REPORTED, **NOT VERIFIED**: a second blind-masher site may answer a yes/no (2026-09-13)
+
+An audit of all 15 `"B" if frames % 3 else "A"` mashers in `modules/story/early_game.py` — spawned
+after `#24-wallydecline` proved the shape is fatal — reported `fight_rustboro_rival` (~L2828) as
+*"the one live instance of the Wally bug in this file"*, every other site being provably
+choice-box-free (Mauville House1, Fortree Gym, Dewford Gym, Magma Hideout 1F-8F, Slateport City and
+Harbor, Aqua Hideout 1F/B1F/B2F).
+
+⛔ **FILED AS A NOTE, NOT A DEFECT.** I read the function's own docstring and that battle is fired by
+**coord triggers at y=53 (x 12-19), gated on `VAR_RUSTBORO_CITY_STATE == 7` — not by a talk**, so a
+`MSGBOX_YESNO` in the mash window is not obvious. Agent output is never truth here.
+**TO VERIFY:** read `data/maps/RustboroCity/scripts.inc` for any `MSGBOX_YESNO`/`multichoice`
+reachable while that loop runs. If one exists, apply the same `_yes_no_menu_is_open()` guard and
+prove it with a `decline`-shaped arm that forces B — ⛔ never with a phase knob, which cannot be
+relied on to fire (see `08-MISTAKES.md` 2026-09-13).
+⛔ **DO NOT BLANKET-APPLY THE GUARD.** Forcing YES is only correct where the intended answer IS yes.
+At a shop, an item prompt, or a save confirmation it spends money, wastes an item, or writes a save
+— a NEW bug traded for a fixed one. The Wally fix is safe precisely because that battle is MANDATORY.
+
+## `KI-99` — ‼ AGENT-REPORTED, **NOT VERIFIED**: the HM06 gift may have no bag-full guard, and our success signal would lie (2026-09-13)
+
+Same audit. `MauvilleCity_House1_EventScript_RockSmashDude` is claimed to be the **only TM/HM gift in
+Emerald with no bag-full guard** — `giveitem ITEM_HM_ROCK_SMASH` then `setflag
+FLAG_RECEIVED_HM_ROCK_SMASH`, with no `VAR_RESULT` check and no `Common_EventScript_BagIsFull`
+(compare `FortreeCity_Gym_EventScript_GiveAerialAce`, which has one).
+
+⇒ **IF TRUE, the failure is TERMINAL AND SILENT.** On a full TM/HM pocket the flag sets while the HM
+never enters the bag; `get_rock_smash_hm`'s loop exit and its `_have()` predicate are BOTH that flag
+(`early_game.py:5471`), so the function reports success — **the bot's own success signal is the thing
+that lies** — and the `goto_if_set` at the top of the script routes every future talk to a one-line
+reply. It would surface two chapters later as a navigation failure on Route 111, far from the cause.
+‼ And the stakes are unusually high: **HM06 has no second source anywhere in the game**, and it
+transitively gates HM04 Strength (Magma Hideout, Seafloor Cavern, Victory Road).
+
+⚠ **PRACTICALLY REMOTE, AND NOT KNOWN TO OCCUR** — it needs a full TM/HM pocket, and nobody has
+checked whether this bot can fill one. **TO VERIFY:** read the script; then change the predicate to
+assert the item is **HELD**, not that the flag is set — an IDENTITY assertion, which is exactly what
+SESSION DISCIPLINE #3 asks for and what a flag check can never be.

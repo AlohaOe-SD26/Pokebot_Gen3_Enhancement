@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -17947,6 +17947,117 @@ class RivalReproMode(BotMode):
             yield
 
 
+class WallyMauvilleMode(BotMode):
+    """⭐ THE #24-wallydecline REPRO/PROOF DRIVER — drive PRODUCTION `fight_wally_mauville()`.
+
+    ‼ WHY: 124 of 143 ENDED runs died to an 18,000-frame watchdog at MAUVILLE_CITY with the
+    bot frozen at (8,7), Wally's interaction tile. ⛔ QUOTE THE DENOMINATOR: that is **60% of
+    the 207 runs STARTED**; the 87%-of-ENDED figure is LENGTH-BIASED, because watchdog deaths
+    average 454k frames against 1.31M for boss-losses, so a fixed-wall-clock batch
+    structurally over-samples the short ones into the 'ended' bucket. Wally stands on (8,6) — the ONLY tile
+    from which the gym door (8,5) can be entered (`map.json` object_events + the map.bin
+    collision row: (7,5) and (9,5) are collision-1 wall) — and he is `removeobject`'d ONLY on
+    the win path. ⇒ declining does not cost a battle, it costs THE REST OF THE GAME: no Wattson
+    → no BADGE03 → `EventScript_CantSmashRock` → Route 111 and Rusturf Tunnel never open.
+
+    ⛔ WHAT THIS DRIVER ASSERTS, AND WHY IT IS AN IDENTITY AND NOT A COUNT (rule 3):
+    `DECLINED_WALLY_BATTLE_MAUVILLE` (flag 284) is set ONLY by
+    `MauvilleCity_EventScript_DeclineWallyBattle` and is CLEARED BY NOTHING IN THE DECOMP
+    (`gh search code` returns one `setflag`, two `goto_if_set`, zero `clearflag`). ⇒ it is
+    ground truth for "we answered NO", not a proxy for it. Rule 7: instrument the ACTION.
+
+    ⭐ VACUITY CONJUNCT (this grade must be unsatisfiable by a no-op): `reached_prompt` — the
+    run must actually have opened Wally's script. A driver that navigates nowhere, or that is
+    handed an already-beaten save, FAILS instead of printing a green PASS over zero frames.
+    Fault-tested by pointing it at a post-Wattson save, which must report VACUOUS.
+
+    FAULT ARM — `POKEBOT_WALLY_FAULT=mash` restores the pre-fix blind masher INSIDE production
+    code (never in the driver — a fix proven only by driver-side code is not proven at all).
+    The arm MUST fail, or the fix is not load-bearing.
+
+        PYTHONUTF8=1 py -3.12 story_harness.py mauville_prewattson.ss1 \
+            --driver wallymauville --frames 120000 --log wally.log > wally.stdout.txt 2>&1
+    """
+
+    @staticmethod
+    def name():
+        return "WallyMauville"
+
+    def on_whiteout(self):
+        # ‼ Latch + return True. Returning False hands the run to Manual and DISCARDS the
+        # generator, so the verdict below would never print (story-drive §2).
+        self._whiteouts = getattr(self, "_whiteouts", 0) + 1
+        log(f"[wally] WHITEOUT #{self._whiteouts} — latched; the verdict still runs")
+        return True
+
+    def run(self):
+        import os
+
+        from modules.memory import get_event_flag
+        from modules.player import get_player_avatar
+        from modules.story.early_game import fight_wally_mauville
+
+        DEC, DEF = "DECLINED_WALLY_BATTLE_MAUVILLE", "DEFEATED_WALLY_MAUVILLE"
+        arm = os.environ.get("POKEBOT_WALLY_FAULT", "")
+        r = {"declined_ever": False, "reached_prompt": False, "start_declined": get_event_flag(DEC),
+             "start_defeated": get_event_flag(DEF), "frames": 0, "whiteouts": 0}
+        log(f"[wally] arm={arm or 'PRODUCTION'} start declined={r['start_declined']} "
+            f"defeated={r['start_defeated']}")
+
+        # ⛔ ONE top-level try/except so a raise still prints a verdict from PARTIAL state.
+        try:
+            inner = fight_wally_mauville()
+            while True:
+                try:
+                    next(inner)
+                except StopIteration:
+                    break
+                r["frames"] += 1
+                # Sample the ACTION, every frame, at its take point.
+                if get_event_flag(DEC):
+                    r["declined_ever"] = True
+                try:
+                    for t in get_tasks():
+                        if "YesNo" in t.symbol or "Multichoice" in t.symbol:
+                            r["reached_prompt"] = True
+                except Exception:
+                    pass
+                if get_event_flag(DEF):
+                    break
+                yield
+        except Exception as exc:                     # noqa: BLE001 — verdict must survive
+            log(f"[wally] generator raised: {type(exc).__name__}: {exc}")
+
+        r["whiteouts"] = getattr(self, "_whiteouts", 0)
+        beat = get_event_flag(DEF)
+        declined_now = get_event_flag(DEC)
+        try:
+            where = f"{get_player_avatar().map_location.map_name} {get_player_avatar().local_coordinates}"
+        except Exception:
+            where = "?"
+
+        log("=" * 88)
+        for k, v in r.items():
+            log(f"  {k:16} {v}")
+        log(f"  {'defeated_now':16} {beat}")
+        log(f"  {'declined_now':16} {declined_now}")
+        log(f"  {'where':16} {where}")
+
+        missing = []
+        if not r["reached_prompt"]:
+            missing.append("R-VACUITY(never opened a yes/no — this grade measured NOTHING)")
+        if not beat:
+            missing.append("R-BEAT(DEFEATED_WALLY_MAUVILLE still unset)")
+        if r["declined_ever"] or declined_now:
+            missing.append("R-NEVER-DECLINED(we answered NO — flag 284 is set and NOTHING clears it)")
+        log("=" * 88)
+        log(f"ACCEPTANCE: {'PASS' if not missing else 'FAIL'}" + ("" if not missing else f"  missing={missing}"))
+        log("=" * 88)
+        context.set_manual_mode()
+        while True:
+            yield
+
+
 from modules.plugins import load_plugins
 
 load_plugins()  # registers the custom Story bot mode (plugins/custom_modes/)
@@ -18388,6 +18499,8 @@ for step in range(args.frames):
             context.bot_mode_instance = SpinFightMode()
         elif args.driver == "rival":
             context.bot_mode_instance = RivalReproMode()
+        elif args.driver == "wallymauville":
+            context.bot_mode_instance = WallyMauvilleMode()
         elif args.driver == "ch5recon":
             context.bot_mode_instance = Chapter5ReconMode()
         elif args.driver == "martrecon":

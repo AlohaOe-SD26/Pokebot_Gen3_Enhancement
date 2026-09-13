@@ -10,6 +10,7 @@ is almost entirely scripted. Verified against a save state parked in the truck.
 
 from __future__ import annotations
 
+import os
 import random
 from typing import Generator
 
@@ -580,6 +581,37 @@ def normalize_to_overworld(*, timeout_frames: int = 3600) -> Generator:
     context.emulator.reset_held_buttons()
 
 
+def _int_env(name: str, default: int = 0) -> int:
+    """Read a small non-negative int from the environment, defaulting when absent or malformed.
+
+    ‼ `str.isdigit()`, NOT `try: int(...) except ValueError: pass` — a bare swallow here is
+    exactly the shape `repro_no_silent_except` ratchets, and it caught this author writing one
+    on 2026-09-12. A malformed value is a typo in an experiment flag, so the safe reading is
+    "behave as if unset" (production default), never "crash a 12-hour batch"."""
+    raw = os.environ.get(name, "")
+    return int(raw) if raw.isdigit() else default
+
+
+def _yes_no_menu_is_open() -> bool:
+    """Is a Gen-3 yes/no (or multichoice) CHOICE BOX genuinely on screen right now?
+
+    ‼ WHY THIS IS A SEPARATE PREDICATE FROM `_dialogue_button` (2026-09-13). That helper answers
+    *"which button is safe to advance a SCENE with"* and downgrades A→B. This one answers
+    *"is a CHOICE pending"* so a caller can refuse to let B ANSWER it — B advances plain dialogue
+    harmlessly, but at a choice box `Task_HandleYesNoInput` reads `MENU_B_PRESSED` and falls
+    through to `gSpecialVar_Result = 0`, i.e. **NO**. Same task symbols, opposite question.
+
+    ⛔ Returns False on any read failure, and that direction is deliberate: False means "press
+    what you were going to press", i.e. UNCHANGED legacy behaviour. A True on a bad read would
+    silently convert every B in a mash loop into an A, which near an NPC RE-OPENS conversations
+    (the Slateport museum greeter loop, 2026-07-23). Fail toward the old behaviour, never toward
+    a new one."""
+    try:
+        return any("YesNo" in t.symbol or "Multichoice" in t.symbol for t in get_tasks())
+    except Exception:  # noqa: BLE001 — justified above: a failed read must not change behaviour
+        return False
+
+
 def _dialogue_button(button: str) -> str:
     """Resolve the button to actually press this frame when riding out a scene.
 
@@ -596,13 +628,12 @@ def _dialogue_button(button: str) -> str:
     everything else. Requests for B (the common case) pass straight through."""
     if button != "A":
         return button
-    try:
-        for task in get_tasks():
-            if "Multichoice" in task.symbol or "YesNo" in task.symbol:
-                return "A"
-    except Exception:
-        pass
-    return "B"
+    # ‼ ONE predicate, two questions (2026-09-13). This used to inline its own copy of the
+    # task scan; `_yes_no_menu_is_open` now owns it so the two callers cannot DRIFT apart —
+    # a choice box that this function stopped recognising would silently start B-mashing
+    # "NO" into it, which is precisely the `#24-wallydecline` failure. Behaviour is
+    # unchanged: same symbols, same fail-to-"B" direction.
+    return "A" if _yes_no_menu_is_open() else "B"
 
 
 def _wait_until_cutscene_over(button: str = "B", *, stable_frames: int = 15,
@@ -3970,10 +4001,52 @@ def fight_wally_mauville() -> Generator:
     context.emulator.press_button("Up")  # face Wally at (8,6)
     yield
     yield from wait_for_n_frames(4)
-    frames = 0
+    #: ⛔ PHASE OFFSET — an EXPERIMENT HOOK, not a feature (`#24-wallydecline`, 2026-09-13).
+    #: The decline below is PHASE-LOCKED, not random, so a single run proves nothing: whichever
+    #: of A/B lands on the frame the yes/no reads input lands there for the WHOLE run. This lets
+    #: `probe_wally_phase_sweep.py` walk the phase and show the bug is unreachable at EVERY
+    #: offset, instead of "it passed once". Unset in production ⇒ 0 ⇒ byte-identical behaviour.
+    frames = _int_env("POKEBOT_WALLY_PHASE", 0)
     while not _done():
         _check_abort()
-        context.emulator.press_button("B" if frames % 3 else "A")
+        button = "B" if frames % 3 else "A"
+        # ⛔⛔ NEVER PRESS B WHILE A YES/NO IS OPEN — B *IS* "NO" (`#24-wallydecline`, 2026-09-13).
+        # `src/script_menu.c Task_HandleYesNoInput`: `case MENU_B_PRESSED:` FALLS THROUGH to
+        # `gSpecialVar_Result = 0`, i.e. NO. This loop mashed B on 2 of every 3 frames straight
+        # into `msgbox MauvilleCity_Text_WallyWillYouBattleMe, MSGBOX_YESNO`.
+        # ‼ AND DECLINING IS NOT A RETRYABLE MISTAKE — IT IS TERMINAL FOR THE RUN:
+        #   · `DeclineWallyBattle` sets FLAG_DECLINED_WALLY_BATTLE_MAUVILLE, which **nothing in
+        #     the decomp ever clears** (one `setflag`, two `goto_if_set`, zero `clearflag`);
+        #   · every later talk then routes to `WallyRequestBattleAgain` → the SAME yes/no → the
+        #     same locked phase → NO again. A fixed point, not a race we eventually win;
+        #   · Wally is `removeobject`'d ONLY on the win path, and he stands on **(8,6) — the one
+        #     tile the gym door (8,5) can be entered from** ((7,5)/(9,5) are collision-1 wall).
+        #   ⇒ no Wally → no Wattson → no BADGE03 → `EventScript_CantSmashRock` → Route 111 and
+        #     Rusturf Tunnel never open. MEASURED: 124 of 143 ended runs died here, and every one
+        #     of those 124 sat on the SAME final state (`DeclineWallyBattle` + `Std_MsgboxDefault`,
+        #     held_buttons=[]). Runs that reached the door: 12% got past it.
+        # ⭐ The cursor defaults to YES (`DisplayYesNoMenuDefaultYes`), so A alone accepts. We keep
+        # the A/B alternation because B is what safely ADVANCES the three plain msgboxes without
+        # re-initiating the conversation — we only refuse to let B answer the CHOICE.
+        # FAULT ARMS live HERE, in production, never in the driver — a fix demonstrated only by
+        # driver-side code is not demonstrated at all (playbook §0c).
+        #   `=mash`    restore the pre-fix blind masher (phase-locked; may or may not decline).
+        #   `=decline` FORCE B at the choice box, i.e. deliberately answer NO.
+        # ‼ WHY `decline` EXISTS AND `mash` WAS NOT ENOUGH — MEASURED 2026-09-13. `mash` is a
+        # PHASE-LOCKED arm, and on a fixture parked near Wally it declined at NO swept phase
+        # (all 3 phases × both arms: 6/6 beat him). The offset cannot reach the bug there because consecutive
+        # identical presses cancel in `libmgba.press_button`, so a cycle emits `A, B, nothing`,
+        # and shifting the phase ALSO shifts how fast the three msgboxes advance — the box's open
+        # frame co-moves and the offset partly cancels itself. ⇒ an arm whose firing depends on
+        # luck is not an arm. `decline` fires deterministically and answers the actual causal
+        # question: *does a B at this box produce the terminal state 124/124 dead runs sat on?*
+        fault = os.environ.get("POKEBOT_WALLY_FAULT", "")
+        if _yes_no_menu_is_open():
+            if fault == "decline":
+                button = "B"          # ARM ONLY — must reproduce the run-killing decline
+            elif fault != "mash":
+                button = "A"          # ⭐ THE FIX — never let B answer the choice
+        context.emulator.press_button(button)
         frames += 1
         if frames > 30000:
             raise BotModeError("Mauville: the Wally battle never resolved.")
