@@ -27952,3 +27952,59 @@ Options, in the order they should be tested:
    be doing. ⚠ This changes counter-hunt behaviour and needs its own A/B arm.
 ⇒ It is a behaviour change to a subsystem this session has not otherwise touched, so it gets its own
 increment rather than being bolted onto a maintenance round.
+
+---
+
+## 2026-09-12 (evening) — MEASURED: Fallarbor is reachable from Route 112's lower section. Mauville — my own guess — is NOT.
+
+The queue item's next action was *"a reachability MEASUREMENT … not a table edit"*, precisely because
+"Mauville is probably reachable" is the kind of plausible map claim this project has been burned by.
+New probe `tools/story-dev/probe_heal_reachability.py`. **The guess was wrong.**
+
+### THE READING, from the REAL failing tile
+The bot stands at `ROUTE112 (26,36)` when this fails — read verbatim from a run log
+(`[MAP] FIERY PATH(24,14) -> ROUTE 112(0,27)`), not chosen for convenience.
+
+| from `ROUTE112 (26,36)` → | `calculate_path` |
+|---|---|
+| **LavaridgeTown** — *what `story_mode.py:1121/1126` maps TODAY* | **FAIL** |
+| **FallarborTown** | ✅ **OK, 263 waypoints** |
+| MauvilleCity — *the "plausible" candidate* | **FAIL** |
+| VerdanturfTown | FAIL |
+| PetalburgCity | FAIL |
+
+### ⛔ THE CONTROL IS WHY THESE NUMBERS MEAN ANYTHING
+The probe first re-runs the 2026-07-26 reading already recorded in `NO_RETURN_GROUNDS`:
+```
+CONTROL   Lavaridge (9,6) -> ROUTE112 (11,36) : OK, 60 waypoints    (recorded: OK, 60 waypoints)
+REVERSE   ROUTE112 (11,36) -> Lavaridge (9,6) : FAIL
+```
+**It reproduces to the waypoint.** ⇒ the instrument works on this exact pair, so a FAIL below is a
+statement about the MAP, not about the probe. Without that conjunct the probe would ABORT and refuse
+to print a single candidate line.
+‼ **AND THAT GUARD WAS EARNED EARLIER THE SAME DAY:** querying `region_reach` offline returned
+`False` for all four candidates — not because they were unreachable but because it **FAILS CLOSED
+with no ROM loaded** (`why_unreachable` said *"reachability check failed: 'NoneType' object has no
+attribute 'id'"*). Reporting that as "nothing is reachable" would have been a fabricated finding.
+⇒ **A check that can fail silently must be made to prove itself before its answers are quoted.**
+
+### HOW TO READ A FAIL — three outcomes, never two
+Lifted from `probe_counter_reachability.py`, which learned it the hard way:
+* `OK, N waypoints` ⇒ genuinely walkable. **STRONG evidence, safe to act on.**
+* `NEEDS A WARP` ⇒ `calculate_path` cannot cross warps. Says NOTHING about reachability.
+* `FAIL on connected maps` ⇒ real, but STILL not proof of unreachable (KI-24: the tile planner reads
+  dual-elevation bridges as walls and once called Route 118 unreachable when it plainly is not).
+⇒ I only need ONE trustworthy positive, and Fallarbor is it. The four FAILs are "unproven", and this
+entry does not claim otherwise.
+
+### ⭐ AND THE ANSWER IS COHERENT WITH THE TABLE WE ALREADY HAVE
+`story_mode.py:1120` already maps `ROUTE111 -> FallarborTown`. Route 112's lower section adjoins
+Route 111, so Fallarbor being the reachable centre is consistent with an entry that has been in the
+table all along — the ROUTE112/FIERY_PATH rows are the odd ones out, not a new discovery.
+
+### ⚠ WHAT THIS DOES NOT YET DECIDE
+263 waypoints is a LONG walk (against the 60 the reverse Lavaridge leg takes). Whether a counter
+hunt should take that walk, return `None` and skip, or not heal at all (which
+`NO_RETURN_GROUNDS`' own FIERY_PATH entry says should already be the case) is a BEHAVIOUR decision
+with a blast radius across counter-hunting — it is not settled by this measurement, and it is not
+being bolted onto it.
