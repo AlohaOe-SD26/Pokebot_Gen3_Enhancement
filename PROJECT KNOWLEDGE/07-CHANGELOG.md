@@ -28571,3 +28571,69 @@ run ended short of Mossdeep). ⇒ **Back to story content: `#24-e4healing` steps
 text already names the next piece, *"the money policy for a post-whiteout re-stock"*, which the
 Route 110 decomp note independently flagged (every loss HALVES the player's money, and leg 11
 refuses a ₽54,300 basket holding ₽1,741).
+
+---
+
+## 2026-09-13 — `#24-e4healing` STEP 3: the bot can now DECIDE to cure status and revive in battle. Policy built, gated, fault-proven — deliberately NOT wired yet.
+
+### The defect, already measured and already ruled
+`06-DECISIONS-LOG.md` (2026-09-04) records it exactly: *"the policy filters on `param > 0`
+(`battle_items.py:85`), and **Full Heal / Revive / Antidote all carry `parameter == 0`** ⇒ **11 of
+the 44 items just bought are unusable by any code path we have**, in or out of battle."* The bot
+spent **₽54,300** on a gauntlet basket containing **Full Heal ×8 and Revive ×3** and could not open
+one of them mid-fight. Step 1 (2026-09-04) fixed the OUT-of-battle half via
+`overworld_items.plan_healing`. **This is the in-battle half.**
+✅ Verified against the live ROM before writing anything — `battle_use`/`parameter` for the real
+items: Potion 20, Hyper Potion 200, Full Restore 255 (all admitted today) versus **Revive 0,
+Max Revive 0, Full Heal 0, Antidote 0** (all `battle_use == healing`, all excluded). Repel
+(`not_usable`, 100) and Ether (`pp_recovery`, 10) are correctly excluded by KIND already.
+
+### `choose_status_or_revive_item()` — a SIBLING, not an extension
+⛔ It is separate on purpose. `choose_healing_item` expresses every rule in HP (`missing`,
+`effective_heal`, `worst_hit_taken`); a status cure restores no HP, so folding it in would mean
+`effective_heal` returning 0 for an item we DO want — teaching the HP policy to lie. Two policies,
+one caller, one shared per-battle bound.
+
+**The policy is deliberately narrow, because it would run in EVERY trainer battle in the game:**
+1. **Cure only a status that COSTS THE TURN ANYWAY** — `TURN_COSTING_STATUSES = {Sleep, Freeze}`.
+   Those prevent acting, so a turn spent curing is *strictly better* than a turn lost: the trade is
+   free. Poison/Burn/Paralysis chip but still let the mon attack, so curing them trades a certain
+   attack for a little HP — which rule 1 of the module already rejects.
+   ‼ Gen-3 **Freeze never thaws on its own**, so an un-cured freeze loses that Pokémon for the whole
+   battle. That is why `pokemon_league.py`'s own driver stages a FROZEN Sceptile as its discriminator.
+2. **Revive ONLY when the active Pokémon is effectively the last one** (`non_fainted_count <= 1`).
+   A Revive costs a turn and returns the mon **at half HP, on the BENCH** — worth it only when the
+   alternative is a whiteout. ⛔ Never "to have a spare": that is a turn donated to the opponent.
+3. **Cheapest item that does the job** — a dedicated Awakening/Ice Heal beats the general Full Heal,
+   which beats the scarce Full Restore (×3, and the HP policy needs those for emergencies).
+4. **The per-battle bound is SHARED** (`MAX_ITEM_USES_PER_BATTLE = 4`, via `uses_so_far`), so the
+   two policies together can never exceed the cap — and that bound is what makes a revive loop
+   (revive → faint → revive) terminate.
+⛔ **SELECTION IS BY NAME, NOT BY `parameter`** — the whole point. `overworld_items.py` records the
+live drive where filtering by `parameter > 0` selected a **Repel**, whose parameter is 100 meaning
+*one hundred STEPS*: *"`parameter` IS A UNION TYPE … a number alone cannot tell you what an item
+does."*
+
+### ⛔ GATE #59 — AND THE FILE WAS ALREADY THERE, UNGATED
+`repro_battle_items.py` has gated `choose_healing_item` since it was written and **was not in
+`run_gates.py`**. Nothing ran it. ⇒ the HP policy was effectively ungated, and the new policy would
+have been too. Now registered (suite 58 → 59, enforcing 55 → 56) and extended from 27 to **46
+checks**, including a POSITIVE CONTROL first (an asleep mon holding a Full Heal must return it, or
+the run stops before the "declines" checks, which would otherwise prove nothing), and the
+**CONFUSING NEIGHBOURS** the real bag holds — Repel and an X Attack — because that note's own lesson
+is *"the gate missed it because its item universe was CLEANER THAN REALITY."*
+✅ **FAULT-PROVEN:** widening `TURN_COSTING_STATUSES` to include chip statuses reds exactly **3 of
+46** checks and exits 1 — it fails NARROWLY, not blanket. Restored MD5-identical.
+
+### ⚠ NOT WIRED — and that is the deliberate half
+`story_mode.py:679` still filters `slot.item.parameter > 0`, so nothing calls the new policy yet.
+Wiring changes in-battle behaviour in **every trainer battle in the game**, which is a blast radius
+that deserves its own reviewable change with its own drive. The policy being pure and gated means
+that change can be made and proven separately. ⇒ **step 3 is half-shipped, honestly labelled.**
+
+### ⚠ A CHECK THAT WAS WRONG, NOT THE CODE — the third time in this project
+My first regression guard asserted that at 10/100 HP the policy picks a Potion over a Hyper Potion.
+It FAILED, and the code was right: the gap is 90, which a 20-HP Potion cannot cover, so
+"cheapest-sufficient" correctly returns the Hyper Potion. Fixed by choosing inputs where the
+intended winner is actually sufficient (10/30). ⇒ *read the failing check before touching the
+subject* — recorded again because this is now three occurrences.

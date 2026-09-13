@@ -102,3 +102,97 @@ def choose_healing_item(
     largest = [(effective_heal(p, total_hp), item) for item, _, p in usable]
     largest.sort(key=lambda pair: (-pair[0], getattr(pair[1], "name", "")))
     return largest[0][1]
+
+
+# ==================================================================================================
+# `#24-e4healing` STEP 3 — THE IN-BATTLE QUESTION: items whose `parameter` is 0
+# ==================================================================================================
+#: Statuses that COST THE TURN ANYWAY. ⛔ This set is the whole argument for curing in battle, and it
+#: is deliberately small. Sleep and Freeze prevent acting, so a turn spent curing is strictly better
+#: than a turn lost — the trade is free. Poison / Burn / Paralysis CHIP but still let the mon attack,
+#: so spending a turn on them trades a guaranteed attack for a small HP saving, which rule 1 of this
+#: module ("a turn spent healing is a turn not attacking") says is usually a loss.
+#: ‼ Gen-3 FREEZE never thaws on its own (it needs a Fire-type hit or a thaw move), so an un-cured
+#: freeze is a permanent loss of that Pokémon for the rest of the battle — which is exactly why
+#: `pokemon_league.py`'s own driver stages a FROZEN Sceptile as its discriminator.
+TURN_COSTING_STATUSES = frozenset({"Sleep", "Freeze"})
+
+#: Item names that cure status. ⛔ BY NAME, NOT BY `parameter` — and that is the point of this whole
+#: function. `overworld_items.py` records the live-drive lesson: `parameter` IS A UNION TYPE (HP for
+#: a potion, **STEPS for a Repel**, 0 for a status cure), so a number alone cannot tell you what an
+#: item does. The old in-battle filter `param > 0` excluded every one of these.
+STATUS_CURE_ITEMS = ("Full Heal", "Full Restore", "Lava Cookie")
+SLEEP_CURE_ITEMS = ("Awakening",)
+FREEZE_CURE_ITEMS = ("Ice Heal",)
+REVIVE_ITEMS = ("Revive", "Max Revive")
+
+
+def choose_status_or_revive_item(
+    status_name: str,
+    non_fainted_count: int,
+    options: "list[tuple[object, int, int]]",
+    *,
+    uses_so_far: int = 0,
+    max_uses: int = MAX_ITEM_USES_PER_BATTLE,
+) -> "object | None":
+    """Pick a STATUS CURE or a REVIVE, or None to act normally. The sibling of
+    `choose_healing_item`, for the items whose `parameter` is 0.
+
+    ‼‼ WHY THIS EXISTS AND WHY IT IS SEPARATE (`#24-e4healing` step 3, 2026-09-13).
+    `06-DECISIONS-LOG.md` records the measured blocker: *"the policy filters on `param > 0`
+    (`battle_items.py:85`), and Full Heal / Revive / Antidote all carry `parameter == 0` ⇒ **11 of
+    the 44 items just bought are unusable by any code path we have**"*. The bot spent **₽54,300** on
+    a gauntlet basket that included **Full Heal ×8 and Revive ×3** and could not use one of them
+    mid-fight. Step 1 fixed the OUT-of-battle half (`overworld_items.plan_healing`); this is the
+    in-battle half.
+    ⛔ IT IS A SEPARATE FUNCTION ON PURPOSE. `choose_healing_item` is an HP-restoration policy whose
+    every rule is expressed in HP (`missing`, `effective_heal`, `worst_hit_taken`). A status cure
+    restores no HP, so folding it in would mean `effective_heal` returning 0 for an item we DO want —
+    i.e. teaching the HP policy to lie. Two policies, one caller, is the same shape the module
+    already uses for in-battle vs overworld thresholds.
+
+    THE POLICY — deliberately narrow, because this runs in EVERY trainer battle in the game:
+      1. **Cure only a status that COSTS THE TURN ANYWAY** (Sleep, Freeze — see
+         `TURN_COSTING_STATUSES`). Curing poison/burn/paralysis trades a certain attack for a little
+         HP, which rule 1 of this module already rejects. ⇒ this fires rarely and only when free.
+      2. **Revive only when the active Pokémon is effectively the LAST one** (`non_fainted_count <= 1`).
+         A Revive costs a turn and returns the mon **at half HP on the BENCH** — worth it only when
+         the alternative is a whiteout. ⛔ Never revive "to have a spare": that is a turn donated to
+         the opponent.
+      3. **Prefer the CHEAPEST item that does the job.** A Full Restore also cures status, but it is
+         the scarcest thing in the basket (×3 vs Full Heal ×8) and `choose_healing_item` needs it for
+         the HP emergencies — so a dedicated cure wins over Full Restore when both are held.
+      4. **The same per-battle bound applies** (`MAX_ITEM_USES_PER_BATTLE`), shared with the HP
+         policy via `uses_so_far`, so the two together can never exceed the cap. ⛔ That bound is what
+         makes a revive loop (revive → faint → revive) terminate.
+
+    :param status_name: the active Pokémon's status, as `StatusCondition.name` — "Healthy", "Sleep",
+                        "Freeze", "Poison", "Burn", "Paralysis", "BadPoison".
+    :param non_fainted_count: how many party members can still fight, INCLUDING the active one.
+    :param options: ``(item, quantity, parameter)`` as `choose_healing_item` takes them.
+    ⇒ returns the item to use, or None. ⛔ A None here is a normal, common answer.
+    """
+    if uses_so_far >= max_uses:
+        return None
+
+    held = {}
+    for item, qty, _param in options:
+        if qty > 0:
+            held[str(getattr(item, "name", item))] = item
+
+    # --- rule 1 — cure a turn-costing status -----------------------------------------------------
+    if status_name in TURN_COSTING_STATUSES:
+        specific = SLEEP_CURE_ITEMS if status_name == "Sleep" else FREEZE_CURE_ITEMS
+        # rule 3: the dedicated cure first, then the general one, then the scarce Full Restore last.
+        for name in (*specific, "Full Heal", "Lava Cookie", "Full Restore"):
+            if name in held:
+                return held[name]
+        return None
+
+    # --- rule 2 — revive only as the alternative to a whiteout -----------------------------------
+    if non_fainted_count <= 1:
+        for name in REVIVE_ITEMS:
+            if name in held:
+                return held[name]
+
+    return None

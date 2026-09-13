@@ -549,6 +549,21 @@ GATES: list[tuple[str, bool]] = [
     # predicates cannot drift. Custom is ADVISORY until promoted, then enforced automatically.
     # Fault-tested 2026-09-13: guard removed -> RED (exit 1), restored MD5-identical.
     ("probe_yesno_guard.py", False),
+    # #59 — `#24-e4healing` step 3: the in-battle policy for items whose `parameter` is 0.
+    # ⛔ THIS FILE EXISTED AND WAS NOT IN THE SUITE. `repro_battle_items.py` has gated
+    # `choose_healing_item` since it was written, and nothing ran it — so the HP policy was
+    # effectively ungated and the new status/revive policy would have been too. Found while adding
+    # step 3 on 2026-09-13. ⇒ *a repro that is not in `run_gates.py` is a test nobody runs.*
+    # WHY THE POLICY MATTERS: `06-DECISIONS-LOG.md` 2026-09-04 measured that the in-battle filter
+    # `param > 0` excludes Full Heal / Revive / Antidote (all `parameter == 0`), so **11 of the 44
+    # items bought for the ₽54,300 Elite Four basket were unusable by any code path**.
+    # The new checks include the CONFUSING NEIGHBOURS the real bag holds (Repel, whose parameter is
+    # 100 = STEPS, and an X Attack) because `overworld_items.py` records a live drive where filtering
+    # by `parameter > 0` selected a Repel — "the gate missed it because its item universe was CLEANER
+    # THAN REALITY."
+    # Pure: no ROM, no emulator, milliseconds. Fault-tested 2026-09-13 — widening
+    # `TURN_COSTING_STATUSES` to include chip statuses reds exactly 3 of 46 checks and exits 1.
+    ("repro_battle_items.py", False),
 ]
 
 

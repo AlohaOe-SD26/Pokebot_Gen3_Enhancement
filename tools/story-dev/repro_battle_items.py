@@ -138,6 +138,80 @@ check("effective_heal caps a full-restore at the mon's max HP",
       effective_heal(FULL_RESTORE_PARAMETER, 77) == 77, str(effective_heal(FULL_RESTORE_PARAMETER, 77)))
 check("effective_heal passes a normal parameter through", effective_heal(50, 300) == 50)
 
+print()
+print("=" * 80)
+print("`#24-e4healing` STEP 3 — THE PARAMETER==0 ITEMS (status cures and revives)")
+print("=" * 80)
+# ⛔ WHY THESE CHECKS EXIST. `06-DECISIONS-LOG.md` (2026-09-04): "the policy filters on `param > 0`
+# ... Full Heal / Revive / Antidote all carry `parameter == 0` ⇒ 11 of the 44 items just bought are
+# unusable by any code path we have". The bot spent ₽54,300 on a basket it could not open.
+from modules.story.battle_items import (  # noqa: E402
+    choose_status_or_revive_item, TURN_COSTING_STATUSES,
+)
+
+FULLHEAL, REVIVE, MAXREVIVE = (FakeItem(n) for n in ("Full Heal", "Revive", "Max Revive"))
+AWAKEN, ICEHEAL, ANTIDOTE = (FakeItem(n) for n in ("Awakening", "Ice Heal", "Antidote"))
+# ⛔⛔ THE CONFUSING NEIGHBOURS, AND THEY ARE THE POINT OF THIS BLOCK.
+# `overworld_items.py` records the live-drive failure this test exists to prevent: filtering by
+# `parameter > 0` selected **Repel**, whose parameter is 100 — *one hundred STEPS*. The note's own
+# lesson: "the gate missed it because its item universe was CLEANER THAN REALITY. A policy test must
+# include the confusing neighbours the real bag contains." So the bag below holds them.
+REPEL, ETHER, XATTACK = (FakeItem(n) for n in ("Repel", "Ether", "X Attack"))
+BAG = opts((FULLHEAL, 8, 0), (REVIVE, 3, 0), (POTION, 5, 20), (HYPER, 30, 200),
+           (REPEL, 4, 100), (ETHER, 2, 10), (XATTACK, 1, 0))
+
+# --- POSITIVE CONTROL FIRST — if this fails, every "declines" check below proves nothing ---------
+ctl = choose_status_or_revive_item("Sleep", 3, BAG)
+check("CONTROL: asleep with a Full Heal held -> returns it",
+      getattr(ctl, "name", None) == "Full Heal", repr(ctl))
+if getattr(ctl, "name", None) != "Full Heal":
+    print()
+    print("‼ CONTROL FAILED — the declines below prove nothing. Stop here.")
+    sys.exit(1)
+
+check("Freeze is cured too (Gen-3 freeze never thaws on its own)",
+      getattr(choose_status_or_revive_item("Freeze", 3, BAG), "name", None) == "Full Heal")
+check("a DEDICATED cure is preferred over the general Full Heal (rule 3)",
+      getattr(choose_status_or_revive_item("Sleep", 3, opts((AWAKEN, 2, 0), (FULLHEAL, 8, 0))),
+              "name", None) == "Awakening")
+check("Ice Heal preferred for Freeze",
+      getattr(choose_status_or_revive_item("Freeze", 3, opts((ICEHEAL, 2, 0), (FULLHEAL, 8, 0))),
+              "name", None) == "Ice Heal")
+# --- the DECLINES — each one is a turn NOT donated to the opponent -------------------------------
+for st in ("Poison", "BadPoison", "Burn", "Paralysis"):
+    check(f"{st} CHIPS but still lets us act -> declines (rule 1)",
+          choose_status_or_revive_item(st, 3, BAG) is None)
+check("Healthy with mons in reserve -> no revive (rule 2)",
+      choose_status_or_revive_item("Healthy", 3, BAG) is None)
+check("Healthy on the LAST mon -> revives (the alternative is a whiteout)",
+      getattr(choose_status_or_revive_item("Healthy", 1, BAG), "name", None) == "Revive")
+check("the per-battle cap is SHARED with the HP policy",
+      choose_status_or_revive_item("Sleep", 3, BAG, uses_so_far=4) is None)
+check("asleep but holding NO cure -> None, no exception",
+      choose_status_or_revive_item("Sleep", 3, opts((POTION, 5, 20), (REPEL, 4, 100))) is None)
+check("zero quantity is not 'held'",
+      choose_status_or_revive_item("Sleep", 3, opts((FULLHEAL, 0, 0))) is None)
+# --- ⛔ THE TRAP ITSELF ---------------------------------------------------------------------------
+check("⛔ REPEL (parameter 100 = STEPS) is never chosen for a status",
+      getattr(choose_status_or_revive_item("Sleep", 3, opts((REPEL, 4, 100))), "name", None) != "Repel")
+check("⛔ REPEL is never chosen as a revive either",
+      getattr(choose_status_or_revive_item("Healthy", 1, opts((REPEL, 4, 100))), "name", None) != "Repel")
+check("⛔ an X Attack (parameter 0, NOT medicine) is never chosen",
+      choose_status_or_revive_item("Sleep", 1, opts((XATTACK, 1, 0))) is None)
+check("the turn-costing set is exactly Sleep+Freeze (widening it needs a new ruling)",
+      set(TURN_COSTING_STATUSES) == {"Sleep", "Freeze"}, str(sorted(TURN_COSTING_STATUSES)))
+# --- and the HP policy must be UNCHANGED by all of this ------------------------------------------
+check("REGRESSION GUARD: the HP policy still ignores parameter==0 items",
+      choose_healing_item(10, 100, opts((FULLHEAL, 8, 0))) is None)
+# ⚠ 10/100 would NOT prove this: the gap is 90, which a 20-HP Potion cannot cover, so the correct
+# answer there is the Hyper Potion. (My first version of this check asserted "Potion" and FAILED —
+# the SUBJECT was right and the CHECK was wrong, which is the third time in this project that has
+# happened. Pick inputs where the intended winner is actually sufficient.)
+check("REGRESSION GUARD: the HP policy still picks cheapest-SUFFICIENT",
+      getattr(choose_healing_item(10, 30, opts((POTION, 5, 20), (HYPER, 30, 200))),
+              "name", None) == "Potion",
+      "at 10/30 the gap is 20, which a Potion covers exactly, so it must beat the Hyper Potion")
+
 failed = [label for ok, label in checks if not ok]
 print()
 if failed:
