@@ -578,6 +578,20 @@ GATES: list[tuple[str, bool]] = [
     # "the HP-emergency path STILL WORKS after two cures", which returns None, i.e. the exact
     # regression the reviewer predicted. Pure: no ROM, no emulator, milliseconds.
     ("repro_item_noop_detector.py", False),
+    # ---------------------------------------------------------------------------------------- #61
+    # ⛔ APPENDED, NEVER INSERTED — gate ordinals are cited in prose across PROJECT KNOWLEDGE.
+    # A punch-list item may not tick a numbered step `[x]` and ALSO say elsewhere in the same item
+    # that the step "remains". ‼ WHY IT EXISTS: that exact contradiction shipped TWICE IN 24 HOURS
+    # on `#24-e4healing` — 2026-09-13 (step 3: checklist ticked, STATUS line stale) and 2026-09-14
+    # (step 4: checklist ticked, cell header AND STATUS line stale). Both were caught by Tier 1
+    # reviewers, i.e. by luck and cost, not by a check. P5 is prose; CLAUDE.md says a rule broken
+    # twice means the prose failed and the gate should be written instead.
+    # Fault-tested 2026-09-14: restoring the old `"steps 2 and 4 remain"` STATUS line reds it with
+    # `FAIL 03-PUNCH-LIST.md:391 says step 4 REMAINS, but the same item ticks it [x] at :483`, and
+    # the file was restored byte-identically (sha256 verified). ⭐ It does NOT fire on the dated
+    # RETRACTION that quotes the old wording — the live tree contains exactly such a quote and the
+    # gate passes, which is the false-positive arm.
+    ("probe_punchlist_step_status.py", False),
 ]
 
 

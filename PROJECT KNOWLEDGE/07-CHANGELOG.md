@@ -28819,3 +28819,58 @@ turns with **no item used**. ⇒ had the grade scored "the freeze cleared", this
 read as a REFUTATION of a working feature ~83% of the time.
 
 Flags registered in `29-DISABLED-FEATURES-REGISTRY.md` §B. Full suite: **ALL 57 ENFORCING GATES PASS.**
+
+---
+
+## 2026-09-14 — `#24-e4healing` step 4: measured, and the measurement says DO NOT RAISE THE THRESHOLD
+
+Step 4 asked whether `HEAL_AT_FRACTION = 0.35` is right for the Elite Four. Its own punch-list line
+called it *"a NUMBER TO MEASURE, not to argue about"*. It was measured, three ways.
+
+### 1. The defect the item suspected is REAL, and executing the policy pins it exactly
+    at 53/147 (36.1%) -> None          ... the next 59-damage hit leaves -6  ☠
+    at 51/147 (34.7%) -> Full Restore  ... and the mon lives
+**Two HP decide life or death.** Generalised: **a hit worth 50-64% of max HP leaves the mon ABOVE
+the 0.35 gate**, so it never heals, and the next identical hit faints it — a guaranteed two-shot the
+policy does not try to prevent. A 25-agent decomp sweep puts Elite Four hits squarely in that band
+(Sidney 52-66%, Phoebe 51-72%, Drake 64-86%, Wallace 85-140% of our pinned party's max HP).
+
+### 2. ⛔⛔ AND RAISING IT IS MEASURED HARMFUL — the A/B inverted the theory
+Same fixture, same fight, only the threshold differs, and the arm is proven by logging the value the
+policy was **actually called with** (not the env var — session-discipline rule 7):
+
+| arm | `heal_frac` used | outcome | `ineffective=True` |
+|---|---|---|---|
+| default | **0.35** | **WON** (f35237) | **0** of 51 decisions |
+| raised  | **0.50** | **LOST** (f46267) | **31** of 68, from decision 38 |
+
+**MECHANISM — verified in code, and stated no more strongly than the data allows.** Raising the threshold changed **which** request was made and **when**, *not how many*: **both arms made exactly 2 item requests.** The raised arm asked at decision 36 on Mightyena (68/144 = 47%); the default arm asked at decision 47 on Castform (13/103 = 12.6%). In the raised arm those requests **did not execute** — HP went 68 → 68 — and the no-op detector read two misses and set `_items_ineffective` at decision 38, disabling ALL item use for the remaining 30 decisions. `battle_action_use_item` is known not to execute reliably (`battle_action_selection.py:985-988`, measured 2026-08-09: *5 requests → 1 potion consumed*); a failed bag-open `return`s and the strategy re-decides the same turn (`:1023-1024`). ⚠⚠ **n=1 PER ARM CANNOT SEPARATE** *"raising the threshold causes those failures"* **from** *"the failures happened to land in that arm"*. What the A/B does establish is that the benefit of a higher threshold is entirely contingent on items actually executing — and that is measured unreliable.
+
+⛔ **THE GUARD IS NOT A NEW DEFECT AND WAS NOT RE-FILED.** `06-DECISIONS-LOG.md` 2026-08-10 accepted
+it in writing: *"every failure mode is BOUNDED — the no-op guard costs at most one turn per battle
+and then disables items for that battle."* What is NEW is the INTERACTION: raising the threshold
+converts that accepted, bounded cost into a lost Elite Four fight.
+⇒ **The prerequisite for tuning this number is reliable item EXECUTION, not a better number.**
+
+### 3. What shipped instead of a threshold change
+* **`POKEBOT_HEAL_AT_FRACTION`** — an A/B knob at the call site (default unset = the shipped 0.35,
+  byte-identical). It exists so this A/B can be re-run the day execution is fixed. A malformed value
+  is IGNORED rather than silently becoming a different threshold.
+* **`POKEBOT_CH24_OBSERVE`** — an OBSERVE-ONLY arm that measures incoming damage and CHANGES NOTHING.
+  Proven non-invasive: with it on, the battle still starts at f2546 and ends at f35237 with `Won`,
+  frame-identical to the uninstrumented baseline. ‼ Its numbers are a LOWER BOUND — a hit that faints
+  a mon leaves no successor decision, so the lethal hits are systematically absent.
+* **`tools/story-dev/fix_doc_citations.py`** — citation drift fired FIVE times in two days, always the
+  same mechanical fix, always hand-typed. It now repairs from `audit_doc_citations.py`'s own output:
+  dry-run honest, idempotent, refuses ambiguous lines, never changes a line count, and re-runs the
+  audit afterwards so a partial repair cannot read as a clean one.
+
+### What was refuted along the way
+The obvious fix — a survivability gate `heal when current_hp <= k * worst_hit_taken` — **does not
+work**, and an adversarial pass killed it before it was built: `worst_hit_taken` can under-predict
+the next hit by **×4.7** (crit ×2 and per-type multipliers), and it is a **survivorship-biased
+estimator by construction** — it can only record hits the Pokémon LIVED THROUGH. 7 of 20 researched
+claims were refuted on inspection, including a headline that our own logs already showed the failure
+mode (they could not: yesterday's logs recorded no HP at any decision point).
+
+ALL 57 ENFORCING GATES PASS.

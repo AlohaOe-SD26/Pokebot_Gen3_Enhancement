@@ -594,6 +594,19 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         return super().decide_turn(battle_state)
 
     def _maybe_use_item(self, battle_state):
+        # ⛔⛔ `_os` IS BOUND ONCE, HERE, AT THE TOP — AND THAT POSITION IS LOAD-BEARING.
+        # `os` is NOT imported at module scope in this file (local-import convention). It was
+        # previously imported deep inside the status-cure branch, and step 4's knob then read it
+        # ~40 lines EARLIER. ‼ In Python a local `import` anywhere in a function makes that name
+        # LOCAL FOR THE WHOLE FUNCTION, so the earlier read is an `UnboundLocalError` — which even
+        # a module-level `os` would NOT have rescued. And `decide_turn` wraps this entire method in
+        # `try/except Exception: action = None`, so the failure is SILENT: no item is ever used, in
+        # any battle, with every gate still green.
+        # ⇒ the prevention rule from 2026-09-13 ("a safe default on an unverified name is a silent
+        # off-switch; verify the name is bound in YOUR scope") fired on its second day. Keep the
+        # binding at the top; do not re-scatter it into branches.
+        import os as _os
+
         from modules.battle_state import BattleType
         from modules.items import ItemBattleUse, get_item_bag
         from modules.story.battle_items import choose_healing_item
@@ -721,12 +734,47 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
             if slot.item.battle_use is ItemBattleUse.Healing
         ]
         options = [opt for opt in medicine if opt[2] > 0]
+        # ---- `#24-e4healing` step 4 — the A/B KNOB for `HEAL_AT_FRACTION`. --------------------
+        # ⛔ DEFAULT UNCHANGED. Unset -> `heal_at_fraction` is not passed at all and the module
+        # default (0.35) applies, byte-for-byte the behaviour that shipped.
+        # ‼ WHY A KNOB AND NOT AN EDIT. This policy runs in EVERY battle of the run (~700), not
+        # just the Elite Four, and this project's rule 9 is explicit: a change on a SHARED PATH is
+        # decided by an A/B on the ORDINARY case, not by more samples of the exotic one. The knob
+        # is how that A/B gets run without touching the default for everyone first.
+        # ⭐ WHAT IT IS FOR — the defect, VERIFIED by executing the real policy 2026-09-14:
+        #     at 53/147 (36.1%) -> None      ... the next 59-damage hit leaves -6  ☠
+        #     at 51/147 (34.7%) -> Full Restore, and the mon lives.
+        #   Generalised: a hit worth **50-64% of max HP** leaves the mon ABOVE the 0.35 gate, so it
+        #   never heals, and the NEXT identical hit faints it. A guaranteed two-shot the policy does
+        #   not try to prevent. Decomp rosters put Elite Four hits squarely in that band.
+        # ⛔ 0.50 is the principled MINIMUM that closes it (heal at or below half). It is NOT yet
+        # the default: see `29-DISABLED-FEATURES-REGISTRY.md` and the A/B this knob exists to run.
+        _heal_frac = _os.environ.get("POKEBOT_HEAL_AT_FRACTION", "")
+        _frac_kw = {}
+        if _heal_frac:
+            try:
+                _frac_kw["heal_at_fraction"] = float(_heal_frac)
+            except ValueError:
+                # ⛔ A malformed knob must NOT silently become a different threshold. Ignore it and
+                # keep the shipped default — the run then measures the DEFAULT, which is a wrong
+                # answer to the A/B but never a wrong BEHAVIOUR.
+                _frac_kw = {}
+        # ⛔⛔ RECORD THE VALUE THE POLICY IS ACTUALLY CALLED WITH — session-discipline rule 7,
+        # INSTRUMENT THE ACTION, NOT THE INPUT TO THE ACTION. Reading the env in the DRIVER would
+        # only prove what was SET; this is what was USED. Without it, an A/B arm that silently ran
+        # the default is indistinguishable from one that ran the override and lost — and the first
+        # 0.50 arm produced exactly that ambiguity (it LOST, yet spent the same 2 items as the
+        # default arm, which is not what a bound threshold should look like).
+        from modules.story.battle_items import HEAL_AT_FRACTION as _DEFAULT_FRAC
+
+        self._effective_heal_fraction = _frac_kw.get("heal_at_fraction", _DEFAULT_FRAC)
         item = choose_healing_item(
             mon.current_hp,
             mon.total_hp,
             options,
             worst_hit_taken=self._worst_hit,
             uses_so_far=self._item_uses,
+            **_frac_kw,
         )
         if item is None:
             # ‼ `#24-e4healing` step 3 — the parameter==0 half. Asked ONLY after the HP policy has
@@ -742,15 +790,9 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
             # cure NEVER FIRE, silently, forever, with every gate still green. Verified by listing
             # BattlePokemon's properties: `status_permanent -> StatusCondition` is the real one
             # (Sleep/Freeze/Poison/Burn/Paralysis); `status_temporary` holds Confusion and friends.
-            # ⛔⛔ `import os as _os` MUST BE HERE. `os` is NOT imported at module scope in this file
-            # (the convention is a local import; see the identical comment at the `_os` use further
-            # down). Without this line the fault-arm check below raises `NameError` — and
-            # `decide_turn` wraps this whole method in `try/except Exception: action = None`, so the
-            # cure would silently NEVER FIRE while every gate stayed green. That is the exact shape
-            # of the `status_condition` dead path this wiring already survived once, and of the
-            # out-of-scope `get_party` in the same draft. ‼ `py_compile` does NOT catch it.
-            import os as _os
-
+            # ⛔ `_os` is bound at the TOP of this method — see the comment there for why the
+            # position matters. It was imported HERE until 2026-09-14; that made it an unbound
+            # local for every earlier read in the same function.
             from modules.pokemon_party import get_party as _party
             from modules.story.battle_items import choose_status_or_revive_item
 

@@ -20,10 +20,11 @@
 - **Upstream commit:** `5dd898f8` (40Cakes/pokebot-gen3 `main`)
 - Mirrored via `git subtree add --squash` at `40cakes repo/pokebot-gen3/`.
 - DOCUMENTATION/ 00–05 written against this commit (docs v1).
-- Last daily check: **2026-09-10** (`git fetch upstream-pokebot` → `upstream-pokebot/main` still
+- Last daily check: **2026-09-14** (`git fetch upstream-pokebot` → `upstream-pokebot/main` still
   `5dd898f8`, unchanged; tree hash RE-DERIVED both sides this date and equal at
   `fa3504a285eb62fa` — mirror `HEAD:40cakes repo/pokebot-gen3` vs `upstream-pokebot/main^{tree}`;
   nothing to pull, nothing appended per the standing directive).
+  ⚠ **2026-09-11, 2026-09-12 AND 2026-09-13 WERE MISSED** — those sessions ran long on the `#24-e4healing` step-3 build, its live drive, and five rounds of doc review. Recorded, not quietly backfilled, for the same reason as every gap below. Nothing was lost: the commit is STILL `5dd898f8` and the tree hash was RE-DERIVED both sides on 2026-09-14 and is still `fa3504a285eb62fa`, i.e. upstream did not move across the gap.
   ⚠ **2026-09-08 AND 2026-09-09 WERE MISSED** — those sessions ran long on `#24-lowlevelmules`
   telemetry and the batch, and never performed the check. Recorded rather than quietly backfilled,
   for the same reason the 2026-09-03 gap below is: the directive is once per CALENDAR DAY, so a gap

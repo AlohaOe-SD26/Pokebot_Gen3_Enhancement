@@ -241,7 +241,7 @@ is told to run first:
 ```
 cd tools/story-dev
 PYTHONUTF8=1 py -3.12 preflight.py     # git sync + fixtures + docs + live-batch detection. Exits 1 ON FAILURE.
-PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 60 entries = 57 ENFORCING + 3 ADVISORY
+PYTHONUTF8=1 py -3.12 run_gates.py     # THE STANDING SUITE — 61 entries = 58 ENFORCING + 3 ADVISORY
 #   (`probe_regi_capabilities`, `probe_dive_routing` RUN and print ADVIS but do NOT gate),
 #   non-zero on any ENFORCING failure. ⛔ `--quick` skips 8 ROM gates and is NOT a green suite.
 #   ⏱ MEASURED 2026-09-11: the FULL suite is **~183s** and `repro_gym_whiteout_guard.py` is
@@ -502,3 +502,37 @@ done
   CONTROL (Norman must find Machop @ FIERY_PATH). Without it, a broken harness is indistinguishable
   from a real "no answer".
   Full usage: `14-AGENT-PLAYBOOK.md` §2.
+
+### `fix_doc_citations.py` — citation-drift repairer (added 2026-09-14)
+
+`audit_doc_citations.py` (Tier 0, in `run_gates.py`) fails when a documented `file.py:LINE` citation
+no longer lands inside the symbol it names — which happens every time an edit shifts line numbers.
+It fired **five times in two days**, always with the same mechanical fix.
+
+    cd tools/story-dev && PYTHONUTF8=1 py -3.12 fix_doc_citations.py [--dry-run]
+
+⛔ It is a REPAIRER, not a gate: the audit stays the authority and stays in `run_gates.py`; this only
+applies corrections the audit has already computed, and it cannot invent a target (every new line
+number comes from the audit's own "spans `file.py:A-B`" clause). It refuses ambiguous lines rather
+than guessing, never changes a file's line count (the `03`/`04` R3 budgets sit AT their limit),
+preserves each file's own line endings (this tree mixes LF and CRLF), and re-runs the audit
+afterwards so a partial repair cannot be mistaken for a clean one.
+
+### `probe_punchlist_step_status.py` — gate #61, ENFORCING (added 2026-09-14)
+
+Fails if a `03-PUNCH-LIST.md` item ticks a numbered step `- [x] **N.` while ANY other line inside
+that same item says step N still "remains".
+
+    cd tools/story-dev && PYTHONUTF8=1 py -3.12 probe_punchlist_step_status.py
+
+‼ WHY IT EXISTS: `#24-e4healing` states each step's status in THREE places (a numbered checklist, the
+item's cell header, a STATUS line). That contradiction shipped **twice in 24 hours** — 2026-09-13
+(step 3) and 2026-09-14 (step 4) — both times caught by a Tier 1 reviewer rather than by a check.
+P5 is prose; CLAUDE.md's own rule is that a rule broken twice means the prose failed.
+
+⛔ Deliberately narrow: it does not judge whether the tick is CORRECT, does not read the handoff, and
+does not diff. A gate with false positives teaches the reader to bypass it. It ignores a hit whose
+own clause carries a dated retraction, because this tree marks corrections by QUOTING the old
+wording — and it splits mega-lines into clauses first, so a retraction elsewhere on a 40,000-character
+line cannot vouch for an unrelated claim. Fault-tested both ways (reds on the reintroduced bug,
+passes on the live tree which contains exactly such a retracted quote).

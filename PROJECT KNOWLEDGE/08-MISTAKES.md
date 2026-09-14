@@ -17501,3 +17501,100 @@ figure could not be re-derived (`"33 of the 44"` inside another item) I marked i
 ⇒ **The meta-rule: a status change is not "update the status line". It is a CLAIM RETRACTION across
 every place the old claim was ever restated, in whatever words — and the only reliable finder of
 those is a reader who is asked the CAPABILITY QUESTION, not a grep.**
+
+---
+
+## 2026-09-14 — the prevention rule fired on its second day, and an A/B measured the opposite of its theory
+
+**1. ⛔ `UnboundLocalError`, caught BEFORE shipping, by the rule written 24 hours earlier.**
+Step 4's knob read `_os.environ` at the top of `_maybe_use_item`. `os` is not imported at module
+scope in `story_mode.py` (local-import convention), and the local `import os as _os` sat **40 lines
+later**, inside a conditional branch. ‼ In Python a local `import` anywhere in a function makes that
+name **local for the entire function**, so the earlier read is an `UnboundLocalError` — *which even a
+module-level `os` would not have rescued.* And `decide_turn` wraps the whole method in
+`try/except Exception: action = None`, so the failure would have been SILENT: **no item used in any
+battle, every gate still green.**
+⇒ **Prevention (reinforced, not new): bind such a name ONCE, at the TOP of the function, and never
+re-scatter it into branches.** The 2026-09-13 rule ("verify the name is bound in YOUR scope") is what
+caught it. ⭐ Gate #60 would also have caught it, because it calls `_maybe_use_item` DIRECTLY rather
+than through `decide_turn`'s swallow — a gate that bypasses the production try/except is worth more
+than one that goes through it.
+
+**2. ⛔⛔ THE A/B MEASURED THE OPPOSITE OF THE THEORY, AND THE FIRST READING OF IT WAS STILL WRONG.**
+Raising `HEAL_AT_FRACTION` 0.35 → 0.50 turned a WIN into a LOSS. The tempting conclusion —
+*"healing earlier is bad, keep 0.35"* — is **wrong**. Both arms spent the same 2 items, which is not
+what a bound threshold should look like, and that oddity was the thread worth pulling: the raised arm
+requested items earlier, the bag **failed to open**, the strategy re-decided the same turn, and the
+no-op detector read two misses and disabled ALL healing for the remaining 30 decisions.
+⇒ **Prevention: WHEN AN A/B INVERTS ITS THEORY, FIND THE MECHANISM BEFORE ACCEPTING THE RESULT.** An
+outcome flip is a pointer, not an explanation, and the honest answer here was neither "0.35 is right"
+nor "0.50 is right" but **"the threshold cannot be tuned until item execution is reliable."**
+‼ And I nearly filed that execution bug as NEW. **Rule 11 (grep `06-DECISIONS-LOG.md` first) stopped
+it**: the 2026-08-10 promotion ruling accepts the guard in writing. What was new was only the
+INTERACTION, and that is what got written down.
+
+**3. ⛔ I COULD NOT TELL "THE ARM RAN THE OVERRIDE AND LOST" FROM "THE ARM SILENTLY RAN THE DEFAULT".**
+The first 0.50 run recorded no evidence of which threshold the policy was actually called with — only
+which env var I had set. Both arms then showing 2 items made the result uninterpretable.
+⇒ **Prevention: AN A/B ARM MUST LOG THE VALUE THE CODE ACTED ON, NOT THE VALUE YOU SET.** The knob now
+records `self._effective_heal_fraction` at the call site and the driver prints `heal_frac=` on every
+decision, so an arm that silently ran the default is visible AS THAT. (Session-discipline rule 7,
+"instrument the ACTION", applied to a *parameter* rather than to a choice.)
+
+**4. Citation drift stopped being a lesson and became a tool.** It fired FIVE times in two days,
+always the same mechanical repair, always hand-typed — and hand-typing a line number is how a wrong
+one gets introduced while fixing a stale one. `tools/story-dev/fix_doc_citations.py` now applies the
+corrections `audit_doc_citations.py` already computes.
+⇒ **Prevention: A RULE BROKEN FIVE TIMES IS NOT A RULE, IT IS A MISSING TOOL.** (CLAUDE.md already
+says "anything enforceable belongs in a GATE, not in prose"; the same applies to anything REPAIRABLE.)
+
+---
+
+## 2026-09-14 — the same doc defect twice in 24 hours, so it stopped being a rule and became gate #61
+
+**Symptom.** `#24-e4healing` states each step's status in THREE places: a numbered checklist, the
+item's cell header, and a STATUS line. On 2026-09-13 step 3 shipped — checklist ticked, STATUS line
+stale, caught by Tier 1. On 2026-09-14 step 4 was answered — checklist ticked, **and BOTH the cell
+header and the STATUS line left stale**, caught by Tier 1 again. Same item, same shape, one day
+apart, with the P5 rule already written and already applied to that exact line.
+
+**Root cause.** P5 is prose, and prose does not fire while you are thinking about something else.
+⇒ **`tools/story-dev/probe_punchlist_step_status.py` is now gate #61 (enforcing).** It encodes one
+mechanical property: *if an item's checklist ticks step N `[x]`, no other line in that same item may
+say step N "remains".* Fault-tested — restoring the old wording reds it naming both line numbers,
+and it does NOT fire on a dated retraction that QUOTES the old wording (the live tree contains
+exactly such a quote and the gate passes). ‼ CLAUDE.md already said this: *"a rule already broken
+twice is evidence that prose failed — write the gate instead."* It took a third breach to act on it.
+
+**And three sharper lessons, each of which cost a cycle today:**
+
+**1. ⛔⛔ A RETRACTION THAT ASSERTS A NEW PRESENT-TENSE STATUS ROTS EXACTLY LIKE THE TEXT IT
+REPLACED.** Yesterday I repaired a stale clause by writing *"…step 3 is DONE AND DRIVEN LIVE, and
+step 4 … **is the CURRENT target**"*. Today step 4 was answered and **my own retraction became the
+stale claim** — in three copies. The clause it sat beside even carries the warning *"THIS SENTENCE
+IS A CLAIM ABOUT ANOTHER LINE, SO IT GOES STALE WHEN THAT LINE MOVES — AND IT HAS, FOUR TIMES."*
+It went stale a fifth time, and the fifth time was mine.
+⇒ **Prevention: a retraction should say what the old text SAID and that it is superseded. The moment
+it makes a fresh live claim it becomes another half of the pair that must be maintained.** Point at
+the queue marker; do not restate the queue.
+
+**2. ⛔ NEVER INLINE A PROGRAM CONTAINING NON-ASCII THROUGH THE SHELL.** A `py -3.12 -c "…"` whose
+source contained `➡➡➡` was mangled by bash (`$'\236\236\236': command not found`) and the glyphs
+were **silently deleted** from the written text, leaving *"see the  marker"*. No mojibake, no error
+in the file — just missing characters, in a document nobody would re-read.
+⇒ **Prevention: write the program to a FILE and run the file** (every other repair this session did;
+this one broke the pattern and paid). ‼ And note what caught it: **not the five "FIXED" lines the
+script printed, but reading back what was actually written.** An edit's success message describes
+the SUBSTITUTION IT ATTEMPTED, never the RESULT.
+
+**3. ⛔ A VERIFICATION PATTERN THAT ENCODES INCIDENTAL FORMATTING VERIFIES THE FORMATTING, NOT THE
+FACT.** My read-back check for *"total = enforcing + advisory"* required the literal `(**` bold
+markers, so a line writing the same fact unadorned — `61 gates (57 ENFORCING + 3 ADVISORY` — sailed
+through it and was caught one run later by the real gate. The check reported **"0 inconsistent"**
+about a file that was inconsistent.
+⇒ **Prevention: match the FACT (a number, a keyword, a number), never its decoration. And ASSERT THE
+PATTERN MATCHED SOMETHING** — a post-condition that finds zero instances "passes" for the wrong
+reason, which is precisely how that one lied. The corrected version requires `found >= 2`.
+
+⇒ **The thread running through all three: every one was a CHECK that was wrong, not a subject that
+was wrong** — session-discipline rule 4, which now has more instances in this file than any other.

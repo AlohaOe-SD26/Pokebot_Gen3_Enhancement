@@ -15596,6 +15596,8 @@ def _watched_strategy(probe):
                     mon = battle_state.own_side.left_battler
                     status = getattr(mon.status_permanent, "name", str(mon.status_permanent))
                     slot = getattr(mon, "party_index", "?")
+                    hp = getattr(mon, "current_hp", None)
+                    total = getattr(mon, "total_hp", None)
                     rec = getattr(self, "_probe", None)
                     # ⛔⛔ RECORD THE ITEM AND ITS `parameter`, NEVER `repr(action)`. `_maybe_use_item`
                     # returns HP-policy items too, and a grade that counts "any item action while
@@ -15623,13 +15625,31 @@ def _watched_strategy(probe):
                         rec.decisions += 1
                         rec.status_seen.add(status)
                         rec.battler_slots.add(slot)
+                        # `#24-e4healing` step 4 — the OBSERVE-ONLY HP TRACE. Recording only:
+                        # nothing here changes a decision.
+                        # ⛔ RAW HP PER DECISION, NEVER A PRE-COMPUTED "HIT SIZE". A drop between
+                        # two decisions can be the opponent attacking, OUR OWN item raising it, a
+                        # faint, or a SWITCH to a different Pokémon — and a switch changes WHOSE hp
+                        # this is. Splitting those apart is the analyser's job and it needs the raw
+                        # series plus `slot` to do it. Pre-computing a delta here would bake in the
+                        # assumption that consecutive decisions describe the same mon, which the
+                        # NOCURE arm already disproved (it cycled slots 0..5 in one battle).
+                        rec.hp_trace.append(
+                            {"decision": rec.decisions, "slot": slot, "hp": hp, "total": total,
+                             "item": name, "parameter": param})
                         if action is not None:
                             rec.item_actions.append(
                                 {"decision": rec.decisions, "status": status, "item": name,
                                  "parameter": param, "target": target, "battler_slot": slot})
+                    frac = f"{hp / total:.3f}" if hp is not None and total else "?"
                     log(f"[ch24probe] DECISION#{getattr(rec, 'decisions', '?')} status={status} "
-                        f"battler_slot={slot} item={name!r} param={param} target={target} "
+                        f"battler_slot={slot} hp={hp}/{total} frac={frac} item={name!r} "
+                        f"param={param} target={target} "
                         f"uses={getattr(self, '_item_uses', '?')} "
+                        f"worst_hit={getattr(self, '_worst_hit', '?')} "
+                        # ⭐ THE THRESHOLD THE POLICY WAS ACTUALLY CALLED WITH, not the env var.
+                        # An A/B arm that silently ran the default must be visible AS THAT.
+                        f"heal_frac={getattr(self, '_effective_heal_fraction', '?')} "
                         f"ineffective={getattr(self, '_items_ineffective', '?')}")
                 except Exception as exc:  # noqa: BLE001 — justified: an instrument must not change
                     # the behaviour it measures, and this one sits on the battle hot path.
@@ -15692,10 +15712,19 @@ class Ch24ProbeMode(BotMode):
 
         self.battles = getattr(self, "battles", 0) + 1
         log(f"[ch24probe] BATTLE #{self.battles} — {self._hp_line()}")
-        # ⛔ DEFAULT OFF. With `POKEBOT_CH24_STAGE_FREEZE` unset this returns the identical object
-        # the probe has always returned, so the §Ch24 MEASUREMENT this driver exists for is
-        # unchanged. The staged arm only ADDS an observer.
-        if _os.environ.get("POKEBOT_CH24_STAGE_FREEZE", "") == "1":
+        # ⛔ DEFAULT OFF. With both envs unset this returns the identical object the probe has
+        # always returned, so the §Ch24 MEASUREMENT this driver exists for is unchanged. The arms
+        # only ADD an observer.
+        # ‼ TWO SEPARATE ARMS, DELIBERATELY SPLIT (`#24-e4healing` step 4, 2026-09-14):
+        #   `POKEBOT_CH24_STAGE_FREEZE=1` — stage a frozen lead AND observe (step 3's proof).
+        #   `POKEBOT_CH24_OBSERVE=1`      — OBSERVE ONLY. Changes NOTHING about the fight; it
+        #                                   exists to MEASURE incoming damage before anyone touches
+        #                                   `HEAL_AT_FRACTION`. ⛔ Session-discipline rule 10: when a
+        #                                   fix is a threshold or a coordinate conversion, run an
+        #                                   OBSERVE-ONLY probe FIRST and read the real numbers —
+        #                                   never reason it out from a docstring.
+        if (_os.environ.get("POKEBOT_CH24_STAGE_FREEZE", "") == "1"
+                or _os.environ.get("POKEBOT_CH24_OBSERVE", "") == "1"):
             return _maybe_record(_watched_strategy(self))
         return _maybe_record(StoryItemBattleStrategy())
 
@@ -15733,7 +15762,9 @@ class Ch24ProbeMode(BotMode):
         self.status_seen = getattr(self, "status_seen", set())
         self.battler_slots = getattr(self, "battler_slots", set())
         self.item_actions = getattr(self, "item_actions", [])
+        self.hp_trace = getattr(self, "hp_trace", [])
         stage_freeze = _os.environ.get("POKEBOT_CH24_STAGE_FREEZE", "") == "1"
+        observe = _os.environ.get("POKEBOT_CH24_OBSERVE", "") == "1"
         taken, R = set(), {}
 
         log(f"[{TAG}] PRE at={_where()} elite4_state={get_event_var('ELITE_4_STATE')}")
@@ -16045,6 +16076,48 @@ class Ch24ProbeMode(BotMode):
                 f"(arm={'NOCURE — a cure HERE would refute the control' if nocure else 'LIVE'}; "
                 f"expected_cure={want_cure} observed_cure={cured})")
             ok = ok and step3_ok
+
+        # ---- 📏 `#24-e4healing` step 4 — OBSERVE-ONLY DAMAGE REPORT. ⛔ REPORTS, NEVER GRADES ----
+        # This probe answers *"how hard does the Elite Four actually hit us?"* — NOT *"is 0.35 the
+        # right threshold?"*. It therefore contributes NOTHING to `ok`. Turning a measurement into a
+        # pass/fail before there is a hypothesis is how a probe starts defending a number instead of
+        # reporting one (see `repro_overworld_items.py`, whose check asserted a FALSE fact for weeks).
+        if stage_freeze or observe:
+            # A DROP is only counted between two decisions that describe the SAME Pokémon with NO
+            # item requested on the earlier one — otherwise our own heal is mixed into the delta.
+            drops = []
+            prev = None
+            for e in self.hp_trace:
+                if (prev is not None and e["slot"] == prev["slot"] and prev["item"] is None
+                        and e["hp"] is not None and prev["hp"] is not None and e["total"]
+                        and e["hp"] < prev["hp"]):
+                    lost = prev["hp"] - e["hp"]
+                    drops.append((lost, e["total"], lost / e["total"], prev["decision"],
+                                  e["decision"], e["slot"]))
+                prev = e
+            log(f"[{TAG}] STEP4 hp_trace={self.hp_trace}")
+            if drops:
+                fracs = sorted(d[2] for d in drops)
+                over = [d for d in drops if d[2] > 0.35]
+                worst = max(drops, key=lambda d: d[2])
+                log(f"[{TAG}] STEP4 drops={len(drops)} "
+                    f"max={worst[0]}/{worst[1]} ({worst[2]:.1%} of max HP, slot {worst[5]}, "
+                    f"decisions {worst[3]}->{worst[4]}) "
+                    f"median={fracs[len(fracs) // 2]:.1%}")
+                log(f"[{TAG}] STEP4 ⭐ drops exceeding HEAL_AT_FRACTION(0.35) = {len(over)}"
+                    f" of {len(drops)} — {[f'{d[2]:.1%}' for d in over]}")
+                log(f"[{TAG}] STEP4 all_fracs={[f'{f:.1%}' for f in fracs]}")
+            else:
+                log(f"[{TAG}] STEP4 ⚠ NO DROPS DERIVED from {len(self.hp_trace)} trace points — "
+                    f"do NOT read this as 'the Elite Four does no damage'; read it as 'this "
+                    f"instrument saw nothing', and fix the instrument before concluding anything.")
+            # ⛔ TWO KNOWN UNDERCOUNTS, stated so nobody quotes these numbers as complete:
+            #   (1) a hit that FAINTS a mon produces no later decision for that slot, so the single
+            #       most important hits — the lethal ones — are SYSTEMATICALLY MISSING here;
+            #   (2) a drop on a decision where we also used an item is excluded entirely.
+            # ⇒ this is a LOWER BOUND on how hard the Elite Four hits, never an average.
+            log(f"[{TAG}] STEP4 ⛔ LOWER BOUND ONLY — lethal hits leave no successor decision and "
+                f"are absent; item-turns are excluded. Do not quote as an average.")
 
         log(f"[{TAG}] GRADE missing={missing} failure={failure} "
             f"elite4_state={R.get('elite4_state_after')} (1 = Sidney beaten, 0 = not)")
