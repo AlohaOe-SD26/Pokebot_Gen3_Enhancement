@@ -2777,7 +2777,7 @@ implement-drive-revert cycles, three of them VOID, before one control-lined cens
 **Repro:** `PYTHONUTF8=1 py -3.12 story_harness.py post_grind_L60.ss1 --driver ch23chapter --frames 400000`
 (wedges by ~f27k, ~6 min). Stall states are saved under `stalls/`.
 
-## `KI-94` — ⛔⛔ THE §Ch24 PREP HAS NO COMBINED END-STATE, SO EVERY §Ch24 MEASUREMENT SO FAR USED AN UNDER-PREPARED PARTY (2026-09-06, MEASURED, OPEN — §Ch24 BLOCKER, BIGGER THAN `KI-93`)
+## `KI-94` — ✅ **RESOLVED 2026-09-14: THE §Ch24 BLOCKER IS DISSOLVED — `post_ch24ready.ss1` + ONE FLY (`CH24_FLY_DEST=PokemonLeague`) LANDS AT THE LEAGUE DOOR APRON (18,6).** The fixture was never the problem; the FLY DESTINATION was. (Filed 2026-09-06 as *"the §Ch24 prep has no combined end-state, so every §Ch24 measurement so far used an under-prepared party — §Ch24 BLOCKER, BIGGER THAN `KI-93`"*; that framing is SUPERSEDED. ⚠ The WALKING measurement inside stands and is NOT retracted — `calculate_path` cannot use warps or Fly.)
 
 **Symptom.** Every §Ch24 probe and all four `KI-93` fix attempts were driven from
 `post_league_shop.ss1` — whose OWN fixture note opens with
