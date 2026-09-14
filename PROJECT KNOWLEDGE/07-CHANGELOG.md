@@ -29007,3 +29007,43 @@ it was captured, verified and pinned as **`post_ch24_atdoor.ss1`**
 ⇒ The queue now names this fixture directly, and records that the Fly is ALREADY DONE and is not
 leg 1. The `post_ch24ready.ss1` + `CH24_FLY_DEST=PokemonLeague` recipe is kept as the re-capture
 path, not as the start.
+
+---
+
+## 2026-09-14 — second comment-only promotion, and the DIFF caught a defect in my own correction
+
+User-authorised. `modules/story/victory_road.py`'s LEG 10 comment asserted EVER_GRANDE is
+*"connected only THROUGH Victory Road"* — refuted earlier today (Fly lands at the door apron (18,6)).
+The corrected comment is now promoted and the two builds agree on that file. Run
+`promote.py --check` for the live drift count.
+
+⛔ **AGAIN NOT `promote.py --go`.** It promotes every drifting file at once, and the rest drift on
+purpose (step 3's policy and wiring, the `POKEBOT_E4_FAULT_NOCURE` arm, the
+`POKEBOT_HEAL_AT_FRACTION` knob). One file, copied, after the diff proved it comment-only.
+
+‼ **AND THE DIFF EARNED ITS KEEP — IT FOUND A DEFECT IN MY OWN CORRECTION.** The replacement had
+opened `*(The superseded clause read: "EVER_GRANDE_CITY` and **never closed the quote or the
+parenthetical**: the continuation line ended the sentence with no `"` and no `)*`. Python never
+complained (it is a comment) and no gate could see it.
+⇒ **A MALFORMED MARKED-UP RETRACTION IS WORSE THAN NONE — it makes the OLD wording look like live
+text again.** Closed before promoting.
+⇒ **Prevention: when a correction SPANS LINES, the close sits on a DIFFERENT line than the open —
+check the continuation, not only the line you edited.**
+
+### Two more self-inflicted checks, both caught by post-conditions rather than by review
+* **Head fixed, tail not — again.** Updating the three drift rows, I swapped the pending note's
+  OPENING and left its tail still reading *"deliberately NOT promoted … Pending, zero behaviour
+  risk."* My post-condition asserted on a phrase from the TAIL, which is the only reason it did not
+  ship. ⇒ **write post-conditions that test the part you did NOT edit.**
+* **A post-condition can be too BROAD as easily as too narrow.** That same check also asserted on
+  `"not this one"`, which occurs three times in an unrelated sentence about the OWNER filter — a
+  false positive on an already-correct file. Earlier today the mirror image happened (a check
+  requiring `(**` bold markers missed an unadorned line). ⇒ **match the CLAIM, never a fragment that
+  could appear anywhere.**
+* **A script that edits, then asserts, can silently skip its later steps.** The assert above fired
+  before this very changelog append, so the entry never ran and the script still printed its
+  "FIXED" lines. ⇒ **trust `git status`, not a script's self-report** — that is what surfaced it.
+
+**Verified:** files identical, `custom-pokebot` compiles, `promote.py --check` re-run, and a sweep of
+the whole `custom-pokebot` tree finds no surviving copy of the refuted claim outside its own dated
+retraction.

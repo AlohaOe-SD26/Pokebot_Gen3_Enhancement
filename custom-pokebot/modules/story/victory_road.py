@@ -359,8 +359,8 @@ LEG9_READINGS = ("R9-APRON", "R9-ARROW", "R9-OUT", "R9-WHERECANWEHEAL")
 # ============================== LEG 10 — THE LEAGUE HEAL ======================================
 #: ⭐⭐ THE ONLY HEAL REACHABLE FROM THE VICTORY ROAD EXIT. MEASURED (leg 9): Ever Grande's own Poké
 #: Center (27,49) is **UNREACHABLE** from the landing — the exit sits on a closed plateau — while the
-#: League door is **37 wp** away. An adversarial decomp pass then confirmed *why*: EVER_GRANDE_CITY
-#: is split into a north plateau and a south beach connected only THROUGH Victory Road.
+#: League door is **37 wp** away — that WALKING measurement stands. ⛔⛔ **BUT THE SENTENCE THAT FOLLOWED IT WAS WRONG, CORRECTED 2026-09-14.** It read *"connected only THROUGH Victory Road"*, and **FLY CONNECTS THEM**: `src/region_map.c` `CB_ExitFlyMap` special-cases Ever Grande so that, once `FLAG_LANDMARK_POKEMON_LEAGUE` is set (unconditionally, on FIRST entry to the League), flying there lands at `HEAL_LOCATION_EVER_GRANDE_CITY_POKEMON_LEAGUE` = **(18,6)**, the door apron — not at the Poké Center. MEASURED: `--driver ch24flyto CH24_FLY_DEST=PokemonLeague` from `post_ch24ready.ss1` → `arrived=(18,6)`, `neighbours_reachable=4`, `ACCEPTANCE: PASS`. ‼ Our own `modules/region_map.py:53-54` already had `PokemonLeague` as a destination DISTINCT from `EverGrandeCity`. *(The superseded clause read: "EVER_GRANDE_CITY
+#: is split into a north plateau and a south beach connected only THROUGH Victory Road.")* — that half is REFUTED; the walking half above is not.
 LEAGUE_1F = MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_1F
 
 #: ⛔⛔ THE ENTRY IS A **DOOR**, NOT A STEP-ON WARP AND NOT AN ARROW WARP — a THIRD warp kind in this
