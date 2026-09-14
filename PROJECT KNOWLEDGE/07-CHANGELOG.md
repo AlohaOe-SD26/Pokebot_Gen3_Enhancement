@@ -28910,3 +28910,25 @@ byte-identically (sha256 verified).
 still had a hole a standing rule already described.** A fault test proves a gate catches the ONE
 case you thought of. It says nothing about the cases you did not. ⇒ when a rule exists that
 enumerates *"the forms humans actually write"*, run THAT list, not your own.
+
+---
+
+## 2026-09-14 (follow-up) — the comment-only promotion, done surgically rather than with `promote.py --go`
+
+User-authorised. `custom-pokebot/modules/story/overworld_items.py` carried the claim *"Gen-3 freeze
+never thaws on its own"* in its module docstring and in a live `reason` string. Emerald self-thaws
+**20% per attempted move** (`battle_util.c`, `CANCELER_FROZEN`). The corrected text has now been
+promoted; the two builds are byte-identical for that file and that file no longer drifts. ⛔ For the live drift count run `promote.py --check`; a digit written into prose is stale the moment it is written (gate `probe_drift_restatement.py` enforces this).
+
+⛔ **NOT done with `promote.py --go`, deliberately.** That tool promotes EVERY drifting file in one
+shot, and five others are still drifting on purpose: `battle_items.py` and `story_mode.py` carry step
+3's policy and wiring plus the `POKEBOT_E4_FAULT_NOCURE` arm and the `POKEBOT_HEAL_AT_FRACTION` knob,
+none of which were authorised for promotion. A blanket promote would have shipped all of it to the
+build the user actually runs.
+⇒ Promoted by copying THAT ONE FILE — and the whole-file copy was only safe because the diff was
+shown FIRST to be exactly the two comment corrections and nothing else. **Look at the target before
+overwriting it**; "it's only a comment fix" is a belief until the diff proves it.
+
+**Verified:** files identical, `custom-pokebot` compiles, `promote.py --check` reports 5, and a sweep
+of the whole `custom-pokebot` tree (code + docs) finds no surviving copy of the false claim — the one
+grep hit is the retraction quoting the old wording, which is the intended audit trail.

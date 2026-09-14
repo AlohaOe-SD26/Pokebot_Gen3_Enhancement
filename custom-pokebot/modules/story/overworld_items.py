@@ -9,7 +9,10 @@ all carry `parameter == 0` in `modules/data/items.json`. That filter is CORRECT 
 gauntlet with:
 
   * **no way to revive anything.** A faint is permanent for all five fights.
-  * **no way to cure status.** Gen-3 freeze never thaws on its own; Glacia's Sealeo carries Attract,
+  * **no way to cure status.** *(This clause read "Gen-3 freeze never thaws on its own"
+    until 2026-09-13 — FALSE for Emerald, which self-thaws 20% per ATTEMPTED MOVE; see
+    `battle_util.c`, `CANCELER_FROZEN`. Freeze is EXPENSIVE, not permanent.)*
+    Glacia's Sealeo carries Attract,
     Phoebe has Confuse Ray and Will-O-Wisp, and both Tentacruel and Milotic carry Toxic.
   * **no way to top up HP between rooms.** Damage carries from Sidney all the way to Wallace.
 
@@ -192,7 +195,8 @@ def plan_healing(
         plan.append(Action(
             mon.index, cure,
             reason=f"{mon.name} has {mon.status}"
-                   + (" (⚠ Gen-3 FRZ never thaws on its own)" if mon.status == "FRZ" else ""),
+                   + (" (⚠ FRZ — ~20%/attempted-move self-thaw: EXPENSIVE, not permanent)"
+                      if mon.status == "FRZ" else ""),
             expect=f"party[{mon.index}].status is None",
         ))
 
