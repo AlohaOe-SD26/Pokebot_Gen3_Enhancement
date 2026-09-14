@@ -29076,3 +29076,31 @@ module that carries the Wally fix; "it's only a docstring" is a belief until the
 **must be verified by DRIVING `--build custom`**, not by copying a file. Step 3 has been driven in
 SANDBOX only. That is a deliberate, separate decision with a verification cost attached — it is not
 what "promote the pending comment fix" has meant on the previous three rounds.
+
+---
+
+## 2026-09-14 — step 3 PROMOTED to `custom-pokebot`, verified by DRIVING the custom build
+
+User-authorised after the tradeoff was put to them explicitly. `battle_items.py` (step 3's policy),
+`story_mode.py` (its wiring plus `POKEBOT_E4_FAULT_NOCURE` and `POKEBOT_HEAL_AT_FRACTION`) and
+`higher_level_actions.py` (the `POKEBOT_HEALWALK_FAULT` test hook) are now in the build the user runs.
+
+**⭐ THE RULE WAS FOLLOWED: a real behaviour promotion is verified by DRIVING `--build custom`.**
+`STEP3 ACCEPTANCE: PASS (arm=LIVE; expected_cure=True observed_cure=True)`, `elite4_state=1`,
+`outcome=Won`. The HP path executed in the same run (`29/147 → 147/147`), `ineffective=False`
+throughout. Full detail and the limits are in `custom-pokebot/DIVERGENCE-LOG.md`.
+
+### ⛔⛔ TWO DIFF ARTIFACTS THAT NEARLY PRODUCED WRONG VERDICTS, IN ONE PROMOTION
+1. **`diff` reported 1174 REMOVED lines on `higher_level_actions.py`** and I briefly read it as
+   *"promoting DELETES content from the user's live build"*. It did not: custom is **CRLF** (1173
+   lines), sandbox is **LF** (1262), so every line differed. Normalising endings showed the truth —
+   **91 ADDED lines, nothing removed.**
+   ⇒ **Prevention: NORMALISE LINE ENDINGS BEFORE JUDGING A DIFF.** A whole-file diff on a file
+   nobody rewrote is an encoding signature, not a content change.
+2. **The promotion preserved each target's endings** rather than copying bytes, so git shows the 91
+   real lines instead of a 1,173-line flip. ⇒ `promote.py --check` now reports **1 differing file**
+   that is ENCODING-ONLY — documented so nobody "fixes" it into a giant diff.
+
+‼ Both belong to the same family as today's other near-misses (a token-based code-search tally read
+as a phrase count; a post-condition that encoded bold markers). **A tool's output is an observation
+in that tool's semantics — not the fact you wanted.**

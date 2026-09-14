@@ -2506,3 +2506,44 @@ Evidence (committed): `tools/story-dev/evidence/wallycustom-{prod,decline}.drive
    an item — a NEW bug traded for a fixed one.
 3. **`KI-99` is open and unverified**: the HM06 gift may lack a bag-full guard, in which case our
    success predicate (a flag) would read TRUE while the HM never entered the bag.
+
+
+---
+
+## 2026-09-14 — `#24-e4healing` STEP 3: in-battle STATUS CURES (user-authorised promotion)
+
+**What custom now carries that upstream does not.** `modules/story/battle_items.py` gains
+`choose_status_or_revive_item()` — a policy that cures **Sleep and Freeze only** (the two statuses
+that cost a turn) — and `plugins/custom_modes/story_mode.py` calls it from
+`StoryItemBattleStrategy._maybe_use_item` **after** the HP policy declines, so an HP emergency always
+outranks a status cure. `modules/modes/util/higher_level_actions.py` gains the
+`POKEBOT_HEALWALK_FAULT` synthetic-fault helper (a test hook, default off).
+
+**⭐ VERIFIED BY DRIVING `--build custom`, not by copying.** The project rule is that a real
+behaviour promotion must be driven, and it was:
+
+    --driver ch24probe  POKEBOT_CH24_STAGE_FREEZE=1  --build custom
+    DECISION#1  status=Freeze  hp=147/147  item='Full Heal'  param=0  target=0  heal_frac=0.35
+    STEP3 ACCEPTANCE: PASS (arm=LIVE; expected_cure=True observed_cure=True)
+    outcome=BattleOutcome.Won   elite4_state=1   ACCEPTANCE: PASS
+
+The HP path was observed EXECUTING in the same run (`hp=29/147 → Full Restore → hp=147/147`, and
+`15/147 → 110/147`), with `ineffective=False` throughout — the no-op guard never tripped.
+Evidence: `tools/story-dev/evidence/2026-09-14-ch24probe-STEP3-CUSTOMBUILD-VERIFY.stdout.txt`.
+
+**⛔ WHAT THIS MUST NOT BE QUOTED AS.** It is proof the feature FIRES in the custom build, on one
+drive, against SIDNEY. It is **not** a finish-rate or win-rate claim, and no batch has measured one.
+
+**⛔ KNOWN LIMITS THAT SHIPPED WITH IT.**
+* **REVIVE IS OFF** — `allow_revive=False` at the call site, pending `KI-100`: a cure targets the
+  ACTIVE battler, a revive targets a fainted NON-active member, which is the index space behind
+  KI-18/34/66.
+* **Poison / Burn / Paralysis are deliberately NOT cured** — they do not cost a turn, so curing them
+  trades a guaranteed attack for nothing.
+* `POKEBOT_E4_FAULT_NOCURE` (fault arm) and `POKEBOT_HEAL_AT_FRACTION` (A/B knob) ship with it, both
+  default-off/unset. ⚠ `HEAL_AT_FRACTION` stays **0.35**: raising it was MEASURED HARMFUL on
+  2026-09-14 (the raised arm tripped the item-execution no-op guard and lost).
+
+**Line endings:** `higher_level_actions.py` was promoted **preserving custom's CRLF**, so git shows
+the 91 real added lines rather than a 1,173-line encoding flip. ⇒ `promote.py --check` will keep
+reporting **1 differing file** for that reason alone — an ENCODING-ONLY residual, content identical.

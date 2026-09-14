@@ -572,6 +572,9 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         #: asked for an item — the INDEX is half the value: without it the check compares two
         #: different Pokémon. See `08-MISTAKES` 2026-08-10.
         self._hp_when_item_requested = None
+        #: Set ONLY when the requested item was a STATUS CURE, so the HP-delta no-op
+        #: detector never judges one. See the block in `_maybe_use_item`.
+        self._status_when_item_requested = None
         #: set once BOTH index spaces have demonstrably done nothing; stops wasting more turns
         self._items_ineffective = False
         #: which index space to address the party menu in. ‼ NOT a constant: the FIRST choice is
@@ -591,6 +594,19 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         return super().decide_turn(battle_state)
 
     def _maybe_use_item(self, battle_state):
+        # ⛔⛔ `_os` IS BOUND ONCE, HERE, AT THE TOP — AND THAT POSITION IS LOAD-BEARING.
+        # `os` is NOT imported at module scope in this file (local-import convention). It was
+        # previously imported deep inside the status-cure branch, and step 4's knob then read it
+        # ~40 lines EARLIER. ‼ In Python a local `import` anywhere in a function makes that name
+        # LOCAL FOR THE WHOLE FUNCTION, so the earlier read is an `UnboundLocalError` — which even
+        # a module-level `os` would NOT have rescued. And `decide_turn` wraps this entire method in
+        # `try/except Exception: action = None`, so the failure is SILENT: no item is ever used, in
+        # any battle, with every gate still green.
+        # ⇒ the prevention rule from 2026-09-13 ("a safe default on an unverified name is a silent
+        # off-switch; verify the name is bound in YOUR scope") fired on its second day. Keep the
+        # binding at the top; do not re-scatter it into branches.
+        import os as _os
+
         from modules.battle_state import BattleType
         from modules.items import ItemBattleUse, get_item_bag
         from modules.story.battle_items import choose_healing_item
@@ -617,6 +633,41 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         # for: four donated turns against a boss.
         # So: if a request did not raise our HP by the next decision, stop asking for this battle.
         # That bounds the damage to one wasted turn while the execution bug is still open.
+        # ⛔⛔ A STATUS CURE IS JUDGED BY THE STATUS, NEVER BY HP (`#24-e4healing`, 2026-09-13).
+        # THE BUG THIS PREVENTS, found by a Tier 1 reviewer before it shipped: the detector below is
+        # purely HP-delta, and a Full Heal / Awakening / Ice Heal NEVER RAISES HP. So a SUCCESSFUL
+        # cure reads as "the item did nothing" — the first one flips the index space, and the second
+        # sets `_items_ineffective = True`, which disables ALL item use for the rest of the battle,
+        # **including genuine HP-emergency healing**, in the Elite Four gauntlet this was built for.
+        # Two cures in one battle is not exotic: `pokemon_league.py`'s own driver stages a FROZEN
+        # Sceptile precisely because freeze and sleep both occur.
+        # ⇒ this branch is checked FIRST and returns early, so the HP logic below is UNTOUCHED —
+        # it took three measured iterations (KI-34, the 2026-08-10 same-subject fix, the index-space
+        # flip) and must not be disturbed by a feature it knows nothing about.
+        if self._status_when_item_requested is not None:
+            cured_index, cured_status = self._status_when_item_requested
+            self._status_when_item_requested = None
+            if mon.party_index == cured_index and mon.current_hp > 0:
+                now = getattr(mon.status_permanent, "name", str(mon.status_permanent))
+                worked = now != cured_status
+                try:
+                    from modules import debug_logger
+
+                    debug_logger.event(
+                        f"[ITEM] status cure {'✔ WORKED' if worked else '‼ no change'}: "
+                        f"{cured_status} -> {now}"
+                        + ("" if worked else "  (NOT counted against the no-op detector — a cure "
+                                             "that fails is a menu problem, not a wrong target)"),
+                        category="BATTLE",
+                    )
+                except Exception:  # noqa: BLE001 — TELEMETRY MUST NEVER BREAK A BATTLE. This block
+                    # only writes a debug-log line saying whether the cure changed the status; if the
+                    # logger is unavailable the CURE HAS ALREADY HAPPENED and the turn is already
+                    # spent. Re-raising here would turn a logging failure into a lost Elite Four run.
+                    # ⛔ Nothing is decided in this handler — the branch above has already cleared
+                    # `_status_when_item_requested`, so a swallow here cannot change behaviour.
+                    pass
+
         if self._hp_when_item_requested is not None:
             requested_index, requested_hp = self._hp_when_item_requested
             # ‼‼ ONLY JUDGE THE SAME POKÉMON, AND ONLY IF IT IS STILL ALIVE (fixed 2026-08-10).
@@ -673,23 +724,110 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         if self._items_ineffective:
             return None
 
-        options = [
+        # ⛔ TWO OPTION LISTS, BECAUSE `parameter` IS A UNION TYPE. `battle_use is Healing` is the
+        # KIND check and does the real work (it already excludes a Repel, whose parameter is 100
+        # *steps*). The extra `parameter > 0` is an HP filter and belongs ONLY to the HP policy —
+        # it is exactly what made Full Heal / Revive / Antidote unusable (`#24-e4healing`).
+        medicine = [
             (slot.item, slot.quantity, slot.item.parameter)
             for slot in get_item_bag().items
-            if slot.item.battle_use is ItemBattleUse.Healing and slot.item.parameter > 0
+            if slot.item.battle_use is ItemBattleUse.Healing
         ]
+        options = [opt for opt in medicine if opt[2] > 0]
+        # ---- `#24-e4healing` step 4 — the A/B KNOB for `HEAL_AT_FRACTION`. --------------------
+        # ⛔ DEFAULT UNCHANGED. Unset -> `heal_at_fraction` is not passed at all and the module
+        # default (0.35) applies, byte-for-byte the behaviour that shipped.
+        # ‼ WHY A KNOB AND NOT AN EDIT. This policy runs in EVERY battle of the run (~700), not
+        # just the Elite Four, and this project's rule 9 is explicit: a change on a SHARED PATH is
+        # decided by an A/B on the ORDINARY case, not by more samples of the exotic one. The knob
+        # is how that A/B gets run without touching the default for everyone first.
+        # ⭐ WHAT IT IS FOR — the defect, VERIFIED by executing the real policy 2026-09-14:
+        #     at 53/147 (36.1%) -> None      ... the next 59-damage hit leaves -6  ☠
+        #     at 51/147 (34.7%) -> Full Restore, and the mon lives.
+        #   Generalised: a hit worth **50-64% of max HP** leaves the mon ABOVE the 0.35 gate, so it
+        #   never heals, and the NEXT identical hit faints it. A guaranteed two-shot the policy does
+        #   not try to prevent. Decomp rosters put Elite Four hits squarely in that band.
+        # ⛔ 0.50 is the principled MINIMUM that closes it (heal at or below half). It is NOT yet
+        # the default: see `29-DISABLED-FEATURES-REGISTRY.md` and the A/B this knob exists to run.
+        _heal_frac = _os.environ.get("POKEBOT_HEAL_AT_FRACTION", "")
+        _frac_kw = {}
+        if _heal_frac:
+            try:
+                _frac_kw["heal_at_fraction"] = float(_heal_frac)
+            except ValueError:
+                # ⛔ A malformed knob must NOT silently become a different threshold. Ignore it and
+                # keep the shipped default — the run then measures the DEFAULT, which is a wrong
+                # answer to the A/B but never a wrong BEHAVIOUR.
+                _frac_kw = {}
+        # ⛔⛔ RECORD THE VALUE THE POLICY IS ACTUALLY CALLED WITH — session-discipline rule 7,
+        # INSTRUMENT THE ACTION, NOT THE INPUT TO THE ACTION. Reading the env in the DRIVER would
+        # only prove what was SET; this is what was USED. Without it, an A/B arm that silently ran
+        # the default is indistinguishable from one that ran the override and lost — and the first
+        # 0.50 arm produced exactly that ambiguity (it LOST, yet spent the same 2 items as the
+        # default arm, which is not what a bound threshold should look like).
+        from modules.story.battle_items import HEAL_AT_FRACTION as _DEFAULT_FRAC
+
+        self._effective_heal_fraction = _frac_kw.get("heal_at_fraction", _DEFAULT_FRAC)
         item = choose_healing_item(
             mon.current_hp,
             mon.total_hp,
             options,
             worst_hit_taken=self._worst_hit,
             uses_so_far=self._item_uses,
+            **_frac_kw,
         )
+        if item is None:
+            # ‼ `#24-e4healing` step 3 — the parameter==0 half. Asked ONLY after the HP policy has
+            # declined, so an HP emergency always outranks a status cure.
+            # ⛔ `allow_revive=False` IS LOAD-BEARING, NOT TIMIDITY (`KI-100`). A cure targets the
+            # ACTIVE battler — `mon.party_index`, the exact index this method already lands (see the
+            # comment below: party-order landed 19 of 19 when the target was slot 0). A REVIVE would
+            # target a FAINTED, NON-ACTIVE member: a different index space, and the one behind
+            # KI-18/KI-34/KI-66. Until `KI-100`'s observe-only index probe exists, we do not aim there.
+            # ⛔⛔ IT IS `status_permanent`, NOT `status_condition`. `BattlePokemon` has NO
+            # `status_condition` property (it is `Pokemon` that does) — an earlier draft of this
+            # wiring used that name behind a safe `getattr(..., None)`, which would have made the
+            # cure NEVER FIRE, silently, forever, with every gate still green. Verified by listing
+            # BattlePokemon's properties: `status_permanent -> StatusCondition` is the real one
+            # (Sleep/Freeze/Poison/Burn/Paralysis); `status_temporary` holds Confusion and friends.
+            # ⛔ `_os` is bound at the TOP of this method — see the comment there for why the
+            # position matters. It was imported HERE until 2026-09-14; that made it an unbound
+            # local for every earlier read in the same function.
+            from modules.pokemon_party import get_party as _party
+            from modules.story.battle_items import choose_status_or_revive_item
+
+            item = choose_status_or_revive_item(
+                mon.status_permanent,
+                sum(1 for m in _party() if m is not None and not m.is_egg and m.current_hp > 0),
+                medicine,
+                uses_so_far=self._item_uses,
+                allow_revive=False,
+            )
+            # ⛔ FAULT ARM ONLY — `POKEBOT_E4_FAULT_NOCURE`, registered in
+            # `29-DISABLED-FEATURES-REGISTRY.md` §B. Restores the PRE-step-3 behaviour: the status
+            # cure never fires, while the HP policy above is left completely untouched.
+            # ‼ WHY IT EXISTS AT ALL. The staged-freeze drive claims "the bot cured a frozen lead".
+            # Emerald thaws freeze on its own, so the ONLY currency this project accepts for that
+            # claim is an arm with the cure REMOVED (session-discipline rule 8). It lives here, at
+            # the call site, and NOT inside `battle_items.py` — that module has zero imports by
+            # design, which is exactly what lets gate #59 test it as a pure function.
+            if item is not None and _os.environ.get("POKEBOT_E4_FAULT_NOCURE", "") == "1":
+                item = None
         if item is None:
             return None
 
         self._item_uses += 1
-        self._hp_when_item_requested = (mon.party_index, mon.current_hp)
+        # ⛔ RECORD WHICH KIND WAS ASKED FOR. `parameter == 0` is the status/revive family (Full
+        # Heal, Awakening, Ice Heal, Revive) — those never raise HP, so they must NOT be handed to
+        # the HP-delta no-op detector, which would read a successful cure as a failure and
+        # eventually disable every item for the battle.
+        if getattr(item, "parameter", 0) > 0:
+            self._hp_when_item_requested = (mon.party_index, mon.current_hp)
+        else:
+            self._status_when_item_requested = (
+                mon.party_index,
+                getattr(mon.status_permanent, "name", str(mon.status_permanent)),
+            )
         try:
             from modules import debug_logger
 
@@ -2427,8 +2565,14 @@ class StoryMode(BotMode):
             # `_rotate_lead_safely` drives the party menu's SWITCH option, which is a **SWAP**
             # (`victory_road.py:2046-2059` documents this after it cost a 900k-frame run). And the
             # menu driver's slot arithmetic is `for _ in range(slot - 1)` — for `slot=0` that is
-            # `range(-1)`, i.e. ZERO Downs, so it presses Right then A and **confirms a swap against
-            # whatever the cursor happens to be on** rather than doing nothing.
+            # `range(-1)`, i.e. ZERO Downs, so the button sequence it sends is **byte-identical to
+            # the `case 1:` branch** (Right, A) and therefore **deterministically swaps slot 0 with
+            # SLOT 1** (`higher_level_actions.py:666-679`).
+            # ‼ CORRECTED 2026-09-12: this comment first said "a swap against whatever the cursor
+            # happens to be on". That was vaguer than the truth and would have sent a reader looking
+            # for nondeterminism that does not exist. The victim is always slot 1 — which is what
+            # makes the harm cheaply PROVABLE: `--driver rotzero` calls
+            # `change_lead_party_pokemon(0)` in isolation and watches slots 0 and 1 exchange PIDs.
             # ‼ SLOT 0 IS REACHABLE, NOT HYPOTHETICAL: `decide_maintenance` picks
             # `min(excluded, key=lambda s: (excluded[s], s))` (`:1232`), which breaks ties toward the
             # LOWEST slot index — so slot 0 wins any tie, and trivially wins outright whenever the
@@ -3442,6 +3586,12 @@ class StoryMode(BotMode):
                         ):
                             settle += 1
                             yield
+                    # ⛔ ABORT-SWALLOW TRIAGE (gate #27, 2026-09-13): CORRECT AS WRITTEN.
+                    # This settle-loop is INSIDE the derail recovery, AFTER that recovery has deliberately
+                    # called `set_story_abort(False)` above it. There is no abort left to swallow — and adding
+                    # `reraise_if_aborting` would re-raise the very abort this block exists to recover FROM,
+                    # turning a recovered run into a dead one. It `yield`s rather than `pass`es, so the
+                    # generator stays alive. ⇒ counted in the baseline; do NOT "fix" it.
                     except Exception:
                         yield
                     continue  # re-run _play(): re-localise from flags + position
@@ -3506,6 +3656,12 @@ class StoryMode(BotMode):
                         settle += 1
                         yield
                     yield from wait_for_player_avatar_to_be_controllable()
+                # ⛔ ABORT-SWALLOW TRIAGE (gate #27, 2026-09-13): AN ABORT CANNOT REACH THE BROAD HANDLER.
+                # `except BotModeError: raise` is FIRST, and `StoryAbort` IS a `BotModeError` (KI-67) —
+                # Python takes the first matching clause, so an abort re-raises here and never reaches the
+                # `except Exception` below. The gate still flags the `try` because its exemption is
+                # ALL-QUANTIFIED (every broad handler must re-raise) — the right rule in general, and a
+                # false positive in this ORDERED case. ⇒ counted in the baseline; do NOT add a guard.
                 except BotModeError:
                     raise
                 except Exception:
@@ -5319,6 +5475,12 @@ class StoryEndlessResetMode(StoryDebugResetMode):
             try:
                 # The parent does the hard reset + NEW GAME, then hands to StoryMode.run().
                 yield from self._run_with_frame_budget(super().run(), start_frame)
+            # ⛔ ABORT-SWALLOW TRIAGE (gate #27, 2026-09-13): CATCHING IS THE WHOLE POINT.
+            # This is the ENDLESS-RESET BATCH loop, OUTSIDE `StoryMode.run`. A `StoryAbort` arriving
+            # here means the RUN ended (a whiteout), which is exactly what it records before starting
+            # the next run. Re-raising would kill the BATCH over one run's EXPECTED outcome — the
+            # opposite of what this loop exists to do.
+            # ⇒ counted in the baseline; do NOT add `reraise_if_aborting` here.
             except BotModeError as exc:
                 outcome = f"derailed: {exc}"  # EXPECTED — never ends the batch
             except Exception as exc:  # noqa: BLE001

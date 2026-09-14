@@ -1,0 +1,145 @@
+[setup] LOG -> customstep3.log
+Running mGBA 0.10.2
+[setup] loaded save state post_league_shop.ss1; build=custom
+[run] starting faithful loop for up to 120000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ch24probe] PRE at=((0, 8), (18, 6)) elite4_state=0
+[ch24probe] PRE party=Sceptile:147/147 Zigzagoon:48/48 Swellow:139/139 Wailord:226/226 Mightyena:144/144 Castform:103/103
+f1: CONTROLLER -> Ch24ProbeMode.run   (state=OVERWORLD)
+f69: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_AnimateDoor', 'Task_DoDoorWarp'] ctrl=Ch24ProbeMode.run bt='NICK got $4128 for winning!' scripts=[] party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f1232: SAVED stall state #1 to stalls/repro-ml-f1232.ss1 (bt='NICK got $4128 for winning!')
+[ch24probe] in Sidney's room at (6, 11) (the script auto-walks to (6,7))
+[ch24probe] ⭐ SIDNEY MEASURED at (6, 5) — approaching (6, 6) (note claimed (6,5))
+[ch24probe] STAGE lead=Sceptile status Healthy -> Freeze
+[ch24probe] DIAG before A-presses: tile=(6, 6) facing=? script_active=False objects=[(255, (6, 6)), (1, (6, 5))]
+f2000: heartbeat mode=Story ctrl=Ch24ProbeMode.run state=OVERWORLD party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] DIAG after 600 frames of A/B: tile=(6, 6) facing=? script_active=True objects=[(255, (6, 6)), (1, (6, 5))]
+f2546: battle_is_active -> True  party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] BATTLE #1 — Sceptile:147/147 Zigzagoon:48/48 Swellow:139/139 Wailord:226/226 Mightyena:144/144 Castform:103/103
+f2547: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+[ch24probe] DECISION#1 status=Freeze battler_slot=0 hp=147/147 frac=1.000 item='Full Heal' param=0 target=0 uses=1 worst_hit=0 heal_frac=0.35 ineffective=False
+[backup] backed up 'repro-ml' (43 files, 2234 KB, reason: auto)
+f4000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] DECISION#2 status=Healthy battler_slot=0 hp=147/147 frac=1.000 item=None param=None target=None uses=1 worst_hit=0 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#3 status=Healthy battler_slot=0 hp=95/147 frac=0.646 item=None param=None target=None uses=1 worst_hit=52 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#4 status=Healthy battler_slot=0 hp=95/147 frac=0.646 item=None param=None target=None uses=1 worst_hit=52 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#5 status=Healthy battler_slot=0 hp=95/147 frac=0.646 item=None param=None target=None uses=1 worst_hit=52 heal_frac=0.35 ineffective=False
+f6000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] DECISION#6 status=Healthy battler_slot=0 hp=95/147 frac=0.646 item=None param=None target=None uses=1 worst_hit=52 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#7 status=Healthy battler_slot=0 hp=95/147 frac=0.646 item=None param=None target=None uses=1 worst_hit=52 heal_frac=0.35 ineffective=False
+f7267: PARTY CHANGE [Sceptile:L53:exp145272|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Sceptile:L53:exp146533|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] DECISION#8 status=Healthy battler_slot=0 hp=95/147 frac=0.646 item=None param=None target=None uses=1 worst_hit=52 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#9 status=Healthy battler_slot=0 hp=95/147 frac=0.646 item=None param=None target=None uses=1 worst_hit=52 heal_frac=0.35 ineffective=False
+f8000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp146533|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] DECISION#10 status=Healthy battler_slot=0 hp=29/147 frac=0.197 item='Full Restore' param=255 target=0 uses=2 worst_hit=66 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#11 status=Healthy battler_slot=0 hp=147/147 frac=1.000 item=None param=None target=None uses=2 worst_hit=66 heal_frac=0.35 ineffective=False
+f10000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp146533|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] DECISION#12 status=Healthy battler_slot=0 hp=83/147 frac=0.565 item=None param=None target=None uses=2 worst_hit=66 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#13 status=Healthy battler_slot=0 hp=83/147 frac=0.565 item=None param=None target=None uses=2 worst_hit=66 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#14 status=Healthy battler_slot=0 hp=15/147 frac=0.102 item='Full Restore' param=255 target=0 uses=3 worst_hit=68 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#15 status=Healthy battler_slot=0 hp=110/147 frac=0.748 item=None param=None target=None uses=3 worst_hit=68 heal_frac=0.35 ineffective=False
+f12000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp146533|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f12256: PARTY CHANGE [Sceptile:L53:exp146533|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Sceptile:L53:exp148360|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] DECISION#16 status=Healthy battler_slot=0 hp=110/147 frac=0.748 item=None param=None target=None uses=3 worst_hit=68 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#17 status=Healthy battler_slot=0 hp=110/147 frac=0.748 item=None param=None target=None uses=3 worst_hit=68 heal_frac=0.35 ineffective=False
+f14000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp148360|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] DECISION#18 status=Healthy battler_slot=0 hp=110/147 frac=0.748 item=None param=None target=None uses=3 worst_hit=68 heal_frac=0.35 ineffective=False
+f15627: PARTY CHANGE [Sceptile:L53:exp148360|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Sceptile:L53:exp150221|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f16000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp150221|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] DECISION#19 status=Healthy battler_slot=0 hp=110/147 frac=0.748 item=None param=None target=None uses=3 worst_hit=68 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#20 status=Healthy battler_slot=0 hp=110/147 frac=0.748 item=None param=None target=None uses=3 worst_hit=68 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#21 status=Healthy battler_slot=0 hp=46/147 frac=0.313 item='Full Restore' param=255 target=0 uses=4 worst_hit=68 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#22 status=Healthy battler_slot=0 hp=147/147 frac=1.000 item=None param=None target=None uses=4 worst_hit=68 heal_frac=0.35 ineffective=False
+f18000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp150221|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] DECISION#23 status=Healthy battler_slot=0 hp=116/147 frac=0.789 item=None param=None target=None uses=4 worst_hit=68 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#24 status=Healthy battler_slot=0 hp=116/147 frac=0.789 item=None param=None target=None uses=4 worst_hit=68 heal_frac=0.35 ineffective=False
+f19128: PARTY CHANGE [Sceptile:L53:exp150221|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Sceptile:L54:exp150476|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f19293: PARTY CHANGE [Sceptile:L54:exp150476|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Sceptile:L54:exp151965|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] DECISION#25 status=Healthy battler_slot=0 hp=119/150 frac=0.793 item=None param=None target=None uses=4 worst_hit=68 heal_frac=0.35 ineffective=False
+[ch24probe] DECISION#26 status=Healthy battler_slot=0 hp=119/150 frac=0.793 item=None param=None target=None uses=4 worst_hit=68 heal_frac=0.35 ineffective=False
+f20000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L54:exp151965|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f20644: PARTY CHANGE [Sceptile:L54:exp151965|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f21108: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f21118: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeAndEnableScriptCtx'] ctrl=BattleListener.fight bt='NICK got $4900 for winning!' scripts=['EventScript_DoNoIntroTrainerBattle'] party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f21159: CONTROLLER -> Ch24ProbeMode.run   (state=OVERWORLD)
+[ch24probe] DIAG after A/B advance: tile=(6, 6) facing=? script_active=True objects=[(255, (6, 6)), (1, (6, 5))]
+f21175: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects'] ctrl=Ch24ProbeMode.run bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'PokemonLeague_EliteFour_SetAdvanceToNextRoomMetatiles'] party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f21178: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=Ch24ProbeMode.run bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f21351: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=Ch24ProbeMode.run bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f22000: heartbeat mode=Story ctrl=Ch24ProbeMode.run state=OVERWORLD party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f22059: SAVED stall state #2 to stalls/repro-ml-f22059.ss1 (bt='NICK got $4900 for winning!')
+f22359: !!! NO-PROGRESS x1200 sig=('Ch24ProbeMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $4900 for winning!' bot_mode=Story
+f22359:     gen -> Ch24ProbeMode.run  @ story_harness.py:16009
+f22359:     gen -> wait_until_truly_controllable  @ early_game.py:1232
+[ch24probe] R after_guards_at = ('((16, 10), (9, 3))', (9, 3))
+[ch24probe] R battle_frames = 0
+[ch24probe] R elite4_state_after = 1
+[ch24probe] R elite4_state_in_room = 0
+[ch24probe] R engaged = True
+[ch24probe] R hall5_at = (5, 12)
+[ch24probe] R hp_after_sidney = Sceptile:119/150 Zigzagoon:48/48 Swellow:139/139 Wailord:226/226 Mightyena:144/144 Castform:103/103
+[ch24probe] R hp_before_sidney = Sceptile:147/147 Zigzagoon:48/48 Swellow:139/139 Wailord:226/226 Mightyena:144/144 Castform:103/103
+[ch24probe] R in_lobby_at = (9, 11)
+[ch24probe] R objects_seen = [(6, 11), (6, 5)]
+[ch24probe] R player_before_approach = (6, 11)
+[ch24probe] R room_landing = (6, 11)
+[ch24probe] R sidney_at = (6, 5)
+[ch24probe] R stage_hp = 147/147
+[ch24probe] R stage_pid = 2252015895
+[ch24probe] R stage_species = Sceptile
+[ch24probe] R stage_status_after = Freeze
+[ch24probe] R stage_status_before = Healthy
+[ch24probe] R still_in_room = True
+[ch24probe] R stood_at = (6, 6)
+[ch24probe] RESULT readings=['P24-ENGAGED', 'P24-HALL5', 'P24-IN', 'P24-OUTCOME', 'P24-ROOM', 'P24-STAGED'] missing=[]
+[ch24probe] RESULT battles=1 whiteouts=0
+[ch24probe] STEP3 staged_ok=True (stage_status_after='Freeze' staged_pid=2252015895) saw_frozen=True decisions=26 status_seen=['Freeze', 'Healthy'] battler_slots=[0]
+[ch24probe] STEP3 all_item_actions=[{'decision': 1, 'status': 'Freeze', 'item': 'Full Heal', 'parameter': 0, 'target': 0, 'battler_slot': 0}, {'decision': 10, 'status': 'Healthy', 'item': 'Full Restore', 'parameter': 255, 'target': 0, 'battler_slot': 0}, {'decision': 14, 'status': 'Healthy', 'item': 'Full Restore', 'parameter': 255, 'target': 0, 'battler_slot': 0}, {'decision': 21, 'status': 'Healthy', 'item': 'Full Restore', 'parameter': 255, 'target': 0, 'battler_slot': 0}]
+[ch24probe] STEP3 hp_actions (do NOT score, shown so the split is auditable)=[{'decision': 10, 'status': 'Healthy', 'item': 'Full Restore', 'parameter': 255, 'target': 0, 'battler_slot': 0}, {'decision': 14, 'status': 'Healthy', 'item': 'Full Restore', 'parameter': 255, 'target': 0, 'battler_slot': 0}, {'decision': 21, 'status': 'Healthy', 'item': 'Full Restore', 'parameter': 255, 'target': 0, 'battler_slot': 0}]
+[ch24probe] STEP3 ⭐ cure_actions_while_frozen (parameter==0 only)=[{'decision': 1, 'status': 'Freeze', 'item': 'Full Heal', 'parameter': 0, 'target': 0, 'battler_slot': 0}]
+[ch24probe] STEP3 ACCEPTANCE: PASS (arm=LIVE; expected_cure=True observed_cure=True)
+[ch24probe] STEP4 hp_trace=[{'decision': 1, 'slot': 0, 'hp': 147, 'total': 147, 'item': 'Full Heal', 'parameter': 0}, {'decision': 2, 'slot': 0, 'hp': 147, 'total': 147, 'item': None, 'parameter': None}, {'decision': 3, 'slot': 0, 'hp': 95, 'total': 147, 'item': None, 'parameter': None}, {'decision': 4, 'slot': 0, 'hp': 95, 'total': 147, 'item': None, 'parameter': None}, {'decision': 5, 'slot': 0, 'hp': 95, 'total': 147, 'item': None, 'parameter': None}, {'decision': 6, 'slot': 0, 'hp': 95, 'total': 147, 'item': None, 'parameter': None}, {'decision': 7, 'slot': 0, 'hp': 95, 'total': 147, 'item': None, 'parameter': None}, {'decision': 8, 'slot': 0, 'hp': 95, 'total': 147, 'item': None, 'parameter': None}, {'decision': 9, 'slot': 0, 'hp': 95, 'total': 147, 'item': None, 'parameter': None}, {'decision': 10, 'slot': 0, 'hp': 29, 'total': 147, 'item': 'Full Restore', 'parameter': 255}, {'decision': 11, 'slot': 0, 'hp': 147, 'total': 147, 'item': None, 'parameter': None}, {'decision': 12, 'slot': 0, 'hp': 83, 'total': 147, 'item': None, 'parameter': None}, {'decision': 13, 'slot': 0, 'hp': 83, 'total': 147, 'item': None, 'parameter': None}, {'decision': 14, 'slot': 0, 'hp': 15, 'total': 147, 'item': 'Full Restore', 'parameter': 255}, {'decision': 15, 'slot': 0, 'hp': 110, 'total': 147, 'item': None, 'parameter': None}, {'decision': 16, 'slot': 0, 'hp': 110, 'total': 147, 'item': None, 'parameter': None}, {'decision': 17, 'slot': 0, 'hp': 110, 'total': 147, 'item': None, 'parameter': None}, {'decision': 18, 'slot': 0, 'hp': 110, 'total': 147, 'item': None, 'parameter': None}, {'decision': 19, 'slot': 0, 'hp': 110, 'total': 147, 'item': None, 'parameter': None}, {'decision': 20, 'slot': 0, 'hp': 110, 'total': 147, 'item': None, 'parameter': None}, {'decision': 21, 'slot': 0, 'hp': 46, 'total': 147, 'item': 'Full Restore', 'parameter': 255}, {'decision': 22, 'slot': 0, 'hp': 147, 'total': 147, 'item': None, 'parameter': None}, {'decision': 23, 'slot': 0, 'hp': 116, 'total': 147, 'item': None, 'parameter': None}, {'decision': 24, 'slot': 0, 'hp': 116, 'total': 147, 'item': None, 'parameter': None}, {'decision': 25, 'slot': 0, 'hp': 119, 'total': 150, 'item': None, 'parameter': None}, {'decision': 26, 'slot': 0, 'hp': 119, 'total': 150, 'item': None, 'parameter': None}]
+[ch24probe] STEP4 drops=6 max=68/147 (46.3% of max HP, slot 0, decisions 13->14) median=43.5%
+[ch24probe] STEP4 ⭐ drops exceeding HEAL_AT_FRACTION(0.35) = 5 of 6 — ['35.4%', '44.9%', '43.5%', '46.3%', '43.5%']
+[ch24probe] STEP4 all_fracs=['21.1%', '35.4%', '43.5%', '43.5%', '44.9%', '46.3%']
+[ch24probe] STEP4 ⛔ LOWER BOUND ONLY — lethal hits leave no successor decision and are absent; item-turns are excluded. Do not quote as an average.
+[ch24probe] GRADE missing=[] failure=None elite4_state=1 (1 = Sidney beaten, 0 = not)
+[ch24probe] ACCEPTANCE: PASS (the probe must REACH Sidney and MEASURE an outcome; winning is not required)
+f22961: CONTROLLER -> <none>   (state=OVERWORLD)
+f22961: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=<none> bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f23861: SAVED stall state #3 to stalls/repro-ml-f23861.ss1 (bt='NICK got $4900 for winning!')
+f24000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f24161: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $4900 for winning!' bot_mode=Manual
+f24161:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f25961: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $4900 for winning!' bot_mode=Manual
+f25961:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f26000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f28000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f30000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f30961: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $4900 for winning!' bot_mode=Manual
+f30961:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f32000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f34000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f36000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f37961: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $4900 for winning!' bot_mode=Manual
+f37961:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f38000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f40000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f42000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f42961: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 42962 frames; final mode=Manual party=[Sceptile:L54:exp153621|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L54: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Swellow L48: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Wailord L47: Dive, Surf, Water Spout, Waterfall
+[moveset] Mightyena L48: Tackle, Crunch, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 42963 get_party() recomputes, 144 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24probe 42963 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\custom-pokebot\profiles\repro-ml\states\2026-
+09-14_14-00-05.ss1 created!
+Updated `current_state.ss1`!
