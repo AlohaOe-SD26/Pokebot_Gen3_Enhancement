@@ -579,3 +579,4 @@
 {"when": "2026-09-14T07:42:48", "driver": "ch24probe", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 57091, "recomputes": 57091, "scans": 191, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-14T07:53:08", "driver": "ch24probe", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 66457, "recomputes": 66457, "scans": 222, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-14T11:44:36", "driver": "ch24flyto", "build": "sandbox", "state": "post_ch24ready.ss1", "frames_run": 20617, "recomputes": 20617, "scans": 69, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-14T12:40:54", "driver": "spin", "build": "sandbox", "state": "post_ch24_atdoor.ss1", "frames_run": 300, "recomputes": 301, "scans": 2, "divergences": {}, "observer_broke": false}

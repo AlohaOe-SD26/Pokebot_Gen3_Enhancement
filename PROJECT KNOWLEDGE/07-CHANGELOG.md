@@ -28982,3 +28982,28 @@ Segment 23, and drive from `post_ch24ready.ss1` with that Fly as leg 1.
 freeze-thaw promotion specifically, not this one. Pending, comment-only, zero behaviour risk.
 
 ALL 58 ENFORCING GATES PASS.
+
+---
+
+## 2026-09-14 — the §Ch24 start state is now ONE PINNED FIXTURE, not a two-step recipe
+
+Yesterday's unblock left the start state as *"`post_ch24ready.ss1` + one Fly"* — two steps a chapter
+driver would have to re-derive every run. That Fly drive had already produced a save at the door, so
+it was captured, verified and pinned as **`post_ch24_atdoor.ss1`**
+(md5 `82bc3125637d86dbbdd4d3a40d4f240e`).
+
+**VERIFIED BY RELOAD BEFORE PINNING — never from the drive's own claim:**
+* `probe_anchor_inventory.py` → `badges=12345678`, `OVERWORLD EVER_GRANDE_CITY (18,6)` (the League
+  door apron; the door is (18,5)), party Sceptile L53 / Zigzagoon L19 / Swellow L48 / Wailord L47 /
+  Mightyena L48 / Castform L36, HP 798/807. ‼ Its POSITIVE CONTROL passed in the same run (the badge
+  reader separated a known-early from a known-late save), so a silent reader failure could not be
+  mistaken for a good result.
+* ⭐ A SEPARATE moveset check, because that probe does **not** print movesets:
+  **`Wailord L47: Dive, Surf, ICE BEAM, Waterfall`**, and Swellow carries **Fly**.
+  Ice Beam is the load-bearing property — KI-94's whole complaint was that no League-positioned
+  fixture had it. Assuming it from "the prepared party" would have been exactly the shortcut this
+  project keeps getting burned by.
+
+⇒ The queue now names this fixture directly, and records that the Fly is ALREADY DONE and is not
+leg 1. The `post_ch24ready.ss1` + `CH24_FLY_DEST=PokemonLeague` recipe is kept as the re-capture
+path, not as the start.
