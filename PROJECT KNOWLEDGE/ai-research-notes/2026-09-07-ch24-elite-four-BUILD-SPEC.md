@@ -155,3 +155,47 @@ step 2 exists to close, and it is measured, not assumed.
 * League 1F has a **fifth warp at (1,7)** to `POKEMON_LEAGUE_2F` (Union Room / Trade Center) that the
   leg-2/3 chain omits — harmless if never taken, but the chain is not universally quantified.
 * Wallace's **entire six-mon party is `.iv=255`**, not "250 except the last".
+
+
+---
+
+## ⛔⛔ ADDENDUM 2026-09-14 — THE COMPLETION PREDICATE ABOVE HAS THE SAME TRAP IT WARNS ABOUT
+
+Landmine 1 says *"DO NOT GRADE ON THE `DEFEATED_ELITE_4_*` FLAGS"* because `ResetEliteFour` clears
+them on the win path. **That is correct — and incomplete.** VERIFIED at the decomp
+(`data/event_scripts.s:628-634`, fetched live):
+
+    EverGrandeCity_HallOfFame_EventScript_ResetEliteFour::
+        clearflag FLAG_DEFEATED_ELITE_4_SIDNEY / PHOEBE / GLACIA / DRAKE
+        setvar VAR_ELITE_4_STATE, 0
+        return
+
+and it is called from the WIN path (`data/scripts/hall_of_fame.inc:7`, inside
+`EverGrandeCity_HallOfFame_EventScript_SetGameClearFlags`).
+
+⇒ **`VAR_ELITE_4_STATE` IS ZEROED ON VICTORY TOO.** So the table above, which grades legs 5-8 on
+`VAR_ELITE_4_STATE == k`, is fine *during* the gauntlet but **must NOT be used as the CHAPTER-DONE
+predicate**: after a win the var reads 0 and all four flags read clear — a state **indistinguishable
+from "never entered the Elite Four"**. A done-check built on it re-enters §Ch23 exactly as landmine
+1 predicts for the flags.
+
+### ⭐ THE CANDIDATE THAT SURVIVES: `FLAG_IS_CHAMPION`
+`hall_of_fame.inc:3` sets it via `setflag FLAG_IS_CHAMPION` — **at line 3, BEFORE the
+`ResetEliteFour` call at line 7** — and no script was found that clears it. It is exposed to us as
+`IS_CHAMPION` (`modules/data/event_flags/emerald.txt:1061`).
+⚠ **NOT YET DRIVEN.** This is a decomp reading, not a measurement: nothing in our tree has observed
+`IS_CHAMPION` flip, because the bot has never beaten the Elite Four. ⇒ **the chapter's acceptance
+must READ it live and prove it went False → True**, not assume it.
+
+### ⚠ A TOOL CAVEAT THAT NEARLY PRODUCED TWO WRONG ANSWERS HERE
+**GitHub code search (`gh api search/code`) is TOKEN-BASED, NOT PHRASE-EXACT.** A query for
+`clearflag FLAG_IS_CHAMPION` returned `total_count: 1`, and a query for
+`clearflag FLAG_SYS_GAME_CLEAR` returned `11` — but fetching the file showed the single
+`FLAG_IS_CHAMPION` occurrence is a **`setflag`**; the search had merely matched a file containing
+both words. ⇒ **a non-zero search count is not evidence the phrase exists.** Fetch the file and grep
+the literal line before concluding anything from a code-search tally. *(The `11` for
+`FLAG_SYS_GAME_CLEAR` was not re-verified and must NOT be quoted as a count of real clears.)*
+
+⇒ **NET, for whoever builds this chapter:** grade the per-room legs on `VAR_ELITE_4_STATE` as the
+table says; grade CHAPTER COMPLETION on `IS_CHAMPION` (verified live, with a before/after read), and
+NEVER on the four flags or on `VAR_ELITE_4_STATE`.
