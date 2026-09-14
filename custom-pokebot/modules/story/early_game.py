@@ -1741,9 +1741,20 @@ def _lead_best_matchup(foe_type_names, *, min_incoming_only: bool = True,
     if we started Mudkip, the rival leads a grass Grovyle, and our Marshtomp — Water/Ground
     — is 4× weak to Grass, so leading it feeds a super-effective sweep.)
 
-    Picks the battler minimizing the foe's WORST-CASE STAB multiplier against it, breaking
-    ties by higher level; leaves slot 0 unchanged if it's already the best. `foe_type_names`
-    is a list like ["Grass"]."""
+    ⛔ THIS PARAGRAPH USED TO READ: *"Picks the battler minimizing the foe's WORST-CASE STAB
+    multiplier against it, breaking ties by higher level"*. THAT WAS TRUE UNTIL 2026-08-01 AND
+    STALE AFTERWARDS — commit `9252e238` moved the decision to `team_policy.lead_rank_key`, and
+    the stale text cost a later session a whole investigation (it read the docstring, concluded
+    the selector was "purely defensive", and filed a duplicate item). KI-25 is stale the same way.
+    ‼ THE BODY IS THE FACT: the ranking is `lead_rank_key(...)` below, lexicographic, lower wins:
+        (glass_wonder_guard, can_attack, incoming, is_hunted_counter, -level)
+    i.e. `#24-leadpolicy` options (a) and (c) ARE implemented. Two live caveats, both measured:
+      · (a) `_can_attack` is BINARY at >=1.0x, so it is nearly inert at a mono-type boss — a mon's
+        own same-type move scores exactly 1.0 and passes. 0 of 723 logged decisions ever saw NOATK.
+      · (c) is behind `POKEBOT_LEAD_DEMOTE_WONDER_GUARD`, DEFAULT OFF, because it MEASURED HARMFUL
+        (finish rate 47.1% -> 26.9%). ⛔ A 2026-08-05 USER RULING pins that flag at 0 "regardless of
+        what happens next" — do not re-enable it, and do not propose option (b) either.
+    `foe_type_names` is a list like ["Grass"]; slot 0 is left unchanged if it is already best."""
     from modules.modes.util.higher_level_actions import change_lead_party_pokemon
     from modules.pokemon import get_type_by_name
 

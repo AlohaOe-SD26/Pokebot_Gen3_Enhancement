@@ -136,6 +136,11 @@ class LivingDexMode(BotMode):
             context.message = f"Living Dex: {species_name} — {map_name} ({method})"
             try:
                 yield from navigate_to_anywhere(target_map, tuple(tile), avoid_encounters=True)
+            # ⛔ ABORT-SWALLOW TRIAGE (gate #27, 2026-09-13): DIFFERENT MODE, AND IT REPORTS.
+            # Living Dex is not the Story bot — it does not run `StoryMode.run`, so the story abort
+            # latch is not part of this loop's contract. The handler REPORTS through `_skip(...)`
+            # (species + reason) and advances to the next species, which is the designed behaviour
+            # for an unreachable target. ⇒ counted in the baseline; do NOT add a guard.
             except BotModeError as error:
                 self._skip(run, sid, f"{species_name}: unreachable ({error})")
                 continue

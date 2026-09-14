@@ -29047,3 +29047,32 @@ check the continuation, not only the line you edited.**
 **Verified:** files identical, `custom-pokebot` compiles, `promote.py --check` re-run, and a sweep of
 the whole `custom-pokebot` tree finds no surviving copy of the refuted claim outside its own dated
 retraction.
+
+---
+
+## 2026-09-14 — third promotion round: the last two DOC-ONLY files, and a stronger test to prove it
+
+`modules/story/early_game.py` (a stale docstring, corrected 2026-09-13) and
+`plugins/custom_modes/living_dex_mode.py` (an abort-swallow triage comment) are promoted. Drift is
+down again — `promote.py --check` is the authority on the count.
+
+⭐ **HOW THEY WERE PROVED SAFE, because the classifier said "REAL".** `probe_comment_only_drift.py`
+labels a docstring edit a REAL behaviour difference, correctly — a docstring **is** an AST node. So
+instead of overriding the label by assertion, the ASTs were re-compared **with docstrings stripped**:
+
+    modules/story/early_game.py              AST-minus-docstrings IDENTICAL: True
+    plugins/custom_modes/living_dex_mode.py  AST-minus-docstrings IDENTICAL: True
+
+⇒ zero executable change, proven rather than argued. ‼ This matters because `early_game.py` is the
+module that carries the Wally fix; "it's only a docstring" is a belief until the AST says so.
+
+⛔⛔ **THE REMAINING THREE ARE REAL AND WERE DELIBERATELY NOT PROMOTED.**
+* `modules/story/battle_items.py` — **step 3's policy** (`choose_status_or_revive_item`).
+* `plugins/custom_modes/story_mode.py` — **step 3's wiring**, plus `POKEBOT_E4_FAULT_NOCURE` and
+  `POKEBOT_HEAL_AT_FRACTION`.
+* `modules/modes/util/higher_level_actions.py` — a pre-existing real difference, not from this work.
+
+⇒ These are **features, not comments**, and the project rule is explicit: a real behaviour promotion
+**must be verified by DRIVING `--build custom`**, not by copying a file. Step 3 has been driven in
+SANDBOX only. That is a deliberate, separate decision with a verification cost attached — it is not
+what "promote the pending comment fix" has meant on the previous three rounds.
