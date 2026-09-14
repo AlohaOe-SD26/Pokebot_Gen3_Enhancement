@@ -1,0 +1,57 @@
+[setup] LOG -> flyleague.log
+Running mGBA 0.10.2
+[setup] loaded save state post_ch24ready.ss1; build=sandbox
+[run] starting faithful loop for up to 40000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24FlyToMode.run   (state=OVERWORLD)
+[ch24flyto] ORIGIN ((0, 8), (27, 49)) -> flying to PokemonLeague
+f222: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_UseFly'] ctrl=Ch24FlyToMode.run bt='SCEPTILE gained 465 EXP. Points!' scripts=[] party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24flyto] R fly_knower = ('Swellow', 2)
+[ch24flyto] R badge06 = True
+[ch24flyto] R destination_available = True
+[ch24flyto] R origin = ((0, 8), (27, 49))
+[ch24flyto] R arrived = ((0, 8), (18, 6))
+[ch24flyto] R moved = True
+[ch24flyto] R party_pids_stable = True
+[ch24flyto] R neighbours_reachable = 4
+[ch24flyto] FINAL ((0, 8), (18, 6)) moved=True missing=[]
+[ch24flyto] GRADE moved=True pids_stable=True neighbours=4 missing=[] whiteouts=0 failure=None
+[ch24flyto] ACCEPTANCE: PASS
+f616: CONTROLLER -> <none>   (state=OVERWORLD)
+f1516: SAVED stall state #1 to stalls/repro-ml-f1516.ss1 (bt='SCEPTILE gained 465 EXP. Points!')
+f1816: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (18, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='SCEPTILE gained 465 EXP. Points!' bot_mode=Manual
+f1816:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[backup] backed up 'repro-ml' (3541 files, 197051 KB, reason: auto)
+f3616: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (18, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='SCEPTILE gained 465 EXP. Points!' bot_mode=Manual
+f3616:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f8616: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (18, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='SCEPTILE gained 465 EXP. Points!' bot_mode=Manual
+f8616:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f15616: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128', (18, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='SCEPTILE gained 465 EXP. Points!' bot_mode=Manual
+f15616:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f20000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f20616: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 20617 frames; final mode=Manual party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L53: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Swellow L48: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L47: Dive, Surf, Ice Beam, Waterfall
+[moveset] Mightyena L48: Strength, Crunch, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 20617 get_party() recomputes, 69 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24flyto 20617 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-14_11-44-36.ss1 created!
+Updated `current_state.ss1`!

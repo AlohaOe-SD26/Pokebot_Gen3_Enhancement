@@ -28932,3 +28932,53 @@ overwriting it**; "it's only a comment fix" is a belief until the diff proves it
 **Verified:** files identical, `custom-pokebot` compiles, `promote.py --check` reports 5, and a sweep
 of the whole `custom-pokebot` tree (code + docs) finds no surviving copy of the false claim — the one
 grep hit is the retraction quoting the old wording, which is the intended audit trail.
+
+---
+
+## 2026-09-14 — §Ch24 IS UNBLOCKED: the fixture was never the problem, the FLY DESTINATION was
+
+`KI-94` had the whole Elite Four chapter blocked since 2026-09-07 on *"no fixture combines Ice Beam
++ the four moveset changes + Fly + a position the League door is reachable from"*. It left one
+question open and explicitly flagged it *"it must be checked, not assumed"*: **`calculate_path`
+cannot use warps or Fly, so "no WALKING path" was measured — a warp route was never ruled out.**
+It was checked.
+
+### ⭐ THE ANSWER — a warp route exists, and it is FLY
+`src/region_map.c`, `CB_ExitFlyMap`, SPECIAL-CASES Ever Grande:
+
+    FlagGet(FLAG_LANDMARK_POKEMON_LEAGUE) && posWithinMapSec == 0
+        ? HEAL_LOCATION_EVER_GRANDE_CITY_POKEMON_LEAGUE : HEAL_LOCATION_EVER_GRANDE_CITY
+
+`HEAL_LOCATION_EVER_GRANDE_CITY_POKEMON_LEAGUE` is **(18,6)** — one tile from the League door
+(18,5). `FLAG_LANDMARK_POKEMON_LEAGUE` is set **unconditionally** by
+`EverGrandeCity_PokemonLeague_1F_OnTransition` on FIRST entry to the building; no Elite Four
+progress is required. Every fixture we hold has been inside that building.
+
+### MEASURED, not reasoned
+`--driver ch24flyto` with `CH24_FLY_DEST=PokemonLeague`, from `post_ch24ready.ss1` — the PREPARED
+party KI-94 said could never be at the League:
+
+    ORIGIN ((0,8),(27,49)) -> arrived ((0,8),(18,6))
+    moved=True  party_pids_stable=True  neighbours_reachable=4  whiteouts=0  ACCEPTANCE: PASS
+
+`neighbours_reachable=4` is a REAL `calculate_path` off the landing tile, not a flag.
+⇒ **`post_ch24ready.ss1` + one Fly IS the §Ch24 start state.** Neither KI-94 option is needed —
+not (a) reordering the prep before Victory Road, not (b) re-traversing it.
+
+### ‼‼ OUR OWN TREE ALREADY KNEW, AND CONTRADICTED ITSELF
+`modules/region_map.py:53-54,73` has carried `PokemonLeague = (28,10)` as a fly destination
+**DISTINCT** from `EverGrandeCity = (28,11)`, gated by exactly `LANDMARK_POKEMON_LEAGUE` — the
+whole time. Meanwhile `modules/story/victory_road.py:362` asserted EVER_GRANDE is *"connected only
+THROUGH Victory Road"*. **Two files in our own repository disagreed, and the wrong one was the one a
+human had written a confident comment in.** The 2026-09-07 drive flew to `EverGrandeCity` — the
+POKÉ CENTER destination — and the conclusion "the League is unreachable" was drawn from that.
+`victory_road.py:362` is corrected (by marking, not deleting: the WALKING measurement stands).
+
+### What this changes
+The queue head moves from *"§Ch24 is blocked on a fixture"* to **"build the chapter"** — read
+`ai-research-notes/2026-09-07-ch24-elite-four-BUILD-SPEC.md`, add a Segment 24 dispatch beside
+Segment 23, and drive from `post_ch24ready.ss1` with that Fly as leg 1.
+⚠ Drift 5 → 6: `victory_road.py`'s corrected comment is **NOT promoted** — the user authorised the
+freeze-thaw promotion specifically, not this one. Pending, comment-only, zero behaviour risk.
+
+ALL 58 ENFORCING GATES PASS.

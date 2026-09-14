@@ -17598,3 +17598,37 @@ reason, which is precisely how that one lied. The corrected version requires `fo
 
 ⇒ **The thread running through all three: every one was a CHECK that was wrong, not a subject that
 was wrong** — session-discipline rule 4, which now has more instances in this file than any other.
+
+---
+
+## 2026-09-14 — a blocker that stood for a week was a WRONG ARGUMENT, not a missing capability
+
+**Symptom.** `KI-94` blocked the entire §Ch24 chapter from 2026-09-07 to 2026-09-14 on the finding
+that the prepared party could not reach the League door. The measurement behind it was real: Fly to
+Ever Grande deposited the party at the Poké Center (27,49) and `calculate_path` raised
+`PathFindingError` to (18,5).
+
+**Root cause.** The drive flew to the destination named `EverGrandeCity`. Emerald has **two** fly
+destinations for that map section, and our own `modules/region_map.py:53-54` has always modelled
+both — `PokemonLeague = (28,10)` distinct from `EverGrandeCity = (28,11)`, gated by
+`LANDMARK_POKEMON_LEAGUE`. Flying to the other one lands at **(18,6)**, the door apron. One
+environment variable separated "blocked for a week" from "solved".
+
+⇒ **Prevention 1: WHEN A CAPABILITY LOOKS MISSING, ENUMERATE ITS OPTIONS BEFORE CONCLUDING IT IS
+ABSENT.** "Fly doesn't reach the League" was really "the destination I picked doesn't reach the
+League". The enumeration lived in our own source file the whole time.
+
+⇒ **Prevention 2: ⛔⛔ WHEN TWO FILES IN OUR OWN TREE DISAGREE, *THAT IS THE FINDING* — go resolve
+it before building on either.** `region_map.py` (data, generated from the game) said the League was
+a separate fly target; `victory_road.py:362` (prose, written by a person) said the two halves were
+"connected only THROUGH Victory Road". The prose won for a week because it was the one written in
+the place people were reading. **Grade GENERATED DATA above HAND-WRITTEN COMMENTARY** when they
+conflict, and correct the commentary the moment you notice.
+
+⇒ **Prevention 3: KI-94 DID EVERYTHING RIGHT AND STILL COST A WEEK.** It stated its own limit
+precisely — *"`calculate_path` is not able to use warps or fly… a warp route has NOT been ruled out
+by measurement… it must be checked, not assumed"* — and nothing checked it for seven days. **A
+correctly-hedged unknown is still an unknown, and hedging it does not schedule the check.** ‼ When a
+KI names an unresolved question that BLOCKS a chapter, the question belongs in NEXT ACTIONS, not
+only in the KI body. That is precisely what a cold-start audit surfaced this session, and answering
+it took one adversarial agent and one 40,000-frame drive.
