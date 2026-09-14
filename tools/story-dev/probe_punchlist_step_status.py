@@ -38,12 +38,29 @@ DOC = pathlib.Path(__file__).resolve().parents[2] / "PROJECT KNOWLEDGE" / "03-PU
 ITEM = re.compile(r"^#{2,4}\s")                       # an item cell starts at a heading
 TICKED = re.compile(r"^\s*-\s*\[x\]\s*\*\*(\d+)\.", re.I)
 UNTICKED = re.compile(r"^\s*-\s*\[ \]\s*\*\*(\d+)\.")
-# "steps 2 and 4 remain" / "step 4 remains" / "REMAINING: ... step 4" / "**and step 4** (…)"
+# ⛔ R-NUMGATE — A NUMERIC GATE MUST ACCEPT THE FORMS HUMANS ACTUALLY WRITE, digits AND words.
+# MEASURED 2026-09-14 by printing the compiled patterns and running positive/negative/spelled lists
+# (R-REGEX: never review a regex by READING it): the first draft matched only `\d+`, so all three of
+# "steps two and four remain", "step four remains", "steps 2 and four remain" sailed straight past a
+# gate that reported PASS. ‼ `\b` on both sides is load-bearing — `done` and `none` both contain
+# "one", and an unbounded alternation would match the word "d-ONE".
+WORDNUM = {"one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
+           "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10"}
+NUM = r"(\d+|\b(?:" + "|".join(WORDNUM) + r")\b)"
+
+
+def _norm(token: str) -> str:
+    """'four' -> '4'; '4' -> '4'. Digits and words must compare equal to the checklist's key."""
+    return WORDNUM.get(token.strip().lower(), token.strip())
+
+
+# "steps 2 and 4 remain" / "step four remains" / "REMAINING: … step 4" / "**and step 4** (…)"
 REMAINS = [
-    re.compile(r"steps?\s+(?:\d+(?:\s*,\s*\d+)*\s+and\s+)?(\d+)\s+remain", re.I),
-    re.compile(r"steps?\s+(\d+)(?:\s+and\s+\d+)?\s+remain", re.I),
-    re.compile(r"REMAINING:[^.]{0,120}?\bstep\s+(\d+)", re.I),
-    re.compile(r"\*\*and step (\d+)\*\*", re.I),
+    re.compile(r"steps?\s+(?:" + NUM + r"(?:\s*,\s*" + NUM + r")*\s+and\s+)?" + NUM + r"\s+remain",
+               re.I),
+    re.compile(r"steps?\s+" + NUM + r"(?:\s+and\s+" + NUM + r")?\s+remain", re.I),
+    re.compile(r"REMAINING:[^.]{0,120}?\bstep\s+" + NUM, re.I),
+    re.compile(r"\*\*and step " + NUM + r"\*\*", re.I),
 ]
 RETRACTED = re.compile(
     r"(this (?:line|clause|cell|item|read)|until 20\d\d-\d\d-\d\d|UPDATED 20\d\d-\d\d-\d\d"
@@ -80,7 +97,15 @@ def main() -> int:
                     continue
                 for pat in REMAINS:
                     for m in pat.finditer(clause):
-                        step = m.group(1)
+                        # ⛔ THE LAST NON-None GROUP, NOT `group(1)`. Supporting spelled-out numbers
+                        # added alternation groups, so "steps 2 and 4 remain" now captures BOTH 2
+                        # and 4 — and the step being asserted to remain is the LAST one. Reading
+                        # group(1) here would have reported step 2 for a claim about step 4, i.e. a
+                        # gate that fires on the wrong step and gets dismissed as noise.
+                        groups = [g for g in m.groups() if g]
+                        if not groups:
+                            continue
+                        step = _norm(groups[-1])
                         if step in ticked:
                             violations.append(
                                 (a + j + 1, step, ticked[step], clause.strip()[:150]))

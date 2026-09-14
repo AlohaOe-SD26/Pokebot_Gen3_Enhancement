@@ -28874,3 +28874,39 @@ claims were refuted on inspection, including a headline that our own logs alread
 mode (they could not: yesterday's logs recorded no HP at any decision point).
 
 ALL 57 ENFORCING GATES PASS.
+
+---
+
+## 2026-09-14 (same day, follow-up) — gate #61 shipped with a hole, and the advisory hook found it
+
+The diff-triggered advisory (`#24-difftriggeredrules`) fired **R-REGEX** and **R-NUMGATE** on gate
+#61's patterns. Both were acted on rather than noted, and one was a real hole in a gate that had
+already been fault-tested and was already committed.
+
+**R-REGEX — *"never review a regex by READING it; print the COMPILED `.pattern` and run a positive
+AND a negative list."*** Done: all four `REMAINS` patterns printed, scanned for control characters
+(none — they are raw strings, so the `\b`-becomes-backspace failure of 2026-08-23 did not recur),
+and exercised against positive, negative and word-boundary lists.
+
+**R-NUMGATE — *"a numeric gate must accept the forms humans actually write."*** ⛔ **This one was a
+live defect.** The gate matched only `\d+`, so all three of *"steps two and four remain"*, *"step
+four remains"* and *"steps 2 and four remain"* **sailed past it while it reported PASS** — and the
+whole point of #61 is to catch a stale "remains" claim. Closed: `WORDNUM` one..ten, alternated into
+every pattern with `\b` on both sides — load-bearing, because **`done` and `none` both contain
+"one"**, exactly as the rule warns.
+
+⇒ Two consequences of adding the alternation, both caught before re-commit:
+* the step number is now the **LAST** non-`None` group, not `group(1)` — reading `group(1)` would
+  have reported *step 2* for a claim about *step 4*, i.e. a gate that fires on the wrong step and
+  gets dismissed as noise;
+* spelled tokens are normalised (`four` → `4`) so they compare equal to the checklist's key.
+
+**Re-verified:** 14 of 14 cases pass (digits, spelled, mixed `2 and four`, `ten`, plus the `done` /
+`none` boundary traps correctly rejected), and the fault arm was re-run **in the spelled-out form**
+— reintroducing *"steps two and four remain"* reds the gate naming step 4, with the file restored
+byte-identically (sha256 verified).
+
+‼ THE LESSON, and it is uncomfortable: **#61 was fault-tested, passed, and was committed — and it
+still had a hole a standing rule already described.** A fault test proves a gate catches the ONE
+case you thought of. It says nothing about the cases you did not. ⇒ when a rule exists that
+enumerates *"the forms humans actually write"*, run THAT list, not your own.
