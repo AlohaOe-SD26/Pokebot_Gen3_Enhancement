@@ -28769,3 +28769,53 @@ reproduced exactly.**
 3. *The `BattleType.Trainer` gate scopes cures to trainer battles only.* Deliberate and now stated:
    wild battles keep the existing behaviour untouched, which is the same scope the HP policy has had
    since it shipped.
+
+---
+
+## 2026-09-13 — step 3 is DRIVEN, and driving it uncovered a probe that could never finish
+
+`#24-e4healing` step 3 was wired and gated yesterday, but **everything proving it was static or
+pure** — 72 pure-function checks and 11 state-machine checks, no emulator. This project's own rule
+is blunt: *a gated shape is not a driven path.* So it was driven.
+
+### The arm
+`--driver ch24probe` gained an OPT-IN arm (`POKEBOT_CH24_STAGE_FREEZE=1`, default OFF and
+byte-identical when unset) that (a) writes `status1 = STATUS1_FREEZE` (`0x20`, **all four bytes** —
+byte 81 carries the toxic counter) into `gPlayerParty` slot 0 **in the overworld**, letting the
+engine copy it into `gBattleMons` at send-out exactly as a real freeze arrives, and (b) swaps the
+strategy for an instrumented SUBCLASS that records the action `_maybe_use_item` **actually returns**.
+
+### ⭐ THE RESULT — A/B, both arms with formal verdicts
+| arm | decision #1 | item chosen | `elite4_state` | outcome |
+|---|---|---|---|---|
+| **LIVE** | `status=Freeze` | **Full Heal** (`parameter=0`) → slot 0 | **1** | Won |
+| **NOCURE** (control) | `status=Freeze` | **none** — 8 straight frozen turns | 0 | Lost → whiteout |
+| **BASELINE** (unstaged) | — | — (0 DECISION lines: default path untouched) | — | Won |
+
+⚠ **The win/loss difference is n=1 per arm and confounded by battle RNG** — the baseline won too,
+without a freeze. **The ACTION claim is what is proven**, and it is proven deterministically.
+
+### ⛔⛔ THE DISCRIMINATOR HAD TO BE `parameter == 0`, AND AN ADVERSARIAL AGENT CAUGHT THAT
+My first grade counted **any** item action taken while frozen as a cure. `_maybe_use_item` returns
+HP items too — and this run used **three Full Restores** (`parameter=255`). That grade would have
+given a **false PASS live** (a potion scoring as a cure) and a **false FAIL in the control** (whose
+HP policy the fault flag deliberately leaves untouched) — *from the same line.* The fix is exact,
+not heuristic: the HP policy is handed a list pre-filtered to `parameter > 0` (`story_mode.py:723`),
+so it is **structurally incapable** of returning a zero-parameter item.
+
+### ⛔⛔ AND THE PROBE COULD NEVER HAVE FINISHED: A PERMANENTLY-FALSE PREDICATE
+`ch24probe`'s post-battle wait was `for _ in range(90_000): if get_battle_state() is None: break`.
+**`get_battle_state()` is annotated `-> BattleState` and never returns `None`** — it unconditionally
+builds one from `gBattleTypeFlags`/`gBattleMons`/… , symbols that exist in or out of battle. ⇒ the
+loop could not break and the `raise` after it could not not-fire: **the probe won the Sidney fight
+and was killed by the watchdog at `HANG CONFIRMED`, every time, without ever printing its verdict.**
+Now `get_game_state() != GameState.BATTLE`. A sweep found **no other instance** of the predicate.
+
+### Freeze does NOT behave the way this tree said it did
+Three production comments claimed *"Gen-3 freeze never thaws on its own"*. **False for Emerald:**
+`src/battle_util.c`, `CANCELER_FROZEN`, rolls `if (Random() % 5)` on every **attempted move** — a
+**20% self-thaw**. The control arm demonstrated it live: `DECISION#9 status=Healthy` after 8 frozen
+turns with **no item used**. ⇒ had the grade scored "the freeze cleared", this control would have
+read as a REFUTATION of a working feature ~83% of the time.
+
+Flags registered in `29-DISABLED-FEATURES-REGISTRY.md` §B. Full suite: **ALL 57 ENFORCING GATES PASS.**

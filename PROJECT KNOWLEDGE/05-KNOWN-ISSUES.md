@@ -2978,7 +2978,7 @@ SESSION DISCIPLINE #3 asks for and what a flag check can never be.
 
 ## `KI-100` — ⛔ an in-battle REVIVE aims at a DIFFERENT INDEX SPACE than a heal, and that space has produced three bugs already (2026-09-13, MED — found BEFORE shipping)
 
-`#24-e4healing` step 3 built `choose_status_or_revive_item()` (`battle_items.py`, gate #59, 66 checks, fault-proven). **It is not wired**, and when it is, the two answers must NOT be treated
+`#24-e4healing` step 3 built `choose_status_or_revive_item()` (`battle_items.py`, gate #59 — **72 checks** as of 2026-09-13, raw output `RESULT: ALL PASS (72 checks)`; this read "66 checks" until then — fault-proven). **It IS wired and, as of 2026-09-13, DRIVEN LIVE** — `--driver ch24probe` with `POKEBOT_CH24_STAGE_FREEZE=1` cured a staged-FROZEN Sceptile on decision #1 with a Full Heal and beat Sidney (`elite4_state=1`); the `POKEBOT_E4_FAULT_NOCURE=1` control fired no cure at all. ⛔ **KI-100 ITSELF REMAINS OPEN AND THE REVIVE HALF REMAINS OFF** (`allow_revive=False` at the call site) — the wiring deliberately shipped without it. *(This clause read "It is not wired" until 2026-09-13.)* The two answers must NOT be treated
 alike. `TurnAction.use_item_on(item, party_index)` takes a PARTY INDEX:
 * a **status cure** targets the **ACTIVE** battler — `mon.party_index`, which the HP policy already
   lands reliably (`story_mode.py` records party-order landing **19 of 19** at slot 0);

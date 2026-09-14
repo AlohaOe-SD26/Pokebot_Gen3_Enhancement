@@ -114,8 +114,14 @@ def main() -> int:
     cures = [a for a in plan if a.party_index == 2]
     check("a statused mon is cured with Full Heal, NOT Full Restore (rule 5)",
           cures[0].item_name if cures else None, "Full Heal")
-    check("the FRZ reason warns it never thaws on its own",
-          "FRZ never thaws" in (cures[0].reason if cures else ""), True)
+    # ⛔⛔ THIS CHECK USED TO PIN A FACTUAL ERROR, AND SO DEFENDED IT. It asserted the reason said
+    # "FRZ never thaws" — FALSE for Emerald: `src/battle_util.c`, `CANCELER_FROZEN`, rolls
+    # `if (Random() % 5)` on every ATTEMPTED MOVE, a 20% self-thaw. Correcting the source comment
+    # on 2026-09-13 turned this gate red: the SUBJECT was right and the CHECK was wrong, which is
+    # exactly the shape session-discipline rule 4 warns about. It now pins the CORRECTED claim.
+    # ‼ A gate is only as true as its expectation — a green suite is not evidence a fact is right.
+    check("the FRZ reason states the ~20%/attempted-move self-thaw (NOT 'never thaws')",
+          "self-thaw" in (cures[0].reason if cures else ""), True)
 
     # ---- 5. ...but falls back to Full Restore when no cheap cure is held --------------------------
     plan = plan_healing(party(**{"2": {"status": "TOX"}}), {"Full Restore": 1}, PARAMS, healing_items=HEALING)

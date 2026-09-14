@@ -15560,6 +15560,88 @@ class Ch24GrindMode(BotMode):
         context.set_manual_mode()
 
 
+# -------------------------------------------------------------------------------------------------
+# `#24-e4healing` step 3 — LIVE observation of the in-battle STATUS CURE.
+#
+# ⛔ WHY A SUBCLASS, NOT A WRAPPER. `decide_turn` calls `self._maybe_use_item(...)`
+# (`story_mode.py:589`), so an override sits exactly on the real call path. A wrapper object would
+# have to proxy the whole strategy interface and would prove less about the shipped code.
+# ⛔ WHY IT IS BUILT AT CALL TIME. `StoryItemBattleStrategy` pulls in emulator-backed modules, so the
+# harness cannot import it at module scope — every other driver here imports it inside a method.
+#
+# ‼ SESSION-DISCIPLINE RULE 7 — INSTRUMENT THE ACTION, NOT THE INPUT TO THE ACTION. We record the
+# action the strategy actually RETURNS, together with the status it saw when it returned it. A Full
+# Heal sitting in the bag is a CANDIDATE; the returned action is the ATTEMPT. The KI-66 driver once
+# reported a bug from a candidate list while the bot had in fact chosen correctly every single time.
+_WATCHED_STRATEGY_CACHE: dict = {}
+
+
+def _watched_strategy(probe):
+    """The REAL `StoryItemBattleStrategy`, instrumented. Behaviour is delegated, never altered."""
+    from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+    cls = _WATCHED_STRATEGY_CACHE.get("cls")
+    if cls is None:
+
+        class _Watched(StoryItemBattleStrategy):
+            _probe = None
+
+            def _maybe_use_item(self, battle_state):
+                action = super()._maybe_use_item(battle_state)
+                # ⛔ `decide_turn` swallows anything this method raises into a silent `None`
+                # (`story_mode.py:590-591`) — so instrumentation that raised would be
+                # INDISTINGUISHABLE from "the policy declined", and would silently fake the
+                # very result the arm exists to measure. It must never raise.
+                try:
+                    mon = battle_state.own_side.left_battler
+                    status = getattr(mon.status_permanent, "name", str(mon.status_permanent))
+                    slot = getattr(mon, "party_index", "?")
+                    rec = getattr(self, "_probe", None)
+                    # ⛔⛔ RECORD THE ITEM AND ITS `parameter`, NEVER `repr(action)`. `_maybe_use_item`
+                    # returns HP-policy items too, and a grade that counts "any item action while
+                    # frozen" as a cure gives a FALSE PASS in the live arm (a Hyper Potion scores as
+                    # a cure — and Sidney WILL push HP past `HEAL_AT_FRACTION` while the lead is
+                    # frozen) and a FALSE FAIL in the control (the NOCURE arm leaves the HP policy
+                    # untouched) — from the SAME line.
+                    # ⭐ `parameter == 0` is an EXACT discriminator, not a heuristic: the HP policy is
+                    # handed `options`, already filtered to `parameter > 0` (`story_mode.py:723`), so
+                    # it is STRUCTURALLY incapable of returning a zero-parameter item. Shape is
+                    # `(TurnAction.UseItem, (item, party_index))` — `_interface.py:138-139`.
+                    name, param, target = None, None, None
+                    if action is not None:
+                        try:
+                            _item, target = action[1]
+                            name = getattr(_item, "name", str(_item))
+                            param = getattr(_item, "parameter", None)
+                        except Exception:  # noqa: BLE001 — an unexpected action shape must be
+                            name = repr(action)  # recorded, not crashed on
+                    if rec is not None:
+                        # ‼ DECISIONS, not turns. `battle_action_selection.py:166` re-calls
+                        # `decide_turn` within a single turn when the bag fails to open, so this
+                        # counter is a DECISION count — calling it "turns" would restate one
+                        # trajectory as several measurements (session-discipline rule 8).
+                        rec.decisions += 1
+                        rec.status_seen.add(status)
+                        rec.battler_slots.add(slot)
+                        if action is not None:
+                            rec.item_actions.append(
+                                {"decision": rec.decisions, "status": status, "item": name,
+                                 "parameter": param, "target": target, "battler_slot": slot})
+                    log(f"[ch24probe] DECISION#{getattr(rec, 'decisions', '?')} status={status} "
+                        f"battler_slot={slot} item={name!r} param={param} target={target} "
+                        f"uses={getattr(self, '_item_uses', '?')} "
+                        f"ineffective={getattr(self, '_items_ineffective', '?')}")
+                except Exception as exc:  # noqa: BLE001 — justified: an instrument must not change
+                    # the behaviour it measures, and this one sits on the battle hot path.
+                    log(f"[ch24probe] ⚠ watch failed (behaviour unaffected): {exc!r}")
+                return action
+
+        cls = _WATCHED_STRATEGY_CACHE["cls"] = _Watched
+    inst = cls()
+    inst._probe = probe
+    return inst
+
+
 class Ch24ProbeMode(BotMode):
     """§Ch24 PROBE — enter the League and MEASURE the Sidney fight. Sets no progress marker.
 
@@ -15610,6 +15692,11 @@ class Ch24ProbeMode(BotMode):
 
         self.battles = getattr(self, "battles", 0) + 1
         log(f"[ch24probe] BATTLE #{self.battles} — {self._hp_line()}")
+        # ⛔ DEFAULT OFF. With `POKEBOT_CH24_STAGE_FREEZE` unset this returns the identical object
+        # the probe has always returned, so the §Ch24 MEASUREMENT this driver exists for is
+        # unchanged. The staged arm only ADDS an observer.
+        if _os.environ.get("POKEBOT_CH24_STAGE_FREEZE", "") == "1":
+            return _maybe_record(_watched_strategy(self))
         return _maybe_record(StoryItemBattleStrategy())
 
     @staticmethod
@@ -15641,6 +15728,12 @@ class Ch24ProbeMode(BotMode):
         SIDNEY = MapRSE.EVER_GRANDE_CITY_SIDNEYS_ROOM
         self.whiteouts = getattr(self, "whiteouts", 0)
         self.battles = getattr(self, "battles", 0)
+        # `#24-e4healing` step 3 observation state — only ever written by `_watched_strategy`.
+        self.decisions = getattr(self, "decisions", 0)
+        self.status_seen = getattr(self, "status_seen", set())
+        self.battler_slots = getattr(self, "battler_slots", set())
+        self.item_actions = getattr(self, "item_actions", [])
+        stage_freeze = _os.environ.get("POKEBOT_CH24_STAGE_FREEZE", "") == "1"
         taken, R = set(), {}
 
         log(f"[{TAG}] PRE at={_where()} elite4_state={get_event_var('ELITE_4_STATE')}")
@@ -15764,6 +15857,53 @@ class Ch24ProbeMode(BotMode):
                 log(f"[{TAG}] DIAG {tag}: tile={VR._here_tile()} facing={facing} "
                     f"script_active={running} objects={objs}")
 
+            # ---- ⭐ `#24-e4healing` step 3 — STAGE A FROZEN LEAD (opt-in arm) -------------------
+            # ⛔ THE FAITHFUL ROUTE, NOT A MID-BATTLE POKE. We write the PARTY copy here, in the
+            # overworld, and let the engine populate `gBattleMons` from it at battle init — exactly
+            # how a real freeze arrives. (`BattlePokemon.status_permanent` reads offset 0x4C of an
+            # 0x58-byte battler out of `gBattleMons`, `battle_state.py:705,818`; writing THAT
+            # directly would be more precise and would skip the copy path the game actually uses.)
+            # ⛔ WHY FREEZE AND NOT SLEEP. Both are the policy's `TURN_COSTING_STATUSES`, but sleep
+            # self-clears in 1-7 turns, which would confound the control arm badly.
+            # ‼‼ THE ASSERTION IS ON THE ACTION, NEVER ON THE STATUS CLEARING. Emerald thaws freeze
+            # on its own, so "the mon is no longer frozen" is NOT evidence the bot cured it — the
+            # grade below requires the strategy to have RETURNED an item action while it SAW a
+            # frozen battler (session-discipline rule 7).
+            if stage_freeze:
+                from modules.memory import write_symbol
+                from modules.pokemon_party import get_party
+
+                def _sname(mon):
+                    # ⛔ `.name`, not `str()`. `str()` of an Enum member is a Python-version
+                    # detail; the member NAME is the stable identity the grade compares on.
+                    return getattr(mon.status_condition, "name", str(mon.status_condition))
+
+                lead_before = _sname(get_party()[0])
+                raw = bytearray(read_symbol("gPlayerParty"))
+                # ⛔ ALL FOUR BYTES, not just byte 80. Byte 81 carries the TOXIC COUNTER
+                # (`battle.h:122`, status1 bits 8-11); poking only byte 80 over a stale counter
+                # leaves a corrupt status word. The decomp writes the whole u32 (`SET32`,
+                # `pokemon.c:4111`). ✅ No re-encryption or checksum fixup is needed: `status` is at
+                # offset 80, OUTSIDE the encrypted `secure` block (32..79), and
+                # `CalculateBoxMonChecksum` sums only the substructs.
+                raw[80:84] = (0x20).to_bytes(4, "little")  # slot 0, status1 = STATUS1_FREEZE
+                write_symbol("gPlayerParty", bytes(raw))
+                # ⛔ WITHOUT THIS RESET THE READ-BACK IS THE PRE-WRITE VALUE — this exact trap is
+                # recorded a few hundred lines below, where a control read 133 for the same reason.
+                state_cache.reset()
+                lead = get_party()[0]
+                R["stage_species"] = lead.species.name
+                R["stage_status_before"] = lead_before
+                R["stage_status_after"] = _sname(lead)
+                # ‼ IDENTITY, NOT POSITION (session-discipline rule 3). "slot 0" is not a Pokémon;
+                # if the party reorders or slot 0 is fainted, the mon that walks onto the field is
+                # a DIFFERENT one and `saw_frozen` would be reporting about the wrong animal.
+                R["stage_pid"] = getattr(lead, "personality_value", None)
+                R["stage_hp"] = f"{lead.current_hp}/{lead.total_hp}"
+                log(f"[{TAG}] STAGE lead={R['stage_species']} "
+                    f"status {lead_before} -> {R['stage_status_after']}")
+                taken.add("P24-STAGED")
+
             _diag("before A-presses")
             # ⭐⭐ THE PROVEN CADENCE, COPIED FROM A WORKING CALLER IN THIS REPO —
             # `_talk_to_the_stair_grunt` (`modules/story/space_center.py:319-332`), the §Ch19 grunt
@@ -15808,11 +15948,27 @@ class Ch24ProbeMode(BotMode):
             battle_frames = 0
             for battle_frames in range(90_000):
                 _check_abort()
-                if get_battle_state() is None:
+                # ⛔⛔ THIS PREDICATE WAS `get_battle_state() is None` AND THAT IS NEVER, EVER TRUE.
+                # `get_battle_state()` is annotated `-> BattleState` and UNCONDITIONALLY constructs
+                # one from `gBattleTypeFlags`/`gBattleMons`/... (`battle_state.py:808-824`) — symbols
+                # that exist whether or not a battle is running. There is no `return None` anywhere
+                # in it. ⇒ this loop could NEVER break, and the `raise` below could never NOT fire:
+                # the probe was STRUCTURALLY INCAPABLE of finishing its own measurement. It won the
+                # Sidney fight and was then killed by the watchdog at `HANG CONFIRMED`, every time.
+                # ‼ MEASURED, NOT REASONED (2026-09-13, three arms): the UNSTAGED baseline — no env
+                # vars at all — reproduces the identical signature, which is what proved the defect
+                # was PRE-EXISTING and not introduced by the staged-freeze arm. At the moment of the
+                # "hang" the game is already `OVERWORLD`, `DialogueNotActive`, player controllable at
+                # (6,6): nothing was stuck except this condition.
+                # ⇒ `GameState` is the real oracle for "is a battle running".
+                # ‼ A SAFE-LOOKING `is None` ON A VALUE THAT IS NEVER `None` IS A SILENT OFF-SWITCH —
+                # the same shape as the `status_condition` dead path and the out-of-scope `_os`, both
+                # caught in this same work item.
+                if get_game_state() != GameState.BATTLE:
                     break
                 yield
             R["battle_frames"] = battle_frames
-            if get_battle_state() is not None:
+            if get_game_state() == GameState.BATTLE:
                 raise BotModeError(
                     f"Ch24 probe: the Sidney battle was still live after {battle_frames:,} frames. "
                     f"⛔ Do NOT read this as a bot hang until you have checked the controller was "
@@ -15834,6 +15990,8 @@ class Ch24ProbeMode(BotMode):
         for key in sorted(R):
             log(f"[{TAG}] R {key} = {R[key]}")
         want = {"P24-IN", "P24-HALL5", "P24-ROOM", "P24-ENGAGED", "P24-OUTCOME"}
+        if stage_freeze:
+            want.add("P24-STAGED")
         missing = sorted(want - taken)
         log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
         log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts}")
@@ -15841,6 +15999,53 @@ class Ch24ProbeMode(BotMode):
         # own record that Sidney was beaten; we REPORT it rather than requiring it, because a LOSS is
         # a valid and valuable measurement here.
         ok = not missing and failure is None
+
+        # ---- ⭐⭐ `#24-e4healing` step 3 — THE STAGED-CURE VERDICT -------------------------------
+        # Everything proving step 3 until now was STATIC or PURE (gate #59's 72 policy checks, gate
+        # #60's 11 state-machine checks). This is the arm that makes it a DRIVEN PATH.
+        if stage_freeze:
+            nocure = _os.environ.get("POKEBOT_E4_FAULT_NOCURE", "") == "1"
+            # ⭐⭐ `parameter == 0` IS THE WHOLE DISCRIMINATOR. Grading on "any item action while
+            # frozen" would count an HP potion as a cure — false PASS live, false FAIL in the
+            # control, from one line. The HP policy cannot return a zero-parameter item
+            # (`story_mode.py:723` filters its list to `> 0`), so this is exact.
+            cure_actions = [a for a in self.item_actions
+                            if a["status"] == "Freeze" and a["parameter"] == 0]
+            hp_actions = [a for a in self.item_actions if a["parameter"]]
+            # (1) ⛔ ANTI-VACUITY. If the staging did not take, every line below measures NOTHING —
+            #     and a "no cure observed" result would read as a refutation of a working feature.
+            # ⛔ AND THE STAGED MON MUST BE ALIVE: a fainted slot 0 never walks onto the field, the
+            # engine leads with the first non-fainted member instead, and every observation below
+            # would then be about a DIFFERENT Pokémon while still looking well-formed.
+            staged_ok = (R.get("stage_status_after") == "Freeze"
+                         and str(R.get("stage_hp", "0/0")).split("/")[0] != "0")
+            # (2) ⛔ THE PREMISE. The strategy must actually have been consulted while the battler
+            #     was frozen. Without this, "no cure" could simply mean the freeze never survived
+            #     into the battle — a driver bug wearing the costume of a code bug.
+            saw_frozen = "Freeze" in self.status_seen
+            # (3) ⭐ THE MEASUREMENT — an item action RETURNED while the battler was frozen.
+            #     ‼ NOT "the status cleared": Emerald thaws freeze by itself, so a cleared status is
+            #     not evidence of a cure. The ACTION is the attempt (session-discipline rule 7).
+            cured = bool(cure_actions)
+            want_cure = not nocure
+            step3_ok = staged_ok and saw_frozen and (cured == want_cure)
+            log(f"[{TAG}] STEP3 staged_ok={staged_ok} (stage_status_after="
+                f"{R.get('stage_status_after')!r} staged_pid={R.get('stage_pid')!r}) "
+                f"saw_frozen={saw_frozen} decisions={self.decisions} "
+                f"status_seen={sorted(self.status_seen)} "
+                f"battler_slots={sorted(self.battler_slots, key=repr)}")
+            log(f"[{TAG}] STEP3 all_item_actions={self.item_actions}")
+            # ⛔ HP actions are reported SEPARATELY and deliberately do NOT score. Sidney is L46-49
+            # and this party is under-prepared (KI-94), so HP heals here are EXPECTED — they are
+            # simply not evidence about the status cure either way.
+            log(f"[{TAG}] STEP3 hp_actions (do NOT score, shown so the split is auditable)="
+                f"{hp_actions}")
+            log(f"[{TAG}] STEP3 ⭐ cure_actions_while_frozen (parameter==0 only)={cure_actions}")
+            log(f"[{TAG}] STEP3 ACCEPTANCE: {'PASS' if step3_ok else 'FAIL'} "
+                f"(arm={'NOCURE — a cure HERE would refute the control' if nocure else 'LIVE'}; "
+                f"expected_cure={want_cure} observed_cure={cured})")
+            ok = ok and step3_ok
+
         log(f"[{TAG}] GRADE missing={missing} failure={failure} "
             f"elite4_state={R.get('elite4_state_after')} (1 = Sidney beaten, 0 = not)")
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
@@ -15867,8 +16072,10 @@ class Ch24HealMode(BotMode):
         revived by SLOT ORDER would pick Zigzagoon and a policy that revives by BATTLE VALUE picks
         Mightyena. ⛔ Two Revives are held, so BOTH get revived — the discriminator is the ORDER,
         which the report records.
-      * slot 0 Sceptile is FROZEN — Gen-3 freeze never thaws on its own, and it is the status the
-        policy explicitly warns about.
+      * slot 0 Sceptile is FROZEN — the most expensive status the policy handles, and the one it
+        explicitly warns about. *(This read "Gen-3 freeze never thaws on its own" until 2026-09-13;
+        that is FALSE for Emerald — `battle_util.c`, `CANCELER_FROZEN`, self-thaws 20% per
+        ATTEMPTED MOVE. Freeze is expensive, not permanent.)*
       * slot 3 Wailord is hurt but NOT below the bar... actually it is, deliberately, so the
         cheapest-sufficient rule has to choose between Hyper Potion and Full Restore.
       * slot 5 Castform is left UNTOUCHED — ⭐ the CONTROL. If the run touches it, the "never a

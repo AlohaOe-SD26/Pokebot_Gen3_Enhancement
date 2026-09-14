@@ -349,7 +349,7 @@ AN OPEN FACT — sweep for residuals before retiring one.
 
 ---
 
-### 🔜 `#24-e4healing` — **§Ch24 HEALING: the bot CAN now revive, cure status and top up out of battle (step 1 DONE 2026-09-04). Steps 2-4 — calling it between rooms, the in-battle question, and the 0.35 threshold — REMAIN.** (opened 2026-09-04)
+### 🔜 `#24-e4healing` — **§Ch24 HEALING. MIXED — read each step's own marker.** ✅ step 1 DONE 2026-09-04 (revive/cure/top-up OUT of battle). ✅ **step 3 DONE + DRIVEN 2026-09-13** — in-battle status cures are wired (`story_mode.py::_maybe_use_item` → `choose_status_or_revive_item`), gated (#59 = 72 checks, #60 = 11), and PROVEN LIVE on a staged-FROZEN lead: decision #1 chose **Full Heal** (`parameter==0`) and Sidney fell (`elite4_state=1`), while the `POKEBOT_E4_FAULT_NOCURE` control fired **no cure** and lost. Evidence: `tools/story-dev/evidence/2026-09-13-ch24probe-STEP3-{LIVE,NOCURE,BASELINE-UNSTAGED}.stdout.txt`. ⛔ **REMAINING: step 2** (call it BETWEEN rooms — blocked on the §Ch24 chapter, which does not exist) **and step 4** (the 0.35 threshold). ⛔ The REVIVE half stays OFF pending `KI-100`. (opened 2026-09-04)
 
 ⛔⛔⛔ **AND IT IS WORSE THAN A RE-BUY — VERIFIED IN CODE 2026-09-06.** The §Ch23 dispatch is:
 `story_mode.py:3791` `if not ch23_chapter_done():` → `:3792` runs the chapter, `:3793` else-skips —
@@ -388,7 +388,7 @@ ITS PROPOSED FIX ARE BOTH WRONG. Read `06-DECISIONS-LOG.md` 2026-09-10 before to
 
 ⛔⛔ **READ THIS BEFORE BUILDING ANY §Ch24 STEP — A HARD DEPENDENCY §Ch23 NOW PLACES ON YOU.** `ch23_chapter_done()` requires the **Elite Four basket in the bag** (it was position-only until 2026-09-05, and a WHITEOUT respawn at Ever Grande satisfied it — the predicate called a WIPED party "chapter complete"; see `06-DECISIONS-LOG.md` 2026-09-05). ⇒ **THE MOMENT §Ch24 SPENDS THE BASKET, `ch23_chapter_done()` FLIPS FALSE and the dispatch will RE-ENTER §Ch23** and re-buy it. ‼ **§Ch24 MUST THEREFORE SET ITS OWN PROGRESS MARKER** (a flag/var its own predicate reads) so Segment 23 is not re-entered mid-gauntlet. ⭐ This line exists here, and not only in the decisions log, because this project has repeatedly lost facts that lived in exactly one place a builder does not open.
 
-**STATUS: OPEN — step 1 DONE; step 3's POLICY BUILT + GATED (2026-09-13) but DELIBERATELY NOT WIRED; steps 2 and 4 remain.** ✅ **STEP 3:** `choose_status_or_revive_item()` in `battle_items.py` — a SIBLING of `choose_healing_item` (a status cure restores no HP; folding it in would make `effective_heal` lie). Narrow by design: **cure only Sleep/Freeze** (they cost the turn anyway ⇒ the trade is free; Gen-3 freeze NEVER self-thaws), **revive only when `non_fainted_count <= 1`** (a Revive costs a turn and returns the mon at half HP on the BENCH), cheapest-first, and the per-battle cap is SHARED so a revive loop terminates. Selection is BY NAME, never by `parameter` — a Repel's parameter is 100 *steps*. **Gate #59** (`repro_battle_items.py`, 72 checks; **plus gate #60 `repro_item_noop_detector.py`, 11 checks, which drives the REAL `_maybe_use_item` state machine** — a Tier 1 reviewer found that a SUCCESSFUL cure read as a failed item to the HP-delta no-op detector, so TWO cures in one battle would have set `_items_ineffective` and **disabled HP-emergency healing for the rest of an Elite Four fight**. Fixed (the detector is kind-aware; the HP path untouched) and fault-proven: reverting it reds 5 of 11 including *“the HP path still works after two cures”*. ‼ #59 could not see it — it is pure-function and static-source; this is a turn-over-turn state machine) — ‼ **that file existed and was NOT in `run_gates.py`; the HP policy had been ungated all along.** Fault-proven: widening the status set reds exactly 3, exit 1. ✅ **AND NOW WIRED (2026-09-13):** `_maybe_use_item` asks the status policy after the HP policy declines, with `allow_revive=False`. ⛔⛔ **VERIFYING THE WIRING CAUGHT A PERMANENTLY DEAD PATH:** the first draft read `getattr(mon, "status_condition", None)` — **`BattlePokemon` has no `status_condition`** (that is `Pokemon`; the battle object has **`status_permanent`**), so behind a safe getattr the cure would have returned None EVERY TURN FOREVER with all 66 policy checks green. The same draft used `get_party` out of scope, which `decide_turn`'s `try/except` would also have swallowed into a silent None. ⇒ **six static checks now gate the CALL SITE** (calls the policy · passes `status_permanent` · never `status_condition` · revives off · HP asked first · gets the UNFILTERED medicine list); fault-tested — reintroducing `status_condition` reds exactly 2 of 72, exit 1. ⚠ **WORTH, MEASURED BEFORE BUILDING:** 1,308 of 97,567 our-side turns (**1.34%**) are lost to Sleep/Freeze, ~31 per run, and the cure only fires when a cure item is HELD ⇒ expect an Elite-Four-shaped benefit, not a whole-game one. ⛔⛔ **AND THE TWO ANSWERS ARE NOT ALIKE — see `KI-100`:** a cure aims at the ACTIVE battler (proven 19/19 at slot 0); a REVIVE aims at a FAINTED NON-ACTIVE member, the index space behind **KI-18/KI-34/KI-66**. The policy already takes **`allow_revive=False`** for exactly this — wire the CURE first; flip revives on only after an observe-only index probe (rule 10).
+**STATUS: OPEN — steps 1 AND 3 DONE; steps 2 and 4 remain.** ✅ **STEP 3 IS WIRED *AND DRIVEN LIVE* (2026-09-13)** — `--driver ch24probe` + `POKEBOT_CH24_STAGE_FREEZE=1` cured a staged-FROZEN lead on decision #1 with a **Full Heal** (`parameter==0`) and beat Sidney (`elite4_state=1`); the `POKEBOT_E4_FAULT_NOCURE` control fired **no cure** and lost. ⛔ The REVIVE half is still OFF (`allow_revive=False`, `KI-100`). *(This line read "step 3's POLICY BUILT + GATED but DELIBERATELY NOT WIRED" until 2026-09-13 — it was already stale when written, since its own next sentence said "AND NOW WIRED".)* ✅ **STEP 3:** `choose_status_or_revive_item()` in `battle_items.py` — a SIBLING of `choose_healing_item` (a status cure restores no HP; folding it in would make `effective_heal` lie). Narrow by design: **cure only Sleep/Freeze** (they cost the turn anyway ⇒ the trade is free; Gen-3 freeze NEVER self-thaws), **revive only when `non_fainted_count <= 1`** (a Revive costs a turn and returns the mon at half HP on the BENCH), cheapest-first, and the per-battle cap is SHARED so a revive loop terminates. Selection is BY NAME, never by `parameter` — a Repel's parameter is 100 *steps*. **Gate #59** (`repro_battle_items.py`, 72 checks; **plus gate #60 `repro_item_noop_detector.py`, 11 checks, which drives the REAL `_maybe_use_item` state machine** — a Tier 1 reviewer found that a SUCCESSFUL cure read as a failed item to the HP-delta no-op detector, so TWO cures in one battle would have set `_items_ineffective` and **disabled HP-emergency healing for the rest of an Elite Four fight**. Fixed (the detector is kind-aware; the HP path untouched) and fault-proven: reverting it reds 5 of 11 including *“the HP path still works after two cures”*. ‼ #59 could not see it — it is pure-function and static-source; this is a turn-over-turn state machine) — ‼ **that file existed and was NOT in `run_gates.py`; the HP policy had been ungated all along.** Fault-proven: widening the status set reds exactly 3, exit 1. ✅ **AND NOW WIRED (2026-09-13):** `_maybe_use_item` asks the status policy after the HP policy declines, with `allow_revive=False`. ⛔⛔ **VERIFYING THE WIRING CAUGHT A PERMANENTLY DEAD PATH:** the first draft read `getattr(mon, "status_condition", None)` — **`BattlePokemon` has no `status_condition`** (that is `Pokemon`; the battle object has **`status_permanent`**), so behind a safe getattr the cure would have returned None EVERY TURN FOREVER with all 66 policy checks green. The same draft used `get_party` out of scope, which `decide_turn`'s `try/except` would also have swallowed into a silent None. ⇒ **six static checks now gate the CALL SITE** (calls the policy · passes `status_permanent` · never `status_condition` · revives off · HP asked first · gets the UNFILTERED medicine list); fault-tested — reintroducing `status_condition` reds exactly 2 of 72, exit 1. ⚠ **WORTH, MEASURED BEFORE BUILDING:** 1,308 of 97,567 our-side turns (**1.34%**) are lost to Sleep/Freeze, ~31 per run, and the cure only fires when a cure item is HELD ⇒ expect an Elite-Four-shaped benefit, not a whole-game one. ⛔⛔ **AND THE TWO ANSWERS ARE NOT ALIKE — see `KI-100`:** a cure aims at the ACTIVE battler (proven 19/19 at slot 0); a REVIVE aims at a FAINTED NON-ACTIVE member, the index space behind **KI-18/KI-34/KI-66**. The policy already takes **`allow_revive=False`** for exactly this — wire the CURE first; flip revives on only after an observe-only index probe (rule 10).
       ⭐⭐ **STEP 2 PLACEMENT IS ROM-VERIFIED (2026-09-13):** `HALL1/2/3/5` warps = `[(5,12),(5,2),(4,12),(6,12)]`, `HALL4` = only `[(5,33),(5,2)]`. The bot ARRIVES at (5,12) and **both neighbours are ALSO warps BACK** ⇒ one sidestep while healing silently undoes a cleared room. ⛔ **Heal INSIDE the arenas for bosses 1-4** (all `TRAINER_TYPE_NONE`, sight 0 ⇒ unlimited window) **and use HALL4 for the Wallace heal** — Champion's Room has NO window (Wallace's object script is `0x0`; an `OnFrame` script starts it, hence leg 10's *do NOT press A*). ⭐ **JUSTIFYING MEASUREMENT, ALREADY IN OUR DOCS** (`04-HANDOFF.md:19-26` / `KI-93`): `--driver ch24probe` **BEAT SIDNEY** and ended with **only `Wailord L47 226/226` standing** (5 of 6 fainted, 20 faint-chooser events) ⇒ it wins room 1 and enters room 2 with ONE mon. ⛔ **DO NOT COMMISSION FRESH RECON** — `ai-research-notes/` holds EIGHT Ch24 notes incl. `2026-09-07-ch24-elite-four-BUILD-SPEC.md` (12-leg shape; legs 5b-8b ARE step 2); a 9-agent workflow re-derived them and its own adversary said so (`08-MISTAKES.md` 2026-09-13). **Read the index first.**
 
 **MEASURED BY ME against our own code, 2026-09-04 — not an agent's claim.** (A research agent
@@ -412,14 +412,14 @@ against `modules/data/items.json`:
 |---|---|---|---|---|
 | Hyper Potion | 30 | healing | 200 | ✅ |
 | Full Restore | 3 | healing | 255 | ✅ |
-| **Full Heal** | **8** | healing | **0** | ⛔ **NO** |
-| **Revive** | **3** | healing | **0** | ⛔ **NO** |
-| Antidote | 4 | healing | 0 | ⛔ NO |
+| **Full Heal** | **8** | healing | **0** | ✅ **YES since 2026-09-13** — reached by the STATUS policy (step 3), for **Sleep/Freeze only**. *(This cell read ⛔ NO.)* |
+| **Revive** | **3** | healing | **0** | ⛔ **NO — still true 2026-09-13**: `allow_revive=False` at the call site, pending `KI-100`. |
+| Antidote | 4 | healing | 0 | ⛔ NO — **still true and DELIBERATE**: poison is outside `TURN_COSTING_STATUSES` (Sleep/Freeze), so curing it trades a turn for nothing. ⛔ Do not "fix" this cell. |
 
-⇒ **11 purchased items — ₽9,300 of the ₽54,300 — are invisible to the in-battle policy.** The module
+⇒ **11 purchased items — ₽9,300 of the ₽54,300 — are invisible to the in-battle policy.** ⚠ **UPDATED 2026-09-13 — THE FULL HEAL HALF OF THIS IS NOW FALSE.** Step 3 wired a SECOND policy (`choose_status_or_revive_item`) that the `param > 0` filter does NOT gate, so the **8 Full Heals ARE used in battle** (Sleep/Freeze only; DRIVEN LIVE vs Sidney — decision #1 chose Full Heal). ⇒ **41 of the 44 are usable, not 33**; the **3 Revives** are the only unusable ones (`allow_revive=False`, pending `KI-100`). ⛔ "No out-of-battle party-heal helper" is ALSO false — step 1 shipped one on 2026-09-04. The module
 says so on purpose (docstring lines 16-18: *"`Full Heal` is `parameter == 0` — a STATUS cure, not an
 HP item, and is excluded here on purpose"*). It is a deliberate, documented scope boundary, **not a
-bug** — but it is a boundary the Elite Four sits directly on top of.
+bug** — but it is a boundary the Elite Four sits directly on top of. ⚠ **(2026-09-13: step 3 MOVED that boundary rather than crossing it — the HP policy still refuses `parameter == 0`; a SEPARATE policy handles those. The docstring quoted above remains accurate.)**
 
 ⛔⛔ **AND THE SECOND HALF IS WORSE: THERE IS NO OUT-OF-BATTLE PARTY-HEAL AT ALL.**
 `modules/modes/util/items.py:43` `use_item_from_bag()` opens the bag, scrolls, presses A and waits
@@ -433,8 +433,8 @@ is not revive logic**, and reading it as such would have been a false reassuranc
 1. **HP carries over between all five fights** with no way to top up between rooms.
 2. **A fainted Pokémon stays fainted for the entire gauntlet** — attrition is strictly one-way. The
    3 Revives cannot be used by any code path we currently have.
-3. **Status is completely unhandled.** Gen-3 freeze does not thaw on its own; Glacia's ice moves and
-   a sleep/paralysis from any of the five would simply persist. The 8 Full Heals cannot be used.
+3. **Status is completely unhandled.** ⚠ **RETRACTED 2026-09-13 — steps 1 and 3 fixed exactly this: status IS handled, OUT of battle (step 1 — revive, cure and top up, **all statuses**) and IN battle (step 3, wired and DRIVEN LIVE). ⛔ **THE IN-BATTLE HALF IS SLEEP AND FREEZE ONLY** — they are the only statuses in `TURN_COSTING_STATUSES`; Poison / Burn / **Paralysis** are deliberately NOT cured, because they do not cost a turn and curing them trades a guaranteed attack for nothing.** *(Read "Gen-3 freeze does not thaw on its own" until 2026-09-13 — FALSE: Emerald self-thaws 20%/attempted move, `battle_util.c` `CANCELER_FROZEN`.)* Glacia's ice moves and
+   a sleep/paralysis from any of the five would simply persist. The 8 Full Heals cannot be used. ⚠ **(As of 2026-09-13 they ARE used — in battle, proven on a staged-FROZEN lead against Sidney: decision #1 chose Full Heal. ⛔ **SLEEP AND FREEZE ONLY** — they are the only statuses in `TURN_COSTING_STATUSES`; Poison / Burn / **Paralysis** are deliberately NOT cured, because they do not cost a turn and curing them trades a guaranteed attack for nothing. ⇒ the **PARALYSIS named in the sentence immediately above is STILL not cured**, and that is deliberate, not a gap.)**
 
 ⛔⛔ **AND A THIRD THING, READ OFF THE FIXTURE FILE ITSELF (`probe_anchor_inventory.py
 post_league_shop.ss1`) RATHER THAN RECALLED — THE PARTY IS NOT WHAT I HAD BEEN WRITING.**
@@ -477,9 +477,9 @@ mon cannot be revived (see above), sending the L19 in is **a wasted Pokémon we 
       it. ⇒ the gate now carries Repel/X Attack/Nugget/Escape Rope as TRAPS (its item universe was
       cleaner than the real bag), and an empty allowlist now RAISES.
 - [ ] **2. Call it between rooms**, in the corridor after each Elite Four win, before the next door.
-- [ ] **3. Decide whether the in-battle policy should get status/revive awareness**, or whether
+- [x] **3. DONE + DRIVEN LIVE (2026-09-13) — the in-battle policy GOT STATUS awareness; the REVIVE half stays OFF (`KI-100`).** *(This item read: "Decide whether the in-battle policy should get status/revive awareness", or whether
       between-room healing is enough. ⭐ Prefer step 2 first — it is the cheaper, more testable half,
-      and it may make step 3 unnecessary.
+      and it may make step 3 unnecessary." ⛔ That framing is SUPERSEDED: step 3 shipped FIRST, and step 2 is now the BLOCKED half — there are no rooms to heal between until §Ch24 exists.)*
 - [ ] **4. Re-check `HEAL_AT_FRACTION = 0.35` for the gauntlet specifically.** 35% against an E4 mon
       may already be inside one-shot range; this is a NUMBER TO MEASURE, not to argue about.
 
@@ -509,7 +509,7 @@ right place is a NEW out-of-battle path.
       ✅✅✅ **LEG 11 SHIPPED 2026-09-04 — THE ELITE FOUR'S HEALING IS STOCKED** (`ch23shop`, PASS,
       fixture `post_league_shop.ss1`): **Hyper Potion 30 · Full Restore 3 · Full Heal 8 · Revive 3**,
       ₽56,041 → ₽1,741. ⛔ **BUT ONLY 33 OF THE 44 ARE USABLE** — see `#24-e4healing` above; the
-      bot cannot use Full Heal or Revive at all, so **it is NOT ready to attempt §Ch24.**
+      bot cannot use Full Heal or Revive at all, so **it is NOT ready to attempt §Ch24.** ⚠ **UPDATED 2026-09-13 — HALF OF THIS IS NOW FALSE: FULL HEAL *IS* USABLE**, out of battle (step 1) and IN battle (step 3, DRIVEN). ⛔ **REVIVE remains unusable in battle** (`allow_revive=False`, pending `KI-100`). ⇒ the "33 of 44" figure is STALE and needs re-deriving; it is deliberately NOT restated here rather than guessed.
       ✅✅✅ **LEG 10 SHIPPED 2026-09-04 — THE PARTY IS WHOLE** (`ch23heal`, PASS, `battles=0`,
       `whiteouts=0`, fixture `post_league_heal.ss1` at EVER_GRANDE_CITY (18,6), **807/807**).
       ✅✅✅ **LEG 9 SHIPPED 2026-09-04 — THE BOT IS OUT OF VICTORY ROAD** (`ch23exit`, PASS,
@@ -1754,7 +1754,7 @@ accident of what the bot happened to meet.
 * **`#24-flyunlock` is CLOSED**, so the bot can finally REACH wild encounters at all.
 
 **⛔ THE FIVE CONSTRAINTS AN ADVERSARIAL REVIEW FOUND — build against these, they are measured:**
-1. **`_should_catch` already implements the right dex test** (`story_mode.py:1766`, comparing
+1. **`_should_catch` already implements the right dex test** (`story_mode.py:1785`, comparing
    `owned_species` by national dex number). It is gated off by conditions written for the NARROWER
    pre-Gym-1 team-building purpose: `if get_event_flag("BADGE01_GET"): return False` and a
    party-full check. ⇒ **relax those two; do not rewrite the predicate.**
@@ -1821,7 +1821,7 @@ accident of what the bot happened to meet.
   1's dex), and now GATED by `tools/story-dev/repro_heartbeat_emits.py`, which drives the **real
   `on_frame()`** and is fault-tested (arm B: 0 heartbeat lines).
 - [x] ✅✅ **THE FENCE IS BUILT AND GATED 2026-09-10 (gate #50, 20 cases, fault-armed). ⛔ DO NOT
-  REBUILD IT.** `decide_dex_catch` (`story_mode.py:1330`) is PURE; `_should_catch`
+  REBUILD IT.** `decide_dex_catch` (`story_mode.py:1349`) is PURE; `_should_catch`
   (`story_mode.py:1766`) is now a read-and-report ADAPTER that decides nothing. It was written with
   `is_armed()`, and the *"for the team!"* message now DERIVES its destination from the slot count
   the game reads. ⭐ **FOUR THINGS THE SPEC DID NOT HAVE, each verified in code before it was built:**
@@ -2704,7 +2704,7 @@ region, where "train near the gym" is actively wrong.
       asked and the data is now free, but it is not where the failures are.
 - [ ] #24-partyvariety — **Fill the party and vary what is caught; PC deposit/withdraw.**
       ‼ **ROOT CAUSE FOUND (recon 2026-07-26) — it is not emergent, it is two conditions.**
-      `_should_catch` (`story_mode.py:1766-1442`) requires `not BADGE01_GET` AND
+      `_should_catch` (`story_mode.py:1785-1442`) requires `not BADGE01_GET` AND
       `len(party) < _catch_team_target` where **`_catch_team_target = 4`** (`:811`). So the
       bot catches FOUR mons before the Stone Badge and then never catches again for the
       rest of the run. Part 1 is nearly a one-line change.

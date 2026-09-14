@@ -112,9 +112,18 @@ def choose_healing_item(
 #: than a turn lost — the trade is free. Poison / Burn / Paralysis CHIP but still let the mon attack,
 #: so spending a turn on them trades a guaranteed attack for a small HP saving, which rule 1 of this
 #: module ("a turn spent healing is a turn not attacking") says is usually a loss.
-#: ‼ Gen-3 FREEZE never thaws on its own (it needs a Fire-type hit or a thaw move), so an un-cured
-#: freeze is a permanent loss of that Pokémon for the rest of the battle — which is exactly why
+#: ‼ FREEZE IS STILL THE WORST OF THESE — BUT NOT FOR THE REASON THIS COMMENT USED TO GIVE.
+#: *(It read "Gen-3 FREEZE never thaws on its own (it needs a Fire-type hit or a thaw move)"
+#: until 2026-09-13. **That is FALSE for Emerald.** `src/battle_util.c`, `CANCELER_FROZEN`,
+#: rolls `if (Random() % 5)` on every attempted move — the 4-in-5 branch stays frozen, the
+#: remaining 1-in-5 clears `STATUS1_FREEZE`. A **20% self-thaw per attempted move**, no Fire
+#: hit required. Verified against the live decomp, not recalled.)*
+#: ⇒ an un-cured freeze costs ~5 attempted turns on average, not the rest of the battle. Still
+#: the most expensive status here, and still worth curing — which is why
 #: `pokemon_league.py`'s own driver stages a FROZEN Sceptile as its discriminator.
+#: ⛔⛔ AND IT IS WHY NO DRIVE MAY SCORE "THE FREEZE CLEARED" AS EVIDENCE OF A CURE: an
+#: 8-attacking-turn control arm self-thaws ~83% of the time (1 - 0.8**8). Score the ACTION —
+#: an item with `parameter == 0` — never the outcome.
 TURN_COSTING_STATUSES = frozenset({"Sleep", "Freeze"})
 #: The same set, casefolded — the comparison actually used. ⛔ DERIVED, never typed a second time:
 #: two hand-maintained copies of one set is how a widening lands in only one of them.

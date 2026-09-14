@@ -17354,3 +17354,150 @@ inside it.*
 `repro_no_silent_except` to 80/79 OVER. The honest response was not a budget bump but an explicit
 justification of WHY that swallow is correct (telemetry must never break a battle; the branch above
 has already cleared the marker, so a swallow cannot change behaviour) — 79/79 without funding debt.
+
+---
+
+## 2026-09-13 — a `is None` check on a value that is never `None`, and a grade that scored the wrong quantity
+
+**Three near-misses in one work item, all of the same family: a check that cannot fail, or fails for
+the wrong reason.**
+
+**1. `get_battle_state() is None` is NEVER TRUE.** `ch24probe`'s post-battle wait loop tested it.
+The function is annotated `-> BattleState` and unconditionally constructs one from raw symbols
+(`battle_state.py:808-824`); there is no `return None` in it. ⇒ the loop could never break and the
+`raise` guarding it could never not-fire. **The probe beat Sidney and was killed by the watchdog
+every single time, having printed no verdict.** It looked like a bot hang; at the moment of the
+"hang" the game was `OVERWORLD`, `DialogueNotActive`, player controllable at (6,6) — *nothing was
+stuck except the condition.* Fixed to `get_game_state() != GameState.BATTLE`.
+⇒ **Prevention: before writing `x is None`, CHECK THAT THE CALLEE CAN RETURN None** — read its
+return annotation and grep its body for `return None`. A sentinel check against a value that never
+takes the sentinel is a silent infinite loop, and it reads as perfectly defensive code.
+‼ What actually caught it: **an unstaged BASELINE arm**. It reproduced the identical hang with zero
+env vars set, which is what proved the defect was pre-existing rather than mine — and *that* is what
+sent me to read the predicate instead of my own new code.
+
+**2. `import os as _os` was NOT in scope, and `py_compile` says nothing about that.** The fault-arm
+check I added to `_maybe_use_item` used `_os.environ`; `os` is **not** imported at module scope in
+`story_mode.py` (local-import convention). `decide_turn` wraps the whole method in
+`try/except Exception: action = None`, so the `NameError` would have been swallowed into a silent
+decline — **the cure never firing, the fault arm looking permanently ON, every gate still green.**
+Identical in shape to the `status_condition` dead path in the same file, and to the out-of-scope
+`get_party` in the same draft.
+⇒ **Prevention: `py_compile` / a clean import proves SYNTAX, never NAME RESOLUTION.** In a file that
+imports locally by convention, verify the name is bound in *your* scope. ⭐ The A/B on gate #60 is
+what proved the fix: arm OFF `ALL PASS (11 checks)`, arm ON `FAIL CONTROL … None` — and because that
+gate calls `_maybe_use_item` DIRECTLY, a surviving `NameError` would have crashed the passing arm.
+
+**3. The grade scored "any item while frozen" instead of the cure.** Caught by an ADVERSARIAL
+subagent before the drive. `_maybe_use_item` returns HP items too, and the live run used three Full
+Restores. That grade gives a **false PASS** in the live arm and a **false FAIL** in the control —
+*from the same line.*
+⇒ **Prevention: when a grade counts events, ask what ELSE produces that event.** Prefer a
+STRUCTURAL discriminator over a plausible one: `parameter == 0` works because the HP policy is
+handed a list pre-filtered to `> 0` (`story_mode.py:723`), so it *cannot* produce one — that is a
+proof, not a heuristic.
+
+**4. And the tree told me something false about the game.** Three production comments said *"Gen-3
+freeze never thaws on its own"*; Emerald self-thaws **20% per attempted move**
+(`battle_util.c`, `CANCELER_FROZEN`, `if (Random() % 5)`). A gate in
+`repro_overworld_items.py` **asserted the false wording**, so correcting the comment turned the
+suite red — *the gate was defending the error.*
+⇒ **Prevention: A GREEN GATE IS NOT EVIDENCE A FACT IS TRUE — it only pins what someone once wrote.**
+When a gate fails after a factual correction, suspect the EXPECTATION before the change.
+‼ And the live control arm demonstrated the real behaviour in passing: `DECISION#9 status=Healthy`
+after 8 frozen turns with **no item used**. Had the grade scored "the freeze cleared" rather than
+the ACTION, that control would have published a refutation of a feature that works.
+
+---
+
+## 2026-09-13 — I corrected one clause of a 41,789-character line and shipped the contradiction three more times
+
+**Symptom.** `#24-e4healing` step 3 went from "not wired" to "done and driven live". I updated the
+punch-list summary cell and three handoff queue lines. Tier 1 returned **KICK-BACK**: the handoff's
+own `➡➡➡` NEXT ACTION line still said *"step 1 of 4 done"* — **in the tail of the very line whose
+head I had just edited.** I fixed that, re-ran, and Tier 1 returned **ESCALATE**: a SECOND
+`STEPS 2-4` claim survived ~28,000 characters further into the same 41,789-char line, plus a
+verbatim copy on another line. A post-condition I added then caught a FOURTH.
+
+**Root cause — two separate mistakes, and the second is the reusable one.**
+
+**(1) A LINE IS NOT A CLAIM; IT IS A PARAGRAPH.** `04-HANDOFF.md:145` is 41,789 characters,
+`:533` is 45,203, `03-PUNCH-LIST.md:391` is 3,004. "I updated that line" does **not** mean the line
+is now true. ⇒ **After editing a mega-line, RE-READ IT END TO END and grep it for the OLD claim
+before moving on.** The edit tool confirms a replacement happened; it says nothing about the other
+forty kilobytes.
+
+**(2) ⛔⛔ MY OWN STALENESS SWEEP VOUCHED FOR THE STALE CLAIMS — a proximity filter masked them.**
+I swept with "cue word near topic word, unless a retraction marker is within ±300 characters". Both
+survivors sat ~170 characters after an **unrelated** clause reading *"— superseded: too vague, and
+`08-MISTAKES.md` records it as published in error."* ⇒ **A NEIGHBOUR'S RETRACTION TAG SILENTLY
+CERTIFIED A DIFFERENT SENTENCE.** In a 40KB line, ±300 characters is a different subject entirely.
+⇒ **Prevention rule: ANCHOR AN "ALREADY MARKED HISTORICAL" TEST TO THE HIT'S OWN CLAUSE, NEVER TO A
+CHARACTER WINDOW.** Split on sentence/parenthetical boundaries and require the marker inside the
+same clause. Re-running that way took 2 survivors → 0. ‼ And the `staleness-sweep` skill already
+says *"judge every hit by hand — do NOT auto-fix"*; I auto-**filtered**, which is the same error
+wearing the opposite coat: the skill's warning is about trusting a machine to decide relevance, and
+a suppression rule is exactly that decision.
+
+**(3) A HISTORICAL WRAPPER AROUND A PRESENT-TENSE VERB IS STILL A LIVE CLAIM.** The fourth survivor
+sat inside `*(historical ordering, now partly DONE: …)*` and read *"Items (3) §Ch24 and (4)
+`#24-e4healing` steps 2-4 **remain**"*. A reviewer had judged that occurrence acceptable because of
+the wrapper. ⇒ **Judge the VERB, not the parenthetical.** "Remain" asserts the present tense no
+matter what it is nested inside.
+
+**What finally worked, and is now the habit.** The fix script carries its own **POST-CONDITION**:
+after editing, it re-scans the whole file for any unretracted survivor of the old claim and
+**refuses to write** if one is found. It fired immediately and caught the fourth occurrence — before
+any file was touched, because the assert runs before the write.
+⇒ **Prevention rule: A DOC FIX THAT REPLACES A CLAIM MUST END BY PROVING THE CLAIM IS GONE
+FILE-WIDE.** Round 1 "passed" without that check and shipped two survivors; round 2 could not.
+
+---
+
+## 2026-09-13 — five review rounds on one status change: a grep finds spellings, a reviewer finds claims
+
+**Symptom.** After `#24-e4healing` step 3 shipped, it took **five** independent review rounds to make
+the docs true. Rounds 1-2 are written up above (an under-corrected mega-line). Rounds 3-5 failed for
+three NEW reasons, each worth its own rule.
+
+**(1) ⛔⛔ A KEYWORD SWEEP PROVES THE ABSENCE OF A SPELLING, NOT OF A CLAIM.** My round-2 sweep
+returned **0 survivors**. A fresh reviewer then found four, none of which contained any word I had
+searched for:
+    *"Status is completely unhandled."* · *"The 8 Full Heals cannot be used."*
+    *"the bot cannot use Full Heal or Revive at all"* · and an **unchecked checkbox**,
+    `- [ ] 3. Decide whether the in-battle policy should get status/revive awareness`
+⇒ **Prevention: SWEEP BY CAPABILITY, NOT BY PHRASE.** State the question the change answers — here
+*"can the bot cure a status condition during a battle?"* — and find every sentence, table cell,
+checkbox and status marker that answers it. ‼ **AN UNCHECKED CHECKBOX IS A CLAIM**, and so is a
+bare table cell reading `⛔ NO`. This is failure #1 in the `staleness-sweep` skill, stated verbatim
+there; I had the skill open and swept for spellings anyway.
+
+**(2) ⛔ THE CONSISTENCY TIERS ARE SCOPED TO `PROJECT KNOWLEDGE/`, SO A CLAIM RESTATED ANYWHERE ELSE
+IS INVISIBLE TO EVERY REVIEWER.** `tools/story-dev/saves/FIXTURES.md5` pinned `post_league_shop.ss1`
+with *"no code path we currently have can use them, in or out of battle"* — false since step 1
+(2026-09-04) and false again since step 3. No tier looks there; `audit_doc_consistency.py` does not
+either. I found it only by cross-checking bag arithmetic against the pin for an unrelated reason.
+⇒ **Prevention: when a CAPABILITY changes, grep the WHOLE REPO — fixture pins, gate docstrings, code
+comments — not just the docs directory.**
+
+**(3) ⛔⛔ A RETRACTION CAN OVER-CORRECT, AND IT INHERITS THE SUBJECT OF THE SENTENCE IT FOLLOWS.**
+My own fix to `03-PUNCH-LIST.md:437` appended *"(As of 2026-09-13 they ARE used …)"* directly after
+a sentence reading *"a sleep/**paralysis** from any of the five would simply persist."* ⇒ it read as
+*"paralysis is cured now"* — **which is false.** The policy cures Sleep and Freeze ONLY; those are
+the only members of `TURN_COSTING_STATUSES`, and Poison/Burn/Paralysis are excluded deliberately
+because they do not cost a turn. The reviewer caught it; nothing mechanical would have.
+⇒ **Prevention: after appending a correction, READ THE SENTENCE BEFORE IT** and confirm the
+correction does not appear to answer that sentence too. **Carry the SCOPE into the retraction**, not
+just the verdict. ‼ Under-claiming leaves work undone; **over-claiming makes someone build on a
+capability that is not there**, which is strictly worse — and these files are skimmed, not read.
+
+**(4) And the numbers had to be DERIVED, not carried.** "33 of 44 usable" appeared in four places.
+The honest update was not a search-and-replace: from the pinned basket (Hyper Potion 30 + Full
+Restore 3 + Full Heal 8 + Revive 3 = 44) step 3 moves the 8 Full Heals ⇒ **41 usable, 3 unusable**
+(the Revives). I asked the reviewer to CHECK the arithmetic rather than assert it, and where a
+figure could not be re-derived (`"33 of the 44"` inside another item) I marked it STALE and
+**refused to restate it** rather than guess.
+
+⇒ **The meta-rule: a status change is not "update the status line". It is a CLAIM RETRACTION across
+every place the old claim was ever restated, in whatever words — and the only reliable finder of
+those is a reader who is asked the CAPABILITY QUESTION, not a grep.**

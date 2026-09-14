@@ -188,7 +188,7 @@ if getattr(ctl, "name", None) != "Full Heal":
     print("‼ CONTROL FAILED — the declines below prove nothing. Stop here.")
     sys.exit(1)
 
-check("Freeze is cured too (Gen-3 freeze never thaws on its own)",
+check("Freeze is cured too (Emerald self-thaws ~20%/attempted move: EXPENSIVE, not permanent)",
       getattr(choose_status_or_revive_item("Freeze", 3, BAG), "name", None) == "Full Heal")
 check("a DEDICATED cure is preferred over the general Full Heal (rule 3)",
       getattr(choose_status_or_revive_item("Sleep", 3, opts((AWAKEN, 2, 0), (FULLHEAL, 8, 0))),

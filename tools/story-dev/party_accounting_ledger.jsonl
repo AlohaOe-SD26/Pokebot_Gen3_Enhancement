@@ -566,3 +566,10 @@
 {"when": "2026-09-13T08:35:57", "driver": "wallymauville", "build": "sandbox", "state": "mauville_prewattson.ss1", "frames_run": 25679, "recomputes": 25679, "scans": 86, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-13T09:09:10", "driver": "wallymauville", "build": "custom", "state": "mauville_prewattson.ss1", "frames_run": 12000, "recomputes": 12001, "scans": 41, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-13T09:09:44", "driver": "wallymauville", "build": "custom", "state": "mauville_prewattson.ss1", "frames_run": 20288, "recomputes": 20288, "scans": 68, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-13T20:57:07", "driver": "ch24probe", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 500, "recomputes": 501, "scans": 2, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-13T20:58:20", "driver": "ch24probe", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 41160, "recomputes": 41161, "scans": 138, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-13T21:00:22", "driver": "ch24probe", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 47653, "recomputes": 47654, "scans": 159, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-13T21:01:41", "driver": "ch24probe", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 55289, "recomputes": 55289, "scans": 185, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-13T21:03:10", "driver": "ch24probe", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 41160, "recomputes": 41161, "scans": 138, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-13T21:10:25", "driver": "ch24probe", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 42962, "recomputes": 42963, "scans": 144, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-13T21:16:45", "driver": "ch24probe", "build": "sandbox", "state": "post_league_shop.ss1", "frames_run": 47685, "recomputes": 47686, "scans": 159, "divergences": {}, "observer_broke": false}

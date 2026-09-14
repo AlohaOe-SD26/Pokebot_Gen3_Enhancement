@@ -742,6 +742,15 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
             # cure NEVER FIRE, silently, forever, with every gate still green. Verified by listing
             # BattlePokemon's properties: `status_permanent -> StatusCondition` is the real one
             # (Sleep/Freeze/Poison/Burn/Paralysis); `status_temporary` holds Confusion and friends.
+            # ⛔⛔ `import os as _os` MUST BE HERE. `os` is NOT imported at module scope in this file
+            # (the convention is a local import; see the identical comment at the `_os` use further
+            # down). Without this line the fault-arm check below raises `NameError` — and
+            # `decide_turn` wraps this whole method in `try/except Exception: action = None`, so the
+            # cure would silently NEVER FIRE while every gate stayed green. That is the exact shape
+            # of the `status_condition` dead path this wiring already survived once, and of the
+            # out-of-scope `get_party` in the same draft. ‼ `py_compile` does NOT catch it.
+            import os as _os
+
             from modules.pokemon_party import get_party as _party
             from modules.story.battle_items import choose_status_or_revive_item
 
@@ -752,6 +761,16 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
                 uses_so_far=self._item_uses,
                 allow_revive=False,
             )
+            # ⛔ FAULT ARM ONLY — `POKEBOT_E4_FAULT_NOCURE`, registered in
+            # `29-DISABLED-FEATURES-REGISTRY.md` §B. Restores the PRE-step-3 behaviour: the status
+            # cure never fires, while the HP policy above is left completely untouched.
+            # ‼ WHY IT EXISTS AT ALL. The staged-freeze drive claims "the bot cured a frozen lead".
+            # Emerald thaws freeze on its own, so the ONLY currency this project accepts for that
+            # claim is an arm with the cure REMOVED (session-discipline rule 8). It lives here, at
+            # the call site, and NOT inside `battle_items.py` — that module has zero imports by
+            # design, which is exactly what lets gate #59 test it as a pure function.
+            if item is not None and _os.environ.get("POKEBOT_E4_FAULT_NOCURE", "") == "1":
+                item = None
         if item is None:
             return None
 
