@@ -564,6 +564,20 @@ GATES: list[tuple[str, bool]] = [
     # Pure: no ROM, no emulator, milliseconds. Fault-tested 2026-09-13 — widening
     # `TURN_COSTING_STATUSES` to include chip statuses reds exactly 3 of 46 checks and exits 1.
     ("repro_battle_items.py", False),
+    # #60 — the STATE MACHINE around the item policy, which #59 structurally cannot see.
+    # ⛔ A Tier 1 reviewer caught this BEFORE it shipped: the no-op detector judges an item by
+    # whether OUR HP ROSE by the next decision, and a status cure NEVER raises HP. So every
+    # SUCCESSFUL cure read as a failure — the first flipped the index space, the second set
+    # `_items_ineffective = True`, disabling ALL item use (including HP emergencies) for the rest of
+    # that battle. Two cures in one fight is not exotic: `pokemon_league.py`'s own driver stages a
+    # FROZEN Sceptile precisely because freeze and sleep both occur.
+    # ‼ #59's 72 checks could not see it — they are pure-function and static-source. This drives the
+    # REAL `_maybe_use_item` with the emulator edges faked. ⇒ a policy can be perfect and its
+    # integration still broken; gate the state machine separately.
+    # Fault-tested 2026-09-13: reverting the kind-awareness reds 5 of 11 — including
+    # "the HP-emergency path STILL WORKS after two cures", which returns None, i.e. the exact
+    # regression the reviewer predicted. Pure: no ROM, no emulator, milliseconds.
+    ("repro_item_noop_detector.py", False),
 ]
 
 

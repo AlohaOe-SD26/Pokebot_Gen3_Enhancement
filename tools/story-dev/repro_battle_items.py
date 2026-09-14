@@ -271,6 +271,32 @@ check("⛔ a status whose .name RAISES returns None instead of propagating out o
       choose_status_or_revive_item(_RaisingStatus(), 3, BAG) is None)
 check("the folded set is DERIVED from the public one, not typed twice",
       {s.casefold() for s in TURN_COSTING_STATUSES} == {"sleep", "freeze"})
+
+print()
+print("=" * 80)
+print("THE WIRING — static checks on story_mode.py, so a DEAD PATH cannot come back")
+print("=" * 80)
+# ⛔⛔ WHY THESE EXIST. The first draft of the wiring read `getattr(mon, "status_condition", None)`.
+# `BattlePokemon` has NO `status_condition` — that property is on `Pokemon`. Behind a safe getattr
+# the cure would have NEVER FIRED, silently, forever, with all 66 policy checks still green. These
+# checks read the caller's source: pure (no ROM, no emulator), and they pin the three things that
+# make the call live rather than decorative.
+_wiring = (REPO / "sandbox-pokebot" / "plugins" / "custom_modes" / "story_mode.py").read_text(
+    encoding="utf-8", errors="replace")
+check("the caller actually CALLS the status policy",
+      "choose_status_or_revive_item(" in _wiring)
+check("⛔ it passes `status_permanent` — the property BattlePokemon really has",
+      "mon.status_permanent" in _wiring,
+      "BattlePokemon has no `status_condition`; using that name makes the cure permanently dead")
+check("⛔ it does NOT use the non-existent `status_condition` on the battle mon",
+      'getattr(mon, "status_condition"' not in _wiring)
+check("⛔ revives stay OFF at the call site until KI-100's index probe exists",
+      "allow_revive=False" in _wiring)
+check("the HP policy is still asked FIRST (an HP emergency outranks a status cure)",
+      _wiring.index("choose_healing_item(") < _wiring.index("choose_status_or_revive_item("))
+check("the status policy is given the UNFILTERED medicine list, not the parameter>0 one",
+      "medicine,\n                uses_so_far=self._item_uses," in _wiring,
+      "passing `options` here would re-create the parameter>0 bug this item exists to fix")
 check("allow_revive=False STILL CURES STATUS (one flag must not disable two behaviours)",
       getattr(choose_status_or_revive_item("Sleep", 1, BAG, allow_revive=False),
               "name", None) == "Full Heal")

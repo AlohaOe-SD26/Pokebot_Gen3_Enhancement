@@ -5263,3 +5263,26 @@ requiring `.name`, i.e. trusting a convention whose violation is invisible.
 ⚠ **DELIBERATELY NOT DECIDED HERE:** whether to WIRE any of it. `story_mode.py:679` still filters
 `parameter > 0`; wiring changes every trainer battle in the game and needs its own reviewable change
 and its own drive. Step 3 is half-shipped and labelled as such.
+
+
+## 2026-09-13 — `#24-e4healing` step 3, the WIRING: three more choices
+
+**Decision 5 — the HP policy is asked FIRST; the status policy only if it declines.** *Rationale:* an
+HP emergency outranks a status cure — a fainted Pokémon cannot benefit from being awake. *Rejected:*
+asking the status policy first, which would spend the shared per-battle budget on a cure while the
+mon was about to faint.
+
+**Decision 6 — the status policy receives the UNFILTERED `medicine` list.** *Rationale:* `parameter`
+is a union type; `battle_use is Healing` is the KIND check and already excludes a Repel. Passing the
+`parameter > 0` list would re-create the exact bug this item exists to remove. *Rejected:* one shared
+list — it is what made Full Heal / Revive / Antidote unusable in the first place. ⛔ Gated statically.
+
+**Decision 7 — a status cure is judged by STATUS CHANGE, never by HP delta, and that check runs
+BEFORE the HP detector and returns early.** *Rationale:* the HP detector is proven code with three
+measured iterations behind it; a new feature must not modify it. *Rejected:* teaching the existing
+detector about kinds in place — a larger edit to the most safety-critical branch in the method, for
+no additional benefit. ‼ A Tier 1 reviewer found this interaction; without the fix, two successful
+cures would have disabled ALL item use for the remainder of an Elite Four battle.
+
+⚠ **SCOPE, stated deliberately:** cures are inside the pre-existing `BattleType.Trainer` gate, so
+wild battles are untouched — the same scope the HP policy has always had.

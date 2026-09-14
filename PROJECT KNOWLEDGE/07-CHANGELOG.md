@@ -28637,3 +28637,135 @@ It FAILED, and the code was right: the gap is 90, which a 20-HP Potion cannot co
 "cheapest-sufficient" correctly returns the Hyper Potion. Fixed by choosing inputs where the
 intended winner is actually sufficient (10/30). ⇒ *read the failing check before touching the
 subject* — recorded again because this is now three occurrences.
+
+---
+
+## 2026-09-13 — how much is the in-battle cure actually WORTH? Measured before wiring it: 1.34% of turns.
+
+Before wiring `#24-e4healing` step 3 I measured whether the path would ever fire, because a policy
+that never triggers is not worth a hot-path change. The debug logs carry OUR active mon's status in
+brackets — `[BATTLE] [TURN 12] Mightyena L48 90/144 [Sleep] -> UseMove:Bite(pp24) vs …` — where the
+bracket BEFORE the `->` is ours and anything after `vs` is the opponent's.
+
+Batch `20260913-092254` (`f039bffc`, 42 runs), **97,567 our-side turns parsed**:
+| our status | turns | share |
+|---|---|---|
+| Paralysis | 4,370 | 4.48% |
+| Confused | 2,406 | 2.47% |
+| Poison | 1,588 | 1.63% |
+| **Sleep (+ Sleep/Confused)** | **1,276** | **1.30%** |
+| Freeze | ~32 | 0.03% |
+| *(any status)* | 11,508 | 11.8% |
+
+⇒ **turns lost to Sleep/Freeze = 1,308 = 1.34% of all our turns**, ~31 per run. Modest but real, and
+it is the HONEST CEILING for this feature — recorded now so it cannot be overclaimed later.
+⭐ **AND IT SUPPORTS THE DESIGN RATHER THAN CONTRADICTING IT.** Paralysis is **3.3× more common**
+than sleep+freeze combined, and the policy deliberately does NOT cure it: paralysis skips a turn only
+25% of the time, so curing it trades a CERTAIN attack for a probabilistic saving — exactly what rule
+1 of `battle_items.py` rejects. The measurement would have been the argument for widening the set;
+it is instead the argument against.
+⚠ **Value is E4-CONCENTRATED**: the cure fires only if a cure item is HELD, and outside the
+₽54,300 League basket the bot generally holds none. ⇒ do not expect a whole-game effect.
+
+### ⛔ AND A MEASUREMENT THAT LIED FIRST, CAUGHT BY ITS OWN CONTROL
+My first pass reported **0 occurrences of every status word** — which would have killed the feature.
+It was a BROKEN SHELL PIPE (`grep -hoc … | paste -sd+ | bc`), not a measurement: the positive control
+(`UseMove`, `[BATTLE]` — words that must be present) also returned 0. ‼ **This is the SECOND time
+today the same `paste | bc` pattern has silently returned nothing**, and the rule written this
+morning — *"a zero from a multi-stage shell pipe must be confirmed by a positive control"* — is what
+caught it both times. ⇒ **that pattern is now retired; count in Python.**
+‼ A second near-miss in the same measurement: "Sleep 1,321" was nearly reported as a status count
+when it could equally have been a MOVE name. Checking the surrounding context is what showed the
+bracket notation and the `vs` boundary. ⇒ *a string match is not a semantic match — print the
+context before you count.*
+
+---
+
+## 2026-09-13 — step 3 is WIRED, and verifying the wiring caught a path that would have been DEAD FOREVER
+
+`story_mode.py`'s `_maybe_use_item` now asks `choose_status_or_revive_item()` after the HP policy
+declines. The bot can cure Sleep and Freeze mid-battle for the first time.
+
+### The change
+* **Two option lists, because `parameter` is a union type.** `battle_use is Healing` is the KIND
+  check and does the real work (it already excludes a Repel, whose parameter is 100 *steps*). The
+  extra `parameter > 0` is an HP filter and now belongs ONLY to the HP policy — which is exactly
+  what made Full Heal / Revive / Antidote unusable.
+* **The HP policy is asked FIRST**, so an HP emergency always outranks a status cure.
+* **`allow_revive=False` at the call site** (`KI-100`): a cure targets the ACTIVE battler —
+  `mon.party_index`, the index this method already lands 19/19 at slot 0 — while a revive would
+  target a FAINTED NON-ACTIVE member, the space behind KI-18/KI-34/KI-66.
+
+### ⛔⛔ THE CATCH: MY FIRST DRAFT WAS A PERMANENTLY DEAD PATH
+It read `getattr(mon, "status_condition", None)`. **`BattlePokemon` has no `status_condition`** —
+that property belongs to `Pokemon`. The battle object exposes **`status_permanent`** (Sleep / Freeze
+/ Poison / Burn / Paralysis) and `status_temporary` (Confusion and friends).
+⇒ behind a safe-looking `getattr`, the cure would have returned None **every turn, forever**, and
+**all 66 policy checks would still have passed** — the feature would have shipped, been recorded as
+shipped, and done nothing. `decide_turn`'s `try/except` would have hidden a `NameError` in the same
+way (I also had `get_party` out of scope; it is imported inside a different function as `_gp`).
+⇒ Found by LISTING `BattlePokemon`'s actual properties instead of assuming the name, then verifying
+end-to-end with the real enum: `StatusCondition.Sleep → Full Heal`, `Freeze → Full Heal`,
+`Poison/Paralysis/Healthy → None`.
+‼ **THE WIRING IS NOW GATED, STATICALLY** — six new checks read `story_mode.py`'s source and pin:
+it calls the policy; it passes `status_permanent`; it does NOT use `status_condition`; revives stay
+off; the HP policy is asked first; and the status policy gets the UNFILTERED medicine list (passing
+`options` there would silently re-create the `parameter > 0` bug this whole item exists to fix).
+**Fault-tested:** reintroducing `status_condition` reds exactly 2 of 72 and exits 1.
+
+### What it is worth — measured BEFORE building, and it bounds the claim
+1,308 of 97,567 our-side turns (**1.34%**) are lost to Sleep/Freeze — ~31 per run. ⚠ And the cure
+only fires when a cure item is HELD, which outside the ₽54,300 League basket is usually never. ⇒ the
+honest expectation is an Elite-Four-shaped benefit, not a whole-game one.
+
+Gate #59 is now **72 checks**. Full suite: ALL 56 ENFORCING GATES PASS.
+
+---
+
+## 2026-09-13 — a Tier 1 reviewer caught a bug that would have DISABLED HP HEALING in the Elite Four, and my 72 checks could not have seen it
+
+### The bug (found before it shipped, not after)
+`_maybe_use_item` carries a no-op detector built for a measured problem: the battle item menu does
+not reliably execute, so a request that does not RAISE OUR HP by the next decision is treated as a
+miss — first miss flips the index space, second sets `_items_ineffective = True`, which disables
+**all** item use for the rest of that battle.
+⛔ **A STATUS CURE NEVER RAISES HP.** So wiring cures into the same method made every SUCCESSFUL cure
+look like a failure:
+```
+turn N   : asleep -> Full Heal cures it -> HP unchanged -> "no effect", flip index space (miss 1)
+turn N+k : frozen -> Ice Heal cures it  -> HP unchanged -> "no effect", DISABLE ALL ITEMS (miss 2)
+```
+⇒ **the bot would lose HP-emergency healing for the rest of an Elite Four fight BECAUSE TWO CURES
+WORKED.** Two cures in one battle is not exotic — `pokemon_league.py`'s own driver stages a FROZEN
+Sceptile precisely because freeze and sleep both occur.
+
+### The fix, and why it is shaped this way
+The request site now records WHICH KIND was asked for (`parameter > 0` ⇒ HP, else status), and a new
+branch judges a cure by whether `status_permanent` actually CHANGED. ⛔ That branch is checked FIRST
+and returns early, so **the HP logic is untouched** — it took three measured iterations (KI-34, the
+2026-08-10 same-subject fix, the index-space flip) and must not be disturbed by a feature it knows
+nothing about.
+‼ The telemetry handler inside it carries an explicit justification rather than a raised budget:
+`repro_no_silent_except` went 80/79 OVER, and the honest fix was to say WHY the swallow is correct
+(telemetry must never break a battle; the branch above has already cleared the marker, so a swallow
+cannot change behaviour) — which took it back to 79/79 without funding new debt.
+
+### ⛔ GATE #60 — BECAUSE #59 STRUCTURALLY COULD NOT SEE THIS
+`repro_battle_items.py`'s 72 checks are pure-function and static-source. This bug is a TURN-OVER-TURN
+STATE MACHINE. New gate `repro_item_noop_detector.py` drives the REAL `_maybe_use_item` with the
+emulator edges faked (bag, party, battle state) — no ROM, milliseconds — and proves both halves:
+two successful cures leave items ENABLED, **and** a genuinely failed HP item still flips then
+disables. ✅ **FAULT-PROVEN: reverting the kind-awareness reds 5 of 11, including *"the HP-emergency
+path STILL WORKS after two cures"* — which returns `None`, i.e. the reviewer's predicted regression,
+reproduced exactly.**
+⇒ **A POLICY CAN BE PERFECT AND ITS INTEGRATION STILL BROKEN. Gate the state machine separately.**
+
+### The reviewer's three remaining risks, answered
+1. *The static check `"medicine,
+                uses_so_far=..."` is whitespace-brittle.* Accepted —
+   it fails CLOSED (a harmless reformat blocks the gate rather than silently passing), which is the
+   safe direction for a check whose job is to catch a silent regression.
+2. *No decisions-log entry for "HP asked first" / `allow_revive=False`.* Fixed — recorded.
+3. *The `BattleType.Trainer` gate scopes cures to trainer battles only.* Deliberate and now stated:
+   wild battles keep the existing behaviour untouched, which is the same scope the HP policy has had
+   since it shipped.

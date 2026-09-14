@@ -17289,3 +17289,68 @@ gate result instead of attaching raw output. *"Per the fixed rule this is an aut
 reviewer then ran the gate itself and got a DIFFERENT count than I had claimed — which is how the
 staleness was detected in the first place. ⇒ **attach raw stdout, never a paraphrase; a number you
 retype is a number you can retype wrongly.**
+
+---
+
+## 2026-09-13 — I nearly shipped a feature that could never fire, hidden behind a safe `getattr`
+
+**Symptom.** Wiring `#24-e4healing` step 3, I wrote
+`getattr(mon, "status_condition", None)` to read the active Pokémon's status. `mon` here is a
+**`BattlePokemon`**, which has **no `status_condition` property** — that one belongs to `Pokemon`.
+The battle object exposes `status_permanent` and `status_temporary`.
+
+**What would have happened.** `getattr` with a default does not raise. The policy would have been
+handed `None` every single turn, declined every single time, and the feature would have been
+**inert forever** — while all 66 policy checks passed, the commit said "the bot can now cure status
+in battle", and nothing anywhere contradicted it. The same draft also used `get_party` without
+importing it in that scope (it is imported inside a *different* function as `_gp`), which would have
+raised `NameError` — and `decide_turn` wraps `_maybe_use_item` in `try/except Exception`, so that
+too would have been swallowed into a silent None.
+⇒ **Two independent silent-failure paths in ten lines, both invisible to a green test suite.**
+
+**What caught it.** Not a test — a habit: before trusting an attribute name, I listed the class's
+actual `@property` names. Then I verified end-to-end with the REAL enum
+(`StatusCondition.Sleep → Full Heal`, `Poison → None`) rather than with a stand-in.
+
+⇒ **Prevention rule: A SAFE DEFAULT ON AN ATTRIBUTE YOU HAVE NOT VERIFIED IS A SILENT OFF-SWITCH.**
+`getattr(x, "name", None)` and `try/except` around a caller are both fine — but they convert a
+*typo* into *permanent silence*, which is strictly worse than a crash. Before reading an attribute
+off an object you did not construct, ENUMERATE its properties; and prefer the direct access
+(`mon.status_permanent`) once verified, so a future rename FAILS LOUDLY instead of going quiet.
+‼ **And gate the wiring, not just the policy.** The 66 checks tested a pure function that was
+perfect; the bug was entirely in how it was CALLED. Six static source checks now pin the call site —
+including that the caller passes the UNFILTERED item list, because passing the filtered one would
+silently re-create the very `parameter > 0` bug this item exists to remove.
+
+---
+
+## 2026-09-13 — my 72 checks tested a perfect policy while its INTEGRATION was broken
+
+**Symptom.** I wired `choose_status_or_revive_item` into `_maybe_use_item`, with 72 gate checks
+green: the pure policy verified exhaustively, the call site verified statically, the item names
+verified against `items.json`, five fault arms proven. A Tier 1 reviewer then traced the wiring
+against code the diff *did not touch* — the no-op detector — and found that a **SUCCESSFUL status
+cure reads as a FAILED item**, because the detector judges by HP delta and a cure never raises HP.
+Two cures in one battle would have set `_items_ineffective = True` and **disabled all item use,
+including HP-emergency healing, for the rest of that fight** — in the Elite Four, which is the one
+place the feature was built for.
+
+**Root cause.** Every check I wrote pointed at the thing I ADDED. None pointed at the thing I was
+adding it INTO. The policy was pure and provable, so I proved it; the integration was a stateful
+interaction with three-iteration-old code, and I checked it only by reading.
+⇒ **Prevention rule: WHEN WIRING A NEW ANSWER INTO AN EXISTING DECISION PATH, THE THING TO TEST IS
+THE PATH, NOT THE ANSWER.** Ask specifically: what does the surrounding code MEASURE to decide
+whether my action worked — and is that measurement meaningful for the new kind of action? Here the
+answer was "it measures HP, and my action does not change HP", which is the whole bug in one line.
+‼ **And the shape generalises:** a no-op/effectiveness detector built for action A will silently
+misjudge action B unless it knows the kinds apart. Gate #60 exists to keep it knowing.
+
+**What made the fix safe.** The kind check runs FIRST and returns early, so the HP branch — three
+measured iterations deep (KI-34, the 2026-08-10 same-subject fix, the index-space flip) — is not
+modified at all. ⇒ *when extending safety-critical code, prefer a branch in front of it to an edit
+inside it.*
+
+‼ **A ratchet also caught the fix's own cost.** The new telemetry handler took
+`repro_no_silent_except` to 80/79 OVER. The honest response was not a budget bump but an explicit
+justification of WHY that swallow is correct (telemetry must never break a battle; the branch above
+has already cleared the marker, so a swallow cannot change behaviour) — 79/79 without funding debt.
