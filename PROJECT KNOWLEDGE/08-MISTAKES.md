@@ -17632,3 +17632,43 @@ correctly-hedged unknown is still an unknown, and hedging it does not schedule t
 KI names an unresolved question that BLOCKS a chapter, the question belongs in NEXT ACTIONS, not
 only in the KI body. That is precisely what a cold-start audit surfaced this session, and answering
 it took one adversarial agent and one 40,000-frame drive.
+
+---
+
+## 2026-09-14 — four ways a POST-CONDITION lied to me in one afternoon
+
+Every doc repair I ran today ended with a read-back post-condition. They caught real defects — and
+**four of them were themselves wrong**, in four different ways. Collected here because the pattern
+is more useful than any one instance, and because session-discipline rule 4 ("read the failing line
+before touching the subject") now has more entries in this file than any other rule.
+
+**1. TOO NARROW — it encoded INCIDENTAL FORMATTING.** A check for *"total = enforcing + advisory"*
+required the literal `(**` bold markers, so a line writing the same fact unadorned —
+`61 gates (57 ENFORCING + 3 ADVISORY` — sailed through and reported **"0 inconsistent"** about an
+inconsistent file. The real gate caught it one run later.
+⇒ **Match the FACT (a number, a keyword, a number), never its decoration.**
+
+**2. TOO BROAD — it matched a FRAGMENT that lives elsewhere.** A check that the pending-promotion
+note was gone asserted on `"not this one"`, which occurs three times in an unrelated sentence about
+the OWNER filter. It failed on an already-correct file.
+⇒ **Match the CLAIM, not a fragment that could appear anywhere.** 1 and 2 are the same error in
+opposite directions, and I made both within hours.
+
+**3. IT PASSED FOR THE WRONG REASON — it matched NOTHING.** A post-condition that finds zero
+instances "passes". ⇒ **assert the pattern matched something**: the corrected version requires
+`found >= 2` before trusting a clean result. A check that cannot fail is not a check.
+
+**4. IT RAN BEFORE THE WORK FINISHED.** A script did its edits, asserted, then would have appended a
+changelog entry. The assert fired, so the append never ran — and the script still printed its
+"FIXED" lines and looked like a partial success. The missing entry was found only by reading
+`git status`.
+⇒ **Put ALL edits before ALL post-conditions, or make each step independently re-runnable. And
+trust `git status`, never a script's self-report.**
+
+‼ **AND THE ONE THAT WAS NOT A CHECK AT ALL:** a correction that SPANS LINES opened
+`*(The superseded clause read: "…` and never closed the quote or the parenthetical, because the
+close belonged on the CONTINUATION line. Python does not complain about a comment and no gate can
+see it. **A malformed marked-up retraction is worse than none — it makes the OLD wording look like
+live text again.** It was caught by `diff`-before-promoting, which is now two-for-two at finding
+defects that every other check missed.
+⇒ **When a correction spans lines, check the continuation, not only the line you edited.**
