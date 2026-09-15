@@ -232,3 +232,21 @@ wrong has a BROKEN READER, and every conclusion from it must be discarded rather
 ‼ And the acceptance must show the **BEFORE** value too. `IS_CHAMPION` is **False** on
 `post_ch24_atdoor.ss1` (the bot has never won), so the chapter proves **False → True** rather than
 asserting a final True that a soft-failing reader could also produce.
+
+#### ✅ COVERAGE CHECK (2026-09-14) — the three failure modes, and which defence catches each
+
+⛔ **DO NOT BUILD A FLAG-NAME GATE: ONE ALREADY EXISTS.** `tools/story-dev/audit_flag_names.py` is in
+`run_gates.py`, and its docstring is exactly this problem — *"Audit every flag/var name string used
+by story code against the emerald tables. Phantom names silently read False/0 forever — find them
+ALL at once."* It globs `modules/story/*.py` (so **`pokemon_league.py` is covered** — 4 names today)
+plus `plugins/custom_modes/story_mode.py` (66). Rebuilding it would repeat a recorded mistake.
+
+| failure mode | what happens | what catches it |
+|---|---|---|
+| **Phantom name** (typo / renamed flag) | `get_event_flag` returns `False` forever, silently | ✅ `audit_flag_names.py` — already a gate, already covers the file §Ch24 will live in |
+| **Broken reader** (save-block read fails, wrong ROM) | every flag reads `False`, so "not champion" looks true | ✅ the POSITIVE CONTROL in addendum (b) — `LANDMARK_POKEMON_LEAGUE` must read True, else DISCARD the verdict |
+| **Wrong-but-VALID name** (e.g. `HIDE_CHAMPIONS_ROOM_RIVAL`) | reads a real flag that never flips; the control still passes | ✅ the **False → True** requirement — a wrong flag does not flip across the win, so asserting the TRANSITION (not a final True) is what exposes it |
+
+⇒ All three are covered, and **the three defences are complementary, not redundant**: the gate cannot
+see a wrong-but-valid name, the control cannot see it either, and only the transition assertion can.
+That is why addendum (b) asks for the BEFORE value rather than a final `True`.
