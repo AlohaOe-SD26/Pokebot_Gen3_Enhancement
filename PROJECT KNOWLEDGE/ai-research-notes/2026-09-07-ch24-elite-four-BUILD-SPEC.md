@@ -1,5 +1,30 @@
 # §Ch24 (THE ELITE FOUR) — build spec from a 7-agent recon. ⚠ A NOTE, NOT TRUTH.
 
+> ⛔⛔ **SUPERSEDED IN PART — 2026-09-15. READ `2026-09-15-ch24-ROUTING-AND-GRADING-CORRECTION.md`
+> BEFORE BUILDING FROM THIS FILE.** An adversarial round refuted this spec's per-room acceptance
+> check, and the refutation was then verified against the decomp directly:
+> * **`VAR_ELITE_4_STATE` is written on room ENTRY, never by a victory** ⇒ every leg graded on it
+>   passes before the fight starts. **Grade legs on `DEFEATED_ELITE_4_<NAME>` instead.**
+>   This spec's *“do not grade on `DEFEATED_ELITE_4_*`”* landmine is TOO BROAD: `ResetEliteFour`
+>   clears those flags on the whiteout path and on the final win — **not between rooms**.
+> * The var is named **`ELITE_4_STATE`** in our data — no `VAR_` prefix.
+> * The completion-predicate ADDENDUM's stated reason is dissolved: `IS_CHAMPION` and
+>   `SYS_GAME_CLEAR` are set in the SAME Hall-of-Fame script nine lines apart, and `chapters.py`
+>   already ships `SYS_GAME_CLEAR`.
+> * Ten further traps this spec omits — including that **the defeated trainer stays standing at
+>   (6,5), blocking the straight line to the exit door**, that **Wallace has no A-press trigger**,
+>   and that **the Hall of Fame blocks on a raw `JOY_NEW(A_BUTTON)`** no text-printer check can see.
+> ⛔⛔ **EXACTLY WHICH PARTS ARE VOID — named, because “the rest stands” was too vague and a
+> Tier 1 reviewer caught it inviting a builder straight back to the refuted table:**
+>   * **VOID — the leg 5-8 ACCEPTANCE COLUMN** in the leg table below (`VAR_ELITE_4_STATE == k`).
+>   * **VOID — the “NET, for whoever builds this chapter” paragraph**, which repeats that instruction.
+>   * **VOID — the “fine *during* the gauntlet” qualifier** attached to that var: it is not fine at
+>     any point, because it is written on ENTRY and never reaches 5 at all.
+>   * **VOID — the unqualified “never grade on `DEFEATED_ELITE_4_*`” landmine**, which holds for the
+>     CHAPTER-DONE check only.
+> ⭐ **STANDS — everything else**: the routing and map coordinates, the opposition data, the healing
+> analysis, the item/economy work, and the record of the nine errors its own adversary fixed.
+
 **Produced 2026-09-07** by a 5-angle recon (maps, opposition, our code, healing, hazards) + an
 adversarial verifier + a synthesis pass. ⛔ Per `ai-research-notes/00-READ-THIS-FIRST.md` this is a
 **NOTE**: the authoritative docs win on any contradiction until a claim is verified here.
@@ -32,7 +57,7 @@ position, so a resume mid-gauntlet works.
 | 2 | lobby: face N at (18,6), hold Up (animated door) | map == `..._POKEMON_LEAGUE_1F` |
 | 3 | guards: approach **from x ∈ {9,10} only**, talk N | `FLAG_ENTERED_ELITE_FOUR` set |
 | 4 | door → **HALL5** (Hall5 is FIRST, then 1→2→3) | map == `HALL5` |
-| 5-8 | per room: locate trainer live, step adjacent, press A | `VAR_ELITE_4_STATE == k` |
+| 5-8 | per room: locate trainer live, step adjacent, press A | ⛔ **VOID — REFUTED 2026-09-15.** ~~`VAR_ELITE_4_STATE == k`~~ is set on room ENTRY, so this passes BEFORE the fight. **Use `DEFEATED_ELITE_4_<NAME>`.** See the stub at the top of this file. |
 | 5b-8b | **heal between fights** — raise if not ready | `party_is_gauntlet_ready()` |
 | 9 | `HALL4` is **31 tiles** (5,33)→(5,2) — budget for it | map == `CHAMPIONS_ROOM` |
 | 10 | **Wallace: do NOT press A** — an `OnFrame` script on `VAR_TEMP_1==0` starts it | battle entered |
@@ -174,7 +199,7 @@ and it is called from the WIN path (`data/scripts/hall_of_fame.inc:7`, inside
 `EverGrandeCity_HallOfFame_EventScript_SetGameClearFlags`).
 
 ⇒ **`VAR_ELITE_4_STATE` IS ZEROED ON VICTORY TOO.** So the table above, which grades legs 5-8 on
-`VAR_ELITE_4_STATE == k`, is fine *during* the gauntlet but **must NOT be used as the CHAPTER-DONE
+`VAR_ELITE_4_STATE == k`, ⛔ **is NOT “fine during the gauntlet” either — REFUTED 2026-09-15: it is written on room ENTRY and never reaches 5** *(original wording follows)* is fine *during* the gauntlet but **must NOT be used as the CHAPTER-DONE
 predicate**: after a win the var reads 0 and all four flags read clear — a state **indistinguishable
 from "never entered the Elite Four"**. A done-check built on it re-enters §Ch23 exactly as landmine
 1 predicts for the flags.
@@ -196,7 +221,7 @@ both words. ⇒ **a non-zero search count is not evidence the phrase exists.** F
 the literal line before concluding anything from a code-search tally. *(The `11` for
 `FLAG_SYS_GAME_CLEAR` was not re-verified and must NOT be quoted as a count of real clears.)*
 
-⇒ **NET, for whoever builds this chapter:** grade the per-room legs on `VAR_ELITE_4_STATE` as the
+⛔⛔ **THIS PARAGRAPH IS VOID — REFUTED 2026-09-15; it is kept only so the refutation has something to point at. Do NOT follow it. The correct rule is in the stub at the top of this file.** *(It read:)* ⇒ **NET, for whoever builds this chapter:** grade the per-room legs on `VAR_ELITE_4_STATE` as the
 table says; grade CHAPTER COMPLETION on `IS_CHAMPION` (verified live, with a before/after read), and
 NEVER on the four flags or on `VAR_ELITE_4_STATE`.
 

@@ -44,6 +44,11 @@ SCOPE = ("modules", "plugins")
 FAULT = os.environ.get("POKEBOT_COMMENTDRIFT_FAULT", "")
 
 
+def _bytes_norm(path: Path) -> bytes:
+    """Newline-normalised bytes — same rule as `promote.py._digest`."""
+    return path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
 def _norm(path: Path) -> str | None:
     """AST dump with positions discarded. Returns None if the file cannot be parsed."""
     try:
@@ -81,11 +86,21 @@ def main() -> int:
         print("=" * 92)
         return 0
 
-    cosmetic, real, unreadable = [], [], []
+    cosmetic, real, unreadable, eol_only = [], [], [], []
     for rel in differing:
         src, dst = SANDBOX / rel, CUSTOM / rel
         if not dst.exists():
             real.append((rel, "exists only in sandbox — a NEW module, never cosmetic"))
+            continue
+        # ⛔ CLASSIFY LINE-ENDING-ONLY *BEFORE* THE AST COMPARE, AND AS ITS OWN CLASS (2026-09-15).
+        #   Such a pair DOES have identical ASTs, so it used to land in COMMENT-ONLY — true, and
+        #   misleading: "the comments differ" sends a reader hunting for a textual difference that
+        #   is not there. git stores ONE blob for both copies.
+        # ‼ `FAULT != "1"` so the fault arm below still reaches its target: the fault corrupts the
+        #   AST compare, and a short-circuit above it would leave the fault silently un-firing —
+        #   exactly the failure that arm's own comment says it was written to avoid.
+        if FAULT != "1" and _bytes_norm(src) == _bytes_norm(dst):
+            eol_only.append(rel)
             continue
         a, b = _norm(dst), _norm(src)
         if FAULT == "1" and rel.as_posix().endswith(".py") and a is not None:
@@ -100,6 +115,11 @@ def main() -> int:
         else:
             real.append((rel, "ASTs differ"))
 
+    if eol_only:
+        print(f"\n  〜 LINE-ENDING-ONLY — identical bytes modulo CRLF/LF, ONE git blob ({len(eol_only)}):")
+        for rel in eol_only:
+            print(f"       {rel.as_posix()}")
+        print("       ⇒ NOT drift at all. Do not promote; git would record an empty commit.")
     if cosmetic:
         print(f"\n  \U0001f4dd COMMENT-ONLY — ASTs identical, zero behaviour difference ({len(cosmetic)}):")
         for rel in cosmetic:

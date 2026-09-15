@@ -2547,3 +2547,22 @@ drive, against SIDNEY. It is **not** a finish-rate or win-rate claim, and no bat
 **Line endings:** `higher_level_actions.py` was promoted **preserving custom's CRLF**, so git shows
 the 91 real added lines rather than a 1,173-line encoding flip. ⇒ `promote.py --check` will keep
 reporting **1 differing file** for that reason alone — an ENCODING-ONLY residual, content identical.
+
+
+---
+
+### 2026-09-15 — the ENCODING-ONLY residual is no longer counted as drift (no file moved)
+
+The 2026-09-14 note above records `promote.py --check` *"reporting **1 differing file** for that
+reason alone — an ENCODING-ONLY residual, content identical."* That is now measured and settled:
+`git rev-parse` returns the SAME blob `08b92af1…` for both forks' copies of
+`modules/modes/util/higher_level_actions.py`, i.e. git itself sees no difference at all.
+
+`promote.py` now hashes newline-normalised content and prints such files on their own line
+(`line-ending-only (NOT drift, no behaviour difference)`), so the live reading is
+**drift 0, orphaned 0, line-ending-only 1**.
+
+⛔ **NOTHING WAS COPIED BETWEEN THE FORKS TO ACHIEVE THIS, and custom's CRLF is deliberately kept** —
+flipping it would replace a 91-line reviewable diff with a 1,173-line ending flip. Gate #62
+(`selftest_promote_drift.py`) fault-tests the change in both directions. Full rationale:
+`PROJECT KNOWLEDGE/06-DECISIONS-LOG.md` 2026-09-15.

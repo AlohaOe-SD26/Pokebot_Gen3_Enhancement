@@ -29104,3 +29104,84 @@ throughout. Full detail and the limits are in `custom-pokebot/DIVERGENCE-LOG.md`
 ‼ Both belong to the same family as today's other near-misses (a token-based code-search tally read
 as a phrase count; a post-condition that encoded bold markers). **A tool's output is an observation
 in that tool's semantics — not the fact you wanted.**
+
+
+---
+
+## 2026-09-15 — THE FORK-DRIFT METER STOPPED LYING: a phantom `drift: 1` reads 0, AND NO FILE MOVED (`#24-driftreduction`)
+
+**⛔ READ THIS FIRST: NO PROMOTION HAPPENED.** The count went 1 → 0 because the INSTRUMENT was
+corrected, not because anything was copied between the forks. `git status` was clean before and
+after; the working tree of `custom-pokebot` and `sandbox-pokebot` is byte-for-byte what it was.
+
+**What was wrong.** `promote.py --check` reported
+
+    drift (sandbox → custom): 1 file(s)
+        modules/modes/util/higher_level_actions.py
+
+for a file git stores as a SINGLE blob:
+
+    git rev-parse HEAD:custom-pokebot/modules/modes/util/higher_level_actions.py \
+                  HEAD:sandbox-pokebot/modules/modes/util/higher_level_actions.py
+    -> 08b92af10e79bc15d543e460c7859a7b0279d844   (BOTH)
+    git config core.autocrlf  ->  true
+    custom copy:  66,170 bytes, 1,262 CR bytes      sandbox copy: 64,908 bytes, 0 CR bytes
+    diff --strip-trailing-cr  ->  exit 0 (no differences)
+
+`core.autocrlf=true` materialises a CHECKED-OUT copy with CRLF while a copy a Python tool WROTE
+keeps LF. All three drift instruments hashed raw bytes, so all three saw a difference that cannot
+affect the running bot — the tokenizer never sees a CR (PEP 278 universal newlines).
+
+**⭐ THE DIAGNOSIS WAS NOT NEW — the 2026-09-14 entry immediately above this one already named it**
+(*"`promote.py --check` now reports 1 differing file that is ENCODING-ONLY — documented so nobody
+'fixes' it into a giant diff"*), and the decision to promote PRESERVING custom's CRLF was **right**:
+it kept git showing 91 real added lines instead of a 1,173-line ending flip. What was missing was
+enforcement. The caveat had to be hand-copied into **three** places in `04-HANDOFF.md` to stop a
+reader acting on the phantom — `CLAUDE.md` rule 6: *anything enforceable belongs in a GATE, not in
+prose.* Prose was already doing the gate's job, in triplicate, for the second day running.
+
+**Why a phantom is not harmless.** Four documents call `promote.py --check` *the authority* on fork
+drift and tell agents to trust its live number over any figure written down. A permanent phantom has
+exactly two outcomes: an agent acts on it and "promotes" the file — a commit git records as
+containing NOTHING, i.e. the no-op promotion `promote.py`'s own module docstring says it REFUSES to
+make because it *"inflates a commit and lies"* — or the reader learns the number is noise, and the
+next REAL drift (a fix that never reached the fork that ships) goes unseen.
+
+**What shipped.**
+1. `promote.py._digest` hashes newline-NORMALISED content; `_raw_digest` keeps the byte-exact hash
+   for the one place whose claim is literally *"byte-identical"* (the post-copy verification).
+2. `measure()` returns a THIRD list — `eol_only` — and `main()` prints it on its own line:
+   `line-ending-only (NOT drift, no behaviour difference)`. ⛔ **Normalising is not hiding.** The
+   category is still reported; it is merely not COUNTED as drift.
+3. `audit_doc_consistency.real_drift()` gets the same normalisation via `_content()`, so the two
+   authorities agree. (D19 already asserted they scan the same TREES; nothing made them COUNT the
+   same way. Two authorities disagreeing is worse than one being wrong — the disagreement itself
+   becomes the thing agents argue about.)
+4. `probe_comment_only_drift.py` gains a LINE-ENDING-ONLY class ABOVE the AST compare. Such a pair
+   has identical ASTs, so it used to be labelled COMMENT-ONLY — true, and misleading: it sends a
+   reader hunting for a comment difference that is not there.
+5. **Gate #62 — `selftest_promote_drift.py`** wraps `promote.py --self-test` (5 arms, driving the
+   SHIPPED `measure()` over real files in a temp tree; it deliberately does not re-implement the
+   comparison, because a self-test that re-derives its subject passes whenever the two derivations
+   agree, including when both are wrong).
+
+**‼ THE FIX BUYS A FALSE-NEGATIVE RISK, AND THAT IS THE ONE THAT COSTS** — a fork that looks
+promoted and never received the fix. So it is tested, not trusted. Arm A is the CONTROL THAT MUST
+FIRE: two files ONE CHARACTER apart must still read as drift. Without it, a `_digest` returning a
+constant would pass every other arm perfectly. Arm E pairs a content change WITH an ending change so
+"cosmetic" can never become an excuse that swallows a real one.
+
+**FAULT-TESTED IN BOTH DIRECTIONS, and the two faults red DIFFERENT arms — which is what proves the
+arms are independent rather than one coupled check:**
+
+    baseline                                            -> exit 0  GREEN
+    F1  _digest returns a CONSTANT (meter blind)        -> exit 1  RED   arms A and E fail
+    F2  normalisation removed (the pre-fix behaviour)   -> exit 1  RED   arm B fails
+    restored byte-identically: True                     -> exit 0  GREEN
+
+**MEASURED AFTER:** `promote.py --check` → `drift 0, orphaned 0, line-ending-only 1`;
+`probe_comment_only_drift.py` → the file classified LINE-ENDING-ONLY; `audit_doc_consistency.py`
+→ PASS, after it correctly reddened over three now-stale `drift=1` claims in `04-HANDOFF.md`
+(lines 385, 677, 891) and five stale gate counts (61→62, `--quick` 53→54). **The doc gate finding
+those unaided is the system working**; they are corrected in place, and the *"do NOT fix it by
+flipping endings"* advice is KEPT — it is still right, it just no longer has to carry the count.

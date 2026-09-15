@@ -990,7 +990,7 @@ stacking another correction on top is how it became unreadable.*
       ‼ **AND IT IS NOW MUCH LESS URGENT THAN WHEN IT WAS FILED** — the gate half closed the failure
       mode this was meant to prevent (a stale figure surviving a hand sweep). Treat it as tidying,
       and re-run `audit_doc_consistency.py --self-test` after, because deleting figures changes the
-      very corpus the false-positive controls were tuned against.
+      very corpus the false-positive controls were tuned against. ⭐ **2026-09-15 — FRESH EVIDENCE + A PARTIAL PAYDOWN AT THE SOURCE:** a phantom `drift: 1` (line endings; git stores ONE blob) forced its ENCODING-ONLY caveat to be hand-copied into THREE places in `04-HANDOFF.md`, and correcting the digit cost 4 edits across 2 files. Fixed in the METER rather than the docs — `promote.py` normalises newlines and reports line-ending-only files separately (gate #62). ⇒ that is 4 assert-sites fewer to tidy here. See `07-CHANGELOG.md` / `06-DECISIONS-LOG.md` 2026-09-15.
 
 - [x] `#24-abortswallow` — **KI-81. ✅ CLOSED AND GATED. ⛔ DO NOT REOPEN, AND DO NOT "FIX" A LISTED
       SITE.** `StoryAbort` is a `BotModeError` is an `Exception`, so every broad `except` in the

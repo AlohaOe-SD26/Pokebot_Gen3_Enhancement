@@ -5286,3 +5286,41 @@ cures would have disabled ALL item use for the remainder of an Elite Four battle
 
 ⚠ **SCOPE, stated deliberately:** cures are inside the pre-existing `BattleType.Trainer` gate, so
 wild battles are untouched — the same scope the HP policy has always had.
+
+
+---
+
+## 2026-09-15 — Fix the DRIFT METER, not the file's line endings (`#24-driftreduction`)
+
+**Decision.** Teach the three drift instruments to hash newline-NORMALISED content and to report
+line-ending-only differences as their own, separately-labelled category. Leave every file's bytes on
+disk exactly as they are.
+
+*Rationale:* a CRLF/LF difference in a `.py` file cannot change behaviour, and git already agrees —
+both copies resolve to one blob under `core.autocrlf=true`. The meter was the only thing that
+disagreed, and four documents call that meter *the authority*.
+
+*Rejected — flip `higher_level_actions.py` to LF.* This is what the phantom invites, and it is
+exactly what the 2026-09-14 session deliberately avoided: the promotion preserved custom's CRLF so
+git shows its **91 real added lines** instead of a **1,173-line ending flip**. That call was right;
+reversing it would trade a reviewable diff for a green number. ⛔ The *"do NOT fix it by flipping
+endings"* advice in `04-HANDOFF.md` therefore STANDS.
+
+*Rejected — `promote.py --go` it.* `shutil.copy2` would copy bytes git considers identical, so the
+resulting commit would contain nothing — the no-op promotion this tool's own docstring says it
+refuses to make because it *"inflates a commit and lies"*.
+
+*Rejected — a repo-wide `.gitattributes` `text=auto eol=lf` normalisation.* It is the textbook fix
+and it is wrong HERE: it would rewrite line endings across the whole tree, **including
+`40cakes repo/pokebot-gen3/`, the PRISTINE upstream mirror that the project's own rules say must
+never be edited** and that only changes via `git subtree pull`. A one-line convenience is not worth
+touching a mirror whose value is being byte-faithful to upstream.
+
+*Rejected — leave it and keep the prose caveat.* It had already been hand-copied into three places
+in one file and re-stated in `DIVERGENCE-LOG.md`, and it was on its second day. `CLAUDE.md` rule 6:
+a rule already restated that many times is evidence that prose failed — write the gate instead.
+
+‼ **SCOPE, stated deliberately:** the normalisation applies to the fork-drift COMPARISON only. It
+does not change how any file is written, read, committed, or executed, and `_raw_digest` preserves a
+byte-exact check at the one site whose claim is literally *"byte-identical"* — the post-copy
+verification inside a real promotion, which must stay strict.

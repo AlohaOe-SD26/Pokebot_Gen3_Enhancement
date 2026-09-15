@@ -2,8 +2,19 @@
 
 **READ THIS BEFORE USING ANYTHING IN THIS DIRECTORY.**
 
-Every file here was produced by an **AI research agent** (Gemini, via
-`tools/story-dev/gemini_relay.py`), commissioned to front-load information for future work.
+Every file here was produced by an **AI research agent**, commissioned to front-load information
+for future work. ‼ **THERE ARE NOW TWO KINDS, AND THEY ARE NOT THE SAME STRENGTH** *(corrected
+2026-09-15; this paragraph named Gemini only, which is stale since the 2026-08-12 directive that
+approved Claude subagents for research — and it would lead a reader to discount a decomp-cited
+note as recall)*:
+  * **Gemini** (`tools/story-dev/gemini_relay.py`) — **RECALL ONLY, no tool access.** It cannot
+    read the decomp or our tree, so every “citation” it gives is remembered, not fetched. The
+    measured rules stand: grade its NAMES highly, its ARCHITECTURE advice not at all.
+  * **Claude subagents** — they DO have tool access and can `gh api` the decomp, read
+    `sandbox-pokebot/`, and run our probes. A note of this kind should tag EVERY claim with how
+    it was established; an untagged claim from one is worth no more than a Gemini claim.
+⛔ Neither kind is authoritative. The distinction changes how hard a claim is to CHECK, never
+whether it must BE checked.
 These notes are **LEADS: possible, plausible, and explicitly NOT authoritative.**
 
 ## The rule (user directive, 2026-07-24)

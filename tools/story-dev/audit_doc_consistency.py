@@ -176,6 +176,15 @@ def promote_trees() -> tuple[str, ...]:
 _DRIFT_TREES = ("modules", "plugins")
 
 
+def _content(path: Path) -> bytes:
+    """Newline-normalised bytes. ⛔ MUST MATCH `promote.py._digest`. Two authorities that measure
+    the same quantity differently is worse than one that measures it wrongly, because the
+    DISAGREEMENT becomes the thing agents argue about. D19 already asserts the two scan the same
+    TREES; this keeps them COUNTING the same way. Full rationale: `promote.py._digest` (2026-09-15).
+    """
+    return path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
 def real_drift() -> tuple[int, list[str]]:
     """MEASURED sandbox<->custom drift. ~0.06s for ~200 files — cheaper than trusting the docs."""
     differing = []
@@ -186,7 +195,7 @@ def real_drift() -> tuple[int, list[str]]:
             q = REPO / "custom-pokebot" / rel
             if not q.exists():
                 differing.append(f"MISSING {rel}")
-            elif p.read_bytes() != q.read_bytes():
+            elif _content(p) != _content(q):
                 differing.append(str(rel))
     return len(differing), differing
 

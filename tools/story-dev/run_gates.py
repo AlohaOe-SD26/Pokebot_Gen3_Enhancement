@@ -592,6 +592,23 @@ GATES: list[tuple[str, bool]] = [
     # RETRACTION that quotes the old wording — the live tree contains exactly such a quote and the
     # gate passes, which is the false-positive arm.
     ("probe_punchlist_step_status.py", False),
+    # --- #62 — the FORK-DRIFT METER's own five fault arms (`promote.py --self-test`)
+    # ‼ APPENDED AT THE END, never inserted — the same rule #34-#61 carry.
+    # WHY A GATE: `promote.py --check` is called *the authority* on sandbox↔custom drift in four
+    # places, and on 2026-09-15 it was measured WRONG — a permanent phantom `drift: 1` on a file git
+    # stored as ONE blob (`core.autocrlf=true` had materialised one copy with CRLF, and the meter
+    # hashed raw bytes). A phantom either invites the no-op promotion `promote.py`'s own docstring
+    # says it refuses to make, or teaches the reader that the number is noise — and the next REAL
+    # drift, a fix that never reached the fork that SHIPS, then goes unseen.
+    # ⛔ THE FIX (ignore line endings) BUYS A FALSE-NEGATIVE RISK, WHICH IS THE ONE THAT COSTS.
+    # So it is tested, not trusted. Arm A is the CONTROL THAT MUST FIRE: two files ONE CHARACTER
+    # apart must still read as drift. Without it, a `_digest` returning a constant passes every
+    # other arm perfectly. Arm E pairs a content change WITH an ending change, so "cosmetic" can
+    # never become an excuse that swallows a real one.
+    # ⭐ It drives the SHIPPED `measure()` over real files in a temp tree rather than re-deriving
+    # the comparison — a self-test that re-implements its subject passes whenever the two
+    # implementations agree, including when both are wrong.
+    ("selftest_promote_drift.py", False),
 ]
 
 

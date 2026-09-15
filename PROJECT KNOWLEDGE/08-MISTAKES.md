@@ -17672,3 +17672,34 @@ see it. **A malformed marked-up retraction is worse than none — it makes the O
 live text again.** It was caught by `diff`-before-promoting, which is now two-for-two at finding
 defects that every other check missed.
 ⇒ **When a correction spans lines, check the continuation, not only the line you edited.**
+
+
+---
+
+## 2026-09-15 — a KNOWN-WRONG instrument was compensated with prose, in triplicate, instead of being fixed
+
+**Symptom.** `promote.py --check` — called *the authority* on fork drift in four documents — printed
+a permanent `drift: 1 file(s)` for a file git stores as ONE blob. To stop readers acting on it,
+`04-HANDOFF.md` carried a hand-copied caveat (*"the residual 1 differing file is ENCODING-ONLY …
+⛔ Do NOT 'fix' it by flipping endings"*) in **three separate places**, and `DIVERGENCE-LOG.md`
+carried a fourth.
+
+**Root cause.** `core.autocrlf=true` plus three instruments that all hashed RAW BYTES. A copy git
+checked out carried CRLF; a copy a Python tool wrote carried LF.
+
+**‼ THE ACTUAL MISTAKE IS NOT THE MIS-MEASUREMENT — IT IS WHAT WAS DONE ABOUT IT.** The 2026-09-14
+session diagnosed this exactly, wrote the correct prevention rule (*"NORMALISE LINE ENDINGS BEFORE
+JUDGING A DIFF"*), made the RIGHT call on the file itself (preserve CRLF so the diff shows 91 real
+lines, not a 1,173-line flip) — and then left the instrument lying and paid for it in prose. By the
+next morning that prose had to be edited in 4 places across 2 files just to change a digit.
+
+**The fix that worked.** Normalise newlines inside the comparison; report line-ending-only files as
+their own category rather than swallowing them; do it in ALL THREE instruments so no two authorities
+disagree; and put it behind gate #62, fault-tested in both directions (blind meter → arms A+E red;
+normalisation removed → arm B red; `promote.py` restored byte-identically afterwards).
+
+⇒ **Prevention: WHEN YOU CATCH AN INSTRUMENT LYING, FIX THE INSTRUMENT IN THAT COMMIT. A caveat you
+have to write TWICE is a gate you have not written yet** — and the second copy is the signal, not
+the thoroughness. ⛔ Corollary, because the tempting shortcut here was the wrong one: **fix the
+MEASUREMENT, not the thing being measured.** Flipping the file's endings would have turned the
+number green while destroying the reviewable diff that a deliberate earlier decision had bought.
