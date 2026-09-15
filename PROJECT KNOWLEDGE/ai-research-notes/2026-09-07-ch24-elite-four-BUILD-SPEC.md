@@ -199,3 +199,36 @@ the literal line before concluding anything from a code-search tally. *(The `11`
 ⇒ **NET, for whoever builds this chapter:** grade the per-room legs on `VAR_ELITE_4_STATE` as the
 table says; grade CHAPTER COMPLETION on `IS_CHAMPION` (verified live, with a before/after read), and
 NEVER on the four flags or on `VAR_ELITE_4_STATE`.
+
+
+### ⛔ ADDENDUM 2026-09-14 (b) — `get_event_flag` FAILS SOFT, so the predicate needs a POSITIVE CONTROL
+
+`modules/memory.py:336-338`:
+
+    def get_event_flag(flag_name: str) -> bool:
+        if flag_name not in _event_flags:
+            return False
+
+**An unknown name returns `False`, not an error.** ⇒ a §Ch24 completion check built on a mistyped or
+renamed flag reads *"not done"* **forever, silently, with every gate green** — the same failure shape
+as `status_condition` behind a safe `getattr` and as `get_battle_state() is None`, both of which
+shipped in this project within the last two days.
+
+✅ `IS_CHAMPION` is CORRECT today — flag **2175**, `modules/data/event_flags/emerald.txt:1061`, and
+the only near-misses in the table are `HIDE_CHAMPIONS_ROOM_RIVAL` / `HIDE_CHAMPIONS_ROOM_BIRCH`,
+which are not confusable. **That is exactly why the risk is invisible: it works now.**
+
+⇒ **THE REQUIRED DEFENCE — read a KNOWN-TRUE flag beside it, every run.** This project's own idiom
+(`probe_anchor_inventory.py`'s badge control, the `[KI93-CTL]` line): a run whose control reads
+wrong has a BROKEN READER, and every conclusion from it must be discarded rather than believed.
+
+    # at the §Ch24 acceptance, BEFORE trusting IS_CHAMPION:
+    control = get_event_flag("LANDMARK_POKEMON_LEAGUE")   # True on every fixture we hold —
+                                                          # set unconditionally on FIRST League entry
+    champion = get_event_flag("IS_CHAMPION")
+    #  control False  -> THE READER IS BROKEN. Discard the verdict; do NOT report "not champion".
+    #  control True   -> champion is meaningful: False before the gauntlet, True after.
+
+‼ And the acceptance must show the **BEFORE** value too. `IS_CHAMPION` is **False** on
+`post_ch24_atdoor.ss1` (the bot has never won), so the chapter proves **False → True** rather than
+asserting a final True that a soft-failing reader could also produce.
