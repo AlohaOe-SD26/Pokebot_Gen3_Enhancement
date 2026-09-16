@@ -276,11 +276,28 @@ PokemonLeague_EliteFour_SetAdvanceToNextRoomMetatiles::      (runs ON VICTORY)
 	special DrawWholeMapView
 ```
 
-**Half 2 — our pathfinder reads ROM, and caches it forever.** `modules/map.py:748-755`:
-the layout is fetched through `map_layout_pointer` (a ROM pointer) and stored in
-`_map_layout_cache[rom][map]`, which is only ever populated once per map. A grep of
-`sandbox-pokebot/modules/` for **`gBackupMapLayout` returns nothing but the symbol tables** — no
-module code reads it.
+**Half 2 — our PATHFINDER reads ROM, and caches it forever.** `modules/map.py:748-755`: the
+layout is fetched through `map_layout_pointer` (a ROM pointer) and stored in
+`_map_layout_cache[rom][map]`, which is only ever populated once per map and never invalidated.
+
+> ⛔⛔ **CORRECTION, 2026-09-16, by a Tier 2 cold-start audit.** This paragraph originally ended:
+> *"A grep of `sandbox-pokebot/modules/` for `gBackupMapLayout` returns nothing but the symbol
+> tables — no module code reads it."* **THAT IS FALSE, AND IT WAS MY OWN GREP THAT LIED TO ME:** I
+> ran it with `| head -5`, and the five `modules/data/symbols/*.sym` hits consumed the entire
+> output. I read a TRUNCATED result as an ABSENCE and then published it as `[VERIFIED-BY-ME]`.
+> ‼ **Never conclude absence from a truncated grep. `head` answers "show me some"; it never answers
+> "is there any".** Use `-c`, or exclude the noisy path, or count first.
+> ⭐ **AND THE TRUTH IS BETTER NEWS THAN THE ERROR:** the live-grid reader **already exists**, built
+> 2026-09-02 for the §Ch21 Sky Pillar crack floors — *the identical shape*, a runtime tile write
+> invisible to our ROM-cached grid:
+>   * `modules/story/sootopolis.py:871` `_live_collision_grid` — *"Collision per LOCAL tile, read
+>     from `gBackupMapLayout` — THE GRID THE GAME ITSELF WALKS ON"*, and `:939` the METATILE-ID
+>     sibling. Both carry the constraint that matters here: ⛔ *"ONLY VALID FOR THE MAP THE AVATAR IS
+>     CURRENTLY STANDING ON"* — which is fine for an E4 room, where the bot is standing in it.
+>   * `modules/story/early_game.py:4113` already states the problem in a comment — *"in the engine's
+>     LIVE grid (`gBackupMapLayout`, rewritten by `setmetatile`)"* — and `:4147`/`:4349` read it.
+> ⇒ **Do NOT build a live-grid reader from scratch.** The §Ch24 door fix is most likely a REUSE of
+> `sootopolis.py`'s reader at the moment of the door query, not new machinery.
 
 ⇒ **`setmetatile` writes the RAM map (`gBackupMapLayout`); our tile grid comes from ROM and is
 cached permanently. The opened door is therefore INVISIBLE to `calculate_path`, in every room, on

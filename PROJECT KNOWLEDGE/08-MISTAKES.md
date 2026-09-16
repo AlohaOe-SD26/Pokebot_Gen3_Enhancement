@@ -17703,3 +17703,42 @@ have to write TWICE is a gate you have not written yet** — and the second copy
 the thoroughness. ⛔ Corollary, because the tempting shortcut here was the wrong one: **fix the
 MEASUREMENT, not the thing being measured.** Flipping the file's endings would have turned the
 number green while destroying the reviewable diff that a deliberate earlier decision had bought.
+
+
+---
+
+## 2026-09-16 — I read a TRUNCATED GREP as an ABSENCE, and published it as `[VERIFIED-BY-ME]`
+
+**Symptom.** A committed research note and the `04-HANDOFF.md` banner both stated that
+`gBackupMapLayout` *"appears nowhere in module code"*, and built a §Ch24 build-order decision on it:
+that our pathfinder is structurally blind to the runtime-opened Elite Four door and that a live-grid
+reader would have to be written.
+
+**Root cause.** My own command:
+
+    grep -rn "gBackupMapLayout" sandbox-pokebot/modules/ 2>/dev/null | head -5
+
+`modules/data/symbols/*.sym` sorts first, so the five symbol-table hits consumed the entire output.
+The real module-code hits — `sootopolis.py` (10), `early_game.py` (4), `sootopolis_gym.py` (1) —
+were below the cut. **`head` answers "show me some". It never answers "is there any".**
+
+**What it cost, and what it nearly cost.** Nothing shipped: a Tier 2 cold-start audit re-ran the
+grep and caught it. Had it stood, the next session would have been told to build from scratch a
+live-grid reader **that already exists** — `sootopolis.py:871` `_live_collision_grid` and `:939`,
+written 2026-09-02 for the §Ch21 Sky Pillar crack floors, which is *the identical defect shape*
+(a `setmetatile` write invisible to our ROM-cached grid). The error made the good news invisible.
+
+⇒ **Prevention: NEVER CONCLUDE ABSENCE FROM A TRUNCATED COMMAND.** If the claim is "there are none",
+the command must be able to say so: use `grep -c`, `| wc -l`, or exclude the noisy path — and a
+`| head -N` in the evidence line of an absence claim is itself the defect. ⛔ Corollary: the
+`[VERIFIED-BY-ME]` tag is a promise about the METHOD, not merely about having run something; a tag
+applied to a truncated command is worse than no tag, because it transfers unearned confidence.
+
+‼ **AND THE SECOND-ORDER LESSON, which is the one worth keeping.** This is the *third* time in two
+sessions that the instrument, not the subject, was the thing that was wrong — a phantom `drift: 1`
+from raw-byte hashing, a `distinct_pos=0` stuck-check whose regex could not match map names
+containing spaces, and now this. Every one was caught by looking at the failing command rather than
+at the thing under test. **The project rule already said it** (*"when a probe FAILS, read the
+failing line before touching the thing under test"*) — the extension earned today is that it applies
+to probes that SUCCEED too: a command that returns a clean, plausible, wrong answer is the more
+dangerous case, because nothing prompts you to look.
