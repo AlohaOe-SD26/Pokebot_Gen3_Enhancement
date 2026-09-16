@@ -76,14 +76,40 @@ CURRENT_STATE = ("01-", "02-", "03-", "04-", "05-")
 #: open items. ⭐ The intent is now enforced DIRECTLY by R7 below, so this ceiling is a backstop
 #: rather than the guard. ‼ If you are tempted to raise it again, run R7 first: if the closed
 #: fraction has grown, the file really IS becoming an archive and trimming is the right answer.
-LINE_BUDGET = {"01-": 700, "02-": 700, "03-": 4200, "04-": 900, "05-": 3000}
+#: ⛔ 05 WENT 3000 -> 4000 ON 2026-09-16, ON A MEASUREMENT AND A USER RULING, NOT A PREFERENCE —
+#: and it followed the instruction the 03 block above leaves for exactly this moment ("run R7 first").
+#: R7 WAS RUN. 05 measured **49.3% closed** against the 41.1% recorded here, i.e. the closed share HAD
+#: grown ⇒ by that instruction the file really was becoming an archive and TRIMMING was the right
+#: answer. So trimming came FIRST: five fixed-driven-AND-PROMOTED issues (KI-93/94/95/96/97) were
+#: retired to `31-KNOWN-ISSUES-ARCHIVE.md` with `archive_doc_block.py`, taking 05 from 3000 -> 2675.
+#: ‼ WHY THE RETENTION CONDITION HAD EXPIRED: the 2026-07-29 user ruling retains fixed issues *until
+#: they are PROMOTED*. `promote.py --check` now measures drift 0, so those five were promoted and the
+#: condition no longer held. The file had grown because nothing re-checked that trigger after the
+#: promotions happened — not because anyone was careless.
+#: ⭐ THE RAISE IS FOR THE **OPEN BACKLOG**, which is the same thing 03's raise was for: after
+#: trimming, 05 is 2675 lines and 55.1% of it is OPEN work. A ceiling that forces the next agent to
+#: delete detail from LIVE issues is the failure 03 already paid for.
+#: ⛔ AND THE CEILING IS NOW A BACKSTOP, NOT THE GUARD — R7 below applies to 05 as of 2026-09-16, so
+#: the INTENT (is an archive forming?) is measured directly. Same architecture as 03.
+LINE_BUDGET = {"01-": 700, "02-": 700, "03-": 4200, "04-": 900, "05-": 4000}
 
 #: R7 — the share of a current-state file that may be CLOSED or ARCHIVED content.
-#: ⛔ DELIBERATELY NOT APPLIED TO EVERY FILE. `05-KNOWN-ISSUES.md` measures **41.1%** closed and that
-#: is CORRECT: the 2026-07-29 user ruling retains fixed issues until they are PROMOTED. Adding it
-#: here would red the suite for a user-approved state — a gate that cries wolf is worse than none.
-#: 03 measures 6.8% today, so 25% is ~4x headroom and still fires long before the file rots.
-CLOSED_FRACTION_BUDGET = {"03-": 0.25}
+#: ⛔ DELIBERATELY NOT APPLIED TO EVERY FILE. 03 measures 6.8% today, so 25% is ~4x headroom and
+#: still fires long before the file rots.
+#: ⭐ 05 JOINED ON 2026-09-16, AND ITS BUDGET IS DELIBERATELY LOOSE BECAUSE A USER RULING MAKES IT SO.
+#: This block previously said 05 must NOT have an R7 budget, because it "measures 41.1% closed and
+#: that is CORRECT: the 2026-07-29 user ruling retains fixed issues until they are PROMOTED. Adding
+#: it here would red the suite for a user-approved state — a gate that cries wolf is worse than
+#: none." ‼ THAT REASONING STILL STANDS AND IS WHY THE NUMBER IS 0.55 RATHER THAN 0.25. What changed
+#: is that leaving 05 ungated let the share drift 41.1% -> 49.3% with nothing to notice. After
+#: retiring five promoted issues it measures **44.9%**, so 0.55 is ~10 points of headroom over a
+#: user-approved state and still fires long before the file is majority-archive.
+#: ⛔ DO NOT TIGHTEN THIS TO 0.25 TO "MATCH 03". 05 is not 03: the ruling deliberately retains closed
+#: issues here, so a 03-shaped budget would be red on arrival — the exact cry-wolf this block was
+#: originally written to prevent.
+#: ‼ FAULT-TESTED 2026-09-16: with the budget temporarily set to 0.40 (below the measured 44.9%) R7
+#: FIRES on 05; at 0.55 it passes. A gate that cannot be shown to fire is not a gate.
+CLOSED_FRACTION_BUDGET = {"03-": 0.25, "05-": 0.55}
 
 def _blank_fenced(text: str) -> str:
     """Return `text` with the CONTENTS of ``` fenced blocks blanked, line count preserved.

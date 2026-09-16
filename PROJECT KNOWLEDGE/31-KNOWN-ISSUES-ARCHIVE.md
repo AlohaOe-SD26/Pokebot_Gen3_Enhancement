@@ -3361,3 +3361,362 @@ spot), **KI-8** (mid-battle rotation party-menu stall), **KI-17** (after-faint p
 freeze). This project has now seen three distinct battle-menu wedges; a shared bounded
 menu-drive helper may be the real fix.
 
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Fixed, DRIVEN and PROMOTED to both forks; drift has since measured 0, so the 2026-07-29 retain-until-promoted condition is satisfied. Retired 2026-09-16 under the archive+raise+guard ruling.
+
+## `KI-97` — a `_play()` re-entry from a POST-Fortree position marched to MAUVILLE and fail-fast derailed (2026-09-07, MEASURED on the live batch, ✅ FIXED, **DRIVEN GREEN AND PROMOTED 2026-09-07** *(this header read "NOT DRIVEN, NOT PROMOTED" until 2026-09-08 while `07-CHANGELOG.md` recorded it DRIVEN GREEN and the handoff recorded it promoted — internally consistent and externally false, the class the P2 pair check is structurally blind to)*. ⚠ Historic text follows: NOT PROMOTED)
+
+**Symptom (4 of 9 ended runs — a running figure on a partial batch, not a rate):**
+`Could not reach (19, 6) on MapRSE.MAUVILLE_CITY … Source (43/32 @ SOOTOPOLIS_CITY) … not on
+connected maps`. Sootopolis has **no land route out** (Dive/Fly only).
+
+**Root cause (✅ re-verified in-tree, not taken on report).** `_play()` re-enters from the TOP on
+every whiteout and every derail. Segment 13a's `else` branch called `travel_to_fortree()` with no
+completion gate; its `_rank()` (`early_game.py:6325-6326`) returns **-1** for maps absent from
+`order` (`:6306-6313`) — Sootopolis and Mossdeep-gym both are — and `-1 > tgt` / `-1 == tgt` are both
+False, so every leg runs from `LEGS[0] = MAUVILLE_CITY (19,6)` (`:6314`).
+
+**⭐ THE CLASS, NOT THE INSTANCE:** the same function already carries a note (`:6303-6305`) recording
+this exact failure for ROUTE120, fixed then by extending `order`. **An enumeration-based guard rots
+whenever the story grows past it** — §Ch21-23 made these maps reachable long after that fix.
+⇒ gate on the segment's own COMPLETION FLAG (`BADGE06_GET`), which cannot rot.
+
+**Fix (sandbox only):** Segment 13a — imports, body and its trailing `_guard` — wrapped in
+`if not _done("BADGE06_GET")`, with an `else` that prints a positive control.
+
+**Acceptance, gradeable from any lane log:** `Story: Route 119 already cleared — heading to Fortree.`
+and `Could not reach (19, 6) on MapRSE.MAUVILLE_CITY` → **zero** occurrences;
+`Story: Fortree arc already complete (BADGE06) — Ch13a skipped.` → at least one; a pre-BADGE06 lane
+must still print `Story: to Fortree — Mauville City...`.
+
+**Status:** ✅ FIXED IN THE SANDBOX 2026-09-07. ⚠ **NOT DRIVEN** (the acceptance drive waits for the
+batch to end — a drive now would contend with 8 live lanes) and ⛔ **NOT PROMOTED** (`custom-pokebot`
+is frozen for the batch's duration). ⚠ It does **not** rescue the MOSSDEEP_CITY_GYM (23,8) variant —
+see `#24-mossdeepstrand`. Detail: `ai-research-notes/2026-09-07-batch-blockers-RECON.md`.
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Fixed, DRIVEN and PROMOTED to both forks; drift has since measured 0, so the 2026-07-29 retain-until-promoted condition is satisfied. Retired 2026-09-16 under the archive+raise+guard ruling.
+
+## `KI-95` — the faint chooser ranked replacements on a PURE TYPE MULTIPLIER, so a L19 mule outranked a healthy L48 (2026-09-06, ✅ FIXED IN THE SANDBOX + GATED as #39 — ✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`))
+
+📦 **The defect description, the code excerpt, the Glacia consequence and the retracted acceptance-bar
+note are ARCHIVED VERBATIM** in `28-HANDOFF-ARCHIVE.md` → "KI-95 — the original defect". Nothing is
+deleted; this file's own preamble says it holds OPEN problems, and the only parts of `KI-95` still open
+are the two below: it is **NOT PROMOTED**, and it rests on a **deprecated CPython behaviour**.
+
+**One-line restatement:** the offensive term in `choose_new_lead_after_faint` was a bare type
+multiplier — `base_power` was used only to test `== 0` — so a L19 Zigzagoon's 20 BP Rock Smash (2× vs
+Ice) scored `2.0` and outranked a full-HP L48 Mightyena scoring `1.0`. The mule was sent in to die.
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Fixed, DRIVEN and PROMOTED to both forks; drift has since measured 0, so the 2026-07-29 retain-until-promoted condition is satisfied. Retired 2026-09-16 under the archive+raise+guard ruling.
+
+## `KI-94` — ✅ **RESOLVED 2026-09-14: THE §Ch24 BLOCKER IS DISSOLVED — `post_ch24ready.ss1` + ONE FLY (`CH24_FLY_DEST=PokemonLeague`) LANDS AT THE LEAGUE DOOR APRON (18,6).** The fixture was never the problem; the FLY DESTINATION was. (Filed 2026-09-06 as *"the §Ch24 prep has no combined end-state, so every §Ch24 measurement so far used an under-prepared party — §Ch24 BLOCKER, BIGGER THAN `KI-93`"*; that framing is SUPERSEDED. ⚠ The WALKING measurement inside stands and is NOT retracted — `calculate_path` cannot use warps or Fly.)
+
+**Symptom.** Every §Ch24 probe and all four `KI-93` fix attempts were driven from
+`post_league_shop.ss1` — whose OWN fixture note opens with
+**"⛔ THE BOT IS *NOT* READY TO ATTEMPT §Ch24 — SEE `#24-e4healing`."** I read past that line for a
+whole session.
+
+**MEASURED.** Wailord's moveset in every drive today:
+```
+[moveset] Wailord L47: Dive, Surf, Water Spout, Waterfall      ⇐ NO ICE BEAM
+```
+…while `#24-icebeamteach` is marked **CLOSED: "WAILORD KNOWS ICE BEAM" ⛔ DO NOT REOPEN**.
+
+**⇒ THE CLOSED ITEM IS NOT WRONG — THE FIXTURE LINEAGE IS.** The §Ch24 prep runs
+`post_league_shop → post_moveset → post_fly → post_slateport → post_icebeam`, and:
+* each step was driven and PASSED in isolation;
+* `post_icebeam.ss1` ends at **ROUTE108**, not the League;
+* **`ch24teachice` captures NO fixture** — there is no `post_teachice.ss1` in `FIXTURES.md5`.
+⇒ ⭐⭐ **THE PREP IS A CHAIN OF PROVEN STEPS WITH NO COMBINED END STATE.** Nothing carries the four
+move changes, Fly, TM13 and the taught Ice Beam forward to the League door, and no save holds them
+together.
+
+**⛔ WHAT THIS INVALIDATES.**
+* The winnability analysis must NOT be run against `post_league_shop.ss1` — it is the wrong party.
+  Ice Beam was called *"the single change that turns Drake from a loss into a win"*, and the party we
+  measured does not have it.
+* `probe_ch24_readiness.py`'s stat dump is correct FOR THAT SAVE, but that save is pre-prep.
+* ‼ `KI-93` is **NOT** invalidated: Torment blindness is structural (the chooser cannot see
+  `gLastMoves`/`STATUS2_TORMENT` whatever the moveset), and the freeze would recur on any party.
+
+**⇒ ⛔ SUPERSEDED 2026-09-07 — `KI-93` SHIPPED FIRST AND THE REORDER THIS DEMANDS IS CANCELLED (`04-HANDOFF.md`). Kept for its reasoning only. Its original text:** THE REAL NEXT STEP FOR §Ch24: chain the prep and **capture a
+combined fixture** — the fully-prepared party standing at the League door — then re-measure
+readiness and winnability against THAT. Until it exists, every §Ch24 number is about a party the
+bot will never actually field.
+
+**⭐⭐⭐ ROOT CAUSE FOUND 2026-09-06, AND IT IS AN ORDERING CONSTRAINT, NOT A MISSING CAPTURE.**
+I built the combined fixture with existing tools and it FAILED at the last step — which is the useful
+result. What was verified along the way:
+* ✅ **The teach WORKS.** `--driver ch24teachice post_icebeam.ss1` → `ACCEPTANCE: PASS`,
+  `Wailord L47: Dive, Surf, **Ice Beam**, Waterfall`. Captured as **`post_teachice.ss1`**
+  (md5 `d1eb8736270b7486e464f23501432194`) and re-verified BY RELOADING the file.
+  ⇒ `#24-icebeamteach` is correctly closed; only the fixture was missing.
+* ✅ **Flying back works.** `CH24_FLY_DEST=EverGrandeCity --driver ch24flyto` → `ACCEPTANCE: PASS`,
+  `moved=True`, `pids_stable=True`, `whiteouts=0`, Ice Beam intact. Captured as
+  **`post_ch24ready.ss1`** (md5 `cf383b5b2567be00d7b3ba8fb3de26ac`).
+* ⛔⛔ **BUT IT LANDS ON THE WRONG SIDE OF THE PLATEAU.** MEASURED:
+```
+PathFindingError: Could not find a path from (27/49 @ EVER_GRANDE_CITY) to (18/5 @ EVER_GRANDE_CITY)
+```
+Fly deposits the party at the **Poké Center (27,49)**; the **League door is (18,5)** and there is **no
+walking route between them**. This is the same plateau split `post_vr_exit.ss1` already records from
+the other direction (*"Ever Grande Poké Center → UNREACHABLE, League door → REACHABLE in 37 wp"*).
+
+**⇒ ⭐⭐ THE CONSTRAINT: THE POKÉMON LEAGUE IS REACHABLE ONLY THROUGH VICTORY ROAD.** So the §Ch24 prep
+— which REQUIRES flying away to Slateport for TM13 — **cannot be done after Victory Road and flown
+back.** Either:
+  (a) **do the prep BEFORE §Ch23's Victory Road traverse**, so the bot arrives already prepared — this
+      is the cheap option and only reorders existing, individually-proven steps; or
+  (b) re-traverse Victory Road after the prep — expensive, and it re-runs the trainer gauntlet.
+⇒ **(a) is almost certainly right**, and it explains the fixture layout: the prep chain was built
+FROM `post_league_shop.ss1` (already at the League), flew away, and never had a way back.
+
+✅✅ **ANSWERED 2026-09-14 — AND THE ANSWER DISSOLVES THIS BLOCKER. A WARP ROUTE EXISTS: IT IS *FLY*.** The decomp special-cases Ever Grande (`src/region_map.c`, `CB_ExitFlyMap`): once `FLAG_LANDMARK_POKEMON_LEAGUE` is set — which `EverGrandeCity_PokemonLeague_1F_OnTransition` does UNCONDITIONALLY on first entry, no Elite Four progress required — flying to Ever Grande lands at `HEAL_LOCATION_EVER_GRANDE_CITY_POKEMON_LEAGUE` = **(18,6)**, one tile from the door. **MEASURED, not reasoned:** `--driver ch24flyto` with `CH24_FLY_DEST=PokemonLeague` from `post_ch24ready.ss1` (the PREPARED party) gave `arrived=((0,8),(18,6))`, `moved=True`, `party_pids_stable=True`, `neighbours_reachable=4` (a REAL `calculate_path`), `ACCEPTANCE: PASS`. Evidence: `tools/story-dev/evidence/2026-09-14-ch24flyto-POKEMONLEAGUE-UNBLOCKS-KI94.stdout.txt`. ‼‼ **THE FIXTURE WAS NEVER THE PROBLEM — THE DESTINATION WAS.** The 2026-09-07 measurement flew to `EverGrandeCity`, which is the POKÉ CENTER destination; `modules/region_map.py:53-54,73` has carried a SEPARATE `PokemonLeague` destination the whole time. ⇒ **`post_ch24ready.ss1` + one Fly IS the §Ch24 start state**, and neither option (a) (reorder the prep) nor (b) (re-traverse Victory Road) is needed. ⛔ The WALKING measurement below stands and is not retracted — `calculate_path` still cannot use warps or Fly. *(The clause below read:)* ⚠ **PRECISION — DO NOT OVER-CLAIM THIS.** `calculate_path` "is not able to use warps or fly"
+(`modules/map_path.py` docstring), so what is measured is **no WALKING path**. A warp route has NOT
+been ruled out by measurement; the claim rests on that plus Emerald's design (the League sits beyond
+Victory Road). ⇒ **if someone wants to keep option (b) alive, the thing to check is a warp route, and
+it must be checked, not assumed.**
+
+**✅ TWO FIXTURES BANKED REGARDLESS**, both verified by reloading: `post_teachice.ss1` (the taught
+party) and `post_ch24ready.ss1` (prepared party, at Ever Grande PC). Neither is at the League, so
+neither is the §Ch24 start — but they make the prep re-runnable without repeating the ~700k-frame ship
+trip.
+
+**⭐ THE LESSON — AND IT IS A CHEAP ONE TO REUSE:** a fixture's own note is a precondition, not
+decoration. `post_league_shop.ss1` said "NOT READY" in its first sentence and I drove §Ch24 from it
+anyway, repeatedly. **Read the fixture note before the drive, not after the anomaly.**
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Fixed, DRIVEN and PROMOTED to both forks; drift has since measured 0, so the 2026-07-29 retain-until-promoted condition is satisfied. Retired 2026-09-16 under the archive+raise+guard ruling.
+
+## `KI-93` — the move chooser ignored **TORMENT**, spun for ever, and `KI-47`'s net stopped the bot — ✅ **FIXED IN THE SANDBOX 2026-09-06, DRIVEN CLEAN** (✅ **PROMOTED 2026-09-07 with USER AUTHORISATION and VERIFIED BY DRIVING** (`--build custom`: `BattleOutcome.Won`, `KI-47` stops 0, `grade_ki93_drive.py` C0-C3 PASS; rollback tag `pre-promote-2026-09-07`)). ‼ It was a CLASS bug: any battle message ending in `\p` hung identically.
+
+📦 **The entire pre-fix investigation is ARCHIVED VERBATIM** → `28-HANDOFF-ARCHIVE.md`
+(2026-09-06): the original measurement, the four failed fix attempts, the three VOID verdicts
+produced by a broken logger, the REFUTED function-local design, and the census drive that
+refuted it. Nothing is deleted — this file holds OPEN problems, and what remains open about
+`KI-93` is only that the fix is **unpromoted**.
+
+**One-line restatement:** a battle message ending in `\p` parks the text printer waiting for an
+EDGE-TRIGGERED button press with no timeout, and the bot's wait branch pressed nothing — so it
+yielded for ever while the game waited for it. Torment is simply the refusal the Elite Four
+guarantees; **61 battle strings end in `\p`** and every one hung identically.
+
+⭐ **The one fact worth carrying out of the investigation:** the census measured
+`handle_battle_action_selection` being **RE-ENTERED ~5 times per refusal episode**, which is why
+the refusal memory must be MODULE-LEVEL. The design this entry carried for a day put it in a
+function-local and could never have worked — and nothing in the text signalled that.
+
+---
+
+## Archived from `05-KNOWN-ISSUES.md`
+
+Fixed, DRIVEN and PROMOTED to both forks; drift has since measured 0, so the 2026-07-29 retain-until-promoted condition is satisfied. Retired 2026-09-16 under the archive+raise+guard ruling.
+
+## `KI-96` — ✅ **SOLVED AND DRIVEN 2026-09-07**: the menu slot was computed BEFORE the menu existed, from a STALE order array (root cause MEASURED; fix A/B'd 241 presses -> 27, ACCEPTED)
+
+**⭐⭐ SOLVED 2026-09-07 — THE ROOT CAUSE, MEASURED, AND THE FIX, DRIVEN.**
+The unbounded loop was the SYMPTOM. The bot was aiming at the wrong menu slot:
+```
+[KI96-REREAD] party_slot=2 state_now=PARTY_MENU
+  pre (raw=201345 decoded=[2,0,1,3,4,5] aims_at_menu_slot=0)   <- read BEFORE the menu opened
+  post(raw=012345 decoded=[0,1,2,3,4,5] aims_at_menu_slot=2)   <- the REAL in-menu array
+  VERDICT=DIFFER
+[KI96-WHY] action=0  cursor_slotId=0  order_in_menu='012345'  msg='DIVER is already in battle!'
+```
+Three facts, each closing a branch:
+* `action: 0` ⇒ an ORDINARY menu — NOT `CANT_SWITCH` (2), NOT `ABILITY_PREVENTS` (4). The mon is not
+  trapped and the refusal is PER-SLOT. That whole hypothesis is dead.
+* `order_in_menu: '012345'` is IDENTITY while the bot aimed using `201345`. ⇒ **`gBattlePartyCurrentOrder`
+  IS REFILLED WHEN THE MENU OPENS** (`PlayerHandleChoosePokemon`), and `in_battle_index` was computed
+  ~140 lines earlier, from the previous turn's leftovers.
+* Under the real identity order, menu slot 0 IS the active battler — so the game refused for ever,
+  which is the entire observed behaviour.
+⛔ **`map_battle_party_index`'s ARITHMETIC IS CORRECT — its INPUT was read too early.** Do not "fix"
+the mapping; that was rounds 1-3's mistake.
+
+**THE FIX** (`battle_action_selection.py`, `TurnAction.RotateLead`): after the A press, wait for
+`PARTY_MENU` (bounded, 120 frames) and RECOMPUTE `in_battle_index` from the fresh state.
+‼ BOUNDED AND FALLING BACK: if the menu never appears the pre-menu value stands and the 240-press
+bound still catches it. An unbounded wait would be a new hang — the one thing this arm must never grow.
+
+**✅ THE A/B, same fixture (`post_grind_L60.ss1`), same driver (`--driver ch23chapter`), ~6 min apart:**
+```
+BEFORE  241 presses, the bound fires, "DIVER is already in battle!" for ever   (6 battles fought)
+AFTER    27 presses, "[KI96-DONE] the party menu closed — the switch was ACCEPTED"  (12 battles)
+```
+The 240-bound fired **0** times, and 27 presses is inside the healthy range the bound was sized
+against. `acceptance-2026-09-07/ki96-FIXED.log`.
+
+**‼ THE HISTORY IS THE LESSON, AND IT IS WORTH MORE THAN THE FIX.** This is the theory I proposed,
+then **"refuted" with a probe that read the array five frames BEFORE the A press** — 77 frames before
+the menu existed, because `scroll_to_battle_action(2)` only moves the ACTION cursor. I published
+"root cause MEASURED FALSE" into a commit, the changelog, the DIVERGENCE-LOG and a promoted code
+comment before a reviewer read the frame stamps and un-refuted it.
+⇒ **A PROBE THAT CANNOT OBSERVE THE TRANSITION IS NOT EVIDENCE OF ITS ABSENCE.** Before a
+measurement is allowed to KILL a hypothesis, prove the instrument was reading AFTER the event it
+claims did not happen — print the frame stamp of every read beside the frame of the action.
+This is Rule 10 (measure an index-space conversion before changing it) doing its job at every step;
+the vacuous probe nearly cost the correct answer.
+
+
+**⭐⭐ WHY IT MATTERED (2026-09-07, morning — ⛔ PAST TENSE; THE WEDGE IS FIXED, see the SOLVED block above; §Ch23 now drives to `ACCEPTANCE: PASS` from this same fixture).** *(A Tier 1 reviewer caught this paragraph still reading "cannot"/"wedges"/"BLOCKED" in the present tense directly beneath a header proclaiming it solved — pair P2 exactly.)* The L60 party
+(`post_grind_L60.ss1`) cannot complete §Ch23's chain — it wedges here long before the League door, so
+the §Ch24 measurement this fixture was built for is BLOCKED on this, not on levels.
+
+**⛔ CITATION DRIFT, CORRECTED 2026-09-07 — AND NO GATE COULD HAVE CAUGHT IT.** This entry cited
+`battle_action_selection.py:590-592`. That was true when `KI-96` was filed; the `KI-93` fix and this
+KI's own census then grew the file and moved the loop to **line 672** (verified in BOTH forks). An
+adversarial recon agent caught it, not `audit_doc_citations.py` — because that gate resolves
+`symbol` + `file.py:LINE` PAIRS, and a **bare line number has no symbol to resolve against**.
+⭐ **RULE: cite the SYMBOL.** The `TurnAction.RotateLead` arm is stable across edits; line 590 was not.
+
+**THE CODE** — `modules/`battle_action_selection.py`'s `TurnAction.RotateLead` arm (line 672 as of 2026-09-07 — ⛔ cite the SYMBOL, not the line: this citation already drifted once from 590)`, the `TurnAction.RotateLead` arm:
+```python
+yield from scroll_to_party_menu_index(in_battle_index)
+while get_game_state() == GameState.PARTY_MENU:
+    context.emulator.press_button("A")
+    yield
+```
+No bound, no escape, no check that the switch was ACCEPTED. If the game refuses the chosen mon it
+returns to the party menu, the state stays `PARTY_MENU`, and this presses A for ever.
+
+**MEASURED** — `--driver ch23chapter` from `post_grind_L60.ss1`:
+```
+f26951 *** BotModeError -> Manual: KI-47: battle sub-handler 'handle_battle_action_selection' ran
+       3001 frames with no battle progress (frozen at ('BattleScript_DoTurnDmgEnd',
+       'HandleTurnActionSelectionState', ...))
+f28153 !!! NO-PROGRESS x1200  state=PARTY_MENU  bt='What will DIVER do?'
+       tasks=['Task_ReturnToChooseMonAfterText', 'Task_PrintAndWaitForText']
+       scripts=['EventScript_DoTrainerBattle']
+f46953 HANG CONFIRMED (20000 frames no progress)
+```
+`Task_ReturnToChooseMonAfterText` is the game saying *"I printed a message and put you BACK in the
+party menu"* — i.e. **the switch was REJECTED**, and we answered by pressing A again.
+
+**✅ A/B — IT IS PRE-EXISTING, NOT A `KI-93` REGRESSION.** Same fixture, same driver, with the entire
+`KI-93` change reverted to `a662f51a~1` (546 lines vs 848): the hang **reproduces identically** — one
+`KI-47` battle sub-handler stop, same `state=PARTY_MENU` wedge. ⇒ *the arm with the change removed
+still shows the bug*, which is the only currency this project accepts for "not mine".
+
+**⛔ NOT AN EDGE-TRIGGER PROBLEM — CHECKED, SO NOBODY RE-DERIVES IT.** `press_button` auto-releases
+(`libmgba.py:471`: *"if pressed on previous frame it will be released"*), so mashing A yields an edge
+every other frame. The presses ARE landing; **the game is refusing the switch and we keep re-asking.**
+
+**⇒ THIS IS ONE OF `KI-47`'s NAMED UNBOUNDED LOOPS, AND `KI-93` WAS ANOTHER — COPY ITS FIX,
+WHICH IS DIRECTLY ABOVE IN THIS FILE.** In four words: *bound it, gate on the game's own state
+(never a frame count), back out with **B** not A, and key any memory on `personality_value`
+rather than a slot.* ‼ `KI-93` took four implement-drive-revert cycles, three of whose verdicts
+were VOID, before one control-lined census named the site — which is why the census came first
+here too, and answered it in ONE drive.
+
+**📦 THE THREE-DRIVE INVESTIGATION AND ITS TWO REFUTED HYPOTHESES ARE ARCHIVED** →
+`28-HANDOFF-ARCHIVE.md` (2026-09-07). What they established, and it still stands: the target is
+HEALTHY (not fainted, not the active), the party menu genuinely OPENS, every stage before the
+loop is correct, and `bt='What will X do?'` is a stale leftover string, not proof of the screen.
+⛔ Two published root causes were measured FALSE there within an hour each — read the archive
+before proposing a third.
+
+**⛔⛔ RETRACTED WITHIN THE HOUR — "PERMUTED ⇒ WEDGE" IS FALSE.** The batch produced a PERMUTED-order
+rotation that **succeeded**:
+```
+[KI96-ORDER] decoded_battleorder=[3, 1, 2, 0, 4, 5]  active_battler_party_index=3  => menu slot 2 holds party 2
+[KI96-DONE]  the party menu closed after 27 press(es) — the switch was ACCEPTED
+```
+⇒ a permuted order is NOT sufficient for the wedge. That is the SECOND hypothesis on this KI to be
+measured false, both within an hour of being written. ‼ Both were caught because the census keeps
+producing comparable samples — **the habit of re-checking a fresh claim against new data is doing more
+work here than any single insight.**
+
+**✅✅ THE INVARIANT THAT ACTUALLY SEPARATES THEM — MEASURED, 262 SAMPLES, PERFECT SEPARATION:**
+```
+            decoded_battleorder[0] == active_battler_party_index
+  HOLDS    : 261 / 261  -> ALL 261 ACCEPTED, and NONE aimed at menu slot 0
+  VIOLATED :   1        -> the wedge: decoded[0]=2 while active=0, aimed at menu slot 0, hung
+```
+⭐ **THE ARRAY WAS STALE.** Gen 3's `UpdatePartyToBattleOrder` places the ACTIVE battler at battle
+position 0, so `decoded[0]` must equal the active's party index — an invariant that held in every one
+of 261 healthy rotations. In the wedge the array claimed position 0 held party **2** while the active
+was party **0**, so `map_battle_party_index(2)` returned **0**, `scroll_to_party_menu_index(0)` parked
+the cursor on the slot the ACTIVE really occupies, and the game refused — *you cannot switch in the
+Pokémon that is already out.*
+
+⭐ **THIS VINDICATES THE ORIGINAL ROOT CAUSE, FOR A DIFFERENT REASON.** The first published diagnosis
+said "the mapping aims at the Pokémon already fighting". It was retracted because the array appeared to
+say menu slot 0 held party 2. **The array was lying.** ⇒ the aim WAS at the active; the mechanism is a
+STALE READ, not a wrong formula. `map_battle_party_index`'s arithmetic is correct — its INPUT is not.
+
+‼ **HONEST WEIGHTS, UNCHANGED:** the healthy side is n=261 across 8 independent lanes; the violation
+side is still **n=1**. What the 261 buy is not a rate but a RULE: the wedge is no longer "one odd case",
+it is *the only case that broke an invariant confirmed 261 times*. A second violation should still be
+captured before the fix is called proven.
+
+**⇒ THE FIX THIS IMPLIES — TWO HALVES, AND THE SECOND IS REQUIRED REGARDLESS:**
+1. ⭐ **ASSERT THE INVARIANT BEFORE TRUSTING THE MAPPING.** If `decoded[0] != active_battler_party_index`
+   the order array is STALE: do not scroll to an index derived from it. Re-read it, or refuse the
+   rotation this turn. ⛔ **Do NOT "fix" `map_battle_party_index`'s arithmetic — it is correct.** The
+   defect is that a stale input is used without a validity check, which is why every attempt to correct
+   the formula would have made things worse.
+2. **BOUND THE LOOP ANYWAY.** A correct aim can still be refused (a mon that fainted between the
+   decision and the menu). `:672` must stop pressing, back out with **B**, and raise a NAMED error into
+   `KI-47`'s channel rather than spinning 3001 frames. **A correct aim is not a bound.**
+
+**⛔ WHAT IS GENUINELY UNKNOWN NOW — DO NOT GUESS; THE LAST GUESS WAS WRONG:**
+* Does `scroll_to_party_menu_index(0)` actually leave the cursor on entry 0? Unverified.
+* Is the A press being consumed by something else on that frame? Unverified.
+* ⭐⭐ **THE MOST INTERESTING THREAD, AND IT IS UNEXPLAINED:** `bt='What will DIVER do?'` is the
+  **ACTION-SELECT** prompt (FIGHT / BAG / POKéMON / RUN), not a party-menu prompt — yet
+  `get_game_state()` reports `PARTY_MENU`. **The state and the screen disagree.** If the game is really
+  sitting on the action menu, then the party menu never opened, `scroll_to_party_menu_index` scrolled
+  nothing, and every A press is landing on the action menu — which would explain the refusal completely
+  and has nothing to do with indices.
+⇒ *(SUPERSEDED — that telemetry SHIPPED on 2026-09-07; see the round 1-3 record immediately below.)*
+
+**⭐ ROUNDS 1-3, 2026-09-07 — READ THIS BEFORE TOUCHING `KI-96`.**
+* **Round 1** added (a) a refusal when `decoded_battleorder[0] != active_battler_party_index`, on the
+  theory that the array was STALE, and (b) a 240-press bound on the menu loop. 262 samples separated
+  perfectly (261 healthy hold it; the 1 wedge violates it).
+* **Round 2 — an adversarial reviewer kicked it back, correctly.** Both new exits did a raw
+  `raise BotModeError`, which crosses the mode/battle **sibling** boundary (`battle_fault.py:5-11`;
+  `battle_handler.py:857` *"‼ NEVER `raise` here"*) and parks the run in **Manual**. Today's hang is
+  caught by KI-47's watchdog, which DOES route through `request_mode_recovery` — so the "fix" would
+  have traded a recoverable 3,001-frame stall for an unrecoverable lane death. Both exits now call
+  `request_mode_recovery` first, keeping the raw raise as the documented fallback.
+* **⛔⛔ Round 3 — THE REFUSAL WAS WITHDRAWN. DO NOT RE-ADD IT.** A decomp check
+  (pret/pokeemerald @ `5eff7864`) showed `switchhandleorder` rewrites the order BEFORE
+  `getswitchedmondata` advances `gBattlerPartyIndexes` (`data/battle_scripts_1.s:3110-3112`), so on a
+  **healthy** switch the array is briefly *ahead*, not stale ⇒ the guard would refuse legitimate
+  rotations. **A guard with false positives is worse than no guard.**
+* **⭐ THE STRONGER ROOT CAUSE, NOT YET PROVEN:** `gBattlePartyCurrentOrder` is a 3-byte SCRATCH
+  buffer that `PlayerHandleChoosePokemon` REFILLS at the instant the party menu is requested — and we
+  compute the cursor slot at `:584` while the menu only opens at `:699`. ⇒ **we aim from a leftover.**
+  It also explains 261-vs-1: the leftover is usually still correct, diverging only after a prior
+  switch rewrote it.
+* **WHAT SHIPPED:** observe-only **`[KI96-REREAD]`** telemetry (array + aimed slot, before AND after
+  the menu opens, with an AGREE/DIFFER verdict) plus the bound. ⛔ The fix itself is NOT applied:
+  rule 10 requires the measurement first, because `handle_fainted_pokemon` has had three index-space
+  bugs. ⇒ **NEXT: run the drive with `POKEBOT_KI96_CENSUS=1` and read `[KI96-REREAD]`.**
+
+**✅ WHAT WAS NOT MEASURED IS NOW PARTLY MEASURED** — *why* the switch is refused. Candidates: the
+target is fainted, is already out, or is the mon the game just asked about. **Instrument it first** —
+log the requested `index`, the mon's PID/HP at that moment, and the on-screen message — exactly the
+census that made `KI-93` solvable after four blind attempts. ‼ `KI-93`'s history is the warning: four
+implement-drive-revert cycles, three of them VOID, before one control-lined census named the site.
+
+**Repro:** `PYTHONUTF8=1 py -3.12 story_harness.py post_grind_L60.ss1 --driver ch23chapter --frames 400000`
+(wedges by ~f27k, ~6 min). Stall states are saved under `stalls/`.
+

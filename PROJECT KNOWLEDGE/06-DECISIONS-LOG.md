@@ -5374,3 +5374,50 @@ measured and recorded in `victory_road.py`):
 * ‼ **`LEAGUE_MIN_MONEY = 54_300` still gates ENTRY.** Spend-down is about what happens to the
   REMAINDER; it must not be allowed to eat into the basket itself or to make the
   *refuse-rather-than-under-buy* guard pass on a thinner basket.
+
+
+---
+
+## 2026-09-16 — USER RULING: 05-KNOWN-ISSUES gets ARCHIVE + RAISE + GUARD (not a bigger file, not "Part 2")
+
+**The problem.** `05-KNOWN-ISSUES.md` hit exactly 3000/3000 lines, so the next known issue could not
+be written at all. The user asked whether to raise the limit or split into Part 1 / Part 2, and asked
+to settle it before more program work.
+
+**Decision (the user's, after being shown four options and the measurements).** All three, in order:
+**(1) archive** closed-AND-promoted issues to `31-KNOWN-ISSUES-ARCHIVE.md`; **(2) raise** the ceiling
+3000 -> 4000 with the measurement recorded; **(3) guard** the intent directly by applying R7 to 05.
+
+*Rationale — the project had already written the decision procedure.* `lint_docs.py` records that
+`03-PUNCH-LIST.md` was raised 3600 -> 4200 on 2026-09-08 *"ON A MEASUREMENT, NOT A PREFERENCE"*,
+because the line budget is only a PROXY for "an archive is forming" and for 03 that proxy was
+measurably false — it was measuring BACKLOG. That block leaves an explicit instruction: *"If you are
+tempted to raise it again, run R7 first: if the closed fraction has grown, the file really IS
+becoming an archive and trimming is the right answer."*
+**R7 WAS RUN. 05 measured 49.3% closed against the 41.1% on record — it HAD grown** ⇒ trimming was
+required first, and a raise alone would have been the wrong answer.
+
+*Why the retention condition had expired.* The **2026-07-29 user ruling** retains fixed issues *until
+they are PROMOTED*. `promote.py --check` now measures **drift 0**, so KI-93/94/95/96/97 were promoted
+and the condition no longer held. **The file grew because nothing re-checked that trigger after the
+promotions happened** — not because anyone was careless. The durable fix is the R7 gate, which
+notices next time.
+
+*Rejected — "Part 1 / Part 2".* Splitting by SIZE is worse than the status quo: the split point
+carries no meaning, a reader cannot know which part holds their issue, and KI numbers are cited from
+code comments and gates, so references become ambiguous. The binding constraint is not storage — it
+is that 3,000 lines is already past what an agent reads in full.
+
+*Rejected — raise the ceiling only.* It overrides the project's own decision rule at the exact moment
+that rule was designed to fire.
+
+*Rejected FOR NOW — split by DOMAIN* (`05-...-BATTLE/NAVIGATION/STORY`). Genuinely better than Part
+1/2 because the split would carry meaning, and it stays the right answer **if the OPEN backlog alone
+ever outgrows one file**. Not yet: after trimming, 05 is 2675 lines with ~1,475 of open work.
+
+**‼ WHY R7's BUDGET FOR 05 IS 0.55 AND NOT 0.25.** The old comment said 05 must NOT be gated because
+41.1% closed "is CORRECT" under the 2026-07-29 ruling, and a gate there "would red the suite for a
+user-approved state — a gate that cries wolf is worse than none." **That reasoning still stands**, and
+is why the number is loose. What changed is that leaving it ungated let the share drift 41.1% ->
+49.3% with nothing to notice. Post-trim it measures 44.9%, so 0.55 is ~10 points of headroom over a
+state the user approved. ⛔ Do NOT tighten it to 0.25 to "match 03" — that would be red on arrival.

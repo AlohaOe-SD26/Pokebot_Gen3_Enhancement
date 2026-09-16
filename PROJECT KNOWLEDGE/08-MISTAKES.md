@@ -17801,3 +17801,35 @@ quoted heredoc (`<<'MSG'`).** This project's commit messages are dense with back
 so the failure is not an edge case here — it is the default outcome. ‼ And the tell is subtle: the
 commit SUCCEEDS, exit 0, with a stray `command not found` on stderr that looks like it belongs to
 something else entirely.
+
+
+---
+
+## 2026-09-16 (fourth) — I REUSED A *MEASUREMENT* CLASSIFIER TO *SELECT WHAT TO DELETE*
+
+**Symptom.** Retiring closed issues from `05-KNOWN-ISSUES.md`, I generated the candidate list with
+R7's own closed/open classifier (`lint_docs.py`). It returned **24 sections**. Reading them:
+`KI-88` — *"upstream helper; NOT fixed, ROUTED AROUND"* — matched because the substring "FIXED"
+appears inside "NOT fixed". `KI-66` — *"PARTLY FIXED"* — matched because the hedge list had "MIXED"
+and "STILL OPEN" but not "PARTLY". Several were already-archived 2-line stubs whose correct end state
+is to stay exactly where they are.
+
+**Root cause — and it is NOT "the classifier is buggy".** R7's classifier is CORRECT FOR ITS JOB. It
+computes a FRACTION over ~3,000 lines, where a handful of misfiled sections moves the number by under
+a percent and changes no decision. I borrowed it for a job with a completely different error budget:
+**deciding which blocks to REMOVE from a document, where ONE false positive deletes a live issue.**
+
+⇒ **Prevention: A CLASSIFIER'S ACCURACY REQUIREMENT COMES FROM THE DECISION IT FEEDS, NOT FROM THE
+CLASSIFIER.** Before reusing one, ask what a single false positive COSTS in the new job. Same code,
+same inputs, same output — and a tolerance that is fine for a statistic is reckless for a deletion.
+‼ The practical rule that saved it: **for any irreversible selection, print the FULL candidate list
+and READ IT.** 24 -> 7 after a stricter filter, 7 -> 5 after reading. The two rejected at the last
+step were a 2-line stub whose whole purpose is to stay, and a block containing a LIVE caveat.
+
+⭐ **AND THE SECOND HALF, WHICH THE TOOL COULD NOT CATCH FOR ME.** Two pointers I wrote claimed *"FULL
+ENTRY ARCHIVED VERBATIM"* while 105 and 41 lines of body remained beneath them.
+`archive_doc_block.py` verified its invariants honestly — a `###` IS a real block boundary, so
+INVARIANT B (no orphan) passed correctly. **The tool guaranteed the MOVE; I wrote the CLAIM, and the
+claim was false.** ⇒ **a tool's invariants protect what the TOOL does, never what YOU SAY it did.**
+After any archiving, measure what actually remains under each pointer before believing your own
+summary line.

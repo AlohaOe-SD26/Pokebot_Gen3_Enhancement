@@ -29332,3 +29332,41 @@ ALSO CONFIRMED (and it removes the last plumbing unknown): `_live_collision_grid
 four independent links (`setmetatile x,y` ≡ `get_map_data(map,(x,y))` ≡ `_live_*_grid[(x,y)]` ≡
 `map.json` warps ≡ `avatar.local_coordinates`); there is NO conversion to apply and applying one
 would be the bug.
+
+
+---
+
+## 2026-09-16 (fourth) — 05-KNOWN-ISSUES: ARCHIVED, RAISED, AND NOW GUARDED (user ruling)
+
+**Trigger:** 05 hit exactly 3000/3000 lines — the next known issue could not be written.
+
+**What was done, in the order the project's own rule demands.**
+1. **R7 RUN FIRST** (the instruction `lint_docs.py` leaves for anyone raising a budget). 05 measured
+   **49.3% closed** against the **41.1%** on record ⇒ the closed share HAD grown ⇒ trimming was the
+   right answer and a raise alone would have been wrong.
+2. **ARCHIVED** five fixed-DRIVEN-and-PROMOTED issues — `KI-93/94/95/96/97` — to
+   `31-KNOWN-ISSUES-ARCHIVE.md` with `archive_doc_block.py` (`--self-test` run first: 4 invariants
+   with fault arms A-D plus no-fire controls, exit 0). **05: 3000 -> 2675. Archive: 3363 -> 3722.
+   Nothing deleted.** The retention condition had expired: the 2026-07-29 ruling keeps fixed issues
+   *until PROMOTED*, and `promote.py --check` now measures drift 0.
+3. **RAISED** `LINE_BUDGET["05-"]` 3000 -> 4000 for the OPEN backlog (~1,475 lines of it), with the
+   measurement recorded — the same justification 03's 3600 -> 4200 raise carried.
+4. **GUARDED:** `CLOSED_FRACTION_BUDGET["05-"] = 0.55`, so the INTENT is measured directly and the
+   line ceiling becomes a backstop. FAULT-TESTED: at 0.40 R7 fires on 05 with the real number
+   (44.9%, 1200/2675); at 0.55 it passes; restored clean.
+
+**⛔ AND A DEFECT I INTRODUCED AND CAUGHT MID-OPERATION.** Two of the five pointers I wrote said
+*"FULL ENTRY ARCHIVED VERBATIM"* while **105 lines (KI-93) and 41 lines (KI-95) of body were still
+sitting under them** — the ORPHANING shape `archive_doc_block.py`'s own docstring was written about.
+Invariant B passed legitimately, because a `###` IS a real block boundary; **the CLAIM was wrong, not
+the move.** Both pointers now state exactly what moved and what remains.
+‼ I corrected the claim rather than moving the rest, because one remaining block is *"A LATENT
+FRAGILITY THIS FIX NOW DEPENDS ON"* — a LIVE caveat that must not be buried in an archive. Recovering
+146 more lines was not worth burying a live warning.
+
+**‼ ALSO: MY CANDIDATE LIST WAS WRONG BEFORE I READ IT.** I selected blocks with R7's own classifier
+and it produced 24 candidates including `KI-88` (*"NOT fixed, ROUTED AROUND"* — matched because "NOT
+fixed" contains "FIXED"), `KI-66` (*"PARTLY FIXED"*), and several already-archived stubs.
+⇒ R7's classifier is built to MEASURE A FRACTION, where a few false positives barely move the number;
+reusing it to SELECT WHAT TO REMOVE is a far higher bar. A stricter filter plus reading every survivor
+by hand cut 24 -> 7 -> 5. Generic lesson in `08-MISTAKES.md`.
