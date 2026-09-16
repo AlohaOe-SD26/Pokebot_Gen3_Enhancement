@@ -1273,7 +1273,7 @@ Fixed, driven and gated (`repro_multi_battle_partner.py`, in the standing suite)
 2. **Never identify a Pokémon by party INDEX across a battle-menu boundary.** Opening the battle party menu runs `UpdatePartyToBattleOrder`, which physically PERMUTES `gPlayerParty` — the second fix's `index >= 3` cut was in the wrong index space and offered the ALLY's Pokémon while hiding one of ours. Key on **original trainer ID** (`ally_party_indices()`); identity travels with the Pokémon, position does not.
 
 
-## `KI-101` — ⛔⛔ IN-BATTLE ITEMS AIM AT A **STALE PARTY ORDER**: it is `KI-96` again, on the sibling handler, and it leaves the bot with NO HEALING (2026-09-16, MEASURED LIVE + DECOMP-VERIFIED, **OPEN**)
+## `KI-101` — ⛔⛔ IN-BATTLE ITEMS AIM AT A **STALE PARTY ORDER**: it is `KI-96` again, on the sibling handler, and it leaves the bot with NO HEALING (2026-09-16, MEASURED LIVE + DECOMP-VERIFIED, ✅ **FIXED IN THE SANDBOX AND DRIVEN — ⛔ NOT PROMOTED**)
 
 **SYMPTOM.** Driving `ch24probe` against Sidney, the bot tried to Full Restore its Mightyena at
 23/144, twice, and reported *"no effect … both index spaces failed; disabling items for the rest of
@@ -1333,7 +1333,48 @@ evidence about execution — including the 2026-09-14 STEP4 note (*"the request 
 (`WalkInCloseDoor` seals the entry), so the bag is the only healing there is. With this defect the
 bot enters that gauntlet with, effectively, none.
 
-**FIX SHAPE (not yet built):** copy the `[KI96-FIX]` template onto the item path — bounded wait for
+✅✅ **FIXED AND DRIVEN 2026-09-16. THE ITEM NOW LANDS, AND THE LOG CARRIES ITS OWN A/B.**
+Same fixture (`post_ch24_atdoor.ss1`), same driver (`ch24probe`), `ACCEPTANCE: PASS` in every arm:
+
+    ARM-OFF  5 of 6 fainted   [ITEM] "no effect ... both index spaces failed; disabling items"
+    ARM-ON   2 of 6 fainted   [ITEM-FLOW] party-menu target=4 -> menu slot 0
+                                          (KI-101 remap after 47 frame(s); pre-menu value was 1)
+
+⭐ **THE CAUSAL PROOF IS ONE LOG LINE, NOT THE OUTCOME.** `pre-menu value was 1` is exactly the wrong
+slot the old code used — a FAINTED Sceptile — printed beside the corrected `0`. The line carries its
+own counterfactual, which an outcome comparison could never do.
+‼ **n=1 per arm and the trajectories diverge**; 5 → 2 is one trajectory each, not a replication.
+
+⛔⛔ **AND AN ADVERSARIAL REVIEW KICKED THE FIRST FIX BACK — IT RESTED ON A 4 HP MARGIN.** The ARM-ON
+evidence itself showed `use 2: 2/147 -> 6/147`. A Full Restore MAXES HP, so 6 is not the heal's
+result — and it was **not** a counter-hit either: `worst hit` never rises above 81, so no
+141-damage blow existed. ⇒ the post-turn HP read is a **TRANSIENT**, and the verdict rested on its
+SIGN with a margin of four points. A different timing turns a WORKING heal into "no effect", and two
+of those disable every item for the rest of the battle — in the gauntlet this feature exists for.
+⭐ **THE DECOMP HAD ALREADY NAMED THE RIGHT OBSERVABLE:** `RemoveBagItem(item, 1)` sits ONLY in the
+success branch (`src/party_menu.c:4396-4435`), and a non-Revive HP item on a 0-HP mon is refused
+WITHOUT consuming it (`src/pokemon.c:5056-5060`). ⇒ **"did the bag count drop" IS "did it apply"**,
+immune to counter-hits, HP animations and index spaces alike. HP is still REPORTED beside the
+verdict, with the caveat inline, but it no longer DECIDES.
+✅ **RE-DRIVEN** (`evidence/2026-09-16-ch24probe-KI101-CONSUMPTION-VERDICT.stdout.txt`): all three
+uses read `✔ CONSUMED (bag count dropped)`, including the two whose HP showed only `6/147` and
+`80/147`. Outcome byte-identical to the prior arm ⇒ **one trajectory, REPLAYED — a determinism
+check, not a replication.** Behaviour did not change; the BASIS of the verdict did.
+
+**THE FIX, in five parts** (`battle_action_selection.py` + `story_mode.py`):
+A. the DRIVER waits (bounded 120 frames, falling back) for `GameState.PARTY_MENU`, re-reads
+   `get_battle_state()` and scrolls to the MAPPED slot — the `[KI96-FIX]` template on its sibling.
+B. the STRATEGY stops pre-mapping and always passes `mon.party_index` (intent, not a resolved slot).
+C+D. the no-op detector judges a FRESH read rather than the frozen entry snapshot, and the verdict
+   comparisons AND the log lines use it.
+E. ⭐ the verdict now asks **CONSUMPTION** (bag count), with the HP path kept only as the fallback
+   for an unreadable bag — and its log wording corrected, since "both index spaces failed" stopped
+   being true the moment the driver took over targeting.
+⚠ `_index_space` and its flip are INERT FOR TARGETING and kept only as a second attempt at a flaky
+menu — **a plain RETRY, not a re-aiming fallback.** Accepted deliberately: the old "different space"
+was two readings of the SAME stale array and never corrected anything.
+
+**SUPERSEDED FIX SHAPE (kept because the diagnosis predicted it and it matched):** copy the `[KI96-FIX]` template onto the item path — bounded wait for
 the party menu, then re-read the mapping — and make the detector re-read `get_battle_state()` rather
 than trust the entry snapshot. ⛔ Both, in one change, with a DRIVEN A/B on the same fixture and
 driver (`post_ch24_atdoor.ss1`, `--driver ch24probe`). Discriminator: does Mightyena's HP rise, and

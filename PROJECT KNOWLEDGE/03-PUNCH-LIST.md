@@ -1757,7 +1757,7 @@ accident of what the bot happened to meet.
 * **`#24-flyunlock` is CLOSED**, so the bot can finally REACH wild encounters at all.
 
 **⛔ THE FIVE CONSTRAINTS AN ADVERSARIAL REVIEW FOUND — build against these, they are measured:**
-1. **`_should_catch` already implements the right dex test** (`story_mode.py:1827`, comparing
+1. **`_should_catch` already implements the right dex test** (`story_mode.py:1956`, comparing
    `owned_species` by national dex number). It is gated off by conditions written for the NARROWER
    pre-Gym-1 team-building purpose: `if get_event_flag("BADGE01_GET"): return False` and a
    party-full check. ⇒ **relax those two; do not rewrite the predicate.**
@@ -1824,7 +1824,7 @@ accident of what the bot happened to meet.
   1's dex), and now GATED by `tools/story-dev/repro_heartbeat_emits.py`, which drives the **real
   `on_frame()`** and is fault-tested (arm B: 0 heartbeat lines).
 - [x] ✅✅ **THE FENCE IS BUILT AND GATED 2026-09-10 (gate #50, 20 cases, fault-armed). ⛔ DO NOT
-  REBUILD IT.** `decide_dex_catch` (`story_mode.py:1391`) is PURE; `_should_catch`
+  REBUILD IT.** `decide_dex_catch` (`story_mode.py:1520`) is PURE; `_should_catch`
   (`story_mode.py:1766`) is now a read-and-report ADAPTER that decides nothing. It was written with
   `is_armed()`, and the *"for the team!"* message now DERIVES its destination from the slot count
   the game reads. ⭐ **FOUR THINGS THE SPEC DID NOT HAVE, each verified in code before it was built:**
@@ -2707,7 +2707,7 @@ region, where "train near the gym" is actively wrong.
       asked and the data is now free, but it is not where the failures are.
 - [ ] #24-partyvariety — **Fill the party and vary what is caught; PC deposit/withdraw.**
       ‼ **ROOT CAUSE FOUND (recon 2026-07-26) — it is not emergent, it is two conditions.**
-      `_should_catch` (`story_mode.py:1827-1442`) requires `not BADGE01_GET` AND
+      `_should_catch` (`story_mode.py:1956-1442`) requires `not BADGE01_GET` AND
       `len(party) < _catch_team_target` where **`_catch_team_target = 4`** (`:811`). So the
       bot catches FOUR mons before the Stone Badge and then never catches again for the
       rest of the run. Part 1 is nearly a one-line change.

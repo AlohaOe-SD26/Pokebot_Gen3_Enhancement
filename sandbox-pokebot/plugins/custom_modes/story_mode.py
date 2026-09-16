@@ -583,6 +583,10 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         self._index_space = "party"
         #: only ever flip once per battle, so a failure costs one extra turn and not a loop
         self._index_space_flipped = False
+        #: ‼ `KI-101` blocker-1 (2026-09-16, found by an adversarial review of the KI-101 fix):
+        #: `(item, bag_quantity)` banked at REQUEST time so the verdict can ask the only question
+        #: that actually has a crisp answer — WAS THE ITEM CONSUMED?
+        self._item_qty_when_requested = None
 
     def decide_turn(self, battle_state):
         try:
@@ -670,6 +674,41 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
 
         if self._hp_when_item_requested is not None:
             requested_index, requested_hp = self._hp_when_item_requested
+            # ‼‼ `KI-101` HALF TWO (2026-09-16) — JUDGE A FRESH READ, NEVER THE ENTRY SNAPSHOT.
+            # ⛔ WITHOUT THIS, A WORKING FIX LOOKS LIKE A FAILED ONE. `handle_battle_action_selection`
+            #   captures `battle_state` ONCE on entry and re-reads it only when the BATTLER changes,
+            #   and `BattlePokemon` holds the bytes it was built from — so every decision inside one
+            #   action-selection entry sees the SAME pre-item HP. That is why the Sidney log printed
+            #   `[TURN 13] Mightyena L48 23/144` three times identically: one frozen object, three
+            #   renderings. Had the heal landed, this detector would STILL have read 23, flipped the
+            #   index space, burned a second item and then disabled items for the battle.
+            # ⇒ the verdict — and ONLY the verdict — is taken from a fresh read. `mon` above still
+            #   drives the healing DECISION, untouched, because re-reading there would change a
+            #   policy this change is not about.
+            # ⚠ AND IT RETIRES SOME EVIDENCE: any "items never execute" reading taken inside one
+            #   entry is void as proof of execution, including the 2026-09-14 STEP4 note
+            #   ("the request DID NOT EXECUTE (HP 68 -> 68)"). Do not cite those as a baseline.
+            judge = mon
+            try:
+                from modules.battle_state import get_battle_state as _ki101_state
+
+                _judge_state = _ki101_state()
+                _judge_mon = _judge_state.own_side.left_battler if _judge_state is not None else None
+                if _judge_mon is not None:
+                    judge = _judge_mon
+            except Exception as _ki101_judge_error:  # noqa: BLE001
+                # ‼ ADMITTED, NOT SILENT: fall back to the snapshot and SAY SO, because a verdict
+                #   taken on stale bytes is exactly what this block exists to stop.
+                try:
+                    from modules import debug_logger
+
+                    debug_logger.event(
+                        f"[ITEM] KI-101 fresh-read failed ({type(_ki101_judge_error).__name__}); "
+                        f"judging on the ENTRY SNAPSHOT — this verdict may be a false negative",
+                        category="BATTLE",
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
             # ‼‼ ONLY JUDGE THE SAME POKÉMON, AND ONLY IF IT IS STILL ALIVE (fixed 2026-08-10).
             # This check used to read `own_side.left_battler` at the next decision and compare it
             # against the HP recorded for whoever asked for the item — but after a faint that is
@@ -677,9 +716,65 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
             # 10 "both index spaces failed" verdicts** in batch `20260810-035733` were immediately
             # followed by a `[FAINT-CHOOSER]`. A before/after comparison must prove it is
             # comparing the same subject.
-            if mon.party_index != requested_index or mon.current_hp == 0:
+            # ‼‼ `KI-101` BLOCKER 1 (2026-09-16) — JUDGE **CONSUMPTION**, NOT AN HP DELTA.
+            # ⛔ AN ADVERSARIAL REVIEW OF THE KI-101 FIX CAUGHT THIS USING THE FIX'S OWN EVIDENCE, and
+            #   the measurement is worse than the review supposed. In the ARM-ON drive:
+            #       use 1:  23/144 -> 144/144   (+121, clean)
+            #       use 2:   2/147 ->   6/147   (+4)      <- verdict survived by FOUR HP
+            #       use 3:   6/147 ->  80/147   (+74)
+            #   A Full Restore MAXES HP, so uses 2 and 3 should read 147. And it was NOT a
+            #   counter-hit: `worst hit` never rises above 81, so no 141-damage blow ever landed.
+            #   ⇒ the post-turn HP read is a TRANSIENT, and the old verdict rested on its SIGN with a
+            #   margin as thin as 4 HP. A slightly different timing flips a WORKING heal to
+            #   "no effect", and two of those disable every item for the rest of the battle — in the
+            #   five-fight one-way gauntlet this feature exists for.
+            # ⭐ THE DECOMP ALREADY NAMED THE RIGHT OBSERVABLE: `RemoveBagItem(item, 1)` sits ONLY in
+            #   the success branch of `ItemUseCB_Medicine` (`src/party_menu.c:4396-4435`), and a
+            #   non-Revive HP item on a 0-HP mon is refused WITHOUT consuming it
+            #   (`src/pokemon.c:5056-5060`). So "did the count drop" is exactly "did it apply", and it
+            #   is immune to counter-hits, HP animations and index spaces alike.
+            # ‼ THIS IS THE PROJECT'S OWN RULE — INSTRUMENT THE ACTION, NOT A PROXY FOR IT. HP was a
+            #   proxy; the bag count is the action. HP is still REPORTED below, because it is useful
+            #   to a reader, but it no longer DECIDES.
+            _consumed = None
+            if self._item_qty_when_requested is not None:
+                _req_item, _req_qty = self._item_qty_when_requested
+                if _req_qty is not None:
+                    try:
+                        _consumed = get_item_bag().quantity_of(_req_item) < _req_qty
+                    except Exception:  # noqa: BLE001
+                        _consumed = None  # unreadable -> fall through to the HP heuristic
+            if _consumed is True:
+                # The item applied. Clear the trackers and say so with BOTH readings, so the HP
+                # transient stays visible as data without being load-bearing.
+                # ‼ ROUTED THROUGH THE EXISTING `_log_story_event` RATHER THAN A NEW try/except.
+                #   `repro_no_silent_except`'s per-root ratchet caught two new silent handlers here
+                #   (plugins/custom_modes 81 > 79) and it was RIGHT: new debt may not be funded by
+                #   another root's headroom. One shared safe logger is the paydown, not a budget bump.
+                _log_story_event(
+                    f"[ITEM] ✔ CONSUMED (bag count dropped) — the item applied. "
+                    f"HP reads {judge.current_hp}/{judge.total_hp} "
+                    f"(a post-turn value, NOT the heal's result — see KI-101 blocker 1)",
+                    category="BATTLE",
+                )
                 self._hp_when_item_requested = None
-            elif mon.current_hp <= requested_hp:
+                self._item_qty_when_requested = None
+            elif judge.party_index != requested_index or judge.current_hp == 0:
+                self._hp_when_item_requested = None
+            elif _consumed is False:
+                # NOT consumed: the menu flow completed but the game refused or we backed out. This
+                # is the genuine failure the guard exists for, and it is now distinguishable from a
+                # heal whose HP reading merely looked unconvincing.
+                self._item_qty_when_requested = None
+                if not self._index_space_flipped:
+                    self._index_space_flipped = True
+                    note = "the item was NOT consumed — retrying once"
+                else:
+                    self._items_ineffective = True
+                    note = "the item was NOT consumed twice; disabling items for the rest of this battle"
+                _log_story_event(f"[ITEM] ‼ not consumed — {note}", category="BATTLE")
+                self._hp_when_item_requested = None
+            elif judge.current_hp <= requested_hp:
                 # ‼‼ SELF-CORRECTING INDEX SPACE (2026-08-10) — because the question cannot be
                 # settled by reading the code. Measured: 85 targeted uses completed the FULL menu
                 # flow and 32 battles saw no HP rise, so the potion lands on the WRONG MON; and
@@ -697,12 +792,17 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
                     note = f"retrying with the {self._index_space}-order index"
                 else:
                     self._items_ineffective = True
-                    note = "both index spaces failed; disabling items for the rest of this battle"
+                    # ⛔ WORDING CORRECTED 2026-09-16: "both index spaces failed" is no longer
+                    #   true — the index space stopped selecting the target when the driver took
+                    #   over (KI-101). This branch is now only reachable when the bag count was
+                    #   UNREADABLE and the HP heuristic fell through twice.
+                    note = ("HP did not rise on two attempts and the bag count was unreadable; "
+                            "disabling items for the rest of this battle")
                 try:
                     from modules import debug_logger
 
                     debug_logger.event(
-                        f"[ITEM] ‼ no effect (HP still {mon.current_hp}/{mon.total_hp}) — {note}",
+                        f"[ITEM] ‼ no effect (HP still {judge.current_hp}/{judge.total_hp}) — {note}",
                         category="BATTLE",
                     )
                 except Exception:  # noqa: BLE001
@@ -714,8 +814,10 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
                     from modules import debug_logger
 
                     debug_logger.event(
-                        f"[ITEM] ✔ landed using the {self._index_space}-order index "
-                        f"(HP now {mon.current_hp}/{mon.total_hp})",
+                        f"[ITEM] ✔ landed (KI-101: the DRIVER resolved the menu slot after bag-open; "
+                        f"`_index_space`={self._index_space!r} is a legacy LABEL and no longer "
+                        f"selects the target) "
+                        f"(HP now {judge.current_hp}/{judge.total_hp})",
                         category="BATTLE",
                     )
                 except Exception:  # noqa: BLE001
@@ -823,6 +925,13 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         # eventually disable every item for the battle.
         if getattr(item, "parameter", 0) > 0:
             self._hp_when_item_requested = (mon.party_index, mon.current_hp)
+            # ‼ BANK THE BAG COUNT TOO — see the verdict block for why HP alone is not trustworthy.
+            try:
+                self._item_qty_when_requested = (item, get_item_bag().quantity_of(item))
+            except Exception:  # noqa: BLE001
+                # ADMITTED: an unreadable bag is not a reason to skip the heal; the verdict falls
+                # back to the HP heuristic and SAYS SO in its log line.
+                self._item_qty_when_requested = None
         else:
             self._status_when_item_requested = (
                 mon.party_index,
@@ -851,13 +960,33 @@ class StoryItemBattleStrategy(LevelUpTravelBattleStrategy):
         if not self._index_space_flipped:
             self._index_space = "party" if mon.party_index == 0 else "battle"
 
-        target = mon.party_index
-        if self._index_space == "battle":
-            try:
-                target = battle_state.map_battle_party_index(mon.party_index)
-            except Exception:  # noqa: BLE001
-                target = mon.party_index
-        return TurnAction.use_item_on(item, target)
+        # ‼‼ `KI-101` (2026-09-16) — THE STRATEGY STATES *INTENT*; THE DRIVER RESOLVES THE SLOT.
+        # ⛔ THE PRE-MAPPING THAT USED TO HAPPEN HERE WAS THE BUG, TWICE OVER: it mapped (a) from the
+        #   FROZEN entry `battle_state` snapshot, and (b) BEFORE the bag was open — and
+        #   `PlayerHandleChooseItem` refills `gBattlePartyCurrentOrder` AT bag-open
+        #   (`src/battle_controller_player.c:2653-2663`). `battle_action_use_item` now re-reads the
+        #   order once the party menu is actually up, which is the only moment the array is true.
+        # ⇒ ALWAYS PASS THE PARTY INDEX. It is the one number that means the same thing on both
+        #   sides of the menu, and identity is what this project asks assertions to carry.
+        #
+        # ⚠ `self._index_space` AND ITS FLIP ARE NOW INERT FOR TARGETING, AND THAT IS DELIBERATE
+        #   RATHER THAN AN OVERSIGHT — saying so because a mechanism that LOOKS live and is not is a
+        #   failure shape this project has paid for. They are kept, unremoved, for two reasons:
+        #     1. they still label the log line, so the historical `[ITEM] ✔ landed using the
+        #        <space>-order index` corpus stays comparable across the fix; and
+        #     2. it still buys a SECOND ATTEMPT at a flaky menu before items are disabled.
+        #   ⛔ BUT BE PRECISE ABOUT WHAT IT IS NOW, because an earlier draft of this very comment
+        #     overclaimed and I caught it reading my own diff: the flip is a PLAIN RETRY, **not** a
+        #     fallback that re-aims. Both attempts now resolve the same menu slot via the driver, so
+        #     a genuine targeting failure costs two attempts and then disables items — where the old
+        #     code at least tried a different space. That trade is accepted deliberately: the old
+        #     "different space" was measured to be two readings of the SAME stale array, so it never
+        #     corrected anything, and a retry that admits it is a retry beats one that pretends to
+        #     be a correction.
+        #   ⛔ Do NOT read `_index_space` as "which space we aim in" any more — the driver decides.
+        #   The 29-observation rule above is now understood as the SIGNATURE of the stale array
+        #   (at slot 0 the stale mapping is usually the identity), not as a convention.
+        return TurnAction.use_item_on(item, mon.party_index)
 
 
 class SwapTrainBattleStrategy(LevelUpTravelBattleStrategy):

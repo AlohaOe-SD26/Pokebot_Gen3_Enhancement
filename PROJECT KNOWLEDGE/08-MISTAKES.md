@@ -17833,3 +17833,33 @@ INVARIANT B (no orphan) passed correctly. **The tool guaranteed the MOVE; I wrot
 claim was false.** ⇒ **a tool's invariants protect what the TOOL does, never what YOU SAY it did.**
 After any archiving, measure what actually remains under each pointer before believing your own
 summary line.
+
+---
+
+## 2026-09-16 (fifth) — MY FIX JUDGED ITSELF BY A PROXY, AND THE PROXY WAS NOISE WITH A LUCKY SIGN
+
+**Symptom.** The `KI-101` fix made in-battle items land (5 faints → 2, causally proven). Its verdict
+asked *"did the target's HP rise?"*. An adversarial review of my own diff pointed at my own evidence:
+`use 2: 2/147 -> 6/147`. A Full Restore maxes HP, so **6 is not the heal's result**.
+
+**Root cause, and it is worse than the review supposed.** It was NOT a counter-hit eating the heal —
+`worst hit` never rises above 81, so no 141-damage blow ever landed. The post-turn HP read is a
+**transient**. My verdict keyed on the SIGN of a noisy value and survived twice by margins of +4 and
++74. A different timing flips a working heal to "no effect", and two of those disable every item for
+the rest of the battle — in the five-fight one-way gauntlet the feature exists for.
+
+**What I should have done first.** The decomp had already told me while I was reading it for
+something else: `RemoveBagItem(item, 1)` sits ONLY in the success branch of `ItemUseCB_Medicine`, and
+a non-Revive HP item on a 0-HP mon is refused *without* consuming it. **"Did the count drop" is the
+action itself.** I had that fact in hand and still reached for HP — because HP was what the existing
+code already measured.
+
+⇒ **Prevention: WHEN YOU INHERIT A VERDICT, RE-ASK WHAT IT OBSERVES — do not merely make the existing
+signal FRESHER.** I spent the whole first fix making a stale HP read fresh and never asked whether HP
+was the right quantity at all. ‼ The standing rule *"instrument the ACTION, not the input"* already
+covers it; what is new is the failure mode — **inheriting a proxy from the code you are repairing and
+improving it instead of replacing it. A fix that makes a bad oracle more accurate is still built on a
+bad oracle.**
+⭐ And the tell was sitting in my own SUCCESS evidence: a Full Restore reporting **+4** should have
+stopped me cold. **A result that succeeds by an implausible margin is a measurement to distrust, not
+a win to bank.**

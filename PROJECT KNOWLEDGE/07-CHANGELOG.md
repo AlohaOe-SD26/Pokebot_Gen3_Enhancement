@@ -29420,3 +29420,54 @@ closed — DOWN from 6.8%** — with 189 open items, so it is measuring BACKLOG 
 (4200 -> 4400). Contrast 05 earlier today, whose closed share had GROWN, so it was TRIMMED first and
 only then raised. ⭐ **Same rule, opposite actions, because the measurements differed — which is the
 entire point of measuring instead of preferring.**
+
+
+---
+
+## 2026-09-16 (sixth) — `KI-101` FIXED AND DRIVEN: in-battle items land again, 5 faints -> 2
+
+**THE FIX (5 parts, sandbox only, NOT promoted).** `battle_action_use_item` waits (bounded 120
+frames, falling back) for `GameState.PARTY_MENU`, re-reads `get_battle_state()` and scrolls to the
+MAPPED slot — the `[KI96-FIX]` template applied to the sibling handler the decomp shows has the
+identical refill. The strategy stops pre-mapping and passes `mon.party_index` (intent, not a resolved
+slot). The no-op detector judges a FRESH read rather than the frozen entry snapshot. And — after an
+adversarial review — **the verdict now asks CONSUMPTION, not an HP delta.**
+
+**DRIVEN, same fixture and driver, ACCEPTANCE: PASS in every arm:**
+
+    ARM-OFF   5 of 6 fainted   "no effect ... both index spaces failed; disabling items"
+    ARM-ON    2 of 6 fainted   party-menu target=4 -> menu slot 0 (pre-menu value was 1)
+                               [ITEM] ✔ landed (HP now 144/144) + two more
+
+⭐ **THE CAUSAL PROOF IS ONE LOG LINE**: `pre-menu value was 1` is exactly the wrong slot the old code
+used — a fainted Sceptile — printed beside the corrected `0`. The line carries its own counterfactual.
+
+**⛔ THE ADVERSARIAL REVIEW KICKED THE FIRST FIX BACK, USING MY OWN EVIDENCE.** ARM-ON showed
+`use 2: 2/147 -> 6/147`. A Full Restore MAXES HP, so 6 is not the heal's result; and it was NOT a
+counter-hit — `worst hit` never rises above 81, so no 141-damage blow existed. ⇒ the post-turn HP read
+is a TRANSIENT and my verdict rested on its SIGN with a **four point** margin. A different timing
+turns a working heal into "no effect", and two of those disable every item for the battle.
+⭐ The decomp had already named the right observable while I was reading it for something else:
+`RemoveBagItem(item, 1)` is ONLY in the success branch. ⇒ **"did the bag count drop" IS "did it
+apply"** — immune to counter-hits, HP animations and index spaces. HP is still reported, with the
+caveat inline; it no longer decides.
+✅ **RE-DRIVEN:** all three uses read `✔ CONSUMED (bag count dropped)`, including the two whose HP
+showed only `6/147` and `80/147`. Outcome byte-identical to the prior arm ⇒ **one trajectory,
+REPLAYED — a determinism check, not a replication.** Behaviour did not change; the BASIS did.
+
+**THINGS I CAUGHT IN MY OWN WORK BEFORE THEY SHIPPED:**
+* the first patch computed a value **inside an f-string** for a log line, via a function that RAISES
+  — a log could have taken down the flow it was watching. **An instrument must never be able to break
+  its subject.**
+* the verdict log lines still printed the FROZEN `mon`, so they would have reported "HP still 23/144"
+  while the fresh verdict disagreed. **A log that contradicts its own verdict is worse than none.**
+* a comment of mine **overclaimed** that the index-space flip remained a "fallback". It is not: both
+  attempts now resolve the same slot, so it is a **plain RETRY**. Corrected, with the trade stated.
+* `repro_no_silent_except`'s PER-ROOT ratchet caught two new silent handlers
+  (`plugins/custom_modes 81 > 79`). Its point is that new debt may not be funded by another root's
+  headroom — so both were routed through the existing `_log_story_event` helper instead of raising
+  the budget.
+
+**DRIFT IS NOW 2 AND THAT IS CORRECT** — `battle_action_selection.py` and `story_mode.py` carry the
+fix in the sandbox. ⛔ **NOT PROMOTED: promotion is the user's call, and this touches the most-burned
+code in the tree (five prior index-space bugs), so it wants a deliberate ruling rather than a copy.**

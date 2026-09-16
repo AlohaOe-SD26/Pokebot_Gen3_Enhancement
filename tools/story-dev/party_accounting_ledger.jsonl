@@ -582,3 +582,5 @@
 {"when": "2026-09-14T12:40:54", "driver": "spin", "build": "sandbox", "state": "post_ch24_atdoor.ss1", "frames_run": 300, "recomputes": 301, "scans": 2, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-14T14:00:05", "driver": "ch24probe", "build": "custom", "state": "post_league_shop.ss1", "frames_run": 42962, "recomputes": 42963, "scans": 144, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-16T10:45:03", "driver": "ch24probe", "build": "sandbox", "state": "post_ch24_atdoor.ss1", "frames_run": 48977, "recomputes": 48977, "scans": 164, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T11:36:38", "driver": "ch24probe", "build": "sandbox", "state": "post_ch24_atdoor.ss1", "frames_run": 46822, "recomputes": 46822, "scans": 157, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T12:00:20", "driver": "ch24probe", "build": "sandbox", "state": "post_ch24_atdoor.ss1", "frames_run": 46822, "recomputes": 46822, "scans": 157, "divergences": {}, "observer_broke": false}
