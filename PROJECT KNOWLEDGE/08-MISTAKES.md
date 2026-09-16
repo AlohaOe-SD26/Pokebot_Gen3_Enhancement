@@ -17777,3 +17777,27 @@ whole plan — and that turned into `probe_e4_door_rom_view.py`, which answered 
 five rooms, with controls, and **without the drive everyone assumed was needed**. The premise
 survived. ⇒ **A refutation attempt that FAILS is still the cheapest thing you can buy**, and
 checking the premise before the build is what a day of drives would otherwise have cost.
+
+
+---
+
+## 2026-09-16 (third, small but corrupting) — BACKTICKS IN A DOUBLE-QUOTED `git commit -m` ARE EXECUTED
+
+**Symptom.** Commit `2c5973c5`'s body reads *"measure offline with , which is an existing…"* — a
+tool name vanished mid-sentence. The shell printed `probe_live_mapgrid.py: command not found` and I
+nearly read that as a failed command rather than as a corrupted commit message.
+
+**Root cause.** `git commit -m "… `tool.py` …"` inside DOUBLE quotes: bash command-substitutes the
+backticks, runs the contents, and splices the (empty) output into the message. Every other commit
+this session used `git commit -F -` with a **quoted** heredoc (`<<'MSG'`), which passes text through
+literally; this one slipped to `-m`.
+
+**Not fixed, deliberately.** The commit is already pushed and `CLAUDE.md` forbids rewriting
+published history. The message remains readable — the same tool is named un-backticked earlier in
+it — so the honest cost is one mangled clause, recorded here rather than papered over.
+
+⇒ **Prevention: NEVER put a commit message in a double-quoted `-m`. Use `git commit -F -` with a
+quoted heredoc (`<<'MSG'`).** This project's commit messages are dense with backticked identifiers,
+so the failure is not an edge case here — it is the default outcome. ‼ And the tell is subtle: the
+commit SUCCEEDS, exit 0, with a stray `command not found` on stderr that looks like it belongs to
+something else entirely.
