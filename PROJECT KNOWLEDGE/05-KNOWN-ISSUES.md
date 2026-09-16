@@ -1273,6 +1273,72 @@ Fixed, driven and gated (`repro_multi_battle_partner.py`, in the standing suite)
 2. **Never identify a Pokémon by party INDEX across a battle-menu boundary.** Opening the battle party menu runs `UpdatePartyToBattleOrder`, which physically PERMUTES `gPlayerParty` — the second fix's `index >= 3` cut was in the wrong index space and offered the ALLY's Pokémon while hiding one of ours. Key on **original trainer ID** (`ally_party_indices()`); identity travels with the Pokémon, position does not.
 
 
+## `KI-101` — ⛔⛔ IN-BATTLE ITEMS AIM AT A **STALE PARTY ORDER**: it is `KI-96` again, on the sibling handler, and it leaves the bot with NO HEALING (2026-09-16, MEASURED LIVE + DECOMP-VERIFIED, **OPEN**)
+
+**SYMPTOM.** Driving `ch24probe` against Sidney, the bot tried to Full Restore its Mightyena at
+23/144, twice, and reported *"no effect … both index spaces failed; disabling items for the rest of
+this battle"*. It finished the fight with **five of six fainted**.
+
+**THE TARGETS WERE FAINTED POKÉMON — OUR OWN LOG RECORDED THE PERMUTATION AND NOBODY HAD READ IT.**
+Opening the in-battle bag PERMUTES `gPlayerParty` into battle order, and `[PARTY]` logged it live
+inside the item flow (`Story-debug-20260916-103859.log`):
+
+    f4402916 [PARTY] slot0 Sceptile -> Mightyena      <- menu open: permuted
+    f4402916 [PARTY] slot1 Zigzagoon -> Sceptile
+    f4402916 [PARTY] slot4 Mightyena -> Zigzagoon
+    f4402965 [ITEM-FLOW] target-chosen
+    f4403041 [PARTY] slot0 Mightyena -> Sceptile      <- menu closed: undone
+
+⇒ in-menu the cursor space was `0=Mightyena 1=Sceptile 2=Swellow 3=Wailord 4=Zigzagoon 5=Castform`.
+**Attempt 1 drove the cursor to 1 = SCEPTILE (0 HP). Attempt 2 to 4 = ZIGZAGOON (0 HP). The correct
+cursor was 0 BOTH TIMES.** Neither attempt ever pointed at Mightyena.
+
+**ROOT CAUSE — VERIFIED AT THE DECOMP.** `PlayerHandleChooseItem` refills the order array *at
+bag-open*:
+
+    static void PlayerHandleChooseItem(void) {            // src/battle_controller_player.c:2653
+        gBattlerControllerFuncs[gActiveBattler] = OpenBagAndChooseItem;
+        for (i = 0; i < ARRAY_COUNT(gBattlePartyCurrentOrder); i++)
+            gBattlePartyCurrentOrder[i] = gBattleBufferA[gActiveBattler][1 + i];
+    }
+    static void PlayerHandleChoosePokemon(void) {         // :2665 — the SWITCH path
+            gBattlePartyCurrentOrder[i] = gBattleBufferA[gActiveBattler][4 + i];
+    }
+
+⭐⭐ **THAT IS `KI-96` EXACTLY, ON THE SIBLING HANDLER.** We fixed the SWITCH path on 2026-09-07 by
+waiting (bounded) for `GameState.PARTY_MENU` and RE-READING the mapping
+(`battle_action_selection.py:765-786`, the `[KI96-FIX]` block, whose own comment says *"its INPUT was
+read too early"*). The ITEM path never got that fix: the target is computed at decision time and used
+verbatim ~180 frames later.
+
+**⛔ THE "no effect" VERDICT WAS FACTUALLY TRUE, AND NO ITEM WAS WASTED.** The decomp refuses a
+non-Revive HP item on a 0-HP mon *without consuming it* — `ITEM4_HEAL_HP` breaks out when
+`MON_DATA_HP == 0` (`src/pokemon.c:5056-5060`), and `ItemUseCB_Medicine` shows `gText_WontHaveEffect`
+with `RemoveBagItem` only on the success branch (`src/party_menu.c:4396-4435`). ⇒ the guard fired
+correctly on a real failure; **the guard is not the bug.**
+
+**‼‼ AND THERE IS A SECOND, INDEPENDENT BUG THAT WOULD HIDE THE FIX.** The no-op detector compares
+against a **frozen `battle_state` snapshot**: `handle_battle_action_selection` captures it once
+(`battle_action_selection.py:108`) and only re-reads when the BATTLER changes (`:550-552`), and
+`BattlePokemon` holds the bytes it was constructed with. ⇒ **every decision inside one
+action-selection entry reads the same pre-item HP** — which is why `[TURN 13] Mightyena L48 23/144`
+printed three times identically. **Had attempt 1 healed to 144/144, the detector would STILL have
+read 23, flipped the index space and disabled items.**
+⇒ ⛔ **FIXING ONLY THE INDEX WILL LOOK LIKE IT FAILED.** Both must move together, or the A/B lies.
+⚠ Corollary: any historical "items never execute" reading taken *inside one entry* is VOID as
+evidence about execution — including the 2026-09-14 STEP4 note (*"the request DID NOT EXECUTE
+(HP 68 → 68)"*).
+
+**WHY IT MATTERS NOW.** §Ch24 is a FIVE-fight ONE-WAY gauntlet with no reachable nurse
+(`WalkInCloseDoor` seals the entry), so the bag is the only healing there is. With this defect the
+bot enters that gauntlet with, effectively, none.
+
+**FIX SHAPE (not yet built):** copy the `[KI96-FIX]` template onto the item path — bounded wait for
+the party menu, then re-read the mapping — and make the detector re-read `get_battle_state()` rather
+than trust the entry snapshot. ⛔ Both, in one change, with a DRIVEN A/B on the same fixture and
+driver (`post_ch24_atdoor.ss1`, `--driver ch24probe`). Discriminator: does Mightyena's HP rise, and
+does `[PARTY]` show the cursor landing on the living target?
+
 ## KI-74 — `setmetatile` tiles are INVISIBLE to the shared map model, and the KI-59 fix made that fail-DANGEROUS instead of fail-safe (2026-08-13, code-verified, **STILL OPEN — but as of 2026-09-01 it is OBSERVABLE, and it has now COST A DRIVE**)
 
 - ✅✅ **2026-09-16 (LATER) — CONFIRMED LIVE AT THE ELITE FOUR DOOR. BOTH HALVES NOW MEASURED.**
