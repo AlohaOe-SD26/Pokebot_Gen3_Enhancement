@@ -5324,3 +5324,53 @@ a rule already restated that many times is evidence that prose failed — write 
 does not change how any file is written, read, committed, or executed, and `_raw_digest` preserves a
 byte-exact check at the one site whose claim is literally *"byte-identical"* — the post-copy
 verification inside a real promotion, which must stay strict.
+
+
+---
+
+## 2026-09-16 — USER RULING: the post-whiteout money policy is **SPEND DOWN BEFORE ENTERING**
+
+**Decision (the user's, made 2026-09-16 after being shown four options).** Before the bot walks
+through the Pokémon League door, it converts as much spare cash as possible into items. It does NOT
+gain a post-whiteout re-stock behaviour, an attempt cap, or a re-earning trip.
+
+**⭐ THE RATIONALE, AND IT IS A MECHANIC, NOT A PREFERENCE: items survive a whiteout; money does
+not.** `DoWhiteOut` (`overworld.c:358`) does `SetMoney(money / 2)` and touches nothing in the bag.
+⇒ cash left in the wallet at the door is **the only thing a whiteout can actually take**, and today
+the bot walks in holding ₽1,741 idle against a ₽54,300 basket. Spending it converts a halvable asset
+into an unhalvable one. It is also the cheapest of the four to build — it extends the EXISTING basket
+purchase in `victory_road.py` rather than adding a post-whiteout code path, and it needs nothing
+driven at the League 1F mart, which has never been driven.
+
+**⛔ THE THREE REJECTED OPTIONS — OFFERED AND DECLINED. DO NOT RE-RAISE THEM.** *(Recorded per
+`CLAUDE.md` rule 11: this log exists so a question is never asked twice, and that applies to a
+question answered NO just as much as to one answered YES.)*
+* **Adaptive re-stock** (relax *refuse-rather-than-under-buy* after a whiteout, buying the best
+  partial basket the halved wallet affords). Declined.
+* **Attempt cap** (allow N gauntlet attempts, then end the run). Declined.
+* **Fly out, re-earn, return** (grind back to the full ₽54,300 and re-enter). Declined.
+
+**⚠ A CONSEQUENCE THE USER WAS SHOWN AND ACCEPTED, recorded so it is diagnosed rather than
+re-litigated if it bites.** Without an attempt cap, a whiteout loop has **no floor**:
+`EventScript_WhiteOut` calls `ResetEliteFour`, which clears all four `DEFEATED_ELITE_4_*` flags and
+sets `VAR_ELITE_4_STATE` to 0 (verified at the decomp, `data/event_scripts.s:585-586, 628-634`), so
+every whiteout costs the ENTIRE gauntlet and the next attempt faces the same four fights with half
+the money again. ⇒ **If an unattended run is ever seen looping in the League, this is the known
+cause and it is BY DESIGN — the fix is a new ruling from the user, not a unilateral cap.**
+
+**NOTES FOR WHOEVER BUILDS IT** (none of these are new decisions; they are constraints already
+measured and recorded in `victory_road.py`):
+* ⛔ **Order is load-bearing.** The shop's quantity selector caps at `min(money / price, 99)`
+  recomputed from CURRENT money per transaction (`src/shop.c:1046-1051`), so the largest line must
+  be bought FIRST or the selector silently caps it low. A spend-down pass runs AFTER the fixed
+  basket and inherits this rule.
+* **Buy Hyper Potion first, then Full Heal.** Hyper Potion (₽1,200) heals a flat 200 HP, which
+  full-heals every member of this party (max HP ~115-231), so Max Potion (₽2,500) is strictly
+  dominated. Full Heal (₽600) is the cheapest item on the board.
+* ⛔ **Never buy Ultra Ball or Max Repel** — balls are blocked in trainer battles
+  (`battle_script_commands.c:9915-9920`) and no map past the League door has a wild-encounter table.
+* ⚠ **Mind the 99-per-stack cap** — a spend-down with a large wallet can hit it; the existing basket
+  buys 30 Hyper Potions, so there is headroom, but the pass must not assume unlimited depth.
+* ‼ **`LEAGUE_MIN_MONEY = 54_300` still gates ENTRY.** Spend-down is about what happens to the
+  REMAINDER; it must not be allowed to eat into the basket itself or to make the
+  *refuse-rather-than-under-buy* guard pass on a thinner basket.
