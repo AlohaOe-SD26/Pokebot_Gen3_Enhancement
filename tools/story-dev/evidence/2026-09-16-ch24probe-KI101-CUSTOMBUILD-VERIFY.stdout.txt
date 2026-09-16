@@ -1,0 +1,107 @@
+[setup] LOG -> C:\Remote Projects\Pokebot_Gen3_Enhancement\tools\story-dev\harness_custom_ch24probe_20260916-121700_27620.log
+[setup] (unique per run by design — #24-orphans (4); pass --log to pin a path)
+Running mGBA 0.10.2
+[setup] loaded save state post_ch24_atdoor.ss1; build=custom
+[run] starting faithful loop for up to 60000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[ch24probe] PRE at=((0, 8), (18, 6)) elite4_state=0
+[ch24probe] PRE party=Sceptile:138/147 Zigzagoon:48/48 Swellow:139/139 Wailord:226/226 Mightyena:144/144 Castform:103/103
+f1: CONTROLLER -> Ch24ProbeMode.run   (state=OVERWORLD)
+f69: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_DoDoorWarp', 'Task_AnimateDoor'] ctrl=Ch24ProbeMode.run bt='SCEPTILE gained 465 EXP. Points!' scripts=[] party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f1233: SAVED stall state #1 to stalls/repro-ml-f1233.ss1 (bt='SCEPTILE gained 465 EXP. Points!')
+[ch24probe] in Sidney's room at (6, 11) (the script auto-walks to (6,7))
+[ch24probe] ⭐ SIDNEY MEASURED at (6, 5) — approaching (6, 6) (note claimed (6,5))
+[ch24probe] DIAG before A-presses: tile=(6, 6) facing=? script_active=False objects=[(255, (6, 6)), (1, (6, 5))]
+f2000: heartbeat mode=Story ctrl=Ch24ProbeMode.run state=OVERWORLD party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] DIAG after 600 frames of A/B: tile=(6, 6) facing=? script_active=True objects=[(255, (6, 6)), (1, (6, 5))]
+f2547: battle_is_active -> True  party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+[ch24probe] BATTLE #1 — Sceptile:138/147 Zigzagoon:48/48 Swellow:139/139 Wailord:226/226 Mightyena:144/144 Castform:103/103
+f2548: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+[backup] backed up 'repro-ml' (44 files, 2258 KB, reason: auto)
+f4000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f5986: PARTY CHANGE [Sceptile:L53:exp146770|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f6000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f8000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f8744: PARTY CHANGE [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Zigzagoon:L19:exp7672|Sceptile:L53:exp148031|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f8766: PARTY CHANGE [Zigzagoon:L19:exp7672|Sceptile:L53:exp148031|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f9394: PARTY CHANGE [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Zigzagoon:L19:exp7672|Sceptile:L53:exp148031|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f9458: PARTY CHANGE [Zigzagoon:L19:exp7672|Sceptile:L53:exp148031|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Mightyena:L48:exp113010|Sceptile:L53:exp148031|Swellow:L48:exp106008|Wailord:L47:exp117542|Zigzagoon:L19:exp7672|Castform:L36:exp50128]
+f9480: PARTY CHANGE [Mightyena:L48:exp113010|Sceptile:L53:exp148031|Swellow:L48:exp106008|Wailord:L47:exp117542|Zigzagoon:L19:exp7672|Castform:L36:exp50128] -> [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f10000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128]
+f10667: PARTY CHANGE [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp113010|Castform:L36:exp50128] -> [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp114837|Castform:L36:exp50128]
+f12000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp114837|Castform:L36:exp50128]
+f14000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp114837|Castform:L36:exp50128]
+f16000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp114837|Castform:L36:exp50128]
+f17054: PARTY CHANGE [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp114837|Castform:L36:exp50128] -> [Mightyena:L48:exp114837|Sceptile:L53:exp148031|Swellow:L48:exp106008|Wailord:L47:exp117542|Zigzagoon:L19:exp7672|Castform:L36:exp50128]
+f17335: PARTY CHANGE [Mightyena:L48:exp114837|Sceptile:L53:exp148031|Swellow:L48:exp106008|Wailord:L47:exp117542|Zigzagoon:L19:exp7672|Castform:L36:exp50128] -> [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp114837|Castform:L36:exp50128]
+f18000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp114837|Castform:L36:exp50128]
+f18382: PARTY CHANGE [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp114837|Castform:L36:exp50128] -> [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp116698|Castform:L36:exp50128]
+f20000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp116698|Castform:L36:exp50128]
+f20459: PARTY CHANGE [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp116698|Castform:L36:exp50128] -> [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp117649|Castform:L36:exp50128]
+f20460: PARTY CHANGE [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L48:exp117649|Castform:L36:exp50128] -> [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp117649|Castform:L36:exp50128]
+f20620: PARTY CHANGE [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp117649|Castform:L36:exp50128] -> [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp118442|Castform:L36:exp50128]
+f22000: heartbeat mode=Story ctrl=BattleListener.fight state=BAG_MENU party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp118442|Castform:L36:exp50128]
+f22014: PARTY CHANGE [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp118442|Castform:L36:exp50128] -> [Mightyena:L49:exp118442|Sceptile:L53:exp148031|Swellow:L48:exp106008|Wailord:L47:exp117542|Zigzagoon:L19:exp7672|Castform:L36:exp50128]
+f22320: PARTY CHANGE [Mightyena:L49:exp118442|Sceptile:L53:exp148031|Swellow:L48:exp106008|Wailord:L47:exp117542|Zigzagoon:L19:exp7672|Castform:L36:exp50128] -> [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp118442|Castform:L36:exp50128]
+f22998: PARTY CHANGE [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp118442|Castform:L36:exp50128] -> [Mightyena:L49:exp118442|Sceptile:L53:exp148031|Swellow:L48:exp106008|Wailord:L47:exp117542|Zigzagoon:L19:exp7672|Castform:L36:exp50128]
+f23300: PARTY CHANGE [Mightyena:L49:exp118442|Sceptile:L53:exp148031|Swellow:L48:exp106008|Wailord:L47:exp117542|Zigzagoon:L19:exp7672|Castform:L36:exp50128] -> [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp118442|Castform:L36:exp50128]
+f24000: heartbeat mode=Story ctrl=BattleListener.fight state=BATTLE party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp118442|Castform:L36:exp50128]
+f24512: PARTY CHANGE [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp118442|Castform:L36:exp50128] -> [Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f24968: battle_is_active -> False  outcome=BattleOutcome.Won  party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f24978: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_WaitForFadeAndEnableScriptCtx'] ctrl=BattleListener.fight bt='NICK got $4900 for winning!' scripts=['EventScript_DoNoIntroTrainerBattle'] party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f25019: CONTROLLER -> Ch24ProbeMode.run   (state=OVERWORLD)
+[ch24probe] DIAG after A/B advance: tile=(6, 6) facing=? script_active=True objects=[(255, (6, 6)), (1, (6, 5))]
+f25035: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects'] ctrl=Ch24ProbeMode.run bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'PokemonLeague_EliteFour_SetAdvanceToNextRoomMetatiles'] party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f25038: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=Ch24ProbeMode.run bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f25211: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=Ch24ProbeMode.run bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f25919: SAVED stall state #2 to stalls/repro-ml-f25919.ss1 (bt='NICK got $4900 for winning!')
+f26000: heartbeat mode=Story ctrl=Ch24ProbeMode.run state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f26219: !!! NO-PROGRESS x1200 sig=('Ch24ProbeMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $4900 for winning!' bot_mode=Story
+f26219:     gen -> Ch24ProbeMode.run  @ story_harness.py:16009
+f26219:     gen -> wait_until_truly_controllable  @ early_game.py:1232
+[ch24probe] R CONTROL_seal_diverges = True
+[ch24probe] R P24_DOOR_VERDICT = KI-74 CONFIRMED AT THE E4 DOOR — ROM says BLOCKED, the game says OPEN. §Ch24 must consult the live grid at the door query.
+[ch24probe] R after_guards_at = ('((16, 10), (9, 3))', (9, 3))
+[ch24probe] R battle_frames = 0
+[ch24probe] R control_tile_6_7_rom_vs_live = (0, 0)
+[ch24probe] R door_blocked_in_ROM = True
+[ch24probe] R door_live = {(6, 1): 0, (6, 2): 0}
+[ch24probe] R door_live_metatile = {(6, 1): '0x344', (6, 2): '0x345'}
+[ch24probe] R door_open_in_LIVE = True
+[ch24probe] R door_rom = {(6, 1): 1, (6, 2): 1}
+[ch24probe] R elite4_state_after = 1
+[ch24probe] R elite4_state_in_room = 0
+[ch24probe] R engaged = True
+[ch24probe] R hall5_at = (5, 12)
+[ch24probe] R hp_after_sidney = Sceptile:0/147 Zigzagoon:0/48 Swellow:139/139 Wailord:226/226 Mightyena:80/147 Castform:103/103
+[ch24probe] R hp_before_sidney = Sceptile:138/147 Zigzagoon:48/48 Swellow:139/139 Wailord:226/226 Mightyena:144/144 Castform:103/103
+[ch24probe] R in_lobby_at = (9, 11)
+[ch24probe] R objects_seen = [(6, 11), (6, 5)]
+[ch24probe] R player_before_approach = (6, 11)
+[ch24probe] R room_landing = (6, 11)
+[ch24probe] R seal_live = {(5, 13): 3, (6, 13): 3, (7, 13): 3}
+[ch24probe] R seal_rom = {(5, 13): 0, (6, 13): 0, (7, 13): 0}
+[ch24probe] R sidney_at = (6, 5)
+[ch24probe] R still_in_room = True
+[ch24probe] R stood_at = (6, 6)
+[ch24probe] RESULT readings=['P24-DOOR', 'P24-ENGAGED', 'P24-HALL5', 'P24-IN', 'P24-OUTCOME', 'P24-ROOM'] missing=[]
+[ch24probe] RESULT battles=1 whiteouts=0
+[ch24probe] GRADE missing=[] failure=None elite4_state=1 (1 = Sidney beaten, 0 = not)
+[ch24probe] ACCEPTANCE: PASS (the probe must REACH Sidney and MEASURE an outcome; winning is not required)
+f26821: CONTROLLER -> <none>   (state=OVERWORLD)
+f26821: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=<none> bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f27721: SAVED stall state #3 to stalls/repro-ml-f27721.ss1 (bt='NICK got $4900 for winning!')
+f28000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f28021: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $4900 for winning!' bot_mode=Manual
+f28021:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f29821: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $4900 for winning!' bot_mode=Manual
+f29821:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f30000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f32000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f34000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+Error while playing audio: Unanticipated host error [PaErrorCode -9999]: 'There
+is no driver installed on your system.' [MME error 6]
+f34821: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $4900 for winning!' bot_mode=Manual
+f34821:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f36000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f38000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]

@@ -2566,3 +2566,41 @@ reason alone — an ENCODING-ONLY residual, content identical."* That is now mea
 flipping it would replace a 91-line reviewable diff with a 1,173-line ending flip. Gate #62
 (`selftest_promote_drift.py`) fault-tests the change in both directions. Full rationale:
 `PROJECT KNOWLEDGE/06-DECISIONS-LOG.md` 2026-09-15.
+
+
+---
+
+### 2026-09-16 — PROMOTED: the `KI-101` fix (in-battle items aimed at a STALE party order)
+
+**Two files:** `modules/battle_action_selection.py`, `plugins/custom_modes/story_mode.py`.
+**Rollback tag:** `pre-promote-2026-09-16` (local + origin, created BEFORE the copy).
+**Authorisation:** the user's, after the decision was put to them explicitly and they answered
+"promote if needed".
+
+**WHAT IT FIXES.** Opening the in-battle bag makes the game refill `gBattlePartyCurrentOrder`
+(`src/battle_controller_player.c:2653-2663`, `PlayerHandleChooseItem`) and permutes the party into
+battle order. We computed the item target BEFORE that, so heals aimed at whatever happened to sit in
+the stale slot — in the measured case, two Full Restores onto FAINTED Pokémon, after which the
+strategy disabled items for the rest of a Sidney fight. It is `KI-96` on the sibling handler; the
+switch path was fixed 2026-09-07 and the item path never was.
+
+**THE CHANGE.** The DRIVER now waits (bounded 120 frames, falling back) for `GameState.PARTY_MENU`,
+re-reads `get_battle_state()` and scrolls to the MAPPED slot; the STRATEGY passes intent
+(`mon.party_index`) rather than a pre-resolved slot; and the no-op verdict asks **CONSUMPTION**
+(did the bag count drop — `RemoveBagItem` sits only in the success branch) instead of an HP delta.
+
+**EVIDENCE (sandbox A/B, same fixture and driver, `ACCEPTANCE: PASS` in every arm):**
+  * ARM-OFF: 5 of 6 fainted, `"no effect ... disabling items"`.
+  * ARM-ON : 2 of 6 fainted, `party-menu target=4 -> menu slot 0 (pre-menu value was 1)`.
+  * re-drive with the consumption verdict: all three uses `✔ CONSUMED (bag count dropped)`.
+  ⭐ `pre-menu value was 1` is the wrong slot the old code used, printed beside the corrected `0` —
+  the log carries its own counterfactual.
+
+**PROOF IT REACHED THIS FORK, not merely that a copy ran:** `promote.py --go` reported drift 0 both
+ways and `byte-identical 2/2`; `git hash-object` independently makes both files IDENTICAL blobs
+across the forks; the `KI-101` markers and the `CONSUMED (bag count dropped)` verdict are present in
+`custom-pokebot/`; and the fix was VERIFIED BY DRIVING `--driver ch24probe --build custom`
+(evidence `tools/story-dev/evidence/2026-09-16-ch24probe-KI101-CUSTOMBUILD-VERIFY.stdout.txt`).
+‼ That last step is the one that matters: on 2026-08-14 a hand-run promotion shipped with a hole
+because the gate proving the fix hard-coded the sandbox import path, so nothing checked the other
+fork. A copy is not evidence.

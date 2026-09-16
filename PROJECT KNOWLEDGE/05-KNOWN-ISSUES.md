@@ -1273,7 +1273,7 @@ Fixed, driven and gated (`repro_multi_battle_partner.py`, in the standing suite)
 2. **Never identify a Pokémon by party INDEX across a battle-menu boundary.** Opening the battle party menu runs `UpdatePartyToBattleOrder`, which physically PERMUTES `gPlayerParty` — the second fix's `index >= 3` cut was in the wrong index space and offered the ALLY's Pokémon while hiding one of ours. Key on **original trainer ID** (`ally_party_indices()`); identity travels with the Pokémon, position does not.
 
 
-## `KI-101` — ⛔⛔ IN-BATTLE ITEMS AIM AT A **STALE PARTY ORDER**: it is `KI-96` again, on the sibling handler, and it leaves the bot with NO HEALING (2026-09-16, MEASURED LIVE + DECOMP-VERIFIED, ✅ **FIXED IN THE SANDBOX AND DRIVEN — ⛔ NOT PROMOTED**)
+## `KI-101` — ⛔⛔ IN-BATTLE ITEMS AIM AT A **STALE PARTY ORDER**: it is `KI-96` again, on the sibling handler, and it leaves the bot with NO HEALING (2026-09-16, MEASURED LIVE + DECOMP-VERIFIED, ✅✅ **FIXED, DRIVEN, AND PROMOTED TO BOTH FORKS 2026-09-16 (user-authorised, verified by driving `--build custom`)**)
 
 **SYMPTOM.** Driving `ch24probe` against Sidney, the bot tried to Full Restore its Mightyena at
 23/144, twice, and reported *"no effect … both index spaces failed; disabling items for the rest of

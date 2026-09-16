@@ -1042,9 +1042,63 @@ def battle_action_use_item(battle_state: BattleState, item: Item, target_index: 
         # very same Blaziken, so the cursor was sent to the wrong entry and the use was cancelled.
         # The menu is driven in PARTY order, so pass the party index straight through. Both
         # numbers stay in the log so a regression here is one grep away.
-        in_battle_index = battle_state.map_battle_party_index(target_index)
-        _stage(f"party-menu target={target_index} (battle-order would be {in_battle_index})")
-        yield from scroll_to_party_menu_index(target_index)
+        # ‼‼ `KI-101` (2026-09-16) — RESOLVE THE MENU SLOT *AFTER* THE BAG IS OPEN, NEVER BEFORE.
+        # ⛔ THIS IS `KI-96` ON THE SIBLING HANDLER, AND THE DECOMP SAYS SO OUTRIGHT:
+        #       static void PlayerHandleChooseItem(void)        // src/battle_controller_player.c:2653
+        #           gBattlerControllerFuncs[...] = OpenBagAndChooseItem;
+        #           for (i = 0; i < ARRAY_COUNT(gBattlePartyCurrentOrder); i++)
+        #               gBattlePartyCurrentOrder[i] = gBattleBufferA[gActiveBattler][1 + i];
+        #   `PlayerHandleChoosePokemon` (:2665) does the identical refill for the SWITCH path, which
+        #   is the bug we already fixed on 2026-09-07 — see the `[KI96-FIX]` block above, whose own
+        #   comment is the one-line summary of this class: *"its INPUT was read too early."*
+        #
+        # MEASURED, 2026-09-16, `ch24probe` vs Sidney. Our own `[PARTY]` instrument caught the
+        # permutation live, INSIDE this flow, and nobody had read those lines:
+        #       f4402916 [PARTY] slot0 Sceptile -> Mightyena / slot1 Zigzagoon -> Sceptile
+        #                        slot4 Mightyena -> Zigzagoon        <- menu open, party PERMUTED
+        #       f4403041 [PARTY] ...undone...                        <- menu closed
+        #   In-menu the slots were 0=Mightyena 1=Sceptile 2=Swellow 3=Wailord 4=Zigzagoon.
+        #   We drove the cursor to 1 (Sceptile, 0 HP), then to 4 (Zigzagoon, 0 HP). The right slot
+        #   was 0 BOTH TIMES. Two Full Restores aimed at corpses, and the strategy then disabled
+        #   items for the rest of an Elite Four fight.
+        #
+        # ⭐ AND IT EXPLAINS THE "CONVENTION" THAT NEVER WORKED. The strategy's empirical rule
+        #   (party-order landed 19/19 at slot 0; battle-order 9/10 above it) is not a convention —
+        #   it is the SIGNATURE of a stale array: at slot 0 the stale mapping is usually the
+        #   identity, so it looks right. Both arms of the self-correcting flip read the same stale
+        #   input, which is why flipping could never rescue it.
+        #
+        # ⛔ BOUNDED, AND FALLS BACK TO THE CALLER'S VALUE. If the menu never appears we keep
+        #   `target_index` and the existing B-press unwind still runs. An unbounded wait here would
+        #   be a new hang, which is the one thing this flow must never grow (`#26-battleitemwedge`).
+        _menu_slot = target_index
+        _ki101_wait = 0
+        while get_game_state() != GameState.PARTY_MENU and _ki101_wait < 120:
+            _ki101_wait += 1
+            yield
+        if get_game_state() == GameState.PARTY_MENU:
+            try:
+                # ‼ A FRESH read: `get_battle_state()` re-reads `gBattlePartyCurrentOrder`
+                #   (battle_state.py:816), so this is the REFILLED array, not the entry snapshot.
+                _fresh = get_battle_state().map_battle_party_index(target_index)
+                _menu_slot = _fresh
+            except Exception as _ki101_error:  # noqa: BLE001
+                # ‼ ADMITTED, NOT SILENT — logged via `_stage`, and the fallback is the old
+                #   behaviour rather than an abort. An unreadable order is not a reason to skip a
+                #   heal; the no-op detector still judges the outcome.
+                _stage(f"KI101 remap failed ({type(_ki101_error).__name__}) — using caller index")
+        # ⛔ The pre-menu value is computed in its OWN guarded step: `map_battle_party_index` RAISES
+        #   when the index is absent from the order array, and a raise inside a LOG line would turn
+        #   an instrument into an outage. Log lines must never be able to break the thing they watch.
+        try:
+            _pre_menu = battle_state.map_battle_party_index(target_index)
+        except Exception:  # noqa: BLE001 - instrumentation only; the value is cosmetic
+            _pre_menu = "unreadable"
+        _stage(
+            f"party-menu target={target_index} -> menu slot {_menu_slot} "
+            f"(KI-101 remap after {_ki101_wait} frame(s); pre-menu value was {_pre_menu})"
+        )
+        yield from scroll_to_party_menu_index(_menu_slot)
         context.emulator.press_button("A")
         yield
         _stage("target-chosen")
