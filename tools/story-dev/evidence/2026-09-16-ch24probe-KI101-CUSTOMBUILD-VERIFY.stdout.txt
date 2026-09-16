@@ -105,3 +105,30 @@ f34821: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive
 f34821:     gen -> <no controller on the stack (Manual mode / dropped out)>
 f36000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
 f38000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+Error while playing audio: Unanticipated host error [PaErrorCode -9999]: 'There
+is no driver installed on your system.' [MME error 6]
+f40000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+Error while playing audio: Unanticipated host error [PaErrorCode -9999]: 'There
+is no driver installed on your system.' [MME error 6]
+f41821: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $4900 for winning!' bot_mode=Manual
+f41821:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f42000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f44000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f46000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+f46821: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 46822 frames; final mode=Manual party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp106008|Wailord:L47:exp117542|Mightyena:L49:exp120098|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L53: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Swellow L48: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L47: Dive, Surf, Ice Beam, Waterfall
+[moveset] Mightyena L49: Strength, Crunch, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 46822 get_party() recomputes, 157 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24probe 46822 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\custom-pokebot\profiles\repro-ml\states\2026-
+09-16_12-23-22.ss1 created!
+Updated `current_state.ss1`!
