@@ -170,7 +170,12 @@ because an `OnTransition` `setobjectxyperm`s them while `FLAG_ENTERED_ELITE_FOUR
 
 All **[AGENT-DECOMP]** unless marked. Each is cited in the agent's return; none is verified here.
 
-1. ✅ **[VERIFIED-BY-ME] ⛔ THE DEFEATED E4 MEMBER STAYS STANDING AT (6,5) AND BLOCKS THE STRAIGHT
+1. ⚠⚠ **DEMOTED 2026-09-16 — THIS WAS RANKED #1 AND IT IS NOT THE KILLER.** An adversarial
+   build-prep pass found that **our pathfinder already routes around NPCs**, so the standing
+   sprite is a detour, not a wall. ⛔ **THE REAL FIRST-DRIVE KILLER IS §D''** — the exit door
+   exists only in RAM and our pathfinder reads ROM. The fact below is still TRUE, it is just
+   not the top risk, and ranking it there would have sent the first fix at the wrong target.
+   *(original, and still verified:)* **THE DEFEATED E4 MEMBER STAYS STANDING AT (6,5) AND SITS ON THE STRAIGHT
    LINE.** I fetched both halves: `map.json` puts the trainer at **(6,5)** with the exit warp at
    **(6,2)**, and `_Defeated` (quoted in §A) contains **no `removeobject` and no `applymovement`**. The bot ends at (6,7)/(6,6) and the exit
    door is (6,2) — **directly through the sprite**. The path out must go around. *(This is the single
@@ -253,6 +258,54 @@ are assumptions until measured: that our nurse-interaction code drives *this* nu
 ordinary Pokémon Center one, and that the guards let the bot back OUT to the lobby mid-gauntlet.
 ⛔ The second is the one that could be false and expensive: **the gauntlet may be one-way.** Nothing
 I read forbids walking back south through the hall warps, but nothing I read confirms it either.
+
+---
+
+## D''. ⛔⛔ THE PREREQUISITE DEFECT — OUR PATHFINDER CANNOT SEE THE DOOR IT MUST WALK THROUGH
+
+✅ **[VERIFIED-BY-ME], 2026-09-16, both halves.** This supersedes §D1 as the top risk and it
+**reorders the build**: writing the sequencer first would fail on the first drive for this reason.
+
+**Half 1 — the door is a RUNTIME write.** `data/scripts/elite_four.inc`, fetched and read:
+
+```
+PokemonLeague_EliteFour_SetAdvanceToNextRoomMetatiles::      (runs ON VICTORY)
+	setmetatile 6, 1, METATILE_EliteFour_OpenDoor_Frame,   FALSE     <- impassable = FALSE
+	setmetatile 6, 2, METATILE_EliteFour_OpenDoor_Opening, FALSE
+	... ten spotlight tiles at y=2 ...
+	special DrawWholeMapView
+```
+
+**Half 2 — our pathfinder reads ROM, and caches it forever.** `modules/map.py:748-755`:
+the layout is fetched through `map_layout_pointer` (a ROM pointer) and stored in
+`_map_layout_cache[rom][map]`, which is only ever populated once per map. A grep of
+`sandbox-pokebot/modules/` for **`gBackupMapLayout` returns nothing but the symbol tables** — no
+module code reads it.
+
+⇒ **`setmetatile` writes the RAM map (`gBackupMapLayout`); our tile grid comes from ROM and is
+cached permanently. The opened door is therefore INVISIBLE to `calculate_path`, in every room, on
+every victory.** A leg that beats Sidney and then asks the pathfinder for a route to (6,2) will be
+told there is no path — correctly, according to a grid that is stale by design.
+
+‼ **AND THE SAME BLINDNESS HAS A SECOND FACE:** the ENTRY script seals the way back —
+```
+PokemonLeague_EliteFour_EventScript_WalkInCloseDoor::        (runs ON ENTRY)
+	setmetatile 5,12 / 6,12 / 7,12 -> EntryDoor_ClosedTop,    TRUE   <- impassable = TRUE
+	setmetatile 5,13 / 6,13 / 7,13 -> EntryDoor_ClosedBottom, TRUE
+```
+⇒ ⭐ **THE GAUNTLET IS ONE-WAY, AND THIS ANSWERS §D''s OPEN QUESTION.** The bot cannot walk back to
+the League 1F lobby to use the nurse. Whatever healing happens between rooms must come from the BAG
+— which is exactly `#24-e4healing` step 2, and it is now a hard requirement rather than a nicety.
+*(Our pathfinder is equally blind to this seal, in the opposite direction: it will believe the entry
+is still open. A "walk back and heal" fallback would not fail loudly — it would path into a wall.)*
+
+### ⇒ THE BUILD ORDER THIS FORCES
+1. **Solve the door first.** Options, none yet chosen: read the tile from `gBackupMapLayout` at
+   runtime; invalidate `_map_layout_cache` on a metatile-changing script; or bypass the pathfinder
+   for these six doors and drive the warp directly with a fixed movement (the rooms are uniform —
+   (6,7) -> (6,2) is a straight column, and §D1's sprite is the only thing on it).
+2. ⛔ **Do NOT start the sequencer until a probe has walked one opened door.** That is the cheapest
+   possible falsification of everything above, and it is one drive.
 
 ---
 
