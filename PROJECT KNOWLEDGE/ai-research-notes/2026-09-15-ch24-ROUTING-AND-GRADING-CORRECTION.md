@@ -337,7 +337,7 @@ the "we think open, the game says wall" column. That is:
 * and it de-risks the victory measurement, which can then be a second save from the same drive.
 
 ‼ **THIS IS THE ROM HALF ONLY, AND SAYING SO IS THE POINT.** It does not show what the LIVE grid
-says after a victory. That needs a save taken AFTER beating a member — which does not exist yet —
+says after a victory. ⛔ **CORRECTED 2026-09-16: SUCH SAVES DO EXIST, AND HAVE SINCE THE FIRST DOOR RUN.** *(This read “which does not exist yet”.)* `tools/story-dev/saves/stalls/repro-ml-f28074.ss1` and `repro-ml-f29876.ss1` were auto-captured INSIDE Sidney's room after the win, with the door open. ⇒ `probe_live_mapgrid.py <save> EVER_GRANDE_CITY_SIDNEYS_ROOM` can dump the whole post-victory live grid **offline and repeatably, with no drive at all**. ⚠ They sit on AUTO-ROTATED `stalls/` names — **copy them to pinned fixtures before the next drive overwrites them.** — the ROM half needed nothing more, but the live half
 and then `probe_live_mapgrid.py <save> EVER_GRANDE_CITY_SIDNEYS_ROOM`. The decomp makes the outcome
 very likely (`setmetatile 6,2,…,FALSE` sets impassable FALSE), but *very likely* is precisely the
 kind of claim this project requires to be driven rather than reasoned.
@@ -490,10 +490,27 @@ enter → beat Sidney → WALK THE OPENED DOOR → arrive on HALL1.** Only the w
 
 ### ⛔⛔ THREE WAYS TO WALK IT THAT DO NOT WORK — each ruled out by measurement, not opinion
 
-1. **`calculate_path` / `navigate_to`.** They read the ROM blockdata cached forever
-   (`modules/map.py:748-755`). `probe_e4_door_rom_view.py` measured `(6,1)=(6,2)=1` BLOCKED in ROM
-   for ALL FIVE rooms, with controls passing. The planner will refuse, correctly, for ever. This is
-   `KI-74`.
+1. ⛔⛔ **`calculate_path` / `navigate_to` — RETRACTED 2026-09-16 (second-pass audit). THIS REBUTTAL
+   IS UNSUPPORTED AND MAY BE FLATLY WRONG.** *(It read: "They read the ROM blockdata cached forever
+   … The planner will refuse, correctly, for ever.")* The KI-74 MECHANISM is real, but the
+   CONCLUSION does not follow, because the planner has a destination-warp exemption:
+       modules/map_path.py:841
+         elif not tile.accessible_from_direction[from_direction] \
+              and not (tile == destination_tile and tile.warps_to):
+             return False
+   ⇒ **when the tile IS the destination and has `warps_to`, the collision refusal is SKIPPED.** And
+   `calculate_path`'s own docstring (`map_path.py:736-738`) says: *"If this tile is a warp tile, it
+   will follow the warp. So setting a door as the destination will lead to the path leading to the
+   map that door connects to."* §C establishes `(6,2)` IS a warp (`SIDNEYS_ROOM #1 -> HALL1`).
+   ‼ **AND THE HONEST PART: NO `calculate_path` CALL HAS EVER BEEN MADE AGAINST `(6,2)`.**
+   `probe_e4_door_rom_view.py` measured a TILE-COLLISION VALUE. I extrapolated from that instrument
+   to a PLANNER BEHAVIOUR and wrote it under a heading reading *"ruled out by measurement, not
+   opinion"*. That is the session's recurring error: **measured one thing, concluded about another.**
+   ⭐ **THE DECISIVE TEST IS ~10 LINES AND OFFLINE:** extend `probe_e4_door_rom_view.py` to print, for
+   `(6,2)`, its `warps_to`, its elevation, and the result of `calculate_path((6,6) -> (6,2))`.
+   ⛔ **RUN THAT BEFORE WRITING ANY BFS** — if it returns a route, the BFS below is unnecessary work.
+   ‼ **AND REBUTTAL 3 FALLS WITH THIS ONE:** `_live_wall_tiles` was dismissed because "our planner
+   never chooses the door at all" — a premise that depends entirely on this rebuttal being true.
 2. **`_pin_planner_to_live_layout()`** (`sootopolis.py:1000`) — the Sky Pillar's trick. ⛔ It
    re-seeds `modules.map._map_layout_cache` from **`gMapHeader`'s blockdata pointer, the STATIC ROM
    MapLayout struct**. Sky Pillar works because that floor swaps a whole LAYOUT

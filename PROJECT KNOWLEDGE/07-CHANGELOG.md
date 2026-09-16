@@ -29471,3 +29471,59 @@ REPLAYED — a determinism check, not a replication.** Behaviour did not change;
 **DRIFT IS NOW 2 AND THAT IS CORRECT** — `battle_action_selection.py` and `story_mode.py` carry the
 fix in the sandbox. ⛔ **NOT PROMOTED: promotion is the user's call, and this touches the most-burned
 code in the tree (five prior index-space bugs), so it wants a deliberate ruling rather than a copy.**
+
+---
+
+## 2026-09-16 (seventh) — SECOND-PASS ADVERSARIAL AUDIT: 17 findings, and two of them invert the plan
+
+**⛔ FIRST, THE ENTRY THIS FILE OWED.** The KI-101 fix was **PROMOTED to custom-pokebot on
+2026-09-16** (user-authorised, restore point `pre-promote-2026-09-16`, verified by driving
+`--build custom`). The 2026-09-16 (sixth) entry above ends "NOT PROMOTED: promotion is the user's
+call" — **that was true when written and is now superseded.** The promotion commit (`a22655c8`)
+touched 04-HANDOFF, 05-KNOWN-ISSUES and DIVERGENCE-LOG but **not this file**, so DoD step 3 was
+skipped for a change that shipped into the fork that runs. This entry closes that gap; the audit
+caught it (finding F3).
+
+**THE AUDIT.** A cold-start agent was told to REFUTE rather than confirm — the previous pass had
+returned "mostly clean", and this project's own measured rule is that agreement is not a confidence
+signal. It returned **17 findings**, every one verified by the auditor against the tools, the code or
+the evidence files.
+
+**⛔⛔ F1 — THE POST-VICTORY STALL IS A HANG, NOT A FRAME COST. 4 FOR 4.**
+`#24-e4postbattlestall` said *"It RECOVERED … a FRAME COST and not yet a hang"*. All four drives end
+`HANG CONFIRMED (20000 frames no progress)`, `final mode=Manual`. Two errors underneath it:
+* **`NO-PROGRESS x1200` is not a duration** — it is the first rung of a ladder (x1200, x3000, x8000,
+  x15000, all in the same log). I quoted the threshold at which the instrument first speaks as the
+  size of the thing measured.
+* **`ACCEPTANCE: PASS` hid it.** That acceptance asserts only *"REACH Sidney and MEASURE an
+  outcome"* — nothing about the bot being able to continue. `wait_until_truly_controllable` is
+  bounded at 1800 frames and **returns silently on timeout**; control was retaken at f27174 and lost
+  at f28976 = 27174 + 1800 exactly. It hit its bound, with `WaitForButton` still on screen.
+⇒ **§G' was wrong that "only the walk is unbuilt": regaining control after a victory is also unbuilt,
+and it is what stops every run today** — the first thing Leg 1 would hit.
+
+**⛔⛔ F2 — §G''s `calculate_path` REBUTTAL IS RETRACTED.** It claimed *"the planner will refuse,
+correctly, for ever"* under a heading reading *"ruled out by measurement, not opinion"*. But
+`map_path.py:841` skips the collision refusal when `tile == destination_tile and tile.warps_to`, and
+the docstring says setting a door as the destination follows the warp. `(6,2)` IS a warp.
+‼ **No `calculate_path` call has ever been made against that tile.** I measured a tile-collision
+value and concluded a planner behaviour. ⇒ the ~10-line offline test is now named in §G', and
+rebuttal 3 (`_live_wall_tiles`) falls with rebuttal 1 because its premise depended on it.
+
+**⭐ F12/3d — THE POST-VICTORY SAVES ALREADY EXISTED.** §D'' said *"which does not exist yet"*. Two
+were auto-captured inside Sidney's room after the win, with the door open. **Now PINNED** as
+`post_sidney_door_open.ss1` (md5 `62313696…`) and `_b.ss1` (`e600ebff…`), `verify_fixtures` green —
+they were on auto-rotating `stalls/` names and would have been overwritten. The live grid can now be
+dumped offline, repeatably, with **no drive at all**.
+
+**THE REMAINING 13** are filed as `#24-pass2triage` rather than bulk-fixed, because each is a doc
+claim with a pair elsewhere and this project has paid for sweeping edits before. They include: a
+stale 3,600 line budget the tool contradicts by 800; a second "(LATEST)" drift figure (stale; the digit is not reprinted here — run `promote.py --check`)
+carrying a standing "THE FORK IS FROZEN" directive; a retracted `KI-96` instruction still issuing orders 795
+lines from its own retraction; three wrong `story_mode.py` citations inside the live `➡➡➡` line; and
+`02-ARCHITECTURE.md` never mentioning `pokemon_league.py` or §Ch24 at all.
+
+**‼ THE PATTERN ACROSS THIS SESSION, now three-for-three and recorded in `08-MISTAKES`:** I measured
+X and concluded about Y — attempts vs failures, a proxy HP delta vs item consumption, and a tile
+collision vs a planner's behaviour. **The discipline that catches all three: write the claim, then
+name the command that produced it. If no command produced it, it is an inference and must say so.**

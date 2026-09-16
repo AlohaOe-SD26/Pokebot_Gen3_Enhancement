@@ -17863,3 +17863,53 @@ bad oracle.**
 ⭐ And the tell was sitting in my own SUCCESS evidence: a Full Restore reporting **+4** should have
 stopped me cold. **A result that succeeds by an implausible margin is a measurement to distrust, not
 a win to bank.**
+
+
+---
+
+## 2026-09-16 (sixth) — I READ A COUNTER THRESHOLD AS A DURATION, AND CALLED A HANG A "FRAME COST"
+
+**Symptom.** `#24-e4postbattlestall` was filed as *"the post-win dialogue stalls ~1,200 frames … It
+RECOVERED … a FRAME COST and not yet a hang."* An adversarial cold-start audit checked the cited
+evidence: **all four** drives end `HANG CONFIRMED (20000 frames no progress)` with
+`final mode=Manual`. **4 for 4. None recovered.**
+
+**Two independent errors, and both are general.**
+1. **`NO-PROGRESS x1200` IS NOT A DURATION.** It is the first rung of an escalating counter ladder —
+   x1200, x3000, x8000, x15000 all appear in the same log. I quoted the threshold at which an
+   instrument first speaks as though it were the size of the thing it measured.
+   ⇒ **Prevention: before quoting a number out of a log line, find the OTHER values that field
+   takes.** One sample of a ladder looks exactly like a measurement.
+2. **`ACCEPTANCE: PASS` HID A TOTAL LOSS OF CONTROL.** The probe's acceptance says *"must REACH
+   Sidney and MEASURE an outcome; winning is not required"* — it asserts nothing about the bot being
+   able to CONTINUE. I read PASS as "the run was fine".
+   ⇒ **Prevention: an acceptance line is a claim about EXACTLY what it enumerates.** Ask what it does
+   NOT assert before treating it as a health check. ‼ And the handoff's own advice — *"read the
+   `ACCEPTANCE:` line, not the last line"* — is sound in general and is what produced this error
+   here; it does not license ignoring `HANG CONFIRMED` on the last line.
+
+⭐ **CONSEQUENCE, and it is why this matters more than the label:** §G' told the next session *"only
+the walk is unbuilt"*. In fact **regaining control after a victory is also unbuilt, and it is what
+actually stops every run today** — the first thing Leg 1 would hit, inside six minutes, while the
+docs called it a footnote.
+
+---
+
+## 2026-09-16 (seventh) — I EXTRAPOLATED FROM ONE INSTRUMENT TO ANOTHER TOOL'S BEHAVIOUR, UNDER A HEADING THAT SAID "MEASURED"
+
+**Symptom.** §G' ruled out `calculate_path` for the §Ch24 door: *"The planner will refuse, correctly,
+for ever"*, under a heading reading **"each ruled out by measurement, not opinion"**. The audit found
+`map_path.py:841` skips the collision refusal when `tile == destination_tile and tile.warps_to`, and
+`calculate_path`'s own docstring says *"setting a door as the destination will lead to the path
+leading to the map that door connects to."* `(6,2)` is a warp tile.
+
+**Root cause.** `probe_e4_door_rom_view.py` measured a **tile-collision value**. I concluded a
+**planner behaviour**. Those are different instruments answering different questions, and **no
+`calculate_path` call has ever been made against that tile.**
+
+⇒ **Prevention: A MEASUREMENT LICENSES A CLAIM ABOUT THE THING MEASURED, AND NOTHING DOWNSTREAM OF
+IT.** If the claim names a tool ("the planner will refuse"), the measurement must have RUN that tool.
+‼ This is the same shape as the earlier retraction where I compared *attempts* to *failures* — and as
+the KI-101 verdict built on a proxy. Three times in one session I measured X and concluded about Y.
+⭐ The cheap discipline that would have caught all three: **write the claim, then ask which command
+produced it.** If no command produced it, it is an inference and must be labelled one.
