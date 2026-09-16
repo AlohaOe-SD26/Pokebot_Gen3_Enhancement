@@ -29370,3 +29370,53 @@ fixed" contains "FIXED"), `KI-66` (*"PARTLY FIXED"*), and several already-archiv
 ⇒ R7's classifier is built to MEASURE A FRACTION, where a few false positives barely move the number;
 reusing it to SELECT WHAT TO REMOVE is a far higher bar. A stricter filter plus reading every survivor
 by hand cut 24 -> 7 -> 5. Generic lesson in `08-MISTAKES.md`.
+
+
+---
+
+## 2026-09-16 (fifth) — `KI-74` CONFIRMED LIVE AT THE ELITE FOUR DOOR, and two NEW findings fell out
+
+**The driver already existed.** `Ch24ProbeMode` (`--driver ch24probe`) already enters the League,
+finds Sidney, fights him live and is *graded on reaching and measuring, never on winning*. So this
+was a ~60-line OBSERVE-ONLY addition (`P24-DOOR`), deliberately kept **out of the probe's `want`
+set** — making a new reading load-bearing would silently re-grade every prior `ch24probe` comparison.
+*(Third time this session that "build X" turned out to be "extend X, which exists".)*
+
+**PREDICTIONS WERE PRE-REGISTERED BEFORE THE RUN** (stated to the user, not written afterwards):
+seal diverges True; seal reads **3 not 1**; ROM blocked; live open *conditional on a win*; verdict
+`KI-74 CONFIRMED`. **All five held.**
+
+    ACCEPTANCE: PASS   battles=1  whiteouts=0   readings=[P24-DOOR,...]  missing=[]
+    door_rom           = {(6,1): 1, (6,2): 1}        <- our planner: BLOCKED
+    door_live          = {(6,1): 0, (6,2): 0}        <- the game:    OPEN
+    door_live_metatile = {(6,1): 0x344, (6,2): 0x345}
+    CONTROL_seal_diverges = True    seal_rom = 0,0,0    seal_live = 3,3,3
+    control_tile_6_7_rom_vs_live = (0, 0)
+Evidence: `tools/story-dev/evidence/2026-09-16-ch24probe-P24DOOR-KI74-LIVE.stdout.txt`.
+
+⭐ **THE CONTROL IS WHY THIS IS A MEASUREMENT AND NOT AN ANECDOTE.** The entry seal is sealed by
+`WalkInCloseDoor` on the way IN, so it diverges from ROM *on arrival*, before anything under test
+happens. A control that could only become true after the thing being measured would prove nothing.
+‼ And the door reading also supplies the right VICTORY signal: the same run read
+`elite4_state_in_room = 0` then `elite4_state_after = 1`, i.e. the var tracks ENTRY exactly as
+predicted and cannot grade a win — while 0x344/0x345 are written only by
+`SetAdvanceToNextRoomMetatiles`, called from `_Defeated`.
+
+**⚠ NEW — `#24-e4postbattlestall`.** After the win the bot stalled in
+`ReturnFromBattleToOverworld` / `BattleScript_PayDayMoneyAndPickUpItems` with
+`textprinter=active=True state=WaitForButton`, then `NO-PROGRESS x1200` whose signature names
+`Ch24ProbeMode.run` — **during** the driver, not after. It RECOVERED (all readings taken), so it is a
+frame cost, not a hang. But §Ch24 has FIVE such victories in a ONE-WAY gauntlet, and the note's trap
+D2 predicted exactly this shape.
+
+**⚠ NEW — `#24-e4fixtureparty`.** The pinned fixture's party is **Sceptile L53 / Zigzagoon L19 /
+Swellow L48 / Wailord L47 / Mightyena L48 / Castform L36** — NOT the L60 grind party — and beating
+**Sidney alone left FIVE OF SIX FAINTED**. ⛔ One trajectory, not a verdict; `#24-e4healing` step 2 is
+the untested mitigation. What it forces is a DECISION about which fixture §Ch24 is built against.
+
+**DOC CAPACITY, SAME DAY, SAME RULE, OPPOSITE ACTIONS.** Adding the two items pushed
+`03-PUNCH-LIST.md` to 4202/4200. R7 was run FIRST as the procedure demands: 03 measures **4.1%
+closed — DOWN from 6.8%** — with 189 open items, so it is measuring BACKLOG and raising is correct
+(4200 -> 4400). Contrast 05 earlier today, whose closed share had GROWN, so it was TRIMMED first and
+only then raised. ⭐ **Same rule, opposite actions, because the measurements differed — which is the
+entire point of measuring instead of preferring.**

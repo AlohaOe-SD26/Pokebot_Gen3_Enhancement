@@ -91,7 +91,15 @@ CURRENT_STATE = ("01-", "02-", "03-", "04-", "05-")
 #: delete detail from LIVE issues is the failure 03 already paid for.
 #: ⛔ AND THE CEILING IS NOW A BACKSTOP, NOT THE GUARD — R7 below applies to 05 as of 2026-09-16, so
 #: the INTENT (is an archive forming?) is measured directly. Same architecture as 03.
-LINE_BUDGET = {"01-": 700, "02-": 700, "03-": 4200, "04-": 900, "05-": 4000}
+#: ⛔ 03 WENT 4200 -> 4400 ON 2026-09-16, BY THE SAME PROCEDURE AND WITH THE SAME ANSWER.
+#: R7 was run FIRST, as the 2026-09-08 block above instructs. 03 measures **4.1% closed** — DOWN
+#: from the 6.8% recorded there, against a 25% budget — with **189 open items**. The closed
+#: share SHRANK, so the file is not becoming an archive; R3 is again measuring BACKLOG, which is
+#: exactly the condition under which raising is right and trimming would mean deleting detail
+#: from live items. ‼ Contrast 05 on the same day: ITS closed share had GROWN (41.1% -> 49.3%),
+#: so it was TRIMMED first and only then raised. Same rule, opposite actions, because the
+#: measurement differed — which is the whole point of measuring instead of preferring.
+LINE_BUDGET = {"01-": 700, "02-": 700, "03-": 4400, "04-": 900, "05-": 4000}
 
 #: R7 — the share of a current-state file that may be CLOSED or ARCHIVED content.
 #: ⛔ DELIBERATELY NOT APPLIED TO EVERY FILE. 03 measures 6.8% today, so 25% is ~4x headroom and

@@ -16013,6 +16013,85 @@ class Ch24ProbeMode(BotMode):
             R["still_in_room"] = _on_map(SIDNEY)
             taken.add("P24-OUTCOME")
 
+            # ---- P24-DOOR — `KI-74` AT THE ELITE FOUR DOOR -----------------------------------
+            # ⛔⛔ OBSERVE-ONLY, AND DELIBERATELY *NOT* IN THE `want` SET BELOW. This reading may not
+            # change this driver's existing PASS/FAIL: `ch24probe` already had a settled acceptance
+            # and prior runs are compared against it, so making a NEW reading load-bearing would
+            # silently re-grade that history. `CLAUDE.md`: a checklist protects exactly what it
+            # enumerates — so this is enumerated as a READING and never as a requirement.
+            #
+            # THE QUESTION. The victory script opens this room's exit door with
+            # `setmetatile 6,1/6,2 … FALSE` (`data/scripts/elite_four.inc`), which writes
+            # `gBackupMapLayout` in RAM. Our planner reads a ROM blockdata pointer cached forever
+            # (`modules/map.py:748-755`, never invalidated). That is `KI-74`, open since 2026-08-13
+            # and already the cause of one jammed drive. If they disagree here, §Ch24 cannot route
+            # through its own doors and must consult the live grid at the door query.
+            # ✅ THE ROM HALF IS ALREADY MEASURED OFFLINE for all five rooms by
+            #    `tools/story-dev/probe_e4_door_rom_view.py`: (6,1)=(6,2)=1 BLOCKED, controls pass.
+            #    This is the LIVE half, which needs the bot standing in the room.
+            #
+            # ⭐⭐ THE CONTROL IS THE ENTRY SEAL, NOT THE DOOR — and choosing it that way is the whole
+            # design. `WalkInCloseDoor` sealed (5..7, 12/13) with impassable TRUE on the way IN, so
+            # ROM and live MUST already disagree there whatever happened in the battle. A control
+            # that can only be true after the thing under test would prove nothing; this one is true
+            # on arrival. ⇒ if the seal does NOT diverge, the live reader or its border offset is
+            # broken and the door verdict is DISCARDED rather than reported.
+            # ⛔ A SEALED TILE READS COLLISION **3**, NOT 1 — `MAPGRID_IMPASSABLE` sets BOTH collision
+            # bits (`src/scrcmd.c:2035-2049` with `src/fieldmap.c:357-365`). A check written `== 1`
+            # would miss every seal, so the comparisons below are ROM-vs-LIVE inequality, not a
+            # hardcoded constant.
+            try:
+                from modules.map import get_map_data
+                from modules.story.sootopolis import _live_collision_grid, _live_metatile_grid
+
+                live_c = _live_collision_grid(SIDNEY)
+                live_m = _live_metatile_grid(SIDNEY)
+
+                def _rom(tile):
+                    return get_map_data(SIDNEY, tile).collision
+
+                door_tiles = [(6, 1), (6, 2)]
+                seal_tiles = [(5, 13), (6, 13), (7, 13)]
+                R["door_rom"] = {tile: _rom(tile) for tile in door_tiles}
+                R["door_live"] = {tile: live_c.get(tile) for tile in door_tiles}
+                R["door_live_metatile"] = {tile: hex(live_m.get(tile, -1)) for tile in door_tiles}
+                R["seal_rom"] = {tile: _rom(tile) for tile in seal_tiles}
+                R["seal_live"] = {tile: live_c.get(tile) for tile in seal_tiles}
+                R["control_tile_6_7_rom_vs_live"] = (_rom((6, 7)), live_c.get((6, 7)))
+
+                seal_diverges = any(_rom(tile) != live_c.get(tile) for tile in seal_tiles)
+                door_blocked_rom = all(_rom(tile) != 0 for tile in door_tiles)
+                door_open_live = all(live_c.get(tile) == 0 for tile in door_tiles)
+                R["CONTROL_seal_diverges"] = seal_diverges
+                R["door_blocked_in_ROM"] = door_blocked_rom
+                R["door_open_in_LIVE"] = door_open_live
+
+                if not seal_diverges:
+                    R["P24_DOOR_VERDICT"] = (
+                        "DISCARD — the ENTRY SEAL does not diverge from ROM, so the live reader or "
+                        "its border offset is broken and the door reading proves nothing."
+                    )
+                elif door_blocked_rom and door_open_live:
+                    R["P24_DOOR_VERDICT"] = (
+                        "KI-74 CONFIRMED AT THE E4 DOOR — ROM says BLOCKED, the game says OPEN. "
+                        "§Ch24 must consult the live grid at the door query."
+                    )
+                elif door_blocked_rom and not door_open_live:
+                    R["P24_DOOR_VERDICT"] = (
+                        "door reads BLOCKED in BOTH — check `elite4_state_after` and the battle "
+                        "outcome before concluding anything: the victory script may not have run."
+                    )
+                else:
+                    R["P24_DOOR_VERDICT"] = "UNEXPECTED — read door_rom / door_live by hand."
+                taken.add("P24-DOOR")
+            except Exception as door_error:  # noqa: BLE001
+                # ‼ ADMITTED, NOT SILENT: recorded into the readings AND logged. This handler exists
+                # so a failure to read the door cannot abort a drive whose PRIMARY readings already
+                # succeeded — `_live_collision_grid` raises by design when the avatar is not on the
+                # map (e.g. after a whiteout), and that is a legitimate outcome to report.
+                R["P24_DOOR_VERDICT"] = f"UNREAD ({type(door_error).__name__}: {door_error})"
+                log(f"[{TAG}] P24-DOOR could not be read: {door_error}")
+
         except Exception as error:  # noqa: BLE001
             VR.reraise_if_aborting(error)
             failure = f"{type(error).__name__}: {error}"

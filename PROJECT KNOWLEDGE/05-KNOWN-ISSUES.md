@@ -1275,6 +1275,23 @@ Fixed, driven and gated (`repro_multi_battle_partner.py`, in the standing suite)
 
 ## KI-74 — `setmetatile` tiles are INVISIBLE to the shared map model, and the KI-59 fix made that fail-DANGEROUS instead of fail-safe (2026-08-13, code-verified, **STILL OPEN — but as of 2026-09-01 it is OBSERVABLE, and it has now COST A DRIVE**)
 
+- ✅✅ **2026-09-16 (LATER) — CONFIRMED LIVE AT THE ELITE FOUR DOOR. BOTH HALVES NOW MEASURED.**
+  `--driver ch24probe` from `post_ch24_atdoor.ss1`, `ACCEPTANCE: PASS`, `battles=1 whiteouts=0`,
+  evidence `tools/story-dev/evidence/2026-09-16-ch24probe-P24DOOR-KI74-LIVE.stdout.txt`:
+      door_rom  = {(6,1): 1, (6,2): 1}          <- our planner: BLOCKED
+      door_live = {(6,1): 0, (6,2): 0}          <- the game:    OPEN
+      door_live_metatile = {(6,1): 0x344, (6,2): 0x345}   <- the OpenDoor tiles
+      CONTROL_seal_diverges = True   seal_rom {..}=0  seal_live {..}=3
+      control_tile_6_7_rom_vs_live = (0, 0)     <- a tile both agree on, as it must be
+  ⭐ **THE CONTROL IS WHY THIS IS A MEASUREMENT.** The entry seal (5..7,13) diverges ROM 0 vs live
+  **3** — sealed by `WalkInCloseDoor` on the way IN, so it is true on arrival, BEFORE anything under
+  test. A control that could only become true after the thing being measured would prove nothing.
+  ⛔ And it reads **3, not 1**: `MAPGRID_IMPASSABLE` sets BOTH collision bits.
+  ‼ **THE DOOR STATE IS ALSO THE BETTER VICTORY SIGNAL.** The same run read
+  `elite4_state_in_room = 0` then `elite4_state_after = 1` — the var tracks ENTRY, exactly as §A of
+  the note says, so it cannot grade a win. The open door CAN: only
+  `SetAdvanceToNextRoomMetatiles`, called from `_Defeated`, writes 0x344/0x345.
+  ⇒ §Ch24 must consult `_live_collision_grid` at every door query. The fix is a REUSE.
 - ⭐⭐ **2026-09-16 — SECOND SITE, AND IT BLOCKS §Ch24: THE ELITE FOUR DOORS** (opened at runtime by `setmetatile 6,1/6,2 … FALSE`, `data/scripts/elite_four.inc`).
   ✅ **ROM HALF MEASURED** (`probe_e4_door_rom_view.py`, offline, any save): all 5 rooms `(6,1)=(6,2)=1` **BLOCKED**, controls pass ((6,7)=0 walkable, (0,0)=1 wall). Written to REFUTE the premise; it SURVIVED.
   ‼ **LIVE HALF UNMEASURED** — needs a post-victory save + `probe_live_mapgrid.py <save> EVER_GRANDE_CITY_SIDNEYS_ROOM`; none exists. ⚠ The entry is sealed BEHIND the player too, so a “walk back” fallback paths into a wall rather than failing loudly.
