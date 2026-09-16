@@ -302,6 +302,40 @@ SIDNEY / PHOEBE / GLACIA / DRAKE / CHAMPION
 The controls are what make that a measurement rather than an assertion — a reader that called the
 player's own standing tile impassable would have invalidated every verdict, and it does not.
 
+### ⭐⭐ THE FIRST MEASUREMENT DOES **NOT** NEED A VICTORY — THE ENTRY SEAL DIVERGES ON ENTRY
+
+✅ **[VERIFIED-BY-ME] at the decomp, 2026-09-16.** `ScrCmd_setmetatile` (`src/scrcmd.c:2035-2049`)
+adds `MAP_OFFSET` to x/y and then calls `MapGridSetMetatileIdAt(x, y, metatileId)` when its 4th
+argument is FALSE, or `…(metatileId | MAPGRID_IMPASSABLE)` when TRUE. And
+`MapGridSetMetatileIdAt` (`src/fieldmap.c:357-365`) is:
+
+```c
+gBackupMapLayout.map[…] &= MAPGRID_ELEVATION_MASK;          // keeps ONLY elevation
+gBackupMapLayout.map[…] |= metatile & ~MAPGRID_ELEVATION_MASK;   // id AND collision from the arg
+```
+
+⇒ **two consequences, both load-bearing:**
+1. **Collision IS a valid oracle for the E4 door.** The door write passes `FALSE`, so no impassable
+   bit is ORed in and the mask has already cleared the old one ⇒ after the victory the live
+   collision at (6,2) becomes **0**, against ROM's measured **1**. *(This is not automatic for every
+   `setmetatile` — `KI-73` records that a map rewriting one PASSABLE tile to another changes the
+   metatile ID and NOT the collision, which is why `_live_metatile_grid` exists. Our door happens to
+   be the case where collision moves; read the metatile ID too, for identity.)*
+2. ⛔ **A SEALED TILE READS COLLISION `3`, NOT `1`.** `MAPGRID_IMPASSABLE` sets BOTH collision bits.
+   Any check written as `== 1` will miss a seal.
+
+⭐⭐ **AND THE PAYOFF: THE ENTRY SEAL IS A ROM-vs-LIVE DIVERGENCE THAT IS ALREADY TRUE BEFORE THE
+FIGHT.** `WalkInCloseDoor` runs on ENTRY and seals (5..7, 12) and (5..7, 13) with `TRUE`. Those tiles
+are the room's entry WARP in the ROM layout — walkable. So the moment the bot stands in Sidney's
+room, ROM and live already disagree at six tiles, with no battle involved.
+⇒ **THE FIRST MEASUREMENT NEEDS A SAVE TAKEN ON ENTRY, NOT AFTER A VICTORY.** Walk in, save, run
+`probe_live_mapgrid.py <save> EVER_GRANDE_CITY_SIDNEYS_ROOM`, and the entry seal should appear in
+the "we think open, the game says wall" column. That is:
+* a far cheaper drive (no battle, no item use, no faint handling, no win condition);
+* a **positive control for the whole mechanism** — if the seal does NOT show up, the live reader or
+  the offset is wrong and every later door verdict would have been worthless;
+* and it de-risks the victory measurement, which can then be a second save from the same drive.
+
 ‼ **THIS IS THE ROM HALF ONLY, AND SAYING SO IS THE POINT.** It does not show what the LIVE grid
 says after a victory. That needs a save taken AFTER beating a member — which does not exist yet —
 and then `probe_live_mapgrid.py <save> EVER_GRANDE_CITY_SIDNEYS_ROOM`. The decomp makes the outcome

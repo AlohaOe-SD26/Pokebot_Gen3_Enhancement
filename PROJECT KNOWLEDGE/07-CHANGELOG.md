@@ -29289,3 +29289,46 @@ never searched `05-KNOWN-ISSUES.md` for the SYMPTOM, whose title is almost exact
 before this entry, so the next KI update of any size turns Tier 0 red. Retiring resolved KIs to
 `31-KNOWN-ISSUES-ARCHIVE.md` is now due — R3's own message calls this "an archive forming inside a
 current-state file".
+
+
+---
+
+## 2026-09-16 (third) — THE FIRST §Ch24 MEASUREMENT NEEDS NO VICTORY: the ENTRY SEAL diverges on entry
+
+A 4-angle probe-spec pass returned the design, and one finding collapsed the cost of the next step.
+VERIFIED AT THE DECOMP MYSELF rather than taken from the agents:
+
+    ScrCmd_setmetatile (src/scrcmd.c:2035-2049)
+        if (!isImpassable) MapGridSetMetatileIdAt(x, y, metatileId);
+        else               MapGridSetMetatileIdAt(x, y, metatileId | MAPGRID_IMPASSABLE);
+    MapGridSetMetatileIdAt (src/fieldmap.c:357-365)
+        map[..] &= MAPGRID_ELEVATION_MASK;              // clears id AND collision
+        map[..] |= metatile & ~MAPGRID_ELEVATION_MASK;  // both come from the argument
+
+TWO CONSEQUENCES:
+1. COLLISION IS A VALID ORACLE FOR THE E4 DOOR. The door write passes FALSE, so no impassable bit is
+   ORed and the mask already cleared the old one => live collision at (6,2) becomes 0 against ROM's
+   measured 1. (Not automatic for every setmetatile — KI-73 records that rewriting one PASSABLE tile
+   to another moves the metatile ID and NOT the collision, which is why `_live_metatile_grid` exists.
+   Read the ID too, for identity.)
+2. ⛔ A SEALED TILE READS COLLISION 3, NOT 1 — MAPGRID_IMPASSABLE sets BOTH bits. A check written
+   `== 1` misses a seal. This is the kind of off-by-a-bit that would have produced a confident wrong
+   verdict on the first drive.
+
+⭐⭐ AND THE PAYOFF: `WalkInCloseDoor` seals the entry tiles (5..7, 12/13) with TRUE **on the way in**,
+and those tiles are the room's WARP — walkable in ROM. => ROM and live already disagree at six tiles
+the moment the bot stands in Sidney's room, with NO BATTLE INVOLVED.
+=> THE FIRST MEASUREMENT NEEDS A SAVE TAKEN ON ENTRY, NOT AFTER A VICTORY. Walk in, save, run
+`probe_live_mapgrid.py <save> EVER_GRANDE_CITY_SIDNEYS_ROOM`; the seal must appear in the "we think
+open, the game says wall" column. That is simultaneously:
+  * a much cheaper drive — no battle, no items, no faint handling, no win condition;
+  * a POSITIVE CONTROL for the entire mechanism — if the seal does not appear, the live reader or the
+    border offset is wrong and every later door verdict would have been worthless;
+  * and it de-risks the victory measurement, which becomes a second save from the same drive.
+
+ALSO CONFIRMED (and it removes the last plumbing unknown): `_live_collision_grid` and
+`_live_metatile_grid` are importable as-is with zero import-time side effects — AST-checked, and
+`sootopolis_gym.py:32` already does exactly that import. The coordinate spaces are IDENTICAL across
+four independent links (`setmetatile x,y` ≡ `get_map_data(map,(x,y))` ≡ `_live_*_grid[(x,y)]` ≡
+`map.json` warps ≡ `avatar.local_coordinates`); there is NO conversion to apply and applying one
+would be the bug.
