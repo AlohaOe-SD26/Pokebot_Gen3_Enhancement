@@ -29185,3 +29185,62 @@ arms are independent rather than one coupled check:**
 (lines 385, 677, 891) and five stale gate counts (61→62, `--quick` 53→54). **The doc gate finding
 those unaided is the system working**; they are corrected in place, and the *"do NOT fix it by
 flipping endings"* advice is KEPT — it is still right, it just no longer has to carry the count.
+
+
+---
+
+## 2026-09-16 — THE 99-RUN ENDLESS BATCH, REVIEWED WITH A FAULT-TESTED INSTRUMENT (punch-list `#26-destreachability`)
+
+**NEW TOOL:** `tools/story-dev/analyze_endless_batch.py` — reads the `install_sandbox.py`
+ENDLESS-RESET per-profile debug logs (which `x4_headless.py --resummarise` cannot read: no
+`x4-runs/<stamp>/`, no MANIFEST). `--self-test` carries 5 arms and was run BEFORE the measurement,
+not after: distinct map names must stay distinct signatures, the same defect with different numbers
+must collapse to one, and the league-interior detector must fire on the LEAGUE but not on the CITY.
+
+**CORPUS:** 99 runs, 4 lanes, **338,516,331 frames (~1,567 emulated hours)**, 2026-09-15 07:26 →
+2026-09-16 06:16, sandbox build by construction.
+
+**HEADLINE — 30.3% of runs reach EVER GRANDE CITY** (and the same 30 reached Victory Road); 51%
+Sootopolis, 61% Mossdeep, 86% Lavaridge, 96% Mauville, 100% Rustboro. Median party max level **49**.
+⛔ **"REACHED" IS NOT "CLEARED"** — there is no badge or chapter marker in these logs (grepped;
+absent), so this is map arrival and the instrument names every milestone `reached_*` to stop the
+table being quoted as a badge distribution.
+⇒ **the approach to the League is NOT the bottleneck.** Roughly one run in three arrives at the door
+with an L49 party. Building Segment 24 converts that latent progress into the user's actual goal.
+
+**FALSIFICATION ARM HELD:** zero runs entered a League INTERIOR map (1F / the four rooms / Champion /
+Hall of Fame). Consistent with §Ch24 being unwired — ‼ consistent with, not proof of.
+
+**DERAILS — 977 total, and the top three families are ONE defect in three coats:**
+  * `PETALBURG_WOODS` unreachable — **78 of 99 runs (79%)**, 179× — intra-map, (14,5) -> (26,5).
+  * `ROUTE111` unreachable — **84 of 99 runs (85%)**, once per run — the training relocation picks
+    ROUTE111 from ROUTE116; the path needs RUSTURF_TUNNEL, a **warp**, and `calculate_path` cannot
+    use warps. The pathfinder is right to refuse; the CHOOSER was wrong to ask.
+  * `heal_in_pokemon_center … is BLOCKED` — **229 occurrences** over four destinations:
+    PetalburgCity 94, LavaridgeTown 94, FortreeCity 29, FallarborTown 12.
+  ⇒ **A DESTINATION IS COMMITTED TO BEFORE ITS REACHABILITY IS PROVEN, and each subsystem
+  rediscovers this separately.** ⚠ **PetalburgCity (94) is absent from the punch list entirely** —
+  `#26-healmap-*` names only Lavaridge and the Route-111 split.
+
+**⛔⛔ AND ONE CLAIM I MADE HERE WAS WRONG — CAUGHT BY TIER 1 BEFORE IT SHIPPED, AND WITHDRAWN.**
+I briefly claimed the handoff's SAFETY BATCH row (`Could not reach … ROUTE111` = 1 ARM-ON vs 5
+ARM-OFF) *"does not reproduce and INVERTS per run (0.755 vs 0.257)"*. **It does reproduce, and there
+is no inversion.** `07-CHANGELOG.md:27655` defines the metric and my numbers ARE the published ones:
+*"the relocations still happen — 77 in ARM-ON vs 27 in ARM-OFF … what changed is that they now
+succeed: 1 failure per 77 attempts (1.3%)"*. ⇒ **77/27 are ATTEMPTS; 1/5 are FAILURES among them.**
+I counted derail EVENTS and compared them to a FAILURE count — two different quantities. A
+relocation that derails and then recovers is a *successful* attempt, and a sampled log shows exactly
+that shape (derail → stuck-detector dump → resume → run continues).
+‼ `CLAUDE.md` rule 5 had already written this down: *a count can be exactly right and its conclusion
+still wrong — ask what question it ANSWERED.* Mine answered "how many attempts hit the warp-blind
+pathfinder", and I read it as "how many runs were harmed".
+⛔ **AND THE SHAPE OF THE FAILURE MATTERS MORE THAN THE FACT:** the research note HEDGED correctly
+(*"I could not reproduce how 1 and 5 were obtained"*) while the handoff banner and this changelog's
+own headline asserted `INVERTS` flatly — SESSION DISCIPLINE rule 2, *the headline carries the
+caveat*, broken in a document that cites it.
+⇒ **CONSEQUENCE, AND IT LIMITS THE DERAIL TABLE ABOVE:** those are derail **EVENTS**. This corpus
+does not distinguish a derail that RECOVERED from one that ended a run, so the table ranks
+**FREQUENCY, NOT COST** — and the first follow-up is a per-derail RECOVERED/FATAL classifier, not
+navigation work chosen off that ordering.
+
+Full detail, with re-derivation commands: `PROJECT KNOWLEDGE/ai-research-notes/2026-09-16-endless-batch-REVIEW.md`
