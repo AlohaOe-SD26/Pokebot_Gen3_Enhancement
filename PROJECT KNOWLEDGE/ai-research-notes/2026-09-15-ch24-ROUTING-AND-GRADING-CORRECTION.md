@@ -478,3 +478,54 @@ test is a live read of the metatile behaviour at (4,12)/(6,12) in a hall, which 
    makes the whole recovery design hinge on it, and it is unmeasured.
 3. Only then build the sequencer, one room at a time, each leg graded on
    `DEFEATED_ELITE_4_<NAME>` — a predicate the run does not already satisfy when it starts.
+
+
+---
+
+## G'. LEG 1 OF THE SEQUENCER — THE SPEC, AND THE THREE DEAD ENDS ALREADY RULED OUT
+
+**State as of 2026-09-16.** The door is measured (§D''), healing works and is promoted (`KI-101`),
+and `ch24probe` already reaches Sidney, fights him and reads the room. **Leg 1 is therefore:
+enter → beat Sidney → WALK THE OPENED DOOR → arrive on HALL1.** Only the walk is unbuilt.
+
+### ⛔⛔ THREE WAYS TO WALK IT THAT DO NOT WORK — each ruled out by measurement, not opinion
+
+1. **`calculate_path` / `navigate_to`.** They read the ROM blockdata cached forever
+   (`modules/map.py:748-755`). `probe_e4_door_rom_view.py` measured `(6,1)=(6,2)=1` BLOCKED in ROM
+   for ALL FIVE rooms, with controls passing. The planner will refuse, correctly, for ever. This is
+   `KI-74`.
+2. **`_pin_planner_to_live_layout()`** (`sootopolis.py:1000`) — the Sky Pillar's trick. ⛔ It
+   re-seeds `modules.map._map_layout_cache` from **`gMapHeader`'s blockdata pointer, the STATIC ROM
+   MapLayout struct**. Sky Pillar works because that floor swaps a whole LAYOUT
+   (`setmaplayoutindex`); the E4 door is a `setmetatile`, which writes only `gBackupMapLayout.map`
+   and never touches the struct the pin re-reads. **Right tool, wrong defect.**
+3. **`_live_wall_tiles()`** (`sootopolis.py:994`) — it is a **VALIDATOR, not a planner**: it takes
+   tiles a planner ALREADY chose and reports which are walls live. Our planner never chooses the
+   door at all, so there is nothing for it to validate. *(Its own docstring also records it is
+   structurally blind to cracked floors — collision-only — which is a separate caveat, not ours.)*
+
+### ⭐ WHAT LEG 1 ACTUALLY NEEDS — small, and entirely from measured facts
+A short BFS over **`_live_collision_grid(SIDNEY)`** (the oracle `KI-74` points at) from the player's
+tile to the door, plus the object positions, because collision does NOT include NPCs:
+* the room is 13x14; the player ends the entry auto-walk at **(6,7)** and the probe leaves it at
+  **(6,6)** after the fight; the exit warp is **(6,2)**; ⛔ **the defeated trainer REMAINS at (6,5)**,
+  directly on the x=6 column, so the straight line is blocked and the route must go around.
+  *(Our pathfinder routes around NPCs normally — that fact is not in question; what it cannot see is
+  the DOOR.)* Object positions come from `get_map_objects()`.
+* all four E4 rooms share this geometry (verified: entry (6,13), exit (6,2), trainer (6,5), zero
+  `coord_events`), so ONE routine serves rooms 1-4. ⚠ The Champion's room differs: 13x13, entry
+  (6,12), auto-walk ends (6,6), and Wallace has **no A-press trigger** (object script `0x0`).
+
+### ACCEPTANCE — and it must not be vacuous
+Grade the fight on **`DEFEATED_ELITE_4_SIDNEY`** (⛔ never `ELITE_4_STATE`: the same drive measured
+that var going 0 → 1 on ENTRY). Grade the WALK on **arrival at `EVER_GRANDE_CITY_HALL1`**. Both read
+FALSE at the leg's start and can only become true by the work happening.
+⭐ Keep the existing `P24-DOOR` reading as the leg's own control — if the entry seal ever stops
+diverging, the live reader is broken and the leg's verdict must be discarded rather than reported.
+
+### KNOWN HAZARDS ON THIS LEG
+* `#24-e4postbattlestall` — the post-victory dialogue stalls ~1,200 frames (it recovers). The victory
+  script order is `setflag` → 32-frame movement → `msgbox`, so **the flag is true while a message is
+  still pending**: do not walk on the flag alone.
+* the gauntlet is ONE-WAY (`WalkInCloseDoor` seals the entry behind you), so a leg that gets lost in
+  a room cannot walk back out. Bound every loop.
