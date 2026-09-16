@@ -261,7 +261,54 @@ I read forbids walking back south through the hall warps, but nothing I read con
 
 ---
 
-## D''. ⛔⛔ THE PREREQUISITE DEFECT — OUR PATHFINDER CANNOT SEE THE DOOR IT MUST WALK THROUGH
+## D''. ⛔⛔ THE PREREQUISITE — AND IT IS **KI-74**, ALREADY OPEN, NOT A NEW DISCOVERY
+
+> ⛔ **FRAMING CORRECTED 2026-09-16, TWICE OVER, AND BOTH CORRECTIONS MATTER MORE THAN THE FINDING.**
+> This section was first written as though it had found something new. It has not:
+> * **This is `KI-74`** (`05-KNOWN-ISSUES.md:1276`) — *"`setmetatile` tiles are INVISIBLE to the
+>   shared map model"* — filed 2026-08-13, **STILL OPEN**, and it has **already cost a drive**
+>   (§Ch21 leg 3 jammed at `SOOTOPOLIS_CITY (31,42)` on 2026-09-01).
+> * **The oracle already exists**, and `sootopolis.py:871`'s own docstring states this defect better
+>   than my §D'' did: *"Every tile reader we own ultimately dereferences a LAYOUT's blockdata
+>   pointer, which lives in ROM… The game walks on `sBackupMapData` in RAM… ⇒ USE THIS AS THE ORACLE
+>   FOR 'CAN THE BOT ACTUALLY STEP THERE', never a `get_map_data` read."*
+> * An offline instrument exists too: **`tools/story-dev/probe_live_mapgrid.py`**, which diffs the
+>   ROM view against the live grid for a given save + map, with a CALIBRATED border offset.
+> ⇒ **The genuinely new part is narrow and worth exactly its own sentence: the Elite Four doors are
+> a NEW SITE of KI-74, and §Ch24 cannot be built without hitting it.** Everything else here was
+> already known to this project and I re-derived it. *(Two sessions running, I have over-claimed
+> novelty; the lesson is in `08-MISTAKES.md` 2026-09-16.)*
+
+### ✅ THE ROM HALF IS NOW MEASURED — AND IT SURVIVED A DELIBERATE REFUTATION ATTEMPT
+
+An adversarial review asked the one question that could have collapsed this entire plan: *what if
+the ROM layout ALREADY marks the door tiles walkable?* Then our planner would route through them
+unaided and the §Ch24 build order would have been reorganised around a defect that does not exist.
+
+**`tools/story-dev/probe_e4_door_rom_view.py` answers it offline, without entering the rooms** — the
+ROM layout is static, so `get_map_data` can be asked about any map from any save state. Measured on
+`post_ch24_atdoor.ss1`, all five gauntlet rooms:
+
+```
+SIDNEY / PHOEBE / GLACIA / DRAKE / CHAMPION
+    DOOR TILES                                  (6,1)=1   (6,2)=1     <- 1 = BLOCKED
+    C1  (6,7) the player's auto-walk end tile   0  PASS   (must be walkable)
+    C2  (0,0) the room corner                   1  PASS   (must be a wall)
+    C3  (6,5) the trainer's tile                0          reported, not asserted — an NPC is an
+                                                           object, not collision
+```
+
+⇒ **The premise holds: our ROM-reading planner sees the exit door as a WALL in all five rooms.**
+The controls are what make that a measurement rather than an assertion — a reader that called the
+player's own standing tile impassable would have invalidated every verdict, and it does not.
+
+‼ **THIS IS THE ROM HALF ONLY, AND SAYING SO IS THE POINT.** It does not show what the LIVE grid
+says after a victory. That needs a save taken AFTER beating a member — which does not exist yet —
+and then `probe_live_mapgrid.py <save> EVER_GRANDE_CITY_SIDNEYS_ROOM`. The decomp makes the outcome
+very likely (`setmetatile 6,2,…,FALSE` sets impassable FALSE), but *very likely* is precisely the
+kind of claim this project requires to be driven rather than reasoned.
+
+
 
 ✅ **[VERIFIED-BY-ME], 2026-09-16, both halves.** This supersedes §D1 as the top risk and it
 **reorders the build**: writing the sequencer first would fail on the first drive for this reason.

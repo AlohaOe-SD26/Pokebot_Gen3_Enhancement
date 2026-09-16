@@ -1275,6 +1275,10 @@ Fixed, driven and gated (`repro_multi_battle_partner.py`, in the standing suite)
 
 ## KI-74 — `setmetatile` tiles are INVISIBLE to the shared map model, and the KI-59 fix made that fail-DANGEROUS instead of fail-safe (2026-08-13, code-verified, **STILL OPEN — but as of 2026-09-01 it is OBSERVABLE, and it has now COST A DRIVE**)
 
+- ⭐⭐ **2026-09-16 — SECOND SITE, AND IT BLOCKS §Ch24: THE ELITE FOUR DOORS** (opened at runtime by `setmetatile 6,1/6,2 … FALSE`, `data/scripts/elite_four.inc`).
+  ✅ **ROM HALF MEASURED** (`probe_e4_door_rom_view.py`, offline, any save): all 5 rooms `(6,1)=(6,2)=1` **BLOCKED**, controls pass ((6,7)=0 walkable, (0,0)=1 wall). Written to REFUTE the premise; it SURVIVED.
+  ‼ **LIVE HALF UNMEASURED** — needs a post-victory save + `probe_live_mapgrid.py <save> EVER_GRANDE_CITY_SIDNEYS_ROOM`; none exists. ⚠ The entry is sealed BEHIND the player too, so a “walk back” fallback paths into a wall rather than failing loudly.
+  ⇒ §Ch24 cannot ship without this KI; the fix is likely a REUSE of `sootopolis._live_collision_grid()` at the door query. Detail: `ai-research-notes/2026-09-15-ch24-ROUTING-AND-GRADING-CORRECTION.md` §D''.
 - ‼‼ **UPDATE 2026-09-01 — THIS STOPPED BEING THEORETICAL.** §Ch21 leg 3's first drive walked out of
   the Sootopolis Poke Center and jammed at `SOOTOPOLIS_CITY (31,42)`:
   `UnreachableDestinationError: the field is idle and we are still at (31,42), so retrying cannot

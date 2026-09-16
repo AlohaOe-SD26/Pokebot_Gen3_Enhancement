@@ -17742,3 +17742,38 @@ at the thing under test. **The project rule already said it** (*"when a probe FA
 failing line before touching the thing under test"*) — the extension earned today is that it applies
 to probes that SUCCEED too: a command that returns a clean, plausible, wrong answer is the more
 dangerous case, because nothing prompts you to look.
+
+
+---
+
+## 2026-09-16 (second) — I announced a "new prerequisite defect" that was an OPEN, INSTRUMENTED, FILED ISSUE
+
+**Symptom.** I wrote a §Ch24 section headed *"THE PREREQUISITE DEFECT — OUR PATHFINDER CANNOT SEE
+THE DOOR IT MUST WALK THROUGH"*, changed the build order on the strength of it, and put it in the
+handoff banner as a discovery.
+
+**What was actually true.** It is **`KI-74`**, filed 2026-08-13, still open, which had already cost a
+drive on 2026-09-01. Better still, the project had already built everything I was about to propose:
+`sootopolis._live_collision_grid()` as the production oracle (whose docstring explains the ROM-vs-RAM
+divergence more precisely than my section did) and `tools/story-dev/probe_live_mapgrid.py` as the
+offline instrument, with a calibrated border offset.
+
+**Root cause — and it is NOT "I failed to grep".** I did grep, and the grep that mattered
+(`gBackupMapLayout`) I truncated with `| head -5`, which is its own entry above. The deeper cause is
+that **I searched the CODE for a mechanism and never searched `05-KNOWN-ISSUES.md` for the
+SYMPTOM.** The KI is titled almost exactly what I "found": *"`setmetatile` tiles are INVISIBLE to the
+shared map model"*.
+
+⇒ **Prevention: BEFORE WRITING THE WORDS "NEW DEFECT" OR CHANGING A BUILD ORDER, GREP
+`05-KNOWN-ISSUES.md` AND `08-MISTAKES.md` FOR THE SYMPTOM IN THE PROJECT'S OWN VOCABULARY** — the
+mechanism's name (`setmetatile`, `gBackupMapLayout`), not just the file you found it in.
+`precheck_prior_art.py` exists for this and I did not run it. ‼ The cost of the omission is not the
+duplicated analysis — it is that a reader of my version would have believed the fix had to be built,
+when it was sitting in `sootopolis.py` with a docstring explaining itself.
+
+⭐ **WHAT THE ROUND GOT RIGHT, AND IT IS THE PART WORTH KEEPING.** The adversarial angle asked *"what
+if the ROM already marks those tiles walkable?"* — the one question that would have collapsed the
+whole plan — and that turned into `probe_e4_door_rom_view.py`, which answered it OFFLINE, for all
+five rooms, with controls, and **without the drive everyone assumed was needed**. The premise
+survived. ⇒ **A refutation attempt that FAILS is still the cheapest thing you can buy**, and
+checking the premise before the build is what a day of drives would otherwise have cost.

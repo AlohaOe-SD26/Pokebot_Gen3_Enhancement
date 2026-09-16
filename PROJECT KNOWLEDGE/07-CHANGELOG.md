@@ -29244,3 +29244,48 @@ does not distinguish a derail that RECOVERED from one that ended a run, so the t
 navigation work chosen off that ordering.
 
 Full detail, with re-derivation commands: `PROJECT KNOWLEDGE/ai-research-notes/2026-09-16-endless-batch-REVIEW.md`
+
+
+---
+
+## 2026-09-16 (later) — THE §Ch24 DOOR PREMISE, MEASURED OFFLINE — AND IT IS `KI-74`, NOT A DISCOVERY
+
+**NEW TOOL:** `tools/story-dev/probe_e4_door_rom_view.py`. Reads the **ROM** layout's view of all
+five gauntlet rooms' door tiles, from ANY save state, without entering the rooms — the ROM layout is
+static, so `get_map_data` can be asked about any map from anywhere. (The LIVE grid is the opposite:
+`gBackupMapLayout` only ever describes the loaded map.)
+
+**⛔ IT WAS WRITTEN TO REFUTE OUR OWN PLAN.** An adversarial review asked the one question that could
+collapse it: *what if ROM already marks the door tiles walkable?* Then our planner would route
+through them unaided and the §Ch24 build order would have been rebuilt around a defect that does not
+exist. MEASURED on `post_ch24_atdoor.ss1`:
+
+    SIDNEY / PHOEBE / GLACIA / DRAKE / CHAMPION
+        DOOR TILES                                (6,1)=1   (6,2)=1     1 = BLOCKED
+        C1 (6,7) player's auto-walk end tile      0  PASS   (must be walkable)
+        C2 (0,0) room corner                      1  PASS   (must be a wall)
+        C3 (6,5) trainer tile                     0         reported, not asserted
+
+⇒ **the premise SURVIVED**: our ROM-reading planner sees the exit door as a WALL in all five rooms.
+The controls are what make this a measurement — a reader calling the player's own standing tile
+impassable would have voided every verdict, and it does not.
+‼ **ROM HALF ONLY.** The LIVE half needs a save taken AFTER a victory, then
+`probe_live_mapgrid.py <save> EVER_GRANDE_CITY_SIDNEYS_ROOM`. No such fixture exists.
+
+**⛔⛔ AND THE FRAMING WAS WRONG, WHICH MATTERS MORE THAN THE MEASUREMENT.** I had written this up as
+a "new prerequisite defect" and changed the build order on it. It is **`KI-74`** — *"`setmetatile`
+tiles are INVISIBLE to the shared map model"* — filed **2026-08-13, still OPEN, and it had already
+cost a drive** (§Ch21 leg 3 jammed at SOOTOPOLIS_CITY (31,42) on 2026-09-01). Worse, everything I
+was about to propose already exists: `sootopolis._live_collision_grid()` is the production oracle
+(its docstring explains the ROM-vs-RAM divergence better than my section did) and
+`probe_live_mapgrid.py` is the offline instrument, with a calibrated border offset.
+⇒ the genuinely new part is one sentence: **the Elite Four doors are a NEW SITE of KI-74**, recorded
+there. The fix is a REUSE at the door query, not new machinery.
+‼ Root cause of the mis-framing, logged in `08-MISTAKES.md`: I searched the CODE for a mechanism and
+never searched `05-KNOWN-ISSUES.md` for the SYMPTOM, whose title is almost exactly what I "found".
+`precheck_prior_art.py` exists for this and I did not run it.
+
+⚠ **MAINTENANCE FLAG:** `05-KNOWN-ISSUES.md` is now at **exactly 3000/3000 lines**. It was 2996
+before this entry, so the next KI update of any size turns Tier 0 red. Retiring resolved KIs to
+`31-KNOWN-ISSUES-ARCHIVE.md` is now due — R3's own message calls this "an archive forming inside a
+current-state file".
