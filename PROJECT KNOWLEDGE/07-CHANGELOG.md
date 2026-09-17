@@ -30182,3 +30182,55 @@ second time this session that a claim turned out to rest on the wrong table.
 sidestep" caution filed this morning is RETIRED — it guarded a hazard that does not exist.
 ⚠ The live step was measured on HALL1 only; the other four share the behaviour reading but not the
 step. That is stated rather than generalised.
+
+
+## 2026-09-16 (nineteenth) — TWO SAFE FIXES TO SHIPPED BOT CODE, AND ONE I SHIPPED, MEASURED, AND REVERTED
+
+**The A/B is the entry.** `--driver ch24heal` on `post_league_shop.ss1`, same staged damage:
+
+    BASELINE        ready=True   failure=None                          ACCEPTANCE: PASS  (7 actions)
+    MY "FIX"        ready=False  failure=…Task_HandleChooseMonInput…   ACCEPTANCE: FAIL  (0 actions)
+    AFTER REVERT    ready=True   failure=None                          ACCEPTANCE: PASS
+
+⛔ **I BASELINED FIRST, WHICH IS THE ONLY REASON THIS IS AN ENTRY AND NOT A DEFECT.**
+
+### WHAT I GOT WRONG, AND WHY THE FIX LOOKED RIGHT
+
+`use_item_on_party_member` waits on the **singular** `ITEM_CONTEXT_TASK` while the same file defines
+`ITEM_CONTEXT_TASKS` (all four) with a comment recording that *"naming only one of these cost four
+drives"* — a fix applied to the TEACH path in 2026-09-05 and **never to the HEALING path**. The
+concern is real. ‼ **But the obvious transplant breaks it:** the teach path's loop is a
+**START-only** wait — it stops pressing A once the context menu OPENS — whereas
+`wait_for_task_to_start_and_finish` presses A **through** the menu to SELECT "Use". Substituting one
+for the other meant "Use" was never selected, the party menu never opened, and **nothing healed at
+all.** ⇒ **a correct fix must generalise START-AND-FINISH across the four names**, not borrow a loop
+whose contract is only START. Filed as `#24-itemcontextplural` with this A/B as the evidence for why
+the naive version must not be retried.
+
+### THE TWO THAT SURVIVED — both text-only, both proven harmless by the green re-run
+
+* **`ONE_USE_BUDGET`'s comment was wrong by 4×.** It read *"Frames to spend on one item use"*; the
+  loop it bounds does `wait_for_n_frames(4)` per iteration, so 900 iterations is ~**3,600 frames** —
+  against a MEASURED whole-seven-action heal of **2,949** frames. The "bound" is ~8.5× the entire
+  operation it caps. ⭐ **The value is deliberately unchanged**: lowering it is a behaviour change to
+  the gauntlet's only healing path and no per-call cost has ever been measured. **What is fixed is
+  the LIE, not the number** — a bound nobody can reason about is worse than a loose one.
+* **`_budgeted` hard-coded `"Ch23:"` into its raise**, so any §Ch24 overrun reported as a §Ch23
+  failure — already true of one live call site. Now uses the caller's own `label`. This project has
+  paid for misattributed failure text before (KI-89: *"four drives died with a message about the
+  party slot that was pure misdirection"*).
+
+### ⛔ AND I CAUGHT A `NameError` IN MY OWN EDIT BEFORE IT SHIPPED
+
+The reverted loop called `_check_abort()`, which `pokemon_league.py` **did not import** — a
+`NameError` on the ABORT path only, i.e. the one path no happy-path drive exercises. The file's own
+§Ch24 probe docstring records that exact trap ("*the first run of this probe died on `NameError:
+name '_check_abort' is not defined`*"). The import is now at module level and stays, because the next
+correct attempt at `#24-itemcontextplural` will need it.
+
+### A CLAIM FROM AN EARLIER RECON, REFUTED BY THIS BASELINE
+
+An angle reported that on a real party `heal_party_from_bag` *"returns `heal_ready=False` WITHOUT
+RAISING — 6 actions, all 3 Revives spent, 2 Pokémon still fainted"*. On the fixture the driver
+actually uses it plans **7** actions, spends 2 Revives, and returns `heal_ready=True` with the whole
+party at full HP. The pessimistic framing does not describe this code path.

@@ -18049,3 +18049,52 @@ THE SAME BREATH — AND STATE WHICH AVAILABLE FIXTURES MAKE THAT GRADE VACUOUS.*
 "start from Y" are one instruction, not two. If several fixtures are in play, read the signal out of
 each and write the table down; the one that is cheapest to reach is the one most likely to be
 vacuous, because cheapness usually means the work is already done.
+
+
+## 2026-09-16 (thirteenth) — I CITED A "STANDING RULING" THE PROJECT HAD ALREADY RETRACTED AS NON-EXISTENT
+
+**SYMPTOM.** I planned a change to shipped bot code and justified it as *"following KI-83's standing
+ruling to bound tasks_scripts helpers at the call site."* An adversarial agent replied that no such
+ruling exists, and `05-KNOWN-ISSUES.md:2490` says so in terms: **"NOT FIXED UPSTREAM — A CASE-BY-CASE
+CALL, NOT A RULING. ⛔ *(This read 'same ruling as KI-88' until 2026-09-05. There is no such ruling…)*"**
+
+**ROOT CAUSE, AND IT IS A NEW VARIANT OF A RECORDED ONE.** `08-MISTAKES.md` already carries *"A
+KI-TO-KI CITATION CHAIN IS NOT A RULING"* — an agent following KI-89 → KI-88 → KI-83 and finding
+nothing decided at the bottom. **I did not follow a chain.** I read `KI-83`'s **HEADER**, which is
+phrased as an imperative — *"⛔ NOT OURS AND DELIBERATELY NOT FIXED — bound it AT THE CALL SITE"* —
+and an imperative in a header **reads like a decision**. The retraction lives 80 lines below, in the
+body. ⇒ the existing rule pointed at chains; the same error arrived through a headline.
+
+**WHY IT MATTERED.** The false authority was doing real work: it was my whole justification for
+touching shipped code, and it steered me at unboundedness while a MEASURED, silent, higher-severity
+defect (`KI-89`, wrong-cursor) sat on one of the same three lines.
+
+**PREVENTION RULE.** ⛔ **A RULING IS SOMETHING IN `06-DECISIONS-LOG.md`. NOWHERE ELSE.** Before
+citing any "standing ruling", `grep -i` that file for it — the project's own rule 11 already says to
+grep the decisions log before escalating; this extends it to *before invoking*. ‼ And specifically:
+**an imperative in a KI HEADER is a recommendation, not a decision** — the header is the half that
+gets skimmed, and this tree's headers are written in the imperative voice as a matter of style.
+If the decisions log does not have it, say "no ruling found" and make the case on evidence instead.
+
+
+## 2026-09-16 (fourteenth) — I TRANSPLANTED A LOOP WITHOUT ITS CONTRACT, AND IT BROKE THE ONLY THING IT TOUCHED
+
+**SYMPTOM.** `use_item_on_party_member` waits on a SINGULAR context-menu task while the same file
+defines all four and documents that naming one *"cost four drives"*. I replaced the single-name wait
+with the accept-any-task loop the TEACH path already ships. The heal driver went **PASS → FAIL, 7
+actions → 0**: nothing healed.
+
+**ROOT CAUSE.** The two are not interchangeable and the difference is invisible at the call site.
+`wait_for_task_to_start_and_finish(TASK, "A")` presses A **through** the context menu — start AND
+finish — which is what SELECTS "Use". The teach path's loop is **start-only**: it stops pressing the
+moment the menu opens, because on that path the *next* block does the selecting. I matched the
+task-name semantics and silently dropped the press semantics.
+
+**THE FIX THAT WORKED.** Revert, and record the A/B in the code at the line, so the next reader sees
+why an obviously-correct-looking change is not.
+
+**PREVENTION RULE.** ⛔ **WHEN COPYING A LOOP FROM ANOTHER PATH, COPY ITS CONTRACT — ASK WHAT THE
+CALLER DOES *NEXT*.** A wait that ends when a state ARRIVES and a wait that ends when a state is
+DISMISSED look identical at the call site and differ completely in effect. ‼ And: **the A/B is what
+made this a five-minute finding instead of a shipped regression** — baseline the driver BEFORE
+touching shipped code, every time, even for a change that looks like a strict improvement.

@@ -5491,3 +5491,51 @@ live decomp and cross-checked against our own symbol table (`sParty_Sidney` … 
 OHKOs two of our six**. ⇒ §Ch24 is not one chapter of uniform difficulty; leg 1 is the best-evidenced
 fight in the project and the last two are not currently winnable. Build order and party preparation
 should follow that, not the room order.
+
+
+## 2026-09-16 (later) — THE §Ch24 PROGRESS MARKER MUST BE A **POSITION ON THE SEALED SIDE**, and that is safe by EXHAUSTION
+
+Prerequisite #1 of the "do not wire Segment 24" ruling above was: *§Ch24 must own a
+position-independent progress marker so §Ch23 is not re-entered.* A recon answered it, and the answer
+inverts the obvious candidates.
+
+**EVERY ELITE FOUR FLAG/VAR IS DISQUALIFIED, AT THE DECOMP.**
+* `data/event_scripts.s:585-587` — `EventScript_WhiteOut::` **calls** `ResetEliteFour`.
+* `:628-634` — `ResetEliteFour` clears all four `FLAG_DEFEATED_ELITE_4_*` **and** `setvar
+  VAR_ELITE_4_STATE, 0`.
+* `data/scripts/hall_of_fame.inc` calls the same routine on the **winning** path.
+⇒ `ELITE_4_STATE` and the four defeat flags read 0 whether you lose *or* win — useless as progress.
+
+**AND THE TEMPTING CANDIDATE IS THE TRAP.** `FLAG_ENTERED_ELITE_FOUR` exists in our table
+(`event_flags/emerald.txt:211` → `263 ENTERED_ELITE_FOUR`, matching the decomp's `0x107`), is set by
+the door-guard script, and **nothing anywhere clears it** — `ResetEliteFour` does not touch it. So it
+is PERMANENT and *survives a whiteout*. Used as §Ch23's disjunct it would flip that gate True forever
+after the first guard-talk ⇒ a wiped party respawning outside would skip the League heal and the
+basket on every later attempt. **That is `KI-90`'s measured hole wearing a new hat.**
+
+**⭐⭐ THE ANSWER, AND IT IS PROVEN BY EXHAUSTION RATHER THAN ARGUED.** Walking into the lobby arms the
+respawn (`EverGrandeCity_PokemonLeague_1F_OnTransition: setrespawn
+HEAL_LOCATION_EVER_GRANDE_CITY_POKEMON_LEAGUE`), and that heal point is **OUTDOORS at
+`MAP_EVER_GRANDE_CITY (18,6)`** (`src/data/heal_locations.json`). The recon then enumerated **every
+distinct map in the whole heal-location table — 20 of them — and NOT ONE is a League interior map**;
+the only indoor heal locations in the entire game are the two Littleroot bedrooms. ⇒ **a whiteout can
+never place the avatar on a sealed League map, so a position there is the one signal a whiteout
+cannot forge.** *(This also settles, in passing, where a mid-gauntlet whiteout lands: the outdoor
+apron — by the respawn table, not by a log string.)*
+
+**DECISION: the marker is "the bot is standing on a SEALED League map".**
+
+⛔⛔ **TWO CAVEATS THAT MUST NOT BE LOST, BOTH RAISED BY THE RECON ITSELF:**
+1. **`inside_league()` ALREADY EXISTS AND IS THE WRONG HELPER.** `victory_road.py:1372-1391`'s
+   `LEAGUE_INTERIOR_MAPS` **includes the lobby (1F) and 2F** — and §Ch23's own heal and mart legs
+   stand on the lobby (`LEAGUE_NURSE_STAND = (3,4)`, `LEAGUE_ENTRY_LANDING = (9,11)`). Reusing it
+   would make `ch23_chapter_done()` return True the moment the bot walked in **to heal**, skipping
+   the basket on re-entry. ⇒ §Ch24's marker needs its OWN tuple: the five rooms + Hall1-5 + Hall of
+   Fame, **excluding 1F and 2F**.
+2. **The lobby window is UNCOVERED.** Between the guard-talk and stepping into Hall5 the bot is on a
+   NON-sealed map with the basket possibly spent. The recon did not trace that window end to end, and
+   neither have I. ⇒ **not yet a complete design.**
+
+**Alternatives rejected:** `ELITE_4_STATE` / the defeat flags (wiped by `ResetEliteFour` on both
+paths); `FLAG_ENTERED_ELITE_FOUR` (permanent ⇒ re-opens KI-90); reusing `inside_league()` (includes
+the lobby, see caveat 1).
