@@ -18130,3 +18130,33 @@ breath — the source here explicitly says *"THESE ARE SIMULATION RESULTS, NOT D
 citing them"*, and I cited them without it. ‼ And when a conclusion would change the BUILD ORDER,
 re-read the source paragraph to its end before writing it into a ruling: the sentence that qualifies
 a number is usually the next one.
+
+
+## 2026-09-16 (sixteenth) — I SCALED FROM "EXP PER BATTLE" WHEN ONLY "EXP PER WIN" TRANSFERS
+
+**SYMPTOM.** I sized a L60→L75 grind by scaling the previous grind's measured throughput: *"449,328
+EXP in 623 battles, ~30 min"* ⇒ 721 EXP/battle ⇒ 912k EXP needs ~1,264 battles ≈ **61 minutes**. I
+wrote that ETA into the handoff, in both halves. The run itself refuted it within 150,000 frames:
+**99 `RanAway` vs 15 `Won` — an 87% flee rate** ⇒ ~1,032 EXP per **win**, 13.2% win rate,
+**~6,700 battles ≈ 2.4 hours**. Out by ~2.4×.
+
+**ROOT CAUSE.** "EXP per battle" is not a property of the grass or the party — it is a property of
+*that run's flee rate*, which was silently baked into the figure I borrowed. **EXP per WIN is the
+transferable quantity** (it depends on the defeated Pokémon), and the win RATE has to be measured
+separately for each run. I even reasoned correctly that "EXP per battle is constant in Gen 3 because
+it depends on the defeated mon" — which is true of a WIN and false of a battle that ends in a flee.
+‼ The sentence that made it sound rigorous is the one that hid the error.
+
+**WHAT MADE IT CHEAP.** The run was started in the background and checked early. The refutation cost
+~4 minutes of wall clock, not the 61 I had promised.
+
+**PREVENTION RULE.** ⛔ **BEFORE SCALING ANY THROUGHPUT FIGURE, ASK WHAT ELSE IS BAKED INTO IT.** A
+rate quoted per-attempt carries the success rate of the run it came from; a rate quoted per-SUCCESS
+does not. Convert to the per-success quantity, then measure the success rate for the new run — and
+⭐ **check a long run EARLY against its own prediction**, because the first few minutes are usually
+enough to refute an estimate that is wrong by more than 2×.
+
+‼ **AND A CONSTRAINT THIS SURFACED, WORTH MORE THAN THE ETA:** `victory_road.py:1988` records
+`WILD_MAX = 40` — VICTORY_ROAD_1F's strongest wild is **L40**. Grinding a L60 party toward L75 on L40
+encounters is the real throughput ceiling here. No tuning of the flee rate beats finding better
+ground, and that question has never been asked for the post-L60 range.
