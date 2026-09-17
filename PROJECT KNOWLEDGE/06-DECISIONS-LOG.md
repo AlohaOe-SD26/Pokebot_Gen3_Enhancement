@@ -5633,3 +5633,62 @@ refusal). ⇒ **pay the cheap half twice rather than the expensive half once.**
 **WHAT THIS COSTS US:** the ~2.4 h already spent grinding the dead branch. It is not recoverable and
 it is not a reason to keep using it — that is the sunk-cost shape, and the measurement above is what
 replaces the argument.
+
+
+## 2026-09-17 (second) — THREE USER RULINGS ON §Ch24, PLUS A NEW STANDING CHANNEL
+
+⭐ **NEW STANDING DIRECTIVE (user, 2026-09-17).** The user has offered themselves as a **gameplay
+oracle** and asked to be used as one: *"if you have any questions about how the game is played from a
+gamer perspective … you can ask me"* — when stuck, when repeatedly failing, before starting a piece
+of work, while working, or in the wrap-up report. Named areas: **gameplay mechanics, mapping from a
+visual standpoint, checkpoints, story logic.** Ask in **plain English with gameplay verbiage**, not
+in code or decomp terms.
+⇒ This is a THIRD research channel alongside Gemini (fan-out) and Claude subagents (validation), and
+it is the only one that can answer *"what actually happens when a player does this"* from experience.
+⛔ It does not replace verification: a gameplay answer is still a NOTE for anything code will depend
+on — but it is an extremely cheap way to pick the right question to verify, and it settled three
+things below in one exchange that would each have cost a research round.
+
+### RULING 1 — ⛔ ICE BEAM IS GONE FOR GOOD ONCE LOST. RE-GRIND, DO NOT GO LOOKING FOR ANOTHER TM13.
+**Asked because** the move-learning policy traded Wailord's **Ice Beam** for **Hydro Pump** at L59
+(`#24-learnhmcoverage`), and Ice is **4x** on Salamence, Altaria and Flygon — the analysis says the
+party loses to Drake without it.
+**Ruled:** TM13 is a **single, one-time pickup** in the Abandoned Ship, is not sold anywhere, and the
+Fallarbor Move Reminder only teaches LEVEL-UP moves — Ice Beam is not one of Wailord's. ⇒ **there is
+no second copy**, and the only remedy is to re-grind from a save that still holds it.
+⇒ **ACTED ON:** the re-grind resumes from **`post_e4grind_L57.ss1`**, the last checkpoint whose
+Wailord still reads `Dive, Surf, Ice Beam, Waterfall` — 18 levels instead of 28, and no ship trip.
+⛔ **DO NOT re-propose fetching another TM13, buying one, or tutoring an Ice move onto Wailord.**
+
+### RULING 2 — ✅ 3 REVIVES IS ENOUGH AT L75. DO NOT SOLVE THE MONEY PROBLEM.
+**Asked because** the recon's objection O8 priced the basket as short: `MAX_ITEM_USES_PER_BATTLE = 4`,
+in-battle revival OFF by default (`KI-100`), **3 Revives for 5 one-way rooms**, and money MEASURED
+flat at **₽1,941 across 1,056 wild battles** (wild Pokémon pay no prize money) against a ₽1,500
+Revive — so the shortfall cannot be ground out.
+**Ruled:** at **L75 against their L48-53 teams, faints should be rare enough that 3 Revives covers
+it.** Do not spend effort restocking.
+⇒ **O8 IS DOWNGRADED FROM A BLOCKER TO A WATCH ITEM.** ⛔ Do not build a money-earning detour, a
+trainer-farming leg, or a bigger basket for §Ch24. ‼ If a live gauntlet drive shows repeated faints,
+that is new evidence and the ruling can be revisited — but the *prediction* to test is "faints are
+rare", not "we need more Revives".
+
+### RULING 3 — ✅ DRIVE THROUGH THE ENDGAME TAIL TO THE POST-GAME SAVE. THE AUTOSAVE IS CONFIRMED.
+**Asked because** room 5 ends in a Hall of Fame sequence, an **un-skippable first-clear credits roll**
+(the B-hold speed-up is gated on `gHasHallOfFameRecords`, which is FALSE on a first clear) and then
+**`SoftReset(RESET_ALL)`** to the title screen — and nothing in this tree handles any of it.
+**Ruled:** *"yes drive through the post game save, but verify that the game auto saves once going
+through the hall of fame (I believe it does)"*.
+✅ **VERIFIED AT SOURCE, as asked** — `src/hall_of_fame.c:521-524`:
+`static void Task_Hof_TrySaveData(u8 taskId) { gGameContinueCallback =
+CB2_DoHallOfFameScreenDontSaveData; if (TrySavingData(SAVE_HALL_OF_FAME) == SAVE_STATUS_ERROR && …`
+⇒ **the game DOES auto-save inside the Hall of Fame, BEFORE the credits and before the reboot**, and
+`GameClear()` has already pointed the continue-warp at **Littleroot, the bedroom**
+(`post_battle_event_funcs.c:36-41`). ⇒ **the soft reset is NON-DESTRUCTIVE**: progress is on the
+cartridge before the screen goes black, so the tail is a matter of driving through it, not of racing
+to save first.
+‼ One narrow edge worth knowing: `gGameContinueCallback` is set to `CB2_DoHallOfFameScreenDontSaveData`
+**before** the save, so a CONTINUE taken immediately after that point re-enters the Hall of Fame
+screen rather than the overworld.
+⇒ §Ch24 owns the tail: Hall of Fame → autosave → credits → soft reset → title → CONTINUE → Littleroot
+bedroom, and `ch24_chapter_done()` is only true once the bot is CONTROLLABLE there. That is the third
+prerequisite already recorded in `#24-gameclearflag`.

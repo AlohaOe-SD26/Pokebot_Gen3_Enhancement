@@ -28,7 +28,12 @@ never restored and the situation is identical on the next encounter. That is the
 earlier version of this comment said the grind's own level-up learning REPLACED Ice Beam. That is
 FALSE — measured: the ancestor `post_training.ss1` already had Water Spout and no Ice Beam, so the
 lineages diverged before it, and Water Spout is Wailord's natural L44 move. The bot in fact
-DECLINES level-up moves (Wailord crossed L52 Amnesia and L59 Hydro Pump and kept all four).
+⛔ RETRACTED 2026-09-17: this said the bot "DECLINES level-up moves (Wailord crossed L52
+Amnesia and L59 Hydro Pump and kept all four)". On the §Ch24 lineage Wailord LOST **Ice Beam**
+to Hydro Pump at exactly L59. The policy decides per case, and its type-coverage census ignored
+HM moves (`#24-learnhmcoverage`, fixed) — so a Wailord whose only non-HM move was Ice Beam
+looked like it lacked Water. The L60 lineage kept its moves because Water Spout is a TM, not an
+HM, which made Hydro Pump redundant. Same code, opposite outcome.
 
 ⛔ THE PREDICATE IS NOT THE BUG — ITS CONSUMERS ARE. `max_strength <= 0` is reachable three ways:
 type immunity (Normal/Fighting into a Ghost — `#24-ghostzerodamage`), PP exhaustion, and a banned

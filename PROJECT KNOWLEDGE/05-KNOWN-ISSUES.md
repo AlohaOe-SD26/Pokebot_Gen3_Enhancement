@@ -1382,6 +1382,12 @@ does `[PARTY]` show the cursor landing on the living target?
 
 ## KI-74 — `setmetatile` tiles are INVISIBLE to the shared map model, and the KI-59 fix made that fail-DANGEROUS instead of fail-safe (2026-08-13, code-verified, **STILL OPEN — ✅✅ **AND CONFIRMED LIVE AT THE ELITE FOUR DOOR, 2026-09-16** (ROM says (6,1)/(6,2) BLOCKED, the live grid says OPEN; the entry-seal control fired). Observable since 2026-09-01, and it has COST A DRIVE**)
 
+- ⭐⭐ **2026-09-17 — `KI-74` IS ONLY HALF OF ITS OWN HAZARD, AND THE OTHER HALF IS THE DANGEROUS ONE. CONFIRMED LIVE.** This entry describes the direction where the planner **refuses a route that exists** (the Elite Four EXIT door: ROM says blocked, the game says open). `probe_e4_entry_seal.py` measured the SAME map at the SAME instant and found the mirror image at the **ENTRY** door: `PokemonLeague_EliteFour_EventScript_WalkInCloseDoor` seals (5..7,12) and (5..7,13) at runtime, so **ROM=0 (open) while LIVE=3 (sealed)** ⇒ the planner will **confidently plan a RETREAT that the game refuses** — a jam at a threshold it believes is open, which is strictly worse than a refusal because nothing reports it as impossible.
+      ENTRY (5,12) (6,12) (7,12) (5,13) (6,13) (7,13)   ROM=0  LIVE=3   ** DIVERGES **
+      EXIT  (6,1) (6,2)                                  ROM=1  LIVE=0   ** DIVERGES **
+      CONTROL floor (6,6) 0/0 · CONTROL wall (0,0) 1/1  — both AGREE
+  ⇒ **ANY League-interior reachability check must read `_live_collision_grid` (`sootopolis.py:870`), never `get_map_data`** — and §Ch24 must never offer a “walk back to the nurse” fallback, because from HALL5 onward there is no way back. ⚠ “Sealed” is `collision != 0`; the value is **3**, not 1.
+
 - ⛔ **2026-09-16 (later) — THE HEADER WAS RE-STAMPED, AND IT HAD BEEN 15 DAYS STALE.** It read *“STILL OPEN — but as of 2026-09-01 it is OBSERVABLE, and it has now COST A DRIVE”* while the body line immediately below it already said CONFIRMED LIVE. ‼ Caught by a **Tier 1 reviewer**, not by a gate and not by the session that took the measurement — pair P2 exactly: the header is the half that gets skimmed, and three files in that same commit were citing “KI-74 CONFIRMED LIVE 2026-09-16” while the authoritative header still said otherwise. The issue itself is unchanged and **STILL OPEN**: the fix (consult the live grid at the door query) is not built.
 
 - ✅✅ **2026-09-16 (LATER) — CONFIRMED LIVE AT THE ELITE FOUR DOOR. BOTH HALVES NOW MEASURED.**

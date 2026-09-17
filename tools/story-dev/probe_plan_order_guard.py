@@ -75,6 +75,9 @@ from modules.libmgba import LibmgbaEmulator
 context.emulator = LibmgbaEmulator(profile, lambda: None)
 context.audio = False
 context.video = False
+# ⛔ UNTHROTTLED, OR THE SUITE PAYS FOR IT AT 1x REAL TIME — enforced by
+# `probe_gate_unthrottled.py`, which caught this file missing the line.
+context.emulation_speed = 0
 
 from modules.modes import BotModeError
 from modules.pokemon_party import get_party

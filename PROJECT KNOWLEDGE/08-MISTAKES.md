@@ -18404,3 +18404,49 @@ brief is to refute, not to review.* A recon where all N angles sit inside the pl
 tell you how to execute it well. This is already the standing rule for Gemini passes ("asking a
 second agent the same question produces a second guess; asking it to refute produces information") —
 the gap was that it had not been applied to the framing of a whole work item.
+
+
+## 2026-09-17 (ninth) — I WATCHED CORRECT BEHAVIOUR ON ONE PARTY AND WROTE DOWN A UNIVERSAL LAW
+
+**Symptom.** I asserted, in four documents and a commit, that **"the bot DECLINES level-up moves"**
+and that therefore *"a taught move will NOT be undone by grinding — the strongest objection to the
+repair plan, refuted by measurement rather than argument."* The objection was correct. Wailord lost
+**Ice Beam** to Hydro Pump at **exactly L59** — the very level I had cited as proof it would not.
+
+**Root cause.** I observed one lineage cross L52 and L59 keeping all four moves, and promoted that
+observation to a rule. It was not a rule; it was one branch of a conditional. The policy asks "is
+this type already covered?", and on that lineage the answer was yes (Water Spout, a TM, sat in the
+replaceable slot) so it declined. On the §Ch24 lineage the replaceable slot held Ice Beam, the
+census could not see the three Water HMs, and the same code accepted. **Same code, same level,
+opposite outcome** — which is exactly what a conditional looks like when you only ever run one arm.
+
+⇒ **PREVENTION RULE.** *An observation over ONE input is evidence about that input. Before writing
+"the bot does X", find the code that decides X and read its branches — if it has a conditional you
+did not vary, you have measured a case, not a rule.* ‼ And the tell was there in my own sentence: I
+was using the claim to DISMISS AN OBJECTION. A generalisation that arrives precisely when it would
+let you skip work deserves the opposite of the benefit of the doubt.
+
+⛔ Note what this does NOT overturn: the LINEAGE ruling (`post_grind_L60.ss1` is a dead branch;
+`post_ch24ready.ss1` is the right start) still stands on its own measurements. What changed is that
+the grind needed a CODE FIX first, not merely a better fixture.
+
+## 2026-09-17 (tenth) — A GATE I WROTE THIS MORNING CAUGHT A REGRESSION I INTRODUCED THIS AFTERNOON
+
+**Symptom.** `verify_fixtures.py` went red with `MANIFEST SCHEMA: 'L57' has kind='Dive, Surf, Ice
+Beam,'`. There is no fixture called `L57`.
+
+**Root cause.** Writing the retraction above, I embedded a two-line before/after moveset table inside
+a `FIXTURES.md5` description. **That file is LINE-ORIENTED** — every non-`#` line is parsed as a row —
+so a multi-line block inside a description does not annotate a row, it MANUFACTURES two bogus ones,
+and each bogus row silently unpins nothing while making the real parse ambiguous.
+
+**The fix that worked.** Fold the table inline into the row it belongs to (` / `-separated).
+
+⭐ **THE POINT OF THIS ENTRY IS THE TIMING.** The check that caught it was added *hours earlier, the
+same day*, in response to the same class of bug (a description written into the `kind` field). It
+paid for itself before the session ended, against its own author, on a different mistake in the same
+file. ⇒ evidence for the standing rule that *anything enforceable belongs in a gate, not in prose* —
+prose would have told me the format; the gate stopped me shipping a violation of it.
+
+⇒ **PREVENTION RULE.** *Before writing a multi-line block into a data file, ask whether the file is
+LINE-ORIENTED. Prose files tolerate structure; manifests parse it.*

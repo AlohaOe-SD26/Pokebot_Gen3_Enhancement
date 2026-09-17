@@ -526,7 +526,27 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
         if not damaging_slots:
             return DECLINE
         new_power = effective_power(new_move)
-        current_types = [moves[i].type for i in damaging_slots]
+        # ⛔⛔ COVERAGE IS COUNTED OVER **EVERY** DAMAGING MOVE, HMs INCLUDED — AND COUNTING IT OVER
+        # `damaging_slots` (which EXCLUDES HMs) COST THIS PROJECT THE ONE MOVE §Ch24 IS BUILT AROUND.
+        # ‼ MEASURED 2026-09-17, exactly reproducible on the grind ladder: Wailord knew
+        # `Dive (HM08), Surf (HM03), Ice Beam (TM13), Waterfall (HM07)` and hit **L59 / Hydro Pump**.
+        # Three of its four moves are Water, but all three are HMs, so `damaging_slots` was `[Ice
+        # Beam]` alone and the census read `current_types == [Ice]`. ⇒ Hydro Pump (Water) looked like
+        # a type we **LACK**, the code "freed the weakest slot to gain coverage", and the team's ONLY
+        # Ice move — fetched by a ~700,000-frame Abandoned Ship round trip specifically because the
+        # analysis says the party LOSES to Drake without it — was traded for a FOURTH Water move.
+        #     post_e4grind_L57.ss1  L57  Dive, Surf, Ice Beam,   Waterfall
+        #     post_e4grind_L59.ss1  L59  Dive, Surf, Hydro Pump, Waterfall   <<< -Ice Beam +Hydro Pump
+        # ⭐ ONE MECHANISM EXPLAINS THE OPPOSITE OBSERVATION TOO, WHICH IS WHY IT IS THE RIGHT ONE.
+        # On the other lineage Wailord held **Water Spout** (a TM, so non-HM) in that slot: the census
+        # read `[Water]`, Hydro Pump was REDUNDANT, Water Spout (150 BP) outranks it, and the policy
+        # correctly DECLINED — keeping all four moves across the same level. Same code, same level,
+        # opposite outcome, explained by which slot happened to be replaceable.
+        # ⇒ **REPLACEABILITY AND COVERAGE ARE DIFFERENT QUESTIONS.** You cannot overwrite an HM, but
+        # the Pokémon still KNOWS it, and coverage is about what it can DO. The replaceable set stays
+        # `damaging_slots`; only the census widens.
+        coverage_slots = [i for i, m in enumerate(moves) if is_damaging(m)]
+        current_types = [moves[i].type for i in coverage_slots]
 
         if new_move.type in current_types:
             # Redundant type: only take it to UPGRADE a weaker same-type move;

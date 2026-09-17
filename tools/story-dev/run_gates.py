@@ -422,6 +422,26 @@ GATES: list[tuple[str, bool]] = [
     # it; `POKEBOT_RECIPEGATE_FAULT=1` scans comments too and MUST fail. ⚠ "Named but unpinned" is
     # REPORTED, not blocking — a different gap, pre-dating this gate.
     ("probe_runrecipe_fixtures.py", False),
+    # ⭐⭐ #62 — `KI-74` IN BOTH DIRECTIONS, ON ONE MAP AT ONE INSTANT. The ENTRY tiles read
+    # ROM=0/LIVE=3 (sealed at runtime) and the EXIT door reads ROM=1/LIVE=0 (opened at runtime),
+    # with two ordinary tiles AGREEING in both grids so a divergence is about the door and not
+    # the reader. ‼ Two divergences in OPPOSITE directions is the point: one could be dismissed
+    # as "our ROM reader is wrong about this map", two cannot. What this gate actually protects
+    # is `_live_collision_grid` — the only reader that can see runtime `setmetatile` writes, and
+    # the thing standing between us and a bot that confidently plans a RETREAT the game refuses.
+    # Its failure mode without this gate is a jam in the Elite Four, hours into a run.
+    # ⚠ True = BOOTS A ROM, so `--quick` skips it. It loads a save state into libmgba to read
+    # `gBackupMapLayout`; there is no offline way to ask what the GAME thinks a tile is.
+    ("probe_e4_entry_seal.py", True),
+    # ⭐⭐ #63 — THE POLICY THAT SPENT A ~700,000-FRAME ITEM. `which_move_should_be_replaced`
+    # counted type coverage over the REPLACEABLE slots, which exclude HMs, so a Wailord holding
+    # three Water HMs + Ice Beam read as "no Water" and traded Ice Beam for Hydro Pump at L59.
+    # ‼ The three arms are the point: ARM 1 alone would be satisfied by a policy that declined
+    # EVERYTHING, so CONTROL A proves a genuine new type is still accepted and CONTROL B proves a
+    # same-type upgrade still lands. ⚠ True = boots a ROM: it runs the policy against the REAL
+    # pinned party rather than fakes, because twice in one day a hand-built probe fixture was
+    # wrong while its subject was right.
+    ("probe_learn_hm_coverage.py", True),
     # ⛔⛔ `_derail_reason` grouped with a DECIMAL-only `\d[\d,]*` pass while a PID is HEX, so
     # `Marill#30AD95BD` -> `Marill#NADNBD` and EVERY PID BECAME ITS OWN KEY. `summary.json` is written
     # through `.most_common()`, so the biggest blocker scattered into count-1 rows at the BOTTOM.

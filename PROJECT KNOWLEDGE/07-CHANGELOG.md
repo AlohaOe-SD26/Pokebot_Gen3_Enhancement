@@ -30675,3 +30675,94 @@ Ten objections, each now a build requirement. The two that change the plan most:
 And one correction to our own docs: a whiteout lands **outdoors at EVER_GRANDE_CITY (18,6)**, not in
 the lobby beside the nurse — and `EventScript_WhiteOut` calls `ResetEliteFour`, so **a whiteout
 anywhere costs the whole gauntlet**, not one room.
+
+
+## 2026-09-17 (seventh) — ⭐⭐ `KI-74` IS ONLY HALF ITS OWN HAZARD (CONFIRMED LIVE), AND THE GRIND REACHED L73
+
+### The entry seal — `probe_e4_entry_seal.py` (NEW)
+
+A decomp recon claimed the Elite Four rooms SEAL behind you and flagged it as the one thing that
+*"deserves one live confirmation before leg 2 depends on it"*. It does, and it does not behave the
+way `KI-74` is written up. Measured on the pinned `post_sidney_door_open.ss1`, reading the ROM layout
+and `gBackupMapLayout` on ONE map at ONE instant:
+
+    ENTRY (5,12) (6,12) (7,12) (5,13) (6,13) (7,13)   ROM=0 (open)     LIVE=3 (SEALED)
+    EXIT  (6,1) (6,2)                                  ROM=1 (blocked)  LIVE=0 (OPEN)
+    CONTROL floor (6,6)  0/0        CONTROL wall (0,0)  1/1   — both AGREE
+
+‼ **Two divergences in OPPOSITE directions from one mechanism.** A single-direction result could be
+dismissed as "our ROM reader is wrong about this map"; two cannot. ⇒ `KI-74` as written covers only
+the case where the planner REFUSES a route that exists. The mirror case is worse: the planner
+**confidently plans a retreat the game refuses**, and nothing reports it as impossible.
+
+⇒ any League-interior reachability check must read `_live_collision_grid`, and §Ch24 must never offer
+a "walk back to the nurse" fallback — from HALL5 onward there is no way back.
+
+⚠ The probe's FIRST predicate asserted `collision == 1` and printed "THE DECOMP CLAIM IS NOT
+CONFIRMED" over a confirmation. The observed value is **3**, and both our planner
+(`map_path.py:137`) and the live-grid consumer (`sootopolis.py:997`) test `!= 0`. The PREDICATE was
+wrong, not the claim — the same shape as the C9 control earlier today, and the reason the standing
+rule is *read the failing line before touching the thing under test*.
+
+### The grind — L47 → **L73**, 1,575 battles, 0 whiteouts, and it stopped on purpose
+
+`--driver ch24grind` from `post_ch24ready.ss1` took all four battlers L47/53 → **L73** and then
+refused to continue, correctly:
+
+    STEP 14: lowest battler is L73 -> training to L75
+    BotModeError: Wailord alone needs 263,672 frames, over the 250,000 per-call ceiling
+
+That is `train_for_victory_road`'s guard 1 — the `KI-28` protection that exists because an unbounded
+call once burned 19.9M frames. At L73 a TWO-level step no longer fits under the per-call ceiling. ⇒
+the fix is the knob the driver already has: **`POKEBOT_GRIND_STEP=1`**, resumed from the captured
+`post_e4grind_FINAL.ss1`. ⭐ Nothing was lost: the driver checkpointed every 2 levels and wrote a
+FINAL fixture, and it reported `ACCEPTANCE: PASS` because the grade is "at least one battler gained
+a level", not "the target was reached".
+
+⭐ **The Elite Four basket was never touched by 1,575 wild battles — it GREW**: 30 → 34 Hyper Potion,
+8 → 23 Full Heal, Full Restore and Revive unchanged at 3. Heals come from the Poké Center.
+⛔ **But money is flat at ₽1,941 across the whole grind** — wild Pokémon pay no prize money, only
+trainers do. A Revive costs ₽1,500, so the 3-Revive shortfall the recon flagged (O8: 3 Revives for 5
+one-way rooms) **cannot be ground out**. That is a hard constraint on leg 2, measured.
+
+
+## 2026-09-17 (eighth) — ⛔⛔ RETRACTION: "THE BOT DECLINES LEVEL-UP MOVES" IS FALSE, AND THE OBJECTION I DISMISSED WITH IT WAS CORRECT
+
+The 2026-09-17 (third) entry above corrected a false mechanism and, in doing so, asserted a new one:
+
+> "AND THE OPPOSITE OF MY CLAIM IS TRUE … THE BOT DECLINES LEVEL-UP MOVES. Wailord crossed L52
+> (Amnesia) and L59 (Hydro Pump) during that L47→L60 grind and kept all four of its moves. ⇒ a
+> taught move will NOT be undone by grinding — which is the strongest objection to the repair plan,
+> refuted by measurement rather than argument."
+
+**That is FALSE, and it was refuted at exactly the level it cited as proof.** On the §Ch24 lineage:
+
+    post_e4grind_L57.ss1  L57  Dive, Surf, Ice Beam,   Waterfall
+    post_e4grind_L59.ss1  L59  Dive, Surf, Hydro Pump, Waterfall    <<< -Ice Beam  +Hydro Pump
+
+Ice Beam is the move a ~700,000-frame Abandoned Ship round trip was taken to obtain, and Ice is **4x**
+on Salamence, Altaria and Flygon. The user has since ruled that **TM13 is a one-time pickup with no
+second source**, so the loss is permanent on that lineage.
+
+### The real mechanism — `#24-learnhmcoverage`, found and fixed
+
+`which_move_should_be_replaced` states a good rule: *"if the new move's type is ALREADY covered, only
+overwrite a WEAKER same-type move … otherwise DECLINE."* But it built its type census from
+`damaging_slots`, **which excludes HM moves**. Wailord's three Water moves are all HMs (Dive/HM08,
+Surf/HM03, Waterfall/HM07), so the census read `[Ice]`, Hydro Pump (Water) looked like a type the
+party LACKED, and the policy "freed the weakest slot to gain coverage" — spending the only Ice move
+on a fourth Water move.
+
+⭐ **The same code explains the observation that misled me.** On the `post_grind_L60` lineage that
+slot held **Water Spout** — a TM, so non-HM. The census read `[Water]`, Hydro Pump was REDUNDANT and
+weaker (150 vs 120), and the policy correctly DECLINED, keeping all four moves across the same level.
+Same code, same level, opposite outcome, decided entirely by which slot happened to be replaceable.
+
+**Fixed:** coverage is now counted over EVERY damaging move, HMs included; the replaceable set is
+unchanged. Proven by `probe_learn_hm_coverage.py` on the REAL pinned party (not fakes): the redundant
+Water move is DECLINED, a genuine new type (Thunderbolt) is still ACCEPTED, and a same-type upgrade
+(Hyper Beam over Take Down) still lands — so the widened census did not turn the policy into "always
+decline".
+
+⇒ **Re-grinding from `post_e4grind_L57.ss1`**, the last checkpoint whose Wailord still has Ice Beam —
+18 levels instead of 28, and no ship trip.
