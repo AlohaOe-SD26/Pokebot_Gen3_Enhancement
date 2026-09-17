@@ -30913,3 +30913,103 @@ take it rather than open the gauntlet at 89%.
 
 ⇒ **THE CHAPTER'S PRELIMINARIES ARE NOW ALL DONE:** the party is at the right level, carries every
 prepared move, and stands on the right tile. What remains is leg 2 itself.
+
+
+## 2026-09-17 (thirteenth) — ⭐⭐⭐ THE FIRST ELITE FOUR FIGHT AT L75 IS WON, AND IT COST 15 HP
+
+`--driver ch24probe` from `post_ch24_atdoor_L75.ss1` — `ACCEPTANCE: PASS`, all 6 readings,
+`missing=[]`, `battles=1`, `whiteouts=0`, `ELITE_4_STATE 0 -> 1`.
+
+    hp_before  Mightyena:202/227  Zigzagoon:48/48  Sceptile:205/205  Swellow:232/232  Wailord:396/396
+    hp_after   Mightyena:187/227  Zigzagoon:48/48  Sceptile:205/205  Swellow:232/232  Wailord:396/396
+
+**15 HP on one mon. Zero faints. Nothing else touched.** That is the first hard evidence for the L75
+target at fight #1 — the "L75 = 88% clear" figure was arithmetic; this is a fight. ‼ And it
+corroborates USER RULING 2 by measurement: the ruling that 3 Revives suffices rests on faints being
+rare at this level, and fight #1 produced none.
+
+⛔ **It proves nothing about Phoebe.** Sidney is DARK, not Ghost, and with no faints the chooser was
+never invoked — so `#24-ghostreplacement` is NOT unblocked by this. That was stated in the
+pre-registered predictions BEFORE the run, precisely so a clean Sidney win could not be mistaken for
+progress on it.
+
+### Three side-findings, all from this one drive
+
+**(1) `KI-74` is now CONFIRMED LIVE IN BOTH DIRECTIONS BY A SECOND INDEPENDENT INSTRUMENT.**
+`ch24probe` records both grids, and it agrees with `probe_e4_entry_seal.py` exactly:
+
+    door_rom {(6,1):1,(6,2):1}    door_live {(6,1):0,(6,2):0}     EXIT:  ROM blocked, LIVE open
+    seal_rom {(5,13):0,...}       seal_live {(5,13):3,...}        ENTRY: ROM open,    LIVE sealed
+
+⭐ And `door_live_metatile = {(6,1):'0x344', (6,2):'0x345'}` matches the decomp's
+`METATILE_EliteFour_OpenDoor_Frame` / `_Opening`. Two instruments, one drive, both divergences, and
+the metatile IDs to name the mechanism — this has stopped being an inference.
+
+**(2) ⛔ `ELITE_4_STATE` HAS A WINDOW WHERE YOU ARE IN THE ROOM AND IT IS STILL 0.**
+Measured `elite4_state_in_room = 0` then `elite4_state_after = 1`. The var is set by the room's own
+entry cutscene but NOT instantly on arrival, and this probe read it inside that window. ⇒ a leg that
+DISPATCHES on the var would misread the opening moments of every room. Combined with the already-known
+"it grades the warp, not the fight", the rule hardens: **never read `ELITE_4_STATE` for control flow.**
+
+**(3) ⚠ THE ARRIVAL TILE IS NOT (6,7) WHEN YOU LOOK AT IT.** The probe logged *"in Sidney's room at
+(6,11) (the script auto-walks to (6,7))"* — it read its own position mid-cutscene, two steps into a
+six-step walk. (6,7) is the FINAL tile, not the observed one. ⭐ The probe survived this only because
+it locates the trainer LIVE (`sidney_at = (6,5)`) and navigates from wherever it actually is. ⇒ leg 2
+must do the same; **do not hardcode (6,7) as a start tile** — it is true eventually and false when
+you look.
+
+✅ **And the route works unchanged from the new fixture** (`P24-IN`, `P24-HALL5`, `P24-ROOM` all
+taken) ⇒ leg 2 can reuse `Ch24ProbeMode`'s routing verbatim. That was prediction P1, and it is the
+cheapest good news in the chapter.
+
+## 2026-09-17 (fourteenth) — ⭐⭐⭐ PHOEBE IS BEATEN AT L75, AND THE MEASUREMENT `#24-ghostreplacement` WAS BLOCKED ON IS IN HAND
+
+`--driver ch24phoebe` (NEW) from `post_sidney_L75.ss1` — `ACCEPTANCE: PASS`, all 6 readings,
+`missing=[]`, `battles=1`, `whiteouts=0`, **`DEFEATED_ELITE_4_PHOEBE = True`**, Mightyena L75 → L76.
+
+**The repeating unit composes.** dismiss → BAG HEAL → `_pass_through_door((6,2))` → HALL1 (5,12) →
+`_pass_through_door((5,2))` → PHOEBES_ROOM → locate LIVE → engage. Every piece was lifted from
+something already driven; the SEQUENCE was the new thing, and it worked.
+
+**The user-ruled bag heal fired and it mattered:** `heal_plan = [(0, 'Super Potion', 'Mightyena at
+187/227')]`, HP **187/227 → 227/227** ⇒ Phoebe was entered at FULL HP, not 82%. ‼ My prediction that
+it would do nothing (82% "should" clear the threshold) was WRONG — a result, not a failure.
+
+### ⭐⭐ THE DAMAGE TABLE — real formula, real foe, real party (`probe_ghost_damage_real.py`)
+
+vs the actual **Dusclops L51, 117 max HP**:
+
+    Mightyena  L76   138  Crunch        ko_turns 1     <- ONE-SHOTS IT
+    Wailord    L75    93  Surf          ko_turns 2
+    Sceptile   L75    81  Leaf Blade    ko_turns 2
+    Swellow    L75    66  Aerial Ace    ko_turns 2
+    Castform   L36     7  Powder Snow   ko_turns 17
+    Zigzagoon  L19     3  Surf          ko_turns 39    <- what the CURRENT ranker picks
+
+⇒ **`ko_turns` DOES separate them.** Distinct buckets [1, 2, 17, 39], and **Mightyena is alone at 1**
+while every other battler needs 2. A refuter had warned it *might* saturate at 1 for Mightyena AND
+Swellow; measured, Swellow does 66, not 117+, so it does not. That worry was right to raise and is
+now settled by measurement rather than argument.
+
+⛔ **The other refutation still stands:** `ko_turns` as specified breaks gate #39's C2, because the
+synthetic rows carry no foe HP. ⇒ the term must be **INERT when foe HP is unknown** (`foe_hp <= 0` ⇒
+`ko = 0` for everyone, so the tuple falls through to today's key and all nine cases keep passing) and
+**strictly worst** when a candidate deals zero.
+
+‼ **Zigzagoon is the whole argument in one number: 3 damage, 39 turns.** That is what the shipped
+ranker reaches for after a faint against a Ghost.
+
+⚠ Ice Beam does **62** here — less than Surf's 93 — because Ice is NEUTRAL on a pure Ghost. Its value
+is DRAKE (4× on Salamence/Altaria/Flygon). Do not read a low Phoebe number as evidence against it.
+
+### ⛔ AND A HARNESS FACT THAT FAKED THREE READINGS IN THIS RUN
+
+**A driver cannot observe mid-battle state from its own generator.** When a battle starts the harness
+hands the controller to `BattleListener.fight`, and the driver is not resumed until the fight ENDS —
+so the "in-battle" capture landed at the fight's END (`Dusclops 0/117`), `hp_entering_phoebe` equalled
+`hp_after`, and the battle-end wait exited on its first check. One cause, three wrong readings; both
+are now in `08-MISTAKES.md` with prevention rules.
+
+⭐ The verdict survived anyway because it grades the CONSEQUENCE — `DEFEATED_ELITE_4_PHOEBE` and a
+level-up — facts about the world rather than about my timing. That is the argument for grading
+consequences over observations.

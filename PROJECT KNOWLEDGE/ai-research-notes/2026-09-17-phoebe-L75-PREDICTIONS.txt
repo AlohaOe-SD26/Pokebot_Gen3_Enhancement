@@ -1,0 +1,27 @@
+ch24phoebe FROM post_sidney_L75.ss1 — PRE-REGISTERED 2026-09-17 ~2:05 PM PDT
+
+PP1 THE MECHANICS ALL WORK. P-DISMISS, P-HEAL, P-HALL1, P-ROOM taken. Each piece is lifted from
+    something already driven (E4DismissMode / heal_party_from_bag / E4ExitMode's _pass_through_door).
+    FALSIFIER: P-HALL1 or P-ROOM missing => a proven half does not compose, which is the assumption
+    this drive exists to test.
+
+PP2 PHOEBE IS LOCATED LIVE AND ENGAGED. P-ENGAGED taken; phoebe_at RECORDED (not predicted — the
+    arrival tile read (6,11) in Sidney's room, so I assume nothing about position).
+
+PP3 ⭐ THE ARTIFACT: an IN-BATTLE save state is captured. This is the point of the run.
+    FALSIFIER: no capture => the whole exercise failed its primary purpose even if it wins the fight.
+
+PP4 THE OUTCOME IS **RECORDED, NOT PREDICTED**. I do not know if the party wins. Phoebe is the
+    known hazard: 6 of our 16 battler move-slots do ZERO to a Ghost, and Banette's GRUDGE can zero
+    Crunch's PP in one hit.
+    ⭐ IF THE PARTY LOSES that is the most valuable result of the day, not a failure — it would make
+    #24-ghostreplacement a MEASURED live blocker rather than an offline one.
+
+PP5 THE BAG HEAL WILL PROBABLY DO LITTLE OR NOTHING. Only Mightyena is damaged (187/227 = 82%),
+    and party_is_gauntlet_ready gates on an HP FRACTION that 82% may already clear.
+    => heal_actions = 0 is an EXPECTED and correct outcome, not a broken heal. RECORDED.
+    ‼ This is why P-HEAL is taken UNCONDITIONALLY: heal_party_from_bag returns early on an empty
+    plan without setting its own readings, so gating on them would FAIL a correct run.
+
+PP6 FAINTS — RECORDED. If >=1 faint occurs the faint chooser runs, and its pick is then directly
+    observable against the offline prediction that it would choose Zigzagoon L19.

@@ -18509,3 +18509,53 @@ zero?") about a CONTINUOUS problem ("how long until this wins?"). A boolean guar
 quantity only ever fires at the extreme, so it looks correct on a constructed extreme and does
 nothing in the middle, which is where real parties live. *When the failure is "too slow", the guard
 must measure speed, not presence.*
+
+
+## 2026-09-17 (thirteenth) — A DRIVER CANNOT WATCH ITS OWN BATTLE, AND THAT ONE FACT FAKED THREE READINGS
+
+**Symptom.** `ch24phoebe` printed `ACCEPTANCE: PASS` with `battle_frames_waited = 0` and
+`hp_entering_phoebe` **exactly equal to** `hp_after_phoebe` — which reads as *"the Phoebe fight cost
+nothing"*. It also captured an "in-battle" fixture that turned out to hold `Dusclops L51 0/117` and a
+Mightyena already levelled to L76, i.e. the END of the fight.
+
+**Root cause — ONE cause, three wrong readings.** When a battle starts, this harness hands the
+controller to `BattleListener.fight`; **the driver's own generator is not resumed until the fight
+ENDS.** So every statement in the driver body after "battle started" executes POST-battle:
+* the capture landed after the last Pokémon fainted,
+* `hp_entering_phoebe` was read after the fight, so it equalled `hp_after`,
+* and the battle-end wait exited on its first check, because the battle was already over.
+
+‼ I had even written the loop defensively (`if get_game_state() is not BATTLE: break`) and it did not
+help — the predicate was fine; the *position in the program* was wrong. `Ch24ProbeMode`'s own comment
+records the sibling of this bug (*"THIS PREDICATE WAS `get_battle_state() is None` AND THAT IS NEVER,
+EVER TRUE"*), so the class was known and I still walked into a different instance of it.
+
+⇒ **PREVENTION RULE.** *To observe a battle, instrument `on_battle_started` or the battle strategy —
+never the driver body. A driver can see the state BEFORE the fight and AFTER it, and nothing in
+between.* And the tell is cheap to check: **if a before/after pair comes back IDENTICAL, suspect that
+"before" was sampled after.**
+
+⭐ **WHAT SAVED IT WAS GRADING THE CONSEQUENCE ANYWAY.** The run's real verdict rests on
+`DEFEATED_ELITE_4_PHOEBE = True` and Mightyena's level going 75 → 76 — facts about the WORLD, not
+about my timing. The fight genuinely happened and was genuinely won; only my narration of it was
+false. ⇒ a grade built on world-state survives an instrument that mis-times itself, which is the
+argument for grading consequences rather than observations.
+
+## 2026-09-17 (fourteenth) — I CHOSE WHICH ITEMS TO WATCH, AND THE HEAL USED A DIFFERENT ONE
+
+**Symptom.** `ch24phoebe`'s bag reading showed **no change** (`Hyper Potion 36 → 36`) across a heal
+that demonstrably worked (Mightyena 187/227 → 227/227, `heal_actions=1`). It looked like HP had been
+restored for free.
+
+**Root cause.** My `_bag()` helper watched a hand-picked list — Hyper Potion, Full Restore, Full Heal,
+Revive — and `plan_healing` chose a **Super Potion**, which was not on it. The heal was correct; the
+*instrument* was looking at the wrong shelf.
+
+**What saved it.** `heal_plan` names the item it intends to use
+(`[(0, 'Super Potion', 'Mightyena at 187/227')]`), and logging the PLAN beside the bag delta is what
+made the discrepancy legible in one line instead of becoming a mystery.
+
+⇒ **PREVENTION RULE.** *Never instrument a hand-picked subset of a resource and report it as the
+resource. Either read the whole pocket, or log the decision that names what was spent — ideally
+both, because the plan is the intent and the delta is the attempt, and the pair is what catches a
+mismatch.* (A candidate is not an attempt; here, a curated view was not the bag.)

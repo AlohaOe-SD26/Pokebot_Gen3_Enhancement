@@ -1,0 +1,60 @@
+Running mGBA 0.10.2
+============================================================================================================
+  REAL DAMAGE vs A REAL GHOST — in_phoebe_battle_L75.ss1
+  FOE: Dusclops L51  types=['Ghost']  total_hp=117
+============================================================================================================
+  mon            L  move           type       pwr     pp   dmg.max  ko_turns  note
+  --------------------------------------------------------------------------------------------------------
+  Mightyena     76  Strength       Normal      80 10/15          0         -  
+  Mightyena     76  Crunch         Dark        80  0/15        138         1  ONE-SHOTS
+  Mightyena     76  Take Down      Normal      90  9/20          0         -  
+  Mightyena     76  Bite           Dark        60 24/25        104         2  
+
+  Zigzagoon     19  Tackle         Normal      35 35/35          0         -  
+  Zigzagoon     19  Rock Smash     Fighting    20 15/15          0         -  
+  Zigzagoon     19  Surf           Water       95 15/15          3        39  
+  Zigzagoon     19  Headbutt       Normal      70 15/15          0         -  
+
+  Sceptile      75  Rock Smash     Fighting    20 15/15          0         -  
+  Sceptile      75  Strength       Normal      80 15/15          0         -  
+  Sceptile      75  Leaf Blade     Grass       70 15/15         81         2  
+  Sceptile      75  Aerial Ace     Flying      60 20/20         44         3  
+
+  Swellow       75  Facade         Normal      70 20/20          0         -  
+  Swellow       75  Fly            Flying      70 15/15          -         -  BANNED (config)
+  Swellow       75  Aerial Ace     Flying      60 20/20         66         2  
+  Swellow       75  Quick Attack   Normal      40 30/30          0         -  
+
+  Wailord       75  Dive           Water       60 10/10          -         -  BANNED (config)
+  Wailord       75  Surf           Water       95 15/15         93         2  
+  Wailord       75  Ice Beam       Ice         95 10/10         62         2  
+  Wailord       75  Waterfall      Water       80 15/15         78         2  
+
+  Castform      36  Powder Snow    Ice         40 25/25          7        17  
+  Castform      36  Weather Ball   Normal      50 10/10          0         -  
+  Castform      36  Sunny Day      Fire         0  5/5           -         -  status
+  Castform      36  Hail           Ice          0 10/10          -         -  status
+
+============================================================================================================
+  PER-MON BEST, AND THE TURNS-TO-KO THAT A `ko_turns` TERM WOULD BUCKET ON:
+    Mightyena    L76  best_damage=     138   ko_turns=1
+    Wailord      L75  best_damage=      93   ko_turns=2
+    Sceptile     L75  best_damage=      81   ko_turns=2
+    Swellow      L75  best_damage=      66   ko_turns=2
+    Castform     L36  best_damage=       7   ko_turns=17
+    Zigzagoon    L19  best_damage=       3   ko_turns=39
+
+  distinct ko_turns buckets among mons that CAN damage it: [1, 2, 17, 39]
+  ✅ More than one bucket ⇒ a `ko_turns` term CAN separate these candidates. The cap
+     must be chosen so the buckets that matter stay distinct.
+
+============================================================================================================
+  ✅ control holds — the damage formula is live (at least one move does real damage).
+  ⛔ This probe DOES NOT choose the ranker's term. That decision belongs in
+     `#24-ghostreplacement`, with a gate case built from THIS party.
+============================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-17_14-06-06.ss1 created!
+Updated `current_state.ss1`!

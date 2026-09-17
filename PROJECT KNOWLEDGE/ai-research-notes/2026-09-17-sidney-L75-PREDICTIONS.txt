@@ -1,0 +1,21 @@
+ch24probe FROM post_ch24_atdoor_L75.ss1 — PRE-REGISTERED 2026-09-17 ~1:52 PM PDT
+(existing instrument, new fixture — a MEASUREMENT, not a build)
+
+P1  ROUTE WORKS UNCHANGED. The probe was written against post_league_shop.ss1, which sits on
+    the SAME tile (18,6). Expect P24-IN, P24-HALL5, P24-ROOM all taken.
+    FALSIFIER: any of them missing => the route depends on something in the OLD party/flags,
+    not just the tile, and leg 2 cannot reuse it.
+
+P2  THE PARTY WINS SIDNEY. L75 vs his L46-49 Dark team. Expect P24-OUTCOME = won.
+    FALSIFIER: a loss at L75 => the "L75 = 88% clear" analysis is wrong at fight #1, which
+    would be the single most important result of the day.
+
+P3  FEW OR NO FAINTS. Starting HP is 89% (Mightyena 202/227, everything else full).
+    RECORDED, not predicted: exact faints + HP either side.
+
+P4  THIS RUN WILL *NOT* PRODUCE THE GHOST DAMAGE NUMBERS. Sidney is Dark, not Ghost, and if
+    P3 holds the faint chooser never runs. => #24-ghostreplacement still needs PHOEBE.
+    Stating this up front so a clean Sidney win is not mistaken for progress on that item.
+
+P5  Mightyena leads (slot 0) and is DARK — vs Sidney's DARK team that is resisted (0.5x).
+    RECORDED: which mon actually wins it, and on which moves.
