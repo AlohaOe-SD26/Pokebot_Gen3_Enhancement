@@ -18450,3 +18450,28 @@ prose would have told me the format; the gate stopped me shipping a violation of
 
 ⇒ **PREVENTION RULE.** *Before writing a multi-line block into a data file, ask whether the file is
 LINE-ORIENTED. Prose files tolerate structure; manifests parse it.*
+
+
+## 2026-09-17 (eleventh) — I PARAPHRASED A DECOMP RULE AS A NOTION, AND THE NOTION WAS WRONG
+
+**Symptom.** Asking "can the §Ch24 party Fly from where it is parked?", my check printed
+**"✅ yes"** for VICTORY_ROAD_1F. It cannot: Fly is refused in caves.
+
+**Root cause.** I wrote the predicate as `map_type == "Indoor"` — a paraphrase of "is it indoors?" —
+when the actual rule is an explicit four-item allow-list (`Overworld_MapTypeAllowsTeleportAndFly`:
+ROUTE, TOWN, OCEAN_ROUTE, CITY). A cave is neither "Indoor" nor on the allow-list, so a DENY-LIST
+phrased as one type let it through. ‼ The failure direction matters: a paraphrase that is too narrow
+produces a **FALSE GREEN**, which is the expensive direction.
+
+**The fix that worked.** Encode the decomp's list verbatim, and treat an unreadable value as NO.
+
+⇒ **PREVENTION RULE.** *When a rule exists as an explicit list in the decomp, COPY THE LIST. Do not
+re-express it as a category ("outdoors", "indoors", "a cave"), because the category is your model of
+the list and the two diverge exactly at the case you are asking about.* And prefer ALLOW-lists to
+DENY-lists for this reason: an allow-list fails closed on anything unanticipated.
+
+‼ This is the third predicate error in one day — a type chart missing a resistance, a collision test
+asserting `== 1` where the codebase tests `!= 0`, and now this. All three had the same shape: **the
+check tested something narrower than the claim it was standing in for.** The general rule, and the
+reason the standing advice is to read the failing line first: *when a probe disagrees with a
+carefully-reasoned expectation, suspect the probe's predicate before the subject.*

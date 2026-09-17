@@ -30800,3 +30800,37 @@ of Ice Beam. It is kept as the BEFORE arm of the `#24-learnhmcoverage` A/B, pair
 gauntlet**, carrying every move the chapter was prepared around. The only thing between here and a
 driveable §Ch24 is **leg 2 itself** — and per `#24-leg2spec` that is rooms 1-4 as the repeating unit
 plus room 5 and the endgame tail as a separate leg with its own grade.
+
+
+## 2026-09-17 (tenth) — ⛔ THE §Ch24 PARTY IS PARKED IN A CAVE, AND FLY DOES NOT WORK IN CAVES (`#24-flymaptype`)
+
+The plan for reaching the League door from the finished L75 party was "it is ONE Fly away". It is —
+but not from where that party stands. `post_e4ice_FINAL.ss1` is at **VICTORY_ROAD_1F (15,39)**,
+`map_type=Underground`, and Gen 3 refuses Fly there.
+
+‼ `fly_to_destination`'s three guards — knows Fly / `BADGE06_GET` / destination unlocked — **all
+pass inside a cave**, so the failure would have happened in the field-move menu, far from the cause.
+
+⭐ The allow-list is NOT "is it outdoors". VERIFIED at `src/overworld.c:1366-1375`
+`Overworld_MapTypeAllowsTeleportAndFly`: **ROUTE, TOWN, OCEAN_ROUTE, CITY — exactly four.**
+`Underground`, `Indoor` and `Underwater` are all refused. My first version of the check tested
+`map_type == "Indoor"` and printed **"✅ yes" for a cave** — a false green on the one fixture the
+question was about. Encoded verbatim now.
+
+**Fixed:** a fourth guard, naming the map type, the tile, the decomp function and the remedy. An
+unreadable map type also refuses — an unknown is NO, never yes.
+
+**Driven both ways on real fixtures:**
+
+    ARM      post_e4ice_FINAL.ss1 (Underground)  -> REFUSED in <3,000 frames, before R-FLYABLE,
+                                                    ACCEPTANCE: FAIL, no menu hang
+    CONTROL  post_ch24ready.ss1   (City)         -> not refused; R arrived = ((0,8),(18,6)),
+                                                    moved=True, missing=[], ACCEPTANCE: PASS
+
+⇒ **THE CHAPTER'S FIRST MOVE IS A WALK, NOT A FLY:** leave Victory Road to EVER_GRANDE_CITY, then
+Fly to `PokemonLeague` (which `CB_ExitFlyMap` lands on the door apron (18,6)). `#24-leg2spec`'s
+orchestrator must dispatch on that.
+
+⚠ Note the same reading explains something already known: `post_sidney_door_open.ss1` is `Indoor`, so
+**there is no Fly escape from inside the gauntlet either** — consistent with the sealed-zone finding,
+and now measured rather than inferred.

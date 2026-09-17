@@ -1234,6 +1234,37 @@ def fly_to_destination(destination, report=None) -> Generator:
         raise BotModeError(
             f"§Ch24 fly: {destination.name} has never been visited, so it is not on the region map."
         )
+    # ⛔⛔ THE FOURTH GUARD, AND THE ONE THIS FUNCTION SHIPPED WITHOUT: **THE MAP YOU ARE STANDING ON
+    # MUST ALLOW FLY.** The three checks above all pass inside a cave, and the failure then happens
+    # in the field-move menu — far from the cause, and with nothing naming it.
+    # ‼ MEASURED 2026-09-17 (`probe_fly_allowed_here.py`): the finished §Ch24 party
+    # (`post_e4ice_FINAL.ss1`) is parked at **VICTORY_ROAD_1F, `map_type=Underground`**, and the
+    # chapter's first planned move was "it is ONE Fly to the League door". It is not, from there.
+    # ⭐ THE ALLOW-LIST IS NOT "outdoors" — it is four named types, VERIFIED at
+    # `src/overworld.c:1366-1375` `Overworld_MapTypeAllowsTeleportAndFly`: ROUTE, TOWN, OCEAN_ROUTE,
+    # CITY. Caves (`Underground`), buildings (`Indoor`) and `Underwater` are all refused. My first
+    # version of the check tested `== "Indoor"` and reported a cheerful "yes" for a cave, so the
+    # list is encoded verbatim here rather than paraphrased as a notion of outdoorsiness.
+    FLY_ALLOWED_MAP_TYPES = ("Route", "Town", "City", "Ocean Route", "OceanRoute", "Ocean_Route")
+    # ‼ IMPORTED LOCALLY, like every other map helper in this module — a helper another
+    # function imports locally is NOT available to yours (this file's own recorded trap).
+    from modules.map import get_map_data_for_current_position
+    try:
+        here_type = get_map_data_for_current_position().map_type
+    except Exception as error:  # noqa: BLE001 — an unreadable map type must REFUSE, never assume yes
+        raise BotModeError(
+            f"§Ch24 fly: could not read the current map type ({type(error).__name__}: {error}), so "
+            f"whether Fly is legal here is UNKNOWN. ⛔ Refusing — an unknown is treated as NO."
+        )
+    report["map_type"] = here_type
+    if here_type not in FLY_ALLOWED_MAP_TYPES:
+        raise BotModeError(
+            f"§Ch24 fly: Fly is REFUSED on `map_type={here_type}` at {_where()}. Gen 3 allows it only "
+            f"on {list(FLY_ALLOWED_MAP_TYPES[:4])} (`src/overworld.c` "
+            f"`Overworld_MapTypeAllowsTeleportAndFly`). ⇒ walk to an outdoor route/town/city FIRST. "
+            f"‼ If this fired from VICTORY_ROAD_1F, that is the §Ch24 party's own grind tile: leave "
+            f"Victory Road to EVER_GRANDE_CITY before flying to the League door."
+        )
     _take(report, "R-FLYABLE")
 
     before = get_player_avatar()
