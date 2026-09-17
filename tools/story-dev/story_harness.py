@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -15711,6 +15711,14 @@ class Ch24ProbeMode(BotMode):
         from plugins.custom_modes.story_mode import StoryItemBattleStrategy
 
         self.battles = getattr(self, "battles", 0) + 1
+        # ⛔ STAMP THE FRAME THE BATTLE ACTUALLY STARTED ON (2026-09-16, `#24-pass2triage` finding k).
+        # The reading named `battle_frames` used to be the loop counter of the wait BELOW, and that
+        # loop breaks on its FIRST iteration whenever the BattleListener already finished the fight
+        # during the A-press phase — which is the normal case. So a run with ~24,576 frames of battle
+        # printed `R battle_frames = 0` under `ACCEPTANCE: PASS`. ‼ CLAUDE.md rule 7: instrument the
+        # ACTION, not the input to it. The wait-loop counter measures MY WAITING; this measures the
+        # battle. Both are now reported, under names that say which is which.
+        self._battle_started_frame = context.emulator.get_frame_count()
         log(f"[ch24probe] BATTLE #{self.battles} — {self._hp_line()}")
         # ⛔ DEFAULT OFF. With both envs unset this returns the identical object the probe has
         # always returned, so the §Ch24 MEASUREMENT this driver exists for is unchanged. The arms
@@ -15833,10 +15841,23 @@ class Ch24ProbeMode(BotMode):
             log(f"[{TAG}] in Sidney's room at {VR._here_tile()} (the script auto-walks to (6,7))")
 
             # ---- ⛔ LOCATE SIDNEY LIVE. DO NOT TRUST THE RESEARCHED COORDINATE. ----------------
-            # MEASURED on the first run: the note says entering auto-walks the player to (6,7) with
-            # Sidney at (6,5). The landing is actually **(6,11)**, and pressing A at (6,6) hit nothing.
-            # ⇒ read the object table and approach whoever is actually there. This also survives the
-            # auto-walk still being in flight when we look.
+            # The note says entering auto-walks the player to (6,7) with Sidney at (6,5). This probe
+            # reads (6,11). ⇒ read the object table and approach whoever is actually there.
+            # ⛔⛔ SETTLED 2026-09-16 (`#24-pass2triage` h) — AND THIS COMMENT WAS THE WRONG HALF.
+            # It used to say, flatly, "the landing is actually **(6,11)**" and that the researched
+            # (6,7) should not be trusted. BOTH are correct readings at different instants of ONE
+            # six-step scripted walk: the entry warp is (6,13), the entry script runs
+            # `Common_Movement_WalkUp6`, 13-6 = 7 -> the auto-walk END tile really is (6,7); (6,11)
+            # is 13-2 = exactly TWO steps in. ⭐ THE DISCRIMINATOR WAS ALREADY IN THIS DRIVE'S OWN
+            # READINGS: `elite4_state_in_room = 0`, and `setvar VAR_ELITE_4_STATE, 1` runs only AFTER
+            # `WalkInCloseDoor` returns => the auto-walk had provably not finished when we sampled.
+            # (We sampled the instant `wait_until_truly_controllable` returned — and it has NO
+            # success signal, so it returns on TIMEOUT, which is how we came back mid-cutscene.)
+            # ‼ KEEP READING THE OBJECT TABLE ANYWAY, for a *different* reason: each room's OnFrame
+            # gates the auto-walk on `VAR_ELITE_4_STATE == k-1`, so entering with any other value
+            # means NO auto-walk and NO entry seal at all. ⇒ never hardcode either coordinate
+            # (CLAUDE.md rule 4). ⛔ And `get_map_objects()` INCLUDES THE PLAYER as local_id 255 —
+            # a consumer that treats every object as an obstacle walls off its own start tile.
             from modules.map import get_map_objects
 
             sidney = None
@@ -15976,8 +15997,8 @@ class Ch24ProbeMode(BotMode):
             # ⇒ a five-fight gauntlet needs a real budget; grade the OUTCOME, never the timeout.
             from modules.battle_state import get_battle_state
 
-            battle_frames = 0
-            for battle_frames in range(90_000):
+            waited_frames = 0
+            for waited_frames in range(90_000):
                 _check_abort()
                 # ⛔⛔ THIS PREDICATE WAS `get_battle_state() is None` AND THAT IS NEVER, EVER TRUE.
                 # `get_battle_state()` is annotated `-> BattleState` and UNCONDITIONALLY constructs
@@ -15998,10 +16019,18 @@ class Ch24ProbeMode(BotMode):
                 if get_game_state() != GameState.BATTLE:
                     break
                 yield
-            R["battle_frames"] = battle_frames
+            # ⛔ RENAMED 2026-09-16 (`#24-pass2triage` k). This counter is how long the PROBE waited
+            # for a battle that was usually already over — it is NOT the battle's duration, and it
+            # was reported as `battle_frames` until an audit read `0` beside a 24,576-frame fight.
+            R["frames_waited_for_battle_end"] = waited_frames
+            _t0 = getattr(self, "_battle_started_frame", None)
+            R["battle_frames"] = (
+                context.emulator.get_frame_count() - _t0 if _t0 is not None
+                else "UNMEASURED (no battle started — the hook never fired)"
+            )
             if get_game_state() == GameState.BATTLE:
                 raise BotModeError(
-                    f"Ch24 probe: the Sidney battle was still live after {battle_frames:,} frames. "
+                    f"Ch24 probe: the Sidney battle was still live after {waited_frames:,} frames. "
                     f"⛔ Do NOT read this as a bot hang until you have checked the controller was "
                     f"still attached — the first run of this probe produced exactly that signature "
                     f"by abandoning the battle itself."
@@ -16626,6 +16655,202 @@ class Ch24FlyToMode(BotMode):
                 log(f"[{TAG}] captured -> {_out}")
         context.set_manual_mode()
 
+
+
+class E4DismissMode(BotMode):
+    """`#24-e4postbattlestall` — DOES PRESSING `B` CLEAR THE §Ch24 POST-VICTORY MSGBOX? **A PROBE.**
+
+    ⛔⛔ THIS EXISTS BECAUSE THE ANSWER WAS NEVER MEASURED. No evidence file in this tree shows the
+    Sidney post-victory msgbox ever being dismissed by the bot. The decomp says `Std_MsgboxDefault`
+    ends in `waitbuttonpress`, which takes `JOY_NEW(A_BUTTON | B_BUTTON)` — but that is a READ, and
+    house rules say a decomp read is a NOTE. Two independent recon angles flagged this as the single
+    claim the whole §Ch24 leg-1 plan rests on and both DECLINED to assert it.
+    Predictions filed BEFORE this ran: `ai-research-notes/2026-09-16-e4dismiss-PREDICTIONS.md`.
+
+    ⭐ WHY IT IS CHEAP: `post_sidney_door_open.ss1` (PINNED, md5 6231369647f8) IS the stall state —
+    Sidney beaten, exit door already open in the live grid, msgbox parked at `WaitForButton`, avatar
+    NOT controllable. So this probe starts INSIDE the state under test and answers in seconds
+    instead of the ~29,000 frames a full `ch24probe` drive costs to reach the same moment.
+
+    ⛔ THE PREMISE CONJUNCT IS NOT DECORATION. If the fixture starts CONTROLLABLE, there is nothing
+    to dismiss and a "PASS" would measure nothing — so that case FAILS loudly. This is the
+    mechanical vacuity test `story-drive` §2 demands: point the probe at a clean overworld save and
+    it must FAIL.
+
+    ⛔⛔ FAULT ARM / CONTROL — `POKEBOT_E4DISMISS_FAULT_NOPRESS=1`: identical loop, identical budget,
+    presses NOTHING. **It is what makes the treatment mean anything.** Without it, "the bot became
+    controllable" is equally consistent with the box self-clearing on a timer. CLAUDE.md rule 8: a
+    claim of the form "without X the bug survives" is a CLAIM until an arm with X removed is run.
+    ⇒ the CONTROL must end `controllable_after=False`; if it does not, the whole diagnosis collapses
+    (falsifier F1) and that is a RESULT, not a driver bug.
+
+    ⛔ IT PRESSES `B`, NEVER `A`. The bot stands at (6,6) facing Sidney's object at (6,5) and his
+    script is RE-TRIGGERABLE after defeat into another `MSGBOX_DEFAULT` — an A-mash re-opens the box
+    it just closed. `KI-93`'s own dismiss presses B for the same reason.
+
+    ‼ DUTY CYCLE, DELIBERATELY, AND IT IS NOT A BET ON AN UNSETTLED DISPUTE. `story-drive` §5 says a
+    per-frame press is a HOLD; `modules/libmgba.py:471-476` says `press_button` auto-releases if the
+    bit was set last frame, i.e. a per-frame call is a 50% duty cycle. An explicit 1-in-6 cycle is
+    correct under BOTH readings. `presses_issued` is reported so the model can be checked at no risk
+    to the result.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_sidney_door_open.ss1 --driver e4dismiss --frames 4000
+    """
+
+    #: Frames between presses. A bound on the EDGE rate, not a preference — see the docstring.
+    PRESS_PERIOD = 6
+    #: Consecutive controllable frames required before we believe control is back. A single true
+    #: reading is unreliable during a return transition — the same reason
+    #: `wait_until_truly_controllable` requires 30. Kept lower here because this probe measures the
+    #: TRANSITION rather than navigating afterwards.
+    STABLE_FRAMES = 20
+    #: Hard bound. 1,802 frames is what the real stall burned, so a budget comfortably past it
+    #: distinguishes "cleared" from "still parked" without inviting a hang.
+    BUDGET = 2600
+
+    @staticmethod
+    def name() -> str:
+        return "E4Dismiss"
+
+    def on_whiteout(self) -> bool:
+        # Cannot happen here (no battle), but returning False would hand the run to Manual and
+        # DISCARD the generator, so no verdict would print. `story-drive` §2.
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        return True
+
+    def run(self):
+        from modules.player import player_avatar_is_controllable
+        from modules.text_printer import TextPrinterState, get_text_printer
+        from modules.tasks import get_global_script_context
+
+        TAG = "e4dismiss"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        R: dict = {}
+        no_press = _os.environ.get("POKEBOT_E4DISMISS_FAULT_NOPRESS") == "1"
+        R["arm"] = "CONTROL (no presses)" if no_press else "TREATMENT (press B)"
+
+        def _printer():
+            try:
+                p = get_text_printer(0)
+                return (bool(p.active), p.state.name if hasattr(p.state, "name") else str(p.state))
+            except Exception as exc:  # noqa: BLE001 — a failed read is a reading
+                return ("<err>", repr(exc))
+
+        def _script_active():
+            try:
+                return bool(get_global_script_context().is_active)
+            except Exception:
+                return None
+
+        def _controllable():
+            try:
+                return bool(player_avatar_is_controllable())
+            except Exception as exc:  # noqa: BLE001
+                log(f"[{TAG}] ⚠ controllable read failed: {exc!r}")
+                return None
+
+        failure = None
+        try:
+            R["start_at"] = _where_ch24()
+            R["controllable_before"] = _controllable()
+            R["printer_before"] = _printer()
+            R["script_active_before"] = _script_active()
+            log(f"[{TAG}] ARM {R['arm']}")
+            log(f"[{TAG}] BEFORE at={R['start_at']} controllable={R['controllable_before']} "
+                f"printer={R['printer_before']} script={R['script_active_before']}")
+
+            # ---- PREMISE / VACUITY CONJUNCT -------------------------------------------------
+            # ⛔ A probe that cannot fail on a clean save is measuring nothing. Both halves must
+            # hold: the avatar is NOT controllable AND the printer is parked awaiting a button.
+            parked = R["printer_before"][1] == TextPrinterState.WaitForButton.name
+            premise_ok = (R["controllable_before"] is False) and parked
+            R["premise_ok"] = premise_ok
+            if not premise_ok:
+                log(f"[{TAG}] ⛔ PREMISE FAILED — this fixture is not the stall state "
+                    f"(controllable_before={R['controllable_before']}, parked={parked}). "
+                    f"Nothing to dismiss, so any PASS here would be vacuous.")
+
+            presses = 0
+            stable = 0
+            frames = 0
+            became = None
+            # ⛔⛔ INSTRUMENT THE ACTION, NOT THE INPUT TO IT (CLAUDE.md rule 7). `presses_issued`
+            # counts duty-cycle ticks on which the press GATE was true — it is NOT the number of
+            # prompts the game consumed, and reading it as such fired falsifier F3 on the first
+            # run (predicted 1-12, measured 50, because ~47 of those land during
+            # `PrintingCharacter` where there is nothing to dismiss). `prompts_cleared` counts the
+            # thing that actually happens: WaitForButton -> anything-else transitions. The decomp
+            # predicts 3 for Sidney (one `\p`, one `\l`, one trailing `waitbuttonpress`), so this
+            # reading is also an INDEPENDENT CHECK on that count rather than another restatement.
+            prompts_cleared = 0
+            was_parked = R["printer_before"][1] == TextPrinterState.WaitForButton.name
+            while frames < self.BUDGET and stable < self.STABLE_FRAMES:
+                _now_parked = _printer()[1] == TextPrinterState.WaitForButton.name
+                if was_parked and not _now_parked:
+                    prompts_cleared += 1
+                was_parked = _now_parked
+                if _controllable():
+                    stable += 1
+                    if became is None and stable == 1:
+                        became = frames
+                else:
+                    stable = 0
+                    became = None
+                if not no_press and frames % self.PRESS_PERIOD == 0:
+                    # Press only while there is genuinely something to advance — the same rule
+                    # `_wait_until_cutscene_over` follows. Mashing at a settled overworld while
+                    # facing an NPC is how the museum-greeter livelock was created.
+                    if _script_active() or _printer()[0] is True:
+                        context.emulator.press_button("B")
+                        presses += 1
+                frames += 1
+                yield
+
+            R["presses_issued"] = presses
+            R["prompts_cleared"] = prompts_cleared
+            R["frames_spent"] = frames
+            R["frames_to_control"] = became
+            R["controllable_after"] = _controllable()
+            R["printer_after"] = _printer()
+            R["script_active_after"] = _script_active()
+            R["tile_after"] = _where_ch24()
+
+            # The door is ALREADY open in this fixture; the point of reading it is that a dismiss
+            # must not disturb it. ⛔ ROM would say BLOCKED here (KI-74) — read the LIVE grid.
+            try:
+                from modules.map_data import MapRSE
+                from modules.story.sootopolis import _live_collision_grid
+
+                grid = _live_collision_grid(MapRSE.EVER_GRANDE_CITY_SIDNEYS_ROOM)
+                R["door_live_after"] = {t: grid.get(t) for t in ((6, 1), (6, 2))}
+            except Exception as exc:  # noqa: BLE001
+                R["door_live_after"] = f"<err {exc!r}>"
+        except Exception as error:  # noqa: BLE001 — ONE top-level wrapper so the verdict still runs
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+
+        # ---- THE GRADE ---------------------------------------------------------------------
+        # ⛔ The two arms are graded by OPPOSITE expectations on the SAME reading, which is the
+        # whole point: a grade both arms can satisfy would prove nothing.
+        got_control = R.get("controllable_after") is True
+        if no_press:
+            passed = (failure is None and R.get("premise_ok") is True and not got_control)
+            log(f"[{TAG}] GRADE(CONTROL) expected NO control; got_control={got_control} "
+                f"premise_ok={R.get('premise_ok')} failure={failure}")
+            log(f"[{TAG}] ⛔ If this arm PASSES, the treatment arm's result is meaningful. "
+                f"If it FAILS by regaining control, falsifier F1 fired: the box self-clears and "
+                f"the stall diagnosis must be re-opened.")
+        else:
+            passed = (failure is None and R.get("premise_ok") is True and got_control
+                      and R.get("presses_issued", 0) > 0)
+            log(f"[{TAG}] GRADE(TREATMENT) expected control; got_control={got_control} "
+                f"presses={R.get('presses_issued')} premise_ok={R.get('premise_ok')} "
+                f"failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
 
 
 class Ch24IceBeamMode(BotMode):
@@ -19319,6 +19544,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23ShopMode()
         elif args.driver == "ch23chapter":
             context.bot_mode_instance = Ch23ChapterMode()
+        elif args.driver == "e4dismiss":
+            context.bot_mode_instance = E4DismissMode()
         elif args.driver == "ch24probe":
             context.bot_mode_instance = Ch24ProbeMode()
         elif args.driver == "ch24grind":

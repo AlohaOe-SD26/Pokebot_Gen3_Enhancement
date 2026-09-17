@@ -107,6 +107,13 @@ def report(runs) -> None:
     derail_runs = collections.Counter()
     whiteouts, frames, owned_max, lvl_max = [], [], [], []
     furthest = collections.Counter()
+    #: ⛔ MEASURED reach — one increment per milestone a run ACTUALLY visited. ADDED 2026-09-16
+    #: because the CUMULATIVE row below was an ASSUMED-ORDER ROLL-UP: `cum += furthest[key]` walked
+    #: backwards through MILESTONES and *inferred* that reaching Ever Grande implied having reached
+    #: every earlier town. `seen_maps` was already computed per run and then thrown away, so the
+    #: real number was one line away the whole time. ‼ CLAUDE.md rule 7 — instrument the ACTION, not
+    #: the input to it: an inferred cumulative is an input, a `seen_maps` hit is the action.
+    reached = collections.Counter()
     league_hits = []
     per_lane = collections.Counter()
 
@@ -145,6 +152,7 @@ def report(runs) -> None:
         for key, name in MILESTONES:
             if any(name in m for m in seen_maps):
                 best = key
+                reached[key] += 1
         furthest[best] += 1
         hit = [m for m in seen_maps if any(k in m for k in LEAGUE_INTERIOR)]
         if hit:
@@ -166,12 +174,21 @@ def report(runs) -> None:
     if furthest.get("(none)"):
         print(f"      {'(none)':<14} {furthest['(none)']:>4}")
 
+    print("\n  REACHED — runs whose log ACTUALLY NAMES this map  (MEASURED, not inferred):")
+    print("      ‼ Quote THIS row. The assumed-roll-up beside it is kept only so the two can be")
+    print("        compared; where they disagree, the MEASURED one is right by construction.")
     cum = 0
-    print("\n  CUMULATIVE — runs reaching AT LEAST this milestone:")
     order = [k for k, _ in MILESTONES]
+    roll = {}
     for key in reversed(order):
         cum += furthest.get(key, 0)
-        print(f"      {key:<14} {cum:>4}  ({cum/len(runs)*100:5.1f}%)")
+        roll[key] = cum
+    for key in order:
+        meas, assumed = reached.get(key, 0), roll.get(key, 0)
+        flag = "" if meas == assumed else f"   ← ‼ DISAGREES by {meas - assumed:+d}"
+        print(f"      {key:<14} MEASURED {meas:>4} ({meas/len(runs)*100:5.1f}%)   "
+              f"assumed-roll-up {assumed:>4} ({assumed/len(runs)*100:5.1f}%){flag}")
+    print("      ⛔ 'reached' means the map was LOADED — never that its gym was cleared.")
 
     print("\n  ⛔ FALSIFICATION ARM — did ANY run enter a League INTERIOR map?")
     if league_hits:
@@ -238,6 +255,25 @@ def self_test() -> int:
     print(f"  {'PASS' if ok else 'FAIL'}  league-interior detector fires on the LEAGUE, not on the CITY")
     if not ok:
         fails.append("league detector wrong")
+
+    # ⛔⛔ THE ARM FOR THE 2026-09-16 CUMULATIVE FIX. A MEASURED cumulative and an ASSUMED-ORDER
+    #   roll-up are only worth printing side by side if they CAN differ — otherwise the new row is
+    #   decoration, and a reader would read their agreement as corroboration when it is tautology.
+    #   This builds the run the roll-up cannot see: one that loaded LITTLEROOT and MOSSDEEP and
+    #   nothing between. The roll-up walks back from furthest=mossdeep and therefore CLAIMS a
+    #   Lavaridge visit; MEASURED says 0, because no log line ever named Lavaridge.
+    _seen = {"LITTLEROOT TOWN", "MOSSDEEP CITY"}
+    _reached = {k for k, name in MILESTONES if any(name in m for m in _seen)}
+    _best = [k for k, name in MILESTONES if any(name in m for m in _seen)][-1]
+    _roll, _c = {}, 0
+    for k in reversed([k for k, _ in MILESTONES]):
+        _c += 1 if k == _best else 0
+        _roll[k] = _c
+    ok = ("lavaridge" not in _reached) and _roll["lavaridge"] == 1
+    print(f"  {'PASS' if ok else 'FAIL'}  MEASURED and ASSUMED cumulatives DISAGREE on a skipping run")
+    print(f"          lavaridge: measured={'lavaridge' in _reached}  assumed={_roll['lavaridge']}")
+    if not ok:
+        fails.append("cumulative arms cannot disagree — the MEASURED row would prove nothing")
 
     print()
     if fails:

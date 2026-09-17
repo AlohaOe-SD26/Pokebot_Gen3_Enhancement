@@ -1,5 +1,9 @@
 # THE 2026-09-15/16 ENDLESS-RESET BATCH — 99 RUNS REVIEWED
 
+> ⛔⛔ **RETRACTION STUB — ADDED 2026-09-16 (later). §1'S HEADLINE AND §NEXT-STEPS ITEM 2 ARE REFUTED BY THIS SAME CORPUS.** “30% OF RUNS REACH THE LEAGUE'S DOORSTEP” and “30% of runs already reach the door” both read the **EVER GRANDE CITY** milestone as the League apron. It is not: that is the OUTDOOR map, reached by surfing in from ROUTE 128 on the Poké Center side. The apron lies beyond **VICTORY ROAD**, and **0 of 99 runs ever entered Victory Road** — the cumulative row that implied otherwise was an ASSUMED-ORDER ROLL-UP, not a measurement. See `03-PUNCH-LIST.md` `#26-victoryroadgap` and `07-CHANGELOG.md` 2026-09-16 (eighth). ‼ The rest of this note — the derail families, the frame/level statistics, §3's self-correction — is unaffected.
+>
+> *(Nothing below is edited: this file is a dated NOTE, and the project's rule is that the authoritative doc gets a stub pointing forward, never a silent rewrite.)*
+
 > ⚠ **NOTE, not truth** — `ai-research-notes/00-READ-THIS-FIRST.md` governs. ‼ **BUT THIS ONE IS
 > UNUSUAL: every number below is a MEASUREMENT I made myself with a committed, fault-tested
 > instrument** (`tools/story-dev/analyze_endless_batch.py`, `--self-test` = 5 arms, exit 0), not an

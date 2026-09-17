@@ -585,3 +585,9 @@
 {"when": "2026-09-16T11:36:38", "driver": "ch24probe", "build": "sandbox", "state": "post_ch24_atdoor.ss1", "frames_run": 46822, "recomputes": 46822, "scans": 157, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-16T12:00:20", "driver": "ch24probe", "build": "sandbox", "state": "post_ch24_atdoor.ss1", "frames_run": 46822, "recomputes": 46822, "scans": 157, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-16T12:23:22", "driver": "ch24probe", "build": "custom", "state": "post_ch24_atdoor.ss1", "frames_run": 46822, "recomputes": 46822, "scans": 157, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T16:58:46", "driver": "e4dismiss", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 300, "recomputes": 301, "scans": 2, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T17:00:04", "driver": "e4dismiss", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T17:00:50", "driver": "e4dismiss", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T17:02:33", "driver": "e4dismiss", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T17:03:17", "driver": "e4dismiss", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T17:04:20", "driver": "e4dismiss", "build": "sandbox", "state": "post_sidney_door_open_b.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}

@@ -524,7 +524,23 @@ enter → beat Sidney → WALK THE OPENED DOOR → arrive on HALL1.** Only the w
 ### ⭐ WHAT LEG 1 ACTUALLY NEEDS — small, and entirely from measured facts
 A short BFS over **`_live_collision_grid(SIDNEY)`** (the oracle `KI-74` points at) from the player's
 tile to the door, plus the object positions, because collision does NOT include NPCs:
-* the room is 13x14; the player ends the entry auto-walk at **(6,7)** and the probe leaves it at
+* the room is 13x14; ✅✅ **THE `(6,7)` vs `(6,11)` CONFLICT IS SETTLED (2026-09-16), AND IT IS OUR
+  HARNESS WARNING THAT WAS WRONG — NOT THIS NOTE.** `story_harness.py` carried a flat assertion that
+  the landing "is actually (6,11)" and that this note's (6,7) should not be trusted. **Both readings
+  are correct, at different instants of ONE six-step scripted walk.** The entry warp is **(6,13)**;
+  the entry script runs `Common_Movement_WalkUp6`; 13−6 = **7**, so the auto-walk END tile is
+  **(6,7)** as written here. **(6,11)** is 13−2 = exactly TWO steps in. ⭐ **THE DISCRIMINATOR WAS
+  ALREADY IN OUR OWN LOG:** the same drive recorded `elite4_state_in_room = 0`, and
+  `setvar VAR_ELITE_4_STATE, 1` executes only AFTER `WalkInCloseDoor` returns ⇒ at the instant (6,11)
+  was sampled the auto-walk had **provably** not finished. (It was sampled the moment
+  `wait_until_truly_controllable` returned — and that function has no success signal, so it returns on
+  TIMEOUT too, which is exactly how it came back mid-cutscene.) ⛔ **KEEP THE OPERATIONAL RULE ANYWAY,
+  for a different reason:** leg 1's BFS takes its START TILE from the live position at the moment it
+  runs (CLAUDE.md rule 4 — hardcode no coordinates), because **trap #2 below means the auto-walk may
+  not have happened at all.** The probe already obeys this by reading `get_map_objects()`.
+  ‼ And note `get_map_objects()` INCLUDES THE PLAYER as local_id 255 — a BFS that treats every
+  returned object as an obstacle walls off its own starting tile.
+  The probe leaves the player at
   **(6,6)** after the fight; the exit warp is **(6,2)**; ⛔ **the defeated trainer REMAINS at (6,5)**,
   directly on the x=6 column, so the straight line is blocked and the route must go around.
   *(Our pathfinder routes around NPCs normally — that fact is not in question; what it cannot see is

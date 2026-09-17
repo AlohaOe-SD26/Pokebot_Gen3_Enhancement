@@ -1,0 +1,53 @@
+[setup] LOG -> evidence\2026-09-16-e4dismiss-CONTROL-NOPRESS.log
+Running mGBA 0.10.2
+[setup] loaded save state post_sidney_door_open.ss1; build=sandbox
+[run] starting faithful loop for up to 4000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+[e4dismiss] ARM CONTROL (no presses)
+[e4dismiss] BEFORE at=((16, 0), (6, 6)) controllable=False printer=(True, 'WaitForButton') script=True
+f0: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=<none> bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp107664|Wailord:L47:exp120158|Mightyena:L48:exp116698|Castform:L36:exp50128]
+f1: CONTROLLER -> E4DismissMode.run   (state=OVERWORLD)
+f1: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=E4DismissMode.run bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp107664|Wailord:L47:exp120158|Mightyena:L48:exp116698|Castform:L36:exp50128]
+f901: SAVED stall state #1 to stalls/repro-ml-f901.ss1 (bt='NICK got $4900 for winning!')
+f1201: !!! NO-PROGRESS x1200 sig=('E4DismissMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp107664|Wailord:L47:exp120158|Mightyena:L48:exp116698|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $4900 for winning!' bot_mode=Story
+f1201:     gen -> E4DismissMode.run  @ story_harness.py:16807
+f2000: heartbeat mode=Story ctrl=E4DismissMode.run state=OVERWORLD party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp107664|Wailord:L47:exp120158|Mightyena:L48:exp116698|Castform:L36:exp50128]
+[e4dismiss] R arm = 'CONTROL (no presses)'
+[e4dismiss] R controllable_after = False
+[e4dismiss] R controllable_before = False
+[e4dismiss] R door_live_after = {(6, 1): 0, (6, 2): 0}
+[e4dismiss] R frames_spent = 2600
+[e4dismiss] R frames_to_control = None
+[e4dismiss] R premise_ok = True
+[e4dismiss] R presses_issued = 0
+[e4dismiss] R printer_after = (True, 'WaitForButton')
+[e4dismiss] R printer_before = (True, 'WaitForButton')
+[e4dismiss] R prompts_cleared = 0
+[e4dismiss] R script_active_after = True
+[e4dismiss] R script_active_before = True
+[e4dismiss] R start_at = ((16, 0), (6, 6))
+[e4dismiss] R tile_after = ((16, 0), (6, 6))
+[e4dismiss] GRADE(CONTROL) expected NO control; got_control=False premise_ok=True failure=None
+[e4dismiss] ⛔ If this arm PASSES, the treatment arm's result is meaningful. If it FAILS by regaining control, falsifier F1 fired: the box self-clears and the stall diagnosis must be re-opened.
+[e4dismiss] ACCEPTANCE: PASS
+f2601: CONTROLLER -> <none>   (state=OVERWORLD)
+f2601: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=<none> bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp107664|Wailord:L47:exp120158|Mightyena:L48:exp116698|Castform:L36:exp50128]
+f3501: SAVED stall state #2 to stalls/repro-ml-f3501.ss1 (bt='NICK got $4900 for winning!')
+f3801: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp107664|Wailord:L47:exp120158|Mightyena:L48:exp116698|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $4900 for winning!' bot_mode=Manual
+f3801:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[done] ran 4000 frames; final mode=Manual party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp107664|Wailord:L47:exp120158|Mightyena:L48:exp116698|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Sceptile L53: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Swellow L48: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L47: Dive, Surf, Ice Beam, Waterfall
+[moveset] Mightyena L48: Strength, Crunch, Take Down, Bite
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 4001 get_party() recomputes, 14 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += e4dismiss 4001 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-16_17-03-17.ss1 created!
+Updated `current_state.ss1`!

@@ -72,7 +72,10 @@ Pokebot_Gen3_Enhancement/
 └── sandbox-pokebot/               # ★★ THE ACTIVE COPY — all current work happens HERE
     ├── SANDBOX-NOTES.md  SANDBOX-PROPOSALS.md  CHEATS-DESIGN.md  DIVERGENCE-LOG.md
     ├── plugins/custom_modes/story_mode.py   # StoryMode + StoryDebug/DebugReset/EndlessReset
-    ├── modules/story/             # 19 modules: early_game, chapters, region_reach,
+    ├── modules/story/             # 24 modules (`ls modules/story/*.py` minus `__init__` IS the
+    │                              #   authority — this count read 19 until 2026-09-16, i.e. it had
+    │                              #   missed FIVE, §Ch23's and §Ch24's among them):
+    │                              #   early_game, chapters, region_reach,
     │                              #   counter_plan (plans) + counter_hunt (executes),
     │                              #   training_areas, fortree_gates, intro, progress,
     │                              #   config, team_policy (WIRED: early_game.py:1773,
@@ -83,7 +86,11 @@ Pokebot_Gen3_Enhancement/
     │                              #   space_center (§Ch19 chapter — Space Center AND Dive),
     │                              #   roster (party REORDER by PID; planner + DRIVER proven,
     │                              #     PROMOTED 2026-08-13 — zero production callers yet),
-    │                              #   obstacle_clearing, pc_trip, battle_items
+    │                              #   obstacle_clearing, pc_trip, battle_items,
+    │                              #   seafloor_cavern (§Ch20), sootopolis (§Ch21),
+    │                              #   sootopolis_gym (§Ch22), victory_road (§Ch23),
+    │                              #   pokemon_league (§Ch24 — PREP ONLY, see below),
+    │                              #   counter_hunt, overworld_items
 ```
 ‼ **CORRECTED 2026-08-12 — there is no "sandbox-only modules" list any more, and there was not one
 for some time before that.** This file used to name ten modules (`endless_x4`, `tile_bridge`,
@@ -457,6 +464,28 @@ done
   * `tools/story-dev/probe_gym_arrows.py` dumps the arrow field and derives the encoding from data;
     `probe_gym_simulate.py` is the validation gate that presses a switch for real and requires the
     simulator to have predicted every loaded object, keyed on `local_id`. **PASS: 11/11.**
+
+* **`modules/story/victory_road.py`** — §Ch23 (Victory Road, and the League-approach shop/heal).
+  ✅ **A FULL CHAPTER, DISPATCHED AS SEGMENT 23** (2026-09-05) via `do_victory_road_chapter()` /
+  `ch23_chapter_done()` at `plugins/custom_modes/story_mode.py:5130`. Eleven legs, each with a pinned
+  fixture (`post_badge8` → … → `post_league_shop`). ⛔ DO NOT REBUILD.
+
+* **`modules/story/pokemon_league.py`** — §Ch24 (the Elite Four). ⛔⛔ **PREP ONLY — THERE IS NO
+  SEQUENCER AND NO SEGMENT 24 DISPATCH.** `story_mode.py:5130` is the last `_guard`, and `:5132`
+  is the END-OF-BUILT-CONTENT banner; the League is what comes after it. What this module DOES ship,
+  built and driven: `heal_party_from_bag` (`#24-e4healing`, `--driver ch24heal`, the only healing the
+  gauntlet can ever have), `use_item_on_party_member`, `teach_move_from_bag` / `scroll_to_tm_verified`
+  (the Ice Beam trip for Drake), and the Ever Grande routing constants.
+  ‼ **WHAT MAKES THIS CHAPTER UNLIKE EVERY CHAPTER BEFORE IT:** five consecutive fights, ~25
+  opposing Pokémon, **no reachable nurse and no way back** — every backward warp in the League
+  interior sits on an `MB_NORMAL` tile and all three warp paths in `src/field_control_avatar.c`
+  reject `MB_NORMAL`, so they are destination-only and never fire. ⇒ the bag is the ONLY healing,
+  and the gauntlet is ALL-OR-NOTHING (a white-out calls `ResetEliteFour` and forfeits the run).
+  ⛔ **AND `calculate_path` CANNOT ROUTE THROUGH ITS OWN DOORS** — the victory script opens the exit
+  with a runtime `setmetatile` into `gBackupMapLayout` while our planner reads a ROM pointer cached
+  forever (`modules/map.py:748-755`). That is `KI-74`, **CONFIRMED LIVE at this door 2026-09-16**
+  (ROM says (6,1)=(6,2)=BLOCKED, the live grid says OPEN). The working oracle is
+  `sootopolis._live_collision_grid()` / `_live_metatile_grid()`, exactly as for the Sky Pillar.
 - **`#24-spacecenter` (2026-08-12, COMPLETE — Segment 19 in the ladder)** — the Mossdeep Space
   Center **and** HM08 Dive, in ONE chapter because `chapters.py` grades chapter 19 on
   `RECEIVED_HM_DIVE`:

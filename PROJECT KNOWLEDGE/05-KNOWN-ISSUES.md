@@ -1380,7 +1380,9 @@ than trust the entry snapshot. ⛔ Both, in one change, with a DRIVEN A/B on the
 driver (`post_ch24_atdoor.ss1`, `--driver ch24probe`). Discriminator: does Mightyena's HP rise, and
 does `[PARTY]` show the cursor landing on the living target?
 
-## KI-74 — `setmetatile` tiles are INVISIBLE to the shared map model, and the KI-59 fix made that fail-DANGEROUS instead of fail-safe (2026-08-13, code-verified, **STILL OPEN — but as of 2026-09-01 it is OBSERVABLE, and it has now COST A DRIVE**)
+## KI-74 — `setmetatile` tiles are INVISIBLE to the shared map model, and the KI-59 fix made that fail-DANGEROUS instead of fail-safe (2026-08-13, code-verified, **STILL OPEN — ✅✅ **AND CONFIRMED LIVE AT THE ELITE FOUR DOOR, 2026-09-16** (ROM says (6,1)/(6,2) BLOCKED, the live grid says OPEN; the entry-seal control fired). Observable since 2026-09-01, and it has COST A DRIVE**)
+
+- ⛔ **2026-09-16 (later) — THE HEADER WAS RE-STAMPED, AND IT HAD BEEN 15 DAYS STALE.** It read *“STILL OPEN — but as of 2026-09-01 it is OBSERVABLE, and it has now COST A DRIVE”* while the body line immediately below it already said CONFIRMED LIVE. ‼ Caught by a **Tier 1 reviewer**, not by a gate and not by the session that took the measurement — pair P2 exactly: the header is the half that gets skimmed, and three files in that same commit were citing “KI-74 CONFIRMED LIVE 2026-09-16” while the authoritative header still said otherwise. The issue itself is unchanged and **STILL OPEN**: the fix (consult the live grid at the door query) is not built.
 
 - ✅✅ **2026-09-16 (LATER) — CONFIRMED LIVE AT THE ELITE FOUR DOOR. BOTH HALVES NOW MEASURED.**
   `--driver ch24probe` from `post_ch24_atdoor.ss1`, `ACCEPTANCE: PASS`, `battles=1 whiteouts=0`,

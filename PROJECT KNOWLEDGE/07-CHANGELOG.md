@@ -29527,3 +29527,261 @@ lines from its own retraction; three wrong `story_mode.py` citations inside the 
 X and concluded about Y — attempts vs failures, a proxy HP delta vs item consumption, and a tile
 collision vs a planner's behaviour. **The discipline that catches all three: write the claim, then
 name the command that produced it. If no command produced it, it is an inference and must say so.**
+
+
+## 2026-09-16 (eighth) — THE TRIAGE QUEUE DRAINED, AND AN INSTRUMENT FIX THAT REFUTED THE PLAN'S OWN PREMISE
+
+**WHAT SHIPPED:** ten of `#24-pass2triage`'s eleven findings, two instrument fixes, one new punch-list
+item, and corrections to several claims THIS PROJECT had already recorded as measured. Docs plus two
+tools — **no bot behaviour changed and no drive was run.**
+
+### ⭐⭐ THE ONE THAT MATTERS: `#26-victoryroadgap` — NOT ONE RUN HAS EVER ENTERED VICTORY ROAD
+
+Finding (g) said the batch analyser's cumulative row was *"an assumed-order roll-up rather than a
+`seen_maps` test"*. It was. `cum += furthest[key]` walked backwards through `MILESTONES` and INFERRED
+that a run reaching Ever Grande had reached every earlier milestone. `seen_maps` was already being
+computed per run and thrown away — **the real number was one line away the whole time.**
+
+Fixed, with a `--self-test` arm that builds a skipping run and PROVES the two rows can disagree
+(`lavaridge: measured=False assumed=1`). ‼ **A side-by-side that cannot disagree is decoration**, and a
+reader would take its agreement as corroboration. On the real 99-run corpus exactly one row moves:
+
+    victory_road   MEASURED    0 (  0.0%)   assumed-roll-up   30 ( 30.3%)   <- DISAGREES by -30
+
+⛔ **THIS REFUTES THE STATED REASON FOR PRIORITISING §Ch24.** `2026-09-16-endless-batch-REVIEW.md` §1 is
+headed *"30% OF RUNS REACH THE LEAGUE'S DOORSTEP"* and its next-steps says *"Build the §Ch24 sequencer.
+30% of runs already reach the door."* That 30% is the **EVER GRANDE CITY** milestone — the OUTDOOR map,
+entered by surfing in from ROUTE 128 on the Poke Center side. The door apron lies beyond VICTORY ROAD,
+and **0 of 99 runs entered it.** => §Ch24 is still worth building — it is the last chapter and the user's
+standing directive is to get back to the story — but it must be justified as FINISHING the story, not as
+CONVERTING traffic that exists. The traffic does not exist.
+
+**‼ AND THE CONTROL DISAGREED WITH THE TOOL, WHICH IS WHY THIS IS TRUSTWORTHY.** My first control was a
+loose grep: it said 51 runs saw Ever Grande where the analyser said 30. Rather than pick one, I ran both
+patterns per-run across all 99 logs:
+
+| pattern | VICTORY | EVER GRANDE | SOOTOPOLIS |
+|---|---|---|---|
+| STRICT — a real `[MAP]`/`[hb]` map LOAD (the analyser's own regexes) | **0** | 30 | 50 |
+| LOOSE — any `-> X` / `map=X`, which also catches DESTINATION-INTENT | **0** | 51 | 54 |
+
+The 21-run gap is runs that *aimed* at Ever Grande and never loaded it — the candidate-vs-attempt
+distinction (CLAUDE.md rule 7) turning up inside my own control. Strict reproduces the tool 30/30 and
+50/50, so instrument and control agree. ⭐ **And Victory Road is 0 under BOTH**, which is stronger than
+"never arrived": across 338.5M frames no run ever even NAMED a Victory Road map as a destination. The
+only "Victory Road" strings in the whole corpus are dex-hunt lines — *"Hariyama ... on Victory Road
+(B1F) (tile unmapped, NOT HUNTABLE)"* — a candidate, not an attempt.
+
+### THE REST OF THE TRIAGE
+
+* **(a) WAS ALREADY DONE** — commit `6fc6b1bf` had added the `07-CHANGELOG` entry the item says is
+  missing. The punch list was commanding work that had shipped; verifying reality before acting is the
+  only reason it was not redone (pair P5).
+* **(b)** the `KI-101` STATE cell claimed PROMOTED in its headline and NOT PROMOTED four sentences later
+  — now a dated retraction, and flagged as `#24-promotedpairgate`'s live test case.
+* **(c)** the handoff quoted a **3,600** line budget for 03 while `lint_docs.py:102` has said **4,400**
+  since that morning, and 03 sits at 4,204 — a cold reader was told a GREEN file was 600 lines over a
+  commit-blocking cap. Fixed by quoting NO limit at all: => **a LIMIT drifts exactly like a COUNT.**
+* **(d)** the second "(LATEST)" drift figure, and a standing "THE FORK IS FROZEN" directive from a batch
+  that ended days ago — both retired. `promote.py --check` re-measured: **drift 0.**
+* **(e)** the retracted `KI-96` repro was still issuing orders in HOW TO RUN, nine days after that
+  file's own banner said SOLVED.
+* **(f)** three wrong `story_mode.py` citations inside the LIVE arrow line. `:5003` is a
+  `seafloor_cavern` import; `:4865` is a Tate&Liza dict literal. Replaced by the SYMBOL, per
+  `probe_stale_citations.py`'s own lesson that *a bare `file.py:NNN` is unverifiable by construction*.
+* **(i)** `02-ARCHITECTURE.md` said 19 story modules (there are 24) and documented **neither**
+  `victory_road.py` (§Ch23, shipped 2026-09-05) **nor** `pokemon_league.py` (§Ch24 prep, 1,439 lines).
+  The finding named only §Ch24; §Ch23 was missing too. Both now written up.
+* **(j)** HOW TO RUN had no command for any §Ch24 work. It now carries the two OFFLINE probes and the
+  drive — and says which line of the output to read.
+* **(k)** `R battle_frames = 0` printed under `ACCEPTANCE: PASS` beside a 24,576-frame fight. The
+  reading was the counter of the WAIT loop, which breaks on its first iteration whenever the listener
+  already won during the A-press phase — i.e. the normal case. The wait is now
+  `frames_waited_for_battle_end`; `battle_frames` is stamped from `on_battle_started`. The loop local
+  was renamed too, because a local and a reading sharing one name is this tree's signature bug shape.
+* **(h)** was carried as UNRESOLVED and then **settled the same day by the recon below** — see the
+  next entry. Our harness comment, not the research note, turned out to be the wrong half.
+
+**FILES:** `PROJECT KNOWLEDGE/02-ARCHITECTURE.md`, `04-HANDOFF.md`, `03-PUNCH-LIST.md`,
+`ai-research-notes/2026-09-15-ch24-ROUTING-AND-GRADING-CORRECTION.md`,
+`tools/story-dev/analyze_endless_batch.py`, `tools/story-dev/story_harness.py`.
+
+
+## 2026-09-16 (ninth) — §Ch24 LEG 1: A 6-ANGLE RECON THAT CORRECTED ME FOUR TIMES BEFORE I WROTE A LINE OF CODE
+
+24 Claude subagents: six recon angles (our code / the dismiss machinery as a REUSE hunt / the decomp /
+routing+mapping / adversarial / blast radius), each angle's top claims then handed to **three
+independent refuters**. 0 errors. Full note, with every citation and every carried unknown:
+**`ai-research-notes/2026-09-16-ch24-leg1-RECON-6-ANGLES.md`**. ⛔ It is a NOTE, not truth.
+
+**‼ THE POINT OF THIS ENTRY: I HAD ALREADY DIAGNOSED THE STALL AND WAS ABOUT TO BUILD. Four of the
+things I was about to build on were wrong, and three of them were numbers I had copied forward from
+our own docs without checking the subtraction or the grep.**
+
+1. ⛔ **"~40 call sites" is wrong by 6.5×.** `wait_until_truly_controllable` has **262** `yield from`
+   call sites. **40 is the count lexically inside a LOOP** — which is where the figure came from.
+2. ⛔ **"= 27174 + 1800 EXACTLY" is wrong arithmetic.** 28976 − 27174 = **1802**; the extra two frames
+   are the Manual teardown. The conclusion is TIGHTER, not looser — but the figure had been copied
+   verbatim from the changelog into the punch list, unchecked, twice.
+3. ⛔ **"4 drives out of 4" is AT MOST TWO TRAJECTORIES.** Three of the four logs are frame-identical
+   (drop f26821, hang f46821, byte-identical party strings) — session-discipline rule 8.
+   *(I had independently withdrawn the "4 for 4" framing earlier the same session for a different
+   reason — that `HANG CONFIRMED` is the watchdog. The adversary supplied the MEASUREMENT I lacked:
+   **51 of 53** `HANG CONFIRMED` evidence files in this tree also carry an `ACCEPTANCE:` line, and the
+   drop→HANG interval is exactly 20,000 frames in every sampled case, across unrelated drivers.)*
+4. ⭐⭐ **`(6,7)` vs `(6,11)` IS NOT A CONFLICT, AND OUR HARNESS COMMENT WAS THE WRONG HALF.** Both are
+   correct readings at different instants of ONE six-step scripted walk. Entry warp **(6,13)**,
+   `Common_Movement_WalkUp6`, 13−6 = **7** ⇒ the auto-walk END tile is **(6,7)** as the note said;
+   **(6,11)** is exactly TWO steps in. **THE DISCRIMINATOR WAS ALREADY IN OUR OWN LOG** — the same
+   drive recorded `elite4_state_in_room = 0`, and that var is set only AFTER `WalkInCloseDoor`
+   returns ⇒ the walk provably had not finished. ⛔ The operational rule (never hardcode; read the
+   position back) is KEPT — but for a different and better reason, see trap 2 below.
+
+**THE DIAGNOSIS SURVIVED, AND GOT STRONGER.** The adversarial angle could not refute the wait-half and
+said so: the field script `lock`s the player and only `release`s after the msgbox, and
+`player_avatar_is_controllable()` is False while frozen ⇒ **the wait cannot merely lose a race here, it
+can NEVER succeed.** Its budget is burned by construction.
+
+⭐⭐ **BUT THE FIX IS NOT NEW CODE.** Three helpers that press on exactly this gate already ship, and
+two are ALREADY inserted before this very wait elsewhere (`early_game.py:3290`, `story_mode.py:3683`):
+`_wait_until_cutscene_over` (gate `script_running or is_waiting_for_input()`), `_ride_out_scripted_scene("B")`,
+and `normalize_to_overworld()`. And `modules/tasks.py:199 is_waiting_for_input()` is **the same
+predicate** as the log's `WaitForButton` — both read `sTextPrinters` 0x1B/0x1C and accept raw states
+2/3 — so the stall state provably satisfies the existing rider's press gate. ⇒ the defect is better
+stated as **"the probe called the press-NOTHING wait where a press-SOMETHING helper was required"**,
+and the blast-radius angle's recommendation is to change NEITHER the shared function nor add a sibling:
+**one line at one call site.** ⛔ **AND IT MUST PRESS `B`, NOT `A`** — the bot stands facing Sidney,
+whose script is re-triggerable after defeat, so an A-mash re-opens the box it just closed. KI-93's own
+dismiss presses B.
+
+**DECOMP FACTS WORTH THE WHOLE ROUND:**
+* `\p` AND `\l` both park on an edge-triggered A/B wait with **no timeout** — `\l` is not a free
+  line-scroll. Plus `Std_MsgboxDefault`'s own trailing `waitbuttonpress`. **Field presses per room:
+  Sidney 3, Phoebe 4, Glacia 2, Drake 6, Wallace 7**, on top of ≥2 in-battle presses every win.
+* ⛔⛔ **`cb=`, `instr=` and `bt=` in every `STUCK-OW` dump are DEAD RESIDUE, not live state.**
+  `Cmd_end2` never advances `gBattlescriptCurrInstr`, so the pointer freezes on the win script's tail
+  byte forever and a nearest-symbol lookup prints `BattleScript_PayDayMoneyAndPickUpItems`.
+  `gBattleMainFunc` and `gDisplayedStringBattle` are likewise never cleared. ⇒ **every past reading of
+  that instruction name as a clue was noise.** Only `state=`, `textprinter=`, `tasks=`, `scripts=` are live.
+* ‼ **Glacia's and Wallace's in-battle lose-texts carry `\p`/`\l`; Sidney's, Phoebe's and Drake's do
+  not** ⇒ the Sidney drive never exercised our KI-93 in-battle dismiss at all. Glacia is the first.
+
+**FOUR ROUTING TRAPS NOT RECORDED ANYWHERE IN OUR TREE:**
+1. **The Champion→Hall of Fame hop is NOT a warp tile** — it is a scripted `warp` by coordinate to
+   (7,16). A sequencer navigating to (6,2) in the Champion's room builds for a hop that does not exist.
+2. **The entry auto-walk is CONDITIONAL on `VAR_ELITE_4_STATE == k-1`.** Enter with any other value and
+   `WalkInCloseDoor` does not run — **no auto-walk AND no entry seal.** (This is the real reason to
+   read the position back.)
+3. **The Champion's room has no pre-battle window** — entry `goto`s straight into the battle.
+   Healing must happen BEFORE the Hall4→ChampionsRoom warp.
+4. **`get_map_objects()` includes the PLAYER as local_id 255** — the BFS spec omits that caveat, and a
+   BFS treating every object as an obstacle would wall off its own start tile.
+
+**ONE-WAY IS NOW SETTLED BY TWO INDEPENDENT MECHANISMS, AND IT BINDS AT THE FIRST HOP TOO.** Besides
+the entry seal, the halls' southern "backward warps" sit on `MB_NORMAL`, which `IsWarpMetatileBehavior`
+rejects ⇒ destination-only, never triggerable. Hall5 shares that layout, so the lobby is unreachable on
+foot from the moment the bot steps through (9,1). ⇒ bag healing is a HARD requirement and the
+pre-gauntlet stock-up is single-shot. This also refutes the BUILD-SPEC's *"a lateral nudge silently
+undoes a cleared room"*.
+
+**ALSO CORRECTED:** the entry seal is **SIX** tiles, not the three our probe read (the script seals row
+y=12 as well); the door-opener additionally makes ten tiles at y=2 IMPASSABLE, so a live-grid reader
+must take both halves; the four E4 rooms have **byte-identical collision AND elevation** grids, so one
+routine serves rooms 1–4; and the exit route around the standing trainer is **six steps**
+(`(6,6)→(5,6)→(5,5)→(5,4)→(5,3)→(6,3)→(6,2)`), because row y=3 is an open 13-wide corridor.
+
+**⛔⛔ WHAT IS *NOT* ESTABLISHED, AND WHY NO CODE SHIPPED IN THIS ENTRY.** **No evidence file in this
+tree shows the Sidney post-victory msgbox EVER being dismissed by the bot.** The decomp says
+`waitbuttonpress` accepts `JOY_NEW(A|B)` — that is a READ. Two angles independently flagged it as the
+one claim the whole plan rests on and both declined to assert it. ⇒ the next action is a drive that
+presses B at (6,6) from the pinned `post_sidney_door_open.ss1` (which IS the stall state) and asserts
+the avatar becomes controllable. That costs seconds, not 29,000 frames.
+
+**METHOD NOTE FOR FUTURE DECOMP RECON:** ⛔ `gh api` **corrupts binary payloads on this Windows box** —
+LF→CRLF translation on stdout inflates every `.bin` and can return an ODD byte count (impossible for a
+u16 array). Hall4's 748-byte `map.bin` arrived as 1085. Use `urllib.request` against
+`raw.githubusercontent.com`; the contents API's own `size` field is the detector.
+
+
+## 2026-09-16 (tenth) — THE §Ch24 POST-VICTORY STALL IS MEASURED: `B` CLEARS IT, AND THE CONTROL PROVES THE BOX DOES NOT SELF-CLEAR
+
+**`#24-e4postbattlestall`.** The one fact the whole §Ch24 leg-1 plan rested on — *does pressing a
+button actually clear the post-victory msgbox?* — had **never been measured**. No evidence file in
+this tree showed that box ever being dismissed by the bot; the decomp says `Std_MsgboxDefault` ends
+in `waitbuttonpress` accepting `JOY_NEW(A|B)`, but that is a READ, and two independent recon angles
+flagged it and **both declined to assert it**. It is measured now.
+
+**NEW: `--driver e4dismiss`** (`story_harness.py`), run from the PINNED `post_sidney_door_open.ss1`
+(md5 `6231369647f8`). ⭐ **The fixture IS the stall state** — Sidney beaten, exit door already open in
+the live grid, msgbox parked at `WaitForButton`, avatar not controllable — so the probe starts INSIDE
+the state under test and answers in **seconds** instead of the ~29,000 frames `ch24probe` burns to
+reach the same moment. Predictions were filed and committed BEFORE the run
+(`ai-research-notes/2026-09-16-e4dismiss-PREDICTIONS.md`), and graded in that same file.
+
+| reading | TREATMENT (press B) | CONTROL (`POKEBOT_E4DISMISS_FAULT_NOPRESS=1`) |
+|---|---|---|
+| `controllable_before` | `False` | `False` |
+| **`controllable_after`** | **`True`** | **`False`** |
+| `frames_to_control` | **297** | `None` |
+| `prompts_cleared` | 2 | 0 |
+| `printer_after` | `(False,'PrintingCharacter')` | `(True,'WaitForButton')` |
+| `script_active_after` | `False` | `True` |
+| `frames_spent` | 317 | **2600 — the full budget** |
+
+⭐⭐ **THE CONTROL IS THE RESULT.** It burned its entire 2,600-frame budget — **1.4× the 1,802 frames
+the real stall lasted** — and never regained control. **Falsifier F1 did not fire.** ⇒ the stall is
+caused by nobody pressing a button, and `B` is sufficient. Both arms print `ACCEPTANCE: PASS` because
+they are graded by OPPOSITE expectations on the same reading; a grade both could satisfy would prove
+nothing. The probe also carries a PREMISE conjunct that FAILS on a clean overworld save, so a pass
+cannot be vacuous. ⛔ It presses **B, never A** — the bot stands facing Sidney, whose script is
+re-triggerable after defeat, so an A-mash re-opens the box it just closed.
+
+### ❌ ONE PREDICTION FAILED, AND IT WAS MY INSTRUMENT — RULE 7, WHILE WRITING ABOUT RULE 7
+
+P5 predicted 1–12 presses; the run issued **50**, tripping my own falsifier F3. F3 said that would
+mean the duty-cycle/edge model was wrong. **It did not — the PREDICTION was.** `presses_issued`
+counts duty-cycle ticks on which the press GATE was true (297 frames ÷ 1-in-6 ≈ 49.5, i.e. the gate
+was true on essentially every tick); most of those land during `PrintingCharacter`, where there is
+nothing to dismiss. **I instrumented the INPUT to the action, not the action.** Fixed rather than
+excused: `prompts_cleared` now counts `WaitForButton`→else transitions — prompts the game actually
+consumed. **Measured 2**, consistent with the decomp's 3 for Sidney given this fixture is captured
+mid-sequence (`bt='NICK got $4900 for winning!'`). ⇒ a partial independent corroboration of the
+decomp count, not a proof of it.
+
+### ⚠ HOW MANY TRAJECTORIES THIS IS — stated honestly
+
+`post_sidney_door_open_b.ss1` (different bytes, captured ~1,800 frames earlier in the same stall)
+returns **identical** readings. ⛔ That is a determinism check plus a byte-level sanity check, **not a
+replication** (session-discipline rule 8). **The phenomenon is measured in ONE room against ONE
+trainer.**
+
+### ⛔ AND THE TWO FIXTURES WERE NEVER ACTUALLY PINNED
+
+The 2026-09-16 (seventh) entry says they were *"Now PINNED … `verify_fixtures` green"*. The md5s it
+quoted are correct, but **no manifest row was ever added**, and `verify_fixtures.py` prints its own
+disclaimer that unlisted files *"are neither PINNED nor declared VOLATILE — this gate cannot see them
+drift."* ⇒ **a green gate was cited as corroboration over exactly the files it is blind to**, while
+those files sat on auto-rotating `stalls/` names. Both rows are in `saves/FIXTURES.md5` now
+(unlisted 74 → 72) and `--assert post_sidney_door_open.ss1=62313696` passes.
+
+### TIER 1 CAUGHT A PAIR BREAK I HAD JUST CREATED
+
+An independent reviewer on the doc diff returned **P3 DISAGREE**: `04-HANDOFF.md`'s banner still read
+*"30.3% OF RUNS REACH EVER GRANDE CITY ⇒ the approach to the League is NOT the bottleneck"* — the
+exact inference the **same diff's** new `#26-victoryroadgap` refutes. The refutation had landed in the
+punch list and the changelog while the banner — the half a cold reader meets FIRST — kept the
+superseded claim. **That is the same shape as the five before it, committed by the session that was
+documenting the shape.** Also fixed from that review: a retraction stub on
+`2026-09-16-endless-batch-REVIEW.md` (which still asserted the refuted headline with no hedge, and
+was never in the diff); `KI-74`'s header, 15 days stale against its own body; and
+`#24-pass2triage`'s checkbox, `[~]` while its body said all eleven findings were closed.
+‼ **PROCESS NOTE:** the reviewer also reported that **the packet I handed it was incomplete** — I
+supplied only the `PROJECT KNOWLEDGE` diff, so the two tool diffs and a second untracked file were
+missing, and it had to fetch them itself to answer at all. A review is only as good as its inputs;
+hand over `git status` in full next time.
+
+**FILES:** `tools/story-dev/story_harness.py` (new `E4DismissMode` + registration),
+`tools/story-dev/saves/FIXTURES.md5`, `PROJECT KNOWLEDGE/{03,04,05,29}`,
+`ai-research-notes/2026-09-16-e4dismiss-PREDICTIONS.md`,
+`ai-research-notes/2026-09-16-endless-batch-REVIEW.md` (stub only),
+and three committed evidence transcripts.

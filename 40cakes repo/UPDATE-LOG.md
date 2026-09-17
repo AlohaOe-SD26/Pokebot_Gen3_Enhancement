@@ -20,7 +20,14 @@
 - **Upstream commit:** `5dd898f8` (40Cakes/pokebot-gen3 `main`)
 - Mirrored via `git subtree add --squash` at `40cakes repo/pokebot-gen3/`.
 - DOCUMENTATION/ 00–05 written against this commit (docs v1).
-- Last daily check: **2026-09-14** (`git fetch upstream-pokebot` → `upstream-pokebot/main` still
+- Last daily check: **2026-09-16** (`git fetch upstream-pokebot` → `upstream-pokebot/main` still
+  `5dd898f8`, unchanged; tree hash RE-DERIVED both sides this date and equal at
+  `fa3504a285eb62fa` — mirror `HEAD:40cakes repo/pokebot-gen3` vs `upstream-pokebot/main^{tree}`;
+  nothing to pull, nothing appended per the standing directive).
+  ⚠ **2026-09-15 WAS MISSED** — recorded, not quietly backfilled, for the same reason as every gap
+  below: the directive is once per CALENDAR DAY, so a gap is a fact about our process. Nothing was
+  lost — the commit and the tree hash are unchanged across it.
+- Prior daily check: **2026-09-14** (`git fetch upstream-pokebot` → `upstream-pokebot/main` still
   `5dd898f8`, unchanged; tree hash RE-DERIVED both sides this date and equal at
   `fa3504a285eb62fa` — mirror `HEAD:40cakes repo/pokebot-gen3` vs `upstream-pokebot/main^{tree}`;
   nothing to pull, nothing appended per the standing directive).
