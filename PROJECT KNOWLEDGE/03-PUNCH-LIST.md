@@ -3915,7 +3915,7 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   Shedinja ≈L23**, against a leg calibrated on a curated party with an **L40 floor**.
 - [x] ⭐ **THE BOT CREATES THEM AND THEN PINS THEM.** `ensure_hm_learner` CATCHES a wild mon at wild
   level to carry an HM; HMs cannot be forgotten in Gen 3; `team_policy.py:147-149` exempts a **sole
-  HM carrier** from deposit BEFORE any level test. `battler_identities` (`victory_road.py:1824`)
+  HM carrier** from deposit BEFORE any level test. `battler_identities` (`victory_road.py`'s `battler_identities` *(cited `:1824` until 2026-09-16, when an unrelated 6-line comment edit above it shifted the symbol to :1830-1846 and `audit_doc_citations.py` caught it — ⛔ cite the SYMBOL, the line is a sighting aid)*)
   then admits it — `BENCH_SPECIES` is only `("Zigzagoon","Linoone","Castform")`, 3 hardcoded names
   against 6 observed species. ‼ Already measured in `team_policy.py:8-16`: *"35% of badge moments
   carried at least one mon 15+ levels below the team max"*. My recount: **86.9%/78.9% of runs.**
