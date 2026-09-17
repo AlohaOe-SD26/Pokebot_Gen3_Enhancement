@@ -598,3 +598,5 @@
 {"when": "2026-09-16T17:38:59", "driver": "e4exit", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 400, "recomputes": 401, "scans": 2, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-16T17:41:15", "driver": "e4exit", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 8000, "recomputes": 8001, "scans": 27, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-16T17:43:27", "driver": "e4exit", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 8000, "recomputes": 8001, "scans": 27, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T18:40:46", "driver": "e4exit", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 12000, "recomputes": 12001, "scans": 41, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T18:44:42", "driver": "e4exit", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 12000, "recomputes": 12001, "scans": 41, "divergences": {}, "observer_broke": false}

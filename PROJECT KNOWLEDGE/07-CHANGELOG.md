@@ -29977,3 +29977,68 @@ note. Also: whether the fight is winnable from `post_ch24_atdoor.ss1` is **unmea
 Sidney win on record was on a different, under-prepared party.
 
 **FILES:** `PROJECT KNOWLEDGE/{03-PUNCH-LIST,04-HANDOFF,07-CHANGELOG}.md`.
+
+
+## 2026-09-16 (fifteenth) — A USER NOTE CAUGHT A SCOPING ERROR, AND THE GAUNTLET'S REPEATING UNIT IS NOW DRIVEN
+
+The user pointed out that between each Elite Four room there is *"a straight path (in between room)
+that they have to walk across when leaving the prior room, to then walk that path and actually go
+through the door to the next elite 4 member … it is a longer path to the champions room."*
+
+⛔ **THAT EXPOSED A SCOPING ERROR IN MY OWN LEG SPEC, NOT A NEW DEFECT.** The gauntlet's repeating
+unit is **`room → hall → next room`**, and everything measured so far stopped HALF-WAY — at the hall
+landing `(5,12)`, treating "arrived in the hall" as the end. A hall is a CORRIDOR that must be walked,
+and the door at its top is a SECOND warp.
+
+**`probe_e4_halls.py` (NEW) — the geometry, from OUR OWN map data, in WALKING order.** Controls hold
+(every forward door reads collision 0; every corner reads 1; every landing walkable):
+
+    HALL5  lobby   -> SIDNEY     10 steps   (5,12) -> (5,2)
+    HALL1  SIDNEY  -> PHOEBE     10 steps   (5,12) -> (5,2)
+    HALL2  PHOEBE  -> GLACIA     10 steps   (5,12) -> (5,2)
+    HALL3  GLACIA  -> DRAKE      10 steps   (5,12) -> (5,2)
+    HALL4  DRAKE   -> CHAMPION   31 steps   (5,33) -> (5,2)     <- the long one
+
+⇒ **the user's description is CONFIRMED against our own data**, and it agrees with the live
+`can_continue_to_hall_door_5_2 = OK 10 waypoint(s)` already measured out of HALL1 — two independent
+methods. ‼‼ **AND A TRAP NOBODY HAD RECORDED: THE HALL NUMBERING IS NOT THE WALKING ORDER.**
+**HALL5 is the FIRST hall** (lobby → Sidney), then 1 → 2 → 3 → 4. A leg that iterates `HALL1..HALL5`
+walks the gauntlet in the wrong order.
+
+⛔ Reading the STATIC layout is legitimate here and is **not** the `KI-74` trap: `KI-74` is about
+tiles a script rewrites at runtime (the exit doors). Nothing rewrites a hall — no `setmetatile`, no
+objects, no coord events — so the column measured is the column the bot walks.
+
+### ⭐⭐ AND THE UNIT IS DRIVEN END TO END
+
+`POKEBOT_E4EXIT_CONTINUE=1` (opt-in, so `e4exit`'s two settled arms keep their acceptance):
+
+    SIDNEY (6,6) --dismiss 297f--> exit door --164f--> HALL1 (5,12) --walk 219f--> PHOEBE (6,7)
+    ELITE_4_STATE 1 -> 2   battles=0   whiteouts=0   can_continue_to_phoebe_6_6 = OK 1 waypoint
+    negative control still REFUSED                    ~680 frames for the whole transition
+
+Predictions X1-X7 filed before the run; all held, no falsifier fired.
+
+⭐⭐ **`final_tile=(6,7)` IS THE THIRD INDEPENDENT CONFIRMATION OF THE AUTO-WALK END TILE AND THE FIRST
+*DIRECT* ONE** — sampled after a deliberate 240-frame settle rather than mid-cutscene. ⇒ the
+`(6,7)` vs `(6,11)` question is **CLOSED, in the research note's favour.**
+⭐ **`ELITE_4_STATE == 2` is load-bearing:** it is Phoebe's ENTRY script having run, which is what
+fires the auto-walk *and* the entry seal. A `1` would have meant an UNSEALED room with the bot
+standing somewhere unmodelled (falsifier XF3).
+
+### ⚠ AN INSTRUMENT WART, FOUND AND FIXED MID-RUN
+
+The first continue run printed `can_continue_to_hall_door_5_2 = REFUSED … @ PHOEBES_ROOM` — the
+reading runs AFTER the continuation, so it asked for HALL1's door while standing in Phoebe's room.
+**A REFUSED that means nothing**, and the third instance this session of "measured the wrong
+quantity". Fixed by deriving the target from the state the run ACTUALLY reached (session rule 4): in
+the next room, "can continue" means "can I reach the trainer I came here to fight". Now `OK 1
+waypoint(s)`, and part of the grade.
+
+⛔ **WHAT THIS STILL DOES NOT SHOW:** Phoebe is never fought — the run ends beside her. Only the
+SIDNEY→PHOEBE instance is driven; the other three share the geometry and victory script but that is
+an INFERENCE. And ⛔⛔ **the LAST transition is not this shape**: HALL4 is 31 steps and the Champion's
+room has **no pre-battle window** — it `goto`s straight into Wallace's fight.
+
+**FILES:** `tools/story-dev/probe_e4_halls.py` (new), `tools/story-dev/story_harness.py`,
+`PROJECT KNOWLEDGE/{03,04,29}`, `ai-research-notes/2026-09-16-e4exit-PREDICTIONS.md`, evidence.

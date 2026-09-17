@@ -17025,9 +17025,57 @@ class E4ExitMode(BotMode):
             R["end_tile"] = _where_ch24()[1]
             R["arrived_in_hall1"] = R["end_map"] == tuple(HALL1.value)
 
+            # ---- 2b. THE HALL, AND THE DOOR AT ITS FAR END --------------------------------------
+            # ⛔⛔ THE GAUNTLET'S REPEATING UNIT IS `room -> hall -> next room`, AND THIS PROBE USED
+            # TO STOP HALF-WAY. Arriving in the hall is not arriving at the next room: the hall is a
+            # CORRIDOR that must be walked (10 steps for HALL5/1/2/3, **31** for HALL4 to the
+            # Champion — `probe_e4_halls.py`, read from our own map data), and the door at its top is
+            # a SECOND warp. Flagged by the user 2026-09-16; the geometry confirmed their
+            # description, and it exposed a scoping error in the leg spec, not a new defect.
+            # ‼ AND THE HALL NUMBERING IS NOT THE WALKING ORDER: HALL5 is the FIRST hall
+            # (lobby -> Sidney), then 1 -> 2 -> 3 -> 4. Iterating HALL1..HALL5 walks it wrong.
+            # ⛔ OPT-IN so the two settled arms above keep their existing acceptance untouched.
+            if _os.environ.get("POKEBOT_E4EXIT_CONTINUE") == "1" and R["arrived_in_hall1"]:
+                R["hall_landing"] = R["end_tile"]
+                before = context.emulator.get_frame_count()
+                try:
+                    yield from _budgeted_local(
+                        _pass_through_door((5, 2), tuple(HALL1.value)),
+                        self.WALK_BUDGET, "walk HALL1 and pass its far door")
+                except Exception as error:  # noqa: BLE001 — a refusal IS the reading
+                    failure = f"{type(error).__name__}: {error}"
+                    log(f"[{TAG}] HALL WALK FAILED {failure}")
+                R["hall_walk_frames"] = context.emulator.get_frame_count() - before
+                # Let any entry cutscene settle before sampling — the auto-walk is CONDITIONAL on
+                # `ELITE_4_STATE == k-1`, so sampling early reads a tile mid-walk (that is exactly
+                # how (6,11) got recorded as "the landing" once).
+                for _ in range(240):
+                    _check_abort()
+                    yield
+                R["final_map"] = _where_ch24()[0]
+                R["final_tile"] = _where_ch24()[1]
+                R["reached_phoebes_room"] = (
+                    R["final_map"] == tuple(MapRSE.EVER_GRANDE_CITY_PHOEBES_ROOM.value))
+                try:
+                    from modules.memory import get_event_var
+
+                    R["elite4_state_final"] = get_event_var("ELITE_4_STATE")
+                except Exception as exc:  # noqa: BLE001
+                    R["elite4_state_final"] = f"<err {exc!r}>"
+
             # ---- 3. CAN IT CONTINUE? (never a flag — a real path, with a control) --------------
-            for key, target in (("can_continue_to_hall_door_5_2", (5, 2)),
-                                ("NEGCONTROL_path_to_0_0", (0, 0))):
+            # ⛔ THE TARGET MUST MATCH THE MAP WE ACTUALLY ENDED ON. These readings run AFTER the
+            # optional continuation, so in CONTINUE mode we are standing in PHOEBE'S ROOM and asking
+            # for HALL1's door (5,2) would measure a tile that does not exist there — a REFUSED that
+            # means nothing. First run of the continue arm did exactly that and printed
+            # `can_continue_to_hall_door_5_2 = REFUSED … @ EVER_GRANDE_CITY_PHOEBES_ROOM`.
+            # ⇒ pick the target from the state the run ACTUALLY reached (session rule 4), not from a
+            # constant chosen when the driver was written. In the next room, "can continue" means
+            # "can I reach the trainer I came here to fight".
+            _cont = (("can_continue_to_phoebe_6_6", (6, 6))
+                     if R.get("reached_phoebes_room") is True
+                     else ("can_continue_to_hall_door_5_2", (5, 2)))
+            for key, target in (_cont, ("NEGCONTROL_path_to_0_0", (0, 0))):
                 try:
                     from modules.map_path import calculate_path
 
@@ -17053,6 +17101,21 @@ class E4ExitMode(BotMode):
                 f"battles={self.battles}")
             log(f"[{TAG}] ⛔ If this arm ARRIVES, falsifier F2 fired: something other than our walk "
                 f"moves the bot, and the treatment attributes to the navigator what it did not do.")
+        elif _os.environ.get("POKEBOT_E4EXIT_CONTINUE") == "1":
+            # ⛔ THE FULL REPEATING UNIT. Arrival in the hall is a PRECONDITION here, not the result —
+            # the result is standing in the NEXT room with its entry cutscene having run.
+            reached = R.get("reached_phoebes_room") is True
+            state_ok = R.get("elite4_state_final") == 2
+            can_fight = str(R.get("can_continue_to_phoebe_6_6", "")).startswith("OK")
+            passed = (failure is None and arrived and reached and state_ok and can_fight
+                      and neg_ok and self.battles == 0 and self.whiteouts == 0)
+            log(f"[{TAG}] GRADE(CONTINUE) hall1={arrived} phoebes_room={reached} "
+                f"elite4_state={R.get('elite4_state_final')} (expect 2) "
+                f"can_reach_phoebe={can_fight} neg_control_refused={neg_ok} "
+                f"battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
+            log(f"[{TAG}] ⛔ `elite4_state == 2` is NOT decoration: it is Phoebe's ENTRY script "
+                f"having run. A 1 means the entry cutscene did NOT fire ⇒ no auto-walk AND no entry "
+                f"seal, i.e. the bot stands somewhere unmodelled in an unsealed room (falsifier XF3).")
         else:
             passed = (failure is None and arrived and can_go and neg_ok
                       and self.battles == 0 and self.whiteouts == 0)
