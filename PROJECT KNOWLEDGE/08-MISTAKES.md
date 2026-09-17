@@ -18357,3 +18357,50 @@ wrong" — a probe that stubs part of the system will trip the parts it stubbed,
 subject failure is how a correct guard gets "fixed".* This is the fourth time in this project that a
 failing probe turned out to be a wrong CHECK rather than a wrong subject, which is why the standing
 rule is: **read the failing line before touching the thing under test.**
+
+
+## 2026-09-17 (seventh) — A DEFENSIVE STAT OUTRANKED THE ABILITY TO ACT, AND THE TIE-BREAK ORDER IS WHY
+
+**Symptom.** The faint-replacement ranker sent our worst attacker into the one fight it could not
+win: against Phoebe's pure Ghosts it chose Swellow (`incoming 0.00`, outgoing 31) over Mightyena
+(`incoming 0.50`, outgoing 68).
+
+**Root cause.** A lexicographic key whose FIRST term was the defensive multiplier. Ghost→Normal is
+0×, so a Normal-type scores a *perfect* defensive 0.00 and can never be beaten at term one — no
+matter how useless it is offensively. ‼ The deeper point: **"takes 0" and "deals 0" are the same
+type relation read from opposite ends.** A key that sorts on incoming damage alone therefore does not
+merely tolerate the mon that cannot fight, it *systematically selects* it, and it does so precisely
+in the matchups where being unable to fight is fatal.
+
+**The fix that worked.** A leading `cannot_damage` term. Deliberately shaped so it is a no-op unless
+some candidate deals literally zero — when all can fight, or none can, the tuple falls through to the
+previous ordering unchanged. Fault-tested by reverting it: exactly one case flips.
+
+⇒ **PREVENTION RULE.** *Before a lexicographic key ranks on "how well does this go for us", it must
+first rank on "can this act at all" — a sort whose first term is a defensive metric will pick the
+thing that is invulnerable BECAUSE it is irrelevant.* And when adding a term to a shared-path
+ranking, shape it so it provably cannot change the existing ordering except in the failure case; then
+the ordinary-case A/B is a proof rather than a sample.
+
+## 2026-09-17 (eighth) — THE RECON I COMMISSIONED NEVER QUESTIONED THE PREMISE, BECAUSE I DID NOT ASK IT TO
+
+**Symptom.** Four agents were sent to plan the repair of `post_grind_L60.ss1` — how to teach Fly,
+how to route the Ice Beam trip, which slot each move should eat. They returned genuinely good
+findings, one of which (`#24-planorder`) was a real latent defect worth shipping. **None of them
+questioned whether the save should be repaired at all**, and it should not have been: it was on a
+dead branch, and a two-minute probe retired the entire plan.
+
+**Root cause.** Every angle was scoped *inside* the plan. "Which slot does Fly eat" presupposes that
+Fly is being taught. The adversarial angle in the later leg-2 recon was the one that produced the
+most value of any agent this session — and the difference was purely that it was pointed at the
+PREMISE ("try to destroy this claim") rather than at the execution.
+
+**What worked.** In the leg-2 recon, one of the four angles was explicitly adversarial and given a
+claim to refute. It returned ten objections, two of which invalidate the intended design and one of
+which (`#24-gameclearflag`) is an already-wired production defect.
+
+⇒ **PREVENTION RULE.** *Every fan-out gets one agent pointed at the PREMISE, not the plan — and its
+brief is to refute, not to review.* A recon where all N angles sit inside the plan can only ever
+tell you how to execute it well. This is already the standing rule for Gemini passes ("asking a
+second agent the same question produces a second guess; asking it to refute produces information") —
+the gap was that it had not been applied to the framing of a whole work item.

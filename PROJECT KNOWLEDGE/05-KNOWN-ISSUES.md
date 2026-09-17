@@ -2705,8 +2705,8 @@ Pokémon**, and would have leaked across battles.
 📦 **The full resolution is ARCHIVED** → `28-HANDOFF-ARCHIVE.md` (2026-09-07), and it is also
 in `07-CHANGELOG.md` 2026-09-06. **In one line:** the offensive term now scores EXPECTED DAMAGE
 via the shipped `calculate_move_damage_range` instead of a bare type multiplier; the ranking is
-the pure `rank_replacement`, gated offline by `probe_faint_chooser_rank.py` (**gate #39**, 7
-cases, fault-tested — `POKEBOT_KI95_PROBE_FAULT=legacy` turns exactly C1 red). It also fixed two
+the pure `rank_replacement`, gated offline by `probe_faint_chooser_rank.py` (**gate #39**, **9**
+cases as of 2026-09-17, fault-tested **two independent ways** — `POKEBOT_KI95_PROBE_FAULT=legacy` turns exactly C1 red, and REVERTING the `cannot_damage` term in `rank_replacement` turns exactly C8 red. —— *(this read “7 cases” and named only the `legacy` arm until 2026-09-17, when `#24-ghostreplacement` added **C8** — a mon that deals ZERO must never outrank one that can fight, the Phoebe/Ghost defect — and **C9**, its control: among mons that CAN fight, defence must still decide first. A Tier 1 reviewer caught the understatement; `05` is a CURRENT-STATE file, so a gate's coverage described here moves when the gate does.)*). It also fixed two
 things the report never named: a Ground move vs a **Levitate** foe scored 1.0 and now scores 0,
 and the chooser no longer ranks mons on `banned_moves` that `decide_turn` would refuse to use.
 

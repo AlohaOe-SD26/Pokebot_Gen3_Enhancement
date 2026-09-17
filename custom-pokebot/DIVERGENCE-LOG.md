@@ -2637,3 +2637,41 @@ Replacing the healing path's singular `ITEM_CONTEXT_TASK` wait with the teach pa
 loop took `ch24heal` from **PASS (7 actions)** to **FAIL (0 actions, nothing healed)** — the teach
 loop is START-only, while `wait_for_task_to_start_and_finish` presses A *through* the menu to select
 "Use". Reverted before promotion; filed as `#24-itemcontextplural` with the A/B.
+
+## 2026-09-17 — `#24-planorder`: the prep plans are refused when applied OUT OF ORDER
+
+**PROMOTED** `modules/story/pokemon_league.py` (rollback tag `pre-promote-2026-09-17`). Drift after:
+**0**, byte-identical 1/1. Re-verified on the PROMOTED tree, not merely copied into it:
+`probe_plan_order_guard.py --build custom` exits **0** — the probe is now build-aware precisely
+because `promote.py` says every time that *"a gate that only ever imports sandbox cannot see whether
+the fix landed here"* and that **A COPY IS NOT EVIDENCE**.
+
+**WHAT DIVERGES FROM UPSTREAM, AND WHY.** `apply_moveset_plan` now refuses to teach when the target
+Pokémon still has an outstanding `MOVESET_PLAN` change that the plan being applied does not itself
+carry.
+
+`TRAVEL_PLAN` teaches **Fly** to Swellow over **Wing Attack**, justified in its own comment as
+*"strictly dominated by the Aerial Ace Swellow already knows"*. That holds **only after**
+`MOVESET_PLAN` has replaced **Peck** with **Facade**. Applied in the wrong order it destroys **Wing
+Attack (60 BP)** and keeps **Peck (35 BP)** — and the function reports SUCCESS, because all four of
+its existing refusals pass and its post-teach verification confirms exactly what it was asked to do.
+⇒ a **silent wrong-slot teach**, which is the precise failure this module exists to prevent
+(`KI-88`: two separate drives burned single-use TMs over the wrong move), reached through the one
+door it had no check on.
+
+**A/B, two real pinned fixtures** (`probe_plan_order_guard.py`, actuator stubbed so no button is
+pressed and the probe stays re-runnable):
+
+    FAILING ARM  post_training.ss1  -> REFUSED, names [('Peck','Facade')], teaches fired: []
+    CONTROL      post_moveset.ss1   -> order guard silent, plans Swellow Fly over Wing Attack
+
+⛔ The control is deliberately **not** `post_ch24ready.ss1`: its Swellow already knows Fly, so the
+plan skips for an unrelated reason and the guard is never evaluated — a pass that measures nothing.
+
+⚠ **LATENT, NOT LIVE.** The shipped §Ch24 lineage happens to have been built in the right order
+(`post_ch24ready.ss1`'s Swellow reads `Facade, Fly, Aerial Ace, Quick Attack`), so nothing in the
+tree was broken. That is the argument FOR a guard rather than a comment: the next lineage to run prep
+from scratch is the one that pays, and by then the reasoning will be a year old.
+
+⭐ Surfaced by a 4-angle recon commissioned for a repair plan that was then abandoned on a
+measurement (`#24-fixturelineage`). The plan died; the finding did not.

@@ -30599,3 +30599,79 @@ know it". The check was wrong, not the guard — the assertion is now "the ORDER
 ⚠ LATENT, not live: `post_ch24ready.ss1`'s Swellow reads `Facade, Fly, Aerial Ace, Quick Attack`, so
 the shipped lineage was built in the right order and nothing is broken. That is the argument for a
 guard over a comment. Surfaced by the 4-angle recon commissioned for the abandoned L60 repair.
+
+
+## 2026-09-17 (sixth) — ⭐⭐ THE FAINT CHOOSER PREFERRED THE MON THAT COULD NOT FIGHT, AND A 4-ANGLE RECON REFUTED THE LEG-2 MODEL
+
+### 1. `#24-ghostreplacement` — FIXED AND A/B-PROVEN OFFLINE. ⛔ **NOT PROMOTED, AND NOT PROMOTABLE YET — IT HAS NOT BEEN DRIVEN.**
+
+‼ A draft of this heading said *“PROMOTED-READY”*, which contradicts this entry's own body two paragraphs down (*“NOT YET DRIVEN”*) and, more importantly, this project's standing bar: `KI-93`, `KI-95` and `KI-101` were each promoted only after **a live drive plus user authorisation**. An offline A/B on a pure function is strong evidence that the LOGIC is right; it is not evidence that the promoted tree BEHAVES. ⇒ the fix stays in sandbox, and the drive that would settle it is the one nobody has run yet — **a real fight against Phoebe**, which is leg 2. Caught by a Tier 1 reviewer.
+
+`rank_replacement` (`plugins/custom_modes/story_mode.py:135`) keyed on
+`(incoming, -outgoing, -hp_fraction, -level)`, so the DEFENSIVE term decided first. Measured on the
+real §Ch24 fixture party against Phoebe's lead Dusclops, running the shipped pure function:
+
+    slot 2  Swellow    L48  incoming=0.00  best_outgoing=31.0   <- CHOSEN
+    slot 4  Mightyena  L48  incoming=0.50  best_outgoing=68.0   <- never considered
+
+Ghost→Normal is **0×**, so our three Normal-types score a *perfect* defensive 0.00 and win at term
+one, while the only mon that resists Ghost AND hits it for double loses there. ⇒ after every faint
+against Phoebe's four pure Ghosts the bot sent in the battler with one usable move and the only PP
+budget that does not cover the fight; with Swellow gone the same rule hands over Castform, then
+Zigzagoon — the two mules the grind does not level.
+
+‼ **"Takes 0" and "deals 0" are the same type relation read from opposite ends**, so ranking on
+`incoming` alone does not merely tolerate the useless mon — it *actively seeks* it.
+
+**THE FIX** — `cannot_damage = 0 if outgoing > 0 else 1` leads the key. ⭐ It is a **no-op unless
+some candidate deals literally zero**: when every candidate can damage the foe the term is 0 for all
+and the tuple falls through to exactly the previous key; when none can, it is 1 for all and the
+ordering is likewise unchanged. Safe on a shared path by construction rather than by hope.
+
+**A/B — gate #39 `probe_faint_chooser_rank.py`, and the fault test is the evidence:**
+
+    WITH the fix    9/9 PASS   C8 picks the Dark biter; C9 control still picks the RESISTANT mon
+    fix REVERTED    8/9        EXACTLY C8 goes red, picking `NormalOnly`
+
+⇒ C8 detects the defect, the fix is what makes it pass, and **no other case moves** — the
+ordinary-case evidence this project requires before touching a path that runs in every battle.
+
+⛔ **C9 IS THE HALF THAT MAKES C8 MEAN ANYTHING**, and it caught my own data bug first. It asserts
+that among mons which CAN fight, defence still decides — otherwise the new term might simply prefer
+whoever hits hardest, and the policy this function is built around would be gone. It went RED on its
+first run against a CORRECT subject, because my fake type chart never gave Water a resistance to
+Water: both candidates tied at `incoming 1.0`, the key fell through to `outgoing`, and the harder
+hitter correctly won. **The probe's DATA was wrong, not the ranker.**
+
+‼ It also refutes a comment in our own tree: `victory_road.py:498-501` justifies benching
+Zigzagoon/Castform because a full-HP party makes the ranking *"fall through `hp_fraction` … to
+`-level`, which then picks the STRONGEST."* Against a pure Ghost the ranking **never reaches those
+terms** — it is decided at `incoming`, and it measurably picked L48 Swellow over L53 Sceptile. The
+stated safety mechanism did not hold for the one fight that file exists to prepare for.
+
+⚠ NOT YET DRIVEN — no drive has fought Phoebe. This is the shipped pure function on real party data,
+with controls that fire (Sableye → Mightyena, Sealeo → Wailord), so it is a property of Ghost rather
+than a probe that always answers "Swellow".
+
+### 2. THE LEG-2 RECON — the "repeating unit × 5" model is REFUTED
+
+Four agents on different angles (decomp mechanics, an audit of our own code, the Ghost blocker, and
+one explicitly adversarial). Full spec in `03-PUNCH-LIST.md` `#24-leg2spec`; the headline is that the
+one measured traversal proved **one post-victory NAVIGATION transition, from a fixture, with
+`battles=0` in it** — no fight, and `ELITE_4_STATE 1→2` grades the WARP, not the victory.
+
+Ten objections, each now a build requirement. The two that change the plan most:
+
+* ⛔⛔ **`#24-gameclearflag`** — `chapters.py:288` grades Chapter 24 on `flag("SYS_GAME_CLEAR")`, and
+  the decomp's `GameClear()` sets that flag at `post_battle_event_funcs.c:30` while doing
+  `SetMainCallback2(CB2_DoHallOfFameScreen)` at **line 84**. VERIFIED IN BOTH HALVES here. ⇒ the
+  chapter would report COMPLETE with the Hall of Fame screen, an un-skippable first-clear credits
+  roll and a `SoftReset(RESET_ALL)` still ahead — a FALSE PASS handing a rebooting emulator to
+  whatever runs next. Latent only because `_play()` stops after Segment 23 today.
+* ⛔ **Room 5 is not an instance of the unit** — different entry warp, a `lockall` cutscene that
+  starts Wallace itself (no A-press, no walk-to-trainer), a scripted `warp` exit rather than a door,
+  ~11 message boxes instead of one, and no flag guard at all, so **every entry re-fights Wallace**.
+
+And one correction to our own docs: a whiteout lands **outdoors at EVER_GRANDE_CITY (18,6)**, not in
+the lobby beside the nurse — and `EventScript_WhiteOut` calls `ResetEliteFour`, so **a whiteout
+anywhere costs the whole gauntlet**, not one room.

@@ -48,7 +48,18 @@ except Exception:
     pass
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "sandbox-pokebot"))
+
+#: ⛔⛔ BUILD-AWARE ON PURPOSE — `--build custom` IS HOW A PROMOTION IS VERIFIED HERE.
+#: `promote.py` says it out loud every time: *"a gate that only ever imports sandbox cannot see
+#: whether the fix landed here"*, and *"A COPY IS NOT EVIDENCE"*. A byte-identical copy proves the
+#: bytes moved; it does not prove the promoted tree BEHAVES. So this A/B can be pointed at either
+#: fork, and the promotion of `#24-planorder` was accepted only after BOTH returned exit 0.
+BUILD = "sandbox"
+if "--build" in sys.argv:
+    BUILD = sys.argv[sys.argv.index("--build") + 1]
+if BUILD not in ("sandbox", "custom"):
+    raise SystemExit(f"--build must be 'sandbox' or 'custom', not {BUILD!r}")
+sys.path.insert(0, str(REPO / f"{BUILD}-pokebot"))
 
 from modules.context import context
 from modules.game import set_rom
@@ -118,7 +129,8 @@ def run_plan(save_name: str, plan, label: str):
 
 def main() -> int:
     print(BAR)
-    print("  #24-planorder — is TRAVEL_PLAN refused when MOVESET_PLAN has not run yet?")
+    print(f"  #24-planorder — is TRAVEL_PLAN refused when MOVESET_PLAN has not run yet?"
+          f"   [build={BUILD}]")
     print(BAR)
 
     # ---- FAILING ARM ---------------------------------------------------------------------------

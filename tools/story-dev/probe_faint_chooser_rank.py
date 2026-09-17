@@ -54,6 +54,16 @@ _CHART = {
     ("GROUND", "FLYING"): 0.0,
     ("ELECTRIC", "WATER"): 2.0,
     ("ELECTRIC", "GROUND"): 0.0,
+    # —— `#24-ghostreplacement` (2026-09-17). The REAL Gen-3 relations, not invented ones:
+    ("GHOST", "NORMAL"): 0.0,   # a Ghost cannot touch a Normal  -> `incoming` 0.00, a PERFECT score
+    ("NORMAL", "GHOST"): 0.0,   # ...and a Normal cannot touch a Ghost -> `outgoing` 0.0
+    ("DARK", "GHOST"): 2.0,     # Dark is the answer to Ghost
+    ("GHOST", "DARK"): 0.5,     # and Dark resists it back
+    # ‼ C9's control needs a REAL resistance to be about. Without this line Water did not
+    # resist Water, both candidates tied at incoming 1.0, the key fell through to `outgoing`
+    # and the harder hitter won — C9 went RED against a CORRECT subject. The probe's DATA was
+    # wrong, not the ranker. (Read the failing line before touching the thing under test.)
+    ("WATER", "WATER"): 0.5,
 }
 
 
@@ -70,8 +80,9 @@ class T:
         return self.name
 
 
-FIRE, GRASS, GROUND, WATER, NORMAL, ELECTRIC, BUG = (
-    T("FIRE"), T("GRASS"), T("GROUND"), T("WATER"), T("NORMAL"), T("ELECTRIC"), T("BUG")
+FIRE, GRASS, GROUND, WATER, NORMAL, ELECTRIC, BUG, GHOST, DARK = (
+    T("FIRE"), T("GRASS"), T("GROUND"), T("WATER"), T("NORMAL"), T("ELECTRIC"), T("BUG"),
+    T("GHOST"), T("DARK"),
 )
 
 
@@ -236,6 +247,45 @@ check(
     f"picked {[g, h][best]} metric={report6['metric']} ok={report6['estimates_ok']} "
     f"failed={report6['estimates_failed']} (want B — A's 4x multiplier must NOT be compared "
     f"against B's damage figure)",
+)
+
+# ---- C8 / C9: `#24-ghostreplacement` — A DEFENSIVE IMMUNITY MUST NOT OUTRANK BEING ABLE TO FIGHT.
+# ⛔ THE DEFECT, MEASURED 2026-09-17 ON THE REAL §Ch24 FIXTURE PARTY against Phoebe's pure Ghosts:
+#       slot 2  Swellow   L48  incoming=0.00  best_outgoing=31.0   <- CHOSEN by the old key
+#       slot 4  Mightyena L48  incoming=0.50  best_outgoing=68.0   <- never considered
+# Ghost→Normal is 0x, so the WORST attackers scored a PERFECT defensive 0.00 and won at the first
+# term. "Takes 0" and "deals 0" are the same type relation read from opposite ends, so ranking on
+# `incoming` alone actively SEEKS the useless mon. C8 is that exact shape in miniature.
+ghost_foe = foes_of([GHOST])
+normal_mon = Mon("NormalOnly", [NORMAL], [Learned(Move("Strength", NORMAL, 80))])
+dark_mon = Mon("DarkBiter", [DARK], [Learned(Move("Crunch", DARK, 80))])
+best8, report8 = rank_replacement(
+    candidates_of(normal_mon, dark_mon), [GHOST], ghost_foe,
+    make_damage_of(ghost_foe),
+)
+check(
+    "C8 a mon that deals ZERO never outranks one that can fight",
+    best8 == 1,
+    f"picked {'DarkBiter' if best8 == 1 else 'NormalOnly'} key={report8['key']} "
+    f"(NormalOnly has the PERFECT incoming 0.00 and 0 outgoing; DarkBiter takes 0.5 and hits for 2x)",
+)
+
+# ⛔ THE CONTROL, AND IT IS THE HALF THAT MAKES C8 MEAN SOMETHING. If the new term simply preferred
+# whoever hits hardest, the defensive-first policy this function is BUILT on would be gone and C8
+# would pass for the wrong reason. Same two mons, a foe both can damage: the one that RESISTS must
+# still win on `incoming`, even though the other hits harder.
+neutral_foe = foes_of([WATER])
+squishy = Mon("Squishy", [NORMAL], [Learned(Move("BigHit", NORMAL, 120))])
+resistant = Mon("Resistant", [WATER], [Learned(Move("SmallHit", WATER, 40))])
+best9, report9 = rank_replacement(
+    candidates_of(squishy, resistant), [WATER], neutral_foe,
+    make_damage_of(neutral_foe),
+)
+check(
+    "C9 control: among mons that CAN fight, defence still decides first",
+    best9 == 1,
+    f"picked {'Resistant' if best9 == 1 else 'Squishy'} key={report9['key']} "
+    f"(Squishy hits for 120 but takes 1.0; Resistant hits for 40 and takes 0.5 — defence must win)",
 )
 
 # ---- C7: the metric is NAMED, not inferred. -------------------------------------------------------
