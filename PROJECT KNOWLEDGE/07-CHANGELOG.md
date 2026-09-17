@@ -30766,3 +30766,37 @@ decline".
 
 ⇒ **Re-grinding from `post_e4grind_L57.ss1`**, the last checkpoint whose Wailord still has Ice Beam —
 18 levels instead of 28, and no ship trip.
+
+
+## 2026-09-17 (ninth) — ✅✅✅ THE §Ch24 PARTY IS AT L75 **WITH ICE BEAM**, PINNED AND VERIFIED BY RELOAD
+
+`post_e4ice_FINAL.ss1` — md5 `ebfafa71fa9954ce972ef5c2a54b15cc`, VICTORY_ROAD_1F (15,39).
+
+Re-ground from `post_e4grind_L57.ss1` (the last checkpoint whose Wailord still held Ice Beam) with
+the `#24-learnhmcoverage` fix in place and `POKEBOT_GRIND_STEP=1`:
+**1,353 battles, 0 whiteouts, `ACCEPTANCE: PASS`, `at_or_above_L75` = all four battlers.**
+
+    Mightyena  L75  Strength, CRUNCH, Take Down, Bite          <- the Ghost answer for Phoebe
+    Sceptile   L75  Rock Smash, Strength, Leaf Blade, Aerial Ace
+    Swellow    L75  Facade, FLY, Aerial Ace, Quick Attack       <- Fly = the way to the League door
+    Wailord    L75  Dive, Surf, ICE BEAM, Waterfall             <- 4x on Salamence/Altaria/Flygon
+    bench      Zigzagoon L19, Castform L36
+    bag        37 Hyper Potion / 3 Full Restore / 18 Full Heal / 3 Revive      money ₽1,941
+
+✅ **VERIFIED BY RELOADING THE FILE AND PRINTING MOVESETS**, not by trusting the run's own report —
+the reading `probe_anchor_inventory.py` structurally cannot give, and whose absence is what let a
+2.4-hour grind run on a party missing both of the chapter's prepared moves. It is also what caught
+`#24-learnhmcoverage` three hours ago, on a fixture that otherwise looked perfect.
+
+⚠ `POKEBOT_GRIND_STEP=1` is not cosmetic: at L73 a TWO-level step no longer fits under
+`train_for_victory_road`'s 250,000-frame per-call ceiling (the `KI-28` guard), and the first run
+stopped there — correctly, loudly, with a checkpoint written.
+
+⛔ **`post_e4g75_FINAL.ss1` is ALSO L75 and must NOT be used** — its Wailord holds Hydro Pump instead
+of Ice Beam. It is kept as the BEFORE arm of the `#24-learnhmcoverage` A/B, paired with
+`post_e4ice_L59.ss1` (now pinned) against the already-pinned `post_e4grind_L59.ss1`.
+
+⇒ **THE LEVEL BLOCKER IS PAID.** The party is at the level the analysis puts at **88% to clear the
+gauntlet**, carrying every move the chapter was prepared around. The only thing between here and a
+driveable §Ch24 is **leg 2 itself** — and per `#24-leg2spec` that is rooms 1-4 as the repeating unit
+plus room 5 and the endgame tail as a separate leg with its own grade.
