@@ -73,6 +73,21 @@ HALLS = [
 DOOR = (5, 2)          #: the forward door at the top of every hall
 CORNER = (0, 0)        #: must be a wall
 
+#: ⛔⛔ THE THREE SOUTHERN "BACKWARD WARP" TILES — `#24-hallwarpdisputed`. TWO OF OUR OWN DOCS
+#: CONTRADICT EACH OTHER ABOUT THESE, ON THE EXACT HALL LEG 1 WALKS:
+#:   * `ai-research-notes/2026-09-04-ch24-LEAGUE-INTERIOR-ROUTING.md:139` — they are
+#:     DESTINATION-ONLY: they sit on `MB_NORMAL`, which `IsWarpMetatileBehavior` rejects, so
+#:     stepping on one never fires.
+#:   * `2026-09-07-ch24-elite-four-BUILD-SPEC.md:157` and `03-PUNCH-LIST.md` — a single SIDESTEP in
+#:     that hall warps you BACK into the room you just cleared.
+#: ‼ The second was derived from `get_map_data(...).warps` — a warp-EVENT TABLE, which lists arrival
+#: destinations and says NOTHING about whether a tile can TRIGGER a warp. This probe reads the thing
+#: that actually decides: the metatile BEHAVIOUR byte, via `MapLocation.tile_type`
+#: (`modules/map.py:862` → `_metatile_attributes[0] & 0xFF`).
+#: ⭐ THIS SETTLES THE OFFLINE HALF ONLY. Behaviour says whether the tile is a warp KIND; it does not
+#: prove the game declines to move the player. The live half is one westward step, logged.
+BACKWARD = [(4, 12), (5, 12), (6, 12)]
+
 
 def collision_at(map_enum, tile):
     try:
@@ -143,6 +158,39 @@ def main() -> int:
                   f" CONFIRMED against our own data: the run to the Champion is the long one.")
         else:
             print("     ⚠ It is NOT longer than the rest — the 'long corridor' claim does not hold here.")
+
+    # ---- `#24-hallwarpdisputed` — read the BEHAVIOUR, not the warp table ------------------------
+    print()
+    print("  BACKWARD-WARP TILES — behaviour byte (`#24-hallwarpdisputed`):")
+    print("      ⛔ A warp-EVENT entry says a tile is a DESTINATION. Only the BEHAVIOUR says whether")
+    print("        stepping on it can TRIGGER one. This reads the behaviour.")
+    warpish = 0
+    for label, m in HALLS:
+        cells = []
+        for t in BACKWARD:
+            try:
+                md = get_map_data(m, t)
+                beh, coll = md.tile_type, md.collision
+            except Exception as error:  # noqa: BLE001 — a failed read is a RESULT
+                beh, coll = f"ERR:{type(error).__name__}", "?"
+            # "Normal" behaviour is what IsWarpMetatileBehavior rejects; a door/warp behaviour is
+            # what it accepts. We report the string rather than asserting a list, because the
+            # decisive question is which FAMILY it falls in and a reader must see the raw answer.
+            if isinstance(beh, str) and beh != "Normal" and not beh.startswith("ERR"):
+                warpish += 1
+            cells.append(f"{t}={beh!r}/c{coll}")
+        print(f"      {label:<28} {'  '.join(cells)}")
+    print()
+    if warpish == 0:
+        print("  ⭐ VERDICT (offline half): every backward tile reads behaviour 'Normal' ⇒ consistent")
+        print("     with LEAGUE-INTERIOR-ROUTING.md:139 (destination-only, never fires), and NOT with")
+        print("     'a sidestep warps you back'. ‼ Consistent-with is not proof: the live half is one")
+        print("     westward step from HALL1 (5,12), logging the map. Until that runs, keep the hall")
+        print("     walk COLUMN-CONSTRAINED.")
+    else:
+        print(f"  ⛔ VERDICT (offline half): {warpish} backward tile(s) carry a NON-'Normal' behaviour ⇒")
+        print("     the BUILD-SPEC half may be right and a sidestep could genuinely warp. Treat the")
+        print("     hall as hazardous and do NOT sidestep. Read the cells above for which tiles.")
 
     print()
     print("  CONTROLS:")

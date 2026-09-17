@@ -17063,6 +17063,33 @@ class E4ExitMode(BotMode):
                 except Exception as exc:  # noqa: BLE001
                     R["elite4_state_final"] = f"<err {exc!r}>"
 
+            # ---- 2c. `#24-hallwarpdisputed` — DOES A SIDESTEP WARP US BACK? --------------------
+            # ⛔⛔ TWO OF OUR OWN DOCS CONTRADICT EACH OTHER ON THE EXACT HALL LEG 1 WALKS.
+            # `2026-09-04-ch24-LEAGUE-INTERIOR-ROUTING.md:139` says the backward warps are
+            # DESTINATION-ONLY (`MB_NORMAL`, which `IsWarpMetatileBehavior` rejects); the BUILD-SPEC
+            # and the punch list say a single sidestep warps you back into the cleared room. The
+            # second was derived from `get_map_data(...).warps` — a warp-EVENT TABLE, which lists
+            # arrival destinations and says NOTHING about whether a tile can TRIGGER a warp.
+            # ⭐ The OFFLINE half is measured (`probe_e4_halls.py`: all 15 backward tiles across all
+            # five halls read behaviour 'Normal', collision 0). This arm measures the REFUSAL, which
+            # is the half a behaviour byte cannot give you. Opt-in, so the settled arms are untouched.
+            if _os.environ.get("POKEBOT_E4EXIT_SIDESTEP") == "1" and R["arrived_in_hall1"]:
+                R["sidestep_from"] = (R["end_map"], R["end_tile"])
+                for _ in range(90):
+                    _check_abort()
+                    if _where_ch24() != R["sidestep_from"]:
+                        break
+                    context.emulator.press_button("Left")
+                    yield
+                for _ in range(120):          # let any warp transition finish before sampling
+                    _check_abort()
+                    yield
+                R["sidestep_map"] = _where_ch24()[0]
+                R["sidestep_tile"] = _where_ch24()[1]
+                R["sidestep_warped"] = R["sidestep_map"] != tuple(HALL1.value)
+                log(f"[{TAG}] SIDESTEP from {R['sidestep_from']} -> "
+                    f"{R['sidestep_map']}{R['sidestep_tile']} warped={R['sidestep_warped']}")
+
             # ---- 3. CAN IT CONTINUE? (never a flag — a real path, with a control) --------------
             # ⛔ THE TARGET MUST MATCH THE MAP WE ACTUALLY ENDED ON. These readings run AFTER the
             # optional continuation, so in CONTINUE mode we are standing in PHOEBE'S ROOM and asking

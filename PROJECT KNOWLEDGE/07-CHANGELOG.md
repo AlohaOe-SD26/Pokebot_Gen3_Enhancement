@@ -30149,3 +30149,36 @@ runnable `run_gates.py` command comments, and the handoff carried three more in 
 ⭐ Note the asymmetry that emerged: a count a GATE checks may be quoted (it stays honest by
 construction); a count nothing checks may not. `02-ARCHITECTURE.md:251` keeps its explicit "63
 entries" for exactly that reason.
+
+
+## 2026-09-16 (eighteenth) — `#24-hallwarpdisputed` SETTLED BY MEASUREMENT: A SIDESTEP DOES NOT WARP, AND THE PUNCH-LIST HALF WAS WRONG
+
+Filed hours earlier when a recon found two of our own docs contradicting each other **on the exact
+hall §Ch24 leg 1 walks**: one said the halls' backward warps are destination-only (`MB_NORMAL`, which
+`IsWarpMetatileBehavior` rejects), the other that **a single sidestep warps you back into the cleared
+room**. Settled the same day, by two independent methods.
+
+**OFFLINE HALF — `probe_e4_halls.py`, extended.** It now reads the metatile **BEHAVIOUR** byte
+(`MapLocation.tile_type` → `_metatile_attributes[0] & 0xFF`) rather than the warp table. **All 15
+backward tiles — (4,12)/(5,12)/(6,12) across all five halls — read `'Normal'`, collision 0.**
+
+**LIVE HALF — `POKEBOT_E4EXIT_SIDESTEP=1`,** predictions filed before the run:
+
+    [e4exit] SIDESTEP from ((16, 5), (5, 12)) -> (16, 5)(4, 12) warped=False
+
+The bot stood on the exact tile the punch list said would warp it back into Sidney's room, **and
+stayed in HALL1**. S1-S4 all held; no falsifier fired.
+
+⇒ **`2026-09-04-ch24-LEAGUE-INTERIOR-ROUTING.md:139` is RIGHT; `2026-09-07-ch24-elite-four-BUILD-SPEC.md:157`
+and the punch-list copy are REFUTED.**
+
+‼ **THE PROVENANCE EXPLAINS THE ERROR, AND IT IS A FAMILIAR CLASS.** The refuted half was derived
+from `get_map_data(...).warps` — a warp-**EVENT TABLE**, which lists arrival DESTINATIONS. A tile can
+be a warp's destination without being able to TRIGGER one. **Reading a destination table as a trigger
+list is the same shape as reading a candidate list as an attempt** (CLAUDE.md rule 7), and it is the
+second time this session that a claim turned out to rest on the wrong table.
+
+⭐ **CONSEQUENCE FOR THE BUILD:** leg 1 may walk the hall **normally**. The "column-constrained, never
+sidestep" caution filed this morning is RETIRED — it guarded a hazard that does not exist.
+⚠ The live step was measured on HALL1 only; the other four share the behaviour reading but not the
+step. That is stated rather than generalised.

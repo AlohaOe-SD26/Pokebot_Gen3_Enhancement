@@ -241,3 +241,72 @@ trainer I came here to fight". It now reads `OK 1 waypoint(s)` and is part of th
 3. ⛔ **HALL4 IS 31 STEPS, NOT 10**, and the Champion's room beyond it has **no pre-battle window** —
    it `goto`s straight into Wallace's fight. That last transition is NOT this shape and must not be
    assumed to be.
+
+---
+
+# SIDESTEP ARM — PREDICTIONS FILED BEFORE THE RUN (2026-09-16), `#24-hallwarpdisputed`
+
+## THE QUESTION
+**Does stepping ONE TILE WEST in HALL1 warp the bot back into the cleared Sidney room?**
+
+Two of our own docs disagree, on the exact hall leg 1 walks:
+* `2026-09-04-ch24-LEAGUE-INTERIOR-ROUTING.md:139` — the backward warps are **destination-only**
+  (`MB_NORMAL`, which `IsWarpMetatileBehavior` rejects), so stepping on one never fires.
+* `2026-09-07-ch24-elite-four-BUILD-SPEC.md:157` + `03-PUNCH-LIST.md` — **a single sidestep warps you
+  back into the cleared room.** ‼ Derived from `get_map_data(...).warps`, a warp-**EVENT TABLE**,
+  which lists arrival destinations and says nothing about whether a tile can TRIGGER a warp.
+
+**OFFLINE HALF, ALREADY MEASURED** (`probe_e4_halls.py`, all five halls): every backward tile
+(4,12)/(5,12)/(6,12) reads behaviour **`'Normal'`**, collision 0. That is consistent with
+destination-only and NOT with "a sidestep warps you back" — but behaviour is not the game's actual
+refusal, so this arm measures the refusal.
+
+## ARM
+`POKEBOT_E4EXIT_SIDESTEP=1` on `--driver e4exit`, from the pinned `post_sidney_door_open.ss1`. It runs
+the normal dismiss + exit, and then — standing on `HALL1 (5,12)` — presses **West** and logs map+tile.
+
+## PREDICTIONS
+| # | reading | expected | why |
+|---|---|---|---|
+| S1 | `sidestep_from` | `HALL1 (5,12)` | the measured landing |
+| S2 | **`sidestep_map`** | **still `EVER_GRANDE_CITY_HALL1`** | `MB_NORMAL` cannot trigger a warp |
+| S3 | `sidestep_tile` | `(4,12)` | one tile west, and it is collision 0 so the step is legal |
+| S4 | `sidestep_warped` | **False** | the verdict |
+
+## FALSIFIERS
+* **SF1 — `sidestep_map` is `SIDNEYS_ROOM`.** Then the BUILD-SPEC half is right, the behaviour byte
+  is NOT the whole story, and ⛔ leg 1's hall walk must be column-constrained and defensive. This
+  would also mean a cleared room can be silently re-entered, which changes `ELITE_4_STATE` handling.
+* **SF2 — the bot does not move at all** (`sidestep_tile` still `(5,12)`). Then (4,12) is not walkable
+  in practice despite collision 0, and the hall is narrower than the grid says — also useful, and it
+  would make the whole question moot.
+* **SF3 — it moves somewhere other than (4,12).** The step model is wrong; distrust every other
+  position reading in this driver.
+
+## SIDESTEP RESULTS — GRADED (2026-09-16)
+
+**VERDICT: A SIDESTEP DOES NOT WARP. `#24-hallwarpdisputed` IS SETTLED, AND THE PUNCH-LIST HALF WAS
+WRONG.** All four predictions held; no falsifier fired.
+
+    [e4exit] SIDESTEP from ((16, 5), (5, 12)) -> (16, 5)(4, 12) warped=False
+
+| # | reading | measured | predicted? |
+|---|---|---|---|
+| S1 | `sidestep_from` | `HALL1 (5,12)` | ✅ |
+| S2 | **`sidestep_map`** | **`(16,5)` = still `EVER_GRANDE_CITY_HALL1`** | ✅ **the experiment** |
+| S3 | `sidestep_tile` | `(4,12)` | ✅ it moved — the step was legal |
+| S4 | `sidestep_warped` | **False** | ✅ |
+
+⭐ **TWO INDEPENDENT METHODS AGREE.** The behaviour byte (`probe_e4_halls.py`: all 15 backward tiles
+across all five halls read `'Normal'`, i.e. `MB_NORMAL`, which `IsWarpMetatileBehavior` rejects) and
+the live step (the bot stood on (4,12) and stayed). ⇒ `2026-09-04-ch24-LEAGUE-INTERIOR-ROUTING.md:139`
+is RIGHT; `2026-09-07-ch24-elite-four-BUILD-SPEC.md:157` and the punch-list copy are **REFUTED**.
+
+‼ **AND THE PROVENANCE EXPLAINS THE ERROR:** the refuted half was derived from
+`get_map_data(...).warps` — a warp-**EVENT TABLE**, which lists arrival destinations. A tile can be a
+warp's DESTINATION without being able to TRIGGER one. **Reading the destination table as a trigger
+list is the same class as reading a candidate list as an attempt.**
+
+⇒ **CONSEQUENCE FOR LEG 1: the hall may be walked normally.** The "column-constrained, never
+sidestep" caution is retired — it was guarding against a hazard that does not exist.
+⚠ Measured for HALL1 only; the other four halls share the behaviour reading but not the live step.
