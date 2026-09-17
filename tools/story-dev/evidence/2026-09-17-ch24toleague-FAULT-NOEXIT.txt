@@ -1,0 +1,26 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\635a63ec-b090-4669-bd00-9f5b14878bd9\scratchpad\tl_fault.log
+[setup] loaded save state post_e4ice_FINAL.ss1; build=sandbox
+[run] starting faithful loop for up to 8000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24ToLeagueMode.run   (state=OVERWORLD)
+[ch24toleague] PRE at=((24, 43), (15, 39))
+[ch24toleague] PRE party=[('Mightyena', '0x5c96ea9b'), ('Zigzagoon', '0x33cb74c3'), ('Sceptile', '0x863b0917'), ('Swellow', '0xb30a747'), ('Wailord', '0xfa51ecf3'), ('Castform', '0xc978d14e')]
+[ch24toleague] PRE wailord=['Dive', 'Surf', 'Ice Beam', 'Waterfall']
+[ch24toleague] ⚠ FAULT ARM NOEXIT — NOT leaving Victory Road, on purpose. The Fly below must be REFUSED by #24-flymaptype's guard.
+[ch24toleague] R-FLYABLE map_type=Underground  (Fly needs Route/Town/City/Ocean Route)
+[ch24toleague] FLY -> PokemonLeague from ((24, 43), (15, 39))
+[ch24toleague] FAILURE BotModeError: §Ch24 fly: Fly is REFUSED on `map_type=Underground` at ((24, 43), (15, 39)). Gen 3 allows it only on ['Route', 'Town', 'City', 'Ocean Route'] (`src/overworld.c` `Overworld_MapTypeAllowsTeleportAndFly`). ⇒ walk to an outdoor route/town/city FIRST. ‼ If this fired from VICTORY_ROAD_1F, that is the §Ch24 party's own grind tile: leave Victory Road to EVER_GRANDE_CITY before flying to the League door.
+[ch24toleague] RESULT end=((24, 43), (15, 39)) at_door=False battles=0 whiteouts=0
+[ch24toleague] RESULT wailord=['Dive', 'Surf', 'Ice Beam', 'Waterfall']  pids_stable=True
+[ch24toleague] RESULT missing=['R-EXITED', 'R-FLYABLE', 'R-FLOWN', 'R-CONTINUE'] failure=BotModeError: §Ch24 fly: Fly is REFUSED on `map_type=Underground` at ((24, 43), (15, 39)). Gen 3 allows it only on ['Route', 'Town', 'City', 'Ocean Route'] (`src/overworld.c` `Overworld_MapTypeAllowsTeleportAndFly`). ⇒ walk to an outdoor route/town/city FIRST. ‼ If this fired from VICTORY_ROAD_1F, that is the §Ch24 party's own grind tile: leave Victory Road to EVER_GRANDE_CITY before flying to the League door.
+[ch24toleague] ACCEPTANCE: FAIL
+[ch24toleague] capture: NOT REQUESTED (CH24_TOLEAGUE_CAPTURE unset)
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+f931: SAVED stall state #1 to stalls/repro-ml-f931.ss1 (bt='MIGHTYENA grew to LV. 75!')
+f1231: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (15, 39)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MIGHTYENA grew to LV. 75!' bot_mode=Manual
+f1231:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+f3031: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (15, 39)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MIGHTYENA grew to LV. 75!' bot_mode=Manual
+f3031:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]

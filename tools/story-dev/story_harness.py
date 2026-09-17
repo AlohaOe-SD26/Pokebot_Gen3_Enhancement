@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -16789,6 +16789,224 @@ class Ch24FlyToMode(BotMode):
 
 
 
+class Ch24ToLeagueMode(BotMode):
+    """§Ch24 LEG 0 — GET THE **L75** PARTY FROM THE GRIND TILE TO THE LEAGUE DOOR. Walk out, then fly.
+
+    ⛔⛔ WHY THIS LEG EXISTS AT ALL, AND WHY IT IS NOT "ONE FLY". The finished gauntlet party
+    (`post_e4ice_FINAL.ss1` — all four battlers **L75**, Ice Beam intact) is parked at
+    **VICTORY_ROAD_1F (15,39)**, the grind tile. §Ch24 starts at the **League door apron (18,6)**.
+    The plan of record was *"it is ONE Fly away"* and that is FALSE from there: **Fly is refused on
+    `map_type=Underground`** (`#24-flymaptype`, verified at `src/overworld.c:1366-1375` — the
+    allow-list is ROUTE / TOWN / OCEAN_ROUTE / CITY, exactly four). ⇒ **walk out first, then fly.**
+
+    ⭐ BOTH HALVES ARE ALREADY PROVEN **SEPARATELY**, WHICH IS THE ONLY REASON THIS IS CHEAP:
+      * §Ch23 leg 6 holds Down on this same arrow warp (`victory_road.py:2313-2325`);
+      * `ch24flyto` has flown `PokemonLeague` to `((0,8),(18,6))` at `ACCEPTANCE: PASS`.
+    ‼ **WHAT HAS NEVER BEEN DONE IS THE TWO IN SEQUENCE, FROM THIS PARTY** — and "two proven halves"
+    is not a proven whole, which is this project's most expensive recurring assumption.
+
+    ⛔ THE EXIT IS AN **ARROW WARP**, NOT A STEP. `MB_SOUTH_ARROW_WARP` fires only while the player
+    STANDS on the tile, FACES South and **HOLDS** Down; a single step onto it does nothing
+    (`victory_road.py:239-243`). Hence `_walk_through_warp("Down", ...)`, which keeps pressing, and
+    ⛔ NEVER `navigate_to((15,40))` — that tile is a warp trap and aiming a path at it is the
+    documented mistake this chapter has now made three times in other places.
+
+    ⛔ THE LANDING TILE AFTER THE EXIT IS **RECORDED, NOT PREDICTED.** Inbound was
+    (18,42) -> door (18,41) -> VR1F (15,40); assuming the outbound tile is the inbound one is exactly
+    the "never inherit position across a warp" trap. The leg asserts only the MAP, then reads the
+    tile and moves on.
+
+    Predictions filed BEFORE this ran:
+    `ai-research-notes/2026-09-17-ch24toleague-PREDICTIONS.md`.
+
+    Run:
+        PYTHONUTF8=1 py -3.12 story_harness.py post_e4ice_FINAL.ss1 --driver ch24toleague \
+            --frames 120000 --log toleague.log
+        CH24_TOLEAGUE_CAPTURE=post_ch24_atdoor_L75   # optional; never overwrites
+
+    ⚠ FAULT ARM `POKEBOT_CH24_FAULT_NOEXIT=1` skips the arrow-warp exit and flies from inside the
+    cave. The Fly must then be REFUSED by `#24-flymaptype`'s guard and the run must print
+    `ACCEPTANCE: FAIL` with `R-FLOWN` missing. ⭐ Double duty on purpose: it proves the exit is
+    load-bearing AND it re-exercises that guard in its NATURAL setting rather than a contrived one.
+    """
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24ToLeague"
+
+    def on_whiteout(self) -> bool:
+        # ⛔ A WHITEOUT HERE IS A HARD FAIL, NOT A RETRY, AND IT LOOKS LIKE SUCCESS. The respawn is
+        # EVER_GRANDE_CITY (18,6) — the very tile this leg is trying to reach — while `DoWhiteOut`
+        # has just HALVED the money that bought `LEAGUE_BASKET`. Latch it so the verdict can see it.
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24toleague] WHITEOUT #{self.whiteouts} — abort LATCHED. \u26d4 This is a FAIL even "
+            f"though the respawn tile (18,6) is the destination: money has been halved.")
+        return True
+
+    def on_battle_started(self, encounter):
+        # The one step onto the arrow warp is inside a cave with wild encounters, so a battle is
+        # POSSIBLE and is not a failure at L75 vs L40 wilds. It is COUNTED, because a frame figure
+        # from a run containing battles must be quoted as such.
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        # ‼ IMPORT EVERY HELPER HERE — a helper another function imported locally is not available
+        # to yours (this file records that trap three times).
+        from modules.pokemon_party import get_party
+        from modules.region_map import FlyDestinationRSE
+        from modules.story import pokemon_league as PL
+        from modules.story import victory_road as VR
+        from modules.story.early_game import wait_until_truly_controllable
+
+        TAG = "ch24toleague"
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        report: dict = {"readings": set()}
+        READINGS = ("R-PREMISE", "R-EXITED", "R-FLYABLE", "R-FLOWN", "R-CONTINUE", "R-ICEBEAM",
+                    "R-PIDS")
+
+        def _take(name):
+            report["readings"].add(name)
+
+        def _pids():
+            return [(m.species.name, hex(m.personality_value)) for m in get_party()
+                    if m is not None and getattr(m, "species", None) is not None]
+
+        def _wailord_moves():
+            w = next((m for m in get_party()
+                      if m is not None and getattr(m, "species", None) is not None
+                      and m.species.name == "Wailord"), None)
+            if w is None:
+                return None
+            return [lm.move.name for lm in w.moves if lm is not None and lm.move is not None]
+
+        yield from wait_until_truly_controllable()
+
+        # ---- R-PREMISE: the fixture must be what FIXTURES.md5 says -----------------------------
+        start = VR._where()
+        pids_before = _pids()
+        log(f"[{TAG}] PRE at={start}")
+        log(f"[{TAG}] PRE party={[(n, p) for n, p in pids_before]}")
+        log(f"[{TAG}] PRE wailord={_wailord_moves()}")
+        on_vr = VR._on_map(VR.VR1F)
+        report["start"] = start
+        report["started_on_victory_road"] = on_vr
+        failure = None
+
+        if not on_vr:
+            # ⛔ THE VACUITY CONJUNCT. Pointed at its own OUTPUT fixture (already at (18,6) on
+            # EVER_GRANDE_CITY) the driver refuses HERE and takes no readings — so a run that does
+            # nothing cannot print PASS.
+            log(f"[{TAG}] \u26d4 PREMISE FAILED — this leg must start on VICTORY_ROAD_1F, not {start}. "
+                f"Refusing, and taking NO readings.")
+            log(f"[{TAG}] RESULT premise_ok=False")
+            log(f"[{TAG}] ACCEPTANCE: FAIL")
+            context.set_manual_mode()
+            return
+        _take("R-PREMISE")
+
+        try:
+            # ---- out through the arrow warp ----------------------------------------------------
+            if _os.environ.get("POKEBOT_CH24_FAULT_NOEXIT", "").strip() == "1":
+                log(f"[{TAG}] \u26a0 FAULT ARM NOEXIT — NOT leaving Victory Road, on purpose. The Fly "
+                    f"below must be REFUSED by #24-flymaptype's guard.")
+            else:
+                if VR._here_tile() != VR.VR_EXIT_APRON:
+                    log(f"[{TAG}] EXIT: at {VR._here_tile()} -> apron {VR.VR_EXIT_APRON}")
+                    yield from VR._budgeted(
+                        VR._navigate_riding_out(VR.VR1F, VR.VR_EXIT_APRON), 20_000,
+                        f"{TAG}: -> VR exit apron")
+                    yield from wait_until_truly_controllable()
+                log(f"[{TAG}] EXIT: holding Down on the arrow warp {VR.VR_EXIT_ARROW}")
+                yield from VR._walk_through_warp("Down", VR.VR1F.value)
+                yield from wait_until_truly_controllable()
+                if not VR._on_map(VR.EG):
+                    raise BotModeError(
+                        f"§Ch24 leg 0: held Down on the arrow warp {VR.VR_EXIT_ARROW} from "
+                        f"{VR.VR_EXIT_APRON} and did not arrive in EVER_GRANDE_CITY \u2014 we are at "
+                        f"{VR._where()}. \u26d4 `MB_SOUTH_ARROW_WARP` needs the player STANDING on the "
+                        f"tile, FACING South and HOLDING Down; a step onto it does nothing."
+                    )
+                report["exited_to"] = VR._where()
+                # \u26d4 THE TILE IS RECORDED, NOT ASSERTED \u2014 see the docstring.
+                log(f"[{TAG}] R-EXITED exited_to={report['exited_to']}  (tile RECORDED, not predicted)")
+                _take("R-EXITED")
+
+            # ---- R-FLYABLE is taken by the production guard, but READ the map type too ----------
+            try:
+                from modules.map import get_map_data_for_current_position
+
+                report["map_type"] = get_map_data_for_current_position().map_type
+            except Exception as error:  # noqa: BLE001 - a reading that fails must say so
+                report["map_type"] = f"UNREADABLE: {type(error).__name__}"
+            log(f"[{TAG}] R-FLYABLE map_type={report['map_type']}  (Fly needs Route/Town/City/Ocean Route)")
+            if report["map_type"] in ("Route", "Town", "City", "Ocean Route"):
+                _take("R-FLYABLE")
+
+            # ---- the Fly ------------------------------------------------------------------------
+            log(f"[{TAG}] FLY -> PokemonLeague from {VR._where()}")
+            yield from PL.fly_to_destination(FlyDestinationRSE["PokemonLeague"], report)
+            for key in ("arrived", "moved", "party_pids_stable", "neighbours_reachable"):
+                if key in report:
+                    log(f"[{TAG}] R {key} = {report[key]}")
+            if report.get("moved") and VR._on_map(VR.EG):
+                _take("R-FLOWN")
+            if report.get("neighbours_reachable") == 4:
+                _take("R-CONTINUE")
+
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        # ---- the two cheap tripwires, taken whatever happened above ---------------------------
+        wailord = _wailord_moves()
+        report["wailord_after"] = wailord
+        if wailord is not None and "Ice Beam" in wailord:
+            _take("R-ICEBEAM")
+        pids_after = _pids()
+        report["pids_stable"] = pids_after == pids_before
+        if report["pids_stable"]:
+            _take("R-PIDS")
+
+        end = VR._where()
+        missing = [r for r in READINGS if r not in report["readings"]]
+        at_door = VR._on_map(VR.EG) and VR._here_tile() == (18, 6)
+        ok = (not missing and not self.whiteouts and failure is None and at_door
+              and report.get("started_on_victory_road") is True)
+
+        log(f"[{TAG}] RESULT end={end} at_door={at_door} battles={self.battles} "
+            f"whiteouts={self.whiteouts}")
+        log(f"[{TAG}] RESULT wailord={wailord}  pids_stable={report['pids_stable']}")
+        log(f"[{TAG}] RESULT missing={missing} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'}")
+
+        # ---- capture ---------------------------------------------------------------------------
+        stem = _os.environ.get("CH24_TOLEAGUE_CAPTURE", "").strip()
+        if not stem:
+            log(f"[{TAG}] capture: NOT REQUESTED (CH24_TOLEAGUE_CAPTURE unset)")
+        elif not ok:
+            log(f"[{TAG}] capture SKIPPED \u2014 the run did not PASS, and a fixture captured from a "
+                f"failed run is the worst kind of fixture: it looks pinned and is not what it claims.")
+        else:
+            path = Path(__file__).resolve().parent / "saves" / f"{stem}.ss1"
+            if path.exists():
+                log(f"[{TAG}] capture SKIPPED \u2014 {path.name} exists; refusing to overwrite.")
+            else:
+                try:
+                    path.write_bytes(context.emulator.get_save_state())
+                    log(f"[{TAG}] \u2705 CAPTURED -> {path.name} ({path.stat().st_size} bytes)")
+                except Exception as error:  # noqa: BLE001 - a failed capture must be LOUD
+                    log(f"[{TAG}] \u26d4 CAPTURE FAILED: {type(error).__name__}: {error}")
+
+        context.set_manual_mode()
+
+
 class E4DismissMode(BotMode):
     """`#24-e4postbattlestall` — DOES PRESSING `B` CLEAR THE §Ch24 POST-VICTORY MSGBOX? **A PROBE.**
 
@@ -20002,6 +20220,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24FlyMode()
         elif args.driver == "ch24flyto":
             context.bot_mode_instance = Ch24FlyToMode()
+        elif args.driver == "ch24toleague":
+            context.bot_mode_instance = Ch24ToLeagueMode()
         elif args.driver == "ch24icebeam":
             context.bot_mode_instance = Ch24IceBeamMode()
         elif args.driver == "ch24teachice":

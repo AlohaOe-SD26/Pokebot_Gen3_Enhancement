@@ -30870,3 +30870,46 @@ long this mon takes to win*, not *can it act at all*. C8 must be rebuilt from th
 
 ⭐ Found by a 4-angle design workflow whose adversarial framing caught it; verified here against the
 real party rather than taken on report.
+
+
+## 2026-09-17 (twelfth) — ✅✅✅ §Ch24 LEG 0: THE L75 PARTY IS AT THE LEAGUE DOOR. LEG 2 HAS A START STATE.
+
+`post_ch24_atdoor_L75.ss1`, md5 `8b8cd907db09a8316c7c8b12856c5e51`, EVER_GRANDE_CITY **(18,6)**.
+
+**Why this needed to be a leg.** The finished party was at VICTORY_ROAD_1F (15,39) and the plan said
+"the door is ONE Fly away". It is not, from there — Fly is refused on `map_type=Underground`
+(`#24-flymaptype`). The route is arrow-warp OUT, then Fly:
+
+    VICTORY_ROAD_1F (15,39)   --hold Down on the ARROW WARP (15,40)-->  EVER_GRANDE_CITY (18,42)
+    EVER_GRANDE_CITY (18,42)  --Fly to PokemonLeague-->                 (18,6), the door apron
+
+‼ Neither half was new — §Ch23 leg 6 holds Down on that same arrow warp, and `ch24flyto` had already
+flown `PokemonLeague`. **The SEQUENCE was new, and two proven halves are not a proven whole.**
+
+**THREE ARMS, ALL DRIVEN.** Predictions filed BEFORE the run
+(`ai-research-notes/2026-09-17-ch24toleague-PREDICTIONS.md`), graded after; evidence committed:
+
+    TREATMENT      ACCEPTANCE: PASS — all 7 readings, missing=[], battles=0, whiteouts=0
+    FAULT NOEXIT   ACCEPTANCE: FAIL — map_type=Underground, the PRODUCTION guard raises,
+                   missing=['R-EXITED','R-FLYABLE','R-FLOWN','R-CONTINUE']
+    VACUITY        pointed at its own OUTPUT it refuses at the premise, taking NO readings
+
+⭐ The one reading I deliberately did NOT predict — the outbound landing tile — came back as
+**(18,42)**, the same tile the inbound walk departed from. Declining to predict it was still correct:
+had it landed elsewhere, an asserted (18,42) would have failed a correct run, and *never inherit
+position across a warp* is not weakened by having been lucky once.
+
+⭐ The fault arm did double duty: it proved the exit is load-bearing **and** exercised
+`#24-flymaptype`'s guard in its NATURAL setting — a real leg that genuinely reaches it — rather than
+the hand-pointed driver it was first tested with. A guard whose only arm is contrived has never been
+shown to fire where it will actually be needed.
+
+**Verified by reloading the file**, not by the run's own report: all four battlers L75, Wailord
+`Dive, Surf, ICE BEAM, Waterfall`, bag 37/3/18/3.
+
+⚠ Mightyena arrives at **202/227** (grind damage). League 1F has a nurse at (3,2) **inside** the
+gate, and per `#24-leg2spec` O5 it is the LAST heal that exists before the zone seals — leg 2 should
+take it rather than open the gauntlet at 89%.
+
+⇒ **THE CHAPTER'S PRELIMINARIES ARE NOW ALL DONE:** the party is at the right level, carries every
+prepared move, and stands on the right tile. What remains is leg 2 itself.
