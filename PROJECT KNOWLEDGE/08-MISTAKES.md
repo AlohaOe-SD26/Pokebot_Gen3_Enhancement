@@ -18559,3 +18559,56 @@ made the discrepancy legible in one line instead of becoming a mystery.
 resource. Either read the whole pocket, or log the decision that names what was spent — ideally
 both, because the plan is the intent and the delta is the attempt, and the pair is what catches a
 mismatch.* (A candidate is not an attempt; here, a curated view was not the bag.)
+
+## 2026-09-17 (fifteenth) — THE STATE TABLE SAID "NEVER FOUGHT EITHER" AFTER I HAD WON TWO FIGHTS
+
+**Symptom.** A Tier 2 cold-start audit found `04-HANDOFF.md`'s STATE table still reading
+*"⛔⛔ §Ch24 IS NOT IMPLEMENTED … ⚠ PREDICTED, NOT OBSERVED; the bot has never fought either"* while
+the queue head on the same file said *"TWO OF FIVE ELITE FOUR ROOMS ARE BEATEN AT L75, WITH THEIR
+FIGHTS"*. A flat contradiction on the single most important fact in the document.
+
+**Root cause.** I updated the queue head — the place I had been editing all session — and never
+touched the STATE table, which is the *structured* summary a resumer is told to trust. **One fact,
+two places, one updated.** That is the P5 shape exactly, and P5 exists in `CLAUDE.md` because this
+has happened before.
+
+‼ **AND I HAD BEEN WARNED, BY MY OWN PROCESS, TWICE THE SAME DAY.** The diff advisory printed
+*"On finishing an item, GREP THE TREE FOR ITS SLUG and re-read every hit"* after each of the
+relevant commits. I read it, fixed the handoff↔punch-list pair it names, and did not grep for the
+FACT — only for the slug. The STATE table does not mention `#24-sidneyL75` or `#24-phoebeL75`; it
+makes the same claim in prose, so a slug grep could never have found it.
+
+⇒ **PREVENTION RULE.** *Grep for the CLAIM, not only for the slug. When a session changes a fact
+("§Ch24 is not implemented", "the bot has never fought X"), search for the fact's WORDING across the
+current-state files — the place that contradicts you may never name the item.* Concretely: after a
+first-of-its-kind result, grep for the negation you have just falsified (`"has never"`,
+`"NOT IMPLEMENTED"`, `"no fixture"`, `"never fought"`).
+
+⭐ **WHY TIER 2 CAUGHT IT AND TIER 1 DID NOT:** Tier 1 reads a DIFF and is asked about the pairs the
+diff touches. The STATE table was not in the diff — being stale is a *sin of omission*, and a diff
+cannot show you the line you failed to edit. Only the cold reader, handed the whole file with no
+knowledge of what changed, sees both halves at once. ⇒ that is the argument for Tier 2 surviving two
+clean Tier 1s, which `CLAUDE.md` already makes and which this session re-earned.
+
+## 2026-09-17 (sixteenth) — THE FILE PROMISED "WHERE WE ARE RIGHT NOW" AND OPENED WITH HISTORY
+
+**Symptom.** Same audit: `00-README.md` describes `04-HANDOFF.md` as *"Where we are RIGHT NOW + what's
+next"*, but after one pointer sentence the file's literal opening content was a stack of banners it
+**self-labels as HISTORY**, and the true current state sat ~450 lines further in — inside a single
+line that had grown to ~45,000 characters of chronologically APPENDED updates.
+
+**Root cause.** Two habits compounding. Every session appended its update to the end of the queue-head
+line (so the newest, most operative text was hardest to reach), and every session prepended its
+banner to the top of the file (so the top filled with history). The net effect: **the two places a
+cold reader looks first were the two places least likely to be current.**
+
+**The fix that worked.** (1) A one-line CURRENT-STATE answer immediately after `Last updated:` — the
+state, the next action, the fixture, and a one-hit grep for the detail. (2) The queue head now LEADS
+with current state and is explicitly marked *"PREPEND, DO NOT APPEND"*. (3) The two stale competing
+`NEXT ACTION` arrows were retired in place.
+
+⇒ **PREVENTION RULE.** *A document whose reader is told it shows "right now" must answer that in its
+first few lines, with no scrolling and no hops. If the newest text is reached by appending, the
+document's most current sentence is also its least findable — so prepend current state and append
+only history.* ‼ And measure it the way the audit did: **count the HOPS a cold reader needs.** Three
+hops through self-declared-stale text is a failure even when every hop is technically correct.
