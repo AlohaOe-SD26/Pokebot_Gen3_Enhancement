@@ -31013,3 +31013,49 @@ are now in `08-MISTAKES.md` with prevention rules.
 ⭐ The verdict survived anyway because it grades the CONSEQUENCE — `DEFEATED_ELITE_4_PHOEBE` and a
 level-up — facts about the world rather than about my timing. That is the argument for grading
 consequences over observations.
+
+## 2026-09-17 (fifteenth) — 🏁 SESSION WRAP-UP: §Ch24 WENT FROM "NO GAUNTLET CODE" TO TWO ROOMS DRIVEN
+
+### What shipped, in order
+
+1. **`#24-fixturelineage`** — measurement retired a planned repair. `post_grind_L60.ss1` was a dead
+   branch; the grind moved to the already-prepped `post_ch24ready.ss1`.
+2. **`#24-planorder`** — `TRAVEL_PLAN` would silently sacrifice Swellow's better move if the prep
+   plans ran out of order. Guarded, A/B'd, **PROMOTED**.
+3. **`#24-learnhmcoverage`** — the learn policy's type census ignored HM moves, so it traded the
+   team's only **Ice Beam** for a fourth Water move at L59. Fixed; proven by a LIVE A/B.
+4. **`#24-flymaptype`** — `fly_to_destination` had no guard for "does this map allow Fly", and the
+   L75 party was parked in a cave. Fourth guard added, driven both ways.
+5. **`#24-leg0toleague`** — the party got from the grind tile to the League door (arrow-warp out,
+   then Fly). Three arms driven.
+6. **`#24-sidneyL75`** — first Elite Four fight at L75: **won, 15 HP, zero faints.**
+7. **`#24-phoebeL75`** — **Phoebe beaten**, and the repeating unit proven to compose.
+8. Gates **#61** (run-recipe vs dead fixtures), **#62** (`KI-74` in both directions), **#63** (HM
+   coverage). Suite 60 → 63 enforcing.
+
+### What this session got WRONG, and it is the more useful list
+
+* **Retracted a false mechanism** ("the grind overwrote moves") — then **retracted its replacement**
+  ("the bot declines level-up moves"), which was a one-lineage observation promoted to a law and used
+  to dismiss the objection that came true.
+* **Shipped `#24-ghostreplacement` green and it did nothing.** The gate arm was a synthetic mon that
+  does not exist in the party. REOPENED.
+* **Three predicate errors, same shape** — a type chart missing a resistance, a collision test
+  asserting `== 1` where the codebase tests `!= 0`, and a Fly check testing `Indoor` when the rule is
+  a four-item allow-list. All three tested something NARROWER than the claim; two produced false
+  greens.
+* **A driver cannot watch its own battle** — one cause faked three readings in a single run.
+* **An instrument watched a hand-picked list of items** while the heal spent a different one.
+
+⭐ Every one of those is in `08-MISTAKES.md` with a prevention rule, and three of them were caught by
+checks written EARLIER THE SAME DAY (the manifest-schema refusal, the run-recipe gate, and the
+diff advisory). That is the living-mistakes machinery paying for itself inside one session.
+
+### State at wrap-up
+
+Tree clean, pushed. **ALL 63 ENFORCING GATES PASS.** Drift is **2, deliberately** — three fixes
+awaiting one more gauntlet drive before promoting together. §Ch24 is **2 of 5 rooms** driven.
+⛔ Segment 24 is still NOT wired, and must not be until its three prerequisites are met.
+
+⭐ **NEW STANDING CHANNEL:** the user has offered themselves as a **gameplay oracle** — see
+`06-DECISIONS-LOG.md` 2026-09-17 (second). It settled three questions in one exchange.
