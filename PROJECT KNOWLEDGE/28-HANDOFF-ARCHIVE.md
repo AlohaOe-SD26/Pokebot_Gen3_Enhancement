@@ -11029,3 +11029,36 @@ Superseded by three later batches (2026-09-11 overnight, 2026-09-12 confirmatory
 >    ⚠ **HONEST LIMIT:** BEFORE is `--build custom`, AFTER `--build sandbox`, so the aggregate is not a single-variable A/B. The load-bearing per-class deltas (preflight 11→0, Surf/Dive 7→0) are each tied to a specific change with its own mechanism.
 >    ⭐ **THIS IS THE FIRST BATCH WITH VERIFIABLE BUILD PROVENANCE.** `code=8a8ae2d9` is recorded AND the sandbox tree was clean at launch (checked), so the commit named is genuinely what ran. All three of today's fixes are ancestors of it (verified with `git merge-base --is-ancestor`).
 >    ⭐ **WHAT IT IS MEASURING:** whether `#24-whiteoutloop` (was 14 of 53 = 26%) and §Ch23 (11 of 53 = 21%) actually shrink. ⚠ **EXPECT THE FAILURE TO MOVE, NOT VANISH** — see the next line. The previous batch for comparison is `x4-runs/20260907-113851` (53 ended runs, 0 finished).
+
+
+## §Ch21 recon instruments + the §Ch21 start-fixture note — ARCHIVED 2026-09-17 (R3 budget)
+⛔ Moved VERBATIM out of `04-HANDOFF.md`, not deleted. §Ch21 and §Ch22 are FINISHED CHAPTERS, so their recon recipes are reference rather than the critical path, and the handoff crossed its 900-line budget when §Ch24 room 3 shipped. ⭐ The lesson in the last line is why this is archived rather than dropped.
+
+### §Ch21 recon instruments (both NEW 2026-08-24, both fault-tested)
+```
+cd tools/story-dev
+PYTHONUTF8=1 py -3.12 probe_ch21_topology.py            # warps/sizes/dive+surface tiles from ROM headers
+POKEBOT_CH21PROBE_FAULT=warpcoord   ... same ...        # its self-test: MUST print 2 FAIL and exit 1
+
+PYTHONUTF8=1 py -3.12 probe_skypillar_clean_layout.py   # the CLEAN-layout staircase + the deliberate fall
+POKEBOT_SKYPILLAR_FAULT=nofall      ... same ...        # its self-test: MUST print 1 FAIL and exit 1
+```
+⛔ `probe_skypillar_clean_layout.py` is NOT in `run_gates.py` — it fetches decomp layout binaries over
+the network and a standing gate must not need the net. ‼ It exists because a Tier 1 review REFUSED the
+atlas's central finding while it rested on an uncommitted script: right numbers, un-re-runnable = NOT PROVEN.
+
+### Capture the §Ch21 start fixture — ⛔ ALREADY DONE, do NOT redo
+`saves/post_ch20.ss1` exists (`--driver ch20chapter` + `CH20_CAPTURE=`, written only on
+`ACCEPTANCE: PASS`, so the file's existence IS the acceptance record). Verify a fixture with
+`probe_anchor_inventory.py --filter <name>` — the FILE, never the driver's log (playbook §2b).
+
+
+## The DISARMED `KI-96` repro note — ARCHIVED 2026-09-17 (R3 budget)
+⛔ Already disarmed to a comment on 2026-09-17; moved out of the current-state file here. `KI-96` was SOLVED and DRIVEN 2026-09-07.
+
+
+#  ⛔ DISARMED 2026-09-17 — WAS RUNNABLE, NOW A COMMENT. The note below already said “NOT A REPRO ANY MORE”, but the COMMAND stayed executable for nine days, so a cold reader pasting this block still ran it — on `post_grind_L60.ss1`, which is now a DEAD BRANCH too. Kept for the record: PYTHONUTF8=1 py -3.12 story_harness.py post_grind_L60.ss1 --driver ch23chapter --frames 400000
+#   ⛔⛔ NOT A REPRO ANY MORE — `KI-96` WAS SOLVED AND DRIVEN 2026-09-07 (evening) and this file's
+#   own banner says so, yet this block kept COMMANDING its repro for nine days. *(It read: “THE
+#   `KI-96` REPRO. Wedges by ~f27k (~6 min) in the in-battle PARTY MENU … LEVELLING ALONE DOES NOT
+#   UNBLOCK §Ch24.”)* The COMMAND stays: it is a valid §Ch23 chapter drive from the L60 party.

@@ -31059,3 +31059,86 @@ awaiting one more gauntlet drive before promoting together. §Ch24 is **2 of 5 r
 
 ⭐ **NEW STANDING CHANNEL:** the user has offered themselves as a **gameplay oracle** — see
 `06-DECISIONS-LOG.md` 2026-09-17 (second). It settled three questions in one exchange.
+
+---
+
+## 2026-09-17 (late) — §Ch24 ROOM 3: **GLACIA IS BEATEN AT L75**, and the fixture ladder now runs to room 4
+
+**WHAT SHIPPED.** `--driver ch24glacia` (`Ch24GlaciaMode`, `tools/story-dev/story_harness.py`) — the
+THIRD instance of the §Ch24 repeating unit: dismiss → bag heal → Phoebe's door → HALL2 → Glacia's
+door → locate her LIVE → engage → grade → capture. `ACCEPTANCE: PASS`, all 7 readings, `missing=[]`,
+`battles=1`, `whiteouts=0`, `DEFEATED_ELITE_4_GLACIA=True`, exit door OPEN in the live grid.
+**Three of five Elite Four rooms are now driven and beaten.**
+
+**AND THE MISSING RUNG OF THE FIXTURE LADDER.** `Ch24PhoebeMode` gained a **step-9 post-fight
+capture** (`CH24_PHOEBE_POST_CAPTURE`). Its existing step-6 capture fires at "battle started" and —
+because a driver is SUSPENDED across the entire fight — actually lands INSIDE the battle, so it is a
+damage-table artifact and not a start state. The new capture is deliberately taken at the **same
+lifecycle point `post_sidney_L75.ss1` occupies** (post-victory, victory msgbox still parked, at
+(6,6)), which is what lets a room-N copy consume it with the step-1 dismiss it already has.
+Guarded on **won ∧ in-room ∧ exit-door-OPEN-in-the-LIVE-grid** — a fixture is never minted from a
+lost fight or from a room the bot could not leave.
+
+**NEW PINNED FIXTURES.** `post_phoebe_L75.ss1` (`87d2fe61774a…`, `VAR_ELITE_4_STATE=2`) and
+`post_glacia_L75.ss1` (`da06afe74131…`, `VAR_ELITE_4_STATE=3` — exactly Drake's gate value). Both
+verified BY RELOAD with controls that fire, and with **movesets printed** (the reading
+`probe_anchor_inventory.py` cannot give, whose absence once cost a 2.4-hour run).
+
+**WHY IT WAS BUILT THE WAY IT WAS — an adversarial recon round (12 agents, 6 angles each refuted by
+an independent verifier) changed three things before a single frame ran, and caught one defect in
+code I had already shipped:**
+
+1. ⛔ **THE HANDOFF'S "ONLY THREE CHANGES" WAS INCOMPLETE.** `VAR_ELITE_4_STATE` is a **ladder** —
+   Phoebe's `OnFrame` gates on `==1`, Glacia's on `==2` — a constraint on the FIXTURE'S LINEAGE that
+   no warp table or collision grid can reveal. And there is a **third env var**: a copy inheriting
+   `CH24_PHOEBE_POST_CAPTURE` finds that file present, logs `SKIPPED`, and **silently mints no
+   next-room fixture on a successful run.**
+2. ⛔ **A LANDMINE IN MY OWN JUST-SHIPPED CODE.** The capture guard read `R.get("phoebe_flag")`. A
+   room-N copy that renames that dict key at its one obvious site (the reading) and not at the guard
+   gets `None` ⇒ `won` silently `False` ⇒ **the capture refuses to mint the next room's fixture on a
+   PERFECT run**, logging a refusal as though the run had failed. Both drivers now read the flag
+   through a single `VICTORY_FLAG` class constant with two consumers.
+3. ⭐ **A CLAIM OF MINE WAS REFUTED AND THE INSTRUMENT IS NOW IN THE TREE.** I cited
+   `probe_e4_halls.py` as MEASURED evidence that Hall 2 joins Phoebe's room to Glacia's. Its endpoint
+   labels are a **hardcoded string in its own `HALLS` table** — it reads collision only and never
+   touches a warp destination. NEW **`probe_e4_warp_chain.py`** reads the ROM warp table and follows
+   the chain, with **HALL1 as a control that reproduces the already-live-driven result**. The whole
+   chain is now endpoint-measured: `SIDNEY→HALL1→PHOEBE→HALL2→GLACIA→HALL3→DRAKE`.
+
+**THE `\p` QUESTION IS CLOSED.** Our docs flagged Glacia as "the first room whose in-battle lose-text
+carries `\p`" — true (she carries two), but harmless, and the alarming reading of it was wrong. That
+text is printed by the BATTLE script (`printstring STRINGID_TRAINER1LOSETEXT`; `trainerbattle_no_intro`
+contains no `msgbox`), and `BattleListener._wait_until_battle_is_over` is `while self._in_battle` —
+**unbounded and self-extending**, so longer text buys more B-pressing automatically. Precedent,
+measured in this harness: **Juan's carries SIX `\p` and Roxanne's four plus an `\l`, and the bot beat
+both.** Glacia's POST-battle msgbox is in fact SHORTER than Phoebe's (2 pages vs 4).
+
+**RESULTS FROM THE DRIVE ITSELF:**
+* ⭐⭐ **The faint chooser drew CORRECTLY, live, in a third room.** Mightyena fainted; the
+  replacement was **Wailord**, not Zigzagoon. Evidence is the end-state: **Zigzagoon `48/48` and
+  Castform `103/103` with ZERO EXP gained** ⇒ neither mule ever entered, while Wailord took the last
+  KO (exp `583024→586292`) and all 208 damage. ‼ One trajectory, against an ICE specialist — this
+  does **not** refute `#24-ghostreplacement`, whose measured failure is a Ghost + `cannot_damage`.
+* ‼‼ **ATTRITION IS NOW REAL.** Sidney→Phoebe cost **13 HP total**. Glacia cost **a KO plus 208 HP**,
+  and repairing it spends **the first of only three Revives** (+1 Hyper Potion, +1 Full Restore) —
+  measured offline by running `plan_healing` against the captured state, with a healthy-party
+  CONTROL that plans nothing. `#24-leg2spec` needs this number.
+* ⭐ **The bag-heal readiness threshold is bracketed:** it planned a heal at `187/227` (82%) in the
+  Phoebe run and planned **nothing** at `214/230` (93%) here ⇒ the threshold is between 82% and 93%.
+* ⭐ **Trap 2 reproduced in a third room:** `elite4_state_in_room = 2` while standing in Glacia's
+  room, while the captured fixture reads **3** — the entry cutscene had not finished writing it.
+  ⇒ *never dispatch on `VAR_ELITE_4_STATE`*, now confirmed for Sidney, Phoebe **and** Glacia.
+* ⚠ **`hp_entering_glacia` is a FAKE reading** — byte-identical to `hp_after_glacia` because the
+  driver is suspended across the fight, so "before" was sampled AFTER. Trap 1, reproduced. Kept as a
+  record; **it is not a before/after pair.**
+
+**ARMS RUN:** TREATMENT PASS · **VACUITY pointed at the driver's OWN OUTPUT** (the test `story-drive`
+§2 demands) refuses naming `DEFEATED_ELITE_4_GLACIA=True`, zero readings · VACUITY wrong-room refuses
+likewise · **FAULT `POKEBOT_CH24_FAULT_NOENGAGE`** (new, registered in `29-DISABLED-FEATURES-REGISTRY.md`)
+walks the whole unit identically then presses NOTHING ⇒ `battles=0`, FAIL for its own reason.
+⚠ **Honest scope:** that arm's missing `G-CONTINUE` is because execution never REACHED it, **not**
+because the door was measured shut.
+
+⛔ **WHAT THIS DOES NOT DO.** Segment 24 is still NOT wired — all three prerequisites stand. Room 4
+(Drake) and room 5 are not built, and **room 5 is not this unit**: Wallace starts himself from a
+`lockall` with no flag guard, so the room-unit shape does not apply to him (`#24-leg2spec`).

@@ -18612,3 +18612,77 @@ first few lines, with no scrolling and no hops. If the newest text is reached by
 document's most current sentence is also its least findable — so prepend current state and append
 only history.* ‼ And measure it the way the audit did: **count the HOPS a cold reader needs.** Three
 hops through self-declared-stale text is a failure even when every hop is technically correct.
+
+---
+
+## 2026-09-17 (seventeenth) — I SHIPPED A GUARD KEYED ON A DICT ENTRY THAT ITS OWN COPY-TARGET WOULD RENAME
+
+**SYMPTOM (found before it could fire — by an adversarial reviewer, not by me).** I added a
+post-fight capture to `Ch24PhoebeMode` whose guard read `won = R.get("phoebe_flag") is True`, while
+the reading itself was written 50 lines earlier as `R["phoebe_flag"] = ...`. The whole point of that
+class is to be COPIED per room, and the reading key is exactly the kind of name a copy renames.
+
+**ROOT CAUSE.** A room-N copy that renames `R["phoebe_flag"] → R["glacia_flag"]` at its one obvious
+site — the reading — and not at the guard gets `R.get("phoebe_flag") → None`. `None is True` is
+False, so `won` is silently False and the capture **REFUSES TO MINT THE NEXT ROOM'S FIXTURE ON A
+PERFECT RUN**, logging a refusal that reads exactly like a failed drive. Nothing raises. The run
+prints `ACCEPTANCE: PASS` and quietly produces no artifact.
+
+**THE FIX THAT WORKED.** Both drivers now carry a `VICTORY_FLAG` class constant with TWO consumers —
+the P-OUTCOME reading and the capture guard — and the guard reads the FLAG, not the reading of it.
+One rename, both sites follow.
+
+**PREVENTION RULE.** ⛔ **A guard must read the THING, not a READING of the thing.** If a guard keys
+on a dict entry, a local, or a log field that a sibling/copy will rename, it is one careless rename
+away from silently inverting. Bind it to a single named constant, or re-derive it at the point of use.
+
+‼ **AND NOTE THE SHAPE, because this project keeps meeting it:** the failure is a *silent False*, not
+an exception — the same shape as `get_event_flag("<typo>")` returning **False** for a flag name that
+does not exist (measured this session; it does NOT raise). **A predicate that cannot distinguish
+"false" from "I could not find it" is not a predicate.**
+
+
+## 2026-09-17 (eighteenth) — I CITED A PROBE AS "MEASURED" FOR A CLAIM THE PROBE DOES NOT MEASURE
+
+**SYMPTOM.** I wrote, in a committed predictions file, that Hall 2 joins Phoebe's room to Glacia's
+was **MEASURED** by `probe_e4_halls.py`, quoting its output row `HALL2  PHOEBE  -> GLACIA   10 (5,12) (5,2)`.
+
+**ROOT CAUSE.** That probe iterates a literal `HALLS` table whose endpoint labels **its own author
+typed**. It reads `collision` only — `walkable_column`, `collision_at` — and never touches a warp
+destination. So the row genuinely MEASURES the corridor's SHAPE (10 steps, (5,12)→(5,2), with
+controls) and merely ASSERTS its connectivity. I read the label as if it were an output. Routing was
+precisely what the recon existed to establish, so this was the one claim I most needed to get right.
+
+**THE FIX THAT WORKED.** New `probe_e4_warp_chain.py` reads the ROM warp table via `get_map_data(...).warps`
+and follows the chain, with **HALL1 as a control** — HALL1's endpoints are already LIVE-DRIVEN, so a
+method that reproduces them works. Result: `HALL2 warp 0 (5,12)→PHOEBES_ROOM, warp 1 (5,2)→GLACIAS_ROOM`.
+The whole chain `SIDNEY→HALL1→PHOEBE→HALL2→GLACIA→HALL3→DRAKE` is now endpoint-measured.
+
+**PREVENTION RULE.** ⛔ **Before citing a probe's output as evidence, check that the probe READS the
+thing the claim is about.** A string in the tool's own configuration table is not a measurement — it
+is the author's belief, printed back at you in the format of a result. ⇒ *This is rule 7
+("instrument the ACTION, not the input to the action") wearing a different hat: a LABEL is an input.*
+
+---
+
+## 2026-09-17 (nineteenth) — I HANDED THE TIER 1 REVIEWER A DIFF THAT UNDERCOUNTED THE ITEM'S OWN DOC FOOTPRINT
+
+**SYMPTOM.** The Tier 1 reviewer reported, as its own finding: *"the `docdiff.txt` I was handed covered
+only `03-PUNCH-LIST.md` and `04-HANDOFF.md`, but live `git status` at review time showed
+`05-KNOWN-ISSUES.md` and `06-DECISIONS-LOG.md` were also modified (+1 and +39 lines) as part of this
+same item."* It checked them anyway and they were consistent — but it had to notice the gap first.
+
+**ROOT CAUSE.** I generated the diff and launched the reviewer, and THEN kept working — appending to
+`05-KNOWN-ISSUES.md`, `06-DECISIONS-LOG.md` and `08-MISTAKES.md`. The package was accurate at the
+moment it was built and stale by the time it was read. ⛔ **The reviewer is asked "do these halves
+agree?", so a pair whose second half is not in the package is a pair it cannot check** — and Tier 1
+exists precisely because prose self-checks fail here. A reviewer silently given half an item is a
+reviewer returning a PASS narrower than it appears.
+
+**THE FIX THAT WORKED.** None was needed this time — the reviewer caught it and widened its own scope,
+which is exactly why the tier requires an INDEPENDENT agent rather than a fork.
+
+**PREVENTION RULE.** ⛔ **Build the Tier 1 package AFTER the last doc edit, never before — and give it
+the FILE LIST (`git status`), not only a diff.** A diff is a snapshot; `git status` is a question the
+reviewer can re-ask at read time. ⇒ *Same family as "a candidate is not an attempt": a snapshot of
+the work is not the work.*

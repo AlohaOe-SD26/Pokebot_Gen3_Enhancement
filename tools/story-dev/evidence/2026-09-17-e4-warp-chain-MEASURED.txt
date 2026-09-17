@@ -1,0 +1,50 @@
+Running mGBA 0.10.2
+====================================================================================================
+  THE E4 WARP CHAIN — destinations READ FROM THE ROM WARP TABLE, not from a label
+====================================================================================================
+
+  SIDNEY   EVER_GRANDE_CITY_SIDNEYS_ROOM
+      warp 0: tile (6, 13) elev 3  ->  EVER_GRANDE_CITY_HALL5  warp_id 1
+      warp 1: tile (6, 2) elev 0  ->  EVER_GRANDE_CITY_HALL1  warp_id 0
+
+  HALL1    EVER_GRANDE_CITY_HALL1
+      warp 0: tile (5, 12) elev 3  ->  EVER_GRANDE_CITY_SIDNEYS_ROOM  warp_id 1
+      warp 1: tile (5, 2) elev 0  ->  EVER_GRANDE_CITY_PHOEBES_ROOM  warp_id 0
+      warp 2: tile (4, 12) elev 3  ->  EVER_GRANDE_CITY_SIDNEYS_ROOM  warp_id 1
+      warp 3: tile (6, 12) elev 3  ->  EVER_GRANDE_CITY_SIDNEYS_ROOM  warp_id 1
+
+  PHOEBE   EVER_GRANDE_CITY_PHOEBES_ROOM
+      warp 0: tile (6, 13) elev 3  ->  EVER_GRANDE_CITY_HALL1  warp_id 1
+      warp 1: tile (6, 2) elev 0  ->  EVER_GRANDE_CITY_HALL2  warp_id 0
+
+  HALL2    EVER_GRANDE_CITY_HALL2
+      warp 0: tile (5, 12) elev 3  ->  EVER_GRANDE_CITY_PHOEBES_ROOM  warp_id 1
+      warp 1: tile (5, 2) elev 0  ->  EVER_GRANDE_CITY_GLACIAS_ROOM  warp_id 0
+      warp 2: tile (4, 12) elev 3  ->  EVER_GRANDE_CITY_PHOEBES_ROOM  warp_id 1
+      warp 3: tile (6, 12) elev 3  ->  EVER_GRANDE_CITY_PHOEBES_ROOM  warp_id 1
+
+  GLACIA   EVER_GRANDE_CITY_GLACIAS_ROOM
+      warp 0: tile (6, 13) elev 3  ->  EVER_GRANDE_CITY_HALL2  warp_id 1
+      warp 1: tile (6, 2) elev 0  ->  EVER_GRANDE_CITY_HALL3  warp_id 0
+
+  HALL3    EVER_GRANDE_CITY_HALL3
+      warp 0: tile (5, 12) elev 3  ->  EVER_GRANDE_CITY_GLACIAS_ROOM  warp_id 1
+      warp 1: tile (5, 2) elev 0  ->  EVER_GRANDE_CITY_DRAKES_ROOM  warp_id 0
+      warp 2: tile (4, 12) elev 3  ->  EVER_GRANDE_CITY_GLACIAS_ROOM  warp_id 1
+      warp 3: tile (6, 12) elev 3  ->  EVER_GRANDE_CITY_GLACIAS_ROOM  warp_id 1
+
+  DRAKE    EVER_GRANDE_CITY_DRAKES_ROOM
+      warp 0: tile (6, 13) elev 3  ->  EVER_GRANDE_CITY_HALL3  warp_id 1
+      warp 1: tile (6, 2) elev 0  ->  EVER_GRANDE_CITY_HALL4  warp_id 0
+
+====================================================================================================
+  WHAT THIS DECIDES
+    * HALL2 must show a warp -> PHOEBES_ROOM and a warp -> GLACIAS_ROOM. If it does, the
+      'PHOEBE -> GLACIA' endpoint claim is MEASURED rather than asserted.
+    * CONTROL: HALL1 must show SIDNEYS_ROOM + PHOEBES_ROOM, which is already driven LIVE.
+====================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-17_16-03-55.ss1 created!
+Updated `current_state.ss1`!

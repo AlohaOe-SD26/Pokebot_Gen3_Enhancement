@@ -5727,3 +5727,42 @@ party is expected to need revives RARELY at this level advantage, and the 3 we c
   sealed zone, and worse, the ROM collision grid will happily PLAN that walk (the mirror-`KI-74`
   divergence). Reachability checks in League interiors read `_live_collision_grid`, never
   `get_map_data`.
+
+---
+
+## 2026-09-17 (late) — Mint room 3's start fixture by adding a POST-FIGHT capture to the proven Phoebe driver, not by building a two-room driver
+
+**THE PROBLEM.** Room 3 (Glacia) needed a post-Phoebe start state and none existed. The only Phoebe
+artifact was `in_phoebe_battle_L75.ss1`, which is taken INSIDE the battle: `Ch24PhoebeMode`'s step-6
+capture fires at "battle started", and because a driver is SUSPENDED for the whole fight
+(`BattleListener` owns the controller — which is why `battle_frames_waited` measures 0) that call
+actually lands at the fight's END, still in battle. It is a damage-table artifact, not a start state.
+
+**THE DECISION.** Add a step-9 POST-FIGHT capture to `Ch24PhoebeMode` behind a new env var
+(`CH24_PHOEBE_POST_CAPTURE`), re-run the already-proven driver, and build room 3 on the fixture that
+falls out. ⭐ **And take it at the SAME LIFECYCLE POINT `post_sidney_L75.ss1` occupies** — post
+victory, victory msgbox still parked, standing at (6,6) — so the new fixture is a DROP-IN analogue of
+the one the template already consumes and the room-N copy handles it with the step-1 dismiss it
+already has. Guarded on **won ∧ in-room ∧ exit-door-OPEN-in-the-LIVE-grid**.
+
+**ALTERNATIVES REJECTED.**
+* **A two-room driver (Sidney → Phoebe → Glacia in one run).** Rejected: it duplicates work that is
+  already proven, makes every room-3 iteration pay for a full Phoebe fight, and — the deciding
+  objection — a failure in the PROVEN half would waste the UNPROVEN half's measurement. It also
+  leaves the fixture ladder with a permanent hole, so room 4 would face the same problem again.
+* **Reuse `in_phoebe_battle_L75.ss1`.** Rejected: it is an in-battle state, as above.
+* **Capture a "clean" state (msgbox cleared, script inactive, controllable).** Rejected, and this one
+  was actively argued for by a recon agent proposing a nine-conjunct guard. ⛔ **An independent
+  refuter loaded `post_sidney_L75.ss1` — the fixture this project already drives from successfully —
+  and found it reads printer ACTIVE at `WaitForButton`, victory script ACTIVE, controllable FALSE.**
+  Those conjuncts would have REFUSED to mint the very fixture the working driver consumes. ⇒ a gate
+  demanding a clean frame is not "the safe version", it is a DIFFERENT fixture contract that breaks
+  the existing one.
+
+**WHY THE THREE CONJUNCTS ARE THE RIGHT THREE.** They are about whether the fixture is USABLE, not
+about whether the frame is tidy: a fixture minted from a LOST fight, or from a room whose exit door
+never opened, would send the next session to debug a driver against a poisoned start state. ⚠ SCOPE:
+the door conjunct is meaningful at CAPTURE time only. Each room's `OnLoad` calls
+`PokemonLeague_EliteFour_EventScript_ResetAdvanceToNextRoom` whenever its DEFEATED flag is set, so
+merely RELOADING a post-victory save re-opens the door — which is why the driver must never be
+graded from its own output, and why a VACUITY arm pointed at exactly that is run.
