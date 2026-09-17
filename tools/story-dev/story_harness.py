@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -16905,6 +16905,174 @@ class E4DismissMode(BotMode):
         context.set_manual_mode()
 
 
+class E4ExitMode(BotMode):
+    """`#24-e4postbattlestall` — CAN THE BOT ACTUALLY WALK OUT OF AN ELITE FOUR ROOM? **A PROBE.**
+
+    ⛔⛔ THIS IS THE `KI-48` ARM, AND IT IS NOT THE ONE `e4dismiss` RAN. Two things are already
+    measured and neither is this: (1) `B` clears the post-victory msgbox and control returns in 297
+    frames, with a no-press CONTROL proving the box does not self-clear; (2) `calculate_path` returns
+    a 6-waypoint route to (6,2) that goes around the standing trainer and lands on `HALL1 (5,12)`,
+    with a positive control, a negative control and a discriminator. ‼ **A `calculate_path` OK IS NOT
+    PROOF THE DRIVEN NAVIGATOR CAN EXECUTE IT** — that is `KI-48`, a standing rule here. This probe
+    tests the NAVIGATOR. Predictions filed before the run:
+    `ai-research-notes/2026-09-16-e4exit-PREDICTIONS.md`.
+
+    ⭐ IT WRITES NO NEW MACHINERY, WHICH IS THE POINT OF THE RECON. The dismiss presses `B` on the
+    same gate `_wait_until_cutscene_over` uses, and the exit is the SHIPPED
+    `early_game._pass_through_door()` — "robustly warp through a door/warp tile by making it a
+    NAVIGATION target". ⛔ Not a hand-rolled press loop onto the door tile: this project measured
+    that stopping short and hand-stepping is flaky (the Petalburg-Woods stall, ML-9).
+
+    ⛔ THE GRADE IS NOT "WE ARRIVED". It is arrival **plus a real `calculate_path` off the landing
+    tile** toward the hall's north door — because §Ch15 ended four floors underground, §Ch18 on an
+    eleven-tile island and §Ch19 in a living room, and ALL THREE PASSED THEIR OWN TESTS.
+
+    FAULT ARM: `POKEBOT_E4EXIT_FAULT_NOWALK=1` dismisses and then SKIPS the walk, so "we ended in
+    Hall 1" cannot be satisfied by anything except the walk itself.
+
+    Run: PYTHONUTF8=1 py -3.12 story_harness.py post_sidney_door_open.ss1 --driver e4exit --frames 8000
+    """
+
+    PRESS_PERIOD = 6
+    DISMISS_BUDGET = 1200
+    WALK_BUDGET = 4000
+
+    @staticmethod
+    def name() -> str:
+        return "E4Exit"
+
+    def on_whiteout(self) -> bool:
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        log("[e4exit] WHITEOUT — a whiteout here forfeits the gauntlet; recording, not recovering.")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        log(f"[e4exit] ⛔ BATTLE #{self.battles} — the defeated trainer should NOT re-fight. "
+            f"Falsifier F4.")
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.player import player_avatar_is_controllable
+        from modules.tasks import get_global_script_context
+        from modules.text_printer import TextPrinterState, get_text_printer
+        from modules.story.early_game import _check_abort, _pass_through_door
+
+        TAG = "e4exit"
+        SIDNEY = MapRSE.EVER_GRANDE_CITY_SIDNEYS_ROOM
+        HALL1 = MapRSE.EVER_GRANDE_CITY_HALL1
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        R: dict = {}
+        no_walk = _os.environ.get("POKEBOT_E4EXIT_FAULT_NOWALK") == "1"
+        R["arm"] = "CONTROL (dismiss, then NO walk)" if no_walk else "TREATMENT (dismiss + walk out)"
+
+        def _parked():
+            try:
+                p = get_text_printer(0)
+                return bool(p.active) and p.state == TextPrinterState.WaitForButton
+            except Exception:
+                return False
+
+        def _script():
+            try:
+                return bool(get_global_script_context().is_active)
+            except Exception:
+                return False
+
+        failure = None
+        try:
+            R["start_map"] = _where_ch24()[0]
+            R["start_tile"] = _where_ch24()[1]
+            log(f"[{TAG}] ARM {R['arm']}  start={R['start_map']}{R['start_tile']}")
+
+            # ---- 1. DISMISS (measured already; here it is a PRECONDITION, not the result) -------
+            frames = 0
+            while frames < self.DISMISS_BUDGET and not player_avatar_is_controllable():
+                _check_abort()
+                if frames % self.PRESS_PERIOD == 0 and (_script() or _parked()):
+                    context.emulator.press_button("B")
+                frames += 1
+                yield
+            R["dismiss_frames"] = frames
+            R["controllable_after_dismiss"] = bool(player_avatar_is_controllable())
+            log(f"[{TAG}] dismissed in {frames} frames; "
+                f"controllable={R['controllable_after_dismiss']}")
+
+            # ---- 2. WALK OUT through the runtime-opened door ------------------------------------
+            if no_walk:
+                log(f"[{TAG}] FAULT NOWALK — not walking. Idling the walk budget instead so the "
+                    f"arms are comparable.")
+                for _ in range(600):
+                    _check_abort()
+                    yield
+                R["walk_frames"] = 0
+            else:
+                before = context.emulator.get_frame_count()
+                try:
+                    yield from _budgeted_local(
+                        _pass_through_door((6, 2), tuple(SIDNEY.value)),
+                        self.WALK_BUDGET, "walk out through (6,2)")
+                except Exception as error:  # noqa: BLE001 — a refusal IS the reading
+                    failure = f"{type(error).__name__}: {error}"
+                    log(f"[{TAG}] WALK FAILED {failure}")
+                R["walk_frames"] = context.emulator.get_frame_count() - before
+
+            R["end_map"] = _where_ch24()[0]
+            R["end_tile"] = _where_ch24()[1]
+            R["arrived_in_hall1"] = R["end_map"] == tuple(HALL1.value)
+
+            # ---- 3. CAN IT CONTINUE? (never a flag — a real path, with a control) --------------
+            for key, target in (("can_continue_to_hall_door_5_2", (5, 2)),
+                                ("NEGCONTROL_path_to_0_0", (0, 0))):
+                try:
+                    from modules.map_path import calculate_path
+
+                    _mg, _here = _where_ch24()
+                    _p = calculate_path((_mg, _here), (_mg, target))
+                    R[key] = f"OK {len(_p)} waypoint(s)"
+                except Exception as exc:  # noqa: BLE001
+                    R[key] = f"REFUSED {type(exc).__name__}: {exc}"
+        except Exception as error:  # noqa: BLE001 — ONE wrapper so the verdict always prints
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+
+        arrived = R.get("arrived_in_hall1") is True
+        can_go = str(R.get("can_continue_to_hall_door_5_2", "")).startswith("OK")
+        neg_ok = str(R.get("NEGCONTROL_path_to_0_0", "")).startswith("REFUSED")
+        if no_walk:
+            passed = (R.get("controllable_after_dismiss") is True and not arrived
+                      and self.battles == 0)
+            log(f"[{TAG}] GRADE(CONTROL) expected to STAY PUT; arrived={arrived} "
+                f"battles={self.battles}")
+            log(f"[{TAG}] ⛔ If this arm ARRIVES, falsifier F2 fired: something other than our walk "
+                f"moves the bot, and the treatment attributes to the navigator what it did not do.")
+        else:
+            passed = (failure is None and arrived and can_go and neg_ok
+                      and self.battles == 0 and self.whiteouts == 0)
+            log(f"[{TAG}] GRADE(TREATMENT) arrived={arrived} can_continue={can_go} "
+                f"neg_control_refused={neg_ok} battles={self.battles} "
+                f"whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if passed else 'FAIL'}")
+        context.set_manual_mode()
+
+
+def _budgeted_local(generator, frames: int, what: str):
+    """Bound any generator. ⛔ `story-drive`: every yielding call inside an explicit frame budget."""
+    used = 0
+    for _ in generator:
+        used += 1
+        if used > frames:
+            raise BotModeError(f"budget exhausted after {frames:,} frames: {what}")
+        yield
+
+
 class Ch24IceBeamMode(BotMode):
     """`#24-icebeamtrip` — fetch TM13 ICE BEAM from the Abandoned Ship. **PRODUCTION CODE.**
 
@@ -19596,6 +19764,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch23ShopMode()
         elif args.driver == "ch23chapter":
             context.bot_mode_instance = Ch23ChapterMode()
+        elif args.driver == "e4exit":
+            context.bot_mode_instance = E4ExitMode()
         elif args.driver == "e4dismiss":
             context.bot_mode_instance = E4DismissMode()
         elif args.driver == "ch24probe":

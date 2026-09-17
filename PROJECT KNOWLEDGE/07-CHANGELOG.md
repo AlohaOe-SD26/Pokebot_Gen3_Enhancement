@@ -29831,3 +29831,49 @@ twice in one probe: **instrument the action, not its size or its input.**
 **FILES:** `tools/story-dev/story_harness.py`, `PROJECT KNOWLEDGE/{03,04}`,
 `ai-research-notes/{2026-09-16-ch24-leg1-RECON-6-ANGLES, 2026-09-16-e4dismiss-PREDICTIONS}.md`,
 evidence `2026-09-16-e4dismiss-TREATMENT.stdout.txt`.
+
+
+## 2026-09-16 (twelfth) — THE BOT WALKS OUT OF SIDNEY'S ROOM. §Ch24 LEG 1'S MECHANICS ARE FULLY MEASURED, WITH NO NEW MACHINERY
+
+**`#24-e4postbattlestall`.** `--driver e4exit` (new) answers the last open question in front of leg 1:
+**can the DRIVEN NAVIGATOR execute the route the planner returns?** That is `KI-48`, a standing rule
+here — *a `calculate_path` OK is not proof the bot can walk it* — and it had to be its own arm.
+
+| reading | TREATMENT | CONTROL (`POKEBOT_E4EXIT_FAULT_NOWALK=1`) |
+|---|---|---|
+| `controllable_after_dismiss` | `True` (297 frames) | `True` (297) |
+| **`end_map`** | **`(16,5)` = `EVER_GRANDE_CITY_HALL1`** | `(16,0)` = `SIDNEYS_ROOM` |
+| **`end_tile`** | **`(5,12)`** | `(6,6)` |
+| `walk_frames` | **164** | 0 |
+| `battles` / `whiteouts` | 0 / 0 | 0 / 0 |
+| `can_continue_to_hall_door_5_2` | **OK 10 waypoint(s)** | **REFUSED** |
+
+⭐⭐ **`(5,12)` IS THE TILE THE WARP BACKBONE PREDICTED** — derived independently from `map.json` by
+the routing recon, before any of this ran. Two different methods, same tile.
+
+⭐ **THE CONTINUATION CHECK EARNED ITS KEEP:** it REFUSES in the control arm, so it is not a formality
+that passes wherever you stand. The §Ch15/§Ch18/§Ch19 "passed while stranded" shape is actively
+excluded rather than assumed away — which is exactly what the diff-advisory R-ACCEPTGRADE demands.
+
+⭐⭐ **NO NEW MACHINERY WAS WRITTEN.** The exit is the SHIPPED `early_game._pass_through_door()`
+("robustly warp through a door/warp tile by making it a NAVIGATION target"), not a hand-rolled press
+loop onto the door tile — this project already measured that stopping short and hand-stepping is
+flaky (the Petalburg-Woods stall, ML-9). ⇒ **leg 1 is a composition of helpers that already exist**,
+and §G' of the routing note is wrong to spec a BFS over `_live_collision_grid` for the door.
+
+**THE FULL CHAIN, NOW MEASURED END TO END FOR ONE ROOM:**
+1. `B` clears the post-victory msgbox; control in 297 frames. *(A/B'd — the box does not self-clear.)*
+2. `calculate_path` routes around the standing trainer and follows the warp. *(Positive control,
+   negative control, and a `warps_to` discriminator at `(6,1)`.)*
+3. The navigator executes it → `HALL1 (5,12)` in 164 frames. *(A/B'd against a no-walk arm.)*
+4. From there it can path on to the hall's north door — Phoebe's entrance.
+
+⛔ **WHAT THIS IS NOT.** It is a PROBE, not a leg: nothing is wired into `pokemon_league.py`, and
+`story_mode.py` still has no Segment 24. And **only SIDNEY's room is measured** — Phoebe/Glacia/Drake
+rest on byte-identical ROM layouts plus a shared victory script, which is an INFERENCE. Glacia is
+additionally the first room whose in-battle lose-text carries `\p`, so it is the first that exercises
+our KI-93 in-battle dismiss at all.
+
+**FILES:** `tools/story-dev/story_harness.py` (`E4ExitMode` + `_budgeted_local` + registration),
+`PROJECT KNOWLEDGE/{03,04,29}`, `ai-research-notes/2026-09-16-e4exit-PREDICTIONS.md` (new; predictions
+filed BEFORE the run and graded after), and two evidence transcripts.
