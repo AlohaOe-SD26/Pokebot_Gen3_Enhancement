@@ -30353,3 +30353,64 @@ not a one-Fly hop from that save the way it is from `post_ch24ready.ss1`.
 ⛔ **WHAT THIS DOES *NOT* FIX:** the grind STALL (15 wins, then 338 consecutive flees with zero EXP)
 is a separate, still-unexplained defect. PP and HP were both refuted as causes. Repairing the moveset
 does not address it, and the stall must be diagnosed before any long grind is trusted to finish.
+
+
+## 2026-09-17 — THE GRIND STALL IS DIAGNOSED END TO END, AND IT IS THE **THIRD ROUTE INTO ONE PREDICATE**
+
+Also this session: a full private backup of the repo was pushed to `AlohaOe-SD26/polebot-backup-2`
+(verified PRIVATE; 1 branch / 146 tags matching local; HEAD `71634e5a` identical both sides), the
+daily upstream check was stamped (still `5dd898f8`, tree hashes equal), and `promote.py --check`
+reports **drift 0 — nothing to promote.**
+
+### THE STATE NOBODY HAD INSPECTED, NOW PINNED
+
+Yesterday's entry said the stall's mechanism was UNKNOWN and that "out of PP" and "low HP" were
+REFUTED. ⛔ **That refutation was WRONG, and the error was mine: I read the START save.** The run had
+been killed, so no shutdown save existed. The fix was trivial — **run it again with a bounded
+`--frames 90000` so it exhausts its budget and shuts down cleanly.** The stall reproduces in ~29,000
+frames (~30 seconds), and the resulting state is now PINNED as `grind_stall_ppzero.ss1`
+(md5 `9ca6c133e297`, `verify_fixtures --assert` passing):
+
+    slot0  Wailord L61 225/309   Dive:10/10   Surf:0/15   Water Spout:0/5   Waterfall:0/15
+
+### THE CHAIN, EVERY LINK VERIFIED
+
+1. Wailord (slot 0, the trainee) wins 15 battles and burns its attacking PP to **zero**.
+2. The only move left is **`Dive` — and Dive is in `banned_moves`** (38 entries; Dive/Fly/Dig are
+   banned as two-turn/field moves). Verified by loading the real profile config.
+3. `_util.py:255-266` scores a 0-PP move `-1` **and** a banned move `-1` ⇒ `max_strength <= 0` ⇒
+   `get_strongest_move_against` **returns None**.
+4. The training strategy cannot pick a move and **FLEES**.
+5. The flee path never triggers `train_team`'s *"heal on HP **or PP** dip"*, so PP is never restored.
+6. ⇒ encounter → flee → encounter → flee, for ever, **zero EXP**.
+
+⭐ **AND THE "15 WINS" IS THE PP BUDGET, NOT A MAGIC CONSTANT:** Surf 15 + Waterfall 15 + Water Spout
+5 = **35 PP** ≈ 15 battles × ~2 moves per battle. An adversarial angle had asked whether 15 was
+suspicious; it is, and this is why.
+
+### ‼‼ THE STRUCTURAL FINDING: ONE PREDICATE, THREE FAILURE MODES
+
+`max_strength <= 0 → return None` is reachable **three** ways, and this session has now measured or
+verified all three:
+
+| route | where it bites | consumer behaviour |
+|---|---|---|
+| **type immunity** (Normal/Fighting into a Ghost) | Phoebe, `#24-ghostzerodamage` | `_fight_on` → move **slot 0** → 0-damage loop |
+| **PP exhaustion** | the grind, `#24-grindppstall` | training path → **flee for ever** |
+| **a banned move being the only one left** | the grind (Dive) | same |
+
+⇒ **The fix belongs at the CONSUMERS, not the predicate:** `max_strength <= 0` must mean *"I cannot
+fight — heal / rotate / recover"*, never *"flee and retry the same situation for ever"* and never
+*"use slot 0 regardless"*. ⛔ **And it must NOT be fixed by unbanning Dive** — the ban is deliberate,
+and unbanning would only move the wall to the next empty-PP state.
+
+✅ **AN A/B TARGET NOW EXISTS**: `grind_stall_ppzero.ss1`. A working fix must make the bot RECOVER
+from that save (heal, restoring PP); the save as it stands is the failing arm.
+
+### THE LESSON, WHICH IS ABOUT INSTRUMENTS AND NOT ABOUT PP
+
+I refuted the right hypothesis using the wrong state, and said "REFUTED" rather than "not yet
+observed". **A reading taken from a state that is not the state under test refutes nothing** — and
+the correct state was ~30 seconds away the whole time, because the defect is early and deterministic.
+⇒ when a run must be killed, the FIRST question is "what bounded run would have captured this
+cleanly?", not "what can I infer from what I have?"

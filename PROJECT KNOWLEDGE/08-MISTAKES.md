@@ -18188,3 +18188,35 @@ Ice Beam, Fly, HP and a position. A fixture that satisfies the tool can still be
 that is blind to a property does not become sighted by being run carefully. ⭐ Corollary, cheap and
 general: **a long unattended run should be checked against its own prediction within the first few
 minutes**, because that is when an estimate wrong by >2× is still cheap to abandon.
+
+
+## 2026-09-17 — I WROTE "REFUTED" FROM A STATE THAT WAS NOT THE STATE UNDER TEST
+
+**SYMPTOM.** The `ch24grind` stall (15 wins, then hundreds of consecutive flees with zero EXP) had two
+obvious candidate causes: no PP, and low HP. I checked both, found them healthy, and recorded in the
+changelog and in BOTH halves of the handoff that they were **REFUTED** and the mechanism was
+**UNKNOWN**. ⛔ **PP was the cause.** The stall state reads `Surf:0/15  Water Spout:0/5
+Waterfall:0/15` with only a BANNED move (`Dive`) left.
+
+**ROOT CAUSE.** I had killed the run, so no shutdown save existed and the capture only fires on a
+completed level step. I therefore read the **START** save — the one the run began from — and reported
+its healthy PP as evidence about the STALL. Those are different states separated by 29,000 frames and
+15 battles, which is exactly the interval in which the PP was spent. ‼ I even wrote the caveat
+("those readings are from the START save") into the agent brief — and then let the word "REFUTED"
+stand in the documents anyway.
+
+**WHAT IT COST, AND WHAT IT NEARLY COST.** It sent a four-angle agent fan-out out with two correct
+hypotheses explicitly marked "do NOT re-propose without new evidence". The diagnosis was ~30 seconds
+of emulator time away the whole time.
+
+**THE FIX THAT WORKED.** Re-run the SAME driver with a bounded `--frames 90000` so it exhausts its
+budget and shuts down cleanly, writing the save. The stall is early (f28,779) and deterministic, so
+the repro is trivial once you ask for it.
+
+**PREVENTION RULE.** ⛔ **A READING FROM A STATE THAT IS NOT THE STATE UNDER TEST REFUTES NOTHING.**
+Before writing "REFUTED", name the state the reading came from and check it IS the state in question;
+if it is not, the honest word is **"not yet observed"**. ⭐ And when a run has to be killed, the first
+question is *"what bounded run would have captured this cleanly?"* — a frame budget that ends the run
+on its own is the difference between a save and an inference. ‼ Corollary: **do not hand agents a
+hypothesis marked "already refuted" unless the refutation came from the right state** — a wrong
+exclusion is more expensive than no exclusion, because it is not re-examined.
