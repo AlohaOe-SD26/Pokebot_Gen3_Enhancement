@@ -55,7 +55,7 @@ following the reading order above, which stopped at 16.*
 - `/escalate-sequence` — LAST rung: if a sequence still can't be resolved, generate the
   two research prompts (primer + question) for an external agent; verify the answer
   before building. See `15-ESCALATION-RESEARCH.md`.
-- `/livetest` — batch fresh-run sweeps → a Live Test report (see `04-HANDOFF.md`).
+- `/livetest` — batch fresh-run sweeps → a Live Test report. ⛔ *(The pointer here used to say “see `04-HANDOFF.md`”; a Tier 2 audit found the handoff contains no Live Test section at all — one unrelated prose hit. Read the skill itself, `.claude/skills/`, and the batch entries in `07-CHANGELOG.md`.)*
 
 ## File rules
 - **Current-state files — `01`-`05`, plus `24`, `25`, `29`, `30`:** edit in place. They must always

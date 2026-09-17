@@ -29877,3 +29877,52 @@ our KI-93 in-battle dismiss at all.
 **FILES:** `tools/story-dev/story_harness.py` (`E4ExitMode` + `_budgeted_local` + registration),
 `PROJECT KNOWLEDGE/{03,04,29}`, `ai-research-notes/2026-09-16-e4exit-PREDICTIONS.md` (new; predictions
 filed BEFORE the run and graded after), and two evidence transcripts.
+
+
+## 2026-09-16 (thirteenth) — TIER 2 CAUGHT A HANDOFF THAT WAS **VACUOUS ON THE FIXTURE IT PUSHED HARDEST**
+
+A cold-start auditor was given ONLY `04-HANDOFF.md` + `00-README.md` and told to try to *begin* the
+next item. It could — *"Could I start right now with no human input — YES"* — and every file, symbol,
+line, fixture and md5 the marker named checked out, including two line citations flagged as sighting
+aids. **But it computed the discriminator on the named fixtures, and that is where the defect was.**
+
+    post_ch24_atdoor.ss1        ELITE_4_STATE=0   DEFEATED_ELITE_4_SIDNEY=False
+    post_sidney_door_open.ss1   ELITE_4_STATE=1   DEFEATED_ELITE_4_SIDNEY=True   <- before a frame runs
+    (positive control LANDMARK_POKEMON_LEAGUE True on both — the reader was not blind)
+
+The handoff told the next session to grade leg 1 on `DEFEATED_ELITE_4_SIDNEY` and **never said which
+fixture the leg starts from**. ⇒ graded from the post-victory save, **leg 1 passes without doing
+anything.** ‼ And the vacuous fixture is the one my own documents recommend most — because it IS the
+stall state, which makes the dismiss and door questions cost ~4,000 frames instead of ~29,000. **The
+property that makes it cheap for those questions — the victory has already happened — is exactly the
+property that destroys a grade for this one.** Nothing else could have caught it: Tier 0 cannot see
+it, Tier 1 reviews a diff and the pairs all agreed, and the probes themselves are fine (they grade on
+control and position, never the flag). This is CLAUDE.md's Tier 2 clause (4) paying for itself twice.
+
+**FIXED:** the live `➡➡➡` marker and the punch-list item now name the start fixture and carry the
+measurement that explains why the other one is vacuous. Prevention rule in `08-MISTAKES`: *when a
+handoff names a grading signal it must name the start fixture in the same breath, and say which
+available fixtures make that grade vacuous — "grade on X" and "start from Y" are one instruction.*
+
+**FOUR MORE FROM THE SAME AUDIT, ALL FIXED:**
+* **P1 break, and a nasty one.** `NEXT ACTIONS`' own preamble sends a cold reader to *"the ‼ YOU ARE
+  HERE block at the top of this file"* **by name** — and that block's headline still read *"THE LIVE
+  WORK IS §Ch23 — VICTORY ROAD"*, 11 days after §Ch23 shipped. The named pointer overrides the top
+  block's "everything further down is HISTORY" hedge, so the stale headline was being read as current
+  by exactly the reader it misdirects.
+* **A self-contradiction inside one line.** The banner says **"DO NOT BUILD THE BFS §G' SPECS"**, and
+  ~2,000 characters later its own retraction label said the §G' spec *"is still the design for leg 1
+  once the drive above lands"* — the drive HAD landed, so the label was recommending the thing the
+  ban forbids. The label was the wrong half; the ban stands.
+* **`#24-e4postbattlestall`'s status was never stated**, and its magnitude appeared three incompatible
+  ways in one file: `~1,200` (not a duration at all — the first rung of a `NO-PROGRESS` counter
+  ladder), `1,800` (the wait's timeout BOUND) and `1,802` (the measured control-to-drop delta, the
+  bound plus two frames of Manual teardown). All three now distinguished in place.
+* **`00-README.md`'s `/livetest` row pointed at `04-HANDOFF.md`** for a Live Test report the handoff
+  does not contain — a dead pointer misdirects every future cold start, not just one (pair P4).
+
+⚠ **NOT FIXED, RECORDED:** the work item the marker commands has no `#24-*` slug of its own (it is
+only "QUEUE ITEM 0"), so there is no punch-list status to cross-check it against — the auditor
+enumerated all 59 `#24-*` slugs to establish that. Worth a slug next time it is touched.
+
+**FILES:** `PROJECT KNOWLEDGE/{00-README,03-PUNCH-LIST,04-HANDOFF,07-CHANGELOG,08-MISTAKES}.md`.

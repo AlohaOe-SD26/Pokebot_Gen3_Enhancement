@@ -18014,3 +18014,38 @@ The slug finds the places that already cite the item; the *claim* finds the plac
 without naming it, which is where it does damage. And ⛔ **hand a reviewer `git status` in full, not
 the diff you think is relevant** — a review is only as good as its inputs, and choosing the inputs is
 choosing the findings.
+
+
+## 2026-09-16 (twelfth) — I HANDED OFF A SPEC THAT WAS VACUOUS ON THE FIXTURE IT PUSHED HARDEST
+
+**SYMPTOM.** My handoff told the next session to build §Ch24 leg 1 and to grade it on
+`DEFEATED_ELITE_4_SIDNEY`. It named two fixtures and never said which one the LEG runs from. A Tier 2
+cold-start auditor read the flag out of both, offline:
+
+    post_ch24_atdoor.ss1        ELITE_4_STATE=0   DEFEATED_ELITE_4_SIDNEY=False
+    post_sidney_door_open.ss1   ELITE_4_STATE=1   DEFEATED_ELITE_4_SIDNEY=True   <- before a frame runs
+
+⇒ **a leg graded on that flag from the post-victory fixture passes without doing anything.**
+
+**ROOT CAUSE, AND IT IS THE PART WORTH KEEPING.** The vacuous fixture is the one my own documents
+recommend most enthusiastically, for a reason that is *correct in its own context*: it IS the stall
+state, and it makes the dismiss and door questions cost ~4,000 frames instead of ~29,000. I wrote
+"this fixture is the cheap way to measure X" five times without noticing that the property making it
+cheap for X — **the victory has already happened** — is exactly the property that destroys a grade
+for Y. ‼ **A fixture is not fast or slow in the abstract; it is fast or slow FOR A QUESTION, and the
+shortcut that makes one question cheap can make the next one meaningless.**
+
+**WHY NOTHING CAUGHT IT EARLIER.** Tier 0 can't see it. Tier 1 reviews a doc DIFF and the pairs all
+agreed. The probes themselves are fine — they grade on control and position, never on the flag. It
+took an agent that tried to *begin the next item* and computed the discriminator on the named
+fixture, which is precisely why CLAUDE.md's Tier 2 clause (4) exists. It has now paid for itself
+twice.
+
+**THE FIX THAT WORKED.** One sentence in the live `➡➡➡` marker and in the punch-list item naming the
+start fixture and saying, with the measurement, why the other one is vacuous.
+
+**PREVENTION RULE.** ⛔ **WHEN A HANDOFF NAMES A GRADING SIGNAL, IT MUST NAME THE START FIXTURE IN
+THE SAME BREATH — AND STATE WHICH AVAILABLE FIXTURES MAKE THAT GRADE VACUOUS.** "Grade on X" and
+"start from Y" are one instruction, not two. If several fixtures are in play, read the signal out of
+each and write the table down; the one that is cheapest to reach is the one most likely to be
+vacuous, because cheapness usually means the work is already done.
