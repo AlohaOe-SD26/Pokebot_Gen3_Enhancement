@@ -15432,9 +15432,41 @@ class Ch24GrindMode(BotMode):
         return True
 
     def on_battle_started(self, encounter):
-        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+        # ⛔⛔ MIRROR PRODUCTION'S SWAP-TRAIN GATE — WITHOUT IT THIS DRIVER STALLS FOR EVER.
+        # `#24-grindppstall`, MEASURED 2026-09-16/17: this method used to
+        # `return StoryItemBattleStrategy()` unconditionally, and the grind then won exactly 15
+        # battles and fled the next 457 in a row, gaining ZERO EXP, until it was killed.
+        # THE CHAIN (measured to the turn in the run's own debug log — 20 UseMove: 5x Surf then
+        # 15x Waterfall, PP counting 5..1 then 15..1, and 457 RunAway after):
+        #   · the lead spends its last usable PP; `Dive` is BANNED (`profiles/battle.yml`), so
+        #     `move_is_usable` is False for every move;
+        #   · `LevelUpLeadBattleStrategy.decide_turn` tests only the ACTIVE battler and calls
+        #     `handle_lead_cannot_battle()`, which under the shipped `lead_cannot_battle_action=flee`
+        #     FLEES — the `rotate` branch is dead code by default;
+        #   · `train_team`'s heal trigger `_team_is_out_of_pp()` is PARTY-scoped and returns False
+        #     while five untouched bench mons still have PP ⇒ NO HEAL IS EVER ATTEMPTED;
+        #   · so the next encounter is identical. It fled a Golbat at 9/120 HP.
+        # ⭐ PRODUCTION DOES NOT HAVE THIS BUG. `StoryMode.on_battle_started` installs
+        # `SwapTrainBattleStrategy` when `swap_train_active()`, whose docstring says it exists so a
+        # lead that "ran out of usable moves" ROTATES "rather than FLEE for zero XP (old behaviour)"
+        # and "the training loop then heals normally". ⇒ the defect was HARNESS-ONLY: this driver is
+        # not a `StoryMode`, so it silently got the parent's flee behaviour.
+        # ‼ AND IT IS A RECURRENCE THE TREE ALREADY PREDICTED: `victory_road.py:3404` documents the
+        # IDENTICAL defect in `Ch23TrainMode` — "the DRIVER NEVER INSTALLED SWAP-TRAINING". A second
+        # driver repeated it because the fix was written as prose in a comment, not as shared code.
+        from plugins.custom_modes.story_mode import (
+            StoryItemBattleStrategy,
+            SwapTrainBattleStrategy,
+        )
 
         self.battles = getattr(self, "battles", 0) + 1
+        try:
+            from modules.story.early_game import swap_train_active
+
+            if swap_train_active() and encounter is not None:
+                return SwapTrainBattleStrategy()
+        except Exception:  # noqa: BLE001 — mirrors production's own guard at story_mode.py:3478
+            pass
         return StoryItemBattleStrategy()
 
     def run(self):

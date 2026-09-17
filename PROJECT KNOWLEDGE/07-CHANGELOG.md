@@ -30414,3 +30414,62 @@ observed". **A reading taken from a state that is not the state under test refut
 the correct state was ~30 seconds away the whole time, because the defect is early and deterministic.
 ⇒ when a run must be killed, the FIRST question is "what bounded run would have captured this
 cleanly?", not "what can I infer from what I have?"
+
+
+## 2026-09-17 (second) — THE GRIND STALL IS **FIXED AND A/B-PROVEN** — and it was HARNESS-ONLY, not production
+
+⛔ **FIRST, A SEVERITY CORRECTION TO THE ENTRY ABOVE.** I filed this as a defect that "must be fixed
+before any long grind is trusted", which implied production risk. **It does not exist in production.**
+`StoryMode.on_battle_started` (`story_mode.py:3477`) already installs **`SwapTrainBattleStrategy`**
+when `swap_train_active()`, and that class exists for exactly this case — its docstring:
+*"(or ran out of usable moves): rather than FLEE for zero XP (old behaviour) [rotate to a team-mate]…
+The training loop then heals normally. **(User: swap instead of flee.)**"*
+**`Ch24GrindMode` is a HARNESS driver, not a `StoryMode`**, so it returned `StoryItemBattleStrategy()`
+unconditionally and silently inherited the parent's FLEE behaviour.
+
+‼‼ **AND IT IS A RECURRENCE THE TREE HAD ALREADY WRITTEN UP.** `victory_road.py:3404` documents the
+IDENTICAL defect in `Ch23TrainMode`: *"⇒ THE REAL MECHANISM: the DRIVER NEVER INSTALLED SWAP-TRAINING.
+`Ch23TrainMode.on_battle_started` returns `StoryItemBattleStrategy()`, and `SwapTrainBattleStrategy`
+is constructed ONLY at `story_mode.py:2513` inside `StoryMode.on_battle_started` — and
+`Ch23TrainMode` is not a `StoryMode`."* **A second driver repeated it**, because that finding was
+recorded as PROSE IN A COMMENT next to the first driver rather than as shared code or a gate.
+
+### THE FIX, AND THE A/B
+
+`Ch24GrindMode.on_battle_started` now mirrors production's gate verbatim, including its `try/except`.
+Same fixture (`post_grind_L60.ss1`), same `--frames 90000`:
+
+    BEFORE   15 Won / 50 RanAway   — 20 turn decisions: 5x Surf, 15x Waterfall, then 457 RunAway
+    AFTER    38 Won /  0 RanAway   — 52 turn decisions, and THE BENCH FIGHTS:
+                                     Strength x4, Wing Attack x3, Take Down x3 + Wailord's water moves
+
+* Wailord **L60 → L62** — STEP 1 completed, which never once happened before.
+* The bench gains XP: Mightyena **+2,467**, Sceptile **+1,097**, Swellow **+662** (all three were
+  byte-frozen across the entire failing run).
+* ⭐ **A HEAL DEMONSTRABLY FIRED:** Wailord used **Water Spout 6 times** having begun that arm at
+  **0/5 PP** ⇒ PP was restored. That is the *"training loop then heals normally"* half of the
+  docstring, observed rather than assumed.
+
+⚠ The BEFORE arm is the same fixture replayed, so a determinism check; the AFTER arm is a genuine
+behaviour change. ✅ The failing arm is preserved (`grind_stall_ppzero.ss1` +
+`probe_grind_stall_predicate.py`) so the regression is re-checkable without re-deriving it.
+
+### WHAT THE AGENT ADDED THAT I DID NOT HAVE
+
+My own diagnosis reached the right predicate (`max_strength <= 0 → None`) but attributed the missing
+recovery vaguely to "the flee path bypasses the heal". A recon angle found **the run's own per-turn
+decision log**, which I had never cited, and measured the mechanism exactly:
+* **20 UseMove across the whole failing run — 5× Surf then 15× Waterfall, PP counting 5…1 then
+  15…1** — i.e. precisely the fixture's remaining PP, then 457 × `RunAway`.
+* The first flee **ran away from a Golbat at 9/120 HP** — which refutes every "encounter too strong /
+  not worth the EXP" hypothesis in one line.
+* **The real gap is a SCOPE MISMATCH:** the flee decision is **LEAD-scoped**
+  (`LevelUpLeadBattleStrategy.decide_turn` tests only `active_battler`) while `train_team`'s PP heal
+  trigger `_team_is_out_of_pp()` is **PARTY-scoped** — and five untouched bench mons still had full
+  PP, so it returned False every time and **no heal was ever attempted**. The HP trigger could not
+  fire either: all 457 flees are logged at a single value, `Wailord L61 225/309` = 72.8%, against a
+  threshold of 42%.
+
+⇒ **the durable lesson is not about PP.** A recovery trigger scoped to the PARTY cannot rescue a
+failure scoped to the LEAD, and nothing in the code connects the two. That mismatch is worth checking
+wherever else a "can I continue?" predicate and its recovery live at different scopes.

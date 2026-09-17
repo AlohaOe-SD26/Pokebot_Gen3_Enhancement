@@ -18220,3 +18220,39 @@ question is *"what bounded run would have captured this cleanly?"* — a frame b
 on its own is the difference between a save and an inference. ‼ Corollary: **do not hand agents a
 hypothesis marked "already refuted" unless the refutation came from the right state** — a wrong
 exclusion is more expensive than no exclusion, because it is not re-examined.
+
+
+## 2026-09-17 (second) — A FINDING RECORDED AS PROSE NEXT TO ONE DRIVER DID NOT STOP THE SECOND DRIVER REPEATING IT
+
+**SYMPTOM.** `Ch24GrindMode` stalled for ever because it never installed `SwapTrainBattleStrategy`.
+The project had **already diagnosed and written up that exact defect** for `Ch23TrainMode`, in a
+detailed comment at `victory_road.py:3400-3410` ending *"the DRIVER NEVER INSTALLED SWAP-TRAINING"*.
+The second driver was written anyway, with the same one-line `return StoryItemBattleStrategy()`.
+
+**ROOT CAUSE.** The fix for driver #1 was recorded as **prose, attached to driver #1**. Nothing made
+it reachable from driver #2: no shared helper every harness driver calls, no gate that fails when a
+training-shaped driver installs a non-rotating strategy, no entry in a checklist a new driver is
+written against. CLAUDE.md rule 6 already says this — *"a rule already broken twice is evidence that
+prose failed — write the gate instead"* — and here prose failed on its FIRST re-use.
+
+**WHY IT WAS EXPENSIVE OUT OF PROPORTION.** The symptom (flees everything, gains nothing, never
+hangs, never errors) looks like a bot/strategy/PP problem, so it pulled a four-angle agent fan-out
+and a fixture investigation before anyone looked at the six lines of the driver that CHOOSE the
+strategy. The already-written answer was one grep away the whole time.
+
+**THE FIX THAT WORKED.** Mirror production's gate in the driver, and A/B it on the same fixture and
+frame budget: 15 Won/50 RanAway → **38 Won/0 RanAway**, with the bench fighting and a heal firing.
+
+**PREVENTION RULE.** ⛔ **WHEN A HARNESS DRIVER MISBEHAVES IN A WAY PRODUCTION DOES NOT, SUSPECT THE
+DRIVER'S OWN `on_battle_started` / setup BEFORE SUSPECTING THE BOT.** A harness driver is not a
+`StoryMode`, so every strategy, listener and guard that `StoryMode` installs is ABSENT unless the
+driver re-installs it — and that absence is silent. ⭐ And the general form: **a fix written as a
+comment protects exactly one call site.** If the same mistake is possible at a second site, the fix
+belongs in shared code or a gate; if neither is practical, the comment must at least live where the
+NEXT author will read it, not only where the last bug was.
+
+‼ **SECOND, SMALLER RULE FROM THE SAME ROUND:** a recovery trigger scoped to the PARTY
+(`_team_is_out_of_pp()`) cannot rescue a failure scoped to the LEAD
+(`LevelUpLeadBattleStrategy.decide_turn`). **When you add a "can I continue?" check, check that its
+RECOVERY has the same scope** — five healthy bench mons kept the party-scoped trigger False while the
+lead was unable to act, for 457 consecutive battles.
