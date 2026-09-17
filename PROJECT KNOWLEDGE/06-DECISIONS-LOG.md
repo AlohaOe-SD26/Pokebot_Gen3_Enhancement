@@ -5692,3 +5692,38 @@ screen rather than the overworld.
 ⇒ §Ch24 owns the tail: Hall of Fame → autosave → credits → soft reset → title → CONTINUE → Littleroot
 bedroom, and `ch24_chapter_done()` is only true once the bot is CONTROLLABLE there. That is the third
 prerequisite already recorded in `#24-gameclearflag`.
+
+## 2026-09-17 (third) — USER RULING: §Ch24 HEALS FROM THE BAG BETWEEN ROOMS. IT IS NOT OPTIONAL.
+
+**Asked because** the gauntlet is sealed — `probe_e4_entry_seal.py` CONFIRMED LIVE that the entry
+tiles are impassable at runtime, the backward hall warps are inert, and every League map sets
+`allow_escaping: false` ⇒ from HALL5 onward the nurse and the mart are unreachable. So "heal between
+rooms" can only ever mean **from the bag**, and the question was whether it is needed at all at L75.
+
+**RULED (user, 2026-09-17):** *"Potions, revives and healing are common to use between fights if
+needed (full heal for status effects) so this should be in supply, but not as much as potions. Bag
+heal (status heal, revive, hp heal if needed) between elite 4 fights."*
+
+⇒ **LEG 2 PERFORMS A BAG HEAL BETWEEN EVERY ROOM**, covering all three needs in this order of
+expected frequency: **HP top-up (most common) → status cure → revive (least common)**. ⛔ It is a
+REQUIREMENT, not an optimisation, and not conditional on "if the party looks fine" — the next room
+is unreachable-in-reverse, so a skipped heal cannot be repaired later.
+
+‼ **THIS SUPERSEDES NOTHING AND CONTRADICTS NOTHING — READ IT WITH RULING 2 ABOVE.** Ruling 2 said
+**3 Revives is enough at L75**; this ruling says revives are *used* between fights. Both hold: the
+party is expected to need revives RARELY at this level advantage, and the 3 we carry are the budget.
+⛔ Do NOT read this as licence to reopen the money/restock question — that is still closed.
+
+**WHAT THIS MEANS FOR THE BUILD, CONCRETELY:**
+* `heal_party_from_bag` (`pokemon_league.py:250`) already exists, is driven and fault-armed
+  (`POKEBOT_CH24_FAULT_NOHEAL`), and has **ZERO production callers** — §Ch24 leg 2 is its first.
+  ⇒ this closes `#24-e4healing` STEP 2, which has been blocked on "there are no rooms yet".
+* ⚠ Its readiness predicate `party_is_gauntlet_ready()` (`overworld_items.py:240-249`) tests
+  fainted / status / HP fraction — **PP is NOT a term**, and there is no PP item in the bag or in
+  the League mart (`#24-leg2spec` O3). The bag heal therefore CANNOT restore PP, and a PP-exhausted
+  party is a different failure that this ruling does not address. Leg 2 must not report "healed" as
+  though it means "fight-ready" in the PP sense.
+* ⛔ The heal must be BAG-ONLY. Any fallback that walks toward a Poké Center is fiction inside the
+  sealed zone, and worse, the ROM collision grid will happily PLAN that walk (the mirror-`KI-74`
+  divergence). Reachability checks in League interiors read `_live_collision_grid`, never
+  `get_map_data`.
