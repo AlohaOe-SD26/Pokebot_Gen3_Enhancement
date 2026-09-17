@@ -29926,3 +29926,54 @@ only "QUEUE ITEM 0"), so there is no punch-list status to cross-check it against
 enumerated all 59 `#24-*` slugs to establish that. Worth a slug next time it is touched.
 
 **FILES:** `PROJECT KNOWLEDGE/{00-README,03-PUNCH-LIST,04-HANDOFF,07-CHANGELOG,08-MISTAKES}.md`.
+
+
+## 2026-09-16 (fourteenth) — THE TIER 2 RE-AUDIT: ALL FIVE FIXES LANDED, AND IT FOUND THREE MORE
+
+CLAUDE.md requires re-running Tier 2 after a Tier 2 finding is fixed, and checking **WHERE** the fix
+landed rather than merely THAT it landed. A fresh cold-start agent verified all five by quotation:
+* the vacuity warning sits at byte ~4,022 of the 18,821-byte marker line, and **the only earlier
+  mention of the cheap fixture (byte 2,397) is an evidence citation, not a recommendation** — so no
+  builder meets `post_sidney_door_open.ss1` as an instruction before meeting the ban;
+* the stale YOU-ARE-HERE headline's correction is the FIRST thing on line 145, which is where the
+  reader that `NEXT ACTIONS` sends actually lands;
+* the §G' ban and its retraction label now agree; the status/magnitude disambiguation holds, and the
+  two surviving `1,800` uses both mean the BOUND; the README pointer is fixed.
+
+⭐⭐ **AND IT RE-MEASURED THE FIXTURE FLAGS ITSELF RATHER THAN TRUSTING OUR WRITE-UP** — with a
+positive control (`LANDMARK_POKEMON_LEAGUE` True) *and* a negative control (a deliberately misspelled
+flag → False), because `get_event_flag` returns False for an unknown name. `post_ch24_atdoor.ss1`
+False/0, both post-victory saves True/1. **Our numbers were exactly right**, which is the point of
+checking: they had already been written into four load-bearing documents.
+*(It also confirmed `get_event_var("VAR_ELITE_4_STATE")` returns **−1** on all four saves — our var
+has no `VAR_` prefix, exactly as the docs warn.)*
+
+### ⛔ THREE NEW DEFECTS, ALL FIXED — AND ONE OF THEM I CREATED THIS SESSION
+
+1. **The STATE row's Segment 23 citation was ~1,335 lines off.** It said
+   `story_mode.py:3779-3795`; that range is a whiteout-exit settle loop, and `_play()` does not begin
+   until :3800. The real block is `# --- Segment 23: VICTORY ROAD ---` at :5114, dispatch :5124-5130.
+   ‼ **This session corrected the marker line's citations and missed this one**, so the file carried
+   a fixed and a stale citation for the same spot. ⇒ **when you correct a citation, grep for every
+   other copy of it** — applying that immediately found **two more** in `03-PUNCH-LIST.md`. All now
+   cite the SYMBOL, per `probe_stale_citations.py`'s own lesson that a bare `file.py:NNN` is
+   unverifiable by construction.
+2. **The "60-SECOND VERSION (if you read nothing else)" block still said Victory Road was unbuilt** —
+   *"Only §Ch23 (Victory Road) and §Ch24 remain"*, contradicted by the VERY NEXT LINE and eleven days
+   after §Ch23 shipped. That block's own preamble says it *"is the FIRST thing a cold reader sees, so
+   it rots the most expensively; it gets rewritten on EVERY chapter move."* It was not.
+3. ⛔ **MINE: the §Ch24 HOW TO RUN block was a session behind the banner — a P3 break committed while
+   documenting P3 breaks.** It still framed the stall as the live unsolved blocker (*"it then sits
+   1,800 frames … That is the first thing §Ch24 leg 1 hits"*) and listed neither `e4dismiss` nor
+   `e4exit`, the two drivers leg 1 must extend. I had updated the banner and the punch list — the
+   halves I was already typing in — and left the RUN RECIPES alone. Both commands are now in the
+   block, with the measured result and ⛔ a warning that those two probes correctly start from the
+   post-victory fixture while **the LEG must not**.
+
+⚠ **CARRIED, NOT FIXED** (both flagged by the auditor, neither a defect in what shipped): leg 1 has
+no driver name or frame budget yet, and the handoff never says whether leg 1 owns the *front* half
+(apron → room → win) as well as the exit; the entry backbone and press counts live only in the recon
+note. Also: whether the fight is winnable from `post_ch24_atdoor.ss1` is **unmeasured** — the only
+Sidney win on record was on a different, under-prepared party.
+
+**FILES:** `PROJECT KNOWLEDGE/{03-PUNCH-LIST,04-HANDOFF,07-CHANGELOG}.md`.

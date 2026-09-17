@@ -498,7 +498,7 @@ right place is a NEW out-of-battle path.
 
 ### 🔶 `#24-ch23victoryroad` — **MIXED. READ EACH BULLET'S OWN MARKER; THIS HEADING DOES NOT CLOSE THE ITEM.**
 
-✅ **DONE, ⛔ DO NOT REBUILD:** §Ch23 Victory Road is TRAVERSED and EXITED, party whole and bag stocked — ELEVEN LEGS BUILT AND DRIVEN, **and the chapter orchestrator + Segment 23 wiring SHIPPED 2026-09-05** (`ch23_chapter_done()` + `do_victory_road_chapter()`, dispatch at `story_mode.py:3779-3795`, `--driver ch23chapter`).
+✅ **DONE, ⛔ DO NOT REBUILD:** §Ch23 Victory Road is TRAVERSED and EXITED, party whole and bag stocked — ELEVEN LEGS BUILT AND DRIVEN, **and the chapter orchestrator + Segment 23 wiring SHIPPED 2026-09-05** (`ch23_chapter_done()` + `do_victory_road_chapter()`, dispatch at `story_mode.py`'s `# --- Segment 23: VICTORY ROAD ---` block, ending in `_guard("Victory Road (Ch23)", ch23_chapter_done)` — ⛔ **cite the SYMBOL: this read `:3779-3795`, which is a whiteout-exit settle loop ~1,335 lines away; corrected 2026-09-16**, `--driver ch23chapter`).
 🔜 **STILL OPEN, and tracked so it cannot go invisible:**
 * the chapter's CHAIN hangs on `KI-90` ⇒ **`#24-ch23chain`**;
 * **`#24-ch23leg3arms`** — leg 3's owed fault arms and the B1F/B2F §F live checks, both stated in this item's own body below (`"LEG 3's OWED ARMS (still open)"`, `"the three live checks … are still owed"`).
@@ -511,7 +511,7 @@ right place is a NEW out-of-battle path.
 
 > ⛔ **HEADER/BODY PAIR NOTE (2026-09-04).** This header read "LEGS 1-4 SHIP AND PASS; LEGS 5-8 REMAIN" for one commit *after* its own body bullet had been corrected to "legs 6-8" — a Tier 1 reviewer caught it. **P2: a header is a claim about every bullet beneath it**, and updating the body alone is the more dangerous state, because the body looks current.
 
-- [x] **DONE 2026-09-05: the chapter orchestrator + Segment 23 wiring SHIPPED.** `ch23_chapter_done()` + `do_victory_road_chapter()` in `victory_road.py`; dispatch at `story_mode.py:3779-3795`; `--driver ch23chapter`. ⛔ What remains is NOT this — it is the CHAIN, tracked as `#24-ch23chain` — ✅✅✅ `KI-90` is FIXED **and the chain now PASSES** (`ACCEPTANCE: PASS`, `done=True`, `whiteouts=0`, 2026-09-05) — `#24-ch23chain` is CLOSED. *(This read "the chain was re-driven 2026-09-05 and FAILS because the party loses the leg-9 double" — true when written, fixed the same day by the (33,16) bypass plus the leg-11 sell top-up.)*
+- [x] **DONE 2026-09-05: the chapter orchestrator + Segment 23 wiring SHIPPED.** `ch23_chapter_done()` + `do_victory_road_chapter()` in `victory_road.py`; dispatch at `story_mode.py`'s `# --- Segment 23: VICTORY ROAD ---` block, ending in `_guard("Victory Road (Ch23)", ch23_chapter_done)` — ⛔ **cite the SYMBOL: this read `:3779-3795`, which is a whiteout-exit settle loop ~1,335 lines away; corrected 2026-09-16**; `--driver ch23chapter`. ⛔ What remains is NOT this — it is the CHAIN, tracked as `#24-ch23chain` — ✅✅✅ `KI-90` is FIXED **and the chain now PASSES** (`ACCEPTANCE: PASS`, `done=True`, `whiteouts=0`, 2026-09-05) — `#24-ch23chain` is CLOSED. *(This read "the chain was re-driven 2026-09-05 and FAILS because the party loses the leg-9 double" — true when written, fixed the same day by the (33,16) bypass plus the leg-11 sell top-up.)*
       ✅✅✅ **LEG 11 SHIPPED 2026-09-04 — THE ELITE FOUR'S HEALING IS STOCKED** (`ch23shop`, PASS,
       fixture `post_league_shop.ss1`): **Hyper Potion 30 · Full Restore 3 · Full Heal 8 · Revive 3**,
       ₽56,041 → ₽1,741. ⛔ **BUT ONLY 33 OF THE 44 ARE USABLE** — see `#24-e4healing` above; the
