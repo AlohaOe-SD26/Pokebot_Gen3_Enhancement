@@ -17913,3 +17913,104 @@ IT.** If the claim names a tool ("the planner will refuse"), the measurement mus
 the KI-101 verdict built on a proxy. Three times in one session I measured X and concluded about Y.
 ⭐ The cheap discipline that would have caught all three: **write the claim, then ask which command
 produced it.** If no command produced it, it is an inference and must be labelled one.
+
+
+## 2026-09-16 (eighth) — I COPIED THREE NUMBERS FORWARD WITHOUT CHECKING ANY OF THEM, AND ALL THREE WERE WRONG
+
+**SYMPTOM.** I had diagnosed the §Ch24 post-victory stall correctly and was about to build on it. A
+6-angle recon then corrected **four** things I had written down — three of which were numbers I had
+copied out of our own docs, and one of which was a warning our own harness carried.
+
+* *"~40 call sites"* for `wait_until_truly_controllable` → **262**. (40 is the count of call sites
+  lexically inside a LOOP — a real number, measuring a different thing.)
+* *"f28976 = f27174 + 1800 EXACTLY"* → the delta is **1802**. Two frames of Manual teardown.
+* *"4 drives out of 4"* → **at most TWO trajectories**; three of the four logs are frame-identical.
+* *"the researched (6,7) is WRONG, the landing is (6,11)"* → **neither is wrong.** Both are correct
+  readings at different instants of one six-step scripted walk.
+
+**ROOT CAUSE.** Not one of them came from a measurement I made. Each arrived inside a sentence that
+already read as established — the punch list said 1800, so I wrote 1800; the changelog said ~40, so
+I wrote ~40. **A number inherits the authority of the sentence around it, and re-typing it feels
+like citing it.** The (6,7) case is the sharpest: the discriminator (`elite4_state_in_room = 0`,
+which can only be 0 before `WalkInCloseDoor` returns) **was already printed in our own log**, in the
+same run, three lines from the coordinate it settles. Nobody had subtracted.
+
+**THE FIX THAT WORKED.** An adversarial recon whose brief listed the "measured facts" as things to
+CHECK rather than to build on. Its first three findings were arithmetic.
+
+**PREVENTION RULE.** ⛔ **BEFORE A NUMBER CROSSES FROM ONE DOCUMENT INTO ANOTHER, RE-DERIVE IT — RUN
+THE GREP, DO THE SUBTRACTION.** A figure you re-typed is a figure you asserted. And when two sources
+give different values for a coordinate, **look for the discriminator in the run you already have**
+before declaring either one wrong.
+
+
+## 2026-09-16 (ninth) — I INSTRUMENTED THE INPUT TO THE ACTION TWICE IN ONE PROBE, WHILE WRITING ABOUT THAT EXACT RULE
+
+**SYMPTOM.** Building `--driver e4dismiss`, I filed a prediction that it would issue 1–12 presses.
+It issued **50**, tripping my own falsifier. Later, the continuation check reported *"OK 6
+waypoint(s)"* — a number equally consistent with the route AROUND the defeated trainer and a straight
+run THROUGH him, which have opposite consequences for the leg.
+
+**ROOT CAUSE, IDENTICAL BOTH TIMES.** `presses_issued` counts duty-cycle ticks on which the press
+GATE was true; most land during `PrintingCharacter`, where there is nothing to dismiss. A waypoint
+COUNT is the size of the answer, not the answer. **Both are the INPUT to the thing I cared about, or
+its shape — neither is the thing.** CLAUDE.md rule 7 says exactly this, and I was writing a document
+about rule 7 at the time.
+
+**THE FIX THAT WORKED.** `prompts_cleared` — `WaitForButton` → anything-else transitions, i.e.
+prompts the game actually consumed (**2**, consistent with the decomp's 3 for a mid-sequence
+fixture). And dumping the waypoint TILES **with their map**, which is what revealed the real result:
+the path goes around the trainer and then **follows the warp onto `HALL1 (5,12)`**.
+
+**PREVENTION RULE.** ⛔ **A COUNT IS NOT AN OBSERVATION. Before reporting a number, ask which
+DIFFERENT outcomes would produce the same number** — if two answers with opposite consequences share
+it, the number is not the measurement. Dump the items, not the length.
+
+
+## 2026-09-16 (tenth) — A GREEN GATE WAS CITED AS PROOF OVER FILES THE GATE CANNOT SEE
+
+**SYMPTOM.** A changelog entry recorded two post-victory saves as *"Now PINNED … `verify_fixtures`
+green"*. The md5s it quoted were correct. **No manifest row was ever written**, so neither file was
+pinned, and both sat on auto-rotating `stalls/` names that any later drive could overwrite.
+
+**ROOT CAUSE.** `verify_fixtures.py` prints, in its own output, *"74 of 118 .ss1 files on disk have
+NO manifest row, so they are neither PINNED nor declared VOLATILE — **this gate cannot see them
+drift**."* The gate was green **because** it was blind to those files. Green was read as
+corroboration of the sentence next to it rather than as a statement about the gate's own scope.
+
+**THE FIX THAT WORKED.** Adding the two rows (unlisted 74 → 72) and then asserting the bytes
+explicitly: `verify_fixtures.py --assert post_sidney_door_open.ss1=62313696` → OK. An assertion
+names the file; a suite-level PASS does not.
+
+**PREVENTION RULE.** ⛔ **A PASS IS ONLY EVIDENCE ABOUT WHAT THE GATE ENUMERATES.** Before citing a
+green gate for a specific artifact, check that the artifact is IN its enumeration — and prefer an
+assertion that names the artifact over a suite result that does not. (Same family as "a checklist
+protects exactly what it enumerates", and as the `--quick` suite that prints *"THIS IS NOT A GREEN
+SUITE"* about its own 8 unrun gates.)
+
+
+## 2026-09-16 (eleventh) — I BROKE PAIR P3 IN THE COMMIT THAT DOCUMENTED PAIR BREAKS, AND I HANDED THE REVIEWER A SHORT PACKET
+
+**SYMPTOM.** Two findings from the same Tier 1 review:
+1. My new `#26-victoryroadgap` refuted the claim *"30.3% reach Ever Grande ⇒ the approach to the
+   League is not the bottleneck"*. I recorded the refutation in the punch list and the changelog —
+   and left the **handoff banner**, the half a cold reader meets FIRST, still asserting the
+   superseded inference. **Sixth instance of this shape, committed by the session documenting it.**
+2. The primary note carrying the refuted headline (`2026-09-16-endless-batch-REVIEW.md`) got **no
+   stub marker at all**, so anyone opening it directly still read a refuted claim as measured fact.
+
+**ROOT CAUSE.** I updated the documents I was already typing in. The banner and that note were not
+among them. ‼ **Also mine:** the review packet I handed the agent contained only the
+`PROJECT KNOWLEDGE` diff — the two tool diffs and a second untracked file were missing, and the
+reviewer had to fetch them itself to answer at all. It said so, which is the only reason I know.
+
+**THE FIX THAT WORKED.** An **independent** reviewer given the pair list explicitly — and then the
+slug grep the advisory hook prescribes, which turned up a **seventh** stale copy ("the post-victory
+dialogue stalls ~1,200 frames (it recovers)") sitting in the routing note's KNOWN HAZARDS, where a
+leg builder would have read it.
+
+**PREVENTION RULE.** ⛔ **WHEN YOU REFUTE A CLAIM, `grep` FOR THE CLAIM — NOT FOR THE ITEM SLUG.**
+The slug finds the places that already cite the item; the *claim* finds the places that repeat it
+without naming it, which is where it does damage. And ⛔ **hand a reviewer `git status` in full, not
+the diff you think is relevant** — a review is only as good as its inputs, and choosing the inputs is
+choosing the findings.

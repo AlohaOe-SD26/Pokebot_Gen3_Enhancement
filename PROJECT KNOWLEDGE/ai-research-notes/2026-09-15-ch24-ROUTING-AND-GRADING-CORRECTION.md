@@ -557,8 +557,6 @@ FALSE at the leg's start and can only become true by the work happening.
 diverging, the live reader is broken and the leg's verdict must be discarded rather than reported.
 
 ### KNOWN HAZARDS ON THIS LEG
-* `#24-e4postbattlestall` — the post-victory dialogue stalls ~1,200 frames (it recovers). The victory
-  script order is `setflag` → 32-frame movement → `msgbox`, so **the flag is true while a message is
-  still pending**: do not walk on the flag alone.
+* `#24-e4postbattlestall` — ⛔⛔ **SUPERSEDED TWICE, AND BOTH HALVES OF THE OLD TEXT WERE WRONG (2026-09-16).** *(It read: “the post-victory dialogue stalls ~1,200 frames (it recovers)”.)* **“~1,200 frames” WAS NEVER A DURATION** — `NO-PROGRESS x1200` is the first rung of an escalating counter ladder (x1200, x3000, x8000, x15000). **AND IT DOES NOT RECOVER:** the bot sits in `wait_until_truly_controllable`, which presses NOTHING by design, until that function hits its 1,800-frame bound and returns SILENTLY. ✅ **MEASURED 2026-09-16 with a control arm** (`--driver e4dismiss` on the pinned `post_sidney_door_open.ss1`): pressing **B** returns control in **297 frames** (`prompts_cleared=2`); the no-press CONTROL burned its **full 2,600-frame budget** — 1.4× the real stall — and never regained control, printer still `(True,'WaitForButton')`. ⇒ the box does NOT self-clear, and the fix is to press B on the existing gate rather than to wait. ⛔ **B, NEVER A** — the bot faces the defeated trainer, whose script re-triggers into another `MSGBOX_DEFAULT`. ⭐ The ORIGINAL point still stands and is still load-bearing: the victory script order is `setflag` → 32-frame movement → `msgbox`, so **the flag is true while a message is still pending** — do not walk on the flag alone.
 * the gauntlet is ONE-WAY (`WalkInCloseDoor` seals the entry behind you), so a leg that gets lost in
   a room cannot walk back out. Bound every loop.

@@ -18,7 +18,7 @@ Logs: `sandbox-pokebot/profiles/endless-P*/debug-logs/Old/*2026091[56]*.log`.
 
 ---
 
-## 1. THE HEADLINE: 30% OF RUNS REACH THE LEAGUE'S DOORSTEP
+## 1. THE HEADLINE: 30% OF RUNS REACH THE LEAGUE'S DOORSTEP ⛔⛔ **— REFUTED, SEE THE STUB AT THE TOP.** It is the EVER GRANDE CITY **outdoor** map, not the apron; **0 of 99 runs entered VICTORY ROAD**.
 
 | furthest map **reached** | runs | share |
 |---|---|---|
@@ -129,7 +129,7 @@ item in §4.
 ## 4. WHAT I RECOMMEND, IN ORDER
 
 1. ⛔ **FIRST, MAKE THE DERAIL TABLE MEAN SOMETHING: classify each derail as RECOVERED or FATAL.** §2 ranks frequency; nobody has measured cost. The §3 retraction exists precisely because a frequency count was read as a cost. Until that classifier exists, do NOT prioritise navigation work off the §2 ordering.
-2. **Build the §Ch24 sequencer.** 30% of runs already reach the door; nothing else converts so much
+2. **Build the §Ch24 sequencer.** ⛔⛔ **THE REASON GIVEN HERE IS REFUTED — the recommendation is not.** §Ch24 is still the right build, as FINISHING the story; it is NOT converting traffic that exists, because **0 of 99 runs reached the door** (`#26-victoryroadgap`). *(The superseded reason, kept verbatim:)* 30% of runs already reach the door; nothing else converts so much
    latent progress into the user's stated goal. Routing and traps are already established in
    `2026-09-15-ch24-ROUTING-AND-GRADING-CORRECTION.md`.
 3. **File the destination-reachability defect as ONE item**, not three. The fix shape is the same in
