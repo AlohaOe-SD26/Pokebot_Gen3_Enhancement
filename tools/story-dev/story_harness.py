@@ -17555,44 +17555,44 @@ class Ch24PhoebeMode(BotMode):
     term already made. ⇒ the numbers must come from `calculate_move_damage_range` against Phoebe's
     ACTUAL Dusclops, which requires a live `battle_state`, which requires **being in the fight**.
 
-    ⭐ SO THE PRIMARY ARTIFACT OF THIS DRIVER IS NOT A VERDICT \u2014 IT IS AN **IN-BATTLE SAVE STATE**,
+    ⭐ SO THE PRIMARY ARTIFACT OF THIS DRIVER IS NOT A VERDICT — IT IS AN **IN-BATTLE SAVE STATE**,
     captured the moment the Phoebe battle starts (`CH24_PHOEBE_CAPTURE`). Everything else is
     secondary. A fixture taken inside the fight can be re-read offline, for free, as many times as
     the ranker design needs.
 
     ⛔ IT WRITES ALMOST NO NEW MACHINERY, WHICH IS DELIBERATE. Every piece is lifted from something
     already driven in this repo:
-      * the dismiss                \u2014 `E4DismissMode`: `B`, edge-triggered, bounded (measured 297 frames)
-      * the two transitions        \u2014 `E4ExitMode`: the SHIPPED `early_game._pass_through_door()`,
+      * the dismiss                — `E4DismissMode`: `B`, edge-triggered, bounded (measured 297 frames)
+      * the two transitions        — `E4ExitMode`: the SHIPPED `early_game._pass_through_door()`,
                                      NOT a hand-rolled press loop onto the door tile (ML-9)
-      * locate-and-engage          \u2014 `Ch24ProbeMode`: read `get_map_objects()` LIVE, then the proven
+      * locate-and-engage          — `Ch24ProbeMode`: read `get_map_objects()` LIVE, then the proven
                                      every-frame `"B" if frames % 3 else "A"` cadence
-      * the bag heal               \u2014 production `pokemon_league.heal_party_from_bag`, per USER RULING
+      * the bag heal               — production `pokemon_league.heal_party_from_bag`, per USER RULING
                                      2026-09-17 (bag heal between EVERY room; it is a REQUIREMENT)
     ‼ The one genuinely new thing is the SEQUENCE, and this project's most expensive recurring
     assumption is that proven halves make a proven whole. They do not; hence a drive.
 
-    \u26d4 THREE MEASURED CAVEATS THIS DRIVER HONOURS (all from the 2026-09-17 Sidney drive):
+    ⛔ THREE MEASURED CAVEATS THIS DRIVER HONOURS (all from the 2026-09-17 Sidney drive):
       1. **Do NOT hardcode the arrival tile.** The room's entry cutscene walks six steps, and a
          reading taken on arrival showed **(6,11)**, not the decomp's final (6,7). The trainer is
          located LIVE and we navigate from wherever we actually are.
       2. **Do NOT dispatch on `ELITE_4_STATE`.** Measured `elite4_state_in_room = 0` while standing
-         in the room \u2014 the var is set by the entry cutscene but not instantly, so there is a window
+         in the room — the var is set by the entry cutscene but not instantly, so there is a window
          where it lies. Grading is on `DEFEATED_ELITE_4_PHOEBE`.
       3. **League-interior reachability reads the LIVE grid.** The entry tiles read ROM 0 / live 3
-         and the exit door reads ROM 1 / live 0 \u2014 `KI-74` in both directions, confirmed twice.
+         and the exit door reads ROM 1 / live 0 — `KI-74` in both directions, confirmed twice.
 
-    \u26a0 GRADED ON REACHING PHOEBE AND OBTAINING AN OUTCOME \u2014 **NEVER ON WINNING.** Phoebe is the
+    ⚠ GRADED ON REACHING PHOEBE AND OBTAINING AN OUTCOME — **NEVER ON WINNING.** Phoebe is the
     fight with a known hazard (`#24-ghostzerodamage`: 6 of our 16 battler move-slots do ZERO to a
     Ghost, and Banette's GRUDGE can zero Crunch's PP in one hit). A driver graded on winning would
-    report FAIL for a correct measurement of a losing matchup \u2014 which is the answer we most need.
+    report FAIL for a correct measurement of a losing matchup — which is the answer we most need.
 
     Run:
         PYTHONUTF8=1 py -3.12 story_harness.py post_sidney_L75.ss1 --driver ch24phoebe \
             --frames 400000 --log phoebe.log
-        CH24_PHOEBE_CAPTURE=in_phoebe_battle_L75    # \u2b50 the artifact this exists for
+        CH24_PHOEBE_CAPTURE=in_phoebe_battle_L75    # ⭐ the artifact this exists for
 
-    \u26a0 FAULT ARM `POKEBOT_CH24_FAULT_NOROOMHEAL=1` skips the between-rooms bag heal, so the user
+    ⚠ FAULT ARM `POKEBOT_CH24_FAULT_NOROOMHEAL=1` skips the between-rooms bag heal, so the user
     ruling's "heal between EVERY room" is falsifiable rather than asserted: the arm must show the
     party entering Phoebe's room at its post-Sidney HP instead of topped up.
     """
@@ -17610,10 +17610,10 @@ class Ch24PhoebeMode(BotMode):
 
         self.whiteouts = getattr(self, "whiteouts", 0) + 1
         set_story_abort(True)
-        # \u26d4 A whiteout here is a legitimate MEASUREMENT, not a driver failure \u2014 it means the party
+        # ⛔ A whiteout here is a legitimate MEASUREMENT, not a driver failure — it means the party
         # lost, which is exactly the question. But it also runs `ResetEliteFour`, wiping Sidney's
         # victory too, so the fixture is spent and the verdict must say so.
-        log(f"[ch24phoebe] WHITEOUT #{self.whiteouts} \u2014 abort LATCHED. \u203c This is a RESULT (the party "
+        log(f"[ch24phoebe] WHITEOUT #{self.whiteouts} — abort LATCHED. ‼ This is a RESULT (the party "
             f"lost), and it has also wiped Sidney's flag via ResetEliteFour.")
         return True
 
@@ -17643,7 +17643,8 @@ class Ch24PhoebeMode(BotMode):
         self.battles = getattr(self, "battles", 0)
         R: dict = {}
         taken = set()
-        WANT = {"P-DISMISS", "P-HEAL", "P-HALL1", "P-ROOM", "P-ENGAGED", "P-OUTCOME"}
+        WANT = {"P-DISMISS", "P-HEAL", "P-HALL1", "P-ROOM", "P-ENGAGED", "P-OUTCOME",
+                "P-CONTINUE"}
         failure = None
 
         def _hp():
@@ -17670,9 +17671,9 @@ class Ch24PhoebeMode(BotMode):
         log(f"[{TAG}] PRE hp={R['start_hp']}")
         log(f"[{TAG}] PRE bag={R['start_bag']}")
         if not VR._on_map(SIDNEY):
-            # \u26d4 THE VACUITY CONJUNCT: pointed at its own OUTPUT (in Phoebe's room / mid-battle) this
+            # ⛔ THE VACUITY CONJUNCT: pointed at its own OUTPUT (in Phoebe's room / mid-battle) this
             # refuses HERE and takes no readings, so a no-op run cannot print PASS.
-            log(f"[{TAG}] \u26d4 PREMISE FAILED \u2014 must start in SIDNEYS_ROOM (post-victory), not "
+            log(f"[{TAG}] ⛔ PREMISE FAILED — must start in SIDNEYS_ROOM (post-victory), not "
                 f"{R['start']}. Refusing, and taking NO readings.")
             log(f"[{TAG}] ACCEPTANCE: FAIL")
             context.set_manual_mode()
@@ -17680,8 +17681,8 @@ class Ch24PhoebeMode(BotMode):
 
         try:
             # ---- 1. dismiss the post-victory msgbox, if one is parked ---------------------------
-            # \u26d4 EDGE-TRIGGERED AND BOUNDED. Pressing a button EVERY frame is HOLDING it, and Gen-3
-            # `waitbuttonpress` needs a JOY_NEW edge \u2014 so press on a duty cycle. Measured in
+            # ⛔ EDGE-TRIGGERED AND BOUNDED. Pressing a button EVERY frame is HOLDING it, and Gen-3
+            # `waitbuttonpress` needs a JOY_NEW edge — so press on a duty cycle. Measured in
             # `E4DismissMode`: control returns in ~297 frames; the no-press control burned its full
             # 2,600-frame budget and never recovered.
             from modules.memory import get_game_state, GameState
@@ -17701,9 +17702,9 @@ class Ch24PhoebeMode(BotMode):
             taken.add("P-DISMISS")
             yield from wait_until_truly_controllable()
 
-            # ---- 2. THE BAG HEAL \u2014 a USER-RULED REQUIREMENT between every room ----------------
+            # ---- 2. THE BAG HEAL — a USER-RULED REQUIREMENT between every room ----------------
             if _os.environ.get("POKEBOT_CH24_FAULT_NOROOMHEAL", "").strip() == "1":
-                log(f"[{TAG}] \u26a0 FAULT ARM NOROOMHEAL \u2014 skipping the bag heal on purpose.")
+                log(f"[{TAG}] ⚠ FAULT ARM NOROOMHEAL — skipping the bag heal on purpose.")
                 R["heal_skipped"] = True
             else:
                 hp_before = _hp()
@@ -17712,11 +17713,11 @@ class Ch24PhoebeMode(BotMode):
                 try:
                     yield from PL.heal_party_from_bag(heal_report)
                 except Exception as error:  # noqa: BLE001
-                    # \u26d4 NEVER RAISE OUT OF THE HEAL. The zone is SEALED behind us \u2014 refusing here
+                    # ⛔ NEVER RAISE OUT OF THE HEAL. The zone is SEALED behind us — refusing here
                     # strands the bot in a room it cannot leave, which is strictly worse than
                     # entering the next fight under-healed. Record it and go on.
                     R["heal_error"] = f"{type(error).__name__}: {error}"
-                    log(f"[{TAG}] \u26a0 heal raised (RECORDED, not fatal \u2014 the zone is sealed): "
+                    log(f"[{TAG}] ⚠ heal raised (RECORDED, not fatal — the zone is sealed): "
                         f"{R['heal_error']}")
                 R["heal_hp_before"] = hp_before
                 R["heal_hp_after"] = _hp()
@@ -17728,9 +17729,9 @@ class Ch24PhoebeMode(BotMode):
                 log(f"[{TAG}] P-HEAL actions={R['heal_actions']} ready={R['heal_ready']}")
                 log(f"[{TAG}] P-HEAL hp {hp_before}  ->  {R['heal_hp_after']}")
                 log(f"[{TAG}] P-HEAL bag {bag_before} -> {R['heal_bag_after']}")
-                # \u203c TAKEN UNCONDITIONALLY. `heal_party_from_bag` returns EARLY on an empty plan
+                # ‼ TAKEN UNCONDITIONALLY. `heal_party_from_bag` returns EARLY on an empty plan
                 # without setting its own readings, and an empty plan is the COMMON case between
-                # easy rooms \u2014 so gating this on its report would FAIL a correct run.
+                # easy rooms — so gating this on its report would FAIL a correct run.
                 taken.add("P-HEAL")
             yield from wait_until_truly_controllable()
 
@@ -17743,7 +17744,7 @@ class Ch24PhoebeMode(BotMode):
             if not VR._on_map(HALL1):
                 raise BotModeError(
                     f"§Ch24 rooms1-2: passed Sidney's exit door (6,2) and did not arrive on HALL1 "
-                    f"\u2014 we are at {VR._where()}."
+                    f"— we are at {VR._where()}."
                 )
             log(f"[{TAG}] P-HALL1 at={R['after_door']}")
             taken.add("P-HALL1")
@@ -17757,14 +17758,14 @@ class Ch24PhoebeMode(BotMode):
             if not VR._on_map(PHOEBE):
                 raise BotModeError(
                     f"§Ch24 rooms1-2: passed HALL1's far door (5,2) and did not arrive in "
-                    f"PHOEBES_ROOM \u2014 we are at {VR._where()}."
+                    f"PHOEBES_ROOM — we are at {VR._where()}."
                 )
             log(f"[{TAG}] P-ROOM landing={R['room_landing']}  "
-                f"(\u26d4 RECORDED, not asserted \u2014 the entry cutscene is mid-walk; (6,7) is its FINAL tile)")
+                f"(⛔ RECORDED, not asserted — the entry cutscene is mid-walk; (6,7) is its FINAL tile)")
             taken.add("P-ROOM")
 
             # ---- 5. locate Phoebe LIVE and engage ---------------------------------------------
-            # \u26d4 `get_map_objects()` INCLUDES THE PLAYER, and it is a CAMERA-RANGE window \u2014 so filter
+            # ⛔ `get_map_objects()` INCLUDES THE PLAYER, and it is a CAMERA-RANGE window — so filter
             # by our own tile rather than by index, and read it from inside the room.
             here = VR._here_tile()
             objs = [tuple(o.current_coords) for o in get_map_objects()
@@ -17774,13 +17775,13 @@ class Ch24PhoebeMode(BotMode):
             if target is None:
                 raise BotModeError(
                     f"§Ch24 rooms1-2: no map object other than the player in PHOEBES_ROOM "
-                    f"(we are at {here}). \u26d4 `get_map_objects()` is a camera-range window; if this "
+                    f"(we are at {here}). ⛔ `get_map_objects()` is a camera-range window; if this "
                     f"fired we are not actually in the room yet."
                 )
             stand = (target[0], target[1] + 1)
             R["phoebe_at"] = target
             R["stand_at"] = stand
-            log(f"[{TAG}] \u2b50 PHOEBE MEASURED at {target} \u2014 approaching {stand} (located LIVE, never "
+            log(f"[{TAG}] ⭐ PHOEBE MEASURED at {target} — approaching {stand} (located LIVE, never "
                 f"hardcoded)")
             if VR._here_tile() != stand:
                 yield from VR._budgeted(VR._navigate_riding_out(PHOEBE, stand), 20_000,
@@ -17788,7 +17789,19 @@ class Ch24PhoebeMode(BotMode):
                 yield from wait_until_truly_controllable()
             R["stood_at"] = VR._here_tile()
 
-            # the proven every-frame cadence \u2014 B advances dialogue without re-triggering
+            # ⛔⛔ THE PRESS IS UNGATED **ON PURPOSE**, AND `R-APRESS` WILL FLAG IT EVERY TIME.
+            # Do not "fix" it by gating on `is_waiting_for_input()`.
+            # That rule targets the "museum greeter" shape — a loop mashing A across scripted
+            # scenes it does not understand. This is the opposite: the cadence is copied verbatim
+            # from `Ch24ProbeMode`, which took it from `_talk_to_the_stair_grunt`
+            # (`space_center.py:319-332`), a PROVEN caller for an INTERACTION trainer.
+            # ‼ And gating it is MEASURED WORSE here: the probe records that one A every 20 frames
+            # DID start the trainer's script (`script_active` False -> True) and then never advanced
+            # past the intro dialogue. `B` on a 2-in-3 duty cycle is what advances it — the
+            # interaction was never the problem, the ADVANCE was.
+            # ✅ And the real hazard the rule exists to stop cannot happen: this loop is BOUNDED at
+            # 4,000 frames, breaks the instant `self.battles` is set, and raises with both tiles
+            # named if no battle starts. It cannot mash forever.
             context.emulator.press_button("A")
             yield
             for frames in range(4_000):
@@ -17806,23 +17819,23 @@ class Ch24PhoebeMode(BotMode):
             log(f"[{TAG}] P-ENGAGED battle started")
             taken.add("P-ENGAGED")
 
-            # ---- 6. \u2b50\u2b50 THE ARTIFACT: capture INSIDE the fight ------------------------------
+            # ---- 6. ⭐⭐ THE ARTIFACT: capture INSIDE the fight ------------------------------
             cap = _os.environ.get("CH24_PHOEBE_CAPTURE", "").strip()
             if not cap:
                 log(f"[{TAG}] in-battle capture: NOT REQUESTED (CH24_PHOEBE_CAPTURE unset)")
             else:
                 _p = Path(__file__).resolve().parent / "saves" / f"{cap}.ss1"
                 if _p.exists():
-                    log(f"[{TAG}] in-battle capture SKIPPED \u2014 {_p.name} exists; not overwriting.")
+                    log(f"[{TAG}] in-battle capture SKIPPED — {_p.name} exists; not overwriting.")
                 else:
                     try:
                         _p.write_bytes(context.emulator.get_save_state())
-                        log(f"[{TAG}] \u2705 IN-BATTLE CAPTURED -> {_p.name} ({_p.stat().st_size} bytes)")
-                        log(f"[{TAG}] \u2b50 THIS IS THE ARTIFACT: load it offline and read "
+                        log(f"[{TAG}] ✅ IN-BATTLE CAPTURED -> {_p.name} ({_p.stat().st_size} bytes)")
+                        log(f"[{TAG}] ⭐ THIS IS THE ARTIFACT: load it offline and read "
                             f"`calculate_move_damage_range(...).max` per battler against the real "
-                            f"Ghost \u2014 the numbers `#24-ghostreplacement` is blocked on.")
+                            f"Ghost — the numbers `#24-ghostreplacement` is blocked on.")
                     except Exception as error:  # noqa: BLE001 - a failed capture must be LOUD
-                        log(f"[{TAG}] \u26d4 IN-BATTLE CAPTURE FAILED: {type(error).__name__}: {error}")
+                        log(f"[{TAG}] ⛔ IN-BATTLE CAPTURE FAILED: {type(error).__name__}: {error}")
 
             # ---- 7. let the fight play out, and grade the OUTCOME ------------------------------
             from modules.memory import get_game_state as _gs, GameState as _GS
@@ -17846,8 +17859,41 @@ class Ch24PhoebeMode(BotMode):
             log(f"[{TAG}] P-OUTCOME phoebe_flag={R['phoebe_flag']} waited={waited}")
             taken.add("P-OUTCOME")
 
+            # ---- 8. ⛔ "AND THE BOT CAN CONTINUE" — THE HALF I HAD OMITTED --------------------
+            # `R-ACCEPTGRADE` flagged this and it was right. The standing rule is that a grade MUST
+            # include a REAL reachability check off the END tile, never a `controllable` flag:
+            # §Ch15 ended four floors underground, §Ch18 on an eleven-tile island and §Ch19 in a
+            # living room, and ALL THREE PASSED THEIR OWN TESTS.
+            # ‼ It matters DOUBLY here, because the whole claim of this leg is that the unit
+            # REPEATS. A run that wins the fight and cannot leave the room has proven nothing
+            # about room 3, while printing PASS.
+            # ⛔⛔ AND IT READS THE **LIVE** GRID, NOT `get_map_data`. The exit door is ROM-blocked
+            # and runtime-OPENED (`KI-74`); the entry tiles are ROM-open and runtime-SEALED (the
+            # mirror case). Both are confirmed live, twice, by two instruments. A ROM read here
+            # would report the door shut on a perfect run — the exact inversion that makes this
+            # check worth having rather than a formality.
+            try:
+                from modules.story.sootopolis import _live_collision_grid
+
+                grid = _live_collision_grid(PHOEBE)
+                R["exit_door_live"] = {t: grid.get(t) for t in ((6, 1), (6, 2))}
+                R["entry_seal_live"] = {t: grid.get(t) for t in ((5, 13), (6, 13), (7, 13))}
+                door_open = all(grid.get(t) == 0 for t in ((6, 1), (6, 2)))
+                R["exit_door_open_live"] = door_open
+                log(f"[{TAG}] P-CONTINUE exit_door_live={R['exit_door_live']} open={door_open} "
+                    f"entry_seal_live={R['entry_seal_live']}")
+                if door_open:
+                    taken.add("P-CONTINUE")
+                else:
+                    log(f"[{TAG}] ⛔ P-CONTINUE NOT taken — the victory script should have opened "
+                        f"(6,1)/(6,2). The bot is sealed in a room it cannot leave, and room 3 is "
+                        f"unreachable; this is a FAIL however the fight went.")
+            except Exception as error:  # noqa: BLE001 - a reading that fails must say so, not lie
+                R["continue_error"] = f"{type(error).__name__}: {error}"
+                log(f"[{TAG}] ⚠ P-CONTINUE unreadable: {R['continue_error']}")
+
         except Exception as error:  # noqa: BLE001 - a refusal IS the reading
-            # \u26d4 BROAD ON PURPOSE \u2014 the same DELIBERATE divergence from R-EXCEPT documented on
+            # ⛔ BROAD ON PURPOSE — the same DELIBERATE divergence from R-EXCEPT documented on
             # `Ch24ToLeagueMode`: a harness driver must let the VERDICT run from partial state, and
             # `on_whiteout` already latches the abort and is conjoined into the grade below.
             failure = f"{type(error).__name__}: {error}"
@@ -17856,7 +17902,7 @@ class Ch24PhoebeMode(BotMode):
         missing = sorted(WANT - taken)
         for key in sorted(R):
             log(f"[{TAG}] R {key} = {R[key]!r}")
-        # \u26d4 GRADED ON REACHING AND MEASURING, NEVER ON WINNING \u2014 see the docstring.
+        # ⛔ GRADED ON REACHING AND MEASURING, NEVER ON WINNING — see the docstring.
         ok = not missing and failure is None
         log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
         log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
@@ -17868,7 +17914,7 @@ class Ch24PhoebeMode(BotMode):
 def _player_controllable_quiet() -> bool:
     """`player_avatar_is_controllable()` without letting a transition-time raise escape.
 
-    \u26a0 It is documented as FLICKERING through a transition (`early_game.py:1212-1218`), so it is
+    ⚠ It is documented as FLICKERING through a transition (`early_game.py:1212-1218`), so it is
     used here only as a LOOP-EXIT hint, never as a grade. The real settle is
     `wait_until_truly_controllable()`, which every branch calls straight after.
     """
