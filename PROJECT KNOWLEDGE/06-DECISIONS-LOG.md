@@ -5421,3 +5421,73 @@ user-approved state — a gate that cries wolf is worse than none." **That reaso
 is why the number is loose. What changed is that leaving it ungated let the share drift 41.1% ->
 49.3% with nothing to notice. Post-trim it measures 44.9%, so 0.55 is ~10 points of headroom over a
 state the user approved. ⛔ Do NOT tighten it to 0.25 to "match 03" — that would be red on arrival.
+
+
+## 2026-09-16 — ⛔ DO **NOT** WIRE SEGMENT 24 YET, EVEN THOUGH LEG 1'S MECHANICS ARE FULLY DRIVEN
+
+**Context.** Every mechanical step of §Ch24 leg 1 is now measured and A/B'd: `B` clears the
+post-victory msgbox (297 frames, control arm proves it does not self-clear), `calculate_path` routes
+to the runtime-opened door, the driven navigator walks it, the hall walks, and the bot arrives in
+Phoebe's room with `ELITE_4_STATE 1→2`. The obvious next move was to wire it as production code with
+a Segment 24 dispatch. **A 20-agent adversarial recon refuted that, and the decisive finding was then
+confirmed at the source.**
+
+**Decision — the wiring is BLOCKED on two prerequisites, not on more measurement.**
+
+**REASON 1 (decisive, verified in code, and the §Ch23 author predicted it).**
+`victory_road.py:3312` — `ch23_chapter_done()` conjuncts `_on_map(EG)`:
+
+    if not _on_map(EG) or any(_on_map(m) for m in VICTORY_ROAD_MAPS):
+        return False
+
+Every League interior map is a SEPARATE map. ⇒ **the instant Segment 24 steps through the League's
+front door, §Ch23's completion gate reads FALSE — and because the gauntlet is ONE-WAY, that position
+can never be restored from inside.** Any raise past that door re-enters `do_victory_road_chapter()`,
+whose eleven legs are all position-gated and all self-skip, three times, then raises ⇒ 4 derails ⇒
+Manual, parked in a sealed Elite Four room.
+⭐ **This is a FORWARD DEPENDENCY the §Ch23 author wrote down and the leg-1 plan did not honour.**
+The same function's docstring already says: *"when §Ch24 is built it MUST set its own progress marker
+so §Ch23 is not re-entered — a forward dependency, recorded here because it is now load-bearing."*
+⚠ And its stated mitigation — *"a wasteful re-buy is strictly better"* — assumes the bot can get back
+to re-buy. It cannot. That is what the one-way measurement adds.
+‼ **THE FAILURE MODE IS CREATED BY THE WIRING, NOT PRE-EXISTING.** Today `_play()` ends immediately
+after Segment 23's `_guard`, so the basket is never spent and the predicate is never re-evaluated.
+⇒ wiring Segment 24 now would trade *a bot that stops cleanly at end-of-content* for *a bot that, on
+any error past that door, burns three no-op Ch23 attempts and lands in Manual, sealed.* **Strictly
+worse.**
+
+**REASON 2. Leg 1's endpoint is a sealed room with no leg 2.** Arriving in Phoebe's room means the
+entry script ran, which seals the door behind the bot, with an unfought Elite Four member in front.
+That is the §Ch15 / §Ch18 / §Ch19 *"passed its own test while stranded"* shape — the exact thing
+`ch22_chapter_done()` and `ch23_chapter_done()` were written to prevent.
+
+**REASON 3. "Composed entirely from shipped helpers" was FALSE.** Only `VR._navigate_riding_out`,
+`VR._walk_through_warp` and `early_game._pass_through_door` ship. **Nothing in
+`sandbox-pokebot/modules/**` or `plugins/**` navigates the League interior at all** — the guard-talk
+loop, the trainer-object read, the battle-engage mash and the post-victory dismiss exist ONLY in
+`story_harness.py`. ⛔ And the harness's engage mash presses **A** one frame in three while facing the
+trainer, which is precisely the hazard `e4dismiss` was built to avoid; copying it into production
+would import it.
+
+**PREREQUISITES before Segment 24 may be wired (both, not either):**
+1. §Ch24 owns a **position-independent progress marker** so §Ch23 is not re-entered from inside the
+   League — the forward dependency `ch23_chapter_done`'s docstring already names.
+2. **Leg 2 exists**, so arriving in Phoebe's room is a continuation rather than a dead end.
+
+**Alternatives rejected:**
+* *Wire it anyway and accept the derails.* Rejected: it makes the bot strictly worse than today on
+  every run that reaches the League, for no gain until leg 2 exists.
+* *Relax `ch23_chapter_done()` to drop the position conjunct.* Rejected: that conjunct exists because
+  a whiteout at the Ever Grande Poké Center satisfied the old predicate and advanced a wiped,
+  unstocked party into the gauntlet — MEASURED on `ki90_whiteout_at_evergrande.ss1`. Removing it
+  re-opens a hole the project already fell into.
+* *Ship leg 1 as a harness driver only.* This is what we have, and it stays. The probes are honest
+  about being probes.
+
+**⭐ AND A WINNABILITY FINDING THAT CHANGES WHAT IS WORTH BUILDING.** Rosters re-verified against the
+live decomp and cross-checked against our own symbol table (`sParty_Sidney` … `sParty_Wallace`, sizes
+0x50/0x60 matching 5 and 6 mons): **Wallace is arithmetically out of reach for this party** — Milotic
+(L58) carries `MOVE_RECOVER` and heals ~98/turn while our best measured hit is 66-78 — and **Glacia
+OHKOs two of our six**. ⇒ §Ch24 is not one chapter of uniform difficulty; leg 1 is the best-evidenced
+fight in the project and the last two are not currently winnable. Build order and party preparation
+should follow that, not the room order.

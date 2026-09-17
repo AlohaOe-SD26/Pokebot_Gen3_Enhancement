@@ -30042,3 +30042,110 @@ room has **no pre-battle window** — it `goto`s straight into Wallace's fight.
 
 **FILES:** `tools/story-dev/probe_e4_halls.py` (new), `tools/story-dev/story_harness.py`,
 `PROJECT KNOWLEDGE/{03,04,29}`, `ai-research-notes/2026-09-16-e4exit-PREDICTIONS.md`, evidence.
+
+
+## 2026-09-16 (sixteenth) — THE BUILD WAS REFUTED BEFORE IT WAS WRITTEN, AND THAT IS THE RESULT
+
+A 20-agent, five-angle adversarial recon ran before wiring §Ch24 leg 1 as production code. **It
+refuted the build**, and the decisive finding was then confirmed by opening the file. Full ruling with
+rejected alternatives: `06-DECISIONS-LOG.md` 2026-09-16. Nothing was wired.
+
+**THE DECISIVE FINDING.** `victory_road.py:3312` `ch23_chapter_done()` conjuncts `_on_map(EG)`. Every
+League interior map is a separate map ⇒ the instant Segment 24 crosses the League's front door, §Ch23's
+gate reads FALSE, and the gauntlet is ONE-WAY so it can never be restored from inside. Any raise past
+that door burns three no-op Ch23 attempts → 4 derails → Manual, sealed in an E4 room. ⭐ **The §Ch23
+author had already written this forward dependency into the docstring** — *"when §Ch24 is built it
+MUST set its own progress marker"* — and the leg-1 plan did not honour it. ‼ The failure mode is
+CREATED BY THE WIRING: today `_play()` stops right after Segment 23, so it cannot happen.
+
+**‼ AND I NEARLY PROPAGATED AN AGENT'S OVER-CLAIM INTO TWO DOCUMENTS.** The adversary reported *"OUR
+OWN DRIVE MEASURED (18,6)"* for where a mid-gauntlet whiteout lands, contradicting the handoff and
+punch list (which say the League lobby, beside the nurse). **Neither is measured.** `(18,6)` is a
+HARDCODED LOG STRING in the driver (`story_harness.py:15706`: `log(f"[ch24probe] WHITEOUT #… respawn
+EVER_GRANDE (18,6); money halved.")`); the only real position reading in that run is `PRE at=…`, taken
+BEFORE the run. ⇒ marked UNVERIFIED in both places rather than "corrected" from one unverified claim
+to another. **A candidate is not an attempt, and a log string is not a reading — including when an
+agent hands it to you labelled MEASURED.**
+
+**⛔ A CLAIM I WROTE INTO A DOC TODAY IS WRONG, AND IT IS CORRECTED.** The 6-angle recon note said the
+Sidney drive *"never exercised our KI-93 in-battle dismiss for a trainer lose-text; Glacia and Wallace
+are the first rooms that will."* **KI-93 is structurally UNREACHABLE at battle end.** Verified at
+`battle_action_selection.py:166` — its dismiss lives inside
+`while battle_is_active() and get_main_battle_callback() in ("HandleTurnActionSelectionState", "sub_8012324")`,
+and by battle end the callback has moved on. It was never what clears end-of-battle text; the real
+driver is `modules/modes/_listeners.py`'s `press_button("B")`. ⇒ Glacia's and Wallace's `\p`-carrying
+lose-texts do not put KI-93 on the critical path at all.
+
+**WINNABILITY, AND IT SPLITS BY FIGHT.** Rosters re-verified against the live decomp AND cross-checked
+against our own symbol table (`sParty_Sidney`…`sParty_Wallace` at 0x50/0x50/0x50/0x50/0x60 = 5,5,5,5,6
+mons). **Wallace is arithmetically out of reach**: Milotic L58 carries `MOVE_RECOVER` (~98 HP/turn)
+against our best measured hit of 66-78. **Glacia OHKOs two of our six.** ⭐ But leg 1 got BETTER news:
+on the same fixture, same day, the only variable being the `KI-101` fix, Sidney's cost fell from FIVE
+fainted to TWO, with three survivors at full HP. ⇒ Sidney was never an attrition disaster; it was a
+broken item-targeting bug. ⛔ Also corrected: the brief's "one Sidney win, on a different
+under-prepared party" is wrong three ways — there are SIX trajectories on record (4 wins, 2 whiteouts)
+and the 5-of-6 result was on the SAME fixture leg 1 would ship from.
+
+**DEFECTS FOUND IN SHIPPED BOT CODE** (recorded, not yet fixed — `heal_party_from_bag`, the function
+the gauntlet's survival depends on): it has ZERO production callers, no controllability precondition,
+**three UNBOUNDED while-loops in a place with no escape**, a party-cursor loop re-implementing the
+model `KI-38` records as WRONG, and on the actual leg-1 party it returns `heal_ready=False` **without
+raising** — 6 actions, all 3 Revives spent, 2 Pokémon still fainted.
+
+**AND A CONTRADICTION BETWEEN TWO OF OUR OWN DOCS, ON THE EXACT HALL LEG 1 WALKS.** One says the halls'
+backward warps are destination-only (`MB_NORMAL`, never fire); `03-PUNCH-LIST.md` says a single
+sidestep warps you back into the cleared room. The second was derived from a **warp-EVENT TABLE**,
+which says nothing about whether a warp FIRES. Marked DISPUTED with the decisive test named.
+
+**WHAT SHIPPED INSTEAD:** the ruling, these corrections, and `probe_promoted_pair.py` — see the entry
+below.
+
+
+## 2026-09-16 (seventeenth) — `probe_promoted_pair.py`: THE GATE `#24-promotedpairgate` ASKED FOR, AND IT FOUND AN 8TH INSTANCE ON ITS FIRST RUN
+
+**Gate #63, ENFORCING.** A KI whose `05-KNOWN-ISSUES.md` header says PROMOTED/FIXED/CLOSED may not be
+called NOT PROMOTED / STILL OPEN / AWAITING A RULING in a **live clause** of `04-HANDOFF.md`.
+
+⛔ **THE OBVIOUS DESIGN WAS ALREADY REFUTED BY THE ITEM ITSELF, AND THAT WAS THE WHOLE CONSTRAINT.**
+Its recorded dry run of the LINE-scoped version produced **6 findings, all false** (one mega-line put
+"NOT promoted" beside six unrelated `KI-` numbers), and then went **6 → 23 after the document got
+MORE accurate**, with 20 from a single line. ⇒ the line-scoped metric tracked LINE LENGTH.
+⭐ **THE FIX WAS A PRIMITIVE THIS TREE ALREADY OWNED:** `probe_drift_restatement.py` hit the identical
+wall and solved it with a BOUNDED-RADIUS enclosure test. "Clause-scoped" means exactly that — the KI
+mention and the contradicting phrase must be near EACH OTHER (±300 chars), not merely on one line.
+A self-test arm proves it: at line scope (10,000) the mega-line fires; at clause scope it does not.
+
+**FOUND ON THE FIRST LIVE RUN — an 8th instance of the shape:** `04-HANDOFF.md:314` read
+*"(`KI-95`: … sandbox-only, unpromoted)"* against `KI-95`'s own header *"✅ RESOLVED/FIXED, GATED #39,
+**PROMOTED 2026-09-07**"* — and against the same file's own *"`KI-95`/`KI-93` — those were PROMOTED and
+contribute ZERO drift."* Nine days stale. Fixed; the gate now ships at 0.
+
+**TWO FALSE POSITIVES WERE ELIMINATED BY PRINCIPLED SCOPING, NOT WORD-LIST TUNING** (the item is
+explicit that a gate with false positives is worse than none):
+* `KI-76` — its header *declares itself* `🔶 MIXED: ✅ SAFETY half FIXED; ⚠ CORRECTNESS half UNFIXED`,
+  so the handoff saying "the correctness half is still OPEN" **agrees with it**. Firing on agreement
+  is the failure mode. ⇒ self-declared MIXED/PARTLY headers are out of scope.
+* `KI-65` — the words "still open" on that line belong to **KI-66's** owner-filter half. ⇒ a status
+  phrase is attributed to its **NEAREST** KI mention and to no other.
+
+⛔⛔ **AND THE FIRST FIX INTRODUCED A FALSE NEGATIVE, CAUGHT IN THE SAME RUN.** Excluding `PARTIAL`
+silently dropped `KI-95` from scope — its header says "**PARTIALLY ARCHIVED**", which is a fact about
+where the DOCUMENT lives, not about whether the FIX is partial — and that removed the one REAL defect
+the gate had just found. ‼ **I tuned to kill false positives and killed the true positive with them.**
+Fixed with a lookahead, and an arm now pins `KI-95`'s real header IN scope so it cannot regress.
+
+**19 SELF-TEST ARMS**, including the item's own stated acceptance test (the mega-line must NOT fire),
+a threshold arm proving the clause window rather than luck is the discriminator, a both-ways
+attribution pair, and the false-negative arm above. `--self-test` exits 0.
+
+⚠ **SCOPE, STATED PLAINLY:** this is a WORD-LEVEL check between two files. It cannot tell anyone a KI
+is really fixed — only that the two documents do not contradict each other about it. That narrowness
+is deliberate: every failure it exists to catch was a word-level contradiction, and a broader gate
+would inherit the false-positive surface that killed the first design.
+
+**Registered in `run_gates.py`** (suite 62 → 63; 59 → 60 enforcing). ‼ Registering it immediately
+turned two other gates red on stale COUNTS — `04-HANDOFF` and `02-ARCHITECTURE` both quoted "62" in
+runnable `run_gates.py` command comments, and the handoff carried three more in prose. All corrected.
+⭐ Note the asymmetry that emerged: a count a GATE checks may be quoted (it stays honest by
+construction); a count nothing checks may not. `02-ARCHITECTURE.md:251` keeps its explicit "63
+entries" for exactly that reason.

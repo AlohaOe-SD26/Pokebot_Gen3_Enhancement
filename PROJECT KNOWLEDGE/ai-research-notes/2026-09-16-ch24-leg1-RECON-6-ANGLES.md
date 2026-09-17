@@ -121,8 +121,16 @@ neither table.
   "Player defeated …" and "got ¥… for winning!" strings both end in `\p`).
   ⇒ totals: Sidney 5, Phoebe 6, Glacia 6, Drake 8. Wallace never returns control (see §4).
 * ‼ **Glacia's and Wallace's in-battle lose-texts contain `\p`/`\l` (2 and 4); Sidney's, Phoebe's
-  and Drake's contain none.** ⇒ **the Sidney drive never exercised the KI-93 in-battle dismiss path
-  for a trainer lose-text.** Glacia and Wallace are the first rooms that will. UNTESTED, not broken.
+  and Drake's contain none.** ⛔⛔ **BUT THE CONCLUSION DRAWN FROM THAT COUNT WAS WRONG, AND IT WAS MINE (corrected 2026-09-16).**
+  *(This read: “⇒ the Sidney drive never exercised the KI-93 in-battle dismiss path for a trainer
+  lose-text. Glacia and Wallace are the first rooms that will.”)* **`KI-93` IS STRUCTURALLY
+  UNREACHABLE AT BATTLE END.** Its dismiss lives inside `battle_action_selection.py:166` —
+  `while battle_is_active() and get_main_battle_callback() in ("HandleTurnActionSelectionState",
+  "sub_8012324")` — and by the end of a battle that callback has already moved on, so the loop has
+  exited. It was NEVER what clears end-of-battle text. The real driver is
+  `modules/modes/_listeners.py`'s `press_button("B")`, which the Sidney drive exercised against
+  dozens of identical `\p` parks (every “gained EXP. Points!” ends in one). ⇒ Glacia and Wallace add
+  presses to a path that ALREADY WORKS; they do not put KI-93 on the critical path.
 * ⛔⛔ **`cb=`, `instr=` AND `bt=` IN THE `STUCK-OW` DUMP ARE DEAD RESIDUE, NOT LIVE STATE.**
   `BattleScript_PayDayMoneyAndPickUpItems` is the 3-byte tail of the win script and `Cmd_end2` does
   not advance `gBattlescriptCurrInstr`, so the pointer freezes on that byte forever and a
@@ -224,7 +232,10 @@ KI-74-affected.
    sufficient: a `calculate_path` OK is not proof the DRIVEN navigator can walk it (`KI-48`).
 4. Phoebe/Glacia/Drake post-victory LIVE grids — inferred from byte-identical ROM layouts + a shared
    helper, **not measured**.
-5. Whether our KI-93 in-battle dismiss fires for a trainer lose-text (first exercised at Glacia).
+5. ~~Whether our KI-93 in-battle dismiss fires for a trainer lose-text.~~ ✅ **ANSWERED 2026-09-16 —
+   WRONG QUESTION.** KI-93 cannot run at battle end at all (`battle_action_selection.py:166` gates
+   its loop on `get_main_battle_callback() == "HandleTurnActionSelectionState"`). End-of-battle text
+   is cleared by `_listeners.py`'s `press_button("B")`, already exercised dozens of times per win.
 6. ROM collision of (5,2) and (7,2) — the only two tiles in row y=2 the opener does not rewrite.
 7. Hall of Fame metatile BEHAVIORS — the agent's own method returned an implausible result and it
    said so; do not quote them. Does not affect the route.

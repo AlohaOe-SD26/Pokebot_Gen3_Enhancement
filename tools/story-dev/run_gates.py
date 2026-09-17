@@ -403,6 +403,14 @@ GATES: list[tuple[str, bool]] = [
     # purpose, exactly like `archive_doc_block.py`'s invariant C. Read the arms, never the count.
     # Pure and fast: reads Markdown, reads no ROM.
     ("probe_drift_restatement.py", False),
+    # ⛔⛔ `#24-promotedpairgate` — SEVEN instances of one shape in a single day, every one caught
+    # by COST (a diff advisory, a Tier 1 reviewer, a Tier 2 audit) and never by a check. A KI whose
+    # 05 HEADER says PROMOTED/FIXED/CLOSED may not be called NOT PROMOTED / STILL OPEN in a LIVE
+    # clause of the handoff. ⭐ CLAUSE-scoped, never line-scoped: the item RECORDS a dry run where
+    # the line-scoped design produced 6 findings (all false) and then 6 -> 23 AFTER the document got
+    # MORE accurate, because the metric tracked LINE LENGTH. ✅ Found an 8th instance on its first
+    # live run (`KI-95` “sandbox-only, unpromoted” against a PROMOTED header) and ships at 0.
+    ("probe_promoted_pair.py", False),
     # ⛔⛔ `_derail_reason` grouped with a DECIMAL-only `\d[\d,]*` pass while a PID is HEX, so
     # `Marill#30AD95BD` -> `Marill#NADNBD` and EVERY PID BECAME ITS OWN KEY. `summary.json` is written
     # through `.most_common()`, so the biggest blocker scattered into count-1 rows at the BOTTOM.
