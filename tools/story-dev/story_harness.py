@@ -16961,6 +16961,21 @@ class Ch24ToLeagueMode(BotMode):
                 _take("R-CONTINUE")
 
         except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            # ⛔⛔ THIS CATCHES BROADLY **ON PURPOSE**, AND IT IS A DELIBERATE DIVERGENCE FROM THE
+            # `R-EXCEPT` PREVENTION RULE — WHICH THE DIFF ADVISORY WILL FLAG EVERY TIME. Do not
+            # "fix" it by adding `reraise_if_aborting(error)`.
+            # ‼ THAT RULE IS AIMED AT `modules/story/` PRODUCTION PATHS, where converting a
+            # whiteout unwind into a fresh `BotModeError` fabricates a diagnosis. A HARNESS DRIVER
+            # has the opposite obligation: the `story-drive` rule is that `on_whiteout` latches and
+            # returns True, and that *"the latch is only true if a try/except lets the VERDICT
+            # run — wrap the body in ONE top-level try/except and compute the verdict from partial
+            # state"*. Re-raising here would DISCARD the generator and print no verdict at all,
+            # which is the very failure that rule exists to prevent.
+            # ✅ AND THE ABORT IS NOT LOST: `on_whiteout` above calls `set_story_abort(True)` and
+            # increments `self.whiteouts`, and the grade conjoins `not self.whiteouts` — so a
+            # swallowed abort still FAILS, loudly, with its cause named in `failure`.
+            # ✅ Gate #27 (`probe_abort_swallowing.py`) agrees: it ratchets `modules/story/`, not the
+            # harness, and reports 27 sites exactly at baseline with this handler present.
             failure = f"{type(error).__name__}: {error}"
             log(f"[{TAG}] FAILURE {failure}")
 
