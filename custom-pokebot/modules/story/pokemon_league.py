@@ -51,7 +51,12 @@ from modules.modes.util.items import scroll_to_item_in_bag
 from modules.modes.util.sleep import wait_for_n_frames
 from modules.modes.util.tasks_scripts import wait_for_task_to_start_and_finish
 from modules.pokemon_party import get_party, get_party_size
-from modules.story.early_game import wait_until_truly_controllable
+# ⛔⛔ `_check_abort` IS IMPORTED AT MODULE LEVEL ON PURPOSE (2026-09-16). This file's own §Ch24 probe
+# docstring records the trap three times over: *"a helper another function imported locally is NOT
+# available to yours, and the first run of this probe died on `NameError: name '_check_abort' is not
+# defined` after correctly reaching the lobby."* A bounded loop that calls it would otherwise raise
+# NameError on the ABORT path only — the one path no happy-path drive ever exercises.
+from modules.story.early_game import _check_abort, wait_until_truly_controllable
 from modules.story.overworld_items import Target, plan_healing, party_is_gauntlet_ready
 from modules.tasks import task_is_active
 
@@ -94,8 +99,17 @@ def _budgeted(generator, frames: int, what: str):
 
     return _impl(generator, frames, what)
 
-#: Frames to spend on one item use before giving up. A bound, not a preference — a menu that never
-#: reaches the next state is a hung run, and this one runs where there is no escape.
+#: ⛔⛔ **ITERATIONS, NOT FRAMES — THE OLD COMMENT WAS WRONG BY 4× (corrected 2026-09-16).**
+#: *(It read “Frames to spend on one item use before giving up.”)* The loop it bounds does
+#: `wait_for_n_frames(4)` per iteration, so 900 iterations is ~**3,600 frames** — and the ENTIRE
+#: measured seven-action heal cost **2,949** frames of controller time (`ch24heal`, 2026-09-04).
+#: ⇒ this 'bound' is ~8.5× the whole operation it is supposed to cap, i.e. it would not catch a
+#: hang inside one item use until long after the run had visibly stopped.
+#: ‼ LEFT AT 900 DELIBERATELY: lowering it is a BEHAVIOUR change to the gauntlet's only healing
+#: path, and no per-call frame cost has ever been measured to justify a number. What is fixed
+#: here is the LIE, not the value — a bound nobody can reason about is worse than a loose one.
+#: A bound, not a preference: a menu that never reaches the next state is a hung run, and this
+#: one runs where there is no escape.
 ONE_USE_BUDGET = 900
 
 #: ⛔ THE TASK THE PARTY MENU RUNS UNDER while asking "Use on which POKéMON?".
@@ -172,6 +186,21 @@ def use_item_on_party_member(item: Item, party_index: int) -> Generator:
     yield from scroll_to_item_in_bag(item)
 
     # ---- open the context menu and take "Use" (cursor already sits on it) -------------------------
+    # ⛔⛔ THIS LINE LOOKS WRONG AND IS NOT — A “FIX” HERE WAS MEASURED AS A REGRESSION 2026-09-16.
+    # The concern is real: this waits on the SINGULAR `ITEM_CONTEXT_TASK`, while the file defines
+    # `ITEM_CONTEXT_TASKS` (all four) precisely because naming only one cost four drives on the
+    # TEACH path — and that fix was never applied here.
+    # ‼ BUT THE OBVIOUS TRANSPLANT BREAKS IT. Replacing this with the teach path's bounded
+    # accept-any-task loop (`scroll_to_tm_verified`, ~:536) turns a START-**AND-FINISH** wait into a
+    # START-ONLY wait: that loop stops pressing A once the context menu OPENS, so “Use” is never
+    # SELECTED and the party menu never appears. MEASURED A/B on `--driver ch24heal`,
+    # `post_league_shop.ss1`, same staged damage:
+    #     BEFORE  ready=True  failure=None                       ACCEPTANCE: PASS (7 actions)
+    #     AFTER   ready=False failure=…Task_HandleChooseMonInput ACCEPTANCE: FAIL (0 actions)
+    # evidence: `tools/story-dev/evidence/2026-09-16-ch24heal-{BASELINE,AFTER-fixes}.stdout.txt`.
+    # ⇒ the correct fix must generalise START-AND-FINISH across all four task names, not borrow a
+    # loop whose contract is only START. Filed as `#24-itemcontextplural`; do NOT retry the
+    # transplant without re-running that A/B.
     yield from wait_for_task_to_start_and_finish(ITEM_CONTEXT_TASK, "A")
 
     # ---- the party menu. ⛔ THE STATE NOTHING IN THIS TREE HAD DRIVEN BEFORE ----------------------

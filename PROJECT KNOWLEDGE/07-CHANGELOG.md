@@ -30234,3 +30234,32 @@ An angle reported that on a real party `heal_party_from_bag` *"returns `heal_rea
 RAISING — 6 actions, all 3 Revives spent, 2 Pokémon still fainted"*. On the fixture the driver
 actually uses it plans **7** actions, spends 2 Revives, and returns `heal_ready=True` with the whole
 party at full HP. The pessimistic framing does not describe this code path.
+
+
+## 2026-09-16 (twentieth) — PROMOTED: the two heal-path text fixes, VERIFIED BY DRIVING THE FORK
+
+**User-authorised.** Rollback tag **`pre-promote-2026-09-16b`** (local + origin; `promote.py` verified
+it existed and was pushed before copying). `--go`: **drift after 0, orphaned 0, byte-identical 2/2.**
+
+⛔ **A COPY IS NOT EVIDENCE — so it was driven.** `--driver ch24heal post_league_shop.ss1 --build
+custom` → `build=custom`, `heal_actions=7`, `GRADE premise_ok=True ready=True revive_ok=True
+control_ok=True back_in_overworld=True whiteouts=0 failure=None`, **`ACCEPTANCE: PASS`**. Both
+build-aware gates against the fork print *"(importing from … custom-pokebot — verified)"* and
+`ALL CHECKS PASS`. Recorded in `custom-pokebot/DIVERGENCE-LOG.md`.
+
+**WHAT SHIPPED** (both TEXT-ONLY, no control flow): `ONE_USE_BUDGET`'s comment, which claimed FRAMES
+where the loop counts ITERATIONS ×4 — the value deliberately unchanged; and `_budgeted`'s raise, which
+hard-coded `"Ch23:"` into a SHARED helper §Ch24 already calls.
+
+‼ **AND A THIRD CHANGE WAS DELIBERATELY NOT PROMOTED BECAUSE IT WAS MEASURED AS A REGRESSION** —
+`#24-itemcontextplural`, PASS (7 actions) → FAIL (0 actions). Reverted before the tag was cut.
+
+### ⛔ A PROCESS SLIP, RECORDED RATHER THAN QUIETLY FIXED
+
+Earlier in this sequence I ran the gate suite piped to `tail -3`, read the tail, and **committed over
+a RED suite** — `audit_doc_citations.py` had caught a citation my own edit shifted
+(`victory_road.py:1824` → `battler_identities` now at :1830-1846). The project's own HOW TO RUN says
+**"⛔ Read the exit code WITHOUT a pipe"**, and the DoD says committing over a red doc gate is the same
+offense as `git add -A`. Fixed in the next commit, and every suite run since has been graded by exit
+code with no pipe. ⭐ The gate itself worked perfectly: a six-line comment insert moved a symbol and
+the citation audit caught it the same minute.

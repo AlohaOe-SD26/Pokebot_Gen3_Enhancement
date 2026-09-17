@@ -634,8 +634,14 @@ def _budgeted(gen: Generator, budget_frames: int, label: str) -> Generator:
         for _ in gen:
             frames += 1
             if frames > budget_frames:
+                # ⛔ THE PREFIX IS NOT HARD-CODED ANY MORE (2026-09-16). It read `"Ch23: …"`, but this
+                # helper is shared: `pokemon_league.py` (§Ch24) already wraps one call in it, so a
+                # §Ch24 hang reported itself as a §Ch23 failure — and this project has repeatedly
+                # paid for failure text that names the wrong subsystem (KI-89's own note: four
+                # drives died "with a message about the party slot that was pure misdirection").
+                # The label already carries the caller's identity; use it instead of guessing.
                 raise BotModeError(
-                    f"Ch23: '{label}' exceeded its {budget_frames}-frame budget. This is the KI-83 "
+                    f"{label}: exceeded a {budget_frames}-frame budget. This is the KI-83 "
                     f"shape: the upstream helper waits on a task that never started (a whiteout "
                     f"inside the call kills the menus), and nothing in `tasks_scripts.py` checks "
                     f"the abort latch. The budget is what turns a silent forever into a named "

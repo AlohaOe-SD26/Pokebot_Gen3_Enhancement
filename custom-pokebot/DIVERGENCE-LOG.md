@@ -2604,3 +2604,36 @@ across the forks; the `KI-101` markers and the `CONSUMED (bag count dropped)` ve
 ‼ That last step is the one that matters: on 2026-08-14 a hand-run promotion shipped with a hole
 because the gate proving the fix hard-coded the sandbox import path, so nothing checked the other
 fork. A copy is not evidence.
+
+## 2026-09-16 (later) — PROMOTED: two heal-path TEXT fixes (`pokemon_league.py`, `victory_road.py`)
+
+**User-authorised.** Rollback tag **`pre-promote-2026-09-16b`** (local + origin, verified by
+`promote.py` before it copied). `promote.py --go`: drift after **0**, orphaned **0**,
+**byte-identical 2/2**.
+
+**WHAT CHANGED — both are TEXT ONLY, no control flow:**
+1. `modules/story/pokemon_league.py` — `ONE_USE_BUDGET`'s comment claimed *"Frames to spend on one
+   item use"*. The loop it bounds does `wait_for_n_frames(4)` per iteration, so 900 iterations is
+   **~3,600 frames**, against a MEASURED whole-seven-action heal of **2,949**. The comment was wrong
+   by 4× and described a bound ~8.5× the operation it caps. ⭐ **The VALUE is deliberately unchanged**
+   — lowering it is a behaviour change to the gauntlet's only healing path and no per-call cost has
+   ever been measured. What shipped is the correction to the LIE.
+   *(The same commit also added a module-level `_check_abort` import and an in-place note explaining
+   why the obvious `ITEM_CONTEXT_TASKS` fix must not be retried — see `#24-itemcontextplural`.)*
+2. `modules/story/victory_road.py` — `_budgeted`'s raise hard-coded `"Ch23: …"`. It is a SHARED
+   helper and `pokemon_league.py` (§Ch24) already wraps a call in it, so a §Ch24 budget overrun
+   reported itself as a §Ch23 failure. It now uses the caller's own `label`.
+
+**VERIFIED BY DRIVING, not by the copy** (the tool's own standing rule):
+`--driver ch24heal post_league_shop.ss1 --build custom` → `build=custom`, `heal_actions=7`,
+`GRADE premise_ok=True ready=True revive_ok=True control_ok=True back_in_overworld=True whiteouts=0
+failure=None`, **`ACCEPTANCE: PASS`**. Evidence:
+`tools/story-dev/evidence/2026-09-16-ch24heal-CUSTOMBUILD-VERIFY.stdout.txt`.
+Build-aware gates against the fork: `repro_pid_identity_key.py` and `repro_box_counter_move_test.py`
+both print *"(importing from … custom-pokebot — verified)"* and `ALL CHECKS PASS`, exit 0.
+
+‼ **AND A THIRD CHANGE WAS DELIBERATELY *NOT* PROMOTED, BECAUSE IT WAS MEASURED AS A REGRESSION.**
+Replacing the healing path's singular `ITEM_CONTEXT_TASK` wait with the teach path's accept-any-task
+loop took `ch24heal` from **PASS (7 actions)** to **FAIL (0 actions, nothing healed)** — the teach
+loop is START-only, while `wait_for_task_to_start_and_finish` presses A *through* the menu to select
+"Use". Reverted before promotion; filed as `#24-itemcontextplural` with the A/B.
