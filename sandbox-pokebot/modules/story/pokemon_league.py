@@ -1252,6 +1252,14 @@ def fly_to_destination(destination, report=None) -> Generator:
     try:
         here_type = get_map_data_for_current_position().map_type
     except Exception as error:  # noqa: BLE001 — an unreadable map type must REFUSE, never assume yes
+        # ⛔⛔ FIRST STATEMENT, ALWAYS. This handler raises a BRAND-NEW `BotModeError`, and
+        # `reraise_if_aborting`'s own docstring names that exact shape as the way an abort's identity
+        # is lost: after a whiteout the message below would be **a fabricated diagnosis** — the map
+        # type is irrelevant, the player is standing outside a Poké Center. Keyed on the LATCH, not
+        # on the exception type, because by here the original object may already be gone.
+        from modules.story.early_game import reraise_if_aborting
+
+        reraise_if_aborting(error)
         raise BotModeError(
             f"§Ch24 fly: could not read the current map type ({type(error).__name__}: {error}), so "
             f"whether Fly is legal here is UNKNOWN. ⛔ Refusing — an unknown is treated as NO."
