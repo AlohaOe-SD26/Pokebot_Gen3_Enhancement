@@ -18475,3 +18475,37 @@ asserting `== 1` where the codebase tests `!= 0`, and now this. All three had th
 check tested something narrower than the claim it was standing in for.** The general rule, and the
 reason the standing advice is to read the failing line first: *when a probe disagrees with a
 carefully-reasoned expectation, suspect the probe's predicate before the subject.*
+
+
+## 2026-09-17 (twelfth) — I PROVED A FIX WITH A FIXTURE I INVENTED TO PROVE IT
+
+**Symptom.** `#24-ghostreplacement` shipped, gate-green, marked "A/B-PROVEN", and is a **measured
+no-op on the real party**: against a pure Ghost the ranker still picks a mon that cannot win — in
+fact an **L19 mule**, which is worse than the case the item was filed about.
+
+**Root cause.** The gate arm (C8) was a synthetic mon holding ONLY a Normal move, so its outgoing was
+literally zero and the new `cannot_damage` term fired. No mon in the actual party looks like that:
+the real Swellow has **Aerial Ace** (Flying, 1× on a Ghost) and the real Zigzagoon has **Surf**. With
+a non-zero outgoing the new term is 0 for every candidate and the key falls through to the old
+behaviour untouched.
+
+‼ **THE ARM WAS BUILT FROM MY MODEL OF THE DEFECT, NOT FROM THE SITUATION.** I already had the real
+party pinned, already had the real measurement that started the item (Swellow 31 vs Mightyena 68),
+and still reached for a hand-made mon because it made the demonstration cleaner. A fixture invented
+to demonstrate a defect will demonstrate it — that is the one thing it cannot fail to do.
+
+⛔ And the warning was already written, by me, that morning, in another probe's docstring: *"the arms
+use the REAL Wailord and the REAL Hydro Pump, not fakes — twice today a hand-built fixture in a probe
+was wrong while its subject was right."* Knowing the rule did not make it fire, because I was writing
+an arm for a fix rather than a check on a subject.
+
+⇒ **PREVENTION RULE.** *An arm that proves a fix must be the REAL situation the fix was filed for —
+the pinned save, the real party, the real move set. A synthetic arm may only ever be an ADDITIONAL
+case, never the one the claim rests on.* Concretely: if an item was opened by a measurement, the arm
+must be that measurement re-run, not a reconstruction of it.
+
+⇒ **AND A SECOND RULE, ABOUT THE SHAPE OF THE TERM.** `cannot_damage` asks a BOOLEAN question ("is it
+zero?") about a CONTINUOUS problem ("how long until this wins?"). A boolean guard on a continuous
+quantity only ever fires at the extreme, so it looks correct on a constructed extreme and does
+nothing in the middle, which is where real parties live. *When the failure is "too slow", the guard
+must measure speed, not presence.*

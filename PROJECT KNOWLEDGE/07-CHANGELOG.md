@@ -30834,3 +30834,39 @@ orchestrator must dispatch on that.
 ⚠ Note the same reading explains something already known: `post_sidney_door_open.ss1` is `Indoor`, so
 **there is no Fly escape from inside the gauntlet either** — consistent with the sealed-zone finding,
 and now measured rather than inferred.
+
+
+## 2026-09-17 (eleventh) — ⛔⛔ RETRACTION: `#24-ghostreplacement` IS A NO-OP ON THE REAL PARTY, AND MY GATE ARM WAS SYNTHETIC
+
+I shipped a `cannot_damage` leading term for `rank_replacement` this morning, marked
+`#24-ghostreplacement` **FIXED / A/B-PROVEN**, and cited gate #39's case C8. The fix is real, the
+gate is green, and **it does not reach the case it was filed for.**
+
+**MEASURED** — `probe_ghost_replacement_real.py` (NEW), running the SHIPPED pure function against the
+PINNED party `post_e4ice_FINAL.ss1` and a pure Ghost:
+
+    slot 0  Mightyena  L75  incoming=0.5  best_outgoing=240   Crunch 240 / Bite 180
+    slot 1  Zigzagoon  L19  incoming=0.0  best_outgoing= 95   Surf 95            <- CHOSEN
+    slot 3  Swellow    L75  incoming=0.0  best_outgoing= 90   Aerial Ace 90
+    >>> rank_replacement PICKS slot 1 = Zigzagoon L19   key=(0, 0.0, -95.0, -1.0, -19)
+
+⛔ It sends an **L19 mule** into Phoebe — worse than the L48 Swellow the item was filed for, because
+among the three `incoming = 0.00` Normal-types the tie-break is `-outgoing`, and Zigzagoon's Surf
+(95) edges Swellow's Aerial Ace (90). The mules are eligible: benching means *do not TRAIN*, not
+*do not FIELD*.
+
+**WHY IT MISSED.** `cannot_damage` separates only candidates whose best outgoing is LITERALLY zero.
+Swellow's Aerial Ace is **Flying** (1× on a Ghost) and Zigzagoon carries **Surf** — neither is zero,
+so the new term is 0 for everyone and the key falls through to `incoming` exactly as before.
+
+⛔ **AND THE ARM I PROVED IT WITH WAS A MON THAT DOES NOT EXIST.** C8 pits a synthetic `NormalOnly`
+holding a single Normal move against a Dark biter. *A fixture invented to demonstrate a defect will
+demonstrate it.* Earlier the same day I wrote a docstring warning about exactly this — "twice today a
+hand-built probe fixture was wrong while its subject was right" — and then built one anyway, in the
+arm that was supposed to prove the fix.
+
+⇒ `#24-ghostreplacement` is **REOPENED** and **blocks leg 2**. The leading term has to express *how
+long this mon takes to win*, not *can it act at all*. C8 must be rebuilt from the pinned party.
+
+⭐ Found by a 4-angle design workflow whose adversarial framing caught it; verified here against the
+real party rather than taken on report.
