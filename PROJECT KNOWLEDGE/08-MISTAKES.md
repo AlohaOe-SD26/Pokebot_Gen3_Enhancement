@@ -18098,3 +18098,35 @@ CALLER DOES *NEXT*.** A wait that ends when a state ARRIVES and a wait that ends
 DISMISSED look identical at the call site and differ completely in effect. ‼ And: **the A/B is what
 made this a five-minute finding instead of a shipped regression** — baseline the driver BEFORE
 touching shipped code, every time, even for a change that looks like a strict improvement.
+
+
+## 2026-09-16 (fifteenth) — I QUOTED A LEVEL-SPECIFIC NUMBER AS A PROPERTY OF THE MATCHUP, INSIDE A RULING
+
+**SYMPTOM.** I wrote, in `06-DECISIONS-LOG.md` and twice in `04-HANDOFF.md`: *"Wallace is
+arithmetically out of reach — Milotic L58 has Recover (~98 HP/turn) vs our best measured hit of
+66-78."* An adversarial agent challenged it, and the source I was quoting refutes the framing in the
+very same sentence: *"Sceptile **L53** Leaf Blade does 66-78 ⇒ a net −20/turn losing race.
+**Break-even is L62.**"* — followed by a conversion curve ending **"L75 88% CLEAR THE GAUNTLET"**.
+
+**ROOT CAUSE.** The 66-78 figure is the damage **one Pokémon at one level** deals. I lifted it into a
+sentence about the *matchup*, where it reads as "our party cannot beat Wallace" rather than "our
+party at L53 cannot beat Wallace". The qualifier was two words away in the source and I dropped it.
+‼ This is the same shape as every "measured X, concluded about Y" already in this file — attempts vs
+failures, a proxy HP delta vs item consumption, a tile collision vs a planner's behaviour — and I did
+it **while writing a ruling**, which is the document type most likely to be quoted back as settled.
+
+**WHY IT MATTERED.** It was load-bearing for build ORDER. "It cannot be won" argues for abandoning
+legs 2-5; "it cannot be won *at L53*, and break-even is L62" argues for **grinding**, using
+`--driver ch24grind`, which already exists and took the party to L60 in ~30 minutes. Two opposite
+plans from the same numbers.
+
+**THE FIX THAT WORKED.** An adversarial angle whose brief told it to attack the PREMISES rather than
+the conclusions, and a dated correction in all three places (the decisions log gets an append, since
+it is append-only; both handoff halves were edited together).
+
+**PREVENTION RULE.** ⛔ **A DAMAGE/HP/TIMING NUMBER CARRIES ITS LEVEL, ITS FIXTURE AND ITS PARTY.
+Quote it with them or do not quote it.** If a figure came from a simulation, say so in the same
+breath — the source here explicitly says *"THESE ARE SIMULATION RESULTS, NOT DRIVES — say so when
+citing them"*, and I cited them without it. ‼ And when a conclusion would change the BUILD ORDER,
+re-read the source paragraph to its end before writing it into a ruling: the sentence that qualifies
+a number is usually the next one.

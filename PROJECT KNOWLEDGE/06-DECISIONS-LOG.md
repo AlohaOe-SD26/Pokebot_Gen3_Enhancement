@@ -5539,3 +5539,40 @@ apron — by the respawn table, not by a log string.)*
 **Alternatives rejected:** `ELITE_4_STATE` / the defeat flags (wiped by `ResetEliteFour` on both
 paths); `FLAG_ENTERED_ELITE_FOUR` (permanent ⇒ re-opens KI-90); reusing `inside_league()` (includes
 the lobby, see caveat 1).
+
+## 2026-09-16 (later still) — ⛔ CORRECTION TO MY OWN WINNABILITY VERDICT: "WALLACE IS OUT OF REACH" IS AN **L53** RESULT, AND LEVELLING CONVERTS IT
+
+Earlier today I recorded, in the do-not-wire ruling above and in `04-HANDOFF.md`, that **"Wallace is
+arithmetically out of reach — Milotic L58 Recover ~98/turn vs our best measured hit of 66-78"** and
+that "Glacia OHKOs two of our six". An adversarial agent challenged it and **the source refutes my
+framing, not the numbers.**
+
+`07-CHANGELOG.md:23307` — the same analysis those figures come from — says in full:
+
+> *"Sceptile **L53** Leaf Blade does 66-78 ⇒ a net −20/turn losing race. **Break-even is L62.**"*
+
+and gives the conversion curve directly:
+
+    L53 (now)  0% Glacia          L57  87% Glacia, dies at Drake
+    L60        99.7% Glacia       L75  88% CLEAR THE GAUNTLET
+
+⇒ **"Out of reach" is true of the L53 party and FALSE as a general verdict.** The 66-78 figure is
+Sceptile at L53; break-even is L62; and at L75 the same model gives **88% to clear the whole
+gauntlet**. ‼ **I quoted a level-specific number as if it were a property of the matchup** — the same
+shape as every other "measured X, concluded about Y" in `08-MISTAKES.md`, and I did it while writing
+a ruling.
+
+**WHAT THIS CHANGES.** The §Ch24 blocker is **party level**, and the tool to fix it already exists and
+is proven: `--driver ch24grind` took the party from L47/51 to **L60 in 623 battles, ~30 minutes,
+0 whiteouts**, checkpointing every two levels. ⇒ the cheapest path to a winnable gauntlet is not more
+legs — it is **grinding past L62, toward ~L75** — and it is a capability we already shipped.
+
+⚠ **BUT THESE ARE SIMULATION RESULTS, NOT DRIVES, AND THE NOTE SAYS SO:** the model uses our real
+policy from source but approximates the enemy AI as max-expected-damage rather than Gen-3's score
+table, and ignores crits, status, Attract/Encore/Double Team. ⇒ **treat L62/L75 as ESTIMATES**, and
+expect the first real drive at a higher level to move them.
+
+**THE RULING ABOVE IS UNCHANGED** — Segment 24 still must not be wired, for the `ch23_chapter_done()`
+position reason, which has nothing to do with winnability. What changes is the *build order*
+argument: legs 2-5 were being deprioritised partly because "it cannot be won", and that premise was
+level-specific. **Grind first, then legs.**
