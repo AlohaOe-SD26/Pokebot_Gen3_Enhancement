@@ -5576,3 +5576,60 @@ expect the first real drive at a higher level to move them.
 position reason, which has nothing to do with winnability. What changes is the *build order*
 argument: legs 2-5 were being deprioritised partly because "it cannot be won", and that premise was
 level-specific. **Grind first, then legs.**
+
+
+## 2026-09-17 — ⛔ THE L75 GRIND RUNS ON `post_ch24ready.ss1`. `post_grind_L60.ss1` IS A DEAD BRANCH.
+
+**DECISION.** The Elite Four grind starts from **`post_ch24ready.ss1`** (EVER_GRANDE_CITY (27,49),
+battlers L47-53, fully prepped). ⛔ **`post_grind_L60.ss1` is NOT to be grinded from, NOT to be
+repaired, and NOT to be cited as "13 levels we already paid for".** DO-NOT-REOPEN.
+
+**WHY — the lineage, measured 2026-09-17 (`probe_grind_lineage_route.py`, both controls separating):**
+
+    post_training.ss1  (§Ch23 training output, L47-51 — no Ice Beam, no Fly)
+      ├─ post_wally → … → post_league_shop → post_moveset → post_fly → post_slateport
+      │    → post_icebeam → post_teachice → post_ch24ready → post_ch24_atdoor    ← §Ch24 LINEAGE
+      └─ post_grind_L60.ss1                                                      ← ⛔ DEAD BRANCH
+
+`post_grind_L60.ss1` did not LOSE Ice Beam and Fly — it branched off **before the prep chain that
+grants them** and therefore never had them. ⇒ "repair it" is not four teaches; it is re-running the
+whole chain, including the **~700,000-frame Abandoned Ship trip** for TM13, to arrive at a party
+`post_ch24ready.ss1` already is.
+
+**THE NUMBERS THAT DECIDE IT.** The only thing the dead branch owns is 13 levels, and levels are the
+cheap half. `estimate_frames_to_level` on VICTORY_ROAD_1F's L40 wilds, from L47-53, at the measured
+1032 frames/s, already doubled for the measured **0.501 participant divisor** the estimator does not
+model:
+
+    target L62 (break-even)   ≈ 1.4 h
+    target L75 (88% clear)    ≈ 3.7 h
+
+⚠ Expect ~1.65× on top of that: the measured A/B runs ~2,368 frames per WIN against the estimator's
+1,433 frames per BATTLE. Either way the grind is HOURS and the ship trip plus four teaches is not
+obviously less — and it carries the risks the recon enumerated (a cave teach with an unexplained
+failure precedent, an unbounded `fly_to` wait loop, and `apply_moveset_plan`'s all-or-nothing
+refusal). ⇒ **pay the cheap half twice rather than the expensive half once.**
+
+**THE ROUTE, MEASURED — this is what made the decision available at all:**
+* `(27,49)` → `VR_APRON (18,42)` = **OK, 22 waypoints**; then `_walk_through_warp("Up")` into
+  VICTORY_ROAD_1F, landing (15,40), one step from the grind tile **(15,39)**. ✅ DRIVEN, not planned:
+  `ch24grind` logged `WALK: through the door -> ((24,43),(15,40))` then `standing at (15,39)`.
+* Back to the League door is **ONE Fly**: `CB_ExitFlyMap` special-cases Ever Grande, so with
+  `FLAG_LANDMARK_POKEMON_LEAGUE` set, flying to `PokemonLeague` lands on the door apron (18,6). That
+  is precisely how `post_ch24_atdoor.ss1` was captured from `post_ch24ready.ss1`.
+
+**ALTERNATIVES REJECTED.**
+1. *Repair the L60 save* — rejected above. It was the plan a 4-angle recon was commissioned for; the
+   recon's findings stand and are filed, but the plan is moot.
+2. *Grind from `post_ch24_atdoor.ss1` (18,6) directly* — from the League door `calculate_path`
+   reaches neither grass nor a Poké Center. ‼ That is a fact about **(18,6)**, and over-applying it
+   to the whole plateau is what kept the grind pinned to the wrong lineage for a day. The Poké
+   Center side is a different question and the answer is yes.
+3. *Ask `best_training_area()` for the ground* — ⛔ MEASURED WRONG FOR THIS PARTY: it returns
+   `(ROUTE117, (31,16), (13,14))` for a **L53** team. `TRAINING_GRASS` is an EARLY-GAME table (10
+   entries, ceiling L19-22 at ROUTE111); VICTORY_ROAD_1F's L40 grass is not in it at all. The grind
+   tile is NAMED (`TRAIN_SPOT_1F`), never chosen by the table.
+
+**WHAT THIS COSTS US:** the ~2.4 h already spent grinding the dead branch. It is not recoverable and
+it is not a reason to keep using it — that is the sunk-cost shape, and the measurement above is what
+replaces the argument.

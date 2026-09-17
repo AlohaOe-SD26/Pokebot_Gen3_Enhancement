@@ -30514,3 +30514,88 @@ KEY NAMES. `level_up` is itself a dict of `{move_id: level}`. With the reader fi
 acting on the retracted sentence would have chased a bug that does not exist. Corrected in
 `FIXTURES.md5`, `03-PUNCH-LIST.md` (both copies) and `probe_grind_stall_predicate.py`'s docstring;
 this entry is the correction for the append-only record.
+
+
+## 2026-09-17 (fourth) — ⭐⭐ THE GRIND LINEAGE IS DECIDED BY MEASUREMENT, AND THE GRIND DRIVER CAN NOW REACH ITS OWN TILE
+
+**The planned work was "repair `post_grind_L60.ss1`" — teach Fly, run the Ice Beam trip, teach Ice
+Beam, then grind. A 4-angle recon was commissioned for it. The plan is now MOOT, and a measurement
+is why.**
+
+### What was measured
+`probe_grind_lineage_route.py` (NEW, this commit) loads each candidate save and prints **the party's
+MOVESETS** — the reading `probe_anchor_inventory.py` structurally cannot give, and the reason a
+2.4-hour grind once ran on a party missing both of the chapter's prepared moves. It then routes
+from the tile the save is ACTUALLY on, classifying every `calculate_path` attempt into the three
+outcomes (OK / NEEDS A WARP / FAIL), under a **two-sided control**: the Poké Center door must come
+back OK and the League door must come back not-OK (reproducing the reading already in
+`FIXTURES.md5`). Both separated.
+
+    post_ch24ready.ss1   EVER_GRANDE_CITY (27,49)   Ice Beam ✅  Fly ✅  Aerial Ace ✅  Facade ✅
+        → VR apron (18,42)   OK, 22 waypoints        ← THE LOAD-BEARING ONE
+        → Poké Center door   OK, 1 waypoint          ← positive control
+        → League door        FAIL                    ← negative control
+    post_grind_L60.ss1   VICTORY_ROAD_1F (15,39)    Ice Beam ⛔  Fly ⛔   (battlers L60)
+
+⇒ `post_grind_L60.ss1` **branched straight off `post_training.ss1`** and skipped the whole prep
+chain. It never had the moves to lose. "Repairing" it = re-running that chain including the
+~700,000-frame Abandoned Ship trip, to arrive at a party the other branch already is. Ruling and
+rejected alternatives in `06-DECISIONS-LOG.md`.
+
+### What shipped
+* **`tools/story-dev/probe_grind_lineage_route.py`** — the pre-flight above. Exit 1 if the controls
+  do not separate, because then nothing it prints can be trusted.
+* **`Ch24GrindMode` now WALKS to its own grind tile.** It previously *required* a fixture already
+  standing on VICTORY_ROAD_1F (15,39), which is why it was pinned to the §Ch23 lineage. It now goes
+  (27,49) → `VR_APRON (18,42)` → `_walk_through_warp("Up")` → (15,40) → (15,39). ⛔ The warp is
+  stepped through, never aimed at: `navigate_to` overrides its destination when the last waypoint is
+  a warp — the trap `victory_road.py:134-139` records for this exact door.
+  ✅ DRIVEN: `WALK: through the door -> ((24,43),(15,40))` then `standing at (15,39)`, ~1,600 frames.
+  ⚠ FAULT ARM `POKEBOT_CH24_FAULT_NOWALK=1` skips the walk, so "the walk is load-bearing" is
+  testable — `train_team` does not travel, and parked off-grass it **fails by being quiet**.
+* **BASKET ACCOUNTING** at PRE, every STEP and RESULT. The grind and the gauntlet share one bag and
+  only one of them paid for it: `post_ch24ready.ss1` carries the ₽54,300 `LEAGUE_BASKET` that §Ch23
+  leg 11 had to sell a Nugget to afford, and the Elite Four is five consecutive fights with no shop
+  between them. A basket drained during training would fail the CHAPTER, hours later, for a reason
+  nobody would connect back to the grind. ✅ MEASURED FLAT across the walk, and the live grind was
+  observed reaching `EverGrandeCity_PokemonCenter_1F_EventScript_Nurse` — it heals at the **Poké
+  Center** (which restores PP too), not from the bag.
+* ⛔ **`best_training_area()` IS THE WRONG TOOL HERE and the docstring now says so:** it returns
+  `(ROUTE117, (31,16), (13,14))` — **L13-14 wilds for a L53 party**. `TRAINING_GRASS` is an
+  early-game table (10 entries, ceiling L19-22); VICTORY_ROAD_1F's L40 grass is not in it.
+
+### The cost that decided it
+`estimate_frames_to_level` on L40 wilds from L47-53, at the measured 1032 frames/s, doubled for the
+measured 0.501 participant divisor the estimator does not model: **L62 ≈ 1.4 h, L75 ≈ 3.7 h**
+(expect ~1.65× on top — the measured A/B runs ~2,368 frames per WIN vs the estimator's 1,433 per
+BATTLE). ⇒ the levels are the cheap half; pay them twice rather than pay for the ship trip once.
+
+
+## 2026-09-17 (fifth) — ⭐ A LATENT WRONG-SLOT TEACH IN `TRAVEL_PLAN`, GUARDED AND A/B-PROVEN (`#24-planorder`)
+
+`TRAVEL_PLAN` teaches Fly to Swellow over **Wing Attack**, justified in its own comment as
+*"strictly dominated by the Aerial Ace Swellow already knows"*. That holds **only after**
+`MOVESET_PLAN` replaces **Peck** with **Facade**. Applied first, it destroys **Wing Attack (60 BP)**
+and keeps **Peck (35 BP)** — and `apply_moveset_plan` reports SUCCESS, because all four of its
+refusals pass and its post-teach verification confirms exactly what it was asked to do.
+
+**Fixed generally**, in the plan-building loop: refuse when the Pokémon has an outstanding
+`MOVESET_PLAN` change that the plan being applied does not itself carry. `MOVESET_PLAN` never trips
+on its own entries; future plans inherit the guard.
+
+**A/B, two real pinned fixtures (`probe_plan_order_guard.py`, exit 0, actuator stubbed so no button
+is pressed and the probe stays re-runnable):**
+
+    FAILING ARM  post_training.ss1  -> REFUSED, names [('Peck','Facade')], teaches fired: []
+    CONTROL      post_moveset.ss1   -> order guard silent, plans Swellow Fly over Wing Attack
+
+⛔ The control is deliberately NOT `post_ch24ready.ss1`: its Swellow already knows Fly, so the plan
+skips for an unrelated reason and the guard is never evaluated — a pass that measures nothing.
+
+‼ The probe's first control assertion (`refusal is None`) FAILED against a correct subject: with the
+teach stubbed, the function's own post-teach check correctly raised "taught Fly … and it does NOT
+know it". The check was wrong, not the guard — the assertion is now "the ORDER guard did not fire".
+
+⚠ LATENT, not live: `post_ch24ready.ss1`'s Swellow reads `Facade, Fly, Aerial Ace, Quick Attack`, so
+the shipped lineage was built in the right order and nothing is broken. That is the argument for a
+guard over a comment. Surfaced by the 4-angle recon commissioned for the abandoned L60 repair.

@@ -411,6 +411,17 @@ GATES: list[tuple[str, bool]] = [
     # MORE accurate, because the metric tracked LINE LENGTH. ✅ Found an 8th instance on its first
     # live run (`KI-95` “sandbox-only, unpromoted” against a PROMOTED header) and ships at 0.
     ("probe_promoted_pair.py", False),
+    # ⛔⛔ PAIR **P3** BROKE THREE TIMES IN THE SAME FILE, THE SECOND TIME INSIDE A COMMIT ABOUT
+    # THE FIRST — so prose has demonstrably failed and this is the gate `CLAUDE.md` asks for. The
+    # recipes block is what a COLD READER copies, so a stale line there does not cost a minute of
+    # confusion, it costs HOURS of emulator time and returns an unusable party. ✅ On its FIRST run
+    # it found a live break the Tier 1 reviewer had NOT flagged (a second `post_grind_L60.ss1`
+    # recipe, whose own adjacent comment already said "NOT A REPRO ANY MORE" while the command
+    # stayed executable for nine days). ‼ It scans RUNNABLE lines only — the fixed block names the
+    # dead fixture in a WARNING, and a gate that fired on its own fix would teach people to bypass
+    # it; `POKEBOT_RECIPEGATE_FAULT=1` scans comments too and MUST fail. ⚠ "Named but unpinned" is
+    # REPORTED, not blocking — a different gap, pre-dating this gate.
+    ("probe_runrecipe_fixtures.py", False),
     # ⛔⛔ `_derail_reason` grouped with a DECIMAL-only `\d[\d,]*` pass while a PID is HEX, so
     # `Marill#30AD95BD` -> `Marill#NADNBD` and EVERY PID BECAME ITS OWN KEY. `summary.json` is written
     # through `.most_common()`, so the biggest blocker scattered into count-1 rows at the BOTTOM.

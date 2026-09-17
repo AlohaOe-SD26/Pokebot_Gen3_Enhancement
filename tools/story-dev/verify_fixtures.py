@@ -73,6 +73,7 @@ def md5_of(path: pathlib.Path) -> str:
 
 def parse() -> list[tuple[str, str, str, str]]:
     rows: list[tuple[str, str, str, str]] = []
+    schema_errors: list[str] = []
     if not MANIFEST.is_file():
         raise SystemExit(f"missing manifest: {MANIFEST}")
     for line in MANIFEST.read_text(encoding="utf-8").splitlines():
@@ -86,7 +87,32 @@ def parse() -> list[tuple[str, str, str, str]]:
             continue
         md5, name, kind = parts[0], parts[1], parts[2]
         note = parts[3] if len(parts) > 3 else ""
+        # ⛔⛔ REFUSE AN UNRECOGNISED `kind` LOUDLY — A SILENT MISPARSE READS AS "NOT PINNED".
+        # MEASURED 2026-09-17: TWO rows had lost this field by having a description written straight
+        # into its position (`post_b1f.ss1` for ~13 days, and `post_grind_L60.ss1` within minutes of
+        # being rewritten). The split is positional, so the description simply BECAME the kind, and
+        # `kind == "PINNED"` then evaluated False — which silently switches OFF the MISSING/CHANGED
+        # enforcement for exactly the fixture someone cared enough about to annotate. ⇒ the failure
+        # mode is that ANNOTATING A FIXTURE UNPINS IT, which is the opposite of the intent and
+        # invisible in a green run. A parser that cannot classify a row must say so, not guess.
+        if kind.strip() not in ("PINNED", "VOLATILE"):
+            _safe_print(
+                f"  ⛔ MANIFEST SCHEMA: {name.strip()} has kind={kind.strip()[:40]!r}, which is "
+                f"neither PINNED nor VOLATILE. The format is "
+                f"`<md5>  <name>  <PINNED|VOLATILE>  <description>` with TWO spaces between fields "
+                f"— a description written into the kind position SILENTLY UNPINS the fixture."
+            )
+            schema_errors.append(name.strip())
+            continue
         rows.append((md5.strip(), name.strip(), kind.strip(), note.strip()))
+    if schema_errors:
+        # ⛔ A SCHEMA ERROR IS FATAL, NOT A WARNING. An unparseable row is a fixture whose
+        # PINNED enforcement has been silently switched off; continuing would print a green
+        # report over exactly the file that is no longer being checked.
+        raise SystemExit(
+            f"FIXTURES.md5 SCHEMA: {len(schema_errors)} row(s) have no PINNED/VOLATILE "
+            f"field: {schema_errors}. Fix the manifest — see the note at the parse site."
+        )
     return rows
 
 

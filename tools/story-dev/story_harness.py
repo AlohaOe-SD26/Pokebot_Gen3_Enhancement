@@ -15401,9 +15401,30 @@ class Ch24GrindMode(BotMode):
         # optional: POKEBOT_GRIND_CAPTURE=post_grind   -> writes saves/post_grind_L<n>.ss1 after
         #           EVERY step and at the end; never overwrites; ALWAYS logs what it decided.
 
-    ⛔ FIXTURE: `post_training.ss1` — VICTORY_ROAD_1F (15,39), the PROVEN encounter tile with a proven
-    heal loop to the Ever Grande PC. The League fixtures cannot be used: from the League door
-    `calculate_path` reaches neither grass nor a Poké Center.
+    ⛔⛔ FIXTURE — USE `post_ch24ready.ss1`, **NOT** `post_grind_L60.ss1`, AND NOT `post_training.ss1`.
+    MEASURED 2026-09-17 by `probe_grind_lineage_route.py` (two-sided control passed):
+      * `post_ch24ready.ss1`  EVER_GRANDE_CITY (27,49) — Wailord has **Ice Beam**, Swellow has
+        **Fly**, Sceptile Aerial Ace, Mightyena Strength. The §Ch24 lineage, fully prepped.
+        (27,49) -> VR apron (18,42) = **OK, 22 wp**, so the preamble below walks it to the tile.
+      * `post_grind_L60.ss1`  VICTORY_ROAD_1F (15,39), battlers already **L60** — and ⛔ **NO Ice
+        Beam, NO Fly**. It is not a §Ch24 save that lost its moves; it BRANCHED STRAIGHT OFF
+        `post_training.ss1`, skipping the whole prep chain, so it never had them. "Repairing" it
+        means re-running that chain including the ~700,000-frame Abandoned Ship trip for TM13, to
+        arrive at a party the other branch ALREADY IS. ⇒ its 13 levels are not worth it.
+      * `post_training.ss1`   the §Ch23 fixture this driver was written against — same missing
+        moves, for the same reason (it is the branch point itself).
+    ‼ THE GRIND IS CHEAP, WHICH IS WHY THE PREPPED-BUT-LOWER PARTY WINS: from `post_ch24ready`'s
+    L47-53, `estimate_frames_to_level` on L40 wilds gives **L62 ≈ 1.4 h** and **L75 ≈ 3.7 h** of
+    wall clock at the measured 1032 frames/s, already doubled for the measured 0.501 participant
+    divisor the estimator does not model. ⚠ Expect ~1.65x on top: the measured A/B runs ~2,368
+    frames per WIN against the estimator's 1,433 frames per BATTLE.
+
+    ⛔ The League fixtures still cannot be grinded from directly: from the League door (18,6)
+    `calculate_path` reaches neither grass nor a Poké Center. ‼ But that is a statement about
+    **(18,6)**, not about the Poké Center side — do not over-apply it, which is what kept this
+    driver pinned to the wrong lineage. Fly moves freely between the two: `post_ch24_atdoor.ss1`
+    was made from `post_ch24ready.ss1` by ONE Fly, because `CB_ExitFlyMap` special-cases Ever
+    Grande and lands at the League door apron. ⇒ **grind on the PC side, then Fly back.**
 
     ⭐ WHY STEPPED. `train_for_victory_road` is the only correct trainer here (it rotates each battler
     to slot 0, verifies the rotation BY PID, and refuses a call that trained nothing — see `KI-84`),
@@ -15472,6 +15493,7 @@ class Ch24GrindMode(BotMode):
     def run(self):
         # ‼ IMPORT EVERY HELPER HERE. `Ch24ProbeMode`'s own comment records this trap three times: a
         # helper another function imported LOCALLY is not available to yours.
+        from modules.items import get_item_bag, get_item_by_name
         from modules.pokemon_party import get_party
         from modules.story import victory_road as VR
         from modules.story.early_game import set_story_abort, wait_until_truly_controllable
@@ -15493,6 +15515,28 @@ class Ch24GrindMode(BotMode):
         def _battlers():
             """(name, level) for the REAL battlers only — never the mules."""
             return sorted((s, lv) for (_pid, s), (_slot, lv) in VR.battler_identities().items())
+
+        def _basket():
+            """How much of the ELITE FOUR BASKET is left — logged because the grind can SPEND it.
+
+            ⛔⛔ THE GRIND AND THE GAUNTLET SHARE ONE BAG, AND ONLY ONE OF THEM PAID FOR IT.
+            `post_ch24ready.ss1` carries `LEAGUE_BASKET` (`victory_road.py:439-443`) — 30 Hyper Potion,
+            3 Full Restore, **8 Full Heal** and 3 Revive — ₽54,300 that §Ch23 leg 11 had to SELL A NUGGET to afford. The
+            Elite Four is five consecutive fights with no shop and no Poké Center between them, so
+            a basket quietly drained during training fails the CHAPTER, hours later, for a reason
+            nobody would connect back to the grind.
+            ‼ THIS IS A READING, NOT A GUARD — it is logged at PRE, after every step and at RESULT
+            so a drain is visible on the FIRST checkpoint instead of at the League door. The
+            expectation is FLAT: `train_team` heals at a Poké Center (which also restores PP),
+            not from the bag. ⇒ if these numbers fall, that expectation is wrong and the run should
+            be stopped and re-planned, not "topped up and continued".
+            """
+            try:
+                bag = get_item_bag()
+                return {name: bag.quantity_of(get_item_by_name(name))
+                        for name, _qty in VR.LEAGUE_BASKET}
+            except Exception as error:  # noqa: BLE001 — a reading that fails must say so, not lie
+                return f"UNREADABLE: {type(error).__name__}: {error}"
 
         #: ⛔⛔ CAPTURE IS CHECKPOINTED, AND IT SAYS SO EVERY TIME.
         #: A 30-minute L60 grind once completed perfectly and wrote NOTHING: the capture raised
@@ -15526,6 +15570,7 @@ class Ch24GrindMode(BotMode):
         log(f"[{TAG}] PRE party={[(m.species.name, m.level) for m in get_party() if m is not None]}")
         gap = [(n, target - lv) for n, lv in before if lv < target]
         log(f"[{TAG}] PRE gap_to_target={gap}")
+        log(f"[{TAG}] PRE basket={_basket()}   (⛔ must NOT fall — see _basket)")
 
         if estimate_only:
             log(f"[{TAG}] ESTIMATE-ONLY — nothing trained.")
@@ -15533,6 +15578,59 @@ class Ch24GrindMode(BotMode):
             log(f"[{TAG}] ACCEPTANCE: PASS (estimate)")
             context.set_manual_mode()
             return
+
+        # ---- PREAMBLE: STAND ON THE GRIND TILE BEFORE TRAINING ---------------------------------
+        # ⛔⛔ `train_team` DOES NOT TRAVEL. It grinds the grass it is STANDING IN and heals at
+        # `heal_center`; its body references neither `TRAINING_GRASS` nor `best_training_area`
+        # (verified 2026-09-17). Handed a save parked anywhere else it does not "go find grass" —
+        # it simply cannot work, and it fails by doing nothing rather than by raising.
+        # ‼ AND ASKING THE TABLE WOULD BE THE WRONG ANSWER, WHICH IS WHY THE TILE IS NAMED AND NOT
+        # CHOSEN: MEASURED 2026-09-17, `best_training_area(team_level=53)` returns
+        # `(ROUTE117, (31,16), (13,14))` — **L13-14 wilds for a L53 party**. `TRAINING_GRASS` is an
+        # EARLY-GAME table (10 entries, ceiling L19-22 at ROUTE111); VICTORY_ROAD_1F's L40 is not in
+        # it at all. ⇒ ⛔ never "improve" this by asking the table for the grind tile.
+        # ⭐ WHY IT IS NEEDED NOW: the §Ch24-PREPPED party — `post_ch24ready.ss1`, the one that
+        # actually carries Ice Beam AND Fly — lives at the Poké Center **(27,49)**, the far side of
+        # the plateau, because the prep chain ends in a Fly. MEASURED by
+        # `probe_grind_lineage_route.py`: (27,49) -> `VR_APRON` (18,42) is **OK, 22 waypoints**,
+        # under a two-sided control (PC door OK; League door FAIL, reproducing `FIXTURES.md5`).
+        # ⛔ The warp is taken with `_walk_through_warp`, NEVER by aiming a path at the door (18,41):
+        # `navigate_to` overrides its own destination when the last waypoint is a warp — the trap
+        # `victory_road.py:134-139` records for this exact door.
+        # ⚠ FAULT ARM `POKEBOT_CH24_FAULT_NOWALK=1` skips the walk, so the claim "this walk is
+        # load-bearing" is testable rather than asserted: the grind then stands at the Poké Center,
+        # where there is no grass, and must train NOTHING.
+        GRIND_TILE = VR.TRAIN_SPOT_1F[1]
+        if _os.environ.get("POKEBOT_CH24_FAULT_NOWALK", "").strip() == "1":
+            log(f"[{TAG}] ⚠ FAULT ARM NOWALK — NOT walking to the grind tile, on purpose.")
+        elif not VR._on_map(VR.VR1F):
+            if not VR._on_map(VR.EG):
+                raise BotModeError(
+                    f"§Ch24 grind: not on VICTORY_ROAD_1F and not on EVER_GRANDE_CITY either — "
+                    f"at {VR._where()}. ⛔ This driver only knows the route in from the Ever Grande "
+                    f"side; it refuses to guess one rather than grind somewhere it cannot heal."
+                )
+            log(f"[{TAG}] WALK: on EVER_GRANDE at {VR._here_tile()} -> VR apron {VR.VR_APRON}")
+            if not VR._at(VR.EG, VR.VR_APRON):
+                yield from VR._budgeted(
+                    VR._navigate_riding_out(VR.EG, VR.VR_APRON), 60_000, f"{TAG}: EG -> VR apron")
+            if not VR._at(VR.EG, VR.VR_APRON):
+                raise BotModeError(
+                    f"§Ch24 grind: aimed at the Victory Road apron {VR.VR_APRON} and ended on "
+                    f"{VR._where()}."
+                )
+            yield from VR._walk_through_warp("Up", VR.EG.value)
+            yield from wait_until_truly_controllable()
+            if not VR._on_map(VR.VR1F):
+                raise BotModeError(
+                    f"§Ch24 grind: stepped NORTH off the apron {VR.VR_APRON} and did not arrive on "
+                    f"VICTORY_ROAD_1F — now at {VR._where()}."
+                )
+            log(f"[{TAG}] WALK: through the door -> {VR._where()}")
+        if VR._on_map(VR.VR1F) and VR._here_tile() != GRIND_TILE:
+            yield from VR._budgeted(
+                VR._navigate_riding_out(VR.VR1F, GRIND_TILE), 20_000, f"{TAG}: -> TRAIN_SPOT_1F")
+        log(f"[{TAG}] WALK: standing at {VR._where()}   (grind tile is {VR.TRAIN_SPOT_1F})")
 
         failure = None
         steps_done = 0
@@ -15563,6 +15661,7 @@ class Ch24GrindMode(BotMode):
             log(f"[{TAG}] STEP {_step} done: battlers={after_step} battles={self.battles} "
                 f"whiteouts={self.whiteouts}")
             # ⭐ CHECKPOINT HERE, not only at the end. Each step is ~3 minutes; the whole grind is 30.
+            log(f"[{TAG}] STEP {_step} basket={_basket()}")
             _checkpoint(f"L{min((lv for _n, lv in after_step), default=0)}")
             # ⛔ REFUSE TO SPIN. If a step raised nobody, another step will not either.
             if after_step == now:
@@ -15574,6 +15673,7 @@ class Ch24GrindMode(BotMode):
             f"whiteouts={self.whiteouts}")
         log(f"[{TAG}] RESULT before={before}")
         log(f"[{TAG}] RESULT after={after}")
+        log(f"[{TAG}] RESULT basket={_basket()}")
         if failure:
             log(f"[{TAG}] RESULT last_failure={failure}")
 

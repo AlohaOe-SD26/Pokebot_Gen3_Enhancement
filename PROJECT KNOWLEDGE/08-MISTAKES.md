@@ -18256,3 +18256,104 @@ NEXT author will read it, not only where the last bug was.
 (`LevelUpLeadBattleStrategy.decide_turn`). **When you add a "can I continue?" check, check that its
 RECOVERY has the same scope** — five healthy bench mons kept the party-scoped trigger False while the
 lead was unable to act, for 457 consecutive battles.
+
+## 2026-09-17 (third) — I OVER-APPLIED A TRUE RULING AND IT KEPT THE GRIND ON THE WRONG PARTY FOR A DAY
+
+**Symptom.** `Ch24GrindMode`'s docstring said, correctly: *"The League fixtures cannot be used: from
+the League door `calculate_path` reaches neither grass nor a Poké Center."* I read that as *"the
+§Ch24 lineage cannot be grinded"*, and therefore planned to repair a **different** party
+(`post_grind_L60.ss1`) by re-running the entire prep chain — including a ~700,000-frame Abandoned
+Ship trip — to give it the moves the §Ch24 lineage already had.
+
+**Root cause.** The ruling is a statement about **one tile, (18,6)**. The §Ch24 lineage does not live
+only at (18,6): the prep chain ends with a Fly, and `post_ch24ready.ss1` sits at the **Poké Center,
+(27,49)** — the other side of the plateau, a question the ruling never asked. Measured in seconds
+once asked: `(27,49) → VR apron (18,42)` is **OK, 22 waypoints**.
+
+**The fix that worked.** `probe_grind_lineage_route.py` — route from the tile each save is ACTUALLY
+on, under a two-sided control (the Poké Center door must come back OK; the League door must come
+back FAIL, reproducing the pinned reading). Both separated, so the positive was trustworthy.
+
+**‼ WHAT MADE IT EXPENSIVE WAS NOT THE MISREADING, IT WAS THAT NOTHING RE-ASKED.** A recon of four
+agents was commissioned against the repair plan and returned genuinely good findings — none of which
+questioned the premise, because the premise was not what they were asked about.
+
+⇒ **PREVENTION RULE.** *A ruling is scoped to the state it was measured in. Before inheriting one as
+a constraint, name the tile / save / party it was measured on and ask whether YOUR state is that
+one.* A ruling that says "from X you cannot reach Y" is not "Y is unreachable" — and when a ruling
+is the load-bearing reason for expensive work, re-measure it from the state you are actually in
+BEFORE commissioning the work, not after.
+
+## 2026-09-17 (fourth) — ANNOTATING A FIXTURE SILENTLY UNPINNED IT
+
+**Symptom.** I rewrote `post_grind_L60.ss1`'s row in `saves/FIXTURES.md5` to say it is a dead branch,
+and in doing so wrote the description straight into the `kind` position. The format is positional —
+`<md5>  <name>  <PINNED|VOLATILE>  <description>`, two spaces between fields — so the parser read
+`kind = "⛔⛔ **A DEAD BRANCH…"`, `kind == "PINNED"` became False, and the MISSING/CHANGED
+enforcement for that fixture switched **off**. Nothing failed; the run stayed green.
+
+**⛔ AND IT HAD ALREADY HAPPENED ONCE, UNNOTICED.** `post_b1f.ss1` had been carrying
+`⚠ SUPERSEDED BY …` in the same position for ~13 days. Two occurrences, zero detections.
+
+**Root cause.** The failure mode is perverse: **the more carefully someone annotates a fixture, the
+more likely they are to unpin it** — and the result is invisible, because "not PINNED" is exactly
+what a VOLATILE row looks like. A silent misparse is indistinguishable from a deliberate choice.
+
+**The fix that worked.** `verify_fixtures.py` now REFUSES a row whose kind is neither `PINNED` nor
+`VOLATILE`, with a message naming the format, and exits non-zero. Fault-tested both ways: healthy =
+exit 0; one field removed on a scratch copy = exit 1 naming the fixture, manifest restored after.
+Both bad rows repaired.
+
+⇒ **PREVENTION RULE.** *A positional format parsed by a script must refuse an unrecognised field
+rather than fall through — a parser that cannot classify a row is reporting on a file it is no
+longer checking.* Caught by a Tier 1 reviewer reading the diff, not by any check; the check exists
+now.
+
+## 2026-09-17 (fifth) — PAIR P3 BROKE A THIRD TIME, SO IT STOPPED BEING PROSE AND BECAME A GATE
+
+**Symptom.** I re-pointed the banner, the queue head, the decisions log, the changelog, the punch
+list AND `FIXTURES.md5` off the dead `post_grind_L60.ss1` lineage — and left `04-HANDOFF.md`'s
+HOW TO RUN block carrying the literal command that regrinds it. A Tier 1 reviewer quoted both halves.
+Its note is the part worth keeping: *"same class of break, recurring in this commit"* — the file
+already documents committing this exact break once before, **while documenting P3 breaks**.
+
+**Then the gate found a third instance the reviewer had missed**: a second runnable recipe naming the
+same dead save, whose own adjacent comment had said *"⛔⛔ NOT A REPRO ANY MORE"* for nine days while
+the command line stayed executable. ⇒ **a comment that says a command is dead does not make it dead.**
+
+**Root cause.** Recipes are the one part of the handoff a reader EXECUTES rather than reads, so a
+stale line there does not cost a minute of confusion — it costs hours of emulator time and returns an
+unusable party. And updating six places while missing the seventh is precisely the P5 shape the
+project already knows about: **a checklist protects exactly what it enumerates.**
+
+**The fix that worked.** `probe_runrecipe_fixtures.py`, gate #61: every `*.ss1` named on a RUNNABLE
+line of the recipes block must exist in `FIXTURES.md5` and must not be marked dead there. Fault arm
+`POKEBOT_RECIPEGATE_FAULT=1` also scans comments and MUST fail — because the corrected block names
+the dead fixture in a warning, and a gate that fired on its own fix would be bypassed. "Named but
+never pinned" is REPORTED, not blocking: a different gap, pre-dating the gate, and a gate that
+demands unrelated work is one people learn to route around.
+
+⇒ **PREVENTION RULE.** *When you retire a fixture or a repro, disarm the COMMAND, not just the prose
+around it — a `#` in front of the line, with the text kept for the record.* And: the third break of
+a pair is not a reason to write the rule more emphatically; `CLAUDE.md` already says *"a rule already
+broken twice is evidence that prose failed — write the gate instead."*
+
+## 2026-09-17 (sixth) — MY CONTROL ARM FAILED AND THE SUBJECT WAS CORRECT
+
+**Symptom.** `probe_plan_order_guard.py`'s control arm asserted `refusal is None` and reported
+**FAIL** against a guard that was working perfectly.
+
+**Root cause.** The probe stubs the actuator (`teach_move_from_bag`) so it can exercise the real
+refusal logic without pressing a button. With the teach stubbed, Swellow never actually learns Fly —
+so `apply_moveset_plan`'s **own post-teach verification** correctly raised *"taught Fly … and it does
+NOT know it"*. The raise was a SECOND guard doing its job. My assertion conflated "the order guard
+stayed silent" with "nothing raised at all".
+
+**The fix that worked.** Assert the specific thing: `"OUT OF ORDER" not in refusal`, plus the plan
+actually containing Swellow's Fly. Both arms then separated.
+
+⇒ **PREVENTION RULE.** *An assertion must name the specific behaviour under test, never "nothing went
+wrong" — a probe that stubs part of the system will trip the parts it stubbed, and scoring that as a
+subject failure is how a correct guard gets "fixed".* This is the fourth time in this project that a
+failing probe turned out to be a wrong CHECK rather than a wrong subject, which is why the standing
+rule is: **read the failing line before touching the thing under test.**

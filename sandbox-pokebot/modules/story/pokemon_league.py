@@ -1414,6 +1414,43 @@ def apply_moveset_plan(report=None, plan=MOVESET_PLAN) -> Generator:
         if bag.get(item_name, 0) <= 0:
             missing.append(f"{item_name} not in the TM/HM pocket")
             continue
+        # ⛔⛔ ORDER GUARD — `TRAVEL_PLAN` SILENTLY ASSUMES `MOVESET_PLAN` HAS ALREADY RUN.
+        # `TRAVEL_PLAN`'s stated reason for sacrificing **Wing Attack** is that it is *"strictly
+        # dominated by the Aerial Ace Swellow already knows"* — and that is true only AFTER
+        # `MOVESET_PLAN` has replaced **Peck** with **Facade**. Run the two the other way round and
+        # Swellow still has **Peck (35 BP, the worst move on the team)**: the teach then destroys
+        # **Wing Attack (60 BP)** and KEEPS Peck — strictly the wrong slot.
+        # ‼‼ AND EVERY EXISTING CHECK WOULD HAVE PASSED IT. The species is present, the doomed move
+        # is known, the item is in the bag, and the post-teach verification confirms Fly was learned
+        # and Wing Attack lost. The leg would report success while having made the party WORSE. ⇒ a
+        # silent wrong-slot teach is exactly the failure this function was written to refuse
+        # (`KI-88`: two drives burned single-use TMs over the wrong move), so it gets the same
+        # treatment — REFUSE, do not guess.
+        # ⚠ FOUND BY REVIEW 2026-09-17, NOT BY A FAILURE: the §Ch24 lineage happens to have been
+        # built in the right order (`post_ch24ready.ss1`'s Swellow reads `Facade, Fly, Aerial Ace,
+        # Quick Attack`), so the defect is LATENT. The next lineage to run prep from scratch pays
+        # it, which is why this is a guard and not a comment.
+        # ⭐ STATED GENERALLY, NOT AS A SPECIAL CASE FOR SWELLOW: refuse when this Pokémon still has
+        # an OUTSTANDING `MOVESET_PLAN` change that the plan being applied right now does not itself
+        # carry. `MOVESET_PLAN` therefore never trips on its own entries.
+        here_and_now = {(s, r) for s, _i, _l, r, _w in plan}
+        outstanding = [
+            (o_replace, o_learn)
+            for o_species, _o_item, o_learn, o_replace, _o_why in MOVESET_PLAN
+            if o_species == species
+            and (o_species, o_replace) not in here_and_now
+            and o_replace in have
+            and o_learn not in have
+        ]
+        if outstanding:
+            missing.append(
+                f"{species}: this plan would replace {replace}, but MOVESET_PLAN still has an "
+                f"outstanding change on the SAME Pokémon — {outstanding} — so the plans are being "
+                f"applied OUT OF ORDER. ⛔ Run MOVESET_PLAN first. (Teaching {learn} over {replace} "
+                f"now is defensible only once those are done: e.g. Fly over Wing Attack is correct "
+                f"AFTER Peck→Facade, and destroys the better move before it.)"
+            )
+            continue
         todo.append((species, idx, item_name, learn, replace, have.index(replace), why))
 
     report["plan_todo"] = [(s, i, it, l, r) for s, i, it, l, r, _, _ in todo]
