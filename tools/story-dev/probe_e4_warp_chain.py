@@ -10,6 +10,17 @@ and I broke it.
 This probe reads `MapData.warps` — the ROM's warp table — and follows the chain. Nothing here is
 typed by me except the list of maps to dump.
 
+⛔⛔ WHAT THIS PROBE DOES **NOT** TELL YOU — READ BEFORE QUOTING ITS COORDINATES.
+A warp table gives the warp **EVENT TILE** and its destination MAP. It does **NOT** give the tile the
+avatar comes to REST on after the transition (`R-WARPREST`). `SetUpWarpExitTask()` branches on the
+METATILE BEHAVIOUR at the target tile — the door family (`MB_NON_ANIMATED_DOOR` 0x60 and friends)
+exits one tile SOUTH of the target, a plain warp tile does not — so a post-warp position graded
+against a raw warp TARGET can print a failure on a correct run.
+⇒ Use this probe for **CONNECTIVITY** ("which map does this door lead to?"), which is exactly the
+question it was written for. For a LANDING TILE, read `get_player_avatar().local_coordinates` after a
+real transition. *(The §Ch24 landing tiles quoted in the docs — `HALL2 (5,12)`, `GLACIAS_ROOM
+(6,11)` — come from the DRIVE, not from this table.)*
+
 CONTROLS: the chain is followed for SIDNEY/HALL1/PHOEBE too, where the answer is already MEASURED
 LIVE (`ch24phoebe` drove SIDNEY -> HALL1 (5,12) -> PHOEBE). If this method reproduces that known
 result it works; if it does not, the METHOD is broken, not the data.
