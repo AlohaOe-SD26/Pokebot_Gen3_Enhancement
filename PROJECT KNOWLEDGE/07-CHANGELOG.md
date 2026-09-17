@@ -30320,3 +30320,36 @@ caveat for the OTHER fixture (*"`probe_anchor_inventory.py` does NOT print moves
 checked SEPARATELY; do not re-derive readiness from that probe alone"*) — and it was not applied here.
 ⇒ **an instrument that is blind to the property you care about does not become sighted by being run
 carefully.** The manifest row now carries the warning at the place a builder picks a fixture.
+
+
+## 2026-09-16 (twenty-second) — THE LINEAGE BLOCKER IS DISSOLVED: THE L60 PARTY IS REPAIRABLE WITH BUILT CAPABILITIES
+
+The previous entry blocked "grind first" because `post_grind_L60.ss1` has neither Ice Beam nor Fly.
+**Both gaps are repairable, and neither needs new code.** Measured on both saves, with controls
+(`BADGE08_GET` True on both; an invented flag name → False, because `get_event_flag` returns False
+for an unknown name — so the reader was not blind):
+
+| | `post_grind_L60.ss1` | `post_ch24_atdoor.ss1` |
+|---|---|---|
+| **HM02 (Fly) in bag** | ✅ YES | ✅ YES |
+| `ITEM_ABANDONED_SHIP_ROOMS_B1F_TM_ICE_BEAM` | **False — never collected** | True — already taken |
+| `LANDMARK_POKEMON_LEAGUE` | False | True |
+
+* **FLY** — `HM02` is in the L60 bag (15 TM/HM entries incl. HM02/03/04/06/07/08). HMs are
+  infinite-use ⇒ teach it and Swellow flies again.
+* **ICE BEAM** — the L60 lineage **never picked up TM13**. The flag that records that pickup is False
+  there and True on the other fixture, which is exactly the signature of two lineages that diverged
+  before the Abandoned Ship trip. ⇒ `#24-icebeamtrip` — a BUILT leg with its own driver — can fetch
+  it, and `teach_move_from_bag` (also built, driven 2026-09-05) can teach it.
+
+⇒ **REPAIR ORDER: teach Fly → run the Ice Beam trip → teach Ice Beam → THEN grind.**
+
+⚠ **ONE CONSEQUENCE WORTH KNOWING:** `LANDMARK_POKEMON_LEAGUE` is False on the L60 save, so the
+`PokemonLeague` fly destination — the one that lands on the door apron at (18,6) — is **not armed
+yet**. That flag is set on FIRST entry to the League, and the save is standing mid-Victory-Road, so
+§Ch23 (built and wired as Segment 23) is what carries it there. Nothing new is required; it is just
+not a one-Fly hop from that save the way it is from `post_ch24ready.ss1`.
+
+⛔ **WHAT THIS DOES *NOT* FIX:** the grind STALL (15 wins, then 338 consecutive flees with zero EXP)
+is a separate, still-unexplained defect. PP and HP were both refuted as causes. Repairing the moveset
+does not address it, and the stall must be diagnosed before any long grind is trusted to finish.
