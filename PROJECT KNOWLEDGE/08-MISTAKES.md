@@ -18160,3 +18160,31 @@ enough to refute an estimate that is wrong by more than 2×.
 `WILD_MAX = 40` — VICTORY_ROAD_1F's strongest wild is **L40**. Grinding a L60 party toward L75 on L40
 encounters is the real throughput ceiling here. No tuning of the flee rate beats finding better
 ground, and that question has never been asked for the post-L60 range.
+
+
+## 2026-09-16 (seventeenth) — I STARTED A 2-HOUR RUN ON A FIXTURE I HAD NOT CHECKED THE MOVESET OF
+
+**SYMPTOM.** Acting on the corrected "grind first" build order, I started a L60→L75 grind from
+`post_grind_L60.ss1`. Nine minutes in, two problems: it had stalled (15 wins, then 338 straight
+flees, zero EXP), and — far worse — **that fixture has no Ice Beam and no Fly.** Grinding it to L75
+would have produced, after ~2.4 hours, a party that cannot reach the League and has no answer to
+Drake's Flygon.
+
+**ROOT CAUSE.** I verified the fixture's LEVELS (the property the grind cares about) and inherited
+everything else from `FIXTURES.md5`, whose row says *"Verified by RELOADING the file
+(`probe_anchor_inventory.py`)"*. That probe **does not print movesets** — a caveat this project had
+already written down for the *other* §Ch24 fixture and did not apply to this one. ‼ The row read as
+strongly verified precisely because it named a verification method; naming a method is not the same
+as the method covering the claim.
+
+**WHAT SAVED IT.** Checking the run EARLY against its own prediction. The stall was visible in four
+minutes, and looking into *why* is what surfaced the moveset. Had I trusted the 61-minute ETA and
+walked away, the first sign of trouble would have been a finished grind with a useless party.
+
+**PREVENTION RULE.** ⛔ **BEFORE COMMITTING A LONG RUN TO A FIXTURE, CHECK THE PROPERTIES THE
+*DESTINATION* NEEDS, NOT THE ONES THE *TOOL* NEEDS.** The grind needs levels and a tile; §Ch24 needs
+Ice Beam, Fly, HP and a position. A fixture that satisfies the tool can still be useless to the goal.
+‼ And: **when a manifest says "verified", read WHAT the named instrument actually prints** — a probe
+that is blind to a property does not become sighted by being run carefully. ⭐ Corollary, cheap and
+general: **a long unattended run should be checked against its own prediction within the first few
+minutes**, because that is when an estimate wrong by >2× is still cheap to abandon.

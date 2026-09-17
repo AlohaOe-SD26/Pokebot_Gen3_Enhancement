@@ -30263,3 +30263,60 @@ a RED suite** — `audit_doc_citations.py` had caught a citation my own edit shi
 offense as `git add -A`. Fixed in the next commit, and every suite run since has been graded by exit
 code with no pipe. ⭐ The gate itself worked perfectly: a six-line comment insert moved a symbol and
 the citation audit caught it the same minute.
+
+
+## 2026-09-16 (twenty-first) — THE GRIND WAS RUN, STOPPED, AND IT FOUND A FIXTURE PROBLEM BIGGER THAN ITSELF
+
+The corrected build order said **grind first** (break-even L62, ~L75 → 88% clear), so the grind was
+started from `post_grind_L60.ss1` toward L75 — estimate first, per the `KI-28` guard. It was stopped
+after ~9 minutes. **Two findings, and the second matters much more than the first.**
+
+### 1. THE GRIND STALLS — 15 WINS, THEN 338 CONSECUTIVE FLEES WITH ZERO EXP
+
+    last Won        f28,779
+    run continued   f577,026      (548,000 further frames)
+    outcomes        99 -> 437 RanAway   |   15 -> 15 Won      (ZERO wins in the last 338 battles)
+    steps           "STEP 1: lowest battler is L60 -> training to L62"   — never completed
+
+It never left Victory Road (zero `[MAP]` transitions) and never tripped a NO-PROGRESS detector: it
+cleanly fights → flees → walks → repeats, for ever, gaining nothing. **This is the `KI-28` shape the
+estimate guard exists to prevent, arriving through a door the guard does not cover** — the estimate
+checks *deliverability per step*, not whether the run is still gaining.
+
+⚠ **MECHANISM UNKNOWN, AND SAID SO.** I checked the obvious candidates and both are REFUTED: at the
+start state PP is healthy (Wailord `Dive 10/10, Surf 5/15, Waterfall 15/15`) and HP is healthy
+(298/302, 184/184, 168/168, 183/187). ⛔ I could not inspect the STALL state itself — the run was
+killed, so no shutdown save was written, and `POKEBOT_GRIND_CAPTURE` only fires on a completed
+2-level step, which never happened. **The cheap next instrument is a periodic capture, or a flee-reason
+log line** — the strategy currently flees without recording why.
+
+### 2. ⛔⛔ `post_grind_L60.ss1` HAS **NO ICE BEAM** AND **NO FLY** — THE FIXTURES ARE DIFFERENT LINEAGES
+
+MEASURED by loading both saves and printing movesets:
+
+| fixture | Wailord | Swellow | Ice Beam | Fly |
+|---|---|---|---|---|
+| `post_grind_L60.ss1` (all L60) | Dive, Surf, **Water Spout**, Waterfall | **Peck, Wing Attack**, Aerial Ace, Quick Attack | **NO** | **NO** |
+| `post_ch24_atdoor.ss1` (L47-53) | Dive, Surf, **Ice Beam**, Waterfall | Facade, **Fly**, Aerial Ace, Quick Attack | YES | YES |
+
+(Also Sceptile Aerial Ace → Slam, Mightyena Strength → Tackle.) ⇒ **the grind learned level-up moves
+OVER the curated set.** Ice Beam is the designated **Drake** counter — Flygon has LEVITATE, so Ice is
+the only super-effective type reachable on it — and cost TWO work items to teach
+(`#24-icebeamtrip`, `#24-icebeamteach`). **Fly is how §Ch24 reaches the League at all.**
+
+⇒ **"GRIND FIRST", RULED EARLIER TODAY, IS BLOCKED.** Grinding the L60 save to L75 yields a strong
+party that cannot fly to the League and has no answer to Flygon; and the Ice-Beam save **cannot be
+ground** — `ch24grind`'s own docstring says *"The League fixtures cannot be used: from the League door
+`calculate_path` reaches neither grass nor a Poké Center."* ⭐ **The real next question is a FIXTURE
+question, not a grind question:** produce ONE save that is high-level AND Ice-Beam AND Fly. Filed as
+`#24-fixturelineage` with the two candidate routes, neither costed.
+
+### ‼ AND THE VERIFICATION GAP IS THE LESSON
+
+`FIXTURES.md5` recorded this save as *"Verified by RELOADING the file
+(`probe_anchor_inventory.py --filter post_grind_L60`), not by a driver's log"* — which sounds like the
+strongest possible check. **That probe does not print movesets.** The docs already carry exactly that
+caveat for the OTHER fixture (*"`probe_anchor_inventory.py` does NOT print movesets, so Ice Beam was
+checked SEPARATELY; do not re-derive readiness from that probe alone"*) — and it was not applied here.
+⇒ **an instrument that is blind to the property you care about does not become sighted by being run
+carefully.** The manifest row now carries the warning at the place a builder picks a fixture.
