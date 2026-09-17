@@ -29785,3 +29785,49 @@ hand over `git status` in full next time.
 `ai-research-notes/2026-09-16-e4dismiss-PREDICTIONS.md`,
 `ai-research-notes/2026-09-16-endless-batch-REVIEW.md` (stub only),
 and three committed evidence transcripts.
+
+
+## 2026-09-16 (eleventh) — AND `calculate_path` ROUTES TO THE E4 DOOR AFTER ALL: **DO NOT BUILD THE BFS**
+
+Prompted by the diff-advisory rule R-ACCEPTGRADE — *"a grade must include AND THE BOT CAN CONTINUE: a
+REAL `calculate_path` off the END tile, never a `controllable` flag"* — `--driver e4dismiss` was
+extended to ask the planner, from the exact post-dismiss state leg 1 will ask from. It answered a
+question the recon had carried as UNKNOWN #3, and the answer inverts part of the leg-1 spec.
+
+    path_to_door_6_2      = OK 6 waypoint(s) via
+        SIDNEYS_ROOM(5,6) (5,5) (5,4) (5,3) (6,3)  ->  HALL1(5,12)
+    CONTROL_path_to_5_6   = OK 1 waypoint(s)                       <- the planner works
+    NEGCONTROL_path_to_0_0  = REFUSED PathFindingError             <- it is not saying yes to everything
+    NEG_path_to_6_1_nonwarp = REFUSED PathFindingError             <- THE DISCRIMINATOR
+
+⭐⭐ **THE PATH ROUTES AROUND THE STANDING DEFEATED TRAINER** at (6,5), via the x=5 column, exactly as
+the recon predicted — **and then FOLLOWS THE WARP**, landing on `HALL1 (5,12)`, precisely the tile the
+warp backbone predicts. (Map `(16,5)` resolved against `map_data.py` = `EVER_GRANDE_CITY_HALL1`.)
+
+⭐⭐ **THE DISCRIMINATOR IS WHAT MAKES THIS MORE THAN A LUCKY PASS.** `(6,1)` is the door's other
+tile: adjacent to `(6,2)`, collision 1 in ROM and 0 live in both cases, same corner of the same room.
+The ONLY difference is that `(6,2)` has `warps_to` and `(6,1)` does not — and `(6,1)` is **REFUSED**.
+⇒ `map_path.py:841`'s destination-warp exemption (`tile == destination_tile and tile.warps_to`) is
+demonstrably the mechanism, not general leniency. ‼ I dumped the waypoint TILES rather than the
+count on purpose: "6 waypoints" is equally consistent with a straight run UP the x=6 column THROUGH
+the trainer, and those have opposite consequences for leg 1. A count cannot tell them apart.
+
+⛔⛔ **CONSEQUENCE: §G' OF THE ROUTING NOTE IS WRONG ON ITS CENTRAL BUILD INSTRUCTION.** It specs
+*"a short BFS over `_live_collision_grid` plus `get_map_objects()`, because the planner cannot see the
+door"*. **The planner can.** `KI-74` blinds the COLLISION GRID; `warps_to` is sourced from the static
+warp-event table, which `KI-74` never touches — the recon's angle 4 said exactly this and was right.
+⇒ **do not build the BFS.** That is the single largest piece of work the leg-1 spec was asking for.
+
+⚠ **NECESSARY, NOT SUFFICIENT — and this is the caveat that matters.** A `calculate_path` OK is
+**not** proof the DRIVEN navigator can walk it. That is `KI-48`, it is a standing project rule, and it
+still owes a drive. What is now established is that leg 1 does not need new pathfinding machinery;
+what is not established is that the walk executes.
+
+**ALSO IN THIS CHANGE:** `prompts_cleared` and the waypoint dump were both added because a previous
+reading measured the wrong quantity — `presses_issued` counted gate ticks rather than prompts
+consumed, and a waypoint COUNT would not have distinguished the two candidate routes. Same lesson
+twice in one probe: **instrument the action, not its size or its input.**
+
+**FILES:** `tools/story-dev/story_harness.py`, `PROJECT KNOWLEDGE/{03,04}`,
+`ai-research-notes/{2026-09-16-ch24-leg1-RECON-6-ANGLES, 2026-09-16-e4dismiss-PREDICTIONS}.md`,
+evidence `2026-09-16-e4dismiss-TREATMENT.stdout.txt`.

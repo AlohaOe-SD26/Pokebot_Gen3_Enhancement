@@ -16825,6 +16825,58 @@ class E4DismissMode(BotMode):
                 R["door_live_after"] = {t: grid.get(t) for t in ((6, 1), (6, 2))}
             except Exception as exc:  # noqa: BLE001
                 R["door_live_after"] = f"<err {exc!r}>"
+
+            # ---- CAN THE BOT ACTUALLY CONTINUE? -------------------------------------------------
+            # ⛔ A `controllable` FLAG IS NOT "THE BOT CAN CONTINUE" — the house rule (advisory
+            # R-ACCEPTGRADE, earned by §Ch15/§Ch18/§Ch19 all passing their own tests while stranded)
+            # is that a grade needs a REAL `calculate_path` off the end tile. So ask the planner.
+            # ⭐ AND THIS ANSWERS A CARRIED UNKNOWN FOR FREE: the recon could not settle whether
+            # `calculate_path` returns a route to the runtime-opened door (6,2). `map_path.py:841`
+            # skips the collision refusal when `tile == destination_tile and tile.warps_to`, and
+            # (6,2) IS a warp — but nobody had ever made the call. Now it is made, from the exact
+            # state leg 1 will make it from.
+            # ⛔⛔ THE CONTROL IS NOT OPTIONAL. A refusal on the door is indistinguishable from a
+            # broken planner unless a plainly-walkable tile succeeds in the same breath. (5,6) is
+            # collision 0 in both grids and is one step away.
+            # ⛔⛔ THREE TARGETS, AND TWO OF THEM EXIST TO MAKE THE FIRST ONE FALSIFIABLE.
+            #   path_to_door_6_2     — the question. (6,2) is the runtime-opened exit warp.
+            #   CONTROL_path_to_5_6  — POSITIVE control: a plainly walkable neighbour. If this
+            #                          REFUSES, the planner is broken and the door verdict is void.
+            #   NEGCONTROL_path_to_0_0 — NEGATIVE control: (0,0) is a wall in both grids (rows 0-2
+            #                          are fully blocked). If this returns OK, `calculate_path` is
+            #                          saying yes to everything and the door OK means NOTHING.
+            #   NEG_path_to_6_1      — the DISCRIMINATOR. (6,1) is the door's other tile and is NOT
+            #                          the warp; `map_path.py:841` exempts the destination only when
+            #                          `tile.warps_to`. So if (6,2) passes and (6,1) refuses, the
+            #                          destination-warp exemption is demonstrably the mechanism —
+            #                          not some general leniency about that corner of the room.
+            for key, target in (("path_to_door_6_2", (6, 2)),
+                                ("CONTROL_path_to_5_6", (5, 6)),
+                                ("NEGCONTROL_path_to_0_0", (0, 0)),
+                                ("NEG_path_to_6_1_nonwarp", (6, 1))):
+                try:
+                    from modules.map_path import calculate_path
+
+                    _mg, _here = _where_ch24()
+                    _p = calculate_path((_mg, _here), (_mg, target))
+                    # ⛔ DUMP THE TILES, NOT JUST THE COUNT. "6 waypoints" is consistent both with
+                    # the route AROUND the defeated trainer at (6,5) and with a straight run UP the
+                    # x=6 column THROUGH him. Those have opposite consequences for leg 1, and a
+                    # count cannot tell them apart — instrument the action, not its size.
+                    # ⛔ AND DUMP THE MAP WITH THE TILE. The last waypoint of a path whose
+                    # destination is a DOOR lands on the far side of the warp, so a bare (x,y)
+                    # silently changes coordinate space halfway through the list.
+                    _tiles = []
+                    for _w in _p:
+                        _c = getattr(_w, "coordinates", None) or getattr(_w, "coords", None)
+                        _m = getattr(_w, "map", None)
+                        _mn = getattr(_m, "name", None) or (
+                            getattr(getattr(_m, "map_group_and_number", None), "__iter__", None)
+                            and str(_m.map_group_and_number)) or str(_m)
+                        _tiles.append(f"{_mn}{tuple(_c) if _c is not None else '?'}")
+                    R[key] = f"OK {len(_p)} waypoint(s) via {_tiles}"
+                except Exception as exc:  # noqa: BLE001 — a REFUSAL IS THE READING, not an error
+                    R[key] = f"REFUSED {type(exc).__name__}: {exc}"
         except Exception as error:  # noqa: BLE001 — ONE top-level wrapper so the verdict still runs
             failure = f"{type(error).__name__}: {error}"
             log(f"[{TAG}] FAILURE {failure}")

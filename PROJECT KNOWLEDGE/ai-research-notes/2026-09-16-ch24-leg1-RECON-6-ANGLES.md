@@ -4,7 +4,7 @@
 > angles, each of whose top claims was then handed to 3 independent refuters). Every claim below
 > carries a citation the agent quoted, but **a citation is a READ, not a measurement** — the
 > authoritative docs win on any contradiction until a claim is verified in our own harness.
-> ‼ **THE ONE LOAD-BEARING FACT IS STILL UNMEASURED** — see §0.
+> ✅✅ **UPDATE, SAME DAY: §0'S LOAD-BEARING FACT IS NOW MEASURED, AND SO IS §6'S UNKNOWN #3.** `B` clears the post-victory msgbox (control returns in 297 frames) and a no-press CONTROL proves the box does not self-clear; and `calculate_path` DOES route to the door. See §0 and §6.3.
 
 **Question asked:** why does a `ch24probe` drive stall after beating Sidney, and what does §Ch24
 leg 1 actually need? **Angles:** (1) our code, (2) the dismiss machinery as a REUSE hunt,
@@ -14,7 +14,7 @@ leg 1 actually need? **Angles:** (1) our code, (2) the dismiss machinery as a RE
 
 ## §0 — WHAT MUST BE MEASURED BEFORE ANY CODE DEPENDS ON THIS
 
-⛔ **NO EVIDENCE FILE IN THIS TREE SHOWS THE SIDNEY POST-VICTORY MSGBOX EVER BEING DISMISSED BY THE
+✅✅✅ **ANSWERED 2026-09-16 (same day) — `B` CLEARS IT.** `--driver e4dismiss` from the pinned `post_sidney_door_open.ss1`: TREATMENT `controllable_after=True` in **297** frames, `prompts_cleared=2`; CONTROL (`POKEBOT_E4DISMISS_FAULT_NOPRESS=1`) `controllable_after=False` after its **full 2,600-frame budget**, printer still `(True,'WaitForButton')`. ⇒ the box does NOT self-clear. The angle-6 second-order worry below is also settled: `script_active_after=False`, so the script does not park active. Graded against predictions filed before the run (`2026-09-16-e4dismiss-PREDICTIONS.md`). —— *the question as it stood:* ⛔ **NO EVIDENCE FILE IN THIS TREE SHOWS THE SIDNEY POST-VICTORY MSGBOX EVER BEING DISMISSED BY THE
 BOT.** The decomp says `waitbuttonpress` accepts `JOY_NEW(A_BUTTON | B_BUTTON)`; that is a READ.
 Two independent angles (5 and 6) flagged this as the single claim the whole plan rests on, and both
 declined to assert it. ⇒ **the next action is a drive that presses B at (6,6) from
@@ -212,9 +212,16 @@ KI-74-affected.
 
 1. **The §0 drive** — does a B press at (6,6) clear the box and return control? Unmeasured.
 2. Whether `(6,2)` actually warps when stepped on. Everything needed is established; no run has done it.
-3. Whether `calculate_path` returns a route to `(6,2)`. The earlier note's retraction was right; the
-   ~10-line offline probe is still owed. An earlier guard (elevation, `dynamic_collision_flag`) may
-   reject the tile before `map_path.py:841` is reached.
+3. ~~Whether `calculate_path` returns a route to `(6,2)`.~~ ✅✅ **ANSWERED 2026-09-16 — IT DOES, AND
+   THE BFS §G' SPECS SHOULD NOT BE BUILT.** `--driver e4dismiss` makes the call from the real
+   post-dismiss state: **6 waypoints**, `SIDNEYS_ROOM (5,6)→(5,5)→(5,4)→(5,3)→(6,3)` then
+   **`HALL1 (5,12)`** — around the standing trainer at (6,5) and out through the warp, onto exactly
+   the tile §4's backbone predicts. Controls: `(5,6)` OK (planner works), `(0,0)` REFUSED (not saying
+   yes to everything), and the discriminator **`(6,1)` REFUSED** — adjacent to (6,2), identical in
+   both grids, differing only in `warps_to` ⇒ `map_path.py:841`'s destination-warp exemption is
+   demonstrably the mechanism. **No earlier guard rejects the tile.** `KI-74` blinds the COLLISION
+   GRID; `warps_to` comes from the static warp-event table it never touches. ⚠ Necessary, not
+   sufficient: a `calculate_path` OK is not proof the DRIVEN navigator can walk it (`KI-48`).
 4. Phoebe/Glacia/Drake post-victory LIVE grids — inferred from byte-identical ROM layouts + a shared
    helper, **not measured**.
 5. Whether our KI-93 in-battle dismiss fires for a trainer lose-text (first exercised at Glacia).

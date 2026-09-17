@@ -147,3 +147,31 @@ file. **The phenomenon has been measured in ONE room, against ONE trainer.**
 3. That the *existing* helpers (`_ride_out_scripted_scene("B")` / `_wait_until_cutscene_over` /
    `normalize_to_overworld`) clear it. This probe pressed `B` on its own gate — it proves the GAME
    accepts B here, which is the load-bearing half, but the one-line insertion still has to be driven.
+
+---
+
+# ADDENDUM — THE CONTINUATION CHECK, ADDED AFTER THE FACT (2026-09-16)
+
+⛔ **NOT PRE-REGISTERED. Recorded as an addendum rather than folded into the table above, because a
+prediction written after seeing the result is not a prediction.** It was added because the
+diff-advisory rule R-ACCEPTGRADE fired on this probe: *a grade must include "AND THE BOT CAN
+CONTINUE" — a REAL `calculate_path` off the END tile, never a `controllable` flag.* The rule was
+right; `controllable_after=True` does not establish that the bot can go anywhere.
+
+    path_to_door_6_2      = OK 6 waypoint(s) via
+        SIDNEYS_ROOM(5,6) (5,5) (5,4) (5,3) (6,3)  ->  HALL1(5,12)
+    CONTROL_path_to_5_6     = OK 1 waypoint(s)        <- positive control: the planner works
+    NEGCONTROL_path_to_0_0  = REFUSED PathFindingError <- negative control: not yes to everything
+    NEG_path_to_6_1_nonwarp = REFUSED PathFindingError <- the DISCRIMINATOR
+
+⭐⭐ The route goes **around the standing defeated trainer at (6,5)** via the x=5 column and then
+**follows the warp** onto `HALL1 (5,12)` — the tile the warp backbone predicts (`(16,5)` resolves to
+`EVER_GRANDE_CITY_HALL1` in `map_data.py`). ⭐ `(6,1)` is adjacent to `(6,2)`, identical in both
+grids, and differs only in having no `warps_to` — and it is REFUSED ⇒ `map_path.py:841`'s
+destination-warp exemption is demonstrably the mechanism.
+
+⇒ **§G' of the routing note is wrong that leg 1 needs a BFS over `_live_collision_grid`.** `KI-74`
+blinds the collision grid; `warps_to` comes from the static warp table it never touches.
+⚠ **Necessary, not sufficient:** a `calculate_path` OK is not proof the DRIVEN navigator walks it
+(`KI-48`). Item 1 of "WHAT IS STILL NOT ESTABLISHED" above therefore STANDS — nobody has stepped on
+`(6,2)`.

@@ -591,3 +591,7 @@
 {"when": "2026-09-16T17:02:33", "driver": "e4dismiss", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-16T17:03:17", "driver": "e4dismiss", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-16T17:04:20", "driver": "e4dismiss", "build": "sandbox", "state": "post_sidney_door_open_b.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T17:16:16", "driver": "e4dismiss", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T17:17:55", "driver": "e4dismiss", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T17:19:28", "driver": "e4dismiss", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-16T17:20:59", "driver": "e4dismiss", "build": "sandbox", "state": "post_sidney_door_open.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}

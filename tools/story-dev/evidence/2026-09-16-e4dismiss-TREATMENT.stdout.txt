@@ -12,12 +12,16 @@ f221: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndP
 f223: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.Scrolling tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=E4DismissMode.run bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp107664|Wailord:L47:exp120158|Mightyena:L48:exp116698|Castform:L36:exp50128]
 f232: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=E4DismissMode.run bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp107664|Wailord:L47:exp120158|Mightyena:L48:exp116698|Castform:L36:exp50128]
 f287: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects'] ctrl=E4DismissMode.run bt='NICK got $4900 for winning!' scripts=['EverGrandeCity_SidneysRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Sceptile:L53:exp148031|Zigzagoon:L19:exp7672|Swellow:L48:exp107664|Wailord:L47:exp120158|Mightyena:L48:exp116698|Castform:L36:exp50128]
+[e4dismiss] R CONTROL_path_to_5_6 = "OK 1 waypoint(s) via ['(16, 0)(5, 6)']"
+[e4dismiss] R NEGCONTROL_path_to_0_0 = 'REFUSED PathFindingError: Could not find a path from (6/6 @ EVER_GRANDE_CITY_SIDNEYS_ROOM) to (0/0 @ EVER_GRANDE_CITY_SIDNEYS_ROOM).'
+[e4dismiss] R NEG_path_to_6_1_nonwarp = 'REFUSED PathFindingError: Could not find a path from (6/6 @ EVER_GRANDE_CITY_SIDNEYS_ROOM) to (6/1 @ EVER_GRANDE_CITY_SIDNEYS_ROOM).'
 [e4dismiss] R arm = 'TREATMENT (press B)'
 [e4dismiss] R controllable_after = True
 [e4dismiss] R controllable_before = False
 [e4dismiss] R door_live_after = {(6, 1): 0, (6, 2): 0}
 [e4dismiss] R frames_spent = 317
 [e4dismiss] R frames_to_control = 297
+[e4dismiss] R path_to_door_6_2 = "OK 6 waypoint(s) via ['(16, 0)(5, 6)', '(16, 0)(5, 5)', '(16, 0)(5, 4)', '(16, 0)(5, 3)', '(16, 0)(6, 3)', '(16, 5)(5, 12)']"
 [e4dismiss] R premise_ok = True
 [e4dismiss] R presses_issued = 50
 [e4dismiss] R printer_after = (False, 'PrintingCharacter')
@@ -50,5 +54,5 @@ f3318:     gen -> <no controller on the stack (Manual mode / dropped out)>
 Shutting down...
 Save state C:\Remote 
 Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
--09-16_17-02-33.ss1 created!
+-09-16_17-20-59.ss1 created!
 Updated `current_state.ss1`!
