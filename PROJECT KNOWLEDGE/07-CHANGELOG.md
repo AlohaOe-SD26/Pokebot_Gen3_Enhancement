@@ -30473,3 +30473,44 @@ decision log**, which I had never cited, and measured the mechanism exactly:
 ⇒ **the durable lesson is not about PP.** A recovery trigger scoped to the PARTY cannot rescue a
 failure scoped to the LEAD, and nothing in the code connects the two. That mismatch is worth checking
 wherever else a "can I continue?" predicate and its recovery live at different scopes.
+
+
+## 2026-09-17 (third) — ⛔ MECHANISM CORRECTION: THE GRIND NEVER OVERWROTE ANYTHING, AND THE OPPOSITE IS THE USEFUL FACT
+
+The 2026-09-17 entries above attach a MECHANISM to a true finding, and **the mechanism is false.**
+The finding stands: `post_grind_L60.ss1` has **no Ice Beam and no Fly**. The explanation I gave —
+*"the grind learned level-up moves OVER the curated set"* — does not.
+
+**MEASURED.** `post_training.ss1` (L47-51) is the save `post_grind_L60.ss1` was produced FROM, and it
+already carries the **identical move names**:
+
+    Wailord   Dive, Surf, Water Spout, Waterfall      (no Ice Beam — Water Spout already present)
+    Swellow   Peck, Wing Attack, Aerial Ace, Quick Attack   (no Fly)
+    Sceptile  Rock Smash, Strength, Leaf Blade, Slam
+    Mightyena Tackle, Crunch, Take Down, Bite
+
+⇒ **this lineage never had Ice Beam or Fly to lose.** It diverged from the Ice-Beam lineage BEFORE
+that ancestor, and `Water Spout` is simply Wailord's natural **L44** level-up move.
+
+### ⭐⭐ THE OPPOSITE OF MY CLAIM IS TRUE, AND IT IS THE STRONGEST OBJECTION ANSWERED
+
+The best argument against the repair plan was: *"teach Ice Beam, then grind to L75, and level-up
+learning will overwrite it again."* **Refuted, twice over:**
+* **Wailord crossed L52 (Amnesia) and L59 (Hydro Pump)** during the L47→L60 grind **and kept all four
+  of its moves** ⇒ the bot DECLINES level-up moves.
+* And there is nothing to decline in the target range anyway: **no battler learns ANY move between
+  L61 and L75** — last level-up moves are Wailord/Sceptile **L59**, Mightyena L52, Swellow L49,
+  Zigzagoon L41, Castform L30.
+
+‼ **THAT SECOND READING NEARLY WENT IN WRONG, AND THE CONTROL IS WHY IT DID NOT.** My first learnset
+query returned "nothing between L61 and L75" for **all six** — which is the signature of a parser
+returning empty for every input. The control (print Wailord's FULL learnset; it must contain
+`Water Spout`) printed four entries of single characters — `Ll e`, `Lt m`, `Lt u`, `Le g` — because
+`learnset` is a **dict** of four sub-keys (`level_up`, `tm_hm`, `tutor`, `egg`) and I had iterated its
+KEY NAMES. `level_up` is itself a dict of `{move_id: level}`. With the reader fixed the control shows
+`L44 Water Spout` and `L59 Hydro Pump`, and only then is the "NONE in 61-75" answer worth anything.
+
+⇒ **DO NOT "FIX" THE GRIND TO STOP OVERWRITING MOVES — there is no such defect.** A future session
+acting on the retracted sentence would have chased a bug that does not exist. Corrected in
+`FIXTURES.md5`, `03-PUNCH-LIST.md` (both copies) and `probe_grind_stall_predicate.py`'s docstring;
+this entry is the correction for the append-only record.

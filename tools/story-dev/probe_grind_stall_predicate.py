@@ -23,9 +23,12 @@ never restored and the situation is identical on the next encounter. That is the
     Water Spout  0/5  PP                  -> -1
     Waterfall    0/15 PP                  -> -1
 ‼ The "15 wins" is just the PP budget: 15 + 15 + 5 = **35 PP** ~= 15 battles x ~2 moves.
-‼‼ AND NOTE HOW IT GOT WORSE BY ITSELF: the grind's own level-up learning replaced **Ice Beam
-(10 PP)** with **Water Spout (5 PP)** on this lineage (`#24-fixturelineage`), so the party that
-grinds is the party with LESS PP to grind on.
+‼‼ NOTE ON PP BUDGET, WITH A MECHANISM CORRECTION (2026-09-17): this lineage carries **Water Spout
+(5 PP)** where the §Ch24 fixture carries **Ice Beam (10 PP)**, so it has less PP to grind on. ⛔ An
+earlier version of this comment said the grind's own level-up learning REPLACED Ice Beam. That is
+FALSE — measured: the ancestor `post_training.ss1` already had Water Spout and no Ice Beam, so the
+lineages diverged before it, and Water Spout is Wailord's natural L44 move. The bot in fact
+DECLINES level-up moves (Wailord crossed L52 Amnesia and L59 Hydro Pump and kept all four).
 
 ⛔ THE PREDICATE IS NOT THE BUG — ITS CONSUMERS ARE. `max_strength <= 0` is reachable three ways:
 type immunity (Normal/Fighting into a Ghost — `#24-ghostzerodamage`), PP exhaustion, and a banned
