@@ -687,6 +687,27 @@ GATES: list[tuple[str, bool]] = [
     # ⇒ When a gate's ENFORCING status rests on a PROPERTY, write an arm that attacks the PROPERTY,
     # not just arms that exercise the mechanism.
     ("probe_retraction_coverage.py", False),
+    # --- #64 — INVISIBLE CHARACTERS IN THE KNOWLEDGE DOCS (`probe_doc_control_chars.py`)
+    # ‼ APPENDED AT THE END, never inserted — the same rule #34-#63 carry.
+    # WHY A GATE: on 2026-09-17 a changelog entry written through a shell-quoted string turned `\b`
+    # into a LITERAL 0x08 BACKSPACE inside the document. Every terminal rendered it as an empty pair
+    # of backticks, so it read as "the shell deleted my text" — the wrong diagnosis. It was PRESENT
+    # AND INVISIBLE, and was found only because an assertion string failed to match and the bytes
+    # were inspected instead of the rendering.
+    # ‼‼ A SWEEP THEN FOUND A SECOND, OLDER ONE in `28-HANDOFF-ARCHIVE.md`, inside a sentence
+    # explaining that a literal control character in source is a hard failure "because `\b` compiled
+    # to a BACKSPACE twice in one day and the gate still passed." ⇒ THREE independent sessions have
+    # put a backspace byte into prose ABOUT the backspace bug, and nothing caught any of them.
+    # ⭐ THE GAP: control characters in SOURCE are gated (`#24-p2headergate` (C)); the DOCS were not.
+    # `lint_docs.py` and `audit_doc_consistency.py` both passed a file containing 0x08.
+    # ⭐ ENFORCING, AND THE JUSTIFICATION IS ABOUT THE INPUT DOMAIN, NOT THE CHECKER — the distinction
+    # `probe_retraction_coverage.py` got wrong the same day. Markdown has NO legitimate use for any C0
+    # control character except TAB and NEWLINE, so there is nothing to judge and nothing to misjudge;
+    # a hit is a defect by construction. Contrast: that gate had to DECIDE whether text was retracted.
+    # ⛔ FAULT-TESTED, six arms, and ARM 3 failed first: it exercised `scan_text` directly while the
+    # CRLF normalisation lived in `scan_docs`, so a legitimate CRLF was reported. The gate was right
+    # and the CONTRACT was split — normalisation moved into `scan_text`. A lone CR still fires (ARM 4).
+    ("probe_doc_control_chars.py", False),
 ]
 
 

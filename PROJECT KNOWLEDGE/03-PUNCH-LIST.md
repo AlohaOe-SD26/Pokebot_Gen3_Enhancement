@@ -163,6 +163,43 @@ open-vs-built sweep of all 80 open items has **not** been done.
   ⛔ **BUT THE OTHER REFUTATION STILL STANDS AND MUST BE HONOURED:** `ko_turns` as specified BREAKS gate #39's C2, because the synthetic rows have **no foe HP**. ⇒ the term must be **INERT when foe HP is unknown** (`foe_hp <= 0 ⇒ ko = 0` for every candidate, so the tuple falls through to today's key and all nine existing cases keep passing), and STRICTLY WORST when a candidate deals zero. Only then is it safe on a shared path.
   ‼ **AND ZIGZAGOON IS THE WHOLE ARGUMENT IN ONE NUMBER: 3 damage, 39 turns.** That is what the shipped ranker reaches for after a faint against a Ghost.
   ⚠ **Ice Beam does 62 here — LESS than Surf's 93** — because Ice is NEUTRAL on a pure Ghost. Its value is DRAKE (4× on Salamence/Altaria/Flygon), not Phoebe. ⇒ do not read a low Phoebe number as evidence against the Ice Beam plan.
+- [x] ✅✅ `#24-doccontrolchars` — **NEW AND DONE 2026-09-17 (late). AN INVISIBLE BACKSPACE BYTE WAS SITTING IN A TRACKED DOCUMENT, AND A SWEEP FOUND A SECOND ONE THAT HAD BEEN THERE FOR WEEKS. GATE #64, SIX FAULT ARMS, ENFORCING.**
+  **HOW IT SURFACED:** a changelog entry written through a shell-quoted string turned `\b` into a
+  **literal 0x08 BACKSPACE** in the document. Every terminal rendered it as an empty pair of
+  backticks, so my first diagnosis — *"the shell deleted my text"* — was WRONG. It was **present and
+  invisible**. It was caught only because an assertion string failed to match and I inspected the
+  bytes instead of the rendering.
+  ‼‼ **AND IT WAS NOT THE FIRST.** Sweeping every `PROJECT KNOWLEDGE/*.md` found a SECOND 0x08 in
+  `28-HANDOFF-ARCHIVE.md:9918` — **inside a sentence explaining that a literal control character in
+  source is a hard failure "because `\b` compiled to a BACKSPACE twice in one day and the gate still
+  passed."** ⇒ **three independent sessions have now put a backspace byte into prose ABOUT the
+  backspace bug, and nothing caught any of them.** Both are fixed.
+  ⭐ **THE GAP IT CLOSES:** control characters in `.py` SOURCE are gated (`#24-p2headergate` (C));
+  the DOCS were not. `lint_docs.py` and `audit_doc_consistency.py` both passed a file containing 0x08.
+  ⭐⭐ **WHY THIS ONE IS SAFE TO ENFORCE WHEN `#24-retractioncoverage` WAS NOT — AND THE DIFFERENCE IS
+  THE WHOLE LESSON.** That gate had to DECIDE whether a sentence was retracted, so it could misjudge,
+  and it did. This gate asserts a property of the INPUT DOMAIN: Markdown has no legitimate use for any
+  C0 control character except TAB and NEWLINE. **There is nothing to judge, so there is nothing to
+  misjudge** — a hit is a defect by construction. ⇒ *justify ENFORCING from the input domain, not from
+  the checker's cleverness.*
+  **SIX ARMS:** real docs clean · injected 0x08 fires at the right line/col · newlines+tabs+CRLF never
+  fire · a **lone CR** does fire · zero-width space fires · every rejected character is nameable (or
+  the report is unreadable). ⛔ **ARM 3 FAILED FIRST AND WAS RIGHT TO:** it drove `scan_text` directly
+  while CRLF normalisation lived in `scan_docs`, so a legitimate CRLF was reported — the gate was
+  correct and the **contract was split**. Normalisation moved into `scan_text`; a helper whose
+  correctness depends on the caller pre-cleaning its input will eventually be called without it.
+  ⛔⛔ **AND ITS SCOPE WAS NARROWER THAN ITS OWN CLAIM — A TIER 1 REVIEWER COUNTED THE FILES INSTEAD
+  OF READING THE GLOB.** v1 used `DOCS.glob("*.md")`, which is **non-recursive: 34 of 192 files**. The
+  158 skipped are almost entirely **`ai-research-notes/` — machine-relayed Gemini output, i.e. exactly
+  the content most likely to reproduce this bug class next** — while the docstring claimed *"every
+  `PROJECT KNOWLEDGE/*.md`"*. ✅ Fixed to `rglob`: coverage **34 → 192 files**, and recursing adds
+  **0 findings**, so it is a scope correction, not a regression. ‼ `lint_docs.py` shares the
+  non-recursive convention, so this was *inherited*, not invented — which is why it read as normal.
+  ⭐ **THE RULE: a gate's scope is a CLAIM. Count what it actually reads; do not read the glob.**
+  ✅ Also per review: the FIX guidance is now per-cause — "don't use a shell" is the right advice for a
+  C0 byte and the WRONG advice for a BOM or a pasted zero-width space, and advice that does not fit
+  the finding is how a reader learns to ignore a gate.
+  Run: `py -3.12 probe_doc_control_chars.py --self-test`.
 - [~] ⛔⛔ `#24-retractioncoverage` — **BUILT, SHIPPED ENFORCING, AND DOWNGRADED TO ADVISORY THE SAME DAY (2026-09-17). ⇒ WHAT REMAINS: it produces a FALSE POSITIVE on live text, and it is BLIND to the in-place-marker idiom used by its own motivating defect #3. Both must be fixed before it may be ENFORCING again.**
   **WHY:** in ONE session I retracted three claims and each time left another copy of the same sentence
   live elsewhere — a closed item still reading *"all three prerequisites still stand"*; my own

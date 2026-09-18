@@ -9915,7 +9915,7 @@ its stub in 03 keeps the slug, the status and the do-not-redo warning.
 - [x] **TWO checks shipped, a THIRD deliberately DELETED.** (A) editing a `## KI-N` header with no
       line added inside that KI's own section is now a finding — its fault test is the real bug, a
       body line anchored on the header STRING landing ABOVE it. (C) a literal control character in
-      `.py` source is a hard failure, because `` compiled to a BACKSPACE twice in one day and the
+      `.py` source is a hard failure, because `\b` compiled to a BACKSPACE twice in one day and the
       gate still printed PASS both times; its own test then shipped VACUOUS and mutation testing
       caught that. ⛔ **(B) ratchet-baseline claims was DELETED after a six-angle review returned 7
       blockers — 289 lines removed.** Its exemption was written and broken THREE times; the fix that

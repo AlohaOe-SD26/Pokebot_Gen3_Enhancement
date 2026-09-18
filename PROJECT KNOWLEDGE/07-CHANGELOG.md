@@ -31593,3 +31593,101 @@ carried this exact bug before (see `run_gates.py`'s header).
 **Suite counts after the downgrade: 67 entries = 63 ENFORCING + 4 ADVISORY.**
 ⛔ Do not re-promote to ENFORCING until both defects are fixed AND fault-tested against the reviewer's
 repros, which are recorded on `#24-retractioncoverage`.
+
+
+## 2026-09-17 (late) — ARM 5: the retraction gate now TESTS ITS OWN REGEX instead of trusting it
+
+**Test-only addition to `probe_retraction_coverage.py`; the gate behaves identically.** Prompted by the
+diff-triggered advisory hook (`#24-difftriggeredrules`) surfacing **R-REGEX** on the commit that landed
+it: *“NEVER REVIEW A REGEX BY READING IT — print the COMPILED `.pattern` and run a positive AND a
+negative list”*. I had verified the pattern behaviourally (four arms plus a reviewer repro) but had
+never checked it as bytes, which is the half the rule exists for: `08-MISTAKES.md` 2026-08-23 records
+`\b` compiling to a literal **backspace** twice in one day with **both gates reporting PASS** — a
+pattern carrying a control character matches nothing and wears a green tick.
+
+**ARM 5, in four parts:** 5a the compiled pattern contains **no control characters**; 5b
+`MIN_CLAIM_LEN` really spliced in as `{45,400}`; 5c a **POSITIVE** list of three retraction idioms
+each harvesting exactly 1; 5d a **NEGATIVE** list each harvesting 0 — a live rule quoted with no
+retraction keyword nearby, a genuine retraction whose claim is under the length floor, and a keyword
+with no quotation at all. All pass; the self-test is now **8 arms**.
+
+⭐ The negative list is the useful half: it pins the exact distinction the gate rests on — *“the rule
+reads X”* (live, must NOT harvest) versus *“THIS clause READ X”* next to a retraction keyword (dead,
+must harvest). That distinction was the v2→v3 fix, and it now has a regression test rather than only
+a memory.
+⚠ It does **not** address either filed defect, so the gate stays **ADVISORY**.
+
+
+### ⭐⭐ AND THE HOLE WAS NOT A HOLE — IT WAS A **LITERAL BACKSPACE BYTE** IN A TRACKED DOCUMENT
+
+The footnote above said bash "deleted" the `\b` from the R-REGEX anecdote. Re-reading the file as
+BYTES rather than as text shows something sharper and worse: the document contained **`\x08`, an
+actual backspace control character**, sitting between two backticks. Every terminal view rendered it
+as an empty pair of backticks, so "deleted" was the wrong diagnosis — it was *present and invisible*.
+
+⛔⛔ **THIS IS THE EXACT BUG THE R-REGEX RULE DESCRIBES, REPRODUCED INSIDE MY OWN WRITE-UP OF THAT
+RULE.** `08-MISTAKES.md` 2026-08-23: *"`\b` compiled to a backspace byte TWICE in one day, and both
+gates said PASS"*. I wrote a paragraph about that hazard, through a shell, and put a backspace byte in
+the paragraph. **It was caught only because an assertion string failed to match and I inspected the
+bytes instead of the rendering.**
+
+⇒ ⭐ **THE GENERAL RULE, which is worth more than the incident: A DOCUMENT THAT LOOKS RIGHT IN A
+TERMINAL HAS NOT BEEN CHECKED. Control characters are invisible by construction** — that is what makes
+them a bug class rather than a typo. Verify with `repr()` or a byte scan, never by reading.
+
+⇒ **AND IT EXPOSED A REAL GAP IN OUR GATES:** control characters in *source* are gated
+(`#24-p2headergate` (C)), but nothing checked them in `PROJECT KNOWLEDGE/`. `lint_docs.py` and
+`audit_doc_consistency.py` both passed this file with a backspace in it. Closed by
+`probe_doc_control_chars.py` — see the next entry.
+
+
+## 2026-09-17 (late) — ✅ GATE #64: NO INVISIBLE CHARACTER MAY SIT IN A KNOWLEDGE DOCUMENT
+
+`tools/story-dev/probe_doc_control_chars.py`, registered as entry #64.
+**Suite: 68 entries = 64 ENFORCING + 4 ADVISORY; `--quick` 58.**
+
+**WHY.** A changelog entry written through a shell-quoted string put a **literal 0x08 BACKSPACE** into
+the document. It rendered as an empty pair of backticks in every terminal, so the first diagnosis
+(*"the shell deleted my text"*) was wrong — the character was **present and invisible**. A sweep of
+every `PROJECT KNOWLEDGE/*.md` then found a SECOND one in `28-HANDOFF-ARCHIVE.md:9918`, inside a
+sentence explaining that a control character in source is a hard failure *"because `\b` compiled to a
+BACKSPACE twice in one day and the gate still passed."*
+⇒ **Three sessions have now written a backspace byte into prose about the backspace bug.** Both fixed.
+
+**THE GAP.** Control characters in `.py` source are gated (`#24-p2headergate` (C)). The DOCS were not:
+`lint_docs.py` and `audit_doc_consistency.py` both passed a file containing 0x08.
+
+**⭐⭐ WHY THIS SHIPS ENFORCING ON THE SAME DAY `#24-retractioncoverage` WAS DOWNGRADED TO ADVISORY —
+the contrast is the point.** That gate had to DECIDE whether a sentence was retracted; a checker that
+judges can misjudge, and it did, in both directions. This gate asserts a property of the **INPUT
+DOMAIN**: Markdown has no legitimate use for any C0 control character except TAB and NEWLINE. Nothing
+is judged, so nothing can be misjudged; a hit is a defect by construction.
+⇒ **RULE: justify ENFORCING from the input domain, not from the checker's cleverness.**
+
+**SIX ARMS,** and ARM 3 failed first and was right to: it drove `scan_text()` directly while the CRLF
+normalisation lived in `scan_docs()`, so a legitimate CRLF was reported. The gate was correct and the
+**contract was split** — normalisation moved into `scan_text()`. A lone CR still fires (ARM 4), as do
+zero-width and bidi-override characters, which are invisible by a different mechanism but fail the
+same way.
+
+
+### ⛔ TIER 1 CORRECTION TO THE ENTRY ABOVE — GATE #64 SCANNED 34 OF 192 FILES
+
+**The entry above said the gate covers "every `PROJECT KNOWLEDGE/*.md`". It did not.** `scan_docs()`
+used `DOCS.glob("*.md")` — **non-recursive**, so **34 of 192** `.md` files. The 158 skipped are almost
+entirely **`ai-research-notes/`**, which is machine-relayed Gemini output and therefore the content
+most likely to reintroduce this exact defect; it is also load-bearing enough that
+`audit_doc_consistency.py`'s citation resolver reads it.
+
+✅ **FIXED: `glob` → `rglob`.** Coverage **34 → 192 files**; recursing the current tree adds **0
+findings**, so this is scope, not a regression. ‼ `lint_docs.py` shares the same non-recursive
+convention, so the narrow glob was inherited rather than invented — which is precisely why it read as
+normal and survived until a reviewer **counted the files instead of reading the glob**.
+
+⭐ **THE RULE: A GATE'S SCOPE IS A CLAIM, AND IT IS THE CLAIM LEAST LIKELY TO BE CHECKED.** Everyone
+reviews what a gate asserts; almost nobody counts what it reads. A gate that covers less than its
+docstring says is a gate that will one day report PASS over the very file that mattered.
+
+✅ Also corrected per review: the remediation text is now **per-cause** — shell-escaping advice for a
+C0 byte, editor/paste advice for a BOM or zero-width character. Uniform advice that does not fit the
+finding teaches a reader to ignore the gate, which is the same failure mode as a false positive.

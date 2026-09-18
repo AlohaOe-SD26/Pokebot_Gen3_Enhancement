@@ -234,6 +234,48 @@ def self_test() -> int:
     if short:
         ok = False
 
+    # ARM 5 — THE REGEX ITSELF. ⛔ Required by this project's R-REGEX rule, which exists because
+    # `\b` compiled to a literal backspace byte TWICE in one day and BOTH gates reported PASS: a
+    # pattern carrying a control character matches nothing and wears a green tick. So the pattern is
+    # inspected as bytes, and then exercised against an explicit POSITIVE and NEGATIVE list —
+    # never reviewed by reading it. (Added after the diff-triggered hook surfaced the rule.)
+    pat = _QUOTED.pattern
+    ctrl = [(i, hex(ord(c))) for i, c in enumerate(pat) if ord(c) < 32]
+    spliced = ("{%d,400}" % MIN_CLAIM_LEN) in pat
+    print("  ARM 5a regex control chars           -> %d  %s"
+          % (len(ctrl), "PASS" if not ctrl else "FAIL %s" % ctrl))
+    print("  ARM 5b MIN_CLAIM_LEN spliced in      -> %s  %s"
+          % (spliced, "PASS" if spliced else "FAIL"))
+    if ctrl or not spliced:
+        ok = False
+
+    POSITIVE = [
+        'the banner ⛔ SUPERSEDED — THIS CLAUSE READ “alpha beta gamma delta epsilon zeta eta '
+        'theta iota kappa” and is dead',
+        'WITHDRAWN: it originally read *"one two three four five six seven eight nine ten eleven '
+        'twelve"* now gone',
+        'CORRECTED — the entry previously said “aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll '
+        'mmm nnn ooo”.',
+    ]
+    NEGATIVE = [
+        # a LIVE rule being quoted, with no retraction keyword anywhere near it
+        'the rule reads “alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu”',
+        # a genuine retraction whose quoted claim is too short to match safely
+        'SUPERSEDED — THIS CLAUSE READ “too short”',
+        # a retraction keyword with no quotation at all
+        'WITHDRAWN. The design doc states that grass encounters matter a great deal for routing.',
+    ]
+    pos_bad = [t for t in POSITIVE if len(harvest_claims({"d.md": t})) != 1]
+    neg_bad = [t for t in NEGATIVE if len(harvest_claims({"d.md": t})) != 0]
+    print("  ARM 5c positive list (%d)             -> %d wrong  %s"
+          % (len(POSITIVE), len(pos_bad), "PASS" if not pos_bad else "FAIL"))
+    print("  ARM 5d negative list (%d)             -> %d wrong  %s"
+          % (len(NEGATIVE), len(neg_bad), "PASS" if not neg_bad else "FAIL"))
+    if pos_bad or neg_bad:
+        ok = False
+        for t in pos_bad + neg_bad:
+            print("         %s" % t[:88])
+
     print(bar)
     print("  SELF-TEST %s   (harvested %d retracted claim(s); victim was %d chars)"
           % ("PASS" if ok else "FAIL", len(claims), len(victim)))

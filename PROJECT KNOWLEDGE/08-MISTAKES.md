@@ -18890,3 +18890,68 @@ there — and state explicitly: ⛔ `git checkout --`, `git restore`, `git stash
 `git clean` are FORBIDDEN to reviewers, because a reverted file looks identical to a restored one.*
 **⭐ COROLLARY for me.** *Before handing a reviewer a package with uncommitted work, know which files
 are dirty — and prefer reviewing a COMMITTED state, so the worst case is recoverable by `git`.*
+
+
+## 2026-09-17 (late) — A SHELL ATE TWO SPANS OF A DOCUMENT AND LEFT AN INVISIBLE BYTE BEHIND
+
+**Symptom.** A changelog entry was appended with `bash -c "python -c '...'"`. Bash performed **command
+substitution on the backticks inside the Python string**, so two spans never reached Python: a
+filename, and a regex escape. The only visible symptom was a stray
+`probe_retraction_coverage.py: command not found` printed ABOVE a line reading `changelog appended` —
+which read like success.
+
+**‼ AND THE FIRST DIAGNOSIS WAS WRONG, WHICH IS THE INTERESTING PART.** I recorded that the shell had
+"deleted" the escape. Re-reading the file as BYTES showed it had not: the document contained
+**`\x08`, a literal BACKSPACE control character**, between two backticks. Every terminal rendered it
+as an empty pair of backticks. It was **present and invisible**, not absent. It surfaced only because
+an assertion string failed to match and I inspected `repr()` instead of the rendering.
+
+**‼‼ IT HAD HAPPENED BEFORE, TWICE.** A sweep found a second 0x08 in `28-HANDOFF-ARCHIVE.md:9918` —
+*inside a sentence explaining that a control character in source is a hard failure "because `\b`
+compiled to a BACKSPACE twice in one day and the gate still passed."* A Tier 1 reviewer then found a
+**third**, older instance via `git log --all -S` in `03-PUNCH-LIST.md` (commit `5d91b279`,
+2026-08-23). ⇒ **three independent sessions wrote a backspace byte into prose ABOUT the backspace
+bug**, and nothing caught any of them.
+
+**Root cause.** This project's prose is saturated with backticks — every symbol, file and flag is
+inline code — so passing it through a shell-quoted string is a structural hazard, not an occasional
+one. Escaping individual backticks is not a fix: it takes one miss.
+
+**Why it is worse than the two loud quoting failures the same day.** Those died with `unexpected EOF`
+and cost a retry. This one **partially succeeded** and produced a corrupted, committable document.
+⇒ **a loud failure is a gift; a partial success is the hazard.**
+
+**The fix that worked.** Write the script to a file and run the file — no shell parsing of content at
+all. Both holes repaired, both historical bytes removed, and the class is now gated for docs by
+`probe_doc_control_chars.py` (#64); it was already gated for `.py` source by `#24-p2headergate` (C).
+
+**⭐ PREVENTION RULE.** *Never put backticks or `$` inside a shell-quoted string carrying prose or
+code — write it to a file and execute the file.*
+**⭐ SECOND RULE, the one that generalises.** *A document that looks right in a terminal has not been
+checked. Control characters are invisible BY CONSTRUCTION — verify with `repr()` or a byte scan, and
+never conclude "the text was deleted" before looking at the bytes.*
+
+## 2026-09-17 (late) — I TOLD A REVIEWER A FILE HAD BEEN UPDATED; `git diff` SAID OTHERWISE
+
+**Symptom.** In the Tier 1 brief for gate #64 I listed *"`08-MISTAKES.md` entries"* among the changes.
+The reviewer ran `git diff -- "PROJECT KNOWLEDGE/08-MISTAKES.md"`, found it **empty**, and blocked.
+The file had never been touched.
+
+**Root cause.** The script that was supposed to write those entries did two things: repair a mangled
+span, then append to `08-MISTAKES.md`. It **raised an AssertionError on the repair step and exited
+before the append** — correctly, since its inputs did not match. I then wrote a SECOND script that
+fixed the repair but did not carry the append forward, and described the intended end state from
+memory rather than from `git status`. ⇒ **a partial failure of a multi-step script silently became a
+partial edit, and my report described the plan instead of the outcome.**
+
+**‼ The same shape as the incident directly above, one level up:** there, a partially-successful shell
+command produced a corrupted document; here, a partially-executed script produced a corrupted claim
+*about* the documents. Both times the failure announced itself somewhere I was not looking.
+
+**The fix that worked.** Wrote the entries (this one and the one above), and re-derived the file list
+from `git status --short` rather than from intent.
+
+**⭐ PREVENTION RULE.** *Before describing a change set — to a reviewer, in a commit message, or in a
+handoff — regenerate the file list from `git status --short`. Never from memory, and never from what a
+script was SUPPOSED to do: a script that asserts mid-way leaves partial work, and the part it skipped
+is invisible in the part it did.*

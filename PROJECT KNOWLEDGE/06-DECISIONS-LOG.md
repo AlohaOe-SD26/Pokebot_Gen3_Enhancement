@@ -5917,3 +5917,29 @@ under time pressure on the day it broke. (b) *Delete the gate* — rejected: the
 four-arm harness are sound and the ADVISORY run still surfaces real unmarked copies; the defect is in
 the SAFETY ARGUMENT, not the concept. (c) *Keep ENFORCING and add the false-positive case to an
 allow-list* — rejected: an allow-list papers over a harvester that cannot tell live text from dead.
+
+
+## 2026-09-17 (late) — ENFORCING IS JUSTIFIED BY THE **INPUT DOMAIN**, NOT BY THE CHECKER
+
+**Context.** Two gates were written the same day and given opposite statuses, which needs a recorded
+reason so the next author picks correctly rather than by mood.
+
+* `probe_retraction_coverage.py` → **ADVISORY.** It must DECIDE whether a sentence is retracted. A
+  checker that judges can misjudge, and it did, in both directions (false positive on live text; blind
+  to its own motivating defect).
+* `probe_doc_control_chars.py` → **ENFORCING.** It asserts a property of the INPUT DOMAIN: a Markdown
+  document has no legitimate use for any C0 control character except TAB and NEWLINE. There is nothing
+  to judge, so there is nothing to misjudge; a hit is a defect by construction.
+
+**DECISION / RULE: a gate may ship ENFORCING when its "no false positives" claim follows from the
+INPUT DOMAIN. When the claim rests on the checker's own discrimination, ship ADVISORY until an arm
+that ATTACKS that discrimination passes.** This is the operational form of the lesson from the same
+day: *a fault test proves the arms you thought of; it does not prove the property you claimed.*
+
+**Alternatives rejected.** (a) *Fold the control-character check into `lint_docs.py`* — rejected:
+`lint_docs.py` is itself a gate under active edit, and a standalone probe can be fault-tested in
+isolation and cited by slug. (b) *Warn instead of failing* — rejected: the character is invisible, so a
+warning nobody sees is indistinguishable from no check; and unlike a judgement call, there is no
+legitimate hit to be annoyed by. (c) *Scan only the current-state files* — rejected: the second
+historical instance was found in `28-HANDOFF-ARCHIVE.md`, an archive, which is exactly where an
+invisible defect survives longest because nobody re-reads it.
