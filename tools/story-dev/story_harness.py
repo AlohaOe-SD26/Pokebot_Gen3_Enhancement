@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -19266,6 +19266,393 @@ class Ch24Hall4Mode(BotMode):
         context.set_manual_mode()
 
 
+class Ch24TailProbeMode(BotMode):
+    """§Ch24 LEG B — THE OBSERVE-ONLY TAIL PROBE. **IT MEASURES; IT DECIDES NOTHING.**
+
+    ⛔⛔ WHY THIS EXISTS BEFORE ANY LEG-B DRIVER. Nothing in this project has ever run a single frame
+    past the Champion's door. Every frame count in the leg-B build spec is ARITHMETIC (±30%), and the
+    tail contains a full save-slot write, an un-skippable credits roll and a `SoftReset(RESET_ALL)`.
+    Writing a driver against arithmetic would be exactly the blind testing the recon exists to avoid.
+
+    ⭐ SO THIS PROBE IS RIGHT ABOUT NOTHING IN ADVANCE. It asserts nothing, grades no bot behaviour,
+    hardcodes no coordinate, no press count and no per-stage frame budget. Every read is wrapped so a
+    failure prints `<err ...>` instead of raising — on this path `get_game_state()` is UNKNOWN and
+    position reads THROW for thousands of frames, and a probe that dies on its own instrumentation
+    measures nothing.
+
+    ⛔⛔ IT HAS EXACTLY TWO SIDE-EFFECTING ACTS, AND THE FIRST IS IRREVERSIBLE.
+      1. ONE `Up` press, stepping from `HALL4 (5,3)` onto `(5,2)`. That warps into the Champion's
+         room, where `ClearTempFieldEventData` has zeroed `VAR_TEMP_1`, the room's `OnFrame` matches
+         on the FIRST controllable frame, and its first opcode is `lockall`. `allow_escaping` is
+         false and there is no defeated-flag guard. **Win or whiteout are the only exits.**
+      2. `press_button("A")` every frame thereafter. The wrapper XOR-alternates, so this is a
+         `JOY_NEW` EDGE every 2 frames. ⭐ **A is the only button that satisfies all three gate
+         families:** `JOY_NEW(A|B)` text prompts, the Hall-of-Fame screen's `JOY_NEW(A_BUTTON)`-only
+         exit, and the title screen's `JOY_NEW(A|START)`.
+      ⛔ IT STOPS PRESSING the instant the avatar is controllable after the reboot — A-mashing is
+      safe only while the player is under `lockall`; in the Littleroot bedroom it would interact with
+      furniture.
+
+    ⛔ WHAT IT MUST NEVER DO, each traceable to a trap in the spec:
+      * navigate, or call `_pass_through_door` — both make the warp a DESTINATION (T10).
+      * press ANY DIRECTION after that one `Up` — the title/main-menu cursor must not move, or a
+        reboot could land on NEW GAME. `soft_reset()`'s own random pool contains "Up" (T16).
+      * press SELECT, ever — `CLEAR_SAVE_BUTTON_COMBO` (T19).
+      * call `soft_reset()` (unbounded `while True`, no NAMING_SCREEN arm, opens with an
+        `emulator.reset()` this path does not need), or `_wait_until_cutscene_over` / any ride helper
+        (they press NOTHING on a CB2 screen and then RAISE — T7).
+      * hold any button — a HOLD never satisfies `JOY_NEW` (T9).
+
+    ⚠ ON THE 20,000-FRAME NO-PROGRESS DETECTOR (T1), A DELIBERATE CHOICE. During the tail the
+    signature `(ctrl, game_state.name, battle_instr, ml, party, pos)` is CONSTANT: state reads
+    UNKNOWN, position throws to None, the party is frozen by `HealPlayerParty()`. The spec suggests
+    cycling a sub-generator to move `ctrl`. **This probe deliberately does NOT**, for two reasons:
+    pressing through THE END ends its `tDelay = 7200` early, which should keep the constant block
+    near ~12,000 frames — under the budget with margin; and ⭐ **if the detector DOES fire, that is
+    the answer to the spec's question Q2, not a failure.** Hiding it with novel stack machinery on
+    the very first run would destroy the measurement it exists to take.
+
+    Run:
+        PYTHONUTF8=1 py -3.12 story_harness.py post_hall4_door.ss1 --driver ch24tailprobe --frames 400000 --log tail.log
+    ⚠ Expect a LONG run. Read the TRANSITION lines, not the last line.
+
+    ⛔ THE ACCEPTANCE LINE IS INSTRUMENT HEALTH ONLY. It says whether the probe reached a terminal
+    state and recorded an outcome — it is NOT a verdict on the bot, and a `FAIL` here may still carry
+    a complete and valuable measurement. Read the TRANSITION table.
+    """
+
+    #: ⛔ REQUIRED, AND IT IS OPT-IN: `battle_fault.py:41` gates the escape on this attribute, and it
+    #: appears ZERO other times in this harness. Without it, a `fight()` bound to a discarded
+    #: listener cannot be released and the probe can wedge (T3/T4).
+    handles_battle_faults = True
+
+    STOP_TILE = (5, 3)
+    DOOR_TILE = (5, 2)
+    BUDGET = 260_000
+    SAMPLE_EVERY = 60
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24TailProbe"
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24tailprobe] WHITEOUT #{self.whiteouts} — ‼ THIS IS A RESULT, NOT AN ERROR: the "
+            f"party LOST to Wallace. It is room 5's only failure mode, and the fixture is spent "
+            f"(reload post_hall4_door.ss1 to retry).")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        self.battle_started_frame = _tp_frame()
+        log(f"[ch24tailprobe] ⚔ BATTLE #{self.battles} STARTED at frame {self.battle_started_frame}")
+        return StoryItemBattleStrategy()
+
+    def on_battle_ended(self, outcome=None):
+        # ⭐⭐ THE ONLY GUARANTEED LATCH CHANNEL. The driver's generator is STARVED for the whole
+        # fight (BattleListener owns the stack) and may never get another frame before the victory
+        # script warps the map out from under it. A mode-instance callback fires regardless.
+        self.battle_outcome = outcome
+        self.battle_ended_frame = _tp_frame()
+        log(f"[ch24tailprobe] ⚔ BATTLE ENDED at frame {self.battle_ended_frame} outcome={outcome!r}")
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.story import victory_road as VR
+        from modules.story.early_game import wait_until_truly_controllable
+
+        TAG = "ch24tailprobe"
+        HALL4 = MapRSE.EVER_GRANDE_CITY_HALL4
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        self.battle_outcome = getattr(self, "battle_outcome", None)
+        self.battle_ended_frame = getattr(self, "battle_ended_frame", None)
+        R: dict = {}
+        transitions: list = []
+        failure = None
+
+        yield from wait_until_truly_controllable()
+
+        # ---- PREMISE ------------------------------------------------------------------------
+        R["start"] = _tp_safe(VR._where)
+        R["start_champion"] = _tp_flag("IS_CHAMPION")
+        R["start_game_clear"] = _tp_flag("SYS_GAME_CLEAR")
+        R["start_flash_game_clear"] = _tp_flash_flag("SYS_GAME_CLEAR")
+        log(f"[{TAG}] PRE at={R['start']} champion={R['start_champion']} "
+            f"game_clear={R['start_game_clear']} flash_game_clear={R['start_flash_game_clear']}")
+        on_hall4 = _tp_safe(lambda: VR._on_map(HALL4))
+        here = _tp_safe(VR._here_tile)
+        if on_hall4 is not True or tuple(here or ()) != tuple(self.STOP_TILE):
+            log(f"[{TAG}] ⛔ PREMISE FAILED — must start on HALL4 {self.STOP_TILE}. Got "
+                f"on_hall4={on_hall4} tile={here}. Refusing; NOTHING was pressed.")
+            log(f"[{TAG}] ACCEPTANCE: FAIL")
+            context.set_manual_mode()
+            return
+        if R["start_champion"] is not False:
+            log(f"[{TAG}] ⛔ PREMISE FAILED — IS_CHAMPION is {R['start_champion']!r}, so this save has "
+                f"already cleared the game. Refusing; NOTHING was pressed.")
+            log(f"[{TAG}] ACCEPTANCE: FAIL")
+            context.set_manual_mode()
+            return
+
+        try:
+            # ---- ACT 1: the one irreversible step -------------------------------------------
+            log(f"[{TAG}] ⛔⛔ STEPPING NORTH ONTO {self.DOOR_TILE} — THIS IS IRREVERSIBLE. Win or "
+                f"whiteout are the only exits from here.")
+            for _ in range(8):
+                # ‼ THE SAME INVARIANT AS ACT 2, AND IT WAS MISSING HERE. A Tier 1 reviewer noticed
+                # that this loop holds control without consuming a pending battle fault, while the
+                # class comment below says the call is "REQUIRED EVERY FRAME WE HOLD CONTROL". The
+                # window is short and pre-battle, so it was low risk — but an invariant stated in one
+                # place and honoured in another is exactly how the next copy of this loop gets it
+                # wrong. Consistency here is cheaper than a wedge later.
+                from modules.battle_fault import take_pending_fault as _tpf
+
+                _tpf()
+                context.emulator.press_button("Up")
+                yield
+            R["after_step"] = _tp_safe(VR._where)
+            log(f"[{TAG}] after the step: at={R['after_step']}")
+
+            # ---- ACT 2: observe, pressing A only --------------------------------------------
+            last_symbol = None
+            last_tr_frame = _tp_frame()
+            presses = 0
+            stop_reason = "budget"
+            for i in range(self.BUDGET):
+                from modules.battle_fault import take_pending_fault
+
+                # ⛔ REQUIRED EVERY FRAME WE HOLD CONTROL (T4): an unconsumed fault short-circuits
+                # `handle_battle`, which is how a stale `fight()` wedges.
+                take_pending_fault()
+
+                sym = _tp_symbol()
+                gs = _tp_gamestate_name()
+                # ⛔ HARD ABORT: the reboot went into NEW GAME. Pressing on would overwrite a save.
+                if gs == "NAMING_SCREEN" or sym == "CB2_NAMINGSCREEN":
+                    stop_reason = "NAMING_SCREEN — the reboot landed on NEW GAME"
+                    log(f"[{TAG}] ⛔⛔ ABORTING: {stop_reason}. NOT pressing another button.")
+                    break
+
+                if sym != last_symbol:
+                    now = _tp_frame()
+                    delta = (now - last_tr_frame) if (now is not None and last_tr_frame is not None) else None
+                    transitions.append((last_symbol, sym, now, delta))
+                    log(f"[{TAG}] TRANSITION {last_symbol!r} -> {sym!r} at frame {now} "
+                        f"(+{delta} since previous transition)")
+                    log(f"[{TAG}]    {_tp_snapshot()}")
+                    last_symbol, last_tr_frame = sym, now
+
+                if i % self.SAMPLE_EVERY == 0:
+                    log(f"[{TAG}] f{i} sym={sym!r} {_tp_snapshot()} presses={presses}")
+
+                # ---- the stop condition ------------------------------------------------------
+                # ⛔⛔ THIS CONDITION IS THE WAY IT IS BECAUSE THE OBVIOUS ONE FAILED, MEASURED.
+                # v1 was `OVERWORLD and controllable and battle_ended`. It fired on the FIRST
+                # post-battle overworld frame — `end_where=((16,4),(6,6))`, still the CHAMPION'S
+                # ROOM, `IS_CHAMPION=False` — so the probe stopped pressing and never measured one
+                # frame of the tail it exists to measure. ‼ `player_avatar_is_controllable()` READS
+                # TRUE UNDER `lockall`; the `story-drive` skill says so in as many words, and I wrote
+                # the condition anyway. A cutscene ends AFTER its var.
+                # ⇒ THREE CONJUNCTS NOW, and the third is the one that matters: the run must have
+                # LEFT the Champion's room. That covers both real stopping points — the Hall-of-Fame
+                # map (map changes, script still active there so it will not fire early) and the
+                # post-reboot bedroom.
+                # ⛔ IS_CHAMPION is deliberately NOT used as the stop signal: if flash carries no
+                # save, the reboot lands on NEW GAME and the flag reads False forever (trap T17).
+                _script_idle = _tp_script_inactive()
+                _left_champ = _tp_left_champions_room()
+                if (gs == "OVERWORLD" and _tp_controllable() is True
+                        and self.battle_ended_frame is not None
+                        and _script_idle is True and _left_champ is True):
+                    stop_reason = "controllable, script idle, and OUT of the Champion's room"
+                    log(f"[{TAG}] ✅ {stop_reason} — STOPPING, and NOT pressing again (A-mash is only "
+                        f"safe under lockall; here it would interact with the room).")
+                    break
+
+                context.emulator.press_button("A")
+                presses += 1
+                yield
+
+            R["stop_reason"] = stop_reason
+            R["presses"] = presses
+            R["transitions"] = transitions
+
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        # ---- the report -------------------------------------------------------------------
+        R["end_champion"] = _tp_flag("IS_CHAMPION")
+        R["end_game_clear"] = _tp_flag("SYS_GAME_CLEAR")
+        R["end_flash_game_clear"] = _tp_flash_flag("SYS_GAME_CLEAR")
+        R["end_where"] = _tp_safe(VR._where)
+        R["battle_outcome"] = repr(self.battle_outcome)
+        R["battles"] = self.battles
+        R["whiteouts"] = self.whiteouts
+        for key in sorted(R):
+            if key == "transitions":
+                continue
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        log(f"[{TAG}] ===== TRANSITION TABLE (the point of this probe) =====")
+        for a, b, f, d in transitions:
+            log(f"[{TAG}]   {str(a):34s} -> {str(b):34s} @ {f}  (+{d})")
+        log(f"[{TAG}] ⭐ Q7 — flash SYS_GAME_CLEAR: start={R['start_flash_game_clear']!r} "
+            f"end={R['end_flash_game_clear']!r}  (does game-written flash survive the reboot?)")
+        # ⛔ INSTRUMENT HEALTH ONLY — NOT a verdict on the bot.
+        ok = (self.battle_ended_frame is not None) and failure is None
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} — ⛔ INSTRUMENT HEALTH ONLY (did the "
+            f"probe reach a battle outcome and survive its own instrumentation?). It is NOT a bot "
+            f"verdict; read the TRANSITION table.")
+        context.set_manual_mode()
+
+
+def _tp_script_inactive():
+    """True only when the global script context is idle. ⛔ A cutscene ends AFTER its var, and
+    `player_avatar_is_controllable()` reads True under `lockall` — so controllability alone is not
+    a stop signal. Measured the hard way on this probe's first run."""
+    try:
+        from modules.tasks import get_global_script_context
+
+        return not get_global_script_context().is_active
+    except Exception:
+        return None
+
+
+def _tp_left_champions_room():
+    """True when the avatar is demonstrably NOT in the Champion's room. ⛔ Returns None (not False)
+    when the map cannot be read, so an unreadable frame can never be mistaken for 'we have left'."""
+    try:
+        from modules.map_data import MapRSE
+        from modules.player import get_player_avatar
+
+        return tuple(get_player_avatar().map_group_and_number) != tuple(
+            MapRSE.EVER_GRANDE_CITY_CHAMPIONS_ROOM.value)
+    except Exception:
+        return None
+
+
+def _tp_frame():
+    try:
+        return context.emulator.get_frame_count()
+    except Exception:
+        return None
+
+
+def _tp_safe(fn):
+    """Call a reader and NEVER raise. ⛔ On this path position reads throw for thousands of frames."""
+    try:
+        return fn()
+    except Exception as error:  # noqa: BLE001
+        return f"<err {type(error).__name__}>"
+
+
+def _tp_symbol():
+    try:
+        from modules.memory import get_game_state_symbol
+
+        return get_game_state_symbol()
+    except Exception as error:  # noqa: BLE001
+        return f"<err {type(error).__name__}>"
+
+
+def _tp_gamestate_name():
+    try:
+        from modules.memory import get_game_state
+
+        gs = get_game_state()
+        return gs.name if hasattr(gs, "name") else str(gs)
+    except Exception:
+        return "<err>"
+
+
+def _tp_controllable():
+    try:
+        from modules.player import player_avatar_is_controllable
+
+        return bool(player_avatar_is_controllable())
+    except Exception:
+        return None
+
+
+def _tp_flag(name):
+    try:
+        from modules.memory import get_event_flag
+
+        return get_event_flag(name)
+    except Exception as error:  # noqa: BLE001
+        return f"<err {type(error).__name__}>"
+
+
+def _tp_flash_flag(name):
+    """⭐ THE SPEC'S QUESTION Q7 — does flash written BY THE GAME survive the reboot?
+    This reads the SAVE FILE, not RAM. They answer different questions (see the build spec's C10):
+    the flash read is a legitimate precondition gate; the RAM read is vacuous as an acceptance grade.
+    """
+    try:
+        from modules.save_data import get_save_data
+
+        sd = get_save_data()
+        if sd is None:
+            return "<no save data>"
+        return sd.get_event_flag(name)
+    except Exception as error:  # noqa: BLE001
+        return f"<err {type(error).__name__}>"
+
+
+def _tp_snapshot():
+    """One compact line of everything safe to read. ⛔ Nothing here may raise."""
+    from modules.map_data import MapRSE  # noqa: F401  (kept for symmetry with other probes)
+
+    def _tasks():
+        try:
+            return _all_task_names()
+        except Exception:
+            return "<err>"
+
+    def _script():
+        try:
+            from modules.tasks import get_global_script_context
+
+            return get_global_script_context().is_active
+        except Exception:
+            return "<err>"
+
+    def _waiting():
+        try:
+            from modules.tasks import is_waiting_for_input
+
+            return bool(is_waiting_for_input())
+        except Exception:
+            return "<err>"
+
+    def _where():
+        try:
+            from modules.player import get_player_avatar
+
+            a = get_player_avatar()
+            return f"{a.map_group_and_number}{tuple(a.local_coordinates)}"
+        except Exception as error:  # noqa: BLE001
+            return f"<err {type(error).__name__}>"
+
+    def _stack():
+        try:
+            return f"{len(context.controller_stack)}/{context.controller_stack[-1] if context.controller_stack else None}"
+        except Exception:
+            return "<err>"
+
+    return (f"gs={_tp_gamestate_name()} where={_where()} script={_script()} waiting={_waiting()} "
+            f"ctrl_stack={_stack()} listeners={len(getattr(context, 'bot_listeners', []) or [])} "
+            f"champ={_tp_flag('IS_CHAMPION')} clear={_tp_flag('SYS_GAME_CLEAR')} "
+            f"e4state={_tp_safe(lambda: __import__('modules.memory', fromlist=['x']).get_event_var('ELITE_4_STATE'))} "
+            f"tasks={_tasks()}")
+
+
 class Ch24IceBeamMode(BotMode):
     """`#24-icebeamtrip` — fetch TM13 ICE BEAM from the Abandoned Ship. **PRODUCTION CODE.**
 
@@ -21983,6 +22370,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24DrakeMode()
         elif args.driver == "ch24hall4":
             context.bot_mode_instance = Ch24Hall4Mode()
+        elif args.driver == "ch24tailprobe":
+            context.bot_mode_instance = Ch24TailProbeMode()
         elif args.driver == "ch24icebeam":
             context.bot_mode_instance = Ch24IceBeamMode()
         elif args.driver == "ch24teachice":

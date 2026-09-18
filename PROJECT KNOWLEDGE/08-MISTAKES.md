@@ -18686,3 +18686,36 @@ which is exactly why the tier requires an INDEPENDENT agent rather than a fork.
 the FILE LIST (`git status`), not only a diff.** A diff is a snapshot; `git status` is a question the
 reviewer can re-ask at read time. ⇒ *Same family as "a candidate is not an attempt": a snapshot of
 the work is not the work.*
+
+---
+
+## 2026-09-17 (twentieth) — I WROTE A RESERVED GATE MARKER INTO A FIXTURE ROW AND KILLED MY OWN FIXTURE
+
+**SYMPTOM.** `run_gates.py` went red on `probe_runrecipe_fixtures.py`:
+*"⛔ A RECIPE A COLD READER WOULD COPY POINTS AT A FIXTURE THE MANIFEST CALLS DEAD:
+`post_hall4_door.ss1` (line(s) [834]) is marked ['DO NOT USE'] in FIXTURES.md5"* — on a fixture I had
+pinned minutes earlier and never marked dead.
+
+**ROOT CAUSE.** `probe_runrecipe_fixtures.py:57` defines
+`DEAD_MARKERS = ("DEAD BRANCH", "DO NOT GRIND", "DO NOT USE", "WRONG LINEAGE")` and `:125` tests
+`m in note.upper()` over the WHOLE manifest row. My row contained the sentence *"AND WHEN GRADING
+ROOM 5, DO NOT USE THE `DEFEATED_ELITE_4_*` FLAGS"* — advice about the FLAGS. The gate cannot tell
+what the phrase refers to, so it read it as *this fixture is dead* and refused every recipe naming it.
+
+**THE FIX THAT WORKED.** Reword the prose, not the gate: *"AND NEVER GRADE ROOM 5 ON THE
+`DEFEATED_ELITE_4_*` FLAGS"*. The row now also says, in place, WHY it is worded that way, so the next
+author does not "improve" it back.
+
+⛔ **THE FIX I DID NOT MAKE, AND WHY.** Loosening the matcher (requiring the marker near the fixture
+name, say) was tempting and is wrong: this gate is **coarse BY DESIGN** — its own docstring at `:27`
+records that it must not fire on its own fix — and a substring test over the row is exactly what makes
+it impossible to mark a fixture dead and then quietly keep using it. **The gate was right; my prose
+was the defect.**
+
+**PREVENTION RULE.** ⛔ **A manifest row is PARSED, not just read. Never write a reserved marker
+phrase into `FIXTURES.md5` prose unless you mean its reserved meaning** — the current set is
+`DEAD BRANCH`, `DO NOT GRIND`, `DO NOT USE`, `WRONG LINEAGE` (`probe_runrecipe_fixtures.py:57` is the
+authority; re-read it, do not trust this list). If you need to forbid something *else* in a row, say
+"never …" or "do not rely on …" instead.
+⇒ *Generalised: when a machine reads your prose, your prose has a grammar. This is the same family as
+"a candidate is not an attempt" — the gate acts on the TEXT, not on what you meant by it.*

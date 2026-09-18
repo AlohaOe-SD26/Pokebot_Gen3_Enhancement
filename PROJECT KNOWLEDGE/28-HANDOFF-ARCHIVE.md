@@ -11092,3 +11092,237 @@ PYTHONUTF8=1 py -3.12 collect_party_accounting.py   # (P3b) aggregate every driv
 #   population, false now that a party-MUTATING driver exists. ‼ RUN IT; do not quote it.
 #   ‼ It MEASURES ONLY — it cannot drive the emulator, and it says so rather than implying a log
 #     read is a reading. It also fails LOUD when no log matches ("I could not look" != "clean").
+
+
+## ⛔ "WIRING THE PICKER IS KILLED" — the full item, ARCHIVED 2026-09-17 (late, R3 budget)
+
+⛔ Moved **VERBATIM** out of `03-PUNCH-LIST.md`, nothing edited and nothing deleted. The item is a
+CLOSED `[x]` decision (a design that was KILLED, kept for its rationale), and the punch list had
+reached 4395/4400 against `lint_docs.py` R3 while §Ch24 leg B was being measured.
+‼ **THE BOUNDARY WAS CHECKED BEFORE CUTTING**, per the rule added the same day: the item runs to
+the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` steps and no
+`**THE WORK:**`-style header. (§Ch23's entry was tried first and rejected for exactly that reason.)
+
+- [x] ⛔⛔ **WIRING THE PICKER IS KILLED 2026-09-09 — AND THE PREMISE OF THE 2026-07-21 DIRECTIVE IS
+
+  NOT GENERALLY TRUE.** Six-agent adversarial pass. ⇒ **do NOT wire `best_training_grass` into
+  training as a maintenance pass.** Three independent reasons:
+  1. ✅⛔ **MEASURED 2026-09-09 — THE PROPORTION HOLDS, THE INFERENCE IS REFUTED.** *(Was
+     `[AGENT, UNVERIFIED]`: "of 1,496 mons that ever reached 15+ behind, 88.8% were ALREADY more
+     than 6 behind the FIRST time they were observed (median 11)", concluding **"THE MONS ARE BORN
+     DEAD WEIGHT, so there is no early small-gap window to maintain."*)*
+     **[MEASURED BY ME — `tools/story-dev/probe_laggard_origin.py`, batch `20260909-160339`,
+     24 logs / 17,302 heartbeats / 78,113 id elements / 0 dropped]**
+     ```
+       population (ever >= 15 behind) : 63          first-seen gap > 6 : 53/63 = 84.1%  [claimed 88.8%]
+       median first-seen gap          : 10          [claimed 11]
+     ```
+     ⇒ ✅ **THE PROPORTION IS ESSENTIALLY RIGHT** — most laggards DO arrive already past the
+     threshold. A 5-angle adversarial pass put 88.8% inside the measurement's own 95% CI
+     (74.3%-92.0%), and a **sampling-independent** arrival-anchored angle agreed (median 8 behind,
+     ~80% > 6 at the instant of entry), which also proves heartbeat lag hides nothing here
+     (median delta 0; identical for ~94% of paired mons).
+     ⛔⛔ **BUT THE CONCLUSION DRAWN FROM IT IS FALSE, AND THAT IS THE HALF THAT ROUTED THE
+     DECISION:**
+     ```
+       A arrived already INSIDE the <=6 window : 10        C never inside it at all : 38
+       B arrived outside, LATER got inside it  : 15        => HAD a window (A+B) : 25/63 = 39.7%
+           of which the LAGGARD LEVELLED UP    : 11  <= actionable
+           of which the PARTY MAX FELL         :  4  (a deposit/swap — the bot did not earn it)
+       median time inside the window : 163 heartbeats = 163 MINUTES (~2.7 HOURS emulated)
+     ```
+     ⇒ **"no early small-gap window to maintain" is refuted for 40% of the population**, and the
+     window is not a sliver: the median mon spends **~2.7 HOURS of emulated time inside it**.
+     ⛔ **BUT USE 33.3%, NOT 39.7%, WHEN PRICING A FIX.** A gap closes from either end, and only one
+     end is actionable: 4 of the 15 recoveries happened because the party MAX FELL (the leader was
+     deposited or swapped out — level never drops on a faint), not because the laggard improved.
+     ⇒ **TRAINING-REACHABLE = A + B/level-rose = 21/63 = 33.3%.** *(Found by an adversarial review
+     that was asked to attack exactly this claim; the tool now prints both numbers so the
+     distinction cannot be lost again.)*
+     ⇒ the problem is not only that they arrive behind — **a long window existed and was not used**,
+     which is a different defect with a different fix, reachable at TRAINING time.
+     ⛔⛔ **CORRECTED — THE 33.3% USED A WINDOW ONE LEVEL WIDER THAN THE CODE'S (found 2026-09-09,
+     hours after publishing it).** My tool called a mon "inside the window" at `gap <= 6`, but the
+     predicate is `level >= target - 6` with `target = team_max + 1` in boss-fodder mode ⇒ the real
+     condition is **`gap <= 5`**. Re-measured on the same population:
+     ```
+       threshold                A inside   B rose   B topfell   TRAINING-REACHABLE
+       gap <= 6  (my tool)            10       11           4      21/63 = 33.3%   <- overstated
+       gap <= 5  (the CODE)            1       12           7      13/63 = 20.6%   <- USE THIS
+     ```
+     ‼ `A inside` collapses **10 -> 1**: nine of the ten mons that "arrived inside the window"
+     arrived at **exactly gap 6**, the single value the predicate excludes.
+     ⚠ **AND 20.6% IS ITSELF AN UPPER BOUND.** Outside boss-fodder mode `target` is the BOSS BAND,
+     not `team_max + 1`, so "gap from team max" is not the code's coordinate there at all — this
+     window only maps onto the predicate in the fodder branch.
+     ⭐⭐ **THE FINDING THIS EXPOSED, AND IT IS BIGGER THAN THE CORRECTION.** First-seen gap over all
+     184 mons in the batch:
+     ```
+       gap 0: 48   gaps 1-5: 12 TOTAL   gap 6: 23   gap 7: 36   gap 8: 26   gaps 9-15: 16   16+: 23
+     ```
+     **46% of arrivals land in gaps 6-8 while gaps 1-5 are nearly empty, and the window is gap <= 5.**
+     ⇒ mons arrive SYSTEMATICALLY JUST OUTSIDE the training window.
+     ⛔⛔ **AND THAT LEAD IS DEAD — KILLED 2026-09-09. DO NOT RE-PROPOSE WIDENING
+     `TRAIN_CATCHUP_GAP`.** Four reasons, in one line each; **the full record with all raw output is
+     in `07-CHANGELOG.md`, "I killed my own most promising lead, with evidence"**:
+     1. **The histogram was contaminated** — 95 of 184 "arrivals" are not catches (starters, the
+        Wally tutorial, **27 of Steven's allies merged by the §Ch19 multi-battle**, gifts, PC
+        withdrawals, Shedinja spawns). All 48 gap-0 arrivals were non-catches. Genuine catches
+        (n=89): `0-5: 2 | 6-8: 69 | 9-15: 2 | 16+: 16`.
+     2. **The mechanism is refuted** — [MEASURED BY ME] 79/89 = **89%** of caught mons gain exp
+        (median **+20 levels**); 59/89 = **66%** reach gap <= 5. They are not stuck outside it.
+     3. **The fix does nothing** — `tools/story-dev/probe_catchup_threshold_sweep.py`: G=6 → G=∞
+        admits **+2 mons** overall and **+1** of the 69 gap-6-8 catches; 65 of those 69 are already
+        admitted at the shipped value. Flat from 5 to ∞ ⇒ the threshold binds nothing.
+     4. **The gap is geography** — ⚠ [AGENT-MEASURED, NOT RE-DERIVED BY ME] all 90 catches fall
+        inside the wild-band prediction (90/90, residual +0.20 ± 0.54); the bot already catches at
+        its floor (only 40 of 8,401 catch-capable minutes offered a lower-gap catch).
+     ⭐ **AND THE SAME REASONING WAS APPLIED TO A NEIGHBOURING CONSTANT ON 2026-07-24** —
+     `06-DECISIONS-LOG.md:267-269`, rejecting an alternative:
+     > *"3. Raise/lower the level window. Any level-denominated threshold is wrong for the same
+     > reason the current one is: it cannot see the XP rate. Tuning it just moves which map it is
+     > wrong on."*
+     ⚠ **THAT ENTRY IS ABOUT `mon.level + 3`** (the evo-lookahead sufficiency gate, `story_mode.py:1563`,
+     commit `e8d133be`), **NOT about `TRAIN_CATCHUP_GAP`** (`:1136`, commit `395c392d`, three days
+     earlier). ⇒ it is an **ANALOGY whose reasoning transfers**, *not* a prior ruling on this
+     constant. *(Recorded this way after a Tier 1 reviewer caught the overreach — the kill above
+     rests on the measurements, not on borrowed authority.)*
+     ⭐⭐ **AND THE FLAT SWEEP POINTS AT THE REAL CONSTRAINT.** If admission is unchanged from G=5
+     to G=∞, then *what decides who trains is not the gap threshold*. A Tier 1 reviewer proposed
+     bench membership — `_battler_slots()` (`modules/story/early_game.py:1894`) admits only a
+     non-egg mon **holding a damaging move**. ⛔ **THAT IS UNTESTED AND CURRENTLY UNTESTABLE:
+     `ids=` records no moves.** Reading the predicate suggests it is permissive, but that is a READ,
+     not a measurement — and this project has a logged habit of those diverging.
+     ⭐⭐⭐ **2026-09-10 — THE REFUSAL'S DRIVERS ARE NOW NAMED, AND THE OBVIOUS FIX IS DEAD.**
+     **[MEASURED BY ME, reproduced by 10 agents]** the §Ch23 refusal message
+     (`<Species>#<PID> alone needs <N> frames`) is dominated by ONE species:
+     ```
+       occurrences (all of x4-runs, stdout.txt): 414 = 198 Marill · 72 Slugma · 36 Mightyena ·
+                                                  36 Nincada · 18 each Shedinja/Ninjask/Poochyena/Kadabra
+       ⚠ BUT THE DECISION UNIT IS **23 DISTINCT REFUSAL EVENTS**, not 414 lines: each event renders
+         18x in stdout and 15x in debug-logs (both counts correct, same events).
+       Marill is named in **11 of 23 events = 47.8%** — the proportion HOLDS at event level.
+     ```
+     ⭐ **AND THE BENCH MECHANISM DEMONSTRABLY WORKS — THE LIST IS MERELY INCOMPLETE:**
+     **[MEASURED BY ME, batch `20260909-160339`, n=13 Castform / 34 Zigzagoon]** `Castform` has a **92.3%** laggard rate and **0** refusals *because it is benched*; `Zigzagoon`
+     20.6% and 0 refusals, benched. `Marill` (100% laggard, peak **L14 across 15 runs**, never once
+     above L15 in 33 runs corpus-wide; `Azumarill` NEVER OBSERVED) and `Slugma` are the same shape
+     and are NOT on the list.
+     ⛔⛔ **BUT DO NOT ADD THEM — THE CANDIDATE IS DEAD.** Two reasons; **full record in
+     `07-CHANGELOG.md`, "The §Ch23 refusal is diagnosed (HM carriers), and the obvious fix is dead"**:
+     1. **Benching is "do not train", NOT "do not field"** (`07-CHANGELOG.md` F6, verified by me in
+        code): the faint-replacement chooser (`story_mode.py:273-274`) filters on
+        `None / is_egg / current_hp <= 0 / _excluded`, and `_excluded` (`:262-270`) is
+        ally-and-already-battling only; `BENCH_SPECIES` has exactly two consumers, both in
+        `victory_road.py`. ⇒ it deletes the only gate refusing to enter the E4 with a L13 Marill
+        **and still fields it there**. ‼ A no-op on the estimate is not a no-op on the run.
+     2. **The refusal is an ARGMAX** (`worst = max(estimates)` vs 250,000), so removing the named mon
+        promotes the next: **6-10 of 23 events clear** *(four agents re-priced every event independently; conservative count 6)*, and the top residual is **Mightyena, the
+        CRUNCH carrier that can never be benched**.
+     ⭐ **THE DIAGNOSIS THAT SURVIVES, AND IT IS WORTH KEEPING:** the bot acquires **HM carriers it
+     can neither train to the bar nor safely field** — Marill is caught purely as a Dive/Waterfall/
+     Surf carrier and sits at **L13 in 100% of 521 sightings in the one exp-bearing batch** ⚠ **(corpus-wide it DOES level: 1,492 readings above L13 across 33 logs — see the correction below)**. The refusal is the MESSENGER, not the
+     defect. ⇒ any real fix is UPSTREAM of both benching and training, and must answer *"what should
+     happen to a mon that is carried for a field move and can never reach the battle bar?"*
+     ⛔⛔ **THE SOLUTION SPACE, NARROWED BY MEASUREMENT — THREE DIRECTIONS ARE DEAD:**
+     | direction | why it is dead | evidence |
+     |---|---|---|
+     | widen `TRAIN_CATCHUP_GAP` | admits **+2 mons** from G=6 to G=∞ | `probe_catchup_threshold_sweep.py` |
+     | add the mule to `BENCH_SPECIES` | benching is *do not train*, **not do not field** — deletes the only gate and still fields it | `story_mode.py:273-274`; `07-CHANGELOG.md` F6 |
+     | acquire the carrier at a better ground | **L27 still refuses** (336,755 vs a 250,000 ceiling) | `probe_dive_carrier_level.py` |
+     ⭐ **WHAT THE MEASUREMENTS AGREE ON:** the carrier is **INERT IN THAT BATCH** — 521/521 sightings at
+     `L13:exp1757` ⚠ **(NOT corpus-wide: 1,492 readings above L13 across 33 logs, and "never" was also CENSORING — 25 of 28 non-gainers were observed for less time than the slowest gainer needed)** — and the gate counts it as a battler. ⇒ any surviving fix
+     must change **whether it is in the party at the gate**, or **whether the gate counts it**, not
+     how much it is trained.
+     ⛔⛔ **AND A PC DEPOSIT IS THE FOURTH DEAD DIRECTION — found by `precheck_prior_art.py` in two
+     minutes, before any design.** `06-DECISIONS-LOG.md:1313-1316`: *"**Deposit to make room** — the
+     real fix… Rejected FOR NOW because it is the shape of `POKEBOT_PC_ROTATION`, **which is disabled
+     for costing ~19 points by depositing team members**."* ⇒ it was TRIED and it LOST 19 points.
+     ‼ And the machinery carries **four documented live defects** (`06-DECISIONS-LOG.md:2694-2716`):
+     `withdraw_from_box` counts `alive` EXCLUDING EGGS (its own sibling fixed exactly that bug);
+     `interact_with_pc` has **unbounded `while … press A` loops** (`:424-433` plus four more), and per
+     the decomp `Task_WithdrawMon` on a full party never reaches the state they wait for; the capacity
+     guard tests `get_party_size()` when the game uses `CalculatePlayerPartyCount()`; and its blanket
+     `except Exception` has no `StoryAbort` guard, so **a whiteout during a PC visit is being
+     LAUNDERED today**. ⇒ depositing the carrier is not a quick win, it is four prerequisites deep.
+     ⛔⛔ **AND THE FIFTH DIRECTION IS DEAD TOO — "bench a mon that has never gained exp since
+     capture". KILLED 2026-09-10 BEFORE ANY CODE, BY A PROOF.** **Four CATCH-OBSERVATIONS across THREE distinct `Abra`** (one PID recurs in two separate reset-runs of the same lane — deterministic RNG, not two mons) were caught
+     byte-identical at `L7:exp236` (the exact MediumSlow curve minimum); **three trained on to
+     Kadabra L17-L20 and one never gained a point** — *verified by me*:
+     ```
+       A5FC8AAC  L7:exp236 -> Kadabra L20      BCE77DD9  L7:exp236 -> L7:exp236  (inert)
+       A5FC8AAC  L7:exp236 -> Kadabra L17      51A86B58  L7:exp236 -> Kadabra L17
+     ```
+     ⇒ **at capture every mon satisfies the predicate**, and minutes-to-first-exp-gain across 89
+     genuine catches is **continuous, not bimodal** (1,1,1,1,2,2,2,3…44,47,128,256,397,420,459 — no
+     gap). Misclassification never falls below **65%** at any threshold. **No predicate reading
+     current state can separate a tool from a future battler.**
+     ⛔ **AND IT WOULD MAKE THINGS WORSE.** The predicate is MONOTONE (false→true only) and
+     `team_is_ready` re-runs `battler_identities()` AFTER the grind (`victory_road.py:2055`): a mule
+     excluded at the estimate that later gains one point **re-enters at L13 and raises after the
+     budget is spent** — moving the refusal from before the cost to after it.
+     ⛔⛔ **AND MY OWN LOAD-BEARING CLAIM WAS WRONG AT CORPUS SCOPE — CORRECTED HERE.** I published
+     *"all 521 Marill sightings read `L13:exp1757`; the carrier NEVER gains a point"*. That is true
+     of **one batch** and false of the corpus: across all **33** Marill-carrying logs the levels are
+     `L13: 5,951 | L14: 926 | L15: 566` ⇒ **1,492 readings above L13**, and 5 of 33 runs show it
+     levelling. ‼ It is also **CENSORING**: the slowest observed gainer needed 157 minutes, and
+     **25 of 28 non-gainers were observed for less time than that**. ⇒ "inert" was an artifact of the
+     observation window as much as a property of the mon.
+     ⭐⭐ **AND THE PROCESS LESSON — THE MANDATORY FIXTURE TEST WAS VACUOUS.** Every member of the
+     known-good fixture sits far above its capture level, so this predicate benches NOBODY there and
+     "passes" while discriminating nothing. **Passing the test that killed the 2026-09-08 design was
+     NOT evidence for this one.** A mandatory check that a candidate satisfies trivially proves
+     nothing — the check must be one the candidate could FAIL.
+     ⇒ **FIVE DIRECTIONS ARE NOW DEAD AND THERE IS NO SURVIVING CANDIDATE.** That is the honest
+     state. The next attempt should start from the ROUTING question (is the carrier needed at
+     §Ch23 at all?) rather than from another predicate over party state.
+     ⛔ Run `tools/story-dev/precheck_prior_art.py` first: it has now killed four directions.
+     ⛔ **DO NOT BUILD A FOURTH DESIGN WITHOUT RUNNING `tools/story-dev/precheck_prior_art.py` FIRST**
+     — three have died here in two days, and two of the three were killed by arguments already in
+     this repo.
+     ⚠ **SIDE FINDING, load-bearing if anything here is ever promoted:**
+     `custom-pokebot/modules/story/victory_road.py:1806` has **NO empty-battler guard**; it exists
+     only in sandbox (`:1817-1827`). `06-DECISIONS-LOG.md` shipped that guard as a hard prerequisite
+     for touching this predicate ⇒ promote the guard WITH any change, or the prerequisite is
+     silently unmet.
+     ⭐⭐ **THE QUESTION THAT REOPENS, AND IT IS THE REAL ONE:** if caught mons DO train and DO reach
+     the window, **why is `#24-lowlevelmules` still ~a third of run-ends?** The cause is NOT "they
+     cannot get into training". That is now ruled out with evidence, and the next investigation
+     should start from what happens AFTER they are admitted.
+     ⚠ **DENOMINATOR: 1,496 IS NOT REPRODUCIBLE.** An adversarial sweep of 17 unit definitions x 39
+     batches found no population of 1,496 anywhere, and none within +-5% of it at +-3pp of 88.8%.
+     ⭐ The likeliest explanation is benign and was found by the same pass: keying `party=` by
+     **species + re-entry generation** (the natural pre-PID method) yields **81.9% / median 11 on
+     story runs alone — the claimed median exactly**. ⇒ treat 1,496 as an artifact of a pre-`ids=`
+     instrument, not as evidence of bad faith; and note the direction — species keying
+     **UNDERSTATES** born-behind (72.9% vs 84.1%), so the instrument cannot explain a too-HIGH
+     number.
+     ⛔⛔ **AND THE MECHANISM SENTENCE WAS WRONG — VERIFIED IN THE CODE, NOT REPORTED.** This bullet
+     used to say *"`TRAIN_CATCHUP_GAP = 6` excludes them from `to_train`"* keyed on the TEAM MAX.
+     `story_mode.py:2135-2137` actually reads:
+     ```python
+     catchup  = target - self.TRAIN_CATCHUP_GAP        # target - 6, NOT team_max - 6
+     to_train = {i for i in battlers if party[i].level >= catchup}
+     to_train.add(strongest)                            # <- the strongest is ALWAYS included
+     ```
+     with `need = [i for i in to_train if party[i].level < target]` at `:2142`. ⇒ the window is
+     **`target - 6 <= level < target`**, and `target` is **`team_max + 1`** in boss-fodder mode
+     (`:2095`) but the **BOSS BAND** otherwise. So the exclusion is REAL and the framing was
+     imprecise: in the team-keyed branch it is ">5 behind team max", near enough that the original
+     conclusion survives — but a reader planning against "6 behind the team max" is planning
+     against the wrong quantity in the branch that does not use it.
+     ‼ `to_train.add(strongest)` and the `losses >= 2` top-up mean the set is **not purely
+     gap-based** — another reason a plan keyed on a single gap number can miss.
+  2. ⛔ **[AGENT, UNVERIFIED] THE ECONOMICS ARE SOMETIMES NEGATIVE.** `xp/battle = 50.2 * wild_level
+     / 7` depends ONLY on the DEFEATED wild's level, so a level-matched (lower) band pays LESS per
+     battle and can only win via the full-vs-half share — capped at 2.0x. Reported example: a L12 mon
+     soloing its matched ROUTE117 earns **71.7 xp/battle** against **78.9** swap-training on
+     ROUTE111 — **0.91x, i.e. WORSE**. ⇒ *"a matched area beats swap-training"* is not a general
+     truth under this codebase's own XP model.
+  3. ⛔ **[AGENT, UNVERIFIED] IT DOES NOT EVEN DELIVER "FULL XP".** The picker's winnability boundary
+     (`mon_level >= lo - 1`) OVERLAPS the swap trigger (`level + 2 <= foe.level`): at L18 its own
+     pick still swap-trains on **75%** of the band.
+  ⭐ **WHAT THE ROUND DID ESTABLISH, AND IT IS NOT NOTHING:** early maintenance would be far cheaper
+  than late payoff (**[AGENT, UNVERIFIED]** ~1.2% of a lane budget at Stone vs ~33% at Feather), so the distinction
+  from the killed §Ch23 relocation is REAL — the idea fails on its own mechanism, not by being that
+  fix again.

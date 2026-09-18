@@ -5766,3 +5766,40 @@ the door conjunct is meaningful at CAPTURE time only. Each room's `OnLoad` calls
 `PokemonLeague_EliteFour_EventScript_ResetAdvanceToNextRoom` whenever its DEFEATED flag is set, so
 merely RELOADING a post-victory save re-opens the door — which is why the driver must never be
 graded from its own output, and why a VACUITY arm pointed at exactly that is run.
+
+---
+
+## 2026-09-17 (late) — the §Ch24 tail probe does NOT defeat the 20,000-frame no-progress detector, on purpose
+
+**THE CHOICE.** The leg-B build spec's trap T1 says the harness's no-progress detector will see a
+CONSTANT signature across the Hall of Fame and the credits (state reads `UNKNOWN`, position throws to
+`None`, the party is frozen by `HealPlayerParty()`), and suggests **cycling a trivial sub-generator on
+`context.controller_stack`** so that `ctrl` changes and `no_progress` resets.
+**Decision: do NOT implement it in the probe.**
+
+**WHY.** The probe exists to answer the spec's question **Q2 — does the tail exceed the detector's
+budget?** Implementing the workaround would have *made the question unanswerable*: the detector could
+no longer fire, so the run could not tell us whether it would have. ⇒ **a workaround installed before
+the measurement destroys the measurement.** The cost of being wrong was bounded and acceptable: if the
+detector fired, the run would stop with a partial transition table that *itself* answered Q2.
+
+**THE RESULT VINDICATED IT, AND THE ANSWER IS USEFUL.** The longest in-tail constant-signature stretch
+reached only the **x8000** rung; `HANG CONFIRMED` appears in the log only at f69937, **after** the
+`ACCEPTANCE` line, with `ctrl='<none>'` — the post-acceptance artifact every probe in this tree
+produces. ⇒ **a real leg-B driver does not need the workaround at all**, and the spec's T1 can be
+downgraded from "defeat it" to "be aware of it". That is a piece of machinery this project now does
+not have to write, review, fault-test or maintain.
+
+**ALTERNATIVES REJECTED.**
+* *Cycle a sub-generator on the controller stack (the spec's suggestion).* Rejected as above — and
+  separately because manipulating `context.controller_stack` from inside a driver is novel machinery
+  in this tree, and the first run through an irreversible, un-fleeable fight is the worst possible
+  place to debut it.
+* *Raise the detector's 20,000 constant.* Rejected: it is a shared safety net for every driver, and
+  loosening it to suit one probe is the "a gate with false negatives" trade this project refuses.
+* *Stuff `"end of built content"` into `context.message` to relabel the break.* Rejected, and the
+  probe's docstring says why: `story_harness.py`'s `_finished` branch only **relabels** the stop as
+  RUN COMPLETE — the loop still `break`s. It would have hidden the stop without preventing it.
+
+⇒ **THE GENERAL RULE THIS SETTLES:** when a probe's purpose is to find out whether a guard fires,
+**do not pre-emptively disarm the guard**. Measure first; harden second.

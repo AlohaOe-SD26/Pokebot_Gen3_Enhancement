@@ -31367,3 +31367,51 @@ recon and reproduced by its refuter. Our punch list had 58.
 ⚠ **NOTHING IN THE SPEC HAS BEEN DRIVEN.** Every frame count is arithmetic (±30%) unless tagged
 measured, and the single unmeasured load-bearing fact is whether flash written BY THE GAME survives
 `_core.reset()`. The next action is the observe-only probe, not a driver.
+
+---
+
+## 2026-09-17 (late, seventh) — ⭐⭐⭐ **WALLACE IS BEATEN AND THE GAME IS CLEARED.** The endgame tail is measured end to end
+
+**WHAT HAPPENED.** `--driver ch24tailprobe` (new `Ch24TailProbeMode`, **observe-only**) ran from the
+pinned `post_hall4_door.ss1`: one step onto `(5,2)`, the Champion fight (**`outcome=<BattleOutcome.Won: 1>`**,
+`whiteouts=0`), the post-battle cutscene, the Hall of Fame MAP, the Hall of Fame SCREEN, **10,353
+frames of un-skippable credits**, and a `SoftReset(RESET_ALL)` — returning **controllable in
+`LITTLEROOT_TOWN_BRENDANS_HOUSE_2F (4,2)` with `IS_CHAMPION=True` and `SYS_GAME_CLEAR=True` in BOTH
+RAM AND FLASH.** Total, door-step → controllable: **49,873 frames**. Full table:
+`ai-research-notes/2026-09-17-ch24-legB-TAIL-MEASURED.md`.
+
+**⭐⭐ Q7 — THE SINGLE UNMEASURED LOAD-BEARING FACT IN THE LEG-B SPEC — IS ANSWERED: flash written BY
+THE GAME survives `_core.reset()`.** The profile started at **`<no save data>`**; the Hall of Fame
+wrote the save slot mid-run; the reboot went **`CB2_MAINMENU` → `CB2_CONTINUESAVEDGAME`**, not
+`NAMING_SCREEN`. ⇒ trap T17 does not bite on this path, because the game populates flash itself.
+
+**⭐ Q2 — a leg-B driver does NOT need to defeat the 20,000-frame no-progress detector.** The longest
+in-tail constant-signature stretch reached only the **x8000** rung. ‼ The `HANG CONFIRMED` in the log
+is at **f69937, AFTER the ACCEPTANCE line, `ctrl='<none>'`** — the post-acceptance artifact every
+probe produces. ⇒ the spec's suggested sub-generator-cycling trick is **unnecessary machinery**, and
+the probe deliberately did not implement it *so the question could be measured rather than hidden*.
+
+**‼ THE TAIL IS ~54% LONGER THAN THE SPEC ESTIMATED** — 19,914 frames excluding the fight vs ~12,950
+predicted (the credits alone are 10,353 vs ~8,940). ⇒ **budget a leg-B driver at `--frames ≥ 120000`.**
+The fight itself: **29,959 frames**.
+
+**⛔⛔ MY OWN FIRST RUN WAS WRONG, AND BOTH RUNS ARE COMMITTED.** v1's stop condition was
+`OVERWORLD ∧ controllable ∧ battle_ended`. It fired on the FIRST post-battle overworld frame — still
+in the Champion's room, `IS_CHAMPION=False` — so it stopped pressing and measured **none** of the tail
+it exists to measure. **`player_avatar_is_controllable()` READS TRUE UNDER `lockall`**, which the
+`story-drive` skill states in as many words, and I wrote the condition anyway. v2 adds two conjuncts,
+the load-bearing one being *"has LEFT the Champion's room"*; `IS_CHAMPION` was deliberately NOT used,
+because if flash ever carried no save the reboot would land on NEW GAME and the flag would read False
+forever. `...-v1-STOPPED-EARLY.stdout.txt` is kept **because the mistake instructs better than the fix**.
+
+**⛔ WHAT THIS DOES NOT ESTABLISH.** It is a PROBE, not a chapter — **Segment 24 is still NOT wired**.
+Wallace was beaten **once**, from a fully-healed party with 1 Revive: one trajectory, not a win rate.
+`presses=19056` is duty-cycle ticks ISSUED, not prompts consumed. And the gauntlet is driven as a
+**chain of pinned fixtures** — every link individually driven, but **no single run has gone
+door-to-credits**.
+
+**HOUSEKEEPING.** `03-PUNCH-LIST.md` had reached 4395/4400 and was blocking. Archived **221 lines
+VERBATIM** (the closed "WIRING THE PICKER IS KILLED" item) to `28-HANDOFF-ARCHIVE.md`, leaving its
+ruling plus a pointer ⇒ **4183/4400**. ‼ The boundary was checked before cutting, per the rule added
+earlier today — §Ch23's entry was tried first and **rejected** because its next `- [` is a nested step,
+not a sibling.
