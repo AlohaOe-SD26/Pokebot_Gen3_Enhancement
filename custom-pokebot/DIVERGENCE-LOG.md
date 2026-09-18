@@ -2675,3 +2675,67 @@ from scratch is the one that pays, and by then the reasoning will be a year old.
 
 ⭐ Surfaced by a 4-angle recon commissioned for a repair plan that was then abandoned on a
 measurement (`#24-fixturelineage`). The plan died; the finding did not.
+
+---
+
+## 2026-09-17 (late) — PROMOTED: the Fly map-type guard, the faint-chooser `cannot_damage` key, and the HM-inclusive learn-coverage census
+
+**USER-AUTHORISED.** Rollback point: annotated tag **`v0.1.5`**, created and pushed BEFORE the copy.
+Executed with `tools/story-dev/promote.py --restore-point v0.1.5 --go`:
+`drift after 0 / orphaned after 0 / byte-identical 2/2`.
+
+**WHAT MOVED (newline-normalised, measured before the copy):**
+
+| file | delta | what |
+|---|---|---|
+| `modules/story/pokemon_league.py` | **+39 / −0** | a FOURTH guard on the §Ch24 Fly helper — **the map you are standing on must allow Fly** (`#24-flymaptype`) |
+| `plugins/custom_modes/story_mode.py` | **+51 / −5** | (a) `rank_replacement` key becomes `(cannot_damage, incoming, -outgoing, -hp_fraction, -level)`; (b) the learn-policy type-coverage census now counts **HM** moves (`#24-learnhmcoverage`) |
+
+**WHY NOW — THE BAR WAS MET, NOT WAIVED.** `04-HANDOFF.md`'s drift row had set the condition
+explicitly: *"promote all three together once leg 2 has been driven"*, and this project's promotion
+bar is *"a live drive plus user authorisation"*. Phoebe (rooms 1→2) and **Glacia (rooms 2→3)** are
+both driven and won at L75, and ⭐ **the faint chooser was exercised LIVE in the Glacia fight** —
+Mightyena fainted and the replacement drawn was **Wailord**, not Zigzagoon (both mules end at full HP
+with zero EXP gained, so neither entered).
+
+**VERIFIED BY DRIVING, NOT BY BYTE-COMPARE** — the standing rule, because a byte-compare only proves
+a file was copied:
+* `--driver ch24glacia --build custom` from `saves/post_phoebe_L75.ss1` → **`ACCEPTANCE: PASS`**,
+  all 7 readings, `missing=[]`, `battles=1`, `whiteouts=0`, `glacia_flag=True` — identical to the
+  sandbox run. Transcript committed: `tools/story-dev/evidence/2026-09-17-ch24glacia-CUSTOMBUILD-VERIFY.stdout.txt`,
+  whose own first lines read `build=custom`. ⭐ The process also wrote its state file into
+  `custom-pokebot/profiles/`, which is proof of the **import**, not merely of the flag passed.
+* `repro_box_counter_move_test.py --build custom` and `repro_pid_identity_key.py --build custom` —
+  both print *(importing from custom-pokebot — verified)* and PASS.
+* `probe_abort_swallowing.py --build custom` → **27 sites, exactly at baseline, no new debt.** The
+  promoted `except Exception as error:` calls **`reraise_if_aborting(error)` as its FIRST statement**,
+  so it is not a swallowing site.
+* All **63** enforcing gates pass.
+
+⭐⭐ **THE ONE REAL REGRESSION RISK WAS MEASURED AND CLOSED.** The Fly guard adds a **new REFUSAL on a
+shared path**, and its allow-list hedges three spellings of "Ocean Route" — which looked like
+uncertainty about the real string. It is not a risk: `modules/map.py:426-437` is the authoritative
+table, indexed by map-header byte `0x17` —
+`["None","Town","City","Route","Underground","Underwater","Ocean Route","Unknown","Indoor","Secret Base"]`
+— and **all four legal values ("Route", "Town", "City", "Ocean Route") are exactly present in the
+guard's allow-list**. The two extra spellings are dead entries that can never be returned. ⇒ **the
+guard cannot refuse a legal fly.** Confirmed twice, independently (by me from our table, and by an
+adversarial reviewer against `src/overworld.c:1366-1375` `Overworld_MapTypeAllowsTeleportAndFly`,
+which lists ROUTE/TOWN/OCEAN_ROUTE/CITY).
+
+⚠ **BLAST RADIUS IS WIDER THAN "§Ch24" — SAY SO PLAINLY.** `rank_replacement` and
+`which_move_should_be_replaced` are reached by the shared `LevelUpTravelBattleStrategy`, i.e. by
+battles far outside the Elite Four. Mitigations, both structural rather than hopeful: `cannot_damage`
+is **provably inert whenever it is uniform across candidates** (a property of the lexicographic
+tuple, not an observation), and the HM-coverage widening was driven through **1,353 real battles with
+0 whiteouts** before promotion.
+⚠ `fly_to_destination` currently has exactly **two callers, both in the offline harness**, and
+Segment 24 is not wired — so the new guard is **dormant in production** today.
+
+⛔⛔ **WHAT THIS PROMOTION DOES *NOT* DO: IT DOES NOT CLOSE `#24-ghostreplacement`.** That item is
+OPEN and was REOPENED on 2026-09-17 because the `cannot_damage` term is a **MEASURED NO-OP on the
+real party**: it separates only candidates whose best outgoing is *literally zero*, and against a
+Ghost neither Swellow's Aerial Ace (Flying, 1×) nor Zigzagoon's Surf is zero — so the term is 0 for
+every candidate and the tuple falls through to `incoming` exactly as before. **Promoting it is safe
+because it is inert on the ordinary path, not because it fixes the filed case.** Do not read this
+entry as "the faint chooser is fixed".

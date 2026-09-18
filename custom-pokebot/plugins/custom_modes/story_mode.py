@@ -145,9 +145,15 @@ def rank_replacement(candidates, foe_types, foes, damage_of):
     caller can SEE which metric actually decided — ``08-MISTAKES.md``: *an instrument needs a control
     that must fire*, and a heuristic that silently degrades is the thing that rule exists to catch.
 
-    ⭐ THE KEY IS ``(incoming, -outgoing, -hp_fraction, -level)`` and stays lexicographic, so the
-    DEFENSIVE term still decides first and only ties reach ``outgoing``. Only the METRIC changed:
-    ``outgoing`` was a bare type multiplier (`KI-95`) and is now expected damage.
+    ⭐ THE KEY IS ``(cannot_damage, incoming, -outgoing, -hp_fraction, -level)`` and stays
+    lexicographic, so among mons that CAN act the DEFENSIVE term still decides first and only ties
+    reach ``outgoing``. Two changes, both recorded at the sort site: ``outgoing`` was a bare type
+    multiplier (`KI-95`) and is now expected damage; and ``cannot_damage`` was added 2026-09-17
+    (`#24-ghostreplacement`) because a DEFENSIVE IMMUNITY WAS OUTRANKING THE ABILITY TO FIGHT AT ALL
+    — measured against Phoebe's pure Ghosts, this function chose **Swellow (incoming 0.00, outgoing
+    31)** over **Mightyena (incoming 0.50, outgoing 68)**, i.e. the mon that cannot hurt a Ghost
+    beat the only one that hits it for double. ⇒ ``cannot_damage`` is a no-op unless some candidate
+    deals literally zero.
     ‼ Because the tuple is lexicographic, the two terms never need to share a scale — which is why
     swapping a 0-4 multiplier for a 0-300 damage figure is safe rather than a silent re-weighting.
     """
@@ -195,7 +201,27 @@ def rank_replacement(candidates, foe_types, foes, damage_of):
     best_index, best_key = None, None
     for index, incoming, damage, legacy, hp_fraction, level in rows:
         outgoing = damage if use_damage else legacy
-        key = (incoming, -outgoing, -hp_fraction, -level)
+        # ⛔⛔ `cannot_damage` LEADS THE KEY, AND IT IS THE ONLY TERM THAT MAY OUTRANK `incoming`.
+        # MEASURED 2026-09-17 on the real §Ch24 fixture party against **Phoebe's pure Ghosts**:
+        #     slot 2  Swellow   L48  incoming=0.00  best_outgoing=31.0   <- CHOSEN
+        #     slot 4  Mightyena L48  incoming=0.50  best_outgoing=68.0   <- never considered
+        # Ghost→Normal is **0x**, so our WORST attackers score a PERFECT defensive 0.00 and win at
+        # the first term, while the one mon that resists Ghost *and* hits it for double loses there
+        # and never reaches `outgoing`. ⇒ after every faint the bot sent in the battler with the
+        # fewest usable moves, in the one fight where that is fatal.
+        # ‼ A DEFENSIVE IMMUNITY IS NOT A REASON TO SEND A MON THAT CANNOT WIN. "Takes 0" and
+        # "deals 0" are the SAME type relation read from opposite ends, so ranking on `incoming`
+        # alone actively SEEKS the useless mon. In a fleeable fight that wastes turns; in the Elite
+        # Four, which is five fights with no shop, no Centre and no retreat, it loses the run.
+        # ⭐ WHY THIS SHAPE IS SAFE ON A SHARED PATH — it is a NO-OP unless some candidate deals
+        # literally zero. When every candidate can damage the foe the term is 0 for all of them and
+        # the tuple falls through to EXACTLY the previous key; when NO candidate can, it is 1 for
+        # all and the ordering is likewise unchanged. It can only ever separate "can act" from
+        # "cannot act", which is the one distinction `incoming` provably gets backwards.
+        # ⛔ It does NOT reorder by damage — `incoming` still decides among mons that can fight, so
+        # the defensive-first policy this function was built around is untouched.
+        cannot_damage = 0 if outgoing > 0 else 1
+        key = (cannot_damage, incoming, -outgoing, -hp_fraction, -level)
         if best_key is None or key < best_key:
             best_index, best_key = index, key
     return best_index, {
@@ -500,7 +526,27 @@ class LevelUpTravelBattleStrategy(LevelUpLeadBattleStrategy):
         if not damaging_slots:
             return DECLINE
         new_power = effective_power(new_move)
-        current_types = [moves[i].type for i in damaging_slots]
+        # ⛔⛔ COVERAGE IS COUNTED OVER **EVERY** DAMAGING MOVE, HMs INCLUDED — AND COUNTING IT OVER
+        # `damaging_slots` (which EXCLUDES HMs) COST THIS PROJECT THE ONE MOVE §Ch24 IS BUILT AROUND.
+        # ‼ MEASURED 2026-09-17, exactly reproducible on the grind ladder: Wailord knew
+        # `Dive (HM08), Surf (HM03), Ice Beam (TM13), Waterfall (HM07)` and hit **L59 / Hydro Pump**.
+        # Three of its four moves are Water, but all three are HMs, so `damaging_slots` was `[Ice
+        # Beam]` alone and the census read `current_types == [Ice]`. ⇒ Hydro Pump (Water) looked like
+        # a type we **LACK**, the code "freed the weakest slot to gain coverage", and the team's ONLY
+        # Ice move — fetched by a ~700,000-frame Abandoned Ship round trip specifically because the
+        # analysis says the party LOSES to Drake without it — was traded for a FOURTH Water move.
+        #     post_e4grind_L57.ss1  L57  Dive, Surf, Ice Beam,   Waterfall
+        #     post_e4grind_L59.ss1  L59  Dive, Surf, Hydro Pump, Waterfall   <<< -Ice Beam +Hydro Pump
+        # ⭐ ONE MECHANISM EXPLAINS THE OPPOSITE OBSERVATION TOO, WHICH IS WHY IT IS THE RIGHT ONE.
+        # On the other lineage Wailord held **Water Spout** (a TM, so non-HM) in that slot: the census
+        # read `[Water]`, Hydro Pump was REDUNDANT, Water Spout (150 BP) outranks it, and the policy
+        # correctly DECLINED — keeping all four moves across the same level. Same code, same level,
+        # opposite outcome, explained by which slot happened to be replaceable.
+        # ⇒ **REPLACEABILITY AND COVERAGE ARE DIFFERENT QUESTIONS.** You cannot overwrite an HM, but
+        # the Pokémon still KNOWS it, and coverage is about what it can DO. The replaceable set stays
+        # `damaging_slots`; only the census widens.
+        coverage_slots = [i for i, m in enumerate(moves) if is_damaging(m)]
+        current_types = [moves[i].type for i in coverage_slots]
 
         if new_move.type in current_types:
             # Redundant type: only take it to UPGRADE a weaker same-type move;

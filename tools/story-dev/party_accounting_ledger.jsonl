@@ -629,3 +629,4 @@
 {"when": "2026-09-17T16:15:24", "driver": "ch24glacia", "build": "sandbox", "state": "post_phoebe_L75.ss1", "frames_run": 46336, "recomputes": 46336, "scans": 155, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-17T16:19:04", "driver": "ch24glacia", "build": "sandbox", "state": "post_glacia_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-17T16:24:52", "driver": "ch24glacia", "build": "sandbox", "state": "post_phoebe_L75.ss1", "frames_run": 26882, "recomputes": 26882, "scans": 90, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-17T17:12:43", "driver": "ch24glacia", "build": "custom", "state": "post_phoebe_L75.ss1", "frames_run": 46336, "recomputes": 46336, "scans": 155, "divergences": {}, "observer_broke": false}

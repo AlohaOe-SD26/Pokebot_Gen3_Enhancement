@@ -31142,3 +31142,42 @@ because the door was measured shut.
 ⛔ **WHAT THIS DOES NOT DO.** Segment 24 is still NOT wired — all three prerequisites stand. Room 4
 (Drake) and room 5 are not built, and **room 5 is not this unit**: Wallace starts himself from a
 `lockall` with no flag guard, so the room-unit shape does not apply to him (`#24-leg2spec`).
+
+---
+
+## 2026-09-17 (late, second) — PROMOTED sandbox → custom: the Fly guard, the faint-chooser key, and the HM-inclusive learn census
+
+**USER-AUTHORISED.** Rollback point `v0.1.5` (annotated, pushed BEFORE the copy).
+`promote.py --restore-point v0.1.5 --go` → `drift after 0 / orphaned 0 / byte-identical 2/2`.
+Two files moved into **the fork that ships**: `modules/story/pokemon_league.py` (+39/−0, the Fly
+map-type guard) and `plugins/custom_modes/story_mode.py` (+51/−5, the `cannot_damage` faint-chooser
+key and the HM-inclusive learn-coverage census). Full detail: `custom-pokebot/DIVERGENCE-LOG.md`.
+
+**THE BAR WAS MET, NOT WAIVED.** The handoff's drift row had set the condition — *"promote all three
+together once leg 2 has been driven"* plus *"a live drive plus user authorisation"*. Phoebe and
+Glacia are both driven and won, and the faint chooser was exercised **live in the Glacia fight**.
+
+**VERIFIED BY DRIVING:** `--driver ch24glacia --build custom` → `ACCEPTANCE: PASS`, `missing=[]`,
+`battles=1`, `whiteouts=0` (transcript committed, and it carries `build=custom` in its own header);
+both `--build`-aware repros print *(importing from custom-pokebot — verified)*; the abort-swallow
+ratchet reads **27, at baseline, no new debt**; all 63 enforcing gates pass.
+
+⭐ **THE ONE REGRESSION RISK WAS MEASURED, NOT ARGUED.** The Fly guard is a NEW REFUSAL on a shared
+path and its allow-list hedges three spellings of "Ocean Route". `modules/map.py:426-437` is the
+authoritative table and **all four legal values are exactly present**, so the guard cannot refuse a
+legal fly; the extra spellings are unreachable dead entries. Confirmed independently twice.
+
+⛔ **IT DOES NOT CLOSE `#24-ghostreplacement`** — the `cannot_damage` term is a measured NO-OP on the
+real party. It is safe because it is inert, not because it fixes the filed case.
+
+‼ **THREE PROCESS FINDINGS FROM THE ADVERSARIAL AUDIT OF THIS PROMOTION**, all fixed before the
+commit: the promotion was uncommitted, the DIVERGENCE-LOG had no entry, and — the one worth keeping —
+**the flagship `--build custom` acceptance claim had no committed transcript**, resting on prose plus
+a bare ledger timestamp. Every other acceptance claim this session had one. ⇒ *a promotion's
+verification run needs its evidence file saved at the moment it is run, exactly like a drive's.*
+
+⭐ **AND A DOC GATE CAUGHT THE STALE DRIFT FIGURE AUTOMATICALLY** — `audit_doc_consistency.py` went
+red with *"04-HANDOFF.md:385 claims drift=2; MEASURED drift is 0"* the moment the copy landed, then
+demanded a **digit plus a currency marker** it could grade. Three stale copies of the figure were
+fixed (the STATE row, the HOW TO RUN expectation, and the queue head). This is the numeric half of
+the doc layer doing exactly its job, and it is why prose counts are never hand-checked here.
