@@ -18817,3 +18817,76 @@ appeared 2× and the retraction had to appear 2× before I believed it.
 ADJACENT TO EVERY OCCURRENCE — then assert `count(claim) == count(marker)`. Never decide a duplicate
 is “historical” by reading around it; a supersede marker earlier in the same line does not cover a
 copy 20,000 characters later.*
+
+
+### ✅ UPDATE 2026-09-17 (late) — the "THAT COPY IS JUST HISTORY" rule above is now PARTLY GATED
+
+`tools/story-dev/probe_retraction_coverage.py` (gate #63) mechanises it: every retracted claim must
+have a marker within 400/900 chars of **every** occurrence. Four fault arms pass; 34 claims covered.
+⚠⚠ **THE PROSE RULE ABOVE IS NOT RETIRED, AND DELIBERATELY SO.** The gate harvests a dead claim only
+from the house idiom (a retraction keyword plus a past-reference quotation such as *"THIS clause
+READ …"*). **A retraction phrased any other way is never harvested and therefore never checked.**
+⛔⛔ **THIS SENTENCE ORIGINALLY CONTINUED "— the gate fails SAFE, which means it misses." THAT IS
+WITHDRAWN: SEE THE VERY NEXT ENTRY IN THIS FILE.** The gate does NOT fail safe — it also produces
+FALSE POSITIVES on live text, because keyword-adjacency is not claim-relatedness. So the scope limit
+described above is real but is only HALF the picture, and the gate is now ADVISORY, not enforcing.
+⇒ it is a floor under the rule, not a replacement for it;
+treating it as full coverage would be the same over-trust this file warns about elsewhere
+(*"a gate is not proven by its own fault arm"*).
+
+
+## 2026-09-17 (late) — I PROVED FOUR ARMS AND CLAIMED A FIFTH THING THEY NEVER TESTED
+
+**Symptom.** Shipped `probe_retraction_coverage.py` as an ENFORCING gate, justified in three separate
+files by the claim that it *"fails safe — an unrecognised idiom is simply not harvested, so the failure
+mode is a MISS, never a false alarm."* A Tier 1 reviewer refuted the claim from both directions inside
+one review, and I reproduced both failures myself in a single script.
+
+**Root cause — and it is not the regex.** My fault test had four arms and all four passed: real tree
+clean, injected defect fires, marked copy stays silent, sub-threshold fragments never harvested. Those
+arms exercise the MECHANISM. The sentence I actually shipped on was a claim about a PROPERTY — that no
+input can produce a false positive — **and not one arm attacked that property.** Passing arms felt like
+evidence for it; they were evidence for something adjacent and weaker.
+
+**What was actually wrong.** (1) The harvester assumes keyword-adjacency implies claim-relatedness, so
+a keyword sitting near an unrelated quotation marks a LIVE sentence as dead. (2) It only recognises the
+*re-quotation* retraction idiom, and this project's more common style is an **in-place marker** — so it
+was blind to its own motivating defect #3 (measured: 2 occurrences, 0 harvested).
+
+**The fix that worked.** Downgraded to ADVISORY, retracted the safety claim in every file that carried
+it, and filed both defects with the reviewer's exact repros as the test cases they must pass before it
+may be ENFORCING again.
+
+**⭐ PREVENTION RULE.** *A fault test proves the arms you thought of; it does not prove the property you
+claimed. When a gate's ENFORCING status rests on a property — "fails safe", "cannot false-positive",
+"is monotone" — write an arm that ATTACKS THE PROPERTY, and if you cannot construct such an arm, ship
+ADVISORY.*
+**⭐ SECOND RULE, cheaper and more general.** *Before claiming a check "cannot" do something, spend one
+attempt trying to make it do that thing. The reviewer needed a single constructed example; so would I
+have, had I looked for one instead of for confirmation.*
+
+## 2026-09-17 (late) — ⛔ A REVIEW SUBAGENT DESTROYED UNCOMMITTED WORK WITH `git checkout --`
+
+**Symptom.** A Tier 1 reviewer, asked to fault-test a gate by reproducing a historical defect, edited
+`PROJECT KNOWLEDGE/04-HANDOFF.md` in place and then "restored" it with
+`git checkout -- "PROJECT KNOWLEDGE/04-HANDOFF.md"`. That file had **real uncommitted changes**, and
+the command reverts the whole file to `HEAD` — so it discarded the work-item diff along with the test
+injection. `git reflog`, `git fsck` dangling blobs and editor local history all failed to recover it.
+
+**Why it was survivable this time, and the number that made it so.** The loss was bounded to **three
+lines** (the gate-count updates at `04-HANDOFF.md:676/:718/:722`) because the rest of that file had been
+committed ~40 minutes earlier under the per-item Definition of Done. ⇒ **committing per item is not
+bookkeeping; it is the blast radius.** Had the session batched its doc work to the end, an entire
+session of handoff edits would have gone.
+
+**Root cause.** The reviewer prompt told the agent to "restore any file you touch and verify with
+`git diff`" — which it did, and the verification passed, because `git diff` shows a reverted file as
+clean. **The instruction named the wrong safety check.** `git checkout --` is indistinguishable from a
+correct restore when you only look at whether the file is now unmodified.
+
+**⭐ PREVENTION RULE.** *Never instruct a subagent to mutate a file with uncommitted changes. If a
+review needs fault injection, tell it to copy the tree (or the file) to the scratchpad and inject
+there — and state explicitly: ⛔ `git checkout --`, `git restore`, `git stash`, `git reset` and
+`git clean` are FORBIDDEN to reviewers, because a reverted file looks identical to a restored one.*
+**⭐ COROLLARY for me.** *Before handing a reviewer a package with uncommitted work, know which files
+are dirty — and prefer reviewing a COMMITTED state, so the worst case is recoverable by `git`.*

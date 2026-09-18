@@ -88,6 +88,16 @@ ADVISORY: frozenset[str] = frozenset({
     #: zero window — a fact about the corpus, not a regression. Failing the suite over that would
     #: teach the reader to bypass it, which is strictly worse than no gate.
     "probe_dexfence_opportunity.py",
+    #: `#24-retractioncoverage`. ⛔ DOWNGRADED TO ADVISORY THE SAME DAY IT SHIPPED, 2026-09-17.
+    #: It was landed ENFORCING on the claim that it "fails safe — misses, never false-alarms". A
+    #: Tier 1 reviewer refuted that in one pass and BOTH failures were then reproduced directly:
+    #:   * a still-LIVE sentence can be harvested as retracted when a keyword and an unrelated
+    #:     past-reference quotation share a window ⇒ a FALSE POSITIVE on healthy text, which is the
+    #:     one failure mode CLAUDE.md §6 says is worse than having no gate at all;
+    #:   * it is blind to the IN-PLACE marker idiom, which is how its OWN motivating defect #3 is
+    #:     written ⇒ it does not catch the bug it was built for (verified: 2 occurrences, 0 harvested).
+    #: ⇒ ADVISORY until both are fixed and fault-tested against the reviewer's repros.
+    "probe_retraction_coverage.py",
 })
 
 #: The standing suite. `slow=True` means it boots a ROM/emulator and takes real time.
@@ -648,6 +658,35 @@ GATES: list[tuple[str, bool]] = [
     # the comparison — a self-test that re-implements its subject passes whenever the two
     # implementations agree, including when both are wrong.
     ("selftest_promote_drift.py", False),
+    # --- #63 — RETRACTION COVERAGE (`probe_retraction_coverage.py`)
+    # ‼ APPENDED AT THE END, never inserted — the same rule #34-#62 carry.
+    # WHY A GATE: on 2026-09-17 I retracted three claims and, for each, left another copy of the SAME
+    # sentence live elsewhere — a closed punch-list item still reading "all three prerequisites still
+    # stand"; my own decisions-log entry still reading "not a re-plumbing job"; and "Grind past L62
+    # toward ~L75 BEFORE building more legs" marked in ONE of its TWO verbatim occurrences in
+    # `04-HANDOFF.md`. Two were caught by Tier 1 reviewers, i.e. by cost. `08-MISTAKES.md` ALREADY
+    # carried the rule and I broke it anyway ⇒ CLAUDE.md §6: prose failed, write the gate.
+    # ⭐ THE CATEGORY ERROR IT REMOVES: "is this copy historical?" is a JUDGEMENT about surrounding
+    # prose; "does a marker sit next to THIS copy?" is a FACT about bytes. The gate only asks the
+    # second. A marker 208,000 chars earlier in the same line does not cover a later copy.
+    # ⛔ FAULT-TESTED, AND IT FAILED TWICE BEFORE IT PASSED — which is the only reason it is trusted:
+    #   v1 matched the prose BETWEEN two quotations (1,004 bogus claims, 199 false positives);
+    #   v2 let a claim CONTAINING a keyword excuse itself, so the injected-defect arm read ZERO.
+    #   v3 (shipped) requires the past-reference idiom ("THIS clause READ …") AND an adjacent
+    #   retraction keyword, and excludes the claim's own text from the marker window.
+    # Arms: real tree clean / unmarked copy injected MUST fire / same copy WITH a marker must NOT /
+    # sub-threshold fragments never harvested. `--self-test` runs all four.
+    # ⛔⛔ THIS BLOCK ORIGINALLY READ "SAFE TO ENFORCE BECAUSE IT FAILS SAFE: an unrecognised
+    # retraction idiom is simply not harvested, so the failure mode is a MISS, never a false alarm."
+    # ‼ THAT CLAIM IS WITHDRAWN — IT WAS REFUTED THE SAME DAY, FROM BOTH DIRECTIONS, AND THE GATE IS
+    # NOW ADVISORY (see the ADVISORY frozenset above for the two defects and their repros).
+    # ⭐ THE DURABLE LESSON, worth more than the gate: **A FAULT TEST PROVES THE ARMS YOU THOUGHT OF;
+    # IT DOES NOT PROVE THE PROPERTY YOU CLAIMED.** Four arms passed — real tree clean, injected
+    # defect fires, marked copy silent, no sub-threshold matches — and the property those arms were
+    # meant to establish ("fails safe") was false in two independent ways that no arm looked for.
+    # ⇒ When a gate's ENFORCING status rests on a PROPERTY, write an arm that attacks the PROPERTY,
+    # not just arms that exercise the mechanism.
+    ("probe_retraction_coverage.py", False),
 ]
 
 

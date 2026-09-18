@@ -31515,3 +31515,81 @@ the ceiling), **not the cost model.** That is the question `#24-levelgap` must a
 while real xp/BATTLE ranks B1F > B2F > 1F. ⚠ That ranking is in xp/BATTLE and the same denominator trap
 applies — frames/battle has never been measured per Victory Road FLOOR, so the xp/FRAME ranking is
 UNKNOWN. Recorded as a caution for anyone building "pick the best floor" logic, **not as a defect.**
+
+
+## 2026-09-17 (late) — ✅ GATE #63: A RETRACTED CLAIM MUST CARRY A MARKER AT **EVERY** OCCURRENCE
+
+**The lesson of today's three retraction misses, converted from prose into an enforced check.**
+`tools/story-dev/probe_retraction_coverage.py`, registered in `run_gates.py` as entry #63
+(the suite is now **67 entries = 64 ENFORCING + 3 ADVISORY**).
+
+**WHAT IT ASSERTS.** For every retracted claim, `count(claim) == count(claim adjacent to a marker)`.
+It harvests the dead sentence from the house idiom (a retraction keyword followed by a past-reference
+quotation — *"THIS clause READ …"*, *"it ORIGINALLY read …"*), then requires a marker within
+400/900 characters of **every** occurrence of that sentence across the eight PROJECT KNOWLEDGE docs.
+⭐ The window is deliberately tight: the miss it was written for had a marker ~208,000 characters
+earlier **in the same line**, and that must not count as coverage.
+
+**⛔⛔ IT FAILED ITS OWN FAULT TEST TWICE FIRST, AND BOTH FAILURES ARE INSTRUCTIVE.**
+* **v1** — the regex matched a closing quote followed by a later opening quote, i.e. the prose
+  *between* two quotations: **1,004 harvested "claims" and 199 false positives.** A gate that cries
+  wolf is worse than no gate, so this was disqualifying, not cosmetic.
+* **v2** — the marker window included the claim's own text. Retracted sentences routinely contain a
+  keyword (*"…is STALE"*, *"…WAS WRONG"*), so such a claim **excused itself everywhere it appeared**
+  and the inject-a-defect arm reported **ZERO** violations. The gate was blind to its own purpose and
+  looked healthy doing it — the `#24-grindconverge` shape, in a gate.
+* **v3 (shipped)** — both signals required, and the claim's own span excluded from the window.
+
+**THE FOUR ARMS** (`--self-test`): real tree clean (0) · unmarked copy injected **FIRES** (1) · same
+copy with a marker adjacent does **NOT** fire (0) · sub-threshold fragments never harvested (0).
+⛔ **THIS SAID "34 real retracted claims are currently under coverage"; A REVIEWER MEASURED 35 WITHIN
+THE HOUR** — the retraction text written to document this very gate is itself retraction-shaped and
+changed the count. ⇒ run `--self-test` for the live figure rather than trusting a number in prose.
+
+⭐ **WHY ENFORCING RATHER THAN ADVISORY: IT FAILS SAFE.** An unrecognised retraction idiom is simply
+not harvested, so the failure mode is a **MISS, never a false alarm.**
+⛔⛔ **THE TWO SENTENCES IMMEDIATELY ABOVE ARE WITHDRAWN — SEE THE NEXT ENTRY IN THIS FILE, APPENDED
+THE SAME DAY.** The property is false in both directions: the gate DOES false-positive on live text,
+and it MISSES its own motivating defect #3. It is now ADVISORY. *(A Tier 1 reviewer found this
+assertion still standing unmarked; a case-SENSITIVE grep had missed a mixed-case sibling of it —
+⇒ sweep retractions with `grep -rni`, not `grep -rn`.)*
+⚠ **AND THEREFORE THE PROSE RULE STAYS.** The gate covers the house idiom, not every phrasing — it is
+a floor, not a replacement for the `08-MISTAKES.md` rule.
+
+
+## 2026-09-17 (late) — ⛔⛔ GATE #63 DOWNGRADED TO **ADVISORY** THE SAME DAY IT SHIPPED: ITS "FAILS SAFE" ARGUMENT WAS REFUTED FROM BOTH DIRECTIONS
+
+**The entry above landed `probe_retraction_coverage.py` as ENFORCING, justified by the claim that it
+"fails safe — an unrecognised idiom is simply not harvested, so the failure mode is a MISS, never a
+false alarm." A Tier 1 reviewer disproved that in a single pass. I reproduced both failures directly
+before acting, and the gate is now ADVISORY.**
+
+**1. FALSE POSITIVE — this alone disqualifies ENFORCING.** A retraction keyword and an *unrelated*
+past-reference quotation can sit inside the same window, so a still-LIVE sentence is harvested as a
+retracted claim and every honest copy of it is then reported as an "UNMARKED COPY".
+⇒ **keyword-adjacency is not claim-relatedness**, which is the assumption the harvester rests on.
+Reproduced on the reviewer's synthetic two-document case: 1 claim harvested, 1 violation on healthy
+text. CLAUDE.md §6 is explicit that this is the failure mode worse than having no gate.
+
+**2. FALSE NEGATIVE ON ITS OWN MOTIVATING DEFECT.** Miss #3 — *"Grind past L62 toward ~L75 BEFORE
+building more legs"* — is retracted with an **IN-PLACE marker**: the marker follows the live sentence.
+The harvester only recognises the *re-quotation* idiom (*"THIS clause READ …"*), so this style is
+structurally invisible to it. **Measured: the sentence occurs 2× in `04-HANDOFF.md` and is harvested
+0×.** ⇒ the gate does not catch the bug it was written to prevent, whether marked or not.
+
+**⭐ THE DURABLE LESSON, and it is bigger than this gate: A FAULT TEST PROVES THE ARMS YOU THOUGHT OF;
+IT DOES NOT PROVE THE PROPERTY YOU CLAIMED.** Four arms passed — real tree clean, injected defect
+fires, marked copy silent, no sub-threshold matches — and the property those arms were meant to
+establish was false in two independent ways that no arm looked for. ⇒ **when a gate's ENFORCING status
+rests on a PROPERTY, write an arm that attacks the PROPERTY, not just arms that exercise the
+mechanism.** This is the same shape as `08-MISTAKES.md`'s existing warning that *"a gate is not proven
+by its own fault arm"* — one level up.
+
+**Also fixed:** `_report()` raised `UnicodeEncodeError` on a default Windows cp1252 console while
+printing the "⇒" in its own FIX guidance — the violation was found and the exit code survived, but the
+guidance never printed. `sys.stdout.reconfigure(encoding="utf-8")` added, matching the three gates that
+carried this exact bug before (see `run_gates.py`'s header).
+
+**Suite counts after the downgrade: 67 entries = 63 ENFORCING + 4 ADVISORY.**
+⛔ Do not re-promote to ENFORCING until both defects are fixed AND fault-tested against the reviewer's
+repros, which are recorded on `#24-retractioncoverage`.

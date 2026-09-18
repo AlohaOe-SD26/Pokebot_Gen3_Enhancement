@@ -5861,3 +5861,59 @@ ends in `set_manual_mode()` (163 such calls in the harness; **zero** in
 (c) *Train somewhere other than B1F* — settled against the decomp already
 (`modules/story/training_areas.py:30-49`): every `MAP_ROUTE*` land table maxes at 28, so B1F is not a
 preference but the only ground.
+
+
+## 2026-09-17 (late) — THE RETRACTION-COVERAGE CHECK IS **ENFORCING**, NOT ADVISORY
+
+**Context.** New gates are sometimes landed ADVISORY while their false-positive behaviour is learned.
+This one is ENFORCING from the start, and the reason is a property, not confidence.
+
+**DECISION: enforcing, because the check FAILS SAFE.** It harvests a retracted claim only from the
+house idiom (retraction keyword + past-reference quotation). An idiom it does not recognise is never
+harvested, so an unseen retraction produces a **MISS**, never a spurious failure. CLAUDE.md §6's
+concern is one-directional — *"a gate with false positives teaches the reader to bypass it, which is
+strictly worse than no gate"* — and this gate cannot produce one from an unrecognised idiom.
+
+**What earned the trust: it failed its own fault test twice.** v1 produced 199 false positives on the
+real tree (a regex that matched the prose BETWEEN quotations); v2 reported ZERO violations on an
+injected defect (claims containing a keyword excused themselves). Only v3 passed all four arms.
+⭐ **A gate is not proven by being written; it is proven by being broken on purpose and seen to fire.**
+
+**Alternatives rejected.** (a) *Ship ADVISORY first* — rejected: an advisory that nobody reads would
+not have caught today's misses, which were found by paid reviewer rounds. (b) *Retire the prose rule
+in `08-MISTAKES.md` now that a gate exists* — rejected, and this matters: the gate covers the house
+idiom only, so retiring the rule would trade a partial mechanical check for the loss of the general
+one. The rule stays; the gate is a floor under it. (c) *Widen the marker window so a marker anywhere
+in the same line counts* — rejected: the exact miss it was written for had a marker ~208,000
+characters earlier in the same line.
+
+
+## 2026-09-17 (late) — ⛔ REVERSAL OF THE ENTRY ABOVE: THE RETRACTION-COVERAGE CHECK IS **ADVISORY**, NOT ENFORCING
+
+**The entry immediately above decided ENFORCING, and its stated reason was a PROPERTY: "the check
+FAILS SAFE … this gate cannot produce [a false positive] from an unrecognised idiom." That property is
+FALSE.** A Tier 1 reviewer refuted it from both directions within the hour; I reproduced both before
+reversing.
+
+* A keyword and an *unrelated* past-reference quotation sharing a window cause a **still-live sentence
+  to be harvested as retracted**, and every honest copy is then reported. The idiom *is* recognised —
+  it is the RELATEDNESS that is not checked.
+* The harvester is blind to the **in-place marker** idiom, which is how its own motivating defect #3 is
+  written ⇒ it misses the bug it was built for (2 occurrences, 0 harvested).
+
+**DECISION: ADVISORY**, recorded in `run_gates.py`'s ADVISORY frozenset with both defects and their
+repros. The suite is **67 entries = 63 ENFORCING + 4 ADVISORY**.
+
+**⭐ THE RULE THIS SETTLES, which generalises past this gate: when a gate's ENFORCING status rests on a
+PROPERTY ("fails safe", "cannot false-positive", "is monotone"), the fault test must contain an arm
+that ATTACKS THAT PROPERTY.** Arms that merely exercise the mechanism will all pass while the property
+is false — mine did, four for four. *A fault test proves the arms you thought of; it does not prove the
+property you claimed.*
+
+**Alternatives rejected.** (a) *Patch the harvester now and keep it ENFORCING* — rejected: the
+in-place-marker fix means harvesting the sentence BEFORE a marker, which plausibly multiplies the
+false-positive surface that just disqualified it. Fix it deliberately, with the repros as tests, not
+under time pressure on the day it broke. (b) *Delete the gate* — rejected: the machinery and its
+four-arm harness are sound and the ADVISORY run still surfaces real unmarked copies; the defect is in
+the SAFETY ARGUMENT, not the concept. (c) *Keep ENFORCING and add the false-positive case to an
+allow-list* — rejected: an allow-list papers over a harvester that cannot tell live text from dead.
