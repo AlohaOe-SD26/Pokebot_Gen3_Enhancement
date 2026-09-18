@@ -11326,3 +11326,95 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
   than late payoff (**[AGENT, UNVERIFIED]** ~1.2% of a lane budget at Stone vs ~33% at Feather), so the distinction
   from the killed §Ch23 relocation is REAL — the idea fails on its own mechanism, not by being that
   fix again.
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`: `#24-ch23chain` (§Ch23's eleven legs + the Segment 23 wiring)
+
+> Moved here under `lint_docs.py` R3 (the punch list hit 4,411 of its 4,400-line budget).
+> **NOTHING IS DELETED** — the 81 lines below are the item exactly as it stood, and the punch
+> list keeps the slug `#24-ch23chain` with a short summary pointing here. ⚠ **MEASURED, after a
+> reviewer challenged an earlier “cited 12× in code” claim:** the slug appears in **4 `.py` files**
+> and **13 tracked files** overall (mostly docs). It survives in place because code cites it at
+> all, not because of the count — which was overstated.
+
+- [x] **DONE 2026-09-05: the chapter orchestrator + Segment 23 wiring SHIPPED.** `ch23_chapter_done()` + `do_victory_road_chapter()` in `victory_road.py`; dispatch at `story_mode.py`'s `# --- Segment 23: VICTORY ROAD ---` block, ending in `_guard("Victory Road (Ch23)", ch23_chapter_done)` — ⛔ **cite the SYMBOL: this read `:3779-3795`, which is a whiteout-exit settle loop ~1,335 lines away; corrected 2026-09-16**; `--driver ch23chapter`. ⛔ What remains is NOT this — it is the CHAIN, tracked as `#24-ch23chain` — ✅✅✅ `KI-90` is FIXED **and the chain now PASSES** (`ACCEPTANCE: PASS`, `done=True`, `whiteouts=0`, 2026-09-05) — `#24-ch23chain` is CLOSED. *(This read "the chain was re-driven 2026-09-05 and FAILS because the party loses the leg-9 double" — true when written, fixed the same day by the (33,16) bypass plus the leg-11 sell top-up.)*
+      ✅✅✅ **LEG 11 SHIPPED 2026-09-04 — THE ELITE FOUR'S HEALING IS STOCKED** (`ch23shop`, PASS,
+      fixture `post_league_shop.ss1`): **Hyper Potion 30 · Full Restore 3 · Full Heal 8 · Revive 3**,
+      ₽56,041 → ₽1,741. ⛔ **BUT ONLY 33 OF THE 44 ARE USABLE** — see `#24-e4healing` above; the
+      bot cannot use Full Heal or Revive at all, so **it is NOT ready to attempt §Ch24.** ⚠ **UPDATED 2026-09-13 — HALF OF THIS IS NOW FALSE: FULL HEAL *IS* USABLE**, out of battle (step 1) and IN battle (step 3, DRIVEN). ⛔ **REVIVE remains unusable in battle** (`allow_revive=False`, pending `KI-100`). ⇒ the "33 of 44" figure is STALE and needs re-deriving; it is deliberately NOT restated here rather than guessed.
+      ✅✅✅ **LEG 10 SHIPPED 2026-09-04 — THE PARTY IS WHOLE** (`ch23heal`, PASS, `battles=0`,
+      `whiteouts=0`, fixture `post_league_heal.ss1` at EVER_GRANDE_CITY (18,6), **807/807**).
+      ✅✅✅ **LEG 9 SHIPPED 2026-09-04 — THE BOT IS OUT OF VICTORY ROAD** (`ch23exit`, PASS,
+      `battles=2`, `whiteouts=0`, fixture `post_vr_exit.ss1` at EVER_GRANDE_CITY (18,28)).
+      ⛔ **URGENT: 4% HP, FIVE FAINTED** — the League door is 37 wp away and it is the ONLY heal.
+      ✅✅✅ **LEG 8 SHIPPED 2026-09-04** (`ch23return`, PASS, `battles=2`, `whiteouts=0`, fixture
+      `post_return.ss1` at VICTORY_ROAD_1F (21,32)). ⛔ **It broke a TRAP:** from B1F (17,16) every
+      other exit was unreachable, so the bot could not leave Victory Road until it shipped.
+      ✅✅ **LEG 7 SHIPPED 2026-09-04** (`ch23cross2`, PASS, `battles=3`, `whiteouts=0`, fixture
+      `post_b2f.ss1` at VICTORY_ROAD_B1F (17,16)); its `LADDERAIM` fault arm is proven to FAIL.
+      ⭐ The crossing is ONE `navigate_to` — the planner mounts Surf and rides the descent itself.
+      ✅ **LEG 6 SHIPPED 2026-09-04** (`ch23descend`, PASS, `battles=4`, `whiteouts=0`, fixture
+      `post_b1f.ss1` at VICTORY_ROAD_B2F (30,25)); both its fault arms proven to FAIL.
+      ✅✅ **AND THE HEAL SHIPPED TOO (2026-09-04) — `#24-ch23healdescent` is CLOSED.** The A/B:
+      un-healed → **32% HP, THREE fainted**; healed → **87%, ZERO**. ⭐ **LEG 7 STARTS FROM
+      `post_b1f_healed.ss1`** (`b2eeb15c…`), ⛔ **NOT `post_b1f.ss1`**, which is kept only as that
+      A/B's un-healed arm.*
+      ⭐⭐ **STUB MARKER — READ BEFORE ANY BOULDER CODE:** `ai-research-notes/2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` (3 independent agents) + `...-ch24-POKEMON-LEAGUE.md`. ⛔ NOTES, not truth — the reachability is MODELED and 3 live checks are OWED. Headlines: (1) **the route is `1F→B1F→B2F→B1F→1F`** — 1F's entrance and exit are in DIFFERENT walk-regions, so "walk across 1F" is impossible; (2) **TWO boulders are mandatory, (4,7) WEST and (9,10) EAST** — a "delete it and re-path" model finds only (9,10) and misses (4,7); (3) ⛔ **pushing either SOUTH kills the route irreversibly** — exactly what a greedy push-toward-goal router does; (4) **every warp RESETS the puzzle** (`FLAG_TEMP_*` cleared, boulders revert — also the recovery from a trap push) and **`FLAG_SYS_USE_STRENGTH` clears on every map load**; (5) minimal HMs = **{Surf, Strength, Rock Smash}** — **Waterfall and Flash NOT required**; (6) ✅ `strength_push` exists (`early_game.py:8143`, Magma-Hideout-proven) ⇒ **the machinery exists; only the route is missing.**
+      ⛔ *(This item's header read "PRODUCTION CODE IS ZERO" and its first line "`victory_road.py`
+      DOES NOT EXIST" for a day AFTER legs 2-4 shipped from that very file — the heading-vs-body rot
+      this tree keeps paying for. Rewritten 2026-09-04.)*
+
+      ✅ **SHIPPED AND DRIVEN — ⛔ DO NOT REBUILD ANY OF IT:**
+      * **Leg 1** — `--driver ch23teach`: Waterfall onto Wailmer (lost Rollout, **kept Dive + Surf**).
+      * **Legs 2-3** — `victory_road.depart_sootopolis` + `--driver ch23depart` → PASS first drive;
+        heal, arm the respawn, dive the crater, emerge on ROUTE126.
+      * **Leg 4** — `victory_road.cross_to_ever_grande` + `--driver ch23cross` → PASS first drive;
+        Rt126→127→128→Ever Grande, the two forced trainer fights, the waterfall climb, the Ever
+        Grande heal, ending on the Victory Road **apron**.
+
+      **FIXTURE CHAIN (all PINNED, each captured only on a FULL PASS):**
+      `post_badge8` → `post_waterfall` → `post_depart_sootopolis` (ROUTE126 (45,66), 100%) →
+      **`post_ever_grande.ss1`** (`18203e99…`, EVER_GRANDE (18,42), 100%) →
+      **`post_training.ss1`** (`2f517f1f…`, VICTORY_ROAD_1F (15,39), 95%) →
+      **`post_wally.ss1`** (`76000aa5…`, VICTORY_ROAD_1F (9,15), 67%) →
+      **`post_b1f.ss1`** (`d362df89…`, B2F (30,25), 32%, 3 fainted — ⛔ the UN-HEALED A/B arm,
+      NOT a start point) → **`post_b1f_healed.ss1`** (`b2eeb15c…`, B2F (30,25), **87%, ZERO
+      fainted**) ← **⭐ START LEG 7 HERE.**
+      ⛔ **NEITHER EARLIER FIXTURE IS THE START POINT.** `post_ever_grande.ss1` is PRE-TRAINING and
+      its party LOSES to Wally (MEASURED, twice); `post_training.ss1` is trained but PRE-WALLY.
+      ✅ **WALLY IS BEATEN (2026-09-04)** — `--driver ch23road`, `wally_flag=True`,
+      **`whiteouts=0`**, `battles=6` — and `post_wally.ss1` sits on **(9,15) = the B1F ladder
+      apron**, i.e. leg 6 starts exactly there. `#24-ch23wally` is **CLOSED**.
+      ⛔⛔ **HEAL FIRST — 67% HP with Sceptile AND Zigzagoon FAINTED** (`probe_anchor_inventory`
+      marks it "CANNOT SURVIVE A JOURNEY"). Sceptile is now **L52**, not the L51 training left.
+      ‼ The grind only worked after **KI-84**; gym prep is still exposed to the same bug.
+      ⚠ *(Both claims here were false for one commit — Tier 1 caught it. **P5 twice in the same
+      item: closing the CHILD item is not updating the PARENT.**)*
+
+      📄 **ALL ANALYSIS LIVES IN ONE PLACE:** `ai-research-notes/2026-09-03-ch23-CHAPTER-BUILD-SPEC.md`
+      — §1 the opening state and the field-move/HP correction, §2 the FOUR harness edits + the `os`
+      trap, §2b the measured hop table, §3 the four grading rules, §4b legs 2-3's contract (4
+      blockers), **§4c legs 4's contract (3 blockers, 2 settled by a seconds-long waypoint dump)**.
+      Companions: `…-VICTORY-ROAD-RECON.md`, `…-VICTORY-ROAD-B1F-B2F.md`, `…-VICTORY-ROAD-1F.md`,
+      `…-WATER-ROUTE.md`.
+
+      ⛔⛔ **THE THREE THINGS LEG 5+ MUST NOT MISS:**
+      1. **NEVER PUSH B1F's (4,7) OR (9,10) SOUTH** — either seals the floor for that visit. Minimum
+         solution: PUSH WEST (4,7)→(3,7) from (5,7); PUSH EAST (9,10)→(10,10) from (8,10); SMASH
+         (18,12). ⭐ **Only pushes can kill** (0 of 186,602 walk and 145 smash edges cross live→dead)
+         ⇒ the guard is a refusal at the `strength_push` call site, **fail-LOUD**, in the §Ch23
+         module — NOT in `strength_push` (§Ch20 shares it). Ruled in `06-DECISIONS-LOG.md`.
+         ⚠ **Adjudicated OFFLINE only — the three live checks in the B1F/B2F note §F are still owed.**
+      2. **NEVER AIM A PATH AT A TILE AN OBJECT STANDS ON** — a refusal there means "something is
+         standing there", not "you cannot get there". And **never aim at a DOOR warp**: aiming leg 4
+         at (18,41) would have ended it *inside* Victory Road (MEASURED).
+      3. **1F IS THREE REGIONS CUT BY ELEVATION** — from (15,40) you can reach ONLY the B1F ladder;
+         from (21,32) ONLY the exit. That is what forces the basement detour, and production's own
+         planner confirms it. 1F needs **no field moves** and **cannot be bricked**.
+
+      ⛔⛔ **LEG 3's OWED ARMS (still open):** `STALERESPAWN`, a real `BADSTEP` (the current one is
+      **hollow** — its branch never runs), and a `_play()` run to demonstrate the layout pin (a
+      **NO-OP** in a fresh process). ✅ `NOHEAL` IS fault-proven by A/B.
+      ⚠ **KI-83** bounds every heal/dive call at our call site; **KI-72/73/53/60** are armed on this
+      route; **KI-47** can wedge any battle; **`#26-surfteachchain` D3** is OPEN and armed here.
+

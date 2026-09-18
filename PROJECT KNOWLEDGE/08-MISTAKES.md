@@ -18990,3 +18990,84 @@ against an INDEPENDENT SOURCE — not X's neighbours against the same tool.*
 **⭐ THIRD, and it is the cheap one.** *When a fresh measurement contradicts something already written
 down in the tree, suspect the MEASUREMENT first. Today that instinct was the only thing between a
 truncated pipe and two fabricated defect reports.*
+
+
+## 2026-09-18 — I SPENT A SESSION PRICING A VARIABLE THE DECIDING CODE CANNOT SEE
+
+**Symptom.** I closed the previous day's work by declaring the next step: *"the choice now rests on a
+single unmeasured number: the frame cost of one B1F heal round-trip … price it before choosing."* I
+then built a 10-agent workflow around that number, and did break-even arithmetic on it myself.
+
+**It was the wrong question.** `estimate_frames_to_level` — the guard whose refusal is the actual
+blocker on `#24-levelgap` — has **no heal term and no travel term**. Its whole body is
+`ceil(needed_exp / xp_per_battle) * FRAMES_PER_WILD_BATTLE`. The heal round-trip is invisible to it, so
+no value of that number moves the refusal by one frame. Under the guard's own model the ground choice
+is worth 4.79% against a required 2.05× cut — two orders of magnitude from the decision.
+
+**Root cause.** I had READ that function twice the previous day, for a different purpose (the
+calibration question), and both times I was looking at its *numerator*. I never asked what terms it
+does not contain. **An absent term is invisible to a reader checking whether the present ones are
+right** — the same blind spot as reading a list without counting it.
+
+**What caught it.** A single adversarial recon angle whose only instruction was to attack the FRAMING
+rather than the details. It read the function body once and said so. ⇒ the adversarial arm has now
+found the decisive answer on three separate questions in this project; it is not a nice-to-have.
+
+**⭐ PREVENTION RULE.** *Before optimising a variable, open the code that makes the decision and check
+that the variable APPEARS IN IT. If the deciding function has no term for the quantity, measuring the
+quantity cannot change the decision — however carefully it is measured.*
+**⭐ SECOND RULE.** *When you set the next session's agenda in a handoff, state WHICH CODE the next
+measurement will move. "Price X" without naming the predicate X feeds is how a session optimises a
+term that is not in the equation.*
+
+## 2026-09-18 — A CONTROL STOPPED ME FILING A HARD BLOCKER THAT DID NOT EXIST
+
+**Symptom.** Having found that `_exit_training_cave_if_inside()` does not know Victory Road, I inferred
+that a B1F grind might be unable to navigate a heal at all — a hard blocker. I wrote a probe to test
+it: `calculate_path` from B1F to the Ever Grande Poké Center. **It REFUSED.**
+
+**The control refused too.** I had included 1F→Poké Center as a known-good control, because 278 real
+heals from 1F are recorded in prior run logs. It refused identically. ⇒ `calculate_path` is simply not
+how cross-map heal navigation is performed — `heal_in_pokemon_center` uses `navigate_to_anywhere`
+(`higher_level_actions.py:465`), a warp-chaining graph navigator. **Wrong instrument.** The probe
+printed `INCONCLUSIVE` instead of a finding, exactly as designed.
+
+**Why this is worth an entry even though nothing broke.** Without the control I would have filed
+"B1F cannot heal" as a measured hard blocker, and it would have killed a ground choice on a false
+premise. The B1F heal question remains genuinely OPEN (`#24-cavehealblind`) — which is the honest
+state, and a much better outcome than a confident wrong answer.
+
+**⭐ PREVENTION RULE (reinforcing, not new — and that is the point).** *Every probe that can return a
+NEGATIVE must carry a control that is known to return POSITIVE. A refusal from an instrument you have
+not shown to ever succeed is not evidence of anything.* This is the THIRD time in two days a control
+changed the answer, and the SECOND time it prevented a fabricated defect report. ⇒ the rule is not
+being under-applied any more; it is now the thing doing the work.
+
+
+## 2026-09-18 — I TOLD A REVIEWER "DOCUMENTATION ONLY, NO CODE CHANGED". `git status` SHOWED 8 FILES
+
+**Symptom.** The Tier 1 brief for the grind-economics item listed seven documentation files and stated
+"documentation only, no code changed". The reviewer ran `git diff --stat`, found an **eighth** file —
+`tools/story-dev/probe_live_mapgrid.py`, +27/-7 of real code — and blocked for undisclosed scope. It
+also had no changelog or mistakes entry despite fixing three named defects.
+
+**Root cause, and it is NOT that I forgot the fix existed.** I made that fix earlier in the same
+session, deliberately and with three fault arms. When I wrote the brief I described **the item** —
+the grind economics — rather than **the working tree**. The file list came from what the work was
+*about*, not from what was *dirty*.
+
+**‼ THIS IS THE SAME RULE I WROTE THE DAY BEFORE, AFTER THE SAME CLASS OF MISS:** *"Before describing a
+change set — to a reviewer, in a commit message, or in a handoff — regenerate the file list from
+`git status --short`."* I had the rule, in this file, from yesterday, and did not run the command.
+
+**Why the rule did not fire.** Yesterday's version was filed as the lesson of a *partially-executed
+script* — a file I believed changed and had not. Today's case is the mirror: a file that changed and
+I did not mention. Same command prevents both; I had indexed it under the wrong failure.
+
+**The fix that worked.** Ran `git status --short`, found the eighth file, documented the probe fix
+properly (changelog + this entry), and disclosed it.
+
+**⭐ PREVENTION RULE (STRENGTHENED, because the weak form already failed once).** *Run
+`git status --short` and PASTE ITS OUTPUT into the brief or commit message. Not "check" it — paste it.
+A rule that asks you to remember to look is a rule you will satisfy from memory; a rule that asks you
+to paste output cannot be satisfied without running the command.*

@@ -271,6 +271,23 @@ open-vs-built sweep of all 80 open items has **not** been done.
   the lobby window between the guard-talk and Hall5 is still untraced.
   ⛔ **DO NOT WIRE SEGMENT 24** — this is prerequisite (1), and it is not done. Full recon with what is
   verified and what is only an agent claim: `ai-research-notes/2026-09-17-ch24-wiring-recon-VERIFIED.md`.
+- [ ] ⛔⛔ `#24-cavehealblind` — **NEW 2026-09-18. `_exit_training_cave_if_inside()` DOES NOT KNOW VICTORY ROAD, AND HEALING FROM INSIDE IT WORKS ONLY BY COINCIDENCE. ⇒ WHAT REMAINS: prove (by a drive) whether a spin tile deeper than the exit apron can heal at all.**
+  ✅ **MEASURED BY ME:** `grep -c VICTORY_ROAD sandbox-pokebot/modules/story/early_game.py` → **0**.
+  `_CAVE_EXITS` (`early_game.py:2003`) holds exactly two entries — `GRANITE_CAVE_1F` and Fiery Path —
+  and its docstring says *“A cheap no-op anywhere that is not in `_CAVE_EXITS`.”*
+  ⛔ **THE COMMENT DIRECTLY ABOVE THE CALL RECORDS A MEASURED FAILURE** (`:2154-2157`): *“CAVE-AWARE HEAL
+  (2× real-HW Manual drops 2026-07-22): healing from INSIDE Granite Cave targeted the Dewford PC
+  **across warp levels** — the global navigator can't do that (‘not on connected maps’). Exit the cave
+  first.”*
+  ⇒ ⭐ **HEALING FROM VICTORY ROAD WORKS TODAY ONLY BECAUSE `TRAIN_SPOT_1F (15,39)` *IS* `VR_EXIT_APRON`**
+  — the spin tile already sits one step from the arrow warp, so the no-op costs nothing. **Move the spin
+  tile one warp deeper (i.e. B1F) and the heal depends on the very navigation the comment says fails.**
+  ⚠ **UNRESOLVED, AND I COULD NOT SETTLE IT STATICALLY.** `heal_in_pokemon_center` uses
+  `navigate_to_anywhere` (`higher_level_actions.py:465`), a warp-chaining graph navigator needing live
+  state — **not** `calculate_path`. ⇒ **THE CHEAP DECISIVE EXPERIMENT IS A DRIVE:** park at a B1F
+  chamber tile, force a heal, observe. That same run also buys B1F's unmeasured frames/battle.
+  ‼ **THIS IS A PREREQUISITE FOR *ANY* B1F GRIND** and is why the ground choice is deferred — see
+  `#24-levelgap`. It costs nothing today because production never trains anywhere but 1F.
 - [ ] ⛔⛔⛔ `#24-levelgap` — **NEW 2026-09-17 (late). THE FOURTH PREREQUISITE FOR WIRING SEGMENT 24, AND IT WAS NOT ON THE LIST OF THREE. PRODUCTION REACHES THE LEAGUE DOOR AT L47 AND THE GAUNTLET IS 0% AT L53.**
   ‼ **EVERY §Ch24 PROBE THIS PROJECT HAS RUN USED A HAND-GROWN L75 PARTY.** That party came from `--driver ch24grind` (`Ch24GrindMode`), which lives **ONLY in `tools/story-dev/story_harness.py:15393`** — it is NOT production code. ⇒ a wired Segment 24 today would walk into a ONE-WAY SEALED ZONE at L47 and lose, repeatedly.
   **THE NUMBERS, ALL FROM OUR OWN TREE:** production's only story training target is **`TRAIN_TARGET = 47`** (`modules/story/victory_road.py:492`) — ⭐ **verified to be the ONLY one in the entire story tree** (`grep` over `modules/story/*.py` + `story_mode.py` returns exactly that one plus `ENDLESS_RESET_TARGET`, which is unrelated). And the win-rate curve (`07-CHANGELOG.md:23310-23313`) is: **`L53 → 0% Glacia · L57 → 87% Glacia, dies at Drake · L60 → 99.7% Glacia · L75 → 88% CLEAR`**, with *“Break-even is L62”* against Wallace’s Milotic Recover race (`:23307`).
@@ -313,15 +330,39 @@ open-vs-built sweep of all 80 open items has **not** been done.
    is wrong for Victory Road in the *same* direction as the xp term and the errors cancel
    (`07-CHANGELOG.md:24637-24641`, settled 2026-09-08). ⇒ **the refusals are REAL, not an artifact.**
    ⭐ **TRUE COST OF L47→L62 ON B1F**, at the real rate (950.8 xp/battle) and the real frame cost
-   (~3,192 f/battle measured at Victory Road — ⚠ **that frame rate was measured alongside 1F’s 775.6 and is TRANSFERRED to B1F here; frames/battle has never been measured per Victory Road FLOOR, as this item’s own withdrawal states. The refusal margins are 46%+ so it does not flip the conclusion, but the precise digits carry that assumption**): **Fast 363,888** · **Medium-Fast 453,264** · **Medium-Slow 466,032** · **Slow 564,984** frames.
+   (~3,192 f/battle measured at Victory Road — ⚠ **that frame rate was measured alongside 1F’s 775.6 and is TRANSFERRED to B1F here; frames/battle has never been measured per Victory Road FLOOR, as this item’s own withdrawal states. The refusal margins are 46%+ so it does not flip the conclusion, but the precise digits carry that assumption** ⚠⚠ **AND THE 3,192 FIGURE ITSELF IS NOW IN DOUBT (2026-09-18):** two independent angles measured it from real logs as **2,138** and **2,384–2,648**. NOT adjudicated — see `ai-research-notes/2026-09-18-ch24-grind-economics-MEASURED.md`. *(Direction matters: a LOWER frames/battle makes every grind CHEAPER than the figures below assume.)*): **Fast 363,888** · **Medium-Fast 453,264** · **Medium-Slow 466,032** · **Slow 564,984** frames.
    ⇒ **EVERY curve REFUSES the 250,000 ceiling — by 1.46× (Fast) to 2.26× (Slow)** — and L75 costs
    **855k–1.34M** frames, 3.4×–5.3× over. Double all of it again if swap-training's 2-way split
    applies (`set_swap_train(True)` is unconditional at `early_game.py:2097`).
    ⇒ **THE REAL BLOCKER IS THE BUDGET SHAPE, NOT THE COST MODEL:** a 15-level climb does not fit in
    one `train_team` call, and ⛔ the refusal message forbids the obvious dodge — *"do NOT raise the
-   ceiling to make the run start."* **THE OPEN DESIGN QUESTION IS THEREFORE: how does a multi-call
-   (or split-aware) grind get budgeted and made resumable?** That, not an estimator fix, is what
-   `#24-levelgap` needs answered before any leg is written.
+   ceiling to make the run start."*    ⛔⛔ **THE ORDER ABOVE IS SUPERSEDED — IT READ “(1) `#24-trainestimatorcal`, (2) decide how a
+   multi-call or split-aware grind is budgeted, (3) build the leg.” STEP (1) WAS WITHDRAWN THE SAME DAY,
+   AND STEP (2) IS NOW ANSWERED (2026-09-18).**
+   ⭐⭐ **THE ANSWER: NOTHING NEEDS DESIGNING OR RELAXING. A STEPPED GRIND IS ALREADY PERMITTED, AND THE
+   SHAPE ALREADY EXISTS AND HAS RUN.**
+   * ✅ **The ceiling is PER-CALL by explicit design** — `victory_road.py:2012-2019`, verbatim:
+     *“⛔⛔ THE CEILING IS PER-CALL, NOT PER-TOTAL, AND THE DISTINCTION IS THE WHOLE POINT … summing them
+     and refusing would be measuring the wrong quantity … ⇒ refuse any SINGLE mon whose grind is
+     unaffordable”* — and the test is `worst = max(estimates.items(), …)`, one mon, one call.
+     ⇒ **each step under the ceiling is legal; the guard was never the obstacle it looked like.**
+   * ⭐ **The shape exists:** `Ch24GrindMode` (`story_harness.py:15393-15689`) is a stepped loop of
+     `train_for_victory_road(target=low+STEP)`, `STEP=2`, `MAX_STEPS=24`, `MAX_RETRIES=2`, a save-state
+     checkpoint after EVERY step, and a refuse-to-spin break. Its checkpoint ladder
+     `post_e4grind_L49 … L73 + FINAL` is **on disk** from 2026-09-17.
+   ⇒ **THE WORK IS TO PROMOTE THAT SHAPE INTO A PRODUCTION LEG** — not to invent a design, not to fix
+   the estimator, and (see below) not to choose a ground first.
+   ⚠ **ONE RECORDED OBSTACLE, CHECK IT BEFORE BUILDING:** `team_is_ready(target)` (`:2135-2141`) raises
+   terminally and its Crunch clause (`:1903`) hardcodes `CRUNCH_LEVEL = 47` instead of `target` — the
+   surviving reason §Ch23's **sub-47** stepping was refuted on 2026-09-08. *(INFERRED, unverified: it
+   does not bite stepping UPWARD from 47.)*
+   ⛔⛔ **AND MY OWN FRAMING OF THIS ITEM WAS REFUTED BY AN ADVERSARIAL PASS, WHICH I THEN VERIFIED.**
+   I wrote that the next step was to *price a heal round-trip and settle the ground question*.
+   **`estimate_frames_to_level` contains NO heal term and NO travel term** — its whole body is
+   `ceil(needed_exp / xp_per_battle) * FRAMES_PER_WILD_BATTLE` — so **pricing the heal cannot move the
+   refusal by one frame**, and under that guard's model the ground choice is worth **~5%** against a
+   required **2.05×** cut. *(The recon said 4.79% and this item says +5.0% forty lines above: same ratio, different denominators — 301.2/286.9 is +5.0% of 1F, 4.76% of B1F. Reconciled here rather than left reading as a contradiction.)* ⇒ **ground selection is two orders of magnitude from the decision.**
+   Full measured economics, the landmine below, and what is still unproven: `ai-research-notes/2026-09-18-ch24-grind-economics-MEASURED.md`.
   ‼ **UNTIL THIS SHIPS, DO NOT WIRE SEGMENT 24.** The handoff's standing list of three prerequisites (position-independent marker · leg 2 · a `ch24_chapter_done()` that is not `SYS_GAME_CLEAR` alone) is INCOMPLETE without it, and all three could be satisfied while the bot still loses every run.
 - [x] ⛔⛔ `#24-trainestimatorcal` — **FILED AND WITHDRAWN THE SAME DAY (2026-09-17). I RE-DISCOVERED A SETTLED QUESTION AND GOT IT WRONG BY BREAKING A RULE THIS PROJECT HAD WRITTEN VERBATIM TO PREVENT IT. ⭐ THE WITHDRAWAL IS KEPT BECAUSE IT IS MORE USEFUL THAN THE ITEM WAS.**
   **WHAT I FILED:** that `_CALIBRATED_AVG_WILD_BASE_EXP_YIELD = 50.2` is calibrated to Route 102 and,
@@ -331,7 +372,7 @@ open-vs-built sweep of all 80 open items has **not** been done.
   ⛔⛔ **WHY IT IS WITHDRAWN ANYWAY — I CHANGED THE NUMERATOR AND LEFT THE DENOMINATOR.**
   `estimate_frames_to_level` returns **FRAMES**: `ceil(needed_exp / xp_per_battle) ×
   FRAMES_PER_WILD_BATTLE`. `FRAMES_PER_WILD_BATTLE = 1433` (`training_areas.py:674`) is **ALSO measured
-  on Route 102**, and is **ALSO wrong for Victory Road, in the SAME direction** (~**3,192** there).
+  on Route 102**, and is **ALSO wrong for Victory Road, in the SAME direction** (~**3,192** there ⚠⚠ **AND THE 3,192 FIGURE ITSELF IS NOW IN DOUBT (2026-09-18):** two independent angles measured it from real logs as **2,138** and **2,384–2,648**. NOT adjudicated — see `ai-research-notes/2026-09-18-ch24-grind-economics-MEASURED.md`. *(Direction matters: a LOWER frames/battle makes every grind CHEAPER than the figures below assume.)*).
   The two errors very largely cancel: **exp per FRAME is 0.2002 (model) vs 0.2430 (real) — only ~18%
   pessimistic.** ⇒ for a FRAME ceiling the estimator is approximately RIGHT, and *"relaxing it buys
   almost nothing."*
@@ -896,87 +937,11 @@ right place is a NEW out-of-battle path.
 
 > ⛔ **HEADER/BODY PAIR NOTE (2026-09-04).** This header read "LEGS 1-4 SHIP AND PASS; LEGS 5-8 REMAIN" for one commit *after* its own body bullet had been corrected to "legs 6-8" — a Tier 1 reviewer caught it. **P2: a header is a claim about every bullet beneath it**, and updating the body alone is the more dangerous state, because the body looks current.
 
-- [x] **DONE 2026-09-05: the chapter orchestrator + Segment 23 wiring SHIPPED.** `ch23_chapter_done()` + `do_victory_road_chapter()` in `victory_road.py`; dispatch at `story_mode.py`'s `# --- Segment 23: VICTORY ROAD ---` block, ending in `_guard("Victory Road (Ch23)", ch23_chapter_done)` — ⛔ **cite the SYMBOL: this read `:3779-3795`, which is a whiteout-exit settle loop ~1,335 lines away; corrected 2026-09-16**; `--driver ch23chapter`. ⛔ What remains is NOT this — it is the CHAIN, tracked as `#24-ch23chain` — ✅✅✅ `KI-90` is FIXED **and the chain now PASSES** (`ACCEPTANCE: PASS`, `done=True`, `whiteouts=0`, 2026-09-05) — `#24-ch23chain` is CLOSED. *(This read "the chain was re-driven 2026-09-05 and FAILS because the party loses the leg-9 double" — true when written, fixed the same day by the (33,16) bypass plus the leg-11 sell top-up.)*
-      ✅✅✅ **LEG 11 SHIPPED 2026-09-04 — THE ELITE FOUR'S HEALING IS STOCKED** (`ch23shop`, PASS,
-      fixture `post_league_shop.ss1`): **Hyper Potion 30 · Full Restore 3 · Full Heal 8 · Revive 3**,
-      ₽56,041 → ₽1,741. ⛔ **BUT ONLY 33 OF THE 44 ARE USABLE** — see `#24-e4healing` above; the
-      bot cannot use Full Heal or Revive at all, so **it is NOT ready to attempt §Ch24.** ⚠ **UPDATED 2026-09-13 — HALF OF THIS IS NOW FALSE: FULL HEAL *IS* USABLE**, out of battle (step 1) and IN battle (step 3, DRIVEN). ⛔ **REVIVE remains unusable in battle** (`allow_revive=False`, pending `KI-100`). ⇒ the "33 of 44" figure is STALE and needs re-deriving; it is deliberately NOT restated here rather than guessed.
-      ✅✅✅ **LEG 10 SHIPPED 2026-09-04 — THE PARTY IS WHOLE** (`ch23heal`, PASS, `battles=0`,
-      `whiteouts=0`, fixture `post_league_heal.ss1` at EVER_GRANDE_CITY (18,6), **807/807**).
-      ✅✅✅ **LEG 9 SHIPPED 2026-09-04 — THE BOT IS OUT OF VICTORY ROAD** (`ch23exit`, PASS,
-      `battles=2`, `whiteouts=0`, fixture `post_vr_exit.ss1` at EVER_GRANDE_CITY (18,28)).
-      ⛔ **URGENT: 4% HP, FIVE FAINTED** — the League door is 37 wp away and it is the ONLY heal.
-      ✅✅✅ **LEG 8 SHIPPED 2026-09-04** (`ch23return`, PASS, `battles=2`, `whiteouts=0`, fixture
-      `post_return.ss1` at VICTORY_ROAD_1F (21,32)). ⛔ **It broke a TRAP:** from B1F (17,16) every
-      other exit was unreachable, so the bot could not leave Victory Road until it shipped.
-      ✅✅ **LEG 7 SHIPPED 2026-09-04** (`ch23cross2`, PASS, `battles=3`, `whiteouts=0`, fixture
-      `post_b2f.ss1` at VICTORY_ROAD_B1F (17,16)); its `LADDERAIM` fault arm is proven to FAIL.
-      ⭐ The crossing is ONE `navigate_to` — the planner mounts Surf and rides the descent itself.
-      ✅ **LEG 6 SHIPPED 2026-09-04** (`ch23descend`, PASS, `battles=4`, `whiteouts=0`, fixture
-      `post_b1f.ss1` at VICTORY_ROAD_B2F (30,25)); both its fault arms proven to FAIL.
-      ✅✅ **AND THE HEAL SHIPPED TOO (2026-09-04) — `#24-ch23healdescent` is CLOSED.** The A/B:
-      un-healed → **32% HP, THREE fainted**; healed → **87%, ZERO**. ⭐ **LEG 7 STARTS FROM
-      `post_b1f_healed.ss1`** (`b2eeb15c…`), ⛔ **NOT `post_b1f.ss1`**, which is kept only as that
-      A/B's un-healed arm.*
-      ⭐⭐ **STUB MARKER — READ BEFORE ANY BOULDER CODE:** `ai-research-notes/2026-09-04-ch23-VICTORY-ROAD-TRAVERSAL.md` (3 independent agents) + `...-ch24-POKEMON-LEAGUE.md`. ⛔ NOTES, not truth — the reachability is MODELED and 3 live checks are OWED. Headlines: (1) **the route is `1F→B1F→B2F→B1F→1F`** — 1F's entrance and exit are in DIFFERENT walk-regions, so "walk across 1F" is impossible; (2) **TWO boulders are mandatory, (4,7) WEST and (9,10) EAST** — a "delete it and re-path" model finds only (9,10) and misses (4,7); (3) ⛔ **pushing either SOUTH kills the route irreversibly** — exactly what a greedy push-toward-goal router does; (4) **every warp RESETS the puzzle** (`FLAG_TEMP_*` cleared, boulders revert — also the recovery from a trap push) and **`FLAG_SYS_USE_STRENGTH` clears on every map load**; (5) minimal HMs = **{Surf, Strength, Rock Smash}** — **Waterfall and Flash NOT required**; (6) ✅ `strength_push` exists (`early_game.py:8143`, Magma-Hideout-proven) ⇒ **the machinery exists; only the route is missing.**
-      ⛔ *(This item's header read "PRODUCTION CODE IS ZERO" and its first line "`victory_road.py`
-      DOES NOT EXIST" for a day AFTER legs 2-4 shipped from that very file — the heading-vs-body rot
-      this tree keeps paying for. Rewritten 2026-09-04.)*
-
-      ✅ **SHIPPED AND DRIVEN — ⛔ DO NOT REBUILD ANY OF IT:**
-      * **Leg 1** — `--driver ch23teach`: Waterfall onto Wailmer (lost Rollout, **kept Dive + Surf**).
-      * **Legs 2-3** — `victory_road.depart_sootopolis` + `--driver ch23depart` → PASS first drive;
-        heal, arm the respawn, dive the crater, emerge on ROUTE126.
-      * **Leg 4** — `victory_road.cross_to_ever_grande` + `--driver ch23cross` → PASS first drive;
-        Rt126→127→128→Ever Grande, the two forced trainer fights, the waterfall climb, the Ever
-        Grande heal, ending on the Victory Road **apron**.
-
-      **FIXTURE CHAIN (all PINNED, each captured only on a FULL PASS):**
-      `post_badge8` → `post_waterfall` → `post_depart_sootopolis` (ROUTE126 (45,66), 100%) →
-      **`post_ever_grande.ss1`** (`18203e99…`, EVER_GRANDE (18,42), 100%) →
-      **`post_training.ss1`** (`2f517f1f…`, VICTORY_ROAD_1F (15,39), 95%) →
-      **`post_wally.ss1`** (`76000aa5…`, VICTORY_ROAD_1F (9,15), 67%) →
-      **`post_b1f.ss1`** (`d362df89…`, B2F (30,25), 32%, 3 fainted — ⛔ the UN-HEALED A/B arm,
-      NOT a start point) → **`post_b1f_healed.ss1`** (`b2eeb15c…`, B2F (30,25), **87%, ZERO
-      fainted**) ← **⭐ START LEG 7 HERE.**
-      ⛔ **NEITHER EARLIER FIXTURE IS THE START POINT.** `post_ever_grande.ss1` is PRE-TRAINING and
-      its party LOSES to Wally (MEASURED, twice); `post_training.ss1` is trained but PRE-WALLY.
-      ✅ **WALLY IS BEATEN (2026-09-04)** — `--driver ch23road`, `wally_flag=True`,
-      **`whiteouts=0`**, `battles=6` — and `post_wally.ss1` sits on **(9,15) = the B1F ladder
-      apron**, i.e. leg 6 starts exactly there. `#24-ch23wally` is **CLOSED**.
-      ⛔⛔ **HEAL FIRST — 67% HP with Sceptile AND Zigzagoon FAINTED** (`probe_anchor_inventory`
-      marks it "CANNOT SURVIVE A JOURNEY"). Sceptile is now **L52**, not the L51 training left.
-      ‼ The grind only worked after **KI-84**; gym prep is still exposed to the same bug.
-      ⚠ *(Both claims here were false for one commit — Tier 1 caught it. **P5 twice in the same
-      item: closing the CHILD item is not updating the PARENT.**)*
-
-      📄 **ALL ANALYSIS LIVES IN ONE PLACE:** `ai-research-notes/2026-09-03-ch23-CHAPTER-BUILD-SPEC.md`
-      — §1 the opening state and the field-move/HP correction, §2 the FOUR harness edits + the `os`
-      trap, §2b the measured hop table, §3 the four grading rules, §4b legs 2-3's contract (4
-      blockers), **§4c legs 4's contract (3 blockers, 2 settled by a seconds-long waypoint dump)**.
-      Companions: `…-VICTORY-ROAD-RECON.md`, `…-VICTORY-ROAD-B1F-B2F.md`, `…-VICTORY-ROAD-1F.md`,
-      `…-WATER-ROUTE.md`.
-
-      ⛔⛔ **THE THREE THINGS LEG 5+ MUST NOT MISS:**
-      1. **NEVER PUSH B1F's (4,7) OR (9,10) SOUTH** — either seals the floor for that visit. Minimum
-         solution: PUSH WEST (4,7)→(3,7) from (5,7); PUSH EAST (9,10)→(10,10) from (8,10); SMASH
-         (18,12). ⭐ **Only pushes can kill** (0 of 186,602 walk and 145 smash edges cross live→dead)
-         ⇒ the guard is a refusal at the `strength_push` call site, **fail-LOUD**, in the §Ch23
-         module — NOT in `strength_push` (§Ch20 shares it). Ruled in `06-DECISIONS-LOG.md`.
-         ⚠ **Adjudicated OFFLINE only — the three live checks in the B1F/B2F note §F are still owed.**
-      2. **NEVER AIM A PATH AT A TILE AN OBJECT STANDS ON** — a refusal there means "something is
-         standing there", not "you cannot get there". And **never aim at a DOOR warp**: aiming leg 4
-         at (18,41) would have ended it *inside* Victory Road (MEASURED).
-      3. **1F IS THREE REGIONS CUT BY ELEVATION** — from (15,40) you can reach ONLY the B1F ladder;
-         from (21,32) ONLY the exit. That is what forces the basement detour, and production's own
-         planner confirms it. 1F needs **no field moves** and **cannot be bricked**.
-
-      ⛔⛔ **LEG 3's OWED ARMS (still open):** `STALERESPAWN`, a real `BADSTEP` (the current one is
-      **hollow** — its branch never runs), and a `_play()` run to demonstrate the layout pin (a
-      **NO-OP** in a fresh process). ✅ `NOHEAL` IS fault-proven by A/B.
-      ⚠ **KI-83** bounds every heal/dive call at our call site; **KI-72/73/53/60** are armed on this
-      route; **KI-47** can wedge any battle; **`#26-surfteachchain` D3** is OPEN and armed here.
-
+- [x] ✅✅ `#24-ch23chain` — **§Ch23 IS A CHAPTER: DONE 2026-09-05.** The orchestrator (`ch23_chapter_done()` + `do_victory_road_chapter()`) and the Segment 23 dispatch shipped.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — all eleven legs' readings, fault arms and acceptance lines are there in full.
+      **THE FACTS A LATER SESSION ACTUALLY NEEDS — the leg→fixture chain, kept here:** `post_training` → `post_wally` → `post_b1f_healed` → `post_b2f` → `post_return` → `post_vr_exit` → `post_league_heal` → `post_league_shop`.
+      ⚠ Two inherited caveats that are NOT closed: the league basket is stocked but **only 33 of 44 items were usable when filed** (`#24-e4healing`; half since corrected — Full Heal *is* usable **both out of battle AND in battle** (step 3, driven)), and §Ch23 leaves the party **degraded** — `post_wally.ss1` is 67% HP with TWO fainted, so **heal before using it as a start point**.
+      ⇒ the live successor is `#24-levelgap`: §Ch23 ends at ~L47 and the gauntlet needs ~L62.
 ### 🔧 `#24-linebudgetchars` — **THE LINE-COUNT DOC BUDGET REWARDS CRAMMING, AND IT HAS NOW PRODUCED THE ROT IT EXISTS TO PREVENT.** (filed 2026-09-03)
 
 - [ ] **`lint_docs.py` R3 counts LINES and nothing else** (`lint_docs.py:156`, `if lines > budget`).

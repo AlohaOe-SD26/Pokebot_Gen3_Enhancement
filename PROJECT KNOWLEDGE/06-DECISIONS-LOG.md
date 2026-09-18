@@ -5984,3 +5984,42 @@ rejected: it is set ~54 lines before the callback swap, with the Hall of Fame, t
 — rejected: Littleroot is where a NEW GAME starts, so it would grade a never-played save as done. (c)
 *Leave it and rely on `ch23_chapter_done()`'s basket conjunct* — rejected: after a win the party is
 whatever survived Wallace and the basket is likely spent, so that conjunct is False too.
+
+
+## 2026-09-18 — BUILD THE STEPPED GRIND ON **1F** FIRST; CHOOSE THE GROUND **LAST**
+
+**Context.** A 10-agent workflow priced the post-Wally grind. It refuted the question I asked, answered
+the one I should have asked, and turned up a landmine.
+
+**WHAT CHANGED THE DECISION.**
+1. ✅ The per-call ceiling **already permits** a stepped grind — `victory_road.py:2012-2019` says so
+   explicitly and tests `max()` over one mon per call. Nothing needs relaxing.
+2. ✅ The shape **already exists and has run**: `Ch24GrindMode`'s stepped loop with a checkpoint after
+   every step, ladder on disk.
+3. ✅ `estimate_frames_to_level` has **no heal or travel term**, so the heal round-trip I set out to
+   price is invisible to the guard that refuses the grind. The ground choice is worth 4.79% under that
+   model against a required 2.05× cut.
+4. ⛔ `_exit_training_cave_if_inside()` does not know Victory Road, so **a B1F heal is UNPROVEN** and
+   may hit the documented Granite Cave navigation failure (`#24-cavehealblind`).
+
+**DECISION: promote `Ch24GrindMode`'s stepped shape into a post-Wally production leg, using the PROVEN
+`TRAIN_SPOT_1F`. Defer the ground choice until `#24-cavehealblind` is settled by a drive.**
+
+**WHY 1F FIRST, GIVEN B1F IS AHEAD ON EVERY ECONOMIC ESTIMATE (+10% to +22% xp/frame).** Because every
+part of the 1F path is already proven and measured — the spin tile, the cheap heal (~2,178 f median
+over 278 real heals), the heal rate (1 per ~8.3 battles, 10% of run frames) — while B1F's advantage is
+an *optimisation* whose enabling condition is unproven. ⇒ **ship the leg that certainly works, then
+buy the 22% with a measurement.** A 22% speedup is not worth blocking the fourth prerequisite on.
+
+**Alternatives rejected.** (a) *Build on B1F now* — rejected: `#24-cavehealblind` could make it unable to
+heal at all, and the failure mode (navigating across warp levels) has already cost two real-hardware
+Manual drops. (b) *Settle the ground first with a drive, then build* — rejected: it serialises a 22%
+optimisation ahead of the blocker, and the same drive can be bought later at no extra cost. (c) *Relax
+or raise `MAX_TRAINING_FRAMES`* — rejected, and now clearly unnecessary: the guard permits stepping as
+written, and its own message forbids raising it. (d) *Fix the estimator first* — rejected: withdrawn
+the previous day as ~18% pessimistic on the quantity that matters, and irrelevant here anyway since
+stepping keeps each call under the ceiling.
+
+⭐ **THE RULE THIS SETTLES: BEFORE OPTIMISING A VARIABLE, CHECK THAT THE DECIDING CODE CAN SEE IT.**
+I priced a heal round-trip for a session; the guard that refuses the grind has no term for it. An
+adversarial pass found that in one read of the function body.

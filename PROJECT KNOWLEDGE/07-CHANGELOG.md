@@ -31727,3 +31727,87 @@ ARGUMENT, not a measurement — nobody has priced a B1F heal round-trip in frame
 
 Full recon, separating the seven facts I re-verified from the agent claims I did not:
 `ai-research-notes/2026-09-17-ch24-wiring-recon-VERIFIED.md`.
+
+
+## 2026-09-18 — ⭐⭐ `#24-levelgap`'s OPEN DESIGN QUESTION IS ANSWERED, AND MY FRAMING OF IT WAS REFUTED
+
+A 10-agent workflow (5 recon angles, each adversarially refuted) priced the post-Wally grind. It
+answered the question the item was blocked on, killed the question I had actually been asking, and
+turned up a landmine. Full note, separating what I re-verified from what I did not:
+`ai-research-notes/2026-09-18-ch24-grind-economics-MEASURED.md`.
+
+**⭐ THE ANSWER: NOTHING NEEDS DESIGNING. A STEPPED GRIND IS ALREADY PERMITTED AND ALREADY BUILT.**
+✅ Verified by me at source — `victory_road.py:2012-2019`: *"⛔⛔ THE CEILING IS PER-CALL, NOT PER-TOTAL,
+AND THE DISTINCTION IS THE WHOLE POINT … summing them and refusing would be measuring the wrong
+quantity … ⇒ refuse any SINGLE mon whose grind is unaffordable"*, and the test is
+`worst = max(estimates.items(), …)` — one mon, one call. ⇒ **each step under the ceiling is legal.**
+And the shape exists: `Ch24GrindMode` (`story_harness.py:15393-15689`) steps
+`train_for_victory_road(target=low+STEP)` with STEP=2, MAX_STEPS=24, a checkpoint after EVERY step,
+and its ladder `post_e4grind_L49 … L73 + FINAL` is on disk. ⇒ **promote the shape; do not invent one.**
+
+**⛔ AND THE FRAMING I SHIPPED THE DAY BEFORE WAS WRONG.** I wrote that the next step was to *price a
+heal round-trip and settle the ground question*. ✅ `estimate_frames_to_level`'s entire body is
+`ceil(needed_exp / xp_per_battle) * FRAMES_PER_WILD_BATTLE` — **no heal term, no travel term.** The
+heal round-trip is structurally invisible to the guard that refuses the grind, so pricing it cannot
+move the refusal by one frame; and under that guard's model the ground choice is worth **4.79%**
+against a required **2.05×** cut. ⇒ **I spent a session optimising a variable the deciding code cannot
+see.** An adversarial pass found it in one read of the function body.
+
+**✅ THE ECONOMICS, MEASURED FROM REAL LOGS (not modelled):** a 1F heal round-trip is **~2,178 f median
+(n=278)**; heals fire **1 per ~8.3 battles** (75 heals / 623 battles) and cost **10.0%** of a grind's
+frames; the trigger is **HP, never PP** (0 out-of-PP heals in 2,928 logged battles). 1F heals are cheap
+for a reason worth knowing: **`TRAIN_SPOT_1F (15,39)` IS `VR_EXIT_APRON`** — the spin tile sits on the
+exit.
+
+**⛔⛔ THE LANDMINE (`#24-cavehealblind`, filed):** `grep -c VICTORY_ROAD early_game.py` → **0**.
+`_exit_training_cave_if_inside()` knows only Granite Cave and Fiery Path, and the comment above its
+call records a measured failure — *"healing from INSIDE Granite Cave targeted the Dewford PC across
+warp levels — the global navigator can't do that"*. ⇒ **healing from Victory Road works today only
+because the 1F spin tile is already at the exit.** A B1F spin tile would depend on the exact navigation
+that comment says fails. **UNRESOLVED** — `heal_in_pokemon_center` uses `navigate_to_anywhere`, which
+needs live state, so a drive is required.
+
+**DECISION (06-DECISIONS-LOG): build the stepped leg on 1F first; choose the ground LAST.** B1F is
+ahead on every economic estimate (+10% to +22% xp/frame) and its two supposed penalties are gone — the
+five trainers are **unreachable** from the ladder pocket (measured twice, independently) and a
+pocket-parked grind never touches the puzzle. But B1F's *enabling condition* is unproven, and a 22%
+optimisation is not worth blocking the fourth prerequisite on.
+
+**⚠ TWO NUMBERS IN OUR OWN TREE ARE NOW IN DOUBT, recorded and NOT resolved:** `~3,192` frames/battle
+(`:24640`, which I carried into the brief as established) was measured by two independent angles as
+**2,138** and **2,384–2,648**; and the claim that a +22.6% battle duration cancels B1F's +22.6% xp edge
+is arithmetically false — only the per-battle term scales, so **break-even is ~+45%**.
+
+**📦 HOUSEKEEPING:** `lint_docs.py` R3 went red at 4,411/4,400 lines. `#24-ch23chain` (81 lines, closed
+2026-09-05) was **archived VERBATIM to `28-HANDOFF-ARCHIVE.md`** and replaced by a 5-line summary that
+keeps the slug (cited 12× in code) and the leg→fixture chain. Nothing deleted; 4,411 → 4,336.
+⚠ Deliberately NOT done in the style of the neighbouring `#24-ch22chapter` retirement, which is a
+single crammed mega-line — `#24-linebudgetchars` records that R3 counts LINES only and that cramming
+"produced the rot it exists to prevent".
+
+
+## 2026-09-18 — fix: `probe_live_mapgrid.py` crashed AFTER printing its answer (3 defects)
+
+**Found by using it.** Diffing the live grid against ROM for `VICTORY_ROAD_B1F` (to close a KI-74
+caveat on a static tile measurement) produced the right answer — *"WE THINK OPEN, THE GAME SAYS WALL:
+0 tiles / we think wall, the game says open: 0 tiles"* — and then died in a traceback.
+
+**THREE DEFECTS, all in the optional "does this explain the jam?" section:**
+1. the default target was a hardcoded `(29, 53)` — the Sootopolis coordinate the probe was born
+   investigating. B1F is 46×31, so y=53 does not exist.
+2. `except PathFindingError` did not catch it: an out-of-bounds tile raises **IndexError** from
+   `_get_map_metadata(...).get_tile()`, not a routing error.
+3. the argv positions COLLIDED — the usage line documents `<save.ss1> [MAP_NAME]` (argv 1, 2) while the
+   target was read from argv[2]/argv[3], so naming a map and a target together fed the map NAME to
+   `int()`.
+
+**FIX:** the section is now opt-in (`[X] [Y]` after the map name), out-of-bounds targets report
+`⛔ TARGET (x, y) IS NOT A TILE ON THIS MAP` and explicitly note that the grid comparison above stands,
+and the argv indices no longer collide.
+**FAULT-TESTED, three arms:** the exact previously-crashing invocation now exits 0 with an informative
+skip; the out-of-bounds target that caused the crash reports cleanly at exit 0; a valid target still
+plans a route and reports. ⚠ Not in `run_gates.py`, so nothing was red — it simply wasted time.
+
+⭐ **THE DAMAGE WAS NOT THE CRASH, IT WAS WHERE THE CRASH SAT:** after the real finding, so a correct
+and complete answer looked like a failed run. **A tool that answers and THEN dies teaches the reader to
+distrust the answer.**

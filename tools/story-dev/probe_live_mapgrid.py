@@ -178,10 +178,30 @@ def main() -> int:
     print(f"     {sorted(better)}")
 
     # ---- does it explain the jam? --------------------------------------------------------------
-    if len(sys.argv) > 3:
-        target = (int(sys.argv[2]), int(sys.argv[3]))
-    else:
-        target = (29, 53)
+    # ⛔⛔ THIS SECTION IS OPT-IN, AND THAT IS A FIX (2026-09-18). Three defects, all hit in one run
+    # while diffing VICTORY_ROAD_B1F, AFTER the grid comparison above had already printed its answer:
+    #   1. the default target was a hardcoded `(29, 53)` — the Sootopolis coordinate this probe was
+    #      born investigating. B1F is 46x31, so y=53 does not exist and the run ended in a traceback.
+    #   2. `except PathFindingError` did not catch it: an out-of-bounds tile raises **IndexError**
+    #      from `_get_map_metadata(...).get_tile()`, not a routing error.
+    #   3. the argv positions COLLIDED — the usage line documents `<save.ss1> [MAP_NAME]` (argv 1, 2)
+    #      while the target was read from argv[2]/argv[3], so naming a map and a target at the same
+    #      time fed the map NAME to `int()`.
+    # ‼ The damage was not the crash, it was WHERE the crash sat: after the real finding, so the run
+    # looked failed when its answer was already correct and complete. A tool that answers and THEN
+    # dies teaches the reader to distrust the answer.
+    target = None
+    if len(sys.argv) > 4:
+        try:
+            target = (int(sys.argv[3]), int(sys.argv[4]))
+        except ValueError:
+            print(f"\n  ⚠ ignoring un-parseable target {sys.argv[3]!r} {sys.argv[4]!r} "
+                  f"— usage: probe_live_mapgrid.py <save.ss1> [MAP_NAME] [X] [Y]")
+    if target is None:
+        print("")
+        print("  (no target given — skipping the route check. Pass X and Y after the map name to")
+        print("   plan a route and see which of the disagreeing tiles it crosses.)")
+        return 0
     print("")
     print("=" * 100)
     print(f"DOES THIS EXPLAIN THE JAM? the planned route from {here} to {target}")
@@ -190,6 +210,11 @@ def main() -> int:
         path = calculate_path((map_enum, here), (map_enum, target))
     except PathFindingError as error:
         print(f"  NO ROUTE ({error})")
+        return 0
+    except (IndexError, ValueError) as error:
+        # An out-of-bounds tile is a USER error, not a routing result — say so instead of dying.
+        print(f"  ⛔ TARGET {target} IS NOT A TILE ON THIS MAP ({type(error).__name__}: {error}).")
+        print(f"     The grid comparison above is unaffected and its result stands.")
         return 0
     tiles = [tuple(w.coordinates) for w in path]
     print(f"  {len(path)} waypoints: {tiles}")
