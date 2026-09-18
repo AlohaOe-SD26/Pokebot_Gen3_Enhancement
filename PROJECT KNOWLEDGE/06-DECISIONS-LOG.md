@@ -6081,3 +6081,42 @@ battles and the derail budget RESETS on every whiteout, so nothing bounds the at
 IS A PARAMETER OF.** I recorded "1F, not B1F" as *the* decision and never wrote down that §Ch23 was a
 choice at all — so it was never attacked until an adversarial pass was pointed at the plan rather than
 at its details. **State the host, not only the setting.**
+
+
+## 2026-09-18 (later) — THE §Ch24 MARKER IS AN **EXPLICIT TUPLE**, NEVER A GROUP TEST — AND ALL THREE CAVEATS ARE CLOSED
+
+**Context.** The 2026-09-16 ruling chose "standing on a SEALED League map" as §Ch24's progress marker
+and left three caveats. A 6-agent trace closed them, and a refuter turned up a constraint that would
+have re-opened a measured hole.
+
+**⭐⭐ DECISION 1 — THE MARKER MUST BE AN EXPLICIT TUPLE. A GROUP OR RANGE TEST IS FORBIDDEN.**
+✅ Verified by me at `map_data.py:1037-1051`: map group 16 contains, besides the sealed rooms and
+halls, **`EVER_GRANDE_CITY_POKEMON_CENTER_1F (16,12)`**, **`_2F (16,13)`**, `POKEMON_LEAGUE_1F (16,10)`
+and `POKEMON_LEAGUE_2F (16,14)`.
+⛔⛔ **CITATION CORRECTED 2026-09-18 AFTER A TIER 1 BLOCK — I NAMED THE WRONG MAP AND MARKED IT “✅ verified by me”.** *(This said the Poké Center maps are “which §Ch23's leg 10 walks into to heal”.)* ✅ **LEG 10 HEALS ON `LEAGUE_1F` — `EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (16,10)`**: `heal_at_league` asserts `_on_map(LEAGUE_1F)` (`victory_road.py:2962`) and walks to `LEAGUE_NURSE_STAND = (3,4)` on that same map (`:2982`). ⛔⛔ **AND MY OWN CORRECTION OVER-REACHED — CAUGHT BY ME ON THE NEXT PASS.** *(It said the Poké Center maps are “never visited by our code (2 refs repo-wide)”.)* **That was a SYMBOL COUNT, not an occupancy test.** ✅ `PokemonCenter.EvergrandeCity = (MapRSE.EVER_GRANDE_CITY, (27, 48))` (`map_data.py:1537`) is a **DOOR** tile on the OUTDOOR map, and `heal_in_pokemon_center` walks through it ⇒ the avatar stands INSIDE `EVER_GRANDE_CITY_POKEMON_CENTER_1F (16,12)` during any Poké-Centre heal. The code simply never names that enum member — it detects such maps by SUBSTRING (`early_game.py:385`: `if cur is None or “POKEMON_CENTER” not in enum_name`), which is why my grep found 2 files for the symbol and 7 for the substring **within `modules/`** (8 across the whole sandbox — a reviewer counted the wider scope; both are right, which is why the scope is now stated). ⇒ ⭐ **BOTH `(16,10)` AND `(16,12)` ARE GENUINELY OCCUPIED, so the range-test hazard is STRONGER than either earlier version of this paragraph: two independent maps in group 16 that §Ch23 stands on while its work is unfinished.** ✅ **UPGRADED FROM INFERRED TO READ** — a Tier 1 reviewer found the direct evidence and I confirmed it at source: §Ch23 walks into that Poké Center **twice, both before the basket**. **Leg 4** (`victory_road.py:1556-1566`): *“⛔⛔ THIS IS LOAD-BEARING, NOT HOUSEKEEPING. Until the bot walks into the Ever Grande Poké Center, `lastHealLocation` is still SOOTOPOLIS”* — then `heal_in_pokemon_center(PokemonCenter.EvergrandeCity)`. **Leg 6** (`:2328-2333`) calls it again, *“heal before the B1F descent”*. ⇒ the occupancy of `(16,12)` is now a READ fact, not an inference. *(The docs previously UNDER-claimed this; the reviewer said so and was right.)* ⭐ **THE HAZARD IS UNCHANGED AND ACTUALLY MORE DIRECT:** the bot stands on **(16,10), a group-16 map**, while the heal prompt runs, so a range test grades §Ch23 done mid-heal. The Poké Center pair is a second, independent reason a range test is wrong — it would sweep in maps we never occupy. ⇒ the 11-member explicit tuple is unaffected; only the citation was wrong. ‼ I had verified the MAP TABLE and then attached an agent's sentence about leg 10 to it.
+⇒ a range test grades §Ch23 **done in the middle of its own heal, before the basket is bought**. That
+is KI-90's class of hole, re-introduced by a convenience.
+‼ **The hazard came from MY OWN shorthand** — I wrote "sealed rooms are group 16" in the brief I handed
+the agents, and a refuter asked what else lives in that range. *(Also `ROUTE4_POKEMON_CENTER_1F` shares
+the raw tuple `(16,0)` in a different enum: compare enum MEMBERS, never bare `(group, number)` pairs.)*
+
+**DECISION 2 — the marker is `on a CH24_SEALED_MAP` **OR** `IS_CHAMPION`.** The sealed half is safe by
+exhaustion (no heal location is a League interior; the lobby arms an OUTDOOR respawn). The
+`IS_CHAMPION` half covers winning, which the original marker missed — a completed §Ch24 ends in
+Littleroot. `IS_CHAMPION` is monotone: set in one decomp file, cleared nowhere.
+
+**DECISION 3 — `inside_league()` STAYS EXACTLY AS IT IS.** It has ✅ exactly one caller,
+`at_ever_grande_top()` (`victory_road.py:1424`), where its WIDENESS (including 1F) is what makes leg 4
+self-skip in the lobby. ⇒ caveats (1) and (2) interact: **the lobby is protected by the very property
+that makes the helper wrong for the marker.** Give §Ch24 its own tuple; change nothing here.
+
+**✅ AND THE MARKER IS NECESSARY, MEASURED NOT ARGUED:** on `post_hall4_door` — HALL4, sealed, one tile
+from the Champion's door — `ch23_chapter_done()` returns **False**, with controls separating.
+
+**Alternatives rejected.** (a) *A group-16 test* — rejected on the Poké Center hazard above. (b) *Reuse
+`inside_league()`* — rejected: it includes 1F/2F where §Ch23's own legs work. (c) *`SYS_GAME_CLEAR`
+instead of `IS_CHAMPION`* — rejected, set ~54 lines before the callback swap (`#24-gameclearflag`).
+(d) *`FLAG_ENTERED_ELITE_FOUR`* — previously ruled out; permanent, re-opens KI-90.
+
+⚠ **STILL OWED, and small:** the lobby window is TRACED (agent probe, refuter-reproduced), not READ by
+me — **no fixture stands in the lobby**. Mint one and re-measure before implementation.

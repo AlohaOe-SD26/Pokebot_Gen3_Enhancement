@@ -19142,3 +19142,43 @@ can exit early, it must be re-run to completion or its remaining edits re-derive
 never from the script's intent.*
 **⭐ THIRD, mechanical and cheap.** *Anchor strings must be taken from the file, not retyped.* Both
 anchor failures this session were curly-vs-straight quotation marks in text I had written myself.
+
+
+## 2026-09-18 (later) — A CORRECTION CHAIN: AGENT CLAIM → OVER-CORRECTION → NEARLY EDITING A SOUND ITEM
+
+**Four linked errors on one sentence. The chain is the lesson, not any single link.**
+
+**(1) I attached an agent's sentence to my own verification.** I checked `map_data.py` and confirmed
+map group 16 contains the Ever Grande Poké Center maps — true. I then wrote *“which §Ch23's leg 10 walks
+into to heal”*, which came from an agent, and marked the whole thing **“✅ verified by me”** in FOUR
+files. ✅ `heal_at_league` asserts `_on_map(LEAGUE_1F)` (`victory_road.py:2962`) and heals at the League
+NURSE on `(16,10)`. *(Tier 1 caught it.)*
+
+**(2) My correction then OVER-REACHED.** I wrote that the Poké Center maps are *“never visited by our
+code — exactly two references repo-wide”*. **That was a SYMBOL COUNT, not an occupancy test.**
+`PokemonCenter.EvergrandeCity = (EVER_GRANDE_CITY, (27, 48))` is a **DOOR** tile; `heal_in_pokemon_center`
+walks through it, so the avatar stands inside `(16,12)` during any Poké-Centre heal. The code never
+names that enum member because it detects such maps by **SUBSTRING** — `early_game.py:385`,
+`if cur is None or “POKEMON_CENTER” not in enum_name`. My grep found 2 files for the symbol and 7 for
+the substring. *(I caught this one, on the next pass.)*
+
+**(3) THE OVER-CORRECTION NEARLY MADE ME EDIT A SOUND OPEN ITEM.** Tier 1 reported that
+`#24-egpc-leg4gap` — an OPEN item resting on the bot standing inside that Poké Center — was
+contradicted by my note, and declined to make the scope call. **It was my NOTE that was wrong.** The
+item's premise is intact and it is left exactly as it was. ‼ Had I “resolved the contradiction” in the
+obvious direction I would have damaged a correct item using a bad grep as authority.
+
+**(4) And my “0 live assertions” re-check was UNDER-SCOPED** — it matched one phrasing and missed a
+differently-worded restatement in append-only history plus the open item. Tier 1 found both.
+
+**⭐ PREVENTION RULES.**
+* *A SYMBOL COUNT IS NOT AN OCCUPANCY TEST.* “Grep finds 2 references” answers “how often is this name
+  written”, never “does the program go there”. Ask what the code does, not what it mentions — here it
+  matched a SUBSTRING, so the symbol was invisible to the count.
+* *WHEN A FRESH CORRECTION CONTRADICTS A STANDING ITEM, SUSPECT THE CORRECTION FIRST.* This is the
+  existing “suspect the measurement first” rule, applied to my own retractions — which is exactly where
+  I had not been applying it.
+* *A RETRACTION'S BLAST RADIUS IS A CONCEPT, NOT A STRING.* Search for the IDEA in every phrasing you
+  can think of, including append-only history and open items, and expect to miss one.
+* ⚠ *Verifying half a sentence does not verify the sentence.* The map table was mine; the clause about
+  leg 10 was an agent's. They were joined by an “and” and shipped under one ✅.

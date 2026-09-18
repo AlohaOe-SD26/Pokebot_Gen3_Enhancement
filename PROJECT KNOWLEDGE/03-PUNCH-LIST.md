@@ -243,7 +243,7 @@ open-vs-built sweep of all 80 open items has **not** been done.
   added, matching the three gates that carried this bug before.
   ⚠ **THEREFORE THE PROSE RULE IN `08-MISTAKES.md` STAYS.** The gate covers the house idiom, not every
   phrasing; it is a floor, not a replacement. Run: `py -3.12 probe_retraction_coverage.py --self-test`.
-- [ ] ⛔⛔ `#24-markerwinstate` — **NEW 2026-09-17 (late). THE §Ch24 PROGRESS MARKER CHOSEN ON 2026-09-16 DOES NOT COVER *WINNING*, AND MY OWN TAIL PROBE HOLDS THE COUNTEREXAMPLE. ⇒ WHAT REMAINS: the marker must become a DISJUNCT before prerequisite (1) can be called done.**
+- [ ] ⛔⛔ `#24-markerwinstate` — **NEW 2026-09-17 (late). THE §Ch24 PROGRESS MARKER CHOSEN ON 2026-09-16 DOES NOT COVER *WINNING*, AND MY OWN TAIL PROBE HOLDS THE COUNTEREXAMPLE. ⇒ WHAT REMAINS (updated 2026-09-18 — the DESIGN is now complete): **(a)** mint a LOBBY fixture and re-measure caveat (2), which is currently TRACED by an agent probe and not READ; **(b)** implement the explicit `CH24_SEALED_MAPS` tuple + `IS_CHAMPION` disjunct. *(The header previously read “the marker must become a DISJUNCT before prerequisite (1) can be called done” — that design decision is made; see the body.)*
   **THE RULING** (`06-DECISIONS-LOG.md:5496`): *"the marker is 'the bot is standing on a SEALED League
   map'"*, safe **by exhaustion** because no whiteout can respawn on one. ✅ **That exhaustion argument
   is TRUE and I re-measured it** — the decomp's heal table has **22 locations over 20 maps and not one
@@ -269,8 +269,37 @@ open-vs-built sweep of all 80 open items has **not** been done.
   ‼ **THIS IS THE THIRD CAVEAT ON THAT RULING, AND THE FIRST TWO ARE STILL OPEN:** (1) `inside_league()`
   is the wrong helper — it includes the lobby and 2F, where §Ch23's own heal and mart legs stand; (2)
   the lobby window between the guard-talk and Hall5 is still untraced.
-  ⛔ **DO NOT WIRE SEGMENT 24** — this is prerequisite (1), and it is not done. Full recon with what is
-  verified and what is only an agent claim: `ai-research-notes/2026-09-17-ch24-wiring-recon-VERIFIED.md`.
+  ✅✅ **THE DESIGN IS NOW COMPLETE — ALL THREE CAVEATS ANSWERED 2026-09-18.** Full write-up, separating
+  what I measured from what an agent did: `ai-research-notes/2026-09-18-ch24-marker-DESIGN-COMPLETE.md`
+  ⭐⭐ **THE DECISIVE CONSTRAINT, FOUND BY A REFUTER ATTACKING MY OWN SHORTHAND: THE MARKER MUST BE AN
+  EXPLICIT TUPLE, NEVER A GROUP OR RANGE TEST.** ✅ I verified `map_data.py:1037-1051` myself — map group
+  16 ALSO contains `EVER_GRANDE_CITY_POKEMON_CENTER_1F (16,12)`, `_2F (16,13)`, `POKEMON_LEAGUE_1F (16,10)` and
+  `POKEMON_LEAGUE_2F (16,14)`. ⛔⛔ **CITATION CORRECTED 2026-09-18 AFTER A TIER 1 BLOCK — I NAMED THE WRONG MAP AND MARKED IT “✅ verified by me”.** *(This said the Poké Center maps are “which §Ch23's leg 10 walks into to heal”.)* ✅ **LEG 10 HEALS ON `LEAGUE_1F` — `EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (16,10)`**: `heal_at_league` asserts `_on_map(LEAGUE_1F)` (`victory_road.py:2962`) and walks to `LEAGUE_NURSE_STAND = (3,4)` on that same map (`:2982`). ⛔⛔ **AND MY OWN CORRECTION OVER-REACHED — CAUGHT BY ME ON THE NEXT PASS.** *(It said the Poké Center maps are “never visited by our code (2 refs repo-wide)”.)* **That was a SYMBOL COUNT, not an occupancy test.** ✅ `PokemonCenter.EvergrandeCity = (MapRSE.EVER_GRANDE_CITY, (27, 48))` (`map_data.py:1537`) is a **DOOR** tile on the OUTDOOR map, and `heal_in_pokemon_center` walks through it ⇒ the avatar stands INSIDE `EVER_GRANDE_CITY_POKEMON_CENTER_1F (16,12)` during any Poké-Centre heal. The code simply never names that enum member — it detects such maps by SUBSTRING (`early_game.py:385`: `if cur is None or “POKEMON_CENTER” not in enum_name`), which is why my grep found 2 files for the symbol and 7 for the substring **within `modules/`** (8 across the whole sandbox — a reviewer counted the wider scope; both are right, which is why the scope is now stated). ⇒ ⭐ **BOTH `(16,10)` AND `(16,12)` ARE GENUINELY OCCUPIED, so the range-test hazard is STRONGER than either earlier version of this paragraph: two independent maps in group 16 that §Ch23 stands on while its work is unfinished.** ✅ **UPGRADED FROM INFERRED TO READ** — a Tier 1 reviewer found the direct evidence and I confirmed it at source: §Ch23 walks into that Poké Center **twice, both before the basket**. **Leg 4** (`victory_road.py:1556-1566`): *“⛔⛔ THIS IS LOAD-BEARING, NOT HOUSEKEEPING. Until the bot walks into the Ever Grande Poké Center, `lastHealLocation` is still SOOTOPOLIS”* — then `heal_in_pokemon_center(PokemonCenter.EvergrandeCity)`. **Leg 6** (`:2328-2333`) calls it again, *“heal before the B1F descent”*. ⇒ the occupancy of `(16,12)` is now a READ fact, not an inference. *(The docs previously UNDER-claimed this; the reviewer said so and was right.)* ⭐ **THE HAZARD IS UNCHANGED AND ACTUALLY MORE DIRECT:** the bot stands on **(16,10), a group-16 map**, while the heal prompt runs, so a range test grades §Ch23 done mid-heal. The Poké Center pair is a second, independent reason a range test is wrong — it would sweep in maps we never occupy. ⇒ the 11-member explicit tuple is unaffected; only the citation was wrong. ‼ I had verified the MAP TABLE and then attached an agent's sentence about leg 10 to it. ⇒ a range test
+  would grade §Ch23 **done mid-heal, before the basket is bought** — the KI-90 class of hole re-opened by
+  a convenience. *(Also: `ROUTE4_POKEMON_CENTER_1F` shares the raw tuple `(16,0)` in another enum —
+  compare enum MEMBERS, never bare tuples.)*
+  **THE MARKER:** an explicit 11-member `CH24_SEALED_MAPS` (five rooms + Hall1-5 + Hall of Fame),
+  **OR `IS_CHAMPION`** for the winning end state. ⚠ `IS_CHAMPION` is a COMPLETION term, not a
+  “run is usable” term — do not collapse the roles (`#24-gameclearflag`).
+  ✅ **MEASURED BY ME THAT THE MARKER IS NECESSARY:** loading pinned fixtures and evaluating the real
+  predicates — on `post_hall4_door` (**HALL4, sealed, one tile from the Champion's door**)
+  `ch23_chapter_done()` returns **False**, so §Ch23 *is* re-entered mid-gauntlet without a marker.
+  Controls separate (sealed marker=True / outdoor marker=False), and `post_league_heal` False →
+  `post_league_shop` True shows the basket conjunct working as designed.
+  **CAVEAT (2), the lobby window: SAFE POST-WALLY.** Zero of the eleven legs fire there; the chapter
+  raises after three no-op attempts. ⭐ And the two caveats INTERACT: leg 4 skips because
+  `at_ever_grande_top()` is True in the lobby **via `inside_league()`, which includes 1F** ⇒ the lobby is
+  protected by the very wideness that makes that helper wrong for the marker. ✅ Keep it as it is — it
+  has exactly ONE caller. ⚠ **The window is TWO maps**: 1F and League 2F, reachable by
+  `LEAGUE_ESCALATOR = (1,7)`, *“`MB_UP_ESCALATOR`, collision 0 — an accidental step-on warp”*
+  (`victory_road.py:410-412`). ⚠ And “zero legs fire” holds **post-Wally only**; pre-Wally the training
+  leg fires there (its guard at `:3393` carries no position test).
+  ⚠⚠ **WHAT IS STILL OWED, AND IT IS SMALL:** the lobby result is an AGENT probe reproduced by a
+  refuter — **not measured by me**, because **no fixture in this repo stands in the lobby**
+  (`grep -c POKEMON_LEAGUE_1F saves/FIXTURES.md5` → 0). ⇒ **mint a lobby fixture and re-measure**; the
+  §Ch24 entry driver already walks that route. Until then caveat (2) is TRACED, not READ.
+  ⛔ **DO NOT WIRE SEGMENT 24** — the DESIGN of prerequisite (1) is done; the IMPLEMENTATION is not, and
+  prerequisites (2), (3) and (4) are untouched.
 - [ ] ⛔⛔ `#24-cavehealblind` — **NEW 2026-09-18. `_exit_training_cave_if_inside()` DOES NOT KNOW VICTORY ROAD, AND HEALING FROM INSIDE IT WORKS ONLY BY COINCIDENCE. ⇒ WHAT REMAINS: prove (by a drive) whether a spin tile deeper than the exit apron can heal at all.**
   ✅ **MEASURED BY ME:** `grep -c VICTORY_ROAD sandbox-pokebot/modules/story/early_game.py` → **0**.
   `_CAVE_EXITS` (`early_game.py:2003`) holds exactly two entries — `GRANITE_CAVE_1F` and Fiery Path —

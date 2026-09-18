@@ -31854,3 +31854,62 @@ Castform L36 excluded by `BENCH_SPECIES` — **the only reason this does not rep
 `#24-ch23training`'s low-level-mule refusal**; and the party is 67% HP with two fainted, so the leg
 must heal first. ⚠ `BENCH_SPECIES` is three hardcoded names, so the leg must check at runtime rather
 than trust it.
+
+
+## 2026-09-18 (later) — ✅✅ §Ch24 PREREQUISITE (1): THE MARKER DESIGN IS COMPLETE, ALL THREE CAVEATS CLOSED
+
+A 6-agent trace (3 angles, each adversarially refuted) closed the last open caveat on the 2026-09-16
+marker ruling. **No code was written.** Full write-up: `ai-research-notes/2026-09-18-ch24-marker-DESIGN-COMPLETE.md`
+
+**⭐⭐ THE DECISIVE CONSTRAINT CAME FROM A REFUTER ATTACKING MY OWN BRIEF.** I had written "sealed rooms
+are group 16" as shorthand. ✅ Checking `map_data.py:1037-1051` myself: group 16 also holds
+`EVER_GRANDE_CITY_POKEMON_CENTER_1F (16,12)` and `_2F (16,13)`, plus both League service floors.
+⛔⛔ **CITATION CORRECTED 2026-09-18 AFTER A TIER 1 BLOCK — I NAMED THE WRONG MAP AND MARKED IT “✅ verified by me”.** *(This said the Poké Center maps are “which §Ch23's leg 10 walks into to heal”.)* ✅ **LEG 10 HEALS ON `LEAGUE_1F` — `EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (16,10)`**: `heal_at_league` asserts `_on_map(LEAGUE_1F)` (`victory_road.py:2962`) and walks to `LEAGUE_NURSE_STAND = (3,4)` on that same map (`:2982`). ⛔⛔ **AND MY OWN CORRECTION OVER-REACHED — CAUGHT BY ME ON THE NEXT PASS.** *(It said the Poké Center maps are “never visited by our code (2 refs repo-wide)”.)* **That was a SYMBOL COUNT, not an occupancy test.** ✅ `PokemonCenter.EvergrandeCity = (MapRSE.EVER_GRANDE_CITY, (27, 48))` (`map_data.py:1537`) is a **DOOR** tile on the OUTDOOR map, and `heal_in_pokemon_center` walks through it ⇒ the avatar stands INSIDE `EVER_GRANDE_CITY_POKEMON_CENTER_1F (16,12)` during any Poké-Centre heal. The code simply never names that enum member — it detects such maps by SUBSTRING (`early_game.py:385`: `if cur is None or “POKEMON_CENTER” not in enum_name`), which is why my grep found 2 files for the symbol and 7 for the substring **within `modules/`** (8 across the whole sandbox — a reviewer counted the wider scope; both are right, which is why the scope is now stated). ⇒ ⭐ **BOTH `(16,10)` AND `(16,12)` ARE GENUINELY OCCUPIED, so the range-test hazard is STRONGER than either earlier version of this paragraph: two independent maps in group 16 that §Ch23 stands on while its work is unfinished.** ✅ **UPGRADED FROM INFERRED TO READ** — a Tier 1 reviewer found the direct evidence and I confirmed it at source: §Ch23 walks into that Poké Center **twice, both before the basket**. **Leg 4** (`victory_road.py:1556-1566`): *“⛔⛔ THIS IS LOAD-BEARING, NOT HOUSEKEEPING. Until the bot walks into the Ever Grande Poké Center, `lastHealLocation` is still SOOTOPOLIS”* — then `heal_in_pokemon_center(PokemonCenter.EvergrandeCity)`. **Leg 6** (`:2328-2333`) calls it again, *“heal before the B1F descent”*. ⇒ the occupancy of `(16,12)` is now a READ fact, not an inference. *(The docs previously UNDER-claimed this; the reviewer said so and was right.)* ⭐ **THE HAZARD IS UNCHANGED AND ACTUALLY MORE DIRECT:** the bot stands on **(16,10), a group-16 map**, while the heal prompt runs, so a range test grades §Ch23 done mid-heal. The Poké Center pair is a second, independent reason a range test is wrong — it would sweep in maps we never occupy. ⇒ the 11-member explicit tuple is unaffected; only the citation was wrong. ‼ I had verified the MAP TABLE and then attached an agent's sentence about leg 10 to it. ⇒ **a group/range test would grade §Ch23 done mid-heal,
+before the basket is bought.** THE MARKER MUST BE AN EXPLICIT TUPLE.
+
+**THE DESIGN:** an explicit 11-member `CH24_SEALED_MAPS` (five rooms + Hall1-5 + Hall of Fame), **OR**
+`IS_CHAMPION` (flag 2175, monotone) for the winning end state.
+
+**✅ MEASURED BY ME THAT IT IS NECESSARY:** evaluating the real production predicates on pinned
+fixtures — on `post_hall4_door` (HALL4, sealed, one tile from the Champion's door)
+`ch23_chapter_done()` returns **False**. Controls separate (sealed True / outdoor False), and
+`post_league_heal` False → `post_league_shop` True confirms the basket conjunct behaving as designed.
+
+**CAVEAT (2), the lobby window — SAFE POST-WALLY.** Zero of the eleven legs fire; the chapter raises
+after three no-op attempts. ⭐ The two caveats INTERACT: leg 4 skips because `at_ever_grande_top()` is
+True in the lobby via `inside_league()`, which includes 1F ⇒ **the lobby is protected by the very
+wideness that makes that helper wrong for the marker.** It has exactly one caller and stays as it is.
+⚠ Two refuter corrections carried forward: the window is **two** maps (League 2F is reachable by
+`LEAGUE_ESCALATOR (1,7)`, *"collision 0 — an accidental step-on warp"*), and "zero legs fire" holds
+**post-Wally only**.
+
+⚠⚠ **STILL OWED:** the lobby result is an agent probe reproduced by a refuter, **not measured by me** —
+**no fixture in this repo stands in the lobby** (`grep -c POKEMON_LEAGUE_1F` → 0). ⇒ mint a lobby
+fixture and re-measure; the §Ch24 entry driver already walks that route. Until then, TRACED not READ.
+⛔ Segment 24 stays unwired; prerequisites (2), (3) and (4) are untouched.
+
+
+### ‼ CORRECTION OF RECORD FOR `07-CHANGELOG.md:26364-26366` (append-only, so corrected here not there)
+
+That entry says the `EVER_GRANDE_CITY_` prefix *"also matches `EVER_GRANDE_CITY_POKEMON_CENTER_1F/2F`,
+**i.e. exactly the map leg 10's heal and the whiteout respawn care about**."* A Tier 1 reviewer found
+it while checking the blast radius of a correction made today. **Two halves, one wrong and one right:**
+* ⛔ **§Ch23's leg 10 does NOT heal there.** `heal_at_league` asserts `_on_map(LEAGUE_1F)`
+  (`victory_road.py:2962`) and heals at the League NURSE, `LEAGUE_NURSE_STAND = (3,4)` on
+  `POKEMON_LEAGUE_1F (16,10)`.
+* ✅ **But the Poké Center map IS occupied by other heals** — `heal_in_pokemon_center` takes a DOOR
+  tile (`PokemonCenter.EvergrandeCity = (EVER_GRANDE_CITY, (27,48))`) and walks through it, and the
+  whiteout respawn is the OUTDOOR tile beside it. So the entry's CONCLUSION (never use a prefix match)
+  is correct; only its attribution to leg 10 is wrong.
+⇒ the original entry's rule stands. Nothing needs re-deciding — this records the attribution.
+
+### ⚠ AND `#24-egpc-leg4gap` IS *NOT* BUILT ON A FALSIFIED PREMISE — MY CORRECTION WAS THE THING THAT WAS WRONG
+
+The same reviewer flagged that the open item `#24-egpc-leg4gap` (`03-PUNCH-LIST.md`) rests on the bot
+standing inside the Ever Grande Poké Center, and that today's note contradicted it. ✅ **On re-checking,
+the note was wrong and the item is intact** — the avatar does stand on `(16,12)` during a Poké-Centre
+heal; I had counted references to the ENUM SYMBOL and called the map unvisited. **The item is left
+exactly as it is.**
+⭐ **THE RULE THIS EARNS:** *a symbol count is not an occupancy test — and when a fresh correction
+contradicts a standing item, suspect the CORRECTION first.* I nearly edited an open item on the
+strength of my own bad grep.
