@@ -18506,6 +18506,14 @@ class Ch24DrakeMode(BotMode):
           entered with five battlers instead of six.
       `POKEBOT_CH24_FAULT_NOENGAGE=1`   — do everything EXCEPT press A/B at Drake. Must FAIL with
           `D-ENGAGED`/`D-OUTCOME` missing.
+      `POKEBOT_CH24_FAULT_HEALNOOP=1`   — ⭐ **THE ARM THAT PROVES THE `heal_ready` GRADE CONJUNCT,
+          and the only one that CAN.** It runs the REAL `heal_party_from_bag` with the REAL bag and
+          `max_actions=0`, so the heal EXECUTES and accomplishes nothing. ⛔ `NOROOMHEAL` cannot do
+          this job: it SKIPS the heal, so `D-HEAL` is never taken and the run dies on
+          `missing=['D-HEAL']` with or without the conjunct. MEASURED 2026-09-17: `D-HEAL
+          actions=0 ready=False`, **`missing=[]`**, `failure=None`, `ACCEPTANCE: FAIL` ⇒ the old
+          two-conjunct grade would have returned PASS, so `heal_ready` is the SOLE cause of failure.
+          ‼ If you are about to build an arm for this conjunct: it already exists, and this is it.
     """
 
     WALK_BUDGET = 40_000
@@ -18651,8 +18659,27 @@ class Ch24DrakeMode(BotMode):
                 hp_before = _hp()
                 bag_before = _bag()
                 heal_report: dict = {"readings": set()}
+                # ⛔⛔ THE ARM THAT ACTUALLY TESTS THE `heal_ready` CONJUNCT — `#24-healgradearm`.
+                # `NOROOMHEAL` does NOT test it: that arm SKIPS the heal, so `D-HEAL` is never taken
+                # and the run fails on `missing=['D-HEAL']` with or without the conjunct. The case
+                # the conjunct exists for is "the heal RAN and left the party unready", where
+                # `D-HEAL` IS taken, `missing` is EMPTY, and only `heal_ready` can fail the run.
+                # ⭐ HOW THIS PRODUCES THAT STATE WITHOUT FAKING ANYTHING: it calls the REAL
+                # production `heal_party_from_bag` with the REAL bag, passing `max_actions=0`.
+                # `plan_healing` breaks at `len(plan) >= max_actions` (`overworld_items.py:169`), so
+                # the plan comes back EMPTY; `heal_party_from_bag` then reports `heal_actions=0` and
+                # `heal_ready = party_is_gauntlet_ready(before)`, which is FALSE whenever anyone is
+                # fainted. ⇒ no monkeypatching, no synthetic party, no invented bag — the same code
+                # path the treatment runs, bounded to do nothing.
+                _heal_kwargs = {}
+                if _os.environ.get("POKEBOT_CH24_FAULT_HEALNOOP", "").strip() == "1":
+                    log(f"[{TAG}] ⚠ FAULT ARM HEALNOOP — running the REAL heal with max_actions=0, so "
+                        f"it executes and accomplishes NOTHING. D-HEAL must still be TAKEN and "
+                        f"`missing` must be EMPTY; the run must FAIL on `heal_ready` ALONE.")
+                    R["heal_noop_arm"] = True
+                    _heal_kwargs["max_actions"] = 0
                 try:
-                    yield from PL.heal_party_from_bag(heal_report)
+                    yield from PL.heal_party_from_bag(heal_report, **_heal_kwargs)
                 except Exception as error:  # noqa: BLE001
                     # ⛔ NEVER RAISE OUT OF THE HEAL. The zone is SEALED behind us — refusing here
                     # strands the bot in a room it cannot leave, which is strictly worse than

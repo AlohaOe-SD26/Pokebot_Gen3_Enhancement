@@ -31237,3 +31237,35 @@ outranks a Hyper Potion; gate #36 is blind because its test bag holds items the 
 ⛔ Recorded as an agent's measurement, a NOTE until reproduced here. ✅ It has not bitten rooms 1–4:
 every battler's max HP is above 200, and `post_drake_L75`'s plan correctly chose a Hyper Potion for
 Sceptile at 73/205.
+
+---
+
+## 2026-09-17 (late, fourth) — the `heal_ready` grade conjunct is now PROVEN, by an arm that fakes nothing
+
+**WHY THIS EXISTS.** Shipping room 4 I added a `heal_ready is True` conjunct to `Ch24DrakeMode`'s
+grade, and then said plainly that **it was unproven**: the `NOROOMHEAL` arm fails on
+`missing=['D-HEAL']` **with or without** the conjunct, because the reading lives inside the `else`
+branch that arm skips. I filed the gap as `#24-healgradearm` rather than describing the guard as
+load-bearing. This closes it — with a measurement, not an argument.
+
+**THE ARM: `POKEBOT_CH24_FAULT_HEALNOOP`** (registered; 129/129 flags documented). It calls the
+**REAL production `heal_party_from_bag`** with the **REAL bag** and `max_actions=0`. `plan_healing`
+breaks at `len(plan) >= max_actions` (`overworld_items.py:169`), so the plan comes back EMPTY, and
+`heal_party_from_bag` then reports `heal_actions=0` with
+`heal_ready = party_is_gauntlet_ready(before)` = **False** (Mightyena is fainted).
+⭐ **No synthetic party, no invented bag, no monkeypatch** — the same code path the treatment runs,
+bounded to do nothing. That matters here: this project has twice shipped a green gate whose case was
+built from a hand-made fixture (gate #39's C8, gate #36's bag), and *a fixture invented to
+demonstrate a defect will demonstrate it*.
+
+**MEASURED:** `D-HEAL actions=0 ready=False` · **`missing=[]`** (all seven readings TAKEN, `D-HEAL`
+included) · `failure=None` · `⛔ GRADE: heal_ready=False` · `ACCEPTANCE: FAIL`.
+⇒ **with `missing=[]` and `failure=None`, the OLD grade (`ok = not missing and failure is None`)
+would have returned PASS.** The conjunct is the only thing failing the run. That is the
+discriminator `NOROOMHEAL` structurally could not provide.
+Evidence: `tools/story-dev/evidence/2026-09-17-ch24drake-FAULT-HEALNOOP.stdout.txt`.
+
+‼ **THE GENERAL LESSON, worth more than the arm:** an arm that fails for *several* reasons at once
+proves nothing about any one of them. `NOROOMHEAL` tripped two independent failure paths
+simultaneously (`missing` AND `heal_ready`), which reads like a passing test of both and is a test of
+neither. **A guard is only proven by an arm in which that guard is the SOLE cause of failure.**
