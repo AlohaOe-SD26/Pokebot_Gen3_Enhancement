@@ -32460,3 +32460,45 @@ in the decisions log.
 ‼ **THE LESSON THIS GENERALISES:** §Ch15/§Ch18/§Ch19 each passed their own tests while stranded. This
 is the same failure one level up — **the CHAPTER can pass its own test while the PRODUCT has not done
 the thing.** When §Ch24 is wired, grade it on these four conjuncts, not on “the driver printed PASS”.
+
+## 2026-09-18 — REMATCH RESEARCH LANDED: FIGHTING A REMATCH NEEDS ZERO POKÉNAV WORK, AND A WHITEOUT ANYWHERE WIPES THE ELITE FOUR FLAGS
+
+An 11-agent workflow (5 angles, each adversarially verified; 0 errors, ~38 min) answered the
+2026-09-18 user directive. Saved as
+`ai-research-notes/2026-09-18-rematch-and-map-knowledge-WORKFLOW.md`, with my own verification
+prepended. ⛔ No code written.
+
+**✅✅ BOTH USER RECOLLECTIONS CONFIRMED.** (a) *"ordinary rematches after the 5th gym (Norman)"* —
+confirmed in substance, with a precision correction: the gate is a **FIVE BADGE COUNT**, not Norman
+by name, and it is spelled **two different ways** (the walking path counts ANY five; the phone path
+counts a SEQUENTIAL PREFIX that stops at the first missing badge). They coincide in vanilla order
+⇒ ‼ the bot's condition must be the CODE's, not the story's. (b) *"gym leaders after the Hall of
+Fame"* — confirmed exactly, gated on `FLAG_SYS_GAME_CLEAR`.
+
+**⭐⭐ AND THE COST ANSWER RETIRES MY OWN ESTIMATE.** I had said rematches would need PokéNav
+menu-driving. **They do not.** The game ARMS; the player always STARTS. Accepting an armed rematch is
+*walk to the NPC, face, A, advance the dialogue* — primitives we already have — and the armed state
+is readable from SaveBlock1 rather than by opening the app. Only the arming-by-outgoing-call half
+would need any PokéNav UI at all.
+
+**⛔⛔ AND A DECOMP FACT I VERIFIED MYSELF THAT WIDENS OUR OWN DOCS.** `02-ARCHITECTURE.md` said *"a
+white-out calls `ResetEliteFour` and forfeits the run"*, which reads as a white-out **in the
+gauntlet**. ✅ `data/event_scripts.s:585-586` — `EventScript_WhiteOut::` calls
+`EverGrandeCity_HallOfFame_EventScript_ResetEliteFour` **unconditionally** ⇒ **a white-out ANYWHERE
+IN HOENN wipes `VAR_ELITE_4_STATE` and the four `DEFEATED_ELITE_4_*` flags.** A faint on Route 101
+is enough. ⇒ ⭐ this makes `#24-markerwinstate`'s choice of `IS_CHAMPION` not merely defensible but
+**forced**, and it is a second, independent reason USER RULING 11's conjunct (1) is the Hall of Fame
+rather than the per-room flags. Both docs corrected.
+
+**⚠ RARER THAN THE FIRST PASS SAID:** gym-leader rematches are armed by a BATTLE counter with a
+modulo (`% 20` trainer, `% 60` wild) ⇒ ~1 arming per 65 trainer battles, not 31% per battle.
+
+**⛔ A TRAP IN THIS PROJECT'S OWN FAVOURITE SHAPE:** `ShouldTryRematchBattle` returns TRUE **forever**
+once the second ladder step is beaten, so talking to that trainer ALWAYS takes the rematch branch and
+the un-armed case falls silently through to post-battle text. ⇒ **assert the BATTLE, or the cleared
+`trainerRematches[i]` — never the dialogue branch.** That is `CLAUDE.md` §7 ("a candidate is not an
+attempt") arriving independently from the decomp.
+
+⚠ **NOT VERIFIED BY ME:** the SaveBlock1 offsets (`+0x9C8`, `+0x9CA`) — the note marks them INFERRED
+for our BPEE0 and never probed. ⛔ Probe before any code reads them. ‼ And read the note's own §7
+(REFUTED / WITHDRAWN) before quoting anything else from it.

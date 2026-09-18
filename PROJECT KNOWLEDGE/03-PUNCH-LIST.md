@@ -120,19 +120,7 @@ open-vs-built sweep of all 80 open items has **not** been done.
                `R arrived = ((0,8),(18,6))`, `moved=True`, `missing=[]`, `ACCEPTANCE: PASS`
   ⇒ the guard separates: it blocks the illegal case and is invisible to the legal one. ✅ `probe_fly_allowed_here.py` answers “can I Fly from here?” per fixture, for any future save.
 - [x] ✅✅✅ `#24-leg0toleague` — **NEW AND DONE 2026-09-17. THE **L75** PARTY IS AT THE LEAGUE DOOR, AND LEG 2 NOW HAS A START STATE.** Fixture `post_ch24_atdoor_L75.ss1` (md5 `8b8cd907db09`), EVER_GRANDE_CITY **(18,6)**.
-  ⭐ **WHY THIS WAS A LEG AT ALL, AND NOT “one Fly”.** The finished gauntlet party was parked at **VICTORY_ROAD_1F (15,39)** — the grind tile — and the plan of record said *“the door is ONE Fly away”*. ⛔ FALSE from there: **Fly is refused on `map_type=Underground`** (`#24-flymaptype`). ⇒ the route is **arrow-warp OUT of Victory Road, THEN Fly**, and it is now driven:
-        VICTORY_ROAD_1F (15,39)  --hold Down on the ARROW WARP (15,40)-->  EVER_GRANDE_CITY (18,42)
-        EVER_GRANDE_CITY (18,42) --Fly to PokemonLeague-->                 (18,6), the door apron
-  ‼ **NEITHER HALF WAS NEW; THE SEQUENCE WAS.** §Ch23 leg 6 already holds Down on that same arrow warp and `ch24flyto` had already flown `PokemonLeague`. **Two proven halves are not a proven whole** — which is this project's most expensive recurring assumption, so it was driven rather than assumed.
-  ✅✅ **ALL THREE ARMS DRIVEN** (evidence committed under `tools/story-dev/evidence/2026-09-17-ch24toleague-*.txt`, and the graded predictions are in `ai-research-notes/2026-09-17-ch24toleague-PREDICTIONS.md`, filed BEFORE the run):
-      TREATMENT   ACCEPTANCE: PASS — all 7 readings, missing=[], battles=0, whiteouts=0
-      FAULT NOEXIT  ACCEPTANCE: FAIL — map_type=Underground, the PRODUCTION guard raises, and
-                    missing=['R-EXITED','R-FLYABLE','R-FLOWN','R-CONTINUE'] — exactly the four
-                    downstream readings
-      VACUITY     pointed at its OWN OUTPUT it refuses at the premise and takes NO readings
-  ⭐ **THE ONE READING I DELIBERATELY DID NOT PREDICT** — the outbound landing tile — came back as **(18,42)**, the same tile the inbound walk departed from. Declining to predict it was still right: had it landed elsewhere, an asserted (18,42) would have failed a CORRECT run, and *never inherit position across a warp* is not weakened by having been lucky once.
-  ⭐ **AND THE FAULT ARM DID DOUBLE DUTY:** it proved the exit is load-bearing AND it exercised `#24-flymaptype`'s guard **in its natural setting** — a real leg that genuinely reaches it — rather than the hand-pointed driver it was first tested with. A guard whose only arm is contrived has never been shown to fire where it will actually be needed.
-  ⚠ **CARRY FORWARD:** Mightyena arrives at **202/227 HP** (grind damage). Not a defect — but League 1F has a **nurse at (3,2) INSIDE the gate** and per `#24-leg2spec` O5 it is the **LAST heal that exists** before the zone seals, so leg 2 should take it rather than start the gauntlet at 89%.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full entry, its evidence and any ⛔ warnings are there.
 - [x] ✅✅✅ `#24-sidneyL75` — **NEW AND DONE 2026-09-17. THE FIRST ELITE FOUR FIGHT AT L75 IS WON, AND IT COST **15 HP**.** `--driver ch24probe` from the new `post_ch24_atdoor_L75.ss1`, `ACCEPTANCE: PASS`, all 6 readings, `missing=[]`, `battles=1`, `whiteouts=0`, `ELITE_4_STATE 0 → 1`.
       📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full entry, its evidence and any ⛔ warnings are there.
 - [x] ✅✅✅ `#24-phoebeL75` — **NEW AND DONE 2026-09-17. PHOEBE IS BEATEN AT L75, ROOMS 1→2 ARE DRIVEN AS ONE UNIT, AND ⭐ THE MEASUREMENT `#24-ghostreplacement` WAS BLOCKED ON IS IN HAND.**
@@ -411,6 +399,10 @@ open-vs-built sweep of all 80 open items has **not** been done.
   ⇒ ⭐ **THE BOT WOULD ATTEMPT AN OCEAN CROSSING FROM A BEDROOM**, burn the chapter's three attempts
   and raise — turning a **completed game** into a hard §Ch23 failure.
   ✅ **THE FIX IS ONE WORD — A DISJUNCT:** *"on a sealed League map **OR** the game is cleared"*.
+  ✅✅ **CORROBORATED 2026-09-18 AT THE DECOMP, BY ME:** `data/event_scripts.s:585-586` shows
+  `EventScript_WhiteOut::` calls `ResetEliteFour` **unconditionally** ⇒ the wipe is not confined to
+  the gauntlet: **a white-out ANYWHERE in Hoenn clears them.** ⇒ the choice below is not merely
+  defensible, it is forced.
   `IS_CHAMPION` (flag **2175**) is the right second term because it is **MONOTONE**: set in exactly one
   decomp file (`data/scripts/hall_of_fame.inc`) and **cleared nowhere** — unlike `VAR_ELITE_4_STATE`
   and the four `DEFEATED_ELITE_4_*` flags, which `ResetEliteFour` wipes on the WINNING path as well as
@@ -599,8 +591,27 @@ open-vs-built sweep of all 80 open items has **not** been done.
   cannot know who is armed; the runtime one cannot know who is worth fighting until they call.
   ⇒ ⭐ the static table is also the **CONTROL** for the runtime log: a call for a trainer absent
   from the static table means our extraction is wrong, which is a bug we would otherwise never see.
-  ⚠ **STILL AWAITING** a user decision on APPETITE for the PokéNav menu-driving the runtime half
-  would need. The static half needs no UI work and can proceed on its own.
+  ⭐⭐ **RESEARCH LANDED 2026-09-18 (11 agents, 0 errors) AND THE COST ANSWER IS THE GOOD ONE:**
+  **FIGHTING A REMATCH NEEDS *ZERO* POKÉNAV WORK.** The game ARMS; the player always STARTS.
+  Accepting an armed rematch is *walk to the NPC, face, A, advance dialogue* — primitives we
+  already have — and the armed state is readable from SaveBlock1 rather than by opening the app.
+  ‼ **THAT RETIRES MY OWN EARLIER COST ESTIMATE**, which said this needed PokéNav menu-driving.
+  ✅✅ **BOTH USER RECOLLECTIONS CONFIRMED:** (a) ordinary rematches gate on **FIVE BADGES** —
+  confirmed in substance, with a precision correction: it is a badge COUNT, not Norman by name, and
+  it is spelled **two different ways** (the walking path counts ANY five; the phone path counts a
+  SEQUENTIAL PREFIX that stops at the first missing badge). They coincide in vanilla order ⇒ ‼ the
+  bot's condition must be the CODE's, not the story's. (b) gym-leader rematches gate on
+  **`FLAG_SYS_GAME_CLEAR`** — confirmed exactly.
+  ⚠ **AND GYM LEADERS ARE FAR RARER THAN THE FIRST PASS SUGGESTED:** armed by a BATTLE counter with
+  a modulo (`% 20` trainer, `% 60` wild) ⇒ ~1 arming per 65 trainer battles, not 31% per battle.
+  ⛔ **A TRAP IN THE PROJECT'S OWN FAVOURITE SHAPE:** `ShouldTryRematchBattle` returns TRUE FOREVER
+  once the 2nd ladder step is beaten, so talking ALWAYS takes the rematch branch and the un-armed
+  case falls silently through to post-battle text. ⇒ **assert the BATTLE, or the cleared
+  `trainerRematches[i]` — never the dialogue branch.** That is `CLAUDE.md` §7 arriving from the decomp.
+  ⚠ **NOT VERIFIED BY ME:** the SaveBlock1 offsets (`+0x9C8`, `+0x9CA`), which the note itself marks
+  INFERRED for our BPEE0 and never probed. ⛔ Probe before any code reads them.
+  ⚠ **STILL AWAITING** a user decision on APPETITE — but the decision is now much cheaper than I
+  described it, because only the ARMING-BY-CALL half would need PokéNav UI at all.
 - [ ] ⭐ `#24-trainingbrackets` — **NEW 2026-09-18 (USER RULING). MAP AND MARK TRAINING GROUNDS BY LEVEL BRACKET, SO A PARTY NEVER GRINDS FAR-BELOW-LEVEL WILDS. ⇒ WHAT REMAINS: the research is COMMISSIONED and unreturned; then a data-shaped fix, then a drive.**
   ⭐⭐ **THE RULING THAT CREATED THIS** (`06-DECISIONS-LOG.md` 2026-09-18): *“its fine if it takes a
   while to level up so long as they are not fighting super low level monsters (norman gym for
@@ -1962,18 +1973,7 @@ stacking another correction on top is how it became unreadable.*
       grunts' sight-lines derail the ascent?
 
 - [x] ~~`#24-mtpyre`~~ (superseded) — **‼ NOW UNBLOCKED (2026-08-05) AND THE TOP ITEM. First chapter past
-      Winona.** 3 hops, one branch; the 2F-6F tower is a skippable side dungeon.
-      `#24-cavethread` was its only blocker and is closed — the navigator already threads a
-      3-warp cave in both directions, which is exactly MT_PYRE_SUMMIT's shape.
-      ‼ **Pick plain walkable destination tiles — never a ladder/door/stairs warp tile** (see
-      `08-MISTAKES.md` 2026-08-05; it costs one map of overshoot AND reports success).
-      ‼ **FULLY SPECIFIED 2026-08-05 — `12-STORYMODE-DESIGN.md` §Ch14a** (ROM + pret decomp).
-      The chapter is ONE COORD TRIGGER: step on `(23,7)` at `VAR_MT_PYRE_STATE == 0` and the
-      scene gives the Magma Emblem and sets `FLAG_HIDE_JAGGED_PASS_MAGMA_GUARD` by itself.
-      Completion test `get_event_var("MT_PYRE_STATE") >= 1` (name verified to exist).
-      Measure `_navigate_riding_out(MT_PYRE_SUMMIT, (23,7))` FIRST — it may be the whole thing.
-      ⏭ **BLOCKED ONLY ON: no post-Winona save exists.** See `#24-postwinona-save`.
-
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full entry, its evidence and any ⛔ warnings are there.
 - [x] `#24-r121gate` — ✅ **CLOSED 2026-08-10: IT WAS ALREADY BUILT** — the THIRD stale "ready to build" header found that week, caught only because the spec was verified before coding. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted). ‼ **Its TWO REUSABLE RULES WERE PROMOTED to `14-AGENT-PLAYBOOK.md` §4 (items 2 and 6) on 2026-08-24** — *accessors take the BARE var name* and *`calculate_path` spans only DIRECTLY CONNECTED maps* — because a chapter author never looks inside a CLOSED punch-list item, and both had been costing real time.
 - [x] ~~`#24-r121topology`~~ (superseded) — **DO THIS BEFORE ANY MORE NAVIGATION WORK ON MT. PYRE.**
       From ROUTE121 (21,5) — where the ROUTE120 connection lands — `calculate_path` reaches

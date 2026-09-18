@@ -12229,3 +12229,46 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
     **(2) ⛔ `ELITE_4_STATE` HAS A WINDOW WHERE YOU ARE IN THE ROOM AND IT IS STILL 0.** Measured: `elite4_state_in_room = 0`, `elite4_state_after = 1`. The var IS set by the room's own entry cutscene — but NOT instantly on arrival, and this probe read it during that window. ⇒ **a leg that DISPATCHES on the var would misread the first moments of every room.** Combined with what was already known (the var grades the WARP, not the fight), the rule hardens: **never read `ELITE_4_STATE` for control flow — only the `DEFEATED_ELITE_4_*` flags, and only inside the gauntlet.**
     **(3) ⚠ THE ARRIVAL TILE IS NOT (6,7) WHEN YOU LOOK.** The probe logged *“in Sidney's room at **(6,11)** (the script auto-walks to (6,7))”* — i.e. it read its own position MID-CUTSCENE, two steps into the six-step walk. The decomp's (6,7) is the FINAL tile, not the tile you observe on arrival. ⭐ **THE PROBE SURVIVED THIS ONLY BECAUSE IT LOCATES THE TRAINER LIVE** (`get_map_objects`, `sidney_at = (6,5)`) **and navigates from wherever it actually is**, instead of assuming (6,7). ⇒ **leg 2 must do the same. ⛔ DO NOT HARDCODE (6,7) AS A START TILE** — it is true eventually and false when you look.
   ✅ **AND THE ROUTE WORKS UNCHANGED FROM THE NEW FIXTURE** (`P24-IN`, `P24-HALL5`, `P24-ROOM` all taken; lobby (9,11), hall5 (5,12)) ⇒ **leg 2 can reuse `Ch24ProbeMode`'s routing verbatim**, which was prediction P1 and is the cheapest good news in the chapter.
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] ✅✅✅ `#24-leg0toleague` — **NEW AND DONE 2026-09-17. THE **L75** PARTY IS AT THE LEAGUE DOOR, A…”*
+> Moved under `lint_docs.py` R3 while the rematch research findings were recorded.
+> **NOTHING IS DELETED.**
+
+- [x] ✅✅✅ `#24-leg0toleague` — **NEW AND DONE 2026-09-17. THE **L75** PARTY IS AT THE LEAGUE DOOR, AND LEG 2 NOW HAS A START STATE.** Fixture `post_ch24_atdoor_L75.ss1` (md5 `8b8cd907db09`), EVER_GRANDE_CITY **(18,6)**.
+  ⭐ **WHY THIS WAS A LEG AT ALL, AND NOT “one Fly”.** The finished gauntlet party was parked at **VICTORY_ROAD_1F (15,39)** — the grind tile — and the plan of record said *“the door is ONE Fly away”*. ⛔ FALSE from there: **Fly is refused on `map_type=Underground`** (`#24-flymaptype`). ⇒ the route is **arrow-warp OUT of Victory Road, THEN Fly**, and it is now driven:
+        VICTORY_ROAD_1F (15,39)  --hold Down on the ARROW WARP (15,40)-->  EVER_GRANDE_CITY (18,42)
+        EVER_GRANDE_CITY (18,42) --Fly to PokemonLeague-->                 (18,6), the door apron
+  ‼ **NEITHER HALF WAS NEW; THE SEQUENCE WAS.** §Ch23 leg 6 already holds Down on that same arrow warp and `ch24flyto` had already flown `PokemonLeague`. **Two proven halves are not a proven whole** — which is this project's most expensive recurring assumption, so it was driven rather than assumed.
+  ✅✅ **ALL THREE ARMS DRIVEN** (evidence committed under `tools/story-dev/evidence/2026-09-17-ch24toleague-*.txt`, and the graded predictions are in `ai-research-notes/2026-09-17-ch24toleague-PREDICTIONS.md`, filed BEFORE the run):
+      TREATMENT   ACCEPTANCE: PASS — all 7 readings, missing=[], battles=0, whiteouts=0
+      FAULT NOEXIT  ACCEPTANCE: FAIL — map_type=Underground, the PRODUCTION guard raises, and
+                    missing=['R-EXITED','R-FLYABLE','R-FLOWN','R-CONTINUE'] — exactly the four
+                    downstream readings
+      VACUITY     pointed at its OWN OUTPUT it refuses at the premise and takes NO readings
+  ⭐ **THE ONE READING I DELIBERATELY DID NOT PREDICT** — the outbound landing tile — came back as **(18,42)**, the same tile the inbound walk departed from. Declining to predict it was still right: had it landed elsewhere, an asserted (18,42) would have failed a CORRECT run, and *never inherit position across a warp* is not weakened by having been lucky once.
+  ⭐ **AND THE FAULT ARM DID DOUBLE DUTY:** it proved the exit is load-bearing AND it exercised `#24-flymaptype`'s guard **in its natural setting** — a real leg that genuinely reaches it — rather than the hand-pointed driver it was first tested with. A guard whose only arm is contrived has never been shown to fire where it will actually be needed.
+  ⚠ **CARRY FORWARD:** Mightyena arrives at **202/227 HP** (grind damage). Not a defect — but League 1F has a **nurse at (3,2) INSIDE the gate** and per `#24-leg2spec` O5 it is the **LAST heal that exists** before the zone seals, so leg 2 should take it rather than start the gauntlet at 89%.
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] ~~`#24-mtpyre`~~ (superseded) — **‼ NOW UNBLOCKED (2026-08-05) AND THE TOP ITEM. First chapter…”*
+> Moved under `lint_docs.py` R3 while the rematch research findings were recorded.
+> **NOTHING IS DELETED.**
+
+- [x] ~~`#24-mtpyre`~~ (superseded) — **‼ NOW UNBLOCKED (2026-08-05) AND THE TOP ITEM. First chapter past
+      Winona.** 3 hops, one branch; the 2F-6F tower is a skippable side dungeon.
+      `#24-cavethread` was its only blocker and is closed — the navigator already threads a
+      3-warp cave in both directions, which is exactly MT_PYRE_SUMMIT's shape.
+      ‼ **Pick plain walkable destination tiles — never a ladder/door/stairs warp tile** (see
+      `08-MISTAKES.md` 2026-08-05; it costs one map of overshoot AND reports success).
+      ‼ **FULLY SPECIFIED 2026-08-05 — `12-STORYMODE-DESIGN.md` §Ch14a** (ROM + pret decomp).
+      The chapter is ONE COORD TRIGGER: step on `(23,7)` at `VAR_MT_PYRE_STATE == 0` and the
+      scene gives the Magma Emblem and sets `FLAG_HIDE_JAGGED_PASS_MAGMA_GUARD` by itself.
+      Completion test `get_event_var("MT_PYRE_STATE") >= 1` (name verified to exist).
+      Measure `_navigate_riding_out(MT_PYRE_SUMMIT, (23,7))` FIRST — it may be the whole thing.
+      ⏭ **BLOCKED ONLY ON: no post-Winona save exists.** See `#24-postwinona-save`.
+

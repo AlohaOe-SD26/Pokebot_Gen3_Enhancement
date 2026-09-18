@@ -481,6 +481,13 @@ done
   interior sits on an `MB_NORMAL` tile and all three warp paths in `src/field_control_avatar.c`
   reject `MB_NORMAL`, so they are destination-only and never fire. ⇒ the bag is the ONLY healing,
   and the gauntlet is ALL-OR-NOTHING (a white-out calls `ResetEliteFour` and forfeits the run).
+  ⛔⛔ **WIDENED 2026-09-18, VERIFIED AT THE DECOMP:** it is not only a white-out *in the gauntlet*.
+  `data/event_scripts.s:585-586` — `EventScript_WhiteOut::` calls
+  `EverGrandeCity_HallOfFame_EventScript_ResetEliteFour` **unconditionally** ⇒ **a white-out
+  ANYWHERE IN HOENN wipes `VAR_ELITE_4_STATE` and the four `DEFEATED_ELITE_4_*` flags.**
+  ⇒ ⭐ this is why `IS_CHAMPION` is the marker's second term (`#24-markerwinstate`): it is set in
+  exactly one place and cleared nowhere. ⛔ **Never treat the `DEFEATED_ELITE_4_*` flags as evidence
+  the league was beaten** — a faint on Route 101 is enough to clear them.
   ⛔ **AND `calculate_path` CANNOT ROUTE THROUGH ITS OWN DOORS** — the victory script opens the exit
   with a runtime `setmetatile` into `gBackupMapLayout` while our planner reads a ROM pointer cached
   forever (`modules/map.py:748-755`). That is `KI-74`, **CONFIRMED LIVE at this door 2026-09-16**
