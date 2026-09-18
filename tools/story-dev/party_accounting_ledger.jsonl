@@ -643,3 +643,11 @@
 {"when": "2026-09-17T20:04:28", "driver": "ch24tailprobe", "build": "sandbox", "state": "post_drake_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-17T20:11:05", "driver": "ch24tailprobe", "build": "sandbox", "state": "post_hall4_door.ss1", "frames_run": 53224, "recomputes": 53224, "scans": 178, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-17T20:18:32", "driver": "ch24tailprobe", "build": "sandbox", "state": "post_hall4_door.ss1", "frames_run": 69938, "recomputes": 69938, "scans": 234, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T09:50:16", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 900, "recomputes": 901, "scans": 4, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T09:52:42", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T09:53:49", "driver": "ch24lobby", "build": "sandbox", "state": "post_hall4_door.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T09:56:13", "driver": "ch24lobby", "build": "sandbox", "state": "post_hall4_door.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T09:57:55", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T09:58:17", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T10:00:05", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T10:06:22", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}

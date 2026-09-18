@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -19653,6 +19653,307 @@ def _tp_snapshot():
             f"tasks={_tasks()}")
 
 
+class Ch24LobbyMode(BotMode):
+    """§Ch24 LOBBY FIXTURE — cross the League door, STOP IN THE LOBBY, and READ the §Ch23 leg guards.
+
+    ‼ WHAT THIS LEG EXISTS TO PRODUCE IS A **FIXTURE AND A READING**, not a navigation result.
+    Prerequisite (1) of wiring Segment 24 rests on a claim that has only ever been TRACED:
+    *"§Ch23 is re-entered while the bot is in the League lobby, but every leg self-skips."* No fixture
+    in this repo stands in the lobby (`grep -c POKEMON_LEAGUE_1F saves/FIXTURES.md5` -> 0), so nobody
+    has ever READ those guards there. This leg mints `post_league_lobby.ss1` and reads them.
+
+    ⛔⛔ AND THE DRIVE REFUTED THE WORD "SELF-SKIPS" — 2026-09-18, MEASURED HERE.
+    No leg firing is NOT a benign pass-through. `do_victory_road_chapter` has exactly one quiet exit,
+    `if ch23_chapter_done(): return` (`victory_road.py:3361-3362`), and this driver READ
+    `ch23_chapter_done() == False` in the lobby — because that predicate requires `_on_map(EG)`, the
+    OUTDOOR map, which the lobby is not. So all ten guards read False, no leg runs, the chapter still
+    does not grade done, and after 3 attempts the dispatch RAISES
+    `BotModeError("Ch23 (Victory Road) failed after 3 attempts...")` (`:3486-3488`).
+    ⇒ ⭐ The §Ch24 marker is not a tidy-up. Without it, a bot standing in its own League lobby
+    cannot complete §Ch23 and cannot skip it either — `story_mode.py:5172-5173` calls the chapter
+    whenever `ch23_chapter_done()` is False, which in the lobby is ALWAYS.
+
+    ⛔⛔ WHY THIS DRIVE IS DANGEROUS, AND IT IS ONE TILE OF DANGER.
+    `LEAGUE_1F (9,1)` is a **STEP-ON door** (`MB_NON_ANIMATED_DOOR`) into HALL5 — and HALL5's far door
+    is SIDNEY's room, an un-fleeable Elite Four fight. A route that walks north along x=9 crosses it.
+    TWO INDEPENDENT DEFENCES, and the first is the reason we do NOT talk to the guards:
+      1. ⭐ **THE GUARDS PHYSICALLY BLOCK IT.** While `ENTERED_ELITE_FOUR` is unset they stand ON
+         `(9,2)/(10,2)` — `victory_road.py:399-402`, *"blocking the north doors positionally"* — so the
+         planner CANNOT route through them. Talking to them sets a flag that **nothing ever clears**
+         (`ResetEliteFour` does not touch it), opening those doors forever. ⇒ 06-DECISIONS-LOG
+         2026-09-18: *mint the fixture on the REVERSIBLE side of an irreversible step first.*
+      2. **A PATH ASSERTION.** The route to the stop tile is COMPUTED and inspected BEFORE a step is
+         taken; if it contains any forbidden tile the leg REFUSES rather than walks.
+
+    ⛔ AND THE INSTRUMENT WAS NEARLY VACUOUS — an adversarial pass caught it before the drive ran.
+    The first spec read `FLAG_ENTERED_ELITE_FOUR`. **ZERO of the 1,164 rows in
+    `event_flags/emerald.txt` carry a `FLAG_` prefix**, and `memory.py:336-338` returns **False
+    SILENTLY** for an unknown name. ⇒ the reading would have been a hardcoded False, and a
+    wait-for-the-flag loop could never have succeeded. This leg therefore ASSERTS its flag names are
+    in the table before taking any flag reading — a vacuity guard on the instrument itself.
+
+    Run:
+        PYTHONUTF8=1 py -3.12 story_harness.py post_ch24_atdoor_L75.ss1 --driver ch24lobby \\
+            --frames 60000 --log lobby.log
+        CH24_LOBBY_CAPTURE=post_league_lobby      ⭐ the artifact this leg exists for
+
+    FAULT ARMS
+      `POKEBOT_CH24_FAULT_NOPATHCHECK=1` — skip the path assertion. The run must still not reach a
+          sealed map (the guards are the primary defence), but `L-PATHSAFE` must be MISSING, proving
+          the assertion is live code rather than decoration.
+      `POKEBOT_CH24_FAULT_NOSTOP=1`      — cross the door and do NOT walk to the stop tile. Must FAIL
+          with `L-STOP` and `L-CAPTURE` missing and NO fixture written.
+      ⛔ THERE IS DELIBERATELY NO "WALK TO (9,1)" ARM. It would enter the gauntlet and spend the
+          fixture — the same reason `Ch24Hall4Mode` has no overshoot arm.
+    """
+
+    WALK_BUDGET = 40_000
+    NAV_BUDGET = 40_000
+    #: The tile this leg stops on — `LEAGUE_NURSE_STAND`, 9 tiles from the nearest gauntlet door.
+    STOP_TILE = (3, 4)
+    #: ⛔⛔ NEVER A DESTINATION AND NEVER ON THE PATH. (9,1)/(10,1) step into HALL5; (9,2)/(10,2) are
+    #: the guard tiles; (1,7) is `MB_UP_ESCALATOR`, collision 0 — an accidental warp to League 2F.
+    FORBIDDEN_TILES = ((9, 1), (10, 1), (9, 2), (10, 2), (1, 7))
+    #: Flag names READ by this leg. ⛔ BARE, never `FLAG_`-prefixed — see the docstring.
+    FLAG_NAMES = ("ENTERED_ELITE_FOUR", "LANDMARK_POKEMON_LEAGUE")
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24Lobby"
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24lobby] WHITEOUT #{self.whiteouts} — abort LATCHED. ‼ This leg fights NOTHING, so a "
+            f"whiteout means the run crossed a door it must never cross.")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+        self.battles = getattr(self, "battles", 0) + 1
+        log(f"[ch24lobby] ⛔ BATTLE #{self.battles} STARTED — this leg must fight NOTHING. If this is "
+            f"an Elite Four member, the stop-short failed and the run crossed (9,1) into HALL5.")
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        import os as _os
+        from modules.map_data import MapRSE
+        from modules.map_path import calculate_path
+        from modules.memory import get_event_flag, _event_flags
+        from modules.story import victory_road as VR
+        from modules.story.early_game import _check_abort, wait_until_truly_controllable
+
+        TAG = "ch24lobby"
+        EG = MapRSE.EVER_GRANDE_CITY
+        L1F = MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_1F
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        R: dict = {}
+        taken = set()
+        WANT = {"L-PRE", "L-INLOBBY", "L-PATHSAFE", "L-STOP", "L-PREDICATES", "L-LEGGUARDS"}
+        failure = None
+        no_pathcheck = _os.environ.get("POKEBOT_CH24_FAULT_NOPATHCHECK", "") == "1"
+        no_stop = _os.environ.get("POKEBOT_CH24_FAULT_NOSTOP", "") == "1"
+        capture = _os.environ.get("CH24_LOBBY_CAPTURE", "").strip()
+        if capture:
+            WANT.add("L-CAPTURE")
+
+        # ⛔⛔ TRIPWIRE, NOT A COMMENT. If a future edit ever aims this leg at a forbidden tile,
+        # refuse before a single frame runs rather than discovering it by fighting Sidney.
+        if tuple(self.STOP_TILE) in {tuple(t) for t in self.FORBIDDEN_TILES}:
+            log(f"[{TAG}] ⛔ REFUSING: STOP_TILE {self.STOP_TILE} is in FORBIDDEN_TILES. Stepping on "
+                f"(9,1)/(10,1) enters HALL5 and the un-fleeable gauntlet.")
+            context.set_manual_mode()
+            return
+
+        try:
+            yield from wait_until_truly_controllable()
+
+            # ---- the instrument's OWN vacuity guard, before any flag is read -------------------
+            unknown = [n for n in self.FLAG_NAMES if n not in _event_flags]
+            if unknown:
+                raise BotModeError(
+                    f"Ch24 lobby: flag name(s) {unknown} are NOT in the event-flag table "
+                    f"({len(_event_flags)} entries). ⛔ `get_event_flag` returns False SILENTLY for an "
+                    f"unknown name, so every reading below would be a hardcoded False. Use BARE names "
+                    f"— the table has no `FLAG_` prefix on any row."
+                )
+            log(f"[{TAG}] flag-name vacuity guard OK ({len(_event_flags)} entries, names {list(self.FLAG_NAMES)})")
+
+            # ---- PREMISE. This leg starts OUTSIDE, on Ever Grande. ------------------------------
+            if not VR._on_map(EG):
+                raise BotModeError(
+                    f"Ch24 lobby: premise failed — this leg must start on EVER_GRANDE_CITY and we are "
+                    f"at {VR._where()}. ⛔ Pointing it at a fixture already inside the League measures "
+                    f"nothing (the vacuity arm)."
+                )
+            R["pre_at"] = (str(VR._where()), VR._here_tile())
+            R["pre_flags"] = {n: get_event_flag(n) for n in self.FLAG_NAMES}
+            taken.add("L-PRE")
+            log(f"[{TAG}] PRE at={VR._where()} tile={VR._here_tile()} flags={R['pre_flags']}")
+
+            # ---- cross the ANIMATED door: stand (18,6), face North, HOLD Up ---------------------
+            if VR._here_tile() != (18, 6):
+                yield from VR._navigate_riding_out(EG, (18, 6))
+                yield from wait_until_truly_controllable()
+            yield from VR._walk_through_warp("Up", EG.value)
+            yield from wait_until_truly_controllable()
+            if not VR._on_map(L1F):
+                raise BotModeError(
+                    f"Ch24 lobby: expected POKEMON_LEAGUE_1F, we are at {VR._where()}. ⛔ The lobby door "
+                    f"is an MB_ANIMATED_DOOR — stand (18,6), face North and HOLD Up; a single step "
+                    f"does nothing."
+                )
+            R["in_lobby_at"] = VR._here_tile()
+            taken.add("L-INLOBBY")
+            log(f"[{TAG}] IN LOBBY at={VR._where()} tile={VR._here_tile()}")
+
+            # ---- ⛔ THE PATH ASSERTION: look before walking -------------------------------------
+            here = VR._here_tile()
+            if no_pathcheck:
+                log(f"[{TAG}] ⚠ FAULT NOPATHCHECK — path assertion SKIPPED. The guards remain the "
+                    f"primary defence; L-PATHSAFE will be MISSING.")
+            else:
+                path = calculate_path((L1F, here), (L1F, tuple(self.STOP_TILE)))
+                tiles = [tuple(w.coordinates) for w in path]
+                hits = [t for t in tiles if t in {tuple(x) for x in self.FORBIDDEN_TILES}]
+                R["path_len"] = len(tiles)
+                R["path_forbidden_hits"] = hits
+                if hits:
+                    raise BotModeError(
+                        f"Ch24 lobby: ⛔ REFUSING TO WALK. The planned route to {self.STOP_TILE} "
+                        f"crosses forbidden tile(s) {hits}. (9,1)/(10,1) step into HALL5 and the "
+                        f"un-fleeable gauntlet; (9,2)/(10,2) are the guard tiles; (1,7) warps to "
+                        f"League 2F. Full path: {tiles}"
+                    )
+                taken.add("L-PATHSAFE")
+                log(f"[{TAG}] PATH SAFE — {len(tiles)} waypoints, no forbidden tile. path={tiles}")
+
+            # ---- walk to the stop tile and STOP --------------------------------------------------
+            if no_stop:
+                log(f"[{TAG}] ⚠ FAULT NOSTOP — not walking to {self.STOP_TILE}; L-STOP must be MISSING.")
+            else:
+                yield from VR._navigate_riding_out(L1F, tuple(self.STOP_TILE))
+                yield from wait_until_truly_controllable()
+                at = VR._here_tile()
+                if not VR._on_map(L1F) or tuple(at) != tuple(self.STOP_TILE):
+                    raise BotModeError(
+                        f"Ch24 lobby: aimed at {self.STOP_TILE} on the lobby and ended at "
+                        f"{VR._where()} {at}. ⛔ If the map changed, a door was crossed."
+                    )
+                R["stop_tile"] = at
+                R["stop_map"] = str(VR._where())
+                taken.add("L-STOP")
+                log(f"[{TAG}] STOPPED at={VR._where()} tile={at}")
+
+            # ---- ⭐ THE READINGS THIS LEG EXISTS FOR ---------------------------------------------
+            R["post_flags"] = {n: get_event_flag(n) for n in self.FLAG_NAMES}
+            R["predicates"] = {
+                "inside_league": VR.inside_league(),
+                "at_ever_grande_top": VR.at_ever_grande_top(),
+                "ch23_chapter_done": VR.ch23_chapter_done(),
+                "wally_beaten": VR.wally_beaten(),
+            }
+            taken.add("L-PREDICATES")
+            log(f"[{TAG}] PREDICATES {R['predicates']}  flags={R['post_flags']}")
+
+            # every §Ch23 leg guard, transcribed from `do_victory_road_chapter` — GUARDS ONLY.
+            # ⛔⛔ TEN CALL SITES, NOT NINE — CORRECTED 2026-09-18 AFTER AN ADVERSARIAL READ.
+            # `4b-train` (`victory_road.py:3430-3431`) is a guarded `yield from` with NO `LEG N`
+            # banner, so an enumeration of "the legs" walks past it. And leg 11 is a NESTED call
+            # site (`:3462-3467`): the outer `_on_map(EG)` only CONTAINS the call — the condition
+            # under which it EXECUTES is the conjunction with the bag test. Instrument the ACTION.
+            inside_vr = any(VR._on_map(m) for m in VR.VICTORY_ROAD_MAPS)
+            guards = {
+                "1-3": any(VR._on_map(m) for m in VR._PRE_DEPARTURE_MAPS),
+                "4": (not inside_vr) and not VR.at_ever_grande_top(),
+                "4b-train": (not inside_vr) and not VR.wally_beaten()
+                            and not VR.team_is_ready(VR.TRAIN_TARGET)[0],
+                "5": (not VR.at_b1f_doorstep()) and (VR._on_map(VR.EG) or VR._on_map(VR.VR1F)),
+                "6": VR._on_map(VR.VR1F) and VR.at_b1f_doorstep(),
+                "7": VR._on_map(VR.B2F),
+                "8": VR._on_map(VR.B1F),
+                "9": VR._on_map(VR.VR1F),
+                "10": VR._on_map(VR.EG) and not VR.party_is_healthy()[0],
+                "11": VR._on_map(VR.EG) and any(
+                    VR.bag_healing_stock().get(n, 0) < q for n, q in VR.LEAGUE_BASKET),
+            }
+            R["leg_guards"] = guards
+            R["legs_that_would_fire"] = sorted(k for k, v in guards.items() if v)
+            taken.add("L-LEGGUARDS")
+            log(f"[{TAG}] ⭐ LEG GUARDS IN THE LOBBY: fire={R['legs_that_would_fire'] or 'NONE'}  all={guards}")
+
+            # ---- mint the fixture -----------------------------------------------------------------
+            if capture:
+                ok_to_capture = (
+                    VR._on_map(L1F)
+                    and tuple(VR._here_tile()) == tuple(self.STOP_TILE)
+                    and R["post_flags"].get("ENTERED_ELITE_FOUR") is False
+                    and self.battles == 0
+                )
+                log(f"[{TAG}] CAPTURE GUARD on_lobby={VR._on_map(L1F)} "
+                    f"at_stop={tuple(VR._here_tile()) == tuple(self.STOP_TILE)} "
+                    f"entered_e4_still_False={R['post_flags'].get('ENTERED_ELITE_FOUR') is False} "
+                    f"battles={self.battles}")
+                if ok_to_capture:
+                    _dest = Path(__file__).resolve().parent / "saves" / f"{capture}.ss1"
+                    if _dest.exists():
+                        log(f"[{TAG}] capture SKIPPED — {_dest.name} exists; not overwriting.")
+                        taken.add("L-CAPTURE")
+                    else:
+                        try:
+                            _dest.write_bytes(context.emulator.get_save_state())
+                            R["captured"] = str(_dest)
+                            taken.add("L-CAPTURE")
+                            log(f"[{TAG}] ✅ CAPTURED -> {_dest.name} ({_dest.stat().st_size} bytes) "
+                                f"at {VR._where()} {VR._here_tile()}")
+                            log(f"[{TAG}] ⭐ THE FIRST FIXTURE THIS PROJECT HAS EVER HAD IN THE LEAGUE "
+                                f"LOBBY, and it is POSITIONALLY SEALED: ENTERED_ELITE_FOUR is still "
+                                f"False, so the guards still block the north doors. Pin it in "
+                                f"saves/FIXTURES.md5 and verify it by RELOAD, never by this line.")
+                        except Exception as error:  # noqa: BLE001 - a failed capture must be LOUD
+                            log(f"[{TAG}] ⛔ CAPTURE FAILED: {type(error).__name__}: {error}")
+                else:
+                    log(f"[{TAG}] ⛔ CAPTURE REFUSED — the guard above is not all-True.")
+
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            # ⛔ BROAD ON PURPOSE — the documented divergence for harness drivers: the VERDICT must
+            # run from partial state, and `on_whiteout` latches the abort.
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        missing = sorted(WANT - taken)
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        no_fights = self.battles == 0
+        if not no_fights:
+            log(f"[{TAG}] ⛔ GRADE: battles={self.battles} — this leg must fight NOTHING.")
+        # ⛔ UNREAD IS NOT THE SAME AS READ-TRUE, AND CONFLATING THEM PRINTS A FALSE ALARM.
+        # Caught by the VACUITY arm 2026-09-18: it refuses at the premise, so `post_flags` is never
+        # populated, `.get()` returned None, `None is False` is False — and the single most alarming
+        # line in this driver fired, reporting a contamination that had not happened. A reader of that
+        # evidence file would have concluded the fixture was spent. The verdict was right for the
+        # wrong reason; the DIAGNOSTIC was simply false. Three states, not two.
+        _e4 = R.get("post_flags", {}).get("ENTERED_ELITE_FOUR", "UNREAD")
+        still_untalked = _e4 is False
+        if _e4 == "UNREAD":
+            log(f"[{TAG}] ⚠ GRADE: ENTERED_ELITE_FOUR was NEVER READ — the run ended before the POST "
+                f"reading. ‼ THIS IS NOT A CONTAMINATION REPORT: nothing was talked to. It is an "
+                f"UNREAD, and an unread cannot certify the fixture either way.")
+        elif not still_untalked:
+            log(f"[{TAG}] ⛔ GRADE: ENTERED_ELITE_FOUR READ BACK {_e4!r} at POST — the guards were "
+                f"talked to, the north doors are now open FOREVER, and this fixture is NOT the "
+                f"positionally-sealed artifact it was meant to be.")
+        ok = not missing and failure is None and no_fights and still_untalked
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+            f"(must reach the lobby, STOP at {self.STOP_TILE}, fight NOTHING, leave "
+            f"ENTERED_ELITE_FOUR False, and READ the leg guards)")
+        context.set_manual_mode()
+
+
 class Ch24IceBeamMode(BotMode):
     """`#24-icebeamtrip` — fetch TM13 ICE BEAM from the Abandoned Ship. **PRODUCTION CODE.**
 
@@ -22372,6 +22673,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24Hall4Mode()
         elif args.driver == "ch24tailprobe":
             context.bot_mode_instance = Ch24TailProbeMode()
+        elif args.driver == "ch24lobby":
+            context.bot_mode_instance = Ch24LobbyMode()
         elif args.driver == "ch24icebeam":
             context.bot_mode_instance = Ch24IceBeamMode()
         elif args.driver == "ch24teachice":

@@ -1,0 +1,76 @@
+Running mGBA 0.10.2
+====================================================================================================================
+WHICH §Ch23 LEGS WOULD FIRE?  (guards evaluated, legs NEVER run)
+====================================================================================================================
+
+  post_hall4_door.ss1  —  EVER_GRANDE_CITY_HALL4 (5, 3)
+      SEALED map (HALL4) — the claim under test
+        leg 1-3   skip      any(_on_map(m) for m in _PRE_DEPARTURE_MAPS)
+        leg 4     skip      not inside_vr and not at_ever_grande_top()
+        leg 4b-train skip      not inside_vr and not wally_beaten() and not team_is_ready(TRAIN_TARGET)[0]
+        leg 5     skip      not at_b1f_doorstep() and (_on_map(EG) or _on_map(VR1F))
+        leg 6     skip      _on_map(VR1F) and at_b1f_doorstep()
+        leg 7     skip      _on_map(B2F)
+        leg 8     skip      _on_map(B1F)
+        leg 9     skip      _on_map(VR1F) and not fault_stranded   [arm off => conjunct dropped]
+        leg 10    skip      _on_map(EG) and not fault_noheal and not party_is_healthy()[0]   [arm off => dropped]
+        leg 11    skip      _on_map(EG) AND any(bag_healing_stock()[n] < qty for n, qty in LEAGUE_BASKET)
+      ⇒ legs that would FIRE: NONE
+
+  post_ch24_atdoor.ss1  —  EVER_GRANDE_CITY (18, 6)
+      OUTDOORS at EVER_GRANDE  [CONTROL: must fire something]
+        leg 1-3   skip      any(_on_map(m) for m in _PRE_DEPARTURE_MAPS)
+        leg 4     skip      not inside_vr and not at_ever_grande_top()
+        leg 4b-train skip      not inside_vr and not wally_beaten() and not team_is_ready(TRAIN_TARGET)[0]
+        leg 5     ⚠ FIRES   not at_b1f_doorstep() and (_on_map(EG) or _on_map(VR1F))
+        leg 6     skip      _on_map(VR1F) and at_b1f_doorstep()
+        leg 7     skip      _on_map(B2F)
+        leg 8     skip      _on_map(B1F)
+        leg 9     skip      _on_map(VR1F) and not fault_stranded   [arm off => conjunct dropped]
+        leg 10    ⚠ FIRES   _on_map(EG) and not fault_noheal and not party_is_healthy()[0]   [arm off => dropped]
+        leg 11    skip      _on_map(EG) AND any(bag_healing_stock()[n] < qty for n, qty in LEAGUE_BASKET)
+      ⇒ legs that would FIRE: ['5', '10']
+
+  post_league_shop.ss1  —  EVER_GRANDE_CITY (18, 6)
+      OUTDOORS, basket bought   [CONTROL]
+        leg 1-3   skip      any(_on_map(m) for m in _PRE_DEPARTURE_MAPS)
+        leg 4     skip      not inside_vr and not at_ever_grande_top()
+        leg 4b-train skip      not inside_vr and not wally_beaten() and not team_is_ready(TRAIN_TARGET)[0]
+        leg 5     ⚠ FIRES   not at_b1f_doorstep() and (_on_map(EG) or _on_map(VR1F))
+        leg 6     skip      _on_map(VR1F) and at_b1f_doorstep()
+        leg 7     skip      _on_map(B2F)
+        leg 8     skip      _on_map(B1F)
+        leg 9     skip      _on_map(VR1F) and not fault_stranded   [arm off => conjunct dropped]
+        leg 10    skip      _on_map(EG) and not fault_noheal and not party_is_healthy()[0]   [arm off => dropped]
+        leg 11    skip      _on_map(EG) AND any(bag_healing_stock()[n] < qty for n, qty in LEAGUE_BASKET)
+      ⇒ legs that would FIRE: ['5']
+
+  post_league_lobby.ss1  —  EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3, 4)
+      THE LOBBY (LEAGUE_1F 3,4) — the marker's real subject
+        leg 1-3   skip      any(_on_map(m) for m in _PRE_DEPARTURE_MAPS)
+        leg 4     skip      not inside_vr and not at_ever_grande_top()
+        leg 4b-train skip      not inside_vr and not wally_beaten() and not team_is_ready(TRAIN_TARGET)[0]
+        leg 5     skip      not at_b1f_doorstep() and (_on_map(EG) or _on_map(VR1F))
+        leg 6     skip      _on_map(VR1F) and at_b1f_doorstep()
+        leg 7     skip      _on_map(B2F)
+        leg 8     skip      _on_map(B1F)
+        leg 9     skip      _on_map(VR1F) and not fault_stranded   [arm off => conjunct dropped]
+        leg 10    skip      _on_map(EG) and not fault_noheal and not party_is_healthy()[0]   [arm off => dropped]
+        leg 11    skip      _on_map(EG) AND any(bag_healing_stock()[n] < qty for n, qty in LEAGUE_BASKET)
+      ⇒ legs that would FIRE: NONE
+
+--------------------------------------------------------------------------------------------------------------------
+  CONTROL: at least one outdoor position fires a leg -> PASS
+  SEALED MAP (HALL4): legs firing = NONE
+  ⇒ ⭐ CONFIRMED: NOT ONE of the ten §Ch23 call sites is reached inside the sealed zone — READ, not traced.
+  THE LOBBY (LEAGUE_1F):  legs firing = NONE
+  ‼ BUT ‘EVERY LEG SKIPS’ IS NOT ‘NOTHING HAPPENS’. With no call site reached and
+    `ch23_chapter_done()` False (it needs the OUTDOOR map), the dispatch exhausts its 3
+    attempts and RAISES BotModeError (`victory_road.py:3486-3488`). Inside the League,
+    §Ch23 can neither complete nor be skipped — which is what the §Ch24 marker is FOR.
+====================================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
+026-09-18_10-04-37.ss1 created!
+Updated `current_state.ss1`!

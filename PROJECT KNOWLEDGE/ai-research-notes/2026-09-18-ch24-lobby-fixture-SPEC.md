@@ -2,7 +2,25 @@
 
 > ⛔ **AGENT OUTPUT IS A NOTE, NEVER TRUTH.** A 6-agent spec pass (3 angles, each adversarially
 > refuted) produced the plan below. ✅ marks what I re-verified at FILE:LINE **in this round**.
-> ⛔⛔ **NO DRIVE WAS RUN.** This specifies one, and records what was measured without driving.
+> ⛔⛔ **NO DRIVE WAS RUN** *(true when written)*. This specifies one, and records what was
+> measured without driving.
+>
+> ✅✅ **SUPERSEDED IN PART, 2026-09-18 (same day): THE DRIVE RAN AND THE SPEC WAS EXECUTED.**
+> `--driver ch24lobby` minted and pinned **`post_league_lobby.ss1` = `5a75ea37ed5cc07ae8b0b0a75da5e909`**.
+> The graded predictions, the four arms and the three unanticipated results are in
+> `2026-09-18-ch24lobby-PREDICTIONS.md`. **Read the corrections below before quoting anything here.**
+>
+> ⛔⛔ **CORRECTION 1 — THE HEADLINE TABLE IN THIS NOTE COUNTED NINE OF TEN CALL SITES.** An
+> adversarial review found the dispatch has **ten** guarded `yield from`s: the **TRAINING leg**
+> (`victory_road.py:3430-3431`) carries no `LEG N` banner, and **leg 11 is NESTED** (`:3462-3467`).
+> Both instruments were corrected and re-run. **The sealed-map verdict (NONE) survived; two CONTROL
+> rows did not** — see the table.
+>
+> ⛔⛔ **CORRECTION 2 — “SELF-SKIP” IS THE WRONG WORD, AND THE DRIVE MEASURED WHY.** With no call
+> site reached and `ch23_chapter_done()` **False** (it requires `_on_map(EG)`, the OUTDOOR map),
+> `do_victory_road_chapter` consumes its 3 attempts and **RAISES** `BotModeError`
+> (`:3486-3488`), and `story_mode.py:5172-5173` re-enters it every pass. ⇒ inside the League the
+> bot can neither finish §Ch23 nor skip it ⇒ **the §Ch24 marker is load-bearing, not tidy-up.**
 
 ---
 
@@ -60,21 +78,29 @@ The marker design rested on a claim that had only ever been TRACED: *"inside the
 from `do_victory_road_chapter` (`victory_road.py:3327-3485`) and evaluated live — **guards only; no leg
 was ever run.**
 
-| position | legs whose guard FIRES |
-|---|---|
-| **`post_hall4_door` — HALL4, SEALED** | ⭐ **NONE** (all nine False) |
-| `post_ch24_atdoor` — EVER_GRANDE, degraded party *(control)* | 5, 10, 11 |
-| `post_league_shop` — EVER_GRANDE, basket bought *(control)* | 5, 11 |
+⛔ **THE TABLE BELOW IS THE CORRECTED ONE (TEN CALL SITES, re-run 2026-09-18).** The
+❗ struck-through values are what this note originally published from the nine-site instrument.
+
+| position | legs whose guard FIRES (TEN sites) | originally published |
+|---|---|---|
+| **`post_hall4_door` — HALL4, SEALED** | ⭐ **NONE** (all TEN False) | NONE (all nine) — verdict unchanged |
+| `post_ch24_atdoor` — EVER_GRANDE, degraded party *(control)* | **5, 10** | ~~5, 10, 11~~ ❗ leg 11 was a mis-transcription |
+| `post_league_shop` — EVER_GRANDE, basket bought *(control)* | **5** | ~~5, 11~~ ❗ same cause |
+| ⭐ **`post_league_lobby` — THE LOBBY (3,4)** *(NEW, minted by this spec's drive)* | ⭐ **NONE** | *(did not exist)* |
 
 ⇒ ⭐ **CONFIRMED BY READING: inside the sealed zone not one §Ch23 leg is even INVOKED.** That is
 stronger than the design claimed — the legs are not merely inert there, they are **unreachable from the
 dispatch**.
-⇒ The controls separate, so the instrument works. ✅ **RE-RUNNABLE AND COMMITTED** (a reviewer noted the first version had no artifact): `tools/story-dev/probe_ch23_leg_guards.py`, output at `tools/story-dev/evidence/2026-09-18-ch23-leg-guards-BY-POSITION.stdout.txt`. They are informative too: **leg 10 fires on the
+⇒ The controls separate, so the instrument works. ✅ **RE-RUNNABLE AND COMMITTED** (a reviewer noted the first version had no artifact): `tools/story-dev/probe_ch23_leg_guards.py`, output at `tools/story-dev/evidence/2026-09-18-ch23-leg-guards-TEN-CALL-SITES.stdout.txt` ‼ **CITE THIS ONE.** ⛔ The older `…-BY-POSITION.stdout.txt` is the NINE-site output and is SUPERSEDED — it is kept as the record of what the first instrument printed, and its two EVER_GRANDE control rows are WRONG (see the retraction above). They are informative too: **leg 10 fires on the
 degraded-party fixture and not the healthy one**, which is the heal guard behaving exactly as written.
-⚠ **A nuance reading exposed that tracing had blurred:** **leg 11's guard is bare `_on_map(EG)` with no
-basket conjunct**, so it fires at Ever Grande *even after the basket is bought* — its self-skip must
-live inside the leg body. ⇒ "legs don't re-fire" is true for two DIFFERENT reasons in two places, and
-only the sealed-zone case is guaranteed by the dispatch itself.
+⛔⛔ **RETRACTED — THIS “NUANCE” WAS FALSE, AND IT WAS A MIS-READ OF THE INSTRUMENT, NOT OF THE
+GAME.** It read: *“leg 11's guard is bare `_on_map(EG)` with no basket conjunct, so it fires at Ever
+Grande even after the basket is bought — its self-skip must live inside the leg body.”* The dispatch
+is **nested** — `if _on_map(EG): stock = bag_healing_stock(); if any(stock < qty): yield from …`
+(`victory_road.py:3462-3467`) — so the self-skip **IS the inner `if`, at the call site**, one line
+below the outer one, and leg 11 fires at **neither** Ever Grande fixture once the basket is stocked.
+‼ The transcription had recorded the OUTER `if`, which merely CONTAINS the call — **an input to the
+action, not the action** — and I reported its value as a statement about when the leg runs.
 
 ---
 
@@ -105,9 +131,16 @@ the fix was a glob. This is the same shape, one directory over.
 
 ## ⛔ WHAT THIS DOES NOT ESTABLISH
 
-* **No drive was run and no fixture was minted.** The spec is ready; executing it is the next item.
-* The lobby window remains **TRACED, not READ** — that is exactly what the fixture would fix.
-* A 2F reading is owed as well as a lobby one.
+* ✅ **SUPERSEDED: the drive RAN and the fixture IS minted** (`post_league_lobby.ss1`, pinned
+  `5a75ea37ed5cc07ae8b0b0a75da5e909`). The lobby window is now **READ**, at ten call sites, by two
+  independent instruments (the driver live, and the probe by RELOAD).
+* ⚠ **A 2F reading is STILL owed**, and so is a **post-talk sibling fixture**. ✅ 2F is now scoped
+  from the decomp: it is the **Cable Club** (`LAYOUT_POKEMON_CENTER_2F`; Union Room / Trade Center
+  attendants), reachable from the lobby with `ENTERED_ELITE_FOUR` unset — the escalator is 1F warp
+  **4** at `(1,7)` and the gauntlet doors are warps **2/3**, disjoint tiles — and standing on 2F
+  still reads `inside_league()`/`at_ever_grande_top()` True (`victory_road.py:1380`).
+  ⛔ **No fixture stands on 2F, and its arrival tile has never been measured in our emulator** (the
+  decomp's reciprocal warp says `(1,6)`; treat that as decomp-sourced and unverified here).
 * The four phantom names are **filed, not fixed** — the `VAR_RESULT` trio needs a decision about
   whether the var belongs in our table at all.
 * Prerequisites (2), (3) and (4) are untouched. **Segment 24 stays unwired.**

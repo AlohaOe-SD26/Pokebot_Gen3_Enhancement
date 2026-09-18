@@ -6151,3 +6151,43 @@ whole point is to convert the lobby window from TRACED to READ.
 
 ⭐ **THE RULE THIS SETTLES: when a route contains an irreversible step, mint the fixture on the
 REVERSIBLE side of it first.** The sealed state can always be spent later; it can never be regained.
+
+
+## 2026-09-18 — MINT THE LOBBY FIXTURE ON THE *REVERSIBLE* SIDE OF THE IRREVERSIBLE STEP
+
+**DECISION: the League-lobby fixture is minted WITHOUT talking to the door guards**, and a post-talk
+sibling is a SEPARATE deliberate artifact rather than a side effect.
+
+**WHY.** Talking to the guards sets `ENTERED_ELITE_FOUR`, and **nothing in the game ever clears it**
+— `ResetEliteFour` does not touch it. While it is unset the guards stand ON `(9,2)/(10,2)`,
+*“blocking the north doors positionally”* (`victory_road.py:399-402`). ⇒ a no-talk fixture is
+**positionally sealed**: no future drive launched from it can reach the un-fleeable Elite Four rooms
+by accident, because the planner cannot route through the guards. A post-talk fixture has those doors
+open **forever**. ⇒ Mint the reversible one first; it strictly dominates as an iteration base.
+
+**REJECTED:** *talk first, so the fixture matches the settled definition of the “lobby window” as the
+POST-talk interval.* That definition still stands and the post-talk sibling is still owed — but
+minting it FIRST spends the irreversible step to get an artifact that is strictly more dangerous to
+iterate from. The settled ruling defines what the window IS; it does not require the first fixture to
+sit inside it.
+
+**CONSEQUENCE, MEASURED THE SAME DAY:** the drive from that fixture found that with no §Ch23 call site
+reached and `ch23_chapter_done()` False, `do_victory_road_chapter` **raises** after 3 attempts
+(`:3486-3488`). ⇒ **the §Ch24 marker is not optional cleanup; without it the bot cannot leave §Ch23
+once it steps into the League.** That reprioritises prerequisite (1) of wiring Segment 24.
+
+## 2026-09-18 — A GUARD TRANSCRIPTION MUST NAME THE *CALL*, NOT THE ENCLOSING `if`
+
+**DECISION:** when transcribing a dispatch's guards into a probe, the row is the condition under
+which the `yield from` **executes** — for a nested call site, the CONJUNCTION of every enclosing test
+— and every call site is enumerated by reading the **`yield from`s**, never by reading the numbered
+`--- LEG N ---` banners.
+
+**WHY:** both failure modes were found in one adversarial read of a probe already committed and
+already cited in the punch list. The TRAINING leg (`victory_road.py:3430-3431`) has a banner reading
+`--- THE TRAINING LEG ---` and no number, so a banner-driven enumeration missed it; leg 11's real
+condition is the inner bag test (`:3462-3467`), and transcribing the outer `_on_map(EG)` produced a
+published claim about when the leg runs that was simply false.
+**ALTERNATIVE REJECTED:** *annotate the known exceptions in prose.* The prose already existed —
+`03-PUNCH-LIST.md` said *“pre-Wally the training leg fires there”* four lines above the claim it
+contradicted. Prose next to a checklist does not fix the checklist.

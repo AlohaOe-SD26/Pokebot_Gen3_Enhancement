@@ -243,7 +243,46 @@ open-vs-built sweep of all 80 open items has **not** been done.
   added, matching the three gates that carried this bug before.
   ⚠ **THEREFORE THE PROSE RULE IN `08-MISTAKES.md` STAYS.** The gate covers the house idiom, not every
   phrasing; it is a floor, not a replacement. Run: `py -3.12 probe_retraction_coverage.py --self-test`.
-- [ ] ⛔ `#24-lobbyfixture` — **NEW 2026-09-18. MINT A LOBBY FIXTURE SO THE §Ch24 “lobby window” IS *READ* RATHER THAN TRACED. ⇒ WHAT REMAINS: write the stop-short driver and run it; the SPEC IS COMPLETE and a refuter already killed its first instrumentation.**
+- [x] ✅✅ `#24-lobbyfixture` — **DONE 2026-09-18. THE LOBBY FIXTURE IS MINTED, PINNED AND RE-VERIFIED BY RELOAD, AND THE LOBBY WINDOW IS NOW *READ*. ⭐ IT RETURNED A RESULT THE SPEC DID NOT PREDICT: INSIDE THE LEAGUE, §Ch23 DOES NOT “SELF-SKIP” — IT *RAISES*.**
+  ⭐ **THE ARTIFACT:** `saves/post_league_lobby.ss1`, pinned `5a75ea37ed5cc07ae8b0b0a75da5e909` — the
+  FIRST fixture this repo has ever held inside the Pokémon League. `POKEMON_LEAGUE_1F (3,4)`, L75
+  party, **0 battles fought**, `ENTERED_ELITE_FOUR` **still False** ⇒ the door guards still stand on
+  (9,2)/(10,2), so it is **positionally sealed against the un-fleeable gauntlet**. Minted by
+  `--driver ch24lobby`; ✅ verified by RELOAD (`probe_ch23_leg_guards.py` loads it and reports
+  `EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3, 4)`), never by the capture line.
+  ⛔ **FRAMING CORRECTED BEFORE COMMIT: THE RAISE WAS ALREADY DERIVED IN `06-DECISIONS-LOG.md`**
+  (*“Any raise past that door re-enters `do_victory_road_chapter()`, whose eleven legs are all
+  position-gated and all self-skip, three times, then raises ⇒ 4 derails ⇒ Manual, parked in a sealed
+  Elite Four room.”*). ‼ I nearly published it as a new discovery. ⇒ **what this drive ADDED:** it
+  **measured** it live, and it moved it from the SEALED ROOMS to **the LOBBY** — a map the marker
+  design deliberately EXCLUDES, and which Decision 3 calls *“protected”* (that protection is only
+  “leg 4 does not wrongly fire” and does **not** prevent the raise). See `#24-ch23lobbyresume`.
+  ⭐⭐ **THE RESULT THAT MATTERS, AND IT RAISES THE MARKER FROM TIDY-UP TO LOAD-BEARING.** P10 asked
+  *which* guards fire and got the predicted answer — **none of the ten**. It never asked what happens
+  when none of them do, and the answer is **not “nothing”**: `do_victory_road_chapter` has exactly one
+  quiet exit, `if ch23_chapter_done(): return` (`victory_road.py:3361-3362`), and this drive
+  **measured `ch23_chapter_done() == False` in the lobby** — that predicate needs `_on_map(EG)`, the
+  OUTDOOR map, which the lobby is not. ⇒ ten call sites skip → no state changes → the chapter still
+  does not grade done → three attempts are consumed →
+  `raise BotModeError("Ch23 (Victory Road) failed after 3 attempts...")` (`:3486-3488`). And
+  `story_mode.py:5172-5173` calls the chapter whenever `ch23_chapter_done()` is False — in the lobby,
+  **always**. ⇒ ⛔ **standing in its own League lobby, the bot can neither finish §Ch23 nor skip it.**
+  ✅ **THE GRADE:** P1-P8 and P11 met with quoted lines; P10 met at ten call sites; **P9 ⚠ PARTLY
+  UNREADABLE and deliberately NOT scored ✅** — it predicted a reading of `marker(sealed)`, a predicate
+  **that does not exist in code yet**. Predicting a reading of something unbuilt was an error in the
+  predictions file, not a result.
+  ✅ **FOUR ARMS, EACH FAILING FOR ITS OWN REASON:** TREATMENT `missing=[]` · VACUITY refused at the
+  premise with **zero readings** · FAULT `NOPATHCHECK` → `missing=['L-PATHSAFE']` and nothing else
+  (and it still reached no sealed map — the guards are the primary defence) · FAULT `NOSTOP` →
+  `missing=['L-CAPTURE','L-STOP']` with **0 files written**.
+  ⚠ **STILL OWED:** a **League 2F** reading (the window is two maps) and a **post-talk** sibling
+  fixture. ✅ 2F is now scoped: it is the **Cable Club** (`LAYOUT_POKEMON_CENTER_2F`; Union Room /
+  Trade Center attendants), reachable from the lobby with `ENTERED_ELITE_FOUR` unset — the escalator
+  at `(1,7)` is 1F warp **4** and the gauntlet doors are warps **2/3**, disjoint tiles — and standing
+  on 2F still reads `inside_league()` and `at_ever_grande_top()` True (`victory_road.py:1380`).
+  ⛔ **NO fixture stands on 2F and its arrival tile has never been measured here** (the decomp's
+  reciprocal warp says `(1,6)`; that is decomp-sourced, unverified in our emulator).
+  Full grade + the three unanticipated results: `ai-research-notes/2026-09-18-ch24lobby-PREDICTIONS.md`
   **WHY:** prerequisite (1)'s last soft spot. No fixture in this repo stands in the lobby
   (`grep -c POKEMON_LEAGUE_1F tools/story-dev/saves/FIXTURES.md5` → 0), so “zero §Ch23 legs fire there”
   rests on an agent probe, not a reading.
@@ -266,6 +305,33 @@ open-vs-built sweep of all 80 open items has **not** been done.
   ⚠ **THE WINDOW IS TWO MAPS AND THIS SPEC COVERS ONE** — League 2F is reachable by
   `LEAGUE_ESCALATOR (1,7)`, *“collision 0 — an accidental step-on warp”*. A 2F reading is owed too.
   Full spec + what was measured without driving: `ai-research-notes/2026-09-18-ch24-lobby-fixture-SPEC.md`
+- [ ] ⛔ `#24-ch23lobbyresume` — **NEW 2026-09-18. §Ch23 CANNOT RESUME FROM THE LEAGUE LOBBY — THE TILE ITS OWN LEG 10 STANDS ON. ⇒ WHAT REMAINS: PROVE THE RAISE BY RUNNING IT (the repro fixture already exists), THEN DECIDE THE FIX.**
+  **THE SHAPE.** ✅ MEASURED 2026-09-18 on `post_league_lobby.ss1`: on `POKEMON_LEAGUE_1F (3,4)` **all
+  ten §Ch23 call sites read False** and **`ch23_chapter_done()` reads False** — the latter because it
+  conjuncts `_on_map(EG)`, the OUTDOOR map (`ch23_chapter_done`, `victory_road.py` — ‼ cite the
+  SYMBOL, the line has drifted: `06-DECISIONS-LOG.md` cites `:3312`, it is `:3278` today).
+  ⇒ nothing runs, nothing changes, the chapter never grades done, three attempts are consumed, and
+  `do_victory_road_chapter` **raises** `BotModeError("Ch23 (Victory Road) failed after 3 attempts…")`.
+  `story_mode.py:5172-5173` re-enters the chapter whenever `ch23_chapter_done()` is False — in the
+  lobby, **always**.
+  ⭐⭐ **WHY THIS IS REACHABLE IN ORDINARY PLAY, AND NOT A §Ch24 PROBLEM.** ✅ `heal_at_league` (leg 10)
+  holds Up through the League door and then runs `_navigate_riding_out(LEAGUE_1F, LEAGUE_NURSE_STAND)`
+  — **`(3,4)`, the exact tile of the repro fixture.** Leg 11 (the mart) works on that map too. ⇒ §Ch23
+  **puts itself** on a tile it cannot resume from; any derail or whiteout-recovery that re-enters the
+  chapter while standing there lands in the raise.
+  ⛔ **THE §Ch24 MARKER WILL NOT FIX THIS, AND MUST NOT BE STRETCHED TO.** `06-DECISIONS-LOG.md`
+  DECISION 2 excludes `POKEMON_LEAGUE_1F (16,10)` from `CH24_SEALED_MAPS` **on purpose**, because
+  §Ch23's legs 10/11 work there — including it would grade §Ch23 done mid-heal, before the basket is
+  bought. That exclusion is correct for the marker's purpose. ⇒ **two different problems; do not
+  collapse them.**
+  ⚠ **AND CHECK THE PREMISE BEFORE BUILDING A FIX — I HAVE NOT:** is the lobby actually re-entered
+  with §Ch23 incomplete in a real run, or do legs 10/11 always complete within one attempt? The raise
+  is measured; **the FREQUENCY is not**, and `CLAUDE.md` §9 says frequency questions are batch
+  questions, not driver questions.
+  ⭐ **THE NEXT STEP IS CHEAP, SAFE AND DECISIVE:** load `post_league_lobby.ss1` and call
+  `do_victory_road_chapter()`. Every guard is False, so **nothing moves** — the run cannot wander into
+  the gauntlet — and it either raises (confirming the trace) or it does not (refuting it). ⇒ turns a
+  DERIVED consequence into a READ one for the cost of ~3 attempts of no-ops.
 - [ ] ⚠ `#24-harnessphantomnames` — **NEW 2026-09-18, FILED NOT FIXED. FOUR PHANTOM FLAG/VAR NAMES IN THE HARNESS READ FALSE/0 FOREVER. ⇒ WHAT REMAINS: rename one, and DECIDE about the other three.**
   ✅ **MEASURED:** 302 harness files · 86 `get_event_flag` + 68 `get_event_var` literal calls · **4
   phantom names**, all in `story_harness.py`:
@@ -336,12 +402,29 @@ open-vs-built sweep of all 80 open items has **not** been done.
   leg fires there (its guard at `:3393` carries no position test).
   ✅✅ **AND THE DESIGN'S CENTRAL CLAIM IS NOW *READ*, NOT TRACED (2026-09-18).** Evaluating every
   §Ch23 leg guard live at each fixture we hold — guards only, no leg ever run — **on the SEALED map
-  `post_hall4_door` (HALL4) NOT ONE of the nine guards is True.** Controls separate and are informative:
-  at EVER_GRANDE legs **5/10/11** fire on the degraded-party fixture and **5/11** on the healthy one, ✅ **RE-RUNNABLE AND COMMITTED** (a reviewer noted the first version had no artifact): `tools/story-dev/probe_ch23_leg_guards.py`, output at `tools/story-dev/evidence/2026-09-18-ch23-leg-guards-BY-POSITION.stdout.txt`.
+  `post_hall4_door` (HALL4) NOT ONE of the TEN CALL SITES is True**, and the same holds at the new
+  `post_league_lobby` fixture.
+  ⛔⛔ **CORRECTED 2026-09-18, SAME DAY: THIS FIRST READ “NINE GUARDS” AND THE DISPATCH HAS TEN.**
+  An adversarial reviewer found (a) the **TRAINING leg** (`victory_road.py:3430-3431`) is a guarded
+  `yield from` carrying no `LEG N` banner, so an enumeration built from the numbered banners walks
+  past it — ‼ **and this file ALREADY SAID SO four lines above**, which is the sharp part of the
+  lesson; and (b) **leg 11 is a NESTED call site** (`:3462-3467`) whose transcription read only the
+  outer half. Both instruments were corrected and re-run.
+  ‼ **THE CORRECTION CHANGED TWO CONTROL READINGS**, so the old numbers below are RETRACTED:
+  EVER_GRANDE degraded was published as **5/10/11** and is actually **5/10**; basket-bought was
+  published as **5/11** and is actually **5**. Controls separate and are informative:
+  at EVER_GRANDE legs **5/10** fire on the degraded-party fixture and **5** on the healthy one, ✅ **RE-RUNNABLE AND COMMITTED** (a reviewer noted the first version had no artifact): `tools/story-dev/probe_ch23_leg_guards.py`, output at `tools/story-dev/evidence/2026-09-18-ch23-leg-guards-TEN-CALL-SITES.stdout.txt` ‼ **CITE THIS ONE.** ⛔ The older `…-BY-POSITION.stdout.txt` is the NINE-site output and is SUPERSEDED — it is kept as the record of what the first instrument printed, and its two EVER_GRANDE control rows are WRONG (see the retraction above).
   i.e. leg 10's heal guard behaving exactly as written. ⇒ inside the sealed zone the legs are not
   merely inert, they are **never invoked** — stronger than the design claimed.
-  ⚠ **A nuance the reading exposed:** **leg 11's guard is bare `_on_map(EG)` with no basket conjunct**,
-  so it fires at Ever Grande even AFTER the basket is bought — its self-skip lives in the leg body.
+  ⛔⛔ **RETRACTED 2026-09-18 (same day it was written) — THIS “NUANCE” WAS FALSE.** It read:
+  *“leg 11's guard is bare `_on_map(EG)` with no basket conjunct, so it fires at Ever Grande even
+  AFTER the basket is bought — its self-skip lives in the leg body.”* The dispatch is **nested**:
+  `if _on_map(EG): stock = bag_healing_stock(); if any(stock < qty): yield from ...`
+  (`victory_road.py:3462-3467`). The self-skip **IS the inner `if`, at the call site**, one line below
+  the outer one — not in the leg body at all, and leg 11 does **not** fire once the basket is stocked
+  (measured: it fires at NEITHER Ever Grande fixture). ‼ The transcription had instrumented the outer
+  `if`, which merely CONTAINS the call — **an input to the action, not the action** — and I reported
+  its value as if it described when the leg runs.
   ⇒ “legs do not re-fire” is true for two DIFFERENT reasons in two places; only the sealed-zone case is
   guaranteed by the dispatch. Full table: `ai-research-notes/2026-09-18-ch24-lobby-fixture-SPEC.md`
   ⚠⚠ **WHAT IS STILL OWED, AND IT IS SMALL:** the lobby result is an AGENT probe reproduced by a
@@ -1568,23 +1651,8 @@ stacking another correction on top is how it became unreadable.*
 
 - [x] HISTORY — `#24-movepoolcounters` (original measurement) — **USER DIRECTIVE 2026-08-07.**  — 📦 **ARCHIVED 2026-08-23 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 
-- [x] `#24-counterdesertgate` — **FIXED 2026-08-07, same day it was found.**
-      `counter_plan` now checks `AREA_ITEM_PREREQ` per candidate location and skips the area
-      unless the item is in the bag; fails CLOSED, and sits before the reachability branch.
-      **A/B on the item, both arms, control in both:**
-      | arm | Winona's best_huntable |
-      |---|---|
-      | bag HOLDS Go-Goggles | Baltoy @ ROUTE111 `via=move:Rock Tomb@L15` (admitted) |
-      | bag EMPTY | **Slugma @ FIERY_PATH** `via=move:Rock Throw@L15` (ROUTE111 refused) |
-      | control | Norman → Machop @ FIERY_PATH, unchanged in both |
-      ‼ Both arms run on purpose — the gate fails closed, so a one-armed offline test would show
-      the right answer for the wrong reason. `probe_counter_item_gate.py`.
-      ‼ **Deliberately NOT done by flipping `POKEBOT_AREA_ITEM_GATE`** (one character, and it
-      would have re-litigated the measured 2026-08-04 ruling). That ruling was about TRAINING,
-      where a bad pick costs one trek; a counter hunt gets ONE attempt per boss per run, so a bad
-      pick costs the boss. `repro_movepool_counter_candidates.py` §5 asserts the flag stays off.
-      **NO OUTCOME PROOF YET** — needs a batch: `CAUGHT Slugma` > 0 with `CAUGHT Machop` unchanged.
-
+- [x] `#24-counterdesertgate` — **FIXED 2026-08-07, the same day it was found. CLOSED.** The desert-gate counter defect.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full root cause and fix are there.
 - [x] HISTORY — `#24-counterdesertgate` (original diagnosis) — ✅ FIXED 2026-08-07, the same day it was found. **Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-09-05** (no loss, no orphan — both invariants asserted before writing).
 - [x] `#24-huntreachproof` — **PART 1 SHIPPED AND BATCH-CONFIRMED 2026-08-08.**
       **CONVERSION 15% → 50% (5/33 → 10/20), z = +2.73 — RESOLVABLE ✅.** Hunts fell 33 → 20 and
@@ -1596,29 +1664,8 @@ stacking another correction on top is how it became unreadable.*
       ground was tried. The per-anchor sweep campaign would have fixed a problem that does not
       exist. **Do not run it.**
 
-- [x] `#24-slugmaspin` — ‼ **BATCH-CONFIRMED 2026-08-09** (`x4-runs/20260809-081643`, code
-      `16283010`, VERDICT OK): the fence reverses the regression on the species that carried it —
-      **`CAUGHT Machop` 0/7 → 6/7, z = +3.24 (RESOLVABLE)** — and **FALSE catches 10 → 0**, so
-      reported (9) now equals REAL (9). Overall REAL conversion 15.0% → 39.1% (z = +1.76,
-      directional), statistically indistinguishable from the 45.0% before the regression.
-      ‼ The written bar of "≥50%" was itself mis-derived — that figure counted REPORTED catches;
-      on REAL catches the historical pair is 15.2% → 45.0% (z = +2.39). See `08-MISTAKES` 2026-08-09.
-      ‼ **Promotion to `custom-pokebot/` is READY and NOT DONE — it needs an explicit user YES**
-      (`CLAUDE.md` standing directive). Until then production runs this regression WITHOUT its fix.
-
-      HISTORY — **FIXED 2026-08-08, same day it was found. It was the SUCCESS TEST, not
-      the spin.** `party_counter_slot()` checked the caught mon's OWN TYPE, so a Slugma (Fire)
-      caught for Winona (Rock/Ice/Dragon) was never recognised: `_stop()` never fired, the spin
-      ran to budget, the hunt reported nothing caught. **34 Slugma encounters, 0 registered.**
-      `#24-movepoolcounters` taught the PLANNER about movepools and left this behind.
-      **Fix:** also accept a mon that knows a DAMAGING move of a needed type. Lenient by design
-      (no credible-power floor — a fresh L15 Slugma knows Rock Throw and that IS success; the
-      strict question belongs to `_boss_plan_is_hopeless`).
-      `repro_counter_move_answer.py` — 4 cases, incl. Sandstorm (Rock, **0 power**) correctly
-      REJECTED, pinning the damaging-only rule. Suite 6/6.
-      ‼ **NO OUTCOME PROOF YET.** Acceptance next batch: `counter hunt CAUGHT Slugma` > 0, and
-      overall CONVERSION at or above this batch's 50%.
-
+- [x] `#24-slugmaspin` — **‼ BATCH-CONFIRMED 2026-08-09 AND CLOSED.** The Slugma-spin defect, confirmed against a real batch (`x4-runs/20260809-081643`) rather than argued from code.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the batch evidence, the counts and the reasoning are there.
 - [x] `#24-slugmaspin` (original finding) — **Winona's rung FIRES but does not convert.**
       `Slugma @ FIERY_PATH`: **5 hunts, 0 caught** — on the same ground that converts 6/8 for
       Machop and 3/7 for Numel in the same batch, so **it is not travel**. This is the movepool
@@ -1690,41 +1737,11 @@ stacking another correction on top is how it became unreadable.*
       it needs a measurement at the era the batch actually failed in. Recorded so the next reader
       does not re-derive "we have no balls" from a stale headline.
 
-- [x] `#24-teachpathrace` — **FIXED 2026-08-07, same day it was found. Caught by the
-      `#24-hmteachloop` telemetry in its FIRST batch — a SECOND, independent teach bug.**
-      Batch `20260807-102552`: **33 of 37 teaches succeeded; all 4 failures were this**, on Surf,
-      each burning the full 9,000-frame cap without learning the move.
-      **FIX:** the instant-learn exit now requires POSITIVE evidence — a genuinely free move slot
-      (`_free_slots` / `_may_instant_learn`) or `_knows()` — instead of the mere presence of
-      `Task_HandleChooseMonInput`.
-      **Live proof, both branches** (`--driver teachfull`; `TEACH_SLOT` picks the target):
-      | target | moves before | post_select | ride_frames | result |
-      |---|---|---|---|---|
-      | Mightyena (4 moves) | Tackle/Taunt/Take Down/Bite | `replace-prompt` | 479 | learned, replaced Taunt |
-      | Zigzagoon (3 moves) | Tackle/Growl/Surf | `instant-learn` | 252 | learned, replaced nothing |
-      ‼ The second row is not optional: the fix GATES the instant-learn exit, so proving the
-      replace path still works is only half a proof — a gate one notch too tight would strand
-      every free-slot teach in the 900-frame loop, and the replace test cannot see that.
-      `repro_hmteach_postlearn.py` §5 pins it (17 → 22 checks).
-
+- [x] `#24-teachpathrace` — **FIXED 2026-08-07, the same day it was found. CLOSED.** The HM-teaching path race, caught by a gate rather than by a run.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full root cause and fix are there.
 - [x] HISTORY — `#24-teachpathrace` (original report) — ✅ CLOSED (fixed 2026-08-07, same day). **Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-09-05**, including its root-cause and FIX SHAPE paragraphs.
-- [x] `#24-whiteoutloop` — **BOTH PARTS SHIPPED 2026-08-07.**
-      **Part 1 (cfgs):** `flannery_fight` + `rival110_fight` added — the two fights that had NO
-      boss cfg at all and were **48% of all defeats**. Team data decomp-verified
-      (`sParty_Flannery1`: Numel 24 / Slugma 24 / Camerupt 26 / **Torkoal 29**;
-      `sParty_MayRoute110*`: the ace is always the L20 evolved starter that counters yours).
-      ‼ Neither carries a `grass` key, on purpose — `_prepare_for_fight` explicitly supports a
-      grass-less cfg, and Lavaridge genuinely has none (two-way sweep, `jaggedgrass_probe.py`).
-      Inventing a training tile is how KI-44 happened.
-      ‼ Also corrected the Route 110 ace derivation to name TYPE PAIRS (Marshtomp =
-      Ground/Water, Combusken = Fighting/Fire) — effectiveness against a dual-type is the
-      PRODUCT, so the old primary-type-only version understated every matchup.
-      **NEW `repro_boss_cfg_coverage.py`** asserts every measured defeat map has a cfg carrying
-      ace data — fault-injected RED. ‼ It also caught two of my OWN wrong assumptions: Brawly's
-      ace really is L19 against a (14,16) band (the band is a training target, not a range
-      containing the ace), and the Rustboro rival's missing `ace_types` is fine because it
-      recorded **0 defeats in four batches**.
-
+- [x] `#24-whiteoutloop` — **BOTH PARTS SHIPPED 2026-08-07. CLOSED.** The whiteout-loop defect, fixed in both halves.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — both parts, their reasoning and their evidence are there.
 - [x] HISTORY — `#24-whiteoutloop` (part 2, "the hard plateau") — ✅ CLOSED; BOTH PARTS SHIPPED 2026-08-07. **Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-09-05** (no loss, no orphan — both invariants asserted before writing).
 - [x] HISTORY — `#24-whiteoutloop` (diagnosis) — ✅ CLOSED; both parts shipped 2026-08-07. **Full entry ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` on 2026-09-05** (no loss, no orphan — both invariants asserted before writing).
 - [x] ~~`#24-mtpyre-batch`~~ (superseded) — **NEXT ACTION. Batch Segment 14 before trusting any finish rate.**
@@ -1790,29 +1807,8 @@ justified by counting failures without counting successes. Do not re-enable with
 
 ### ‼ APPLIED 2026-08-01 AFTER BATCH `20260801-075805` LANDED
 
-- [x] `#24-counters-travel` (**KI-44**) — **FIXED 2026-08-01, awaiting a batch for the OUTCOME
-      proof.** It was never a routing bug: `train_counter` used the BOSS's grass, so a Machop
-      caught in FIERY_PATH was sent to ROUTE102 — eight maps away AND **L3-4 wilds** (the
-      "~25 xp a kill, i.e. never" patch `story_mode.py:739` already documents). The obvious
-      repair is also wrong: FIERY_PATH/ROUTE112/JAGGED_PASS are all `NO_RETURN_GROUNDS` (the
-      heal leg fails), so there was **no legal training ground at all** — a structural hole.
-      Fixed by `counter_training_ground()` deferring to `best_training_area`. Live-probed from
-      `lavaridge.ss1`: relocates to ROUTE117 (31,16) L13-14, heal Verdanturf.
-      `repro_counter_training_ground.py` pins the property. **Still unproven:** the probe stood
-      on LAVARIDGE_TOWN not FIERY_PATH, and the outcome needs a batch — read `Heat→Balance`
-      vs batch4's 24/29 (83%) and count `counter training failed` (was 7/7).
-
-      *The original diagnosis, kept because it is the evidence:*
-      `#24-counters-travel` — **‼ THE COUNTER CHAIN'S BLOCKER.** Counter
-      training now starts (the budget fix works: refusal 4 → 0, affordable target fires 7×)
-      and then **fails 7 of 7** — 6× `Could not reach (9, 2) on MapRSE.ROUTE102 … not walkable
-      from ROUTE103`, 1× whiteout. **Zero counters trained**, so batch4's badge funnel is flat
-      at every rung (Heat→Balance z = 0.52). Exposed, NOT caused, by `affordable_training_target`
-      — before it the gate refused before any travel was attempted. **Do not revert that fix.**
-      Probe from the ACTUAL captured position (ROUTE103, x≈45) plus a control tile that DOES
-      path; suspect KI-24's `calculate_path` unsoundness, not a sealed route. Do NOT "fix" by
-      raising retries — the error already reasons that retrying cannot help.
-
+- [x] `#24-counters-travel` (**KI-44**) — **FIXED 2026-08-01 and CLOSED.** The counter-travel defect; the fix landed and the outcome batch confirmed it.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full write-up and its batch numbers are there.
 - [x] `#24-navready-budget` (**KI-43**) — ✅ **DONE 2026-07-31** — fixed via a dedicated nav-ready budget. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 - [ ] `#24-wdcanary-dedupe` — `summarize_lane` counts `global watchdog` in stdout AND the
       debug log, so every reported figure is ~2× (`9 → 143` is really `5 → 72`). Dedupe the

@@ -1,0 +1,121 @@
+============================================================================================================
+--driver ch24lobby  ARM: TREATMENT
+============================================================================================================
+WHY THIS ARM EXISTS: The arm that MINTED `post_league_lobby.ss1`. Expect ACCEPTANCE: PASS, missing=[], and the ✅ CAPTURED line. ⚠ The leg-guard reading here is the NINE-site version — superseded by TREATMENT-TEN below; the verdict (NONE) is unchanged.
+Predictions were filed BEFORE the drive and are graded in
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-18-ch24lobby-PREDICTIONS.md`.
+============================================================================================================
+
+########## HALF 1 of 2 --- `--log treat_lobby.log` (the DRIVER's log()) ##########
+
+[setup] LOG -> treat_lobby.log
+[setup] loaded save state post_ch24_atdoor_L75.ss1; build=sandbox
+[run] starting faithful loop for up to 6000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24LobbyMode.run   (state=OVERWORLD)
+[ch24lobby] flag-name vacuity guard OK (1164 entries, names ['ENTERED_ELITE_FOUR', 'LANDMARK_POKEMON_LEAGUE'])
+[ch24lobby] PRE at=((0, 8), (18, 6)) tile=(18, 6) flags={'ENTERED_ELITE_FOUR': False, 'LANDMARK_POKEMON_LEAGUE': True}
+f69: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_AnimateDoor', 'Task_DoDoorWarp'] ctrl=Ch24LobbyMode.run bt='MIGHTYENA grew to LV. 75!' scripts=[] party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[ch24lobby] IN LOBBY at=((16, 10), (9, 11)) tile=(9, 11)
+[ch24lobby] PATH SAFE — 13 waypoints, no forbidden tile. path=[(9, 10), (9, 9), (9, 8), (9, 7), (9, 6), (9, 5), (9, 4), (8, 4), (7, 4), (6, 4), (5, 4), (4, 4), (3, 4)]
+[ch24lobby] STOPPED at=((16, 10), (3, 4)) tile=(3, 4)
+[ch24lobby] PREDICATES {'inside_league': True, 'at_ever_grande_top': True, 'ch23_chapter_done': False, 'wally_beaten': True}  flags={'ENTERED_ELITE_FOUR': False, 'LANDMARK_POKEMON_LEAGUE': True}
+[ch24lobby] ⭐ LEG GUARDS IN THE LOBBY: fire=NONE  all={'1-3': False, '4': False, '5': False, '6': False, '7': False, '8': False, '9': False, '10': False, '11': False}
+[ch24lobby] CAPTURE GUARD on_lobby=True at_stop=True entered_e4_still_False=True battles=0
+[ch24lobby] ✅ CAPTURED -> post_league_lobby.ss1 (397312 bytes) at ((16, 10), (3, 4)) (3, 4)
+[ch24lobby] ⭐ THE FIRST FIXTURE THIS PROJECT HAS EVER HAD IN THE LEAGUE LOBBY, and it is POSITIONALLY SEALED: ENTERED_ELITE_FOUR is still False, so the guards still block the north doors. Pin it in saves/FIXTURES.md5 and verify it by RELOAD, never by this line.
+[ch24lobby] R captured = 'C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\tools\\story-dev\\saves\\post_league_lobby.ss1'
+[ch24lobby] R in_lobby_at = (9, 11)
+[ch24lobby] R leg_guards = {'1-3': False, '4': False, '5': False, '6': False, '7': False, '8': False, '9': False, '10': False, '11': False}
+[ch24lobby] R legs_that_would_fire = []
+[ch24lobby] R path_forbidden_hits = []
+[ch24lobby] R path_len = 13
+[ch24lobby] R post_flags = {'ENTERED_ELITE_FOUR': False, 'LANDMARK_POKEMON_LEAGUE': True}
+[ch24lobby] R pre_at = ('((0, 8), (18, 6))', (18, 6))
+[ch24lobby] R pre_flags = {'ENTERED_ELITE_FOUR': False, 'LANDMARK_POKEMON_LEAGUE': True}
+[ch24lobby] R predicates = {'inside_league': True, 'at_ever_grande_top': True, 'ch23_chapter_done': False, 'wally_beaten': True}
+[ch24lobby] R stop_map = '((16, 10), (3, 4))'
+[ch24lobby] R stop_tile = (3, 4)
+[ch24lobby] RESULT readings=['L-CAPTURE', 'L-INLOBBY', 'L-LEGGUARDS', 'L-PATHSAFE', 'L-PRE', 'L-PREDICATES', 'L-STOP'] missing=[]
+[ch24lobby] RESULT battles=0 whiteouts=0 failure=None
+[ch24lobby] ACCEPTANCE: PASS (must reach the lobby, STOP at (3, 4), fight NOTHING, leave ENTERED_ELITE_FOUR False, and READ the leg guards)
+f459: CONTROLLER -> <none>   (state=OVERWORLD)
+f1359: SAVED stall state #1 to stalls/repro-ml-f1359.ss1 (bt='MIGHTYENA grew to LV. 75!')
+f1659: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (3, 4)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=[] bt='MIGHTYENA grew to LV. 75!' bot_mode=Manual
+f1659:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+f3459: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (3, 4)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=[] bt='MIGHTYENA grew to LV. 75!' bot_mode=Manual
+f3459:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[done] ran 6000 frames; final mode=Manual party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L75: Strength, Crunch, Take Down, Bite
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Sceptile L75: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Swellow L75: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L75: Dive, Surf, Ice Beam, Waterfall
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 6001 get_party() recomputes, 21 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24lobby 6001 recomputes (party_accounting_ledger.jsonl)
+
+
+########## HALF 2 of 2 --- stdout (the LEG's console.print) ##########
+
+[setup] LOG -> treat_lobby.log
+Running mGBA 0.10.2
+[setup] loaded save state post_ch24_atdoor_L75.ss1; build=sandbox
+[run] starting faithful loop for up to 6000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24LobbyMode.run   (state=OVERWORLD)
+[ch24lobby] flag-name vacuity guard OK (1164 entries, names ['ENTERED_ELITE_FOUR', 'LANDMARK_POKEMON_LEAGUE'])
+[ch24lobby] PRE at=((0, 8), (18, 6)) tile=(18, 6) flags={'ENTERED_ELITE_FOUR': False, 'LANDMARK_POKEMON_LEAGUE': True}
+f69: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_AnimateDoor', 'Task_DoDoorWarp'] ctrl=Ch24LobbyMode.run bt='MIGHTYENA grew to LV. 75!' scripts=[] party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[ch24lobby] IN LOBBY at=((16, 10), (9, 11)) tile=(9, 11)
+[ch24lobby] PATH SAFE — 13 waypoints, no forbidden tile. path=[(9, 10), (9, 9), (9, 8), (9, 7), (9, 6), (9, 5), (9, 4), (8, 4), (7, 4), (6, 4), (5, 4), (4, 4), (3, 4)]
+[ch24lobby] STOPPED at=((16, 10), (3, 4)) tile=(3, 4)
+[ch24lobby] PREDICATES {'inside_league': True, 'at_ever_grande_top': True, 'ch23_chapter_done': False, 'wally_beaten': True}  flags={'ENTERED_ELITE_FOUR': False, 'LANDMARK_POKEMON_LEAGUE': True}
+[ch24lobby] ⭐ LEG GUARDS IN THE LOBBY: fire=NONE  all={'1-3': False, '4': False, '5': False, '6': False, '7': False, '8': False, '9': False, '10': False, '11': False}
+[ch24lobby] CAPTURE GUARD on_lobby=True at_stop=True entered_e4_still_False=True battles=0
+[ch24lobby] ✅ CAPTURED -> post_league_lobby.ss1 (397312 bytes) at ((16, 10), (3, 4)) (3, 4)
+[ch24lobby] ⭐ THE FIRST FIXTURE THIS PROJECT HAS EVER HAD IN THE LEAGUE LOBBY, and it is POSITIONALLY SEALED: ENTERED_ELITE_FOUR is still False, so the guards still block the north doors. Pin it in saves/FIXTURES.md5 and verify it by RELOAD, never by this line.
+[ch24lobby] R captured = 'C:\\Remote Projects\\Pokebot_Gen3_Enhancement\\tools\\story-dev\\saves\\post_league_lobby.ss1'
+[ch24lobby] R in_lobby_at = (9, 11)
+[ch24lobby] R leg_guards = {'1-3': False, '4': False, '5': False, '6': False, '7': False, '8': False, '9': False, '10': False, '11': False}
+[ch24lobby] R legs_that_would_fire = []
+[ch24lobby] R path_forbidden_hits = []
+[ch24lobby] R path_len = 13
+[ch24lobby] R post_flags = {'ENTERED_ELITE_FOUR': False, 'LANDMARK_POKEMON_LEAGUE': True}
+[ch24lobby] R pre_at = ('((0, 8), (18, 6))', (18, 6))
+[ch24lobby] R pre_flags = {'ENTERED_ELITE_FOUR': False, 'LANDMARK_POKEMON_LEAGUE': True}
+[ch24lobby] R predicates = {'inside_league': True, 'at_ever_grande_top': True, 'ch23_chapter_done': False, 'wally_beaten': True}
+[ch24lobby] R stop_map = '((16, 10), (3, 4))'
+[ch24lobby] R stop_tile = (3, 4)
+[ch24lobby] RESULT readings=['L-CAPTURE', 'L-INLOBBY', 'L-LEGGUARDS', 'L-PATHSAFE', 'L-PRE', 'L-PREDICATES', 'L-STOP'] missing=[]
+[ch24lobby] RESULT battles=0 whiteouts=0 failure=None
+[ch24lobby] ACCEPTANCE: PASS (must reach the lobby, STOP at (3, 4), fight NOTHING, leave ENTERED_ELITE_FOUR False, and READ the leg guards)
+f459: CONTROLLER -> <none>   (state=OVERWORLD)
+f1359: SAVED stall state #1 to stalls/repro-ml-f1359.ss1 (bt='MIGHTYENA grew to LV. 75!')
+f1659: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (3, 4)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=[] bt='MIGHTYENA grew to LV. 75!' bot_mode=Manual
+f1659:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+f3459: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (3, 4)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=[] bt='MIGHTYENA grew to LV. 75!' bot_mode=Manual
+f3459:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[backup] backed up 'repro-ml' (3853 files, 211209 KB, reason: auto)
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[done] ran 6000 frames; final mode=Manual party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L75: Strength, Crunch, Take Down, Bite
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Sceptile L75: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Swellow L75: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L75: Dive, Surf, Ice Beam, Waterfall
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 6001 get_party() recomputes, 21 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24lobby 6001 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-18_09-52-42.ss1 created!
+Updated `current_state.ss1`!

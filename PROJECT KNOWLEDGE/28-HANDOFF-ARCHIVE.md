@@ -11492,3 +11492,150 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
       move slot, so there is no replace dialogue (12/12 clean). The failures are all on a mon with
       **four** moves; `--driver teachfull` forces exactly that.
 
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`: `#24-slugmaspin`
+
+> Moved under `lint_docs.py` R3 (the punch list hit 4,443 of its 4,400-line budget
+> after `#24-lobbyfixture` closed).
+> **NOTHING IS DELETED** — the lines below are the item exactly as it stood, and the
+> punch list keeps the slug with a short summary pointing here. The slug survives in
+> place because code and docs cite it (13 tracked files).
+
+- [x] `#24-slugmaspin` — ‼ **BATCH-CONFIRMED 2026-08-09** (`x4-runs/20260809-081643`, code
+      `16283010`, VERDICT OK): the fence reverses the regression on the species that carried it —
+      **`CAUGHT Machop` 0/7 → 6/7, z = +3.24 (RESOLVABLE)** — and **FALSE catches 10 → 0**, so
+      reported (9) now equals REAL (9). Overall REAL conversion 15.0% → 39.1% (z = +1.76,
+      directional), statistically indistinguishable from the 45.0% before the regression.
+      ‼ The written bar of "≥50%" was itself mis-derived — that figure counted REPORTED catches;
+      on REAL catches the historical pair is 15.2% → 45.0% (z = +2.39). See `08-MISTAKES` 2026-08-09.
+      ‼ **Promotion to `custom-pokebot/` is READY and NOT DONE — it needs an explicit user YES**
+      (`CLAUDE.md` standing directive). Until then production runs this regression WITHOUT its fix.
+
+      HISTORY — **FIXED 2026-08-08, same day it was found. It was the SUCCESS TEST, not
+      the spin.** `party_counter_slot()` checked the caught mon's OWN TYPE, so a Slugma (Fire)
+      caught for Winona (Rock/Ice/Dragon) was never recognised: `_stop()` never fired, the spin
+      ran to budget, the hunt reported nothing caught. **34 Slugma encounters, 0 registered.**
+      `#24-movepoolcounters` taught the PLANNER about movepools and left this behind.
+      **Fix:** also accept a mon that knows a DAMAGING move of a needed type. Lenient by design
+      (no credible-power floor — a fresh L15 Slugma knows Rock Throw and that IS success; the
+      strict question belongs to `_boss_plan_is_hopeless`).
+      `repro_counter_move_answer.py` — 4 cases, incl. Sandstorm (Rock, **0 power**) correctly
+      REJECTED, pinning the damaging-only rule. Suite 6/6.
+      ‼ **NO OUTCOME PROOF YET.** Acceptance next batch: `counter hunt CAUGHT Slugma` > 0, and
+      overall CONVERSION at or above this batch's 50%.
+
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`: `#24-counters-travel`
+
+> Moved under `lint_docs.py` R3 (the punch list hit 4,443 of its 4,400-line budget
+> after `#24-lobbyfixture` closed).
+> **NOTHING IS DELETED** — the lines below are the item exactly as it stood, and the
+> punch list keeps the slug with a short summary pointing here. The slug survives in
+> place because code and docs cite it (2 tracked files).
+
+- [x] `#24-counters-travel` (**KI-44**) — **FIXED 2026-08-01, awaiting a batch for the OUTCOME
+      proof.** It was never a routing bug: `train_counter` used the BOSS's grass, so a Machop
+      caught in FIERY_PATH was sent to ROUTE102 — eight maps away AND **L3-4 wilds** (the
+      "~25 xp a kill, i.e. never" patch `story_mode.py:739` already documents). The obvious
+      repair is also wrong: FIERY_PATH/ROUTE112/JAGGED_PASS are all `NO_RETURN_GROUNDS` (the
+      heal leg fails), so there was **no legal training ground at all** — a structural hole.
+      Fixed by `counter_training_ground()` deferring to `best_training_area`. Live-probed from
+      `lavaridge.ss1`: relocates to ROUTE117 (31,16) L13-14, heal Verdanturf.
+      `repro_counter_training_ground.py` pins the property. **Still unproven:** the probe stood
+      on LAVARIDGE_TOWN not FIERY_PATH, and the outcome needs a batch — read `Heat→Balance`
+      vs batch4's 24/29 (83%) and count `counter training failed` (was 7/7).
+
+      *The original diagnosis, kept because it is the evidence:*
+      `#24-counters-travel` — **‼ THE COUNTER CHAIN'S BLOCKER.** Counter
+      training now starts (the budget fix works: refusal 4 → 0, affordable target fires 7×)
+      and then **fails 7 of 7** — 6× `Could not reach (9, 2) on MapRSE.ROUTE102 … not walkable
+      from ROUTE103`, 1× whiteout. **Zero counters trained**, so batch4's badge funnel is flat
+      at every rung (Heat→Balance z = 0.52). Exposed, NOT caused, by `affordable_training_target`
+      — before it the gate refused before any travel was attempted. **Do not revert that fix.**
+      Probe from the ACTUAL captured position (ROUTE103, x≈45) plus a control tile that DOES
+      path; suspect KI-24's `calculate_path` unsoundness, not a sealed route. Do NOT "fix" by
+      raising retries — the error already reasons that retrying cannot help.
+
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`: `#24-counterdesertgate`
+
+> Moved under `lint_docs.py` R3 (the punch list hit 4,443 of its 4,400-line budget
+> after `#24-lobbyfixture` closed).
+> **NOTHING IS DELETED** — the lines below are the item exactly as it stood, and the
+> punch list keeps the slug with a short summary pointing here. The slug survives in
+> place because code and docs cite it (13 tracked files).
+
+- [x] `#24-counterdesertgate` — **FIXED 2026-08-07, same day it was found.**
+      `counter_plan` now checks `AREA_ITEM_PREREQ` per candidate location and skips the area
+      unless the item is in the bag; fails CLOSED, and sits before the reachability branch.
+      **A/B on the item, both arms, control in both:**
+      | arm | Winona's best_huntable |
+      |---|---|
+      | bag HOLDS Go-Goggles | Baltoy @ ROUTE111 `via=move:Rock Tomb@L15` (admitted) |
+      | bag EMPTY | **Slugma @ FIERY_PATH** `via=move:Rock Throw@L15` (ROUTE111 refused) |
+      | control | Norman → Machop @ FIERY_PATH, unchanged in both |
+      ‼ Both arms run on purpose — the gate fails closed, so a one-armed offline test would show
+      the right answer for the wrong reason. `probe_counter_item_gate.py`.
+      ‼ **Deliberately NOT done by flipping `POKEBOT_AREA_ITEM_GATE`** (one character, and it
+      would have re-litigated the measured 2026-08-04 ruling). That ruling was about TRAINING,
+      where a bad pick costs one trek; a counter hunt gets ONE attempt per boss per run, so a bad
+      pick costs the boss. `repro_movepool_counter_candidates.py` §5 asserts the flag stays off.
+      **NO OUTCOME PROOF YET** — needs a batch: `CAUGHT Slugma` > 0 with `CAUGHT Machop` unchanged.
+
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`: `#24-whiteoutloop`
+
+> Moved under `lint_docs.py` R3 (the punch list went back over its 4,400-line budget
+> when `#24-ch23lobbyresume` was filed).
+> **NOTHING IS DELETED** — the lines below are the item exactly as it stood, and the
+> punch list keeps the slug with a short summary pointing here. The slug survives in
+> place because code and docs cite it (19 tracked files).
+
+- [x] `#24-whiteoutloop` — **BOTH PARTS SHIPPED 2026-08-07.**
+      **Part 1 (cfgs):** `flannery_fight` + `rival110_fight` added — the two fights that had NO
+      boss cfg at all and were **48% of all defeats**. Team data decomp-verified
+      (`sParty_Flannery1`: Numel 24 / Slugma 24 / Camerupt 26 / **Torkoal 29**;
+      `sParty_MayRoute110*`: the ace is always the L20 evolved starter that counters yours).
+      ‼ Neither carries a `grass` key, on purpose — `_prepare_for_fight` explicitly supports a
+      grass-less cfg, and Lavaridge genuinely has none (two-way sweep, `jaggedgrass_probe.py`).
+      Inventing a training tile is how KI-44 happened.
+      ‼ Also corrected the Route 110 ace derivation to name TYPE PAIRS (Marshtomp =
+      Ground/Water, Combusken = Fighting/Fire) — effectiveness against a dual-type is the
+      PRODUCT, so the old primary-type-only version understated every matchup.
+      **NEW `repro_boss_cfg_coverage.py`** asserts every measured defeat map has a cfg carrying
+      ace data — fault-injected RED. ‼ It also caught two of my OWN wrong assumptions: Brawly's
+      ace really is L19 against a (14,16) band (the band is a training target, not a range
+      containing the ace), and the Rustboro rival's missing `ace_types` is fine because it
+      recorded **0 defeats in four batches**.
+
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`: `#24-teachpathrace`
+
+> Moved under `lint_docs.py` R3 (the punch list went back over its 4,400-line budget
+> when `#24-ch23lobbyresume` was filed).
+> **NOTHING IS DELETED** — the lines below are the item exactly as it stood, and the
+> punch list keeps the slug with a short summary pointing here. The slug survives in
+> place because code and docs cite it (15 tracked files).
+
+- [x] `#24-teachpathrace` — **FIXED 2026-08-07, same day it was found. Caught by the
+      `#24-hmteachloop` telemetry in its FIRST batch — a SECOND, independent teach bug.**
+      Batch `20260807-102552`: **33 of 37 teaches succeeded; all 4 failures were this**, on Surf,
+      each burning the full 9,000-frame cap without learning the move.
+      **FIX:** the instant-learn exit now requires POSITIVE evidence — a genuinely free move slot
+      (`_free_slots` / `_may_instant_learn`) or `_knows()` — instead of the mere presence of
+      `Task_HandleChooseMonInput`.
+      **Live proof, both branches** (`--driver teachfull`; `TEACH_SLOT` picks the target):
+      | target | moves before | post_select | ride_frames | result |
+      |---|---|---|---|---|
+      | Mightyena (4 moves) | Tackle/Taunt/Take Down/Bite | `replace-prompt` | 479 | learned, replaced Taunt |
+      | Zigzagoon (3 moves) | Tackle/Growl/Surf | `instant-learn` | 252 | learned, replaced nothing |
+      ‼ The second row is not optional: the fix GATES the instant-learn exit, so proving the
+      replace path still works is only half a proof — a gate one notch too tight would strand
+      every free-slot teach in the 900-frame loop, and the replace test cannot see that.
+      `repro_hmteach_postlearn.py` §5 pins it (17 → 22 checks).
+

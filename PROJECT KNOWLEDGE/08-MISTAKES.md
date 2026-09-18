@@ -19182,3 +19182,70 @@ differently-worded restatement in append-only history plus the open item. Tier 1
   can think of, including append-only history and open items, and expect to miss one.
 * ⚠ *Verifying half a sentence does not verify the sentence.* The map table was mine; the clause about
   leg 10 was an agent's. They were joined by an “and” and shipped under one ✅.
+
+
+## 2026-09-18 — A GUARD CHECKLIST ENUMERATED NINE OF TEN CALL SITES, AND THE MISSING ONE WAS ALREADY DOCUMENTED FOUR LINES ABOVE
+
+**SYMPTOM.** `probe_ch23_leg_guards.py` shipped, was committed, was cited in `03-PUNCH-LIST.md` and
+`07-CHANGELOG.md`, and its headline result — *“on the SEALED map NOT ONE of the nine guards is
+True”* — was published as a measurement upgrading a TRACED claim to a READ one. An adversarial
+reviewer, given only the diff and told to refute it, read `do_victory_road_chapter` against the
+transcription and found **the dispatch has TEN guarded call sites, not nine.**
+
+**ROOT CAUSE — TWO, AND THEY ARE DIFFERENT BUGS.**
+1. **The enumeration was built by reading the `--- LEG N ---` banners.** The training leg's banner is
+   `--- THE TRAINING LEG — BEFORE WALLY, AND IT NAVIGATES ITSELF ---` (`victory_road.py:3387`). It has
+   no number, so a banner-driven sweep walks past a real `yield from train_for_victory_road(report)`
+   at `:3431`.
+2. **Leg 11 is a NESTED call site and only its outer half was transcribed.** The real shape is
+   `if _on_map(EG): stock = bag_healing_stock(); if any(stock < qty): yield from ...`
+   (`:3462-3467`). The probe recorded `_on_map(EG)` — which merely CONTAINS the call — and I then
+   published a “nuance” asserting leg 11 *fires even after the basket is bought, so its self-skip
+   lives in the leg body*. **That was false**: the self-skip is the inner `if`, at the call site.
+
+**‼ THE PART THAT MAKES THIS EXPENSIVE, AND IT IS NOT THE MISS.** `03-PUNCH-LIST.md` **already said**
+*“‘zero legs fire’ holds post-Wally only; pre-Wally the training leg fires there (its guard at
+`:3393` carries no position test)”* — **four lines above the claim it contradicts, in the same
+item.** The project knew. The instrument did not encode what the project knew, and the instrument is
+what produced the number that got published.
+
+**THE FIX THAT WORKED.** Both instruments corrected to ten call sites and re-run. The sealed-map and
+lobby verdicts (**NONE**) survived, but **two control readings changed**: EVER_GRANDE degraded was
+published as legs 5/10/11 and is actually **5/10**; basket-bought was 5/11 and is actually **5**. The
+false leg-11 nuance is retracted in place with the correction beside it.
+
+**PREVENTION RULES.**
+- ⛔ **Enumerate call sites by grepping the `yield from`s, never by reading the section banners.** A
+  banner is documentation; the call is the code. `grep -c 'yield from' <dispatch>` is the count your
+  checklist must match.
+- ⛔ **A transcribed guard is the condition under which the call EXECUTES** — for a nested site, the
+  conjunction of every enclosing test. An outer `if` is an *input to* the action. (This is
+  `CLAUDE.md` §7 “instrument the ACTION”, and it applies to READING code, not only to logging.)
+- ⛔ **Before publishing a count, grep the docs for prose about the thing being counted.** A sentence
+  in the punch list that qualifies the claim is a spec for the instrument, not a footnote to it.
+
+## 2026-09-18 — THE MOST ALARMING LINE IN A DRIVER FIRED ON A RUN THAT NEVER TOOK THE READING
+
+**SYMPTOM.** The VACUITY arm of `--driver ch24lobby` (pointed at a fixture already inside the League,
+so it refuses at the premise) printed:
+*“⛔ GRADE: ENTERED_ELITE_FOUR is not False at POST — the guards were talked to, the north doors are
+now open FOREVER, and this fixture is NOT the positionally-sealed artifact it was meant to be.”*
+**Nothing was talked to.** The run refused before it moved.
+
+**ROOT CAUSE.** `still_untalked = R.get("post_flags", {}).get("ENTERED_ELITE_FOUR") is False`. On the
+refusal path `post_flags` is never populated, so `.get()` returns `None`, and `None is False` is
+False — which the code read as *“the flag was True”*. **Two states were modelled where there are
+three: READ-FALSE, READ-TRUE, and NEVER-READ.** The verdict (FAIL) happened to be right; the
+DIAGNOSTIC was simply false, and it is the line a future reader would have believed — it would have
+told them a pinned fixture was contaminated and had to be re-minted.
+
+**THE FIX THAT WORKED.** A three-state read with a sentinel: `….get(name, "UNREAD")`, an explicit
+`if _e4 == "UNREAD"` branch saying in terms *“THIS IS NOT A CONTAMINATION REPORT”*, and the alarm
+reserved for an actual read-back value, which it now prints.
+
+**PREVENTION RULES.**
+- ⛔ **`x is False` on a value that may never have been written is a THREE-state test written as
+  two.** Use a sentinel default whenever the dict is populated on a path the grade can skip.
+- ⭐ **A vacuity arm is not only a test of the grade's premise — it is the only arm that exercises
+  every diagnostic on the PARTIAL-STATE path.** Read its full output, not just its verdict. This bug
+  was invisible in all three passing arms.

@@ -31947,3 +31947,79 @@ against the gauntlet**; a post-talk sibling would have those doors open forever.
 not contain at all. ✅ All four are DIAGNOSTICS (zero feed an acceptance or raise), so severity is low.
 ⚠ `audit_flag_names.py`'s scope is **deliberate** (story code only) — the case for widening it is that
 the harness is where drivers produce EVIDENCE, not that the gate is broken.
+
+
+## 2026-09-18 (later still) — ⭐ THE LEAGUE LOBBY FIXTURE IS MINTED, AND §Ch23 *RAISES* THERE
+
+`#24-lobbyfixture` is **DONE**. `--driver ch24lobby` was built, smoke-tested, and run in four arms.
+**`saves/post_league_lobby.ss1` is minted and pinned `5a75ea37ed5cc07ae8b0b0a75da5e909`** — the first
+fixture this repo has ever held inside the Pokémon League: `POKEMON_LEAGUE_1F (3,4)`, L75 party,
+**0 battles fought**, `ENTERED_ELITE_FOUR` **still False**, so the door guards still stand on
+(9,2)/(10,2) and the state is **positionally sealed against the un-fleeable gauntlet**. Verified by
+RELOAD, never by the capture line. Predictions were committed BEFORE the drive and are now graded
+row-by-row with the literal log lines: `ai-research-notes/2026-09-18-ch24lobby-PREDICTIONS.md`
+
+**⭐⭐ THE RESULT THE PREDICTIONS DID NOT ANTICIPATE — “EVERY LEG SELF-SKIPS” IS THE WRONG FRAME.**
+P10 asked *which* §Ch23 guards fire in the lobby and got the predicted answer: **none of the ten**.
+It never asked what happens when none of them do. `do_victory_road_chapter` has exactly ONE quiet
+exit — `if ch23_chapter_done(): return` (`victory_road.py:3361-3362`) — and the drive **measured
+`ch23_chapter_done() == False` in the lobby**, because that predicate requires `_on_map(EG)`, the
+OUTDOOR map. ⇒ ten call sites skip, nothing changes, the chapter still does not grade done, three
+attempts are consumed, and the dispatch **raises** `BotModeError("Ch23 (Victory Road) failed after 3
+attempts...")` (`:3486-3488`) — which `story_mode.py:5172-5173` will re-enter on every pass, since it
+calls the chapter whenever `ch23_chapter_done()` is False. ⇒ **In its own League lobby the bot can
+neither finish §Ch23 nor skip it.** This moves the §Ch24 marker from tidy-up to load-bearing.
+
+**⛔ AND THE INSTRUMENT ITSELF WAS WRONG — CORRECTED AND RE-RUN.** An adversarial reviewer read the
+dispatch against the transcription and found **the enumeration covered nine of TEN guarded call
+sites**: the **TRAINING leg** (`:3430-3431`) carries no `LEG N` banner, and **leg 11 is NESTED**
+(`:3462-3467`) with only its outer half transcribed. Both `probe_ch23_leg_guards.py` and the driver
+were corrected to ten and re-run. **Two control readings changed**: EVER_GRANDE degraded was
+published as legs 5/10/11 and is actually **5/10**; basket-bought was 5/11 and is actually **5**.
+The sealed-map and lobby verdicts (**NONE**) survive at ten. ‼ The published “leg 11 fires even after
+the basket is bought — its self-skip lives in the leg body” is **RETRACTED**: the self-skip is the
+inner `if` at the call site.
+
+**⛔ THE VACUITY ARM CAUGHT A BUG IN THE DRIVER'S OWN GRADE.** With the premise refused `post_flags`
+is never populated, `.get()` returned `None`, `None is False` is False — and the driver printed its
+most alarming line, *“the guards were talked to, the north doors are now open FOREVER”*, about a run
+that talked to nobody. **UNREAD is not READ-FALSE**; it is now a third state that says so.
+
+**ARMS:** TREATMENT `missing=[]` · VACUITY refused at the premise with **zero readings** · FAULT
+`NOPATHCHECK` → `missing=['L-PATHSAFE']` and nothing else, still reaching no sealed map · FAULT
+`NOSTOP` → `missing=['L-CAPTURE','L-STOP']`, **0 files written**.
+
+**⚠ STILL OWED:** a League 2F reading and a post-talk sibling fixture. 2F is now scoped from the
+decomp — it is the **Cable Club**, reachable from the lobby with `ENTERED_ELITE_FOUR` unset (the
+escalator is 1F warp 4 at `(1,7)`; the gauntlet doors are warps 2/3 — disjoint) — but **no fixture
+stands on 2F and its arrival tile has never been measured here.**
+
+Files: `tools/story-dev/story_harness.py` (new `Ch24LobbyMode`, registered as `--driver ch24lobby`),
+`tools/story-dev/probe_ch23_leg_guards.py` (ten call sites), `tools/story-dev/saves/FIXTURES.md5`,
+`tools/story-dev/saves/post_league_lobby.ss1`,
+`tools/story-dev/evidence/2026-09-18-ch23-leg-guards-TEN-CALL-SITES.stdout.txt`.
+
+
+## 2026-09-18 (correction, before the commit) — THE LOBBY RAISE WAS ALREADY DERIVED; I NEARLY SHIPPED IT AS NEW
+
+The entry immediately above calls the lobby raise *“THE RESULT THE PREDICTIONS DID NOT ANTICIPATE”*.
+⛔ **That over-claims, and the check that caught it is `CLAUDE.md` §11 — grep `06-DECISIONS-LOG.md`
+BEFORE treating a finding as new.** That file already says, of wiring Segment 24: *“Any raise past
+that door re-enters `do_victory_road_chapter()`, whose eleven legs are all position-gated and all
+self-skip, three times, then raises ⇒ 4 derails ⇒ Manual, parked in a sealed Elite Four room.”*
+It is not in the session-start reading set, which is exactly how it gets written to and never read.
+
+⇒ **WHAT THE DRIVE ACTUALLY ADDED, STATED HONESTLY:**
+1. It **MEASURED** what had been derived — ten guards and `ch23_chapter_done()` read live, not traced.
+2. ⭐ It relocated the finding from the **sealed rooms** to the **LOBBY** (`POKEMON_LEAGUE_1F`), which
+   the marker design deliberately EXCLUDES and which `06-DECISIONS-LOG.md` DECISION 3 calls
+   *“protected”*. ⛔ That protection is only *“leg 4 does not wrongly fire”*; it does not stop the raise.
+3. ⭐⭐ The measured tile is the one §Ch23's OWN leg 10 heals on — `heal_at_league` runs
+   `_navigate_riding_out(LEAGUE_1F, LEAGUE_NURSE_STAND)` = **(3,4)**. ⇒ §Ch23 puts itself somewhere it
+   cannot resume from. **A §Ch23 resumability hole, NOT a §Ch24 marker gap** — the marker must not be
+   stretched to cover it, because excluding the lobby is correct for the marker's own purpose.
+
+Filed as **`#24-ch23lobbyresume`**, with a cheap, safe, decisive next step: load
+`post_league_lobby.ss1` and call `do_victory_road_chapter()` — every guard is False so **nothing
+moves**, and it either raises or it does not. ⚠ The FREQUENCY remains unmeasured, and per
+`CLAUDE.md` §9 that is a batch question, not a driver question.
