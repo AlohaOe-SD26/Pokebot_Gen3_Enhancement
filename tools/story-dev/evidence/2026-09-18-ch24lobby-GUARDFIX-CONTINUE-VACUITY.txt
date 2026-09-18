@@ -1,0 +1,72 @@
+============================================================================================================
+--driver ch24lobby  ARM: GUARDFIX-CONTINUE-VACUITY
+============================================================================================================
+WHY THIS ARM EXISTS: The vacuity arm after the same change: L-CONTINUE must now appear in the MISSING list too, since the run refuses at the premise and never reaches the check.
+============================================================================================================
+
+########## HALF 1 of 2 --- `--log contvac.log` ##########
+
+[setup] LOG -> contvac.log
+[setup] loaded save state post_hall4_door.ss1; build=sandbox
+[run] starting faithful loop for up to 3000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24LobbyMode.run   (state=OVERWORLD)
+[ch24lobby] flag-name vacuity guard OK (1164 entries, names ['ENTERED_ELITE_FOUR', 'LANDMARK_POKEMON_LEAGUE'])
+[ch24lobby] FAILURE BotModeError: Ch24 lobby: premise failed — this leg must start on EVER_GRANDE_CITY and we are at ((16, 8), (5, 3)). ⛔ Pointing it at a fixture already inside the League measures nothing (the vacuity arm).
+[ch24lobby] ⚠ GRADE: ENTERED_ELITE_FOUR was NEVER READ — the run ended before the POST reading. ‼ THIS IS NOT A CONTAMINATION REPORT: nothing was talked to. It is an UNREAD, and an unread cannot certify the fixture either way.
+[ch24lobby] RESULT readings=[] missing=['L-CONTINUE', 'L-INLOBBY', 'L-LEGGUARDS', 'L-PATHSAFE', 'L-PRE', 'L-PREDICATES', 'L-STOP']
+[ch24lobby] RESULT battles=0 whiteouts=0 failure=BotModeError: Ch24 lobby: premise failed — this leg must start on EVER_GRANDE_CITY and we are at ((16, 8), (5, 3)). ⛔ Pointing it at a fixture already inside the League measures nothing (the vacuity arm).
+[ch24lobby] ACCEPTANCE: FAIL (must reach the lobby, STOP at (3, 4), fight NOTHING, leave ENTERED_ELITE_FOUR False, READ the leg guards, and PROVE IT CAN STILL WALK OUT)
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+f931: SAVED stall state #1 to stalls/repro-ml-f931.ss1 (bt='NICK got $5500 for winning!')
+f1231: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128', (5, 3)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $5500 for winning!' bot_mode=Manual
+f1231:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+[done] ran 3000 frames; final mode=Manual party=[Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L76: Strength, Crunch, Take Down, Bite
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Sceptile L75: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Swellow L75: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L75: Dive, Surf, Ice Beam, Waterfall
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 3001 get_party() recomputes, 11 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24lobby 3001 recomputes (party_accounting_ledger.jsonl)
+
+
+########## HALF 2 of 2 --- stdout ##########
+
+[setup] LOG -> contvac.log
+Running mGBA 0.10.2
+[setup] loaded save state post_hall4_door.ss1; build=sandbox
+[run] starting faithful loop for up to 3000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24LobbyMode.run   (state=OVERWORLD)
+[ch24lobby] flag-name vacuity guard OK (1164 entries, names ['ENTERED_ELITE_FOUR', 'LANDMARK_POKEMON_LEAGUE'])
+[ch24lobby] FAILURE BotModeError: Ch24 lobby: premise failed — this leg must start on EVER_GRANDE_CITY and we are at ((16, 8), (5, 3)). ⛔ Pointing it at a fixture already inside the League measures nothing (the vacuity arm).
+[ch24lobby] ⚠ GRADE: ENTERED_ELITE_FOUR was NEVER READ — the run ended before the POST reading. ‼ THIS IS NOT A CONTAMINATION REPORT: nothing was talked to. It is an UNREAD, and an unread cannot certify the fixture either way.
+[ch24lobby] RESULT readings=[] missing=['L-CONTINUE', 'L-INLOBBY', 'L-LEGGUARDS', 'L-PATHSAFE', 'L-PRE', 'L-PREDICATES', 'L-STOP']
+[ch24lobby] RESULT battles=0 whiteouts=0 failure=BotModeError: Ch24 lobby: premise failed — this leg must start on EVER_GRANDE_CITY and we are at ((16, 8), (5, 3)). ⛔ Pointing it at a fixture already inside the League measures nothing (the vacuity arm).
+[ch24lobby] ACCEPTANCE: FAIL (must reach the lobby, STOP at (3, 4), fight NOTHING, leave ENTERED_ELITE_FOUR False, READ the leg guards, and PROVE IT CAN STILL WALK OUT)
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+f931: SAVED stall state #1 to stalls/repro-ml-f931.ss1 (bt='NICK got $5500 for winning!')
+f1231: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128', (5, 3)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $5500 for winning!' bot_mode=Manual
+f1231:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+[done] ran 3000 frames; final mode=Manual party=[Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L76: Strength, Crunch, Take Down, Bite
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Sceptile L75: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Swellow L75: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L75: Dive, Surf, Ice Beam, Waterfall
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 3001 get_party() recomputes, 11 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24lobby 3001 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-18_12-16-17.ss1 created!
+Updated `current_state.ss1`!

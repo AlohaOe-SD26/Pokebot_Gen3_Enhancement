@@ -32161,3 +32161,37 @@ Files: `tools/story-dev/story_harness.py` (new `Ch24Lobby2FMode`, `--driver ch24
 `tools/story-dev/probe_ch23_leg_guards.py` (+the 2F case), `tools/story-dev/saves/FIXTURES.md5`,
 `tools/story-dev/saves/post_league_2f.ss1`,
 `tools/story-dev/evidence/2026-09-18-ch24lobby2f-*.txt` (5 files).
+
+
+## 2026-09-18 (addendum) — THE LOBBY GRADE NOW ASKS “AND CAN IT STILL WALK OUT?”
+
+`Ch24LobbyMode`'s acceptance was missing the conjunct `story-drive` §2 makes non-negotiable: **a REAL
+`calculate_path` off the END tile.** The diff-triggered advisory (`#24-difftriggeredrules`) flagged it
+on TWO consecutive commits before I acted on it — ‼ which is its own small lesson: an ADVISORY that
+is read and not acted on is indistinguishable from one that never fired.
+
+**WHY IT MATTERS AND WHY IT IS NOT CEREMONY:** §Ch15 ended four floors underground, §Ch18 on an
+eleven-tile island and §Ch19 in a living room — **all three passed their own tests.** A grade that
+never asks *“can it leave?”* cannot tell a finished leg from a stranding.
+
+✅ MEASURED: `⭐ CONTINUE OK — 14 waypoints from (3, 4) to the lobby's exit landing (9, 11)`,
+`missing=[]`. The VACUITY arm now lists `L-CONTINUE` among its missing readings, so the new reading is
+inside the grade rather than beside it.
+
+⛔ **THE TARGET IS THE EXIT LANDING, NOT “WHAT THE NEXT CHAPTER STARTS AT”, AND THAT DEVIATION IS
+DELIBERATE.** What comes next here is the Elite Four gauntlet through `(9,1)` — aiming a liveness
+check at it would plan a route into an un-fleeable fight, the one thing this leg exists to avoid.
+`LEAGUE_ENTRY_LANDING (9,11)` is where the bot arrived and where the exit warp sits, so it is the
+honest “not stranded” question for this position.
+
+⭐ The reading also pins the distinction this whole thread turns on: in the lobby the bot is
+**PHYSICALLY FREE** while §Ch23 **cannot RESUME** (`#24-ch23lobbyresume`). Two different failures, and
+the driver now measures the physical one directly instead of relying on a separate probe.
+
+⚠ **Tier 1 was NOT run for this addendum** — it completes no new work item (it hardens an already
+closed one) and the doc change is two additive paragraphs, which `CLAUDE.md` scopes to Tier 0. Tier 0
+and the full gate suite are green. Saying so rather than implying a review that did not happen.
+
+Files: `tools/story-dev/story_harness.py`,
+`tools/story-dev/evidence/2026-09-18-ch24lobby-GUARDFIX-CONTINUE.txt`,
+`...-GUARDFIX-CONTINUE-VACUITY.txt`.

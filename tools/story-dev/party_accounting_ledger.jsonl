@@ -663,3 +663,5 @@
 {"when": "2026-09-18T11:41:06", "driver": "ch24lobby2f", "build": "sandbox", "state": "post_league_lobby.ss1", "frames_run": 12000, "recomputes": 12001, "scans": 41, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-18T11:44:41", "driver": "ch24lobby2f", "build": "sandbox", "state": "post_league_lobby.ss1", "frames_run": 12000, "recomputes": 12001, "scans": 41, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-18T11:48:27", "driver": "ch24lobby2f", "build": "sandbox", "state": "post_league_lobby.ss1", "frames_run": 12000, "recomputes": 12001, "scans": 41, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T12:15:02", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T12:16:17", "driver": "ch24lobby", "build": "sandbox", "state": "post_hall4_door.ss1", "frames_run": 3000, "recomputes": 3001, "scans": 11, "divergences": {}, "observer_broke": false}

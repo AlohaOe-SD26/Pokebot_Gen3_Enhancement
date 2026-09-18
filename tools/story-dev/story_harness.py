@@ -19754,7 +19754,8 @@ class Ch24LobbyMode(BotMode):
         self.battles = getattr(self, "battles", 0)
         R: dict = {}
         taken = set()
-        WANT = {"L-PRE", "L-INLOBBY", "L-PATHSAFE", "L-STOP", "L-PREDICATES", "L-LEGGUARDS"}
+        WANT = {"L-PRE", "L-INLOBBY", "L-PATHSAFE", "L-STOP", "L-PREDICATES",
+                "L-LEGGUARDS", "L-CONTINUE"}
         failure = None
         no_pathcheck = _os.environ.get("POKEBOT_CH24_FAULT_NOPATHCHECK", "") == "1"
         no_stop = _os.environ.get("POKEBOT_CH24_FAULT_NOSTOP", "") == "1"
@@ -19944,6 +19945,43 @@ class Ch24LobbyMode(BotMode):
             R["leg_guards"] = guards
             R["legs_that_would_fire"] = sorted(k for k, v in guards.items() if v)
             taken.add("L-LEGGUARDS")
+
+            # ---- ⭐ AND THE BOT CAN CONTINUE — a REAL path off the END tile ----------------------
+            # ‼ `story-drive` §2, and it is not ceremony: §Ch15 ended four floors underground, §Ch18
+            # on an eleven-tile island and §Ch19 in a living room, and ALL THREE PASSED THEIR OWN
+            # TESTS. A grade that never asks "can it leave?" cannot tell a finished leg from a
+            # stranding.
+            # ⛔ THE TARGET IS THE LOBBY'S EXIT LANDING, **NOT** WHAT COMES NEXT IN THE STORY.
+            # What comes next is the gauntlet through `(9,1)`, and aiming a liveness check there
+            # would plan a route into an un-fleeable fight — the one thing this whole leg exists to
+            # avoid. `LEAGUE_ENTRY_LANDING (9,11)` is the tile the bot arrived on and the tile the
+            # exit warp sits under, so pathing to it is the honest "not stranded" question here.
+            # ⭐ This distinction is itself a reading: §Ch23 CANNOT resume from this tile
+            # (`#24-ch23lobbyresume` — the chapter raises), yet the bot is PHYSICALLY free. The two
+            # are different failures and this leg now measures the physical one directly.
+            cont_target = (9, 11)
+            try:
+                cont_path = calculate_path((L1F, VR._here_tile()), (L1F, cont_target))
+                cont_hz = [t for t in ((tuple(w.map), tuple(w.coordinates)) for w in cont_path)
+                           if t[1] in {tuple(x) for x in self.FORBIDDEN_TILES}]
+                R["continue_len"] = len(cont_path)
+                R["continue_hazards"] = cont_hz
+                if not cont_path:
+                    raise BotModeError(
+                        f"Ch24 lobby: the CONTINUE check returned an EMPTY path from "
+                        f"{VR._here_tile()} to {cont_target} — that is not a proof of anything."
+                    )
+                taken.add("L-CONTINUE")
+                log(f"[{TAG}] ⭐ CONTINUE OK — {len(cont_path)} waypoints from {VR._here_tile()} to "
+                    f"the lobby's exit landing {cont_target}. ‼ PHYSICALLY FREE; §Ch23 still cannot "
+                    f"RESUME here (see `#24-ch23lobbyresume`) — different failures, do not conflate.")
+            except BotModeError:
+                raise
+            except Exception as error:  # noqa: BLE001 - an unreachable exit IS the reading
+                R["continue_error"] = f"{type(error).__name__}: {str(error)[:140]}"
+                log(f"[{TAG}] ⛔ CONTINUE FAILED — no path from {VR._here_tile()} to {cont_target}: "
+                    f"{R['continue_error']}. ‼ That would mean the bot is PHYSICALLY stranded in the "
+                    f"lobby, which is a bigger finding than anything else this leg measures.")
             log(f"[{TAG}] ⭐ LEG GUARDS IN THE LOBBY: fire={R['legs_that_would_fire'] or 'NONE'}  all={guards}")
 
             # ---- mint the fixture -----------------------------------------------------------------
@@ -20012,7 +20050,8 @@ class Ch24LobbyMode(BotMode):
         log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
         log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
             f"(must reach the lobby, STOP at {self.STOP_TILE}, fight NOTHING, leave "
-            f"ENTERED_ELITE_FOUR False, and READ the leg guards)")
+            f"ENTERED_ELITE_FOUR False, READ the leg guards, and PROVE IT CAN STILL "
+            f"WALK OUT)")
         context.set_manual_mode()
 
 
