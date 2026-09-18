@@ -354,8 +354,8 @@ open-vs-built sweep of all 80 open items has **not** been done.
    the estimator, and (see below) not to choose a ground first.
    ⚠ **ONE RECORDED OBSTACLE, CHECK IT BEFORE BUILDING:** `team_is_ready(target)` (`:2135-2141`) raises
    terminally and its Crunch clause (`:1903`) hardcodes `CRUNCH_LEVEL = 47` instead of `target` — the
-   surviving reason §Ch23's **sub-47** stepping was refuted on 2026-09-08. *(INFERRED, unverified: it
-   does not bite stepping UPWARD from 47.)*
+   surviving reason §Ch23's **sub-47** stepping was refuted on 2026-09-08. ✅ **VERIFIED 2026-09-18 — and the inference was right for a STRONGER reason than I gave.** *(This read “INFERRED, unverified: it does not bite stepping UPWARD from 47.”)* The gate is **`if "Crunch" not in moves`**; `CRUNCH_LEVEL` only picks the WORDING of the failure reason, and **the clause never consults `target` at all** (`victory_road.py:1902-1912`) — *“⛔⛔ ASSERT THE MOVE, NEVER THE LEVEL THAT USUALLY GRANTS IT … The level is a PROXY; the move is the requirement.”* ⇒ a Mightyena that KNOWS Crunch passes at any target; stepping upward is unaffected.
+   ⚠⚠ **BUT A PRECONDITION NOBODY HAD STATED, AND IT IS PERMANENT:** if Mightyena does NOT know Crunch, `team_is_ready` fails at **every** level (*“there is NO Dark TM in Emerald to recover with”*) ⇒ **every step would raise, forever.** ⇒ **the leg must check Crunch ONCE up front and fail fast**, not discover it per step. The normal §Ch23 lineage satisfies it by construction.
    ⛔⛔ **AND MY OWN FRAMING OF THIS ITEM WAS REFUTED BY AN ADVERSARIAL PASS, WHICH I THEN VERIFIED.**
    I wrote that the next step was to *price a heal round-trip and settle the ground question*.
    **`estimate_frames_to_level` contains NO heal term and NO travel term** — its whole body is

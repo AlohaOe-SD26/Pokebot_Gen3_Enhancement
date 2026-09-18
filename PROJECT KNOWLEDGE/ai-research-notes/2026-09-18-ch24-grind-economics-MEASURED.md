@@ -24,8 +24,9 @@ return           battles_needed * FRAMES_PER_WILD_BATTLE
 
 ⇒ **the heal round-trip is structurally invisible to the refusal. Pricing it cannot move the guard by
 one frame.** I spent a working session optimising a variable the deciding code cannot see.
-‼ And under that guard's own model the ground choice is worth **4.79%** (1F 286.9 vs B1F 301.2 modelled
-xp/battle) against a required **2.05× cut** — two orders of magnitude apart.
+‼ And under that guard's own model the ground choice is worth **~5%** (1F 286.9 vs B1F 301.2 modelled
+xp/battle — +5.00% of 1F, 4.76% of B1F; the recon said 4.79%, same ratio, different denominator)
+against a required **2.05× cut** — two orders of magnitude apart.
 
 ---
 
@@ -52,8 +53,7 @@ to fix the estimator, and not to choose a ground.**
 ⚠ **ONE RECORDED OBSTACLE TO STEPPING, and it must be checked before building:** `team_is_ready(target)`
 (`victory_road.py:2135-2141`) raises terminally, and its Crunch clause (`:1903`) hardcodes
 `CRUNCH_LEVEL = 47` instead of `target`. That is the surviving reason §Ch23's **sub-47** stepping was
-refuted on 2026-09-08. *(INFERRED, by the recon and not verified by me: it does not bite a post-Wally
-grind stepping UPWARD from 47, because the clause is already satisfied at 47+.)* **Verify before use.**
+refuted on 2026-09-08. ✅ **VERIFIED 2026-09-18, AND THE INFERENCE WAS RIGHT FOR A STRONGER REASON THAN EITHER OF US GAVE.** *(This read “INFERRED, unverified: it does not bite stepping UPWARD from 47.”)* Reading the clause (`victory_road.py:1902-1912`): the gate is **`if "Crunch" not in moves`** — `CRUNCH_LEVEL` is used ONLY to choose the WORDING of the failure reason (“learns it at L47” vs “is L≥47 but does NOT know Crunch”). **The clause never consults `target` at all**, so a Mightyena that KNOWS Crunch passes it at any target and stepping upward is unaffected. The code says so itself: *“⛔⛔ ASSERT THE MOVE, NEVER THE LEVEL THAT USUALLY GRANTS IT … The level is a PROXY; the move is the requirement.”* ⚠⚠ **BUT IT SURFACES A PRECONDITION NOBODY HAD STATED, AND IT IS PERMANENT:** if Mightyena does NOT know Crunch, `team_is_ready` fails at **every** level — *“there is NO Dark TM in Emerald to recover with”* — so **every step of a stepped grind would raise, forever.** ⇒ **the leg must check Crunch ONCE, up front, and fail fast with that reason** rather than discovering it per step. The normal §Ch23 lineage satisfies it by construction (training to 47 only passes `team_is_ready` if the learn happened — the 2026-09-04 log records *“MIGHTYENA learned CRUNCH!”*), so this is a guard against a damaged or branched lineage, not an expected failure.
 
 ---
 
