@@ -651,3 +651,6 @@
 {"when": "2026-09-18T09:58:17", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-18T10:00:05", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-18T10:06:22", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T10:58:47", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T11:01:03", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T11:03:13", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}

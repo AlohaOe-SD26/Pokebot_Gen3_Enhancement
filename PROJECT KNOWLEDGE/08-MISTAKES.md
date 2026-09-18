@@ -19298,3 +19298,49 @@ generated patch scripts versus literal UTF-8 in files written directly.
   re-run over unpatched code produces real-looking output for the old behaviour. *(`08-MISTAKES`
   already records the sibling rule: the file list tells you which FILES changed, not which EDITS
   landed.)*
+
+
+## 2026-09-18 — A SAFETY GUARD LISTED FIVE FORBIDDEN TILES AND COULD NOT SEE ANY OF THE ONES THAT MATTERED
+
+**SYMPTOM.** `Ch24LobbyMode`'s path assertion was shipped, documented in the punch list, the
+changelog, the handoff and the flag registry as *“A PATH ASSERTION IS THE SECOND DEFENCE — the driver
+computes the route and refuses to walk it if it contains any of (9,1) (10,1) (9,2) (10,2) (1,7)”*.
+It did compute the route. It could not see those tiles.
+
+**ROOT CAUSE.** It built the hazard list as `[tuple(w.coordinates) for w in path]`. A `Waypoint`
+carries **its own `map`** and an **`is_warp`** flag, and a step THROUGH a warp records the tile
+**ARRIVED AT on the DESTINATION map** — not the tile stepped on. Measured on the real route to the
+escalator: the final waypoint is `map=(16,14) coords=(1,6) is_warp=True`, so `(1,7)` — a tile the
+guard explicitly enumerates — is simply absent from what it inspects. The same flattening merges
+maps, so a coordinate on one map can match a forbidden tile on another.
+
+**HOW IT WAS FOUND.** Not by review, and not by any of the four arms that had passed. It surfaced
+during unrelated §0 recon for the League 2F reading: a `calculate_path` to `(1,7)` printed a route
+whose last waypoint was `(1,6)` — the wrong tile — and whose second-to-last step would have been a
+diagonal, which Gen 3 movement does not allow. **The impossible geometry was the tell.**
+
+**THE FIX THAT WORKED.** Invert the rule from enumerate-the-bad to assert-the-invariant: **this leg
+never changes map**, so any `is_warp` waypoint, or any waypoint off the expected map, is a refusal.
+That catches every step-on door on the floor without depending on the enumeration being right.
+Plus a **per-run SELF-TEST**: the guard first vets the route to a KNOWN warp and refuses the whole leg
+if it reports no hazard. Fault-tested by `POKEBOT_CH24_FAULT_BLINDGUARD=1`, which restores v1 exactly
+and makes the self-test fire.
+
+**✅ SCOPE, CHECKED BEFORE BEING CLAIMED.** Production story code already handles this
+(`sootopolis.py:2143` filters by `tuple(w.map) == floor.value`; `:3340` reads `is_warp`). This was NEW
+code regressing against a solved pattern — **not** a repo-wide class defect.
+
+**PREVENTION RULES.**
+- ⛔ **When a planner returns RICH objects, flattening them to one field is a silent redefinition of
+  your question.** `[w.coordinates for w in path]` throws away `map` and `is_warp` — exactly the two
+  fields that decide whether a step is dangerous. Ask what each discarded field would have told you.
+- ⭐ **PREFER AN INVARIANT TO AN ENUMERATION.** *“never leave this map”* is checkable and complete;
+  *“avoid these five tiles”* is only as good as the list AND the reader's ability to see the list's
+  members. An enumeration that cannot observe its own members is worse than no guard, because it is
+  documented as protection.
+- ⭐⭐ **GIVE A SAFETY GUARD A SELF-TEST ON A KNOWN-BAD INPUT, RUN EVERY TIME.** A guard whose only
+  evidence is that it never fired has never been shown to work. This one now refuses to run at all if
+  it cannot see a hazard it is pointed at.
+- ‼ **A fault arm proving the guard's ABSENCE is not the same as proving its COMPETENCE.**
+  `POKEBOT_CH24_FAULT_NOPATHCHECK` passed cleanly the whole time — it proved the guard was *invoked*,
+  never that it could *see* anything. When an arm skips a check, it tests the plumbing, not the check.

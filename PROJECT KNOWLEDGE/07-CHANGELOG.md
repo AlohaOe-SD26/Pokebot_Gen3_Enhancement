@@ -32066,3 +32066,47 @@ measured incident rate, and this must not be prioritised as though it were.
 
 Files: `tools/story-dev/probe_ch23_lobby_resume.py` (new),
 `tools/story-dev/evidence/2026-09-18-ch23-lobby-resume.stdout.txt` (new).
+
+
+## 2026-09-18 (later still x3) — ⛔ A SHIPPED SAFETY GUARD COULD NOT SEE THE TILES IT NAMED
+
+Found while doing §0 recon for the League 2F reading, by asking `calculate_path` for a route to the
+escalator and noticing the returned list **ended on the wrong tile**.
+
+**THE DEFECT.** `Ch24LobbyMode`'s path assertion — shipped that morning under `#24-lobbyfixture` and
+documented as the SECOND defence against stepping into the un-fleeable gauntlet — built its hazard
+list as `[tuple(w.coordinates) for w in path]` and compared it to
+`FORBIDDEN_TILES = ((9,1),(10,1),(9,2),(10,2),(1,7))`. ✅ MEASURED: a `Waypoint` carries its own `map`
+and an `is_warp` flag, and a step THROUGH a warp records the tile **ARRIVED AT on the DESTINATION
+map**. The escalator route ends `map=(16,14) coords=(1,6) is_warp=True` ⇒ **`(1,7)`, which the guard
+itself lists, never appears.** A route through a gauntlet door would have shown HALL5 arrival
+coordinates and passed. ‼ The naive list also MERGES maps, so it could false-positive as easily as
+miss.
+
+**✅✅ THE FIXTURE WAS NEVER AT RISK, CHECKED NOT ASSUMED.** `calculate_path` from the lobby to `(9,1)`
+returns **NO PATH** — the door guards physically block it while `ENTERED_ELITE_FOUR` is unset. The
+PRIMARY defence held; the SECOND one was described as real protection and was not.
+
+**THE FIX, AND IT IS SIMPLER THAN WHAT IT REPLACES.** The leg never changes map, so **any `is_warp`
+waypoint or any waypoint off `LEAGUE_1F` is a refusal** — catching every step-on door on the floor
+without depending on enumerating them correctly. `FORBIDDEN_TILES` stays as a same-map extra check.
+
+**⭐⭐ AND THE GUARD NOW SELF-TESTS EVERY RUN.** Before vetting the real route it vets the route to the
+KNOWN warp at `(1,7)` and **refuses the whole leg if it sees no hazard** — so it cannot rot silently
+the way v1 did: `GUARD SELF-TEST OK — the escalator route is correctly rejected: ['waypoint 11 is a
+WARP -> (16, 14) (1, 6)']`.
+
+**✅ FAULT-TESTED.** `POKEBOT_CH24_FAULT_BLINDGUARD=1` restores v1's logic exactly ⇒ the self-test
+fires and the run walks nothing (`readings=['L-INLOBBY','L-PRE']`, `battles=0`). Treatment still
+PASSES; `NOPATHCHECK` still fails on `L-PATHSAFE` alone.
+
+**✅ NOT A REPO-WIDE CLASS DEFECT — CHECKED BEFORE CLAIMING ONE.** Production already gets this right
+(`sootopolis.py:2143` filters by `tuple(w.map) == floor.value`; `:3340` reads `is_warp`). This was NEW
+HARNESS CODE regressing against a pattern production had solved. ⚠ Four probes share the
+coordinate-only shape but none is a refuse-to-walk guard — not defects today, defects the day one is
+promoted. ‼ **All four are NAMED in `#24-pathguardblind`** (`03-PUNCH-LIST.md`), so this summary is
+checkable rather than merely asserted.
+
+Files: `tools/story-dev/story_harness.py`,
+`tools/story-dev/evidence/2026-09-18-ch24lobby-GUARDFIX-TREATMENT.txt`,
+`...-GUARDFIX-FAULT-BLINDGUARD.txt`, `...-GUARDFIX-FAULT-NOPATHCHECK.txt`.

@@ -19714,6 +19714,9 @@ class Ch24LobbyMode(BotMode):
     #: ⛔⛔ NEVER A DESTINATION AND NEVER ON THE PATH. (9,1)/(10,1) step into HALL5; (9,2)/(10,2) are
     #: the guard tiles; (1,7) is `MB_UP_ESCALATOR`, collision 0 — an accidental warp to League 2F.
     FORBIDDEN_TILES = ((9, 1), (10, 1), (9, 2), (10, 2), (1, 7))
+    #: ⭐ The KNOWN step-on warp this leg uses to SELF-TEST its own path guard every run
+    #: (`victory_road.py:410-412`, `MB_UP_ESCALATOR`, collision 0 -> League 2F).
+    LEAGUE_ESCALATOR = (1, 7)
     #: Flag names READ by this leg. ⛔ BARE, never `FLAG_`-prefixed — see the docstring.
     FLAG_NAMES = ("ENTERED_ELITE_FOUR", "LANDMARK_POKEMON_LEAGUE")
 
@@ -19755,6 +19758,9 @@ class Ch24LobbyMode(BotMode):
         failure = None
         no_pathcheck = _os.environ.get("POKEBOT_CH24_FAULT_NOPATHCHECK", "") == "1"
         no_stop = _os.environ.get("POKEBOT_CH24_FAULT_NOSTOP", "") == "1"
+        # ⛔ Reverts the path guard to v1's coordinate-only logic. The per-run SELF-TEST must
+        # then REFUSE the whole leg, which is how "v1 could not see a warp" stays MEASURED.
+        blind_guard = _os.environ.get("POKEBOT_CH24_FAULT_BLINDGUARD", "") == "1"
         capture = _os.environ.get("CH24_LOBBY_CAPTURE", "").strip()
         if capture:
             WANT.add("L-CAPTURE")
@@ -19810,25 +19816,81 @@ class Ch24LobbyMode(BotMode):
             log(f"[{TAG}] IN LOBBY at={VR._where()} tile={VR._here_tile()}")
 
             # ---- ⛔ THE PATH ASSERTION: look before walking -------------------------------------
+            # ⛔⛔ REWRITTEN 2026-09-18 — v1 OF THIS GUARD COULD NOT SEE THE TILES IT NAMED.
+            # It tested `[w.coordinates for w in path]` against FORBIDDEN_TILES. ✅ MEASURED: a
+            # `Waypoint` carries its OWN `map` and an `is_warp` flag, and a step THROUGH a warp
+            # records the tile ARRIVED AT on the DESTINATION map — not the tile stepped ON. The
+            # route to the escalator ends `map=(16,14) coords=(1,6) is_warp=True`: **`(1,7)`, which
+            # this guard explicitly lists, never appears.** ⇒ a route through a gauntlet door would
+            # have shown HALL5 arrival coordinates and the guard would have passed it.
+            # ‼ The naive list also MERGES maps — `(1,6)` on 2F is indistinguishable from `(1,6)`
+            # on 1F — so it could false-positive as easily as miss.
+            # ⇒ THE RULE IS NOW SIMPLER AND STRICTLY STRONGER: **this leg never changes map.** Any
+            # `is_warp` waypoint, or any waypoint whose map is not LEAGUE_1F, is a refusal — which
+            # catches every step-on door on this floor without having to enumerate them correctly.
+            # FORBIDDEN_TILES is KEPT as a same-map belt-and-braces check, not as the whole guard.
+            def _path_hazards(_path, _expect_map):
+                """Every reason this route must not be walked. Empty list = safe."""
+                _bad = []
+                _forbidden = {tuple(x) for x in self.FORBIDDEN_TILES}
+                for _i, _w in enumerate(_path):
+                    _m, _c = tuple(_w.map), tuple(_w.coordinates)
+                    if blind_guard:
+                        # ⛔ FAULT ARM ONLY — this is EXACTLY v1's logic: coordinates, nothing
+                        # else. It is kept executable so "v1 was blind" is a MEASUREMENT rather
+                        # than an argument; the SELF-TEST above must catch it.
+                        if _c in _forbidden:
+                            _bad.append(f"waypoint {_i} steps on FORBIDDEN {_c}")
+                        continue
+                    if _w.is_warp:
+                        _bad.append(f"waypoint {_i} is a WARP -> {_m} {_c}")
+                    elif _m != tuple(_expect_map):
+                        _bad.append(f"waypoint {_i} leaves the map -> {_m} {_c}")
+                    elif _c in _forbidden:
+                        _bad.append(f"waypoint {_i} steps on FORBIDDEN {_c}")
+                return _bad
+
             here = VR._here_tile()
             if no_pathcheck:
                 log(f"[{TAG}] ⚠ FAULT NOPATHCHECK — path assertion SKIPPED. The guards remain the "
                     f"primary defence; L-PATHSAFE will be MISSING.")
             else:
-                path = calculate_path((L1F, here), (L1F, tuple(self.STOP_TILE)))
-                tiles = [tuple(w.coordinates) for w in path]
-                hits = [t for t in tiles if t in {tuple(x) for x in self.FORBIDDEN_TILES}]
-                R["path_len"] = len(tiles)
-                R["path_forbidden_hits"] = hits
-                if hits:
+                # ⭐⭐ SELF-TEST FIRST: PROVE THE INSTRUMENT CAN SEE A HAZARD BEFORE TRUSTING IT ON
+                # THE REAL ROUTE. `LEAGUE_ESCALATOR (1,7)` is a KNOWN step-on warp, so a working
+                # check MUST reject the route to it. This is planning only — nothing is walked — and
+                # it runs on EVERY run, so the guard cannot silently rot the way v1 did.
+                probe_hz = []
+                try:
+                    probe_hz = _path_hazards(
+                        calculate_path((L1F, here), (L1F, tuple(self.LEAGUE_ESCALATOR))), L1F.value)
+                except Exception as error:  # noqa: BLE001 - unreachable is also an acceptable answer
+                    probe_hz = [f"no path to the escalator at all ({type(error).__name__})"]
+                if not probe_hz:
                     raise BotModeError(
-                        f"Ch24 lobby: ⛔ REFUSING TO WALK. The planned route to {self.STOP_TILE} "
-                        f"crosses forbidden tile(s) {hits}. (9,1)/(10,1) step into HALL5 and the "
-                        f"un-fleeable gauntlet; (9,2)/(10,2) are the guard tiles; (1,7) warps to "
-                        f"League 2F. Full path: {tiles}"
+                        f"Ch24 lobby: ⛔ THE PATH GUARD IS BLIND. Asked to vet the route to the "
+                        f"KNOWN step-on warp {self.LEAGUE_ESCALATOR} it reported NO hazard. A guard "
+                        f"that cannot see a warp cannot protect this leg from the gauntlet doors "
+                        f"— refusing to walk anything."
+                    )
+                R["guard_selftest"] = probe_hz[:2]
+                log(f"[{TAG}] GUARD SELF-TEST OK — the escalator route is correctly rejected: "
+                    f"{probe_hz[:2]}")
+
+                path = calculate_path((L1F, here), (L1F, tuple(self.STOP_TILE)))
+                hazards = _path_hazards(path, L1F.value)
+                R["path_len"] = len(path)
+                R["path_hazards"] = hazards
+                R["path_maps"] = sorted({tuple(w.map) for w in path})
+                R["path_warps"] = [tuple(w.coordinates) for w in path if w.is_warp]
+                if hazards:
+                    raise BotModeError(
+                        f"Ch24 lobby: ⛔ REFUSING TO WALK. The planned route to {self.STOP_TILE} is "
+                        f"unsafe: {hazards}. (9,1)/(10,1) step into HALL5 and the un-fleeable "
+                        f"gauntlet; (9,2)/(10,2) are the guard tiles; (1,7) warps to League 2F. "
+                        f"Full path: {[(tuple(w.map), tuple(w.coordinates), w.is_warp) for w in path]}"
                     )
                 taken.add("L-PATHSAFE")
-                log(f"[{TAG}] PATH SAFE — {len(tiles)} waypoints, no forbidden tile. path={tiles}")
+                log(f"[{TAG}] PATH SAFE — {len(path)} waypoints, no warp, no map change, no forbidden tile. maps={R['path_maps']} path={[tuple(w.coordinates) for w in path]}")
 
             # ---- walk to the stop tile and STOP --------------------------------------------------
             if no_stop:

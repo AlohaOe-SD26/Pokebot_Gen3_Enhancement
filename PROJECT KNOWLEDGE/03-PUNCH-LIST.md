@@ -243,6 +243,40 @@ open-vs-built sweep of all 80 open items has **not** been done.
   added, matching the three gates that carried this bug before.
   ⚠ **THEREFORE THE PROSE RULE IN `08-MISTAKES.md` STAYS.** The gate covers the house idiom, not every
   phrasing; it is a floor, not a replacement. Run: `py -3.12 probe_retraction_coverage.py --self-test`.
+- [x] ⛔✅ `#24-pathguardblind` — **NEW AND FIXED 2026-09-18. A SHIPPED SAFETY GUARD COULD NOT SEE THE TILES IT NAMED. FIXED, FAULT-TESTED, AND GIVEN A PER-RUN SELF-TEST.**
+  **THE DEFECT.** `Ch24LobbyMode`'s path assertion — shipped hours earlier under `#24-lobbyfixture`
+  and documented as the *second defence* against stepping into the un-fleeable gauntlet — built its
+  hazard list as `[tuple(w.coordinates) for w in path]` and compared it to
+  `FORBIDDEN_TILES = ((9,1),(10,1),(9,2),(10,2),(1,7))`.
+  ✅ **MEASURED:** a `Waypoint` carries its own `map` and an `is_warp` flag, and a step THROUGH a warp
+  records the tile **ARRIVED AT on the DESTINATION map**, not the tile stepped on. The route to the
+  escalator ends `map=(16,14) coords=(1,6) is_warp=True` ⇒ **`(1,7)` never appears in the list the
+  guard inspects.** A route through a gauntlet door would likewise have shown HALL5 arrival
+  coordinates and been waved through. ‼ The naive list also MERGES maps, so `(1,6)` on 2F is
+  indistinguishable from `(1,6)` on 1F — it could false-positive as easily as miss.
+  ✅✅ **THE FIXTURE WAS NEVER AT RISK, AND I CHECKED RATHER THAN ASSUMED.** `calculate_path` from the
+  lobby to `(9,1)` returns **NO PATH** — the door guards physically block it while `ENTERED_ELITE_FOUR`
+  is unset. ⇒ the PRIMARY defence held throughout; what failed was the SECOND one, which had been
+  described in the docs as real protection and was not.
+  **THE FIX.** The rule is now simpler and strictly stronger: **this leg never changes map**, so any
+  `is_warp` waypoint, or any waypoint whose map is not `LEAGUE_1F`, is a refusal — which catches every
+  step-on door on the floor without depending on enumerating them correctly. `FORBIDDEN_TILES` is kept
+  as a same-map belt-and-braces check, no longer as the whole guard.
+  ⭐⭐ **AND THE GUARD NOW SELF-TESTS ON EVERY RUN.** Before vetting the real route it vets the route to
+  `LEAGUE_ESCALATOR (1,7)`, a KNOWN step-on warp, and **refuses the entire leg if it fails to see the
+  hazard** — so this guard cannot rot silently the way v1 did. ✅ `GUARD SELF-TEST OK — the escalator
+  route is correctly rejected: ['waypoint 11 is a WARP -> (16, 14) (1, 6)']`.
+  ✅ **FAULT-TESTED:** `POKEBOT_CH24_FAULT_BLINDGUARD=1` restores v1's logic exactly; the self-test then
+  fires (*“⛔ THE PATH GUARD IS BLIND”*) and the run **walks nothing**
+  (`readings=['L-INLOBBY','L-PRE']`, `battles=0`). Treatment still PASSES; `NOPATHCHECK` still fails on
+  `L-PATHSAFE` alone. Evidence: `evidence/2026-09-18-ch24lobby-GUARDFIX-{TREATMENT,FAULT-BLINDGUARD,FAULT-NOPATHCHECK}.txt`.
+  ✅ **NOT A REPO-WIDE CLASS DEFECT — I CHECKED BEFORE CLAIMING ONE.** Production story code already
+  gets this right: `sootopolis.py:2143` filters waypoints by `tuple(w.map) == floor.value` and `:3340`
+  reads `is_warp` explicitly. The blind instance was **new harness code regressing against a pattern
+  production had already solved.** ⚠ Several PROBES share the coordinate-only shape
+  (`probe_aqua_hideout_graph.py:192`, `probe_warp_maze.py:180`, `probe_live_mapgrid.py:219`,
+  `ab_ch21_leg3_layoutpin.py:108`) — none is a refuse-to-walk guard, so none is a safety defect today,
+  but any one of them becomes one the moment it is promoted.
 - [x] ✅✅ `#24-lobbyfixture` — **DONE 2026-09-18. THE LOBBY FIXTURE IS MINTED, PINNED AND RE-VERIFIED BY RELOAD, AND THE LOBBY WINDOW IS NOW *READ*. ⭐ IT RETURNED A RESULT THE SPEC DID NOT PREDICT: INSIDE THE LEAGUE, §Ch23 DOES NOT “SELF-SKIP” — IT *RAISES*.**
   ⭐ **THE ARTIFACT:** `saves/post_league_lobby.ss1`, pinned `5a75ea37ed5cc07ae8b0b0a75da5e909` — the
   FIRST fixture this repo has ever held inside the Pokémon League. `POKEMON_LEAGUE_1F (3,4)`, L75
@@ -275,6 +309,7 @@ open-vs-built sweep of all 80 open items has **not** been done.
   premise with **zero readings** · FAULT `NOPATHCHECK` → `missing=['L-PATHSAFE']` and nothing else
   (and it still reached no sealed map — the guards are the primary defence) · FAULT `NOSTOP` →
   `missing=['L-CAPTURE','L-STOP']` with **0 files written**.
+  ⛔ **THIS ITEM SHIPPED A DEFECTIVE SAFETY GUARD, FOUND AND FIXED THE SAME DAY — see `#24-pathguardblind`.** Its path assertion could not see the tiles it named (a warp waypoint records the ARRIVAL tile on the DESTINATION map). ✅ The fixture was never at risk: the door guards physically block `(9,1)` and `calculate_path` to it returns NO PATH. The guard is now map- and warp-aware and SELF-TESTS every run.
   ⚠ **STILL OWED:** a **League 2F** reading (the window is two maps) and a **post-talk** sibling
   fixture. ✅ 2F is now scoped: it is the **Cable Club** (`LAYOUT_POKEMON_CENTER_2F`; Union Room /
   Trade Center attendants), reachable from the lobby with `ENTERED_ELITE_FOUR` unset — the escalator
@@ -2018,36 +2053,8 @@ accident of what the bot happened to meet.
   that used to accompany it** — *"born dead weight, no early window to maintain"* is **REFUTED**:
   **39.7% had a <=6 window** — median **163 minutes (~2.7 HOURS)** of emulated time — of which **33.3% of the population was TRAINING-REACHABLE** ⚠ **(SUPERSEDED — use 20.6%; the code's real window is `gap <= 5`, see bullet 1)** (the rest recovered only because the party max fell). See bullet 1 and `tools/story-dev/probe_laggard_origin.py`.
 
-- [x] ⭐⭐ **DESIGNED 2026-09-09 (6-agent adversarial pass) — VERDICT: BUILD A NARROWER VERSION,
-  AND ONE PREREQUISITE MUST SHIP FIRST.** The shape that survived: post-badge catching allowed
-  **only at a FULL party** (so the game stores it via `CopyMonToPC` and it cannot consume the
-  HM/counter runway `#24-partycap` measured as load-bearing) **and only when no hunt is armed**.
-  ✅ **STRUCTURAL CLAIMS I VERIFIED MYSELF** (static reads — these are what the build rests on):
-    * `ensure_hm_learner` is **SELF-FENCED**: `early_game.py:4608-4563` raises at `party_count >= 6`
-      *before* its spin ⇒ **a party==6 dex gate can never fire during an HM hunt.**
-    * `counter_hunt.catch_confirmed` is **SPECIES-BLIND on the box path**: `counter_hunt.py:363-365`
-      returns True for **any** new box PID ⇒ an unrelated dex catch at party 6 would END the spin,
-      the species-aware verdict would then find nothing, and the ladder fails. ⛔ **This is the real
-      landmine and it is why the "no armed hunt" half of the fence is not optional.**
-  ⛔⛔ **THE SPEC AS DRAFTED WOULD NOT HAVE WORKED — AND WOULD HAVE FAILED SILENTLY.** It calls
-  `counter_hunt.hunt_active()`. **That function does not exist** (0 mentions); the real name is
-  **`is_armed()`** — the cited line `:73` is correct, the NAME is invented. Because `_should_catch`
-  wraps its body in `except Exception: return False`, the `AttributeError` would have been
-  **swallowed**: the feature would never fire, and the A/B would have read "no difference" ⇒ **a
-  REFUTATION of a feature that was never running.** ‼ Five other symbols checked out (`is_armed`,
-  `HM_CATCH_TARGET_DEX` `early_game.py:4330`, `number_of_balls_except_master_ball` `items.py:447`,
-  `_should_catch`'s single call site, `StoryCatchStrategy`). **One invented in six.**
-  ✅ **PREREQUISITE NOW SHIPPED — dex telemetry** (`modules/debug_logger.py`): `owned=<n>` on every
-  heartbeat plus `[DEX] owned N -> M: +#<dex>…` when the set grows. Before this there was **zero**
-  dex telemetry — the only story-path read of `owned_species` was `_should_catch`'s own gate ⇒
-  every arm of the A/B graded on nothing.
-  ⛔ **THE FIRST VERSION OF THAT PREREQUISITE WAS BROKEN AND TIER 1 CAUGHT IT**: `_last_owned`'s
-  `global` landed in `enable()` instead of `on_frame()` (my regex anchored on `_stall_frames`, which
-  is in BOTH), so every heartbeat raised `UnboundLocalError` inside `main.py`'s `except: pass` ⇒
-  **all telemetry silently dead, including `party_ids`.** Fixed in both functions (`enable()` also
-  gained the missing per-run `_last_owned = None` reset, or run 2 of a batch would diff against run
-  1's dex), and now GATED by `tools/story-dev/repro_heartbeat_emits.py`, which drives the **real
-  `on_frame()`** and is fault-tested (arm B: 0 heartbeat lines).
+- [x] ⭐⭐ **DESIGNED 2026-09-09 (6-agent adversarial pass) — VERDICT: BUILD A NARROWER VERSION.** The design pass and its verdict, CLOSED.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the six agents' findings and the narrowing are there.
 - [x] ✅✅ **THE FENCE IS BUILT AND GATED 2026-09-10 (gate #50, 20 cases, fault-armed). ⛔ DO NOT
   REBUILD IT.** `decide_dex_catch` (`story_mode.py:1566`) is PURE; `_should_catch`
   (`story_mode.py:1766`) is now a read-and-report ADAPTER that decides nothing. It was written with
@@ -3008,30 +3015,8 @@ region, where "train near the gym" is actively wrong.
 - [x] PROMOTE-2 — whole batch promoted to custom w/ extensive intent docs
       (DIVERGENCE-LOG a–i + DOCUMENTATION/05-hunting-and-livingdex.md);
       live-verified on the real save; 29b9aae5.
-- [x] ~~`#24` (roadmap restatement)~~ — ‼ **SUPERSEDED by the canonical `#24`
-      entry (“STORY AUTO-PLAYER”). Consolidated 2026-08-10.**
-      HISTORY, kept for the design detail — #24 — STORY-MODE BOT (design-first, multi-pass/triple-check): play
-      from a fresh save (user-set name; Oak intro/gender/name; Littleroot
-      start) OR continue existing; goal = beat Elite 4 + complete the game
-      (eventually pokedex); CHUNKED into chapters; must build+maintain a
-      team; enumerate EVERY key event/interaction/item/requirement to
-      progress + how to obtain progression items. Design → 12-STORYMODE-
-      DESIGN.md, several verification passes before building.
-      - PROGRESS (2026-07-20): a fresh game auto-plays through **GYM 1 (Stone
-        Badge)** — intro→starter→first battle→Pokédex→train→rival→Petalburg→
-        Dad/Wally→Route104→Petalburg Woods (Aqua scene)→Rustboro→Roxanne.
-        Legs 1-2 promoted to custom; legs 3-4 + Gym 1 in sandbox (awaiting
-        test→promote). Fixed the Woods-door stall (ML-9) in BOTH builds. NEXT:
-        Chapter 4 (deliver Devon Goods → Rusturf Tunnel → Dewford / Gym 2).
-        Low-pri OPEN: chapters.py Ch2 completion-flag bug.
-      - PROGRESS (2026-07-24 overnight): fresh runs auto-play through GYM 4
-        (Heat Badge) organically (3/5 lanes, batch 20260724-004252). Ch12
-        BUILT + WIRED (Segment 12a/b/c: Lavaridge-Petalburg direct route,
-        Wanda-wall smashes, sign-script gym doors, Norman, auto Surf handoff,
-        teach Surf) - live-iterating from flannery_done (travel proven, gym
-        chain walking). KI-15 FIXED (3 proven fixes); KI-17 opened (after-
-        faint reshow freeze, 2 states captured, Gemini-diagnosed DMA race,
-        sweep hardened per the analysis - validation pending).
+- [x] ~~`#24` (roadmap restatement)~~ — ‼ **SUPERSEDED by the canonical `#24`. CLOSED.**
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full restatement is there; the canonical `#24` remains in place.
 - [~] #24-move — SMART MOVE-LEARNING (user 2026-07-20): DONE — Story strategy
       `which_move_should_be_replaced` override keeps every Pokémon combat-capable
       (never trades a damaging move for a status move), preserves type coverage,

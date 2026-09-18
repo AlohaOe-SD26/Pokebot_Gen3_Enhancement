@@ -11697,3 +11697,75 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
       `_smash_rock` exists and is idempotent. ‼ Bound it — a respawning rock must not become an
       infinite smash-and-retry loop. Coordinates from map data or the decomp, never memory.
 
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“`#24` (roadmap restatement)”*
+> Moved under `lint_docs.py` R3 (the punch list went over its 4,400-line budget when
+> `#24-pathguardblind` was filed). **NOTHING IS DELETED** — the lines below are the
+> item exactly as it stood, and the punch list keeps a short summary pointing here.
+
+- [x] ~~`#24` (roadmap restatement)~~ — ‼ **SUPERSEDED by the canonical `#24`
+      entry (“STORY AUTO-PLAYER”). Consolidated 2026-08-10.**
+      HISTORY, kept for the design detail — #24 — STORY-MODE BOT (design-first, multi-pass/triple-check): play
+      from a fresh save (user-set name; Oak intro/gender/name; Littleroot
+      start) OR continue existing; goal = beat Elite 4 + complete the game
+      (eventually pokedex); CHUNKED into chapters; must build+maintain a
+      team; enumerate EVERY key event/interaction/item/requirement to
+      progress + how to obtain progression items. Design → 12-STORYMODE-
+      DESIGN.md, several verification passes before building.
+      - PROGRESS (2026-07-20): a fresh game auto-plays through **GYM 1 (Stone
+        Badge)** — intro→starter→first battle→Pokédex→train→rival→Petalburg→
+        Dad/Wally→Route104→Petalburg Woods (Aqua scene)→Rustboro→Roxanne.
+        Legs 1-2 promoted to custom; legs 3-4 + Gym 1 in sandbox (awaiting
+        test→promote). Fixed the Woods-door stall (ML-9) in BOTH builds. NEXT:
+        Chapter 4 (deliver Devon Goods → Rusturf Tunnel → Dewford / Gym 2).
+        Low-pri OPEN: chapters.py Ch2 completion-flag bug.
+      - PROGRESS (2026-07-24 overnight): fresh runs auto-play through GYM 4
+        (Heat Badge) organically (3/5 lanes, batch 20260724-004252). Ch12
+        BUILT + WIRED (Segment 12a/b/c: Lavaridge-Petalburg direct route,
+        Wanda-wall smashes, sign-script gym doors, Norman, auto Surf handoff,
+        teach Surf) - live-iterating from flannery_done (travel proven, gym
+        chain walking). KI-15 FIXED (3 proven fixes); KI-17 opened (after-
+        faint reshow freeze, 2 states captured, Gemini-diagnosed DMA race,
+        sweep hardened per the analysis - validation pending).
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“DESIGNED 2026-09-09 (6-agent adversarial pass)”*
+> Moved under `lint_docs.py` R3 (the punch list went over its 4,400-line budget when
+> `#24-pathguardblind` was filed). **NOTHING IS DELETED** — the lines below are the
+> item exactly as it stood, and the punch list keeps a short summary pointing here.
+
+- [x] ⭐⭐ **DESIGNED 2026-09-09 (6-agent adversarial pass) — VERDICT: BUILD A NARROWER VERSION,
+  AND ONE PREREQUISITE MUST SHIP FIRST.** The shape that survived: post-badge catching allowed
+  **only at a FULL party** (so the game stores it via `CopyMonToPC` and it cannot consume the
+  HM/counter runway `#24-partycap` measured as load-bearing) **and only when no hunt is armed**.
+  ✅ **STRUCTURAL CLAIMS I VERIFIED MYSELF** (static reads — these are what the build rests on):
+    * `ensure_hm_learner` is **SELF-FENCED**: `early_game.py:4608-4563` raises at `party_count >= 6`
+      *before* its spin ⇒ **a party==6 dex gate can never fire during an HM hunt.**
+    * `counter_hunt.catch_confirmed` is **SPECIES-BLIND on the box path**: `counter_hunt.py:363-365`
+      returns True for **any** new box PID ⇒ an unrelated dex catch at party 6 would END the spin,
+      the species-aware verdict would then find nothing, and the ladder fails. ⛔ **This is the real
+      landmine and it is why the "no armed hunt" half of the fence is not optional.**
+  ⛔⛔ **THE SPEC AS DRAFTED WOULD NOT HAVE WORKED — AND WOULD HAVE FAILED SILENTLY.** It calls
+  `counter_hunt.hunt_active()`. **That function does not exist** (0 mentions); the real name is
+  **`is_armed()`** — the cited line `:73` is correct, the NAME is invented. Because `_should_catch`
+  wraps its body in `except Exception: return False`, the `AttributeError` would have been
+  **swallowed**: the feature would never fire, and the A/B would have read "no difference" ⇒ **a
+  REFUTATION of a feature that was never running.** ‼ Five other symbols checked out (`is_armed`,
+  `HM_CATCH_TARGET_DEX` `early_game.py:4330`, `number_of_balls_except_master_ball` `items.py:447`,
+  `_should_catch`'s single call site, `StoryCatchStrategy`). **One invented in six.**
+  ✅ **PREREQUISITE NOW SHIPPED — dex telemetry** (`modules/debug_logger.py`): `owned=<n>` on every
+  heartbeat plus `[DEX] owned N -> M: +#<dex>…` when the set grows. Before this there was **zero**
+  dex telemetry — the only story-path read of `owned_species` was `_should_catch`'s own gate ⇒
+  every arm of the A/B graded on nothing.
+  ⛔ **THE FIRST VERSION OF THAT PREREQUISITE WAS BROKEN AND TIER 1 CAUGHT IT**: `_last_owned`'s
+  `global` landed in `enable()` instead of `on_frame()` (my regex anchored on `_stall_frames`, which
+  is in BOTH), so every heartbeat raised `UnboundLocalError` inside `main.py`'s `except: pass` ⇒
+  **all telemetry silently dead, including `party_ids`.** Fixed in both functions (`enable()` also
+  gained the missing per-run `_last_owned = None` reset, or run 2 of a batch would diff against run
+  1's dex), and now GATED by `tools/story-dev/repro_heartbeat_emits.py`, which drives the **real
+  `on_frame()`** and is fault-tested (arm B: 0 heartbeat lines).
