@@ -1,4 +1,4 @@
-# §Ch24 WIRING RECON — 10 AGENTS, AND THE SEVEN FACTS I RE-VERIFIED MYSELF (2026-09-17, late)
+# §Ch24 WIRING RECON — 10 AGENTS, AND WHAT I RE-VERIFIED MYSELF (2026-09-17, late)
 
 > ⛔ **AGENT OUTPUT IS A NOTE, NEVER TRUTH** (`00-READ-THIS-FIRST.md`). Everything marked ✅ below was
 > re-checked BY ME at FILE:LINE, or by running the command shown. Everything under "LEADS" was NOT,
@@ -72,29 +72,36 @@ carries a `_exit_training_cave_if_inside()` step from the Granite Cave incident)
 **(b) B1F CARRIES A TRAINER.** `victory_road.py:2345-2346` — *"Refusing to descend — B1F carries a
 trainer and wild encounters, and this is how a run whites out underground."* A defeated trainer does
 not respawn, so trainer EXP is one-shot and does not belong in a wild-encounter model; the sight-line
-is also an ambush risk for a parked spin. ⚠ The trainer's tile is **not located anywhere in our tree**.
+is also an ambush risk for a parked spin.
+⛔⛔ **THIS BULLET ORIGINALLY ENDED “The trainer's tile is not located anywhere in our tree.” THAT IS SUPERSEDED — I LOCATED ALL FIVE THE SAME DAY**; see the MEASURED section at the foot of this note. There are **five** trainers, and **every one is ≥16 manhattan tiles from every usable candidate spin tile**, against sight radii of 2–4. ⇒ the trainer hazard is REAL for traversal and **effectively nil for a parked spin at the arrival corner.**
 
 ### ⭐ THE CONSEQUENCE, AND IT INVERTS THIS ITEM'S ASSUMPTION
 
-`#24-levelgap` assumes the post-Wally grind happens on **B1F**, for +22.6% EXP/battle. But B1F costs a
-**puzzle re-solve per heal**, carries a trainer, and has **no `TRAIN_SPOT_B1F`**. **1F** is one warp
-from the exit, has no puzzle, and already has a *proven, measured* `TRAIN_SPOT_1F = (VR1F, (15,39))`.
-⇒ **the cheaper post-Wally ground may be the one we already have.** ⛔ This is an ARGUMENT, not a
-measurement — nobody has priced a B1F heal round-trip in frames. **Price it before choosing.**
+`#24-levelgap` assumes the post-Wally grind happens on **B1F**, for +22.6% EXP/battle.
+
+⛔⛔ **THIS SECTION ORIGINALLY ARGUED THAT B1F “costs a puzzle re-solve per heal, carries a trainer, and
+has no `TRAIN_SPOT_B1F`” ⇒ “the cheaper post-Wally ground may be the one we already have.” TWO OF
+THOSE THREE LEGS ARE NOW GONE, MEASURED BY ME THE SAME DAY:**
+* **“Carries a trainer” — true but NOT A COST HERE.** All five B1F trainers are ≥16 manhattan tiles
+  from every usable candidate, against sight radii 2–4. For a *parked spin* the hazard is nil.
+  ‼ And 1F is **worse** on this axis, not better: it carries **five trainers plus Wally**.
+* **“No `TRAIN_SPOT_B1F`” — true, and now trivial.** Eight walkable `Cave` tiles are measured and
+  listed below; naming the constant is the remaining work, not finding the tile.
+* ✅ **THE ONE LEG THAT SURVIVES IS THE HEAL COST**, and it is the whole question: from B1F a heal
+  means re-crossing a puzzle that **resets on every warp**.
+
+⇒ **THE CHOICE NOW RESTS ON A SINGLE UNMEASURED NUMBER: the frame cost of one B1F heal round-trip.**
+If it is small relative to ~450k frames of grinding, B1F's +22.6% EXP wins outright; if a heal costs a
+full puzzle re-solve every time HP or PP dips, 1F's one-warp exit may dominate. ⛔ **Nobody has priced
+it. Price it before choosing** — and note that it is now the ONLY thing separating the two grounds,
+which makes it a cheap and decisive measurement rather than a vague concern.
 
 ---
 
 ## LEADS — AGENT CLAIMS I HAVE *NOT* VERIFIED (do not build on these)
 
-* **B1F candidate training tiles**, from an agent's live probe: `(9,4)` at distance 2 from
-  `B1F_ARRIVAL = (8,3)` (✅ that constant is real, `victory_road.py:199`), reported `MB_CAVE`,
-  elevation 3, `has_encounters=True`, open on all four sides; `(7,4)` and `(9,5)` as alternates. It
-  reports **no `MB_NORMAL` walkable traps** near the arrival, unlike 1F's sixteen — the B1F hazard is
-  instead that the warp tiles themselves are walkable and non-rolling.
-  ⛔ **VERIFY BEFORE USE** with the procedure that proved the 1F spot: `get_map_data(MapRSE.
-  VICTORY_ROAD_B1F, (x,y)).tile_type == 'Cave'` per candidate (the `ch23route` R15 pattern,
-  `story_harness.py:12792-12811`). A walkable non-Cave tile spins forever for zero battles and looks
-  healthy — `#24-grindconverge`'s exact shape.
+* ~~B1F candidate training tiles (agent claim)~~ → ✅ **PROMOTED TO MEASURED, BY ME, 2026-09-17
+  (late).** See the dedicated section below — the agent's claim was correct on every point I checked.
 * **Migration scope:** ~2,916 harness lines across seven `Ch24*` classes whose *production kernel is
   ~90 lines of action*; the three room drivers are ~77% byte-identical (one unit, three instances);
   `Ch24ToLeagueMode` is a pure FIXTURE BRIDGE contributing zero production code.
@@ -113,3 +120,54 @@ measurement — nobody has priced a B1F heal round-trip in frames. **Price it be
   not re-proposed.
 * ‼ **One agent's top "refutation" quoted my own just-committed docs back at me.** That is
   circularity, not corroboration, and it is not counted as support anywhere above.
+
+
+---
+
+## ✅ MEASURED BY ME: THE B1F TRAINING GROUND (STATIC ROM READ, 2026-09-17 late)
+
+Ran the `ch23route` R15 procedure (`story_harness.py:12792-12811`) against `VICTORY_ROAD_B1F`:
+`get_map_data(MapRSE.VICTORY_ROAD_B1F, (x,y))` per candidate, reading `tile_type`, `elevation`,
+`collision` and `has_encounters`.
+
+| tile | type | elev | collision | encounters | verdict |
+|---|---|---|---|---|---|
+| `(9,3)` `(7,3)` `(8,4)` **`(9,4)`** `(7,4)` `(9,5)` `(10,4)` `(6,4)` | **Cave** | 3 | 0 | **True** | ✅ usable |
+| `(8,5)` | Normal | 0 | **1** | False | ⛔ WALL — cannot be stood on |
+
+⭐ **THE 1F TRAP DOES NOT EXIST HERE, AND THAT IS THE USEFUL RESULT.** On 1F, *"16 walkable tiles are
+`MB_NORMAL`, and a spin parked on one of those generates ZERO battles while looking perfectly healthy"*
+(`victory_road.py:474-476` — `#24-grindconverge`'s shape). Around B1F's arrival, **every walkable tile
+measured is `Cave`**; the only `Normal` tile found is a WALL, so it cannot be parked on by accident.
+
+⚠ **THE REAL B1F HAZARD IS THE WARP, NOT A DEAD TILE.** `(8,3)` is the ladder back to 1F
+(`warp[4] (8,3) -> VICTORY_ROAD_1F (9,14)`, read from the ROM). A spin that steps onto it leaves the
+floor. ⇒ prefer a candidate **not cardinally adjacent to `(8,3)`** — `(9,4)`, `(7,4)`, `(9,5)`,
+`(10,4)` and `(6,4)` all qualify; `(9,3)` and `(7,3)` do not.
+
+### ⭐ THE FIVE B1F TRAINERS, LOCATED — AND THE CANDIDATES ARE CLEAR OF ALL OF THEM
+
+`victory_road.py:2345` warns *"B1F carries a trainer and wild encounters, and this is how a run whites
+out underground."* ✅ **CONFIRMED AND MADE PRECISE — there are FIVE**, read from both
+`mapfacts.py` and the decomp's `data/maps/VictoryRoad_B1F/map.json` (21 object events: 8 Strength
+boulders, 6 Rock Smash rocks, 5 trainers, 2 items):
+
+| trainer | tile | sight radius |
+|---|---|---|
+| Michelle | `(5,21)` | 2 |
+| Mitchell | `(14,16)` | 4 |
+| Halle | `(14,20)` | 3 |
+| Shannon | `(26,16)` | 4 |
+| Samuel | `(37,12)` | 3 |
+
+⇒ **the nearest trainer to ANY usable candidate is 16 manhattan tiles away** (Mitchell, from `(9,5)`
+or `(10,4)`), against sight radii of 2–4. **The grind corner is comfortably outside every sight line.**
+⚠ Sight lines are directional and this is a manhattan bound, not a ray-cast — but a 4× margin over the
+largest radius makes a sight-line trigger implausible rather than merely unlikely.
+
+⛔ **CAVEATS ON ALL OF THE ABOVE.** (1) **STATIC ROM read** — on a layout-swapped map the static view
+lies (KI-74); B1F is not known to be one, but **confirm live before code depends on it**. (2) The
+boulders at `(4,7)` and `(9,10)` are near the arrival and the puzzle **resets on every warp**
+(`B1F_PUZZLE_RESETS_ON_WARP = True`), so their positions on arrival are the ROM defaults — do not
+assume a solved state. (3) None of this prices the **heal round-trip**, which remains the open
+question for `#24-levelgap`.

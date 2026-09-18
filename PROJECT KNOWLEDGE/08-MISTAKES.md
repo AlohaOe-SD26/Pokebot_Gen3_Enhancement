@@ -18955,3 +18955,38 @@ from `git status --short` rather than from intent.
 handoff — regenerate the file list from `git status --short`. Never from memory, and never from what a
 script was SUPPOSED to do: a script that asserts mid-way leaves partial work, and the part it skipped
 is invisible in the part it did.*
+
+
+## 2026-09-18 — I TRUNCATED MY OWN OUTPUT WITH `head` AND ALMOST FILED THE TRUNCATION AS TWO DEFECTS
+
+**Symptom.** Ran `mapfacts.py` for `VICTORY_ROAD_B1F` piped through `| head -25`. It showed 13 objects,
+all boulders and rocks, **no trainers**. Our own code says *"B1F carries a trainer … this is how a run
+whites out underground"* (`victory_road.py:2345`). I was one step from filing **two** findings: that the
+code comment was wrong, and that `get_map_data(...).objects` under-reports map contents.
+
+**Both would have been false.** `mapfacts.py` reports **21** objects for B1F — 8 boulders, 6 rocks,
+**5 trainers**, 2 items — matching the decomp's `map.json` exactly. **My `head -25` cut the list at 13.**
+The header plus seven warps plus a section title is ~12 lines, so the limit landed mid-list.
+
+**‼ AND MY "CONTROL" APPEARED TO CONFIRM THE FALSE FINDING.** I ran the tool on 1F and B2F, saw named
+trainers (Edgar, Hope, Albert…; Vito, Owen, Caroline…), and concluded *"the tool does show trainers, so
+B1F genuinely has none."* **That control was invalid**: it tested a DIFFERENT SUBJECT (other maps) and
+answered a different question — *"can this tool ever show a trainer?"* (yes) instead of *"did this
+invocation show everything on THIS map?"* (no). It was also piped through `head -40`.
+
+**Root cause.** A pipeline limit is part of the instrument, and it is invisible in the result. Truncated
+output is not a short list — it is a list of **unknown length** that looks complete.
+
+**What caught it.** The decomp disagreed. I queried `data/maps/VictoryRoad_B1F/map.json` directly
+because the finding contradicted something written in our own tree, and the contradiction was worth one
+more check before believing myself.
+
+**⭐ PREVENTION RULE.** *Never conclude ABSENCE from output you passed through `head`, `tail`, or any
+`head_limit`. Count first — `| grep -c` or `len(...)` — and only then look at a slice. A limit you
+applied yourself is still an instrument defect.*
+**⭐ SECOND RULE, the one my control got wrong.** *A control on a DIFFERENT SUBJECT cannot establish an
+instrument's completeness on THIS subject. To prove a tool reported everything about X, compare X
+against an INDEPENDENT SOURCE — not X's neighbours against the same tool.*
+**⭐ THIRD, and it is the cheap one.** *When a fresh measurement contradicts something already written
+down in the tree, suspect the MEASUREMENT first. Today that instinct was the only thing between a
+truncated pipe and two fabricated defect reports.*
