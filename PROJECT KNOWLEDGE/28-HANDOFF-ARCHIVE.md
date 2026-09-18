@@ -12018,3 +12018,79 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
   ‼ **THE LESSON: TWO TOTALS MATCHING IS NOT PAIRING.** 453-vs-613 looks like nothing in aggregate;
   only per-run pairing exposed the 28.7%. Aggregate agreement is coincidence until each event is
   matched to its own outcome.
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] #24-freeze — OLDALE PC FREEZE **FIXED** (user 2026-07-21). Root cause (from the…”*
+> Moved under `lint_docs.py` R3 (the punch list went over budget while the §Ch24
+> training-economy research findings were being recorded). **NOTHING IS DELETED**, and
+> every do-not-rebuild warning is carried into the summary left behind.
+
+- [x] #24-freeze — OLDALE PC FREEZE **FIXED** (user 2026-07-21). Root cause (from the
+      user's real-bot debug log's generator call stack): heal returned while the
+      overworld was transiently non-controllable → heal→go-to-rival navigate choked →
+      derail → re-heal → endless heal/leave/re-enter loop → Manual. FIX:
+      heal_in_pokemon_center waits for a STABLE controllable overworld after the exit
+      warp. Downstream: StoryCatchStrategy flees instead of Manual when out of balls.
+      Validated route103→Rustboro→Route116 catching, 0 derails/Manual. Old note below
+      kept for history.
+      ~~POST-BATTLE TRANSITION FREEZE (the likely real "stuck at Oldale PC").~~ After a training battle (flee/level-up/move-learn, e.g.
+      Mudkip Water Gun @L10) the return-to-overworld transition leaves the overworld
+      non-controllable while the bot acts (navigate / walk to the Oldale nurse) → can
+      hard-freeze (nurse heal dialogue never starts). REAL (harness == real
+      main_loop), timing/starter-sensitive (default starter "random"; Treecko passed,
+      Mudkip hits it). Offline repro hampered by save-state reload artifacts. NEXT:
+      user validates on real PC (force `starter: mudkip`, fresh game) and reports;
+      then decide a deeper "settle before acting" fix (heal_in_pokemon_center nurse
+      interaction + story navigations) vs a training-flow workaround.
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] ✅✅ **1. DONE 2026-09-04 — `heal_party_from_bag()` IS BUILT AND DRIVEN.** ⛔ DO NOT REBUILD…”*
+> Moved under `lint_docs.py` R3 (the punch list went over budget while the §Ch24
+> training-economy research findings were being recorded). **NOTHING IS DELETED**, and
+> every do-not-rebuild warning is carried into the summary left behind.
+
+- [x] ✅✅ **1. DONE 2026-09-04 — `heal_party_from_bag()` IS BUILT AND DRIVEN.** ⛔ DO NOT REBUILD IT.
+      `modules/story/pokemon_league.py` (the driver) + `modules/story/overworld_items.py` (a PURE
+      policy, gate **#36** `repro_overworld_items.py`, fault-tested against **five** broken policies).
+      `--driver ch24heal` `ACCEPTANCE: PASS`: from *two fainted, one FROZEN, two badly hurt* → seven
+      actions → **147/147 · 48/48 · 139/139 · 226/226 · 144/144 · 103/103**, `heal_ready=True`,
+      `whiteouts=0`. `POKEBOT_CH24_FAULT_NOHEAL=1` correctly FAILS.
+      ⭐ **THE DISCRIMINATOR IS THE REVIVE ORDER**, and it is asserted live: with Mightyena L48 in
+      slot 4 and Zigzagoon L19 in slot 1 both fainted, a slot-order policy revives the HM mule first.
+      The run logs `REVIVE ORDER = [(4,'Revive'),(1,'Revive')]` — battle value, not slot order.
+      ⭐ And a CONTROL: Castform is deliberately left untouched by the staging, and the run asserts it
+      is still untouched afterwards — a heal there would mean the "never a no-op" rule is broken.
+      ⛔⛔ **TWO BUGS ONLY THE LIVE DRIVE CAUGHT, BOTH "a field read as if it described itself":**
+      (1) `parameter` is a **UNION TYPE** — filtering on `parameter > 0` picked **Repel** (parameter
+      100 = *steps*) as a healer; (2) `field_use` is an **ENUM**, so `== "healing"` is always False
+      and the allowlist came back EMPTY — **silently**, because the revive/status passes do not use
+      it. ⇒ the gate now carries Repel/X Attack/Nugget/Escape Rope as TRAPS (its item universe was
+      cleaner than the real bag), and an empty allowlist now RAISES.
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`: `#24-glaciaL75`
+
+> Moved under `lint_docs.py` R3 (the punch list went over budget while the §Ch24
+> training-economy research findings were being recorded). **NOTHING IS DELETED.**
+> The fixture it produced (`post_glacia_L75.ss1`) stays PINNED in `saves/FIXTURES.md5`,
+> which is where a resumer actually looks for it.
+
+- [x] ✅✅✅ `#24-glaciaL75` — **NEW AND DONE 2026-09-17. GLACIA IS BEATEN AT L75 — THREE OF FIVE ELITE FOUR ROOMS — AND THE REPEATING UNIT IS NOW PROVEN TO COMPOSE A THIRD TIME.**
+  `--driver ch24glacia` (NEW) from the NEW pinned `post_phoebe_L75.ss1`: `ACCEPTANCE: PASS`, all 7 readings, `missing=[]`, `battles=1`, `whiteouts=0`, **`DEFEATED_ELITE_4_GLACIA = True`**, exit door OPEN in the live grid, and room 4's start state `post_glacia_L75.ss1` minted and pinned. Evidence: `tools/story-dev/evidence/2026-09-17-ch24glacia-{TREATMENT,VACUITY-WRONG-ROOM,VACUITY-OWN-OUTPUT,FAULT-NOENGAGE}.{log,stdout.txt}`; predictions filed and GRADED in `ai-research-notes/2026-09-17-ch24glacia-PREDICTIONS.md`.
+  ⭐ **IT ALSO SHIPPED THE MISSING RUNG OF THE FIXTURE LADDER.** `Ch24PhoebeMode` gained a step-9 POST-FIGHT capture (`CH24_PHOEBE_POST_CAPTURE`), because its existing step-6 capture fires at "battle started" and — a driver being SUSPENDED across the whole fight — actually lands INSIDE the battle. The new capture is taken at the SAME lifecycle point `post_sidney_L75.ss1` occupies (post-victory, msgbox still parked, at (6,6)), so the room-N copy consumes it with the step-1 dismiss it already has. Guarded on **won ∧ in-room ∧ exit-door-OPEN-in-the-LIVE-grid**, so a fixture is never minted from a lost fight or a room the bot could not leave.
+  ✅ **THREE ARMS, INCLUDING THE TEST `story-drive` §2 DEMANDS.** TREATMENT PASS · **VACUITY pointed at the driver's OWN OUTPUT** (`post_glacia_L75.ss1`) refuses naming `DEFEATED_ELITE_4_GLACIA=True` and takes ZERO readings · VACUITY on the wrong room refuses likewise · **FAULT `POKEBOT_CH24_FAULT_NOENGAGE`** walks the entire unit identically and then presses NOTHING ⇒ `battles=0`, `missing=['G-CONTINUE','G-ENGAGED','G-OUTCOME']`, FAIL for its own reason. ⚠ **HONEST SCOPE:** the fault arm's `G-CONTINUE` is missing because execution never REACHED it, **not** because the door was measured shut — that arm does not prove the door stays closed without a victory.
+  ⛔⛔ **THE HANDOFF'S "ONLY THREE CHANGES" WAS INCOMPLETE, AND AN ADVERSARIAL REVIEWER FOUND THE TWO THAT BITE.** (1) **`VAR_ELITE_4_STATE` is a LADDER** — Phoebe's `OnFrame` gates on `==1`, Glacia's on `==2` — a constraint on the FIXTURE'S LINEAGE that no warp table or collision grid can show (verified `==2` on `post_phoebe_L75.ss1` before building). (2) **A THIRD env var**: a copy inheriting `CH24_PHOEBE_POST_CAPTURE` would find that file present, log `SKIPPED`, and silently mint NO next-room fixture on a successful run.
+  ⛔ **AND A LANDMINE WAS FOUND IN MY OWN JUST-SHIPPED CODE AND FIXED IN BOTH DRIVERS.** The capture guard read `R.get("phoebe_flag")`; a room-N copy renaming that dict key at its one obvious site gets `None` ⇒ `won` silently False ⇒ **the capture REFUSES TO MINT THE NEXT ROOM'S FIXTURE ON A PERFECT RUN.** Both classes now read the flag through a single `VICTORY_FLAG` class constant with two consumers.
+  ⭐⭐ **THE FAINT CHOOSER DREW CORRECTLY, LIVE, IN A THIRD ROOM.** Mightyena fainted; the replacement was **Wailord** (the Ice-resisting wall), not Zigzagoon. **How we know:** Zigzagoon ends `48/48` and Castform `103/103` **with zero EXP gained** ⇒ neither mule ever entered, and Wailord took the last KO (exp `583024→586292`) and all 208 damage. ‼ **ONE TRAJECTORY AGAINST AN ICE SPECIALIST — it does NOT refute `#24-ghostreplacement`**, whose measured failure is specifically a Ghost + `cannot_damage`.
+  ‼‼ **ATTRITION IS NOW REAL, AND `#24-leg2spec` NEEDS THIS NUMBER.** Sidney→Phoebe cost **13 HP total**. Glacia cost **a KO plus 208 HP**, and repairing it spends **the first of only three Revives** (+1 Hyper Potion, +1 Full Restore) — measured offline by running `plan_healing` against the captured state, with a healthy-party CONTROL that plans nothing.
+  ⭐ **A CLAIM OF MINE WAS REFUTED AND THE FIX IS IN THE TREE.** I cited `probe_e4_halls.py` as MEASURED evidence that Hall 2 joins Phoebe to Glacia; its endpoint labels are a **hardcoded string in its own table** (it reads collision only). NEW `probe_e4_warp_chain.py` reads the ROM warp table and follows the chain, with **HALL1 as a control reproducing the already-live-driven result**. Full chain now measured: `SIDNEY→HALL1→PHOEBE→HALL2→GLACIA→HALL3→DRAKE`.
+  ✅ **THE `\p` QUESTION IS CLOSED — on measured precedent, not reasoning.** Glacia is the only E4 member whose IN-BATTLE lose text carries `\p` (two). It cannot stall us: that text is printed by the BATTLE script and `BattleListener._wait_until_battle_is_over` is `while self._in_battle` — UNBOUNDED and self-extending. **Juan's carries SIX `\p` and Roxanne's four plus an `\l`, and this bot beat both.** Her POST-battle msgbox is in fact SHORTER than Phoebe's (2 pages vs 4).
+  ⭐ **TRAP 2 REPRODUCED IN A THIRD ROOM:** `elite4_state_in_room = 2` while standing in Glacia's room, but the captured fixture reads **3** — the entry cutscene had not finished writing it. ⇒ *never dispatch on `VAR_ELITE_4_STATE`*, now confirmed for Sidney, Phoebe AND Glacia.
+  ⚠ **AND `hp_entering_glacia` IS A FAKE READING** — byte-identical to `hp_after_glacia`, because a driver is suspended across the fight so "before" was sampled AFTER. Trap 1, reproduced. It is kept as a record; **do not read it as a before/after pair.**
+  ✅ **DONE 2026-09-17 (late): `04-HANDOFF.md` WAS COMPACTED AND NOW READS 882 / 900, headroom 18** — the PARTY ACCOUNTING STAGE 0 hand recipes were archived VERBATIM to `28-HANDOFF-ARCHIVE.md` (it is gate #22, which `run_gates.py` runs on every suite, so the recipe is reference not a daily command). *(This read: compact it first, it is at its cap at 900/900.)* ‼ **RE-CHECK BEFORE APPENDING — `lint_docs.py` is the authority and R3 counts LINES only.** Room 3 already paid that toll once: shipping it pushed the file to 922 and required archiving the §Ch21 recon instruments and the disarmed `KI-96` note VERBATIM into `28-HANDOFF-ARCHIVE.md`. R3 counts LINES only, so a single appended line turns the doc gate red and blocks the commit.
+  ⛔ **WHAT THIS DOES *NOT* DO:** it does not wire Segment 24 (**all FOUR** prerequisites still stand — the fourth, `#24-levelgap`, was added 2026-09-17), it does not build room 4 or room 5, and **room 5 is NOT this unit** — Wallace starts himself from a `lockall` with no flag guard (`#24-leg2spec`).
+

@@ -556,6 +556,37 @@ open-vs-built sweep of all 80 open items has **not** been done.
   chamber tile, force a heal, observe. That same run also buys B1F's unmeasured frames/battle.
   ‼ **THIS IS A PREREQUISITE FOR *ANY* B1F GRIND** and is why the ground choice is deferred — see
   `#24-levelgap`. It costs nothing today because production never trains anywhere but 1F.
+- [ ] ⭐⭐ `#24-amuletcoin` — **NEW 2026-09-18. A FREE ITEM THAT DOUBLES EVERY TRAINER PAYOUT, AND OUR CODE HAS NEVER HEARD OF IT. ⇒ WHAT REMAINS: VERIFY THE CLAIM MYSELF, then decide whether to fetch it.**
+  ⭐ **WHY THIS MATTERS NOW:** USER RULING 6 makes money *“a high priority … money is relatively
+  limited”*, and §Ch23 leg 11 spends ₽54,300 on the Elite Four basket against a MEASURED ₽56,041 —
+  **₽1,741 of slack**. A payout multiplier attacks that constraint at its root rather than at the margin.
+  ⚠ **AGENT-SOURCED, NOT YET VERIFIED BY ME** (``ai-research-notes/2026-09-18-ch24-training-economy-WORKFLOW.md``): the **AMULET COIN** doubles trainer payouts
+  and Pay Day; it is FREE from Mom in Littleroot; the Elite Four gauntlet alone is claimed to go
+  **₽32,400 → ₽64,800**; and `moneyMultiplier` is set once per battle and never reset, so **any** mon
+  sent out locks the ×2 — it need not be the lead or the holder for the whole fight.
+  ⛔ **“NOT REFERENCED ANYWHERE IN OUR CODE” is itself a claim I have not checked** — grep first.
+  ⚠ **THE GATE CHAIN IS LONGER THAN “ONE NPC”** (agent-sourced): a `VAR_LITTLEROOT_HOUSES_STATE`
+  short-circuit plus `FLAG_HAS_MATCH_CALL` and `FLAG_ENABLE_MOM_MATCH_CALL` ⇒ possibly TWO
+  conversations, and it is gated behind `FLAG_BADGE05_GET`. ⇒ this is a STORY ERRAND, not a pickup.
+  ‼ **SEQUENCING PROBLEM TO SETTLE BEFORE BUILDING:** the bot is far past Badge 5 by §Ch23/§Ch24, so
+  a fetch would be a BACKTRACK to Littleroot. Fly makes that cheap — but USER RULING 3 says Fly only
+  reaches unlocked destinations. ⇒ price the round trip before committing, and weigh it against the
+  ₽ it would actually recover on the REMAINING trainers (most one-time trainers are already spent by
+  then — the multiplier applies to future battles only).
+- [ ] ⚠ `#24-pokenavrematch` — **NEW 2026-09-18 (USER RULING 7, RESEARCH RETURNED). VERDICT: A REPEATABLE *MONEY* SOURCE, A WEAK *TRAINING* ONE. ⇒ WHAT REMAINS: a decision, not a build.**
+  ⚠ **ALL AGENT-SOURCED** (``ai-research-notes/2026-09-18-ch24-training-economy-WORKFLOW.md`` §3), decomp-cited but **not verified by me**:
+  * 78 rematch rows; each trainer is a ladder of **5 STATIC parties with NO level scaling, ever**.
+  * ⭐ Once all four are beaten **the top team repeats FOREVER** ⇒ genuinely repeatable income.
+  * ⭐ **A LOSS DOES NOT BURN THE ARMING** (`CB2_WhiteOut` branches before the rematch bookkeeping).
+  * Arming needs ≥5 badges + 255 steps + a map load + a **31% roll** per registered trainer on that
+    map; a FAILED roll leaves the counter at 255 ⇒ leave and re-enter for a free re-roll; ⚠ but
+    entering a map where someone is ALREADY armed returns TRUE and **burns** the counter.
+  ⇒ ⛔ **NOT A TRAINING ANSWER FOR §Ch24.** Static parties do not scale, so they cannot be
+  level-appropriate for a L47-75 party — which is exactly what USER RULING 4 requires. It does not
+  compete with Victory Road grass.
+  ⇒ ⭐ **IT IS A MONEY ANSWER**, and it pairs with `#24-amuletcoin` (the multiplier applies to rematch
+  payouts too). ⚠ Cost: it needs **PokeNav menu-driving**, a capability we do not have.
+  ‼ **AWAITING A USER DECISION on appetite** — asked 2026-09-18, not yet answered. Do not build first.
 - [ ] ⭐ `#24-trainingbrackets` — **NEW 2026-09-18 (USER RULING). MAP AND MARK TRAINING GROUNDS BY LEVEL BRACKET, SO A PARTY NEVER GRINDS FAR-BELOW-LEVEL WILDS. ⇒ WHAT REMAINS: the research is COMMISSIONED and unreturned; then a data-shaped fix, then a drive.**
   ⭐⭐ **THE RULING THAT CREATED THIS** (`06-DECISIONS-LOG.md` 2026-09-18): *“its fine if it takes a
   while to level up so long as they are not fighting super low level monsters (norman gym for
@@ -576,7 +607,30 @@ open-vs-built sweep of all 80 open items has **not** been done.
   ⚠ **SCOPE ALSO INCLUDES** (same ruling): the highest-level NON-LEGENDARY wild ground in the game;
   which grounds are story-gated and when they unlock; whether **PokeNav / Match Call rematches** are a
   repeatable EXP/money source; and the **money economy** (nuggets, what refreshes, what does not).
-  ‼ **STATUS: RESEARCH COMMISSIONED, NOT RETURNED.** A 9-agent workflow (4 angles, each adversarially
+  ✅✅ **RESEARCH RETURNED 2026-09-18 (9 agents, 0 errors, ~49 min). AND I VERIFIED THE CORE CLAIM
+  MYSELF — WHICH REFUTED THE SYNTHESIS'S HEADLINE.** Full note: `ai-research-notes/2026-09-18-ch24-training-economy-WORKFLOW.md`
+  ⛔ The synthesis claimed *“the fix is **not** data-shaped … the open work is an absolute floor in
+  the scorer, which is a code change”*. **MEASURED FALSE.** I added ONE row in memory —
+  `(VICTORY_ROAD_1F, (15,39), (36,40))`, the tile already named `TRAIN_SPOT_1F` — and re-ran the
+  **UNMODIFIED** scorer: it returns VICTORY_ROAD_1F for **L35 through L90**, still gives L30 a
+  level-appropriate route, and works under the **production default `allow=None`**.
+  ✅ **THE PICKER IS A CONSTANT FUNCTION TODAY, AND BOTH REPORTED VALUES WERE RIGHT** — they differ
+  only by the `allow` predicate: with `allow=None` it returns **ROUTE117 (13-14) for L20-L75**;
+  with everything permitted, **ROUTE121 (25-28) for L30-L75**. `TRAINING_GRASS` has 10 rows and
+  **tops out at L28**, so no scorer could do better.
+  ⚠⚠ **AND THE REAL RISK IS ONE NEITHER I NOR THE SYNTHESIS NAMED CORRECTLY:** `VICTORY_ROAD_1F`
+  has **no `AREA_PREREQ` entry**, so adding the row alone would propose Victory Road to **any L35+
+  party at ANY story point** — long before Badge 8 — and `allow=None` would NOT filter it (that
+  branch only skips maps that HAVE a prereq). Callers include counter-hunts (`counter_hunt.py:647`)
+  and maintenance training (`story_mode.py:2659`, `:3199`), not just §Ch24.
+  ⇒ ⭐ **THE MINIMAL FIX IS TWO DATA CHANGES:** (1) add the `TRAINING_GRASS` row; (2) add an
+  `AREA_PREREQ` entry for `VICTORY_ROAD_1F` so the conservative path skips it until a caller proves
+  reachability. ⛔ **NOTHING WAS WRITTEN TO PRODUCTION** — my table edit was in memory and reverted.
+  ⚠ **NOT VERIFIED BY ME** (agent-sourced, treat as leads): every EXP/battle figure, the Gen-3 EXP
+  formula, the PokeNav mechanics, the money figures, the Sweet Scent claim.
+  ‼ **THE SYNTHESIS'S OWN §7 RECORDS THAT NINE HEADLINE CLAIMS WERE KILLED BY ITS REFUTATION
+  PASSES** — read §7 before quoting anything from that note.
+  ‼ **(superseded status line:)** RESEARCH COMMISSIONED, NOT RETURNED. A 9-agent workflow (4 angles, each adversarially
   verified, then synthesised) is running. ⛔ **No code until it lands AND its load-bearing claims are
   re-verified here** — agent output is a NOTE, never truth.
 - [ ] ⛔⛔⛔ `#24-levelgap` — **NEW 2026-09-17 (late). THE FOURTH PREREQUISITE FOR WIRING SEGMENT 24, AND IT WAS NOT ON THE LIST OF THREE. PRODUCTION REACHES THE LEAGUE DOOR AT L47 AND THE GAUNTLET IS 0% AT L53.**
@@ -816,21 +870,8 @@ open-vs-built sweep of all 80 open items has **not** been done.
   **THE FIX HAS THREE PARTS AND THE ORDER MATTERS:** (1) ⛔ **Do NOT just add the file to the glob** — the audit would still see almost nothing, because it matches `get_event_flag("LIT")` while the harness idiom is **`VR._flag("NAME")`**, and its constant resolver `const_def` is **`^`-anchored** so it misses **indented CLASS attributes** like `VICTORY_FLAG`. Both patterns need widening (verified: with them widened, `VICTORY_FLAG` resolves correctly — that is the positive control). (2) Decide what `VAR_RESULT` was *meant* to read — **there is no `RESULT` var under any spelling**, so this is not a rename, it is an unanswered question about what those probes were measuring. (3) Only then extend the gate, and **FAULT-TEST it**: prove it fires on a planted phantom and prove it does NOT fire on the many decomp-style `FLAG_*`/`VAR_*` names that appear in COMMENTS and DOCSTRINGS throughout that file (there are many — a gate with false positives teaches the reader to bypass it).
   ⛔ **DO NOT MARK THIS DONE BY EXTENDING THE GLOB AND SEEING GREEN** — green would mean the patterns still match nothing, which is the failure this item is about.
 
-- [x] ✅✅✅ `#24-glaciaL75` — **NEW AND DONE 2026-09-17. GLACIA IS BEATEN AT L75 — THREE OF FIVE ELITE FOUR ROOMS — AND THE REPEATING UNIT IS NOW PROVEN TO COMPOSE A THIRD TIME.**
-  `--driver ch24glacia` (NEW) from the NEW pinned `post_phoebe_L75.ss1`: `ACCEPTANCE: PASS`, all 7 readings, `missing=[]`, `battles=1`, `whiteouts=0`, **`DEFEATED_ELITE_4_GLACIA = True`**, exit door OPEN in the live grid, and room 4's start state `post_glacia_L75.ss1` minted and pinned. Evidence: `tools/story-dev/evidence/2026-09-17-ch24glacia-{TREATMENT,VACUITY-WRONG-ROOM,VACUITY-OWN-OUTPUT,FAULT-NOENGAGE}.{log,stdout.txt}`; predictions filed and GRADED in `ai-research-notes/2026-09-17-ch24glacia-PREDICTIONS.md`.
-  ⭐ **IT ALSO SHIPPED THE MISSING RUNG OF THE FIXTURE LADDER.** `Ch24PhoebeMode` gained a step-9 POST-FIGHT capture (`CH24_PHOEBE_POST_CAPTURE`), because its existing step-6 capture fires at "battle started" and — a driver being SUSPENDED across the whole fight — actually lands INSIDE the battle. The new capture is taken at the SAME lifecycle point `post_sidney_L75.ss1` occupies (post-victory, msgbox still parked, at (6,6)), so the room-N copy consumes it with the step-1 dismiss it already has. Guarded on **won ∧ in-room ∧ exit-door-OPEN-in-the-LIVE-grid**, so a fixture is never minted from a lost fight or a room the bot could not leave.
-  ✅ **THREE ARMS, INCLUDING THE TEST `story-drive` §2 DEMANDS.** TREATMENT PASS · **VACUITY pointed at the driver's OWN OUTPUT** (`post_glacia_L75.ss1`) refuses naming `DEFEATED_ELITE_4_GLACIA=True` and takes ZERO readings · VACUITY on the wrong room refuses likewise · **FAULT `POKEBOT_CH24_FAULT_NOENGAGE`** walks the entire unit identically and then presses NOTHING ⇒ `battles=0`, `missing=['G-CONTINUE','G-ENGAGED','G-OUTCOME']`, FAIL for its own reason. ⚠ **HONEST SCOPE:** the fault arm's `G-CONTINUE` is missing because execution never REACHED it, **not** because the door was measured shut — that arm does not prove the door stays closed without a victory.
-  ⛔⛔ **THE HANDOFF'S "ONLY THREE CHANGES" WAS INCOMPLETE, AND AN ADVERSARIAL REVIEWER FOUND THE TWO THAT BITE.** (1) **`VAR_ELITE_4_STATE` is a LADDER** — Phoebe's `OnFrame` gates on `==1`, Glacia's on `==2` — a constraint on the FIXTURE'S LINEAGE that no warp table or collision grid can show (verified `==2` on `post_phoebe_L75.ss1` before building). (2) **A THIRD env var**: a copy inheriting `CH24_PHOEBE_POST_CAPTURE` would find that file present, log `SKIPPED`, and silently mint NO next-room fixture on a successful run.
-  ⛔ **AND A LANDMINE WAS FOUND IN MY OWN JUST-SHIPPED CODE AND FIXED IN BOTH DRIVERS.** The capture guard read `R.get("phoebe_flag")`; a room-N copy renaming that dict key at its one obvious site gets `None` ⇒ `won` silently False ⇒ **the capture REFUSES TO MINT THE NEXT ROOM'S FIXTURE ON A PERFECT RUN.** Both classes now read the flag through a single `VICTORY_FLAG` class constant with two consumers.
-  ⭐⭐ **THE FAINT CHOOSER DREW CORRECTLY, LIVE, IN A THIRD ROOM.** Mightyena fainted; the replacement was **Wailord** (the Ice-resisting wall), not Zigzagoon. **How we know:** Zigzagoon ends `48/48` and Castform `103/103` **with zero EXP gained** ⇒ neither mule ever entered, and Wailord took the last KO (exp `583024→586292`) and all 208 damage. ‼ **ONE TRAJECTORY AGAINST AN ICE SPECIALIST — it does NOT refute `#24-ghostreplacement`**, whose measured failure is specifically a Ghost + `cannot_damage`.
-  ‼‼ **ATTRITION IS NOW REAL, AND `#24-leg2spec` NEEDS THIS NUMBER.** Sidney→Phoebe cost **13 HP total**. Glacia cost **a KO plus 208 HP**, and repairing it spends **the first of only three Revives** (+1 Hyper Potion, +1 Full Restore) — measured offline by running `plan_healing` against the captured state, with a healthy-party CONTROL that plans nothing.
-  ⭐ **A CLAIM OF MINE WAS REFUTED AND THE FIX IS IN THE TREE.** I cited `probe_e4_halls.py` as MEASURED evidence that Hall 2 joins Phoebe to Glacia; its endpoint labels are a **hardcoded string in its own table** (it reads collision only). NEW `probe_e4_warp_chain.py` reads the ROM warp table and follows the chain, with **HALL1 as a control reproducing the already-live-driven result**. Full chain now measured: `SIDNEY→HALL1→PHOEBE→HALL2→GLACIA→HALL3→DRAKE`.
-  ✅ **THE `\p` QUESTION IS CLOSED — on measured precedent, not reasoning.** Glacia is the only E4 member whose IN-BATTLE lose text carries `\p` (two). It cannot stall us: that text is printed by the BATTLE script and `BattleListener._wait_until_battle_is_over` is `while self._in_battle` — UNBOUNDED and self-extending. **Juan's carries SIX `\p` and Roxanne's four plus an `\l`, and this bot beat both.** Her POST-battle msgbox is in fact SHORTER than Phoebe's (2 pages vs 4).
-  ⭐ **TRAP 2 REPRODUCED IN A THIRD ROOM:** `elite4_state_in_room = 2` while standing in Glacia's room, but the captured fixture reads **3** — the entry cutscene had not finished writing it. ⇒ *never dispatch on `VAR_ELITE_4_STATE`*, now confirmed for Sidney, Phoebe AND Glacia.
-  ⚠ **AND `hp_entering_glacia` IS A FAKE READING** — byte-identical to `hp_after_glacia`, because a driver is suspended across the fight so "before" was sampled AFTER. Trap 1, reproduced. It is kept as a record; **do not read it as a before/after pair.**
-  ✅ **DONE 2026-09-17 (late): `04-HANDOFF.md` WAS COMPACTED AND NOW READS 882 / 900, headroom 18** — the PARTY ACCOUNTING STAGE 0 hand recipes were archived VERBATIM to `28-HANDOFF-ARCHIVE.md` (it is gate #22, which `run_gates.py` runs on every suite, so the recipe is reference not a daily command). *(This read: compact it first, it is at its cap at 900/900.)* ‼ **RE-CHECK BEFORE APPENDING — `lint_docs.py` is the authority and R3 counts LINES only.** Room 3 already paid that toll once: shipping it pushed the file to 922 and required archiving the §Ch21 recon instruments and the disarmed `KI-96` note VERBATIM into `28-HANDOFF-ARCHIVE.md`. R3 counts LINES only, so a single appended line turns the doc gate red and blocks the commit.
-  ⛔ **WHAT THIS DOES *NOT* DO:** it does not wire Segment 24 (**all FOUR** prerequisites still stand — the fourth, `#24-levelgap`, was added 2026-09-17), it does not build room 4 or room 5, and **room 5 is NOT this unit** — Wallace starts himself from a `lockall` with no flag guard (`#24-leg2spec`).
-
+- [x] ✅✅✅ `#24-glaciaL75` — **DONE 2026-09-17. GLACIA IS BEATEN AT L75 — THREE OF FIVE ELITE FOUR ROOMS. CLOSED.** Fixture `post_glacia_L75.ss1` is PINNED.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the drive, its readings and its evidence are there.
 - [ ] ⭐⭐⭐ `#24-leg2spec` — ‼‼ **STUB MARKER (2026-09-17 evening): FOUR DESIGNS FOR THIS LEG WERE WRITTEN AND THEN ADVERSARIALLY REFUTED — **44 FATAL/SERIOUS FLAWS** — AND THE FULL REFUTATION IS IN `ai-research-notes/2026-09-17-ch24-leg2-DESIGN-REFUTATION.md`. READ IT BEFORE BUILDING.** It is a NOTE, not truth: THIS file wins on any contradiction, and every load-bearing claim needs verifying in our own harness first. ⚠ Several refuters caught the designs citing DRIFTED line numbers, so re-read any line a flaw cites. ⭐ **THE FOUR HIGHEST-VALUE RESULTS:** (a) the completion predicate must be `IS_CHAMPION` + `SYS_GAME_CLEAR` + a live-overworld machine-state conjunct — **never** the four victory flags, because the Hall of Fame itself clears them (`hall_of_fame.inc:7` → `event_scripts.s:628-634`, verified here at source), so a predicate built on them is false FOREVER after a perfect clear and loops the gauntlet; (b) **room 5 must NOT be the fifth instance of the room unit** — a refuter showed the Drake instance would fight Wallace *inside* the unit and the 3-attempt retry would re-fight him, which is exactly what O7 forbids; (c) the endgame tail's button presses must WAIT FOR THEIR TASK TO EXIST or a clean run hangs for ever at the Hall-of-Fame screen; (d) `ko_turns` breaks gate #39's C2. —— *the original spec:* **NEW 2026-09-17. THE §Ch24 GAUNTLET SPEC, FROM A 4-ANGLE RECON WHOSE ADVERSARIAL ARM DID ITS JOB. ⛔ THE “REPEATING UNIT × 5” MODEL IS REFUTED — DO NOT BUILD IT.**
   ‼ **WHAT THE ONE MEASURED TRAVERSAL ACTUALLY PROVED** (`SIDNEY (6,6) → door → HALL1 → PHOEBE (6,7)`, ~680 frames): **one post-victory NAVIGATION transition, from a fixture, with `battles=0` in it.** ⛔ It contains **no fight** — step (a) of the claimed unit was never exercised. ⛔ `ELITE_4_STATE 1→2` is **not a victory signal**: it is set by Phoebe's ENTRY script, so it grades the warp, not the fight — grade on `DEFEATED_ELITE_4_<NAME>` flags instead. ⛔ `(6,7)` is the CUTSCENE's destination (`WalkUp6` from the entry warp), not the bot's; the run ended beside Phoebe on a *reachability query* (`OK 1 wp`) — **a candidate is not an attempt**.
   **THE MAP CHAIN, CONFIRMED FROM THE `map.json` WARP TABLES:** `LEAGUE_1F → HALL5 → SIDNEY → HALL1 → PHOEBE → HALL2 → GLACIA → HALL3 → DRAKE → HALL4 → CHAMPION`. **HALL5 is the ENTRANCE hall.** Rooms 1-4 share one shape: entry warp **(6,13)**, exit door **(6,2)**, trainer at **(6,5)** (`MOVEMENT_TYPE_FACE_DOWN`, never despawns) permanently blocking the straight column — which is why the measured route is 6 waypoints and not 5.
@@ -1266,23 +1307,8 @@ mon cannot be revived (see above), sending the L19 in is **a wasted Pokémon we 
 ⇒ this is now a §Ch24 blocker too, not just a §Ch23 annoyance.
 
 **THE WORK (in order):**
-- [x] ✅✅ **1. DONE 2026-09-04 — `heal_party_from_bag()` IS BUILT AND DRIVEN.** ⛔ DO NOT REBUILD IT.
-      `modules/story/pokemon_league.py` (the driver) + `modules/story/overworld_items.py` (a PURE
-      policy, gate **#36** `repro_overworld_items.py`, fault-tested against **five** broken policies).
-      `--driver ch24heal` `ACCEPTANCE: PASS`: from *two fainted, one FROZEN, two badly hurt* → seven
-      actions → **147/147 · 48/48 · 139/139 · 226/226 · 144/144 · 103/103**, `heal_ready=True`,
-      `whiteouts=0`. `POKEBOT_CH24_FAULT_NOHEAL=1` correctly FAILS.
-      ⭐ **THE DISCRIMINATOR IS THE REVIVE ORDER**, and it is asserted live: with Mightyena L48 in
-      slot 4 and Zigzagoon L19 in slot 1 both fainted, a slot-order policy revives the HM mule first.
-      The run logs `REVIVE ORDER = [(4,'Revive'),(1,'Revive')]` — battle value, not slot order.
-      ⭐ And a CONTROL: Castform is deliberately left untouched by the staging, and the run asserts it
-      is still untouched afterwards — a heal there would mean the "never a no-op" rule is broken.
-      ⛔⛔ **TWO BUGS ONLY THE LIVE DRIVE CAUGHT, BOTH "a field read as if it described itself":**
-      (1) `parameter` is a **UNION TYPE** — filtering on `parameter > 0` picked **Repel** (parameter
-      100 = *steps*) as a healer; (2) `field_use` is an **ENUM**, so `== "healing"` is always False
-      and the allowlist came back EMPTY — **silently**, because the revive/status passes do not use
-      it. ⇒ the gate now carries Repel/X Attack/Nugget/Escape Rope as TRAPS (its item universe was
-      cleaner than the real bag), and an empty allowlist now RAISES.
+- [x] ✅✅ **`heal_party_from_bag()` IS BUILT AND DRIVEN (2026-09-04). ⛔ DO NOT REBUILD IT.** ‼ That warning is the reason this line survives: it is the §Ch24 between-rooms healing path, and the Elite Four has NO nurse between rooms, so a rebuild would re-litigate a solved and gated behaviour.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the build, its drive and its evidence are there.
 - [ ] **2. Call it between rooms**, in the corridor after each Elite Four win, before the next door.
 - [x] **3. DONE + DRIVEN LIVE (2026-09-13) — the in-battle policy GOT STATUS awareness; the REVIVE half stays OFF (`KI-100`).** *(This item read: "Decide whether the in-battle policy should get status/revive awareness", or whether
       between-room healing is enough. ⭐ Prefer step 2 first — it is the cheaper, more testable half,
@@ -3121,23 +3147,8 @@ region, where "train near the gym" is actively wrong.
       `_has_starter()`; train→rival→Pokédex resumable + flag-gated. Derail budget
       hardened (monotonic party `_progress_sig`; patient recovery). Verified in
       harness. Sandbox (early_game.py, story_mode.py). See CHANGELOG/MISTAKES 07-21.
-- [x] #24-freeze — OLDALE PC FREEZE **FIXED** (user 2026-07-21). Root cause (from the
-      user's real-bot debug log's generator call stack): heal returned while the
-      overworld was transiently non-controllable → heal→go-to-rival navigate choked →
-      derail → re-heal → endless heal/leave/re-enter loop → Manual. FIX:
-      heal_in_pokemon_center waits for a STABLE controllable overworld after the exit
-      warp. Downstream: StoryCatchStrategy flees instead of Manual when out of balls.
-      Validated route103→Rustboro→Route116 catching, 0 derails/Manual. Old note below
-      kept for history.
-      ~~POST-BATTLE TRANSITION FREEZE (the likely real "stuck at Oldale PC").~~ After a training battle (flee/level-up/move-learn, e.g.
-      Mudkip Water Gun @L10) the return-to-overworld transition leaves the overworld
-      non-controllable while the bot acts (navigate / walk to the Oldale nurse) → can
-      hard-freeze (nurse heal dialogue never starts). REAL (harness == real
-      main_loop), timing/starter-sensitive (default starter "random"; Treecko passed,
-      Mudkip hits it). Offline repro hampered by save-state reload artifacts. NEXT:
-      user validates on real PC (force `starter: mudkip`, fresh game) and reports;
-      then decide a deeper "settle before acting" fix (heal_in_pokemon_center nurse
-      interaction + story navigations) vs a training-flow workaround.
+- [x] `#24-freeze` — **OLDALE PC FREEZE, FIXED (user 2026-07-21). CLOSED.**
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the root cause and the fix are there.
 - [x] #24-debuglog — DEBUG LOGGING TOGGLE (user 2026-07-21). Opt-in "Debug Logging"
       in the Run (bot-mode) menu (both GUIs), default off → `modules/debug_logger.py`
       writes an extensive structured log to `<profile>/debug-logs/` (event stream +

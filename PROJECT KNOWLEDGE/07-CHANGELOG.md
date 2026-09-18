@@ -32333,3 +32333,50 @@ the same thing about itself: *“ALREADY FILED … WHAT IS NEW IS THE CONSEQUENC
 `06-DECISIONS-LOG.md`, and the Ever Grande split already measured in `story_harness.py:15422`).
 The standing rule — grep the tree before claiming novelty — is clearly not firing often enough,
 and all three were caught only at write-up time rather than at discovery time.
+
+
+## 2026-09-18 (research landed) — THE TRAINING-GROUND PICKER IS A CONSTANT FUNCTION, AND THE FIX *IS* DATA-SHAPED
+
+A 9-agent workflow (4 angles, each adversarially verified, then synthesised; 0 errors, ~49 min)
+answered USER RULINGS 4-7. Saved as `ai-research-notes/2026-09-18-ch24-training-economy-WORKFLOW.md`
+with **my own verification prepended**, because verifying it overturned its headline.
+
+**✅ WHAT I MEASURED MYSELF.** `best_training_area` is a **constant function** above ~L20:
+
+| `allow` | L20 | L30 | L47 | L53 | L75 |
+|---|---|---|---|---|---|
+| `None` (production default) | ROUTE117 (13-14) | ROUTE117 | ROUTE117 | ROUTE117 | ROUTE117 |
+| everything permitted | ROUTE111 (19-22) | ROUTE121 (25-28) | ROUTE121 | ROUTE121 | ROUTE121 |
+
+⇒ our recorded “ROUTE117 for L53” and the synthesis's “ROUTE121” are **the same defect through
+different `allow` predicates**. The scorer is `score = (abs(hi - team_level), -hi)` — symmetric, with
+a “too strong” guard and no “too weak” one — but the binding cause is that **`TRAINING_GRASS` has 10
+rows and tops out at L28**; no scorer could do better.
+
+**⛔ THE SYNTHESIS'S HEADLINE IS REFUTED.** It said *“the fix is **not** data-shaped … the open work
+is an absolute floor in the scorer, which is a code change”*. I added ONE row in memory —
+`(VICTORY_ROAD_1F, (15,39), (36,40))`, the tile already named `TRAIN_SPOT_1F` — and re-ran the
+**unmodified** scorer: Victory Road for **L35 through L90**, L30 still correctly on Route 121, low
+parties still protected, and it works under the **production default `allow=None`**.
+
+**⚠⚠ AND THE REAL RISK IS ONE NEITHER SIDE NAMED.** `VICTORY_ROAD_1F` is in neither `AREA_PREREQ`
+nor `NO_RETURN_GROUNDS`, so the row ALONE would propose Victory Road to any L35+ party at ANY story
+point — including to counter-hunts (`counter_hunt.py:647`) and maintenance training
+(`story_mode.py:2659`, `:3199`) long before Badge 8 — and `allow=None` would not filter it, because
+that branch only skips maps that HAVE a prereq. ⇒ **the minimal fix is TWO data changes:** the
+`TRAINING_GRASS` row AND an `AREA_PREREQ` entry. ⛔ **Nothing was written to production**; the table
+edit was in memory and reverted in the same process.
+
+**⭐ TWO NEW ITEMS FROM THE MONEY/POKENAV ANGLES.**
+* **`#24-amuletcoin`** — a FREE item from Mom that **doubles every trainer payout** (the Elite Four
+  gauntlet alone ₽32,400 → ₽64,800). ✅ **I confirmed by grep that “amulet” appears NOWHERE in our
+  modules, plugins or tools.** ⚠ Everything else about it is agent-sourced, and the gate chain is
+  longer than one NPC.
+* **`#24-pokenavrematch`** — verdict: **repeatable MONEY, weak TRAINING.** 78 rematch rows, each a
+  ladder of 5 **static** parties with no level scaling, top team repeating forever, and a LOSS does
+  not burn the arming. ⇒ it cannot satisfy RULING 4 (level-appropriate opponents) but it is real
+  income. Needs PokeNav menu-driving, which we do not have. Awaiting a user decision on appetite.
+
+‼ **THE SYNTHESIS'S OWN §7 RECORDS THAT NINE HEADLINE CLAIMS WERE KILLED BY ITS REFUTATION PASSES** —
+read §7 before quoting that note. Everything in it except the picker behaviour and the amulet grep is
+**agent-sourced and unverified here**.
