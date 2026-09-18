@@ -31324,3 +31324,46 @@ un-skippable first-clear credits roll and a `SoftReset(RESET_ALL)` are all still
 
 ‼ **ONE REVIVE REMAINS, and there is no heal after this fixture** — the warp starts the fight on the
 first controllable frame, so whatever the party looks like at `(5,3)` is what fights Wallace.
+
+---
+
+## 2026-09-17 (late, sixth) — the §Ch24 leg-B build spec, and a doc error I had propagated four times
+
+**WHAT SHIPPED (docs only; no code driven).** Two research notes:
+* `ai-research-notes/2026-09-17-ch24-legB-BUILD-SPEC.md` — the 10-agent room-5 recon synthesised into
+  a buildable spec: the **14-step sequence** from `HALL4 (5,3)` to a controllable overworld with frame
+  costs and per-step input requirements, the **observe-only probe** that must run before any driver,
+  **1 FATAL + 25 SERIOUS** refutations, **10 recorded contradictions**, and a **27-item trap checklist**.
+* `...-ch24-legB-VERIFIED-FACTS.md` — the subset I re-checked BY HAND at FILE:LINE.
+
+**‼ A DOC ERROR I HAD PROPAGATED FOUR TIMES, CAUGHT BY THE SYNTHESIS AND VERIFIED BEFORE FIXING.**
+I had written, in the harness docstring, the punch list, the handoff and `FIXTURES.md5`, that
+*"Revives are unusable IN battle (`KI-100`)"*. **That is not what `KI-100` says.** Its title is
+*"an in-battle REVIVE aims at a DIFFERENT INDEX SPACE than a heal"*, and `battle_items.py:165` shows
+`allow_revive: bool = False` is a **parameter our call site defaults off** (the capability exists —
+`:263` reads `if allow_revive and non_fainted_count <= 1:`), pending a PID-grounded index probe.
+⇒ corrected in all four CURRENT-STATE places. ⛔ The two APPEND-ONLY copies (an earlier changelog
+entry and a graded predictions file) are deliberately left as written — history is not rewritten here;
+this entry is the correction of record.
+**Why the distinction matters:** "the game forbids it" closes an option forever; "we switched it off
+pending a probe" names the probe that would reopen it.
+
+**AND A COUNT CORRECTED:** the credits are **57 pages, not 58** — measured two independent ways by the
+recon and reproduced by its refuter. Our punch list had 58.
+
+**THE THREE FINDINGS THAT MOST CHANGE LEG B:**
+1. ⭐ **The Hall of Fame is TWO stages, not one** — an ordinary overworld MAP (where `B` advances and
+   everything is readable) and *then* a CB2 screen. ⇒ **the HoF map is the best acceptance window**:
+   `(16,11)` is reachable only through the Champion's room warp behind Wallace, so standing on it *is*
+   evidence the fight was won. This relocates both where a driver stalls and where it should grade.
+2. ⛔ **"Party fully healed" is NON-DISCRIMINATING as acceptance** — `DoWhiteOut()` calls the same
+   `HealPlayerParty()`, so a LOSS (room 5's only failure mode) reads identically.
+3. ⛔ **The press budgets were wrong three times over.** `\p` *and* `\l` both halt in
+   `TextPrinterWaitWithDownArrow`, which returns only on `JOY_NEW(A|B)` ⇒ pre-battle **14 not 11**,
+   post-battle **41-42 not 37**, HoF map **7 not 2**. A bound of 11 stops three prompts short and would
+   report "the battle never started" on a working room. ⇒ **do not hardcode a press count**; drive on
+   script-context liveness with those figures only as ceilings.
+
+⚠ **NOTHING IN THE SPEC HAS BEEN DRIVEN.** Every frame count is arithmetic (±30%) unless tagged
+measured, and the single unmeasured load-bearing fact is whether flash written BY THE GAME survives
+`_core.reset()`. The next action is the observe-only probe, not a driver.

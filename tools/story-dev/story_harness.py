@@ -18483,7 +18483,7 @@ class Ch24DrakeMode(BotMode):
     ⚠ THE START FIXTURE CARRIES A **FAINTED MIGHTYENA** (0/230) and a Wailord at 188/396 — Glacia is
     the first expensive room. The step-2 bag heal repairs it, MEASURED offline against this exact
     state: `[(0,'Revive',...), (0,'Hyper Potion',...), (4,'Full Restore','Wailord at 188/396')]`.
-    ‼ That spends **the first of only THREE Revives**, and Revives are unusable IN battle (`KI-100`),
+    ‼ That spends **the first of only THREE Revives**. ⛔ **AND SAY THIS CORRECTLY: `KI-100` does NOT say the game forbids an in-battle Revive** — it says OUR call site sets `allow_revive=False` deliberately (`battle_items.py:165`), pending a PID-grounded index probe, because a Revive aims at a DIFFERENT INDEX SPACE than a heal. The bot therefore does not use them in battle,
     so a mon that faints during Drake stays down until room 5's heal.
 
     ⭐ TEXT COUNTS, read at source — they do NOT bite this driver, they bite the NEXT one.
