@@ -5803,3 +5803,61 @@ not have to write, review, fault-test or maintain.
 
 ⇒ **THE GENERAL RULE THIS SETTLES:** when a probe's purpose is to find out whether a guard fires,
 **do not pre-emptively disarm the guard**. Measure first; harden second.
+
+
+## 2026-09-17 (late) — ⛔ THE LEVEL FIX IS **NOT** “A CAPABILITY WE ALREADY SHIPPED”: IT IS SHIPPED IN THE HARNESS ONLY
+
+**This entry exists because the sentence it corrects is the one a future agent will read.** The
+2026-09-16 ruling *“CORRECTION TO MY OWN WINNABILITY VERDICT”* above is right that §Ch24’s blocker is
+party level and that the cure is grinding past L62 toward ~L75. Its **final clause is wrong**:
+
+> *“the cheapest path to a winnable gauntlet is not more legs — it is **grinding past L62, toward
+> ~L75** — and it is a capability we already shipped.”*
+
+**WHAT I MEASURED.** `--driver ch24grind` is `Ch24GrindMode`, and it lives in
+`tools/story-dev/story_harness.py` — the harness. **Production has no path above L47.**
+`sandbox-pokebot/modules/story/victory_road.py:492` sets `TRAIN_TARGET = 47`, a grep over
+`modules/story/*.py` plus `story_mode.py` returns that as the *only* story training target (the one
+other hit, `ENDLESS_RESET_TARGET`, is unrelated), and §Ch23’s eleven legs (`:3374-3460`) contain **no
+post-Wally training leg** — legs 6–9 traverse B1F/B2F, legs 10–11 heal and shop.
+
+⇒ **Every §Ch24 result this project has — five rooms driven, Wallace beaten, the game cleared — was
+produced from a HARNESS-MINTED L75 party that production cannot grow.** A wired Segment 24 today
+would enter a one-way sealed zone at L47 and lose every run.
+
+**DECISION: a FOURTH prerequisite is added to the “do not wire Segment 24” ruling** — a post-Wally
+B1F training leg to **L62 minimum** (L75 for the modelled 88%). Filed as `#24-levelgap` in
+`03-PUNCH-LIST.md`, which is the correction of record and carries the full evidence and sizing.
+The fix is already *designed* in `TRAIN_TARGET`’s own docstring (“the remaining gap is meant to be
+closed on B1F after Wally”).
+
+⛔⛔ **CORRECTED BEFORE THIS ENTRY WAS EVER COMMITTED (same day).** The sentence here originally read
+*“and `target` has been a real parameter since 2026-09-04 — so this is a new LEG, not a re-plumbing
+job.”* **That is false and is withdrawn.** `target` is a real parameter, but the call site hardcodes
+`grass=TRAIN_SPOT_1F` (`victory_road.py:2088`) and `WILD_MAX = 40` is a hardcoded local (`:1988`), and
+**no `TRAIN_SPOT_B1F` exists anywhere** — the very defect the 2026-09-04 fix cured, sitting one level
+out. ⭐ **AND THE REAL BLOCKER IS NEITHER:** at true economics (950.8 xp/battle, ~3,192 frames/battle)
+a L47→L62 climb on B1F costs **363,888–564,984 frames against the 250,000 per-call ceiling — every
+growth curve refuses, by 1.46× to 2.26×** — and L75 costs 855k–1.34M. ⇒ **the open design question is
+the BUDGET SHAPE** (a 15-level climb does not fit one `train_team` call, and the refusal message
+forbids raising the ceiling), not the parameterisation and not the cost model.
+‼ **A SECOND ITEM, `#24-trainestimatorcal`, WAS FILED AGAINST THAT COST MODEL AND WITHDRAWN THE SAME
+DAY** — I had corrected the numerator and left the denominator; the estimator is only ~18% pessimistic
+on FRAMES. See `07-CHANGELOG.md` (2026-09-08, `:24637-24641`) for the settled adjudication. ⛔ Do not
+re-open it.
+
+⚠ **PROVENANCE, STATED PLAINLY BECAUSE I GOT IT WRONG FIRST:** the L53/L57/L60/L75 win-rate curve is
+**SIMULATED** (“Simulated over 400 runs per configuration”, `07-CHANGELOG.md:23285`), not measured; I
+first wrote “the measured curve” in the punch-list item and the changelog and corrected both the same
+day. Its top end is now corroborated by one real drive (the 2026-09-17 tail probe beat Wallace at
+L75+), but “L47/L53 is hopeless” rests on simulation alone. The decision stands regardless: L47
+against a break-even of L62 is a 15-level gap, far outside any plausible error bar.
+
+**Alternatives rejected.** (a) *Wire Segment 24 anyway and let it lose* — the zone is one-way and
+un-fleeable; a loss is a whiteout that wipes `VAR_ELITE_4_STATE`, so the bot would re-run the
+gauntlet from room 1 forever. (b) *Promote `Ch24GrindMode` verbatim* — it is a harness driver: it
+ends in `set_manual_mode()` (163 such calls in the harness; **zero** in
+`sandbox-pokebot/modules/story/`), which hands the run to a human, the opposite of a production leg.
+(c) *Train somewhere other than B1F* — settled against the decomp already
+(`modules/story/training_areas.py:30-49`): every `MAP_ROUTE*` land table maxes at 28, so B1F is not a
+preference but the only ground.

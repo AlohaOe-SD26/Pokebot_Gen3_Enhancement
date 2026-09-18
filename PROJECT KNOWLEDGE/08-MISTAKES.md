@@ -18719,3 +18719,101 @@ authority; re-read it, do not trust this list). If you need to forbid something 
 "never …" or "do not rely on …" instead.
 ⇒ *Generalised: when a machine reads your prose, your prose has a grammar. This is the same family as
 "a candidate is not an attempt" — the gate acts on the TEXT, not on what you meant by it.*
+
+
+## 2026-09-17 (late) — I SIZED A PIECE OF WORK WITH A NUMBER THE GUARD DOES NOT USE, AND CALLED IT TRACTABLE
+
+**Symptom.** `#24-levelgap` shipped a first draft asserting the fix was *"a new LEG, not a re-plumbing
+job"*, sized at *"roughly 500 battles / ~25 min"* on ground *"+22.6% better"*. All three claims were
+wrong, and I found them myself an hour later by reading the call site instead of the docstring.
+
+**Root cause — two distinct errors with one shape.**
+1. **I quoted the number a RICHER model reports, while the code's decision is made by a CRUDER one.**
+   B1F is +22.6% better under the per-species model (950.8 vs 775.6 EXP/battle). The guard that
+   decides whether the leg runs uses `CAL × wild_level / 7` ⇒ +5.0% (301.2 vs 286.9). Sizing against
+   the first while the second holds the veto is not conservative or optimistic — it is *unrelated*.
+2. **I checked that a PARAMETER existed and never checked the CALL SITE.** `target` is genuinely a
+   parameter (fixed 2026-09-04). But `grass=TRAIN_SPOT_1F` is hardcoded at `victory_road.py:2088`,
+   `WILD_MAX = 40` is a hardcoded local at `:1988`, and **no `TRAIN_SPOT_B1F` exists at all**. The very
+   defect the 2026-09-04 fix was written to cure — *"a parameter that only reaches half the function is
+   not a parameter"* — was sitting one level out, and I cited that fix as evidence the work was small.
+
+**The fix that worked.** Ran the project's own `estimate_frames_to_level` over four growth curves ×
+two grounds × two targets, with land maxima measured from the decomp (1F 40, B1F 42, B2F 44).
+**All 16 cells REFUSE** against `MAX_TRAINING_FRAMES = 250_000`; cheapest 513,014 frames (2.05× over).
+Corrected the item, and filed the real blocker separately as `#24-trainestimatorcal`.
+
+**⭐ PREVENTION RULE.** *Before calling work tractable, run the CODE'S OWN estimator against the CODE'S
+OWN ceiling — quoting a better number from a different model is not sizing, and "the parameter exists"
+is not the same as "the call site passes it."*
+
+**‼ Also filed under the same date, same shape, caught the same way:** I labelled a SIMULATED win-rate
+curve *"the measured curve"* in two files, and omitted any citation of the standing 2026-09-16 ruling
+whose closing clause (*"it is a capability we already shipped"*) my own finding contradicts — so a
+future agent reading the decisions log would have concluded the problem was solved. Corrected in place
+with retraction markers, plus an appended decisions-log entry as the correction of record.
+**Prevention rule:** *when a finding contradicts a standing ruling, cite the ruling and name which half
+of it is wrong — in the file the auditor reads, not only in the one you happen to be editing.*
+
+
+## 2026-09-17 (late) — I FILED A DEFECT THAT WAS A SETTLED QUESTION, BY BREAKING THE EXACT RULE WRITTEN TO PREVENT IT
+
+**Symptom.** Filed `#24-trainestimatorcal`: the training cost estimator is calibrated to Route 102 and
+understates Victory Road xp/battle by 2.70×, therefore the `MAX_TRAINING_FRAMES` guard is
+over-pessimistic. Reordered the work queue around it and wrote it into three files. **It was wrong, and
+the project had already answered it on 2026-09-08.**
+
+**Root cause.** The estimator returns **FRAMES**. I corrected the numerator (xp/battle) and never
+looked at the denominator — `FRAMES_PER_WILD_BATTLE = 1433` is *also* a Route 102 measurement and is
+*also* wrong for Victory Road in the same direction (~3,192). The errors cancel to ~18%. The 2026-09-08
+entry adjudicated this exact disagreement between two agents (2.68× vs 1.18×), concluded *"both are
+arithmetically right; they used different denominators"*, and ended with a RULE:
+⭐ *"when two analyses of the same quantity disagree by a factor, check the DENOMINATOR before believing
+either."* **I had that file open. I had just quoted a line 6,000 lines away from it.**
+
+**Why the existing rule did not fire.** It is filed as the lesson of a 2026-09-08 training analysis. I
+was doing §Ch24 wiring recon. ⇒ the recurring shape from SESSION DISCIPLINE: *a rule filed as "the
+lesson from bug X" does not fire when you are building Y.*
+
+**The fix that worked.** A Tier 1 reviewer chased my own citation one level further than I did and
+found the 2026-09-08 entry. Item withdrawn in place (kept, not deleted — the withdrawal is more useful
+than the item), and `#24-levelgap` recomputed on true economics, where **every curve still refuses by
+1.46×–2.26×**. ⇒ the conclusion survived; only my explanation of it was wrong.
+
+**⭐ PREVENTION RULE.** *Before filing a NUMBER as a defect, grep the changelog and decisions log for
+that number and for the constant's name — a 2.7× discrepancy that is easy to find is one a previous
+session has probably already found and ruled on.*
+**⭐ SECOND, SHARPER RULE.** *When a formula produces the units you are testing against (here: frames),
+check EVERY term for the same calibration flaw. Fixing one term of a ratio and trusting the result is
+not a partial fix — it can be worse than the original, because it moves a fail-safe guard toward
+PERMISSIVE.*
+
+
+## 2026-09-17 (late) — “THAT COPY IS JUST HISTORY, LEAVE IT” WAS WRONG **THREE TIMES IN ONE SESSION**
+
+**Symptom.** Having corrected a claim in the place I was editing, I three separate times judged
+another copy of the *same* claim to be harmless history and left it. All three were live text a cold
+reader would act on, and **none of the three was found by me first**:
+1. `03-PUNCH-LIST.md` — a closed `#24-glaciaL75` item still read *“all three prerequisites still
+   stand”* after the count became four. *(Tier 1 found it.)*
+2. `06-DECISIONS-LOG.md` — my own uncommitted entry still carried *“so this is a new LEG, not a
+   re-plumbing job”* after I had retracted that sentence in two other files. *(I found this one, but
+   only because a reviewer's warning to “assume there is a sixth error” made me go looking.)*
+3. `04-HANDOFF.md` — *“Grind past L62 toward ~L75 BEFORE building more legs”* appears **twice**,
+   verbatim. I marked line 6, asserted on the duplicate, told a reviewer I had “judged it historical”,
+   and was wrong: the second copy had no supersede marker anywhere near it.
+
+**Root cause.** A retraction is written where the author is *looking*, while the claim lives wherever
+it was *copied*. “Is this historical?” is a judgement about the surrounding prose; **“does a marker
+sit next to THIS copy?” is a fact about the bytes.** I kept making the judgement instead of checking
+the fact — and in a file with a single 64,000-character line, “surrounded by history” is not even
+visible without measuring offsets.
+
+**The fix that worked.** Enumerate every occurrence *with its offset*, print the ~300 characters
+before and after each, and test each one for an adjacent marker — then **count both**: the clause
+appeared 2× and the retraction had to appear 2× before I believed it.
+
+**⭐ PREVENTION RULE.** *After retracting a claim, `grep` its exact sentence and require a marker
+ADJACENT TO EVERY OCCURRENCE — then assert `count(claim) == count(marker)`. Never decide a duplicate
+is “historical” by reading around it; a supersede marker earlier in the same line does not cover a
+copy 20,000 characters later.*

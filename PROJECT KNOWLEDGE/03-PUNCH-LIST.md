@@ -163,6 +163,85 @@ open-vs-built sweep of all 80 open items has **not** been done.
   ⛔ **BUT THE OTHER REFUTATION STILL STANDS AND MUST BE HONOURED:** `ko_turns` as specified BREAKS gate #39's C2, because the synthetic rows have **no foe HP**. ⇒ the term must be **INERT when foe HP is unknown** (`foe_hp <= 0 ⇒ ko = 0` for every candidate, so the tuple falls through to today's key and all nine existing cases keep passing), and STRICTLY WORST when a candidate deals zero. Only then is it safe on a shared path.
   ‼ **AND ZIGZAGOON IS THE WHOLE ARGUMENT IN ONE NUMBER: 3 damage, 39 turns.** That is what the shipped ranker reaches for after a faint against a Ghost.
   ⚠ **Ice Beam does 62 here — LESS than Surf's 93** — because Ice is NEUTRAL on a pure Ghost. Its value is DRAKE (4× on Salamence/Altaria/Flygon), not Phoebe. ⇒ do not read a low Phoebe number as evidence against the Ice Beam plan.
+- [ ] ⛔⛔⛔ `#24-levelgap` — **NEW 2026-09-17 (late). THE FOURTH PREREQUISITE FOR WIRING SEGMENT 24, AND IT WAS NOT ON THE LIST OF THREE. PRODUCTION REACHES THE LEAGUE DOOR AT L47 AND THE GAUNTLET IS 0% AT L53.**
+  ‼ **EVERY §Ch24 PROBE THIS PROJECT HAS RUN USED A HAND-GROWN L75 PARTY.** That party came from `--driver ch24grind` (`Ch24GrindMode`), which lives **ONLY in `tools/story-dev/story_harness.py:15393`** — it is NOT production code. ⇒ a wired Segment 24 today would walk into a ONE-WAY SEALED ZONE at L47 and lose, repeatedly.
+  **THE NUMBERS, ALL FROM OUR OWN TREE:** production's only story training target is **`TRAIN_TARGET = 47`** (`modules/story/victory_road.py:492`) — ⭐ **verified to be the ONLY one in the entire story tree** (`grep` over `modules/story/*.py` + `story_mode.py` returns exactly that one plus `ENDLESS_RESET_TARGET`, which is unrelated). And the win-rate curve (`07-CHANGELOG.md:23310-23313`) is: **`L53 → 0% Glacia · L57 → 87% Glacia, dies at Drake · L60 → 99.7% Glacia · L75 → 88% CLEAR`**, with *“Break-even is L62”* against Wallace’s Milotic Recover race (`:23307`).
+  ⚠ **THAT CURVE IS SIMULATED, NOT MEASURED — and I wrote “the measured curve” here first and corrected it the same day.** `07-CHANGELOG.md:23285` says *“Simulated over 400 runs per configuration”*, and `04-HANDOFF.md` carries the standing caveat *“SIMULATION results, not drives — the model approximates the enemy AI and ignores crits/status; treat L62/L75 as ESTIMATES”*. ⭐ **Its TOP END is now corroborated by a real drive** — the 2026-09-17 tail probe beat Wallace at L75+ and cleared the game (one trajectory). ⇒ **“L75 clears” is simulated AND driven; “L47/L53 is hopeless” is simulated ONLY.** The conclusion survives either way: L47 against a break-even of L62 is a **15-level** gap, far outside any plausible error bar on a 400-run model.
+  ⛔⛔ **THIS CORRECTS THE LAST SENTENCE OF A STANDING RULING, AND THAT IS WHERE A FUTURE AGENT WILL LOOK.** `06-DECISIONS-LOG.md` (2026-09-16, *“CORRECTION TO MY OWN WINNABILITY VERDICT”*) ends: *“the cheapest path to a winnable gauntlet is not more legs — it is **grinding past L62, toward ~L75** — and it is a capability we already shipped.”* ⇒ **That capability is shipped in the HARNESS, NOT in production.** `--driver ch24grind` is `Ch24GrindMode` in `tools/story-dev/story_harness.py`; nothing in `sandbox-pokebot/modules/story/` can climb above `TRAIN_TARGET = 47`. The ruling’s *conclusion* (grind to L62–75) is right; its *“already shipped”* is true only of the harness. ⚠ `06` is append-only, so that entry stands as written — **this item is the correction of record**, and a dated decisions-log entry is appended alongside it pointing here.
+  ⭐⭐ **THE FIX IS ALREADY DESIGNED IN OUR OWN CODE — IT WAS JUST NEVER BUILT.** `TRAIN_TARGET`'s own docstring (`victory_road.py:488-492`) says 47 *"does NOT clear Wallace's 58 — **the remaining gap is meant to be closed on B1F after Wally** (950.8 EXP/battle vs 1F's 775.6), which is the only better ground and is gated behind exactly the fight this training is for."* And `:2025` names the same escape hatch (*"or train on B1F AFTER Wally"*). ⛔ **But §Ch23's eleven legs contain NO post-Wally training leg** — legs 6-9 are the B1F/B2F traverse, 10-11 are heal and shop (`victory_road.py:3374-3460`).
+  ⭐ **AND THE GROUND QUESTION IS ALREADY SETTLED AGAINST THE DECOMP** (`modules/story/training_areas.py:30-49`): every `MAP_ROUTE*` land table maxes at **28** (ROUTE130's 50 is the Mirage Island WYNAUT trap), **no land table anywhere in Hoenn has a max of 34/35/37/41/43/46/47/48/49**, and ⇒ *"EVERY L30+ WILD GROUND IN EMERALD IS A CAVE, A DUNGEON, THE SAFARI ZONE, OR VICTORY ROAD … the surviving lever is **train IN the dungeon you are already clearing**, never relocation."* ⇒ **B1F is not a preference, it is the only option.**
+  **THE WORK — ⛔⛔ BIGGER THAN “ADD A LEG”. I MEASURED THE GUARD AND IT REFUSES EVERY CONFIGURATION.**
+   A post-Wally training leg on `VICTORY_ROAD_B1F` to **L62 minimum** (L75 for the modelled 88%) is the
+   right SHAPE, and `train_for_victory_road`’s own refusal message already recommends it verbatim
+   (`victory_road.py:2025-2026`). But three things block it, and the first two were not in this item’s
+   first draft:
+   1. ⛔ **THE GROUND IS NOT A PARAMETER.** `target` is (fixed 2026-09-04), but the call site hardcodes
+      `grass=TRAIN_SPOT_1F` (`:2088`) and `WILD_MAX = 40` is a hardcoded local (`:1988`). **There is no
+      `TRAIN_SPOT_B1F` — `TRAIN_SPOT_1F` (`:477`) is the only such constant in the module.** ⇒ this IS
+      partly a re-plumbing job, and it is the *same shape* as the 2026-09-04 defect one level out:
+      **a parameter that reaches half the function is not a parameter.** ‼ My first draft said “a new
+      LEG, not a re-plumbing job” — **that was wrong, and I found it by reading the call site.**
+   2. ⛔⛔ **THE PER-CALL CEILING REFUSES IT — MEASURED, ALL 16 CELLS.** `MAX_TRAINING_FRAMES = 250_000`
+      (`:508`) refuses any SINGLE mon whose estimate exceeds it (`:2021`). Running the project’s own
+      `estimate_frames_to_level` (CAL 50.2, 1433 frames/battle) for a L47 mon, against land maxima I
+      measured from the decomp (`src/data/wild_encounters.json`: **1F max 40, B1F max 42, B2F max 44**):
+
+      | ground | →L62 cheapest curve | →L62 worst | →L75 cheapest | →L75 worst |
+      |---|---|---|---|---|
+      | 1F (wild 40) | 538,808 | 841,171 | 1,271,071 | 1,986,138 |
+      | B1F (wild 42) | **513,014** | 801,047 | 1,210,885 | 1,891,560 |
+
+      ⇒ **every cell REFUSES**; the cheapest is **2.05×** over and the worst **7.6×** (double all of it
+      again if swap-training’s 2-way split applies, which the estimator ignores). ⛔ And per the refusal
+      message’s own instruction, **do NOT raise the ceiling to make the run start.**
+   3. ⚠ **B1F BUYS ONLY +5% UNDER THE GUARD’S MODEL, NOT +22.6%.** My first draft took “950.8 vs 775.6
+      EXP/battle” (+22.6%) and sized the leg at *“~500 battles / ~25 min”*. **Those two figures come from
+      DIFFERENT MODELS and the sizing is not comparable to the ceiling.** The guard sees only
+      `CAL × wild_level / 7` ⇒ 1F **286.9** vs B1F **301.2** xp/battle, a **+5.0%** difference. 500 battles
+      would be 716,500 frames — **2.9× the ceiling** — so the sizing never established feasibility at all.
+   ⛔⛔ **WHAT WOULD UNBLOCK IT IS *NOT* THE ESTIMATOR — I FILED THAT AND WITHDREW IT THE SAME DAY
+   (`#24-trainestimatorcal` above). CORRECTED ARITHMETIC BELOW.** The estimator is only ~18%
+   pessimistic on the quantity that matters (exp per FRAME), because `FRAMES_PER_WILD_BATTLE = 1433`
+   is wrong for Victory Road in the *same* direction as the xp term and the errors cancel
+   (`07-CHANGELOG.md:24637-24641`, settled 2026-09-08). ⇒ **the refusals are REAL, not an artifact.**
+   ⭐ **TRUE COST OF L47→L62 ON B1F**, at the real rate (950.8 xp/battle) and the real frame cost
+   (~3,192 f/battle measured at Victory Road — ⚠ **that frame rate was measured alongside 1F’s 775.6 and is TRANSFERRED to B1F here; frames/battle has never been measured per Victory Road FLOOR, as this item’s own withdrawal states. The refusal margins are 46%+ so it does not flip the conclusion, but the precise digits carry that assumption**): **Fast 363,888** · **Medium-Fast 453,264** · **Medium-Slow 466,032** · **Slow 564,984** frames.
+   ⇒ **EVERY curve REFUSES the 250,000 ceiling — by 1.46× (Fast) to 2.26× (Slow)** — and L75 costs
+   **855k–1.34M** frames, 3.4×–5.3× over. Double all of it again if swap-training's 2-way split
+   applies (`set_swap_train(True)` is unconditional at `early_game.py:2097`).
+   ⇒ **THE REAL BLOCKER IS THE BUDGET SHAPE, NOT THE COST MODEL:** a 15-level climb does not fit in
+   one `train_team` call, and ⛔ the refusal message forbids the obvious dodge — *"do NOT raise the
+   ceiling to make the run start."* **THE OPEN DESIGN QUESTION IS THEREFORE: how does a multi-call
+   (or split-aware) grind get budgeted and made resumable?** That, not an estimator fix, is what
+   `#24-levelgap` needs answered before any leg is written.
+  ‼ **UNTIL THIS SHIPS, DO NOT WIRE SEGMENT 24.** The handoff's standing list of three prerequisites (position-independent marker · leg 2 · a `ch24_chapter_done()` that is not `SYS_GAME_CLEAR` alone) is INCOMPLETE without it, and all three could be satisfied while the bot still loses every run.
+- [x] ⛔⛔ `#24-trainestimatorcal` — **FILED AND WITHDRAWN THE SAME DAY (2026-09-17). I RE-DISCOVERED A SETTLED QUESTION AND GOT IT WRONG BY BREAKING A RULE THIS PROJECT HAD WRITTEN VERBATIM TO PREVENT IT. ⭐ THE WITHDRAWAL IS KEPT BECAUSE IT IS MORE USEFUL THAN THE ITEM WAS.**
+  **WHAT I FILED:** that `_CALIBRATED_AVG_WILD_BASE_EXP_YIELD = 50.2` is calibrated to Route 102 and,
+  applied to Victory Road, understates xp/battle by **2.70×** ⇒ the `MAX_TRAINING_FRAMES` guard is
+  wildly over-pessimistic and refuses affordable grinds. The xp/battle arithmetic is CORRECT (I
+  reproduced 1F = 775.6 and B1F = 950.8 to one decimal from the decomp's encounter table).
+  ⛔⛔ **WHY IT IS WITHDRAWN ANYWAY — I CHANGED THE NUMERATOR AND LEFT THE DENOMINATOR.**
+  `estimate_frames_to_level` returns **FRAMES**: `ceil(needed_exp / xp_per_battle) ×
+  FRAMES_PER_WILD_BATTLE`. `FRAMES_PER_WILD_BATTLE = 1433` (`training_areas.py:674`) is **ALSO measured
+  on Route 102**, and is **ALSO wrong for Victory Road, in the SAME direction** (~**3,192** there).
+  The two errors very largely cancel: **exp per FRAME is 0.2002 (model) vs 0.2430 (real) — only ~18%
+  pessimistic.** ⇒ for a FRAME ceiling the estimator is approximately RIGHT, and *"relaxing it buys
+  almost nothing."*
+  ‼‼ **AND THIS WAS ALREADY ADJUDICATED ON 2026-09-08, IN A FILE I HAD OPEN** (`07-CHANGELOG.md:24637-24641`):
+  *"One measured exp/BATTLE (286.9 model vs 768.0 real = 2.68× pessimistic); the other measured
+  exp/FRAME (0.2002 vs 0.2430 = 1.18×). **Both are arithmetically right; they used different
+  denominators.**"* — and it closes with the rule I then broke: ⭐ ***"when two analyses of the same
+  quantity disagree by a factor, check the DENOMINATOR before believing either."*** My 2.70× is simply
+  their 2.68× rediscovered, re-filed as a defect, and acted on. **A Tier 1 reviewer caught it.**
+  ⭐ **WHAT SURVIVES, NARROWLY — AND IT IS UNVALIDATED, NOT A DEFECT.** Because the model sees only
+  `wild_level`, it ranks **B2F (315.5) > B1F (301.2) > 1F (286.9)** while real xp/BATTLE ranks
+  **B1F (950.8) > B2F (802.8) > 1F (775.6)** — B1F wins on Hariyama density (base EXP 184), not level.
+  ⚠ **But that ranking is in xp/BATTLE, and the same denominator trap applies**: nobody has measured
+  frames/battle per Victory Road FLOOR, so the xp/FRAME ranking — the one that would matter — is
+  **UNKNOWN**. ⇒ filed as a caution only: *if* anyone ever builds "pick the best training floor" logic
+  on `wild_level`, measure frames/battle per floor first. ⛔ Do NOT treat this as a defect to fix.
+  ⛔ **DO NOT RE-OPEN THIS ITEM.** The next agent to notice the 2.7× xp/battle gap is seeing a REAL
+  number with a settled, documented answer. Read `07-CHANGELOG.md:24637-24641` first.
 - [x] ⭐⭐⭐ `#24-tailprobe` — **NEW AND DONE 2026-09-17 (late). WALLACE IS BEATEN AND THE GAME IS CLEARED. THE ENDGAME TAIL IS MEASURED END TO END.**
   `--driver ch24tailprobe` (NEW `Ch24TailProbeMode`, OBSERVE-ONLY) from the pinned `post_hall4_door.ss1`: stepped onto `(5,2)`, won the Champion fight (`on_battle_ended` latched **`outcome=<BattleOutcome.Won: 1>`**, `whiteouts=0`), rode the post-battle cutscene, the Hall of Fame MAP, the Hall of Fame SCREEN, **10,353 frames of un-skippable credits** and a `SoftReset(RESET_ALL)`, and came back **controllable in `LITTLEROOT_TOWN_BRENDANS_HOUSE_2F (4,2)` with `IS_CHAMPION=True` and `SYS_GAME_CLEAR=True` in BOTH RAM AND FLASH.** Full frame table + answers: `ai-research-notes/2026-09-17-ch24-legB-TAIL-MEASURED.md`; evidence `evidence/2026-09-17-ch24tailprobe-*`.
   ⭐⭐ **Q7 ANSWERED — THE SINGLE UNMEASURED LOAD-BEARING FACT IN THE WHOLE LEG-B SPEC: flash written BY THE GAME survives `_core.reset()`.** The profile started at **`<no save data>`**, the Hall of Fame wrote the save slot mid-run, and the reboot went **`CB2_MAINMENU` → `CB2_CONTINUESAVEDGAME`** — not `NAMING_SCREEN`. ⇒ trap T17 does not bite on this path, because the game itself populates flash before the reboot.
@@ -226,7 +305,7 @@ open-vs-built sweep of all 80 open items has **not** been done.
   ⭐ **TRAP 2 REPRODUCED IN A THIRD ROOM:** `elite4_state_in_room = 2` while standing in Glacia's room, but the captured fixture reads **3** — the entry cutscene had not finished writing it. ⇒ *never dispatch on `VAR_ELITE_4_STATE`*, now confirmed for Sidney, Phoebe AND Glacia.
   ⚠ **AND `hp_entering_glacia` IS A FAKE READING** — byte-identical to `hp_after_glacia`, because a driver is suspended across the fight so "before" was sampled AFTER. Trap 1, reproduced. It is kept as a record; **do not read it as a before/after pair.**
   ✅ **DONE 2026-09-17 (late): `04-HANDOFF.md` WAS COMPACTED AND NOW READS 882 / 900, headroom 18** — the PARTY ACCOUNTING STAGE 0 hand recipes were archived VERBATIM to `28-HANDOFF-ARCHIVE.md` (it is gate #22, which `run_gates.py` runs on every suite, so the recipe is reference not a daily command). *(This read: compact it first, it is at its cap at 900/900.)* ‼ **RE-CHECK BEFORE APPENDING — `lint_docs.py` is the authority and R3 counts LINES only.** Room 3 already paid that toll once: shipping it pushed the file to 922 and required archiving the §Ch21 recon instruments and the disarmed `KI-96` note VERBATIM into `28-HANDOFF-ARCHIVE.md`. R3 counts LINES only, so a single appended line turns the doc gate red and blocks the commit.
-  ⛔ **WHAT THIS DOES *NOT* DO:** it does not wire Segment 24 (all three prerequisites still stand), it does not build room 4 or room 5, and **room 5 is NOT this unit** — Wallace starts himself from a `lockall` with no flag guard (`#24-leg2spec`).
+  ⛔ **WHAT THIS DOES *NOT* DO:** it does not wire Segment 24 (**all FOUR** prerequisites still stand — the fourth, `#24-levelgap`, was added 2026-09-17), it does not build room 4 or room 5, and **room 5 is NOT this unit** — Wallace starts himself from a `lockall` with no flag guard (`#24-leg2spec`).
 
 - [ ] ⭐⭐⭐ `#24-leg2spec` — ‼‼ **STUB MARKER (2026-09-17 evening): FOUR DESIGNS FOR THIS LEG WERE WRITTEN AND THEN ADVERSARIALLY REFUTED — **44 FATAL/SERIOUS FLAWS** — AND THE FULL REFUTATION IS IN `ai-research-notes/2026-09-17-ch24-leg2-DESIGN-REFUTATION.md`. READ IT BEFORE BUILDING.** It is a NOTE, not truth: THIS file wins on any contradiction, and every load-bearing claim needs verifying in our own harness first. ⚠ Several refuters caught the designs citing DRIFTED line numbers, so re-read any line a flaw cites. ⭐ **THE FOUR HIGHEST-VALUE RESULTS:** (a) the completion predicate must be `IS_CHAMPION` + `SYS_GAME_CLEAR` + a live-overworld machine-state conjunct — **never** the four victory flags, because the Hall of Fame itself clears them (`hall_of_fame.inc:7` → `event_scripts.s:628-634`, verified here at source), so a predicate built on them is false FOREVER after a perfect clear and loops the gauntlet; (b) **room 5 must NOT be the fifth instance of the room unit** — a refuter showed the Drake instance would fight Wallace *inside* the unit and the 3-attempt retry would re-fight him, which is exactly what O7 forbids; (c) the endgame tail's button presses must WAIT FOR THEIR TASK TO EXIST or a clean run hangs for ever at the Hall-of-Fame screen; (d) `ko_turns` breaks gate #39's C2. —— *the original spec:* **NEW 2026-09-17. THE §Ch24 GAUNTLET SPEC, FROM A 4-ANGLE RECON WHOSE ADVERSARIAL ARM DID ITS JOB. ⛔ THE “REPEATING UNIT × 5” MODEL IS REFUTED — DO NOT BUILD IT.**
   ‼ **WHAT THE ONE MEASURED TRAVERSAL ACTUALLY PROVED** (`SIDNEY (6,6) → door → HALL1 → PHOEBE (6,7)`, ~680 frames): **one post-victory NAVIGATION transition, from a fixture, with `battles=0` in it.** ⛔ It contains **no fight** — step (a) of the claimed unit was never exercised. ⛔ `ELITE_4_STATE 1→2` is **not a victory signal**: it is set by Phoebe's ENTRY script, so it grades the warp, not the fight — grade on `DEFEATED_ELITE_4_<NAME>` flags instead. ⛔ `(6,7)` is the CUTSCENE's destination (`WalkUp6` from the entry warp), not the bot's; the run ended beside Phoebe on a *reachability query* (`OK 1 wp`) — **a candidate is not an attempt**.

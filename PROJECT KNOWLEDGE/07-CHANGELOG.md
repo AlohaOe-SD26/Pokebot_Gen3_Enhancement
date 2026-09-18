@@ -31415,3 +31415,103 @@ VERBATIM** (the closed "WIRING THE PICKER IS KILLED" item) to `28-HANDOFF-ARCHIV
 ruling plus a pointer ⇒ **4183/4400**. ‼ The boundary was checked before cutting, per the rule added
 earlier today — §Ch23's entry was tried first and **rejected** because its next `- [` is a nested step,
 not a sibling.
+
+---
+
+## 2026-09-17 (late, eighth) — ⛔ THE FOURTH PREREQUISITE: production reaches the League door at L47, and the gauntlet is 0% at L53
+
+**WHAT THIS IS.** No code changed and nothing was driven. This entry exists because the next obvious
+step — wiring Segment 24 — would have been **actively harmful**, and the reason was invisible: the
+handoff's standing list of prerequisites said **three**, and the one that decides whether wiring is
+*useful at all* was not among them. Filed as **`#24-levelgap`**; the handoff's list now says four.
+
+**THE FINDING, ALL FROM OUR OWN TREE.**
+* Every §Ch24 probe this project has run used a **hand-grown L75 party**. That party came from
+  `--driver ch24grind` (`Ch24GrindMode`), which lives **only** in `tools/story-dev/story_harness.py:15393`
+  — it is **not production code**.
+* Production's sole story training target is **`TRAIN_TARGET = 47`** (`modules/story/victory_road.py:492`),
+  ⭐ verified to be the only one in the entire story tree (a grep over `modules/story/*.py` plus
+  `story_mode.py` returns exactly that one, plus an unrelated `ENDLESS_RESET_TARGET`).
+* And the win-rate curve (`07-CHANGELOG.md:23310-23313`) is: **`L53 → 0% Glacia · L57 → 87% Glacia, dies at Drake · L60 → 99.7% Glacia · L75 → 88% CLEAR`**, with *“Break-even is L62”* against Wallace’s Milotic Recover race (`:23307`).
+  ⚠ **THAT CURVE IS SIMULATED, NOT MEASURED — and I wrote “the measured curve” here first and corrected it the same day.** `07-CHANGELOG.md:23285` says *“Simulated over 400 runs per configuration”*, and `04-HANDOFF.md` carries the standing caveat *“SIMULATION results, not drives — the model approximates the enemy AI and ignores crits/status; treat L62/L75 as ESTIMATES”*. ⭐ **Its TOP END is now corroborated by a real drive** — the 2026-09-17 tail probe beat Wallace at L75+ and cleared the game (one trajectory). ⇒ **“L75 clears” is simulated AND driven; “L47/L53 is hopeless” is simulated ONLY.** The conclusion survives either way: L47 against a break-even of L62 is a **15-level** gap, far outside any plausible error bar on a 400-run model.
+  ⛔⛔ **THIS CORRECTS THE LAST SENTENCE OF A STANDING RULING, AND THAT IS WHERE A FUTURE AGENT WILL LOOK.** `06-DECISIONS-LOG.md` (2026-09-16, *“CORRECTION TO MY OWN WINNABILITY VERDICT”*) ends: *“the cheapest path to a winnable gauntlet is not more legs — it is **grinding past L62, toward ~L75** — and it is a capability we already shipped.”* ⇒ **That capability is shipped in the HARNESS, NOT in production.** `--driver ch24grind` is `Ch24GrindMode` in `tools/story-dev/story_harness.py`; nothing in `sandbox-pokebot/modules/story/` can climb above `TRAIN_TARGET = 47`. The ruling’s *conclusion* (grind to L62–75) is right; its *“already shipped”* is true only of the harness. ⚠ `06` is append-only, so that entry stands as written — **this item is the correction of record**, and a dated decisions-log entry is appended alongside it pointing here.
+⇒ **a wired Segment 24 today would send the bot into a ONE-WAY SEALED ZONE at L47 and lose, every
+run.** All three original prerequisites could be satisfied while that remains true.
+
+**⭐⭐ THE FIX IS ALREADY DESIGNED IN OUR OWN CODE — IT WAS JUST NEVER BUILT.** `TRAIN_TARGET`'s own
+docstring (`victory_road.py:488-492`) says 47 *"does NOT clear Wallace's 58 — **the remaining gap is
+meant to be closed on B1F after Wally** (950.8 EXP/battle vs 1F's 775.6), which is the only better
+ground and is gated behind exactly the fight this training is for"*, and `:2025` names the same escape
+hatch. ⛔ But §Ch23's eleven legs contain **no post-Wally training leg** — 6-9 are the B1F/B2F
+traverse, 10-11 are heal and shop (`:3374-3460`).
+
+**AND THE GROUND QUESTION WAS ALREADY SETTLED AGAINST THE DECOMP** (`modules/story/training_areas.py:30-49`):
+every `MAP_ROUTE*` land table maxes at **28** (ROUTE130's 50 is the Mirage Island WYNAUT trap), **no
+land table anywhere in Hoenn** has a max of 34/35/37/41/43/46/47/48/49, and therefore *"EVERY L30+
+WILD GROUND IN EMERALD IS A CAVE, A DUNGEON, THE SAFARI ZONE, OR VICTORY ROAD … the surviving lever is
+train IN the dungeon you are already clearing, never relocation."*
+⇒ **B1F is not a preference; it is the only option.**
+
+**SIZING — ⛔⛔ MY FIRST DRAFT'S SIZING WAS NOT COMPARABLE TO THE GUARD, AND I CORRECTED IT THE SAME DAY.**
+It read: *"the one real measurement is L47/51→L60 = 449,328 EXP / 623 battles / ~30 min on 1F; B1F is
++22.6% better ground ⇒ roughly 500 battles / ~25 min for the same climb."* ‼ **Both halves mislead.**
+(a) The **+22.6%** comes from a richer per-species model (B1F 950.8 vs 1F 775.6 EXP/battle); the model
+that actually GATES the leg is `estimate_frames_to_level`, which sees only `CAL × wild_level / 7` ⇒
+**286.9 (1F) vs 301.2 (B1F), a +5.0% difference**. (b) 500 battles × 1433 frames = **716,500 frames
+against a `MAX_TRAINING_FRAMES = 250_000` per-call ceiling — 2.9× over** ⇒ the sizing never established
+feasibility at all.
+⭐ **WHAT I MEASURED INSTEAD.** Land maxima read from the decomp (`src/data/wild_encounters.json`):
+**1F 40, B1F 42, B2F 44**. Running the project's own estimator for a L47 mon over four growth curves
+× two grounds × two targets — **all 16 cells REFUSE**, the cheapest (Fast curve, B1F, →L62) at
+**513,014 frames, 2.05× the ceiling**, the worst at 7.6× (double again if swap-training's 2-way split
+applies, which the estimator ignores). ⇒ **the B1F leg cannot run today**, and per the refusal
+message's own words, *"do NOT raise the ceiling to make the run start."*
+⛔ **AND THE FOLLOW-UP I DREW FROM THIS WAS ITSELF WRONG — SEE THE WITHDRAWAL ENTRY BELOW.** I filed
+`#24-trainestimatorcal` claiming the estimator was 2.7× over-pessimistic and reordered the queue to
+"estimator first, leg second". **Both are retracted.** The estimator returns FRAMES, and its frame
+constant is wrong in the *same* direction as its xp term, so it is only ~18% pessimistic overall.
+⇒ the refusals above are **REAL**, and the queue is simply `#24-levelgap`.
+
+‼ **WHY THIS WAS WORTH STOPPING FOR.** The session had just cleared the game end to end, and the
+natural next move was to wire it. The wiring work (fixing `ch23_chapter_done()`'s position conjunct,
+adding `ch24_chapter_done()`) is still correct and still needed — but shipping it without the level
+leg would have produced a bot that walks confidently into a sealed room and dies, with every gate
+green. ⇒ *A prerequisite list is only as good as its least obvious entry.*
+
+
+## 2026-09-17 (late) — ⛔⛔ `#24-trainestimatorcal` FILED **AND WITHDRAWN THE SAME DAY**: I RE-DISCOVERED A SETTLED NUMBER AND BROKE THE RULE WRITTEN TO PREVENT EXACTLY THAT
+
+**Filed:** `_CALIBRATED_AVG_WILD_BASE_EXP_YIELD = 50.2` (`training_areas.py:676-685`) is calibrated to
+**Route 102 at wild_level≈4** and is applied to Victory Road, where the wilds are Hariyama (base EXP
+184). I slot-weighted the decomp's land table against our own species data and reproduced **1F = 775.6**
+and **B1F = 950.8 to one decimal**, against the model's 286.9 / 301.2 — a **2.70×** understatement. That
+arithmetic is correct and I stand by it.
+
+**⛔⛔ WITHDRAWN, BECAUSE I CHANGED THE NUMERATOR AND LEFT THE DENOMINATOR.**
+`estimate_frames_to_level` returns **FRAMES**: `ceil(needed_exp / xp_per_battle) × FRAMES_PER_WILD_BATTLE`.
+`FRAMES_PER_WILD_BATTLE = 1433` is **also measured on Route 102** and is **also wrong for Victory Road
+in the same direction** (~3,192 there). The errors very largely cancel — exp per FRAME is **0.2002
+(model) vs 0.2430 (real), ~18% pessimistic**. For a FRAME ceiling that is the figure that governs, so
+the guard is approximately right and relaxing it buys almost nothing.
+
+**‼‼ AND THIS WAS ADJUDICATED ON 2026-09-08, IN THIS VERY FILE** (`:24637-24641`): *"One measured
+exp/BATTLE (286.9 model vs 768.0 real = 2.68× pessimistic); the other measured exp/FRAME (0.2002 vs
+0.2430 = 1.18×). Both are arithmetically right; they used different denominators."* — closing with
+⭐ ***"when two analyses of the same quantity disagree by a factor, check the DENOMINATOR before
+believing either."*** My 2.70× is their 2.68×, rediscovered and re-filed as a defect. **A Tier 1
+reviewer caught it on the second round.**
+
+**⭐ WHAT THE WITHDRAWAL BUYS — THE CONCLUSION GOT STRONGER, NOT WEAKER.** `#24-levelgap`'s refusals are
+now known to be REAL rather than a modelling artifact. At the true rate (950.8 xp/battle — and ~3,192
+f/battle — ⚠ the frame figure was measured alongside **1F** and is TRANSFERRED to B1F;
+per-floor frames/battle is unmeasured, as stated above), L47→L62 on B1F costs **363,888 (Fast) – 564,984 (Slow)** frames against a 250,000 ceiling —
+**every curve refuses, by 1.46× to 2.26×** — and L75 costs 855k–1.34M. ⇒ **the blocker is the BUDGET
+SHAPE** (a 15-level climb does not fit one `train_team` call, and the refusal message forbids raising
+the ceiling), **not the cost model.** That is the question `#24-levelgap` must answer.
+
+**⛔ DO NOT RE-OPEN.** The 2.7× xp/battle gap is a real number with a settled answer.
+
+**⭐ WHAT SURVIVES, NARROWLY AND UNVALIDATED:** seeing only `wild_level`, the model ranks B2F > B1F > 1F
+while real xp/BATTLE ranks B1F > B2F > 1F. ⚠ That ranking is in xp/BATTLE and the same denominator trap
+applies — frames/battle has never been measured per Victory Road FLOOR, so the xp/FRAME ranking is
+UNKNOWN. Recorded as a caution for anyone building "pick the best floor" logic, **not as a defect.**
