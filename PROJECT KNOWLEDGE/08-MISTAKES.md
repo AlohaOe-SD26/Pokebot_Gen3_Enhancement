@@ -19071,3 +19071,74 @@ properly (changelog + this entry), and disclosed it.
 `git status --short` and PASTE ITS OUTPUT into the brief or commit message. Not "check" it — paste it.
 A rule that asks you to remember to look is a rule you will satisfy from memory; a rule that asks you
 to paste output cannot be satisfied without running the command.*
+
+
+## 2026-09-18 (later) — I VERIFIED THE HAZARD THAT ALARMED ME AND TOOK THE ONE BESIDE IT ON TRUST
+
+**Symptom.** A build recon gave two reasons §Ch23 was the wrong host for a training grind. I verified
+the first at source — (a) `DoWhiteOut()` halves money, decomp `src/overworld.c:361`, against a ₽1,741
+margin — and wrote BOTH into three files as settled fact. A Tier 1 reviewer blocked: **(b) “the grind
+and the basket share one bag” is contradicted by our own code.**
+
+**What the code actually says.** `train_team`'s 118-line body contains **ZERO** bag or item references;
+its only healing call is `heal_in_pokemon_center` — a free Poké Center visit. The wild-battle handler
+is pure switch logic, and the item-using strategy is trainer-battle-only. **And `Ch24GrindMode._basket()`
+— instrumentation written for exactly this question — says in its own comment:** *“THIS IS A READING,
+NOT A GUARD … the expectation is FLAT: `train_team` heals at a Poké Center … not from the bag.”*
+No evidence file anywhere contains a `basket=` reading showing a drain.
+
+**Root cause, and it is not laziness.** Both claims pointed at the same conclusion — *§Ch23 is the
+wrong host* — which I already believed. I verified the one that ALARMED me (money, a hard number with
+a decomp citation) and let the adjacent one ride because it agreed. ‼ **The unverified claim was the
+one that agreed with me**, which is the direction verification is least likely to travel.
+
+**Why it mattered even though the decision was right.** The reversal stands on hazard (a) alone. But
+presenting an unmeasured, code-contradicted mechanism as equally certain is the *“headline carries the
+caveat”* failure this project names in SESSION DISCIPLINE rule 2 — and a future agent designing around
+“the bag is shared” would have designed around a fiction.
+
+**The fix that worked.** Measured `train_team`'s body myself, found the contradicting comment in our
+own harness, and downgraded (b) to THEORETICAL in all three files with the original wording quoted.
+
+**⭐ PREVENTION RULE.** *When two findings support the same conclusion, verifying one does NOT license
+the other. Verify the one you find LEAST alarming first — it is the one your agreement will otherwise
+carry through unchecked.*
+**⭐ SECOND RULE, cheaper and specific to this tree.** *Before writing a mechanism down as fact, grep
+for instrumentation that already measures it. `Ch24GrindMode._basket()` existed, stated the expected
+answer, and had never been contradicted by a single logged run — one grep would have caught this.*
+
+
+## 2026-09-18 (later) — THIRD PARTIAL-SCRIPT MISS, AND THE TWO EXISTING RULES COULD NOT HAVE CAUGHT IT
+
+**Symptom.** I reported two fixes to a Tier 1 reviewer. **Neither was in the tree.** It blocked with two
+greps: `04-HANDOFF.md` still asserted a retracted claim as flat fact, and the derivation I said I had
+added for a 136,135-frame figure returned zero matches anywhere in the diff.
+
+**Mechanism.** One script held three edits. It raised an AssertionError on edit #2's anchor (a curly
+quote where the file had a straight one) and **exited before edit #3**. I wrote a second script that
+carried forward the two hazard edits and silently dropped the derivation. Separately, my hazard
+downgrade covered `03`/`06`/`07` but not `04` — and `04` is the **mandatory cold-start source**, so the
+one file a fresh session must trust was left contradicting the three that were fixed.
+
+**‼ WHY MY TWO EXISTING RULES DID NOT FIRE, WHICH IS THE POINT OF THIS ENTRY.** I already had:
+*“regenerate the file list from `git status --short`”* and *“paste its output, do not check it”*. **I did
+both.** `git status` showed `04-HANDOFF.md` as modified — from an EARLIER, unrelated edit in the same
+session — so the file list said “covered” while the specific edit was absent.
+⇒ ⭐⭐ **THE FILE LIST TELLS YOU WHICH FILES CHANGED. IT DOES NOT TELL YOU WHICH EDITS LANDED.** A rule
+aimed at the file list is structurally blind to a missing edit inside a file that changed for another
+reason — which is exactly the case a long session produces most often.
+
+**The fix that worked.** Applied both missed edits, then **grepped for each intended change and printed
+the count against its expectation** before reporting anything. One check fired (the retracted sentence
+still matched in `04`); I read the surrounding 330 characters rather than waving it away, and confirmed
+it was the *quoted* dead text inside the retraction marker — correct, not a live claim.
+
+**⭐ PREVENTION RULE (replaces nothing; it sits UNDER the two file-list rules).** *After any multi-edit
+script, VERIFY EACH EDIT BY ITS OWN GREP and print count-vs-expected. Never infer that an edit landed
+from the fact that its file appears in `git status` — in a long session a file is usually already dirty
+for some other reason.*
+**⭐ SECOND RULE, earned three times now.** *A script that applies N edits must report N results. If it
+can exit early, it must be re-run to completion or its remaining edits re-derived from the FILES —
+never from the script's intent.*
+**⭐ THIRD, mechanical and cheap.** *Anchor strings must be taken from the file, not retyped.* Both
+anchor failures this session were curly-vs-straight quotation marks in text I had written myself.

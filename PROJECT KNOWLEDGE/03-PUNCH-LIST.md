@@ -352,6 +352,37 @@ open-vs-built sweep of all 80 open items has **not** been done.
      `post_e4grind_L49 … L73 + FINAL` is **on disk** from 2026-09-17.
    ⇒ **THE WORK IS TO PROMOTE THAT SHAPE INTO A PRODUCTION LEG** — not to invent a design, not to fix
    the estimator, and (see below) not to choose a ground first.
+   ⛔⛔ **BUT NOT INTO §Ch23 — REVERSED 2026-09-18 (later) AFTER A 10-AGENT BUILD RECON.** *(This item
+   previously implied the leg would be inserted into §Ch23, and `04-HANDOFF.md` said so outright.)*
+   **Both §Ch23 placements have a distinct, serious failure mode, and I verified the decisive one at
+   source:**
+   * **BEFORE leg 11 (the only mechanically viable slot, between legs 5 and 6): ONE WHITEOUT
+     BANKRUPTS THE CHAPTER.** ✅ Decomp `src/overworld.c:358-366` — `DoWhiteOut()` calls
+     `SetMoney(..., GetMoney(...) / 2)`. ✅ `victory_road.py:444` — *“₽54,300 total against a MEASURED
+     ₽56,041”*, i.e. **₽1,741 of slack (3.1%)**. Halving gives ₽28,020 against a ₽54,300 basket ⇒ leg 11
+     raises and the Elite Four's healing is never bought. A hundreds-of-battles grind is exactly where
+     a whiteout becomes likely, and the derail budget RESETS on every whiteout so nothing bounds it.
+   * **AFTER leg 11 — a SUSPECTED bag interaction.** ⚠⚠ **HAZARD (b) IS UNVERIFIED AND OUR OWN CODE CONTRADICTS IT — DOWNGRADED 2026-09-18 AFTER A TIER 1 BLOCK.** *(All three docs stated, as settled fact: “AFTER leg 11 the grind and the basket SHARE ONE BAG — consuming healing items makes `ch23_chapter_done()`'s basket conjunct False.”)* ✅ **MEASURED BY ME:** `train_team`'s 118-line body contains **ZERO** bag/item references in code, and its only healing call is `heal_in_pokemon_center(heal_center)` — a free Poké Center visit. The wild-battle handler `SwapTrainBattleStrategy` is pure switch logic; the item-using `StoryItemBattleStrategy` is scoped to TRAINER battles only. And `Ch24GrindMode._basket()`'s own comment says the opposite of my claim: *“THIS IS A READING, NOT A GUARD … the expectation is FLAT: `train_team` heals at a Poké Center (which also restores PP), not from the bag.”* No evidence file anywhere contains a `basket=` reading showing a drain. ⇒ **treat (b) as THEORETICAL, pending a drive with `_basket()` logging.** ⛔ **THE REVERSAL DOES NOT DEPEND ON IT** — hazard (a), the money halving, is fully verified at the decomp and sufficient on its own.
+   ⇒ ⭐ **THE FIX BELONGS ON THE §Ch24 SIDE OF THE BOUNDARY** — i.e. it is part of what Segment 24 must
+   CONTAIN, not a patch to a shipped chapter. ‼ **This does NOT downgrade the blocker:** production
+   still tops out at ~L47 and a §Ch24 wired today still loses every run. What changed is WHERE the fix
+   lives, which dissolves an apparent circularity — `#24-levelgap` is not a prerequisite to be cleared
+   *before* wiring, it is a mandatory CONTENT REQUIREMENT *of* the §Ch24 chapter.
+   ⛔⛔ **AND THE SHAPE MUST NOT BE COPIED VERBATIM — IT SWALLOWS WHITEOUTS.** ✅ Verified at source:
+   `story_harness.py:15646-15655` does `set_story_abort(False)` then `except Exception`, and
+   `class StoryAbort(BotModeError)` (`early_game.py:112`) means that `except` **catches the whiteout
+   unwind**. §Ch23's own dispatch docstring forbids exactly this (`victory_road.py:3342-3345`):
+   *“⛔ A WHITEOUT IS NOT RETRIED HERE … The 3-attempt loop is for `BotModeError` and nothing else”*
+   — it is **KI-67's shape**, and gate #27 `probe_abort_swallowing.py` scans `modules/story` for it.
+   ⇒ **promote the 33-line stepping loop; leave the retry wrapper, the save-state checkpoints, the
+   `set_manual_mode()` and the ACCEPTANCE printing behind.**
+   ⭐ **WHAT SURVIVES AND IS READY TO BUILD ON:** every 2-level step fits the ceiling — measured on the
+   REAL battlers of `post_wally.ss1` (Sceptile L52, Swellow/Wailord/Mightyena L47; Zigzagoon L19 and
+   Castform L36 are excluded by `BENCH_SPECIES`), worst step **136,135 f against 250,000, 1.8×
+   headroom**. *(DERIVATION, so it is reproducible rather than asserted — a Tier 1 reviewer noted it had none: the GUARD's OWN model, `xp_per_battle = CAL 50.2 × WILD_MAX 40 / 7 = 286.9`, `× FRAMES_PER_WILD_BATTLE 1433`, applied to **Wailord** — the binding mon because it is the SLOW growth curve — climbing its last two levels to L61. The recon's independent simulation put its own worst step at 154,764 under different assumptions; both are far under the ceiling.)* And **resumability is FREE**: `team_is_ready(target)` and both loops in
+   `train_for_victory_road` re-read the LIVE party and skip battlers already at target, so the grind's
+   progress IS the party's levels. ⚠ `BENCH_SPECIES` is three hardcoded names, so the leg must CHECK
+   at runtime that no battler sits far below target rather than relying on that list.
    ⚠ **ONE RECORDED OBSTACLE, CHECK IT BEFORE BUILDING:** `team_is_ready(target)` (`:2135-2141`) raises
    terminally and its Crunch clause (`:1903`) hardcodes `CRUNCH_LEVEL = 47` instead of `target` — the
    surviving reason §Ch23's **sub-47** stepping was refuted on 2026-09-08. ✅ **VERIFIED 2026-09-18 — and the inference was right for a STRONGER reason than I gave.** *(This read “INFERRED, unverified: it does not bite stepping UPWARD from 47.”)* The gate is **`if "Crunch" not in moves`**; `CRUNCH_LEVEL` only picks the WORDING of the failure reason, and **the clause never consults `target` at all** (`victory_road.py:1902-1912`) — *“⛔⛔ ASSERT THE MOVE, NEVER THE LEVEL THAT USUALLY GRANTS IT … The level is a PROXY; the move is the requirement.”* ⇒ a Mightyena that KNOWS Crunch passes at any target; stepping upward is unaffected.

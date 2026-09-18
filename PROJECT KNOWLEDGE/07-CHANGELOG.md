@@ -31811,3 +31811,46 @@ plans a route and reports. ⚠ Not in `run_gates.py`, so nothing was red — it 
 ⭐ **THE DAMAGE WAS NOT THE CRASH, IT WAS WHERE THE CRASH SAT:** after the real finding, so a correct
 and complete answer looked like a failed run. **A tool that answers and THEN dies teaches the reader to
 distrust the answer.**
+
+
+## 2026-09-18 (later) — ⛔ REVERSAL: §Ch23 IS THE WRONG HOST FOR THE GRIND, AND THE SHAPE SWALLOWS WHITEOUTS
+
+A 10-agent build recon scoped inserting the stepped grind into shipped §Ch23. **It killed the location
+and caught a trap that would have shipped a KI-67 recurrence.** Nothing was built — this is the recon
+result and the reversal.
+
+**⛔ THE HOST IS WRONG, verified by me at source.** Yesterday's decision said "build the stepped leg on
+1F first". It named the GROUND and silently assumed the HOST. Both §Ch23 placements fail:
+* **Before leg 11** (the only mechanically viable slot, between legs 5 and 6) — `DoWhiteOut()` calls
+  `SetMoney(..., GetMoney(...) / 2)` (decomp `src/overworld.c:358-366`), and §Ch23's margin is
+  **₽1,741** (`victory_road.py:444`: "₽54,300 total against a MEASURED ₽56,041"). One whiteout in a
+  hundreds-of-battles grind leaves ₽28,020 against a ₽54,300 basket ⇒ leg 11 raises.
+* **After leg 11** — a SUSPECTED bag interaction. ⚠⚠ **HAZARD (b) IS UNVERIFIED AND OUR OWN CODE CONTRADICTS IT — DOWNGRADED 2026-09-18 AFTER A TIER 1 BLOCK.** *(This said, as settled fact: “AFTER leg 11 the grind and the basket SHARE ONE BAG — consuming healing items makes `ch23_chapter_done()`'s basket conjunct False, so the chapter can never grade done.”)* ✅ **MEASURED BY ME:** `train_team`'s 118-line body contains **ZERO** bag or item references in code, and its only healing call is `heal_in_pokemon_center(heal_center)` — a free Poké Center visit. The wild-battle handler `SwapTrainBattleStrategy` is pure switch logic; the item-using `StoryItemBattleStrategy` is scoped to TRAINER battles only. And `Ch24GrindMode._basket()`'s own comment states the opposite of my claim: *“THIS IS A READING, NOT A GUARD … the expectation is FLAT: `train_team` heals at a Poké Center (which also restores PP), not from the bag.”* No evidence file anywhere carries a `basket=` reading showing a drain. ⇒ **TREAT (b) AS THEORETICAL, pending a drive with `_basket()` logging.** ⛔ **THE REVERSAL DOES NOT DEPEND ON IT:** hazard (a), the money halving, is verified at the decomp and sufficient alone.
+⇒ **the fix belongs on the §Ch24 side: a CONTENT requirement of Segment 24, not a §Ch23 patch.** This
+does not downgrade the blocker — production still tops out at ~L47 — it dissolves an apparent
+circularity, since `#24-levelgap` is not a prerequisite to clear *before* wiring but a requirement *of*
+the chapter being wired.
+
+**⛔⛔ AND THE SHAPE I WAS ABOUT TO PROMOTE SWALLOWS WHITEOUTS.** `story_harness.py:15646-15655` does
+`set_story_abort(False)` then `except Exception`; `class StoryAbort(BotModeError)` means that `except`
+catches the whiteout unwind. §Ch23's own dispatch docstring forbids precisely this
+(`victory_road.py:3342-3345`) — *"A WHITEOUT IS NOT RETRIED HERE … The 3-attempt loop is for
+`BotModeError` and nothing else"* — so copying it verbatim would have reproduced **KI-67 inside the one
+chapter written to forbid it**, and turned gate #27 red. ⇒ promote the **33-line stepping loop**; leave
+the retry wrapper, save-state checkpoints, `set_manual_mode()` and ACCEPTANCE printing behind.
+
+**⭐ WHAT SURVIVED, AND IT IS MOST OF THE ENGINEERING.** Every 2-level step fits the per-call ceiling —
+measured on the REAL battlers of `post_wally.ss1`, worst step **136,135 f vs 250,000 (1.8× headroom)**;
+an independent simulation in the recon put its worst at 154,764 (62%), same verdict from different
+assumptions. **Resumability is FREE** — `team_is_ready(target)` and both loops in
+`train_for_victory_road` re-read the LIVE party and skip battlers already at target, so progress IS the
+party's levels; `Ch24GrindMode`'s save-state checkpoints were never a resume mechanism and nothing
+reads one back.
+
+**✅ THREE PRECONDITIONS MEASURED ON THE REAL START FIXTURE before any code:** Mightyena L47 **knows
+Crunch** (permanent — `team_is_ready` gates on the MOVE and there is no Dark TM to recover with);
+the battlers are Sceptile L52 / Swellow L47 / Wailord L47 / Mightyena L47, with Zigzagoon L19 and
+Castform L36 excluded by `BENCH_SPECIES` — **the only reason this does not reproduce
+`#24-ch23training`'s low-level-mule refusal**; and the party is 67% HP with two fainted, so the leg
+must heal first. ⚠ `BENCH_SPECIES` is three hardcoded names, so the leg must check at runtime rather
+than trust it.

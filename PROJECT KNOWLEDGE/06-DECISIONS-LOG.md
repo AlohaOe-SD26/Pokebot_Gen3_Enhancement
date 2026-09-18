@@ -6023,3 +6023,61 @@ stepping keeps each call under the ceiling.
 ⭐ **THE RULE THIS SETTLES: BEFORE OPTIMISING A VARIABLE, CHECK THAT THE DECIDING CODE CAN SEE IT.**
 I priced a heal round-trip for a session; the guard that refuses the grind has no term for it. An
 adversarial pass found that in one read of the function body.
+
+
+## 2026-09-18 (later) — ⛔ REVERSAL: §Ch23 IS THE WRONG HOST FOR THE GRIND. THE DECISION ABOVE NAMED THE GROUND AND ASSUMED THE HOST
+
+**The entry above decided "build the stepped leg on 1F first; choose the ground LAST."** A 10-agent
+build recon then attacked the plan, and two independent angles converged on the half I had not
+examined: **I chose the GROUND (1F, proven) and silently assumed the HOST (§Ch23, shipped).** The
+engine survives; the location does not.
+
+**✅ WHAT I VERIFIED MYSELF BEFORE REVERSING.**
+1. **A whiteout HALVES money.** Decomp `src/overworld.c:358-366` — `DoWhiteOut()` calls
+   `SetMoney(&gSaveBlock1Ptr->money, GetMoney(&gSaveBlock1Ptr->money) / 2)`. Our own tree already
+   records it (*"Whiteout money is plainly `money / 2`"*).
+2. **§Ch23's margin is 3.1%.** `victory_road.py:444` — *"₽54,300 total against a MEASURED ₽56,041"*,
+   i.e. **₽1,741 of slack**.
+⇒ **A GRIND PLACED BEFORE LEG 11 RISKS THE CHAPTER'S ENTIRE WORK PRODUCT ON ONE WHITEOUT.** Halving
+₽56,041 gives ₽28,020 against a ₽54,300 basket, so leg 11 raises and the Elite Four's healing is never
+bought. A multi-hundred-thousand-frame grind is exactly where a whiteout becomes likely.
+
+**AND THE OTHER §Ch23 SLOT MAY BE NO BETTER — BUT THAT HALF IS UNPROVEN.**
+⚠⚠ **HAZARD (b) IS UNVERIFIED AND OUR OWN CODE CONTRADICTS IT — DOWNGRADED 2026-09-18 AFTER A TIER 1 BLOCK.** *(This said, as settled fact: “AFTER leg 11 the grind and the basket SHARE ONE BAG — consuming healing items makes `ch23_chapter_done()`'s basket conjunct False, so the chapter can never grade done.”)* ✅ **MEASURED BY ME:** `train_team`'s 118-line body contains **ZERO** bag or item references in code, and its only healing call is `heal_in_pokemon_center(heal_center)` — a free Poké Center visit. The wild-battle handler `SwapTrainBattleStrategy` is pure switch logic; the item-using `StoryItemBattleStrategy` is scoped to TRAINER battles only. And `Ch24GrindMode._basket()`'s own comment states the opposite of my claim: *“THIS IS A READING, NOT A GUARD … the expectation is FLAT: `train_team` heals at a Poké Center (which also restores PP), not from the bag.”* No evidence file anywhere carries a `basket=` reading showing a drain. ⇒ **TREAT (b) AS THEORETICAL, pending a drive with `_basket()` logging.** ⛔ **THE REVERSAL DOES NOT DEPEND ON IT:** hazard (a), the money halving, is verified at the decomp and sufficient alone.
+
+**DECISION: the grind does NOT go into §Ch23. `#24-levelgap`'s fix belongs on the §Ch24 side of the
+boundary, and it is therefore part of what Segment 24 must contain — not a patch to a shipped chapter.**
+⚠ This does NOT unblock wiring Segment 24, which stays ruled out with its prerequisites open. It moves
+`#24-levelgap` from *"insert a leg into §Ch23"* to *"§Ch24's chapter must OPEN with a stepped grind"*.
+
+**⭐ WHAT SURVIVES INTACT, AND IT IS MOST OF THE ENGINEERING.** The stepping engine is sound and
+independently re-derived: every 2-level step fits the 250,000 per-call ceiling (my own arithmetic on
+the REAL battlers of `post_wally.ss1` puts the worst step at **136,135 f, 1.8× headroom**; the recon's
+independent simulation put its worst at 154,764, 62% of the ceiling — different assumptions, same
+verdict). Resumability is **FREE**: `team_is_ready(target)` and both loops in `train_for_victory_road`
+re-read the LIVE party and skip any battler already at target, so the grind's progress IS the party's
+levels. `Ch24GrindMode`'s save-state checkpoints were never a resume mechanism — nothing reads one
+back; they are operator fixture captures, and reloading one mid-run is forbidden in two places.
+
+**⛔⛔ AND THE RECON CAUGHT THE THING THAT WOULD HAVE DONE REAL DAMAGE — VERIFIED BY ME AT SOURCE.**
+The shape I was about to promote contains a **whiteout-swallowing retry loop**:
+`story_harness.py:15646-15655` does `set_story_abort(False)` then `except Exception`, and
+`class StoryAbort(BotModeError)` (`early_game.py:112`) means that `except` **catches the whiteout
+unwind**. §Ch23's own dispatch docstring forbids precisely this (`victory_road.py:3342-3345`):
+*"⛔ A WHITEOUT IS NOT RETRIED HERE … looping on it would burn all three attempts in a handful of
+frames and report two invented failures (KI-67). The 3-attempt loop is for `BotModeError` and nothing
+else."* ⇒ copying the harness shape verbatim would have reproduced **KI-67 inside the one chapter
+written to forbid it** — and gate #27 `probe_abort_swallowing.py` scans `modules/story` for exactly
+that pattern, so it would also have turned the suite red.
+
+**Alternatives rejected.** (a) *Between legs 5 and 6* — the only mechanically viable §Ch23 slot, and
+rejected on the money hazard above. (b) *After leg 11* — rejected: shares the bag with the basket.
+(c) *Raise the money margin so a whiteout is survivable* — rejected: it treats a 3.1% slack as the
+defect when the real problem is placing a long, whiteout-prone activity inside a chapter whose work
+product is money-denominated. (d) *Accept the whiteout risk as low* — rejected: a grind is hundreds of
+battles and the derail budget RESETS on every whiteout, so nothing bounds the attempts.
+
+**⭐ THE RULE THIS SETTLES: A DECISION THAT NAMES A PARAMETER HAS NOT NECESSARILY CHOSEN THE THING IT
+IS A PARAMETER OF.** I recorded "1F, not B1F" as *the* decision and never wrote down that §Ch23 was a
+choice at all — so it was never attacked until an adversarial pass was pointed at the plan rather than
+at its details. **State the host, not only the setting.**
