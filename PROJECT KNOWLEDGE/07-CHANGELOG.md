@@ -32195,3 +32195,120 @@ and the full gate suite are green. Saying so rather than implying a review that 
 Files: `tools/story-dev/story_harness.py`,
 `tools/story-dev/evidence/2026-09-18-ch24lobby-GUARDFIX-CONTINUE.txt`,
 `...-GUARDFIX-CONTINUE-VACUITY.txt`.
+
+
+## 2026-09-18 (later still x5) — §Ch24 `#24-levelgap` RECON: THE BLOCKER IS THE HEAL, NOT THE FRAME CEILING
+
+Four agents on different angles (our training code paths, chapter wiring, the B1F ground, one
+ADVERSARIAL) plus my own offline probe. **⛔ NO PRODUCTION CODE WAS WRITTEN.** Full note: `ai-research-notes/2026-09-18-ch24-levelgap-RECON.md`
+
+**⭐⭐ THE FRAMING IS INVERTED, AND I VERIFIED THE PIVOT MYSELF.** `MAX_TRAINING_FRAMES` is **not
+enforced inside `train_team`** — defined `victory_road.py:508`, enforced at exactly one site `:2021`
+inside `train_for_victory_road`, absent from `early_game.py`. ⇒ a §Ch24 leg calling `train_team`
+directly inherits **no frame ceiling at all**, only a 500-ROUND guard. ⛔ A hazard, not a licence —
+`:505-507` records that KI-28 burned **19.9M frames** for exactly this reason. ⇒ the item's 16-cell
+refusal table describes `train_for_victory_road`, not the leg we would build.
+
+**⭐ THE REAL BLOCKER IS `#24-cavehealblind`.** ✅ MEASURED (`probe_vr_heal_roundtrip.py`, planning
+only): from `post_wally.ss1` the grind tile is **44 wp, same-map OK**; but from the League-door apron
+`EVER_GRANDE (18,6)` the Poké Center `(27,48)` is **NO PATH — and that is a SAME-MAP ask**, while from
+`(18,42)` it is 23 wp. ⇒ **Ever Grande is split**, which is very likely why §Ch23 leg 10 heals at the
+**League nurse** rather than the Poké Center — and `train_team`'s `heal_center` takes a
+`PokemonCenter`, which the nurse is not. ⚠ `calculate_path` only PLANS and `navigate_to_anywhere` is
+multi-hop warp-aware, so a refusal does not bound the navigator. **Only a drive settles it.**
+
+**⛔⛔ A DOCUMENTED CLAIM MARKED “VERIFIED” IS FALSE, AND IT IS RETRACTED IN BOTH PLACES.** The
+`POKEBOT_CH24_FAULT_NOWALK` registry row and `story_harness.py:15583` both said *“`train_team` **does
+not travel** — it grinds the grass it is STANDING IN”*. ✅ Its loop calls
+`_goto_training_area(grass_map, grass_tile)` **every round** (`early_game.py:2125`), ending in
+`_navigate_riding_out`. The second half of the claim (no `TRAINING_GRASS`/`best_training_area`
+reference) is true. ⇒ that fault arm does not test what its row says; correctly understood it IS the
+`#24-cavehealblind` experiment. ⛔ No committed evidence file exists for it — the
+`2026-09-16-e4exit-CONTROL-NOWALK.*` files belong to a different driver.
+
+**⛔ SECOND CORRECTION: `team_is_ready` DOES NOT RAISE.** ✅ `victory_road.py:1847-1912` contains no
+`raise`; it returns `(bool, list)` and the CALLER raises at `:2138`. ⇒ a §Ch24 leg calling it directly
+can DECIDE rather than inherit a terminal raise.
+
+**✅ IN THE BUILD'S FAVOUR:** `train_team` already takes the ground as a parameter and production
+proves the shape (`story_mode.py:4183-4184`); B1F has **8 walkable Cave tiles 2-3 wp from the ladder**
+with Hariyama at 35%, and its pocket isolation is a **guarantee** (0/5 trainers and the B2F warp
+unreachable) rather than a penalty; `modules/story/pokemon_league.py` already exists (1,544 lines) and
+is already in every `modules/story/` gate's scope; and the chapter skeleton + four-line wiring
+contract are fully mapped.
+
+**⚠ STATED LIMITS.** The B1F tile table is a **STATIC ROM read** and KI-74 is exactly where those
+lie — a live grid read is owed. The adversarial pass on the per-step frame arithmetic had not
+returned when this was written, so **the “every 2-level step fits” figure is NOT re-verified here.**
+
+Files: `tools/story-dev/probe_vr_heal_roundtrip.py` (new),
+`tools/story-dev/evidence/2026-09-18-vr-heal-roundtrip.stdout.txt` (new).
+
+
+## 2026-09-18 (recon addendum) — ⛔ THE ADVERSARIAL PASS REFUTED `#24-levelgap`'s CENTRAL FEASIBILITY CLAIM
+
+The entry above was written before the adversarial agent returned and said so. It has returned, it
+**kicked the plan back**, and ✅ **I re-derived its arithmetic myself from the repo's own formulas**
+rather than taking it.
+
+**⛔ (a) THE ITEM'S “WORST STEP” IS AN INTERIOR STEP.** Wailord is `Fluctuating`
+(`modules/data/species.json`), curve `((level//2)+32)*level**3//50` past L36 (`modules/pokemon.py:615-621`)
+⇒ cost RISES monotonically with level, so the worst 2-level step is the **LAST**, not the middle.
+Computed with the estimator's own constants (`CAL 50.2`, `1433 f/battle`): **73→75 costs 266,538 f at
+wild 40 and 253,641 at wild 42 — both OVER the 250,000 ceiling.** The item's quoted **136,135 is the
+57→59 step**. ⇒ the claimed “1.8× headroom” does not exist.
+
+**⛔ (b) AND THE MODEL IS KNOWN-WRONG BY ~3.3× — DOCUMENTED IN THIS REPO ONE DAY EARLIER.** ✅
+`story_harness.py:15416-15420` states its wall-clock figures are *“already doubled for the measured
+**0.501 participant divisor the estimator does not model**”* and warns *“~1.65× on top — ~2,368 frames
+per WIN against the estimator's 1,433 per BATTLE”*. Combined **3.30×** ⇒ **every step exceeds the
+ceiling, including the first (47→49 → 293,046).**
+‼ And this compounds with the headline finding: a leg calling `train_team` directly inherits **no
+ceiling at all**, so it would not be REFUSED — it would simply run ~879,138 frames without
+complaining. **That is KI-28's shape exactly.**
+
+**⛔ (c) THE ITEM NAMES A GROUND WITH NO VERIFIED TILE.** It says “Victory Road B1F”; the driver it
+proposes promoting trains on **1F** (`story_harness.py:15603`), and B1F's `PENDING_GRASS` row carries
+`None` for its spin tile. ⇒ the literal plan requires inventing and two-way sweeping a new B1F tile.
+
+**✅ WHAT THE PASS DID NOT OVERTURN:** resumability is genuinely free; the ceiling really is per-call;
+the fainted-mon/roster risk is inherited from existing code rather than introduced.
+
+**‼ AND A CORRECTION TO MY OWN RECON NOTE, MADE BEFORE IT SHIPPED.** I had written that the Ever
+Grande split *“explains a design decision nobody had connected”*. ⛔ Over-claim: `story_harness.py:15422`
+already records *“from the League door (18,6) `calculate_path` reaches neither grass nor a Poké
+Center”*, and `:15601-15603` logs the same two-sided control. ⇒ **my probe REPRODUCES a documented
+measurement**; it is a control on my instrument, not a discovery. The note says so now.
+
+⇒ **NET: `#24-levelgap` still blocks §Ch24, and its proposed FIX is not viable as written.** A step
+schedule must be re-derived from MEASURED cost, and `#24-cavehealblind` (can a Victory Road grind heal
+at all?) remains the gating drive. **Nothing should be built until both are settled.**
+
+
+## 2026-09-18 (user rulings) — THE LEVEL TARGET IS RATIFIED, THE GRIND GROUND IS DECIDED, B1F IS OFF THE TABLE
+
+Three plain-English gameplay questions were put to the user while `#24-levelgap` recon was open. Full
+text and reasoning: `06-DECISIONS-LOG.md` 2026-09-18.
+
+1. ✅ **L62-75 IS CORRECT** — *“yes that level range is worthwhile”*. ⇒ `#24-levelgap` STANDS and the
+   grind is required §Ch24 content. ⛔ The ruling ratifies the GOAL, **not** the refuted 2-level-step
+   SCHEDULE, which must still be re-derived from measured cost. ⚠ Mid-50s clears exist but need
+   *“serious strategy that we have not implemented”* ⇒ do not offer “play better” as a grind-skip.
+2. ⭐⭐ **GRIND AT THE VICTORY ROAD EXIT SIDE; B1F IS OFF THE TABLE.** The user named the area
+   immediately before the Victory Road exit, for round-trip speed — which is exactly `TRAIN_SPOT_1F`
+   (*“1 step from the entrance warp”*), the ground the only proven driver already uses. B1F's better
+   EXP/battle does not outweigh being one warp deeper, and it has **no verified spin tile in the repo**.
+3. ✅ **THE LEAGUE BUILDING HAS A NURSE *AND* A MERCHANT** before the guard, corroborating
+   `heal_at_league`'s `LEAGUE_NURSE_STAND (3,4)`; and **Fly reaches only unlocked destinations**
+   (entering the League building once unlocks it).
+
+⭐ **AND THE RULING DISSOLVED A CONTRADICTION IN MY OWN MEASUREMENTS.** `probe_vr_heal_roundtrip.py`
+found the Poké Center **23 wp from `(18,42)`** (Victory Road exit side) but **NO PATH from `(18,6)`**
+(League door side). Those looked like a problem; the ruling points the grind at the side from which it
+IS reachable. ⇒ `#24-cavehealblind` shrinks from *“can a Victory Road grind heal at all?”* to *“does
+`train_team`'s heal execute the short round trip from `TRAIN_SPOT_1F`?”*
+
+⚠ **NOTED, NOT SCHEDULED:** the user raised catching legendaries (Rayquaza starts at L75 and learns
+Fly) as a possible grind-sidestep and a per-run variability feature — and scoped it out in the same
+breath (*“this is just a thought … it may derail a lot, we should focus on the battle and mapping
+mechanics of the elite 4 first”*). ⛔ Recorded as a future option; **do not start it.**

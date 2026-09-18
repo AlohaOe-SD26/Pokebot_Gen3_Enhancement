@@ -6191,3 +6191,67 @@ published claim about when the leg runs that was simply false.
 **ALTERNATIVE REJECTED:** *annotate the known exceptions in prose.* The prose already existed —
 `03-PUNCH-LIST.md` said *“pre-Wally the training leg fires there”* four lines above the claim it
 contradicted. Prose next to a checklist does not fix the checklist.
+
+
+## 2026-09-18 — ⭐ USER RULINGS: THE LEVEL TARGET, THE GRIND LOCATION, AND WHERE §Ch24 HEALS
+
+Asked as three plain-English gameplay questions while `#24-levelgap` recon was open. The user is the
+gameplay oracle; these are RULINGS, and they retire three open questions.
+
+### RULING 1 — **THE L62-75 TARGET IS CORRECT. `#24-levelgap` STANDS.**
+User: *“Yes that level range is worthwhile … I do know some players get through the elite 4 with mid
+50 level pokemon but thats serious strategy that we have not implemented into the bot yet (maybe in
+the ai version of this program).”*
+⇒ the simulated curve's CONCLUSION is accepted: production's L47 is not enough, and the grind is
+required content for §Ch24. ⛔ **This does NOT rescue the refuted PLAN** — “every 2-level step fits
+the ceiling” was measured false the same day (the worst step is the LAST one, 73→75, and the
+estimator is ~3.3× optimistic). **The GOAL is ratified; the SCHEDULE must still be re-derived from
+measured cost.**
+⇒ ⭐ And the mid-50s route is explicitly **not** the cheaper alternative it might look like: it
+depends on battle strategy this bot does not have. Do not propose “just play better” as a way to skip
+the grind.
+
+### RULING 2 — **GRIND AT THE VICTORY ROAD EXIT SIDE, AND HEAL AT A POKÉ CENTER (NOT ITEMS).**
+User: *“Pokemon center if needed or healing items, but given healing items cost money, the pokemon
+center is fine, but we should use the room right before we leave the victory road onto the other side
+of the ever grande island where the elite 4 building is as it would be faster to go back and forth
+from there.”*
+⇒ ⭐⭐ **THIS SETTLES THE GROUND QUESTION AND KILLS THE B1F BRANCH.** The named location is the
+Victory Road area immediately before the exit — which is exactly `TRAIN_SPOT_1F = (VICTORY_ROAD_1F,
+(15,39))`, documented as *“1 step from the entrance warp”* (`victory_road.py:477`) and the ground the
+only proven grind driver already uses.
+⇒ ⛔ **B1F IS OFF THE TABLE** despite its better EXP/battle (950.8 vs 775.6). It is one warp deeper,
+has **no verified spin tile anywhere in the repo** (`PENDING_GRASS` carries `None`), and the whole
+point of the user's instruction is round-trip SPEED. **Do not reopen B1F without a new ruling.**
+⇒ Healing items are rejected on COST, not on mechanics — relevant because §Ch23 leg 11 spends
+₽54,300 on the Elite Four basket against a measured ₽56,041, i.e. ₽1,741 of slack.
+
+### RULING 3 — **THE ELITE FOUR BUILDING HAS BOTH A NURSE AND A MERCHANT, BEFORE THE GUARD.**
+User: *“There is a nurse and merchant in the elite 4 building right before you talk to the guard to
+get through the door to the elite 4. Flying is still a fast way to get around but only to areas that
+have been unlocked (visited the pokemon center or in the elite 4 building case, at least entered the
+building once).”*
+⇒ ✅ Corroborates our own code: `heal_at_league` navigates to `LEAGUE_NURSE_STAND (3,4)` on
+`POKEMON_LEAGUE_1F`, and §Ch23 leg 11 shops in the same building.
+⇒ **Fly is available to unlocked destinations only**, and entering the League building once unlocks
+it — so a §Ch24 leg may use Fly for the long hop, but must not assume it before the first entry.
+
+### ⭐ WHAT THESE RULINGS RESOLVE, AND ONE CONTRADICTION THEY DISSOLVE
+✅ MEASURED by me the same day (`probe_vr_heal_roundtrip.py`): from `EVER_GRANDE_CITY (18,42)` — the
+**Victory Road exit side** — the Poké Center door `(27,48)` is **OK, 23 waypoints**; from
+`EVER_GRANDE_CITY (18,6)` — the **League door side** — it is **NO PATH on a same-map ask**.
+⇒ **those two readings looked like a problem and are actually the ruling's justification**: the user
+is telling us to grind on the side from which the Poké Center IS reachable. ⇒ `#24-cavehealblind`
+shrinks from *“can a Victory Road grind heal at all?”* to *“does `train_team`'s heal actually execute
+the short round trip from `TRAIN_SPOT_1F`?”* — still a DRIVE, but a far smaller one.
+
+### ⚠ NOTED, EXPLICITLY NOT ADOPTED — THE LEGENDARY OPTION
+User: *“we can catch legendary pokemon (rayquaza for example) … rayquaza also starts at level 75 and
+has fly … so we could send the bot on a legendary hunt if needed or as a random decision it makes so
+every run is different … this is just a thought not a suggestion of what we do as it may derail a
+lot, we should focus on the battle and mapping mechanics of the elite 4 first.”*
+⇒ **RECORDED AS A FUTURE OPTION, NOT SCHEDULED.** A L75 Rayquaza with Fly would sidestep the grind
+entirely, and “random per run” is an interesting variability feature. ⛔ **Do not start it** — the
+user scoped it out of the current work in the same breath. §Ch21 already reaches Rayquaza's map
+(Sky Pillar), so the capability is closer than it looks; that makes it MORE important not to drift
+into it before the Elite Four's battle and mapping mechanics are done.

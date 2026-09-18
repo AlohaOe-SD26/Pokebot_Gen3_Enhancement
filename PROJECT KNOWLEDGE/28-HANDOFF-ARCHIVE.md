@@ -11858,3 +11858,105 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
 >    REFILLS that scratch buffer AT menu-open ⇒ we aim from a LEFTOVER. ⇒ **NEXT JOB: drive with
 >    `POKEBOT_KI96_CENSUS=1` and read `[KI96-REREAD]` — MEASURE before fixing (rule 10). `KI-97` FIXED.** ⛔ **THE `KI-96` HALF OF THIS LINE IS DONE — the census WAS run, it returned `VERDICT=DIFFER`, and the fix shipped. Do not re-run it.**
 
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`: `#24-trainestimatorcal`
+
+> Moved under `lint_docs.py` R3 (the punch list went over budget when the `#24-levelgap`
+> recon findings were recorded). **NOTHING IS DELETED.** The item was FILED AND WITHDRAWN
+> the same day; its lesson is preserved independently in `08-MISTAKES.md`.
+> The slug survives in the punch list because code and docs cite it (4 tracked files).
+
+- [x] ⛔⛔ `#24-trainestimatorcal` — **FILED AND WITHDRAWN THE SAME DAY (2026-09-17). I RE-DISCOVERED A SETTLED QUESTION AND GOT IT WRONG BY BREAKING A RULE THIS PROJECT HAD WRITTEN VERBATIM TO PREVENT IT. ⭐ THE WITHDRAWAL IS KEPT BECAUSE IT IS MORE USEFUL THAN THE ITEM WAS.**
+  **WHAT I FILED:** that `_CALIBRATED_AVG_WILD_BASE_EXP_YIELD = 50.2` is calibrated to Route 102 and,
+  applied to Victory Road, understates xp/battle by **2.70×** ⇒ the `MAX_TRAINING_FRAMES` guard is
+  wildly over-pessimistic and refuses affordable grinds. The xp/battle arithmetic is CORRECT (I
+  reproduced 1F = 775.6 and B1F = 950.8 to one decimal from the decomp's encounter table).
+  ⛔⛔ **WHY IT IS WITHDRAWN ANYWAY — I CHANGED THE NUMERATOR AND LEFT THE DENOMINATOR.**
+  `estimate_frames_to_level` returns **FRAMES**: `ceil(needed_exp / xp_per_battle) ×
+  FRAMES_PER_WILD_BATTLE`. `FRAMES_PER_WILD_BATTLE = 1433` (`training_areas.py:674`) is **ALSO measured
+  on Route 102**, and is **ALSO wrong for Victory Road, in the SAME direction** (~**3,192** there ⚠⚠ **AND THE 3,192 FIGURE ITSELF IS NOW IN DOUBT (2026-09-18):** two independent angles measured it from real logs as **2,138** and **2,384–2,648**. NOT adjudicated — see `ai-research-notes/2026-09-18-ch24-grind-economics-MEASURED.md`. *(Direction matters: a LOWER frames/battle makes every grind CHEAPER than the figures below assume.)*).
+  The two errors very largely cancel: **exp per FRAME is 0.2002 (model) vs 0.2430 (real) — only ~18%
+  pessimistic.** ⇒ for a FRAME ceiling the estimator is approximately RIGHT, and *"relaxing it buys
+  almost nothing."*
+  ‼‼ **AND THIS WAS ALREADY ADJUDICATED ON 2026-09-08, IN A FILE I HAD OPEN** (`07-CHANGELOG.md:24637-24641`):
+  *"One measured exp/BATTLE (286.9 model vs 768.0 real = 2.68× pessimistic); the other measured
+  exp/FRAME (0.2002 vs 0.2430 = 1.18×). **Both are arithmetically right; they used different
+  denominators.**"* — and it closes with the rule I then broke: ⭐ ***"when two analyses of the same
+  quantity disagree by a factor, check the DENOMINATOR before believing either."*** My 2.70× is simply
+  their 2.68× rediscovered, re-filed as a defect, and acted on. **A Tier 1 reviewer caught it.**
+  ⭐ **WHAT SURVIVES, NARROWLY — AND IT IS UNVALIDATED, NOT A DEFECT.** Because the model sees only
+  `wild_level`, it ranks **B2F (315.5) > B1F (301.2) > 1F (286.9)** while real xp/BATTLE ranks
+  **B1F (950.8) > B2F (802.8) > 1F (775.6)** — B1F wins on Hariyama density (base EXP 184), not level.
+  ⚠ **But that ranking is in xp/BATTLE, and the same denominator trap applies**: nobody has measured
+  frames/battle per Victory Road FLOOR, so the xp/FRAME ranking — the one that would matter — is
+  **UNKNOWN**. ⇒ filed as a caution only: *if* anyone ever builds "pick the best training floor" logic
+  on `wild_level`, measure frames/battle per floor first. ⛔ Do NOT treat this as a defect to fix.
+  ⛔ **DO NOT RE-OPEN THIS ITEM.** The next agent to notice the 2.7× xp/battle gap is seeing a REAL
+  number with a settled, documented answer. Read `07-CHANGELOG.md:24637-24641` first.
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] ⛔⛔ **THE 'CHEAPEST FIRST SLICE' BELOW IS REFUTED 2026-09-08 — DO NOT BUILD IT.** Arming the…”*
+> Moved under `lint_docs.py` R3 (the punch list went over budget when the `#24-levelgap`
+> REFUTATION was recorded). **NOTHING IS DELETED** — the item is a CLOSED refutation and
+> its conclusion (do NOT build that slice) is preserved in the summary left behind.
+
+- [x] ⛔⛔ **THE 'CHEAPEST FIRST SLICE' BELOW IS REFUTED 2026-09-08 — DO NOT BUILD IT.** Arming the
+  Mossdeep respawn would make retries CHEAPER; it cannot make them SUCCEED, and cheapness is not what
+  kills these runs. **(1) The runs die on a COUNT, not on time** — `whiteout_budget(cap=40)` — and
+  this file already records that `MAX_FRAMES_PER_RUN` (5,000,000) **was never reached by ANY of the
+  61 runs** ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4914`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split).. Saved frames buy nothing. **(2) From badge 7 on, attempt N+1 is BYTE-IDENTICAL to
+  attempt N** (this very item's own finding), so a cheaper loop is the same loop.
+  ⛔⛔ **(3) IT IS ACTIVELY HARMFUL:** `whiteout_budget`'s `key` **is** `get_last_heal_location()`,
+  and the budget RESETS to 1 when the key changes ⇒ re-arming Lilycove→Mossdeep grants **one free
+  reset, i.e. up to 40 EXTRA Tate & Liza losses** before the honest stop. The fix would make runs die
+  SLOWER, not better.
+  ⭐ **Also: the mechanic in the slice below is wrong.** `setrespawn` lives in the Poké Center's
+  `MAP_SCRIPT_ON_TRANSITION` (`data/maps/MossdeepCity_PokemonCenter_1F/scripts.inc`), so **walking in
+  arms it — healing is irrelevant**; `data/scripts/pkmn_center_nurse.inc` contains no `setrespawn`.
+  And `heal_in_pokemon_center` would be the wrong tool anyway: it runs the chapter's hardest journey
+  on the WEAKER navigator (`navigate_to_anywhere`, `avoid_scripted_events=True`, no retry) where
+  `_navigate_riding_out` retries 10x with obstacle clearing.
+  ⭐⭐ **AND THE MEASUREMENT BELOW IS A PROXY, NOT A READING** — its largest bucket (ROUTE 124, 58%)
+  is IMPOSSIBLE: `src/data/heal_locations.json` contains **zero routes**. ⇒ **read the real value:**
+  `get_last_heal_location()` (`modules/save_data.py:14`, SaveBlock1 +0x1C), already wrapped as
+  `respawn_reading()` / `respawn_is_armed()` (`victory_road.py:666`, `:680`) and used at 8 sites in
+  §Ch23. ‼ The item below carried the hedge *"the exact split is proxy-dependent"*; my proposal
+  deleted it. **The hedge was the honest part.**
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] ✅ **THE VACUITY QUESTION IS ANSWERED — MEASURED, NOT ARGUED.** The handoff's *"no cheap t…”*
+> Moved under `lint_docs.py` R3 (the punch list went over budget when the §Ch24 USER
+> RULINGS were recorded). **NOTHING IS DELETED** — the item is CLOSED and its answer is
+> preserved in the summary left behind.
+
+- [x] ✅ **THE VACUITY QUESTION IS ANSWERED — MEASURED, NOT ARGUED.** The handoff's *"no cheap test
+  exists"* is true of EFFICACY and false of the PRECONDITION. `probe_dexfence_opportunity.py`
+  (offline, no ROM): window **4,286 of 17,592 heartbeats (24.4%) ~= 4,286 emulated minutes**, **8 of
+  10 lanes** reach a full party, first at f1.78M-3.28M on ROUTE 119 (x5) / FIERY PATH / MOSSDEEP /
+  ROUTE 103, `owned` 8-14. An independent agent re-derived it on the stricter FULL conjunction:
+  **13 of 24 runs, 926 qualifying samples**, existence proof `20260909-160339/L01` debug log line
+  16774 (f3337201, Pelipper #279 unowned, `owned=11`, badge 1 set at f162766). ⇒ **an A/B here will
+  not be measuring nothing.**
+  ⚠ `balls=` is now on the heartbeat because it was the ONE fence condition the corpus could not
+  confirm — `[BALLS]` fires only on a CHANGE, so a run parked at 1 ball read like one at 30.
+
+**STATUS: OPEN — ⛔ MIXED, AND THE HEADING SAYS SO. The FENCE half is BUILT, GATED AND FAULT-ARMED
+(⛔ do not rebuild). TWO things remain, and neither is a rebuild:**
+1. ⭐ **THE A/B HAS NOT BEEN RUN.** Correctness is proven offline; **EFFICACY IS NOT**. It needs
+   `x4_headless.py --build sandbox` (⛔ `custom` has no telemetry and reads as a refutation), arms
+   fence-ON vs `POKEBOT_DEXFENCE_FAULT` is *not* the arm — that is the PROBE's arm. The run arm is
+   the code as shipped vs. `git revert` of the fence commit. Grade on **`owned` strictly increasing**
+   plus the new `[DEXCATCH]`/`[DEXFENCE]` lines, **never** on party PIDs (vacuous at party 6).
+2. **THE FENCE IS DELIBERATELY NARROWER THAN THE 2026-07-31 RULING** — it refuses every post-badge
+   catch at party 4 and 5, where `resource_blocker()` returns None and nothing blocks. That is a
+   CHOICE, priced against `#24-partycap`'s measured 36-point collapse, ⛔ **not** the ruling fully
+   implemented. Filed so nobody reads this item as shipped: `#24-dexcatch-battlebail` (below) and the
+   party<6 case are the residual.
+
+---
+

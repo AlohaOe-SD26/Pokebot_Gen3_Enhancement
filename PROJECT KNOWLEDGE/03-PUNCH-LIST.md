@@ -651,6 +651,75 @@ open-vs-built sweep of all 80 open items has **not** been done.
    `train_for_victory_road` re-read the LIVE party and skip battlers already at target, so the grind's
    progress IS the party's levels. ⚠ `BENCH_SPECIES` is three hardcoded names, so the leg must CHECK
    at runtime that no battler sits far below target rather than relying on that list.
+   ⭐⭐ **USER RULINGS 2026-09-18 — THE GOAL IS RATIFIED AND THE GROUND IS DECIDED (`06-DECISIONS-LOG.md`).**
+   ✅ **L62-75 IS THE RIGHT TARGET** (*“yes that level range is worthwhile”*) ⇒ this item STANDS; the
+   grind is required §Ch24 content. ⚠ Mid-50s clears exist but need *“serious strategy that we have
+   not implemented”* ⇒ ⛔ do NOT propose “just play better” as a way to skip the grind.
+   ⭐⭐ **GRIND AT THE VICTORY ROAD EXIT SIDE — ⛔ B1F IS OFF THE TABLE.** The user named *“the room
+   right before we leave the victory road onto the other side of the ever grande island”* as the
+   grind spot, for round-trip SPEED ⇒ that is `TRAIN_SPOT_1F`, *“1 step from the entrance warp”*,
+   the ground the only proven driver already uses. **Do not reopen B1F without a new ruling.**
+   ✅ **HEAL AT A POKÉ CENTER, NOT ITEMS** (items cost money, and leg 11's basket leaves ₽1,741 of
+   slack). ✅ And the League building has **a nurse AND a merchant** before the guard — corroborating
+   `heal_at_league`'s `LEAGUE_NURSE_STAND (3,4)`.
+   ⭐ **THIS DISSOLVES THE APPARENT HEAL CONTRADICTION:** my own probe measured the Poké Center as
+   **23 wp from `(18,42)` (the VR exit side) but NO PATH from `(18,6)` (the League door side)** — the
+   ruling points the grind at the side where it IS reachable. ⇒ `#24-cavehealblind` shrinks to *“does
+   `train_team`'s heal actually execute the SHORT round trip from `TRAIN_SPOT_1F`?”* — still a drive.
+   ⛔⛔⛔ **BUT THE PLAN IS STILL REFUTED — THE RULING RATIFIES THE GOAL, NOT THE SCHEDULE.**
+   ⛔⛔⛔ **THE “EVERY 2-LEVEL STEP FITS” CLAIM IS REFUTED (2026-09-18), AND I RE-DERIVED IT MYSELF.**
+   ✅ Wailord is `Fluctuating` (`species.json`), curve `((level//2)+32)*level**3//50` past L36
+   (`modules/pokemon.py:615-621`) ⇒ **cost RISES with level, so the worst step is the LAST one.**
+   Computed from those formulas and the estimator's own constants: **73→75 = 266,538 f @wild40 and
+   253,641 @wild42 — BOTH OVER the 250,000 ceiling.** The item's quoted **136,135 is the 57→59
+   step**, an INTERIOR one, presented as the worst. ⇒ the “1.8× headroom” does not exist.
+   ⛔⛔ **AND THE MODEL IS KNOWN-WRONG BY ~3.3× IN A FILE DATED ONE DAY EARLIER.** ✅
+   `story_harness.py:15416-15420`: figures *“already doubled for the measured **0.501 participant
+   divisor the estimator does not model**”* and *“~1.65× on top — ~2,368 frames per WIN against the
+   estimator's 1,433 per BATTLE”*. Combined **3.30×** ⇒ **EVERY step exceeds the ceiling, including
+   the first (47→49 = 293,046).**
+   ⇒ ⛔ **2-LEVEL STEPPING IS NOT VIABLE AS SPECIFIED.** Step size must SHRINK with level and the
+   budget must come from MEASURED cost, not `estimate_frames_to_level`. ‼ And because a leg calling
+   `train_team` directly inherits NO ceiling, it would not be refused — it would simply run for
+   ~879,138 frames without complaining, which is **KI-28's shape exactly**.
+   ⛔ **THE ITEM ALSO NAMES A GROUND WITH NO VERIFIED TILE:** it says “B1F”, but the driver it
+   proposes promoting trains on **1F** (`story_harness.py` `GRIND_TILE = VR.TRAIN_SPOT_1F[1]` (‼ cite the SYMBOL — the line drifted 15603→15610 within a day))
+   and B1F's `PENDING_GRASS` row has `None` for its spin tile ⇒ building to the literal wording
+   means inventing and two-way sweeping a new B1F tile, which is unscoped work.
+   ✅ **NOT overturned by the adversarial pass:** resumability is free; the ceiling really is
+   per-call; the fainted-mon risk is inherited from existing code, not introduced here.
+   ⛔⛔ **RECON 2026-09-18 ALSO INVERTED THIS ITEM'S FRAMING — READ `ai-research-notes/2026-09-18-ch24-levelgap-RECON.md` BEFORE BUILDING.**
+   ✅ **`MAX_TRAINING_FRAMES` IS NOT ENFORCED INSIDE `train_team`.** Defined `victory_road.py:508`,
+   enforced at **exactly one site**, `:2021`, inside `train_for_victory_road`; the symbol is absent
+   from `early_game.py` entirely. ⇒ a §Ch24 leg calling `train_team` directly inherits **NO frame
+   ceiling at all** — only its 500-ROUND guard (`early_game.py:2102`). ⛔ **That is a HAZARD, not a
+   licence** (`:505-507`: *“KI-28 burned 19.9M frames”*): the new leg must impose its own budget.
+   ⇒ **the 16-cell refusal table above describes `train_for_victory_road`, not the leg we would build.**
+   ⭐⭐ **AND THE REAL BLOCKER IS THE HEAL, WHICH IS ALREADY FILED AS `#24-cavehealblind`.**
+   ✅ MEASURED by me (`probe_vr_heal_roundtrip.py`, planning only): from `post_wally.ss1` the grind
+   tile is **44 wp same-map OK**; but from the League-door apron `EVER_GRANDE (18,6)` the Poké
+   Center `(27,48)` is **NO PATH — a SAME-MAP ask**, while from `(18,42)` it is 23 wp. ⇒ Ever Grande
+   is SPLIT, which is very likely why §Ch23 leg 10 heals at the **League NURSE** and not the Poké
+   Center — and `train_team`'s `heal_center` takes a `PokemonCenter`, which the nurse is not.
+   ⚠ `calculate_path` only PLANS; `navigate_to_anywhere` is multi-hop warp-aware
+   (`early_game.py:1988-1997`), so a refusal does NOT bound the navigator. **Only a drive settles it.**
+   ⛔ **A FALSE “VERIFIED” CLAIM WAS RETRACTED:** `train_team` **does** travel — it calls
+   `_goto_training_area` (`early_game.py:2049-2068`) on every round of `train_team` (`early_game.py:2069-2186`). The registry's `POKEBOT_CH24_FAULT_NOWALK`
+   rationale and the matching harness comment are corrected; that arm measures something else.
+   ✅ **AND `train_team` ALREADY TAKES THE GROUND AS A PARAMETER** — production proves the shape at
+   `story_mode.py:4183-4184`: `train_team(level_floor, scope="whole", grass=…, heal_center=…)`.
+   ⇒ the “ground is not a parameter” blocker is about `train_for_victory_road`'s hardcoded
+   `grass=TRAIN_SPOT_1F` (`:2088`) and local `WILD_MAX = 40` (`:1988`), NOT about `train_team`.
+   ✅ **B1F GROUND EXISTS AND ITS “ISOLATION” IS A GUARANTEE, NOT A PENALTY:** 8 walkable `Cave`
+   tiles with encounters, 2-3 wp from the `(8,3)` ladder (best `(9,4) (7,4) (9,5) (10,4) (6,4)`;
+   ⛔ not `(9,3)/(7,3)`, adjacent to the ladder WARP), band L38-42 with **Hariyama at 35%**; and
+   **0/5 trainers and the B2F warp are unreachable from the pocket** ⇒ nothing can ambush a parked
+   spin. ⚠ The tile table is a **STATIC ROM read** and KI-74 is exactly where that lies — a LIVE
+   grid read is owed before code depends on it.
+   ⛔ **CORRECTED: `team_is_ready` DOES NOT RAISE.** ✅ I read `victory_road.py:1847-1912` — it has
+   **no `raise` at all**; it returns `(bool, list)`, and the raise is in the CALLER (`:2138`).
+   ⇒ design consequence: a §Ch24 leg calling it directly gets `(False, reasons)` back and can DECIDE,
+   rather than inheriting a terminal raise. *(Original text, kept as the record:)*
    ⚠ **ONE RECORDED OBSTACLE, CHECK IT BEFORE BUILDING:** `team_is_ready(target)` (`:2135-2141`) raises
    terminally and its Crunch clause (`:1903`) hardcodes `CRUNCH_LEVEL = 47` instead of `target` — the
    surviving reason §Ch23's **sub-47** stepping was refuted on 2026-09-08. ✅ **VERIFIED 2026-09-18 — and the inference was right for a STRONGER reason than I gave.** *(This read “INFERRED, unverified: it does not bite stepping UPWARD from 47.”)* The gate is **`if "Crunch" not in moves`**; `CRUNCH_LEVEL` only picks the WORDING of the failure reason, and **the clause never consults `target` at all** (`victory_road.py:1902-1912`) — *“⛔⛔ ASSERT THE MOVE, NEVER THE LEVEL THAT USUALLY GRANTS IT … The level is a PROXY; the move is the requirement.”* ⇒ a Mightyena that KNOWS Crunch passes at any target; stepping upward is unaffected.
@@ -663,33 +732,8 @@ open-vs-built sweep of all 80 open items has **not** been done.
    required **2.05×** cut. *(The recon said 4.79% and this item says +5.0% forty lines above: same ratio, different denominators — 301.2/286.9 is +5.0% of 1F, 4.76% of B1F. Reconciled here rather than left reading as a contradiction.)* ⇒ **ground selection is two orders of magnitude from the decision.**
    Full measured economics, the landmine below, and what is still unproven: `ai-research-notes/2026-09-18-ch24-grind-economics-MEASURED.md`.
   ‼ **UNTIL THIS SHIPS, DO NOT WIRE SEGMENT 24.** The handoff's standing list of three prerequisites (position-independent marker · leg 2 · a `ch24_chapter_done()` that is not `SYS_GAME_CLEAR` alone) is INCOMPLETE without it, and all three could be satisfied while the bot still loses every run.
-- [x] ⛔⛔ `#24-trainestimatorcal` — **FILED AND WITHDRAWN THE SAME DAY (2026-09-17). I RE-DISCOVERED A SETTLED QUESTION AND GOT IT WRONG BY BREAKING A RULE THIS PROJECT HAD WRITTEN VERBATIM TO PREVENT IT. ⭐ THE WITHDRAWAL IS KEPT BECAUSE IT IS MORE USEFUL THAN THE ITEM WAS.**
-  **WHAT I FILED:** that `_CALIBRATED_AVG_WILD_BASE_EXP_YIELD = 50.2` is calibrated to Route 102 and,
-  applied to Victory Road, understates xp/battle by **2.70×** ⇒ the `MAX_TRAINING_FRAMES` guard is
-  wildly over-pessimistic and refuses affordable grinds. The xp/battle arithmetic is CORRECT (I
-  reproduced 1F = 775.6 and B1F = 950.8 to one decimal from the decomp's encounter table).
-  ⛔⛔ **WHY IT IS WITHDRAWN ANYWAY — I CHANGED THE NUMERATOR AND LEFT THE DENOMINATOR.**
-  `estimate_frames_to_level` returns **FRAMES**: `ceil(needed_exp / xp_per_battle) ×
-  FRAMES_PER_WILD_BATTLE`. `FRAMES_PER_WILD_BATTLE = 1433` (`training_areas.py:674`) is **ALSO measured
-  on Route 102**, and is **ALSO wrong for Victory Road, in the SAME direction** (~**3,192** there ⚠⚠ **AND THE 3,192 FIGURE ITSELF IS NOW IN DOUBT (2026-09-18):** two independent angles measured it from real logs as **2,138** and **2,384–2,648**. NOT adjudicated — see `ai-research-notes/2026-09-18-ch24-grind-economics-MEASURED.md`. *(Direction matters: a LOWER frames/battle makes every grind CHEAPER than the figures below assume.)*).
-  The two errors very largely cancel: **exp per FRAME is 0.2002 (model) vs 0.2430 (real) — only ~18%
-  pessimistic.** ⇒ for a FRAME ceiling the estimator is approximately RIGHT, and *"relaxing it buys
-  almost nothing."*
-  ‼‼ **AND THIS WAS ALREADY ADJUDICATED ON 2026-09-08, IN A FILE I HAD OPEN** (`07-CHANGELOG.md:24637-24641`):
-  *"One measured exp/BATTLE (286.9 model vs 768.0 real = 2.68× pessimistic); the other measured
-  exp/FRAME (0.2002 vs 0.2430 = 1.18×). **Both are arithmetically right; they used different
-  denominators.**"* — and it closes with the rule I then broke: ⭐ ***"when two analyses of the same
-  quantity disagree by a factor, check the DENOMINATOR before believing either."*** My 2.70× is simply
-  their 2.68× rediscovered, re-filed as a defect, and acted on. **A Tier 1 reviewer caught it.**
-  ⭐ **WHAT SURVIVES, NARROWLY — AND IT IS UNVALIDATED, NOT A DEFECT.** Because the model sees only
-  `wild_level`, it ranks **B2F (315.5) > B1F (301.2) > 1F (286.9)** while real xp/BATTLE ranks
-  **B1F (950.8) > B2F (802.8) > 1F (775.6)** — B1F wins on Hariyama density (base EXP 184), not level.
-  ⚠ **But that ranking is in xp/BATTLE, and the same denominator trap applies**: nobody has measured
-  frames/battle per Victory Road FLOOR, so the xp/FRAME ranking — the one that would matter — is
-  **UNKNOWN**. ⇒ filed as a caution only: *if* anyone ever builds "pick the best training floor" logic
-  on `wild_level`, measure frames/battle per floor first. ⛔ Do NOT treat this as a defect to fix.
-  ⛔ **DO NOT RE-OPEN THIS ITEM.** The next agent to notice the 2.7× xp/battle gap is seeing a REAL
-  number with a settled, documented answer. Read `07-CHANGELOG.md:24637-24641` first.
+- [x] ⛔⛔ `#24-trainestimatorcal` — **FILED AND WITHDRAWN THE SAME DAY (2026-09-17). CLOSED.** I re-discovered a SETTLED question and filed it as a defect; correcting the numerator while leaving the denominator was the error, and both are Route-102-calibrated so the errors cancel.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)**. ‼ The rule it left behind lives in `08-MISTAKES.md`: **when two analyses of the same quantity disagree by a factor, check the DENOMINATOR before believing either.**
 - [x] ⭐⭐⭐ `#24-tailprobe` — **NEW AND DONE 2026-09-17 (late). WALLACE IS BEATEN AND THE GAME IS CLEARED. THE ENDGAME TAIL IS MEASURED END TO END.**
   `--driver ch24tailprobe` (NEW `Ch24TailProbeMode`, OBSERVE-ONLY) from the pinned `post_hall4_door.ss1`: stepped onto `(5,2)`, won the Champion fight (`on_battle_ended` latched **`outcome=<BattleOutcome.Won: 1>`**, `whiteouts=0`), rode the post-battle cutscene, the Hall of Fame MAP, the Hall of Fame SCREEN, **10,353 frames of un-skippable credits** and a `SoftReset(RESET_ALL)`, and came back **controllable in `LITTLEROOT_TOWN_BRENDANS_HOUSE_2F (4,2)` with `IS_CHAMPION=True` and `SYS_GAME_CLEAR=True` in BOTH RAM AND FLASH.** Full frame table + answers: `ai-research-notes/2026-09-17-ch24-legB-TAIL-MEASURED.md`; evidence `evidence/2026-09-17-ch24tailprobe-*`.
   ⭐⭐ **Q7 ANSWERED — THE SINGLE UNMEASURED LOAD-BEARING FACT IN THE WHOLE LEG-B SPEC: flash written BY THE GAME survives `_core.reset()`.** The profile started at **`<no save data>`**, the Hall of Fame wrote the save slot mid-run, and the reboot went **`CB2_MAINMENU` → `CB2_CONTINUESAVEDGAME`** — not `NAMING_SCREEN`. ⇒ trap T17 does not bite on this path, because the game itself populates flash before the reboot.
@@ -2091,32 +2135,8 @@ accident of what the bot happened to meet.
       📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the six agents' findings and the narrowing are there.
 - [x] ✅✅ **THE FENCE IS BUILT AND GATED 2026-09-10 (gate #50, 20 cases, fault-armed). CLOSED.**
       📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the fence's design, its 20 cases and its fault arms are there. The GATE itself is live in `run_gates.py` and is what actually enforces this; the prose was the record, not the mechanism.
-- [x] ✅ **THE VACUITY QUESTION IS ANSWERED — MEASURED, NOT ARGUED.** The handoff's *"no cheap test
-  exists"* is true of EFFICACY and false of the PRECONDITION. `probe_dexfence_opportunity.py`
-  (offline, no ROM): window **4,286 of 17,592 heartbeats (24.4%) ~= 4,286 emulated minutes**, **8 of
-  10 lanes** reach a full party, first at f1.78M-3.28M on ROUTE 119 (x5) / FIERY PATH / MOSSDEEP /
-  ROUTE 103, `owned` 8-14. An independent agent re-derived it on the stricter FULL conjunction:
-  **13 of 24 runs, 926 qualifying samples**, existence proof `20260909-160339/L01` debug log line
-  16774 (f3337201, Pelipper #279 unowned, `owned=11`, badge 1 set at f162766). ⇒ **an A/B here will
-  not be measuring nothing.**
-  ⚠ `balls=` is now on the heartbeat because it was the ONE fence condition the corpus could not
-  confirm — `[BALLS]` fires only on a CHANGE, so a run parked at 1 ball read like one at 30.
-
-**STATUS: OPEN — ⛔ MIXED, AND THE HEADING SAYS SO. The FENCE half is BUILT, GATED AND FAULT-ARMED
-(⛔ do not rebuild). TWO things remain, and neither is a rebuild:**
-1. ⭐ **THE A/B HAS NOT BEEN RUN.** Correctness is proven offline; **EFFICACY IS NOT**. It needs
-   `x4_headless.py --build sandbox` (⛔ `custom` has no telemetry and reads as a refutation), arms
-   fence-ON vs `POKEBOT_DEXFENCE_FAULT` is *not* the arm — that is the PROBE's arm. The run arm is
-   the code as shipped vs. `git revert` of the fence commit. Grade on **`owned` strictly increasing**
-   plus the new `[DEXCATCH]`/`[DEXFENCE]` lines, **never** on party PIDs (vacuous at party 6).
-2. **THE FENCE IS DELIBERATELY NARROWER THAN THE 2026-07-31 RULING** — it refuses every post-badge
-   catch at party 4 and 5, where `resource_blocker()` returns None and nothing blocks. That is a
-   CHOICE, priced against `#24-partycap`'s measured 36-point collapse, ⛔ **not** the ruling fully
-   implemented. Filed so nobody reads this item as shipped: `#24-dexcatch-battlebail` (below) and the
-   party<6 case are the residual.
-
----
-
+- [x] ✅ **THE VACUITY QUESTION IS ANSWERED — MEASURED, NOT ARGUED. CLOSED.**
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the measurement and its reasoning are there.
 ### ✅ `#26-healnavbare` — FIXED 2026-09-11, **VERIFIED EFFECTIVE BY BATCH 2026-09-12**: 323 ride-outs fired, the targeted Slateport derail went **22/26/22 per batch → 0** beside 1,642 Slateport mentions (non-vacuous). ⚠ RESIDUE: 13 cases exhausted all 8 ride-outs (Fortree ×6, Petalburg ×6, Lavaridge ×2) — the mechanism works and is not universal. (filed 2026-09-11)
 
 ⛔ **DO NOT SIMPLY RAISE THE 8-ROUND BOUND.** A ceiling that is too high turns a fast visible failure into a slow one. The open question is *why Fortree/Petalburg/Lavaridge differ from Slateport*, not *how many more tries*. — **Everything below this line is the ORIGINAL 2026-09-11 filing, kept for the diagnosis; the bare-navigate it describes is FIXED.**
@@ -4019,28 +4039,8 @@ another on the same line is not, suspect the INSTRUMENT, not the list.**
   gym leader is a trainer battle by construction.
 - [ ] ⚠ **DO NOT SCOPE FROM THE TERMINAL-LOCATION STATISTIC** — it is a sample of size one per run
   (`08-MISTAKES.md` 2026-09-07). Plot the whole distribution of loss sites first.
-- [x] ⛔⛔ **THE 'CHEAPEST FIRST SLICE' BELOW IS REFUTED 2026-09-08 — DO NOT BUILD IT.** Arming the
-  Mossdeep respawn would make retries CHEAPER; it cannot make them SUCCEED, and cheapness is not what
-  kills these runs. **(1) The runs die on a COUNT, not on time** — `whiteout_budget(cap=40)` — and
-  this file already records that `MAX_FRAMES_PER_RUN` (5,000,000) **was never reached by ANY of the
-  61 runs** ⛔⛔ **FALSE AS OF 2026-09-09 — MEASURED 6 FIRINGS.** `grep -rho "per-run frame budget exhausted" x4-runs/*/L0*/stdout.txt | wc -l` = **6** (overshoot ≤10,149 frames, 0.2%). ‼ AND THE BIGGER POINT: `MAX_FRAMES_PER_RUN` lives at `story_mode.py:4914`, inside **`StoryEndlessResetMode` — the BATCH HARNESS**. Production `StoryMode` has **no total-frame budget at all**, so in a real run the per-call `MAX_TRAINING_FRAMES` ceiling is the ONLY pre-emptive bound in existence. ⛔ Do not argue from run-budget headroom: at the 16 Ch23 refusals the median run had already burned 86% of it (median spare **707,123** frames against a mean training bill of **1,083,258** solo / **2,164,009** with the 2-way split).. Saved frames buy nothing. **(2) From badge 7 on, attempt N+1 is BYTE-IDENTICAL to
-  attempt N** (this very item's own finding), so a cheaper loop is the same loop.
-  ⛔⛔ **(3) IT IS ACTIVELY HARMFUL:** `whiteout_budget`'s `key` **is** `get_last_heal_location()`,
-  and the budget RESETS to 1 when the key changes ⇒ re-arming Lilycove→Mossdeep grants **one free
-  reset, i.e. up to 40 EXTRA Tate & Liza losses** before the honest stop. The fix would make runs die
-  SLOWER, not better.
-  ⭐ **Also: the mechanic in the slice below is wrong.** `setrespawn` lives in the Poké Center's
-  `MAP_SCRIPT_ON_TRANSITION` (`data/maps/MossdeepCity_PokemonCenter_1F/scripts.inc`), so **walking in
-  arms it — healing is irrelevant**; `data/scripts/pkmn_center_nurse.inc` contains no `setrespawn`.
-  And `heal_in_pokemon_center` would be the wrong tool anyway: it runs the chapter's hardest journey
-  on the WEAKER navigator (`navigate_to_anywhere`, `avoid_scripted_events=True`, no retry) where
-  `_navigate_riding_out` retries 10x with obstacle clearing.
-  ⭐⭐ **AND THE MEASUREMENT BELOW IS A PROXY, NOT A READING** — its largest bucket (ROUTE 124, 58%)
-  is IMPOSSIBLE: `src/data/heal_locations.json` contains **zero routes**. ⇒ **read the real value:**
-  `get_last_heal_location()` (`modules/save_data.py:14`, SaveBlock1 +0x1C), already wrapped as
-  `respawn_reading()` / `respawn_is_armed()` (`victory_road.py:666`, `:680`) and used at 8 sites in
-  §Ch23. ‼ The item below carried the hedge *"the exact split is proxy-dependent"*; my proposal
-  deleted it. **The hedge was the honest part.**
+- [x] ⛔⛔ **THE ‘CHEAPEST FIRST SLICE’ IS REFUTED (2026-09-08) — ⛔ DO NOT BUILD IT. CLOSED.** Arming it was measured to be the wrong first move; the refutation stands.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full refutation and its measurements are there.
 - [x] ✅ **THE MONEY CONTRADICTION THIS ITEM RECORDED AS OPEN IS NOW SETTLED, FROM THE DECOMP.**
   `src/overworld.c:358` — `DoWhiteOut()` does `SetMoney(&money, GetMoney(&money) / 2)`. `MoneyLoss`
   has **zero** hits in `pret/pokeemerald`; the `sWhiteOutMoneyLossMultipliers` table is FireRed's

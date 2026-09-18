@@ -15580,6 +15580,13 @@ class Ch24GrindMode(BotMode):
             return
 
         # ---- PREAMBLE: STAND ON THE GRIND TILE BEFORE TRAINING ---------------------------------
+        # ⛔⛔ RETRACTED 2026-09-18: `train_team` **DOES** TRAVEL — its loop calls
+        # `_goto_training_area(grass_map, grass_tile)` EVERY ROUND (`early_game.py:2125`), ending in
+        # `_navigate_riding_out(...)`. The claim below was marked “verified 2026-09-17” and is
+        # false in its first half; its second half (no `TRAINING_GRASS` / `best_training_area`
+        # reference) is true. ⇒ this walk is NOT load-bearing for the reason stated, and the
+        # NOWALK arm measures something else — see `#24-cavehealblind`.
+        # *(original, kept as the record:)*
         # ⛔⛔ `train_team` DOES NOT TRAVEL. It grinds the grass it is STANDING IN and heals at
         # `heal_center`; its body references neither `TRAINING_GRASS` nor `best_training_area`
         # (verified 2026-09-17). Handed a save parked anywhere else it does not "go find grass" —

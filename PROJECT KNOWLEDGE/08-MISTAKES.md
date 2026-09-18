@@ -19403,3 +19403,42 @@ RECORDED arrival tile.
   makes the fixture's documented position a lie that only a reload exposes.
 - ‼ **When a fixture records two positions, name which is which.** “Delivered” and “resting” are
   different facts; a row that gives one number invites the reader to assume the other.
+
+
+## 2026-09-18 — TWO CLAIMS MARKED “VERIFIED” WERE FALSE, AND ONE OF THEM SHAPED A DESIGN ITEM
+
+**SYMPTOM.** While scoping `#24-levelgap` I read two statements that the docs presented as settled,
+one of them stamped *(verified 2026-09-17)*, and both turned out to be wrong when I opened the code:
+
+1. *“`train_team` **does not travel** — it grinds the grass it is STANDING IN”* — in the
+   `POKEBOT_CH24_FAULT_NOWALK` registry row **and** in a `story_harness.py` comment. ✅ Its loop calls
+   `_goto_training_area(grass_map, grass_tile)` **every round** (CALL at `early_game.py:2125`; function at `:2049-2068`), ending in
+   `_navigate_riding_out(...)`. The claim's SECOND half (no `TRAINING_GRASS` / `best_training_area`
+   reference) is true — which is very likely how the false first half survived beside it.
+2. *“`team_is_ready(target)` raises terminally”* — in `#24-levelgap` **and** in a sibling research
+   note. ✅ `victory_road.py:1847-1912` contains **no `raise` at all**; it returns `(bool, list)` and
+   the CALLER raises at `:2138`.
+
+**WHY THEY MATTERED, not just were wrong.** (1) made the `NOWALK` fault arm look like it tested
+“the walk is load-bearing” when it cannot — parked off-grass, `train_team` tries to navigate anyway
+— so a documented arm was proving something other than its stated property. (2) changes a design
+decision: a §Ch24 leg calling `team_is_ready` directly gets `(False, reasons)` back and can **decide**,
+rather than inheriting a terminal raise it must work around.
+
+**ROOT CAUSE.** Both were true-sounding summaries of code that was *read once and paraphrased*. A
+paraphrase drops the qualifier that makes it false. Neither had an executable check behind it.
+
+**THE FIX THAT WORKED.** Retract at every site with the original text kept beside the correction, and
+prefer the SYMBOL over the line number — one of these citations drifted 7 lines within a single day
+(`15603 → 15610`) while I was still working on it.
+
+**PREVENTION RULES.**
+- ⛔ **A “(verified &lt;date&gt;)” stamp is a claim about the PAST, not a guarantee about the present.**
+  Re-open the file before building on it. Both of these were stamped and both were wrong.
+- ⭐ **When a doc sentence has TWO halves joined by “and”, verify them SEPARATELY.** Here the true half
+  lent its credibility to the false one and they had been believed together for a day.
+- ‼ **A retraction is not complete until you grep the RESEARCH NOTES too.** I swept `03-PUNCH-LIST`
+  and `04-HANDOFF`, declared the retraction done, and a Tier 1 reviewer found the identical stale
+  claim alive in a sibling note that the punch list **links to by name** — the second time in one
+  session that limiting a sweep to the current-state files let a contradiction survive. **Sweep the
+  whole `PROJECT KNOWLEDGE/` tree, including `ai-research-notes/`.**
