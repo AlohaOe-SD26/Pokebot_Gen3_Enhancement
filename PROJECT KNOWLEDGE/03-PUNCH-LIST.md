@@ -243,6 +243,34 @@ open-vs-built sweep of all 80 open items has **not** been done.
   added, matching the three gates that carried this bug before.
   ⚠ **THEREFORE THE PROSE RULE IN `08-MISTAKES.md` STAYS.** The gate covers the house idiom, not every
   phrasing; it is a floor, not a replacement. Run: `py -3.12 probe_retraction_coverage.py --self-test`.
+- [ ] ⛔⛔ `#24-markerwinstate` — **NEW 2026-09-17 (late). THE §Ch24 PROGRESS MARKER CHOSEN ON 2026-09-16 DOES NOT COVER *WINNING*, AND MY OWN TAIL PROBE HOLDS THE COUNTEREXAMPLE. ⇒ WHAT REMAINS: the marker must become a DISJUNCT before prerequisite (1) can be called done.**
+  **THE RULING** (`06-DECISIONS-LOG.md:5496`): *"the marker is 'the bot is standing on a SEALED League
+  map'"*, safe **by exhaustion** because no whiteout can respawn on one. ✅ **That exhaustion argument
+  is TRUE and I re-measured it** — the decomp's heal table has **22 locations over 20 maps and not one
+  is a League interior**; the only INDOOR heal points in the game are the two Littleroot bedrooms.
+  ⛔⛔ **BUT A *WINNING* RUN ENDS AT `LITTLEROOT_TOWN_BRENDANS_HOUSE_2F (4,2)`** — MEASURED by
+  `--driver ch24tailprobe` (`ai-research-notes/2026-09-17-ch24-legB-TAIL-MEASURED.md` Q8) — **which is
+  not a League map.** So after a win the marker reads FALSE. Verified line by line, in our own code:
+  1. `ch23_chapter_done()` requires `_on_map(EG)`; Littleroot is not Ever Grande ⇒ **False** ⇒ §Ch23
+     runs again (`victory_road.py:3318`).
+  2. Legs 1-3 self-skip — `_PRE_DEPARTURE_MAPS = (CITY, PC_1F, PC_2F, UWS, UW126)` (`:3275`).
+  3. **Leg 4 FIRES:** `if not inside_vr and not at_ever_grande_top()` (`:3384-3385`), and
+     `at_ever_grande_top()` is `inside_league() or (_on_map(EG) and y <= EG_LANDING[1])` (`:1426`) —
+     **both terms False from Littleroot.**
+  ⇒ ⭐ **THE BOT WOULD ATTEMPT AN OCEAN CROSSING FROM A BEDROOM**, burn the chapter's three attempts
+  and raise — turning a **completed game** into a hard §Ch23 failure.
+  ✅ **THE FIX IS ONE WORD — A DISJUNCT:** *"on a sealed League map **OR** the game is cleared"*.
+  `IS_CHAMPION` (flag **2175**) is the right second term because it is **MONOTONE**: set in exactly one
+  decomp file (`data/scripts/hall_of_fame.inc`) and **cleared nowhere** — unlike `VAR_ELITE_4_STATE`
+  and the four `DEFEATED_ELITE_4_*` flags, which `ResetEliteFour` wipes on the WINNING path as well as
+  the losing one. ⚠ `IS_CHAMPION` alone is reported ~13,000 frames early (agent claim, unverified), so
+  it is a COMPLETION term, not a "the run is usable" term — do not collapse the two roles
+  (`#24-gameclearflag`).
+  ‼ **THIS IS THE THIRD CAVEAT ON THAT RULING, AND THE FIRST TWO ARE STILL OPEN:** (1) `inside_league()`
+  is the wrong helper — it includes the lobby and 2F, where §Ch23's own heal and mart legs stand; (2)
+  the lobby window between the guard-talk and Hall5 is still untraced.
+  ⛔ **DO NOT WIRE SEGMENT 24** — this is prerequisite (1), and it is not done. Full recon with what is
+  verified and what is only an agent claim: `ai-research-notes/2026-09-17-ch24-wiring-recon-VERIFIED.md`.
 - [ ] ⛔⛔⛔ `#24-levelgap` — **NEW 2026-09-17 (late). THE FOURTH PREREQUISITE FOR WIRING SEGMENT 24, AND IT WAS NOT ON THE LIST OF THREE. PRODUCTION REACHES THE LEAGUE DOOR AT L47 AND THE GAUNTLET IS 0% AT L53.**
   ‼ **EVERY §Ch24 PROBE THIS PROJECT HAS RUN USED A HAND-GROWN L75 PARTY.** That party came from `--driver ch24grind` (`Ch24GrindMode`), which lives **ONLY in `tools/story-dev/story_harness.py:15393`** — it is NOT production code. ⇒ a wired Segment 24 today would walk into a ONE-WAY SEALED ZONE at L47 and lose, repeatedly.
   **THE NUMBERS, ALL FROM OUR OWN TREE:** production's only story training target is **`TRAIN_TARGET = 47`** (`modules/story/victory_road.py:492`) — ⭐ **verified to be the ONLY one in the entire story tree** (`grep` over `modules/story/*.py` + `story_mode.py` returns exactly that one plus `ENDLESS_RESET_TARGET`, which is unrelated). And the win-rate curve (`07-CHANGELOG.md:23310-23313`) is: **`L53 → 0% Glacia · L57 → 87% Glacia, dies at Drake · L60 → 99.7% Glacia · L75 → 88% CLEAR`**, with *“Break-even is L62”* against Wallace’s Milotic Recover race (`:23307`).

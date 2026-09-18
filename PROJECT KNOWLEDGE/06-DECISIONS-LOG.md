@@ -5943,3 +5943,44 @@ warning nobody sees is indistinguishable from no check; and unlike a judgement c
 legitimate hit to be annoyed by. (c) *Scan only the current-state files* — rejected: the second
 historical instance was found in `28-HANDOFF-ARCHIVE.md`, an archive, which is exactly where an
 invisible defect survives longest because nobody re-reads it.
+
+
+## 2026-09-17 (late) — ⛔ A THIRD CAVEAT ON THE §Ch24 MARKER RULING: IT DOES NOT COVER **WINNING**
+
+**The 2026-09-16 ruling stands in its reasoning and is INCOMPLETE in its coverage.** It decided the
+§Ch24 progress marker is *"the bot is standing on a SEALED League map"*, justified by exhaustion: no
+whiteout can respawn on a League interior. ✅ **I re-measured that exhaustion argument and it holds** —
+the decomp's heal table has 22 locations across 20 maps and not one is a League interior; the only
+indoor heal points in the game are the two Littleroot bedrooms, and entering the lobby arms an
+**outdoor** respawn at `MAP_EVER_GRANDE_CITY (18,6)`.
+
+**⛔⛔ WHAT IT MISSES: THE WINNING END STATE.** A completed §Ch24 leaves the avatar at
+`LITTLEROOT_TOWN_BRENDANS_HOUSE_2F (4,2)` — MEASURED by this project's own tail probe, and the ruling
+predates that measurement. Littleroot is not a League map, so the marker reads FALSE after a win,
+`ch23_chapter_done()` is consulted, returns False (it requires `_on_map(EG)`), and §Ch23 re-runs. Legs
+1-3 self-skip, but **leg 4 fires**: its guard is `not inside_vr and not at_ever_grande_top()`, and
+`at_ever_grande_top()` is False from Littleroot on both of its terms.
+⇒ **a completed game becomes a hard §Ch23 failure, attempting an ocean crossing from a bedroom.**
+
+**DECISION: the marker must be a DISJUNCT — "on a SEALED League map **OR** the game is cleared."**
+The second term is `IS_CHAMPION` (flag 2175), chosen because it is **MONOTONE**: set in exactly one
+decomp file and cleared nowhere, unlike `VAR_ELITE_4_STATE` and the four `DEFEATED_ELITE_4_*` flags,
+which `ResetEliteFour` wipes on the WINNING path as well as the losing one. Filed as
+`#24-markerwinstate`; prerequisite (1) is **not done**.
+
+⚠ **THE OTHER TWO CAVEATS ON THAT RULING REMAIN OPEN** — `inside_league()` is the wrong helper (it
+includes the lobby and 2F), and the lobby window is still untraced. This is the third.
+
+**⭐ THE RULE THIS SETTLES, and it generalises past this marker: A COMPLETION MARKER MUST BE CHECKED
+AGAINST THE *SUCCESS* PATH, NOT ONLY AGAINST THE FAILURE PATH.** The exhaustion argument was built
+entirely around what a WHITEOUT can forge — a careful answer to "can this be reached by failing?" —
+and never asked the cheaper question, *"where is the bot standing when it WINS?"* The project already
+has the matching rule from 2026-09-05: *"A POSITION CAN BE REACHED BY SUCCEEDING **OR** BY FAILING."*
+Here the position could be reached by neither, because winning moves the bot somewhere else entirely.
+
+**Alternatives rejected.** (a) *Use `SYS_GAME_CLEAR` as the second term instead of `IS_CHAMPION`* —
+rejected: it is set ~54 lines before the callback swap, with the Hall of Fame, the credits and a
+`SoftReset(RESET_ALL)` still ahead (`#24-gameclearflag`). (b) *Add Littleroot to the marker's map set*
+— rejected: Littleroot is where a NEW GAME starts, so it would grade a never-played save as done. (c)
+*Leave it and rely on `ch23_chapter_done()`'s basket conjunct* — rejected: after a win the party is
+whatever survived Wallace and the basket is likely spent, so that conjunct is False too.

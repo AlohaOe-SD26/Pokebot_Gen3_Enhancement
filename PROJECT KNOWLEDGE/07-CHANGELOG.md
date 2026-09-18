@@ -31691,3 +31691,39 @@ docstring says is a gate that will one day report PASS over the very file that m
 ✅ Also corrected per review: the remediation text is now **per-cause** — shell-escaping advice for a
 C0 byte, editor/paste advice for a BOM or zero-width character. Uniform advice that does not fit the
 finding teaches a reader to ignore the gate, which is the same failure mode as a false positive.
+
+
+## 2026-09-17 (late) — ⛔ THE §Ch24 PROGRESS MARKER DOES NOT COVER WINNING (`#24-markerwinstate`)
+
+**A 10-agent wiring recon returned, and its most valuable output contradicts a ruling made yesterday —
+using a measurement this project already had.**
+
+The 2026-09-16 ruling chose *"standing on a SEALED League map"* as §Ch24's progress marker, safe by
+exhaustion. ✅ I re-measured the exhaustion argument at source and it **holds**: 22 heal locations over
+20 maps, **none** a League interior; the only indoor ones are the two Littleroot bedrooms.
+
+⛔⛔ **But a WINNING run ends at `LITTLEROOT_TOWN_BRENDANS_HOUSE_2F (4,2)`** — measured by our own tail
+probe, *after* the ruling was written. Verified line by line: the marker reads False, so
+`ch23_chapter_done()` is consulted and returns False (`_on_map(EG)`), §Ch23 re-runs, legs 1-3 skip,
+and **leg 4 fires** because `at_ever_grande_top()` is False from Littleroot on both terms
+(`victory_road.py:3384-3385`, `:1426`). ⇒ **a completed game becomes a hard §Ch23 failure attempting an
+ocean crossing from a bedroom.**
+
+✅ **FIX: make the marker a DISJUNCT with `IS_CHAMPION` (flag 2175)** — monotone, set in one decomp
+file, cleared nowhere, unlike `VAR_ELITE_4_STATE` and the `DEFEATED_ELITE_4_*` flags which
+`ResetEliteFour` wipes on the winning path too. Filed; prerequisite (1) is **not done**.
+
+**⭐ THE RULE: A COMPLETION MARKER MUST BE CHECKED AGAINST THE *SUCCESS* PATH, NOT ONLY THE FAILURE
+PATH.** The exhaustion argument reasoned exhaustively about what a WHITEOUT can forge and never asked
+*"where is the bot standing when it WINS?"*
+
+**Two verified hazards the adversarial pass also found, both absent from `#24-levelgap`'s cost model:**
+(a) `train_team` heals at a Poké Center on any HP/PP dip, but **from B1F that means re-crossing the
+puzzle, and `B1F_PUZZLE_RESETS_ON_WARP = True`** — *"a round trip from below costs the entire solve
+twice"* (`victory_road.py:2282-2284`, `:229-234`); (b) **B1F carries a trainer** — *"this is how a run
+whites out underground"* (`:2345`). ⇒ ⭐ **that inverts the assumption that B1F is the right post-Wally
+ground**: 1F is one warp from the exit, has no puzzle, and already has a proven `TRAIN_SPOT_1F`. ⛔ An
+ARGUMENT, not a measurement — nobody has priced a B1F heal round-trip in frames.
+
+Full recon, separating the seven facts I re-verified from the agent claims I did not:
+`ai-research-notes/2026-09-17-ch24-wiring-recon-VERIFIED.md`.
