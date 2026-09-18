@@ -11062,3 +11062,33 @@ atlas's central finding while it rested on an uncommitted script: right numbers,
 #   own banner says so, yet this block kept COMMANDING its repro for nine days. *(It read: “THE
 #   `KI-96` REPRO. Wedges by ~f27k (~6 min) in the in-battle PARTY MENU … LEVELLING ALONE DOES NOT
 #   UNBLOCK §Ch24.”)* The COMMAND stays: it is a valid §Ch23 chapter drive from the L60 party.
+
+
+## PARTY ACCOUNTING STAGE 0 — the hand recipes, ARCHIVED 2026-09-17 (late, R3 budget)
+
+⛔ Moved VERBATIM out of `04-HANDOFF.md`, not deleted. `repro_party_accounting.py` is **gate #22**
+and `run_gates.py` runs it on every suite, so the hand recipe is reference rather than a daily
+command — the same criterion this file used when it archived gate #13's recipe. The handoff hit
+its 900-line R3 cap while §Ch24 room 3 shipped, and room 4 needs the headroom.
+⭐ `collect_party_accounting.py` (the P3b aggregator) is the half worth remembering: it MEASURES
+ONLY, and it fails LOUD when no log matches — *“I could not look” is not “clean”*.
+
+# --- PARTY ACCOUNTING STAGE 0 — the readers, the divergence log, and its gate ---
+PYTHONUTF8=1 py -3.12 repro_party_accounting.py     # PARTY ACCOUNTING STAGE 0 (gate #22)
+#   Expect: `ALL 33 CHECKS PASS`, exit 0. No emulator, ~1s. ‼ It PRINTS its own check count —
+#     believe that line, not this one. Takes `--build custom` and
+#     ASSERTS which fork it imported. It drives the REAL get_party() over FABRICATED gPlayerParty
+#     memory, so it tests the shipped reader, not a copy. ‼ The CONTROLS are the point: a healthy
+#     party must record NOTHING, and get_party() must be byte-identical with the observer stubbed.
+#   ‼ THE MEASUREMENT IT EXISTS FOR IS NOT IN THE GATE — it is the `[PARTY-ACCT] STAGE 0 SUMMARY`
+#     that every `story_harness.py` drive now prints at the end. Collect those from LONG runs:
+PYTHONUTF8=1 py -3.12 collect_party_accounting.py   # (P3b) aggregate every drive's summary
+#   Exits 1 until the criterion is met (>=5 drives / >=3 drivers / >=250k recomputes, OR the first
+#   divergence), so P3b cannot be eyeballed. ✅ AS OF 2026-08-15 IT EXITS 0: 7 drives, 7 drivers,
+#   ⛔ SUPERSEDED 2026-08-15: it now reports ✅ CRITERION (b) MET — A DIVERGENCE WAS OBSERVED.
+#   967,970 recomputes · 39 drives · 12 drivers, with HOLE x30 in `boxcounter2` in BOTH forks
+#   (slot 5 of gPlayerPartyCount=6, counted by the game but near-all zero). The old line said
+#   "7 drives, 280,707, NO DIVERGENCE … all DUNGEON content with a STATIC party" — true of that
+#   population, false now that a party-MUTATING driver exists. ‼ RUN IT; do not quote it.
+#   ‼ It MEASURES ONLY — it cannot drive the emulator, and it says so rather than implying a log
+#     read is a reading. It also fails LOUD when no log matches ("I could not look" != "clean").
