@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -18447,6 +18447,480 @@ class Ch24GlaciaMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch24DrakeMode(BotMode):
+    """§Ch24 ROOMS 3->4 — THE FOURTH AND **LAST** INSTANCE OF THE REPEATING UNIT, WITH THE DRAKE FIGHT.
+
+    ⛔⛔ WHY THIS IS THE LAST ONE. Rooms 1->4 share one shape: `room -> hall -> next room`, with the
+    entry walk-in, the entry seal and the door-open all coming from ONE SHARED SCRIPT that all four
+    rooms `call` (decomp `data/scripts/elite_four.inc`). **ROOM 5 IS NOT THIS UNIT** — Wallace starts
+    himself from a `lockall` with no flag guard, so every entry re-fights him, and the exit is a
+    scripted warp. Do NOT make room 5 the fifth instance (`#24-leg2spec`).
+
+    ⭐ THE STATE LADDER CLOSES HERE, VERIFIED AT SOURCE. Each room's `OnFrame` gates its entry
+    cutscene on a different `VAR_ELITE_4_STATE`: Sidney `==0`, Phoebe `==1`, Glacia `==2`, and
+    **DRAKE `==3`, setting 4** (`EverGrandeCity_DrakesRoom_OnFrame`). The pinned start fixture
+    `post_glacia_L75.ss1` reads **3**, verified by reload — so the auto-walk will fire.
+
+    ‼‼ THE ONE STRUCTURAL DIFFERENCE FROM ROOMS 1-3, AND IT IS REAL — read before assuming a rename.
+    Drake's `EventScript_Defeated` runs **TWO EXTRA INSTRUCTIONS BEFORE `setflag`**:
+        setvar VAR_0x8004, FANCOUNTER_DEFEATED_DRAKE
+        special Script_TryGainNewFanFromCounter
+    (the Trainer Fan Club counter). Rooms 1-3 have no such prelude. ✅ It does NOT disturb this
+    driver's ordering: the flag is still set BEFORE `SetAdvanceToNextRoomMetatiles` opens the door,
+    which is exactly what the step-8 capture guard conjuncts on.
+    ⚠ Drake's room also reuses **Sidney's** `OnWarp` table — the decomp itself comments *"Unused,
+    Drake uses Sidneys identical OnWarp for some reason"*. Benign; identical behaviour.
+
+    ⭐ ICE BEAM IS THE POINT OF THIS ROOM, AND THE ARITHMETIC IS FROM OUR OWN TYPE DATA.
+    Drake's team (decomp `src/data/trainer_parties.h`) vs Wailord's Ice Beam:
+        Shelgon L52 (Dragon)          2x
+        Altaria L54 (Dragon/Flying)   **4x**
+        Kingdra L53 (Water/Dragon)    1x   <- the one it does NOT answer
+        Flygon  L53 (Ground/Dragon)   **4x**  (and LEVITATE makes Ice the only SE type reachable)
+        Salamence L55 @Sitrus         **4x**
+    ⇒ three of five are 4x. This is why `#24-icebeamtrip` and `#24-icebeamteach` cost two work items.
+
+    ⚠ THE START FIXTURE CARRIES A **FAINTED MIGHTYENA** (0/230) and a Wailord at 188/396 — Glacia is
+    the first expensive room. The step-2 bag heal repairs it, MEASURED offline against this exact
+    state: `[(0,'Revive',...), (0,'Hyper Potion',...), (4,'Full Restore','Wailord at 188/396')]`.
+    ‼ That spends **the first of only THREE Revives**, and Revives are unusable IN battle (`KI-100`),
+    so a mon that faints during Drake stays down until room 5's heal.
+
+    ⭐ TEXT COUNTS, read at source — they do NOT bite this driver, they bite the NEXT one.
+    Drake's IN-BATTLE `Text_Defeat` carries **zero `\\p`** (1 page, FEWER than Glacia's 3). His
+    `Text_PostBattleSpeech` carries **five `\\p` (6 pages)** — the longest in the gauntlet — and that
+    is parked for **room 5's** dismiss loop, not this one. At the measured rate (77 presses cleared a
+    4-page speech) that is ~110 presses against a 500-press budget. Ample.
+
+    ⚠ GRADED ON REACHING DRAKE AND OBTAINING AN OUTCOME — **NEVER ON WINNING.** A driver graded on
+    winning would report FAIL for a correct measurement of a losing matchup.
+
+    Run:
+        PYTHONUTF8=1 py -3.12 story_harness.py post_glacia_L75.ss1 --driver ch24drake \
+            --frames 400000 --log drake.log
+        CH24_DRAKE_POST_CAPTURE=post_drake_L75      # ⭐ room 5's start state
+
+    FAULT ARMS
+      `POKEBOT_CH24_FAULT_NOROOMHEAL=1` — skip the between-rooms bag heal. ‼ HERE THAT ARM IS
+          SHARPER THAN IN ROOMS 1-3: the party starts with a FAINTED mon, so the arm must show Drake
+          entered with five battlers instead of six.
+      `POKEBOT_CH24_FAULT_NOENGAGE=1`   — do everything EXCEPT press A/B at Drake. Must FAIL with
+          `D-ENGAGED`/`D-OUTCOME` missing.
+    """
+
+    WALK_BUDGET = 40_000
+    DISMISS_BUDGET = 3_000
+    BATTLE_BUDGET = 120_000
+    ENGAGE_BUDGET = 4_000
+
+    # ⛔ ONE NAME, TWO CONSUMERS — the P-OUTCOME reading AND the step-9 capture guard. See the note
+    # on `Ch24GlaciaMode.VICTORY_FLAG`: coupling the guard to a dict key is how a room-N copy
+    # silently refuses to mint the next room's fixture on a perfect run.
+    VICTORY_FLAG = "DEFEATED_ELITE_4_DRAKE"
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24Drake"
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        # ⛔ A whiteout here is a legitimate MEASUREMENT, not a driver failure — it means the party
+        # lost, which is exactly the question. But it also runs `ResetEliteFour`, wiping Sidney's
+        # AND Glacia's victories too, so the fixture is spent and the verdict must say so.
+        log(f"[ch24drake] WHITEOUT #{self.whiteouts} — abort LATCHED. ‼ This is a RESULT (the party "
+            f"lost). It has also wiped Sidney's and Glacia's flags via ResetEliteFour, so "
+            f"post_glacia_L75.ss1 must be RELOADED before another attempt.")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        self._battle_started_at = getattr(self, "frames_seen", 0)
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        # ‼ IMPORT EVERY HELPER HERE.
+        from modules.map import get_map_objects
+        from modules.map_data import MapRSE
+        from modules.pokemon_party import get_party
+        from modules.story import pokemon_league as PL
+        from modules.story import victory_road as VR
+        from modules.story.early_game import (
+            _check_abort, _pass_through_door, wait_until_truly_controllable,
+        )
+
+        TAG = "ch24drake"
+        GLACIA = MapRSE.EVER_GRANDE_CITY_GLACIAS_ROOM
+        HALL3 = MapRSE.EVER_GRANDE_CITY_HALL3
+        DRAKE = MapRSE.EVER_GRANDE_CITY_DRAKES_ROOM
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        R: dict = {}
+        taken = set()
+        WANT = {"D-DISMISS", "D-HEAL", "D-HALL3", "D-ROOM", "D-ENGAGED", "D-OUTCOME",
+                "D-CONTINUE"}
+        failure = None
+
+        def _flag_quiet(name: str):
+            """Read a flag without letting a raise escape. ⚠ An UNKNOWN flag name reads False here,
+            it does NOT raise — measured this session. So a name is only trustworthy if it was
+            confirmed against `modules/data/event_flags/emerald.txt`. `DEFEATED_ELITE_4_DRAKE` is
+            id 1277 there."""
+            try:
+                return VR._flag(name) if hasattr(VR, "_flag") else None
+            except Exception as error:  # noqa: BLE001 - a reading that fails must SAY so
+                return f"UNREADABLE({type(error).__name__})"
+
+        def _hp():
+            return " ".join(f"{m.species.name}:{m.current_hp}/{m.total_hp}"
+                            for m in get_party()
+                            if m is not None and getattr(m, "species", None) is not None)
+
+        def _bag():
+            from modules.items import get_item_bag, get_item_by_name
+            try:
+                bag = get_item_bag()
+                return {n: bag.quantity_of(get_item_by_name(n))
+                        for n in ("Hyper Potion", "Full Restore", "Full Heal", "Revive")}
+            except Exception as error:  # noqa: BLE001 - a reading that fails must say so
+                return f"UNREADABLE: {type(error).__name__}"
+
+        yield from wait_until_truly_controllable()
+
+        # ---- PREMISE -----------------------------------------------------------------------------
+        R["start"] = VR._where()
+        R["start_hp"] = _hp()
+        R["start_bag"] = _bag()
+        R["start_drake_flag"] = _flag_quiet(self.VICTORY_FLAG)
+        R["start_glacia_flag"] = _flag_quiet("DEFEATED_ELITE_4_GLACIA")
+        try:
+            from modules.memory import get_event_var
+
+            R["start_elite4_state"] = get_event_var("ELITE_4_STATE")
+        except Exception as error:  # noqa: BLE001
+            R["start_elite4_state"] = f"UNREADABLE({type(error).__name__})"
+        log(f"[{TAG}] PRE at={R['start']} elite4_state={R['start_elite4_state']}")
+        log(f"[{TAG}] PRE hp={R['start_hp']}")
+        log(f"[{TAG}] PRE bag={R['start_bag']}")
+        log(f"[{TAG}] PRE glacia_flag={R['start_glacia_flag']} drake_flag={R['start_drake_flag']}")
+        # ⛔ THE VACUITY CONJUNCT, IN TWO HALVES. Pointed at its own OUTPUT (in Drake's room, or any
+        # state where Drake is already beaten) this refuses HERE and takes no readings, so a no-op
+        # run cannot print PASS. The MAP half alone is what the Glacia template had; the FLAG half is
+        # the anti-vacuity property stated directly instead of inferred from geography.
+        if not VR._on_map(GLACIA) or R["start_drake_flag"] is not False:
+            log(f"[{TAG}] ⛔ PREMISE FAILED — must start in GLACIAS_ROOM (post-Glacia-victory) with "
+                f"{self.VICTORY_FLAG}=False. Got map={R['start']}, "
+                f"{self.VICTORY_FLAG}={R['start_drake_flag']}. Refusing, and taking NO readings.")
+            log(f"[{TAG}] ACCEPTANCE: FAIL")
+            context.set_manual_mode()
+            return
+
+        try:
+            # ---- 1. dismiss the post-victory msgbox, if one is parked -----------------------------
+            # ⛔ EDGE-TRIGGERED AND BOUNDED. Pressing a button EVERY frame is HOLDING it, and Gen-3
+            # `waitbuttonpress` needs a JOY_NEW edge — so press on a duty cycle. ‼ It must be `B`,
+            # never `A`: the defeated trainer's script is RE-TRIGGERABLE, so an A-mash re-opens the
+            # box it just closed. Glacia's room measured 50 presses against a 500-press budget, and
+            # Drake's parked text is SHORTER (2 pages vs 4).
+            from modules.memory import get_game_state, GameState
+
+            pressed = 0
+            for f in range(self.DISMISS_BUDGET):
+                _check_abort()
+                if get_game_state() is GameState.OVERWORLD and _player_controllable_quiet():
+                    break
+                if f % 6 == 0:
+                    context.emulator.press_button("B")
+                    pressed += 1
+                yield
+            R["dismiss_presses"] = pressed
+            R["after_dismiss"] = VR._where()
+            log(f"[{TAG}] D-DISMISS presses={pressed} at={R['after_dismiss']}")
+            taken.add("D-DISMISS")
+            yield from wait_until_truly_controllable()
+
+            # ---- 2. THE BAG HEAL — a USER-RULED REQUIREMENT between every room --------------------
+            if _os.environ.get("POKEBOT_CH24_FAULT_NOROOMHEAL", "").strip() == "1":
+                log(f"[{TAG}] ⚠ FAULT ARM NOROOMHEAL — skipping the bag heal on purpose.")
+                R["heal_skipped"] = True
+            else:
+                hp_before = _hp()
+                bag_before = _bag()
+                heal_report: dict = {"readings": set()}
+                try:
+                    yield from PL.heal_party_from_bag(heal_report)
+                except Exception as error:  # noqa: BLE001
+                    # ⛔ NEVER RAISE OUT OF THE HEAL. The zone is SEALED behind us — refusing here
+                    # strands the bot in a room it cannot leave, which is strictly worse than
+                    # entering the next fight under-healed. Record it and go on.
+                    R["heal_error"] = f"{type(error).__name__}: {error}"
+                    log(f"[{TAG}] ⚠ heal raised (RECORDED, not fatal — the zone is sealed): "
+                        f"{R['heal_error']}")
+                R["heal_hp_before"] = hp_before
+                R["heal_hp_after"] = _hp()
+                R["heal_bag_before"] = bag_before
+                R["heal_bag_after"] = _bag()
+                R["heal_plan"] = heal_report.get("heal_plan")
+                R["heal_actions"] = heal_report.get("heal_actions")
+                R["heal_ready"] = heal_report.get("heal_ready")
+                log(f"[{TAG}] D-HEAL actions={R['heal_actions']} ready={R['heal_ready']}")
+                log(f"[{TAG}] D-HEAL hp {hp_before}  ->  {R['heal_hp_after']}")
+                log(f"[{TAG}] D-HEAL bag {bag_before} -> {R['heal_bag_after']}")
+                # ‼ TAKEN UNCONDITIONALLY. `heal_party_from_bag` returns EARLY on an empty plan
+                # without setting its own readings, and an empty plan is the COMMON case between
+                # easy rooms — so gating this on its report would FAIL a correct run.
+                taken.add("D-HEAL")
+            yield from wait_until_truly_controllable()
+
+            # ---- 3. out of Glacia's room -> HALL3 -------------------------------------------------
+            # ⭐ (6,2) is MEASURED from the ROM warp table as GLACIAS_ROOM -> HALL3, not assumed from
+            # the room's resemblance to Sidney's.
+            log(f"[{TAG}] WALK: Glacia's exit door (6,2) via the SHIPPED _pass_through_door")
+            yield from _budgeted_local(_pass_through_door((6, 2), tuple(GLACIA.value)),
+                                       self.WALK_BUDGET, f"{TAG}: Glacia -> HALL3")
+            yield from wait_until_truly_controllable()
+            R["after_door"] = VR._where()
+            if not VR._on_map(HALL3):
+                raise BotModeError(
+                    f"§Ch24 rooms3-4: passed Glacia's exit door (6,2) and did not arrive on HALL3 "
+                    f"— we are at {VR._where()}."
+                )
+            log(f"[{TAG}] D-HALL3 at={R['after_door']}")
+            taken.add("D-HALL3")
+
+            # ---- 4. along HALL3 -> Drake's room ---------------------------------------------------
+            log(f"[{TAG}] WALK: HALL3 far door (5,2)")
+            yield from _budgeted_local(_pass_through_door((5, 2), tuple(HALL3.value)),
+                                       self.WALK_BUDGET, f"{TAG}: HALL3 -> DRAKE")
+            yield from wait_until_truly_controllable()
+            R["room_landing"] = VR._where()
+            try:
+                from modules.memory import get_event_var as _gev
+
+                R["elite4_state_in_room"] = _gev("ELITE_4_STATE")
+            except Exception as error:  # noqa: BLE001
+                R["elite4_state_in_room"] = f"UNREADABLE({type(error).__name__})"
+            if not VR._on_map(DRAKE):
+                raise BotModeError(
+                    f"§Ch24 rooms3-4: passed HALL3's far door (5,2) and did not arrive in "
+                    f"DRAKES_ROOM — we are at {VR._where()}."
+                )
+            log(f"[{TAG}] D-ROOM landing={R['room_landing']} "
+                f"elite4_state={R['elite4_state_in_room']}  "
+                f"(⛔ BOTH RECORDED, NOT asserted — the entry cutscene walks 6 steps and the var is "
+                f"written by it, so either can lag. (6,7) is the cutscene's FINAL tile.)")
+            taken.add("D-ROOM")
+
+            # ---- 5. locate Drake LIVE and engage ---------------------------------------------------
+            # ⛔ `get_map_objects()` INCLUDES THE PLAYER, and it is a CAMERA-RANGE window — so filter
+            # by our own tile rather than by index, and read it from inside the room.
+            # ⭐ SAFE HERE FOR A REASON, not by luck: Drake is the ONLY `object_event` in her map
+            # (decomp `EverGrandeCity_DrakesRoom/map.json`), at (6,5), `MOVEMENT_TYPE_FACE_DOWN`,
+            # `movement_range 0/0`, and she never despawns. So "the first object north of us" cannot
+            # pick the wrong NPC — there is no other NPC.
+            here = VR._here_tile()
+            objs = [tuple(o.current_coords) for o in get_map_objects()
+                    if tuple(o.current_coords) != here]
+            R["objects_seen"] = objs
+            target = next((t for t in objs if t[1] < here[1]), objs[0] if objs else None)
+            if target is None:
+                raise BotModeError(
+                    f"§Ch24 rooms3-4: no map object other than the player in DRAKES_ROOM "
+                    f"(we are at {here}). ⛔ `get_map_objects()` is a camera-range window; if this "
+                    f"fired we are probably parked on the entry warp because the auto-walk did not "
+                    f"run (elite4_state={R.get('elite4_state_in_room')}, wanted 2 on arrival)."
+                )
+            stand = (target[0], target[1] + 1)
+            R["drake_at"] = target
+            R["stand_at"] = stand
+            log(f"[{TAG}] ⭐ DRAKE MEASURED at {target} — approaching {stand} (located LIVE, never "
+                f"hardcoded)")
+            if VR._here_tile() != stand:
+                yield from VR._budgeted(VR._navigate_riding_out(DRAKE, stand), 20_000,
+                                        f"{TAG}: -> beside Drake")
+                yield from wait_until_truly_controllable()
+            R["stood_at"] = VR._here_tile()
+
+            # ⛔⛔ THE PRESS IS UNGATED **ON PURPOSE**, AND `R-APRESS` WILL FLAG IT EVERY TIME.
+            # Do not "fix" it by gating on `is_waiting_for_input()`. That rule targets the "museum
+            # greeter" shape — a loop mashing A across scripted scenes it does not understand. This
+            # is the opposite: the cadence is copied verbatim from `Ch24GlaciaMode`, which took it
+            # from `Ch24ProbeMode` and ultimately `_talk_to_the_stair_grunt`
+            # (`space_center.py:319-332`), a PROVEN caller for an INTERACTION trainer.
+            # ✅ The hazard the rule exists to stop cannot happen: this loop is BOUNDED, breaks the
+            # instant `self.battles` is set, and raises with both tiles named if no battle starts.
+            if _os.environ.get("POKEBOT_CH24_FAULT_NOENGAGE", "").strip() == "1":
+                log(f"[{TAG}] ⚠ FAULT ARM NOENGAGE — standing beside Drake and pressing NOTHING. "
+                    f"This arm must FAIL with D-ENGAGED/D-OUTCOME missing; if it PASSES, the grade "
+                    f"is being satisfied by something other than fighting her.")
+                R["engage_skipped"] = True
+                for _ in range(self.ENGAGE_BUDGET):
+                    _check_abort()
+                    if self.battles:
+                        break
+                    yield
+            else:
+                context.emulator.press_button("A")
+                yield
+                for frames in range(self.ENGAGE_BUDGET):
+                    _check_abort()
+                    if self.battles:
+                        break
+                    context.emulator.press_button("B" if frames % 3 else "A")
+                    yield
+            R["engaged"] = bool(self.battles)
+            if not self.battles:
+                raise BotModeError(
+                    f"§Ch24 rooms3-4: stood at {R['stood_at']} beside Drake at {target} for "
+                    f"{self.ENGAGE_BUDGET:,} frames without starting a battle"
+                    + (" (FAULT ARM NOENGAGE was set — this is the arm working)"
+                       if R.get("engage_skipped") else "")
+                )
+            log(f"[{TAG}] D-ENGAGED battle started")
+            taken.add("D-ENGAGED")
+
+            # ---- 6. let the fight play out, and grade the OUTCOME -----------------------------------
+            # ⚠ `battle_frames_waited` is RECORDED BUT IS NOT A DISCRIMINATOR. A driver's generator is
+            # not resumed until the fight ENDS, so 0 is the only value a healthy run can produce —
+            # and on a TRUE in-battle stall the driver is never resumed at all and this key is never
+            # written. The instrument for that failure is the harness's own NO-PROGRESS/STUCK dump.
+            from modules.memory import get_game_state as _gs, GameState as _GS
+
+            hp_in = _hp()
+            R["hp_entering_drake"] = hp_in
+            log(f"[{TAG}] hp entering Drake: {hp_in}")
+            waited = 0
+            for waited in range(self.BATTLE_BUDGET):
+                _check_abort()
+                if _gs() is not _GS.BATTLE:
+                    break
+                yield
+            R["battle_frames_waited"] = waited
+            yield from wait_until_truly_controllable()
+            R["hp_after_drake"] = _hp()
+            R["bag_after_drake"] = _bag()
+            R["drake_flag"] = _flag_quiet(self.VICTORY_FLAG)
+            log(f"[{TAG}] D-OUTCOME hp_after={R['hp_after_drake']}")
+            log(f"[{TAG}] D-OUTCOME bag_after={R['bag_after_drake']}")
+            log(f"[{TAG}] D-OUTCOME drake_flag={R['drake_flag']} waited={waited}")
+            taken.add("D-OUTCOME")
+
+            # ---- 7. ⛔ "AND THE BOT CAN CONTINUE" ---------------------------------------------------
+            # A grade MUST include a REAL reachability check off the END tile, never a `controllable`
+            # flag: §Ch15 ended four floors underground, §Ch18 on an eleven-tile island and §Ch19 in
+            # a living room, and ALL THREE PASSED THEIR OWN TESTS.
+            # ⛔⛔ AND IT READS THE **LIVE** GRID, NOT `get_map_data`. The exit door is ROM-blocked
+            # and runtime-OPENED (`KI-74`, and the mechanism is
+            # `PokemonLeague_EliteFour_SetAdvanceToNextRoomMetatiles` writing impassable=FALSE); the
+            # entry tiles are ROM-open and runtime-SEALED by `..._WalkInCloseDoor`. A ROM read here
+            # would report the door shut on a perfect run.
+            # ⚠ SCOPE, so this is not over-read: `OnLoad` ALSO calls
+            # `..._ResetAdvanceToNextRoom` whenever the room's DEFEATED flag is already set, so
+            # merely RELOADING a post-victory save re-opens the door. This check is meaningful
+            # DURING a run (no `OnLoad` re-runs) and would be VACUOUS on a reloaded fixture — which
+            # is exactly why the VACUITY arm starts from a state this driver did not produce.
+            try:
+                from modules.story.sootopolis import _live_collision_grid
+
+                grid = _live_collision_grid(DRAKE)
+                R["exit_door_live"] = {t: grid.get(t) for t in ((6, 1), (6, 2))}
+                R["entry_seal_live"] = {t: grid.get(t) for t in ((5, 13), (6, 13), (7, 13))}
+                door_open = all(grid.get(t) == 0 for t in ((6, 1), (6, 2)))
+                R["exit_door_open_live"] = door_open
+                log(f"[{TAG}] D-CONTINUE exit_door_live={R['exit_door_live']} open={door_open} "
+                    f"entry_seal_live={R['entry_seal_live']}")
+                if door_open:
+                    taken.add("D-CONTINUE")
+                else:
+                    log(f"[{TAG}] ⛔ D-CONTINUE NOT taken — the victory script should have opened "
+                        f"(6,1)/(6,2). The bot is sealed in a room it cannot leave, and room 4 is "
+                        f"unreachable; this is a FAIL however the fight went.")
+            except Exception as error:  # noqa: BLE001 - a reading that fails must say so, not lie
+                R["continue_error"] = f"{type(error).__name__}: {error}"
+                log(f"[{TAG}] ⚠ D-CONTINUE unreadable: {R['continue_error']}")
+
+            # ---- 8. ⭐⭐ THE POST-FIGHT CAPTURE — room 4's START STATE ---------------------------
+            # ⛔ ITS OWN ENV VAR. Inheriting `CH24_GLACIA_POST_CAPTURE` would find that file already
+            # present, log `SKIPPED`, and silently mint NOTHING on a successful run.
+            # ⛔ THREE CONJUNCTS OR NOTHING IS WRITTEN, and `won` reads the FLAG through
+            # `VICTORY_FLAG` rather than a dict key a copy would rename at only one site.
+            post_cap = _os.environ.get("CH24_DRAKE_POST_CAPTURE", "").strip()
+            if not post_cap:
+                log(f"[{TAG}] post-fight capture: NOT REQUESTED (CH24_DRAKE_POST_CAPTURE unset)")
+            else:
+                won = _flag_quiet(self.VICTORY_FLAG) is True
+                on_map = VR._on_map(DRAKE)
+                door = R.get("exit_door_open_live") is True
+                R["post_capture_guard"] = {"won": won, "on_drakes_room": on_map,
+                                           "exit_door_open_live": door}
+                if not (won and on_map and door):
+                    log(f"[{TAG}] ⛔ POST-FIGHT CAPTURE REFUSED — guard={R['post_capture_guard']}. "
+                        f"A fixture is only minted from a WON fight, in DRAKES_ROOM, with the exit "
+                        f"door proven OPEN in the LIVE grid. Writing one here would strand room 4.")
+                else:
+                    _dest = Path(__file__).resolve().parent / "saves" / f"{post_cap}.ss1"
+                    if _dest.exists():
+                        log(f"[{TAG}] post-fight capture SKIPPED — {_dest.name} exists; not overwriting.")
+                    else:
+                        try:
+                            _dest.write_bytes(context.emulator.get_save_state())
+                            log(f"[{TAG}] ✅ POST-FIGHT CAPTURED -> {_dest.name} "
+                                f"({_dest.stat().st_size} bytes) at {VR._where()}")
+                            log(f"[{TAG}] ⭐ THIS IS ROOM 4's (DRAKE's) START STATE. Pin it in "
+                                f"saves/FIXTURES.md5 and verify it by RELOAD, never by this log line.")
+                        except Exception as error:  # noqa: BLE001 - a failed capture must be LOUD
+                            log(f"[{TAG}] ⛔ POST-FIGHT CAPTURE FAILED: "
+                                f"{type(error).__name__}: {error}")
+
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            # ⛔ BROAD ON PURPOSE — the same DELIBERATE divergence from R-EXCEPT documented on
+            # `Ch24ToLeagueMode` and `Ch24GlaciaMode`: a harness driver must let the VERDICT run from
+            # partial state, and `on_whiteout` already latches the abort and is conjoined into the
+            # grade below.
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        missing = sorted(WANT - taken)
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        # ⛔ GRADED ON REACHING AND MEASURING, NEVER ON WINNING — see the docstring.
+        # ‼‼ PLUS A HEAL CONJUNCT, AND ROOM 4 IS WHY IT EXISTS. An adversarial reviewer found that
+        # the grade could not FAIL on a broken heal: `taken.add("D-HEAL")` is UNCONDITIONAL (it has
+        # to be — an empty plan is the common case between easy rooms) and a heal that RAISES is
+        # swallowed into `R["heal_error"]` on purpose, because the zone is sealed and refusing there
+        # strands the bot. So both halves of the old grade were blind to it.
+        # ⭐ ROOM 4 IS THE FIRST ROOM WHOSE HEAL PLAN IS NON-EMPTY: the start fixture carries a
+        # FAINTED Mightyena, and the measured plan is Revive -> Hyper Potion -> Full Restore. The
+        # difference this conjunct protects is "six usable mons" vs "five and a corpse, against five
+        # L52-55 Dragons".
+        # ✅ AND IT IS NOT VACUOUS AND NOT RETROACTIVE — but state the evidence EXACTLY, because the
+        # first draft of this comment overclaimed it and a Tier 1 reviewer caught it:
+        #   * ROOMS 2 AND 3 **MEASURED** `heal_ready=True` (`P-HEAL actions=1 ready=True`,
+        #     `G-HEAL actions=0 ready=True` — room 3 with an EMPTY plan, which `plan_healing`
+        #     reports ready for). So the conjunct could not have failed either of them.
+        #   * ⛔ ROOM 1 (SIDNEY) NEVER MEASURED IT AT ALL. It was driven by `Ch24ProbeMode`, which
+        #     has NO heal step and never computes the reading — its readings are `P24-*`, not
+        #     `P-HEAL`. The conjunct is still non-retroactive for it, but for a DIFFERENT reason:
+        #     Sidney's grade does not use this conjunct. "Rooms 1-3 all measured True" was false. ⛔ Under `POKEBOT_CH24_FAULT_NOROOMHEAL` the heal is skipped and this reads
+        # None, so that arm now FAILS for its own reason — which is the whole point of the arm, and
+        # room 4 is the first room where the arm can differ from the treatment at all.
+        heal_ok = R.get("heal_ready") is True
+        if not heal_ok:
+            log(f"[{TAG}] ⛔ GRADE: heal_ready={R.get('heal_ready')!r} — the party was NOT brought to "
+                f"fighting shape. heal_actions={R.get('heal_actions')!r} "
+                f"heal_error={R.get('heal_error')!r} heal_skipped={R.get('heal_skipped')!r}")
+        ok = not missing and failure is None and heal_ok
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+            f"(must REACH Drake and MEASURE an outcome; winning is NOT required)")
+        context.set_manual_mode()
+
+
 class Ch24IceBeamMode(BotMode):
     """`#24-icebeamtrip` — fetch TM13 ICE BEAM from the Abandoned Ship. **PRODUCTION CODE.**
 
@@ -21160,6 +21634,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24PhoebeMode()
         elif args.driver == "ch24glacia":
             context.bot_mode_instance = Ch24GlaciaMode()
+        elif args.driver == "ch24drake":
+            context.bot_mode_instance = Ch24DrakeMode()
         elif args.driver == "ch24icebeam":
             context.bot_mode_instance = Ch24IceBeamMode()
         elif args.driver == "ch24teachice":

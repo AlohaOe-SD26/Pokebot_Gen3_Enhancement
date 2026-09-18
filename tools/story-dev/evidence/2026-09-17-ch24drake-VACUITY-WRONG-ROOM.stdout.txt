@@ -1,0 +1,43 @@
+[setup] LOG -> C:\Users\Ripto\AppData\Local\Temp\claude\C--Remote-Projects-Pokebot-Gen3-Enhancement\4d43f83e-b23e-47c1-8104-dd6e316ab5f3\scratchpad\drake_vacuity.log
+Running mGBA 0.10.2
+[setup] loaded save state post_phoebe_L75.ss1; build=sandbox
+[run] starting faithful loop for up to 6000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f0: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=<none> bt='NICK got $5100 for winning!' scripts=['EverGrandeCity_PhoebesRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Mightyena:L76:exp439149|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+f1: CONTROLLER -> Ch24DrakeMode.run   (state=OVERWORLD)
+f1: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=Ch24DrakeMode.run bt='NICK got $5100 for winning!' scripts=['EverGrandeCity_PhoebesRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Mightyena:L76:exp439149|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+f901: SAVED stall state #1 to stalls/repro-ml-f901.ss1 (bt='NICK got $5100 for winning!')
+f1201: !!! NO-PROGRESS x1200 sig=('Ch24DrakeMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L76:exp439149|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_PhoebesRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $5100 for winning!' bot_mode=Story
+f1201:     gen -> Ch24DrakeMode.run  @ story_harness.py:18592
+f1201:     gen -> wait_until_truly_controllable  @ early_game.py:1232
+[ch24drake] PRE at=((16, 1), (6, 6)) elite4_state=2
+[ch24drake] PRE hp=Mightyena:214/230 Zigzagoon:48/48 Sceptile:205/205 Swellow:232/232 Wailord:396/396 Castform:103/103
+[ch24drake] PRE bag={'Hyper Potion': 36, 'Full Restore': 3, 'Full Heal': 18, 'Revive': 3}
+[ch24drake] PRE glacia_flag=False drake_flag=False
+[ch24drake] ⛔ PREMISE FAILED — must start in GLACIAS_ROOM (post-Glacia-victory) with DEFEATED_ELITE_4_DRAKE=False. Got map=((16, 1), (6, 6)), DEFEATED_ELITE_4_DRAKE=False. Refusing, and taking NO readings.
+[ch24drake] ACCEPTANCE: FAIL
+f1801: CONTROLLER -> <none>   (state=OVERWORLD)
+f1801: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=True state=TextPrinterState.WaitForButton tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] ctrl=<none> bt='NICK got $5100 for winning!' scripts=['EverGrandeCity_PhoebesRoom_EventScript_Defeated', 'Std_MsgboxDefault'] party=[Mightyena:L76:exp439149|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L76:exp439149|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+f2701: SAVED stall state #2 to stalls/repro-ml-f2701.ss1 (bt='NICK got $5100 for winning!')
+f3001: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L76:exp439149|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_PhoebesRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $5100 for winning!' bot_mode=Manual
+f3001:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L76:exp439149|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+f4801: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L76:exp439149|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (6, 6)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'ScriptMovement_MoveObjects', 'Task_DrawFieldMessage'] scripts=['EverGrandeCity_PhoebesRoom_EventScript_Defeated', 'Std_MsgboxDefault'] bt='NICK got $5100 for winning!' bot_mode=Manual
+f4801:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[done] ran 6000 frames; final mode=Manual party=[Mightyena:L76:exp439149|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L76: Strength, Crunch, Take Down, Bite
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Sceptile L75: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Swellow L75: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L75: Dive, Surf, Ice Beam, Waterfall
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 6001 get_party() recomputes, 21 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24drake 6001 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-17_17-33-27.ss1 created!
+Updated `current_state.ss1`!

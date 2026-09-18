@@ -31181,3 +31181,59 @@ red with *"04-HANDOFF.md:385 claims drift=2; MEASURED drift is 0"* the moment th
 demanded a **digit plus a currency marker** it could grade. Three stale copies of the figure were
 fixed (the STATE row, the HOW TO RUN expectation, and the queue head). This is the numeric half of
 the doc layer doing exactly its job, and it is why prose counts are never hand-checked here.
+
+---
+
+## 2026-09-17 (late, third) — §Ch24 ROOM 4: **DRAKE IS BEATEN**, and the unit composed on a damaged party
+
+**WHAT SHIPPED.** `--driver ch24drake` (`Ch24DrakeMode`) — the FOURTH and **last** instance of the
+§Ch24 repeating unit. `ACCEPTANCE: PASS`, all 7 readings, `missing=[]`, `battles=1`, `whiteouts=0`,
+`DEFEATED_ELITE_4_DRAKE=True`, exit door OPEN in the live grid. **Four of five Elite Four rooms are
+now driven and beaten.** New pinned fixture `post_drake_L75.ss1` (`51cd43a8e427`,
+`VAR_ELITE_4_STATE=4`), verified by reload with controls.
+
+**THE NEW THING THIS ROOM TESTED.** Rooms 1–3 all started from a healthy party; `post_glacia_L75.ss1`
+does not — it carries a **fainted Mightyena (0/230)** and a Wailord at 188/396. The between-rooms bag
+heal repaired it live (`heal_actions=3`, `Mightyena 0/230 → 230/230`, `Wailord → 396/396`,
+`Revive 3→2`), and ⭐ **the offline `plan_healing` projection matched the live run action for action** —
+the first time this project has predicted a heal plan before driving it.
+
+**A RECON CAUGHT A HOLE IN THE GRADE BEFORE THE DRIVE.** A 4-angle recon's adversarial arm found that
+the grade **could not FAIL on a broken heal**: `taken.add("D-HEAL")` is unconditional (an empty plan
+is the common case) and a raising heal is deliberately swallowed into `R["heal_error"]` (the zone is
+sealed; refusing there strands the bot). ⇒ `ok` now also requires **`heal_ready is True`**, which is
+non-vacuous and non-retroactive (rooms 1–3 all read True).
+
+‼ **AND THE HONEST LIMIT, STATED RATHER THAN GLOSSED:** the `NOROOMHEAL` arm FAILED — but on
+`missing=['D-HEAL']`, which it would have done **with or without** the conjunct. ⇒ **the arm does not
+prove the conjunct is load-bearing**; the case it covers (*the heal ran and left the party unready*)
+is still untested. Filed as `#24-healgradearm` with the arm that would test it named.
+
+⭐ **THE `NOROOMHEAL` ARM IS NON-VACUOUS FOR THE FIRST TIME** (room 3's plan was `[]`, so arm ≡
+treatment). Skipping the heal still beat Drake, but: **Zigzagoon `48/48 → 0/48`** — the mule was sent
+in and KO'd, untouched in the treatment — and **Full Restore `3 → 0`, the entire stock burned IN
+battle, while 35 Hyper Potions went untouched.**
+
+**"ROOM 4 IS A RENAME OF ROOM 3" IS 80% RIGHT AND ITS STATED FORM IS WRONG** — four differences, all
+verified at source: the rename names two map constants and there are **three** (the START map must
+become `GLACIAS_ROOM` or the premise refuses its own input); Drake's `EventScript_Defeated` runs **two
+extra opcodes no other room has** (`FANCOUNTER_DEFEATED_DRAKE` + `Script_TryGainNewFanFromCounter`,
+verified inert); his room reuses **Sidney's** `OnWarp`; and the state gate is `==3`→4.
+⭐ Text counts invert Glacia's: Drake's in-battle `Text_Defeat` is **1 page** (Glacia's 3 — she was the
+outlier) while his `Text_PostBattleSpeech` is **6 pages, the longest of the four**, which parks for
+room 5's dismiss.
+
+⛔⛔ **ROOM 5 IS NOT THE FIFTH INSTANCE, AND THE PROOF IS NOW STRONGER THAN "no flag guard":**
+Wallace's `object_event` carries **`"script": "0x0"` and `"flag": "0"`** ⇒ **he is not interactable at
+all**, so the unit's "navigate beside the trainer and press A" step has nothing to press. And
+**HALL4 is 31 steps, not 10** — every budget copied from a 10-step hall must be re-derived.
+
+‼ **THE REVIVE CLIFF IS HERE.** Two Revives remain, unusable in battle (`KI-100`), so the Wallace
+fight can absorb at most two faints and only at the one remaining between-rooms heal.
+
+**ALSO FILED (not fixed):** `#24-healfullrestorewaste` — `plan_healing` may burn a **Full Restore on a
+scratch** because `effective_heal` returns `total_hp` for it, so on any mon under 200 max HP it
+outranks a Hyper Potion; gate #36 is blind because its test bag holds items the real basket lacks.
+⛔ Recorded as an agent's measurement, a NOTE until reproduced here. ✅ It has not bitten rooms 1–4:
+every battler's max HP is above 200, and `post_drake_L75`'s plan correctly chose a Hyper Potion for
+Sceptile at 73/205.
