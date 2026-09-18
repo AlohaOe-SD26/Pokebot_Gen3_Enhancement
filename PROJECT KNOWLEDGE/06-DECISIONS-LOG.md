@@ -6120,3 +6120,34 @@ instead of `IS_CHAMPION`* — rejected, set ~54 lines before the callback swap (
 
 ⚠ **STILL OWED, and small:** the lobby window is TRACED (agent probe, refuter-reproduced), not READ by
 me — **no fixture stands in the lobby**. Mint one and re-measure before implementation.
+
+
+## 2026-09-18 (later) — THE LOBBY FIXTURE IS MINTED **WITHOUT** THE GUARD TALK
+
+**Context.** `#24-lobbyfixture` needs a save state standing in the League lobby. Reaching it can
+optionally include talking to the door guards, which sets `FLAG_ENTERED_ELITE_FOUR` — **permanent;
+nothing in the game or `ResetEliteFour` clears it.** A Tier 1 reviewer noted this tradeoff was recorded
+in the changelog and punch list but never logged as a DECISION. It is one, so here it is.
+
+**DECISION: mint `post_league_lobby.ss1` WITHOUT the guard talk.**
+
+**Why.** Two reasons, the second stronger and supplied by a refuter rather than by the spec:
+1. **The readings are identical either way.** No code reads `FLAG_ENTERED_ELITE_FOUR` — every predicate
+   the fixture exists to evaluate is bit-identical with or without the talk.
+2. ⭐ **A no-talk fixture is POSITIONALLY SEALED against the gauntlet.** While the flag is unset the
+   guards stand ON `(9,2)/(10,2)`, *“blocking the north doors positionally”* (`victory_road.py:399-402`)
+   ⇒ no future drive from that fixture can reach a sealed room **at all**. A post-talk sibling has those
+   doors open **forever**, because the flag never clears.
+
+⚠ **A POST-TALK SIBLING IS STILL OWED, for a different reason than convenience:** the settled ruling
+defines the §Ch24 “lobby window” as the **POST-talk** interval. ⇒ it should be minted deliberately, as
+its own fixture with its own justification, never as a side effect of reaching the lobby.
+
+**Alternatives rejected.** (a) *Talk by default* — rejected: it spends a permanent, irreversible flag to
+obtain readings that do not depend on it, and it opens the gauntlet doors on every future drive from
+that fixture. (b) *Mint only the post-talk fixture* — rejected: it forecloses the positionally-sealed
+state, which cannot be recovered afterwards. (c) *Skip the fixture and keep tracing* — rejected: the
+whole point is to convert the lobby window from TRACED to READ.
+
+⭐ **THE RULE THIS SETTLES: when a route contains an irreversible step, mint the fixture on the
+REVERSIBLE side of it first.** The sealed state can always be spent later; it can never be regained.

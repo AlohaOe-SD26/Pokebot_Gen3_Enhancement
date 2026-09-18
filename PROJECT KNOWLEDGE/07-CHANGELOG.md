@@ -31913,3 +31913,37 @@ exactly as it is.**
 ⭐ **THE RULE THIS EARNS:** *a symbol count is not an occupancy test — and when a fresh correction
 contradicts a standing item, suspect the CORRECTION first.* I nearly edited an open item on the
 strength of my own bad grep.
+
+
+## 2026-09-18 (later) — THE LOBBY-FIXTURE SPEC, A SEALED-ZONE READING, AND FOUR PHANTOM NAMES
+
+A 6-agent spec pass scoped the drive that would close prerequisite (1)'s last soft spot. **No drive was
+run and no fixture minted** — this records the spec, plus two things measured while writing it.
+Full note: `ai-research-notes/2026-09-18-ch24-lobby-fixture-SPEC.md`
+
+**⭐⭐ A REFUTER KILLED THE INSTRUMENTATION BEFORE IT COST A FIXTURE.** The draft read
+`FLAG_ENTERED_ELITE_FOUR`. ✅ Verified by me: **ZERO of 1,164 rows in `event_flags/emerald.txt` carry a
+`FLAG_` prefix**, and `memory.py:336-338` returns **False silently** for an unknown name. ⇒ the talk arm
+would have waited forever for a flag it could never read True, burned its bound AFTER setting that flag
+in-game, and graded FAIL — **paying the route's one irreversible cost for a reading it could never
+take.** Our own `victory_road.py:1605` already warns of exactly this.
+
+**✅ MEASURED WITHOUT DRIVING — THE MARKER DESIGN'S CENTRAL CLAIM IS NOW READ.** Evaluating every §Ch23
+leg guard live (guards only; no leg run): on the SEALED map `post_hall4_door` **not one of the nine
+guards is True**, while the controls fire (EVER_GRANDE: legs 5/10/11 degraded, 5/11 healthy — leg 10's
+heal guard behaving as written). ⇒ inside the sealed zone the legs are **never invoked**, which is
+stronger than the design claimed. ⚠ And a nuance tracing had blurred: **leg 11's guard is bare
+`_on_map(EG)` with no basket conjunct**, so it fires at Ever Grande even after the basket is bought —
+its self-skip lives in the leg body, not the dispatch.
+
+**THE SPEC** (filed as `#24-lobbyfixture`): start `post_ch24_atdoor_L75.ss1`, stop on
+`LEAGUE_NURSE_STAND (3,4)`, **skip the guard talk**, read flags by bare name with a pre-flight vacuity
+assert. ⭐ Skipping the talk is not merely cheaper — while the flag is unset the guards stand on
+`(9,2)/(10,2)` *“blocking the north doors positionally”*, so the fixture is **positionally sealed
+against the gauntlet**; a post-talk sibling would have those doors open forever.
+
+**⚠ AND FOUR PHANTOM NAMES IN THE HARNESS** (filed as `#24-harnessphantomnames`, not fixed): 302 files,
+154 literal flag/var calls, **4 phantom** — one fixable by rename, three reading a var our table does
+not contain at all. ✅ All four are DIAGNOSTICS (zero feed an acceptance or raise), so severity is low.
+⚠ `audit_flag_names.py`'s scope is **deliberate** (story code only) — the case for widening it is that
+the harness is where drivers produce EVIDENCE, not that the gate is broken.

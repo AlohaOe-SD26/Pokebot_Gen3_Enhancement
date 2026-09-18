@@ -243,6 +243,46 @@ open-vs-built sweep of all 80 open items has **not** been done.
   added, matching the three gates that carried this bug before.
   ⚠ **THEREFORE THE PROSE RULE IN `08-MISTAKES.md` STAYS.** The gate covers the house idiom, not every
   phrasing; it is a floor, not a replacement. Run: `py -3.12 probe_retraction_coverage.py --self-test`.
+- [ ] ⛔ `#24-lobbyfixture` — **NEW 2026-09-18. MINT A LOBBY FIXTURE SO THE §Ch24 “lobby window” IS *READ* RATHER THAN TRACED. ⇒ WHAT REMAINS: write the stop-short driver and run it; the SPEC IS COMPLETE and a refuter already killed its first instrumentation.**
+  **WHY:** prerequisite (1)'s last soft spot. No fixture in this repo stands in the lobby
+  (`grep -c POKEMON_LEAGUE_1F tools/story-dev/saves/FIXTURES.md5` → 0), so “zero §Ch23 legs fire there”
+  rests on an agent probe, not a reading.
+  ⭐⭐ **A REFUTER KILLED THE FIRST INSTRUMENTATION BEFORE IT COST A FIXTURE, AND I VERIFIED THE KILL:**
+  the draft read `FLAG_ENTERED_ELITE_FOUR`. ✅ **ZERO of 1,164 rows in `event_flags/emerald.txt` carry a
+  `FLAG_` prefix** (the real row is `:211 263 ENTERED_ELITE_FOUR`), and `memory.py:336-338` returns
+  **False SILENTLY** for an unknown name. ⇒ the talk arm would have looped for a flag that could never
+  read True, burned its bound **after** setting the flag in-game, and graded FAIL — paying the route's
+  one irreversible cost for a reading it could never take.
+  **THE SPEC:** start `post_ch24_atdoor_L75.ss1` (⚠ **not** `post_ch24_atdoor.ss1` — that one is L47);
+  stop on **`LEAGUE_NURSE_STAND (3,4)`** (9 tiles from the nearest gauntlet door, 5 from the escalator;
+  ⛔ reject `(9,3)`, two steps from a step-on warp into HALL5); **SKIP THE GUARD TALK**; read flags by
+  **bare name** with a pre-flight assert that the name is in `_event_flags`.
+  ⭐ **WHY SKIP THE TALK — and the refuter's reason beats the spec's.** The spec said no code reads the
+  flag so the readings are identical either way. Stronger: while the flag is unset **the guards stand
+  ON `(9,2)/(10,2)`**, *“blocking the north doors positionally”* (`victory_road.py:399-402`) ⇒ a no-talk
+  fixture is **POSITIONALLY SEALED against the gauntlet**, and a post-talk sibling has those doors open
+  **forever** because the flag is permanent. ⇒ mint the no-talk one first; a post-talk sibling is owed
+  separately, since the settled ruling defines the window as the POST-talk interval.
+  ⚠ **THE WINDOW IS TWO MAPS AND THIS SPEC COVERS ONE** — League 2F is reachable by
+  `LEAGUE_ESCALATOR (1,7)`, *“collision 0 — an accidental step-on warp”*. A 2F reading is owed too.
+  Full spec + what was measured without driving: `ai-research-notes/2026-09-18-ch24-lobby-fixture-SPEC.md`
+- [ ] ⚠ `#24-harnessphantomnames` — **NEW 2026-09-18, FILED NOT FIXED. FOUR PHANTOM FLAG/VAR NAMES IN THE HARNESS READ FALSE/0 FOREVER. ⇒ WHAT REMAINS: rename one, and DECIDE about the other three.**
+  ✅ **MEASURED:** 302 harness files · 86 `get_event_flag` + 68 `get_event_var` literal calls · **4
+  phantom names**, all in `story_harness.py`:
+  * `:592` `get_event_flag('FLAG_ADDED_MATCH_CALL_TO_POKENAV')` — **fixable by rename**: the bare name
+    exists (`event_flags/emerald.txt:252`, `304 ADDED_MATCH_CALL_TO_POKENAV`).
+  * `:396`, `:508`, `:551` `get_event_var('VAR_RESULT')` — ⚠ **not a prefix bug**: our var table has
+    **no RESULT entry at all** (256 entries, zero matches). Needs a decision, not a rename.
+  ✅ **SEVERITY IS LOW AND I CHECKED RATHER THAN ASSUMED:** all four are **DIAGNOSTICS** — `_var()` feeds
+  a log f-string at `:408`, `_dump` is a dump, `:551` is a log line. **Zero feed an acceptance, assert
+  or raise.** ⇒ misleading log output, not a false PASS.
+  ⚠ **THE GATE'S SCOPE IS DELIBERATE, NOT A DEFECT** — checked before claiming one.
+  `audit_flag_names.py` says *“every flag/var name string used by **story code**”* and globs
+  `modules/story/*.py` + `story_mode.py`; the harness is out of scope **by design**. ⇒ the argument for
+  widening it is **“the harness is where drivers produce EVIDENCE, and a phantom name corrupts a reading
+  silently”**, not “the gate is broken”. ‼ Note its own history: it *“ran for weeks against exactly two
+  hand-written paths”* while chapters moved out from under it, and the fix was a glob. **Same shape, one
+  directory over.**
 - [ ] ⛔⛔ `#24-markerwinstate` — **NEW 2026-09-17 (late). THE §Ch24 PROGRESS MARKER CHOSEN ON 2026-09-16 DOES NOT COVER *WINNING*, AND MY OWN TAIL PROBE HOLDS THE COUNTEREXAMPLE. ⇒ WHAT REMAINS (updated 2026-09-18 — the DESIGN is now complete): **(a)** mint a LOBBY fixture and re-measure caveat (2), which is currently TRACED by an agent probe and not READ; **(b)** implement the explicit `CH24_SEALED_MAPS` tuple + `IS_CHAMPION` disjunct. *(The header previously read “the marker must become a DISJUNCT before prerequisite (1) can be called done” — that design decision is made; see the body.)*
   **THE RULING** (`06-DECISIONS-LOG.md:5496`): *"the marker is 'the bot is standing on a SEALED League
   map'"*, safe **by exhaustion** because no whiteout can respawn on one. ✅ **That exhaustion argument
@@ -294,6 +334,16 @@ open-vs-built sweep of all 80 open items has **not** been done.
   `LEAGUE_ESCALATOR = (1,7)`, *“`MB_UP_ESCALATOR`, collision 0 — an accidental step-on warp”*
   (`victory_road.py:410-412`). ⚠ And “zero legs fire” holds **post-Wally only**; pre-Wally the training
   leg fires there (its guard at `:3393` carries no position test).
+  ✅✅ **AND THE DESIGN'S CENTRAL CLAIM IS NOW *READ*, NOT TRACED (2026-09-18).** Evaluating every
+  §Ch23 leg guard live at each fixture we hold — guards only, no leg ever run — **on the SEALED map
+  `post_hall4_door` (HALL4) NOT ONE of the nine guards is True.** Controls separate and are informative:
+  at EVER_GRANDE legs **5/10/11** fire on the degraded-party fixture and **5/11** on the healthy one, ✅ **RE-RUNNABLE AND COMMITTED** (a reviewer noted the first version had no artifact): `tools/story-dev/probe_ch23_leg_guards.py`, output at `tools/story-dev/evidence/2026-09-18-ch23-leg-guards-BY-POSITION.stdout.txt`.
+  i.e. leg 10's heal guard behaving exactly as written. ⇒ inside the sealed zone the legs are not
+  merely inert, they are **never invoked** — stronger than the design claimed.
+  ⚠ **A nuance the reading exposed:** **leg 11's guard is bare `_on_map(EG)` with no basket conjunct**,
+  so it fires at Ever Grande even AFTER the basket is bought — its self-skip lives in the leg body.
+  ⇒ “legs do not re-fire” is true for two DIFFERENT reasons in two places; only the sealed-zone case is
+  guaranteed by the dispatch. Full table: `ai-research-notes/2026-09-18-ch24-lobby-fixture-SPEC.md`
   ⚠⚠ **WHAT IS STILL OWED, AND IT IS SMALL:** the lobby result is an AGENT probe reproduced by a
   refuter — **not measured by me**, because **no fixture in this repo stands in the lobby**
   (`grep -c POKEMON_LEAGUE_1F saves/FIXTURES.md5` → 0). ⇒ **mint a lobby fixture and re-measure**; the
@@ -1408,35 +1458,9 @@ stacking another correction on top is how it became unreadable.*
       and re-run `audit_doc_consistency.py --self-test` after, because deleting figures changes the
       very corpus the false-positive controls were tuned against. ⭐ **2026-09-15 — FRESH EVIDENCE + A PARTIAL PAYDOWN AT THE SOURCE:** a phantom `drift: 1` (line endings; git stores ONE blob) forced its ENCODING-ONLY caveat to be hand-copied into THREE places in `04-HANDOFF.md`, and correcting the digit cost 4 edits across 2 files. Fixed in the METER rather than the docs — `promote.py` normalises newlines and reports line-ending-only files separately (gate #62). ⇒ that is 4 assert-sites fewer to tidy here. See `07-CHANGELOG.md` / `06-DECISIONS-LOG.md` 2026-09-15.
 
-- [x] `#24-abortswallow` — **KI-81. ✅ CLOSED AND GATED. ⛔ DO NOT REOPEN, AND DO NOT "FIX" A LISTED
-      SITE.** `StoryAbort` is a `BotModeError` is an `Exception`, so every broad `except` in the
-      story path can catch a whiteout. KI-67 fixed only the two chapters it had OBSERVED failing;
-      this item swept the CLASS. Three rounds of fixes shipped and were PROMOTED TO BOTH FORKS
-      (user-approved), each proven by a MEASURED before/after rather than a byte-compare.
-      ✅ **`probe_abort_swallowing.py` IS GATE #27, A RATCHET — MEASURED 2026-09-02: 23 sites in
-      BOTH forks, exactly at baseline, PASS.** ⛔ **A "CANDIDATE" IS NOT A DEFECT** — the probe says
-      so itself, and ~64% were MEASURED (2026-08-17) not to be this defect. ⇒ **the number must
-      never GROW; do NOT drive it to zero, and do NOT fix a site because it is listed.**
-      *(This item's headline read "⛔ 36 CANDIDATES REMAIN" until 2026-09-02. It was STALE — the
-      baseline is 23 — and it looked like it contradicted `04-HANDOFF.md`'s "AST finds ZERO". It
-      does not: those count DIFFERENT THINGS (zero unguarded defects vs 23 candidate sites). The
-      contradiction was settled by RUNNING THE PROBE before this item was compressed, because
-      silently resolving a contradiction you do not understand is how detail gets lost.)*
-      ‼ **THE ONE ENGINEERING RULE WORTH CARRYING FORWARD lives in the CODE, not here** —
-      `higher_level_actions.py:842`: a handler that catches `Exception` must re-raise **only
-      BotModeError-family** objects, because `PathFindingError` is a `RuntimeError` and a re-raised
-      one would escape `StoryMode.run`'s `except BotModeError` (`story_mode.py:2536`) and leave the
-      global abort latch STUCK TRUE for every later mode.
-      ⚠ **KNOWN STALE CITATION, DELIBERATELY NOT FIXED:** that code comment still says
-      `story_mode.py:2505`, which is a bare `pass`; the handler is at **:2536** (verified
-      2026-09-02). ⛔ Fixing it in sandbox alone takes DRIFT 8 → 9 and creates a promotion
-      decision for the USER over a comment typo — a bad trade, and `audit_doc_consistency.py`
-      caught the drift the moment I tried it. ⇒ **bundle this one-word fix into the NEXT
-      approved promotion round of `higher_level_actions.py`**; the correct line number is
-      recorded HERE in the meantime, so nothing is lost by waiting.
-      ⇒ **Full narrative: `07-CHANGELOG.md` 2026-08-16 (×3), 2026-08-17 (×2), 2026-08-23.**
-      *(RETIRED to this summary 2026-09-02 — 101 lines → 21 — to free the line budget. Nothing was
-      deleted: the arc is in the changelog and the rule is in the code comment.)*
+- [x] `#24-abortswallow` — **KI-81. ✅ CLOSED AND GATED. ⛔ DO NOT REOPEN.** Story/recovery paths must not swallow aborts; the swallow class was paid down 36 → 23 and is RATCHETED by gate #27 `probe_abort_swallowing.py`, so a new swallowing handler re-opens paid-for debt.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full write-up, the listed exemptions and the reasoning are there.
+      ‼ **Two rules survive here, and a Tier 1 reviewer caught that my first summary named only the second:** the archived body's own *“ONE ENGINEERING RULE”* is **re-raise only the `BotModeError` family** (`higher_level_actions.py:842`); the companion mechanism, recorded at `07-CHANGELOG.md:15359`, is **`reraise_if_aborting(error)` as the FIRST statement** of any handler. Both are real; the archived text is the authority for the first.
 - [ ] `#24-zerokocounter` — **NEW 2026-08-16, from the KI-80 decoupling. Should `boss_teaches` ALSO
       come off the counter-ladder's gate?** `story_mode.py:1901` is now `if boss_teaches:`. KI-80's
       wording ("gated on *is this fight hopeless*, which `_boss_plan_is_hopeless` answers alone")
@@ -1514,33 +1538,8 @@ stacking another correction on top is how it became unreadable.*
 
 - [x] HISTORY — `#24-rarepredicate` (original spec, 2026-08-06) — **the duplicate-catch exemption (`#24-roster` ruling 3). SOLVED — the  — 📦 **ARCHIVED 2026-08-23 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 
-- [x] `#24-hmteachloop` — **ROOT-CAUSED AND FIXED 2026-08-07. The user's description was literally
-      accurate, and the bug was OUR BUTTONS re-arming the teach.**
-      After the move is learned, both replace branches switch themselves off (`and not _knows()`),
-      so the ride fell through to a blind `A`-every-third-frame — and a Gen 3 bag teach ends on
-      **"Do you want to teach <MOVE> to another POKéMON?"**, where **A means YES**. It reopened the
-      party menu and re-entered the cycle until the 9,000-frame cap expired. Fix: once `_knows()`
-      is true the only button is **B**.
-      **A/B** (`--driver teachfull`, `POKEBOT_HMTEACH_POSTLEARN_A` toggles the arms):
-      | arm | ride_exit | ride_frames | learned |
-      |---|---|---|---|
-      | OLD | `hard-cap` | **8,999** | True |
-      | NEW | `learned` | **479** | True |
-      Same outcome (`replaced=['Taunt']`), clean overworld exit instead of a dangling YES/NO.
-      `repro_hmteach_postlearn.py` — 17 checks, green; fault-inject the branch to A → 3 red.
-      ‼ **WHY FOUR BUDGET ROUNDS FAILED (7/8/9/4), and it is an instrument lesson:**
-      1. Only the SUCCESS path emitted telemetry, so no batch could say WHICH exit fired — every
-         hypothesis was unfalsifiable. Five exits are instrumented now (`TEACH EXIT`).
-      2. **"Every successful teach exits in 35-86 frames" was measuring the wrong loop.**
-         `TEACH OK … in {_f} frames` read `_f` AFTER the menus-closed loop rebound it (Python
-         leaks `for` variables). The ride's real cost was **8,999**. That bogus figure is what
-         justified "the budget governs only failures" and all four tunings.
-      3. The stall detector could never fire: the ping-pong keeps state changing
-         (`stall_peak=171` vs a 900 threshold). It was never frozen, it was busy.
-      ‼ `--driver hmtest` could not reproduce this — it teaches a freshly caught mon with a FREE
-      move slot, so there is no replace dialogue (12/12 clean). The failures are all on a mon with
-      **four** moves; `--driver teachfull` forces exactly that.
-
+- [x] `#24-hmteachloop` — **ROOT-CAUSED AND FIXED 2026-08-07.** The HM-teaching loop defect, closed; the user's description of the symptom turned out to be literally accurate.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full root-cause narrative and its fix are there.
 - [x] HISTORY — `#24-hmteachloop` (original report) — **USER-REPORTED 2026-08-06. Real bug, wastes frames and looks buggy.**
       > "the hm learning feature works but it still loops trying to teach/get out of the teaching
       > cycle after it teaches an hm"

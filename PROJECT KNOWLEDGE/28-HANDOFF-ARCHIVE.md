@@ -11418,3 +11418,77 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
       ⚠ **KI-83** bounds every heal/dive call at our call site; **KI-72/73/53/60** are armed on this
       route; **KI-47** can wedge any battle; **`#26-surfteachchain` D3** is OPEN and armed here.
 
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`: `#24-abortswallow`
+
+> Moved under `lint_docs.py` R3 (the punch list hit 4,445 of its 4,400-line budget).
+> **NOTHING IS DELETED** — the lines below are the item exactly as it stood, and the
+> punch list keeps the slug with a short summary pointing here. The slug survives in
+> place because code and gates cite it (16 tracked files).
+
+- [x] `#24-abortswallow` — **KI-81. ✅ CLOSED AND GATED. ⛔ DO NOT REOPEN, AND DO NOT "FIX" A LISTED
+      SITE.** `StoryAbort` is a `BotModeError` is an `Exception`, so every broad `except` in the
+      story path can catch a whiteout. KI-67 fixed only the two chapters it had OBSERVED failing;
+      this item swept the CLASS. Three rounds of fixes shipped and were PROMOTED TO BOTH FORKS
+      (user-approved), each proven by a MEASURED before/after rather than a byte-compare.
+      ✅ **`probe_abort_swallowing.py` IS GATE #27, A RATCHET — MEASURED 2026-09-02: 23 sites in
+      BOTH forks, exactly at baseline, PASS.** ⛔ **A "CANDIDATE" IS NOT A DEFECT** — the probe says
+      so itself, and ~64% were MEASURED (2026-08-17) not to be this defect. ⇒ **the number must
+      never GROW; do NOT drive it to zero, and do NOT fix a site because it is listed.**
+      *(This item's headline read "⛔ 36 CANDIDATES REMAIN" until 2026-09-02. It was STALE — the
+      baseline is 23 — and it looked like it contradicted `04-HANDOFF.md`'s "AST finds ZERO". It
+      does not: those count DIFFERENT THINGS (zero unguarded defects vs 23 candidate sites). The
+      contradiction was settled by RUNNING THE PROBE before this item was compressed, because
+      silently resolving a contradiction you do not understand is how detail gets lost.)*
+      ‼ **THE ONE ENGINEERING RULE WORTH CARRYING FORWARD lives in the CODE, not here** —
+      `higher_level_actions.py:842`: a handler that catches `Exception` must re-raise **only
+      BotModeError-family** objects, because `PathFindingError` is a `RuntimeError` and a re-raised
+      one would escape `StoryMode.run`'s `except BotModeError` (`story_mode.py:2536`) and leave the
+      global abort latch STUCK TRUE for every later mode.
+      ⚠ **KNOWN STALE CITATION, DELIBERATELY NOT FIXED:** that code comment still says
+      `story_mode.py:2505`, which is a bare `pass`; the handler is at **:2536** (verified
+      2026-09-02). ⛔ Fixing it in sandbox alone takes DRIFT 8 → 9 and creates a promotion
+      decision for the USER over a comment typo — a bad trade, and `audit_doc_consistency.py`
+      caught the drift the moment I tried it. ⇒ **bundle this one-word fix into the NEXT
+      approved promotion round of `higher_level_actions.py`**; the correct line number is
+      recorded HERE in the meantime, so nothing is lost by waiting.
+      ⇒ **Full narrative: `07-CHANGELOG.md` 2026-08-16 (×3), 2026-08-17 (×2), 2026-08-23.**
+      *(RETIRED to this summary 2026-09-02 — 101 lines → 21 — to free the line budget. Nothing was
+      deleted: the arc is in the changelog and the rule is in the code comment.)*
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`: `#24-hmteachloop`
+
+> Moved under `lint_docs.py` R3 (the punch list hit 4,445 of its 4,400-line budget).
+> **NOTHING IS DELETED** — the lines below are the item exactly as it stood, and the
+> punch list keeps the slug with a short summary pointing here. The slug survives in
+> place because code and gates cite it (19 tracked files).
+
+- [x] `#24-hmteachloop` — **ROOT-CAUSED AND FIXED 2026-08-07. The user's description was literally
+      accurate, and the bug was OUR BUTTONS re-arming the teach.**
+      After the move is learned, both replace branches switch themselves off (`and not _knows()`),
+      so the ride fell through to a blind `A`-every-third-frame — and a Gen 3 bag teach ends on
+      **"Do you want to teach <MOVE> to another POKéMON?"**, where **A means YES**. It reopened the
+      party menu and re-entered the cycle until the 9,000-frame cap expired. Fix: once `_knows()`
+      is true the only button is **B**.
+      **A/B** (`--driver teachfull`, `POKEBOT_HMTEACH_POSTLEARN_A` toggles the arms):
+      | arm | ride_exit | ride_frames | learned |
+      |---|---|---|---|
+      | OLD | `hard-cap` | **8,999** | True |
+      | NEW | `learned` | **479** | True |
+      Same outcome (`replaced=['Taunt']`), clean overworld exit instead of a dangling YES/NO.
+      `repro_hmteach_postlearn.py` — 17 checks, green; fault-inject the branch to A → 3 red.
+      ‼ **WHY FOUR BUDGET ROUNDS FAILED (7/8/9/4), and it is an instrument lesson:**
+      1. Only the SUCCESS path emitted telemetry, so no batch could say WHICH exit fired — every
+         hypothesis was unfalsifiable. Five exits are instrumented now (`TEACH EXIT`).
+      2. **"Every successful teach exits in 35-86 frames" was measuring the wrong loop.**
+         `TEACH OK … in {_f} frames` read `_f` AFTER the menus-closed loop rebound it (Python
+         leaks `for` variables). The ride's real cost was **8,999**. That bogus figure is what
+         justified "the budget governs only failures" and all four tunings.
+      3. The stall detector could never fire: the ping-pong keeps state changing
+         (`stall_peak=171` vs a 900 threshold). It was never frozen, it was busy.
+      ‼ `--driver hmtest` could not reproduce this — it teaches a freshly caught mon with a FREE
+      move slot, so there is no replace dialogue (12/12 clean). The failures are all on a mon with
+      **four** moves; `--driver teachfull` forces exactly that.
+
