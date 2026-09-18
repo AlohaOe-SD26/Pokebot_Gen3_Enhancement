@@ -1,0 +1,295 @@
+============================================================================================================
+--driver ch24caveheal  ARM: TREATMENT
+============================================================================================================
+WHY THIS ARM EXISTS: The arm that ANSWERS #24-cavehealblind. Expect ACCEPTANCE: PASS, missing=[], both guard self-tests OK, the route leaving Victory Road and visiting the Poke Center, HP AND PP restored, and the RETURN to the grind tile.
+Predictions were filed BEFORE the driver existed and are graded in
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-18-cavehealblind-PREDICTIONS.md`.
+============================================================================================================
+
+########## HALF 1 of 2 --- `--log caveheal.log` ##########
+
+[setup] LOG -> caveheal.log
+[setup] loaded save state grind_stall_ppzero.ss1; build=sandbox
+[run] starting faithful loop for up to 120000 frames
+f0: CONTROLLER -> <none>   (state=BATTLE)
+f0: battle_is_active -> True  party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f1: CONTROLLER -> Ch24CaveHealMode.run   (state=BATTLE)
+f2: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+f599: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f610: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='Got away safely!' scripts=[] party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f636: CONTROLLER -> Ch24CaveHealMode.run   (state=OVERWORLD)
+[ch24caveheal] PRE at=((24, 43), (15, 39)) tile=(15, 39) worst_hp=72.8% pp=437/480
+[ch24caveheal] VACUITY GUARD SELF-TEST OK — refuses full HP+PP, accepts a damaged party
+[ch24caveheal] GUARD SELF-TEST OK — 13 League/sealed maps are refused, and both synthetic probes were recognised
+[ch24caveheal] … now on EVER_GRANDE_CITY (18, 41)
+f789: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonAnimDoor'] ctrl=Ch24CaveHealMode.run bt='Got away safely!' scripts=[] party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+[ch24caveheal] … now on EVER_GRANDE_CITY_POKEMON_CENTER_1F (7, 8)
+f2000: heartbeat mode=Story ctrl=Ch24CaveHealMode.run state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f2113: SAVED stall state #1 to stalls/repro-ml-f2113.ss1 (bt='Got away safely!')
+f2413: !!! NO-PROGRESS x1200 sig=('Ch24CaveHealMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997', (7, 4)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['EverGrandeCity_PokemonCenter_1F_EventScript_Nurse'] bt='Got away safely!' bot_mode=Story
+f2413:     gen -> Ch24CaveHealMode.run  @ story_harness.py:20685
+f2413:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2413:     gen -> heal_in_pokemon_center  @ higher_level_actions.py:587
+f2413:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2413:     gen -> wait_for_no_script_to_run  @ tasks_scripts.py:155
+[ch24caveheal] … now on EVER_GRANDE_CITY (-7, -7)
+[ch24caveheal] ⭐ LEFT VICTORY ROAD — route=[[24, 43], [0, 8], [16, 12], [0, 8]] (2002 yields)
+[ch24caveheal] after the heal call: at=((0, 8), (27, 49)) tile=(27, 49); visited_pokemon_center=True (read from the ROUTE, not the end position — the heal walks back out, so the end position is outdoors by design)
+[ch24caveheal] HEAL EFFECT hp 72.8% -> 100.0%  pp 437/480 -> 480/480  (hp_ok=True pp_ok=True)
+[ch24caveheal] ⭐⭐ RETURNED to the grind tile — at=((24, 43), (15, 39)) tile=(15, 39). The heal round trip is CLOSED.
+[ch24caveheal] ⭐ CONTINUE OK — 2 waypoint(s) off the grind tile.
+[ch24caveheal] R continue_wp = 2
+[ch24caveheal] R end_of_heal_at = ('((0, 8), (27, 49))', (27, 49))
+[ch24caveheal] R heal_yields = 2002
+[ch24caveheal] R healed_hp = True
+[ch24caveheal] R healed_pp = True
+[ch24caveheal] R post_party = {'hp': [('Wailord', 309, 309), ('Zigzagoon', 48, 48), ('Mightyena', 184, 184), ('Sceptile', 168, 168), ('Swellow', 187, 187), ('Castform', 103, 103)], 'worst_hp_pct': 100.0, 'pp_now': 480, 'pp_max': 480, 'mons': ['Wailord', 'Zigzagoon', 'Mightyena', 'Sceptile', 'Swellow', 'Castform']}
+[ch24caveheal] R pre_at = ('((24, 43), (15, 39))', (15, 39))
+[ch24caveheal] R pre_party = {'hp': [('Wailord', 225, 309), ('Zigzagoon', 48, 48), ('Mightyena', 184, 184), ('Sceptile', 168, 168), ('Swellow', 183, 187), ('Castform', 103, 103)], 'worst_hp_pct': 72.8, 'pp_now': 437, 'pp_max': 480, 'mons': ['Wailord', 'Zigzagoon', 'Mightyena', 'Sceptile', 'Swellow', 'Castform']}
+[ch24caveheal] R returned_at = ('((24, 43), (15, 39))', (15, 39))
+[ch24caveheal] R route = [[24, 43], [0, 8], [16, 12], [0, 8]]
+[ch24caveheal] R visited_pokemon_center = True
+[ch24caveheal] RESULT readings=['C-ATPC', 'C-CONTINUE', 'C-GUARDSELFTEST', 'C-HEALED', 'C-LEFTVR', 'C-PRE', 'C-RETURN'] missing=[]
+[ch24caveheal] RESULT battles=1 whiteouts=0 failure=None
+[ch24caveheal] ‼ battles>0 is EXPECTED here — crossing Victory Road rolls encounters, and a PP-dry party flees them. Only a WHITEOUT is a failure.
+[ch24caveheal] ACCEPTANCE: PASS (leave Victory Road, reach the Poké Center, restore HP AND PP, and WALK BACK to (15, 39))
+f3053: CONTROLLER -> <none>   (state=OVERWORLD)
+f3953: SAVED stall state #2 to stalls/repro-ml-f3953.ss1 (bt='Got away safely!')
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f4253: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997', (15, 39)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f4253:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f6053: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997', (15, 39)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f6053:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f11053: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997', (15, 39)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f11053:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f18053: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997', (15, 39)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f18053:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f20000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f22000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f23053: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 23054 frames; final mode=Manual party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Wailord L61: Dive, Surf, Water Spout, Waterfall
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Mightyena L60: Tackle, Crunch, Take Down, Bite
+[moveset] Sceptile L60: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Swellow L60: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 23054 get_party() recomputes, 77 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24caveheal 23054 recomputes (party_accounting_ledger.jsonl)
+
+
+########## HALF 2 of 2 --- stdout ##########
+
+[setup] LOG -> caveheal.log
+Running mGBA 0.10.2
+[setup] loaded save state grind_stall_ppzero.ss1; build=sandbox
+[run] starting faithful loop for up to 120000 frames
+f0: CONTROLLER -> <none>   (state=BATTLE)
+f0: battle_is_active -> True  party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f1: CONTROLLER -> Ch24CaveHealMode.run   (state=BATTLE)
+f2: CONTROLLER -> BattleListener.fight   (state=BATTLE)
+┌────────────────── Zubat♂ encountered at Victory Road (1F) ──────────────────┐
+│ ┌──────────────┬─────────────────┐                   IVs                    │
+│ │          PID │ A46F36E1        │┌─────┬─────┬─────┬─────┬────┬─────┬────┐ │
+│ │        Level │ 36              ││ HP  │ ATK │ DEF │ SP… │ S… │ SPD │ T… │ │
+│ │       Gender │ Male ♂          │├─────┼─────┼─────┼─────┼────┼─────┼────┤ │
+│ │         Item │ -               ││  8  │  3  │  5  │ 23↑ │ 1… │ 14  │ 71 │ │
+│ │       Nature │ Rash            │└─────┴─────┴─────┴─────┴────┴─────┴────┘ │
+│ │      Ability │ Inner Focus     │                                          │
+│ │ Hidden Power │ Bug (66)        │Moves: Wing Attack, Confuse Ray, Air      │
+│ │  Shiny Value │ 4,899           │Cutter, Mean Look                         │
+│ └──────────────┴─────────────────┘EV Yield: 1 Speed                         │
+│                                                                             │
+│                                                                             │
+│                                 Statistics                                  │
+│ ┌────────┬────────┬─────────────┬───────┬────────┬───────┬────────┬───────┐ │
+│ │        │ Phase  │             │       │        │       │        │       │ │
+│ │        │   IV   │  Phase SV   │ Phase │  Phase │ Shiny │  Total │ Shiny │ │
+│ │        │ Recor… │   Records   │ Enco… │      % │ Enco… │ Encou… │ Aver… │ │
+│ ├────────┼────────┼─────────────┼───────┼────────┼───────┼────────┼───────┤ │
+│ │ Abra   │  67 /  │   2,802 /   │    27 │  0.33% │     0 │     27 │   N/A │ │
+│ │        │  133   │   63,978    │       │        │       │        │       │ │
+│ │ Altar… │  32 /  │  23,385 /   │     3 │  0.04% │     0 │      3 │   N/A │ │
+│ │        │   32   │   23,385    │       │        │       │        │       │ │
+│ │ Aron   │  18 /  │    512 /    │   261 │  3.21% │     0 │    261 │   N/A │ │
+│ │        │  151   │   65,354    │       │        │       │        │       │ │
+│ │ Banet… │  72 /  │  12,823 /   │     7 │  0.09% │     0 │      7 │   N/A │ │
+│ │        │  127   │   58,234    │       │        │       │        │       │ │
+│ │ Casco… │  87 /  │   1,771 /   │     8 │  0.10% │     0 │      8 │   N/A │ │
+│ │        │   87   │    1,771    │       │        │       │        │       │ │
+│ │ Clayd… │  74 /  │   2,791 /   │     8 │  0.10% │     0 │      8 │   N/A │ │
+│ │        │  126   │   36,683    │       │        │       │        │       │ │
+│ │ Elect… │  58 /  │   2,210 /   │    24 │  0.29% │     0 │     24 │   N/A │ │
+│ │        │  132   │   56,184    │       │        │       │        │       │ │
+│ │ Geodu… │  64 /  │   5,806 /   │    22 │  0.27% │     0 │     22 │   N/A │ │
+│ │        │  139   │   61,342    │       │        │       │        │       │ │
+│ │ Golbat │  29 /  │ 59 / 65,446 │ 1,352 │ 16.61% │     0 │  1,352 │   N/A │ │
+│ │        │  163   │             │       │        │       │        │       │ │
+│ │ Grave… │  93 /  │  40,288 /   │     2 │  0.02% │     0 │      2 │   N/A │ │
+│ │        │   93   │   40,288    │       │        │       │        │       │ │
+│ │ Grimer │ 137 /  │  46,455 /   │     2 │  0.02% │     0 │      2 │   N/A │ │
+│ │        │  137   │   46,455    │       │        │       │        │       │ │
+│ │ Gulpin │  52 /  │  12,647 /   │     8 │  0.10% │     0 │      8 │   N/A │ │
+│ │        │   94   │   62,980    │       │        │       │        │       │ │
+│ │ Hariy… │  25 /  │    233 /    │ 1,346 │ 16.54% │     0 │  1,346 │   N/A │ │
+│ │        │  163   │   65,509    │       │        │       │        │       │ │
+│ │ Illum… │  24 /  │   1,577 /   │    21 │  0.26% │     0 │     21 │   N/A │ │
+│ │        │  133   │   59,415    │       │        │       │        │       │ │
+│ │ Kecle… │  80 /  │  38,442 /   │     6 │  0.07% │     0 │      6 │   N/A │ │
+│ │        │  140   │   50,131    │       │        │       │        │       │ │
+│ │ Koffi… │  67 /  │  20,025 /   │    14 │  0.17% │     0 │     14 │   N/A │ │
+│ │        │  113   │   56,401    │       │        │       │        │       │ │
+│ │ Lairon │  31 /  │    138 /    │   554 │  6.81% │     0 │    554 │   N/A │ │
+│ │        │  154   │   65,305    │       │        │       │        │       │ │
+│ │ Linoo… │  54 /  │   1,384 /   │    25 │  0.31% │     0 │     25 │   N/A │ │
+│ │        │  121   │   62,600    │       │        │       │        │       │ │
+│ │ Lombre │  32 /  │  13,964 /   │     3 │  0.04% │     0 │      3 │   N/A │ │
+│ │        │   68   │   60,046    │       │        │       │        │       │ │
+│ │ Lotad  │  26 /  │    702 /    │   280 │  3.44% │     0 │    280 │   N/A │ │
+│ │        │  160   │   65,288    │       │        │       │        │       │ │
+│ │ Loudr… │  34 /  │ 91 / 65,269 │   535 │  6.57% │     0 │    535 │   N/A │ │
+│ │        │  161   │             │       │        │       │        │       │ │
+│ │ Machop │  64 /  │  10,163 /   │    11 │  0.14% │     0 │     11 │   N/A │ │
+│ │        │  124   │   45,753    │       │        │       │        │       │ │
+│ │ Makuh… │  37 /  │ 75 / 65,422 │   562 │  6.91% │     0 │    562 │   N/A │ │
+│ │        │  157   │             │       │        │       │        │       │ │
+│ │ Manec… │  69 /  │  17,359 /   │     6 │  0.07% │     0 │      6 │   N/A │ │
+│ │        │  106   │   53,585    │       │        │       │        │       │ │
+│ │ Marill │  63 /  │   1,715 /   │    15 │  0.18% │     0 │     15 │   N/A │ │
+│ │        │  139   │   65,182    │       │        │       │        │       │ │
+│ │ Mawile │  81 /  │  56,354 /   │     6 │  0.07% │     0 │      6 │   N/A │ │
+│ │        │   84   │   65,128    │       │        │       │        │       │ │
+│ │ Minun  │  75 /  │  53,926 /   │     4 │  0.05% │     0 │      4 │   N/A │ │
+│ │        │   75   │   53,926    │       │        │       │        │       │ │
+│ │ Ninca… │  42 /  │   5,011 /   │    40 │  0.49% │     0 │     40 │   N/A │ │
+│ │        │  130   │   64,733    │       │        │       │        │       │ │
+│ │ Numel  │  92 /  │   9,227 /   │     4 │  0.05% │     0 │      4 │   N/A │ │
+│ │        │  121   │   59,021    │       │        │       │        │       │ │
+│ │ Oddish │  26 /  │    683 /    │    83 │  1.02% │     0 │     83 │   N/A │ │
+│ │        │  132   │   64,221    │       │        │       │        │       │ │
+│ │ Pelip… │  50 /  │   3,668 /   │    18 │  0.22% │     0 │     18 │   N/A │ │
+│ │        │  109   │   65,175    │       │        │       │        │       │ │
+│ │ Pooch… │  32 /  │    166 /    │   522 │  6.41% │     0 │    522 │   N/A │ │
+│ │        │  151   │   65,396    │       │        │       │        │       │ │
+│ │ Ralts  │  57 /  │    864 /    │    65 │  0.80% │     0 │     65 │   N/A │ │
+│ │        │  138   │   64,874    │       │        │       │        │       │ │
+│ │ Sable… │  72 /  │   5,300 /   │     9 │  0.11% │     0 │      9 │   N/A │ │
+│ │        │  118   │   27,789    │       │        │       │        │       │ │
+│ │ Seedot │  66 /  │   4,260 /   │    19 │  0.23% │     0 │     19 │   N/A │ │
+│ │        │  115   │   64,927    │       │        │       │        │       │ │
+│ │ Skitty │  88 /  │  59,609 /   │     4 │  0.05% │     0 │      4 │   N/A │ │
+│ │        │  106   │   64,121    │       │        │       │        │       │ │
+│ │ Slugma │  45 /  │   7,776 /   │     5 │  0.06% │     0 │      5 │   N/A │ │
+│ │        │  102   │   58,854    │       │        │       │        │       │ │
+│ │ Spinda │  47 /  │    310 /    │    23 │  0.28% │     0 │     23 │   N/A │ │
+│ │        │  124   │   65,092    │       │        │       │        │       │ │
+│ │ Swablu │  63 /  │  13,912 /   │     5 │  0.06% │     0 │      5 │   N/A │ │
+│ │        │  136   │   49,762    │       │        │       │        │       │ │
+│ │ Taill… │  51 /  │   1,905 /   │    61 │  0.75% │     0 │     61 │   N/A │ │
+│ │        │  147   │   63,894    │       │        │       │        │       │ │
+│ │ Tenta… │  37 /  │    383 /    │   323 │  3.97% │     0 │    323 │   N/A │ │
+│ │        │  146   │   65,216    │       │        │       │        │       │ │
+│ │ Torko… │  65 /  │   2,580 /   │    17 │  0.21% │     0 │     17 │   N/A │ │
+│ │        │  109   │   65,382    │       │        │       │        │       │ │
+│ │ Tropi… │  80 /  │   2,448 /   │     5 │  0.06% │     0 │      5 │   N/A │ │
+│ │        │  101   │   55,933    │       │        │       │        │       │ │
+│ │ Volbe… │  66 /  │  25,530 /   │     2 │  0.02% │     0 │      2 │   N/A │ │
+│ │        │   98   │   34,853    │       │        │       │        │       │ │
+│ │ Whism… │  35 /  │    145 /    │   355 │  4.36% │     0 │    355 │   N/A │ │
+│ │        │  157   │   65,125    │       │        │       │        │       │ │
+│ │ Wingu… │  49 /  │    142 /    │   147 │  1.81% │     0 │    147 │   N/A │ │
+│ │        │  151   │   64,273    │       │        │       │        │       │ │
+│ │ Wurmp… │  28 /  │    101 /    │   452 │  5.55% │     0 │    452 │   N/A │ │
+│ │        │  162   │   65,301    │       │        │       │        │       │ │
+│ │ Zigza… │  41 /  │    932 /    │   237 │  2.91% │     0 │    237 │   N/A │ │
+│ │        │  155   │   65,132    │       │        │       │        │       │ │
+│ │ Zubat  │  36 /  │ 14 / 65,332 │   630 │  7.74% │     0 │    630 │   N/A │ │
+│ │        │  146   │             │       │        │       │        │       │ │
+│ │ Total  │  18 /  │ 14 / 65,509 │ 8,138 │   100% │     0 │  8,138 │   N/A │ │
+│ │        │  163   │             │       │        │       │        │       │ │
+│ └────────┴────────┴─────────────┴───────┴────────┴───────┴────────┴───────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+f599: battle_is_active -> False  outcome=BattleOutcome.RanAway  party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f610: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'task_free_buf_after_copying_tile_data_to_vram', 'Task_ReturnToFieldNoScript'] ctrl=BattleListener.fight bt='Got away safely!' scripts=[] party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f636: CONTROLLER -> Ch24CaveHealMode.run   (state=OVERWORLD)
+[ch24caveheal] PRE at=((24, 43), (15, 39)) tile=(15, 39) worst_hp=72.8% pp=437/480
+[ch24caveheal] VACUITY GUARD SELF-TEST OK — refuses full HP+PP, accepts a damaged party
+[ch24caveheal] GUARD SELF-TEST OK — 13 League/sealed maps are refused, and both synthetic probes were recognised
+[ch24caveheal] … now on EVER_GRANDE_CITY (18, 41)
+f789: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_GotAwaySafely textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonAnimDoor'] ctrl=Ch24CaveHealMode.run bt='Got away safely!' scripts=[] party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+[ch24caveheal] … now on EVER_GRANDE_CITY_POKEMON_CENTER_1F (7, 8)
+f2000: heartbeat mode=Story ctrl=Ch24CaveHealMode.run state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f2113: SAVED stall state #1 to stalls/repro-ml-f2113.ss1 (bt='Got away safely!')
+f2413: !!! NO-PROGRESS x1200 sig=('Ch24CaveHealMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997', (7, 4)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['EverGrandeCity_PokemonCenter_1F_EventScript_Nurse'] bt='Got away safely!' bot_mode=Story
+f2413:     gen -> Ch24CaveHealMode.run  @ story_harness.py:20685
+f2413:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2413:     gen -> heal_in_pokemon_center  @ higher_level_actions.py:587
+f2413:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f2413:     gen -> wait_for_no_script_to_run  @ tasks_scripts.py:155
+[ch24caveheal] … now on EVER_GRANDE_CITY (-7, -7)
+[ch24caveheal] ⭐ LEFT VICTORY ROAD — route=[[24, 43], [0, 8], [16, 12], [0, 8]] (2002 yields)
+[ch24caveheal] after the heal call: at=((0, 8), (27, 49)) tile=(27, 49); visited_pokemon_center=True (read from the ROUTE, not the end position — the heal walks back out, so the end position is outdoors by design)
+[ch24caveheal] HEAL EFFECT hp 72.8% -> 100.0%  pp 437/480 -> 480/480  (hp_ok=True pp_ok=True)
+[ch24caveheal] ⭐⭐ RETURNED to the grind tile — at=((24, 43), (15, 39)) tile=(15, 39). The heal round trip is CLOSED.
+[ch24caveheal] ⭐ CONTINUE OK — 2 waypoint(s) off the grind tile.
+[ch24caveheal] R continue_wp = 2
+[ch24caveheal] R end_of_heal_at = ('((0, 8), (27, 49))', (27, 49))
+[ch24caveheal] R heal_yields = 2002
+[ch24caveheal] R healed_hp = True
+[ch24caveheal] R healed_pp = True
+[ch24caveheal] R post_party = {'hp': [('Wailord', 309, 309), ('Zigzagoon', 48, 48), ('Mightyena', 184, 184), ('Sceptile', 168, 168), ('Swellow', 187, 187), ('Castform', 103, 103)], 'worst_hp_pct': 100.0, 'pp_now': 480, 'pp_max': 480, 'mons': ['Wailord', 'Zigzagoon', 'Mightyena', 'Sceptile', 'Swellow', 'Castform']}
+[ch24caveheal] R pre_at = ('((24, 43), (15, 39))', (15, 39))
+[ch24caveheal] R pre_party = {'hp': [('Wailord', 225, 309), ('Zigzagoon', 48, 48), ('Mightyena', 184, 184), ('Sceptile', 168, 168), ('Swellow', 183, 187), ('Castform', 103, 103)], 'worst_hp_pct': 72.8, 'pp_now': 437, 'pp_max': 480, 'mons': ['Wailord', 'Zigzagoon', 'Mightyena', 'Sceptile', 'Swellow', 'Castform']}
+[ch24caveheal] R returned_at = ('((24, 43), (15, 39))', (15, 39))
+[ch24caveheal] R route = [[24, 43], [0, 8], [16, 12], [0, 8]]
+[ch24caveheal] R visited_pokemon_center = True
+[ch24caveheal] RESULT readings=['C-ATPC', 'C-CONTINUE', 'C-GUARDSELFTEST', 'C-HEALED', 'C-LEFTVR', 'C-PRE', 'C-RETURN'] missing=[]
+[ch24caveheal] RESULT battles=1 whiteouts=0 failure=None
+[ch24caveheal] ‼ battles>0 is EXPECTED here — crossing Victory Road rolls encounters, and a PP-dry party flees them. Only a WHITEOUT is a failure.
+[ch24caveheal] ACCEPTANCE: PASS (leave Victory Road, reach the Poké Center, restore HP AND PP, and WALK BACK to (15, 39))
+f3053: CONTROLLER -> <none>   (state=OVERWORLD)
+f3953: SAVED stall state #2 to stalls/repro-ml-f3953.ss1 (bt='Got away safely!')
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f4253: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997', (15, 39)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f4253:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f6000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f6053: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997', (15, 39)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f6053:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f8000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f10000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f11053: !!! NO-PROGRESS x8000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997', (15, 39)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f11053:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f12000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f14000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f16000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f18000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f18053: !!! NO-PROGRESS x15000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997', (15, 39)) instr=BattleScript_GotAwaySafely cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='Got away safely!' bot_mode=Manual
+f18053:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f20000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f22000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+f23053: HANG CONFIRMED (20000 frames no progress). Stopping.
+[done] ran 23054 frames; final mode=Manual party=[Wailord:L61:exp283679|Zigzagoon:L19:exp7672|Mightyena:L60:exp216116|Sceptile:L60:exp211189|Swellow:L60:exp211083|Castform:L36:exp47997]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Wailord L61: Dive, Surf, Water Spout, Waterfall
+[moveset] Zigzagoon L19: Tackle, Growl, Surf, Headbutt
+[moveset] Mightyena L60: Tackle, Crunch, Take Down, Bite
+[moveset] Sceptile L60: Rock Smash, Strength, Leaf Blade, Slam
+[moveset] Swellow L60: Peck, Wing Attack, Aerial Ace, Quick Attack
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 23054 get_party() recomputes, 77 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24caveheal 23054 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-18_16-07-39.ss1 created!
+Updated `current_state.ss1`!

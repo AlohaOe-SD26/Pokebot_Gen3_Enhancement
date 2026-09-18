@@ -1,0 +1,134 @@
+============================================================================================================
+--driver ch24caveheal  ARM: REPLICATION-L75
+============================================================================================================
+WHY THIS ARM EXISTS: INTENDED as a vacuity arm (a healthy party should be refused) and it did NOT fire: post_e4ice_FINAL is worst_hp=89.0% pp=401/405, below the full-HP+full-PP threshold, so the guard correctly passed it through. What this actually is, therefore, is a SECOND INDEPENDENT REPLICATION -- a different fixture with a different (L75) party reaching the same result. That is worth more than a determinism replay, but it is NOT the vacuity test it was meant to be. The vacuity guard is instead self-tested in-process on a synthetic state, in BOTH directions (refuses full HP+PP; accepts a damaged party).
+Predictions were filed BEFORE the driver existed and are graded in
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-18-cavehealblind-PREDICTIONS.md`.
+============================================================================================================
+
+########## HALF 1 of 2 --- `--log vacheal.log` ##########
+
+[setup] LOG -> vacheal.log
+[setup] loaded save state post_e4ice_FINAL.ss1; build=sandbox
+[run] starting faithful loop for up to 6000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24CaveHealMode.run   (state=OVERWORLD)
+[ch24caveheal] PRE at=((24, 43), (15, 39)) tile=(15, 39) worst_hp=89.0% pp=401/405
+[ch24caveheal] GUARD SELF-TEST OK — 13 League/sealed maps are refused, and both synthetic probes were recognised
+[ch24caveheal] … now on EVER_GRANDE_CITY (18, 41)
+f153: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonAnimDoor'] ctrl=Ch24CaveHealMode.run bt='MIGHTYENA grew to LV. 75!' scripts=[] party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[ch24caveheal] … now on EVER_GRANDE_CITY_POKEMON_CENTER_1F (7, 8)
+f1477: SAVED stall state #1 to stalls/repro-ml-f1477.ss1 (bt='MIGHTYENA grew to LV. 75!')
+f1777: !!! NO-PROGRESS x1200 sig=('Ch24CaveHealMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (7, 4)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['EverGrandeCity_PokemonCenter_1F_EventScript_Nurse'] bt='MIGHTYENA grew to LV. 75!' bot_mode=Story
+f1777:     gen -> Ch24CaveHealMode.run  @ story_harness.py:20666
+f1777:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f1777:     gen -> heal_in_pokemon_center  @ higher_level_actions.py:587
+f1777:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f1777:     gen -> wait_for_no_script_to_run  @ tasks_scripts.py:155
+[ch24caveheal] … now on EVER_GRANDE_CITY (-7, -7)
+f2000: heartbeat mode=Story ctrl=Ch24CaveHealMode.run state=OVERWORLD party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[ch24caveheal] ⭐ LEFT VICTORY ROAD — route=[[24, 43], [0, 8], [16, 12], [0, 8]] (2002 yields)
+[ch24caveheal] after the heal call: at=((0, 8), (27, 49)) tile=(27, 49); visited_pokemon_center=True (read from the ROUTE, not the end position — the heal walks back out, so the end position is outdoors by design)
+[ch24caveheal] HEAL EFFECT hp 89.0% -> 100.0%  pp 401/405 -> 405/405  (hp_ok=True pp_ok=True)
+[ch24caveheal] ⭐⭐ RETURNED to the grind tile — at=((24, 43), (15, 39)) tile=(15, 39). The heal round trip is CLOSED.
+[ch24caveheal] ⭐ CONTINUE OK — 2 waypoint(s) off the grind tile.
+[ch24caveheal] R continue_wp = 2
+[ch24caveheal] R end_of_heal_at = ('((0, 8), (27, 49))', (27, 49))
+[ch24caveheal] R heal_yields = 2002
+[ch24caveheal] R healed_hp = True
+[ch24caveheal] R healed_pp = True
+[ch24caveheal] R post_party = {'hp': [('Mightyena', 227, 227), ('Zigzagoon', 48, 48), ('Sceptile', 205, 205), ('Swellow', 232, 232), ('Wailord', 396, 396), ('Castform', 103, 103)], 'worst_hp_pct': 100.0, 'pp_now': 405, 'pp_max': 405, 'mons': ['Mightyena', 'Zigzagoon', 'Sceptile', 'Swellow', 'Wailord', 'Castform']}
+[ch24caveheal] R pre_at = ('((24, 43), (15, 39))', (15, 39))
+[ch24caveheal] R pre_party = {'hp': [('Mightyena', 202, 227), ('Zigzagoon', 48, 48), ('Sceptile', 205, 205), ('Swellow', 232, 232), ('Wailord', 396, 396), ('Castform', 103, 103)], 'worst_hp_pct': 89.0, 'pp_now': 401, 'pp_max': 405, 'mons': ['Mightyena', 'Zigzagoon', 'Sceptile', 'Swellow', 'Wailord', 'Castform']}
+[ch24caveheal] R returned_at = ('((24, 43), (15, 39))', (15, 39))
+[ch24caveheal] R route = [[24, 43], [0, 8], [16, 12], [0, 8]]
+[ch24caveheal] R visited_pokemon_center = True
+[ch24caveheal] RESULT readings=['C-ATPC', 'C-CONTINUE', 'C-GUARDSELFTEST', 'C-HEALED', 'C-LEFTVR', 'C-PRE', 'C-RETURN'] missing=[]
+[ch24caveheal] RESULT battles=0 whiteouts=0 failure=None
+[ch24caveheal] ‼ battles>0 is EXPECTED here — crossing Victory Road rolls encounters, and a PP-dry party flees them. Only a WHITEOUT is a failure.
+[ch24caveheal] ACCEPTANCE: PASS (leave Victory Road, reach the Poké Center, restore HP AND PP, and WALK BACK to (15, 39))
+f2417: CONTROLLER -> <none>   (state=OVERWORLD)
+f3317: SAVED stall state #2 to stalls/repro-ml-f3317.ss1 (bt='MIGHTYENA grew to LV. 75!')
+f3617: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (15, 39)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MIGHTYENA grew to LV. 75!' bot_mode=Manual
+f3617:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+f5417: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (15, 39)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MIGHTYENA grew to LV. 75!' bot_mode=Manual
+f5417:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[done] ran 6000 frames; final mode=Manual party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L75: Strength, Crunch, Take Down, Bite
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Sceptile L75: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Swellow L75: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L75: Dive, Surf, Ice Beam, Waterfall
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 6001 get_party() recomputes, 21 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24caveheal 6001 recomputes (party_accounting_ledger.jsonl)
+
+
+########## HALF 2 of 2 --- stdout ##########
+
+[setup] LOG -> vacheal.log
+Running mGBA 0.10.2
+[setup] loaded save state post_e4ice_FINAL.ss1; build=sandbox
+[run] starting faithful loop for up to 6000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24CaveHealMode.run   (state=OVERWORLD)
+[ch24caveheal] PRE at=((24, 43), (15, 39)) tile=(15, 39) worst_hp=89.0% pp=401/405
+[ch24caveheal] GUARD SELF-TEST OK — 13 League/sealed maps are refused, and both synthetic probes were recognised
+[ch24caveheal] … now on EVER_GRANDE_CITY (18, 41)
+f153: STUCK-OW cb=ReturnFromBattleToOverworld instr=BattleScript_PayDayMoneyAndPickUpItems textprinter=active=False state=TextPrinterState.PrintingCharacter tasks=['Task_WeatherInit', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_MapNamePopUpWindow', 'Task_ExitNonAnimDoor'] ctrl=Ch24CaveHealMode.run bt='MIGHTYENA grew to LV. 75!' scripts=[] party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[ch24caveheal] … now on EVER_GRANDE_CITY_POKEMON_CENTER_1F (7, 8)
+f1477: SAVED stall state #1 to stalls/repro-ml-f1477.ss1 (bt='MIGHTYENA grew to LV. 75!')
+f1777: !!! NO-PROGRESS x1200 sig=('Ch24CaveHealMode.run', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (7, 4)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents', 'Task_InitUnionRoom', 'ScriptMovement_MoveObjects', 'Task_UnionRoomListen', 'Task_SearchForChildOrParent'] scripts=['EverGrandeCity_PokemonCenter_1F_EventScript_Nurse'] bt='MIGHTYENA grew to LV. 75!' bot_mode=Story
+f1777:     gen -> Ch24CaveHealMode.run  @ story_harness.py:20666
+f1777:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f1777:     gen -> heal_in_pokemon_center  @ higher_level_actions.py:587
+f1777:     gen -> DebugUtil.track.<locals>.wrapper_function  @ debug.py:35
+f1777:     gen -> wait_for_no_script_to_run  @ tasks_scripts.py:155
+[ch24caveheal] … now on EVER_GRANDE_CITY (-7, -7)
+f2000: heartbeat mode=Story ctrl=Ch24CaveHealMode.run state=OVERWORLD party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[ch24caveheal] ⭐ LEFT VICTORY ROAD — route=[[24, 43], [0, 8], [16, 12], [0, 8]] (2002 yields)
+[ch24caveheal] after the heal call: at=((0, 8), (27, 49)) tile=(27, 49); visited_pokemon_center=True (read from the ROUTE, not the end position — the heal walks back out, so the end position is outdoors by design)
+[ch24caveheal] HEAL EFFECT hp 89.0% -> 100.0%  pp 401/405 -> 405/405  (hp_ok=True pp_ok=True)
+[ch24caveheal] ⭐⭐ RETURNED to the grind tile — at=((24, 43), (15, 39)) tile=(15, 39). The heal round trip is CLOSED.
+[ch24caveheal] ⭐ CONTINUE OK — 2 waypoint(s) off the grind tile.
+[ch24caveheal] R continue_wp = 2
+[ch24caveheal] R end_of_heal_at = ('((0, 8), (27, 49))', (27, 49))
+[ch24caveheal] R heal_yields = 2002
+[ch24caveheal] R healed_hp = True
+[ch24caveheal] R healed_pp = True
+[ch24caveheal] R post_party = {'hp': [('Mightyena', 227, 227), ('Zigzagoon', 48, 48), ('Sceptile', 205, 205), ('Swellow', 232, 232), ('Wailord', 396, 396), ('Castform', 103, 103)], 'worst_hp_pct': 100.0, 'pp_now': 405, 'pp_max': 405, 'mons': ['Mightyena', 'Zigzagoon', 'Sceptile', 'Swellow', 'Wailord', 'Castform']}
+[ch24caveheal] R pre_at = ('((24, 43), (15, 39))', (15, 39))
+[ch24caveheal] R pre_party = {'hp': [('Mightyena', 202, 227), ('Zigzagoon', 48, 48), ('Sceptile', 205, 205), ('Swellow', 232, 232), ('Wailord', 396, 396), ('Castform', 103, 103)], 'worst_hp_pct': 89.0, 'pp_now': 401, 'pp_max': 405, 'mons': ['Mightyena', 'Zigzagoon', 'Sceptile', 'Swellow', 'Wailord', 'Castform']}
+[ch24caveheal] R returned_at = ('((24, 43), (15, 39))', (15, 39))
+[ch24caveheal] R route = [[24, 43], [0, 8], [16, 12], [0, 8]]
+[ch24caveheal] R visited_pokemon_center = True
+[ch24caveheal] RESULT readings=['C-ATPC', 'C-CONTINUE', 'C-GUARDSELFTEST', 'C-HEALED', 'C-LEFTVR', 'C-PRE', 'C-RETURN'] missing=[]
+[ch24caveheal] RESULT battles=0 whiteouts=0 failure=None
+[ch24caveheal] ‼ battles>0 is EXPECTED here — crossing Victory Road rolls encounters, and a PP-dry party flees them. Only a WHITEOUT is a failure.
+[ch24caveheal] ACCEPTANCE: PASS (leave Victory Road, reach the Poké Center, restore HP AND PP, and WALK BACK to (15, 39))
+f2417: CONTROLLER -> <none>   (state=OVERWORLD)
+f3317: SAVED stall state #2 to stalls/repro-ml-f3317.ss1 (bt='MIGHTYENA grew to LV. 75!')
+f3617: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (15, 39)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MIGHTYENA grew to LV. 75!' bot_mode=Manual
+f3617:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f4000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+f5417: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128', (15, 39)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='MIGHTYENA grew to LV. 75!' bot_mode=Manual
+f5417:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[done] ran 6000 frames; final mode=Manual party=[Mightyena:L75:exp422196|Zigzagoon:L19:exp7672|Sceptile:L75:exp429302|Swellow:L75:exp429443|Wailord:L75:exp583024|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L75: Strength, Crunch, Take Down, Bite
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Sceptile L75: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Swellow L75: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L75: Dive, Surf, Ice Beam, Waterfall
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 6001 get_party() recomputes, 21 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24caveheal 6001 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-18_16-01-26.ss1 created!
+Updated `current_state.ss1`!

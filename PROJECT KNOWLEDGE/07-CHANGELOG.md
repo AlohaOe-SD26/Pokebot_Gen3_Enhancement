@@ -32502,3 +32502,46 @@ attempt") arriving independently from the decomp.
 ⚠ **NOT VERIFIED BY ME:** the SaveBlock1 offsets (`+0x9C8`, `+0x9CA`) — the note marks them INFERRED
 for our BPEE0 and never probed. ⛔ Probe before any code reads them. ‼ And read the note's own §7
 (REFUTED / WITHDRAWN) before quoting anything else from it.
+
+
+## 2026-09-18 — ⭐⭐ `#24-cavehealblind` ANSWERED: A VICTORY ROAD GRIND CAN HEAL, AND CAN GET BACK
+
+The gating unknown for the entire §Ch24 training leg is resolved **in the leg's favour**.
+`--driver ch24caveheal` (new), predictions committed first (`32b9fcf3`), graded row by row.
+
+**⭐⭐ MEASURED:** from `TRAIN_SPOT_1F` inside Victory Road, the route is
+`VICTORY_ROAD_1F → EVER_GRANDE_CITY → EVER_GRANDE_CITY_POKEMON_CENTER_1F → EVER_GRANDE_CITY`, then a
+navigate back to the grind tile. **2,002 yields · 1 wild battle · 0 whiteouts · `missing=[]` · PASS.**
+**HP 72.8% → 100% and PP 437/480 → 480/480.**
+
+**✅ THE `_CAVE_EXITS` GAP DOES NOT MATTER.** `_exit_training_cave_if_inside()` is a documented no-op
+on Victory Road (the table holds only Granite Cave and Fiery Path), but `heal_in_pokemon_center` uses
+`navigate_to_anywhere`, which is multi-hop and warp-aware, and it walked out and back **with no table
+entry**. ⇒ ⛔ do not "fix" this by adding a Victory Road row — nothing needs it.
+
+**⭐ IT ALSO REMEDIES THE STALL THE FIXTURE WAS CAPTURED FOR.** `grind_stall_ppzero.ss1` is a pinned
+stall with every slot-0 move at 0 PP; the heal restored PP as well as HP ⇒ a complete remedy, not a
+partial one.
+
+**✅ BOTH GUARDS NOW SELF-TEST EVERY RUN** — the map guard on 2 synthetic League/sealed maps, and the
+vacuity guard in BOTH directions (refuses full HP+PP, accepts a damaged party). That closes the
+`#24-pathguardblind` hole: a guard whose only evidence is that it never fired.
+
+**⚠ WHAT IT DOES NOT SHOW:** it is ONE heal, not a grind. Frequency (≈1 per 8.3 battles) is measured
+elsewhere and not re-measured here.
+
+**⚠ AND ONE ARM DID NOT DO ITS JOB.** The intended VACUITY arm did not fire — **no fixture in this
+repo is at full HP and full PP**, so none can trigger that guard. What the run produced instead is a
+**SECOND INDEPENDENT REPLICATION** (a different fixture, an L75 party, same PASS), which is worth more
+than a determinism replay but is **not** the test it was labelled as. Its evidence file is renamed
+`REPLICATION-L75` so it cannot be cited as vacuity.
+
+**‼ ONE INSTRUMENT DEFECT, FIXED MID-DRIVE.** v1 read `C-ATPC` from the position *after* the heal
+generator finished and recorded a MISS — while the route trace on the next line plainly contained the
+Poké Center, because `heal_in_pokemon_center` enters, heals and **walks back out**. The reading was
+true and then stopped being true before I looked at it. Taken from the ROUTE now. That is this
+project's own rule — *record a reading at its take point* — and the sampler one line above was
+already obeying it.
+
+Files: `tools/story-dev/story_harness.py` (new `Ch24CaveHealMode`, `--driver ch24caveheal`),
+`tools/story-dev/evidence/2026-09-18-ch24caveheal-{TREATMENT,FAULT-NORETURNHEAL,REPLICATION-L75}.txt`.

@@ -19478,3 +19478,59 @@ grep with an expected count** rather than trusting the edit.
   string you are writing into a document, re-read the document before moving on.**
 - ‼ **Do not let green gates stand in for reading what you wrote.** Nothing in the suite can see a
   silently deleted identifier.
+
+
+## 2026-09-18 — I FILED A SECOND PUNCH-LIST ENTRY FOR A SLUG THAT ALREADY HAD AN OPEN ONE — AND IT ASKED A DIFFERENT QUESTION
+
+**SYMPTOM.** Closing the cave-heal drive I added `- [x] ✅✅✅ #24-cavehealblind — ANSWERED AND
+CLOSED`. `03-PUNCH-LIST.md` **already contained** `- [ ] ⛔⛔ #24-cavehealblind` — still open, 43 lines
+earlier, saying *“WHAT REMAINS: prove (by a drive) whether a spin tile **deeper than the exit apron**
+can heal at all”*. Two entries, one slug, opposite statuses, the OPEN one first in reading order.
+Caught by a Tier 1 reviewer, not by me.
+
+**⛔⛔ AND THE WORSE HALF: THE OLD ENTRY ASKED A DIFFERENT QUESTION, WHICH MY DRIVE DID NOT ANSWER.**
+It asks for *“park at a **B1F chamber tile**, force a heal, observe”*. My drive parked on
+`TRAIN_SPOT_1F (15,39)` — the EXIT APRON. ‼ Worse still, that entry had **already predicted my
+result**: *“HEALING FROM VICTORY ROAD WORKS TODAY ONLY BECAUSE `TRAIN_SPOT_1F (15,39)` **IS**
+`VR_EXIT_APRON`”*. ⇒ I ran a drive that confirmed a prediction the item had written down, and then
+closed the item as though I had answered its open question.
+
+**ROOT CAUSE.** I filed a NEW item from the name of a question I had in my head, instead of grepping
+the slug I was about to use. The project's rule exists verbatim — `CLAUDE.md` P5: *“on finishing an
+item, `grep` the tree for its own slug and re-read EVERY hit”* — and I applied it to RETRACTIONS
+earlier the same day while skipping it for a NEW FILING.
+
+**THE FIX THAT WORKED.** Merge into ONE entry that states plainly: what was measured (the apron heal,
+including PP), what was NOT (any tile deeper), and why the unanswered half no longer blocks (USER
+RULING 2 took B1F off the table ⇒ **moot, not solved**). Status `[~]`, not `[x]`.
+
+**PREVENTION RULES.**
+- ⛔ **GREP THE SLUG BEFORE FILING, NOT ONLY BEFORE CLOSING.** The P5 rule is written for finishing an
+  item; the duplicate-creation direction is the same failure and is not covered by its wording.
+  **If a slug already exists, you are EDITING, never adding.**
+- ⛔ **WHEN A DRIVE “CONFIRMS” AN ITEM, CHECK WHETHER THE ITEM ALREADY PREDICTED IT.** An item that
+  states the outcome and then asks for a HARDER experiment has not been answered by the easy one.
+  ‼ Read the item's own **WHAT REMAINS** clause and match it to what the drive actually did.
+- ⭐ **“MOOT” AND “SOLVED” ARE DIFFERENT CLOSURES.** A question retired by a ruling should say so, so
+  that reversing the ruling brings the question back with it rather than leaving a false “answered”.
+
+## 2026-09-18 — A READING WAS TRUE, THEN STOPPED BEING TRUE BEFORE I LOOKED AT IT
+
+**SYMPTOM.** `--driver ch24caveheal` recorded `missing=['C-ATPC']` — *“did not reach the Poké
+Center”* — while the route trace printed one line above plainly contained
+`EVER_GRANDE_CITY_POKEMON_CENTER_1F`. The grade contradicted the evidence in its own log.
+
+**ROOT CAUSE.** I read the position AFTER the heal generator returned: `at_pc = _here_map() ==
+PC1F.value`. But `heal_in_pokemon_center` **enters, heals and walks back out** — so by the time it
+returns, the bot is outdoors *by design*. The predicate was correct; the MOMENT was wrong.
+
+**THE FIX THAT WORKED.** Take it from the route the sampler was already recording:
+`at_pc = tuple(PC1F.value) in route`. The correct value had been in the run the whole time.
+
+**PREVENTION RULES.**
+- ⛔ **A STATE READING MUST BE TAKEN WHILE THE STATE HOLDS.** This project already says *“record a
+  reading AT ITS TAKE POINT”* for `_take(report, …)`; the same applies to any `if <state>` in a grade.
+  **Ask: can this be true and then stop being true before the grade runs?** For anything a helper
+  enters and leaves — a building, a menu, a battle — the answer is yes.
+- ⭐ **WHEN A GRADE CONTRADICTS ITS OWN LOG, SUSPECT THE GRADE.** The trace was right and the verdict
+  was wrong, and the trace was two lines away.

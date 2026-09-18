@@ -76,3 +76,71 @@ say so loudly rather than printing a pass.
 
 A **GRADED** section is appended after the runs: every P row ✅ met, ❌ refuted or ⚠ unreadable, **with
 the literal log line beside it**. A row that cannot be quoted was not measured.
+
+
+---
+
+# ⭐⭐ GRADED — 2026-09-18: `#24-cavehealblind` IS ANSWERED. A VICTORY ROAD GRIND CAN HEAL, AND CAN GET BACK.
+
+> Evidence: `tools/story-dev/evidence/2026-09-18-ch24caveheal-*.txt`.
+> Every row carries the literal log line. A row that cannot be quoted was not measured.
+
+| # | verdict | the line it is graded on |
+|---|---|---|
+| P1 | ✅ MET | `PRE at=((24, 43), (15, 39)) tile=(15, 39)` — `(24,43)` is `VICTORY_ROAD_1F` |
+| P2 | ✅ MET | `worst_hp=72.8% pp=437/480` — damaged, so the heal branch is live and the drive is not vacuous |
+| P3 | ⭐ **MET** | `⭐ LEFT VICTORY ROAD — route=[[24, 43], [0, 8], [16, 12], [0, 8]] (2002 yields)` |
+| P4 | ✅ MET | `visited_pokemon_center=True` — `[16, 12]` in the route is `EVER_GRANDE_CITY_POKEMON_CENTER_1F` |
+| P5 | ⭐ **MET, AND THE PP HALF IS THE PART THAT MATTERED** | `HEAL EFFECT hp 72.8% -> 100.0%  pp 437/480 -> 480/480  (hp_ok=True pp_ok=True)` |
+| P6 | ⭐⭐ **MET — THE ROW I FLAGGED AS LEAST CERTAIN** | `⭐⭐ RETURNED to the grind tile — at=((24, 43), (15, 39)) tile=(15, 39). The heal round trip is CLOSED.` |
+| P7 | ✅ MET | `RESULT battles=1 whiteouts=0 failure=None` |
+| P8 | ✅ MET | `GUARD SELF-TEST OK — 13 League/sealed maps are refused, and both synthetic probes were recognised`; `R route` contains no League-interior map |
+
+## ⭐⭐ THE ANSWER, PLAINLY
+
+**A grind standing on `TRAIN_SPOT_1F` inside Victory Road CAN heal at the Ever Grande Poké Center and
+CAN walk back to its grass.** The route is
+`VICTORY_ROAD_1F → EVER_GRANDE_CITY → EVER_GRANDE_CITY_POKEMON_CENTER_1F → EVER_GRANDE_CITY`, then a
+navigate back in. It cost **2,002 yields**, **1 wild battle** and **0 whiteouts**.
+⇒ ⛔ **`#24-cavehealblind` was the gating unknown for the entire §Ch24 training leg, and it is
+resolved in the leg's favour.** The `_CAVE_EXITS` table not knowing Victory Road turns out not to
+matter — `heal_in_pokemon_center` uses `navigate_to_anywhere`, which is multi-hop and warp-aware, and
+it walked out and back without any table entry.
+
+⭐ **AND IT ANSWERS THE PP QUESTION THE FIXTURE WAS CAPTURED FOR.** `grind_stall_ppzero.ss1` is a
+pinned STALL whose slot 0 had every move at 0 PP. The heal restored **PP 437/480 → 480/480** as well
+as HP ⇒ a Poké Center heal is a complete remedy for the dry-PP stall, not a partial one.
+
+## ⚠ THREE THINGS THIS DOES **NOT** SHOW, AND ONE ARM THAT DID NOT DO ITS JOB
+
+1. **It is ONE heal, not a grind.** 623-battle runs interleave heals with training; this measured a
+   single round trip from a standing start. Frequency (≈1 heal per 8.3 battles) is measured
+   elsewhere and is NOT re-measured here.
+2. **The fault arm suppresses TWO readings, and I am saying so rather than glossing it.**
+   `POKEBOT_CH24_FAULT_NORETURNHEAL=1` gives `missing=['C-CONTINUE', 'C-RETURN']`. That is not
+   sloppiness: the CONTINUE check is taken **off the grind tile**, so it is unreachable by
+   construction when the bot does not go back. ‼ But the project's own standard is *“each arm fails
+   for ITS OWN reason”*, and this one fails for its own reason **plus a consequence of it**.
+3. ⛔ **THE VACUITY ARM DID NOT FIRE, AND WHAT I GOT INSTEAD WAS A REPLICATION.** Pointed at
+   `post_e4ice_FINAL.ss1` expecting a refusal, the guard correctly passed it through — that fixture
+   is `worst_hp=89.0% pp=401/405`, below the full-HP+full-PP threshold. **No fixture in this repo is
+   at full HP and full PP**, so no arm can fire that guard.
+   ⇒ ⭐ What that run actually produced is a **SECOND INDEPENDENT REPLICATION**: a different fixture
+   with a different **L75** party reaching the same PASS. That is genuinely worth more than a
+   determinism replay (`CLAUDE.md`: identical output across runs is a determinism check, never a
+   replication) — but it is **not** the test it was labelled as, and the evidence file is renamed
+   `REPLICATION-L75` to stop it being cited as a vacuity arm.
+   ⇒ ✅ **The guard is instead SELF-TESTED in-process, in BOTH directions** — it must call a synthetic
+   full-HP/full-PP party vacuous AND must NOT call a damaged one vacuous:
+   `VACUITY GUARD SELF-TEST OK — refuses full HP+PP, accepts a damaged party`. That closes the
+   `#24-pathguardblind` hole (a guard whose only evidence is that it never fired).
+
+## ‼ ONE INSTRUMENT DEFECT FOUND AND FIXED MID-DRIVE
+
+v1 read `C-ATPC` as *“am I on the Poké Center map when the heal generator finishes?”* and recorded a
+MISS — while the route trace on the very next line plainly contained the Poké Center. Cause:
+`heal_in_pokemon_center` **enters, heals and walks back out**, so by the time it returns the bot is
+outdoors by design. **The reading was true and then stopped being true before I looked at it.**
+⇒ fixed by taking it from the ROUTE, which the sampler was already recording correctly.
+‼ This is this project's own rule — *record a reading AT ITS TAKE POINT* — and the sampler one line
+above was already obeying it.

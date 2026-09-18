@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f", "ch24caveheal"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -20486,6 +20486,288 @@ class Ch24Lobby2FMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch24CaveHealMode(BotMode):
+    """`#24-cavehealblind` — CAN A GRIND INSIDE VICTORY ROAD HEAL, AND GET BACK?
+
+    ‼ THIS IS THE GATING UNKNOWN FOR THE ENTIRE §Ch24 TRAINING LEG. USER RULING 4 says time is not
+    the constraint and training must be level-appropriate; RULING 2 puts the grind on the Victory
+    Road EXIT side and says heal at a Poké Center, not items. Everything else about that leg is
+    settled. **This is not, and nothing has ever executed it.**
+
+    ✅ WHAT IS ALREADY MEASURED, so this leg only has to answer what is left:
+      · `train_team` DOES travel — `_goto_training_area` every round (call `early_game.py:2125`,
+        function `:2049-2068`), and its heal branch is `_exit_training_cave_if_inside()` then
+        `heal_in_pokemon_center(heal_center)` (`:2153-2158`).
+      · ⛔ `_CAVE_EXITS` holds ONLY `GRANITE_CAVE_1F` and `FIERY_PATH` (`:2003-2012`) — Victory Road
+        is ABSENT, so that exit step is a documented no-op here (`:2021`).
+      · ⭐ but `navigate_to_anywhere` is multi-hop and warp-aware and the tables are recorded as
+        *"REDUNDANT, not load-bearing"* (`:1988-1997`), and `heal_in_pokemon_center` uses it.
+      · from the Victory Road exit side `EVER_GRANDE (18,42)` the Poké Center door is 23 wp;
+        ⛔ from the LEAGUE door `(18,6)` it is NO PATH (`evidence/2026-09-18-vr-heal-roundtrip…`).
+    ⇒ the route plausibly EXISTS. Whether the navigator WALKS it is what this measures.
+
+    ⛔⛔ THE SAFETY DESIGN, AND WHY IT IS A SAMPLER RATHER THAN A PRE-FLIGHT CHECK.
+    `heal_in_pokemon_center` navigates INTERNALLY, so its route cannot be vetted before it runs — the
+    `Ch24LobbyMode` pattern (plan, inspect, then walk) does not apply. ⇒ this leg DRIVES the heal
+    generator by hand and reads the live map on EVERY yield, aborting the instant it lands on a
+    League-interior or sealed Elite Four map. That also produces a MAP TRACE, which is the evidence
+    this drive exists to collect.
+    ‼ And the guard SELF-TESTS first, on a synthetic map id — `#24-pathguardblind`'s lesson: a guard
+    whose only evidence is that it never fired has never been shown to work.
+
+    ⚠ WILD ENCOUNTERS ARE EXPECTED crossing Victory Road, and with 0 PP the bot flees (fleeing takes
+    no damage). ⇒ `battles > 0` is NORMAL here and is NOT a failure. A WHITEOUT is.
+
+    Run:
+        PYTHONUTF8=1 py -3.12 story_harness.py grind_stall_ppzero.ss1 --driver ch24caveheal \\
+            --frames 120000 --log caveheal.log
+
+    FAULT ARM
+      `POKEBOT_CH24_FAULT_NORETURNHEAL=1` — skip the walk back. Must FAIL with `C-RETURN` missing,
+      leaving the bot at the Poké Center. It is what makes "the excursion is reversible" falsifiable.
+    """
+
+    #: The grind tile the leg must return to (`victory_road.py:477`, "1 step from the entrance warp").
+    HOME = (15, 39)
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24CaveHeal"
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24caveheal] WHITEOUT #{self.whiteouts} — abort LATCHED. ‼ A PP-dry party crossing "
+            f"Victory Road whited out; that is a RESULT about the crossing, not a driver bug.")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+        self.battles = getattr(self, "battles", 0) + 1
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        import os as _os
+        from modules.map_data import MapRSE, PokemonCenter
+        from modules.map_path import calculate_path
+        from modules.player import get_player_avatar
+        from modules.pokemon_party import get_party
+        from modules.story import victory_road as VR
+        from modules.story.early_game import wait_until_truly_controllable
+        from modules.modes.util.higher_level_actions import heal_in_pokemon_center
+
+        TAG = "ch24caveheal"
+        VR1F = MapRSE.VICTORY_ROAD_1F
+        PC1F = MapRSE.EVER_GRANDE_CITY_POKEMON_CENTER_1F
+        #: ⛔ Anything on this list means the heal routed toward the gauntlet. Abort immediately.
+        FORBIDDEN_MAPS = {
+            MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_1F, MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_2F,
+            MapRSE.EVER_GRANDE_CITY_SIDNEYS_ROOM, MapRSE.EVER_GRANDE_CITY_PHOEBES_ROOM,
+            MapRSE.EVER_GRANDE_CITY_GLACIAS_ROOM, MapRSE.EVER_GRANDE_CITY_DRAKES_ROOM,
+            MapRSE.EVER_GRANDE_CITY_CHAMPIONS_ROOM, MapRSE.EVER_GRANDE_CITY_HALL1,
+            MapRSE.EVER_GRANDE_CITY_HALL2, MapRSE.EVER_GRANDE_CITY_HALL3,
+            MapRSE.EVER_GRANDE_CITY_HALL4, MapRSE.EVER_GRANDE_CITY_HALL5,
+            MapRSE.EVER_GRANDE_CITY_HALL_OF_FAME,
+        }
+        FORBIDDEN_VALS = {tuple(m.value) for m in FORBIDDEN_MAPS}
+
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        R: dict = {}
+        taken = set()
+        WANT = {"C-PRE", "C-GUARDSELFTEST", "C-LEFTVR", "C-ATPC", "C-HEALED", "C-RETURN", "C-CONTINUE"}
+        failure = None
+        no_return = _os.environ.get("POKEBOT_CH24_FAULT_NORETURNHEAL", "") == "1"
+
+        def _here_map():
+            return tuple(get_player_avatar().map_group_and_number)
+
+        def _party_state():
+            """HP and PP, as READINGS — never a judgement."""
+            hp, pp_total, pp_max, mons = [], 0, 0, []
+            for mon in get_party():
+                if mon is None or mon.is_egg:
+                    continue
+                hp.append((mon.species.name, mon.current_hp, mon.total_hp))
+                for mv in (mon.moves or []):
+                    if mv is None:
+                        continue
+                    pp_total += mv.pp
+                    pp_max += getattr(mv, "total_pp", 0) or 0
+                mons.append(mon.species.name)
+            worst = min((c / t) for _, c, t in hp if t) if hp else 1.0
+            return {"hp": hp, "worst_hp_pct": round(worst * 100, 1),
+                    "pp_now": pp_total, "pp_max": pp_max, "mons": mons}
+
+        try:
+            yield from wait_until_truly_controllable()
+
+            # ---- PREMISE ------------------------------------------------------------------------
+            if _here_map() != tuple(VR1F.value):
+                raise BotModeError(
+                    f"Ch24 caveheal: premise failed — this leg must start on VICTORY_ROAD_1F and we "
+                    f"are at {VR._where()}. ⛔ It measures a heal FROM INSIDE the cave; starting "
+                    f"anywhere else measures nothing."
+                )
+            pre = _party_state()
+            R["pre_at"] = (str(VR._where()), VR._here_tile())
+            R["pre_party"] = pre
+            taken.add("C-PRE")
+            log(f"[{TAG}] PRE at={VR._where()} tile={VR._here_tile()} "
+                f"worst_hp={pre['worst_hp_pct']}% pp={pre['pp_now']}/{pre['pp_max']}")
+
+            # ---- ⛔ VACUITY GUARD: a healthy, full-PP party makes this drive prove NOTHING -------
+            # ⭐ SELF-TESTED ON A SYNTHETIC STATE FIRST. No fixture in this repo is at full HP AND
+            # full PP, so pointing an arm at one cannot fire this guard — which would leave it in the
+            # exact `#24-pathguardblind` condition: a guard whose only evidence is that it never
+            # fired. The predicate is pure, so it is checked directly on a fabricated reading.
+            def _is_vacuous(st):
+                return st["worst_hp_pct"] >= 99.0 and st["pp_max"] and st["pp_now"] >= st["pp_max"]
+
+            if not _is_vacuous({"worst_hp_pct": 100.0, "pp_now": 480, "pp_max": 480}):
+                raise BotModeError(
+                    "Ch24 caveheal: ⛔ THE VACUITY GUARD IS BLIND — handed a synthetic party at FULL "
+                    "HP and FULL PP it did not call it vacuous. A guard that cannot recognise the "
+                    "state it exists to refuse cannot protect this grade; refusing to run."
+                )
+            if _is_vacuous({"worst_hp_pct": 72.8, "pp_now": 437, "pp_max": 480}):
+                raise BotModeError(
+                    "Ch24 caveheal: ⛔ THE VACUITY GUARD IS OVER-EAGER — it called a DAMAGED party "
+                    "vacuous. It would refuse every legitimate run; refusing to run."
+                )
+            log(f"[{TAG}] VACUITY GUARD SELF-TEST OK — refuses full HP+PP, accepts a damaged party")
+            if _is_vacuous(pre):
+                raise BotModeError(
+                    f"Ch24 caveheal: ⛔ VACUOUS — the party is already at full HP AND full PP "
+                    f"({pre['worst_hp_pct']}%, {pre['pp_now']}/{pre['pp_max']}). The heal would be a "
+                    f"no-op and a PASS here would mean nothing. Use a damaged/PP-dry fixture "
+                    f"(`grind_stall_ppzero.ss1` is pinned for exactly this)."
+                )
+
+            # ---- ⭐ GUARD SELF-TEST, on a synthetic map id, before trusting the real sampler -----
+            probe_hits = [m for m in (MapRSE.EVER_GRANDE_CITY_HALL5.value,
+                                      MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_1F.value)
+                          if tuple(m) in FORBIDDEN_VALS]
+            if len(probe_hits) != 2:
+                raise BotModeError(
+                    f"Ch24 caveheal: ⛔ THE MAP GUARD IS BLIND — asked whether HALL5 and "
+                    f"POKEMON_LEAGUE_1F are forbidden it recognised only {len(probe_hits)} of 2. A "
+                    f"guard that cannot name a hazard cannot stop one; refusing to walk anything."
+                )
+            taken.add("C-GUARDSELFTEST")
+            log(f"[{TAG}] GUARD SELF-TEST OK — {len(FORBIDDEN_VALS)} League/sealed maps are refused, "
+                f"and both synthetic probes were recognised")
+
+            # ---- ⭐⭐ THE HEAL, DRIVEN BY HAND SO EVERY YIELD IS SAMPLED -------------------------
+            route = [_here_map()]
+            gen = heal_in_pokemon_center(PokemonCenter.EvergrandeCity)
+            steps = 0
+            while True:
+                try:
+                    nxt = next(gen)
+                except StopIteration:
+                    break
+                steps += 1
+                now = _here_map()
+                if now in FORBIDDEN_VALS:
+                    gen.close()
+                    raise BotModeError(
+                        f"Ch24 caveheal: ⛔⛔ THE HEAL ROUTED INTO THE LEAGUE — we are on {now}, which "
+                        f"is a League-interior/sealed map. Aborted mid-walk. Route so far: {route}"
+                    )
+                if now != route[-1]:
+                    route.append(now)
+                    try:
+                        log(f"[{TAG}] … now on {MapRSE(now).name} {VR._here_tile()}")
+                    except ValueError:
+                        log(f"[{TAG}] … now on {now} {VR._here_tile()}")
+                yield nxt
+            yield from wait_until_truly_controllable()
+
+            R["route"] = [list(m) for m in route]
+            R["heal_yields"] = steps
+            left_vr = any(m != tuple(VR1F.value) for m in route)
+            if left_vr:
+                taken.add("C-LEFTVR")
+            log(f"[{TAG}] {'⭐ LEFT VICTORY ROAD' if left_vr else '⛔ NEVER LEFT VICTORY ROAD'} — "
+                f"route={R['route']} ({steps} yields)")
+
+            # ⛔⛔ TAKE THIS READING FROM THE ROUTE, NOT FROM THE FINAL POSITION.
+            # v1 asked `_here_map() == PC1F` AFTER the heal generator finished and recorded a MISS
+            # while the route trace plainly contained the Poké Center — because
+            # `heal_in_pokemon_center` ENTERS, HEALS AND WALKS BACK OUT, so by the time it returns the
+            # bot is outdoors again. The reading was true and then stopped being true before I looked.
+            # ‼ That is this project's own rule — *record a reading AT ITS TAKE POINT* — and the
+            # sampler was already taking it correctly one line above.
+            at_pc = tuple(PC1F.value) in route
+            R["end_of_heal_at"] = (str(VR._where()), VR._here_tile())
+            R["visited_pokemon_center"] = at_pc
+            if at_pc:
+                taken.add("C-ATPC")
+            log(f"[{TAG}] after the heal call: at={VR._where()} tile={VR._here_tile()}; "
+                f"visited_pokemon_center={at_pc} (read from the ROUTE, not the end position — the "
+                f"heal walks back out, so the end position is outdoors by design)")
+
+            post = _party_state()
+            R["post_party"] = post
+            healed_hp = post["worst_hp_pct"] >= 99.0
+            healed_pp = bool(post["pp_max"]) and post["pp_now"] >= post["pp_max"]
+            R["healed_hp"], R["healed_pp"] = healed_hp, healed_pp
+            if healed_hp and healed_pp:
+                taken.add("C-HEALED")
+            log(f"[{TAG}] HEAL EFFECT hp {pre['worst_hp_pct']}% -> {post['worst_hp_pct']}%  "
+                f"pp {pre['pp_now']}/{pre['pp_max']} -> {post['pp_now']}/{post['pp_max']}  "
+                f"(hp_ok={healed_hp} pp_ok={healed_pp})")
+
+            # ---- ⭐⭐ THE RETURN — the leg nothing in this repo has ever executed ----------------
+            if no_return:
+                log(f"[{TAG}] ⚠ FAULT NORETURNHEAL — not walking back; C-RETURN must be MISSING.")
+            else:
+                yield from VR._navigate_riding_out(VR1F, tuple(self.HOME))
+                yield from wait_until_truly_controllable()
+                back = _here_map() == tuple(VR1F.value) and tuple(VR._here_tile()) == tuple(self.HOME)
+                R["returned_at"] = (str(VR._where()), VR._here_tile())
+                if not back:
+                    raise BotModeError(
+                        f"Ch24 caveheal: ⛔⛔ THE HEAL IS ONE-WAY. Aimed at VICTORY_ROAD_1F "
+                        f"{self.HOME} and ended at {VR._where()} {VR._here_tile()}. ‼ That is a WORSE "
+                        f"finding than 'healing does not work': the grind would drift off its grass "
+                        f"after the FIRST heal and never come back."
+                    )
+                taken.add("C-RETURN")
+                log(f"[{TAG}] ⭐⭐ RETURNED to the grind tile — at={VR._where()} "
+                    f"tile={VR._here_tile()}. The heal round trip is CLOSED.")
+
+                # ---- and the bot can CONTINUE from where it stopped --------------------------
+                path = calculate_path((VR1F, VR._here_tile()), (VR1F, (15, 40)))
+                R["continue_wp"] = len(path)
+                if not path:
+                    raise BotModeError(
+                        "Ch24 caveheal: the CONTINUE check returned an EMPTY path — that proves "
+                        "nothing. Aim it at a tile the bot is not already standing on."
+                    )
+                taken.add("C-CONTINUE")
+                log(f"[{TAG}] ⭐ CONTINUE OK — {len(path)} waypoint(s) off the grind tile.")
+
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        missing = sorted(WANT - taken)
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        ok = not missing and failure is None and self.whiteouts == 0
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] ‼ battles>0 is EXPECTED here — crossing Victory Road rolls encounters, and a "
+            f"PP-dry party flees them. Only a WHITEOUT is a failure.")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+            f"(leave Victory Road, reach the Poké Center, restore HP AND PP, and WALK BACK to "
+            f"{self.HOME})")
+        context.set_manual_mode()
+
+
 class Ch24IceBeamMode(BotMode):
     """`#24-icebeamtrip` — fetch TM13 ICE BEAM from the Abandoned Ship. **PRODUCTION CODE.**
 
@@ -23209,6 +23491,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24LobbyMode()
         elif args.driver == "ch24lobby2f":
             context.bot_mode_instance = Ch24Lobby2FMode()
+        elif args.driver == "ch24caveheal":
+            context.bot_mode_instance = Ch24CaveHealMode()
         elif args.driver == "ch24icebeam":
             context.bot_mode_instance = Ch24IceBeamMode()
         elif args.driver == "ch24teachice":

@@ -12272,3 +12272,43 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
       Measure `_navigate_riding_out(MT_PYRE_SUMMIT, (23,7))` FIRST — it may be the whole thing.
       ⏭ **BLOCKED ONLY ON: no post-Winona save exists.** See `#24-postwinona-save`.
 
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] ~~`#24-pc` (design entry)~~ — ‼ **SUPERSEDED by `#24-roster`**, which the…”*
+> Moved under `lint_docs.py` R3 while `#24-cavehealblind` was being closed.
+> **NOTHING IS DELETED.**
+
+- [x] ~~`#24-pc` (design entry)~~ — ‼ **SUPERSEDED by `#24-roster`**, which the
+      user APPROVED 2026-08-06 with its gate lifted. Consolidated 2026-08-10.
+      ‼ The OTHER `#24-pc` entry (Surf resource walls) is a DIFFERENT thing — a derail
+      class — and REMAINS OPEN.
+      HISTORY — #24-pc — PC / BOX TEAM MANAGEMENT (user 2026-07-21; planning doc §4b). Advanced
+      team development via the Pokémon Storage PC: store / move / withdraw Pokémon
+      (and items). Map PC access points (every Poké Center + player's-house PC) and
+      the PC UI (Deposit/Withdraw/Move, box navigation, party↔box swaps, item
+      storage). Enables swapping in a better-matched mon per gym and parking
+      over-levelled/redundant catches. Build when a fight needs it; ties #24-team /
+      §7 matchup awareness. Poké Centers are otherwise near-identical (generic code
+      handles them) — only map PC/layout exceptions (e.g. the E4 Poké Center).
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] `#24-movepoolcounters` — **SHIPPED 2026-08-07. It is the fix for `#24-winonaground`.**…”*
+> Moved under `lint_docs.py` R3 while `#24-cavehealblind` was being closed.
+> **NOTHING IS DELETED.**
+
+- [x] `#24-movepoolcounters` — **SHIPPED 2026-08-07. It is the fix for `#24-winonaground`.**
+      Winona: **0 huntable candidates -> 1** (Slugma @ FIERY_PATH via `move:Rock Throw@L15`).
+      Norman control unchanged (Machop @ FIERY_PATH via type); Wattson 1 -> 2.
+      TWO changes, both required: (a) movepool-aware candidates behind three gates — damaging
+      (`base_power > 0`), obtainable (level-up only, known at capture), credible (`bp x 2.0 x
+      STAB >= 75`); (b) **huntability added to `tier`** — without it the huntable candidate
+      ranked **42 of 43** behind unhuntable MAGMA_HIDEOUT Geodudes and `max_results=5` truncated
+      it away, leaving the feature inert. `repro_movepool_counter_candidates.py` +
+      `probe_counter_candidates_offline.py` (with a positive control).
+      ‼ Original measurement note kept below — its "+2, will not fix Winona" conclusion was
+      WRONG, because I had not yet found the Grass-only filter that excludes her one type match.
+

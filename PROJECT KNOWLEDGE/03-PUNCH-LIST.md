@@ -470,7 +470,17 @@ open-vs-built sweep of all 80 open items has **not** been done.
   §Ch24 entry driver already walks that route. Until then caveat (2) is TRACED, not READ.
   ⛔ **DO NOT WIRE SEGMENT 24** — the DESIGN of prerequisite (1) is done; the IMPLEMENTATION is not, and
   prerequisites (2), (3) and (4) are untouched.
-- [ ] ⛔⛔ `#24-cavehealblind` — **NEW 2026-09-18. `_exit_training_cave_if_inside()` DOES NOT KNOW VICTORY ROAD, AND HEALING FROM INSIDE IT WORKS ONLY BY COINCIDENCE. ⇒ WHAT REMAINS: prove (by a drive) whether a spin tile deeper than the exit apron can heal at all.**
+- [~] ✅⚠ `#24-cavehealblind` — **THE RULED GROUND'S HEAL IS MEASURED AND WORKS (2026-09-18). ⛔⛔ BUT THE QUESTION THIS ITEM ORIGINALLY ASKED — CAN A TILE *DEEPER* THAN THE EXIT APRON HEAL — IS **NOT ANSWERED**; IT IS **MOOT** BY USER RULING 2. ⇒ WHAT REMAINS: nothing, unless B1F is ever re-opened.**
+  ⭐⭐ **WHAT WAS MEASURED** (`--driver ch24caveheal`, predictions committed first at `32b9fcf3`; graded in `ai-research-notes/2026-09-18-cavehealblind-PREDICTIONS.md`): from `TRAIN_SPOT_1F (15,39)` the route is **`VICTORY_ROAD_1F → EVER_GRANDE_CITY → EVER_GRANDE_CITY_POKEMON_CENTER_1F → EVER_GRANDE_CITY`**, then a navigate back in. **2,002 yields · 1 wild battle · 0 whiteouts · `missing=[]` · PASS**, with **HP 72.8% → 100% and PP 437/480 → 480/480**.
+  ⛔⛔ **AND HERE IS THE HONEST PART, CAUGHT BY A TIER 1 REVIEW BEFORE IT SHIPPED: THIS CONFIRMED WHAT THIS ITEM ALREADY PREDICTED, AND DID NOT TEST WHAT IT ASKED.** The original text (kept below) says *“HEALING FROM VICTORY ROAD WORKS TODAY ONLY BECAUSE `TRAIN_SPOT_1F (15,39)` **IS** `VR_EXIT_APRON`”* and then asks for a drive **“park at a B1F chamber tile”**. ⇒ my drive parked on the APRON. It upgrades *“works by coincidence”* to *“works, measured, including PP”* — which is worth having — but it is **not** the deeper-tile experiment, and I first filed it as a separate `[x] ANSWERED` item, which left TWO contradictory entries for one slug.
+  ✅ **WHY THE UNANSWERED HALF NO LONGER BLOCKS ANYTHING:** USER RULING 2 (2026-09-18) put the grind at the Victory Road **exit side** for round-trip speed and states **“B1F IS OFF THE TABLE … do not reopen B1F without a new ruling”**. ⇒ the deeper-tile heal is a prerequisite for a **B1F** grind only, and there is no B1F grind. **Moot, not solved.** ⛔ If B1F is ever re-opened, **this experiment comes back with it** — park at a B1F chamber tile, force a heal, observe.
+  ⭐ **A REAL SUB-FINDING THAT DOES GENERALISE:** the `_CAVE_EXITS` gap turned out not to matter even here — `heal_in_pokemon_center` uses the multi-hop warp-aware `navigate_to_anywhere` and walked out AND back with **no table entry**. ⛔ Do NOT “fix” this by adding a Victory Road row; `early_game.py:1988-1997` already records the tables as *“REDUNDANT, not load-bearing”*. ⚠ That said, this is evidence from the APRON, one step from the warp — it does **not** settle the cross-warp-level case the `:2154-2157` comment warns about.
+  ⭐ **IT ALSO REMEDIES THE STALL THE FIXTURE WAS CAPTURED FOR:** `grind_stall_ppzero.ss1` had every slot-0 move at 0 PP, and the heal restored **PP as well as HP** ⇒ a complete remedy for the dry-PP stall, not a partial one.
+  ⚠ **WHAT IT DOES NOT SHOW:** it is **ONE heal, not a grind** — a 623-battle run interleaves heals with training, and the ≈1-heal-per-8.3-battles frequency is measured elsewhere and NOT re-measured here.
+  ⚠ **AND ONE ARM DID NOT DO ITS JOB.** The intended VACUITY arm never fired — **no fixture in this repo is at full HP AND full PP** — so what that run produced is a **SECOND INDEPENDENT REPLICATION** on a different L75 party, and its evidence file is named `REPLICATION-L75` so it cannot be cited as vacuity. The guard is instead **self-tested in-process, in both directions**.
+  ‼ **ONE INSTRUMENT DEFECT, FIXED MID-DRIVE:** `C-ATPC` was read from the position AFTER the heal generator finished and logged a MISS — because `heal_in_pokemon_center` **enters, heals and walks back out**, so the reading was true and then stopped being true before I looked. Taken from the ROUTE now. **Record a reading AT ITS TAKE POINT.**
+  ⭐ **RUN IT:** `PYTHONUTF8=1 py -3.12 story_harness.py grind_stall_ppzero.ss1 --driver ch24caveheal --frames 120000 --log caveheal.log`
+  ─── *(the item's ORIGINAL text, kept verbatim — it is the statement of the question that is still unanswered, and it predicted the apron result correctly:)*
   ✅ **MEASURED BY ME:** `grep -c VICTORY_ROAD sandbox-pokebot/modules/story/early_game.py` → **0**.
   `_CAVE_EXITS` (`early_game.py:2003`) holds exactly two entries — `GRANITE_CAVE_1F` and Fiery Path —
   and its docstring says *“A cheap no-op anywhere that is not in `_CAVE_EXITS`.”*
@@ -1859,17 +1869,7 @@ stacking another correction on top is how it became unreadable.*
 - [x] HISTORY — `#24-hmteachloop` (original report) — **USER-REPORTED 2026-08-06. Real bug, wastes frames and looks buggy.**
       📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full entry, its evidence and any ⛔ warnings are there.
 - [x] `#24-movepoolcounters` — **SHIPPED 2026-08-07. It is the fix for `#24-winonaground`.**
-      Winona: **0 huntable candidates -> 1** (Slugma @ FIERY_PATH via `move:Rock Throw@L15`).
-      Norman control unchanged (Machop @ FIERY_PATH via type); Wattson 1 -> 2.
-      TWO changes, both required: (a) movepool-aware candidates behind three gates — damaging
-      (`base_power > 0`), obtainable (level-up only, known at capture), credible (`bp x 2.0 x
-      STAB >= 75`); (b) **huntability added to `tier`** — without it the huntable candidate
-      ranked **42 of 43** behind unhuntable MAGMA_HIDEOUT Geodudes and `max_results=5` truncated
-      it away, leaving the feature inert. `repro_movepool_counter_candidates.py` +
-      `probe_counter_candidates_offline.py` (with a positive control).
-      ‼ Original measurement note kept below — its "+2, will not fix Winona" conclusion was
-      WRONG, because I had not yet found the Grass-only filter that excludes her one type match.
-
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full entry, its evidence and any ⛔ warnings are there.
 - [x] HISTORY — `#24-movepoolcounters` (original measurement) — **USER DIRECTIVE 2026-08-07.**  — 📦 **ARCHIVED 2026-08-23 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 
 - [x] `#24-counterdesertgate` — **FIXED 2026-08-07, the same day it was found. CLOSED.** The desert-gate counter defect.
@@ -3120,17 +3120,7 @@ region, where "train near the gym" is actively wrong.
       Center** has a shop + mart; Slateport stalls / TM sellers use non-standard
       menus. Do NOT map all shops up front (unreachable → can't verify).
 - [x] ~~`#24-pc` (design entry)~~ — ‼ **SUPERSEDED by `#24-roster`**, which the
-      user APPROVED 2026-08-06 with its gate lifted. Consolidated 2026-08-10.
-      ‼ The OTHER `#24-pc` entry (Surf resource walls) is a DIFFERENT thing — a derail
-      class — and REMAINS OPEN.
-      HISTORY — #24-pc — PC / BOX TEAM MANAGEMENT (user 2026-07-21; planning doc §4b). Advanced
-      team development via the Pokémon Storage PC: store / move / withdraw Pokémon
-      (and items). Map PC access points (every Poké Center + player's-house PC) and
-      the PC UI (Deposit/Withdraw/Move, box navigation, party↔box swaps, item
-      storage). Enables swapping in a better-matched mon per gym and parking
-      over-levelled/redundant catches. Build when a fight needs it; ties #24-team /
-      §7 matchup awareness. Poké Centers are otherwise near-identical (generic code
-      handles them) — only map PC/layout exceptions (e.g. the E4 Poké Center).
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full entry, its evidence and any ⛔ warnings are there.
 - [x] #24-resume — SEGMENT 1 RESUME BUG FIXED (2026-07-21). Pre-Pokédex
       recovery/resume re-ran the scripted intro from the truck → derail loop
       ("stuck after respawn"). Split Segment 1: scripted intro gated on
