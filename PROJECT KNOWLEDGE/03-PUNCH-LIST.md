@@ -148,58 +148,9 @@ open-vs-built sweep of all 80 open items has **not** been done.
     **(3) ⚠ THE ARRIVAL TILE IS NOT (6,7) WHEN YOU LOOK.** The probe logged *“in Sidney's room at **(6,11)** (the script auto-walks to (6,7))”* — i.e. it read its own position MID-CUTSCENE, two steps into the six-step walk. The decomp's (6,7) is the FINAL tile, not the tile you observe on arrival. ⭐ **THE PROBE SURVIVED THIS ONLY BECAUSE IT LOCATES THE TRAINER LIVE** (`get_map_objects`, `sidney_at = (6,5)`) **and navigates from wherever it actually is**, instead of assuming (6,7). ⇒ **leg 2 must do the same. ⛔ DO NOT HARDCODE (6,7) AS A START TILE** — it is true eventually and false when you look.
   ✅ **AND THE ROUTE WORKS UNCHANGED FROM THE NEW FIXTURE** (`P24-IN`, `P24-HALL5`, `P24-ROOM` all taken; lobby (9,11), hall5 (5,12)) ⇒ **leg 2 can reuse `Ch24ProbeMode`'s routing verbatim**, which was prediction P1 and is the cheapest good news in the chapter.
 - [x] ✅✅✅ `#24-phoebeL75` — **NEW AND DONE 2026-09-17. PHOEBE IS BEATEN AT L75, ROOMS 1→2 ARE DRIVEN AS ONE UNIT, AND ⭐ THE MEASUREMENT `#24-ghostreplacement` WAS BLOCKED ON IS IN HAND.**
-  `--driver ch24phoebe` (NEW) from `post_sidney_L75.ss1`: `ACCEPTANCE: PASS`, all 6 readings, `missing=[]`, `battles=1`, `whiteouts=0`, **`DEFEATED_ELITE_4_PHOEBE = True`** (a real bool, dumped with `!r`), Mightyena **L75 → L76**.
-  ✅ **THE UNIT COMPOSES.** dismiss → BAG HEAL → `_pass_through_door((6,2))` → HALL1 (5,12) → `_pass_through_door((5,2))` → PHOEBES_ROOM → locate LIVE → engage. Every piece was lifted from something already driven; **the SEQUENCE was the new thing**, and it worked.
-  ✅ **THE USER-RULED BAG HEAL FIRED AND IT MATTERED:** `heal_plan = [(0, 'Super Potion', 'Mightyena at 187/227')]`, `heal_actions=1`, HP **187/227 → 227/227**. ⇒ Phoebe was entered at FULL HP instead of 82%. ‼ And prediction PP5 (*“the heal will probably do nothing, 82% may already clear the threshold”*) was **WRONG** — a RESULT, not a driver failure: the predicate is more eager than I assumed.
-  ⭐⭐ **THE DAMAGE TABLE — `probe_ghost_damage_real.py`, real formula, real foe, real party:**
-      mon          L    best damage (move)        ko_turns vs Dusclops L51 (117 HP)
-      Mightyena   76    **138**  Crunch            **1**   <- ONE-SHOTS IT
-      Wailord     75      93   Surf                  2
-      Sceptile    75      81   Leaf Blade            2
-      Swellow     75      66   Aerial Ace            2
-      Castform    36       7   Powder Snow          17
-      Zigzagoon   19     **3**  Surf               **39**  <- what the CURRENT ranker picks
-  ⭐⭐ **⇒ `ko_turns` DOES SEPARATE THEM, AND THE SATURATION WORRY DOES NOT MATERIALISE.** Distinct buckets: **[1, 2, 17, 39]**. **Mightyena is ALONE at 1** (138 ≥ 117, it one-shots) while every other battler needs 2 ⇒ a `ko_turns` leading term picks **Mightyena**, which is the correct answer and the one both previous attempts got wrong. ‼ A refuter had predicted it *might* saturate at 1 for Mightyena AND Swellow; measured, Swellow does **66**, not 117+, so it does not. **That worry was right to raise and is now settled by measurement rather than argument.**
-  ⛔ **BUT THE OTHER REFUTATION STILL STANDS AND MUST BE HONOURED:** `ko_turns` as specified BREAKS gate #39's C2, because the synthetic rows have **no foe HP**. ⇒ the term must be **INERT when foe HP is unknown** (`foe_hp <= 0 ⇒ ko = 0` for every candidate, so the tuple falls through to today's key and all nine existing cases keep passing), and STRICTLY WORST when a candidate deals zero. Only then is it safe on a shared path.
-  ‼ **AND ZIGZAGOON IS THE WHOLE ARGUMENT IN ONE NUMBER: 3 damage, 39 turns.** That is what the shipped ranker reaches for after a faint against a Ghost.
-  ⚠ **Ice Beam does 62 here — LESS than Surf's 93** — because Ice is NEUTRAL on a pure Ghost. Its value is DRAKE (4× on Salamence/Altaria/Flygon), not Phoebe. ⇒ do not read a low Phoebe number as evidence against the Ice Beam plan.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full entry, its evidence and any ⛔ warnings it carried are there.
 - [x] ✅✅ `#24-doccontrolchars` — **NEW AND DONE 2026-09-17 (late). AN INVISIBLE BACKSPACE BYTE WAS SITTING IN A TRACKED DOCUMENT, AND A SWEEP FOUND A SECOND ONE THAT HAD BEEN THERE FOR WEEKS. GATE #64, SIX FAULT ARMS, ENFORCING.**
-  **HOW IT SURFACED:** a changelog entry written through a shell-quoted string turned `\b` into a
-  **literal 0x08 BACKSPACE** in the document. Every terminal rendered it as an empty pair of
-  backticks, so my first diagnosis — *"the shell deleted my text"* — was WRONG. It was **present and
-  invisible**. It was caught only because an assertion string failed to match and I inspected the
-  bytes instead of the rendering.
-  ‼‼ **AND IT WAS NOT THE FIRST.** Sweeping every `PROJECT KNOWLEDGE/*.md` found a SECOND 0x08 in
-  `28-HANDOFF-ARCHIVE.md:9918` — **inside a sentence explaining that a literal control character in
-  source is a hard failure "because `\b` compiled to a BACKSPACE twice in one day and the gate still
-  passed."** ⇒ **three independent sessions have now put a backspace byte into prose ABOUT the
-  backspace bug, and nothing caught any of them.** Both are fixed.
-  ⭐ **THE GAP IT CLOSES:** control characters in `.py` SOURCE are gated (`#24-p2headergate` (C));
-  the DOCS were not. `lint_docs.py` and `audit_doc_consistency.py` both passed a file containing 0x08.
-  ⭐⭐ **WHY THIS ONE IS SAFE TO ENFORCE WHEN `#24-retractioncoverage` WAS NOT — AND THE DIFFERENCE IS
-  THE WHOLE LESSON.** That gate had to DECIDE whether a sentence was retracted, so it could misjudge,
-  and it did. This gate asserts a property of the INPUT DOMAIN: Markdown has no legitimate use for any
-  C0 control character except TAB and NEWLINE. **There is nothing to judge, so there is nothing to
-  misjudge** — a hit is a defect by construction. ⇒ *justify ENFORCING from the input domain, not from
-  the checker's cleverness.*
-  **SIX ARMS:** real docs clean · injected 0x08 fires at the right line/col · newlines+tabs+CRLF never
-  fire · a **lone CR** does fire · zero-width space fires · every rejected character is nameable (or
-  the report is unreadable). ⛔ **ARM 3 FAILED FIRST AND WAS RIGHT TO:** it drove `scan_text` directly
-  while CRLF normalisation lived in `scan_docs`, so a legitimate CRLF was reported — the gate was
-  correct and the **contract was split**. Normalisation moved into `scan_text`; a helper whose
-  correctness depends on the caller pre-cleaning its input will eventually be called without it.
-  ⛔⛔ **AND ITS SCOPE WAS NARROWER THAN ITS OWN CLAIM — A TIER 1 REVIEWER COUNTED THE FILES INSTEAD
-  OF READING THE GLOB.** v1 used `DOCS.glob("*.md")`, which is **non-recursive: 34 of 192 files**. The
-  158 skipped are almost entirely **`ai-research-notes/` — machine-relayed Gemini output, i.e. exactly
-  the content most likely to reproduce this bug class next** — while the docstring claimed *"every
-  `PROJECT KNOWLEDGE/*.md`"*. ✅ Fixed to `rglob`: coverage **34 → 192 files**, and recursing adds
-  **0 findings**, so it is a scope correction, not a regression. ‼ `lint_docs.py` shares the
-  non-recursive convention, so this was *inherited*, not invented — which is why it read as normal.
-  ⭐ **THE RULE: a gate's scope is a CLAIM. Count what it actually reads; do not read the glob.**
-  ✅ Also per review: the FIX guidance is now per-cause — "don't use a shell" is the right advice for a
-  C0 byte and the WRONG advice for a BOM or a pasted zero-width space, and advice that does not fit
-  the finding is how a reader learns to ignore a gate.
-  Run: `py -3.12 probe_doc_control_chars.py --self-test`.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full entry, its evidence and any ⛔ warnings it carried are there.
 - [~] ⛔⛔ `#24-retractioncoverage` — **BUILT, SHIPPED ENFORCING, AND DOWNGRADED TO ADVISORY THE SAME DAY (2026-09-17). ⇒ WHAT REMAINS: it produces a FALSE POSITIVE on live text, and it is BLIND to the in-place-marker idiom used by its own motivating defect #3. Both must be fixed before it may be ENFORCING again.**
   **WHY:** in ONE session I retracted three claims and each time left another copy of the same sentence
   live elsewhere — a closed item still reading *"all three prerequisites still stand"*; my own
@@ -556,6 +507,30 @@ open-vs-built sweep of all 80 open items has **not** been done.
   chamber tile, force a heal, observe. That same run also buys B1F's unmeasured frames/battle.
   ‼ **THIS IS A PREREQUISITE FOR *ANY* B1F GRIND** and is why the ground choice is deferred — see
   `#24-levelgap`. It costs nothing today because production never trains anywhere but 1F.
+- [ ] ⭐⭐ `#24-mapknowledge` — **NEW 2026-09-18 (USER DIRECTIVE). A PER-CHAPTER TRAVERSABILITY KNOWLEDGE BASE: WHERE CAN THE BOT GO, GIVEN WHERE IT IS IN THE STORY. ⇒ WHAT REMAINS: research is RUNNING; then a scope decision; then build.**
+  ⭐ **THE DIRECTIVE:** *“we should ensure we have a better picture of the entire gameplay map such as
+  moveable tiles, obstacles (requiring hms or certain tasks to be completed) as well as **maps for each
+  chapter of the story** so the bot can understand WHERE its able to go depending on what part of the
+  story its at … to also help us figure out mapping between locations as well as training
+  routes/routes to gym leaders and trainers to re battle (maybe also items to pick up to
+  use/sell/give to pokemon?)”*
+  ⭐⭐ **IT IS PRODUCT, NOT TOOLING** — the user ties it explicitly to the v2 AI pilot
+  (`01-VISION-AND-DESIGN.md` §2, extended 2026-09-18): the data is handed forward so that agent does
+  not rediscover Hoenn by trial and error.
+  **WHY IT PAYS OFF FOR *THIS* BOT TOO:** routing, level-appropriate training grounds
+  (`#24-trainingbrackets`), and rematch routes (`#24-pokenavrematch`) are all the same question —
+  *what is reachable from here, right now* — which nothing currently answers.
+  ⚠⚠ **SCOPE DISCIPLINE, AND IT MATTERS:** the bot **cannot yet beat the Elite Four**. A full map KB
+  is a large detour from that. ⇒ ⛔ **do NOT let this block §Ch24**; the research brief explicitly asks
+  the agents to say what should WAIT.
+  ⛔ **KNOWN TRAPS THE DESIGN MUST SURVIVE:** KI-74 — a layout-swapped map **lies to static ROM
+  readers**, so any generated collision/behaviour data is untrustworthy exactly where it matters most;
+  script-moved NPCs block tiles; one-way warps; and tiles walkable only while a flag is set.
+  ‼ **AND A MEASURED CONSTRAINT ON ANY ROUTING LAYER BUILT ON THIS:** `calculate_path` REFUSES
+  cross-map requests (*“not on connected maps … warps don't count”*) — cross-map travel must be
+  expressed as per-map segments that STEP ONTO the warp tile.
+  ‼ STATUS: an 11-agent research workflow is RUNNING (5 angles, each adversarially verified). ⛔ No
+  code until it lands and its load-bearing claims are re-verified here.
 - [ ] ⭐⭐ `#24-amuletcoin` — **NEW 2026-09-18. A FREE ITEM THAT DOUBLES EVERY TRAINER PAYOUT, AND OUR CODE HAS NEVER HEARD OF IT. ⇒ WHAT REMAINS: VERIFY THE CLAIM MYSELF, then decide whether to fetch it.**
   ⭐ **WHY THIS MATTERS NOW:** USER RULING 6 makes money *“a high priority … money is relatively
   limited”*, and §Ch23 leg 11 spends ₽54,300 on the Elite Four basket against a MEASURED ₽56,041 —
@@ -586,6 +561,18 @@ open-vs-built sweep of all 80 open items has **not** been done.
   compete with Victory Road grass.
   ⇒ ⭐ **IT IS A MONEY ANSWER**, and it pairs with `#24-amuletcoin` (the multiplier applies to rematch
   payouts too). ⚠ Cost: it needs **PokeNav menu-driving**, a capability we do not have.
+  ⭐⭐ **USER DIRECTIVE 2026-09-18 EXPANDS THIS INTO A LEDGER, AND SUPPLIES TWO LEADS TO VERIFY:**
+  * *“you can fight other trainers you fought before again using pokenav **only after beating the
+    5th gym (Norman)**”* — ✅ CONSISTENT with the agent finding of a **≥5 badges** gate on the
+    arming roll, but the two are not the same statement; verify which it actually is.
+  * *“re-battle **gym leaders after beating the elite 4** (entering hall of fame)”* — rows 65-72
+    of the rematch table are the gym leaders, consistent with a separate, later gate. VERIFY.
+  * ⭐ *“how a trainer/gym leader is determined to be battle[able] again (**does the user call
+    them, or does the trainer/gym leader call the user?**)”* — the initiation direction decides
+    how much PokéNav UI-driving we would need, so it is the cost question, not a detail.
+  * ⭐ **THE DELIVERABLE IS A LEDGER:** *“mapping all the eligible trainers/gym leaders … where we
+    can also log their pokemon, stats, rewards etc… to help us gauge **who is actually worth
+    fighting again for money/xp**”* ⇒ a ranked table, not a yes/no answer.
   ‼ **AWAITING A USER DECISION on appetite** — asked 2026-09-18, not yet answered. Do not build first.
 - [ ] ⭐ `#24-trainingbrackets` — **NEW 2026-09-18 (USER RULING). MAP AND MARK TRAINING GROUNDS BY LEVEL BRACKET, SO A PARTY NEVER GRINDS FAR-BELOW-LEVEL WILDS. ⇒ WHAT REMAINS: the research is COMMISSIONED and unreturned; then a data-shaped fix, then a drive.**
   ⭐⭐ **THE RULING THAT CREATED THIS** (`06-DECISIONS-LOG.md` 2026-09-18): *“its fine if it takes a
@@ -2157,19 +2144,7 @@ accident of what the bot happened to meet.
    rotates the lead after a faint, which catch battles cause often.
 
 - [x] ✅ **THE "88.8% ARE BORN BEHIND" FIGURE — WHICH IS THIS ITEM'S PRIORITY ARGUMENT — IS
-  `[AGENT, UNVERIFIED]` AND WAS *UNVERIFIABLE* UNTIL 2026-09-09.** **[MEASURED BY ME — scope:
-  `x4-runs` 298 `stdout.txt` + its `debug-logs/*.log`, `sandbox-pokebot/profiles` 500 `*.log`,
-  `tools/story-dev` 500 `*.log`]** party telemetry recorded `Species:L<level>` and nothing stable:
-  `Species#PID` appeared in **96** stdout lines, **all §Ch23 refusal messages AT THE TIME OF MEASUREMENT** ⚠ **RE-MEASURED 2026-09-10: the corpus has since grown to 140 such lines across 14 files and 2 are "counter training finished" lines, so the "all" NO LONGER HOLDS. The finding it supported — that no CONTINUOUS PID-bearing telemetry existed — is unaffected.**, plus ~15 lines from
-  one-off probe drivers. ⇒ **a Pokémon could not be followed across a run.**
-  ✅ **FIXED — `modules/debug_logger.py` now emits `ids=[Species#PID:L<lv>:exp<n>, …]` per
-  heartbeat.** Full record under **`#24-lowlevelmules`** (that item owns the measurement); it is
-  noted here only because the same field is what will finally test THIS item's priority argument.
-  ✅ **BAN LIFTED 2026-09-09 — IT HAS BEEN MEASURED.** Cite it as: *"~84% of mons that reach 15+
-  behind were already >6 behind when first seen (measured, n=63)"*. ⛔ **DO NOT cite the conclusion
-  that used to accompany it** — *"born dead weight, no early window to maintain"* is **REFUTED**:
-  **39.7% had a <=6 window** — median **163 minutes (~2.7 HOURS)** of emulated time — of which **33.3% of the population was TRAINING-REACHABLE** ⚠ **(SUPERSEDED — use 20.6%; the code's real window is `gap <= 5`, see bullet 1)** (the rest recovered only because the party max fell). See bullet 1 and `tools/story-dev/probe_laggard_origin.py`.
-
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full entry, its evidence and any ⛔ warnings it carried are there.
 - [x] ⭐⭐ **DESIGNED 2026-09-09 (6-agent adversarial pass) — VERDICT: BUILD A NARROWER VERSION.** The design pass and its verdict, CLOSED.
       📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the six agents' findings and the narrowing are there.
 - [x] ✅✅ **THE FENCE IS BUILT AND GATED 2026-09-10 (gate #50, 20 cases, fault-armed). CLOSED.**

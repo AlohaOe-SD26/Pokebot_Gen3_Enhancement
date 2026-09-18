@@ -12094,3 +12094,94 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
   ✅ **DONE 2026-09-17 (late): `04-HANDOFF.md` WAS COMPACTED AND NOW READS 882 / 900, headroom 18** — the PARTY ACCOUNTING STAGE 0 hand recipes were archived VERBATIM to `28-HANDOFF-ARCHIVE.md` (it is gate #22, which `run_gates.py` runs on every suite, so the recipe is reference not a daily command). *(This read: compact it first, it is at its cap at 900/900.)* ‼ **RE-CHECK BEFORE APPENDING — `lint_docs.py` is the authority and R3 counts LINES only.** Room 3 already paid that toll once: shipping it pushed the file to 922 and required archiving the §Ch21 recon instruments and the disarmed `KI-96` note VERBATIM into `28-HANDOFF-ARCHIVE.md`. R3 counts LINES only, so a single appended line turns the doc gate red and blocks the commit.
   ⛔ **WHAT THIS DOES *NOT* DO:** it does not wire Segment 24 (**all FOUR** prerequisites still stand — the fourth, `#24-levelgap`, was added 2026-09-17), it does not build room 4 or room 5, and **room 5 is NOT this unit** — Wallace starts himself from a `lockall` with no flag guard (`#24-leg2spec`).
 
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] ✅✅ `#24-doccontrolchars` — **NEW AND DONE 2026-09-17 (late). AN INVISIBLE BACKSPACE BYTE WAS S…”*
+> Moved under `lint_docs.py` R3 (the punch list went over budget while the 2026-09-18
+> user directive was being recorded). **NOTHING IS DELETED.**
+
+- [x] ✅✅ `#24-doccontrolchars` — **NEW AND DONE 2026-09-17 (late). AN INVISIBLE BACKSPACE BYTE WAS SITTING IN A TRACKED DOCUMENT, AND A SWEEP FOUND A SECOND ONE THAT HAD BEEN THERE FOR WEEKS. GATE #64, SIX FAULT ARMS, ENFORCING.**
+  **HOW IT SURFACED:** a changelog entry written through a shell-quoted string turned `\b` into a
+  **literal 0x08 BACKSPACE** in the document. Every terminal rendered it as an empty pair of
+  backticks, so my first diagnosis — *"the shell deleted my text"* — was WRONG. It was **present and
+  invisible**. It was caught only because an assertion string failed to match and I inspected the
+  bytes instead of the rendering.
+  ‼‼ **AND IT WAS NOT THE FIRST.** Sweeping every `PROJECT KNOWLEDGE/*.md` found a SECOND 0x08 in
+  `28-HANDOFF-ARCHIVE.md:9918` — **inside a sentence explaining that a literal control character in
+  source is a hard failure "because `\b` compiled to a BACKSPACE twice in one day and the gate still
+  passed."** ⇒ **three independent sessions have now put a backspace byte into prose ABOUT the
+  backspace bug, and nothing caught any of them.** Both are fixed.
+  ⭐ **THE GAP IT CLOSES:** control characters in `.py` SOURCE are gated (`#24-p2headergate` (C));
+  the DOCS were not. `lint_docs.py` and `audit_doc_consistency.py` both passed a file containing 0x08.
+  ⭐⭐ **WHY THIS ONE IS SAFE TO ENFORCE WHEN `#24-retractioncoverage` WAS NOT — AND THE DIFFERENCE IS
+  THE WHOLE LESSON.** That gate had to DECIDE whether a sentence was retracted, so it could misjudge,
+  and it did. This gate asserts a property of the INPUT DOMAIN: Markdown has no legitimate use for any
+  C0 control character except TAB and NEWLINE. **There is nothing to judge, so there is nothing to
+  misjudge** — a hit is a defect by construction. ⇒ *justify ENFORCING from the input domain, not from
+  the checker's cleverness.*
+  **SIX ARMS:** real docs clean · injected 0x08 fires at the right line/col · newlines+tabs+CRLF never
+  fire · a **lone CR** does fire · zero-width space fires · every rejected character is nameable (or
+  the report is unreadable). ⛔ **ARM 3 FAILED FIRST AND WAS RIGHT TO:** it drove `scan_text` directly
+  while CRLF normalisation lived in `scan_docs`, so a legitimate CRLF was reported — the gate was
+  correct and the **contract was split**. Normalisation moved into `scan_text`; a helper whose
+  correctness depends on the caller pre-cleaning its input will eventually be called without it.
+  ⛔⛔ **AND ITS SCOPE WAS NARROWER THAN ITS OWN CLAIM — A TIER 1 REVIEWER COUNTED THE FILES INSTEAD
+  OF READING THE GLOB.** v1 used `DOCS.glob("*.md")`, which is **non-recursive: 34 of 192 files**. The
+  158 skipped are almost entirely **`ai-research-notes/` — machine-relayed Gemini output, i.e. exactly
+  the content most likely to reproduce this bug class next** — while the docstring claimed *"every
+  `PROJECT KNOWLEDGE/*.md`"*. ✅ Fixed to `rglob`: coverage **34 → 192 files**, and recursing adds
+  **0 findings**, so it is a scope correction, not a regression. ‼ `lint_docs.py` shares the
+  non-recursive convention, so this was *inherited*, not invented — which is why it read as normal.
+  ⭐ **THE RULE: a gate's scope is a CLAIM. Count what it actually reads; do not read the glob.**
+  ✅ Also per review: the FIX guidance is now per-cause — "don't use a shell" is the right advice for a
+  C0 byte and the WRONG advice for a BOM or a pasted zero-width space, and advice that does not fit
+  the finding is how a reader learns to ignore a gate.
+  Run: `py -3.12 probe_doc_control_chars.py --self-test`.
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] ✅✅✅ `#24-phoebeL75` — **NEW AND DONE 2026-09-17. PHOEBE IS BEATEN AT L75, ROOMS 1→2 ARE DRIVEN…”*
+> Moved under `lint_docs.py` R3 (the punch list went over budget while the 2026-09-18
+> user directive was being recorded). **NOTHING IS DELETED.**
+
+- [x] ✅✅✅ `#24-phoebeL75` — **NEW AND DONE 2026-09-17. PHOEBE IS BEATEN AT L75, ROOMS 1→2 ARE DRIVEN AS ONE UNIT, AND ⭐ THE MEASUREMENT `#24-ghostreplacement` WAS BLOCKED ON IS IN HAND.**
+  `--driver ch24phoebe` (NEW) from `post_sidney_L75.ss1`: `ACCEPTANCE: PASS`, all 6 readings, `missing=[]`, `battles=1`, `whiteouts=0`, **`DEFEATED_ELITE_4_PHOEBE = True`** (a real bool, dumped with `!r`), Mightyena **L75 → L76**.
+  ✅ **THE UNIT COMPOSES.** dismiss → BAG HEAL → `_pass_through_door((6,2))` → HALL1 (5,12) → `_pass_through_door((5,2))` → PHOEBES_ROOM → locate LIVE → engage. Every piece was lifted from something already driven; **the SEQUENCE was the new thing**, and it worked.
+  ✅ **THE USER-RULED BAG HEAL FIRED AND IT MATTERED:** `heal_plan = [(0, 'Super Potion', 'Mightyena at 187/227')]`, `heal_actions=1`, HP **187/227 → 227/227**. ⇒ Phoebe was entered at FULL HP instead of 82%. ‼ And prediction PP5 (*“the heal will probably do nothing, 82% may already clear the threshold”*) was **WRONG** — a RESULT, not a driver failure: the predicate is more eager than I assumed.
+  ⭐⭐ **THE DAMAGE TABLE — `probe_ghost_damage_real.py`, real formula, real foe, real party:**
+      mon          L    best damage (move)        ko_turns vs Dusclops L51 (117 HP)
+      Mightyena   76    **138**  Crunch            **1**   <- ONE-SHOTS IT
+      Wailord     75      93   Surf                  2
+      Sceptile    75      81   Leaf Blade            2
+      Swellow     75      66   Aerial Ace            2
+      Castform    36       7   Powder Snow          17
+      Zigzagoon   19     **3**  Surf               **39**  <- what the CURRENT ranker picks
+  ⭐⭐ **⇒ `ko_turns` DOES SEPARATE THEM, AND THE SATURATION WORRY DOES NOT MATERIALISE.** Distinct buckets: **[1, 2, 17, 39]**. **Mightyena is ALONE at 1** (138 ≥ 117, it one-shots) while every other battler needs 2 ⇒ a `ko_turns` leading term picks **Mightyena**, which is the correct answer and the one both previous attempts got wrong. ‼ A refuter had predicted it *might* saturate at 1 for Mightyena AND Swellow; measured, Swellow does **66**, not 117+, so it does not. **That worry was right to raise and is now settled by measurement rather than argument.**
+  ⛔ **BUT THE OTHER REFUTATION STILL STANDS AND MUST BE HONOURED:** `ko_turns` as specified BREAKS gate #39's C2, because the synthetic rows have **no foe HP**. ⇒ the term must be **INERT when foe HP is unknown** (`foe_hp <= 0 ⇒ ko = 0` for every candidate, so the tuple falls through to today's key and all nine existing cases keep passing), and STRICTLY WORST when a candidate deals zero. Only then is it safe on a shared path.
+  ‼ **AND ZIGZAGOON IS THE WHOLE ARGUMENT IN ONE NUMBER: 3 damage, 39 turns.** That is what the shipped ranker reaches for after a faint against a Ghost.
+  ⚠ **Ice Beam does 62 here — LESS than Surf's 93** — because Ice is NEUTRAL on a pure Ghost. Its value is DRAKE (4× on Salamence/Altaria/Flygon), not Phoebe. ⇒ do not read a low Phoebe number as evidence against the Ice Beam plan.
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] ✅ **THE "88.8% ARE BORN BEHIND" FIGURE — WHICH IS THIS ITEM'S PRIORITY ARGUMENT — IS…”*
+> Moved under `lint_docs.py` R3 (the punch list went over budget while the 2026-09-18
+> user directive was being recorded). **NOTHING IS DELETED.**
+
+- [x] ✅ **THE "88.8% ARE BORN BEHIND" FIGURE — WHICH IS THIS ITEM'S PRIORITY ARGUMENT — IS
+  `[AGENT, UNVERIFIED]` AND WAS *UNVERIFIABLE* UNTIL 2026-09-09.** **[MEASURED BY ME — scope:
+  `x4-runs` 298 `stdout.txt` + its `debug-logs/*.log`, `sandbox-pokebot/profiles` 500 `*.log`,
+  `tools/story-dev` 500 `*.log`]** party telemetry recorded `Species:L<level>` and nothing stable:
+  `Species#PID` appeared in **96** stdout lines, **all §Ch23 refusal messages AT THE TIME OF MEASUREMENT** ⚠ **RE-MEASURED 2026-09-10: the corpus has since grown to 140 such lines across 14 files and 2 are "counter training finished" lines, so the "all" NO LONGER HOLDS. The finding it supported — that no CONTINUOUS PID-bearing telemetry existed — is unaffected.**, plus ~15 lines from
+  one-off probe drivers. ⇒ **a Pokémon could not be followed across a run.**
+  ✅ **FIXED — `modules/debug_logger.py` now emits `ids=[Species#PID:L<lv>:exp<n>, …]` per
+  heartbeat.** Full record under **`#24-lowlevelmules`** (that item owns the measurement); it is
+  noted here only because the same field is what will finally test THIS item's priority argument.
+  ✅ **BAN LIFTED 2026-09-09 — IT HAS BEEN MEASURED.** Cite it as: *"~84% of mons that reach 15+
+  behind were already >6 behind when first seen (measured, n=63)"*. ⛔ **DO NOT cite the conclusion
+  that used to accompany it** — *"born dead weight, no early window to maintain"* is **REFUTED**:
+  **39.7% had a <=6 window** — median **163 minutes (~2.7 HOURS)** of emulated time — of which **33.3% of the population was TRAINING-REACHABLE** ⚠ **(SUPERSEDED — use 20.6%; the code's real window is `gap <= 5`, see bullet 1)** (the rest recovered only because the party max fell). See bullet 1 and `tools/story-dev/probe_laggard_origin.py`.
+

@@ -6350,3 +6350,34 @@ into the source-of-truth doc before asking. That was the wrong order — the doc
 unconfirmed reading of a user statement for several commits. It happened to be right. **Ask first
 when the edit lands in `01-VISION-AND-DESIGN.md`**, which is the one file whose job is to be the
 source of truth for intent.
+
+
+## 2026-09-18 — ⭐ USER DIRECTIVE: A REMATCH LEDGER, AND A PER-CHAPTER MAP KNOWLEDGE BASE THAT IS *PRODUCT*
+
+Two asks, plus a statement about what this project is FOR that extends
+`01-VISION-AND-DESIGN.md` §2.
+
+### THE ASKS
+1. **Investigate PokeNav rematching properly**, including *“does the user call them, or does the
+   trainer/gym leader call the user?”*, and produce **a LEDGER of every eligible trainer/gym leader
+   with their Pokemon, stats and rewards**, so we can *“gauge who is actually worth fighting again
+   for money/xp”*. ⭐ Two user recollections to verify: ordinary rematches unlock after **Norman (5th
+   gym)**; gym-leader rematches unlock after **the Elite Four / Hall of Fame**.
+2. **A per-chapter picture of the whole gameplay map** — walkable tiles, obstacles and what clears
+   them (HMs, tasks), so the bot knows *“WHERE its able to go depending on what part of the story its
+   at”*, feeding routing, training routes, rematch routes and possibly item pickups.
+
+### ⭐⭐ THE PART THAT CHANGES THE VISION DOC
+> *“as well as be a great resource for the future AI pilot version of this program … this program is
+> an art piece that is also laying the foundation to help speed up training a ai agent to play the
+> game as organically as possible to be the ‘v2’ of this art piece”*
+
+⇒ §2 of the vision doc described the substrate as **documentation** — human-language intent. It now
+also includes **machine-readable GAME KNOWLEDGE**. ⇒ **the map/traversability/ledger data is PRODUCT,
+not tooling**, and is built to be handed forward.
+
+### ⚠ THE SCOPE RULING I AM APPLYING UNTIL TOLD OTHERWISE
+The bot **cannot yet beat the Elite Four**, and a full map knowledge base is a large detour from
+that. ⇒ research first (an 11-agent workflow is running, briefed to say **what should wait**), then a
+scope decision, then build. ⛔ **§Ch24 is not blocked on this**, and this is not started before the
+research lands. If the user wants it prioritised ahead of §Ch24, that is a ruling I do not have.

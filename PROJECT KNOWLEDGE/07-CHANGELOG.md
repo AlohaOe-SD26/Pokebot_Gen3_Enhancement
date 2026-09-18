@@ -32403,3 +32403,35 @@ future change that unthrottles PRODUCTION is a vision-level regression, not a pe
 intent doc *before* asking whether it was right. It happened to be correct, but the doc carried an
 unconfirmed reading of a user statement for several commits. Ask first when the edit lands in
 `01-VISION-AND-DESIGN.md`.
+
+
+## 2026-09-18 — USER DIRECTIVE: A REMATCH LEDGER, A PER-CHAPTER MAP KNOWLEDGE BASE, AND A VISION-DOC EXTENSION
+
+Two new items filed and one vision-level change recorded. ⛔ **No code written; research is running.**
+
+**⭐⭐ THE VISION CHANGE IS THE BIGGEST PART.** `01-VISION-AND-DESIGN.md` §2 described the substrate
+for the future self-training AI as **documentation** — human-language INTENT. The user has extended
+it: *“the bot would have as much map information as possible … as well as be a great resource for the
+**future AI pilot version** … this program is an art piece that is also **laying the foundation to
+help speed up training a ai agent** … to be the ‘v2’ of this art piece”*. ⇒ the substrate also
+includes **machine-readable GAME KNOWLEDGE**, so a map/traversability/trainer knowledge base is
+**PRODUCT, not tooling**, and is built to be handed forward.
+
+**`#24-mapknowledge` (new)** — per-chapter reachability: walkable tiles, obstacles and what clears
+them (HMs, tasks, flags), so the bot knows where it can go given where it is in the story. It is the
+same question routing, `#24-trainingbrackets` and rematch routes all need and nothing currently
+answers. ⛔ Known traps it must survive: **KI-74** (a layout-swapped map LIES to static ROM readers,
+precisely where it matters), script-moved NPCs, one-way warps, flag-gated tiles; and any routing
+layer on top must respect that `calculate_path` REFUSES cross-map requests.
+
+**`#24-pokenavrematch` (expanded)** — now a **LEDGER** deliverable: every eligible trainer/gym leader
+with parties, stats and rewards, ranked so we can *“gauge who is actually worth fighting again for
+money/xp”*. Two user recollections to verify: ordinary rematches after **Norman (5th gym)** —
+consistent with, but not identical to, the measured **≥5 badges** arming gate — and gym-leader
+rematches after **the Hall of Fame**. Plus the cost question that decides everything: **who
+initiates**, the player or the trainer?
+
+**⚠ THE SCOPE RULING I AM APPLYING UNTIL TOLD OTHERWISE:** the bot cannot yet beat the Elite Four, and
+a full map KB is a large detour from that. ⇒ **§Ch24 is not blocked on this.** The 11-agent research
+workflow is explicitly briefed to say what should WAIT. If the user wants it prioritised ahead of
+§Ch24, that is a ruling I do not have.

@@ -49,6 +49,23 @@ things that had been treated as engineering preferences:
   ⇒ the quality metric for training is the **level GAP between trainee and wild**, not frames spent.
 
 ## 2. A documented substrate for a FUTURE self-training AI agent
+
+### ⭐⭐ AND THE SUBSTRATE IS *DATA*, NOT ONLY PROSE — USER DIRECTIVE 2026-09-18
+> *“the bot would have as much map information as possible so it can go anywhere it can go depending
+> on where in the story its at … as well as be a great resource for the **future AI pilot version of
+> this program** … Remember this program is an art piece that is also **laying the foundation to help
+> speed up training a ai agent** to play the game as organically as possible to be the **“v2”** of
+> this art piece.”*
+
+⇒ ‼ **THIS EXTENDS §2 IN A SPECIFIC WAY.** Until now §2 described the substrate as *documentation* —
+human-language INTENT an agent could read. The user has now said the substrate also includes
+**machine-readable GAME KNOWLEDGE**: where the bot can walk at each point in the story, what gates
+each place, which trainers are re-fightable and what they pay.
+⇒ **A generated map/traversability/trainer knowledge base is therefore not tooling — it is PRODUCT.**
+It earns its keep twice: it makes this bot's routing and training look organic, and it is handed
+forward to the v2 agent so that agent does not have to rediscover Hoenn by trial and error.
+⚠ That is a reason to build it WELL (schema'd, regenerable, verifiable) and a reason **not** to let
+it block the current bot's story progress. See `#24-mapknowledge` for the scope discipline.
 The user intends to build a separate program in which **a custom AI agent trains itself to play the
 game as faithfully and organically as a human would.** This repository is that project's ground
 truth. That is why the documentation burden here is so much heavier than a normal bot's, and it
