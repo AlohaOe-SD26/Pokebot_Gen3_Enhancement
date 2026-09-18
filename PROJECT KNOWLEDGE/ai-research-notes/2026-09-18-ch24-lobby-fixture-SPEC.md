@@ -65,7 +65,7 @@ has those doors open **forever**, because the flag is permanent.
 the settled ruling defines the lobby window as the POST-talk interval — but it should be a deliberate
 second fixture, not a side effect.
 
-⚠ **THE WINDOW IS TWO MAPS, AND THIS SPEC MEASURES ONE.** League 2F (16,14) is reachable from the
+✅✅ **SUPERSEDED 2026-09-18 (later): THE SECOND MAP IS NOW READ TOO — `#24-league2f`.** `post_league_2f.ss1` is pinned (`d3c09e7af349`), all ten §Ch23 call sites read False on 2F, and the escalator round trip is measured in BOTH directions, so a stray step on `(1,7)` is **recoverable**. ‼ `(1,6)` is the DELIVERED tile and `(2,6)` the RESTING tile — do not confuse them. *(Original text, kept as the record:)* ⚠ **THE WINDOW IS TWO MAPS, AND THIS SPEC MEASURES ONE.** League 2F (16,14) is reachable from the
 lobby by `LEAGUE_ESCALATOR (1,7)` — ✅ *"`MB_UP_ESCALATOR`, collision 0 — an accidental step-on warp"*
 (`victory_road.py:410-412`). A complete answer needs a 2F reading too.
 
@@ -134,7 +134,7 @@ the fix was a glob. This is the same shape, one directory over.
 * ✅ **SUPERSEDED: the drive RAN and the fixture IS minted** (`post_league_lobby.ss1`, pinned
   `5a75ea37ed5cc07ae8b0b0a75da5e909`). The lobby window is now **READ**, at ten call sites, by two
   independent instruments (the driver live, and the probe by RELOAD).
-* ⚠ **A 2F reading is STILL owed**, and so is a **post-talk sibling fixture**. ✅ 2F is now scoped
+* ✅✅ **DONE 2026-09-18 — THE 2F READING IS NO LONGER OWED** (`#24-league2f`; fixture `post_league_2f.ss1`, `d3c09e7af349`). ⚠ **A post-talk sibling fixture IS still owed.** *(Original text, kept as the record:)* ⚠ A 2F reading is STILL owed, and so is a post-talk sibling fixture. ✅ 2F is now scoped
   from the decomp: it is the **Cable Club** (`LAYOUT_POKEMON_CENTER_2F`; Union Room / Trade Center
   attendants), reachable from the lobby with `ENTERED_ELITE_FOUR` unset — the escalator is 1F warp
   **4** at `(1,7)` and the gauntlet doors are warps **2/3**, disjoint tiles — and standing on 2F

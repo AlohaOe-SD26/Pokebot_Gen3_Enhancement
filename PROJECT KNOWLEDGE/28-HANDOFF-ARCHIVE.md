@@ -11769,3 +11769,92 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
   gained the missing per-run `_last_owned = None` reset, or run 2 of a batch would diff against run
   1's dex), and now GATED by `tools/story-dev/repro_heartbeat_emits.py`, which drives the **real
   `on_frame()`** and is fault-tested (arm B: 0 heartbeat lines).
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“THE FENCE IS BUILT AND GATED 2026-09-10”*
+> Moved under `lint_docs.py` R3 (the punch list went over its 4,400-line budget when
+> `#24-league2f` was filed). **NOTHING IS DELETED** — the lines below are the item
+> exactly as it stood, and the punch list keeps a short summary pointing here.
+> ‼ The gate this item describes is LIVE in `run_gates.py`; archiving the prose does
+> not retire the enforcement.
+
+- [x] ✅✅ **THE FENCE IS BUILT AND GATED 2026-09-10 (gate #50, 20 cases, fault-armed). ⛔ DO NOT
+  REBUILD IT.** `decide_dex_catch` (`story_mode.py:1566`) is PURE; `_should_catch`
+  (`story_mode.py:1766`) is now a read-and-report ADAPTER that decides nothing. It was written with
+  `is_armed()`, and the *"for the team!"* message now DERIVES its destination from the slot count
+  the game reads. ⭐ **FOUR THINGS THE SPEC DID NOT HAVE, each verified in code before it was built:**
+  1. ⛔ **THE BALL GATE HAD TO BECOME A LEVEL, NOT A BOOLEAN — and this one was FATAL.**
+     `counter_hunt.hunt()` checks balls at `counter_hunt.py:471` **BEFORE** its journey and only
+     calls `arm()` at `:510` **AFTER** arriving, with `_navigate_riding_out(..., tries=24)` at `:488`
+     between them — a trek its own comment calls *"the LONGEST journey the bot ever makes … 8
+     map-hops"*. ⇒ `is_armed()` is **FALSE for the entire journey**, so a fence gated only on the
+     boolean would spend the hunt's balls en route; the hunt never re-checks, arms, spins all
+     120,000 frames and reports *"found nothing"* while standing on the answer. Hence
+     `DEX_CATCH_BALL_RESERVE = 10`, kept separate from `resource_blocker()`'s floor of 1.
+  2. **`not swap_train_active()`.** A catch earns ZERO exp while `train_team` exists only to gain it,
+     and `#24-ch23training` is the top run-ender for exceeding a frame ceiling.
+  3. **BOTH arming systems.** `is_armed()` reads only `COUNTER_CATCH_TARGET_DEX`;
+     `early_game.HM_CATCH_TARGET_DEX` is a second one with no reader.
+  4. **Eggs count toward fullness** (the game's own convention), but NOT toward the dup check — two
+     party counts, deliberately. Counting egg-filtered would fire the fence at 5 mons + 1 egg and
+     consume the sixth PARTY slot: the `#24-partycap` regression exactly.
+  ⛔ **A REFUTER CORRECTED ME ON THE HUNT COLLISION AND THE CORRECTION IS IN THE CODE:** an off-type
+  dex catch is **NOT** mis-registered as the counter — the verdict is type-aware
+  (`party_counter_slot`/`box_counter_pid`). It is worse in a quieter way: `catch_confirmed`'s box
+  path is species-BLIND (`:363-365`), so the spin **ENDS EARLY** and the verdict then finds nothing.
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `04-HANDOFF.md`: the RESOLVED items of the 2026-09-06/07 OVERNIGHT RUN
+
+> Moved under `lint_docs.py` R3 (the handoff went over its 900-line budget when the §Ch24
+> “lobby window” run recipes were added). **NOTHING IS DELETED.**
+> ⛔ **ITEM 3 WAS NOT ARCHIVED** — its *“`post_grind_L60.ss1` IS NOT the §Ch24 party — DEAD
+> BRANCH”* ruling is a LIVE TRAP and stays in the handoff. The §Ch24 BUILD SPEC lines and
+> their 2026-09-15 narrowing also stay, because a narrowing of a ban is a standing
+> correction. Everything below is RESOLVED work kept for the record.
+
+### item 1 — KI-95
+
+> 1. ✅ **`KI-95`** — the faint chooser ranked replacements on a bare TYPE MULTIPLIER (a L19 mule
+>    outranked a healthy L48). Now scores EXPECTED DAMAGE via the shipped
+>    `calculate_move_damage_range`; the ranking is the pure `rank_replacement` and **gate #39**
+>    (`probe_faint_chooser_rank.py`, 7 cases, fault-tested) is its first offline coverage in a
+>    function that has had THREE index-space bugs.
+
+### item 2 — KI-93
+
+> 2. ✅ **`KI-93` — THE TORMENT LIVELOCK IS GONE, AND ⭐⭐ THE BOT NOW BEATS SIDNEY**
+>    (`outcome=BattleOutcome.Won` — `f35237` in the HARNESS log / `f4351983` in the DEBUG log; ‼ a
+>    frame number without its log is not a citation, and a Tier 2 auditor reasonably suspected a
+>    fabrication when `f35237` was absent from the debug log).
+>    ⚠⚠ **IT WON ON ITS LAST POKÉMON — FIVE OF SIX FAINTED**, only `Wailord 226/226` left after 20
+>    faint-chooser events, on the UNDER-PREPARED `post_league_shop` party `KI-94` warns about. A
+>    survival-by-one-mon win, not a comfortable one — and that is precisely why the L60 grind mattered.
+>    ⚠ **Fights 2-5 are UNDRIVEN** and "the door to Phoebe opens" is RETRACTED as an inference: the
+>    metatile script was queued, but the probe has no "advance to the next room" behaviour and parked
+>    in the defeat dialogue. A message ending in `\p` parks
+>    the text printer awaiting an EDGE-TRIGGERED press with no timeout, and the wait branch pressed
+>    nothing. Fixed in both halves — a dismiss gated on `get_text_printer(0).state == WaitForButton`
+>    (never on a frame count), and a refusal memory keyed on `personality_value` that expires when a
+>    turn executes. **It is a CLASS fix: 61 battle strings end in `\p`.** Graded by
+>    `grade_ki93_drive.py` (C0-C3 PASS, exit 0); ordinary-case A/B byte-identical.
+
+### item 4 — KI-96
+
+> 4. ✅✅ **SUPERSEDED 2026-09-07 (evening) — `KI-96` IS SOLVED AND DRIVEN. ⛔ DO NOT MEASURE IT, DO NOT REBUILD IT.** The stale-array theory was CONFIRMED: `gBattlePartyCurrentOrder` is refilled by `PlayerHandleChoosePokemon` at menu-open, and the slot was computed ~140 lines earlier. A/B on `post_grind_L60.ss1`, same driver: **241 presses + a hard stop to Manual → 27 presses + ACCEPTED**, bound firings 1 → 0. See `05-KNOWN-ISSUES.md` `KI-96` and `acceptance-2026-09-07/EVIDENCE.md`. ⛔ **THE TEXT BELOW IS HISTORY — DO NOT ACT ON IT.** *(It read: "AND HERE IS WHERE THE NIGHT STOPPED — `KI-96`. LEVELLING ALONE DOES NOT UNBLOCK §Ch24." A Tier 1 reviewer found it still commanding the measurement drive while the queue head 300 lines below said SOLVED — ⛔ **the `➡➡➡` line itself instructs re-reading THIS banner in the same edit, and that instruction was not followed.**)*
+>    Driving §Ch23's chain with the L60 party wedges in the in-battle **PARTY MENU**, long before the
+>    League door: `battle_action_selection.py`'s `TurnAction.RotateLead` arm (line 672 as of 2026-09-07 — ⛔ cite the SYMBOL, not the line: this citation already drifted once from 590) is an unbounded `while PARTY_MENU: press A`
+>    with no check that the switch was ACCEPTED. ✅ **A/B'd as PRE-EXISTING** — reverting the entire
+>    `KI-93` change reproduces it identically. 🔶 **PARTLY DIAGNOSED (2026-09-07), AND ONE
+>    CONCLUSION WAS ALREADY RETRACTED:** two census drives show the target is **healthy**
+>    (Mightyena L60 184/184, not fainted, not the active mon) so no legality theory survives —
+>    and the array dump proves `map_battle_party_index` is **CORRECT** (battle position 0 really
+>    does hold party 2). ⛔ An earlier line here claimed the mapping aimed at the active mon;
+>    **that is REFUTED.** ⭐ The live thread: `bt='What will DIVER do?'` is the ACTION-SELECT
+>    prompt while `get_game_state()` says `PARTY_MENU`. ⭐ **2026-09-07 — A STRONGER CANDIDATE:** the
+>    menu slot is computed at `:584`, the menu only OPENS at `:699`, and the decomp shows the game
+>    REFILLS that scratch buffer AT menu-open ⇒ we aim from a LEFTOVER. ⇒ **NEXT JOB: drive with
+>    `POKEBOT_KI96_CENSUS=1` and read `[KI96-REREAD]` — MEASURE before fixing (rule 10). `KI-97` FIXED.** ⛔ **THE `KI-96` HALF OF THIS LINE IS DONE — the census WAS run, it returned `VERDICT=DIFFER`, and the fix shipped. Do not re-run it.**
+

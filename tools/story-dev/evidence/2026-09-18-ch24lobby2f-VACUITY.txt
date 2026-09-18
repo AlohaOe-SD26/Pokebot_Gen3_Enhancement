@@ -1,0 +1,76 @@
+============================================================================================================
+--driver ch24lobby2f  ARM: VACUITY
+============================================================================================================
+WHY THIS ARM EXISTS: post_hall4_door.ss1 -- inside the League but the WRONG map. Must refuse at the premise with ZERO readings.
+Predictions were filed BEFORE the driver existed and are graded in
+`PROJECT KNOWLEDGE/ai-research-notes/2026-09-18-ch24-league2f-PREDICTIONS.md`.
+============================================================================================================
+
+########## HALF 1 of 2 --- `--log vac2f.log` ##########
+
+[setup] LOG -> vac2f.log
+[setup] loaded save state post_hall4_door.ss1; build=sandbox
+[run] starting faithful loop for up to 4000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24Lobby2FMode.run   (state=OVERWORLD)
+[ch24lobby2f] FAILURE BotModeError: Ch24 2F: premise failed — this leg must start on POKEMON_LEAGUE_1F and we are at ((16, 8), (5, 3)). ⛔ Pointing it at another map measures nothing.
+[ch24lobby2f] ⚠ GRADE: ENTERED_ELITE_FOUR was NEVER READ on 2F — the run ended before that reading. ‼ NOT a contamination report.
+[ch24lobby2f] RESULT readings=[] missing=['L2-CH23CALL', 'L2-GUARDSELFTEST', 'L2-LEGGUARDS', 'L2-ON2F', 'L2-PATHSAFE', 'L2-PRE', 'L2-PREDICATES', 'L2-RETURN']
+[ch24lobby2f] RESULT battles=0 whiteouts=0 failure=BotModeError: Ch24 2F: premise failed — this leg must start on POKEMON_LEAGUE_1F and we are at ((16, 8), (5, 3)). ⛔ Pointing it at another map measures nothing.
+[ch24lobby2f] ACCEPTANCE: FAIL (reach League 2F, READ it, fight NOTHING, leave ENTERED_ELITE_FOUR False, and WALK BACK to LEAGUE_1F (3, 4))
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+f931: SAVED stall state #1 to stalls/repro-ml-f931.ss1 (bt='NICK got $5500 for winning!')
+f1231: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128', (5, 3)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $5500 for winning!' bot_mode=Manual
+f1231:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+f3031: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128', (5, 3)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $5500 for winning!' bot_mode=Manual
+f3031:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[done] ran 4000 frames; final mode=Manual party=[Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L76: Strength, Crunch, Take Down, Bite
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Sceptile L75: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Swellow L75: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L75: Dive, Surf, Ice Beam, Waterfall
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 4001 get_party() recomputes, 14 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24lobby2f 4001 recomputes (party_accounting_ledger.jsonl)
+
+
+########## HALF 2 of 2 --- stdout ##########
+
+[setup] LOG -> vac2f.log
+Running mGBA 0.10.2
+[setup] loaded save state post_hall4_door.ss1; build=sandbox
+[run] starting faithful loop for up to 4000 frames
+f0: CONTROLLER -> <none>   (state=OVERWORLD)
+f1: CONTROLLER -> Ch24Lobby2FMode.run   (state=OVERWORLD)
+[ch24lobby2f] FAILURE BotModeError: Ch24 2F: premise failed — this leg must start on POKEMON_LEAGUE_1F and we are at ((16, 8), (5, 3)). ⛔ Pointing it at another map measures nothing.
+[ch24lobby2f] ⚠ GRADE: ENTERED_ELITE_FOUR was NEVER READ on 2F — the run ended before that reading. ‼ NOT a contamination report.
+[ch24lobby2f] RESULT readings=[] missing=['L2-CH23CALL', 'L2-GUARDSELFTEST', 'L2-LEGGUARDS', 'L2-ON2F', 'L2-PATHSAFE', 'L2-PRE', 'L2-PREDICATES', 'L2-RETURN']
+[ch24lobby2f] RESULT battles=0 whiteouts=0 failure=BotModeError: Ch24 2F: premise failed — this leg must start on POKEMON_LEAGUE_1F and we are at ((16, 8), (5, 3)). ⛔ Pointing it at another map measures nothing.
+[ch24lobby2f] ACCEPTANCE: FAIL (reach League 2F, READ it, fight NOTHING, leave ENTERED_ELITE_FOUR False, and WALK BACK to LEAGUE_1F (3, 4))
+f31: CONTROLLER -> <none>   (state=OVERWORLD)
+f931: SAVED stall state #1 to stalls/repro-ml-f931.ss1 (bt='NICK got $5500 for winning!')
+f1231: !!! NO-PROGRESS x1200 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128', (5, 3)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $5500 for winning!' bot_mode=Manual
+f1231:     gen -> <no controller on the stack (Manual mode / dropped out)>
+f2000: heartbeat mode=Manual ctrl=<none> state=OVERWORLD party=[Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+f3031: !!! NO-PROGRESS x3000 sig=('<none>', 'OVERWORLD', '', 'DialogueNotActive', 'Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128', (5, 3)) instr=BattleScript_PayDayMoneyAndPickUpItems cb=ReturnFromBattleToOverworld ml_tasks=[] tasks=['Task_WeatherMain', 'Task_RunPerStepCallback', 'Task_MuddySlope', 'Task_RunTimeBasedEvents'] scripts=[] bt='NICK got $5500 for winning!' bot_mode=Manual
+f3031:     gen -> <no controller on the stack (Manual mode / dropped out)>
+[done] ran 4000 frames; final mode=Manual party=[Mightyena:L76:exp452311|Zigzagoon:L19:exp7672|Sceptile:L75:exp431870|Swellow:L75:exp429443|Wailord:L75:exp586292|Castform:L36:exp50128]
+[final flags] DEVON_GOODS_STOLEN=False, RECOVERED_DEVON_GOODS=True, RETURNED_DEVON_GOODS=True, RECEIVED_POKENAV=True, DEFEATED_RIVAL_RUSTBORO=True
+[moveset] Mightyena L76: Strength, Crunch, Take Down, Bite
+[moveset] Zigzagoon L19: Tackle, Rock Smash, Surf, Headbutt
+[moveset] Sceptile L75: Rock Smash, Strength, Leaf Blade, Aerial Ace
+[moveset] Swellow L75: Facade, Fly, Aerial Ace, Quick Attack
+[moveset] Wailord L75: Dive, Surf, Ice Beam, Waterfall
+[moveset] Castform L36: Powder Snow, Weather Ball, Sunny Day, Hail
+[PARTY-ACCT] STAGE 0 SUMMARY — 4001 get_party() recomputes, 14 full six-slot scans (STALE is sampled at 1/300, HOLE/OVERFLOW/INVALID are exact).
+[PARTY-ACCT] NO DIVERGENCE OBSERVED. ‼ Read this as 'A never differed from B in what was sampled', NOT as 'A cannot differ from B'.
+[PARTY-ACCT] ledger += ch24lobby2f 4001 recomputes (party_accounting_ledger.jsonl)
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-18_11-30-33.ss1 created!
+Updated `current_state.ss1`!

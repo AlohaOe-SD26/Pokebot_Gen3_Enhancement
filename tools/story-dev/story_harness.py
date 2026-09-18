@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4", "ch24tailprobe", "ch24lobby", "ch24lobby2f"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -20016,6 +20016,430 @@ class Ch24LobbyMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch24Lobby2FMode(BotMode):
+    """§Ch24 LEAGUE 2F — take the escalator, READ the Cable Club floor, and COME BACK.
+
+    ‼ WHAT THIS LEG EXISTS TO PRODUCE IS A READING AND A RETURN. The "lobby window" is TWO maps and
+    every note about it so far has measured ONE. `03-PUNCH-LIST.md`, the lobby SPEC note and the
+    changelog each log that a 2F reading is owed; **no fixture in this repo has ever stood on
+    `EVER_GRANDE_CITY_POKEMON_LEAGUE_2F (16,14)`** and its arrival tile has never been measured here.
+
+    ⭐⭐ THE RETURN IS THE POINT, NOT A TIDY-UP. `victory_road.py:410-411` calls the escalator
+    *"benign (2F warps straight back)"* — and **nothing in this repo has ever executed that sentence.**
+    The same file's neighbouring comment about guard NPC positions already turned out to be
+    template-sourced rather than measured. If the return does not work, a bot that fat-fingers one
+    step onto `(1,7)` is stranded on a map with `"allow_escaping": false` and no Dig, Teleport or
+    Escape Rope — a live production hazard, not a documentation gap.
+
+    ⛔⛔ THE LOBBY LEG'S PATH GUARD CANNOT BE REUSED HERE, AND THAT IS THE INTERESTING PART.
+    `Ch24LobbyMode`'s rule is *"this leg never changes map ⇒ ANY warp is a refusal"*. This leg's whole
+    purpose is to TAKE a warp. ⇒ the invariant is inverted, not dropped:
+        **exactly ONE warp waypoint, whose destination map is LEAGUE_2F (16,14); no waypoint on any
+        sealed Elite Four map; no waypoint on (9,1) (10,1) (9,2) (10,2).**
+    ‼ AND IT KEEPS THE SELF-TEST, because `#24-pathguardblind` happened: a guard whose only evidence
+    is that it never fired has never been shown to work. ⛔ The self-test here canNOT use "a route to
+    a sealed map", because such a route is UNREACHABLE (`calculate_path` to (9,1) raises) — an
+    unreachable target would make the self-test pass for the wrong reason. ⇒ it injects SYNTHETIC
+    waypoints into a COPY of the real path and asserts the guard rejects each one.
+
+    Run:
+        PYTHONUTF8=1 py -3.12 story_harness.py post_league_lobby.ss1 --driver ch24lobby2f \\
+            --frames 60000 --log 2f.log
+        CH24_2F_CAPTURE=post_league_2f       ⭐ would be the repo's FIRST fixture on League 2F
+
+    FAULT ARMS
+      `POKEBOT_CH24_FAULT_NORETURN=1`     — skip the walk home. Must FAIL with `L2-RETURN` missing,
+          leaving the bot on 2F. This is the arm that makes "the excursion is reversible" falsifiable.
+      `POKEBOT_CH24_FAULT_BLINDGUARD2F=1` — strip the guard back to coordinates-only. Its self-test
+          must fire and the leg must walk NOTHING.
+    """
+
+    WALK_BUDGET = 40_000
+    #: `LEAGUE_ESCALATOR` on 1F. Navigating HERE lands the bot on 2F — the planner routes across the
+    #: warp itself (measured: the final waypoint is `map=(16,14) coords=(1,6) is_warp=True`).
+    ESCALATOR = (1, 7)
+    #: Where the leg must end up again. `LEAGUE_NURSE_STAND`, the lobby fixture's own tile.
+    HOME_TILE = (3, 4)
+    #: ⛔ Never on the path, in either direction. The two gauntlet doors and the two guard tiles.
+    FORBIDDEN_TILES = ((9, 1), (10, 1), (9, 2), (10, 2))
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24Lobby2F"
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24lobby2f] WHITEOUT #{self.whiteouts} — abort LATCHED. ‼ This leg fights NOTHING, so "
+            f"a whiteout means it crossed something it must never cross.")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+        self.battles = getattr(self, "battles", 0) + 1
+        log(f"[ch24lobby2f] ⛔ BATTLE #{self.battles} STARTED — this leg must fight NOTHING.")
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        import os as _os
+        from types import SimpleNamespace
+        from modules.map_data import MapRSE
+        from modules.map_path import calculate_path
+        from modules.memory import get_event_flag, _event_flags
+        from modules.story import victory_road as VR
+        from modules.story.early_game import wait_until_truly_controllable
+
+        TAG = "ch24lobby2f"
+        L1F = MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_1F
+        L2F = MapRSE.EVER_GRANDE_CITY_POKEMON_LEAGUE_2F
+        #: The rooms the gauntlet seals behind you. A waypoint on ANY of these is a refusal.
+        SEALED = (MapRSE.EVER_GRANDE_CITY_SIDNEYS_ROOM, MapRSE.EVER_GRANDE_CITY_PHOEBES_ROOM,
+                  MapRSE.EVER_GRANDE_CITY_GLACIAS_ROOM, MapRSE.EVER_GRANDE_CITY_DRAKES_ROOM,
+                  MapRSE.EVER_GRANDE_CITY_CHAMPIONS_ROOM, MapRSE.EVER_GRANDE_CITY_HALL1,
+                  MapRSE.EVER_GRANDE_CITY_HALL2, MapRSE.EVER_GRANDE_CITY_HALL3,
+                  MapRSE.EVER_GRANDE_CITY_HALL4, MapRSE.EVER_GRANDE_CITY_HALL5,
+                  MapRSE.EVER_GRANDE_CITY_HALL_OF_FAME)
+        FLAG_NAMES = ("ENTERED_ELITE_FOUR", "LANDMARK_POKEMON_LEAGUE")
+
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        R: dict = {}
+        taken = set()
+        WANT = {"L2-PRE", "L2-PATHSAFE", "L2-GUARDSELFTEST", "L2-ON2F", "L2-PREDICATES",
+                "L2-LEGGUARDS", "L2-CH23CALL", "L2-RETURN"}
+        failure = None
+        no_return = _os.environ.get("POKEBOT_CH24_FAULT_NORETURN", "") == "1"
+        blind2f = _os.environ.get("POKEBOT_CH24_FAULT_BLINDGUARD2F", "") == "1"
+        capture = _os.environ.get("CH24_2F_CAPTURE", "").strip()
+        if capture:
+            WANT.add("L2-CAPTURE")
+
+        sealed_vals = {tuple(m.value) for m in SEALED}
+        forbidden = {tuple(t) for t in self.FORBIDDEN_TILES}
+
+        def hazards(path, allow_warp_to):
+            """Every reason this route must not be walked. Empty list = safe.
+
+            ⛔ `allow_warp_to` is the ONLY map a warp may deliver us to. Everything else — a second
+            warp, a warp elsewhere, any sealed room, any gauntlet tile — is a refusal.
+            """
+            bad = []
+            warps = 0
+            for i, w in enumerate(path):
+                m, c = tuple(w.map), tuple(w.coordinates)
+                if blind2f:
+                    # ⛔ FAULT ARM ONLY — coordinates and nothing else, i.e. the defect that
+                    # `#24-pathguardblind` fixed. The self-test below must catch it.
+                    if c in forbidden:
+                        bad.append(f"waypoint {i} steps on FORBIDDEN {c}")
+                    continue
+                if m in sealed_vals:
+                    bad.append(f"waypoint {i} lands on a SEALED map {m} {c}")
+                    continue
+                if w.is_warp:
+                    warps += 1
+                    if m != tuple(allow_warp_to):
+                        bad.append(f"waypoint {i} warps to {m} {c}, not {tuple(allow_warp_to)}")
+                elif c in forbidden and m == tuple(L1F.value):
+                    bad.append(f"waypoint {i} steps on FORBIDDEN {c}")
+            if not blind2f and warps > 1:
+                bad.append(f"{warps} warps on one route — this leg takes exactly one")
+            return bad
+
+        try:
+            yield from wait_until_truly_controllable()
+
+            unknown = [n for n in FLAG_NAMES if n not in _event_flags]
+            if unknown:
+                raise BotModeError(
+                    f"Ch24 2F: flag name(s) {unknown} are NOT in the event-flag table "
+                    f"({len(_event_flags)} entries). ⛔ `get_event_flag` returns False SILENTLY for "
+                    f"an unknown name, so every reading below would be a hardcoded False."
+                )
+
+            # ---- PREMISE: this leg starts in the LOBBY ------------------------------------------
+            if not VR._on_map(L1F):
+                raise BotModeError(
+                    f"Ch24 2F: premise failed — this leg must start on POKEMON_LEAGUE_1F and we are "
+                    f"at {VR._where()}. ⛔ Pointing it at another map measures nothing."
+                )
+            R["pre_at"] = (str(VR._where()), VR._here_tile())
+            R["pre_flags"] = {n: get_event_flag(n) for n in FLAG_NAMES}
+            taken.add("L2-PRE")
+            log(f"[{TAG}] PRE at={VR._where()} tile={VR._here_tile()} flags={R['pre_flags']}")
+
+            here = VR._here_tile()
+            path = calculate_path((L1F, here), (L1F, tuple(self.ESCALATOR)))
+
+            # ---- ⭐⭐ SELF-TEST: PROVE THE GUARD CAN REFUSE, ON SYNTHETIC INPUT -------------------
+            # ⛔ It CANNOT be "vet a route to a sealed map" — such a route is UNREACHABLE
+            # (`calculate_path` to (9,1) raises), so the guard would pass for the wrong reason.
+            # ⇒ inject fabricated waypoints into a COPY of the real path. Nothing is walked, and the
+            # real `path` is never mutated.
+            probes = {
+                "sealed-room waypoint": list(path) + [
+                    SimpleNamespace(map=MapRSE.EVER_GRANDE_CITY_HALL5.value,
+                                    coordinates=(5, 3), is_warp=True)],
+                "gauntlet-door waypoint": list(path) + [
+                    SimpleNamespace(map=L1F.value, coordinates=(9, 1), is_warp=False)],
+                "second warp elsewhere": list(path) + [
+                    SimpleNamespace(map=MapRSE.EVER_GRANDE_CITY.value,
+                                    coordinates=(18, 6), is_warp=True)],
+            }
+            blind_to = [nm for nm, p in probes.items() if not hazards(p, L2F.value)]
+            R["guard_selftest_blind_to"] = blind_to
+            if blind_to:
+                raise BotModeError(
+                    f"Ch24 2F: ⛔ THE PATH GUARD IS BLIND to {blind_to}. A guard that cannot refuse a "
+                    f"synthetic hazard cannot protect this leg from a real one — refusing to walk "
+                    f"anything. (This is the `#24-pathguardblind` class, caught before it mattered.)"
+                )
+            taken.add("L2-GUARDSELFTEST")
+            log(f"[{TAG}] GUARD SELF-TEST OK — all {len(probes)} synthetic hazards refused "
+                f"({sorted(probes)})")
+
+            # ---- the REAL route ------------------------------------------------------------------
+            hz = hazards(path, L2F.value)
+            R["path"] = [(tuple(w.map), tuple(w.coordinates), w.is_warp) for w in path]
+            R["path_hazards"] = hz
+            if hz:
+                raise BotModeError(
+                    f"Ch24 2F: ⛔ REFUSING TO WALK. The planned route to the escalator is unsafe: "
+                    f"{hz}. Full path: {R['path']}"
+                )
+            taken.add("L2-PATHSAFE")
+            log(f"[{TAG}] PATH SAFE — {len(path)} waypoints, exactly one warp, to {L2F.name}. "
+                f"path={R['path']}")
+
+            # ---- take the escalator ---------------------------------------------------------------
+            yield from VR._navigate_riding_out(L1F, tuple(self.ESCALATOR))
+            yield from wait_until_truly_controllable()
+            if not VR._on_map(L2F):
+                raise BotModeError(
+                    f"Ch24 2F: expected {L2F.name} after stepping on {self.ESCALATOR}; we are at "
+                    f"{VR._where()}. ⛔ `MB_UP_ESCALATOR` should fire on STEP COMPLETION with no "
+                    f"button press — if we are still on 1F the step-on model is wrong."
+                )
+            R["arrival_tile"] = VR._here_tile()
+            R["arrival_map"] = str(VR._where())
+            taken.add("L2-ON2F")
+            log(f"[{TAG}] ⭐ ON LEAGUE 2F — at={VR._where()} tile={VR._here_tile()}  "
+                f"(the first time anything in this repo has stood here)")
+
+            # ---- ⭐ THE READINGS -------------------------------------------------------------------
+            R["flags_2f"] = {n: get_event_flag(n) for n in FLAG_NAMES}
+            R["predicates_2f"] = {
+                "inside_league": VR.inside_league(),
+                "at_ever_grande_top": VR.at_ever_grande_top(),
+                "ch23_chapter_done": VR.ch23_chapter_done(),
+                "wally_beaten": VR.wally_beaten(),
+            }
+            taken.add("L2-PREDICATES")
+            log(f"[{TAG}] PREDICATES {R['predicates_2f']}  flags={R['flags_2f']}")
+
+            inside_vr = any(VR._on_map(m) for m in VR.VICTORY_ROAD_MAPS)
+            guards = {
+                "1-3": any(VR._on_map(m) for m in VR._PRE_DEPARTURE_MAPS),
+                "4": (not inside_vr) and not VR.at_ever_grande_top(),
+                "4b-train": (not inside_vr) and not VR.wally_beaten()
+                            and not VR.team_is_ready(VR.TRAIN_TARGET)[0],
+                "5": (not VR.at_b1f_doorstep()) and (VR._on_map(VR.EG) or VR._on_map(VR.VR1F)),
+                "6": VR._on_map(VR.VR1F) and VR.at_b1f_doorstep(),
+                "7": VR._on_map(VR.B2F),
+                "8": VR._on_map(VR.B1F),
+                "9": VR._on_map(VR.VR1F),
+                "10": VR._on_map(VR.EG) and not VR.party_is_healthy()[0],
+                "11": VR._on_map(VR.EG) and any(
+                    VR.bag_healing_stock().get(n, 0) < q for n, q in VR.LEAGUE_BASKET),
+            }
+            R["leg_guards_2f"] = guards
+            R["legs_that_would_fire_2f"] = sorted(k for k, v in guards.items() if v)
+            taken.add("L2-LEGGUARDS")
+            log(f"[{TAG}] ⭐ LEG GUARDS ON 2F: fire={R['legs_that_would_fire_2f'] or 'NONE'} "
+                f"all={guards}")
+
+            # ---- ⛔ THE GUARDED CHAPTER CALL -------------------------------------------------------
+            # Only safe while EVERY guard is False: the generator then yields nothing, so one
+            # `next()` runs the whole body for zero frames and the bot cannot move. With ANY guard
+            # True this would EXECUTE a leg and walk somewhere unplanned.
+            if any(guards.values()):
+                R["ch23_call"] = "SKIPPED — a guard is True, so calling would RUN a leg"
+                log(f"[{TAG}] ⛔ CH23 CALL SKIPPED — {R['legs_that_would_fire_2f']} would fire; "
+                    f"calling the chapter here would execute a leg, not just read one.")
+            else:
+                f0 = context.emulator.get_frame_count()
+                before = (str(VR._where()), VR._here_tile())
+                gen = VR.do_victory_road_chapter()
+                try:
+                    next(gen)
+                    outcome = "YIELDED"
+                except StopIteration:
+                    outcome = "RETURNED"
+                except Exception as error:  # noqa: BLE001 - the raise IS the reading
+                    outcome = f"{type(error).__name__}: {str(error)[:200]}"
+                finally:
+                    gen.close()
+                after = (str(VR._where()), VR._here_tile())
+                R["ch23_call"] = outcome
+                R["ch23_call_frames"] = context.emulator.get_frame_count() - f0
+                R["ch23_call_moved"] = before != after
+                taken.add("L2-CH23CALL")
+                log(f"[{TAG}] ⭐⭐ CH23 CALLED ON 2F -> {outcome}  "
+                    f"frames={R['ch23_call_frames']} moved={R['ch23_call_moved']}")
+
+            # ---- mint the fixture (before walking home — it must be a 2F state) --------------------
+            if capture:
+                # ⛔⛔ SETTLE BEFORE CAPTURING — MEASURED, NOT PRECAUTIONARY.
+                # v1 captured the instant the readings were taken and produced a fixture whose
+                # CAPTURE line said (1,6) while a RELOAD rested it at (2,6): the arrival step was
+                # still in flight, and a save taken mid-step resumes by COMPLETING that step
+                # (measured: the tile changes between frames 10 and 20 and is stable to 600).
+                # ⇒ a fixture whose documented tile is not its resting tile is a footgun for every
+                # later reader. Wait for the tile to stop moving, and record BOTH numbers.
+                _settle_from = tuple(VR._here_tile())
+                _stable = 0
+                for _ in range(240):
+                    _t = tuple(VR._here_tile())
+                    _stable = _stable + 1 if _t == _settle_from else 0
+                    _settle_from = _t
+                    if _stable >= 30:
+                        break
+                    yield
+                R["capture_arrival_tile"] = R.get("arrival_tile")
+                R["capture_settled_tile"] = tuple(VR._here_tile())
+                if R["capture_settled_tile"] != tuple(R.get("arrival_tile") or ()):
+                    log(f"[{TAG}] ‼ SETTLED {R['arrival_tile']} -> {R['capture_settled_tile']} "
+                        f"before capture. The escalator DELIVERS to {R['arrival_tile']}; the avatar "
+                        f"then auto-completes a step. **The fixture rests on "
+                        f"{R['capture_settled_tile']}** — document THAT tile.")
+                ok = (VR._on_map(L2F) and self.battles == 0
+                      and R["flags_2f"].get("ENTERED_ELITE_FOUR") is False)
+                log(f"[{TAG}] CAPTURE GUARD on_2f={VR._on_map(L2F)} battles={self.battles} "
+                    f"entered_e4_still_False={R['flags_2f'].get('ENTERED_ELITE_FOUR') is False}")
+                if ok:
+                    _dest = Path(__file__).resolve().parent / "saves" / f"{capture}.ss1"
+                    if _dest.exists():
+                        log(f"[{TAG}] capture SKIPPED — {_dest.name} exists; not overwriting. "
+                            f"‼ THIS BRANCH STILL COUNTS THE READING, so do not read a PASS here as "
+                            f"proof of a fresh mint — check the file's mtime.")
+                        taken.add("L2-CAPTURE")
+                    else:
+                        try:
+                            _dest.write_bytes(context.emulator.get_save_state())
+                            R["captured"] = str(_dest)
+                            taken.add("L2-CAPTURE")
+                            log(f"[{TAG}] ✅ CAPTURED -> {_dest.name} ({_dest.stat().st_size} bytes) "
+                                f"at {VR._where()} {VR._here_tile()} — the repo's FIRST fixture on "
+                                f"League 2F. Pin it in saves/FIXTURES.md5 and verify by RELOAD.")
+                        except Exception as error:  # noqa: BLE001 - a failed capture must be LOUD
+                            log(f"[{TAG}] ⛔ CAPTURE FAILED: {type(error).__name__}: {error}")
+                else:
+                    log(f"[{TAG}] ⛔ CAPTURE REFUSED — the guard above is not all-True.")
+
+            # ---- ⭐⭐ THE RETURN — the claim nothing in this repo has ever executed -----------------
+            if no_return:
+                log(f"[{TAG}] ⚠ FAULT NORETURN — not walking home; L2-RETURN must be MISSING and the "
+                    f"run must end standing on 2F.")
+            else:
+                # ⛔⛔ THE RETURN IS A TWO-SEGMENT, SAME-MAP WALK — AND v1 OF THIS LEG GOT IT WRONG.
+                # ✅ MEASURED: `calculate_path((L2F,(1,6)) -> (L1F,(3,4)))` raises
+                # *"are not on connected maps (note that warps don't count.)"*. The pathfinder plans
+                # within CONNECTED maps only; a WARP IS NOT A CONNECTION. The inbound leg worked
+                # because BOTH its endpoints were declared on 1F — `(L1F,(3,4)) -> (L1F,(1,7))` — and
+                # the warp was incidental to the final step, which is why the last waypoint came back
+                # already on 2F.
+                # ‼ ⛔ THAT FAILURE SAYS NOTHING ABOUT WHETHER THE BOT CAN LEAVE 2F. It was a
+                # malformed QUESTION, not a finding about the map — exactly the rule `08-MISTAKES`
+                # records: *a NO PATH result is a claim about the question as much as the subject*.
+                # ⇒ express each segment on ONE map and step ONTO the warp tile, mirroring the
+                # inbound shape that is already measured to work.
+                # ⛔⛔ THE TARGET IS THE TILE THE ESCALATOR *DELIVERED* TO, NOT WHERE WE ARE NOW.
+                # v2 read the current tile here, and after the pre-capture settle that is (2,6) —
+                # NOT a warp tile — so the leg stepped onto an ordinary floor tile, did not warp, and
+                # reported *"the escalator does not send us back"*. ‼ That message was WRONG about
+                # the game and right about the run: we never stepped on the warp. Aim at the RECORDED
+                # arrival tile, and say which tile was actually stepped on when it fails.
+                warp_tile = tuple(R.get("arrival_tile") or VR._here_tile())
+                staging = None
+                if tuple(VR._here_tile()) == warp_tile:
+                    for cand in ((warp_tile[0], warp_tile[1] - 1), (warp_tile[0] + 1, warp_tile[1]),
+                                 (warp_tile[0], warp_tile[1] + 1), (warp_tile[0] - 1, warp_tile[1])):
+                        try:
+                            seg = calculate_path((L2F, warp_tile), (L2F, cand))
+                        except Exception:  # noqa: BLE001 - an unreachable candidate is just not it
+                            continue
+                        if seg and not hazards(seg, L2F.value):
+                            staging = cand
+                            break
+                    if staging is None:
+                        raise BotModeError(
+                            f"Ch24 2F: ⛔ NO REACHABLE TILE ADJACENT TO {warp_tile} ON 2F. The bot "
+                            f"is standing ON the return warp and cannot step off it, so it cannot "
+                            f"step back ON to trigger it. ‼ THIS would be the one-way-pocket finding."
+                        )
+                    R["return_staging"] = staging
+                    log(f"[{TAG}] RETURN STAGING = {staging} (we are ON the warp tile; step off so we "
+                        f"can step back on)")
+                    yield from VR._navigate_riding_out(L2F, staging)
+                    yield from wait_until_truly_controllable()
+                else:
+                    R["return_staging"] = f"none needed — already off the warp at {VR._here_tile()}"
+                    log(f"[{TAG}] RETURN: already off the warp tile (at {VR._here_tile()}), stepping "
+                        f"straight onto {warp_tile}")
+                stepped_from = tuple(VR._here_tile())
+                yield from VR._navigate_riding_out(L2F, warp_tile)
+                yield from wait_until_truly_controllable()
+                if not VR._on_map(L1F):
+                    raise BotModeError(
+                        f"Ch24 2F: stepped from {stepped_from} onto {warp_tile} — the tile the "
+                        f"escalator DELIVERED us to — and did NOT return to LEAGUE_1F; we are at "
+                        f"{VR._where()} {VR._here_tile()}. ‼ Only treat this as refuting "
+                        f"`victory_road.py:410-411`'s \"benign (2F warps straight back)\" if "
+                        f"{warp_tile} is genuinely the delivered tile — check the ON LEAGUE 2F line "
+                        f"above before blaming the game rather than this leg."
+                    )
+                R["back_on_1f_at"] = (str(VR._where()), VR._here_tile())
+                log(f"[{TAG}] ⭐ BACK ON 1F at={VR._where()} tile={VR._here_tile()} — the escalator "
+                    f"round trip fires in BOTH directions.")
+                yield from VR._navigate_riding_out(L1F, tuple(self.HOME_TILE))
+                yield from wait_until_truly_controllable()
+                if not VR._on_map(L1F) or tuple(VR._here_tile()) != tuple(self.HOME_TILE):
+                    raise BotModeError(
+                        f"Ch24 2F: ⛔ THE EXCURSION IS NOT REVERSIBLE. Aimed at LEAGUE_1F "
+                        f"{self.HOME_TILE} and ended at {VR._where()} {VR._here_tile()}. ‼ If the bot "
+                        f"cannot get off 2F, `victory_road.py:410-411`'s \"benign (2F warps straight "
+                        f"back)\" is WRONG and a stray step on (1,7) strands a production run on a map "
+                        f"with allow_escaping=false."
+                    )
+                R["returned_to"] = (str(VR._where()), VR._here_tile())
+                taken.add("L2-RETURN")
+                log(f"[{TAG}] ⭐ RETURNED — at={VR._where()} tile={VR._here_tile()}. The escalator "
+                    f"round trip is CLOSED, and that sentence is now measured rather than quoted.")
+
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        missing = sorted(WANT - taken)
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        no_fights = self.battles == 0
+        _e4 = R.get("flags_2f", {}).get("ENTERED_ELITE_FOUR", "UNREAD")
+        if _e4 == "UNREAD":
+            log(f"[{TAG}] ⚠ GRADE: ENTERED_ELITE_FOUR was NEVER READ on 2F — the run ended before "
+                f"that reading. ‼ NOT a contamination report.")
+        elif _e4 is not False:
+            log(f"[{TAG}] ⛔ GRADE: ENTERED_ELITE_FOUR READ BACK {_e4!r} — something talked.")
+        ok = not missing and failure is None and no_fights and _e4 is False
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+            f"(reach League 2F, READ it, fight NOTHING, leave ENTERED_ELITE_FOUR False, "
+            f"and WALK BACK to LEAGUE_1F {self.HOME_TILE})")
+        context.set_manual_mode()
+
+
 class Ch24IceBeamMode(BotMode):
     """`#24-icebeamtrip` — fetch TM13 ICE BEAM from the Abandoned Ship. **PRODUCTION CODE.**
 
@@ -22737,6 +23161,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24TailProbeMode()
         elif args.driver == "ch24lobby":
             context.bot_mode_instance = Ch24LobbyMode()
+        elif args.driver == "ch24lobby2f":
+            context.bot_mode_instance = Ch24Lobby2FMode()
         elif args.driver == "ch24icebeam":
             context.bot_mode_instance = Ch24IceBeamMode()
         elif args.driver == "ch24teachice":

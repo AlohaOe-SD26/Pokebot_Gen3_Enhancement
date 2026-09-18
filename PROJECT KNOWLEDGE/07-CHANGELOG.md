@@ -32110,3 +32110,54 @@ checkable rather than merely asserted.
 Files: `tools/story-dev/story_harness.py`,
 `tools/story-dev/evidence/2026-09-18-ch24lobby-GUARDFIX-TREATMENT.txt`,
 `...-GUARDFIX-FAULT-BLINDGUARD.txt`, `...-GUARDFIX-FAULT-NOPATHCHECK.txt`.
+
+
+## 2026-09-18 (later still x4) — ⭐⭐ LEAGUE 2F IS READ, AND THE ESCALATOR ROUND TRIP IS *EXECUTED* FOR THE FIRST TIME
+
+`#24-league2f` is **DONE**. `--driver ch24lobby2f` (new) closes the last piece of the “lobby window is
+TWO maps” debt. Predictions committed first (`265b7d40`); four arms; graded row by row in
+`ai-research-notes/2026-09-18-ch24-league2f-PREDICTIONS.md`.
+
+**⭐ THE ARTIFACT.** `saves/post_league_2f.ss1`, pinned `d3c09e7af34922d28dacbf927fb7b6bc` — the
+repo's FIRST fixture on `EVER_GRANDE_CITY_POKEMON_LEAGUE_2F`. **Rests on (2,6)**, L75 party, **0
+battles**, `ENTERED_ELITE_FOUR` still False. Re-verified by RELOAD in `probe_ch23_leg_guards.py`,
+which now reads FIVE positions.
+
+**‼‼ (1,6) IS THE DELIVERED TILE; (2,6) IS THE RESTING TILE.** The UP escalator delivers to **(1,6)**
+— ✅ the decomp's reciprocal warp, measured here for the first time — and the avatar then
+AUTO-COMPLETES A STEP to (2,6).
+
+**⭐⭐ THE ROUND TRIP IS CLOSED.** `victory_road.py:410-411` has called the escalator *“benign (2F
+warps straight back)”* since it was written and **nothing in this repo had ever run it.** Measured in
+both directions: `(3,4)→(1,7)` warps up; stepping from (2,6) back onto (1,6) returns to
+`LEAGUE_1F (1,7)`; the leg walks home to (3,4). ⇒ a stray step on the escalator is **recoverable**.
+⚠ 2F remains `"allow_escaping": false` — no Dig/Teleport/Escape Rope; the escalator is the ONLY way
+out, it simply works.
+
+**⭐ §Ch23 RAISES ON 2F TOO** — ten call sites False, `ch23_chapter_done()` False, guarded call gives
+`BotModeError … failed after 3 attempts`, `frames=0`, `moved=False`. ⇒ `#24-ch23lobbyresume`'s
+LEAGUE-WIDE scope is confirmed on a THIRD map.
+
+**⛔ TWO DRIVER BUGS, BOTH OF WHICH WOULD HAVE BLAMED THE GAME.**
+1. A **CROSS-MAP** `calculate_path` request returned *“are not on connected maps (note that warps
+   don't count.)”*. My own predictions file said that failure would mean *“2F is a ONE-WAY POCKET”*.
+   ⛔ It did not. **`calculate_path` plans within CONNECTED maps and a warp is not a connection**; the
+   inbound leg works only because BOTH endpoints are declared on 1F and the warp is incidental to the
+   last step. ⇒ express cross-map travel as per-map segments that STEP ONTO the warp tile.
+2. After a pre-capture settle was added, the return aimed at the **SETTLED** tile instead of the
+   **DELIVERED** one, stepped on ordinary floor, and raised a message accusing `victory_road.py` of
+   being wrong. The leg now targets the RECORDED arrival tile and names the tile it actually stepped
+   on, so the next reader checks the leg before blaming the game.
+
+**⚠ A DESIGN DEVIATION, DECLARED:** P3 was pre-registered as *“vet a route to a sealed map (or
+unreachable)”*; the implementation injects SYNTHETIC waypoints instead, because a sealed route IS
+unreachable and that arm would have passed for the wrong reason on every run.
+
+**ARMS:** TREATMENT `missing=[]` · VACUITY refused at the premise with zero readings · `NORETURN` →
+`missing=['L2-RETURN']` alone · `BLINDGUARD2F` → the self-test fires and the leg walks NOTHING, going
+blind to exactly the sealed-room and second-warp synthetics while still catching the same-map one.
+
+Files: `tools/story-dev/story_harness.py` (new `Ch24Lobby2FMode`, `--driver ch24lobby2f`),
+`tools/story-dev/probe_ch23_leg_guards.py` (+the 2F case), `tools/story-dev/saves/FIXTURES.md5`,
+`tools/story-dev/saves/post_league_2f.ss1`,
+`tools/story-dev/evidence/2026-09-18-ch24lobby2f-*.txt` (5 files).

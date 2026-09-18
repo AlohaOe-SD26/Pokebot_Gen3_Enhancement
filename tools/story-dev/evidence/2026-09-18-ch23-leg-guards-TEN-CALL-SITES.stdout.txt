@@ -59,6 +59,20 @@ WHICH §Ch23 LEGS WOULD FIRE?  (guards evaluated, legs NEVER run)
         leg 11    skip      _on_map(EG) AND any(bag_healing_stock()[n] < qty for n, qty in LEAGUE_BASKET)
       ⇒ legs that would FIRE: NONE
 
+  post_league_2f.ss1  —  EVER_GRANDE_CITY_POKEMON_LEAGUE_2F (2, 6)
+      LEAGUE 2F (1,6) — the Cable Club floor, the window's other half
+        leg 1-3   skip      any(_on_map(m) for m in _PRE_DEPARTURE_MAPS)
+        leg 4     skip      not inside_vr and not at_ever_grande_top()
+        leg 4b-train skip      not inside_vr and not wally_beaten() and not team_is_ready(TRAIN_TARGET)[0]
+        leg 5     skip      not at_b1f_doorstep() and (_on_map(EG) or _on_map(VR1F))
+        leg 6     skip      _on_map(VR1F) and at_b1f_doorstep()
+        leg 7     skip      _on_map(B2F)
+        leg 8     skip      _on_map(B1F)
+        leg 9     skip      _on_map(VR1F) and not fault_stranded   [arm off => conjunct dropped]
+        leg 10    skip      _on_map(EG) and not fault_noheal and not party_is_healthy()[0]   [arm off => dropped]
+        leg 11    skip      _on_map(EG) AND any(bag_healing_stock()[n] < qty for n, qty in LEAGUE_BASKET)
+      ⇒ legs that would FIRE: NONE
+
 --------------------------------------------------------------------------------------------------------------------
   CONTROL: at least one outdoor position fires a leg -> PASS
   SEALED MAP (HALL4): legs firing = NONE
@@ -72,5 +86,5 @@ WHICH §Ch23 LEGS WOULD FIRE?  (guards evaluated, legs NEVER run)
 Shutting down...
 Save state C:\Remote 
 Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
-026-09-18_10-04-37.ss1 created!
+026-09-18_11-48-53.ss1 created!
 Updated `current_state.ss1`!

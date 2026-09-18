@@ -103,6 +103,10 @@ CASES = [
     # ⭐ MINTED 2026-09-18 by `--driver ch24lobby` — the first fixture this repo has ever held
     # inside the League, and the position the §Ch24 marker actually has to cover.
     ("post_league_lobby.ss1", "THE LOBBY (LEAGUE_1F 3,4) — the marker's real subject"),
+    # ⭐ MINTED 2026-09-18 by `--driver ch24lobby2f`. The lobby window is TWO maps and this is the
+    # second one. Loading it here also RE-VERIFIES the fixture by reload, which is the only
+    # verification this project accepts for a capture.
+    ("post_league_2f.ss1", "LEAGUE 2F (1,6) — the Cable Club floor, the window's other half"),
 ]
 
 print("=" * 116)

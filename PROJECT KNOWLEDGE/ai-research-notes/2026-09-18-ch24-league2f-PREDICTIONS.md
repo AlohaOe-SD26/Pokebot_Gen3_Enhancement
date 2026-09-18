@@ -85,3 +85,84 @@ the same one `probe_ch23_lobby_resume.py` uses, and for the same reason.
 
 A **GRADED** section is appended after the runs: every P row ✅ met, ❌ refuted or ⚠ unreadable, **with
 the literal log line beside it**. A row that cannot be quoted was not measured.
+
+
+---
+
+# ⭐ GRADED — 2026-09-18, AFTER THE RUNS
+
+> Evidence: `tools/story-dev/evidence/2026-09-18-ch24lobby2f-*.txt` · fixture `post_league_2f.ss1` pinned `d3c09e7af34922d28dacbf927fb7b6bc`.
+> Every row carries the literal log line. A row that cannot be quoted was not measured.
+
+| # | verdict | the line it is graded on |
+|---|---|---|
+| P1 | ✅ MET | `PRE at=((16, 10), (3, 4)) tile=(3, 4)` |
+| P2 | ✅ MET | `PATH SAFE — 5 waypoints, exactly one warp, to EVER_GRANDE_CITY_POKEMON_LEAGUE_2F. path=[((16, 10), (3, 5), False), …, ((16, 14), (1, 6), True)]` |
+| P3 | ✅ MET — ⚠ **against a CHANGED design; see “A DESIGN DEVIATION” below before quoting this row** | `GUARD SELF-TEST OK — all 3 synthetic hazards refused (['gauntlet-door waypoint', 'sealed-room waypoint', 'second warp elsewhere'])` |
+| P4 | ✅ MET | `⭐ ON LEAGUE 2F — at=((16, 14), (1, 6))` |
+| P5 | ⭐ **MET — AND IT SPLIT INTO TWO TILES, WHICH IS A BETTER ANSWER THAN THE ONE PREDICTED** | delivered: `at=((16, 14), (1, 6))`; then `‼ SETTLED (1, 6) -> (2, 6) before capture`. **The decomp's reciprocal warp (1,6) is CONFIRMED by measurement** — and the avatar then auto-completes a step, so the RESTING tile is `(2,6)`. Both are true; conflating them is the trap. |
+| P6 | ✅ MET | `RESULT battles=0 whiteouts=0 failure=None` |
+| P7 | ✅ MET | `CAPTURE GUARD on_2f=True battles=0 entered_e4_still_False=True` |
+| P8 | ✅ MET | `PREDICATES {'inside_league': True, 'at_ever_grande_top': True, 'ch23_chapter_done': False, 'wally_beaten': True}` |
+| P9 | ⭐ MET | `⭐ LEG GUARDS ON 2F: fire=NONE all={'1-3': False, '4': False, '4b-train': False, '5': False, '6': False, '7': False, '8': False, '9': False, '10': False, '11': False}` |
+| P10 | ⭐⭐ MET | `⭐⭐ CH23 CALLED ON 2F -> BotModeError: Ch23 (Victory Road) failed after 3 attempts… frames=0 moved=False` ⇒ `#24-ch23lobbyresume`'s **LEAGUE-WIDE** claim now holds on the Cable Club floor too, measured on a third map |
+| P11 | ⭐ **MET — BUT ONLY AFTER TWO DRIVER BUGS, AND THE FIRST ONE ALMOST BECAME A FALSE FINDING** | `⭐ BACK ON 1F at=((16, 10), (1, 7)) tile=(1, 7)` then `⭐ RETURNED — at=((16, 10), (3, 4))`. See below. |
+| P12 | ✅ MET | `✅ CAPTURED -> post_league_2f.ss1 (397312 bytes) at ((16, 14), (2, 6))`; pinned and re-verified by RELOAD in `probe_ch23_leg_guards.py`, which reports `EVER_GRANDE_CITY_POKEMON_LEAGUE_2F (2, 6)` |
+
+## ⭐⭐ THE HEADLINE: THE ESCALATOR ROUND TRIP IS CLOSED, AND THAT SENTENCE IS NOW *EXECUTED*
+
+`victory_road.py:410-411` has called the escalator *"benign (2F warps straight back)"* since it was
+written, and **nothing in this repo had ever run it.** It is now measured in both directions:
+`(3,4) → (1,7)` warps to 2F `(1,6)`; stepping back onto `(1,6)` returns to 1F `(1,7)`; the leg then
+walks home to `(3,4)`. ⇒ a stray step on the escalator is **recoverable**, not a strand.
+⚠ Still true and still worth knowing: 2F is `"allow_escaping": false` — no Dig, Teleport or Escape
+Rope. The escalator is the ONLY way out. It just happens to work.
+
+## ⛔⛔ P11's TWO DRIVER BUGS — BOTH WOULD HAVE BLAMED THE GAME
+
+**BUG 1 — A MALFORMED QUESTION THAT LOOKED LIKE A ONE-WAY POCKET.** v1 asked
+`calculate_path((L2F,(1,6)) -> (L1F,(3,4)))` and got
+*"are not on connected maps (note that warps don't count.)"*. ⭐ **`calculate_path` plans within
+CONNECTED maps and a WARP IS NOT A CONNECTION.** The inbound leg works only because BOTH its
+endpoints are declared on 1F — `(L1F,(3,4)) -> (L1F,(1,7))` — and the warp is incidental to the final
+step, which is why that path's last waypoint comes back already on 2F.
+‼ My own predictions file said a failure here would mean *"2F is a ONE-WAY POCKET"*. **It would not
+have.** It meant the request was the wrong shape. ⇒ the fix is to express each segment on ONE map and
+step ONTO the warp tile.
+
+**BUG 2 — AIMED AT THE SETTLED TILE INSTEAD OF THE DELIVERED ONE.** Once a pre-capture settle was
+added, the return read the CURRENT tile `(2,6)` as the warp tile, stepped onto an ordinary floor tile,
+did not warp, and raised a message reading *"If the tile the escalator DELIVERED us to does not send
+us back, `victory_road.py:410-411` is wrong."* ⛔ **That message was wrong about the game and right
+about the run.** The leg now targets the RECORDED arrival tile and its failure message names which
+tile it actually stepped on, so the next reader checks the leg before blaming the game.
+
+## ⚠ A DESIGN DEVIATION BETWEEN THE PREDICTIONS AND THE IMPLEMENTATION — DECLARED, NOT BURIED
+
+P3 was pre-registered as *“a route to a SEALED map is refused **(or unreachable)**”*. The
+implementation does NOT do that: it injects **synthetic waypoints into a copy of the real path**.
+⇒ **the parenthetical was the problem.** `calculate_path` to `(9,1)` is genuinely unreachable from the
+lobby (the door guards block it), so that arm would have passed **for the wrong reason** on every run
+— a self-test that cannot fail is the exact shape `#24-pathguardblind` was about. The synthetic
+version CAN fail, and the `BLINDGUARD2F` arm proves it does.
+‼ Recorded because grading P3 ✅ without saying the design changed would be scoring a prediction
+against a different experiment.
+
+## ⭐ TWO REUSABLE FACTS THIS DRIVE ESTABLISHED
+
+1. **`calculate_path` does not route through warps for a cross-map request.** Express cross-map
+   travel as per-map segments that step onto the warp tile. (This is why production uses
+   `_walk_through_warp` and per-map navigation rather than one long plan.)
+2. **A save taken while a step is IN FLIGHT resumes by COMPLETING that step.** Measured: capture
+   logged `(1,6)`, reload rested at `(2,6)`, with the change occurring between frames 10 and 20 and
+   stable to 600. ⇒ the capture line's tile is NOT the fixture's resting tile. **This is exactly why
+   this project verifies a fixture by RELOAD and never by the capture line** — the rule earned its
+   keep the first time it was tested here. The capture now settles before writing.
+
+## ⛔ WHAT THIS STILL DOES NOT ESTABLISH
+
+* **The metatile behaviour of `(1,6)`** — only that the return WORKS, not that it is specifically
+  `MB_DOWN_ESCALATOR`.
+* **Frequency** — nothing says a real run ever steps on `(1,7)`. Still a batch question.
+* **The post-talk window** — this whole drive is on the no-talk, positionally-sealed lineage, and a
+  post-talk sibling fixture is still owed.

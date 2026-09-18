@@ -19344,3 +19344,62 @@ code regressing against a solved pattern — **not** a repo-wide class defect.
 - ‼ **A fault arm proving the guard's ABSENCE is not the same as proving its COMPETENCE.**
   `POKEBOT_CH24_FAULT_NOPATHCHECK` passed cleanly the whole time — it proved the guard was *invoked*,
   never that it could *see* anything. When an arm skips a check, it tests the plumbing, not the check.
+
+
+## 2026-09-18 — A PATHFINDER ERROR NEARLY BECAME “THE BOT IS TRAPPED ON LEAGUE 2F”
+
+**SYMPTOM.** `--driver ch24lobby2f` reached League 2F, took its readings, then tried to walk home and
+raised `PathFindingError: Source (1/6 @ EVER_GRANDE_CITY_POKEMON_LEAGUE_2F) and destination
+(3/4 @ EVER_GRANDE_CITY_POKEMON_LEAGUE_1F) are not on connected maps (note that warps don't count.)`.
+**My own predictions file, written hours earlier, said in terms that this outcome would mean “2F is a
+ONE-WAY POCKET” and would be “a live production hazard”.** 2F is `"allow_escaping": false`, so that
+story was entirely plausible.
+
+**ROOT CAUSE.** `calculate_path` plans within **CONNECTED** maps, and **a warp is not a connection** —
+the error message says so. The INBOUND leg worked only because both of its endpoints were declared on
+the SAME map: `(L1F,(3,4)) -> (L1F,(1,7))`, where `(1,7)` happens to warp, which is why that path's
+final waypoint came back already on 2F. Asking for `(L2F,…) -> (L1F,…)` is a **different shape of
+question**, and it is the one the planner refuses.
+
+**THE FIX THAT WORKED.** Express the return as per-map segments that STEP ONTO the warp tile: from the
+2F resting tile, navigate (same map) onto the delivered tile `(1,6)`; that fires the warp to
+`LEAGUE_1F (1,7)`; then navigate (same map) home to `(3,4)`. Measured end to end.
+
+**PREVENTION RULES.**
+- ⛔ **A pathfinder refusal is a statement about the REQUEST first and the WORLD second.** Read the
+  error text before writing the finding: *“not on connected maps (note that warps don't count)”* is a
+  description of the planner's contract, not of the map.
+- ⭐ **Express cross-map travel as per-map segments onto the warp tile** — which is why production
+  uses `_walk_through_warp` plus per-map navigation rather than one long plan. A new leg that invents
+  its own long-range plan is re-deriving a solved problem, badly.
+- ‼ **A pre-registered falsifier can be WRONG, and grading it honestly means saying so.** P11's
+  falsifier named the wrong cause. The prediction discipline is still worth it — it is what made the
+  failure legible — but “the run contradicted my prediction” does not automatically mean the world is
+  what the prediction said it would be.
+
+## 2026-09-18 — A FIXTURE'S CAPTURE LINE SAID (1,6) AND A RELOAD SAID (2,6)
+
+**SYMPTOM.** `post_league_2f.ss1` was captured with the log line *“✅ CAPTURED … at ((16, 14), (1, 6))”*
+and pinned with `(1,6)` written into `FIXTURES.md5`. Reloading it in `probe_ch23_leg_guards.py`
+reported **`EVER_GRANDE_CITY_POKEMON_LEAGUE_2F (2, 6)`**.
+
+**ROOT CAUSE.** The capture was taken while the arrival step was still IN FLIGHT. **A save taken
+mid-step resumes by COMPLETING that step.** Measured precisely: the tile reads `(1,6)` at frames 0-10
+and `(2,6)` from frame 20 onward, stable through frame 600. Both tiles are real and they mean
+different things — `(1,6)` is the tile the escalator DELIVERS to (confirming the decomp's reciprocal
+warp), `(2,6)` is where the avatar comes to REST.
+
+**THE FIX THAT WORKED.** The capture now SETTLES first — a bounded loop waiting for the tile to stop
+changing — logs BOTH tiles when they differ, and the fixture was re-minted so its documented tile is
+its resting tile. ‼ And a second bug fell out of the fix: the RETURN then read the current tile as
+the warp tile, stepped onto ordinary floor, and raised a message accusing the game. It now targets the
+RECORDED arrival tile.
+
+**PREVENTION RULES.**
+- ⭐⭐ **This is exactly what “verify a fixture by RELOAD, never by the capture line” is FOR** — the
+  rule already existed in this project and this is the first time it has been observed catching a
+  real discrepancy. Do not treat it as ceremony.
+- ⛔ **Settle before capturing.** A capture is a claim about a RESTING state; taking it mid-animation
+  makes the fixture's documented position a lie that only a reload exposes.
+- ‼ **When a fixture records two positions, name which is which.** “Delivered” and “resting” are
+  different facts; a row that gives one number invites the reader to assume the other.

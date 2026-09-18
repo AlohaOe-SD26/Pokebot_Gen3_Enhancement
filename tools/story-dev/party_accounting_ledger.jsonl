@@ -654,3 +654,12 @@
 {"when": "2026-09-18T10:58:47", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-18T11:01:03", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
 {"when": "2026-09-18T11:03:13", "driver": "ch24lobby", "build": "sandbox", "state": "post_ch24_atdoor_L75.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T11:22:04", "driver": "ch24lobby2f", "build": "sandbox", "state": "post_league_lobby.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T11:26:10", "driver": "ch24lobby2f", "build": "sandbox", "state": "post_league_lobby.ss1", "frames_run": 12000, "recomputes": 12001, "scans": 41, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T11:29:10", "driver": "ch24lobby2f", "build": "sandbox", "state": "post_league_lobby.ss1", "frames_run": 12000, "recomputes": 12001, "scans": 41, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T11:30:33", "driver": "ch24lobby2f", "build": "sandbox", "state": "post_hall4_door.ss1", "frames_run": 4000, "recomputes": 4001, "scans": 14, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T11:33:51", "driver": "ch24lobby2f", "build": "sandbox", "state": "post_league_lobby.ss1", "frames_run": 12000, "recomputes": 12001, "scans": 41, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T11:35:47", "driver": "ch24lobby2f", "build": "sandbox", "state": "post_league_lobby.ss1", "frames_run": 6000, "recomputes": 6001, "scans": 21, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T11:41:06", "driver": "ch24lobby2f", "build": "sandbox", "state": "post_league_lobby.ss1", "frames_run": 12000, "recomputes": 12001, "scans": 41, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T11:44:41", "driver": "ch24lobby2f", "build": "sandbox", "state": "post_league_lobby.ss1", "frames_run": 12000, "recomputes": 12001, "scans": 41, "divergences": {}, "observer_broke": false}
+{"when": "2026-09-18T11:48:27", "driver": "ch24lobby2f", "build": "sandbox", "state": "post_league_lobby.ss1", "frames_run": 12000, "recomputes": 12001, "scans": 41, "divergences": {}, "observer_broke": false}
