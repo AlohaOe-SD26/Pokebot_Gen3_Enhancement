@@ -11960,3 +11960,61 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
 
 ---
 
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] **`#24-journey` — DONE 2026-07-31. Warp planning at MAP granularity.**…”*
+> Moved under `lint_docs.py` R3 (the punch list went over budget while the §Ch24 user
+> rulings were being recorded). **NOTHING IS DELETED.**
+
+- [x] **`#24-journey` — DONE 2026-07-31. Warp planning at MAP granularity.**
+      ‼ **AND THE DIAGNOSIS BELOW IS WRONG — read `05-KNOWN-ISSUES.md` "KI-39 — CORRECTED"
+      before believing any of it.** Measured live, `calculate_path` DOES span whole connected
+      components (every one of these maps is `level=459`) and reachability is PARTIAL, not
+      zero: ROUTE110 17/125 tiles, ROUTE111 11/173, ROUTE117 22/41, VERDANTURF 14/23. The four
+      blocked trips had FOUR causes and only one was route planning.
+      **The genuine bug:** `WarpGraph.plan()` works at REGION granularity and returns `[]` for
+      any same-region pair, and the whole overworld is one region — so a warp that is the ONLY
+      physical link between two "connected" maps could never be planned. Proof case:
+      Verdanturf declares a map connection to Route 116, but 0 of 40 sampled Route 116 tiles
+      are walkable from Verdanturf and the real link is the Rusturf Tunnel warp.
+      **Shipped:** `WarpGraph.warp_candidates()` + `map_distance()` + kept map-level
+      adjacency (`CACHE_VERSION` 1→2); `navigate_to_anywhere` walks if it can, else validates
+      each candidate warp's first leg with `calculate_path` before committing, remembering
+      warps taken; the "did the warp fire?" check now compares MAPS, not regions (it would
+      have reported every same-region warp as a locked door).
+      **Proof:** `repro_journey_planner.py` (27 checks, no emulator) +
+      `probe_journey_live.py` / `story_harness.py --driver journey` — OLD arm
+      `arrived=False map=MAUVILLE_CITY`, NEW arm `arrived=True map=ROUTE116` in 33,725 frames.
+      ‼ **It does NOT unblock `#24-counters`** — see the new `#24-smashroute` below.
+
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] ✅ **SETTLED 2026-09-09 BY A CHECKED-IN TOOL — AND THREE EARLIER ANSWERS WERE ALL WRONG.**…”*
+> Moved under `lint_docs.py` R3 (the punch list went over budget while the §Ch24 user
+> rulings were being recorded). **NOTHING IS DELETED.**
+
+- [x] ✅ **SETTLED 2026-09-09 BY A CHECKED-IN TOOL — AND THREE EARLIER ANSWERS WERE ALL WRONG.**
+  The question *"does a training relocation ever deliver battles?"* was answered three times before
+  this: an agent said **114/114, 1:1, ZERO battles delivered**; I "refuted" it with **128 not 114**
+  (contaminated — 14 of my 128 were `FIERY_PATH` COUNTER-HUNT lines that merely name ROUTE111 as the
+  bot's CURRENT position); a reviewer corrected my contamination and concluded the 1:1 **holds**.
+  ⭐ **All three were aggregate reasoning.** `tools/story-dev/probe_training_relocation.py` anchors on
+  the FULL message shape, excludes the counter-hunt look-alike explicitly, and pairs each decision
+  with its own outcome **inside its own run**:
+  ```
+  453 relocation decisions   (613 training drops, 162 counter-hunt look-alikes EXCLUDED)
+    252  (55.6%)  battles delivered
+    130  (28.7%)  DROPPED as unreachable
+     71  (15.7%)  no signal in window
+  ```
+  ⇒ **"zero battles delivered" is FALSE — relocation succeeds most of the time.**
+  ⭐⭐ **BUT THE REAL FINDING SURVIVES AND IS WORTH AN ITEM: ~29% of training relocations end in an
+  unreachable drop.** That is the honest number, it is reproducible in one command, and it is a real
+  defect — just not the catastrophe three earlier answers described.
+  ‼ **THE LESSON: TWO TOTALS MATCHING IS NOT PAIRING.** 453-vs-613 looks like nothing in aggregate;
+  only per-run pairing exposed the 28.7%. Aggregate agreement is coincidence until each event is
+  matched to its own outcome.

@@ -32312,3 +32312,24 @@ IS reachable. ⇒ `#24-cavehealblind` shrinks from *“can a Victory Road grind 
 Fly) as a possible grind-sidestep and a per-run variability feature — and scoped it out in the same
 breath (*“this is just a thought … it may derail a lot, we should focus on the battle and mapping
 mechanics of the elite 4 first”*). ⛔ Recorded as a future option; **do not start it.**
+
+
+## 2026-09-18 (attribution correction) — THE ~3.3× ESTIMATOR CORRECTION WAS ALREADY FILED; ONLY ITS APPLICATION WAS NEW
+
+The `#24-levelgap` refutation entries above present the ~3.3× estimator optimism as though the
+adversarial pass surfaced it. ⛔ **That over-credits it, and the correction matters because the
+project keeps paying for this exact mistake.**
+
+* The **×2 EXP-split** half was **ALREADY FILED 2026-09-08** — a closed `03-PUNCH-LIST.md` item,
+  *“THE ESTIMATOR IGNORES THE EXP SPLIT”*, which already carried a worked SOLO-vs-2-WAY table
+  (L35 solo 243,610 → 487,220 split; L40 160,496 → 319,559) and already concluded **REFUSE**.
+* The **×1.65 frames-per-WIN** half is documented at `story_harness.py:15416-15420` (2026-09-17).
+
+⇒ **WHAT WAS GENUINELY NEW on 2026-09-18** is applying both to the *“every 2-level step fits”*
+claim and computing the LAST step rather than an interior one. That older item's own headline says
+the same thing about itself: *“ALREADY FILED … WHAT IS NEW IS THE CONSEQUENCE NOBODY APPLIED.”*
+
+‼ **THIS IS THE THIRD RE-DISCOVERY THIS SESSION** (after the lobby raise already derived in
+`06-DECISIONS-LOG.md`, and the Ever Grande split already measured in `story_harness.py:15422`).
+The standing rule — grep the tree before claiming novelty — is clearly not firing often enough,
+and all three were caught only at write-up time rather than at discovery time.

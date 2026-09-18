@@ -16,6 +16,24 @@ Centres, losing and recovering. **Faithfulness is the product, not a style prefe
 vanilla's exact end-state, and why "never hang / never silently derail" is a standing rule: a human
 does not freeze mid-battle, and a human does not teleport.
 
+### ⭐⭐ AND HERE IS *WHY* — THE PURPOSE, STATED BY THE USER 2026-09-18
+> *“the goal is to make this bot play as human as possible (**at regular speed, not sped up**) as it
+> will be an **art piece I can look at from time to time to see its progress**.”*
+
+⇒ **THE DELIVERABLE IS SOMETHING TO WATCH, NOT SOMETHING THAT FINISHES.** That reframes three
+things that had been treated as engineering preferences:
+* **REGULAR SPEED IS A REQUIREMENT, NOT A FALLBACK.** The bot is meant to be observed playing at
+  normal game speed. Fast-forward is a development tool.
+* ⛔ **SPEED/EFFICIENCY WORK IS TESTING SCAFFOLDING, NOT A PRODUCT GOAL.** The user was explicit:
+  *“I know we have been figuring out the most efficient routes for this program but those are mostly
+  just to be able to get to late/end game content faster for **our testing**”.* ⇒ when an
+  optimisation and faithfulness conflict, **faithfulness wins** — and “this is faster” is not, by
+  itself, an argument for a design.
+* ⭐ **“IT TAKES A WHILE” IS ACCEPTABLE; “IT LOOKS STUPID” IS NOT.** Long training is fine. What is
+  forbidden is *conspicuously unhuman* behaviour — the user's example: *“level 30s should not be
+  fighting level 3-5 for xp”*. A watcher must never see the bot doing something no player would do.
+  ⇒ the quality metric for training is the **level GAP between trainee and wild**, not frames spent.
+
 ## 2. A documented substrate for a FUTURE self-training AI agent
 The user intends to build a separate program in which **a custom AI agent trains itself to play the
 game as faithfully and organically as a human would.** This repository is that project's ground

@@ -6255,3 +6255,65 @@ entirely, and “random per run” is an interesting variability feature. ⛔ **
 user scoped it out of the current work in the same breath. §Ch21 already reaches Rayquaza's map
 (Sky Pillar), so the capability is closer than it looks; that makes it MORE important not to drift
 into it before the Elite Four's battle and mapping mechanics are done.
+
+
+## 2026-09-18 (second round) — ⭐ USER RULINGS: TIME IS NOT THE CONSTRAINT, LEVEL-APPROPRIATENESS IS
+
+Follow-up questions on the §Ch24 grind. These change a premise several items were built on.
+
+### RULING 4 — **TIME IS NOT A CONSTRAINT. LEVEL-APPROPRIATENESS IS.**
+> *“Time is not really a problem so long as they are training in appropriate areas (best level
+> location to level up for the pokemon being trained) … its fine if it takes a while to level up so
+> long as they are not fighting super low level monsters (norman gym for example, level 30s should
+> not be fighting level 3-5 for xp)”*
+
+⇒ ⛔⛔ **THIS RETIRES “THE GRIND IS TOO EXPENSIVE” AS AN OBJECTION.** `#24-levelgap`'s whole
+frame-budget analysis — including my own measurement that every 2-level step exceeds
+`MAX_TRAINING_FRAMES` once the estimator's ~3.3× optimism is corrected — was answering a question
+the user is not asking. **A long grind is acceptable.**
+⇒ ⭐ **WHAT REPLACES IT AS THE QUALITY BAR: the level GAP between trainee and wild.** The refusal
+that matters is not “this will take N frames” but “this party is 30 levels above this grass”.
+⇒ ⛔ **AND THAT IS A DEFECT WE HAVE ALREADY MEASURED IN OUR OWN CODE.**
+`best_training_area(team_level=53)` returns `(ROUTE117, (31,16), (13,14))` — **L13-14 wilds for a
+L53 party**. Our recorded response was a comment saying *“⛔ never ‘improve’ this by asking the table
+for the grind tile”*; the ruling says the TABLE is what should be fixed. Filed as
+`#24-trainingbrackets`.
+⚠ **WHAT THIS DOES *NOT* RETIRE:** the per-call ceiling still exists in
+`train_for_victory_road`, and a leg calling `train_team` directly still inherits **no budget at
+all** (KI-28 burned 19.9M frames that way). “Time is not a constraint” is a statement about the
+USER'S patience, not a licence for an unbounded loop. **Bound the loop; just do not refuse on cost.**
+
+### RULING 5 — **START THE ELITE FOUR TRAINING AFTER VICTORY ROAD, AFTER THE FIRST LEAGUE-NURSE HEAL.**
+> *“the further the bot gets into the story, more of the map becomes available and that means more
+> higher level areas appear for training so the arduous training task (training for elite 4) should
+> really start when the bot finishes victory road after first healing at the elite 4 nurse”*
+
+⇒ a precise placement: **after §Ch23 leg 10 (`heal_at_league`), not before.** That is the §Ch24
+side of the boundary, which matches the 2026-09-18 reversal that moved the grind off §Ch23 — and it
+now has a second, independent reason: **the map is at its largest there**, so the best grounds are
+available. ⇒ the leg should be free to pick the best ground in the game at that point, not just
+Victory Road's.
+
+### RULING 6 — **LOSSES ARE ACCEPTABLE; MONEY IS A HIGH PRIORITY.**
+> *“loses are fine, keep in mind the goal is to not constantly lose to the elite 4, but a few are
+> acceptable as that is natural, but the goal is to win against the elite 4 as organically as
+> possible so loses are expected but preserving money is another high priority as money is
+> relatively limited (trainers take forever to refresh their battle state with the player, selling
+> nuggets that are found gain a lot of money so are worth noting as well)”*
+
+⇒ **THE OPTIMISATION TARGET IS NOT “MAXIMISE WIN RATE”.** A few losses are *expected and natural*.
+⇒ ⛔ **BUT A LOSS COSTS MONEY** — `DoWhiteOut()` calls `SetMoney(money/2)` (decomp
+`src/overworld.c:358-366`), and §Ch23 leg 11's Elite Four basket costs ₽54,300 against a MEASURED
+₽56,041, i.e. **₽1,741 of slack**. ⇒ the real constraint on losing is the BANK, not pride.
+⇒ ⭐ **NUGGETS ARE FLAGGED AS A MONEY SOURCE WORTH USING**, and trainers are noted as effectively
+one-shot. Both are being researched (`#24-trainingbrackets` workflow).
+
+### RULING 7 — **RESEARCH WHETHER POKENAV REMATCHES ARE USABLE.**
+> *“also maybe look into if pokenav can be used for fighting trainers again either initiated by the
+> user using the pokenav or if they call the player (log the calls to map to them if they are a
+> viable training trainer or for money) … something to deliberate about and research”*
+
+⇒ an explicit RESEARCH instruction, not a build instruction. If Match Call rematches are a
+repeatable EXP/money source they would address rulings 4 and 6 simultaneously — level-appropriate
+opponents that scale, and income that is not one-shot. Commissioned; **no code until the research
+lands and its load-bearing claims are verified here.**

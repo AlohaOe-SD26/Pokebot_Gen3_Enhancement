@@ -556,6 +556,29 @@ open-vs-built sweep of all 80 open items has **not** been done.
   chamber tile, force a heal, observe. That same run also buys B1F's unmeasured frames/battle.
   ‼ **THIS IS A PREREQUISITE FOR *ANY* B1F GRIND** and is why the ground choice is deferred — see
   `#24-levelgap`. It costs nothing today because production never trains anywhere but 1F.
+- [ ] ⭐ `#24-trainingbrackets` — **NEW 2026-09-18 (USER RULING). MAP AND MARK TRAINING GROUNDS BY LEVEL BRACKET, SO A PARTY NEVER GRINDS FAR-BELOW-LEVEL WILDS. ⇒ WHAT REMAINS: the research is COMMISSIONED and unreturned; then a data-shaped fix, then a drive.**
+  ⭐⭐ **THE RULING THAT CREATED THIS** (`06-DECISIONS-LOG.md` 2026-09-18): *“its fine if it takes a
+  while to level up so long as they are not fighting super low level monsters (norman gym for
+  example, **level 30s should not be fighting level 3-5 for xp**)”* and *“maybe we need to **map and
+  mark training areas for pokemon for level brackets**”*.
+  ⇒ **TIME IS NOT THE QUALITY BAR — THE LEVEL GAP IS.** This is the metric the §Ch24 grind should be
+  judged on, replacing the frame-budget framing `#24-levelgap` was built around.
+  ⛔ **THE DEFECT IS ALREADY MEASURED IN OUR OWN CODE:** `best_training_area(team_level=53)` returns
+  `(ROUTE117, (31,16), (13,14))` — **L13-14 wilds for a L53 party**. ‼ Our recorded response was a
+  harness comment *“⛔ never ‘improve’ this by asking the table for the grind tile”* — i.e. we routed
+  AROUND the defect. The ruling says fix the TABLE.
+  ✅ **WHY THE TABLE IS WRONG, NOT THE FUNCTION:** `TRAINING_GRASS` is an early-game table (ceiling
+  ≈L19-22) and the Victory Road rows (1F 36-40, B1F 38-42, B2F 40-44) sit in `PENDING_GRASS` with a
+  **`None` spin tile**, which `best_training_grass` never even iterates. ⇒ the high-level grounds are
+  **inert data**, not missing data.
+  ⚠ **AND “JUST FILL IN THE TILES” IS NOT OBVIOUSLY SAFE** — anything that assumes the table is
+  early-game-only would change behaviour for every earlier chapter. That risk is part of the research.
+  ⚠ **SCOPE ALSO INCLUDES** (same ruling): the highest-level NON-LEGENDARY wild ground in the game;
+  which grounds are story-gated and when they unlock; whether **PokeNav / Match Call rematches** are a
+  repeatable EXP/money source; and the **money economy** (nuggets, what refreshes, what does not).
+  ‼ **STATUS: RESEARCH COMMISSIONED, NOT RETURNED.** A 9-agent workflow (4 angles, each adversarially
+  verified, then synthesised) is running. ⛔ **No code until it lands AND its load-bearing claims are
+  re-verified here** — agent output is a NOTE, never truth.
 - [ ] ⛔⛔⛔ `#24-levelgap` — **NEW 2026-09-17 (late). THE FOURTH PREREQUISITE FOR WIRING SEGMENT 24, AND IT WAS NOT ON THE LIST OF THREE. PRODUCTION REACHES THE LEAGUE DOOR AT L47 AND THE GAUNTLET IS 0% AT L53.**
   ‼ **EVERY §Ch24 PROBE THIS PROJECT HAS RUN USED A HAND-GROWN L75 PARTY.** That party came from `--driver ch24grind` (`Ch24GrindMode`), which lives **ONLY in `tools/story-dev/story_harness.py:15393`** — it is NOT production code. ⇒ a wired Segment 24 today would walk into a ONE-WAY SEALED ZONE at L47 and lose, repeatedly.
   **THE NUMBERS, ALL FROM OUR OWN TREE:** production's only story training target is **`TRAIN_TARGET = 47`** (`modules/story/victory_road.py:492`) — ⭐ **verified to be the ONLY one in the entire story tree** (`grep` over `modules/story/*.py` + `story_mode.py` returns exactly that one plus `ENDLESS_RESET_TARGET`, which is unrelated). And the win-rate curve (`07-CHANGELOG.md:23310-23313`) is: **`L53 → 0% Glacia · L57 → 87% Glacia, dies at Drake · L60 → 99.7% Glacia · L75 → 88% CLEAR`**, with *“Break-even is L62”* against Wallace’s Milotic Recover race (`:23307`).
@@ -673,6 +696,15 @@ open-vs-built sweep of all 80 open items has **not** been done.
    Computed from those formulas and the estimator's own constants: **73→75 = 266,538 f @wild40 and
    253,641 @wild42 — BOTH OVER the 250,000 ceiling.** The item's quoted **136,135 is the 57→59
    step**, an INTERIOR one, presented as the worst. ⇒ the “1.8× headroom” does not exist.
+   ‼ **ATTRIBUTION CORRECTED: NEITHER HALF OF THE ~3.3× IS A NEW DISCOVERY.** The ×2 EXP-split
+   half was **ALREADY FILED 2026-09-08** — see the closed item *“THE ESTIMATOR IGNORES THE EXP
+   SPLIT”* further down this file, which already carries a worked SOLO-vs-2-WAY table and already
+   concluded **REFUSE** at L35 and L40. The ×1.65 frames-per-WIN half is documented at
+   `story_harness.py:15416-15420`. ⇒ **what the 2026-09-18 adversarial pass ADDED was APPLYING
+   them to the 2-level-step claim, which nobody had done** — exactly the shape that older item
+   names in its own headline: *“WHAT IS NEW IS THE CONSEQUENCE NOBODY APPLIED.”* ‼ This is the
+   THIRD time this session a re-discovery was nearly published as new; the standing rule is to
+   grep the tree before claiming novelty.
    ⛔⛔ **AND THE MODEL IS KNOWN-WRONG BY ~3.3× IN A FILE DATED ONE DAY EARLIER.** ✅
    `story_harness.py:15416-15420`: figures *“already doubled for the measured **0.501 participant
    divisor the estimator does not model**”* and *“~1.65× on top — ~2,368 frames per WIN against the
@@ -2018,27 +2050,8 @@ pulled, so it re-confirms them rather than testing them. It did expose one NEW b
   ⇒ every plan scoped to "the mule" is scoped to roughly a third of the real debt.
 - [x] ⛔⛔ **WIRING THE PICKER IS KILLED 2026-09-09 — AND THE PREMISE OF THE 2026-07-21 DIRECTIVE IS
   📦 **THE FULL ITEM (221 lines: the 6-agent adversarial round, the measured overlap figures, and the reasoning that killed it) IS ARCHIVED VERBATIM in `28-HANDOFF-ARCHIVE.md`** under “WIRING THE PICKER IS KILLED — the full item, ARCHIVED 2026-09-17”. ⛔ It stays CLOSED; the summary above is the ruling, and the archive holds the evidence.
-- [x] ✅ **SETTLED 2026-09-09 BY A CHECKED-IN TOOL — AND THREE EARLIER ANSWERS WERE ALL WRONG.**
-  The question *"does a training relocation ever deliver battles?"* was answered three times before
-  this: an agent said **114/114, 1:1, ZERO battles delivered**; I "refuted" it with **128 not 114**
-  (contaminated — 14 of my 128 were `FIERY_PATH` COUNTER-HUNT lines that merely name ROUTE111 as the
-  bot's CURRENT position); a reviewer corrected my contamination and concluded the 1:1 **holds**.
-  ⭐ **All three were aggregate reasoning.** `tools/story-dev/probe_training_relocation.py` anchors on
-  the FULL message shape, excludes the counter-hunt look-alike explicitly, and pairs each decision
-  with its own outcome **inside its own run**:
-  ```
-  453 relocation decisions   (613 training drops, 162 counter-hunt look-alikes EXCLUDED)
-    252  (55.6%)  battles delivered
-    130  (28.7%)  DROPPED as unreachable
-     71  (15.7%)  no signal in window
-  ```
-  ⇒ **"zero battles delivered" is FALSE — relocation succeeds most of the time.**
-  ⭐⭐ **BUT THE REAL FINDING SURVIVES AND IS WORTH AN ITEM: ~29% of training relocations end in an
-  unreachable drop.** That is the honest number, it is reproducible in one command, and it is a real
-  defect — just not the catastrophe three earlier answers described.
-  ‼ **THE LESSON: TWO TOTALS MATCHING IS NOT PAIRING.** 453-vs-613 looks like nothing in aggregate;
-  only per-run pairing exposed the 28.7%. Aggregate agreement is coincidence until each event is
-  matched to its own outcome.
+- [x] ✅ **SETTLED 2026-09-09 BY A CHECKED-IN TOOL — AND THREE EARLIER ANSWERS WERE ALL WRONG. CLOSED.**
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — ‼ the three wrong answers and why the tool settled it are there, and that trail is the point: it is why the answer is a TOOL and not a note.
 - [x] ✅ **FIXED 2026-09-09 — TWO FALSE STATEMENTS IN THE FUNCTION THAT DECIDES RELOCATION.**
   **[MEASURED BY ME]** `training_areas.py:432` is
   `FODDER_RULE = _os.environ.get("POKEBOT_FODDER_RULE", "xp_rate")` — the default is **xp_rate** —
@@ -2694,27 +2707,8 @@ region, where "train near the gym" is actively wrong.
 - [x] **`#24-reprorot` — DONE 2026-07-30.** The 4 "environmental / needs mgba" repro failures were real bugs. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted). ‼ **This exact misfiling recurred on 2026-08-23** (`#24-brokenrepros`) — see `#24-reprosweepratchet` for the structural cause.
 - [x] **`#24-menuorder` — DONE 2026-07-30.** Story block + ×4 controls hoisted to the TOP of the menu. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 - [x] **`#24-x4headless` — DONE 2026-07-31.** Headless ENDLESS-RESET batch runner. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
-- [x] **`#24-journey` — DONE 2026-07-31. Warp planning at MAP granularity.**
-      ‼ **AND THE DIAGNOSIS BELOW IS WRONG — read `05-KNOWN-ISSUES.md` "KI-39 — CORRECTED"
-      before believing any of it.** Measured live, `calculate_path` DOES span whole connected
-      components (every one of these maps is `level=459`) and reachability is PARTIAL, not
-      zero: ROUTE110 17/125 tiles, ROUTE111 11/173, ROUTE117 22/41, VERDANTURF 14/23. The four
-      blocked trips had FOUR causes and only one was route planning.
-      **The genuine bug:** `WarpGraph.plan()` works at REGION granularity and returns `[]` for
-      any same-region pair, and the whole overworld is one region — so a warp that is the ONLY
-      physical link between two "connected" maps could never be planned. Proof case:
-      Verdanturf declares a map connection to Route 116, but 0 of 40 sampled Route 116 tiles
-      are walkable from Verdanturf and the real link is the Rusturf Tunnel warp.
-      **Shipped:** `WarpGraph.warp_candidates()` + `map_distance()` + kept map-level
-      adjacency (`CACHE_VERSION` 1→2); `navigate_to_anywhere` walks if it can, else validates
-      each candidate warp's first leg with `calculate_path` before committing, remembering
-      warps taken; the "did the warp fire?" check now compares MAPS, not regions (it would
-      have reported every same-region warp as a locked door).
-      **Proof:** `repro_journey_planner.py` (27 checks, no emulator) +
-      `probe_journey_live.py` / `story_harness.py --driver journey` — OLD arm
-      `arrived=False map=MAUVILLE_CITY`, NEW arm `arrived=True map=ROUTE116` in 33,725 frames.
-      ‼ **It does NOT unblock `#24-counters`** — see the new `#24-smashroute` below.
-
+- [x] **`#24-journey` — DONE 2026-07-31. Warp planning at MAP granularity. CLOSED.**
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the design and its measurements are there.
 - [x] **`#24-smashroute` — DONE 2026-07-31.** The bot clears a field-move obstacle that seals a route. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
 - [x] ~~**‼ `#24-smashroute` — clear a ROCK SMASH obstacle that seals a journey**~~ — **SUPERSEDED / CLOSED.**
       📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full statement and its reasoning are there.

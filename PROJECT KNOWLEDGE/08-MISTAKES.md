@@ -19442,3 +19442,39 @@ prefer the SYMBOL over the line number — one of these citations drifted 7 line
   claim alive in a sibling note that the punch list **links to by name** — the second time in one
   session that limiting a sweep to the current-state files let a contradiction survive. **Sweep the
   whole `PROJECT KNOWLEDGE/` tree, including `ai-research-notes/`.**
+
+
+## 2026-09-18 — I BROKE THE “NO BACKTICKS IN A SHELL STRING” RULE THAT I HAD ALREADY WRITTEN DOWN
+
+**SYMPTOM.** Editing `04-HANDOFF.md` through `py -3.12 -c "…"`, bash reported
+`syntax error near unexpected token '53'` and `01-VISION-AND-DESIGN.md: command not found` — then
+**the edit applied anyway**, with three identifier spans silently deleted from the inserted prose:
+`` `#24-trainingbrackets` ``, `` `best_training_area(53)` `` and `` `01-VISION-AND-DESIGN.md` ``.
+The result named **no item and no file**, which is worse than a typo: it misdirects a reader to
+nothing.
+
+**ROOT CAUSE.** Backticks inside a DOUBLE-quoted shell string are command substitution. The shell ran
+the identifiers as commands, took their (empty) output, and passed the remains to Python.
+
+**‼‼ THE PART THAT MATTERS: THIS IS A REPEAT, AND THE RULE WAS ALREADY IN THIS FILE.** The
+2026-09-18 entry above it records the same mechanism (it left a literal `0x08` BACKSPACE in a tracked
+doc) and states the prevention rule verbatim: *“never put backticks/quotes in a shell-quoted string
+carrying prose — write to a file.”* I had written that rule, and then did it again the same day —
+which is precisely the failure mode `CLAUDE.md`'s SESSION DISCIPLINE block exists for: *“a rule filed
+as ‘the lesson from bug X’ does not fire when you are building Y.”*
+
+**⛔ AND EVERY GATE PASSED OVER THE DAMAGE.** `lint_docs.py`, `audit_doc_consistency.py` and all 56
+enforcing gates ran green on the mangled text, because a missing span is still valid markdown and the
+control-character gate (#64) only catches control bytes — which this occurrence did not leave.
+
+**THE FIX THAT WORKED.** Repaired from a written .py file, then **proved each restored span by its own
+grep with an expected count** rather than trusting the edit.
+
+**PREVENTION RULES.**
+- ⛔ **Prose containing backticks NEVER goes through `bash -c` / `py -c`.** Write a `.py` file with
+  the Write tool and run it. This is now the second recorded instance; treat the rule as absolute.
+- ⭐ **A shell error message followed by a “success” line is a CORRUPTION signal, not a warning.** Both
+  occurrences printed a bash error and then reported the edit as applied. **If bash complains about a
+  string you are writing into a document, re-read the document before moving on.**
+- ‼ **Do not let green gates stand in for reading what you wrote.** Nothing in the suite can see a
+  silently deleted identifier.
