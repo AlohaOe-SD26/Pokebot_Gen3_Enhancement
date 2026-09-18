@@ -32380,3 +32380,26 @@ edit was in memory and reverted in the same process.
 ‼ **THE SYNTHESIS'S OWN §7 RECORDS THAT NINE HEADLINE CLAIMS WERE KILLED BY ITS REFUTATION PASSES** —
 read §7 before quoting that note. Everything in it except the picker behaviour and the amulet grep is
 **agent-sourced and unverified here**.
+
+
+## 2026-09-18 — USER RULING 8 CONFIRMS ×1 PRODUCTION SPEED, AND THE CODE ALREADY COMPLIES
+
+The user confirmed the interpretation I had written into `01-VISION-AND-DESIGN.md`: *“regular speed
+is ‘x1’ … speed up is for dev testing so we dont have to wait hours upon hours or even days to get
+data”*.
+
+✅✅ **AND I VERIFIED THE CODE ALREADY SATISFIES IT, so this closes rather than opens work:** the
+emulator defaults to `_throttled = True` / `_speed_factor = 1` (`modules/libmgba.py:103-104`); there
+are **zero** `set_throttle(` / `set_speed_factor(` call sites anywhere in `sandbox-pokebot/modules/`
+or `plugins/` outside the setter itself; the only setter is config-driven
+(`modules/context.py:100-105`); and every unthrottle in the tree is dev tooling — the harness and the
+batch lanes via `emulation_speed = 0`. The project even has a gate (`probe_gate_unthrottled.py`)
+whose purpose is to keep **dev probes** unthrottled.
+
+⇒ ⛔ **No defect, no work item** — recorded so it is not re-opened. ‼ The standing consequence: a
+future change that unthrottles PRODUCTION is a vision-level regression, not a performance tweak.
+
+‼ **And a method note recorded against myself:** I wrote the interpretation into the source-of-truth
+intent doc *before* asking whether it was right. It happened to be correct, but the doc carried an
+unconfirmed reading of a user statement for several commits. Ask first when the edit lands in
+`01-VISION-AND-DESIGN.md`.

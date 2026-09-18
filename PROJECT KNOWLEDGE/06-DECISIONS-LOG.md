@@ -6317,3 +6317,36 @@ one-shot. Both are being researched (`#24-trainingbrackets` workflow).
 repeatable EXP/money source they would address rulings 4 and 6 simultaneously — level-appropriate
 opponents that scale, and income that is not one-shot. Commissioned; **no code until the research
 lands and its load-bearing claims are verified here.**
+
+
+## 2026-09-18 — ⭐ USER RULING 8: “REGULAR SPEED” MEANS ×1 IN PRODUCTION; FAST-FORWARD IS FOR DATA
+
+I recorded an INTERPRETATION of ruling 2 into `01-VISION-AND-DESIGN.md` (that regular speed is a
+requirement and fast-forward a dev tool), then asked the user to confirm it before it drove any
+engineering. **Confirmed, in these words:**
+> *“yes you read that right, regular speed is ‘x1’ or normal speed for the actual production
+> gameplay, speed up is for dev testing so we dont have to wait hours upon hours or even days to get
+> data”*
+
+⇒ **THE CARVE-OUT IS NARROW AND NAMED: fast-forward exists to collect DATA, never to play the game.**
+
+### ✅✅ AND THE CODE ALREADY SATISFIES IT — MEASURED, SO NOBODY NEEDS TO RE-INVESTIGATE
+| fact | evidence |
+|---|---|
+| the emulator defaults to ×1 | `modules/libmgba.py:103-104` — `_throttled: bool = True`, `_speed_factor: float = 1` |
+| production story code NEVER changes speed | grep for `set_throttle(` / `set_speed_factor(` over `sandbox-pokebot/modules` + `plugins`: **zero** call sites outside the setter itself |
+| the ONLY setter is config-driven | `modules/context.py:100-105` — `emulation_speed = 0` routes to `set_throttle(False)`; anything else throttles and sets the factor |
+| every unthrottle is DEV TOOLING | `tools/story-dev/story_harness.py` and the batch lanes (`x4_headless.py -s 0`) |
+| the project already treats “fast” as a harness property | gate `probe_gate_unthrottled.py` exists to ensure **dev probes** are unthrottled |
+
+⇒ ⛔ **NO DEFECT, AND NO WORK ITEM.** Recorded precisely so this is not re-opened as a task.
+⇒ ‼ **THE STANDING CONSEQUENCE:** a future change that unthrottles PRODUCTION is a **vision-level
+regression**, not a performance tweak. If runtime ever becomes a problem the answer is not to speed
+the game up — it is to change what the bot does, or to accept the duration (RULING 4 already says
+time is not a constraint).
+
+‼ **METHOD NOTE, because it nearly went the other way:** I had already written the interpretation
+into the source-of-truth doc before asking. That was the wrong order — the doc was carrying an
+unconfirmed reading of a user statement for several commits. It happened to be right. **Ask first
+when the edit lands in `01-VISION-AND-DESIGN.md`**, which is the one file whose job is to be the
+source of truth for intent.

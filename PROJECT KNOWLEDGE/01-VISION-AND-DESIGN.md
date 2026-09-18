@@ -22,8 +22,22 @@ does not freeze mid-battle, and a human does not teleport.
 
 ⇒ **THE DELIVERABLE IS SOMETHING TO WATCH, NOT SOMETHING THAT FINISHES.** That reframes three
 things that had been treated as engineering preferences:
-* **REGULAR SPEED IS A REQUIREMENT, NOT A FALLBACK.** The bot is meant to be observed playing at
-  normal game speed. Fast-forward is a development tool.
+* **REGULAR SPEED IS A REQUIREMENT, NOT A FALLBACK — AND “REGULAR” MEANS ×1.** User, asked to
+  confirm 2026-09-18: *“regular speed is ‘x1’ or normal speed for the actual production gameplay,
+  **speed up is for dev testing** so we dont have to wait hours upon hours or even days to get
+  data”*. ⇒ the carve-out is explicit and narrow: **fast-forward exists to collect DATA, never to
+  play the game.**
+  ✅✅ **AND THE CODE ALREADY SATISFIES THIS — VERIFIED 2026-09-18, so do not “fix” it:**
+  * `modules/libmgba.py:103-104` — the emulator defaults to `_throttled = True`,
+    `_speed_factor = 1`, i.e. **×1 out of the box**.
+  * **ZERO speed changes exist anywhere in `sandbox-pokebot/modules/` or `plugins/`.** The only
+    setter is `modules/context.py:100-105` (`emulation_speed`), driven by configuration.
+  * Every unthrottle in the tree is DEV TOOLING: `tools/story-dev/story_harness.py` and the batch
+    lanes (`x4_headless.py -s 0`), both via the `emulation_speed = 0` idiom.
+  * ⭐ There is even a gate, `probe_gate_unthrottled.py`, whose job is to ensure dev probes ARE
+    unthrottled — i.e. the project already treats “fast” as a property of the TEST HARNESS.
+  ⇒ ⛔ **A future change that unthrottles production would be a VISION-LEVEL regression**, not a
+  performance tweak. If runtime ever becomes a problem, the answer is not to speed up the game.
 * ⛔ **SPEED/EFFICIENCY WORK IS TESTING SCAFFOLDING, NOT A PRODUCT GOAL.** The user was explicit:
   *“I know we have been figuring out the most efficient routes for this program but those are mostly
   just to be able to get to late/end game content faster for **our testing**”.* ⇒ when an
