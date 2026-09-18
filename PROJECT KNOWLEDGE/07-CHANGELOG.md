@@ -32435,3 +32435,28 @@ initiates**, the player or the trainer?
 a full map KB is a large detour from that. ⇒ **§Ch24 is not blocked on this.** The 11-agent research
 workflow is explicitly briefed to say what should WAIT. If the user wants it prioritised ahead of
 §Ch24, that is a ruling I do not have.
+
+
+## 2026-09-18 — ⭐⭐ USER RULING 11 DEFINES “§Ch24 IS DONE” IN FOUR CHECKABLE CONJUNCTS
+
+Asked what *“beats the Elite Four to my liking/standards”* means (it gates `#24-overworlditems`), the
+user answered: *“it beats the Elite 4/enters the hall of fame … **Wins organically — no fixture
+scaffolding, no harness driver, running as the real story mode at ×1**”*.
+
+⇒ **FOUR CONJUNCTS, ALL REQUIRED:** (1) Hall of Fame entered; (2) from the REAL story mode, not a
+`--driver`; (3) with NO pinned-fixture scaffolding; (4) at **×1**.
+
+⭐⭐ **THIS IS THE §Ch24 DEFINITION OF DONE, not just a gate on item work.** ‼ Every §Ch24 result so
+far — all five rooms, the Champion, both lobby fixtures — satisfies (1) AT BEST and fails (2), (3)
+and (4). **“The bot has beaten the Elite Four” is TRUE of the harness and FALSE of the product**, and
+docs saying it should be read with that distinction.
+
+⛔ **AND IT CORRECTS SOMETHING I WROTE HOURS EARLIER.** Recording ruling 10 I told future agents
+*“DO NOT unlock this by checking `SYS_GAME_CLEAR` / `IS_CHAMPION`”*. Too strong: the flag IS conjunct
+(1), it is just not sufficient alone. The point I was reaching for is that **the flag says WHAT
+happened and nothing about HOW** — the other three conjuncts are provenance. Corrected on the item and
+in the decisions log.
+
+‼ **THE LESSON THIS GENERALISES:** §Ch15/§Ch18/§Ch19 each passed their own tests while stranded. This
+is the same failure one level up — **the CHAPTER can pass its own test while the PRODUCT has not done
+the thing.** When §Ch24 is wired, grade it on these four conjuncts, not on “the driver printed PASS”.

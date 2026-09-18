@@ -501,11 +501,18 @@ open-vs-built sweep of all 80 open items has **not** been done.
   ground items/thief items/reward items/gifted items (like quick claw for example) but note **I may
   call for this earlier and that is ok** but for now it should be gated to be worked on AFTER the bot
   beats the elite 4 **to my liking/standards**.”*
-  ⛔⛔ **THE GATE IS A USER JUDGEMENT, NOT A FLAG — AND THIS IS THE PART A FUTURE AGENT WILL GET WRONG.**
-  ‼ **DO NOT unlock this by checking `SYS_GAME_CLEAR`, `IS_CHAMPION`, or a single winning drive.** The
-  user said *“to my liking/standards”*; the bot cannot self-certify that, and “the Elite Four was
-  beaten once from a pinned L75 fixture” is certainly not it — that has ALREADY happened (2026-09-17)
-  and the gate is still shut.
+  ✅✅ **THE GATE IS NOW CONCRETE — USER RULING 11 (2026-09-18) REPLACED “TO MY LIKING” WITH A
+  CHECKABLE BAR:** *“it beats the Elite 4/enters the hall of fame … **Wins organically — no fixture
+  scaffolding, no harness driver, running as the real story mode at ×1**”*.
+  ⇒ **FOUR CONJUNCTS, ALL REQUIRED:** (1) the Hall of Fame is entered; (2) from the REAL story mode,
+  not a `--driver`; (3) with NO pinned-fixture scaffolding — the bot got itself there; (4) at **×1**.
+  ⛔⛔ **CORRECTION TO THIS ITEM'S OWN EARLIER WORDING (made hours earlier, same day):** it said
+  *“DO NOT unlock this by checking `SYS_GAME_CLEAR` / `IS_CHAMPION`”*. ‼ **That is now too strong.**
+  The flag IS conjunct (1) — it is simply **NOT SUFFICIENT ALONE**. The other three are about
+  PROVENANCE: *how* the flag came to be set. ⇒ check the flag **and** how it was reached.
+  ‼ **AND THE ORIGINAL WARNING STILL BITES:** the Elite Four HAS already been beaten — 2026-09-17,
+  `--driver ch24tailprobe`, from a pinned L75 fixture. That satisfies conjunct (1) and **fails (2),
+  (3) and (4)**, which is exactly why the gate is still shut.
   ✅ **THE GATE IS SOFT IN ONE DIRECTION ONLY:** the user may call for it EARLIER (*“that is ok”*).
   ⇒ an explicit user instruction opens it; nothing else does.
   **SCOPE WHEN IT OPENS** (the user's own list): **ground items** (overworld balls), **thief items**

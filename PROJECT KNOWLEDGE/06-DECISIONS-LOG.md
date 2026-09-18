@@ -6415,3 +6415,40 @@ said they may call for it earlier, *“and that is ok”*.
 ⚠ **ONE ITEM ERRAND REMAINS IN FLIGHT AND IS NOT COVERED BY THIS DEFERRAL:** `#24-amuletcoin`, a
 single targeted fetch justified by RULING 6 (money is a high priority). ⛔ It must not be used as a
 wedge to start general item work.
+
+
+## 2026-09-18 — ⭐⭐ USER RULING 11: THE §Ch24 ACCEPTANCE BAR, AND IT IS BIGGER THAN THE ITEM THAT PROMPTED IT
+
+Asked what *“beats the Elite Four to my liking/standards”* means, since it gates
+`#24-overworlditems`. The answer defines DONE for the whole §Ch24 arc:
+
+> *“it beats the Elite 4/enters the hall of fame … so I guess the response **‘Wins organically — no
+> fixture scaffolding, no harness driver, running as the real story mode at ×1’**”*
+
+### ✅ THE BAR, AS FOUR CHECKABLE CONJUNCTS
+| # | conjunct | how it is checked |
+|---|---|---|
+| 1 | the **Hall of Fame** is entered | the in-game signal (`SYS_GAME_CLEAR` / `IS_CHAMPION`) |
+| 2 | from the **REAL story mode** | not a `--driver` in `story_harness.py` |
+| 3 | **no fixture scaffolding** | not launched from a pinned `.ss1`; the bot got itself there |
+| 4 | at **×1** | `emulation_speed` throttled — see RULING 8 |
+
+⇒ ⭐⭐ **THIS IS THE §Ch24 DEFINITION OF DONE, not merely a gate on item work.** Every §Ch24 result
+so far — all five Elite Four rooms, the Champion, the lobby fixtures — satisfies (1) at best and
+fails (2), (3) and (4). ‼ **“The bot has beaten the Elite Four” is therefore TRUE of the harness and
+FALSE of the product**, and every doc that says it should be read with that distinction in mind.
+
+### ⛔ A CORRECTION OF RECORD TO RULING 10, MADE THE SAME DAY
+Recording ruling 10 I wrote, on `#24-overworlditems`: *“DO NOT unlock this by checking
+`SYS_GAME_CLEAR`, `IS_CHAMPION`, or a single winning drive … the bot cannot self-certify that”*.
+‼ **Too strong, and now corrected.** The flag IS conjunct (1); it is simply **not sufficient alone**.
+What I was reaching for — and should have written — is that the flag says WHAT happened and says
+nothing about **HOW**, and the other three conjuncts are entirely about provenance.
+✅ The substance survives: the 2026-09-17 win satisfies (1) and fails (2)-(4), so the gate is shut.
+
+### ‼ WHY THIS RULING IS WORTH MORE THAN THE QUESTION THAT PRODUCED IT
+It converts an unfalsifiable acceptance criterion (*“to my liking”*) into four conjuncts a gate could
+one day assert. ⇒ **when §Ch24 is wired, its acceptance should be graded on these four**, not on
+“the driver printed PASS”. That is the same lesson §Ch15/§Ch18/§Ch19 taught — three chapters that
+passed their own tests while stranded — applied one level up: **the CHAPTER can pass its own test
+while the PRODUCT has not done the thing.**
