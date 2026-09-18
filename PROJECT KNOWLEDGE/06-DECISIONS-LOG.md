@@ -6381,3 +6381,37 @@ The bot **cannot yet beat the Elite Four**, and a full map knowledge base is a l
 that. ⇒ research first (an 11-agent workflow is running, briefed to say **what should wait**), then a
 scope decision, then build. ⛔ **§Ch24 is not blocked on this**, and this is not started before the
 research lands. If the user wants it prioritised ahead of §Ch24, that is a ruling I do not have.
+
+
+## 2026-09-18 — ⭐ USER RULINGS 9 & 10: THE LEDGER IS TWO ARTIFACTS; OVERWORLD ITEMS ARE USER-GATED
+
+### RULING 9 — **BUILD BOTH A STATIC LEDGER AND A RUNTIME “CALL LEDGER”.**
+> *“A bit of both, having the ledger from the getgo is helpful but having a sort of ‘call ledger’ to
+> know who has actually called and is available to fight would be the second piece to this.”*
+
+| artifact | source | answers | limits |
+|---|---|---|---|
+| **static ledger** | generated from ROM/decomp | *who is worth fighting, and for how much* | cannot know who is ARMED |
+| **call ledger** | written at runtime | *who has actually rung and is fightable now* | cannot know worth until they call |
+
+⇒ ⭐ **AND THE STATIC TABLE DOUBLES AS THE CONTROL FOR THE RUNTIME ONE:** a logged call naming a
+trainer that is ABSENT from the static table means our extraction is wrong. Without the pair, that
+class of bug is invisible. ⇒ build the static half first (it needs no UI work); the runtime half is
+gated on PokéNav menu-driving, for which appetite has been asked and not yet given.
+
+### RULING 10 — **OVERWORLD ITEMS ARE DEFERRED, AND THE GATE IS A HUMAN JUDGEMENT.**
+> *“Out for now but worth investigating in the future once we get the bot to complete the elite 4
+> successfully **to my liking** … ground items/thief items/reward items/gifted items (like quick claw
+> for example) … note **I may call for this earlier and that is ok** but for now it should be gated to
+> be worked on AFTER the bot beats the elite 4 to my liking/standards.”*
+
+⇒ Filed as `#24-overworlditems`, **DEFERRED**.
+⛔⛔ **THE TRAP THIS RULING SETS FOR A FUTURE AGENT, STATED PLAINLY:** the gate is *“to my
+liking/standards”* — **a judgement the bot cannot self-certify.** ‼ Do NOT open it by checking
+`SYS_GAME_CLEAR` / `IS_CHAMPION`, and do NOT open it because a drive beat the Elite Four — **that has
+already happened** (2026-09-17, `--driver ch24tailprobe`, from a pinned L75 fixture) and the gate is
+still shut. Only an explicit user instruction opens it. The gate IS soft in one direction: the user
+said they may call for it earlier, *“and that is ok”*.
+⚠ **ONE ITEM ERRAND REMAINS IN FLIGHT AND IS NOT COVERED BY THIS DEFERRAL:** `#24-amuletcoin`, a
+single targeted fetch justified by RULING 6 (money is a high priority). ⛔ It must not be used as a
+wedge to start general item work.

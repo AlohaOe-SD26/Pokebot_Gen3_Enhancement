@@ -134,19 +134,7 @@ open-vs-built sweep of all 80 open items has **not** been done.
   ⭐ **AND THE FAULT ARM DID DOUBLE DUTY:** it proved the exit is load-bearing AND it exercised `#24-flymaptype`'s guard **in its natural setting** — a real leg that genuinely reaches it — rather than the hand-pointed driver it was first tested with. A guard whose only arm is contrived has never been shown to fire where it will actually be needed.
   ⚠ **CARRY FORWARD:** Mightyena arrives at **202/227 HP** (grind damage). Not a defect — but League 1F has a **nurse at (3,2) INSIDE the gate** and per `#24-leg2spec` O5 it is the **LAST heal that exists** before the zone seals, so leg 2 should take it rather than start the gauntlet at 89%.
 - [x] ✅✅✅ `#24-sidneyL75` — **NEW AND DONE 2026-09-17. THE FIRST ELITE FOUR FIGHT AT L75 IS WON, AND IT COST **15 HP**.** `--driver ch24probe` from the new `post_ch24_atdoor_L75.ss1`, `ACCEPTANCE: PASS`, all 6 readings, `missing=[]`, `battles=1`, `whiteouts=0`, `ELITE_4_STATE 0 → 1`.
-      hp_before  Mightyena:202/227  Zigzagoon:48/48  Sceptile:205/205  Swellow:232/232  Wailord:396/396
-      hp_after   Mightyena:187/227  Zigzagoon:48/48  Sceptile:205/205  Swellow:232/232  Wailord:396/396
-  ⇒ **15 HP on ONE mon, ZERO faints, nothing else touched.** ⭐ That is the first hard evidence for the L75 target at fight #1, and it is much more decisive than the modelled *“L75 = 88% clear”* — which was arithmetic, where this is a fight. ‼ **AND IT CORROBORATES USER RULING 2 BY MEASUREMENT:** the user ruled 3 Revives is enough *because faints are rare at this level*; fight #1 produced none, and the faint chooser was never invoked.
-  ⛔ **BUT IT IS FIGHT #1 OF FIVE AND IT PROVES NOTHING ABOUT PHOEBE.** Sidney is **Dark**, not Ghost. This run does NOT unblock `#24-ghostreplacement` — stated in the pre-registered predictions BEFORE the run precisely so a clean Sidney win could not be mistaken for progress on it. The Ghost damage numbers still require driving into **Phoebe**.
-  ⭐⭐ **THREE SIDE-FINDINGS, ALL MEASURED IN THIS ONE DRIVE:**
-    **(1) `KI-74` CONFIRMED LIVE IN *BOTH* DIRECTIONS, BY A SECOND INDEPENDENT INSTRUMENT.** `ch24probe` records both grids at once, and it agrees with `probe_e4_entry_seal.py` exactly:
-        door_rom  {(6,1):1, (6,2):1}   door_live  {(6,1):0, (6,2):0}   ⇒ EXIT: ROM blocked, LIVE open
-        seal_rom  {(5,13):0, (6,13):0, (7,13):0}   seal_live {(5,13):3, (6,13):3, (7,13):3}
-                                                              ⇒ ENTRY: ROM open, LIVE sealed
-      ⭐ And `door_live_metatile = {(6,1):'0x344', (6,2):'0x345'}` matches the decomp's `METATILE_EliteFour_OpenDoor_Frame` / `_Opening` exactly. ⇒ two instruments, one drive, both divergences, and the metatile IDs to confirm the mechanism. This is no longer an inference.
-    **(2) ⛔ `ELITE_4_STATE` HAS A WINDOW WHERE YOU ARE IN THE ROOM AND IT IS STILL 0.** Measured: `elite4_state_in_room = 0`, `elite4_state_after = 1`. The var IS set by the room's own entry cutscene — but NOT instantly on arrival, and this probe read it during that window. ⇒ **a leg that DISPATCHES on the var would misread the first moments of every room.** Combined with what was already known (the var grades the WARP, not the fight), the rule hardens: **never read `ELITE_4_STATE` for control flow — only the `DEFEATED_ELITE_4_*` flags, and only inside the gauntlet.**
-    **(3) ⚠ THE ARRIVAL TILE IS NOT (6,7) WHEN YOU LOOK.** The probe logged *“in Sidney's room at **(6,11)** (the script auto-walks to (6,7))”* — i.e. it read its own position MID-CUTSCENE, two steps into the six-step walk. The decomp's (6,7) is the FINAL tile, not the tile you observe on arrival. ⭐ **THE PROBE SURVIVED THIS ONLY BECAUSE IT LOCATES THE TRAINER LIVE** (`get_map_objects`, `sidney_at = (6,5)`) **and navigates from wherever it actually is**, instead of assuming (6,7). ⇒ **leg 2 must do the same. ⛔ DO NOT HARDCODE (6,7) AS A START TILE** — it is true eventually and false when you look.
-  ✅ **AND THE ROUTE WORKS UNCHANGED FROM THE NEW FIXTURE** (`P24-IN`, `P24-HALL5`, `P24-ROOM` all taken; lobby (9,11), hall5 (5,12)) ⇒ **leg 2 can reuse `Ch24ProbeMode`'s routing verbatim**, which was prediction P1 and is the cheapest good news in the chapter.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full entry, its evidence and any ⛔ warnings are there.
 - [x] ✅✅✅ `#24-phoebeL75` — **NEW AND DONE 2026-09-17. PHOEBE IS BEATEN AT L75, ROOMS 1→2 ARE DRIVEN AS ONE UNIT, AND ⭐ THE MEASUREMENT `#24-ghostreplacement` WAS BLOCKED ON IS IN HAND.**
       📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full entry, its evidence and any ⛔ warnings it carried are there.
 - [x] ✅✅ `#24-doccontrolchars` — **NEW AND DONE 2026-09-17 (late). AN INVISIBLE BACKSPACE BYTE WAS SITTING IN A TRACKED DOCUMENT, AND A SWEEP FOUND A SECOND ONE THAT HAD BEEN THERE FOR WEEKS. GATE #64, SIX FAULT ARMS, ENFORCING.**
@@ -507,6 +495,25 @@ open-vs-built sweep of all 80 open items has **not** been done.
   chamber tile, force a heal, observe. That same run also buys B1F's unmeasured frames/battle.
   ‼ **THIS IS A PREREQUISITE FOR *ANY* B1F GRIND** and is why the ground choice is deferred — see
   `#24-levelgap`. It costs nothing today because production never trains anywhere but 1F.
+- [ ] ⏸ `#24-overworlditems` — **NEW 2026-09-18. ⛔⛔ DEFERRED BY USER RULING — DO NOT START. GATED BEHIND “THE BOT BEATS THE ELITE FOUR TO THE USER'S STANDARD”, WHICH IS A JUDGEMENT ONLY THE USER CAN MAKE.**
+  **THE RULING (2026-09-18), verbatim:** *“Out for now but worth investigating in the future once we
+  get the bot to complete the elite 4 successfully **to my liking**, only then can we investigate the
+  ground items/thief items/reward items/gifted items (like quick claw for example) but note **I may
+  call for this earlier and that is ok** but for now it should be gated to be worked on AFTER the bot
+  beats the elite 4 **to my liking/standards**.”*
+  ⛔⛔ **THE GATE IS A USER JUDGEMENT, NOT A FLAG — AND THIS IS THE PART A FUTURE AGENT WILL GET WRONG.**
+  ‼ **DO NOT unlock this by checking `SYS_GAME_CLEAR`, `IS_CHAMPION`, or a single winning drive.** The
+  user said *“to my liking/standards”*; the bot cannot self-certify that, and “the Elite Four was
+  beaten once from a pinned L75 fixture” is certainly not it — that has ALREADY happened (2026-09-17)
+  and the gate is still shut.
+  ✅ **THE GATE IS SOFT IN ONE DIRECTION ONLY:** the user may call for it EARLIER (*“that is ok”*).
+  ⇒ an explicit user instruction opens it; nothing else does.
+  **SCOPE WHEN IT OPENS** (the user's own list): **ground items** (overworld balls), **thief items**
+  (stolen via Thief/Covet), **reward items** (given for events), and **gifted items** — the example
+  given is **Quick Claw**.
+  ⚠ **ONE EXCEPTION ALREADY IN FLIGHT, AND IT IS NOT THIS ITEM:** `#24-amuletcoin` is a single
+  targeted errand justified by USER RULING 6 (money is a high priority) and is tracked separately.
+  ⇒ ⛔ do not fold it in here, and do not use it as a wedge to start general item work.
 - [ ] ⭐⭐ `#24-mapknowledge` — **NEW 2026-09-18 (USER DIRECTIVE). A PER-CHAPTER TRAVERSABILITY KNOWLEDGE BASE: WHERE CAN THE BOT GO, GIVEN WHERE IT IS IN THE STORY. ⇒ WHAT REMAINS: research is RUNNING; then a scope decision; then build.**
   ⭐ **THE DIRECTIVE:** *“we should ensure we have a better picture of the entire gameplay map such as
   moveable tiles, obstacles (requiring hms or certain tasks to be completed) as well as **maps for each
@@ -573,7 +580,20 @@ open-vs-built sweep of all 80 open items has **not** been done.
   * ⭐ **THE DELIVERABLE IS A LEDGER:** *“mapping all the eligible trainers/gym leaders … where we
     can also log their pokemon, stats, rewards etc… to help us gauge **who is actually worth
     fighting again for money/xp**”* ⇒ a ranked table, not a yes/no answer.
-  ‼ **AWAITING A USER DECISION on appetite** — asked 2026-09-18, not yet answered. Do not build first.
+  ⭐⭐ **RULING 9 (2026-09-18): THE LEDGER IS *TWO* ARTIFACTS, NOT ONE.** *“A bit of both, having the
+  ledger from the getgo is helpful but having a sort of **‘call ledger’ to know who has actually
+  called and is available to fight** would be the second piece to this.”*
+  1. **THE STATIC LEDGER** — generated from the ROM/decomp: every rematchable trainer, their five
+     party tiers, levels, payouts, EXP, and where they are. Complete from day one; it describes
+     what the GAME CONTAINS.
+  2. **THE CALL LEDGER** — written at RUNTIME: who has actually rung, and who is armed and
+     fightable right now. It describes what has ACTUALLY HAPPENED in this save.
+  ‼ **THEY ANSWER DIFFERENT QUESTIONS AND NEITHER SUBSTITUTES FOR THE OTHER** — the static one
+  cannot know who is armed; the runtime one cannot know who is worth fighting until they call.
+  ⇒ ⭐ the static table is also the **CONTROL** for the runtime log: a call for a trainer absent
+  from the static table means our extraction is wrong, which is a bug we would otherwise never see.
+  ⚠ **STILL AWAITING** a user decision on APPETITE for the PokéNav menu-driving the runtime half
+  would need. The static half needs no UI work and can proceed on its own.
 - [ ] ⭐ `#24-trainingbrackets` — **NEW 2026-09-18 (USER RULING). MAP AND MARK TRAINING GROUNDS BY LEVEL BRACKET, SO A PARTY NEVER GRINDS FAR-BELOW-LEVEL WILDS. ⇒ WHAT REMAINS: the research is COMMISSIONED and unreturned; then a data-shaped fix, then a drive.**
   ⭐⭐ **THE RULING THAT CREATED THIS** (`06-DECISIONS-LOG.md` 2026-09-18): *“its fine if it takes a
   while to level up so long as they are not fighting super low level monsters (norman gym for
@@ -1819,19 +1839,7 @@ stacking another correction on top is how it became unreadable.*
 - [x] `#24-hmteachloop` — **ROOT-CAUSED AND FIXED 2026-08-07.** The HM-teaching loop defect, closed; the user's description of the symptom turned out to be literally accurate.
       📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full root-cause narrative and its fix are there.
 - [x] HISTORY — `#24-hmteachloop` (original report) — **USER-REPORTED 2026-08-06. Real bug, wastes frames and looks buggy.**
-      > "the hm learning feature works but it still loops trying to teach/get out of the teaching
-      > cycle after it teaches an hm"
-
-      i.e. the teach SUCCEEDS, then the bot keeps re-entering the teach/exit cycle instead of
-      moving on. Suspects to check first: `early_game.teach_hm_move()` and `ensure_hm_learner()`
-      (`early_game.py` ~4280-4440) — specifically whether the post-teach success test actually
-      observes the learned move, or whether the caller re-enters because its own guard still
-      reads False. ‼ This is the "guard every did-it-work?" shape, and a bounded loop re-entered
-      by its dispatcher is still infinite (KI-34).
-      **USER SEQUENCING: fix this AFTER the roster feature lands and BEFORE resuming story
-      chapters.** Cheap to reproduce — `ensure_hm_learner` is wired for exactly two moves
-      (Rock Smash `story_mode.py:2793`, Surf `:2967`).
-
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full entry, its evidence and any ⛔ warnings are there.
 - [x] `#24-movepoolcounters` — **SHIPPED 2026-08-07. It is the fix for `#24-winonaground`.**
       Winona: **0 huntable candidates -> 1** (Slugma @ FIERY_PATH via `move:Rock Throw@L15`).
       Norman control unchanged (Machop @ FIERY_PATH via type); Wattson 1 -> 2.

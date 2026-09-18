@@ -12185,3 +12185,47 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
   that used to accompany it** — *"born dead weight, no early window to maintain"* is **REFUTED**:
   **39.7% had a <=6 window** — median **163 minutes (~2.7 HOURS)** of emulated time — of which **33.3% of the population was TRAINING-REACHABLE** ⚠ **(SUPERSEDED — use 20.6%; the code's real window is `gap <= 5`, see bullet 1)** (the rest recovered only because the party max fell). See bullet 1 and `tools/story-dev/probe_laggard_origin.py`.
 
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] HISTORY — `#24-hmteachloop` (original report) — **USER-REPORTED 2026-08-06. Real bug, wastes f…”*
+> Moved under `lint_docs.py` R3 while USER RULINGS 9-10 were being recorded.
+> **NOTHING IS DELETED.**
+
+- [x] HISTORY — `#24-hmteachloop` (original report) — **USER-REPORTED 2026-08-06. Real bug, wastes frames and looks buggy.**
+      > "the hm learning feature works but it still loops trying to teach/get out of the teaching
+      > cycle after it teaches an hm"
+
+      i.e. the teach SUCCEEDS, then the bot keeps re-entering the teach/exit cycle instead of
+      moving on. Suspects to check first: `early_game.teach_hm_move()` and `ensure_hm_learner()`
+      (`early_game.py` ~4280-4440) — specifically whether the post-teach success test actually
+      observes the learned move, or whether the caller re-enters because its own guard still
+      reads False. ‼ This is the "guard every did-it-work?" shape, and a bounded loop re-entered
+      by its dispatcher is still infinite (KI-34).
+      **USER SEQUENCING: fix this AFTER the roster feature lands and BEFORE resuming story
+      chapters.** Cheap to reproduce — `ensure_hm_learner` is wired for exactly two moves
+      (Rock Smash `story_mode.py:2793`, Surf `:2967`).
+
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`
+
+> Item beginning: *“- [x] ✅✅✅ `#24-sidneyL75` — **NEW AND DONE 2026-09-17. THE FIRST ELITE FOUR FIGHT AT L75 IS WON, AND…”*
+> Moved under `lint_docs.py` R3 while USER RULINGS 9-10 were being recorded.
+> **NOTHING IS DELETED.**
+
+- [x] ✅✅✅ `#24-sidneyL75` — **NEW AND DONE 2026-09-17. THE FIRST ELITE FOUR FIGHT AT L75 IS WON, AND IT COST **15 HP**.** `--driver ch24probe` from the new `post_ch24_atdoor_L75.ss1`, `ACCEPTANCE: PASS`, all 6 readings, `missing=[]`, `battles=1`, `whiteouts=0`, `ELITE_4_STATE 0 → 1`.
+      hp_before  Mightyena:202/227  Zigzagoon:48/48  Sceptile:205/205  Swellow:232/232  Wailord:396/396
+      hp_after   Mightyena:187/227  Zigzagoon:48/48  Sceptile:205/205  Swellow:232/232  Wailord:396/396
+  ⇒ **15 HP on ONE mon, ZERO faints, nothing else touched.** ⭐ That is the first hard evidence for the L75 target at fight #1, and it is much more decisive than the modelled *“L75 = 88% clear”* — which was arithmetic, where this is a fight. ‼ **AND IT CORROBORATES USER RULING 2 BY MEASUREMENT:** the user ruled 3 Revives is enough *because faints are rare at this level*; fight #1 produced none, and the faint chooser was never invoked.
+  ⛔ **BUT IT IS FIGHT #1 OF FIVE AND IT PROVES NOTHING ABOUT PHOEBE.** Sidney is **Dark**, not Ghost. This run does NOT unblock `#24-ghostreplacement` — stated in the pre-registered predictions BEFORE the run precisely so a clean Sidney win could not be mistaken for progress on it. The Ghost damage numbers still require driving into **Phoebe**.
+  ⭐⭐ **THREE SIDE-FINDINGS, ALL MEASURED IN THIS ONE DRIVE:**
+    **(1) `KI-74` CONFIRMED LIVE IN *BOTH* DIRECTIONS, BY A SECOND INDEPENDENT INSTRUMENT.** `ch24probe` records both grids at once, and it agrees with `probe_e4_entry_seal.py` exactly:
+        door_rom  {(6,1):1, (6,2):1}   door_live  {(6,1):0, (6,2):0}   ⇒ EXIT: ROM blocked, LIVE open
+        seal_rom  {(5,13):0, (6,13):0, (7,13):0}   seal_live {(5,13):3, (6,13):3, (7,13):3}
+                                                              ⇒ ENTRY: ROM open, LIVE sealed
+      ⭐ And `door_live_metatile = {(6,1):'0x344', (6,2):'0x345'}` matches the decomp's `METATILE_EliteFour_OpenDoor_Frame` / `_Opening` exactly. ⇒ two instruments, one drive, both divergences, and the metatile IDs to confirm the mechanism. This is no longer an inference.
+    **(2) ⛔ `ELITE_4_STATE` HAS A WINDOW WHERE YOU ARE IN THE ROOM AND IT IS STILL 0.** Measured: `elite4_state_in_room = 0`, `elite4_state_after = 1`. The var IS set by the room's own entry cutscene — but NOT instantly on arrival, and this probe read it during that window. ⇒ **a leg that DISPATCHES on the var would misread the first moments of every room.** Combined with what was already known (the var grades the WARP, not the fight), the rule hardens: **never read `ELITE_4_STATE` for control flow — only the `DEFEATED_ELITE_4_*` flags, and only inside the gauntlet.**
+    **(3) ⚠ THE ARRIVAL TILE IS NOT (6,7) WHEN YOU LOOK.** The probe logged *“in Sidney's room at **(6,11)** (the script auto-walks to (6,7))”* — i.e. it read its own position MID-CUTSCENE, two steps into the six-step walk. The decomp's (6,7) is the FINAL tile, not the tile you observe on arrival. ⭐ **THE PROBE SURVIVED THIS ONLY BECAUSE IT LOCATES THE TRAINER LIVE** (`get_map_objects`, `sidney_at = (6,5)`) **and navigates from wherever it actually is**, instead of assuming (6,7). ⇒ **leg 2 must do the same. ⛔ DO NOT HARDCODE (6,7) AS A START TILE** — it is true eventually and false when you look.
+  ✅ **AND THE ROUTE WORKS UNCHANGED FROM THE NEW FIXTURE** (`P24-IN`, `P24-HALL5`, `P24-ROOM` all taken; lobby (9,11), hall5 (5,12)) ⇒ **leg 2 can reuse `Ch24ProbeMode`'s routing verbatim**, which was prediction P1 and is the cheapest good news in the chapter.
