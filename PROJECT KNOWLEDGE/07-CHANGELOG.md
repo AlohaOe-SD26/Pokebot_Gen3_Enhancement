@@ -31269,3 +31269,58 @@ Evidence: `tools/story-dev/evidence/2026-09-17-ch24drake-FAULT-HEALNOOP.stdout.t
 proves nothing about any one of them. `NOROOMHEAL` tripped two independent failure paths
 simultaneously (`missing` AND `heal_ready`), which reads like a passing test of both and is a test of
 neither. **A guard is only proven by an arm in which that guard is the SOLE cause of failure.**
+
+---
+
+## 2026-09-17 (late, fifth) — §Ch24 LEG A: the bot walked to the Champion's door and **deliberately did not arrive**
+
+**WHAT SHIPPED.** `--driver ch24hall4` (`Ch24Hall4Mode`) — the first **STOP-SHORT** leg this project
+has built. From the pinned `post_drake_L75.ss1`: dismiss Drake's 6-page speech → take the LAST bag
+heal → out of Drake's room → traverse HALL4's 31 steps → **stop one tile from the Champion's door**
+→ mint a fixture. `ACCEPTANCE: PASS`, all 5 readings, `missing=[]`, **`battles=0`**, `whiteouts=0`,
+`H-STOPSHORT ... tile=(5,3) on_hall4=True right_tile=True`.
+
+**THE ARTIFACT, WHICH IS THE POINT.** `post_hall4_door.ss1` (PINNED `1f15cc400218`) is the cleanest
+state in the gauntlet: **fully healed** (`gauntlet_ready=True`, `fainted=[]`, `HEAL PLAN=[]`), Ice
+Beam intact, one tile from the Champion, nothing fought. An adversarial reviewer was blunt that as
+*navigation* this leg measures almost nothing — HALL4 is a straight corridor and the leg is rooms
+1–4 minus the fight — so the capture is part of ACCEPTANCE, not a side effect. Leg B starts here
+instead of re-driving four rooms.
+
+**WHY IT MUST STOP SHORT — verified at source.** `HALL4 (5,2)` → `CHAMPIONS_ROOM (6,12)`; on arrival
+`LoadMapFromWarp` calls `ClearTempFieldEventData`, zeroing `VAR_TEMP_1`; the room's `OnFrame`
+(`map_script_2 VAR_TEMP_1, 0, ..._EventScript_EnterRoom`) matches on the FIRST controllable frame
+(`TryRunOnFrameMapScript` is polled at `field_control_avatar.c:150`, ABOVE the `tookStep` check at
+`:157`); its first command is `lockall`. `"allow_escaping": false`, there is no defeated-flag guard
+anywhere in that room's script, and `trainerbattle_no_intro` bypasses the `GetTrainerFlag` path
+entirely ⇒ **a re-entry re-fights Wallace at full strength.** Win or whiteout are the only exits.
+
+‼ **THE ONE THING THAT WOULD HAVE BUILT IT WRONG.** Rooms 1–4 all crossed doors with
+`_pass_through_door`, which works by making the warp the navigation DESTINATION. Pointed at (5,2) it
+does not stop at a door — it starts the championship battle. This leg uses `navigate_to(HALL4,(5,3))`,
+which is MAP-LOCAL and (per its own docstring) does not use warps automatically unless the door IS
+the destination. ⭐ A **TRIPWIRE** in the class refuses to run at all if `STOP_SHORT_TILE` is ever
+edited to equal `CHAMPION_DOOR_TILE` — a gate in code rather than a warning in prose.
+
+⛔ **NO "OVERSHOOT" FAULT ARM EXISTS, ON PURPOSE.** An arm targeting (5,2) would start the fight and
+spend the fixture. That is a leg-B measurement to make deliberately, never a fault injection.
+
+‼ **A CONFOUND I CAUGHT IN MY OWN ARM.** The first `NOROOMHEAL` run omitted `CH24_HALL4_CAPTURE`, so
+it failed on **two** independent reasons (`H-HEAL` *and* `H-CAPTURE`) — precisely the flaw the
+immediately preceding item (`#24-healgradearm`) had been closed over. The re-run sets the capture var
+so the heal is the only difference from the treatment, and it fails on **`missing=['H-HEAL']` alone**.
+Only the isolated run is committed as the arm; the first is discarded as invalid. *The lesson took
+one item to learn and was nearly re-broken in the next.*
+
+⭐ **THE DISMISS MODEL NOW HOLDS ACROSS THREE ROOMS**, roughly linear in the PREVIOUS room's speech
+length: Glacia 2 pages → 35 presses, Phoebe 4 → 77, **Drake 6 → 128** (predicted 60–140).
+
+⛔⛔ **RECORDED WHERE THE NEXT AUTHOR WILL LOOK — DO NOT GRADE ROOM 5 ON THE `DEFEATED_ELITE_4_*`
+FLAGS.** The Hall of Fame script CLEARS all four and resets `VAR_ELITE_4_STATE` to 0
+(`event_scripts.s`) BEFORE `special GameClear` ⇒ **they read FALSE ON SUCCESS.** Grade on
+`IS_CHAMPION` (flag **2175**, verified in `emerald.txt:1061`); and per `#24-gameclearflag`,
+`SYS_GAME_CLEAR` alone is not sufficient either, because it is set while the Hall of Fame, an
+un-skippable first-clear credits roll and a `SoftReset(RESET_ALL)` are all still ahead.
+
+‼ **ONE REVIVE REMAINS, and there is no heal after this fixture** — the warp starts the fight on the
+first controllable frame, so whatever the party looks like at `(5,3)` is what fights Wallace.

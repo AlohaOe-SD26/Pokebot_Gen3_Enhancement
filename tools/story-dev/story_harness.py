@@ -35,7 +35,7 @@ ap.add_argument("--inject-at", type=int, default=8, help="frame to inject the pa
 ap.add_argument("--frames", type=int, default=60000)
 ap.add_argument("--build", default="sandbox", choices=["sandbox", "custom"])
 ap.add_argument("--profile", default="repro-ml")
-ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake"])
+ap.add_argument("--driver", default="spin", choices=["spin", "story", "rival", "ch5recon", "martrecon", "martbuy", "healtest", "traintest", "traintest102", "gymtest", "pokenavtut", "pokenavclear", "pokenavskip", "pokenavfaith", "sailrecon", "rivalretry", "saildewford", "shinytest", "storydebugreset", "storyresume", "cavetrain", "fierycave", "hmtest", "faintrepro", "journey", "smashroute", "cavethread", "boxcatch", "boxwithdraw", "teachfull", "groundsweep", "anchorcapture", "anchorstory", "magmadoor", "magmatravel", "magmahideout", "magmaexit", "slateporttheft", "aquahideout", "mossdeeptravel", "mossdeepgym", "mossdeepbadge", "spacecenter1", "spacecenter2", "spacecenter", "normancounter", "roster", "partypids", "rotzero", "boxcounter", "boxcounter2", "boxwrite", "ki80ladder", "secondwind", "ch20dive", "ch20room1", "ch20room2", "ch20room6", "ch20room3", "ch20room8", "ch20room9", "ch20chapter", "ch21dive", "ch21leg2probe", "ch21escort", "ch21cave", "ch21pocket", "ch21approach", "ch21climb", "ch21leg5probe", "ch21return", "ch21chapter", "ch22probe", "ch22ice", "ch22exit", "ch22juan", "ch22stairs", "ch22chapter", "ch23teach", "ch23route", "ch23depart", "ch23cross", "ch23road", "ch23train", "ki84counter", "maintain", "ch23b1fprobe", "ch23push", "ch23descend", "ch23b2fprobe", "ch23cross2", "ch23retprobe", "ch23return", "ch23leg9probe", "ch23exit", "ch23leagueprobe", "ch23heal", "ch23shop", "ch23chapter", "ch24probe", "ch24grind", "ch24heal", "ch24moves", "ch24fly", "ch24flyto", "ch24icebeam", "ch24teachice", "divelearner", "ki66faint", "ki76warp", "wallymauville", "e4dismiss", "e4exit", "ch24toleague", "ch24phoebe", "ch24glacia", "ch24drake", "ch24hall4"])
 ap.add_argument(
     "--break-state",
     action="store_true",
@@ -18948,6 +18948,324 @@ class Ch24DrakeMode(BotMode):
         context.set_manual_mode()
 
 
+class Ch24Hall4Mode(BotMode):
+    """§Ch24 ROOM 4 -> THE CHAMPION'S DOOR. **A STOP-SHORT LEG — IT DELIBERATELY DOES NOT ARRIVE.**
+
+    ⛔⛔ WHY THIS LEG IS NOT THE REPEATING UNIT, AND WHY COPYING THE UNIT HERE WOULD BE A DISASTER.
+    Rooms 1-4 all ended by walking THROUGH a door with
+    `early_game._pass_through_door(tile, from_map)`, which works by making the warp the NAVIGATION
+    DESTINATION. Do that at HALL4's far door and the run does not stop at a door — it warps into
+    the Champion's room and starts an **unavoidable, un-fleeable championship battle**:
+      * `LoadMapFromWarp` calls `ClearTempFieldEventData` (overworld.c), zeroing `VAR_TEMP_1`;
+      * `EverGrandeCity_ChampionsRoom_OnFrame` is `map_script_2 VAR_TEMP_1, 0, ..._EventScript_EnterRoom`,
+        so it matches on the FIRST frame the player has control, and its first command is `lockall`;
+      * `"allow_escaping": false` in the room's `map.json`, and there is NO defeated-flag guard
+        anywhere in its script, so even a re-entry re-fights him at full strength.
+    ⇒ **there is no frame in which a driver can enter and stop.** Win or whiteout are the only exits.
+
+    ⭐ SO THIS LEG STOPS ONE TILE SHORT, AT `HALL4 (5,3)`, AND THAT IS MEASURED, NOT HOPED:
+    `navigate_to(HALL4, (5,3))` is 30 waypoints and ends `is_warp=False`, crossing no warp; the
+    control aiming at `(5,2)` ends `is_warp=True` ALREADY INSIDE `CHAMPIONS_ROOM (6,12)`.
+    `navigate_to`'s own docstring states it: *"Warps (doors, cave entrances, ...) will not be used
+    automatically -- but a door can be used as a destination."* ⇒ the door tile is the trap, and one
+    tile back is safe.
+
+    ‼‼ WHAT THIS LEG EXISTS TO PRODUCE IS A **FIXTURE**, NOT A NAVIGATION RESULT.
+    An adversarial reviewer put it bluntly: HALL4 is a straight x=5 corridor and this leg is rooms
+    1-4 minus the fight, so as navigation it measures almost nothing. It is worth the frames for
+    exactly two things — **the pinned save at (5,3)**, which is where the Wallace work must begin
+    without re-driving four rooms, and the first exercise of the stop-short pattern. The capture is
+    therefore part of ACCEPTANCE, not a side effect.
+
+    ⛔⛔ AND THE THING THAT WOULD HAVE SILENTLY BROKEN A ROOM-5 GRADE, RECORDED HERE BECAUSE THIS IS
+    WHERE THE NEXT AUTHOR WILL LOOK: the Hall of Fame script **clears
+    `FLAG_DEFEATED_ELITE_4_SIDNEY/PHOEBE/GLACIA/DRAKE` and resets `VAR_ELITE_4_STATE` to 0**
+    (`event_scripts.s`) BEFORE `special GameClear`. ⇒ **a room-5 acceptance graded on those flags
+    reads FALSE ON SUCCESS.** Grade room 5 on `IS_CHAMPION` / `SYS_GAME_CLEAR` instead — and per
+    `#24-gameclearflag`, `SYS_GAME_CLEAR` alone is not sufficient either, because it is set while the
+    Hall of Fame, an un-skippable first-clear credits roll and a `SoftReset(RESET_ALL)` are all
+    still ahead.
+
+    Run:
+        PYTHONUTF8=1 py -3.12 story_harness.py post_drake_L75.ss1 --driver ch24hall4 --frames 200000 --log hall4.log
+        CH24_HALL4_CAPTURE=post_hall4_door      ⭐ the artifact this leg exists for
+
+    FAULT ARMS
+      `POKEBOT_CH24_FAULT_NOROOMHEAL=1` — skip the LAST between-rooms bag heal. Non-vacuous here:
+          the start fixture carries a FAINTED Mightyena, so the plan is non-empty.
+      `POKEBOT_CH24_FAULT_NOSTOP=1`     — do everything EXCEPT the stop-short walk, so the run ends
+          at HALL4's landing tile instead of (5,3). Must FAIL with `H-STOPSHORT` missing and NO
+          capture written. ⛔ There is deliberately NO "overshoot" arm: an arm that targeted (5,2)
+          would start the championship battle and spend the fixture. That is a measurement to make
+          on purpose in leg B, never as a fault injection.
+    """
+
+    WALK_BUDGET = 40_000
+    DISMISS_BUDGET = 3_000
+    NAV_BUDGET = 60_000
+
+    #: The tile this leg stops on. ⛔ ONE TILE SHORT OF THE WARP, ON PURPOSE.
+    STOP_SHORT_TILE = (5, 3)
+    #: ⛔⛔ NEVER A DESTINATION. Stepping here warps into the Champion's room and starts the fight.
+    CHAMPION_DOOR_TILE = (5, 2)
+
+    @staticmethod
+    def name() -> str:
+        return "Ch24Hall4"
+
+    def on_whiteout(self) -> bool:
+        from modules.story.early_game import set_story_abort
+
+        self.whiteouts = getattr(self, "whiteouts", 0) + 1
+        set_story_abort(True)
+        log(f"[ch24hall4] WHITEOUT #{self.whiteouts} — abort LATCHED. ‼ This leg fights NOTHING, so a "
+            f"whiteout here means something went badly wrong — most likely the run crossed (5,2) "
+            f"and met Wallace.")
+        return True
+
+    def on_battle_started(self, encounter):
+        from plugins.custom_modes.story_mode import StoryItemBattleStrategy
+
+        self.battles = getattr(self, "battles", 0) + 1
+        # ‼ A BATTLE IN THIS LEG IS A FAILURE SIGNAL, NOT A STEP. There is no trainer between
+        # Drake's room and (5,3), and League interior maps have no wild-encounter table.
+        log(f"[ch24hall4] ⛔ BATTLE #{self.battles} STARTED — this leg should fight NOTHING. If this "
+            f"is Wallace, the stop-short failed and the run has crossed into the Champion's room.")
+        return StoryItemBattleStrategy()
+
+    def run(self):
+        from modules.map_data import MapRSE
+        from modules.modes.util.walking import navigate_to
+        from modules.pokemon_party import get_party
+        from modules.story import pokemon_league as PL
+        from modules.story import victory_road as VR
+        from modules.story.early_game import (
+            _check_abort, _pass_through_door, wait_until_truly_controllable,
+        )
+
+        TAG = "ch24hall4"
+        DRAKE = MapRSE.EVER_GRANDE_CITY_DRAKES_ROOM
+        HALL4 = MapRSE.EVER_GRANDE_CITY_HALL4
+        self.whiteouts = getattr(self, "whiteouts", 0)
+        self.battles = getattr(self, "battles", 0)
+        R: dict = {}
+        taken = set()
+        WANT = {"H-DISMISS", "H-HEAL", "H-HALL4", "H-STOPSHORT", "H-CAPTURE"}
+        failure = None
+
+        # ⛔⛔ A TRIPWIRE, NOT A COMMENT. If a future edit ever points this leg at the warp tile,
+        # refuse before a single frame runs rather than discovering it by fighting the Champion.
+        if tuple(self.STOP_SHORT_TILE) == tuple(self.CHAMPION_DOOR_TILE):
+            log(f"[{TAG}] ⛔ REFUSING: STOP_SHORT_TILE has been set to the Champion's door "
+                f"{self.CHAMPION_DOOR_TILE}. Stepping there starts an unavoidable, un-fleeable "
+                f"championship battle. This leg exists precisely to NOT do that.")
+            log(f"[{TAG}] ACCEPTANCE: FAIL")
+            context.set_manual_mode()
+            return
+
+        def _flag_quiet(name: str):
+            try:
+                return VR._flag(name) if hasattr(VR, "_flag") else None
+            except Exception as error:  # noqa: BLE001 - a reading that fails must SAY so
+                return f"UNREADABLE({type(error).__name__})"
+
+        def _hp():
+            return " ".join(f"{m.species.name}:{m.current_hp}/{m.total_hp}"
+                            for m in get_party()
+                            if m is not None and getattr(m, "species", None) is not None)
+
+        def _bag():
+            from modules.items import get_item_bag, get_item_by_name
+            try:
+                bag = get_item_bag()
+                return {n: bag.quantity_of(get_item_by_name(n))
+                        for n in ("Hyper Potion", "Full Restore", "Full Heal", "Revive")}
+            except Exception as error:  # noqa: BLE001
+                return f"UNREADABLE: {type(error).__name__}"
+
+        yield from wait_until_truly_controllable()
+
+        # ---- PREMISE -----------------------------------------------------------------------------
+        R["start"] = VR._where()
+        R["start_hp"] = _hp()
+        R["start_bag"] = _bag()
+        R["start_drake_flag"] = _flag_quiet("DEFEATED_ELITE_4_DRAKE")
+        R["start_champion_flag"] = _flag_quiet("IS_CHAMPION")
+        R["start_game_clear"] = _flag_quiet("SYS_GAME_CLEAR")
+        log(f"[{TAG}] PRE at={R['start']} hp={R['start_hp']}")
+        log(f"[{TAG}] PRE bag={R['start_bag']}")
+        log(f"[{TAG}] PRE drake={R['start_drake_flag']} champion={R['start_champion_flag']} "
+            f"game_clear={R['start_game_clear']}")
+        # ⛔ THE VACUITY CONJUNCT. Pointed at its own OUTPUT (a HALL4 save) the map test refuses;
+        # pointed at a post-Wallace state the CHAMPION test refuses. A no-op run cannot print PASS.
+        if (not VR._on_map(DRAKE)
+                or R["start_drake_flag"] is not True
+                or R["start_champion_flag"] is not False):
+            log(f"[{TAG}] ⛔ PREMISE FAILED — must start in DRAKES_ROOM with "
+                f"DEFEATED_ELITE_4_DRAKE=True and IS_CHAMPION=False. Got map={R['start']}, "
+                f"drake={R['start_drake_flag']}, champion={R['start_champion_flag']}. "
+                f"Refusing, and taking NO readings.")
+            log(f"[{TAG}] ACCEPTANCE: FAIL")
+            context.set_manual_mode()
+            return
+
+        try:
+            # ---- 1. dismiss Drake's post-victory msgbox ------------------------------------------
+            # ‼ THE LONGEST IN THE GAUNTLET: Drake's `Text_PostBattleSpeech` carries FIVE paragraph
+            # breaks (6 pages) against Sidney 2 / Phoebe 4 / Glacia 2. The 500-press budget covers it
+            # with room to spare (77 presses cleared a 4-page speech), but the count is worth watching.
+            from modules.memory import get_game_state, GameState
+
+            pressed = 0
+            for f in range(self.DISMISS_BUDGET):
+                _check_abort()
+                if get_game_state() is GameState.OVERWORLD and _player_controllable_quiet():
+                    break
+                if f % 6 == 0:
+                    context.emulator.press_button("B")
+                    pressed += 1
+                yield
+            R["dismiss_presses"] = pressed
+            log(f"[{TAG}] H-DISMISS presses={pressed} at={VR._where()}")
+            taken.add("H-DISMISS")
+            yield from wait_until_truly_controllable()
+
+            # ---- 2. THE LAST BAG HEAL THE GAUNTLET GETS ------------------------------------------
+            # ‼‼ There is no heal after this one until the run is over: the Champion's room is
+            # entered by a warp that starts the fight on the first controllable frame, so whatever
+            # the party looks like when this step ends is what fights Wallace.
+            if _os.environ.get("POKEBOT_CH24_FAULT_NOROOMHEAL", "").strip() == "1":
+                log(f"[{TAG}] ⚠ FAULT ARM NOROOMHEAL — skipping the LAST bag heal on purpose.")
+                R["heal_skipped"] = True
+            else:
+                hp_before = _hp()
+                bag_before = _bag()
+                heal_report: dict = {"readings": set()}
+                try:
+                    yield from PL.heal_party_from_bag(heal_report)
+                except Exception as error:  # noqa: BLE001
+                    # ⛔ NEVER RAISE OUT OF THE HEAL — the zone is sealed behind us.
+                    R["heal_error"] = f"{type(error).__name__}: {error}"
+                    log(f"[{TAG}] ⚠ heal raised (RECORDED, not fatal): {R['heal_error']}")
+                R["heal_hp_before"] = hp_before
+                R["heal_hp_after"] = _hp()
+                R["heal_bag_before"] = bag_before
+                R["heal_bag_after"] = _bag()
+                R["heal_actions"] = heal_report.get("heal_actions")
+                R["heal_ready"] = heal_report.get("heal_ready")
+                log(f"[{TAG}] H-HEAL actions={R['heal_actions']} ready={R['heal_ready']}")
+                log(f"[{TAG}] H-HEAL hp {hp_before}  ->  {R['heal_hp_after']}")
+                log(f"[{TAG}] H-HEAL bag {bag_before} -> {R['heal_bag_after']}")
+                taken.add("H-HEAL")
+            yield from wait_until_truly_controllable()
+
+            # ---- 3. out of Drake's room -> HALL4 --------------------------------------------------
+            # ✅ `_pass_through_door` IS correct HERE — this door is one we WANT to cross. It is the
+            # HALL4 far door at (5,2) that it must never be pointed at.
+            log(f"[{TAG}] WALK: Drake's exit door (6,2) via the SHIPPED _pass_through_door")
+            yield from _budgeted_local(_pass_through_door((6, 2), tuple(DRAKE.value)),
+                                       self.WALK_BUDGET, f"{TAG}: Drake -> HALL4")
+            yield from wait_until_truly_controllable()
+            R["hall4_landing"] = VR._where()
+            if not VR._on_map(HALL4):
+                raise BotModeError(
+                    f"§Ch24 leg A: passed Drake's exit door (6,2) and did not arrive on HALL4 — "
+                    f"we are at {VR._where()}."
+                )
+            log(f"[{TAG}] H-HALL4 landing={R['hall4_landing']}  (HALL4 is 31 steps, not 10)")
+            taken.add("H-HALL4")
+
+            # ---- 4. THE STOP-SHORT WALK ----------------------------------------------------------
+            # ⛔⛔ `navigate_to`, NOT `_pass_through_door` AND NOT `_navigate_riding_out`.
+            # `navigate_to` is MAP-LOCAL and its docstring states warps are not used automatically
+            # (a door is crossed only when it IS the destination) — exactly the property this leg
+            # needs. `_navigate_riding_out` goes through `navigate_to_anywhere`, a GLOBAL planner
+            # that may legitimately route across warps; it is right for the short hops beside a
+            # trainer that rooms 1-4 use, and wrong here.
+            if _os.environ.get("POKEBOT_CH24_FAULT_NOSTOP", "").strip() == "1":
+                log(f"[{TAG}] ⚠ FAULT ARM NOSTOP — skipping the stop-short walk, so the run ends at "
+                    f"the HALL4 landing tile. H-STOPSHORT must be MISSING and no capture written.")
+                R["stop_skipped"] = True
+            else:
+                log(f"[{TAG}] WALK: HALL4 {R['hall4_landing']} -> {self.STOP_SHORT_TILE} "
+                    f"(⛔ NOT {self.CHAMPION_DOOR_TILE} — that tile is the fight)")
+                yield from _budgeted_local(navigate_to(HALL4, tuple(self.STOP_SHORT_TILE)),
+                                           self.NAV_BUDGET, f"{TAG}: HALL4 -> stop-short")
+                yield from wait_until_truly_controllable()
+                R["stopped_map"] = VR._where()
+                R["stopped_tile"] = VR._here_tile()
+                # ⛔⛔ ASSERT BOTH HALVES. "The navigator returned" is NOT "we stopped short" — if it
+                # warped, the run is already inside an unavoidable championship battle.
+                on_hall4 = VR._on_map(HALL4)
+                right_tile = tuple(R["stopped_tile"]) == tuple(self.STOP_SHORT_TILE)
+                R["stop_short_ok"] = bool(on_hall4 and right_tile)
+                log(f"[{TAG}] H-STOPSHORT at={R['stopped_map']} tile={R['stopped_tile']} "
+                    f"on_hall4={on_hall4} right_tile={right_tile}")
+                if not R["stop_short_ok"]:
+                    raise BotModeError(
+                        f"§Ch24 leg A: the stop-short FAILED — wanted HALL4 "
+                        f"{self.STOP_SHORT_TILE}, got {R['stopped_map']} {R['stopped_tile']}. "
+                        f"⛔ If the map is CHAMPIONS_ROOM the run has crossed the warp and a "
+                        f"championship battle is starting; the fixture is spent."
+                    )
+                taken.add("H-STOPSHORT")
+
+            # ---- 5. ⭐ THE ARTIFACT — and it is part of ACCEPTANCE, not a side effect -------------
+            cap = _os.environ.get("CH24_HALL4_CAPTURE", "").strip()
+            if not cap:
+                log(f"[{TAG}] ⚠ capture NOT REQUESTED (CH24_HALL4_CAPTURE unset) — H-CAPTURE cannot "
+                    f"be taken, so this run CANNOT pass. This leg exists to mint a fixture.")
+            else:
+                guard = {"on_hall4": VR._on_map(HALL4),
+                         "at_stop_tile": tuple(VR._here_tile()) == tuple(self.STOP_SHORT_TILE),
+                         "no_battles": self.battles == 0}
+                R["capture_guard"] = guard
+                if not all(guard.values()):
+                    log(f"[{TAG}] ⛔ CAPTURE REFUSED — guard={guard}. A fixture is only minted "
+                        f"standing on HALL4 {self.STOP_SHORT_TILE} having fought NOTHING.")
+                else:
+                    _dest = Path(__file__).resolve().parent / "saves" / f"{cap}.ss1"
+                    if _dest.exists():
+                        log(f"[{TAG}] capture SKIPPED — {_dest.name} exists; not overwriting.")
+                        taken.add("H-CAPTURE")
+                    else:
+                        try:
+                            _dest.write_bytes(context.emulator.get_save_state())
+                            log(f"[{TAG}] ✅ CAPTURED -> {_dest.name} ({_dest.stat().st_size} bytes) "
+                                f"at {VR._where()}")
+                            log(f"[{TAG}] ⭐ THIS IS WHERE THE WALLACE WORK BEGINS — one tile from the "
+                                f"Champion's door, party healed, nothing fought. Pin it in "
+                                f"saves/FIXTURES.md5 and verify it by RELOAD, never by this line.")
+                            taken.add("H-CAPTURE")
+                        except Exception as error:  # noqa: BLE001 - a failed capture must be LOUD
+                            log(f"[{TAG}] ⛔ CAPTURE FAILED: {type(error).__name__}: {error}")
+
+        except Exception as error:  # noqa: BLE001 - a refusal IS the reading
+            # ⛔ BROAD ON PURPOSE — the documented divergence from R-EXCEPT for harness drivers: the
+            # VERDICT must run from partial state, and `on_whiteout` latches the abort.
+            failure = f"{type(error).__name__}: {error}"
+            log(f"[{TAG}] FAILURE {failure}")
+
+        missing = sorted(WANT - taken)
+        for key in sorted(R):
+            log(f"[{TAG}] R {key} = {R[key]!r}")
+        # ⛔ THE GRADE. `heal_ready` is here because it was PROVEN load-bearing by
+        # `POKEBOT_CH24_FAULT_HEALNOOP` on `Ch24DrakeMode`, where it was the SOLE cause of failure.
+        heal_ok = R.get("heal_ready") is True
+        if not heal_ok:
+            log(f"[{TAG}] ⛔ GRADE: heal_ready={R.get('heal_ready')!r} — the party was NOT brought to "
+                f"fighting shape, and THIS IS THE LAST HEAL BEFORE WALLACE.")
+        no_fights = self.battles == 0
+        if not no_fights:
+            log(f"[{TAG}] ⛔ GRADE: battles={self.battles} — this leg must fight NOTHING.")
+        ok = not missing and failure is None and heal_ok and no_fights
+        log(f"[{TAG}] RESULT readings={sorted(taken)} missing={missing}")
+        log(f"[{TAG}] RESULT battles={self.battles} whiteouts={self.whiteouts} failure={failure}")
+        log(f"[{TAG}] ACCEPTANCE: {'PASS' if ok else 'FAIL'} "
+            f"(must STOP SHORT at HALL4 {self.STOP_SHORT_TILE}, heal, fight NOTHING, and MINT the fixture)")
+        context.set_manual_mode()
+
+
 class Ch24IceBeamMode(BotMode):
     """`#24-icebeamtrip` — fetch TM13 ICE BEAM from the Abandoned Ship. **PRODUCTION CODE.**
 
@@ -21663,6 +21981,8 @@ for step in range(args.frames):
             context.bot_mode_instance = Ch24GlaciaMode()
         elif args.driver == "ch24drake":
             context.bot_mode_instance = Ch24DrakeMode()
+        elif args.driver == "ch24hall4":
+            context.bot_mode_instance = Ch24Hall4Mode()
         elif args.driver == "ch24icebeam":
             context.bot_mode_instance = Ch24IceBeamMode()
         elif args.driver == "ch24teachice":

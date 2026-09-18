@@ -1,0 +1,62 @@
+Running mGBA 0.10.2
+
+====================================================================================================
+  post_hall4_door.ss1
+====================================================================================================
+  map = EVER_GRANDE_CITY_HALL4  tile = (5, 3)
+  VAR_ELITE_4_STATE = 4
+  DEFEATED_ELITE_4_SIDNEY      = True
+  DEFEATED_ELITE_4_PHOEBE      = True
+  DEFEATED_ELITE_4_GLACIA      = True
+  DEFEATED_ELITE_4_DRAKE       = True
+  SYS_GAME_CLEAR               = False
+  BADGE08_GET                  = True
+  party + movesets:
+    Mightyena  L76   230/230   Strength, Crunch, Take Down, Bite
+    Zigzagoon  L19    48/48    Tackle, Rock Smash, Surf, Headbutt
+    Sceptile   L75   205/205   Rock Smash, Strength, Leaf Blade, Aerial Ace
+    Swellow    L75   232/232   Facade, Fly, Aerial Ace, Quick Attack
+    Wailord    L75   396/396   Dive, Surf, Ice Beam, Waterfall
+    Castform   L36   103/103   Powder Snow, Weather Ball, Sunny Day, Hail
+  gauntlet_ready(before) = True
+  fainted now            = []
+  HEAL PLAN              = []
+  plans a Revive?        = False
+  bag Revive qty         = 1
+
+====================================================================================================
+  post_drake_L75.ss1
+====================================================================================================
+  map = EVER_GRANDE_CITY_DRAKES_ROOM  tile = (6, 6)
+  VAR_ELITE_4_STATE = 4
+  DEFEATED_ELITE_4_SIDNEY      = True
+  DEFEATED_ELITE_4_PHOEBE      = True
+  DEFEATED_ELITE_4_GLACIA      = True
+  DEFEATED_ELITE_4_DRAKE       = True
+  SYS_GAME_CLEAR               = False
+  BADGE08_GET                  = True
+  party + movesets:
+    Mightyena  L76     0/230   Strength, Crunch, Take Down, Bite
+    Zigzagoon  L19    48/48    Tackle, Rock Smash, Surf, Headbutt
+    Sceptile   L75    73/205   Rock Smash, Strength, Leaf Blade, Aerial Ace
+    Swellow    L75   232/232   Facade, Fly, Aerial Ace, Quick Attack
+    Wailord    L75   396/396   Dive, Surf, Ice Beam, Waterfall
+    Castform   L36   103/103   Powder Snow, Weather Ball, Sunny Day, Hail
+  gauntlet_ready(before) = False
+  fainted now            = ['Mightyena']
+  HEAL PLAN              = [(0, 'Revive', 'Mightyena L76 is FAINTED and is the highest-level mon still down'), (0, 'Hyper Potion', 'Mightyena at 0/230 (just revived, returns at half HP)'), (2, 'Hyper Potion', 'Sceptile at 73/205')]
+  plans a Revive?        = True
+  bag Revive qty         = 2
+
+====================================================================================================
+  WHAT THIS DECIDES
+    post_hall4_door must plan a Revive for the fainted Mightyena, or it is a POISONED
+    room-4 start state and its FIXTURES.md5 row must say so.
+    CONTROL: post_drake_L75 is healthy, so its plan should be empty/minimal. A planner
+    that returns actions for BOTH proves nothing.
+====================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-ml\states\2026
+-09-17_19-08-32.ss1 created!
+Updated `current_state.ss1`!
