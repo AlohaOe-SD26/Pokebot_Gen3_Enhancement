@@ -1,0 +1,52 @@
+Running mGBA 0.10.2
+====================================================================================================================
+DOES §Ch23 RAISE WHEN RE-ENTERED FROM INSIDE THE LEAGUE?  (the chapter is CALLED, not traced)
+====================================================================================================================
+
+  post_league_lobby.ss1  —  EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3, 4)
+      TREATMENT — THE LOBBY (LEAGUE_1F 3,4)
+      ch23_chapter_done() BEFORE = False
+      CONTINUE (calculate_path -> (9, 11)): OK — 14 waypoints to (9, 11)
+      CALL -> BotModeError
+          Ch23 (Victory Road) failed after 3 attempts. attempt 1: every leg ran but the chapter does not grade
+           done (wally=True, at=((16, 10), (3, 4))) | attempt 2: every leg ran but the chapter does not grade 
+          done (wally=True, at=((16, 10), (3, 4))) | attempt 3: every leg ran but the chapter does not grade d
+          one (wally=True, at=((16, 10), (3, 4)))
+      frames consumed = 0   moved = False   after = (16, 10) (3, 4)
+
+  post_hall4_door.ss1  —  EVER_GRANDE_CITY_HALL4 (5, 3)
+      VACUITY/SCOPE — HALL4, SEALED (is this LOBBY-only or LEAGUE-WIDE?)
+      ch23_chapter_done() BEFORE = False
+      CONTINUE: n/a — no target is defined for this map, and borrowing another map's tile would answer the wrong question
+      CALL -> BotModeError
+          Ch23 (Victory Road) failed after 3 attempts. attempt 1: every leg ran but the chapter does not grade
+           done (wally=True, at=((16, 8), (5, 3))) | attempt 2: every leg ran but the chapter does not grade d
+          one (wally=True, at=((16, 8), (5, 3))) | attempt 3: every leg ran but the chapter does not grade don
+          e (wally=True, at=((16, 8), (5, 3)))
+      frames consumed = 0   moved = False   after = (16, 8) (5, 3)
+
+  post_league_shop.ss1  —  EVER_GRANDE_CITY (18, 6)
+      CONTROL — OUTDOORS at EVER_GRANDE  [⛔ GUARDED: see module docstring]
+      ch23_chapter_done() BEFORE = True
+      CONTINUE: n/a — no target is defined for this map, and borrowing another map's tile would answer the wrong question
+      CALL -> RETURNED
+          returned cleanly without running any leg (the early `if ch23_chapter_done(): return`)
+      frames consumed = 0   moved = False   after = (0, 8) (18, 6)
+
+--------------------------------------------------------------------------------------------------------------------
+  LOBBY:   ch23_chapter_done()=False  call -> BotModeError  frames=0
+           CONTINUE: OK — 14 waypoints to (9, 11)
+  ⇒ ⭐⭐ PHYSICALLY FREE, LOGICALLY STUCK. The bot can path to the lobby's own exit
+       landing, but the §Ch23 dispatch cannot make progress from there and burns its
+       retry budget every pass. ⛔ That is NOT the §Ch15/§Ch18/§Ch19 'stranded' shape —
+       do not describe it with the same word.
+  HALL4:   ch23_chapter_done()=False  call -> BotModeError  frames=0
+  ⇒ SCOPE: ⛔ LEAGUE-WIDE — the sealed map behaves identically, so naming this a LOBBY defect is too narrow. RE-SCOPE the item.
+  CONTROL: ch23_chapter_done()=True  call -> RETURNED
+  ✅ CONTROL SEPARATES: the same call returns cleanly where the chapter IS done.
+====================================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
+026-09-18_10-38-54.ss1 created!
+Updated `current_state.ss1`!

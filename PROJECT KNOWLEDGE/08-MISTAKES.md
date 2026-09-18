@@ -19249,3 +19249,52 @@ reserved for an actual read-back value, which it now prints.
 - ⭐ **A vacuity arm is not only a test of the grade's premise — it is the only arm that exercises
   every diagnostic on the PARTIAL-STATE path.** Read its full output, not just its verdict. This bug
   was invisible in all three passing arms.
+
+
+## 2026-09-18 — A PROBE ASKED ONE MAP'S QUESTION OF ANOTHER MAP, AND THE ANSWER LOOKED LIKE A FINDING
+
+**SYMPTOM.** `probe_ch23_lobby_resume.py` v1 ran a CONTINUE check — `calculate_path` from the current
+tile to the League lobby's exit landing `(9,11)` — on **every** inside-the-League case. On
+`post_hall4_door` (a different map entirely) it printed
+`NO PATH — PathFindingError: Could not find a path from (5/3 @ EVER_GRANDE_CITY_HALL4) to (9/11 @ EVER_GRANDE_CITY_HALL4)`.
+Read at a glance that says **“the bot is physically stranded in HALL4”** — which would have been a
+bigger finding than the one the probe was built for, and it is not true. `(9,11)` is a LOBBY tile; on
+HALL4 the question is meaningless.
+
+**ROOT CAUSE.** The CONTINUE target was a module-level constant applied to every case, so the check
+silently changed meaning when the subject changed. The probe had ONE target and THREE subjects.
+
+**THE FIX THAT WORKED.** The target is per-case (`CASES` carries it), and a case with no target prints
+`CONTINUE: n/a — no target is defined for this map, and borrowing another map's tile would answer the
+wrong question` instead of a scary red herring.
+
+**PREVENTION RULES.**
+- ⛔ **A check that is valid for one subject is not automatically valid for the next one.** When a
+  probe loops over positions/fixtures/maps, every parameter of the check belongs in the CASE row, not
+  in a module constant — a constant cannot be wrong loudly, only quietly.
+- ⛔ **A `NO PATH` / “not found” / “absent” result is a claim about the QUESTION as much as the
+  subject.** Before reporting one as a finding, confirm the question was meaningful for that subject.
+  *(This project has paid for the general form of this twice: “never conclude ABSENCE from limited
+  output”, and “a control on a different subject proves nothing”.)*
+
+## 2026-09-18 — AN EDIT SCRIPT'S ESCAPES DID NOT MATCH THE FILE, AND ONLY THE ASSERTION SAVED IT
+
+**SYMPTOM.** A patch script written with `\\uXXXX` escapes was pointed at a file whose text contains the
+REAL characters (it had been written with a different tool). Every `old` string missed,
+`assert s.count(old) == 1` fired with `('cases', 0)`, and the script exited **before writing
+anything**. The probe was then re-run and produced output from the UNPATCHED code — which briefly
+looked like the fix had failed to work, rather than never having been applied.
+
+**ROOT CAUSE.** Two ways of representing the same text in one codebase: Python `\\u` escapes in
+generated patch scripts versus literal UTF-8 in files written directly.
+
+**THE FIX THAT WORKED.** Re-applied with an editor that matches the literal characters, then
+**verified each edit by its own grep with an expected count** before re-running.
+
+**PREVENTION RULES.**
+- ⭐ **Keep the `assert count == 1` on every scripted replacement.** It is what turned a silent no-op
+  into a loud, harmless failure here — the script wrote nothing, so there was no half-applied state.
+- ⛔ **After a patch script, re-run the thing under test ONLY once the edits are grep-verified.** A
+  re-run over unpatched code produces real-looking output for the old behaviour. *(`08-MISTAKES`
+  already records the sibling rule: the file list tells you which FILES changed, not which EDITS
+  landed.)*

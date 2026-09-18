@@ -305,7 +305,44 @@ open-vs-built sweep of all 80 open items has **not** been done.
   ⚠ **THE WINDOW IS TWO MAPS AND THIS SPEC COVERS ONE** — League 2F is reachable by
   `LEAGUE_ESCALATOR (1,7)`, *“collision 0 — an accidental step-on warp”*. A 2F reading is owed too.
   Full spec + what was measured without driving: `ai-research-notes/2026-09-18-ch24-lobby-fixture-SPEC.md`
-- [ ] ⛔ `#24-ch23lobbyresume` — **NEW 2026-09-18. §Ch23 CANNOT RESUME FROM THE LEAGUE LOBBY — THE TILE ITS OWN LEG 10 STANDS ON. ⇒ WHAT REMAINS: PROVE THE RAISE BY RUNNING IT (the repro fixture already exists), THEN DECIDE THE FIX.**
+- [~] ⛔ `#24-ch23lobbyresume` — **NEW 2026-09-18, AND THE RAISE IS NOW *MEASURED*, NOT TRACED. ⛔⛔ RE-SCOPED THE SAME DAY: THE SYMPTOM IS **LEAGUE-WIDE**, NOT LOBBY-ONLY. ⇒ WHAT REMAINS: DESIGN THE FIX — and FIRST establish whether this ever happens in a real run (a BATCH question, untouched).**
+  ✅✅ **MEASURED 2026-09-18** by `probe_ch23_lobby_resume.py` — the chapter is **CALLED**, not traced.
+  On `post_league_lobby.ss1` (LEAGUE_1F (3,4)): `ch23_chapter_done() BEFORE = False` →
+  `CALL -> BotModeError` (*“Ch23 (Victory Road) failed after 3 attempts”*, three clauses each
+  *“every leg ran but the chapter does not grade done (wally=True, at=((16, 10), (3, 4)))”*),
+  `moved = False`, **`frames consumed = 0`**. ✅ CONTROL SEPARATES: on `post_league_shop.ss1`
+  `ch23_chapter_done()` is True and the same call `RETURNED` cleanly, running no leg.
+  ⭐ **WHY IT WAS SAFE TO RUN, AND THE REASON GENERALISES:** with every guard False the chapter
+  **yields nothing**, so one `next()` executes the whole body for **zero emulator frames** — the
+  bot cannot move, so it cannot wander into the un-fleeable gauntlet. `frames consumed` is
+  REPORTED rather than assumed, so the safety argument is checked on every run.
+  ⭐⭐ **THE CHARACTERISATION: PHYSICALLY FREE, LOGICALLY STUCK.** `calculate_path` off (3,4) to the
+  lobby's own exit landing **SUCCEEDS — 14 waypoints**. ⇒ ⛔ this is **NOT** the §Ch15/§Ch18/§Ch19
+  “stranded” shape and must not be described with that word: the bot's legs work, its BOOKKEEPING
+  has no move. Every pass re-derives the same ten False guards and burns the retry budget again.
+  ⛔⛔ **RE-SCOPED BY ITS OWN PRE-REGISTERED FALSIFIER (P9).** `post_hall4_door` — a SEALED map —
+  raises **identically** (same clauses, zero frames). ⇒ §Ch23 cannot resume from **ANY** map inside
+  the League, because `ch23_chapter_done()` conjuncts `_on_map(EG)` and every interior is a
+  separate map. The prediction row had said in advance that a match would mean the name was too
+  narrow; it matched.
+  ⭐ **THE SLUG SURVIVES BECAUSE THE *RESIDUAL* IS LOBBY-ONLY.** The §Ch24 marker is *on a
+  `CH24_SEALED_MAP` OR `IS_CHAMPION`*, and `06-DECISIONS-LOG.md` DECISION 2 **deliberately excludes
+  `POKEMON_LEAGUE_1F (16,10)`** (§Ch23's legs 10/11 work there). ⇒ the marker covers the HALL4 half
+  and leaves the lobby half exactly as measured. ⚠ **NOT VERIFIED BY ME:** *how* the marker is meant
+  to feed `ch23_chapter_done()` or the `story_mode.py:5172` gate — that is prerequisite (1)'s
+  implementation and I have read no code for it. The claim above is about the marker's MAP SET,
+  which is decided; not about a mechanism that exists.
+  ⚠⚠ **BEFORE THIS IS PRIORITISED: THE FREQUENCY IS UNMEASURED.** Nothing shows a real run ever
+  re-enters §Ch23 from inside the League. `CLAUDE.md` §9: that is a BATCH question, not a driver
+  question. ‼ **A measured raise is not a measured incident rate.**
+  ⚠ **FIX NOT DESIGNED.** Two visible candidates, neither evaluated: widen the completion
+  predicate, or stop `story_mode` re-entering a chapter that raised from an unchanged position.
+  Graded predictions + the instrument defect found mid-run:
+  `ai-research-notes/2026-09-18-ch23-lobby-resume-PREDICTIONS.md`
+  ⛔ *(Superseded headline, kept so the change is visible: “§Ch23 CANNOT RESUME FROM THE LEAGUE
+  LOBBY — THE TILE ITS OWN LEG 10 STANDS ON. ⇒ WHAT REMAINS: PROVE THE RAISE BY RUNNING IT.”
+  The leg-10 fact is still true and still the reason the lobby is REACHED; it is simply not the
+  boundary of the defect.)*
   **THE SHAPE.** ✅ MEASURED 2026-09-18 on `post_league_lobby.ss1`: on `POKEMON_LEAGUE_1F (3,4)` **all
   ten §Ch23 call sites read False** and **`ch23_chapter_done()` reads False** — the latter because it
   conjuncts `_on_map(EG)`, the OUTDOOR map (`ch23_chapter_done`, `victory_road.py` — ‼ cite the
@@ -2640,44 +2677,10 @@ region, where "train near the gym" is actively wrong.
       ‼ **It does NOT unblock `#24-counters`** — see the new `#24-smashroute` below.
 
 - [x] **`#24-smashroute` — DONE 2026-07-31.** The bot clears a field-move obstacle that seals a route. — 📦 **ARCHIVED 2026-08-24 → `28-HANDOFF-ARCHIVE.md`** (CLOSED; moved verbatim for the R3 budget, nothing deleted).
-- [x] ~~**‼ `#24-smashroute` — clear a ROCK SMASH obstacle that seals a journey (new,
-      2026-07-31; see KI-41). This, not route planning, is what gates the counter chain.**~~
-      (original entry, kept for the measurement)
-      Measured: ROUTE111 reachability from Mauville has a hard floor at y≈100–101 across
-      columns 17–20 — the twin-rocks choke `early_game.travel_lavaridge_to_petalburg` already
-      documents at **(18,101)** (and which RESPAWNS on map reload). Consequence: ROUTE112 is
-      **0/76** reachable from Mauville, and FIERY_PATH's only two doors are on Route 112 — so
-      Machop, the counter the ladder names for Norman, is unreachable. After the `#24-journey`
-      fix a warp route to Fiery Path IS found (2 candidates) and **neither first leg is
-      walkable**. The story only gets past this because two travel functions hand-code a
-      `_smash_rock` at that exact coordinate; nothing generic does.
-      **Shape:** when a journey leg fails, ask whether a smashable rock / cuttable tree sits on
-      the blocked corridor; if the party has the move and badge, clear it and re-plan.
-      `_smash_rock` exists and is idempotent. ‼ Bound it — a respawning rock must not become an
-      infinite smash-and-retry loop. Coordinates from map data or the decomp, never memory.
-
-- [x] ~~**‼ `#24-journey` — CROSS-MAP OVERWORLD ROUTE PLANNING (new, 2026-07-30; see KI-39).
-      This is now the biggest structural blocker in the project.**~~ **(SUPERSEDED — the text
-      below is the 2026-07-30 diagnosis, kept only because the handoff and KI-39 quote it.
-      It is wrong; see above.)** The bot cannot plan a
-      journey to a place more than a directly-connected map away. Measured from Mauville:
-      ROUTE117 (adjacent) OK 72 waypoints; ROUTE110 (joined via a gate BUILDING = a warp)
-      FAIL; ROUTE116 FAIL; ROUTE111-north FAIL. Cause: `region_of()` puts the WHOLE Hoenn
-      overworld in region **0**, so `navigate_to_anywhere` always takes its same-region
-      branch and never consults the warp planner — even when a valid warp route exists
-      (`graph.plan(MAUVILLE→FIERY_PATH)` returns one). Long trips work today only because
-      the story chapters hand-code them leg by leg (`_hold_walk_route`).
-      **Gates:** `#24-counters` phase 2 (destinations are mostly out of range),
-      `#24-dexhunt`, `#24-pc` (box trips), `#24-catchcap`, and the whole team/PC-reserve
-      plan — all of them assume "travel to a known place on request".
-      **Shape of the fix:** BFS map-connections + warp edges → ordered legs → execute leg by
-      leg re-planning from the real position after each (the shape the cross-region branch
-      already uses). Needs sub-map partitions (Route 111 north/south are one map but not
-      mutually walkable), capability gates (Surf/Fly/Go-Goggles) and a per-leg frame budget.
-      ‼ **Do NOT try gateway waypoints** — tried and refuted 2026-07-30
-      (`probe_counter_gateway.py`): a same-region gateway is routed by the same broken
-      branch and fails identically.
-
+- [x] ~~**‼ `#24-smashroute` — clear a ROCK SMASH obstacle that seals a journey**~~ — **SUPERSEDED / CLOSED.**
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full statement and its reasoning are there.
+- [x] ~~**‼ `#24-journey` — CROSS-MAP OVERWORLD ROUTE PLANNING**~~ — **SUPERSEDED / CLOSED.** The original journey-planning item; its successor entry (also `#24-journey`, DONE 2026-07-31, warp planning at MAP granularity) remains in place above.
+      📦 **ARCHIVED VERBATIM to `28-HANDOFF-ARCHIVE.md` (2026-09-18, R3 line budget; nothing deleted)** — the full original statement and KI-39 context are there.
 - [~] **‼‼ `#24-menutext` — THE REAL FIX for KI-38/KI-40. NOW THE #1 ITEM (2026-07-30).**
       Runs stopped finishing entirely (48% → 0%) because the after-faint chooser cannot select
       a living replacement: measured `NO ELIGIBLE REPLACEMENT` = **0** while `GAVE UP` runs at

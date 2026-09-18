@@ -11639,3 +11639,61 @@ the line before a genuine SIBLING `- [x]`, its body contains no nested `- [` ste
       every free-slot teach in the 900-frame loop, and the replace test cannot see that.
       `repro_hmteach_postlearn.py` §5 pins it (17 → 22 checks).
 
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`: `#24-journey` (superseded entry)
+
+> Moved under `lint_docs.py` R3 (the punch list went over its 4,400-line budget when
+> `#24-ch23lobbyresume` was re-scoped and its measurements recorded).
+> **NOTHING IS DELETED** — the lines below are the item exactly as it stood, and the
+> punch list keeps the slug with a short summary pointing here. The slug survives in
+> place because code and docs cite it (34 tracked files).
+
+- [x] ~~**‼ `#24-journey` — CROSS-MAP OVERWORLD ROUTE PLANNING (new, 2026-07-30; see KI-39).
+      This is now the biggest structural blocker in the project.**~~ **(SUPERSEDED — the text
+      below is the 2026-07-30 diagnosis, kept only because the handoff and KI-39 quote it.
+      It is wrong; see above.)** The bot cannot plan a
+      journey to a place more than a directly-connected map away. Measured from Mauville:
+      ROUTE117 (adjacent) OK 72 waypoints; ROUTE110 (joined via a gate BUILDING = a warp)
+      FAIL; ROUTE116 FAIL; ROUTE111-north FAIL. Cause: `region_of()` puts the WHOLE Hoenn
+      overworld in region **0**, so `navigate_to_anywhere` always takes its same-region
+      branch and never consults the warp planner — even when a valid warp route exists
+      (`graph.plan(MAUVILLE→FIERY_PATH)` returns one). Long trips work today only because
+      the story chapters hand-code them leg by leg (`_hold_walk_route`).
+      **Gates:** `#24-counters` phase 2 (destinations are mostly out of range),
+      `#24-dexhunt`, `#24-pc` (box trips), `#24-catchcap`, and the whole team/PC-reserve
+      plan — all of them assume "travel to a known place on request".
+      **Shape of the fix:** BFS map-connections + warp edges → ordered legs → execute leg by
+      leg re-planning from the real position after each (the shape the cross-region branch
+      already uses). Needs sub-map partitions (Route 111 north/south are one map but not
+      mutually walkable), capability gates (Surf/Fly/Go-Goggles) and a per-leg frame budget.
+      ‼ **Do NOT try gateway waypoints** — tried and refuted 2026-07-30
+      (`probe_counter_gateway.py`): a same-region gateway is routed by the same broken
+      branch and fails identically.
+
+
+
+## 2026-09-18 — 📦 RETIRED VERBATIM FROM `03-PUNCH-LIST.md`: `#24-smashroute` (superseded entry)
+
+> Moved under `lint_docs.py` R3 (the punch list went over its 4,400-line budget when
+> `#24-ch23lobbyresume` was re-scoped and its measurements recorded).
+> **NOTHING IS DELETED** — the lines below are the item exactly as it stood, and the
+> punch list keeps the slug with a short summary pointing here. The slug survives in
+> place because code and docs cite it (28 tracked files).
+
+- [x] ~~**‼ `#24-smashroute` — clear a ROCK SMASH obstacle that seals a journey (new,
+      2026-07-31; see KI-41). This, not route planning, is what gates the counter chain.**~~
+      (original entry, kept for the measurement)
+      Measured: ROUTE111 reachability from Mauville has a hard floor at y≈100–101 across
+      columns 17–20 — the twin-rocks choke `early_game.travel_lavaridge_to_petalburg` already
+      documents at **(18,101)** (and which RESPAWNS on map reload). Consequence: ROUTE112 is
+      **0/76** reachable from Mauville, and FIERY_PATH's only two doors are on Route 112 — so
+      Machop, the counter the ladder names for Norman, is unreachable. After the `#24-journey`
+      fix a warp route to Fiery Path IS found (2 candidates) and **neither first leg is
+      walkable**. The story only gets past this because two travel functions hand-code a
+      `_smash_rock` at that exact coordinate; nothing generic does.
+      **Shape:** when a journey leg fails, ask whether a smashable rock / cuttable tree sits on
+      the blocked corridor; if the party has the move and badge, clear it and re-plan.
+      `_smash_rock` exists and is idempotent. ‼ Bound it — a respawning rock must not become an
+      infinite smash-and-retry loop. Coordinates from map data or the decomp, never memory.
+

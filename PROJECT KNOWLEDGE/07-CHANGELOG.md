@@ -32023,3 +32023,46 @@ Filed as **`#24-ch23lobbyresume`**, with a cheap, safe, decisive next step: load
 `post_league_lobby.ss1` and call `do_victory_road_chapter()` — every guard is False so **nothing
 moves**, and it either raises or it does not. ⚠ The FREQUENCY remains unmeasured, and per
 `CLAUDE.md` §9 that is a batch question, not a driver question.
+
+
+## 2026-09-18 (later still x2) — §Ch23'S LEAGUE RAISE IS *CALLED*, NOT TRACED — AND ITS OWN FALSIFIER RE-SCOPED IT
+
+`probe_ch23_lobby_resume.py` (new) **calls `do_victory_road_chapter()`** from inside the League
+instead of reasoning about it. Predictions were committed first (`dde71650`). Evidence: `tools/story-dev/evidence/2026-09-18-ch23-lobby-resume.stdout.txt`
+
+**✅ THE RAISE IS REAL.** On `post_league_lobby.ss1`: `ch23_chapter_done() BEFORE = False` →
+`CALL -> BotModeError` — *“Ch23 (Victory Road) failed after 3 attempts”*, three clauses each *“every
+leg ran but the chapter does not grade done (wally=True, at=((16, 10), (3, 4)))”* — `moved = False`,
+**`frames consumed = 0`**. ✅ The CONTROL separates: on `post_league_shop.ss1` `ch23_chapter_done()` is
+True and the identical call `RETURNED` cleanly, running no leg.
+
+**⭐⭐ THE CHARACTERISATION, MEASURED: PHYSICALLY FREE, LOGICALLY STUCK.** `calculate_path` off (3,4)
+to the lobby's own exit landing **succeeds, 14 waypoints**. ⇒ ⛔ this is **not** the
+§Ch15/§Ch18/§Ch19 “stranded” shape and must not be given that word: the bot's legs work; its
+BOOKKEEPING has no move, and every pass re-derives the same ten False guards.
+
+**⛔⛔ AND P9 — A ROW FILED WITH EXPLICITLY LOW CONFIDENCE — RE-SCOPED THE ITEM.** `post_hall4_door`,
+a SEALED map, raises **identically**. ⇒ the symptom is **LEAGUE-WIDE**: §Ch23 cannot resume from ANY
+map inside the League, since `ch23_chapter_done()` conjuncts `_on_map(EG)`. ⭐ The slug stays because
+the RESIDUAL after the planned fix is lobby-only — the §Ch24 marker's map set **deliberately excludes
+`POKEMON_LEAGUE_1F`** (`06-DECISIONS-LOG.md` DECISION 2), so it covers HALL4 and leaves the lobby.
+⚠ How the marker would feed `ch23_chapter_done()` is prerequisite (1)'s implementation and is **not
+verified here**.
+
+**⭐ WHY CALLING A CHAPTER WAS SAFE, AND IT IS A REUSABLE ARGUMENT:** with every guard False the
+chapter **yields nothing**, so a single `next()` runs the whole body for **zero emulator frames** — the
+bot cannot move, so it cannot wander into the un-fleeable gauntlet. The probe REPORTS
+`frames consumed` rather than assuming it, and says loudly if the generator ever yields.
+⛔ The CONTROL is the dangerous half and is **guarded, not trusted**: outdoors, leg 5's guard is True,
+so the probe refuses to call the chapter unless `ch23_chapter_done()` is ALREADY True.
+
+**⚠ AN INSTRUMENT DEFECT WAS FOUND AND FIXED MID-RUN.** v1 asked for the LOBBY's `(9,11)` on HALL4 too
+and printed `NO PATH` — which reads as *“the bot is physically stranded in HALL4”* and only meant *“I
+asked the wrong question”*. The CONTINUE target is now per-case; HALL4's prints `n/a`.
+**A control aimed at a different subject proves nothing.**
+
+**⚠ THE FREQUENCY REMAINS UNMEASURED** — a BATCH question (`CLAUDE.md` §9). A measured raise is not a
+measured incident rate, and this must not be prioritised as though it were.
+
+Files: `tools/story-dev/probe_ch23_lobby_resume.py` (new),
+`tools/story-dev/evidence/2026-09-18-ch23-lobby-resume.stdout.txt` (new).
