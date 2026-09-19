@@ -1,0 +1,29 @@
+Running mGBA 0.10.2
+============================================================================================================
+P7: does ANY reachability call happen while the bot grinds inside Victory Road?
+============================================================================================================
+  fixture   : post_grind_L60.ss1
+  standing  : VICTORY_ROAD_1F (15, 39)
+  party     : Wailord L60, Zigzagoon L19, Mightyena L60, Sceptile L60, Swellow L60, Castform L36
+  target    : L62  (max+2, so the loop keeps grinding for the whole budget)
+  wrapped   : is_map_reachable, reachable_maps, reachable_map_distances, why_unreachable
+
+
+  frames=6000  yields=6000  battles=1
+  party after : Zigzagoon L19, Wailord L60, Mightyena L60, Sceptile L60, Swellow L60, Castform L36
+  maps sampled: ['VICTORY_ROAD_1F']
+
+============================================================================================================
+  ⛔⛔ THE RUN SAT IN AN UNFOUGHT BATTLE FOR 5575 OF 6000 FRAMES.
+     ⇒ THIS PROBE'S DRIVER IS INADEQUATE, AND THAT IS THE FINDING, NOT A BUG TO HIDE.
+     A bare `next(gen)` loop advances `train_team` but provides NO battle handling, so
+     the first wild encounter starts and nothing ever fights it. MEASURED: the spin
+     found an encounter within ~1,000 frames and `get_game_state()` read BATTLE for
+     every sample thereafter. ⇒ P7 CANNOT be answered this way — it needs the real
+     harness (`story_harness.py` + a driver), which runs the bot's battle handling.
+     ‼ Note what this probe did NOT do: report a comfortable 'no reachability calls'.
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
+026-09-18_20-59-17.ss1 created!
+Updated `current_state.ss1`!

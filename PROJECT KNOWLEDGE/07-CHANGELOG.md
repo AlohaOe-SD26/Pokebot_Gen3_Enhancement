@@ -32756,3 +32756,38 @@ with the foe's level), not an order of magnitude.
 `ai-research-notes/2026-09-18-trainingbrackets-CLOSED.md` (new),
 `tools/story-dev/probe_bracket_viability.py` (new) + its evidence file,
 `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `06-DECISIONS-LOG.md`, `08-MISTAKES.md`.
+
+
+## 2026-09-18 — P7 IS STILL UNTESTED, AND THE PROBE THAT FAILED TWICE IS THE USEFUL ARTIFACT
+
+**NEW:** `tools/story-dev/probe_p7_reach_calls_in_cave.py` + evidence. ⛔ **It does not answer P7.**
+It is committed because it refuses to answer it, twice, for two different reasons, and says which.
+
+P7 — *"nothing consults reachability while the bot is inside Victory Road"* — is the one prediction
+from `#24-waterfallcap` graded UNGRADEABLE. It matters because the `#24-waterfallcap` fix measurably
+changed `best_training_area(allow=_counter_area_allowed)` from `None` to `ROUTE121` **from inside
+that cave**, and a caller census (structural, not measured) is all that currently stands behind it.
+
+**ATTEMPT 1 — WRONG FIXTURE.** `grind_stall_ppzero.ss1` is saved MID-BATTLE (`game_state=BATTLE`,
+`controllable=False`, stable past 1,200 frames — it is the zero-PP *stall* fixture). `train_team` is
+an overworld entry point, so it waited and raised *"Cutscene did not end after 8000 frames"*.
+‼ I had asserted the fixture was fine because a cave-heal drive used it successfully — **wrong
+reason**: the harness fights battles, my probe did not.
+
+**ATTEMPT 2 — RIGHT FIXTURE, WRONG DRIVER.** On `post_grind_L60.ss1` (overworld at `(15,39)`) the
+spin found an encounter in **~425 frames**, the battle started, and a bare `next(gen)` loop has no
+battle handling — so the run sat in that single unfought battle for ~89,000 frames. The battle
+COUNTER was independently wrong too (`get_battle_state()` read as "no battle" while
+`get_game_state()` said BATTLE for every sample), so the run reported `battles=0`.
+
+⭐ **THE POINT: BOTH RUNS WOULD HAVE PRINTED "no reachability calls inside Victory Road — P7
+CONFIRMED" HAD THE VACUITY GATE NOT REFUSED.** An arm that never runs produces exactly the silence
+the hypothesis predicts. The probe now also names the stuck-in-battle case explicitly rather than
+reporting a bare zero, and its frame budget is deliberately SMALL (6,000) with the reason stated —
+at 90,000 it learned nothing extra, because the limit is the driver, not the budget.
+
+⇒ Filed as **`#24-p7reachincave`**: answering it needs a harness driver with real battle handling.
+
+**FILES:** `tools/story-dev/probe_p7_reach_calls_in_cave.py` (new),
+`tools/story-dev/evidence/2026-09-18-p7-reach-calls-in-cave.stdout.txt` (new),
+`03-PUNCH-LIST.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.

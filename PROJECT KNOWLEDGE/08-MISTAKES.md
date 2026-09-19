@@ -19938,3 +19938,45 @@ been pure waste, and one that disagreed on recall alone could have unsettled a p
 - ⭐ **IF YOU DO RE-SURVEY A PROVEN BLOCK, MAKE IT AN ADVERSARIAL CHECK OF THAT BLOCK, NOT A FRESH
   SURVEY.** Point the agent AT the block and ask it to find errors. Same cost, and the output is
   either corroboration or a correction — both useful — instead of a second opinion nobody can rank.
+
+
+## 2026-09-18 — I BUILT A PROBE WHOSE DRIVER COULD NOT DO THE THING IT WAS MEASURING, TWICE
+
+**SYMPTOM.** `probe_p7_reach_calls_in_cave.py` was written to answer *"does anything consult
+reachability while the bot grinds inside Victory Road?"* by instrumenting the real functions during
+a real grind. It ran twice and measured nothing both times:
+1. **Wrong fixture.** `grind_stall_ppzero.ss1` is saved MID-BATTLE. `train_team` is an overworld
+   entry point ⇒ *"Cutscene did not end after 8000 frames"*.
+2. **Wrong driver.** With an overworld fixture the spin hit an encounter in ~425 frames, and a bare
+   `next(gen)` loop cannot fight — so the run sat in one unfought battle for ~89,000 frames.
+
+**⛔ AND A THIRD DEFECT INSIDE THE SAME FILE:** the battle counter read `get_battle_state()` and
+reported `battles=0` for a run in which `get_game_state()` said BATTLE at every sample. **The
+instrument was wrong about the very condition that was blocking it.**
+
+**ROOT CAUSE.** I reached for the cheapest thing that could advance the generator, and never asked
+whether it could advance it *through the situations the generator creates*. A training loop's whole
+purpose is to start battles; a driver that cannot finish a battle cannot drive a training loop for
+more than one encounter. ‼ I also mis-diagnosed attempt 1 out loud — I said the fixture must be fine
+"because the cave-heal drive used it successfully", when the real difference was that **the harness
+fights battles and my loop did not.**
+
+**⭐ WHAT SAVED IT.** The vacuity gate — *"only report if battles > 0"*. Both runs would otherwise
+have printed **"no reachability calls inside Victory Road — P7 CONFIRMED"**, which is precisely the
+answer I was hoping for. **A dead arm produces exactly the silence an absence-hypothesis predicts**,
+so an absence claim measured by a silent instrument is worth nothing.
+
+**PREVENTION RULES.**
+- ⛔⛔ **BEFORE WRITING A DRIVER, LIST WHAT THE SUBJECT WILL DO AND CHECK THE DRIVER HANDLES EACH.**
+  A grind fights, heals, walks and can white out. `next(gen)` + `run_single_frame()` handles none of
+  them. **If the harness already drives this subject, use the harness** — its extra machinery IS the
+  requirement, not overhead.
+- ⛔ **CHECK A FIXTURE'S GAME STATE BEFORE USING IT, NOT ITS FILENAME.** One line —
+  `get_game_state()` / `player_avatar_is_controllable()` — separates an overworld save from a
+  mid-battle or mid-menu one. Several fixtures here are saved mid-battle ON PURPOSE.
+- ⛔ **A COUNTER IS AN INSTRUMENT AND NEEDS ITS OWN CONTROL.** `battles=0` agreed with my hypothesis
+  and was false. Cross-check any counter against a second reading of the same fact (here
+  `get_game_state()`), especially when it reports the convenient number.
+- ⭐ **WHEN AN ARM FAILS, MAKE THE PROBE NAME THE FAILURE MODE.** It now prints *"SAT IN AN UNFOUGHT
+  BATTLE FOR N OF M FRAMES"* and says a harness driver is required. The next person loses minutes,
+  not an afternoon — and does not mistake the silence for a result.
