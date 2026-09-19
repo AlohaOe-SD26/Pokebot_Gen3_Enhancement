@@ -1,0 +1,112 @@
+Running mGBA 0.10.2
+================================================================================================================
+THE L65 FLOOR, PER MŌN — AND WHO CARRIES THE HMs
+================================================================================================================
+
+─── post_ch24_atdoor_L75.ss1
+  state=OVERWORLD  at EVER_GRANDE_CITY (18, 6)
+  slot  species      lvl   to L65       field moves held                   moves
+  --------------------------------------------------------------------------------------------------------
+  0     Mightyena    75    already ≥ 65 Strength                           Strength, Crunch, Take Down, Bite
+  1     Zigzagoon    19       20.4 h    Rock Smash, Surf ⛔                 Tackle, Rock Smash, Surf, Headbutt
+  2     Sceptile     75    already ≥ 65 Rock Smash, Strength               Rock Smash, Strength, Leaf Blade, Aerial Ace
+  3     Swellow      75    already ≥ 65 Fly                                Facade, Fly, Aerial Ace, Quick Attack
+  4     Wailord      75    already ≥ 65 Dive, Surf, Waterfall ⛔            Dive, Surf, Ice Beam, Waterfall
+  5     Castform     36       17.1 h    -                                  Powder Snow, Weather Ball, Sunny Day, Hail
+
+  ✅ Surf is held by 2 mōn (Zigzagoon, Wailord) — no single point of failure for this move.
+  ⛔⛔ Waterfall IS HELD BY EXACTLY ONE MŌN: Wailord. **Boxing it would strand the run.** Any 'remove the stragglers' plan must check this first — it is the difference between a slow run and a dead one.
+
+  ⭐ IF 'BOX THE STRAGGLERS' IS EVER CHOSEN — WHO COULD SAFELY GO:
+     ✅ Zigzagoon L19 holds ['Rock Smash', 'Surf'], and EVERY one is also held by another party member — navigationally free to remove.
+     ✅ Castform L36 holds NO field move — navigationally free to remove.
+  ‼ SINGLE POINTS OF FAILURE IN THIS PARTY: Dive ← Wailord; Fly ← Swellow; Waterfall ← Wailord
+  ℹ field moves NOBODY holds: ['Cut', 'Flash'] (fine only if no route this chapter needs them)
+  ⭐ 2 of 6 below the L65 floor: Zigzagoon L19, Castform L36
+     summed per-mōn cost ≈ 37.5 h ⚠ (an OVER-estimate of wall-clock: the 3.30× correction already encodes ~0.501 participant sharing, so these do not simply add) — dominated by **Zigzagoon at 20.4 h**.
+
+─── post_ch24_atdoor.ss1
+  state=OVERWORLD  at EVER_GRANDE_CITY (18, 6)
+  slot  species      lvl   to L65       field moves held                   moves
+  --------------------------------------------------------------------------------------------------------
+  0     Sceptile     53        9.6 h    Rock Smash, Strength               Rock Smash, Strength, Leaf Blade, Aerial Ace
+  1     Zigzagoon    19       20.4 h    Rock Smash, Surf ⛔                 Tackle, Rock Smash, Surf, Headbutt
+  2     Swellow      48       12.7 h    Fly                                Facade, Fly, Aerial Ace, Quick Attack
+  3     Wailord      47       17.9 h    Dive, Surf, Waterfall ⛔            Dive, Surf, Ice Beam, Waterfall
+  4     Mightyena    48       12.3 h    Strength                           Strength, Crunch, Take Down, Bite
+  5     Castform     36       17.1 h    -                                  Powder Snow, Weather Ball, Sunny Day, Hail
+
+  ✅ Surf is held by 2 mōn (Zigzagoon, Wailord) — no single point of failure for this move.
+  ⛔⛔ Waterfall IS HELD BY EXACTLY ONE MŌN: Wailord. **Boxing it would strand the run.** Any 'remove the stragglers' plan must check this first — it is the difference between a slow run and a dead one.
+
+  ⭐ IF 'BOX THE STRAGGLERS' IS EVER CHOSEN — WHO COULD SAFELY GO:
+     ✅ Sceptile L53 holds ['Rock Smash', 'Strength'], and EVERY one is also held by another party member — navigationally free to remove.
+     ✅ Zigzagoon L19 holds ['Rock Smash', 'Surf'], and EVERY one is also held by another party member — navigationally free to remove.
+     ⛔ Swellow L48 is the SOLE carrier of ['Fly'] — removing it would strand the run.
+     ⛔ Wailord L47 is the SOLE carrier of ['Dive', 'Waterfall'] — removing it would strand the run.
+     ✅ Mightyena L48 holds ['Strength'], and EVERY one is also held by another party member — navigationally free to remove.
+     ✅ Castform L36 holds NO field move — navigationally free to remove.
+  ‼ SINGLE POINTS OF FAILURE IN THIS PARTY: Dive ← Wailord; Fly ← Swellow; Waterfall ← Wailord
+  ℹ field moves NOBODY holds: ['Cut', 'Flash'] (fine only if no route this chapter needs them)
+  ⭐ 6 of 6 below the L65 floor: Sceptile L53, Zigzagoon L19, Swellow L48, Wailord L47, Mightyena L48, Castform L36
+     summed per-mōn cost ≈ 90.1 h ⚠ (an OVER-estimate of wall-clock: the 3.30× correction already encodes ~0.501 participant sharing, so these do not simply add) — dominated by **Zigzagoon at 20.4 h**.
+
+─── post_league_lobby.ss1
+  state=OVERWORLD  at EVER_GRANDE_CITY_POKEMON_LEAGUE_1F (3, 4)
+  slot  species      lvl   to L65       field moves held                   moves
+  --------------------------------------------------------------------------------------------------------
+  0     Mightyena    75    already ≥ 65 Strength                           Strength, Crunch, Take Down, Bite
+  1     Zigzagoon    19       20.4 h    Rock Smash, Surf ⛔                 Tackle, Rock Smash, Surf, Headbutt
+  2     Sceptile     75    already ≥ 65 Rock Smash, Strength               Rock Smash, Strength, Leaf Blade, Aerial Ace
+  3     Swellow      75    already ≥ 65 Fly                                Facade, Fly, Aerial Ace, Quick Attack
+  4     Wailord      75    already ≥ 65 Dive, Surf, Waterfall ⛔            Dive, Surf, Ice Beam, Waterfall
+  5     Castform     36       17.1 h    -                                  Powder Snow, Weather Ball, Sunny Day, Hail
+
+  ✅ Surf is held by 2 mōn (Zigzagoon, Wailord) — no single point of failure for this move.
+  ⛔⛔ Waterfall IS HELD BY EXACTLY ONE MŌN: Wailord. **Boxing it would strand the run.** Any 'remove the stragglers' plan must check this first — it is the difference between a slow run and a dead one.
+
+  ⭐ IF 'BOX THE STRAGGLERS' IS EVER CHOSEN — WHO COULD SAFELY GO:
+     ✅ Zigzagoon L19 holds ['Rock Smash', 'Surf'], and EVERY one is also held by another party member — navigationally free to remove.
+     ✅ Castform L36 holds NO field move — navigationally free to remove.
+  ‼ SINGLE POINTS OF FAILURE IN THIS PARTY: Dive ← Wailord; Fly ← Swellow; Waterfall ← Wailord
+  ℹ field moves NOBODY holds: ['Cut', 'Flash'] (fine only if no route this chapter needs them)
+  ⭐ 2 of 6 below the L65 floor: Zigzagoon L19, Castform L36
+     summed per-mōn cost ≈ 37.5 h ⚠ (an OVER-estimate of wall-clock: the 3.30× correction already encodes ~0.501 participant sharing, so these do not simply add) — dominated by **Zigzagoon at 20.4 h**.
+
+─── post_grind_L60.ss1
+  state=OVERWORLD  at VICTORY_ROAD_1F (15, 39)
+  slot  species      lvl   to L65       field moves held                   moves
+  --------------------------------------------------------------------------------------------------------
+  0     Wailord      60        6.4 h    Dive, Surf, Waterfall ⛔            Dive, Surf, Water Spout, Waterfall
+  1     Zigzagoon    19       20.4 h    Surf ⛔                             Tackle, Growl, Surf, Headbutt
+  2     Mightyena    60        4.5 h    -                                  Tackle, Crunch, Take Down, Bite
+  3     Sceptile     60        4.7 h    Rock Smash, Strength               Rock Smash, Strength, Leaf Blade, Slam
+  4     Swellow      60        4.7 h    -                                  Peck, Wing Attack, Aerial Ace, Quick Attack
+  5     Castform     36       17.3 h    -                                  Powder Snow, Weather Ball, Sunny Day, Hail
+
+  ✅ Surf is held by 2 mōn (Wailord, Zigzagoon) — no single point of failure for this move.
+  ⛔⛔ Waterfall IS HELD BY EXACTLY ONE MŌN: Wailord. **Boxing it would strand the run.** Any 'remove the stragglers' plan must check this first — it is the difference between a slow run and a dead one.
+
+  ⭐ IF 'BOX THE STRAGGLERS' IS EVER CHOSEN — WHO COULD SAFELY GO:
+     ⛔ Wailord L60 is the SOLE carrier of ['Dive', 'Waterfall'] — removing it would strand the run.
+     ✅ Zigzagoon L19 holds ['Surf'], and EVERY one is also held by another party member — navigationally free to remove.
+     ✅ Mightyena L60 holds NO field move — navigationally free to remove.
+     ⛔ Sceptile L60 is the SOLE carrier of ['Rock Smash', 'Strength'] — removing it would strand the run.
+     ✅ Swellow L60 holds NO field move — navigationally free to remove.
+     ✅ Castform L36 holds NO field move — navigationally free to remove.
+  ‼ SINGLE POINTS OF FAILURE IN THIS PARTY: Dive ← Wailord; Rock Smash ← Sceptile; Strength ← Sceptile; Waterfall ← Wailord
+  ℹ field moves NOBODY holds: ['Cut', 'Flash', 'Fly'] (fine only if no route this chapter needs them)
+  ⭐ 6 of 6 below the L65 floor: Wailord L60, Zigzagoon L19, Mightyena L60, Sceptile L60, Swellow L60, Castform L36
+     summed per-mōn cost ≈ 57.9 h ⚠ (an OVER-estimate of wall-clock: the 3.30× correction already encodes ~0.501 participant sharing, so these do not simply add) — dominated by **Zigzagoon at 20.4 h**.
+
+================================================================================================================
+  ‼ WHAT THIS SETTLES: which mōn are below the ruling's floor, what each would cost, and
+    — the safety half — whether any straggler is the sole carrier of a move the run needs.
+  ‼ WHAT IT DOES NOT SETTLE: whether the bot CAN deposit a mōn at all, and whether the user
+    wants the party changed. Both are open; neither is this probe's to decide.
+================================================================================================================
+Shutting down...
+Save state C:\Remote 
+Projects\Pokebot_Gen3_Enhancement\sandbox-pokebot\profiles\repro-fresh\states\2
+026-09-18_21-36-05.ss1 created!
+Updated `current_state.ss1`!

@@ -32791,3 +32791,32 @@ at 90,000 it learned nothing extra, because the limit is the driver, not the bud
 **FILES:** `tools/story-dev/probe_p7_reach_calls_in_cave.py` (new),
 `tools/story-dev/evidence/2026-09-18-p7-reach-calls-in-cave.stdout.txt` (new),
 `03-PUNCH-LIST.md`, `07-CHANGELOG.md`, `08-MISTAKES.md`.
+
+
+## 2026-09-18 — THE L65 FLOOR, PRICED PER MŌN, WITH THE HM-CARRIER QUESTION ANSWERED FROM THE SAVES
+
+**NEW:** `tools/story-dev/probe_party_l65_audit.py` + `evidence/2026-09-18-party-l65-audit.stdout.txt`.
+
+USER RULING 2026-09-18 raised the §Ch24 target to **every team member L65-75**, levels free to
+differ. The pinned parties carry a Zigzagoon L19 and a Castform L36, so the ruling forces a choice
+worth tens of hours — and that choice has a SAFETY precondition nobody had checked: **does a
+straggler carry a field move the navigator needs?** Party moves are recorded in no doc here; they
+are only knowable by reading the save.
+
+✅ **MEASURED on `post_ch24_atdoor_L75.ss1`:** 2 of 6 below the floor — Zigzagoon L19 (≈20.4 h to
+L65) and Castform L36 (≈17.1 h), ≈37.5 h summed (a FLOOR: no travel, heals, whiteouts or PP stalls,
+and the 3.30× correction already encodes ~0.501 participant sharing so the column does not simply
+add).
+
+✅ **BOTH STRAGGLERS ARE NAVIGATIONALLY FREE TO REMOVE** — Zigzagoon's Rock Smash and Surf are each
+duplicated (Sceptile, Wailord); Castform holds no field move at all.
+⛔ **THE SOLE CARRIERS, WHICH MUST NEVER BE BOXED:** Waterfall ← Wailord, Dive ← Wailord,
+Fly ← Swellow. Waterfall is what reaches Ever Grande at all.
+ℹ Nobody holds Cut or Flash — fine while Victory Road 1F is the only ground in play.
+
+⇒ The navigational objection to "box the stragglers" is answered: **there isn't one.** What remains
+is whether the bot CAN deposit (unresearched) and whether the user WANTS the party changed — the
+second is not mine to decide.
+
+**FILES:** `tools/story-dev/probe_party_l65_audit.py` (new) + its evidence file,
+`06-DECISIONS-LOG.md`, `07-CHANGELOG.md`.

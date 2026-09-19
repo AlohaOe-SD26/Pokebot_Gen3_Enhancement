@@ -6617,3 +6617,48 @@ was reproduced by execution. ⚠ **REASONED, NOT MEASURED — reopen freely:** w
 `_training_area_heal_map` consumers should fail safe (`#24-healmapfallback`), and whether Victory
 Road B1F's Rock Smash table (L30-40 at **rate 20**, twice any Victory Road grass table) is worth
 using if USER RULING 2's B1F exclusion is ever revisited.
+
+
+## 2026-09-18 — ⭐ USER RULING: EVERY TEAM MEMBER MUST BE L65-75, AND THEY NEED NOT MATCH
+
+**THE RULING, VERBATIM:** *"I think all pokemon in the team need to be a level between 65-75, but
+not all need to be the same level."*
+
+**WHAT IT SETTLES.**
+* The §Ch24 target is now a **BAND WITH A FLOOR ON EVERY MEMBER**, not a party average and not a
+  single number: **every battler ≥ 65**, and **≤ 75** is sufficient — there is no requirement to
+  push anyone to 75.
+* **Per-mōn targets may differ.** ⇒ a stepped leg may train each member to its own stopping point;
+  it does NOT need to level the party uniformly, which is the cheaper and more natural shape.
+* It supersedes the looser "L62-75" framing: **62 is no longer acceptable for any member.** The
+  earlier L62 figure was a measured *break-even* for the gauntlet; the ruling raises the floor.
+
+**⚠ THE QUESTION IT IMMEDIATELY FORCES, AND I AM NOT ASSUMING THE ANSWER.** The pinned §Ch24
+parties carry **Zigzagoon L19** and **Castform L36**. Read literally, "all pokemon in the team"
+means both must reach L65 — and priced against the measured 3.30×-corrected model that is roughly
+**31 h and 28 h at ×1 respectively**, i.e. the majority of the whole grind, for two mōn that
+contribute little to the gauntlet.
+⇒ **Two readings, and they differ by tens of hours:**
+  (a) *train everyone* — literal, expensive, and keeps the party the user has seen; or
+  (b) *the "team" is who fights* — box or drop the two stragglers, then train the rest to ≥65.
+⛔ **DO NOT SILENTLY PICK (b).** Removing a Pokémon from the party changes what the art piece shows,
+and this project has no user ruling permitting it. Research whether the bot even CAN deposit a mōn,
+price both readings, and put the choice back to the user with numbers attached.
+
+✅✅ **THE SAFETY HALF IS NOW MEASURED** (`probe_party_l65_audit.py`, evidence
+`evidence/2026-09-18-party-l65-audit.stdout.txt`), read from the saves rather than from any doc —
+party MOVES are recorded nowhere else. On `post_ch24_atdoor_L75.ss1`, **2 of 6** are below the
+floor: **Zigzagoon L19 (≈20.4 h)** and **Castform L36 (≈17.1 h)**, ≈**37.5 h** summed.
+* ✅ **BOTH ARE NAVIGATIONALLY FREE TO REMOVE.** Zigzagoon's `Rock Smash` and `Surf` are each held
+  by another member (Sceptile, Wailord); Castform holds **no field move at all**.
+* ⛔⛔ **THE THREE THAT CAN NEVER BE BOXED:** `Waterfall ← Wailord`, `Dive ← Wailord`, `Fly ← Swellow`
+  — sole carriers. Waterfall is what reaches Ever Grande at all, so losing Wailord strands the run.
+* ℹ Nobody holds `Cut` or `Flash` — fine only while no §Ch24 route needs them (Victory Road 1F does not; B1F/B2F, which do need Flash, are OFF THE TABLE per RULING 2).
+⇒ **what remains open is only (i) whether the bot CAN deposit, and (ii) whether the USER wants the
+party changed. The navigational objection to (b) is answered: there isn't one.**
+
+**WHAT DOES NOT CHANGE.** The grind ground stays `TRAIN_SPOT_1F` (USER RULING 2), and the training
+host stays a purpose-built §Ch24 leg rather than the generic picker (`#24-trainingbrackets` closed
+2026-09-18) or §Ch23 (reversal, 2026-09-18). The wild-level ceiling is unchanged and proven: nothing
+in the game exceeds L44 usable, so a L65 floor means the last stretch is fought against wilds ~25
+levels below the trainee.
