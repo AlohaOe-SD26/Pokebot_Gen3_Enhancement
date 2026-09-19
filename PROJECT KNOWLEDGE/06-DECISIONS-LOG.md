@@ -6496,6 +6496,11 @@ expectations. ⇒ **adding the row requires THREE things, not two**, and ⛔ the
 "make `best_training_grass` behave like its sibling" — that is the change its docstring warns
 against. ⭐ **Recommended shape (the audit's own, and it leaves `decide_maintenance` untouched): a
 regression gate asserting `best_training_grass(40) is not VICTORY_ROAD_1F`.**
+⛔⛔ **MEASURED 2026-09-18 (LATER THE SAME DAY) — “SAFE ALONE” WAS TOO STRONG, AND MY OWN A/B IS WHAT REFUTED IT** (`probe_waterfall_fix_ab.py`, evidence `evidence/2026-09-18-waterfall-fix-AB.stdout.txt`). The fix DOES change a wired production predicate. ⇒ **THE ACCURATE STATEMENT, IN THREE PARTS:**
+  * ✅ **AT THE EXECUTOR LEVEL, NOTHING CHANGES.** `best_huntable` — documented as *“the ONLY function an executor should use to pick where to go”* — is **identical in both arms**, on every fixture, for Fighting/Ghost/Dark. `huntable` stays **False** for every Victory Road candidate, because `hunt_ground_tile` is a strict whitelist. **The bot cannot be sent anywhere new.**
+  * ⛔ **AT THE RANKING LEVEL, THINGS DO CHANGE.** Victory Road candidates flip `reachable=False -> True`, so they re-order in `find_counter_candidates`' list, and `best_training_area(allow=_counter_area_allowed)` goes **`None` -> `ROUTE121(44,14)`** — ⚠ **but ONLY from a position INSIDE Victory Road.** From Ever Grande and from the League lobby, **every picker answer is byte-identical**.
+  * ✅ **AND NO PRODUCTION CODE IS KNOWN TO ASK FROM IN THERE:** a caller census found **zero** `region_reach` references in `victory_road.py` and `pokemon_league.py` — §Ch23 hardcodes `TRAIN_SPOT_1F` and uses `navigate_to_anywhere`. ⚠ That is an ABSENCE claim over a large codebase, so treat it as the weakest leg.
+  ⇒ **THE RULING STANDS IN SUBSTANCE — the cap fix may still land alone — but NOT on the grounds originally given.** It is not “exposes nothing”; it is “changes ranking only, and only from inside the cave, with the executor guard measured intact.”
 ✅ **A CLAIMED FOURTH BLOCKER WAS MEASURED AND DISMISSED.** `_MAX_TRAINING_TRAVEL_LEGS = 4`
 (`story_mode.py:1101`, passed as `max_hops` at `:1269`) was called a second blocker on an
 **INFERRED-STRONG, never measured** hop count. Measured: Victory Road would sit **1 hop** from Ever
@@ -6515,6 +6520,15 @@ Grande and **2** from the League lobby, against a budget of **4** ⇒ not bindin
 * *Route around the picker, as we already did.* Rejected by USER RULING 2026-09-18 — *"maybe we need
   to map and mark training areas for pokemon for level brackets"*. The ruling says fix the table.
 
-**DO NOT REOPEN** the question of adding the row alone, or of fixing the cap alone. Both were
-considered here with the reasons above. A new ruling, or a fix that lands all three parts together,
-is what changes this.
+⛔⛔ **THE “DO NOT REOPEN” THAT WAS HERE HAS BEEN WITHDRAWN AND REPLACED — SAME DAY, BY EVIDENCE.**
+It read: *“DO NOT REOPEN the question of adding the row alone, or of fixing the cap alone.”* ‼ I
+attached that to a claim I had **argued** but never **measured**; an A/B an hour later showed the
+cap fix does change `_counter_area_allowed`'s answers from inside Victory Road. An adversarial
+review then caught that this entry had not been updated. ⇒ see the narrowed three-part claim above.
+
+✅ **WHAT IS ACTUALLY SETTLED, AND MAY BE TREATED AS DO-NOT-REOPEN, BECAUSE IT IS MEASURED:**
+* The `TRAINING_GRASS` row must never land without its `AREA_PREREQ` row *(source: `training_areas.py:504-505`)*.
+* Adding that row does **not** make Victory Road huntable *(source: arm C — `hunt_ground_tile` defaults `require_driven=True` and never reads `TRAINING_GRASS` in that mode)*.
+* `_MAX_TRAINING_TRAVEL_LEGS = 4` is not binding here *(source: measured 1-2 hops)*.
+⚠ **WHAT IS NOT SETTLED AND MAY BE REOPENED FREELY:** whether the ranking-level change from inside Victory Road is acceptable, and whether the cap fix wants a companion narrowing of
+`_counter_area_allowed`. **No fixture exercises a boss fought from inside Victory Road.**

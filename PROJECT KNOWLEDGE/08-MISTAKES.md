@@ -19756,3 +19756,47 @@ characters, and embed it verbatim under a banner marking its refuted ordering ad
 - ⭐ **PARAPHRASE IS NOT PRESERVATION.** The reason to keep an agent's verbatim output is precisely
   that its *unglamorous* findings — the ones that did not fit my summary's narrative — survive. Both
   omissions here were secondary findings the headline had no room for.
+
+
+## 2026-09-18 — I STAMPED “DO NOT REOPEN” ON A CLAIM I HAD ARGUED BUT NEVER MEASURED, AND MEASURED IT AN HOUR LATER
+
+**SYMPTOM.** `06-DECISIONS-LOG.md` gained an entry ending *"DO NOT REOPEN the question of adding
+the row alone, or of fixing the cap alone."* It rested on the claim that fixing `#24-waterfallcap`
+alone *"exposes nothing"*, which I had reasoned out from reading `TRAINING_GRASS`. About an hour
+later I built the A/B that the project's own rules demand for a *"without X, nothing changes"*
+claim — and it printed **"THE SAFE TO LAND ALONE CLAIM IS REFUTED"**, because the fix changes
+`_counter_area_allowed`'s answers from inside Victory Road. ‼ I did not go back and correct the
+ruling. An adversarial reviewer found the contradiction and noted the stale entry *"is still the
+last word in every doc a future reader would grep."*
+
+**ROOT CAUSE.** `06-DECISIONS-LOG.md` carries more authority than any other file here: this
+project's own rules tell a future agent to grep it BEFORE escalating and to treat what it finds as
+settled. I used that authority to freeze an ARGUMENT. **The strength of the marker and the
+strength of the evidence were completely unrelated**, and nothing in my process checked that they
+matched.
+
+**⚠ WHY THE OUTCOME LOOKS BENIGN AND THE PROCESS IS STILL WRONG.** The ruling's conclusion
+survived — the cap fix may still land alone. Only the REASON was wrong. But a future agent would
+have inherited *"exposes nothing"* as settled fact and had no reason to re-measure, which is
+exactly how a wrong premise outlives the evidence that would have killed it.
+
+**THE FIX THAT WORKED.** Withdraw the DO-NOT-REOPEN, state the measured three-part claim in its
+place (executor level unchanged / ranking level changed / only from inside the cave), and split the
+entry explicitly into **what is settled BECAUSE IT IS MEASURED** and **what may be reopened
+freely** — each settled item naming its source.
+
+**PREVENTION RULES.**
+- ⛔⛔ **“DO NOT REOPEN” REQUIRES EVIDENCE, NEVER AN ARGUMENT.** Before writing it, name the
+  artifact: a measurement, an evidence file, a user ruling. **If the support is reasoning, the
+  entry gets “REASONED, NOT MEASURED — reopen if you can test it” instead.** A marker that means
+  "stop thinking" must be earned by having already done the thinking's expensive half.
+- ⛔ **IF A CLAIM IS TESTABLE BY AN ARM YOU HAVE NOT RUN, IT IS NOT SETTLED — IT IS PENDING.**
+  I had already written down that *"without X the bug survives"* needs an arm with X removed. The
+  same standard applies to *"without X nothing changes"*, which is the same sentence inverted, and
+  I did not notice that until the arm refuted me.
+- ⭐ **WHEN A MEASUREMENT LANDS, GREP FOR EVERY RULING THAT PREDATES IT.** The A/B and the ruling
+  were one hour apart in the same session; the gap that matters is not time but that a new
+  measurement never triggered a re-read of what it might overturn. **New evidence is a reason to
+  re-read old rulings, not only to write new ones.**
+- ⭐ **SPLIT A DECISION ENTRY INTO “MEASURED” AND “REOPENABLE”.** A future reader can then act on
+  the first half at full confidence without inheriting the second half's guesses.
