@@ -35,8 +35,15 @@ from modules.map_data import MapRSE
 #     ROUTE121 **28**, ROUTE120 27, ROUTE119 27, ROUTE118 27, ROUTE115 26, ROUTE111 22, ROUTE114 18,
 #     ROUTE113 16, ROUTE112 16, ROUTE117 14, ROUTE110 13, ROUTE116 8.
 #     ⇒ ROUTE121 (held here) and ROUTE123 are JOINT-HIGHEST. **No route can raise this ceiling.**
-#     ⛔ ROUTE130's 50 is MIRAGE ISLAND — a WYNAUT-only table behind a 1/256 daily RNG gate. Not a
-#       training ground; it is the single most inviting-looking row in the file and it is a trap.
+#     ⛔ ROUTE130's 50 is MIRAGE ISLAND — a WYNAUT-only table behind a daily RNG gate of roughly
+#       **1 in 10,900**. Not a training ground; it is the single most inviting-looking row in the
+#       file and it is a trap.
+#       ‼ CORRECTED 2026-09-18: this read “1/256”, which is ~42× too generous. `src/time_events.c`'s
+#       `IsMirageIslandPresent` compares the **HIGH** 16 bits of a daily-advancing RNG
+#       value (`GetMirageRnd() >> 16`) against the **LOW** 16 bits of EACH party mōn's PID
+#       (`MON_DATA_PERSONALITY & 0xFFFF`) ⇒ ≈6/65536 with a full party. The CONCLUSION never
+#       depended on the figure, but a wrong number inside a DO-NOT-RE-SURVEY block is exactly
+#       what teaches a reader to distrust the block.
 #   * NO land table ANYWHERE in Hoenn has a max level of **34, 35, 37, 41, 43, 46, 47, 48 or 49**.
 #     ⇒ §Ch23's `TRAIN_TARGET = 47` has NO ground at its level anywhere in the game.
 #
@@ -154,7 +161,7 @@ PENDING_GRASS: list[tuple] = [
     #   SAFARI_ZONE_* (L33-40 @ rate 25) — ZERO EXP, cannot attack. See the ceiling block above.
     #   ARTISAN_CAVE_1F/B1F (L40-50)     — Battle Frontier, post-game; unreachable during the story.
     #   DESERT_UNDERPASS (L35-45)        — post-game (Fossil Maniac), and Ditto/Whismur/Loudred.
-    #   ROUTE130 (L5-50)                 — Mirage Island, Wynaut-only behind a 1/256 daily RNG gate.
+    #   ROUTE130 (L5-50)                 — Mirage Island, Wynaut-only behind a ~1-in-10,900 daily RNG gate.
     #   SEAFLOOR_CAVERN_*, CAVE_OF_ORIGIN_* (L28-36) — rate **4**: ~6x fewer encounters per step
     #     than a rate-25 route, so the band flatters a patch that barely triggers battles.
 

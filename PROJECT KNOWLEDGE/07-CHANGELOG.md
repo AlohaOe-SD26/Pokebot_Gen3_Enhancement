@@ -32714,3 +32714,45 @@ behaviour changes"* — an absence claim only a drive can test. **It is untested
 `tools/story-dev/evidence/2026-09-18-waterfall-{capability-AFTERFIX,fix-AB-AFTERFIX}.stdout.txt`
 (new), `02-ARCHITECTURE.md`, `03-PUNCH-LIST.md`, `04-HANDOFF.md`, `06-DECISIONS-LOG.md`,
 `07-CHANGELOG.md`, `08-MISTAKES.md`, `ai-research-notes/2026-09-18-waterfallcap-PREDICTIONS.md`.
+
+
+## 2026-09-18 — ⛔ `#24-trainingbrackets` CLOSED WITHOUT A CODE CHANGE, AND ONE WRONG NUMBER FIXED INSIDE OUR OWN PROVEN BLOCK
+
+**WHAT CHANGED:** documentation, plus a two-line COMMENT correction in
+`sandbox-pokebot/modules/story/training_areas.py`. No behaviour changed.
+
+Three agents (code trace, adversarial, bracket survey) plus my own measurements converged on: **do
+not promote Victory Road into `TRAINING_GRASS`.** The item's premise did not survive contact.
+* The measured defect (`best_training_area(53) → L13-14 wilds`) exists **only at `allow=None`**, and
+  all four production callers pass a real predicate — so it is a harness-only artifact.
+* §Ch23 **already** grinds on the exact tile the item proposed to add
+  (`victory_road.py:2087-2090`, `TRAIN_SPOT_1F = (15,39)`).
+* The regression gate I had recorded as the "third requirement" was **self-refuting** — executed, it
+  returns VICTORY_ROAD_1F the day the row lands.
+Full write-up: `ai-research-notes/2026-09-18-trainingbrackets-CLOSED.md`.
+
+⭐ **THE L28 CEILING BLOCK IS NOW DUAL-SOURCE CORROBORATED.** `training_areas.py:27` is marked
+"PROVEN — DO NOT RE-SURVEY". A survey checked it against the pret decomp AND our own live-ROM
+extraction (`cache/encounter_index_BPEE0.json`, built by `modules/map.py` walking `gWildMonHeaders`
+on a real ROM): **38 map/method rows diffed, zero mismatches.** It also confirmed, unsoftened, that
+**L55+ is nothing** and that Safari Zone's rate-25 high-level tables cannot give EXP *structurally*
+(the Safari action table has no attack action at all).
+
+⛔ **AND IT FOUND A WRONG NUMBER IN THAT BLOCK, WHICH IS NOW FIXED.** It called Mirage Island
+"a 1/256 daily RNG gate". `src/time_events.c`'s `IsMirageIslandPresent` compares the **high** 16 bits
+of a daily RNG (`GetMirageRnd() >> 16`) against the **low** 16 bits of **each party mōn's PID** ⇒ ≈6/65536 ≈ **1-in-10,900**, ~42×
+rarer. The conclusion never depended on it, but a wrong figure inside a DO-NOT-RE-SURVEY block is
+what teaches a reader to distrust the block.
+
+**NEW ITEM `#24-healmapfallback`** — `story_mode.py:3210` and `counter_hunt.py:651` both do
+`_training_area_heal_map().get(map, cfg["heal"])` with no None-guard, silently aiming a heal at the
+BOSS's own centre on a miss; `decide_maintenance` (`:1560-1561`) refuses instead. Filed, not fixed.
+
+**NEW PROBE:** `probe_bracket_viability.py` (+ evidence) prices the grind with the filed 3.30×
+estimator correction — confirming the promotion would buy a flat ~1.43× (Gen-3 exp scales linearly
+with the foe's level), not an order of magnitude.
+
+**FILES:** `sandbox-pokebot/modules/story/training_areas.py` (comment only),
+`ai-research-notes/2026-09-18-trainingbrackets-CLOSED.md` (new),
+`tools/story-dev/probe_bracket_viability.py` (new) + its evidence file,
+`03-PUNCH-LIST.md`, `04-HANDOFF.md`, `06-DECISIONS-LOG.md`, `08-MISTAKES.md`.

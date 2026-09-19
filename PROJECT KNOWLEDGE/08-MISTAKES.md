@@ -19865,6 +19865,17 @@ follows), then re-run the suite **as the last action before staging**.
 - ⛔ **NEVER WRITE A MEASURED NUMBER INTO PROSE WHEN A COMMAND PRINTS IT.** Drift counts, gate
   counts, map counts, file counts. Write the COMMAND. This project has a dedicated gate for the
   drift case because it has recurred 13 times; the general rule is the same one.
+  ‼‼ **REFINED 2026-09-18, SAME DAY, BECAUSE THE FIRST WORDING WAS WRONG IN A CORNER AND THE GATE
+  CAUGHT ME.** I applied it to ALL THREE drift mentions, including `04-HANDOFF.md`'s STATE-table
+  row — and `audit_doc_consistency.py` went red with *"the STATE table's `sandbox ↔ custom drift`
+  row states a figure with NO currency marker, so `check_drift` cannot grade it."* ⇒ **that row is
+  not prose; it is the gate's INPUT.** The gate grades the digit there precisely so it cannot go
+  stale unseen. *(It also read my clever “NON-ZERO” as the literal ZERO — a reminder that a grader
+  parses text, it does not read intent.)*
+  ⇒ **THE CORRECT RULE HAS TWO HALVES:** state the number in the ONE canonical place a gate grades
+  it, with its currency marker (`**N as of <date> (LATEST)**`); and everywhere else point at the
+  command. **A restated digit is what goes stale — a graded one is what catches staleness.**
+  ⭐ Generalise: before removing a number from a doc, ask **whether something CHECKS it there.**
 - ⭐ **A CLAIM ABOUT THE TEST SUITE IS ITSELF SUBJECT TO THE TEST SUITE.** "All gates pass" is the
   one sentence that can be falsified by the act of writing it, because the docs are gate INPUTS.
   ⇒ treat it like a timestamp: it is only true for the tree that was actually scanned.
@@ -19891,3 +19902,39 @@ fault arm **with no environment override at all** and confirm exit 0 / exit 1 re
 - ⭐ **A HARNESS THAT NORMALISES THE ENVIRONMENT HIDES ENVIRONMENT BUGS FROM EVERY TOOL INSIDE IT.**
   Passing under `run_gates.py` is not evidence a script works standalone, and standalone is how a
   human debugging a red gate will run it — the exact moment it must not crash.
+
+
+## 2026-09-18 — I COMMISSIONED RESEARCH INTO A QUESTION OUR OWN CODE MARKS "PROVEN — DO NOT RE-SURVEY"
+
+**SYMPTOM.** I dispatched an agent to *"build the LEVEL-BRACKET MAP of wild training grounds in
+Pokémon Emerald"*, listing the bands I wanted covered. `modules/story/training_areas.py:27` opens
+with **"⛔⛔ THE L28 CEILING IS THE GAME, NOT A GAP IN THIS TABLE. PROVEN 2026-09-10 — DO NOT
+RE-SURVEY,"** followed by 35 lines that already enumerate every route land table by max level, name
+Mirage Island as a trap, disqualify the Safari Zone, and state the conclusion I was commissioning
+someone to find. **I had read that file three times today and never read its header.**
+
+**ROOT CAUSE.** I treated the punch-list item's framing (*"the table tops out at L28, the high-level
+grounds are inert data"*) as the statement of the problem, and went looking for data to fill the
+gap. The header exists precisely because that framing is a recurring misreading — it says so:
+*"That has repeatedly been read as 'the survey is incomplete'… It is not incomplete."* ⇒ **I became
+the next instance of the exact misreading the block was written to stop**, and I did it by reading
+the DATA in a file and not its DOCUMENTATION.
+
+**⚠ WHY THE OUTCOME WAS STILL GOOD, WHICH IS NOT THE SAME AS THE PROCESS BEING GOOD.** The agent
+cross-checked against two independent sources and matched 38/38 rows, so the block is now
+corroborated rather than merely asserted — and it found a genuinely wrong number inside it (Mirage
+Island's odds, off by ~42×). That is luck, not method. A re-survey that had merely agreed would have
+been pure waste, and one that disagreed on recall alone could have unsettled a proven fact.
+
+**PREVENTION RULES.**
+- ⛔⛔ **BEFORE COMMISSIONING RESEARCH, READ THE HEADER OF THE FILE THAT HOLDS THE DATA.** This
+  project writes its conclusions as block comments above the tables they concern. `CLAUDE.md` rule
+  11 already says to grep `06-DECISIONS-LOG.md` before escalating; **the same duty applies to
+  DO-NOT-RE-SURVEY markers in code**, which are rulings that happen to live in a `.py` file.
+- ⛔ **A PUNCH-LIST ITEM'S FRAMING IS A CLAIM, NOT A BRIEF.** `#24-trainingbrackets` said the
+  high-level grounds were "inert data, not missing data" — true — and I inferred the fix was to
+  activate them. The file said the opposite: relocation cannot work, train in the dungeon you are
+  clearing. **Check the item's premise against the code before acting on its conclusion.**
+- ⭐ **IF YOU DO RE-SURVEY A PROVEN BLOCK, MAKE IT AN ADVERSARIAL CHECK OF THAT BLOCK, NOT A FRESH
+  SURVEY.** Point the agent AT the block and ask it to find errors. Same cost, and the output is
+  either corroboration or a correction — both useful — instead of a second opinion nobody can rank.

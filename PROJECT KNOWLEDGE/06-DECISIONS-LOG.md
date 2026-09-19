@@ -6582,3 +6582,38 @@ open Victory Road to anyone who can reach the town's southern shore.
 ⚠ **REASONED, NOT MEASURED — reopen if you can test it:** claim 2's *"no party can be north of the
 falls without Waterfall"* rests on the decomp's collision decode plus our own constants, **not on a
 live probe of a Waterfall-less party standing in Ever Grande**. That probe is the way to settle it.
+
+
+## 2026-09-18 — VICTORY ROAD IS NOT PROMOTED INTO `TRAINING_GRASS`, AND `#24-trainingbrackets` CLOSES WITHOUT A CODE CHANGE
+
+**THE DECISION.** Do not add `(VICTORY_ROAD_1F, (15,39), (36,40))` to `TRAINING_GRASS`, do not add
+`AREA_PREREQ[VICTORY_ROAD_1F]`, and do not build the proposed regression gate. Close the item.
+
+**WHY — five reasons, each verified, any one sufficient.** Full working:
+`ai-research-notes/2026-09-18-trainingbrackets-CLOSED.md`.
+1. ✅ **The defect is a call shape production never makes.** `best_training_area(53) → ROUTE117
+   (L13-14)` happens only at `allow=None`; all four production callers pass a real predicate. With
+   one, the same table answers `ROUTE121 (25,28)`.
+2. ✅ **The remedy already ships.** `victory_road.py:2087-2090` already grinds at
+   `TRAIN_SPOT_1F = (15,39)` with the Ever Grande centre — the identical tile.
+3. ⛔ **The proposed gate was self-refuting** — executed, it returns VICTORY_ROAD_1F the day the row
+   lands, because `best_training_grass` does no filtering at `allow=None` by design.
+4. ⛔ **The generic path lacks the hardcoded path's supports** — no heal-map row, no `_CAVE_EXITS`
+   row, no frame cap.
+5. ⛔ **`victory_road.py:3425-3429` already warned against it** and demanded an adversarial pass. It
+   got one; it was refuted.
+
+**⭐ WHAT THIS DOES NOT MEAN.** The user ruling that created the item stands and is SATISFIED: §Ch23
+trains a ~L47 party on L36-40 wilds. The bracket map it asked for already exists at
+`training_areas.py:27-61` and was independently re-corroborated dual-source today (decomp + our own
+live-ROM cache, 38 rows, zero mismatches).
+
+**⇒ WHAT REPLACES IT.** `#24-levelgap` — a purpose-built §Ch24 stepped leg driving
+`train_team(..., grass=TRAIN_SPOT_1F)` with its own MEASURED frame budget. That was already the
+ruling; this item was the wrong road to it.
+
+**DO NOT REOPEN the promotion** — reason 1 and reason 2 are measurements I took myself, and reason 3
+was reproduced by execution. ⚠ **REASONED, NOT MEASURED — reopen freely:** whether BOTH
+`_training_area_heal_map` consumers should fail safe (`#24-healmapfallback`), and whether Victory
+Road B1F's Rock Smash table (L30-40 at **rate 20**, twice any Victory Road grass table) is worth
+using if USER RULING 2's B1F exclusion is ever revisited.
